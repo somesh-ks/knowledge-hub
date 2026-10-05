@@ -1,0 +1,152 @@
+[
+  {
+    "id": "g01",
+    "item_id": "aaff77675437",
+    "supported": true,
+    "sentence": "Keeping position and velocity as state lets an interrupted drawer retain its speed."
+  },
+  {
+    "id": "g02",
+    "item_id": "aaff77675437",
+    "supported": true,
+    "sentence": "With a constant target, interrupted drawers lost on average 62 percent of their release velocity."
+  },
+  {
+    "id": "g03",
+    "item_id": "aaff77675437",
+    "supported": true,
+    "sentence": "A fixed timestep of 1/120 of a second keeps retargeted motion consistent on slow devices."
+  },
+  {
+    "id": "g04",
+    "item_id": "aaff77675437",
+    "supported": false,
+    "sentence": "The approach cut battery usage by 30 percent."
+  },
+  {
+    "id": "g05",
+    "item_id": "aaff77675437",
+    "supported": false,
+    "sentence": "With a constant target, interrupted drawers lost 12 percent of their release velocity."
+  },
+  {
+    "id": "g06",
+    "item_id": "aaff77675437",
+    "supported": false,
+    "sentence": "Emil Kowalski is joining Vercel to work on this."
+  },
+  {
+    "id": "g07",
+    "item_id": "42413eb2b907",
+    "supported": true,
+    "sentence": "A 4x4 Bayer matrix holds sixteen thresholds that the fragment shader compares against pixel brightness."
+  },
+  {
+    "id": "g08",
+    "item_id": "42413eb2b907",
+    "supported": true,
+    "sentence": "Converting to linear light before thresholding gave even coverage across the 16 steps of the test ramp."
+  },
+  {
+    "id": "g09",
+    "item_id": "42413eb2b907",
+    "supported": false,
+    "sentence": "The effect needs a compute shader and WebGPU."
+  },
+  {
+    "id": "g10",
+    "item_id": "42413eb2b907",
+    "supported": false,
+    "sentence": "Adding random noise per frame removes shimmer completely."
+  },
+  {
+    "id": "g11",
+    "item_id": "0ac02eb8b4de",
+    "supported": true,
+    "sentence": "Submenus now stay open while the pointer travels toward them inside a safe triangle."
+  },
+  {
+    "id": "g12",
+    "item_id": "0ac02eb8b4de",
+    "supported": true,
+    "sentence": "The behavior is controlled by a pointerGrace option that defaults to on."
+  },
+  {
+    "id": "g13",
+    "item_id": "0ac02eb8b4de",
+    "supported": false,
+    "sentence": "The safe triangle is configurable per item with a custom angle."
+  },
+  {
+    "id": "g14",
+    "item_id": "0ac02eb8b4de",
+    "supported": false,
+    "sentence": "The release drops support for keyboard navigation in nested menus."
+  },
+  {
+    "id": "g15",
+    "item_id": "57b5e177a941",
+    "supported": true,
+    "sentence": "Errors fell from 9.1 percent with no aid to 3.4 percent with the safe triangle."
+  },
+  {
+    "id": "g16",
+    "item_id": "57b5e177a941",
+    "supported": true,
+    "sentence": "Mean selection time with the safe triangle was 612 milliseconds."
+  },
+  {
+    "id": "g17",
+    "item_id": "57b5e177a941",
+    "supported": false,
+    "sentence": "The study involved 120 participants on touch devices."
+  },
+  {
+    "id": "g18",
+    "item_id": "57b5e177a941",
+    "supported": false,
+    "sentence": "A 500 millisecond delay timer performed best of all designs."
+  },
+  {
+    "id": "g19",
+    "item_id": "88d971081a81",
+    "supported": true,
+    "sentence": "Qwen4-32B has a 128K token context window and scores 71.2 percent on the tool-use benchmark."
+  },
+  {
+    "id": "g20",
+    "item_id": "88d971081a81",
+    "supported": false,
+    "sentence": "Qwen4-32B beats every proprietary model on the tool-use benchmark."
+  },
+  {
+    "id": "g21",
+    "item_id": "2004cf623d26",
+    "supported": true,
+    "sentence": "Cold production builds of the benchmark app fell from 11.4 seconds to 2.3 seconds."
+  },
+  {
+    "id": "g22",
+    "item_id": "2004cf623d26",
+    "supported": true,
+    "sentence": "Rolldown is written in Rust and shares its parser with the Oxc toolchain."
+  },
+  {
+    "id": "g23",
+    "item_id": "2004cf623d26",
+    "supported": false,
+    "sentence": "Vite 8 keeps Rollup for production builds and drops esbuild only for the dev server."
+  },
+  {
+    "id": "g24",
+    "item_id": "638f49e9ccda",
+    "supported": true,
+    "sentence": "A hairline is one device pixel, which reads as an edge rather than a line."
+  },
+  {
+    "id": "g25",
+    "item_id": "638f49e9ccda",
+    "supported": false,
+    "sentence": "Hairlines improved conversion by 18 percent in an A/B test."
+  }
+]
