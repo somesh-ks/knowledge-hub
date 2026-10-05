@@ -86,7 +86,9 @@ function openingLine(digest: Digest): string {
 
 /** Terminal punctuation keeps the voice from running two fields together. */
 function asSentence(text: string): string {
-  return /[.!?]["')\]]*$/.test(text) ? text : `${text}.`;
+  // A field that trails off with a colon or comma still ends as a sentence, not as ":.".
+  const trimmed = text.replace(/[:;,]+$/, "");
+  return /[.!?]["')\]]*$/.test(trimmed) ? trimmed : `${trimmed}.`;
 }
 
 function itemBlock(item: DigestItem): string {
@@ -137,12 +139,13 @@ function stripMarkdown(input: string): string {
     input
       // Links and images keep their label; the URL is never spoken.
       .replace(/!?\[([^\]]*)\]\([^)]*\)/g, "$1")
-      .replace(/\b(?:https?:\/\/|www\.)\S+/gi, "")
+      // Keep punctuation that trailed the URL so its sentence still pauses where it did.
+      .replace(/\b(?:https?:\/\/|www\.)[^\s)\]>"']+/gi, (url) => url.match(/[.,;:!?]+$/)?.[0] ?? "")
       .replace(/\(\s*\)/g, "")
       .replace(/`([^`]*)`/g, "$1")
       .replace(/(\*{1,3})(\S(?:[^*]*\S)?)\1/g, "$2")
       .replace(/__([^_]+)__/g, "$1")
-      .replace(/^\s*(?:#{1,6}|[-+>]|\*)\s+/gm, "")
+      .replace(/^\s*(?:#{1,6}|[-+]|\*)\s+/gm, "")
   );
 }
 
@@ -190,15 +193,26 @@ export function toSpeech(input: string): string {
   out = out
     .replace(/&amp;/gi, "&")
     .replace(/&quot;/gi, '"')
-    .replace(/&#0?39;/g, "'");
+    .replace(/&#0?39;/g, "'")
+    .replace(/&lt;/gi, "<")
+    .replace(/&gt;/gi, ">")
+    .replace(/&nbsp;/gi, " ");
   out = stripMarkdown(out);
   // Emoji and other astral characters are dropped so UTF-16 and code point offsets agree.
   out = out
     .replace(/\p{Extended_Pictographic}/gu, "")
     .replace(/[\u200D\uFE0F]/g, "")
-    .replace(/[\u{10000}-\u{10FFFF}]/gu, "");
-  // Em and en dashes become a comma pause; the voice rules ban them in copy anyway.
-  out = out.replace(/\s*[\u2014\u2013]\s*/g, ", ");
+    // Astral letters such as mathematical double-struck "X" fold to ASCII; the rest are dropped.
+    .replace(/[\u{10000}-\u{10FFFF}]/gu, (char) => {
+      const folded = char.normalize("NFKC");
+      return /^[\x20-\x7E]+$/.test(folded) ? folded : "";
+    });
+  // An en dash between numbers is a range. Any other dash is a comma pause, or nothing straight
+  // after a full stop; the voice rules ban dashes in copy anyway.
+  out = out
+    .replace(/(?<=\d[A-Za-z%]?)\s*\u2013\s*(?=[$\u00A3\u20AC]?\d)/g, " to ")
+    .replace(/([.!?])\s*[\u2014\u2013]\s*/g, "$1 ")
+    .replace(/\s*[\u2014\u2013]\s*/g, ", ");
   out = out.replace(/\s*(?:\u2192|->)\s*/g, " to ");
   out = expandAbbreviations(out);
   out = expandVersions(out);
@@ -208,6 +222,7 @@ export function toSpeech(input: string): string {
   out = out.replace(/\s*<\s*/g, " less than ").replace(/\s*>\s*/g, " greater than ");
   return out
     .replace(/\s+/g, " ")
-    .replace(/\s+([,.;:!?])/g, "$1")
+    .replace(/\s+([,.;:!?)])/g, "$1")
+    .replace(/\(\s+/g, "(")
     .trim();
 }

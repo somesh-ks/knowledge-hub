@@ -194,8 +194,19 @@ async function pushWithRebase(input: PushInput): Promise<CommitOutcome> {
         .split("\n")
         .map((line) => line.trim())
         .filter(Boolean);
-      // Leave the repository as it was before the rebase, with the local commit intact.
-      await run(["rebase", "--abort"]);
+      // Leave the repository as it was before the rebase, with the local commit intact. "No rebase
+      // in progress" is fine (the pull failed before one began); any other failure means the
+      // repository is stuck mid-rebase and the caller must be told.
+      const aborted = await run(["rebase", "--abort"]);
+      if (aborted.code !== 0 && !/No rebase in progress/i.test(aborted.stderr)) {
+        return failure(
+          "error",
+          retries,
+          `Could not abort the rebase, so the repository is left mid-rebase: ${aborted.stderr.trim()}`,
+          sha,
+          conflicts,
+        );
+      }
       const reason: PushFailureReason = conflicts.length > 0 ? "rebase_conflict" : "error";
       return failure(
         reason,

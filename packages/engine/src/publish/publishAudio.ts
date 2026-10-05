@@ -19,6 +19,7 @@ import {
   DEFAULT_OUTPUT_FORMAT,
   DEFAULT_VOICE_ID,
   isMarksUnavailable,
+  SpeechifyError,
 } from "../audio/speechify.js";
 import type { SpokenText } from "../audio/spokenText.js";
 import { buildSpokenText } from "../audio/spokenText.js";
@@ -237,6 +238,21 @@ async function uploadWithRetry(
   }
 }
 
+/**
+ * A stream that dies midway has still synthesized (and been billed for) the characters its marks
+ * covered. Count that lower bound so a retry loop cannot quietly outrun the monthly allowance.
+ */
+async function recordPartialSpend(deps: PublishAudioDeps, error: unknown): Promise<void> {
+  if (!(error instanceof SpeechifyError) || !error.partialCharacters) return;
+  try {
+    await recordUsage({ root: deps.root, now: deps.now(), characters: error.partialCharacters });
+  } catch (recordError) {
+    deps.log.warn("Could not record the partial spend of a failed stream", {
+      reason: message(recordError),
+    });
+  }
+}
+
 interface DigestResult {
   outcome: DigestAudioOutcome;
   changed: string[];
@@ -302,6 +318,7 @@ async function processDigest(
       deps.outputFormat ?? DEFAULT_OUTPUT_FORMAT,
     );
   } catch (error) {
+    await recordPartialSpend(deps, error);
     return failed(digestId, "synthesis", error);
   }
 

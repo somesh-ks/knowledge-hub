@@ -536,6 +536,87 @@ describe("commitAndPush: pushing", () => {
     expect(git(pair.a, "status", "--porcelain")).toBe("");
   });
 
+  it("says so when a conflicted rebase cannot be aborted", async () => {
+    await put(
+      pair.b,
+      "state/usage.json",
+      '{ "version": 1, "speechify": { "month": "2026-10", "characters": 5 } }\n',
+    );
+    await commitAll(pair.b, "chore: other usage");
+    git(pair.b, "push", "-q", "origin", "main");
+    await put(
+      pair.a,
+      "state/usage.json",
+      '{ "version": 1, "speechify": { "month": "2026-10", "characters": 6 } }\n',
+    );
+    const stuck = { code: 1, stdout: "", stderr: "error: could not read the index" };
+    const spy = spyRunner(pair.a, (args) => (args.includes("--abort") ? stuck : undefined));
+    const outcome = await commitAndPush({
+      root: pair.a,
+      message: "chore(audio): record speechify usage",
+      command: "publish",
+      push: true,
+      git: spy.run,
+    });
+    expect(outcome).toMatchObject({ status: "push_failed", reason: "error" });
+    expect(outcome.status === "push_failed" && outcome.detail).toContain("left mid-rebase");
+    expect(outcome.status === "push_failed" && outcome.conflicts).toEqual(["state/usage.json"]);
+  });
+
+  it("treats 'no rebase in progress' as a clean abort", async () => {
+    const rejected = {
+      code: 1,
+      stdout: "",
+      stderr: " ! [rejected]        main -> main (fetch first)",
+    };
+    const pullFailed = { code: 1, stdout: "", stderr: "fatal: unable to access the remote" };
+    const noRebase = { code: 128, stdout: "", stderr: "fatal: No rebase in progress?" };
+    const spy = spyRunner(pair.a, (args) => {
+      if (args.includes("push")) return rejected;
+      if (args.includes("pull")) return pullFailed;
+      if (args.includes("--abort")) return noRebase;
+      return undefined;
+    });
+    await put(pair.a, "state/seen.json", "{}\n");
+    const outcome = await commitAndPush({
+      root: pair.a,
+      message: MESSAGE,
+      command: "run",
+      push: true,
+      git: spy.run,
+    });
+    expect(outcome).toMatchObject({ status: "push_failed", reason: "error", conflicts: [] });
+    expect(outcome.status === "push_failed" && outcome.detail).toContain("unable to access");
+  });
+
+  it("refuses a publish that renames a digest into an audio timeline name", async () => {
+    git(pair.a, "mv", SEED_DIGEST_PATH, "Digests/2026/10/2026-10-05.audio.json");
+    const before = head(pair.a);
+    const outcome = await commitAndPush({
+      root: pair.a,
+      message: "chore(audio): add narration",
+      command: "publish",
+      push: false,
+    });
+    expect(outcome).toMatchObject({ status: "refused", reason: "guard" });
+    expect(head(pair.a)).toBe(before);
+  });
+
+  // Windows reads the backslash as a separator when the file is created, so only POSIX can make it.
+  it.skipIf(process.platform === "win32")(
+    "refuses a file whose name holds a backslash instead of reading it as a directory",
+    async () => {
+      await put(pair.a, "Digests\\2026\\x.md", "x");
+      const outcome = await commitAndPush({
+        root: pair.a,
+        message: "chore(audio): add narration",
+        command: "publish",
+        push: false,
+      });
+      expect(outcome).toMatchObject({ status: "refused", reason: "guard" });
+    },
+  );
+
   it("gives up after three retries when every push is rejected", async () => {
     const rejected = {
       code: 1,

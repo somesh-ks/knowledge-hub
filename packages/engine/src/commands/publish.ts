@@ -1,5 +1,7 @@
+import { access } from "node:fs/promises";
+import { join } from "node:path";
 import { parseArgs } from "node:util";
-import { DigestId } from "@dispatch/core";
+import { DigestId, digestRelPath } from "@dispatch/core";
 import { describeRefusal } from "../audio/budget.js";
 import type { SpeechSynthesizer } from "../audio/speechify.js";
 import type { CommandContext, CommandRun } from "../context.js";
@@ -19,6 +21,12 @@ import type { AudioCommandDeps } from "./audio.js";
 import { defaultAudioDeps } from "./audio.js";
 
 const USAGE = "usage: dispatch publish [--digest <id>] [--prune <days>] [--no-push]";
+
+const fileExists = (path: string): Promise<boolean> =>
+  access(path).then(
+    () => true,
+    () => false,
+  );
 
 interface Credentials {
   speech: SpeechSynthesizer;
@@ -123,6 +131,11 @@ export function createPublishCommand(overrides: Partial<AudioCommandDeps> = {}):
         return 2;
       }
       digestId = parsed.data;
+      // Naming a digest that does not exist is a mistake to surface, not an audio failure to absorb.
+      if (!(await fileExists(join(ctx.root, digestRelPath(digestId))))) {
+        ctx.log.error(`No digest ${digestId} found at ${digestRelPath(digestId)}`);
+        return 1;
+      }
     }
     let pruneDays: number | undefined;
     if (values.prune !== undefined) {
@@ -203,13 +216,21 @@ export function createPublishCommand(overrides: Partial<AudioCommandDeps> = {}):
 
     // Always ask git what changed rather than trusting the result: usage.json moves even when an
     // upload fails after synthesis, and that spend must reach the repo.
-    const commit = await commitAndPush({
-      root: ctx.root,
-      message: commitMessage(result.outcomes),
-      command: "publish",
-      push: values["no-push"] !== true,
-      git,
-    });
+    let commit: CommitOutcome;
+    try {
+      commit = await commitAndPush({
+        root: ctx.root,
+        message: commitMessage(result.outcomes),
+        command: "publish",
+        push: values["no-push"] !== true,
+        git,
+      });
+    } catch (error) {
+      // A failing pre-commit hook or a broken git leaves the files written and the tree dirty.
+      ctx.log.error(`Commit failed: ${error instanceof Error ? error.message : String(error)}`);
+      emit(ctx, deps, result, undefined);
+      return 1;
+    }
     emit(ctx, deps, result, commit);
     if (commitFailed(commit)) ctx.log.error(describeCommit(commit));
     return commitFailed(commit) ? 1 : 0;

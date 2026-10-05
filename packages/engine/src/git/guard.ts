@@ -135,7 +135,10 @@ function globToRegExp(pattern: string): RegExp {
 
 /** True when `path` (repo-relative) is covered by the allowlist. Escapes from the repo never are. */
 export function isPathAllowed(path: string, allowlist: readonly string[]): boolean {
-  const normalized = path.replace(/\\/g, "/").replace(/^\.\//, "");
+  // Git always reports "/" separators. A backslash is therefore a literal character in a file name
+  // on Linux, and treating it as a separator would let `Digests\x.md` pass as `Digests/x.md`.
+  if (path.includes("\\")) return false;
+  const normalized = path.replace(/^\.\//, "");
   if (normalized === "" || normalized.startsWith("/") || /^[A-Za-z]:/.test(normalized))
     return false;
   if (normalized.split("/").includes("..")) return false;
@@ -194,6 +197,13 @@ export interface DigestContentCheck {
 export async function findDigestContentViolations(check: DigestContentCheck): Promise<string[]> {
   const offending: string[] = [];
   for (const change of check.changed) {
+    // A rename away from a digest removes it, whatever the new name looks like.
+    if (change.originalPath !== undefined && isMarkdownDigest(change.originalPath)) {
+      offending.push(
+        `${change.originalPath} (a digest may be edited, not added, removed or renamed)`,
+      );
+      continue;
+    }
     if (!isMarkdownDigest(change.path)) continue;
     if (!isPlainModification(change.status)) {
       offending.push(`${change.path} (a digest may be edited, not added, removed or renamed)`);

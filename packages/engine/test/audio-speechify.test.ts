@@ -252,6 +252,65 @@ describe("synthesizeWithMarks", () => {
     });
   });
 
+  it("reports the characters already synthesized when a stream fails midway", async () => {
+    const server = await serve((_req, res) => {
+      startSse(res);
+      res.end(
+        sseEvent("speech.chunk", {
+          audio: AUDIO_A.toString("base64"),
+          speech_marks: [MARK_HELLO, MARK_WORLD],
+        }) +
+          sseEvent("speech.error", {
+            error: { code: "upstream_failure", message: "synthesis failed mid-stream" },
+          }),
+      );
+    });
+    const failure = await client(server)
+      .synthesizeWithMarks(REQUEST)
+      .catch((error: unknown) => error);
+    expect(failure).toBeInstanceOf(SpeechifyError);
+    expect((failure as SpeechifyError).partialCharacters).toBe(12);
+    expect((failure as SpeechifyError).code).toBe("upstream_failure");
+    expect((failure as SpeechifyError).message).not.toContain(FAKE_SPEECHIFY_KEY);
+  });
+
+  it("reports partial characters when the stream is cut before speech.done", async () => {
+    const server = await serve((_req, res) => {
+      startSse(res);
+      res.end(
+        sseEvent("speech.chunk", {
+          audio: AUDIO_A.toString("base64"),
+          speech_marks: [MARK_HELLO],
+        }),
+      );
+    });
+    const failure = await client(server)
+      .synthesizeWithMarks(REQUEST)
+      .catch((error: unknown) => error);
+    expect((failure as SpeechifyError).partialCharacters).toBe(5);
+  });
+
+  it("reports no partial characters when nothing was synthesized before the failure", async () => {
+    const server = await serve((_req, res) => {
+      startSse(res);
+      res.end(
+        sseEvent("speech.error", { error: { code: "upstream_failure", message: "no luck" } }),
+      );
+    });
+    const failure = await client(server)
+      .synthesizeWithMarks(REQUEST)
+      .catch((error: unknown) => error);
+    expect((failure as SpeechifyError).partialCharacters).toBeUndefined();
+  });
+
+  it("does not count partial characters for a failure before the stream starts", async () => {
+    const server = await serve((_req, res) => jsonError(res, 500, "internal_error", "boom"));
+    const failure = await client(server)
+      .synthesizeWithMarks(REQUEST)
+      .catch((error: unknown) => error);
+    expect((failure as SpeechifyError).partialCharacters).toBeUndefined();
+  });
+
   it("rejects a stream that ends before speech.done, since its audio is truncated", async () => {
     const server = await serve((_req, res) => {
       startSse(res);

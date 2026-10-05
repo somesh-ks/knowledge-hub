@@ -86,6 +86,8 @@ export interface SpeechifyErrorInit {
   code?: string;
   requestId?: string;
   retryAfterSeconds?: number;
+  /** Characters the stream had demonstrably synthesized (by its marks) before it failed. */
+  partialCharacters?: number;
 }
 
 /** A failed Speechify call. The message is scrubbed of the API key before it is built. */
@@ -94,6 +96,8 @@ export class SpeechifyError extends Error {
   readonly code: string | undefined;
   readonly requestId: string | undefined;
   readonly retryAfterSeconds: number | undefined;
+  /** Billing is per character synthesized, so a failed stream may still have cost this much. */
+  readonly partialCharacters: number | undefined;
 
   constructor(message: string, init: SpeechifyErrorInit = {}) {
     super(message);
@@ -102,6 +106,7 @@ export class SpeechifyError extends Error {
     this.code = init.code;
     this.requestId = init.requestId;
     this.retryAfterSeconds = init.retryAfterSeconds;
+    this.partialCharacters = init.partialCharacters;
   }
 }
 
@@ -246,6 +251,7 @@ export function createSpeechifyClient(options: SpeechifyClientOptions): SpeechSy
   async function readMarksStream(
     body: ReadableStream<Uint8Array>,
     text: string,
+    progress: { characters: number },
   ): Promise<MarksSynthesis> {
     const parts: Uint8Array[] = [];
     const marks: SpeechMark[] = [];
@@ -280,7 +286,10 @@ export function createSpeechifyClient(options: SpeechifyClientOptions): SpeechSy
         if (chunk.data.audio) parts.push(decodeAudio(chunk.data.audio));
         for (const raw of chunk.data.speech_marks ?? []) {
           const mark = SpeechMark.safeParse(raw);
-          if (mark.success) marks.push(mark.data);
+          if (mark.success) {
+            marks.push(mark.data);
+            progress.characters = Math.max(progress.characters, mark.data.end);
+          }
         }
         continue;
       }
@@ -316,18 +325,27 @@ export function createSpeechifyClient(options: SpeechifyClientOptions): SpeechSy
       const response = await post("/v1/audio/stream/with-timestamps", requestBody(request));
       if (!response.ok) throw await describeFailure(response);
       if (!response.body) throw fail("Speechify returned no response body");
+      const progress = { characters: 0 };
       try {
-        return await readMarksStream(response.body, request.text);
+        return await readMarksStream(response.body, request.text, progress);
       } catch (error) {
-        if (error instanceof SpeechifyError) throw error;
+        const partial = progress.characters > 0 ? { partialCharacters: progress.characters } : {};
+        if (error instanceof SpeechifyError) {
+          if (progress.characters === 0) throw error;
+          throw fail(error.message, {
+            ...(error.code ? { code: error.code } : {}),
+            ...partial,
+          });
+        }
         if (
           error instanceof Error &&
           (error.name === "TimeoutError" || error.name === "AbortError")
         ) {
-          throw fail(`Speechify stream timed out after ${Math.round(timeoutMs / 1000)}s`);
+          throw fail(`Speechify stream timed out after ${Math.round(timeoutMs / 1000)}s`, partial);
         }
         throw fail(
           `Speechify stream was interrupted: ${error instanceof Error ? error.message : String(error)}`,
+          partial,
         );
       }
     },

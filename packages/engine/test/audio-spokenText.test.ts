@@ -153,6 +153,20 @@ describe("buildSpokenText structure", () => {
     expect(text).not.toContain("ready?.");
   });
 
+  it("ends a field that trails off with a colon or comma as a sentence, not as ':.'", () => {
+    const digest = makeDigest({
+      items: [
+        makeItem(0, { headline: "Three measures for agent UIs:", why: "Copy the first one," }),
+        makeItem(1),
+        makeItem(2),
+      ],
+    });
+    const { text } = buildSpokenText(digest);
+    expect(text).toContain("Three measures for agent UIs. ");
+    expect(text).toContain("Copy the first one.");
+    expect(text).not.toMatch(/[:,]\./);
+  });
+
   it("normalizes each field before the ranges are measured", () => {
     const digest = makeDigest({
       items: [
@@ -297,6 +311,37 @@ describe("toSpeech", () => {
     expect(toSpeech("A \u2013 B")).toBe("A, B");
     expect(toSpeech("input -> output")).toBe("input to output");
     expect(toSpeech("input \u2192 output")).toBe("input to output");
+  });
+
+  it("reads an en dash between numbers as a range, not a pause", () => {
+    expect(toSpeech("$5\u201310M in 2020\u20132024")).toBe("$5 to 10M in 2020 to 2024");
+    expect(toSpeech("10M \u2013 $20M")).toBe("10M to $20M");
+    expect(toSpeech("5 \u2013 10 items")).toBe("5 to 10 items");
+  });
+
+  it("drops a dash that follows a full stop instead of leaving '.,'", () => {
+    expect(toSpeech("It shipped. \u2014 Next up")).toBe("It shipped. Next up");
+    expect(toSpeech("Really? \u2013 Yes")).toBe("Really? Yes");
+  });
+
+  it("decodes the HTML entities a feed may leave in a field", () => {
+    expect(toSpeech("a &lt; b &amp;&amp; c &gt; d")).toBe("a less than b and and c greater than d");
+    expect(toSpeech("one&nbsp;two")).toBe("one two");
+  });
+
+  it("keeps a leading comparison instead of treating it as a quote marker", () => {
+    expect(toSpeech("> $1B raised")).toBe("greater than $1B raised");
+  });
+
+  it("removes a URL without swallowing the parenthesis that closes it", () => {
+    expect(toSpeech("(see https://x.example/a) sharply")).toBe("(see) sharply");
+    expect(toSpeech("Docs at https://x.example/a, then more")).toBe("Docs at, then more");
+  });
+
+  it("folds astral letters to ASCII and drops other astral symbols", () => {
+    expect(toSpeech("\u{1D54F} launches Grok")).toBe("X launches Grok");
+    expect(toSpeech("\u{1D7D9}\u{1D7DA} items")).toBe("12 items");
+    expect(toSpeech("a \u{1F3A8} b")).toBe("a b");
   });
 
   it("spells angle brackets so the API never sees markup", () => {

@@ -357,6 +357,32 @@ describe("publishAudio: failure isolation", () => {
     expect((await loadUsage(harness.temp.root, NOW)).speechify.characters).toBe(0);
   });
 
+  it("counts the characters a stream synthesized before it failed", async () => {
+    await writeDigest(harness.temp.root, makeDigest());
+    harness.deps.speech = makeFakeSpeech({
+      failMarksCall: () =>
+        new SpeechifyError("Speechify stream failed (upstream_failure)", {
+          code: "upstream_failure",
+          partialCharacters: 321,
+        }),
+    });
+    const result = await publishAudio(harness.deps);
+    expect(must(result.outcomes[0])).toMatchObject({ status: "failed", stage: "synthesis" });
+    expect((await loadUsage(harness.temp.root, NOW)).speechify.characters).toBe(321);
+    expect(result.changedPaths).toEqual([]);
+  });
+
+  it("keeps counting partial spend across retries so a loop cannot outrun the allowance", async () => {
+    await writeDigest(harness.temp.root, makeDigest());
+    harness.deps.speech = makeFakeSpeech({
+      failMarksCall: () => new SpeechifyError("cut", { partialCharacters: 100 }),
+    });
+    await publishAudio(harness.deps);
+    await publishAudio(harness.deps);
+    await publishAudio(harness.deps);
+    expect((await loadUsage(harness.temp.root, NOW)).speechify.characters).toBe(300);
+  });
+
   it("an upload failure leaves audio null but still records the spend", async () => {
     await writeDigest(harness.temp.root, makeDigest());
     harness.blob.failNextPuts = 10;

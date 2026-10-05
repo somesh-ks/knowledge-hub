@@ -6,6 +6,7 @@ import {
   alignMarks,
   buildTimeline,
   estimateTimeline,
+  MARK_TIME_TOLERANCE_MS,
   resolveTimeline,
   TimelineError,
 } from "../src/audio/timeline.js";
@@ -123,18 +124,34 @@ describe("buildTimeline", () => {
     expect(() => buildTimeline({ ...base, marks: [] })).toThrow(/No usable word marks/);
   });
 
-  it("forces non-decreasing start times even if the marks run backwards", () => {
+  it("clamps small backward jitter so start times stay non-decreasing", () => {
+    const marks = wordMarks(spoken.text).map((mark, index) =>
+      index % 3 === 1 ? { ...mark, start_time: mark.start_time - 60 } : mark,
+    );
+    const result = buildTimeline({ ...base, marks });
+    const starts = result.items.map((item) => item.start_ms);
+    expect(starts).toEqual([...starts].sort((a, b) => a - b));
+    expect(MARK_TIME_TOLERANCE_MS).toBeGreaterThan(60);
+  });
+
+  it("rejects marks whose times run backwards beyond the tolerance", () => {
     const marks = wordMarks(spoken.text).map((mark, index, all) => ({
       ...mark,
       start_time: (all.length - index) * WORD,
     }));
-    const result = buildTimeline({
-      ...base,
-      marks,
-      durationMs: (wordCount(spoken.text) + 4) * WORD,
-    });
-    const starts = result.items.map((item) => item.start_ms);
-    expect(starts).toEqual([...starts].sort((a, b) => a - b));
+    expect(() => buildTimeline({ ...base, marks })).toThrow(/run backwards/);
+  });
+
+  it("rejects a clock that restarts partway through the stream", () => {
+    const all = wordMarks(spoken.text);
+    const half = Math.floor(all.length / 2);
+    const marks = all.map((mark, index) =>
+      index < half ? mark : { ...mark, start_time: mark.start_time - half * WORD },
+    );
+    expect(() => buildTimeline({ ...base, marks })).toThrow(TimelineError);
+    const resolved = resolveTimeline({ ...base, marks });
+    expect(resolved.timeline.timeline).toBe("estimated");
+    expect(resolved.degradedReason).toMatch(/run backwards/);
   });
 
   it("rounds fractional mark times to whole milliseconds", () => {

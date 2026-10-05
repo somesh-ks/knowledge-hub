@@ -5,11 +5,12 @@ import { del, list, put } from "@vercel/blob";
 export const AUDIO_PREFIX = "audio/";
 
 /**
- * Edge and browser cache lifetime. A narration is written once and only replaced on regeneration,
- * and Vercel propagates an overwrite to the CDN within a minute, so a week keeps replays cheap
- * without pinning a stale file for the default month.
+ * Edge and browser cache lifetime. The URL is stable (one fixed key per digest), so a regenerated
+ * narration must not hide behind a long cache: browsers would pair the old MP3 with the new
+ * timeline. An hour keeps a listening session cheap and bounds that mismatch; Vercel propagates an
+ * overwrite to its CDN within a minute.
  */
-export const DEFAULT_CACHE_MAX_AGE_SECONDS = 7 * 24 * 60 * 60;
+export const DEFAULT_CACHE_MAX_AGE_SECONDS = 60 * 60;
 
 const DAY_MS = 86_400_000;
 const DELETE_BATCH = 50;

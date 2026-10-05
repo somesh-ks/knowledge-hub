@@ -1,4 +1,4 @@
-import { readFile } from "node:fs/promises";
+import { chmod, readFile } from "node:fs/promises";
 import { join } from "node:path";
 import {
   audioTimelineRelPath,
@@ -644,6 +644,36 @@ describe("dispatch publish", () => {
       } finally {
         await outside.cleanup();
       }
+    });
+  });
+
+  describe("a named digest", () => {
+    it("exits 1 when it does not exist, without synthesizing", async () => {
+      await seed("2026-10-07");
+      const r = rig();
+      expect(await createPublishCommand(r.deps)(["--digest", "2026-01-01"], ctx)).toBe(1);
+      expect(r.speech.calls.marks).toEqual([]);
+      expect(
+        ctx.log.lines.some((line) => line.level === "error" && line.message.includes("2026-01-01")),
+      ).toBe(true);
+    });
+  });
+
+  describe("a failing commit step", () => {
+    it("exits 1 and reports it when a pre-commit hook rejects the commit", async () => {
+      await seed("2026-10-07");
+      const hook = join(pair.a, ".git", "hooks", "pre-commit");
+      await put(pair.a, ".git/hooks/pre-commit", "#!/bin/sh\necho blocked by hook >&2\nexit 1\n");
+      await chmod(hook, 0o755);
+      const r = rig();
+      expect(await createPublishCommand(r.deps)([], ctx)).toBe(1);
+      expect(
+        ctx.log.lines.some(
+          (line) => line.level === "error" && line.message.startsWith("Commit failed"),
+        ),
+      ).toBe(true);
+      // The narration was made and written; only the commit was blocked.
+      expect(r.out.join("")).toContain("2026-10-07  audio ready");
     });
   });
 

@@ -49,6 +49,24 @@ export function alignMarks(text: string, marks: readonly SpeechMark[]): AlignedM
   return aligned.sort((a, b) => a.start - b.start);
 }
 
+/** Small backward steps between neighbouring marks are clamped; a larger one means broken times. */
+export const MARK_TIME_TOLERANCE_MS = 100;
+
+/**
+ * Mark times are absolute milliseconds and should only grow with the text offset. If they step
+ * back (a stream that restarted its clock per chunk, say) clamping would collapse every later item
+ * onto one start, so refuse and let the caller estimate instead.
+ */
+function assertTimesDoNotRunBackwards(marks: readonly AlignedMark[]): void {
+  let latest = 0;
+  for (const mark of marks) {
+    if (mark.startMs + MARK_TIME_TOLERANCE_MS < latest) {
+      throw new TimelineError("Word mark times run backwards, so they cannot place the items");
+    }
+    latest = Math.max(latest, mark.startMs);
+  }
+}
+
 /** First mark at or after `offset`, by binary search over marks sorted by offset. */
 function firstMarkAtOrAfter(
   marks: readonly AlignedMark[],
@@ -109,6 +127,7 @@ export function buildTimeline(input: TimelineInput): AudioTimeline {
   const duration = Math.round(input.durationMs);
   const marks = alignMarks(spoken.text, input.marks);
   if (marks.length === 0) throw new TimelineError("No usable word marks");
+  assertTimesDoNotRunBackwards(marks);
 
   let previous = 0;
   const itemStarts = spoken.ranges.map((range) => {

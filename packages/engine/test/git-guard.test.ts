@@ -92,9 +92,15 @@ describe("isPathAllowed", () => {
     expect(isPathAllowed("", ALLOWLISTS.run)).toBe(false);
   });
 
-  it("normalizes backslashes and a leading ./", () => {
-    expect(isPathAllowed("Digests\\2026\\10\\x.md", ALLOWLISTS.run)).toBe(true);
+  it("normalizes a leading ./", () => {
     expect(isPathAllowed("./state/seen.json", ALLOWLISTS.run)).toBe(true);
+  });
+
+  it("rejects any path containing a backslash, which is a literal file name character in git", () => {
+    expect(isPathAllowed("Digests\\2026\\10\\x.md", ALLOWLISTS.run)).toBe(false);
+    expect(isPathAllowed("Digests\\2026\\10\\x.md", ALLOWLISTS.publish)).toBe(false);
+    expect(isPathAllowed("state/a\\b.json", ALLOWLISTS.run)).toBe(false);
+    expect(findViolations(["Digests\\x.md"], ALLOWLISTS.publish)).toEqual(["Digests\\x.md"]);
   });
 });
 
@@ -307,6 +313,20 @@ describe("findDigestContentViolations", () => {
   it("flags a deleted or renamed digest", async () => {
     git(pair.a, "mv", SEED_DIGEST_PATH, "Digests/2026/10/2026-10-06.md");
     expect(await check()).toHaveLength(1);
+  });
+
+  it("flags a digest renamed to a name the path rules would otherwise accept", async () => {
+    git(pair.a, "mv", SEED_DIGEST_PATH, "Digests/2026/10/2026-10-05.audio.json");
+    expect(await check()).toEqual([
+      `${SEED_DIGEST_PATH} (a digest may be edited, not added, removed or renamed)`,
+    ]);
+  });
+
+  it("flags a deleted digest", async () => {
+    git(pair.a, "rm", "-q", SEED_DIGEST_PATH);
+    expect(await check()).toEqual([
+      `${SEED_DIGEST_PATH} (a digest may be edited, not added, removed or renamed)`,
+    ]);
   });
 
   it("flags a digest file that no longer parses", async () => {
