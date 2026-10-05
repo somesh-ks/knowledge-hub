@@ -1,22 +1,24 @@
-# News Outlet: Automated Curation Engine & Implementation Plan
+# Dispatch: vision and digest spec
 
-> **Target architecture:** Automated news ingestion, taste-filtered scoring, markdown digest generation, and a self-learning feedback loop.
+> **What it is:** A private design-engineering news briefing: automated ingestion, taste-filtered scoring, markdown digests with audio, and a feedback loop that adjusts the taste model from one sentence.
 >
 > **Audience:** Designers, design engineers, and craft-first builders.
 >
-> **Frequency:** Every 2 days at 07:13 Stockholm time (CEST/CET), plus a weekly deep digest on Sundays. Each run covers everything new since the last run; no item is ever shown twice.
+> **Frequency:** A regular digest every second day at 07:13 Stockholm time (CEST/CET), plus a weekly deep digest on Sundays. Each run covers everything new since the last run; no item is ever shown twice.
 >
-> **Runtime:** A private GitHub repo with a standalone engine that runs on GitHub Actions, locally, or from the site's Generate button. See [build-plan.md](build-plan.md) Section 4.
+> **Runtime:** A private GitHub repo (`somesh-ks/dispatch`) with a standalone engine that runs on GitHub Actions, locally, or from the site's Generate button. See [build-plan.md](build-plan.md) Section 4.
 >
-> **Build plan:** [build-plan.md](build-plan.md) is the executable plan (architecture, credentials, web app, phases, risks); this file is the vision and digest spec.
+> **Build plan:** [build-plan.md](build-plan.md) is the executable plan (architecture, credentials, web app, phases, risks). This file is the vision and the digest spec. Decisions are logged in [decisions.md](decisions.md) and operations are in [runbook.md](runbook.md).
 >
-> **Reader:** `news.someshks.work` (Cloudflare Workers static assets, public unlisted) with pre-generated audio and a gated on-demand button.
+> **Reader:** `news.someshks.work`, hosted on Vercel, public but unlisted, with pre-generated audio and a passphrase-protected on-demand button.
 >
-> **Output:** Versioned markdown digests under `Digests/YYYY/MM/<id>.md`, where the id is the date, with `-weekly` for the weekly pass.
+> **Output:** Versioned markdown digests under `Digests/YYYY/MM/<id>.md`. The id is the Stockholm date, with `-weekly` for the weekly pass and `-2`, `-3` for further runs on the same day.
+>
+> **Status:** The engine, the web app and the skills are being built in parallel from 2026-10-06. This file describes the target.
 
 ---
 
-## 1. System Architecture
+## 1. System architecture
 
 ```mermaid
 flowchart TD
@@ -31,7 +33,7 @@ flowchart TD
     subgraph Filter["2. Taste & Relevance Engine"]
         B1["Deduplication: canonical URLs + state/seen.json"]
         B2["Taste scoring: Jev judgments, weights applied in code"]
-        B3["Read Preference Profile (../config/preferences.json)"]
+        B3["Read preference profile (config/preferences.json)"]
         B3 --> B2
         B1 --> B2
     end
@@ -55,20 +57,20 @@ flowchart TD
 
 ---
 
-## 2. Ingestion Modules & Tooling
+## 2. Ingestion modules and tooling
 
-| Channel | Tool / Mechanism | Ingestion Target |
-|---------|------------------|------------------|
-| **AI Labs & Frontier** | RSS where it exists, else Firecrawl API scrape | OpenAI, Anthropic, DeepMind, Meta AI blogs |
-| **Design Engineering** | Blog RSS, plus Exa Search API for pages outside known feeds | Rauno, Emil Kowalski, Josh Comeau, Paco, Jhey |
-| **UI Libraries & Ecosystem** | GitHub `releases.atom` feeds | `shadcn/ui`, `assistant-ui`, `animata`, `react-bits`, `motion`, `lenis` |
-| **Product Launches & Show HN** | Hacker News Algolia API (`hn.algolia.com`) | Show HN posts since the last run with more than 30 points |
-| **Video & Tutorials** | YouTube channel RSS feeds | Fireship, Theo (t3.gg), Kevin Powell, Hyperplexed |
-| **Ecosystem Newsletters** | Direct scrape / RSS | Import AI, Bytes, Pragmatic Engineer, TLDR |
+| Channel | Tool or mechanism | Ingestion target |
+| --- | --- | --- |
+| **AI labs and frontier** | RSS where it exists, else Firecrawl API scrape | OpenAI, Anthropic, DeepMind, Meta AI blogs |
+| **Design engineering** | Blog RSS, plus Exa Search API for pages outside known feeds | Rauno, Emil Kowalski, Josh Comeau, Paco, Jhey |
+| **UI libraries and ecosystem** | GitHub `releases.atom` feeds | `shadcn/ui`, `assistant-ui`, `animata`, `react-bits`, `motion`, `lenis` |
+| **Product launches and Show HN** | Hacker News Algolia API (`hn.algolia.com`) | Show HN posts since the last run with more than 30 points |
+| **Video and tutorials** | YouTube channel RSS feeds | Fireship, Theo (t3.gg), Kevin Powell, Hyperplexed |
+| **Ecosystem newsletters** | Direct scrape or RSS | Import AI, Bytes, Pragmatic Engineer, TLDR |
 
 ---
 
-## 3. Digest Specification
+## 3. Digest specification
 
 The voice is high brevity, specific and peer to peer. Rules, limits and lint are in [build-plan.md](build-plan.md) Section 7.6. The body below is generated from the frontmatter for reading in an editor or on GitHub; the site renders from the frontmatter.
 
@@ -99,7 +101,7 @@ Why: one line on what the reader can use.
 - No emoji, intro paragraph, dividers between items, sign-off, or "thought of the day".
 - An item appears in one section only; Top picks are not repeated below.
 - The read and listen times are computed from the final text, never hardcoded.
-- If fewer than three items clear the bar, nothing is published.
+- If fewer than three items clear the bar, nothing is published: the run ends with outcome `nothing` and the site says "Nothing cleared the bar." Every run ends in one outcome (`published`, `gated`, `nothing` or `failed`); see [build-plan.md](build-plan.md) Section 7.2.
 - The weekly deep digest (Sundays) uses the same schema, plus slow sources: journals (TOCHI, PACMHCI), monthly newsletters and conference proceedings.
 
 **Archive layout**
@@ -110,12 +112,15 @@ Digests/
     10/
       2026-10-05.md
       2026-10-07.md
+      2026-10-07-2.md
       2026-10-11-weekly.md
 ```
 
+A second run on the same day (an on-demand run) takes the next free suffix, as in `2026-10-07-2.md`. Audio is not stored in the repo; see [build-plan.md](build-plan.md) Section 7.7.
+
 ---
 
-## 4. Preference Learning Model (`preferences.json`)
+## 4. Preference learning model (`preferences.json`)
 
 The source of truth is [`preferences.json`](../config/preferences.json) (weights, keywords, authors, disliked patterns, feedback history). Do not duplicate its schema here.
 
@@ -131,22 +136,24 @@ The source of truth is [`preferences.json`](../config/preferences.json) (weights
 
 - `state/seen.json`: item ids already shown, with date; pruned after 90 days.
 - `state/judgments.json`: cached judgments, so weight changes re-score without new calls; pruned after 30 days.
-- `state/last-run.json`: one record per kind of run, with its outcome; defines the fetch window.
+- `state/last-run.json`: one record per kind of run (`regular`, `weekly`, `on_demand`), each with its outcome; also holds the end of the last fetch, which defines the next window.
+- `state/usage.json`: Speechify characters used in the current month.
 
 **`/learn` (free-text only)**
 
 - Input: a sentence such as "more shaders, less VC funding".
-- Effect: adjust matching weights by a bounded step (at most 0.05 per weight per call, 0.15 in total per call), add or remove keywords or disliked patterns, and append an entry to `feedback_history` (date, input, changes). Show the diff before committing.
+- Effect: adjust matching weights by a bounded step (at most 0.05 per weight per call, 0.15 in total per call), add or remove keywords or disliked patterns, and append an entry to `feedback_history` (date, input, changes). Show the diff before committing. Runs through the in-repo `/learn` skill or the personal `sk-dispatch` skill ([build-plan.md](build-plan.md) Section 9).
 
 ---
 
-## 5. Roadmap, Reader Site and Cloud Operation
+## 5. Operation and open items
 
-Superseded by [build-plan.md](build-plan.md), which owns architecture, triggers, credentials, the web app, phases and risks. This file keeps the vision, the digest schema (Section 3) and the taste model (Section 4).
+[build-plan.md](build-plan.md) owns architecture, triggers, credentials, the web app, phases and risks. [runbook.md](runbook.md) covers day-to-day operation. This file keeps the vision, the digest schema (Section 3) and the taste model (Section 4).
 
-Open items carried into Build Plan Phase 0:
+Decided: the "Taste & Thought of the Day" section is cut (D8, [decisions.md](decisions.md)).
+
+Open items, carried from Phase 0 into Phase 3 of the build plan:
 
 - Reconcile `preferences.json` authors: split real names from X handles, normalize case, drop or source entries with no feed (X is not ingested).
 - Reconcile sources: add `assistant-ui`, `animata` and `react-bits` repos; decide on Pragmatic Engineer, Theo, Powell and Hyperplexed; resolve the Fireship channel ID; resolve the shadcn changelog versus repo.
 - Decide the fate of low-signal newsletters (The Rundown, Superhuman, The Neuron) and TechCrunch against the 0.02 and 0.10 weights.
-- Decide whether to keep the "Taste & Thought of the Day" section.
