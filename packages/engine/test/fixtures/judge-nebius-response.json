@@ -1,0 +1,24 @@
+{
+  "items": [
+    {
+      "id": "aaaaaaaaaaaa",
+      "category": "css_canvas_motion_techniques",
+      "runner_up": "design_engineering_craft",
+      "confidence": "high",
+      "craft_level": 4,
+      "hype": false,
+      "sponsored": false,
+      "funding": false
+    },
+    {
+      "id": "bbbbbbbbbbbb",
+      "category": "venture_capital_and_gossip",
+      "runner_up": "none",
+      "confidence": "medium",
+      "craft_level": 0,
+      "hype": false,
+      "sponsored": false,
+      "funding": true
+    }
+  ]
+}
