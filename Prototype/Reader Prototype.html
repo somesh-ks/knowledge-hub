@@ -1,0 +1,672 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="robots" content="noindex, nofollow">
+<meta name="description" content="A briefing of what's new in design engineering, to read or listen to.">
+<title>Dispatch</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Literata:opsz,wght@7..72,400..700&family=Schibsted+Grotesk:wght@400..900&display=swap" rel="stylesheet">
+<style>
+/* ---------- Tokens: primitive -> semantic -> component ---------- */
+:root {
+  /* primitives */
+  --white: oklch(100% 0 0);
+  --fog-50: oklch(97.6% 0.006 230);
+  --fog-100: oklch(94.6% 0.01 230);
+  --fog-200: oklch(90% 0.014 232);
+  --fog-300: oklch(82% 0.02 235);
+  --slate-600: oklch(45% 0.03 245);
+  --ink-900: oklch(21% 0.03 250);
+  --berry-600: oklch(49% 0.17 14);
+  --berry-300: oklch(70% 0.165 14);
+  --sea-950: oklch(17% 0.02 250);
+  --sea-900: oklch(21.5% 0.022 250);
+  --sea-800: oklch(27% 0.025 250);
+  --sea-700: oklch(36% 0.026 250);
+  --mist-50: oklch(95% 0.008 230);
+  --mist-400: oklch(74% 0.02 235);
+
+  /* semantic (light) */
+  --surface: var(--fog-50);
+  --surface-sunken: var(--fog-100);
+  --surface-raised: var(--white);
+  --on-surface: var(--ink-900);
+  --on-surface-muted: var(--slate-600);
+  --track: var(--fog-300);
+  --accent: var(--berry-600);
+  --on-accent: var(--white);
+  --scrim: oklch(18% 0.03 250 / 0.42);
+  --shadow-raised:
+    0 1px 1px oklch(20% 0.03 250 / 0.06),
+    0 4px 8px oklch(20% 0.03 250 / 0.08),
+    0 16px 32px oklch(20% 0.03 250 / 0.14);
+
+  /* type */
+  --font-ui: "Schibsted Grotesk", system-ui, -apple-system, "Segoe UI", sans-serif;
+  --font-read: "Literata", Georgia, "Times New Roman", serif;
+  --fs-small: 0.875rem;
+  --fs-body: clamp(1.03rem, 1rem + 0.15vw, 1.125rem);
+  --fs-title: clamp(1.1875rem, 1.1rem + 0.4vw, 1.375rem);
+  --fs-lead: clamp(1.75rem, 1.4rem + 1.6vw, 2.25rem);
+  --fs-h1: clamp(2.125rem, 1.7rem + 2vw, 3rem);
+
+  /* space (4px base) */
+  --s-1: 0.25rem; --s-2: 0.5rem; --s-3: 0.75rem; --s-4: 1rem; --s-5: 1.25rem;
+  --s-6: 1.5rem; --s-8: 2rem; --s-10: 2.5rem; --s-14: 3.5rem;
+
+  /* motion */
+  --ease-out: cubic-bezier(0.23, 1, 0.32, 1);
+  --ease-drawer: cubic-bezier(0.32, 0.72, 0, 1);
+
+  color-scheme: light;
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --surface: var(--sea-950);
+    --surface-sunken: var(--sea-900);
+    --surface-raised: var(--sea-800);
+    --on-surface: var(--mist-50);
+    --on-surface-muted: var(--mist-400);
+    --track: var(--sea-700);
+    --accent: var(--berry-300);
+    --on-accent: var(--sea-950);
+    --scrim: oklch(8% 0.02 250 / 0.6);
+    --shadow-raised:
+      0 1px 1px oklch(5% 0.02 250 / 0.3),
+      0 4px 8px oklch(5% 0.02 250 / 0.35),
+      0 16px 32px oklch(5% 0.02 250 / 0.5);
+    color-scheme: dark;
+  }
+}
+:root[data-theme="dark"] {
+  --surface: var(--sea-950);
+  --surface-sunken: var(--sea-900);
+  --surface-raised: var(--sea-800);
+  --on-surface: var(--mist-50);
+  --on-surface-muted: var(--mist-400);
+  --track: var(--sea-700);
+  --accent: var(--berry-300);
+  --on-accent: var(--sea-950);
+  --scrim: oklch(8% 0.02 250 / 0.6);
+  --shadow-raised:
+    0 1px 1px oklch(5% 0.02 250 / 0.3),
+    0 4px 8px oklch(5% 0.02 250 / 0.35),
+    0 16px 32px oklch(5% 0.02 250 / 0.5);
+  color-scheme: dark;
+}
+
+/* ---------- Base ---------- */
+*, *::before, *::after { box-sizing: border-box; }
+html { -webkit-text-size-adjust: 100%; }
+body {
+  margin: 0;
+  background: var(--surface);
+  color: var(--on-surface);
+  font-family: var(--font-ui);
+  font-size: var(--fs-body);
+  line-height: 1.5;
+  -webkit-font-smoothing: antialiased;
+  -webkit-tap-highlight-color: transparent;
+}
+h1, h2, h3, p, ul { margin: 0; padding: 0; }
+ul { list-style: none; }
+button { font: inherit; color: inherit; background: none; border: 0; padding: 0; cursor: pointer; }
+a { color: inherit; }
+:focus-visible { outline: 3px solid var(--accent); outline-offset: 3px; border-radius: 6px; }
+.sr-only { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; }
+.icon { width: 1.25rem; height: 1.25rem; fill: none; stroke: currentColor; stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; flex: none; }
+.icon--solid { fill: currentColor; }
+.num { font-variant-numeric: lining-nums; }
+
+.wrap {
+  max-width: 40rem;
+  margin-inline: auto;
+  padding-inline: max(var(--s-5), env(safe-area-inset-left));
+}
+
+/* ---------- Header and hero ---------- */
+.bar { display: flex; align-items: center; justify-content: space-between; padding-block: var(--s-4) var(--s-2); }
+.wordmark { font-weight: 760; letter-spacing: -0.02em; font-size: 1.125rem; }
+.bar-actions { display: flex; gap: var(--s-1); }
+.icon-btn {
+  display: inline-flex; align-items: center; gap: var(--s-2);
+  min-width: 2.75rem; min-height: 2.75rem; justify-content: center;
+  border-radius: 12px; padding-inline: var(--s-3);
+  color: var(--on-surface-muted);
+  transition: background-color 0.15s ease, color 0.15s ease, transform 0.12s var(--ease-out);
+}
+.icon-btn:active { transform: scale(0.97); }
+.icon-btn .label { font-size: var(--fs-small); font-weight: 600; }
+@media (hover: hover) and (pointer: fine) {
+  .icon-btn:hover { background: var(--surface-sunken); color: var(--on-surface); }
+}
+
+.hero { padding-block: var(--s-8) var(--s-8); }
+.hero h1 {
+  font-size: var(--fs-h1); font-weight: 780; letter-spacing: -0.03em; line-height: 1.04;
+  text-wrap: balance;
+}
+.hero-meta { margin-top: var(--s-3); color: var(--on-surface-muted); font-size: 1rem; }
+.cta {
+  margin-top: var(--s-6); width: 100%; min-height: 3.5rem;
+  display: flex; align-items: center; justify-content: space-between; gap: var(--s-3);
+  padding-inline: var(--s-5); border-radius: 16px;
+  background: var(--accent); color: var(--on-accent);
+  font-weight: 700; font-size: 1.0625rem;
+  transition: transform 0.12s var(--ease-out), filter 0.15s ease;
+}
+.cta:active { transform: scale(0.98); }
+.cta-main { display: inline-flex; align-items: center; gap: var(--s-3); }
+.cta-time { font-weight: 600; opacity: 0.85; }
+@media (hover: hover) and (pointer: fine) { .cta:hover { filter: brightness(1.06); } }
+
+/* ---------- Briefing: the rail ---------- */
+.briefing { position: relative; padding-left: 2.25rem; }
+.rail { position: absolute; left: 0.6875rem; top: 0; bottom: 0; width: 2px; background: var(--track); border-radius: 1px; }
+.rail-fill {
+  position: absolute; inset: 0; background: var(--accent); border-radius: 1px;
+  transform-origin: top; transform: scaleY(0);
+  transition: transform 0.28s var(--ease-out);
+}
+.section { margin-bottom: var(--s-14); }
+.section:last-child { margin-bottom: var(--s-8); }
+.chapter-wrap { position: relative; margin-bottom: var(--s-6); }
+.chapter {
+  display: flex; width: 100%; align-items: baseline; justify-content: space-between; gap: var(--s-4);
+  min-height: 2.75rem; text-align: left;
+  font-size: 1.0625rem; font-weight: 700; letter-spacing: -0.01em;
+}
+.chapter .time { font-weight: 500; color: var(--on-surface-muted); font-size: var(--fs-small); }
+.chapter-node {
+  position: absolute; left: -1.9375rem; top: 0.875rem; width: 0.875rem; height: 0.875rem;
+  border-radius: 4px; background: var(--surface); box-shadow: 0 0 0 2px var(--track);
+  z-index: 1; transition: box-shadow 0.2s ease, background-color 0.2s ease;
+}
+.chapter-wrap.is-current .chapter-node, .chapter-wrap.is-played .chapter-node { background: var(--accent); box-shadow: 0 0 0 2px var(--accent); }
+
+.item { position: relative; margin-bottom: var(--s-10); transition: opacity 0.2s ease; }
+.item:last-child { margin-bottom: 0; }
+.node {
+  position: absolute; left: -1.8125rem; top: 0.6rem; width: 0.625rem; height: 0.625rem; border-radius: 50%;
+  background: var(--surface); box-shadow: 0 0 0 2px var(--track); z-index: 1;
+  transition: transform 0.28s var(--ease-out), box-shadow 0.2s ease, background-color 0.2s ease;
+}
+.item.is-played .node { background: var(--accent); box-shadow: 0 0 0 2px var(--accent); }
+.item.is-current .node {
+  background: var(--accent);
+  box-shadow: 0 0 0 2px var(--accent), 0 0 0 7px color-mix(in oklch, var(--accent) 24%, transparent);
+  transform: scale(1.35);
+}
+.item--lead .node { top: 0.95rem; }
+.briefing.is-live .item:not(.is-current) { opacity: 0.66; }
+
+.title {
+  font-size: var(--fs-title); font-weight: 680; letter-spacing: -0.015em; line-height: 1.22;
+  text-wrap: balance; padding-right: 3rem;
+}
+.item--lead .title { font-size: var(--fs-lead); font-weight: 770; letter-spacing: -0.025em; line-height: 1.1; }
+.title a { text-decoration: underline; text-decoration-color: transparent; text-underline-offset: 0.18em; text-decoration-thickness: 2px; transition: text-decoration-color 0.15s ease; }
+@media (hover: hover) and (pointer: fine) { .title a:hover { text-decoration-color: var(--accent); } }
+.byline { margin-top: var(--s-2); font-size: var(--fs-small); color: var(--on-surface-muted); display: flex; flex-wrap: wrap; column-gap: var(--s-3); }
+.byline .src { font-weight: 700; color: var(--on-surface); }
+.summary { margin-top: var(--s-3); font-family: var(--font-read); font-size: var(--fs-body); line-height: 1.6; max-width: 62ch; text-wrap: pretty; }
+.why { margin-top: var(--s-3); font-size: 0.975rem; line-height: 1.5; color: var(--on-surface-muted); max-width: 62ch; text-wrap: pretty; }
+.why strong { color: var(--on-surface); font-weight: 650; }
+
+.item-play {
+  position: absolute; right: -0.25rem; top: -0.25rem; width: 2.75rem; height: 2.75rem;
+  display: grid; place-items: center; border-radius: 50%;
+}
+.item-play span {
+  width: 2.25rem; height: 2.25rem; border-radius: 50%; display: grid; place-items: center;
+  background: var(--surface-sunken); color: var(--accent);
+  transition: transform 0.12s var(--ease-out), background-color 0.15s ease, color 0.15s ease;
+}
+.item-play:active span { transform: scale(0.94); }
+.item-play .icon { width: 1rem; height: 1rem; margin-left: 2px; }
+@media (hover: hover) and (pointer: fine) { .item-play:hover span { background: var(--accent); color: var(--on-accent); } }
+
+/* ---------- Archive ---------- */
+.archive { padding-block: var(--s-8) var(--s-14); }
+.archive h2 { font-size: 1.0625rem; font-weight: 700; letter-spacing: -0.01em; margin-bottom: var(--s-3); }
+details { border-radius: 14px; }
+summary {
+  list-style: none; display: flex; align-items: center; justify-content: space-between;
+  min-height: 2.75rem; cursor: pointer; font-weight: 600; padding-inline: var(--s-3); margin-inline: calc(var(--s-3) * -1);
+  border-radius: 12px;
+}
+summary::-webkit-details-marker { display: none; }
+summary .icon { transition: transform 0.2s var(--ease-out); color: var(--on-surface-muted); }
+details[open] summary .icon { transform: rotate(180deg); }
+.days { padding-block: var(--s-1) var(--s-3); }
+.days a {
+  display: flex; justify-content: space-between; align-items: baseline; gap: var(--s-4);
+  min-height: 2.75rem; align-items: center; text-decoration: none; padding-inline: var(--s-3); margin-inline: calc(var(--s-3) * -1); border-radius: 12px;
+}
+.days .meta { color: var(--on-surface-muted); font-size: var(--fs-small); }
+.days .kind { font-weight: 650; }
+@media (hover: hover) and (pointer: fine) { .days a:hover, summary:hover { background: var(--surface-sunken); } }
+.foot { padding-bottom: calc(var(--s-14) + 4.5rem); color: var(--on-surface-muted); font-size: var(--fs-small); max-width: 52ch; text-wrap: pretty; }
+
+/* ---------- Player ---------- */
+.player {
+  position: fixed; left: 50%; bottom: max(var(--s-3), env(safe-area-inset-bottom));
+  width: min(calc(100% - var(--s-6)), 38.5rem);
+  display: flex; align-items: center; gap: var(--s-2);
+  padding: var(--s-2); border-radius: 22px;
+  background: var(--surface-raised); box-shadow: var(--shadow-raised);
+  transform: translate(-50%, 140%); opacity: 0;
+  transition: transform 0.3s var(--ease-drawer), opacity 0.2s ease;
+  z-index: 5;
+}
+.player.is-visible { transform: translate(-50%, 0); opacity: 1; }
+.player-info { flex: 1; min-width: 0; text-align: left; border-radius: 14px; padding: var(--s-2) var(--s-3); min-height: 3rem; }
+.player-sec { display: block; font-size: 0.8125rem; font-weight: 600; color: var(--accent); }
+.player-title { display: block; font-weight: 650; font-size: 0.9375rem; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.pbtn { width: 3rem; height: 3rem; border-radius: 14px; display: grid; place-items: center; transition: transform 0.12s var(--ease-out), background-color 0.15s ease; }
+.pbtn:active { transform: scale(0.95); }
+.pbtn--main { background: var(--accent); color: var(--on-accent); }
+@media (hover: hover) and (pointer: fine) { .pbtn:not(.pbtn--main):hover { background: var(--surface-sunken); } }
+
+/* ---------- Sheets ---------- */
+dialog.sheet {
+  position: fixed; inset: auto 0 0 0; margin: 0 auto; width: min(100%, 40rem); max-width: none; max-height: 90dvh;
+  border: 0; padding: var(--s-2) var(--s-2) max(var(--s-2), env(safe-area-inset-bottom)); background: transparent; color: var(--on-surface);
+  overflow: visible;
+  transform: translateY(0);
+  transition: transform 0.3s var(--ease-drawer), overlay 0.3s allow-discrete, display 0.3s allow-discrete;
+}
+dialog.sheet:not([open]) { transform: translateY(105%); }
+@starting-style { dialog.sheet[open] { transform: translateY(105%); } }
+dialog.sheet::backdrop { background: var(--scrim); opacity: 0; transition: opacity 0.3s ease, overlay 0.3s allow-discrete, display 0.3s allow-discrete; }
+dialog.sheet[open]::backdrop { opacity: 1; }
+@starting-style { dialog.sheet[open]::backdrop { opacity: 0; } }
+.sheet-panel { background: var(--surface-raised); border-radius: 28px; padding: var(--s-4); box-shadow: var(--shadow-raised); max-height: calc(90dvh - 1rem); overflow: auto; }
+.sheet-head { display: flex; align-items: center; justify-content: space-between; margin-bottom: var(--s-3); padding-left: var(--s-2); }
+.sheet-head h2 { font-size: 1.1875rem; font-weight: 740; letter-spacing: -0.015em; }
+.sheet h3 { font-size: var(--fs-small); font-weight: 650; color: var(--on-surface-muted); margin: var(--s-5) 0 var(--s-2); padding-left: var(--s-2); }
+.chapters button {
+  width: 100%; display: flex; justify-content: space-between; align-items: center; gap: var(--s-4);
+  min-height: 3rem; padding-inline: var(--s-3); border-radius: 12px; text-align: left; font-weight: 600;
+}
+.chapters button[aria-current="true"] { background: var(--surface-sunken); color: var(--accent); }
+.chapters .time { color: var(--on-surface-muted); font-weight: 500; font-size: var(--fs-small); }
+@media (hover: hover) and (pointer: fine) { .chapters button:hover { background: var(--surface-sunken); } }
+.speeds { display: grid; grid-template-columns: repeat(4, 1fr); gap: var(--s-2); }
+.speeds button { min-height: 3rem; border-radius: 12px; background: var(--surface-sunken); font-weight: 650; transition: background-color 0.15s ease, color 0.15s ease, transform 0.12s var(--ease-out); }
+.speeds button:active { transform: scale(0.97); }
+.speeds button[aria-pressed="true"] { background: var(--accent); color: var(--on-accent); }
+
+.field { display: grid; gap: var(--s-2); margin-top: var(--s-2); }
+.field label { font-weight: 650; padding-left: var(--s-2); }
+.field input {
+  font: inherit; min-height: 3rem; border-radius: 12px; border: 0; padding-inline: var(--s-4);
+  background: var(--surface-sunken); color: var(--on-surface);
+  box-shadow: inset 0 0 0 2px transparent; transition: box-shadow 0.15s ease;
+}
+.field input:focus-visible { outline: none; box-shadow: inset 0 0 0 2px var(--accent); }
+.hint { color: var(--on-surface-muted); font-size: var(--fs-small); padding-left: var(--s-2); text-wrap: pretty; }
+.error { color: var(--accent); font-weight: 600; font-size: var(--fs-small); padding-left: var(--s-2); }
+.sheet .cta { margin-top: var(--s-4); }
+.steps { margin-top: var(--s-5); display: grid; gap: var(--s-1); }
+.steps li { display: flex; justify-content: space-between; gap: var(--s-4); min-height: 2.5rem; align-items: center; padding-inline: var(--s-3); border-radius: 12px; color: var(--on-surface-muted); }
+.steps li[data-state="active"] { background: var(--surface-sunken); color: var(--on-surface); font-weight: 650; }
+.steps li[data-state="done"] { color: var(--on-surface); }
+.steps .st { font-size: var(--fs-small); font-weight: 600; }
+
+@media (prefers-reduced-motion: reduce) {
+  .rail-fill, .node, .player, dialog.sheet, dialog.sheet::backdrop, summary .icon { transition-property: opacity, background-color, color, box-shadow; }
+  .item.is-current .node { transform: none; }
+  .player, .player.is-visible { transform: translate(-50%, 0); }
+  dialog.sheet:not([open]) { transform: none; }
+}
+</style>
+</head>
+<body>
+<svg width="0" height="0" style="position:absolute" aria-hidden="true">
+  <symbol id="i-play" viewBox="0 0 24 24"><polygon points="6 3 20 12 6 21 6 3"/></symbol>
+  <symbol id="i-pause" viewBox="0 0 24 24"><rect x="14" y="4" width="4" height="16" rx="1"/><rect x="6" y="4" width="4" height="16" rx="1"/></symbol>
+  <symbol id="i-prev" viewBox="0 0 24 24"><polygon points="19 20 9 12 19 4 19 20"/><line x1="5" x2="5" y1="19" y2="5"/></symbol>
+  <symbol id="i-next" viewBox="0 0 24 24"><polygon points="5 4 15 12 5 20 5 4"/><line x1="19" x2="19" y1="5" y2="19"/></symbol>
+  <symbol id="i-sun" viewBox="0 0 24 24"><circle cx="12" cy="12" r="4"/><path d="M12 2v2"/><path d="m4.93 4.93 1.41 1.41"/><path d="M2 12h2"/><path d="m4.93 19.07 1.41-1.41"/><path d="M12 20v2"/><path d="m17.66 17.66 1.41 1.41"/><path d="M20 12h2"/><path d="m17.66 6.34 1.41-1.41"/></symbol>
+  <symbol id="i-moon" viewBox="0 0 24 24"><path d="M12 3a6 6 0 0 0 9 9 9 9 0 1 1-9-9Z"/></symbol>
+  <symbol id="i-refresh" viewBox="0 0 24 24"><path d="M3 12a9 9 0 0 1 9-9 9.75 9.75 0 0 1 6.74 2.74L21 8"/><path d="M21 3v5h-5"/><path d="M21 12a9 9 0 0 1-9 9 9.75 9.75 0 0 1-6.74-2.74L3 16"/><path d="M8 16H3v5"/></symbol>
+  <symbol id="i-x" viewBox="0 0 24 24"><path d="M18 6 6 18"/><path d="m6 6 12 12"/></symbol>
+  <symbol id="i-chevron" viewBox="0 0 24 24"><path d="m6 9 6 6 6-6"/></symbol>
+</svg>
+
+<div class="wrap">
+  <header class="bar">
+    <span class="wordmark">Dispatch</span>
+    <div class="bar-actions">
+      <button class="icon-btn" id="openGenerate" type="button">
+        <svg class="icon" aria-hidden="true"><use href="#i-refresh"/></svg><span class="label">Generate new</span>
+      </button>
+      <button class="icon-btn" id="themeToggle" type="button" aria-label="Switch theme">
+        <svg class="icon" aria-hidden="true"><use id="themeIcon" href="#i-moon"/></svg>
+      </button>
+    </div>
+  </header>
+
+  <main>
+    <section class="hero" aria-labelledby="pageTitle">
+      <h1 id="pageTitle">Wednesday 7 October</h1>
+      <p class="hero-meta" id="heroMeta"></p>
+      <button class="cta" id="cta" type="button">
+        <span class="cta-main"><svg class="icon icon--solid" aria-hidden="true"><use id="ctaIcon" href="#i-play"/></svg><span id="ctaLabel">Play the briefing</span></span>
+        <span class="cta-time num" id="ctaTime"></span>
+      </button>
+      <p class="sr-only" id="live" aria-live="polite"></p>
+    </section>
+
+    <div class="briefing" id="briefing">
+      <div class="rail" aria-hidden="true"><div class="rail-fill" id="railFill"></div></div>
+      <noscript><p class="hint">This page needs JavaScript to show the briefing.</p></noscript>
+    </div>
+
+    <section class="archive" aria-labelledby="archiveTitle">
+      <h2 id="archiveTitle">Earlier</h2>
+      <details open>
+        <summary>October 2026 <svg class="icon" aria-hidden="true"><use href="#i-chevron"/></svg></summary>
+        <ul class="days">
+          <li><a href="#"><span>Monday 5 October</span><span class="meta num">11 items, 5 min</span></a></li>
+          <li><a href="#"><span class="kind">Sunday 4 October, weekly deep dive</span><span class="meta num">19 items, 9 min</span></a></li>
+          <li><a href="#"><span>Saturday 3 October</span><span class="meta num">12 items, 5 min</span></a></li>
+          <li><a href="#"><span>Thursday 1 October</span><span class="meta num">10 items, 4 min</span></a></li>
+        </ul>
+      </details>
+      <details>
+        <summary>September 2026 <svg class="icon" aria-hidden="true"><use href="#i-chevron"/></svg></summary>
+        <ul class="days">
+          <li><a href="#"><span>Tuesday 29 September</span><span class="meta num">12 items, 5 min</span></a></li>
+          <li><a href="#"><span class="kind">Sunday 27 September, weekly deep dive</span><span class="meta num">18 items, 8 min</span></a></li>
+        </ul>
+      </details>
+    </section>
+
+    <p class="foot">Prototype with sample content. Names, projects and studies here are invented; links go nowhere. Listening uses your device's built-in voice until generated audio is connected.</p>
+  </main>
+</div>
+
+<div class="player" id="player" role="region" aria-label="Audio player">
+  <button class="player-info" id="openChapters" type="button" aria-haspopup="dialog">
+    <span class="player-sec" id="pSec"></span>
+    <span class="player-title" id="pTitle"></span>
+  </button>
+  <button class="pbtn" id="prev" type="button" aria-label="Previous item"><svg class="icon icon--solid" aria-hidden="true"><use href="#i-prev"/></svg></button>
+  <button class="pbtn pbtn--main" id="toggle" type="button" aria-label="Play"><svg class="icon icon--solid" aria-hidden="true"><use id="toggleIcon" href="#i-play"/></svg></button>
+  <button class="pbtn" id="next" type="button" aria-label="Next item"><svg class="icon icon--solid" aria-hidden="true"><use href="#i-next"/></svg></button>
+</div>
+
+<dialog class="sheet" id="chaptersSheet" aria-labelledby="chaptersTitle">
+  <div class="sheet-panel">
+    <div class="sheet-head">
+      <h2 id="chaptersTitle">Chapters</h2>
+      <button class="icon-btn" type="button" data-close aria-label="Close"><svg class="icon" aria-hidden="true"><use href="#i-x"/></svg></button>
+    </div>
+    <div class="chapters" id="chapterList"></div>
+    <h3 id="speedLabel">Speed</h3>
+    <div class="speeds" role="group" aria-labelledby="speedLabel" id="speeds"></div>
+  </div>
+</dialog>
+
+<dialog class="sheet" id="generateSheet" aria-labelledby="generateTitle">
+  <div class="sheet-panel">
+    <div class="sheet-head">
+      <h2 id="generateTitle">Generate a new briefing</h2>
+      <button class="icon-btn" type="button" data-close aria-label="Close"><svg class="icon" aria-hidden="true"><use href="#i-x"/></svg></button>
+    </div>
+    <form id="generateForm" novalidate>
+      <div class="field">
+        <label for="pass">Passphrase</label>
+        <input id="pass" name="pass" type="password" autocomplete="off" aria-describedby="passHint passError">
+        <p class="hint" id="passHint">Covers everything since Monday. It takes a few minutes. In this prototype, the passphrase is "demo".</p>
+        <p class="error" id="passError" role="alert" hidden></p>
+      </div>
+      <button class="cta" id="generateBtn" type="submit"><span class="cta-main">Generate briefing</span></button>
+    </form>
+    <ol class="steps" id="steps" aria-live="polite" hidden></ol>
+  </div>
+</dialog>
+
+<script>
+/* Sample content: everything below is invented. */
+const SECTIONS = [
+  { title: 'Top picks', items: [
+    { headline: 'Springlet 2.0 drops keyframes for springs that retarget mid-flight', source: 'Springlet Blog', author: 'Mara Lindqvist',
+      summary: 'The animation library now treats every transition as a spring with a live target, so an interrupted drawer picks up its current velocity instead of restarting. The release also ships a gesture layer where a flick’s momentum feeds straight into the settle.',
+      why: 'Interruptibility is the difference between UI that feels alive and UI that feels scripted, and this makes it the default rather than a special case.', lead: true },
+    { headline: 'A dither shader that stays sharp at any pixel density', source: 'Fathom Notes', author: 'Jonas Ek',
+      summary: 'A short walkthrough of a fragment shader that dithers in screen space but samples in object space, so gradients keep their texture when the layout scales. The code is about forty lines and has no dependencies.',
+      why: 'It is a small, copyable way to add texture to flat interfaces without shipping an image.' },
+    { headline: 'Evals for agent interfaces: what to measure besides task success', source: 'Parley Journal', author: 'Ines Roca',
+      summary: 'The post proposes four measures for agent UIs: time to first useful signal, correction cost, how often people interrupt, and how well they recover afterwards. It reports early results from two internal products.',
+      why: 'These are measurable interaction qualities, which is rare in writing about agent design.' }
+  ]},
+  { title: 'Interaction craft', items: [
+    { headline: 'Hairline 0.9 adds container-query tokens', source: 'Hairline releases', author: 'Hairline maintainers',
+      summary: 'Spacing and radius tokens can now respond to the container they sit in instead of the viewport. The migration guide covers the three breaking renames.',
+      why: 'Components that live in resizable panels finally get tokens that match their real width.' },
+    { headline: 'The safe triangle, rebuilt with pointer events', source: 'Interface Details', author: 'Tomás Rivera',
+      summary: 'Walks through a submenu hover that tolerates diagonal pointer movement by tracking a triangle between the cursor and the submenu corners. It includes a touch fallback and a note for keyboard users.',
+      why: 'A concrete fix for a flaw that nearly every nested menu still has.' },
+    { headline: 'Scroll-driven animation without layout thrash', source: 'Frontier CSS', author: 'Linnea Berg',
+      summary: 'Shows how to drive transforms from scroll timelines on the compositor, and where the technique still falls back to JavaScript. Benchmarks from mid-range Android phones are included.',
+      why: 'Gives you numbers for deciding when native scroll timelines are safe to ship.' }
+  ]},
+  { title: 'AI models and products', items: [
+    { headline: 'Northlight releases an open-weight model tuned for tool use', source: 'Northlight Labs', author: 'Research team',
+      summary: 'The 32 billion parameter model is trained on traces of agents recovering from failed tool calls, and reports gains on multi-step benchmarks over its base. Weights and an evaluation harness are public.',
+      why: 'Better recovery changes what you can design in an agent interface, such as fewer confirmation prompts.' },
+    { headline: 'Designing the pause: how agents should hand control back', source: 'Parley Journal', author: 'Kasper Holm',
+      summary: 'Argues that handing control back is a first-class interaction with its own timing, summary and undo. It offers three patterns with annotated screens.',
+      why: 'Names a gap in most agent products: the moment the person re-enters.' }
+  ]},
+  { title: 'Research', items: [
+    { headline: 'Spring-based motion lowers perceived latency in touch interfaces', source: 'Interaction Letters', author: 'Okafor, Lindgren, Wu',
+      summary: 'In a study with 64 participants, interfaces that settled with springs were rated as more responsive than eased ones at identical durations. The effect held for drag release but not for button presses.',
+      why: 'Evidence for a choice designers usually make by feel, with a clear limit on where it applies.' },
+    { headline: 'How people read while audio plays', source: 'Preprint Shelf', author: 'Dalgaard, Mehta',
+      summary: 'Eye tracking with 30 readers shows that following synchronized text during narration shortens re-reading but lengthens fixations on headlines. The authors suggest highlighting by paragraph, not by word.',
+      why: 'Directly informs how much highlighting a read-along view should do.' }
+  ]},
+  { title: 'Launches', items: [
+    { headline: 'Tessera, a patch-based design token editor, opens its beta', source: 'Show HN', author: 'tessera_dev',
+      summary: 'Tokens are edited as small patches you can review like code, with a visual diff for color and spacing changes. The beta is free and exports to the W3C token format.',
+      why: 'A review workflow for tokens is missing from most design systems.' }
+  ]},
+  { title: 'Watch and listen', items: [
+    { headline: 'Thirteen minutes on building a drawer that feels physical', source: 'Craft Hours, video', author: 'Wen Zhao',
+      summary: 'A screen-recorded build of a bottom drawer with velocity-aware snapping, including the mistakes along the way.',
+      why: 'Short enough for a coffee break, and it shows the debugging, not just the result.' }
+  ]}
+];
+
+/* ---------- Model ---------- */
+const flat = [];
+SECTIONS.forEach((s, si) => s.items.forEach((it, ii) => flat.push({ ...it, si, ii, first: ii === 0, index: flat.length })));
+const WPS = 2.6; // words per second at 1x
+const wordCount = t => t.trim().split(/\s+/).length;
+const speechText = it => `${it.first ? SECTIONS[it.si].title + '. ' : ''}${it.headline}. ${it.summary} ${it.why}`;
+const seconds = it => Math.round(wordCount(speechText(it)) / WPS);
+const fmt = s => `${Math.floor(s / 60)}:${String(s % 60).padStart(2, '0')}`;
+const sectionSeconds = si => flat.filter(i => i.si === si).reduce((a, i) => a + seconds(i), 0);
+const totalSeconds = flat.reduce((a, i) => a + seconds(i), 0);
+const readMinutes = Math.max(1, Math.round(flat.reduce((a, i) => a + wordCount(i.headline + ' ' + i.summary + ' ' + i.why), 0) / 230));
+
+/* ---------- Render ---------- */
+const $ = id => document.getElementById(id);
+const briefing = $('briefing');
+const esc = s => s.replace(/[&<>"]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
+
+SECTIONS.forEach((s, si) => {
+  const sec = document.createElement('section');
+  sec.className = 'section';
+  sec.setAttribute('aria-labelledby', `sec-${si}`);
+  sec.innerHTML = `
+    <div class="chapter-wrap" data-chapter="${si}">
+      <span class="chapter-node" aria-hidden="true"></span>
+      <h2 id="sec-${si}"><button class="chapter" type="button" data-section="${si}"><span>${esc(s.title)}</span><span class="time num">${fmt(sectionSeconds(si))}</span></button></h2>
+    </div>` + flat.filter(i => i.si === si).map(it => `
+    <article class="item${it.lead ? ' item--lead' : ''}" data-index="${it.index}">
+      <span class="node" aria-hidden="true"></span>
+      <h3 class="title"><a href="#" rel="noopener">${esc(it.headline)}</a></h3>
+      <p class="byline"><span class="src">${esc(it.source)}</span><span><span class="sr-only">by </span>${esc(it.author)}</span></p>
+      <p class="summary">${esc(it.summary)}</p>
+      <p class="why"><strong>Why it matters.</strong> ${esc(it.why)}</p>
+      <button class="item-play" type="button" data-play="${it.index}" aria-label="Listen from here: ${esc(it.headline)}"><span><svg class="icon icon--solid" aria-hidden="true"><use href="#i-play"/></svg></span></button>
+    </article>`).join('');
+  briefing.appendChild(sec);
+});
+
+const items = [...document.querySelectorAll('.item')];
+const chapters = [...document.querySelectorAll('.chapter-wrap')];
+const fill = $('railFill');
+$('heroMeta').textContent = `${flat.length} items since Monday. About ${readMinutes} minutes to read, ${Math.round(totalSeconds / 60)} to listen.`;
+$('ctaTime').textContent = fmt(totalSeconds);
+
+/* ---------- Player ---------- */
+const synth = 'speechSynthesis' in window ? window.speechSynthesis : null;
+let cur = -1, playing = false, finished = false, rate = 1, token = 0, lastUserScroll = 0;
+
+function speak(i) {
+  if (!synth) { $('live').textContent = 'Listening is not supported in this browser.'; return; }
+  cur = i; playing = true; finished = false;
+  const my = ++token;
+  synth.cancel();
+  const u = new SpeechSynthesisUtterance(speechText(flat[i]));
+  u.rate = rate; u.lang = 'en';
+  u.onend = () => { if (my !== token) return; i + 1 < flat.length ? speak(i + 1) : finish(); };
+  synth.speak(u);
+  sync(true);
+}
+function pause() { token++; if (synth) synth.cancel(); playing = false; sync(false); }
+function finish() { playing = false; finished = true; sync(false); $('live').textContent = 'Briefing finished.'; }
+function toggle() { if (playing) pause(); else speak(cur < 0 || finished ? 0 : cur); }
+
+function sync(autoScroll) {
+  const active = cur >= 0 && !finished;
+  briefing.classList.toggle('is-live', active);
+  items.forEach((el, i) => {
+    el.classList.toggle('is-current', active && i === cur);
+    el.classList.toggle('is-played', finished || (cur >= 0 && i < cur));
+  });
+  chapters.forEach((el, si) => {
+    const curSec = cur >= 0 ? flat[cur].si : -1;
+    el.classList.toggle('is-current', active && si === curSec);
+    el.classList.toggle('is-played', finished || (cur >= 0 && si < curSec));
+  });
+
+  const label = playing ? 'Pause' : finished ? 'Play again' : cur >= 0 ? 'Resume' : 'Play the briefing';
+  $('ctaLabel').textContent = label;
+  $('ctaIcon').setAttribute('href', playing ? '#i-pause' : '#i-play');
+  $('toggleIcon').setAttribute('href', playing ? '#i-pause' : '#i-play');
+  $('toggle').setAttribute('aria-label', playing ? 'Pause' : 'Play');
+
+  if (cur >= 0) {
+    const it = flat[cur];
+    $('pSec').textContent = `${SECTIONS[it.si].title}, ${it.index + 1} of ${flat.length}`;
+    $('pTitle').textContent = it.headline;
+    const p = $('player');
+    if (!p.classList.contains('is-visible')) requestAnimationFrame(() => p.classList.add('is-visible'));
+  }
+  updateRail();
+  syncChapters();
+
+  if (autoScroll && cur >= 0 && Date.now() - lastUserScroll > 4000) {
+    const reduce = matchMedia('(prefers-reduced-motion: reduce)').matches;
+    items[cur].scrollIntoView({ block: 'center', behavior: reduce ? 'auto' : 'smooth' });
+  }
+}
+
+function updateRail() {
+  const total = briefing.offsetHeight || 1;
+  let y = 0;
+  if (finished) y = total;
+  else if (cur >= 0) {
+    const n = items[cur].querySelector('.node').getBoundingClientRect();
+    const b = briefing.getBoundingClientRect();
+    y = n.top - b.top + n.height / 2;
+  }
+  fill.style.transform = `scaleY(${Math.min(1, Math.max(0, y / total))})`;
+}
+new ResizeObserver(updateRail).observe(briefing);
+if (document.fonts && document.fonts.ready) document.fonts.ready.then(updateRail);
+['wheel', 'touchmove'].forEach(e => addEventListener(e, () => { lastUserScroll = Date.now(); }, { passive: true }));
+
+$('cta').addEventListener('click', toggle);
+$('toggle').addEventListener('click', toggle);
+$('prev').addEventListener('click', () => speak(Math.max(0, (cur < 0 ? 0 : cur) - 1)));
+$('next').addEventListener('click', () => speak(Math.min(flat.length - 1, (cur < 0 ? 0 : cur) + 1)));
+briefing.addEventListener('click', e => {
+  const play = e.target.closest('[data-play]');
+  if (play) { lastUserScroll = 0; speak(+play.dataset.play); return; }
+  const sec = e.target.closest('[data-section]');
+  if (sec) { lastUserScroll = 0; speak(flat.find(i => i.si === +sec.dataset.section).index); }
+});
+
+/* ---------- Sheets ---------- */
+function syncChapters() {
+  const curSec = cur >= 0 ? flat[cur].si : -1;
+  $('chapterList').innerHTML = SECTIONS.map((s, si) =>
+    `<button type="button" data-jump="${si}"${si === curSec ? ' aria-current="true"' : ''}><span>${esc(s.title)}</span><span class="time num">${fmt(sectionSeconds(si))}</span></button>`).join('');
+}
+syncChapters();
+$('speeds').innerHTML = [1, 1.25, 1.5, 2].map(r => `<button type="button" data-rate="${r}" aria-pressed="${r === rate}" class="num">${r}x</button>`).join('');
+const chaptersSheet = $('chaptersSheet'), generateSheet = $('generateSheet');
+$('openChapters').addEventListener('click', () => chaptersSheet.showModal());
+$('chapterList').addEventListener('click', e => {
+  const b = e.target.closest('[data-jump]'); if (!b) return;
+  chaptersSheet.close(); lastUserScroll = 0; speak(flat.find(i => i.si === +b.dataset.jump).index);
+});
+$('speeds').addEventListener('click', e => {
+  const b = e.target.closest('[data-rate]'); if (!b) return;
+  rate = +b.dataset.rate;
+  [...$('speeds').children].forEach(x => x.setAttribute('aria-pressed', String(+x.dataset.rate === rate)));
+  if (playing) speak(cur);
+});
+document.querySelectorAll('[data-close]').forEach(b => b.addEventListener('click', () => b.closest('dialog').close()));
+document.querySelectorAll('dialog.sheet').forEach(d => d.addEventListener('click', e => { if (e.target === d) d.close(); }));
+
+/* Generate: simulated run. The real version calls /api/generate, then polls /latest.json. */
+const STEPS = ['Waiting for a slot', 'Reading sources', 'Choosing and writing', 'Building the page', 'Ready'];
+$('openGenerate').addEventListener('click', () => generateSheet.showModal());
+$('generateForm').addEventListener('submit', e => {
+  e.preventDefault();
+  const err = $('passError'), val = $('pass').value.trim();
+  if (!val) { err.textContent = 'Enter the passphrase to continue.'; err.hidden = false; return; }
+  if (val !== 'demo') { err.textContent = 'That passphrase does not match. Check it and try again.'; err.hidden = false; return; }
+  err.hidden = true;
+  const list = $('steps'), btn = $('generateBtn');
+  btn.disabled = true; btn.style.opacity = '0.6'; btn.querySelector('.cta-main').textContent = 'Generating';
+  list.hidden = false;
+  const render = n => { list.innerHTML = STEPS.map((s, i) => {
+    const state = i < n ? 'done' : i === n ? 'active' : 'todo';
+    const st = state === 'done' ? 'Done' : state === 'active' ? (i === STEPS.length - 1 ? 'Open it from Earlier' : 'In progress') : '';
+    return `<li data-state="${state}"><span>${s}</span><span class="st">${st}</span></li>`; }).join(''); };
+  let n = 0; render(0);
+  const t = setInterval(() => {
+    n++; render(n);
+    if (n === STEPS.length - 1) { clearInterval(t); btn.querySelector('.cta-main').textContent = 'Next run available in 6 hours'; }
+  }, 1200);
+});
+
+/* ---------- Theme ---------- */
+const root = document.documentElement;
+const isDark = () => root.dataset.theme ? root.dataset.theme === 'dark' : matchMedia('(prefers-color-scheme: dark)').matches;
+function paintTheme() { $('themeIcon').setAttribute('href', isDark() ? '#i-sun' : '#i-moon'); }
+try { const saved = localStorage.getItem('dispatch-theme'); if (saved) root.dataset.theme = saved; } catch (_) {}
+$('themeToggle').addEventListener('click', () => {
+  const next = isDark() ? 'light' : 'dark';
+  root.dataset.theme = next;
+  try { localStorage.setItem('dispatch-theme', next); } catch (_) {}
+  paintTheme();
+});
+paintTheme();
+updateRail();
+</script>
+</body>
+</html>

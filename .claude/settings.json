@@ -1,0 +1,8 @@
+{
+  "enabledPlugins": {
+    "frontend-design@anthropic-plugin-directory": true,
+    "ui-design@agents-plugins": true,
+    "motion-design@agents-plugins": true,
+    "design-engineering@agents-plugins": true
+  }
+}
