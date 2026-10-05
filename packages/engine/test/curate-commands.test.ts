@@ -180,6 +180,27 @@ describe("dispatch curate: api mode", () => {
     expect(second.judge.asked).toEqual([]);
   });
 
+  it("continues a run in the same directory without judging again", async () => {
+    const pool = await seedPool(5);
+    const { ctx } = makeContext(tr.root, { env: ENV });
+    await captureStdout(() => makeCurateCommand(factoryFor(pool.table).factory)([], ctx));
+    // No committed state/judgments.json exists, so only the run directory can supply the cache.
+    const rerun = factoryFor(pool.table);
+    const { result } = await captureStdout(() => makeCurateCommand(rerun.factory)([], ctx));
+    expect(result).toBe(0);
+    expect(rerun.judge.asked).toEqual([]);
+  });
+
+  it("ignores a corrupt judgments file in the run directory", async () => {
+    const pool = await seedPool(5);
+    await writeRunFile(tr.root, RUN, "judgments.json", "{ not json");
+    const { ctx } = makeContext(tr.root, { env: ENV });
+    const fresh = factoryFor(pool.table);
+    const { result } = await captureStdout(() => makeCurateCommand(fresh.factory)([], ctx));
+    expect(result).toBe(0);
+    expect(fresh.judge.asked).toHaveLength(1);
+  });
+
   it("skips malformed pool entries and still curates the rest", async () => {
     const pool = makePool(goodSpecs(5));
     await writeRunFile(tr.root, RUN, "pool.json", { items: [...pool.items, { nope: true }] });
@@ -234,9 +255,15 @@ describe("dispatch curate: errors", () => {
     expect(text).not.toContain(SECRET);
   });
 
-  it("fails when the pool file is missing", async () => {
+  it("fails when there is no pool anywhere", async () => {
     const { ctx, logs } = makeContext(tr.root, { env: ENV });
     expect(await cmd([], ctx)).toBe(1);
+    expect(logs.some((l) => l.message.includes("No pool found under .cache/run"))).toBe(true);
+  });
+
+  it("fails when the named run has no pool file", async () => {
+    const { ctx, logs } = makeContext(tr.root, { env: ENV });
+    expect(await cmd(["--run", "2026-10-01"], ctx)).toBe(1);
     expect(logs.some((l) => l.message.includes("pool file does not exist"))).toBe(true);
   });
 
@@ -469,6 +496,8 @@ describe("dispatch render", () => {
   it("fails clearly when there is no selection or the pool lacks an id", async () => {
     const { ctx, logs } = makeContext(tr.root);
     expect(await render([], ctx)).toBe(1);
+    expect(logs.some((l) => l.message.includes("No selection found under .cache/run"))).toBe(true);
+    expect(await render(["--run", "2026-10-01"], ctx)).toBe(1);
     expect(logs.some((l) => l.message.includes("selection.json not found"))).toBe(true);
 
     const fixture = await seedRender(5);
@@ -495,7 +524,7 @@ describe("dispatch render", () => {
   it("exits 2 for bad arguments", async () => {
     const { ctx } = makeContext(tr.root);
     expect(await render(["--bogus"], ctx)).toBe(2);
-    expect(await render(["--kind", "daily"], ctx)).toBe(2);
+    expect(await render(["stray"], ctx)).toBe(2);
   });
 
   it("uses the fallback cover picker when none is injected", async () => {

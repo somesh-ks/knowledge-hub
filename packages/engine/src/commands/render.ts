@@ -1,6 +1,6 @@
-import { join } from "node:path";
+import { dirname, join } from "node:path";
 import { parseArgs } from "node:util";
-import { DigestKind, homeSection, stockholmDate } from "@dispatch/core";
+import { homeSection, stockholmDate } from "@dispatch/core";
 import { type CommandRun, secretsFromEnv } from "../context.js";
 import {
   loadLastRun,
@@ -10,7 +10,7 @@ import {
   sourceNameMap,
 } from "../curate/inputs.js";
 import { emit } from "../curate/output.js";
-import { defaultRunId, fromRoot, runDirFor } from "../curate/runDir.js";
+import { fromRoot, resolveRunLocation } from "../curate/runDir.js";
 import { Selection } from "../curate/selectionFile.js";
 import { describeError } from "../llm/errors.js";
 import { buildDigest, type CoverPicker } from "../render/buildDigest.js";
@@ -23,7 +23,7 @@ import { createLinter } from "../voice/lint.js";
 import { loadVoice } from "../voice/voice.js";
 
 export const RENDER_USAGE =
-  "Usage: dispatch render [--run <id>] [--kind regular|weekly|on-demand] [--selection <path>] [--pool <path>] [--dry-run]";
+  "Usage: dispatch render [--run <id>] [--selection <path>] [--pool <path>] [--dry-run]";
 
 export interface RenderDeps {
   /** The cover package's picker. Defaults to a deterministic stand-in. */
@@ -34,17 +34,13 @@ export interface RenderDeps {
  * `dispatch render`: turn a run's `selection.json` into `Digests/YYYY/MM/<id>.md`. It rebuilds
  * the items from the pool, assigns sections and Top picks, computes read and listen times,
  * validates the result with the same checks as `dispatch validate`, and writes the file without
- * ever overwriting. Exit codes: 0 rendered or nothing to render, 1 failure, 2 usage error.
+ * ever overwriting. The digest takes the id `dispatch fetch` allocated for the run when it is
+ * still free, otherwise the next free suffix. The audio script is built later by `dispatch audio`
+ * from the digest fields. Exit codes: 0 rendered or nothing to render, 1 failure, 2 usage error.
  */
 export function makeRenderCommand(deps: RenderDeps = {}): CommandRun {
   return async (argv, ctx) => {
-    let values: {
-      run?: string;
-      kind?: string;
-      selection?: string;
-      pool?: string;
-      "dry-run"?: boolean;
-    };
+    let values: { run?: string; selection?: string; pool?: string; "dry-run"?: boolean };
     try {
       values = parseArgs({
         args: argv,
@@ -52,15 +48,11 @@ export function makeRenderCommand(deps: RenderDeps = {}): CommandRun {
         strict: true,
         options: {
           run: { type: "string" },
-          kind: { type: "string" },
           selection: { type: "string" },
           pool: { type: "string" },
           "dry-run": { type: "boolean" },
         },
       }).values;
-      if (values.kind !== undefined && !DigestKind.safeParse(values.kind).success) {
-        throw new Error("--kind must be regular, weekly or on-demand.");
-      }
     } catch (error) {
       ctx.log.error(
         `${error instanceof Error ? error.message : "Invalid arguments."} ${RENDER_USAGE}`,
@@ -71,12 +63,21 @@ export function makeRenderCommand(deps: RenderDeps = {}): CommandRun {
     try {
       const { root, log } = ctx;
       const now = ctx.now();
-      const runId = values.run ?? defaultRunId(now, DigestKind.parse(values.kind ?? "regular"));
-      const runDir = runDirFor(root, runId);
+      // A selection path alone names the run: its folder holds the pool too.
+      const location =
+        values.selection && !values.run && !values.pool
+          ? {
+              runDir: dirname(fromRoot(root, values.selection)),
+              poolPath: join(dirname(fromRoot(root, values.selection)), "pool.json"),
+            }
+          : await resolveRunLocation(
+              root,
+              { run: values.run, pool: values.pool },
+              "selection.json",
+            );
       const selectionPath = values.selection
         ? fromRoot(root, values.selection)
-        : join(runDir, "selection.json");
-      const poolPath = values.pool ? fromRoot(root, values.pool) : join(runDir, "pool.json");
+        : join(location.runDir, "selection.json");
 
       const rawSelection = await readJsonIfExists(selectionPath, "selection.json");
       if (rawSelection === null) {
@@ -85,8 +86,9 @@ export function makeRenderCommand(deps: RenderDeps = {}): CommandRun {
       }
       const parsed = Selection.safeParse(rawSelection);
       if (!parsed.success) {
+        const issue = parsed.error.issues[0];
         log.error(
-          `selection.json is invalid: ${parsed.error.issues[0]?.path.join(".") ?? ""} ${parsed.error.issues[0]?.message ?? ""}`.trim(),
+          `selection.json is invalid: ${issue?.path.join(".") ?? ""} ${issue?.message ?? ""}`.trim(),
         );
         return 1;
       }
@@ -96,12 +98,15 @@ export function makeRenderCommand(deps: RenderDeps = {}): CommandRun {
         return 0;
       }
 
-      const pool = new Map((await loadPool(poolPath)).items.map((item) => [item.id, item]));
+      const loaded = await loadPool(location.poolPath);
+      const pool = new Map(loaded.items.map((item) => [item.id, item]));
       const selected: SelectedItem[] = [];
       for (const entry of selection.items) {
         const item = pool.get(entry.id);
         if (!item) {
-          log.error(`The selection names ${entry.id}, which is not in the pool at ${poolPath}.`);
+          log.error(
+            `The selection names ${entry.id}, which is not in the pool at ${location.poolPath}.`,
+          );
           return 1;
         }
         const home = homeSection(entry.category, item.source_type);
@@ -121,7 +126,8 @@ export function makeRenderCommand(deps: RenderDeps = {}): CommandRun {
           palettes: await loadCoverPalettes(root),
           ...(lastRun.last_cover ? { last: lastRun.last_cover } : {}),
         });
-      const taken = await listTakenIds(root, stockholmDate(now));
+      const preferredId = loaded.meta.id;
+      const taken = await listTakenIds(root, (preferredId ?? stockholmDate(now)).slice(0, 10));
 
       const digest = buildDigest({
         selected,
@@ -135,7 +141,7 @@ export function makeRenderCommand(deps: RenderDeps = {}): CommandRun {
         kind: selection.kind,
         now,
         coverPicker,
-        allocateId: createIdAllocator(taken),
+        allocateId: createIdAllocator(taken, preferredId),
         verified: selection.verified,
         audio: null,
         sourceNames: sourceNameMap(sources),

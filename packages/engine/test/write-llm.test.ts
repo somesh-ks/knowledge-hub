@@ -396,6 +396,42 @@ describe("createNebiusLlm", () => {
     expect(formatType(api.bodies[2])).toBe("json_object");
   });
 
+  it("drops the thinking parameter for the rest of the run when the model rejects it, and says so", async () => {
+    const { log, lines } = captureLog();
+    const { api, llm } = make(
+      [
+        httpError(400, "Unrecognized request argument supplied: reasoning_effort"),
+        reply('{"items":[]}'),
+        reply('{"items":[]}'),
+      ],
+      { log },
+    );
+    await llm.completeJson(request());
+    await llm.completeJson(request());
+    expect(api.bodies[0]).toHaveProperty("reasoning_effort", "none");
+    expect(api.bodies[1]).not.toHaveProperty("reasoning_effort");
+    expect(api.bodies[2]).not.toHaveProperty("reasoning_effort");
+    expect(lines.some((l) => l.level === "warn" && l.message.includes("thinking-off"))).toBe(true);
+  });
+
+  it("can fall back on both the schema and the thinking parameter in one call", async () => {
+    const { api, llm } = make([
+      httpError(400, "response_format is not supported"),
+      httpError(400, "reasoning_effort is not supported"),
+      reply('{"items":[]}'),
+    ]);
+    await llm.completeJson(request());
+    expect(api.bodies).toHaveLength(3);
+    expect(formatType(api.bodies[2])).toBe("json_object");
+    expect(api.bodies[2]).not.toHaveProperty("reasoning_effort");
+  });
+
+  it("does not loop on a persistent 400", async () => {
+    const { api, llm } = make([httpError(400, "bad request"), httpError(400, "bad request")]);
+    await expect(llm.completeJson(request())).rejects.toMatchObject({ status: 400 });
+    expect(api.bodies).toHaveLength(1);
+  });
+
   it("retries a 429 with backoff and then succeeds", async () => {
     const { api, llm } = make([httpError(429, "slow down"), reply('{"items":[]}')]);
     await llm.completeJson(request());

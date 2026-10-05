@@ -48,6 +48,14 @@ function schemaRejected(error: unknown): boolean {
   return /response_format|json_schema|json schema|guided|structured/.test(message);
 }
 
+/** A 400 or 422 that names the thinking parameter: the model does not accept the configured toggle. */
+function thinkingRejected(error: unknown): boolean {
+  const status = errorStatus(error);
+  if (status !== 400 && status !== 422) return false;
+  const message = error instanceof Error ? error.message.toLowerCase() : "";
+  return /reasoning|thinking|chat_template/.test(message);
+}
+
 function summarizeIssues(error: z.ZodError): string {
   return error.issues
     .slice(0, 6)
@@ -71,7 +79,7 @@ function totalChars(messages: readonly ChatMessage[]): number {
  * appended. The spend guard checks before each request and records reported usage after it.
  */
 export function createNebiusLlm(options: NebiusLlmOptions): LlmClient {
-  const thinkingOff = options.thinkingOff ?? DEFAULT_THINKING_OFF;
+  let thinkingOff = options.thinkingOff ?? DEFAULT_THINKING_OFF;
   let mode: ResponseMode = options.responseMode ?? "json_schema";
 
   async function send<T>(
@@ -79,7 +87,8 @@ export function createNebiusLlm(options: NebiusLlmOptions): LlmClient {
     messages: readonly ChatMessage[],
   ): Promise<{ content: string; usage: LlmUsage }> {
     const maxTokens = request.maxTokens ?? DEFAULT_MAX_TOKENS;
-    for (let pass = 0; ; pass++) {
+    // Each fallback below flips its own state once, so this loop runs at most three times.
+    for (;;) {
       options.budget.check(estimateTokensForChars(totalChars(messages)) + maxTokens);
       const body: Record<string, unknown> = {
         model: options.model,
@@ -115,9 +124,16 @@ export function createNebiusLlm(options: NebiusLlmOptions): LlmClient {
           usage: { promptTokens: prompt, completionTokens: completion, totalTokens: total },
         };
       } catch (error) {
-        if (mode === "json_schema" && pass === 0 && schemaRejected(error)) {
+        if (mode === "json_schema" && schemaRejected(error)) {
           options.log?.warn(`${request.label}: model rejected json_schema, using json_object`);
           mode = "json_object";
+          continue;
+        }
+        if (thinkingOff.kind !== "omit" && thinkingRejected(error)) {
+          options.log?.warn(
+            `${request.label}: model rejected the thinking-off parameter; continuing without it. Set the thinking spec for this model.`,
+          );
+          thinkingOff = { kind: "omit" };
           continue;
         }
         throw error;

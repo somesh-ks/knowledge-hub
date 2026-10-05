@@ -195,6 +195,32 @@ describe("digest ids", () => {
     );
   });
 
+  it("starts a weekly with a numeric suffix when its own id is taken, never the plain date", () => {
+    expect(nextDigestId("2026-10-11", "weekly", new Set(["2026-10-11-weekly"]))).toBe(
+      "2026-10-11-2",
+    );
+  });
+
+  it("uses the id the fetch reserved while it is free, then the next free one on that date", () => {
+    const taken = new Set<string>();
+    const allocate = createIdAllocator(taken, "2026-10-06");
+    expect(allocate({ date: "2026-10-07", kind: "regular" })).toBe("2026-10-06");
+    expect(allocate({ date: "2026-10-07", kind: "regular" })).toBe("2026-10-06-2");
+    const weekly = createIdAllocator(new Set(["2026-10-11-weekly"]), "2026-10-11-weekly");
+    expect(weekly({ date: "2026-10-12", kind: "weekly" })).toBe("2026-10-11-2");
+  });
+
+  it("ignores a reserved id that is not a valid digest id", () => {
+    const allocate = createIdAllocator(new Set(), "not-an-id");
+    expect(allocate({ date: "2026-10-07", kind: "regular" })).toBe("2026-10-07");
+  });
+
+  it("takes the digest date from the allocated id", () => {
+    const { digest } = buildFixtureDigest(4, { allocateId: () => "2026-10-06-2" });
+    expect(digest.id).toBe("2026-10-06-2");
+    expect(digest.date).toBe("2026-10-06");
+  });
+
   it("records the ids it hands out", () => {
     const allocate = createIdAllocator(new Set());
     expect(allocate({ date: "2026-10-07", kind: "regular" })).toBe("2026-10-07");

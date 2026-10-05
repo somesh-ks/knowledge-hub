@@ -6,13 +6,12 @@ import type { DigestIdAllocator } from "./buildDigest.js";
 const MAX_SUFFIX = 99;
 
 /**
- * The next free digest id. A weekly pass takes `<date>-weekly` first; every other kind, and a
- * weekly whose id is taken, takes `<date>`, then `<date>-2`, `-3` and so on. Never reuses an id.
+ * The next free digest id, by the same rule `dispatch fetch` uses. A weekly pass takes
+ * `<date>-weekly`; every other kind takes `<date>`. When that id is taken, both continue with
+ * `<date>-2`, `-3` and so on (core ids have no `-weekly-2`). Never reuses an id.
  */
 export function nextDigestId(date: string, kind: DigestKind, taken: ReadonlySet<string>): string {
-  const candidates: string[] = [];
-  if (kind === "weekly") candidates.push(`${date}-weekly`);
-  candidates.push(date);
+  const candidates: string[] = [kind === "weekly" ? `${date}-weekly` : date];
   for (let n = 2; n <= MAX_SUFFIX; n++) candidates.push(`${date}-${n}`);
   const free = candidates.find((id) => !taken.has(id));
   if (free === undefined) throw new Error(`No free digest id left for ${date}.`);
@@ -31,10 +30,19 @@ export async function listTakenIds(root: string, date: string): Promise<Set<stri
   }
 }
 
-/** An allocator over a set of taken ids. It records each id it hands out. */
-export function createIdAllocator(taken: Set<string>): DigestIdAllocator {
+/**
+ * An allocator over a set of taken ids. It records each id it hands out. `preferred` is the id
+ * `dispatch fetch` reserved for the run: it is used when still free, otherwise the next free
+ * id on the same date. Without it the id comes from the date and kind the builder passes in.
+ */
+export function createIdAllocator(taken: Set<string>, preferred?: string): DigestIdAllocator {
+  const reserved =
+    preferred !== undefined && DigestId.safeParse(preferred).success ? preferred : undefined;
   return ({ date, kind }) => {
-    const id = nextDigestId(date, kind, taken);
+    const id =
+      reserved !== undefined && !taken.has(reserved)
+        ? reserved
+        : nextDigestId(reserved?.slice(0, 10) ?? date, kind, taken);
     taken.add(id);
     return id;
   };

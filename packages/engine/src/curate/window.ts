@@ -26,3 +26,17 @@ export function computeWindow(args: {
   const from = Math.min(args.now.getTime(), Math.max(earliest, start));
   return { from: new Date(from).toISOString(), to: args.now.toISOString() };
 }
+
+/**
+ * The window a run reports. `--since` wins, then the window the fetch recorded in the pool (the
+ * span it actually covered), then the last-fetch rule in computeWindow.
+ */
+export function resolveWindow(args: {
+  now: Date;
+  since?: string | undefined;
+  poolWindow?: DigestWindow | undefined;
+  lastFetchAt?: string | undefined;
+}): DigestWindow {
+  if (args.since === undefined && args.poolWindow) return args.poolWindow;
+  return computeWindow(args);
+}

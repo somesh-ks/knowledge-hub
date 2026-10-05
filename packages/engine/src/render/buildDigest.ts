@@ -74,8 +74,9 @@ export function buildDigest(input: BuildDigestInput): Digest {
     return item;
   });
 
-  const date = stockholmDate(input.now);
-  const id = input.allocateId({ date, kind: input.kind });
+  const id = input.allocateId({ date: stockholmDate(input.now), kind: input.kind });
+  // The date is part of the id, so a pool fetched before midnight and rendered after it still agrees.
+  const date = id.slice(0, 10);
   const words = digestWords(items);
   return Digest.parse({
     id,

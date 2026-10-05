@@ -1,6 +1,6 @@
-import { join } from "node:path";
+import { basename, join } from "node:path";
 import { parseArgs } from "node:util";
-import { DigestKind, requireKey } from "@dispatch/core";
+import { DigestKind, JudgmentsFile, requireKey } from "@dispatch/core";
 import { type CommandContext, type CommandRun, secretsFromEnv } from "../context.js";
 import { validateAgentSelection } from "../curate/agentMode.js";
 import { type ApiRuntimeFactory, createApiRuntime } from "../curate/apiRuntime.js";
@@ -15,10 +15,10 @@ import {
 } from "../curate/inputs.js";
 import { emit, writeJson } from "../curate/output.js";
 import { curatePool } from "../curate/pipeline.js";
-import { defaultRunId, fromRoot, runDirFor } from "../curate/runDir.js";
+import { fromRoot, resolveRunLocation } from "../curate/runDir.js";
 import { agentSelectionJsonSchema, type WrittenFile } from "../curate/selectionFile.js";
-import { computeWindow } from "../curate/window.js";
-import { pruneJudgments } from "../judge/cache.js";
+import { resolveWindow } from "../curate/window.js";
+import { mergeJudgments, pruneJudgments } from "../judge/cache.js";
 import { describeError } from "../llm/errors.js";
 import { createLinter } from "../voice/lint.js";
 import { loadVoice } from "../voice/voice.js";
@@ -28,7 +28,8 @@ export const CURATE_USAGE =
 
 interface Flags {
   mode: "api" | "agent" | undefined;
-  kind: DigestKind;
+  /** Undefined means: use the pool's kind, else regular. */
+  kind: DigestKind | undefined;
   pool: string | undefined;
   out: string | undefined;
   run: string | undefined;
@@ -61,8 +62,8 @@ function parseFlags(argv: string[]): Flags {
   if (values.mode !== undefined && values.mode !== "api" && values.mode !== "agent") {
     throw new UsageError(`--mode must be api or agent, not "${values.mode}".`);
   }
-  const kind = DigestKind.safeParse(values.kind ?? "regular");
-  if (!kind.success) throw new UsageError("--kind must be regular, weekly or on-demand.");
+  const kind = values.kind === undefined ? undefined : DigestKind.safeParse(values.kind);
+  if (kind && !kind.success) throw new UsageError("--kind must be regular, weekly or on-demand.");
   let threshold: number | undefined;
   if (values.threshold !== undefined) {
     threshold = Number(values.threshold);
@@ -75,7 +76,7 @@ function parseFlags(argv: string[]): Flags {
   }
   return {
     mode: values.mode as "api" | "agent" | undefined,
-    kind: kind.data,
+    kind: kind?.success ? kind.data : undefined,
     pool: values.pool,
     out: values.out,
     run: values.run,
@@ -113,19 +114,36 @@ export function makeCurateCommand(createRuntime: ApiRuntimeFactory = createApiRu
 }
 
 interface Paths {
-  runId: string;
+  runDir: string;
   outDir: string;
   poolPath: string;
 }
 
-function resolvePaths(ctx: CommandContext, flags: Flags): Paths {
-  const runId = flags.run ?? defaultRunId(ctx.now(), flags.kind);
-  const runDir = runDirFor(ctx.root, runId);
+/**
+ * Where the run lives: `--pool` names the pool and its folder is the run directory, `--run`
+ * names `.cache/run/<id>`, and with neither the newest run that has a pool is used. Outputs go
+ * to `--out` when given, otherwise next to the pool.
+ */
+async function resolvePaths(ctx: CommandContext, flags: Flags): Promise<Paths> {
+  const location = await resolveRunLocation(ctx.root, { run: flags.run, pool: flags.pool });
   return {
-    runId,
-    outDir: flags.out ? fromRoot(ctx.root, flags.out) : runDir,
-    poolPath: flags.pool ? fromRoot(ctx.root, flags.pool) : join(runDir, "pool.json"),
+    runDir: location.runDir,
+    outDir: flags.out ? fromRoot(ctx.root, flags.out) : location.runDir,
+    poolPath: location.poolPath,
   };
+}
+
+/**
+ * A re-run in the same run directory continues instead of judging again: judgments saved by the
+ * earlier attempt are merged over the committed cache. An unreadable file is ignored.
+ */
+async function withRunJudgments(state: JudgmentsFile, path: string): Promise<JudgmentsFile> {
+  try {
+    const parsed = JudgmentsFile.safeParse(await readJsonIfExists(path, "judgments.json"));
+    return parsed.success ? mergeJudgments(state, Object.values(parsed.data.entries)) : state;
+  } catch {
+    return state;
+  }
 }
 
 async function runApi(
@@ -136,22 +154,30 @@ async function runApi(
   const { root, log } = ctx;
   // Fail before any work when a required key is missing.
   requireKey(ctx.env, "NEBIUS_API_KEY");
-  const paths = resolvePaths(ctx, flags);
+  const paths = await resolvePaths(ctx, flags);
   const voice = await loadVoice(root);
   const linter = createLinter(voice);
   const pool = await loadPool(paths.poolPath);
+  const kind = flags.kind ?? pool.meta.kind ?? "regular";
+  const runId = pool.meta.id ?? basename(paths.runDir);
   if (pool.invalid > 0)
     log.warn("Skipped pool entries that did not match the item schema", { skipped: pool.invalid });
   if (pool.items.length === 0) throw new Error("The pool has no valid items.");
 
-  const [preferences, sources, judgments, lastRun] = await Promise.all([
+  const [preferences, sources, stateJudgments, lastRun] = await Promise.all([
     loadPreferences(root),
     loadSources(root),
     loadJudgments(root),
     loadLastRun(root),
   ]);
+  const judgments = await withRunJudgments(stateJudgments, join(paths.outDir, "judgments.json"));
   const now = ctx.now();
-  const window = computeWindow({ now, since: flags.since, lastFetchAt: lastRun.last_fetch_at });
+  const window = resolveWindow({
+    now,
+    since: flags.since,
+    poolWindow: pool.meta.window,
+    lastFetchAt: lastRun.last_fetch_at,
+  });
   const runtime = createRuntime(ctx, voice);
 
   const result = await curatePool(
@@ -168,7 +194,7 @@ async function runApi(
       pool: pool.items,
       preferences,
       judgments,
-      kind: flags.kind,
+      kind,
       window,
       sourceNames: sourceNameMap(sources),
       threshold: flags.threshold,
@@ -181,9 +207,9 @@ async function runApi(
   const usage = runtime.usage();
   await writeJson(join(paths.outDir, "curate-report.json"), {
     version: 1,
-    run_id: paths.runId,
+    run_id: runId,
     mode: "api",
-    kind: flags.kind,
+    kind,
     at: now.toISOString(),
     counts: result.counts,
     judge: {
@@ -199,7 +225,7 @@ async function runApi(
   const summary = {
     outcome: result.outcome,
     mode: "api",
-    run_id: paths.runId,
+    run_id: runId,
     items: result.selection.items.length,
     verified: result.selection.verified,
     out: paths.outDir,
@@ -221,8 +247,10 @@ async function runApi(
 
 async function runAgent(ctx: CommandContext, flags: Flags): Promise<number> {
   const { root } = ctx;
-  const paths = resolvePaths(ctx, flags);
+  const paths = await resolvePaths(ctx, flags);
   const voice = await loadVoice(root);
+  const pool = await loadPool(paths.poolPath);
+  const kind = flags.kind ?? pool.meta.kind ?? "regular";
   const schemaPath = join(paths.outDir, "selection-schema.json");
   await writeJson(schemaPath, agentSelectionJsonSchema());
 
@@ -246,16 +274,17 @@ async function runAgent(ctx: CommandContext, flags: Flags): Promise<number> {
     return 0;
   }
 
-  const [pool, lastRun] = await Promise.all([loadPool(paths.poolPath), loadLastRun(root)]);
-  const window = computeWindow({
+  const lastRun = await loadLastRun(root);
+  const window = resolveWindow({
     now: ctx.now(),
     since: flags.since,
+    poolWindow: pool.meta.window,
     lastFetchAt: lastRun.last_fetch_at,
   });
   const checked = validateAgentSelection(raw, {
     pool: pool.items,
     linter: createLinter(voice),
-    kind: flags.kind,
+    kind,
     window,
   });
   if (!checked.ok) {
