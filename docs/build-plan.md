@@ -2,7 +2,7 @@
 
 > Executable plan for the curation engine, the `news.someshks.work` web app, and the local skills that trigger both.
 >
-> Vision, digest schema and taste model: [Implementation Plan.md](Implementation%20Plan.md). Source registry: [Sources.md](Sources.md). Design reference: [Reader Prototype.html](Prototype/Reader%20Prototype.html).
+> Vision, digest schema and taste model: [Implementation Plan.md](vision.md). Source registry: [Sources.md](../config/sources.md). Design reference: [Reader Prototype.html](prototype/reader-prototype.html).
 >
 > Status: plan v2, revised 2026-10-05 after a verification pass and an independent review. No code written yet.
 

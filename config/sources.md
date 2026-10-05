@@ -4,7 +4,7 @@
 > Audience: designers and design engineers.
 > Verticals: AI/ML, design engineering, UI libraries, tech products, developer tools.
 >
-> Supplementary sources (YouTube, Twitter/X, Podcasts, academic conferences, research labs, evaluated candidates): [Sources Reference.md](Reference/Sources%20Reference.md)
+> Supplementary sources (YouTube, Twitter/X, Podcasts, academic conferences, research labs, evaluated candidates): [Sources Reference.md](../docs/reference/sources-reference.md)
 
 ---
 
@@ -120,7 +120,7 @@
 | Lenis | https://github.com/darkroomengineering/lenis/releases | Smooth scroll library |
 
 > [!NOTE]
-> Static UI component libraries, micro-interaction vaults, and design galleries have been moved to [Resources.md](Reference/Resources.md) to keep this file focused strictly on recurring data, release, and news feeds.
+> Static UI component libraries, micro-interaction vaults, and design galleries have been moved to [Resources.md](../docs/reference/resources.md) to keep this file focused strictly on recurring data, release, and news feeds.
 
 ### Design System Changelogs
 | Source | URL | What to track |
@@ -155,7 +155,7 @@
 
 ## 6. YouTube Channels (Pipeline)
 
-High-signal channels with scrapable RSS feeds via YouTube API. Full YouTube list in [Sources Reference.md §1](Reference/Sources%20Reference.md).
+High-signal channels with scrapable RSS feeds via YouTube API. Full YouTube list in [Sources Reference.md §1](../docs/reference/sources-reference.md).
 
 | Channel | URL | Feed | Focus |
 |---------|-----|------|-------|
@@ -214,7 +214,7 @@ https://stability.ai/news
 
 ## 9. Scientific & Academic Publications (HCI & Interaction Design - Open Access)
 
-Automatable journal RSS feeds and daily preprint streams. Annual conferences, bridge publications, and research lab pages are in [Sources Reference.md §5](Reference/Sources%20Reference.md).
+Automatable journal RSS feeds and daily preprint streams. Annual conferences, bridge publications, and research lab pages are in [Sources Reference.md §5](../docs/reference/sources-reference.md).
 
 ### Open Access Archival Journals (Peer-Reviewed)
 | Publication | Publisher / URL | Focus & Signal | Access |

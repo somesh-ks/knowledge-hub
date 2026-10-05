@@ -6,9 +6,9 @@
 >
 > **Frequency:** Every 2 days at 07:13 Stockholm time (CEST/CET), plus a weekly deep digest on Sundays. Each run covers everything new since the last run; no item is ever shown twice.
 >
-> **Runtime:** A private GitHub repo with a standalone engine that runs on GitHub Actions, locally, or from the site's Generate button. See [Build Plan.md](Build%20Plan.md) Section 4.
+> **Runtime:** A private GitHub repo with a standalone engine that runs on GitHub Actions, locally, or from the site's Generate button. See [build-plan.md](build-plan.md) Section 4.
 >
-> **Build plan:** [Build Plan.md](Build%20Plan.md) is the executable plan (architecture, credentials, web app, phases, risks); this file is the vision and digest spec.
+> **Build plan:** [build-plan.md](build-plan.md) is the executable plan (architecture, credentials, web app, phases, risks); this file is the vision and digest spec.
 >
 > **Reader:** `news.someshks.work` (Cloudflare Workers static assets, public unlisted) with pre-generated audio and a gated on-demand button.
 >
@@ -31,7 +31,7 @@ flowchart TD
     subgraph Filter["2. Taste & Relevance Engine"]
         B1["Deduplication: canonical URLs + state/seen.json"]
         B2["Taste scoring: Jev judgments, weights applied in code"]
-        B3["Read Preference Profile (preferences.json)"]
+        B3["Read Preference Profile (../config/preferences.json)"]
         B3 --> B2
         B1 --> B2
     end
@@ -70,7 +70,7 @@ flowchart TD
 
 ## 3. Digest Specification
 
-The voice is high brevity, specific and peer to peer. Rules, limits and lint are in [Build Plan.md](Build%20Plan.md) Section 7.6. The body below is generated from the frontmatter for reading in an editor or on GitHub; the site renders from the frontmatter.
+The voice is high brevity, specific and peer to peer. Rules, limits and lint are in [build-plan.md](build-plan.md) Section 7.6. The body below is generated from the frontmatter for reading in an editor or on GitHub; the site renders from the frontmatter.
 
 ```markdown
 # Wednesday 7 October
@@ -117,9 +117,9 @@ Digests/
 
 ## 4. Preference Learning Model (`preferences.json`)
 
-The source of truth is [`preferences.json`](preferences.json) (weights, keywords, authors, disliked patterns, feedback history). Do not duplicate its schema here.
+The source of truth is [`preferences.json`](../config/preferences.json) (weights, keywords, authors, disliked patterns, feedback history). Do not duplicate its schema here.
 
-**Scoring contract** (implemented by the engine; detail in [Build Plan.md](Build%20Plan.md) Sections 7.2 and 7.5)
+**Scoring contract** (implemented by the engine; detail in [build-plan.md](build-plan.md) Sections 7.2 and 7.5)
 
 1. Hard filter: drop items matching `disliked_patterns` (title or lead paragraph).
 2. Cheap pre-filter: keep items that match a preferred keyword or author, or come from a source tagged high-signal. Cap candidates at about 60 per run.
@@ -142,7 +142,7 @@ The source of truth is [`preferences.json`](preferences.json) (weights, keywords
 
 ## 5. Roadmap, Reader Site and Cloud Operation
 
-Superseded by [Build Plan.md](Build%20Plan.md), which owns architecture, triggers, credentials, the web app, phases and risks. This file keeps the vision, the digest schema (Section 3) and the taste model (Section 4).
+Superseded by [build-plan.md](build-plan.md), which owns architecture, triggers, credentials, the web app, phases and risks. This file keeps the vision, the digest schema (Section 3) and the taste model (Section 4).
 
 Open items carried into Build Plan Phase 0:
 

@@ -7,3 +7,4 @@ node_modules/
 .vercel/
 .claude/worktrees/
 .DS_Store
+.claude/settings.local.json

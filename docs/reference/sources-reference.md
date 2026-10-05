@@ -2,7 +2,7 @@
 
 > Supplementary sources not part of the automated daily digest pipeline. These require separate tooling (video/audio), social API access, or are periodic references. Kept here for manual monitoring, future pipeline expansion, and to avoid re-evaluating rejected candidates.
 >
-> Active pipeline sources: [Sources.md](../Sources.md)
+> Active pipeline sources: [Sources.md](../../config/sources.md)
 
 ---
 
@@ -99,7 +99,7 @@ Useful for discovery but lower signal-to-noise ratio compared to core pipeline a
 Annual/periodic venues and institutional research hubs. High quality but not suited for daily automated scraping; relevant for proceedings tracking and periodic deep dives.
 
 > [!NOTE]
-> Open Access journals (ACM TOCHI, PACMHCI) and daily preprint feeds (arXiv cs.HC, ACM DL RSS) remain in the active pipeline: [Sources.md §9](../Sources.md).
+> Open Access journals (ACM TOCHI, PACMHCI) and daily preprint feeds (arXiv cs.HC, ACM DL RSS) remain in the active pipeline: [Sources.md §9](../../config/sources.md).
 
 ### Flagship Archival Conferences (The Core Engineering & UX Venues)
 
