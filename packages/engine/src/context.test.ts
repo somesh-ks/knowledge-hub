@@ -11,7 +11,11 @@ describe("redact", () => {
 describe("createLogger", () => {
   it("redacts secrets in structured output", () => {
     const lines: string[] = [];
-    const log = createLogger({ json: true, secrets: ["supersecretvalue"], write: (l) => lines.push(l) });
+    const log = createLogger({
+      json: true,
+      secrets: ["supersecretvalue"],
+      write: (l) => lines.push(l),
+    });
     log.info("calling", { header: "Bearer supersecretvalue" });
     expect(lines[0]).not.toContain("supersecretvalue");
     expect(lines[0]).toContain("[redacted]");

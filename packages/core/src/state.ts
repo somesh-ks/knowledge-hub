@@ -1,6 +1,5 @@
 import { z } from "zod";
-import { CategoryOrNone } from "./categories.js";
-import { Category } from "./categories.js";
+import { type Category, CategoryOrNone } from "./categories.js";
 
 const isoDateTime = z.string().datetime({ offset: true });
 const ymd = z.string().regex(/^\d{4}-\d{2}-\d{2}$/);

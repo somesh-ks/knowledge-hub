@@ -34,7 +34,15 @@ function renderBody(digest: Digest): string {
     lines.push("", `## ${SECTION_TITLES[section]}`);
     for (const item of items) {
       const byline = [item.source, item.author].filter(Boolean).join(", ");
-      lines.push("", `### [${item.headline}](${item.url})`, byline, "", item.summary, "", `Why: ${item.why}`);
+      lines.push(
+        "",
+        `### [${item.headline}](${item.url})`,
+        byline,
+        "",
+        item.summary,
+        "",
+        `Why: ${item.why}`,
+      );
     }
   }
   return lines.join("\n");

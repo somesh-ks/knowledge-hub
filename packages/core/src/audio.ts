@@ -1,6 +1,6 @@
 import { z } from "zod";
-import { DigestId } from "./digest.js";
 import { Section } from "./categories.js";
+import { DigestId } from "./digest.js";
 
 /** Item and section start times inside one digest's MP3. Stored as Digests/YYYY/MM/<id>.audio.json. */
 export const AudioTimeline = z.object({

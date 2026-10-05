@@ -8,6 +8,7 @@
       "!**/.vercel",
       "!**/.astro",
       "!**/.cache",
+      "!**/.claude",
       "!docs/Prototype",
       "!**/fixtures",
       "!package-lock.json"

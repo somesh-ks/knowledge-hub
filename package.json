@@ -16,7 +16,9 @@
     "format": "biome format --write .",
     "test": "vitest run",
     "build": "npm run build -w @dispatch/web",
-    "dev": "npm run dev -w @dispatch/web"
+    "dev": "npm run dev -w @dispatch/web",
+    "secrets:push": "tsx scripts/pushSecrets.ts",
+    "passphrase": "tsx scripts/passphrase.ts"
   },
   "devDependencies": {
     "@biomejs/biome": "^2.5.15",
