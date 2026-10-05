@@ -1,0 +1,35 @@
+{
+  "requestId": "fixture-request-1",
+  "resolvedSearchType": "neural",
+  "results": [
+    {
+      "id": "https://example.dev/blog/drawer-springs",
+      "title": "Interruptible drawers with spring retargeting",
+      "url": "https://example.dev/blog/drawer-springs?utm_source=newsletter",
+      "publishedDate": "2026-10-03T09:00:00.000Z",
+      "author": "Sam Rivera",
+      "highlights": [
+        "Retargeting a spring mid-flight keeps the velocity of the gesture, so a drawer that is flicked closed and reopened never snaps.",
+        "The measurements show a 40 percent drop in dropped frames on mid-range phones."
+      ],
+      "highlightScores": [0.61, 0.52]
+    },
+    {
+      "id": "https://example.dev/docs/tokens",
+      "title": "Design tokens format module",
+      "url": "https://example.dev/docs/tokens",
+      "publishedDate": "2026-09-01T09:00:00.000Z",
+      "author": null,
+      "highlights": ["An older page that falls outside the window."]
+    },
+    {
+      "id": "https://example.dev/undated",
+      "title": "Page with no published date",
+      "url": "https://example.dev/undated",
+      "publishedDate": null,
+      "author": null,
+      "highlights": []
+    }
+  ],
+  "costDollars": { "total": 0.007 }
+}

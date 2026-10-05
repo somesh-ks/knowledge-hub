@@ -1,0 +1,449 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<rss version="2.0">
+  <channel>
+    <title>JavaScript Weekly</title>
+    <description>A newsletter of JavaScript articles, news and cool projects</description>
+    <link>https://javascriptweekly.com/</link>
+    <item>
+      <title>A-ha's Take on Me, recreated in pure JavaScript</title>
+      <link>https://javascriptweekly.com/issues/804</link>
+      <description>
+
+  
+
+    
+    
+    
+  
+
+
+
+
+&lt;table border=0 cellpadding=0 cellspacing=0 align="center" border="0"&gt;
+  &lt;tr&gt;&lt;td style="font-size: 15px; line-height: 1.48em;"&gt;
+  &lt;div&gt;    
+    &lt;table border=0 cellpadding=0 cellspacing=0 border=0 cellpadding=0 cellspacing=0&gt;&lt;tr&gt;
+&lt;td align="left" style="padding-left: 4px; font-size: 15px; line-height: 1.48em;"&gt;&lt;p&gt;#​804 — September 29, 2026&lt;/p&gt;&lt;/td&gt;
+&lt;td align="right" style="padding-right: 4px; font-size: 15px; line-height: 1.48em;"&gt;&lt;p&gt;&lt;a href="https://javascriptweekly.com/link/190985/rss" style=" color: #3366aa;"&gt;Read on the Web&lt;/a&gt;&lt;/p&gt;&lt;/td&gt;
+&lt;/tr&gt;&lt;/table&gt;
+&lt;table border=0 cellpadding=0 cellspacing=0 border=0 cellpadding=0 cellspacing=0&gt;&lt;tr&gt;&lt;td style=" font-size: 15px; line-height: 1.48em;"&gt;&lt;/td&gt;&lt;/tr&gt;&lt;/table&gt;
+
+&lt;table border=0 cellpadding=0 cellspacing=0 border=0 cellpadding=0 cellspacing=0&gt;&lt;tr&gt;&lt;td style=" font-size: 15px; line-height: 1.48em;"&gt;&lt;/td&gt;&lt;/tr&gt;&lt;/table&gt;
+    
+    &lt;table border=0 cellpadding=0 cellspacing=0 border=0 cellpadding=0 cellspacing=0&gt;&lt;tr&gt;&lt;td style="font-size: 15px; line-height: 1.48em; padding: 0 12px;"&gt;&lt;p&gt;JavaScript Weekly&lt;/p&gt;&lt;/td&gt;&lt;/tr&gt;&lt;/table&gt;
+&lt;table border=0 cellpadding=0 cellspacing=0 border=0 cellpadding=0 cellspacing=0&gt;&lt;tr&gt;&lt;td style="font-size: 15px; line-height: 1.48em;"&gt;
+  &lt;a href="https://javascriptweekly.com/link/190938/rss" style=" color: #3366aa;"&gt;&lt;img src="https://res.cloudinary.com/cpress/image/upload/w_1280,e_sharpen:60,q_auto/holotoxy8ll41zticmyu.jpg" width="640" style="    line-height: 100%;    "&gt;&lt;/a&gt;
+&lt;/td&gt;&lt;/tr&gt;&lt;/table&gt;
+
+&lt;table border=0 cellpadding=0 cellspacing=0 border=0 cellpadding=0 cellspacing=0&gt;&lt;tr&gt;&lt;td style="font-size: 15px; line-height: 1.48em; padding: 0px 15px;"&gt;
+  
+  &lt;p&gt;&lt;span style="font-weight: 600; font-size: 1.1em; color: #000;"&gt;&lt;a href="https://javascriptweekly.com/link/190938/rss" title="claude.dev" style=" color: #3366aa;    font-size: 1.1em; line-height: 1.4em;"&gt;How Anthropic Made Claude's Apps 3x Faster in Two Weeks&lt;/a&gt;&lt;/span&gt; — A grab bag of performance lessons from a sprint that cut p75 'time-to-typeable' from 3.1s to 0.55s. Em dashes (&lt;em&gt;the irony!&lt;/em&gt;) pushed V8 onto a slower regex path, a stray &lt;code&gt;location.reload()&lt;/code&gt; caused half a million hidden reloads a day, and more.&lt;/p&gt;
+  &lt;p&gt;Wang, Attard, and G (Anthropic) &lt;/p&gt;
+&lt;/td&gt;&lt;/tr&gt;&lt;/table&gt;
+
+&lt;table border=0 cellpadding=0 cellspacing=0 border=0 cellpadding=0 cellspacing=0&gt;&lt;tr&gt;&lt;td style="font-size: 15px; line-height: 1.48em; padding: 0px 15px;"&gt;
+  &lt;a href="https://javascriptweekly.com/link/190937/rss" style=" color: #3366aa;   "&gt;&lt;img src="https://res.cloudinary.com/cpress/image/upload/c_limit,w_480,h_480,q_auto/copm/da313728.png" width="120" height="120" style="padding-top: 12px; padding-left: 12px;     line-height: 100%; "&gt;&lt;/a&gt;
+  &lt;p&gt;&lt;span style="font-weight: 600; font-size: 1.1em; color: #000;"&gt;&lt;a href="https://javascriptweekly.com/link/190937/rss" title="www.meticulous.ai" style=" color: #3366aa;    font-size: 1.05em;"&gt;Still Writing Tests? Meticulous Is Here&lt;/a&gt;&lt;/span&gt; — Notion, Dropbox and Wiz are now using a testing paradigm they can’t ship without. Built by former Palantir engineers, Meticulous creates an evolving suite of deterministic E2E UI tests, delivering exhaustive coverage with zero developer effort.&lt;/p&gt;
+  &lt;p&gt;Meticulous AI &lt;span style="text-transform: uppercase; margin-left: 4px; font-size: 0.9em;   color: #993 !important; padding: 1px 4px; "&gt;sponsor&lt;/span&gt;&lt;/p&gt;
+&lt;/td&gt;&lt;/tr&gt;&lt;/table&gt;
+
+&lt;table border=0 cellpadding=0 cellspacing=0 border=0 cellpadding=0 cellspacing=0&gt;&lt;tr&gt;&lt;td style="font-size: 15px; line-height: 1.48em; padding: 0px 15px;"&gt;
+  
+  &lt;p&gt;&lt;span style="font-weight: 600; font-size: 1.1em; color: #000;"&gt;&lt;a href="https://javascriptweekly.com/link/190939/rss" title="voidzero.dev" style=" color: #3366aa;    font-size: 1.05em;"&gt;Vite+ 1.0: One CLI for Your Entire JavaScript Toolchain&lt;/a&gt;&lt;/span&gt; — The single &lt;code&gt;vp&lt;/code&gt; command can now manage your Node runtime (if you wish), package manager, dev server, linting, formatting, testing, builds and task running, configured from &lt;code&gt;vite.config.ts&lt;/code&gt;. &lt;a href="https://javascriptweekly.com/link/190940/rss" style=" color: #3366aa;   "&gt;&lt;code&gt;vp migrate&lt;/code&gt;&lt;/a&gt; can be used to bring existing Vite, Vitest, ESLint, tsup, and similar setups into Vite+.&lt;/p&gt;
+  &lt;p&gt;VoidZero &lt;/p&gt;
+&lt;/td&gt;&lt;/tr&gt;&lt;/table&gt;
+&lt;table border=0 cellpadding=0 cellspacing=0 border=0 cellpadding=0 cellspacing=0&gt;&lt;tr&gt;&lt;td style="font-size: 15px; line-height: 1.48em; padding: 0px 15px;"&gt;&lt;p&gt;💡 Evan You also &lt;a href="https://javascriptweekly.com/link/190941/rss" style=" color: #3366aa; font-weight: 500;"&gt;looks back at four months of VoidZero at Cloudflare&lt;/a&gt;, including work on the Oxc React Compiler, Vitest 5, stable type-aware linting, and more.&lt;/p&gt;&lt;/td&gt;&lt;/tr&gt;&lt;/table&gt;
+&lt;table border=0 cellpadding=0 cellspacing=0 border=0 cellpadding=0 cellspacing=0&gt;&lt;tr&gt;&lt;td style="font-size: 15px; line-height: 1.48em; padding: 0px 15px;"&gt;
+&lt;p&gt;&lt;strong&gt;IN BRIEF:&lt;/strong&gt;&lt;/p&gt;
+&lt;ul&gt;
+&lt;li&gt;
+&lt;p&gt;The &lt;a href="https://javascriptweekly.com/link/190942/rss" style=" color: #3366aa; font-weight: 500;   "&gt;latest TC39 meeting&lt;/a&gt; is taking place in Tokyo now, and three iterator proposals have already advanced to stage 4: &lt;a href="https://javascriptweekly.com/link/190943/rss" style=" color: #3366aa; font-weight: 500;   "&gt;chunking&lt;/a&gt;, &lt;a href="https://javascriptweekly.com/link/190944/rss" style=" color: #3366aa; font-weight: 500;   "&gt;join&lt;/a&gt; and &lt;a href="https://javascriptweekly.com/link/190945/rss" style=" color: #3366aa; font-weight: 500;   "&gt;includes&lt;/a&gt; (the latter just &lt;a href="https://javascriptweekly.com/link/190946/rss" style=" color: #3366aa; font-weight: 500;   "&gt;shipped in Chrome 154&lt;/a&gt;).&lt;/p&gt;
+&lt;/li&gt;
+&lt;li&gt;
+&lt;p&gt;Jarred Sumner shared &lt;a href="https://javascriptweekly.com/link/190947/rss" style=" color: #3366aa; font-weight: 500;   "&gt;𝕏 a preview of Bun compiling JavaScript ahead of time&lt;/a&gt;: 24% faster startup and 48% less memory for Claude Code, but ~2x binary size.&lt;/p&gt;
+&lt;/li&gt;
+&lt;li&gt;
+&lt;p&gt;🎉 Cloudflare &lt;em&gt;finally&lt;/em&gt; has &lt;a href="https://javascriptweekly.com/link/190948/rss" style=" color: #3366aa; font-weight: 500;   "&gt;a single CLI for all of its APIs&lt;/a&gt;. &lt;code&gt;cf&lt;/code&gt; is written in TypeScript and covers everything, whereas Wrangler only ever covered a subset.&lt;/p&gt;
+&lt;/li&gt;
+&lt;li&gt;
+&lt;p&gt;The Angular team is &lt;a href="https://javascriptweekly.com/link/190949/rss" style=" color: #3366aa; font-weight: 500;   "&gt;building a partly Rust-powered compiler&lt;/a&gt;, because TypeScript 7's Go port lacks APIs the current one relies on.&lt;/p&gt;
+&lt;/li&gt;
+&lt;/ul&gt;
+&lt;/td&gt;&lt;/tr&gt;&lt;/table&gt;
+&lt;table border=0 cellpadding=0 cellspacing=0 border=0 cellpadding=0 cellspacing=0&gt;&lt;tr&gt;&lt;td style="font-size: 15px; line-height: 1.48em; padding: 0px 15px;"&gt;
+&lt;p&gt;&lt;strong&gt;RELEASES:&lt;/strong&gt;&lt;/p&gt;
+&lt;ul&gt;
+&lt;li&gt;
+&lt;p&gt;&lt;a href="https://javascriptweekly.com/link/190950/rss" style=" color: #3366aa; font-weight: 500;   "&gt;MSW (Mock Service Worker) 3.0&lt;/a&gt; – The popular API mocking library is now ESM-only, adds a Vite plugin, supports GraphQL subscriptions, and can intercept page navigations and form submissions.&lt;/p&gt;
+&lt;/li&gt;
+&lt;li&gt;
+&lt;p&gt;&lt;a href="https://javascriptweekly.com/link/190951/rss" style=" color: #3366aa; font-weight: 500;   "&gt;Vinext 1.0&lt;/a&gt; – Cloudflare's Vite-based Next.js reimplementation now supports the Pages and App Routers, and offers a migration path for existing apps.&lt;/p&gt;
+&lt;/li&gt;
+&lt;li&gt;
+&lt;p&gt;&lt;a href="https://javascriptweekly.com/link/190952/rss" style=" color: #3366aa; font-weight: 500;   "&gt;Mermaid 12.0&lt;/a&gt; – The diagramming tool now defaults to the ELK layout engine for flowchart, class, state and similar diagrams, so existing ones will look different unless you set &lt;code&gt;layout: dagre&lt;/code&gt;. Also adds &lt;a href="https://javascriptweekly.com/link/190953/rss" style=" color: #3366aa; font-weight: 500;   "&gt;UML use case diagrams&lt;/a&gt;.&lt;/p&gt;
+&lt;/li&gt;
+&lt;li&gt;
+&lt;p&gt;&lt;a href="https://javascriptweekly.com/link/190954/rss" style=" color: #3366aa; font-weight: 500;   "&gt;pnpm 12.8&lt;/a&gt;, &lt;a href="https://javascriptweekly.com/link/190955/rss" style=" color: #3366aa; font-weight: 500;   "&gt;Angular 22.2&lt;/a&gt;, &lt;a href="https://javascriptweekly.com/link/190956/rss" style=" color: #3366aa; font-weight: 500;   "&gt;TinyBase 10&lt;/a&gt;, &lt;a href="https://javascriptweekly.com/link/190957/rss" style=" color: #3366aa; font-weight: 500;   "&gt;QUnit 3.0&lt;/a&gt;&lt;/p&gt;
+&lt;/li&gt;
+&lt;/ul&gt;
+&lt;/td&gt;&lt;/tr&gt;&lt;/table&gt;
+&lt;table border=0 cellpadding=0 cellspacing=0 border=0 cellpadding=0 cellspacing=0&gt;&lt;tr&gt;&lt;td style="font-size: 15px; line-height: 1.48em; padding: 0;"&gt;&lt;p&gt;📖  Articles and Videos&lt;/p&gt;&lt;/td&gt;&lt;/tr&gt;&lt;/table&gt;
+&lt;table border=0 cellpadding=0 cellspacing=0 border=0 cellpadding=0 cellspacing=0&gt;&lt;tr&gt;&lt;td style="font-size: 15px; line-height: 1.48em;"&gt;
+  &lt;a href="https://javascriptweekly.com/link/190958/rss" style=" color: #3366aa;"&gt;&lt;img src="https://res.cloudinary.com/cpress/image/upload/w_1280,e_sharpen:60,q_auto/q97l6jlstbu4nz3us8ex.jpg" width="640" style="    line-height: 100%;      "&gt;&lt;/a&gt;
+&lt;/td&gt;&lt;/tr&gt;&lt;/table&gt;
+
+&lt;table border=0 cellpadding=0 cellspacing=0 border=0 cellpadding=0 cellspacing=0&gt;&lt;tr&gt;&lt;td style="font-size: 15px; line-height: 1.48em; padding: 0px 15px;"&gt;
+  
+  &lt;p&gt;&lt;span style="font-weight: 600; font-size: 1.1em; color: #000;"&gt;&lt;a href="https://javascriptweekly.com/link/190958/rss" title="dev.to" style=" color: #3366aa;    font-size: 1.05em;"&gt;The Grand Unifying Architecture of Frontend&lt;/a&gt;&lt;/span&gt; — SolidJS's creator argues that HTMX, React, LiveView, and friends differ mostly in how they split the same three jobs (navigation, content, and instant UI feedback) between client and server. He then shows how &lt;a href="https://javascriptweekly.com/link/190959/rss" style=" color: #3366aa;   "&gt;Solid 2.0&lt;/a&gt; aims to cover the whole spectrum.&lt;/p&gt;
+  &lt;p&gt;Ryan Carniato &lt;/p&gt;
+&lt;/td&gt;&lt;/tr&gt;&lt;/table&gt;
+
+&lt;table border=0 cellpadding=0 cellspacing=0 border=0 cellpadding=0 cellspacing=0&gt;&lt;tr&gt;&lt;td style="font-size: 15px; line-height: 1.48em; padding: 0px 15px;"&gt;
+  
+  &lt;p&gt;&lt;span style="font-weight: 600; font-size: 1.1em; color: #000;"&gt;&lt;a href="https://javascriptweekly.com/link/190960/rss" title="jobs.fidelity.com" style=" color: #3366aa;    font-size: 1.05em;"&gt;Build Products That Help People Build Their Lives&lt;/a&gt;&lt;/span&gt; — Fidelity technologists can change the way our clients invest - for the better and for everyone.&lt;/p&gt;
+  &lt;p&gt;Fidelity Careers &lt;span style="text-transform: uppercase; margin-left: 4px; font-size: 0.9em;   color: #993 !important; padding: 1px 4px; "&gt;sponsor&lt;/span&gt;&lt;/p&gt;
+&lt;/td&gt;&lt;/tr&gt;&lt;/table&gt;
+
+&lt;table border=0 cellpadding=0 cellspacing=0 border=0 cellpadding=0 cellspacing=0&gt;&lt;tr&gt;&lt;td style="font-size: 15px; line-height: 1.48em; padding: 0px 15px;"&gt;
+  
+  &lt;p&gt;&lt;span style="font-weight: 600; font-size: 1.1em; color: #000;"&gt;&lt;a href="https://javascriptweekly.com/link/190961/rss" title="adventures.nodeland.dev" style=" color: #3366aa;    font-size: 1.05em;"&gt;Optimizing Objects with &lt;code&gt;null&lt;/code&gt; Prototypes&lt;/a&gt;&lt;/span&gt; — In V8, objects created with &lt;code&gt;{ __proto__: null }&lt;/code&gt; or &lt;code&gt;Object.create(null)&lt;/code&gt; start in a slower 'dictionary mode'. Matteo shows how creating a plain object and then setting its prototype to &lt;code&gt;null&lt;/code&gt; preserves fast properties.&lt;/p&gt;
+  &lt;p&gt;Matteo Collina &lt;/p&gt;
+&lt;/td&gt;&lt;/tr&gt;&lt;/table&gt;
+&lt;table border=0 cellpadding=0 cellspacing=0 border=0 cellpadding=0 cellspacing=0&gt;&lt;tr&gt;&lt;td style="font-size: 15px; line-height: 1.48em; padding: 0px 15px;"&gt;&lt;p&gt;💡 If you fancy going deeper, &lt;a href="https://javascriptweekly.com/link/190962/rss" style=" color: #3366aa; font-weight: 500;"&gt;Fast properties in V8&lt;/a&gt; is the V8 team's 2017 explainer of how objects switch between fast and 'dictionary' mode.&lt;/p&gt;&lt;/td&gt;&lt;/tr&gt;&lt;/table&gt;
+
+&lt;table border=0 cellpadding=0 cellspacing=0 border=0 cellpadding=0 cellspacing=0&gt;&lt;tr&gt;&lt;td style="font-size: 15px; line-height: 1.48em; padding: 0px 15px;"&gt;
+  
+  &lt;p&gt;&lt;span style="font-weight: 600; font-size: 1.1em; color: #000;"&gt;&lt;a href="https://javascriptweekly.com/link/190963/rss" title="flaviocopes.com" style=" color: #3366aa;    font-size: 1.05em;"&gt;Node.js Built-ins That Replace npm Packages&lt;/a&gt;&lt;/span&gt; — A tour of 12 Node built-ins that replace common ecosystem packages along with their stability levels and some gotchas that might keep you using the established alternatives.&lt;/p&gt;
+  &lt;p&gt;Flavio Copes &lt;/p&gt;
+&lt;/td&gt;&lt;/tr&gt;&lt;/table&gt;
+&lt;table border=0 cellpadding=0 cellspacing=0 border=0 cellpadding=0 cellspacing=0&gt;&lt;tr&gt;&lt;td style="font-size: 15px; line-height: 1.48em; padding: 0px 15px;"&gt;
+&lt;p&gt;📄 &lt;a href="https://javascriptweekly.com/link/190964/rss" style=" color: #3366aa; font-weight: 500;   "&gt;JavaScript's Greatest Pun? &lt;code&gt;${{ }}&lt;/code&gt;&lt;/a&gt; – Looks like Mustache, but &lt;code&gt;${{ name }}&lt;/code&gt; passes an object using shorthand properties to a tag function, preserving both the variable's name and value. &lt;cite&gt;Nishant Shukla&lt;/cite&gt;&lt;/p&gt;
+&lt;p&gt;📄 &lt;a href="https://javascriptweekly.com/link/190965/rss" style=" color: #3366aa; font-weight: 500;   "&gt;How GitHub Improved Performance by Moving Off CSS-in-JS&lt;/a&gt; &lt;cite&gt;Josh Black and Marie Lucca (GitHub)&lt;/cite&gt;&lt;/p&gt;
+&lt;/td&gt;&lt;/tr&gt;&lt;/table&gt;
+&lt;table border=0 cellpadding=0 cellspacing=0 border=0 cellpadding=0 cellspacing=0&gt;&lt;tr&gt;&lt;td style="font-size: 15px; line-height: 1.48em; padding: 0;"&gt;&lt;p&gt;🛠 Code &amp;amp; Tools&lt;/p&gt;&lt;/td&gt;&lt;/tr&gt;&lt;/table&gt;
+&lt;table border=0 cellpadding=0 cellspacing=0 border=0 cellpadding=0 cellspacing=0&gt;&lt;tr&gt;&lt;td style="font-size: 15px; line-height: 1.48em;"&gt;
+  &lt;a href="https://javascriptweekly.com/link/190966/rss" style=" color: #3366aa;"&gt;&lt;img src="https://res.cloudinary.com/cpress/image/upload/w_1280,e_sharpen:60,q_auto/yvxogbuz6gl1ubyguxml.jpg" width="640" style="        line-height: 100%;  "&gt;&lt;/a&gt;
+&lt;/td&gt;&lt;/tr&gt;&lt;/table&gt;
+&lt;table border=0 cellpadding=0 cellspacing=0 border=0 cellpadding=0 cellspacing=0&gt;&lt;tr&gt;&lt;td style=" font-size: 15px; line-height: 1.48em;"&gt;&lt;/td&gt;&lt;/tr&gt;&lt;/table&gt;
+
+&lt;table border=0 cellpadding=0 cellspacing=0 border=0 cellpadding=0 cellspacing=0&gt;&lt;tr&gt;&lt;td style="font-size: 15px; line-height: 1.48em; padding: 0px 15px;"&gt;
+  
+  &lt;p&gt;&lt;span style="font-weight: 600; font-size: 1.1em; color: #000;"&gt;&lt;a href="https://javascriptweekly.com/link/190966/rss" title="github.com" style=" color: #3366aa;    font-size: 1.05em;"&gt;Size Limit: A JavaScript Performance Budgeting Tool&lt;/a&gt;&lt;/span&gt; — Set a size or load-time budget for your code and this tool can fail CI (or flag a PR) if a change goes over it. You can also do one-off checks and see visualizations of where the bytes are. Framework-agnostic and doesn’t care which bundler or CI you use.&lt;/p&gt;
+  &lt;p&gt;Andrey Sitnik &lt;/p&gt;
+&lt;/td&gt;&lt;/tr&gt;&lt;/table&gt;
+
+&lt;table border=0 cellpadding=0 cellspacing=0 border=0 cellpadding=0 cellspacing=0&gt;&lt;tr&gt;&lt;td style="font-size: 15px; line-height: 1.48em; padding: 0px 15px;"&gt;
+  
+  &lt;p&gt;&lt;span style="font-weight: 600; font-size: 1.1em; color: #000;"&gt;&lt;a href="https://javascriptweekly.com/link/190967/rss" title="www.tigerdata.com" style=" color: #3366aa;    font-size: 1.05em;"&gt;Your UI Gets Blamed for a Slow Query&lt;/a&gt;&lt;/span&gt; — TimescaleDB extends Postgres so the query behind your UI returns fast as data grows. &lt;a href="https://javascriptweekly.com/link/190967/rss" style=" color: #3366aa;   "&gt;Get $1000 credit to start&lt;/a&gt;.&lt;/p&gt;
+  &lt;p&gt;Tiger Data (creators of TimescaleDB) &lt;span style="text-transform: uppercase; margin-left: 4px; font-size: 0.9em;   color: #993 !important; padding: 1px 4px; "&gt;sponsor&lt;/span&gt;&lt;/p&gt;
+&lt;/td&gt;&lt;/tr&gt;&lt;/table&gt;
+
+&lt;table border=0 cellpadding=0 cellspacing=0 border=0 cellpadding=0 cellspacing=0&gt;&lt;tr&gt;&lt;td style="font-size: 15px; line-height: 1.48em; padding: 0px 15px;"&gt;
+  
+  &lt;p&gt;&lt;span style="font-weight: 600; font-size: 1.1em; color: #000;"&gt;&lt;a href="https://javascriptweekly.com/link/190968/rss" title="blog.cloudflare.com" style=" color: #3366aa;    font-size: 1.05em;"&gt;EmDash 1.0: Cloudflare's &lt;em&gt;WordPress&lt;/em&gt; 'Successor' is Now Stable&lt;/a&gt;&lt;/span&gt; — An Astro-based alternative to WordPress, now with a decentralized AT Protocol-based plugin registry and plugins that run in sandboxes. It’s not Cloudflare-only, either, as it also runs on Node.js.&lt;/p&gt;
+  &lt;p&gt;Buscemi, Kane, and Pham (Cloudflare) &lt;/p&gt;
+&lt;/td&gt;&lt;/tr&gt;&lt;/table&gt;
+
+&lt;table border=0 cellpadding=0 cellspacing=0 border=0 cellpadding=0 cellspacing=0&gt;&lt;tr&gt;&lt;td style="font-size: 15px; line-height: 1.48em; padding: 0px 15px;"&gt;
+  
+  &lt;p&gt;&lt;span style="font-weight: 600; font-size: 1.1em; color: #000;"&gt;&lt;span&gt;📝&lt;/span&gt; &lt;a href="https://javascriptweekly.com/link/190969/rss" title="github.com" style=" color: #3366aa;    font-size: 1.05em;"&gt;DOCX 9.8: Generate Word &lt;code&gt;.docx&lt;/code&gt; Files from JavaScript&lt;/a&gt;&lt;/span&gt; — A comprehensive library for generating &lt;code&gt;docx&lt;/code&gt; files. It’s only a few months since we linked to it, but this is a &lt;em&gt;big&lt;/em&gt; release with support for charts, shapes and watermarks, plus more math notation support. (&lt;a href="https://javascriptweekly.com/link/190970/rss" style=" color: #3366aa;   "&gt;Homepage&lt;/a&gt;.)&lt;/p&gt;
+  &lt;p&gt;Dolan Miu &lt;/p&gt;
+&lt;/td&gt;&lt;/tr&gt;&lt;/table&gt;
+&lt;table border=0 cellpadding=0 cellspacing=0 border=0 cellpadding=0 cellspacing=0&gt;&lt;tr&gt;&lt;td style="font-size: 15px; line-height: 1.48em; padding: 0px 15px;"&gt;
+&lt;ul&gt;
+&lt;li&gt;
+&lt;p&gt;🔊 &lt;a href="https://javascriptweekly.com/link/190971/rss" style=" color: #3366aa; font-weight: 500;   "&gt;wavesurfer 8.0&lt;/a&gt; – Popular audio waveform renderer and player. Refactored for better efficiency, with numerous bug fixes.&lt;/p&gt;
+&lt;/li&gt;
+&lt;li&gt;
+&lt;p&gt;&lt;a href="https://javascriptweekly.com/link/190972/rss" style=" color: #3366aa; font-weight: 500;   "&gt;pretty-bytes 7.2&lt;/a&gt; – Convert byte quantities into human readable strings.&lt;/p&gt;
+&lt;/li&gt;
+&lt;li&gt;
+&lt;p&gt;✉️ &lt;a href="https://javascriptweekly.com/link/190973/rss" style=" color: #3366aa; font-weight: 500;   "&gt;postal-mime 4.0&lt;/a&gt; – An email parsing library that works everywhere.&lt;/p&gt;
+&lt;/li&gt;
+&lt;li&gt;
+&lt;p&gt;&lt;a href="https://javascriptweekly.com/link/190974/rss" style=" color: #3366aa; font-weight: 500;   "&gt;Typia 15.0&lt;/a&gt; – Turn pure TypeScript types into runtime validators.&lt;/p&gt;
+&lt;/li&gt;
+&lt;/ul&gt;
+&lt;/td&gt;&lt;/tr&gt;&lt;/table&gt;
+&lt;table border=0 cellpadding=0 cellspacing=0 border=0 cellpadding=0 cellspacing=0&gt;&lt;tr&gt;&lt;td style="font-size: 15px; line-height: 1.48em; padding: 0px;"&gt;
+&lt;table border=0 cellpadding=0 cellspacing=0 border=0 cellpadding=0 cellspacing=0&gt;&lt;tr&gt;&lt;td style=" font-size: 15px; line-height: 1.48em;"&gt;&lt;/td&gt;&lt;/tr&gt;&lt;/table&gt;
+
+&lt;table border=0 cellpadding=0 cellspacing=0 border=0 cellpadding=0 cellspacing=0&gt;&lt;tr&gt;&lt;td style="font-size: 15px; line-height: 1.48em; padding: 0px 15px;"&gt;
+	&lt;p&gt;📰 Classifieds&lt;/p&gt;
+  &lt;/td&gt;&lt;/tr&gt;&lt;/table&gt;
+&lt;table border=0 cellpadding=0 cellspacing=0 border=0 cellpadding=0 cellspacing=0&gt;&lt;tr&gt;&lt;td style="font-size: 15px; line-height: 1.48em; padding: 0px 15px;"&gt;
+&lt;p&gt;The future of mobile development is agentic. For years, mobile shipped slower than the web. Now, agents are coding/testing/shipping &lt;a href="https://javascriptweekly.com/link/190975/rss" style=" color: #3366aa; font-weight: 500;   "&gt;all on Expo&lt;/a&gt;.&lt;/p&gt;
+ 
+&lt;p&gt;🤖 Blocking all bots breaks AI agents. Blocking none invites fraud. &lt;a href="https://javascriptweekly.com/link/190976/rss" style=" color: #3366aa; font-weight: 500;   "&gt;Fingerprint&lt;/a&gt; tells verified agents from bad actors.&lt;/p&gt;
+ 
+&lt;p&gt;&lt;a href="https://javascriptweekly.com/link/190977/rss" style=" color: #3366aa; font-weight: 500;   "&gt;SurveyJS&lt;/a&gt;: Build complex forms faster with a drag-and-drop builder for any JavaScript app. Self-hosted and backend-agnostic.&lt;/p&gt;
+&lt;/td&gt;&lt;/tr&gt;&lt;/table&gt;
+&lt;table border=0 cellpadding=0 cellspacing=0 border=0 cellpadding=0 cellspacing=0&gt;&lt;tr&gt;&lt;td style=" font-size: 15px; line-height: 1.48em;"&gt;&lt;/td&gt;&lt;/tr&gt;&lt;/table&gt;
+&lt;/td&gt;&lt;/tr&gt;&lt;/table&gt;
+&lt;table border=0 cellpadding=0 cellspacing=0 border=0 cellpadding=0 cellspacing=0&gt;&lt;tr&gt;&lt;td style="font-size: 15px; line-height: 1.48em; padding: 0;"&gt;&lt;p&gt;📢  Elsewhere in the ecosystem&lt;/p&gt;&lt;/td&gt;&lt;/tr&gt;&lt;/table&gt;
+&lt;table border=0 cellpadding=0 cellspacing=0 border=0 cellpadding=0 cellspacing=0&gt;&lt;tr&gt;&lt;td style="font-size: 15px; line-height: 1.48em;"&gt;
+  &lt;a href="https://javascriptweekly.com/link/190978/rss" style=" color: #3366aa;"&gt;&lt;img src="https://res.cloudinary.com/cpress/image/upload/w_1280,e_sharpen:60,q_auto/jilmudkfxkr6xbomw3gi.jpg" width="640" style="    line-height: 100%;      "&gt;&lt;/a&gt;
+&lt;/td&gt;&lt;/tr&gt;&lt;/table&gt;
+&lt;table border=0 cellpadding=0 cellspacing=0 border=0 cellpadding=0 cellspacing=0&gt;&lt;tr&gt;&lt;td style="font-size: 15px; line-height: 1.48em; padding: 0px 15px;"&gt;
+&lt;ul&gt;
+&lt;li&gt;
+&lt;p&gt;🎵 Tonny Espeset has &lt;a href="https://javascriptweekly.com/link/190978/rss" style=" color: #3366aa; font-weight: 500;   "&gt;recreated the '80s hit &lt;em&gt;Take on Me&lt;/em&gt; by A-ha in pure JavaScript&lt;/a&gt; (&lt;strong&gt;along with synthesized vocals!&lt;/strong&gt;), running through the always-entertaining &lt;a href="https://javascriptweekly.com/link/190979/rss" style=" color: #3366aa; font-weight: 500;   "&gt;Dittytoy&lt;/a&gt; online JavaScript music playground.&lt;/p&gt;
+&lt;/li&gt;
+&lt;li&gt;
+&lt;p&gt;&lt;a href="https://javascriptweekly.com/link/190980/rss" style=" color: #3366aa; font-weight: 500;   "&gt;Git 2.56&lt;/a&gt; has just been released. It adds &lt;code&gt;git add --resolved&lt;/code&gt; to safely stage merge conflict fixes, &lt;code&gt;git branch --delete-merged&lt;/code&gt; for bulk branch cleanup, and more. All explained within.&lt;/p&gt;
+&lt;/li&gt;
+&lt;li&gt;
+&lt;p&gt;TanStack's Tanner Linsley &lt;a href="https://javascriptweekly.com/link/190981/rss" style=" color: #3366aa; font-weight: 500;   "&gt;built Redact&lt;/a&gt;, &lt;em&gt;'an alternative logical projection of React'&lt;/em&gt; aiming for full API compatibility with a simpler implementation, smaller bundles and better performance. It's now &lt;a href="https://javascriptweekly.com/link/190982/rss" style=" color: #3366aa; font-weight: 500;   "&gt;on GitHub&lt;/a&gt;.&lt;/p&gt;
+&lt;/li&gt;
+&lt;li&gt;
+&lt;p&gt;&lt;a href="https://javascriptweekly.com/link/190983/rss" style=" color: #3366aa; font-weight: 500;   "&gt;A quick history of why certain port numbers&lt;/a&gt; like 3000 and 8080 are commonly used in development.&lt;/p&gt;
+&lt;/li&gt;
+&lt;/ul&gt;
+&lt;/td&gt;&lt;/tr&gt;&lt;/table&gt;
+&lt;table border=0 cellpadding=0 cellspacing=0 border=0 cellpadding=0 cellspacing=0&gt;&lt;tr&gt;&lt;td style=" font-size: 15px; line-height: 1.48em;"&gt;&lt;/td&gt;&lt;/tr&gt;&lt;/table&gt;
+&lt;/div&gt;
+  &lt;/td&gt;&lt;/tr&gt;
+&lt;/table&gt;
+
+
+
+
+&lt;img src="https://javascriptweekly.com/open/804/rss" width="1" height="1" /&gt;</description>
+      <pubDate>Tue, 29 Sep 2026 00:00:00 +0000</pubDate>
+      <guid>https://javascriptweekly.com/issues/804</guid>
+    </item>
+<item>
+      <title>JavaScript desktop apps in under 10MB</title>
+      <link>https://javascriptweekly.com/issues/803</link>
+      <description>
+
+  
+
+    
+    
+    
+  
+
+
+
+
+&lt;table border=0 cellpadding=0 cellspacing=0 align="center" border="0"&gt;
+  &lt;tr&gt;&lt;td style="font-size: 15px; line-height: 1.48em;"&gt;
+  &lt;div&gt;    
+    &lt;table border=0 cellpadding=0 cellspacing=0 border=0 cellpadding=0 cellspacing=0&gt;&lt;tr&gt;
+&lt;td align="left" style="padding-left: 4px; font-size: 15px; line-height: 1.48em;"&gt;&lt;p&gt;#​803 — September 22, 2026&lt;/p&gt;&lt;/td&gt;
+&lt;td align="right" style="padding-right: 4px; font-size: 15px; line-height: 1.48em;"&gt;&lt;p&gt;&lt;a href="https://javascriptweekly.com/link/190694/rss" style=" color: #3366aa;"&gt;Read on the Web&lt;/a&gt;&lt;/p&gt;&lt;/td&gt;
+&lt;/tr&gt;&lt;/table&gt;
+
+&lt;table border=0 cellpadding=0 cellspacing=0 border=0 cellpadding=0 cellspacing=0&gt;&lt;tr&gt;&lt;td style=" font-size: 15px; line-height: 1.48em;"&gt;&lt;/td&gt;&lt;/tr&gt;&lt;/table&gt;
+    
+    &lt;table border=0 cellpadding=0 cellspacing=0 border=0 cellpadding=0 cellspacing=0&gt;&lt;tr&gt;&lt;td style="font-size: 15px; line-height: 1.48em; padding: 0 12px;"&gt;&lt;p&gt;JavaScript Weekly&lt;/p&gt;&lt;/td&gt;&lt;/tr&gt;&lt;/table&gt;
+&lt;table border=0 cellpadding=0 cellspacing=0 border=0 cellpadding=0 cellspacing=0&gt;&lt;tr&gt;&lt;td style="font-size: 15px; line-height: 1.48em;"&gt;
+  &lt;a href="https://javascriptweekly.com/link/190636/rss" style=" color: #3366aa;"&gt;&lt;img src="https://res.cloudinary.com/cpress/image/upload/w_1280,e_sharpen:60,q_auto/l5ejacd7rpbkelmaxdto.jpg" width="640" style="    line-height: 100%;    "&gt;&lt;/a&gt;
+&lt;/td&gt;&lt;/tr&gt;&lt;/table&gt;
+
+&lt;table border=0 cellpadding=0 cellspacing=0 border=0 cellpadding=0 cellspacing=0&gt;&lt;tr&gt;&lt;td style="font-size: 15px; line-height: 1.48em; padding: 0px 15px;"&gt;
+  
+  &lt;p&gt;&lt;span style="font-weight: 600; font-size: 1.1em; color: #000;"&gt;&lt;a href="https://javascriptweekly.com/link/190636/rss" title="tinyjs.app" style=" color: #3366aa;    font-size: 1.1em; line-height: 1.4em;"&gt;tinyjs: Build JavaScript Desktop Apps in &amp;lt;10MB&lt;/a&gt;&lt;/span&gt; — I built an app with this and was impressed. You get a &lt;a href="https://javascriptweekly.com/link/190637/rss" style=" color: #3366aa;   "&gt;txiki.js&lt;/a&gt;-powered backend with full system access (including FFI!), native webview rendering, and tiny macOS, Linux, and Windows builds. It even makes it easy to sign/notarize the final app.&lt;/p&gt;
+  &lt;p&gt;Tarwin Stroh-Spijer &lt;/p&gt;
+&lt;/td&gt;&lt;/tr&gt;&lt;/table&gt;
+&lt;table border=0 cellpadding=0 cellspacing=0 border=0 cellpadding=0 cellspacing=0&gt;&lt;tr&gt;&lt;td style="font-size: 15px; line-height: 1.48em; padding: 0px 15px;"&gt;
+&lt;p&gt;There are lots of great options in this space though:&lt;/p&gt;
+&lt;ul&gt;
+&lt;li&gt;
+&lt;p&gt;&lt;a href="https://javascriptweekly.com/link/190638/rss" style=" color: #3366aa; font-weight: 500;   "&gt;Electrobun&lt;/a&gt; offers richer multi-window and GPU features, at the cost of a larger TypeScript runtime – though it can instead use Zig, Rust, Go, or Odin for a tiny native main process.&lt;/p&gt;
+&lt;/li&gt;
+&lt;li&gt;
+&lt;p&gt;&lt;a href="https://javascriptweekly.com/link/190639/rss" style=" color: #3366aa; font-weight: 500;   "&gt;Perry&lt;/a&gt; is a TypeScript to native AOT compiler whose primary UI model renders AppKit, Win32 and GTK4 widgets for a more conventionally native feel.&lt;/p&gt;
+&lt;/li&gt;
+&lt;li&gt;
+&lt;p&gt;&lt;a href="https://javascriptweekly.com/link/190640/rss" style=" color: #3366aa; font-weight: 500;   "&gt;Electron&lt;/a&gt; and the experimental &lt;a href="https://javascriptweekly.com/link/190695/rss" style=" color: #3366aa; font-weight: 500;   "&gt;Deno Desktop&lt;/a&gt; are powerful, but their executables typically run several times larger.&lt;/p&gt;
+&lt;/li&gt;
+&lt;li&gt;
+&lt;p&gt;&lt;a href="https://javascriptweekly.com/link/190642/rss" style=" color: #3366aa; font-weight: 500;   "&gt;Neutralinojs&lt;/a&gt; apps can be even smaller than tinyjs's, but you lose the general-purpose JavaScript privileged backend by design.&lt;/p&gt;
+&lt;/li&gt;
+&lt;/ul&gt;
+&lt;/td&gt;&lt;/tr&gt;&lt;/table&gt;
+
+&lt;table border=0 cellpadding=0 cellspacing=0 border=0 cellpadding=0 cellspacing=0&gt;&lt;tr&gt;&lt;td style="font-size: 15px; line-height: 1.48em; padding: 0px 15px;"&gt;
+  &lt;a href="https://javascriptweekly.com/link/190635/rss" style=" color: #3366aa;   "&gt;&lt;img src="https://res.cloudinary.com/cpress/image/upload/c_limit,w_480,h_480,q_auto/copm/5c853e9e.png" width="153" height="110" style="padding-top: 12px; padding-left: 12px;     line-height: 100%; "&gt;&lt;/a&gt;
+  &lt;p&gt;&lt;span style="font-weight: 600; font-size: 1.1em; color: #000;"&gt;&lt;a href="https://javascriptweekly.com/link/190635/rss" title="github.com" style=" color: #3366aa;    font-size: 1.05em;"&gt;Full-Text Search in Drizzle Without a Second System&lt;/a&gt;&lt;/span&gt; — Try the official ParadeDB integration for Drizzle. Search your live Postgres tables. No ETL, no Elasticsearch. ParadeDB cloud coming soon.&lt;/p&gt;
+  &lt;p&gt;ParadeDB &lt;span style="text-transform: uppercase; margin-left: 4px; font-size: 0.9em;   color: #993 !important; padding: 1px 4px; "&gt;sponsor&lt;/span&gt;&lt;/p&gt;
+&lt;/td&gt;&lt;/tr&gt;&lt;/table&gt;
+
+&lt;table border=0 cellpadding=0 cellspacing=0 border=0 cellpadding=0 cellspacing=0&gt;&lt;tr&gt;&lt;td style="font-size: 15px; line-height: 1.48em; padding: 0px 15px;"&gt;
+  
+  &lt;p&gt;&lt;span style="font-weight: 600; font-size: 1.1em; color: #000;"&gt;&lt;a href="https://javascriptweekly.com/link/190643/rss" title="duckdb.org" style=" color: #3366aa;    font-size: 1.05em;"&gt;Persistent Databases in the Browser with DuckDB-Wasm and OPFS&lt;/a&gt;&lt;/span&gt; — A walkthrough of running &lt;a href="https://javascriptweekly.com/link/190644/rss" style=" color: #3366aa;   "&gt;DuckDB&lt;/a&gt; in the browser with a database file that survives reloads using the &lt;a href="https://javascriptweekly.com/link/190645/rss" style=" color: #3366aa;   "&gt;Origin Private File System&lt;/a&gt; now supported by all major browsers.&lt;/p&gt;
+  &lt;p&gt;Piovesan and Wielenga (DuckDB) &lt;/p&gt;
+&lt;/td&gt;&lt;/tr&gt;&lt;/table&gt;
+
+&lt;table border=0 cellpadding=0 cellspacing=0 border=0 cellpadding=0 cellspacing=0&gt;&lt;tr&gt;&lt;td style="font-size: 15px; line-height: 1.48em; padding: 0px 15px;"&gt;
+  
+  &lt;p&gt;&lt;span style="font-weight: 600; font-size: 1.1em; color: #000;"&gt;&lt;a href="https://javascriptweekly.com/link/190646/rss" title="linear.app" style=" color: #3366aa;    font-size: 1.05em;"&gt;How Linear Reworked Its CI for 4x the Tests&lt;/a&gt;&lt;/span&gt; — Eager agents grew Linear's test suite, and its CI costs with it! They share some remedies: rewriting type-aware ESLint rules as plain AST checks cut lint time 55% and eased a move to &lt;a href="https://javascriptweekly.com/link/190647/rss" style=" color: #3366aa;   "&gt;Oxlint&lt;/a&gt;, while selectively turning off Vitest's isolation saved a further 17% a month.&lt;/p&gt;
+  &lt;p&gt;Mufeez Amjad (Linear) &lt;/p&gt;
+&lt;/td&gt;&lt;/tr&gt;&lt;/table&gt;
+&lt;table border=0 cellpadding=0 cellspacing=0 border=0 cellpadding=0 cellspacing=0&gt;&lt;tr&gt;&lt;td style="font-size: 15px; line-height: 1.48em; padding: 0px 15px;"&gt;
+&lt;p&gt;&lt;strong&gt;IN BRIEF:&lt;/strong&gt;&lt;/p&gt;
+&lt;ul&gt;
+&lt;li&gt;
+&lt;p&gt;Lovable &lt;a href="https://javascriptweekly.com/link/190648/rss" style=" color: #3366aa; font-weight: 500;   "&gt;rewrote Vite's dev server in Rust&lt;/a&gt; (calling it &lt;a href="https://javascriptweekly.com/link/190649/rss" style=" color: #3366aa; font-weight: 500;   "&gt;OJ&lt;/a&gt;) for performance reasons, but Evan You &lt;a href="https://javascriptweekly.com/link/190650/rss" style=" color: #3366aa; font-weight: 500;   "&gt;disputes the benchmark&lt;/a&gt; and predicts AI will have everyone maintaining &lt;em&gt;"their own slop fork"&lt;/em&gt;.&lt;/p&gt;
+&lt;/li&gt;
+&lt;li&gt;
+&lt;p&gt;📊 &lt;a href="https://javascriptweekly.com/link/190651/rss" style=" color: #3366aa; font-weight: 500;   "&gt;npmchart.com&lt;/a&gt; plots download trends, releases and repo activity for any npm package (here's &lt;a href="https://javascriptweekly.com/link/190652/rss" style=" color: #3366aa; font-weight: 500;   "&gt;Svelte's&lt;/a&gt;, for example), and lets you compare packages.&lt;/p&gt;
+&lt;/li&gt;
+&lt;li&gt;
+&lt;p&gt;🔒 npm now offers &lt;a href="https://javascriptweekly.com/link/190653/rss" style=" color: #3366aa; font-weight: 500;   "&gt;stage-only tokens&lt;/a&gt; to let automated workflows stage a release for a maintainer to approve with 2FA. This offers a migration path for those who can't move to &lt;a href="https://javascriptweekly.com/link/190654/rss" style=" color: #3366aa; font-weight: 500;   "&gt;trusted publishing&lt;/a&gt; yet.&lt;/p&gt;
+&lt;/li&gt;
+&lt;/ul&gt;
+&lt;/td&gt;&lt;/tr&gt;&lt;/table&gt;
+&lt;table border=0 cellpadding=0 cellspacing=0 border=0 cellpadding=0 cellspacing=0&gt;&lt;tr&gt;&lt;td style="font-size: 15px; line-height: 1.48em; padding: 0px 15px;"&gt;
+&lt;p&gt;&lt;strong&gt;RELEASES:&lt;/strong&gt;&lt;/p&gt;
+&lt;ul&gt;
+&lt;li&gt;
+&lt;p&gt;&lt;a href="https://javascriptweekly.com/link/190655/rss" style=" color: #3366aa; font-weight: 500;   "&gt;Turborepo 2.11&lt;/a&gt; – Experimental Rust, Python and Go support joins the task graph, plus up to 4x faster startup over 2.9.&lt;/p&gt;
+&lt;/li&gt;
+&lt;li&gt;
+&lt;p&gt;&lt;a href="https://javascriptweekly.com/link/190656/rss" style=" color: #3366aa; font-weight: 500;   "&gt;ESLint 10.11.0&lt;/a&gt; – Performance update with faster startup and linting.&lt;/p&gt;
+&lt;/li&gt;
+&lt;li&gt;
+&lt;p&gt;&lt;a href="https://javascriptweekly.com/link/190657/rss" style=" color: #3366aa; font-weight: 500;   "&gt;Node.js 26.10.0 (Current)&lt;/a&gt; – Adds &lt;a href="https://javascriptweekly.com/link/190658/rss" style=" color: #3366aa; font-weight: 500;   "&gt;&lt;code&gt;util.debounce&lt;/code&gt;/&lt;code&gt;throttle&lt;/code&gt;&lt;/a&gt;.&lt;/p&gt;
+&lt;/li&gt;
+&lt;li&gt;
+&lt;p&gt;📊 &lt;a href="https://javascriptweekly.com/link/190659/rss" style=" color: #3366aa; font-weight: 500;   "&gt;billboard.js 4.1&lt;/a&gt;, &lt;a href="https://javascriptweekly.com/link/190660/rss" style=" color: #3366aa; font-weight: 500;   "&gt;QuickJS-ng 0.17.0&lt;/a&gt;, &lt;a href="https://javascriptweekly.com/link/190661/rss" style=" color: #3366aa; font-weight: 500;   "&gt;VueUse 15.0&lt;/a&gt;&lt;/p&gt;
+&lt;/li&gt;
+&lt;/ul&gt;
+&lt;/td&gt;&lt;/tr&gt;&lt;/table&gt;
+&lt;table border=0 cellpadding=0 cellspacing=0 border=0 cellpadding=0 cellspacing=0&gt;&lt;tr&gt;&lt;td style="font-size: 15px; line-height: 1.48em; padding: 0;"&gt;&lt;p&gt;📖  Articles and Videos&lt;/p&gt;&lt;/td&gt;&lt;/tr&gt;&lt;/table&gt;
+
+&lt;table border=0 cellpadding=0 cellspacing=0 border=0 cellpadding=0 cellspacing=0&gt;&lt;tr&gt;&lt;td style="font-size: 15px; line-height: 1.48em; padding: 0px 15px;"&gt;
+  
+  &lt;p&gt;&lt;span style="font-weight: 600; font-size: 1.1em; color: #000;"&gt;&lt;a href="https://javascriptweekly.com/link/190662/rss" title="www.wired.com" style=" color: #3366aa;    font-size: 1.05em;"&gt;An Undercover Analyst Infiltrated the Gang Behind 'Mini Shai-Hulud'&lt;/a&gt;&lt;/span&gt; — Bad news for the group behind this spring's cascading supply chain attacks… Google had a mole in their group chat! WIRED explains how the group was monitored and disrupted, leading to &lt;a href="https://javascriptweekly.com/link/190663/rss" style=" color: #3366aa;   "&gt;two recent arrests&lt;/a&gt;.&lt;/p&gt;
+  &lt;p&gt;Andy Greenberg (WIRED) &lt;/p&gt;
+&lt;/td&gt;&lt;/tr&gt;&lt;/table&gt;
+
+&lt;table border=0 cellpadding=0 cellspacing=0 border=0 cellpadding=0 cellspacing=0&gt;&lt;tr&gt;&lt;td style="font-size: 15px; line-height: 1.48em; padding: 0px 15px;"&gt;
+  
+  &lt;p&gt;&lt;span style="font-weight: 600; font-size: 1.1em; color: #000;"&gt;&lt;a href="https://javascriptweekly.com/link/190664/rss" title="soatok.blog" style=" color: #3366aa;    font-size: 1.05em;"&gt;The V8 Runtime Undermined My Constant-Time JavaScript Library&lt;/a&gt;&lt;/span&gt; — A look at how even branchless JavaScript can leak secrets through CPU cache behavior, due to quirks in how V8 handles booleans and &lt;code&gt;-0&lt;/code&gt;.&lt;/p&gt;
+  &lt;p&gt;Soatok Dreamseeker &lt;/p&gt;
+&lt;/td&gt;&lt;/tr&gt;&lt;/table&gt;
+
+&lt;table border=0 cellpadding=0 cellspacing=0 border=0 cellpadding=0 cellspacing=0&gt;&lt;tr&gt;&lt;td style="font-size: 15px; line-height: 1.48em; padding: 0px 15px;"&gt;
+  
+  &lt;p&gt;&lt;span style="font-weight: 600; font-size: 1.1em; color: #000;"&gt;&lt;a href="https://javascriptweekly.com/link/190665/rss" title="www.tigerdata.com" style=" color: #3366aa;    font-size: 1.05em;"&gt;Your UI Isn't Slow. It's Waiting on the Data&lt;/a&gt;&lt;/span&gt; — TimescaleDB extends Postgres so the data behind your UI loads fast as it grows. &lt;a href="https://javascriptweekly.com/link/190665/rss" style=" color: #3366aa;   "&gt;Get $1000 credit to start&lt;/a&gt;.&lt;/p&gt;
+  &lt;p&gt;Tiger Data (creators of TimescaleDB) &lt;span style="text-transform: uppercase; margin-left: 4px; font-size: 0.9em;   color: #993 !important; padding: 1px 4px; "&gt;sponsor&lt;/span&gt;&lt;/p&gt;
+&lt;/td&gt;&lt;/tr&gt;&lt;/table&gt;
+
+&lt;table border=0 cellpadding=0 cellspacing=0 border=0 cellpadding=0 cellspacing=0&gt;&lt;tr&gt;&lt;td style="font-size: 15px; line-height: 1.48em; padding: 0px 15px;"&gt;
+  
+  &lt;p&gt;&lt;span style="font-weight: 600; font-size: 1.1em; color: #000;"&gt;&lt;a href="https://javascriptweekly.com/link/190666/rss" title="brookslybrand.com" style=" color: #3366aa;    font-size: 1.05em;"&gt;Do Frameworks Matter Anymore?&lt;/a&gt;&lt;/span&gt; — If you're using AI, you're either using a framework or your agent is building an ad-hoc one on the fly. A Remix team member argues that's a good reason to &lt;em&gt;want&lt;/em&gt; frameworks, and &lt;em&gt;better&lt;/em&gt; ones, too.&lt;/p&gt;
+  &lt;p&gt;Brooks Lybrand &lt;/p&gt;
+&lt;/td&gt;&lt;/tr&gt;&lt;/table&gt;
+&lt;table border=0 cellpadding=0 cellspacing=0 border=0 cellpadding=0 cellspacing=0&gt;&lt;tr&gt;&lt;td style="font-size: 15px; line-height: 1.48em; padding: 0px 15px;"&gt;
+&lt;p&gt;📄 &lt;a href="https://javascriptweekly.com/link/190668/rss" style=" color: #3366aa; font-weight: 500;   "&gt;We Are All Product Engineers Now&lt;/a&gt; – Laurie argues that understanding what customers need becomes a core developer skill. &lt;cite&gt;Laurie Voss&lt;/cite&gt;&lt;/p&gt;
+&lt;p&gt;📺 &lt;a href="https://javascriptweekly.com/link/190667/rss" style=" color: #3366aa; font-weight: 500;   "&gt;Is AI Changing How JavaScript Itself Gets Designed?&lt;/a&gt; – A 2-minute take from TC39 delegate Michael Ficarra. &lt;cite&gt;JetBrains&lt;/cite&gt;&lt;/p&gt;
+&lt;p&gt;📄 &lt;a href="https://javascriptweekly.com/link/190669/rss" style=" color: #3366aa; font-weight: 500;   "&gt;Solid 2.0: It's the Little Things&lt;/a&gt; – Six touches that change how &lt;a href="https://javascriptweekly.com/link/190670/rss" style=" color: #3366aa; font-weight: 500;   "&gt;SolidJS 2.0&lt;/a&gt; feels. &lt;cite&gt;Brenley Dueck&lt;/cite&gt;&lt;/p&gt;
+&lt;p&gt;📄 &lt;a href="https://javascriptweekly.com/link/190671/rss" style=" color: #3366aa; font-weight: 500;   "&gt;How Notion Handles Concurrent Editing with CRDTs&lt;/a&gt;  &lt;cite&gt;Nehmzow and Guo (Notion)&lt;/cite&gt;&lt;/p&gt;
+&lt;/td&gt;&lt;/tr&gt;&lt;/table&gt;
+&lt;table border=0 cellpadding=0 cellspacing=0 border=0 cellpadding=0 cellspacing=0&gt;&lt;tr&gt;&lt;td style="font-size: 15px; line-height: 1.48em; padding: 0;"&gt;&lt;p&gt;🛠 Code &amp;amp; Tools&lt;/p&gt;&lt;/td&gt;&lt;/tr&gt;&lt;/table&gt;
+&lt;table border=0 cellpadding=0 cellspacing=0 border=0 cellpadding=0 cellspacing=0&gt;&lt;tr&gt;&lt;td style="font-size: 15px; line-height: 1.48em;"&gt;
+  &lt;a href="https://javascriptweekly.com/link/190672/rss" style=" color: #3366aa;"&gt;&lt;img src="https://res.cloudinary.com/cpress/image/upload/w_1280,e_sharpen:60,q_auto/xuy1lcdg0vlkmjacpeux.jpg" width="640" style="        line-height: 100%;  "&gt;&lt;/a&gt;
+&lt;/td&gt;&lt;/tr&gt;&lt;/table&gt;
+
+&lt;table border=0 cellpadding=0 cellspacing=0 border=0 cellpadding=0 cellspacing=0&gt;&lt;tr&gt;&lt;td style="font-size: 15px; line-height: 1.48em; padding: 0px 15px;"&gt;
+  
+  &lt;p&gt;&lt;span style="font-weight: 600; font-size: 1.1em; color: #000;"&gt;&lt;a href="https://javascriptweekly.com/link/190672/rss" title="plotly.com" style=" color: #3366aa;    font-size: 1.05em;"&gt;Plotly.js 4: A Big Update for the Popular Charting Library&lt;/a&gt;&lt;/span&gt; — Now ships its own TypeScript types, adds ‘quiver’ plots &lt;em&gt;(above)&lt;/em&gt; for drawing vector fields (with many awesome examples in the post), accepts CSS Color 4 color strings, and removes Mapbox GL in favor of MapLibre (no token needed!)&lt;/p&gt;
+  &lt;p&gt;Chris Parmer &lt;/p&gt;
+&lt;/td&gt;&lt;/tr&gt;&lt;/table&gt;
+
+&lt;table border=0 cellpadding=0 cellspacing=0 border=0 cellpadding=0 cellspacing=0&gt;&lt;tr&gt;&lt;td style="font-size: 15px; line-height: 1.48em; padding: 0px 15px;"&gt;
+  
+  &lt;p&gt;&lt;span style="font-weight: 600; font-size: 1.1em; color: #000;"&gt;&lt;span&gt;🤖&lt;/span&gt; &lt;a href="https://javascriptweekly.com/link/190673/rss" title="github.com" style=" color: #3366aa;    font-size: 1.05em;"&gt;Transformers.js v4.3: Run AI Models in the Browser&lt;/a&gt;&lt;/span&gt; — Adds support for structured output (e.g. JSON), using WebGPU on Safari 26+, and DeepSeek v4. &lt;a href="https://javascriptweekly.com/link/190674/rss" style=" color: #3366aa;   "&gt;The docs&lt;/a&gt; have had an overhaul and there’s now an &lt;a href="https://javascriptweekly.com/link/190675/rss" style=" color: #3366aa;   "&gt;agent skill&lt;/a&gt; you can use.&lt;/p&gt;
+  &lt;p&gt;Hugging Face &lt;/p&gt;
+&lt;/td&gt;&lt;/tr&gt;&lt;/table&gt;
+&lt;table border=0 cellpadding=0 cellspacing=0 border=0 cellpadding=0 cellspacing=0&gt;&lt;tr&gt;&lt;td style="font-size: 15px; line-height: 1.48em; padding: 0px 15px;"&gt;&lt;p&gt;💡 Hugging Face also released &lt;a href="https://javascriptweekly.com/link/190676/rss" style=" color: #3366aa; font-weight: 500;"&gt;a collection of 207 Apache-2.0 WebGPU kernels&lt;/a&gt; — matmul, attention and quantization ops for your own runtime.&lt;/p&gt;&lt;/td&gt;&lt;/tr&gt;&lt;/table&gt;
+
+&lt;table border=0 cellpadding=0 cellspacing=0 border=0 cellpadding=0 cellspacing=0&gt;&lt;tr&gt;&lt;td style="font-size: 15px; line-height: 1.48em; padding: 0px 15px;"&gt;
+  
+  &lt;p&gt;&lt;span style="font-weight: 600; font-size: 1.1em; color: #000;"&gt;&lt;a href="https://javascriptweekly.com/link/190677/rss" title="www.meticulous.ai" style=" color: #3366aa;    font-size: 1.05em;"&gt;Still Writing Tests Manually? Meticulous AI Is Here&lt;/a&gt;&lt;/span&gt; — Flaky tests slowing down dev? Meticulous gives engineers confidence to ship faster by autonomously testing every edge case of your web app.&lt;/p&gt;
+  &lt;p&gt;Meticulous &lt;span style="text-transform: uppercase; margin-left: 4px; font-size: 0.9em;   color: #993 !important; padding: 1px 4px; "&gt;sponsor&lt;/span&gt;&lt;/p&gt;
+&lt;/td&gt;&lt;/tr&gt;&lt;/table&gt;
+
+&lt;table border=0 cellpadding=0 cellspacing=0 border=0 cellpadding=0 cellspacing=0&gt;&lt;tr&gt;&lt;td style="font-size: 15px; line-height: 1.48em; padding: 0px 15px;"&gt;
+  
+  &lt;p&gt;&lt;span style="font-weight: 600; font-size: 1.1em; color: #000;"&gt;&lt;a href="https://javascriptweekly.com/link/190678/rss" title="github.com" style=" color: #3366aa;    font-size: 1.05em;"&gt;&lt;code&gt;@shadcn/lint&lt;/code&gt;: An Agent-First Linter for Tailwind&lt;/a&gt;&lt;/span&gt; — An ESLint/Oxlint plugin to enforce rules like &lt;em&gt;"no raw colors"&lt;/em&gt; and &lt;em&gt;"no restyling &lt;code&gt;&amp;lt;Button&amp;gt;&lt;/code&gt; from outside"&lt;/em&gt; with errors to steer agents back to your variants and tokens.&lt;/p&gt;
+  &lt;p&gt;shadcn &lt;/p&gt;
+&lt;/td&gt;&lt;/tr&gt;&lt;/table&gt;
+
+&lt;table border=0 cellpadding=0 cellspacing=0 border=0 cellpadding=0 cellspacing=0&gt;&lt;tr&gt;&lt;td style="font-size: 15px; line-height: 1.48em; padding: 0px 15px;"&gt;
+  
+  &lt;p&gt;&lt;span style="font-weight: 600; font-size: 1.1em; color: #000;"&gt;&lt;a href="https://javascriptweekly.com/link/190679/rss" title="devfra.me" style=" color: #3366aa;    font-size: 1.05em;"&gt;Devframe: A Framework for Building DevTools That Run Anywhere&lt;/a&gt;&lt;/span&gt; — From the developer behind Vitest and Nuxt DevTools, &lt;em&gt;"a framework for building DevTools, in the same way Nuxt or Next.js provides a framework [for web apps]"&lt;/em&gt;. Define a tool once and Devframe turns it into a Web Standard request handler you can mount almost anywhere.&lt;/p&gt;
+  &lt;p&gt;Anthony Fu &lt;/p&gt;
+&lt;/td&gt;&lt;/tr&gt;&lt;/table&gt;
+
+&lt;table border=0 cellpadding=0 cellspacing=0 border=0 cellpadding=0 cellspacing=0&gt;&lt;tr&gt;&lt;td style="font-size: 15px; line-height: 1.48em; padding: 0px 15px;"&gt;
+  
+  &lt;p&gt;&lt;span style="font-weight: 600; font-size: 1.1em; color: #000;"&gt;&lt;span&gt;✉️&lt;/span&gt; &lt;a href="https://javascriptweekly.com/link/190680/rss" title="github.com" style=" color: #3366aa;    font-size: 1.05em;"&gt;Mailflare: A Self-Hosted Inbox Built Entirely on Cloudflare&lt;/a&gt;&lt;/span&gt; — A self-hosted inbox for custom domains built on Cloudflare’s Email Routing, Workers, D1 and R2. AGPL 3.0 licensed.&lt;/p&gt;
+  &lt;p&gt;Hieu Nguyen &lt;/p&gt;
+&lt;/td&gt;&lt;/tr&gt;&lt;/table&gt;
+&lt;table border=0 cellpadding=0 cellspacing=0 border=0 cellpadding=0 cellspacing=0&gt;&lt;tr&gt;&lt;td style="font-size: 15px; line-height: 1.48em; padding: 0px 15px;"&gt;
+&lt;ul&gt;
+&lt;li&gt;
+&lt;p&gt;&lt;a href="https://javascriptweekly.com/link/190681/rss" style=" color: #3366aa; font-weight: 500;   "&gt;gridstack.js 14.0&lt;/a&gt; – The popular drag-and-drop dashboard layout library adds a &lt;code&gt;list&lt;/code&gt; mode that reflows widgets like a reorderable list. (&lt;a href="https://javascriptweekly.com/link/190682/rss" style=" color: #3366aa; font-weight: 500;   "&gt;Demos&lt;/a&gt;.)&lt;/p&gt;
+&lt;/li&gt;
+&lt;li&gt;
+&lt;p&gt;🖼️ &lt;a href="https://javascriptweekly.com/link/190683/rss" style=" color: #3366aa; font-weight: 500;   "&gt;image-dimensions 2.6&lt;/a&gt; – Quickly get an image's dimensions by reading the least amount of data.&lt;/p&gt;
+&lt;/li&gt;
+&lt;li&gt;
+&lt;p&gt;&lt;a href="https://javascriptweekly.com/link/190684/rss" style=" color: #3366aa; font-weight: 500;   "&gt;Feedsmith 3.0&lt;/a&gt; – A fast way to parse and generate web feeds, including RSS, Atom, and JSON.&lt;/p&gt;
+&lt;/li&gt;
+&lt;/ul&gt;
+&lt;/td&gt;&lt;/tr&gt;&lt;/table&gt;
+&lt;table border=0 cellpadding=0 cellspacing=0 border=0 cellpadding=0 cellspacing=0&gt;&lt;tr&gt;&lt;td style="font-size: 15px; line-height: 1.48em; padding: 0px;"&gt;
+&lt;table border=0 cellpadding=0 cellspacing=0 border=0 cellpadding=0 cellspacing=0&gt;&lt;tr&gt;&lt;td style=" font-size: 15px; line-height: 1.48em;"&gt;&lt;/td&gt;&lt;/tr&gt;&lt;/table&gt;
+
+&lt;table border=0 cellpadding=0 cellspacing=0 border=0 cellpadding=0 cellspacing=0&gt;&lt;tr&gt;&lt;td style="font-size: 15px; line-height: 1.48em; padding: 0px 15px;"&gt;
+	&lt;p&gt;📰 Classifieds&lt;/p&gt;
+  &lt;/td&gt;&lt;/tr&gt;&lt;/table&gt;
+&lt;table border=0 cellpadding=0 cellspacing=0 border=0 cellpadding=0 cellspacing=0&gt;&lt;tr&gt;&lt;td style="font-size: 15px; line-height: 1.48em; padding: 0px 15px;"&gt;
+&lt;p&gt;&lt;a href="https://javascriptweekly.com/link/190685/rss" style=" color: #3366aa; font-weight: 500;   "&gt;A developer's guide to adding eSignature to your app with an API&lt;/a&gt;: How signing workflows and embedded signing work, and the core steps to add signing to your product with Foxit.&lt;/p&gt;
+ 
+&lt;p&gt;🧩 CAPTCHA was built for a different internet. Replace it with invisible bot detection with a few lines of code. &lt;a href="https://javascriptweekly.com/link/190696/rss" style=" color: #3366aa; font-weight: 500;   "&gt;Try Fingerprint for free&lt;/a&gt;.&lt;/p&gt;
+ 
+&lt;p&gt;Meet &lt;a href="https://javascriptweekly.com/link/190687/rss" style=" color: #3366aa; font-weight: 500;   "&gt;chat.agent on Trigger.dev&lt;/a&gt;: durable AI agents built with the AI SDK you already use. Long-lived LLM sessions that survive deploys, crashes &amp;amp; refreshes.&lt;/p&gt;
+&lt;/td&gt;&lt;/tr&gt;&lt;/table&gt;
+&lt;table border=0 cellpadding=0 cellspacing=0 border=0 cellpadding=0 cellspacing=0&gt;&lt;tr&gt;&lt;td style=" font-size: 15px; line-height: 1.48em;"&gt;&lt;/td&gt;&lt;/tr&gt;&lt;/table&gt;
+&lt;/td&gt;&lt;/tr&gt;&lt;/table&gt;
+&lt;table border=0 cellpadding=0 cellspacing=0 border=0 cellpadding=0 cellspacing=0&gt;&lt;tr&gt;&lt;td style="font-size: 15px; line-height: 1.48em; padding: 0;"&gt;&lt;p&gt;📢  Elsewhere in the ecosystem&lt;/p&gt;&lt;/td&gt;&lt;/tr&gt;&lt;/table&gt;
+&lt;table border=0 cellpadding=0 cellspacing=0 border=0 cellpadding=0 cellspacing=0&gt;&lt;tr&gt;&lt;td style="font-size: 15px; line-height: 1.48em;"&gt;
+  &lt;a href="https://javascriptweekly.com/link/190688/rss" style=" color: #3366aa;"&gt;&lt;img src="https://res.cloudinary.com/cpress/image/upload/w_1280,e_sharpen:60,q_auto/ybmk2nasvvasjcjmkclc.jpg" width="640" style="    line-height: 100%;      "&gt;&lt;/a&gt;
+&lt;/td&gt;&lt;/tr&gt;&lt;/table&gt;
+&lt;table border=0 cellpadding=0 cellspacing=0 border=0 cellpadding=0 cellspacing=0&gt;&lt;tr&gt;&lt;td style="font-size: 15px; line-height: 1.48em; padding: 0px 15px;"&gt;
+&lt;ul&gt;
+&lt;li&gt;
+&lt;p&gt;I love these &lt;a href="https://javascriptweekly.com/link/190688/rss" style=" color: #3366aa; font-weight: 500;   "&gt;pure CSS 'hand drawn' annotations&lt;/a&gt; &lt;em&gt;(above)&lt;/em&gt; you can add to any page in a &lt;code&gt;data-note&lt;/code&gt; attribute.&lt;/p&gt;
+&lt;/li&gt;
+&lt;li&gt;
+&lt;p&gt;Cloudflare's Sunil Pai writes about &lt;a href="https://javascriptweekly.com/link/190689/rss" style=" color: #3366aa; font-weight: 500;   "&gt;the senior engineer 'death spiral'&lt;/a&gt;, where you go dark for weeks to prove yourself in a new role and end up burning out.&lt;/p&gt;
+&lt;/li&gt;
+&lt;li&gt;
+&lt;p&gt;🤖 Simon Willison &lt;a href="https://javascriptweekly.com/link/190690/rss" style=" color: #3366aa; font-weight: 500;   "&gt;writes about Jev&lt;/a&gt;, a new, fast 'decision model' taking developer social media by storm. Feed it semi-structured state and one or more questions and you get only numbers back (probabilities, choices and scores).&lt;/p&gt;
+&lt;/li&gt;
+&lt;li&gt;
+&lt;p&gt;GitHub Actions has &lt;a href="https://javascriptweekly.com/link/190691/rss" style=" color: #3366aa; font-weight: 500;   "&gt;a new &lt;code&gt;cache-mode&lt;/code&gt; setting&lt;/a&gt; to limit cache access per workflow or job, a defence against the kind of cache poisoning that &lt;a href="https://javascriptweekly.com/link/190692/rss" style=" color: #3366aa; font-weight: 500;   "&gt;compromised TanStack's npm packages in May&lt;/a&gt;.&lt;/p&gt;
+&lt;/li&gt;
+&lt;/ul&gt;
+&lt;/td&gt;&lt;/tr&gt;&lt;/table&gt;
+&lt;table border=0 cellpadding=0 cellspacing=0 border=0 cellpadding=0 cellspacing=0&gt;&lt;tr&gt;&lt;td style=" font-size: 15px; line-height: 1.48em;"&gt;&lt;/td&gt;&lt;/tr&gt;&lt;/table&gt;
+&lt;/div&gt;
+  &lt;/td&gt;&lt;/tr&gt;
+&lt;/table&gt;
+
+
+
+
+&lt;img src="https://javascriptweekly.com/open/803/rss" width="1" height="1" /&gt;</description>
+      <pubDate>Tue, 22 Sep 2026 00:00:00 +0000</pubDate>
+      <guid>https://javascriptweekly.com/issues/803</guid>
+    </item>
+  </channel>
+</rss>

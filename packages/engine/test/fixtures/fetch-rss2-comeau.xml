@@ -1,0 +1,55 @@
+<?xml version="1.0" encoding="UTF-8"?><rss xmlns:dc="http://purl.org/dc/elements/1.1/" xmlns:content="http://purl.org/rss/1.0/modules/content/" xmlns:atom="http://www.w3.org/2005/Atom" version="2.0">
+    <channel>
+        <title><![CDATA[Josh Comeau's blog]]></title>
+        <description><![CDATA[Friendly articles and tutorials for front-end web developers. ❤️]]></description>
+        <link>https://www.joshwcomeau.com/</link>
+        <generator>RSS for Node</generator>
+        <lastBuildDate>Mon, 05 Oct 2026 22:30:29 GMT</lastBuildDate>
+        <atom:link href="https://www.joshwcomeau.com/rss.xml" rel="self" type="application/rss+xml"/>
+        <item>
+            <title><![CDATA[Getting Started with Anchor Positioning]]></title>
+            <description><![CDATA[For decades, one of the most notoriously-challenging problems on the web has been sticking one element to another element, for things like tooltips and nested menus. The CSSWG has decided to provide a first-class solution to this problem, and it’s pretty friggin’ cool! In this tutorial, I’ll share the most useful parts I’ve found from this modern CSS feature.]]></description>
+            <link>https://www.joshwcomeau.com/css/anchor-positioning/</link>
+            <guid isPermaLink="false">https://www.joshwcomeau.com/css/anchor-positioning/</guid>
+            <dc:creator><![CDATA[Josh W. Comeau]]></dc:creator>
+            <pubDate>Mon, 06 Jul 2026 13:15:00 GMT</pubDate>
+            <content:encoded>
+&lt;p&gt;For decades, one of the most notoriously-challenging problems on the web has been sticking one element to another element, for things like tooltips and nested menus. The CSSWG has decided to provide a first-class solution to this problem, and it’s pretty friggin’ cool! In this tutorial, I’ll share the most useful parts I’ve found from this modern CSS feature.&lt;/p&gt;
+&lt;div style=&quot;margin-top: 50px; font-style: italic;&quot;&gt;
+  &lt;strong&gt;&lt;a href=&quot;https://www.joshwcomeau.com/css/anchor-positioning/&quot;&gt;Keep reading&lt;/a&gt;.&lt;/strong&gt;
+&lt;/div&gt;
+&lt;br /&gt;
+&lt;br /&gt;</content:encoded>
+        </item>
+<item>
+            <title><![CDATA[CSS vs. JavaScript]]></title>
+            <description><![CDATA[There are a bunch of JavaScript animation libraries out there, and you might have wondered whether there’s a performance cost compared to traditional CSS transitions and keyframe animations. In this blog post, we’ll compare the same animation across several different strategies and see the differences firsthand. There’s some interesting nuance here!]]></description>
+            <link>https://www.joshwcomeau.com/animation/css-vs-javascript/</link>
+            <guid isPermaLink="false">https://www.joshwcomeau.com/animation/css-vs-javascript/</guid>
+            <dc:creator><![CDATA[Josh W. Comeau]]></dc:creator>
+            <pubDate>Tue, 26 May 2026 13:30:00 GMT</pubDate>
+            <content:encoded>
+&lt;p&gt;There are a bunch of JavaScript animation libraries out there, and you might have wondered whether there’s a performance cost compared to traditional CSS transitions and keyframe animations. In this blog post, we’ll compare the same animation across several different strategies and see the differences firsthand. There’s some interesting nuance here!&lt;/p&gt;
+&lt;div style=&quot;margin-top: 50px; font-style: italic;&quot;&gt;
+  &lt;strong&gt;&lt;a href=&quot;https://www.joshwcomeau.com/animation/css-vs-javascript/&quot;&gt;Keep reading&lt;/a&gt;.&lt;/strong&gt;
+&lt;/div&gt;
+&lt;br /&gt;
+&lt;br /&gt;</content:encoded>
+        </item>
+<item>
+            <title><![CDATA[Scroll-Driven Animations]]></title>
+            <description><![CDATA[The new Animation Timeline API allows us to create dynamic scroll animations without any JavaScript! It’s honestly a very lovely API, and in this blog post, we’ll explore some of the super cool things we can do with it.]]></description>
+            <link>https://www.joshwcomeau.com/animation/scroll-driven-animations/</link>
+            <guid isPermaLink="false">https://www.joshwcomeau.com/animation/scroll-driven-animations/</guid>
+            <dc:creator><![CDATA[Josh W. Comeau]]></dc:creator>
+            <pubDate>Tue, 28 Apr 2026 12:00:00 GMT</pubDate>
+            <content:encoded>
+&lt;p&gt;The new Animation Timeline API allows us to create dynamic scroll animations without any JavaScript! It’s honestly a very lovely API, and in this blog post, we’ll explore some of the super cool things we can do with it.&lt;/p&gt;
+&lt;div style=&quot;margin-top: 50px; font-style: italic;&quot;&gt;
+  &lt;strong&gt;&lt;a href=&quot;https://www.joshwcomeau.com/animation/scroll-driven-animations/&quot;&gt;Keep reading&lt;/a&gt;.&lt;/strong&gt;
+&lt;/div&gt;
+&lt;br /&gt;
+&lt;br /&gt;</content:encoded>
+        </item>
+    </channel>
+</rss>
