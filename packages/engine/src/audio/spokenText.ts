@@ -152,6 +152,7 @@ function expandAbbreviations(input: string): string {
     .replace(/\bi\.e\./gi, "that is")
     .replace(/\bvs\.?(?=\s)/gi, "versus")
     .replace(/\bw\/o\b/gi, "without")
+    .replace(/\bw\/(?=\s)/gi, "with")
     .replace(/\bw\/(?=\w)/gi, "with ")
     .replace(/\bapprox\./gi, "approximately")
     .replace(/\betc\.(?=\s+[A-Z"'(]|\s*$)/g, "et cetera.")

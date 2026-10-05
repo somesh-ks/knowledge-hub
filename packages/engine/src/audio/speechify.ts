@@ -126,7 +126,8 @@ export interface SpeechifyClientOptions {
   defaultVoiceId?: string;
 }
 
-const DEFAULT_TIMEOUT_MS = 120_000;
+/** Covers the whole stream. Synthesis runs faster than real time, but a 4 to 8 minute digest still takes a while. */
+const DEFAULT_TIMEOUT_MS = 300_000;
 const DEFAULT_MAX_RETRIES = 3;
 const DEFAULT_MAX_RETRY_WAIT_MS = 60_000;
 const BASE64 = /^[A-Za-z0-9+/]*={0,2}$/;
@@ -273,7 +274,8 @@ export function createSpeechifyClient(options: SpeechifyClientOptions): SpeechSy
       }
       if (name === "speech.chunk") {
         const chunk = ChunkPayload.safeParse(payload);
-        if (!chunk.success) continue;
+        // A malformed chunk must fail the call: skipping it would splice silent gaps into the audio.
+        if (!chunk.success) throw fail("Speechify sent a malformed speech.chunk event");
         // Each chunk is base64 on its own; decode per chunk, never across chunks.
         if (chunk.data.audio) parts.push(decodeAudio(chunk.data.audio));
         for (const raw of chunk.data.speech_marks ?? []) {

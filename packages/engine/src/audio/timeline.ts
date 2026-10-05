@@ -36,9 +36,10 @@ export function alignMarks(text: string, marks: readonly SpeechMark[]): AlignedM
   let cursor = 0;
   for (const mark of marks) {
     if (mark.type !== undefined && mark.type !== "word") continue;
+    if (mark.value.length === 0) continue;
     let start = mark.start;
     if (text.slice(mark.start, mark.end) !== mark.value) {
-      const found = mark.value.length === 0 ? -1 : text.indexOf(mark.value, cursor);
+      const found = text.indexOf(mark.value, cursor);
       if (found < 0) continue;
       start = found;
     }

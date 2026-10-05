@@ -5,7 +5,12 @@ import type { SpeechSynthesizer } from "../audio/speechify.js";
 import type { CommandContext, CommandRun } from "../context.js";
 import type { CommitOutcome } from "../git/commit.js";
 import { commitAndPush } from "../git/commit.js";
-import { ALLOWLISTS, findViolations, readChangedPaths } from "../git/guard.js";
+import {
+  ALLOWLISTS,
+  findDigestContentViolations,
+  findViolations,
+  readChangedPaths,
+} from "../git/guard.js";
 import { createGitRunner } from "../git/runGit.js";
 import type { BlobClient } from "../publish/blob.js";
 import type { DigestAudioOutcome, PublishAudioResult } from "../publish/publishAudio.js";
@@ -18,12 +23,17 @@ const USAGE = "usage: dispatch publish [--digest <id>] [--prune <days>] [--no-pu
 interface Credentials {
   speech: SpeechSynthesizer;
   blob: BlobClient;
+  monthlyChars: number;
 }
 
-/** Credentials, or the reason they are missing. The message names the variable, never a value. */
+/** Credentials and settings, or the reason they are unusable. Messages name variables, never values. */
 function credentials(ctx: CommandContext, deps: AudioCommandDeps): Credentials | { error: string } {
   try {
-    return { speech: deps.createSpeech(ctx), blob: deps.createBlob(ctx) };
+    return {
+      speech: deps.createSpeech(ctx),
+      blob: deps.createBlob(ctx),
+      monthlyChars: deps.monthlyChars(),
+    };
   } catch (error) {
     return { error: error instanceof Error ? error.message : String(error) };
   }
@@ -140,7 +150,11 @@ export function createPublishCommand(overrides: Partial<AudioCommandDeps> = {}):
     // never commit; discovering that after synthesis would waste the characters.
     let blocked: string[];
     try {
-      blocked = findViolations(await readChangedPaths(git), ALLOWLISTS.publish);
+      const changed = await readChangedPaths(git);
+      blocked = findViolations(changed, ALLOWLISTS.publish);
+      if (blocked.length === 0) {
+        blocked = await findDigestContentViolations({ root: ctx.root, run: git, changed });
+      }
     } catch (error) {
       ctx.log.error(
         `Cannot read git status: ${error instanceof Error ? error.message : String(error)}`,
@@ -176,7 +190,7 @@ export function createPublishCommand(overrides: Partial<AudioCommandDeps> = {}):
           blob: keys.blob,
           log: ctx.log,
           now: ctx.now,
-          monthlyChars: deps.monthlyChars(),
+          monthlyChars: keys.monthlyChars,
           voiceId: ctx.env.SPEECHIFY_VOICE_ID,
         },
         {

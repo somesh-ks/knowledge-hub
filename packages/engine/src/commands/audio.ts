@@ -86,9 +86,11 @@ export function createAudioCommand(overrides: Partial<AudioCommandDeps> = {}): C
 
     let speech: SpeechSynthesizer;
     let blob: BlobClient;
+    let monthlyChars: number;
     try {
       speech = deps.createSpeech(ctx);
       blob = deps.createBlob(ctx);
+      monthlyChars = deps.monthlyChars();
     } catch (error) {
       ctx.log.error(error instanceof Error ? error.message : String(error));
       return 1;
@@ -101,7 +103,7 @@ export function createAudioCommand(overrides: Partial<AudioCommandDeps> = {}): C
         blob,
         log: ctx.log,
         now: ctx.now,
-        monthlyChars: deps.monthlyChars(),
+        monthlyChars,
         voiceId: ctx.env.SPEECHIFY_VOICE_ID,
       },
       { digestId, force: values.force === true },
@@ -126,24 +128,25 @@ async function dryRun(
   ctx: CommandContext,
   deps: AudioCommandDeps,
 ): Promise<number> {
+  const now = ctx.now();
   let spoken: ReturnType<typeof buildSpokenText>;
+  let decision: ReturnType<typeof checkBudget>;
+  let monthlyChars: number;
   try {
     const digest = parseDigestFile(await readFile(join(ctx.root, digestRelPath(digestId)), "utf8"));
     spoken = buildSpokenText(digest);
+    monthlyChars = deps.monthlyChars();
+    decision = checkBudget({
+      usage: await loadUsage(ctx.root, now),
+      now,
+      requested: spoken.text.length,
+      monthlyChars,
+    });
   } catch (error) {
     ctx.log.error(error instanceof Error ? error.message : String(error));
     return 1;
   }
-
-  const now = ctx.now();
-  const monthlyChars = deps.monthlyChars();
   const characters = spoken.text.length;
-  const decision = checkBudget({
-    usage: await loadUsage(ctx.root, now),
-    now,
-    requested: characters,
-    monthlyChars,
-  });
   const budget = {
     month: decision.month,
     used: decision.used,

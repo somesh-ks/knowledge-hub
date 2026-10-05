@@ -101,11 +101,24 @@ export async function commitAndPush(input: CommitAndPushInput): Promise<CommitOu
   if (offending.length === 0 && input.command === "publish") {
     offending.push(...(await findDigestContentViolations({ root: input.root, run, changed })));
   }
+  // A half-resolved merge or rebase means the tree is not in a state the bot should commit from.
+  offending.push(
+    ...changed
+      .filter((change) => /U|^AA$|^DD$/.test(change.status))
+      .map((change) => `${change.path} (unmerged)`),
+  );
   if (offending.length > 0) return { status: "refused", reason: "guard", offending };
 
   const paths = pathsOf(changed);
-  // Literal pathspecs: a file name containing glob characters must not match anything else.
-  await gitOutput(run, ["--literal-pathspecs", "add", "-A", "--", ...paths]);
+  // Only paths with a working-tree difference need staging. Anything git already staged (a
+  // `git rm` or `git mv`, whose old path is gone from both tree and index) would make `add` fail.
+  const unstaged = changed
+    .filter((change) => change.status.charAt(1) !== " ")
+    .map((change) => change.path);
+  if (unstaged.length > 0) {
+    // Literal pathspecs: a file name containing glob characters must not match anything else.
+    await gitOutput(run, ["--literal-pathspecs", "add", "-A", "--", ...unstaged]);
+  }
   await gitOutput(run, [...identityFlags(identity), "commit", "-m", input.message]);
   const sha = (await gitOutput(run, ["rev-parse", "HEAD"])).trim();
 
