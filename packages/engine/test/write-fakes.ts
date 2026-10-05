@@ -1,5 +1,10 @@
+import { readFileSync } from "node:fs";
+import { join } from "node:path";
 import type { Logger } from "../src/context.js";
 import type { JsonRequest, JsonResult, LlmClient } from "../src/llm/types.js";
+import { createLinter, type Linter } from "../src/voice/lint.js";
+import { parseVoice, type VoiceConfig } from "../src/voice/voice.js";
+import { REPO_ROOT } from "./score-factories.js";
 
 export type FakeHandler = (
   request: JsonRequest<unknown>,
@@ -74,3 +79,12 @@ export function httpError(
 
 /** Retry options that never wait. */
 export const NO_WAIT = { sleep: async () => {}, random: () => 0 };
+
+/** The real config/voice.md, parsed once. */
+export function testVoice(): VoiceConfig {
+  return parseVoice(readFileSync(join(REPO_ROOT, "config", "voice.md"), "utf8"));
+}
+
+export function testLinter(): Linter {
+  return createLinter(testVoice());
+}

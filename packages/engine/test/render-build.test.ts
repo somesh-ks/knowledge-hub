@@ -1,0 +1,283 @@
+import { mkdir, mkdtemp, readFile, rm, writeFile } from "node:fs/promises";
+import { tmpdir } from "node:os";
+import { join } from "node:path";
+import { COVER_TEMPLATES, Digest, parseDigestFile } from "@dispatch/core";
+import { afterEach, describe, expect, it } from "vitest";
+import { buildDigest } from "../src/render/buildDigest.js";
+import { createFallbackCoverPicker, loadCoverPalettes } from "../src/render/coverPicker.js";
+import { createIdAllocator, listTakenIds, nextDigestId } from "../src/render/digestId.js";
+import {
+  digestWords,
+  LISTEN_WORDS_PER_SECOND,
+  listenMinutes,
+  READ_WORDS_PER_MINUTE,
+  readMinutes,
+} from "../src/render/readTime.js";
+import { writeDigestFile } from "../src/render/writeDigestFile.js";
+import { buildFixtureDigest, COVER, makeFixture, NOW, WINDOW } from "./render-factories.js";
+
+const tempDirs: string[] = [];
+async function tempRoot(): Promise<string> {
+  const dir = await mkdtemp(join(tmpdir(), "dispatch-render-"));
+  tempDirs.push(dir);
+  return dir;
+}
+afterEach(async () => {
+  while (tempDirs.length > 0) await rm(tempDirs.pop() as string, { recursive: true, force: true });
+});
+
+describe("reading and listening time", () => {
+  it("uses 230 words per minute for reading and 2.6 words per second for listening", () => {
+    expect(READ_WORDS_PER_MINUTE).toBe(230);
+    expect(LISTEN_WORDS_PER_SECOND).toBe(2.6);
+  });
+
+  it.each([
+    [0, 1, 1],
+    [1, 1, 1],
+    [150, 1, 1],
+    [160, 1, 2],
+    [230, 1, 2],
+    [231, 2, 2],
+    [460, 2, 3],
+    [1000, 5, 7],
+  ])("%i words: read %i min, listen %i min", (words, read, listen) => {
+    expect(readMinutes(words)).toBe(read);
+    expect(listenMinutes(words)).toBe(listen);
+  });
+
+  it("counts headline, summary and why words only", () => {
+    expect(digestWords([{ headline: "one two", summary: "three four five.", why: "six" }])).toBe(6);
+  });
+});
+
+describe("buildDigest", () => {
+  it("builds a digest that passes the core schema", () => {
+    const { digest } = buildFixtureDigest(8);
+    expect(Digest.safeParse(digest).success).toBe(true);
+    expect(digest.items).toHaveLength(8);
+    expect(digest.kind).toBe("regular");
+    expect(digest.audio).toBeNull();
+    expect(digest.verified).toBe(false);
+    expect(digest.cover).toEqual(COVER);
+    expect(digest.window).toEqual(WINDOW);
+    expect(digest.generated_at).toBe(NOW.toISOString());
+  });
+
+  it("derives minutes from the final text", () => {
+    const { digest } = buildFixtureDigest(10);
+    const words = digestWords(digest.items);
+    expect(digest.read_minutes).toBe(readMinutes(words));
+    expect(digest.listen_minutes).toBe(listenMinutes(words));
+    expect(digest.read_minutes).toBeGreaterThanOrEqual(1);
+  });
+
+  it("uses the Stockholm calendar date, not UTC", () => {
+    const { digest } = buildFixtureDigest(4, { now: new Date("2026-10-06T22:30:00Z") });
+    expect(digest.date).toBe("2026-10-07");
+    expect(digest.id).toBe("2026-10-07");
+  });
+
+  it("asks the allocator for the id and passes it to the cover picker", () => {
+    const asked: unknown[] = [];
+    let pickerInput: { digestId: string; date: string; kind: string; items: number } | undefined;
+    const { digest } = buildFixtureDigest(5, {
+      allocateId: (input) => {
+        asked.push(input);
+        return "2026-10-07-2";
+      },
+      coverPicker: (input) => {
+        pickerInput = {
+          digestId: input.digestId,
+          date: input.date,
+          kind: input.kind,
+          items: input.items.length,
+        };
+        return { template: "orbit", palette: "ink", seed: 7 };
+      },
+    });
+    expect(asked).toEqual([{ date: "2026-10-07", kind: "regular" }]);
+    expect(digest.id).toBe("2026-10-07-2");
+    expect(pickerInput).toEqual({
+      digestId: "2026-10-07-2",
+      date: "2026-10-07",
+      kind: "regular",
+      items: 5,
+    });
+    expect(digest.cover).toEqual({ template: "orbit", palette: "ink", seed: 7 });
+  });
+
+  it("makes the three highest scores top picks and lists top first", () => {
+    const { digest } = buildFixtureDigest(8);
+    expect(digest.items.slice(0, 3).every((i) => i.section === "top")).toBe(true);
+    expect(digest.items.filter((i) => i.section === "top")).toHaveLength(3);
+    const topScores = digest.items.slice(0, 3).map((i) => i.score);
+    const restScores = digest.items.slice(3).map((i) => i.score);
+    expect(Math.min(...topScores)).toBeGreaterThanOrEqual(Math.max(...restScores));
+  });
+
+  it("maps item fields: canonical url, source name, optional author and date", () => {
+    const fixture = makeFixture(4);
+    const digest = buildDigest({
+      selected: fixture.selected,
+      written: fixture.written,
+      window: WINDOW,
+      kind: "regular",
+      now: NOW,
+      coverPicker: () => COVER,
+      allocateId: () => "2026-10-07",
+      audio: null,
+      sourceNames: { "source-0": "Source Zero" },
+    });
+    const first = digest.items.find((i) => i.id === fixture.items[0]?.id);
+    expect(first?.url).toBe(fixture.items[0]?.canonical_url);
+    expect(first?.source).toBe("Source Zero");
+    expect(first?.author).toBe("Author 0");
+    expect(first?.published_at).toBe(fixture.items[0]?.published_at);
+    const second = digest.items.find((i) => i.id === fixture.items[1]?.id);
+    expect(second?.source).toBe("source-1");
+    expect(second).not.toHaveProperty("author");
+    expect(second).not.toHaveProperty("published_at");
+  });
+
+  it("skips selected items without written text and recomputes the top picks", () => {
+    const fixture = makeFixture(6);
+    const best = fixture.selected[0]?.item.id as string;
+    const digest = buildDigest({
+      selected: fixture.selected,
+      written: fixture.written.filter((w) => w.id !== best),
+      window: WINDOW,
+      kind: "regular",
+      now: NOW,
+      coverPicker: () => COVER,
+      allocateId: () => "2026-10-07",
+      audio: null,
+    });
+    expect(digest.items).toHaveLength(5);
+    expect(digest.items.some((i) => i.id === best)).toBe(false);
+    expect(digest.items.filter((i) => i.section === "top")).toHaveLength(3);
+  });
+
+  it("refuses to build below the floor", () => {
+    const fixture = makeFixture(5);
+    expect(() =>
+      buildDigest({
+        selected: fixture.selected,
+        written: fixture.written.slice(0, 2),
+        window: WINDOW,
+        kind: "regular",
+        now: NOW,
+        coverPicker: () => COVER,
+        allocateId: () => "2026-10-07",
+        audio: null,
+      }),
+    ).toThrow(/minimum is 3/);
+  });
+
+  it("marks a digest verified only when told", () => {
+    expect(buildFixtureDigest(4, { verified: true }).digest.verified).toBe(true);
+  });
+});
+
+describe("digest ids", () => {
+  it("takes the date, then -2, -3 for further digests the same day", () => {
+    expect(nextDigestId("2026-10-07", "regular", new Set())).toBe("2026-10-07");
+    expect(nextDigestId("2026-10-07", "on-demand", new Set(["2026-10-07"]))).toBe("2026-10-07-2");
+    expect(nextDigestId("2026-10-07", "on-demand", new Set(["2026-10-07", "2026-10-07-2"]))).toBe(
+      "2026-10-07-3",
+    );
+  });
+
+  it("gives a weekly pass the -weekly id, then falls back to a sequence number", () => {
+    expect(nextDigestId("2026-10-11", "weekly", new Set(["2026-10-11"]))).toBe("2026-10-11-weekly");
+    expect(nextDigestId("2026-10-11", "weekly", new Set(["2026-10-11", "2026-10-11-weekly"]))).toBe(
+      "2026-10-11-2",
+    );
+  });
+
+  it("records the ids it hands out", () => {
+    const allocate = createIdAllocator(new Set());
+    expect(allocate({ date: "2026-10-07", kind: "regular" })).toBe("2026-10-07");
+    expect(allocate({ date: "2026-10-07", kind: "regular" })).toBe("2026-10-07-2");
+  });
+
+  it("reads taken ids from the month directory", async () => {
+    const root = await tempRoot();
+    await mkdir(join(root, "Digests", "2026", "10"), { recursive: true });
+    await writeFile(join(root, "Digests", "2026", "10", "2026-10-07.md"), "x");
+    await writeFile(join(root, "Digests", "2026", "10", "2026-10-07.audio.json"), "{}");
+    await writeFile(join(root, "Digests", "2026", "10", "2026-10-11-weekly.md"), "x");
+    expect(await listTakenIds(root, "2026-10-07")).toEqual(
+      new Set(["2026-10-07", "2026-10-11-weekly"]),
+    );
+    expect(await listTakenIds(root, "2026-11-01")).toEqual(new Set());
+  });
+});
+
+describe("writeDigestFile", () => {
+  it("creates directories and writes a file that parses back to the same digest", async () => {
+    const root = await tempRoot();
+    const { digest } = buildFixtureDigest(8);
+    const written = await writeDigestFile(root, digest);
+    expect(written.relPath).toBe("Digests/2026/10/2026-10-07.md");
+    const text = await readFile(written.path, "utf8");
+    expect(text.startsWith("---\n")).toBe(true);
+    expect(parseDigestFile(text)).toEqual(digest);
+  });
+
+  it("refuses to overwrite an existing digest and leaves it untouched", async () => {
+    const root = await tempRoot();
+    const { digest } = buildFixtureDigest(5);
+    const { path } = await writeDigestFile(root, digest);
+    const before = await readFile(path, "utf8");
+    const other = buildFixtureDigest(6).digest;
+    await expect(writeDigestFile(root, other)).rejects.toThrow(
+      /already exists: Digests\/2026\/10\/2026-10-07\.md/,
+    );
+    expect(await readFile(path, "utf8")).toBe(before);
+  });
+});
+
+describe("fallback cover picker", () => {
+  const input = (id: string) => ({
+    digestId: id,
+    date: "2026-10-07",
+    kind: "regular" as const,
+    items: buildFixtureDigest(4).digest.items,
+  });
+
+  it("is deterministic and returns a valid cover", () => {
+    const pick = createFallbackCoverPicker({ palettes: ["dusk", "ink", "moss"] });
+    const a = pick(input("2026-10-07"));
+    expect(pick(input("2026-10-07"))).toEqual(a);
+    expect(COVER_TEMPLATES).toContain(a.template);
+    expect(["dusk", "ink", "moss"]).toContain(a.palette);
+    expect(Number.isInteger(a.seed) && a.seed >= 0).toBe(true);
+  });
+
+  it("does not repeat the previous cover", () => {
+    const first = createFallbackCoverPicker({ palettes: ["dusk"] })(input("2026-10-07"));
+    const next = createFallbackCoverPicker({ palettes: ["dusk"], last: first })(
+      input("2026-10-07"),
+    );
+    expect(`${next.template}/${next.palette}`).not.toBe(`${first.template}/${first.palette}`);
+  });
+
+  it("reads palette ids from tokens/covers.json, or falls back to dusk", async () => {
+    const root = await tempRoot();
+    expect(await loadCoverPalettes(root)).toEqual(["dusk"]);
+    await mkdir(join(root, "tokens"), { recursive: true });
+    await writeFile(
+      join(root, "tokens", "covers.json"),
+      JSON.stringify({ $schema: "x", palettes: { ink: {}, moss: {} } }),
+    );
+    expect(await loadCoverPalettes(root)).toEqual(["ink", "moss"]);
+    await writeFile(
+      join(root, "tokens", "covers.json"),
+      JSON.stringify({ $description: "d", sand: {}, sea: {} }),
+    );
+    expect(await loadCoverPalettes(root)).toEqual(["sand", "sea"]);
+    await writeFile(join(root, "tokens", "covers.json"), "not json");
+    expect(await loadCoverPalettes(root)).toEqual(["dusk"]);
+  });
+});

@@ -108,8 +108,22 @@ export function assignSections(chosen: readonly Candidate[]): SelectedItem[] {
   });
 }
 
-interface Classified {
-  candidate: Candidate;
+export type Eligibility =
+  | { eligible: true; candidate: Candidate }
+  | { eligible: false; reason: DropReason };
+
+/** Whether a scored item may publish at all, before the cap and section targets apply. */
+export function eligibility(
+  scored: ScoredItem,
+  threshold: number = DEFAULT_SCORE_THRESHOLD,
+): Eligibility {
+  const category = scored.topCategory;
+  if (category === "none") return { eligible: false, reason: "no_category" };
+  if (NEVER_PUBLISH.includes(category)) return { eligible: false, reason: "never_publish" };
+  const home = homeSection(category, scored.item.source_type);
+  if (home === null) return { eligible: false, reason: "never_publish" };
+  if (scored.score < threshold) return { eligible: false, reason: "below_threshold" };
+  return { eligible: true, candidate: { item: scored.item, category, home, score: scored.score } };
 }
 
 /**
@@ -127,34 +141,15 @@ export function selectItems(input: SelectInput): SelectResult {
   const threshold = input.threshold ?? DEFAULT_SCORE_THRESHOLD;
   const limit = Math.min(input.cap, capFor(input.kind));
   const dropped: DroppedItem[] = [];
-  const qualifying: Classified[] = [];
+  const candidates: Candidate[] = [];
 
   for (const scored of input.scored) {
-    const category = scored.topCategory;
-    const drop = (reason: DropReason): void => {
-      dropped.push({ id: scored.item.id, reason, score: scored.score });
-    };
-    if (category === "none") {
-      drop("no_category");
-      continue;
-    }
-    if (NEVER_PUBLISH.includes(category)) {
-      drop("never_publish");
-      continue;
-    }
-    const home = homeSection(category, scored.item.source_type);
-    if (home === null) {
-      drop("never_publish");
-      continue;
-    }
-    if (scored.score < threshold) {
-      drop("below_threshold");
-      continue;
-    }
-    qualifying.push({ candidate: { item: scored.item, category, home, score: scored.score } });
+    const verdict = eligibility(scored, threshold);
+    if (verdict.eligible) candidates.push(verdict.candidate);
+    else dropped.push({ id: scored.item.id, reason: verdict.reason, score: scored.score });
   }
 
-  const ranked = qualifying.map((q) => q.candidate).sort(compareCandidates);
+  const ranked = candidates.sort(compareCandidates);
   if (ranked.length < input.floor || limit < input.floor) {
     return { outcome: "nothing", selected: [], dropped, qualifying: ranked.length };
   }

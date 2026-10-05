@@ -1,0 +1,183 @@
+import { join } from "node:path";
+import { parseArgs } from "node:util";
+import { DigestKind, homeSection, stockholmDate } from "@dispatch/core";
+import { type CommandRun, secretsFromEnv } from "../context.js";
+import {
+  loadLastRun,
+  loadPool,
+  loadSources,
+  readJsonIfExists,
+  sourceNameMap,
+} from "../curate/inputs.js";
+import { emit } from "../curate/output.js";
+import { defaultRunId, fromRoot, runDirFor } from "../curate/runDir.js";
+import { Selection } from "../curate/selectionFile.js";
+import { describeError } from "../llm/errors.js";
+import { buildDigest, type CoverPicker } from "../render/buildDigest.js";
+import { createFallbackCoverPicker, loadCoverPalettes } from "../render/coverPicker.js";
+import { createIdAllocator, listTakenIds } from "../render/digestId.js";
+import { writeDigestFile } from "../render/writeDigestFile.js";
+import type { SelectedItem } from "../score/types.js";
+import { validateDigest } from "../validate/validateDigest.js";
+import { createLinter } from "../voice/lint.js";
+import { loadVoice } from "../voice/voice.js";
+
+export const RENDER_USAGE =
+  "Usage: dispatch render [--run <id>] [--kind regular|weekly|on-demand] [--selection <path>] [--pool <path>] [--dry-run]";
+
+export interface RenderDeps {
+  /** The cover package's picker. Defaults to a deterministic stand-in. */
+  coverPicker?: CoverPicker;
+}
+
+/**
+ * `dispatch render`: turn a run's `selection.json` into `Digests/YYYY/MM/<id>.md`. It rebuilds
+ * the items from the pool, assigns sections and Top picks, computes read and listen times,
+ * validates the result with the same checks as `dispatch validate`, and writes the file without
+ * ever overwriting. Exit codes: 0 rendered or nothing to render, 1 failure, 2 usage error.
+ */
+export function makeRenderCommand(deps: RenderDeps = {}): CommandRun {
+  return async (argv, ctx) => {
+    let values: {
+      run?: string;
+      kind?: string;
+      selection?: string;
+      pool?: string;
+      "dry-run"?: boolean;
+    };
+    try {
+      values = parseArgs({
+        args: argv,
+        allowPositionals: false,
+        strict: true,
+        options: {
+          run: { type: "string" },
+          kind: { type: "string" },
+          selection: { type: "string" },
+          pool: { type: "string" },
+          "dry-run": { type: "boolean" },
+        },
+      }).values;
+      if (values.kind !== undefined && !DigestKind.safeParse(values.kind).success) {
+        throw new Error("--kind must be regular, weekly or on-demand.");
+      }
+    } catch (error) {
+      ctx.log.error(
+        `${error instanceof Error ? error.message : "Invalid arguments."} ${RENDER_USAGE}`,
+      );
+      return 2;
+    }
+
+    try {
+      const { root, log } = ctx;
+      const now = ctx.now();
+      const runId = values.run ?? defaultRunId(now, DigestKind.parse(values.kind ?? "regular"));
+      const runDir = runDirFor(root, runId);
+      const selectionPath = values.selection
+        ? fromRoot(root, values.selection)
+        : join(runDir, "selection.json");
+      const poolPath = values.pool ? fromRoot(root, values.pool) : join(runDir, "pool.json");
+
+      const rawSelection = await readJsonIfExists(selectionPath, "selection.json");
+      if (rawSelection === null) {
+        log.error(`selection.json not found at ${selectionPath}. Run \`dispatch curate\` first.`);
+        return 1;
+      }
+      const parsed = Selection.safeParse(rawSelection);
+      if (!parsed.success) {
+        log.error(
+          `selection.json is invalid: ${parsed.error.issues[0]?.path.join(".") ?? ""} ${parsed.error.issues[0]?.message ?? ""}`.trim(),
+        );
+        return 1;
+      }
+      const selection = parsed.data;
+      if (selection.outcome === "nothing" || selection.items.length === 0) {
+        emit(ctx, ["Nothing cleared the bar."], { outcome: "nothing" });
+        return 0;
+      }
+
+      const pool = new Map((await loadPool(poolPath)).items.map((item) => [item.id, item]));
+      const selected: SelectedItem[] = [];
+      for (const entry of selection.items) {
+        const item = pool.get(entry.id);
+        if (!item) {
+          log.error(`The selection names ${entry.id}, which is not in the pool at ${poolPath}.`);
+          return 1;
+        }
+        const home = homeSection(entry.category, item.source_type);
+        if (home === null) {
+          log.error(`The category ${entry.category} of ${entry.id} never publishes.`);
+          return 1;
+        }
+        selected.push({ item, category: entry.category, home, section: home, score: entry.score });
+      }
+
+      const sources = await loadSources(root);
+      const linter = createLinter(await loadVoice(root));
+      const lastRun = await loadLastRun(root);
+      const coverPicker =
+        deps.coverPicker ??
+        createFallbackCoverPicker({
+          palettes: await loadCoverPalettes(root),
+          ...(lastRun.last_cover ? { last: lastRun.last_cover } : {}),
+        });
+      const taken = await listTakenIds(root, stockholmDate(now));
+
+      const digest = buildDigest({
+        selected,
+        written: selection.items.map((i) => ({
+          id: i.id,
+          headline: i.headline,
+          summary: i.summary,
+          why: i.why,
+        })),
+        window: selection.window,
+        kind: selection.kind,
+        now,
+        coverPicker,
+        allocateId: createIdAllocator(taken),
+        verified: selection.verified,
+        audio: null,
+        sourceNames: sourceNameMap(sources),
+      });
+
+      const report = validateDigest(digest, { pool: [...pool.values()], sources, linter });
+      if (!report.ok) {
+        log.error(`The digest failed validation with ${report.errors} errors; nothing was written`);
+        emit(
+          ctx,
+          report.issues.map((i) => `${i.severity}: ${i.itemId ? `${i.itemId}: ` : ""}${i.message}`),
+          { outcome: "invalid", issues: report.issues },
+        );
+        return 1;
+      }
+
+      const summary = {
+        digest_id: digest.id,
+        items: digest.items.length,
+        read_minutes: digest.read_minutes,
+        listen_minutes: digest.listen_minutes,
+        verified: digest.verified,
+      };
+      if (values["dry-run"]) {
+        emit(ctx, [`Dry run: ${digest.id}, ${summary.items} items. Nothing written.`], {
+          outcome: "dry-run",
+          ...summary,
+        });
+        return 0;
+      }
+      const written = await writeDigestFile(root, digest);
+      emit(ctx, [`Wrote ${written.relPath} (${summary.items} items).`], {
+        outcome: "rendered",
+        path: written.relPath,
+        ...summary,
+      });
+      return 0;
+    } catch (error) {
+      ctx.log.error(`render failed: ${describeError(error, secretsFromEnv(ctx.env))}`);
+      return 1;
+    }
+  };
+}
+
+export const run: CommandRun = makeRenderCommand();
