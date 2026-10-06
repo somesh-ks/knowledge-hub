@@ -238,6 +238,18 @@ function voiceIds(body: unknown): string[] {
   });
 }
 
+const MAX_VOICE_PAGES = 20;
+
+/** The cursor for the next page, or undefined on the last one. */
+function nextVoiceCursor(body: unknown): string | undefined {
+  if (typeof body !== "object" || body === null) return undefined;
+  const { has_more: hasMore, next_cursor: next } = body as {
+    has_more?: unknown;
+    next_cursor?: unknown;
+  };
+  return hasMore === true && typeof next === "string" && next !== "" ? next : undefined;
+}
+
 async function speechifyCheck(
   env: Env,
   deps: DoctorDeps,
@@ -246,12 +258,20 @@ async function speechifyCheck(
   const key = env.SPEECHIFY_API_KEY;
   if (key === undefined) return skipped("online.speechify", "SPEECHIFY_API_KEY");
   try {
-    const result = await probe(deps, secrets, "https://api.speechify.ai/v1/voices", {
-      headers: { authorization: `Bearer ${key}` },
-    });
-    if (result.status !== 200)
-      return httpProblem("online.speechify", "Speechify", result.status, "SPEECHIFY_API_KEY");
-    const ids = voiceIds(result.body);
+    // The catalogue is paged (50 by default), so follow the cursor or a valid voice looks missing.
+    const ids: string[] = [];
+    let cursor: string | undefined;
+    for (let page = 0; page < MAX_VOICE_PAGES; page++) {
+      const query = new URLSearchParams({ limit: "200", ...(cursor ? { cursor } : {}) });
+      const result = await probe(deps, secrets, `https://api.speechify.ai/v1/voices?${query}`, {
+        headers: { authorization: `Bearer ${key}` },
+      });
+      if (result.status !== 200)
+        return httpProblem("online.speechify", "Speechify", result.status, "SPEECHIFY_API_KEY");
+      ids.push(...voiceIds(result.body));
+      cursor = nextVoiceCursor(result.body);
+      if (cursor === undefined) break;
+    }
     if (ids.length === 0) {
       return warn(
         "online.speechify",
@@ -295,19 +315,46 @@ async function blobCheck(env: Env, deps: DoctorDeps, secrets: readonly string[])
   }
 }
 
+/** The audio workflow runs `vercel link` with this token; a rejected one fails with "User not found". */
+async function vercelTokenCheck(
+  env: Env,
+  deps: DoctorDeps,
+  secrets: readonly string[],
+): Promise<Check> {
+  const token = env.VERCEL_TOKEN;
+  if (token === undefined) return skipped("online.vercel", "VERCEL_TOKEN");
+  try {
+    const result = await probe(deps, secrets, "https://api.vercel.com/v2/user", {
+      headers: { authorization: `Bearer ${token}` },
+    });
+    if (result.status === 200) return ok("online.vercel", "token accepted");
+    if (result.status === 401 || result.status === 403 || result.status === 404) {
+      return fail(
+        "online.vercel",
+        `Vercel rejected the token (HTTP ${result.status})`,
+        "Create an account token in the Vercel dashboard (Settings, Tokens), put it in .env as VERCEL_TOKEN and run `npm run secrets:push`.",
+      );
+    }
+    return httpProblem("online.vercel", "Vercel", result.status, "VERCEL_TOKEN");
+  } catch (error) {
+    return unreachable("online.vercel", "Vercel", error);
+  }
+}
+
 /** Lightweight authenticated checks. Each one is skipped, with a warning, when its key is unset. */
 export async function onlineChecks(
   env: Env,
   deps: DoctorDeps,
   secrets: readonly string[],
 ): Promise<Check[]> {
-  const [nebius, jev, exa, firecrawl, speechify, blob] = await Promise.all([
+  const [nebius, jev, exa, firecrawl, speechify, blob, vercel] = await Promise.all([
     nebiusChecks(env, deps, secrets),
     jevCheck(env, deps, secrets),
     exaCheck(env, deps, secrets),
     firecrawlCheck(env, deps, secrets),
     speechifyCheck(env, deps, secrets),
     blobCheck(env, deps, secrets),
+    vercelTokenCheck(env, deps, secrets),
   ]);
-  return [...nebius, jev, exa, firecrawl, speechify, blob];
+  return [...nebius, jev, exa, firecrawl, speechify, blob, vercel];
 }

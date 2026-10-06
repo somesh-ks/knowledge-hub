@@ -49,8 +49,15 @@ jobs:
         run: |
           # Vercel Blob hides its long-lived token and issues short-lived OIDC credentials instead.
           # Pull them with the Vercel token; the engine reads VERCEL_OIDC_TOKEN and BLOB_STORE_ID.
-          npx vercel link --yes --project knowledge-hub --scope somesh-ks-projects
-          npx vercel env pull "$RUNNER_TEMP/audio.env" --environment=production --yes
+          # The CLI edits .gitignore and writes .vercel and .env.local, which the publish write guard
+          # refuses, so it runs in a scratch directory outside the checkout.
+          mkdir -p "$RUNNER_TEMP/vercel"
+          (
+            cd "$RUNNER_TEMP/vercel"
+            npx vercel link --yes --project knowledge-hub --scope somesh-ks-projects
+            npx vercel env pull "$RUNNER_TEMP/audio.env" --environment=production --yes
+          )
+          # Hidden secrets come back as the text [SENSITIVE]; the engine ignores that placeholder.
           set -a
           . "$RUNNER_TEMP/audio.env"
           set +a

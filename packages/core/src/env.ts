@@ -17,6 +17,8 @@ export const Env = z.object({
   /** Short-lived Blob credentials from `vercel env pull`; used when no long-lived token is set. */
   VERCEL_OIDC_TOKEN: optionalString,
   BLOB_STORE_ID: optionalString,
+  /** Account token the audio workflow uses to run `vercel link` and `vercel env pull`. */
+  VERCEL_TOKEN: optionalString,
   COMPOSIO_API_KEY: optionalString,
   MAX_TOKENS_PER_RUN: z.coerce.number().int().positive().default(400_000),
   /** Monthly Speechify character allowance used by the 90 percent budget guard. */
@@ -24,10 +26,15 @@ export const Env = z.object({
 });
 export type Env = z.infer<typeof Env>;
 
-/** Parse the process environment. Empty strings count as unset. */
+/** What `vercel env pull` writes in place of a hidden secret it cannot read. */
+const VERCEL_PLACEHOLDER = "[SENSITIVE]";
+
+/** Parse the process environment. Empty strings and Vercel's pull placeholder count as unset. */
 export function loadEnv(source: Record<string, string | undefined> = process.env): Env {
   const cleaned = Object.fromEntries(
-    Object.entries(source).filter(([, value]) => value !== undefined && value !== ""),
+    Object.entries(source).filter(
+      ([, value]) => value !== undefined && value !== "" && value !== VERCEL_PLACEHOLDER,
+    ),
   );
   return Env.parse(cleaned);
 }

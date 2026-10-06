@@ -203,6 +203,7 @@ describe("runCli: help", () => {
       "doctor",
       "extract",
       "models",
+      "voices",
       "eval",
     ]);
     expect(findCommand("run")?.summary).toContain("gate");

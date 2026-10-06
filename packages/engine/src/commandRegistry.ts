@@ -127,6 +127,15 @@ Embedding, image and rerank models are hidden unless --all. Output is capped (de
     load: async () => (await import("./commands/models.js")).run,
   },
   {
+    name: "voices",
+    summary: "List the Speechify voices available to your key",
+    help: `Usage: dispatch voices [--locale <prefix>] [--limit <n>] [--json]
+
+Lists id, name, gender and locales from GET /v1/voices, to pick SPEECHIFY_VOICE_ID. Defaults to
+locales starting with "en". Output is capped (default 40).`,
+    load: async () => (await import("./commands/voices.js")).run,
+  },
+  {
     name: "eval",
     summary: "Golden-set evaluation of judges, grounding and writer models (uses keys and money)",
     help: `Usage: dispatch eval --yes [--only judges,grounding,bakeoff] [--models a,b] [--thinking <spec>] [--json]
