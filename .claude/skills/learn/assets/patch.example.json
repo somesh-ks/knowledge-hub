@@ -1,0 +1,13 @@
+{
+  "input": "more shaders, less VC funding",
+  "weight_deltas": {
+    "css_canvas_motion_techniques": 0.05,
+    "venture_capital_and_gossip": -0.05
+  },
+  "add_keywords": [],
+  "remove_keywords": [],
+  "add_authors": [],
+  "remove_authors": [],
+  "add_disliked": [],
+  "remove_disliked": []
+}
