@@ -34,12 +34,28 @@ function keepCoverFontsReachable() {
   };
 }
 
+// Tests build without the adapter: the Vercel adapter bundles functions with symlinks, which Windows
+// refuses without Developer Mode, and the e2e suite only needs the static output. The API routes
+// become static stubs there; their logic is covered by unit tests.
+const staticOnly = process.env.DISPATCH_STATIC_ONLY === "1";
+
+function stubApiRoutesForStaticBuild() {
+  return {
+    name: "dispatch-static-only",
+    hooks: {
+      "astro:route:setup": ({ route }) => {
+        if (route.component.replaceAll("\\", "/").includes("/pages/api/")) route.prerender = true;
+      },
+    },
+  };
+}
+
 export default defineConfig({
   site: "https://news.someshks.work",
   // Static output. Only the two routes that export `prerender = false` run on demand.
   output: "static",
-  adapter: vercel({ maxDuration: 20 }),
-  integrations: [react()],
+  adapter: staticOnly ? undefined : vercel({ maxDuration: 20 }),
+  integrations: [react(), ...(staticOnly ? [stubApiRoutesForStaticBuild()] : [])],
   // `true` keeps single spaces between inline elements, which the default "jsx" mode would strip.
   compressHTML: true,
   trailingSlash: "never",

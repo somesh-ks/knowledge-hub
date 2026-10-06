@@ -1,0 +1,5 @@
+/* Imported last. A component rule that sets display must not defeat the hidden attribute. */
+
+[hidden] {
+  display: none;
+}

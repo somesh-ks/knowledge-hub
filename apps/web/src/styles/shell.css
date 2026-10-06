@@ -175,9 +175,3 @@ html[data-mini="visible"] main {
     );
   }
 }
-
-/* ------------------------------------------------------------------ skip link target and live text */
-
-[hidden] {
-  display: none;
-}

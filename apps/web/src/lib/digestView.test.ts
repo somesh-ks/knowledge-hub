@@ -69,7 +69,9 @@ describe("audio copy", () => {
     expect(AUDIO_UNAVAILABLE_COPY.preparing.label).toBe("Audio is still being prepared");
     expect(AUDIO_UNAVAILABLE_COPY.expired.label).toBe("The audio has expired");
     for (const copy of Object.values(AUDIO_UNAVAILABLE_COPY)) {
-      expect(copy.hint).not.toMatch(/[–—]/);
+      // Voice rule: plain sentences, no dashes (the dash characters are built, not typed, here).
+      const dashes = [0x2013, 0x2014].map((code) => String.fromCharCode(code));
+      for (const dash of dashes) expect(copy.hint).not.toContain(dash);
     }
   });
 });

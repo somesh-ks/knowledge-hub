@@ -14,8 +14,6 @@ import { fileURLToPath } from "node:url";
  */
 
 const HERE = fileURLToPath(new URL(".", import.meta.url));
-const ROOT = resolve(process.argv[2] ?? join(HERE, "..", ".vercel", "output", "static"));
-const PORT = Number(process.argv[3] ?? process.env.PORT ?? 4321);
 
 const TYPES = {
   ".html": "text/html; charset=utf-8",
@@ -33,77 +31,93 @@ const TYPES = {
 function loadHeaderRules() {
   const config = JSON.parse(readFileSync(join(HERE, "..", "vercel.json"), "utf8"));
   return (config.headers ?? []).map((rule) => ({
-    pattern: new RegExp(`^${rule.source.replaceAll(".", "\\.").replaceAll("(.*)", ".*")}$`),
+    // vercel.json sources use "(.*)" as a wildcard. Swap it out first so its own dot is not escaped.
+    pattern: new RegExp(
+      `^${rule.source.replaceAll("(.*)", "*").replaceAll(".", "\\.").replaceAll("*", ".*")}$`,
+    ),
     headers: rule.headers,
   }));
 }
 
-const RULES = loadHeaderRules();
+export function startServer({ root, port }) {
+  const rules = loadHeaderRules();
 
-function headersFor(pathname) {
-  const headers = {};
-  for (const rule of RULES) {
-    if (!rule.pattern.test(pathname)) continue;
-    for (const { key, value } of rule.headers) headers[key] = value;
+  function headersFor(pathname) {
+    const headers = {};
+    for (const rule of rules) {
+      if (!rule.pattern.test(pathname)) continue;
+      for (const { key, value } of rule.headers) headers[key] = value;
+    }
+    return headers;
   }
-  return headers;
+
+  function resolveFile(pathname) {
+    const clean = normalize(decodeURIComponent(pathname)).replace(/^([/\\])+/, "");
+    const target = join(root, clean);
+    if (!target.startsWith(root)) return null;
+    for (const candidate of [target, join(target, "index.html"), `${target}.html`]) {
+      if (existsSync(candidate) && statSync(candidate).isFile()) return candidate;
+    }
+    return null;
+  }
+
+  function send(request, response, file, status) {
+    const { pathname } = new URL(request.url ?? "/", "http://localhost");
+    const stats = statSync(file);
+    const headers = {
+      "Content-Type": TYPES[extname(file)] ?? "application/octet-stream",
+      "Accept-Ranges": "bytes",
+      ...headersFor(pathname),
+    };
+    const range = /^bytes=(\d*)-(\d*)$/.exec(request.headers.range ?? "");
+    if (range && status === 200) {
+      const start = range[1] === "" ? Math.max(0, stats.size - Number(range[2])) : Number(range[1]);
+      const end = range[1] !== "" && range[2] !== "" ? Number(range[2]) : stats.size - 1;
+      response.writeHead(206, {
+        ...headers,
+        "Content-Range": `bytes ${start}-${end}/${stats.size}`,
+        "Content-Length": end - start + 1,
+      });
+      createReadStream(file, { start, end }).pipe(response);
+      return;
+    }
+    response.writeHead(status, { ...headers, "Content-Length": stats.size });
+    if (request.method === "HEAD") response.end();
+    else createReadStream(file).pipe(response);
+  }
+
+  const server = createServer((request, response) => {
+    const { pathname } = new URL(request.url ?? "/", "http://localhost");
+    if (pathname.startsWith("/api/")) {
+      response.writeHead(501, { "Content-Type": "application/json" });
+      response.end(JSON.stringify({ error: "not served by the static test server" }));
+      return;
+    }
+    const file = resolveFile(pathname);
+    if (file) {
+      send(request, response, file, 200);
+      return;
+    }
+    const notFound = join(root, "404.html");
+    if (existsSync(notFound)) send(request, response, notFound, 404);
+    else {
+      response.writeHead(404);
+      response.end("Not found");
+    }
+  });
+
+  server.listen(port, "127.0.0.1", () => {
+    console.log(`Serving ${root} at http://127.0.0.1:${port}`);
+  });
+  return server;
 }
 
-function resolveFile(pathname) {
-  const clean = normalize(decodeURIComponent(pathname)).replace(/^([/\\])+/, "");
-  const target = join(ROOT, clean);
-  if (!target.startsWith(ROOT)) return null;
-  for (const candidate of [target, join(target, "index.html"), `${target}.html`]) {
-    if (existsSync(candidate) && statSync(candidate).isFile()) return candidate;
+if (process.argv[1] && resolve(process.argv[1]) === fileURLToPath(import.meta.url)) {
+  const root = resolve(process.argv[2] ?? join(HERE, "..", "dist"));
+  const port = Number(process.argv[3] ?? process.env.PORT ?? 4321);
+  if (!existsSync(root)) {
+    console.error(`No build output at ${root}. Run the build first.`);
+    process.exit(1);
   }
-  return null;
+  startServer({ root, port });
 }
-
-function send(request, response, file, status) {
-  const { pathname } = new URL(request.url, "http://localhost");
-  const stats = statSync(file);
-  const headers = {
-    "Content-Type": TYPES[extname(file)] ?? "application/octet-stream",
-    "Accept-Ranges": "bytes",
-    ...headersFor(pathname),
-  };
-  const range = /^bytes=(\d*)-(\d*)$/.exec(request.headers.range ?? "");
-  if (range && status === 200) {
-    const start = range[1] === "" ? Math.max(0, stats.size - Number(range[2])) : Number(range[1]);
-    const end = range[1] !== "" && range[2] !== "" ? Number(range[2]) : stats.size - 1;
-    response.writeHead(206, {
-      ...headers,
-      "Content-Range": `bytes ${start}-${end}/${stats.size}`,
-      "Content-Length": end - start + 1,
-    });
-    createReadStream(file, { start, end }).pipe(response);
-    return;
-  }
-  response.writeHead(status, { ...headers, "Content-Length": stats.size });
-  if (request.method === "HEAD") response.end();
-  else createReadStream(file).pipe(response);
-}
-
-const server = createServer((request, response) => {
-  const { pathname } = new URL(request.url ?? "/", "http://localhost");
-  if (pathname.startsWith("/api/")) {
-    response.writeHead(501, { "Content-Type": "application/json" });
-    response.end(JSON.stringify({ error: "not served by the static test server" }));
-    return;
-  }
-  const file = resolveFile(pathname);
-  if (file) {
-    send(request, response, file, 200);
-    return;
-  }
-  const notFound = join(ROOT, "404.html");
-  if (existsSync(notFound)) send(request, response, notFound, 404);
-  else {
-    response.writeHead(404);
-    response.end("Not found");
-  }
-});
-
-server.listen(PORT, "127.0.0.1", () => {
-  console.log(`Serving ${ROOT} at http://127.0.0.1:${PORT}`);
-});

@@ -192,7 +192,7 @@ function isPage(request) {
   return (
     request.mode === "navigate" ||
     (request.headers.get("accept") || "").includes("text/html") ||
-    !/.[a-z0-9]+$/i.test(url.pathname)
+    !/\.[a-z0-9]+$/i.test(url.pathname)
   );
 }
 

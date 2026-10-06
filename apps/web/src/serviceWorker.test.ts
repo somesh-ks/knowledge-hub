@@ -221,6 +221,14 @@ describe("service worker: caching strategies", () => {
     expect(await next.response?.text()).toBe("home v2");
   });
 
+  it("treats a fetch from the client router as a page, not as an asset", async () => {
+    const worker = load(() => new Response("archive"));
+    const page = await worker.dispatchFetch(request("/archive", { mode: "cors" }));
+    expect(page.handled).toBe(true);
+    const asset = await worker.dispatchFetch(request("/unknown.css", { mode: "cors" }));
+    expect(asset.handled).toBe(false);
+  });
+
   it("falls back to the cached home page when the network fails", async () => {
     let online = true;
     const worker = load(() => {
