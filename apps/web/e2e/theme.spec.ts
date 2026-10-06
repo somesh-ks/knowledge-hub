@@ -30,7 +30,9 @@ test.describe("theme", () => {
 
   test("applies a stored choice before first paint, so it never flashes", async ({ page }) => {
     await page.emulateMedia({ colorScheme: "light" });
-    await page.addInitScript(() => localStorage.setItem("dispatch:preferences", JSON.stringify({ theme: "dark" })));
+    await page.addInitScript(() =>
+      localStorage.setItem("dispatch:preferences", JSON.stringify({ theme: "dark" })),
+    );
     await recordThemeAtBodyStart(page);
     await page.goto("/");
     expect(
@@ -44,21 +46,27 @@ test.describe("theme", () => {
 
   test("a stored light choice wins over a dark system", async ({ page }) => {
     await page.emulateMedia({ colorScheme: "dark" });
-    await page.addInitScript(() => localStorage.setItem("dispatch:preferences", JSON.stringify({ theme: "light" })));
+    await page.addInitScript(() =>
+      localStorage.setItem("dispatch:preferences", JSON.stringify({ theme: "light" })),
+    );
     await page.goto("/");
     await expect(page.locator("html")).toHaveAttribute("data-theme", "light");
     await expectColor(page, await bodyBackground(page), SURFACE_LIGHT);
   });
 
   test("ignores a stored value that is not a theme", async ({ page }) => {
-    await page.addInitScript(() => localStorage.setItem("dispatch:preferences", JSON.stringify({ theme: "sepia" })));
+    await page.addInitScript(() =>
+      localStorage.setItem("dispatch:preferences", JSON.stringify({ theme: "sepia" })),
+    );
     await page.goto("/");
     await expect(page.locator("html")).not.toHaveAttribute("data-theme", /.*/);
   });
 
   test("survives a client-side navigation", async ({ page }) => {
     await page.emulateMedia({ colorScheme: "light" });
-    await page.addInitScript(() => localStorage.setItem("dispatch:preferences", JSON.stringify({ theme: "dark" })));
+    await page.addInitScript(() =>
+      localStorage.setItem("dispatch:preferences", JSON.stringify({ theme: "dark" })),
+    );
     await page.goto("/");
     await page.getByRole("link", { name: /All briefings/ }).click();
     await expect(page).toHaveURL(/\/archive$/);

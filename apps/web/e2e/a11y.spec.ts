@@ -32,7 +32,10 @@ test.describe("axe, explicit theme override", () => {
   for (const theme of ["light", "dark"] as const) {
     test(`home with the ${theme} theme chosen against the system`, async ({ page }) => {
       await page.emulateMedia({ colorScheme: theme === "light" ? "dark" : "light" });
-      await page.addInitScript((value) => localStorage.setItem("dispatch:preferences", JSON.stringify({ theme: value })), theme);
+      await page.addInitScript(
+        (value) => localStorage.setItem("dispatch:preferences", JSON.stringify({ theme: value })),
+        theme,
+      );
       await page.goto("/");
       expect(await violations(page)).toEqual([]);
     });
