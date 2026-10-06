@@ -4,7 +4,7 @@ Each entry records what was decided, why, and what was rejected. Add new entries
 
 The plan that implements these decisions is [build-plan.md](build-plan.md). The vision is [vision.md](vision.md).
 
-D1 to D9 date from plan v2 (2026-10-05). D10 to D18 date from the 2026-10-06 revision. Reasons are the plan's working rationale, written by the docs owner; correct any the owner would state differently.
+D1 to D9 date from plan v2 (2026-10-05). D10 to D24 date from 2026-10-06. Reasons are the plan's working rationale, written by the docs owner; correct any the owner would state differently.
 
 ---
 
@@ -27,8 +27,8 @@ D1 to D9 date from plan v2 (2026-10-05). D10 to D18 date from the 2026-10-06 rev
 ## D3: Judge is TypeSafe Jev, writer is a cheap Nebius model chosen by a bake-off
 
 - Date: 2026-10-05
-- Status: Decided. The bake-off runs in Phase 4.
-- Decision: Typed judgments (category, craft depth, hype, sponsorship and funding flags, grounding checks) come from TypeSafe Jev. Summaries come from the cheapest Nebius model that clears the quality bar on a golden set, starting with Qwen3-32B. A Nebius judge stays wired as the fallback.
+- Status: The Jev judge stands. The writer-model half is superseded by D24.
+- Decision: Typed judgments (category, craft depth, hype, sponsorship and funding flags, grounding checks) come from TypeSafe Jev. Summaries come from the cheapest Nebius model that clears the quality bar on a golden set, starting with Qwen3-32B (history: see D24). A Nebius judge stays wired as the fallback.
 - Reason: Jev returns calibrated probabilities, so near-ties are handled honestly and weights can change without new calls. Writing cost is negligible at this volume, so the writer is chosen on quality and reliability with price as the tie-breaker.
 - Rejected: One frontier model for both roles (more cost, no probabilities). A Nebius-only judge as the default (JSON answers without calibrated probabilities).
 - Revisit if: Jev is repriced, rate-limited or withdrawn; revalidate quarterly.
@@ -161,3 +161,53 @@ D1 to D9 date from plan v2 (2026-10-05). D10 to D18 date from the 2026-10-06 rev
 - Reason: Synthesis needs no sample files, adds almost no weight to the first load and can be tuned in code.
 - Rejected: Sampled audio files (weight and licensing). No UI sounds at all.
 - Revisit if: The spike shows Web Audio misbehaving on iOS with narration playing.
+
+## D19: TypeScript 6 pinned repository-wide
+
+- Date: 2026-10-06
+- Status: Confirmed
+- Decision: The root and `apps/web` pin `typescript` to `~6.0.3`, so the whole repository typechecks with one compiler.
+- Reason: The Astro language tooling behind `astro check` breaks under TypeScript 7, and two versions in one workspace would check the engine and the site against different compilers.
+- Rejected: TypeScript 7 with `astro check` dropped (loses type checks in templates). A different version per workspace.
+- Revisit if: The Astro tooling supports TypeScript 7.
+
+## D20: One preferences key for theme and settings
+
+- Date: 2026-10-06
+- Status: Confirmed
+- Decision: Theme, interface sounds, volume and playback speed are one JSON object under the `localStorage` key `dispatch:preferences`. The inline theme script that runs before first paint reads the same key.
+- Reason: One key means the pre-paint script and the settings store cannot drift apart.
+- Rejected: A separate key for the theme and another for the other settings (two sources of truth for what the pre-paint script reads). A cookie (the site is static and nothing on the server reads it).
+
+## D21: Source health lives in state
+
+- Date: 2026-10-06
+- Status: Confirmed
+- Decision: Per-source consecutive failures and last success are stored in `state/source-health.json` and overlaid onto the registry when it is loaded. `config/sources.json` holds only hand-edited configuration.
+- Reason: The write guard lets `run` change only `Digests/` and `state/`, and a run must not rewrite configuration the owner edits by hand.
+- Rejected: Failure counters inside `config/sources.json` (the earlier design), which the guard would refuse and which would mix automated churn into reviewed configuration.
+
+## D22: `deploy.yml` owns the deploy
+
+- Date: 2026-10-06
+- Status: Confirmed. As-built detail of D10, which holds the commands and the reason for leaving the Git integration off.
+- Decision: `deploy.yml` is a reusable workflow with its own concurrency group, `deploy`. It checks out `main`, not the caller's commit, and passes `VERCEL_TOKEN` only to the Vercel pull and deploy steps, never to the build.
+- Reason: A called workflow that shares its caller's concurrency group is cancelled. The caller's commit predates the bot commit. The build runs repository code and dependencies, so it gets no token.
+- Rejected: Sharing `run.yml`'s group. A token at job level. Deploying the caller's commit.
+
+## D23: The engine tolerates audio failure
+
+- Date: 2026-10-06
+- Status: Confirmed
+- Decision: When narration or the Blob upload fails, `dispatch publish` leaves the digest's `audio` as `null` and exits without failing, so the text digest ships. The next deploy narrates every digest that still lacks audio, and `run.yml` deploys while any digest from the last 7 days lacks it.
+- Reason: The briefing is read first. Audio is added to text that already exists, so a speech outage must not cost the day's digest.
+- Rejected: Failing the run on a speech error. Holding the digest until audio exists.
+
+## D24: The writer model is picked from the live Nebius list
+
+- Date: 2026-10-06
+- Status: Confirmed. Supersedes the writer half of D3.
+- Decision: No model id is the default. List the models your key can use with `dispatch models`, verify the ids with `dispatch doctor --online`, compare candidates with `dispatch eval --yes --only bakeoff`, then set `DISPATCH_MODEL` and `DISPATCH_FALLBACK_MODEL`. Qwen3-32B is history.
+- Reason: Qwen3-32B left Nebius's serverless tier on 2026-08-31, so any named default goes stale. Nebius's baseline limit is 60 requests per minute, which the fallback judge's batching respects.
+- Rejected: Another hardcoded default (the same failure at the next retirement). Moving the writer to another provider (the Nebius account and credit exist, D13).
+- Revisit if: Nebius changes its tiers or limits again.

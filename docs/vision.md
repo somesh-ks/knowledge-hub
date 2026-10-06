@@ -14,7 +14,7 @@
 >
 > **Output:** Versioned markdown digests under `Digests/YYYY/MM/<id>.md`. The id is the Stockholm date, with `-weekly` for the weekly pass and `-2`, `-3` for further runs on the same day.
 >
-> **Status:** The engine, the web app and the skills are being built in parallel from 2026-10-06. This file describes the target.
+> **Status:** Built and tested offline as of 2026-10-06; nothing has run against live services yet ([build-plan.md](build-plan.md) Section 13).
 
 ---
 
@@ -72,7 +72,7 @@ flowchart TD
 
 ## 3. Digest specification
 
-The voice is high brevity, specific and peer to peer. Rules, limits and lint are in [build-plan.md](build-plan.md) Section 7.6. The body below is generated from the frontmatter for reading in an editor or on GitHub; the site renders from the frontmatter.
+The voice is high brevity, specific and peer to peer. The rules are in [voice.md](../config/voice.md) and the limits and lint in [build-plan.md](build-plan.md) Section 7.6. The body below is generated from the frontmatter for reading in an editor or on GitHub; the site renders from the frontmatter.
 
 ```markdown
 # Wednesday 7 October
@@ -136,8 +136,9 @@ The source of truth is [`preferences.json`](../config/preferences.json) (weights
 
 - `state/seen.json`: item ids already shown, with date; pruned after 90 days.
 - `state/judgments.json`: cached judgments, so weight changes re-score without new calls; pruned after 30 days.
-- `state/last-run.json`: one record per kind of run (`regular`, `weekly`, `on_demand`), each with its outcome; also holds the end of the last fetch, which defines the next window.
+- `state/last-run.json`: one record per kind of run (`regular`, `weekly`, `on_demand`), each with its outcome; also holds the end of the last fetch, which defines the next window, and the last cover.
 - `state/usage.json`: Speechify characters used in the current month.
+- `state/source-health.json`: consecutive failures and last success per source (D21).
 
 **`/learn` (free-text only)**
 
@@ -152,8 +153,8 @@ The source of truth is [`preferences.json`](../config/preferences.json) (weights
 
 Decided: the "Taste & Thought of the Day" section is cut (D8, [decisions.md](decisions.md)).
 
-Open items, carried from Phase 0 into Phase 3 of the build plan:
+Open items, carried from Phase 0 and checked against `config/` on 2026-10-06:
 
-- Reconcile `preferences.json` authors: split real names from X handles, normalize case, drop or source entries with no feed (X is not ingested).
-- Reconcile sources: add `assistant-ui`, `animata` and `react-bits` repos; decide on Pragmatic Engineer, Theo, Powell and Hyperplexed; resolve the Fireship channel ID; resolve the shadcn changelog versus repo.
-- Decide the fate of low-signal newsletters (The Rundown, Superhuman, The Neuron) and TechCrunch against the 0.02 and 0.10 weights.
+- Reconcile `preferences.json` authors: split real names from X handles (entries such as `preetsuthar17` and `cyze_dev` are still handles), normalize case, drop or source entries with no feed (X is not ingested).
+- Reconcile sources: the `animata` and `react-bits` repos and Pragmatic Engineer are not in the registry; decide on each. Done: `assistant-ui`, Theo, Kevin Powell and Hyperplexed are listed, the Fireship channel id is resolved, and both the shadcn changelog and repo are listed.
+- Decide the fate of the low-signal newsletters (The Rundown, Superhuman, The Neuron) and TechCrunch against the 0.02 and 0.10 weights. All four are enabled in the registry.
