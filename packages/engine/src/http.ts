@@ -247,7 +247,10 @@ export function createHttpClient(options: HttpClientOptions = {}): HttpClient {
 function describeFailure(error: unknown): string {
   if (error instanceof Error) {
     if (error.name === "TimeoutError" || error.name === "AbortError") return "request timed out";
-    return error.message || error.name;
+    // undici reports every network failure as "fetch failed"; the cause code says why.
+    const code = (error.cause as NodeJS.ErrnoException | undefined)?.code;
+    const base = error.message || error.name;
+    return code ? `${base} (${code})` : base;
   }
   return "request failed";
 }

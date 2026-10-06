@@ -1,5 +1,6 @@
 import type { Item, Preferences, Source, SourceType } from "@dispatch/core";
 import { authorMatches, containsPhrase, keywordRegExp } from "./phrase.js";
+import { releaseWeight } from "./releaseWeight.js";
 
 export const DEFAULT_CAP = 60;
 /** HN points above which an item stays even with no keyword or author match. */
@@ -10,6 +11,7 @@ export const STRONG_HN_POINTS = 100;
  * weekly batch) cannot fill the pool. Overridden per source with `options.pool_cap`.
  */
 const SOURCE_CAP_BY_TYPE: Partial<Record<SourceType, number>> = {
+  github: 4,
   exa: 25,
   hn: 15,
   producthunt: 10,
@@ -121,7 +123,8 @@ export function prefilter({
       (highSignal ? 3 : 0) +
       votes +
       2 * categoryWeight +
-      recency;
+      recency +
+      releaseWeight(item);
     scored.push({ item, score });
   }
 

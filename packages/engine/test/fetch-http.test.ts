@@ -101,6 +101,17 @@ describe("http client", () => {
     expect(attempt).toBe(2);
   });
 
+  it("names the network error code when undici only says fetch failed", async () => {
+    const cause = Object.assign(new Error("connect ECONNRESET"), { code: "ECONNRESET" });
+    const fetchImpl = (async () => {
+      throw new TypeError("fetch failed", { cause });
+    }) as typeof fetch;
+    const http = createHttpClient({ fetchImpl, sleep: noSleep, retries: 0 });
+    await expect(http.fetchText("https://example.com/x")).rejects.toThrow(
+      "fetch failed (ECONNRESET)",
+    );
+  });
+
   it("sends a descriptive User-Agent", async () => {
     let seen: Headers | undefined;
     const fetchImpl = (async (_url: string, init?: RequestInit) => {

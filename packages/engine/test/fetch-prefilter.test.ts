@@ -3,6 +3,7 @@ import { type Preferences, Preferences as PreferencesSchema } from "@dispatch/co
 import { describe, expect, it } from "vitest";
 import { authorMatches, containsPhrase, keywordRegExp } from "../src/prefilter/phrase.js";
 import { prefilter } from "../src/prefilter/prefilter.js";
+import { releaseWeight } from "../src/prefilter/releaseWeight.js";
 import { makeItem, makeSource, NOW } from "./fetch-helpers.js";
 
 const preferences: Preferences = {
@@ -202,6 +203,50 @@ describe("prefilter", () => {
     expect(items).toHaveLength(60);
     expect(report).toMatchObject({ input: 90, kept: 60 });
     expect(report.dropped.cap).toBe(30);
+  });
+
+  it("ranks a minor or major release above patch releases from the same repository", () => {
+    const repo = makeSource({ id: "repo", type: "github", high_signal: true });
+    const release = (version: string, snippet: string) =>
+      makeItem({
+        url: `https://github.com/acme/lib/releases/tag/v${version}`,
+        title: `Lib: v${version}`,
+        snippet,
+        source_id: "repo",
+        source_type: "github",
+      });
+    const patch = release("2.4.7", "Patch Changes fix a typo");
+    const minor = release("2.5.0", "Minor Changes add a new prop");
+    const major = release("3.0.0", "Major Changes drop the old API");
+    const { items } = prefilter({
+      items: [patch, minor, major],
+      preferences,
+      sources: [repo],
+      now: NOW,
+    });
+    expect(items.map((i) => i.title)).toEqual(["Lib: v3.0.0", "Lib: v2.5.0", "Lib: v2.4.7"]);
+  });
+
+  it("limits a release feed to four items unless the source says otherwise", () => {
+    const repo = makeSource({ id: "repo", type: "github", high_signal: true });
+    const releases = Array.from({ length: 10 }, (_, i) =>
+      makeItem({
+        url: `https://github.com/acme/lib/releases/tag/v1.0.${i}`,
+        title: `Lib: v1.0.${i}`,
+        source_id: "repo",
+        source_type: "github",
+      }),
+    );
+    expect(
+      prefilter({ items: releases, preferences, sources: [repo], now: NOW }).items,
+    ).toHaveLength(4);
+  });
+
+  it("gives no release weight to items that are not GitHub releases", () => {
+    expect(
+      releaseWeight({ source_type: "rss", title: "v2.0.0 is out", snippet: "Major Changes" }),
+    ).toBe(0);
+    expect(releaseWeight({ source_type: "github", title: "Lib: v2.0.1", snippet: "" })).toBe(0);
   });
 
   it("accounts for every input item in the report", () => {
