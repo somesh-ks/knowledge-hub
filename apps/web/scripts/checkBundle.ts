@@ -19,7 +19,12 @@ import {
  */
 
 const HERE = dirname(fileURLToPath(import.meta.url));
-const root = resolve(process.argv[2] ?? join(HERE, "..", ".vercel", "output", "static"));
+// A static-only build (local Windows runs, e2e) writes to dist; the Vercel adapter build to .vercel.
+const defaultOutput =
+  process.env.DISPATCH_STATIC_ONLY === "1"
+    ? join(HERE, "..", "dist")
+    : join(HERE, "..", ".vercel", "output", "static");
+const root = resolve(process.argv[2] ?? defaultOutput);
 if (!existsSync(root)) {
   console.error(`No build output at ${root}. Run the build first.`);
   process.exit(1);
