@@ -311,7 +311,7 @@ async function runBakeoff(
   };
 }
 
-async function main(argv: string[]): Promise<number> {
+export async function main(argv: string[]): Promise<number> {
   const { values } = parseArgs({
     args: argv,
     options: {
