@@ -17,9 +17,14 @@ const read = (file: string) => readFileSync(join(STYLES, file), "utf8");
 const withoutComments = (css: string) => css.replace(/\/\*[\s\S]*?\*\//g, "");
 
 describe("component stylesheets", () => {
-  it("covers every stylesheet the layout imports", () => {
-    const layout = readFileSync(join(STYLES, "..", "layouts", "BaseLayout.astro"), "utf8");
-    const imported = [...layout.matchAll(/styles\/([a-z-]+\.css)/g)].map((match) => match[1]);
+  it("covers every stylesheet the layout or an island imports", () => {
+    const src = join(STYLES, "..");
+    const sources = readdirSync(src, { recursive: true, encoding: "utf8" })
+      .filter((file) => /\.(astro|tsx)$/.test(file))
+      .map((file) => readFileSync(join(src, file), "utf8"));
+    const imported = sources.flatMap((text) =>
+      [...text.matchAll(/styles\/([a-z-]+\.css)/g)].map((match) => match[1]),
+    );
     for (const file of OWN_FILES) expect(imported, `${file} is never imported`).toContain(file);
   });
 
@@ -62,8 +67,9 @@ describe("component stylesheets", () => {
   });
 
   it("reads durations and curves from tokens", () => {
+    // A bare `0s` is not a timing choice: it flips `visibility` at the end of a transform transition.
     const literal =
-      /transition[^;{]*\b\d+(?:\.\d+)?m?s\b|animation(?:-duration)?\s*:[^;{]*\b\d+(?:\.\d+)?m?s\b/;
+      /transition[^;{]*\b(?!0m?s\b)\d+(?:\.\d+)?m?s\b|animation(?:-duration)?\s*:[^;{]*\b(?!0m?s\b)\d+(?:\.\d+)?m?s\b/;
     for (const file of OWN_FILES) {
       expect(
         literal.exec(withoutComments(read(file)))?.[0],
