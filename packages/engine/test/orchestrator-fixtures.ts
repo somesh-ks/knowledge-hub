@@ -418,3 +418,20 @@ export function poolFile(
     items: [...items],
   };
 }
+
+/** Dependencies for stages that touch only files: every client throws if used. */
+export function bareDeps(root: string, now: Date, secrets: readonly string[] = []): RunDeps {
+  const unused = (): never => {
+    throw new Error("this stage must not use a client");
+  };
+  return {
+    root,
+    now: () => now,
+    log: captureLog().log,
+    secrets,
+    fetch: { http: { fetchText: unused, getJson: unused, postJson: unused } },
+    runtime: unused,
+    pickCover: unused,
+    git: unused,
+  };
+}

@@ -332,16 +332,24 @@ async function commitGated(
     return { ...base, deploy: false, dry_run: true, commit: { status: "dry_run" } };
   }
   const message = "chore(state): gated";
-  const committed = await commitAndPush({
-    root: deps.root,
-    message,
-    command: "run",
-    push: !options.noPush,
-    git: deps.git,
-  });
-  const commit = { ...describeCommit(committed), message };
-  if (committed.status === "refused" || committed.status === "push_failed") {
-    deps.log.warn("The gated commit did not complete", { detail: commit.detail ?? "" });
+  let commit: CommitReport["commit"];
+  try {
+    const committed = await commitAndPush({
+      root: deps.root,
+      message,
+      command: "run",
+      push: !options.noPush,
+      git: deps.git,
+    });
+    commit = { ...describeCommit(committed), message };
+    if (committed.status === "refused" || committed.status === "push_failed") {
+      deps.log.warn("The gated commit did not complete", { detail: commit.detail ?? "" });
+    }
+  } catch (error) {
+    // Git itself failing (not a repository, no git) must not turn "not due" into a failure.
+    const detail = error instanceof Error ? (error.message.split("\n")[0] ?? "") : "";
+    deps.log.warn("The gated commit could not run", { detail });
+    commit = { status: "nothing_to_commit", message, detail };
   }
   return { ...base, deploy: lacking.length > 0, dry_run: false, commit };
 }
