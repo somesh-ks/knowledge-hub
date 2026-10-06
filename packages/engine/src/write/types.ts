@@ -32,8 +32,13 @@ export interface RewriteRequest {
   material: SourceMaterial;
   field: VoiceField;
   current: string;
-  /** What is wrong with `current`, in plain language. */
+  /** What is wrong with `current`, in plain language. Written by our code, so it is trusted. */
   problems: readonly string[];
+  /**
+   * Passages of `current` the problems point at, quoted from it. They were produced from
+   * untrusted source text, so the prompt delimits them as data and never mixes them into `problems`.
+   */
+  focus?: readonly string[];
 }
 
 /**

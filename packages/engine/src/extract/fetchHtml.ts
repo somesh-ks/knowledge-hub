@@ -4,6 +4,9 @@ export const FETCH_TIMEOUT_MS = 10_000;
 /** Pages are capped at 1.5 MB; the rest is dropped, which is plenty for article text. */
 export const FETCH_MAX_BYTES = 1_500_000;
 
+const MAX_REDIRECTS = 5;
+const REDIRECT_STATUSES: ReadonlySet<number> = new Set([301, 302, 303, 307, 308]);
+
 const USER_AGENT = "Mozilla/5.0 (compatible; DispatchBot/1.0; private briefing)";
 
 export interface FetchHtmlOptions {
@@ -88,21 +91,43 @@ export async function fetchHtml(
   const controller = new AbortController();
 
   const run = async (): Promise<FetchHtmlResult> => {
-    const response = await fetchImpl(url, {
-      signal: controller.signal,
-      redirect: "follow",
-      headers: { "user-agent": USER_AGENT, accept: "text/html,application/xhtml+xml" },
-    });
-    const finalUrl = response.url || url;
-    const finalRefusal = fetchRefusal(finalUrl);
-    if (finalRefusal) return { ok: false, reason: `Redirected: ${finalRefusal}` };
-    if (!response.ok) return { ok: false, reason: `HTTP ${response.status}` };
-    const contentType = response.headers.get("content-type") ?? "";
-    if (!/html|xml/i.test(contentType)) {
-      return { ok: false, reason: `Not HTML (${contentType || "no content type"}).` };
+    // Redirects are followed by hand so every hop is checked before it is requested. Letting
+    // fetch follow them would send the request to a private address and only then tell us.
+    let current = url;
+    for (let hop = 0; ; hop++) {
+      const response = await fetchImpl(current, {
+        signal: controller.signal,
+        redirect: "manual",
+        headers: { "user-agent": USER_AGENT, accept: "text/html,application/xhtml+xml" },
+      });
+      if (REDIRECT_STATUSES.has(response.status)) {
+        await response.body?.cancel().catch(() => {});
+        const location = response.headers.get("location");
+        if (!location) return { ok: false, reason: `HTTP ${response.status} without a location.` };
+        if (hop >= MAX_REDIRECTS) return { ok: false, reason: "Too many redirects." };
+        let next: string;
+        try {
+          next = new URL(location, current).href;
+        } catch {
+          return { ok: false, reason: "The redirect location is not a valid URL." };
+        }
+        const hopRefusal = fetchRefusal(next);
+        if (hopRefusal) return { ok: false, reason: `Redirected: ${hopRefusal}` };
+        current = next;
+        continue;
+      }
+      // Defense in depth for a fetch that already followed redirects itself (a proxy, a test fake).
+      const landed = response.url || current;
+      const landedRefusal = fetchRefusal(landed);
+      if (landedRefusal) return { ok: false, reason: `Redirected: ${landedRefusal}` };
+      if (!response.ok) return { ok: false, reason: `HTTP ${response.status}` };
+      const contentType = response.headers.get("content-type") ?? "";
+      if (!/html|xml/i.test(contentType)) {
+        return { ok: false, reason: `Not HTML (${contentType || "no content type"}).` };
+      }
+      const { text, truncated } = await readCapped(response, maxBytes, decoderFor(contentType));
+      return { ok: true, html: text, finalUrl: landed, truncated };
     }
-    const { text, truncated } = await readCapped(response, maxBytes, decoderFor(contentType));
-    return { ok: true, html: text, finalUrl, truncated };
   };
 
   try {

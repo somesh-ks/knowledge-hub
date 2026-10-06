@@ -6,7 +6,8 @@ export function countWords(text: string): number {
 // A period after these does not end a sentence.
 const ABBREVIATION_END =
   /(?:\b(?:e\.g|i\.e|vs|etc|approx|fig|no|inc|ltd|dr|mr|ms|mrs|st|cf)|\b[A-Za-z](?:\.[A-Za-z])+)\.$/i;
-const BOUNDARY = /(?<=[.!?])["')\]]*\s+(?=["'([]?[\p{Lu}\p{N}])/u;
+// The next sentence may start lowercase (iPadOS, npm), so any letter or digit counts.
+const BOUNDARY = /(?<=[.!?])["')\]]*\s+(?=["'([]?[\p{L}\p{N}])/u;
 
 /**
  * Split prose into sentences. A boundary needs end punctuation, then whitespace, then a capital

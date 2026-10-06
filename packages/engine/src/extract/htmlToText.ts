@@ -1,5 +1,6 @@
 import { Readability } from "@mozilla/readability";
 import { parseHTML } from "linkedom";
+import { htmlTooComplex } from "./htmlLimits.js";
 
 const NOISE = "script, style, noscript, template, iframe, svg, canvas, object, embed, link, meta";
 const BLOCKS = "p, li, h1, h2, h3, h4, h5, h6, blockquote, pre, figcaption, dt, dd, td";
@@ -30,6 +31,7 @@ function blocksToText(root: ParentNode): string {
 
 /** Plain text of an HTML fragment: scripts and styles removed, one paragraph per block. */
 export function htmlToText(html: string): string {
+  if (htmlTooComplex(html)) return "";
   const { document } = parseHTML(`<!doctype html><html><body>${html}</body></html>`);
   for (const node of Array.from(document.querySelectorAll(NOISE))) node.remove();
   const blocks = blocksToText(document);
@@ -45,9 +47,11 @@ export function plainTextOf(content: string): string {
 /**
  * Main article text of a full web page. Readability picks the article body; its cleaned HTML is
  * then walked block by block so paragraph breaks survive. Returns an empty string when the page
- * holds no readable article, which is what a JavaScript-rendered page looks like.
+ * holds no readable article, which is what a JavaScript-rendered page looks like, or when the
+ * page is too large or too deeply nested to parse safely.
  */
 export function articleText(html: string): string {
+  if (htmlTooComplex(html)) return "";
   const { document } = parseHTML(html);
   for (const node of Array.from(document.querySelectorAll(NOISE))) node.remove();
   let article: { content?: string | null; textContent?: string | null } | null = null;

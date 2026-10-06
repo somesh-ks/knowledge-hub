@@ -29,16 +29,21 @@ export function withModelFailover(
       return active.model;
     },
     async completeJson<T>(request: JsonRequest<T>): Promise<JsonResult<T>> {
+      // Several requests can be in flight when the primary fails. Each decides from the client it
+      // actually used, so the ones that lose the race still switch instead of failing.
+      const used = active;
       try {
-        return await active.completeJson(request);
+        return await used.completeJson(request);
       } catch (error) {
-        if (active === primary && fallback && isModelNotFound(error)) {
-          log?.warn("Primary model was not found; switching to the fallback model", {
-            primary: primary.model,
-            fallback: fallback.model,
-          });
-          active = fallback;
-          return active.completeJson(request);
+        if (used === primary && fallback && isModelNotFound(error)) {
+          if (active === primary) {
+            log?.warn("Primary model was not found; switching to the fallback model", {
+              primary: primary.model,
+              fallback: fallback.model,
+            });
+            active = fallback;
+          }
+          return fallback.completeJson(request);
         }
         throw error;
       }

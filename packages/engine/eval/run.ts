@@ -105,6 +105,7 @@ async function runJudges(env: Env, golden: GoldenEntry[], root: string): Promise
         client: createJevClient(env),
         onFailure: onFailure(failures),
         log: quiet,
+        secrets,
       }),
       failures,
     });
@@ -119,7 +120,7 @@ async function runJudges(env: Env, golden: GoldenEntry[], root: string): Promise
     });
     judges.push({
       label: "nebius",
-      judge: new NebiusJudge({ llm, onFailure: onFailure(failures), log: quiet }),
+      judge: new NebiusJudge({ llm, onFailure: onFailure(failures), log: quiet, secrets }),
       failures,
     });
   }
@@ -178,7 +179,7 @@ async function runGrounding(env: Env, golden: GoldenEntry[]): Promise<Section | 
   if (!env.TYPESAFE_API_KEY) return null;
   const cases = await readGolden("grounding.json", parseGroundingCases);
   const byId = new Map(golden.map((g) => [g.id, g]));
-  const grounder = new JevGrounder({ client: createJevClient(env), log: quiet });
+  const grounder = new JevGrounder({ client: createJevClient(env), log: quiet, secrets });
   const results: GroundingResult[] = [];
   for (const c of cases) {
     const sourceText = byId.get(c.item_id)?.source_text ?? "";
@@ -227,7 +228,7 @@ async function runBakeoff(
   }));
   const byId = new Map(materials.map((m) => [m.id, m]));
   const grounder = env.TYPESAFE_API_KEY
-    ? new JevGrounder({ client: createJevClient(env), log: quiet })
+    ? new JevGrounder({ client: createJevClient(env), log: quiet, secrets })
     : null;
   const rows: BakeoffRow[] = [];
   const notes: string[] = [];
@@ -251,7 +252,7 @@ async function runBakeoff(
       thinkingOff: parseThinkingOff(thinkingSpec),
       log: quiet,
     });
-    const writer = new NebiusWriter({ llm, voice, log: quiet });
+    const writer = new NebiusWriter({ llm, voice, log: quiet, secrets });
     const result = await writer.write(materials);
     const firstPass = voiceReport(result.written.map(sampleOf));
     const outcome = await enforceVoice({

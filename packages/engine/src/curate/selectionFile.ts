@@ -26,7 +26,10 @@ export const Selection = z.object({
   mode: z.enum(["api", "agent"]),
   /** "nothing" when too few items cleared the bar; items is then empty. */
   outcome: z.enum(["selected", "nothing"]),
-  /** True only when every item passed the grounding check. Always false in agent mode. */
+  /**
+   * True only when every item passed the grounding check. Always false in agent mode, and
+   * `dispatch render` enforces that. Written by the engine; a session writes agent-selection.json.
+   */
   verified: z.boolean(),
   window: z.object({ from: isoDateTime, to: isoDateTime }),
   items: z.array(SelectionItem),

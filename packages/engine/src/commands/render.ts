@@ -142,7 +142,8 @@ export function makeRenderCommand(deps: RenderDeps = {}): CommandRun {
         now,
         coverPicker,
         allocateId: createIdAllocator(taken, preferredId),
-        verified: selection.verified,
+        // Nothing an agent session wrote counts as grounded, whatever the file claims.
+        verified: selection.mode === "agent" ? false : selection.verified,
         audio: null,
         sourceNames: sourceNameMap(sources),
       });

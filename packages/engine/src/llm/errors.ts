@@ -44,8 +44,9 @@ export function describeError(error: unknown, secrets: readonly string[] = []): 
     return `Authentication failed (HTTP ${status}). Check the API key in .env.`;
   }
   const name = error instanceof Error ? error.name : "Error";
-  const raw = error instanceof Error ? error.message : String(error);
+  // Redact first: truncating first could cut a key in half and leave a readable prefix.
+  const raw = redact(error instanceof Error ? error.message : String(error), secrets);
   const message = raw.length > MAX_MESSAGE_CHARS ? `${raw.slice(0, MAX_MESSAGE_CHARS)}...` : raw;
   const head = status === undefined ? name : `${name} (HTTP ${status})`;
-  return redact(`${head}: ${message}`, secrets);
+  return `${head}: ${message}`;
 }

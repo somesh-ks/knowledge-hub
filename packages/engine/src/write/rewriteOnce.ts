@@ -24,11 +24,21 @@ export interface RewriteOnceResult {
  */
 export async function rewriteOnce(args: RewriteOnceArgs): Promise<RewriteOnceResult> {
   if (args.violations.length === 0) return { text: args.text, violations: [], rewritten: false };
+  // Text matched by a banned pattern came from the source, so it travels as delimited data.
+  const focus = [
+    ...new Set(
+      args.violations
+        .filter((v) => v.rule === "banned_pattern" && v.match !== undefined)
+        .map((v) => (v.match as string).trim())
+        .filter((match) => match.length > 0),
+    ),
+  ];
   const rewritten = await args.writer.rewrite({
     material: args.material,
     field: args.field,
     current: args.text,
     problems: args.violations.map((v) => v.message),
+    ...(focus.length > 0 ? { focus } : {}),
   });
   if (rewritten === null) {
     return { text: args.text, violations: [...args.violations], rewritten: false };

@@ -60,8 +60,15 @@ export interface CurateCounts {
 }
 
 export interface CurateResult {
-  outcome: "selected" | "nothing";
-  selection: Selection;
+  /**
+   * "failed" means the run could not judge or write enough items to say anything about the day,
+   * so it must not be recorded as a quiet day: that would advance the fetch window and lose items.
+   */
+  outcome: "selected" | "nothing" | "failed";
+  /** Null when the run failed: there is nothing safe to render. */
+  selection: Selection | null;
+  /** Why the run failed, in one sentence. Only set when outcome is "failed". */
+  failure?: string;
   written: WrittenFile;
   /** The cache with this run's new judgments merged in. The caller persists it. */
   judgments: JudgmentsFile;
@@ -71,6 +78,37 @@ export interface CurateResult {
 }
 
 const EXTRACT_CONCURRENCY = 4;
+
+/** At least this share of a stage's inputs failing for infrastructure reasons is an outage. */
+const OUTAGE_SHARE = 0.5;
+
+function mostlyFailed(failed: number, total: number): boolean {
+  return total > 0 && failed / total >= OUTAGE_SHARE;
+}
+
+function nothing(
+  input: CurateInput,
+  counts: CurateCounts,
+  written: WrittenFile,
+  judgments: JudgmentsFile,
+): CurateResult {
+  return {
+    outcome: "nothing",
+    selection: {
+      version: 1,
+      kind: input.kind,
+      mode: "api",
+      outcome: "nothing",
+      verified: false,
+      window: input.window,
+      items: [],
+    },
+    written,
+    judgments,
+    counts,
+    scoredTop: [],
+  };
+}
 
 /**
  * The API curator: judge (cached), score, select, extract, write, voice lint with one rewrite,
@@ -99,6 +137,11 @@ export async function curatePool(deps: CurateDeps, input: CurateInput): Promise<
     groundingDropped: 0,
     final: 0,
   };
+
+  if (input.pool.length === 0) {
+    log.info("The pool is empty");
+    return nothing(input, counts, { version: 1, items: [], dropped }, input.judgments);
+  }
 
   const judged = await judgeWithCache(deps.judge, input.pool, input.judgments);
   counts.judged = judged.entries.length;
@@ -170,8 +213,28 @@ export async function curatePool(deps: CurateDeps, input: CurateInput): Promise<
     };
   };
   const empty: WrittenFile = { version: 1, items: [], dropped };
+  const failed = (
+    failure: string,
+    c: CurateCounts,
+    writtenFile: WrittenFile,
+    cache: JudgmentsFile,
+    top: CurateResult["scoredTop"],
+  ): CurateResult => ({
+    outcome: "failed",
+    selection: null,
+    failure,
+    written: writtenFile,
+    judgments: cache,
+    counts: c,
+    scoredTop: top,
+  });
 
   if (selection.outcome === "nothing") {
+    if (mostlyFailed(counts.unjudged, input.pool.length)) {
+      const failure = `The judge answered ${counts.judged} of ${input.pool.length} items. That looks like an outage, not a quiet day.`;
+      log.error(failure);
+      return failed(failure, counts, empty, judged.cache, scoredTop);
+    }
     log.info("Nothing cleared the bar", { qualifying: counts.qualifying });
     return finish("nothing", [], empty, false, new Map());
   }
@@ -264,6 +327,13 @@ export async function curatePool(deps: CurateDeps, input: CurateInput): Promise<
   };
 
   if (survivors.length < VOICE_LIMITS.items.floor) {
+    // Extraction and writing failures are infrastructure; voice and grounding drops are editorial.
+    const infra = selection.selected.length - materials.size + writeResult.failed.length;
+    if (mostlyFailed(infra, selection.selected.length)) {
+      const failure = `${infra} of ${selection.selected.length} finalists could not be extracted or written. That looks like an outage, not a quiet day.`;
+      log.error(failure);
+      return failed(failure, counts, { ...writtenFile, items: [] }, judged.cache, scoredTop);
+    }
     log.info("Too few items survived writing and validation", { survivors: survivors.length });
     return finish("nothing", [], { ...writtenFile, items: [] }, false, new Map());
   }

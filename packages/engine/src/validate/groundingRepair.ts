@@ -90,17 +90,16 @@ export async function groundAndRepair(args: {
         const next: WrittenItem = { ...item };
         const violations: Violation[] = [];
         for (const field of fields) {
-          const problems = bad
-            .filter((s) => s.field === field)
-            .map(
-              (s) =>
-                `The sentence "${s.sentence}" is not supported by the source text. Rewrite using only facts the source states.`,
-            );
+          // The unsupported sentences are model text derived from the source, so they travel as
+          // delimited `focus` data. The problem statement itself never embeds them.
           const rewritten = await writer.rewrite({
             material,
             field,
             current: item[field],
-            problems,
+            problems: [
+              "The checker found sentences in the current text that the source text does not support. Rewrite the field using only facts the source states; the passages below are the unsupported ones.",
+            ],
+            focus: bad.filter((s) => s.field === field).map((s) => s.sentence),
           });
           if (rewritten !== null) {
             next[field] = rewritten;

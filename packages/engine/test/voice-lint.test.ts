@@ -59,7 +59,11 @@ describe("banned words", () => {
   });
 
   it("matches whole words only", () => {
-    expect(rules("summary", "Robustness tests cover the hugely popular drawer.")).toEqual([]);
+    expect(rules("summary", "Robustness tests cover the popular drawer.")).toEqual([]);
+    expect(rules("summary", "Landscaping is out of scope for the drawer.")).toContain(
+      "banned_word",
+    );
+    expect(rules("summary", "The hug gesture closes the drawer.")).toEqual([]);
   });
 
   it("is case-insensitive", () => {
@@ -71,6 +75,36 @@ describe("banned words", () => {
     expect(rules("summary", "The library unlocks faster drawers.")).toContain("banned_word");
     expect(rules("summary", "Teams leveraging the API ship sooner.")).toContain("banned_word");
     expect(rules("summary", "It delved into the source.")).toContain("banned_word");
+  });
+
+  it("catches adverbs, plurals and spaced or hyphenated spellings of an entry", () => {
+    for (const text of [
+      "It works seamlessly now.",
+      "A robustly tested drawer.",
+      "Amazingly, springs retarget.",
+      "The release is hugely popular.",
+      "Both are game-changers for teams.",
+      "A game changer for drawers.",
+      "Two deep dives into springs.",
+      "Massively faster drawers.",
+    ]) {
+      expect(rules("summary", text)).toContain("banned_word");
+    }
+  });
+
+  it("escapes regex characters in a banned entry instead of throwing or over-matching", () => {
+    const config = parseVoice(
+      "## Banned words\n\n- c++\n- e.g.\n- (beta)\n- -\n\n## Banned patterns\n\n- zzz\n",
+    );
+    const custom = createLinter(config);
+    const flagged = (text: string): boolean =>
+      custom.lint("summary", text).some((v) => v.rule === "banned_word");
+    expect(flagged("Written in C++ for speed.")).toBe(true);
+    expect(flagged("Springs, e.g. for drawers.")).toBe(true);
+    expect(flagged("A (beta) release.")).toBe(true);
+    expect(flagged("A cxx release and eXg notes.")).toBe(false);
+    // The entry made only of a separator must not match everywhere.
+    expect(flagged("Plain text with nothing banned.")).toBe(false);
   });
 
   it("matches multi-word phrases across curly apostrophes", () => {
@@ -219,6 +253,14 @@ describe("sentence and word counting", () => {
   it("counts words as tokens with a letter or digit", () => {
     expect(countWords("Springs - and drawers")).toBe(3);
     expect(countWords("mid-flight 2.0")).toBe(2);
+  });
+
+  it("splits when the next sentence starts lowercase, so the sentence limits cannot be dodged", () => {
+    expect(countSentences("Springs retarget. iPadOS 27 follows. npm packages ship.")).toBe(3);
+    expect(rules("summary", "A fact. iPadOS adds it. npm ships it.")).toContain(
+      "too_many_sentences",
+    );
+    expect(rules("why", "Copy it. npm has an example.")).toContain("too_many_sentences");
   });
 
   it("does not split on version numbers, file names or abbreviations", () => {

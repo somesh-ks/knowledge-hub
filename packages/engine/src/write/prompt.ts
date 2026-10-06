@@ -90,13 +90,18 @@ export function rewriteSystemPrompt(voice: VoiceConfig, boundary: string): strin
 }
 
 export function rewriteUserMessage(request: RewriteRequest, boundary: string): string {
-  // The current text was itself produced from untrusted material, so it is delimited too.
+  // The current text and the quoted passages were produced from untrusted material, so they are
+  // delimited. The problem list is written by our code and never embeds quoted text.
+  const focus = request.focus ?? [];
   return [
     `Field to fix: ${request.field}`,
     "Current text:",
     wrapUntrusted(request.current, boundary, "current"),
     "Problems:",
     ...request.problems.map((p) => `- ${p}`),
+    ...(focus.length > 0
+      ? ["Passages the problems refer to:", wrapUntrusted(focus.join("\n"), boundary, "passages")]
+      : []),
     "",
     "Source:",
     materialBlock(request.material, boundary),

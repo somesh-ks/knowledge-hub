@@ -162,7 +162,8 @@ async function runApi(
   const runId = pool.meta.id ?? basename(paths.runDir);
   if (pool.invalid > 0)
     log.warn("Skipped pool entries that did not match the item schema", { skipped: pool.invalid });
-  if (pool.items.length === 0) throw new Error("The pool has no valid items.");
+  // An empty pool is a quiet day. A pool whose entries were all malformed is a broken fetch.
+  if (pool.items.length === 0 && pool.invalid > 0) throw new Error("The pool has no valid items.");
 
   const [preferences, sources, stateJudgments, lastRun] = await Promise.all([
     loadPreferences(root),
@@ -201,7 +202,10 @@ async function runApi(
     },
   );
 
-  await writeJson(join(paths.outDir, "selection.json"), result.selection);
+  // A failed run writes no selection: a stale or empty one could be rendered as a quiet day.
+  if (result.selection !== null) {
+    await writeJson(join(paths.outDir, "selection.json"), result.selection);
+  }
   await writeJson(join(paths.outDir, "written.json"), result.written);
   await writeJson(join(paths.outDir, "judgments.json"), pruneJudgments(result.judgments, now));
   const usage = runtime.usage();
@@ -210,6 +214,8 @@ async function runApi(
     run_id: runId,
     mode: "api",
     kind,
+    outcome: result.outcome,
+    ...(result.failure ? { failure: result.failure } : {}),
     at: now.toISOString(),
     counts: result.counts,
     judge: {
@@ -221,6 +227,21 @@ async function runApi(
     usage,
     top_scores: result.scoredTop,
   });
+
+  if (result.outcome === "failed" || result.selection === null) {
+    const reason = result.failure ?? "Curation failed.";
+    ctx.log.error(`curate failed: ${reason}`);
+    emit(ctx, [`Failed: ${reason}`], {
+      outcome: "failed",
+      mode: "api",
+      run_id: runId,
+      reason,
+      out: paths.outDir,
+      counts: result.counts,
+      usage,
+    });
+    return 1;
+  }
 
   const summary = {
     outcome: result.outcome,
@@ -254,19 +275,25 @@ async function runAgent(ctx: CommandContext, flags: Flags): Promise<number> {
   const schemaPath = join(paths.outDir, "selection-schema.json");
   await writeJson(schemaPath, agentSelectionJsonSchema());
 
+  // The session writes agent-selection.json, so selection.json is only ever written by this
+  // engine, after validation. A selection.json left by an older run is still accepted as input.
   const selectionPath = join(paths.outDir, "selection.json");
-  const raw = await readJsonIfExists(selectionPath, "selection.json");
+  const agentPath = join(paths.outDir, "agent-selection.json");
+  const raw =
+    (await readJsonIfExists(agentPath, "agent-selection.json")) ??
+    (await readJsonIfExists(selectionPath, "selection.json"));
   if (raw === null) {
     emit(
       ctx,
       [
         `Wrote ${schemaPath}.`,
-        `Write ${selectionPath} to match it, using only items from ${paths.poolPath}, then run this command again.`,
+        `Write ${agentPath} to match it, using only items from ${paths.poolPath}, then run this command again. The engine writes ${selectionPath} after it validates the file.`,
       ],
       {
         status: "awaiting_selection",
         mode: "agent",
         schema: schemaPath,
+        input: agentPath,
         selection: selectionPath,
         pool: paths.poolPath,
       },

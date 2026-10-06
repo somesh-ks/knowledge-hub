@@ -33,29 +33,41 @@ export interface Linter {
 }
 
 function escapeRegex(text: string): string {
-  return text.replace(/[\u2018\u2019]/g, "'").replace(/[\u201C\u201D]/g, '"');
+  return text.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
 }
 
 const MIN_STEM_FOR_INFLECTION = 4;
 
+/** The word with the regular endings a writer might use: unlock, unlocks, unlocked, unlocking. */
+function withEndings(word: string): string {
+  if (word.endsWith("e")) {
+    const stem = word.slice(0, -1);
+    // A long stem drops its e (leverage, leveraging, massively). A short one only adds (huge,
+    // hugely), so "hug" and "hugs" are not caught.
+    return stem.length >= MIN_STEM_FOR_INFLECTION
+      ? `${escapeRegex(stem)}(?:e|es|ed|d|ing|s|ely|ly)`
+      : `${escapeRegex(word)}(?:s|d|ly)?`;
+  }
+  return `${escapeRegex(word)}(?:s|es|ed|ing|ly)?`;
+}
+
 /**
- * Whole-word, case-insensitive matcher for one banned entry. A single word also matches its
- * regular inflections (unlock: unlocks, unlocked, unlocking), so "leveraging" cannot slip past
- * "leverage". Phrases and hyphenated entries match exactly.
+ * Whole-word, case-insensitive matcher for one banned entry. Spaces and hyphens inside an entry
+ * match each other ("game-changer" also catches "game changer"), and the last word takes regular
+ * endings, so "leveraging", "seamlessly" and "deep dives" cannot slip past "leverage",
+ * "seamless" and "deep dive".
  */
 function bannedWordRegex(entry: string): RegExp {
-  const phrase = entry.trim().toLowerCase();
-  const body = phrase.split(/\s+/).map(escapeRegex).join("\\s+");
-  let inflected = body;
-  if (!/\s/.test(phrase) && !phrase.includes("-")) {
-    const stem = phrase.slice(0, -1);
-    if (phrase.endsWith("e") && stem.length >= MIN_STEM_FOR_INFLECTION) {
-      inflected = `${escapeRegex(stem)}(?:e|es|ed|d|ing|s)`;
-    } else if (!phrase.endsWith("e")) {
-      inflected = `${body}(?:s|es|ed|ing)?`;
-    }
-  }
-  return new RegExp(`(?<![\\p{L}\\p{N}])${inflected}(?![\\p{L}\\p{N}])`, "giu");
+  const parts = entry
+    .trim()
+    .toLowerCase()
+    .split(/[\s-]+/)
+    .filter((part) => part.length > 0);
+  const last = parts.pop();
+  // An entry with no letters would otherwise match the empty string everywhere.
+  if (last === undefined) return /(?!)/giu;
+  const head = parts.map((part) => `${escapeRegex(part)}[-\\s]+`).join("");
+  return new RegExp(`(?<![\\p{L}\\p{N}])${head}${withEndings(last)}(?![\\p{L}\\p{N}])`, "giu");
 }
 
 const DASH = /[\u2014\u2013]|\s--\s/g;
@@ -161,9 +173,11 @@ export function createLinter(config: VoiceConfig): Linter {
       for (const { source, regex } of config.bannedPatterns) {
         for (const hit of hits(regex, text)) {
           if (found.some((v) => v.index === hit.index && v.match === hit.match)) continue;
+          // The matched text is not quoted here: it came from the source, and messages are prompt text.
+          // It stays in `match`, and the rewrite request passes it as delimited data.
           add(
             "banned_pattern",
-            `Rewrite the text "${hit.match.trim()}"; it matches the banned pattern ${source}.`,
+            `Rewrite the passage that matches the banned pattern ${source}.`,
             hit,
           );
         }

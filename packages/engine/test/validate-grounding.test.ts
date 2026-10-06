@@ -290,8 +290,11 @@ describe("groundAndRepair", () => {
     expect(out.kept[0]?.verified).toBe(true);
     expect(writer.requests).toHaveLength(1);
     expect(writer.requests[0]?.field).toBe("summary");
-    expect(writer.requests[0]?.problems[0]).toContain("UNSUPPORTED drawers claim.");
-    expect(writer.requests[0]?.problems[0]).toContain("not supported by the source text");
+    // The unsupported sentence is model text, so it travels as delimited focus data and never
+    // inside the trusted problem statement.
+    expect(writer.requests[0]?.focus).toEqual(["UNSUPPORTED drawers claim."]);
+    expect(writer.requests[0]?.problems[0]).toContain("does not support");
+    expect(writer.requests[0]?.problems[0]).not.toContain("UNSUPPORTED");
   });
 
   it("drops an item still unsupported after its one rewrite and reports the sentences", async () => {
