@@ -1,0 +1,3 @@
++ weight css_canvas_motion_techniques: 0.88 to 0.93
++ weight venture_capital_and_gossip: 0.1 to 0.05
+error: The working tree has uncommitted changes. Commit or stash them first: --commit stages config/preferences.json only.

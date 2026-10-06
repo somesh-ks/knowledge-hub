@@ -1,0 +1,16 @@
+{
+  "due": true,
+  "reason": "on-demand run ignores the gate",
+  "mode": "on-demand",
+  "passes": [
+    {
+      "id": "2026-10-06",
+      "kind": "on-demand",
+      "window": {
+        "from": "2026-10-03T04:27:26.009Z",
+        "to": "2026-10-06T04:27:26.009Z"
+      }
+    }
+  ],
+  "dry_run": true
+}

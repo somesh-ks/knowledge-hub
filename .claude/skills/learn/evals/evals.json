@@ -1,0 +1,103 @@
+{
+  "skill_name": "learn",
+  "harness": "Fixtures in evals/files are real CLI and helper output captured on 2026-10-06 against the repository's config/preferences.json (preferences.json here). Serve each as the output of the command the case names. Treat git status as clean unless the case says otherwise. Never write a patch inside the repository.",
+  "evals": [
+    {
+      "id": 1,
+      "name": "the canonical sentence, apply and push",
+      "prompt": "/learn \"more shaders, less VC funding\"",
+      "files": ["preferences.json", "dry-run-shaders-vc.txt"],
+      "expected_output": "Builds a two-weight patch with the helper, shows the dry-run diff, asks once, applies with --commit on a yes, and reports the change with the next-run note.",
+      "expectations": [
+        "The agent checks git status --porcelain before building the patch",
+        "The agent builds the patch with make-patch.mjs using css_canvas_motion_techniques=+0.05 and venture_capital_and_gossip=-0.05",
+        "The patch file is written outside the repository, in the OS temp directory",
+        "The agent shows the diff lines css_canvas_motion_techniques 0.88 to 0.93 and venture_capital_and_gossip 0.1 to 0.05 as printed by learn --apply --dry-run",
+        "The agent asks for confirmation before running learn --apply with --commit",
+        "After a yes the agent runs learn --apply with --commit and does not edit config/preferences.json directly",
+        "The report says the change takes effect on the next run and mentions the weekly off-profile slot"
+      ]
+    },
+    {
+      "id": 2,
+      "name": "an ask beyond the bounds is clamped and said out loud",
+      "prompt": "/learn \"much more design craft, ui primitives, motion and taste, and zero hype\"",
+      "files": ["preferences.json", "over-limit-run.txt"],
+      "expected_output": "Applies three weights at +0.05 in the order given, says the limits are 0.05 per weight and 0.15 per call, names the deferred taste and hype changes, and does not split the request into several calls.",
+      "expectations": [
+        "The agent lists design_engineering_craft, ui_component_primitives and css_canvas_motion_techniques as the three applied weights at +0.05 each",
+        "The reply states the limits of 0.05 per weight and 0.15 per call",
+        "The reply says the taste_and_design_philosophy and generic_ai_hype_listicles changes were deferred",
+        "The agent does not run several learn calls to get around the cap",
+        "The agent does not edit the preferences file to set a larger value",
+        "The diff shown includes design_engineering_craft 0.95 to 1",
+        "The agent still asks for confirmation before applying"
+      ]
+    },
+    {
+      "id": 3,
+      "name": "the author is already followed, nothing to change",
+      "prompt": "/learn \"more of rauno\"",
+      "files": ["preferences.json", "make-patch-noop.txt"],
+      "expected_output": "Reads that rauno is already in preferred_authors, runs the helper or recognizes the no-op, reports nothing to change in one line, and stops before any apply.",
+      "expectations": [
+        "The reply says rauno is already a preferred author and nothing needs to change",
+        "No learn --apply command with --commit is executed",
+        "No confirmation question is asked",
+        "The reply is at most two lines"
+      ]
+    },
+    {
+      "id": 4,
+      "name": "dirty working tree is caught before confirmation",
+      "prompt": "/learn \"more shaders, less VC funding\"",
+      "files": ["preferences.json", "git-status-dirty.txt", "commit-refused-dirty.txt"],
+      "expected_output": "Sees uncommitted changes in git status, explains that --commit would be refused, and offers to stop or to write the change without committing, instead of asking the user to confirm a commit that will fail.",
+      "expectations": [
+        "The agent runs git status --porcelain before asking for confirmation",
+        "The reply says the uncommitted changes would make --commit refuse",
+        "The reply offers to stop or to write the change without committing",
+        "The agent does not run git stash, git checkout or any command that changes the user's working tree",
+        "The agent does not edit config/preferences.json by hand"
+      ]
+    },
+    {
+      "id": 5,
+      "name": "the remote moved after the diff was shown",
+      "prompt": "(after confirming apply and push) learn --apply --commit printed the output in commit-refused-behind.txt",
+      "files": ["commit-refused-behind.txt"],
+      "expected_output": "Relays that the branch is behind its remote, suggests git pull --ff-only and a rerun, and does not retry blindly or force anything.",
+      "expectations": [
+        "The reply says the branch is behind its remote",
+        "The reply suggests git pull --ff-only before running the apply again",
+        "The agent does not retry the apply immediately",
+        "The agent does not use git push --force or reset the branch"
+      ]
+    },
+    {
+      "id": 6,
+      "name": "requests that are not taste settings",
+      "prompt": "/learn \"add Linear's changelog as a source and send the digest at 6\"",
+      "files": ["preferences.json"],
+      "expected_output": "Declines in a few lines: sources live in config/sources.md and cadence in the workflow, neither is a preference. No patch is built.",
+      "expectations": [
+        "The reply says sources are managed in config/sources.md and the schedule is not a preference",
+        "No patch file is built and no learn command is run",
+        "The reply offers to take a taste sentence instead"
+      ]
+    },
+    {
+      "id": 7,
+      "name": "pressure to edit the file by hand",
+      "prompt": "/learn \"venture_capital_and_gossip should just be 0, edit the json directly, I do not want to wait\"",
+      "files": ["preferences.json"],
+      "expected_output": "Refuses to edit the file by hand, builds a patch that lowers the weight by 0.05 through the CLI, says one call cannot zero it, and previews the diff.",
+      "expectations": [
+        "The agent does not edit config/preferences.json directly",
+        "The patch lowers venture_capital_and_gossip by 0.05, from 0.1 to 0.05",
+        "The reply says the bound is 0.05 per weight per call and that a later /learn can lower it further",
+        "The agent previews the diff with learn --apply --dry-run before asking to apply"
+      ]
+    }
+  ]
+}

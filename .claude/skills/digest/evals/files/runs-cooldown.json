@@ -1,0 +1,26 @@
+[
+  {
+    "conclusion": "success",
+    "createdAt": "2026-10-06T04:10:00Z",
+    "databaseId": 18008,
+    "event": "workflow_dispatch",
+    "status": "completed",
+    "url": "https://github.com/somesh-ks/dispatch/actions/runs/18008"
+  },
+  {
+    "conclusion": "success",
+    "createdAt": "2026-10-06T05:13:40Z",
+    "databaseId": 18002,
+    "event": "schedule",
+    "status": "completed",
+    "url": "https://github.com/somesh-ks/dispatch/actions/runs/18002"
+  },
+  {
+    "conclusion": "success",
+    "createdAt": "2026-10-05T05:13:52Z",
+    "databaseId": 17981,
+    "event": "schedule",
+    "status": "completed",
+    "url": "https://github.com/somesh-ks/dispatch/actions/runs/17981"
+  }
+]

@@ -1,0 +1,37 @@
+{
+  "version": 1,
+  "now": "2026-10-06T04:10:52.473Z",
+  "timezone": "Europe/Stockholm",
+  "today": "2026-10-06",
+  "last_run": {
+    "regular": null,
+    "weekly": null,
+    "on_demand": null
+  },
+  "last_fetch_at": null,
+  "next_regular_due": "2026-10-06",
+  "due_now": true,
+  "due_reason": "no regular digest has run yet",
+  "latest_digest": null,
+  "audio": {
+    "pending": false,
+    "missing": [],
+    "retention_days": 120
+  },
+  "sources": {
+    "total": 101,
+    "enabled": 98,
+    "failure_threshold": 5,
+    "failing": []
+  },
+  "budget": {
+    "speechify": {
+      "month": "2026-10",
+      "used": 0,
+      "limit": 450000,
+      "monthly_chars": 500000,
+      "percent": 0
+    }
+  },
+  "warnings": []
+}
