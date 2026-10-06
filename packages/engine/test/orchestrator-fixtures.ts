@@ -1,7 +1,6 @@
 import { cp, mkdtemp, readFile, rm, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
-import { pickCover } from "@dispatch/cover";
 import {
   type Category,
   type Digest,
@@ -10,9 +9,10 @@ import {
   type JudgmentEntry,
   type LastRunFile,
   parseDigestFile,
-  serializeDigestFile,
   type Source,
+  serializeDigestFile,
 } from "@dispatch/core";
+import { pickCover } from "@dispatch/cover";
 import type { Logger } from "../src/context.js";
 import type { ApiRuntime } from "../src/curate/apiRuntime.js";
 import { createGitRunner } from "../src/git/runGit.js";
@@ -27,8 +27,8 @@ import {
 } from "../src/run/types.js";
 import type { Grounder } from "../src/validate/grounding.js";
 import { digestFor } from "./audio-fixtures.js";
-import { commitAll, git, put } from "./git-testRepo.js";
 import { type FakeWriter, fakeWriter, keywordGrounder, longText } from "./curate-helpers.js";
+import { commitAll, git, put } from "./git-testRepo.js";
 import { makeEntry, REPO_ROOT } from "./score-factories.js";
 import { type CapturedLog, captureLog } from "./write-fakes.js";
 
@@ -100,13 +100,12 @@ export function goodFeeds(count: number, prefix = "good"): Record<string, Item[]
   const feeds: Record<string, Item[]> = {};
   for (let index = 0; index < count; index++) {
     const sourceId = SOURCE_IDS[index % SOURCE_IDS.length] as string;
-    (feeds[sourceId] ??= []).push(
-      feedItem({
-        sourceId,
-        slug: `${prefix}-${index + 1}`,
-        tag: GOOD_CATEGORIES[index % GOOD_CATEGORIES.length] as Category,
-      }),
-    );
+    const item = feedItem({
+      sourceId,
+      slug: `${prefix}-${index + 1}`,
+      tag: GOOD_CATEGORIES[index % GOOD_CATEGORIES.length] as Category,
+    });
+    feeds[sourceId] = [...(feeds[sourceId] ?? []), item];
   }
   return feeds;
 }
@@ -163,6 +162,8 @@ export interface World {
   setNow(date: Date): void;
   /** Make the fetchers throw, as when the network is down. */
   breakNetwork(): void;
+  /** Make one source fail while the others answer. */
+  failSource(id: string): void;
 }
 
 export interface WorldOptions {
@@ -188,6 +189,7 @@ export function makeWorld(root: string, options: WorldOptions = {}): World {
   const writer = options.writer ?? fakeWriter();
   const fetchCalls: FetchCall[] = [];
   let broken = false;
+  const failing = new Set<string>();
 
   const world: World = {
     judge,
@@ -200,6 +202,9 @@ export function makeWorld(root: string, options: WorldOptions = {}): World {
     },
     breakNetwork: () => {
       broken = true;
+    },
+    failSource: (id) => {
+      failing.add(id);
     },
     deps: undefined as unknown as RunDeps,
   };
@@ -223,7 +228,7 @@ export function makeWorld(root: string, options: WorldOptions = {}): World {
             from: window.from.toISOString(),
             to: window.to.toISOString(),
           });
-          if (broken) throw new Error("connection refused");
+          if (broken || failing.has(src.id)) throw new Error("connection refused");
           return world.feeds[src.id] ?? [];
         },
       },
@@ -365,3 +370,17 @@ export async function overwrite(root: string, rel: string, content: string): Pro
   await writeFile(join(root, rel), content, "utf8");
 }
 
+/** Items for one source, categories cycling, slugs `${prefix}-1` and up. */
+export function sourceItems(sourceId: string, count: number, prefix: string): Item[] {
+  return Array.from({ length: count }, (_, index) =>
+    feedItem({
+      sourceId,
+      slug: `${prefix}-${index + 1}`,
+      tag: GOOD_CATEGORIES[index % GOOD_CATEGORIES.length] as Category,
+    }),
+  );
+}
+
+export function head(cwd: string): string {
+  return git(cwd, "rev-parse", "HEAD");
+}
