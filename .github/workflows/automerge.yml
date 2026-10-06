@@ -1,0 +1,61 @@
+name: automerge
+
+# Squash-merges a pull request once ci has passed on its current head. Only the owner's branches
+# and Dependabot's updates qualify (Dependabot is configured to skip major versions); anything else
+# waits for a human. Branch protection stays off on purpose: the digest commits push straight to
+# main, and a required-checks rule would block them.
+#
+# Limit: the workflow token cannot merge a pull request that edits files under .github/workflows.
+# Those fail with a notice here and need a manual merge.
+
+on:
+  workflow_run:
+    workflows: [ci]
+    types: [completed]
+
+permissions:
+  contents: write
+  pull-requests: write
+
+jobs:
+  merge:
+    if: >-
+      github.event.workflow_run.event == 'pull_request' &&
+      github.event.workflow_run.conclusion == 'success'
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - name: Merge
+        shell: bash
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          REPO: ${{ github.repository }}
+          OWNER: ${{ github.repository_owner }}
+          PR: ${{ github.event.workflow_run.pull_requests[0].number }}
+          HEAD_SHA: ${{ github.event.workflow_run.head_sha }}
+        run: |
+          if [ -z "$PR" ]; then
+            echo "No pull request is attached to this run."
+            exit 0
+          fi
+          IFS=$'\t' read -r author state head draft < <(
+            gh pr view "$PR" -R "$REPO" --json author,state,headRefOid,isDraft \
+              -q '[.author.login, .state, .headRefOid, (.isDraft | tostring)] | @tsv'
+          )
+          case "$author" in
+            "$OWNER" | dependabot | app/dependabot | "dependabot[bot]") ;;
+            *) echo "Not merging #$PR: author $author is not the owner or Dependabot."; exit 0 ;;
+          esac
+          if [ "$state" != "OPEN" ] || [ "$draft" = "true" ]; then
+            echo "Not merging #$PR: it is $state (draft: $draft)."
+            exit 0
+          fi
+          if [ "$head" != "$HEAD_SHA" ]; then
+            echo "Not merging #$PR: ci passed on $HEAD_SHA but the head is now $head."
+            exit 0
+          fi
+          if gh pr merge "$PR" -R "$REPO" --squash --delete-branch; then
+            echo "Merged #$PR."
+          else
+            echo "::notice::#$PR could not be merged automatically (it may edit a workflow file). Merge it by hand."
+          fi

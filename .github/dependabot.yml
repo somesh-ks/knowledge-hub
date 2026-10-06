@@ -5,11 +5,18 @@ updates:
     schedule:
       interval: weekly
     open-pull-requests-limit: 5
+    # Major bumps are reviewed by hand: TypeScript is pinned to 6.x on purpose.
+    ignore:
+      - dependency-name: "*"
+        update-types: ["version-update:semver-major"]
     commit-message:
       prefix: "chore(deps)"
   - package-ecosystem: github-actions
     directory: /
     schedule:
       interval: weekly
+    ignore:
+      - dependency-name: "*"
+        update-types: ["version-update:semver-major"]
     commit-message:
       prefix: "chore(ci)"
