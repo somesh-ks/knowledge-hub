@@ -26,9 +26,9 @@ export default function PlayerBar() {
       fractionOfTime(time, duration).toFixed(5),
     );
   });
-  useOpenSwipe(openRef);
-
   const track = state.track;
+  useOpenSwipe(openRef, track !== null);
+
   if (!track) return null;
 
   const { timeline, digest } = track;

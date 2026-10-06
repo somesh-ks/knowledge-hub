@@ -78,18 +78,22 @@ export async function touchDrag(
   page: Page,
   path: Point[],
   stepMs: number,
-  hold = false,
-): Promise<void> {
+  options: { hold?: boolean } = {},
+): Promise<{ release(): Promise<void> }> {
   const client = await page.context().newCDPSession(page);
+  const release = async (): Promise<void> => {
+    await client.send("Input.dispatchTouchEvent", { type: "touchEnd", touchPoints: [] });
+    await client.detach();
+  };
   const [first, ...rest] = path;
-  if (!first) return;
+  if (!first) return { release };
   await client.send("Input.dispatchTouchEvent", { type: "touchStart", touchPoints: [first] });
   for (const point of rest) {
     await page.waitForTimeout(stepMs);
     await client.send("Input.dispatchTouchEvent", { type: "touchMove", touchPoints: [point] });
   }
-  if (!hold) await client.send("Input.dispatchTouchEvent", { type: "touchEnd", touchPoints: [] });
-  await client.detach();
+  if (!options.hold) await release();
+  return { release };
 }
 
 /** Points along a straight line, `count` of them, ending exactly on `to`. */
@@ -126,6 +130,8 @@ export class LabPage {
   async play(): Promise<void> {
     await this.cta.tap();
     await expect(this.page.locator("html")).toHaveAttribute("data-player-state", "playing");
+    // The bar slides up over 300ms; a gesture aimed at it needs it in place.
+    await expect(this.mini).toHaveCSS("transform", "none");
   }
 
   async openPlayer(): Promise<void> {

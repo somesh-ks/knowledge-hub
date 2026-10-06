@@ -1,12 +1,14 @@
-import { lazy, Suspense, useEffect } from "react";
+import { useEffect, useSyncExternalStore } from "react";
 import "../styles/player.css";
 import { startPlayerRuntime } from "./core/playerRuntime";
-import { loadExpandedPlayer } from "./expandedPlayerLoader";
+import {
+  getExpandedPlayer,
+  loadExpandedPlayer,
+  subscribeExpandedPlayer,
+} from "./expandedPlayerLoader";
 import { usePlayerState } from "./hooks/usePlayer";
 import { useSheetPresence } from "./hooks/useSheetPresence";
 import PlayerBar from "./PlayerBar";
-
-const ExpandedPlayer = lazy(loadExpandedPlayer);
 
 function whenIdle(task: () => void): () => void {
   if (typeof requestIdleCallback === "function") {
@@ -27,9 +29,21 @@ export default function PlayerRoot() {
   const presence = useSheetPresence();
   const state = usePlayerState();
   const coverSrc = state.track?.digest.cover.src1024;
+  const ExpandedPlayer = useSyncExternalStore(
+    subscribeExpandedPlayer,
+    getExpandedPlayer,
+    () => null,
+  );
 
   useEffect(() => startPlayerRuntime(), []);
-  useEffect(() => whenIdle(() => void loadExpandedPlayer()), []);
+  useEffect(() => {
+    // Ready before it is wanted. If it is wanted sooner, fetch it now.
+    if (presence) {
+      void loadExpandedPlayer();
+      return;
+    }
+    return whenIdle(() => void loadExpandedPlayer());
+  }, [presence]);
   useEffect(() => {
     if (!coverSrc) return;
     // Decode the large cover ahead of time, so the morph never starts on an empty box.
@@ -43,11 +57,7 @@ export default function PlayerRoot() {
   return (
     <>
       <PlayerBar />
-      {presence ? (
-        <Suspense fallback={null}>
-          <ExpandedPlayer />
-        </Suspense>
-      ) : null}
+      {presence && ExpandedPlayer ? <ExpandedPlayer /> : null}
     </>
   );
 }

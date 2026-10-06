@@ -2,7 +2,7 @@ import { type RefObject, useEffect } from "react";
 import { flushSync } from "react-dom";
 import { createVelocityTracker } from "../core/gestureMath";
 import { playerSheet } from "../core/playerSheet";
-import { loadExpandedPlayer } from "../expandedPlayerLoader";
+import { getExpandedPlayer, loadExpandedPlayer } from "../expandedPlayerLoader";
 
 const DRAG_START_PX = 8;
 
@@ -16,10 +16,12 @@ function isWide(): boolean {
  * button's click. The button owns vertical pans (touch-action: none), so the page does not scroll
  * out from under the gesture.
  */
-export function useOpenSwipe(ref: RefObject<HTMLElement | null>): void {
+export function useOpenSwipe(ref: RefObject<HTMLElement | null>, mounted: boolean): void {
   useEffect(() => {
+    // The bar renders nothing until a digest is loaded, so the element appears after the first
+    // effect; `mounted` re-runs this when it does.
     const element = ref.current;
-    if (!element) return;
+    if (!mounted || !element) return;
     const tracker = createVelocityTracker();
     let pointerId = -1;
     let startY = 0;
@@ -43,19 +45,25 @@ export function useOpenSwipe(ref: RefObject<HTMLElement | null>): void {
     };
 
     const onMove = (event: PointerEvent): void => {
-      if (event.pointerId !== pointerId || fallbackToTap) return;
+      if (event.pointerId !== pointerId) return;
       const dy = event.clientY - startY;
       if (!opening) {
         if (dy > -DRAG_START_PX || isWide()) return;
+        suppressClick = true;
+        if (!getExpandedPlayer()) {
+          // The sheet's code has not arrived. Keep trying on the next move, and if the finger
+          // lifts first, the swipe still opens the sheet, as a tap would.
+          fallbackToTap = true;
+          return;
+        }
         // Mount the sheet synchronously, so its elements exist for this very move.
         flushSync(() => playerSheet.setPresence(true));
         if (!playerSheet.beginOpenDrag()) {
-          // The sheet's code has not arrived. Treat the swipe as a tap on release.
           playerSheet.setPresence(false);
           fallbackToTap = true;
-          suppressClick = true;
           return;
         }
+        fallbackToTap = false;
         opening = true;
         suppressClick = true;
       }
@@ -96,5 +104,5 @@ export function useOpenSwipe(ref: RefObject<HTMLElement | null>): void {
       element.removeEventListener("pointercancel", onEnd);
       element.removeEventListener("click", onClick, true);
     };
-  }, [ref]);
+  }, [ref, mounted]);
 }
