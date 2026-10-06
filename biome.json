@@ -9,7 +9,7 @@
       "!**/.astro",
       "!**/.cache",
       "!**/.claude",
-      "!docs/Prototype",
+      "!docs/prototype",
       "!**/fixtures",
       "!package-lock.json"
     ]
