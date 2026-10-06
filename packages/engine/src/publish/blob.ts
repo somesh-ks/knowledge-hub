@@ -45,11 +45,15 @@ export interface BlobClient {
   list(options: { prefix: string; cursor?: string }): Promise<BlobListPage>;
 }
 
+/** A long-lived read-write token, or the short-lived OIDC token and store id Vercel issues. */
+export type BlobAuth = string | { oidcToken: string; storeId: string };
+
 /**
- * Wrap @vercel/blob with the token passed explicitly, so it never depends on ambient process.env.
+ * Wrap @vercel/blob with credentials passed explicitly, so it never depends on ambient process.env.
  * Public access with a fixed pathname and overwrite allowed: the URL stays stable across reruns.
  */
-export function createVercelBlobClient(token: string): BlobClient {
+export function createVercelBlobClient(auth: BlobAuth): BlobClient {
+  const credentials = typeof auth === "string" ? { token: auth } : auth;
   return {
     async put(pathname, body, options) {
       const result = await put(
@@ -61,19 +65,19 @@ export function createVercelBlobClient(token: string): BlobClient {
           allowOverwrite: true,
           contentType: options.contentType,
           cacheControlMaxAge: options.cacheControlMaxAge,
-          token,
+          ...credentials,
         },
       );
       return { url: result.url, pathname: result.pathname };
     },
     async del(pathnames) {
-      await del([...pathnames], { token });
+      await del([...pathnames], { ...credentials });
     },
     async list(options) {
       const page = await list({
         prefix: options.prefix,
         ...(options.cursor ? { cursor: options.cursor } : {}),
-        token,
+        ...credentials,
       });
       return {
         blobs: page.blobs.map((blob) => ({
