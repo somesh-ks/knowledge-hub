@@ -1,0 +1,625 @@
+{
+  "status": "ok",
+  "message-type": "work-list",
+  "message-version": "1.0.0",
+  "message": {
+    "facets": {},
+    "total-results": 154,
+    "items": [
+      {
+        "abstract": "<jats:p>Third-party developers (TPDs) often turn to online communities for support when they can’t get immediate responses from the platform. Twitch, as a leading live streaming platform, attracted many TPDs and formed an online support community on Discord. This study explores TPDs’ support practices via mixed method (a topic modeling to identify topics related to support seeking and provision first and a follow-up in-depth qualitative analysis with these topics) and found that: (1) TPDs’ support-seeking practices around social, technical, and policy matters are highly dependent on Twitch, and this dependence acts as a form of platform labor; (2) TPDs need to switch between Discord and Twitch regarding seeking and provision, exacerbating TPDs’ platform labor; (3) TPDs’ flexible role practices reflect the community’s flourishing on Discord but require roles to bridge the two platforms and transfer informal support seeking to possible formal support from Twitch. We propose implications for effectively managing support seeking and provision between formal and informal spaces to improve the development of TPDs. We also contribute to community support practice and to platform ecology work in CSCW.</jats:p>",
+        "DOI": "10.1145/3817021",
+        "type": "journal-article",
+        "created": {
+          "date-parts": [
+            [
+              2026,
+              9,
+              23
+            ]
+          ],
+          "date-time": "2026-09-23T19:48:56Z",
+          "timestamp": 1790192936000
+        },
+        "title": [
+          "Twitch Third-Party Developers’ Support Seeking and Provision Practices on Discord"
+        ],
+        "author": [
+          {
+            "ORCID": "https://orcid.org/0000-0002-0582-555X",
+            "authenticated-orcid": false,
+            "given": "Jie",
+            "family": "Cai",
+            "sequence": "first",
+            "affiliation": [
+              {
+                "name": "Tsinghua University",
+                "place": [
+                  "Beijing, China"
+                ]
+              }
+            ],
+            "role": [
+              {
+                "vocabulary": "crossref",
+                "role": "author"
+              }
+            ]
+          },
+          {
+            "ORCID": "https://orcid.org/0000-0002-8169-1653",
+            "authenticated-orcid": false,
+            "given": "He",
+            "family": "Zhang",
+            "sequence": "additional",
+            "affiliation": [
+              {
+                "name": "Pennsylvania State University",
+                "place": [
+                  "State College, USA"
+                ]
+              }
+            ],
+            "role": [
+              {
+                "vocabulary": "crossref",
+                "role": "author"
+              }
+            ]
+          },
+          {
+            "ORCID": "https://orcid.org/0009-0002-8591-1374",
+            "authenticated-orcid": false,
+            "given": "Yueyan",
+            "family": "Liu",
+            "sequence": "additional",
+            "affiliation": [
+              {
+                "name": "Tsinghua University",
+                "place": [
+                  "Bejing, China"
+                ]
+              }
+            ],
+            "role": [
+              {
+                "vocabulary": "crossref",
+                "role": "author"
+              }
+            ]
+          },
+          {
+            "ORCID": "https://orcid.org/0000-0001-5189-337X",
+            "authenticated-orcid": false,
+            "given": "John M.",
+            "family": "Carroll",
+            "sequence": "additional",
+            "affiliation": [
+              {
+                "name": "Pennsylvania State University",
+                "place": [
+                  "University Park, USA"
+                ]
+              }
+            ],
+            "role": [
+              {
+                "vocabulary": "crossref",
+                "role": "author"
+              }
+            ]
+          },
+          {
+            "ORCID": "https://orcid.org/0000-0003-2591-7993",
+            "authenticated-orcid": false,
+            "given": "Chun",
+            "family": "Yu",
+            "sequence": "additional",
+            "affiliation": [
+              {
+                "name": "Tsinghua University",
+                "place": [
+                  "Beijing, China"
+                ]
+              }
+            ],
+            "role": [
+              {
+                "vocabulary": "crossref",
+                "role": "author"
+              }
+            ]
+          }
+        ],
+        "container-title": [
+          "Proceedings of the ACM on Human-Computer Interaction"
+        ],
+        "issued": {
+          "date-parts": [
+            [
+              2026,
+              9,
+              23
+            ]
+          ]
+        },
+        "URL": "https://doi.org/10.1145/3817021",
+        "published": {
+          "date-parts": [
+            [
+              2026,
+              9,
+              23
+            ]
+          ]
+        }
+      },
+      {
+        "DOI": "10.1145/3817030",
+        "type": "journal-article",
+        "created": {
+          "date-parts": [
+            [
+              2026,
+              9,
+              23
+            ]
+          ],
+          "date-time": "2026-09-23T19:48:56Z",
+          "timestamp": 1790192936000
+        },
+        "title": [
+          "Understanding the Needs of Siblings of Autistic Individuals and the Role of Online Community Support"
+        ],
+        "author": [
+          {
+            "ORCID": "https://orcid.org/0009-0006-4681-217X",
+            "authenticated-orcid": false,
+            "given": "Hannah",
+            "family": "Ward",
+            "sequence": "first",
+            "affiliation": [
+              {
+                "name": "Georgia Institute of Technology",
+                "place": [
+                  "Atlanta, USA"
+                ]
+              }
+            ],
+            "role": [
+              {
+                "vocabulary": "crossref",
+                "role": "author"
+              }
+            ]
+          },
+          {
+            "ORCID": "https://orcid.org/0009-0002-7552-8750",
+            "authenticated-orcid": false,
+            "given": "Rohan",
+            "family": "Kashi Viswanathan",
+            "sequence": "additional",
+            "affiliation": [
+              {
+                "name": "Georgia Institute of Technology",
+                "place": [
+                  "Atlanta, USA"
+                ]
+              }
+            ],
+            "role": [
+              {
+                "vocabulary": "crossref",
+                "role": "author"
+              }
+            ]
+          },
+          {
+            "ORCID": "https://orcid.org/0000-0003-3731-7047",
+            "authenticated-orcid": false,
+            "given": "Amy",
+            "family": "Bruckman",
+            "sequence": "additional",
+            "affiliation": [
+              {
+                "name": "Georgia Institute of Technology",
+                "place": [
+                  "Atlanta, USA"
+                ]
+              }
+            ],
+            "role": [
+              {
+                "vocabulary": "crossref",
+                "role": "author"
+              }
+            ]
+          },
+          {
+            "ORCID": "https://orcid.org/0000-0003-3253-3963",
+            "authenticated-orcid": false,
+            "given": "Jennifer G.",
+            "family": "Kim",
+            "sequence": "additional",
+            "affiliation": [
+              {
+                "name": "Georgia Institute of Technology",
+                "place": [
+                  "Atlanta, USA"
+                ]
+              }
+            ],
+            "role": [
+              {
+                "vocabulary": "crossref",
+                "role": "author"
+              }
+            ]
+          }
+        ],
+        "container-title": [
+          "Proceedings of the ACM on Human-Computer Interaction"
+        ],
+        "issued": {
+          "date-parts": [
+            [
+              2026,
+              9,
+              23
+            ]
+          ]
+        },
+        "URL": "https://doi.org/10.1145/3817030",
+        "published": {
+          "date-parts": [
+            [
+              2026,
+              9,
+              23
+            ]
+          ]
+        }
+      },
+      {
+        "abstract": "<jats:p>Monitoring online platforms, one of the most challenging aspects of the fact-checking process, remains predominantly manual. Crafting search queries to surface potentially dubious online content is based on guesswork, demanding significant time and effort from fact-checkers. While monitoring tools exist for platforms like Facebook and X, a void exists for video platforms like YouTube. In this paper, we present YouCred, a system developed through a two-year partnership with Pesacheck, Africa’s largest indigenous fact-checking organization. YouCred supports misinformation discovery by generating search queries for topics of interest to fact-checkers and offers an interface for flagging and annotating videos containing potentially misinformative claims. It addresses the real-world needs of fact-checkers and harnesses their unique assets, including indigenous knowledge, resources, and expertise. Through a nine-month field deployment, we examined how fact-checkers integrated YouCred into their workflows. We find that YouCred provided meaningful query suggestions, enabled more targeted video discovery, and increased the efficiency of their fact-checking workflow. We reflect on YouCred as a long-term, real-world case of collaborative system development and deployment—highlighting design implications, showing how sustained use revealed evolving needs, and underscoring the importance of continuous adaptation and maintainability in socio-technical systems.</jats:p>",
+        "DOI": "10.1145/3817042",
+        "type": "journal-article",
+        "created": {
+          "date-parts": [
+            [
+              2026,
+              9,
+              23
+            ]
+          ],
+          "date-time": "2026-09-23T19:48:56Z",
+          "timestamp": 1790192936000
+        },
+        "title": [
+          "YouCred: An Online Tool Co-Designed with Fact-Checkers for Misinformation Discovery on YouTube"
+        ],
+        "author": [
+          {
+            "ORCID": "https://orcid.org/0000-0003-1779-4276",
+            "authenticated-orcid": false,
+            "given": "Prerna",
+            "family": "Juneja",
+            "sequence": "first",
+            "affiliation": [
+              {
+                "name": "Seattle University",
+                "place": [
+                  "Seattle, USA"
+                ]
+              }
+            ],
+            "role": [
+              {
+                "vocabulary": "crossref",
+                "role": "author"
+              }
+            ]
+          },
+          {
+            "ORCID": "https://orcid.org/0009-0005-0683-8896",
+            "authenticated-orcid": false,
+            "given": "Dongkai",
+            "family": "Xie",
+            "sequence": "additional",
+            "affiliation": [
+              {
+                "name": "University of Washington",
+                "place": [
+                  "Seattle, USA"
+                ]
+              }
+            ],
+            "role": [
+              {
+                "vocabulary": "crossref",
+                "role": "author"
+              }
+            ]
+          },
+          {
+            "ORCID": "https://orcid.org/0009-0003-7491-0015",
+            "authenticated-orcid": false,
+            "given": "Guangyin",
+            "family": "Ye",
+            "sequence": "additional",
+            "affiliation": [
+              {
+                "name": "University of Washington",
+                "place": [
+                  "Seattle, USA"
+                ]
+              }
+            ],
+            "role": [
+              {
+                "vocabulary": "crossref",
+                "role": "author"
+              }
+            ]
+          },
+          {
+            "ORCID": "https://orcid.org/0000-0002-9507-6192",
+            "authenticated-orcid": false,
+            "given": "Tanushree",
+            "family": "Mitra",
+            "sequence": "additional",
+            "affiliation": [
+              {
+                "name": "University of Washington",
+                "place": [
+                  "Seattle, USA"
+                ]
+              }
+            ],
+            "role": [
+              {
+                "vocabulary": "crossref",
+                "role": "author"
+              }
+            ]
+          }
+        ],
+        "container-title": [
+          "Proceedings of the ACM on Human-Computer Interaction"
+        ],
+        "issued": {
+          "date-parts": [
+            [
+              2026,
+              9,
+              23
+            ]
+          ]
+        },
+        "URL": "https://doi.org/10.1145/3817042",
+        "published": {
+          "date-parts": [
+            [
+              2026,
+              9,
+              23
+            ]
+          ]
+        }
+      },
+      {
+        "abstract": "<jats:p>\n                    Concussion evaluation technologies have increasingly emphasized objectivity, leveraging AI and machine learning to formalize and standardize diagnostic processes. However, this orientation toward objectivity has not been evaluated via stakeholder engagement, to see if this is what they\n                    <jats:italic toggle=\"yes\">want</jats:italic>\n                    . In this paper, we present findings from interviews with 11 concussion evaluators, examining how they make decisions, use healthcare technology, and envision the role of AI in their workflows. Our study surfaces the tensions between evaluators’ values, such as flexibility and coordination, and the assumptions built into existing decision support systems. We show how evaluators seek tools that preserve clinical agency, support collaboration across fragmented care settings, and complement rather than override their interpretive expertise. Drawing on these insights, we propose design considerations for developing AI-based systems that align with concussion evaluation’s subjective and distributed nature. This work contributes to CSCW by challenging objectivity as a default design goal and advocating for stakeholder-centered AI in healthcare.\n                  </jats:p>",
+        "DOI": "10.1145/3816992",
+        "type": "journal-article",
+        "created": {
+          "date-parts": [
+            [
+              2026,
+              9,
+              23
+            ]
+          ],
+          "date-time": "2026-09-23T19:48:56Z",
+          "timestamp": 1790192936000
+        },
+        "title": [
+          "Rethinking Objectivity in Clinical AI: A Qualitative Study of Concussion Evaluators"
+        ],
+        "author": [
+          {
+            "ORCID": "https://orcid.org/0000-0002-1584-1094",
+            "authenticated-orcid": false,
+            "given": "Ali",
+            "family": "Zaidi",
+            "sequence": "first",
+            "affiliation": [
+              {
+                "name": "University of Illinois, Urbana-Champaign",
+                "place": [
+                  "Urbana, USA"
+                ]
+              }
+            ],
+            "role": [
+              {
+                "vocabulary": "crossref",
+                "role": "author"
+              }
+            ]
+          },
+          {
+            "ORCID": "https://orcid.org/0000-0002-8671-7250",
+            "authenticated-orcid": false,
+            "given": "Jessica Jia-Wen",
+            "family": "Saw",
+            "sequence": "additional",
+            "affiliation": [
+              {
+                "name": "National Center for Supercomputing Applications and Carle Illinois College of Medicine",
+                "place": [
+                  "Urbana, USA"
+                ]
+              },
+              {
+                "name": "University of Illinois Urbana-Champaign",
+                "place": [
+                  "Urbana, USA"
+                ]
+              }
+            ],
+            "role": [
+              {
+                "vocabulary": "crossref",
+                "role": "author"
+              }
+            ]
+          },
+          {
+            "ORCID": "https://orcid.org/0009-0001-7650-2467",
+            "authenticated-orcid": false,
+            "given": "Leigh",
+            "family": "Fu",
+            "sequence": "additional",
+            "affiliation": [
+              {
+                "name": "National Center for Supercomputing Applications",
+                "place": [
+                  "Champaign, USA"
+                ]
+              },
+              {
+                "name": "University of Illinois Urbana-Champaign",
+                "place": [
+                  "Champaign, USA"
+                ]
+              }
+            ],
+            "role": [
+              {
+                "vocabulary": "crossref",
+                "role": "author"
+              }
+            ]
+          },
+          {
+            "ORCID": "https://orcid.org/0009-0009-6114-241X",
+            "authenticated-orcid": false,
+            "given": "Katherine",
+            "family": "Arneson",
+            "sequence": "additional",
+            "affiliation": [
+              {
+                "name": "National Center for Supercomputing Applications",
+                "place": [
+                  "Urbana, USA"
+                ]
+              },
+              {
+                "name": "University of Illinois Urbana-Champaign",
+                "place": [
+                  "Urbana, USA"
+                ]
+              }
+            ],
+            "role": [
+              {
+                "vocabulary": "crossref",
+                "role": "author"
+              }
+            ]
+          },
+          {
+            "ORCID": "https://orcid.org/0000-0001-8081-7114",
+            "authenticated-orcid": false,
+            "given": "Inki",
+            "family": "Kim",
+            "sequence": "additional",
+            "affiliation": [
+              {
+                "name": "University of Illinois at Urbana-Champaign",
+                "place": [
+                  "Urbana, USA"
+                ]
+              }
+            ],
+            "role": [
+              {
+                "vocabulary": "crossref",
+                "role": "author"
+              }
+            ]
+          },
+          {
+            "ORCID": "https://orcid.org/0000-0001-5866-5943",
+            "authenticated-orcid": false,
+            "given": "Adam",
+            "family": "Cross",
+            "sequence": "additional",
+            "affiliation": [
+              {
+                "name": "University of Illinois College of Medicine at Peoria",
+                "place": [
+                  "Peoria, USA"
+                ]
+              }
+            ],
+            "role": [
+              {
+                "vocabulary": "crossref",
+                "role": "author"
+              }
+            ]
+          },
+          {
+            "ORCID": "https://orcid.org/0000-0001-8788-3405",
+            "authenticated-orcid": false,
+            "given": "Karrie",
+            "family": "Karahalios",
+            "sequence": "additional",
+            "affiliation": [
+              {
+                "name": "Massachusetts Institute of Technology",
+                "place": [
+                  "Cambridge, USA"
+                ]
+              }
+            ],
+            "role": [
+              {
+                "vocabulary": "crossref",
+                "role": "author"
+              }
+            ]
+          }
+        ],
+        "container-title": [
+          "Proceedings of the ACM on Human-Computer Interaction"
+        ],
+        "issued": {
+          "date-parts": [
+            [
+              2026,
+              9,
+              23
+            ]
+          ]
+        },
+        "URL": "https://doi.org/10.1145/3816992",
+        "published": {
+          "date-parts": [
+            [
+              2026,
+              9,
+              23
+            ]
+          ]
+        }
+      }
+    ],
+    "items-per-page": 100,
+    "query": {
+      "start-index": 0,
+      "search-terms": null
+    }
+  }
+}

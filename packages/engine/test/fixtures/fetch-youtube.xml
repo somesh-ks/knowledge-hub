@@ -1,0 +1,105 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<feed xmlns:yt="http://www.youtube.com/xml/schemas/2015" xmlns:media="http://search.yahoo.com/mrss/" xmlns="http://www.w3.org/2005/Atom">
+ <link rel="self" href="http://www.youtube.com/feeds/videos.xml?channel_id=UCsBjURrPoezykLs9EqgamOA"/>
+ <id>yt:channel:sBjURrPoezykLs9EqgamOA</id>
+ <yt:channelId>sBjURrPoezykLs9EqgamOA</yt:channelId>
+ <title>Fireship</title>
+ <link rel="alternate" href="https://www.youtube.com/channel/UCsBjURrPoezykLs9EqgamOA"/>
+ <author>
+  <name>Fireship</name>
+  <uri>https://www.youtube.com/channel/UCsBjURrPoezykLs9EqgamOA</uri>
+ </author>
+ <published>2017-04-07T18:17:23+00:00</published>
+ <entry>
+  <id>yt:video:_5p1_TNSWqQ</id>
+  <yt:videoId>_5p1_TNSWqQ</yt:videoId>
+  <yt:channelId>UCsBjURrPoezykLs9EqgamOA</yt:channelId>
+  <title>PewDiePie is setting AI free... and OpenAI is furious</title>
+  <link rel="alternate" href="https://www.youtube.com/watch?v=_5p1_TNSWqQ"/>
+  <author>
+   <name>Fireship</name>
+   <uri>https://www.youtube.com/channel/UCsBjURrPoezykLs9EqgamOA</uri>
+  </author>
+  <published>2026-10-05T20:34:44+00:00</published>
+  <updated>2026-10-05T21:42:13+00:00</updated>
+  <media:group>
+   <media:title>PewDiePie is setting AI free... and OpenAI is furious</media:title>
+   <media:content url="https://www.youtube.com/v/_5p1_TNSWqQ?version=3" type="application/x-shockwave-flash" width="640" height="390"/>
+   <media:thumbnail url="https://i4.ytimg.com/vi/_5p1_TNSWqQ/hqdefault.jpg" width="480" height="360"/>
+   <media:description>Namespace is actually the fastest way to run your GitHub Actions (and more). Try it for free - https://namespace.so/github-actions
+
+PewDiePie is building Ajax, an uncensored AI model he trained at home after OpenAI banned him twice for distillation. Let's dive in.
+
+Want more Fireship?
+
+🗞️ Newsletter: https://bytes.dev
+🧠 Courses: https://fireship.dev</media:description>
+   <media:community>
+    <media:starRating count="6321" average="5.00" min="1" max="5"/>
+    <media:statistics views="93644"/>
+   </media:community>
+  </media:group>
+ </entry>
+<entry>
+  <id>yt:video:No-JPdFvYWU</id>
+  <yt:videoId>No-JPdFvYWU</yt:videoId>
+  <yt:channelId>UCsBjURrPoezykLs9EqgamOA</yt:channelId>
+  <title>The one OpenAI announcement that can actually make you money...</title>
+  <link rel="alternate" href="https://www.youtube.com/watch?v=No-JPdFvYWU"/>
+  <author>
+   <name>Fireship</name>
+   <uri>https://www.youtube.com/channel/UCsBjURrPoezykLs9EqgamOA</uri>
+  </author>
+  <published>2026-10-01T19:34:14+00:00</published>
+  <updated>2026-10-02T13:33:55+00:00</updated>
+  <media:group>
+   <media:title>The one OpenAI announcement that can actually make you money...</media:title>
+   <media:content url="https://www.youtube.com/v/No-JPdFvYWU?version=3" type="application/x-shockwave-flash" width="640" height="390"/>
+   <media:thumbnail url="https://i3.ytimg.com/vi/No-JPdFvYWU/hqdefault.jpg" width="480" height="360"/>
+   <media:description>Try the faster, open-weight version of Jev at https://fastino.ai/. Use code: FIRESHIPFIVE to get free credits.
+
+In this video we'll cover everything you missed at OpenAI Dev Day 2026. Let's dive in.
+
+#coding #programming
+
+Want more Fireship?
+
+🗞️ Newsletter: https://bytes.dev
+🧠 Courses: https://fireship.dev</media:description>
+   <media:community>
+    <media:starRating count="19702" average="5.00" min="1" max="5"/>
+    <media:statistics views="1576005"/>
+   </media:community>
+  </media:group>
+ </entry>
+<entry>
+  <id>yt:video:I_KVMFrUtPk</id>
+  <yt:videoId>I_KVMFrUtPk</yt:videoId>
+  <yt:channelId>UCsBjURrPoezykLs9EqgamOA</yt:channelId>
+  <title>Did a 50 year old military secret just solve agent prompt injection?</title>
+  <link rel="alternate" href="https://www.youtube.com/watch?v=I_KVMFrUtPk"/>
+  <author>
+   <name>Fireship</name>
+   <uri>https://www.youtube.com/channel/UCsBjURrPoezykLs9EqgamOA</uri>
+  </author>
+  <published>2026-09-30T17:16:43+00:00</published>
+  <updated>2026-10-04T19:31:05+00:00</updated>
+  <media:group>
+   <media:title>Did a 50 year old military secret just solve agent prompt injection?</media:title>
+   <media:content url="https://www.youtube.com/v/I_KVMFrUtPk?version=3" type="application/x-shockwave-flash" width="640" height="390"/>
+   <media:thumbnail url="https://i2.ytimg.com/vi/I_KVMFrUtPk/hqdefault.jpg" width="480" height="360"/>
+   <media:description>Check out the OpenAPPA repo: https://github.com/archestra-ai/OpenAPPA
+
+A new open source project claims to have fixed the rogue agent problem. Let's dive in. 
+
+Want more Fireship?
+
+🗞️ Newsletter: https://bytes.dev
+🧠 Courses: https://fireship.dev</media:description>
+   <media:community>
+    <media:starRating count="15135" average="5.00" min="1" max="5"/>
+    <media:statistics views="840232"/>
+   </media:community>
+  </media:group>
+ </entry>
+</feed>

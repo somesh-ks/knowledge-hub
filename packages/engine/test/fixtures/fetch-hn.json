@@ -1,0 +1,167 @@
+{
+  "exhaustive": {
+    "nbHits": true,
+    "typo": true
+  },
+  "exhaustiveNbHits": true,
+  "exhaustiveTypo": true,
+  "hits": [
+    {
+      "_tags": [
+        "story",
+        "author_davidwshao",
+        "story_49956771",
+        "show_hn"
+      ],
+      "author": "davidwshao",
+      "children": [
+        49960450,
+        49966648,
+        49959256,
+        49959175,
+        49957992,
+        49961803,
+        49957335,
+        49957019
+      ],
+      "created_at": "2026-10-04T18:59:25Z",
+      "created_at_i": 1791140365,
+      "num_comments": 16,
+      "objectID": "49956771",
+      "points": 45,
+      "story_id": 49956771,
+      "story_text": "Hi HN, I built this because I watched my daughter struggle at learning Python. I made something that runs only in the browser with visuals rather than relying on CLI&#x2F;terminal output. No need to worry about python installation, package versions, venv etc.<p>The lab runs with Pyodide in a web worker, and the program output is a picture by the side of the code block. A user would experiment with the code, and see the immediate changes in the visual output.<p>The course has 13 modules, with the first 6 foundation modules free, module 7-13 with free readings but guide labs for a one-time price of $49.<p>Please give it a try at <a href=\"https:&#x2F;&#x2F;scimigo.com&#x2F;en&#x2F;learn&#x2F;build-with-python\" rel=\"nofollow\">https:&#x2F;&#x2F;scimigo.com&#x2F;en&#x2F;learn&#x2F;build-with-python</a>\nSend me feedback on the UX and on the exercise design, especially if you teach kids to program.<p>I am also working on a C++ version for beginners (also with browser, no gcc or command lines). stay tuned.",
+      "title": "Show HN: Build with Python – a beginner course where your code draws",
+      "updated_at": "2026-10-05T21:31:14Z",
+      "url": "https://scimigo.com/en/learn/build-with-python/01-draw-with-python"
+    },
+    {
+      "_tags": [
+        "story",
+        "author_delphidolphin",
+        "story_49952148",
+        "show_hn",
+        "front_page"
+      ],
+      "author": "delphidolphin",
+      "children": [
+        49969964,
+        49970678,
+        49969159,
+        49969656,
+        49968321,
+        49969992,
+        49971073,
+        49969655,
+        49952534,
+        49952149
+      ],
+      "created_at": "2026-10-04T09:31:01Z",
+      "created_at_i": 1791106261,
+      "num_comments": 9,
+      "objectID": "49952148",
+      "points": 60,
+      "story_id": 49952148,
+      "story_text": "Here in the north of England clear nights are at a premium, and it&#x27;s never guaranteed that you&#x27;ll be able to see anything but cloud. That&#x27;s why I developed Nightwatch, so that I could be notified when one of those precious few nights where I could see into the heavens was available. Finding out whether tonight was worth setting up meant reading forecast charts every evening, usually to learn that it was not. Nightwatch does that reading for me.<p>It sits in the Mac&#x27;s menu bar and refreshes the forecast every 30 minutes. An hour before sunset it sends one notification, and only if there is an unbroken run of clear sky in astronomical darkness long enough to image in. Otherwise it says nothing: no news means &quot;clouds&quot;.<p>I hope this is useful for other hobbyist stargazers too!<p>When I was a child I wanted desperately to be an astronaut or a dinosaur. I&#x27;m now old enough to be the latter and was born in a country where the former was never an option. I&#x27;ve had a fascination with the stars since a a friend of my father gifted me a telescope, and have faded memories of sharing time with my father staring at the stars. My father passed away a few years back and the memory of those nights came back, along with the want to share the same experience with my kids and grandchild.<p>The app uses two forecasts: Apple&#x27;s WeatherKit is the main source and Open-Meteo is a second opinion. When they disagree, the alert says so instead of averaging them.<p>Thin high cloud counts for half. Stacking many short frames works through a veil of cirrus, so treating it as full cloud threw away usable nights.<p>It works on your own horizon: hills come from terrain data, and you set the houses and trees in each direction, so they are accounted for when it says what is up.<p>It works out, a year ahead, when the Moon will pass in front of a planet, a bright star or the Pleiades as seen from your site.<p>You don&#x27;t need an account. What leaves the Mac is the coordinates of the place being forecast, sent to the forecast and sky-survey services listed in PRIVACY.md.<p>Limits: Mac only, and the aurora alerts are UK only. The worldwide light-pollution data is new this week. I have checked it against Britain&#x27;s finer grid and a handful of cities, so I would especially like to hear from people elsewhere whether the darkness it suggests for your site looks right.",
+      "title": "Show HN: Nightwatch – a Mac menu-bar app that tells you when tonight is clear",
+      "updated_at": "2026-10-05T22:09:00Z",
+      "url": "https://github.com/rsutcliffe/nightwatch"
+    },
+    {
+      "_tags": [
+        "story",
+        "author_allenleee",
+        "story_49952111",
+        "show_hn"
+      ],
+      "author": "allenleee",
+      "children": [
+        49953995,
+        49953895,
+        49953375,
+        49953541,
+        49954002,
+        49953634,
+        49964094,
+        49953208,
+        49954742,
+        49953551,
+        49956292,
+        49953452,
+        49953806,
+        49954744,
+        49954515,
+        49953989,
+        49955241,
+        49954994,
+        49963571
+      ],
+      "created_at": "2026-10-04T09:24:52Z",
+      "created_at_i": 1791105892,
+      "num_comments": 73,
+      "objectID": "49952111",
+      "points": 162,
+      "story_id": 49952111,
+      "title": "Show HN: AI search for every photo and every frame of video on macOS",
+      "updated_at": "2026-10-05T21:47:48Z",
+      "url": "https://github.com/allenv0/SCM"
+    },
+    {
+      "_tags": [
+        "story",
+        "author_arunbhatia",
+        "story_49942434",
+        "show_hn"
+      ],
+      "author": "arunbhatia",
+      "children": [
+        49945631,
+        49946198,
+        49944576,
+        49943943,
+        49946278,
+        49945016,
+        49943289,
+        49963175,
+        49945350,
+        49943706,
+        49943554,
+        49943785,
+        49945677,
+        49945039,
+        49946289,
+        49960498,
+        49945371,
+        49948496,
+        49944469,
+        49944382,
+        49946140,
+        49944038
+      ],
+      "created_at": "2026-10-03T08:40:17Z",
+      "created_at_i": 1791016817,
+      "num_comments": 65,
+      "objectID": "49942434",
+      "points": 78,
+      "story_id": 49942434,
+      "story_text": "Run Claude Code, Codex, AGY, and Grok Build side by side. See who is working, who needs you, and what every account has left.",
+      "title": "Show HN: Offrun – manage every coding agent from one workspace",
+      "updated_at": "2026-10-05T21:23:29Z",
+      "url": "https://offrun.dev/"
+    }
+  ],
+  "hitsPerPage": 5,
+  "nbHits": 5,
+  "nbPages": 1,
+  "page": 0,
+  "params": "tags=show_hn&numericFilters=points%3E30%2Ccreated_at_i%3E1790980190&hitsPerPage=5&advancedSyntax=true&analyticsTags=backend",
+  "processingTimeMS": 1,
+  "processingTimingsMS": {
+    "_request": {
+      "roundTrip": 16
+    },
+    "total": 1
+  },
+  "query": "",
+  "serverTimeMS": 2
+}
