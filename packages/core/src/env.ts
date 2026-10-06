@@ -14,6 +14,9 @@ export const Env = z.object({
   SPEECHIFY_API_KEY: optionalString,
   SPEECHIFY_VOICE_ID: z.string().default("geffen_32"),
   BLOB_READ_WRITE_TOKEN: optionalString,
+  /** Short-lived Blob credentials from `vercel env pull`; used when no long-lived token is set. */
+  VERCEL_OIDC_TOKEN: optionalString,
+  BLOB_STORE_ID: optionalString,
   COMPOSIO_API_KEY: optionalString,
   MAX_TOKENS_PER_RUN: z.coerce.number().int().positive().default(400_000),
   /** Monthly Speechify character allowance used by the 90 percent budget guard. */

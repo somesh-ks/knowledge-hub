@@ -32,7 +32,17 @@ export const defaultAudioDeps: AudioCommandDeps = {
       apiKey: requireKey(ctx.env, "SPEECHIFY_API_KEY"),
       defaultVoiceId: ctx.env.SPEECHIFY_VOICE_ID,
     }),
-  createBlob: (ctx) => createVercelBlobClient(requireKey(ctx.env, "BLOB_READ_WRITE_TOKEN")),
+  createBlob: (ctx) => {
+    // A long-lived token wins; otherwise the OIDC pair pulled with `vercel env pull`.
+    if (ctx.env.BLOB_READ_WRITE_TOKEN) return createVercelBlobClient(ctx.env.BLOB_READ_WRITE_TOKEN);
+    const { VERCEL_OIDC_TOKEN: oidcToken, BLOB_STORE_ID: storeId } = ctx.env;
+    if (!oidcToken || !storeId) {
+      throw new Error(
+        "BLOB_READ_WRITE_TOKEN is not set (nor VERCEL_OIDC_TOKEN with BLOB_STORE_ID, from `vercel env pull`).",
+      );
+    }
+    return createVercelBlobClient({ oidcToken, storeId });
+  },
 };
 
 const USAGE = "usage: dispatch audio --digest <id> [--dry-run] [--force]";

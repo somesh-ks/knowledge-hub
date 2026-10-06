@@ -38,11 +38,21 @@ jobs:
 
       # Audio failures leave audio null and never block the text digest.
       - name: Audio
+        shell: bash
         env:
+          VERCEL_TOKEN: ${{ secrets.VERCEL_TOKEN }}
           SPEECHIFY_API_KEY: ${{ secrets.SPEECHIFY_API_KEY }}
           SPEECHIFY_VOICE_ID: ${{ vars.SPEECHIFY_VOICE_ID }}
           SPEECHIFY_MONTHLY_CHARS: ${{ vars.SPEECHIFY_MONTHLY_CHARS }}
-          BLOB_READ_WRITE_TOKEN: ${{ secrets.BLOB_READ_WRITE_TOKEN }}
           DISPATCH_GIT_NAME: ${{ vars.DISPATCH_GIT_NAME }}
           DISPATCH_GIT_EMAIL: ${{ vars.DISPATCH_GIT_EMAIL }}
-        run: npm run --silent dispatch -- publish --prune 120
+        run: |
+          # Vercel Blob hides its long-lived token and issues short-lived OIDC credentials instead.
+          # Pull them with the Vercel token; the engine reads VERCEL_OIDC_TOKEN and BLOB_STORE_ID.
+          npx vercel link --yes --project knowledge-hub --scope somesh-ks-projects
+          npx vercel env pull "$RUNNER_TEMP/audio.env" --environment=production --yes
+          set -a
+          . "$RUNNER_TEMP/audio.env"
+          set +a
+          [ -n "${VERCEL_OIDC_TOKEN:-}" ] && echo "::add-mask::$VERCEL_OIDC_TOKEN"
+          npm run --silent dispatch -- publish --prune 120

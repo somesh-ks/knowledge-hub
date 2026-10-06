@@ -8,3 +8,5 @@ node_modules/
 .claude/worktrees/
 .DS_Store
 .claude/settings.local.json
+
+.env*
