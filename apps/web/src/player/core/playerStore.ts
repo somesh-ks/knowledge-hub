@@ -63,7 +63,7 @@ export interface PlayerStoreOptions {
   onPageHide?: (callback: () => void) => () => void;
 }
 
-const INITIAL_STATE: PlayerState = {
+export const INITIAL_PLAYER_STATE: PlayerState = {
   digestId: null,
   track: null,
   status: "idle",
@@ -114,7 +114,7 @@ export function createPlayerStore(options: PlayerStoreOptions): PlayerStore {
   } = options;
 
   const initialRate = isPlaybackRate(getPreferredRate()) ? getPreferredRate() : 1;
-  let state: PlayerState = { ...INITIAL_STATE, rate: initialRate };
+  let state: PlayerState = { ...INITIAL_PLAYER_STATE, rate: initialRate };
   let audio: AudioLike | null = null;
   let track: Track | null = null;
   let pageDigest: PlayerDigestData | null = null;
