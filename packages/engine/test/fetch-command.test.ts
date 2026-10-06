@@ -2,7 +2,7 @@ import { existsSync } from "node:fs";
 import { mkdir, mkdtemp, readFile, rm, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
-import { loadEnv, type SourcesFile } from "@dispatch/core";
+import { loadEnv, type SourceHealthFile, type SourcesFile } from "@dispatch/core";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { run } from "../src/commands/fetch.js";
 import { type CommandContext, createLogger } from "../src/context.js";
@@ -206,10 +206,12 @@ describe("dispatch fetch", () => {
     expect(await readFile(join(root, "config/sources.json"), "utf8")).toBe(before);
     expect(existsSync(join(root, "state"))).toBe(false);
     await run(["--since", "2026-10-01T00:00:00Z", "--update-health"], context());
-    const updated = JSON.parse(
-      await readFile(join(root, "config/sources.json"), "utf8"),
-    ) as SourcesFile;
-    expect(updated.sources.find((s) => s.id === "typography")?.last_ok).toBe(NOW.toISOString());
+    // Health goes to state/, and the hand-edited registry stays untouched.
+    expect(await readFile(join(root, "config/sources.json"), "utf8")).toBe(before);
+    const health = JSON.parse(
+      await readFile(join(root, "state/source-health.json"), "utf8"),
+    ) as SourceHealthFile;
+    expect(health.sources.typography?.last_ok).toBe(NOW.toISOString());
   });
 
   it("exits 0 when some sources fail and reports them", async () => {

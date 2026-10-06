@@ -4,12 +4,15 @@ import {
   EMPTY_JUDGMENTS,
   EMPTY_LAST_RUN,
   EMPTY_SEEN,
+  EMPTY_SOURCE_HEALTH,
   type JudgmentsFile,
   JudgmentsFile as JudgmentsSchema,
   type LastRunFile,
   LastRunFile as LastRunSchema,
   type SeenFile,
   SeenFile as SeenSchema,
+  type SourceHealthFile,
+  SourceHealthFile as SourceHealthSchema,
   STATE_FILES,
   type UsageFile,
   UsageFile as UsageSchema,
@@ -81,6 +84,13 @@ export const readLastRun = (root: string): Promise<LastRunFile> =>
   readState(root, STATE_FILES.lastRun, LastRunSchema, () => structuredClone(EMPTY_LAST_RUN));
 export const writeLastRun = (root: string, file: LastRunFile): Promise<void> =>
   writeState(root, STATE_FILES.lastRun, LastRunSchema, file);
+
+export const readSourceHealth = (root: string): Promise<SourceHealthFile> =>
+  readState(root, STATE_FILES.sourceHealth, SourceHealthSchema, () =>
+    structuredClone(EMPTY_SOURCE_HEALTH),
+  );
+export const writeSourceHealth = (root: string, file: SourceHealthFile): Promise<void> =>
+  writeState(root, STATE_FILES.sourceHealth, SourceHealthSchema, file);
 
 export function defaultUsage(now: Date): UsageFile {
   return { version: 1, speechify: { month: now.toISOString().slice(0, 7), characters: 0 } };

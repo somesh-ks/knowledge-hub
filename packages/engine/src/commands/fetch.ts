@@ -11,10 +11,10 @@ import { allocateDigestId } from "../gate/allocateDigestId.js";
 import { fetchWindow } from "../gate/fetchWindow.js";
 import { createHttpClient } from "../http.js";
 import { prefilter } from "../prefilter/prefilter.js";
-import { loadSources, saveSources } from "../sources/registry.js";
+import { loadSources } from "../sources/registry.js";
 import { listDigestIds } from "../state/digestIds.js";
-import { applySourceResults } from "../state/sourceHealth.js";
-import { readLastRun, readSeen } from "../state/store.js";
+import { applySourceResults, overlayHealth, toHealthFile } from "../state/sourceHealth.js";
+import { readLastRun, readSeen, readSourceHealth, writeSourceHealth } from "../state/store.js";
 
 const USAGE = `Usage: dispatch fetch [--since <iso>] [--weekly] [--out <path>] [--id <digest-id>] [--update-health]
 
@@ -68,13 +68,16 @@ export const run: CommandRun = async (argv: string[], ctx: CommandContext): Prom
   const secrets = secretsFromEnv(ctx.env);
 
   try {
-    const [sourcesFile, preferences, seen, lastRun, queries] = await Promise.all([
+    const [configuredSources, health, preferences, seen, lastRun, queries] = await Promise.all([
       loadSources(ctx.root),
+      readSourceHealth(ctx.root),
       loadPreferences(ctx.root),
       readSeen(ctx.root),
       readLastRun(ctx.root),
       loadQueries(ctx.root),
     ]);
+    // Health lives in state/, not config/, so a run never rewrites hand-edited configuration.
+    const sourcesFile = overlayHealth(configuredSources, health);
 
     let window = fetchWindow({
       lastFetchAt: lastRun.last_fetch_at ? new Date(lastRun.last_fetch_at) : undefined,
@@ -131,7 +134,10 @@ export const run: CommandRun = async (argv: string[], ctx: CommandContext): Prom
     await writePool(outPath, pool);
 
     if (values["update-health"]) {
-      await saveSources(ctx.root, applySourceResults(sourcesFile, results, now));
+      await writeSourceHealth(
+        ctx.root,
+        toHealthFile(applySourceResults(sourcesFile, results, now)),
+      );
     }
 
     const failed = results.filter((r) => !r.ok);

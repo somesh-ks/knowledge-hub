@@ -1,4 +1,4 @@
-import type { Source, SourcesFile } from "@dispatch/core";
+import type { Source, SourceHealthFile, SourcesFile } from "@dispatch/core";
 import type { SourceResult } from "../fetch/types.js";
 
 /** A source failing this many runs in a row is flagged (build plan risk table). */
@@ -23,6 +23,33 @@ export function applySourceResults(
     return { ...source, failures: source.failures + 1 };
   });
   return { ...file, sources };
+}
+
+/** Overlay stored health onto the registry. Sources with no record keep their configured values. */
+export function overlayHealth(file: SourcesFile, health: SourceHealthFile): SourcesFile {
+  const sources = file.sources.map((source): Source => {
+    const entry = health.sources[source.id];
+    if (!entry) return source;
+    return {
+      ...source,
+      failures: entry.failures,
+      ...(entry.last_ok ? { last_ok: entry.last_ok } : {}),
+    };
+  });
+  return { ...file, sources };
+}
+
+/** Extract the health map to store. Only sources that have a counter or a last success. */
+export function toHealthFile(file: SourcesFile): SourceHealthFile {
+  const sources: SourceHealthFile["sources"] = {};
+  for (const source of file.sources) {
+    if (source.failures === 0 && !source.last_ok) continue;
+    sources[source.id] = {
+      failures: source.failures,
+      ...(source.last_ok ? { last_ok: source.last_ok } : {}),
+    };
+  }
+  return { version: 1, sources };
 }
 
 export function failingSources(
