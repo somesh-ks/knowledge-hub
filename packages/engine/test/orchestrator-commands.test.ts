@@ -1,0 +1,719 @@
+import { mkdir, mkdtemp, readFile, rm, writeFile } from "node:fs/promises";
+import { tmpdir } from "node:os";
+import { dirname, join } from "node:path";
+import { afterAll, afterEach, beforeAll, beforeEach, describe, expect, it } from "vitest";
+import { makeEvalCommand } from "../src/commands/eval.js";
+import { extractIds, makeExtractCommand } from "../src/commands/extract.js";
+import { run as learn, prefsCommitMessage } from "../src/commands/learn.js";
+import { isTextModel, listModels, makeModelsCommand } from "../src/commands/models.js";
+import { makeRunCommand } from "../src/commands/run.js";
+import { run as status } from "../src/commands/status.js";
+import type { ExtractedText } from "../src/extract/extractText.js";
+import { writePool } from "../src/fetch/pool.js";
+import { captureStdout, makeContext } from "./curate-helpers.js";
+import { git } from "./git-testRepo.js";
+import {
+  buildTemplate,
+  digestFile,
+  head,
+  instantiate,
+  json,
+  lastRunFile,
+  makeWorld,
+  poolFile,
+  sourceItems,
+  sourcesFile,
+  type TestRepo,
+} from "./orchestrator-fixtures.js";
+
+let scratch: string;
+beforeEach(async () => {
+  scratch = await mkdtemp(join(tmpdir(), "dispatch-cmd-"));
+});
+afterEach(async () => {
+  await rm(scratch, { recursive: true, force: true, maxRetries: 3 });
+});
+
+async function put(rel: string, content: string): Promise<void> {
+  await mkdir(dirname(join(scratch, rel)), { recursive: true });
+  await writeFile(join(scratch, rel), content, "utf8");
+}
+
+async function captureStderr<T>(fn: () => Promise<T>): Promise<{ result: T; stderr: string }> {
+  const chunks: string[] = [];
+  const original = process.stderr.write.bind(process.stderr);
+  process.stderr.write = ((chunk: string | Uint8Array): boolean => {
+    chunks.push(typeof chunk === "string" ? chunk : Buffer.from(chunk).toString("utf8"));
+    return true;
+  }) as typeof process.stderr.write;
+  try {
+    return { result: await fn(), stderr: chunks.join("") };
+  } finally {
+    process.stderr.write = original;
+  }
+}
+
+// --- status ------------------------------------------------------------------------------------
+
+describe("dispatch status", () => {
+  async function seedRepoFiles(): Promise<void> {
+    await put("config/sources.json", json(sourcesFile()));
+    await put(
+      "state/last-run.json",
+      lastRunFile({
+        regular: {
+          at: "2026-10-05T05:30:00Z",
+          outcome: "published",
+          digest_id: "2026-10-05",
+          items: 7,
+        },
+        weekly: {
+          at: "2026-10-04T06:00:00Z",
+          outcome: "published",
+          digest_id: "2026-10-04-weekly",
+          items: 12,
+        },
+        on_demand: { at: "2026-10-03T14:10:00Z", outcome: "nothing", items: 0 },
+        last_fetch_at: "2026-10-05T05:28:00Z",
+      }),
+    );
+    await put(
+      "state/usage.json",
+      json({ version: 1, speechify: { month: "2026-10", characters: 12_345 } }),
+    );
+    await put(
+      "state/source-health.json",
+      json({
+        version: 1,
+        sources: {
+          "blog-b": { failures: 5 },
+          "blog-a": { failures: 2, last_ok: "2026-10-04T05:00:00Z" },
+        },
+      }),
+    );
+    await put("Digests/2026/10/2026-10-05.md", digestFile("2026-10-05"));
+    await put(
+      "Digests/2026/10/2026-10-03.md",
+      digestFile("2026-10-03", {
+        url: "https://example.public.blob.vercel-storage.com/audio/2026-10-03.mp3",
+        duration_ms: 200_000,
+      }),
+    );
+  }
+
+  async function report(args: string[] = [], jsonOutput = true) {
+    const { ctx } = makeContext(scratch, { json: jsonOutput });
+    const { result, stdout } = await captureStdout(() => status(args, ctx));
+    return { code: result, stdout };
+  }
+
+  it("has the stable shape the skill and scripts read", async () => {
+    await seedRepoFiles();
+    const { code, stdout } = await report();
+    expect(code).toBe(0);
+    expect(JSON.parse(stdout)).toEqual({
+      version: 1,
+      now: "2026-10-07T05:13:00.000Z",
+      timezone: "Europe/Stockholm",
+      today: "2026-10-07",
+      last_run: {
+        regular: {
+          at: "2026-10-05T05:30:00Z",
+          outcome: "published",
+          digest_id: "2026-10-05",
+          items: 7,
+        },
+        weekly: {
+          at: "2026-10-04T06:00:00Z",
+          outcome: "published",
+          digest_id: "2026-10-04-weekly",
+          items: 12,
+        },
+        on_demand: { at: "2026-10-03T14:10:00Z", outcome: "nothing", digest_id: null, items: 0 },
+      },
+      last_fetch_at: "2026-10-05T05:28:00Z",
+      next_regular_due: "2026-10-07",
+      due_now: true,
+      due_reason: "last regular digest was 2026-10-05, 2 days ago",
+      latest_digest: {
+        id: "2026-10-05",
+        kind: "regular",
+        date: "2026-10-05",
+        items: 5,
+        verified: true,
+        has_audio: false,
+        path: "Digests/2026/10/2026-10-05.md",
+      },
+      audio: { pending: true, missing: ["2026-10-05"], retention_days: 120 },
+      sources: {
+        total: 4,
+        enabled: 4,
+        failure_threshold: 5,
+        failing: [{ id: "blog-b", name: "Source blog-b", failures: 5, last_ok: null }],
+      },
+      budget: {
+        speechify: {
+          month: "2026-10",
+          used: 12_345,
+          limit: 450_000,
+          monthly_chars: 500_000,
+          percent: 2.5,
+        },
+      },
+      warnings: [],
+    });
+  });
+
+  it("keeps its top-level keys in a fixed order", async () => {
+    await seedRepoFiles();
+    const parsed = JSON.parse((await report()).stdout);
+    expect(Object.keys(parsed)).toEqual([
+      "version",
+      "now",
+      "timezone",
+      "today",
+      "last_run",
+      "last_fetch_at",
+      "next_regular_due",
+      "due_now",
+      "due_reason",
+      "latest_digest",
+      "audio",
+      "sources",
+      "budget",
+      "warnings",
+    ]);
+  });
+
+  it("says the next regular digest is due two Stockholm days after the last one", async () => {
+    await put(
+      "state/last-run.json",
+      lastRunFile({ regular: { at: "2026-10-06T21:30:00Z", outcome: "nothing", items: 0 } }),
+    );
+    const parsed = JSON.parse((await report()).stdout);
+    // 23:30 in Stockholm on 6 October: the next one is 8 October, so 7 October is not due.
+    expect(parsed).toMatchObject({ next_regular_due: "2026-10-08", due_now: false });
+  });
+
+  it("works on an empty repository with a warning for the missing registry", async () => {
+    const parsed = JSON.parse((await report()).stdout);
+    expect(parsed).toMatchObject({
+      last_run: { regular: null, weekly: null, on_demand: null },
+      last_fetch_at: null,
+      due_now: true,
+      next_regular_due: "2026-10-07",
+      latest_digest: null,
+      audio: { pending: false, missing: [] },
+      sources: { total: 0, failing: [] },
+    });
+    expect(parsed.warnings).toHaveLength(1);
+    expect(parsed.warnings[0]).toContain("config/sources.json");
+  });
+
+  it("keeps going when a state file is corrupt and says which", async () => {
+    await seedRepoFiles();
+    await put("state/last-run.json", "{ broken");
+    const parsed = JSON.parse((await report()).stdout);
+    expect(parsed.last_run.regular).toBeNull();
+    expect(parsed.warnings.join(" ")).toContain("state/last-run.json");
+    expect(parsed.sources.total).toBe(4);
+  });
+
+  it("prints a readable summary without --json", async () => {
+    await seedRepoFiles();
+    const { stdout } = await report([], false);
+    expect(stdout).toContain("Dispatch status, 2026-10-07");
+    expect(stdout).toContain("Next regular digest: due now");
+    expect(stdout).toContain("Audio missing for 1: 2026-10-05");
+    expect(stdout).toContain("blog-b: 5 failures");
+    expect(stdout).toContain("Speechify 2026-10: 12345 of 500000");
+  });
+
+  it("exits 2 for an argument it does not take", async () => {
+    expect((await report(["--bogus"])).code).toBe(2);
+  });
+});
+
+// --- models ------------------------------------------------------------------------------------
+
+describe("dispatch models", () => {
+  const LIST = {
+    data: [
+      { id: "openai/gpt-oss-120b", context_length: 131_072 },
+      { id: "Qwen/Qwen3-235B-A22B-Instruct-2507", context_length: 262_144 },
+      { id: "BAAI/bge-en-icl", type: "embedding" },
+      { id: "black-forest-labs/flux-dev" },
+      { id: "meta-llama/Llama-3.3-70B-Instruct", max_model_len: 128_000 },
+      { id: "acme/reranker-v2", type: "rerank" },
+    ],
+  };
+  const ENV = { NEBIUS_API_KEY: "nb-secret-0123456789abcdef" };
+
+  function modelsFetch(status = 200, body: unknown = LIST) {
+    const calls: Array<{ url: string; auth: string | null }> = [];
+    const fetchImpl: typeof fetch = async (input, init) => {
+      calls.push({ url: String(input), auth: new Headers(init?.headers).get("authorization") });
+      return new Response(JSON.stringify(body), { status });
+    };
+    return { fetchImpl, calls };
+  }
+
+  it("lists text models sorted, with context lengths, and hides the rest", async () => {
+    const net = modelsFetch();
+    const { ctx } = makeContext(scratch, { env: ENV, json: false });
+    const { result, stdout } = await captureStdout(() => makeModelsCommand(net.fetchImpl)([], ctx));
+    expect(result).toBe(0);
+    const lines = stdout.split("\n");
+    expect(lines.slice(0, 3)).toEqual([
+      "Qwen/Qwen3-235B-A22B-Instruct-2507  (262144 tokens)",
+      "meta-llama/Llama-3.3-70B-Instruct  (128000 tokens)",
+      "openai/gpt-oss-120b  (131072 tokens)",
+    ]);
+    expect(stdout).not.toContain("bge");
+    expect(stdout).not.toContain("flux");
+    expect(stdout).toContain("DISPATCH_MODEL");
+  });
+
+  it("asks the verbose endpoint with the key and never prints it", async () => {
+    const net = modelsFetch();
+    const { ctx } = makeContext(scratch, { env: ENV });
+    const { stdout } = await captureStdout(() => makeModelsCommand(net.fetchImpl)([], ctx));
+    expect(net.calls).toEqual([
+      {
+        url: "https://api.tokenfactory.nebius.com/v1/models?verbose=true",
+        auth: `Bearer ${ENV.NEBIUS_API_KEY}`,
+      },
+    ]);
+    expect(stdout).not.toContain(ENV.NEBIUS_API_KEY);
+  });
+
+  it("shows everything with --all", async () => {
+    const { ctx } = makeContext(scratch, { env: ENV });
+    const { stdout } = await captureStdout(() =>
+      makeModelsCommand(modelsFetch().fetchImpl)(["--all"], ctx),
+    );
+    expect(JSON.parse(stdout)).toMatchObject({ total: 6, shown: 6, truncated: false });
+  });
+
+  it("caps the output and says how much was cut", async () => {
+    const { ctx } = makeContext(scratch, { env: ENV });
+    const { stdout } = await captureStdout(() =>
+      makeModelsCommand(modelsFetch().fetchImpl)(["--limit", "2"], ctx),
+    );
+    const parsed = JSON.parse(stdout);
+    expect(parsed).toMatchObject({ total: 3, shown: 2, truncated: true });
+    expect(parsed.models.map((m: { id: string }) => m.id)).toEqual([
+      "Qwen/Qwen3-235B-A22B-Instruct-2507",
+      "meta-llama/Llama-3.3-70B-Instruct",
+    ]);
+    const text = makeContext(scratch, { env: ENV, json: false });
+    const human = await captureStdout(() =>
+      makeModelsCommand(modelsFetch().fetchImpl)(["--limit", "2"], text.ctx),
+    );
+    expect(human.stdout).toContain("... 1 more; raise --limit to see them");
+  });
+
+  it("exits 1 naming the variable when no key is set", async () => {
+    const { ctx, logs } = makeContext(scratch, { env: {} });
+    const { result } = await captureStdout(() =>
+      makeModelsCommand(modelsFetch().fetchImpl)([], ctx),
+    );
+    expect(result).toBe(1);
+    expect(logs.find((l) => l.level === "error")?.message).toContain("NEBIUS_API_KEY");
+  });
+
+  it("exits 1 with a hint when the key is rejected", async () => {
+    const { ctx, logs } = makeContext(scratch, { env: ENV });
+    const { result } = await captureStdout(() =>
+      makeModelsCommand(modelsFetch(401, {}).fetchImpl)([], ctx),
+    );
+    expect(result).toBe(1);
+    expect(logs.find((l) => l.level === "error")?.message).toContain("HTTP 401");
+  });
+
+  it("redacts a key that an error message contains", async () => {
+    const { ctx, logs } = makeContext(scratch, { env: ENV });
+    const boom: typeof fetch = async () => {
+      throw new Error(`socket closed for ${ENV.NEBIUS_API_KEY}`);
+    };
+    const { result } = await captureStdout(() => makeModelsCommand(boom)([], ctx));
+    expect(result).toBe(1);
+    expect(JSON.stringify(logs)).not.toContain(ENV.NEBIUS_API_KEY);
+  });
+
+  it("exits 2 for a bad --limit", async () => {
+    const { ctx } = makeContext(scratch, { env: ENV });
+    expect(
+      (await captureStdout(() => makeModelsCommand(modelsFetch().fetchImpl)(["--limit", "0"], ctx)))
+        .result,
+    ).toBe(2);
+  });
+
+  it("classifies models by id and type", () => {
+    expect(isTextModel({ id: "x/chat-model" })).toBe(true);
+    expect(isTextModel({ id: "x/Qwen3-Embedding-8B" })).toBe(false);
+    expect(isTextModel({ id: "x/model", type: "text2text" })).toBe(true);
+    expect(isTextModel({ id: "x/model", type: "text2image" })).toBe(false);
+    expect(listModels({ data: [{ id: "b", context_length: 1 }, { id: "a" }] }, false)).toEqual([
+      { id: "a", context_length: null },
+      { id: "b", context_length: 1 },
+    ]);
+  });
+});
+
+// --- extract -----------------------------------------------------------------------------------
+
+describe("dispatch extract", () => {
+  const items = [...sourceItems("blog-a", 3, "x")];
+  const textFor = (item: { id: string }, length: number): ExtractedText => ({
+    text: `${item.id} `.repeat(Math.ceil(length / 13)).slice(0, length),
+    method: "content",
+    truncated: false,
+  });
+
+  async function seedPool(id = "2026-10-07"): Promise<void> {
+    await writePool(join(scratch, ".cache/run", id, "pool.json"), poolFile(id, items));
+  }
+
+  async function extract(args: string[], length = 50) {
+    const { ctx, logs } = makeContext(scratch, { json: true });
+    const command = makeExtractCommand(
+      () => async (item) => (item.title.includes("x-3") ? null : textFor(item, length)),
+    );
+    const { result, stdout } = await captureStdout(() => command(args, ctx));
+    return { code: result, stdout, logs };
+  }
+
+  it("prints one JSON object from id to text and nothing else", async () => {
+    await seedPool();
+    const ids = items.slice(0, 2).map((item) => item.id);
+    const { code, stdout } = await extract(["--ids", ids.join(",")]);
+    expect(code).toBe(0);
+    const parsed = JSON.parse(stdout);
+    expect(Object.keys(parsed)).toEqual(ids);
+    expect(typeof parsed[ids[0] as string]).toBe("string");
+  });
+
+  it("lists unknown ids and items without readable text on stderr, not in the output", async () => {
+    await seedPool();
+    const { stdout, logs } = await extract([
+      "--ids",
+      `${items[0]?.id},${items[2]?.id},deadbeef0000`,
+    ]);
+    expect(Object.keys(JSON.parse(stdout))).toEqual([items[0]?.id]);
+    expect(logs.map((l) => l.message).join("\n")).toContain("Not in the pool: deadbeef0000");
+    expect(logs.map((l) => l.message).join("\n")).toContain(
+      `No readable text for: ${items[2]?.id}`,
+    );
+  });
+
+  it("spends a total character budget front to back", async () => {
+    await seedPool();
+    const ids = items.slice(0, 2).map((item) => item.id);
+    const { stdout, logs } = await extract(["--ids", ids.join(","), "--max-chars", "60"], 50);
+    const parsed = JSON.parse(stdout) as Record<string, string>;
+    expect(parsed[ids[0] as string]).toHaveLength(50);
+    expect(Object.values(parsed).join("").length).toBeLessThanOrEqual(60);
+    expect(logs.map((l) => l.message).join("\n")).toContain("cap");
+  });
+
+  it("reads a named pool", async () => {
+    await put("elsewhere/pool.json", JSON.stringify(poolFile("2026-10-07", items)));
+    const { stdout } = await extract([
+      "--ids",
+      String(items[0]?.id),
+      "--pool",
+      "elsewhere/pool.json",
+    ]);
+    expect(Object.keys(JSON.parse(stdout))).toEqual([items[0]?.id]);
+  });
+
+  it("repeats nothing when an id is listed twice", async () => {
+    await seedPool();
+    const id = String(items[0]?.id);
+    const { stdout } = await extract(["--ids", `${id},${id}`]);
+    expect(Object.keys(JSON.parse(stdout))).toEqual([id]);
+  });
+
+  it("exits 2 without ids and for a bad cap, and 1 when there is no pool", async () => {
+    await seedPool();
+    expect((await extract([])).code).toBe(2);
+    expect((await extract(["--ids", "a", "--max-chars", "-1"])).code).toBe(2);
+    await rm(join(scratch, ".cache"), { recursive: true, force: true });
+    const missing = await extract(["--ids", "a"]);
+    expect(missing.code).toBe(1);
+    expect(missing.logs.find((l) => l.level === "error")?.message).toContain("pool");
+  });
+
+  it("extractIds cuts an item at the budget and marks the rest as capped", async () => {
+    const result = await extractIds(
+      items.map((i) => i.id),
+      items,
+      async (item) => textFor(item, 40),
+      50,
+    );
+    expect(Object.values(result.texts).join("").length).toBeLessThanOrEqual(50);
+    expect(result.capped.length).toBeGreaterThan(0);
+  });
+});
+
+// --- eval --------------------------------------------------------------------------------------
+
+describe("dispatch eval", () => {
+  it("refuses without --yes and says it uses keys and money", async () => {
+    const calls: string[][] = [];
+    const command = makeEvalCommand(async () => async (argv) => {
+      calls.push(argv);
+      return 0;
+    });
+    const { ctx } = makeContext(scratch);
+    const { result, stderr } = await captureStderr(() => command([], ctx));
+    expect(result).toBe(2);
+    expect(stderr).toContain("keys");
+    expect(stderr).toContain("cents");
+    expect(stderr).toContain("--yes");
+    expect(calls).toEqual([]);
+  });
+
+  it("hands the other flags to the runner and returns its exit code", async () => {
+    const calls: string[][] = [];
+    const command = makeEvalCommand(async () => async (argv) => {
+      calls.push(argv);
+      return 3;
+    });
+    const { ctx, logs } = makeContext(scratch, { json: false });
+    const result = await command(["--yes", "--only", "judges", "--models", "a,b"], ctx);
+    expect(result).toBe(3);
+    expect(calls).toEqual([["--only", "judges", "--models", "a,b"]]);
+    expect(logs.some((l) => l.level === "warn" && /spending money/.test(l.message))).toBe(true);
+  });
+
+  it("passes the global --json on to the runner once", async () => {
+    const calls: string[][] = [];
+    const command = makeEvalCommand(async () => async (argv) => {
+      calls.push(argv);
+      return 0;
+    });
+    const { ctx } = makeContext(scratch, { json: true });
+    await command(["--yes"], ctx);
+    await command(["--yes", "--json"], ctx);
+    expect(calls).toEqual([["--json"], ["--json"]]);
+  });
+});
+
+// --- run command -------------------------------------------------------------------------------
+
+describe("dispatch run: arguments and output", () => {
+  function runCommand() {
+    const world = makeWorld(scratch);
+    return { world, command: makeRunCommand(() => world.deps) };
+  }
+
+  async function runWith(args: string[], jsonOutput = true) {
+    const { command } = runCommand();
+    const { ctx, logs } = makeContext(scratch, { json: jsonOutput });
+    const { result, stdout } = await captureStdout(() => command(args, ctx));
+    return { code: result, stdout, logs };
+  }
+
+  it("rejects an unknown mode, stage or flag with exit 2 and the usage on stderr", async () => {
+    for (const args of [
+      ["--mode", "bogus"],
+      ["--stage", "nope"],
+      ["--bogus"],
+      ["--run", "2026-10-07"],
+    ]) {
+      const { ctx } = makeContext(scratch);
+      const { result, stderr } = await captureStderr(() =>
+        captureStdout(() => makeRunCommand(() => makeWorld(scratch).deps)(args, ctx)),
+      );
+      expect(result.result).toBe(2);
+      expect(stderr).toContain("Usage: dispatch run");
+    }
+  });
+
+  it("prints the usage with --help and exits 0", async () => {
+    const { code, stdout } = await runWith(["--help"]);
+    expect(code).toBe(0);
+    expect(stdout).toContain("Usage: dispatch run");
+    expect(stdout).toContain("Agent mode");
+  });
+
+  it("prints the gate's JSON for --stage gate --json", async () => {
+    const { code, stdout } = await runWith(["--stage", "gate", "--mode", "on-demand", "--dry-run"]);
+    expect(code).toBe(0);
+    expect(JSON.parse(stdout)).toMatchObject({
+      due: true,
+      mode: "on-demand",
+      dry_run: true,
+      passes: [{ id: "2026-10-07", kind: "on-demand" }],
+    });
+  });
+
+  it("prints a human sentence for the gate without --json", async () => {
+    const { stdout } = await runWith(["--stage", "gate"], false);
+    expect(stdout).toContain("Run is due (scheduled)");
+    expect(stdout).toContain("2026-10-07 (regular)");
+  });
+
+  it("prints a failed stage as JSON, logs it, and exits 1", async () => {
+    const { code, stdout, logs } = await runWith(["--stage", "fetch"]);
+    expect(code).toBe(1);
+    expect(JSON.parse(stdout)).toMatchObject({ outcome: "failed", stage: "fetch" });
+    expect(logs.some((l) => l.level === "error" && l.message.includes("fetch failed"))).toBe(true);
+  });
+
+  it("exits 2 and says so for a --since in the future", async () => {
+    const { code, stdout } = await runWith(["--stage", "gate", "--since", "2027-01-01"]);
+    expect(code).toBe(2);
+    expect(JSON.parse(stdout)).toMatchObject({ outcome: "failed", stage: "gate" });
+  });
+
+  it("prints a gated run as gated with exit 0, in text and JSON", async () => {
+    await put(
+      "state/last-run.json",
+      lastRunFile({ regular: { at: "2026-10-06T05:13:00Z", outcome: "published", items: 5 } }),
+    );
+    const asJson = await runWith(["--stage", "gate"]);
+    expect(JSON.parse(asJson.stdout)).toMatchObject({ due: false, passes: [] });
+    const text = await runWith(["--stage", "gate"], false);
+    expect(text.stdout).toContain("Not due:");
+  });
+});
+
+// --- learn --commit ----------------------------------------------------------------------------
+
+describe("dispatch learn --commit", () => {
+  let template: string;
+  let repo: TestRepo;
+  beforeAll(async () => {
+    template = await buildTemplate();
+  }, 120_000);
+  afterAll(async () => {
+    await rm(template, { recursive: true, force: true, maxRetries: 3 });
+  });
+  beforeEach(async () => {
+    repo = await instantiate(template);
+  }, 60_000);
+  afterEach(async () => {
+    await repo.cleanup();
+  });
+
+  const LONG = { timeout: 90_000 };
+  const patch = {
+    input: "more motion techniques",
+    weight_deltas: { css_canvas_motion_techniques: 0.05 },
+  };
+
+  async function patchFile(content: unknown = patch): Promise<string> {
+    const path = join(scratch, "patch.json");
+    await writeFile(path, JSON.stringify(content), "utf8");
+    return path;
+  }
+
+  async function apply(extra: string[], file?: string) {
+    const { ctx, logs } = makeContext(repo.root, { json: false });
+    const { result } = await captureStdout(async () =>
+      learn(["--apply", file ?? (await patchFile()), ...extra], ctx),
+    );
+    return { code: result, logs };
+  }
+
+  const prefs = async (): Promise<string> =>
+    readFile(join(repo.root, "config/preferences.json"), "utf8");
+
+  it("applies without committing when --commit is absent", LONG, async () => {
+    const before = head(repo.root);
+    const { code } = await apply([]);
+    expect(code).toBe(0);
+    expect(head(repo.root)).toBe(before);
+    expect(git(repo.root, "status", "--porcelain")).toContain("config/preferences.json");
+  });
+
+  it("commits only the preferences file as chore(prefs) and pushes", LONG, async () => {
+    git(repo.root, "config", "--local", "user.name", "Somesh");
+    git(repo.root, "config", "--local", "user.email", "somesh@example.com");
+    const { code } = await apply(["--commit"]);
+    expect(code).toBe(0);
+    expect(git(repo.root, "log", "-1", "--format=%s")).toBe(
+      "chore(prefs): weight css_canvas_motion_techniques: 0.88 to 0.93",
+    );
+    expect(git(repo.root, "log", "-1", "--format=%b")).toContain("Input: more motion techniques");
+    expect(git(repo.root, "show", "--name-only", "--format=", "HEAD")).toBe(
+      "config/preferences.json",
+    );
+    expect(git(repo.root, "log", "-1", "--format=%an")).toBe("Somesh");
+    expect(git(repo.remote, "rev-parse", "main")).toBe(head(repo.root));
+    expect(git(repo.root, "status", "--porcelain")).toBe("");
+  });
+
+  it("commits as the bot when no git identity is configured", LONG, async () => {
+    const empty = join(scratch, "empty-gitconfig");
+    await writeFile(empty, "", "utf8");
+    const saved = {
+      global: process.env.GIT_CONFIG_GLOBAL,
+      system: process.env.GIT_CONFIG_NOSYSTEM,
+    };
+    process.env.GIT_CONFIG_GLOBAL = empty;
+    process.env.GIT_CONFIG_NOSYSTEM = "1";
+    try {
+      const { code } = await apply(["--commit", "--no-push"]);
+      expect(code).toBe(0);
+      expect(git(repo.root, "log", "-1", "--format=%an")).toBe("dispatch-bot");
+    } finally {
+      for (const [key, value] of [
+        ["GIT_CONFIG_GLOBAL", saved.global],
+        ["GIT_CONFIG_NOSYSTEM", saved.system],
+      ] as const) {
+        if (value === undefined) Reflect.deleteProperty(process.env, key);
+        else process.env[key] = value;
+      }
+    }
+  });
+
+  it("keeps the commit local with --no-push", LONG, async () => {
+    const remoteBefore = git(repo.remote, "rev-parse", "main");
+    const { code } = await apply(["--commit", "--no-push"]);
+    expect(code).toBe(0);
+    expect(git(repo.remote, "rev-parse", "main")).toBe(remoteBefore);
+    expect(git(repo.root, "log", "-1", "--format=%s")).toContain("chore(prefs):");
+  });
+
+  it("refuses on a dirty tree and leaves the preferences alone", LONG, async () => {
+    await writeFile(join(repo.root, "notes.txt"), "stray\n", "utf8");
+    const before = await prefs();
+    const { code, logs } = await apply(["--commit"]);
+    expect(code).toBe(1);
+    expect(logs.find((l) => l.level === "error")?.message).toContain("uncommitted changes");
+    expect(await prefs()).toBe(before);
+  });
+
+  it("refuses when behind the remote and leaves the preferences alone", LONG, async () => {
+    await writeFile(join(repo.other, "notes.txt"), "from elsewhere\n", "utf8");
+    git(repo.other, "add", "-A");
+    git(repo.other, "commit", "-q", "-m", "docs: add notes");
+    git(repo.other, "push", "-q", "origin", "main");
+    const before = await prefs();
+    const { code, logs } = await apply(["--commit"]);
+    expect(code).toBe(1);
+    expect(logs.find((l) => l.level === "error")?.message).toContain("behind");
+    expect(await prefs()).toBe(before);
+  });
+
+  it("rejects --commit with --dry-run and --no-push without --commit", LONG, async () => {
+    expect((await apply(["--commit", "--dry-run"])).code).toBe(2);
+    expect((await apply(["--no-push"])).code).toBe(2);
+  });
+
+  it("builds a Conventional Commit subject within 72 characters", () => {
+    expect(prefsCommitMessage("x", ["weight a: 0.1 to 0.15"]).split("\n")[0]).toBe(
+      "chore(prefs): weight a: 0.1 to 0.15",
+    );
+    const many = prefsCommitMessage("more", ["weight a: 0.1 to 0.15", 'keyword: added "shaders"']);
+    expect(many.split("\n")[0]).toBe("chore(prefs): 2 changes, weight a: 0.1 to 0.15");
+    const long = prefsCommitMessage("more", [`weight ${"x".repeat(120)}: 0.1 to 0.15`]);
+    expect((long.split("\n")[0] ?? "").length).toBeLessThanOrEqual(72);
+    expect(long.split("\n")[0]).toMatch(/\.\.\.$/);
+    expect(long).toContain("Input: more");
+  });
+});

@@ -15,6 +15,7 @@ import {
 import { pickCover } from "@dispatch/cover";
 import type { Logger } from "../src/context.js";
 import type { ApiRuntime } from "../src/curate/apiRuntime.js";
+import type { PoolFile } from "../src/fetch/pool.js";
 import { createGitRunner } from "../src/git/runGit.js";
 import { createHttpClient } from "../src/http.js";
 import type { Judge } from "../src/judge/types.js";
@@ -383,4 +384,37 @@ export function sourceItems(sourceId: string, count: number, prefix: string): It
 
 export function head(cwd: string): string {
   return git(cwd, "rev-parse", "HEAD");
+}
+
+/** A pool file as `dispatch fetch` writes it, for tests that start from a pool. */
+export function poolFile(
+  id: string,
+  items: readonly Item[],
+  kind: PoolFile["kind"] = "regular",
+): PoolFile {
+  return {
+    version: 1,
+    id,
+    kind,
+    generated_at: WED.toISOString(),
+    window: { from: "2026-10-05T05:13:00.000Z", to: WED.toISOString() },
+    sources: [],
+    report: {
+      fetched: items.length,
+      dedupe: {
+        input: items.length,
+        already_seen: 0,
+        same_url: 0,
+        newsletter_collapsed: 0,
+        near_duplicate: 0,
+        output: items.length,
+      },
+      prefilter: {
+        input: items.length,
+        kept: items.length,
+        dropped: { disliked: 0, not_relevant: 0, source_cap: 0, cap: 0 },
+      },
+    },
+    items: [...items],
+  };
 }
