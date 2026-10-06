@@ -1,42 +1,21 @@
 # Dispatch: build plan
 
-> Executable plan for the curation engine, the `news.someshks.work` web app, and the skills that trigger both.
+> Plan and as-built record for the curation engine, the `news.someshks.work` web app and the skills that trigger both.
 >
-> Vision, digest schema and taste model: [vision.md](vision.md). Source registry: [sources.md](../config/sources.md). Decision log: [decisions.md](decisions.md). Operations: [runbook.md](runbook.md). Canonical UI and sound references: [design-spec.md](design/design-spec.md) and [sound-design.md](design/sound-design.md). First design reference: [reader-prototype.html](prototype/reader-prototype.html).
+> Vision, digest schema and taste model: [vision.md](vision.md). Source registry: [sources.md](../config/sources.md). Decision log: [decisions.md](decisions.md). Operations: [runbook.md](runbook.md). UI and sound: [design-spec.md](design/design-spec.md) and [sound-design.md](design/sound-design.md). First design reference: [reader-prototype.html](prototype/reader-prototype.html).
 >
-> Status: plan v3, revised 2026-10-06. Phase 0 is done and Phase 1 is in progress (repository created, scaffold committed, core contracts frozen). The engine, the web app and the skills are being built in parallel from 2026-10-06 and none is finished: sections below describe the target design, and the phase table in Section 13 records what is done.
+> Status: plan v4, revised 2026-10-06. Everything is built and tested offline. Nothing has run against a real service, and the CI workflows have never run on GitHub. Section 13 lists what is verified and what is not.
 
 ---
 
 ## 1. What changed from earlier plans
 
-Plan v1 ran the whole job inside a Claude Code cloud routine. Verification showed that is the wrong foundation, so v2 moved the engine into the repo and treats every trigger as a thin caller. Plan v3 (2026-10-06) moves hosting from Cloudflare to Vercel; the changes are listed after the v2 table.
-
-| v1 assumption | What verification showed | v2 decision |
+| Plan | Design | Why it changed |
 | --- | --- | --- |
-| Cloud routine runs the pipeline | Routines push to `claude/` branches by default, start with a restricted network allowlist, and the API trigger (`/fire`) is an experimental beta limited to 30 fires per hour per routine | Engine runs on GitHub Actions (stable, full network, own secret store). Routine becomes optional, not required |
-| An agent with tools reads untrusted web text | Broad network plus tools plus secrets is the worst case for prompt injection | The LLM is a pure function: text in, schema-validated JSON out, no tools, no secrets in its reach |
-| Claude API for curation | You chose Nebius, and Jev if needed | TypeSafe Jev for typed judgments and a cheap Nebius model (OpenAI-compatible API) for writing; both are config values chosen by a bake-off |
-| Site button fires the routine | Experimental endpoint | Button dispatches a GitHub workflow. The REST API is stable and returns a run id (`workflow_run_id`, HTTP 200) |
-| Audio per section | Speechify returns word-level marks with absolute millisecond times | One MP3 per digest plus a timeline, so the lock screen shows one track with a working scrubber, and every item can be a seek target |
-| Local skill fires the routine | Personal skills do not load in cloud sessions | Skills for work inside the repo live in `.claude/skills`. A personal-scope skill, `sk-dispatch`, works from any directory and falls back to `gh` when no checkout exists (Section 9) |
-
-What changed in v3 (2026-10-06):
-
-| v2 assumption | v3 decision |
-| --- | --- |
-| Cloudflare Workers static assets, R2, KV and Turnstile | Vercel: static site plus server-rendered `/api/*` routes, Vercel Blob for audio, DNS stays on Cloudflare (D10) |
-| Generate button is a Worker with KV counters and a bot check | A Vercel Function with a stateless cooldown read from the GitHub API, no KV and no Turnstile in v1 (Section 8.9) |
-| `publish.yml` publishes and deploys, called by `run.yml` and `ci.yml` | A reusable `deploy.yml` does the same work with the Vercel CLI; the Vercel Git integration is not used (Section 10) |
-| Keys set one at a time with `gh secret set` and `wrangler secret put` | Fill a gitignored `.env`, then run `npm run secrets:push`; the agent never sees key values (Section 5) |
-| One personal-scope junction exposes the in-repo skills | A separate personal skill, `sk-dispatch`, built in `~/.agents/skills` (D16) |
-| UI and sound described in this file | Specified in the design docs; this file keeps the product requirements (Section 8) |
-
-Corrections to my own earlier claims, found during verification:
-
-- Pushes made with `GITHUB_TOKEN` do not trigger `push` workflows, but a reusable workflow called inside the same run does execute. The pipeline is built around that.
-- GitHub's secret-scanning push protection is not available for private repos on the Free plan. The plan uses gitleaks instead.
-- The site uses `news.someshks.work` only. `www.news.someshks.work` is never created.
+| v1 | The pipeline ran inside a Claude Code cloud routine. Hosting on Cloudflare (Workers, R2, KV, Turnstile). One audio file per section. Qwen3-32B as the writer | Routines push to `claude/` branches, start with a restricted network allowlist and expose only an experimental trigger. An agent with tools reading untrusted web text is the worst case for prompt injection |
+| v2 (2026-10-05) | The engine is a CLI on GitHub Actions and every trigger is a thin caller. Models are pure functions: text in, schema-validated JSON out. One MP3 per digest with a timeline of item start times | Actions is stable, has full network and its own secret store. One track keeps the lock-screen scrubber working |
+| v3 (2026-10-06) | Vercel replaces Cloudflare: static site, `/api/*` functions, Blob audio. The Generate button uses a stateless cooldown, with no KV and no Turnstile. `deploy.yml` deploys with the Vercel CLI. Keys flow from `.env` through `npm run secrets:push` | One platform for hosting, functions and audio (D10) |
+| v4 (2026-10-06) | As built. The writer model is picked from the live Nebius list because Qwen3-32B left its serverless tier on 2026-08-31 (D24). Source health moved to `state/` (D21). TypeScript is pinned to 6 (D19). The engine tolerates audio failure (D23) | The code exists, so the plan records what it does |
 
 ---
 
@@ -56,28 +35,34 @@ Corrections to my own earlier claims, found during verification:
 
 ## 3. Decisions
 
-[decisions.md](decisions.md) is the log: date, reason and rejected alternatives for each entry. This table is the index, with the section that implements each decision.
+[decisions.md](decisions.md) holds the date, reason and rejected alternatives for each entry. This table is the index, with the section that implements each.
 
 | # | Decision | Where |
 | --- | --- | --- |
 | D1 | Engine runs on GitHub Actions | 4 |
 | D2 | Repository lives in this folder | 6 |
-| D3 | Judge is TypeSafe Jev; writer is a cheap Nebius model chosen by a bake-off | 7.5 |
+| D3 | Judge is TypeSafe Jev; the writer is a cheap Nebius model (writer choice superseded by D24) | 7.5 |
 | D4 | Astro with React islands, Base UI, hand-written token CSS | 8.1 |
 | D5 | One MP3 per digest with word marks, from Speechify | 7.7 |
 | D6 | Daily cron with a calendar-date gate, plus a Sunday weekly pass | 7.2, 10 |
 | D7 | Podcast feed deferred | 8.10 |
 | D8 | "Thought of the Day" cut | [vision.md](vision.md) Section 3 |
 | D9 | Repository `somesh-ks/dispatch`, private | 6 |
-| D10 | Hosting on Vercel | 8.9, 10 |
+| D10 | Hosting on Vercel, deploys by CLI | 8.9, 10 |
 | D11 | Notification is the commit only | 2 |
-| D12 | Voice limits as specified in 7.6 | 7.6 |
+| D12 | Voice limits | 7.6 |
 | D13 | Accounts for Nebius, TypeSafe, Exa, Firecrawl and Speechify exist | 13 |
 | D14 | Docs and config filenames are lowercase kebab-case | 6 |
 | D15 | Persisted keys are snake_case and code follows them | 7.3 |
 | D16 | Personal-scope skill `sk-dispatch`, built separately | 9 |
 | D17 | UI and sound specified in `docs/design/` | 8 |
 | D18 | UI sounds are procedural Web Audio from `@dispatch/sound` | 8.12 |
+| D19 | TypeScript 6 pinned repository-wide | 6.2 |
+| D20 | One preferences key, `dispatch:preferences`, for theme and settings | 8.6 |
+| D21 | Source health lives in `state/source-health.json` | 7.2 |
+| D22 | `deploy.yml` owns the deploy: its own concurrency group, token only in the Vercel steps | 10 |
+| D23 | The engine tolerates audio failure and publishes text with `audio: null` | 7.9 |
+| D24 | The writer model is picked from the live Nebius list | 7.5 |
 
 ---
 
@@ -87,68 +72,51 @@ Corrections to my own earlier claims, found during verification:
 
 ```mermaid
 flowchart TD
-    T1["GitHub cron: daily 07:13 Europe/Stockholm"] --> RUN
-    T2["Site button → Vercel Function /api/generate"] --> RUN
-    T3["sk-dispatch run, /digest --remote, gh workflow run"] --> RUN
-    T4["/digest local (laptop)"] --> LOCAL["dispatch run on the laptop"]
+    T1["GitHub cron, daily 07:13 Europe/Stockholm"] --> RUN
+    T2["Site button: Vercel Function /api/generate"] --> RUN
+    T3["sk-dispatch, /digest --remote, gh workflow run"] --> RUN
+    T4["/digest local or agent, on the laptop"] --> LOCAL["dispatch on the laptop, then git push"]
 
-    subgraph RUN["run.yml (GitHub Actions)"]
-        ENG["dispatch run, one step per stage: gate, fetch, judge, write, validate, commit"]
+    subgraph RUN["run.yml"]
+        ENG["Gate, Fetch, Judge, Write, Validate, Commit"]
     end
 
-    ENG -->|commit Digests/ and state/| REPO["Private repo (main)"]
-    ENG -->|workflow_call| DEP["deploy.yml: audio, Blob upload, Vercel deploy"]
-    LOCAL -->|push to main| CI["ci.yml: checks, then deploy"]
-    CI -->|workflow_call| DEP
+    ENG -->|commit Digests/ and state/| REPO["Private repo, main"]
+    ENG -->|deploy output is true| DEP["deploy.yml: Audio, Vercel pull, build, deploy"]
+    LOCAL --> CI["ci.yml: checks, then deploy job"]
+    CI --> DEP
     DEP --> BLOB["Vercel Blob: audio/ID.mp3"]
-    DEP --> VC["Vercel: static site and /api functions → news.someshks.work"]
+    DEP --> VC["Vercel: static site and /api functions, news.someshks.work"]
     VC --> PHONE["Phone: reader and player"]
     BLOB --> PHONE
 ```
 
 ### 4.2 Independence contract
 
-The pipeline must behave the same wherever it is invoked: Actions, laptop, the site button, or a skill run from another folder.
+The pipeline behaves the same wherever it is invoked: Actions, laptop, the site button, or a skill run from another folder.
 
-1. **One engine, one CLI.** Every trigger calls `dispatch run`. Workflows, the Generate function and the skills contain no pipeline logic.
-2. **Hermetic.** The engine reads only repo files and environment variables. It never reads `~/.agents`, `~/.claude`, or absolute paths. The repo root is found with `git rev-parse --show-toplevel`.
-3. **Idempotent and resumable.** Each stage writes to `.cache/run/<id>/`, which survives across steps of one job and is never committed. Across jobs only committed state persists. Re-running continues; `publish` converges (a digest without audio gets audio, an up-to-date site is a no-op).
-4. **Curator modes by environment.** `NEBIUS_API_KEY` present means the API curator (with `TYPESAFE_API_KEY` it judges through Jev, without it the Nebius fallback judge answers). Absent inside an interactive Claude Code session means the agent curator (the session's model writes a validated selection file). Otherwise it fails with a clear message.
-5. **Machine-readable.** Every command supports `--json` and uses stable exit codes, so skills and workflows can consume results. The status endpoint reads `state/last-run.json` instead.
-6. **Skills stay thin.** They locate the repo, call the CLI, and interpret JSON. If no checkout is found, they fall back to `gh workflow run -R <owner>/<repo>`.
+1. **One engine, one CLI.** Every trigger calls `dispatch`. Workflows, the Generate function and the skills hold no pipeline logic.
+2. **Hermetic.** The engine reads only repo files and environment variables. It loads `.env` from the repository root (variables already in the environment win, so CI secrets are never replaced). The root comes from `git rev-parse --show-toplevel` or `--root`.
+3. **Resumable.** Stages hand work to each other through `.cache/run/<id>/` (gitignored). `publish` converges: a digest without audio gets audio, an up-to-date site is a no-op.
+4. **Two curator modes.** `curate --mode api` (the default, and the only mode `dispatch run` uses) needs `NEBIUS_API_KEY` and `DISPATCH_MODEL`. With `TYPESAFE_API_KEY` it judges through Jev and checks grounding; without it the Nebius judge answers alone and the digest is `verified: false`. `curate --mode agent` validates a selection a Claude Code session wrote (Section 9.1).
+5. **Machine-readable.** `--json` prints one document on stdout and logs go to stderr. Exit codes: 0 success, 1 failure, 2 usage error.
+6. **Skills stay thin.** They locate the repo, call the CLI and read its JSON. With no checkout, `sk-dispatch` falls back to `gh`.
 
 ### 4.3 Trigger matrix
 
 | Trigger | Runs on | Curator | Credentials it needs |
 | --- | --- | --- | --- |
-| Daily cron | Actions | API | Repo secrets |
+| Daily cron, GitHub UI "Run workflow" | Actions | API | Repo secrets and variables |
 | Site Generate button | Actions, via a Vercel Function | API | The function holds a dispatch token as a Vercel environment variable |
-| `sk-dispatch run`, `/digest --remote` or `gh workflow run` | Actions | API | Your `gh` login only |
-| `/digest` with `.env` keys | Laptop | API | Local `.env` |
+| `sk-dispatch run`, `/digest --remote`, `gh workflow run` | Actions | API | Your `gh` login only |
+| `/digest --local` | Laptop | API | Local `.env` |
 | `/digest --agent` | Laptop | Claude Code session | No Nebius key; optional Exa and Firecrawl keys |
-| GitHub UI "Run workflow" | Actions | API | Repo secrets |
 
-**Deploying.** `run.yml` calls `deploy.yml` as a reusable workflow after its commit, because pushes made with `GITHUB_TOKEN` do not trigger other workflows. Local runs push to `main`, which triggers `ci.yml`; its final job calls `deploy.yml`. `deploy.yml` has no `push` trigger of its own. It deploys with the Vercel CLI, not the Vercel Git integration (reasons in Section 10).
+`/digest` with no flag picks local when `dispatch doctor` reports both `NEBIUS_API_KEY` and `DISPATCH_MODEL`, else agent, else remote. `/digest --remote`, `sk-dispatch run` and the Generate button dispatch `mode=on-demand`, so the scheduled gate never turns them into silent no-ops.
 
-**Concurrent writers.** `run.yml`, local runs and `/learn` all write to the repo. Local runs and `/learn` start with `git pull --ff-only`, refuse to continue when the tree is dirty or behind, and refuse while a `run.yml` run is in progress (`gh run list`). Bot pushes retry with `git pull --rebase` up to three times.
+**Deploying.** `run.yml` calls `deploy.yml` as a reusable workflow, because pushes made with `GITHUB_TOKEN` do not trigger other workflows. It does so only when the Commit step reports `deploy=true`: a digest was published, or a digest from the last 7 days still lacks audio. A local push to `main` triggers `ci.yml`, whose final `deploy` job calls `deploy.yml`.
 
-**Mode defaults.** `/digest --remote`, `sk-dispatch run` and the Generate button dispatch `mode=on-demand`, so the scheduled gate can never turn them into silent no-ops.
-
-### 4.4 Execution model for building this
-
-Work is split so independent streams run in parallel and every phase gets a second pair of eyes.
-
-| Task | Agent | Why |
-| --- | --- | --- |
-| Source and API verification | `researcher` | Reads a lot, returns tables |
-| Locating code, call sites | `scout` | Cheap, read-only |
-| Per-phase design when several architectures fit | `planner` | Read-only, returns an ordered plan |
-| Engine, web app, design, docs and skills streams | Parallel worktrees (`isolation: worktree`) | Independent file sets, merge at phase gates |
-| Review after each phase | `reviewer` | Diff audit before merge |
-| Motion and performance audit of the web app | `motion-reviewer` | Whole-directory sweep |
-| Unknown-cause bugs | `deep` | Only after a cheaper pass fails |
-
-Rule: subagent reports are inputs, not facts. Anything that drives a decision gets re-checked. In the first planning pass one report was wrong (a certificate-coverage claim) and one cost figure was about 60 times too high (Nebius); both were caught this way. An independent review of the v1 plan then found six blocking defects in the plan itself (publish checkout, digest id collisions, gate semantics, concurrent writers, outcome handling, phase ordering), all fixed in v2.
+**Concurrent writers.** `run.yml`, local runs and `/learn` all write to the repo. The skills start with `git pull --ff-only` and refuse on a dirty tree or while a `run.yml` run is in progress; `dispatch learn --commit` refuses on a dirty tree or when behind the remote. Bot pushes retry with a rebase up to three times.
 
 ---
 
@@ -157,40 +125,26 @@ Rule: subagent reports are inputs, not facts. Anything that drives a decision ge
 Keys never go in the repo, in chat, or in `package.json`. One flow feeds every store:
 
 1. Copy `.env.example` to `.env` and fill it in an editor. `.env` is gitignored.
-2. Run `npm run passphrase` once to create the Generate passphrase hash (it prompts with echo off and writes the hash to `.env`).
-3. Run `npm run secrets:push`. The script reads `.env` and sends each value to GitHub Actions (`gh secret set NAME`, value on stdin) and to Vercel (`vercel env add NAME production`, value on stdin). It prints names and results, never values.
+2. Run `npm run passphrase` once. It prompts twice with echo off and writes the scrypt hash to `.env` as `GENERATE_PASSPHRASE_HASH`.
+3. Run `npm run secrets:push` (flags `--dry-run`, `--only github|vercel`). It sends each non-empty value with the value on stdin and prints names and results, never values.
 
-The agent never sees key values: `.claude/settings.json` denies reading or editing `.env` and `.env.*`, and only `.env.example` (names, empty values) is readable and committed. Step-by-step setup is in [runbook.md](runbook.md).
+The agent never sees key values: `.claude/settings.json` denies reading or editing `.env` and `.env.*` and allows `.env.example`. Setup steps are in [runbook.md](runbook.md).
 
-| Name | Used by | Stored as |
-| --- | --- | --- |
-| `NEBIUS_API_KEY` | Writing and fallback judgments (`run.yml`, local API mode) | GitHub Actions secret; local `.env` |
-| `TYPESAFE_API_KEY` | Jev judgments (`run.yml`, local API mode) | GitHub Actions secret; local `.env` |
-| `EXA_API_KEY` | Semantic discovery | GitHub Actions secret; local `.env` |
-| `FIRECRAWL_API_KEY` | Feedless sites, last-resort extraction | GitHub Actions secret; local `.env` |
-| `SPEECHIFY_API_KEY` | Audio (`dispatch publish` in `deploy.yml`, local audio) | GitHub Actions secret; local `.env` |
-| `BLOB_READ_WRITE_TOKEN` | Audio upload and prune (`dispatch publish` in `deploy.yml`) | GitHub Actions secret; local `.env` |
-| `VERCEL_TOKEN` | `vercel pull`, `build` and `deploy` (`deploy.yml`) | GitHub Actions secret; local `.env` |
-| `VERCEL_ORG_ID` | Same Vercel steps | GitHub Actions secret; local `.env` |
-| `VERCEL_PROJECT_ID` | Same Vercel steps | GitHub Actions secret; local `.env` |
-| `GITHUB_DISPATCH_TOKEN` | Generate function dispatches `run.yml` and reads run status | Vercel environment variable; local `.env` |
-| `GITHUB_REPOSITORY` | Generate function names the repository (`somesh-ks/dispatch`) | Vercel environment variable; local `.env` |
-| `GENERATE_PASSPHRASE_HASH` | Generate function checks the passphrase (a salted scrypt hash string with its cost parameters) | Vercel environment variable; local `.env` |
-| `YOUTUBE_API_KEY` (optional) | One-time channel-ID lookup | Local `.env` |
+| Store | Names |
+| --- | --- |
+| GitHub Actions secrets | `TYPESAFE_API_KEY`, `NEBIUS_API_KEY`, `EXA_API_KEY`, `FIRECRAWL_API_KEY`, `SPEECHIFY_API_KEY`, `BLOB_READ_WRITE_TOKEN`, `VERCEL_TOKEN`, `VERCEL_ORG_ID`, `VERCEL_PROJECT_ID`, `YOUTUBE_API_KEY` (optional, one-time channel lookup) |
+| GitHub Actions variables | `NEBIUS_BASE_URL`, `DISPATCH_MODEL`, `DISPATCH_FALLBACK_MODEL`, `SPEECHIFY_VOICE_ID` (not secret, so visible in run logs) |
+| Vercel production environment | `GITHUB_DISPATCH_TOKEN`, `GITHUB_REPOSITORY`, `GENERATE_PASSPHRASE_HASH` (read by `/api/generate` and `/api/status`) |
 
-Plain configuration with no secret value (`NEBIUS_BASE_URL`, `DISPATCH_MODEL`, `DISPATCH_FALLBACK_MODEL`, `SPEECHIFY_VOICE_ID`) is sent to GitHub Actions variables by the same script, so it stays visible in run logs.
+`MAX_TOKENS_PER_RUN` (default 400,000) and `SPEECHIFY_MONTHLY_CHARS` (default 500,000) are optional engine settings the script does not push.
 
-Details:
-
-- **Passphrase.** The Generate function hashes the submitted passphrase with `node:crypto` `scrypt` and the salt and cost stored in the hash string, then compares with `timingSafeEqual`. Choose a long passphrase: it is the only gate on the button (Section 8.9).
-- **Local access.** GitHub uses your existing `gh` login. Vercel uses `VERCEL_TOKEN` from `.env`. The `/digest` and `sk-dispatch` skills need no dispatch token.
-- **Dispatch token scope.** A fine-grained personal access token limited to this one repository, with Actions read and write and Contents read (to read `state/last-run.json` for the outcome), and nothing else. Set an expiry and record the renewal date in [runbook.md](runbook.md).
-- **Vercel token.** Create it with an expiry. It is exposed only to the Vercel steps of `deploy.yml`, never to the build or the curator.
-- **Blob token.** Vercel creates `BLOB_READ_WRITE_TOKEN` with the Blob store. The engine uploads with it, so no other storage credentials exist.
-- **Blast radius.** The curator step receives the model, judge, search and scrape keys (`NEBIUS_API_KEY`, `TYPESAFE_API_KEY`, `EXA_API_KEY`, `FIRECRAWL_API_KEY`) only. Speechify, Blob and Vercel secrets are referenced only by the publish and deploy steps. Workflows declare minimal `permissions:`.
-- **Spend caps.** Nebius is prepaid credit with no per-key limit (account level only), so the balance is the cap: top up modestly and use a key created only for this project. Exa reports a free monthly credit and then bills per request (about 2 USD a month here), so watch its balance. Firecrawl's free credits may be one-time rather than monthly; the spike confirms. Jev has no documented spend cap, but usage is about one cent per run, so check the TypeSafe console monthly. Vercel Blob on Hobby holds 1 GB, which pruning keeps in bounds (Section 7.7).
-- **Leak prevention.** `.gitignore` covers `.env`, `.env.*` (except `.env.example`), `.vercel/` and `.cache/`. A gitleaks pre-commit hook and a CI job scan every change, since push protection is paid-only for private repos. The engine redacts known key patterns from logs.
-- **Rotation.** If a key ever appears in chat, a log or a commit, revoke it first, then replace it. After changing a Vercel environment variable, redeploy: new values apply only to new deployments.
+- **Passphrase.** A salted scrypt hash string (`scrypt$N$r$p$salt$hash`, N = 2^15, r = 8, p = 1) of 8 or more characters. It is the only gate on the button, so make it long (Section 8.9).
+- **Dispatch token.** A fine-grained personal access token for this repository only, with Actions read and write and Contents read. Set an expiry and record it in [runbook.md](runbook.md).
+- **Vercel token.** Created with an expiry. Only the Vercel pull and deploy steps of `deploy.yml` receive it, not the build. `BLOB_READ_WRITE_TOKEN` comes with the Blob store and is the only storage credential.
+- **Blast radius.** Each workflow step receives only the keys it uses: Fetch gets Exa and Firecrawl, Judge gets TypeSafe and Nebius, Write gets Nebius and Firecrawl, Validate gets TypeSafe and Nebius, Commit gets none, and the deploy Audio step gets Speechify and Blob. Workflows declare minimal `permissions:`.
+- **Spend caps.** Nebius is prepaid credit with no per-key limit, so the balance is the cap: use a key made for this project and top up modestly. Jev has no documented cap (about one cent per run). Exa bills per request after any free credit. Blob on Hobby holds 1 GB, kept in bounds by pruning (Section 7.7).
+- **Leak prevention.** `.gitignore` covers `.env`, `.env.*` (except `.env.example`), `.vercel/` and `.cache/`. A gitleaks job in `ci.yml` scans every push and pull request; no local pre-commit hook is configured. The engine redacts known key patterns from logs.
+- **Rotation.** If a key appears in chat, a log or a commit, revoke it first, then replace it. After changing a Vercel variable, redeploy: new values apply only to new deployments.
 
 ---
 
@@ -200,63 +154,44 @@ Details:
 
 ```text
 dispatch/
-  .claude/skills/digest/        # /digest: trigger, status, agent-curator protocol
-  .claude/skills/learn/         # /learn: free-text feedback to bounded preference patch
-  .github/workflows/            # run.yml, deploy.yml, ci.yml
+  .claude/skills/digest/        # /digest: trigger, status, agent-mode protocol
+  .claude/skills/learn/         # /learn: one sentence to a bounded preference patch
+  .github/                      # workflows run.yml, deploy.yml, ci.yml; dependabot.yml
   apps/web/                     # @dispatch/web: Astro site, React islands, /api functions
-  packages/core/                # @dispatch/core: Zod schemas, env, ids, paths, time
+  packages/core/                # @dispatch/core: Zod schemas, env, ids, paths, time, passphrase
   packages/engine/              # @dispatch/engine: the `dispatch` CLI
-  packages/cover/               # @dispatch/cover: seeded cover-art templates and renderer (Section 8.11)
-  packages/sound/               # @dispatch/sound: procedural UI sounds on Web Audio (Section 8.12)
-  config/                       # preferences.json, sources.md, sources.json, voice.md
-  Digests/YYYY/MM/              # <id>.md, <id>.audio.json (id: date, -weekly, -2)
-  state/                        # seen.json, judgments.json, last-run.json, usage.json, runs/
-  scripts/                      # npm run secrets:push and npm run passphrase
-  tokens/tokens.json            # W3C design tokens, source of truth
-  tokens/covers.json            # cover palettes in the same format
-  docs/                         # build-plan.md, vision.md, decisions.md, runbook.md,
-                                #   design/, prototype/, reference/
-  .env.example  .gitignore  .gitattributes  .nvmrc  biome.json  package.json
+  packages/cover/               # @dispatch/cover: seeded cover-art templates and renderer
+  packages/sound/               # @dispatch/sound: procedural UI sounds on Web Audio
+  config/                       # preferences.json, queries.json, sources.md, sources.json, voice.md
+  Digests/YYYY/MM/              # <id>.md and <id>.audio.json; created by the first run
+  state/                        # seen, judgments, last-run, usage, source-health; created by the first run
+  scripts/                      # secrets:push, passphrase, tokens, icons, prototype builders
+  tokens/                       # tokens.json (W3C design tokens), covers.json (cover palettes)
+  docs/                         # build-plan, vision, decisions, runbook, design/, prototype/, reference/
 ```
 
-`docs/design/` holds `design-spec.md` and `sound-design.md`. `docs/prototype/` holds `reader-prototype.html`, `ui-prototype.html`, `sound-lab.html` and `cover-contact-sheet.html` (the last three arrive with the design work). `docs/reference/` holds `resources.md` and `sources-reference.md`. Docs and config filenames are lowercase kebab-case (D14).
-
-Shared interfaces already exist: the Zod contracts in `packages/core` (item, digest, audio timeline, state files, sources, preferences, env) and the command context and logger in `packages/engine/src/context.ts`. Persisted keys are snake_case and the TypeScript code uses the persisted names (D15).
+The Zod contracts in `packages/core/src` are the shared interface (item, digest, audio timeline, state files, sources, preferences, env). A schema change needs an entry in [decisions.md](decisions.md). Persisted keys are snake_case and the TypeScript types use the same names (D15). Docs and config filenames are lowercase kebab-case (D14).
 
 ### 6.2 Tooling
 
 | Concern | Choice | Reason |
 | --- | --- | --- |
-| Package manager | npm workspaces | pnpm is not installed, and a global install needs your approval |
-| Runtime | Node 24 or newer, pinned in `.nvmrc` and `engines` | Local Node is 26; CI reads `.nvmrc` |
-| Language | TypeScript, strict, no `any` | Your code standards |
-| Lint and format | Biome | One fast tool; `astro check` covers `.astro` files |
-| Unit tests | Vitest | Runs the engine against saved fixtures offline |
-| End-to-end | Playwright (Chromium and WebKit, mobile viewport) with axe | Player behaviour, accessibility |
-| Budgets | Lighthouse CI and a bundle size check | Enforce Section 8.8 |
-| Hygiene | gitleaks, actionlint | Secrets and workflow syntax |
-| Hosting CLI | Vercel CLI (`vercel`), run in `deploy.yml` from `apps/web` | Prebuilt deploys without the Git integration (Section 10) |
-| Line endings | `.gitattributes` forces LF | Avoids CRLF churn in digests on Windows |
-| Commits | Conventional Commits; bot uses `chore(digest): YYYY-MM-DD` | Your git conventions |
-| Decisions log | [decisions.md](decisions.md) | Required by your workflow rules |
+| Package manager | npm workspaces | pnpm is not installed, and a global install needs approval |
+| Runtime | Node 24 or newer, pinned in `.nvmrc` and `engines` | CI reads `.nvmrc`; the laptop runs Node 26 |
+| Language | TypeScript `~6.0.3` in the root and in `apps/web`, strict, no `any` (D19) | The Astro language tooling (`@astrojs/check`) breaks under TypeScript 7, so one version is pinned repository-wide |
+| Lint and format | Biome, with `noUnusedImports` and `noUnusedVariables` off for `.astro` files | Biome cannot see imports and variables used in Astro templates, so those rules give false positives. `astro check` covers `.astro` files |
+| Unit tests | Vitest, 60 second test and hook timeout | Suites drive real git processes in temporary repositories, which is slow on Windows |
+| End-to-end | Playwright (Chromium, phone and desktop sizes) with axe, in `apps/web`; run locally, not in CI | Player behavior and accessibility |
+| Budgets | `apps/web/scripts/checkBundle.ts`, the web build's `postbuild` step | Enforces Section 8.8 |
+| Hygiene | gitleaks, Dependabot (weekly npm and Actions updates) | Secrets; dependency drift |
+| Hosting CLI | Vercel CLI, run in `deploy.yml` from `apps/web` | Prebuilt deploys without the Git integration (Section 10) |
+| Commits | Conventional Commits. The engine commits as `chore(digest): <id>`, `chore(state): ...`, `chore(audio): ...` and `chore(prefs): ...` | One format for humans and bots |
 
-### 6.3 Dependency posture
+`.gitattributes` forces LF line endings to avoid CRLF churn in digests on Windows.
 
-Add a dependency only when it removes real work. Candidates and the reason for each:
+**Local web builds on Windows.** The Vercel adapter bundles functions with symlinks, which Windows refuses without Developer Mode. Use `DISPATCH_STATIC_ONLY=1` for local builds and the e2e run: the adapter is skipped and the two API routes become static stubs. CI on Linux builds with the adapter. `DISPATCH_FIXTURES=1` makes the site read invented digests from `apps/web/src/fixtures/` (CI's build, the e2e suite and the dev lab).
 
-| Package | Why |
-| --- | --- |
-| `@typesafe-ai/sdk` | Typed judgments (Choice, Noul, Score) from Jev |
-| `openai`, `zod` | OpenAI-compatible client pointed at Nebius, with schema-validated output (`zodResponseFormat`) |
-| `fast-xml-parser` | RSS and Atom |
-| `@resvg/resvg-js` (or its WASM build) | Rasterize cover art to PNG at build time |
-| `@mozilla/readability`, `linkedom` | Free full-text extraction before paid scraping |
-| `astro`, `@astrojs/react`, `@astrojs/vercel`, `react`, `react-dom` | Web app and its Vercel adapter |
-| `@base-ui/react` | Drawer, Slider, Dialog, Field, Switch |
-| `@vercel/blob` | Audio upload and prune from the engine |
-| `vercel` (CLI) | Pull, build and deploy in `deploy.yml`, project and domain setup |
-
-Everything else uses the platform: `fetch`, `node:crypto` (`scrypt`, `timingSafeEqual`) in the Generate function, native `<dialog>` where Base UI is overkill, View Transitions, Media Session, Web Audio for UI sounds.
+Add a dependency only when it removes real work; the platform covers the rest (`fetch`, `node:crypto`, View Transitions, Media Session, Web Audio). Versions are in the `package.json` files.
 
 ---
 
@@ -264,134 +199,107 @@ Everything else uses the platform: `fetch`, `node:crypto` (`scrypt`, `timingSafe
 
 ### 7.1 Commands
 
+`dispatch <command> [args] [--json] [--root <path>]`, run as `npm run dispatch -- <command>`. `dispatch <command> --help` lists every flag.
+
 | Command | Purpose |
 | --- | --- |
-| `dispatch doctor` | Checks Node, git, keys present (names only), and reachability of each service |
-| `dispatch fetch` | Gathers candidates since the last run into `pool.json` |
-| `dispatch curate` | Triage and write; `--mode api` or `--mode agent` |
-| `dispatch extract --ids` | Full text for chosen items (used by agent mode) |
-| `dispatch render` | Validates a selection and writes the digest and audio script |
-| `dispatch validate` | Schema, link and limit checks on any digest |
-| `dispatch audio --digest <id>` | Speech synthesis and timeline for one digest |
-| `dispatch publish` | Audio for any digest inside the retention window that lacks it, upload to Vercel Blob, commit of `.audio.json`, the digest's `audio` field and `usage.json`. `--prune` deletes audio older than about 120 days from Blob. Deployment is a separate Vercel CLI step |
-| `dispatch run` | Orchestrates the stages. `--mode scheduled\|on-demand\|weekly`, `--stage gate\|fetch\|judge\|write\|validate` (one stage, used by workflow steps), `--force`, `--since <date>`, `--dry-run`, `--no-push` |
-| `dispatch learn --apply` | Applies a validated preference patch with bounds |
-| `dispatch sources discover\|check` | Finds feeds, reports failing sources |
-| `dispatch status` | Last run, next eligibility, budgets |
+| `sources import\|discover\|check` | `import` builds `config/sources.json` from `config/sources.md` (offline, keeps discovered feeds); `discover` finds and verifies feeds; `check` is a reachability pass |
+| `fetch` | Normalize, dedupe and prefilter candidates into `.cache/run/<id>/pool.json` (`--since`, `--weekly`, `--update-health`) |
+| `curate` | `--mode api` judges, scores, selects, extracts, writes and grounds a pool. `--mode agent` writes `selection-schema.json`, then validates the `agent-selection.json` a session wrote. `--kind`, `--threshold` |
+| `extract --ids` | Full text for chosen pool items (agent mode) |
+| `render` | Turns a run's selection into a digest file, never overwriting; does not commit |
+| `validate <path>` | Schema, voice and limit checks on any digest; `--pool` also checks every URL came from the pool |
+| `audio --digest <id>` | Narrates one digest and uploads it, without committing |
+| `publish` | Narrates every digest that lacks audio, uploads to Blob, writes `.audio.json`, the digest's `audio` field and `state/usage.json`, then commits. `--digest`, `--prune <days>`, `--no-push`. A failed narration leaves `audio` null and does not fail the command |
+| `learn` | `--schema` prints the patch schema. `--apply <patch> [--dry-run]` applies a bounded patch; `--commit [--no-push]` also commits `config/preferences.json` as `chore(prefs): ...` and pushes |
+| `run` | The staged pipeline. `--mode scheduled\|on-demand\|weekly`, `--stage gate\|fetch\|judge\|write\|validate\|commit`, `--run <id>`, `--force`, `--since`, `--dry-run`, `--no-push` |
+| `status` | Offline report: last runs, next due date, audio, failing sources, Speechify budget |
+| `doctor` | Offline checks of Node, git, config, state, key names and model ids. `--online` adds authenticated requests to each service |
+| `models` | Lists the Nebius text models your key can use (`--all`, `--limit`) |
+| `eval --yes` | Golden-set evaluation of judges, grounding and writer models (`--only judges,grounding,bakeoff`, `--models`, `--thinking`). Spends money and never runs in CI; without `--yes` it prints a notice and exits 2 |
 
 ### 7.2 Pipeline stages
 
-| # | Stage | Detail |
+`dispatch run` runs the stages in order; the workflow runs one per step (`--stage`). The step names Gate, Fetch, Judge, Write, Validate and Commit are a contract: the Generate sheet maps them to its progress list.
+
+| Stage | Work |
+| --- | --- |
+| Gate | A regular digest is due when the Stockholm calendar date is two or more days after the last regular run that evaluated candidates. On Sundays the weekly pass runs after the regular one, once per Sunday. `on-demand` and `--force` ignore the gate; `weekly` runs the weekly pass alone |
+| Fetch | Per-source timeout and retry; a failed source is logged, never fatal. The window starts at the last successful fetch of any kind, capped at 7 days (first run 3 days; weekly always 7). Items are normalized (`id` is the first 12 hex characters of sha1 of the canonical URL), deduped (tracking parameters stripped, `seen.json` applied, newsletter links to originals already in the pool collapsed) and prefiltered: hard-drop `disliked_patterns`, keep keyword, preferred-author and high-signal-source matches, cap at 60 |
+| Judge | Jev answers per item from title and snippet only: category probabilities, craft depth, hype, sponsorship and funding flags. Items Jev cannot answer go to the Nebius fallback judge. Answers are cached by item, question set and model. If most of a pool goes unjudged the stage fails rather than recording a quiet day |
+| Write | Score in code, select, extract full text for finalists, write headline, summary and why with the Nebius writer, one rewrite per failing field. Fewer than 3 survivors is the `nothing` outcome. The weekly pass withholds items the regular pass just chose |
+| Validate | Grounding check of every summary and why sentence against its source text with Jev; an unsupported sentence gets one rewrite and one more check, then the item drops. Then the final validation: schema, URLs in the pool, voice lint, limits, no links or markdown in model text, no repeats. `verified: true` only when the grounder ran and every kept item passed |
+| Commit | Builds each digest from the validated selection, picks its cover, writes `seen.json`, `judgments.json` and `last-run.json`, runs the write guard, then makes one commit and pushes with a rebase retry |
+
+**Score in code.** `taste` is the sum over categories of `P(category) x weight[category]`, times normalized craft depth, reduced by the hype, sponsorship and funding probabilities, plus a small author and keyword bonus. The default threshold is 0.4 (`--threshold` tunes it). Changing weights re-scores from the cache with no new calls.
+
+**Item counts.** Target 8 to 12, hard cap 12 (weekly 18), floor 3. With 3 to 7 qualifying items the digest is shorter, never padded.
+
+**Outcomes.** The Commit step reports `outcome` and `deploy`:
+
+| Outcome | State written |
+| --- | --- |
+| `published` | Digest, `seen.json`, `judgments.json`, a `last-run.json` record for the pass kind. Commit `chore(digest): <ids>` |
+| `nothing` | A `last-run.json` record, the fetch window advanced, judged items marked seen. Commit `chore(state): run <date> nothing cleared the bar`. The site and the status endpoint say "Nothing cleared the bar." |
+| `gated` | Nothing recorded, so the cadence anchor stays put |
+| `failed` | Nothing written; the window and `seen.json` are untouched. Exit code 1 |
+
+**Write guard.** Each command may change only its own paths; anything else aborts the commit.
+
+| Command | May write |
+| --- | --- |
+| `run` | `Digests/` and `state/` |
+| `publish` | `Digests/**/*.audio.json`, the `audio` field of an existing digest (every other frontmatter field is compared with `HEAD`), `state/usage.json` |
+| `learn` | `config/preferences.json` |
+
+**State files** (`state/`, versioned JSON, created by the first run):
+
+| File | Holds | Pruned |
 | --- | --- | --- |
-| 1 | Gate | A regular digest is due when the Stockholm calendar date is two or more days after the last regular digest, so a delayed cron still lands on the right day. On Sundays the weekly pass runs after the regular one. On-demand and `--force` ignore the gate |
-| 2 | Fetch | Per-source timeout and retry; failures are logged, never fatal. The window starts at the last successful fetch of any kind, capped at 7 days (first run: 3 days). Overlap is harmless because `seen.json` removes items already shown |
-| 3 | Normalize | One item shape, with `id = sha1(canonical_url)` |
-| 4 | Dedupe | Strip tracking parameters, resolve redirects, drop anything in `seen.json`, collapse newsletter items that point at originals already in the pool |
-| 5 | Prefilter | Hard-drop `disliked_patterns`; keep keyword, preferred-author and high-signal-source matches; cap near 60 |
-| 6 | Judge (Jev) | Per item, from title and snippet only: category probabilities, craft depth, hype, sponsorship and funding flags. Cached by item, question set and model version |
-| 7 | Score (code) | Probability-weighted category weight, times craft depth, reduced by the flags, plus a small author and keyword bonus. Threshold and caps live in code, not in a prompt. Changing weights re-scores from the cache |
-| 8 | Extract | Full text for finalists, cheapest first: text Exa already returned, feed content, Readability, then Firecrawl for JavaScript-heavy or blocked pages, throttled to its free-plan rate |
-| 9 | Write (LLM) | Headline, summary and why line from the extracted text only, following `config/voice.md` (Section 7.6). The spoken text is assembled by code from those fields and is never written separately |
-| 10 | Validate | Schema, URLs exist in the pool, grounding check (Jev) of every summary and why sentence against the source text, voice lint and length limits (Section 7.6), no links or markdown in model text, no empty sections, no repeats |
-| 11 | Persist | Digest, `seen.json`, `judgments.json`, `last-run.json` (with an `outcome`) and a run log holding counts and source status only, never fetched text. The write guard (below) runs before every commit |
+| `seen.json` | Item id to the date it was shown or judged | 90 days |
+| `judgments.json` | Judge answers keyed by item id, question-set hash and model, so `/learn` re-scores without new calls | 30 days |
+| `last-run.json` | One record per kind (`regular`, `weekly`, `on_demand`) with outcome and digest id; the end of the last successful fetch; the last cover | n/a |
+| `usage.json` | Speechify characters used in the current month | n/a |
+| `source-health.json` | Per source id: consecutive failures and last success (D21) | n/a |
 
-**Item counts.** Target 8 to 12, hard cap 12 (weekly 18), floor 3. With 3 to 7 qualifying items the digest is shorter, never padded. Below 3, nothing is published.
+Source health lives in `state/` because the write guard lets `run` write only `Digests/` and `state/`, and a run must never rewrite hand-edited configuration. It is overlaid onto the registry when the registry loads.
 
-**Outcomes.** Every run ends in one `outcome`, written to `state/last-run.json` and exposed as a job output: `published`, `gated`, `nothing` or `failed`. `nothing` is a successful run: it advances the fetch window, records the judged items in `seen.json`, and commits only `state/`. The site and the status endpoint use one sentence for it: "Nothing cleared the bar." `failed` leaves the window and `seen.json` untouched.
+### 7.3 Digest file and ids
 
-**Write guard.** Each command may change only its own paths: `run` writes `Digests/` and `state/`; `publish` writes `Digests/**/*.audio.json`, the `audio` field in the frontmatter of the digest it voiced, and `state/usage.json`; `learn` writes `config/preferences.json`. A path outside the list aborts the commit.
+The digest is Markdown with frontmatter; the frontmatter is the single source for the site and the body is generated from it ([vision.md](vision.md) Section 3). The frontmatter holds `id`, `date`, `kind` (`regular`, `weekly` or `on-demand`), `verified`, `generated_at`, `window`, `read_minutes`, `listen_minutes`, `audio` (`null` until `dispatch publish` voices the digest, then the Blob URL and duration), `cover` (`template`, `palette`, `seed`) and 3 to 18 `items`. Each item has `id`, `section`, `category`, `source_type`, `headline`, `url`, `source`, `author`, `summary`, `why`, `score` and `published_at`. The audio timeline `<id>.audio.json` holds `voice`, `model`, `timeline` (`marks` or `estimated`), `duration_ms`, `text_chars` and the start and end of each item and section. The Zod schemas in `packages/core/src` are authoritative.
 
-**State files.** `last-run.json` keeps one record per kind (keys `regular`, `weekly`, `on_demand`), so an on-demand run never shifts the regular cadence. It also holds the end of the last successful fetch and the last cover, so the next cover can avoid repeating it. `seen.json` maps item id to date and is pruned at 90 days. `judgments.json` caches Jev answers by item id, question-set hash and model version, pruned at 30 days, so `/learn` can re-score without new calls. `.cache/` is gitignored.
+**Digest ids and filenames.** The id is the Stockholm date, with `-weekly` for the weekly pass and `-2`, `-3` for further runs on the same day. Files are `Digests/YYYY/MM/<id>.md` and `<id>.audio.json`, the audio is `audio/<id>.mp3` in the Blob store, and the route is `/d/<id>`. The engine never overwrites an existing id; it takes the next free suffix.
 
-### 7.3 Normalized item and digest file
+**Sections.** The ten weight keys map to six digest sections.
 
-```json
-{
-  "id": "first-12-hex-of-sha1-of-canonical-url",
-  "url": "", "canonical_url": "", "title": "",
-  "source_id": "", "source_type": "rss",
-  "author": "", "published_at": "", "fetched_at": "",
-  "snippet": "", "signals": { "hn_points": 0 }
-}
-```
+| Section (slug) | Categories |
+| --- | --- |
+| Interaction craft (`ui-craft`) | `design_engineering_craft`, `ui_component_primitives`, `css_canvas_motion_techniques`, `taste_and_design_philosophy` |
+| AI models and products (`ai`) | `ai_ux_interaction_patterns`, `frontier_model_releases` |
+| Research (`research`) | `hci_empirical_research` |
+| Launches (`launches`) | `developer_tool_launches` |
+| Watch and listen (`watch`) | Any item from a `youtube` source, whatever its category |
+| Top picks (`top`) | The three highest scores, removed from their home section |
 
-The digest is Markdown with frontmatter. The frontmatter is the single source for the site; the body is generated from it for reading in an editor or on GitHub.
-
-```yaml
----
-id: 2026-10-07
-date: 2026-10-07
-kind: regular
-verified: true
-generated_at: 2026-10-07T05:21:00Z
-window: { from: 2026-10-05T05:13:00Z, to: 2026-10-07T05:13:00Z }
-read_minutes: 3
-listen_minutes: 4
-audio: { url: "https://<store>.public.blob.vercel-storage.com/audio/2026-10-07.mp3", duration_ms: 248000 }
-cover: { template: spring, palette: dusk, seed: 4117 }
-items:
-  - id: "3f2a9c1e5b07"
-    section: ui-craft
-    category: design_engineering_craft
-    source_type: rss
-    headline: ""
-    url: ""
-    source: ""
-    author: ""
-    summary: ""
-    why: ""
-    score: 0.91
----
-```
-
-`audio` is `null` until `dispatch publish` has voiced the digest, which then sets it to the Blob URL and duration. `kind` is `regular`, `weekly` or `on-demand`.
-
-**Digest ids and filenames.** A digest id is the Stockholm date, with `-weekly` for the weekly pass and `-2`, `-3` for further runs on the same day (on-demand). Files are `Digests/YYYY/MM/<id>.md` and `<id>.audio.json`, the audio is `audio/<id>.mp3` in the Blob store, and the route is `/d/<id>`. The engine never overwrites an existing id; it takes the next free suffix.
-
-**Audio timeline file** (`<id>.audio.json`):
-
-```json
-{
-  "digest": "2026-10-07",
-  "voice": "geffen_32",
-  "model": "simba-3.2",
-  "timeline": "marks",
-  "duration_ms": 248000,
-  "text_chars": 4710,
-  "items": [{ "id": "3f2a9c1e5b07", "section": "ui-craft", "start_ms": 0, "end_ms": 21400 }],
-  "sections": [{ "slug": "ui-craft", "start_ms": 0 }]
-}
-```
-
-`timeline` is `marks` or `estimated`.
-
-**Naming.** Persisted keys are snake_case in every file (frontmatter, JSON, state), and the TypeScript types use the same names, so no mapping layer exists (D15). Enum values keep their own spelling, for example `on-demand`, `ui-craft` and `design_engineering_craft`.
-
-**Sections.** The ten weight keys map to six digest sections. `design_engineering_craft`, `ui_component_primitives`, `css_canvas_motion_techniques` and `taste_and_design_philosophy` go to Interaction craft (`ui-craft`). `ai_ux_interaction_patterns` and `frontier_model_releases` go to AI models and products (`ai`). `hci_empirical_research` goes to Research (`research`). `developer_tool_launches` goes to Launches (`launches`). Items from `youtube` sources go to Watch and listen (`watch`) whatever their category. `venture_capital_and_gossip` and `generic_ai_hype_listicles` never publish. Top picks (`top`) are the three highest scores, removed from their home section. The weekly pass reserves one slot for the best item outside the top-weighted categories, so taste does not narrow.
-
-**Contracts are frozen.** Item, digest frontmatter, audio timeline, state files, `sources.json` (id, url, type, feed URL, tier, `high_signal`, consecutive failure count) and `preferences.json` are Zod schemas in `packages/core`, and the engine's command context is in `packages/engine/src/context.ts`, so the parallel streams share one contract. Changing a frozen schema needs an entry in [decisions.md](decisions.md) and a note to every stream.
+`venture_capital_and_gossip` and `generic_ai_hype_listicles` never publish. The weekly pass reserves one slot for the best item in a category weighted below the median, so taste does not narrow.
 
 ### 7.4 Sources and access
 
+`config/sources.md` is the human list; `sources import` turns it into `config/sources.json` (101 sources, 98 enabled: 56 RSS or Atom, 21 Firecrawl scrapes, 13 GitHub release feeds, 4 YouTube, 2 Crossref, and one each for Hacker News, arXiv, Product Hunt, Lobsters and Exa). Exa queries live in `config/queries.json`. `dispatch status` flags a source failing five runs in a row.
+
 | Channel | Access | Key |
 | --- | --- | --- |
-| Hacker News | Algolia `search_by_date` with `numericFilters` | None |
-| GitHub releases | `releases.atom` (all nine repos tested returned a feed) | None |
-| arXiv cs.HC | API query for daily freshness; RSS only announces on weekdays | None |
-| TOCHI, PACMHCI | Crossref `works` with `issn` and `from-index-date`, polite `mailto` | None |
-| Product Hunt, Lobsters | Public feed, `hottest.json` | None |
+| Hacker News | Algolia `search_by_date`, Show HN above 30 points | None |
+| GitHub releases | `releases.atom` | None |
+| arXiv cs.HC, TOCHI and PACMHCI | arXiv API query; Crossref `works` by `issn` | None |
+| Product Hunt, Lobsters | Public feeds | None |
 | Blogs and newsletters | RSS or Atom found by `sources discover` | None |
-| Feedless or JavaScript-heavy pages | Firecrawl `POST /v2/scrape` (renders JavaScript, 1 credit per basic page; free plan 10 requests per minute, 2 concurrent) | Yes |
-| Semantic discovery | Exa `POST /search` with `startPublishedDate`, optional inline text (about 7 USD per 1,000 searches, 1 USD per 1,000 content fetches) | Yes |
-| YouTube | Channel `videos.xml` feed. Handle-to-ID resolution needs a one-time lookup | Optional, one-time |
+| Feedless or JavaScript-heavy pages | Firecrawl scrape (free plan: 10 requests per minute) | Yes |
+| Semantic discovery | Exa search with a start date | Yes |
+| YouTube | Channel `videos.xml` feed | Optional |
 | X/Twitter | Out of scope | n/a |
 
-Feed discovery results from this pass (starting hints; `sources discover` re-verifies and probes common paths such as `/feed`, `/rss.xml`, `/atom.xml`, `/feed.xml`, `/atom`):
-
-- Confirmed feeds: Josh W. Comeau, Simon Willison, Cloudflare blog, Next.js blog, Cooperpress (JavaScript Weekly and siblings), console.dev.
-- Reported as no feed (unreliable; the check only read page markup): rauno.me, emilkowal.ski, jhey.dev, Anthropic, OpenAI, DeepMind, Vercel, Linear, Tailwind, shadcn changelog, bytes.dev, TLDR. These get path probing first, then Firecrawl.
-- Not yet checked: css-weekly, frontendfoc.us, Smashing, sidebar.io, Friday Checkout, toools.design, uithings, auxfirst.
-- Registry fixes still open (carried from Phase 0 into Phase 3): Rauno's handle is `@raunofreiberg` (the registry says `@rauno_rocks`); Lee Robinson left Vercel in 2025, so his registry description is stale.
+Extraction for finalists tries the cheapest source first: text Exa already returned, feed content, Readability, then Firecrawl.
 
 ### 7.5 Models and judgments
 
@@ -399,370 +307,226 @@ Two roles, each behind its own interface so either can be swapped without touchi
 
 | Role | Default | Job |
 | --- | --- | --- |
-| Judge | TypeSafe Jev | Typed, calibrated judgments: category, craft depth, hype and sponsorship flags, grounding check |
-| Writer | Cheapest Nebius model that passes the quality bar (start with Qwen3-32B) | Two-sentence summary, why line and spoken line in the house voice |
-| Fallback judge | The Nebius writer model answering the same questions as JSON | Used when Jev returns 429 or 529, or is down |
+| Judge | TypeSafe Jev | Calibrated judgments: category, craft depth, hype and sponsorship flags; also the grounding check |
+| Writer | A Nebius model picked from the live list (D24) | Headline, two-sentence summary and why line in the house voice |
+| Fallback judge | The Nebius writer model answering the same questions as JSON | Items Jev cannot answer (429, 529, outage), five per request, two requests in flight. Used alone when `TYPESAFE_API_KEY` is unset |
 
-**Judge: TypeSafe Jev**
+**Judge: TypeSafe Jev.** `@typesafe-ai/sdk` with the `jev-latest` alias; pin an exact version once thresholds are tuned. One request per item with five questions: `category` (Choice over the ten weight keys plus `none`), `craft_depth` (Score, five levels from "announcement or opinion with no technique" to "mechanism shown with code or measurements") and Noul flags for hype, sponsorship and funding. The score uses probabilities, not the top pick, so near-ties stay honest. The grounding check is a Noul per summary and why sentence against the best source excerpt (about 36 checks per run). Thresholds are tuned on the golden set with `dispatch eval`, never copied from documentation. Price: about 0.042 USD per million input tokens, output free, roughly 0.01 USD per run; it may be subsidized, which is why the fallback judge stays wired. Retry with backoff on 429 and 529, revalidate quarterly, and confirm TypeSafe's retention and training terms before the first live call.
 
-| Aspect | Design |
-| --- | --- |
-| Access | npm `@typesafe-ai/sdk`, `new TypeSafeClient()`, key in `TYPESAFE_API_KEY`, `POST https://api.typesafe.ai/v1/systemone` with Bearer auth, sign-up through console.typesafe.ai. Confirmed against TypeSafe's docs; confirm the Score and Noul helpers against the installed SDK types in the spike |
-| Primitives | Choice (criteria object), Score (criteria array, returns the expected level plus probabilities), Noul (probability of yes). Answers carry probabilities and confidence, and the response reports token usage |
-| Item judgments | One request per item. State: title, source, author, snippet, signals. Questions: `category` (Choice over the weight keys plus `none`), `craft_depth` (Score, five levels from "announcement or opinion with no technique" to "mechanism shown with code or measurements"), and Noul flags `is_listicle_or_hype`, `is_sponsored_or_promotional`, `is_funding_news`. The questions are independent, so they run in parallel in one call |
-| Score in code | `taste` = the sum over categories of `P(category) x weight[category]`, times normalized craft depth, reduced by the hype, sponsorship and funding probabilities, plus the small author and keyword bonus. Probabilities rather than the top pick keep near-ties honest |
-| Weights without inference | Judgments are cached by item id, question-set hash and model version. `/learn` changes weights and the pool is re-scored from the cache with no new calls |
-| Grounding check | A Noul per summary and why sentence over the sentence and the relevant source excerpt (about 36 checks per run): "The excerpt directly supports the sentence." Below the tuned threshold the item is rewritten once, then dropped |
-| Thresholds | Tuned on the golden set and never copied from documentation examples |
-| Limits | The docs state 255 options per Choice and list 401, 422, 429 and 529 as errors. Figures from secondary sources and not yet confirmed: about 32K tokens of state, about 2,400 requests per minute, 70 to 500 ms per call. Retry with backoff on 429 and 529 |
-| Price | About 0.04 USD per million input tokens, derived from TypeSafe's published "238x lower input price" claim against a 10 USD per million model. Roughly 0.01 USD per run at this volume. TypeSafe says the price may be subsidized, which is why the fallback judge stays wired |
-| Early-stage risk | Use `jev-latest` while tuning, pin the exact version once thresholds are set, keep the fallback judge, and revalidate quarterly |
-| Data | Confirm retention and training terms in the console before enabling |
-
-**Writer: Nebius Token Factory**
+**Writer: Nebius Token Factory.**
 
 | Aspect | Design |
 | --- | --- |
-| Provider | OpenAI-compatible. Base URL `https://api.tokenfactory.nebius.com/v1/` (override with `NEBIUS_BASE_URL`), header `Authorization: Bearer $NEBIUS_API_KEY` |
-| Client | The official `openai` npm package with `baseURL`, behind one `LlmClient` interface |
-| Models | Config holds a primary and a fallback ID (`DISPATCH_MODEL`, `DISPATCH_FALLBACK_MODEL`). IDs are pinned exactly: Nebius retired dozens of text models in 2026 and the reported notice periods are inconsistent. `dispatch doctor` checks both IDs against `GET /v1/models`, and the client fails over on model-not-found |
-| Choosing the model | The cheapest model that clears the bar in the Phase 4 bake-off. Start with Qwen3-32B (reported 0.10 and 0.30 USD per million input and output tokens). Stronger references for comparison: gpt-oss-120b and DeepSeek-V3. The bar: voice-lint pass rate, grounding pass rate, JSON validity, and a read-through of the golden outputs. IDs and prices are confirmed against the live model list and pricing page in the spike |
-| Structured output | `response_format: json_schema` (strict) through `zodResponseFormat` from `openai/helpers/zod`; `json_object` where a model mishandles strict schemas. Every response is re-validated with Zod, retried once with the error appended, then the item is dropped and logged |
-| Sampling | Temperature at or below 0.2, thinking disabled (the toggle name varies by model, so the spike confirms it) |
-| Caching | None reported on Nebius. Negligible at about 40K input tokens per run |
-| Budget guard | No token-counting endpoint, so the engine estimates locally, reads `usage` after each call, and aborts above `MAX_TOKENS_PER_RUN` (default 400,000). The prepaid balance is the hard cap |
-| Limits | Reported Starter tier: 400K tokens and 600 requests per minute. Concurrency 4 with backoff on 429 and 5xx |
-| Batch API | Not used; on-demand runs need answers in minutes |
-| Data handling | Reported: no training on customer data, zero-data-retention available at organization level, EU (Finland) hosting. Read the policy and enable zero retention before the first live call (Phase 2) |
-| Embeddings (v1.1) | Qwen3-Embedding-8B was reported at about 0.01 USD per million tokens, enough for semantic duplicate detection across sources |
-| Quality escape hatch | Agent curator: the Claude Code session writes the selection, validated by the same code |
+| Provider | OpenAI-compatible. Base URL `https://api.tokenfactory.nebius.com/v1/` (override with `NEBIUS_BASE_URL`), bearer `NEBIUS_API_KEY`, through the `openai` package |
+| Model ids | `DISPATCH_MODEL` and `DISPATCH_FALLBACK_MODEL`, pinned exactly. The client fails over to the fallback id on model-not-found |
+| Choosing the model | List what your key can use with `dispatch models`. Check both ids against the live list with `dispatch doctor --online`. Compare candidates with `dispatch eval --yes --only bakeoff --models a,b` (`--thinking <spec>` for models that switch thinking off another way). The bar: voice-lint pass rate, grounding pass rate, JSON validity and a read-through of the golden outputs. Quality and reliability decide; price breaks ties |
+| History | Qwen3-32B was the original pick. It left Nebius's serverless tier on 2026-08-31, which is why no id is hardcoded and `doctor` checks both |
+| Structured output | `response_format: json_schema`. If a model rejects schemas, the client uses `json_object` for the rest of the run. Every response is validated with Zod; a failing field is rewritten once, then the item drops |
+| Sampling | Temperature 0.2, thinking off with `reasoning_effort: "none"` by default (the switch is data, because models differ), four requests in flight |
+| Limits | The baseline limit is 60 requests per minute, so the fallback judge batches items and the client retries 429 and 5xx with backoff. `MAX_TOKENS_PER_RUN` aborts a runaway run; the prepaid balance is the hard cap |
+| Data | Reported: no training on customer data, zero data retention available at organization level, EU hosting. Read the policy and enable zero retention before the first live call |
 
-Safeguards that apply to both roles:
-
-- Summaries come from extracted text only and are short by construction (Section 7.6).
-- Fetched content reaches the models as clearly delimited data. Neither model has tools or secrets, every output URL must exist in the input pool, and the site escapes all model text.
-- Judge and writer outputs are validated by code, so a wrong or missing answer degrades one item, never the run.
+Safeguards for both roles: summaries come from extracted text only; fetched content reaches the models as delimited untrusted data; neither model has tools or secrets; every output URL must exist in the input pool; the site escapes all model text; code validates every output, so a wrong or missing answer degrades one item, never the run.
 
 ### 7.6 Editorial voice
 
-The voice is distilled from your communication playbook: brevity signals status, specific craft recognition replaces praise, and nothing opens with a preamble. The rules live in [voice.md](../config/voice.md) (distilled rules only; the playbook itself stays out of the repo). The writer prompt loads that file and the validator enforces its measurable parts. The limits below are confirmed (D12) and mirrored in code as `VOICE_LIMITS` in `packages/core`.
-
-| Principle | In the digest |
-| --- | --- |
-| Brevity is status | No greeting, intro paragraph, sign-off or "in today's briefing". A headline, two short sentences, one line on why |
-| Specific over general | Name the technique, feature, number or result. Authors are credited by what they shipped, never praised |
-| No hype, no flattery | No "game-changing", "excited", "huge", "must-read", "revolutionary" or exclamation marks |
-| Peer to peer | The reader is a design engineer. No explaining basics, no "you should", no questions to the reader |
-| Curator, not aggregator | Few items. Empty sections are omitted. A quiet day publishes nothing and the site says "Nothing cleared the bar." |
-| Why is usable | The why line names what the reader can try, copy or watch for, never that something "matters" |
-
-Measurable limits, enforced in validation:
+[voice.md](../config/voice.md) holds the rules (principles, limits, examples, banned words). The writer prompt loads it and the validator enforces its measurable parts. The limits are confirmed (D12) and mirrored as `VOICE_LIMITS` in `packages/core`.
 
 | Field | Limit |
 | --- | --- |
 | Headline | 12 words |
 | Summary | 35 words, two sentences at most |
 | Why | 18 words, one sentence |
-| Items | Regular digest: target 8 to 12, hard cap 12, floor 3; about 2 minutes to read and 4 to listen. Weekly: up to 18 |
+| Items | Regular: target 8 to 12, hard cap 12, floor 3. Weekly: up to 18 |
 
-Pairs the writer prompt uses as exemplars:
-
-| Weak | Strong |
-| --- | --- |
-| An exciting new library makes animations easier | Springlet 2.0 retargets springs mid-flight, so interrupted drawers keep their velocity |
-| This could change how we design agent interfaces | Four measures for agent UIs: first useful signal, correction cost, interruptions, recovery |
-| Why: important for anyone interested in motion | Why: copy the retargeting pattern for drawers and toasts |
-
-Deterministic voice lint, run on every written field:
-
-- Banned words and phrases (hype adjectives, stock AI vocabulary, "in today's", "delve", "landscape", "unlock", "game-changer" and similar), kept in `config/voice.md`.
-- No em dashes, no exclamation marks, no emoji, no markdown or links inside model text.
-- No "not just X but Y" contrasts, no rhetorical questions, no second-person imperatives.
-
-A failing field is rewritten once with the lint error appended, then the item is dropped and logged. The weekly golden evaluation also runs the `humanizer` skill's checks as a stricter offline review.
-
-Audio follows the same bar: one opening line ("Dispatch, Wednesday 7 October. Eleven items."), the section name as the only transition, no outro. Site copy follows it too: sentence case, plain verbs, and errors that say what happened and what to do.
+The deterministic lint runs on every written field: banned words, no em dashes, exclamation marks, emoji, markdown or links, no "not just X but Y" contrasts, no rhetorical questions, no second-person commands. A failing field is rewritten once with the lint error appended, then the item drops. Audio follows the same bar: one opening line ("Dispatch, Wednesday 7 October. Eleven items."), the section name as the only transition, no outro. Site copy is sentence case with plain verbs, and errors say what happened and what to do.
 
 ### 7.7 Audio
 
 | Aspect | Design |
 | --- | --- |
-| Endpoint | `POST /v1/audio/stream/with-timestamps` (Server-Sent Events; `speech.chunk` carries base64 audio and marks, `speech.done` ends the stream) |
-| Marks | Word level: `start` and `end` are character offsets into the request `input`; `start_time` and `end_time` are absolute milliseconds |
-| Timeline | Spoken text is assembled by code from each item's headline, summary and why, with known character ranges, so the first mark at or after each range gives that item's start time. Stored in `<id>.audio.json` (schema in Section 7.3) |
-| Format | `mp3_24000_128`; try a 64 kbps variant in the spike to halve storage. A four-minute digest is about 4 MB at 128 kbps and about 2 MB at 64 kbps |
-| Limits | 20,000 characters per request. A digest is about 5,000 characters (weekly about 8,000), so one request always suffices. The engine fails closed above 19,000 instead of splitting |
-| Rate | Free plan: 3 concurrent requests, 1 per second. Calls run sequentially |
-| Budget | `state/usage.json` tracks characters, is committed by `publish`, and so survives between runs; stop at 90 percent of the monthly allowance |
-| Fallback | If marks are unavailable on the free plan, use `/v1/audio/stream` and estimate chapter starts from character share, flagged `timeline: "estimated"` |
-| Storage | Vercel Blob, public store, key `audio/<id>.mp3`, uploaded by the engine with `@vercel/blob` and `BLOB_READ_WRITE_TOKEN`. The URL the upload returns is stored in the digest's `audio.url`. Blob answers Range requests; the spike confirms seeking on a locked iPhone |
-| Retention | Hobby Blob storage is 1 GB. Audio older than about 120 days is deleted by `dispatch publish --prune`, which `deploy.yml` runs on every deploy. At about 20 digests a month and 4 MB each, 120 days is about 320 MB. The text digest and the timeline stay. The player shows no audio for a digest past the window (one retention constant shared by the engine and the site) and treats a 404 the same way. Other Hobby limits (operations, transfer) are checked in the spike |
-| Allowance | Speechify's pricing page lists 500K characters per month on the free tier with a hard cap. One verification report said there is no monthly quota. Treat 500K as the planning figure and confirm in the spike |
-
-The spoken text is derived from the same fields the page displays, which keeps word-level read-along possible later.
+| Endpoint | Speechify `POST /v1/audio/stream/with-timestamps` (server-sent events with base64 audio and word marks), model `simba-3.2`, voice `SPEECHIFY_VOICE_ID` (default `geffen_32`), format `mp3_24000_128` (about 4 MB for four minutes) |
+| Timeline | Spoken text is assembled by code from each item's headline, summary and why, with known character ranges, so the first mark at or after a range gives that item's start time |
+| Limits | 20,000 characters per request; a digest is about 5,000 (weekly about 8,000). The engine fails closed above 19,000 instead of splitting. Calls run sequentially |
+| Budget | `state/usage.json` counts characters for the month. Synthesis stops at 90 percent of `SPEECHIFY_MONTHLY_CHARS` (default 500,000, the free-tier figure from Speechify's pricing page; unconfirmed) |
+| Fallback | If marks are unavailable or cannot place every item, the timeline is estimated from character share and flagged `timeline: "estimated"` |
+| Storage | Vercel Blob, public store, key `audio/<id>.mp3`, uploaded with `@vercel/blob`. The returned URL is stored in the digest's `audio.url` |
+| Retention | `dispatch publish --prune 120`, run by every deploy, deletes Blob audio uploaded more than 120 days ago, to stay inside the 1 GB Hobby store. The text and timeline stay. Pruning leaves the digest's `audio` field alone, so a pruned digest's player reports "The audio for this briefing is not available" on the 404. The "audio has expired" state shows only when `audio` is null and a timeline exists |
 
 ### 7.8 Taste feedback
 
-`/learn "more shaders, less VC funding"` flow: the session model turns the sentence into a patch (weight deltas, keyword and pattern edits); `dispatch learn --apply` enforces plus or minus 0.05 per weight per call, schema validity and an overall drift limit, appends to `feedback_history`, prints the diff, and only then commits and pushes. Because the patch is data, `/learn` works with or without an API key.
+`/learn "more shaders, less VC funding"`: the session turns the sentence into a patch (weight deltas, keyword, author and pattern edits). `dispatch learn --apply` enforces at most 0.05 per weight and 0.15 per call, weights between 0 and 1, and schema validity; it appends to `feedback_history`, prints the diff, and with `--commit` commits and pushes. Because the patch is data, `/learn` works with or without an API key.
 
-### 7.9 Failure behaviour
+### 7.9 Failure behavior
 
-- A failed source is logged; the digest footer mentions failures only when three or more sources failed.
-- A total failure leaves `last-run.json` unchanged, so the next window grows and nothing is lost.
-- A TTS failure still publishes the text digest with `audio: null`; the player shows "Audio is still being prepared", and `deploy.yml` retries on the next `run.yml` of any outcome, including `gated` and `nothing`, because `run.yml` always calls it.
-- Concurrency: `run.yml` declares `concurrency: { group: dispatch, cancel-in-progress: false }`. `deploy.yml` declares none, because a called workflow that shares its caller's group gets cancelled. The deploy job in `ci.yml` joins the same group on the calling job, so a deploy never overlaps a `run.yml` run. GitHub keeps one pending run per group, so duplicate presses collapse.
+- A failed source is logged and counted in `state/source-health.json`.
+- A failed stage leaves `state/` untouched, so the next window grows and nothing is lost.
+- The engine tolerates audio failure (D23): a speech, Blob or credential error publishes the text digest with `audio: null`, and the player says "Audio is still being prepared". `publish` retries every digest that lacks audio, and the Commit step sets `deploy=true` while any digest from the last 7 days lacks it, so the next `run.yml` of any outcome retries.
+- `run.yml` declares `concurrency: { group: dispatch, cancel-in-progress: false }`, so duplicate presses collapse into one pending run. `deploy.yml` uses its own group, `deploy`, because a called workflow that shares its caller's group is cancelled (D22).
 
 ---
 
 ## 8. Web app
 
-[design-spec.md](design/design-spec.md) is the canonical reference for the interface (layout, type, color, components, motion, states) and [sound-design.md](design/sound-design.md) for UI sounds (D17). This section keeps what the product must do and the technical constraints behind it. Where the two disagree on visual or interaction detail, the design docs win; where they disagree on a requirement stated here, raise it before building.
+[design-spec.md](design/design-spec.md) is the canonical reference for the interface and [sound-design.md](design/sound-design.md) for UI sounds (D17). This section keeps what the product must do and the technical constraints behind it. Where the design docs and this section disagree on visual or interaction detail, the design docs win; on a requirement stated here, raise it.
 
-### 8.1 Stack and why
+### 8.1 Stack
 
-| Option | First-load JS for reading | Persistent player | Fit with your standards | Verdict |
-| --- | --- | --- | --- | --- |
-| Astro with React islands | Near zero for content; islands load on idle | Module-scope audio singleton survives navigation | React, Base UI, CSS-first | Chosen |
-| Vite React SPA with a router | React plus router on every load | Trivial | Same | Heavier for a reading app |
-| SvelteKit | Smallest runtime | Trivial | Leaves your React ecosystem and Base UI | Good, but not worth the switch |
-
-The reading experience should be HTML first and instant, with the player as progressive enhancement. Astro delivers that. The audio element lives in a JavaScript module as `new Audio()` (not in the DOM), so it keeps playing across client-side navigations regardless of how the router swaps the page. This avoids a reported Astro regression where media inside `transition:persist` containers was recreated on navigation (issue 17749). A fix (PR 17750) is reported in Astro 7.3.x, but the design does not depend on it. Astro's docs say module scripts run once and do not re-run on navigation; the spike confirms that on a real phone.
-
-The site is built static. Only `/api/*` runs on the server, as Vercel Functions through `@astrojs/vercel` (Section 8.9).
+Astro 7 with React 19 islands, built static; only `/api/*` runs on the server, as Vercel Functions through `@astrojs/vercel` (Section 8.9). Reading is HTML first, with the player as progressive enhancement. The audio element is created in a JavaScript module with `new Audio()` and never sits in the DOM, so it keeps playing across `ClientRouter` navigations. Rationale and rejected stacks: D4.
 
 ### 8.2 UI library and styling
 
-Details live in [design-spec.md](design/design-spec.md). The constraints that shape the build:
-
-- **Base UI** (`@base-ui/react`): unstyled and accessible, so the look stays ours. Used for Drawer, Slider, Dialog, Field and Switch. Radix is skipped because the shadcn and Radix drawer rests on Vaul, which is unmaintained.
-- **Not Tailwind or shadcn.** Both pull toward the templated look you want to avoid.
-- **Tokens.** `tokens/tokens.json` in the W3C format, compiled by a small script into CSS custom properties. Dark mode swaps semantic tokens. No literal durations, easings or colors in components.
-- **Motion.** CSS transitions, `@starting-style` and the View Transitions API first; `motion` only if a gesture needs a spring.
+- **Base UI** (`@base-ui/react`): unstyled and accessible, so the look stays ours. Radix is skipped because the shadcn and Radix drawer rests on Vaul, which is unmaintained. No Tailwind or shadcn.
+- **Tokens.** `tokens/tokens.json` in the W3C format, compiled by `scripts/buildTokens.ts` (the web `prebuild` step) into CSS custom properties. No literal durations, easings or colors in components.
+- **Motion.** CSS transitions, `@starting-style` and the View Transitions API.
 - **Fonts.** Schibsted Grotesk and Literata, self-hosted as subset variable files, never a font CDN.
 
-### 8.3 Screens and components
+### 8.3 Pages and components
 
-The design spec defines each screen. The product needs these parts:
-
-| Screen or part | Notes |
+| Route | Notes |
 | --- | --- |
-| Digest page (`/`, `/d/<id>`) | Date, play, a timeline rail, items grouped by section. Server-rendered HTML |
-| Archive (`/archive`, month pages) | Year then month then day; weekly dives marked |
-| Player bar and expanded player | Persistent bar; expands to cover, scrubber with item ticks, 15 second skips, previous and next item, chapter list, speed |
-| Generate sheet | Passphrase, progress steps, clear errors (Section 8.9) |
-| Settings sheet | Theme, default speed, UI sounds, install hint |
-| States | Empty, nothing new, audio preparing, audio expired, offline, error, stale briefing |
+| `/` | Latest digest: date, play, a timeline rail, items grouped by section. With no digest it shows "No briefings yet" |
+| `/d/<id>` | One digest, with previous and next links |
+| `/archive` | One page: year, then month, then day; weekly dives marked |
+| `/offline`, `/404` | Static pages |
+| `/latest.json`, `/manifest.webmanifest` | Latest digest summary; web app manifest |
+| `/covers/<id>-512.png`, `/covers/<id>-1024.png` | Cover art rendered at build (Section 8.11) |
+| `/api/generate`, `/api/status` | The only server routes (Section 8.9) |
 
-[reader-prototype.html](prototype/reader-prototype.html) is the first reference for the rail, the one-item-at-a-time dimming and the hero. With a real timeline the rail fills continuously inside an item, not in steps.
+The `/dev` lab pages and `/fixtures/audio.wav` serve the player e2e suite and the fixture build; outside `astro dev` the lab pages answer 404. Parts: the player bar and expanded player, the Generate sheet, the Settings sheet (theme, interface sounds with volume, default speed, install hint) and the page states (empty, nothing new, audio preparing, audio unavailable, offline, error, stale).
 
-### 8.4 Player behaviour
+**Reader and player contract.** The page is server-rendered HTML and the player only toggles attributes: `[data-item-id]` per item and `[data-chapter]` per section (matching the audio timeline), `data-state` of `played` or `current`, `.briefing[data-live]`, and the triggers `[data-play-digest]`, `[data-play-item]` and `[data-chapter-play]`. The page embeds its digest as a JSON block with id `dispatch-digest-data`. The full contract is in [design-spec.md](design/design-spec.md) under "Contract between the reader and the player".
 
-- One `<audio>` element created in JavaScript, never in the DOM. State is a small external store read with `useSyncExternalStore`, so no state library is added.
-- Media Session: title and artwork; handlers for play, pause, seek backward and forward, seek to, previous and next track (mapped to items); `setPositionState` so the lock-screen scrubber works.
-- Item seek from any play button using the timeline; chapter list in the Drawer.
-- Remembers position per digest and resumes there.
-- A digest past the audio retention window has no player (Section 7.7); the page says the audio has expired.
-- iOS: use a plain `<audio>` element for narration (Web Audio is treated as ambient and is silenced in the background). UI sounds are separate and never carry narration (Section 8.12). Background playback in standalone apps has worked since iOS 15.4 (WebKit bug 198277), but reports of pause-and-resume and lock-screen quirks persist, so Section 12 makes a real-device test a gate.
-- If the lock screen drops controls during the spike, first try re-registering the Media Session handlers on `visibilitychange`. A "silent carrier audio" workaround circulates but is unverified and is not planned.
+### 8.4 Player behavior
 
-**Feel.** The player should behave like a native one: instant response, continuous motion, no waiting on the network for anything the listener can already see.
+- One `<audio>` element created in JavaScript. State is a small external store read with `useSyncExternalStore`, so no state library is added.
+- Media Session: title and artwork; handlers for play, pause, seek backward and forward (15 seconds), seek to, previous and next track (mapped to items); `setPositionState` keeps the lock-screen scrubber working.
+- Item seek from any play button using the timeline; chapter list in the expanded player; resume position per digest in `localStorage` (`dispatch:resume:<id>`); speed 1x, 1.25x, 1.5x or 2x with `preservesPitch`.
+- After the last item the player offers the previous digest, not an autoplay chain. After a system pause (call, alarm) it offers resume instead of auto-playing. `preload="metadata"` keeps play instant without downloading the MP3.
+- iOS: a plain `<audio>` element carries narration, because Web Audio is ambient and is silenced in the background. UI sounds are separate and never carry narration (Section 8.12). Background playback in standalone web apps works from iOS 15.4, but pause-and-resume and lock-screen quirks persist, so a real-device test is a gate (Section 12). If the lock screen drops controls, first re-register the Media Session handlers on `visibilitychange`.
+- Feel (press feedback within one frame, pointer-capture scrubber, cover morph between mini and expanded player, reduced-motion crossfades) is specified in the design spec. No haptics: iOS Safari has no vibration API. A sleep timer is later.
 
-| Aspect | Design |
-| --- | --- |
-| Response | Press feedback within one frame on every control (scale 0.97 on press). Play starts from the first tap with the audio request already warm: `preload="metadata"` on the digest page, and the source is attached before the tap |
-| Scrubber | Pointer-capture drag with a 44px tall hit area over a thin track, velocity-aware, with a tick at each item start from the timeline and a time label that follows the thumb. Dragging never fights playback updates. Keyboard: arrows seek 5 seconds, page keys seek by item |
-| Mini to full | The cover is a shared element between the bar and the expanded player, morphed with the View Transitions API and a CSS fallback. The Drawer follows the finger, snaps with a spring, and dismisses by flick |
-| Rail link | The reading page's rail position and the scrubber are one state, so scrubbing moves the page and tapping an item moves the audio |
-| Buffering | Skeleton track and a quiet spinner only after 300 ms; never a layout shift |
-| Interruptions | On `pause` caused by the system (call, alarm), remember it and offer resume instead of auto-playing. Resume position per digest is saved every 5 seconds |
-| Speed | 1x, 1.25x, 1.5x, 2x with `preservesPitch` on; remembered |
-| Up next | After the last item the player offers the previous digest, not an autoplay chain |
-| Sleep timer | v1.1: 5, 15, 30 minutes or end of digest |
-| Haptics | None promised: iOS Safari exposes no vibration API. Visual and motion feedback carry the feel |
-| Reduced motion | Morphs become crossfades; the rail and scrubber still update |
-| Lock screen | Title is the digest date, artist "Dispatch", album the month, artwork is the generated cover (Section 8.11) |
+### 8.5 Responsive behavior
 
-### 8.5 Responsive behaviour
-
-Mobile first, with breakpoints chosen where the content stops fitting, not by device.
-
-| Width | Layout |
-| --- | --- |
-| Under 40rem | Single column, bottom player, sheets slide up |
-| 40rem to 72rem | Reading column stays 40rem; chapters appear as a sticky aside when there is room; sheets become centered dialogs |
-| Over 72rem | Same column, centered, more air; no extra chrome added just to fill space |
-
-Layout rules: logical properties throughout, no fixed widths on text, container queries for components, content bleeds while controls stay inside safe areas, no controls in the top-left 64px (iPadOS windowed apps overlay window controls there and `env()` does not report it), layout correct when the top safe-area inset is `0px`.
+Mobile first, with breakpoints where the content stops fitting: under 40rem a single column with a bottom player and sliding sheets; from 40rem the reading column stays 40rem, chapters appear as a sticky aside when there is room and sheets become centered dialogs; above 72rem the same column, centered. Layout rules: logical properties, container queries, controls inside safe areas, nothing in the top-left 64px (iPadOS windowed apps overlay window controls there), and a correct layout when the top safe-area inset is `0px`. Detail: the design spec.
 
 ### 8.6 PWA and iOS
 
 | Item | Decision |
 | --- | --- |
-| Head | `viewport-fit=cover`, `apple-mobile-web-app-capable`, `mobile-web-app-capable`, status-bar style `black-translucent`, `theme-color` pair for light and dark |
-| Status-bar tint | Safari 26 samples a full-width sticky header's `background-color`, so the header gets an explicit opaque background. Hidden overlays use `display: none`, never `opacity: 0` |
-| Manifest | `standalone`, `start_url`, name and short name; PNG icons only at 192 and 512 plus maskable |
-| Icons | One SVG mark rendered at build to opaque PNGs, including the 180px apple touch icon. Icon, splash and body share one background color |
-| Splash screens | Skipped in v1 (they need many device sizes); body background matches the icon to avoid a flash |
-| Install hint | Safari on iOS only, not already installed, two or more visits, dismissal remembered permanently, copy says "Add to Home Screen", never "install" |
-| Standalone navigation | Visible back control wherever a user can leave the entry screen |
-| Keyboard | Generate sheet uses Base UI's virtual-keyboard support; inputs stay at 16px or larger to prevent iOS zoom |
-| Touch | `touch-action: manipulation`, tap highlight removed only where another pressed state exists, `overscroll-behavior` set in a stylesheet (not from script) |
-| Storage | Treat as best effort; save only convenience state (theme, speed, positions) |
-| Service worker | Caches the shell and recent digests, stale-while-revalidate. Audio is not cached in v1, because serving audio from the Cache API without correct Range handling breaks Safari playback |
+| Head | `viewport-fit=cover`, `apple-mobile-web-app-capable`, status-bar style `black-translucent`, `theme-color` pair for light and dark, `noindex`. The sticky header has an explicit opaque background, because Safari 26 samples it for the status-bar tint |
+| Manifest and icons | `standalone`; PNG icons at 192 and 512, a maskable icon and a 180px apple touch icon, rendered from one SVG by `scripts/buildIcons.ts`. No splash screens in v1; the body background matches the icon |
+| Install hint | Safari on iOS only, not already installed, two or more visits, dismissal remembered permanently. Copy says "Add to Home Screen", never "install" |
+| Storage | Best effort, convenience only. `dispatch:preferences` is one JSON object holding theme, sounds, volume and speed (D20); an inline theme script reads the same key before first paint, and its hash is allowed in the Content-Security-Policy. Other keys: `dispatch:resume:<id>`, `dispatch:install-hint-visits`, `dispatch:install-hint-dismissed` |
+| Service worker | `public/sw.js` precaches the shell (`/`, `/offline` and their assets). Digest pages are stale-while-revalidate. Home, archive and `/latest.json` go to the network first and fall back to the cache after 3 seconds. Audio, ranged requests and cross-origin requests always pass through, because serving audio from the Cache API without correct Range handling breaks Safari playback |
 
 ### 8.7 Accessibility
 
-Native elements first; every control has an accessible name; visible `:focus-visible` rings (two-layer ring that reads on any background, with a forced-colors fallback); 44px touch targets; a polite live region for generation status and playback announcements; correct heading order with one `h1`; reduced motion removes movement but keeps opacity and color transitions; 200 percent zoom and 320px reflow without horizontal scroll; color never the only state signal; sheets trap and restore focus (native `inert` behaviour via Base UI).
+Native elements first, accessible names on every control, visible `:focus-visible` rings, 44px touch targets, a polite live region for generation status and playback, one `h1` per page, reduced motion that keeps opacity and color transitions, 200 percent zoom and 320px reflow without horizontal scroll, sheets that trap and restore focus. axe runs on every route in the e2e suite. Detail: the design spec.
 
 ### 8.8 Performance budget
 
-| Metric | Budget |
-| --- | --- |
-| Lighthouse mobile (performance, accessibility, best practices, SEO) | 95 or higher each; your standard is 90 |
-| LCP on mid-range phone, 4G | 1.5 s or less |
-| CLS, INP | 0 and under 200 ms |
-| Render-blocking JavaScript | None (content is server-rendered HTML; islands hydrate on idle) |
-| JavaScript total on first load | 100 KB gzipped or less. React and ReactDOM are the main cost (about 55 KB by a reported figure); Base UI parts and `@dispatch/sound` are measured in the spike |
-| Fonts | Subset, self-hosted, one preloaded, 80 KB or less in total |
-
-Techniques: inline critical CSS, `content-visibility: auto` on long digests, prefetch on intent for archive links, no third-party scripts.
+| Metric | Budget | Enforced by |
+| --- | --- | --- |
+| JavaScript on first load | 100 KB gzipped or less per page | `checkBundle.ts`; 93.9 KB measured in the fixture build on 2026-10-06 |
+| Fonts | Subset, self-hosted, 80 KB or less in total | `checkBundle.ts`; 69.9 KB measured |
+| Render-blocking JavaScript | None; inline scripts must be allowed by the Content-Security-Policy hash | `checkBundle.ts` |
+| Lighthouse mobile (performance, accessibility, best practices, SEO) | 95 or higher each | Target only; Lighthouse CI is not set up |
+| LCP on a mid-range phone on 4G, CLS, INP | 1.5 s or less, 0, under 200 ms | Targets only; not yet measured |
 
 ### 8.9 Generate function and flow
 
-The site is static. `/api/generate` and `/api/status` are Astro endpoints with `export const prerender = false`, so they alone run on demand as Vercel Functions through `@astrojs/vercel`. Astro's `output` setting stays at its default, `static`: per the on-demand rendering guide on docs.astro.build (Astro 7, checked 2026-10-06), an adapter plus `prerender = false` on the endpoint is enough, and the old `hybrid` output mode is not used.
+`/api/generate` and `/api/status` are Astro endpoints with `export const prerender = false`; Astro's `output` stays `static`, so they alone run on demand through the Vercel adapter (`maxDuration` 20 seconds). They need the three Vercel variables in Section 5, keep no state and use no KV and no bot check (D10). With a variable missing or malformed they answer "unavailable".
 
-The function needs three environment variables: `GITHUB_DISPATCH_TOKEN`, `GITHUB_REPOSITORY` and `GENERATE_PASSPHRASE_HASH` (Section 5). It keeps no state and uses no KV and no bot check in v1 (D10).
+1. The sheet posts the passphrase (at most 256 characters) to `/api/generate`.
+2. The function checks it against `GENERATE_PASSPHRASE_HASH` with scrypt and `timingSafeEqual`. A wrong guess costs an extra 750 ms.
+3. It checks the limits statelessly: it lists recent `workflow_dispatch` runs of `run.yml` on `main` through the GitHub API and refuses when one started in the last 6 hours or three in the last 24. The count includes runs started by `gh`, the skills and the GitHub UI.
+4. It dispatches `run.yml` with the fixed input `mode=on-demand` and returns the run id.
+5. The sheet polls `/api/status?run=ID`. The function answers only for a `workflow_dispatch` run of `run.yml` in the configured repository and returns a whitelist of fields: the current step mapped to the progress list (Waiting, Reading, Judging, Writing, Checking, Publishing) and, when the run completes, the `on_demand` record of `state/last-run.json` read through the Contents API. On `published` the sheet offers "Open the new briefing". Polls are cached privately for 3 seconds.
+6. Errors say what happened and what to do: wrong passphrase, cooldown or daily limit with the time remaining, "Nothing cleared the bar.", and a failed run with a link.
 
-1. The sheet collects a passphrase and posts it to `/api/generate`.
-2. The function derives a scrypt hash of the passphrase (`node:crypto` `scrypt`, salt and cost read from the stored hash string) and compares it with `GENERATE_PASSPHRASE_HASH` using `timingSafeEqual`.
-3. It checks the limits statelessly. Using `GITHUB_DISPATCH_TOKEN`, it lists recent `workflow_dispatch` runs of `run.yml` through the GitHub API and refuses when one started in the last 6 hours or three started in the last 24 hours. The count includes runs started by `gh`, the skills and the GitHub UI, so any manual run uses the allowance.
-4. It dispatches `run.yml` through the REST API with fixed inputs (`mode=on-demand`) and returns the `workflow_run_id`.
-5. The sheet polls `/api/status?run=ID`. The function answers only when the run is a `workflow_dispatch` run of `run.yml`, reads the run and its job steps (cached a few seconds), and returns a whitelist of fields: the current step name mapped to the progress list (Waiting, Reading sources, Judging, Writing, Checking, Publishing) and, when the run completes, the `outcome` read from `state/last-run.json` through the Contents API. On `published` the sheet offers "Open the new briefing".
-6. Errors say what happened and what to do: wrong passphrase, cooldown with the time remaining, "Nothing cleared the bar." when the outcome is `nothing`, and a failed run with a link to it.
-
-Two quick presses can both pass the limit check before the first run is listed. The workflow's `concurrency` group and the engine gate make a duplicate harmless.
-
-Residual risk, recorded in Section 11: with no per-IP failure counting and no bot check, the passphrase can be guessed at the price of one scrypt computation per attempt. The scrypt cost, a long passphrase, the unlisted URL and the run cap (spend stays bounded at three runs a day even if the passphrase leaks) are the mitigations.
+Two quick presses can both pass the limit check before the first run is listed; the workflow's concurrency group and the engine gate make a duplicate harmless. Residual risk (Section 11): with no per-IP failure counting and no bot check, the passphrase can be guessed at the price of one scrypt computation and 750 ms per attempt. The scrypt cost, a long passphrase, the unlisted URL and the run cap (three runs a day, even if the passphrase leaks) are the mitigations.
 
 ### 8.10 Delivery surfaces
 
 | Surface | Status |
 | --- | --- |
 | Web app | v1 |
-| Private podcast feed `/feed.xml` with MP3 enclosures | Deferred (D7). Podcast apps are the most reliable lock-screen and background path on iOS, so this is the first fallback if the spike shows web playback is flaky. Apple Podcasts can follow an unlisted feed by URL; it needs HTTPS and byte-range support |
-| Web push when a briefing lands | Later |
-| Word-level read-along | Later; the timeline already supports it |
-| Search (static index) | Later |
-| Offline audio | Later; needs Range-aware caching |
+| Private podcast feed `/feed.xml` | Deferred (D7). Podcast apps are the most reliable lock-screen path on iOS, so this is the first fallback if web playback proves flaky |
+| Web push, word-level read-along, search, offline audio | Later; the timeline already supports read-along |
 
 ### 8.11 Cover art system
 
-Every digest gets its own album-style cover, generated from the digest and never stored by hand. It is the one expressive element of the player; the rest stays quiet.
+Every digest gets an album-style cover generated from the digest and never stored by hand. It is deterministic (the frontmatter's `cover: { template, palette, seed }` reproduces it) and varied: eight templates (spring, dither, contour, numeral, lattice, orbit, aperture, band) times twelve palettes in `tokens/covers.json` times seeded parameters. No two consecutive digests share a template and palette, the lead item's category biases the template, and the weekly digest draws from a darker palette family with a framing rule. The date is the typographic anchor, set in Schibsted Grotesk. Generative image models are not used: they cost money, drift in style and cannot be reproduced from a seed.
 
-**Principles**
-
-- Deterministic: the same digest always yields the same cover, from a seed in the frontmatter (`cover: { template, palette, seed }`).
-- Varied: eight launch templates times twelve curated palettes times seeded parameters give far more than a year of distinct covers, and no two consecutive digests share a template or a palette.
-- Meaningful: the lead item's category biases the template, so a cover hints at what the briefing is about.
-- Legible: the date is the typographic anchor, large and set in Schibsted Grotesk, and passes contrast on every palette.
-- Free of stock motifs: no gradients-as-decoration, no neon, no AI imagery. Forms come from the craft the briefing covers: curves, grids, dither, contours.
-
-**Templates at launch**
-
-| Template | Form | Biased toward |
-| --- | --- | --- |
-| Spring | Overlapping spring-response curves with different damping, drawn as fine strokes | Interaction craft, motion |
-| Dither | Ordered-dither gradient field with a hard-edged shape cut from it | AI models and products |
-| Contour | Topographic contour lines from seeded noise | Research |
-| Numeral | The day number set huge and cropped by the frame, flat color blocks behind it | Quiet days, any |
-| Lattice | Triangular or square lattice with a few cells lit | Developer tools, launches |
-| Orbit | Concentric arcs offset along a seeded path | Taste and philosophy |
-| Aperture | Overlapping circles forming lens shapes with blend-like overlaps drawn as flat tints | Mixed digests |
-| Band | Stacked wave bands with phase shifts | Watch and listen |
-
-The weekly digest uses the same templates in a darker palette family, with a framing rule so it reads as a different kind of record at a glance.
-
-**Palettes.** Twelve OKLCH palettes of three or four colors each, tuned in light and dark pairs, drawn from the lingonberry, fog and sea family and extended with a few warm and cool accents so the archive has real range. Each palette carries a verified text color for the date. Palettes live in `tokens/covers.json` in the same token format as the rest of the system.
-
-**Rendering**
-
-- A `packages/cover` module takes `{ id, date, kind, lead_category, seed }` and returns SVG. Templates are pure functions with a seeded random generator, so they are testable.
-- A build step rasterizes with a Node SVG renderer (`@resvg/resvg-js` or its WASM build; confirm in the spike) to `/covers/<id>-512.png` and `-1024.png`, plus a 1200 by 630 social image. PNG because lock screens and Media Session do not reliably take SVG.
-- Covers are static assets of the site build, cached by content hash in CI, so a run adds only the new digest's images. The in-page player uses the same PNG with a solid placeholder color from the palette, so there is no empty flash.
-- The expanded player takes its accent color from the cover palette, shifting the progress color and the status-bar tint through CSS custom properties on the Drawer.
-
-**Quality gates**
-
-- A contact sheet shows every template across every palette for review: first the static [cover-contact-sheet.html](prototype/cover-contact-sheet.html), later a `/dev/covers` route excluded from production builds.
-- Snapshot tests render each template with fixed seeds, and a contrast test checks the date against its palette.
-- Anti-repeat rule: the engine reads the last cover from `state/last-run.json` and rerolls on a match.
-- Generative image models are not used: they cost money, drift in style, and cannot be reproduced from a seed.
-
-**Later:** cover variants from the digest's actual content (for example the lead headline's first letters as a typographic study) and special covers for milestones such as the hundredth briefing.
+`@dispatch/cover` takes `{ id, date, kind, lead_category, previous }` and returns SVG from pure, seeded template functions. The web build rasterizes with `@resvg/resvg-js` to `/covers/<id>-512.png` and `-1024.png` (PNG, because lock screens do not reliably take SVG) and caches by content hash in `.cache/covers`. The engine picks the cover at commit and records it in `state/last-run.json` so the next cover avoids a repeat. `npm run covers:sheet` writes a contact sheet of every template across every palette. Snapshot tests render each template with fixed seeds.
 
 ### 8.12 UI sounds
 
-[sound-design.md](design/sound-design.md) is the canonical reference; `docs/prototype/sound-lab.html` is the listening prototype. The sounds are synthesized in the browser by `@dispatch/sound` (D18).
+[sound-design.md](design/sound-design.md) is the canonical reference and `docs/prototype/sound-lab.html` the listening prototype. Fourteen sounds are synthesized in the browser by `@dispatch/sound` (D18).
 
 | Aspect | Requirement |
 | --- | --- |
-| Purpose | Confirm a few deliberate actions (for example play starting, a finished generation, an error). Sound never carries information that is not also visible |
-| Optional | A Settings switch turns UI sounds on or off; the default is set in the sound design |
-| Restrained | Short, quiet, few in number |
-| Procedural | Synthesized with Web Audio. No sample files, no downloads |
-| Narration first | Off while narration is playing unless the sound design says otherwise |
-| iOS silent switch | UI sounds respect it. Web Audio output is muted by the ringer switch on iOS (the spike confirms); narration plays through the `<audio>` element and is unaffected |
-| No high-frequency actions | None for scrubbing, scrolling, hovering or repeated taps |
-
-The spike tests UI sounds with the iOS silent switch on and off, and with narration playing (Section 13).
+| Purpose | Confirm a few deliberate actions (play starting, a finished generation, an error). Sound never carries information that is not also visible |
+| Optional | A Settings switch and a volume slider. On by default, off by default under `prefers-reduced-motion` |
+| Restrained | Short and quiet; nothing for scrubbing, scrolling, hovering or repeated taps. Procedural Web Audio, no sample files |
+| Narration first | Each sound is skipped or ducked while narration plays (per-sound policy in the sound design) |
+| iOS silent switch | Web Audio follows the ringer switch, so a silent phone plays no UI sound. Narration through the `<audio>` element is unaffected |
 
 ---
 
 ## 9. Skills
 
-Two layers exist. Both spend money or push commits, so both are explicit-invocation only (`disable-model-invocation: true` for the in-repo ones).
+Both layers spend money or push commits, so both are explicit-invocation only (`disable-model-invocation: true` for the in-repo ones). Each follows the five-part layout (`SKILL.md`, `scripts/`, `references/`, `assets/`, `evals/`).
 
 | Layer | Skills | Lives in | Works |
 | --- | --- | --- | --- |
-| In-repo | `digest`, `learn` | `.claude/skills/` in this repository, so clones and cloud sessions get them | Inside the repository |
-| Personal | `sk-dispatch` | `~/.agents/skills`, built separately with the `sk-skill-creator` skill (D16) | From any directory |
-
-Each skill follows the five-part layout (`SKILL.md`, `scripts/`, `references/`, `assets/`, `evals/` with at least two cases) and gets an Antigravity workflow file.
+| In-repo | `digest`, `learn` | `.claude/skills/` in this repository | Inside a clone |
+| Personal | `sk-dispatch` | `~/.agents/skills`, built separately with `sk-skill-creator` (D16); not tracked here | From any directory |
 
 ### 9.1 `/digest`
 
-| Form | Behaviour |
+| Form | Behavior |
 | --- | --- |
-| `/digest` | Auto-select: local API mode if keys exist, else agent mode, else remote |
-| `/digest --remote` | `gh workflow run run.yml -f mode=on-demand -R somesh-ks/dispatch` then `gh run watch`; needs only the `gh` login |
-| `/digest --local` | `dispatch run` with `.env` keys on this machine |
-| `/digest --agent` | Session model curates (protocol below); no Nebius key |
+| `/digest` | Auto-select: local when `dispatch doctor` shows the Nebius key and model, else agent, else remote |
+| `/digest --remote` | `gh workflow run run.yml -f mode=on-demand` then `gh run watch`; needs only the `gh` login |
+| `/digest --local` | `dispatch run --mode on-demand --no-push` with `.env` keys, then one question before `git push` |
+| `/digest --agent` | The session model curates (protocol below); no Nebius key |
 | `/digest --weekly`, `--dry-run`, `--since <date>` | Pass-throughs |
-| `/digest status` | Last run, next eligibility, budgets, failing sources |
+| `/digest status` | `dispatch status`, plus the on-demand limits check |
 
-Skill frontmatter uses `argument-hint`, a tight `allowed-tools` list (`npm run dispatch`, `gh workflow`, `gh run`, read access), and a dynamic-context line that shows `dispatch status` when the skill loads.
+Before spending anything the skill exits early when a run is in progress, when nothing is due and no mode was forced, when the tree is dirty (local and agent modes) or when `gh` is logged out (remote mode). Remote runs honor the Generate limits: one `workflow_dispatch` run per 6 hours and three per 24.
 
-Agent-mode protocol: `dispatch fetch --json` writes `pool.json`; the session reads it with `preferences.json`, calls `dispatch extract --ids` for finalists, writes `selection.json` against the generated JSON Schema, and runs `dispatch render` and `dispatch publish`. Validation is the same code path as API mode, except the Jev grounding check, which needs a key the session does not hold. Digests written this way carry `verified: false` in frontmatter and the run log says so. A project permission rule denies the session from reading `.env`, and the session only writes through the CLI's checked paths.
+**Agent-mode protocol.** The session writes only `.cache/run/<id>/agent-selection.json`; everything else comes from the CLI.
+
+1. `dispatch fetch --json` writes `pool.json` and prints the run id.
+2. The session reads the pool with `preferences.json`, chooses finalists, then calls `dispatch extract --ids` for their full text.
+3. `dispatch curate --mode agent --kind on-demand` (`--kind weekly` for the weekly pass) first writes `selection-schema.json`.
+4. The session writes `agent-selection.json` against that schema: 3 to 18 items, each with `id`, `category`, `score`, `headline`, `summary`, `why`.
+5. The same curate command run again validates the file and writes `selection.json`, or lists one problem per line.
+6. `dispatch run --stage commit --run <id>` builds the digest, updates `state/` and commits (`--dry-run` previews, `--no-push` keeps the commit local).
+
+Agent mode cannot record a `nothing` outcome: the minimum is 3 items, so on a quiet day the session writes nothing, reports "nothing cleared the bar" and leaves state untouched. Validation runs the same voice lint and limits as API mode except the Jev grounding check, which needs a key the session does not hold, so agent digests carry `verified: false`. `render` and `publish` are not part of this sequence: the commit stage builds the digest and `deploy.yml` narrates it. A project permission rule denies the session from reading `.env`.
 
 ### 9.2 `/learn`
 
-Takes a sentence, produces a patch, shows the diff, applies it through `dispatch learn --apply`, commits as `chore(prefs): ...`, pushes. Never edits `preferences.json` directly. From outside the repository, `sk-dispatch learn` does the same through the repo CLI (Section 9.3).
+Takes a sentence, builds a minimal patch with its helper script, shows the diff from `dispatch learn --apply <patch> --dry-run`, and after one confirmation applies it with `--commit`, which commits as `chore(prefs): ...` and pushes. It never edits `preferences.json` directly.
 
 ### 9.3 `sk-dispatch` (personal scope)
 
-Built separately in `~/.agents/skills` with the `sk-skill-creator` skill (D16), so it is not part of this repository and is not tracked here. It works from any directory: it locates a checkout of this repository, and when none exists it falls back to `gh` against `somesh-ks/dispatch`.
+Built separately in `~/.agents/skills` (D16). It locates a checkout and, when none exists, falls back to `gh` against `somesh-ks/dispatch`.
 
-| Action | Behaviour |
+| Action | Behavior |
 | --- | --- |
 | status | Last run, next eligibility, latest digest |
-| run | Dispatches `run.yml` remotely (`mode=on-demand`) and watches the run |
+| run | Preflight against the same limits as the Generate button, then dispatches `run.yml` (`mode=on-demand`) and watches the run |
 | read | Shows the latest digest, from a checkout or through `gh` |
-| learn | Turns a sentence into a bounded preference patch and applies it through the repo CLI (`dispatch learn --apply`), so it needs a checkout |
+| learn | `learn-plan` turns a sentence into a patch and shows the diff; `learn-apply` applies, commits and pushes through the repo CLI, so it needs a checkout |
 | open | Opens `news.someshks.work` |
 
 ### 9.4 Skill quality gates
 
-Description under 1,024 characters with "Use when" phrases and a boundary; host-neutral wording; validator from the skill creator passes in strict mode; evals cover a normal run, a "nothing new" run, a missing-key run and a remote fallback. `sk-dispatch` adds a no-checkout run to its evals.
+Each skill's description stays under 1,024 characters with "Use when" phrases and a boundary. Evals in each skill's `evals/` cover a normal run, a quiet day, a missing key and a remote fallback; `sk-dispatch` adds a no-checkout case and its own unit tests (`node --test`).
 
 ---
 
@@ -770,9 +534,9 @@ Description under 1,024 characters with "Use when" phrases and a boundary; host-
 
 | Workflow | Triggers | Does |
 | --- | --- | --- |
-| `run.yml` | `schedule` (07:13, `timezone: Europe/Stockholm`), `workflow_dispatch` (inputs `mode`, `force`, `since`, `dry_run`) | One step per stage (`dispatch run --stage gate`, then `fetch`, `judge`, `write`, `validate`), then a commit step behind the write guard. It always calls `deploy.yml` afterwards, including after `gated` and `nothing`, so audio retries are never starved |
-| `deploy.yml` | `workflow_call`, `workflow_dispatch` | Reusable. Checks out `main` (`ref: main`, not the caller's SHA, which predates the bot commit), runs `dispatch publish --prune` (audio, Blob upload, commit of `.audio.json`, the digest's `audio` field and `usage.json`, deletion of expired audio), then builds and deploys with the Vercel CLI from `apps/web`. The publish step receives `SPEECHIFY_API_KEY` and `BLOB_READ_WRITE_TOKEN`; the Vercel steps alone receive `VERCEL_TOKEN`, `VERCEL_ORG_ID` and `VERCEL_PROJECT_ID` |
-| `ci.yml` | `pull_request`, `push` to `main` | A `changes` job detects code changes. Typecheck, Biome, Vitest, build, size check, Playwright, Lighthouse CI and actionlint run only when code changed; gitleaks always runs. On `main`, a final `deploy` job calls `deploy.yml`, so digest-only local pushes skip the heavy checks and still deploy |
+| `run.yml` | `schedule` (07:13, `timezone: Europe/Stockholm`), `workflow_dispatch` (inputs `mode`, `force`, `since`, `dry_run`) | One job: Install, Gate, then Fetch, Judge, Write and Validate (only when the gate says a run is due), then Commit. A second job calls `deploy.yml` when Commit reports `deploy=true`. Concurrency group `dispatch` |
+| `deploy.yml` | `workflow_call`, `workflow_dispatch` | Checks out `main` (not the caller's commit, which predates the bot commit) and installs. Audio runs `dispatch publish --prune 120` with the Speechify and Blob secrets. Then from `apps/web`: Pull project settings, Build and Deploy. Only the pull and deploy steps receive `VERCEL_TOKEN`. Concurrency group `deploy` (D22) |
+| `ci.yml` | `pull_request`, `push` to `main` | `changes` detects code changes (digest, state, docs and config commits skip the heavy checks). `check`: Typecheck, Lint, Test, then Build site with `DISPATCH_FIXTURES=1`, which runs the bundle budget. `secrets`: gitleaks. On `main`, a `deploy` job calls `deploy.yml` unless a check failed |
 
 The Vercel steps in `deploy.yml`:
 
@@ -783,40 +547,37 @@ npx vercel build --prod
 npx vercel deploy --prebuilt --prod
 ```
 
-`VERCEL_TOKEN`, `VERCEL_ORG_ID` and `VERCEL_PROJECT_ID` come from GitHub Actions secrets, and the project's Root Directory setting stays empty because the commands already run from `apps/web` (the spike confirms). The Vercel Git integration is not connected to the repository: pushes made with `GITHUB_TOKEN` do not reliably trigger it, and Vercel Hobby blocks deploys whose commit author is not the account owner, which every bot commit would be. A prebuilt CLI deploy avoids both.
+`VERCEL_TOKEN`, `VERCEL_ORG_ID` and `VERCEL_PROJECT_ID` come from GitHub Actions secrets. The project's Root Directory setting stays empty because the commands already run from `apps/web`. The Vercel Git integration is not connected: pushes made with `GITHUB_TOKEN` do not reliably trigger it, and Vercel Hobby blocks deploys whose commit author is not the account owner, which every bot commit would be (D10).
 
 Notes:
 
-- The schedule runs at 07:13 rather than 07:00 because GitHub delays scheduled runs at the top of the hour. The `timezone` key keeps it at 07:13 Stockholm time across daylight saving.
-- One daily cron plus the calendar-date gate gives every second day, and a delayed cron still lands on its own date, so drift never costs a cycle. Day-of-month `*/2` is avoided because it resets at month end.
-- GitHub documents that scheduled runs can be delayed or dropped under load and are disabled after 60 days without repository activity in public repos. Confirm the private-repo behaviour in the spike; digest commits count as activity.
-- Pin third-party actions to commit SHAs, use `npm ci`, enable Dependabot.
-- The Free plan includes 2,000 private-repo Actions minutes per month; expected use is about 120.
-- GitHub emails the workflow owner when a scheduled run fails; the run log and `$GITHUB_STEP_SUMMARY` carry details.
+- The schedule runs at 07:13 because GitHub delays scheduled runs at the top of the hour; `timezone` keeps it at 07:13 Stockholm time across daylight saving. One daily cron plus the calendar-date gate gives every second day, and a delayed cron still lands on its own date. Day-of-month `*/2` is avoided because it resets at month end.
+- GitHub documents that scheduled runs can be delayed or dropped under load. Confirm the private-repository behavior in the first weeks; digest commits count as activity.
+- Third-party actions are pinned to commit SHAs, installs use `npm ci --ignore-scripts`, and Dependabot is configured for npm and Actions.
+- The Free plan includes 2,000 private-repository Actions minutes per month; expected use is about 120.
+- GitHub emails the workflow owner when a scheduled run fails. Each stage appends counts and source status to `$GITHUB_STEP_SUMMARY`, never fetched text.
 
-### Vercel and DNS resources
+**Vercel and DNS resources**
 
 | Resource | Notes |
 | --- | --- |
-| Vercel project (Hobby) | Static site plus `/api/*` functions. Created with `vercel link` from `apps/web`; the Git integration is not connected |
-| Vercel Blob store | Public. Keys `audio/<id>.mp3`. 1 GB on Hobby, kept in bounds by pruning |
+| Vercel project (Hobby) | Static site plus `/api/*` functions. Created with `vercel link` from `apps/web` |
+| Vercel Blob store | Public. Keys `audio/<id>.mp3`. 1 GB on Hobby |
 | Domain `news.someshks.work` | Added with `vercel domains add news.someshks.work`. Vercel issues the certificate. No `www` variant |
-| DNS | The domain stays on Cloudflare DNS. One CNAME record for `news`, pointing at the target Vercel shows after the domain is added, DNS only (proxy off) |
+| DNS | Stays on Cloudflare: one CNAME for `news` pointing at the target Vercel shows, DNS only (proxy off) |
 
 Setup steps are in [runbook.md](runbook.md).
 
-Estimated monthly cost (arithmetic from reported prices; re-checked against the live pricing pages in the spike and measured from usage logs in Phase 4), at about 23 run-equivalents per month:
+**Estimated monthly cost** at about 23 run-equivalents per month. These are arithmetic from reported prices; measure them from real usage in Phase 8.
 
 | Item | Estimate |
 | --- | --- |
-| Jev judgments | About 0.01 USD per run (60 item judgments plus about 36 grounding checks, at about 0.04 USD per million input tokens) |
-| Nebius writer | Under 0.01 USD per run on Qwen3-32B (about 40K input and 3K output tokens at 0.10 and 0.30 USD per million). Even a 1.40 and 4.40 USD per million model costs about 0.07 USD per run |
-| Exa | About 1.85 USD per month at 200 searches (7 USD per 1,000) and 450 content fetches (1 USD per 1,000), before any free credit |
-| Firecrawl | Free plan (1,000 credits) covers 450 basic scrapes, throttled to 10 requests per minute |
+| Jev judgments | About 0.01 USD per run (60 item judgments plus about 36 grounding checks) |
+| Nebius writer | Under 0.07 USD per run on any candidate model (about 40K input and 3K output tokens) |
+| Exa | About 1.85 USD per month at 200 searches (about 7 USD per 1,000) and 450 content fetches (about 1 USD per 1,000), before any free credit |
+| Firecrawl | Free plan (1,000 credits) covers about 450 basic scrapes |
 | Speechify, Vercel (Hobby), GitHub, Cloudflare DNS | Free tiers |
-| Total | About 2 USD per month, dominated by Exa. Model and judgment spend is well under 1 USD |
-
-Because model cost is this small, the writer is chosen on quality and reliability, with price as a tie-breaker.
+| Total | About 2 USD per month, dominated by Exa |
 
 ---
 
@@ -824,52 +585,57 @@ Because model cost is this small, the writer is chosen on quality and reliabilit
 
 | Risk | Control |
 | --- | --- |
-| Prompt injection from fetched text | LLM has no tools or secrets; output schema-validated; URLs must exist in the pool; text escaped on the site |
-| Key leakage | Section 5; gitleaks; log redaction; minimal `permissions:` |
-| Button abuse | Passphrase checked against a scrypt hash with `timingSafeEqual`; stateless cooldown (one run per 6 hours) and cap (three per 24 hours) read from the GitHub API; fixed workflow inputs; fine-grained dispatch token; workflow concurrency. `/api/status` answers only for `workflow_dispatch` runs of `run.yml` and returns whitelisted fields. Residual risk: no per-IP failure counting and no bot check in v1, so guesses cost one scrypt computation each. Mitigations: scrypt cost, a long passphrase, the unlisted URL, and the run cap, which bounds spend. Reassess with KV counters or Turnstile if the endpoint ever sees abuse |
-| Agent-mode session | Reads untrusted text with tools available. A project permission rule denies `.env` reads, writes go through the CLI's checked paths, and the digests it produces carry `verified: false` |
+| Prompt injection from fetched text | Models have no tools or secrets; output is schema-validated; URLs must exist in the pool; fetched text is delimited as untrusted data; the site escapes model text |
+| Key leakage | Section 5; gitleaks in CI; log redaction; minimal `permissions:`; `.env` denied to the agent |
+| Button abuse | Scrypt passphrase check with a 750 ms penalty per wrong guess; stateless cooldown (one run per 6 hours) and cap (three per 24 hours) from the GitHub API; fixed workflow inputs; fine-grained dispatch token; workflow concurrency; `/api/status` answers only for `workflow_dispatch` runs of `run.yml` with whitelisted fields. Residual risk: no per-IP failure counting and no bot check. Reassess if the endpoint ever sees abuse |
+| Agent-mode session | Reads untrusted text with tools available. A project rule denies `.env` reads, writes go through the CLI's checked paths, and its digests carry `verified: false` |
 | Supply chain | Lockfile, `npm ci`, pinned action SHAs, Dependabot |
-| Repo exposure | Repo is private; the build asserts that `config/` and `state/` never reach the build output |
-| Third-party content | Store metadata and our own short summaries with links; extracted full text stays in the gitignored cache |
-| Discoverability | `noindex` meta, `X-Robots-Tag`, `robots.txt` disallow, no sitemap, no inbound links. The project's default `*.vercel.app` domain also serves the site and carries the same headers. The Blob audio URLs are public and protected only by obscurity. Unlisted is not private |
+| Repository exposure | The repository is private. The site is built from `Digests/` and the last-run record; `config/` and `state/` are not copied into the output (no automated assertion yet) |
+| Third-party content | The repository stores metadata and our own short summaries with links; extracted full text stays in the gitignored cache |
+| Discoverability | Public but unlisted: `noindex` meta, `X-Robots-Tag: noindex, nofollow`, `robots.txt` disallow, no sitemap, no inbound links. The default `*.vercel.app` domain serves the same site with the same headers. Blob audio URLs are public and protected only by obscurity. Unlisted is not private |
+| Browser hardening | `vercel.json` sets a Content-Security-Policy (`self`, plus `*.public.blob.vercel-storage.com` for media; scripts limited to `self` and the theme script's hash), `X-Frame-Options: DENY`, `nosniff`, `Referrer-Policy: no-referrer` and a restrictive Permissions-Policy |
 | Bot commits | Per-command write allowlists (Section 7.2) before every commit, including `/learn` |
-| Logs and summaries | Run logs and `$GITHUB_STEP_SUMMARY` hold counts and source status only, never fetched text or key material; known key patterns are redacted |
+| Logs and summaries | Counts and source status only; known key patterns are redacted |
 
 ---
 
 ## 12. Quality gates
 
-| Layer | Gate |
-| --- | --- |
-| Engine | Vitest on saved fixtures, so tests run offline; contract tests for each fetcher |
-| Curation | A golden set of candidate pools with expected keep and drop judgments, plus source texts for grounding and voice checks. Run on demand (`npm run eval`): Jev against the Nebius fallback judge, the writer bake-off, and threshold tuning |
-| Web | Playwright on mobile viewports (Chromium and WebKit) with a stub audio file; axe on every route; Lighthouse CI against the budgets in 8.8 |
-| Skills | `evals/evals.json` cases and the strict validator |
-| Workflows | actionlint, a dry run on a branch, then a real run |
-| Real devices | iPhone on the current iOS, installed to the home screen: lock-screen play and pause, resume after a notification, speed change, rotation, keyboard in the Generate sheet, offline launch, UI sounds with the silent switch on and off and with narration playing. One Android phone. Desktop Chrome, Safari and Firefox |
+| Layer | Gate | Status |
+| --- | --- | --- |
+| Engine | Vitest on saved fixtures and fakes, so tests run offline; contract tests for each fetcher | In place (Section 13) |
+| Curation | A golden set in `packages/engine/eval/golden`; `dispatch eval --yes` runs judges, grounding and the writer bake-off and tunes thresholds | Built; never run against live models |
+| Web | Playwright specs in `apps/web/e2e` and `apps/web/src/player/e2e` (`npm run e2e -w @dispatch/web`, `npm run e2e:player -w @dispatch/web`), Chromium at phone and desktop sizes with axe on every route, against the fixture build. The bundle budget runs in every build | Specs exist and run locally; not in CI; not run on 2026-10-06. No Lighthouse CI and no WebKit |
+| Skills | `evals/evals.json` in each skill and the strict validator from `sk-skill-creator` | Evals written |
+| Workflows | A dry run (`-f dry_run=true`), then a real run | No actionlint; the workflows have never run |
+| Real devices | iPhone on the current iOS, installed to the home screen: lock-screen play and pause, resume after a notification, speed change, rotation, keyboard in the Generate sheet, offline launch, UI sounds with the silent switch on and off and with narration playing. One Android phone. Desktop Chrome, Safari and Firefox | Not started |
 
 Done means: two consecutive unattended scheduled runs succeed with no repeated items, the budgets pass in CI, and the iPhone checklist passes.
 
 ---
 
-## 13. Phases
+## 13. Phases and verification status
 
-Sizes: S under half a day, M about a day, L several days. Status as of 2026-10-06.
+Status as of 2026-10-06.
 
-| Phase | Status | Work | Size | Exit criteria |
-| --- | --- | --- | --- | --- |
-| 0 | Done | Decisions made (D1 to D18) and accounts created at Nebius, TypeSafe, Exa, Firecrawl and Speechify (D13). Carried forward: preference and source clean-up (Phase 3), Speechify terms and the Nebius data policy (read in Phase 2) | S | Decisions logged; accounts exist |
-| 1 | In progress | Foundation. Done: repository created (private, `somesh-ks/dispatch`), scaffold committed (workspaces, Biome, `.env.example`, docs layout), core contracts frozen (`packages/core`, `packages/engine/src/context.ts`). Remaining: tokens, CI skeleton, gitleaks, Vercel project, domain and DNS record, Blob store, keys stored with `npm run secrets:push`, a placeholder site on `news.someshks.work` | M | CI green; placeholder live on your domain; keys stored |
-| 2 | Planned | Spike: cron with `timezone`; `gh workflow run` and a Generate dispatch from the Vercel Function; a `vercel deploy --prebuilt` from Actions; Speechify with-timestamps on the free plan (marks and 64 kbps); Blob upload from Actions, and Blob playback on a locked iPhone with Range; module-scope audio across Astro navigation; Base UI Drawer with the iOS keyboard; one Jev call and one Nebius call on real items (probabilities, tokens, latency, `json_schema` behaviour); one Exa search and one Firecrawl scrape; the Firecrawl free-credit model (monthly or one-time); a delayed scheduled run against the calendar-date gate; one cover rendered to PNG and shown on a real lock screen; UI sounds with the iOS silent switch and with narration playing | M | Go or no-go table; plan amended where a result disagrees |
-| 3 | In progress (fetch stream) | Engine core: config, source discovery, fetchers, normalize, dedupe, prefilter, fixtures; preference and source clean-up from [vision.md](vision.md) | L | Local fetch returns a normalized pool from at least 90 percent of sources |
-| 4 | In progress (curate stream) | Curation: Jev judgments, composite score, extract, write in the house voice, validate, render; API and agent modes; golden eval, threshold tuning and writer bake-off | L | Dry runs on the last 2 and 7 days that you would read unprompted |
-| 5 | In progress (audio stream) | Audio and publish: TTS, timeline, Blob upload and prune, `deploy.yml`, Vercel deploy | M | A pushed digest has audio and is live within minutes |
-| 6 | In progress (design and cover streams) | Web app: implement [design-spec.md](design/design-spec.md), reader, archive, native-feel player, cover generator (Section 8.11), UI sounds (Section 8.12), PWA, accessibility, performance | L | Budgets pass; reading and listening work on your phone, installed |
-| 7 | Planned (`sk-dispatch` is being built separately) | Triggers: `run.yml`, the Generate function and status, `/digest`, `/learn`, `sk-dispatch` (built in `~/.agents/skills`), skill evals | M | A button press yields a digest without disturbing the next scheduled run |
-| 8 | Planned | Hardening: spend limits, failure visibility, runbook walk-through, device matrix, two consecutive unattended runs (about four days) | M | Done criteria in Section 12 |
-| 9 | Optional | Podcast feed, push, read-along, search, offline audio | M each | Per feature |
+| Phase | Status | Work | Exit criteria |
+| --- | --- | --- | --- |
+| 0 | Done | Decisions D1 to D18 and accounts at Nebius, TypeSafe, Exa, Firecrawl and Speechify (D13) | Decisions logged; accounts exist |
+| 1 | Done | Repository (private, `somesh-ks/dispatch`), workspaces, Biome, docs layout, core schemas, design tokens, CI workflows `run.yml`, `deploy.yml` and `ci.yml` (written, not yet pushed) | The owner's setup in [runbook.md](runbook.md) (Vercel project, Blob store, domain, DNS, keys) is still to do |
+| 2 | Not done | The live spike, below | Go or no-go table; plan amended where a result disagrees |
+| 3 | Built, offline | Engine core: config, source registry and discovery, fetchers, normalize, dedupe, prefilter | A local fetch returns a normalized pool from at least 90 percent of sources: not checked live |
+| 4 | Built, offline | Curation: Jev and Nebius judges, score, extract, write, validate, grounding, API and agent modes, golden eval | Dry runs on the last 2 and 7 days that you would read unprompted: not run |
+| 5 | Built, offline | Audio, Blob upload and prune, `publish`, `deploy.yml` | A pushed digest has audio and is live within minutes: not run |
+| 6 | Built, offline | Web app, cover generator, UI sounds, PWA, player | Budgets pass in the fixture build; reading and listening on your phone, installed: not tested |
+| 7 | Built, offline | `run.yml`, the Generate function and status, `/digest`, `/learn`, `sk-dispatch` | A button press yields a digest without disturbing the next scheduled run: not run |
+| 8 | Not started | Hardening: spend limits, failure visibility, runbook walk-through, device matrix, two consecutive unattended runs (about four days) | Done criteria in Section 12 |
+| 9 | Optional | Podcast feed, push, read-along, search, offline audio | Per feature |
 
-Parallelism: from 2026-10-06 the engine, web app, design, docs and skills are built in separate worktrees against the frozen contracts, with the web app on fixture digests until the engine lands. The spike (Phase 2) runs alongside and its results amend this plan. Exit criteria apply per phase, whatever the order the work lands in. Status marks work begun, not finished; none of Phases 3 to 7 has met its exit criteria.
+**Verified, offline (2026-10-06).** `npx vitest run`: 108 test files and 2,562 tests; 2,559 passed, 2 failed, 1 skipped (107 files pass; both failures are in `apps/web/src/styles/styles.test.ts`). `npm run typecheck` passes. A fixture build with `DISPATCH_STATIC_ONLY=1` completes (10 pages) and passes the bundle budget. `dispatch doctor` and `dispatch status` run offline against a repository with no state.
+
+**Not verified.** Nothing has run against real Speechify, Jev, Nebius, Exa, Firecrawl, Vercel Blob or Vercel. No GitHub Actions workflow has run, and no digest exists yet. Biome lint, Playwright and `vercel build` with an empty Root Directory were not run. There has been no real iPhone testing (lock screen, silent switch, sounds, install, Range seeking).
+
+**Phase 2 spike (to run).** Cron with `timezone` and a delayed run against the calendar-date gate; `gh workflow run` and a Generate dispatch from the Vercel Function; `vercel deploy --prebuilt` from Actions; Speechify with-timestamps on the free plan (marks and a 64 kbps format); Blob upload from Actions and Range playback on a locked iPhone; module-scope audio across Astro navigation; Base UI drawer with the iOS keyboard; one Jev call and one Nebius call on real items (probabilities, tokens, latency, `json_schema` behavior); one Exa search and one Firecrawl scrape and the Firecrawl free-credit model; one cover on a real lock screen; UI sounds with the silent switch and with narration playing.
 
 ---
 
@@ -877,36 +643,32 @@ Parallelism: from 2026-10-06 the engine, web app, design, docs and skills are bu
 
 | Risk | Impact | Mitigation |
 | --- | --- | --- |
+| Nothing has run live | Every integration may disagree with its tests | Phase 2 spike before any unattended run |
 | iOS background audio in a standalone web app is quirky | Poor listening | Plain `<audio>` plus Media Session; real-device gate; podcast feed as the reliable path |
-| Vercel Blob Range or CDN behaviour unconfirmed | Seeking fails on iOS | Spike on a locked iPhone; fallback is a thin proxy route that forwards Range requests |
-| Vercel Blob Hobby limits (1 GB storage; operations and transfer limits unverified) | Uploads or playback blocked | Prune audio older than about 120 days, try 64 kbps, check the other limits in the spike |
-| Vercel Hobby blocks deploys whose commit author is not the account owner | Bot deploys fail | Deploy with the CLI and `--prebuilt` from Actions; the Git integration stays off |
-| Speechify free plan lacks marks or has a monthly cap lower than expected | No chapters or audio gaps | Estimated timeline fallback; character budget guard |
-| Summaries drift from sources | Trust loss | Written from extracted text only; grounding check; golden eval |
-| A cheap open-weight model writes less faithfully or less crisply than a frontier model | Trust loss, off-voice copy | Grounding check, voice lint with one rewrite, low temperature, bake-off before launch, agent curator as an escape hatch |
-| Nebius retires or renames a model | Runs fail | Pinned IDs, fallback model, `dispatch doctor` checks `/v1/models`, bake-off rerun on any change |
-| Jev is early stage: price may be subsidized, limits are volatile, no deprecation policy | Judge unavailable or repriced | Nebius fallback judge, version pinned after tuning, quarterly revalidation |
-| GitHub delays or drops a scheduled run under load | Missed day | Off-peak minute, calendar-date gate, the next daily trigger widens the window |
-| Laptop, Actions and `/learn` write `state/` or `preferences.json` at once | Repeated or lost items | Section 4.3: fast-forward pull, refuse while a run is in progress, rebase retry, per-command write guards |
-| Generate endpoint has no per-IP failure counting and no bot check | Passphrase guessing | scrypt cost, long passphrase, unlisted URL, run cap bounds spend; add KV counters or Turnstile if abuse appears (Section 11) |
-| Speechify terms on publicly reachable generated audio | Policy breach | Read the terms before the first upload (Phase 2); the audio URL is unlisted but public |
-| Firecrawl free credits are one-time | Extraction cost | Spike confirms; Exa text, feed content and Readability come first |
-| Cover renderer or fonts behave differently across machines | Covers differ between local and CI | Fixed font files in the repo, snapshot tests run in CI, renderer pinned |
-| Nebius outage (best-effort availability reported) | Missed run | The next daily trigger retries and the window grows, so nothing is lost; agent mode for a manual run |
-| Feed rot and bot blocking | Quiet coverage loss | Failure counters; monthly `sources discover`; flag sources failing five runs in a row |
+| Vercel Blob Range or CDN behavior unconfirmed; Hobby limits (1 GB; operations and transfer unverified) | Seeking fails on iOS; uploads blocked | Spike on a locked iPhone; fallback is a thin proxy route that forwards Range requests; prune audio older than 120 days |
+| `vercel build --prod` from `apps/web` in an npm workspace is unproven | First deploy fails | First deploy with `gh workflow run deploy.yml`; local builds use `DISPATCH_STATIC_ONLY=1` |
+| Vercel Hobby blocks deploys whose commit author is not the account owner | Bot deploys fail | CLI deploy with `--prebuilt`; the Git integration stays off |
+| Speechify free plan lacks marks or has a lower cap than expected | No chapters or audio gaps | Estimated-timeline fallback; character budget guard; text publishes without audio |
+| Summaries drift from sources; a cheap model writes off-voice copy | Trust loss | Extracted text only, grounding check, voice lint with one rewrite, low temperature, bake-off before launch, agent mode as an escape hatch |
+| Nebius retires or renames a model (Qwen3-32B left on 2026-08-31) | Runs fail | Pinned ids, a fallback id, `dispatch doctor --online` checks the live list, bake-off rerun on any change |
+| Jev is early stage: price may be subsidized, limits volatile, no deprecation policy | Judge unavailable or repriced | Nebius fallback judge, version pinned after tuning, quarterly revalidation |
+| GitHub delays or drops a scheduled run | Missed day | Off-peak minute, calendar-date gate, the next daily trigger widens the window |
+| Laptop, Actions and `/learn` write at once | Repeated or lost items | Section 4.3: fast-forward pull, refuse while a run is in progress, rebase retry, per-command write guards |
+| Generate endpoint has no per-IP failure counting and no bot check | Passphrase guessing | Scrypt cost, wrong-guess delay, long passphrase, unlisted URL, run cap (Section 11) |
+| Speechify terms on publicly reachable generated audio; Firecrawl free credits may be one-time | Policy breach; extraction cost | Read the terms before the first upload; Exa text, feed content and Readability come first |
+| Feed rot and bot blocking | Quiet coverage loss | Counters in `state/source-health.json`; monthly `sources discover`; flag sources failing five runs in a row |
 | Taste drift from repeated `/learn` | Digest narrows | Bounded steps, history, diffs, one off-profile slot per week |
-| Dispatch or Vercel token expiry | Button stops working, or deploys fail | Expiry dates in the runbook; the status endpoint shows a clear message |
-| Windows long paths | Install failures | D2 |
-| Astro, `@astrojs/vercel` or Base UI changes | Breakage | Pin versions; upgrade deliberately |
-| Subagent report errors during building | Wrong decisions | Re-verify anything decision-driving (Section 4.4) |
+| Dispatch or Vercel token expiry | Button stops working, or deploys fail | Expiry dates in the runbook |
+| Astro, `@astrojs/vercel`, Base UI or TypeScript major releases | Breakage | Versions pinned; upgrade deliberately (D19) |
 
 ---
 
 ## 15. Open items
 
-Decided and logged in [decisions.md](decisions.md): D1 to D18, including the engine host, hosting, voice limits, accounts and the notification choice.
+Decided and logged in [decisions.md](decisions.md): D1 to D24.
 
-1. Speechify voice: the sample used `geffen_32`; confirm after hearing it in the spike.
-2. Preference and source clean-up: which `preferences.json` author entries to keep, which sources to add or drop, and the low-signal newsletters (see [vision.md](vision.md) Section 5).
-3. Speechify terms of use and the Nebius data policy: read both before the first live call (Phase 2).
-4. Spike results that may change this plan: Blob Range on iOS, Hobby limits, UI sounds on iOS, the Root Directory setting for the CLI deploy.
+1. Writer model: run `dispatch models`, then the bake-off, and set `DISPATCH_MODEL` and `DISPATCH_FALLBACK_MODEL`.
+2. Speechify voice: the default is `geffen_32`; confirm after hearing it in the spike.
+3. Preference and source clean-up: see [vision.md](vision.md) Section 5.
+4. Speechify terms of use, the Nebius data policy and TypeSafe's retention terms: read all three before the first live call.
+5. Spike results that may change this plan: Blob Range on iOS, Hobby limits, UI sounds on iOS, the empty Root Directory setting for the CLI deploy.

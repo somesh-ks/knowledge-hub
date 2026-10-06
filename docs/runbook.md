@@ -2,7 +2,7 @@
 
 Operations for the owner. Short, imperative, in the order you need it.
 
-Status: written 2026-10-06, before the build is finished. The engine, web app and skills are being built in parallel, so a step that needs an unbuilt part works only once its phase lands ([build-plan.md](build-plan.md) Section 13). `npm run dispatch -- <command>` runs the engine CLI.
+Status: updated 2026-10-06 against the built code. Nothing here has run against live services yet ([build-plan.md](build-plan.md) Section 13), so expect to correct a step during the first setup. `npm run dispatch -- <command>` runs the engine CLI; `--help` on any command lists its flags.
 
 Repository: `somesh-ks/dispatch` (private). Site: `news.someshks.work`.
 
@@ -12,51 +12,23 @@ Repository: `somesh-ks/dispatch` (private). Site: `news.someshks.work`.
 
 Accounts for Nebius, TypeSafe, Exa, Firecrawl and Speechify already exist (D13 in [decisions.md](decisions.md)). You also need GitHub, Vercel (Hobby) and Cloudflare (DNS only).
 
+**Cost.** About 2 USD per month, dominated by Exa. Judgments cost about 0.01 USD per run and the writer under 0.07 USD per run. Speechify, Vercel Hobby, GitHub Actions (about 120 of 2,000 free minutes) and Cloudflare DNS use free tiers. Details are in [build-plan.md](build-plan.md) Section 10.
+
+**Privacy.** The site is public but unlisted: `noindex` headers, `robots.txt` disallow, no sitemap, no inbound links. Anyone with the URL can read it, and the Blob audio URLs are public. The repository is private. Put nothing in a digest that you would not show a stranger who has the link.
+
 Never paste a key into chat. The agent cannot read `.env`; keep it that way.
 
 ### 1.1 Prerequisites
 
 1. Install Node 24 or newer (`.nvmrc` pins the version).
-2. Log in to GitHub: `gh auth login`.
-3. Log in to Vercel: `npx vercel login`.
-4. Install dependencies from the repository root: `npm ci`.
+2. From the repository root, run `npm ci`.
+3. Log in to GitHub: `gh auth login`.
+4. Log in to Vercel: `npx vercel login`.
 
-### 1.2 Create the Vercel project
+### 1.2 Create `.env` and add the service keys
 
-1. Run `npx vercel link` from `apps/web`.
-2. Create a new project. Accept the Astro framework preset.
-3. Answer no when asked to connect the Git repository. Deploys come from GitHub Actions, not the Git integration.
-4. Leave the project's Root Directory setting empty. The deploy commands already run from `apps/web`.
-5. Open `apps/web/.vercel/project.json`. Copy `orgId` into `.env` as `VERCEL_ORG_ID` and `projectId` as `VERCEL_PROJECT_ID`. `.vercel/` is gitignored.
-6. In Vercel, open Account settings, Tokens. Create a token with an expiry. Put it in `.env` as `VERCEL_TOKEN`. Record its expiry in section 6.
-
-### 1.3 Create the Blob store
-
-1. In the Vercel dashboard, open Storage and create a Blob store.
-2. Set the access to public.
-3. Connect the store to the project.
-4. Copy the `BLOB_READ_WRITE_TOKEN` value Vercel shows for the store into `.env`.
-
-### 1.4 Add the domain and the DNS record
-
-1. Run `npx vercel domains add news.someshks.work` from `apps/web`.
-2. Note the CNAME target Vercel shows. It is also in the project's Domains settings.
-3. In Cloudflare, open DNS for `someshks.work` and add one record: type CNAME, name `news`, target the value from Vercel, proxy status DNS only (grey cloud).
-4. Wait until Vercel marks the domain valid. Vercel issues the certificate.
-
-Do not add `www.news.someshks.work`. Do not turn the Cloudflare proxy on.
-
-### 1.5 Create the GitHub dispatch token
-
-1. In GitHub, open Settings, Developer settings, Fine-grained personal access tokens.
-2. Create a token with resource owner `somesh-ks`, access to the `dispatch` repository only, and these repository permissions: Actions read and write, Contents read. Nothing else.
-3. Set an expiry. Record it in section 6.
-4. Put the token in `.env` as `GITHUB_DISPATCH_TOKEN`. Set `GITHUB_REPOSITORY=somesh-ks/dispatch`.
-
-### 1.6 Fill the rest of `.env`
-
-1. Copy the template: `cp .env.example .env`.
-2. Fill the values in an editor.
+1. Copy the template: `cp .env.example .env`. `.env` is gitignored.
+2. In an editor, fill in the keys below. Leave a value empty to skip it: the script sends only non-empty values, and the engine uses its defaults for `NEBIUS_BASE_URL` and `SPEECHIFY_VOICE_ID` (`geffen_32`).
 
 | Name | Where to get it |
 | --- | --- |
@@ -65,39 +37,112 @@ Do not add `www.news.someshks.work`. Do not turn the Cloudflare proxy on.
 | `EXA_API_KEY` | Exa dashboard |
 | `FIRECRAWL_API_KEY` | Firecrawl dashboard |
 | `SPEECHIFY_API_KEY` | Speechify API console |
-| `VERCEL_TOKEN`, `VERCEL_ORG_ID`, `VERCEL_PROJECT_ID` | Step 1.2 |
-| `BLOB_READ_WRITE_TOKEN` | Step 1.3 |
-| `GITHUB_DISPATCH_TOKEN`, `GITHUB_REPOSITORY` | Step 1.5 |
-| `GENERATE_PASSPHRASE_HASH` | Step 1.7 |
-| `NEBIUS_BASE_URL`, `DISPATCH_MODEL`, `DISPATCH_FALLBACK_MODEL`, `SPEECHIFY_VOICE_ID` | Plain configuration, no secret. See `.env.example` |
+| `NEBIUS_BASE_URL`, `SPEECHIFY_VOICE_ID` | Plain configuration, no secret |
 | `YOUTUBE_API_KEY` | Optional, only for the one-time YouTube channel lookup |
+| `VERCEL_ORG_ID`, `VERCEL_PROJECT_ID`, `VERCEL_TOKEN` | Section 1.4 |
+| `BLOB_READ_WRITE_TOKEN` | Section 1.5 |
+| `GITHUB_DISPATCH_TOKEN`, `GITHUB_REPOSITORY` | Section 1.7 |
+| `GENERATE_PASSPHRASE_HASH` | Section 1.8 |
+| `DISPATCH_MODEL`, `DISPATCH_FALLBACK_MODEL` | Section 1.3 |
 
-### 1.7 Create the Generate passphrase
+### 1.3 Pick the writer model
+
+No model id is the default (D24). With `NEBIUS_API_KEY` in `.env`:
+
+1. List what your key can use: `npm run dispatch -- models`.
+2. Set `DISPATCH_MODEL` and `DISPATCH_FALLBACK_MODEL` in `.env` to two ids from the list.
+3. Compare candidates before trusting one. This calls Jev and Nebius with your keys and costs a few cents:
+
+```bash
+npm run dispatch -- eval --yes --only bakeoff --models <id>,<id>
+```
+
+### 1.4 Create the Vercel project
+
+1. Run `npx vercel link` from `apps/web`.
+2. Create a new project. Answer no when asked to connect a Git repository: deploys come from GitHub Actions, not the Git integration.
+3. Do not set a Root Directory in the project's settings. The deploy commands already run from `apps/web`.
+4. Open `apps/web/.vercel/project.json`. Copy `orgId` into `.env` as `VERCEL_ORG_ID` and `projectId` as `VERCEL_PROJECT_ID`. `.vercel/` is gitignored.
+5. In Vercel, open Account settings, Tokens. Create a token with an expiry and put it in `.env` as `VERCEL_TOKEN`. Record the expiry in section 6.
+
+### 1.5 Create the Blob store
+
+1. In the Vercel dashboard, open Storage and create a Blob store.
+2. Set the access to public.
+3. Connect the store to the project.
+4. Copy the `BLOB_READ_WRITE_TOKEN` value Vercel shows for the store into `.env`.
+
+### 1.6 Add the domain and the DNS record
+
+1. Run `npx vercel domains add news.someshks.work` from `apps/web`.
+2. Note the CNAME target Vercel shows. It is also in the project's Domains settings.
+3. In Cloudflare, open DNS for `someshks.work` and add one record: type CNAME, name `news`, target the value from Vercel, proxy status DNS only (grey cloud).
+4. Wait until Vercel marks the domain valid. Vercel issues the certificate.
+
+Do not add `www.news.someshks.work`. Do not turn the Cloudflare proxy on.
+
+### 1.7 Create the GitHub dispatch token
+
+1. In GitHub, open Settings, Developer settings, Fine-grained personal access tokens.
+2. Create a token with resource owner `somesh-ks`, access to the `dispatch` repository only, and these repository permissions: Actions read and write, Contents read. Nothing else.
+3. Set an expiry and record it in section 6.
+4. Put the token in `.env` as `GITHUB_DISPATCH_TOKEN`. Set `GITHUB_REPOSITORY=somesh-ks/dispatch`.
+
+### 1.8 Create the Generate passphrase
 
 1. Run `npm run passphrase`.
-2. Type a long passphrase twice. Echo is off.
+2. Type a passphrase of 8 or more characters twice. Echo is off.
 3. The script writes only the scrypt hash to `.env` as `GENERATE_PASSPHRASE_HASH`. Remember the passphrase; nothing stores it.
 
 The passphrase is the only gate on the Generate button. Make it long.
 
-### 1.8 Send the secrets
+### 1.9 Send the secrets
 
-1. Run `npm run secrets:push`. Add `-- --dry-run` first to see what would be sent.
-2. The script reads `.env` and sends each value to GitHub Actions (`gh secret set NAME`) and Vercel (`vercel env add NAME production`), with the value on stdin. It prints names and results, never values.
-3. Check the names arrived:
+Run this after sections 1.2 to 1.8, because the Vercel part runs inside the linked `apps/web` directory and uses `VERCEL_TOKEN`.
+
+1. Preview: `npm run secrets:push -- --dry-run`.
+2. Send: `npm run secrets:push`. Use `-- --only github` or `-- --only vercel` to send one side.
+3. The script reads `.env` and sends each non-empty value to GitHub Actions secrets, GitHub Actions variables or the Vercel production environment, with the value on stdin. It prints names and results, never values. Which name goes where is in [build-plan.md](build-plan.md) Section 5.
+4. Check the names arrived:
 
 ```bash
 gh secret list -R somesh-ks/dispatch
-npx vercel env ls production
+gh variable list -R somesh-ks/dispatch
+cd apps/web && npx vercel env ls production
 ```
 
-### 1.9 First deploy and check
+### 1.10 Check the setup
 
-1. Run `gh workflow run deploy.yml -R somesh-ks/dispatch`, then watch it with `gh run watch -R somesh-ks/dispatch`.
-2. Open `https://news.someshks.work`.
-3. Run `npm run dispatch -- doctor`. It checks Node, git, key names and each service.
+Run `npm run dispatch -- doctor --online`. It checks Node, git, config, state and key names, then makes authenticated requests: Nebius must list both model ids, Jev answers a trivial question, Exa answers one search (about 0.007 USD), Firecrawl reports credits, Speechify lists the voice id and Vercel Blob accepts a list call. Fix every `fail` and read every `warn` before going on.
 
-`deploy.yml` exists once Phase 1 and Phase 5 land. Until then, deploy by hand with the three Vercel commands in [build-plan.md](build-plan.md) Section 10.
+### 1.11 Push `main` and deploy
+
+1. Push the code: `git push origin main`. The workflows must be on the default branch before `gh workflow run` can start them.
+2. The push starts `ci.yml`. Its `check` and `secrets` jobs run, then its `deploy` job calls `deploy.yml`: the Audio step, then Vercel pull, build and deploy. If `check` fails, `deploy` is skipped; fix the failure, or deploy by hand with `gh workflow run deploy.yml -R somesh-ks/dispatch`.
+3. Watch it: `gh run watch -R somesh-ks/dispatch`.
+4. Open `https://news.someshks.work`. With no digest yet it shows "No briefings yet".
+
+### 1.12 First manual run
+
+```bash
+gh workflow run run.yml -R somesh-ks/dispatch -f mode=on-demand
+gh run list -R somesh-ks/dispatch --workflow run.yml --limit 1
+gh run watch <run id> -R somesh-ks/dispatch
+```
+
+Add `-f dry_run=true` to run every stage with nothing written or pushed. It still spends API credit. A real run commits `chore(digest): <date>`, then `deploy.yml` narrates and deploys, and the digest appears on the site within minutes. If the outcome is `nothing`, the first window was quiet; run again with `-f since=<date>` for a wider window.
+
+### 1.13 First-run checklist for the iPhone
+
+Do this on the current iOS, once a digest with audio is live. Note the iOS version for any failure.
+
+1. Open the site in Safari. Tap Share, then Add to Home Screen. Open the app from the home screen: it runs full screen.
+2. Open the latest briefing and tap play. Lock the phone. The lock screen shows one track, "Dispatch", with the cover. Check play, pause, the 15 second skips, previous and next item, and that the scrubber moves.
+3. On the lock screen, drag the scrubber, then unlock and tap another item's play button. Seeking must work; if only seeking fails, it is the Blob Range risk ([build-plan.md](build-plan.md) Section 14).
+4. Flip the silent switch. Narration keeps playing; interface sounds go quiet. Flip it back and open Settings: the switch and volume control the sounds.
+5. Change the speed, rotate the phone, and trigger a notification or call during playback. After a call the player offers to resume and does not start by itself.
+6. Switch to airplane mode and relaunch: the last briefing opens and the banner says you are offline.
+7. Open Generate and tap the passphrase field: the page must not zoom. Do not run Generate yet unless you want a second digest.
 
 ---
 
@@ -106,7 +151,7 @@ npx vercel env ls production
 Nothing to do on most days.
 
 - A scheduled run starts at 07:13 Stockholm time every day. A regular digest is due every second day, and a weekly digest follows on Sundays.
-- The digest lands as a `chore(digest): YYYY-MM-DD` commit, and the site updates within minutes.
+- The digest lands as a `chore(digest): <id>` commit, and the site updates within minutes.
 - GitHub emails you when a scheduled run fails. That is the only notification (D11).
 - Read the briefing at `news.someshks.work`, installed to the iPhone home screen.
 - Once a week, run `/learn` with one sentence about what the last digests got wrong (section 9).
@@ -123,9 +168,9 @@ Monthly:
 
 | Workflow | Starts when | Does |
 | --- | --- | --- |
-| `run.yml` | Daily 07:13 Stockholm, or on demand | Runs the engine stage by stage (gate, fetch, judge, write, validate), commits the digest and state, then calls `deploy.yml` |
-| `deploy.yml` | Called by `run.yml` and `ci.yml`, or on demand | Checks out `main`, runs `dispatch publish --prune` (audio, Blob upload, prune), then builds and deploys with the Vercel CLI |
-| `ci.yml` | A pull request, or a push to `main` | Runs checks when code changed, always runs gitleaks, then calls `deploy.yml` on `main` |
+| `run.yml` | Daily 07:13 Stockholm, or on demand | Runs the engine stage by stage (Gate, Fetch, Judge, Write, Validate), commits the digest and state (Commit), then calls `deploy.yml` when a digest was published or a digest from the last 7 days still lacks audio |
+| `deploy.yml` | Called by `run.yml` and `ci.yml`, or on demand | Checks out `main`, runs `dispatch publish --prune 120` (Audio: narrates digests that lack audio, uploads to Blob, prunes), then Vercel pull, build and deploy |
+| `ci.yml` | A pull request, or a push to `main` | Runs typecheck, lint, tests and the build when code changed, always runs gitleaks, then calls `deploy.yml` on `main` |
 
 Every `run.yml` run ends in one outcome:
 
@@ -140,7 +185,7 @@ Every `run.yml` run ends in one outcome:
 
 ## 4. Run on demand
 
-Pick one. All three start `run.yml` with `mode=on-demand`, which skips the gate.
+Pick one. Each starts `run.yml` with `mode=on-demand`, which skips the gate.
 
 1. **Site button.** Open the Generate sheet, enter the passphrase, watch the progress steps. Limits: one on-demand run per 6 hours and three per 24 hours. The count includes runs started any other way.
 2. **GitHub CLI.**
@@ -151,9 +196,9 @@ gh run list -R somesh-ks/dispatch --workflow run.yml --limit 1
 gh run watch <run id> -R somesh-ks/dispatch
 ```
 
-3. **The `sk-dispatch` skill.** Ask it to run. It works from any directory and watches the run (D16).
+3. **The `sk-dispatch` skill.** Ask it to run. It works from any directory, applies the same limits and watches the run (D16).
 
-Other inputs on `run.yml`: `mode` (`scheduled`, `on-demand`, `weekly`), `force`, `since` and `dry_run`.
+Other inputs on `run.yml`: `mode` (`on-demand`, `scheduled`, `weekly`), `force`, `since` and `dry_run`. From a clone, `/digest` runs it locally, in agent mode, or remotely.
 
 A second run on the same day writes `YYYY-MM-DD-2`. It never overwrites a digest.
 
@@ -168,12 +213,13 @@ A second run on the same day writes `YYYY-MM-DD-2`. It never overwrites a digest
 
 | Step | Usual cause | Fix |
 | --- | --- | --- |
-| `fetch` | The network is down or every source failed. One failing source is logged, not fatal | Rerun. Check `dispatch status` for sources failing repeatedly |
-| `judge` | Jev key rejected (401), rate limited (429), or unavailable | Section 8.4 |
-| `write` | Nebius model not found, key rejected, or the token budget aborted the run | Section 8.3 |
-| `validate` | Too few items survived the voice and grounding checks | Not a failure: the outcome is `nothing` |
-| `commit` | The write guard blocked a path outside the command's list, or the push conflicted three times | A guard block is a bug: open an issue with the log. For a conflict, pull and rerun |
-| `deploy` | Speechify or Blob error in `dispatch publish`, or a Vercel auth or path error | Sections 8.2 and 8.5 |
+| Fetch | The network is down or every source failed. One failing source is logged, not fatal | Rerun. Check `dispatch status` for sources failing repeatedly |
+| Judge | Both judges were unavailable, so most of the pool went unjudged. A Jev failure alone falls back to the Nebius judge | Section 8.4 |
+| Write | Nebius model not found, key rejected, the token budget aborted the run, or extraction or the writer was down | Section 8.3 |
+| Validate | A digest-level validation error, named in the log. Too few surviving items is not a failure: the outcome is `nothing` | Read the log, then rerun |
+| Commit | The write guard refused a path outside the command's list, or the push conflicted three times | A guard refusal is a bug: open an issue with the log. For a conflict, pull and rerun |
+| `deploy.yml`: Audio | A refused commit or a push that failed after three rebase retries. A failed narration, a missing key or a failed prune is only a warning | Section 8.2 |
+| `deploy.yml`: Pull project settings, Build, Deploy | A Vercel auth or build error | Section 8.5 |
 
 5. Rerun only the failed jobs: `gh run rerun <run id> -R somesh-ks/dispatch --failed`.
 
@@ -193,7 +239,7 @@ Rotate on a schedule, after any suspected leak, and before expiry. If a key appe
 | Key | Rotate at | Used by |
 | --- | --- | --- |
 | `NEBIUS_API_KEY` | Nebius Token Factory console | Writer and fallback judge |
-| `TYPESAFE_API_KEY` | console.typesafe.ai | Jev judge |
+| `TYPESAFE_API_KEY` | console.typesafe.ai | Jev judge and grounding check |
 | `EXA_API_KEY` | Exa dashboard | Discovery |
 | `FIRECRAWL_API_KEY` | Firecrawl dashboard | Extraction |
 | `SPEECHIFY_API_KEY` | Speechify API console | Audio |
@@ -209,18 +255,18 @@ Track expiry here. Fill the dates when you create each token and set a calendar 
 | `GITHUB_DISPATCH_TOKEN` | | | |
 | `VERCEL_TOKEN` | | | |
 
-When `GITHUB_DISPATCH_TOKEN` expires, the Generate button stops working and the status endpoint shows a clear message. Scheduled runs are unaffected, because `run.yml` uses the built-in workflow token. When `VERCEL_TOKEN` expires, the deploy step fails and the site stops updating.
+When `GITHUB_DISPATCH_TOKEN` expires, the Generate button stops working ("Generate is not available right now"). Scheduled runs are unaffected, because `run.yml` uses the built-in workflow token. When `VERCEL_TOKEN` expires, the deploy fails and the site stops updating.
 
 ---
 
 ## 7. Prune audio
 
-Vercel Hobby holds 1 GB of Blob storage. A four-minute digest is about 2 MB at 64 kbps and about 4 MB at 128 kbps, so audio older than about 120 days is deleted.
+Vercel Hobby holds 1 GB of Blob storage. A four-minute digest is about 4 MB at the engine's 128 kbps default, so audio uploaded more than 120 days ago is deleted.
 
-- Pruning runs on every deploy: `deploy.yml` calls `dispatch publish --prune`.
+- Pruning runs on every deploy: `deploy.yml` calls `dispatch publish --prune 120`.
 - To prune now, run `gh workflow run deploy.yml -R somesh-ks/dispatch`.
-- A pruned digest keeps its text and timeline. The site shows no player for it.
-- Check usage in the Vercel dashboard under Storage. If usage nears 1 GB, lower the audio bitrate or shorten retention.
+- A pruned digest keeps its text, its timeline and its `audio` field. Its player reports that the audio is not available.
+- Check usage in the Vercel dashboard under Storage. If usage nears 1 GB, shorten the retention in `deploy.yml`.
 
 ---
 
@@ -231,34 +277,34 @@ Vercel Hobby holds 1 GB of Blob storage. A four-minute digest is about 2 MB at 6
 1. Run `npm run dispatch -- status`. A regular digest is due every second day, so a quiet day can be correct (`gated`).
 2. Check the last runs: `gh run list -R somesh-ks/dispatch --workflow run.yml --limit 5`.
 3. No run at 07:13: GitHub can delay or drop scheduled runs. The next daily trigger widens the window, so nothing is lost. Start an on-demand run to get it now.
-4. Run exists but outcome is `nothing`: fewer than three items cleared the bar. Normal on a quiet day.
+4. Run exists but the outcome is `nothing`: fewer than three items cleared the bar. Normal on a quiet day.
 5. Outcome is `failed`: read the run (section 5).
 6. Workflow disabled: `gh workflow list -R somesh-ks/dispatch --all`. Enable it with `gh workflow enable run.yml -R somesh-ks/dispatch`.
 
 ### 8.2 Audio is missing
 
-1. The page says "Audio is still being prepared": the text digest published but speech failed. Run `gh workflow run deploy.yml -R somesh-ks/dispatch`. `dispatch publish` retries audio for every digest inside the retention window that lacks it.
-2. Still failing: check `state/usage.json`. The engine stops at 90 percent of the monthly Speechify allowance. Wait for the next month or raise the plan.
+1. The page says "Audio is still being prepared": the text digest published but speech failed (D23). Run `gh workflow run deploy.yml -R somesh-ks/dispatch`. `dispatch publish` retries every digest whose `audio` is null.
+2. Still failing: check `state/usage.json`. The engine stops at 90 percent of the monthly Speechify allowance (`SPEECHIFY_MONTHLY_CHARS`, default 500,000). Wait for the next month or raise the plan.
 3. A recent digest points at a deleted Blob file: delete its `.audio.json`, set `audio: null` in the digest frontmatter, commit, then run `deploy.yml`.
-4. An old digest has no player: its audio was pruned. That is expected (section 7).
+4. An old digest has no working player: its audio was pruned. That is expected (section 7).
 5. Playback starts but seeking fails on iPhone only: this is the Blob Range risk in [build-plan.md](build-plan.md) Section 14. Record the iOS version and report it.
 
 ### 8.3 The Nebius model id changed
 
-Nebius retires and renames models. Symptoms: the `write` step fails with a model-not-found error, or `dispatch doctor` reports a missing model id.
+Nebius retires and renames models (Qwen3-32B left its serverless tier on 2026-08-31). Symptoms: the Write step fails with a model-not-found error, or `doctor --online` reports a model id missing from the live list.
 
-1. Run `npm run dispatch -- doctor`. It checks `DISPATCH_MODEL` and `DISPATCH_FALLBACK_MODEL` against the live model list.
+1. Run `npm run dispatch -- doctor --online`. It checks `DISPATCH_MODEL` and `DISPATCH_FALLBACK_MODEL` against the live list and suggests similar ids.
 2. The client fails over to the fallback id on model-not-found, so a run may still succeed. Fix the id anyway.
-3. Pick the replacement from the Nebius model list. Set `DISPATCH_MODEL` (and the fallback) in `.env`.
-4. Run `npm run secrets:push`. These are sent as GitHub Actions variables.
-5. Rerun the writer bake-off on the golden set (`npm run eval`) before trusting the new model. A different model writes differently.
+3. List replacements with `npm run dispatch -- models`, then set `DISPATCH_MODEL` and `DISPATCH_FALLBACK_MODEL` in `.env`.
+4. Run the bake-off before trusting a new model, because a different model writes differently: `npm run dispatch -- eval --yes --only bakeoff --models <id>,<id>`.
+5. Send the variables: `npm run secrets:push -- --only github`.
 
 ### 8.4 Jev is unavailable
 
-1. A 429 or 529 means rate limit or an outage. The engine retries with backoff, then the Nebius fallback judge answers. The run log says which judge answered.
+1. A 429 or 529 means rate limit or an outage. The engine retries with backoff, then the Nebius fallback judge answers the items Jev could not. The run log warns when it does.
 2. A 401 means the key was revoked or expired. Rotate `TYPESAFE_API_KEY` (section 6).
-3. With `TYPESAFE_API_KEY` unset, the Nebius judge answers by design.
-4. If Jev stays down for days, check the TypeSafe console for status, balance and version retirements. The fallback judge is less calibrated, so scores shift. Revalidate thresholds on the golden set before trusting them again.
+3. With `TYPESAFE_API_KEY` unset, the Nebius judge answers alone, the grounding check is skipped and the digest is `verified: false`.
+4. If Jev stays down for days, check the TypeSafe console for status, balance and version retirements. The fallback judge is less calibrated, so scores shift. Revalidate thresholds with `dispatch eval --yes --only judges,grounding` before trusting them again.
 
 ### 8.5 The site did not update
 
@@ -271,9 +317,9 @@ Nebius retires and renames models. Symptoms: the `write` step fails with a model
 
 | Message | Cause | Fix |
 | --- | --- | --- |
-| Wrong passphrase | Typo, or the hash does not match | Retry. If forgotten, run `npm run passphrase`, `npm run secrets:push`, then redeploy |
-| Cooldown with a time | One run in 6 hours, or three in 24 hours | Wait. Runs started by `gh` or the skills count too |
-| The button cannot start a run | The dispatch token expired or lost access | Rotate `GITHUB_DISPATCH_TOKEN` (section 6) |
+| "That passphrase does not match. Check it and try again." | Typo, or the stored hash does not match | Retry. If forgotten, run `npm run passphrase`, then `npm run secrets:push -- --only vercel`, then redeploy |
+| "Generate is on cooldown. Try again in ..." or "Generate has reached its limit for today. Try again in ..." | One run in 6 hours, or three in 24 hours | Wait. Runs started by `gh` or the skills count too |
+| "Generate is not available right now. Try again in a few minutes." | A Vercel variable is missing or malformed, or GitHub refused the dispatch (expired or under-privileged token) | Check the three variables with `npx vercel env ls production` from `apps/web`, then rotate `GITHUB_DISPATCH_TOKEN` (section 6) |
 
 ---
 
@@ -282,9 +328,10 @@ Nebius retires and renames models. Symptoms: the `write` step fails with a model
 ### 9.1 Add a source
 
 1. Add a row to `config/sources.md` under the right category.
-2. Run `npm run dispatch -- sources discover`. It finds the feed and updates `config/sources.json`. A site with no feed becomes a Firecrawl scrape source.
-3. Run `npm run dispatch -- sources check` and confirm the new source answers.
-4. Commit both files as `feat(sources): add <name>` and push.
+2. Run `npm run dispatch -- sources import`. It rebuilds `config/sources.json` from the list, keeping what discovery already found. The new source's id is its name in lowercase with hyphens.
+3. Run `npm run dispatch -- sources discover --only <id>`. It finds and verifies the feed. A site with no feed becomes a Firecrawl scrape source.
+4. Run `npm run dispatch -- sources check --only <id>` and confirm the source answers.
+5. Commit both files as `feat(sources): add <name>` and push. Bot runs cannot change `config/`, so this is always a manual commit.
 
 ### 9.2 Teach with `/learn`
 
@@ -306,6 +353,6 @@ Git holds the code, config, digests, state and docs. It does not hold secrets (`
 | A bad digest | Run `git revert <sha>` on its `chore(digest)` commit and push. The revert also restores `state/`, so the next run covers the same window again |
 | A bad edit to one file | `git checkout <sha> -- <path>`, commit, push |
 | Laptop lost | Clone `https://github.com/somesh-ks/dispatch.git`, run `npm ci`, recreate `.env` from the services (reissue keys if needed), run `npm run secrets:push` only if the stores lost their values |
-| GitHub repository lost | Any clone is a full copy. Create a new private repository, push, then repeat section 1.8 and update `GITHUB_REPOSITORY` |
-| Audio lost | Within the retention window, remove the digest's `.audio.json`, set `audio: null`, commit, run `deploy.yml`. It regenerates at a cost in Speechify characters |
-| Vercel project lost | Repeat sections 1.2 to 1.4 and 1.8, then run `deploy.yml` |
+| GitHub repository lost | Any clone is a full copy. Create a new private repository, push, then repeat section 1.9 and update `GITHUB_REPOSITORY` |
+| Audio lost | Remove the digest's `.audio.json`, set `audio: null`, commit, run `deploy.yml`. It regenerates at a cost in Speechify characters |
+| Vercel project lost | Repeat sections 1.4 to 1.6 and 1.9, then run `deploy.yml` |
