@@ -467,7 +467,9 @@ export function createPlayerStore(options: PlayerStoreOptions): PlayerStore {
     track = { digest, timeline };
     rate = isPlaybackRate(getPreferredRate()) ? getPreferredRate() : 1;
 
-    if (digest.audio) attachSource(digest.audio.url);
+    // Offline there is nothing to warm up: attaching now would only log a failed request, and the
+    // play paths attach the source themselves when the listener taps.
+    if (digest.audio && isOnline()) attachSource(digest.audio.url);
     else releaseSource();
     applyRate();
 
