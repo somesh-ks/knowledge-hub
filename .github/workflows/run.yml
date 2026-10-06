@@ -1,0 +1,127 @@
+name: run
+
+# Produces a digest every second day (schedule), on demand (workflow_dispatch), and the weekly pass.
+# Step names are part of a contract: the site's Generate sheet maps them to its progress list.
+# Gate, Fetch, Judge, Write, Validate and Commit must keep these exact names.
+
+on:
+  schedule:
+    # 07:13 Stockholm, off the top of the hour because GitHub delays runs at :00. The timezone key
+    # keeps it at 07:13 local time across daylight saving.
+    - cron: "13 7 * * *"
+      timezone: "Europe/Stockholm"
+  workflow_dispatch:
+    inputs:
+      mode:
+        description: "scheduled, on-demand or weekly"
+        type: choice
+        options: [on-demand, scheduled, weekly]
+        default: on-demand
+      force:
+        description: "Ignore the every-second-day gate"
+        type: boolean
+        default: false
+      since:
+        description: "Fetch window start (ISO date or time), optional"
+        type: string
+        default: ""
+      dry_run:
+        description: "Run every stage but write nothing and push nothing"
+        type: boolean
+        default: false
+
+# One run at a time. GitHub keeps a single pending run, so duplicate presses collapse.
+concurrency:
+  group: dispatch
+  cancel-in-progress: false
+
+permissions:
+  contents: write
+
+jobs:
+  run:
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    outputs:
+      outcome: ${{ steps.commit.outputs.outcome }}
+      deploy: ${{ steps.commit.outputs.deploy }}
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          ref: main
+          fetch-depth: 0
+
+      - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
+        with:
+          node-version-file: .nvmrc
+          cache: npm
+
+      - name: Install
+        run: npm ci --ignore-scripts
+
+      - name: Gate
+        id: gate
+        env:
+          MODE: ${{ inputs.mode || 'scheduled' }}
+          FORCE: ${{ inputs.force }}
+          SINCE: ${{ inputs.since }}
+          DRY: ${{ inputs.dry_run }}
+        run: |
+          args=(--mode "$MODE" --json)
+          [ "$FORCE" = "true" ] && args+=(--force)
+          [ -n "$SINCE" ] && args+=(--since "$SINCE")
+          [ "$DRY" = "true" ] && args+=(--dry-run)
+          npm run --silent dispatch -- run --stage gate "${args[@]}" | tee "$RUNNER_TEMP/gate.json"
+          echo "due=$(jq -r '.due' "$RUNNER_TEMP/gate.json")" >> "$GITHUB_OUTPUT"
+
+      - name: Fetch
+        if: steps.gate.outputs.due == 'true'
+        env:
+          EXA_API_KEY: ${{ secrets.EXA_API_KEY }}
+          FIRECRAWL_API_KEY: ${{ secrets.FIRECRAWL_API_KEY }}
+        run: npm run --silent dispatch -- run --stage fetch --json
+
+      - name: Judge
+        if: steps.gate.outputs.due == 'true'
+        env:
+          TYPESAFE_API_KEY: ${{ secrets.TYPESAFE_API_KEY }}
+          NEBIUS_API_KEY: ${{ secrets.NEBIUS_API_KEY }}
+          NEBIUS_BASE_URL: ${{ vars.NEBIUS_BASE_URL }}
+          DISPATCH_MODEL: ${{ vars.DISPATCH_MODEL }}
+          DISPATCH_FALLBACK_MODEL: ${{ vars.DISPATCH_FALLBACK_MODEL }}
+        run: npm run --silent dispatch -- run --stage judge --json
+
+      - name: Write
+        if: steps.gate.outputs.due == 'true'
+        env:
+          NEBIUS_API_KEY: ${{ secrets.NEBIUS_API_KEY }}
+          NEBIUS_BASE_URL: ${{ vars.NEBIUS_BASE_URL }}
+          DISPATCH_MODEL: ${{ vars.DISPATCH_MODEL }}
+          DISPATCH_FALLBACK_MODEL: ${{ vars.DISPATCH_FALLBACK_MODEL }}
+          FIRECRAWL_API_KEY: ${{ secrets.FIRECRAWL_API_KEY }}
+        run: npm run --silent dispatch -- run --stage write --json
+
+      - name: Validate
+        if: steps.gate.outputs.due == 'true'
+        env:
+          TYPESAFE_API_KEY: ${{ secrets.TYPESAFE_API_KEY }}
+          NEBIUS_API_KEY: ${{ secrets.NEBIUS_API_KEY }}
+          NEBIUS_BASE_URL: ${{ vars.NEBIUS_BASE_URL }}
+          DISPATCH_MODEL: ${{ vars.DISPATCH_MODEL }}
+        run: npm run --silent dispatch -- run --stage validate --json
+
+      # Commit records the outcome (published, nothing, gated, failed) in state/last-run.json
+      # before the run concludes. Published, nothing and gated all end as a successful run.
+      - name: Commit
+        id: commit
+        run: |
+          npm run --silent dispatch -- run --stage commit --json | tee "$RUNNER_TEMP/commit.json"
+          echo "outcome=$(jq -r '.outcome' "$RUNNER_TEMP/commit.json")" >> "$GITHUB_OUTPUT"
+          echo "deploy=$(jq -r '.deploy' "$RUNNER_TEMP/commit.json")" >> "$GITHUB_OUTPUT"
+
+  deploy:
+    needs: run
+    # Deploy after a published digest, or when any digest still lacks audio (the retry path).
+    if: needs.run.outputs.deploy == 'true'
+    uses: ./.github/workflows/deploy.yml
+    secrets: inherit

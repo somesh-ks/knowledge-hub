@@ -73,7 +73,10 @@ export const GENERATE_STEPS = [
 ] as const;
 export type GenerateStep = (typeof GENERATE_STEPS)[number];
 
-/** Workflow step name to progress step: Gate, Fetch, Judge, Write, Validate, Commit, Deploy. */
+/**
+ * Workflow step name to progress step. The names are defined in .github/workflows/run.yml and
+ * deploy.yml; keep them in sync.
+ */
 export const STEP_FOR_WORKFLOW_STEP: Record<string, GenerateStep> = {
   Gate: "waiting",
   Fetch: "reading",
@@ -81,6 +84,9 @@ export const STEP_FOR_WORKFLOW_STEP: Record<string, GenerateStep> = {
   Write: "writing",
   Validate: "checking",
   Commit: "publishing",
+  Audio: "publishing",
+  "Pull project settings": "publishing",
+  Build: "publishing",
   Deploy: "publishing",
 };
 

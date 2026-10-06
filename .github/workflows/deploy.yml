@@ -1,0 +1,64 @@
+name: deploy
+
+# Generates missing audio, then builds and deploys the site to Vercel with an explicit token.
+# The Vercel Git integration is not used: pushes made with GITHUB_TOKEN do not reliably trigger it
+# and Hobby blocks deploys whose commit author is not the account owner.
+
+on:
+  workflow_call:
+  workflow_dispatch:
+
+# A separate group from run.yml: a called workflow that shares its caller's group is cancelled.
+concurrency:
+  group: deploy
+  cancel-in-progress: false
+
+permissions:
+  contents: write
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    env:
+      VERCEL_ORG_ID: ${{ secrets.VERCEL_ORG_ID }}
+      VERCEL_PROJECT_ID: ${{ secrets.VERCEL_PROJECT_ID }}
+    steps:
+      # The caller's SHA predates the bot commit, so always deploy the tip of main.
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          ref: main
+          fetch-depth: 0
+
+      - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
+        with:
+          node-version-file: .nvmrc
+          cache: npm
+
+      - name: Install
+        run: npm ci --ignore-scripts
+
+      # Audio failures leave audio null and never block the text digest.
+      - name: Audio
+        env:
+          SPEECHIFY_API_KEY: ${{ secrets.SPEECHIFY_API_KEY }}
+          SPEECHIFY_VOICE_ID: ${{ vars.SPEECHIFY_VOICE_ID }}
+          BLOB_READ_WRITE_TOKEN: ${{ secrets.BLOB_READ_WRITE_TOKEN }}
+        run: npm run --silent dispatch -- publish --prune 120
+
+      # The build never sees the Vercel token; only pull and deploy do.
+      - name: Pull project settings
+        working-directory: apps/web
+        env:
+          VERCEL_TOKEN: ${{ secrets.VERCEL_TOKEN }}
+        run: npx vercel pull --yes --environment=production
+
+      - name: Build
+        working-directory: apps/web
+        run: npx vercel build --prod
+
+      - name: Deploy
+        working-directory: apps/web
+        env:
+          VERCEL_TOKEN: ${{ secrets.VERCEL_TOKEN }}
+        run: npx vercel deploy --prebuilt --prod
