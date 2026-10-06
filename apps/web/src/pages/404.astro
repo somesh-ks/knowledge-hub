@@ -1,0 +1,16 @@
+---
+import BaseLayout from "../layouts/BaseLayout.astro";
+---
+
+<BaseLayout title="Page not found" view="home" skipLabel="Skip to the content">
+  <main id="main" tabindex="-1">
+    <section class="empty" aria-labelledby="page-title">
+      <h1 id="page-title" tabindex="-1">Page not found</h1>
+      <p>There is nothing at this address. It may have moved, or the link may be mistyped.</p>
+      <div class="empty-actions">
+        <a class="btn-primary press press-subtle" href="/">Open today's briefing</a>
+        <a class="btn-secondary press press-subtle" href="/archive">Archive</a>
+      </div>
+    </section>
+  </main>
+</BaseLayout>

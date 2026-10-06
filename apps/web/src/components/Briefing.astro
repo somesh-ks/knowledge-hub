@@ -1,0 +1,28 @@
+---
+import type { SectionView } from "../lib/digestView";
+import Chapter from "./Chapter.astro";
+import Item from "./Item.astro";
+
+interface Props {
+  sections: SectionView[];
+  hasAudio: boolean;
+}
+
+const { sections, hasAudio } = Astro.props;
+---
+
+{/* The rail: a track, a fill the player scales with --player-progress, and a strip for rail taps.
+     Server-rendered and complete without script; the player adds only the live state. */}
+<div class="briefing" id="briefing">
+  <div class="rail" aria-hidden="true"><div class="rail-fill"></div></div>
+  {hasAudio && <div class="rail-hit" aria-hidden="true"></div>}
+  {
+    sections.map((section, sectionIndex) => (
+      <Chapter section={section} sectionIndex={sectionIndex} hasAudio={hasAudio}>
+        {section.items.map(({ item, index, isLead }) => (
+          <Item item={item} index={index} isLead={isLead} hasAudio={hasAudio} />
+        ))}
+      </Chapter>
+    ))
+  }
+</div>

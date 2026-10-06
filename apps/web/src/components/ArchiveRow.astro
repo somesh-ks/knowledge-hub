@@ -1,0 +1,39 @@
+---
+import { paletteAccent } from "@dispatch/cover";
+import type { DigestEntry } from "../lib/digests";
+import { longDate, pluralize } from "../lib/format";
+import Cover from "./Cover.astro";
+import Icon from "./Icon.astro";
+
+interface Props {
+  entry: DigestEntry;
+}
+
+const { entry } = Astro.props;
+const { digest } = entry;
+const kindLabel =
+  digest.kind === "weekly"
+    ? "Weekly deep dive"
+    : digest.kind === "on-demand"
+      ? "Generated on request"
+      : null;
+---
+
+<li>
+  <a class="archive-row press" href={`/d/${entry.id}`}>
+    <Cover
+      digestId={entry.id}
+      size="row"
+      paletteBg={paletteAccent(digest.cover.palette).bg}
+      weekly={digest.kind === "weekly"}
+    />
+    <span>
+      <span class="archive-date">{longDate(digest.date)}</span>
+      <span class="archive-meta">
+        {kindLabel && <span class="archive-kind">{kindLabel}</span>}
+        <span>{pluralize(digest.items.length, "item")}, {digest.listen_minutes} min</span>
+      </span>
+    </span>
+    <Icon name="chevronRight" />
+  </a>
+</li>

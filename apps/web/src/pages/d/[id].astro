@@ -1,0 +1,27 @@
+---
+import type { GetStaticPaths } from "astro";
+import DigestView from "../../components/DigestView.astro";
+import BaseLayout from "../../layouts/BaseLayout.astro";
+import type { DigestEntry } from "../../lib/digests";
+import { getSite } from "../../lib/site";
+
+export const getStaticPaths = (async () => {
+  const { entries } = await getSite();
+  return entries.map((entry, index) => ({
+    params: { id: entry.id },
+    props: { entry, earlier: entries.slice(index + 1, index + 4), isLatest: index === 0 },
+  }));
+}) satisfies GetStaticPaths;
+
+interface Props {
+  entry: DigestEntry;
+  earlier: DigestEntry[];
+  isLatest: boolean;
+}
+
+const { entry, earlier, isLatest } = Astro.props;
+---
+
+<BaseLayout title={entry.player.title} view="home" layout="aside" digestId={entry.id}>
+  <DigestView entry={entry} earlier={earlier} isLatest={isLatest} />
+</BaseLayout>

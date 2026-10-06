@@ -1,0 +1,30 @@
+---
+import BrandMark from "./BrandMark.astro";
+import Icon from "./Icon.astro";
+
+interface Props {
+  view: "home" | "archive";
+}
+
+const { view } = Astro.props;
+---
+
+<header class="site-header">
+  <div class="site-header-inner page">
+    {/* The wordmark is the only thing in the top-leading corner. iPadOS windowed apps draw window
+         controls there, so primary controls sit at the other end and the start padding grows. */}
+    <a class="wordmark" href="/" aria-label="Dispatch, today's briefing">
+      <BrandMark />
+      <span>Dispatch</span>
+    </a>
+    <nav class="site-actions" aria-label="Site">
+      <a class="btn press nav-archive" href="/archive" aria-current={view === "archive" ? "page" : undefined}>Archive</a>
+      <button class="btn press" type="button" data-open="generate">
+        <Icon name="refresh" />Generate
+      </button>
+      <button class="icon-btn press" type="button" data-open="settings" aria-label="Settings" aria-haspopup="dialog">
+        <Icon name="sliders" />
+      </button>
+    </nav>
+  </div>
+</header>

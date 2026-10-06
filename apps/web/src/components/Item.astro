@@ -1,0 +1,56 @@
+---
+import type { DigestItem } from "@dispatch/core";
+import PlayPauseIcons from "./PlayPauseIcons.astro";
+
+interface Props {
+  item: DigestItem;
+  /** Reading-order index. The same number the player uses and the one in data-play-item. */
+  index: number;
+  isLead: boolean;
+  /** Item play buttons exist only when the digest has audio. */
+  hasAudio: boolean;
+}
+
+const { item, index, isLead, hasAudio } = Astro.props;
+const titleId = `t-${item.id}`;
+// The first screenful renders at once; later items let the browser skip layout until they near.
+const isDeferred = index >= 4;
+---
+
+<article
+  class="item"
+  data-item-id={item.id}
+  data-index={index}
+  data-lead={isLead ? "" : undefined}
+  data-deferred={isDeferred ? "" : undefined}
+  aria-labelledby={titleId}
+>
+  <span class="node" aria-hidden="true"></span>
+  <div class="item-body">
+    <h3 class="item-title" id={titleId}>
+      <a href={item.url} rel="noopener noreferrer">{item.headline}</a>
+    </h3>
+    <div class="item-meta">
+      <p class="item-byline">
+        <span class="item-source">{item.source}</span>
+        {item.author && <span><span class="sr-only">by </span>{item.author}</span>}
+      </p>
+      {
+        hasAudio && (
+          <button
+            class="item-play press"
+            type="button"
+            data-play-item={index}
+            data-current="false"
+            data-playing="false"
+            aria-label={`Listen from here: ${item.headline}`}
+          >
+            <span class="item-play-face"><PlayPauseIcons /></span>
+          </button>
+        )
+      }
+    </div>
+    <p class="item-summary">{item.summary}</p>
+    <p class="item-why"><span class="item-why-label">Why</span>{" "}{item.why}</p>
+  </div>
+</article>

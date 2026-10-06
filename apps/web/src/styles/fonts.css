@@ -1,0 +1,50 @@
+/*
+ * Self-hosted variable fonts, latin subset only (design spec section 3). The two files total about
+ * 72 KB, under the 80 KB budget. They were cut from the Fontsource packages with fonttools: the weight
+ * axis narrowed to the 400 to 700 the design uses, then subset to basic Latin, Latin-1 and a few
+ * punctuation marks:
+ *   fonttools varLib.instancer <font>-latin-wght-normal.woff2 wght=400:700 -o <name>.woff2
+ *   pyftsubset <name>.woff2 --unicodes="U+0020-007E,U+00A0-00FF,U+2018-201D,U+2022,U+2026,U+2190-2193,U+2212" \
+ *     --flavor=woff2 --layout-features="kern,liga,calt,ccmp,locl,mark,mkmk,tnum,lnum,pnum,onum,case,frac" \
+ *     --no-hinting --desubroutinize --output-file=<font>-latin-wght-normal.woff2
+ * The unicode-range below matches, so a page that stays inside it downloads each file once. Both
+ * families are open source under the SIL Open Font License 1.1.
+ *
+ * Metric-matched fallbacks stop layout shift while the files load. The values are measured from the
+ * font files with @capsizecss/unpack against Arial and Georgia (design spec section 3).
+ */
+@font-face {
+  font-family: "Schibsted Grotesk Variable";
+  font-style: normal;
+  font-display: swap;
+  font-weight: 400 700;
+  src: url("../assets/fonts/schibsted-grotesk-latin-wght-normal.woff2") format("woff2-variations");
+  unicode-range: U+0020-007E, U+00A0-00FF, U+2018-201D, U+2022, U+2026, U+2190-2193, U+2212;
+}
+
+@font-face {
+  font-family: "Literata Variable";
+  font-style: normal;
+  font-display: swap;
+  font-weight: 400 700;
+  src: url("../assets/fonts/literata-latin-wght-normal.woff2") format("woff2-variations");
+  unicode-range: U+0020-007E, U+00A0-00FF, U+2018-201D, U+2022, U+2026, U+2190-2193, U+2212;
+}
+
+@font-face {
+  font-family: "Schibsted Grotesk Fallback";
+  src: local("Arial");
+  size-adjust: 104.49%;
+  ascent-override: 93.46%;
+  descent-override: 24.67%;
+  line-gap-override: 0%;
+}
+
+@font-face {
+  font-family: "Literata Fallback";
+  src: local("Georgia");
+  size-adjust: 107.67%;
+  ascent-override: 109.31%;
+  descent-override: 28.61%;
+  line-gap-override: 0%;
+}

@@ -1,0 +1,41 @@
+---
+import Banner from "../components/Banner.astro";
+import DigestView from "../components/DigestView.astro";
+import EmptyState from "../components/EmptyState.astro";
+import BaseLayout from "../layouts/BaseLayout.astro";
+import { longDate } from "../lib/format";
+import { getSite } from "../lib/site";
+
+const site = await getSite();
+const latest = site.entries[0];
+const earlier = site.entries.slice(1, 4);
+---
+
+<BaseLayout
+  title={latest?.player.title}
+  view="home"
+  layout={latest ? "aside" : "single"}
+  digestId={latest?.id}
+>
+  <Fragment slot="banners">
+    {
+      latest && site.showNothingBanner && (
+        <Banner
+          tone="info"
+          icon="info"
+          title="Nothing cleared the bar."
+          body={`No new items since ${longDate(latest.digest.date)}. The next run is due within two days.`}
+        />
+      )
+    }
+  </Fragment>
+  {
+    latest ? (
+      <DigestView entry={latest} earlier={earlier} isLatest />
+    ) : (
+      <main id="main" tabindex="-1">
+        <EmptyState />
+      </main>
+    )
+  }
+</BaseLayout>
