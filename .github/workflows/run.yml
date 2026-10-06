@@ -96,6 +96,8 @@ jobs:
       - name: Write
         if: steps.gate.outputs.due == 'true'
         env:
+          # The write stage checks each summary against its source with Jev and rewrites once.
+          TYPESAFE_API_KEY: ${{ secrets.TYPESAFE_API_KEY }}
           NEBIUS_API_KEY: ${{ secrets.NEBIUS_API_KEY }}
           NEBIUS_BASE_URL: ${{ vars.NEBIUS_BASE_URL }}
           DISPATCH_MODEL: ${{ vars.DISPATCH_MODEL }}
