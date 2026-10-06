@@ -5,9 +5,12 @@
   "type": "module",
   "scripts": {
     "dev": "astro dev",
+    "prebuild": "tsx ../../scripts/buildTokens.ts",
     "build": "astro build",
-    "preview": "astro preview",
-    "check": "astro check"
+    "postbuild": "tsx scripts/checkBundle.ts",
+    "preview": "node e2e/run.mjs",
+    "check": "astro check",
+    "e2e": "playwright test"
   },
   "dependencies": {
     "@astrojs/react": "^7.0.0",
@@ -28,6 +31,7 @@
     "@axe-core/playwright": "^4.13.0",
     "@playwright/test": "^1.63.0",
     "@types/react": "^19.3.0",
-    "@types/react-dom": "^19.3.0"
+    "@types/react-dom": "^19.3.0",
+    "typescript": "~6.0.3"
   }
 }
