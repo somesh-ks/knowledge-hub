@@ -493,6 +493,13 @@
     }
   }
 
+  /* The dialog and its panel receive focus on open, as containers. The controls inside carry the ring. */
+  dialog:focus-visible,
+  .sheet-panel:focus-visible {
+    outline: none;
+    box-shadow: none;
+  }
+
   .sheet-panel {
     max-height: calc(var(--sheet-max-height) - var(--space-4));
     padding: var(--sheet-padding);

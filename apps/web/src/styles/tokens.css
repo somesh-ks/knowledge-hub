@@ -107,7 +107,7 @@
   --font-size-label-lg: 1.0625rem;
   --font-size-reading: clamp(1.0625rem, 1.0208rem + 0.2083vw, 1.1875rem);
   --font-size-title: clamp(1.1875rem, 1.1042rem + 0.4167vw, 1.4375rem);
-  --font-size-lead: clamp(1.75rem, 1.5833rem + 0.8333vw, 2.25rem);
+  --font-size-lead: clamp(1.5rem, 1.2917rem + 1.0417vw, 2.125rem);
   --font-size-display: clamp(2.25rem, 1.9167rem + 1.6667vw, 3.25rem);
   --font-leading-display: 1.04;
   --font-leading-lead: 1.1;
@@ -287,7 +287,6 @@
   --rail-node-idle: var(--color-track-strong);
   --item-gap: var(--space-12);
   --item-section-gap: var(--space-16);
-  --item-title-reserve: 3rem;
   --item-play-size: 2.25rem;
   --item-play-radius: var(--radius-sm);
   --cta-height: 3.5rem;
@@ -313,7 +312,7 @@
   --player-handle-width: 2.25rem;
   --player-handle-height: 0.25rem;
   --player-handle-color: var(--color-track-strong);
-  --player-tint-mix: 0.08;
+  --player-tint-mix: 0.05;
   --player-dismiss-distance: 0.35;
   --player-dismiss-velocity: 0.5;
   --control-size-lg: 4.5rem;
@@ -337,6 +336,7 @@
   --segmented-padding: var(--space-1);
   --segmented-radius: var(--radius-md);
   --segmented-segment-radius: var(--radius-sm);
+  --segmented-selected-bg: var(--color-surface-raised);
   --field-height: var(--size-touch-comfortable);
   --field-radius: var(--radius-md);
   --field-padding: var(--space-4);
@@ -348,6 +348,7 @@
   --switch-thumb: 1.625rem;
   --switch-radius: 0.625rem;
   --switch-thumb-radius: 0.4375rem;
+  --switch-thumb-bg: var(--color-surface-raised);
   --sheet-radius: var(--radius-sheet);
   --sheet-padding: var(--space-4);
   --sheet-bg: var(--color-surface-raised);
@@ -407,6 +408,8 @@
     --shadow-floating: var(--shadow-floating-dark);
     --shadow-sheet: var(--shadow-sheet-dark);
     --shadow-popover: var(--shadow-popover-dark);
+    --segmented-selected-bg: var(--color-surface-overlay);
+    --switch-thumb-bg: var(--color-on-surface);
     color-scheme: dark;
   }
 }
@@ -449,6 +452,8 @@
   --shadow-floating: var(--shadow-floating-dark);
   --shadow-sheet: var(--shadow-sheet-dark);
   --shadow-popover: var(--shadow-popover-dark);
+  --segmented-selected-bg: var(--color-surface-overlay);
+  --switch-thumb-bg: var(--color-on-surface);
   color-scheme: dark;
 }
 

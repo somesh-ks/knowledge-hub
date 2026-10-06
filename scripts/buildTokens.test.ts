@@ -3,7 +3,6 @@ import { dirname, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 import { describe, expect, it } from "vitest";
 import {
-  TOKENS_CSS_PATH,
   aliasTarget,
   buildCss,
   cssName,
@@ -11,8 +10,9 @@ import {
   fluidClamp,
   hexFor,
   loadTokens,
-  resolveLiteral,
   type Mode,
+  resolveLiteral,
+  TOKENS_CSS_PATH,
   type Token,
   type TokenDocument,
 } from "./buildTokens.js";
@@ -21,8 +21,8 @@ import {
   contrastRatio,
   oklchStringToRgb,
   parseOklch,
-  relativeLuminance,
   type Rgb,
+  relativeLuminance,
 } from "./colorMath.js";
 
 const ROOT = resolve(dirname(fileURLToPath(import.meta.url)), "..");
@@ -381,7 +381,12 @@ describe("generated CSS", () => {
 
 describe("style sources", () => {
   const defined = new Set<string>();
-  for (const match of buildCss(doc).matchAll(/(--[\w-]+)\s*:/g)) defined.add(match[1] ?? "");
+  // Tokens plus the custom properties foundations.css declares for components to read.
+  const foundationsPath = resolve(ROOT, "apps/web/src/styles/foundations.css");
+  const declared = existsSync(foundationsPath) ? readFileSync(foundationsPath, "utf8") : "";
+  for (const match of `${buildCss(doc)}\n${declared}`.matchAll(/(--[\w-]+)\s*:/g)) {
+    defined.add(match[1] ?? "");
+  }
 
   const strip = (source: string): string => source.replace(/\/\*[\s\S]*?\*\//g, "");
 
