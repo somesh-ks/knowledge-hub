@@ -65,7 +65,9 @@ export function clearResumePosition(storage: StorageLike | null, digestId: strin
 /** localStorage, or null when the browser refuses access (Safari private mode, blocked site data). */
 export function safeLocalStorage(): StorageLike | null {
   try {
-    return typeof localStorage === "undefined" ? null : localStorage;
+    // On the server (Astro renders islands at build time) there is no storage, and recent Node
+    // versions expose a throwing stand-in under the same name.
+    return typeof window === "undefined" ? null : window.localStorage;
   } catch {
     return null;
   }
@@ -73,7 +75,7 @@ export function safeLocalStorage(): StorageLike | null {
 
 export function safeSessionStorage(): StorageLike | null {
   try {
-    return typeof sessionStorage === "undefined" ? null : sessionStorage;
+    return typeof window === "undefined" ? null : window.sessionStorage;
   } catch {
     return null;
   }

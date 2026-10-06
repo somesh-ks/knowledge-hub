@@ -24,6 +24,7 @@ import { reapplyTheme, startThemeSync } from "./themeRuntime";
 let store: PlayerStore | null = null;
 
 function onPageHide(callback: () => void): () => void {
+  if (typeof window === "undefined") return () => undefined;
   const onVisibility = (): void => {
     if (document.hidden) callback();
   };

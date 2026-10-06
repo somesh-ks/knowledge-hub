@@ -1,0 +1,186 @@
+---
+/**
+ * Dev lab for the player and the sheets: a stand-in reader page with a fixture digest, so the
+ * mini player, the expanded player, scrubbing, Generate and Settings can be used in a real browser.
+ * Open /dev/player-lab, and /dev/player-lab?digest=older or ?digest=preparing for the other states.
+ *
+ * Development only: in a production build this route answers 404.
+ */
+import LabGlyph from "../../player/dev/LabGlyph.astro";
+import LabLayout from "../../player/dev/LabLayout.astro";
+import { LAB_ITEMS, labDigest, labSectionTitle, parseVariant } from "../../player/dev/labData";
+
+if (!import.meta.env.DEV) {
+  return new Response(null, { status: 404 });
+}
+
+const variant = parseVariant(Astro.url.searchParams.get("digest"));
+const digest = labDigest(variant);
+const hasAudio = digest.audio !== null;
+const sections = digest.sections.filter((section) => digest.items.some((item) => item.section === section.slug));
+const seconds = (digest.audio?.duration_ms ?? 0) / 1000;
+const clock = `${Math.floor(seconds / 60)}:${String(Math.floor(seconds % 60)).padStart(2, "0")}`;
+---
+
+<LabLayout title={`${digest.title}, Dispatch lab`}>
+  <header class="site-header">
+    <div class="site-header-inner page">
+      <a class="wordmark" href="/dev/player-lab">
+        <svg class="wordmark-mark" viewBox="0 0 16 24" aria-hidden="true" focusable="false">
+          <rect x="7" y="0" width="2" height="24" rx="1" fill="currentColor" opacity="0.28"></rect>
+          <rect x="7" y="0" width="2" height="12" rx="1" fill="currentColor"></rect>
+          <circle cx="8" cy="12" r="5" fill="currentColor"></circle>
+        </svg>
+        <span>Dispatch</span>
+      </a>
+      <div class="site-actions">
+        <button class="btn press" type="button" data-open-sheet="generate">
+          <svg class="icon" viewBox="0 0 24 24" aria-hidden="true" focusable="false"
+            ><path d="M3 12a9 9 0 0 1 9-9 9.75 9.75 0 0 1 6.74 2.74L21 8"></path><path d="M21 3v5h-5"></path><path d="M21 12a9 9 0 0 1-9 9 9.75 9.75 0 0 1-6.74-2.74L3 16"></path><path d="M8 16H3v5"></path></svg
+          >
+          Generate
+        </button>
+        <button class="icon-btn press" type="button" data-open-sheet="settings" aria-label="Settings">
+          <svg class="icon" viewBox="0 0 24 24" aria-hidden="true" focusable="false"
+            ><line x1="21" x2="14" y1="4" y2="4"></line><line x1="10" x2="3" y1="4" y2="4"></line><line x1="21" x2="12" y1="12" y2="12"></line><line x1="8" x2="3" y1="12" y2="12"></line><line x1="21" x2="16" y1="20" y2="20"></line><line x1="12" x2="3" y1="20" y2="20"></line><line x1="14" x2="14" y1="2" y2="6"></line><line x1="8" x2="8" y1="10" y2="14"></line><line x1="16" x2="16" y1="18" y2="22"></line></svg
+          >
+        </button>
+      </div>
+    </div>
+  </header>
+
+  <main id="main" class="page">
+    <section class="hero" aria-labelledby="page-title">
+      <img class="lab-hero-cover" src={digest.cover.src512} alt="" width="136" height="136" />
+      <div class="hero-text">
+        <h1 id="page-title">{digest.title}</h1>
+        <p class="hero-meta">
+          {LAB_ITEMS.length} items since Monday<br />2 min to read, {Math.round(seconds / 60) || 0} to listen
+        </p>
+      </div>
+      <div class="hero-cta">
+        <button
+          class="cta press press-subtle"
+          type="button"
+          data-play-digest
+          data-playing="false"
+          aria-disabled={hasAudio ? undefined : "true"}
+          aria-describedby={hasAudio ? undefined : "cta-hint"}
+        >
+          <span class="cta-main">
+            <LabGlyph class="cta-icon" />
+            <span class="spinner" aria-hidden="true"></span>
+            <span data-play-label>{hasAudio ? "Play the briefing" : "Audio is still being prepared"}</span>
+          </span>
+          <span class="cta-time num" data-play-time>{hasAudio ? clock : ""}</span>
+        </button>
+      </div>
+      {
+        hasAudio ? null : (
+          <p class="hero-hint" id="cta-hint">
+            Narration is generated after the text. It usually takes a few minutes.
+          </p>
+        )
+      }
+    </section>
+
+    <div class="briefing">
+      <div class="rail" aria-hidden="true"><div class="rail-fill"></div></div>
+      <div class="rail-hit" aria-hidden="true"></div>
+      {
+        sections.map((section) => {
+          const items = LAB_ITEMS.filter((item) => item.section === section.slug);
+          const length = items.length * 15;
+          const time = `${Math.floor(length / 60)}:${String(length % 60).padStart(2, "0")}`;
+          return (
+            <section class="chapter-block" data-chapter={section.slug} aria-labelledby={`c-${section.slug}`}>
+              <div class="chapter">
+                <span class="chapter-node" aria-hidden="true" />
+                <h2 id={`c-${section.slug}`}>
+                  <button
+                    class="chapter-btn press"
+                    type="button"
+                    data-chapter-play={section.slug}
+                    aria-label={`Listen to ${labSectionTitle(section.slug)}, ${time}`}
+                  >
+                    <span>{labSectionTitle(section.slug)}</span>
+                    <span class="chapter-time">{time}</span>
+                  </button>
+                </h2>
+              </div>
+              {items.map((item) => {
+                const index = digest.items.findIndex((entry) => entry.id === item.id);
+                return (
+                  <article
+                    class="item"
+                    data-item-id={item.id}
+                    data-index={index}
+                    data-lead={index === 0 ? "" : undefined}
+                    aria-labelledby={`t-${item.id}`}
+                  >
+                    <span class="node" aria-hidden="true" />
+                    <h3 class="item-title" id={`t-${item.id}`}>
+                      <a href="#top" rel="noopener noreferrer">{item.headline}</a>
+                    </h3>
+                    <div class="item-meta">
+                      <p class="item-byline">
+                        <span class="item-source">{item.source}</span>
+                        <span><span class="sr-only">by </span>{item.author}</span>
+                      </p>
+                      {hasAudio ? (
+                        <button
+                          class="item-play press"
+                          type="button"
+                          data-play-item={item.id}
+                          data-current="false"
+                          data-playing="false"
+                          aria-label={`Listen from here: ${item.headline}`}
+                        >
+                          <span class="item-play-face"><LabGlyph /></span>
+                        </button>
+                      ) : null}
+                    </div>
+                    <p class="item-summary">{item.summary}</p>
+                    <p class="item-why"><span class="item-why-label">Why</span>{item.why}</p>
+                  </article>
+                );
+              })}
+            </section>
+          );
+        })
+      }
+    </div>
+
+    <nav class="lab-links" aria-label="Lab states">
+      <a href="/dev/player-lab">Today, with audio</a>
+      <a href="/dev/player-lab?digest=older">Earlier briefing, with audio</a>
+      <a href="/dev/player-lab?digest=preparing">Audio still being prepared</a>
+    </nav>
+  </main>
+
+  <script type="application/json" id="dispatch-digest-data" set:html={JSON.stringify(digest)} />
+</LabLayout>
+
+<style is:global>
+  .lab-hero-cover {
+    width: var(--cover-size-hero);
+    aspect-ratio: 1;
+    object-fit: cover;
+    border-radius: var(--cover-radius-hero);
+    outline: var(--stroke-hairline) solid var(--cover-outline);
+    outline-offset: calc(var(--stroke-hairline) * -1);
+    box-shadow: var(--cover-shadow);
+  }
+
+  .lab-links {
+    display: grid;
+    padding-block: var(--space-8) var(--space-12);
+  }
+
+  .lab-links a {
+    display: flex;
+    align-items: center;
+    min-height: var(--size-touch);
+    color: var(--color-on-surface-muted);
+  }
+</style>
