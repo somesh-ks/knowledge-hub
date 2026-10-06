@@ -90,7 +90,7 @@ function main(): void {
     return;
   }
   const values = parseDotenv(readFileSync(envPath, "utf8"));
-  const repo = values.GITHUB_REPOSITORY || "somesh-ks/dispatch";
+  const repo = values.GITHUB_REPOSITORY || "somesh-ks/knowledge-hub";
   const childEnv: NodeJS.ProcessEnv = { ...process.env };
   if (values.VERCEL_TOKEN) childEnv.VERCEL_TOKEN = values.VERCEL_TOKEN;
 

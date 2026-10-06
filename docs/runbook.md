@@ -4,7 +4,7 @@ Operations for the owner. Short, imperative, in the order you need it.
 
 Status: updated 2026-10-06 against the built code. Nothing here has run against live services yet ([build-plan.md](build-plan.md) Section 13), so expect to correct a step during the first setup. `npm run dispatch -- <command>` runs the engine CLI; `--help` on any command lists its flags.
 
-Repository: `somesh-ks/dispatch` (private). Site: `news.someshks.work`.
+Repository: `somesh-ks/knowledge-hub` (private). Site: `news.someshks.work`.
 
 ---
 
@@ -86,7 +86,7 @@ Do not add `www.news.someshks.work`. Do not turn the Cloudflare proxy on.
 1. In GitHub, open Settings, Developer settings, Fine-grained personal access tokens.
 2. Create a token with resource owner `somesh-ks`, access to the `dispatch` repository only, and these repository permissions: Actions read and write, Contents read. Nothing else.
 3. Set an expiry and record it in section 6.
-4. Put the token in `.env` as `GITHUB_DISPATCH_TOKEN`. Set `GITHUB_REPOSITORY=somesh-ks/dispatch`.
+4. Put the token in `.env` as `GITHUB_DISPATCH_TOKEN`. Set `GITHUB_REPOSITORY=somesh-ks/knowledge-hub`.
 
 ### 1.8 Create the Generate passphrase
 
@@ -106,8 +106,8 @@ Run this after sections 1.2 to 1.8, because the Vercel part runs inside the link
 4. Check the names arrived:
 
 ```bash
-gh secret list -R somesh-ks/dispatch
-gh variable list -R somesh-ks/dispatch
+gh secret list -R somesh-ks/knowledge-hub
+gh variable list -R somesh-ks/knowledge-hub
 cd apps/web && npx vercel env ls production
 ```
 
@@ -118,16 +118,16 @@ Run `npm run dispatch -- doctor --online`. It checks Node, git, config, state an
 ### 1.11 Push `main` and deploy
 
 1. Push the code: `git push origin main`. The workflows must be on the default branch before `gh workflow run` can start them.
-2. The push starts `ci.yml`. Its `check` and `secrets` jobs run, then its `deploy` job calls `deploy.yml`: the Audio step, then Vercel pull, build and deploy. If `check` fails, `deploy` is skipped; fix the failure, or deploy by hand with `gh workflow run deploy.yml -R somesh-ks/dispatch`.
-3. Watch it: `gh run watch -R somesh-ks/dispatch`.
+2. The push starts `ci.yml`. Its `check` and `secrets` jobs run, then its `deploy` job calls `deploy.yml`: the Audio step, then Vercel pull, build and deploy. If `check` fails, `deploy` is skipped; fix the failure, or deploy by hand with `gh workflow run deploy.yml -R somesh-ks/knowledge-hub`.
+3. Watch it: `gh run watch -R somesh-ks/knowledge-hub`.
 4. Open `https://news.someshks.work`. With no digest yet it shows "No briefings yet".
 
 ### 1.12 First manual run
 
 ```bash
-gh workflow run run.yml -R somesh-ks/dispatch -f mode=on-demand
-gh run list -R somesh-ks/dispatch --workflow run.yml --limit 1
-gh run watch <run id> -R somesh-ks/dispatch
+gh workflow run run.yml -R somesh-ks/knowledge-hub -f mode=on-demand
+gh run list -R somesh-ks/knowledge-hub --workflow run.yml --limit 1
+gh run watch <run id> -R somesh-ks/knowledge-hub
 ```
 
 Add `-f dry_run=true` to run every stage with nothing written or pushed. It still spends API credit. A real run commits `chore(digest): <date>`, then `deploy.yml` narrates and deploys, and the digest appears on the site within minutes. If the outcome is `nothing`, the first window was quiet; run again with `-f since=<date>` for a wider window.
@@ -191,9 +191,9 @@ Pick one. Each starts `run.yml` with `mode=on-demand`, which skips the gate.
 2. **GitHub CLI.**
 
 ```bash
-gh workflow run run.yml -R somesh-ks/dispatch -f mode=on-demand
-gh run list -R somesh-ks/dispatch --workflow run.yml --limit 1
-gh run watch <run id> -R somesh-ks/dispatch
+gh workflow run run.yml -R somesh-ks/knowledge-hub -f mode=on-demand
+gh run list -R somesh-ks/knowledge-hub --workflow run.yml --limit 1
+gh run watch <run id> -R somesh-ks/knowledge-hub
 ```
 
 3. **The `sk-dispatch` skill.** Ask it to run. It works from any directory, applies the same limits and watches the run (D16).
@@ -206,8 +206,8 @@ A second run on the same day writes `YYYY-MM-DD-2`. It never overwrites a digest
 
 ## 5. Read a failed run
 
-1. Find the run: `gh run list -R somesh-ks/dispatch --workflow run.yml --limit 5`.
-2. Show the failing step: `gh run view <run id> -R somesh-ks/dispatch --log-failed | head -n 60`.
+1. Find the run: `gh run list -R somesh-ks/knowledge-hub --workflow run.yml --limit 5`.
+2. Show the failing step: `gh run view <run id> -R somesh-ks/knowledge-hub --log-failed | head -n 60`.
 3. Read the job summary on the run page. It lists counts and source status only.
 4. Match the failing step:
 
@@ -221,7 +221,7 @@ A second run on the same day writes `YYYY-MM-DD-2`. It never overwrites a digest
 | `deploy.yml`: Audio | A refused commit or a push that failed after three rebase retries. A failed narration, a missing key or a failed prune is only a warning | Section 8.2 |
 | `deploy.yml`: Pull project settings, Build, Deploy | A Vercel auth or build error | Section 8.5 |
 
-5. Rerun only the failed jobs: `gh run rerun <run id> -R somesh-ks/dispatch --failed`.
+5. Rerun only the failed jobs: `gh run rerun <run id> -R somesh-ks/knowledge-hub --failed`.
 
 Logs redact known key patterns. If you see a key in a log anyway, revoke it first, then rotate it (section 6).
 
@@ -234,7 +234,7 @@ Rotate on a schedule, after any suspected leak, and before expiry. If a key appe
 1. Create the new key at the service. Delete the old one after the new one works.
 2. Edit the value in `.env`.
 3. Run `npm run secrets:push`.
-4. If the value feeds Vercel (`GITHUB_DISPATCH_TOKEN`, `GITHUB_REPOSITORY`, `GENERATE_PASSPHRASE_HASH`), redeploy: `gh workflow run deploy.yml -R somesh-ks/dispatch`. Vercel applies new environment values only to new deployments.
+4. If the value feeds Vercel (`GITHUB_DISPATCH_TOKEN`, `GITHUB_REPOSITORY`, `GENERATE_PASSPHRASE_HASH`), redeploy: `gh workflow run deploy.yml -R somesh-ks/knowledge-hub`. Vercel applies new environment values only to new deployments.
 
 | Key | Rotate at | Used by |
 | --- | --- | --- |
@@ -264,7 +264,7 @@ When `GITHUB_DISPATCH_TOKEN` expires, the Generate button stops working ("Genera
 Vercel Hobby holds 1 GB of Blob storage. A four-minute digest is about 4 MB at the engine's 128 kbps default, so audio uploaded more than 120 days ago is deleted.
 
 - Pruning runs on every deploy: `deploy.yml` calls `dispatch publish --prune 120`.
-- To prune now, run `gh workflow run deploy.yml -R somesh-ks/dispatch`.
+- To prune now, run `gh workflow run deploy.yml -R somesh-ks/knowledge-hub`.
 - A pruned digest keeps its text, its timeline and its `audio` field. Its player reports that the audio is not available.
 - Check usage in the Vercel dashboard under Storage. If usage nears 1 GB, shorten the retention in `deploy.yml`.
 
@@ -275,15 +275,15 @@ Vercel Hobby holds 1 GB of Blob storage. A four-minute digest is about 4 MB at t
 ### 8.1 A digest did not arrive
 
 1. Run `npm run dispatch -- status`. A regular digest is due every second day, so a quiet day can be correct (`gated`).
-2. Check the last runs: `gh run list -R somesh-ks/dispatch --workflow run.yml --limit 5`.
+2. Check the last runs: `gh run list -R somesh-ks/knowledge-hub --workflow run.yml --limit 5`.
 3. No run at 07:13: GitHub can delay or drop scheduled runs. The next daily trigger widens the window, so nothing is lost. Start an on-demand run to get it now.
 4. Run exists but the outcome is `nothing`: fewer than three items cleared the bar. Normal on a quiet day.
 5. Outcome is `failed`: read the run (section 5).
-6. Workflow disabled: `gh workflow list -R somesh-ks/dispatch --all`. Enable it with `gh workflow enable run.yml -R somesh-ks/dispatch`.
+6. Workflow disabled: `gh workflow list -R somesh-ks/knowledge-hub --all`. Enable it with `gh workflow enable run.yml -R somesh-ks/knowledge-hub`.
 
 ### 8.2 Audio is missing
 
-1. The page says "Audio is still being prepared": the text digest published but speech failed (D23). Run `gh workflow run deploy.yml -R somesh-ks/dispatch`. `dispatch publish` retries every digest whose `audio` is null.
+1. The page says "Audio is still being prepared": the text digest published but speech failed (D23). Run `gh workflow run deploy.yml -R somesh-ks/knowledge-hub`. `dispatch publish` retries every digest whose `audio` is null.
 2. Still failing: check `state/usage.json`. The engine stops at 90 percent of the monthly Speechify allowance (`SPEECHIFY_MONTHLY_CHARS`, default 500,000). Wait for the next month or raise the plan.
 3. A recent digest points at a deleted Blob file: delete its `.audio.json`, set `audio: null` in the digest frontmatter, commit, then run `deploy.yml`.
 4. An old digest has no working player: its audio was pruned. That is expected (section 7).
@@ -352,7 +352,7 @@ Git holds the code, config, digests, state and docs. It does not hold secrets (`
 | --- | --- |
 | A bad digest | Run `git revert <sha>` on its `chore(digest)` commit and push. The revert also restores `state/`, so the next run covers the same window again |
 | A bad edit to one file | `git checkout <sha> -- <path>`, commit, push |
-| Laptop lost | Clone `https://github.com/somesh-ks/dispatch.git`, run `npm ci`, recreate `.env` from the services (reissue keys if needed), run `npm run secrets:push` only if the stores lost their values |
+| Laptop lost | Clone `https://github.com/somesh-ks/knowledge-hub.git`, run `npm ci`, recreate `.env` from the services (reissue keys if needed), run `npm run secrets:push` only if the stores lost their values |
 | GitHub repository lost | Any clone is a full copy. Create a new private repository, push, then repeat section 1.9 and update `GITHUB_REPOSITORY` |
 | Audio lost | Remove the digest's `.audio.json`, set `audio: null`, commit, run `deploy.yml`. It regenerates at a cost in Speechify characters |
 | Vercel project lost | Repeat sections 1.4 to 1.6 and 1.9, then run `deploy.yml` |

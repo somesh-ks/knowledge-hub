@@ -21,10 +21,10 @@ Agent runs need `--kind on-demand` on `curate`, because `fetch` only knows `regu
 
 | Command | Notes |
 | :--- | :--- |
-| `gh run list -R somesh-ks/dispatch --workflow run.yml --branch main --limit 30 --json databaseId,status,conclusion,createdAt,event,url` | Input of `cooldown.mjs`. Needs the `gh` login. |
-| `gh workflow run run.yml -R somesh-ks/dispatch -f mode=on-demand\|weekly [-f dry_run=true] [-f since=<date>] [-f force=true]` | Workflow inputs: `mode` (`scheduled`, `on-demand`, `weekly`), `force`, `since`, `dry_run`. Prints the run URL. `/digest` never sets `force`. |
-| `gh run watch <id> -R somesh-ks/dispatch --exit-status --compact` | Blocks until the run ends; exit non-zero when it fails. |
-| `gh run view <id> -R somesh-ks/dispatch --json jobs --jq '...'` | Failing step name. Do not paste logs; they can contain fetched text. |
+| `gh run list -R somesh-ks/knowledge-hub --workflow run.yml --branch main --limit 30 --json databaseId,status,conclusion,createdAt,event,url` | Input of `cooldown.mjs`. Needs the `gh` login. |
+| `gh workflow run run.yml -R somesh-ks/knowledge-hub -f mode=on-demand\|weekly [-f dry_run=true] [-f since=<date>] [-f force=true]` | Workflow inputs: `mode` (`scheduled`, `on-demand`, `weekly`), `force`, `since`, `dry_run`. Prints the run URL. `/digest` never sets `force`. |
+| `gh run watch <id> -R somesh-ks/knowledge-hub --exit-status --compact` | Blocks until the run ends; exit non-zero when it fails. |
+| `gh run view <id> -R somesh-ks/knowledge-hub --json jobs --jq '...'` | Failing step name. Do not paste logs; they can contain fetched text. |
 
 Workflow steps, in order: Gate, Fetch, Judge, Write, Validate, Commit. `run.yml` concludes `success` for published, nothing and gated. A published run commits `chore(digest): <id>`, then `deploy.yml` follows.
 

@@ -3,7 +3,7 @@ import { readServerConfig, secretsOf } from "./config";
 
 const GOOD = {
   GITHUB_DISPATCH_TOKEN: "github_pat_example",
-  GITHUB_REPOSITORY: "somesh-ks/dispatch",
+  GITHUB_REPOSITORY: "somesh-ks/knowledge-hub",
   GENERATE_PASSPHRASE_HASH: "scrypt$1$1$1$c2FsdA==$aGFzaA==",
 };
 
@@ -12,8 +12,8 @@ describe("readServerConfig", () => {
     expect(readServerConfig(GOOD)).toEqual({
       token: "github_pat_example",
       owner: "somesh-ks",
-      repo: "dispatch",
-      repository: "somesh-ks/dispatch",
+      repo: "knowledge-hub",
+      repository: "somesh-ks/knowledge-hub",
       passphraseHash: GOOD.GENERATE_PASSPHRASE_HASH,
     });
   });

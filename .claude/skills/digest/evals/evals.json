@@ -134,7 +134,7 @@
       "expected_output": "Dispatches run.yml in on-demand mode with the since input, watches the run, then pulls and reads status for the result line.",
       "expectations": [
         "The agent confirms the limits are clear with cooldown.mjs before dispatching",
-        "The agent runs gh workflow run run.yml -R somesh-ks/dispatch -f mode=on-demand -f since=2026-10-04",
+        "The agent runs gh workflow run run.yml -R somesh-ks/knowledge-hub -f mode=on-demand -f since=2026-10-04",
         "The agent watches the run with gh run watch and --exit-status",
         "After success the agent runs git pull --ff-only and then status --json to read last_run.on_demand",
         "The agent does not ask for confirmation before the dispatch because the invocation is the request",

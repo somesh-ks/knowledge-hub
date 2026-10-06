@@ -48,7 +48,7 @@ function fakeGit(overrides: Record<string, GitResult> = {}): GitRunner {
   const table: Record<string, GitResult> = {
     "--version": ok("git version 2.50.0"),
     "rev-parse --is-inside-work-tree": ok("true\n"),
-    "remote get-url origin": ok("git@github.com:somesh-ks/dispatch.git"),
+    "remote get-url origin": ok("git@github.com:somesh-ks/knowledge-hub.git"),
     "status --porcelain": ok(""),
     ...overrides,
   };

@@ -6,7 +6,7 @@
 >
 > **Frequency:** A regular digest every second day at 07:13 Stockholm time (CEST/CET), plus a weekly deep digest on Sundays. Each run covers everything new since the last run; no item is ever shown twice.
 >
-> **Runtime:** A private GitHub repo (`somesh-ks/dispatch`) with a standalone engine that runs on GitHub Actions, locally, or from the site's Generate button. See [build-plan.md](build-plan.md) Section 4.
+> **Runtime:** A private GitHub repo (`somesh-ks/knowledge-hub`) with a standalone engine that runs on GitHub Actions, locally, or from the site's Generate button. See [build-plan.md](build-plan.md) Section 4.
 >
 > **Build plan:** [build-plan.md](build-plan.md) is the executable plan (architecture, credentials, web app, phases, risks). This file is the vision and the digest spec. Decisions are logged in [decisions.md](decisions.md) and operations are in [runbook.md](runbook.md).
 >

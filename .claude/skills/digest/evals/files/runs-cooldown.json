@@ -5,7 +5,7 @@
     "databaseId": 18008,
     "event": "workflow_dispatch",
     "status": "completed",
-    "url": "https://github.com/somesh-ks/dispatch/actions/runs/18008"
+    "url": "https://github.com/somesh-ks/knowledge-hub/actions/runs/18008"
   },
   {
     "conclusion": "success",
@@ -13,7 +13,7 @@
     "databaseId": 18002,
     "event": "schedule",
     "status": "completed",
-    "url": "https://github.com/somesh-ks/dispatch/actions/runs/18002"
+    "url": "https://github.com/somesh-ks/knowledge-hub/actions/runs/18002"
   },
   {
     "conclusion": "success",
@@ -21,6 +21,6 @@
     "databaseId": 17981,
     "event": "schedule",
     "status": "completed",
-    "url": "https://github.com/somesh-ks/dispatch/actions/runs/17981"
+    "url": "https://github.com/somesh-ks/knowledge-hub/actions/runs/17981"
   }
 ]

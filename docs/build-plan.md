@@ -47,7 +47,7 @@
 | D6 | Daily cron with a calendar-date gate, plus a Sunday weekly pass | 7.2, 10 |
 | D7 | Podcast feed deferred | 8.10 |
 | D8 | "Thought of the Day" cut | [vision.md](vision.md) Section 3 |
-| D9 | Repository `somesh-ks/dispatch`, private | 6 |
+| D9 | Repository `somesh-ks/knowledge-hub`, private | 6 |
 | D10 | Hosting on Vercel, deploys by CLI | 8.9, 10 |
 | D11 | Notification is the commit only | 2 |
 | D12 | Voice limits | 7.6 |
@@ -514,7 +514,7 @@ Takes a sentence, builds a minimal patch with its helper script, shows the diff 
 
 ### 9.3 `sk-dispatch` (personal scope)
 
-Built separately in `~/.agents/skills` (D16). It locates a checkout and, when none exists, falls back to `gh` against `somesh-ks/dispatch`.
+Built separately in `~/.agents/skills` (D16). It locates a checkout and, when none exists, falls back to `gh` against `somesh-ks/knowledge-hub`.
 
 | Action | Behavior |
 | --- | --- |
@@ -621,7 +621,7 @@ Status as of 2026-10-06.
 | Phase | Status | Work | Exit criteria |
 | --- | --- | --- | --- |
 | 0 | Done | Decisions D1 to D18 and accounts at Nebius, TypeSafe, Exa, Firecrawl and Speechify (D13) | Decisions logged; accounts exist |
-| 1 | Done | Repository (private, `somesh-ks/dispatch`), workspaces, Biome, docs layout, core schemas, design tokens, CI workflows `run.yml`, `deploy.yml` and `ci.yml` (written, not yet pushed) | The owner's setup in [runbook.md](runbook.md) (Vercel project, Blob store, domain, DNS, keys) is still to do |
+| 1 | Done | Repository (private, `somesh-ks/knowledge-hub`), workspaces, Biome, docs layout, core schemas, design tokens, CI workflows `run.yml`, `deploy.yml` and `ci.yml` (written, not yet pushed) | The owner's setup in [runbook.md](runbook.md) (Vercel project, Blob store, domain, DNS, keys) is still to do |
 | 2 | Not done | The live spike, below | Go or no-go table; plan amended where a result disagrees |
 | 3 | Built, offline | Engine core: config, source registry and discovery, fetchers, normalize, dedupe, prefilter | A local fetch returns a normalized pool from at least 90 percent of sources: not checked live |
 | 4 | Built, offline | Curation: Jev and Nebius judges, score, extract, write, validate, grounding, API and agent modes, golden eval | Dry runs on the last 2 and 7 days that you would read unprompted: not run |

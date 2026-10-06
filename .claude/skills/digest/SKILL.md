@@ -48,7 +48,7 @@ Otherwise stop at the first row that applies, before anything spends:
 In-flight check, also the data source for the remote limits:
 
 ```bash
-gh run list -R somesh-ks/dispatch --workflow run.yml --branch main --limit 30 --json databaseId,status,conclusion,createdAt,event,url | node .claude/skills/digest/scripts/cooldown.mjs --in-progress-only
+gh run list -R somesh-ks/knowledge-hub --workflow run.yml --branch main --limit 30 --json databaseId,status,conclusion,createdAt,event,url | node .claude/skills/digest/scripts/cooldown.mjs --in-progress-only
 ```
 
 Without `--in-progress-only` the same pipe also enforces the limits: one `workflow_dispatch` run per 6 hours, three per 24, counted over every outcome and every starter. Exit 0 clear, 3 refused with the reason on stdout, 2 gh problem.
@@ -80,10 +80,10 @@ Read `references/agent-mode.md` now and follow it. It ends at the same push ques
 ### Remote
 
 1. Limits: the pipe above without `--in-progress-only`. Exit 3 means relay its line and stop.
-2. `gh workflow run run.yml -R somesh-ks/dispatch -f mode=on-demand [-f dry_run=true] [-f since=<date>]` (`-f mode=weekly` for `--weekly`). The printed run URL ends in the run id.
-3. `gh run watch <id> -R somesh-ks/dispatch --exit-status --compact`. If the host's command timeout fires first, run it again; the workflow's own limit is 25 minutes.
+2. `gh workflow run run.yml -R somesh-ks/knowledge-hub -f mode=on-demand [-f dry_run=true] [-f since=<date>]` (`-f mode=weekly` for `--weekly`). The printed run URL ends in the run id.
+3. `gh run watch <id> -R somesh-ks/knowledge-hub --exit-status --compact`. If the host's command timeout fires first, run it again; the workflow's own limit is 25 minutes.
 4. Success, not a dry run: `git pull --ff-only`, then `D status --json`. `last_run.on_demand` (or `last_run.weekly`) holds outcome, `digest_id` and `items`. If the pull is not possible, report the conclusion and say details need a pull.
-5. Failure: `gh run view <id> -R somesh-ks/dispatch --json jobs --jq '[.jobs[].steps[] | select(.conclusion=="failure") | .name][0]'` names the failing step. Report it with the run URL. Rerun only on request: `gh run rerun <id> -R somesh-ks/dispatch --failed`.
+5. Failure: `gh run view <id> -R somesh-ks/knowledge-hub --json jobs --jq '[.jobs[].steps[] | select(.conclusion=="failure") | .name][0]'` names the failing step. Report it with the run URL. Rerun only on request: `gh run rerun <id> -R somesh-ks/knowledge-hub --failed`.
 
 ## 4. Result line
 

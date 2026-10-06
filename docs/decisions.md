@@ -74,11 +74,11 @@ D1 to D9 date from plan v2 (2026-10-05). D10 to D24 date from 2026-10-06. Reason
 - Reason: It breaks the brevity bar. Everything in a digest is an item the reader can use.
 - Rejected: Keeping it as a short closing line.
 
-## D9: Repository `somesh-ks/dispatch`, private
+## D9: Repository `somesh-ks/knowledge-hub`, private
 
 - Date: 2026-10-05
 - Status: Confirmed
-- Decision: The GitHub repository is `somesh-ks/dispatch` and is private.
+- Decision: The GitHub repository is `somesh-ks/knowledge-hub` and is private.
 - Reason: The repo holds the taste model and summaries of third-party content, and the site is for one reader. The Free plan's 2,000 private-repo Actions minutes cover the expected use of about 120 a month.
 - Rejected: A public repository. Private repos lack secret-scanning push protection on the Free plan, so gitleaks runs as a pre-commit hook and in CI.
 
@@ -141,7 +141,7 @@ D1 to D9 date from plan v2 (2026-10-05). D10 to D24 date from 2026-10-06. Reason
 
 - Date: 2026-10-06
 - Status: Confirmed
-- Decision: A personal-scope skill, `sk-dispatch`, is built in the owner's `~/.agents/skills` with the skill creator (five-part layout, evals, Antigravity workflow). It works from any directory: it locates a checkout, or falls back to `gh` against `somesh-ks/dispatch`. Actions: status, run (remote dispatch with watch), read the latest digest, learn, open the site. The in-repo skills `digest` and `learn` stay under `.claude/skills` for work inside the repo.
+- Decision: A personal-scope skill, `sk-dispatch`, is built in the owner's `~/.agents/skills` with the skill creator (five-part layout, evals, Antigravity workflow). It works from any directory: it locates a checkout, or falls back to `gh` against `somesh-ks/knowledge-hub`. Actions: status, run (remote dispatch with watch), read the latest digest, learn, open the site. The in-repo skills `digest` and `learn` stay under `.claude/skills` for work inside the repo.
 - Reason: Personal skills do not load in cloud sessions, and in-repo skills do not load outside the repo. Two layers cover both.
 - Rejected: Exposing the in-repo skills through a personal-scope junction (the v2 plan). One in-repo skill only.
 

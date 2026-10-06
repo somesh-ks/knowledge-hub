@@ -1,6 +1,6 @@
 #!/usr/bin/env node
 // Decides whether a new on-demand dispatch of run.yml may start. Reads the JSON that
-//   gh run list -R somesh-ks/dispatch --workflow run.yml --branch main --limit 30 \
+//   gh run list -R somesh-ks/knowledge-hub --workflow run.yml --branch main --limit 30 \
 //     --json databaseId,status,conclusion,createdAt,event,url
 // prints on stdin, applies the same limits as the site's Generate button
 // (apps/web/src/server/limits.ts), and prints one line.
