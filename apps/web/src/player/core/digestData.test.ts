@@ -70,7 +70,7 @@ describe("media errors", () => {
   it("keeps every message free of em dashes and exclamation marks", () => {
     for (const code of [2, 3, 4, undefined]) {
       const message = describeMediaError(code, true)?.message ?? "";
-      expect(message).not.toMatch(/[—–!]/);
+      expect(message).not.toMatch(/[\u2014\u2013!]/);
     }
   });
 });

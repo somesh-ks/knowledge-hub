@@ -140,7 +140,7 @@ describe("startGenerate", () => {
   });
 
   it("keeps every message in the voice: no em dashes, no exclamation marks", () => {
-    for (const message of Object.values(MESSAGES)) expect(message).not.toMatch(/[—–!]/);
+    for (const message of Object.values(MESSAGES)) expect(message).not.toMatch(/[\u2014\u2013!]/);
   });
 });
 
