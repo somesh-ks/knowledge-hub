@@ -25,6 +25,7 @@ import {
   sourcesFile,
   type TestRepo,
 } from "./orchestrator-fixtures.js";
+import { REPO_ROOT } from "./score-factories.js";
 
 let scratch: string;
 beforeEach(async () => {
@@ -715,5 +716,56 @@ describe("dispatch learn --commit", () => {
     expect((long.split("\n")[0] ?? "").length).toBeLessThanOrEqual(72);
     expect(long.split("\n")[0]).toMatch(/\.\.\.$/);
     expect(long).toContain("Input: more");
+  });
+});
+
+// --- job summary -------------------------------------------------------------------------------
+
+describe("dispatch run: the GitHub job summary", () => {
+  async function runWithSummary(args: string[], summary: string | undefined) {
+    const world = makeWorld(scratch);
+    const command = makeRunCommand(
+      () => world.deps,
+      () => summary,
+    );
+    const { ctx } = makeContext(scratch, { json: true });
+    return captureStdout(() => command(args, ctx));
+  }
+
+  it("appends what the stage did to the file GitHub names", async () => {
+    const summary = join(scratch, "summary.md");
+    await runWithSummary(["--stage", "gate"], summary);
+    const text = await readFile(summary, "utf8");
+    expect(text).toContain("### dispatch run --stage gate");
+    expect(text).toContain("Run is due (scheduled)");
+    expect(text).toContain("2026-10-07 (regular)");
+  });
+
+  it("appends stage after stage, so the run page shows the whole run", async () => {
+    await put("config/sources.json", json(sourcesFile()));
+    await put(
+      "config/preferences.json",
+      await readFile(join(REPO_ROOT, "config/preferences.json"), "utf8"),
+    );
+    const summary = join(scratch, "summary.md");
+    await runWithSummary(["--stage", "gate"], summary);
+    await runWithSummary(["--stage", "fetch"], summary);
+    const text = await readFile(summary, "utf8");
+    expect(text.indexOf("run --stage gate")).toBeLessThan(text.indexOf("run --stage fetch"));
+    expect(text).toContain("Stage fetch done");
+    expect(text).toContain("failed_sources");
+  });
+
+  it("records a failed stage with its one-line error", async () => {
+    const summary = join(scratch, "summary.md");
+    const { result } = await runWithSummary(["--stage", "judge"], summary);
+    expect(result).toBe(1);
+    expect(await readFile(summary, "utf8")).toContain("Failed at judge: No plan found");
+  });
+
+  it("writes nothing without GITHUB_STEP_SUMMARY and never fails the run when it cannot write", async () => {
+    expect((await runWithSummary(["--stage", "gate"], undefined)).result).toBe(0);
+    // A directory cannot be appended to.
+    expect((await runWithSummary(["--stage", "gate"], scratch)).result).toBe(0);
   });
 });

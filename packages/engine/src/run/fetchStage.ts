@@ -58,6 +58,7 @@ export async function fetchStage(deps: RunDeps, plan: Plan): Promise<StageReport
         failed: failed.length,
         skipped: skipped.length,
       },
+      failed_sources: failed.map((result) => result.source_id),
       fetched: gathered.pool.report.fetched,
       after_dedupe: gathered.pool.report.dedupe.output,
       kept: gathered.pool.items.length,

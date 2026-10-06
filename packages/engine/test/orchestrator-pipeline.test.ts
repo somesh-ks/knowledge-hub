@@ -578,6 +578,17 @@ describe("failed run", () => {
     expect(health.sources["blog-b"]).toEqual({ failures: 1 });
     expect(health.sources["blog-a"]?.failures).toBe(0);
   });
+
+  it("names the failed sources in the fetch report, ids only", LONG, async () => {
+    const world = makeWorld(repo.root, { now: WED });
+    world.failSource("blog-b");
+    await runStage(world, { stage: "gate" });
+    const fetch = await runStage(world, { stage: "fetch" });
+    expect(fetch.report).toMatchObject({
+      stage: "fetch",
+      passes: [{ failed_sources: ["blog-b"], sources: { run: 3, ok: 2, failed: 1, skipped: 0 } }],
+    });
+  });
 });
 
 describe("Sunday: regular and weekly passes", () => {

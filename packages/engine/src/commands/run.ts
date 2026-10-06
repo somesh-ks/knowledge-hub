@@ -4,6 +4,7 @@ import { RUN_MODES, type RunMode } from "../gate/decideRun.js";
 import { buildDeps } from "../run/buildDeps.js";
 import { formatReport } from "../run/format.js";
 import { runPipeline } from "../run/pipeline.js";
+import { appendStepSummary } from "../run/stepSummary.js";
 import {
   DEFAULT_RUN_OPTIONS,
   isStageName,
@@ -59,6 +60,7 @@ function parseOptions(argv: string[]): { options: RunOptions; help: boolean } {
  */
 export function makeRunCommand(
   createDeps: (ctx: CommandContext) => RunDeps = buildDeps,
+  summaryPath: () => string | undefined = () => process.env.GITHUB_STEP_SUMMARY,
 ): CommandRun {
   return async (argv, ctx) => {
     let parsed: ReturnType<typeof parseOptions>;
@@ -83,6 +85,7 @@ export function makeRunCommand(
     process.stdout.write(
       `${ctx.json ? JSON.stringify(result.report) : formatReport(result.report)}\n`,
     );
+    await appendStepSummary(summaryPath(), parsed.options.stage ?? "run", result.report);
     return result.code;
   };
 }
