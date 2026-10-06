@@ -1,0 +1,602 @@
+/*
+ * Dispatch foundations: reset, base typography, focus ring, motion utilities, scrollbars,
+ * safe-area helpers, sheet and dialog base styles.
+ *
+ * Rules for this file
+ * - Token references only. Colors, spacing, radii, durations and curves come from tokens.css.
+ *   A test fails the build on any raw color or dimension (except zero and the sr-only box).
+ * - Everything lives in cascade layers, so component styles written outside a layer always win
+ *   without specificity fights.
+ * - Reduced motion is handled by token remapping (see tokens.css) plus the one block at the end.
+ *   Movement durations collapse; fades and color changes keep their timing.
+ *
+ * Import order: tokens.css, then this file, then component CSS.
+ */
+@layer foundations.reset,
+  foundations.base,
+  foundations.focus,
+  foundations.motion,
+  foundations.sheet;
+
+/* ------------------------------------------------------------------ safe areas and shell */
+
+:root {
+  /* Mirror env() once, here. A zero inset is a legitimate answer on every device. */
+  --safe-top: env(safe-area-inset-top, 0px);
+  --safe-right: env(safe-area-inset-right, 0px);
+  --safe-bottom: env(safe-area-inset-bottom, 0px);
+  --safe-left: env(safe-area-inset-left, 0px);
+
+  /* Content bleeds; controls and text stay inside the gutters and the safe areas. */
+  --page-gutter: var(--layout-gutter);
+  --page-gutter-start: max(var(--page-gutter), var(--safe-left));
+  --page-gutter-end: max(var(--page-gutter), var(--safe-right));
+
+  /* iPadOS windowed apps draw window controls over the top-leading corner and env() does not
+     report them. The inset is applied only where such a window is plausible. */
+  --window-controls-inset: 0px;
+}
+
+@media (min-width: 40rem) {
+  :root {
+    --page-gutter: var(--layout-gutter-wide);
+  }
+}
+
+@media (display-mode: standalone) and (pointer: coarse) and (min-width: 40rem) and (
+    min-height: 40rem
+  ) {
+  :root {
+    --window-controls-inset: var(--layout-window-controls);
+  }
+}
+
+@layer foundations.reset {
+  *,
+  *::before,
+  *::after {
+    box-sizing: border-box;
+  }
+
+  html {
+    -webkit-text-size-adjust: 100%;
+    text-size-adjust: 100%;
+    scrollbar-color: color-mix(in oklab, currentColor 32%, transparent) transparent;
+    scrollbar-gutter: stable;
+    interpolate-size: allow-keywords;
+  }
+
+  body,
+  h1,
+  h2,
+  h3,
+  h4,
+  p,
+  figure,
+  blockquote,
+  dl,
+  dd,
+  ul,
+  ol {
+    margin: 0;
+  }
+
+  /* Lists keep their role in Safari through an explicit role="list" in markup. */
+  ul,
+  ol {
+    padding: 0;
+    list-style: none;
+  }
+
+  img,
+  svg,
+  picture,
+  canvas {
+    display: block;
+    max-width: 100%;
+  }
+
+  button,
+  input,
+  select,
+  textarea {
+    font: inherit;
+    letter-spacing: inherit;
+    color: inherit;
+  }
+
+  button {
+    padding: 0;
+    background: none;
+    border: 0;
+    cursor: pointer;
+  }
+
+  /* Controls: no gray tap flash because every one has a pressed state, no double-tap zoom,
+     no text selection while scrubbing. */
+  :where(button, [role="button"], [role="switch"], [role="slider"], summary, label) {
+    -webkit-tap-highlight-color: transparent;
+    touch-action: manipulation;
+    user-select: none;
+    -webkit-user-select: none;
+  }
+
+  :where(a) {
+    color: inherit;
+    text-underline-offset: 0.18em;
+  }
+
+  [hidden] {
+    display: none;
+  }
+
+  /* iOS zooms into inputs below 16px. The body size token is 1rem, so inputs never go under it. */
+  :where(input, select, textarea) {
+    font-size: var(--font-size-body);
+  }
+}
+
+/* ------------------------------------------------------------------ base typography */
+
+@layer foundations.base {
+  body {
+    min-height: 100dvh;
+    background: var(--color-surface);
+    color: var(--color-on-surface);
+    font-family: var(--text-body-family);
+    font-size: var(--text-body-size);
+    font-weight: var(--text-body-weight);
+    line-height: var(--text-body-leading);
+    letter-spacing: var(--text-body-tracking);
+    font-optical-sizing: auto;
+    font-synthesis: none;
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+  }
+
+  h1,
+  h2,
+  h3,
+  h4 {
+    text-wrap: balance;
+  }
+
+  p {
+    text-wrap: pretty;
+  }
+
+  ::selection {
+    background: color-mix(in oklch, var(--color-accent) 28%, transparent);
+  }
+
+  /* Numbers that change while you watch them never shift their neighbors. */
+  .num {
+    font-variant-numeric: tabular-nums lining-nums;
+  }
+
+  .page {
+    width: 100%;
+    max-width: var(--layout-column);
+    margin-inline: auto;
+    padding-inline: var(--page-gutter-start) var(--page-gutter-end);
+  }
+
+  .scroll-area {
+    overflow-y: auto;
+    overscroll-behavior: contain;
+    scrollbar-width: thin;
+    scrollbar-gutter: stable;
+  }
+
+  .pad-safe-top {
+    padding-top: var(--safe-top);
+  }
+
+  .pad-safe-bottom {
+    padding-bottom: var(--safe-bottom);
+  }
+
+  /* Text styles. The composite tokens expand to family, size, weight, tracking and leading. */
+  .text-display {
+    font-family: var(--text-display-family);
+    font-size: var(--text-display-size);
+    font-weight: var(--text-display-weight);
+    letter-spacing: var(--text-display-tracking);
+    line-height: var(--text-display-leading);
+  }
+
+  .text-lead {
+    font-family: var(--text-lead-family);
+    font-size: var(--text-lead-size);
+    font-weight: var(--text-lead-weight);
+    letter-spacing: var(--text-lead-tracking);
+    line-height: var(--text-lead-leading);
+  }
+
+  .text-title {
+    font-family: var(--text-title-family);
+    font-size: var(--text-title-size);
+    font-weight: var(--text-title-weight);
+    letter-spacing: var(--text-title-tracking);
+    line-height: var(--text-title-leading);
+  }
+
+  .text-heading {
+    font-family: var(--text-heading-family);
+    font-size: var(--text-heading-size);
+    font-weight: var(--text-heading-weight);
+    letter-spacing: var(--text-heading-tracking);
+    line-height: var(--text-heading-leading);
+  }
+
+  .text-label {
+    font-family: var(--text-label-family);
+    font-size: var(--text-label-size);
+    font-weight: var(--text-label-weight);
+    letter-spacing: var(--text-label-tracking);
+    line-height: var(--text-label-leading);
+  }
+
+  .text-reading {
+    font-family: var(--text-reading-family);
+    font-size: var(--text-reading-size);
+    font-weight: var(--text-reading-weight);
+    letter-spacing: var(--text-reading-tracking);
+    line-height: var(--text-reading-leading);
+    max-width: var(--layout-measure);
+  }
+
+  .text-meta {
+    font-family: var(--text-meta-family);
+    font-size: var(--text-meta-size);
+    font-weight: var(--text-meta-weight);
+    letter-spacing: var(--text-meta-tracking);
+    line-height: var(--text-meta-leading);
+  }
+
+  .text-caption {
+    font-family: var(--text-caption-family);
+    font-size: var(--text-caption-size);
+    font-weight: var(--text-caption-weight);
+    letter-spacing: var(--text-caption-tracking);
+    line-height: var(--text-caption-leading);
+  }
+
+  .text-muted {
+    color: var(--color-on-surface-muted);
+  }
+
+  .text-subtle {
+    color: var(--color-on-surface-subtle);
+  }
+}
+
+/* ------------------------------------------------------------------ visually hidden */
+
+.sr-only {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip-path: inset(50%);
+  white-space: nowrap;
+  border: 0;
+}
+
+/* ------------------------------------------------------------------ focus ring */
+
+@layer foundations.focus {
+  /*
+   * Two layers: an outer ring in the focus color and an inner gap in the local surface color,
+   * so the ring reads on any background. Components on a raised surface set --color-focus-gap
+   * locally. The ring is an outline, not a box-shadow, so it survives forced-colors mode, where
+   * the browser keeps outlines and swaps their color for a system color.
+   */
+  :focus-visible {
+    outline: var(--stroke-ring) solid var(--color-focus-ring);
+    outline-offset: var(--stroke-ring-gap);
+    box-shadow: 0 0 0 var(--stroke-ring-gap) var(--color-focus-gap);
+  }
+
+  /* A programmatic focus target (a heading after navigation) shows no ring for pointer users. */
+  [tabindex="-1"]:focus:not(:focus-visible) {
+    outline: none;
+  }
+
+  .skip-link {
+    position: absolute;
+    inset-block-start: var(--space-2);
+    inset-inline-start: var(--space-2);
+    z-index: var(--z-toast);
+    padding: var(--space-3) var(--space-4);
+    border-radius: var(--button-radius);
+    background: var(--color-surface-inverse);
+    color: var(--color-on-surface-inverse);
+    transform: translateY(-200%);
+  }
+
+  .skip-link:focus-visible {
+    transform: none;
+  }
+}
+
+/* ------------------------------------------------------------------ motion utilities */
+
+@layer foundations.motion {
+  /*
+   * .press: pressable surface. Pressing is fast (100ms) and releasing is softer (160ms), so the
+   * control meets the finger and then settles. Hover is gated to real pointers.
+   */
+  .press {
+    transition:
+      transform var(--duration-press-out) var(--ease-out),
+      background-color var(--duration-hover) var(--ease-hover),
+      color var(--duration-hover) var(--ease-hover);
+  }
+
+  .press:active {
+    transform: scale(var(--scale-press));
+    transition-duration: var(--duration-press-in), var(--duration-hover), var(--duration-hover);
+  }
+
+  .press-subtle:active {
+    transform: scale(var(--scale-press-subtle));
+  }
+
+  @media (hover: hover) and (pointer: fine) {
+    .hover-fill:hover {
+      background-color: var(--color-surface-sunken);
+    }
+  }
+
+  /*
+   * .enter: fade, rise and unblur on insertion. Uses @starting-style, so it needs no script.
+   * Exit is a plain opacity fade, per DESIGN.md. Never put this on a high-frequency element.
+   */
+  .enter {
+    transition:
+      opacity var(--duration-enter) var(--ease-out),
+      transform var(--duration-enter) var(--ease-out),
+      filter var(--duration-enter) var(--ease-out);
+  }
+
+  @starting-style {
+    .enter {
+      opacity: 0;
+      transform: translateY(var(--distance-base));
+      filter: blur(var(--blur-enter));
+    }
+  }
+
+  /* .stagger: children enter in sequence. Set --i on each child. Never blocks interaction. */
+  .stagger > * {
+    animation: rise var(--duration-enter) var(--ease-out) backwards;
+    animation-delay: calc(var(--i, 0) * var(--duration-stagger));
+  }
+
+  @keyframes rise {
+    from {
+      opacity: 0;
+      transform: translateY(var(--distance-base));
+      filter: blur(var(--blur-enter));
+    }
+  }
+
+  @keyframes fade-in {
+    from {
+      opacity: 0;
+    }
+  }
+
+  @keyframes spin {
+    to {
+      transform: rotate(1turn);
+    }
+  }
+
+  @keyframes pulse {
+    50% {
+      opacity: var(--opacity-disabled);
+    }
+  }
+
+  /* A quiet spinner, shown only after a delay so fast loads never flash it. */
+  .spinner {
+    width: var(--size-icon);
+    height: var(--size-icon);
+    border: var(--stroke-ring) solid color-mix(in oklab, currentColor 24%, transparent);
+    border-top-color: currentColor;
+    border-radius: var(--radius-round);
+    animation: spin var(--duration-spin) var(--ease-linear) infinite;
+  }
+
+  .is-loading {
+    animation: pulse var(--duration-spin) var(--ease-in-out) infinite;
+  }
+}
+
+/* ------------------------------------------------------------------ sheets and dialogs */
+
+@layer foundations.sheet {
+  /* Scroll lock while a modal is open. */
+  :root:has(dialog[open]) {
+    overflow: hidden;
+  }
+
+  /*
+   * Bottom sheet on phones. The dialog is the positioning box; .sheet-panel is the visible
+   * surface. Closing animates back to the translated state through display and overlay with
+   * allow-discrete, so the exit plays before the dialog leaves the top layer. Enter is slower
+   * than exit: deliberate in, quick out.
+   */
+  dialog.sheet {
+    position: fixed;
+    inset: auto 0 0 0;
+    width: min(100%, var(--layout-column));
+    max-width: none;
+    max-height: none;
+    margin: 0 auto;
+    padding: var(--space-2) var(--space-2) max(var(--space-2), var(--safe-bottom));
+    border: 0;
+    background: transparent;
+    color: var(--color-on-surface);
+    overflow: visible;
+    opacity: 1;
+    transform: translateY(0);
+    transition:
+      transform var(--duration-sheet-out) var(--ease-drawer),
+      opacity var(--duration-state) var(--ease-out),
+      overlay var(--duration-sheet-out) allow-discrete,
+      display var(--duration-sheet-out) allow-discrete;
+    /* Controls inside sit on the raised surface, so the focus gap matches it. */
+    --color-focus-gap: var(--color-surface-raised);
+  }
+
+  dialog.sheet[open] {
+    transition-duration:
+      var(--duration-sheet-in), var(--duration-state), var(--duration-sheet-in),
+      var(--duration-sheet-in);
+  }
+
+  dialog.sheet:not([open]) {
+    opacity: 0;
+    transform: translateY(105%);
+  }
+
+  @starting-style {
+    dialog.sheet[open] {
+      opacity: 0;
+      transform: translateY(105%);
+    }
+  }
+
+  dialog.sheet::backdrop {
+    background: var(--color-scrim);
+    opacity: 0;
+    transition:
+      opacity var(--duration-sheet-out) var(--ease-out),
+      overlay var(--duration-sheet-out) allow-discrete,
+      display var(--duration-sheet-out) allow-discrete;
+  }
+
+  dialog.sheet[open]::backdrop {
+    opacity: 1;
+    transition-duration:
+      var(--duration-sheet-in), var(--duration-sheet-in), var(--duration-sheet-in);
+  }
+
+  @starting-style {
+    dialog.sheet[open]::backdrop {
+      opacity: 0;
+    }
+  }
+
+  /* The dialog and its panel receive focus on open, as containers. The controls inside carry the ring. */
+  dialog:focus-visible,
+  .sheet-panel:focus-visible {
+    outline: none;
+    box-shadow: none;
+  }
+
+  .sheet-panel {
+    max-height: calc(var(--sheet-max-height) - var(--space-4));
+    padding: var(--sheet-padding);
+    overflow-y: auto;
+    overscroll-behavior: contain;
+    scrollbar-width: thin;
+    border-radius: var(--sheet-radius);
+    background: var(--sheet-bg);
+    box-shadow: var(--sheet-shadow);
+  }
+
+  /* Centered dialog from 40rem. Modals are exempt from origin-aware scaling: they stay centered. */
+  @media (min-width: 40rem) {
+    dialog.sheet {
+      inset: 0;
+      width: min(100%, var(--layout-dialog));
+      margin: auto;
+      padding: 0;
+      height: fit-content;
+      transform: scale(1);
+    }
+
+    dialog.sheet:not([open]) {
+      transform: scale(var(--scale-enter));
+    }
+
+    @starting-style {
+      dialog.sheet[open] {
+        transform: scale(var(--scale-enter));
+      }
+    }
+
+    .sheet-panel {
+      max-height: var(--sheet-max-height);
+    }
+  }
+
+  /* Base UI Drawer and Dialog expose the same states as attributes instead of @starting-style. */
+  .sheet-popup[data-starting-style],
+  .sheet-popup[data-ending-style] {
+    opacity: 0;
+    transform: translateY(105%);
+  }
+}
+
+/* ------------------------------------------------------------------ preferences */
+
+/* Higher contrast: dividers and tracks become identifiers, so they get the control strength. */
+@media (prefers-contrast: more) {
+  :root {
+    --color-border-hairline: var(--color-border-control);
+    --color-track: var(--color-track-strong);
+  }
+}
+
+/* Reduced transparency: translucent chrome becomes opaque. */
+@media (prefers-reduced-transparency: reduce) {
+  :root {
+    --color-scrim: var(--color-surface-inverse);
+  }
+}
+
+/*
+ * Reduced motion. Movement durations are already collapsed by tokens.css. What remains here is
+ * what tokens cannot express: no smooth scrolling, entrance by opacity alone, a spinner that
+ * pulses instead of rotating, and view transitions that crossfade.
+ */
+@media (prefers-reduced-motion: reduce) {
+  html {
+    scroll-behavior: auto;
+  }
+
+  .stagger > * {
+    animation-name: fade-in;
+    animation-duration: var(--duration-state);
+    animation-delay: 0ms;
+  }
+
+  .spinner {
+    animation: pulse var(--duration-spin) var(--ease-in-out) infinite;
+  }
+
+  ::view-transition-group(*),
+  ::view-transition-old(*),
+  ::view-transition-new(*) {
+    animation-duration: var(--duration-state);
+  }
+}
+
+/* Forced colors: the browser drops shadows and backgrounds. Keep an edge on pressables. */
+@media (forced-colors: active) {
+  .press {
+    border: var(--stroke-hairline) solid ButtonText;
+  }
+
+  .spinner {
+    border-color: GrayText;
+    border-top-color: Highlight;
+  }
+}

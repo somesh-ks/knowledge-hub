@@ -1,0 +1,338 @@
+/*
+ * Sound lab styles. Shares tokens, foundations and the prototype's controls (segmented, switch,
+ * range, buttons) so the lab looks like the product it is auditioning.
+ */
+
+.lab-page {
+  max-width: 72rem;
+}
+
+.lab {
+  padding-block: var(--space-6) var(--space-24);
+}
+
+.lab-intro h1 {
+  font-family: var(--text-display-family);
+  font-size: var(--text-display-size);
+  font-weight: var(--text-display-weight);
+  letter-spacing: var(--text-display-tracking);
+  line-height: var(--text-display-leading);
+}
+
+.lab-lede {
+  max-width: 62ch;
+  margin-block-start: var(--space-3);
+  color: var(--color-on-surface-muted);
+}
+
+.lab-section {
+  margin-block-start: var(--space-12);
+}
+
+.lab-section .section-title {
+  margin-block-end: var(--space-4);
+}
+
+.lab-panel {
+  --color-focus-gap: var(--color-surface-raised);
+  display: grid;
+  max-width: 40rem;
+  gap: var(--space-4);
+  padding: var(--space-4);
+  border-radius: var(--sheet-radius);
+  background: var(--color-surface-raised);
+  box-shadow: var(--cover-shadow);
+}
+
+.lab-volume-label {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  padding-inline: var(--space-2);
+  font-weight: var(--font-weight-semibold);
+}
+
+.lab-volume-value {
+  color: var(--color-on-surface-muted);
+  font-size: var(--font-size-meta);
+}
+
+.lab-volume .setting-hint {
+  padding-inline: var(--space-2);
+}
+
+.lab-actions {
+  display: grid;
+  gap: var(--space-2);
+}
+
+.lab-panel .setting-hint {
+  padding-inline: var(--space-2);
+}
+
+.lab-panel .setting-hint:empty {
+  display: none;
+}
+
+/* Cards */
+
+.sound-grid {
+  display: grid;
+  gap: var(--space-4);
+  grid-template-columns: minmax(0, 1fr);
+}
+
+@media (min-width: 40rem) {
+  .sound-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+@media (min-width: 64rem) {
+  .sound-grid {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
+}
+
+.sound-card {
+  --lab-card-padding: var(--space-2);
+  --color-focus-gap: var(--color-surface-raised);
+  display: flex;
+  flex-direction: column;
+  padding: var(--lab-card-padding);
+  /* Concentric: the button's large radius plus the card's padding. */
+  border-radius: var(--radius-xl);
+  background: var(--color-surface-raised);
+  box-shadow: var(--cover-shadow);
+}
+
+.sound-hit {
+  display: grid;
+  gap: var(--space-3);
+  width: 100%;
+  padding: var(--space-3);
+  border-radius: var(--radius-lg);
+  background: var(--color-surface-sunken);
+  text-align: start;
+}
+
+@media (hover: hover) and (pointer: fine) {
+  .sound-hit:hover {
+    background: color-mix(in oklch, var(--color-on-surface) 7%, var(--color-surface-sunken));
+  }
+}
+
+.sound-wave {
+  position: relative;
+  display: block;
+  height: 4.5rem;
+  overflow: hidden;
+  border-radius: var(--radius-sm);
+}
+
+.sound-wave canvas {
+  width: 100%;
+  height: 100%;
+}
+
+.sweep {
+  position: absolute;
+  inset: 0;
+  background: color-mix(in oklch, var(--color-accent) 16%, transparent);
+  clip-path: inset(0 100% 0 0);
+  pointer-events: none;
+}
+
+.sweep.is-running {
+  animation: lab-sweep var(--sweep-ms, 200ms) var(--ease-linear) forwards;
+}
+
+@keyframes lab-sweep {
+  from {
+    clip-path: inset(0 100% 0 0);
+    opacity: 1;
+  }
+  to {
+    clip-path: inset(0 0 0 0);
+    opacity: 1;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .sweep.is-running {
+    animation-name: lab-flash;
+    animation-duration: var(--duration-state);
+  }
+
+  @keyframes lab-flash {
+    from {
+      clip-path: inset(0);
+      opacity: 1;
+    }
+    to {
+      clip-path: inset(0);
+      opacity: 0;
+    }
+  }
+}
+
+.sound-head {
+  display: grid;
+  gap: var(--space-1);
+}
+
+.sound-name {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  font-family: var(--text-heading-family);
+  font-size: var(--text-heading-size);
+  font-weight: var(--text-heading-weight);
+  letter-spacing: var(--text-heading-tracking);
+}
+
+.sound-tag {
+  padding: 0 var(--space-2);
+  border-radius: var(--radius-xs);
+  background: var(--color-accent-subtle);
+  color: var(--color-accent);
+  font-size: var(--font-size-caption);
+  font-weight: var(--font-weight-semibold);
+}
+
+.sound-trigger {
+  color: var(--color-on-surface-muted);
+  font-size: var(--font-size-meta);
+}
+
+.sound-facts {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: var(--space-3) var(--space-4);
+  margin: 0;
+  padding: var(--space-4) var(--space-3) var(--space-2);
+}
+
+.sound-facts dt {
+  color: var(--color-on-surface-muted);
+  font-size: var(--font-size-caption);
+}
+
+.sound-facts dd {
+  margin: 0;
+  font-size: var(--font-size-meta);
+  font-weight: var(--font-weight-semibold);
+}
+
+.lab-param {
+  margin: var(--space-2) var(--space-3);
+  border: 0;
+  padding: 0;
+}
+
+.lab-param span {
+  color: var(--color-on-surface-muted);
+  font-size: var(--font-size-caption);
+}
+
+.lab-rates label {
+  min-height: var(--size-touch);
+}
+
+.sound-intent {
+  padding: var(--space-2) var(--space-3);
+  color: var(--color-on-surface-muted);
+  font-size: var(--font-size-meta);
+}
+
+.sound-status {
+  min-height: 3rem;
+  margin-block-start: auto;
+  padding: var(--space-1) var(--space-3) var(--space-3);
+  color: var(--color-on-surface);
+  font-size: var(--font-size-meta);
+  font-weight: var(--font-weight-semibold);
+}
+
+/* Table */
+
+.table-scroll {
+  overflow-x: auto;
+  border-radius: var(--radius-lg);
+  background: var(--color-surface-raised);
+  box-shadow: var(--cover-shadow);
+}
+
+.map-table {
+  width: 100%;
+  min-width: 46rem;
+  border-collapse: collapse;
+  font-size: var(--font-size-meta);
+}
+
+.map-table th,
+.map-table td {
+  padding: var(--space-3) var(--space-4);
+  text-align: start;
+  vertical-align: baseline;
+}
+
+.map-table thead th {
+  color: var(--color-on-surface-muted);
+  font-weight: var(--font-weight-semibold);
+  white-space: nowrap;
+}
+
+.map-table tbody tr + tr > * {
+  border-block-start: var(--stroke-hairline) solid var(--color-border-hairline);
+}
+
+.map-table tbody th {
+  font-weight: var(--font-weight-medium);
+}
+
+.map-table td:nth-child(2) {
+  font-weight: var(--font-weight-semibold);
+}
+
+/* Ladder */
+
+.ladder {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-2);
+}
+
+.ladder-note {
+  display: grid;
+  gap: var(--space-1);
+  min-width: 5.5rem;
+  padding: var(--space-3);
+  border-radius: var(--radius-md);
+  background: var(--color-surface-sunken);
+  color: var(--color-on-surface-muted);
+}
+
+.ladder-note[data-used] {
+  background: var(--color-accent-subtle);
+  color: var(--color-on-surface);
+}
+
+.ladder-name {
+  font-weight: var(--font-weight-bold);
+  font-size: var(--font-size-label-lg);
+}
+
+.ladder-users {
+  max-width: 10rem;
+  font-size: var(--font-size-caption);
+  line-height: var(--font-leading-caption);
+}
+
+.lab-theme .segmented {
+  max-width: 20rem;
+}
+
+.lab-panel .setting-text .setting-hint {
+  padding-inline: 0;
+}

@@ -1,1 +1,41 @@
-export {};
+export {
+  createSoundEngine,
+  defaultSoundsEnabled,
+  installGestureUnlock,
+  type SoundEngine,
+  type SoundEngineOptions,
+} from "./engine.js";
+export {
+  dbToGain,
+  type Layer,
+  MASTER_LOWPASS,
+  MAX_POLYPHONY,
+  type NarrationPolicy,
+  type NoiseLayer,
+  noteName,
+  PENTATONIC_HZ,
+  PITCH,
+  type PlayOptions,
+  RECIPES,
+  recipeDurationMs,
+  recipeFor,
+  resolveFrequency,
+  SCRUB_LADDER,
+  SOUND_NAMES,
+  type SoundName,
+  type SoundRecipe,
+  SPEED_LADDER,
+  scrubFrequency,
+  speedFrequency,
+  type ToneLayer,
+  TRIGGERS,
+  volumeToGain,
+} from "./recipes.js";
+export {
+  analyzeSpectrum,
+  envelopeAt,
+  peakToDbfs,
+  type RenderOptions,
+  type RenderResult,
+  renderRecipe,
+} from "./render.js";
