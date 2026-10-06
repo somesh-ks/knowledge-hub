@@ -15,11 +15,11 @@ import { recordInstallVisit } from "./installHint";
 import { attachMediaSession } from "./mediaSession";
 import { createPlayerStore } from "./playerStore";
 import type { PlayerStore } from "./playerTypes";
-import { getPreferences, type PreferencesStore } from "./preferences";
+import { getPreferences } from "./preferences";
 import { createReaderSync } from "./readerSync";
 import { safeLocalStorage } from "./resume";
 import { reapplyRootState, setRootAttribute, setRootProperty } from "./rootAttributes";
-import { applyTheme } from "./themeApply";
+import { reapplyTheme, startThemeSync } from "./themeRuntime";
 
 let store: PlayerStore | null = null;
 
@@ -51,11 +51,6 @@ export function getPlayerStore(): PlayerStore {
   return store;
 }
 
-export interface RuntimeParts {
-  store: PlayerStore;
-  preferences: PreferencesStore;
-}
-
 function syncRootState(playerStore: PlayerStore): void {
   const state = playerStore.getState();
   setRootAttribute("data-player-state", state.status);
@@ -77,8 +72,7 @@ export function startPlayerRuntime(): () => void {
   const reader = createReaderSync(playerStore);
   const stopSound = startSound({ store: playerStore, preferences });
 
-  applyTheme(preferences.get().theme);
-  const offPreferences = preferences.subscribe(() => applyTheme(preferences.get().theme));
+  const stopTheme = startThemeSync();
 
   syncRootState(playerStore);
   const offState = playerStore.subscribe(() => syncRootState(playerStore));
@@ -93,7 +87,7 @@ export function startPlayerRuntime(): () => void {
   };
   const onAfterSwap = (): void => {
     reapplyRootState();
-    applyTheme(preferences.get().theme);
+    reapplyTheme();
   };
   const onOnline = (): void => announce("You are back online.");
   const onOffline = (): void => announce("You are offline.");
@@ -112,7 +106,7 @@ export function startPlayerRuntime(): () => void {
     window.removeEventListener("offline", onOffline);
     offEvent();
     offState();
-    offPreferences();
+    stopTheme();
     stopSound();
     reader.destroy();
     detachMediaSession();

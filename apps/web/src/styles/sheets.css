@@ -1,0 +1,679 @@
+/*
+ * Dispatch sheets: Generate, Settings and the toast.
+ *
+ * Reads semantic and component tokens only. Base UI's Drawer supplies the states as attributes
+ * (data-starting-style, data-ending-style, data-swiping) and the swipe values as custom
+ * properties, so the transitions here are plain CSS: sheet in 300ms on the drawer curve, sheet out
+ * 220ms, scaled by how hard the sheet was flicked away.
+ *
+ * Imported with player.css, which owns the segmented control and the icon set these sheets use.
+ */
+
+/* ------------------------------------------------------------------ the sheet surface */
+
+.sheet-scrim {
+  position: fixed;
+  inset: 0;
+  z-index: var(--z-sheet);
+  min-height: 100dvh;
+  background: var(--color-scrim);
+  opacity: calc(1 - var(--drawer-swipe-progress, 0));
+  transition: opacity var(--duration-sheet-in) var(--ease-out);
+}
+
+@supports (-webkit-touch-callout: none) {
+  /* iOS 26 clips fixed elements to the inner viewport; absolute covers everything visible. */
+  .sheet-scrim {
+    position: absolute;
+  }
+}
+
+.sheet-scrim[data-starting-style],
+.sheet-scrim[data-ending-style] {
+  opacity: 0;
+}
+
+.sheet-scrim[data-ending-style] {
+  transition-duration: calc(var(--duration-sheet-out) * var(--drawer-swipe-strength, 1));
+}
+
+.sheet-scrim[data-swiping] {
+  transition-duration: 0ms;
+}
+
+.sheet-viewport {
+  position: fixed;
+  inset: 0;
+  z-index: var(--z-sheet);
+  display: flex;
+  align-items: flex-end;
+  justify-content: center;
+  padding: var(--space-2) var(--space-2) max(var(--space-2), var(--safe-bottom));
+  /* Only the sheet takes the pointer; the scrim behind it handles dismissal. */
+  pointer-events: none;
+}
+
+.sheet-popup {
+  --color-focus-gap: var(--color-surface-raised);
+  width: min(100%, var(--layout-column));
+  color: var(--color-on-surface);
+  outline: none;
+  pointer-events: auto;
+  transform: translateY(var(--drawer-swipe-movement-y, 0px));
+  transition:
+    transform var(--duration-sheet-in) var(--ease-drawer),
+    opacity var(--duration-state) var(--ease-out);
+}
+
+.sheet-popup[data-starting-style],
+.sheet-popup[data-ending-style] {
+  opacity: 0;
+  transform: translateY(calc(100% + var(--space-4) + var(--safe-bottom)));
+}
+
+.sheet-popup[data-ending-style] {
+  transition-duration:
+    calc(var(--duration-sheet-out) * var(--drawer-swipe-strength, 1)), var(--duration-state);
+}
+
+.sheet-popup[data-swiping] {
+  transition-duration: 0ms;
+  user-select: none;
+}
+
+.sheet-popup:focus-visible {
+  /* The panel takes focus on open as a container; the controls inside carry the ring. */
+  outline: none;
+  box-shadow: none;
+}
+
+.sheet-panel {
+  max-height: calc(var(--sheet-max-height) - var(--space-4));
+  padding: var(--sheet-padding);
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  scrollbar-width: thin;
+  border-radius: var(--sheet-radius);
+  background: var(--sheet-bg);
+  box-shadow: var(--sheet-shadow);
+}
+
+/* From 40rem a sheet is a centered dialog. Modals stay centered and scale in. */
+@media (min-width: 40rem) {
+  .sheet-viewport {
+    align-items: center;
+    padding: 0;
+  }
+
+  .sheet-popup {
+    width: min(100%, var(--layout-dialog));
+    transform: scale(1);
+  }
+
+  .sheet-popup[data-starting-style],
+  .sheet-popup[data-ending-style] {
+    transform: scale(var(--scale-enter));
+  }
+
+  .sheet-panel {
+    max-height: var(--sheet-max-height);
+  }
+}
+
+/* ------------------------------------------------------------------ head, lede, groups */
+
+.sheet-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-block-end: var(--space-2);
+  padding-inline-start: var(--space-2);
+}
+
+.sheet-title {
+  font-family: var(--text-heading-family);
+  font-size: var(--font-size-label-lg);
+  font-weight: var(--font-weight-bold);
+  letter-spacing: var(--font-tracking-label-lg);
+}
+
+.sheet-close {
+  display: grid;
+  place-items: center;
+  width: var(--size-touch);
+  height: var(--size-touch);
+  border-radius: var(--button-radius);
+  color: var(--color-on-surface-muted);
+}
+
+@media (hover: hover) and (pointer: fine) {
+  .sheet-close:hover {
+    background: var(--color-surface-sunken);
+    color: var(--color-on-surface);
+  }
+}
+
+.sheet-lede {
+  padding-inline: var(--space-2);
+  color: var(--color-on-surface-muted);
+  font-size: var(--font-size-meta);
+}
+
+.sheet-group {
+  margin-block-start: var(--space-6);
+}
+
+.sheet-group > h3,
+.sheet-group .segmented-legend {
+  display: block;
+  margin-block: 0 var(--space-2);
+  padding-inline: var(--space-2);
+  color: var(--color-on-surface-muted);
+  font-size: var(--font-size-meta);
+  font-weight: var(--font-weight-semibold);
+}
+
+/* ------------------------------------------------------------------ fields and buttons */
+
+.sheet-field {
+  display: grid;
+  gap: var(--space-2);
+  margin-block-start: var(--space-4);
+}
+
+.sheet-field-label {
+  padding-inline: var(--space-2);
+  font-weight: var(--font-weight-semibold);
+}
+
+.sheet-input {
+  min-height: var(--field-height);
+  padding-inline: var(--field-padding);
+  border: var(--stroke-hairline) solid var(--field-border);
+  border-radius: var(--field-radius);
+  background: var(--field-bg);
+  color: var(--color-on-surface);
+  /* 16px or larger, so iOS never zooms. The token is the body size, 1rem. */
+  font-size: var(--font-size-body);
+}
+
+.sheet-input[aria-invalid="true"] {
+  border-color: var(--color-danger);
+}
+
+.sheet-input[data-disabled],
+.sheet-input:disabled {
+  color: var(--color-on-surface-disabled);
+}
+
+.sheet-field-hint {
+  padding-inline: var(--space-2);
+  color: var(--color-on-surface-muted);
+  font-size: var(--font-size-meta);
+}
+
+.sheet-field-error {
+  display: flex;
+  align-items: flex-start;
+  gap: var(--space-2);
+  padding-inline: var(--space-2);
+  color: var(--color-danger);
+  font-size: var(--font-size-meta);
+  font-weight: var(--font-weight-semibold);
+}
+
+.sheet-field-error .ui-icon {
+  width: 1rem;
+  height: 1rem;
+  margin-block-start: 0.125rem;
+}
+
+.sheet-actions {
+  display: grid;
+  gap: var(--space-2);
+  margin-block-start: var(--space-4);
+}
+
+.sheet-primary,
+.sheet-secondary {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: var(--space-2);
+  width: 100%;
+  padding-inline: var(--space-4);
+  text-decoration: none;
+}
+
+.sheet-primary {
+  min-height: var(--cta-height);
+  border-radius: var(--cta-radius);
+  background: var(--cta-bg);
+  color: var(--cta-fg);
+  font-size: var(--font-size-label-lg);
+  font-weight: var(--font-weight-semibold);
+  letter-spacing: var(--font-tracking-label-lg);
+}
+
+.sheet-secondary {
+  min-height: var(--button-height);
+  border-radius: var(--button-radius);
+  background: var(--color-surface-sunken);
+  color: var(--color-on-surface);
+  font-weight: var(--font-weight-semibold);
+}
+
+@media (hover: hover) and (pointer: fine) {
+  .sheet-primary:hover {
+    background: var(--cta-bg-hover);
+  }
+
+  .sheet-secondary:hover {
+    background: color-mix(in oklch, var(--color-on-surface) 8%, var(--color-surface-sunken));
+  }
+}
+
+.sheet-primary:active {
+  background: var(--cta-bg-pressed);
+}
+
+/* Busy keeps its accent fill: the spinner and the word say "working", not "unavailable". */
+.sheet-primary[data-busy="true"] {
+  background: var(--cta-bg);
+  cursor: progress;
+}
+
+.sheet-primary[aria-disabled="true"]:not([data-busy]) {
+  background: var(--color-surface-sunken);
+  color: var(--color-on-surface-disabled);
+}
+
+.sheet-primary[aria-disabled="true"]:active {
+  transform: none;
+}
+
+.sheet-primary .spinner {
+  color: var(--cta-fg);
+}
+
+/* ------------------------------------------------------------------ the run: steps and result */
+
+.run-steps {
+  position: relative;
+  display: grid;
+  margin-block-start: var(--space-6);
+  padding-inline-start: var(--rail-gutter);
+}
+
+/* The rail's line, as a list's spine. */
+.run-steps::before {
+  content: "";
+  position: absolute;
+  inset-block: var(--space-4);
+  inset-inline-start: calc(var(--rail-center) - var(--rail-width) / 2);
+  width: var(--rail-width);
+  border-radius: var(--stroke-rail);
+  background: var(--rail-track);
+}
+
+.run-step {
+  position: relative;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-4);
+  min-height: var(--size-touch);
+  color: var(--color-on-surface-muted);
+  transition: color var(--duration-state) var(--ease-hover);
+}
+
+.run-step::before {
+  content: "";
+  position: absolute;
+  inset-inline-start: calc(var(--rail-center) - var(--rail-gutter) - var(--rail-node) / 2);
+  width: var(--rail-node);
+  height: var(--rail-node);
+  border-radius: var(--radius-round);
+  background: var(--color-surface-raised);
+  box-shadow: 0 0 0 var(--rail-node-ring) var(--rail-node-idle);
+  transition:
+    background-color var(--duration-state) var(--ease-out),
+    box-shadow var(--duration-state) var(--ease-out);
+}
+
+.run-step[data-state="done"] {
+  color: var(--color-on-surface);
+}
+
+.run-step[data-state="done"]::before {
+  background: var(--rail-fill);
+  box-shadow: 0 0 0 var(--rail-node-ring) var(--rail-fill);
+}
+
+.run-step[data-state="active"] {
+  color: var(--color-on-surface);
+  font-weight: var(--font-weight-semibold);
+}
+
+.run-step[data-state="active"]::before {
+  background: var(--rail-fill);
+  box-shadow:
+    0 0 0 var(--rail-node-ring) var(--rail-fill),
+    0 0 0 var(--rail-node-halo) color-mix(in oklch, var(--rail-fill) 24%, transparent);
+}
+
+.run-step[data-state="failed"] {
+  color: var(--color-danger);
+  font-weight: var(--font-weight-semibold);
+}
+
+.run-step[data-state="failed"]::before {
+  background: var(--color-danger);
+  box-shadow: 0 0 0 var(--rail-node-ring) var(--color-danger);
+}
+
+.run-step-state {
+  font-size: var(--font-size-meta);
+  font-weight: var(--font-weight-medium);
+}
+
+.sheet-result {
+  margin-block-start: var(--space-4);
+}
+
+.sheet-banner {
+  display: grid;
+  grid-template-columns: auto 1fr auto;
+  align-items: start;
+  gap: var(--space-3);
+  padding: var(--banner-padding);
+  border-radius: var(--banner-radius);
+  background: var(--tone-bg);
+  color: var(--color-on-surface);
+}
+
+.sheet-banner[data-tone="info"] {
+  --tone-bg: var(--color-info-subtle);
+  --tone: var(--color-info);
+}
+
+.sheet-banner[data-tone="success"] {
+  --tone-bg: var(--color-success-subtle);
+  --tone: var(--color-success);
+}
+
+.sheet-banner[data-tone="danger"] {
+  --tone-bg: var(--color-danger-subtle);
+  --tone: var(--color-danger);
+}
+
+.sheet-banner .ui-icon {
+  margin-block-start: 0.125rem;
+  color: var(--tone);
+}
+
+.sheet-banner-title {
+  font-weight: var(--font-weight-semibold);
+}
+
+.sheet-banner-body {
+  color: var(--color-on-surface-muted);
+  font-size: var(--font-size-meta);
+}
+
+/* ------------------------------------------------------------------ settings: switch, range, hint */
+
+.setting-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-4);
+  min-height: var(--size-touch-comfortable);
+  padding: var(--space-1) var(--space-2);
+  border-radius: var(--sheet-row-radius);
+}
+
+.setting-text {
+  display: grid;
+}
+
+.setting-hint {
+  color: var(--color-on-surface-muted);
+  font-size: var(--font-size-meta);
+}
+
+.switch {
+  position: relative;
+  flex: none;
+  width: var(--switch-width);
+  height: var(--switch-height);
+  padding: 0;
+  border: 0;
+  border-radius: var(--switch-radius);
+  background: var(--color-track-strong);
+  cursor: pointer;
+  transition: background-color var(--duration-state) var(--ease-out);
+}
+
+.switch[data-checked] {
+  background: var(--color-accent);
+}
+
+.switch-thumb {
+  position: absolute;
+  inset-block-start: var(--switch-padding);
+  inset-inline-start: var(--switch-padding);
+  width: var(--switch-thumb);
+  height: calc(var(--switch-height) - var(--switch-padding) * 2);
+  border-radius: var(--switch-thumb-radius);
+  background: var(--switch-thumb-bg);
+  box-shadow: 0 1px 2px color-mix(in oklch, var(--color-on-surface) 30%, transparent);
+  transition:
+    transform var(--duration-state) var(--ease-out),
+    scale var(--duration-press-out) var(--ease-out);
+}
+
+.switch[data-checked] .switch-thumb {
+  transform: translateX(
+    calc(var(--switch-width) - var(--switch-thumb) - var(--switch-padding) * 2)
+  );
+}
+
+/* The thumb stretches while pressed, so the control answers before the finger lifts. */
+.switch:active .switch-thumb {
+  scale: 1.12 1;
+  transition-duration: var(--duration-state), var(--duration-press-in);
+}
+
+.range {
+  display: grid;
+  padding: var(--space-2) var(--space-2) 0;
+}
+
+.range-label {
+  font-weight: var(--font-weight-regular);
+}
+
+.range-control {
+  display: flex;
+  align-items: center;
+  height: var(--size-touch);
+  margin-inline: calc(var(--space-2) * -1);
+  padding-inline: var(--space-2);
+  touch-action: none;
+  cursor: pointer;
+  user-select: none;
+}
+
+.range-track {
+  position: relative;
+  width: 100%;
+  height: var(--scrubber-track);
+  border-radius: var(--radius-xs);
+  background: var(--color-track);
+}
+
+.range-indicator {
+  border-radius: inherit;
+  background: var(--color-accent);
+}
+
+.range-thumb {
+  width: var(--scrubber-thumb);
+  height: var(--scrubber-thumb);
+  border-radius: var(--radius-round);
+  background: var(--color-accent);
+  box-shadow: 0 0 0 var(--scrubber-thumb-ring) var(--color-surface-raised);
+}
+
+.range[data-disabled] {
+  opacity: var(--opacity-disabled);
+}
+
+.range[data-disabled] .range-control {
+  cursor: default;
+}
+
+.sheet-hint-card {
+  display: grid;
+  grid-template-columns: auto 1fr;
+  gap: var(--space-3);
+  padding: var(--banner-padding);
+  border-radius: var(--banner-radius);
+  background: var(--color-surface-sunken);
+}
+
+.sheet-hint-card .ui-icon {
+  margin-block-start: 0.125rem;
+  color: var(--color-accent);
+}
+
+.sheet-hint-title {
+  margin-block-end: var(--space-1);
+  font-weight: var(--font-weight-semibold);
+}
+
+.sheet-hint-body {
+  color: var(--color-on-surface-muted);
+  font-size: var(--font-size-meta);
+}
+
+.sheet-hint-dismiss {
+  grid-column: 2;
+  justify-self: start;
+  min-height: var(--size-touch);
+  margin-inline-start: calc(var(--space-3) * -1);
+  padding-inline: var(--space-3);
+  border-radius: var(--button-radius);
+  color: var(--color-on-surface-muted);
+  font-size: var(--font-size-meta);
+  font-weight: var(--font-weight-semibold);
+}
+
+@media (hover: hover) and (pointer: fine) {
+  .sheet-hint-dismiss:hover {
+    background: var(--color-surface-raised);
+    color: var(--color-on-surface);
+  }
+}
+
+/* ------------------------------------------------------------------ toast */
+
+.toast {
+  inset: auto 0
+    calc(
+      max(var(--mini-player-inset), var(--safe-bottom)) +
+      var(--mini-player-control-size) +
+      var(--mini-player-inset) *
+      2 +
+      var(--space-2)
+    )
+    0;
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+  width: max-content;
+  max-width: min(calc(100% - var(--page-gutter) * 2), var(--layout-dialog));
+  min-height: var(--toast-min-height);
+  margin-inline: auto;
+  padding: var(--toast-padding) var(--toast-padding) var(--toast-padding) var(--space-4);
+  border: 0;
+  border-radius: var(--toast-radius);
+  background: var(--toast-bg);
+  color: var(--toast-fg);
+  box-shadow: var(--toast-shadow);
+  --color-focus-gap: var(--color-surface-inverse);
+  --color-focus-ring: var(--toast-fg);
+  opacity: 0;
+  transform: translateY(var(--distance-medium));
+  transition:
+    opacity var(--duration-exit) var(--ease-out),
+    transform var(--duration-exit) var(--ease-out),
+    overlay var(--duration-exit) allow-discrete,
+    display var(--duration-exit) allow-discrete;
+}
+
+.toast:popover-open {
+  opacity: 1;
+  transform: none;
+  transition-duration: var(--duration-enter);
+}
+
+@starting-style {
+  .toast:popover-open {
+    opacity: 0;
+    transform: translateY(var(--distance-medium));
+  }
+}
+
+.toast-action,
+.toast-dismiss {
+  min-height: var(--size-touch);
+  border-radius: var(--control-radius-sm);
+}
+
+.toast-action {
+  padding-inline: var(--space-3);
+  background: color-mix(in oklch, var(--toast-fg) 14%, transparent);
+  font-weight: var(--font-weight-semibold);
+}
+
+.toast-dismiss {
+  display: grid;
+  place-items: center;
+  width: var(--size-touch);
+  margin-inline-start: calc(var(--space-2) * -1);
+  opacity: 0.8;
+}
+
+/* ------------------------------------------------------------------ preferences */
+
+@media (forced-colors: active) {
+  .sheet-panel,
+  .toast {
+    border: var(--stroke-hairline) solid CanvasText;
+  }
+
+  .switch {
+    border: var(--stroke-rail) solid ButtonText;
+  }
+
+  .switch[data-checked] {
+    background: Highlight;
+  }
+
+  .range-indicator,
+  .range-thumb {
+    background: Highlight;
+    forced-color-adjust: none;
+  }
+
+  .range-track {
+    background: GrayText;
+  }
+}
+
+/* Component rules that set display must not defeat the hidden attribute. Keep this rule last. */
+[hidden] {
+  display: none;
+}

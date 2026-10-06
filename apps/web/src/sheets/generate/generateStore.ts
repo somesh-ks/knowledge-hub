@@ -88,6 +88,8 @@ export interface GenerateStore {
   submit(passphrase: string): Promise<void>;
   /** Clears a finished run or an inline error so the form comes back. */
   reset(): void;
+  /** Clears the inline error while the listener types, so it never lingers over a fresh attempt. */
+  clearError(): void;
   /** Tells the store whether the sheet is showing, which sets the polling cadence. */
   setSheetOpen(open: boolean): void;
   /** Picks up a run remembered in session storage and checks it now. */
@@ -282,6 +284,9 @@ export function createGenerateStore(options: GenerateStoreOptions): GenerateStor
       schedule();
     },
     reset,
+    clearError() {
+      if (state.fieldError !== null) setState({ fieldError: null });
+    },
     setSheetOpen(open) {
       if (open === sheetOpen) return;
       sheetOpen = open;
