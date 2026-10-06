@@ -9,6 +9,8 @@
       "!**/.astro",
       "!**/.cache",
       "!**/.claude",
+      "!**/test-results",
+      "!**/playwright-report",
       "!docs/prototype",
       "!**/fixtures",
       "!package-lock.json"
