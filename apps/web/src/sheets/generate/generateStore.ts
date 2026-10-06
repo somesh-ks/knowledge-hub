@@ -10,6 +10,7 @@ import type { GenerateCueKind } from "../../player/sound/soundMap";
 import type { GenerateStep } from "../../types/contracts";
 import { type ClientDeps, fetchStatus, startGenerate } from "./generateClient";
 import { failureTitle, stepAnnouncement } from "./generateSteps";
+import { RUN_STORAGE_KEY } from "./runKey";
 
 export type GeneratePhase =
   | "idle"
@@ -54,7 +55,7 @@ export interface GenerateStoreOptions extends ClientDeps {
   onFinishedWhileClosed?: (run: FinishedRun) => void;
 }
 
-export const RUN_STORAGE_KEY = "dispatch:generate:run";
+export { RUN_STORAGE_KEY };
 export const FOREGROUND_POLL_MS = 3_000;
 export const BACKGROUND_POLL_MS = 15_000;
 export const MAX_POLL_MS = 30_000;

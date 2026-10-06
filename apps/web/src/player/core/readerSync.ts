@@ -170,14 +170,16 @@ export function createReaderSync(store: PlayerStore): ReaderSync {
 
     // A digest without audio keeps the page's own "audio is still being prepared" state.
     const cta = page?.audio ? ctaView(state, store.getTime(), page) : null;
-    for (const button of cta ? elements.playDigest : []) {
-      setDataset(button, "playing", String(cta.playing));
-      if (cta.loading) setDataset(button, "loading", "true");
-      else delete button.dataset.loading;
-      const label = button.querySelector("[data-play-label]");
-      if (label) setText(label, cta.label);
-      const clock = button.querySelector("[data-play-time]");
-      if (clock) setText(clock, cta.clock);
+    if (cta) {
+      for (const button of elements.playDigest) {
+        setDataset(button, "playing", String(cta.playing));
+        if (cta.loading) setDataset(button, "loading", "true");
+        else delete button.dataset.loading;
+        const label = button.querySelector("[data-play-label]");
+        if (label) setText(label, cta.label);
+        const clock = button.querySelector("[data-play-time]");
+        if (clock) setText(clock, cta.clock);
+      }
     }
 
     for (const button of elements.playItem) {

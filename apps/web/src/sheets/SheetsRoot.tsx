@@ -1,22 +1,18 @@
 import { lazy, Suspense, useCallback, useEffect, useState } from "react";
 import "../styles/player.css";
 import "../styles/sheets.css";
+import { safeSessionStorage } from "../player/core/resume";
 import { startThemeSync } from "../player/core/themeRuntime";
 import { playUiCue } from "../player/sound/soundController";
 import { cueForSheet } from "../player/sound/soundMap";
-import { getGenerateStore } from "./generate/generateRuntime";
+import { RUN_STORAGE_KEY } from "./generate/runKey";
+import { isSheetName, OPEN_SHEET_EVENT, type SheetName } from "./sheetEvents";
 import Toaster from "./Toaster";
-
-type SheetName = "generate" | "settings";
 
 const loadGenerate = () => import("./GenerateSheet");
 const loadSettings = () => import("./SettingsSheet");
 const GenerateSheet = lazy(loadGenerate);
 const SettingsSheet = lazy(loadSettings);
-
-function isSheetName(value: string | undefined): value is SheetName {
-  return value === "generate" || value === "settings";
-}
 
 function whenIdle(task: () => void): () => void {
   if (typeof requestIdleCallback === "function") {
@@ -66,10 +62,30 @@ export default function SheetsRoot() {
     return () => document.removeEventListener("click", onClick);
   }, [openSheet]);
 
-  // A run remembered from before a reload is picked up, so its toast can still arrive.
+  // A toast, or any other part of the app, can ask for a sheet by event.
   useEffect(() => {
-    getGenerateStore(() => openSheet("generate")).resume();
+    const onRequest = (event: Event): void => {
+      const name = event instanceof CustomEvent ? event.detail : null;
+      if (isSheetName(name)) openSheet(name);
+    };
+    window.addEventListener(OPEN_SHEET_EVENT, onRequest);
+    return () => window.removeEventListener(OPEN_SHEET_EVENT, onRequest);
   }, [openSheet]);
+
+  // A run remembered from before a reload is picked up, so its toast can still arrive. Only then
+  // is the Generate code needed before the sheet is opened.
+  useEffect(() => {
+    let remembered = false;
+    try {
+      remembered = safeSessionStorage()?.getItem(RUN_STORAGE_KEY) != null;
+    } catch {
+      remembered = false;
+    }
+    if (!remembered) return;
+    void import("./generate/generateRuntime").then(({ getGenerateStore }) => {
+      getGenerateStore().resume();
+    });
+  }, []);
 
   useEffect(
     () =>

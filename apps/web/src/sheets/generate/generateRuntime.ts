@@ -4,6 +4,7 @@ import { getPlayerStore } from "../../player/core/playerRuntime";
 import { safeSessionStorage } from "../../player/core/resume";
 import { playUiCue } from "../../player/sound/soundController";
 import { cueForGenerate } from "../../player/sound/soundMap";
+import { requestSheet } from "../sheetEvents";
 import { showToast } from "../toastStore";
 import { failureTitle } from "./generateSteps";
 import { createGenerateStore, type FinishedRun, type GenerateStore } from "./generateStore";
@@ -43,17 +44,17 @@ function toastForFinishedRun(run: FinishedRun, reopen: () => void): void {
 }
 
 /**
- * The Generate store, wired to the real network, sounds, announcements and toast. `reopen` is how
- * the toast's "Details" action brings the sheet back.
+ * The Generate store, wired to the real network, sounds, announcements and toast. The toast's
+ * "Details" action brings the sheet back by event.
  */
-export function getGenerateStore(reopen: () => void = () => undefined): GenerateStore {
+export function getGenerateStore(): GenerateStore {
   store ??= createGenerateStore({
     fetch: (input, init) => fetch(input, init),
     isOnline: () => navigator.onLine,
     storage: safeSessionStorage(),
     onCue: (kind) => playUiCue(cueForGenerate(kind)),
     onAnnounce: announce,
-    onFinishedWhileClosed: (run) => toastForFinishedRun(run, reopen),
+    onFinishedWhileClosed: (run) => toastForFinishedRun(run, () => requestSheet("generate")),
   });
   return store;
 }
