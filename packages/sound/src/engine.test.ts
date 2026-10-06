@@ -1,6 +1,6 @@
 import { describe, expect, it, vi } from "vitest";
 import { createSoundEngine, defaultSoundsEnabled, installGestureUnlock } from "./engine.js";
-import { MAX_POLYPHONY, SOUND_NAMES, dbToGain, volumeToGain, type SoundName } from "./recipes.js";
+import { dbToGain, MAX_POLYPHONY, SOUND_NAMES, type SoundName, volumeToGain } from "./recipes.js";
 
 /* A minimal fake of the Web Audio surface the engine touches. Cast once at the seam. */
 

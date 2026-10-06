@@ -11,17 +11,17 @@
  */
 import { generateNoise } from "./noise.js";
 import {
-  FLOOR,
-  MASTER_LOWPASS,
   dbToGain,
-  resolveFrequency,
-  volumeToGain,
   type FilterSpec,
+  FLOOR,
   type Layer,
+  MASTER_LOWPASS,
   type NoiseLayer,
   type PlayOptions,
+  resolveFrequency,
   type SoundRecipe,
   type ToneLayer,
+  volumeToGain,
 } from "./recipes.js";
 
 export interface RenderOptions extends PlayOptions {

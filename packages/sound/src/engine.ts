@@ -14,18 +14,18 @@
  */
 import { generateNoise } from "./noise.js";
 import {
+  dbToGain,
   FLOOR,
   MASTER_LOWPASS,
   MAX_POLYPHONY,
-  RECIPES,
-  dbToGain,
-  recipeDurationMs,
-  resolveFrequency,
-  volumeToGain,
   type NoiseLayer,
   type PlayOptions,
+  RECIPES,
+  recipeDurationMs,
+  resolveFrequency,
   type SoundName,
   type ToneLayer,
+  volumeToGain,
 } from "./recipes.js";
 
 export interface SoundEngineOptions {

@@ -13,7 +13,7 @@
  *   skips are two grace notes, the end of a digest is a three-note settle, and only the finished
  *   Generate run gets a sustained two-note resolve.
  * - Space: all sounds share one master low-pass at 3.6 kHz so nothing above ~4 kHz ever reaches
- *   the speaker, and every sound peaks at or below -14 dBFS at full master volume.
+ *   the speaker, and every sound peaks at or below -13 dBFS at full master volume.
  */
 
 export const SOUND_NAMES = [
@@ -453,4 +453,30 @@ export function dbToGain(db: number): number {
 export function volumeToGain(volume: number): number {
   const clamped = Math.min(1, Math.max(0, Number.isFinite(volume) ? volume : 0));
   return clamped * clamped;
+}
+
+/** Plain-language trigger for each sound, shared by the lab and the docs. */
+export const TRIGGERS: Readonly<Record<SoundName, string>> = {
+  play: "Narration starts",
+  pause: "Narration stops",
+  itemNext: "Skip to the next item",
+  itemPrev: "Skip to the previous item",
+  scrubDetent: "The scrubber crosses an item boundary",
+  speedChange: "Playback speed changes",
+  sheetOpen: "A sheet opens",
+  sheetClose: "A sheet closes",
+  generateStart: "A Generate run starts",
+  generateDone: "A Generate run finishes",
+  error: "Something failed and the screen says what",
+  toggleOn: "A switch turns on",
+  toggleOff: "A switch turns off",
+  digestEnd: "The last item finishes",
+};
+
+/** "A4", "F#5" for a pentatonic pitch, or the frequency when it is off the set. */
+export function noteName(hz: number): string {
+  for (const [key, value] of Object.entries(PITCH)) {
+    if (Math.abs(value - hz) < 0.5) return key.replace("s", "#");
+  }
+  return `${Math.round(hz)} Hz`;
 }

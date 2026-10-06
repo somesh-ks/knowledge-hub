@@ -1,19 +1,19 @@
 import { describe, expect, it } from "vitest";
 import {
+  dbToGain,
+  type Layer,
   PENTATONIC_HZ,
   RECIPES,
-  SCRUB_LADDER,
-  SOUND_NAMES,
-  SPEED_LADDER,
-  dbToGain,
   recipeDurationMs,
   resolveFrequency,
+  SCRUB_LADDER,
+  SOUND_NAMES,
+  type SoundRecipe,
+  SPEED_LADDER,
   scrubFrequency,
   speedFrequency,
-  volumeToGain,
-  type Layer,
-  type SoundRecipe,
   type ToneLayer,
+  volumeToGain,
 } from "./recipes.js";
 import { analyzeSpectrum, layerPeaks, peakToDbfs, renderRecipe } from "./render.js";
 
