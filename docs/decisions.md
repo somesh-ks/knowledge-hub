@@ -6,6 +6,38 @@ The plan that implements these decisions is [build-plan.md](build-plan.md). The 
 
 D1 to D9 date from plan v2 (2026-10-05). D10 to D25 date from 2026-10-06. Reasons are the plan's working rationale, written by the docs owner; correct any the owner would state differently.
 
+## Index
+
+| ID | Decision | Status |
+| :--- | :--- | :--- |
+| D1 | Engine runs on GitHub Actions | active |
+| D2 | The repository lives in this folder | active |
+| D3 | Judge is TypeSafe Jev, writer is a cheap Nebius model chosen by a bake-off | active |
+| D4 | Astro with React islands, Base UI and hand-written token CSS | active |
+| D5 | One MP3 per digest with word marks, from Speechify | active |
+| D6 | Daily cron with a calendar-date gate, plus a Sunday weekly pass | active |
+| D7 | Podcast feed deferred | active |
+| D8 | "Thought of the Day" cut | active |
+| D9 | Repository `somesh-ks/knowledge-hub`, private | active |
+| D10 | Hosting on Vercel | partly superseded by D25 |
+| D11 | Notification is the commit only | active |
+| D12 | Voice limits confirmed | active |
+| D13 | Accounts exist | active |
+| D14 | Docs and config filenames are lowercase kebab-case | active |
+| D15 | Persisted keys are snake_case and code follows them | active |
+| D16 | Personal skill `sk-dispatch`, built separately | active |
+| D17 | UI and sound design live in `docs/design/` | active |
+| D18 | UI sounds are procedural Web Audio from `@dispatch/sound` | active |
+| D19 | TypeScript 6 pinned repository-wide | active |
+| D20 | One preferences key for theme and settings | active |
+| D21 | Source health lives in state | active |
+| D22 | `deploy.yml` owns the deploy | superseded by D25 |
+| D23 | The engine tolerates audio failure | active |
+| D24 | The writer model is picked from the live Nebius list | active |
+| D25 | The Vercel GitHub integration deploys the site | active |
+| D26 | Audio uploads use Vercel Blob OIDC credentials | active |
+| D27 | Owner and Dependabot pull requests merge automatically | active |
+
 ---
 
 ## D1: Engine runs on GitHub Actions
@@ -228,3 +260,16 @@ D1 to D9 date from plan v2 (2026-10-05). D10 to D25 date from 2026-10-06. Reason
 - Rejected: Keeping the CLI deploy (needs a token, an org id and a project id in GitHub, and a separate deploy workflow). A paid Vercel plan, which would accept bot authors. Deploy hooks (a secret URL to guard and no commit-level skip).
 - Residual risk: Unproven until the first live deploy: the Vercel build of the `apps/web` workspace through the Git integration with this `installCommand`; the `ignoreCommand` on a shallow clone; Hobby accepting the owner-identity commit; two deploys per run. The GitHub login connected to Vercel must match the committer, so it must belong to the owner of the Hobby team.
 - Revisit if: The first live deploy fails or skips, Hobby stops matching the noreply address, or the double deploy hits a Hobby limit.
+
+## D26: Audio uploads use Vercel Blob OIDC credentials
+
+- Decision: The Audio step links the project with `VERCEL_TOKEN`, runs `vercel env pull`, and the engine uploads with `VERCEL_OIDC_TOKEN` and `BLOB_STORE_ID`. `BLOB_READ_WRITE_TOKEN` still wins when set.
+- Why: Vercel marks the long-lived Blob token sensitive and never shows it again; new stores default to OIDC.
+- Rejected: Cloudflare R2 (more code and a new CSP rule); an upload route on the site (more code, one more secret).
+- Status: unverified until the first audio run.
+
+## D27: Owner and Dependabot pull requests merge automatically
+
+- Decision: `automerge.yml` squash-merges a pull request when `ci` passes on its current head and the author is the owner or Dependabot. Dependabot skips major versions.
+- Why: branch protection would block the digest commits that push to `main`, so the merge rule lives in a workflow instead.
+- Limit: the workflow token cannot merge changes to `.github/workflows`; those merge by hand.
