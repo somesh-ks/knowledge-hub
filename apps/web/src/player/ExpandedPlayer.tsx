@@ -1,5 +1,7 @@
 import { Drawer } from "@base-ui/react/drawer";
 import { type CSSProperties, useRef } from "react";
+import { classifyKeyTarget, shouldToggleOnKey } from "./core/playerKeys";
+import { getPlayerStore } from "./core/playerRuntime";
 import { playerSheet } from "./core/playerSheet";
 import { usePlayerState } from "./hooks/usePlayer";
 import PlayerSheetBody from "./PlayerSheetBody";
@@ -40,6 +42,16 @@ export default function ExpandedPlayer() {
             // The gesture belongs to the controller, not to Base UI's swipe-to-dismiss.
             data-base-ui-swipe-ignore=""
             style={style}
+            onKeyDown={(event) => {
+              const target = classifyKeyTarget(
+                event.target instanceof Element ? event.target : null,
+                event.currentTarget,
+              );
+              if (!shouldToggleOnKey(event, target)) return;
+              // Only here, with focus in the open player: no page-wide Space shortcut.
+              event.preventDefault();
+              getPlayerStore().toggle();
+            }}
           >
             <PlayerSheetBody panelRef={panelRef} scrimRef={scrimRef} />
           </Drawer.Popup>

@@ -1,4 +1,6 @@
 ---
+// biome-ignore-all lint/correctness/noUnusedImports: Biome cannot see imports used in the template
+// biome-ignore-all lint/correctness/noUnusedVariables: Biome cannot see variables used in the template
 /**
  * A minimal layout for the dev lab only. The real base layout belongs to the page author; this one
  * exists to mount the two islands the way the spec says (client:idle, transition:persist) inside a
@@ -7,8 +9,8 @@
 import "@fontsource-variable/schibsted-grotesk";
 import "@fontsource-variable/literata";
 import { ClientRouter } from "astro:transitions";
-import PlayerRoot from "../PlayerRoot";
 import SheetsRoot from "../../sheets/SheetsRoot";
+import PlayerRoot from "../PlayerRoot";
 import "../../styles/tokens.css";
 import "../../styles/foundations.css";
 import "./lab.css";

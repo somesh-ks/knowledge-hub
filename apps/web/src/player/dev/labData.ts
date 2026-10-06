@@ -4,10 +4,10 @@
  * browser without the engine or the network.
  */
 import type { PlayerDigestData } from "../../types/contracts";
-// ?url keeps these plain strings. Astro turns a bare image import into an ImageMetadata object.
-import audioUrl from "./lab-narration.mp3?url";
 import cover512 from "./lab-cover-512.png?url";
 import cover1024 from "./lab-cover-1024.png?url";
+// ?url keeps these plain strings. Astro turns a bare image import into an ImageMetadata object.
+import audioUrl from "./lab-narration.mp3?url";
 
 export interface LabItem {
   id: string;
@@ -64,7 +64,8 @@ export const LAB_ITEMS: readonly LabItem[] = [
   },
   {
     id: "e5b7a3d6f845",
-    headline: "Four measures for agent interfaces: first signal, correction cost, interruptions, recovery",
+    headline:
+      "Four measures for agent interfaces: first signal, correction cost, interruptions, recovery",
     section: "ai",
     source: "Agent Patterns",
     author: "Jonas Lindqvist",
@@ -112,7 +113,12 @@ function digestFor(variant: LabVariant): PlayerDigestData {
   return {
     id,
     date: id,
-    title: variant === "today" ? "Wednesday 14 January" : variant === "older" ? "Monday 12 January" : "Friday 16 January",
+    title:
+      variant === "today"
+        ? "Wednesday 14 January"
+        : variant === "older"
+          ? "Monday 12 January"
+          : "Friday 16 January",
     kind: "regular",
     // The older digest reuses the file under another fragment, so the browser treats it as a
     // different source while the bytes stay cached.
@@ -128,7 +134,7 @@ function digestFor(variant: LabVariant): PlayerDigestData {
       slug,
       title: SECTION_TITLES[slug],
       start_ms: hasAudio
-        ? (LAB_ITEMS.findIndex((item) => item.section === slug) * SECONDS_PER_ITEM * 1000)
+        ? LAB_ITEMS.findIndex((item) => item.section === slug) * SECONDS_PER_ITEM * 1000
         : null,
     })),
     cover: { src512: cover512, src1024: cover1024, key: COVER_KEY },
@@ -143,8 +149,4 @@ export function labDigest(variant: LabVariant): PlayerDigestData {
 
 export function labSectionTitle(slug: LabItem["section"]): string {
   return SECTION_TITLES[slug];
-}
-
-export function parseVariant(value: string | null): LabVariant {
-  return value === "older" || value === "preparing" ? value : "today";
 }

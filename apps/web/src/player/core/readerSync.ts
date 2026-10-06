@@ -168,8 +168,9 @@ export function createReaderSync(store: PlayerStore): ReaderSync {
       else delete link.dataset.state;
     }
 
-    const cta = ctaView(state, store.getTime(), page);
-    for (const button of elements.playDigest) {
+    // A digest without audio keeps the page's own "audio is still being prepared" state.
+    const cta = page?.audio ? ctaView(state, store.getTime(), page) : null;
+    for (const button of cta ? elements.playDigest : []) {
       setDataset(button, "playing", String(cta.playing));
       if (cta.loading) setDataset(button, "loading", "true");
       else delete button.dataset.loading;
@@ -205,7 +206,9 @@ export function createReaderSync(store: PlayerStore): ReaderSync {
 
   function paintClocks(): void {
     const state = store.getState();
-    const cta = ctaView(state, store.getTime(), store.getPageDigest());
+    const page = store.getPageDigest();
+    if (!page?.audio) return;
+    const cta = ctaView(state, store.getTime(), page);
     for (const button of elements.playDigest) {
       const clock = button.querySelector("[data-play-time]");
       if (clock) setText(clock, cta.clock);
