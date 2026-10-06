@@ -61,6 +61,8 @@ jobs:
 
       - name: Gate
         id: gate
+        # Explicit bash enables pipefail, so a failing stage is not hidden by the tee in the pipe.
+        shell: bash
         env:
           MODE: ${{ inputs.mode || 'scheduled' }}
           FORCE: ${{ inputs.force }}
@@ -114,6 +116,7 @@ jobs:
       # before the run concludes. Published, nothing and gated all end as a successful run.
       - name: Commit
         id: commit
+        shell: bash
         run: |
           npm run --silent dispatch -- run --stage commit --json | tee "$RUNNER_TEMP/commit.json"
           echo "outcome=$(jq -r '.outcome' "$RUNNER_TEMP/commit.json")" >> "$GITHUB_OUTPUT"
