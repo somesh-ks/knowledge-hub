@@ -90,7 +90,11 @@ export default function GenerateSheet({ open, onOpenChange }: GenerateSheetProps
             <Field.Description className="sheet-field-hint">
               The passphrase set when Dispatch was set up.
             </Field.Description>
-            <Field.Error match={Boolean(state.fieldError)} className="sheet-field-error">
+            <Field.Error
+              match={Boolean(state.fieldError)}
+              className="sheet-field-error"
+              role="alert"
+            >
               <Icon name="alert" />
               <span>{state.fieldError}</span>
             </Field.Error>

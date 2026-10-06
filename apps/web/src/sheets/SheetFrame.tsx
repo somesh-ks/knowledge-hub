@@ -34,7 +34,9 @@ export default function SheetFrame({
       <Drawer.Backdrop className="sheet-scrim" />
       <Drawer.Viewport className="sheet-viewport">
         <Drawer.Popup className="sheet-popup" initialFocus={initialFocus}>
-          <div className="sheet-panel">
+          {/* Content is what lets a mouse press land on a control inside: outside it, Base UI
+              treats the press as the start of a swipe and captures the pointer. */}
+          <Drawer.Content className="sheet-panel">
             <div className="sheet-head">
               <Drawer.Title className="sheet-title">{title}</Drawer.Title>
               <Drawer.Close className="sheet-close press" aria-label={closeLabel}>
@@ -42,7 +44,7 @@ export default function SheetFrame({
               </Drawer.Close>
             </div>
             {children}
-          </div>
+          </Drawer.Content>
         </Drawer.Popup>
       </Drawer.Viewport>
     </Drawer.Portal>

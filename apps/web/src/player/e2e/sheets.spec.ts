@@ -30,6 +30,43 @@ async function openGenerate(page: Page) {
   return dialog;
 }
 
+test.describe("with a mouse", () => {
+  test("every control inside a sheet takes a mouse click, not only a tap", async ({
+    lab,
+    page,
+  }) => {
+    await lab.open();
+    await page.locator('[data-open-sheet="settings"]').click();
+    const dialog = page.getByRole("dialog", { name: "Settings" });
+    await expect(dialog).toBeVisible();
+    const toggle = dialog.getByRole("switch", { name: "Interface sounds" });
+    await toggle.click();
+    await expect(toggle).not.toBeChecked();
+    await dialog.getByLabel("2x").click({ force: true });
+    await expect(dialog.getByLabel("2x")).toBeChecked();
+    await dialog.getByRole("button", { name: "Close settings" }).click();
+    await expect(dialog).toBeHidden();
+    await page.locator('[data-open-sheet="generate"]').click();
+    const generate = page.getByRole("dialog", { name: "Generate a new briefing" });
+    await generate.getByRole("button", { name: "Generate briefing" }).click();
+    await expect(generate.getByRole("alert")).toBeVisible();
+  });
+
+  test("the expanded player takes mouse clicks on its controls", async ({ lab, page }) => {
+    await lab.open();
+    await lab.cta.click();
+    await expect(page.locator("html")).toHaveAttribute("data-player-state", "playing");
+    await page.locator(".mini-open").click();
+    await lab.settled();
+    await page.getByRole("button", { name: "Next item" }).click();
+    await expect(page.locator(".player-meta .player-section")).toContainText("2 of 6");
+    await page.getByRole("button", { name: "Pause" }).first().click();
+    await expect(page.locator("html")).toHaveAttribute("data-player-state", "paused");
+    await page.getByRole("button", { name: "Close the player" }).click();
+    await expect(page.locator("html")).toHaveAttribute("data-player", "closed", { timeout: 4_000 });
+  });
+});
+
 test.describe("the Generate sheet", () => {
   test("opens from the header button, labelled and focused on the field", async ({ lab, page }) => {
     await lab.open();

@@ -16,6 +16,8 @@ test.describe("the Settings sheet", () => {
     const dialog = await openSettings(page);
     await dialog.getByLabel("Dark").check({ force: true });
     await expect(page.locator("html")).toHaveAttribute("data-theme", "dark");
+    // The change crossfades through a view transition, during which the page takes no input.
+    await page.waitForTimeout(500);
     expect(
       await page.evaluate(
         () => JSON.parse(localStorage.getItem("dispatch:preferences") ?? "{}").theme,
@@ -23,8 +25,10 @@ test.describe("the Settings sheet", () => {
     ).toBe("dark");
     await dialog.getByLabel("Light").check({ force: true });
     await expect(page.locator("html")).toHaveAttribute("data-theme", "light");
+    await page.waitForTimeout(500);
     await dialog.getByLabel("System").check({ force: true });
     await expect(page.locator("html")).not.toHaveAttribute("data-theme", /.+/);
+    await page.waitForTimeout(500);
     await dialog.getByLabel("Dark").check({ force: true });
     await page.reload({ waitUntil: "networkidle" });
     await expect(page.locator("html")).toHaveAttribute("data-theme", "dark");

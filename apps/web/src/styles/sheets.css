@@ -589,7 +589,9 @@
       var(--space-2)
     )
     0;
-  display: flex;
+  /* Closed, a popover is display: none. Setting display here would keep it in the layout and the
+     tab order, so the open state alone turns it on, and the exit plays through allow-discrete. */
+  display: none;
   align-items: center;
   gap: var(--space-3);
   width: max-content;
@@ -614,6 +616,7 @@
 }
 
 .toast:popover-open {
+  display: flex;
   opacity: 1;
   transform: none;
   transition-duration: var(--duration-enter);

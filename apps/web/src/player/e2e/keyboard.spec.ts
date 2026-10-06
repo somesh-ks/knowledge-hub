@@ -103,27 +103,29 @@ test.describe("keyboard operation of the player", () => {
     await expect(page.locator("html")).toHaveAttribute("data-player-state", "idle");
   });
 
-  test("tabs through the page and into the mini player in a sensible order", async ({
+  test("tabs through the header, the briefing and the mini player in reading order", async ({
     lab,
     page,
   }) => {
     await lab.open();
-    await lab.play();
-    const order: string[] = [];
-    await page.locator("body").press("Tab");
-    for (let press = 0; press < 40; press += 1) {
-      const label = await page.evaluate(() => {
-        const element = document.activeElement;
-        return (
-          element?.getAttribute("aria-label") ?? element?.textContent?.trim().slice(0, 30) ?? ""
-        );
-      });
-      order.push(label);
-      if (label.startsWith("Open the player")) break;
+    const labels: string[] = [];
+    for (let press = 0; press < 3; press += 1) {
       await page.keyboard.press("Tab");
+      labels.push(
+        await page.evaluate(() => {
+          const element = document.activeElement;
+          return element?.getAttribute("aria-label") ?? element?.textContent?.trim() ?? "";
+        }),
+      );
     }
-    expect(order.at(-1)).toMatch(/^Open the player/);
-    expect(order.indexOf("Settings")).toBeGreaterThan(-1);
-    expect(order.some((entry) => entry.startsWith("Listen from here"))).toBe(true);
+    expect(labels).toEqual(["Dispatch", "Generate", "Settings"]);
+    await lab.play();
+    const region = page.getByRole("region", { name: "Audio player" });
+    await expect(region.getByRole("button")).toHaveCount(3);
+    await region.getByRole("button", { name: /^Open the player/ }).focus();
+    await page.keyboard.press("Tab");
+    await expect(region.getByRole("button", { name: "Pause" })).toBeFocused();
+    await page.keyboard.press("Tab");
+    await expect(region.getByRole("button", { name: "Next item" })).toBeFocused();
   });
 });
