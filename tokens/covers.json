@@ -1,0 +1,114 @@
+{
+  "$description": "Cover palettes for generated digest artwork. Colors are OKLCH; packages/cover converts them to sRGB hex with gamut clamping at build time. Each palette has a ground, a quiet field tint, a mid shade, one focal accent and a verified text color for the date (4.5:1 against ground and field).",
+  "cover": {
+    "$type": "color",
+    "fog-lingonberry": {
+      "$description": "The reader's own colors: lingonberry on cool fog. Light pair of sea-lingonberry.",
+      "$extensions": { "dispatch": { "name": "Fog and Lingonberry", "tone": "light" } },
+      "ground": { "$value": "oklch(94.6% 0.01 230)" },
+      "field": { "$value": "oklch(87% 0.022 232)" },
+      "shade": { "$value": "oklch(54% 0.05 245)" },
+      "accent": { "$value": "oklch(50% 0.185 14)" },
+      "text": { "$value": "oklch(21% 0.03 250)" }
+    },
+    "sea-lingonberry": {
+      "$description": "Lingonberry on deep sea. Dark pair of fog-lingonberry.",
+      "$extensions": { "dispatch": { "name": "Sea and Lingonberry", "tone": "dark" } },
+      "ground": { "$value": "oklch(19% 0.024 250)" },
+      "field": { "$value": "oklch(28% 0.034 250)" },
+      "shade": { "$value": "oklch(54% 0.055 245)" },
+      "accent": { "$value": "oklch(70% 0.165 14)" },
+      "text": { "$value": "oklch(95% 0.008 230)" }
+    },
+    "ultramarine": {
+      "$description": "Near-monochrome Klein blue on pale periwinkle.",
+      "$extensions": { "dispatch": { "name": "Ultramarine", "tone": "light" } },
+      "ground": { "$value": "oklch(94.5% 0.018 270)" },
+      "field": { "$value": "oklch(85% 0.05 266)" },
+      "shade": { "$value": "oklch(66% 0.11 262)" },
+      "accent": { "$value": "oklch(47% 0.23 267)" },
+      "text": { "$value": "oklch(23% 0.09 268)" }
+    },
+    "indigo-aqua": {
+      "$description": "Deep indigo with a soft aqua spark. Dark pair of ultramarine.",
+      "$extensions": { "dispatch": { "name": "Indigo and Aqua", "tone": "dark" } },
+      "ground": { "$value": "oklch(22% 0.07 285)" },
+      "field": { "$value": "oklch(31% 0.1 285)" },
+      "shade": { "$value": "oklch(52% 0.15 288)" },
+      "accent": { "$value": "oklch(82% 0.1 190)" },
+      "text": { "$value": "oklch(95% 0.012 285)" }
+    },
+    "lichen": {
+      "$description": "Sage ground with a deep forest accent. Light pair of kelp.",
+      "$extensions": { "dispatch": { "name": "Lichen", "tone": "light" } },
+      "ground": { "$value": "oklch(93% 0.025 140)" },
+      "field": { "$value": "oklch(84% 0.06 145)" },
+      "shade": { "$value": "oklch(60% 0.09 150)" },
+      "accent": { "$value": "oklch(44% 0.13 153)" },
+      "text": { "$value": "oklch(22% 0.04 150)" }
+    },
+    "kelp": {
+      "$description": "Deep teal water with a pale chartreuse flash. Dark pair of lichen.",
+      "$extensions": { "dispatch": { "name": "Kelp", "tone": "dark" } },
+      "ground": { "$value": "oklch(21% 0.04 195)" },
+      "field": { "$value": "oklch(31% 0.065 192)" },
+      "shade": { "$value": "oklch(54% 0.09 185)" },
+      "accent": { "$value": "oklch(87% 0.15 118)" },
+      "text": { "$value": "oklch(95% 0.02 170)" }
+    },
+    "marigold-fog": {
+      "$description": "A warm marigold accent on cool fog; the one warm light palette. Light pair of saffron-ink.",
+      "$extensions": { "dispatch": { "name": "Marigold on Fog", "tone": "light" } },
+      "ground": { "$value": "oklch(94% 0.012 235)" },
+      "field": { "$value": "oklch(86% 0.025 238)" },
+      "shade": { "$value": "oklch(44% 0.06 245)" },
+      "accent": { "$value": "oklch(73% 0.165 78)" },
+      "text": { "$value": "oklch(20% 0.035 250)" }
+    },
+    "saffron-ink": {
+      "$description": "Saffron on blue-black ink. Dark pair of marigold-fog.",
+      "$extensions": { "dispatch": { "name": "Saffron and Ink", "tone": "dark" } },
+      "ground": { "$value": "oklch(18% 0.025 255)" },
+      "field": { "$value": "oklch(27% 0.04 255)" },
+      "shade": { "$value": "oklch(54% 0.075 250)" },
+      "accent": { "$value": "oklch(82% 0.16 85)" },
+      "text": { "$value": "oklch(95% 0.012 240)" }
+    },
+    "plum-pearl": {
+      "$description": "Plum and orchid on pearl grey. Light pair of oxblood.",
+      "$extensions": { "dispatch": { "name": "Plum and Pearl", "tone": "light" } },
+      "ground": { "$value": "oklch(94% 0.013 320)" },
+      "field": { "$value": "oklch(86% 0.04 325)" },
+      "shade": { "$value": "oklch(62% 0.14 335)" },
+      "accent": { "$value": "oklch(41% 0.15 328)" },
+      "text": { "$value": "oklch(22% 0.06 325)" }
+    },
+    "oxblood": {
+      "$description": "Wine-dark ground with a blush accent. Dark pair of plum-pearl.",
+      "$extensions": { "dispatch": { "name": "Oxblood", "tone": "dark" } },
+      "ground": { "$value": "oklch(22% 0.07 15)" },
+      "field": { "$value": "oklch(31% 0.1 15)" },
+      "shade": { "$value": "oklch(50% 0.15 12)" },
+      "accent": { "$value": "oklch(85% 0.075 25)" },
+      "text": { "$value": "oklch(95% 0.012 20)" }
+    },
+    "glacier": {
+      "$description": "Ice-blue ground with deep teal. Light pair of graphite-signal.",
+      "$extensions": { "dispatch": { "name": "Glacier", "tone": "light" } },
+      "ground": { "$value": "oklch(95% 0.02 205)" },
+      "field": { "$value": "oklch(87% 0.05 207)" },
+      "shade": { "$value": "oklch(64% 0.1 215)" },
+      "accent": { "$value": "oklch(42% 0.1 225)" },
+      "text": { "$value": "oklch(22% 0.05 235)" }
+    },
+    "graphite-signal": {
+      "$description": "Cool graphite with a single signal red. Dark pair of glacier.",
+      "$extensions": { "dispatch": { "name": "Graphite and Signal", "tone": "dark" } },
+      "ground": { "$value": "oklch(21% 0.008 260)" },
+      "field": { "$value": "oklch(30% 0.012 260)" },
+      "shade": { "$value": "oklch(56% 0.02 260)" },
+      "accent": { "$value": "oklch(65% 0.21 28)" },
+      "text": { "$value": "oklch(95% 0.005 260)" }
+    }
+  }
+}
