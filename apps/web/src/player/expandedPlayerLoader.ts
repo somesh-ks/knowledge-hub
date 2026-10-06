@@ -14,11 +14,17 @@ let pending: Promise<ComponentType> | null = null;
 const listeners = new Set<() => void>();
 
 export function loadExpandedPlayer(): Promise<ComponentType> {
-  pending ??= import("./ExpandedPlayer").then((module) => {
-    loaded = module.default;
-    for (const listener of listeners) listener();
-    return module.default;
-  });
+  pending ??= import("./ExpandedPlayer")
+    .then((module) => {
+      loaded = module.default;
+      for (const listener of listeners) listener();
+      return module.default;
+    })
+    .catch((error: unknown) => {
+      // A failed fetch must not be remembered, or the sheet could never open until a reload.
+      pending = null;
+      throw error;
+    });
   return pending;
 }
 

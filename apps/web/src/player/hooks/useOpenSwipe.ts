@@ -32,7 +32,7 @@ export function useOpenSwipe(ref: RefObject<HTMLElement | null>, mounted: boolea
     const onDown = (event: PointerEvent): void => {
       if (event.button !== 0 || pointerId !== -1) return;
       // Start fetching the sheet now, so the swipe or the tap lands on code that is ready.
-      void loadExpandedPlayer();
+      loadExpandedPlayer().catch(() => undefined);
       pointerId = event.pointerId;
       startY = event.clientY;
       opening = false;

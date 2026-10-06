@@ -13,6 +13,66 @@
  * - Class names are prefixed so they cannot collide with the reader's own components.
  */
 
+/* ------------------------------------------------------------------ per-frame properties */
+
+/* Script writes these several times a frame (sheetController, Scrubber). Registered as not
+   inherited, so a write restyles the one element and not everything inside it. Each initial value
+   is the closed or resting state, which is also the fallback in every var() below for browsers
+   that ignore @property. */
+@property --sheet-offset {
+  syntax: "<length-percentage>";
+  inherits: false;
+  initial-value: 100%;
+}
+
+@property --sheet-scale {
+  syntax: "<number>";
+  inherits: false;
+  initial-value: 1;
+}
+
+@property --sheet-opacity {
+  syntax: "<number>";
+  inherits: false;
+  initial-value: 0;
+}
+
+@property --scrim-opacity {
+  syntax: "<number>";
+  inherits: false;
+  initial-value: 0;
+}
+
+@property --cover-x {
+  syntax: "<length>";
+  inherits: false;
+  initial-value: 0px;
+}
+
+@property --cover-y {
+  syntax: "<length>";
+  inherits: false;
+  initial-value: 0px;
+}
+
+@property --cover-scale {
+  syntax: "<number>";
+  inherits: false;
+  initial-value: 1;
+}
+
+@property --thumb-x {
+  syntax: "<length>";
+  inherits: false;
+  initial-value: 0px;
+}
+
+@property --bubble-x {
+  syntax: "<length>";
+  inherits: false;
+  initial-value: 0px;
+}
+
 /* ------------------------------------------------------------------ icons and the glyph swap */
 
 .ui-icon {
@@ -109,6 +169,8 @@
   --cover-radius: var(--cover-radius-large);
   width: min(100%, var(--cover-size-player), 36dvh);
   transform-origin: top left;
+  /* The shared element's travel from the mini player's cover; identity until the controller writes. */
+  transform: translate3d(var(--cover-x, 0px), var(--cover-y, 0px), 0) scale(var(--cover-scale, 1));
 }
 
 .player-cover-image {
@@ -297,7 +359,7 @@ html[data-player="open"] .mini-open .player-cover-frame {
   z-index: var(--z-sheet);
   min-height: 100dvh;
   background: var(--color-scrim);
-  opacity: 0;
+  opacity: var(--scrim-opacity, 0);
 }
 
 /* iOS 26 clips fixed elements to the inner viewport; Base UI's own guidance is to position the
@@ -335,7 +397,7 @@ html[data-player="open"] .mini-open .player-cover-frame {
   outline: none;
   pointer-events: auto;
   /* Closed until the controller moves it: no flash on mount, whatever the first frame is. */
-  transform: translateY(100%);
+  transform: translate3d(0, var(--sheet-offset, 100%), 0);
 }
 
 .player-panel[data-moving] {
@@ -537,7 +599,7 @@ html[data-player="open"] .mini-open .player-cover-frame {
   background: var(--color-cover-accent);
 }
 
-/* The thumb is a zero-size anchor that script moves with transform. The visible disc is a
+/* The thumb is a zero-size anchor that script moves with --thumb-x. The visible disc is a
    pseudo-element, so its press scale never multiplies the anchor's translation (individual
    transform properties apply before the transform property). */
 .scrubber-thumb {
@@ -546,6 +608,7 @@ html[data-player="open"] .mini-open .player-cover-frame {
   inset-inline-start: 0;
   width: 0;
   height: 0;
+  transform: translate3d(var(--thumb-x, 0px), 0, 0);
   will-change: transform;
 }
 
@@ -587,6 +650,7 @@ html[data-player="open"] .mini-open .player-cover-frame {
   white-space: nowrap;
   opacity: 0;
   pointer-events: none;
+  transform: translate3d(var(--bubble-x, 0px), 0, 0);
   transition: opacity var(--duration-press-in) var(--ease-out);
 }
 
@@ -853,8 +917,8 @@ html[data-player="open"] .mini-open .player-cover-frame {
     border-radius: var(--sheet-radius);
     box-shadow: var(--sheet-shadow);
     overflow: hidden;
-    transform: scale(var(--scale-enter));
-    opacity: 0;
+    transform: scale(var(--sheet-scale, var(--scale-enter)));
+    opacity: var(--sheet-opacity, 0);
   }
 
   .player-scroll {
@@ -865,6 +929,7 @@ html[data-player="open"] .mini-open .player-cover-frame {
 
   .player-cover-frame[data-size="player"] {
     width: min(100%, var(--cover-size-player), 34dvh);
+    transform: none;
   }
 }
 
@@ -874,7 +939,7 @@ html[data-player="open"] .mini-open .player-cover-frame {
   /* The sheet fades instead of sliding, so it starts in place. */
   .player-panel {
     transform: none;
-    opacity: 0;
+    opacity: var(--sheet-opacity, 0);
   }
 
   .player-cover-frame[data-size="player"] {

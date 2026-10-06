@@ -1,6 +1,7 @@
 import { useEffect, useSyncExternalStore } from "react";
 import "../styles/player.css";
 import { startPlayerRuntime } from "./core/playerRuntime";
+import { playerSheet } from "./core/playerSheet";
 import {
   getExpandedPlayer,
   loadExpandedPlayer,
@@ -39,10 +40,14 @@ export default function PlayerRoot() {
   useEffect(() => {
     // Ready before it is wanted. If it is wanted sooner, fetch it now.
     if (presence) {
-      void loadExpandedPlayer();
+      // The sheet was asked for and its code never arrived: give the screen back.
+      loadExpandedPlayer().catch(() => playerSheet.close());
       return;
     }
-    return whenIdle(() => void loadExpandedPlayer());
+    return whenIdle(() => {
+      // Nothing is waiting on this one, so a failure just means the next open tries again.
+      loadExpandedPlayer().catch(() => undefined);
+    });
   }, [presence]);
   useEffect(() => {
     if (!coverSrc) return;

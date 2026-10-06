@@ -13,10 +13,19 @@
  * with. Base UI still provides the dialog semantics, focus trap, inert background and scroll lock;
  * this controller owns the motion and the Drawer stays open until the exit spring comes to rest.
  *
- * Style writes here are computed per frame (transform, opacity, one custom property), which is the
- * one place inline styles are right: they cannot live in a stylesheet.
+ * Every per-frame write is a CSS custom property (--sheet-offset, --cover-x and friends), never a
+ * style property: the stylesheet decides what they mean (a slide on phones, a scale and fade on
+ * wide screens, a plain fade for reduced motion). Each is registered with `@property` as not
+ * inherited, so a write restyles one element, not the subtree beneath it.
  */
-import { type CoverMorph, computeMorph, coverFrame, coverRadius, panelOffset } from "./coverMorph";
+import {
+  type CoverMorph,
+  cardScale,
+  computeMorph,
+  coverFrame,
+  coverRadius,
+  panelOffset,
+} from "./coverMorph";
 import {
   createVelocityTracker,
   dismissProgressFromDrag,
@@ -25,7 +34,7 @@ import {
   shouldOpenOnRelease,
   velocityToProgressPerSecond,
 } from "./gestureMath";
-import { clamp, lerp } from "./mathUtils";
+import { clamp } from "./mathUtils";
 import { setRootAttribute } from "./rootAttributes";
 import { runSpring, runTween, SPRING_DURATION_SECONDS, type SpringRun } from "./spring";
 
@@ -99,6 +108,7 @@ export function createPlayerSheetController(
   let run: SpringRun | null = null;
   let height = 0;
   let morph: CoverMorph | null = null;
+  let enterScale = 0.96;
   let thumbRadius = 0;
   let restingRadius = 0;
   let pendingOpen = false;
@@ -115,30 +125,28 @@ export function createPlayerSheetController(
 
   /* ------------------------------------------------------------------ rendering */
 
+  function setVar(element: HTMLElement, name: string, value: string | null): void {
+    if (value === null) element.style.removeProperty(name);
+    else element.style.setProperty(name, value);
+  }
+
   function render(p: number): void {
     if (!bindings) return;
     progress = p;
     const { panel, scrim, cover } = bindings;
     const visual = clamp(p, 0, 1);
-    scrim.style.opacity = String(visual);
-    if (prefersReducedMotion()) {
-      // Fewer and gentler, not zero: the slide and the morph become a fade of p.
-      panel.style.transform = "none";
-      panel.style.opacity = String(visual);
-      return;
-    }
-    if (isWide()) {
-      const scale = lerp(readNumberToken("--scale-enter") || 0.96, 1, visual);
-      panel.style.transform = `scale(${scale})`;
-      panel.style.opacity = String(visual);
-      return;
-    }
-    panel.style.opacity = "";
-    panel.style.transform = `translate3d(0, ${panelOffset(p, height)}px, 0)`;
+    setVar(scrim, "--scrim-opacity", String(visual));
+    // All three layouts are written; the stylesheet reads the ones that apply to the one in use.
+    setVar(panel, "--sheet-opacity", String(visual));
+    setVar(panel, "--sheet-scale", String(cardScale(p, enterScale)));
+    setVar(panel, "--sheet-offset", `${panelOffset(p, height)}px`);
     if (cover && morph) {
       const frame = coverFrame(p, morph, height);
-      cover.style.transform = `translate3d(${frame.x}px, ${frame.y}px, 0) scale(${frame.scale})`;
-      cover.style.setProperty(
+      setVar(cover, "--cover-x", `${frame.x}px`);
+      setVar(cover, "--cover-y", `${frame.y}px`);
+      setVar(cover, "--cover-scale", String(frame.scale));
+      setVar(
+        cover,
         "--cover-radius",
         `${coverRadius(p, thumbRadius, restingRadius, frame.scale)}px`,
       );
@@ -149,14 +157,22 @@ export function createPlayerSheetController(
   function measure(): void {
     if (!bindings) return;
     const { panel, cover } = bindings;
-    const previousPanel = panel.style.transform;
-    const previousCover = cover?.style.transform ?? "";
-    panel.style.transform = "none";
+    const names = ["--sheet-offset", "--sheet-scale", "--sheet-opacity"] as const;
+    const coverNames = ["--cover-x", "--cover-y", "--cover-scale", "--cover-radius"] as const;
+    const saved = new Map<string, string>();
+    for (const name of names) saved.set(name, panel.style.getPropertyValue(name));
+    if (cover) for (const name of coverNames) saved.set(name, cover.style.getPropertyValue(name));
+    // The resting layout: the panel in place and the cover untransformed.
+    setVar(panel, "--sheet-offset", "0px");
+    setVar(panel, "--sheet-scale", "1");
     if (cover) {
-      cover.style.transform = "none";
-      cover.style.removeProperty("--cover-radius");
+      setVar(cover, "--cover-x", "0px");
+      setVar(cover, "--cover-y", "0px");
+      setVar(cover, "--cover-scale", "1");
+      setVar(cover, "--cover-radius", null);
     }
     height = panel.getBoundingClientRect().height;
+    enterScale = readNumberToken("--scale-enter") || 0.96;
     const miniCover = document.querySelector<HTMLElement>("[data-mini-cover]");
     morph =
       cover && miniCover && !isWide() && !prefersReducedMotion()
@@ -166,8 +182,8 @@ export function createPlayerSheetController(
       restingRadius = Number.parseFloat(getComputedStyle(cover).borderTopLeftRadius) || 0;
       thumbRadius = Number.parseFloat(getComputedStyle(miniCover).borderTopLeftRadius) || 0;
     }
-    panel.style.transform = previousPanel;
-    if (cover) cover.style.transform = previousCover;
+    for (const name of names) setVar(panel, name, saved.get(name) || null);
+    if (cover) for (const name of coverNames) setVar(cover, name, saved.get(name) || null);
   }
 
   /* ------------------------------------------------------------------ motion */
@@ -181,13 +197,15 @@ export function createPlayerSheetController(
     stopRun();
     if (bindings) {
       const { panel, scrim, cover } = bindings;
-      panel.style.transform = "";
-      panel.style.opacity = "";
-      scrim.style.opacity = "";
+      for (const name of ["--sheet-offset", "--sheet-scale", "--sheet-opacity"]) {
+        setVar(panel, name, null);
+      }
+      setVar(scrim, "--scrim-opacity", null);
       delete panel.dataset.moving;
       if (cover) {
-        cover.style.transform = "";
-        cover.style.removeProperty("--cover-radius");
+        for (const name of ["--cover-x", "--cover-y", "--cover-scale", "--cover-radius"]) {
+          setVar(cover, name, null);
+        }
       }
     }
     progress = 0;
@@ -363,6 +381,9 @@ export function createPlayerSheetController(
       detachListeners?.();
       detachListeners = null;
       if (bindings === next) bindings = null;
+      // Unmounted while the sheet was still wanted (a hot reload, a remount): whoever mounts it
+      // next presents it again, instead of leaving a modal that nobody can see.
+      if (present) pendingOpen = true;
       progress = 0;
       setRootAttribute("data-player", "closed");
     };

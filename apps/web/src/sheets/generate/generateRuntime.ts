@@ -25,7 +25,6 @@ function toastForFinishedRun(run: FinishedRun, reopen: () => void): void {
       actionLabel: "Open",
       onAction: () => openBriefing(digestId),
     });
-    announce("Briefing ready.");
     return;
   }
   if (run.phase === "nothing") {

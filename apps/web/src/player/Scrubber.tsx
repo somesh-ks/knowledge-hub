@@ -64,10 +64,14 @@ export default function Scrubber() {
     (time: number, total: number): void => {
       const fraction = fractionOfTime(time, total);
       fillRef.current?.style.setProperty("--player-progress", fraction.toFixed(5));
-      // The thumb is a zero-size anchor moved by transform; its disc is a pseudo-element, so its
-      // press scale never multiplies the anchor's translation.
+      // The thumb is a zero-size anchor moved by a custom property the stylesheet turns into a
+      // transform; its disc is a pseudo-element, so its press scale never multiplies the anchor's
+      // translation.
       if (thumbRef.current) {
-        thumbRef.current.style.transform = `translate3d(${(fraction * widthRef.current).toFixed(2)}px, 0, 0)`;
+        thumbRef.current.style.setProperty(
+          "--thumb-x",
+          `${(fraction * widthRef.current).toFixed(2)}px`,
+        );
       }
       if (!drag.current.active) return;
       const bubble = bubbleRef.current;
@@ -79,7 +83,7 @@ export default function Scrubber() {
         bubbleItemRef.current.textContent = itemPositionLabel(timeline, store.itemAt(time));
       }
       const left = bubbleLeft(fraction * widthRef.current, bubble.offsetWidth, widthRef.current);
-      bubble.style.transform = `translate3d(${left.toFixed(1)}px, 0, 0)`;
+      bubble.style.setProperty("--bubble-x", `${left.toFixed(1)}px`);
     },
     [store, timeline],
   );
@@ -87,6 +91,15 @@ export default function Scrubber() {
   usePlayerFrame((time, total) => {
     if (!drag.current.active) paint(time, total);
   });
+
+  // If the scrubber goes away mid-drag (Escape closes the sheet under the finger), the store must
+  // not stay in scrubbing, which would hold the playhead still for good.
+  useEffect(
+    () => () => {
+      if (drag.current.active && store.getState().scrubbing) store.endScrub(drag.current.startTime);
+    },
+    [store],
+  );
 
   useEffect(() => {
     const root = rootRef.current;
@@ -158,8 +171,9 @@ export default function Scrubber() {
     const root = event.currentTarget;
     if (root.hasPointerCapture(event.pointerId)) root.releasePointerCapture(event.pointerId);
     delete root.dataset.dragging;
-    // A cancelled gesture (the system took the touch) puts the playhead back where it started.
-    const target = event.type === "pointercancel" ? current.startTime : timeAt(event);
+    // Only a lift seeks. A gesture that ended any other way (the system took the touch, the
+    // capture was lost) puts the playhead back where it started.
+    const target = event.type === "pointerup" ? timeAt(event) : current.startTime;
     store.endScrub(target);
     paint(target, store.getState().duration);
   }
@@ -207,6 +221,7 @@ export default function Scrubber() {
         onPointerMove={onPointerMove}
         onPointerUp={finish}
         onPointerCancel={finish}
+        onLostPointerCapture={finish}
         onKeyDown={onKeyDown}
       >
         <div className="scrubber-track">

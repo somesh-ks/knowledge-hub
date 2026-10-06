@@ -737,3 +737,109 @@ describe("listeners and disposal", () => {
     expect(coarse).toBe(1);
   });
 });
+
+describe("edge cases in the element's own behavior", () => {
+  it("never saves the element's zero as the position while a saved one is waiting to be restored", () => {
+    const hooks: { hide: (() => void) | null } = { hide: null };
+    const harness = createHarness({
+      onPageHide: (callback) => {
+        hooks.hide = callback;
+        return () => undefined;
+      },
+    });
+    harness.storage.setItem(resumeKey("2026-10-07"), "58");
+    harness.store.load(makeDigest());
+    // iOS reports currentTime 0 and readyState 0 until the first play, whatever preload says.
+    hooks.hide?.();
+    expect(harness.storage.getItem(resumeKey("2026-10-07"))).toBe("58");
+    harness.store.load(
+      makeDigest({ id: "2026-10-05", audio: { url: "/a/b.mp3", duration_ms: 60_000 } }),
+    );
+    expect(harness.storage.getItem(resumeKey("2026-10-07"))).toBe("58");
+  });
+
+  it("does not treat a quiet fetch as a stall while the buffer holds data", () => {
+    const harness = createHarness();
+    startPlaying(harness);
+    harness.audio.readyState = 4;
+    harness.audio.emit("stalled");
+    expect(harness.store.getState().status).toBe("playing");
+    harness.audio.readyState = 1;
+    harness.audio.emit("stalled");
+    expect(harness.store.getState().status).toBe("loading");
+  });
+
+  it("returns from loading to playing when the clock proves the element is running", () => {
+    const harness = createHarness();
+    startPlaying(harness);
+    harness.audio.emit("waiting");
+    expect(harness.store.getState().status).toBe("loading");
+    harness.audio.readyState = 4;
+    harness.audio.currentTime = 12;
+    harness.audio.emit("timeupdate");
+    expect(harness.store.getState().status).toBe("playing");
+  });
+
+  it("pauses an element that starts by itself after the system interrupted it", () => {
+    const harness = createHarness();
+    startPlaying(harness);
+    harness.clock.now += 5_000;
+    harness.audio.paused = true;
+    harness.audio.emit("pause");
+    expect(harness.store.getState().interrupted).toBe(true);
+    // Android resumes after a call on its own; the interface said "interrupted", so it obeys.
+    harness.audio.startPlaying();
+    expect(harness.audio.paused).toBe(true);
+    expect(harness.store.getState()).toMatchObject({ status: "paused", interrupted: true });
+  });
+
+  it("still notices a real interruption right after a pause the listener made", () => {
+    const harness = createHarness();
+    startPlaying(harness);
+    harness.store.pause();
+    harness.audio.emit("pause");
+    harness.store.play();
+    harness.audio.startPlaying();
+    // Same millisecond, same clock: the window of the earlier pause must not swallow this one.
+    harness.audio.paused = true;
+    harness.audio.emit("pause");
+    expect(harness.store.getState()).toMatchObject({ status: "paused", interrupted: true });
+  });
+
+  it("does not read the late pause event of its own pause as an interruption of the next play", () => {
+    const harness = createHarness();
+    startPlaying(harness);
+    // K then Space, a few milliseconds apart: the element delivers the pause event after play()
+    // was already called again.
+    harness.store.pause();
+    harness.store.play();
+    harness.audio.emit("pause");
+    harness.audio.startPlaying();
+    expect(harness.store.getState()).toMatchObject({ status: "playing", interrupted: false });
+  });
+
+  it("keeps the frame loop and save timer running through a pause event that was ours to ignore", () => {
+    const harness = createHarness();
+    startPlaying(harness);
+    harness.store.beginScrub();
+    harness.audio.emit("pause");
+    harness.store.endScrub(20);
+    harness.audio.startPlaying();
+    const seen: number[] = [];
+    harness.store.onFrame((time) => seen.push(time));
+    harness.audio.currentTime = 21;
+    harness.flushFrames();
+    expect(seen).toEqual([21]);
+  });
+
+  it("does not restart narration at the end of a scrub if the listener paused during it", () => {
+    const harness = createHarness();
+    startPlaying(harness);
+    harness.store.beginScrub();
+    harness.store.pause();
+    const plays = harness.audio.playCalls;
+    harness.store.endScrub(30);
+    expect(harness.audio.playCalls).toBe(plays);
+    expect(harness.store.getState().status).toBe("paused");
+  });
+});

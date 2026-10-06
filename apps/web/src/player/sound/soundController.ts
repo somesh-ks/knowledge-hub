@@ -11,6 +11,8 @@ import { type Cue, cueForPlayerEvent, playCue } from "./soundMap";
 let engine: SoundEngine | null = null;
 let loading: Promise<void> | null = null;
 let removeUnlock: (() => void) | null = null;
+/** Bumped by every teardown, so a load that was still in flight can tell it is no longer wanted. */
+let generation = 0;
 
 export interface SoundWiring {
   store: PlayerStore;
@@ -18,8 +20,10 @@ export interface SoundWiring {
 }
 
 function loadEngine({ store, preferences }: SoundWiring): Promise<void> {
+  const wanted = generation;
   loading ??= import("@dispatch/sound")
     .then(({ createSoundEngine, installGestureUnlock }) => {
+      if (wanted !== generation) return;
       engine = createSoundEngine({
         isEnabled: () => preferences.getSoundsEnabled(),
         getVolume: () => preferences.get().volume,
@@ -69,6 +73,7 @@ export function startSound(wiring: SoundWiring): () => void {
       if (typeof cancelIdleCallback === "function") cancelIdleCallback(idleHandle);
       else clearTimeout(idleHandle);
     }
+    generation += 1;
     removeUnlock?.();
     removeUnlock = null;
     engine?.dispose();

@@ -18,7 +18,9 @@ export default function Toaster() {
 
   useEffect(() => {
     const element = ref.current;
-    if (!element) return;
+    // Safari before 17 has no Popover API, and asking it about :popover-open throws. There the
+    // toast is not shown; its text still reaches a screen reader through the live region.
+    if (!element || typeof element.showPopover !== "function") return;
     const open = element.matches(":popover-open");
     if (toast && !open) element.showPopover();
     else if (!toast && open) element.hidePopover();

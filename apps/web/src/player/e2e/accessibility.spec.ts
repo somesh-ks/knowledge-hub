@@ -106,16 +106,14 @@ test.describe("reduced motion", () => {
     await page.locator(".mini-open").tap();
     await expect(page.locator("html")).toHaveAttribute("data-player", "open");
     await lab.settled();
-    const rest = await page.locator(".player-panel").evaluate((panel) => ({
-      transform: (panel as HTMLElement).style.transform,
-      opacity: (panel as HTMLElement).style.opacity,
-    }));
-    expect(rest.transform).toBe("none");
-    expect(Number(rest.opacity)).toBe(1);
-    const cover = await page
-      .locator(".player-cover-frame[data-size=player]")
-      .evaluate((element) => (element as HTMLElement).style.transform);
-    expect(cover).toBe("");
+    const panel = page.locator(".player-panel");
+    await expect(panel).toHaveCSS("transform", "none");
+    await expect(panel).toHaveCSS("opacity", "1");
+    // The shared element stays where it is; only the fade runs.
+    await expect(page.locator(".player-cover-frame[data-size=player]")).toHaveCSS(
+      "transform",
+      "none",
+    );
   });
 
   test("the rail and the scrubber still update", async ({ lab, page }) => {

@@ -46,6 +46,7 @@ export const PREVIOUS_RESTART_SECONDS = 3;
  */
 const EXPECTED_PAUSE_WINDOW_MS = 1000;
 const HAVE_NOTHING = 0;
+const HAVE_FUTURE_DATA = 3;
 
 export interface PlayerStoreOptions {
   createAudio: () => AudioLike;
@@ -173,6 +174,10 @@ export function createPlayerStore(options: PlayerStoreOptions): PlayerStore {
 
   function readAudioTime(): void {
     if (!audio) return;
+    // Until the header is read the element reports 0, and iOS keeps it at 0 until the first play
+    // whatever `preload` says. That is not the playhead, and saving it would erase the position
+    // that is waiting to be restored.
+    if (pendingStart !== null || audio.readyState === HAVE_NOTHING) return;
     const current = audio.currentTime;
     if (isFiniteNumber(current)) time = clamp(current, 0, durationNow() || current);
   }
@@ -260,7 +265,10 @@ export function createPlayerStore(options: PlayerStoreOptions): PlayerStore {
 
   function onPlaying(): void {
     if (!wantsPlay && !state.scrubbing) {
-      // The element started on its own (autoplay after a source swap). Honor the listener's last word.
+      // The element started on its own: a source swap, or Android resuming after a call. The
+      // listener's last word was "not playing", and the interface says so, so the element obeys.
+      expectPause();
+      audio?.pause();
       return;
     }
     stopBufferTimer();
@@ -279,9 +287,14 @@ export function createPlayerStore(options: PlayerStoreOptions): PlayerStore {
 
   function onPause(): void {
     if (!audio || audio.ended) return;
+    if (now() < expectedPauseUntil) {
+      // Ours, and already accounted for. Consuming the window keeps a real interruption that
+      // follows within a second from being mistaken for it.
+      expectedPauseUntil = 0;
+      return;
+    }
     stopFrameLoop();
     stopSaveTimer();
-    if (now() < expectedPauseUntil) return;
     // Not ours: a call, an alarm, a Bluetooth disconnect. Remember it and offer resume. Resuming
     // on our own would talk over the call that just ended or wake a sleeping person.
     if (state.status !== "playing" && state.status !== "loading") return;
@@ -315,6 +328,11 @@ export function createPlayerStore(options: PlayerStoreOptions): PlayerStore {
     }
   }
 
+  /** `stalled` means the fetch went quiet, which is only a problem when the buffer has run dry. */
+  function onStalled(): void {
+    if (audio && audio.readyState < HAVE_FUTURE_DATA) onWaiting();
+  }
+
   function onCanPlay(): void {
     if (!audio || !wantsPlay || audio.paused || state.scrubbing) return;
     if (state.status === "loading") onPlaying();
@@ -340,7 +358,18 @@ export function createPlayerStore(options: PlayerStoreOptions): PlayerStore {
   function onTimeUpdate(): void {
     // The animation loop is the primary clock. timeupdate carries on while the tab is hidden, when
     // frames stop, so the lock-screen position and the saved position keep moving.
-    if (!audio || state.status !== "playing" || state.scrubbing) return;
+    if (!audio || state.scrubbing) return;
+    // The element is playing with data in hand but no `playing` event is coming (a stall that
+    // cleared on its own), so the clock is the proof.
+    if (
+      state.status === "loading" &&
+      wantsPlay &&
+      !audio.paused &&
+      audio.readyState >= HAVE_FUTURE_DATA
+    ) {
+      onPlaying();
+    }
+    if (state.status !== "playing") return;
     if (frameHandle === null || isHidden()) {
       readAudioTime();
       publishTime("auto", false);
@@ -374,7 +403,7 @@ export function createPlayerStore(options: PlayerStoreOptions): PlayerStore {
       pause: onPause,
       ended: onEnded,
       waiting: onWaiting,
-      stalled: onWaiting,
+      stalled: onStalled,
       canplay: onCanPlay,
       loadedmetadata: onLoadedMetadata,
       durationchange: onLoadedMetadata,
@@ -488,7 +517,12 @@ export function createPlayerStore(options: PlayerStoreOptions): PlayerStore {
     const element = ensureAudio();
     const url = track?.digest.audio?.url;
     if (!url) return;
+    // Attaching a source can pause the element, but that is settled by now. A pause of our own
+    // that is still on its way (K then Space in quick succession: the element delivers the event
+    // after play() was called again) keeps its window; only the one attaching just opened closes.
+    const pendingWindow = expectedPauseUntil;
     attachSource(url);
+    expectedPauseUntil = pendingWindow;
     if (state.status === "ended") seekInternal(0, "seek");
     wantsPlay = true;
     // The cue first, so it lands in silence; then the audio.
@@ -519,6 +553,8 @@ export function createPlayerStore(options: PlayerStoreOptions): PlayerStore {
     if (!audio) return;
     if (state.status !== "playing" && state.status !== "loading") return;
     wantsPlay = false;
+    // A scrub that was going to resume playback must not undo this pause when it ends.
+    wasPlayingBeforeScrub = false;
     stopFrameLoop();
     stopSaveTimer();
     stopBufferTimer();

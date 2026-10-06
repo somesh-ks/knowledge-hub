@@ -1,12 +1,11 @@
 import { expect, line, test, touchDrag } from "./lab";
 
-/** Progress of the sheet read from its transform: 1 at rest open, 0 fully below the screen. */
+/** Progress of the sheet read from its computed transform: 1 at rest open, 0 fully below the screen. */
 async function sheetProgress(page: import("@playwright/test").Page): Promise<number> {
   return page.evaluate(() => {
     const panel = document.querySelector<HTMLElement>(".player-panel");
     if (!panel) return 0;
-    const match = /translate3d\(0px, ([\d.]+)px/.exec(panel.style.transform);
-    const offset = match ? Number(match[1]) : 0;
+    const offset = new DOMMatrix(getComputedStyle(panel).transform).m42;
     return 1 - offset / panel.getBoundingClientRect().height;
   });
 }
@@ -30,10 +29,23 @@ test.describe("touch gestures on the sheet", () => {
     expect(held).toBeGreaterThan(0.3);
     expect(held).toBeLessThan(0.95);
     // The cover is morphing between the mini player's cover and its resting place.
-    const cover = await page
+    const morph = await page
       .locator(".player-cover-frame[data-size=player]")
-      .evaluate((element) => element.style.transform);
-    expect(cover).toMatch(/scale\(0\.\d+\)/);
+      .evaluate((element) => {
+        const matrix = new DOMMatrix(getComputedStyle(element).transform);
+        return { scale: matrix.a, travel: matrix.m42 };
+      });
+    expect(morph.scale).toBeGreaterThan(0);
+    expect(morph.scale).toBeLessThan(1);
+    // It sits away from its resting place: the sheet is mid-travel and the cover leads it.
+    expect(Math.abs(morph.travel)).toBeGreaterThan(1);
+    // Per-frame motion is custom properties only: the stylesheet owns what they mean.
+    const written = await page.evaluate(() =>
+      [".player-panel", ".player-scrim", ".player-cover-frame[data-size=player]"].map(
+        (selector) => document.querySelector(selector)?.getAttribute("style") ?? "",
+      ),
+    );
+    for (const style of written) expect(style).not.toMatch(/(^|;)\s*(transform|opacity)\s*:/);
     await finger.release();
     await lab.settled();
     expect(await sheetProgress(page)).toBeCloseTo(1, 2);

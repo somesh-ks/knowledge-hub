@@ -57,6 +57,28 @@ function setDataset(element: HTMLElement, key: string, value: string): void {
   if (element.dataset[key] !== value) element.dataset[key] = value;
 }
 
+/**
+ * Where an item's rail node sits, measured from the top of the briefing. The page draws a `.node`
+ * on the rail; without one the fill still has to land somewhere believable, so it aims at the
+ * middle of the heading's first line (a tall item's own center would be far below its title).
+ */
+function anchorCenter(item: HTMLElement, briefingTop: number): number {
+  const node = item.querySelector<HTMLElement>(".node");
+  if (node) {
+    const rect = node.getBoundingClientRect();
+    return rect.top - briefingTop + rect.height / 2;
+  }
+  const heading = item.querySelector<HTMLElement>("h2, h3, h4");
+  if (heading) {
+    const rect = heading.getBoundingClientRect();
+    const leading = Number.parseFloat(getComputedStyle(heading).lineHeight);
+    // `normal` parses as NaN; half the box is the honest guess for it.
+    const firstLine = Number.isFinite(leading) ? leading : rect.height;
+    return rect.top - briefingTop + Math.min(firstLine, rect.height) / 2;
+  }
+  return item.getBoundingClientRect().top - briefingTop;
+}
+
 function setText(element: Element, text: string): void {
   if (element.textContent !== text) element.textContent = text;
 }
@@ -105,9 +127,7 @@ export function createReaderSync(store: PlayerStore): ReaderSync {
     for (const entry of timeline.items) {
       const item = elements.items.get(entry.id);
       if (!item) continue;
-      const anchor = item.querySelector<HTMLElement>(".node") ?? item;
-      const rect = anchor.getBoundingClientRect();
-      nodeY[entry.index] = rect.top - top + rect.height / 2;
+      nodeY[entry.index] = anchorCenter(item, top);
     }
     paintRail(store.getTime());
   }
