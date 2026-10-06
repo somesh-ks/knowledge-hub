@@ -182,7 +182,7 @@ test.describe("playback in a real browser", () => {
     await lab.open("/dev/player-lab-preparing");
     await expect(page.locator("[data-play-label]")).toHaveText("Audio is still being prepared");
     await expect(lab.cta).toHaveAttribute("aria-disabled", "true");
-    await lab.cta.tap();
+    await lab.cta.click({ force: true });
     await expect(page.locator("html")).toHaveAttribute("data-player-state", "idle");
     expect(await audio.count()).toBe(0);
     await expect(page.getByRole("heading", { level: 3 }).first()).toBeVisible();

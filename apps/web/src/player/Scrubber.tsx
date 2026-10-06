@@ -6,7 +6,7 @@ import {
   useEffect,
   useRef,
 } from "react";
-import { formatClock } from "./core/formatTime";
+import { clockParts } from "./core/formatTime";
 import { createVelocityTracker } from "./core/gestureMath";
 import { getPlayerStore } from "./core/playerRuntime";
 import {
@@ -42,7 +42,8 @@ export default function Scrubber() {
   const fillRef = useRef<HTMLSpanElement>(null);
   const thumbRef = useRef<HTMLSpanElement>(null);
   const bubbleRef = useRef<HTMLDivElement>(null);
-  const bubbleTimeRef = useRef<HTMLSpanElement>(null);
+  const bubbleMinutesRef = useRef<HTMLSpanElement>(null);
+  const bubbleSecondsRef = useRef<HTMLSpanElement>(null);
   const bubbleItemRef = useRef<HTMLSpanElement>(null);
   const widthRef = useRef(1);
   const drag = useRef({
@@ -71,7 +72,9 @@ export default function Scrubber() {
       if (!drag.current.active) return;
       const bubble = bubbleRef.current;
       if (!bubble || !timeline) return;
-      if (bubbleTimeRef.current) bubbleTimeRef.current.textContent = formatClock(time);
+      const { before, after } = clockParts(time);
+      if (bubbleMinutesRef.current) bubbleMinutesRef.current.textContent = before;
+      if (bubbleSecondsRef.current) bubbleSecondsRef.current.textContent = after;
       if (bubbleItemRef.current) {
         bubbleItemRef.current.textContent = itemPositionLabel(timeline, store.itemAt(time));
       }
@@ -226,8 +229,10 @@ export default function Scrubber() {
         </div>
         <span className="scrubber-thumb" ref={thumbRef} aria-hidden="true" />
         <div className="scrubber-bubble" ref={bubbleRef} aria-hidden="true">
-          <span className="num scrubber-bubble-time" ref={bubbleTimeRef}>
-            0:00
+          <span className="num scrubber-bubble-time">
+            <span ref={bubbleMinutesRef}>0</span>
+            <span className="player-colon">:</span>
+            <span ref={bubbleSecondsRef}>00</span>
           </span>
           <span className="scrubber-bubble-item" ref={bubbleItemRef}>
             {itemPositionLabel(timeline, state.itemIndex)}

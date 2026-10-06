@@ -28,6 +28,18 @@ declare global {
  */
 export const test = base.extend<{ lab: LabPage; audio: AudioProbe }>({
   page: async ({ page }, use) => {
+    // Any console error or warning from the page is a failure, apart from the lab's own missing
+    // /d/ routes, which a "Open the new briefing" test follows on purpose.
+    const problems: string[] = [];
+    page.on("console", (message) => {
+      if (message.type() !== "error" && message.type() !== "warning") return;
+      // The browser logs every non-2xx response on its own; the tests answer 401, 429 and 503 on purpose.
+      if (/Failed to load resource/.test(message.text())) return;
+      // Astro's router says this itself whenever reduced motion is on.
+      if (message.text().startsWith("[transitions]")) return;
+      problems.push(`[${message.type()}] ${message.text()}`);
+    });
+    page.on("pageerror", (error) => problems.push(`[pageerror] ${error.message}`));
     await page.addInitScript(() => {
       window.__audios = [];
       const Original = window.Audio;
@@ -39,6 +51,7 @@ export const test = base.extend<{ lab: LabPage; audio: AudioProbe }>({
       } as typeof Audio;
     });
     await use(page);
+    expect(problems).toEqual([]);
   },
   lab: async ({ page }, use) => {
     await use(new LabPage(page));
