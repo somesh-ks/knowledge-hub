@@ -73,6 +73,23 @@ describe("applyPatch", () => {
     expect(clamped.join(" ")).toContain("scaled");
   });
 
+  it("does not report scaling when three deltas of 0.05 sum to exactly the limit", () => {
+    const { next, clamped } = applyPatch(
+      base,
+      patch({
+        weight_deltas: {
+          css_canvas_motion_techniques: 0.05,
+          frontier_model_releases: 0.05,
+          developer_tool_launches: 0.05,
+        },
+      }),
+      "2026-10-07",
+    );
+    expect(clamped).toEqual([]);
+    expect(next.weights.css_canvas_motion_techniques).toBe(0.55);
+    expect(next.weights.developer_tool_launches).toBe(0.55);
+  });
+
   it("keeps weights inside 0 and 1", () => {
     const { next } = applyPatch(
       { ...base, weights: { ...base.weights, design_engineering_craft: 0.99 } },

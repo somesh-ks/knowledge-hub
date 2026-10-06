@@ -115,7 +115,24 @@ export const run: CommandRun = async (argv, ctx) => {
   }
   const prefsPath = join(ctx.root, CONFIG_FILES.preferences);
   const current = Preferences.parse(JSON.parse(readFileSync(prefsPath, "utf8")));
-  const patch = PreferencesPatch.parse(JSON.parse(readFileSync(patchPath, "utf8")));
+  let patchJson: unknown;
+  try {
+    patchJson = JSON.parse(readFileSync(patchPath, "utf8"));
+  } catch (error) {
+    ctx.log.error(
+      `Cannot read the patch at ${patchPath}: ${error instanceof Error ? error.message : "unknown error"}`,
+    );
+    return 1;
+  }
+  const parsed = PreferencesPatch.safeParse(patchJson);
+  if (!parsed.success) {
+    // One line per problem, so the caller sees which field to fix instead of a truncated message.
+    for (const issue of parsed.error.issues) {
+      ctx.log.error(`Invalid patch at ${issue.path.join(".") || "(root)"}: ${issue.message}`);
+    }
+    return 1;
+  }
+  const patch = parsed.data;
 
   const { next, changes, clamped } = applyPatch(current, patch, stockholmDate(ctx.now()));
   if (changes.length === 0) {

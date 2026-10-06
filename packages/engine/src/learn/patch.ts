@@ -75,7 +75,8 @@ export function applyPatch(
     deltas.set(category, limited);
   }
   const total = [...deltas.values()].reduce((sum, d) => sum + Math.abs(d), 0);
-  const scale = total > LEARN_LIMITS.perCall ? LEARN_LIMITS.perCall / total : 1;
+  // The epsilon absorbs float error: three deltas of 0.05 sum to 0.15000000000000002.
+  const scale = total > LEARN_LIMITS.perCall + 1e-9 ? LEARN_LIMITS.perCall / total : 1;
   if (scale < 1) clamped.push(`total change ${round2(total)} scaled to ${LEARN_LIMITS.perCall}`);
 
   const weights = { ...current.weights };
