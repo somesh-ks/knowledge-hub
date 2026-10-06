@@ -1,0 +1,135 @@
+{
+  "version": 1,
+  "online": false,
+  "ok": true,
+  "totals": {
+    "ok": 15,
+    "warn": 8,
+    "fail": 0
+  },
+  "checks": [
+    {
+      "id": "node",
+      "status": "ok",
+      "summary": "Node 26.7.0"
+    },
+    {
+      "id": "git",
+      "status": "ok",
+      "summary": "git version 2.52.0.windows.1"
+    },
+    {
+      "id": "repo",
+      "status": "ok",
+      "summary": "/work/dispatch"
+    },
+    {
+      "id": "remote",
+      "status": "ok",
+      "summary": "origin is configured"
+    },
+    {
+      "id": "tree",
+      "status": "ok",
+      "summary": "working tree is clean"
+    },
+    {
+      "id": "config.preferences",
+      "status": "ok",
+      "summary": "valid"
+    },
+    {
+      "id": "config.sources",
+      "status": "ok",
+      "summary": "101 sources, 98 enabled"
+    },
+    {
+      "id": "config.queries",
+      "status": "ok",
+      "summary": "10 Exa queries"
+    },
+    {
+      "id": "config.voice",
+      "status": "ok",
+      "summary": "29 banned words, 6 patterns"
+    },
+    {
+      "id": "state.seen",
+      "status": "ok",
+      "summary": "not created yet"
+    },
+    {
+      "id": "state.judgments",
+      "status": "ok",
+      "summary": "not created yet"
+    },
+    {
+      "id": "state.last-run",
+      "status": "ok",
+      "summary": "valid"
+    },
+    {
+      "id": "state.usage",
+      "status": "ok",
+      "summary": "not created yet"
+    },
+    {
+      "id": "state.source-health",
+      "status": "ok",
+      "summary": "not created yet"
+    },
+    {
+      "id": "key.TYPESAFE_API_KEY",
+      "status": "warn",
+      "summary": "not set",
+      "hint": "Jev is off: the Nebius fallback judge answers and digests are unverified. Get a key at console.typesafe.ai."
+    },
+    {
+      "id": "key.NEBIUS_API_KEY",
+      "status": "warn",
+      "summary": "not set",
+      "hint": "The API curator cannot run (agent mode still works). Create a key in the Nebius Token Factory console."
+    },
+    {
+      "id": "key.EXA_API_KEY",
+      "status": "warn",
+      "summary": "not set",
+      "hint": "Semantic discovery sources skip. Get a key from the Exa dashboard."
+    },
+    {
+      "id": "key.FIRECRAWL_API_KEY",
+      "status": "warn",
+      "summary": "not set",
+      "hint": "Feedless sources skip and extraction has no scrape fallback. Get a key from the Firecrawl dashboard."
+    },
+    {
+      "id": "key.SPEECHIFY_API_KEY",
+      "status": "warn",
+      "summary": "not set",
+      "hint": "Audio cannot be generated. Get a key from the Speechify API console."
+    },
+    {
+      "id": "key.BLOB_READ_WRITE_TOKEN",
+      "status": "warn",
+      "summary": "not set",
+      "hint": "Audio cannot be uploaded or pruned. Copy it from the Vercel Blob store."
+    },
+    {
+      "id": "key.YOUTUBE_API_KEY",
+      "status": "ok",
+      "summary": "not set (optional)"
+    },
+    {
+      "id": "model.DISPATCH_MODEL",
+      "status": "warn",
+      "summary": "not set",
+      "hint": "The writer cannot run. Run `dispatch models` to pick one, then set DISPATCH_MODEL in .env."
+    },
+    {
+      "id": "model.DISPATCH_FALLBACK_MODEL",
+      "status": "warn",
+      "summary": "not set",
+      "hint": "There is no failover if the primary id is retired. Run `dispatch models` to pick one, then set DISPATCH_FALLBACK_MODEL in .env."
+    }
+  ]
+}
