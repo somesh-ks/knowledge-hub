@@ -2,7 +2,7 @@ import { access } from "node:fs/promises";
 import { join } from "node:path";
 import { serializeDigestFile } from "@dispatch/core";
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
-import { commitAndPush, DEFAULT_BOT } from "../src/git/commit.js";
+import { commitAndPush, DEFAULT_BOT, identityFromEnv } from "../src/git/commit.js";
 import { createGitRunner } from "../src/git/runGit.js";
 import { digestFor, must } from "./audio-fixtures.js";
 import type { RepoPair } from "./git-testRepo.js";
@@ -772,5 +772,24 @@ describe("commitAndPush: pushing", () => {
     );
     // Sanity: the shared runner is the real one.
     expect(createGitRunner(pair.a)).toBeTypeOf("function");
+  });
+});
+
+describe("identityFromEnv", () => {
+  it("returns the owner identity when both variables are set", () => {
+    expect(
+      identityFromEnv({
+        DISPATCH_GIT_NAME: " Somesh ",
+        DISPATCH_GIT_EMAIL: "1+somesh@users.noreply.github.com",
+      }),
+    ).toEqual({ name: "Somesh", email: "1+somesh@users.noreply.github.com" });
+  });
+
+  it("falls back to the bot when either variable is missing or blank", () => {
+    expect(identityFromEnv({})).toBeUndefined();
+    expect(identityFromEnv({ DISPATCH_GIT_NAME: "Somesh" })).toBeUndefined();
+    expect(
+      identityFromEnv({ DISPATCH_GIT_NAME: "Somesh", DISPATCH_GIT_EMAIL: "  " }),
+    ).toBeUndefined();
   });
 });

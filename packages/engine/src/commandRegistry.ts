@@ -64,7 +64,7 @@ selection-schema.json, then validates the agent-selection.json a Claude Code ses
   {
     name: "publish",
     summary: "Narrate every digest that lacks audio, upload, prune and commit",
-    help: "Usage: dispatch publish [--digest <id>] [--prune <days>] [--no-push]\n\nWhat deploy.yml runs. A failed narration leaves audio null and does not fail the command.",
+    help: "Usage: dispatch publish [--digest <id>] [--prune <days>] [--no-push]\n\nWhat audio.yml runs. A failed narration leaves audio null and does not fail the command.",
     load: async () => (await import("./commands/publish.js")).run,
   },
   {

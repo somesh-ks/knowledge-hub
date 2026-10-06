@@ -4,7 +4,7 @@ Each entry records what was decided, why, and what was rejected. Add new entries
 
 The plan that implements these decisions is [build-plan.md](build-plan.md). The vision is [vision.md](vision.md).
 
-D1 to D9 date from plan v2 (2026-10-05). D10 to D24 date from 2026-10-06. Reasons are the plan's working rationale, written by the docs owner; correct any the owner would state differently.
+D1 to D9 date from plan v2 (2026-10-05). D10 to D25 date from 2026-10-06. Reasons are the plan's working rationale, written by the docs owner; correct any the owner would state differently.
 
 ---
 
@@ -85,7 +85,7 @@ D1 to D9 date from plan v2 (2026-10-05). D10 to D24 date from 2026-10-06. Reason
 ## D10: Hosting on Vercel
 
 - Date: 2026-10-06
-- Status: Confirmed. Replaces the Cloudflare Workers static assets, R2, KV and Turnstile design.
+- Status: Confirmed. Replaces the Cloudflare Workers static assets, R2, KV and Turnstile design. The CLI-deploy part (second bullet and the Git integration reasoning) is superseded by D25.
 - Decision:
   - The site is static on Vercel. Only `/api/*` runs on the server, as Vercel Functions through `@astrojs/vercel`.
   - GitHub Actions deploys with `vercel pull`, `vercel build --prod` and `vercel deploy --prebuilt --prod`, run from `apps/web` with `VERCEL_TOKEN`, `VERCEL_ORG_ID` and `VERCEL_PROJECT_ID`. The Vercel Git integration is not used.
@@ -190,7 +190,7 @@ D1 to D9 date from plan v2 (2026-10-05). D10 to D24 date from 2026-10-06. Reason
 ## D22: `deploy.yml` owns the deploy
 
 - Date: 2026-10-06
-- Status: Confirmed. As-built detail of D10, which holds the commands and the reason for leaving the Git integration off.
+- Status: Superseded by D25. As-built detail of D10, which held the commands and the reason for leaving the Git integration off.
 - Decision: `deploy.yml` is a reusable workflow with its own concurrency group, `deploy`. It checks out `main`, not the caller's commit, and passes `VERCEL_TOKEN` only to the Vercel pull and deploy steps, never to the build.
 - Reason: A called workflow that shares its caller's concurrency group is cancelled. The caller's commit predates the bot commit. The build runs repository code and dependencies, so it gets no token.
 - Rejected: Sharing `run.yml`'s group. A token at job level. Deploying the caller's commit.
@@ -199,7 +199,7 @@ D1 to D9 date from plan v2 (2026-10-05). D10 to D24 date from 2026-10-06. Reason
 
 - Date: 2026-10-06
 - Status: Confirmed
-- Decision: When narration or the Blob upload fails, `dispatch publish` leaves the digest's `audio` as `null` and exits without failing, so the text digest ships. The next deploy narrates every digest that still lacks audio, and `run.yml` deploys while any digest from the last 7 days lacks it.
+- Decision: When narration or the Blob upload fails, `dispatch publish` leaves the digest's `audio` as `null` and exits without failing, so the text digest ships. The next audio run narrates every digest that still lacks audio, and `run.yml` calls `audio.yml` while any digest from the last 7 days lacks it (D25).
 - Reason: The briefing is read first. Audio is added to text that already exists, so a speech outage must not cost the day's digest.
 - Rejected: Failing the run on a speech error. Holding the digest until audio exists.
 
@@ -211,3 +211,20 @@ D1 to D9 date from plan v2 (2026-10-05). D10 to D24 date from 2026-10-06. Reason
 - Reason: Qwen3-32B left Nebius's serverless tier on 2026-08-31, so any named default goes stale. Nebius's baseline limit is 60 requests per minute, which the fallback judge's batching respects.
 - Rejected: Another hardcoded default (the same failure at the next retirement). Moving the writer to another provider (the Nebius account and credit exist, D13).
 - Revisit if: Nebius changes its tiers or limits again.
+
+## D25: The Vercel GitHub integration deploys the site
+
+- Date: 2026-10-06
+- Status: Confirmed, unproven until the first live deploy. Supersedes D22 and the CLI-deploy part of D10.
+- Decision:
+  - The Vercel project `knowledge-hub` is connected to `somesh-ks/knowledge-hub`, production branch `main`. Vercel builds on every push to `main`. Root Directory is `apps/web`, with "Include source files outside of the Root Directory" on (the default).
+  - `apps/web/vercel.json` sets `installCommand` to `cd ../.. && npm ci --ignore-scripts`, `buildCommand` to `npm run build`, and an `ignoreCommand` that skips the build when a push touches nothing the site reads. Only `Digests`, `apps/web`, `packages`, `tokens`, `scripts` and the root package files matter; pushes to `state`, `config`, docs and `.github` are skipped.
+  - Vercel Hobby deploys only a commit whose author is the Hobby team owner. The engine therefore commits as the owner, from the GitHub Actions variables `DISPATCH_GIT_NAME` (Somesh Kesarla Suresh) and `DISPATCH_GIT_EMAIL` (`26426782+somesh-ks@users.noreply.github.com`, the GitHub noreply address, which Vercel matches to the GitHub login). When both are unset the engine falls back to the old `dispatch-bot` identity, which Hobby blocks. Source: https://vercel.com/docs/deployments/troubleshoot-project-collaboration
+  - `deploy.yml` is removed. `.github/workflows/audio.yml` replaces it: reusable (`workflow_call`) and manual (`workflow_dispatch`), with its own concurrency group, `audio`. It checks out `main`, installs, then one `Audio` step runs `dispatch publish --prune 120`, which uploads MP3s to Vercel Blob and commits and pushes the timeline metadata as the owner identity. That push triggers a second Vercel deploy that carries the audio. `run.yml` calls `audio.yml` when the Commit step's `deploy` output is true; the key keeps its name and now means "audio follow-up needed".
+  - `ci.yml` has no deploy job. It still runs `changes`, `check` and `secrets` (gitleaks).
+  - `VERCEL_TOKEN`, `VERCEL_ORG_ID` and `VERCEL_PROJECT_ID` are no longer needed anywhere.
+- Reason: Commits made with `GITHUB_TOKEN` are the reason D10 avoided the Git integration, but the integration reacts to the push and the commit author, not to the token. Committing as the owner satisfies Hobby and removes the CLI token, the project link and the pull, build and deploy steps. The build now runs inside Vercel, not in a workflow that held a deploy token.
+- Consequence: A published digest deploys twice: once for the text, right after the Commit step, and once for the audio. The text is readable first, and the player shows no audio until the second deploy.
+- Rejected: Keeping the CLI deploy (needs a token, an org id and a project id in GitHub, and a separate deploy workflow). A paid Vercel plan, which would accept bot authors. Deploy hooks (a secret URL to guard and no commit-level skip).
+- Residual risk: Unproven until the first live deploy: the Vercel build of the `apps/web` workspace through the Git integration with this `installCommand`; the `ignoreCommand` on a shallow clone; Hobby accepting the owner-identity commit; two deploys per run. The GitHub login connected to Vercel must match the committer, so it must belong to the owner of the Hobby team.
+- Revisit if: The first live deploy fails or skips, Hobby stops matching the noreply address, or the double deploy hits a Hobby limit.

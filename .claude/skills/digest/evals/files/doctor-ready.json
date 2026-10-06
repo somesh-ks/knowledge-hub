@@ -114,7 +114,7 @@
       "hint": "Audio cannot be uploaded or pruned. Copy it from the Vercel Blob store."
     },
     {
-      "id": "key.YOUTUBE_API_KEY",
+      "id": "key.COMPOSIO_API_KEY",
       "status": "ok",
       "summary": "not set (optional)"
     },

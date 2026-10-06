@@ -87,7 +87,7 @@ describe("isOurRun", () => {
   });
 
   it("rejects another workflow, another event or another repository", () => {
-    expect(isOurRun({ ...ours, path: ".github/workflows/deploy.yml" }, config)).toBe(false);
+    expect(isOurRun({ ...ours, path: ".github/workflows/audio.yml" }, config)).toBe(false);
     expect(isOurRun({ ...ours, path: ".github/workflows/run.yml.bak" }, config)).toBe(false);
     expect(isOurRun({ ...ours, event: "schedule" }, config)).toBe(false);
     expect(isOurRun({ ...ours, event: "push" }, config)).toBe(false);
@@ -140,9 +140,9 @@ describe("currentStep", () => {
     ).toBe("reading");
   });
 
-  it("maps Commit and Deploy both to publishing", () => {
+  it("maps Commit and Audio both to publishing", () => {
     expect(currentStep(asSteps(step("Commit", 6, "in_progress")))).toBe("publishing");
-    expect(currentStep(asSteps(step("Deploy", 7, "in_progress")))).toBe("publishing");
+    expect(currentStep(asSteps(step("Audio", 7, "in_progress")))).toBe("publishing");
     expect(currentStep(asSteps(step("Validate", 5, "in_progress")))).toBe("checking");
   });
 
@@ -212,7 +212,7 @@ describe("handleStatus", () => {
   });
 
   it("answers 404 for a run of another workflow, without reading its jobs", async () => {
-    const github = setup({ path: ".github/workflows/deploy.yml" });
+    const github = setup({ path: ".github/workflows/audio.yml" });
     const result = await handleStatus("4242", { env, fetch: github.fetch });
     expect(result).toEqual({ status: 404, body: { error: "not_found" } });
     expect(github.requests.some((request) => request.path.includes("/jobs"))).toBe(false);

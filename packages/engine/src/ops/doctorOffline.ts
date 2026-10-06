@@ -239,8 +239,9 @@ const KEYS: readonly KeySpec[] = [
     missing: "Audio cannot be uploaded or pruned. Copy it from the Vercel Blob store.",
   },
   {
-    name: "YOUTUBE_API_KEY",
-    missing: "Only needed for the one-time channel id lookup.",
+    name: "COMPOSIO_API_KEY",
+    missing:
+      "Only for ad-hoc YouTube lookups through Composio; the pipeline reads YouTube feeds without a key.",
     optional: true,
   },
 ];

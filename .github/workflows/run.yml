@@ -117,14 +117,21 @@ jobs:
       - name: Commit
         id: commit
         shell: bash
+        # Vercel Hobby deploys only commits authored by the team owner, so commit as the owner.
+        env:
+          DISPATCH_GIT_NAME: ${{ vars.DISPATCH_GIT_NAME }}
+          DISPATCH_GIT_EMAIL: ${{ vars.DISPATCH_GIT_EMAIL }}
         run: |
           npm run --silent dispatch -- run --stage commit --json | tee "$RUNNER_TEMP/commit.json"
           echo "outcome=$(jq -r '.outcome' "$RUNNER_TEMP/commit.json")" >> "$GITHUB_OUTPUT"
           echo "deploy=$(jq -r '.deploy' "$RUNNER_TEMP/commit.json")" >> "$GITHUB_OUTPUT"
 
-  deploy:
+  # Vercel deploys the text digest from the Commit push. This job adds narration afterwards; its
+  # own push triggers a second Vercel deploy that carries the audio.
+  audio:
     needs: run
-    # Deploy after a published digest, or when any digest still lacks audio (the retry path).
+    # After a published digest, or when any digest still lacks audio (the retry path). The output
+    # keeps its name, `deploy`, but now means "audio follow-up needed".
     if: needs.run.outputs.deploy == 'true'
-    uses: ./.github/workflows/deploy.yml
+    uses: ./.github/workflows/audio.yml
     secrets: inherit

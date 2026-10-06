@@ -213,7 +213,7 @@ describe("doctor: offline", () => {
     expect(check(report, "key.NEBIUS_API_KEY")).toMatchObject({ status: "ok", summary: "set" });
     expect(check(report, "key.TYPESAFE_API_KEY").status).toBe("warn");
     expect(check(report, "key.TYPESAFE_API_KEY").hint).toContain("unverified");
-    expect(check(report, "key.YOUTUBE_API_KEY")).toMatchObject({
+    expect(check(report, "key.COMPOSIO_API_KEY")).toMatchObject({
       status: "ok",
       summary: "not set (optional)",
     });

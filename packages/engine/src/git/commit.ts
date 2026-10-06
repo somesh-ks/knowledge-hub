@@ -18,6 +18,19 @@ export const DEFAULT_BOT: BotIdentity = {
   email: "dispatch-bot@users.noreply.github.com",
 };
 
+/**
+ * The identity unattended commits use. Vercel Hobby only deploys commits authored by the team
+ * owner, so the workflows set DISPATCH_GIT_NAME and DISPATCH_GIT_EMAIL to the owner's GitHub
+ * identity. Both must be set; otherwise the bot identity applies.
+ */
+export function identityFromEnv(
+  env: Record<string, string | undefined> = process.env,
+): BotIdentity | undefined {
+  const name = env.DISPATCH_GIT_NAME?.trim();
+  const email = env.DISPATCH_GIT_EMAIL?.trim();
+  return name && email ? { name, email } : undefined;
+}
+
 /** Retries after the first push, each preceded by `git pull --rebase`. */
 export const DEFAULT_PUSH_RETRIES = 3;
 
@@ -88,7 +101,7 @@ function pathsOf(changed: readonly ChangedPath[]): string[] {
  */
 export async function commitAndPush(input: CommitAndPushInput): Promise<CommitOutcome> {
   const run = input.git ?? createGitRunner(input.root);
-  const identity = input.identity ?? DEFAULT_BOT;
+  const identity = input.identity ?? identityFromEnv() ?? DEFAULT_BOT;
   const subject = input.message.split("\n", 1)[0] ?? "";
   if (!CONVENTIONAL.test(subject))
     return { status: "refused", reason: "message", offending: [subject] };

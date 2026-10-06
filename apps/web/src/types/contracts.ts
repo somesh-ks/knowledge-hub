@@ -75,7 +75,7 @@ export type GenerateStep = (typeof GENERATE_STEPS)[number];
 
 /**
  * Workflow step name to progress step. The names are defined in .github/workflows/run.yml and
- * deploy.yml; keep them in sync.
+ * audio.yml; keep them in sync.
  */
 export const STEP_FOR_WORKFLOW_STEP: Record<string, GenerateStep> = {
   Gate: "waiting",
@@ -85,9 +85,6 @@ export const STEP_FOR_WORKFLOW_STEP: Record<string, GenerateStep> = {
   Validate: "checking",
   Commit: "publishing",
   Audio: "publishing",
-  "Pull project settings": "publishing",
-  Build: "publishing",
-  Deploy: "publishing",
 };
 
 /** GET /api/status?run=<id> response body. */

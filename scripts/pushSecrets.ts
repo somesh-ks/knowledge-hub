@@ -17,10 +17,7 @@ const GITHUB_SECRETS = [
   "FIRECRAWL_API_KEY",
   "SPEECHIFY_API_KEY",
   "BLOB_READ_WRITE_TOKEN",
-  "VERCEL_TOKEN",
-  "VERCEL_ORG_ID",
-  "VERCEL_PROJECT_ID",
-  "YOUTUBE_API_KEY",
+  "COMPOSIO_API_KEY",
 ];
 
 /** Plain configuration, stored as GitHub Actions variables so it stays visible in workflow runs. */
@@ -29,6 +26,9 @@ const GITHUB_VARIABLES = [
   "DISPATCH_MODEL",
   "DISPATCH_FALLBACK_MODEL",
   "SPEECHIFY_VOICE_ID",
+  "SPEECHIFY_MONTHLY_CHARS",
+  "DISPATCH_GIT_NAME",
+  "DISPATCH_GIT_EMAIL",
 ];
 
 /** Environment variables for the Generate button's server routes on Vercel. */

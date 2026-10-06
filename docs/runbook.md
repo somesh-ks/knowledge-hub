@@ -23,7 +23,7 @@ Never paste a key into chat. The agent cannot read `.env`; keep it that way.
 1. Install Node 24 or newer (`.nvmrc` pins the version).
 2. From the repository root, run `npm ci`.
 3. Log in to GitHub: `gh auth login`.
-4. Log in to Vercel: `npx vercel login`.
+4. Optional: log in to Vercel (`npx vercel login`) to use the CLI for the Blob store or env checks. Creating the project needs only the dashboard.
 
 ### 1.2 Create `.env` and add the service keys
 
@@ -38,9 +38,9 @@ Never paste a key into chat. The agent cannot read `.env`; keep it that way.
 | `FIRECRAWL_API_KEY` | Firecrawl dashboard |
 | `SPEECHIFY_API_KEY` | Speechify API console |
 | `NEBIUS_BASE_URL`, `SPEECHIFY_VOICE_ID` | Plain configuration, no secret |
-| `YOUTUBE_API_KEY` | Optional, only for the one-time YouTube channel lookup |
-| `VERCEL_ORG_ID`, `VERCEL_PROJECT_ID`, `VERCEL_TOKEN` | Section 1.4 |
+| `COMPOSIO_API_KEY` | Optional. A Composio project key (the YouTube connection is Composio-managed). The pipeline reads YouTube channel feeds without a key, so nothing needs it yet. |
 | `BLOB_READ_WRITE_TOKEN` | Section 1.5 |
+| `DISPATCH_GIT_NAME`, `DISPATCH_GIT_EMAIL` | Plain configuration, no secret. `Somesh Kesarla Suresh` and `26426782+somesh-ks@users.noreply.github.com` (section 1.4) |
 | `GITHUB_DISPATCH_TOKEN`, `GITHUB_REPOSITORY` | Section 1.7 |
 | `GENERATE_PASSPHRASE_HASH` | Section 1.8 |
 | `DISPATCH_MODEL`, `DISPATCH_FALLBACK_MODEL` | Section 1.3 |
@@ -59,22 +59,23 @@ npm run dispatch -- eval --yes --only bakeoff --models <id>,<id>
 
 ### 1.4 Create the Vercel project
 
-1. Run `npx vercel link` from `apps/web`.
-2. Create a new project. Answer no when asked to connect a Git repository: deploys come from GitHub Actions, not the Git integration.
-3. Do not set a Root Directory in the project's settings. The deploy commands already run from `apps/web`.
-4. Open `apps/web/.vercel/project.json`. Copy `orgId` into `.env` as `VERCEL_ORG_ID` and `projectId` as `VERCEL_PROJECT_ID`. `.vercel/` is gitignored.
-5. In Vercel, open Account settings, Tokens. Create a token with an expiry and put it in `.env` as `VERCEL_TOKEN`. Record the expiry in section 6.
+Vercel deploys through its GitHub integration (D25). No Vercel token is needed in GitHub or `.env`.
+
+1. In the Vercel dashboard, choose Add New, Project, and import the GitHub repo `knowledge-hub`. Name the project `knowledge-hub`; the production branch is `main`.
+2. Set Root Directory to `apps/web`. Leave "Include source files outside of the Root Directory" on (the default). `apps/web/vercel.json` already sets the install, build and ignore commands.
+3. Add the three Vercel environment variables (`GITHUB_DISPATCH_TOKEN`, `GITHUB_REPOSITORY`, `GENERATE_PASSPHRASE_HASH`) in section 1.9, or by hand in the dashboard.
+4. Hobby deploys only commits authored by the Hobby team owner. The GitHub login connected to Vercel must be the account that owns the team, and it must match the committer. The engine commits as that owner through the GitHub Actions variables `DISPATCH_GIT_NAME` and `DISPATCH_GIT_EMAIL`, which section 1.9 sends. If both are unset the engine commits as `dispatch-bot`, and Hobby blocks those deploys.
 
 ### 1.5 Create the Blob store
 
-1. In the Vercel dashboard, open Storage and create a Blob store.
+1. In the Vercel dashboard, open Storage and create a Blob store (or run `vercel blob store add`).
 2. Set the access to public.
-3. Connect the store to the project.
+3. Connect the store to the project. This also injects the token into Vercel.
 4. Copy the `BLOB_READ_WRITE_TOKEN` value Vercel shows for the store into `.env`.
 
 ### 1.6 Add the domain and the DNS record
 
-1. Run `npx vercel domains add news.someshks.work` from `apps/web`.
+1. In the project's Domains settings, add `news.someshks.work`.
 2. Note the CNAME target Vercel shows. It is also in the project's Domains settings.
 3. In Cloudflare, open DNS for `someshks.work` and add one record: type CNAME, name `news`, target the value from Vercel, proxy status DNS only (grey cloud).
 4. Wait until Vercel marks the domain valid. Vercel issues the certificate.
@@ -98,7 +99,7 @@ The passphrase is the only gate on the Generate button. Make it long.
 
 ### 1.9 Send the secrets
 
-Run this after sections 1.2 to 1.8, because the Vercel part runs inside the linked `apps/web` directory and uses `VERCEL_TOKEN`.
+Run this after sections 1.2 to 1.8. The Vercel part needs the project from section 1.4 and a Vercel login (`npx vercel login`); otherwise add the three Vercel variables in the dashboard.
 
 1. Preview: `npm run secrets:push -- --dry-run`.
 2. Send: `npm run secrets:push`. Use `-- --only github` or `-- --only vercel` to send one side.
@@ -108,8 +109,9 @@ Run this after sections 1.2 to 1.8, because the Vercel part runs inside the link
 ```bash
 gh secret list -R somesh-ks/knowledge-hub
 gh variable list -R somesh-ks/knowledge-hub
-cd apps/web && npx vercel env ls production
 ```
+
+For the Vercel side, open the project's Settings, Environment Variables in the dashboard (or run `npx vercel link` once, choose the existing `knowledge-hub` project, then `cd apps/web && npx vercel env ls production`).
 
 ### 1.10 Check the setup
 
@@ -118,8 +120,8 @@ Run `npm run dispatch -- doctor --online`. It checks Node, git, config, state an
 ### 1.11 Push `main` and deploy
 
 1. Push the code: `git push origin main`. The workflows must be on the default branch before `gh workflow run` can start them.
-2. The push starts `ci.yml`. Its `check` and `secrets` jobs run, then its `deploy` job calls `deploy.yml`: the Audio step, then Vercel pull, build and deploy. If `check` fails, `deploy` is skipped; fix the failure, or deploy by hand with `gh workflow run deploy.yml -R somesh-ks/knowledge-hub`.
-3. Watch it: `gh run watch -R somesh-ks/knowledge-hub`.
+2. The push starts `ci.yml` (`changes`, `check`, `secrets`) and, separately, a Vercel build and deploy. Vercel does not wait for `ci.yml`, so a failing check does not stop a deploy. To audio-process by hand, run `gh workflow run audio.yml -R somesh-ks/knowledge-hub`.
+3. Watch the checks: `gh run watch -R somesh-ks/knowledge-hub`. Watch the deploy in the Vercel dashboard. This is the first live build of the `apps/web` workspace through the Git integration, so read any build error there.
 4. Open `https://news.someshks.work`. With no digest yet it shows "No briefings yet".
 
 ### 1.12 First manual run
@@ -130,7 +132,7 @@ gh run list -R somesh-ks/knowledge-hub --workflow run.yml --limit 1
 gh run watch <run id> -R somesh-ks/knowledge-hub
 ```
 
-Add `-f dry_run=true` to run every stage with nothing written or pushed. It still spends API credit. A real run commits `chore(digest): <date>`, then `deploy.yml` narrates and deploys, and the digest appears on the site within minutes. If the outcome is `nothing`, the first window was quiet; run again with `-f since=<date>` for a wider window.
+Add `-f dry_run=true` to run every stage with nothing written or pushed. It still spends API credit. A real run commits `chore(digest): <date>`, then Vercel deploys the text within minutes. `audio.yml` narrates, uploads and pushes the timeline, and a second Vercel deploy adds the audio, so the player shows no audio until then. If the outcome is `nothing`, the first window was quiet; run again with `-f since=<date>` for a wider window.
 
 ### 1.13 First-run checklist for the iPhone
 
@@ -168,9 +170,11 @@ Monthly:
 
 | Workflow | Starts when | Does |
 | --- | --- | --- |
-| `run.yml` | Daily 07:13 Stockholm, or on demand | Runs the engine stage by stage (Gate, Fetch, Judge, Write, Validate), commits the digest and state (Commit), then calls `deploy.yml` when a digest was published or a digest from the last 7 days still lacks audio |
-| `deploy.yml` | Called by `run.yml` and `ci.yml`, or on demand | Checks out `main`, runs `dispatch publish --prune 120` (Audio: narrates digests that lack audio, uploads to Blob, prunes), then Vercel pull, build and deploy |
-| `ci.yml` | A pull request, or a push to `main` | Runs typecheck, lint, tests and the build when code changed, always runs gitleaks, then calls `deploy.yml` on `main` |
+| `run.yml` | Daily 07:13 Stockholm, or on demand | Runs the engine stage by stage (Gate, Fetch, Judge, Write, Validate), commits the digest and state (Commit) as the owner identity, then calls `audio.yml` when a digest was published or a digest from the last 7 days still lacks audio |
+| `audio.yml` | Called by `run.yml`, or on demand | Checks out `main`, runs `dispatch publish --prune 120` (Audio: narrates digests that lack audio, uploads to Blob, prunes, then commits and pushes the timeline metadata as the owner). That push triggers a second Vercel deploy |
+| `ci.yml` | A pull request, or a push to `main` | Runs typecheck, lint, tests and the build when code changed, and always runs gitleaks. It does not deploy |
+
+Vercel itself builds every push to `main`, except pushes that touch nothing the site reads (`state`, `config`, docs and `.github`). A published digest therefore deploys twice: the text first, then the audio.
 
 Every `run.yml` run ends in one outcome:
 
@@ -218,8 +222,8 @@ A second run on the same day writes `YYYY-MM-DD-2`. It never overwrites a digest
 | Write | Nebius model not found, key rejected, the token budget aborted the run, or extraction or the writer was down | Section 8.3 |
 | Validate | A digest-level validation error, named in the log. Too few surviving items is not a failure: the outcome is `nothing` | Read the log, then rerun |
 | Commit | The write guard refused a path outside the command's list, or the push conflicted three times | A guard refusal is a bug: open an issue with the log. For a conflict, pull and rerun |
-| `deploy.yml`: Audio | A refused commit or a push that failed after three rebase retries. A failed narration, a missing key or a failed prune is only a warning | Section 8.2 |
-| `deploy.yml`: Pull project settings, Build, Deploy | A Vercel auth or build error | Section 8.5 |
+| `audio.yml`: Audio | A refused commit or a push that failed after three rebase retries. A failed narration, a missing key or a failed prune is only a warning | Section 8.2 |
+| Vercel deploy (not a workflow step) | A build error, or a skipped or blocked deploy; read it in the Vercel dashboard | Section 8.5 |
 
 5. Rerun only the failed jobs: `gh run rerun <run id> -R somesh-ks/knowledge-hub --failed`.
 
@@ -234,7 +238,7 @@ Rotate on a schedule, after any suspected leak, and before expiry. If a key appe
 1. Create the new key at the service. Delete the old one after the new one works.
 2. Edit the value in `.env`.
 3. Run `npm run secrets:push`.
-4. If the value feeds Vercel (`GITHUB_DISPATCH_TOKEN`, `GITHUB_REPOSITORY`, `GENERATE_PASSPHRASE_HASH`), redeploy: `gh workflow run deploy.yml -R somesh-ks/knowledge-hub`. Vercel applies new environment values only to new deployments.
+4. If the value feeds Vercel (`GITHUB_DISPATCH_TOKEN`, `GITHUB_REPOSITORY`, `GENERATE_PASSPHRASE_HASH`), redeploy from the Vercel dashboard (Deployments, Redeploy on the latest production deployment). Vercel applies new environment values only to new deployments.
 
 | Key | Rotate at | Used by |
 | --- | --- | --- |
@@ -244,7 +248,6 @@ Rotate on a schedule, after any suspected leak, and before expiry. If a key appe
 | `FIRECRAWL_API_KEY` | Firecrawl dashboard | Extraction |
 | `SPEECHIFY_API_KEY` | Speechify API console | Audio |
 | `BLOB_READ_WRITE_TOKEN` | The Blob store's settings in Vercel | Audio upload and prune |
-| `VERCEL_TOKEN` | Vercel, Account settings, Tokens | Deploys |
 | `GITHUB_DISPATCH_TOKEN` | GitHub, Fine-grained personal access tokens | Generate button |
 | `GENERATE_PASSPHRASE_HASH` | `npm run passphrase` | Generate button |
 
@@ -253,9 +256,8 @@ Track expiry here. Fill the dates when you create each token and set a calendar 
 | Token | Created | Expires | Renew by |
 | --- | --- | --- | --- |
 | `GITHUB_DISPATCH_TOKEN` | | | |
-| `VERCEL_TOKEN` | | | |
 
-When `GITHUB_DISPATCH_TOKEN` expires, the Generate button stops working ("Generate is not available right now"). Scheduled runs are unaffected, because `run.yml` uses the built-in workflow token. When `VERCEL_TOKEN` expires, the deploy fails and the site stops updating.
+When `GITHUB_DISPATCH_TOKEN` expires, the Generate button stops working ("Generate is not available right now"). Scheduled runs are unaffected, because `run.yml` uses the built-in workflow token. No Vercel token exists, so no Vercel token can expire.
 
 ---
 
@@ -263,10 +265,10 @@ When `GITHUB_DISPATCH_TOKEN` expires, the Generate button stops working ("Genera
 
 Vercel Hobby holds 1 GB of Blob storage. A four-minute digest is about 4 MB at the engine's 128 kbps default, so audio uploaded more than 120 days ago is deleted.
 
-- Pruning runs on every deploy: `deploy.yml` calls `dispatch publish --prune 120`.
-- To prune now, run `gh workflow run deploy.yml -R somesh-ks/knowledge-hub`.
+- Pruning runs on every audio run: `audio.yml` calls `dispatch publish --prune 120`.
+- To prune now, run `gh workflow run audio.yml -R somesh-ks/knowledge-hub`.
 - A pruned digest keeps its text, its timeline and its `audio` field. Its player reports that the audio is not available.
-- Check usage in the Vercel dashboard under Storage. If usage nears 1 GB, shorten the retention in `deploy.yml`.
+- Check usage in the Vercel dashboard under Storage. If usage nears 1 GB, shorten the retention in `audio.yml`.
 
 ---
 
@@ -283,9 +285,9 @@ Vercel Hobby holds 1 GB of Blob storage. A four-minute digest is about 4 MB at t
 
 ### 8.2 Audio is missing
 
-1. The page says "Audio is still being prepared": the text digest published but speech failed (D23). Run `gh workflow run deploy.yml -R somesh-ks/knowledge-hub`. `dispatch publish` retries every digest whose `audio` is null.
+1. The page says "Audio is still being prepared": the text digest published but speech failed (D23). Run `gh workflow run audio.yml -R somesh-ks/knowledge-hub`. `dispatch publish` retries every digest whose `audio` is null.
 2. Still failing: check `state/usage.json`. The engine stops at 90 percent of the monthly Speechify allowance (`SPEECHIFY_MONTHLY_CHARS`, default 500,000). Wait for the next month or raise the plan.
-3. A recent digest points at a deleted Blob file: delete its `.audio.json`, set `audio: null` in the digest frontmatter, commit, then run `deploy.yml`.
+3. A recent digest points at a deleted Blob file: delete its `.audio.json`, set `audio: null` in the digest frontmatter, commit, then run `audio.yml`.
 4. An old digest has no working player: its audio was pruned. That is expected (section 7).
 5. Playback starts but seeking fails on iPhone only: this is the Blob Range risk in [build-plan.md](build-plan.md) Section 14. Record the iOS version and report it.
 
@@ -308,18 +310,19 @@ Nebius retires and renames models (Qwen3-32B left its serverless tier on 2026-08
 
 ### 8.5 The site did not update
 
-1. Open the `deploy.yml` run and read the failing step.
-2. Vercel auth error: the token expired or the secret is wrong. Rotate `VERCEL_TOKEN`.
-3. A path error that repeats `apps/web` twice: the project's Root Directory setting is not empty. Clear it in the Vercel project settings.
-4. `news.someshks.work` shows an old page but the deploy succeeded: wait a minute, then hard refresh. Check that the DNS record is DNS only. A proxied record (orange cloud) breaks certificate issuance.
+1. Open the project's Deployments in the Vercel dashboard and read the latest deployment. After a run concludes, the site updates when Vercel finishes, usually a minute or two.
+2. No deployment appeared, or it says blocked: Hobby accepts only commits authored by the team owner. Check that `DISPATCH_GIT_NAME` and `DISPATCH_GIT_EMAIL` are set (`gh variable list -R somesh-ks/knowledge-hub`), that the commit author is the owner, and that the GitHub login connected to Vercel matches.
+3. A deployment shows as skipped (Canceled by Ignored Build Step): the push touched nothing the site reads, which is expected for `state`, `config`, docs and `.github`. If a digest push was skipped, check the `ignoreCommand` in `apps/web/vercel.json`.
+4. A build error about missing packages or paths: check Root Directory is `apps/web`, "Include source files outside of the Root Directory" is on, and the `installCommand` in `apps/web/vercel.json` runs `npm ci` from the repository root.
+5. `news.someshks.work` shows an old page but the deploy succeeded: wait a minute, then hard refresh. Check that the DNS record is DNS only. A proxied record (orange cloud) breaks certificate issuance.
 
 ### 8.6 The Generate button fails
 
 | Message | Cause | Fix |
 | --- | --- | --- |
-| "That passphrase does not match. Check it and try again." | Typo, or the stored hash does not match | Retry. If forgotten, run `npm run passphrase`, then `npm run secrets:push -- --only vercel`, then redeploy |
+| "That passphrase does not match. Check it and try again." | Typo, or the stored hash does not match | Retry. If forgotten, run `npm run passphrase`, then `npm run secrets:push -- --only vercel`, then redeploy from the Vercel dashboard |
 | "Generate is on cooldown. Try again in ..." or "Generate has reached its limit for today. Try again in ..." | One run in 6 hours, or three in 24 hours | Wait. Runs started by `gh` or the skills count too |
-| "Generate is not available right now. Try again in a few minutes." | A Vercel variable is missing or malformed, or GitHub refused the dispatch (expired or under-privileged token) | Check the three variables with `npx vercel env ls production` from `apps/web`, then rotate `GITHUB_DISPATCH_TOKEN` (section 6) |
+| "Generate is not available right now. Try again in a few minutes." | A Vercel variable is missing or malformed, or GitHub refused the dispatch (expired or under-privileged token) | Check the three variables in the Vercel project's Environment Variables, then rotate `GITHUB_DISPATCH_TOKEN` (section 6) |
 
 ---
 
@@ -354,5 +357,5 @@ Git holds the code, config, digests, state and docs. It does not hold secrets (`
 | A bad edit to one file | `git checkout <sha> -- <path>`, commit, push |
 | Laptop lost | Clone `https://github.com/somesh-ks/knowledge-hub.git`, run `npm ci`, recreate `.env` from the services (reissue keys if needed), run `npm run secrets:push` only if the stores lost their values |
 | GitHub repository lost | Any clone is a full copy. Create a new private repository, push, then repeat section 1.9 and update `GITHUB_REPOSITORY` |
-| Audio lost | Remove the digest's `.audio.json`, set `audio: null`, commit, run `deploy.yml`. It regenerates at a cost in Speechify characters |
-| Vercel project lost | Repeat sections 1.4 to 1.6 and 1.9, then run `deploy.yml` |
+| Audio lost | Remove the digest's `.audio.json`, set `audio: null`, commit, run `audio.yml`. It regenerates at a cost in Speechify characters |
+| Vercel project lost | Repeat sections 1.4 to 1.6 and 1.9, then push to `main` or redeploy from the dashboard |

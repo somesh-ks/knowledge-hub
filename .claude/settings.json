@@ -2,13 +2,20 @@
   "permissions": {
     "deny": [
       "Read(./.env)",
-      "Read(./.env.*)",
+      "Read(./.env.local)",
+      "Read(./.env.production)",
+      "Read(./.env.development)",
+      "Read(./.env.*.local)",
       "Read(./.dev.vars)",
       "Edit(./.env)",
-      "Edit(./.env.*)"
+      "Edit(./.env.local)",
+      "Edit(./.env.production)",
+      "Edit(./.env.development)",
+      "Edit(./.env.*.local)"
     ],
     "allow": [
-      "Read(./.env.example)"
+      "Read(./.env.example)",
+      "Edit(./.env.example)"
     ]
   }
 }

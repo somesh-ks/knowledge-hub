@@ -21,7 +21,7 @@ jobs:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           fetch-depth: 0
-      # Digest, state and docs commits skip the heavy checks and still deploy.
+      # Digest, state and docs commits skip the heavy checks.
       - id: diff
         env:
           BASE: ${{ github.event.pull_request.base.sha || github.event.before }}
@@ -72,15 +72,3 @@ jobs:
       - uses: gitleaks/gitleaks-action@e0c47f4f8be36e29cdc102c57e68cb5cbf0e8d1e # v3.0.0
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-
-  deploy:
-    needs: [changes, check, secrets]
-    # Only on main, and only when nothing failed. A skipped check (digest-only push) still deploys.
-    if: >-
-      always() && github.event_name == 'push' && github.ref == 'refs/heads/main' &&
-      needs.check.result != 'failure' && needs.check.result != 'cancelled' &&
-      needs.secrets.result == 'success'
-    permissions:
-      contents: write
-    uses: ./.github/workflows/deploy.yml
-    secrets: inherit

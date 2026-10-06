@@ -15,6 +15,7 @@
 | v1 | The pipeline ran inside a Claude Code cloud routine. Hosting on Cloudflare (Workers, R2, KV, Turnstile). One audio file per section. Qwen3-32B as the writer | Routines push to `claude/` branches, start with a restricted network allowlist and expose only an experimental trigger. An agent with tools reading untrusted web text is the worst case for prompt injection |
 | v2 (2026-10-05) | The engine is a CLI on GitHub Actions and every trigger is a thin caller. Models are pure functions: text in, schema-validated JSON out. One MP3 per digest with a timeline of item start times | Actions is stable, has full network and its own secret store. One track keeps the lock-screen scrubber working |
 | v3 (2026-10-06) | Vercel replaces Cloudflare: static site, `/api/*` functions, Blob audio. The Generate button uses a stateless cooldown, with no KV and no Turnstile. `deploy.yml` deploys with the Vercel CLI. Keys flow from `.env` through `npm run secrets:push` | One platform for hosting, functions and audio (D10) |
+| v3.1 (2026-10-06) | The Vercel GitHub integration deploys the site, committing as the Hobby owner. `deploy.yml` is replaced by `audio.yml`; the Vercel token, org id and project id are gone | Hobby deploys only commits authored by the team owner, so the engine commits as the owner and no CLI deploy is needed (D25) |
 | v4 (2026-10-06) | As built. The writer model is picked from the live Nebius list because Qwen3-32B left its serverless tier on 2026-08-31 (D24). Source health moved to `state/` (D21). TypeScript is pinned to 6 (D19). The engine tolerates audio failure (D23) | The code exists, so the plan records what it does |
 
 ---
@@ -48,7 +49,7 @@
 | D7 | Podcast feed deferred | 8.10 |
 | D8 | "Thought of the Day" cut | [vision.md](vision.md) Section 3 |
 | D9 | Repository `somesh-ks/knowledge-hub`, private | 6 |
-| D10 | Hosting on Vercel, deploys by CLI | 8.9, 10 |
+| D10 | Hosting on Vercel (CLI-deploy part superseded by D25) | 8.9, 10 |
 | D11 | Notification is the commit only | 2 |
 | D12 | Voice limits | 7.6 |
 | D13 | Accounts for Nebius, TypeSafe, Exa, Firecrawl and Speechify exist | 13 |
@@ -60,9 +61,10 @@
 | D19 | TypeScript 6 pinned repository-wide | 6.2 |
 | D20 | One preferences key, `dispatch:preferences`, for theme and settings | 8.6 |
 | D21 | Source health lives in `state/source-health.json` | 7.2 |
-| D22 | `deploy.yml` owns the deploy: its own concurrency group, token only in the Vercel steps | 10 |
+| D22 | `deploy.yml` owns the deploy (superseded by D25) | 10 |
 | D23 | The engine tolerates audio failure and publishes text with `audio: null` | 7.9 |
 | D24 | The writer model is picked from the live Nebius list | 7.5 |
+| D25 | The Vercel GitHub integration deploys the site; the engine commits as the owner; `audio.yml` follows up with audio | 4.3, 10 |
 
 ---
 
@@ -82,11 +84,11 @@ flowchart TD
     end
 
     ENG -->|commit Digests/ and state/| REPO["Private repo, main"]
-    ENG -->|deploy output is true| DEP["deploy.yml: Audio, Vercel pull, build, deploy"]
-    LOCAL --> CI["ci.yml: checks, then deploy job"]
-    CI --> DEP
-    DEP --> BLOB["Vercel Blob: audio/ID.mp3"]
-    DEP --> VC["Vercel: static site and /api functions, news.someshks.work"]
+    REPO -->|push to main| VC["Vercel Git integration: build and deploy, news.someshks.work"]
+    ENG -->|deploy output is true| AUD["audio.yml: Audio"]
+    LOCAL --> CI["ci.yml: checks"]
+    AUD --> BLOB["Vercel Blob: audio/ID.mp3"]
+    AUD -->|push timeline metadata as owner| REPO
     VC --> PHONE["Phone: reader and player"]
     BLOB --> PHONE
 ```
@@ -114,7 +116,7 @@ The pipeline behaves the same wherever it is invoked: Actions, laptop, the site 
 
 `/digest` with no flag picks local when `dispatch doctor` reports both `NEBIUS_API_KEY` and `DISPATCH_MODEL`, else agent, else remote. `/digest --remote`, `sk-dispatch run` and the Generate button dispatch `mode=on-demand`, so the scheduled gate never turns them into silent no-ops.
 
-**Deploying.** `run.yml` calls `deploy.yml` as a reusable workflow, because pushes made with `GITHUB_TOKEN` do not trigger other workflows. It does so only when the Commit step reports `deploy=true`: a digest was published, or a digest from the last 7 days still lacks audio. A local push to `main` triggers `ci.yml`, whose final `deploy` job calls `deploy.yml`.
+**Deploying.** Vercel's GitHub integration builds every push to `main` (D25), so a digest commit deploys the text by itself. `run.yml` then calls `audio.yml` as a reusable workflow, because pushes made with `GITHUB_TOKEN` do not trigger other workflows. It does so only when the Commit step reports `deploy=true`, which now means "audio follow-up needed": a digest was published, or a digest from the last 7 days still lacks audio. `audio.yml` uploads the MP3s and pushes the timeline metadata, which triggers a second Vercel deploy. A published digest therefore deploys twice: the text is readable first, and the player shows no audio until the second deploy. A local push to `main` triggers `ci.yml` (checks only) and the Vercel deploy.
 
 **Concurrent writers.** `run.yml`, local runs and `/learn` all write to the repo. The skills start with `git pull --ff-only` and refuse on a dirty tree or while a `run.yml` run is in progress; `dispatch learn --commit` refuses on a dirty tree or when behind the remote. Bot pushes retry with a rebase up to three times.
 
@@ -132,16 +134,17 @@ The agent never sees key values: `.claude/settings.json` denies reading or editi
 
 | Store | Names |
 | --- | --- |
-| GitHub Actions secrets | `TYPESAFE_API_KEY`, `NEBIUS_API_KEY`, `EXA_API_KEY`, `FIRECRAWL_API_KEY`, `SPEECHIFY_API_KEY`, `BLOB_READ_WRITE_TOKEN`, `VERCEL_TOKEN`, `VERCEL_ORG_ID`, `VERCEL_PROJECT_ID`, `YOUTUBE_API_KEY` (optional, one-time channel lookup) |
-| GitHub Actions variables | `NEBIUS_BASE_URL`, `DISPATCH_MODEL`, `DISPATCH_FALLBACK_MODEL`, `SPEECHIFY_VOICE_ID` (not secret, so visible in run logs) |
+| GitHub Actions secrets | `TYPESAFE_API_KEY`, `NEBIUS_API_KEY`, `EXA_API_KEY`, `FIRECRAWL_API_KEY`, `SPEECHIFY_API_KEY`, `BLOB_READ_WRITE_TOKEN`, `COMPOSIO_API_KEY` (optional, one-time channel lookup) |
+| GitHub Actions variables | `NEBIUS_BASE_URL`, `DISPATCH_MODEL`, `DISPATCH_FALLBACK_MODEL`, `SPEECHIFY_VOICE_ID`, `DISPATCH_GIT_NAME`, `DISPATCH_GIT_EMAIL` (not secret, so visible in run logs) |
 | Vercel production environment | `GITHUB_DISPATCH_TOKEN`, `GITHUB_REPOSITORY`, `GENERATE_PASSPHRASE_HASH` (read by `/api/generate` and `/api/status`) |
 
 `MAX_TOKENS_PER_RUN` (default 400,000) and `SPEECHIFY_MONTHLY_CHARS` (default 500,000) are optional engine settings the script does not push.
 
 - **Passphrase.** A salted scrypt hash string (`scrypt$N$r$p$salt$hash`, N = 2^15, r = 8, p = 1) of 8 or more characters. It is the only gate on the button, so make it long (Section 8.9).
 - **Dispatch token.** A fine-grained personal access token for this repository only, with Actions read and write and Contents read. Set an expiry and record it in [runbook.md](runbook.md).
-- **Vercel token.** Created with an expiry. Only the Vercel pull and deploy steps of `deploy.yml` receive it, not the build. `BLOB_READ_WRITE_TOKEN` comes with the Blob store and is the only storage credential.
-- **Blast radius.** Each workflow step receives only the keys it uses: Fetch gets Exa and Firecrawl, Judge gets TypeSafe and Nebius, Write gets Nebius and Firecrawl, Validate gets TypeSafe and Nebius, Commit gets none, and the deploy Audio step gets Speechify and Blob. Workflows declare minimal `permissions:`.
+- **No Vercel token.** Vercel deploys through its GitHub integration, so no Vercel token, org id or project id exists in GitHub or `.env` (D25). `BLOB_READ_WRITE_TOKEN` comes with the Blob store and is the only storage credential; it is a GitHub secret for the Audio step, and linking the store to the project also injects it into Vercel.
+- **Committer identity.** `DISPATCH_GIT_NAME` (Somesh Kesarla Suresh) and `DISPATCH_GIT_EMAIL` (`26426782+somesh-ks@users.noreply.github.com`) make the engine commit as the Hobby team owner, which Hobby requires before it deploys a commit. When both are unset the engine falls back to the `dispatch-bot` identity, which Hobby blocks.
+- **Blast radius.** Each workflow step receives only the keys it uses: Fetch gets Exa and Firecrawl, Judge gets TypeSafe and Nebius, Write gets Nebius and Firecrawl, Validate gets TypeSafe and Nebius, Commit gets none, and the `audio.yml` Audio step gets Speechify and Blob. Workflows declare minimal `permissions:`.
 - **Spend caps.** Nebius is prepaid credit with no per-key limit, so the balance is the cap: use a key made for this project and top up modestly. Jev has no documented cap (about one cent per run). Exa bills per request after any free credit. Blob on Hobby holds 1 GB, kept in bounds by pruning (Section 7.7).
 - **Leak prevention.** `.gitignore` covers `.env`, `.env.*` (except `.env.example`), `.vercel/` and `.cache/`. A gitleaks job in `ci.yml` scans every push and pull request; no local pre-commit hook is configured. The engine redacts known key patterns from logs.
 - **Rotation.** If a key appears in chat, a log or a commit, revoke it first, then replace it. After changing a Vercel variable, redeploy: new values apply only to new deployments.
@@ -156,7 +159,7 @@ The agent never sees key values: `.claude/settings.json` denies reading or editi
 dispatch/
   .claude/skills/digest/        # /digest: trigger, status, agent-mode protocol
   .claude/skills/learn/         # /learn: one sentence to a bounded preference patch
-  .github/                      # workflows run.yml, deploy.yml, ci.yml; dependabot.yml
+  .github/                      # workflows run.yml, audio.yml, ci.yml; dependabot.yml
   apps/web/                     # @dispatch/web: Astro site, React islands, /api functions
   packages/core/                # @dispatch/core: Zod schemas, env, ids, paths, time, passphrase
   packages/engine/              # @dispatch/engine: the `dispatch` CLI
@@ -184,7 +187,7 @@ The Zod contracts in `packages/core/src` are the shared interface (item, digest,
 | End-to-end | Playwright (Chromium, phone and desktop sizes) with axe, in `apps/web`; run locally, not in CI | Player behavior and accessibility |
 | Budgets | `apps/web/scripts/checkBundle.ts`, the web build's `postbuild` step | Enforces Section 8.8 |
 | Hygiene | gitleaks, Dependabot (weekly npm and Actions updates) | Secrets; dependency drift |
-| Hosting CLI | Vercel CLI, run in `deploy.yml` from `apps/web` | Prebuilt deploys without the Git integration (Section 10) |
+| Hosting deploys | Vercel GitHub integration, Root Directory `apps/web` | Builds on every push to `main`; no CLI or token in workflows (D25, Section 10) |
 | Commits | Conventional Commits. The engine commits as `chore(digest): <id>`, `chore(state): ...`, `chore(audio): ...` and `chore(prefs): ...` | One format for humans and bots |
 
 `.gitattributes` forces LF line endings to avoid CRLF churn in digests on Windows.
@@ -235,7 +238,7 @@ Add a dependency only when it removes real work; the platform covers the rest (`
 
 **Item counts.** Target 8 to 12, hard cap 12 (weekly 18), floor 3. With 3 to 7 qualifying items the digest is shorter, never padded.
 
-**Outcomes.** The Commit step reports `outcome` and `deploy`:
+**Outcomes.** The Commit step reports `outcome` and `deploy` (the key keeps its name; true means an audio follow-up through `audio.yml` is needed):
 
 | Outcome | State written |
 | --- | --- |
@@ -351,7 +354,7 @@ The deterministic lint runs on every written field: banned words, no em dashes, 
 | Budget | `state/usage.json` counts characters for the month. Synthesis stops at 90 percent of `SPEECHIFY_MONTHLY_CHARS` (default 500,000, the free-tier figure from Speechify's pricing page; unconfirmed) |
 | Fallback | If marks are unavailable or cannot place every item, the timeline is estimated from character share and flagged `timeline: "estimated"` |
 | Storage | Vercel Blob, public store, key `audio/<id>.mp3`, uploaded with `@vercel/blob`. The returned URL is stored in the digest's `audio.url` |
-| Retention | `dispatch publish --prune 120`, run by every deploy, deletes Blob audio uploaded more than 120 days ago, to stay inside the 1 GB Hobby store. The text and timeline stay. Pruning leaves the digest's `audio` field alone, so a pruned digest's player reports "The audio for this briefing is not available" on the 404. The "audio has expired" state shows only when `audio` is null and a timeline exists |
+| Retention | `dispatch publish --prune 120`, run by every `audio.yml` run, deletes Blob audio uploaded more than 120 days ago, to stay inside the 1 GB Hobby store. The text and timeline stay. Pruning leaves the digest's `audio` field alone, so a pruned digest's player reports "The audio for this briefing is not available" on the 404. The "audio has expired" state shows only when `audio` is null and a timeline exists |
 
 ### 7.8 Taste feedback
 
@@ -361,8 +364,8 @@ The deterministic lint runs on every written field: banned words, no em dashes, 
 
 - A failed source is logged and counted in `state/source-health.json`.
 - A failed stage leaves `state/` untouched, so the next window grows and nothing is lost.
-- The engine tolerates audio failure (D23): a speech, Blob or credential error publishes the text digest with `audio: null`, and the player says "Audio is still being prepared". `publish` retries every digest that lacks audio, and the Commit step sets `deploy=true` while any digest from the last 7 days lacks it, so the next `run.yml` of any outcome retries.
-- `run.yml` declares `concurrency: { group: dispatch, cancel-in-progress: false }`, so duplicate presses collapse into one pending run. `deploy.yml` uses its own group, `deploy`, because a called workflow that shares its caller's group is cancelled (D22).
+- The engine tolerates audio failure (D23): a speech, Blob or credential error publishes the text digest with `audio: null`, and the player says "Audio is still being prepared". `publish` retries every digest that lacks audio, and the Commit step sets `deploy=true` (audio follow-up needed) while any digest from the last 7 days lacks it, so the next `run.yml` of any outcome retries.
+- `run.yml` declares `concurrency: { group: dispatch, cancel-in-progress: false }`, so duplicate presses collapse into one pending run. `audio.yml` uses its own group, `audio`, because a called workflow that shares its caller's group is cancelled (D25).
 
 ---
 
@@ -442,7 +445,7 @@ Native elements first, accessible names on every control, visible `:focus-visibl
 2. The function checks it against `GENERATE_PASSPHRASE_HASH` with scrypt and `timingSafeEqual`. A wrong guess costs an extra 750 ms.
 3. It checks the limits statelessly: it lists recent `workflow_dispatch` runs of `run.yml` on `main` through the GitHub API and refuses when one started in the last 6 hours or three in the last 24. The count includes runs started by `gh`, the skills and the GitHub UI.
 4. It dispatches `run.yml` with the fixed input `mode=on-demand` and returns the run id.
-5. The sheet polls `/api/status?run=ID`. The function answers only for a `workflow_dispatch` run of `run.yml` in the configured repository and returns a whitelist of fields: the current step mapped to the progress list (Waiting, Reading, Judging, Writing, Checking, Publishing) and, when the run completes, the `on_demand` record of `state/last-run.json` read through the Contents API. On `published` the sheet offers "Open the new briefing". Polls are cached privately for 3 seconds.
+5. The sheet polls `/api/status?run=ID`. The function answers only for a `workflow_dispatch` run of `run.yml` in the configured repository and returns a whitelist of fields: the current step mapped to the progress list (Waiting, Reading, Judging, Writing, Checking, Publishing) and, when the run completes, the `on_demand` record of `state/last-run.json` read through the Contents API. On `published` the sheet offers "Open the new briefing". Polls are cached privately for 3 seconds. The progress list has no deploy steps: the Audio step still maps to Publishing, and after the run concludes the site updates when Vercel finishes its own deploy, usually a minute or two.
 6. Errors say what happened and what to do: wrong passphrase, cooldown or daily limit with the time remaining, "Nothing cleared the bar.", and a failed run with a link.
 
 Two quick presses can both pass the limit check before the first run is listed; the workflow's concurrency group and the engine gate make a duplicate harmless. Residual risk (Section 11): with no per-IP failure counting and no bot check, the passphrase can be guessed at the price of one scrypt computation and 750 ms per attempt. The scrypt cost, a long passphrase, the unlisted URL and the run cap (three runs a day, even if the passphrase leaks) are the mitigations.
@@ -506,7 +509,7 @@ Before spending anything the skill exits early when a run is in progress, when n
 5. The same curate command run again validates the file and writes `selection.json`, or lists one problem per line.
 6. `dispatch run --stage commit --run <id>` builds the digest, updates `state/` and commits (`--dry-run` previews, `--no-push` keeps the commit local).
 
-Agent mode cannot record a `nothing` outcome: the minimum is 3 items, so on a quiet day the session writes nothing, reports "nothing cleared the bar" and leaves state untouched. Validation runs the same voice lint and limits as API mode except the Jev grounding check, which needs a key the session does not hold, so agent digests carry `verified: false`. `render` and `publish` are not part of this sequence: the commit stage builds the digest and `deploy.yml` narrates it. A project permission rule denies the session from reading `.env`.
+Agent mode cannot record a `nothing` outcome: the minimum is 3 items, so on a quiet day the session writes nothing, reports "nothing cleared the bar" and leaves state untouched. Validation runs the same voice lint and limits as API mode except the Jev grounding check, which needs a key the session does not hold, so agent digests carry `verified: false`. `render` and `publish` are not part of this sequence: the commit stage builds the digest and `audio.yml` narrates it. A project permission rule denies the session from reading `.env`.
 
 ### 9.2 `/learn`
 
@@ -534,20 +537,17 @@ Each skill's description stays under 1,024 characters with "Use when" phrases an
 
 | Workflow | Triggers | Does |
 | --- | --- | --- |
-| `run.yml` | `schedule` (07:13, `timezone: Europe/Stockholm`), `workflow_dispatch` (inputs `mode`, `force`, `since`, `dry_run`) | One job: Install, Gate, then Fetch, Judge, Write and Validate (only when the gate says a run is due), then Commit. A second job calls `deploy.yml` when Commit reports `deploy=true`. Concurrency group `dispatch` |
-| `deploy.yml` | `workflow_call`, `workflow_dispatch` | Checks out `main` (not the caller's commit, which predates the bot commit) and installs. Audio runs `dispatch publish --prune 120` with the Speechify and Blob secrets. Then from `apps/web`: Pull project settings, Build and Deploy. Only the pull and deploy steps receive `VERCEL_TOKEN`. Concurrency group `deploy` (D22) |
-| `ci.yml` | `pull_request`, `push` to `main` | `changes` detects code changes (digest, state, docs and config commits skip the heavy checks). `check`: Typecheck, Lint, Test, then Build site with `DISPATCH_FIXTURES=1`, which runs the bundle budget. `secrets`: gitleaks. On `main`, a `deploy` job calls `deploy.yml` unless a check failed |
+| `run.yml` | `schedule` (07:13, `timezone: Europe/Stockholm`), `workflow_dispatch` (inputs `mode`, `force`, `since`, `dry_run`) | One job: Install, Gate, then Fetch, Judge, Write and Validate (only when the gate says a run is due), then Commit. A second job calls `audio.yml` when Commit reports `deploy=true` (audio follow-up needed). Concurrency group `dispatch` |
+| `audio.yml` | `workflow_call`, `workflow_dispatch` | Checks out `main` (not the caller's commit, which predates the digest commit) and installs. One Audio step runs `dispatch publish --prune 120` with the Speechify and Blob secrets: it uploads MP3s to Vercel Blob, then commits and pushes the timeline metadata as the owner identity, which triggers the second Vercel deploy. Concurrency group `audio` (D25) |
+| `ci.yml` | `pull_request`, `push` to `main` | `changes` detects code changes (digest, state, docs and config commits skip the heavy checks). `check`: Typecheck, Lint, Test, then Build site with `DISPATCH_FIXTURES=1`, which runs the bundle budget. `secrets`: gitleaks. There is no deploy job: Vercel deploys on its own (D25) |
 
-The Vercel steps in `deploy.yml`:
+**Vercel deploys.** The Vercel project `knowledge-hub` is connected to `somesh-ks/knowledge-hub` with production branch `main`, and builds on every push (D25). Root Directory is `apps/web`, with "Include source files outside of the Root Directory" on (the default). `apps/web/vercel.json` sets:
 
-```bash
-cd apps/web
-npx vercel pull --yes --environment=production
-npx vercel build --prod
-npx vercel deploy --prebuilt --prod
-```
+- `installCommand`: `cd ../.. && npm ci --ignore-scripts`
+- `buildCommand`: `npm run build`
+- `ignoreCommand`: skips the build when a push touches nothing the site reads. Only `Digests`, `apps/web`, `packages`, `tokens`, `scripts` and the root package files matter; `state`, `config`, docs and `.github` pushes are skipped.
 
-`VERCEL_TOKEN`, `VERCEL_ORG_ID` and `VERCEL_PROJECT_ID` come from GitHub Actions secrets. The project's Root Directory setting stays empty because the commands already run from `apps/web`. The Vercel Git integration is not connected: pushes made with `GITHUB_TOKEN` do not reliably trigger it, and Vercel Hobby blocks deploys whose commit author is not the account owner, which every bot commit would be (D10).
+Vercel Hobby deploys only a commit whose author is the Hobby team owner, so the engine commits as the owner through the `DISPATCH_GIT_NAME` and `DISPATCH_GIT_EMAIL` variables (Section 5). The GitHub login connected to Vercel must match that committer. Source: https://vercel.com/docs/deployments/troubleshoot-project-collaboration. No Vercel token, org id or project id is used anywhere. A published digest deploys twice: once for the text, right after the Commit step, and once after `audio.yml` pushes the timeline metadata. After a run concludes, the site updates when Vercel finishes its deploy, usually a minute or two.
 
 Notes:
 
@@ -561,9 +561,9 @@ Notes:
 
 | Resource | Notes |
 | --- | --- |
-| Vercel project (Hobby) | Static site plus `/api/*` functions. Created with `vercel link` from `apps/web` |
+| Vercel project (Hobby) | Static site plus `/api/*` functions. Imported from the GitHub repo in the Vercel dashboard, Root Directory `apps/web` |
 | Vercel Blob store | Public. Keys `audio/<id>.mp3`. 1 GB on Hobby |
-| Domain `news.someshks.work` | Added with `vercel domains add news.someshks.work`. Vercel issues the certificate. No `www` variant |
+| Domain `news.someshks.work` | Added in the project's Domains settings (or `vercel domains add news.someshks.work`). Vercel issues the certificate. No `www` variant |
 | DNS | Stays on Cloudflare: one CNAME for `news` pointing at the target Vercel shows, DNS only (proxy off) |
 
 Setup steps are in [runbook.md](runbook.md).
@@ -621,11 +621,11 @@ Status as of 2026-10-06.
 | Phase | Status | Work | Exit criteria |
 | --- | --- | --- | --- |
 | 0 | Done | Decisions D1 to D18 and accounts at Nebius, TypeSafe, Exa, Firecrawl and Speechify (D13) | Decisions logged; accounts exist |
-| 1 | Done | Repository (private, `somesh-ks/knowledge-hub`), workspaces, Biome, docs layout, core schemas, design tokens, CI workflows `run.yml`, `deploy.yml` and `ci.yml` (written, not yet pushed) | The owner's setup in [runbook.md](runbook.md) (Vercel project, Blob store, domain, DNS, keys) is still to do |
+| 1 | Done | Repository (private, `somesh-ks/knowledge-hub`), workspaces, Biome, docs layout, core schemas, design tokens, CI workflows `run.yml`, `audio.yml` and `ci.yml` (written, not yet pushed) | The owner's setup in [runbook.md](runbook.md) (Vercel project, Blob store, domain, DNS, keys) is still to do |
 | 2 | Not done | The live spike, below | Go or no-go table; plan amended where a result disagrees |
 | 3 | Built, offline | Engine core: config, source registry and discovery, fetchers, normalize, dedupe, prefilter | A local fetch returns a normalized pool from at least 90 percent of sources: not checked live |
 | 4 | Built, offline | Curation: Jev and Nebius judges, score, extract, write, validate, grounding, API and agent modes, golden eval | Dry runs on the last 2 and 7 days that you would read unprompted: not run |
-| 5 | Built, offline | Audio, Blob upload and prune, `publish`, `deploy.yml` | A pushed digest has audio and is live within minutes: not run |
+| 5 | Built, offline | Audio, Blob upload and prune, `publish`, `audio.yml` | A pushed digest is live as text within minutes and gets audio after the second deploy: not run |
 | 6 | Built, offline | Web app, cover generator, UI sounds, PWA, player | Budgets pass in the fixture build; reading and listening on your phone, installed: not tested |
 | 7 | Built, offline | `run.yml`, the Generate function and status, `/digest`, `/learn`, `sk-dispatch` | A button press yields a digest without disturbing the next scheduled run: not run |
 | 8 | Not started | Hardening: spend limits, failure visibility, runbook walk-through, device matrix, two consecutive unattended runs (about four days) | Done criteria in Section 12 |
@@ -633,9 +633,9 @@ Status as of 2026-10-06.
 
 **Verified, offline (2026-10-06).** `npx vitest run`: 108 test files and 2,562 tests; 2,559 passed, 2 failed, 1 skipped (107 files pass; both failures are in `apps/web/src/styles/styles.test.ts`). `npm run typecheck` passes. A fixture build with `DISPATCH_STATIC_ONLY=1` completes (10 pages) and passes the bundle budget. `dispatch doctor` and `dispatch status` run offline against a repository with no state.
 
-**Not verified.** Nothing has run against real Speechify, Jev, Nebius, Exa, Firecrawl, Vercel Blob or Vercel. No GitHub Actions workflow has run, and no digest exists yet. Biome lint, Playwright and `vercel build` with an empty Root Directory were not run. There has been no real iPhone testing (lock screen, silent switch, sounds, install, Range seeking).
+**Not verified.** Nothing has run against real Speechify, Jev, Nebius, Exa, Firecrawl, Vercel Blob or Vercel. No GitHub Actions workflow has run, and no digest exists yet. Biome lint, Playwright and a Vercel build through the Git integration were not run. There has been no real iPhone testing (lock screen, silent switch, sounds, install, Range seeking).
 
-**Phase 2 spike (to run).** Cron with `timezone` and a delayed run against the calendar-date gate; `gh workflow run` and a Generate dispatch from the Vercel Function; `vercel deploy --prebuilt` from Actions; Speechify with-timestamps on the free plan (marks and a 64 kbps format); Blob upload from Actions and Range playback on a locked iPhone; module-scope audio across Astro navigation; Base UI drawer with the iOS keyboard; one Jev call and one Nebius call on real items (probabilities, tokens, latency, `json_schema` behavior); one Exa search and one Firecrawl scrape and the Firecrawl free-credit model; one cover on a real lock screen; UI sounds with the silent switch and with narration playing.
+**Phase 2 spike (to run).** Cron with `timezone` and a delayed run against the calendar-date gate; `gh workflow run` and a Generate dispatch from the Vercel Function; a push to `main` that Vercel builds and deploys (including an owner-identity commit from Actions); Speechify with-timestamps on the free plan (marks and a 64 kbps format); Blob upload from Actions and Range playback on a locked iPhone; module-scope audio across Astro navigation; Base UI drawer with the iOS keyboard; one Jev call and one Nebius call on real items (probabilities, tokens, latency, `json_schema` behavior); one Exa search and one Firecrawl scrape and the Firecrawl free-credit model; one cover on a real lock screen; UI sounds with the silent switch and with narration playing.
 
 ---
 
@@ -646,8 +646,10 @@ Status as of 2026-10-06.
 | Nothing has run live | Every integration may disagree with its tests | Phase 2 spike before any unattended run |
 | iOS background audio in a standalone web app is quirky | Poor listening | Plain `<audio>` plus Media Session; real-device gate; podcast feed as the reliable path |
 | Vercel Blob Range or CDN behavior unconfirmed; Hobby limits (1 GB; operations and transfer unverified) | Seeking fails on iOS; uploads blocked | Spike on a locked iPhone; fallback is a thin proxy route that forwards Range requests; prune audio older than 120 days |
-| `vercel build --prod` from `apps/web` in an npm workspace is unproven | First deploy fails | First deploy with `gh workflow run deploy.yml`; local builds use `DISPATCH_STATIC_ONLY=1` |
-| Vercel Hobby blocks deploys whose commit author is not the account owner | Bot deploys fail | CLI deploy with `--prebuilt`; the Git integration stays off |
+| The Vercel build of the `apps/web` workspace through the Git integration, with the `installCommand` in `vercel.json`, is unproven | First deploy fails | Watch the first deploy in the Vercel dashboard; local builds use `DISPATCH_STATIC_ONLY=1` |
+| The `ignoreCommand` on a shallow clone is unproven | Needed pushes skipped, or every push builds | Check the first deploys; widen or drop the `ignoreCommand` |
+| Hobby accepting the owner-identity commit from Actions is unproven (Hobby blocks other authors) | Digest pushes do not deploy | `DISPATCH_GIT_NAME` and `DISPATCH_GIT_EMAIL` set; Vercel's GitHub login matches the committer (D25) |
+| Two Vercel deploys per published digest (text, then audio) is unproven | Extra builds; the player lacks audio until the second | Ignore rules skip pushes that change nothing the site reads |
 | Speechify free plan lacks marks or has a lower cap than expected | No chapters or audio gaps | Estimated-timeline fallback; character budget guard; text publishes without audio |
 | Summaries drift from sources; a cheap model writes off-voice copy | Trust loss | Extracted text only, grounding check, voice lint with one rewrite, low temperature, bake-off before launch, agent mode as an escape hatch |
 | Nebius retires or renames a model (Qwen3-32B left on 2026-08-31) | Runs fail | Pinned ids, a fallback id, `dispatch doctor --online` checks the live list, bake-off rerun on any change |
@@ -658,17 +660,17 @@ Status as of 2026-10-06.
 | Speechify terms on publicly reachable generated audio; Firecrawl free credits may be one-time | Policy breach; extraction cost | Read the terms before the first upload; Exa text, feed content and Readability come first |
 | Feed rot and bot blocking | Quiet coverage loss | Counters in `state/source-health.json`; monthly `sources discover`; flag sources failing five runs in a row |
 | Taste drift from repeated `/learn` | Digest narrows | Bounded steps, history, diffs, one off-profile slot per week |
-| Dispatch or Vercel token expiry | Button stops working, or deploys fail | Expiry dates in the runbook |
+| Dispatch token expiry | Button stops working | Expiry date in the runbook |
 | Astro, `@astrojs/vercel`, Base UI or TypeScript major releases | Breakage | Versions pinned; upgrade deliberately (D19) |
 
 ---
 
 ## 15. Open items
 
-Decided and logged in [decisions.md](decisions.md): D1 to D24.
+Decided and logged in [decisions.md](decisions.md): D1 to D25.
 
 1. Writer model: run `dispatch models`, then the bake-off, and set `DISPATCH_MODEL` and `DISPATCH_FALLBACK_MODEL`.
 2. Speechify voice: the default is `geffen_32`; confirm after hearing it in the spike.
 3. Preference and source clean-up: see [vision.md](vision.md) Section 5.
 4. Speechify terms of use, the Nebius data policy and TypeSafe's retention terms: read all three before the first live call.
-5. Spike results that may change this plan: Blob Range on iOS, Hobby limits, UI sounds on iOS, the empty Root Directory setting for the CLI deploy.
+5. Spike results that may change this plan: Blob Range on iOS, Hobby limits, UI sounds on iOS, the Root Directory `apps/web` build and the `ignoreCommand` on Vercel.
