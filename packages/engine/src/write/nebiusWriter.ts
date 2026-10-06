@@ -1,0 +1,145 @@
+import { z } from "zod";
+import type { Logger } from "../context.js";
+import { mapConcurrent } from "../llm/concurrency.js";
+import { BudgetExceededError, describeError } from "../llm/errors.js";
+import type { LlmClient } from "../llm/types.js";
+import { newBoundary } from "../llm/untrusted.js";
+import type { VoiceConfig } from "../voice/voice.js";
+import {
+  rewriteSystemPrompt,
+  rewriteUserMessage,
+  writerSystemPrompt,
+  writerUserMessage,
+} from "./prompt.js";
+import type {
+  RewriteRequest,
+  SourceMaterial,
+  WriteFailure,
+  WriteResult,
+  Writer,
+  WrittenItem,
+} from "./types.js";
+
+/** Items per request, so one bad source cannot sink the whole run. */
+export const WRITER_BATCH_SIZE = 4;
+/** Low temperature keeps summaries close to the source. */
+export const WRITER_TEMPERATURE = 0.2;
+const WRITER_CONCURRENCY = 4;
+
+const WriterOutput = z.object({
+  items: z.array(
+    z.object({ id: z.string(), headline: z.string(), summary: z.string(), why: z.string() }),
+  ),
+});
+
+const RewriteOutput = z.object({ text: z.string() });
+
+/** Collapse whitespace, drop wrapping quotes and a stray "Why:" label the model may add. */
+export function cleanField(field: "headline" | "summary" | "why", raw: string): string {
+  let text = raw.replace(/\s+/g, " ").trim();
+  text = text.replace(/^["'\u201C\u2018](.*)["'\u201D\u2019]$/s, "$1").trim();
+  if (field === "why") text = text.replace(/^why:\s*/i, "");
+  if (field !== "summary") text = text.replace(/\.$/, "");
+  return text;
+}
+
+function chunk<T>(items: readonly T[], size: number): T[][] {
+  const out: T[][] = [];
+  for (let i = 0; i < items.length; i += size) out.push(items.slice(i, i + size));
+  return out;
+}
+
+export interface NebiusWriterOptions {
+  llm: LlmClient;
+  voice: VoiceConfig;
+  log?: Logger;
+  secrets?: readonly string[];
+}
+
+/**
+ * Writer over a Nebius model. Source text is wrapped in random per-request boundary markers and
+ * the model is told it is data to summarize, never instructions. Output is schema-validated by
+ * the client; facts come from the source text only.
+ */
+export class NebiusWriter implements Writer {
+  private readonly options: NebiusWriterOptions;
+
+  constructor(options: NebiusWriterOptions) {
+    this.options = options;
+  }
+
+  async write(items: readonly SourceMaterial[]): Promise<WriteResult> {
+    const results = await mapConcurrent(
+      chunk(items, WRITER_BATCH_SIZE),
+      WRITER_CONCURRENCY,
+      (batch) => this.writeBatch(batch),
+    );
+    return {
+      written: results.flatMap((r) => r.written),
+      failed: results.flatMap((r) => r.failed),
+    };
+  }
+
+  private async writeBatch(batch: readonly SourceMaterial[]): Promise<WriteResult> {
+    const boundary = newBoundary();
+    try {
+      const { value } = await this.options.llm.completeJson({
+        schema: WriterOutput,
+        schemaName: "dispatch_items",
+        messages: [
+          { role: "system", content: writerSystemPrompt(this.options.voice, boundary) },
+          { role: "user", content: writerUserMessage(batch, boundary) },
+        ],
+        temperature: WRITER_TEMPERATURE,
+        maxTokens: 450 * batch.length + 300,
+        label: "writer",
+      });
+      const wanted = new Set(batch.map((m) => m.id));
+      const seen = new Map<string, WrittenItem>();
+      for (const row of value.items) {
+        if (!wanted.has(row.id) || seen.has(row.id)) continue;
+        seen.set(row.id, {
+          id: row.id,
+          headline: cleanField("headline", row.headline),
+          summary: cleanField("summary", row.summary),
+          why: cleanField("why", row.why),
+        });
+      }
+      const failed: WriteFailure[] = batch
+        .filter((m) => !seen.has(m.id))
+        .map((m) => ({ id: m.id, reason: "The model returned no entry for this item." }));
+      return { written: batch.flatMap((m) => seen.get(m.id) ?? []), failed };
+    } catch (error) {
+      if (error instanceof BudgetExceededError) throw error;
+      const reason = describeError(error, this.options.secrets);
+      this.options.log?.warn("The writer failed on a batch", { items: batch.length, reason });
+      return { written: [], failed: batch.map((m) => ({ id: m.id, reason })) };
+    }
+  }
+
+  async rewrite(request: RewriteRequest): Promise<string | null> {
+    const boundary = newBoundary();
+    try {
+      const { value } = await this.options.llm.completeJson({
+        schema: RewriteOutput,
+        schemaName: "dispatch_rewrite",
+        messages: [
+          { role: "system", content: rewriteSystemPrompt(this.options.voice, boundary) },
+          { role: "user", content: rewriteUserMessage(request, boundary) },
+        ],
+        temperature: WRITER_TEMPERATURE,
+        maxTokens: 300,
+        label: "rewrite",
+      });
+      const text = cleanField(request.field, value.text);
+      return text.length > 0 ? text : null;
+    } catch (error) {
+      if (error instanceof BudgetExceededError) throw error;
+      this.options.log?.warn("The rewrite failed", {
+        itemId: request.material.id,
+        reason: describeError(error, this.options.secrets),
+      });
+      return null;
+    }
+  }
+}

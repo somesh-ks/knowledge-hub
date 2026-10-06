@@ -1,0 +1,40 @@
+{
+  "model": "jev-1.13.0",
+  "answers": {
+    "category": {
+      "type": "choice",
+      "choice": "css_canvas_motion_techniques",
+      "confidence": 0.78,
+      "probabilities": {
+        "none": 0.01,
+        "generic_ai_hype_listicles": 0.0,
+        "venture_capital_and_gossip": 0.0,
+        "design_engineering_craft": 0.15,
+        "hci_empirical_research": 0.0,
+        "ui_component_primitives": 0.04,
+        "ai_ux_interaction_patterns": 0.0,
+        "css_canvas_motion_techniques": 0.8,
+        "frontier_model_releases": 0.0,
+        "developer_tool_launches": 0.0,
+        "taste_and_design_philosophy": 0.0
+      }
+    },
+    "craft_depth": {
+      "type": "score",
+      "score": 3.1,
+      "confidence": 0.7,
+      "legend": {
+        "0": "Announcement, opinion or promotion that describes no technique, mechanism or result.",
+        "1": "Overview or commentary that names a technique or feature but does not explain how it works.",
+        "2": "Explains an approach or design decision in prose, with reasoning but no code or measurements.",
+        "3": "Walks through a concrete implementation or study with specifics such as steps, parameters or a demo.",
+        "4": "Shows the mechanism in depth with code, measurements or reproducible results."
+      },
+      "probabilities": { "0": 0.0, "1": 0.02, "2": 0.08, "3": 0.7, "4": 0.2 }
+    },
+    "hype": { "type": "noul", "noul": 0.03 },
+    "sponsored": { "type": "noul", "noul": 0.01 },
+    "funding": { "type": "noul", "noul": 0.02 }
+  },
+  "usage": { "input_tokens": 1180, "output_tokens": 96 }
+}

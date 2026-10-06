@@ -1,0 +1,332 @@
+import { readFileSync } from "node:fs";
+import { dirname, join } from "node:path";
+import { fileURLToPath } from "node:url";
+import { CATEGORIES, hashOf, loadEnv } from "@dispatch/core";
+import { describe, expect, it } from "vitest";
+import { type JevClientLike, JevJudge } from "../src/judge/jev.js";
+import { normalizeCategoryProbs, normalizeCraftDepth } from "../src/judge/jevAnswers.js";
+import { createJevClient } from "../src/judge/jevClient.js";
+import {
+  CATEGORY_CRITERIA,
+  CATEGORY_OPTIONS,
+  CRAFT_LEVELS,
+  FLAG_NAMES,
+  JEV_QUESTIONS,
+  QUESTIONS_HASH,
+  STATE_LIMITS,
+} from "../src/judge/questions.js";
+import { cleanText, judgeState } from "../src/judge/state.js";
+import type { JudgeFailure } from "../src/judge/types.js";
+import { makeItem } from "./score-factories.js";
+import { captureLog, httpError, NO_WAIT } from "./write-fakes.js";
+
+const here = dirname(fileURLToPath(import.meta.url));
+const recorded: unknown = JSON.parse(
+  readFileSync(join(here, "fixtures", "judge-jev-response.json"), "utf8"),
+);
+
+interface FakeJev extends JevClientLike {
+  calls: Array<{ state: unknown; questions: unknown; model?: string }>;
+  maxInFlight: number;
+}
+
+function fakeJev(handler: (call: number, state: unknown) => unknown | Promise<unknown>): FakeJev {
+  let inFlight = 0;
+  const fake: FakeJev = {
+    calls: [],
+    maxInFlight: 0,
+    async systemOne(request) {
+      const call = fake.calls.length;
+      fake.calls.push(request);
+      inFlight += 1;
+      fake.maxInFlight = Math.max(fake.maxInFlight, inFlight);
+      try {
+        return await handler(call, request.state);
+      } finally {
+        inFlight -= 1;
+      }
+    },
+  };
+  return fake;
+}
+
+const NOW = new Date("2026-10-06T08:00:00Z");
+const judgeWith = (
+  client: JevClientLike,
+  extra: Partial<ConstructorParameters<typeof JevJudge>[0]> = {},
+) => new JevJudge({ client, now: () => NOW, retry: NO_WAIT, ...extra });
+
+describe("question definitions", () => {
+  it("covers the ten categories plus none, each with a criterion", () => {
+    expect([...CATEGORY_OPTIONS].sort()).toEqual([...CATEGORIES, "none"].sort());
+    for (const option of CATEGORY_OPTIONS)
+      expect(CATEGORY_CRITERIA[option].length).toBeGreaterThan(30);
+  });
+
+  it("asks a Choice, a five-level Score and three Nouls", () => {
+    expect(JEV_QUESTIONS.category.type).toBe("choice");
+    expect(Object.keys(JEV_QUESTIONS.category.criteria)).toHaveLength(11);
+    expect(JEV_QUESTIONS.craft_depth.type).toBe("score");
+    expect(JEV_QUESTIONS.craft_depth.criteria).toHaveLength(5);
+    expect(CRAFT_LEVELS).toHaveLength(5);
+    expect(FLAG_NAMES).toEqual(["hype", "sponsored", "funding"]);
+    for (const name of FLAG_NAMES) expect(JEV_QUESTIONS[name].type).toBe("noul");
+  });
+
+  it("puts the conservative options first to counter first-option bias", () => {
+    expect(CATEGORY_OPTIONS.slice(0, 3)).toEqual([
+      "none",
+      "generic_ai_hype_listicles",
+      "venture_capital_and_gossip",
+    ]);
+  });
+
+  it("hashes the definitions, so any change to a question changes the hash", () => {
+    expect(QUESTIONS_HASH).toMatch(/^[0-9a-f]{12}$/);
+    expect(QUESTIONS_HASH).toBe(hashOf({ questions: JEV_QUESTIONS, state: STATE_LIMITS }));
+    const edited = {
+      ...JEV_QUESTIONS,
+      hype: { ...JEV_QUESTIONS.hype, instructions: "Is this hype?" },
+    };
+    expect(hashOf({ questions: edited, state: STATE_LIMITS })).not.toBe(QUESTIONS_HASH);
+    expect(
+      hashOf({ questions: JEV_QUESTIONS, state: { ...STATE_LIMITS, snippetChars: 800 } }),
+    ).not.toBe(QUESTIONS_HASH);
+  });
+});
+
+describe("judgeState", () => {
+  it("builds title, source, author, snippet and signals", () => {
+    const item = makeItem({
+      title: "Springs <b>retarget</b> mid-flight",
+      author: "Rauno",
+      source_id: "rauno-blog",
+      snippet: "A note&nbsp;on drawers &amp; velocity.",
+      signals: { hn_points: 120, hn_comments: 33 },
+    });
+    expect(judgeState(item)).toEqual({
+      title: "Springs retarget mid-flight",
+      source: "rauno-blog",
+      author: "Rauno",
+      snippet: "A note on drawers & velocity.",
+      signals: { hn_points: 120, hn_comments: 33 },
+    });
+  });
+
+  it("uses null for a missing author and truncates long snippets on a word boundary", () => {
+    const state = judgeState(makeItem({ snippet: "word ".repeat(600) }));
+    expect(state.author).toBeNull();
+    expect(state.snippet.length).toBeLessThanOrEqual(STATE_LIMITS.snippetChars);
+    expect(state.snippet.endsWith("word")).toBe(true);
+  });
+
+  it("strips control characters", () => {
+    expect(cleanText("a\u0000b\u0007c  d", 50)).toBe("a b c d");
+  });
+});
+
+describe("answer mapping", () => {
+  it("fills missing categories with zero and ignores unknown labels", () => {
+    const probs = normalizeCategoryProbs(
+      { design_engineering_craft: 0.6, bogus: 0.4 },
+      "design_engineering_craft",
+    );
+    expect(Object.keys(probs)).toHaveLength(11);
+    expect(probs.design_engineering_craft).toBe(1);
+    expect(probs.none).toBe(0);
+  });
+
+  it("renormalizes when the mass is off and leaves near-1 sums alone", () => {
+    const off = normalizeCategoryProbs({ none: 0.2, hci_empirical_research: 0.2 }, "none");
+    expect(off.none).toBeCloseTo(0.5, 4);
+    expect(off.hci_empirical_research).toBeCloseTo(0.5, 4);
+    const near = normalizeCategoryProbs({ none: 0.495, hci_empirical_research: 0.5 }, "none");
+    expect(near.none).toBe(0.495);
+  });
+
+  it("gives the chosen label everything when the reply has no usable mass", () => {
+    expect(normalizeCategoryProbs({}, "ui_component_primitives").ui_component_primitives).toBe(1);
+    expect(normalizeCategoryProbs({}, "not-a-label").none).toBe(1);
+  });
+
+  it("normalizes craft depth from the 0 to 4 expected level", () => {
+    expect(normalizeCraftDepth(0)).toBe(0);
+    expect(normalizeCraftDepth(2)).toBe(0.5);
+    expect(normalizeCraftDepth(4)).toBe(1);
+    expect(normalizeCraftDepth(9)).toBe(1);
+    expect(normalizeCraftDepth(-1)).toBe(0);
+  });
+});
+
+describe("JevJudge", () => {
+  it("maps a recorded Jev response to a judgment entry", async () => {
+    const item = makeItem({ title: "A dithered shader in 40 lines" });
+    const entries = await judgeWith(fakeJev(() => recorded)).judge([item]);
+    expect(entries).toHaveLength(1);
+    const entry = entries[0];
+    expect(entry).toMatchObject({
+      item_id: item.id,
+      model: "jev-latest",
+      questions_hash: QUESTIONS_HASH,
+      judged_at: NOW.toISOString(),
+      craft_depth: 0.775,
+      flags: { hype: 0.03, sponsored: 0.01, funding: 0.02 },
+    });
+    expect(entry?.category_probs.css_canvas_motion_techniques).toBe(0.8);
+    expect(Object.keys(entry?.category_probs ?? {})).toHaveLength(11);
+    const total = Object.values(entry?.category_probs ?? {}).reduce((a, b) => a + b, 0);
+    expect(total).toBeCloseTo(1, 2);
+  });
+
+  it("sends the item state and all five questions in one request", async () => {
+    const fake = fakeJev(() => recorded);
+    const item = makeItem({ title: "Springs", author: "Rauno", signals: { hn_points: 90 } });
+    await judgeWith(fake, { model: "jev-1.13.0" }).judge([item]);
+    expect(fake.calls).toHaveLength(1);
+    expect(fake.calls[0]?.model).toBe("jev-1.13.0");
+    expect(Object.keys(fake.calls[0]?.questions as object)).toEqual([
+      "category",
+      "craft_depth",
+      "hype",
+      "sponsored",
+      "funding",
+    ]);
+    expect(fake.calls[0]?.state).toMatchObject({
+      title: "Springs",
+      author: "Rauno",
+      signals: { hn_points: 90 },
+    });
+  });
+
+  it("limits in-flight requests to the concurrency setting", async () => {
+    const fake = fakeJev(async () => {
+      await new Promise((resolve) => setTimeout(resolve, 5));
+      return recorded;
+    });
+    const items = Array.from({ length: 25 }, () => makeItem());
+    const entries = await judgeWith(fake).judge(items);
+    expect(entries).toHaveLength(25);
+    expect(fake.maxInFlight).toBeLessThanOrEqual(8);
+    expect(fake.maxInFlight).toBeGreaterThan(1);
+  });
+
+  it("keeps entries in input order", async () => {
+    const items = Array.from({ length: 6 }, () => makeItem());
+    const fake = fakeJev(async (call) => {
+      await new Promise((resolve) => setTimeout(resolve, 12 - call * 2));
+      return recorded;
+    });
+    const entries = await judgeWith(fake).judge(items);
+    expect(entries.map((e) => e.item_id)).toEqual(items.map((i) => i.id));
+  });
+
+  it("retries a 429 and a 529 with backoff, then succeeds", async () => {
+    const delays: number[] = [];
+    const fake = fakeJev((call) => {
+      if (call === 0) throw httpError(429, "slow down");
+      if (call === 1) throw httpError(529, "overloaded");
+      return recorded;
+    });
+    const entries = await judgeWith(fake, {
+      retry: { sleep: async (ms) => void delays.push(ms), random: () => 0, baseDelayMs: 100 },
+    }).judge([makeItem()]);
+    expect(entries).toHaveLength(1);
+    expect(fake.calls).toHaveLength(3);
+    expect(delays).toEqual([100, 200]);
+  });
+
+  it("honours a server Retry-After over its own backoff", async () => {
+    const delays: number[] = [];
+    const fake = fakeJev((call) => {
+      if (call === 0) throw httpError(429, "slow", { "retry-after": "2" });
+      return recorded;
+    });
+    await judgeWith(fake, {
+      retry: { sleep: async (ms) => void delays.push(ms), random: () => 0 },
+    }).judge([makeItem()]);
+    expect(delays).toEqual([2000]);
+  });
+
+  it("does not retry an authentication failure and never echoes the key", async () => {
+    const failures: JudgeFailure[] = [];
+    const secret = "tsk_live_supersecretvalue";
+    const fake = fakeJev(() => {
+      throw httpError(401, `bad key ${secret}`);
+    });
+    const entries = await judgeWith(fake, {
+      onFailure: (f) => failures.push(f),
+      secrets: [secret],
+    }).judge([makeItem()]);
+    expect(entries).toEqual([]);
+    expect(fake.calls).toHaveLength(1);
+    expect(failures[0]?.reason).toContain("Authentication failed");
+    expect(failures[0]?.reason).not.toContain(secret);
+  });
+
+  it("stops after the retry budget and reports the item", async () => {
+    const failures: JudgeFailure[] = [];
+    const fake = fakeJev(() => {
+      throw httpError(529, "overloaded");
+    });
+    const entries = await judgeWith(fake, {
+      onFailure: (f) => failures.push(f),
+      retry: { ...NO_WAIT, retries: 2 },
+    }).judge([makeItem()]);
+    expect(entries).toEqual([]);
+    expect(fake.calls).toHaveLength(3);
+    expect(failures).toHaveLength(1);
+  });
+
+  it("drops only the failing item and never throws for the batch", async () => {
+    const [a, b, c] = [makeItem(), makeItem(), makeItem()];
+    const failures: JudgeFailure[] = [];
+    const fake = fakeJev((_, state) => {
+      if ((state as { title: string }).title === b.title)
+        throw httpError(422, "malformed question");
+      return recorded;
+    });
+    const entries = await judgeWith(fake, { onFailure: (f) => failures.push(f) }).judge([a, b, c]);
+    expect(entries.map((e) => e.item_id)).toEqual([a.id, c.id]);
+    expect(failures.map((f) => f.itemId)).toEqual([b.id]);
+  });
+
+  it("treats a reply in an unexpected shape as a per-item failure", async () => {
+    const failures: JudgeFailure[] = [];
+    const broken = { model: "jev-1.13.0", answers: { category: { type: "choice" } } };
+    const { log, lines } = captureLog();
+    const entries = await judgeWith(
+      fakeJev(() => broken),
+      {
+        onFailure: (f) => failures.push(f),
+        log,
+      },
+    ).judge([makeItem()]);
+    expect(entries).toEqual([]);
+    expect(failures[0]?.reason).toContain("unexpected shape");
+    expect(lines.some((l) => l.level === "warn")).toBe(true);
+  });
+
+  it("totals token usage across requests", async () => {
+    const judge = judgeWith(fakeJev(() => recorded));
+    await judge.judge([makeItem(), makeItem(), makeItem()]);
+    expect(judge.usage).toEqual({ requests: 3, inputTokens: 3540, outputTokens: 288 });
+  });
+
+  it("exposes the model and questions hash used for cache keys", () => {
+    const judge = judgeWith(fakeJev(() => recorded));
+    expect(judge.model).toBe("jev-latest");
+    expect(judge.questionsHash).toBe(QUESTIONS_HASH);
+    expect(judge.name).toBe("jev");
+  });
+});
+
+describe("createJevClient", () => {
+  it("fails with a message that names the variable and never a value", () => {
+    expect(() => createJevClient(loadEnv({}))).toThrow("TYPESAFE_API_KEY is not set");
+  });
+
+  it("builds a client when the key is present", () => {
+    const client = createJevClient(loadEnv({ TYPESAFE_API_KEY: "tsk_test_0123456789" }));
+    expect(typeof client.systemOne).toBe("function");
+  });
+});
