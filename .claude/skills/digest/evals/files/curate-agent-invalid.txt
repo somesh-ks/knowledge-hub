@@ -1,0 +1,4 @@
+- 38d23223c5b4: summary: Remove the banned word or phrase "seamless".
+- 38d23223c5b4: summary: Remove the em or en dash; use a comma, colon or period.
+- aaaaaaaaaaaa: The id is not in the pool. Only pool items can be published.
+- 5f2ad44157ea: The category venture_capital_and_gossip never publishes.

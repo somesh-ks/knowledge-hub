@@ -1,0 +1,48 @@
+name: audio
+
+# Generates missing narration, uploads it to Vercel Blob and commits the timeline metadata.
+# The site is deployed by the Vercel GitHub integration, which builds on every push to main. Vercel
+# Hobby only deploys commits authored by the team owner, so this commit uses the owner's identity
+# from the DISPATCH_GIT_NAME and DISPATCH_GIT_EMAIL variables.
+
+on:
+  workflow_call:
+  workflow_dispatch:
+
+# A separate group from run.yml: a called workflow that shares its caller's group is cancelled.
+concurrency:
+  group: audio
+  cancel-in-progress: false
+
+permissions:
+  contents: write
+
+jobs:
+  audio:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      # The caller's SHA predates the digest commit, so always start from the tip of main.
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          ref: main
+          fetch-depth: 0
+
+      - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
+        with:
+          node-version-file: .nvmrc
+          cache: npm
+
+      - name: Install
+        run: npm ci --ignore-scripts
+
+      # Audio failures leave audio null and never block the text digest.
+      - name: Audio
+        env:
+          SPEECHIFY_API_KEY: ${{ secrets.SPEECHIFY_API_KEY }}
+          SPEECHIFY_VOICE_ID: ${{ vars.SPEECHIFY_VOICE_ID }}
+          SPEECHIFY_MONTHLY_CHARS: ${{ vars.SPEECHIFY_MONTHLY_CHARS }}
+          BLOB_READ_WRITE_TOKEN: ${{ secrets.BLOB_READ_WRITE_TOKEN }}
+          DISPATCH_GIT_NAME: ${{ vars.DISPATCH_GIT_NAME }}
+          DISPATCH_GIT_EMAIL: ${{ vars.DISPATCH_GIT_EMAIL }}
+        run: npm run --silent dispatch -- publish --prune 120

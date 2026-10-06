@@ -1,0 +1,40 @@
+---
+import { paletteAccent } from "@dispatch/cover";
+import type { DigestEntry } from "../lib/digests";
+import type { SectionView } from "../lib/digestView";
+import Cover from "./Cover.astro";
+
+interface Props {
+  entry: DigestEntry;
+  sections: SectionView[];
+  hasAudio: boolean;
+}
+
+const { entry, sections, hasAudio } = Astro.props;
+---
+
+{/* Shown from 64rem. With audio the links play a chapter; without it they jump to one. */}
+<aside class="aside" aria-label="Chapters">
+  <Cover
+    digestId={entry.id}
+    size="aside"
+    paletteBg={paletteAccent(entry.digest.cover.palette).bg}
+    weekly={entry.digest.kind === "weekly"}
+  />
+  <nav class="aside-nav" aria-label="Chapter list">
+    {
+      sections.map((section) =>
+        hasAudio ? (
+          <button class="aside-link press" type="button" data-play-item={section.firstIndex} data-section={section.slug}>
+            <span>{section.title}</span>
+            <span class="num">{section.clock}</span>
+          </button>
+        ) : (
+          <a class="aside-link press" href={`#c-${section.slug}`} data-section={section.slug}>
+            <span>{section.title}</span>
+          </a>
+        ),
+      )
+    }
+  </nav>
+</aside>

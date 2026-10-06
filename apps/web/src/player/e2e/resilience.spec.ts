@@ -1,0 +1,90 @@
+import { expect, test } from "./lab";
+
+test.describe("when playback does not go to plan", () => {
+  test("shows buffering only after 300 ms, then plays when the data arrives", async ({
+    lab,
+    page,
+  }) => {
+    let release: () => void = () => undefined;
+    const gate = new Promise<void>((resolve) => {
+      release = resolve;
+    });
+    // The first byte of the narration is held back, as on a slow connection.
+    await page.route("**/lab-narration.mp3*", async (route) => {
+      await gate;
+      await route.continue();
+    });
+    await page.goto("/dev/player-lab", { waitUntil: "domcontentloaded" });
+    await page.waitForFunction(() => document.querySelector("astro-island[ssr]") === null);
+    await lab.cta.tap();
+    await expect(page.locator("html")).toHaveAttribute("data-player-state", "loading");
+    // Inside the first 300 ms the button already reads as playing and shows no spinner.
+    await expect(lab.cta).not.toHaveAttribute("data-loading", "true");
+    await expect(page.locator("[data-play-label]")).toHaveText("Pause");
+    await expect(lab.cta).toHaveAttribute("data-loading", "true", { timeout: 3_000 });
+    await expect(page.locator("[data-play-label]")).toHaveText("Preparing audio");
+    await expect(page.locator(".mini-btn[data-primary] .spinner")).toBeVisible();
+    release();
+    await expect(page.locator("html")).toHaveAttribute("data-player-state", "playing", {
+      timeout: 10_000,
+    });
+    await expect(lab.cta).not.toHaveAttribute("data-loading", "true");
+  });
+
+  test("remembers a pause the system caused and offers resume instead of playing again", async ({
+    lab,
+    audio,
+    page,
+  }) => {
+    await lab.open();
+    await lab.play();
+    // A call or an alarm pauses the element without anyone pressing pause.
+    await page.waitForTimeout(1_200);
+    await page.evaluate(() => window.__audios[0]?.pause());
+    await expect(page.locator("html")).toHaveAttribute("data-player-state", "paused");
+    await expect(page.locator(".mini-section")).toHaveText("Interrupted, press play to resume");
+    await page.waitForTimeout(800);
+    expect((await audio.read())?.paused).toBe(true);
+    await lab.openPlayer();
+    await expect(
+      page.getByRole("status").filter({ hasText: "Playback was interrupted" }),
+    ).toBeVisible();
+    await page.getByRole("button", { name: "Resume" }).tap();
+    await expect(page.locator("html")).toHaveAttribute("data-player-state", "playing");
+    await expect(
+      page.getByRole("status").filter({ hasText: "Playback was interrupted" }),
+    ).toHaveCount(0);
+  });
+
+  test("explains a missing audio file in plain language and retries from the same place", async ({
+    lab,
+    page,
+  }) => {
+    await page.route("**/lab-narration.mp3*", (route) => route.fulfill({ status: 404, body: "" }));
+    await lab.open();
+    await lab.cta.tap();
+    await expect(page.locator("html")).toHaveAttribute("data-player-state", "error");
+    await expect(page.locator("[data-play-label]")).toHaveText("Try again");
+    await expect(page.locator(".mini-section")).toHaveText("Audio is not available");
+    await lab.openPlayer();
+    const notice = page.getByRole("alert").filter({ hasText: "not available" });
+    await expect(notice).toContainText("The text is still here to read.");
+    // The file comes back; the same button tries again.
+    await page.unroute("**/lab-narration.mp3*");
+    await notice.getByRole("button", { name: "Try again" }).tap();
+    await expect(page.locator("html")).toHaveAttribute("data-player-state", "playing", {
+      timeout: 10_000,
+    });
+    await expect(page.getByRole("alert")).toHaveCount(0);
+  });
+
+  test("keeps the page fully usable when the audio fails", async ({ lab, page }) => {
+    await page.route("**/lab-narration.mp3*", (route) => route.fulfill({ status: 404, body: "" }));
+    await lab.open();
+    await lab.cta.tap();
+    await expect(page.locator("html")).toHaveAttribute("data-player-state", "error");
+    await expect(page.getByRole("heading", { level: 1 })).toBeVisible();
+    await page.locator('[data-open-sheet="settings"]').tap();
+    await expect(page.getByRole("dialog", { name: "Settings" })).toBeVisible();
+  });
+});

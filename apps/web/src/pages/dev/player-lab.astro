@@ -1,0 +1,17 @@
+---
+// biome-ignore-all lint/correctness/noUnusedImports: Biome cannot see imports used in the template
+// biome-ignore-all lint/correctness/noUnusedVariables: Biome cannot see variables used in the template
+/**
+ * Dev lab for the player and the sheets. A stand-in reader page with a fixture digest, so the
+ * mini player, the expanded player, scrubbing, Generate and Settings can be used in a real browser.
+ *
+ * Development only: in a production build this route answers 404.
+ */
+import LabPage from "../../player/dev/LabPage.astro";
+
+if (!import.meta.env.DEV) {
+  return new Response(null, { status: 404 });
+}
+---
+
+<LabPage variant="today" />

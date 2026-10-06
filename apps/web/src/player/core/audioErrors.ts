@@ -1,0 +1,63 @@
+import type { PlayerError } from "./playerTypes";
+
+/** MediaError codes, as constants because the fake audio in tests has no MediaError class. */
+export const MEDIA_ERR_ABORTED = 1;
+export const MEDIA_ERR_NETWORK = 2;
+export const MEDIA_ERR_DECODE = 3;
+export const MEDIA_ERR_SRC_NOT_SUPPORTED = 4;
+
+/**
+ * Plain-language messages: what happened, then what to do (config/voice.md). Returns null for an
+ * abort, which is what the browser reports when the source changes under it and is not a failure.
+ */
+export function describeMediaError(
+  code: number | undefined,
+  isOnline: boolean,
+): PlayerError | null {
+  if (code === MEDIA_ERR_ABORTED) return null;
+  if (!isOnline) {
+    return {
+      kind: "network",
+      message: "You are offline. Reconnect, then try playing again.",
+    };
+  }
+  switch (code) {
+    case MEDIA_ERR_NETWORK:
+      return {
+        kind: "network",
+        message: "The audio stopped loading. Check your connection, then try again.",
+      };
+    case MEDIA_ERR_DECODE:
+      return {
+        kind: "decode",
+        message: "This audio could not be played. Try again in a few minutes.",
+      };
+    case MEDIA_ERR_SRC_NOT_SUPPORTED:
+      // A missing or expired file and an unsupported format look the same to the element.
+      return {
+        kind: "unavailable",
+        message: "The audio for this briefing is not available. The text is still here to read.",
+      };
+    default:
+      return {
+        kind: "unknown",
+        message: "The audio could not be played. Try again in a moment.",
+      };
+  }
+}
+
+/** The error for a rejected `play()` promise. AbortError means a newer load won, so it is not one. */
+export function describePlayRejection(error: unknown, isOnline: boolean): PlayerError | null {
+  const name = error instanceof Error ? error.name : "";
+  if (name === "AbortError") return null;
+  if (name === "NotAllowedError") {
+    return {
+      kind: "blocked",
+      message: "Playback was blocked by the browser. Tap play to start.",
+    };
+  }
+  if (name === "NotSupportedError") {
+    return describeMediaError(MEDIA_ERR_SRC_NOT_SUPPORTED, isOnline);
+  }
+  return describeMediaError(undefined, isOnline);
+}

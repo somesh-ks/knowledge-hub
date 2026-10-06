@@ -1,0 +1,108 @@
+{
+  "digest": "2026-10-07",
+  "voice": "fixture",
+  "model": "fixture",
+  "timeline": "marks",
+  "duration_ms": 36000,
+  "text_chars": 1852,
+  "items": [
+    {
+      "id": "3f2a9c1e5b07",
+      "section": "top",
+      "start_ms": 0,
+      "end_ms": 3000
+    },
+    {
+      "id": "a81d40c7e2b9",
+      "section": "top",
+      "start_ms": 3000,
+      "end_ms": 6000
+    },
+    {
+      "id": "5c0e7b93a1d4",
+      "section": "top",
+      "start_ms": 6000,
+      "end_ms": 9000
+    },
+    {
+      "id": "b27f6d18c409",
+      "section": "ui-craft",
+      "start_ms": 9000,
+      "end_ms": 12000
+    },
+    {
+      "id": "09e4a5d37f12",
+      "section": "ui-craft",
+      "start_ms": 12000,
+      "end_ms": 15000
+    },
+    {
+      "id": "d6a3182be5c0",
+      "section": "ui-craft",
+      "start_ms": 15000,
+      "end_ms": 18000
+    },
+    {
+      "id": "7e91c4f0a8b3",
+      "section": "ai",
+      "start_ms": 18000,
+      "end_ms": 21000
+    },
+    {
+      "id": "c4b8e2a97d65",
+      "section": "ai",
+      "start_ms": 21000,
+      "end_ms": 24000
+    },
+    {
+      "id": "1fd7093ce8a4",
+      "section": "research",
+      "start_ms": 24000,
+      "end_ms": 27000
+    },
+    {
+      "id": "e5093ab17c2d",
+      "section": "research",
+      "start_ms": 27000,
+      "end_ms": 30000
+    },
+    {
+      "id": "8a6c2f4e1b90",
+      "section": "launches",
+      "start_ms": 30000,
+      "end_ms": 33000
+    },
+    {
+      "id": "2b5e9d70c3f8",
+      "section": "watch",
+      "start_ms": 33000,
+      "end_ms": 36000
+    }
+  ],
+  "sections": [
+    {
+      "slug": "top",
+      "start_ms": 0
+    },
+    {
+      "slug": "ui-craft",
+      "start_ms": 9000
+    },
+    {
+      "slug": "ai",
+      "start_ms": 18000
+    },
+    {
+      "slug": "research",
+      "start_ms": 24000
+    },
+    {
+      "slug": "launches",
+      "start_ms": 30000
+    },
+    {
+      "slug": "watch",
+      "start_ms": 33000
+    }
+  ]
+}

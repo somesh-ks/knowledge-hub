@@ -1,0 +1,15 @@
+capped: design_engineering_craft asked +0.20, limit is 0.05 per weight
+capped: ui_component_primitives asked +0.10, limit is 0.05 per weight
+capped: css_canvas_motion_techniques asked +0.10, limit is 0.05 per weight
+capped: taste_and_design_philosophy asked +0.10, limit is 0.05 per weight
+deferred: taste_and_design_philosophy +0.05, the 0.15 per-call budget is spent
+capped: generic_ai_hype_listicles asked -0.10, limit is 0.05 per weight
+headroom: generic_ai_hype_listicles is 0.02, so -0.05 becomes -0.02
+deferred: generic_ai_hype_listicles -0.02, the 0.15 per-call budget is spent
+weights: design_engineering_craft +0.05, ui_component_primitives +0.05, css_canvas_motion_techniques +0.05 (total 0.15 of 0.15)
+patch: <tmp>/dispatch-learn-20261006T060000.json
+--- learn --apply --dry-run
++ weight design_engineering_craft: 0.95 to 1
++ weight ui_component_primitives: 0.92 to 0.97
++ weight css_canvas_motion_techniques: 0.88 to 0.93
+warn: Clamped: total change 0.15 scaled to 0.15

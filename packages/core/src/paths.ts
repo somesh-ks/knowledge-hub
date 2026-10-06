@@ -23,6 +23,7 @@ export const STATE_FILES = {
   judgments: "state/judgments.json",
   lastRun: "state/last-run.json",
   usage: "state/usage.json",
+  sourceHealth: "state/source-health.json",
 } as const;
 
 export const CONFIG_FILES = {

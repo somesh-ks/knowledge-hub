@@ -1,0 +1,185 @@
+// Vitest Snapshot v1, https://vitest.dev/guide/snapshot.html
+
+exports[`template aperture > matches its snapshot at fixed seeds 1`] = `
+{
+  "seed1": {
+    "bytes": 1809,
+    "elements": 28,
+    "paths": 1,
+    "sha1": "2cdb9d2206097632bc4d3f43c840a5ef7bf99cdb",
+  },
+  "seed424242": {
+    "bytes": 1412,
+    "elements": 20,
+    "paths": 1,
+    "sha1": "6fd7bd8d58e9b5822c57b7dca1f3090793bd6bc7",
+  },
+  "weekly": {
+    "bytes": 1693,
+    "elements": 25,
+    "paths": 3,
+    "sha1": "042a5e196bd7cb2739f0ebc701d9b25878ff98c7",
+  },
+}
+`;
+
+exports[`template band > matches its snapshot at fixed seeds 1`] = `
+{
+  "seed1": {
+    "bytes": 89539,
+    "elements": 24,
+    "paths": 15,
+    "sha1": "5f2390bb5ce73e4df24a6852e6f219698a54f14b",
+  },
+  "seed424242": {
+    "bytes": 76802,
+    "elements": 22,
+    "paths": 13,
+    "sha1": "f1524b3c63d510e7272240e035d12d10ba1ee22e",
+  },
+  "weekly": {
+    "bytes": 77066,
+    "elements": 27,
+    "paths": 15,
+    "sha1": "e2c51dcd594a41f8e9e07c95f115fcdde3124e9f",
+  },
+}
+`;
+
+exports[`template contour > matches its snapshot at fixed seeds 1`] = `
+{
+  "seed1": {
+    "bytes": 117641,
+    "elements": 151,
+    "paths": 42,
+    "sha1": "9cc562bb7884046c3c1b9337e223a846ac15075b",
+  },
+  "seed424242": {
+    "bytes": 225039,
+    "elements": 157,
+    "paths": 48,
+    "sha1": "1c93a226f55134bf74bfd595682698535bd49504",
+  },
+  "weekly": {
+    "bytes": 232718,
+    "elements": 192,
+    "paths": 80,
+    "sha1": "0c759270cec585fabe9c576ad1243c1f60e6f3ab",
+  },
+}
+`;
+
+exports[`template dither > matches its snapshot at fixed seeds 1`] = `
+{
+  "seed1": {
+    "bytes": 17459,
+    "elements": 14,
+    "paths": 2,
+    "sha1": "54b0f8eb95615dab2e047048fade965288b1f4fd",
+  },
+  "seed424242": {
+    "bytes": 49694,
+    "elements": 15,
+    "paths": 3,
+    "sha1": "fe524bd5375e6bae3292040b38ffe851590d1008",
+  },
+  "weekly": {
+    "bytes": 25701,
+    "elements": 15,
+    "paths": 4,
+    "sha1": "a71f8318cbc44d3729586f709f5ee47131566662",
+  },
+}
+`;
+
+exports[`template lattice > matches its snapshot at fixed seeds 1`] = `
+{
+  "seed1": {
+    "bytes": 67037,
+    "elements": 124,
+    "paths": 15,
+    "sha1": "cdb18deeab118d1c952c65acf4ec31be1e8317f8",
+  },
+  "seed424242": {
+    "bytes": 44673,
+    "elements": 119,
+    "paths": 10,
+    "sha1": "906bbcc7e0662607872336a9334093aed3c5fea7",
+  },
+  "weekly": {
+    "bytes": 40725,
+    "elements": 122,
+    "paths": 10,
+    "sha1": "7772a5cee71a0498494af404c558fca13381b0cc",
+  },
+}
+`;
+
+exports[`template numeral > matches its snapshot at fixed seeds 1`] = `
+{
+  "seed1": {
+    "bytes": 890,
+    "elements": 10,
+    "paths": 4,
+    "sha1": "78e57898437eefa27e0f740b49b73e1ca1412995",
+  },
+  "seed424242": {
+    "bytes": 877,
+    "elements": 10,
+    "paths": 4,
+    "sha1": "49b655a15264a1c9bd57c27ad776f2878bdd1590",
+  },
+  "weekly": {
+    "bytes": 1185,
+    "elements": 16,
+    "paths": 6,
+    "sha1": "df97ff5301adcf2dc095b435a7d90db70d03dbb2",
+  },
+}
+`;
+
+exports[`template orbit > matches its snapshot at fixed seeds 1`] = `
+{
+  "seed1": {
+    "bytes": 9547,
+    "elements": 142,
+    "paths": 0,
+    "sha1": "915a728d935bfe898b07c73647dd33a06f8eacec",
+  },
+  "seed424242": {
+    "bytes": 8598,
+    "elements": 127,
+    "paths": 16,
+    "sha1": "59aa4aceb70ae551805ac9187bdfc0af5120b319",
+  },
+  "weekly": {
+    "bytes": 8676,
+    "elements": 132,
+    "paths": 2,
+    "sha1": "19c6062f980a2987f1a9d1809bdf5b1f47d088dd",
+  },
+}
+`;
+
+exports[`template spring > matches its snapshot at fixed seeds 1`] = `
+{
+  "seed1": {
+    "bytes": 280068,
+    "elements": 182,
+    "paths": 72,
+    "sha1": "779e5b732455205efdb4225fff96e91b325c27ba",
+  },
+  "seed424242": {
+    "bytes": 108781,
+    "elements": 137,
+    "paths": 27,
+    "sha1": "aa28c0b464465a1756745eed4be6750c2014211b",
+  },
+  "weekly": {
+    "bytes": 136290,
+    "elements": 149,
+    "paths": 36,
+    "sha1": "631ace5b057c759caa1527dabeeafb5d1248a4d1",
+  },
+}
+`;

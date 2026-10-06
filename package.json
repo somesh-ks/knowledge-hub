@@ -17,6 +17,10 @@
     "test": "vitest run",
     "build": "npm run build -w @dispatch/web",
     "dev": "npm run dev -w @dispatch/web",
+    "tokens": "tsx scripts/buildTokens.ts",
+    "prototype": "tsx scripts/buildPrototype.ts",
+    "sound-lab": "tsx scripts/buildSoundLab.ts",
+    "covers:sheet": "tsx packages/cover/scripts/contactSheet.ts",
     "secrets:push": "tsx scripts/pushSecrets.ts",
     "passphrase": "tsx scripts/passphrase.ts"
   },
@@ -24,7 +28,7 @@
     "@biomejs/biome": "^2.5.15",
     "@types/node": "^26.6.4",
     "tsx": "^4.23.15",
-    "typescript": "^7.0.2",
+    "typescript": "~6.0.3",
     "vitest": "^5.0.3"
   }
 }

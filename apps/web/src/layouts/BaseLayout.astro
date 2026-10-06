@@ -1,0 +1,118 @@
+---
+import { ClientRouter } from "astro:transitions";
+import schibstedFont from "../assets/fonts/schibsted-grotesk-latin-wght-normal.woff2?url";
+import Banner from "../components/Banner.astro";
+import SiteHeader from "../components/SiteHeader.astro";
+import { readBrandColors } from "../lib/brandColors";
+import PlayerRoot from "../player/PlayerRoot";
+// The theme script runs inline in the head so a stored light or dark choice never flashes the other
+// theme before first paint. astro.config.mjs hashes this same file into the Content-Security-Policy.
+import themeInit from "../scripts/themeInit.js?raw";
+import SheetsRoot from "../sheets/SheetsRoot";
+import "../styles/tokens.css";
+import "../styles/foundations.css";
+import "../styles/fonts.css";
+import "../styles/shell.css";
+import "../styles/buttons.css";
+import "../styles/cover.css";
+import "../styles/banner.css";
+import "../styles/hero.css";
+import "../styles/briefing.css";
+import "../styles/archive.css";
+import "../styles/aside.css";
+import "../styles/view-transitions.css";
+import "../styles/utilities.css";
+
+interface Props {
+  /** The page title. The site name is appended. */
+  title?: string;
+  description?: string;
+  /** Which route this is, for the Archive link and the data-view attribute the player reads. */
+  view: "home" | "archive";
+  /** "aside" adds the chapters column from 64rem. */
+  layout?: "aside" | "single";
+  /** Set on digest pages so the player and CSS can tell which briefing is on screen. */
+  digestId?: string;
+  skipLabel?: string;
+}
+
+const {
+  title,
+  description = "A private design engineering briefing.",
+  view,
+  layout = "single",
+  digestId,
+  skipLabel = "Skip to the briefing",
+} = Astro.props;
+
+const colors = readBrandColors();
+const pageTitle = title ? `${title}, Dispatch` : "Dispatch";
+---
+
+<!doctype html>
+<html
+  lang="en"
+  data-view={view}
+  data-layout={layout}
+  data-digest-id={digestId}
+  data-player="closed"
+  data-mini="hidden"
+  data-player-state="idle"
+>
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+    <meta name="color-scheme" content="light dark" />
+    <meta name="theme-color" media="(prefers-color-scheme: light)" content={colors.surfaceLight} />
+    <meta name="theme-color" media="(prefers-color-scheme: dark)" content={colors.surfaceDark} />
+    <meta name="apple-mobile-web-app-capable" content="yes" />
+    <meta name="mobile-web-app-capable" content="yes" />
+    <meta name="apple-mobile-web-app-title" content="Dispatch" />
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+    <meta name="robots" content="noindex, nofollow" />
+    <meta name="referrer" content="no-referrer" />
+    <meta name="description" content={description} />
+    <title>{pageTitle}</title>
+    <link rel="manifest" href="/manifest.webmanifest" />
+    <link rel="icon" href="/favicon.svg" type="image/svg+xml" />
+    <link rel="icon" href="/icon-192.png" type="image/png" sizes="192x192" />
+    <link rel="apple-touch-icon" href="/apple-touch-icon.png" />
+    <link rel="preload" href={schibstedFont} as="font" type="font/woff2" crossorigin />
+    <script is:inline set:html={themeInit.trim()} />
+    <ClientRouter fallback="swap" />
+  </head>
+  <body>
+    <a class="skip-link" href="#main">{skipLabel}</a>
+    <SiteHeader view={view} />
+    <div class="banner-stack page" id="banners"><slot name="banners" /></div>
+    <div class="shell page"><slot /></div>
+
+    {/* Both islands live in the layout and persist across navigation, so the audio object inside the
+         player module is never rebuilt and playback never stops while you move between pages. */}
+    <PlayerRoot client:idle transition:persist="player" />
+    <SheetsRoot client:idle transition:persist="sheets" />
+
+    {/* Banners that depend on the device are cloned from these by app.ts, so their markup has one home. */}
+    <template id="banner-offline">
+      <Banner
+        tone="warning"
+        icon="wifiOff"
+        title="You are offline"
+        body="Showing the last briefing you opened. Audio needs a connection."
+      />
+    </template>
+    <template id="banner-stale">
+      <Banner
+        tone="warning"
+        icon="clock"
+        title="This briefing is a few days old"
+        body="Generate a new one to see what changed since."
+        action={{ label: "Generate", open: "generate" }}
+      />
+    </template>
+
+    <script>
+      import "../scripts/app";
+    </script>
+  </body>
+</html>

@@ -1,0 +1,36 @@
+---
+import type { DigestEntry } from "../lib/digests";
+import { buildHero, buildSections } from "../lib/digestView";
+import Briefing from "./Briefing.astro";
+import ChapterAside from "./ChapterAside.astro";
+import DigestHero from "./DigestHero.astro";
+import EarlierList from "./EarlierList.astro";
+import PlayerData from "./PlayerData.astro";
+
+interface Props {
+  entry: DigestEntry;
+  /** The digests shown under "Earlier": the three before this one. */
+  earlier: DigestEntry[];
+  /** True on the home page, where the stale check applies. */
+  isLatest: boolean;
+}
+
+const { entry, earlier, isLatest } = Astro.props;
+const sections = buildSections(entry);
+const hero = buildHero(entry, entry.player.title);
+const hasAudio = entry.audioMode === "ready";
+---
+
+<ChapterAside entry={entry} sections={sections} hasAudio={hasAudio} />
+<main
+  id="main"
+  tabindex="-1"
+  data-digest-id={entry.id}
+  data-digest-date={entry.digest.date}
+  data-latest={isLatest ? "true" : "false"}
+>
+  <DigestHero entry={entry} hero={hero} />
+  <Briefing sections={sections} hasAudio={hasAudio} />
+  <EarlierList entries={earlier} />
+  <PlayerData data={entry.player} />
+</main>

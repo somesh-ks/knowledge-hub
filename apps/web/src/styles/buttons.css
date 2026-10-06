@@ -1,0 +1,136 @@
+/*
+ * Buttons, links that look like buttons, icons and the play and pause glyph swap. Hover only inside
+ * (hover: hover) and (pointer: fine); press feedback comes from the .press utility in foundations.
+ */
+
+.btn,
+.icon-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: var(--space-2);
+  min-width: var(--size-touch);
+  min-height: var(--size-touch);
+  padding-inline: var(--space-3);
+  border-radius: var(--button-radius);
+  color: var(--color-on-surface-muted);
+  font-size: var(--font-size-meta);
+  font-weight: var(--font-weight-semibold);
+  text-decoration: none;
+}
+
+.icon-btn {
+  padding-inline: 0;
+}
+
+.icon {
+  width: var(--size-icon);
+  height: var(--size-icon);
+  flex: none;
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 2;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+
+.icon-solid {
+  fill: currentColor;
+  stroke-linejoin: round;
+}
+
+.icon-lg {
+  width: var(--size-icon-lg);
+  height: var(--size-icon-lg);
+}
+
+@media (hover: hover) and (pointer: fine) {
+  .btn:hover,
+  .icon-btn:hover {
+    background: var(--color-surface-sunken);
+    color: var(--color-on-surface);
+  }
+}
+
+.btn:active,
+.icon-btn:active {
+  background: var(--color-surface-sunken);
+}
+
+.btn-primary {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: var(--space-2);
+  width: 100%;
+  min-height: var(--cta-height);
+  padding-inline: var(--space-4);
+  border-radius: var(--cta-radius);
+  background: var(--cta-bg);
+  color: var(--cta-fg);
+  font-size: var(--font-size-label-lg);
+  font-weight: var(--font-weight-semibold);
+  letter-spacing: var(--font-tracking-label-lg);
+  text-decoration: none;
+}
+
+@media (hover: hover) and (pointer: fine) {
+  .btn-primary:hover {
+    background: var(--cta-bg-hover);
+  }
+}
+
+.btn-primary:active {
+  background: var(--cta-bg-pressed);
+}
+
+.btn-secondary {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: var(--space-2);
+  width: 100%;
+  min-height: var(--button-height);
+  padding-inline: var(--space-4);
+  border-radius: var(--button-radius);
+  background: var(--color-surface-sunken);
+  color: var(--color-on-surface);
+  font-weight: var(--font-weight-semibold);
+  text-decoration: none;
+}
+
+@media (hover: hover) and (pointer: fine) {
+  .btn-secondary:hover {
+    background: color-mix(in oklch, var(--color-on-surface) 8%, var(--color-surface-sunken));
+  }
+}
+
+/*
+ * Play and pause share one slot: the outgoing glyph shrinks, fades and blurs as the incoming one
+ * arrives. Keyed on the nearest ancestor's data-playing, which the player writes.
+ */
+.swap {
+  position: relative;
+  display: grid;
+  place-items: center;
+}
+
+.swap > .icon {
+  grid-area: 1 / 1;
+  transition:
+    opacity var(--duration-state) var(--ease-out),
+    transform var(--duration-state) var(--ease-out),
+    filter var(--duration-state) var(--ease-out);
+}
+
+.swap-paused {
+  /* Optical center: a play triangle's mass sits left of its box. */
+  translate: 0.0625rem 0;
+}
+
+[data-playing="false"] .swap-playing,
+[data-playing="true"] .swap-paused {
+  opacity: 0;
+  transform: scale(0.7);
+  filter: blur(var(--blur-enter));
+}

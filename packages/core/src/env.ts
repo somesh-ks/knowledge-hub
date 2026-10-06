@@ -14,8 +14,10 @@ export const Env = z.object({
   SPEECHIFY_API_KEY: optionalString,
   SPEECHIFY_VOICE_ID: z.string().default("geffen_32"),
   BLOB_READ_WRITE_TOKEN: optionalString,
-  YOUTUBE_API_KEY: optionalString,
+  COMPOSIO_API_KEY: optionalString,
   MAX_TOKENS_PER_RUN: z.coerce.number().int().positive().default(400_000),
+  /** Monthly Speechify character allowance used by the 90 percent budget guard. */
+  SPEECHIFY_MONTHLY_CHARS: z.coerce.number().int().positive().default(500_000),
 });
 export type Env = z.infer<typeof Env>;
 

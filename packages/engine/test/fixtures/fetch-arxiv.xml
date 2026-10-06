@@ -1,0 +1,93 @@
+<?xml version='1.0' encoding='UTF-8'?>
+<feed xmlns:opensearch="http://a9.com/-/spec/opensearch/1.1/" xmlns:arxiv="http://arxiv.org/schemas/atom" xmlns="http://www.w3.org/2005/Atom">
+  <id>https://arxiv.org/api/K1XUj+gJ/9uDaMfEoz4daDjy6oA</id>
+  <title>arXiv Query: search_query=cat:cs.HC&amp;id_list=&amp;start=0&amp;max_results=3</title>
+  <updated>2026-10-05T22:30:04Z</updated>
+  <link href="https://arxiv.org/api/query?search_query=cat:cs.HC&amp;start=0&amp;max_results=3&amp;id_list=" type="application/atom+xml"/>
+  <opensearch:itemsPerPage>3</opensearch:itemsPerPage>
+  <opensearch:totalResults>33311</opensearch:totalResults>
+  <opensearch:startIndex>0</opensearch:startIndex>
+  <entry>
+    <id>http://arxiv.org/abs/2610.03511v1</id>
+    <title>Interactive Machine Learning Interfaces for Disease Risk Prediction: Effects on Risk Perception and Behaviour</title>
+    <updated>2026-10-02T16:05:23Z</updated>
+    <link href="https://arxiv.org/abs/2610.03511v1" rel="alternate" type="text/html"/>
+    <link href="https://arxiv.org/pdf/2610.03511v1" rel="related" type="application/pdf" title="pdf"/>
+    <summary>Machine learning risk models are increasingly being used in patient-facing health tools, but it remains unclear how well users understand the information these systems present. In this work, we study how people interpret an interactive Type 2 Diabetes (T2D) risk interface and whether interacting with it influences their attitudes toward behavioural change. Through an exploratory mixed-methods study with 15 participants, we compare participants' perceived understanding with their actual understanding and identify key themes from qualitative interviews. We find that participants often understood the interface better than they initially believed, but still faced important barriers related to unclear terminology, ambiguous risk framing, and limited explanations of model inputs. Finally, we propose relevant design guidelines and discuss broader issues surrounding trust and fairness. Our findings highlight the importance of intuitive visual design, familiar presentation, and clear explanations in patient-facing ML interfaces.</summary>
+    <category term="cs.HC" scheme="http://arxiv.org/schemas/atom"/>
+    <published>2026-10-02T16:05:23Z</published>
+    <arxiv:comment>14 pages, 3 figures. Tiffany Ngai, Max Homm, and Matthew Bradbury contributed equally to this work</arxiv:comment>
+    <arxiv:primary_category term="cs.HC"/>
+    <author>
+      <name>Tiffany Ngai</name>
+      <arxiv:affiliation>David R. Cheriton School of Computer Science, University of Waterloo, Waterloo, Canada</arxiv:affiliation>
+    </author>
+    <author>
+      <name>Max Homm</name>
+      <arxiv:affiliation>David R. Cheriton School of Computer Science, University of Waterloo, Waterloo, Canada</arxiv:affiliation>
+    </author>
+    <author>
+      <name>Matthew Bradbury</name>
+      <arxiv:affiliation>David R. Cheriton School of Computer Science, University of Waterloo, Waterloo, Canada</arxiv:affiliation>
+    </author>
+    <author>
+      <name>Anamaria Crisan</name>
+      <arxiv:affiliation>David R. Cheriton School of Computer Science, University of Waterloo, Waterloo, Canada</arxiv:affiliation>
+    </author>
+  </entry>
+<entry>
+    <id>http://arxiv.org/abs/2610.03398v1</id>
+    <title>Harmonic Eigenspace: A Web-based Application for Navigating and Composing Microtonal Harmony</title>
+    <updated>2026-10-02T14:47:04Z</updated>
+    <link href="https://arxiv.org/abs/2610.03398v1" rel="alternate" type="text/html"/>
+    <link href="https://arxiv.org/pdf/2610.03398v1" rel="related" type="application/pdf" title="pdf"/>
+    <summary>This paper presents a web-based application for navigating and composing microtonal harmony, built on the Harmonic Eigenspace, a four-dimensional psychoacoustically grounded space in which tetrad chord types are located by their spectral dissonance profiles, computed with Sethares's roughness/dissonance model. The coordinate system is transposition-invariant: a coordinate triple (α, \b{eta}, γ) locates the three upper notes in relation to the root, so a chord quality corresponds to a direction in the space, the invariant ray along which transposition acts, while the root frequency sets the scale. The dissonance field over these coordinates can be computed at any register; the locations of its local minima are register-invariant, as they arise from partial-coincidence ratio conditions. The dissonance volume contains 100 local minima that align with just-intonation intervals and act as landmarks, organising the space into basins around the most consonant tetrads. We embed tetrads from three tonal equal temperaments as discrete lattices within this continuous volume. The application presents this space through two components: the Harmonic Eigenspace as a navigable 3D visualisation of the dissonance volume in which all nodes are playable, and a Modal Studio that extends modal interchange logic to the ten-gradation interval vocabulary of 53-TET. The application also functions as a MIDI controller with MIDI Polyphonic Expression support, usable in any digital audio workstation that supports this format. A listening study with 31 participants used both scenes of the application: listeners first rated isolated 53-TET chords alongside chords familiar from Western practice, such as the maj7 and the m7; they then rated chord progressions composed in the Modal Studio, measuring their acceptance or rejection of microtonal progressions heard for the first time.</summary>
+    <category term="cs.SD" scheme="http://arxiv.org/schemas/atom"/>
+    <category term="cs.HC" scheme="http://arxiv.org/schemas/atom"/>
+    <published>2026-10-02T14:47:04Z</published>
+    <arxiv:comment>31 pages, 15 figures, 7 tables. Under review at the Journal of New Music Research. Web application: https://dazzid.github.io/ANIMA_Harmonic_Eigenspace/</arxiv:comment>
+    <arxiv:primary_category term="cs.SD"/>
+    <author>
+      <name>David Dalmazzo</name>
+    </author>
+    <author>
+      <name>Ken Déguernel</name>
+    </author>
+  </entry>
+<entry>
+    <id>http://arxiv.org/abs/2610.03232v1</id>
+    <title>Seeing through the Eyes of AI: Situated Explainability in Augmented Reality</title>
+    <updated>2026-10-02T12:43:46Z</updated>
+    <link href="https://arxiv.org/abs/2610.03232v1" rel="alternate" type="text/html"/>
+    <link href="https://arxiv.org/pdf/2610.03232v1" rel="related" type="application/pdf" title="pdf"/>
+    <summary>Explainable Artificial Intelligence (AI) enables humans to understand and interpret decisions of AI models. Instead of having a black box, explainability supports humans in understanding AI models' behavior. Existing explainable AI approaches often present explanations on 2D displays using pre-recorded data, requiring users to relate the displayed information back to the physical objects and real world locations involved in a model's decision. Users are forced to decouple data exploration and capture from AI model interpretation. For AI systems that work within physical environments, this separation can make explanations difficult to interpret in context. We propose using Augmented Reality (AR) to enhance the understanding of AI models by enabling spatial explainability information directly in a user's workspace, in real time, as they explore the world. We show how known explainability methods can be applied in AR and provide insights into user experiences with such an application.</summary>
+    <category term="cs.HC" scheme="http://arxiv.org/schemas/atom"/>
+    <published>2026-10-02T12:43:46Z</published>
+    <arxiv:comment>11 pages, 8 figures</arxiv:comment>
+    <arxiv:primary_category term="cs.HC"/>
+    <author>
+      <name>Ana Stanescu</name>
+    </author>
+    <author>
+      <name>Lucchas Ribeiro Skreinig</name>
+    </author>
+    <author>
+      <name>Tobias Langlotz</name>
+    </author>
+    <author>
+      <name>Stefanie Zollmann</name>
+    </author>
+    <author>
+      <name>Peter Mohr</name>
+    </author>
+    <author>
+      <name>Dieter Schmalstieg</name>
+    </author>
+    <author>
+      <name>Mark Billinghurst</name>
+    </author>
+    <author>
+      <name>Denis Kalkofen</name>
+    </author>
+  </entry>
+</feed>

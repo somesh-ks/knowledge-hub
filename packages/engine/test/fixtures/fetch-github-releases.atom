@@ -1,0 +1,86 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<feed xmlns="http://www.w3.org/2005/Atom" xmlns:media="http://search.yahoo.com/mrss/" xml:lang="en-US">
+  <id>tag:github.com,2008:https://github.com/shadcn-ui/ui/releases</id>
+  <link type="text/html" rel="alternate" href="https://github.com/shadcn-ui/ui/releases"/>
+  <link type="application/atom+xml" rel="self" href="https://github.com/shadcn-ui/ui/releases.atom"/>
+  <title>Release notes from ui</title>
+  <updated>2026-10-05T14:38:18Z</updated>
+  <entry>
+    <id>tag:github.com,2008:Repository/585146387/shadcn@4.21.2</id>
+    <updated>2026-10-05T14:38:22Z</updated>
+    <link rel="alternate" type="text/html" href="https://github.com/shadcn-ui/ui/releases/tag/shadcn%404.21.2"/>
+    <title>shadcn@4.21.2</title>
+    <content type="html">&lt;h3&gt;Patch Changes&lt;/h3&gt;
+&lt;ul&gt;
+&lt;li&gt;
+&lt;p&gt;&lt;a href=&quot;https://github.com/shadcn-ui/ui/pull/12143&quot; data-hovercard-type=&quot;pull_request&quot; data-hovercard-url=&quot;/shadcn-ui/ui/pull/12143/hovercard&quot;&gt;#12143&lt;/a&gt; &lt;a href=&quot;https://github.com/shadcn-ui/ui/commit/8c2bf3882cb856ac10abbb162bdc0b8383ebd432&quot;&gt;&lt;code&gt;8c2bf3882cb856ac10abbb162bdc0b8383ebd432&lt;/code&gt;&lt;/a&gt; Thanks &lt;a href=&quot;https://github.com/shadcn&quot;&gt;@shadcn&lt;/a&gt;! - Accept &lt;code&gt;components.json&lt;/code&gt; and &lt;code&gt;package.json&lt;/code&gt; files that start with a UTF-8 byte order mark.&lt;/p&gt;
+&lt;/li&gt;
+&lt;li&gt;
+&lt;p&gt;&lt;a href=&quot;https://github.com/shadcn-ui/ui/pull/12142&quot; data-hovercard-type=&quot;pull_request&quot; data-hovercard-url=&quot;/shadcn-ui/ui/pull/12142/hovercard&quot;&gt;#12142&lt;/a&gt; &lt;a href=&quot;https://github.com/shadcn-ui/ui/commit/95efb5cd8d7f13adba70b58b1119211e8980683f&quot;&gt;&lt;code&gt;95efb5cd8d7f13adba70b58b1119211e8980683f&lt;/code&gt;&lt;/a&gt; Thanks &lt;a href=&quot;https://github.com/shadcn&quot;&gt;@shadcn&lt;/a&gt;! - replace cosmiconfig with a smaller custom reader.&lt;/p&gt;
+&lt;/li&gt;
+&lt;li&gt;
+&lt;p&gt;&lt;a href=&quot;https://github.com/shadcn-ui/ui/pull/12140&quot; data-hovercard-type=&quot;pull_request&quot; data-hovercard-url=&quot;/shadcn-ui/ui/pull/12140/hovercard&quot;&gt;#12140&lt;/a&gt; &lt;a href=&quot;https://github.com/shadcn-ui/ui/commit/3b1ae6e43f082dd82d0e5710b813cfad929abdb4&quot;&gt;&lt;code&gt;3b1ae6e43f082dd82d0e5710b813cfad929abdb4&lt;/code&gt;&lt;/a&gt; Thanks &lt;a href=&quot;https://github.com/shadcn&quot;&gt;@shadcn&lt;/a&gt;! - Skip &lt;code&gt;npm audit&lt;/code&gt; and the funding check when installing or removing dependencies, or creating a project, with npm.&lt;/p&gt;
+&lt;/li&gt;
+&lt;li&gt;
+&lt;p&gt;Updated dependencies [&lt;a href=&quot;https://github.com/shadcn-ui/ui/commit/8c2bf3882cb856ac10abbb162bdc0b8383ebd432&quot;&gt;&lt;code&gt;8c2bf3882cb856ac10abbb162bdc0b8383ebd432&lt;/code&gt;&lt;/a&gt;, &lt;a href=&quot;https://github.com/shadcn-ui/ui/commit/95efb5cd8d7f13adba70b58b1119211e8980683f&quot;&gt;&lt;code&gt;95efb5cd8d7f13adba70b58b1119211e8980683f&lt;/code&gt;&lt;/a&gt;, &lt;a href=&quot;https://github.com/shadcn-ui/ui/commit/3b1ae6e43f082dd82d0e5710b813cfad929abdb4&quot;&gt;&lt;code&gt;3b1ae6e43f082dd82d0e5710b813cfad929abdb4&lt;/code&gt;&lt;/a&gt;]:&lt;/p&gt;
+&lt;ul&gt;
+&lt;li&gt;@shadcn/registry@0.1.1&lt;/li&gt;
+&lt;/ul&gt;
+&lt;/li&gt;
+&lt;/ul&gt;</content>
+    <author>
+      <name>github-actions[bot]</name>
+    </author>
+    <media:thumbnail height="30" width="30" url="https://avatars.githubusercontent.com/in/15368?s=60&amp;v=4"/>
+  </entry>
+<entry>
+    <id>tag:github.com,2008:Repository/585146387/@shadcn/registry@0.1.1</id>
+    <updated>2026-10-05T14:38:19Z</updated>
+    <link rel="alternate" type="text/html" href="https://github.com/shadcn-ui/ui/releases/tag/%40shadcn%2Fregistry%400.1.1"/>
+    <title>@shadcn/registry@0.1.1</title>
+    <content type="html">&lt;h3&gt;Patch Changes&lt;/h3&gt;
+&lt;ul&gt;
+&lt;li&gt;
+&lt;p&gt;&lt;a href=&quot;https://github.com/shadcn-ui/ui/pull/12143&quot; data-hovercard-type=&quot;pull_request&quot; data-hovercard-url=&quot;/shadcn-ui/ui/pull/12143/hovercard&quot;&gt;#12143&lt;/a&gt; &lt;a href=&quot;https://github.com/shadcn-ui/ui/commit/8c2bf3882cb856ac10abbb162bdc0b8383ebd432&quot;&gt;&lt;code&gt;8c2bf3882cb856ac10abbb162bdc0b8383ebd432&lt;/code&gt;&lt;/a&gt; Thanks &lt;a href=&quot;https://github.com/shadcn&quot;&gt;@shadcn&lt;/a&gt;! - Accept &lt;code&gt;components.json&lt;/code&gt; and &lt;code&gt;package.json&lt;/code&gt; files that start with a UTF-8 byte order mark.&lt;/p&gt;
+&lt;/li&gt;
+&lt;li&gt;
+&lt;p&gt;&lt;a href=&quot;https://github.com/shadcn-ui/ui/pull/12142&quot; data-hovercard-type=&quot;pull_request&quot; data-hovercard-url=&quot;/shadcn-ui/ui/pull/12142/hovercard&quot;&gt;#12142&lt;/a&gt; &lt;a href=&quot;https://github.com/shadcn-ui/ui/commit/95efb5cd8d7f13adba70b58b1119211e8980683f&quot;&gt;&lt;code&gt;95efb5cd8d7f13adba70b58b1119211e8980683f&lt;/code&gt;&lt;/a&gt; Thanks &lt;a href=&quot;https://github.com/shadcn&quot;&gt;@shadcn&lt;/a&gt;! - replace cosmiconfig with a smaller custom reader.&lt;/p&gt;
+&lt;/li&gt;
+&lt;li&gt;
+&lt;p&gt;&lt;a href=&quot;https://github.com/shadcn-ui/ui/pull/12140&quot; data-hovercard-type=&quot;pull_request&quot; data-hovercard-url=&quot;/shadcn-ui/ui/pull/12140/hovercard&quot;&gt;#12140&lt;/a&gt; &lt;a href=&quot;https://github.com/shadcn-ui/ui/commit/3b1ae6e43f082dd82d0e5710b813cfad929abdb4&quot;&gt;&lt;code&gt;3b1ae6e43f082dd82d0e5710b813cfad929abdb4&lt;/code&gt;&lt;/a&gt; Thanks &lt;a href=&quot;https://github.com/shadcn&quot;&gt;@shadcn&lt;/a&gt;! - Skip &lt;code&gt;npm audit&lt;/code&gt; and the funding check when installing or removing dependencies, or creating a project, with npm.&lt;/p&gt;
+&lt;/li&gt;
+&lt;/ul&gt;</content>
+    <author>
+      <name>github-actions[bot]</name>
+    </author>
+    <media:thumbnail height="30" width="30" url="https://avatars.githubusercontent.com/in/15368?s=60&amp;v=4"/>
+  </entry>
+<entry>
+    <id>tag:github.com,2008:Repository/585146387/shadcn@4.21.1</id>
+    <updated>2026-10-01T10:30:53Z</updated>
+    <link rel="alternate" type="text/html" href="https://github.com/shadcn-ui/ui/releases/tag/shadcn%404.21.1"/>
+    <title>shadcn@4.21.1</title>
+    <content type="html">&lt;h3&gt;Patch Changes&lt;/h3&gt;
+&lt;ul&gt;
+&lt;li&gt;
+&lt;p&gt;&lt;a href=&quot;https://github.com/shadcn-ui/ui/pull/12087&quot; data-hovercard-type=&quot;pull_request&quot; data-hovercard-url=&quot;/shadcn-ui/ui/pull/12087/hovercard&quot;&gt;#12087&lt;/a&gt; &lt;a href=&quot;https://github.com/shadcn-ui/ui/commit/bf6646b449684e687f28531305eca4e4768c2782&quot;&gt;&lt;code&gt;bf6646b449684e687f28531305eca4e4768c2782&lt;/code&gt;&lt;/a&gt; Thanks &lt;a href=&quot;https://github.com/shadcn&quot;&gt;@shadcn&lt;/a&gt;! - Add &lt;code&gt;@shadcn/registry&lt;/code&gt;, the registry engine behind the CLI. &lt;code&gt;shadcn&lt;/code&gt; now depends on it, and &lt;code&gt;shadcn/registry&lt;/code&gt; and &lt;code&gt;shadcn/schema&lt;/code&gt; re-export it, so there are no changes for existing users.&lt;/p&gt;
+&lt;/li&gt;
+&lt;li&gt;
+&lt;p&gt;&lt;a href=&quot;https://github.com/shadcn-ui/ui/pull/12061&quot; data-hovercard-type=&quot;pull_request&quot; data-hovercard-url=&quot;/shadcn-ui/ui/pull/12061/hovercard&quot;&gt;#12061&lt;/a&gt; &lt;a href=&quot;https://github.com/shadcn-ui/ui/commit/a9c1da49ec4eab488dc99c69ae20a7ffaa4897d4&quot;&gt;&lt;code&gt;a9c1da49ec4eab488dc99c69ae20a7ffaa4897d4&lt;/code&gt;&lt;/a&gt; Thanks &lt;a href=&quot;https://github.com/shadcn&quot;&gt;@shadcn&lt;/a&gt;! - fix shimmer reduced motion handling when used with a variant&lt;/p&gt;
+&lt;/li&gt;
+&lt;li&gt;
+&lt;p&gt;&lt;a href=&quot;https://github.com/shadcn-ui/ui/pull/12087&quot; data-hovercard-type=&quot;pull_request&quot; data-hovercard-url=&quot;/shadcn-ui/ui/pull/12087/hovercard&quot;&gt;#12087&lt;/a&gt; &lt;a href=&quot;https://github.com/shadcn-ui/ui/commit/bf6646b449684e687f28531305eca4e4768c2782&quot;&gt;&lt;code&gt;bf6646b449684e687f28531305eca4e4768c2782&lt;/code&gt;&lt;/a&gt; Thanks &lt;a href=&quot;https://github.com/shadcn&quot;&gt;@shadcn&lt;/a&gt;! - &lt;code&gt;shadcn docs&lt;/code&gt; only rewrites links on the ui.shadcn.com host.&lt;/p&gt;
+&lt;/li&gt;
+&lt;li&gt;
+&lt;p&gt;Updated dependencies [&lt;a href=&quot;https://github.com/shadcn-ui/ui/commit/bf6646b449684e687f28531305eca4e4768c2782&quot;&gt;&lt;code&gt;bf6646b449684e687f28531305eca4e4768c2782&lt;/code&gt;&lt;/a&gt;]:&lt;/p&gt;
+&lt;ul&gt;
+&lt;li&gt;@shadcn/registry@0.1.0&lt;/li&gt;
+&lt;/ul&gt;
+&lt;/li&gt;
+&lt;/ul&gt;</content>
+    <author>
+      <name>github-actions[bot]</name>
+    </author>
+    <media:thumbnail height="30" width="30" url="https://avatars.githubusercontent.com/in/15368?s=60&amp;v=4"/>
+  </entry>
+</feed>

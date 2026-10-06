@@ -1,0 +1,32 @@
+---
+import { paletteAccent } from "@dispatch/cover";
+import type { DigestEntry } from "../lib/digests";
+import type { HeroView } from "../lib/digestView";
+import Cover from "./Cover.astro";
+import PlayCta from "./PlayCta.astro";
+
+interface Props {
+  entry: DigestEntry;
+  hero: HeroView;
+}
+
+const { entry, hero } = Astro.props;
+---
+
+<section class="hero" aria-labelledby="page-title">
+  <Cover
+    digestId={entry.id}
+    size="hero"
+    paletteBg={paletteAccent(entry.digest.cover.palette).bg}
+    weekly={entry.digest.kind === "weekly"}
+    priority
+  />
+  <div class="hero-text">
+    <h1 id="page-title" tabindex="-1">{hero.title}</h1>
+    <p class="hero-meta">
+      <span>{hero.countLine}</span>
+      <span>{hero.timeLine}</span>
+    </p>
+  </div>
+  <PlayCta digestId={entry.id} mode={entry.audioMode} clock={hero.clock} />
+</section>

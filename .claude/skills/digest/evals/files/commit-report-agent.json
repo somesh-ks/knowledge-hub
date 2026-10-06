@@ -1,0 +1,22 @@
+{
+  "outcome": "published",
+  "digests": [
+    {
+      "id": "2026-10-06",
+      "kind": "on-demand",
+      "outcome": "published",
+      "items": 5,
+      "verified": false,
+      "path": "Digests/2026/10/2026-10-06.md",
+      "preview": null
+    }
+  ],
+  "deploy": true,
+  "items": 5,
+  "dry_run": false,
+  "commit": {
+    "status": "committed",
+    "sha": "3f909f7749e005dcc37faf0fb54b9f934a79aabd",
+    "message": "chore(digest): 2026-10-06"
+  }
+}

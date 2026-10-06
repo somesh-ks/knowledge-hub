@@ -2,7 +2,7 @@
 // Usage: npm run secrets:push [-- --dry-run] [-- --only github|vercel]
 import { execFileSync } from "node:child_process";
 import { existsSync, readFileSync } from "node:fs";
-import { resolve } from "node:path";
+import { join, resolve } from "node:path";
 
 interface Target {
   name: string;
@@ -17,10 +17,7 @@ const GITHUB_SECRETS = [
   "FIRECRAWL_API_KEY",
   "SPEECHIFY_API_KEY",
   "BLOB_READ_WRITE_TOKEN",
-  "VERCEL_TOKEN",
-  "VERCEL_ORG_ID",
-  "VERCEL_PROJECT_ID",
-  "YOUTUBE_API_KEY",
+  "COMPOSIO_API_KEY",
 ];
 
 /** Plain configuration, stored as GitHub Actions variables so it stays visible in workflow runs. */
@@ -29,6 +26,9 @@ const GITHUB_VARIABLES = [
   "DISPATCH_MODEL",
   "DISPATCH_FALLBACK_MODEL",
   "SPEECHIFY_VOICE_ID",
+  "SPEECHIFY_MONTHLY_CHARS",
+  "DISPATCH_GIT_NAME",
+  "DISPATCH_GIT_EMAIL",
 ];
 
 /** Environment variables for the Generate button's server routes on Vercel. */
@@ -77,6 +77,13 @@ function run(
   });
 }
 
+/** The directory `vercel link` was run in: the repository root or apps/web. */
+function linkedVercelDir(): string | undefined {
+  return [resolve("."), resolve("apps/web")].find((dir) =>
+    existsSync(join(dir, ".vercel", "project.json")),
+  );
+}
+
 function main(): void {
   const args = process.argv.slice(2);
   const dryRun = args.includes("--dry-run");
@@ -90,9 +97,16 @@ function main(): void {
     return;
   }
   const values = parseDotenv(readFileSync(envPath, "utf8"));
-  const repo = values.GITHUB_REPOSITORY || "somesh-ks/dispatch";
+  const repo = values.GITHUB_REPOSITORY || "somesh-ks/knowledge-hub";
   const childEnv: NodeJS.ProcessEnv = { ...process.env };
   if (values.VERCEL_TOKEN) childEnv.VERCEL_TOKEN = values.VERCEL_TOKEN;
+
+  const vercelDir = linkedVercelDir();
+  if (!vercelDir && only !== "github" && !dryRun) {
+    console.error(
+      "The Vercel project is not linked. Run `vercel link` first, or use --only github.",
+    );
+  }
 
   const sent: string[] = [];
   const skipped: string[] = [];
@@ -124,7 +138,7 @@ function main(): void {
             ["vercel", "env", "add", target.name, "production", "--force"],
             value,
             childEnv,
-            resolve("apps/web"),
+            vercelDir,
           );
           break;
         default: {

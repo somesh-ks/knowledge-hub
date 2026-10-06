@@ -65,6 +65,23 @@ export const UsageFile = z.object({
 });
 export type UsageFile = z.infer<typeof UsageFile>;
 
+/**
+ * Per-source fetch health, kept apart from config/sources.json so a run never rewrites
+ * hand-edited configuration. Overlaid onto the registry when it is loaded.
+ */
+export const SourceHealthFile = z.object({
+  version: z.literal(1),
+  sources: z.record(
+    z.string(),
+    z.object({
+      failures: z.number().int().nonnegative(),
+      last_ok: isoDateTime.optional(),
+    }),
+  ),
+});
+export type SourceHealthFile = z.infer<typeof SourceHealthFile>;
+export const EMPTY_SOURCE_HEALTH: SourceHealthFile = { version: 1, sources: {} };
+
 export const EMPTY_SEEN: SeenFile = { version: 1, items: {} };
 export const EMPTY_JUDGMENTS: JudgmentsFile = { version: 1, entries: {} };
 export const EMPTY_LAST_RUN: LastRunFile = { version: 1 };

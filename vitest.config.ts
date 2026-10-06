@@ -9,6 +9,8 @@ export default defineConfig({
       "scripts/**/*.test.ts",
     ],
     environment: "node",
-    testTimeout: 15_000,
+    // Several suites drive real git processes in temporary repositories, which is slow on Windows.
+    testTimeout: 60_000,
+    hookTimeout: 60_000,
   },
 });

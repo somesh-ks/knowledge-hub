@@ -1,0 +1,1389 @@
+{
+  "version": 1,
+  "sources": [
+    {
+      "id": "openai-blog",
+      "name": "OpenAI Blog",
+      "type": "rss",
+      "url": "https://openai.com/blog",
+      "feed_url": "https://openai.com/blog/rss.xml",
+      "tier": "daily",
+      "high_signal": true,
+      "category_hint": "frontier_model_releases",
+      "enabled": true,
+      "failures": 0,
+      "options": {}
+    },
+    {
+      "id": "anthropic-blog",
+      "name": "Anthropic Blog",
+      "type": "firecrawl",
+      "url": "https://www.anthropic.com/news",
+      "feed_url": null,
+      "tier": "daily",
+      "high_signal": true,
+      "category_hint": "frontier_model_releases",
+      "enabled": true,
+      "failures": 0,
+      "options": {}
+    },
+    {
+      "id": "deepmind-blog",
+      "name": "Google DeepMind",
+      "type": "rss",
+      "url": "https://deepmind.google/discover/blog/",
+      "feed_url": "https://deepmind.google/blog/feed",
+      "tier": "daily",
+      "high_signal": true,
+      "category_hint": "frontier_model_releases",
+      "enabled": true,
+      "failures": 0,
+      "options": {}
+    },
+    {
+      "id": "cloudflare-blog",
+      "name": "Cloudflare Blog",
+      "type": "rss",
+      "url": "https://blog.cloudflare.com",
+      "feed_url": "https://blog.cloudflare.com/rss/",
+      "tier": "daily",
+      "high_signal": false,
+      "category_hint": "developer_tool_launches",
+      "enabled": true,
+      "failures": 0,
+      "options": {}
+    },
+    {
+      "id": "vercel-blog",
+      "name": "Vercel Blog",
+      "type": "rss",
+      "url": "https://vercel.com/blog",
+      "feed_url": "https://vercel.com/blog/feed",
+      "tier": "daily",
+      "high_signal": false,
+      "category_hint": "developer_tool_launches",
+      "enabled": true,
+      "failures": 0,
+      "options": {}
+    },
+    {
+      "id": "linear-blog",
+      "name": "Linear",
+      "type": "rss",
+      "url": "https://linear.app/blog",
+      "feed_url": "https://linear.app/rss/now.xml",
+      "tier": "daily",
+      "high_signal": true,
+      "category_hint": "design_engineering_craft",
+      "enabled": true,
+      "failures": 0,
+      "options": {}
+    },
+    {
+      "id": "stripe-engineering",
+      "name": "Stripe Engineering",
+      "type": "rss",
+      "url": "https://stripe.com/blog/engineering",
+      "feed_url": "https://stripe.dev/blog/feed",
+      "tier": "weekly",
+      "high_signal": false,
+      "category_hint": "developer_tool_launches",
+      "enabled": true,
+      "failures": 0,
+      "options": {}
+    },
+    {
+      "id": "github-engineering",
+      "name": "GitHub Engineering",
+      "type": "rss",
+      "url": "https://github.blog/category/engineering/",
+      "feed_url": "https://github.blog/feed/",
+      "tier": "daily",
+      "high_signal": false,
+      "category_hint": "developer_tool_launches",
+      "enabled": true,
+      "failures": 0,
+      "options": {}
+    },
+    {
+      "id": "meta-ai-blog",
+      "name": "Meta AI Blog",
+      "type": "firecrawl",
+      "url": "https://ai.meta.com/blog/",
+      "feed_url": null,
+      "tier": "daily",
+      "high_signal": false,
+      "category_hint": "frontier_model_releases",
+      "enabled": true,
+      "failures": 0,
+      "options": {}
+    },
+    {
+      "id": "mistral-blog",
+      "name": "Mistral Blog",
+      "type": "rss",
+      "url": "https://mistral.ai/news",
+      "feed_url": "https://mistral.ai/news/rss",
+      "tier": "daily",
+      "high_signal": false,
+      "category_hint": "frontier_model_releases",
+      "enabled": true,
+      "failures": 0,
+      "options": {}
+    },
+    {
+      "id": "hugging-face-blog",
+      "name": "Hugging Face Blog",
+      "type": "rss",
+      "url": "https://huggingface.co/blog",
+      "feed_url": "https://huggingface.co/blog/feed.xml",
+      "tier": "daily",
+      "high_signal": false,
+      "category_hint": "frontier_model_releases",
+      "enabled": true,
+      "failures": 0,
+      "options": {}
+    },
+    {
+      "id": "stability-ai-blog",
+      "name": "Stability AI Blog",
+      "type": "rss",
+      "url": "https://stability.ai/news",
+      "feed_url": "https://stability.ai/news-updates?format=rss",
+      "tier": "daily",
+      "high_signal": false,
+      "category_hint": "frontier_model_releases",
+      "enabled": true,
+      "failures": 0,
+      "options": {}
+    },
+    {
+      "id": "cohere-blog",
+      "name": "Cohere Blog",
+      "type": "firecrawl",
+      "url": "https://cohere.com/blog",
+      "feed_url": null,
+      "tier": "daily",
+      "high_signal": false,
+      "category_hint": "frontier_model_releases",
+      "enabled": true,
+      "failures": 0,
+      "options": {}
+    },
+    {
+      "id": "xai-blog",
+      "name": "xAI Blog",
+      "type": "firecrawl",
+      "url": "https://x.ai/blog",
+      "feed_url": null,
+      "tier": "daily",
+      "high_signal": false,
+      "category_hint": "frontier_model_releases",
+      "enabled": true,
+      "failures": 0,
+      "options": {
+        "note": "blocked for plain requests (HTTP 403); needs Firecrawl"
+      }
+    },
+    {
+      "id": "import-ai",
+      "name": "Import AI",
+      "type": "rss",
+      "url": "https://importai.substack.com",
+      "feed_url": "https://importai.substack.com/feed",
+      "tier": "daily",
+      "high_signal": true,
+      "category_hint": "frontier_model_releases",
+      "enabled": true,
+      "failures": 0,
+      "options": {}
+    },
+    {
+      "id": "the-batch",
+      "name": "The Batch",
+      "type": "firecrawl",
+      "url": "https://www.deeplearning.ai/the-batch/",
+      "feed_url": null,
+      "tier": "daily",
+      "high_signal": false,
+      "category_hint": "frontier_model_releases",
+      "enabled": true,
+      "failures": 0,
+      "options": {}
+    },
+    {
+      "id": "the-rundown-ai",
+      "name": "The Rundown AI",
+      "type": "rss",
+      "url": "https://www.therundown.ai",
+      "feed_url": "https://www.therundown.ai/feed",
+      "tier": "daily",
+      "high_signal": false,
+      "category_hint": "generic_ai_hype_listicles",
+      "enabled": true,
+      "failures": 0,
+      "options": {}
+    },
+    {
+      "id": "tldr-ai",
+      "name": "TLDR AI",
+      "type": "rss",
+      "url": "https://tldr.tech/ai",
+      "feed_url": "https://tldr.tech/api/rss/ai",
+      "tier": "daily",
+      "high_signal": false,
+      "category_hint": "frontier_model_releases",
+      "enabled": true,
+      "failures": 0,
+      "options": {}
+    },
+    {
+      "id": "ahead-of-ai",
+      "name": "Ahead of AI",
+      "type": "rss",
+      "url": "https://magazine.sebastianraschka.com",
+      "feed_url": "https://magazine.sebastianraschka.com/feed",
+      "tier": "weekly",
+      "high_signal": false,
+      "category_hint": "frontier_model_releases",
+      "enabled": true,
+      "failures": 0,
+      "options": {}
+    },
+    {
+      "id": "last-week-in-ai",
+      "name": "Last Week in AI",
+      "type": "rss",
+      "url": "https://lastweekin.ai",
+      "feed_url": "https://lastweekin.ai/feed",
+      "tier": "daily",
+      "high_signal": false,
+      "category_hint": "frontier_model_releases",
+      "enabled": true,
+      "failures": 0,
+      "options": {
+        "note": "feed not verified: lastweekin.ai did not resolve on 2026-10-06"
+      }
+    },
+    {
+      "id": "the-algorithm",
+      "name": "The Algorithm",
+      "type": "rss",
+      "url": "https://www.technologyreview.com/topic/artificial-intelligence/",
+      "feed_url": "https://www.technologyreview.com/topic/artificial-intelligence/feed",
+      "tier": "daily",
+      "high_signal": false,
+      "category_hint": "frontier_model_releases",
+      "enabled": true,
+      "failures": 0,
+      "options": {}
+    },
+    {
+      "id": "one-useful-thing",
+      "name": "One Useful Thing",
+      "type": "rss",
+      "url": "https://www.oneusefulthing.org",
+      "feed_url": "https://www.oneusefulthing.org/feed",
+      "tier": "daily",
+      "high_signal": false,
+      "category_hint": "ai_ux_interaction_patterns",
+      "enabled": true,
+      "failures": 0,
+      "options": {}
+    },
+    {
+      "id": "superhuman-ai",
+      "name": "Superhuman AI",
+      "type": "firecrawl",
+      "url": "https://www.superhuman.ai",
+      "feed_url": null,
+      "tier": "daily",
+      "high_signal": false,
+      "category_hint": "generic_ai_hype_listicles",
+      "enabled": true,
+      "failures": 0,
+      "options": {}
+    },
+    {
+      "id": "the-neuron",
+      "name": "The Neuron",
+      "type": "rss",
+      "url": "https://www.theneurondaily.com",
+      "feed_url": "https://rss.beehiiv.com/feeds/N4eCstxvgX.xml",
+      "tier": "daily",
+      "high_signal": false,
+      "category_hint": "generic_ai_hype_listicles",
+      "enabled": true,
+      "failures": 0,
+      "options": {}
+    },
+    {
+      "id": "simon-willison",
+      "name": "Simon Willison",
+      "type": "rss",
+      "url": "https://simonwillison.net",
+      "feed_url": "https://simonwillison.net/atom/everything/",
+      "tier": "daily",
+      "high_signal": true,
+      "category_hint": "ai_ux_interaction_patterns",
+      "enabled": true,
+      "failures": 0,
+      "options": {}
+    },
+    {
+      "id": "aux-first",
+      "name": "AUX First",
+      "type": "rss",
+      "url": "https://auxfirst.com/newsletter.html",
+      "feed_url": "https://auxfirst.com/feed.xml",
+      "tier": "daily",
+      "high_signal": false,
+      "category_hint": "ai_ux_interaction_patterns",
+      "enabled": true,
+      "failures": 0,
+      "options": {}
+    },
+    {
+      "id": "beyond-the-screen",
+      "name": "Beyond the Screen",
+      "type": "firecrawl",
+      "url": "https://beyond.fionaburns.co/",
+      "feed_url": null,
+      "tier": "daily",
+      "high_signal": false,
+      "category_hint": "ai_ux_interaction_patterns",
+      "enabled": true,
+      "failures": 0,
+      "options": {}
+    },
+    {
+      "id": "rauno-freiberg",
+      "name": "Rauno Freiberg",
+      "type": "firecrawl",
+      "url": "https://rauno.me",
+      "feed_url": null,
+      "tier": "daily",
+      "high_signal": true,
+      "category_hint": "design_engineering_craft",
+      "enabled": true,
+      "failures": 0,
+      "options": {}
+    },
+    {
+      "id": "emil-kowalski",
+      "name": "Emil Kowalski",
+      "type": "firecrawl",
+      "url": "https://emilkowal.ski",
+      "feed_url": null,
+      "tier": "daily",
+      "high_signal": true,
+      "category_hint": "css_canvas_motion_techniques",
+      "enabled": true,
+      "failures": 0,
+      "options": {}
+    },
+    {
+      "id": "josh-w-comeau",
+      "name": "Josh W. Comeau",
+      "type": "rss",
+      "url": "https://www.joshwcomeau.com",
+      "feed_url": "https://www.joshwcomeau.com/rss.xml",
+      "tier": "daily",
+      "high_signal": true,
+      "category_hint": "css_canvas_motion_techniques",
+      "enabled": true,
+      "failures": 0,
+      "options": {}
+    },
+    {
+      "id": "jhey-tompkins",
+      "name": "Jhey Tompkins",
+      "type": "firecrawl",
+      "url": "https://jhey.dev",
+      "feed_url": null,
+      "tier": "daily",
+      "high_signal": true,
+      "category_hint": "css_canvas_motion_techniques",
+      "enabled": true,
+      "failures": 0,
+      "options": {}
+    },
+    {
+      "id": "andy-bell",
+      "name": "Andy Bell",
+      "type": "rss",
+      "url": "https://set.studio",
+      "feed_url": "https://set.studio/rss.xml",
+      "tier": "daily",
+      "high_signal": true,
+      "category_hint": "design_engineering_craft",
+      "enabled": true,
+      "failures": 0,
+      "options": {}
+    },
+    {
+      "id": "paco-coursey",
+      "name": "Paco Coursey",
+      "type": "rss",
+      "url": "https://paco.me",
+      "feed_url": "https://paco.me/feed.xml",
+      "tier": "daily",
+      "high_signal": true,
+      "category_hint": "design_engineering_craft",
+      "enabled": true,
+      "failures": 0,
+      "options": {}
+    },
+    {
+      "id": "lee-robinson",
+      "name": "Lee Robinson",
+      "type": "firecrawl",
+      "url": "https://leerob.com",
+      "feed_url": null,
+      "tier": "daily",
+      "high_signal": true,
+      "category_hint": "design_engineering_craft",
+      "enabled": true,
+      "failures": 0,
+      "options": {}
+    },
+    {
+      "id": "dan-abramov",
+      "name": "Dan Abramov",
+      "type": "rss",
+      "url": "https://overreacted.io",
+      "feed_url": "https://overreacted.io/atom.xml",
+      "tier": "daily",
+      "high_signal": true,
+      "category_hint": "design_engineering_craft",
+      "enabled": true,
+      "failures": 0,
+      "options": {}
+    },
+    {
+      "id": "kent-c-dodds",
+      "name": "Kent C. Dodds",
+      "type": "rss",
+      "url": "https://kentcdodds.com/blog",
+      "feed_url": "https://kentcdodds.com/blog/rss.xml",
+      "tier": "daily",
+      "high_signal": true,
+      "category_hint": "design_engineering_craft",
+      "enabled": true,
+      "failures": 0,
+      "options": {}
+    },
+    {
+      "id": "adam-wathan",
+      "name": "Adam Wathan",
+      "type": "rss",
+      "url": "https://adamwathan.me",
+      "feed_url": "https://adamwathan.me/rss/index.xml",
+      "tier": "daily",
+      "high_signal": true,
+      "category_hint": "design_engineering_craft",
+      "enabled": true,
+      "failures": 0,
+      "options": {}
+    },
+    {
+      "id": "ryan-florence",
+      "name": "Ryan Florence",
+      "type": "firecrawl",
+      "url": "https://ryanflorence.com",
+      "feed_url": null,
+      "tier": "daily",
+      "high_signal": true,
+      "category_hint": "ui_component_primitives",
+      "enabled": false,
+      "failures": 0,
+      "options": {
+        "note": "ryanflorence.com redirects to remix.run; covered by remix-blog"
+      }
+    },
+    {
+      "id": "darkroom-engineering",
+      "name": "darkroom.engineering",
+      "type": "firecrawl",
+      "url": "https://darkroom.engineering",
+      "feed_url": null,
+      "tier": "daily",
+      "high_signal": true,
+      "category_hint": "css_canvas_motion_techniques",
+      "enabled": true,
+      "failures": 0,
+      "options": {}
+    },
+    {
+      "id": "codrops",
+      "name": "Codrops",
+      "type": "firecrawl",
+      "url": "https://tympanus.net/codrops/",
+      "feed_url": null,
+      "tier": "daily",
+      "high_signal": false,
+      "category_hint": "css_canvas_motion_techniques",
+      "enabled": true,
+      "failures": 0,
+      "options": {
+        "note": "blocked for plain requests (HTTP 403); needs Firecrawl"
+      }
+    },
+    {
+      "id": "css-tricks",
+      "name": "CSS-Tricks",
+      "type": "rss",
+      "url": "https://css-tricks.com",
+      "feed_url": "https://css-tricks.com/feed/",
+      "tier": "daily",
+      "high_signal": false,
+      "category_hint": "css_canvas_motion_techniques",
+      "enabled": true,
+      "failures": 0,
+      "options": {}
+    },
+    {
+      "id": "friday-checkout",
+      "name": "Friday Checkout",
+      "type": "rss",
+      "url": "https://fridaycheckout.com",
+      "feed_url": "https://www.youtube.com/feeds/videos.xml?channel_id=UCRG_N2uO405WO4P3Ruef9NA",
+      "tier": "daily",
+      "high_signal": false,
+      "category_hint": "design_engineering_craft",
+      "enabled": true,
+      "failures": 0,
+      "options": {}
+    },
+    {
+      "id": "toools-newsletter",
+      "name": "TOOOLS Newsletter",
+      "type": "firecrawl",
+      "url": "https://www.toools.design/newsletter/",
+      "feed_url": null,
+      "tier": "daily",
+      "high_signal": false,
+      "category_hint": "ai_ux_interaction_patterns",
+      "enabled": true,
+      "failures": 0,
+      "options": {}
+    },
+    {
+      "id": "ui-things",
+      "name": "UI Things",
+      "type": "rss",
+      "url": "https://uithings.com/",
+      "feed_url": "https://uithings.com/feed",
+      "tier": "daily",
+      "high_signal": false,
+      "category_hint": "ui_component_primitives",
+      "enabled": true,
+      "failures": 0,
+      "options": {}
+    },
+    {
+      "id": "frontend-focus",
+      "name": "Frontend Focus",
+      "type": "rss",
+      "url": "https://frontendfoc.us",
+      "feed_url": "https://frontendfoc.us/rss/",
+      "tier": "daily",
+      "high_signal": false,
+      "category_hint": "css_canvas_motion_techniques",
+      "enabled": true,
+      "failures": 0,
+      "options": {}
+    },
+    {
+      "id": "css-weekly",
+      "name": "CSS Weekly",
+      "type": "rss",
+      "url": "https://css-weekly.com",
+      "feed_url": "https://css-weekly.com/feed",
+      "tier": "daily",
+      "high_signal": false,
+      "category_hint": "css_canvas_motion_techniques",
+      "enabled": true,
+      "failures": 0,
+      "options": {}
+    },
+    {
+      "id": "smashing-magazine",
+      "name": "Smashing Magazine",
+      "type": "rss",
+      "url": "https://www.smashingmagazine.com",
+      "feed_url": "https://www.smashingmagazine.com/feed/",
+      "tier": "daily",
+      "high_signal": false,
+      "category_hint": "design_engineering_craft",
+      "enabled": true,
+      "failures": 0,
+      "options": {}
+    },
+    {
+      "id": "sidebar-io",
+      "name": "sidebar.io",
+      "type": "rss",
+      "url": "https://sidebar.io",
+      "feed_url": "https://sidebar.io/feed.xml",
+      "tier": "daily",
+      "high_signal": false,
+      "category_hint": "taste_and_design_philosophy",
+      "enabled": true,
+      "failures": 0,
+      "options": {
+        "kind": "newsletter-link"
+      }
+    },
+    {
+      "id": "heydesigner",
+      "name": "HeyDesigner",
+      "type": "rss",
+      "url": "https://heydesigner.com",
+      "feed_url": "https://heydesigner.com/rss.xml",
+      "tier": "daily",
+      "high_signal": false,
+      "category_hint": "design_engineering_craft",
+      "enabled": true,
+      "failures": 0,
+      "options": {}
+    },
+    {
+      "id": "javascript-weekly",
+      "name": "JavaScript Weekly",
+      "type": "rss",
+      "url": "https://javascriptweekly.com",
+      "feed_url": "https://javascriptweekly.com/rss/",
+      "tier": "daily",
+      "high_signal": false,
+      "category_hint": "developer_tool_launches",
+      "enabled": true,
+      "failures": 0,
+      "options": {
+        "kind": "newsletter-issue"
+      }
+    },
+    {
+      "id": "react-status",
+      "name": "React Status",
+      "type": "rss",
+      "url": "https://react.statuscode.com",
+      "feed_url": "https://react.statuscode.com/rss/",
+      "tier": "daily",
+      "high_signal": false,
+      "category_hint": "ui_component_primitives",
+      "enabled": true,
+      "failures": 0,
+      "options": {
+        "kind": "newsletter-issue"
+      }
+    },
+    {
+      "id": "node-weekly",
+      "name": "Node Weekly",
+      "type": "rss",
+      "url": "https://nodeweekly.com",
+      "feed_url": "https://nodeweekly.com/rss/",
+      "tier": "daily",
+      "high_signal": false,
+      "category_hint": "developer_tool_launches",
+      "enabled": true,
+      "failures": 0,
+      "options": {
+        "kind": "newsletter-issue"
+      }
+    },
+    {
+      "id": "deno-weekly",
+      "name": "Deno Weekly",
+      "type": "firecrawl",
+      "url": "https://denoweekly.com",
+      "feed_url": null,
+      "tier": "daily",
+      "high_signal": false,
+      "category_hint": "developer_tool_launches",
+      "enabled": false,
+      "failures": 0,
+      "options": {
+        "note": "discontinued in May 2022; Deno news is covered by deno-blog"
+      }
+    },
+    {
+      "id": "typescript-weekly",
+      "name": "TypeScript Weekly",
+      "type": "rss",
+      "url": "https://typescript-weekly.com",
+      "feed_url": "http://us14.campaign-archive1.com/feed?u=809daf9442ece0a92a3d65f99&id=5693c0ed42",
+      "tier": "daily",
+      "high_signal": false,
+      "category_hint": "developer_tool_launches",
+      "enabled": true,
+      "failures": 0,
+      "options": {
+        "kind": "newsletter-issue"
+      }
+    },
+    {
+      "id": "tldr",
+      "name": "TLDR",
+      "type": "rss",
+      "url": "https://tldr.tech",
+      "feed_url": "https://tldr.tech/api/rss/tech",
+      "tier": "daily",
+      "high_signal": false,
+      "category_hint": "developer_tool_launches",
+      "enabled": true,
+      "failures": 0,
+      "options": {}
+    },
+    {
+      "id": "bytes",
+      "name": "Bytes",
+      "type": "firecrawl",
+      "url": "https://bytes.dev",
+      "feed_url": null,
+      "tier": "daily",
+      "high_signal": false,
+      "category_hint": "developer_tool_launches",
+      "enabled": true,
+      "failures": 0,
+      "options": {}
+    },
+    {
+      "id": "console-dev",
+      "name": "console.dev",
+      "type": "rss",
+      "url": "https://console.dev",
+      "feed_url": "https://console.dev/rss.xml",
+      "tier": "daily",
+      "high_signal": false,
+      "category_hint": "developer_tool_launches",
+      "enabled": true,
+      "failures": 0,
+      "options": {
+        "kind": "newsletter-link"
+      }
+    },
+    {
+      "id": "this-week-in-react",
+      "name": "This Week in React",
+      "type": "rss",
+      "url": "https://thisweekinreact.com",
+      "feed_url": "https://thisweekinreact.com/articles/rss.xml",
+      "tier": "daily",
+      "high_signal": false,
+      "category_hint": "ui_component_primitives",
+      "enabled": true,
+      "failures": 0,
+      "options": {}
+    },
+    {
+      "id": "better-stack-blog",
+      "name": "Better Stack Blog",
+      "type": "firecrawl",
+      "url": "https://betterstack.com/community",
+      "feed_url": null,
+      "tier": "daily",
+      "high_signal": false,
+      "category_hint": "developer_tool_launches",
+      "enabled": true,
+      "failures": 0,
+      "options": {}
+    },
+    {
+      "id": "shadcn-changelog",
+      "name": "shadcn/ui changelog",
+      "type": "rss",
+      "url": "https://ui.shadcn.com/docs/changelog",
+      "feed_url": "https://ui.shadcn.com/rss.xml",
+      "tier": "daily",
+      "high_signal": true,
+      "category_hint": "ui_component_primitives",
+      "enabled": true,
+      "failures": 0,
+      "options": {}
+    },
+    {
+      "id": "headless-ui",
+      "name": "Headless UI",
+      "type": "github",
+      "url": "https://github.com/tailwindlabs/headlessui/releases",
+      "feed_url": "https://github.com/tailwindlabs/headlessui/releases.atom",
+      "tier": "daily",
+      "high_signal": false,
+      "category_hint": "ui_component_primitives",
+      "enabled": true,
+      "failures": 0,
+      "options": {
+        "repo": "tailwindlabs/headlessui"
+      }
+    },
+    {
+      "id": "ark-ui",
+      "name": "Ark UI",
+      "type": "github",
+      "url": "https://github.com/chakra-ui/ark/releases",
+      "feed_url": "https://github.com/chakra-ui/ark/releases.atom",
+      "tier": "daily",
+      "high_signal": false,
+      "category_hint": "ui_component_primitives",
+      "enabled": true,
+      "failures": 0,
+      "options": {
+        "repo": "chakra-ui/ark"
+      }
+    },
+    {
+      "id": "melt-ui",
+      "name": "Melt UI",
+      "type": "github",
+      "url": "https://github.com/melt-ui/melt-ui/releases",
+      "feed_url": "https://github.com/melt-ui/melt-ui/releases.atom",
+      "tier": "daily",
+      "high_signal": false,
+      "category_hint": "ui_component_primitives",
+      "enabled": true,
+      "failures": 0,
+      "options": {
+        "repo": "melt-ui/melt-ui"
+      }
+    },
+    {
+      "id": "react-aria",
+      "name": "React Aria",
+      "type": "github",
+      "url": "https://github.com/adobe/react-spectrum/releases",
+      "feed_url": "https://github.com/adobe/react-spectrum/releases.atom",
+      "tier": "daily",
+      "high_signal": false,
+      "category_hint": "ui_component_primitives",
+      "enabled": true,
+      "failures": 0,
+      "options": {
+        "repo": "adobe/react-spectrum"
+      }
+    },
+    {
+      "id": "figma-release-notes",
+      "name": "Figma Release Notes",
+      "type": "rss",
+      "url": "https://www.figma.com/release-notes/",
+      "feed_url": "https://www.figma.com/release-notes/feed/atom.xml",
+      "tier": "daily",
+      "high_signal": false,
+      "category_hint": "design_engineering_craft",
+      "enabled": true,
+      "failures": 0,
+      "options": {}
+    },
+    {
+      "id": "storybook-blog",
+      "name": "Storybook Blog",
+      "type": "rss",
+      "url": "https://storybook.js.org/blog",
+      "feed_url": "https://storybook.js.org/blog/rss",
+      "tier": "daily",
+      "high_signal": false,
+      "category_hint": "ui_component_primitives",
+      "enabled": true,
+      "failures": 0,
+      "options": {}
+    },
+    {
+      "id": "tailwind-css-blog",
+      "name": "Tailwind CSS Blog",
+      "type": "rss",
+      "url": "https://tailwindcss.com/blog",
+      "feed_url": "https://tailwindcss.com/feeds/feed.xml",
+      "tier": "daily",
+      "high_signal": false,
+      "category_hint": "developer_tool_launches",
+      "enabled": true,
+      "failures": 0,
+      "options": {}
+    },
+    {
+      "id": "material-design-blog",
+      "name": "Material Design Blog",
+      "type": "firecrawl",
+      "url": "https://material.io/blog",
+      "feed_url": null,
+      "tier": "daily",
+      "high_signal": false,
+      "category_hint": "design_engineering_craft",
+      "enabled": true,
+      "failures": 0,
+      "options": {}
+    },
+    {
+      "id": "brutalist-report",
+      "name": "Brutalist Report",
+      "type": "firecrawl",
+      "url": "https://brutalist.report",
+      "feed_url": null,
+      "tier": "daily",
+      "high_signal": false,
+      "enabled": true,
+      "failures": 0,
+      "options": {
+        "kind": "newsletter-link"
+      }
+    },
+    {
+      "id": "daily-dev",
+      "name": "daily.dev",
+      "type": "firecrawl",
+      "url": "https://daily.dev",
+      "feed_url": null,
+      "tier": "daily",
+      "high_signal": false,
+      "enabled": false,
+      "failures": 0,
+      "options": {
+        "note": "personalized feed behind an account; not automatable"
+      }
+    },
+    {
+      "id": "the-verge",
+      "name": "The Verge",
+      "type": "rss",
+      "url": "https://www.theverge.com/tech",
+      "feed_url": "https://www.theverge.com/rss/index.xml",
+      "tier": "daily",
+      "high_signal": false,
+      "enabled": true,
+      "failures": 0,
+      "options": {}
+    },
+    {
+      "id": "ars-technica",
+      "name": "Ars Technica",
+      "type": "rss",
+      "url": "https://arstechnica.com",
+      "feed_url": "https://arstechnica.com/feed",
+      "tier": "daily",
+      "high_signal": false,
+      "enabled": true,
+      "failures": 0,
+      "options": {}
+    },
+    {
+      "id": "techcrunch",
+      "name": "TechCrunch",
+      "type": "rss",
+      "url": "https://techcrunch.com",
+      "feed_url": "https://techcrunch.com/feed/",
+      "tier": "daily",
+      "high_signal": false,
+      "category_hint": "venture_capital_and_gossip",
+      "enabled": true,
+      "failures": 0,
+      "options": {}
+    },
+    {
+      "id": "nextjs-blog",
+      "name": "Next.js Blog",
+      "type": "rss",
+      "url": "https://nextjs.org/blog",
+      "feed_url": "https://nextjs.org/feed.xml",
+      "tier": "daily",
+      "high_signal": false,
+      "category_hint": "developer_tool_launches",
+      "enabled": true,
+      "failures": 0,
+      "options": {}
+    },
+    {
+      "id": "vite-blog",
+      "name": "Vite Blog",
+      "type": "rss",
+      "url": "https://vitejs.dev/blog/",
+      "feed_url": "https://vite.dev/blog.rss",
+      "tier": "daily",
+      "high_signal": false,
+      "category_hint": "developer_tool_launches",
+      "enabled": true,
+      "failures": 0,
+      "options": {}
+    },
+    {
+      "id": "astro-blog",
+      "name": "Astro Blog",
+      "type": "rss",
+      "url": "https://astro.build/blog/",
+      "feed_url": "https://astro.build/rss.xml",
+      "tier": "daily",
+      "high_signal": false,
+      "category_hint": "developer_tool_launches",
+      "enabled": true,
+      "failures": 0,
+      "options": {}
+    },
+    {
+      "id": "svelte-blog",
+      "name": "Svelte Blog",
+      "type": "rss",
+      "url": "https://svelte.dev/blog",
+      "feed_url": "https://svelte.dev/blog/rss.xml",
+      "tier": "daily",
+      "high_signal": false,
+      "category_hint": "developer_tool_launches",
+      "enabled": true,
+      "failures": 0,
+      "options": {}
+    },
+    {
+      "id": "nuxt-blog",
+      "name": "Nuxt Blog",
+      "type": "rss",
+      "url": "https://nuxt.com/blog",
+      "feed_url": "https://nuxt.com/blog/rss.xml",
+      "tier": "daily",
+      "high_signal": false,
+      "category_hint": "developer_tool_launches",
+      "enabled": true,
+      "failures": 0,
+      "options": {}
+    },
+    {
+      "id": "bun-blog",
+      "name": "Bun Blog",
+      "type": "rss",
+      "url": "https://bun.sh/blog",
+      "feed_url": "https://bun.sh/rss.xml",
+      "tier": "daily",
+      "high_signal": false,
+      "category_hint": "developer_tool_launches",
+      "enabled": true,
+      "failures": 0,
+      "options": {}
+    },
+    {
+      "id": "deno-blog",
+      "name": "Deno Blog",
+      "type": "rss",
+      "url": "https://deno.com/blog",
+      "feed_url": "https://deno.com/feed",
+      "tier": "daily",
+      "high_signal": false,
+      "category_hint": "developer_tool_launches",
+      "enabled": true,
+      "failures": 0,
+      "options": {}
+    },
+    {
+      "id": "remix-blog",
+      "name": "Remix Blog",
+      "type": "rss",
+      "url": "https://remix.run/blog",
+      "feed_url": "https://remix.run/blog/rss.xml",
+      "tier": "daily",
+      "high_signal": false,
+      "category_hint": "developer_tool_launches",
+      "enabled": true,
+      "failures": 0,
+      "options": {}
+    },
+    {
+      "id": "shadcn-ui",
+      "name": "shadcn/ui",
+      "type": "github",
+      "url": "https://github.com/shadcn-ui/ui/releases",
+      "feed_url": "https://github.com/shadcn-ui/ui/releases.atom",
+      "tier": "daily",
+      "high_signal": true,
+      "category_hint": "ui_component_primitives",
+      "enabled": true,
+      "failures": 0,
+      "options": {
+        "repo": "shadcn-ui/ui"
+      }
+    },
+    {
+      "id": "radix-ui",
+      "name": "Radix UI",
+      "type": "github",
+      "url": "https://github.com/radix-ui/primitives/releases",
+      "feed_url": "https://github.com/radix-ui/primitives/releases.atom",
+      "tier": "daily",
+      "high_signal": true,
+      "category_hint": "ui_component_primitives",
+      "enabled": true,
+      "failures": 0,
+      "options": {
+        "repo": "radix-ui/primitives"
+      }
+    },
+    {
+      "id": "sonner",
+      "name": "Sonner",
+      "type": "github",
+      "url": "https://github.com/emilkowalski/sonner/releases",
+      "feed_url": "https://github.com/emilkowalski/sonner/releases.atom",
+      "tier": "daily",
+      "high_signal": true,
+      "category_hint": "ui_component_primitives",
+      "enabled": true,
+      "failures": 0,
+      "options": {
+        "repo": "emilkowalski/sonner"
+      }
+    },
+    {
+      "id": "vaul",
+      "name": "Vaul",
+      "type": "github",
+      "url": "https://github.com/emilkowalski/vaul/releases",
+      "feed_url": "https://github.com/emilkowalski/vaul/releases.atom",
+      "tier": "daily",
+      "high_signal": true,
+      "category_hint": "ui_component_primitives",
+      "enabled": true,
+      "failures": 0,
+      "options": {
+        "repo": "emilkowalski/vaul"
+      }
+    },
+    {
+      "id": "motion",
+      "name": "Motion",
+      "type": "github",
+      "url": "https://github.com/motiondivision/motion/releases",
+      "feed_url": "https://github.com/motiondivision/motion/releases.atom",
+      "tier": "daily",
+      "high_signal": true,
+      "category_hint": "css_canvas_motion_techniques",
+      "enabled": true,
+      "failures": 0,
+      "options": {
+        "repo": "motiondivision/motion"
+      }
+    },
+    {
+      "id": "lenis",
+      "name": "Lenis",
+      "type": "github",
+      "url": "https://github.com/darkroomengineering/lenis/releases",
+      "feed_url": "https://github.com/darkroomengineering/lenis/releases.atom",
+      "tier": "daily",
+      "high_signal": true,
+      "category_hint": "css_canvas_motion_techniques",
+      "enabled": true,
+      "failures": 0,
+      "options": {
+        "repo": "darkroomengineering/lenis"
+      }
+    },
+    {
+      "id": "assistant-ui",
+      "name": "assistant-ui",
+      "type": "github",
+      "url": "https://github.com/assistant-ui/assistant-ui/releases",
+      "feed_url": "https://github.com/assistant-ui/assistant-ui/releases.atom",
+      "tier": "daily",
+      "high_signal": true,
+      "category_hint": "ai_ux_interaction_patterns",
+      "enabled": true,
+      "failures": 0,
+      "options": {
+        "repo": "assistant-ui/assistant-ui"
+      }
+    },
+    {
+      "id": "base-ui",
+      "name": "Base UI",
+      "type": "github",
+      "url": "https://github.com/mui/base-ui/releases",
+      "feed_url": "https://github.com/mui/base-ui/releases.atom",
+      "tier": "daily",
+      "high_signal": true,
+      "category_hint": "ui_component_primitives",
+      "enabled": true,
+      "failures": 0,
+      "options": {
+        "repo": "mui/base-ui"
+      }
+    },
+    {
+      "id": "astro",
+      "name": "Astro",
+      "type": "github",
+      "url": "https://github.com/withastro/astro/releases",
+      "feed_url": "https://github.com/withastro/astro/releases.atom",
+      "tier": "daily",
+      "high_signal": false,
+      "category_hint": "developer_tool_launches",
+      "enabled": true,
+      "failures": 0,
+      "options": {
+        "repo": "withastro/astro"
+      }
+    },
+    {
+      "id": "fireship",
+      "name": "Fireship",
+      "type": "youtube",
+      "url": "https://www.youtube.com/@Fireship",
+      "feed_url": "https://www.youtube.com/feeds/videos.xml?channel_id=UCsBjURrPoezykLs9EqgamOA",
+      "tier": "daily",
+      "high_signal": false,
+      "category_hint": "developer_tool_launches",
+      "enabled": true,
+      "failures": 0,
+      "options": {
+        "channel_id": "UCsBjURrPoezykLs9EqgamOA",
+        "handle": "Fireship"
+      }
+    },
+    {
+      "id": "kevin-powell",
+      "name": "Kevin Powell",
+      "type": "youtube",
+      "url": "https://www.youtube.com/@KevinPowell",
+      "feed_url": "https://www.youtube.com/feeds/videos.xml?channel_id=UCJZv4d5rbIKd4QHMPkcABCw",
+      "tier": "daily",
+      "high_signal": false,
+      "category_hint": "css_canvas_motion_techniques",
+      "enabled": true,
+      "failures": 0,
+      "options": {
+        "channel_id": "UCJZv4d5rbIKd4QHMPkcABCw",
+        "handle": "KevinPowell"
+      }
+    },
+    {
+      "id": "theo-t3gg",
+      "name": "Theo (t3.gg)",
+      "type": "youtube",
+      "url": "https://www.youtube.com/@t3dotgg",
+      "feed_url": "https://www.youtube.com/feeds/videos.xml?channel_id=UCbRP3c757lWg9M-U7TyEkXA",
+      "tier": "daily",
+      "high_signal": false,
+      "category_hint": "developer_tool_launches",
+      "enabled": true,
+      "failures": 0,
+      "options": {
+        "channel_id": "UCbRP3c757lWg9M-U7TyEkXA",
+        "handle": "t3dotgg"
+      }
+    },
+    {
+      "id": "hyperplexed",
+      "name": "Hyperplexed",
+      "type": "youtube",
+      "url": "https://www.youtube.com/@Hyperplexed",
+      "feed_url": "https://www.youtube.com/feeds/videos.xml?channel_id=UCmEzz-dPBVrsy4ZluSsYHDg",
+      "tier": "daily",
+      "high_signal": false,
+      "category_hint": "css_canvas_motion_techniques",
+      "enabled": true,
+      "failures": 0,
+      "options": {
+        "channel_id": "UCmEzz-dPBVrsy4ZluSsYHDg",
+        "handle": "Hyperplexed"
+      }
+    },
+    {
+      "id": "hn-show",
+      "name": "Hacker News: Show HN",
+      "type": "hn",
+      "url": "https://news.ycombinator.com/show",
+      "feed_url": "https://hn.algolia.com/api/v1/search_by_date",
+      "tier": "daily",
+      "high_signal": false,
+      "category_hint": "developer_tool_launches",
+      "enabled": true,
+      "failures": 0,
+      "options": {
+        "min_points": "30",
+        "tags": "show_hn"
+      }
+    },
+    {
+      "id": "arxiv-cs-hc",
+      "name": "arXiv cs.HC",
+      "type": "arxiv",
+      "url": "https://arxiv.org/list/cs.HC/recent",
+      "feed_url": "https://export.arxiv.org/api/query?search_query=cat%3Acs.HC&sortBy=submittedDate&sortOrder=descending&max_results=100",
+      "tier": "daily",
+      "high_signal": false,
+      "category_hint": "hci_empirical_research",
+      "enabled": true,
+      "failures": 0,
+      "options": {
+        "category": "cs.HC",
+        "max_results": "100"
+      }
+    },
+    {
+      "id": "acm-tochi",
+      "name": "ACM TOCHI",
+      "type": "crossref",
+      "url": "https://dl.acm.org/journal/tochi",
+      "feed_url": "https://api.crossref.org/journals/1073-0516/works",
+      "tier": "weekly",
+      "high_signal": false,
+      "category_hint": "hci_empirical_research",
+      "enabled": true,
+      "failures": 0,
+      "options": {
+        "issn": "1073-0516"
+      }
+    },
+    {
+      "id": "acm-pacmhci",
+      "name": "ACM PACMHCI",
+      "type": "crossref",
+      "url": "https://dl.acm.org/journal/pacmhci",
+      "feed_url": "https://api.crossref.org/journals/2573-0142/works",
+      "tier": "weekly",
+      "high_signal": false,
+      "category_hint": "hci_empirical_research",
+      "enabled": true,
+      "failures": 0,
+      "options": {
+        "issn": "2573-0142"
+      }
+    },
+    {
+      "id": "product-hunt",
+      "name": "Product Hunt",
+      "type": "producthunt",
+      "url": "https://www.producthunt.com",
+      "feed_url": "https://www.producthunt.com/feed",
+      "tier": "daily",
+      "high_signal": false,
+      "category_hint": "developer_tool_launches",
+      "enabled": true,
+      "failures": 0,
+      "options": {}
+    },
+    {
+      "id": "lobsters",
+      "name": "Lobsters",
+      "type": "lobsters",
+      "url": "https://lobste.rs",
+      "feed_url": "https://lobste.rs/hottest.json",
+      "tier": "daily",
+      "high_signal": false,
+      "enabled": true,
+      "failures": 0,
+      "options": {}
+    },
+    {
+      "id": "exa-discovery",
+      "name": "Exa discovery",
+      "type": "exa",
+      "url": "https://exa.ai",
+      "feed_url": "https://api.exa.ai/search",
+      "tier": "daily",
+      "high_signal": false,
+      "enabled": true,
+      "failures": 0,
+      "options": {
+        "pool_cap": "25",
+        "queries": "config/queries.json"
+      }
+    }
+  ]
+}

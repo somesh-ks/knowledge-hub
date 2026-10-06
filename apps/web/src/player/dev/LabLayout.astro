@@ -1,0 +1,55 @@
+---
+// biome-ignore-all lint/correctness/noUnusedImports: Biome cannot see imports used in the template
+// biome-ignore-all lint/correctness/noUnusedVariables: Biome cannot see variables used in the template
+/**
+ * A minimal layout for the dev lab only. The real base layout belongs to the page author; this one
+ * exists to mount the two islands the way the spec says (client:idle, transition:persist) inside a
+ * ClientRouter page, so audio can be tested across client-side navigation.
+ */
+import { ClientRouter } from "astro:transitions";
+import SheetsRoot from "../../sheets/SheetsRoot";
+import PlayerRoot from "../PlayerRoot";
+import "../../styles/fonts.css";
+import "../../styles/tokens.css";
+import "../../styles/foundations.css";
+import "./lab.css";
+
+interface Props {
+  title: string;
+}
+const { title } = Astro.props;
+---
+
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+    <meta name="color-scheme" content="light dark" />
+    <meta name="robots" content="noindex" />
+    <title>{title}</title>
+    <ClientRouter />
+    <!-- The theme is applied before first paint from the same key the Settings sheet writes, and
+         again after every client-side navigation, which replaces the root element's attributes. -->
+    <script is:inline>
+      (() => {
+        const apply = () => {
+          try {
+            const theme = JSON.parse(localStorage.getItem("dispatch:preferences") || "{}").theme;
+            if (theme === "light" || theme === "dark") document.documentElement.dataset.theme = theme;
+            else document.documentElement.removeAttribute("data-theme");
+          } catch {
+            document.documentElement.removeAttribute("data-theme");
+          }
+        };
+        apply();
+        document.addEventListener("astro:after-swap", apply);
+      })();
+    </script>
+  </head>
+  <body>
+    <slot />
+    <PlayerRoot client:idle transition:persist />
+    <SheetsRoot client:idle transition:persist />
+  </body>
+</html>

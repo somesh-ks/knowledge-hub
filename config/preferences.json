@@ -5,12 +5,12 @@
     "design_engineering_craft": 0.95,
     "hci_empirical_research": 0.92,
     "ui_component_primitives": 0.92,
-    "ai_ux_interaction_patterns": 0.90,
+    "ai_ux_interaction_patterns": 0.9,
     "css_canvas_motion_techniques": 0.88,
     "frontier_model_releases": 0.85,
     "developer_tool_launches": 0.82,
     "taste_and_design_philosophy": 0.85,
-    "venture_capital_and_gossip": 0.10,
+    "venture_capital_and_gossip": 0.1,
     "generic_ai_hype_listicles": 0.02
   },
   "preferred_keywords": [

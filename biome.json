@@ -9,7 +9,9 @@
       "!**/.astro",
       "!**/.cache",
       "!**/.claude",
-      "!docs/Prototype",
+      "!**/test-results",
+      "!**/playwright-report",
+      "!docs/prototype",
       "!**/fixtures",
       "!package-lock.json"
     ]
@@ -24,5 +26,15 @@
       "style": { "noNonNullAssertion": "error" }
     }
   },
+  "overrides": [
+    {
+      "includes": ["**/*.astro"],
+      "linter": {
+        "rules": {
+          "correctness": { "noUnusedImports": "off", "noUnusedVariables": "off" }
+        }
+      }
+    }
+  ],
   "assist": { "enabled": true }
 }

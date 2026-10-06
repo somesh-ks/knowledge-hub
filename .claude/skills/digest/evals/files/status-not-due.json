@@ -1,0 +1,60 @@
+{
+  "version": 1,
+  "now": "2026-10-06T04:07:36.862Z",
+  "timezone": "Europe/Stockholm",
+  "today": "2026-10-06",
+  "last_run": {
+    "regular": {
+      "at": "2026-10-05T05:30:00Z",
+      "outcome": "published",
+      "digest_id": "2026-10-05",
+      "items": 7
+    },
+    "weekly": {
+      "at": "2026-10-04T06:00:00Z",
+      "outcome": "published",
+      "digest_id": "2026-10-04-weekly",
+      "items": 12
+    },
+    "on_demand": {
+      "at": "2026-10-03T14:10:00Z",
+      "outcome": "nothing",
+      "digest_id": null,
+      "items": 0
+    }
+  },
+  "last_fetch_at": "2026-10-05T05:28:00Z",
+  "next_regular_due": "2026-10-07",
+  "due_now": false,
+  "due_reason": "last regular digest was 2026-10-05; next is due 1 day(s) from now",
+  "latest_digest": {
+    "id": "2026-10-05",
+    "kind": "regular",
+    "date": "2026-10-05",
+    "items": 7,
+    "verified": true,
+    "has_audio": true,
+    "path": "Digests/2026/10/2026-10-05.md"
+  },
+  "audio": {
+    "pending": false,
+    "missing": [],
+    "retention_days": 120
+  },
+  "sources": {
+    "total": 101,
+    "enabled": 98,
+    "failure_threshold": 5,
+    "failing": []
+  },
+  "budget": {
+    "speechify": {
+      "month": "2026-10",
+      "used": 0,
+      "limit": 450000,
+      "monthly_chars": 500000,
+      "percent": 0
+    }
+  },
+  "warnings": []
+}

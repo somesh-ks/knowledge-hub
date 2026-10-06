@@ -1,0 +1,45 @@
+{
+  "version": 1,
+  "queries": [
+    {
+      "id": "new-ui-component-library-release",
+      "query": "new UI component library release"
+    },
+    {
+      "id": "design-engineering-blog-post",
+      "query": "design engineering blog post"
+    },
+    {
+      "id": "ai-model-release-announcement",
+      "query": "AI model release announcement"
+    },
+    {
+      "id": "css-animation-technique-tutorial",
+      "query": "CSS animation technique tutorial"
+    },
+    {
+      "id": "react-component-pattern",
+      "query": "React component pattern"
+    },
+    {
+      "id": "design-system-update-changelog",
+      "query": "design system update changelog"
+    },
+    {
+      "id": "frontend-performance-optimization",
+      "query": "frontend performance optimization"
+    },
+    {
+      "id": "ai-coding-assistant-update",
+      "query": "AI coding assistant update"
+    },
+    {
+      "id": "open-source-developer-tool-launch",
+      "query": "open source developer tool launch"
+    },
+    {
+      "id": "design-tokens-specification",
+      "query": "design tokens specification"
+    }
+  ]
+}

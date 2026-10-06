@@ -41,7 +41,7 @@ export function secretsFromEnv(env: Env): string[] {
     env.FIRECRAWL_API_KEY,
     env.SPEECHIFY_API_KEY,
     env.BLOB_READ_WRITE_TOKEN,
-    env.YOUTUBE_API_KEY,
+    env.COMPOSIO_API_KEY,
   ];
   return keys.filter((value): value is string => typeof value === "string" && value.length > 0);
 }

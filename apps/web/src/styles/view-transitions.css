@@ -1,0 +1,47 @@
+/*
+ * View transitions are used where they fit (design spec section 7): the move between the reader and
+ * the archive, and the theme change. Every other navigation swaps at once. Without the API both are
+ * instant swaps.
+ */
+
+/* Theme change: the page crossfades. The player's own cover morph never uses a view transition. */
+::view-transition-old(root),
+::view-transition-new(root) {
+  animation-duration: var(--duration-state);
+  animation-timing-function: var(--ease-out);
+}
+
+/* The mini player stays put while the page behind it changes. */
+::view-transition-group(mini-player) {
+  animation: none;
+}
+
+/* A ClientRouter navigation is not a theme change, so only the archive hop animates. app.ts marks
+   it with data-astro-nav on the root, a data-astro-* name that survives the document swap. */
+html[data-astro-transition]:not([data-astro-nav="archive"])::view-transition-old(root),
+html[data-astro-transition]:not([data-astro-nav="archive"])::view-transition-new(root) {
+  animation: none;
+}
+
+/* Archive hop: the new page fades in while it settles 8px from the side it came from. */
+@media (prefers-reduced-motion: no-preference) {
+  html[data-astro-nav="archive"][data-astro-transition="forward"]::view-transition-new(root) {
+    animation-name: fade-in, archive-from-end;
+  }
+
+  html[data-astro-nav="archive"][data-astro-transition="back"]::view-transition-new(root) {
+    animation-name: fade-in, archive-from-start;
+  }
+
+  @keyframes archive-from-end {
+    from {
+      transform: translateX(var(--distance-base));
+    }
+  }
+
+  @keyframes archive-from-start {
+    from {
+      transform: translateX(calc(var(--distance-base) * -1));
+    }
+  }
+}

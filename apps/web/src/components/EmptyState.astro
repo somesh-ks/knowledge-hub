@@ -1,0 +1,16 @@
+---
+import BrandMark from "./BrandMark.astro";
+import Icon from "./Icon.astro";
+---
+
+<section class="empty" aria-labelledby="page-title">
+  {/* No digest exists yet, so there is no generated cover: the brand mark stands in for it. */}
+  <span class="cover" data-placeholder aria-hidden="true">
+    <BrandMark class="cover-placeholder-mark" />
+  </span>
+  <h1 id="page-title" tabindex="-1">No briefings yet</h1>
+  <p>The first one arrives within two days. Generate one now to see how it reads.</p>
+  <button class="btn-primary press press-subtle" type="button" data-open="generate">
+    <Icon name="refresh" />Generate a briefing
+  </button>
+</section>
