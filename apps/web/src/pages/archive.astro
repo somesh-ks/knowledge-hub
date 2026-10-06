@@ -14,7 +14,7 @@ const years = groupArchive(entries);
 <BaseLayout title="Archive" view="archive" skipLabel="Skip to the archive">
   <main id="main" tabindex="-1">
     {/* A way out of the archive that works in an installed app, where there is no browser back. */}
-    <a class="btn press back-link" href="/"><Icon name="chevronLeft" />Today</a>
+    <a class="btn press back-link" href="/" data-astro-prefetch="hover"><Icon name="chevronLeft" />Today</a>
     {
       entries.length === 0 ? (
         <EmptyState />

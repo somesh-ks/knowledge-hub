@@ -40,12 +40,21 @@
 }
 
 .cover-frame {
+  /* A line that reads on the cover's own ground: light on a dark palette, dark on a light one. The
+     text color is the fallback where relative color syntax is missing. */
+  --frame: var(--color-on-surface);
   position: absolute;
   inset: 7cqi;
   display: none;
-  border: 1.5px solid color-mix(in oklch, var(--color-on-surface) 55%, transparent);
+  border: 1.5px solid color-mix(in oklch, var(--frame) 55%, transparent);
   border-radius: calc(var(--cover-radius, var(--cover-radius-hero)) * 0.5);
   pointer-events: none;
+}
+
+@supports (color: oklch(from red l c h)) {
+  .cover-frame {
+    --frame: oklch(from var(--cover-bg) clamp(0, calc((0.62 - l) * 100), 1) 0 0);
+  }
 }
 
 @container (max-width: 6rem) {

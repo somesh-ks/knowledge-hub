@@ -111,7 +111,10 @@ describe("firstLoadReport", () => {
   });
 
   it("does not count a lazily imported file", () => {
-    const withLazy = { ...files, "/_astro/entry.js": 'import("./lazy.js");export default 1;' };
+    const withLazy: Record<string, string> = {
+      ...files,
+      "/_astro/entry.js": 'import("./lazy.js");export default 1;',
+    };
     const report = firstLoadReport(["/_astro/entry.js"], (url) => withLazy[url] ?? null);
     expect(report.files.map((file) => file.url)).toEqual(["/_astro/entry.js"]);
   });

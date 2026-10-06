@@ -18,7 +18,7 @@ const { view } = Astro.props;
       <span>Dispatch</span>
     </a>
     <nav class="site-actions" aria-label="Site">
-      <a class="btn press nav-archive" href="/archive" aria-current={view === "archive" ? "page" : undefined}>Archive</a>
+      <a class="btn press nav-archive" href="/archive" data-astro-prefetch="hover" aria-current={view === "archive" ? "page" : undefined}>Archive</a>
       <button class="btn press" type="button" data-open="generate">
         <Icon name="refresh" />Generate
       </button>

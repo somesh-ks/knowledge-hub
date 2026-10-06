@@ -32,7 +32,10 @@ describe("component stylesheets", () => {
     for (const file of OWN_FILES) {
       const css = withoutComments(read(file));
       // `color-mix(in oklch, var(--x) 8%, ...)` mixes tokens; the ban is on literal color functions.
-      const stripped = css.replace(/color-mix\(in [a-z]+/g, "color-mix(");
+      // `oklch(from var(--x) ...)` derives a color from a token, which is not a raw value either.
+      const stripped = css
+        .replace(/color-mix\(in [a-z]+/g, "color-mix(")
+        .replace(/oklch\(from (?:var\(|red )/g, "derive(");
       const match = rawColor.exec(stripped);
       expect(match?.[0], `${file} has a raw color`).toBeUndefined();
     }

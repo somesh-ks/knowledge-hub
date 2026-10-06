@@ -123,14 +123,14 @@
     filter var(--duration-state) var(--ease-out);
 }
 
+.swap-paused {
+  /* Optical center: a play triangle's mass sits left of its box. */
+  translate: 0.0625rem 0;
+}
+
 [data-playing="false"] .swap-playing,
 [data-playing="true"] .swap-paused {
   opacity: 0;
   transform: scale(0.7);
   filter: blur(var(--blur-enter));
-}
-
-.swap-paused {
-  /* Optical center: a play triangle's mass sits left of its box. */
-  translate: 0.0625rem 0;
 }

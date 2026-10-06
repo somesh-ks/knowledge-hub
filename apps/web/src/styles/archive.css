@@ -127,6 +127,10 @@
   list-style: none;
 }
 
+.month-count .icon {
+  transition: transform var(--duration-state) var(--ease-out);
+}
+
 .year-group > summary .icon {
   color: var(--color-on-surface-subtle);
   transition: transform var(--duration-state) var(--ease-out);
@@ -165,10 +169,6 @@
   color: var(--color-on-surface-muted);
   font-size: var(--font-size-meta);
   font-weight: var(--font-weight-medium);
-}
-
-.month-count .icon {
-  transition: transform var(--duration-state) var(--ease-out);
 }
 
 .month-group[open] > summary .month-count .icon {
