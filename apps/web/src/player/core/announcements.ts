@@ -1,0 +1,67 @@
+import type { PlayerEvent, Track } from "./playerTypes";
+import { itemPositionLabel } from "./timeline";
+
+/**
+ * What a screen reader hears for each player event (design-spec.md, Screen-reader announcement
+ * plan). Automatic advance, keyboard seeks and scrubbing announce nothing here: the narrator is
+ * already speaking, and the scrubber's aria-valuetext carries position for keyboard users.
+ */
+export function announcementForEvent(event: PlayerEvent, track: Track | null): string | null {
+  switch (event.type) {
+    case "willPlay":
+      return event.reason === "user" ? "Playing." : null;
+    case "didPause":
+      return event.reason === "user" ? "Paused." : null;
+    case "itemChanged": {
+      const chosen =
+        event.cause === "skip-next" || event.cause === "skip-previous" || event.cause === "select";
+      if (!chosen) return null;
+      const item = track?.timeline?.items[event.index];
+      if (!item) return null;
+      return `${itemPositionLabel(track?.timeline ?? null, event.index)}: ${item.headline}`;
+    }
+    case "rateChanged":
+      return `Speed ${event.rate}x.`;
+    case "ended":
+      return "Briefing finished.";
+    case "interrupted":
+      return "Playback was interrupted. Press play to resume.";
+    case "error":
+      return event.error.message;
+    case "loaded":
+      return null;
+  }
+}
+
+interface Region {
+  textContent: string | null;
+}
+
+export interface Announcer {
+  announce(message: string): void;
+}
+
+/**
+ * Two polite regions used alternately and cleared before reuse. A single region updated twice in
+ * one frame announces once; two regions mean every message is observed.
+ */
+export function createAnnouncer(
+  getRegions: () => readonly [Region, Region],
+  schedule: (callback: () => void, delayMs: number) => unknown = (callback, delayMs) =>
+    setTimeout(callback, delayMs),
+): Announcer {
+  let turn = 0;
+  return {
+    announce(message) {
+      const regions = getRegions();
+      const region = regions[turn % 2];
+      turn += 1;
+      if (!region) return;
+      region.textContent = "";
+      // The change must land after the clear for the browser to treat it as new content.
+      schedule(() => {
+        region.textContent = message;
+      }, 50);
+    },
+  };
+}

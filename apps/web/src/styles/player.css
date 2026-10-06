@@ -1,0 +1,995 @@
+/*
+ * Dispatch player: the mini player, the expanded player, the scrubber and the controls inside it.
+ *
+ * Reads semantic and component tokens only (tokens.css); scale families (space, radius, type,
+ * motion) are consumed directly because the scale is already the semantic layer. Unlayered, so it
+ * wins over the foundations layers without specificity fights.
+ *
+ * Conventions
+ * - Hover only inside (hover: hover) and (pointer: fine).
+ * - Movement uses the movement duration tokens, so reduced motion needs no per-component query.
+ * - Interactive siblings sit flush; spacing lives inside each target (interactive-hit-areas).
+ * - Progress is written to leaf elements only (--player-progress), never to a parent of content.
+ * - Class names are prefixed so they cannot collide with the reader's own components.
+ */
+
+/* ------------------------------------------------------------------ per-frame properties */
+
+/* Script writes these several times a frame (sheetController, Scrubber). Registered as not
+   inherited, so a write restyles the one element and not everything inside it. Each initial value
+   is the closed or resting state, which is also the fallback in every var() below for browsers
+   that ignore @property. */
+@property --sheet-offset {
+  syntax: "<length-percentage>";
+  inherits: false;
+  initial-value: 100%;
+}
+
+@property --sheet-scale {
+  syntax: "<number>";
+  inherits: false;
+  initial-value: 1;
+}
+
+@property --sheet-opacity {
+  syntax: "<number>";
+  inherits: false;
+  initial-value: 0;
+}
+
+@property --scrim-opacity {
+  syntax: "<number>";
+  inherits: false;
+  initial-value: 0;
+}
+
+@property --cover-x {
+  syntax: "<length>";
+  inherits: false;
+  initial-value: 0px;
+}
+
+@property --cover-y {
+  syntax: "<length>";
+  inherits: false;
+  initial-value: 0px;
+}
+
+@property --cover-scale {
+  syntax: "<number>";
+  inherits: false;
+  initial-value: 1;
+}
+
+@property --thumb-x {
+  syntax: "<length>";
+  inherits: false;
+  initial-value: 0px;
+}
+
+@property --bubble-x {
+  syntax: "<length>";
+  inherits: false;
+  initial-value: 0px;
+}
+
+/* ------------------------------------------------------------------ icons and the glyph swap */
+
+.ui-icon {
+  width: var(--size-icon);
+  height: var(--size-icon);
+  flex: none;
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 2;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+
+.ui-icon-solid {
+  fill: currentColor;
+}
+
+.icon-lg {
+  width: var(--size-icon-lg);
+  height: var(--size-icon-lg);
+}
+
+.icon-skip-label {
+  font-family: var(--font-ui);
+  font-size: var(--font-size-caption);
+  font-weight: var(--font-weight-bold);
+}
+
+/* Play and pause share one slot. The outgoing glyph shrinks, fades and blurs as the incoming one
+   arrives: small, fast, and keyed on the nearest ancestor's data-playing. */
+.glyph-swap {
+  position: relative;
+  display: grid;
+  place-items: center;
+}
+
+.glyph-swap > .ui-icon {
+  grid-area: 1 / 1;
+  transition:
+    opacity var(--duration-state) var(--ease-out),
+    transform var(--duration-state) var(--ease-out),
+    filter var(--duration-state) var(--ease-out);
+}
+
+.glyph-paused {
+  /* Optical center: a play triangle's mass sits left of its box. */
+  translate: 0.0625rem 0;
+}
+
+[data-playing="false"] .glyph-playing,
+[data-playing="true"] .glyph-paused {
+  opacity: 0;
+  transform: scale(0.7);
+  filter: blur(var(--blur-enter));
+}
+
+[data-loading="true"] > .glyph-swap {
+  opacity: 0;
+}
+
+.player-colon {
+  display: inline-block;
+  width: 0.34em;
+  text-align: center;
+  /* The narrow colon glyph, so the fixed box centers it instead of clipping a tabular one. */
+  font-variant-numeric: proportional-nums;
+  font-feature-settings: "tnum" 0;
+}
+
+/* ------------------------------------------------------------------ the cover */
+
+.player-cover-frame {
+  --cover-fill: var(--cover-key, var(--color-surface-sunken));
+  position: relative;
+  display: block;
+  aspect-ratio: 1;
+  overflow: hidden;
+  border-radius: var(--cover-radius, var(--cover-radius-hero));
+  background: var(--cover-fill);
+  outline: var(--stroke-hairline) solid var(--cover-outline);
+  outline-offset: calc(var(--stroke-hairline) * -1);
+  box-shadow: var(--cover-shadow);
+  user-select: none;
+  -webkit-user-select: none;
+}
+
+.player-cover-frame[data-size="thumb"] {
+  --cover-radius: var(--cover-radius-thumb);
+  width: var(--mini-player-cover-size);
+  box-shadow: none;
+}
+
+.player-cover-frame[data-size="player"] {
+  --cover-radius: var(--cover-radius-large);
+  width: min(100%, var(--cover-size-player), 36dvh);
+  transform-origin: top left;
+  /* The shared element's travel from the mini player's cover; identity until the controller writes. */
+  transform: translate3d(var(--cover-x, 0px), var(--cover-y, 0px), 0) scale(var(--cover-scale, 1));
+}
+
+.player-cover-image {
+  display: block;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  -webkit-touch-callout: none;
+}
+
+/* ------------------------------------------------------------------ mini player */
+
+html[data-mini="visible"] main {
+  /* Room for the mini player and its inset, so the last line is never covered. */
+  padding-block-end: calc(
+    var(--mini-player-control-size) +
+    var(--mini-player-inset) *
+    2 +
+    max(var(--mini-player-inset), var(--safe-bottom)) +
+    var(--space-8)
+  );
+}
+
+.mini {
+  position: fixed;
+  z-index: var(--z-mini);
+  inset-inline: max(var(--mini-player-inset), var(--safe-left))
+    max(var(--mini-player-inset), var(--safe-right));
+  inset-block-end: max(var(--mini-player-inset), var(--safe-bottom));
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto auto;
+  align-items: center;
+  max-width: var(--layout-mini-max);
+  margin-inline: auto;
+  padding: var(--mini-player-inset);
+  border-radius: var(--mini-player-radius);
+  background: var(--mini-player-bg);
+  color: var(--color-on-surface);
+  box-shadow: var(--mini-player-shadow);
+  --color-focus-gap: var(--color-surface-overlay);
+  /* Hidden state: translated away and not focusable. */
+  transform: translateY(calc(100% + var(--space-6)));
+  opacity: 0;
+  visibility: hidden;
+  transition:
+    transform var(--duration-sheet-out) var(--ease-drawer),
+    opacity var(--duration-state) var(--ease-out),
+    visibility 0s linear var(--duration-sheet-out);
+  /* Its own group during view transitions, so the bar stays put while the page crossfades. */
+  view-transition-name: mini-player;
+}
+
+.mini[data-visible="true"] {
+  transform: none;
+  opacity: 1;
+  visibility: visible;
+  transition:
+    transform var(--duration-sheet-in) var(--ease-drawer),
+    opacity var(--duration-state) var(--ease-out),
+    visibility 0s;
+}
+
+.mini-progress {
+  position: absolute;
+  inset-inline: var(--mini-player-inset);
+  inset-block-start: 0;
+  height: var(--mini-player-progress-height);
+  overflow: hidden;
+  border-radius: var(--radius-xs);
+  pointer-events: none;
+}
+
+.mini-progress-fill {
+  display: block;
+  height: 100%;
+  background: var(--color-accent);
+  transform-origin: left;
+  transform: scaleX(var(--player-progress, 0));
+}
+
+.mini-open {
+  display: grid;
+  grid-template-columns: var(--mini-player-cover-size) minmax(0, 1fr);
+  align-items: center;
+  gap: var(--space-3);
+  min-height: var(--mini-player-control-size);
+  padding-inline-end: var(--space-2);
+  border-radius: var(--mini-player-control-radius);
+  text-align: start;
+  /* The open button owns vertical pans, so a swipe up reaches script instead of scrolling the page. */
+  touch-action: none;
+}
+
+.mini-text {
+  display: grid;
+  min-width: 0;
+}
+
+.mini-section {
+  overflow: hidden;
+  color: var(--color-on-surface-muted);
+  font-size: var(--font-size-caption);
+  font-weight: var(--font-weight-semibold);
+  line-height: var(--font-leading-caption);
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.mini-section[data-tone="danger"] {
+  color: var(--color-danger);
+}
+
+.mini-title {
+  overflow: hidden;
+  font-size: var(--font-size-meta);
+  font-weight: var(--font-weight-semibold);
+  line-height: var(--font-leading-caption);
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.mini-btn {
+  position: relative;
+  display: grid;
+  place-items: center;
+  width: var(--mini-player-control-size);
+  height: var(--mini-player-control-size);
+  border-radius: var(--mini-player-control-radius);
+}
+
+.mini-btn[data-primary] {
+  background: var(--color-accent);
+  color: var(--color-on-accent);
+}
+
+.mini-btn[aria-disabled="true"] {
+  color: var(--color-on-surface-disabled);
+}
+
+.mini-btn .spinner,
+.transport-btn .spinner {
+  position: absolute;
+  display: none;
+  color: var(--color-on-cover-accent);
+}
+
+.mini-btn[data-loading="true"] .spinner,
+.transport-btn[data-loading="true"] .spinner {
+  display: block;
+}
+
+@media (hover: hover) and (pointer: fine) {
+  .mini-btn:not([data-primary], [aria-disabled="true"]):hover,
+  .mini-open:hover {
+    background: var(--color-surface-sunken);
+  }
+
+  .mini-btn[data-primary]:hover {
+    background: var(--color-accent-hover);
+  }
+}
+
+.mini-btn[data-primary]:active {
+  background: var(--color-accent-pressed);
+}
+
+/* While the player sheet is open, its cover is the one on screen. */
+html[data-player="open"] .mini-open .player-cover-frame {
+  visibility: hidden;
+}
+
+/* ------------------------------------------------------------------ expanded player */
+
+.player-viewport {
+  position: fixed;
+  inset: 0;
+  z-index: var(--z-sheet);
+  overflow: hidden;
+  /* Only the panel and the scrim take the pointer. */
+  pointer-events: none;
+}
+
+.player-scrim {
+  position: fixed;
+  inset: 0;
+  z-index: var(--z-sheet);
+  min-height: 100dvh;
+  background: var(--color-scrim);
+  opacity: var(--scrim-opacity, 0);
+}
+
+/* iOS 26 clips fixed elements to the inner viewport; Base UI's own guidance is to position the
+   backdrop absolutely there so it covers everything visible. */
+@supports (-webkit-touch-callout: none) {
+  .player-scrim {
+    position: absolute;
+  }
+}
+
+.player-panel {
+  /* The cover's key color arrives inline from the digest; the app accent is the fallback. */
+  --cover-key: var(--color-accent);
+  --player-key: var(--color-accent);
+  --color-cover-accent: var(--player-key);
+  --color-on-cover-accent: var(--color-on-accent);
+  --color-focus-ring: var(--player-key);
+  --color-focus-gap: var(--player-surface);
+  --player-surface: color-mix(
+    in oklch,
+    var(--cover-key, var(--color-accent)) calc(var(--player-tint-mix) * 100%),
+    var(--color-surface-raised)
+  );
+  position: absolute;
+  inset: 0;
+  display: flex;
+  flex-direction: column;
+  max-width: var(--layout-column);
+  margin-inline: auto;
+  padding-block-start: var(--safe-top);
+  padding-inline: max(var(--player-padding), var(--safe-left))
+    max(var(--player-padding), var(--safe-right));
+  background: var(--player-surface);
+  color: var(--color-on-surface);
+  outline: none;
+  pointer-events: auto;
+  /* Closed until the controller moves it: no flash on mount, whatever the first frame is. */
+  transform: translate3d(0, var(--sheet-offset, 100%), 0);
+}
+
+.player-panel[data-moving] {
+  /* Promoted only while it can move, and demoted when the spring rests. */
+  will-change: transform;
+}
+
+/* Cover accent flows into the player: lightness is pinned per mode so the derived color always
+   clears 3:1 against the sheet, whatever the palette. Hue and chroma come from the cover. */
+.player-panel[data-cover-key] {
+  --player-key: oklch(from var(--cover-key) 0.5 min(c, 0.17) h);
+}
+
+:root[data-theme="dark"] .player-panel[data-cover-key] {
+  --player-key: oklch(from var(--cover-key) 0.78 min(c, 0.17) h);
+}
+
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) .player-panel[data-cover-key] {
+    --player-key: oklch(from var(--cover-key) 0.78 min(c, 0.17) h);
+  }
+}
+
+.player-panel:focus-visible {
+  /* Containers that take focus on open show no ring of their own; the controls inside carry it. */
+  outline: none;
+  box-shadow: none;
+}
+
+.player-drag {
+  display: flex;
+  flex: 0 1 auto;
+  flex-direction: column;
+  min-height: 0;
+  touch-action: none;
+}
+
+.player-handle {
+  align-self: center;
+  width: var(--player-handle-width);
+  height: var(--player-handle-height);
+  margin-block: var(--space-2);
+  border-radius: var(--radius-xs);
+  background: var(--player-handle-color);
+}
+
+.player-bar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  min-height: var(--size-touch);
+}
+
+.player-bar-date {
+  color: var(--color-on-surface-muted);
+  font-size: var(--font-size-meta);
+  font-weight: var(--font-weight-semibold);
+}
+
+.player-close {
+  display: grid;
+  place-items: center;
+  width: var(--size-touch);
+  height: var(--size-touch);
+  /* The glyph sits in the trailing corner; the target extends inward. */
+  margin-inline-end: calc(var(--space-2) * -1);
+  border-radius: var(--control-radius-sm);
+  color: var(--color-on-surface-muted);
+}
+
+@media (hover: hover) and (pointer: fine) {
+  .player-close:hover {
+    background: var(--color-surface-sunken);
+    color: var(--color-on-surface);
+  }
+}
+
+.player-cover {
+  display: grid;
+  place-items: center;
+  flex: 0 1 auto;
+  min-height: 0;
+  padding-block: var(--space-2) var(--space-4);
+}
+
+.player-meta {
+  display: grid;
+  gap: var(--space-1);
+}
+
+.player-section {
+  color: var(--color-on-surface-muted);
+  font-size: var(--font-size-meta);
+  font-weight: var(--font-weight-semibold);
+}
+
+.player-title {
+  display: -webkit-box;
+  overflow: hidden;
+  font-family: var(--text-title-family);
+  font-size: var(--text-title-size);
+  font-weight: var(--text-title-weight);
+  letter-spacing: var(--text-title-tracking);
+  line-height: var(--text-title-leading);
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 2;
+}
+
+.player-source {
+  color: var(--color-on-surface-muted);
+  font-size: var(--font-size-meta);
+}
+
+.player-controls {
+  flex: none;
+  padding-block-start: var(--space-4);
+}
+
+.player-scroll {
+  flex: 1 1 0;
+  min-height: 0;
+  margin-inline: calc(var(--player-padding) * -1);
+  padding-inline: var(--player-padding);
+  padding-block-end: max(var(--space-6), var(--safe-bottom));
+}
+
+.player-section-title,
+.segmented-legend {
+  display: block;
+  margin-block: var(--space-4) var(--space-2);
+  padding: 0;
+  color: var(--color-on-surface-muted);
+  font-size: var(--font-size-meta);
+  font-weight: var(--font-weight-semibold);
+}
+
+/* ------------------------------------------------------------------ scrubber */
+
+.scrubber {
+  position: relative;
+  height: var(--scrubber-hit);
+  touch-action: none;
+  cursor: pointer;
+  -webkit-user-select: none;
+  user-select: none;
+}
+
+.scrubber-track,
+.scrubber-ticks {
+  position: absolute;
+  inset-inline: 0;
+  inset-block-start: 50%;
+}
+
+.scrubber-track {
+  height: var(--scrubber-track);
+  margin-block-start: calc(var(--scrubber-track) / -2);
+  border-radius: var(--radius-xs);
+  background: var(--color-track);
+  overflow: hidden;
+  transition: transform var(--duration-press-out) var(--ease-out);
+}
+
+.scrubber[data-dragging] .scrubber-track {
+  transform: scaleY(var(--scrubber-track-active));
+}
+
+.scrubber-fill {
+  display: block;
+  height: 100%;
+  background: var(--color-cover-accent);
+  transform-origin: left;
+  transform: scaleX(var(--player-progress, 0));
+}
+
+.scrubber-ticks {
+  height: 0;
+  pointer-events: none;
+}
+
+.scrubber-tick {
+  position: absolute;
+  inset-block-start: calc(var(--scrubber-tick-height) / -2);
+  inset-inline-start: var(--tick-position, 0%);
+  width: var(--scrubber-tick-width);
+  height: var(--scrubber-tick-height);
+  margin-inline-start: calc(var(--scrubber-tick-width) / -2);
+  border-radius: var(--stroke-hairline);
+  background: var(--color-track-strong);
+  transition: background-color var(--duration-state) var(--ease-out);
+}
+
+.scrubber-tick[data-chapter] {
+  inset-block-start: calc(var(--scrubber-tick-chapter-height) / -2);
+  height: var(--scrubber-tick-chapter-height);
+}
+
+.scrubber-tick[data-played] {
+  background: var(--color-cover-accent);
+}
+
+/* The thumb is a zero-size anchor that script moves with --thumb-x. The visible disc is a
+   pseudo-element, so its press scale never multiplies the anchor's translation (individual
+   transform properties apply before the transform property). */
+.scrubber-thumb {
+  position: absolute;
+  inset-block-start: 50%;
+  inset-inline-start: 0;
+  width: 0;
+  height: 0;
+  transform: translate3d(var(--thumb-x, 0px), 0, 0);
+  will-change: transform;
+}
+
+.scrubber-thumb::before {
+  content: "";
+  position: absolute;
+  inset-block-start: calc(var(--scrubber-thumb) / -2);
+  inset-inline-start: calc(var(--scrubber-thumb) / -2);
+  width: var(--scrubber-thumb);
+  height: var(--scrubber-thumb);
+  border-radius: var(--radius-round);
+  background: var(--color-cover-accent);
+  box-shadow: 0 0 0 var(--scrubber-thumb-ring) var(--player-surface, var(--color-surface-raised));
+  transition: scale var(--duration-spring-pop) var(--ease-spring-pop);
+}
+
+.scrubber[data-dragging] .scrubber-thumb::before {
+  scale: var(--scrubber-thumb-active-scale);
+}
+
+/* The thumb ring is a box-shadow, so the focus ring sits on the whole slider instead. */
+.scrubber:focus-visible {
+  border-radius: var(--control-radius-sm);
+}
+
+.scrubber-bubble {
+  position: absolute;
+  inset-block-end: calc(100% - var(--space-1));
+  inset-inline-start: 0;
+  display: grid;
+  justify-items: center;
+  padding: var(--space-1) var(--space-2);
+  border-radius: var(--scrubber-bubble-radius);
+  background: var(--color-surface-inverse);
+  color: var(--color-on-surface-inverse);
+  font-size: var(--font-size-caption);
+  font-weight: var(--font-weight-semibold);
+  line-height: var(--font-leading-caption);
+  white-space: nowrap;
+  opacity: 0;
+  pointer-events: none;
+  transform: translate3d(var(--bubble-x, 0px), 0, 0);
+  transition: opacity var(--duration-press-in) var(--ease-out);
+}
+
+.scrubber[data-dragging] .scrubber-bubble {
+  opacity: 1;
+}
+
+.scrubber-times {
+  display: flex;
+  justify-content: space-between;
+  color: var(--color-on-surface-muted);
+  font-size: var(--font-size-meta);
+  font-weight: var(--font-weight-medium);
+}
+
+/* ------------------------------------------------------------------ transport */
+
+.transport {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding-block: var(--space-2) var(--space-4);
+}
+
+.transport-btn {
+  position: relative;
+  display: grid;
+  place-items: center;
+  width: var(--control-size-md);
+  height: var(--control-size-md);
+  border-radius: var(--control-radius-md);
+  color: var(--color-on-surface);
+}
+
+.transport-btn .ui-icon {
+  width: var(--size-icon-lg);
+  height: var(--size-icon-lg);
+}
+
+.transport-btn[data-size="sm"] {
+  width: var(--control-size-sm);
+  height: var(--control-size-sm);
+  border-radius: var(--control-radius-sm);
+  color: var(--color-on-surface-muted);
+}
+
+.transport-btn[data-primary] {
+  width: var(--control-size-lg);
+  height: var(--control-size-lg);
+  border-radius: var(--control-radius-lg);
+  background: var(--color-cover-accent);
+  color: var(--color-on-cover-accent);
+}
+
+.transport-btn[aria-disabled="true"] {
+  color: var(--color-on-surface-disabled);
+}
+
+@media (hover: hover) and (pointer: fine) {
+  .transport-btn:not([data-primary], [aria-disabled="true"]):hover {
+    background: var(--color-surface-sunken);
+    color: var(--color-on-surface);
+  }
+}
+
+/* ------------------------------------------------------------------ segmented control */
+
+.segmented-group {
+  min-width: 0;
+  margin: 0;
+  padding: 0;
+  border: 0;
+}
+
+.segmented {
+  display: grid;
+  grid-auto-flow: column;
+  grid-auto-columns: 1fr;
+  padding: var(--segmented-padding);
+  border-radius: var(--segmented-radius);
+  background: var(--color-surface-sunken);
+  --segment-selected-bg: var(--segmented-selected-bg);
+  --segment-selected-fg: var(--color-on-surface);
+}
+
+.segmented label {
+  position: relative;
+  display: grid;
+  place-items: center;
+  min-height: calc(var(--segmented-height) - var(--segmented-padding) * 2);
+  border-radius: var(--segmented-segment-radius);
+  color: var(--color-on-surface-muted);
+  font-size: var(--font-size-meta);
+  font-weight: var(--font-weight-semibold);
+  -webkit-tap-highlight-color: transparent;
+  touch-action: manipulation;
+  transition:
+    background-color var(--duration-hover) var(--ease-hover),
+    color var(--duration-hover) var(--ease-hover),
+    transform var(--duration-press-out) var(--ease-out);
+}
+
+.segmented label:active {
+  transform: scale(var(--scale-press));
+  transition-duration: var(--duration-press-in), var(--duration-hover), var(--duration-hover);
+}
+
+.segmented input {
+  position: absolute;
+  inset: 0;
+  margin: 0;
+  opacity: 0;
+  cursor: pointer;
+}
+
+/* The selected segment is raised and ringed, so selection never depends on color alone. */
+.segmented label:has(input:checked) {
+  background: var(--segment-selected-bg);
+  color: var(--segment-selected-fg);
+  box-shadow:
+    0 0 0 var(--stroke-hairline) color-mix(in oklch, var(--color-on-surface) 14%, transparent),
+    0 1px 2px color-mix(in oklch, var(--color-on-surface) 14%, transparent);
+}
+
+.segmented label:has(input:focus-visible) {
+  outline: var(--stroke-ring) solid var(--color-focus-ring);
+  outline-offset: var(--stroke-ring-gap);
+}
+
+.player-panel .segmented {
+  --segment-selected-bg: var(--color-cover-accent);
+  --segment-selected-fg: var(--color-on-cover-accent);
+}
+
+@media (hover: hover) and (pointer: fine) {
+  .segmented label:hover {
+    color: var(--color-on-surface);
+  }
+
+  .player-panel .segmented label:hover:has(input:checked) {
+    color: var(--segment-selected-fg);
+  }
+}
+
+/* ------------------------------------------------------------------ chapters, notice, up next */
+
+.chapter-rows {
+  display: grid;
+}
+
+.chapter-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-4);
+  width: 100%;
+  min-height: var(--size-touch-comfortable);
+  padding-inline: var(--space-3);
+  border-radius: var(--sheet-row-radius);
+  text-align: start;
+  font-weight: var(--font-weight-semibold);
+}
+
+.chapter-row[aria-current="true"] {
+  background: color-mix(in oklch, var(--color-cover-accent) 12%, transparent);
+}
+
+.chapter-row[aria-current="true"] .chapter-row-name::before {
+  content: "";
+  display: inline-block;
+  width: var(--space-2);
+  height: var(--space-2);
+  margin-inline-end: var(--space-3);
+  border-radius: var(--radius-xs);
+  background: var(--color-cover-accent);
+}
+
+.chapter-row-time {
+  color: var(--color-on-surface-muted);
+  font-size: var(--font-size-meta);
+  font-weight: var(--font-weight-medium);
+}
+
+@media (hover: hover) and (pointer: fine) {
+  .chapter-row:hover {
+    background: var(--color-surface-sunken);
+  }
+}
+
+.player-notice {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr) auto;
+  align-items: center;
+  gap: var(--space-3);
+  margin-block-start: var(--space-4);
+  padding: var(--banner-padding);
+  border-radius: var(--banner-radius);
+  background: var(--tone-bg);
+  font-size: var(--font-size-meta);
+}
+
+.player-notice[data-tone="danger"] {
+  --tone-bg: var(--color-danger-subtle);
+  --tone: var(--color-danger);
+}
+
+.player-notice[data-tone="info"] {
+  --tone-bg: var(--color-info-subtle);
+  --tone: var(--color-info);
+}
+
+.player-notice .ui-icon {
+  color: var(--tone);
+}
+
+.player-notice-action {
+  min-height: var(--size-touch);
+  padding-inline: var(--space-3);
+  border-radius: var(--control-radius-sm);
+  background: color-mix(in oklch, var(--color-on-surface) 8%, transparent);
+  font-weight: var(--font-weight-semibold);
+}
+
+.player-upnext-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-4);
+  width: 100%;
+  min-height: var(--size-touch-comfortable);
+  padding-inline: var(--space-3);
+  border-radius: var(--sheet-row-radius);
+  background: var(--color-surface-sunken);
+  text-align: start;
+}
+
+.player-upnext-text {
+  display: grid;
+}
+
+.player-upnext-date {
+  font-weight: var(--font-weight-semibold);
+}
+
+.player-upnext-hint {
+  color: var(--color-on-surface-muted);
+  font-size: var(--font-size-meta);
+}
+
+/* ------------------------------------------------------------------ wide layouts */
+
+/* From 40rem the player is a centered card that fades and scales in. Modals stay centered. The
+   cover does not morph: there is no bottom edge for it to travel from. */
+@media (min-width: 40rem) {
+  .player-panel {
+    inset: 0;
+    margin: auto;
+    width: var(--layout-player-dialog);
+    max-width: 100%;
+    height: fit-content;
+    max-height: calc(100dvh - var(--space-12));
+    padding-block-start: var(--space-2);
+    padding-inline: var(--player-padding);
+    border-radius: var(--sheet-radius);
+    box-shadow: var(--sheet-shadow);
+    overflow: hidden;
+    transform: scale(var(--sheet-scale, var(--scale-enter)));
+    opacity: var(--sheet-opacity, 0);
+  }
+
+  .player-scroll {
+    flex: 0 1 auto;
+    max-height: 15rem;
+    padding-block-end: var(--space-4);
+  }
+
+  .player-cover-frame[data-size="player"] {
+    width: min(100%, var(--cover-size-player), 34dvh);
+    transform: none;
+  }
+}
+
+/* ------------------------------------------------------------------ preferences */
+
+@media (prefers-reduced-motion: reduce) {
+  /* The sheet fades instead of sliding, so it starts in place. */
+  .player-panel {
+    transform: none;
+    opacity: var(--sheet-opacity, 0);
+  }
+
+  .player-cover-frame[data-size="player"] {
+    transform: none;
+  }
+
+  .glyph-swap > .ui-icon {
+    transition: opacity var(--duration-state) var(--ease-out);
+  }
+
+  [data-playing="false"] .glyph-playing,
+  [data-playing="true"] .glyph-paused {
+    transform: none;
+    filter: none;
+  }
+}
+
+@media (forced-colors: active) {
+  .mini-progress-fill,
+  .scrubber-fill {
+    background: Highlight;
+  }
+
+  .scrubber-thumb::before,
+  .scrubber-tick[data-played] {
+    background: Highlight;
+    forced-color-adjust: none;
+  }
+
+  .scrubber-track {
+    background: GrayText;
+  }
+
+  .mini,
+  .player-cover-frame,
+  .player-panel {
+    border: var(--stroke-hairline) solid CanvasText;
+  }
+
+  .mini-btn[data-primary],
+  .transport-btn[data-primary] {
+    border: var(--stroke-rail) solid ButtonText;
+  }
+
+  .segmented label:has(input:checked) {
+    border: var(--stroke-rail) solid Highlight;
+  }
+}
+
+/* Component rules that set display must not defeat the hidden attribute. Keep this rule last. */
+[hidden] {
+  display: none;
+}

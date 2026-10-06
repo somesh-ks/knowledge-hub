@@ -1,0 +1,21 @@
+---
+// biome-ignore-all lint/correctness/noUnusedImports: Biome cannot see imports used in the template
+// biome-ignore-all lint/correctness/noUnusedVariables: Biome cannot see variables used in the template
+/**
+ * The play and pause glyph pair, as the reader page renders it: static SVG, swapped by the
+ * nearest ancestor's data-playing. The player's stylesheet owns the swap.
+ */
+interface Props {
+  class?: string;
+}
+const { class: className = "" } = Astro.props;
+---
+
+<span class:list={["glyph-swap", className]}>
+  <svg class="ui-icon ui-icon-solid glyph-paused" viewBox="0 0 24 24" aria-hidden="true" focusable="false"
+    ><polygon points="7 4 20 12 7 20 7 4"></polygon></svg
+  >
+  <svg class="ui-icon ui-icon-solid glyph-playing" viewBox="0 0 24 24" aria-hidden="true" focusable="false"
+    ><rect x="14" y="4" width="4" height="16" rx="1"></rect><rect x="6" y="4" width="4" height="16" rx="1"></rect></svg
+  >
+</span>
