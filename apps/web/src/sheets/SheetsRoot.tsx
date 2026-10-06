@@ -24,7 +24,7 @@ function whenIdle(task: () => void): () => void {
 }
 
 /**
- * The sheets island. Header buttons carry `data-open-sheet="generate"` or `"settings"` and are
+ * The sheets island. Header buttons carry `data-open="generate"` (or `data-open-sheet`) or `"settings"` and are
  * handled by delegation, so the page needs no wiring. Each sheet is its own chunk, fetched when the
  * browser is idle and mounted on first open.
  */
@@ -52,8 +52,9 @@ export default function SheetsRoot() {
   useEffect(() => {
     const onClick = (event: MouseEvent): void => {
       if (!(event.target instanceof Element)) return;
-      const trigger = event.target.closest<HTMLElement>("[data-open-sheet]");
-      const name = trigger?.dataset.openSheet;
+      // The reader markup uses `data-open`; `data-open-sheet` is accepted too.
+      const trigger = event.target.closest<HTMLElement>("[data-open-sheet], [data-open]");
+      const name = trigger?.dataset.openSheet ?? trigger?.dataset.open;
       if (!trigger || !isSheetName(name)) return;
       event.preventDefault();
       openSheet(name);
