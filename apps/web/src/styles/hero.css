@@ -1,0 +1,139 @@
+/* Reader hero: cover, date, two meta lines and the call to action. */
+
+.hero {
+  display: grid;
+  grid-template-columns: var(--cover-size-hero) minmax(0, 1fr);
+  align-items: end;
+  column-gap: var(--space-4);
+  padding-block: var(--space-6) var(--space-8);
+}
+
+.hero-text {
+  min-width: 0;
+}
+
+.hero h1 {
+  font-family: var(--text-display-family);
+  font-size: var(--text-display-size);
+  font-weight: var(--text-display-weight);
+  letter-spacing: var(--text-display-tracking);
+  line-height: var(--text-display-leading);
+}
+
+.hero h1:focus {
+  outline: none;
+}
+
+.hero-meta {
+  margin-block-start: var(--space-3);
+  color: var(--color-on-surface-muted);
+  font-size: var(--font-size-meta);
+  line-height: var(--font-leading-caption);
+}
+
+.hero-meta > span {
+  display: block;
+}
+
+.hero-cta {
+  grid-column: 1 / -1;
+  margin-block-start: var(--space-6);
+}
+
+.hero-hint {
+  grid-column: 1 / -1;
+  margin-block-start: var(--space-3);
+  color: var(--color-on-surface-muted);
+  font-size: var(--font-size-meta);
+}
+
+.cta {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-3);
+  width: 100%;
+  min-height: var(--cta-height);
+  padding-inline: var(--space-4);
+  border-radius: var(--cta-radius);
+  background: var(--cta-bg);
+  color: var(--cta-fg);
+  font-size: var(--font-size-label-lg);
+  font-weight: var(--font-weight-semibold);
+  letter-spacing: var(--font-tracking-label-lg);
+  text-align: start;
+}
+
+.cta-main {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-3);
+}
+
+.cta-time {
+  font-weight: var(--font-weight-medium);
+  font-size: var(--font-size-meta);
+  opacity: 0.9;
+}
+
+@media (hover: hover) and (pointer: fine) {
+  .cta:hover {
+    background: var(--cta-bg-hover);
+  }
+}
+
+.cta:active {
+  background: var(--cta-bg-pressed);
+}
+
+/* Disabled keeps the control focusable (aria-disabled), so its reason can be read. */
+.cta[aria-disabled="true"] {
+  background: var(--color-surface-sunken);
+  color: var(--color-on-surface-disabled);
+  cursor: default;
+}
+
+.cta[aria-disabled="true"]:active {
+  transform: none;
+}
+
+.cta .spinner {
+  display: none;
+}
+
+.cta[data-loading="true"] .swap {
+  display: none;
+}
+
+.cta[data-loading="true"] .spinner {
+  display: block;
+}
+
+/* Live clocks render the colon in a fixed narrow box, so tabular figures do not widen it. */
+.colon {
+  display: inline-block;
+  width: 0.34em;
+  text-align: center;
+  font-variant-numeric: proportional-nums;
+  font-feature-settings: "tnum" 0;
+}
+
+@media (min-width: 40rem) {
+  .hero {
+    grid-template-columns: var(--cover-size-hero-wide) minmax(0, 1fr);
+    column-gap: var(--space-6);
+    padding-block: var(--space-8) var(--space-12);
+  }
+}
+
+/* Very narrow phones: the cover stacks above the date so the date keeps its size. */
+@media (max-width: 23.5rem) {
+  .hero {
+    grid-template-columns: minmax(0, 1fr);
+    row-gap: var(--space-4);
+  }
+
+  .hero .cover {
+    width: 6.5rem;
+  }
+}

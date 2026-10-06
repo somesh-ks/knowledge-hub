@@ -1,0 +1,15 @@
+---
+import { ICON_PATHS, type IconName, SOLID_ICONS } from "../lib/icons";
+
+interface Props {
+  name: IconName;
+  class?: string;
+}
+
+const { name, class: className = "" } = Astro.props;
+const classes = ["icon", SOLID_ICONS.has(name) ? "icon-solid" : "", className]
+  .filter(Boolean)
+  .join(" ");
+---
+
+<svg class={classes} viewBox="0 0 24 24" aria-hidden="true" focusable="false" set:html={ICON_PATHS[name]} />

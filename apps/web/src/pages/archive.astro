@@ -1,0 +1,32 @@
+---
+import ArchiveYear from "../components/ArchiveYear.astro";
+import EmptyState from "../components/EmptyState.astro";
+import Icon from "../components/Icon.astro";
+import BaseLayout from "../layouts/BaseLayout.astro";
+import { groupArchive } from "../lib/archive";
+import { pluralize } from "../lib/format";
+import { getSite } from "../lib/site";
+
+const { entries } = await getSite();
+const years = groupArchive(entries);
+---
+
+<BaseLayout title="Archive" view="archive" skipLabel="Skip to the archive">
+  <main id="main" tabindex="-1">
+    {/* A way out of the archive that works in an installed app, where there is no browser back. */}
+    <a class="btn press back-link" href="/" data-astro-prefetch="hover"><Icon name="chevronLeft" />Today</a>
+    {
+      entries.length === 0 ? (
+        <EmptyState />
+      ) : (
+        <div class="archive-view">
+          <h1 id="page-title" tabindex="-1">Archive</h1>
+          <p class="archive-lede">
+            {pluralize(entries.length, "briefing")}, newest first. Weekly deep dives are marked.
+          </p>
+          {years.map((group, index) => <ArchiveYear group={group} isNewest={index === 0} />)}
+        </div>
+      )
+    }
+  </main>
+</BaseLayout>

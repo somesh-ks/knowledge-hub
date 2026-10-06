@@ -1,0 +1,15 @@
+{
+  "version": 1,
+  "regular": {
+    "at": "2026-10-07T05:20:00.000Z",
+    "outcome": "published",
+    "digest_id": "2026-10-07",
+    "items": 12
+  },
+  "weekly": {
+    "at": "2026-10-04T06:02:00.000Z",
+    "outcome": "published",
+    "digest_id": "2026-10-04-weekly",
+    "items": 14
+  }
+}

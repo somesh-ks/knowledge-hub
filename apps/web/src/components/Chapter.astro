@@ -1,0 +1,39 @@
+---
+import type { SectionView } from "../lib/digestView";
+
+interface Props {
+  section: SectionView;
+  /** Zero-based position among the digest's chapters. */
+  sectionIndex: number;
+  hasAudio: boolean;
+}
+
+const { section, sectionIndex, hasAudio } = Astro.props;
+const headingId = `c-${section.slug}`;
+---
+
+<section class="chapter-block" data-chapter={section.slug} aria-labelledby={headingId}>
+  <div class="chapter" data-section-index={sectionIndex}>
+    <span class="chapter-node" aria-hidden="true"></span>
+    <h2 id={headingId}>
+      {
+        hasAudio ? (
+          <button
+            class="chapter-row press"
+            type="button"
+            data-play-item={section.firstIndex}
+            aria-label={`Listen to ${section.title}, ${section.clock}`}
+          >
+            <span>{section.title}</span>
+            <span class="chapter-time">{section.clock}</span>
+          </button>
+        ) : (
+          <span class="chapter-row">
+            <span>{section.title}</span>
+          </span>
+        )
+      }
+    </h2>
+  </div>
+  <slot />
+</section>

@@ -1,0 +1,14 @@
+---
+interface Props {
+  class?: string;
+}
+
+const { class: className = "wordmark-mark" } = Astro.props;
+---
+
+{/* The rail with its current node: a line, its upper half at full strength, a node at the midpoint. */}
+<svg class={className} viewBox="0 0 16 24" aria-hidden="true" focusable="false">
+  <rect x="7" y="0" width="2" height="24" rx="1" fill="currentColor" opacity="0.28"></rect>
+  <rect x="7" y="0" width="2" height="12" rx="1" fill="currentColor"></rect>
+  <circle cx="8" cy="12" r="5" fill="currentColor"></circle>
+</svg>

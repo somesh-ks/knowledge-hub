@@ -1,0 +1,38 @@
+---
+import type { AudioMode } from "../lib/digests";
+import { AUDIO_UNAVAILABLE_COPY } from "../lib/digestView";
+import PlayPauseIcons from "./PlayPauseIcons.astro";
+
+interface Props {
+  digestId: string;
+  mode: AudioMode;
+  /** "3:32", or null when there is no audio. */
+  clock: string | null;
+}
+
+const { digestId, mode, clock } = Astro.props;
+const isReady = mode === "ready";
+const unavailable = mode === "ready" ? null : AUDIO_UNAVAILABLE_COPY[mode];
+---
+
+<div class="hero-cta">
+  {/* The player island owns this button once it hydrates: it reads data-play-digest and writes
+       data-playing, data-loading, .cta-label and .cta-time. aria-disabled keeps it focusable so the
+       hint below can be read. */}
+  <button
+    class="cta press press-subtle"
+    type="button"
+    data-play-digest={isReady ? digestId : undefined}
+    data-playing="false"
+    aria-disabled={isReady ? undefined : "true"}
+    aria-describedby={unavailable ? "cta-hint" : undefined}
+  >
+    <span class="cta-main">
+      <PlayPauseIcons class="cta-icon" />
+      <span class="spinner" aria-hidden="true"></span>
+      <span class="cta-label">{unavailable ? unavailable.label : "Play the briefing"}</span>
+    </span>
+    <span class="cta-time num">{isReady ? clock : ""}</span>
+  </button>
+</div>
+{unavailable && <p class="hero-hint" id="cta-hint">{unavailable.hint}</p>}

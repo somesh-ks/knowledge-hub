@@ -1,0 +1,177 @@
+/*
+ * Page shell: header, banners, columns, safe areas. Component styles live in their own files and
+ * read only semantic and component tokens (design spec section 10). Everything here is unlayered, so
+ * it always wins over the foundations layers without specificity fights.
+ */
+
+:root {
+  --header-height: 3.5rem;
+  /* Anchors and focus scrolling land below the sticky header, not under it. */
+  scroll-padding-block-start: calc(var(--header-height) + var(--safe-top) + var(--space-4));
+}
+
+html {
+  /* In a stylesheet, not script: iOS reads it before the first touchstart. No rubber band behind the
+     opaque header, and no pull-to-refresh that would restart a briefing mid-listen. */
+  overscroll-behavior-y: none;
+}
+
+body {
+  overflow-x: clip;
+  min-height: 100vh;
+}
+
+/* dvh tracks the visible viewport as a browser toolbar collapses. Where it is not supported, vh stands. */
+@supports (min-height: 100dvh) {
+  body {
+    min-height: 100dvh;
+  }
+}
+
+/* A launched app has no collapsing toolbar, and dvh can report the wrong height until first layout,
+   so vh is the safe unit there. */
+@media (display-mode: standalone) {
+  body {
+    min-height: 100vh;
+  }
+}
+
+main {
+  display: block;
+  min-width: 0;
+}
+
+main:focus {
+  outline: none;
+}
+
+html[data-mini="visible"] main {
+  /* Room for the mini player and its inset, so the last line is never covered. */
+  padding-block-end: calc(
+    var(--mini-player-control-size) +
+    var(--mini-player-inset) *
+    2 +
+    max(var(--mini-player-inset), var(--safe-bottom)) +
+    var(--space-8)
+  );
+}
+
+/* ------------------------------------------------------------------ site header */
+
+.site-header {
+  position: sticky;
+  inset-block-start: 0;
+  z-index: var(--z-header);
+  /* Opaque on purpose: Safari 26 samples a sticky top element's background for the status bar. */
+  background: var(--color-surface);
+  padding-block-start: var(--safe-top);
+}
+
+.site-header::after {
+  content: "";
+  position: absolute;
+  inset-inline: 0;
+  inset-block-end: 0;
+  height: var(--stroke-hairline);
+  background: var(--color-border-hairline);
+  opacity: 0;
+  pointer-events: none;
+}
+
+/* The hairline appears over the first 16px of scroll. Without scroll timelines there is none. */
+@supports (animation-timeline: scroll()) {
+  .site-header::after {
+    animation: header-line linear both;
+    animation-timeline: scroll(root);
+    animation-range: 0 var(--space-4);
+  }
+}
+
+@keyframes header-line {
+  to {
+    opacity: 1;
+  }
+}
+
+.site-header-inner {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  min-height: var(--header-height);
+  /* The top-leading corner stays free of controls inside windowed iPadOS apps. */
+  padding-inline-start: max(var(--page-gutter-start), var(--window-controls-inset));
+}
+
+.wordmark {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-2);
+  min-height: var(--size-touch);
+  font-size: var(--font-size-label-lg);
+  font-weight: var(--font-weight-bold);
+  letter-spacing: var(--font-tracking-label-lg);
+  text-decoration: none;
+}
+
+.wordmark-mark {
+  width: var(--space-4);
+  height: var(--size-icon-lg);
+  color: var(--color-accent);
+}
+
+.site-actions {
+  display: flex;
+  align-items: center;
+  margin-inline-end: calc(var(--space-2) * -1);
+}
+
+.site-actions .nav-archive {
+  display: none;
+}
+
+@media (min-width: 40rem) {
+  .site-actions .nav-archive {
+    display: inline-flex;
+  }
+}
+
+/* ------------------------------------------------------------------ banners and columns */
+
+.banner-stack {
+  display: grid;
+  gap: var(--space-2);
+}
+
+.banner-stack:not(:empty) {
+  padding-block-start: var(--space-2);
+}
+
+.shell {
+  display: block;
+}
+
+.page-end {
+  padding-block-end: var(--space-24);
+}
+
+/* From 64rem the chapters move to a sticky aside left of the reading column. Header and banners span
+   aside plus gap plus column, so the wordmark sits over the aside and the actions over the column. */
+@media (min-width: 64rem) {
+  html[data-layout="aside"] .shell {
+    display: grid;
+    grid-template-columns: var(--layout-aside) minmax(0, var(--layout-column));
+    column-gap: var(--space-12);
+    justify-content: center;
+    max-width: none;
+  }
+
+  html[data-layout="aside"] :is(.site-header-inner, .banner-stack) {
+    max-width: calc(
+      var(--layout-aside) +
+      var(--space-12) +
+      var(--layout-column) +
+      var(--page-gutter) *
+      2
+    );
+  }
+}

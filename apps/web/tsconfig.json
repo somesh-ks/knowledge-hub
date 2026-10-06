@@ -1,0 +1,19 @@
+{
+  "extends": "../../tsconfig.base.json",
+  "compilerOptions": {
+    "jsx": "react-jsx",
+    "jsxImportSource": "react",
+    "types": ["node", "astro/client"],
+    "allowJs": true,
+    "checkJs": false
+  },
+  "include": [
+    ".astro/types.d.ts",
+    "src",
+    "e2e",
+    "scripts",
+    "astro.config.mjs",
+    "playwright.config.ts"
+  ],
+  "exclude": ["node_modules", "dist", ".vercel"]
+}

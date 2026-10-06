@@ -1,0 +1,92 @@
+/* Banners and the empty state. One banner component; the tone sets its tint and icon color. */
+
+.banner {
+  display: grid;
+  grid-template-columns: auto 1fr auto;
+  align-items: start;
+  gap: var(--space-3);
+  padding: var(--banner-padding);
+  border-radius: var(--banner-radius);
+  background: var(--tone-bg);
+  color: var(--color-on-surface);
+}
+
+.banner[data-tone="info"] {
+  --tone-bg: var(--color-info-subtle);
+  --tone: var(--color-info);
+}
+
+.banner[data-tone="warning"] {
+  --tone-bg: var(--color-warning-subtle);
+  --tone: var(--color-warning);
+}
+
+.banner[data-tone="danger"] {
+  --tone-bg: var(--color-danger-subtle);
+  --tone: var(--color-danger);
+}
+
+.banner[data-tone="success"] {
+  --tone-bg: var(--color-success-subtle);
+  --tone: var(--color-success);
+}
+
+/* Only the icon takes the status color; the text stays on-surface so contrast never depends on it. */
+.banner .icon {
+  margin-block-start: 0.125rem;
+  color: var(--tone);
+}
+
+.banner-title {
+  font-weight: var(--font-weight-semibold);
+}
+
+.banner-body {
+  color: var(--color-on-surface-muted);
+  font-size: var(--font-size-meta);
+}
+
+.banner-action {
+  align-self: center;
+  min-height: var(--size-touch);
+  padding-inline: var(--space-3);
+  border-radius: var(--control-radius-sm);
+  background: color-mix(in oklch, var(--color-on-surface) 8%, transparent);
+  color: var(--color-on-surface);
+  font-size: var(--font-size-meta);
+  font-weight: var(--font-weight-semibold);
+}
+
+.empty {
+  display: grid;
+  justify-items: start;
+  gap: var(--space-4);
+  padding-block: var(--space-8);
+}
+
+.empty .cover {
+  width: var(--cover-size-hero);
+}
+
+.empty h1 {
+  font-size: var(--text-display-size);
+  font-weight: var(--text-display-weight);
+  letter-spacing: var(--text-display-tracking);
+  line-height: var(--text-display-leading);
+}
+
+.empty p {
+  max-width: 34ch;
+  color: var(--color-on-surface-muted);
+}
+
+.empty .btn-primary,
+.empty .btn-secondary {
+  width: auto;
+}
+
+.empty-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-3);
+}

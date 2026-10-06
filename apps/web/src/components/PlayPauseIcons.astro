@@ -1,0 +1,14 @@
+---
+import Icon from "./Icon.astro";
+
+interface Props {
+  class?: string;
+}
+
+const { class: className = "" } = Astro.props;
+---
+
+<span class="swap">
+  <Icon name="play" class={`${className} swap-paused`.trim()} />
+  <Icon name="pause" class={`${className} swap-playing`.trim()} />
+</span>
