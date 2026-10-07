@@ -1,0 +1,88 @@
+{
+  "digest": "2026-10-07",
+  "voice": "geffen_32",
+  "model": "simba-3.2",
+  "timeline": "marks",
+  "duration_ms": 205620,
+  "text_chars": 3294,
+  "items": [
+    {
+      "id": "7dbe6e38bd36",
+      "section": "top",
+      "start_ms": 5020,
+      "end_ms": 35697
+    },
+    {
+      "id": "04f819a38428",
+      "section": "top",
+      "start_ms": 35697,
+      "end_ms": 57034
+    },
+    {
+      "id": "214f19e4e201",
+      "section": "top",
+      "start_ms": 57034,
+      "end_ms": 76063
+    },
+    {
+      "id": "4c5769296d02",
+      "section": "ui-craft",
+      "start_ms": 76063,
+      "end_ms": 98592
+    },
+    {
+      "id": "0522fc02b69e",
+      "section": "ai",
+      "start_ms": 98592,
+      "end_ms": 121291
+    },
+    {
+      "id": "fef1d0f44391",
+      "section": "ai",
+      "start_ms": 121291,
+      "end_ms": 138967
+    },
+    {
+      "id": "224eb5aa6e6d",
+      "section": "launches",
+      "start_ms": 138967,
+      "end_ms": 152706
+    },
+    {
+      "id": "8c7d33817fdf",
+      "section": "launches",
+      "start_ms": 152706,
+      "end_ms": 170372
+    },
+    {
+      "id": "4c7e09422810",
+      "section": "launches",
+      "start_ms": 170372,
+      "end_ms": 186713
+    },
+    {
+      "id": "38f8cbc73341",
+      "section": "launches",
+      "start_ms": 186713,
+      "end_ms": 205620
+    }
+  ],
+  "sections": [
+    {
+      "slug": "top",
+      "start_ms": 3951
+    },
+    {
+      "slug": "ui-craft",
+      "start_ms": 74783
+    },
+    {
+      "slug": "ai",
+      "start_ms": 96885
+    },
+    {
+      "slug": "launches",
+      "start_ms": 138071
+    }
+  ]
+}
