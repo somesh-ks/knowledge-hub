@@ -123,6 +123,8 @@ test.describe("paths that used to leave the player stuck @surface", () => {
     await finger.press(upNext);
     await expect(page).toHaveURL(new RegExp(`/d/${previous}`));
     await lab.collapsed();
+    // The fixture site's previous briefing has no narration, so there is no bar to tap there.
+    if (lab.target === "site") return;
     await lab.dockSettled();
     await lab.openPlayer();
     await expect(lab.scrubber).toBeVisible();
@@ -171,12 +173,13 @@ test.describe("paths that used to leave the player stuck @surface", () => {
       await expect(lab.root).toHaveAttribute("data-player-state", "playing");
     });
   }
+});
 
-  test("when the lazy half cannot load, the player still opens and offers to try again", async ({
-    lab,
-    page,
-    finger,
-  }) => {
+test.describe("when the player's lazy half cannot load @surface", () => {
+  // A service worker would fetch the chunk where the route below cannot see it.
+  test.use({ serviceWorkers: "block" });
+
+  test("the player still opens and offers to try again", async ({ lab, page, finger }) => {
     let failing = true;
     await page.route(LAZY_CHUNK, (route) => (failing ? route.abort() : route.continue()));
     await lab.open();
@@ -193,7 +196,9 @@ test.describe("paths that used to leave the player stuck @surface", () => {
     await expect(lab.scrubber).toBeVisible();
     await expect(retry).toHaveCount(0);
   });
+});
 
+test.describe("a window that changes size @surface", () => {
   test("resizing from a phone to landscape to a desktop keeps the open player whole", async ({
     lab,
     page,
@@ -214,8 +219,9 @@ test.describe("paths that used to leave the player stuck @surface", () => {
       const sheet = await lab.boxOf(lab.dialog);
       const wide = size.width >= 640;
       const bar = wide ? await lab.boxOf(lab.dock) : null;
+      const width = await page.evaluate(() => document.documentElement.clientWidth);
       expect(Math.abs(sheet.y)).toBeLessThanOrEqual(1);
-      expect(Math.abs(sheet.width - size.width)).toBeLessThanOrEqual(1);
+      expect(Math.abs(sheet.width - width)).toBeLessThanOrEqual(1);
       expect(Math.abs(sheet.y + sheet.height - (bar ? bar.y : size.height))).toBeLessThanOrEqual(1);
       // The cover on the page is the one on screen, where the layout put it.
       await expect(lab.dialog.locator(".player-cover-frame")).toBeVisible();

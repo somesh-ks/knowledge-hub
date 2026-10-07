@@ -103,7 +103,7 @@ test.describe("keyboard operation of the player", () => {
     await expect(page.locator("html")).toHaveAttribute("data-player-state", "idle");
   });
 
-  test("tabs through the header, the briefing and the mini player in reading order", async ({
+  test("tabs through the header, the briefing and the bar in reading order", async ({
     lab,
     page,
   }) => {

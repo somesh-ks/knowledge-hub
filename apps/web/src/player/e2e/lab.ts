@@ -114,16 +114,6 @@ async function touchPath(
   return { release };
 }
 
-/** The Chromium-only touch drag the first specs were written with. Prefer `finger.drag`. */
-export function touchDrag(
-  page: Page,
-  path: Point[],
-  stepMs: number,
-  options: { hold?: boolean } = {},
-): Promise<{ release(): Promise<void> }> {
-  return touchPath(page, path, stepMs, options.hold ?? false);
-}
-
 async function mouseDrag(
   page: Page,
   path: Point[],
@@ -235,6 +225,8 @@ export const test = base.extend<
       if (/Failed to load resource/.test(message.text())) return;
       // Astro's router says this itself whenever reduced motion is on.
       if (message.text().startsWith("[transitions]")) return;
+      // Playwright's own note when a test asks for service workers to be blocked.
+      if (message.text().includes("Service Worker registration blocked by Playwright")) return;
       problems.push(`[${message.type()}] ${message.text()}`);
     });
     page.on("pageerror", (error) => problems.push(`[pageerror] ${error.message}`));
@@ -298,6 +290,24 @@ export interface Box {
   height: number;
 }
 
+export interface SurfaceGeometry {
+  state: string;
+  p: number;
+  /** The whole surface: the box everything inside is laid out in. */
+  surface: Box;
+  sheet: Box;
+  dock: Box;
+  /** Where the cover rests on the bar and on the page. */
+  thumb: Box;
+  slot: Box;
+  /** The flying cover, as drawn. */
+  art: Box;
+  artTransform: { x: number; y: number; scale: number };
+  /** The flight as script wrote it: --art-from-x and the rest, in px and as a bare scale. */
+  morph: Record<string, number>;
+  window: { width: number; height: number };
+}
+
 export function center(box: Box): Point {
   return { x: box.x + box.width / 2, y: box.y + box.height / 2 };
 }
@@ -333,15 +343,6 @@ export class LabPage {
     return this.page.locator("[data-player-surface]");
   }
 
-  /** The bar and the panel by their first class names, for the specs not yet moved over. */
-  get mini() {
-    return this.page.locator(".mini");
-  }
-
-  get panel() {
-    return this.page.locator(".player-panel");
-  }
-
   /** The bar. */
   get dock() {
     return this.page.getByRole("region", { name: "Audio player" });
@@ -351,9 +352,9 @@ export class LabPage {
     return this.page.getByRole("button", { name: /^Open the player/ });
   }
 
-  /** The expanded player, a dialog named by the briefing's date while it is open. */
+  /** The expanded player: the page, while it is a dialog. */
   get dialog() {
-    return this.page.getByRole("dialog", { name: this.facts.title });
+    return this.page.locator('[data-player-page][role="dialog"]');
   }
 
   /** The page element itself, present whether or not it is expanded. */
@@ -423,11 +424,8 @@ export class LabPage {
     await expect
       .poll(() =>
         this.page.evaluate(() => {
-          const surface = document.querySelector<HTMLElement>("[data-player-surface]");
-          if (surface)
-            return surface.dataset.state === "expanded" || surface.dataset.state === "collapsed";
-          const panel = document.querySelector(".player-panel");
-          return !panel?.hasAttribute("data-moving");
+          const state = document.querySelector<HTMLElement>("[data-player-surface]")?.dataset.state;
+          return state === "expanded" || state === "collapsed";
         }),
       )
       .toBe(true);
@@ -435,9 +433,47 @@ export class LabPage {
 
   /** Progress `p` of the surface, 0 collapsed and 1 expanded, read from the page's own style. */
   async progress(): Promise<number> {
-    return this.sheet.evaluate((element) => {
-      const value = Number.parseFloat(getComputedStyle(element).getPropertyValue("--p"));
-      return Number.isFinite(value) ? value : 0;
+    return (await this.geometry()).p;
+  }
+
+  /**
+   * Where everything on the surface is, read in one pass, so no frame can slip in between two
+   * readings of a page that a held finger is still moving.
+   */
+  geometry(): Promise<SurfaceGeometry> {
+    return this.page.evaluate(() => {
+      const surface = document.querySelector<HTMLElement>("[data-player-surface]");
+      const find = (selector: string): HTMLElement => {
+        const element = surface?.querySelector<HTMLElement>(selector);
+        if (!element) throw new Error(`no ${selector}`);
+        return element;
+      };
+      const box = (element: Element) => {
+        const rect = element.getBoundingClientRect();
+        return { x: rect.x, y: rect.y, width: rect.width, height: rect.height };
+      };
+      if (!surface) throw new Error("no player surface");
+      const sheet = find("[data-player-page]");
+      const art = find("[data-player-art]");
+      const matrix = new DOMMatrix(getComputedStyle(art).transform);
+      const p = Number.parseFloat(getComputedStyle(sheet).getPropertyValue("--p"));
+      const morph: Record<string, number> = {};
+      for (const name of ["from-x", "from-y", "to-x", "to-y", "size", "scale"]) {
+        morph[name] = Number.parseFloat(art.style.getPropertyValue(`--art-${name}`));
+      }
+      return {
+        state: surface.dataset.state ?? "",
+        p: Number.isFinite(p) ? p : 0,
+        surface: box(surface),
+        sheet: box(sheet),
+        dock: box(find("[data-player-dock]")),
+        thumb: box(find("[data-player-thumb]")),
+        slot: box(find("[data-player-cover]")),
+        art: box(art),
+        artTransform: { x: matrix.m41, y: matrix.m42, scale: matrix.a },
+        morph,
+        window: { width: window.innerWidth, height: window.innerHeight },
+      };
     });
   }
 

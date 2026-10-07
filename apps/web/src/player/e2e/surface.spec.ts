@@ -1,5 +1,6 @@
 import type { Page } from "@playwright/test";
-import { center, expect, line, test } from "./lab";
+import { coverFrame } from "../core/coverMorph";
+import { type Box, center, expect, line, test } from "./lab";
 
 const WIDE_PX = 640;
 
@@ -11,6 +12,11 @@ function visibleCovers(page: Page): Promise<number> {
         element.checkVisibility({ visibilityProperty: true, opacityProperty: true }),
       ).length,
   );
+}
+
+/** The largest difference between two boxes' left edge, top edge and width. */
+function apart(a: Box, b: Box): number {
+  return Math.max(Math.abs(a.x - b.x), Math.abs(a.y - b.y), Math.abs(a.width - b.width));
 }
 
 test.describe("one surface @surface", () => {
@@ -53,7 +59,8 @@ test.describe("one surface @surface", () => {
     expect(controls).toBeTruthy();
     await expect(lab.sheet).toHaveAttribute("id", controls ?? "");
     await lab.openPlayer();
-    await expect(lab.openButton).toHaveAttribute("aria-expanded", "true");
+    // By attribute: on a phone the bar is out of the accessibility tree while the page is open.
+    await expect(lab.page.locator("[data-player-open]")).toHaveAttribute("aria-expanded", "true");
     await expect(lab.sheet).toHaveAttribute("aria-modal", "true");
   });
 
@@ -64,27 +71,25 @@ test.describe("one surface @surface", () => {
   }) => {
     await lab.open();
     await lab.play();
-    const bar = await lab.boxOf(lab.dock);
     const start = center(await lab.dockSettled());
+    const rest = await lab.geometry();
     expect(await visibleCovers(page)).toBe(1);
     // A slow, short pull, held: the page has only just left the bar.
     const held = await finger.drag(line(start, { x: start.x, y: start.y - 48 }, 12), 30, {
       hold: true,
     });
     await expect(lab.surface).toHaveAttribute("data-state", "dragging");
-    const p = await lab.progress();
-    expect(p).toBeGreaterThan(0);
-    expect(p).toBeLessThan(0.2);
-    const sheetTop = (await lab.boxOf(lab.sheet)).y;
+    await expect.poll(async () => (await lab.geometry()).p).toBeGreaterThan(0.03);
+    const now = await lab.geometry();
+    expect(now.p).toBeLessThan(0.2);
     // Travel is linear in p and ends with the page's top on the bar's top.
-    expect(Math.abs(sheetTop - bar.y * (1 - p))).toBeLessThanOrEqual(1.5);
-    const viewport = page.viewportSize();
-    if (viewport && viewport.width < WIDE_PX) {
+    expect(Math.abs(now.sheet.y - rest.dock.y * (1 - now.p))).toBeLessThanOrEqual(1);
+    if (now.window.width < WIDE_PX) {
       // On a phone the bar rides up on the page's top edge.
-      expect(Math.abs((await lab.boxOf(lab.dock)).y - sheetTop)).toBeLessThanOrEqual(1.5);
+      expect(Math.abs(now.dock.y - now.sheet.y)).toBeLessThanOrEqual(1);
     } else {
       // On a wide screen the bar does not move.
-      expect(Math.abs((await lab.boxOf(lab.dock)).y - bar.y)).toBeLessThanOrEqual(0.5);
+      expect(Math.abs(now.dock.y - rest.dock.y)).toBeLessThanOrEqual(0.5);
     }
     expect(await visibleCovers(page)).toBe(1);
     await held.release();
@@ -101,20 +106,28 @@ test.describe("one surface @surface", () => {
     await lab.open();
     await lab.play();
     const start = center(await lab.dockSettled());
-    const viewport = page.viewportSize();
-    const pull = Math.round((viewport?.height ?? 800) * 0.45);
+    const rest = await lab.geometry();
+    const pull = Math.round(rest.window.height * 0.45);
     const held = await finger.drag(line(start, { x: start.x, y: start.y - pull }, 16), 20, {
       hold: true,
     });
-    const art = page.locator("[data-player-art], .player-cover-frame[data-size=player]").first();
-    await expect(art).toHaveCount(1);
-    const flight = await art.evaluate((element) => {
-      const matrix = new DOMMatrix(getComputedStyle(element).transform);
-      return { scale: matrix.a, x: matrix.m41, y: matrix.m42 };
+    await expect.poll(async () => (await lab.geometry()).p).toBeGreaterThan(0.3);
+    const now = await lab.geometry();
+    expect(now.state).toBe("dragging");
+    expect(now.artTransform.scale).toBeGreaterThan(0.05);
+    expect(now.artTransform.scale).toBeLessThan(0.98);
+    // The stylesheet's transform is the formula in coverMorph.ts, for the flight script measured.
+    const expected = coverFrame(now.p, {
+      fromX: now.morph["from-x"] ?? Number.NaN,
+      fromY: now.morph["from-y"] ?? Number.NaN,
+      toX: now.morph["to-x"] ?? Number.NaN,
+      toY: now.morph["to-y"] ?? Number.NaN,
+      size: now.morph.size ?? Number.NaN,
+      scale: now.morph.scale ?? Number.NaN,
     });
-    expect(flight.scale).toBeGreaterThan(0.05);
-    expect(flight.scale).toBeLessThan(0.98);
-    expect(Math.abs(flight.x) + Math.abs(flight.y)).toBeGreaterThan(1);
+    expect(Math.abs(now.artTransform.x - expected.x)).toBeLessThanOrEqual(0.5);
+    expect(Math.abs(now.artTransform.y - expected.y)).toBeLessThanOrEqual(0.5);
+    expect(Math.abs(now.artTransform.scale - expected.scale)).toBeLessThanOrEqual(0.005);
     expect(await visibleCovers(page)).toBe(1);
     // Per-frame motion is custom properties only: the stylesheet owns what they mean.
     const written = await page.evaluate(() =>
@@ -128,6 +141,92 @@ test.describe("one surface @surface", () => {
     await lab.expanded();
     expect(await visibleCovers(page)).toBe(1);
     expect(await lab.progress()).toBeCloseTo(1, 2);
+    // At rest nothing that motion wrote is left behind.
+    const leftovers = await page.evaluate(() =>
+      [...document.querySelectorAll("[data-player-surface] *")]
+        .map((element) => element.getAttribute("style") ?? "")
+        .filter((style) => /--p\s*:|--art-/.test(style)),
+    );
+    expect(leftovers).toEqual([]);
+  });
+
+  test("the flying cover leaves from the bar's cover and lands on the page's cover", async ({
+    lab,
+    finger,
+  }) => {
+    await lab.open();
+    await lab.play();
+    const start = center(await lab.dockSettled());
+    const rest = await lab.geometry();
+    // Just past the slop: the cover has taken off and has not gone anywhere yet.
+    const first = await finger.drag(line(start, { x: start.x, y: start.y - 14 }, 7), 30, {
+      hold: true,
+    });
+    await expect(lab.surface).toHaveAttribute("data-state", "dragging");
+    const takeoff = await lab.geometry();
+    expect(takeoff.p).toBeLessThan(0.01);
+    expect(apart(takeoff.art, rest.thumb)).toBeLessThanOrEqual(1.5);
+    await first.release();
+    await lab.collapsed();
+    // Pulled past the top and held: the page is in place and the cover is on its slot.
+    const all = rest.window.height + 60;
+    const second = await finger.drag(line(start, { x: start.x, y: start.y - all }, 20), 16, {
+      hold: true,
+    });
+    await expect.poll(async () => (await lab.geometry()).p).toBe(1);
+    const landing = await lab.geometry();
+    expect(landing.state).toBe("dragging");
+    expect(apart(landing.art, landing.slot)).toBeLessThanOrEqual(1);
+    await second.release();
+    await lab.expanded();
+  });
+
+  test("a bottom navigation is told how far the page is, and let go at rest", async ({
+    lab,
+    page,
+    finger,
+  }) => {
+    await lab.open();
+    // The shell's bottom navigation, as its contract describes it: an element and its height.
+    await page.evaluate(() => {
+      const nav = document.createElement("nav");
+      nav.setAttribute("data-bottom-nav", "");
+      nav.setAttribute("aria-label", "Sections");
+      document.body.append(nav);
+      document.documentElement.style.setProperty("--bottom-nav-height", "56px");
+    });
+    const navP = (): Promise<string> =>
+      page.evaluate(
+        () =>
+          document
+            .querySelector<HTMLElement>("[data-bottom-nav]")
+            ?.style.getPropertyValue("--player-p") ?? "missing",
+      );
+    await lab.play();
+    const start = center(await lab.dockSettled());
+    const rest = await lab.geometry();
+    // The bar sits on top of the navigation.
+    expect(
+      Math.abs(rest.dock.y + rest.dock.height - (rest.window.height - 56)),
+    ).toBeLessThanOrEqual(1);
+    expect(await navP()).toBe("");
+    const held = await finger.drag(line(start, { x: start.x, y: start.y - 120 }, 12), 30, {
+      hold: true,
+    });
+    await expect.poll(async () => (await lab.geometry()).p).toBeGreaterThan(0.1);
+    const now = await lab.geometry();
+    expect(Number(await navP())).toBeCloseTo(now.p, 3);
+    // The page still leaves from the bar's top edge, wherever the navigation put the bar.
+    expect(Math.abs(now.sheet.y - rest.dock.y * (1 - now.p))).toBeLessThanOrEqual(1);
+    await held.release();
+    await lab.collapsed();
+    expect(await navP()).toBe("");
+    await lab.dockSettled();
+    await lab.openPlayer();
+    expect(await navP()).toBe("1");
+    await page.keyboard.press("Escape");
+    await lab.collapsed();
+    expect(await navP()).toBe("");
   });
 
   test("on a wide screen the page fills the window above the bar, and the bar keeps working", async ({
@@ -140,21 +239,23 @@ test.describe("one surface @surface", () => {
     await lab.open();
     await lab.play();
     await lab.openPlayer();
-    const sheet = await lab.boxOf(lab.dialog);
-    const bar = await lab.boxOf(lab.dock);
-    const width = viewport?.width ?? 0;
-    const height = viewport?.height ?? 0;
-    expect(Math.abs(sheet.x)).toBeLessThanOrEqual(1);
-    expect(Math.abs(sheet.y)).toBeLessThanOrEqual(1);
-    expect(Math.abs(sheet.width - width)).toBeLessThanOrEqual(1);
-    expect(Math.abs(sheet.y + sheet.height - bar.y)).toBeLessThanOrEqual(1);
-    expect(Math.abs(bar.y + bar.height - height)).toBeLessThanOrEqual(1);
+    const now = await lab.geometry();
+    // Edge to edge of what the layout has: the window, less a classic scrollbar's gutter.
+    expect(now.surface.width).toBeGreaterThan(now.window.width - 20);
+    expect(Math.abs(now.sheet.x)).toBeLessThanOrEqual(1);
+    expect(Math.abs(now.sheet.y)).toBeLessThanOrEqual(1);
+    expect(Math.abs(now.sheet.width - now.surface.width)).toBeLessThanOrEqual(1);
+    expect(Math.abs(now.sheet.y + now.sheet.height - now.dock.y)).toBeLessThanOrEqual(1);
+    expect(Math.abs(now.dock.y + now.dock.height - now.window.height)).toBeLessThanOrEqual(1);
     // The bar is not behind the modal: its own play button still answers.
     await finger.press(lab.dock.getByRole("button", { name: "Pause" }));
     await expect(lab.root).toHaveAttribute("data-player-state", "paused");
     await finger.press(lab.dock.getByRole("button", { name: "Play" }));
     await expect(lab.root).toHaveAttribute("data-player-state", "playing");
     await lab.expanded();
+    // And its open button closes the page it opened.
+    await finger.press(lab.openButton);
+    await lab.collapsed();
   });
 
   test("on a tablet in portrait the page also fills the window above the bar", async ({
@@ -168,12 +269,11 @@ test.describe("one surface @surface", () => {
     await lab.open();
     await lab.play();
     await lab.openPlayer();
-    const sheet = await lab.boxOf(lab.dialog);
-    const bar = await lab.boxOf(lab.dock);
-    expect(Math.abs(sheet.y)).toBeLessThanOrEqual(1);
-    expect(Math.abs(sheet.width - 820)).toBeLessThanOrEqual(1);
-    expect(Math.abs(sheet.y + sheet.height - bar.y)).toBeLessThanOrEqual(1);
-    expect(Math.abs(bar.y + bar.height - 1180)).toBeLessThanOrEqual(1);
+    const now = await lab.geometry();
+    expect(Math.abs(now.sheet.y)).toBeLessThanOrEqual(1);
+    expect(Math.abs(now.sheet.width - now.surface.width)).toBeLessThanOrEqual(1);
+    expect(Math.abs(now.sheet.y + now.sheet.height - now.dock.y)).toBeLessThanOrEqual(1);
+    expect(Math.abs(now.dock.y + now.dock.height - 1180)).toBeLessThanOrEqual(1);
   });
 
   test("on a phone the page covers the whole screen and the bar steps out", async ({
@@ -185,11 +285,11 @@ test.describe("one surface @surface", () => {
     await lab.open();
     await lab.play();
     await lab.openPlayer();
-    const sheet = await lab.boxOf(lab.dialog);
-    expect(Math.abs(sheet.x)).toBeLessThanOrEqual(1);
-    expect(Math.abs(sheet.y)).toBeLessThanOrEqual(1);
-    expect(Math.abs(sheet.width - (viewport?.width ?? 0))).toBeLessThanOrEqual(1);
-    expect(Math.abs(sheet.height - (viewport?.height ?? 0))).toBeLessThanOrEqual(1);
+    const now = await lab.geometry();
+    expect(Math.abs(now.sheet.x)).toBeLessThanOrEqual(1);
+    expect(Math.abs(now.sheet.y)).toBeLessThanOrEqual(1);
+    expect(Math.abs(now.sheet.width - now.window.width)).toBeLessThanOrEqual(1);
+    expect(Math.abs(now.sheet.height - now.window.height)).toBeLessThanOrEqual(1);
     await expect(lab.openButton).toBeHidden();
   });
 });

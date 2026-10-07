@@ -34,7 +34,7 @@ test.describe("the page follows the narration", () => {
     await page.waitForTimeout(100);
     const before = await page.evaluate(() => window.scrollY);
     // An item change while the reader is scrolling does not pull the page away.
-    await page.locator(".mini-btn").last().tap();
+    await lab.dock.getByRole("button", { name: "Next item" }).tap();
     await page.waitForTimeout(900);
     expect(Math.abs((await page.evaluate(() => window.scrollY)) - before)).toBeLessThan(5);
   });
