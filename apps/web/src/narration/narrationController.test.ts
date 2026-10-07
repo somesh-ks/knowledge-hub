@@ -1,4 +1,5 @@
 import { beforeEach, describe, expect, it } from "vitest";
+import { resumeKey } from "../player/core/resume";
 import { createHarness, FakeAudio, makeDigestWithoutAudio } from "../player/core/testing";
 import type { PlayerDigestData } from "../types/contracts";
 import { createNarrationController, type PassphraseAnswer } from "./narrationController";
@@ -168,6 +169,16 @@ describe("createNarrationController", () => {
     await controller.play(page, ids[2]);
     expect(server.posts[0]?.segment).toBe(ids[2]);
     expect(harness.store.getState().itemIndex).toBe(2);
+  });
+
+  it("plays the tapped story, not a position saved on an earlier visit", async () => {
+    const { controller, answers, element, harness, settle } = setup();
+    harness.storage.setItem(resumeKey(page.id), "12");
+    answers.push({ value: "open sesame", remember: false });
+    await controller.play(page, ids[2]);
+    await settle();
+    expect(harness.store.getState().itemIndex).toBe(2);
+    expect(element.src).toBe(`https://store.test/${ids[2]}.mp3`);
   });
 
   it("needs no passphrase when every story is already narrated", async () => {

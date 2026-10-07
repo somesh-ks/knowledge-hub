@@ -69,6 +69,9 @@ function harness(list: TrackSegment[] = segments()): Harness {
   };
 }
 
+/** One turn of the microtask queue: the adapter has told its listeners the track's length. */
+const announced = () => Promise.resolve();
+
 /** The element has loaded a file's header and started it. */
 function startFile(real: FakeAudio, seconds: number): void {
   real.loadMetadata(seconds);
@@ -111,17 +114,112 @@ describe("a playlist as one track", () => {
     audio.addEventListener("loadedmetadata", () => heard.push("loadedmetadata"));
     audio.src = "narration:2026-10-07";
     expect(audio.duration).toBe(30);
+    // Nothing is loaded as far as the player can tell, until it has been told the length.
+    expect(audio.readyState).toBe(0);
+    await announced();
+    expect(heard).toEqual(["loadedmetadata"]);
     expect(audio.readyState).toBe(1);
     expect(audio.paused).toBe(true);
     // Nothing is fetched until the listener asks for sound.
     expect(real.src).toBe("");
+  });
+
+  it("holds a play made before the length is announced, so a seek can say where to start", async () => {
+    const { real, audio } = harness();
+    audio.addEventListener("loadedmetadata", () => {
+      // What the player does with a saved position or a tapped story.
+      audio.currentTime = 22;
+    });
+    audio.src = "narration:2026-10-07";
+    void audio.play();
+    expect(real.src).toBe("");
+    await announced();
+    // The intro was never fetched: the first file is the one the seek chose.
+    expect(real.src).toBe("https://blob.test/b.mp3");
+    expect(real.playCalls).toBe(1);
+  });
+
+  it("silences the old story while a tapped one is being made", async () => {
+    const { real, audio, events, deliver } = harness();
+    audio.src = "narration:2026-10-07";
+    await announced();
+    await audio.play();
+    startFile(real, 8);
+    events.length = 0;
+    audio.currentTime = 12;
+    expect(real.paused).toBe(true);
+    // The element's pause is the adapter's own doing, not the track pausing.
+    real.emit("pause");
+    expect(events).not.toContain("pause");
+    expect(audio.paused).toBe(false);
+    await deliver(1);
+    expect(real.src).toBe("https://blob.test/a.mp3");
+  });
+
+  it("seeks back into a file that has just ended, at the place asked for", async () => {
+    const { real, audio } = harness();
+    audio.src = "narration:2026-10-07";
+    await announced();
+    await audio.play();
+    startFile(real, 10);
+    // The file ends; the next story has no file yet.
+    real.ended = true;
+    real.paused = true;
+    real.emit("pause");
+    real.emit("ended");
     await Promise.resolve();
-    expect(heard).toEqual(["loadedmetadata"]);
+    audio.currentTime = 7;
+    expect(real.currentTime).toBe(7);
+    expect(audio.currentTime).toBe(7);
+    expect(real.playCalls).toBe(2);
+  });
+
+  it("ignores a late pause event that a newer play has already undone", async () => {
+    const { real, audio, events } = harness();
+    audio.src = "narration:2026-10-07";
+    await announced();
+    await audio.play();
+    startFile(real, 8);
+    audio.pause();
+    await audio.play();
+    events.length = 0;
+    // The event for the pause arrives after the play.
+    real.emit("pause");
+    expect(events).toEqual([]);
+    expect(audio.paused).toBe(false);
+  });
+
+  it("reports a pause from outside that landed while the next file was loading", async () => {
+    const { real, audio, events } = harness();
+    audio.src = "narration:2026-10-07";
+    await announced();
+    await audio.play();
+    events.length = 0;
+    // A call comes in before the header is read.
+    real.paused = true;
+    real.loadMetadata(8);
+    expect(events).toEqual(["pause"]);
+    expect(audio.paused).toBe(true);
+  });
+
+  it("keeps a header that arrived while the playhead was elsewhere", async () => {
+    const { real, audio } = harness();
+    audio.src = "narration:2026-10-07";
+    await announced();
+    await audio.play();
+    audio.pause();
+    real.paused = true;
+    audio.currentTime = 25;
+    real.loadMetadata(10);
+    audio.currentTime = 3;
+    expect(real.currentTime).toBe(3);
+    expect(audio.currentTime).toBe(3);
   });
 
   it("plays the first file and reports its time on the virtual timeline", async () => {
     const { real, audio, events } = harness();
     audio.src = "narration:2026-10-07";
+    await announced();
     await audio.play();
     expect(real.src).toBe("https://blob.test/intro.mp3");
     // The real file runs eight seconds; its span on the timeline is ten. Half way is half way.
@@ -134,6 +232,7 @@ describe("a playlist as one track", () => {
   it("moves to the next file at the end of one without pausing or ending", async () => {
     const { real, audio, events, deliver } = harness();
     audio.src = "narration:2026-10-07";
+    await announced();
     await audio.play();
     startFile(real, 8);
     await deliver(1);
@@ -159,6 +258,7 @@ describe("a playlist as one track", () => {
   it("ends once, after the last file", async () => {
     const { real, audio, events } = harness();
     audio.src = "narration:2026-10-07";
+    await announced();
     audio.currentTime = 25;
     await audio.play();
     expect(real.src).toBe("https://blob.test/b.mp3");
@@ -179,6 +279,7 @@ describe("a playlist as one track", () => {
   it("waits for a file that does not exist yet, then plays it", async () => {
     const { real, audio, events, ensured, deliver } = harness();
     audio.src = "narration:2026-10-07";
+    await announced();
     audio.currentTime = 12;
     const started = audio.play();
     await Promise.resolve();
@@ -201,6 +302,7 @@ describe("a playlist as one track", () => {
   it("does not start a late file after the listener paused", async () => {
     const { real, audio, deliver } = harness();
     audio.src = "narration:2026-10-07";
+    await announced();
     audio.currentTime = 12;
     const started = audio.play();
     audio.pause();
@@ -214,6 +316,7 @@ describe("a playlist as one track", () => {
   it("drops a late file when the listener has moved to another story", async () => {
     const { real, audio, deliver } = harness();
     audio.src = "narration:2026-10-07";
+    await announced();
     audio.currentTime = 12;
     void audio.play();
     await Promise.resolve();
@@ -226,6 +329,7 @@ describe("a playlist as one track", () => {
   it("reports a file that could not be made as an error, once", async () => {
     const { audio, events, refuse } = harness();
     audio.src = "narration:2026-10-07";
+    await announced();
     audio.currentTime = 12;
     const started = audio.play();
     await refuse(1);
@@ -238,6 +342,7 @@ describe("a playlist as one track", () => {
   it("seeks inside the loaded file without reloading it", async () => {
     const { real, audio } = harness();
     audio.src = "narration:2026-10-07";
+    await announced();
     await audio.play();
     startFile(real, 8);
     const loaded = real.src;
@@ -249,6 +354,7 @@ describe("a playlist as one track", () => {
   it("holds a seek made while paused and fetches nothing until play", async () => {
     const { real, audio, prepared } = harness();
     audio.src = "narration:2026-10-07";
+    await announced();
     audio.currentTime = 22;
     expect(real.src).toBe("");
     expect(audio.currentTime).toBe(22);
@@ -261,6 +367,7 @@ describe("a playlist as one track", () => {
   it("returns to the loaded file's own clock after a seek away and back while paused", async () => {
     const { real, audio } = harness();
     audio.src = "narration:2026-10-07";
+    await announced();
     await audio.play();
     startFile(real, 10);
     audio.pause();
@@ -274,6 +381,7 @@ describe("a playlist as one track", () => {
   it("asks for the files just ahead of the playhead", async () => {
     const { real, audio, prepared } = harness();
     audio.src = "narration:2026-10-07";
+    await announced();
     await audio.play();
     startFile(real, 8);
     expect(prepared).toContain(1);
@@ -283,6 +391,7 @@ describe("a playlist as one track", () => {
   it("treats a pause it did not ask for as the track pausing", async () => {
     const { real, audio, events } = harness();
     audio.src = "narration:2026-10-07";
+    await announced();
     await audio.play();
     startFile(real, 8);
     events.length = 0;
@@ -296,6 +405,7 @@ describe("a playlist as one track", () => {
   it("offers a resume when the browser will not start the next file by itself", async () => {
     const { real, audio, events, deliver } = harness();
     audio.src = "narration:2026-10-07";
+    await announced();
     await audio.play();
     startFile(real, 8);
     await deliver(1);
@@ -317,6 +427,7 @@ describe("a playlist as one track", () => {
   it("keeps the playback rate across a file swap", async () => {
     const { real, audio, deliver } = harness();
     audio.src = "narration:2026-10-07";
+    await announced();
     audio.defaultPlaybackRate = 1.5;
     audio.playbackRate = 1.5;
     await audio.play();
@@ -335,6 +446,7 @@ describe("a playlist as one track", () => {
       { key: "only", start: 0, end: 10, url: "https://blob.test/only.mp3" },
     ]);
     audio.src = "narration:2026-10-07";
+    await announced();
     await audio.play();
     startFile(real, 10);
     real.finish();
@@ -347,6 +459,7 @@ describe("a playlist as one track", () => {
   it("lets go of the playlist when the source is removed", async () => {
     const { real, audio } = harness();
     audio.src = "narration:2026-10-07";
+    await announced();
     await audio.play();
     audio.pause();
     audio.removeAttribute("src");

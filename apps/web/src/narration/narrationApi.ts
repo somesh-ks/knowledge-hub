@@ -47,8 +47,8 @@ async function readJson(response: Response): Promise<Json | null> {
 
 function refusal(response: Response, body: Json | null): NarrationFailure {
   const code = typeof body?.error === "string" ? body.error : "";
-  const known = KNOWN[code];
-  if (known) return known;
+  // An own-property check: "constructor" is a key of every object, and the server's word is not trusted.
+  if (Object.hasOwn(KNOWN, code)) return KNOWN[code] ?? "failed";
   // A method the function does not answer means this deployment has no narration at all. A gateway
   // error or a timeout page is a bad moment, not a missing feature.
   return response.status === 405 || response.status === 501 ? "unavailable" : "failed";
@@ -93,7 +93,23 @@ function parseTimeline(value: unknown): NarrationTimeline | null {
   const { kind, items, sections } = value as Json;
   if (kind !== "marks" && kind !== "estimated") return null;
   if (!Array.isArray(items) || !Array.isArray(sections)) return null;
-  return value as NarrationTimeline;
+  const isTime = (time: unknown): boolean => typeof time === "number" && Number.isFinite(time);
+  const itemsOk = items.every(
+    (item: unknown) =>
+      typeof item === "object" &&
+      item !== null &&
+      typeof (item as Json).id === "string" &&
+      isTime((item as Json).start_ms) &&
+      isTime((item as Json).end_ms),
+  );
+  const sectionsOk = sections.every(
+    (section: unknown) =>
+      typeof section === "object" &&
+      section !== null &&
+      typeof (section as Json).slug === "string" &&
+      isTime((section as Json).start_ms),
+  );
+  return itemsOk && sectionsOk ? (value as NarrationTimeline) : null;
 }
 
 /** GET /api/narrate. Free, needs no passphrase, and never makes audio. */

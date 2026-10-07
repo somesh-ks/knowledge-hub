@@ -110,6 +110,8 @@ export function createNarrationController(deps: ControllerDeps): NarrationContro
   /** Only the briefing being listened to has files made ahead of its playhead. */
   function activate(digestId: string): void {
     if (activeId !== null && activeId !== digestId) sessions.get(activeId)?.queue.stop();
+    // A briefing the listener comes back to was stopped when they left it.
+    if (activeId !== digestId) sessions.get(digestId)?.queue.reset();
     activeId = digestId;
   }
 

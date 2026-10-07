@@ -92,8 +92,12 @@ export function createTrackAudio(real: AudioLike, options: TrackAudioOptions): A
   /** Which segment's file the element currently holds, and whether its header has been read. */
   let attachedIndex: number | null = null;
   let attachedReady = false;
-  /** A file swap is under way: the element's own pause and time are not the track's. */
-  let switching = false;
+  /**
+   * False from the moment a playlist is set until the player has been told its length. Until then
+   * the track reports that nothing is loaded, so the player holds any seek for that moment, and a
+   * play waits for it: otherwise the first file would start before the player says where to begin.
+   */
+  let announced = true;
   let wantsPlay = false;
   let ended = false;
   let failure: { code: number } | null = null;
@@ -133,14 +137,32 @@ export function createTrackAudio(real: AudioLike, options: TrackAudioOptions): A
     return isFinitePositive(real.duration) ? real.duration : span(segment);
   }
 
+  /** The element holds the current segment's file and has read its header: its clock is the track's. */
+  function isLive(): boolean {
+    return attachedIndex === index && attachedReady;
+  }
+
+  /** Moves the loaded file to where a seek asked for, once that is possible. */
+  function land(): void {
+    const segment = current();
+    if (!segment || !isLive() || pendingShare === null) return;
+    if (pendingShare > 0 || real.currentTime > 0) {
+      try {
+        real.currentTime = pendingShare * fileSeconds(segment);
+      } catch {
+        // Some engines refuse a seek before the first frame. The next canplay tries again.
+        return;
+      }
+    }
+    pendingShare = null;
+  }
+
   function virtualTime(): number {
     const segment = current();
     if (!segment) return 0;
     if (ended) return total();
     const length = span(segment);
-    if (attachedIndex !== index || !attachedReady || switching) {
-      return segment.start + (pendingShare ?? 0) * length;
-    }
+    if (!isLive()) return segment.start + (pendingShare ?? 0) * length;
     const share = clamp(real.currentTime / fileSeconds(segment), 0, 1);
     return segment.start + share * length;
   }
@@ -152,7 +174,6 @@ export function createTrackAudio(real: AudioLike, options: TrackAudioOptions): A
   }
 
   function attach(target: number, url: string): void {
-    switching = true;
     attachedIndex = target;
     attachedReady = false;
     // A load resets the rate to the default, so the default must already be the rate in use.
@@ -193,7 +214,13 @@ export function createTrackAudio(real: AudioLike, options: TrackAudioOptions): A
     const mine = generation;
     const target = index;
 
-    if (attachedIndex === target) return real.play();
+    if (attachedIndex === target) {
+      land();
+      return real.play();
+    }
+    // The file in the element belongs to another story. It must not keep talking while this one
+    // is fetched or made. Its pause event is not the track's: it is no longer the current file.
+    if (attachedIndex !== null && !real.paused) real.pause();
     if (segment.url) {
       attach(target, segment.url);
       return real.play();
@@ -230,13 +257,12 @@ export function createTrackAudio(real: AudioLike, options: TrackAudioOptions): A
     generation += 1;
     index = next;
 
-    if (attachedIndex === next && attachedReady && !switching) {
-      pendingShare = null;
-      real.currentTime = share * fileSeconds(segment);
+    pendingShare = share;
+    if (isLive()) {
+      land();
       if (wantsPlay && real.paused) start();
       return;
     }
-    pendingShare = share;
     // Paused: nothing is fetched until play, but the file can be made ready in the meantime.
     if (wantsPlay) start();
     else list.prepare(next);
@@ -249,7 +275,7 @@ export function createTrackAudio(real: AudioLike, options: TrackAudioOptions): A
     pendingShare = null;
     attachedIndex = null;
     attachedReady = false;
-    switching = false;
+    announced = true;
     wantsPlay = false;
     ended = false;
     failure = null;
@@ -260,33 +286,29 @@ export function createTrackAudio(real: AudioLike, options: TrackAudioOptions): A
   const handlers: Record<AudioEvent, () => void> = {
     loadedmetadata() {
       if (!playlist) return emit("loadedmetadata");
-      const segment = current();
-      if (attachedIndex !== index || !segment) return;
+      if (attachedIndex === null) return;
+      // The header counts even if the playhead has moved on: it may come back to this file.
       attachedReady = true;
-      if (pendingShare !== null && pendingShare > 0 && isFinitePositive(real.duration)) {
-        try {
-          real.currentTime = pendingShare * real.duration;
-        } catch {
-          // Some engines refuse a seek before the first frame. The next canplay tries again.
-          return;
-        }
+      if (attachedIndex !== index) return;
+      land();
+      // The file was asked to play the moment it was attached. If it is paused now, something
+      // outside paused it while it loaded (a call), and the player should offer to resume.
+      if (wantsPlay && real.paused) {
+        wantsPlay = false;
+        emit("pause");
       }
-      pendingShare = null;
-      // The new file is in place and positioned: from here its clock is the track's clock.
-      switching = false;
     },
     durationchange() {
       // The virtual length never changes, so a file's own length is not the track's news.
       if (!playlist) emit("durationchange");
     },
     canplay() {
-      if (playlist && attachedIndex === index && pendingShare !== null && attachedReady) {
-        handlers.loadedmetadata();
-      }
+      if (playlist) land();
       emit("canplay");
     },
     playing() {
-      switching = false;
+      // A file that is not the current story's has no say.
+      if (playlist && attachedIndex !== index) return;
       emit("playing");
       prepareAhead();
     },
@@ -294,7 +316,9 @@ export function createTrackAudio(real: AudioLike, options: TrackAudioOptions): A
       if (!playlist) return emit("pause");
       // A file swap pauses the element, and so does reaching the end of a file that is not the
       // last. Neither is the track pausing.
-      if (switching || (real.ended && !isLast())) return;
+      // Nor is a pause of a file that is not the current story's, or a late event from a pause that
+      // a newer play has already undone.
+      if (attachedIndex !== index || !real.paused || (real.ended && !isLast())) return;
       if (real.ended) ended = true;
       wantsPlay = false;
       emit("pause");
@@ -310,7 +334,6 @@ export function createTrackAudio(real: AudioLike, options: TrackAudioOptions): A
       }
       index += 1;
       pendingShare = 0;
-      switching = true;
       emit("timeupdate");
       if (wantsPlay) start();
     },
@@ -322,7 +345,7 @@ export function createTrackAudio(real: AudioLike, options: TrackAudioOptions): A
     },
     timeupdate() {
       emit("timeupdate");
-      if (playlist && !switching) prepareAhead();
+      if (playlist && isLive()) prepareAhead();
     },
     ratechange() {
       emit("ratechange");
@@ -357,15 +380,21 @@ export function createTrackAudio(real: AudioLike, options: TrackAudioOptions): A
       virtualSrc = value;
       if (hadPlaylist || real.src) {
         // Whatever the element was holding belongs to the track before this one.
-        switching = true;
         real.pause();
         real.removeAttribute("src");
         real.load();
-        switching = false;
       }
       // The length and the story marks are known without reading a file, so the header is "read".
-      emitSoon("loadedmetadata");
-      emitSoon("durationchange");
+      // The player answers that news with where to start; only then does a waiting play begin.
+      announced = false;
+      queueMicrotask(() => {
+        if (playlist !== next || announced) return;
+        announced = true;
+        const before = generation;
+        emit("loadedmetadata");
+        emit("durationchange");
+        if (playlist === next && wantsPlay && generation === before) start();
+      });
     },
     get currentTime() {
       return playlist ? virtualTime() : real.currentTime;
@@ -385,8 +414,8 @@ export function createTrackAudio(real: AudioLike, options: TrackAudioOptions): A
     },
     get readyState() {
       if (!playlist) return real.readyState;
-      const live = attachedIndex === index && attachedReady && !switching;
-      return live ? Math.max(HAVE_METADATA, real.readyState) : HAVE_METADATA;
+      if (!announced) return 0;
+      return isLive() ? Math.max(HAVE_METADATA, real.readyState) : HAVE_METADATA;
     },
     get error() {
       return playlist ? failure : real.error;
@@ -431,6 +460,8 @@ export function createTrackAudio(real: AudioLike, options: TrackAudioOptions): A
       }
       failure = null;
       wantsPlay = true;
+      // Before the player knows the length, the start waits for it (see `announced`).
+      if (!announced) return Promise.resolve();
       return startCurrent();
     },
     pause() {

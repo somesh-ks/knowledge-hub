@@ -128,6 +128,20 @@ describe("lookupNarration", () => {
     }
   });
 
+  it("does not trust an error code or a timeline it does not recognise", async () => {
+    const odd = deps(() => json(500, { status: 500, error: "constructor" }));
+    expect(await lookupNarration("x", odd.api)).toEqual({ ok: false, reason: "failed" });
+    const broken = deps(() =>
+      json(200, {
+        ...lookupBody,
+        audio: { url: "https://store.test/audio/x.mp3", duration_ms: 480_000 },
+        timeline: { kind: "marks", items: [null], sections: [] },
+      }),
+    );
+    const result = await lookupNarration("2026-10-07", broken.api);
+    expect(result.ok && result.whole?.timeline).toBeNull();
+  });
+
   it("tells a deployment without narration from a bad moment", async () => {
     const missing = deps(() => new Response("Method Not Allowed", { status: 405 }));
     expect(await lookupNarration("x", missing.api)).toEqual({ ok: false, reason: "unavailable" });
