@@ -16,11 +16,12 @@ import type { RepoPair } from "./git-testRepo.js";
 import { createRepoPair, git, put, SEED_DIGEST_ID, SEED_DIGEST_PATH } from "./git-testRepo.js";
 
 describe("ALLOWLISTS", () => {
-  it("names the three commands and their paths", () => {
+  it("names the four commands and their paths", () => {
     expect(ALLOWLISTS).toEqual({
       run: ["Digests/", "state/"],
       publish: ["Digests/**/*.audio.json", "Digests/**/*.md", "state/usage.json"],
       learn: ["config/preferences.json"],
+      podcast: ["Podcasts/"],
     });
   });
 });
