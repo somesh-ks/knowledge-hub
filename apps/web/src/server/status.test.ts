@@ -7,6 +7,7 @@ import {
   failedStep,
   handleStatus,
   isOurRun,
+  isPodcastRun,
   parseOnDemandRecord,
   parseRunId,
   runUrlFor,
@@ -84,6 +85,15 @@ describe("isOurRun", () => {
       true,
     );
     expect(isOurRun({ ...ours, repositoryFullName: REPO.toUpperCase() }, config)).toBe(true);
+  });
+
+  it("accepts a dispatch run of podcast.yml, and says which runs are episodes", () => {
+    const episode = { ...ours, path: ".github/workflows/podcast.yml@refs/heads/main" };
+    expect(isOurRun(episode, config)).toBe(true);
+    expect(isPodcastRun(episode)).toBe(true);
+    expect(isPodcastRun(ours)).toBe(false);
+    expect(isOurRun({ ...episode, event: "schedule" }, config)).toBe(false);
+    expect(isOurRun({ ...episode, repositoryFullName: "someone/else" }, config)).toBe(false);
   });
 
   it("rejects another workflow, another event or another repository", () => {
@@ -187,6 +197,55 @@ describe("parseOnDemandRecord", () => {
     for (const bad of ["", "not json", "null", "{}", '{"on_demand":null}', '{"regular":{}}']) {
       expect(parseOnDemandRecord(bad)).toBeNull();
     }
+  });
+});
+
+describe("handleStatus for an episode run", () => {
+  const episode = (overrides: Record<string, unknown> = {}) =>
+    setup({ path: ".github/workflows/podcast.yml", ...overrides });
+
+  it("reports a run that is still going without reading its jobs", async () => {
+    const github = episode();
+    const result = await handleStatus("4242", { env, fetch: github.fetch });
+    expect(result).toMatchObject({
+      status: 200,
+      body: { run_id: 4242, state: "running", step: null },
+    });
+    expect(github.requests.some((request) => request.path.includes("/jobs"))).toBe(false);
+  });
+
+  it("reports a queued run as queued", async () => {
+    const result = await handleStatus("4242", {
+      env,
+      fetch: episode({ status: "queued" }).fetch,
+    });
+    expect(result.body).toMatchObject({ state: "queued", step: null });
+  });
+
+  it("reports a finished run as published, without reading the briefing record", async () => {
+    const github = episode({ status: "completed", conclusion: "success" });
+    const result = await handleStatus("4242", { env, fetch: github.fetch });
+    expect(result.body).toEqual({
+      run_id: 4242,
+      state: "completed",
+      step: null,
+      outcome: "published",
+    });
+    expect(github.requests.some((request) => request.path.includes("/contents/"))).toBe(false);
+  });
+
+  it("reports any other end as failed, with the run's address", async () => {
+    const result = await handleStatus("4242", {
+      env,
+      fetch: episode({ status: "completed", conclusion: "failure" }).fetch,
+    });
+    expect(result.body).toEqual({
+      run_id: 4242,
+      state: "completed",
+      step: null,
+      outcome: "failed",
+      run_url: runUrlFor(config, 4242),
+    });
   });
 });
 

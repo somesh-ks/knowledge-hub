@@ -7,6 +7,8 @@ import type { ServerConfig } from "./config";
  */
 
 export const WORKFLOW_FILE = "run.yml";
+/** The workflow that writes a podcast episode (POST /api/podcast). */
+export const PODCAST_WORKFLOW_FILE = "podcast.yml";
 const API = "https://api.github.com";
 const API_VERSION = "2022-11-28";
 const REQUEST_TIMEOUT_MS = 8000;
@@ -67,11 +69,22 @@ function parseRun(value: unknown): WorkflowRun | null {
   };
 }
 
+/** A workflow file name as GitHub takes it in a path: a plain name, never a directory. */
+const WORKFLOW_FILE_NAME = /^[A-Za-z0-9_-]+.ya?ml$/;
+
 export interface GitHubClient {
   /** Recent workflow_dispatch runs of run.yml on main, newest first. */
   listDispatchRuns(): Promise<WorkflowRun[]>;
   /** Starts run.yml on main. Returns the new run's id, or null when GitHub did not report one. */
   dispatch(inputs: Record<string, string>): Promise<number | null>;
+  /** Recent workflow_dispatch runs of the named workflow file on main, newest first. */
+  listWorkflowFileRuns(file: string): Promise<WorkflowRun[]>;
+  /**
+   * Starts the named workflow file (for example "podcast.yml") on main with these inputs. Returns the
+   * new run's id, or null when GitHub did not report one. Throws for a name that is not a plain
+   * workflow file name.
+   */
+  dispatchWorkflowFile(file: string, inputs: Record<string, string>): Promise<number | null>;
   getRun(runId: number): Promise<WorkflowRun | null>;
   listSteps(runId: number): Promise<WorkflowStep[]>;
   /** The text of a file at `ref`, or null when it does not exist. */
@@ -101,28 +114,39 @@ export function createGitHubClient(config: ServerConfig, fetchImpl: FetchLike): 
     return response.json();
   }
 
-  return {
-    async listDispatchRuns() {
-      const body = await json(
-        `/actions/workflows/${WORKFLOW_FILE}/runs?event=workflow_dispatch&branch=main&per_page=30`,
-      );
-      const runs = isRecord(body) && Array.isArray(body.workflow_runs) ? body.workflow_runs : [];
-      return runs.map(parseRun).filter((run): run is WorkflowRun => run !== null);
-    },
+  function workflowPath(file: string): string {
+    if (!WORKFLOW_FILE_NAME.test(file)) throw new Error("not a workflow file name");
+    return `/actions/workflows/${file}`;
+  }
 
-    async dispatch(inputs) {
-      const response = await request(`/actions/workflows/${WORKFLOW_FILE}/dispatches`, {
-        method: "POST",
-        // return_run_details asks GitHub to answer 200 with the run id instead of 204 with nothing.
-        body: JSON.stringify({ ref: "main", inputs, return_run_details: true }),
-      });
-      if (!response.ok) throw new GitHubError(response.status);
-      if (response.status === 204) return null;
-      const body: unknown = await response.json().catch(() => null);
-      return isRecord(body) && typeof body.workflow_run_id === "number"
-        ? body.workflow_run_id
-        : null;
-    },
+  async function listRuns(file: string): Promise<WorkflowRun[]> {
+    const body = await json(
+      `${workflowPath(file)}/runs?event=workflow_dispatch&branch=main&per_page=30`,
+    );
+    const runs = isRecord(body) && Array.isArray(body.workflow_runs) ? body.workflow_runs : [];
+    return runs.map(parseRun).filter((run): run is WorkflowRun => run !== null);
+  }
+
+  async function dispatchFile(
+    file: string,
+    inputs: Record<string, string>,
+  ): Promise<number | null> {
+    const response = await request(`${workflowPath(file)}/dispatches`, {
+      method: "POST",
+      // return_run_details asks GitHub to answer 200 with the run id instead of 204 with nothing.
+      body: JSON.stringify({ ref: "main", inputs, return_run_details: true }),
+    });
+    if (!response.ok) throw new GitHubError(response.status);
+    if (response.status === 204) return null;
+    const body: unknown = await response.json().catch(() => null);
+    return isRecord(body) && typeof body.workflow_run_id === "number" ? body.workflow_run_id : null;
+  }
+
+  return {
+    listDispatchRuns: () => listRuns(WORKFLOW_FILE),
+    dispatch: (inputs) => dispatchFile(WORKFLOW_FILE, inputs),
+    listWorkflowFileRuns: listRuns,
+    dispatchWorkflowFile: dispatchFile,
 
     async getRun(runId) {
       const response = await request(`/actions/runs/${runId}`);
