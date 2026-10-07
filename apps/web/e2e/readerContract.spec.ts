@@ -121,8 +121,7 @@ test.describe("what the player writes on a real page", () => {
     await page.getByRole("link", { name: /Monday 5 October/ }).click();
     await expect(page).toHaveURL(/\/d\/2026-10-05$/);
     const silent = page.locator("[data-play-digest]");
-    await expect(silent).toHaveAttribute("data-state", "unavailable");
-    await expect(silent).toHaveAttribute("aria-disabled", "true");
+    await expect(silent).toHaveAttribute("data-state", "idle");
     await expect(page.locator("[data-play-item]").first()).toBeHidden();
     await expect(page.locator(".story[data-state]")).toHaveCount(0);
     await expect(page.locator("html")).toHaveAttribute("data-player-state", "playing");
@@ -255,6 +254,7 @@ test.describe("how the page reacts to those attributes", () => {
   }) => {
     await page.goto(SILENT_DIGEST);
     await page.evaluate(() => {
+      document.querySelector("[data-play-digest]")?.setAttribute("aria-disabled", "true");
       (window as unknown as { __clicks: number }).__clicks = 0;
       document.addEventListener("click", () => {
         (window as unknown as { __clicks: number }).__clicks += 1;

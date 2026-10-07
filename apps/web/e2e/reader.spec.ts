@@ -30,32 +30,57 @@ test.describe("the briefing header", () => {
     }
   });
 
-  test("says why audio is unavailable and keeps the chip in the page, disabled", async ({
+  test("a briefing without audio keeps a working chip and says what pressing it does", async ({
     page,
   }) => {
     await page.goto(SILENT_DIGEST);
     const chip = page.locator("[data-play-digest]");
     await expect(chip).toBeVisible();
-    await expect(chip).toHaveAttribute("data-state", "unavailable");
-    await expect(chip).toHaveAttribute("aria-disabled", "true");
+    await expect(chip).toHaveAttribute("data-state", "idle");
+    await expect(chip).not.toHaveAttribute("aria-disabled", "true");
     // The estimate written with the text stands in until there is a recording to measure.
     await expect(chip.locator("[data-chip-label]")).toHaveText("3 min");
     await expect(chip).toHaveAccessibleDescription(
-      "Audio is still being prepared. Narration is generated after the text. It usually takes a few minutes.",
+      "Not read aloud yet. Press play to make the audio. The first time takes a few seconds and needs the passphrase.",
     );
     await expect(page.locator(".hero-hint")).toBeVisible();
     // The player leaves a briefing without audio exactly as the page rendered it.
     await hydrated(page);
-    await expect(chip).toHaveAttribute("data-state", "unavailable");
-    await expect(chip).toHaveAttribute("aria-disabled", "true");
+    await expect(chip).toHaveAttribute("data-state", "idle");
   });
 
-  test("a disabled chip does nothing when pressed", async ({ page }) => {
+  test("pressing play on a briefing without audio narrates it story by story", async ({ page }) => {
     await page.goto(SILENT_DIGEST);
     await hydrated(page);
-    // Playwright will not click a disabled control; force it, as a finger would.
-    await page.locator("[data-play-digest]").click({ force: true });
-    await expect(page.locator("html")).toHaveAttribute("data-player-state", "idle");
+    const ids = await page.evaluate(() => {
+      const data = JSON.parse(document.getElementById("dispatch-digest-data")?.textContent ?? "{}");
+      return (data.items as { id: string }[]).map((item) => item.id);
+    });
+    // The server knows where each story's file would be. Here every one already exists.
+    await page.route("**/api/narrate?digest=*", (route) =>
+      route.fulfill({
+        json: {
+          status: 200,
+          audio: null,
+          timeline: null,
+          ms_per_character: 62,
+          segments: ["intro", ...ids].map((key) => ({
+            key,
+            item_id: key === "intro" ? null : key,
+            characters: 300,
+            audio: { url: "/fixtures/audio.wav", duration_ms: 18_600, confirmed: false },
+          })),
+        },
+      }),
+    );
+    await page.locator("[data-play-digest]").click();
+    await expect(page.locator("html")).toHaveAttribute("data-player-state", "playing");
+    const chip = page.locator("[data-play-digest]");
+    await expect(chip).toHaveAttribute("data-state", "current");
+    await expect(chip.locator("[data-chip-label]")).toHaveText("Playing");
+    // The story chips the page rendered hidden now have something to play.
+    await expect(page.locator("[data-play-item]").first()).toBeVisible();
+    await expect(page.locator(".hero-hint")).toBeHidden();
   });
 });
 
