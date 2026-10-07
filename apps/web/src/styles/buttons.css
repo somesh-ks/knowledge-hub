@@ -129,6 +129,38 @@
   background: var(--color-surface-sunken);
 }
 
+/* ------------------------------------------------------------------ play and pause swap */
+
+/*
+ * Play and pause share one slot: the outgoing glyph shrinks, fades and blurs as the incoming one
+ * arrives. Keyed on the nearest ancestor's data-playing, which the player writes.
+ */
+.swap {
+  position: relative;
+  display: grid;
+  place-items: center;
+}
+
+.swap > .icon {
+  grid-area: 1 / 1;
+  transition:
+    opacity var(--duration-state) var(--ease-out),
+    transform var(--duration-state) var(--ease-out),
+    filter var(--duration-state) var(--ease-out);
+}
+
+.swap-paused {
+  /* Optical center: a play triangle's mass sits left of its box. */
+  translate: 0.0625rem 0;
+}
+
+[data-playing="false"] .swap-playing,
+[data-playing="true"] .swap-paused {
+  opacity: 0;
+  transform: scale(0.7);
+  filter: blur(var(--blur-enter));
+}
+
 /* ------------------------------------------------------------------ play chip */
 
 /*
@@ -211,23 +243,40 @@
   background: var(--chip-bg-current);
 }
 
+.chip-bars {
+  align-items: flex-end;
+  justify-content: center;
+  gap: var(--chip-ring);
+  height: var(--chip-icon);
+}
+
+.chip-bars > i {
+  width: calc(var(--chip-ring) * 2);
+  height: 100%;
+  border-radius: var(--chip-ring);
+  background: currentColor;
+  transform-origin: bottom;
+  animation: chip-bar var(--duration-spin) var(--ease-in-out) infinite alternate;
+}
+
+.chip-bars > i:nth-child(2) {
+  animation-delay: calc(var(--duration-spin) * -0.4);
+}
+
+.chip-bars > i:nth-child(3) {
+  animation-delay: calc(var(--duration-spin) * -0.75);
+}
+
+@keyframes chip-bar {
+  from {
+    transform: scaleY(0.3);
+  }
+}
+
 /* Current: the loaded story or briefing. Filled with the accent container, no outline. */
 .chip[data-state="current"] {
   border-color: transparent;
   background: var(--chip-bg-current);
-}
-
-/* While it plays, the ring gives way to three moving bars. */
-.chip[data-state="current"][data-playing="true"] .chip-glyph {
-  border-color: transparent;
-}
-
-.chip[data-state="current"][data-playing="true"] .chip-glyph > .swap {
-  display: none;
-}
-
-.chip[data-state="current"][data-playing="true"] .chip-bars {
-  display: flex;
 }
 
 /* Played: a check in the success colour and a quiet label. */
@@ -267,40 +316,23 @@
   display: block;
 }
 
+/* While it plays, the ring gives way to three moving bars. */
+.chip[data-state="current"][data-playing="true"] .chip-glyph {
+  border-color: transparent;
+}
+
+.chip[data-state="current"][data-playing="true"] .chip-glyph > .swap {
+  display: none;
+}
+
+.chip[data-state="current"][data-playing="true"] .chip-bars {
+  display: flex;
+}
+
 .chip:is([data-state="unavailable"], [aria-disabled="true"], :disabled) {
   background: none;
   color: var(--color-on-surface-disabled);
   cursor: default;
-}
-
-.chip-bars {
-  align-items: flex-end;
-  justify-content: center;
-  gap: var(--chip-ring);
-  height: var(--chip-icon);
-}
-
-.chip-bars > i {
-  width: calc(var(--chip-ring) * 2);
-  height: 100%;
-  border-radius: var(--chip-ring);
-  background: currentColor;
-  transform-origin: bottom;
-  animation: chip-bar var(--duration-spin) var(--ease-in-out) infinite alternate;
-}
-
-.chip-bars > i:nth-child(2) {
-  animation-delay: calc(var(--duration-spin) * -0.4);
-}
-
-.chip-bars > i:nth-child(3) {
-  animation-delay: calc(var(--duration-spin) * -0.75);
-}
-
-@keyframes chip-bar {
-  from {
-    transform: scaleY(0.3);
-  }
 }
 
 /* Reduced motion: the bars hold three different heights, which still reads as sound. */
@@ -327,36 +359,4 @@
   .chip[data-state="current"] {
     border-color: Highlight;
   }
-}
-
-/* ------------------------------------------------------------------ play and pause swap */
-
-/*
- * Play and pause share one slot: the outgoing glyph shrinks, fades and blurs as the incoming one
- * arrives. Keyed on the nearest ancestor's data-playing, which the player writes.
- */
-.swap {
-  position: relative;
-  display: grid;
-  place-items: center;
-}
-
-.swap > .icon {
-  grid-area: 1 / 1;
-  transition:
-    opacity var(--duration-state) var(--ease-out),
-    transform var(--duration-state) var(--ease-out),
-    filter var(--duration-state) var(--ease-out);
-}
-
-.swap-paused {
-  /* Optical center: a play triangle's mass sits left of its box. */
-  translate: 0.0625rem 0;
-}
-
-[data-playing="false"] .swap-playing,
-[data-playing="true"] .swap-paused {
-  opacity: 0;
-  transform: scale(0.7);
-  filter: blur(var(--blur-enter));
 }
