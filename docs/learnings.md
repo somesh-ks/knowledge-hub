@@ -2,6 +2,11 @@
 
 One line each: symptom, cause, fix. Newest first. Search before debugging.
 
+- `audio.yml` failed at the write guard ("changes outside the publish allowlist: .gitignore"): `vercel link` and `vercel env pull` edit `.gitignore` and write `.vercel`; run them in a scratch directory outside the checkout.
+- `vercel env pull` writes the text `[SENSITIVE]` for hidden secrets, so `BLOB_READ_WRITE_TOKEN` would load as that string and beat the OIDC credentials; `loadEnv` now treats it as unset.
+- Doctor said voice `geffen_32` was missing: Speechify `GET /v1/voices` is cursor-paged (50 by default, 200 at most); follow `next_cursor` while `has_more` is true.
+- Green tests did not catch the audio failure: nothing exercises the live Vercel, Speechify and Blob path. Run `dispatch doctor --online` after any credential change.
+- First `audio.yml` run (2026-10-06) failed at `vercel link` with "User not found (404)": the `VERCEL_TOKEN` secret is invalid or the wrong kind. Replace it with a fresh account token from the dashboard, then rerun the workflow.
 - Run failed at Commit with a change outside the write allowlist: `npm ci` marks `packages/engine/src/cli.ts` (a `bin` target) executable. Track it as 100755.
 - Vercel Hobby blocks deploys of bot-authored commits: only the team owner's commits deploy. Engine commits as `DISPATCH_GIT_NAME` and `DISPATCH_GIT_EMAIL` (D25).
 - Vercel Blob token cannot be copied: it is sensitive and hidden after creation; use OIDC credentials (D26).

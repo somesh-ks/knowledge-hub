@@ -18,6 +18,7 @@ const SECRETS = {
   FIRECRAWL_API_KEY: "fc-secret-444444444444",
   SPEECHIFY_API_KEY: "sp-secret-555555555555",
   BLOB_READ_WRITE_TOKEN: "blob-secret-666666666666",
+  VERCEL_TOKEN: "vc-secret-777777777777",
 };
 const MODELS = {
   DISPATCH_MODEL: "Qwen/Qwen3-235B-A22B-Instruct-2507",
@@ -66,6 +67,7 @@ const GOOD_ROUTES: Record<string, () => Response> = {
   "https://api.firecrawl.dev/v2/team/credit-usage": () =>
     reply(200, { success: true, data: { remainingCredits: 950 } }),
   "https://api.speechify.ai/v1/voices": () => reply(200, [{ id: "geffen_32" }, { id: "henry" }]),
+  "https://api.vercel.com/v2/user": () => reply(200, { user: { id: "u" } }),
 };
 
 interface Seen {
@@ -78,7 +80,8 @@ function fakeFetch(routes: Record<string, () => Response> = GOOD_ROUTES) {
   const fetchImpl: typeof fetch = async (input, init) => {
     const url = String(input);
     calls.push({ url, headers: Object.fromEntries(new Headers(init?.headers).entries()) });
-    const route = routes[url];
+    // Routes are keyed by path; the doctor adds paging parameters to some requests.
+    const route = routes[url] ?? routes[url.split("?")[0] ?? url];
     if (!route) throw new Error(`no route for ${url}`);
     return route();
   };
@@ -270,6 +273,37 @@ describe("doctor: --online", () => {
     expect(check(report, "online.firecrawl").summary).toBe("950 credits left");
     expect(check(report, "online.speechify").summary).toContain("geffen_32");
     expect(check(report, "online.blob").status).toBe("ok");
+    expect(check(report, "online.vercel").status).toBe("ok");
+  });
+
+  it("fails when Vercel rejects the account token", async () => {
+    const net = fakeFetch({
+      ...GOOD_ROUTES,
+      "https://api.vercel.com/v2/user": () => reply(404, { error: { message: "User not found" } }),
+    });
+    const { code, report } = await doctor(["--online"], {
+      env,
+      deps: { fetchImpl: net.fetchImpl },
+    });
+    expect(code).toBe(1);
+    const failed = check(report, "online.vercel");
+    expect(failed.status).toBe("fail");
+    expect(failed.hint).toContain("secrets:push");
+  });
+
+  it("follows the voice cursor so a voice past the first page still counts", async () => {
+    const pages = [
+      reply(200, { voices: [{ id: "aadi" }], has_more: true, next_cursor: "c1" }),
+      reply(200, { voices: [{ id: "geffen_32" }], has_more: false, next_cursor: "" }),
+    ];
+    const net = fakeFetch({
+      ...GOOD_ROUTES,
+      "https://api.speechify.ai/v1/voices": () => pages.shift() ?? reply(500, "extra page"),
+    });
+    const { report } = await doctor(["--online"], { env, deps: { fetchImpl: net.fetchImpl } });
+    expect(check(report, "online.speechify").status).toBe("ok");
+    expect(net.calls.filter((call) => call.url.includes("/v1/voices"))).toHaveLength(2);
+    expect(net.calls.some((call) => call.url.includes("cursor=c1"))).toBe(true);
   });
 
   it("sends each key only to its own service and never prints one", async () => {
@@ -288,7 +322,9 @@ describe("doctor: --online", () => {
             ? "EXA"
             : call.url.includes("firecrawl")
               ? "FIRECRAWL"
-              : "SPEECHIFY";
+              : call.url.includes("vercel")
+                ? "VERCEL"
+                : "SPEECHIFY";
         if (!name.startsWith(owner)) expect(JSON.stringify(call.headers)).not.toContain(value);
       }
     }

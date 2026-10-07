@@ -239,6 +239,11 @@ const KEYS: readonly KeySpec[] = [
     missing: "Audio cannot be uploaded or pruned. Copy it from the Vercel Blob store.",
   },
   {
+    name: "VERCEL_TOKEN",
+    missing:
+      "The audio workflow cannot pull Blob credentials. Create an account token in the Vercel dashboard (Settings, Tokens).",
+  },
+  {
     name: "COMPOSIO_API_KEY",
     missing:
       "Only for ad-hoc YouTube lookups through Composio; the pipeline reads YouTube feeds without a key.",
