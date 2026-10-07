@@ -18,6 +18,8 @@
     "build": "npm run build -w @dispatch/web",
     "dev": "npm run dev -w @dispatch/web",
     "tokens": "tsx scripts/buildTokens.ts",
+    "glyphs": "tsx scripts/buildGlyphs.ts",
+    "icons": "tsx scripts/buildIcons.ts",
     "prototype": "tsx scripts/buildPrototype.ts",
     "sound-lab": "tsx scripts/buildSoundLab.ts",
     "covers:sheet": "tsx packages/cover/scripts/contactSheet.ts",

@@ -184,11 +184,11 @@ test.describe("the page head", () => {
     await expect(head.locator('meta[name="theme-color"]')).toHaveCount(2);
     await expect(head.locator('meta[name="theme-color"][media*="light"]')).toHaveAttribute(
       "content",
-      "#f4f8fb",
+      "#ffffff",
     );
     await expect(head.locator('meta[name="theme-color"][media*="dark"]')).toHaveAttribute(
       "content",
-      "#0a1119",
+      "#202124",
     );
     await expect(head.locator('link[rel="manifest"]')).toHaveAttribute(
       "href",
@@ -215,8 +215,8 @@ test.describe("the page head", () => {
 
   test("updates the title on every page", async ({ page }) => {
     await page.goto("/");
-    await expect(page).toHaveTitle("Wednesday 7 October, Dispatch");
+    await expect(page).toHaveTitle("Wednesday 7 October, Singularity");
     await page.goto("/archive");
-    await expect(page).toHaveTitle("Archive, Dispatch");
+    await expect(page).toHaveTitle("Archive, Singularity");
   });
 });

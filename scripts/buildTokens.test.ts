@@ -204,10 +204,21 @@ describe("color contrast", () => {
     }
   });
 
-  it("keeps the accent hue on the crimson side of red, away from terracotta", () => {
-    const hue = parseOklch(String(resolveLiteral(doc, "semantic.color.accent", "light"))).h;
-    expect(hue).toBeGreaterThanOrEqual(5);
-    expect(hue).toBeLessThanOrEqual(25);
+  it("keeps the accent blue in both modes, clear of violet and cyan", () => {
+    for (const mode of MODES) {
+      const hue = parseOklch(String(resolveLiteral(doc, "semantic.color.accent", mode))).h;
+      expect(hue, `accent hue (${mode})`).toBeGreaterThanOrEqual(245);
+      expect(hue, `accent hue (${mode})`).toBeLessThanOrEqual(270);
+    }
+  });
+
+  it("keeps the neutrals neutral: no surface or text role carries visible chroma", () => {
+    for (const mode of MODES) {
+      for (const role of ["surface", "surface-sunken", "on-surface", "on-surface-muted"]) {
+        const chroma = parseOklch(String(resolveLiteral(doc, `semantic.color.${role}`, mode))).c;
+        expect(chroma, `${role} (${mode})`).toBeLessThanOrEqual(0.015);
+      }
+    }
   });
 
   it("keeps the focus ring legible against the accent button it surrounds", () => {
@@ -352,7 +363,7 @@ describe("generated CSS", () => {
   });
 
   it("keeps the tier chain visible through var() references", () => {
-    expect(css).toMatch(/--color-surface: var\(--color-fog-50\);/);
+    expect(css).toMatch(/--color-surface: var\(--color-white\);/);
     expect(css).toMatch(/--mini-player-bg: var\(--color-surface-overlay\);/);
   });
 
@@ -374,7 +385,7 @@ describe("generated CSS", () => {
   });
 
   it("names every token it emits", () => {
-    expect(cssName(["primitive", "color", "fog", "50"])).toBe("--color-fog-50");
+    expect(cssName(["primitive", "color", "grey", "50"])).toBe("--color-grey-50");
     expect(cssName(["component", "mini-player", "radius"])).toBe("--mini-player-radius");
   });
 });

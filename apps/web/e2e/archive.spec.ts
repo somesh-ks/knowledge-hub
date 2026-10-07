@@ -79,7 +79,7 @@ test.describe("navigating without reloading", () => {
   test("moves focus to the new heading and updates the title", async ({ page }) => {
     await page.goto("/");
     await page.getByRole("link", { name: /All briefings/ }).click();
-    await expect(page).toHaveTitle("Archive, Dispatch");
+    await expect(page).toHaveTitle("Archive, Singularity");
     await expect(page.locator("main h1")).toBeFocused();
   });
 

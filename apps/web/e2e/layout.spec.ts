@@ -58,7 +58,7 @@ test.describe("layout", () => {
         const style = getComputedStyle(node);
         return { family: style.fontFamily, maxWidth: node.getBoundingClientRect().width };
       });
-    expect(summary.family).toContain("Literata");
+    expect(summary.family).toContain("Google Sans Flex");
   });
 
   test("shows the chapters aside from 64rem and hides it below", async ({ page }) => {
@@ -105,9 +105,8 @@ test.describe("layout", () => {
     const faces = await page.evaluate(() =>
       [...document.fonts].map((face) => `${face.family}:${face.status}`),
     );
-    expect(faces.join(" ")).toContain("Schibsted Grotesk Variable");
-    expect(faces.join(" ")).toContain("Schibsted Grotesk Fallback");
-    expect(faces.join(" ")).toContain("Literata Fallback");
+    expect(faces.join(" ")).toContain("Google Sans Flex Variable");
+    expect(faces.join(" ")).toContain("Google Sans Flex Fallback");
     expect(requests.every((url) => new URL(url).hostname === "127.0.0.1")).toBe(true);
     expect(requests.some((url) => url.endsWith(".woff2"))).toBe(true);
   });

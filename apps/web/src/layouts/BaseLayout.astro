@@ -1,6 +1,6 @@
 ---
 import { ClientRouter } from "astro:transitions";
-import schibstedFont from "../assets/fonts/schibsted-grotesk-latin-wght-normal.woff2?url";
+import appFont from "../assets/fonts/google-sans-flex-latin-wght-normal.woff2?url";
 import Banner from "../components/Banner.astro";
 import SiteHeader from "../components/SiteHeader.astro";
 import { readBrandColors } from "../lib/brandColors";
@@ -38,7 +38,7 @@ interface Props {
 
 const {
   title,
-  description = "A private design engineering briefing.",
+  description = "A private tech and design engineering briefing.",
   view,
   layout = "single",
   digestId,
@@ -46,7 +46,7 @@ const {
 } = Astro.props;
 
 const colors = readBrandColors();
-const pageTitle = title ? `${title}, Dispatch` : "Dispatch";
+const pageTitle = title ? `${title}, Singularity` : "Singularity";
 ---
 
 <!doctype html>
@@ -67,7 +67,7 @@ const pageTitle = title ? `${title}, Dispatch` : "Dispatch";
     <meta name="theme-color" media="(prefers-color-scheme: dark)" content={colors.surfaceDark} />
     <meta name="apple-mobile-web-app-capable" content="yes" />
     <meta name="mobile-web-app-capable" content="yes" />
-    <meta name="apple-mobile-web-app-title" content="Dispatch" />
+    <meta name="apple-mobile-web-app-title" content="Singularity" />
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
     <meta name="robots" content="noindex, nofollow" />
     <meta name="referrer" content="no-referrer" />
@@ -77,7 +77,7 @@ const pageTitle = title ? `${title}, Dispatch` : "Dispatch";
     <link rel="icon" href="/favicon.svg" type="image/svg+xml" />
     <link rel="icon" href="/icon-192.png" type="image/png" sizes="192x192" />
     <link rel="apple-touch-icon" href="/apple-touch-icon.png" />
-    <link rel="preload" href={schibstedFont} as="font" type="font/woff2" crossorigin />
+    <link rel="preload" href={appFont} as="font" type="font/woff2" crossorigin />
     <script is:inline set:html={themeInit.trim()} />
     <ClientRouter fallback="swap" />
   </head>

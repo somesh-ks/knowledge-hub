@@ -35,7 +35,7 @@ test.describe("keyboard", () => {
     }
     expect(seen).toEqual([
       "a: Skip to the briefing",
-      "a: Dispatch, today's briefing",
+      "a: Singularity, today's briefing",
       "a: Archive",
       "button: Generate",
       "button: Settings",
