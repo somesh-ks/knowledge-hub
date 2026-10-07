@@ -37,7 +37,6 @@
 }
 
 .story-title {
-  margin-block-start: calc(var(--space-1) / 2);
   font-family: var(--text-title-family);
   font-size: var(--text-title-size);
   font-weight: var(--text-title-weight);
@@ -53,7 +52,7 @@
 
 .story-summary {
   max-width: var(--layout-measure);
-  margin-block-start: var(--space-1);
+  margin-block-start: var(--space-2);
   font-family: var(--text-reading-family);
   font-size: var(--text-reading-size);
   font-weight: var(--text-reading-weight);
@@ -64,10 +63,11 @@
 /* Older briefings carry a separate line on why the story matters. */
 .story-why {
   max-width: var(--layout-measure);
-  margin-block-start: var(--space-2);
+  margin-block-start: var(--space-3);
   color: var(--color-on-surface-muted);
-  font-size: var(--font-size-label);
-  line-height: var(--font-leading-body);
+  /* The same size as the summary above it: a second, quieter paragraph, not a footnote. */
+  font-size: var(--text-reading-size);
+  line-height: var(--text-reading-leading);
 }
 
 .story-why-label {

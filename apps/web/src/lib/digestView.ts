@@ -75,7 +75,7 @@ export function buildHero(entry: DigestEntry, title: string): HeroView {
   const length = listenLength(entry);
   return {
     title,
-    meta: [storyCount(digest.items.length), `${digest.read_minutes} min read`, `${length} listen`],
+    meta: [storyCount(digest.items.length), `${length} listen`],
     length,
   };
 }

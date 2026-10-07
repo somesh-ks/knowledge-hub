@@ -164,12 +164,12 @@ export default function PlayerSurface() {
                 </div>
               </div>
               <div className="player-meta">
+                <p className="player-title">{item?.headline ?? title}</p>
                 <p className="player-section">
                   {section && itemCount > 0
                     ? `${section.title}, ${state.itemIndex + 1} of ${itemCount}`
                     : title}
                 </p>
-                <p className="player-title">{item?.headline ?? title}</p>
               </div>
             </div>
             <div className="player-body">

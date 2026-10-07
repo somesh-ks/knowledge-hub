@@ -1,7 +1,6 @@
 ---
 import type { DigestEntry } from "../lib/digests";
-import ArchiveRow from "./ArchiveRow.astro";
-import Icon from "./Icon.astro";
+import BriefingCard from "./BriefingCard.astro";
 
 interface Props {
   entries: DigestEntry[];
@@ -10,19 +9,20 @@ interface Props {
 const { entries } = Astro.props;
 ---
 
-{/* The oldest briefing has nothing before it, and the archive is one tap away in the navigation,
-     so the section is left out there instead of standing empty. */}
+{/* The oldest briefing has nothing before it, and the Library is one tap away in the navigation,
+     so the shelf is left out there instead of standing empty. */}
 {
   entries.length > 0 && (
     <section class="earlier rule-above" aria-labelledby="earlier-title">
-      <h2 class="section-head" id="earlier-title">Earlier briefings</h2>
-      <ul class="rows archive-list" role="list">
-        {entries.map((entry) => <ArchiveRow entry={entry} />)}
+      <div class="shelf-head">
+        <h2 id="earlier-title">Earlier</h2>
+        <a class="btn press press-subtle" href="/library" data-astro-prefetch="hover">
+          See all
+        </a>
+      </div>
+      <ul class="shelf" role="list">
+        {entries.map((entry) => <BriefingCard entry={entry} />)}
       </ul>
-      <a class="btn earlier-all press press-subtle" href="/archive" data-astro-prefetch="hover">
-        All briefings
-        <Icon name="chevronRight" />
-      </a>
     </section>
   )
 }

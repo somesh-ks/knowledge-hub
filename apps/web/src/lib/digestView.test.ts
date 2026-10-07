@@ -51,10 +51,10 @@ describe("buildSections", () => {
 });
 
 describe("buildHero", () => {
-  it("writes one meta line: stories, reading time, listening time", () => {
+  it("writes one meta line: stories and listening time", () => {
     const hero = buildHero(entryFor(), "Wednesday 7 October");
     expect(hero.title).toBe("Wednesday 7 October");
-    expect(hero.meta).toEqual(["4 stories", "2 min read", "4 min listen"]);
+    expect(hero.meta).toEqual(["4 stories", "4 min listen"]);
   });
 
   it("labels the play chip with the estimate until the recording exists", () => {

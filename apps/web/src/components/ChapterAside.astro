@@ -23,14 +23,6 @@ const { sections } = Astro.props;
             aria-current={index === 0 ? "true" : undefined}
           >
             <span>{section.title}</span>
-            {
-              section.clock && (
-                <span class="aside-length num">
-                  <span class="sr-only">, listening time </span>
-                  {section.clock}
-                </span>
-              )
-            }
           </a>
         </li>
       ))

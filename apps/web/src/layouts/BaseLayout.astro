@@ -21,7 +21,7 @@ import "../styles/reader.css";
 import "../styles/banner.css";
 import "../styles/hero.css";
 import "../styles/briefing.css";
-import "../styles/archive.css";
+import "../styles/library.css";
 import "../styles/aside.css";
 import "../styles/view-transitions.css";
 import "../styles/utilities.css";
@@ -31,10 +31,10 @@ interface Props {
   title?: string;
   description?: string;
   /** Which kind of page this is. */
-  view: "home" | "archive" | "settings";
+  view: "home" | "library" | "settings";
   /**
    * The destination marked as current in the navigation. Defaults to the one the view belongs to; an
-   * earlier briefing passes "archive", and a page outside the three (not found, offline) passes null.
+   * earlier briefing passes "library", and a page outside the three (not found, offline) passes null.
    */
   nav?: Destination | null;
   /** "aside" adds the contents column from 80rem. */

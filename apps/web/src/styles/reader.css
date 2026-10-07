@@ -30,7 +30,7 @@
   box-shadow: none;
 }
 
-/* A plain page header (archive): the title and one meta line. */
+/* A plain page header: the title and one line under it. */
 .page-head {
   display: grid;
   gap: var(--space-1);

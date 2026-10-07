@@ -19,13 +19,14 @@ const titleId = `t-${item.id}`;
 const chip = idleStoryChip(length, item.headline);
 // Null for anything that is not an http or https address: such a story gets no link at all.
 const host = sourceHost(item.url);
+// The link names the publisher. An aggregator's name ("Exa discovery") says nothing, so the host
+// stands in for it.
+const publisher = /discovery|hacker news|lobsters|product hunt/i.test(item.source)
+  ? host
+  : item.source;
 ---
 
 <article class="story" data-item-id={item.id} data-index={index} aria-labelledby={titleId}>
-  <p class="meta meta-wrap">
-    <span>{item.source}</span>
-    {item.author && <span><span class="sr-only">by </span>{item.author}</span>}
-  </p>
   <h3 class="story-title" id={titleId}>{item.headline}</h3>
   <p class="story-summary">{item.summary}</p>
   {item.why && <p class="story-why"><span class="story-why-label">Why</span>{" "}{item.why}</p>}
@@ -42,7 +43,7 @@ const host = sourceHost(item.url);
           rel="noopener noreferrer"
           aria-label={sourceLinkLabel(host)}
         >
-          <span>{host}</span>
+          <span>{publisher}</span>
           <Icon name="openInNew" />
         </a>
       )

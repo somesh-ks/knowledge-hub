@@ -1,0 +1,290 @@
+/*
+ * Briefings as album art: the Library's grid and the "Earlier" shelf on a briefing page share one
+ * card. Type here comes in two steps only, a title and a quiet line, always with air between them.
+ */
+
+/* ------------------------------------------------------------------ a briefing card */
+
+.card-link {
+  display: grid;
+  gap: var(--space-1);
+  border-radius: var(--cover-radius-hero);
+  color: inherit;
+  text-decoration: none;
+}
+
+/* Flat, like every surface here. The cover fills its cell. */
+.card-link .cover {
+  width: 100%;
+  margin-block-end: var(--space-2);
+  box-shadow: none;
+  transition: opacity var(--duration-hover) var(--ease-hover);
+}
+
+.card-title {
+  font-size: var(--font-size-body);
+  font-weight: var(--font-weight-medium);
+  line-height: var(--font-leading-label);
+}
+
+.card-facts {
+  color: var(--color-on-surface-muted);
+  font-size: var(--font-size-label);
+  line-height: var(--font-leading-label);
+}
+
+@media (hover: hover) and (pointer: fine) {
+  .card-link:hover .cover {
+    opacity: 0.88;
+  }
+
+  .card-link:hover .card-title {
+    color: var(--color-accent);
+  }
+}
+
+/* ------------------------------------------------------------------ the library page */
+
+/* A gallery wants the width: from 80rem it takes the track a briefing gives to its contents list. */
+.shell > main.library {
+  grid-column: 1 / -1;
+}
+
+.library-title {
+  padding-block: var(--space-6) var(--space-4);
+}
+
+@media (min-width: 40rem) {
+  .library-title {
+    padding-block-start: var(--space-8);
+  }
+}
+
+.library-tools {
+  display: grid;
+  gap: var(--space-3);
+  padding-block-end: var(--space-6);
+}
+
+/* The search field: one outlined box, the glyph inside it. */
+.search-field {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+  height: var(--field-height);
+  padding-inline: var(--space-4);
+  border: var(--stroke-hairline) solid var(--color-border-hairline);
+  border-radius: var(--field-radius);
+  color: var(--color-on-surface-muted);
+  cursor: text;
+  transition: border-color var(--duration-hover) var(--ease-hover);
+}
+
+.search-field:focus-within {
+  border-color: var(--color-accent);
+  outline: var(--stroke-hairline) solid var(--color-accent);
+}
+
+.search-field > input {
+  flex: 1;
+  min-width: 0;
+  height: 100%;
+  padding: 0;
+  border: 0;
+  background: none;
+  color: var(--color-on-surface);
+  outline: none;
+  box-shadow: none;
+}
+
+.search-field > input::placeholder {
+  color: var(--color-on-surface-muted);
+  opacity: 1;
+}
+
+.library-bar {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  /* One row that scrolls sideways on a narrow screen and runs off its edge, so no chip is cut by
+     the sort beside it. The padding is room for the focus ring. */
+  margin-inline: calc(var(--page-gutter-start) * -1) calc(var(--page-gutter-end) * -1);
+  padding: var(--space-1) var(--page-gutter-end) var(--space-1) var(--page-gutter-start);
+  overflow-x: auto;
+  overscroll-behavior-x: contain;
+  scrollbar-width: none;
+}
+
+.library-bar::-webkit-scrollbar {
+  display: none;
+}
+
+.filter-chips {
+  display: flex;
+  flex: none;
+  gap: var(--space-2);
+}
+
+/* Where there is room, the order sits at the far end of the row. */
+.sort-field {
+  margin-inline-start: auto;
+}
+
+.filter-chip,
+.sort-field {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  flex: none;
+  height: var(--chip-height);
+  border: var(--stroke-hairline) solid var(--color-border-hairline);
+  border-radius: var(--button-radius);
+  font-size: var(--font-size-label);
+  font-weight: var(--font-weight-medium);
+  line-height: var(--font-leading-label);
+  white-space: nowrap;
+}
+
+.filter-chip {
+  padding-inline: var(--space-3);
+  color: var(--color-on-surface);
+}
+
+/* The chip is 36px tall; its target is 44px. */
+.filter-chip::after {
+  content: "";
+  position: absolute;
+  inset-inline: 0;
+  inset-block: calc((var(--size-touch) - var(--chip-height)) / -2);
+}
+
+.filter-chip[aria-pressed="true"] {
+  border-color: transparent;
+  background: var(--color-accent-subtle);
+  color: var(--color-accent);
+}
+
+.sort-field {
+  color: var(--color-on-surface);
+}
+
+.sort-field:focus-within {
+  outline: var(--stroke-ring) solid var(--color-focus-ring);
+  outline-offset: var(--stroke-ring-gap);
+}
+
+.sort-field > select {
+  height: 100%;
+  padding-inline: var(--space-3) var(--space-8);
+  border: 0;
+  border-radius: inherit;
+  background: none;
+  font: inherit;
+  /* The label size is under 16px on purpose: a select does not zoom the page on iOS. */
+  font-size: inherit;
+  appearance: none;
+  outline: none;
+  box-shadow: none;
+  cursor: pointer;
+}
+
+.sort-field > .icon {
+  position: absolute;
+  inset-inline-end: var(--space-2);
+  pointer-events: none;
+}
+
+@media (hover: hover) and (pointer: fine) {
+  .filter-chip:not([aria-pressed="true"]):hover,
+  .sort-field:hover {
+    background: var(--color-surface-sunken);
+  }
+
+  .search-field:hover {
+    border-color: var(--color-border-control);
+  }
+}
+
+.library-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(min(9rem, 42%), 1fr));
+  gap: var(--space-8) var(--space-4);
+}
+
+@media (min-width: 40rem) {
+  .library-grid {
+    grid-template-columns: repeat(auto-fill, minmax(11rem, 1fr));
+    column-gap: var(--space-6);
+  }
+}
+
+.library-empty {
+  display: grid;
+  justify-items: start;
+  gap: var(--space-2);
+  padding-block: var(--space-8);
+  color: var(--color-on-surface-muted);
+}
+
+.library-empty > .btn {
+  margin-inline-start: calc(var(--space-3) * -1);
+}
+
+@media (forced-colors: active) {
+  .filter-chip[aria-pressed="true"] {
+    border-color: Highlight;
+    color: Highlight;
+  }
+}
+
+/* ------------------------------------------------------------------ the "Earlier" shelf */
+
+/* One row of covers that scrolls sideways and runs off the edge of the screen. */
+.shelf-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-4);
+  padding-block: var(--space-8) var(--space-4);
+}
+
+.shelf-head > h2 {
+  font-family: var(--text-heading-family);
+  font-size: var(--text-heading-size);
+  font-weight: var(--text-heading-weight);
+  line-height: var(--text-heading-leading);
+}
+
+.shelf-head > .btn {
+  margin-inline-end: calc(var(--space-3) * -1);
+}
+
+.shelf {
+  display: flex;
+  gap: var(--space-4);
+  margin-inline: calc(var(--page-gutter-start) * -1) calc(var(--page-gutter-end) * -1);
+  padding-inline: var(--page-gutter-start) var(--page-gutter-end);
+  /* Room for the focus ring above and below. */
+  padding-block: var(--space-1) var(--space-2);
+  overflow-x: auto;
+  overscroll-behavior-x: contain;
+  scroll-snap-type: x proximity;
+  scroll-padding-inline: var(--page-gutter-start);
+  scrollbar-width: none;
+}
+
+.shelf::-webkit-scrollbar {
+  display: none;
+}
+
+.shelf > .card {
+  flex: none;
+  width: 9rem;
+  scroll-snap-align: start;
+}
+
+@media (min-width: 40rem) {
+  .shelf > .card {
+    width: 10.5rem;
+  }
+}

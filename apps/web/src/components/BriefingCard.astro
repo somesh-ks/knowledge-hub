@@ -1,0 +1,42 @@
+---
+import { paletteAccent } from "@dispatch/cover";
+import type { DigestEntry } from "../lib/digests";
+import { longDate } from "../lib/format";
+import { cardFacts } from "../lib/libraryCard";
+import Cover from "./Cover.astro";
+
+interface Props {
+  entry: DigestEntry;
+  /** The first row of a grid loads its covers at once; the rest wait until they are near. */
+  priority?: boolean;
+}
+
+const { entry, priority = false } = Astro.props;
+const { digest } = entry;
+const facts = cardFacts(entry);
+---
+
+{/* One briefing as album art: the cover, its date, and one quiet line. The whole card is the link.
+     The data attributes are what the Library's search, sort and filter read. */}
+<li
+  class="card"
+  data-card
+  data-date={digest.date}
+  data-kind={digest.kind}
+  data-stories={digest.items.length}
+  data-minutes={facts.minutes}
+  data-audio={entry.audioMode === "ready" ? "" : undefined}
+  data-search={facts.search}
+>
+  <a class="card-link press press-subtle" href={`/d/${entry.id}`} data-astro-prefetch="hover">
+    <Cover
+      digestId={entry.id}
+      size="card"
+      paletteBg={paletteAccent(digest.cover.palette).bg}
+      weekly={digest.kind === "weekly"}
+      priority={priority}
+    />
+    <span class="card-title">{longDate(digest.date)}</span>
+    <span class="card-facts" data-card-facts data-rest={facts.line}>{facts.line}</span>
+  </a>
+</li>

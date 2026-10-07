@@ -39,7 +39,7 @@ describe("glyph source", () => {
   });
 
   it("gives a filled twin to each navigation icon, for the active destination", () => {
-    for (const name of ["home", "archive", "settings"]) {
+    for (const name of ["home", "library", "settings"]) {
       const outline = doc.glyphs[name];
       const filled = doc.glyphs[`${name}Fill`];
       expect(outline?.fill ?? false, name).toBe(false);

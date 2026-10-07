@@ -25,7 +25,7 @@
 .hero-text {
   grid-area: text;
   display: grid;
-  gap: var(--space-1);
+  gap: var(--space-2);
   min-width: 0;
 }
 
@@ -44,9 +44,8 @@
   max-width: var(--layout-measure);
   padding-block-end: var(--space-2);
   color: var(--color-on-surface-muted);
-  font-size: var(--text-meta-size);
-  letter-spacing: var(--text-meta-tracking);
-  line-height: var(--text-meta-leading);
+  font-size: var(--font-size-label);
+  line-height: var(--font-leading-body);
 }
 
 /* Share shows a check for a moment after the link is copied. Green is the colour for done. */

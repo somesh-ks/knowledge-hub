@@ -82,7 +82,7 @@
       ]
     },
     {
-      "source": "/archive",
+      "source": "/library",
       "headers": [
         {
           "key": "Cache-Control",

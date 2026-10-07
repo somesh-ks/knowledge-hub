@@ -18,17 +18,7 @@ const headingId = `c-${section.slug}`;
   data-chapter={section.slug}
   aria-labelledby={headingId}
 >
-  <div class="section-head head-split">
-    <h2 id={headingId}>{section.title}</h2>
-    {
-      section.clock && (
-        <span class="head-fact num">
-          <span class="sr-only">Listening time </span>
-          {section.clock}
-        </span>
-      )
-    }
-  </div>
+  <h2 class="section-head" id={headingId}>{section.title}</h2>
   <div class="rows">
     <slot />
   </div>

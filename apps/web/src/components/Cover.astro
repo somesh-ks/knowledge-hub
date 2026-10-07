@@ -1,7 +1,7 @@
 ---
 interface Props {
   digestId: string;
-  size: "thumb" | "row" | "hero" | "aside" | "player";
+  size: "thumb" | "row" | "card" | "hero" | "aside" | "player";
   /** Box color shown before the image decodes, from the cover palette. */
   paletteBg: string;
   /** Weekly digests carry a framing rule so a deep dive reads as a different record. */
@@ -16,6 +16,7 @@ const { digestId, size, paletteBg, weekly, priority = false } = Astro.props;
 const SIZES: Record<Props["size"], string> = {
   thumb: "2.75rem",
   row: "2.5rem",
+  card: "(min-width: 40rem) 11rem, 45vw",
   hero: "(min-width: 40rem) 11rem, 8.5rem",
   aside: "14rem",
   player: "22rem",
