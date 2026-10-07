@@ -1,13 +1,19 @@
 {
   "version": 1,
   "last_cover": {
-    "palette": "sea-lingonberry",
-    "template": "contour"
+    "palette": "glacier",
+    "template": "lattice"
   },
-  "last_fetch_at": "2026-10-06T14:33:29.681Z",
+  "last_fetch_at": "2026-10-07T11:47:44.537Z",
   "on_demand": {
     "at": "2026-10-06T14:36:15.964Z",
     "digest_id": "2026-10-06",
+    "items": 10,
+    "outcome": "published"
+  },
+  "regular": {
+    "at": "2026-10-07T11:50:05.172Z",
+    "digest_id": "2026-10-07",
     "items": 10,
     "outcome": "published"
   }
