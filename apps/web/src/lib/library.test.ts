@@ -16,9 +16,7 @@ function card(overrides: Partial<CardData> = {}): CardData {
     minutes: 8,
     hasAudio: true,
     search: normalize(
-      ["2026-10-07", "Wednesday 7 October", "Pixel 11 gets a brighter screen", "The Verge"].join(
-        "\n",
-      ),
+      ["2026-10-07", "Wednesday 7 October", "Pixel 11 gets a brighter screen The Verge"].join("\n"),
     ),
     ...overrides,
   };
@@ -39,7 +37,9 @@ describe("matchCount", () => {
 
   it("needs every word, on one line", () => {
     expect(matchCount(card(), "pixel screen")).toBe(1);
-    expect(matchCount(card(), "pixel verge")).toBe(0);
+    // A story is one line, so its headline and its publisher can both be asked for.
+    expect(matchCount(card(), "pixel verge")).toBe(1);
+    expect(matchCount(card(), "pixel october")).toBe(0);
     expect(matchCount(card(), "foldable")).toBe(0);
   });
 

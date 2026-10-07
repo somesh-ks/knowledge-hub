@@ -12,7 +12,11 @@ export function applyTheme(theme: ThemePreference): void {
  */
 export function changeTheme(theme: ThemePreference): void {
   if (typeof document.startViewTransition === "function") {
-    document.startViewTransition(() => applyTheme(theme));
+    // A second change during the crossfade skips the first transition, which rejects its promises.
+    // That is the intended outcome, not an error.
+    const transition = document.startViewTransition(() => applyTheme(theme));
+    transition.ready.catch(() => {});
+    transition.finished.catch(() => {});
     return;
   }
   applyTheme(theme);

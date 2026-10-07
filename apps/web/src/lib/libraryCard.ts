@@ -9,7 +9,8 @@ export function cardFacts(entry: DigestEntry): CardFacts {
   const parts = [storyCount(digest.items.length), length];
   if (digest.kind === "weekly") parts.unshift("Weekly");
   const lines = [digest.date, entry.player.title];
-  for (const item of digest.items) lines.push(item.headline, item.source);
+  // One line per story, headline and publisher together, so a story counts once however it matches.
+  for (const item of digest.items) lines.push(`${item.headline} ${item.source}`);
   return {
     line: parts.join(", "),
     minutes: Number.parseInt(length, 10) || digest.listen_minutes,

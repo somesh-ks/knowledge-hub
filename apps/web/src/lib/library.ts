@@ -30,7 +30,7 @@ export interface CardData {
   stories: number;
   minutes: number;
   hasAudio: boolean;
-  /** Lower-case text of the date, every headline and every publisher, one per line. */
+  /** Lower-case text: the date, the title, then one line per story (headline and publisher). */
   search: string;
 }
 
