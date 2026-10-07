@@ -55,7 +55,7 @@ describe("PNG output", () => {
     for (let i = 0; i < pixels.length; i += 4) {
       if (pixels[i] === r && pixels[i + 1] === g && pixels[i + 2] === b) exact += 1;
     }
-    // A 236 px numeral plus the month and wordmark put thousands of solid pixels in the text color.
+    // A 264 px numeral plus the month and wordmark put thousands of solid pixels in the text color.
     expect(exact).toBeGreaterThan(4000);
   });
 });
@@ -102,6 +102,8 @@ describe("renderCoverSvg", () => {
     expect(regular).not.toMatch(/<rect [^>]*fill="none" stroke=/);
     expect(weekly).toContain("clip-path");
     expect(weekly.length).toBeGreaterThan(regular.length);
+    // The matte around the plate is flat ground.
+    expect(weekly).toContain(`fill="${getPalette("sea-lingonberry").ground}"`);
   });
 
   it("describes itself for assistive tech without adding visible text", () => {

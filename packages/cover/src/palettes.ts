@@ -1,5 +1,5 @@
 import tokens from "../../../tokens/covers.json" with { type: "json" };
-import { contrastRatio, type Oklch, oklchToHex, parseOklch } from "./color.js";
+import { contrastRatio, hexToOklch, mixHex, type Oklch, oklchToHex, parseOklch } from "./color.js";
 import type { Palette, Tone } from "./types.js";
 
 interface TokenColor {
@@ -9,13 +9,16 @@ interface TokenColor {
 interface TokenPalette {
   $extensions: { dispatch: { name: string; tone: Tone } };
   ground: TokenColor;
-  field: TokenColor;
-  shade: TokenColor;
   accent: TokenColor;
   text: TokenColor;
 }
 
-const ROLES = ["ground", "field", "shade", "accent", "text"] as const;
+/** The roles a palette authors. The quiet field tint and the mid shade are derived from them. */
+const ROLES = ["ground", "accent", "text"] as const;
+
+/** How far the field tint and the mid shade sit from the ground toward the figure, in OKLab. */
+const FIELD_MIX = 0.16;
+const SHADE_MIX = 0.5;
 
 function isTokenColor(value: unknown): value is TokenColor {
   return (
@@ -47,21 +50,23 @@ const PALETTES: readonly Palette[] = Object.entries(tokens.cover)
       ROLES.map((role) => [role, parseOklch(palette[role].$value)]),
     ) as Record<(typeof ROLES)[number], Oklch>;
     OKLCH_BY_ID.set(id, oklch);
+    const ground = oklchToHex(oklch.ground);
+    const accent = oklchToHex(oklch.accent);
     return {
       id,
       name: palette.$extensions.dispatch.name,
       tone: palette.$extensions.dispatch.tone,
-      ground: oklchToHex(oklch.ground),
-      field: oklchToHex(oklch.field),
-      shade: oklchToHex(oklch.shade),
-      accent: oklchToHex(oklch.accent),
+      ground,
+      field: mixHex(ground, accent, FIELD_MIX),
+      shade: mixHex(ground, accent, SHADE_MIX),
+      accent,
       text: oklchToHex(oklch.text),
     };
   });
 
 export const PALETTE_IDS: readonly string[] = PALETTES.map((p) => p.id);
 
-/** Palettes that suit the weekly record: dark grounds. */
+/** Palettes that suit the weekly record: deep grounds, so the matte reads as a boxed set. */
 export const DARK_PALETTE_IDS: readonly string[] = PALETTES.filter((p) => p.tone === "dark").map(
   (p) => p.id,
 );
@@ -100,11 +105,55 @@ function fitAccent(accent: Oklch, surface: string, direction: 1 | -1): string {
  */
 export function paletteAccent(paletteId: string): { light: string; dark: string; bg: string } {
   const palette = getPalette(paletteId);
-  const accent = OKLCH_BY_ID.get(paletteId)?.accent;
-  if (!accent) throw new Error(`Unknown cover palette "${paletteId}"`);
+  const roles = OKLCH_BY_ID.get(paletteId);
+  if (!roles) throw new Error(`Unknown cover palette "${paletteId}"`);
+  // The ground is now the loud color on most covers, so the player tints with whichever of ground
+  // and figure carries more chroma; a pale or black figure would turn the progress bar grey.
+  const accent = roles.ground.c > roles.accent.c ? roles.ground : roles.accent;
   return {
     light: fitAccent(accent, SURFACE_LIGHT, -1),
     dark: fitAccent(accent, SURFACE_DARK, 1),
     bg: palette.ground,
+  };
+}
+
+/** Distance between two palettes' grounds in OKLab: how different they look side by side in a grid. */
+export function groundDistance(a: string, b: string): number {
+  const x = hexToOklch(getPalette(a).ground);
+  const y = hexToOklch(getPalette(b).ground);
+  const rad = Math.PI / 180;
+  return Math.hypot(
+    x.l - y.l,
+    x.c * Math.cos(x.h * rad) - y.c * Math.cos(y.h * rad),
+    x.c * Math.sin(x.h * rad) - y.c * Math.sin(y.h * rad),
+  );
+}
+
+/** Plain black and white, the last resort for type: one of them always clears 4.5:1 on any color. */
+const PAPER = "#ffffff";
+const INK = "#000000";
+
+/** Lockup text on the inverted ground: the first of these that reads at 4.5:1 on the figure color. */
+function inverseText(palette: Palette): string {
+  const candidates = [palette.ground, palette.text, PAPER, INK];
+  const best = candidates.find((c) => contrastRatio(c, palette.accent) >= LOCKUP_CONTRAST);
+  return best ?? PAPER;
+}
+
+/** Minimum contrast for the date and wordmark against the flat ground behind them. */
+export const LOCKUP_CONTRAST = 4.5;
+
+/**
+ * A user-made episode is the same record pressed the other way round: the figure color becomes the
+ * ground and the ground becomes the figure, so it sits apart from briefings in any grid.
+ */
+export function invertPalette(palette: Palette): Palette {
+  return {
+    ...palette,
+    ground: palette.accent,
+    accent: palette.ground,
+    field: mixHex(palette.accent, palette.ground, FIELD_MIX),
+    shade: mixHex(palette.accent, palette.ground, SHADE_MIX),
+    text: inverseText(palette),
   };
 }
