@@ -202,6 +202,46 @@ describe("a playlist as one track", () => {
     expect(audio.paused).toBe(true);
   });
 
+  it("makes the file when a guessed address turns out to be empty", async () => {
+    const list = segments();
+    for (const segment of list) {
+      segment.url = `https://blob.test/guess-${segment.key}.mp3`;
+      segment.unconfirmed = true;
+    }
+    const { real, audio, events, ensured, deliver } = harness(list);
+    audio.src = "narration:2026-10-07";
+    await announced();
+    await audio.play();
+    expect(real.src).toBe("https://blob.test/guess-intro.mp3");
+    // Nothing is there.
+    real.error = { code: 4 };
+    real.emit("error");
+    await Promise.resolve();
+    // Not an error to the player: the file is asked for, and every other guess is dropped too.
+    expect(events).not.toContain("error");
+    expect(ensured).toEqual([0]);
+    expect(list.map((segment) => segment.url)).toEqual([null, null, null]);
+    await deliver(0);
+    expect(real.src).toBe("https://blob.test/intro.mp3");
+    expect(audio.paused).toBe(false);
+  });
+
+  it("trusts a guessed address once its file plays", async () => {
+    const list = segments();
+    const intro = list[0];
+    if (intro) intro.unconfirmed = true;
+    const { real, audio, events } = harness(list);
+    audio.src = "narration:2026-10-07";
+    await announced();
+    await audio.play();
+    startFile(real, 8);
+    expect(intro?.unconfirmed).toBe(false);
+    // A failure now is a real one.
+    real.error = { code: 2 };
+    real.emit("error");
+    expect(events).toContain("error");
+  });
+
   it("keeps a header that arrived while the playhead was elsewhere", async () => {
     const { real, audio } = harness();
     audio.src = "narration:2026-10-07";

@@ -73,10 +73,14 @@ function isDuration(value: unknown): value is number {
   return typeof value === "number" && Number.isFinite(value) && value > 0;
 }
 
-function parseAudio(value: unknown): { url: string; duration_ms: number } | null {
+function parseAudio(
+  value: unknown,
+): { url: string; duration_ms: number; confirmed: boolean } | null {
   if (typeof value !== "object" || value === null) return null;
-  const { url, duration_ms } = value as Json;
-  return isPlayableUrl(url) && isDuration(duration_ms) ? { url, duration_ms } : null;
+  const { url, duration_ms, confirmed } = value as Json;
+  if (!isPlayableUrl(url) || !isDuration(duration_ms)) return null;
+  // A lookup only knows where a file would be. Only an explicit true means it is there.
+  return { url, duration_ms, confirmed: confirmed === true };
 }
 
 function parseSegment(value: unknown): SegmentInfo | null {
@@ -136,7 +140,9 @@ export async function lookupNarration(digestId: string, deps: ApiDeps): Promise<
     ok: true,
     segments,
     msPerCharacter: isDuration(body.ms_per_character) ? body.ms_per_character : 0,
-    whole: audio ? { ...audio, timeline: parseTimeline(body.timeline) } : null,
+    whole: audio
+      ? { url: audio.url, duration_ms: audio.duration_ms, timeline: parseTimeline(body.timeline) }
+      : null,
   };
 }
 

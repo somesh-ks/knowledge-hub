@@ -23,6 +23,8 @@ export interface TrackSegment {
   end: number;
   /** The file, once it exists. */
   url: string | null;
+  /** True when `url` is where the file would be, not proof that it is there. Cleared on first use. */
+  unconfirmed?: boolean;
 }
 
 export interface Playlist {
@@ -309,6 +311,9 @@ export function createTrackAudio(real: AudioLike, options: TrackAudioOptions): A
     playing() {
       // A file that is not the current story's has no say.
       if (playlist && attachedIndex !== index) return;
+      // It plays, so it exists.
+      const playingSegment = playlist?.segments[index];
+      if (playingSegment) playingSegment.unconfirmed = false;
       emit("playing");
       prepareAhead();
     },
@@ -353,6 +358,22 @@ export function createTrackAudio(real: AudioLike, options: TrackAudioOptions): A
     error() {
       if (playlist) {
         if (attachedIndex === null) return;
+        const missed = playlist.segments[attachedIndex];
+        if (missed?.unconfirmed) {
+          // The address was only a guess at where the file would be, and it is not there. If one
+          // is missing the rest probably are too, so every guess is dropped and the files are made.
+          for (const segment of playlist.segments) {
+            if (segment.unconfirmed) {
+              segment.url = null;
+              segment.unconfirmed = false;
+            }
+          }
+          const wasCurrent = attachedIndex === index;
+          attachedIndex = null;
+          attachedReady = false;
+          if (wasCurrent && wantsPlay) start();
+          return;
+        }
         failure = real.error ?? { code: MEDIA_ERR_NETWORK };
         wantsPlay = false;
       }

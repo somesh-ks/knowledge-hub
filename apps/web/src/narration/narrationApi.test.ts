@@ -52,7 +52,11 @@ describe("lookupNarration", () => {
           key: "intro",
           item_id: null,
           characters: 58,
-          audio: { url: "https://store.test/audio/x/seg/intro.abc.mp3", duration_ms: 3_600 },
+          audio: {
+            url: "https://store.test/audio/x/seg/intro.abc.mp3",
+            duration_ms: 3_600,
+            confirmed: false,
+          },
         },
         { key: "a1b2c3d4e5f6", item_id: "a1b2c3d4e5f6", characters: 412, audio: null },
       ],

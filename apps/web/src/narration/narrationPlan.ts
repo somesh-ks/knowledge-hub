@@ -16,7 +16,8 @@ export interface SegmentInfo {
   /** The story this segment reads, or null for the intro and the outro. */
   item_id: string | null;
   characters: number;
-  audio: { url: string; duration_ms: number } | null;
+  /** `confirmed: false` means the address is where the file would be, not proof it is there. */
+  audio: { url: string; duration_ms: number; confirmed?: boolean } | null;
 }
 
 export interface NarrationPlan {
@@ -44,6 +45,7 @@ export function digestIdOfSource(src: string): string | null {
 const MIN_SEGMENT_MS = 500;
 
 function segmentMs(segment: SegmentInfo, msPerCharacter: number): number {
+  // An unconfirmed length is the server's own estimate, which the same sum reproduces.
   const known = segment.audio?.duration_ms;
   const length =
     known !== undefined && Number.isFinite(known) && known > 0
@@ -67,6 +69,7 @@ export function planNarration(
       start: start / 1000,
       end: cursor / 1000,
       url: segment.audio?.url ?? null,
+      unconfirmed: segment.audio?.confirmed === false,
     });
     if (segment.item_id !== null) items.set(segment.item_id, { start_ms: start, end_ms: cursor });
   }
@@ -74,7 +77,9 @@ export function planNarration(
     segments: laid,
     total_ms: cursor,
     items,
-    complete: segments.length > 0 && segments.every((segment) => segment.audio !== null),
+    complete:
+      segments.length > 0 &&
+      segments.every((segment) => segment.audio !== null && segment.audio.confirmed !== false),
   };
 }
 

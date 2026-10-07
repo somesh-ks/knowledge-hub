@@ -96,6 +96,9 @@ export function createNarrationController(deps: ControllerDeps): NarrationContro
   const playlists = new Map<string, Playlist>();
   let adapterInstalled = false;
   let activeId: string | null = null;
+  /** True while the first file is being made: its refusals are handled there, not in passing. */
+  let starting = false;
+  let asking = false;
   /** Bumped by every play, so an attempt that was overtaken stops quietly. */
   let attempt = 0;
 
@@ -124,6 +127,25 @@ export function createNarrationController(deps: ControllerDeps): NarrationContro
     }
   }
 
+  /**
+   * A file turned out to be missing mid-briefing and making it needs a passphrase the session does
+   * not have. Ask once, then carry on from where the listener was.
+   */
+  async function reauthorize(digestId: string, queue: SegmentQueue, wrong: boolean): Promise<void> {
+    if (asking) return;
+    asking = true;
+    try {
+      if (wrong) deps.passphrase.clear();
+      const answer = await deps.askPassphrase({ wrong });
+      if (!answer) return;
+      deps.passphrase.set(answer);
+      queue.reset();
+      if (activeId === digestId) deps.store.play();
+    } finally {
+      asking = false;
+    }
+  }
+
   function say(reason: NarrationFailure): void {
     const message = FAILURE_COPY[reason];
     if (message) deps.notify(message);
@@ -133,7 +155,8 @@ export function createNarrationController(deps: ControllerDeps): NarrationContro
   async function firstFile(queue: SegmentQueue, index: number, mine: number): Promise<PlayOutcome> {
     let wrong = false;
     for (let tries = 0; tries < MAX_PASSPHRASE_TRIES; tries += 1) {
-      if (deps.passphrase.get() === null) {
+      // A file that may already exist is tried first: listening to it needs no passphrase.
+      if (deps.passphrase.get() === null && !queue.segments[index]?.url) {
         const answer = await deps.askPassphrase({ wrong });
         if (mine !== attempt) return "cancelled";
         if (!answer) return "cancelled";
@@ -196,7 +219,12 @@ export function createNarrationController(deps: ControllerDeps): NarrationContro
         getPassphrase: deps.passphrase.get,
         // A file being made ahead of time can fail quietly: it is asked for again when needed.
         onFailure: (reason, needed) => {
-          if (needed && activeId === digest.id) say(reason);
+          if (!needed || starting || activeId !== digest.id) return;
+          if (reason === "passphrase_required" || reason === "wrong_passphrase") {
+            void reauthorize(digest.id, queue, reason === "wrong_passphrase");
+          } else {
+            say(reason);
+          }
         },
       });
 
@@ -206,7 +234,10 @@ export function createNarrationController(deps: ControllerDeps): NarrationContro
         : -1;
       const first = Math.max(0, tapped);
       if (!plan.complete) {
-        const outcome = await firstFile(queue, first, mine);
+        starting = true;
+        const outcome = await firstFile(queue, first, mine).finally(() => {
+          starting = false;
+        });
         if (outcome !== "playing") return outcome;
       }
 
