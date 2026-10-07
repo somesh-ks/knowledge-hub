@@ -8,6 +8,7 @@
  */
 export * from "./budgetMath.js";
 export * from "./speechify.js";
+export * from "./spokenSegments.js";
 export * from "./spokenText.js";
 export * from "./sse.js";
 export * from "./timeline.js";
