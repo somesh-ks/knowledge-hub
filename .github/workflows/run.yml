@@ -112,6 +112,7 @@ jobs:
           NEBIUS_API_KEY: ${{ secrets.NEBIUS_API_KEY }}
           NEBIUS_BASE_URL: ${{ vars.NEBIUS_BASE_URL }}
           DISPATCH_MODEL: ${{ vars.DISPATCH_MODEL }}
+          DISPATCH_FALLBACK_MODEL: ${{ vars.DISPATCH_FALLBACK_MODEL }}
         run: npm run --silent dispatch -- run --stage validate --json
 
       # Commit records the outcome (published, nothing, gated, failed) in state/last-run.json
