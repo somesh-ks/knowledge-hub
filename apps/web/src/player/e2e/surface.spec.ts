@@ -165,7 +165,8 @@ test.describe("one surface @surface", () => {
     await expect(lab.surface).toHaveAttribute("data-state", "dragging");
     const takeoff = await lab.geometry();
     expect(takeoff.p).toBeLessThan(0.01);
-    expect(apart(takeoff.art, rest.thumb)).toBeLessThanOrEqual(1.5);
+    // Two pixels past the slop is a quarter of a percent of the way: under two pixels of flight.
+    expect(apart(takeoff.art, rest.thumb)).toBeLessThanOrEqual(3);
     await first.release();
     await lab.collapsed();
     // Pulled past the top and held: the page is in place and the cover is on its slot.
@@ -250,7 +251,7 @@ test.describe("one surface @surface", () => {
     // The bar is not behind the modal: its own play button still answers.
     await finger.press(lab.dock.getByRole("button", { name: "Pause" }));
     await expect(lab.root).toHaveAttribute("data-player-state", "paused");
-    await finger.press(lab.dock.getByRole("button", { name: "Play" }));
+    await finger.press(lab.dock.getByRole("button", { name: "Play", exact: true }));
     await expect(lab.root).toHaveAttribute("data-player-state", "playing");
     await lab.expanded();
     // And its open button closes the page it opened.

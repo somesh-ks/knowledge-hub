@@ -37,7 +37,7 @@ test.describe("playback in a real browser", () => {
     await expect(page.locator("html")).toHaveAttribute("data-player-state", "paused");
     expect((await audio.read())?.paused).toBe(true);
     await expect(page.locator("[data-play-label]")).toHaveText("Resume");
-    await lab.dock.getByRole("button", { name: "Play" }).tap();
+    await lab.dock.getByRole("button", { name: "Play", exact: true }).tap();
     await expect(page.locator("html")).toHaveAttribute("data-player-state", "playing");
   });
 
@@ -128,7 +128,7 @@ test.describe("playback in a real browser", () => {
     await lab.play();
     await lab.openPlayer();
     const time = async (): Promise<number> => (await audio.read())?.currentTime ?? 0;
-    await page.getByRole("button", { name: "Pause" }).first().tap();
+    await lab.dialog.getByRole("button", { name: "Pause" }).tap();
     await page.getByRole("button", { name: "Next item" }).tap();
     await expect.poll(time).toBeCloseTo(15, 0);
     await page.getByRole("button", { name: "Forward 30 seconds" }).tap();
@@ -149,7 +149,7 @@ test.describe("playback in a real browser", () => {
     await lab.openPlayer();
     await page.getByRole("button", { name: "Forward 30 seconds" }).tap();
     await expect.poll(async () => (await audio.read())?.currentTime ?? 0).toBeGreaterThan(29);
-    await page.getByRole("button", { name: "Pause" }).first().tap();
+    await lab.dialog.getByRole("button", { name: "Pause" }).tap();
     const saved = await page.evaluate(() => localStorage.getItem("dispatch:resume:2026-01-14"));
     expect(Number(saved)).toBeGreaterThan(29);
     await page.reload({ waitUntil: "networkidle" });

@@ -60,7 +60,7 @@ test.describe("with a mouse", () => {
     await lab.expanded();
     await page.getByRole("button", { name: "Next item" }).click();
     await expect(page.locator(".player-meta .player-section")).toContainText("2 of 6");
-    await page.getByRole("button", { name: "Pause" }).first().click();
+    await lab.dialog.getByRole("button", { name: "Pause" }).click();
     await expect(page.locator("html")).toHaveAttribute("data-player-state", "paused");
     await page.getByRole("button", { name: "Close the player" }).click();
     await lab.collapsed();

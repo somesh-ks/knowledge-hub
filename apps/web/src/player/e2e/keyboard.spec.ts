@@ -9,7 +9,7 @@ test.describe("keyboard operation of the player", () => {
     await lab.open();
     await lab.play();
     await lab.openPlayer();
-    await page.getByRole("button", { name: "Pause" }).first().press("Enter");
+    await lab.dialog.getByRole("button", { name: "Pause" }).press("Enter");
     await expect(page.locator("html")).toHaveAttribute("data-player-state", "paused");
     const scrubber = page.getByRole("slider", { name: "Playback position" });
     await scrubber.focus();

@@ -49,7 +49,7 @@ test.describe("when playback does not go to plan", () => {
     await expect(
       page.getByRole("status").filter({ hasText: "Playback was interrupted" }),
     ).toBeVisible();
-    await page.getByRole("button", { name: "Resume" }).tap();
+    await lab.dialog.getByRole("button", { name: "Resume" }).tap();
     await expect(page.locator("html")).toHaveAttribute("data-player-state", "playing");
     await expect(
       page.getByRole("status").filter({ hasText: "Playback was interrupted" }),
