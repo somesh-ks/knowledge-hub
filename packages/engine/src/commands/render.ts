@@ -7,6 +7,7 @@ import {
   loadPool,
   loadSources,
   readJsonIfExists,
+  linkSourceIds,
   sourceNameMap,
 } from "../curate/inputs.js";
 import { emit } from "../curate/output.js";
@@ -142,6 +143,7 @@ export function makeRenderCommand(deps: RenderDeps = {}): CommandRun {
         verified: selection.mode === "agent" ? false : selection.verified,
         audio: null,
         sourceNames: sourceNameMap(sources),
+        linkSources: linkSourceIds(sources),
       });
 
       const report = validateDigest(digest, { pool: [...pool.values()], sources, linter });

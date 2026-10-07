@@ -1,6 +1,7 @@
 import {
   Digest,
   type Digest as DigestType,
+  displaySource,
   homeSection,
   type Item,
   NEVER_PUBLISH,
@@ -127,7 +128,7 @@ export function validateDigest(input: unknown, context: ValidateContext): Valida
     poolByUrl.set(item.url, item);
     poolByUrl.set(item.canonical_url, item);
   }
-  const sourceNames = new Map((context.sources ?? []).map((s) => [s.id, s.name]));
+  const registry = new Map((context.sources ?? []).map((s) => [s.id, s]));
 
   const seenIds = new Set<string>();
   const seenUrls = new Set<string>();
@@ -168,12 +169,21 @@ export function validateDigest(input: unknown, context: ValidateContext): Valida
             item.id,
           );
         }
-        const expectedName = sourceNames.get(source.source_id);
+        // Aggregated and link-list items are credited to the publisher of their URL.
+        const entry = registry.get(source.source_id);
+        const expectedName =
+          entry &&
+          displaySource({
+            url: source.canonical_url,
+            sourceType: source.source_type,
+            sourceName: entry.name,
+            linkSource: entry.options.kind === "newsletter-link",
+          });
         if (expectedName && expectedName !== item.source) {
           add(
             "warning",
             "source_name",
-            `The source "${item.source}" differs from the registry name "${expectedName}".`,
+            `The source "${item.source}" differs from the expected name "${expectedName}".`,
             item.id,
           );
         }

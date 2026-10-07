@@ -9,6 +9,7 @@ export interface DigestFromSelectionInput {
   selection: Selection;
   pool: readonly Item[];
   sourceNames: Readonly<Record<string, string>>;
+  linkSources?: ReadonlySet<string>;
   now: Date;
   coverPicker: CoverPicker;
   allocateId: DigestIdAllocator;
@@ -42,5 +43,6 @@ export function digestFromSelection(input: DigestFromSelectionInput): Digest {
     verified: input.verified,
     audio: null,
     sourceNames: input.sourceNames,
+    ...(input.linkSources ? { linkSources: input.linkSources } : {}),
   });
 }

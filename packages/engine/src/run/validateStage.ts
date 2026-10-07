@@ -1,5 +1,5 @@
 import { VOICE_LIMITS } from "@dispatch/core";
-import { loadPool, loadSources, sourceNameMap } from "../curate/inputs.js";
+import { linkSourceIds, loadPool, loadSources, sourceNameMap } from "../curate/inputs.js";
 import { writeJson } from "../curate/output.js";
 import { Selection, WrittenFile } from "../curate/selectionFile.js";
 import { readLastRun } from "../state/store.js";
@@ -94,6 +94,7 @@ export async function validateStage(deps: RunDeps, plan: Plan): Promise<StageRep
         selection: asSelection(survivors),
         pool: pool.items,
         sourceNames,
+        linkSources: linkSourceIds(sources),
         now: deps.now(),
         coverPicker,
         allocateId: () => pass.id,

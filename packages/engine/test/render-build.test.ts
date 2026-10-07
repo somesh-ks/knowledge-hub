@@ -192,6 +192,53 @@ describe("buildDigest", () => {
     expect(second).not.toHaveProperty("published_at");
   });
 
+  it("credits an aggregated item to the publisher of its URL, not to the aggregator", () => {
+    const fixture = makeFixture(4);
+    const urls = [
+      "https://www.theverge.com/2026/10/6/ipad-pro",
+      "https://news.example.org/post",
+      "https://github.com/acme/lib/releases/tag/v2",
+      "https://example.com/fixture-3",
+    ];
+    const types = ["exa", "hn", "rss", "lobsters"] as const;
+    const selected = fixture.selected.map((sel) => {
+      const i = fixture.items.findIndex((item) => item.id === sel.item.id);
+      return {
+        ...sel,
+        item: {
+          ...sel.item,
+          canonical_url: urls[i] as string,
+          source_type: types[i] as (typeof types)[number],
+          source_id: ["exa-discovery", "hn-show", "brutalist-report", "lobsters"][i] as string,
+        },
+      };
+    });
+    const digest = buildDigest({
+      selected,
+      written: fixture.written,
+      window: WINDOW,
+      kind: "regular",
+      now: NOW,
+      coverPicker: () => COVER,
+      allocateId: () => "2026-10-07",
+      audio: null,
+      sourceNames: {
+        "exa-discovery": "Exa discovery",
+        "hn-show": "Hacker News: Show HN",
+        "brutalist-report": "Brutalist Report",
+        lobsters: "Lobsters",
+      },
+      linkSources: new Set(["brutalist-report"]),
+    });
+    const sourceOf = (i: number) =>
+      digest.items.find((item) => item.id === fixture.items[i]?.id)?.source;
+    expect(sourceOf(0)).toBe("The Verge");
+    expect(sourceOf(1)).toBe("news.example.org");
+    expect(sourceOf(2)).toBe("GitHub");
+    expect(sourceOf(3)).toBe("example.com");
+    expect(digest.items.map((item) => item.source)).not.toContain("Exa discovery");
+  });
+
   it("skips selected items without written text and recomputes the top picks", () => {
     const fixture = makeFixture(6);
     const best = fixture.selected[0]?.item.id as string;

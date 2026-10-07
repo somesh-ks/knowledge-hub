@@ -3,7 +3,17 @@ import { join } from "node:path";
 import { type Digest, digestRelPath, parseDigestFile, type Source } from "@dispatch/core";
 import { describe, expect, it } from "vitest";
 import { validateDigest } from "../src/validate/validateDigest.js";
-import { buildFixtureDigest, LEGACY_SUMMARY, LEGACY_WHY } from "./render-factories.js";
+import { buildDigest } from "../src/render/buildDigest.js";
+import { makeSource } from "./fetch-helpers.js";
+import {
+  buildFixtureDigest,
+  COVER,
+  LEGACY_SUMMARY,
+  LEGACY_WHY,
+  makeFixture,
+  NOW,
+  WINDOW,
+} from "./render-factories.js";
 import { REPO_ROOT } from "./score-factories.js";
 import { testLinter } from "./write-fakes.js";
 
@@ -288,12 +298,65 @@ describe("validateDigest", () => {
 
   it("warns when the displayed source differs from the registry name", () => {
     const { digest, fixture } = buildFixtureDigest(4);
-    const sources = [{ id: "source-0", name: "Registry Name" }] as Source[];
+    const sources: Source[] = [makeSource({ id: "source-0", name: "Registry Name" })];
     const report = validateDigest(digest, { pool: fixture.items, sources, linter });
     expect(report.ok).toBe(true);
     expect(report.issues.some((i) => i.code === "source_name" && i.severity === "warning")).toBe(
       true,
     );
+  });
+
+  it("expects the publisher, not the registry name, for aggregated and link-list items", () => {
+    const fixture = makeFixture(4);
+    const pool = fixture.items.map((item, i) =>
+      i === 0 ? { ...item, source_type: "exa" as const, source_id: "exa-discovery" } : item,
+    );
+    const selected = fixture.selected.map((sel) => ({
+      ...sel,
+      item: pool.find((p) => p.id === sel.item.id) ?? sel.item,
+    }));
+    const sources: Source[] = [
+      makeSource({ id: "exa-discovery", name: "Exa discovery", type: "exa" }),
+      makeSource({ id: "source-1", name: "Link List", options: { kind: "newsletter-link" } }),
+      makeSource({ id: "source-2", name: "Source Two" }),
+    ];
+    const build = (linkSources?: Set<string>) =>
+      buildDigest({
+        selected,
+        written: fixture.written,
+        window: WINDOW,
+        kind: "regular",
+        now: NOW,
+        coverPicker: () => COVER,
+        allocateId: () => "2026-10-07",
+        audio: null,
+        sourceNames: Object.fromEntries(sources.map((s) => [s.id, s.name])),
+        ...(linkSources ? { linkSources } : {}),
+      });
+    const names = (digest: Digest) =>
+      Object.fromEntries(
+        pool.map((p) => [p.source_id, digest.items.find((i) => i.id === p.id)?.source]),
+      );
+
+    const good = build(new Set(["source-1"]));
+    expect(names(good)).toMatchObject({
+      "exa-discovery": "example.com",
+      "source-1": "example.com",
+      "source-2": "Source Two",
+    });
+    const report = validateDigest(good, { pool, sources, linter });
+    expect(report.issues.filter((i) => i.code === "source_name")).toEqual([]);
+
+    // Built without knowing which sources are link lists: the registry name slips through for
+    // that one, and the validator says what it expected instead.
+    const stale = build();
+    expect(names(stale)["source-1"]).toBe("Link List");
+    const warned = validateDigest(stale, { pool, sources, linter }).issues.filter(
+      (i) => i.code === "source_name",
+    );
+    expect(warned.map((i) => i.message)).toEqual([
+      'The source "Link List" differs from the expected name "example.com".',
+    ]);
   });
 
   it.each(["2026-10-06", "2026-10-07"])(
