@@ -1,0 +1,120 @@
+import { expect, test } from "./lab";
+
+/**
+ * The expanded player at sizes people really get: a small phone with Safari's toolbars showing, a
+ * phone on its side, a short laptop window. Nothing may be squeezed under anything else, and
+ * everything must be reachable.
+ */
+const SIZES = [
+  { width: 375, height: 553 },
+  { width: 390, height: 664 },
+  { width: 844, height: 390 },
+  { width: 1280, height: 620 },
+  { width: 1280, height: 800 },
+] as const;
+
+interface LayoutReport {
+  problems: string[];
+  parts: Record<string, string>;
+}
+
+/** Runs in the page: measures the five parts every size must show whole. */
+const LAYOUT_CHECK = (): LayoutReport => {
+  const problems: string[] = [];
+  const slider = document.querySelector<HTMLElement>(
+    '[role="slider"][aria-label="Playback position"]',
+  );
+  const dialog = slider?.closest<HTMLElement>('[role="dialog"]') ?? null;
+  const close = dialog?.querySelector<HTMLElement>('[aria-label="Close the player"]') ?? null;
+  if (!slider || !dialog || !close) return { problems: ["the player is not open"], parts: {} };
+  const parts: Record<string, HTMLElement | null> = {
+    header: close.parentElement,
+    cover: dialog.querySelector<HTMLElement>(".player-cover-frame"),
+    title: dialog.querySelector<HTMLElement>(".player-title"),
+    scrubber: slider,
+    transport: dialog.querySelector<HTMLElement>(".transport"),
+  };
+  const scroller = (element: HTMLElement): HTMLElement => {
+    for (let node: HTMLElement | null = element; node && node !== document.body; ) {
+      const overflow = getComputedStyle(node).overflowY;
+      if ((overflow === "auto" || overflow === "scroll") && dialog.contains(node)) return node;
+      node = node.parentElement;
+    }
+    return dialog;
+  };
+  for (const node of new Set(
+    Object.values(parts).map((part) => (part ? scroller(part) : dialog)),
+  )) {
+    node.scrollTop = 0;
+  }
+  const frame = dialog.getBoundingClientRect();
+  const extent = Math.max(dialog.scrollHeight, dialog.clientHeight);
+  const rects: Record<string, DOMRect> = {};
+  const summary: Record<string, string> = {};
+  for (const [name, part] of Object.entries(parts)) {
+    if (!part) {
+      problems.push(`${name} is missing`);
+      continue;
+    }
+    const rect = part.getBoundingClientRect();
+    rects[name] = rect;
+    summary[name] =
+      `${Math.round(rect.left)},${Math.round(rect.top)} ${Math.round(rect.width)}x${Math.round(rect.height)}`;
+    if (rect.width < 1 || rect.height < 1) problems.push(`${name} has no size`);
+    const inside =
+      rect.left >= frame.left - 0.5 &&
+      rect.right <= frame.right + 0.5 &&
+      rect.top >= frame.top - 0.5 &&
+      rect.bottom <= frame.top + extent + 0.5;
+    if (!inside) problems.push(`${name} is outside the surface`);
+  }
+  const names = Object.keys(rects);
+  for (let a = 0; a < names.length; a += 1) {
+    for (let b = a + 1; b < names.length; b += 1) {
+      const first = rects[names[a] ?? ""];
+      const second = rects[names[b] ?? ""];
+      if (!first || !second) continue;
+      const overlapX = Math.min(first.right, second.right) - Math.max(first.left, second.left);
+      const overlapY = Math.min(first.bottom, second.bottom) - Math.max(first.top, second.top);
+      if (overlapX > 0.5 && overlapY > 0.5) {
+        problems.push(`${names[a]} overlaps ${names[b]} by ${Math.round(overlapY)}px`);
+      }
+    }
+  }
+  // Reachable: each part can be brought fully on screen, with nothing lying over its center.
+  for (const [name, part] of Object.entries(parts)) {
+    if (!part) continue;
+    part.scrollIntoView({ block: "center", behavior: "instant" });
+    const rect = part.getBoundingClientRect();
+    const fits = rect.height <= window.innerHeight;
+    if (fits && (rect.top < -0.5 || rect.bottom > window.innerHeight + 0.5)) {
+      problems.push(`${name} cannot be scrolled fully into view`);
+    }
+    const hit = document.elementFromPoint(rect.left + rect.width / 2, rect.top + rect.height / 2);
+    if (!hit || !(part.contains(hit) || hit.contains(part))) {
+      problems.push(`${name} is covered at its center`);
+    }
+  }
+  return { problems, parts: summary };
+};
+
+test.describe("layout at real window sizes @surface", () => {
+  for (const size of SIZES) {
+    test(`at ${size.width}x${size.height} nothing overlaps and everything can be reached`, async ({
+      lab,
+      page,
+    }) => {
+      await page.setViewportSize(size);
+      await lab.open();
+      await lab.play();
+      await lab.openPlayer();
+      await expect(lab.scrubber).toBeVisible();
+      const report = await page.evaluate(LAYOUT_CHECK);
+      expect(report.problems, JSON.stringify(report.parts)).toEqual([]);
+      // The last control and the last row of the list can both be reached.
+      const last = lab.dialog.getByRole("button").last();
+      await last.scrollIntoViewIfNeeded();
+      await expect(last).toBeInViewport({ ratio: 1 });
+    });
+  }
+});
