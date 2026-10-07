@@ -25,12 +25,23 @@ describe("redact", () => {
     );
   });
 
+  it("removes a Vercel Blob token and an OIDC token by shape", () => {
+    expect(redact("put failed for vercel_blob_rw_AbCd1234EfGh5678_ijklmnopqrstuvwx")).toBe(
+      "put failed for [redacted]",
+    );
+    const jwt = "eyJhbGciOiJSUzI1NiJ9.eyJzdWIiOiJvd25lcjpkaXNwYXRjaCJ9.c2lnbmF0dXJlLWJ5dGVz";
+    expect(redact(`Authorization: Bearer ${jwt}`)).toBe("Authorization: Bearer [redacted]");
+  });
+
   it("ignores undefined and very short secrets so ordinary words survive", () => {
     expect(redact("a short word", [undefined, "short", ""])).toBe("a short word");
   });
 
   it("leaves ordinary text alone", () => {
     expect(redact("GitHub answered 403")).toBe("GitHub answered 403");
+    expect(redact("narrate 2026-10-07: stored. 9012 characters, synthesis 41200 ms")).toBe(
+      "narrate 2026-10-07: stored. 9012 characters, synthesis 41200 ms",
+    );
   });
 });
 

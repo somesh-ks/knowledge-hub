@@ -4,6 +4,7 @@ import { fileURLToPath, pathToFileURL } from "node:url";
 import react from "@astrojs/react";
 import vercel from "@astrojs/vercel";
 import { defineConfig } from "astro/config";
+import { FUNCTION_MAX_DURATION_S } from "./src/server/functionLimits.mjs";
 
 // The data layer reads Digests/ at build time. Page code is bundled into chunks whose import.meta.url
 // no longer points at the source tree, so the repository root is fixed here, where it is reliable.
@@ -52,9 +53,9 @@ function stubApiRoutesForStaticBuild() {
 
 export default defineConfig({
   site: "https://news.someshks.work",
-  // Static output. Only the two routes that export `prerender = false` run on demand.
+  // Static output. Only the routes that export `prerender = false` run on demand.
   output: "static",
-  adapter: staticOnly ? undefined : vercel({ maxDuration: 20 }),
+  adapter: staticOnly ? undefined : vercel({ maxDuration: FUNCTION_MAX_DURATION_S }),
   integrations: [react(), ...(staticOnly ? [stubApiRoutesForStaticBuild()] : [])],
   // `true` keeps single spaces between inline elements, which the default "jsx" mode would strip.
   compressHTML: true,

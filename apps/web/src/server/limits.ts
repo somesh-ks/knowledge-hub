@@ -34,3 +34,11 @@ export function evaluateLimits(startedAt: readonly number[], now: number): Limit
     retryAfterSeconds: Math.max(1, Math.ceil((releasedAt - now) / 1000)),
   };
 }
+
+/**
+ * Digests the Play button may start narrating in one Stockholm day. It counts digests, not requests:
+ * every segment of a digest that already has its place passes. The count is read from the month's
+ * usage document (narrationState.ts), so this too keeps no store of its own. There is no cooldown:
+ * catching up on a few digests in one sitting is ordinary use.
+ */
+export const NARRATE_DAILY_CAP = 3;

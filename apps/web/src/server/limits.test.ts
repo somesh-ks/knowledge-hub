@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { COOLDOWN_MS, DAILY_CAP, DAY_MS, evaluateLimits } from "./limits";
+import { COOLDOWN_MS, DAILY_CAP, DAY_MS, evaluateLimits, NARRATE_DAILY_CAP } from "./limits";
 
 const NOW = Date.parse("2026-10-07T12:00:00Z");
 const hoursAgo = (hours: number) => NOW - hours * 60 * 60 * 1000;
@@ -74,5 +74,12 @@ describe("evaluateLimits", () => {
     expect(COOLDOWN_MS).toBe(6 * 3600 * 1000);
     expect(DAY_MS).toBe(24 * 3600 * 1000);
     expect(DAILY_CAP).toBe(3);
+  });
+});
+
+describe("the narrate daily cap", () => {
+  // How it is applied is tested with the document it is read from, in narrationState.test.ts.
+  it("keeps the documented number", () => {
+    expect(NARRATE_DAILY_CAP).toBe(3);
   });
 });

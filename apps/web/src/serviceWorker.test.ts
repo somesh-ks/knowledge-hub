@@ -185,6 +185,45 @@ describe("service worker: what it leaves alone", () => {
     expect((await worker.dispatchFetch(request("/api/generate"))).handled).toBe(false);
   });
 
+  it("never answers or stores /api/narrate, so a narration shows up the moment it exists", async () => {
+    let audioExists = false;
+    const worker = load(
+      () => new Response(audioExists ? "audio" : "none", { status: audioExists ? 200 : 404 }),
+    );
+    const lookups = [
+      request("/api/narrate?digest=2026-10-07"),
+      // However the page asks: as a navigation, or accepting HTML, it is still the API.
+      request("/api/narrate?digest=2026-10-07", { mode: "navigate" }),
+      request("/api/narrate?digest=2026-10-07", {
+        headers: new Headers({ Accept: "text/html" }),
+      }),
+      request("/api/narrate", { method: "POST" }),
+    ];
+    for (const lookup of lookups) {
+      expect((await worker.dispatchFetch(lookup)).handled).toBe(false);
+    }
+    // The same question after the narration exists still goes to the network.
+    audioExists = true;
+    expect((await worker.dispatchFetch(lookups[0] ?? request("/"))).handled).toBe(false);
+    // The worker neither fetched on the page's behalf nor kept anything.
+    expect(worker.fetched).toEqual([]);
+    expect(worker.caches.stored()).toEqual([]);
+  });
+
+  it("does not bring a cached page back for /api/narrate when the network is down", async () => {
+    let online = true;
+    const worker = load(() => {
+      if (!online) throw new TypeError("offline");
+      return new Response("page");
+    });
+    await worker.lifecycle("install");
+    online = false;
+    // A page request would fall back to /offline here. The API must not.
+    const result = await worker.dispatchFetch(request("/api/narrate?digest=2026-10-07"));
+    expect(result.handled).toBe(false);
+    expect(result.response).toBeUndefined();
+  });
+
   it("ignores other origins", async () => {
     const worker = load();
     expect((await worker.dispatchFetch(request("https://example.com/x.css"))).handled).toBe(false);
