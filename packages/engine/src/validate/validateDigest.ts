@@ -10,7 +10,7 @@ import {
 } from "@dispatch/core";
 import { isHttpUrl } from "../extract/urlSafety.js";
 import { digestWords, listenMinutes, readMinutes } from "../render/readTime.js";
-import { capFor, TECH_CAP, TOP_PICKS } from "../score/selectItems.js";
+import { capFor, TECH_ALLOWANCE, TOP_PICKS } from "../score/selectItems.js";
 import { type Linter, type ViolationRule, VOICE_FIELDS } from "../voice/lint.js";
 
 /** The lower bounds a summary gained with the four-beat voice. */
@@ -108,8 +108,8 @@ export function validateDigest(input: unknown, context: ValidateContext): Valida
         : `${mainCount} items outside Tech releases; the limit for a ${digest.kind} digest is ${cap}.`,
     );
   }
-  if (techCount > TECH_CAP) {
-    add("error", "item_count", `${techCount} Tech releases items; the limit is ${TECH_CAP}.`);
+  if (techCount > TECH_ALLOWANCE) {
+    add("error", "item_count", `${techCount} Tech releases items; the limit is ${TECH_ALLOWANCE}.`);
   }
   if (digest.items.length < VOICE_LIMITS.items.floor) {
     add(

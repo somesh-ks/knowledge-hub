@@ -32,12 +32,15 @@ export const PoolFile = z.object({
       same_url: count,
       newsletter_collapsed: count,
       near_duplicate: count,
+      story_clustered: count,
       output: count,
     }),
     prefilter: z.object({
       input: count,
       kept: count,
       dropped: z.object({ disliked: count, not_relevant: count, source_cap: count, cap: count }),
+      /** The consumer tech sub-pool, which has its own cap beside the main one. */
+      tech: z.object({ input: count, kept: count, source_cap: count, cap: count }),
     }),
   }),
   /** Best candidate first. Item text is untrusted. */

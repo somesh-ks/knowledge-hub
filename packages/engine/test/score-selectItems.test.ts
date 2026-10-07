@@ -10,7 +10,7 @@ import {
   medianWeight,
   SECTION_TARGET_MAX,
   selectItems,
-  TECH_CAP,
+  TECH_ALLOWANCE,
   TOP_PICKS,
 } from "../src/score/selectItems.js";
 import type { ScoredItem } from "../src/score/types.js";
@@ -447,7 +447,7 @@ describe("the tech allowance", () => {
     result.selected.filter((s) => s.section === section).length;
 
   it("is five stories, the same number the voice limits state", () => {
-    expect(TECH_CAP).toBe(5);
+    expect(TECH_ALLOWANCE).toBe(5);
     expect(VOICE_LIMITS.items.techCap).toBe(5);
   });
 

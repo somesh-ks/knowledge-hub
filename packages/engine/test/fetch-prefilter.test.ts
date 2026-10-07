@@ -2,7 +2,7 @@ import { readFileSync } from "node:fs";
 import { type Preferences, Preferences as PreferencesSchema } from "@dispatch/core";
 import { describe, expect, it } from "vitest";
 import { authorMatches, containsPhrase, keywordRegExp } from "../src/prefilter/phrase.js";
-import { prefilter } from "../src/prefilter/prefilter.js";
+import { DEFAULT_CAP, prefilter, TECH_CAP } from "../src/prefilter/prefilter.js";
 import { releaseWeight } from "../src/prefilter/releaseWeight.js";
 import { makeItem, makeSource, NOW } from "./fetch-helpers.js";
 
@@ -267,7 +267,200 @@ describe("prefilter", () => {
         input: 0,
         kept: 0,
         dropped: { disliked: 0, not_relevant: 0, source_cap: 0, cap: 0 },
+        tech: { input: 0, kept: 0, source_cap: 0, cap: 0 },
       },
     });
+  });
+});
+
+describe("prefilter: the consumer tech pool", () => {
+  const TECH = "consumer_tech_releases" as const;
+  /** Twelve tech outlets with the pool cap the registry gives them, plus the usual sources. */
+  const outlets = Array.from({ length: 12 }, (_, i) =>
+    makeSource({ id: `outlet-${i}`, category_hint: TECH, options: { pool_cap: "6" } }),
+  );
+  const all = [...sources, ...outlets];
+  const run = (
+    items: ReturnType<typeof makeItem>[],
+    caps: { cap?: number; techCap?: number } = {},
+  ) => prefilter({ items, preferences, sources: all, now: NOW, ...caps });
+
+  let n = 0;
+  /** A launch headline that matches no preferred keyword or author. */
+  const launch = (source: string, overrides: Partial<ReturnType<typeof makeItem>> = {}) => {
+    n += 1;
+    return makeItem({
+      url: `https://${source}.example/launch-${n}`,
+      title: `Acme Phone ${n} goes on sale`,
+      source_id: source,
+      ...overrides,
+    });
+  };
+  const craft = (i: number) =>
+    makeItem({ url: `https://craft.example/${i}`, title: `Shader piece ${i}`, source_id: `c${i}` });
+
+  it("has its own cap of 20 beside the main cap of 60", () => {
+    expect(TECH_CAP).toBe(20);
+    expect(DEFAULT_CAP).toBe(60);
+  });
+
+  it("lets a tech-hinted source through the relevance test that the same headline fails elsewhere", () => {
+    const fromOutlet = launch("outlet-0");
+    const fromBlog = launch("plain");
+    const { items, report } = run([fromOutlet, fromBlog]);
+    expect(items.map((i) => i.id)).toEqual([fromOutlet.id]);
+    expect(report.dropped.not_relevant).toBe(1);
+    expect(report.tech).toEqual({ input: 1, kept: 1, source_cap: 0, cap: 0 });
+  });
+
+  it("still hard-drops a disliked pattern from a tech source", () => {
+    const { items, report } = run([
+      launch("outlet-0", { title: "Sponsored partnership: Acme Phone goes on sale" }),
+    ]);
+    expect(items).toEqual([]);
+    expect(report.dropped.disliked).toBe(1);
+    expect(report.tech.input).toBe(0);
+  });
+
+  it("holds each outlet to its pool cap of six", () => {
+    const flood = Array.from({ length: 10 }, () => launch("outlet-0"));
+    const { items, report } = run(flood);
+    expect(items).toHaveLength(6);
+    expect(report.tech).toEqual({ input: 10, kept: 6, source_cap: 4, cap: 0 });
+    expect(report.dropped.source_cap).toBe(4);
+  });
+
+  it("caps the tech pool at 20 without touching the main pool, and the other way round", () => {
+    const tech = Array.from({ length: 36 }, (_, i) => launch(`outlet-${i % 12}`));
+    const main = Array.from({ length: 70 }, (_, i) => craft(i));
+    const { items, report } = run([...tech, ...main]);
+    expect(report.kept).toBe(80);
+    expect(items).toHaveLength(80);
+    expect(report.tech).toEqual({ input: 36, kept: 20, source_cap: 0, cap: 16 });
+    // Ten over the main cap plus sixteen over the tech cap.
+    expect(report.dropped.cap).toBe(26);
+    const techIds = new Set(tech.map((i) => i.id));
+    expect(items.filter((i) => techIds.has(i.id))).toHaveLength(20);
+    expect(items.filter((i) => !techIds.has(i.id))).toHaveLength(60);
+  });
+
+  it("lists the main pool first, then the tech pool, each best first", () => {
+    const tech = [launch("outlet-0"), launch("outlet-1")];
+    const main = [craft(0), craft(1)];
+    const { items } = run([...tech, ...main]);
+    const techIds = new Set(tech.map((i) => i.id));
+    expect(items.map((i) => techIds.has(i.id))).toEqual([false, false, true, true]);
+  });
+
+  it("honours a custom tech cap and leaves the main cap alone", () => {
+    const tech = Array.from({ length: 12 }, (_, i) => launch(`outlet-${i}`));
+    const main = Array.from({ length: 5 }, (_, i) => craft(i));
+    const result = run([...tech, ...main], { techCap: 3 });
+    expect(result.report.tech).toMatchObject({ kept: 3, cap: 9 });
+    expect(result.items).toHaveLength(8);
+    const none = run([...tech, ...main], { techCap: 0 });
+    expect(none.report.tech).toMatchObject({ kept: 0, cap: 12 });
+    expect(none.items).toHaveLength(5);
+  });
+
+  it("ranks by coverage first: a story two outlets covered beats any single-source story", () => {
+    const fresh = launch("outlet-0", { published_at: NOW.toISOString() });
+    const covered = launch("outlet-1", {
+      published_at: "2026-09-29T06:00:00.000Z",
+      signals: { coverage: 2 },
+    });
+    const wide = launch("outlet-2", {
+      published_at: "2026-09-29T06:00:00.000Z",
+      signals: { coverage: 6 },
+    });
+    expect(run([fresh, covered, wide]).items.map((i) => i.id)).toEqual([
+      wide.id,
+      covered.id,
+      fresh.id,
+    ]);
+  });
+
+  it("scores a tech item as 2 x log2(1 + coverage) + recency", () => {
+    // One week old: recency 0. Fresh: recency 1.
+    const old = "2026-09-29T06:00:00.000Z";
+    const single = launch("outlet-0", { published_at: NOW.toISOString() });
+    const pair = launch("outlet-1", { published_at: old, signals: { coverage: 2 } });
+    // 2 x log2(2) + 1 = 3 for the fresh single; 2 x log2(3) + 0 = 3.17 for the old pair.
+    expect(run([single, pair]).items[0]?.id).toBe(pair.id);
+    // With the same coverage the fresher item leads.
+    const freshPair = launch("outlet-2", {
+      published_at: NOW.toISOString(),
+      signals: { coverage: 2 },
+    });
+    expect(run([pair, freshPair]).items[0]?.id).toBe(freshPair.id);
+  });
+
+  it("breaks ties by id, so the order never depends on the input order", () => {
+    const pool = Array.from({ length: 8 }, (_, i) => launch(`outlet-${i}`));
+    const forward = run(pool).items.map((i) => i.id);
+    expect(run([...pool].reverse()).items.map((i) => i.id)).toEqual(forward);
+    expect(forward).toEqual([...forward].sort());
+  });
+
+  it("ignores craft keywords, authors and votes when ranking tech: coverage decides", () => {
+    const keyworded = launch("outlet-0", {
+      title: "Acme Phone shader demo with spring physics",
+      author: "Emil Kowalski",
+      signals: { hn_points: 900 },
+    });
+    const covered = launch("outlet-1", { signals: { coverage: 3 } });
+    expect(run([keyworded, covered]).items.map((i) => i.id)).toEqual([covered.id, keyworded.id]);
+  });
+
+  it("puts a discovery result into the tech pool when its query carried the hint", () => {
+    const hinted = launch("exa", { source_type: "exa", category_hint: TECH });
+    const unhinted = launch("exa", { source_type: "exa" });
+    const { items, report } = run([hinted, unhinted]);
+    expect(items.map((i) => i.id)).toEqual([hinted.id]);
+    expect(report.tech.input).toBe(1);
+    expect(report.dropped.not_relevant).toBe(1);
+  });
+
+  it("lets the source's own hint win over a query hint", () => {
+    // A craft-hinted source stays in the main pool whatever hint an item carries.
+    const item = makeItem({
+      url: "https://craft.example/x",
+      title: "A shader post",
+      source_id: "craft",
+      category_hint: TECH,
+    });
+    const { report } = run([item]);
+    expect(report.tech.input).toBe(0);
+    expect(report.kept).toBe(1);
+  });
+
+  it("uses a query hint for the category weight of a main-pool item", () => {
+    const base = { title: "A shader post", source_id: "exa", source_type: "exa" as const };
+    const liked = makeItem({
+      ...base,
+      url: "https://a.example/liked",
+      category_hint: "design_engineering_craft",
+    });
+    const disliked = makeItem({
+      ...base,
+      url: "https://a.example/vc",
+      category_hint: "venture_capital_and_gossip",
+    });
+    expect(run([disliked, liked]).items.map((i) => i.id)).toEqual([liked.id, disliked.id]);
+  });
+
+  it("accounts for every input item across both pools", () => {
+    const pool = [
+      ...Array.from({ length: 30 }, (_, i) => launch(`outlet-${i % 3}`)),
+      ...Array.from({ length: 5 }, (_, i) => craft(i)),
+      launch("plain"),
+      launch("outlet-0", { title: "10x your productivity with Acme Phone" }),
+    ];
+    const { report, items } = run(pool);
+    const dropped = Object.values(report.dropped).reduce((a, b) => a + b, 0);
+    expect(report.kept + dropped).toBe(report.input);
+    expect(report.kept).toBe(items.length);
+    expect(report.tech.input).toBe(report.tech.kept + report.tech.source_cap + report.tech.cap);
+    expect(report.tech).toEqual({ input: 30, kept: 18, source_cap: 12, cap: 0 });
   });
 });

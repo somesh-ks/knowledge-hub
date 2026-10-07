@@ -154,8 +154,10 @@ export const run: CommandRun = async (argv: string[], ctx: CommandContext): Prom
       },
       fetched: items.length,
       after_dedupe: deduped.report.output,
+      story_clustered: deduped.report.story_clustered,
       kept: filtered.report.kept,
       dropped: filtered.report.dropped,
+      tech: filtered.report.tech,
       pool: outPath,
     };
     if (ctx.json) {
@@ -177,6 +179,9 @@ export const run: CommandRun = async (argv: string[], ctx: CommandContext): Prom
         `items: ${items.length} fetched, ${deduped.report.output} after dedupe, ${filtered.report.kept} kept`,
       );
       print(`dropped: ${JSON.stringify(filtered.report.dropped)}`);
+      print(
+        `tech pool: ${filtered.report.tech.kept} kept of ${filtered.report.tech.input}, ${deduped.report.story_clustered} merged as the same story`,
+      );
       print(`wrote ${outPath}`);
       for (const result of failed)
         ctx.log.warn(`source ${result.source_id} failed`, {

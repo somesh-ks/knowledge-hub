@@ -72,7 +72,7 @@ export function capFor(kind: DigestKind): number {
 }
 
 /** Items the Tech releases section may hold, in addition to `capFor`. The same for every kind. */
-export const TECH_CAP = VOICE_LIMITS.items.techCap;
+export const TECH_ALLOWANCE = VOICE_LIMITS.items.techCap;
 
 /** True for a candidate that belongs in the Tech releases section. A tech video belongs in "watch". */
 export function isTech(candidate: Pick<Candidate, "home">): boolean {
@@ -210,7 +210,7 @@ export function selectItems(input: SelectInput): SelectResult {
     }
   }
 
-  const chosenTech = tech.slice(0, TECH_CAP);
+  const chosenTech = tech.slice(0, TECH_ALLOWANCE);
   if (chosen.size + chosenTech.length < input.floor) {
     return { outcome: "nothing", selected: [], dropped, qualifying: ranked.length };
   }
@@ -220,7 +220,7 @@ export function selectItems(input: SelectInput): SelectResult {
       dropped.push({ id: candidate.item.id, reason: "over_cap", score: candidate.score });
     }
   }
-  for (const candidate of tech.slice(TECH_CAP)) {
+  for (const candidate of tech.slice(TECH_ALLOWANCE)) {
     dropped.push({ id: candidate.item.id, reason: "over_tech_cap", score: candidate.score });
   }
   return {

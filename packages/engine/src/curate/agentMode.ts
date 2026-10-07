@@ -5,7 +5,7 @@ import {
   NEVER_PUBLISH,
   TECH_SECTION,
 } from "@dispatch/core";
-import { assignSections, capFor, TECH_CAP } from "../score/selectItems.js";
+import { assignSections, capFor, TECH_ALLOWANCE } from "../score/selectItems.js";
 import { type Linter, VOICE_FIELDS } from "../voice/lint.js";
 import { writtenText } from "../write/text.js";
 import { AgentSelection, type Selection } from "./selectionFile.js";
@@ -90,8 +90,8 @@ export function validateAgentSelection(
           : `${mainCount} items outside Tech releases; the limit for a ${context.kind} digest is ${cap}.`,
     });
   }
-  if (techCount > TECH_CAP) {
-    issues.push({ message: `${techCount} Tech releases items; the limit is ${TECH_CAP}.` });
+  if (techCount > TECH_ALLOWANCE) {
+    issues.push({ message: `${techCount} Tech releases items; the limit is ${TECH_ALLOWANCE}.` });
   }
   if (issues.length > 0) return { ok: false, issues };
 
