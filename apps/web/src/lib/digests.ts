@@ -9,6 +9,7 @@ import { paletteAccent } from "@dispatch/cover";
 import type { PlayerDigestData, PlayerItem, PlayerSection } from "../types/contracts";
 import type { DigestSource } from "./digestFiles";
 import { longDate } from "./format";
+import { isWebUrl } from "./safeUrl";
 
 /**
  * ready: the player can run. preparing: the text is out and narration is still being generated.
@@ -59,6 +60,7 @@ function playerItems(items: DigestItem[], timeline: AudioTimeline | null): Playe
     headline: item.headline,
     section: item.section,
     source: item.source,
+    url: isWebUrl(item.url) ? item.url : null,
     start_ms: timed.get(item.id)?.start_ms ?? null,
     end_ms: timed.get(item.id)?.end_ms ?? null,
   }));

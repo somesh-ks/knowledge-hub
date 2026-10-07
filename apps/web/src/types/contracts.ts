@@ -10,6 +10,11 @@ export interface PlayerItem {
   headline: string;
   section: Section;
   source: string;
+  /**
+   * The story's source page, already checked to be http or https, or null when it is not safe to
+   * link. Optional because a page cached before this field existed does not carry it.
+   */
+  url?: string | null;
   /** Start and end inside the MP3, or null while the digest has no audio. */
   start_ms: number | null;
   end_ms: number | null;
