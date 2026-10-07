@@ -74,3 +74,11 @@ export function quietFade(ctx: Ctx, p: Point, reach: number | readonly number[],
   });
   return fade;
 }
+
+/** Distance from a point to the nearest type zone; how big a circle there can grow before it touches type. */
+export function clearRadius(ctx: Ctx, p: Point): number {
+  return ctx.quiet.reduce(
+    (least, r) => Math.min(least, distanceToRect(p, r)),
+    Number.POSITIVE_INFINITY,
+  );
+}

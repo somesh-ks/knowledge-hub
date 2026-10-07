@@ -18,4 +18,18 @@ export const TEMPLATE_FNS: Record<TemplateId, Template> = {
   aperture,
   band,
 };
+/**
+ * "standard" covers get the date lockup added by the renderer. "own" covers draw the day numeral as
+ * the art, so the renderer adds only the wordmark and month, in the top corners.
+ */
+export const TEMPLATE_LOCKUP: Record<TemplateId, "standard" | "own"> = {
+  spring: "standard",
+  dither: "standard",
+  contour: "standard",
+  numeral: "own",
+  lattice: "standard",
+  orbit: "standard",
+  aperture: "standard",
+  band: "standard",
+};
 export const TEMPLATES = Object.keys(TEMPLATE_FNS) as TemplateId[];

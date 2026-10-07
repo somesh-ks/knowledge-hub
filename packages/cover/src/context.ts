@@ -1,8 +1,8 @@
-import { type LockupLayout, layoutLockup, MARGIN_UNITS } from "./lockup.js";
-import { getPalette } from "./palettes.js";
+import { layoutLockup, MARGIN_UNITS } from "./lockup.js";
+import { getPalette, invertPalette } from "./palettes.js";
 import { hash32, mulberry32 } from "./prng.js";
 import { pad } from "./svg.js";
-import type { Corner, CoverMeta, CoverSpec, Ctx, Rect } from "./types.js";
+import type { CoverKind, CoverMeta, CoverSpec, Ctx, Rect, Variant } from "./types.js";
 
 export const MONTH_NAMES = [
   "January",
@@ -32,63 +32,59 @@ export function parseDate(date: string): { year: number; month: number; day: num
   return { year, month, day };
 }
 
-/** Bottom-left leads, so the archive reads as one series, with enough variety to stay alive. */
-const CORNER_WEIGHTS: ReadonlyArray<readonly [Corner, number]> = [
-  ["bl", 44],
-  ["tl", 22],
-  ["br", 22],
-  ["tr", 12],
-];
-
-function opposite(corner: Corner): { fx: number; fy: number } {
-  return {
-    fx: corner === "bl" || corner === "tl" ? 1 : 0,
-    fy: corner === "bl" || corner === "br" ? 0 : 1,
-  };
-}
-
 export interface BuiltContext {
   ctx: Ctx;
-  lockup: LockupLayout;
 }
 
-/** Builds the template context for a canvas of w by h. */
-export function buildContext(spec: CoverSpec, meta: CoverMeta, w: number, h: number): BuiltContext {
+/** Weekly records sit in a matte: the art is a plate inset from the edge, ringed by a hairline. */
+export const WEEKLY_INSET = 44;
+
+export function variantOf(kind: CoverKind): Variant {
+  if (kind === "weekly") return "weekly";
+  if (kind === "episode") return "episode";
+  return "regular";
+}
+
+/** Builds the template context for a square canvas of `size`. */
+export function buildContext(
+  spec: CoverSpec,
+  meta: CoverMeta,
+  size: number,
+  lockupMode: "standard" | "own",
+): BuiltContext {
   const { month, day } = parseDate(meta.date);
-  const pal = getPalette(spec.palette);
-  const weekly = meta.kind === "weekly";
-  const u = Math.min(w, h) / 1024;
-  const layoutRng = mulberry32(hash32(`layout:${spec.seed}`));
-  const corner = layoutRng.weighted(CORNER_WEIGHTS, (entry) => entry[1])[0];
-  const margin = (weekly ? MARGIN_UNITS + 12 : MARGIN_UNITS) * u;
+  const variant = variantOf(meta.kind);
+  const base = getPalette(spec.palette);
+  const pal = variant === "episode" ? invertPalette(base) : base;
+  const u = size / 1024;
+  // The weekly's type sits on the plate, so its margin grows by the matte.
+  const margin = (variant === "weekly" ? MARGIN_UNITS + WEEKLY_INSET : MARGIN_UNITS) * u;
   const monthName = MONTH_NAMES[month - 1] ?? "January";
-  const lockup = layoutLockup(w, h, u, corner, day, monthName, margin);
+  const lockup = layoutLockup(size, size, u, day, monthName, margin);
 
-  const inset = weekly ? 52 * u : 0;
-  const area: Rect = { x: inset, y: inset, w: w - inset * 2, h: h - inset * 2 };
-  const { fx, fy } = opposite(corner);
-  const focus = {
-    x: w * (fx ? layoutRng.range(0.58, 0.74) : layoutRng.range(0.26, 0.42)),
-    y: h * (fy ? layoutRng.range(0.58, 0.74) : layoutRng.range(0.26, 0.42)),
-  };
+  const inset = variant === "weekly" ? WEEKLY_INSET * u : 0;
+  const area: Rect = { x: inset, y: inset, w: size - inset * 2, h: size - inset * 2 };
+  const quiet =
+    lockupMode === "own"
+      ? [pad(lockup.mark, 24 * u), pad(lockup.month, 24 * u)]
+      : [pad(lockup.date, 30 * u), pad(lockup.mark, 24 * u)];
 
-  const uid = `c${hash32(`${spec.template}|${spec.palette}|${spec.seed}|${meta.date}|${meta.kind}|${w}`).toString(36)}`;
+  const uid = `c${hash32(`${spec.template}|${spec.palette}|${spec.seed}|${meta.date}|${meta.kind}|${size}`).toString(36)}`;
   const ctx: Ctx = {
-    w,
-    h,
+    w: size,
+    h: size,
     u,
     rng: mulberry32(spec.seed),
     seed: spec.seed,
     pal,
-    weekly,
+    variant,
     day,
     monthName,
     uid,
     margin,
-    corner,
-    quiet: [pad(lockup.box, 30 * u), pad(lockup.markBox, 26 * u)],
+    quiet,
     area,
-    focus,
+    lockup,
   };
-  return { ctx, lockup };
+  return { ctx };
 }

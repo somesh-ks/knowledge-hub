@@ -1,10 +1,9 @@
 import { Resvg } from "@resvg/resvg-js";
-import { mixHex } from "./color.js";
-import { buildContext } from "./context.js";
+import { buildContext, WEEKLY_INSET } from "./context.js";
 import { RESVG_FONT_OPTIONS } from "./fonts.js";
 import { getPalette } from "./palettes.js";
 import { n, rectPath } from "./svg.js";
-import { TEMPLATE_FNS, TEMPLATES } from "./templates/index.js";
+import { TEMPLATE_FNS, TEMPLATE_LOCKUP, TEMPLATES } from "./templates/index.js";
 import type { CoverMeta, CoverSpec } from "./types.js";
 
 const SQUARE = 1024;
@@ -19,60 +18,55 @@ function assertSpec(spec: CoverSpec): void {
   }
 }
 
-/** The weekly record: art sits inside a ground-colored matte with a hairline rule around it. */
-function weeklyFrame(
-  w: number,
-  h: number,
-  u: number,
-  text: string,
-  ground: string,
-  accent: string,
-): string {
-  const rule = mixHex(ground, text, 0.62);
-  const inset = 26 * u;
-  const tick = 14 * u;
-  const stroke = n(2.2 * u, 2);
-  const corners = (
-    [
-      [inset, inset, 1, 1],
-      [w - inset, inset, -1, 1],
-      [inset, h - inset, 1, -1],
-      [w - inset, h - inset, -1, -1],
-    ] as const
-  )
-    .map(([x, y, dx, dy]) => `M${n(x + dx * tick)} ${n(y)}H${n(x)}V${n(y + dy * tick)}`)
-    .join("");
-  return (
-    `<rect x="${n(inset)}" y="${n(inset)}" width="${n(w - inset * 2)}" height="${n(h - inset * 2)}" fill="none" stroke="${rule}" stroke-width="${stroke}"/>` +
-    `<path d="${corners}" fill="none" stroke="${accent}" stroke-width="${n(4 * u, 2)}"/>`
-  );
+/**
+ * The weekly record: the art is a plate inside a matte of flat ground, ringed by a figure-colored
+ * rule. The matte alone shows at thumbnail size; the rule is for the large cover.
+ */
+function weeklyFrame(size: number, u: number, figure: string): string {
+  const inset = (WEEKLY_INSET / 2) * u;
+  return `<rect x="${n(inset)}" y="${n(inset)}" width="${n(size - inset * 2)}" height="${n(size - inset * 2)}" fill="none" stroke="${figure}" stroke-width="${n(3 * u, 2)}"/>`;
 }
 
-function compose(spec: CoverSpec, meta: CoverMeta, w: number, h: number): string {
+interface Composed {
+  /** Everything inside the outer svg element, sized `size` by `size`. */
+  inner: string;
+  ground: string;
+  label: string;
+}
+
+function compose(spec: CoverSpec, meta: CoverMeta, size: number): Composed {
   assertSpec(spec);
-  const { ctx, lockup } = buildContext(spec, meta, w, h);
+  const mode = TEMPLATE_LOCKUP[spec.template];
+  const { ctx } = buildContext(spec, meta, size, mode);
   const out = TEMPLATE_FNS[spec.template](ctx);
   const { pal, uid, area } = ctx;
+  const weekly = ctx.variant === "weekly";
   const plateClip = `${uid}p`;
-  const defs = `${out.defs ?? ""}${ctx.weekly ? `<clipPath id="${plateClip}"><path d="${rectPath(area)}"/></clipPath>` : ""}`;
-  const art = ctx.weekly ? `<g clip-path="url(#${plateClip})">${out.body}</g>` : out.body;
-  const type = out.lockup === "own" ? "" : lockup.markup(pal);
+  const defs = `${out.defs ?? ""}${weekly ? `<clipPath id="${plateClip}"><path d="${rectPath(area)}"/></clipPath>` : ""}`;
+  const art = weekly ? `<g clip-path="url(#${plateClip})">${out.body}</g>` : out.body;
+  const type = mode === "own" ? ctx.lockup.topLine(pal) : ctx.lockup.markup(pal);
   const label = `Singularity, ${ctx.day} ${ctx.monthName}`;
-  return (
-    `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 ${w} ${h}" width="${w}" height="${h}" role="img" aria-label="${label}">` +
-    `<title>${label}</title>` +
+  const inner =
     (defs ? `<defs>${defs}</defs>` : "") +
-    `<rect width="${w}" height="${h}" fill="${pal.ground}"/>` +
+    `<rect width="${size}" height="${size}" fill="${pal.ground}"/>` +
     art +
-    (ctx.weekly ? weeklyFrame(w, h, ctx.u, pal.text, pal.ground, pal.accent) : "") +
-    type +
-    `</svg>`
+    (weekly ? weeklyFrame(size, ctx.u, pal.accent) : "") +
+    type;
+  return { inner, ground: pal.ground, label };
+}
+
+function wrap(size: { w: number; h: number }, composed: Composed, body: string): string {
+  const { label } = composed;
+  return (
+    `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 ${size.w} ${size.h}" width="${size.w}" height="${size.h}" role="img" aria-label="${label}">` +
+    `<title>${label}</title>${body}</svg>`
   );
 }
 
 /** Square cover, viewBox 0 0 1024 1024, no external references. */
 export function renderCoverSvg(spec: CoverSpec, meta: CoverMeta): string {
-  return compose(spec, meta, SQUARE, SQUARE);
+  const composed = compose(spec, meta, SQUARE);
+  return wrap({ w: SQUARE, h: SQUARE }, composed, composed.inner);
 }
 
 function rasterize(svg: string, width: number): Uint8Array {
@@ -88,12 +82,20 @@ export function renderCoverPng(spec: CoverSpec, meta: CoverMeta, size: 512 | 102
   return rasterize(renderCoverSvg(spec, meta), size);
 }
 
-/** 1200 by 630 social card, composed for the wide canvas rather than cropped from the square. */
-export function renderSocialPng(spec: CoverSpec, meta: CoverMeta): Uint8Array {
-  return rasterize(compose(spec, meta, SOCIAL.w, SOCIAL.h), SOCIAL.w);
+/**
+ * The 1200 by 630 social card as SVG: the square cover at full height on a wider field of its own
+ * ground color, so the art is never cropped and the link preview still reads as the same record.
+ */
+export function renderSocialSvg(spec: CoverSpec, meta: CoverMeta): string {
+  const composed = compose(spec, meta, SOCIAL.h);
+  const x = (SOCIAL.w - SOCIAL.h) / 2;
+  const body =
+    `<rect width="${SOCIAL.w}" height="${SOCIAL.h}" fill="${composed.ground}"/>` +
+    `<g transform="translate(${n(x)} 0)">${composed.inner}</g>`;
+  return wrap(SOCIAL, composed, body);
 }
 
-/** The social card as SVG, for the contact sheet. */
-export function renderSocialSvg(spec: CoverSpec, meta: CoverMeta): string {
-  return compose(spec, meta, SOCIAL.w, SOCIAL.h);
+/** 1200 by 630 social card. */
+export function renderSocialPng(spec: CoverSpec, meta: CoverMeta): Uint8Array {
+  return rasterize(renderSocialSvg(spec, meta), SOCIAL.w);
 }
