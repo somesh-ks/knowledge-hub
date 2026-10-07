@@ -84,17 +84,21 @@ export function segmentAudio(
  * file would have for its current text and voice, marked unconfirmed: the file may not exist yet,
  * and the page finds out by trying it. Without the store's public address (`publicBase` null) no
  * address can be worked out and every segment's audio is null.
+ *
+ * `voice` is one voice for every segment, or a function from a segment's key to its voice: a
+ * two-host episode is read in two.
  */
 export function describeSegments(
   segments: readonly SpokenSegment[],
   publicBase: string | null,
   digest: string,
-  voice: string,
+  voice: string | ((key: string) => string),
   model: string,
 ): NarrationSegment[] {
   return segments.map((segment) => {
     const characters = segment.text.length;
-    const path = segmentPath(digest, segment.key, segmentHash(segment.text, voice, model));
+    const voiceOf = typeof voice === "string" ? voice : voice(segment.key);
+    const path = segmentPath(digest, segment.key, segmentHash(segment.text, voiceOf, model));
     return {
       key: segment.key,
       item_id: segment.itemId,

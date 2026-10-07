@@ -17,6 +17,7 @@ import {
   segmentSpokenText,
   usageMonth,
 } from "@dispatch/engine/audio";
+import { EPISODE_ID, type Episode, parseEpisodeFile } from "../lib/episodeFile";
 import type {
   NarrateLookupResponse,
   NarrateResponse,
@@ -32,6 +33,7 @@ import {
   readNarrateConfig,
   readPublicBlobBase,
   readVoiceId,
+  readVoiceIdB,
   type ServerEnv,
 } from "./config";
 import {
@@ -76,6 +78,12 @@ import { describeError } from "./redact";
  * would have. It needs no passphrase, never narrates and never touches the store. POST checks the
  * passphrase and the limits and has Speechify read either one segment or the whole digest, stores
  * the result in Blob, and returns it.
+ *
+ * A podcast episode (an id like ep-20261007-1930) goes through the same two calls, with one segment
+ * per turn, keyed t<idx>. Each speaker has a voice: "a" reads in the configured voice and "b" in
+ * SPEECHIFY_VOICE_ID_B, or in the first voice when that is unset. The segment's file name already
+ * holds the voice, and the episode is charged under the pair of voices. An episode is never made
+ * as one file: that request is refused as not narratable.
  *
  * The function keeps no state of its own. Everything it knows is in the Blob store: the audio, the
  * whole-digest timeline, a marker while a whole digest is being narrated, and one document a month
@@ -164,6 +172,12 @@ export interface DigestSource {
   readTimeline(id: string): Promise<unknown>;
 }
 
+/** The episode files this deployment was built with. */
+export interface EpisodeBundle {
+  /** The episode file's text, or null when the deployment has no such episode. */
+  readEpisode(id: string): Promise<string | null>;
+}
+
 /** A clock that runs out: a signal that aborts when time is up, and a way to stop the clock. */
 export interface Deadline {
   signal: AbortSignal;
@@ -188,13 +202,15 @@ export interface NarrateDeps {
   verifyPassphrase: (passphrase: string, storedHash: string) => Promise<boolean>;
   openBlob: (credentials: BlobCredentials) => NarrateBlobStore;
   digests: DigestSource;
+  /** Podcast episodes. Left out, no episode can be found. */
+  episodes?: EpisodeBundle;
   /** `purpose` names the clock ("setup", "synthesis", "repeat", "marker"); the real one ignores it. */
   startDeadline: (milliseconds: number, purpose?: string) => Deadline;
   log?: (message: string) => void;
 }
 
 /** The lookup has no store among its dependencies: it cannot spend an operation. */
-export type LookupDeps = Pick<NarrateDeps, "env" | "digests" | "log">;
+export type LookupDeps = Pick<NarrateDeps, "env" | "digests" | "episodes" | "log">;
 
 export interface NarrateInput {
   bodyText: string;
@@ -261,9 +277,16 @@ function dailyCap(retryAfterSeconds: number): NarrateResult {
   };
 }
 
-/** A digest id from a query parameter or a body field, or null when it is not one. */
+/** Whether an id names a podcast episode (ep-YYYYMMDD-HHmm) and not a briefing. */
+export const isEpisodeId = (id: string): boolean => EPISODE_ID.test(id);
+
+/**
+ * A digest id from a query parameter or a body field, or null when it is not one. A podcast
+ * episode's id counts: it is narrated the same way, one segment at a time.
+ */
 export function parseDigestId(value: unknown): string | null {
   if (typeof value !== "string" || value.length > MAX_DIGEST_ID_CHARS) return null;
+  if (isEpisodeId(value)) return value;
   const parsed = DigestId.safeParse(value);
   return parsed.success ? parsed.data : null;
 }
@@ -407,6 +430,99 @@ async function loadScript(
   }
 }
 
+interface EpisodeScript {
+  episode: Episode;
+  /** One per turn that has words, in the order they are said. Keyed `t<idx>`. */
+  segments: SpokenSegment[];
+  /** Who reads each segment, by its key. */
+  speakers: Map<string, "a" | "b">;
+  /** The length of everything said. It is what the episode is charged. */
+  characters: number;
+}
+
+/** The segment key of a turn. A key is lower-case letters and digits, as every segment key is. */
+export const turnKey = (idx: number): string => `t${idx}`;
+
+/**
+ * An episode and what is said in it, read from the bundle, or the answer to send when there is
+ * nothing to say. Like loadScript, it touches neither the store nor Speechify.
+ */
+async function loadEpisodeScript(
+  episodes: EpisodeBundle | undefined,
+  id: string,
+  log: (message: string) => void,
+  secrets: readonly string[],
+): Promise<EpisodeScript | NarrateResult> {
+  const text = (await episodes?.readEpisode(id)) ?? null;
+  if (text === null) return digestNotFound;
+  try {
+    const episode = parseEpisodeFile(text);
+    if (episode.id !== id) throw new Error(`the file holds episode ${episode.id}`);
+    const known = new Set(episode.sources.map((source) => source.item_id));
+    const segments: SpokenSegment[] = [];
+    const speakers = new Map<string, "a" | "b">();
+    for (const turn of episode.turns) {
+      const key = turnKey(turn.idx);
+      // A turn that names a story the episode does not list belongs to no story.
+      const itemId = turn.item_id !== null && known.has(turn.item_id) ? turn.item_id : null;
+      segments.push({ key, itemId, text: turn.text });
+      speakers.set(key, turn.speaker);
+    }
+    const characters = segments.reduce((sum, segment) => sum + segment.text.length, 0);
+    return { episode, segments, speakers, characters };
+  } catch (error) {
+    log(`narrate ${id}: cannot be read aloud: ${describeError(error, secrets)}`);
+    return notNarratable;
+  }
+}
+
+/** The voices of the two hosts. The second falls back to the first. */
+interface HostVoices {
+  a: string;
+  b: string;
+}
+
+function hostVoices(env: ServerEnv): HostVoices | null {
+  const a = readVoiceId(env);
+  const b = readVoiceIdB(env);
+  if (a === null || b === null) return null;
+  const first = a ?? DEFAULT_VOICE_ID;
+  return { a: first, b: b ?? first };
+}
+
+/** GET /api/narrate?digest=<ep-id>: the turns of an episode and where their audio would be. */
+async function lookupEpisode(id: string, deps: LookupDeps): Promise<NarrateResult> {
+  const log = deps.log ?? (() => {});
+  let script: EpisodeScript | NarrateResult;
+  try {
+    script = await loadEpisodeScript(deps.episodes, id, log, []);
+  } catch (error) {
+    log(`lookup of ${id} failed: ${describeError(error, [])}`);
+    return unavailable;
+  }
+  if (!("episode" in script)) return script;
+  const voices = hostVoices(deps.env);
+  if (voices === null) return unavailable;
+  return {
+    status: 200,
+    headers: { "Cache-Control": LOOKUP_CACHE_CONTROL },
+    body: {
+      status: 200,
+      // An episode is narrated turn by turn. There is no whole-episode file to offer.
+      audio: null,
+      timeline: null,
+      segments: describeSegments(
+        script.segments,
+        readPublicBlobBase(deps.env),
+        id,
+        (key) => (script.speakers.get(key) === "b" ? voices.b : voices.a),
+        DEFAULT_MODEL,
+      ),
+      ms_per_character: MS_PER_CHARACTER,
+    },
+  };
+}
+
 /** GET /api/narrate?digest=<id>. */
 export async function handleNarrationLookup(
   input: LookupInput,
@@ -418,6 +534,7 @@ export async function handleNarrationLookup(
   if (input.params.some((name) => name !== "digest") || input.params.length > 1) return invalid;
   const id = parseDigestId(input.digest);
   if (id === null) return invalid;
+  if (isEpisodeId(id)) return lookupEpisode(id, deps);
 
   let script: Script | NarrateResult;
   try {
@@ -535,6 +652,7 @@ async function planDigestCharge(
   session: Session,
   characters: number,
   mode: NarrationMode,
+  voice: string = voiceOf(session.config),
 ): Promise<Charge> {
   const { id, config, blob, deps } = session;
   const now = deps.now();
@@ -544,7 +662,7 @@ async function planDigestCharge(
     state: parseState(stored?.text ?? null, month),
     digest: id,
     characters,
-    voice: voiceOf(config),
+    voice,
     mode,
     now,
     monthlyChars: config.monthlyChars ?? DEFAULT_MONTHLY_CHARS,
@@ -687,7 +805,11 @@ interface Spoken extends Synthesis {
  * when there is none. The deadline's signal goes into every request, so when it passes the upstream
  * request is stopped, not left running.
  */
-async function speak(session: Session, text: string): Promise<Spoken | NarrateResult> {
+async function speak(
+  session: Session,
+  text: string,
+  voice: string = voiceOf(session.config),
+): Promise<Spoken | NarrateResult> {
   const { label, config, deps, log, secrets } = session;
 
   const budget = synthesisBudget(session);
@@ -708,11 +830,7 @@ async function speak(session: Session, text: string): Promise<Spoken | NarrateRe
 
   const startedAt = deps.now();
   try {
-    const narration = await synthesize(
-      speech,
-      { text, voiceId: voiceOf(config), model: DEFAULT_MODEL },
-      log,
-    );
+    const narration = await synthesize(speech, { text, voiceId: voice, model: DEFAULT_MODEL }, log);
     return { ...narration, synthesisMs: deps.now() - startedAt };
   } catch (error) {
     const spent = error instanceof SpeechifyError ? (error.partialCharacters ?? 0) : 0;
@@ -875,6 +993,9 @@ async function clearMarker(session: Session): Promise<void> {
 async function narrateWhole(session: Session): Promise<NarrateResult> {
   const { id, label, blob, deps, log, secrets } = session;
 
+  // An episode is read by two voices, turn by turn. There is no single file to make of it.
+  if (isEpisodeId(id)) return notNarratable;
+
   const existing = await duringSetup(session, findNarration(blob, deps.digests, id));
   if (existing) return ready(existing);
 
@@ -919,11 +1040,11 @@ async function narrateWhole(session: Session): Promise<NarrateResult> {
  * once either way. The page sends one segment at a time.
  */
 async function narrateSegment(session: Session, key: string): Promise<NarrateResult> {
-  const { id, config, blob, deps, log, secrets } = session;
+  const { id, blob } = session;
 
   // From the bundle only: an unknown digest or segment is refused before any store or speech call.
-  const script = await loadScript(deps.digests, id, log, secrets);
-  if (!("spoken" in script)) return script;
+  const script = await loadSegmentScript(session);
+  if ("status" in script) return script;
   const segment = script.segments.find((candidate) => candidate.key === key);
   if (!segment) return segmentNotFound;
   const described = {
@@ -932,11 +1053,12 @@ async function narrateSegment(session: Session, key: string): Promise<NarrateRes
     characters: segment.text.length,
   };
 
-  const path = segmentPath(id, key, segmentHash(segment.text, voiceOf(config), DEFAULT_MODEL));
+  const voice = script.voiceFor(segment.key);
+  const path = segmentPath(id, key, segmentHash(segment.text, voice, DEFAULT_MODEL));
 
   // Side by side, because the first segment is the one a listener is waiting to hear: is it
   // already narrated, and what does the digest still owe. Simple operations only.
-  const owed = planDigestCharge(session, script.spoken.text.length, "segments");
+  const owed = planDigestCharge(session, script.characters, "segments", script.chargeVoice);
   // Looked at below. Until then a failure must not count as unhandled.
   owed.catch(() => undefined);
 
@@ -956,8 +1078,46 @@ async function narrateSegment(session: Session, key: string): Promise<NarrateRes
   session.setup.cancel();
 
   return attempt(session, segment.text.length, () =>
-    synthesizeSegment(session, path, segment, described),
+    synthesizeSegment(session, path, segment, described, voice),
   );
+}
+
+/** What a request for one segment needs to know about the thing it narrates. */
+interface SegmentScript {
+  segments: SpokenSegment[];
+  /** The length of the whole narration, which is what the digest or episode is charged. */
+  characters: number;
+  /** The voice that reads a segment. */
+  voiceFor(key: string): string;
+  /** The voice the charge is recorded for. A change of it makes every file again. */
+  chargeVoice: string;
+}
+
+/** The briefing or the episode behind the request, ready to narrate a segment of, or the answer to send. */
+async function loadSegmentScript(session: Session): Promise<SegmentScript | NarrateResult> {
+  const { id, config, deps, log, secrets } = session;
+  if (!isEpisodeId(id)) {
+    const script = await loadScript(deps.digests, id, log, secrets);
+    if (!("spoken" in script)) return script;
+    const voice = voiceOf(config);
+    return {
+      segments: script.segments,
+      characters: script.spoken.text.length,
+      voiceFor: () => voice,
+      chargeVoice: voice,
+    };
+  }
+  const script = await loadEpisodeScript(deps.episodes, id, log, secrets);
+  if (!("episode" in script)) return script;
+  const first = voiceOf(config);
+  const second = config.voiceIdB ?? first;
+  return {
+    segments: script.segments,
+    characters: script.characters,
+    voiceFor: (key) => (script.speakers.get(key) === "b" ? second : first),
+    // Two voices are charged as the pair, so changing either one pays again.
+    chargeVoice: second === first ? first : `${first}+${second}`,
+  };
 }
 
 /** The paid part of one segment: synthesize it and store the file. */
@@ -966,11 +1126,12 @@ async function synthesizeSegment(
   path: string,
   segment: SpokenSegment,
   described: Omit<NarrationSegment, "audio">,
+  voice: string,
 ): Promise<NarrateResult> {
   const { label, deps, log, secrets } = session;
 
   // The duration comes from the stream's own done event. Word marks are not used for a segment.
-  const narration = await speak(session, segment.text);
+  const narration = await speak(session, segment.text, voice);
   if ("status" in narration) return narration;
   const characters = narration.billableCharacters;
 

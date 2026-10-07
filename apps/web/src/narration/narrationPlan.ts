@@ -24,7 +24,7 @@ export interface NarrationPlan {
   /** In playing order, each with its fixed span in seconds. */
   segments: TrackSegment[];
   total_ms: number;
-  /** Where each story starts and ends, by item id. */
+  /** Where each story starts and ends, by item id: from its first segment to its last. */
   items: Map<string, { start_ms: number; end_ms: number }>;
   /** True when every segment already has a file, so playing needs no narration at all. */
   complete: boolean;
@@ -71,7 +71,12 @@ export function planNarration(
       url: segment.audio?.url ?? null,
       unconfirmed: segment.audio?.confirmed === false,
     });
-    if (segment.item_id !== null) items.set(segment.item_id, { start_ms: start, end_ms: cursor });
+    if (segment.item_id !== null) {
+      // Several segments can read one story (the turns of an episode). The story starts at its
+      // first and ends at its last, so the marks cover everything said about it.
+      const earlier = items.get(segment.item_id);
+      items.set(segment.item_id, { start_ms: earlier?.start_ms ?? start, end_ms: cursor });
+    }
   }
   return {
     segments: laid,

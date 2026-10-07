@@ -172,6 +172,22 @@ describe("readNarrateConfig", () => {
     ).toMatchObject({ voiceId: "henry_7", monthlyChars: 250_000 });
   });
 
+  it("reads the second host's voice when it is set, and has none otherwise", () => {
+    expect(readNarrateConfig({ ...NARRATE, SPEECHIFY_VOICE_ID_B: " second_7 " })).toMatchObject({
+      voiceIdB: "second_7",
+    });
+    expect(readNarrateConfig(NARRATE)).not.toHaveProperty("voiceIdB");
+    expect(readNarrateConfig({ ...NARRATE, SPEECHIFY_VOICE_ID_B: " " })).not.toHaveProperty(
+      "voiceIdB",
+    );
+  });
+
+  it("is null when the second host's voice is set to something unusable", () => {
+    for (const bad of ["two words", "voice/../x", "x".repeat(65)]) {
+      expect(readNarrateConfig({ ...NARRATE, SPEECHIFY_VOICE_ID_B: bad })).toBeNull();
+    }
+  });
+
   it("is null when a required variable is missing or blank", () => {
     for (const key of Object.keys(NARRATE)) {
       expect(readNarrateConfig({ ...NARRATE, [key]: undefined })).toBeNull();
