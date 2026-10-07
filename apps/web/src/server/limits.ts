@@ -34,3 +34,26 @@ export function evaluateLimits(startedAt: readonly number[], now: number): Limit
     retryAfterSeconds: Math.max(1, Math.ceil((releasedAt - now) / 1000)),
   };
 }
+
+/**
+ * Narrations per 24 hours for the Play button, counted from the MP3 uploads the Blob store already
+ * lists, so this too keeps no state of its own. Every upload counts, whoever made it. There is no
+ * cooldown: catching up on a few digests in one sitting is ordinary use.
+ */
+export const NARRATE_DAILY_CAP = 3;
+
+export type DailyCapDecision = { allowed: true } | { allowed: false; retryAfterSeconds: number };
+
+/** `uploadedAt` is each narration's upload time in epoch milliseconds. */
+export function evaluateDailyCap(
+  uploadedAt: readonly number[],
+  now: number,
+  cap: number = NARRATE_DAILY_CAP,
+): DailyCapDecision {
+  const recent = uploadedAt.filter((time) => now - time < DAY_MS).sort((a, b) => a - b);
+  // At the cap, the oldest of the recent uploads has to age out before one more fits.
+  const excess = recent.length - (cap - 1);
+  if (excess <= 0) return { allowed: true };
+  const releasedAt = (recent[excess - 1] ?? now) + DAY_MS;
+  return { allowed: false, retryAfterSeconds: Math.max(1, Math.ceil((releasedAt - now) / 1000)) };
+}

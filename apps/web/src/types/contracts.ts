@@ -102,3 +102,58 @@ export interface StatusResponse {
   digest_id?: string;
   run_url?: string;
 }
+
+/** POST /api/narrate request body. */
+export interface NarrateRequest {
+  /** The digest to narrate, by id: "2026-10-07", "2026-10-07-2" or "2026-10-11-weekly". */
+  digest: string;
+  /** The same passphrase the Generate sheet asks for. */
+  passphrase: string;
+}
+
+/**
+ * Where each story and section starts inside a narration. To show it, patch PlayerDigestData: `kind`
+ * goes into `timeline`, and the times go onto the items and sections with the same `id` and `slug`.
+ */
+export interface NarrationTimeline {
+  /** How the times were derived: word marks from the voice, or an estimate from text length. */
+  kind: "marks" | "estimated";
+  items: { id: string; section: Section; start_ms: number; end_ms: number }[];
+  sections: { slug: Section; start_ms: number }[];
+}
+
+/**
+ * GET /api/narrate?digest=<id> and POST /api/narrate responses. `status` repeats the HTTP status.
+ *
+ * GET asks whether a digest has audio. It needs no passphrase and spends nothing: 200 with the audio
+ * and its timeline, or 404 "no_audio". POST narrates a digest that has none and answers 200 with the
+ * same body; when the audio already exists it answers 200 without narrating again. POST takes as long
+ * as the voice service does, so show progress and never retry it on a timer.
+ *
+ * Treat any answer outside this union (a 405, or a platform timeout page that is not JSON) as
+ * "unavailable".
+ */
+export type NarrateResponse =
+  | { status: 200; audio: { url: string; duration_ms: number }; timeline: NarrationTimeline }
+  // No digest id, a malformed id or body, or a request from another origin.
+  | { status: 400; error: "invalid_request" }
+  | { status: 401; error: "wrong_passphrase" }
+  // GET: the digest has no audio yet. POST: this deployment has no such digest.
+  | { status: 404; error: "no_audio" | "digest_not_found" }
+  // Another request is narrating this digest right now. Ask GET again after `retry_after_s`.
+  | { status: 409; error: "in_progress"; retry_after_s: number }
+  // The digest cannot be read aloud: nothing to say, or too long for one request. Do not retry.
+  | { status: 422; error: "not_narratable" }
+  // Too many narrations in 24 hours.
+  | { status: 429; error: "daily_cap"; retry_after_s: number }
+  // The month's voice allowance is used up. It resets with the calendar month.
+  | { status: 429; error: "monthly_budget" }
+  // The voice service failed, or the finished audio could not be stored. Trying again later is safe.
+  | { status: 502; error: "synthesis_failed" | "storage_failed" }
+  // The site is not configured for narration, or the audio store could not be reached.
+  | { status: 503; error: "unavailable" }
+  // The voice service took longer than the function allows.
+  | { status: 504; error: "took_too_long" };
+
+/** Every error code /api/narrate can answer with. */
+export type NarrateErrorCode = Extract<NarrateResponse, { error: string }>["error"];
