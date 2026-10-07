@@ -66,7 +66,10 @@ export interface SegmentQueueOptions {
 export interface SegmentQueue extends Playlist {
   /** Clears a standing refusal, after a new passphrase for instance. */
   reset(): void;
-  /** Stops asking for anything further. A request already sent is allowed to finish. */
+  /**
+   * Stops making files ahead of time. A request already sent is allowed to finish, and a later
+   * `ensure` starts the queue again, because the playhead needing a file is never ignored.
+   */
   stop(): void;
 }
 
@@ -164,6 +167,8 @@ export function createSegmentQueue(options: SegmentQueueOptions): SegmentQueue {
       if (!segment) return Promise.reject(new NarrationError("segment_not_found"));
       if (segment.url !== null) return Promise.resolve(segment.url);
       if (standing) return Promise.reject(new NarrationError(standing));
+      // The playhead needs this file, which outranks an earlier stop: the queue runs again.
+      stopped = false;
       return new Promise<string>((resolve, reject) => {
         const waiting = waiters.get(index) ?? [];
         waiting.push({ resolve, reject });
