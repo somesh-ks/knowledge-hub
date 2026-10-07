@@ -1,5 +1,5 @@
 /*
- * Dispatch foundations: reset, base typography, focus ring, motion utilities, scrollbars,
+ * Singularity foundations: reset, base typography, focus ring, motion utilities, scrollbars,
  * safe-area helpers, sheet and dialog base styles.
  *
  * Rules for this file
@@ -150,6 +150,9 @@
     letter-spacing: var(--text-body-tracking);
     font-optical-sizing: auto;
     font-synthesis: none;
+    /* The parts the browser draws take the accent too: the text caret and native controls. */
+    caret-color: var(--color-accent);
+    accent-color: var(--color-accent);
     -webkit-font-smoothing: antialiased;
     -moz-osx-font-smoothing: grayscale;
   }

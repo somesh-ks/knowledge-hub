@@ -1,27 +1,10 @@
 /*
- * Buttons, links that look like buttons, icons and the play and pause glyph swap. Hover only inside
- * (hover: hover) and (pointer: fine); press feedback comes from the .press utility in foundations.
+ * Controls: icons, the text button, the icon button, the two block buttons, the play chip and the
+ * play and pause glyph swap. One accent carries every control. Hover only inside (hover: hover) and
+ * (pointer: fine); press feedback comes from the .press utility in foundations.
  */
 
-.btn,
-.icon-btn {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  gap: var(--space-2);
-  min-width: var(--size-touch);
-  min-height: var(--size-touch);
-  padding-inline: var(--space-3);
-  border-radius: var(--button-radius);
-  color: var(--color-on-surface-muted);
-  font-size: var(--font-size-meta);
-  font-weight: var(--font-weight-semibold);
-  text-decoration: none;
-}
-
-.icon-btn {
-  padding-inline: 0;
-}
+/* ------------------------------------------------------------------ icons */
 
 /* Phosphor: every glyph is one filled path, so an icon is just its colour and its size. */
 .icon {
@@ -36,46 +19,62 @@
   height: var(--size-icon-lg);
 }
 
+/* ------------------------------------------------------------------ text and icon buttons */
+
+/* The text button: an accent label with no container until it is hovered or pressed. */
+.btn,
+.icon-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: var(--space-2);
+  min-width: var(--size-touch);
+  min-height: var(--size-touch);
+  padding-inline: var(--space-3);
+  border-radius: var(--button-radius);
+  color: var(--color-accent);
+  font-size: var(--font-size-label);
+  font-weight: var(--font-weight-medium);
+  line-height: var(--font-leading-label);
+  text-decoration: none;
+}
+
+/* The icon button: a glyph in a round 44px target. Quiet until used; the accent is for actions that
+   have a label. */
+.icon-btn {
+  padding-inline: 0;
+  border-radius: var(--radius-round);
+  color: var(--color-on-surface-muted);
+}
+
+.icon-btn .icon {
+  width: var(--size-icon-lg);
+  height: var(--size-icon-lg);
+}
+
 @media (hover: hover) and (pointer: fine) {
-  .btn:hover,
+  .btn:hover {
+    background: var(--color-accent-subtle);
+  }
+
   .icon-btn:hover {
     background: var(--color-surface-sunken);
     color: var(--color-on-surface);
   }
 }
 
-.btn:active,
+.btn:active {
+  background: var(--color-accent-subtle);
+}
+
 .icon-btn:active {
   background: var(--color-surface-sunken);
 }
 
-.btn-primary {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  gap: var(--space-2);
-  width: 100%;
-  min-height: var(--cta-height);
-  padding-inline: var(--space-4);
-  border-radius: var(--cta-radius);
-  background: var(--cta-bg);
-  color: var(--cta-fg);
-  font-size: var(--font-size-label-lg);
-  font-weight: var(--font-weight-semibold);
-  letter-spacing: var(--font-tracking-label-lg);
-  text-decoration: none;
-}
+/* ------------------------------------------------------------------ block buttons */
 
-@media (hover: hover) and (pointer: fine) {
-  .btn-primary:hover {
-    background: var(--cta-bg-hover);
-  }
-}
-
-.btn-primary:active {
-  background: var(--cta-bg-pressed);
-}
-
+/* Filled and outlined: the one committing action of a sheet or an empty page, and its alternative. */
+.btn-primary,
 .btn-secondary {
   display: flex;
   align-items: center;
@@ -83,19 +82,254 @@
   gap: var(--space-2);
   width: 100%;
   min-height: var(--button-height);
-  padding-inline: var(--space-4);
+  padding-inline: var(--button-padding);
   border-radius: var(--button-radius);
-  background: var(--color-surface-sunken);
-  color: var(--color-on-surface);
-  font-weight: var(--font-weight-semibold);
+  font-size: var(--font-size-body);
+  font-weight: var(--font-weight-medium);
+  line-height: var(--font-leading-label);
   text-decoration: none;
 }
 
+.btn-primary {
+  background: var(--cta-bg);
+  color: var(--cta-fg);
+  /* The ring's gap must read against the page, not against the fill. */
+  --color-focus-gap: var(--color-surface);
+}
+
+.btn-secondary {
+  border: var(--stroke-hairline) solid var(--color-border-hairline);
+  color: var(--color-accent);
+}
+
 @media (hover: hover) and (pointer: fine) {
+  .btn-primary:hover {
+    background: var(--cta-bg-hover);
+  }
+
   .btn-secondary:hover {
-    background: color-mix(in oklch, var(--color-on-surface) 8%, var(--color-surface-sunken));
+    background: var(--color-accent-subtle);
   }
 }
+
+.btn-primary:active {
+  background: var(--cta-bg-pressed);
+}
+
+.btn-secondary:active {
+  background: var(--color-accent-subtle);
+}
+
+:is(.btn, .icon-btn, .btn-primary, .btn-secondary):is(:disabled, [aria-disabled="true"]) {
+  color: var(--color-on-surface-disabled);
+  cursor: default;
+}
+
+.btn-primary:is(:disabled, [aria-disabled="true"]) {
+  background: var(--color-surface-sunken);
+}
+
+/* ------------------------------------------------------------------ play chip */
+
+/*
+ * The outlined pill that plays a briefing or one story: a ringed glyph and a short label. The one
+ * pill in the system. Markup:
+ *
+ *   <button class="chip press press-subtle" data-state="idle" data-playing="false">
+ *     <span class="chip-glyph"> play and pause icons, .chip-bars, a check icon, .spinner </span>
+ *     <span class="chip-label num">1:24</span>
+ *   </button>
+ *
+ * data-state: idle (plays from here), current (this is what is loaded), played, preparing (audio is
+ * being made), unavailable. data-playing says whether the loaded audio is running. The glyph slot
+ * holds every mark; the state picks which one shows, so script only ever writes two attributes and
+ * the label.
+ */
+.chip {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  gap: var(--chip-gap);
+  min-height: var(--chip-height);
+  padding-inline: var(--chip-padding-start) var(--chip-padding-end);
+  border: var(--stroke-hairline) solid var(--chip-border);
+  border-radius: var(--chip-radius);
+  color: var(--chip-fg);
+  font-size: var(--font-size-label);
+  font-weight: var(--font-weight-medium);
+  line-height: var(--font-leading-label);
+  white-space: nowrap;
+  text-decoration: none;
+  transition:
+    transform var(--duration-press-out) var(--ease-out),
+    background-color var(--duration-hover) var(--ease-hover),
+    border-color var(--duration-hover) var(--ease-hover),
+    color var(--duration-hover) var(--ease-hover);
+}
+
+/* The pill is 36px tall; its target is 44px. */
+.chip::after {
+  content: "";
+  position: absolute;
+  inset-inline: 0;
+  inset-block: calc((var(--size-touch) - var(--chip-height)) / -2);
+}
+
+.chip-glyph {
+  position: relative;
+  display: grid;
+  place-items: center;
+  width: var(--chip-glyph);
+  height: var(--chip-glyph);
+  flex: none;
+  border: var(--chip-ring) solid currentColor;
+  border-radius: var(--radius-round);
+  transition: border-color var(--duration-state) var(--ease-out);
+}
+
+.chip-glyph > * {
+  grid-area: 1 / 1;
+}
+
+.chip-glyph .icon {
+  width: var(--chip-icon);
+  height: var(--chip-icon);
+}
+
+/* Every mark but the one the state calls for is hidden. Play and pause are the default pair. */
+.chip-glyph > :is(.chip-bars, .chip-check, .spinner) {
+  display: none;
+}
+
+@media (hover: hover) and (pointer: fine) {
+  .chip:hover {
+    background: var(--chip-bg-current);
+  }
+}
+
+.chip:active {
+  background: var(--chip-bg-current);
+}
+
+/* Current: the loaded story or briefing. Filled with the accent container, no outline. */
+.chip[data-state="current"] {
+  border-color: transparent;
+  background: var(--chip-bg-current);
+}
+
+/* While it plays, the ring gives way to three moving bars. */
+.chip[data-state="current"][data-playing="true"] .chip-glyph {
+  border-color: transparent;
+}
+
+.chip[data-state="current"][data-playing="true"] .chip-glyph > .swap {
+  display: none;
+}
+
+.chip[data-state="current"][data-playing="true"] .chip-bars {
+  display: flex;
+}
+
+/* Played: a check in the success colour and a quiet label. */
+.chip[data-state="played"] {
+  color: var(--color-on-surface-muted);
+}
+
+.chip[data-state="played"] .chip-glyph {
+  border-color: transparent;
+  color: var(--color-success);
+}
+
+.chip[data-state="played"] .chip-glyph > .swap {
+  display: none;
+}
+
+.chip[data-state="played"] .chip-check {
+  display: block;
+  width: var(--size-icon);
+  height: var(--size-icon);
+}
+
+/* Preparing: the audio is being made. The ring becomes the spinner. */
+.chip[data-state="preparing"] {
+  cursor: progress;
+}
+
+.chip[data-state="preparing"] .chip-glyph {
+  border-color: transparent;
+}
+
+.chip[data-state="preparing"] .chip-glyph > .swap {
+  display: none;
+}
+
+.chip[data-state="preparing"] .spinner {
+  display: block;
+}
+
+.chip:is([data-state="unavailable"], [aria-disabled="true"], :disabled) {
+  background: none;
+  color: var(--color-on-surface-disabled);
+  cursor: default;
+}
+
+.chip-bars {
+  align-items: flex-end;
+  justify-content: center;
+  gap: var(--chip-ring);
+  height: var(--chip-icon);
+}
+
+.chip-bars > i {
+  width: calc(var(--chip-ring) * 2);
+  height: 100%;
+  border-radius: var(--chip-ring);
+  background: currentColor;
+  transform-origin: bottom;
+  animation: chip-bar var(--duration-spin) var(--ease-in-out) infinite alternate;
+}
+
+.chip-bars > i:nth-child(2) {
+  animation-delay: calc(var(--duration-spin) * -0.4);
+}
+
+.chip-bars > i:nth-child(3) {
+  animation-delay: calc(var(--duration-spin) * -0.75);
+}
+
+@keyframes chip-bar {
+  from {
+    transform: scaleY(0.3);
+  }
+}
+
+/* Reduced motion: the bars hold three different heights, which still reads as sound. */
+@media (prefers-reduced-motion: reduce) {
+  .chip-bars > i {
+    animation: none;
+    transform: scaleY(0.55);
+  }
+
+  .chip-bars > i:nth-child(2) {
+    transform: none;
+  }
+
+  .chip-bars > i:nth-child(3) {
+    transform: scaleY(0.75);
+  }
+}
+
+@media (forced-colors: active) {
+  .chip {
+    border-color: ButtonText;
+  }
+
+  .chip[data-state="current"] {
+    border-color: Highlight;
+  }
+}
+
+/* ------------------------------------------------------------------ play and pause swap */
 
 /*
  * Play and pause share one slot: the outgoing glyph shrinks, fades and blurs as the incoming one
