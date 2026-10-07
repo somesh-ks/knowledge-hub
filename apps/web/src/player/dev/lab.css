@@ -20,14 +20,8 @@ main {
 }
 
 html[data-mini="visible"] main {
-  /* Room for the mini player and its inset, so the last line is never covered. */
-  padding-block-end: calc(
-    var(--mini-player-control-size) +
-    var(--mini-player-inset) *
-    2 +
-    max(var(--mini-player-inset), var(--safe-bottom)) +
-    var(--space-8)
-  );
+  /* Room for the docked bar, so the last line is never covered. */
+  padding-block-end: calc(var(--player-dock-height) + var(--space-8));
 }
 
 .site-header {

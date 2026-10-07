@@ -19,6 +19,11 @@ export interface LabItem {
   why: string;
 }
 
+/** Where a lab story claims to come from. Invented, and never fetched. */
+function labUrl(id: string): string {
+  return `https://lab.example.com/stories/${id}`;
+}
+
 const SECONDS_PER_ITEM = 15;
 
 export const LAB_ITEMS: readonly LabItem[] = [
@@ -107,6 +112,8 @@ function digestFor(variant: LabVariant): PlayerDigestData {
     headline: item.headline,
     section: item.section,
     source: item.source,
+    // The last story has no address, so the player's source link is seen both present and absent.
+    url: index === LAB_ITEMS.length - 1 ? null : labUrl(item.id),
     start_ms: hasAudio ? index * SECONDS_PER_ITEM * 1000 : null,
     end_ms: hasAudio ? (index + 1) * SECONDS_PER_ITEM * 1000 : null,
   }));
