@@ -1,5 +1,6 @@
 import { type Linter, type Violation, VOICE_FIELDS } from "../voice/lint.js";
 import { rewriteOnce } from "./rewriteOnce.js";
+import { spokenIsGrounded } from "./spokenCheck.js";
 import type { SourceMaterial, Writer, WrittenItem } from "./types.js";
 
 export interface VoicePassed {
@@ -21,6 +22,10 @@ export interface VoiceOutcome {
 /**
  * Lint every written field an item has. A failing field gets one rewrite with the violations appended;
  * if it still fails, the item is dropped and its violations reported. Order is preserved.
+ *
+ * The spoken version is different: it is an extra, so a spoken text that cannot be fixed, or that
+ * states a number the headline and summary do not, is removed from the item and narration falls back
+ * to the headline and the summary. It never costs the item.
  */
 export async function enforceVoice(args: {
   written: readonly WrittenItem[];
@@ -40,6 +45,7 @@ export async function enforceVoice(args: {
     const rewrittenFields: string[] = [];
     const remaining: Violation[] = [];
     for (const field of VOICE_FIELDS) {
+      if (field === "spoken") continue;
       const text = item[field];
       // The writer produces no why line, so there is usually nothing to lint for that field.
       if (text === undefined) continue;
@@ -56,8 +62,29 @@ export async function enforceVoice(args: {
       if (result.rewritten) rewrittenFields.push(field);
       remaining.push(...result.violations);
     }
-    if (remaining.length === 0) passed.push({ item, rewrittenFields });
-    else dropped.push({ id: item.id, violations: remaining });
+    if (remaining.length === 0) {
+      if (item.spoken !== undefined) {
+        const result = await rewriteOnce({
+          writer: args.writer,
+          linter: args.linter,
+          material,
+          field: "spoken",
+          text: item.spoken,
+          violations: args.linter.lint("spoken", item.spoken),
+        });
+        // Judged after the rewrite, because a rewrite is where an invented number would come from.
+        if (
+          result.violations.length === 0 &&
+          spokenIsGrounded(result.text, item.headline, item.summary)
+        ) {
+          item.spoken = result.text;
+          if (result.rewritten) rewrittenFields.push("spoken");
+        } else {
+          delete item.spoken;
+        }
+      }
+      passed.push({ item, rewrittenFields });
+    } else dropped.push({ id: item.id, violations: remaining });
   }
   return { passed, dropped };
 }

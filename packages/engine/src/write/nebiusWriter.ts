@@ -4,6 +4,7 @@ import { mapConcurrent } from "../llm/concurrency.js";
 import { BudgetExceededError, describeError } from "../llm/errors.js";
 import type { LlmClient } from "../llm/types.js";
 import { newBoundary } from "../llm/untrusted.js";
+import type { VoiceField } from "../voice/lint.js";
 import type { VoiceConfig } from "../voice/voice.js";
 import {
   rewriteSystemPrompt,
@@ -27,15 +28,24 @@ export const WRITER_TEMPERATURE = 0.2;
 const WRITER_CONCURRENCY = 4;
 /**
  * Output allowance per written item and per rewritten field. A headline plus an 80-word summary
- * is about 180 tokens as JSON, so both leave room for a reply that runs long before the linter
- * sees it; a reply cut off mid-object would fail its whole batch.
+ * is about 180 tokens as JSON, and the spoken telling adds about 130 more. Both leave room for a
+ * reply that runs long before the linter sees it; a reply cut off mid-object would fail its batch.
  */
-const WRITE_TOKENS_PER_ITEM = 600;
+const WRITE_TOKENS_PER_ITEM = 800;
 const WRITE_TOKENS_OVERHEAD = 300;
 const REWRITE_MAX_TOKENS = 400;
 
 const WriterOutput = z.object({
-  items: z.array(z.object({ id: z.string(), headline: z.string(), summary: z.string() })),
+  items: z.array(
+    z.object({
+      id: z.string(),
+      headline: z.string(),
+      summary: z.string(),
+      // Nullish so a model that skips it, or sends null, still delivers the item; narration then
+      // reads the summary. The strict response format needs the key to be nullable.
+      spoken: z.string().nullish(),
+    }),
+  ),
 });
 
 const RewriteOutput = z.object({ text: z.string() });
@@ -44,11 +54,11 @@ const RewriteOutput = z.object({ text: z.string() });
  * Collapse whitespace and drop wrapping quotes. The writer produces no why line; the "why" case
  * serves a rewrite of one an agent session supplied, and drops a stray "Why:" label.
  */
-export function cleanField(field: "headline" | "summary" | "why", raw: string): string {
+export function cleanField(field: VoiceField, raw: string): string {
   let text = raw.replace(/\s+/g, " ").trim();
   text = text.replace(/^["'\u201C\u2018](.*)["'\u201D\u2019]$/s, "$1").trim();
   if (field === "why") text = text.replace(/^why:\s*/i, "");
-  if (field !== "summary") text = text.replace(/\.$/, "");
+  if (field !== "summary" && field !== "spoken") text = text.replace(/\.$/, "");
   return text;
 }
 
@@ -107,10 +117,12 @@ export class NebiusWriter implements Writer {
       const seen = new Map<string, WrittenItem>();
       for (const row of value.items) {
         if (!wanted.has(row.id) || seen.has(row.id)) continue;
+        const spoken = row.spoken ? cleanField("spoken", row.spoken) : "";
         seen.set(row.id, {
           id: row.id,
           headline: cleanField("headline", row.headline),
           summary: cleanField("summary", row.summary),
+          ...(spoken.length > 0 ? { spoken } : {}),
         });
       }
       const failed: WriteFailure[] = batch

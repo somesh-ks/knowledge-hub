@@ -79,6 +79,7 @@ export function buildDigest(input: BuildDigestInput): Digest {
       summary: text.summary,
       score: sel.score,
     };
+    if (text.spoken) item.spoken = text.spoken;
     // Only an agent session still supplies a why line; the frontmatter carries none otherwise.
     if (text.why) item.why = text.why;
     if (sel.item.author) item.author = sel.item.author;

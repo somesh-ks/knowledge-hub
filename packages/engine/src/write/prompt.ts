@@ -10,6 +10,12 @@ export function voiceBrief(voice: VoiceConfig): string {
   for (const example of voice.examples) {
     lines.push(`- Weak: ${example.weak}`, `  Strong: ${example.strong}`);
   }
+  if (voice.headlineExamples.length > 0) {
+    lines.push("", "HEADLINE EXAMPLES (weak, then strong)");
+    for (const example of voice.headlineExamples) {
+      lines.push(`- Weak: ${example.weak}`, `  Strong: ${example.strong}`);
+    }
+  }
   lines.push(
     "",
     `BANNED WORDS AND PHRASES (also their inflections; never use them): ${voice.bannedWords.join(", ")}`,
@@ -18,7 +24,19 @@ export function voiceBrief(voice: VoiceConfig): string {
 }
 
 const FIELD_RULES = [
-  `- headline: at most ${VOICE_LIMITS.headlineWords} words. Name the product, technique, number or result. No trailing period.`,
+  [
+    `- headline: at most ${VOICE_LIMITS.headlineWords} words, no trailing period.`,
+    "Say what happened and why a reader would care, the way a person would tell a friend: natural word order and a real verb.",
+    'Not a changelog line ("X 2.0 released with Y"), not a colon list, not title case. Name the product, number or result.',
+  ].join(" "),
+  [
+    `- spoken: the same story told aloud by a host, ${VOICE_LIMITS.spokenMinSentences} to ${VOICE_LIMITS.spokenSentences} sentences, ${VOICE_LIMITS.spokenMinWords} to ${VOICE_LIMITS.spokenWords} words and at most ${VOICE_LIMITS.spokenChars} characters in total.`,
+    'Conversational but not chatty: use contractions and open with a natural lead-in instead of reading the headline as a title ("Google has a new Pixel, and the headline feature is the screen.").',
+    'Say numbers the way a person says them ("about a hundred and twenty lines", "forty percent"), but write years as digits.',
+    'Give the catch as a turn ("The catch: ...").',
+    'No "in this story", no hype, no questions to the listener, no "we" or "our".',
+    "Use only facts that are in your own summary: no new number, name, date or claim.",
+  ].join(" "),
   [
     `- summary: three or four sentences, at most ${VOICE_LIMITS.summaryWords} words in total, each sentence at most ${VOICE_LIMITS.sentenceWords} words.`,
     "Four beats in this order: what happened; the number that makes it concrete (a price, date, size or percentage);",
@@ -50,7 +68,8 @@ export function writerSystemPrompt(voice: VoiceConfig, boundary: string): string
     untrustedInstruction(boundary),
     "",
     "OUTPUT",
-    'Reply with one JSON object: {"items":[{"id":"...","headline":"...","summary":"..."}]}, one entry per source, keeping each id exactly.',
+    'Reply with one JSON object: {"items":[{"id":"...","headline":"...","summary":"...","spoken":"..."}]}, one entry per source, keeping each id exactly.',
+    "Write the summary first, then the spoken version from it.",
   ].join("\n");
 }
 
@@ -67,7 +86,7 @@ function materialBlock(material: SourceMaterial, boundary: string): string {
 
 export function writerUserMessage(items: readonly SourceMaterial[], boundary: string): string {
   return [
-    `Write the headline and summary for each of these ${items.length} sources.`,
+    `Write the headline, summary and spoken version for each of these ${items.length} sources.`,
     "",
     ...items.map((item) => materialBlock(item, boundary)),
   ].join("\n\n");

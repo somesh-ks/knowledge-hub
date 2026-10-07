@@ -40,6 +40,11 @@ export const DigestItem = z.object({
   source: z.string().min(1),
   author: z.string().optional(),
   summary: z.string().min(1),
+  /**
+   * The story as a host would tell it aloud. Narration only: the page never shows it. Digests
+   * written before it existed have none, and narration then reads the headline and the summary.
+   */
+  spoken: z.string().min(1).optional(),
   /** Digests written before the four-beat voice carry a separate why line; newer ones do not. */
   why: z.string().min(1).optional(),
   score: z.number().min(0).max(1),
@@ -71,7 +76,7 @@ export type Digest = z.infer<typeof Digest>;
  *
  * A summary runs the four beats in three or four sentences. Two sentences are accepted so a thin
  * source is never padded. `whyWords` applies only to the why line of digests written before the
- * four-beat voice. `techCap` is the allowance for the Tech releases section, on top of `cap`.
+ * four-beat voice. The `spoken*` limits are for the host's telling of a story. `techCap` is the allowance for the Tech releases section, on top of `cap`.
  */
 export const VOICE_LIMITS = {
   headlineWords: 12,
@@ -81,5 +86,11 @@ export const VOICE_LIMITS = {
   summaryMinSentences: 2,
   sentenceWords: 28,
   whyWords: 18,
+  spokenWords: 95,
+  spokenMinWords: 40,
+  /** A hard ceiling in characters, so 24 stories can never outgrow the narration request. */
+  spokenChars: 700,
+  spokenSentences: 5,
+  spokenMinSentences: 3,
   items: { floor: 3, target: [8, 12], cap: 12, weeklyCap: 18, techCap: 5 },
 } as const;

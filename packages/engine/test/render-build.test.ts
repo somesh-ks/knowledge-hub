@@ -307,6 +307,26 @@ describe("buildDigest", () => {
     expect(parseDigestFile(text)).toEqual(digest);
   });
 
+  it("carries the spoken telling into the digest for the items that have one", () => {
+    const fixture = makeFixture(4);
+    const telling = "Springlet has a new release, and it keeps velocity.";
+    const digest = buildDigest({
+      selected: fixture.selected,
+      written: fixture.written.map((w, i) => (i === 0 ? { ...w, spoken: telling } : w)),
+      window: WINDOW,
+      kind: "regular",
+      now: NOW,
+      coverPicker: () => COVER,
+      allocateId: () => "2026-10-07",
+      audio: null,
+    });
+    const spoken = digest.items.filter((i) => i.spoken !== undefined);
+    expect(spoken.map((i) => i.spoken)).toEqual([telling]);
+    // The telling is not read or listened to as page text, so it does not move the minutes.
+    expect(digest.read_minutes).toBe(buildFixtureDigest(4).digest.read_minutes);
+    expect(parseDigestFile(serializeDigestFile(digest))).toEqual(digest);
+  });
+
   it("treats an empty why as no why", () => {
     const fixture = makeFixture(3);
     const digest = buildDigest({

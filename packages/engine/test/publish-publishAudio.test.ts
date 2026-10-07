@@ -155,7 +155,11 @@ describe("publishAudio: one digest", () => {
       outputFormat: "mp3_24000_64",
     });
     const request = must(harness.speech.calls.marks[0]);
-    expect(request.text.startsWith("Singularity, Wednesday 7 October. Five stories.")).toBe(true);
+    expect(
+      request.text.startsWith(
+        "This is Singularity for Wednesday the seventh of October. Five stories today",
+      ),
+    ).toBe(true);
     expect(request).toMatchObject({
       voiceId: "voice_x",
       model: "simba-3.0",

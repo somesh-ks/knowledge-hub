@@ -13,6 +13,7 @@ import { isHttpUrl } from "../extract/urlSafety.js";
 import { digestWords, listenMinutes, readMinutes } from "../render/readTime.js";
 import { capFor, TECH_ALLOWANCE, TOP_PICKS } from "../score/selectItems.js";
 import { type Linter, type ViolationRule, VOICE_FIELDS } from "../voice/lint.js";
+import { ungroundedNumbers } from "../write/spokenCheck.js";
 
 /** The lower bounds a summary gained with the four-beat voice. */
 const SUMMARY_MINIMUMS: ReadonlySet<ViolationRule> = new Set([
@@ -220,6 +221,21 @@ export function validateDigest(input: unknown, context: ValidateContext): Valida
       for (const violation of context.linter.lint(field, text)) {
         if (legacy && field === "summary" && SUMMARY_MINIMUMS.has(violation.rule)) continue;
         add("error", "voice", `${field}: ${violation.message}`, item.id);
+      }
+    }
+    // A shape worth a second look, not a reason to hold the digest back.
+    for (const warning of context.linter.warnings("headline", item.headline)) {
+      add("warning", "voice", `headline: ${warning.message}`, item.id);
+    }
+    if (item.spoken !== undefined) {
+      const missing = ungroundedNumbers(item.spoken, item.headline, item.summary);
+      if (missing.length > 0) {
+        add(
+          "error",
+          "voice",
+          `spoken: states ${missing.join(", ")}, which the headline and summary do not.`,
+          item.id,
+        );
       }
     }
   }

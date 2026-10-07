@@ -114,6 +114,8 @@ export async function groundAndRepair(args: {
         if (violations.length > 0) {
           return { drop: { id: item.id, reason: "voice", unsupported: bad, violations } };
         }
+        // The spoken telling was written from the summary that was just rewritten, so it goes with it.
+        if (rewrittenFields.includes("summary")) delete next.spoken;
         item = next;
         verdict = await check(item);
         const stillBad = unsupportedOf(verdict);
