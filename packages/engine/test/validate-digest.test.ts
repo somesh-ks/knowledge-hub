@@ -2,8 +2,8 @@ import { readFileSync } from "node:fs";
 import { join } from "node:path";
 import { type Digest, digestRelPath, parseDigestFile, type Source } from "@dispatch/core";
 import { describe, expect, it } from "vitest";
-import { validateDigest } from "../src/validate/validateDigest.js";
 import { buildDigest } from "../src/render/buildDigest.js";
+import { validateDigest } from "../src/validate/validateDigest.js";
 import { makeSource } from "./fetch-helpers.js";
 import {
   buildFixtureDigest,

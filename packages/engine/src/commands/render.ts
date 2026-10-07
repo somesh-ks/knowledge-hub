@@ -3,11 +3,11 @@ import { parseArgs } from "node:util";
 import { homeSection, stockholmDate } from "@dispatch/core";
 import { type CommandRun, secretsFromEnv } from "../context.js";
 import {
+  linkSourceIds,
   loadLastRun,
   loadPool,
   loadSources,
   readJsonIfExists,
-  linkSourceIds,
   sourceNameMap,
 } from "../curate/inputs.js";
 import { emit } from "../curate/output.js";

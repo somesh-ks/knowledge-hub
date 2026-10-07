@@ -9,12 +9,12 @@ import {
   stockholmDate,
 } from "@dispatch/core";
 import {
+  linkSourceIds,
   loadJudgments,
   loadPool,
   loadSources,
   type ParsedPool,
   readJsonIfExists,
-  linkSourceIds,
   sourceNameMap,
 } from "../curate/inputs.js";
 import { Selection } from "../curate/selectionFile.js";
