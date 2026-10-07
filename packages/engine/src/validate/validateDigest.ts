@@ -5,11 +5,12 @@ import {
   type Item,
   NEVER_PUBLISH,
   type Source,
+  TECH_SECTION,
   VOICE_LIMITS,
 } from "@dispatch/core";
 import { isHttpUrl } from "../extract/urlSafety.js";
 import { digestWords, listenMinutes, readMinutes } from "../render/readTime.js";
-import { capFor, TOP_PICKS } from "../score/selectItems.js";
+import { capFor, TECH_CAP, TOP_PICKS } from "../score/selectItems.js";
 import { type Linter, type ViolationRule, VOICE_FIELDS } from "../voice/lint.js";
 
 /** The lower bounds a summary gained with the four-beat voice. */
@@ -63,11 +64,15 @@ export interface ValidateContext {
 /**
  * Validate a digest. Errors: schema, item limits, repeated ids or URLs, a URL missing from the
  * pool (the model may never invent a link), a never-publish category, a wrong section or top
- * size, and voice lint failures on any written field. Warnings: a source name or reading time
- * that differs from what the engine would compute.
+ * size, a Tech releases story among the Top picks, and voice lint failures on any written field.
+ * Warnings: a source name or reading time that differs from what the engine would compute.
+ *
+ * Item limits are counted in two pools: Tech releases has its own allowance, and everything else
+ * shares the cap for the digest kind.
  *
  * "No empty sections" holds by construction (a digest lists only the sections its items use), so
- * the check that can fail is the Top picks size: always three, because a digest has at least three items.
+ * the check that can fail is the Top picks size: three, or every item outside Tech releases when
+ * there are fewer than three of those.
  */
 export function validateDigest(input: unknown, context: ValidateContext): ValidationReport {
   const issues: ValidationIssue[] = [];
@@ -89,13 +94,22 @@ export function validateDigest(input: unknown, context: ValidateContext): Valida
   }
   const digest: DigestType = parsed.data;
 
+  const isTech = (item: DigestType["items"][number]): boolean =>
+    homeSection(item.category, item.source_type) === TECH_SECTION;
+  const techCount = digest.items.filter(isTech).length;
+  const mainCount = digest.items.length - techCount;
   const cap = capFor(digest.kind);
-  if (digest.items.length > cap) {
+  if (mainCount > cap) {
     add(
       "error",
       "item_count",
-      `${digest.items.length} items; the limit for a ${digest.kind} digest is ${cap}.`,
+      techCount === 0
+        ? `${mainCount} items; the limit for a ${digest.kind} digest is ${cap}.`
+        : `${mainCount} items outside Tech releases; the limit for a ${digest.kind} digest is ${cap}.`,
     );
+  }
+  if (techCount > TECH_CAP) {
+    add("error", "item_count", `${techCount} Tech releases items; the limit is ${TECH_CAP}.`);
   }
   if (digest.items.length < VOICE_LIMITS.items.floor) {
     add(
@@ -170,7 +184,14 @@ export function validateDigest(input: unknown, context: ValidateContext): Valida
       add("error", "never_publish", `The category ${item.category} never publishes.`, item.id);
     }
     const home = homeSection(item.category, item.source_type);
-    if (item.section !== "top" && item.section !== home) {
+    if (item.section === "top" && home === TECH_SECTION) {
+      add(
+        "error",
+        "section_mismatch",
+        "A Tech releases story cannot be a Top pick; it belongs in the tech section.",
+        item.id,
+      );
+    } else if (item.section !== "top" && item.section !== home) {
       add(
         "error",
         "section_mismatch",
@@ -194,7 +215,7 @@ export function validateDigest(input: unknown, context: ValidateContext): Valida
   }
 
   const top = digest.items.filter((item) => item.section === "top").length;
-  const expectedTop = Math.min(TOP_PICKS, digest.items.length);
+  const expectedTop = Math.min(TOP_PICKS, mainCount);
   if (top !== expectedTop) {
     add("error", "top_size", `Top picks has ${top} items; it must have ${expectedTop}.`);
   }

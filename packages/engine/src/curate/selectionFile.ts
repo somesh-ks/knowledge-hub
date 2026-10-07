@@ -1,4 +1,4 @@
-import { Category, DigestKind } from "@dispatch/core";
+import { Category, DigestKind, VOICE_LIMITS } from "@dispatch/core";
 import { z } from "zod";
 
 const isoDateTime = z.string().datetime({ offset: true });
@@ -11,7 +11,7 @@ const isoDateTime = z.string().datetime({ offset: true });
 export const SelectionItem = z.object({
   id: z.string().regex(/^[0-9a-f]{12}$/, "must be a 12-character item id from the pool"),
   category: Category,
-  /** 0 to 1. Ranks the items: the three highest become Top picks. */
+  /** 0 to 1. Ranks the items: the three highest outside Tech releases become Top picks. */
   score: z.number().min(0).max(1),
   headline: z.string().min(1),
   summary: z.string().min(1),
@@ -44,7 +44,11 @@ export type Selection = z.infer<typeof Selection>;
  */
 export const AgentSelection = z.object({
   version: z.literal(1),
-  items: z.array(SelectionItem).min(3).max(18),
+  /** The weekly cap plus the Tech releases allowance. The command checks each pool for the kind. */
+  items: z
+    .array(SelectionItem)
+    .min(VOICE_LIMITS.items.floor)
+    .max(VOICE_LIMITS.items.weeklyCap + VOICE_LIMITS.items.techCap),
 });
 export type AgentSelection = z.infer<typeof AgentSelection>;
 

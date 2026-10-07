@@ -91,6 +91,36 @@ describe("validateDigest", () => {
     expect(codes(weekly)).not.toContain("error:item_count");
   });
 
+  it("allows five tech stories on top of twelve items, and on top of eighteen in a weekly", () => {
+    const regular = buildFixtureDigest(12, {}, "regular", 5);
+    expect(regular.digest.items).toHaveLength(17);
+    expect(validateDigest(regular.digest, { pool: regular.fixture.items, linter })).toMatchObject({
+      ok: true,
+      errors: 0,
+    });
+    const weekly = buildFixtureDigest(18, {}, "weekly", 5);
+    expect(weekly.digest.items).toHaveLength(23);
+    expect(validateDigest(weekly.digest, { pool: weekly.fixture.items, linter }).ok).toBe(true);
+  });
+
+  it("rejects a sixth tech story", () => {
+    const { digest } = buildFixtureDigest(6, {}, "regular", 6);
+    const report = validateDigest(digest, { linter });
+    expect(report.issues.filter((i) => i.code === "item_count").map((i) => i.message)).toEqual([
+      "6 Tech releases items; the limit is 5.",
+    ]);
+  });
+
+  it("does not let the tech allowance raise the cap for everything else", () => {
+    const { digest } = buildFixtureDigest(13, {}, "regular", 2);
+    const report = validateDigest(digest, { linter });
+    expect(report.issues.filter((i) => i.code === "item_count").map((i) => i.message)).toEqual([
+      "13 items outside Tech releases; the limit for a regular digest is 12.",
+    ]);
+    // The same thirteen fit a weekly digest.
+    expect(codes(buildFixtureDigest(13, {}, "weekly", 2).digest)).not.toContain("error:item_count");
+  });
+
   it("rejects a window that ends before it starts", () => {
     const { digest } = buildFixtureDigest(4);
     const bad = clone(digest);
@@ -180,6 +210,70 @@ describe("validateDigest", () => {
     const two = clone(digest);
     (two.items[0] as { section: string }).section = "ai";
     expect(codes(two)).toContain("error:top_size");
+  });
+
+  it("expects one Top pick for each item outside tech when there are fewer than three", () => {
+    const { digest, fixture } = buildFixtureDigest(2, {}, "regular", 3);
+    expect(digest.items.map((i) => i.section)).toEqual(["top", "top", "tech", "tech", "tech"]);
+    expect(validateDigest(digest, { pool: fixture.items, linter }).ok).toBe(true);
+
+    const one = clone(digest);
+    (one.items[1] as { section: string }).section = "ai";
+    const report = validateDigest(one, { linter });
+    expect(report.issues.find((i) => i.code === "top_size")?.message).toBe(
+      "Top picks has 1 items; it must have 2.",
+    );
+  });
+
+  it("accepts a digest of tech stories alone, which has no Top picks", () => {
+    const { digest, fixture } = buildFixtureDigest(0, {}, "regular", 4);
+    expect(digest.items.every((i) => i.section === "tech")).toBe(true);
+    expect(validateDigest(digest, { pool: fixture.items, linter })).toMatchObject({
+      ok: true,
+      errors: 0,
+    });
+  });
+
+  it("rejects a tech story among the Top picks, even the highest-scoring one", () => {
+    const { digest } = buildFixtureDigest(6, {}, "regular", 2);
+    const tech = digest.items.find((i) => i.section === "tech");
+    expect(tech?.score).toBe(0.99);
+    expect(tech?.score).toBeGreaterThan(Math.max(...digest.items.slice(0, 3).map((i) => i.score)));
+    expect(codes(digest)).toEqual([]);
+
+    // Swapped in for a real pick: the count is right, and the story is still not allowed there.
+    const swapped = clone(digest);
+    (swapped.items[2] as { section: string }).section = "research";
+    const promoted = swapped.items.find((i) => i.id === tech?.id) as { section: string };
+    promoted.section = "top";
+    const report = validateDigest(swapped, { linter });
+    const mismatch = report.issues.filter((i) => i.code === "section_mismatch");
+    expect(mismatch).toEqual([
+      {
+        severity: "error",
+        code: "section_mismatch",
+        message: "A Tech releases story cannot be a Top pick; it belongs in the tech section.",
+        itemId: tech?.id,
+      },
+    ]);
+    expect(report.ok).toBe(false);
+
+    // Added as a fourth pick: both rules fire.
+    const fourth = clone(digest);
+    (fourth.items.find((i) => i.id === tech?.id) as { section: string }).section = "top";
+    const found = codes(fourth);
+    expect(found).toContain("error:section_mismatch");
+    expect(found).toContain("error:top_size");
+  });
+
+  it("rejects a tech story filed under another section, and another story filed under tech", () => {
+    const { digest } = buildFixtureDigest(6, {}, "regular", 2);
+    const misfiled = clone(digest);
+    (misfiled.items.find((i) => i.section === "tech") as { section: string }).section = "launches";
+    expect(codes(misfiled)).toContain("error:section_mismatch");
+    const wrong = clone(digest);
+    (wrong.items.find((i) => i.section === "ai") as { section: string }).section = "tech";
+    expect(codes(wrong)).toContain("error:section_mismatch");
   });
 
   it("warns, without failing, when the minutes differ from the text", () => {

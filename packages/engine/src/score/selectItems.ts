@@ -7,6 +7,7 @@ import {
   NEVER_PUBLISH,
   SECTIONS,
   type Section,
+  TECH_SECTION,
   VOICE_LIMITS,
 } from "@dispatch/core";
 import type { Candidate, ScoredItem, SelectedItem } from "./types.js";
@@ -18,13 +19,19 @@ import type { Candidate, ScoredItem, SelectedItem } from "./types.js";
  */
 export const DEFAULT_SCORE_THRESHOLD = 0.4;
 
-/** Items taken per home section before overflow is allowed. */
+/** Items taken per home section before overflow is allowed. Does not apply to Tech releases. */
 export const SECTION_TARGET_MAX = 3;
 
-/** Top picks: the highest-scoring items, moved out of their home section. */
+/** Top picks: the highest-scoring items outside Tech releases, moved out of their home section. */
 export const TOP_PICKS = 3;
 
-export type DropReason = "no_category" | "never_publish" | "below_threshold" | "over_cap";
+export type DropReason =
+  | "no_category"
+  | "never_publish"
+  | "below_threshold"
+  | "over_cap"
+  /** A Tech releases candidate beyond that section's own allowance. */
+  | "over_tech_cap";
 
 export interface DroppedItem {
   id: string;
@@ -37,7 +44,10 @@ export interface SelectInput {
   kind: DigestKind;
   /** Fewer qualifying items than this returns the "nothing" outcome. */
   floor: number;
-  /** Requested cap; never raised above the hard cap for the kind (12, weekly 18). */
+  /**
+   * Requested cap for everything outside Tech releases; never raised above the hard cap for the
+   * kind (12, weekly 18). Tech releases has its own allowance on top of it.
+   */
   cap: number;
   /**
    * Preference weights. Only the weekly kind needs them, to find the category median for the
@@ -56,12 +66,23 @@ export interface SelectResult {
   qualifying: number;
 }
 
-/** Hard cap on items for a digest kind. */
+/** Hard cap on items outside Tech releases, for a digest kind. */
 export function capFor(kind: DigestKind): number {
   return kind === "weekly" ? VOICE_LIMITS.items.weeklyCap : VOICE_LIMITS.items.cap;
 }
 
-/** Median of the ten preference weights (mean of the middle two). */
+/** Items the Tech releases section may hold, in addition to `capFor`. The same for every kind. */
+export const TECH_CAP = VOICE_LIMITS.items.techCap;
+
+/** True for a candidate that belongs in the Tech releases section. A tech video belongs in "watch". */
+export function isTech(candidate: Pick<Candidate, "home">): boolean {
+  return candidate.home === TECH_SECTION;
+}
+
+/**
+ * Median of the eleven preference weights: the middle one. The even branch is for the day a
+ * twelfth category arrives, when it becomes the mean of the middle two.
+ */
 export function medianWeight(weights: Record<Category, number>): number {
   const sorted = CATEGORIES.map((c) => weights[c]).sort((a, b) => a - b);
   const mid = sorted.length / 2;
@@ -92,15 +113,19 @@ export function compareCandidates(
 }
 
 /**
- * Final sections for a chosen set: the three highest scores become "top", the rest keep their
- * home section. Also used after later stages drop items, so top picks always stay the best three.
+ * Final sections for a chosen set: the three highest scores outside Tech releases become "top",
+ * the rest keep their home section. A tech story never moves to Top picks, however high it scores,
+ * so with fewer than three other items there are fewer than three picks. Also used after later
+ * stages drop items, so top picks always stay the best three that remain.
  */
 export function assignSections(chosen: readonly Candidate[]): SelectedItem[] {
   const ranked = [...chosen].sort(compareCandidates);
-  const withSection: SelectedItem[] = ranked.map((candidate, index) => ({
-    ...candidate,
-    section: index < TOP_PICKS ? "top" : candidate.home,
-  }));
+  let picks = 0;
+  const withSection: SelectedItem[] = ranked.map((candidate) => {
+    const pick = !isTech(candidate) && picks < TOP_PICKS;
+    if (pick) picks += 1;
+    return { ...candidate, section: pick ? "top" : candidate.home };
+  });
   const order = (section: Section): number => SECTIONS.indexOf(section);
   return withSection.sort((a, b) => {
     if (a.section !== b.section) return order(a.section) - order(b.section);
@@ -130,12 +155,15 @@ export function eligibility(
  * Pick what to publish. Order of rules:
  *  1. Drop items whose most probable option is "none" or a never-publish category.
  *  2. Drop items below the score threshold.
- *  3. Fewer than `floor` left means nothing publishes.
- *  4. Walk by rank taking at most 3 per home section up to the cap, then let overflow fill any
- *     remaining room, so a thin section never leaves slots empty.
- *  5. Weekly only: guarantee one slot for the best item whose category weight is below the
- *     median of preferences, so taste does not narrow week over week.
- *  6. Assign sections: three highest scores become Top picks.
+ *  3. Split what is left into two pools: Tech releases candidates, and everything else.
+ *  4. Everything else: walk by rank taking at most 3 per home section up to the cap, then let
+ *     overflow fill any remaining room, so a thin section never leaves slots empty.
+ *  5. Weekly only: guarantee one of those slots for the best item whose category weight is below
+ *     the median of preferences, so taste does not narrow week over week.
+ *  6. Tech releases: take the best by rank up to its own allowance of 5, on top of the cap. The
+ *     per-section target does not apply, and the pool never borrows from or lends to the cap.
+ *  7. Fewer than `floor` chosen across both pools means nothing publishes.
+ *  8. Assign sections: the three highest scores outside Tech releases become Top picks.
  */
 export function selectItems(input: SelectInput): SelectResult {
   const threshold = input.threshold ?? DEFAULT_SCORE_THRESHOLD;
@@ -150,9 +178,8 @@ export function selectItems(input: SelectInput): SelectResult {
   }
 
   const ranked = candidates.sort(compareCandidates);
-  if (ranked.length < input.floor || limit < input.floor) {
-    return { outcome: "nothing", selected: [], dropped, qualifying: ranked.length };
-  }
+  const main = ranked.filter((candidate) => !isTech(candidate));
+  const tech = ranked.filter(isTech);
 
   const chosen = new Set<Candidate>();
   const perSection = new Map<Section, number>();
@@ -160,18 +187,20 @@ export function selectItems(input: SelectInput): SelectResult {
     chosen.add(candidate);
     perSection.set(candidate.home, (perSection.get(candidate.home) ?? 0) + 1);
   };
-  for (const candidate of ranked) {
+  for (const candidate of main) {
     if (chosen.size >= limit) break;
     if ((perSection.get(candidate.home) ?? 0) < SECTION_TARGET_MAX) take(candidate);
   }
-  for (const candidate of ranked) {
+  for (const candidate of main) {
     if (chosen.size >= limit) break;
     if (!chosen.has(candidate)) take(candidate);
   }
 
-  if (input.kind === "weekly" && input.weights) {
+  // The reserved slot is one of the capped slots, so it is filled from the same pool. Tech
+  // releases has an allowance of its own and never needs it.
+  if (input.kind === "weekly" && input.weights && limit > 0) {
     const median = medianWeight(input.weights);
-    const reserve = ranked.find((c) => input.weights && input.weights[c.category] < median);
+    const reserve = main.find((c) => input.weights && input.weights[c.category] < median);
     if (reserve && !chosen.has(reserve)) {
       if (chosen.size >= limit) {
         const lowest = [...chosen].sort(compareCandidates).pop();
@@ -181,14 +210,22 @@ export function selectItems(input: SelectInput): SelectResult {
     }
   }
 
-  for (const candidate of ranked) {
+  const chosenTech = tech.slice(0, TECH_CAP);
+  if (chosen.size + chosenTech.length < input.floor) {
+    return { outcome: "nothing", selected: [], dropped, qualifying: ranked.length };
+  }
+
+  for (const candidate of main) {
     if (!chosen.has(candidate)) {
       dropped.push({ id: candidate.item.id, reason: "over_cap", score: candidate.score });
     }
   }
+  for (const candidate of tech.slice(TECH_CAP)) {
+    dropped.push({ id: candidate.item.id, reason: "over_tech_cap", score: candidate.score });
+  }
   return {
     outcome: "selected",
-    selected: assignSections([...chosen]),
+    selected: assignSections([...chosen, ...chosenTech]),
     dropped,
     qualifying: ranked.length,
   };

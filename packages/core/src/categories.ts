@@ -1,6 +1,9 @@
 import { z } from "zod";
 
-/** The ten taste categories. Keys match `weights` in config/preferences.json. */
+/**
+ * The eleven taste categories. Keys match `weights` in config/preferences.json. New categories go
+ * at the end, so the order of the earlier ones (which breaks ties in scoring) never shifts.
+ */
 export const CATEGORIES = [
   "design_engineering_craft",
   "hci_empirical_research",
@@ -12,6 +15,7 @@ export const CATEGORIES = [
   "taste_and_design_philosophy",
   "venture_capital_and_gossip",
   "generic_ai_hype_listicles",
+  "consumer_tech_releases",
 ] as const;
 
 export const Category = z.enum(CATEGORIES);
@@ -52,7 +56,14 @@ const HOME_SECTION: Record<Category, Section | null> = {
   developer_tool_launches: "launches",
   venture_capital_and_gossip: null,
   generic_ai_hype_listicles: null,
+  consumer_tech_releases: "tech",
 };
+
+/** The category behind the Tech releases section. Ranked by launch scale instead of craft depth. */
+export const TECH_CATEGORY = "consumer_tech_releases" satisfies Category;
+
+/** The section with its own allowance of items. Its stories never move to Top picks. */
+export const TECH_SECTION = "tech" satisfies Section;
 
 /**
  * Home section for a category. Video items go to "watch" by source type, whatever their category.

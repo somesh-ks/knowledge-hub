@@ -14,6 +14,9 @@ const BIAS: Record<Category | "watch", readonly TemplateId[]> = {
   hci_empirical_research: ["contour", "lattice"],
   developer_tool_launches: ["lattice", "aperture"],
   taste_and_design_philosophy: ["orbit", "numeral"],
+  // Hardware and model numbers: a lens and a large numeral. Tech stories never take a Top pick
+  // slot, so one leads only a digest that holds nothing else.
+  consumer_tech_releases: ["aperture", "numeral"],
   watch: ["band"],
   // Categories that never publish still get an entry so the table is total; no bias.
   venture_capital_and_gossip: [],

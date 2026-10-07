@@ -128,6 +128,46 @@ describe("buildDigest", () => {
     expect(Math.min(...topScores)).toBeGreaterThanOrEqual(Math.max(...restScores));
   });
 
+  it("keeps tech stories out of the top picks and files them after AI", () => {
+    const { digest } = buildFixtureDigest(10, {}, "regular", 3);
+    expect(digest.items).toHaveLength(13);
+    const top = digest.items.filter((i) => i.section === "top");
+    expect(top).toHaveLength(3);
+    expect(top.every((i) => i.category !== "consumer_tech_releases")).toBe(true);
+    const tech = digest.items.filter((i) => i.category === "consumer_tech_releases");
+    expect(tech.map((i) => i.section)).toEqual(["tech", "tech", "tech"]);
+    // Tech scores are the highest in the fixture, and still none of them leads.
+    expect(Math.min(...tech.map((i) => i.score))).toBeGreaterThan(
+      Math.max(...top.map((i) => i.score)),
+    );
+    const order = [...new Set(digest.items.map((i) => i.section))];
+    expect(order).toEqual(["top", "ui-craft", "ai", "tech", "research", "launches"]);
+
+    const text = serializeDigestFile(digest);
+    const at = (title: string): number => text.indexOf(`## ${title}`);
+    expect(at("AI models and products")).toBeGreaterThan(0);
+    expect(at("Tech releases")).toBeGreaterThan(at("AI models and products"));
+    expect(at("Research")).toBeGreaterThan(at("Tech releases"));
+    expect(parseDigestFile(text)).toEqual(digest);
+  });
+
+  it("recomputes the picks from the items outside tech when written text is missing", () => {
+    const fixture = makeFixture(4, 2);
+    const best = fixture.selected.find((s) => s.section === "top")?.item.id as string;
+    const digest = buildDigest({
+      selected: fixture.selected,
+      written: fixture.written.filter((w) => w.id !== best),
+      window: WINDOW,
+      kind: "regular",
+      now: NOW,
+      coverPicker: () => COVER,
+      allocateId: () => "2026-10-07",
+      audio: null,
+    });
+    expect(digest.items).toHaveLength(5);
+    expect(digest.items.map((i) => i.section)).toEqual(["top", "top", "top", "tech", "tech"]);
+  });
+
   it("maps item fields: canonical url, source name, optional author and date", () => {
     const fixture = makeFixture(4);
     const digest = buildDigest({

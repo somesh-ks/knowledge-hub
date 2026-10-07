@@ -1,4 +1,4 @@
-import { COVER_TEMPLATES, CoverSpec } from "@dispatch/core";
+import { CATEGORIES, COVER_TEMPLATES, CoverSpec, NEVER_PUBLISH } from "@dispatch/core";
 import { describe, expect, it } from "vitest";
 import { DARK_PALETTE_IDS, PALETTE_IDS } from "./palettes.js";
 import { pickCover } from "./pick.js";
@@ -98,10 +98,20 @@ describe("pickCover", () => {
     ["hci_empirical_research", ["contour", "lattice"]],
     ["developer_tool_launches", ["lattice", "aperture"]],
     ["taste_and_design_philosophy", ["orbit", "numeral"]],
+    ["consumer_tech_releases", ["aperture", "numeral"]],
     ["watch", ["band"]],
   ] as const)("biases %s toward %j", (lead, favored) => {
     const baseline = favored.length / 8;
     expect(share(lead, [...favored])).toBeGreaterThan(baseline + 0.2);
+  });
+
+  it("gives every publishable category a bias and leaves the never-publish ones without", () => {
+    for (const category of CATEGORIES) {
+      // An unbiased template is drawn about one time in eight; a favored one at least twice that.
+      const favored = TEMPLATES.filter((template) => share(category, [template]) > 0.2);
+      if (NEVER_PUBLISH.includes(category)) expect(favored, category).toEqual([]);
+      else expect(favored.length, category).toBeGreaterThanOrEqual(1);
+    }
   });
 
   it("leaves unknown or non-publishing categories unbiased", () => {

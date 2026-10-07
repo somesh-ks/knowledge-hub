@@ -8,7 +8,7 @@ import {
   NebiusJudge,
   NebiusJudgeOutput,
 } from "../src/judge/nebiusJudge.js";
-import { NEBIUS_QUESTIONS_HASH } from "../src/judge/questions.js";
+import { CATEGORY_CRITERIA, LAUNCH_LEVELS, NEBIUS_QUESTIONS_HASH } from "../src/judge/questions.js";
 import type { JudgeFailure } from "../src/judge/types.js";
 import { BudgetExceededError, LlmOutputError } from "../src/llm/errors.js";
 import { makeItem } from "./score-factories.js";
@@ -32,6 +32,7 @@ function answerAll(request: { messages: readonly { content: string }[] }): unkno
       runner_up: "none",
       confidence: "high",
       craft_level: 3,
+      launch_level: 0,
       hype: false,
       sponsored: false,
       funding: false,
@@ -58,7 +59,19 @@ describe("fallback judge answer mapping", () => {
     expect(probs.ui_component_primitives).toBe(second);
     const total = Object.values(probs).reduce((a, b) => a + b, 0);
     expect(total).toBeCloseTo(1, 2);
-    expect(Object.keys(probs)).toHaveLength(11);
+    expect(Object.keys(probs)).toHaveLength(12);
+    expect(probs.consumer_tech_releases).toBeGreaterThan(0);
+  });
+
+  it("accepts consumer tech as a category and as a runner-up", () => {
+    const probs = categoryProbsFromAnswer(
+      "consumer_tech_releases",
+      "developer_tool_launches",
+      "high",
+    );
+    expect(probs.consumer_tech_releases).toBe(0.85);
+    expect(probs.developer_tool_launches).toBe(0.1);
+    expect(Object.values(probs).reduce((a, b) => a + b, 0)).toBeCloseTo(1, 2);
   });
 
   it("folds the runner-up into the top when both name the same category", () => {
@@ -79,6 +92,7 @@ describe("fallback judge answer mapping", () => {
         runner_up: "none",
         confidence: "low",
         craft_level: 9,
+        launch_level: -2,
         hype: true,
         sponsored: false,
         funding: true,
@@ -87,7 +101,41 @@ describe("fallback judge answer mapping", () => {
     );
     expect(entry.flags).toEqual({ hype: 0.9, sponsored: 0.1, funding: 0.9 });
     expect(entry.craft_depth).toBe(1);
+    expect(entry.launch_scale).toBe(0);
     expect(entry.model).toBe("nebius:m");
+  });
+
+  it.each([
+    [0, 0],
+    [1, 0.25],
+    [2, 0.5],
+    [2.6, 0.75],
+    [3, 0.75],
+    [4, 1],
+    [7, 1],
+  ])("maps launch level %d to a launch scale of %d", (level, scale) => {
+    const entry = entryFromNebiusAnswer(
+      {
+        id: "aaaaaaaaaaaa",
+        category: "consumer_tech_releases",
+        runner_up: "none",
+        confidence: "high",
+        craft_level: 0,
+        launch_level: level,
+        hype: false,
+        sponsored: false,
+        funding: false,
+      },
+      { model: "nebius:m", questionsHash: "h", now: NOW },
+    );
+    expect(entry.launch_scale).toBe(scale);
+    expect(entry.category_probs.consumer_tech_releases).toBe(0.85);
+  });
+
+  it("rejects a reply that leaves the launch level out", () => {
+    const { launch_level: _launch, ...withoutLaunch } = NebiusJudgeOutput.parse(recorded)
+      .items[0] as Record<string, unknown>;
+    expect(NebiusJudgeOutput.safeParse({ items: [withoutLaunch] }).success).toBe(false);
   });
 });
 
@@ -102,8 +150,28 @@ describe("NebiusJudge", () => {
     expect(entries[0]?.model).toBe("nebius:Qwen/Qwen3-32B");
     expect(entries[0]?.questions_hash).toBe(NEBIUS_QUESTIONS_HASH);
     expect(entries[0]?.craft_depth).toBe(1);
+    expect(entries[0]?.launch_scale).toBe(0);
+    expect(entries[1]?.launch_scale).toBe(0.25);
     expect(entries[1]?.flags.funding).toBe(0.9);
     expect(judge.model).toBe("nebius:Qwen/Qwen3-32B");
+  });
+
+  it("asks for the launch level and lists the consumer tech category and the launch levels", async () => {
+    const llm = new FakeLlm(answerAll);
+    await new NebiusJudge({ llm }).judge([makeItem()]);
+    const system = llm.systemText(0);
+    expect(system).toContain(
+      "- launch_level: an integer from 0 to 4, using the launch levels below. Use 0 when the item is not consumer technology news.",
+    );
+    expect(system).toContain(
+      `- consumer_tech_releases: ${CATEGORY_CRITERIA.consumer_tech_releases}`,
+    );
+    expect(system).toContain("Launch levels:");
+    LAUNCH_LEVELS.forEach((text, level) => {
+      expect(system).toContain(`- ${level}: ${text}`);
+    });
+    expect(system).toContain('"craft_level","launch_level","hype"');
+    expect(llm.calls[0]?.maxTokens).toBe(240 + 200);
   });
 
   it("batches five items per request by default", async () => {

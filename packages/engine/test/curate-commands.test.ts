@@ -307,7 +307,8 @@ describe("dispatch curate: agent mode", () => {
     };
     expect(schema.required).toContain("items");
     expect(schema.properties.items.minItems).toBe(3);
-    expect(schema.properties.items.maxItems).toBe(18);
+    // The weekly cap of 18 plus the tech allowance of 5; the command checks each pool for the kind.
+    expect(schema.properties.items.maxItems).toBe(23);
     // The four beats live in the summary, so a session may leave the why line out.
     expect(schema.properties.items.items.required).toEqual([
       "id",
@@ -407,6 +408,58 @@ describe("dispatch curate: agent mode", () => {
     expect(messages).toContain("incredible");
     expect(messages).toContain("never publishes");
     expect(await readFile(path, "utf8")).toBe(before);
+  });
+
+  it("accepts tech stories on top of the cap and keeps them out of the Top picks", async () => {
+    const pool = await seedPool(15);
+    const items = agentItems(pool, 15).map((item, i) =>
+      // Twelve craft items, then three tech stories that outscore all of them.
+      i < 12
+        ? { ...item, category: "design_engineering_craft", score: 0.8 - i * 0.01 }
+        : { ...item, category: "consumer_tech_releases", score: 0.99 - (i - 12) * 0.01 },
+    );
+    await writeRunFile(tr.root, RUN, "selection.json", { version: 1, items });
+    const { ctx } = makeContext(tr.root);
+    const { result, stdout } = await captureStdout(() => agent(["--mode", "agent"], ctx));
+    expect(result).toBe(0);
+    expect(JSON.parse(stdout)).toMatchObject({ status: "validated", items: 15 });
+    const selection = Selection.parse(await readJson(runPath("selection.json")));
+    // Digest order: the three picks, the nine other craft items, then tech.
+    expect(selection.items.map((i) => i.category)).toEqual([
+      ...Array.from({ length: 12 }, () => "design_engineering_craft"),
+      ...Array.from({ length: 3 }, () => "consumer_tech_releases"),
+    ]);
+    expect(selection.items.slice(0, 3).map((i) => i.score)).toEqual([0.8, 0.79, 0.78]);
+  });
+
+  it("holds a session to five tech stories and to the cap for everything else", async () => {
+    const pool = await seedPool(19);
+    const all = agentItems(pool, 19);
+    const sixTech = all
+      .slice(0, 9)
+      .map((item, i) => (i < 3 ? item : { ...item, category: "consumer_tech_releases" }));
+    await writeRunFile(tr.root, RUN, "selection.json", { version: 1, items: sixTech });
+    const { ctx } = makeContext(tr.root);
+    const tooMuchTech = await captureStdout(() => agent(["--mode", "agent"], ctx));
+    expect(tooMuchTech.result).toBe(1);
+    expect(
+      (JSON.parse(tooMuchTech.stdout) as { issues: Array<{ message: string }> }).issues.map(
+        (i) => i.message,
+      ),
+    ).toEqual(["6 Tech releases items; the limit is 5."]);
+
+    // Thirteen items outside tech do not fit a regular digest, whatever the tech allowance.
+    const thirteen = all
+      .slice(0, 15)
+      .map((item, i) => (i < 13 ? item : { ...item, category: "consumer_tech_releases" }));
+    await writeRunFile(tr.root, RUN, "selection.json", { version: 1, items: thirteen });
+    const overCap = await captureStdout(() => agent(["--mode", "agent"], ctx));
+    expect(overCap.result).toBe(1);
+    expect(
+      (JSON.parse(overCap.stdout) as { issues: Array<{ message: string }> }).issues.map(
+        (i) => i.message,
+      ),
+    ).toEqual(["13 items outside Tech releases; the limit for a regular digest is 12."]);
   });
 
   it("rejects duplicates and wrong-shaped files", async () => {
