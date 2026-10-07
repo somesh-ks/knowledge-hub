@@ -17,10 +17,10 @@ const years = groupArchive(entries);
         <EmptyState />
       ) : (
         <div class="archive-view">
-          <h1 id="page-title" tabindex="-1">Archive</h1>
-          <p class="archive-lede">
-            {pluralize(entries.length, "briefing")}, newest first. Weekly deep dives are marked.
-          </p>
+          <header class="page-head">
+            <h1 class="page-title" id="page-title" tabindex="-1">Archive</h1>
+            <p class="meta">{pluralize(entries.length, "briefing")}, newest first</p>
+          </header>
           {years.map((group, index) => <ArchiveYear group={group} isNewest={index === 0} />)}
         </div>
       )

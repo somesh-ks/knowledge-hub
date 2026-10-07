@@ -1,0 +1,94 @@
+/*
+ * Pieces the reader pages share and the primitives do not cover: the page title, a meta line that
+ * wraps cleanly, and a section header with a quiet fact at the end of its line.
+ */
+
+/* ------------------------------------------------------------------ play chip target */
+
+/* The chip's 44px target is laid out from inside its 1px border, which leaves it 42px tall. This
+   takes the border back. It belongs in buttons.css, with the chip. */
+.chip::after {
+  inset-block: calc((var(--size-touch) - var(--chip-height)) / -2 - var(--stroke-hairline));
+  inset-inline: calc(var(--stroke-hairline) * -1);
+}
+
+/* ------------------------------------------------------------------ page title */
+
+/* The one h1 of a page: a date, or the page's name. Regular weight at the display size. */
+.page-title {
+  font-family: var(--text-display-family);
+  font-size: var(--text-display-size);
+  font-weight: var(--text-display-weight);
+  letter-spacing: var(--text-display-tracking);
+  line-height: var(--text-display-leading);
+}
+
+/* Focus lands here after a navigation so a screen reader starts at the title. It is a place, not a
+   control, so it shows no ring. */
+.page-title:focus {
+  outline: none;
+  box-shadow: none;
+}
+
+/* A plain page header (archive): the title and one meta line. */
+.page-head {
+  display: grid;
+  gap: var(--space-1);
+  padding-block: var(--space-6) var(--space-2);
+}
+
+@media (min-width: 40rem) {
+  .page-head {
+    padding-block-start: var(--space-8);
+  }
+}
+
+/* ------------------------------------------------------------------ meta line that wraps */
+
+/*
+ * A wrapped .meta line would open its second line with a dot. Here every part carries its dot in a
+ * box of one fixed width, and the line is shifted back and clipped by that width, so the dot of
+ * whichever part starts a line falls outside the clip. Physical sides: the copy is left to right.
+ */
+.meta-wrap {
+  --meta-dot: calc(var(--space-4) + var(--space-1));
+  margin-inline-start: calc(var(--meta-dot) * -1);
+  clip-path: inset(
+    calc(var(--space-1) * -1) calc(var(--space-1) * -1) calc(var(--space-1) * -1) var(--meta-dot)
+  );
+}
+
+.meta-wrap > *::before,
+.meta-wrap > * + *::before {
+  content: "\00b7";
+  display: inline-block;
+  width: var(--meta-dot);
+  margin-inline: 0;
+  text-align: center;
+}
+
+/* ------------------------------------------------------------------ section header with a fact */
+
+/* The header's text on the left, a length or a count at the end of the line. The heading element
+   sits inside, so the fact is not read out as part of the heading. */
+.head-split {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: var(--space-4);
+}
+
+.head-split > :is(h2, h3) {
+  min-width: 0;
+  font: inherit;
+  letter-spacing: inherit;
+}
+
+.head-fact {
+  flex: none;
+  color: var(--color-on-surface-muted);
+  font-size: var(--text-meta-size);
+  font-weight: var(--text-meta-weight);
+  letter-spacing: var(--text-meta-tracking);
+  line-height: var(--text-meta-leading);
+}

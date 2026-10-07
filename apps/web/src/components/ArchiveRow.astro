@@ -1,7 +1,8 @@
 ---
 import { paletteAccent } from "@dispatch/cover";
 import type { DigestEntry } from "../lib/digests";
-import { longDate, pluralize } from "../lib/format";
+import { listenLength, storyCount } from "../lib/digestView";
+import { longDate } from "../lib/format";
 import Cover from "./Cover.astro";
 import Icon from "./Icon.astro";
 
@@ -19,19 +20,21 @@ const kindLabel =
       : null;
 ---
 
+{/* One briefing as a row: the whole row is the link, and its fill runs edge to edge. */}
 <li>
-  <a class="archive-row press" href={`/d/${entry.id}`} data-astro-prefetch="hover">
+  <a class="row-action archive-row" href={`/d/${entry.id}`} data-astro-prefetch="hover">
     <Cover
       digestId={entry.id}
       size="row"
       paletteBg={paletteAccent(digest.cover.palette).bg}
       weekly={digest.kind === "weekly"}
     />
-    <span>
+    <span class="archive-text">
       <span class="archive-date">{longDate(digest.date)}</span>
-      <span class="archive-meta">
-        {kindLabel && <span class="archive-kind">{kindLabel}</span>}
-        <span>{pluralize(digest.items.length, "item")}, {digest.listen_minutes} min</span>
+      <span class="meta meta-wrap">
+        <span>{storyCount(digest.items.length)}</span>
+        <span>{listenLength(entry)}</span>
+        {kindLabel && <span>{kindLabel}</span>}
       </span>
     </span>
     <Icon name="chevronRight" />

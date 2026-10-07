@@ -81,7 +81,7 @@ test.describe("service worker", () => {
     await context.setOffline(true);
     await page.goto("/");
     await expect(page.getByRole("heading", { level: 1 })).toHaveText("Wednesday 7 October");
-    await expect(page.locator(".item")).toHaveCount(12);
+    await expect(page.locator(".story")).toHaveCount(12);
     await expect(page.locator('[data-banner="offline"]')).toBeVisible();
     await context.setOffline(false);
   });

@@ -1,38 +1,44 @@
 ---
 import type { AudioMode } from "../lib/digests";
 import { AUDIO_UNAVAILABLE_COPY } from "../lib/digestView";
-import PlayPauseIcons from "./PlayPauseIcons.astro";
+import { idleBriefingChip } from "../player/core/readerMath";
+import Icon from "./Icon.astro";
+import PlayChip from "./PlayChip.astro";
 
 interface Props {
   digestId: string;
   mode: AudioMode;
-  /** "3:32", or null when there is no audio. */
-  clock: string | null;
+  /** The chip's label before anything plays: "8 min". */
+  length: string;
 }
 
-const { digestId, mode, clock } = Astro.props;
-const isReady = mode === "ready";
+const { digestId, mode, length } = Astro.props;
+const chip = idleBriefingChip(length);
 const unavailable = mode === "ready" ? null : AUDIO_UNAVAILABLE_COPY[mode];
 ---
 
-<div class="hero-cta">
-  {/* The player island owns this button once it hydrates: it reads data-play-digest and writes
-       data-playing, data-loading, .cta-label and .cta-time. aria-disabled keeps it focusable so the
-       hint below can be read. */}
+<div class="hero-actions">
+  {/* The player owns this chip once it hydrates (readerSync writes its state, label and name).
+       Without audio the chip stays in the page, disabled: aria-disabled keeps it focusable, so the
+       reason under it can be read, and the page can turn it into a working control later. */}
+  <PlayChip
+    label={chip.label}
+    state={unavailable ? "unavailable" : "idle"}
+    aria-label={chip.name}
+    aria-disabled={unavailable ? "true" : undefined}
+    aria-describedby={unavailable ? "play-hint" : undefined}
+    data-play-digest={digestId}
+  />
+  {/* Shares the dated address, so a link sent from today's page still opens this briefing next week. */}
   <button
-    class="cta press press-subtle"
+    class="icon-btn share press"
     type="button"
-    data-play-digest={isReady ? digestId : undefined}
-    data-playing="false"
-    aria-disabled={isReady ? undefined : "true"}
-    aria-describedby={unavailable ? "cta-hint" : undefined}
+    aria-label="Share this briefing"
+    data-share={`/d/${digestId}`}
   >
-    <span class="cta-main">
-      <PlayPauseIcons class="cta-icon" />
-      <span class="spinner" aria-hidden="true"></span>
-      <span class="cta-label">{unavailable ? unavailable.label : "Play the briefing"}</span>
-    </span>
-    <span class="cta-time num">{isReady ? clock : ""}</span>
+    <Icon name="share" class="share-icon" />
+    <Icon name="check" class="share-done" />
   </button>
+  <span class="sr-only" role="status" data-share-status></span>
 </div>
-{unavailable && <p class="hero-hint" id="cta-hint">{unavailable.hint}</p>}
+{unavailable && <p class="hero-hint" id="play-hint">{unavailable.label}. {unavailable.hint}</p>}

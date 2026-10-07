@@ -1,31 +1,39 @@
 import { type DigestItem, SECTION_TITLES, SECTIONS, type Section } from "@dispatch/core";
+import { briefingLengthLabel, storyLengthLabel } from "../player/core/readerMath";
 import type { DigestEntry } from "./digests";
-import { formatClock, pluralize, sinceLabel } from "./format";
+import { formatClock, pluralize } from "./format";
 
 export interface ItemView {
   item: DigestItem;
   /** Reading-order index, the same number the player uses. */
   index: number;
-  isLead: boolean;
+  /** The story's share of the recording as "m:ss", or "" while there is no audio to play. */
+  length: string;
 }
 
 export interface SectionView {
   slug: Section;
   title: string;
   items: ItemView[];
-  /** Index of the section's first item, for the chapter button. */
+  /** Index of the section's first item. */
   firstIndex: number;
-  /** Section length as "m:ss", or null while there is no timeline. */
+  /** Section length as "m:ss", or null while there is no audio to play. */
   clock: string | null;
 }
 
 export function buildSections(entry: DigestEntry): SectionView[] {
+  const hasAudio = entry.audioMode === "ready";
   const timed = new Map(entry.timeline?.items.map((item) => [item.id, item]));
   const sectionStarts = new Map(entry.timeline?.sections.map((section) => [section.slug, section]));
   const views: SectionView[] = [];
   for (const slug of SECTIONS) {
     const items = entry.items
-      .map((item, index) => ({ item, index, isLead: index === 0 }))
+      .map((item, index) => {
+        const marks = hasAudio ? timed.get(item.id) : undefined;
+        // The same function the player labels a chip with, so the two never disagree.
+        const length = storyLengthLabel(marks?.start_ms ?? null, marks?.end_ms ?? null);
+        return { item, index, length };
+      })
       .filter(({ item }) => item.section === slug);
     const first = items[0];
     const last = items.at(-1);
@@ -37,10 +45,7 @@ export function buildSections(entry: DigestEntry): SectionView[] {
       title: SECTION_TITLES[slug],
       items,
       firstIndex: first.index,
-      clock:
-        entry.audioMode === "ready" && start !== undefined && end !== undefined
-          ? formatClock(end - start)
-          : null,
+      clock: hasAudio && start !== undefined && end !== undefined ? formatClock(end - start) : null,
     });
   }
   return views;
@@ -48,28 +53,39 @@ export function buildSections(entry: DigestEntry): SectionView[] {
 
 export interface HeroView {
   title: string;
-  /** "12 items since Monday" */
-  countLine: string;
-  /** "2 min to read, 4 to listen" */
-  timeLine: string;
-  /** "3:32", or null while there is no audio. */
-  clock: string | null;
+  /** The parts of the one meta line: "12 stories", "2 min read", "4 min listen". */
+  meta: string[];
+  /** The play chip's label before anything plays: "4 min". */
+  length: string;
+}
+
+/**
+ * "8 min": how long the briefing takes to hear. The recording's own length once it exists; until
+ * then, the estimate written with the text.
+ */
+export function listenLength(entry: DigestEntry): string {
+  const { digest } = entry;
+  return entry.audioMode === "ready" && digest.audio
+    ? briefingLengthLabel(digest.audio.duration_ms)
+    : `${digest.listen_minutes} min`;
 }
 
 export function buildHero(entry: DigestEntry, title: string): HeroView {
   const { digest } = entry;
-  const count = pluralize(digest.items.length, "item");
-  const since = sinceLabel(digest.window.from, digest.date);
+  const length = listenLength(entry);
   return {
     title,
-    countLine: since === "today" ? `${count} today` : `${count} ${since}`,
-    timeLine: `${digest.read_minutes} min to read, ${digest.listen_minutes} to listen`,
-    clock:
-      entry.audioMode === "ready" && digest.audio ? formatClock(digest.audio.duration_ms) : null,
+    meta: [storyCount(digest.items.length), `${digest.read_minutes} min read`, `${length} listen`],
+    length,
   };
 }
 
-/** Copy for the call-to-action when the briefing cannot be played yet or any more. */
+/** "12 stories". Reader-facing copy never says "items". */
+export function storyCount(count: number): string {
+  return pluralize(count, "story", "stories");
+}
+
+/** Why the briefing cannot be played, shown under its play chip. */
 export const AUDIO_UNAVAILABLE_COPY = {
   preparing: {
     label: "Audio is still being prepared",
@@ -77,6 +93,6 @@ export const AUDIO_UNAVAILABLE_COPY = {
   },
   expired: {
     label: "The audio has expired",
-    hint: "Audio is kept for about four months. The text and its chapters stay.",
+    hint: "Audio is kept for about four months. The text stays.",
   },
 } as const;

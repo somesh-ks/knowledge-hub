@@ -1,4 +1,4 @@
-import { expect, test } from "./fixtures";
+import { expect, hydrated, targetSize, test } from "./fixtures";
 
 /** The accessible name and tag of whatever has focus. */
 async function focused(page: import("@playwright/test").Page): Promise<string> {
@@ -26,25 +26,40 @@ test.describe("keyboard", () => {
     await expect(page.locator("main")).toBeFocused();
   });
 
-  test("tab order follows the page: header, hero, chapters, items", async ({ page }) => {
+  test("tab order follows the page: navigation, header, then each story's chip and source", async ({
+    page,
+  }) => {
     await page.goto("/");
     const seen: string[] = [];
-    for (let step = 0; step < 9; step += 1) {
+    for (let step = 0; step < 11; step += 1) {
       await page.keyboard.press("Tab");
       seen.push(await focused(page));
     }
     expect(seen).toEqual([
       "a: Skip to the briefing",
       "a: Singularity, today's briefing",
+      "a: Today",
       "a: Archive",
-      "button: Generate",
-      "button: Settings",
-      // The aside chapter links come next at 1280px wide, then the hero button.
-      expect.stringContaining("button:"),
-      expect.stringContaining("button:"),
-      expect.stringContaining("button:"),
-      expect.stringContaining("button:"),
+      "a: Settings",
+      "button: Play the briefing, 1 min",
+      "button: Share this briefing",
+      "button: Play from here, 0:03: Springlet 2.0 retargets springs mid-flight, so interrupted drawers keep their velocity",
+      "a: Read at example.com, opens in a new tab",
+      "button: Play from here, 0:03: A dither shader that stays sharp at any pixel density",
+      "a: Read at example.com, opens in a new tab",
     ]);
+  });
+
+  test("the contents list comes after the briefing, not before it", async ({ page }) => {
+    await page.goto("/");
+    const order = await page.evaluate(() => {
+      const controls = [...document.querySelectorAll<HTMLElement>("a[href], button")];
+      const lastInMain = controls.findLast((control) => control.closest("main") !== null);
+      const firstInList = controls.find((control) => control.closest(".aside") !== null);
+      if (!lastInMain || !firstInList) return null;
+      return controls.indexOf(firstInList) - controls.indexOf(lastInMain);
+    });
+    expect(order).toBe(1);
   });
 
   test("every interactive control shows a two layer focus ring", async ({ page }) => {
@@ -80,31 +95,56 @@ test.describe("keyboard", () => {
     expect(checked).toBeGreaterThan(20);
   });
 
-  test("buttons activate with Enter and Space and links with Enter", async ({ page }) => {
+  test("a focus ring in the contents list is not clipped by the list's own edge", async ({
+    page,
+  }) => {
     await page.goto("/");
-    // The Generate button belongs to the sheets island; here it must at least take both keys without error.
-    await page.getByRole("button", { name: "Generate" }).focus();
+    const fits = await page
+      .locator(".aside-link")
+      .first()
+      .evaluate((node) => {
+        const list = node.closest(".aside")?.getBoundingClientRect();
+        const box = node.getBoundingClientRect();
+        // The ring reaches 4px past the entry: a 2px gap and a 2px line.
+        return list ? box.left - 4 >= list.left && box.right + 4 <= list.right : false;
+      });
+    expect(fits).toBe(true);
+  });
+
+  test("a chip plays with Enter and pauses with Space, and a link follows with Enter", async ({
+    page,
+  }) => {
+    await page.goto("/");
+    await hydrated(page);
+    const chip = page.locator("[data-play-digest]");
+    await chip.focus();
     await page.keyboard.press("Enter");
+    await expect(page.locator("html")).toHaveAttribute("data-player-state", "playing");
+    await expect(chip).toBeFocused();
     await page.keyboard.press("Space");
-    await page.getByRole("link", { name: "Archive" }).focus();
+    await expect(page.locator("html")).toHaveAttribute("data-player-state", "paused");
+    await page.getByRole("link", { name: "Archive", exact: true }).focus();
     await page.keyboard.press("Enter");
     await expect(page).toHaveURL(/\/archive$/);
   });
 
-  test("a headline link is reachable and opens its source", async ({ page }) => {
+  test("a story's source link is reachable and leaves for its source", async ({ page }) => {
     await page.goto("/");
-    const link = page.getByRole("link", { name: /Springlet 2\.0/ });
+    const link = page.locator(".story .source-link").first();
     await link.focus();
     await expect(link).toBeFocused();
     await expect(link).toHaveAttribute("href", /example\.com/);
+    await expect(link).toHaveAttribute("target", "_blank");
   });
 
-  test("the item play button is a real button with a 44px target", async ({ page }) => {
+  test("the story chip is a real button with a 44px target", async ({ page }) => {
     await page.goto("/");
-    const button = page.locator(".item-play").first();
-    const box = await button.boundingBox();
-    expect(box?.width).toBeGreaterThanOrEqual(44);
-    expect(box?.height).toBeGreaterThanOrEqual(44);
-    expect(await button.evaluate((node) => node.tagName)).toBe("BUTTON");
+    const chip = page.locator("[data-play-item]").first();
+    expect(await chip.evaluate((node) => node.tagName)).toBe("BUTTON");
+    const size = await targetSize(chip);
+    expect(size.width).toBeGreaterThanOrEqual(44);
+    expect(size.height).toBeGreaterThanOrEqual(44);
+    // The pill itself is 36px tall: the target is larger than what is drawn.
+    expect((await chip.boundingBox())?.height).toBeCloseTo(36, 0);
   });
 });

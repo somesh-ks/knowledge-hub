@@ -15,7 +15,7 @@ export function ensurePageTrack(store: PlayerStore): boolean {
   return true;
 }
 
-/** The hero button: play, pause, resume, play again, or retry, depending on where playback is. */
+/** The briefing's chip: play, pause, resume, play again, or retry, depending on where playback is. */
 export function togglePageDigest(store: PlayerStore): void {
   if (!ensurePageTrack(store)) return;
   const { status } = store.getState();
@@ -49,10 +49,4 @@ export function togglePageItem(store: PlayerStore, itemId: string): void {
 export function playPageChapter(store: PlayerStore, firstItemId: string): void {
   if (!ensurePageTrack(store)) return;
   store.playItem(firstItemId);
-}
-
-/** A tap on the rail strip: the nearest node's item. */
-export function playPageItemAt(store: PlayerStore, index: number): void {
-  if (!ensurePageTrack(store)) return;
-  store.playItemAt(index);
 }
