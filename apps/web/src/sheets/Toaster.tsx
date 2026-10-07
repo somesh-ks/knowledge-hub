@@ -3,8 +3,9 @@ import Icon from "../player/ui/Icon";
 import { dismissToast, getToast, subscribeToast, type ToastContent } from "./toastStore";
 
 /**
- * The toast: a top-layer popover, centered above the mini player. Its text is announced through
- * the polite live region by whoever shows it; the toast itself never steals focus.
+ * The toast: a top-layer popover on the inverse surface, centered above the navigation bar and the
+ * docked player. Its text is announced through the polite live region by whoever shows it; the toast
+ * itself never steals focus.
  */
 export default function Toaster() {
   const toast = useSyncExternalStore(subscribeToast, getToast, () => null);

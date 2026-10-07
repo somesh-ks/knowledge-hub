@@ -6,7 +6,8 @@ interface InstallHintProps {
 
 /**
  * Add to Home Screen, in Safari on iOS only. The copy says what you get, then how, and never uses
- * the word "install": nothing is installed, and nobody expects a website to do that.
+ * the word "install": nothing is installed, and nobody expects a website to do that. The settings
+ * page carries the same words in its own markup (pages/settings.astro).
  */
 export default function InstallHint({ onDismiss }: InstallHintProps) {
   return (
@@ -15,13 +16,13 @@ export default function InstallHint({ onDismiss }: InstallHintProps) {
       <div className="sheet-hint-card">
         <Icon name="share" />
         <div>
-          <p className="sheet-hint-title">Add Dispatch to your Home Screen</p>
+          <p className="sheet-hint-title">Add Singularity to your Home Screen</p>
           <p className="sheet-hint-body">
             In Safari, tap Share, then Add to Home Screen. It opens full screen and keeps playing in
             the background.
           </p>
         </div>
-        <button className="sheet-hint-dismiss press" type="button" onClick={onDismiss}>
+        <button className="btn press" type="button" onClick={onDismiss}>
           Hide this
         </button>
       </div>
