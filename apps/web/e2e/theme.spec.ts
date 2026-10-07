@@ -68,8 +68,8 @@ test.describe("theme", () => {
       localStorage.setItem("dispatch:preferences", JSON.stringify({ theme: "dark" })),
     );
     await page.goto("/");
-    await page.getByRole("link", { name: /All briefings/ }).click();
-    await expect(page).toHaveURL(/\/archive$/);
+    await page.getByRole("link", { name: "See all" }).click();
+    await expect(page).toHaveURL(/\/library$/);
     await expect(page.locator("html")).toHaveAttribute("data-theme", "dark");
     await expectColor(page, await bodyBackground(page), SURFACE_DARK);
   });
@@ -82,8 +82,8 @@ test.describe("theme", () => {
       localStorage.setItem("dispatch:preferences", JSON.stringify({ theme: "dark" }));
       document.documentElement.dataset.theme = "dark";
     });
-    await page.getByRole("link", { name: /All briefings/ }).click();
-    await expect(page).toHaveURL(/\/archive$/);
+    await page.getByRole("link", { name: "See all" }).click();
+    await expect(page).toHaveURL(/\/library$/);
     await expect(page.locator("html")).toHaveAttribute("data-theme", "dark");
   });
 

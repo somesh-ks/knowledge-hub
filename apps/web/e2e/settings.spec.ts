@@ -248,9 +248,9 @@ test.describe("settings page", () => {
 
     await page
       .getByRole("navigation", { name: "Primary" })
-      .getByRole("link", { name: "Archive" })
+      .getByRole("link", { name: "Library" })
       .click();
-    await expect(page).toHaveURL(/\/archive$/);
+    await expect(page).toHaveURL(/\/library$/);
     // The page's script has already run once; this time only the router's event can start it.
     await settingsLink(page).click();
     await expect(page).toHaveURL(/\/settings$/);

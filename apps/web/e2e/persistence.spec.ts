@@ -17,8 +17,8 @@ test.describe("playback survives navigation", () => {
     const before = await page.evaluate(
       () => (window as unknown as { __audio: HTMLAudioElement }).__audio.currentTime,
     );
-    await page.getByRole("link", { name: /All briefings/ }).click();
-    await expect(page).toHaveURL(/\/archive$/);
+    await page.getByRole("link", { name: "See all" }).click();
+    await expect(page).toHaveURL(/\/library$/);
     await page.getByRole("link", { name: /Monday 5 October/ }).click();
     await expect(page).toHaveURL(/\/d\/2026-10-05$/);
     await page.waitForTimeout(700);
@@ -44,8 +44,8 @@ test.describe("playback survives navigation", () => {
       return islands.length;
     });
     expect(marked).toBe(2);
-    await page.getByRole("link", { name: /All briefings/ }).click();
-    await expect(page).toHaveURL(/\/archive$/);
+    await page.getByRole("link", { name: "See all" }).click();
+    await expect(page).toHaveURL(/\/library$/);
     const kept = await page.evaluate(() =>
       [...document.querySelectorAll("astro-island")].map(
         (island) => (island as HTMLElement & { __mark?: number }).__mark ?? 0,
@@ -59,8 +59,8 @@ test.describe("playback survives navigation", () => {
     await hydrated(page);
     await page.locator("[data-play-digest]").click();
     await expect(page.locator("html")).toHaveAttribute("data-player-state", "playing");
-    await page.getByRole("link", { name: /All briefings/ }).click();
-    await expect(page).toHaveURL(/\/archive$/);
+    await page.getByRole("link", { name: "See all" }).click();
+    await expect(page).toHaveURL(/\/library$/);
     await expect(page.locator("html")).toHaveAttribute("data-player-state", "playing");
     await expect(page.locator("html")).toHaveAttribute("data-mini", "visible");
     // The wordmark, not the Today tab: on a phone the docked player of this build still sits over

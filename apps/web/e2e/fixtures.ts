@@ -60,7 +60,7 @@ export const ROUTES = [
   { name: "latest digest", path: "/d/2026-10-07" },
   { name: "digest without audio", path: "/d/2026-10-05" },
   { name: "weekly digest", path: "/d/2026-10-04-weekly" },
-  { name: "archive", path: "/archive" },
+  { name: "library", path: "/library" },
   { name: "offline page", path: "/offline" },
   { name: "not found", path: "/does-not-exist" },
 ] as const;

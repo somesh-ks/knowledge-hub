@@ -150,12 +150,18 @@
   color: var(--color-on-surface);
 }
 
-/* The chip is 36px tall; its target is 44px. */
+/* The chip is 36px tall; its target is 44px each way. The pseudo-element is placed from the chip's
+   padding edge, so the border is added back. The narrowest chip is held to the width too. */
+.filter-chip {
+  justify-content: center;
+  min-width: var(--size-touch);
+}
+
 .filter-chip::after {
   content: "";
   position: absolute;
-  inset-inline: 0;
-  inset-block: calc((var(--size-touch) - var(--chip-height)) / -2);
+  inset-inline: calc(var(--stroke-hairline) * -1);
+  inset-block: calc((var(--size-touch) - var(--chip-height)) / -2 - var(--stroke-hairline));
 }
 
 .filter-chip[aria-pressed="true"] {
@@ -173,8 +179,11 @@
   outline-offset: var(--stroke-ring-gap);
 }
 
+/* The select is 44px tall and the box around it 36px: negative margins let it reach past the border
+   for a full-size target. The row's padding holds room for the overhang. */
 .sort-field > select {
-  height: 100%;
+  height: var(--size-touch);
+  margin-block: calc((var(--chip-height) - var(--size-touch)) / 2 - var(--stroke-hairline));
   padding-inline: var(--space-3) var(--space-8);
   border: 0;
   border-radius: inherit;

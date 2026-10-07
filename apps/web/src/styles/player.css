@@ -837,9 +837,12 @@
     max-width: var(--player-column-max);
   }
 
-  /* The bar stays put from here, so it can carry its own scrubber. */
-  .dock-seek {
-    display: block;
+  /* The bar stays put from here, so it can carry its own scrubber. It is a 16px strip along the
+     bar's edge, a target for a mouse; a finger scrubs on the player page, where the bar is 44px. */
+  @media (pointer: fine) {
+    .dock-seek {
+      display: block;
+    }
   }
 
   /* The bar stays while its cover is away on the page, so its text closes the gap the cover left

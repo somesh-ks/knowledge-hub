@@ -39,7 +39,7 @@ test.describe("keyboard", () => {
       "a: Skip to the briefing",
       "a: Singularity, today's briefing",
       "a: Today",
-      "a: Archive",
+      "a: Library",
       "a: Settings",
       "button: Play the briefing, 1 min",
       "button: Share this briefing",
@@ -123,9 +123,9 @@ test.describe("keyboard", () => {
     await expect(chip).toBeFocused();
     await page.keyboard.press("Space");
     await expect(page.locator("html")).toHaveAttribute("data-player-state", "paused");
-    await page.getByRole("link", { name: "Archive", exact: true }).focus();
+    await page.getByRole("link", { name: "Library", exact: true }).focus();
     await page.keyboard.press("Enter");
-    await expect(page).toHaveURL(/\/archive$/);
+    await expect(page).toHaveURL(/\/library$/);
   });
 
   test("a story's source link is reachable and leaves for its source", async ({ page }) => {

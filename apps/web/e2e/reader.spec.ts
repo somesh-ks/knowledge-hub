@@ -11,7 +11,8 @@ test.describe("the briefing header", () => {
     await expect(page.getByRole("heading", { level: 1 })).toHaveText("Wednesday 7 October");
     const meta = page.locator(".hero .meta > span");
     // The fixture recording is 36 seconds long, which a chip and a meta line round up to a minute.
-    await expect(meta).toHaveText(["12 stories", "2 min read", "1 min listen"]);
+    // Reading time is gone: the line says how many stories and how long they take to hear.
+    await expect(meta).toHaveText(["12 stories", "1 min listen"]);
     const chip = page.locator("[data-play-digest]");
     await expect(chip).toHaveCount(1);
     await expect(chip).toHaveAttribute("data-play-digest", "2026-10-07");
@@ -24,7 +25,7 @@ test.describe("the briefing header", () => {
   });
 
   test("says stories, never items, anywhere a reader can see", async ({ page }) => {
-    for (const path of ["/", SILENT_DIGEST, "/archive"]) {
+    for (const path of ["/", SILENT_DIGEST, "/library"]) {
       await page.goto(path);
       await expect(page.locator("body")).not.toContainText(/\bitems?\b/i);
     }
@@ -165,8 +166,9 @@ test.describe("sections and stories", () => {
       "Watch and listen",
     ]);
     await expect(page.locator(".story")).toHaveCount(12);
-    // The section's listening length sits beside its heading, not inside it.
-    await expect(sections.first().locator(".head-fact")).toHaveText("Listening time 0:09");
+    // A section header is its title alone: no listening time beside it.
+    await expect(page.locator(".head-fact")).toHaveCount(0);
+    await expect(sections.first().locator("h2")).toHaveText("Top picks");
   });
 
   test("keeps headings in order: the date, then sections, then stories", async ({ page }) => {
@@ -244,7 +246,8 @@ test.describe("sections and stories", () => {
     const first = page.locator(".story").first();
     await expect(first.locator("a")).toHaveCount(1);
     const link = first.locator(".source-link");
-    await expect(link).toHaveText("example.com");
+    // The link names the publisher; the host is only in its address and accessible name.
+    await expect(link).toHaveText("Springlet Blog");
     await expect(link).toHaveAttribute("href", /^https:\/\/example\.com\//);
     await expect(link).toHaveAttribute("target", "_blank");
     await expect(link).toHaveAttribute("rel", "noopener noreferrer");
@@ -254,12 +257,16 @@ test.describe("sections and stories", () => {
     await expect(first.locator("h3 a")).toHaveCount(0);
   });
 
-  test("shows the publisher, the author and the older why line", async ({ page }) => {
+  test("shows the publisher on the source link, no meta line and no author, and the why line", async ({
+    page,
+  }) => {
     await page.goto("/");
     const first = page.locator(".story").first();
-    await expect(first.locator(".meta > span").first()).toHaveText("Springlet Blog");
-    await expect(first.locator(".meta .sr-only")).toHaveText("by");
-    await expect(first.locator(".meta")).toContainText("Mara Lindqvist");
+    // Nothing sits above the headline: the story opens with its title.
+    await expect(first.locator(".meta")).toHaveCount(0);
+    await expect(first.locator("> *").first()).toHaveJSProperty("tagName", "H3");
+    await expect(first).not.toContainText("Mara Lindqvist");
+    await expect(first.locator(".source-link")).toHaveText("Springlet Blog");
     await expect(first.locator(".story-why")).toHaveText(
       "Why Copy the retargeting pattern for drawers and toasts.",
     );
@@ -413,7 +420,7 @@ test.describe("section tabs", () => {
   });
 
   test("follow the page again after a client-side navigation", async ({ page }) => {
-    await page.goto("/archive");
+    await page.goto("/library");
     await page.getByRole("link", { name: /Wednesday 7 October/ }).click();
     await expect(page).toHaveURL(/\/d\/2026-10-07$/);
     await page.evaluate(() => {
@@ -426,17 +433,24 @@ test.describe("section tabs", () => {
 test.describe("earlier briefings", () => {
   test("lists the earlier briefings and a way to all of them", async ({ page }) => {
     await page.goto("/");
-    await expect(page.getByRole("heading", { level: 2, name: "Earlier briefings" })).toBeVisible();
-    await expect(page.locator(".earlier .archive-row")).toHaveCount(2);
-    await expect(page.getByRole("link", { name: /All briefings/ })).toHaveAttribute(
-      "href",
-      "/archive",
-    );
+    // A shelf of covers, not a list: the same card the Library uses.
+    await expect(
+      page.getByRole("heading", { level: 2, name: "Earlier", exact: true }),
+    ).toBeVisible();
+    await expect(page.locator(".earlier .shelf > .card")).toHaveCount(2);
+    await expect(page.getByRole("link", { name: "See all" })).toHaveAttribute("href", "/library");
+    await expect(page.locator(".earlier .card-title")).toHaveText([
+      "Monday 5 October",
+      "Sunday 4 October",
+    ]);
   });
 
   test("marks the weekly deep dive in the list of earlier briefings", async ({ page }) => {
     await page.goto(SILENT_DIGEST);
-    await expect(page.locator(".archive-row", { hasText: "Weekly deep dive" })).toHaveCount(1);
+    const weekly = page.locator(".earlier .card", { hasText: "Weekly" });
+    await expect(weekly).toHaveCount(1);
+    await expect(weekly.locator(".card-title")).toHaveText("Sunday 4 October");
+    await expect(weekly.locator(".card-facts")).toHaveText("Weekly, 14 stories, 8 min");
     await expect(page.locator(".earlier .cover[data-weekly]")).toHaveCount(1);
   });
 
@@ -510,7 +524,7 @@ test.describe("the page head", () => {
   test("updates the title on every page", async ({ page }) => {
     await page.goto("/");
     await expect(page).toHaveTitle("Wednesday 7 October, Singularity");
-    await page.goto("/archive");
-    await expect(page).toHaveTitle("Archive, Singularity");
+    await page.goto("/library");
+    await expect(page).toHaveTitle("Library, Singularity");
   });
 });

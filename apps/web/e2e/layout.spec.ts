@@ -27,10 +27,10 @@ test.describe("layout", () => {
     page,
   }) => {
     await page.setViewportSize({ width: 390, height: 900 });
-    for (const path of ["/", "/archive", SILENT_DIGEST, "/offline"]) {
+    for (const path of ["/", "/library", SILENT_DIGEST, "/offline"]) {
       await page.goto(path);
       const small: string[] = [];
-      for (const control of await page.locator("a[href], button, summary").all()) {
+      for (const control of await page.locator("a[href], button, summary, select").all()) {
         if (!(await control.isVisible())) continue;
         // The skip link is a keyboard control and only shows on focus.
         if (await control.evaluate((node) => node.matches(".skip-link"))) continue;
@@ -44,6 +44,33 @@ test.describe("layout", () => {
       }
       expect(small, `controls under 44px on ${path}`).toEqual([]);
     }
+  });
+
+  test("the wide bottom bar's buttons and volume answer a touch across 44px", async ({
+    page,
+    isMobile,
+  }) => {
+    test.skip(isMobile, "The full bar with a mouse is a desktop layout");
+    await page.setViewportSize({ width: 1280, height: 900 });
+    await page.goto("/");
+    await hydrated(page);
+    await page.locator("[data-play-digest]").click();
+    await expect(page.locator("html")).toHaveAttribute("data-player-state", "playing");
+    const controls = page.locator(".player-dock button, .player-dock .dock-volume-level");
+    // Open, previous, play, next, mute, and the volume range.
+    expect(await controls.count()).toBeGreaterThanOrEqual(6);
+    const small: string[] = [];
+    for (const control of await controls.all()) {
+      if (!(await control.isVisible())) continue;
+      const size = await targetSize(control);
+      if (size.width < 44 || size.height < 44) {
+        const label = await control.evaluate(
+          (node) => node.getAttribute("aria-label") ?? node.className,
+        );
+        small.push(`"${label}" ${size.width}x${size.height}`);
+      }
+    }
+    expect(small).toEqual([]);
   });
 
   test("the reading column holds the measure on a wide screen", async ({ page }) => {
@@ -79,7 +106,9 @@ test.describe("layout", () => {
     await expect(aside).toBeVisible();
     await expect(aside.locator(".aside-link")).toHaveCount(6);
     await expect(aside.locator(".aside-link").first()).toHaveAttribute("href", "#c-top");
-    await expect(aside.locator(".aside-link").first()).toContainText("0:09");
+    // The contents list names the sections and says nothing of time.
+    await expect(aside.locator(".aside-link").first()).toHaveText("Top picks");
+    await expect(aside.locator(".aside-length")).toHaveCount(0);
     await expect(page.locator(".tabs")).toBeHidden();
     // It sits past the reading column and after it in the document.
     const main = await page.locator("main").boundingBox();
@@ -120,13 +149,13 @@ test.describe("layout", () => {
     await expect(page.locator("#c-launches")).toBeInViewport();
   });
 
-  test("the contents list has no listening lengths while a briefing has no audio", async ({
-    page,
-  }) => {
+  test("the contents list has no listening lengths, with or without audio", async ({ page }) => {
     await page.setViewportSize({ width: 1280, height: 900 });
-    await page.goto(SILENT_DIGEST);
-    await expect(page.locator(".aside-link").first()).toBeVisible();
-    await expect(page.locator(".aside-length")).toHaveCount(0);
+    for (const path of [SILENT_DIGEST, "/"]) {
+      await page.goto(path);
+      await expect(page.locator(".aside-link").first()).toBeVisible();
+      await expect(page.locator(".aside-length")).toHaveCount(0);
+    }
   });
 
   test("the header keeps the cover beside the date, down to 320px", async ({ page }) => {
@@ -141,9 +170,11 @@ test.describe("layout", () => {
     // On a phone the play chip and share run under the cover, from the column's edge.
     expect(actions?.y ?? 0).toBeGreaterThan((cover?.y ?? 0) + (cover?.height ?? 0));
     expect(actions?.x).toBeCloseTo(cover?.x ?? -1, 0);
-    // The meta line wraps here, and a wrapped line never opens with a dot: every part carries its
-    // dot in a 20px box, and the line is clipped by exactly that much at its start.
+    // The two parts of the meta line ("12 stories", "1 min listen") now fit on one line at 320px.
+    // Narrow the line to force a wrap: a wrapped line never opens with a dot. Every part carries
+    // its dot in a 20px box, and the line is clipped by exactly that much at its start.
     const meta = await page.locator(".hero .meta").evaluate((line) => {
+      (line as HTMLElement).style.width = "6rem";
       const parts = [...line.children];
       const top = parts[0]?.getBoundingClientRect().top ?? 0;
       return {
@@ -154,7 +185,7 @@ test.describe("layout", () => {
       };
     });
     expect(meta.wrapped).toBeGreaterThanOrEqual(1);
-    expect(meta.dots).toEqual(["20px", "20px", "20px"]);
+    expect(meta.dots).toEqual(["20px", "20px"]);
     expect(meta.clip).toMatch(/^inset\(.* 20px\)$/);
     expect(meta.shift).toBe("-20px");
   });
@@ -297,7 +328,7 @@ test.describe("layout", () => {
     expect(await weight("[data-chapter] h2")).toBe("400");
     expect(await weight(".story h3")).toBe("500");
     expect(await weight(".story-summary")).toBe("400");
-    expect(await weight(".archive-date")).toBe("500");
+    expect(await weight(".card-title")).toBe("500");
     const weights = await page
       .locator("main *")
       .evaluateAll((nodes) => [...new Set(nodes.map((node) => getComputedStyle(node).fontWeight))]);

@@ -60,6 +60,9 @@ export default defineConfig({
   // `true` keeps single spaces between inline elements, which the default "jsx" mode would strip.
   compressHTML: true,
   trailingSlash: "never",
+  // The Library used to be the archive. Old links and installed shortcuts still land on it: the
+  // Vercel adapter turns this into a real 308, and the static test build into a refresh page.
+  redirects: { "/archive": { status: 308, destination: "/library" } },
   build: {
     // External stylesheets: cached once, listed once for the service worker, and no inline style
     // hashes to track in the Content-Security-Policy.
@@ -69,7 +72,13 @@ export default defineConfig({
   devToolbar: { enabled: false },
   // There is no Markdown content, and Shiki's inline styles do not fit a strict style policy.
   markdown: { syntaxHighlight: false },
-  vite: { plugins: [keepCoverFontsReachable()] },
+  vite: {
+    plugins: [keepCoverFontsReachable()],
+    // Astro writes a script smaller than this limit into the page. When the router swaps in a page
+    // whose last module script is inline, it adds a `data:` script to wait for it, and the policy
+    // blocks that. Every page script stays a file.
+    build: { assetsInlineLimit: 0 },
+  },
   security: {
     csp: {
       algorithm: "SHA-256",
