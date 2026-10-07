@@ -1,4 +1,4 @@
-import { mkdirSync, writeFileSync } from "node:fs";
+import { existsSync, mkdirSync, readFileSync, writeFileSync } from "node:fs";
 import { dirname, join, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 import { Resvg } from "@resvg/resvg-js";
@@ -6,19 +6,21 @@ import { type BrandColors, readBrandColors } from "../apps/web/src/lib/brandColo
 
 /**
  * Renders the app icon from one SVG mark, so every size comes from the same artwork and can never
- * drift. The mark is the rail with its current node: a line, its upper half at full strength, and a
- * node at the midpoint. It is drawn in the accent color on the surface color. Every PNG is opaque,
+ * drift. The mark is a ringed dot: a point inside a circle, the same figure as the ringed play
+ * glyph on the play chip. It is drawn in the accent color on the surface color. Every PNG is opaque,
  * because iOS composites transparency onto black and applies its own corner mask.
  *
- * Outputs go to apps/web/public/. Run: npx tsx scripts/buildIcons.ts
+ * Outputs go to apps/web/public/.
+ *   npm run icons              writes the files
+ *   npm run icons -- --check   fails when a committed file is stale
  */
 
 const HERE = dirname(fileURLToPath(import.meta.url));
 const OUT = join(HERE, "..", "apps", "web", "public");
 const TOKENS = join(HERE, "..", "apps", "web", "src", "styles", "tokens.css");
 
-/** The mark's own box, in the units of the brand SVG (16 wide, 24 tall). */
-const MARK = { width: 16, height: 24 } as const;
+/** The mark's own box, in the units of the brand SVG. */
+const MARK = { width: 24, height: 24 } as const;
 
 export interface IconSpec {
   file: string;
@@ -28,18 +30,22 @@ export interface IconSpec {
 }
 
 export const ICON_SPECS: readonly IconSpec[] = [
-  { file: "apple-touch-icon.png", size: 180, markShare: 0.56 },
-  { file: "icon-192.png", size: 192, markShare: 0.56 },
-  { file: "icon-512.png", size: 512, markShare: 0.56 },
+  { file: "apple-touch-icon.png", size: 180, markShare: 0.5 },
+  { file: "icon-192.png", size: 192, markShare: 0.5 },
+  { file: "icon-512.png", size: 512, markShare: 0.5 },
   // Android crops a maskable icon to a circle that can be as small as 80 percent of its box.
   { file: "icon-maskable-512.png", size: 512, markShare: 0.42 },
 ];
 
+/** The ring as one even-odd path, so the whole mark takes a single fill and needs no stroke. */
+export const MARK_RING =
+  "M12 1.25a10.75 10.75 0 1 0 0 21.5 10.75 10.75 0 0 0 0-21.5Zm0 2.5a8.25 8.25 0 1 1 0 16.5 8.25 8.25 0 0 1 0-16.5Z";
+export const MARK_DOT_RADIUS = 4.5;
+
 function markPaths(): string {
   return (
-    '<rect x="7" y="0" width="2" height="24" rx="1" opacity=".28"/>' +
-    '<rect x="7" y="0" width="2" height="12" rx="1"/>' +
-    '<circle cx="8" cy="12" r="5"/>'
+    `<path fill-rule="evenodd" d="${MARK_RING}"/>` +
+    `<circle cx="12" cy="12" r="${MARK_DOT_RADIUS}"/>`
   );
 }
 
@@ -59,8 +65,8 @@ export function iconSvg(colors: BrandColors, size: number, markShare: number): s
 /** Browser-tab icon: the bare mark on a transparent ground, in the accent color for each scheme. */
 export function faviconSvg(colors: BrandColors): string {
   return (
-    '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 16 24">' +
-    `<title>Dispatch</title><style>g{fill:${colors.accentLight}}@media (prefers-color-scheme:dark){g{fill:${colors.accentDark}}}</style>` +
+    '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24">' +
+    `<title>Singularity</title><style>g{fill:${colors.accentLight}}@media (prefers-color-scheme:dark){g{fill:${colors.accentDark}}}</style>` +
     `<g>${markPaths()}</g></svg>\n`
   );
 }
@@ -83,20 +89,45 @@ export function renderIcon(svg: string, size: number): RenderedIcon {
   };
 }
 
-export function buildIcons(outDir: string = OUT, tokensPath: string = TOKENS): string[] {
+/** Every output file with the bytes it should hold, in a fixed order. */
+export function iconFiles(tokensPath: string = TOKENS): Array<[file: string, bytes: Uint8Array]> {
   const colors = readBrandColors(tokensPath);
+  const files: Array<[string, Uint8Array]> = ICON_SPECS.map((spec) => [
+    spec.file,
+    renderIcon(iconSvg(colors, spec.size, spec.markShare), spec.size).png,
+  ]);
+  files.push(["favicon.svg", new TextEncoder().encode(faviconSvg(colors))]);
+  return files;
+}
+
+export function buildIcons(outDir: string = OUT, tokensPath: string = TOKENS): string[] {
   mkdirSync(outDir, { recursive: true });
   const written: string[] = [];
-  for (const spec of ICON_SPECS) {
-    const { png } = renderIcon(iconSvg(colors, spec.size, spec.markShare), spec.size);
-    writeFileSync(join(outDir, spec.file), png);
-    written.push(spec.file);
+  for (const [file, bytes] of iconFiles(tokensPath)) {
+    writeFileSync(join(outDir, file), bytes);
+    written.push(file);
   }
-  writeFileSync(join(outDir, "favicon.svg"), faviconSvg(colors));
-  written.push("favicon.svg");
   return written;
 }
 
+/** Files in `outDir` that are missing or differ from what the tokens and the mark now produce. */
+export function staleIcons(outDir: string = OUT, tokensPath: string = TOKENS): string[] {
+  const stale: string[] = [];
+  for (const [file, bytes] of iconFiles(tokensPath)) {
+    const path = join(outDir, file);
+    if (!existsSync(path) || !Buffer.from(bytes).equals(readFileSync(path))) stale.push(file);
+  }
+  return stale;
+}
+
 if (process.argv[1] && resolve(process.argv[1]) === fileURLToPath(import.meta.url)) {
-  console.log(`Wrote ${buildIcons().join(", ")} to ${OUT}`);
+  if (process.argv.includes("--check")) {
+    const stale = staleIcons();
+    if (stale.length > 0) {
+      console.error(`Stale app icons: ${stale.join(", ")}. Run: npm run icons`);
+      process.exit(1);
+    }
+  } else {
+    console.log(`Wrote ${buildIcons().join(", ")} to ${OUT}`);
+  }
 }

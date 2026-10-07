@@ -6,7 +6,7 @@ import type { Corner, Palette, Rect } from "./types.js";
 /** The one fixed piece of typography on every cover: day numeral, month and the wordmark. */
 
 export const MARGIN_UNITS = 88;
-export const WORDMARK = "Dispatch";
+export const WORDMARK = "Singularity";
 
 const NUMERAL_SIZE = 236;
 const NUMERAL_WEIGHT: NumeralWeight = 900;

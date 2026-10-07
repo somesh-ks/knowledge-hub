@@ -86,11 +86,11 @@ describe.each(TEMPLATES)("template %s", (template) => {
   it("carries only the date and the wordmark as text", () => {
     const strings = [...svg.matchAll(/<text[^>]*>([^<]*)<\/text>/g)].map((m) => m[1]);
     const day = "6";
-    const allowed = new Set([...day, "October", "Dispatch"]);
+    const allowed = new Set([...day, "October", "Singularity"]);
     expect(strings.length).toBeGreaterThanOrEqual(3);
     for (const text of strings)
       expect(allowed.has(text as string), `unexpected text "${text}"`).toBe(true);
-    expect(strings).toContain("Dispatch");
+    expect(strings).toContain("Singularity");
     expect(strings).toContain("October");
     expect(strings).toContain("6");
   });

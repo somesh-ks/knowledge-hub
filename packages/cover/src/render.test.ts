@@ -107,6 +107,6 @@ describe("renderCoverSvg", () => {
   it("describes itself for assistive tech without adding visible text", () => {
     const svg = renderCoverSvg(SPEC, META);
     expect(svg).toContain('role="img"');
-    expect(svg).toContain('aria-label="Dispatch, 6 October"');
+    expect(svg).toContain('aria-label="Singularity, 6 October"');
   });
 });

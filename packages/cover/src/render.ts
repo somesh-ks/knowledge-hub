@@ -57,7 +57,7 @@ function compose(spec: CoverSpec, meta: CoverMeta, w: number, h: number): string
   const defs = `${out.defs ?? ""}${ctx.weekly ? `<clipPath id="${plateClip}"><path d="${rectPath(area)}"/></clipPath>` : ""}`;
   const art = ctx.weekly ? `<g clip-path="url(#${plateClip})">${out.body}</g>` : out.body;
   const type = out.lockup === "own" ? "" : lockup.markup(pal);
-  const label = `Dispatch, ${ctx.day} ${ctx.monthName}`;
+  const label = `Singularity, ${ctx.day} ${ctx.monthName}`;
   return (
     `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 ${w} ${h}" width="${w}" height="${h}" role="img" aria-label="${label}">` +
     `<title>${label}</title>` +
