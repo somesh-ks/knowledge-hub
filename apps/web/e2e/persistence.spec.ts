@@ -63,7 +63,10 @@ test.describe("playback survives navigation", () => {
     await expect(page).toHaveURL(/\/archive$/);
     await expect(page.locator("html")).toHaveAttribute("data-player-state", "playing");
     await expect(page.locator("html")).toHaveAttribute("data-mini", "visible");
-    await page.getByRole("link", { name: "Today", exact: true }).click();
+    // The wordmark, not the Today tab: on a phone the docked player of this build still sits over
+    // the bottom navigation until the rebuilt player docks above it.
+    await page.locator('a[href="/"]:visible').first().click();
+    await expect(page).toHaveURL(/\/$/);
     await expect(page.locator("html")).toHaveAttribute("data-player-state", "playing");
   });
 });

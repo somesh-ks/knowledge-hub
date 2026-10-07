@@ -1,4 +1,4 @@
-import { expect, ROUTES, SILENT_DIGEST, targetSize, test } from "./fixtures";
+import { expect, hydrated, ROUTES, SILENT_DIGEST, targetSize, test } from "./fixtures";
 
 const WIDTHS = [320, 390, 820, 1280] as const;
 
@@ -169,7 +169,9 @@ test.describe("layout", () => {
     expect(actions?.y ?? 999).toBeLessThan((cover?.y ?? 0) + (cover?.height ?? 0));
   });
 
-  test("hairlines between stories run edge to edge on a phone", async ({ page }) => {
+  test("hairlines between stories run edge to edge on a phone", async ({ page, isMobile }) => {
+    // A desktop browser keeps a scrollbar gutter, so its narrow window is not a phone's.
+    test.skip(!isMobile, "Edge to edge is a phone layout");
     await page.setViewportSize({ width: 390, height: 844 });
     await page.goto("/");
     const rule = await page
@@ -182,10 +184,12 @@ test.describe("layout", () => {
           left: box.left + Number.parseFloat(style.left),
           width: Number.parseFloat(style.width),
           height: style.height,
+          // The page's own width: a desktop browser takes a scrollbar out of the 390.
+          page: document.documentElement.clientWidth,
         };
       });
     expect(rule.left).toBeCloseTo(0, 0);
-    expect(rule.width).toBeCloseTo(390, 0);
+    expect(rule.width).toBeCloseTo(rule.page, 0);
     expect(rule.height).toBe("1px");
     // The first story of a section has no rule: its section header is above it.
     expect(
@@ -255,6 +259,7 @@ test.describe("layout", () => {
     expect((link?.x ?? 0) + (link?.width ?? 0)).toBeLessThanOrEqual(320 - 16 + 0.5);
     const host = story.locator(".source-link > span");
     expect(await host.evaluate((node) => node.scrollWidth > node.clientWidth)).toBe(true);
+    await story.locator(".source-link").scrollIntoViewIfNeeded();
     await expect(story.locator(".source-link .icon")).toBeInViewport({ ratio: 1 });
     // Every part of the story stays inside the column.
     const widest = await story.evaluate((node) =>
@@ -333,6 +338,9 @@ test.describe("layout", () => {
     await page.setViewportSize({ width: 1280, height: 900 });
     await page.emulateMedia({ forcedColors: "active" });
     await page.goto("/");
+    // The player clears story states as it hydrates; write ours after it has.
+    await hydrated(page);
+    await page.evaluate(() => new Promise((resolve) => requestAnimationFrame(() => resolve(null))));
     const story = page.locator(".story").nth(1);
     const before = await story.locator("h3").evaluate((node) => getComputedStyle(node).color);
     await story.evaluate((node) => node.setAttribute("data-state", "current"));

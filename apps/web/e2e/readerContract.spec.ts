@@ -128,7 +128,9 @@ test.describe("what the player writes on a real page", () => {
     await expect(page.locator("html")).toHaveAttribute("data-player-state", "playing");
 
     // Back on the briefing that is playing, the fresh markup takes the live state at once.
-    await page.getByRole("link", { name: "Today", exact: true }).click();
+    // The wordmark, not the Today tab: on a phone the docked player of this build still sits over
+    // the bottom navigation until the rebuilt player docks above it.
+    await page.locator('a[href="/"]:visible').first().click();
     await expect(page).toHaveURL(/\/$/);
     await expect(page.locator("[data-play-digest]")).toHaveAttribute("data-state", "current");
     await expect(page.locator("[data-play-digest] [data-chip-label]")).toHaveText("Playing");
@@ -157,6 +159,13 @@ test.describe("what the player writes on a real page", () => {
 
 test.describe("how the page reacts to those attributes", () => {
   const display = (locator: Locator) => locator.evaluate((node) => getComputedStyle(node).display);
+
+  // The player writes the chips once as it hydrates. Wait for that, so it cannot undo what a test
+  // writes by hand.
+  test.beforeEach(async ({ page }) => {
+    await hydrated(page);
+    await page.evaluate(() => new Promise((resolve) => requestAnimationFrame(() => resolve(null))));
+  });
 
   test("a current story's headline takes the accent and the others keep full ink", async ({
     page,

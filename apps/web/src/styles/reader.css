@@ -3,6 +3,15 @@
  * wraps cleanly, and a section header with a quiet fact at the end of its line.
  */
 
+/* ------------------------------------------------------------------ play chip target */
+
+/* The chip's 44px target is laid out from inside its 1px border, which leaves it 42px tall. This
+   takes the border back. It belongs in buttons.css, with the chip. */
+.chip::after {
+  inset-block: calc((var(--size-touch) - var(--chip-height)) / -2 - var(--stroke-hairline));
+  inset-inline: calc(var(--stroke-hairline) * -1);
+}
+
 /* ------------------------------------------------------------------ page title */
 
 /* The one h1 of a page: a date, or the page's name. Regular weight at the display size. */

@@ -43,6 +43,9 @@ test.describe("the archive", () => {
     await page.mouse.click(4, (row?.y ?? 0) + (row?.height ?? 0) / 2);
     await expect(page).toHaveURL(/\/d\/2026-10-05$/);
     await page.goBack();
+    await expect(page.getByRole("heading", { level: 1 })).toHaveText("Archive");
+    // The page takes no taps while it fades in.
+    await expect(page.locator("html")).not.toHaveAttribute("data-astro-transition", /.*/);
     // And one in the row's own padding, just under its top hairline.
     const again = await page.locator(".archive-list > li").nth(2).boundingBox();
     await page.mouse.click(200, (again?.y ?? 0) + 3);
