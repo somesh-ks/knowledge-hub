@@ -20,6 +20,7 @@ import {
   writeRunFile,
 } from "./curate-helpers.js";
 import { COVER, makeFixture } from "./render-factories.js";
+import { makeItem, REPO_ROOT } from "./score-factories.js";
 
 const RUN = "2026-10-07";
 const ENV = { NEBIUS_API_KEY: "nb-secret-0123456789abcdef", DISPATCH_MODEL: "Qwen/Qwen3-32B" };
@@ -172,6 +173,41 @@ describe("dispatch curate: agent mode keeps selection.json engine-written", () =
     const { result } = await captureStdout(() => agent(["--mode", "agent"], ctx));
     expect(result).toBe(1);
     expect(await exists(runFile("selection.json"))).toBe(false);
+  });
+});
+
+describe("the example a session copies", () => {
+  const agent = makeCurateCommand();
+  it("validates as an agent selection: four-beat summaries, no why line, one tech story", async () => {
+    const example = JSON.parse(
+      await readFile(
+        join(REPO_ROOT, ".claude", "skills", "digest", "assets", "agent-selection.example.json"),
+        "utf8",
+      ),
+    ) as { items: Array<{ id: string; category: string }> };
+    const pool = example.items.map((entry) => ({
+      ...makeItem({ url: `https://example.com/${entry.id}` }),
+      id: entry.id,
+    }));
+    await writeRunFile(tr.root, RUN, "pool.json", pool);
+    await writeRunFile(tr.root, RUN, "agent-selection.json", example);
+    const { ctx } = makeContext(tr.root);
+    const { result, stdout } = await captureStdout(() => agent(["--mode", "agent"], ctx));
+    expect(stdout).toContain('"status":"validated"');
+    expect(result).toBe(0);
+    const selection = Selection.parse(
+      JSON.parse(await readFile(runFile("selection.json"), "utf8")),
+    );
+    expect(selection.items).toHaveLength(5);
+    for (const item of selection.items) expect(item).not.toHaveProperty("why");
+    // Digest order: three Top picks, then Tech releases, then Research.
+    expect(selection.items.map((item) => item.category)).toEqual([
+      "css_canvas_motion_techniques",
+      "css_canvas_motion_techniques",
+      "ui_component_primitives",
+      "consumer_tech_releases",
+      "hci_empirical_research",
+    ]);
   });
 });
 

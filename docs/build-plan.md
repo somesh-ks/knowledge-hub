@@ -228,15 +228,19 @@ Add a dependency only when it removes real work; the platform covers the rest (`
 | Stage | Work |
 | --- | --- |
 | Gate | A regular digest is due when the Stockholm calendar date is two or more days after the last regular run that evaluated candidates. On Sundays the weekly pass runs after the regular one, once per Sunday. `on-demand` and `--force` ignore the gate; `weekly` runs the weekly pass alone |
-| Fetch | Per-source timeout and retry; a failed source is logged, never fatal. The window starts at the last successful fetch of any kind, capped at 7 days (first run 3 days; weekly always 7). Items are normalized (`id` is the first 12 hex characters of sha1 of the canonical URL), deduped (tracking parameters stripped, `seen.json` applied, newsletter links to originals already in the pool collapsed) and prefiltered: hard-drop `disliked_patterns`, keep keyword, preferred-author and high-signal-source matches, cap at 60 |
-| Judge | Jev answers per item from title and snippet only: category probabilities, craft depth, hype, sponsorship and funding flags. Items Jev cannot answer go to the Nebius fallback judge. Answers are cached by item, question set and model. If most of a pool goes unjudged the stage fails rather than recording a quiet day |
-| Write | Score in code, select, extract full text for finalists, write headline, summary and why with the Nebius writer, one rewrite per failing field. Fewer than 3 survivors is the `nothing` outcome. The weekly pass withholds items the regular pass just chose |
-| Validate | Grounding check of every summary and why sentence against its source text with Jev; an unsupported sentence gets one rewrite and one more check, then the item drops. Then the final validation: schema, URLs in the pool, voice lint, limits, no links or markdown in model text, no repeats. `verified: true` only when the grounder ran and every kept item passed |
+| Fetch | Per-source timeout and retry; a failed source is logged, never fatal. The window starts at the last successful fetch of any kind, capped at 7 days (first run 3 days; weekly always 7). Items are normalized (`id` is the first 12 hex characters of sha1 of the canonical URL), deduped (tracking parameters stripped, `seen.json` applied, newsletter links to originals already in the pool collapsed; for the consumer tech beat, different headlines about one launch are clustered on product tokens and the number of outlets is kept as `signals.coverage`) and prefiltered: hard-drop `disliked_patterns`, keep keyword, preferred-author and high-signal-source matches, cap at 60. Items from a source or discovery query hinted `consumer_tech_releases` form a second pool, ranked by coverage then recency and capped at 20 |
+| Judge | Jev answers per item from title and snippet only: category probabilities, craft depth, launch scale, hype, sponsorship and funding flags. Items Jev cannot answer go to the Nebius fallback judge. Answers are cached by item, question set and model. If most of a pool goes unjudged the stage fails rather than recording a quiet day |
+| Write | Score in code, select, extract full text for finalists, write the headline and the four-beat summary with the Nebius writer, one rewrite per failing field. Fewer than 3 survivors is the `nothing` outcome. The weekly pass withholds items the regular pass just chose |
+| Validate | Grounding check of every summary sentence (and a why sentence, when an agent session supplied one) against its source text with Jev; an unsupported sentence gets one rewrite and one more check, then the item drops. Then the final validation: schema, URLs in the pool, voice lint, limits, no links or markdown in model text, no repeats. `verified: true` only when the grounder ran and every kept item passed |
 | Commit | Builds each digest from the validated selection, picks its cover, writes `seen.json`, `judgments.json` and `last-run.json`, runs the write guard, then makes one commit and pushes with a rebase retry |
 
-**Score in code.** `taste` is the sum over categories of `P(category) x weight[category]`, times normalized craft depth, reduced by the hype, sponsorship and funding probabilities, plus a small author and keyword bonus. The default threshold is 0.4 (`--threshold` tunes it). Changing weights re-scores from the cache with no new calls.
+**Score in code.** `taste` is the sum over categories of `P(category) x weight[category]`, times a depth factor, reduced by the hype, sponsorship and funding probabilities, plus a small author and keyword bonus. The depth factor comes from craft depth with a floor of 0.55. When the most probable category is `consumer_tech_releases` it comes from launch scale with a floor of 0.35 instead, because a launch shows no technique: at the weight of 0.8 a rumour, deal or accessory scores 0.28 and a new product with a price or a date about 0.67. The default threshold is 0.4 (`--threshold` tunes it). Changing weights re-scores from the cache with no new calls.
 
-**Item counts.** Target 8 to 12, hard cap 12 (weekly 18), floor 3. With 3 to 7 qualifying items the digest is shorter, never padded.
+**Item counts.** Target 8 to 12, hard cap 12 (weekly 18), floor 3. With 3 to 7 qualifying items the digest is shorter, never padded. Tech releases has its own allowance of up to 5 stories on top of the cap, taken by rank from its own pool; the floor of 3 counts both pools together.
+
+**Sections.** Top picks, Interaction craft, AI models and products, Tech releases, Research, Launches, Watch and listen. The three highest scores outside Tech releases become Top picks; a tech story never does, so a digest with fewer than three other items has fewer than three picks. At most three items per section are taken before overflow, except in Tech releases.
+
+**Source names.** An item found through an aggregator (Exa, Hacker News, Lobsters, Product Hunt) or a link-list source is credited to the publisher of its URL, from a small host table in `packages/core` or else the bare host.
 
 **Outcomes.** The Commit step reports `outcome` and `deploy` (the key keeps its name; true means an audio follow-up through `audio.yml` is needed):
 
@@ -310,11 +314,11 @@ Two roles, each behind its own interface so either can be swapped without touchi
 
 | Role | Default | Job |
 | --- | --- | --- |
-| Judge | TypeSafe Jev | Calibrated judgments: category, craft depth, hype and sponsorship flags; also the grounding check |
-| Writer | A Nebius model picked from the live list (D24) | Headline, two-sentence summary and why line in the house voice |
+| Judge | TypeSafe Jev | Calibrated judgments: category, craft depth, launch scale, hype and sponsorship flags; also the grounding check |
+| Writer | A Nebius model picked from the live list (D24) | Headline and a three or four sentence summary in the house voice |
 | Fallback judge | The Nebius writer model answering the same questions as JSON | Items Jev cannot answer (429, 529, outage), five per request, two requests in flight. Used alone when `TYPESAFE_API_KEY` is unset |
 
-**Judge: TypeSafe Jev.** `@typesafe-ai/sdk` with the `jev-latest` alias; pin an exact version once thresholds are tuned. One request per item with five questions: `category` (Choice over the ten weight keys plus `none`), `craft_depth` (Score, five levels from "announcement or opinion with no technique" to "mechanism shown with code or measurements") and Noul flags for hype, sponsorship and funding. The score uses probabilities, not the top pick, so near-ties stay honest. The grounding check is a Noul per summary and why sentence against the best source excerpt (about 36 checks per run). Thresholds are tuned on the golden set with `dispatch eval`, never copied from documentation. Price: about 0.042 USD per million input tokens, output free, roughly 0.01 USD per run; it may be subsidized, which is why the fallback judge stays wired. Retry with backoff on 429 and 529, revalidate quarterly, and confirm TypeSafe's retention and training terms before the first live call.
+**Judge: TypeSafe Jev.** `@typesafe-ai/sdk` with the `jev-latest` alias; pin an exact version once thresholds are tuned. One request per item with six questions: `category` (Choice over the eleven weight keys plus `none`), `craft_depth` (Score, five levels from "announcement or opinion with no technique" to "mechanism shown with code or measurements"), `launch_scale` (Score, five levels from "rumour, leak, deal or accessory" to "first of its kind, or an industry-wide shift") and Noul flags for hype, sponsorship and funding. The score uses probabilities, not the top pick, so near-ties stay honest. The grounding check is a Noul per summary sentence against the best source excerpt (three or four per item, so about 40 to 70 checks per run). Thresholds are tuned on the golden set with `dispatch eval`, never copied from documentation. Price: about 0.042 USD per million input tokens, output free, roughly 0.01 USD per run; it may be subsidized, which is why the fallback judge stays wired. Retry with backoff on 429 and 529, revalidate quarterly, and confirm TypeSafe's retention and training terms before the first live call.
 
 **Writer: Nebius Token Factory.**
 
@@ -333,16 +337,17 @@ Safeguards for both roles: summaries come from extracted text only; fetched cont
 
 ### 7.6 Editorial voice
 
-[voice.md](../config/voice.md) holds the rules (principles, limits, examples, banned words). The writer prompt loads it and the validator enforces its measurable parts. The limits are confirmed (D12) and mirrored as `VOICE_LIMITS` in `packages/core`.
+[voice.md](../config/voice.md) holds the rules (principles, limits, examples, banned words). The writer prompt loads it and the validator enforces its measurable parts. The limits below supersede D12 and are mirrored as `VOICE_LIMITS` in `packages/core`. A summary runs four beats: what happened, the number that makes it concrete, why it happened or what it changes, and the catch, which must come from the source.
 
 | Field | Limit |
 | --- | --- |
 | Headline | 12 words |
-| Summary | 35 words, two sentences at most |
-| Why | 18 words, one sentence |
-| Items | Regular: target 8 to 12, hard cap 12, floor 3. Weekly: up to 18 |
+| Summary | Two to four sentences, 25 to 80 words. The writer is asked for three or four; two are accepted so a thin source is never padded |
+| Sentence | 28 words, in a summary |
+| Why | No longer written. An older digest, or an agent session, may carry one: 18 words, one sentence |
+| Items | Regular: target 8 to 12, hard cap 12, floor 3. Weekly: up to 18. Tech releases: up to 5 more |
 
-The deterministic lint runs on every written field: banned words, no em dashes, exclamation marks, emoji, markdown or links, no "not just X but Y" contrasts, no rhetorical questions, no second-person commands. A failing field is rewritten once with the lint error appended, then the item drops. Audio follows the same bar: one opening line ("Dispatch, Wednesday 7 October. Eleven items."), the section name as the only transition, no outro. Site copy is sentence case with plain verbs, and errors say what happened and what to do.
+The deterministic lint runs on every written field: banned words, no em dashes, exclamation marks, emoji, markdown or links, no "not just X but Y" contrasts, no rhetorical questions, no second-person commands. A summary that is too short, too long or holds a sentence over the limit fails the same way. A failing field is rewritten once with the lint error appended, then the item drops. An item that still has a why line was written in the older voice and is not held to the summary minimums. Audio follows the same bar: one opening line ("Singularity, Wednesday 7 October. Eleven stories."), the section name as the only transition, no outro. Site copy is sentence case with plain verbs, and errors say what happened and what to do.
 
 ### 7.7 Audio
 

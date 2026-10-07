@@ -6,40 +6,35 @@
       "category": "css_canvas_motion_techniques",
       "score": 0.9,
       "headline": "Retargeting springs mid-flight in CSS with linear()",
-      "summary": "An interrupted drawer keeps its velocity by sampling current progress and building a new linear() easing. The article ships a 40-line helper.",
-      "why": "Copy the helper for drawers and toasts that users interrupt."
+      "summary": "An interrupted drawer keeps its velocity by sampling current progress and building a new linear() easing. The article ships a 40-line helper that does it. The motion stays continuous without a JavaScript animation loop. The catch is that every interruption creates a new easing string, which the author has only tested in Chromium."
     },
     {
       "id": "38d23223c5b4",
       "category": "css_canvas_motion_techniques",
       "score": 0.82,
       "headline": "Noise-driven gradient shaders with per-frame costs on mid-range phones",
-      "summary": "Three noise functions produce soft UI gradients, with a reusable GLSL snippet. A table lists frame cost on mid-range phones.",
-      "why": "Pick the cheapest noise function before shipping a shader background."
+      "summary": "Three noise functions produce soft interface gradients from one reusable GLSL snippet. A table lists the frame cost of each on mid-range phones. That makes it possible to choose a background by its cost before shipping it. The measurements cover two devices only."
     },
     {
       "id": "d918f29e468d",
       "category": "ui_component_primitives",
       "score": 0.78,
       "headline": "Radix navigation menu 2.1.0 adds safe-triangle hover intent",
-      "summary": "Nested submenus now use a safe triangle to decide hover intent. Focus also returns to the trigger when Escape closes a panel.",
-      "why": "Replace fixed hover delays in custom submenus with the same triangle test."
+      "summary": "Radix navigation menu 2.1.0 uses a safe triangle to decide hover intent in nested submenus. Focus also returns to the trigger when Escape closes a panel. A safe triangle is the area between the cursor and the submenu, where moving does not close it."
     },
     {
       "id": "5f2ad44157ea",
       "category": "hci_empirical_research",
       "score": 0.74,
       "headline": "Safe triangle cuts submenu mis-selections by 31 percent in a 48-person study",
-      "summary": "A cursor study compares three submenu hover strategies. The safe triangle beat a fixed delay on mis-selections.",
-      "why": "Cite the 31 percent figure when defending the triangle in design reviews."
+      "summary": "A cursor study compares three ways of keeping a submenu open while the pointer travels to it. With 48 participants, the safe triangle cut mis-selections by 31 percent against a fixed delay. The result gives the pattern a measured basis. The study used a mouse only, so touch and trackpad are untested."
     },
     {
-      "id": "16cd37779bbc",
-      "category": "ai_ux_interaction_patterns",
-      "score": 0.7,
-      "headline": "Four measures for agent UIs: first useful signal, correction cost, interruptions, recovery",
-      "summary": "Proposes first useful signal, correction cost, interruptions and recovery as the measures, with two worked examples.",
-      "why": "Measure an agent flow against all four before adding features."
+      "id": "0c1e5b7d92aa",
+      "category": "consumer_tech_releases",
+      "score": 0.67,
+      "headline": "Orbit 12 launches at 799 dollars with seven years of updates",
+      "summary": "The Orbit 12 phone goes on sale on 16 October at 799 dollars, the same price as last year. It has a larger 5,200 mAh battery and seven years of software updates. The longer support answers new repair rules in Europe. The charger is still sold separately."
     }
   ]
 }
