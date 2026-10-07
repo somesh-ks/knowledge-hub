@@ -49,6 +49,65 @@ describe("createSwitchableAudio", () => {
     expect(calls).toBe(0);
   });
 
+  it("primes an empty element with silence, and keeps that from its listeners", async () => {
+    const element = new FakeAudio();
+    const audio = createSwitchableAudio(element);
+    const heard: string[] = [];
+    for (const type of ["playing", "pause", "ended", "loadedmetadata"]) {
+      audio.addEventListener(type, () => heard.push(type));
+    }
+    audio.prime("/silence.wav");
+    expect(element.src).toBe("/silence.wav");
+    expect(element.playCalls).toBe(1);
+    element.loadMetadata(0.05);
+    element.startPlaying();
+    await Promise.resolve();
+    await Promise.resolve();
+    // Released as soon as it has started: the tap is what mattered, not the sound.
+    expect(element.pauseCalls).toBe(1);
+    expect(element.src).toBe("");
+    element.emit("pause");
+    element.emit("emptied");
+    expect(heard).toEqual([]);
+    // From here the element's events are the track's again.
+    element.emit("playing");
+    expect(heard).toEqual(["playing"]);
+  });
+
+  it("primes an element that holds an unstarted source without changing it", async () => {
+    const element = new FakeAudio();
+    const audio = createSwitchableAudio(element);
+    const heard: string[] = [];
+    audio.addEventListener("pause", () => heard.push("pause"));
+    audio.src = "/audio/a.mp3";
+    audio.prime("/silence.wav");
+    expect(element.src).toBe("/audio/a.mp3");
+    expect(element.playCalls).toBe(1);
+    expect(element.pauseCalls).toBe(1);
+    element.emit("pause");
+    expect(heard).toEqual([]);
+    await Promise.resolve();
+    await Promise.resolve();
+    element.emit("pause");
+    expect(heard).toEqual(["pause"]);
+  });
+
+  it("does not prime an element that is already playing, or one behind an adapter", async () => {
+    const element = new FakeAudio();
+    const audio = createSwitchableAudio(element);
+    audio.src = "/audio/a.mp3";
+    await audio.play();
+    audio.prime("/silence.wav");
+    expect(element.playCalls).toBe(1);
+    expect(element.src).toBe("/audio/a.mp3");
+
+    const wrapped = new FakeAudio();
+    const behind = createSwitchableAudio(wrapped);
+    behind.use(createTrackAudio(wrapped, { resolve: () => null }));
+    behind.prime("/silence.wav");
+    expect(wrapped.playCalls).toBe(0);
+  });
+
   it("lets the store keep playing a file while the track adapter is slotted in", async () => {
     const element = new FakeAudio();
     const audio = createSwitchableAudio(element);
