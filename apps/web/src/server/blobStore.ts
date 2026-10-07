@@ -1,125 +1,265 @@
-import { BlobNotFoundError } from "@vercel/blob";
+import { BlobError, BlobNotFoundError } from "@vercel/blob";
 import type { BlobCredentials } from "./config";
+import { BLOB_CALL_TIMEOUT_MS } from "./functionLimits.mjs";
 
 /**
  * The slice of Vercel Blob that /api/narrate uses, as an interface so the handler is tested against
  * an in-memory fake and never against the network. `createVercelBlobStore` is the real one.
+ *
+ * Operations are a budget here, like Speechify characters. The Hobby plan includes 2,000 ADVANCED
+ * operations a month (put and list) and 10,000 SIMPLE ones (head, and a read by URL that misses the
+ * CDN cache). A delete and a cached read are free. Going over blocks the store for 30 days, so each
+ * method below says what it costs, and narrate.ts counts what each request spends.
  */
 
-/** One stored object. `uploadedAt` is epoch milliseconds, by the store's clock. */
 export interface BlobEntry {
   pathname: string;
   url: string;
+  /** Upload time in epoch milliseconds, by the store's clock. */
   uploadedAt: number;
+  /** Size in bytes, or 0 when the store did not say. */
+  size: number;
+  /** Changes whenever the content does. `versionedUrl` puts it in the URL. */
+  version: string;
 }
 
 export interface BlobWriteOptions {
   contentType: string;
   /** Edge and browser cache lifetime in seconds. Vercel Blob's floor is 60. */
   cacheSeconds: number;
+  /** Give up on this call after this long. Without it the store's own limit applies. */
+  timeoutMs?: number;
 }
 
 export interface NarrateBlobStore {
-  /** Metadata only, without downloading the object. Null when nothing is stored there. */
+  /** SIMPLE. Metadata only, without downloading the object. Null when nothing is stored there. */
   head(pathname: string): Promise<BlobEntry | null>;
   /**
-   * The object as text, or null when nothing is stored there. Always read past the CDN cache: the
-   * function decides from these files whether to spend, and a copy up to a minute old (or a cached
-   * "not found") could make it narrate a digest twice.
+   * SIMPLE when the CDN has not seen this URL, free when it has. The object's text, read by URL,
+   * or null when there is none. The CDN answers from its cache, so a plain URL can return an old
+   * copy. Never call this with a bare URL for anything that changes: use `readFresh`.
    */
-  readText(pathname: string): Promise<string | null>;
-  /** Everything under a prefix, every page. */
+  fetchText(url: string): Promise<string | null>;
+  /** ADVANCED, once per page of 1,000. Everything under a prefix. */
   list(prefix: string): Promise<BlobEntry[]>;
-  /** Writes at a fixed pathname, replacing what was there, and returns the public URL. */
+  /** ADVANCED. Writes at a fixed pathname, replacing what was there, and returns the public URL. */
   put(
     pathname: string,
     body: Uint8Array | string,
     options: BlobWriteOptions,
   ): Promise<{ url: string }>;
+  /**
+   * ADVANCED. Writes only if nothing is stored there yet, and says whether it did. The store
+   * decides, so of two requests that create the same object at once, exactly one is told yes.
+   */
+  create(pathname: string, body: string, options: BlobWriteOptions): Promise<boolean>;
+  /** Free. */
   del(pathname: string): Promise<void>;
+}
+
+/** The object's URL with its version in the query, so the CDN cannot answer with an older copy. */
+export function versionedUrl(entry: BlobEntry): string {
+  const url = new URL(entry.url);
+  url.searchParams.set("v", entry.version);
+  return url.href;
+}
+
+/**
+ * The current content of an object that changes: its metadata from the store, then its text by a
+ * URL that names the version the store just reported. A new version is a URL the CDN has never
+ * seen, so it has to fetch the real thing; an unchanged object is the same URL again, which the CDN
+ * serves from cache for free. Two SIMPLE operations at most.
+ */
+export async function readFresh(
+  blob: NarrateBlobStore,
+  pathname: string,
+): Promise<{ entry: BlobEntry; text: string } | null> {
+  const entry = await blob.head(pathname);
+  if (entry === null) return null;
+  const text = await blob.fetchText(versionedUrl(entry));
+  return text === null ? null : { entry, text };
 }
 
 interface SdkBlob {
   url: string;
   pathname: string;
   uploadedAt: Date;
+  size?: number;
+  etag?: string;
 }
+
+type Bounded = BlobCredentials & { abortSignal: AbortSignal };
 
 /**
  * The functions of `@vercel/blob` the store calls, typed by what it passes and reads. The route
  * hands in the real module; the adapter's test hands in fakes.
  */
 export interface BlobSdk {
-  head(pathname: string, options: BlobCredentials): Promise<SdkBlob>;
-  get(
-    pathname: string,
-    options: BlobCredentials & { access: "public"; useCache: false },
-  ): Promise<{ stream: ReadableStream<Uint8Array> | null; blob: { size: number | null } } | null>;
+  head(pathname: string, options: Bounded): Promise<SdkBlob>;
   list(
-    options: BlobCredentials & { prefix: string; cursor?: string },
+    options: Bounded & { prefix: string; cursor?: string },
   ): Promise<{ blobs: SdkBlob[]; cursor?: string; hasMore: boolean }>;
   put(
     pathname: string,
     body: string | Buffer,
-    options: BlobCredentials & {
+    options: Bounded & {
       access: "public";
       addRandomSuffix: false;
-      allowOverwrite: true;
+      allowOverwrite: boolean;
       contentType: string;
       cacheControlMaxAge: number;
     },
   ): Promise<{ url: string }>;
-  del(pathname: string, options: BlobCredentials): Promise<void>;
+  del(pathname: string, options: Bounded): Promise<void>;
 }
 
+/** Reads a blob by URL. The global `fetch` in production, a fake in the adapter's test. */
+export type BlobFetch = (url: string, init: { signal: AbortSignal }) => Promise<Response>;
+
 /** The store holds small JSON files besides the audio; nothing read as text should be near this. */
-const MAX_TEXT_BYTES = 1_000_000;
-/** A listing is 1,000 objects a page. This is far past one narration per digest for years. */
+export const MAX_TEXT_BYTES = 1_000_000;
+/** A listing is 1,000 objects a page. This is far past one digest's files. */
 const MAX_LIST_PAGES = 20;
 
 function toEntry(blob: SdkBlob): BlobEntry {
-  return { pathname: blob.pathname, url: blob.url, uploadedAt: blob.uploadedAt.getTime() };
+  return {
+    pathname: blob.pathname,
+    url: blob.url,
+    uploadedAt: blob.uploadedAt.getTime(),
+    size: blob.size && blob.size > 0 ? blob.size : 0,
+    // The ETag changes with the content. The upload time is the fallback when there is none.
+    version: blob.etag ? blob.etag.replace(/[^A-Za-z0-9]/g, "") : String(blob.uploadedAt.getTime()),
+  };
+}
+
+/**
+ * A put that was told not to overwrite and found something there. The SDK has no error class for
+ * it: the store answers with a plain error whose message says the blob already exists.
+ */
+function isAlreadyThere(error: unknown): boolean {
+  return error instanceof BlobError && /already exists/i.test(error.message);
+}
+
+/**
+ * The response body as text, read no further than `limit` bytes. The store's own report of a size
+ * is not trusted for this: it can be missing or zero, and then it would wave anything through.
+ */
+async function readText(response: Response, limit: number): Promise<string> {
+  if (response.body === null) return "";
+  const reader = response.body.getReader();
+  const chunks: Uint8Array[] = [];
+  let total = 0;
+  for (;;) {
+    const { done, value } = await reader.read();
+    if (done) break;
+    total += value.byteLength;
+    if (total > limit) {
+      await reader.cancel().catch(() => undefined);
+      throw new Error("the object is too large to be one of the store's JSON files");
+    }
+    chunks.push(value);
+  }
+  return new TextDecoder().decode(Buffer.concat(chunks));
+}
+
+/**
+ * Runs one call with a time limit. The signal is handed to the call so it can stop its request,
+ * and the limit holds even if it does not: the SDK retries up to ten times by itself, and its waits
+ * between tries do not listen to a signal. Without this, one slow call could outlast the function.
+ */
+async function withLimit<T>(
+  timeoutMs: number,
+  call: (signal: AbortSignal) => Promise<T>,
+): Promise<T> {
+  const controller = new AbortController();
+  let timer: ReturnType<typeof setTimeout> | undefined;
+  const timedOut = new Promise<never>((_resolve, reject) => {
+    timer = setTimeout(
+      () => {
+        const reason = new DOMException("The store did not answer in time", "TimeoutError");
+        controller.abort(reason);
+        reject(reason);
+      },
+      Math.max(1, timeoutMs),
+    );
+  });
+  try {
+    const work = call(controller.signal);
+    // If the limit wins, whatever the call does afterwards is nobody's to handle.
+    work.catch(() => undefined);
+    return await Promise.race([work, timedOut]);
+  } finally {
+    clearTimeout(timer);
+  }
 }
 
 /**
  * Wraps `@vercel/blob` with the credentials passed on every call, so it never depends on what
- * happens to be in process.env. Objects are public, at fixed pathnames, and overwritten in place, so
- * a digest's audio URL stays the same across reruns.
+ * happens to be in process.env. Objects are public and at fixed pathnames. Every call has a time
+ * limit of its own.
  */
 export function createVercelBlobStore(
   credentials: BlobCredentials,
   sdk: BlobSdk,
+  doFetch: BlobFetch,
 ): NarrateBlobStore {
+  const write = (
+    pathname: string,
+    body: Uint8Array | string,
+    options: BlobWriteOptions,
+    allowOverwrite: boolean,
+  ): Promise<{ url: string }> =>
+    withLimit(options.timeoutMs ?? BLOB_CALL_TIMEOUT_MS, (abortSignal) =>
+      sdk.put(
+        pathname,
+        typeof body === "string"
+          ? body
+          : Buffer.from(body.buffer, body.byteOffset, body.byteLength),
+        {
+          access: "public",
+          addRandomSuffix: false,
+          allowOverwrite,
+          contentType: options.contentType,
+          cacheControlMaxAge: options.cacheSeconds,
+          ...credentials,
+          abortSignal,
+        },
+      ),
+    );
+
   return {
     async head(pathname) {
       try {
-        return toEntry(await sdk.head(pathname, credentials));
+        return toEntry(
+          await withLimit(BLOB_CALL_TIMEOUT_MS, (abortSignal) =>
+            sdk.head(pathname, { ...credentials, abortSignal }),
+          ),
+        );
       } catch (error) {
         if (error instanceof BlobNotFoundError) return null;
         throw error;
       }
     },
 
-    async readText(pathname) {
-      let result: Awaited<ReturnType<BlobSdk["get"]>>;
-      try {
-        result = await sdk.get(pathname, { access: "public", useCache: false, ...credentials });
-      } catch (error) {
-        if (error instanceof BlobNotFoundError) return null;
-        throw error;
-      }
-      if (result === null || result.stream === null) return null;
-      if ((result.blob.size ?? 0) > MAX_TEXT_BYTES) {
-        throw new Error(`${pathname} is too large to be one of the store's JSON files`);
-      }
-      return await new Response(result.stream).text();
+    async fetchText(url) {
+      if (!url.startsWith("https://")) throw new Error("refusing to read a blob that is not https");
+      return withLimit(BLOB_CALL_TIMEOUT_MS, async (signal) => {
+        const response = await doFetch(url, { signal });
+        if (response.status === 404) return null;
+        // The status only: a body from the store or the CDN never goes into a message.
+        if (!response.ok) throw new Error(`the store answered ${response.status} to a read`);
+        return readText(response, MAX_TEXT_BYTES);
+      });
     },
 
     async list(prefix) {
       const entries: BlobEntry[] = [];
       let cursor: string | undefined;
       for (let page = 0; page < MAX_LIST_PAGES; page += 1) {
-        const result = await sdk.list({ prefix, ...(cursor ? { cursor } : {}), ...credentials });
+        const from = cursor;
+        const result = await withLimit(BLOB_CALL_TIMEOUT_MS, (abortSignal) =>
+          sdk.list({ prefix, ...(from ? { cursor: from } : {}), ...credentials, abortSignal }),
+        );
         entries.push(...result.blobs.map(toEntry));
         if (!result.hasMore || !result.cursor) return entries;
         cursor = result.cursor;
@@ -128,25 +268,24 @@ export function createVercelBlobStore(
     },
 
     async put(pathname, body, options) {
-      const result = await sdk.put(
-        pathname,
-        typeof body === "string"
-          ? body
-          : Buffer.from(body.buffer, body.byteOffset, body.byteLength),
-        {
-          access: "public",
-          addRandomSuffix: false,
-          allowOverwrite: true,
-          contentType: options.contentType,
-          cacheControlMaxAge: options.cacheSeconds,
-          ...credentials,
-        },
-      );
+      const result = await write(pathname, body, options, true);
       return { url: result.url };
     },
 
+    async create(pathname, body, options) {
+      try {
+        await write(pathname, body, options, false);
+        return true;
+      } catch (error) {
+        if (isAlreadyThere(error)) return false;
+        throw error;
+      }
+    },
+
     async del(pathname) {
-      await sdk.del(pathname, credentials);
+      await withLimit(BLOB_CALL_TIMEOUT_MS, (abortSignal) =>
+        sdk.del(pathname, { ...credentials, abortSignal }),
+      );
     },
   };
 }

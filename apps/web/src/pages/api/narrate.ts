@@ -1,5 +1,5 @@
 import { verifyPassphrase } from "@dispatch/core/passphrase";
-import { del, get, head, list, put } from "@vercel/blob";
+import { del, head, list, put } from "@vercel/blob";
 import type { APIRoute } from "astro";
 import { createVercelBlobStore } from "../../server/blobStore";
 import { bundledDigests } from "../../server/digestSource";
@@ -20,7 +20,8 @@ const OIDC_HEADER = "x-vercel-oidc-token";
 
 const lookupDeps: LookupDeps = {
   env: process.env,
-  openBlob: (credentials) => createVercelBlobStore(credentials, { head, get, list, put, del }),
+  // The store's files are read by URL with the plain fetch; everything else goes through the SDK.
+  openBlob: (credentials) => createVercelBlobStore(credentials, { head, list, put, del }, fetch),
   digests: bundledDigests,
   log: (message) => console.error(`[api/narrate] ${message}`),
 };

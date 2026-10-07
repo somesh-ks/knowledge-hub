@@ -18,14 +18,25 @@
 export const FUNCTION_MAX_DURATION_S = 20;
 
 /**
- * How long /api/narrate lets Speechify take. Past it the handler aborts the upstream request and
- * answers "took_too_long".
+ * The longest /api/narrate lets Speechify take. Past it the handler aborts the upstream request and
+ * answers "took_too_long". The handler counts from the start of the request and never lets synthesis
+ * run into NARRATE_OVERHEAD_MS, so a slow start shortens this; it is a ceiling, not a promise.
  */
 export const SYNTHESIS_DEADLINE_MS = 12_000;
 
 /**
  * Time kept back for everything around synthesis: the passphrase check, the Blob lookups, and the
- * two uploads with their retries. Killed in the middle of an upload, the function would lose audio
- * that was already paid for.
+ * uploads with their retries. Killed in the middle of an upload, the function would lose audio that
+ * was already paid for. The handler enforces it: synthesis must end this long before the function's
+ * limit, whatever SYNTHESIS_DEADLINE_MS says.
  */
 export const NARRATE_OVERHEAD_MS = 8_000;
+
+/**
+ * The longest any one call to the Blob store may take. The Blob SDK retries by itself, up to ten
+ * times, so without a limit of our own a single slow call could outlast the function.
+ */
+export const BLOB_CALL_TIMEOUT_MS = 3_000;
+
+/** An audio upload is larger than a lookup, so it gets longer, but never more than the time left. */
+export const BLOB_UPLOAD_TIMEOUT_MS = 6_000;

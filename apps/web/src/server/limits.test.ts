@@ -1,12 +1,5 @@
 import { describe, expect, it } from "vitest";
-import {
-  COOLDOWN_MS,
-  DAILY_CAP,
-  DAY_MS,
-  evaluateDailyCap,
-  evaluateLimits,
-  NARRATE_DAILY_CAP,
-} from "./limits";
+import { COOLDOWN_MS, DAILY_CAP, DAY_MS, evaluateLimits, NARRATE_DAILY_CAP } from "./limits";
 
 const NOW = Date.parse("2026-10-07T12:00:00Z");
 const hoursAgo = (hours: number) => NOW - hours * 60 * 60 * 1000;
@@ -84,44 +77,8 @@ describe("evaluateLimits", () => {
   });
 });
 
-describe("evaluateDailyCap", () => {
-  it("allows narrations up to the cap, with no cooldown between them", () => {
-    expect(evaluateDailyCap([], NOW)).toEqual({ allowed: true });
-    expect(evaluateDailyCap([hoursAgo(0.01), hoursAgo(0.02)], NOW)).toEqual({ allowed: true });
-  });
-
-  it("blocks at the cap and waits for the oldest upload to leave the day window", () => {
-    expect(evaluateDailyCap([hoursAgo(1), hoursAgo(5), hoursAgo(20)], NOW)).toEqual({
-      allowed: false,
-      retryAfterSeconds: 4 * 3600,
-    });
-  });
-
-  it("waits for as many uploads to age out as it takes to get under the cap", () => {
-    // Five in the window: the third oldest has to leave before one more fits.
-    const uploads = [hoursAgo(1), hoursAgo(2), hoursAgo(10), hoursAgo(15), hoursAgo(20)];
-    expect(evaluateDailyCap(uploads, NOW)).toEqual({
-      allowed: false,
-      retryAfterSeconds: 14 * 3600,
-    });
-  });
-
-  it("ignores uploads older than a day and the order they are listed in", () => {
-    expect(evaluateDailyCap([hoursAgo(25), hoursAgo(30), hoursAgo(48)], NOW)).toEqual({
-      allowed: true,
-    });
-    const uploads = [hoursAgo(20), hoursAgo(1), hoursAgo(5)];
-    expect(evaluateDailyCap(uploads, NOW)).toEqual(evaluateDailyCap([...uploads].reverse(), NOW));
-  });
-
-  it("rounds the wait up to whole seconds and takes another cap", () => {
-    expect(evaluateDailyCap([NOW - DAY_MS + 1500], NOW, 1)).toEqual({
-      allowed: false,
-      retryAfterSeconds: 2,
-    });
-    expect(evaluateDailyCap([hoursAgo(1)], NOW, 2)).toEqual({ allowed: true });
-  });
-
+describe("the narrate daily cap", () => {
+  // How it is applied is tested with the document it is read from, in narrationState.test.ts.
   it("keeps the documented number", () => {
     expect(NARRATE_DAILY_CAP).toBe(3);
   });

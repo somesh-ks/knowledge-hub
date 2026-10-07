@@ -2,11 +2,13 @@ import { readFileSync } from "node:fs";
 import { join } from "node:path";
 import { describe, expect, it } from "vitest";
 import {
+  BLOB_CALL_TIMEOUT_MS,
+  BLOB_UPLOAD_TIMEOUT_MS,
   FUNCTION_MAX_DURATION_S,
   NARRATE_OVERHEAD_MS,
   SYNTHESIS_DEADLINE_MS,
 } from "./functionLimits.mjs";
-import { MARKER_TTL_MS } from "./narrate";
+import { MARKER_CLEAR_WAIT_MS, MARKER_TTL_MS } from "./narrate";
 
 /**
  * The numbers in functionLimits.mjs will be changed by hand once synthesis has been timed. These
@@ -30,6 +32,15 @@ describe("function limits", () => {
 
   it("keeps a narration's marker for longer than a function can live", () => {
     expect(MARKER_TTL_MS).toBeGreaterThan(FUNCTION_MAX_DURATION_S * 1000);
+  });
+
+  it("gives up on a store call well inside the time kept back for the store", () => {
+    expect(BLOB_CALL_TIMEOUT_MS).toBeGreaterThan(0);
+    expect(BLOB_UPLOAD_TIMEOUT_MS).toBeGreaterThanOrEqual(BLOB_CALL_TIMEOUT_MS);
+    // One upload has to be able to run its full time after synthesis has used all of its own.
+    expect(BLOB_UPLOAD_TIMEOUT_MS).toBeLessThan(NARRATE_OVERHEAD_MS);
+    // Waiting for the marker to be deleted is the shortest wait of all.
+    expect(MARKER_CLEAR_WAIT_MS).toBeLessThan(BLOB_CALL_TIMEOUT_MS);
   });
 
   it("is the only place the adapter's limit is written", () => {

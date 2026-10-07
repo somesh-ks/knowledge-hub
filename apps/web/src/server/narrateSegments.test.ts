@@ -1,14 +1,15 @@
 import { describe, expect, it } from "vitest";
 import type { BlobEntry } from "./blobStore";
+import { MS_PER_CHARACTER } from "./config";
 import {
   describeSegments,
   digestPrefix,
-  parseSegmentEntry,
+  estimateDurationMs,
   SEGMENT_KEY,
+  segmentAudio,
   segmentHash,
   segmentPath,
   segmentPrefix,
-  slotKey,
 } from "./narrateSegments";
 
 const HOST = "https://teststore.public.blob.vercel-storage.com";
@@ -16,10 +17,12 @@ const DIGEST = "2026-10-07";
 const VOICE = "geffen_32";
 const MODEL = "simba-3.2";
 
-const entry = (pathname: string, uploadedAt = 1000, url = `${HOST}/${pathname}`): BlobEntry => ({
+const entry = (pathname: string, size = 16_000, url = `${HOST}/${pathname}`): BlobEntry => ({
   pathname,
   url,
-  uploadedAt,
+  uploadedAt: 1000,
+  size,
+  version: "v1",
 });
 
 describe("segmentHash", () => {
@@ -40,51 +43,40 @@ describe("segmentHash", () => {
   });
 });
 
-describe("segmentPath and parseSegmentEntry", () => {
-  it("names a file after its segment, its hash and its duration, under the digest's prefix", () => {
+describe("segmentPath", () => {
+  it("can be worked out from the digest alone, so finding a segment needs no listing", () => {
     const hash = segmentHash("Opening.", VOICE, MODEL);
-    const path = segmentPath(DIGEST, "intro", hash, 2750.4);
-    expect(path).toBe(`audio/2026-10-07/seg/intro.${hash}.2750.mp3`);
+    const path = segmentPath(DIGEST, "intro", hash);
+    expect(path).toBe(`audio/2026-10-07/seg/intro.${hash}.mp3`);
     expect(path.startsWith(segmentPrefix(DIGEST))).toBe(true);
+    // And one listing of the digest's prefix finds it together with the whole-digest MP3.
     expect(path.startsWith(digestPrefix(DIGEST))).toBe(true);
+    expect(`audio/${DIGEST}.mp3`.startsWith(digestPrefix(DIGEST))).toBe(true);
+  });
+});
+
+describe("estimateDurationMs and segmentAudio", () => {
+  it("works a duration out from the size: 128 kbps is 16,000 bytes a second", () => {
+    expect(estimateDurationMs(16_000, 50)).toBe(1000);
+    expect(estimateDurationMs(44_000, 50)).toBe(2750);
+    expect(estimateDurationMs(1, 50)).toBe(1);
   });
 
-  it("reads a listed file back into what its name says", () => {
-    const hash = segmentHash("A story.", VOICE, MODEL);
-    const path = segmentPath(DIGEST, "00000000000a", hash, 41_300);
-    expect(parseSegmentEntry(DIGEST, entry(path, 77))).toEqual({
-      key: "00000000000a",
-      hash,
-      durationMs: 41_300,
+  it("falls back to the length of the text when the store reports no size", () => {
+    expect(estimateDurationMs(0, 100)).toBe(100 * MS_PER_CHARACTER);
+    expect(estimateDurationMs(0, 0)).toBe(1);
+  });
+
+  it("is the stored file as audio, or null when there is none or it is not https", () => {
+    const path = segmentPath(DIGEST, "intro", "0123456789ab");
+    expect(segmentAudio(entry(path, 32_000), 40)).toEqual({
       url: `${HOST}/${path}`,
-      uploadedAt: 77,
+      duration_ms: 2000,
     });
-  });
-
-  it("is null for anything that is not a segment of this digest", () => {
-    const hash = "0123456789ab";
-    for (const pathname of [
-      `audio/${DIGEST}.mp3`,
-      `audio/${DIGEST}-2/seg/intro.${hash}.1000.mp3`,
-      `audio/${DIGEST}/seg/intro.mp3`,
-      `audio/${DIGEST}/seg/intro.${hash}.mp3`,
-      `audio/${DIGEST}/seg/intro.${hash}.0.mp3`,
-      `audio/${DIGEST}/seg/intro.${hash}.12x.mp3`,
-      `audio/${DIGEST}/seg/intro.${hash.toUpperCase()}.1000.mp3`,
-      `audio/${DIGEST}/seg/intro.short.1000.mp3`,
-      `audio/${DIGEST}/seg/Intro.${hash}.1000.mp3`,
-      `audio/${DIGEST}/seg/deeper/intro.${hash}.1000.mp3`,
-      `audio/${DIGEST}/seg/intro.${hash}.1000.wav`,
-      `timeline/${DIGEST}.json`,
-    ]) {
-      expect(parseSegmentEntry(DIGEST, entry(pathname)), pathname).toBeNull();
-    }
-  });
-
-  it("is null for a file whose URL is not https", () => {
-    const path = segmentPath(DIGEST, "intro", "0123456789ab", 1000);
-    expect(parseSegmentEntry(DIGEST, entry(path, 1, `http://insecure.example/${path}`))).toBeNull();
-    expect(parseSegmentEntry(DIGEST, entry(path, 1, "not a url"))).toBeNull();
+    expect(segmentAudio(null, 40)).toBeNull();
+    expect(segmentAudio(undefined, 40)).toBeNull();
+    expect(segmentAudio(entry(path, 32_000, `http://insecure.example/${path}`), 40)).toBeNull();
+    expect(segmentAudio(entry(path, 32_000, "not a url"), 40)).toBeNull();
   });
 });
 
@@ -94,13 +86,10 @@ describe("describeSegments", () => {
     { key: "00000000000a", itemId: "00000000000a", text: "Top stories.\n\nFirst story." },
     { key: "00000000000b", itemId: "00000000000b", text: "Second story." },
   ];
-  const fileFor = (index: number, durationMs: number, uploadedAt = 1000) => {
+  const fileFor = (index: number, size: number) => {
     const segment = segments[index];
     if (!segment) throw new Error("no such segment");
-    return entry(
-      segmentPath(DIGEST, segment.key, segmentHash(segment.text, VOICE, MODEL), durationMs),
-      uploadedAt,
-    );
+    return entry(segmentPath(DIGEST, segment.key, segmentHash(segment.text, VOICE, MODEL)), size);
   };
 
   it("lists every segment in order with its length, narrated or not", () => {
@@ -111,9 +100,9 @@ describe("describeSegments", () => {
     ]);
   });
 
-  it("gives a segment the file whose name carries its key and its hash", () => {
-    const intro = fileFor(0, 2750);
-    const second = fileFor(2, 9100);
+  it("gives a segment the file at the path its text and voice work out to", () => {
+    const intro = fileFor(0, 44_000);
+    const second = fileFor(2, 145_600);
     const described = describeSegments(segments, [second, intro], DIGEST, VOICE, MODEL);
     expect(described.map((segment) => segment.audio)).toEqual([
       { url: intro.url, duration_ms: 2750 },
@@ -124,44 +113,31 @@ describe("describeSegments", () => {
 
   it("does not give a segment a file made from other text, another voice or another key", () => {
     const edited = entry(
-      segmentPath(DIGEST, "intro", segmentHash("An older opening.", VOICE, MODEL), 2000),
+      segmentPath(DIGEST, "intro", segmentHash("An older opening.", VOICE, MODEL)),
     );
     const otherVoice = entry(
-      segmentPath(DIGEST, "intro", segmentHash("Opening.", "henry_7", MODEL), 2000),
+      segmentPath(DIGEST, "intro", segmentHash("Opening.", "henry_7", MODEL)),
     );
-    // The intro's own hash under another segment's key.
-    const wrongKey = entry(
-      segmentPath(DIGEST, "00000000000b", segmentHash("Opening.", VOICE, MODEL), 2000),
-    );
+    // The intro's own hash under another segment's key, and in another digest's folder.
+    const hash = segmentHash("Opening.", VOICE, MODEL);
+    const wrongKey = entry(segmentPath(DIGEST, "00000000000b", hash));
+    const otherDigest = entry(segmentPath("2026-10-07-2", "intro", hash));
     const described = describeSegments(
       segments,
-      [edited, otherVoice, wrongKey],
+      [edited, otherVoice, wrongKey, otherDigest],
       DIGEST,
       VOICE,
       MODEL,
     );
     expect(described.every((segment) => segment.audio === null)).toBe(true);
   });
-
-  it("names the first upload when the same segment has two files", () => {
-    const later = fileFor(0, 2800, 5000);
-    const first = fileFor(0, 2750, 1000);
-    expect(describeSegments(segments, [later, first], DIGEST, VOICE, MODEL)[0]?.audio).toEqual({
-      url: first.url,
-      duration_ms: 2750,
-    });
-  });
 });
 
-describe("keys", () => {
+describe("segment keys", () => {
   it("accepts the keys segments have and nothing that could leave the segment folder", () => {
     for (const key of ["intro", "outro", "00000000000a"]) expect(SEGMENT_KEY.test(key)).toBe(true);
     for (const key of ["", "../x", "a/b", "a.b", "Intro", "x".repeat(33)]) {
       expect(SEGMENT_KEY.test(key), key).toBe(false);
     }
-  });
-
-  it("keeps one slot per digest", () => {
-    expect(slotKey(DIGEST)).toBe("state/slots/2026-10-07.json");
   });
 });

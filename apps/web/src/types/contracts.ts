@@ -143,6 +143,10 @@ export interface NarrationSegment {
   /**
    * The file, once this segment is narrated; null until then. The URL changes when the story's text
    * changes, so never build it: read it from here.
+   *
+   * `duration_ms` is exact in the answer to the POST that narrated the segment. In a lookup it is
+   * worked out from the file's size and can be a few frames off, so once the audio element has
+   * loaded the file, take the duration from the element.
    */
   audio: { url: string; duration_ms: number } | null;
 }
@@ -163,9 +167,11 @@ export type NarrateError =
   | { status: 409; error: "in_progress"; retry_after_s: number }
   // The digest cannot be read aloud: nothing to say, or too long for one request. Do not retry.
   | { status: 422; error: "not_narratable" }
-  // Too many digests narrated in 24 hours. A digest that already has any narration is not refused.
+  // Too many digests were first narrated today (a Stockholm day; `retry_after_s` runs to midnight
+  // there). A digest that was already narrated this month, in part or whole, is never refused.
   | { status: 429; error: "daily_cap"; retry_after_s: number }
-  // The month's voice allowance is used up. It resets with the calendar month.
+  // The month's voice allowance has no room for this digest. A digest is charged whole the first
+  // time any part of it is narrated. It resets with the calendar month.
   | { status: 429; error: "monthly_budget" }
   // The voice service failed, or the finished audio could not be stored. Trying again later is safe.
   | { status: 502; error: "synthesis_failed" | "storage_failed" }
