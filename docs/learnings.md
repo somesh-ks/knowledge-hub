@@ -2,6 +2,13 @@
 
 One line each: symptom, cause, fix. Newest first. Search before debugging.
 
+- A function's budget counter could lose counts: `@vercel/blob` honours `useCache: false` only for private stores, and this store is public, so a state read could be a minute stale. Read mutable state with `head()` and then the URL plus a version query built from what `head` returned.
+- Vercel Hobby includes 2,000 advanced Blob operations a month (`put`, `copy`, `list`) and 10,000 simple ones (`head`, a read that misses the cache); going over locks the store for 30 days. Count operations per call when designing anything that writes to Blob, and never `list` on a page view.
+- The live Play control never changed to Pause: the page rendered `.cta-label` while `readerSync` wrote to `[data-play-label]`, and every player test ran against the dev lab page, which had the right hooks. Test the contract between markup and script on a real built page.
+- The disk filled (0 bytes free) when two agents each ran `npm ci` in their own worktree. Give a worktree junctions into the main `node_modules` instead, and never install inside one.
+- `npm run lint` fails inside a worktree under `.claude/`: `biome.json` ignores `**/.claude`, so Biome ignores `.` there. Run `npx biome check apps packages scripts tokens` in the worktree and the full lint from the main checkout.
+- An inline `node -e` or heredoc script lost its backslashes in the agent shell (a regex `/\/+$/` arrived as `//+$/`). Write any script that contains a backslash to a file first.
+
 - Blob upload failed with "OIDC is enabled for this project, but not for the development environment": the CLI pull issues a development OIDC token and the store was connected to Production and Preview only. Connect the store to Development too (dashboard, Storage, store, connected project, environments).
 - `audio.yml` failed at the write guard ("changes outside the publish allowlist: .gitignore"): `vercel link` and `vercel env pull` edit `.gitignore` and write `.vercel`; run them in a scratch directory outside the checkout.
 - `vercel env pull` writes the text `[SENSITIVE]` for hidden secrets, so `BLOB_READ_WRITE_TOKEN` would load as that string and beat the OIDC credentials; `loadEnv` now treats it as unset.
