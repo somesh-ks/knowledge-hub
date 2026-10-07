@@ -66,11 +66,20 @@ export const Digest = z.object({
 });
 export type Digest = z.infer<typeof Digest>;
 
-/** Voice and size limits. Enforced by the validator and quoted in the writer prompt. */
+/**
+ * Voice and size limits. Enforced by the validator and quoted in the writer prompt.
+ *
+ * A summary runs the four beats in three or four sentences. Two sentences are accepted so a thin
+ * source is never padded. `whyWords` applies only to the why line of digests written before the
+ * four-beat voice. `techCap` is the allowance for the Tech releases section, on top of `cap`.
+ */
 export const VOICE_LIMITS = {
   headlineWords: 12,
-  summaryWords: 35,
-  summarySentences: 2,
+  summaryWords: 80,
+  summarySentences: 4,
+  summaryMinWords: 25,
+  summaryMinSentences: 2,
+  sentenceWords: 28,
   whyWords: 18,
-  items: { floor: 3, target: [8, 12], cap: 12, weeklyCap: 18 },
+  items: { floor: 3, target: [8, 12], cap: 12, weeklyCap: 18, techCap: 5 },
 } as const;
