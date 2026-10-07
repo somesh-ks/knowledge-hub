@@ -92,7 +92,7 @@ function asSentence(text: string): string {
 }
 
 function itemBlock(item: DigestItem): string {
-  const parts = [item.headline, item.summary, item.why]
+  const parts = [item.headline, item.summary, item.why ?? ""]
     .map((field) => toSpeech(field))
     .filter((field) => field.length > 0)
     .map(asSentence);

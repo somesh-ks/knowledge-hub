@@ -27,7 +27,7 @@ export const NEVER_PUBLISH: readonly Category[] = [
   "generic_ai_hype_listicles",
 ];
 
-export const SECTIONS = ["top", "ui-craft", "ai", "research", "launches", "watch"] as const;
+export const SECTIONS = ["top", "ui-craft", "ai", "tech", "research", "launches", "watch"] as const;
 export const Section = z.enum(SECTIONS);
 export type Section = z.infer<typeof Section>;
 
@@ -35,6 +35,7 @@ export const SECTION_TITLES: Record<Section, string> = {
   top: "Top picks",
   "ui-craft": "Interaction craft",
   ai: "AI models and products",
+  tech: "Tech releases",
   research: "Research",
   launches: "Launches",
   watch: "Watch and listen",

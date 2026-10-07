@@ -40,7 +40,8 @@ export const DigestItem = z.object({
   source: z.string().min(1),
   author: z.string().optional(),
   summary: z.string().min(1),
-  why: z.string().min(1),
+  /** Digests written before the four-beat voice carry a separate why line; newer ones do not. */
+  why: z.string().min(1).optional(),
   score: z.number().min(0).max(1),
   published_at: isoDateTime.optional(),
 });
@@ -60,7 +61,8 @@ export const Digest = z.object({
   listen_minutes: z.number().int().positive(),
   audio: z.object({ url: z.string().url(), duration_ms: z.number().int().positive() }).nullable(),
   cover: CoverSpec,
-  items: z.array(DigestItem).min(3).max(18),
+  /** Weekly cap (18) plus the tech allowance (5), with one to spare. */
+  items: z.array(DigestItem).min(3).max(24),
 });
 export type Digest = z.infer<typeof Digest>;
 

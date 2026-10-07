@@ -89,6 +89,7 @@ const SECTION_TITLES: Record<LabItem["section"], string> = {
   top: "Top picks",
   "ui-craft": "Interaction craft",
   ai: "AI models and products",
+  tech: "Tech releases",
   research: "Research",
   launches: "Launches",
   watch: "Watch and listen",

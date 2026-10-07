@@ -174,7 +174,10 @@ export function validateDigest(input: unknown, context: ValidateContext): Valida
     }
 
     for (const field of VOICE_FIELDS) {
-      for (const violation of context.linter.lint(field, item[field])) {
+      const text = item[field];
+      // A digest in the four-beat voice has no why line; there is nothing to lint.
+      if (text === undefined) continue;
+      for (const violation of context.linter.lint(field, text)) {
         add("error", "voice", `${field}: ${violation.message}`, item.id);
       }
     }

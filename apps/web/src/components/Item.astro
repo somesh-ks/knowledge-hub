@@ -53,6 +53,6 @@ const isDeferred = index >= 4;
       }
     </div>
     <p class="item-summary">{item.summary}</p>
-    <p class="item-why"><span class="item-why-label">Why</span>{" "}{item.why}</p>
+    {item.why && <p class="item-why"><span class="item-why-label">Why</span>{" "}{item.why}</p>}
   </div>
 </article>
