@@ -1,4 +1,5 @@
-import { rm } from "node:fs/promises";
+import { readFile, rm } from "node:fs/promises";
+import { join } from "node:path";
 import {
   COVER_TEMPLATES,
   type JudgmentsFile,
@@ -26,7 +27,10 @@ import {
   SUN,
   seed,
   sourceItems,
+  sourcesFile,
   type TestRepo,
+  techItem,
+  techSource,
   WED,
 } from "./orchestrator-fixtures.js";
 
@@ -97,6 +101,14 @@ describe("published run", () => {
     });
     expect(digest.items).toHaveLength(8);
     expect(digest.items.filter((item) => item.section === "top")).toHaveLength(3);
+    // The writer produces four-beat summaries and no why line, so the file carries none.
+    for (const item of digest.items) {
+      expect(item).not.toHaveProperty("why");
+      expect(item.summary.split(". ").length).toBe(3);
+    }
+    const fileText = await readFile(join(repo.root, DIGEST_PATH), "utf8");
+    expect(fileText).not.toMatch(/^\s+why:/m);
+    expect(fileText).not.toContain("Why:");
     expect(COVER_TEMPLATES).toContain(digest.cover.template);
     const state = await readJson<LastRunFile>(repo.root, "state/last-run.json");
     expect(state.last_cover).toEqual({
@@ -751,5 +763,141 @@ describe("judgments cache", () => {
     const saved = await readJson<JudgmentsFile>(repo.root, "state/judgments.json");
     expect(Object.values(saved.entries).some((e) => e.item_id === old.item_id)).toBe(false);
     expect(Object.keys(saved.entries)).toHaveLength(8);
+  });
+});
+
+describe("tech releases in a published run", () => {
+  const OUTLETS = ["outlet-x", "outlet-y", "outlet-z"] as const;
+
+  /** The registry with three consumer tech outlets beside the usual blogs. */
+  async function seedTechSources(): Promise<void> {
+    const file = sourcesFile();
+    await seed(repo.root, {
+      "config/sources.json": json({
+        ...file,
+        sources: [...file.sources, ...OUTLETS.map((id) => techSource(id))],
+      }),
+    });
+  }
+
+  /**
+   * One tablet launch that all three outlets covered under different headlines, six launches
+   * only one outlet carried, and a rumour.
+   */
+  function techFeeds() {
+    return {
+      "outlet-x": [
+        techItem("outlet-x", "ipad", "Apple announces the iPad Pro with M5 chip", 3),
+        techItem("outlet-x", "fairphone", "Fairphone 6 goes on sale in Europe", 2),
+        techItem("outlet-x", "framework", "Framework Laptop 16 gets a new GPU module", 2),
+        techItem("outlet-x", "rumour", "Acme Fold 3 rumour points to a spring launch", 0),
+      ],
+      "outlet-y": [
+        techItem("outlet-y", "ipad", "M5 iPad Pro arrives with a faster GPU", 3),
+        techItem("outlet-y", "garmin", "Garmin Fenix 9 adds satellite messaging", 2),
+        techItem("outlet-y", "nothing", "Nothing Headphone 2 arrives with a metal frame", 2),
+      ],
+      "outlet-z": [
+        techItem("outlet-z", "ipad", "Apple iPad Pro (M5) goes official", 3),
+        techItem("outlet-z", "valve", "Valve Steam Deck 2 pre-orders open", 2),
+        techItem("outlet-z", "rivian", "Rivian R3 production starts in Illinois", 2),
+      ],
+    };
+  }
+
+  it(
+    "publishes five tech stories in their own section, merged across outlets, never as Top picks",
+    LONG,
+    async () => {
+      await seedTechSources();
+      const world = makeWorld(repo.root, { now: WED, feeds: { ...goodFeeds(8), ...techFeeds() } });
+      const results = await runStaged(world);
+      expect(results.map((r) => r.code)).toEqual([0, 0, 0, 0, 0, 0]);
+
+      // Fetch: ten tech items in, the three iPad headlines merged into one with its coverage.
+      const pool = await readJson<{
+        report: {
+          dedupe: { story_clustered: number };
+          prefilter: { kept: number; tech: { input: number; kept: number } };
+        };
+        items: Array<{ title: string; source_id: string; signals: { coverage?: number } }>;
+      }>(repo.root, ".cache/run/2026-10-07/pool.json");
+      expect(pool.report.dedupe.story_clustered).toBe(2);
+      expect(pool.report.prefilter.tech).toMatchObject({ input: 8, kept: 8 });
+      expect(pool.report.prefilter.kept).toBe(16);
+      const ipad = pool.items.filter((item) => item.title.includes("iPad"));
+      expect(ipad).toHaveLength(1);
+      expect(ipad[0]?.signals.coverage).toBe(3);
+      // Coverage ranks the tech pool, so the launch three outlets covered leads it.
+      const techPool = pool.items.filter((item) => item.source_id.startsWith("outlet-"));
+      expect(techPool[0]?.title).toContain("iPad");
+
+      // The digest: eight craft items, plus five tech stories on top of them.
+      const digest = await readDigest(repo.root, DIGEST_PATH);
+      expect(digest.items).toHaveLength(13);
+      const tech = digest.items.filter((item) => item.section === "tech");
+      expect(tech).toHaveLength(5);
+      expect(tech.every((item) => item.category === "consumer_tech_releases")).toBe(true);
+      // The flagship launch (level 3) outranks the level 2 launches inside the section.
+      expect(tech[0]?.headline).toContain("iPad Pro");
+      expect(tech[0]?.score).toBe(0.7291);
+      expect(tech.slice(1).every((item) => item.score === 0.6365)).toBe(true);
+      expect(digest.items.some((item) => item.headline.includes("rumour"))).toBe(false);
+
+      // Top picks are the three best items outside tech, and tech follows AI in the file.
+      const top = digest.items.filter((item) => item.section === "top");
+      expect(top).toHaveLength(3);
+      expect(top.every((item) => item.category !== "consumer_tech_releases")).toBe(true);
+      const sections = [...new Set(digest.items.map((item) => item.section))];
+      expect(sections.indexOf("tech")).toBe(sections.indexOf("ai") + 1);
+      const fileText = await readFile(join(repo.root, DIGEST_PATH), "utf8");
+      expect(fileText.indexOf("## Tech releases")).toBeGreaterThan(
+        fileText.indexOf("## AI models and products"),
+      );
+      expect(fileText).not.toContain("Why:");
+
+      // What was written: seven launches cleared the bar, so two are over the tech allowance of
+      // five, and the rumour is below the bar.
+      const written = await readJson<{ dropped: Array<{ stage: string; reason: string }> }>(
+        repo.root,
+        ".cache/run/2026-10-07/written.json",
+      );
+      const reasons = written.dropped.map((d) => d.reason);
+      expect(reasons.filter((reason) => reason.startsWith("over_tech_cap"))).toHaveLength(2);
+      expect(reasons.filter((reason) => reason.startsWith("below_threshold"))).toHaveLength(1);
+      expect(reasons.some((reason) => reason.startsWith("over_cap"))).toBe(false);
+
+      // The stored judgments carry the launch scale for the next run to reuse.
+      const judgments = await readJson<JudgmentsFile>(repo.root, "state/judgments.json");
+      const scales = Object.values(judgments.entries)
+        .map((entry) => entry.launch_scale)
+        .filter((scale) => scale !== undefined);
+      expect(scales.sort()).toEqual([0, 0.5, 0.5, 0.5, 0.5, 0.5, 0.5, 0.75]);
+    },
+  );
+
+  it("publishes when only tech stories clear the bar, with no Top picks", LONG, async () => {
+    await seedTechSources();
+    const world = makeWorld(repo.root, { now: WED, feeds: techFeeds() });
+    const result = await runStage(world);
+    expect(result.report).toMatchObject({ outcome: "published" });
+    const digest = await readDigest(repo.root, DIGEST_PATH);
+    expect(digest.items).toHaveLength(5);
+    expect(digest.items.every((item) => item.section === "tech")).toBe(true);
+  });
+
+  it("stays quiet when the only tech news is a rumour", LONG, async () => {
+    await seedTechSources();
+    const feeds = {
+      "outlet-x": [
+        techItem("outlet-x", "rumour", "Acme Fold 3 rumour points to a spring launch", 0),
+      ],
+      "outlet-y": [techItem("outlet-y", "deal", "Acme Buds 2 drop to a record low price", 0)],
+      "outlet-z": [techItem("outlet-z", "case", "Acme Phone 7 case lineup leaks", 0)],
+    };
+    const world = makeWorld(repo.root, { now: WED, feeds });
+    const result = await runStage(world);
+    expect(result.report).toMatchObject({ outcome: "nothing" });
+    expect(await exists(repo.root, DIGEST_PATH)).toBe(false);
   });
 });

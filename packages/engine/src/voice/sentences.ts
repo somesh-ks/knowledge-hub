@@ -34,3 +34,15 @@ export function splitSentences(text: string): string[] {
 export function countSentences(text: string): number {
   return splitSentences(text).length;
 }
+
+export interface SentenceLength {
+  sentence: string;
+  words: number;
+}
+
+/** Sentences with more than `maxWords` words, in order. A summary is written to be heard. */
+export function longSentences(text: string, maxWords: number): SentenceLength[] {
+  return splitSentences(text)
+    .map((sentence) => ({ sentence, words: countWords(sentence) }))
+    .filter((entry) => entry.words > maxWords);
+}

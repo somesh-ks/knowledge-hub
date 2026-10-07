@@ -1,4 +1,4 @@
-import { itemId } from "@dispatch/core";
+import { Item, itemId } from "@dispatch/core";
 import { describe, expect, it } from "vitest";
 import { buildItem, buildItems } from "../src/normalize/buildItem.js";
 import { canonicalizeUrl, unwrapRedirect } from "../src/normalize/canonicalizeUrl.js";
@@ -246,6 +246,27 @@ describe("buildItem", () => {
     expect(buildItem({ ...base, content: "<p>short</p>" }, context)?.content).toBeUndefined();
     const long = `<p>${"detail ".repeat(100)}</p>`;
     expect(buildItem({ ...base, content: long }, context)?.content?.length).toBeGreaterThan(300);
+  });
+
+  it("carries a query's category hint onto the item, and adds no key without one", () => {
+    expect(buildItem(base, context)).not.toHaveProperty("category_hint");
+    expect(buildItem(base, { ...context, categoryHint: undefined })).not.toHaveProperty(
+      "category_hint",
+    );
+    const hinted = buildItem(base, { ...context, categoryHint: "consumer_tech_releases" });
+    expect(hinted?.category_hint).toBe("consumer_tech_releases");
+    expect(Item.safeParse(hinted).success).toBe(true);
+    // The hint does not change identity: the same URL is the same item either way.
+    expect(hinted?.id).toBe(buildItem(base, context)?.id);
+  });
+
+  it("accepts a coverage count of two or more and rejects one that says nothing", () => {
+    const item = buildItem(base, context);
+    expect(Item.safeParse({ ...item, signals: { coverage: 2 } }).success).toBe(true);
+    expect(Item.safeParse({ ...item, signals: { coverage: 9 } }).success).toBe(true);
+    expect(Item.safeParse({ ...item, signals: { coverage: 1 } }).success).toBe(false);
+    expect(Item.safeParse({ ...item, signals: { coverage: 2.5 } }).success).toBe(false);
+    expect(Item.safeParse({ ...item, category_hint: "not_a_category" }).success).toBe(false);
   });
 
   it("builds in order and skips the bad ones", () => {

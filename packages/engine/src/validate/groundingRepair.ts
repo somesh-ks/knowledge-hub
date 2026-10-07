@@ -39,7 +39,8 @@ function hasError(verdict: GroundingVerdict): boolean {
 }
 
 /**
- * Grounding stage. Each item's summary and why sentences are checked against its source text.
+ * Grounding stage. Each item's summary sentences, and its why sentence when it has one, are
+ * checked against its source text.
  * Unsupported sentences trigger one rewrite of the affected fields with the sentences quoted
  * back as problems, then a second check; an item still unsupported (or whose rewrite breaks the
  * voice limits) is dropped and reported. Checks that error out keep the item but mark it
@@ -76,7 +77,7 @@ export async function groundAndRepair(args: {
         grounder.ground({
           id: item.id,
           summary: item.summary,
-          why: item.why,
+          ...(item.why ? { why: item.why } : {}),
           sourceText: material.text,
         });
 
@@ -90,12 +91,15 @@ export async function groundAndRepair(args: {
         const next: WrittenItem = { ...item };
         const violations: Violation[] = [];
         for (const field of fields) {
+          const current = item[field];
+          // A verdict only names a field the item has; this guard is for the type.
+          if (current === undefined) continue;
           // The unsupported sentences are model text derived from the source, so they travel as
           // delimited `focus` data. The problem statement itself never embeds them.
           const rewritten = await writer.rewrite({
             material,
             field,
-            current: item[field],
+            current,
             problems: [
               "The checker found sentences in the current text that the source text does not support. Rewrite the field using only facts the source states; the passages below are the unsupported ones.",
             ],

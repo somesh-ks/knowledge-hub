@@ -6,6 +6,7 @@
       "runner_up": "design_engineering_craft",
       "confidence": "high",
       "craft_level": 4,
+      "launch_level": 0,
       "hype": false,
       "sponsored": false,
       "funding": false
@@ -16,6 +17,7 @@
       "runner_up": "none",
       "confidence": "medium",
       "craft_level": 0,
+      "launch_level": 1,
       "hype": false,
       "sponsored": false,
       "funding": true

@@ -151,6 +151,20 @@
 | Ars Technica | https://arstechnica.com | Deep technical journalism |
 | TechCrunch | https://techcrunch.com | Startups, funding, launches |
 
+### Consumer Tech Releases (Tech releases section)
+
+The beat behind the Tech releases section: phones, tablets, laptops, audio, wearables, headsets, electric vehicles, chips, operating systems, and the rules that change what ships. The Verge, Ars Technica and Friday Checkout above feed it too. Each outlet may contribute six candidates to a run; one launch reported by several of them is merged into a single story.
+
+| Source | URL | Focus |
+|--------|-----|-------|
+| 9to5Google | https://9to5google.com | Android, Pixel, Chrome and Google platform releases |
+| 9to5Mac | https://9to5mac.com | iPhone, iPad, Mac and Apple platform releases |
+| Android Authority | https://www.androidauthority.com | Android phones, wearables and audio |
+| GSMArena | https://www.gsmarena.com | Phone and tablet launches with full specifications |
+| Engadget | https://www.engadget.com | Consumer electronics launches and reviews |
+| Electrek | https://electrek.co | Electric vehicles, batteries and charging |
+| Tom's Hardware | https://www.tomshardware.com | Chips, graphics cards, laptops and PC hardware |
+
 ---
 
 ## 6. YouTube Channels (Pipeline)
@@ -178,7 +192,11 @@ Pre-built search queries for daily Exa Search runs:
 "AI coding assistant update"
 "open source developer tool launch"
 "design tokens specification"
+"consumer hardware and platform launches"
+"consumer device regulation or ruling"
 ```
+
+The last two feed the Tech releases section. In `config/queries.json` they carry `category_hint: consumer_tech_releases`, which is what sends their results to the tech pool.
 
 ---
 

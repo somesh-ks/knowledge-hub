@@ -7,6 +7,7 @@ export * from "./ids.js";
 export * from "./item.js";
 export * from "./paths.js";
 export * from "./preferences.js";
+export * from "./publisher.js";
 export * from "./sources.js";
 export * from "./state.js";
 export * from "./time.js";

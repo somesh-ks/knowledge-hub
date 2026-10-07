@@ -1,4 +1,5 @@
 import { z } from "zod";
+import { Category } from "./categories.js";
 
 export const SOURCE_TYPES = [
   "rss",
@@ -36,8 +37,18 @@ export const Item = z.object({
       hn_points: z.number().int().nonnegative().optional(),
       hn_comments: z.number().int().nonnegative().optional(),
       lobsters_score: z.number().int().optional(),
+      /**
+       * How many different sources covered the same story, when story clustering merged their
+       * items into this one. Two or more; absent for a story only one source carried.
+       */
+      coverage: z.number().int().min(2).optional(),
     })
     .default({}),
+  /**
+   * The category a discovery query was written to find, copied from config/queries.json. A hint
+   * for triage only: the source's own hint wins over it, and the judge decides the category.
+   */
+  category_hint: Category.optional(),
   /** Extracted full text. Lives in the run cache only; never committed. Untrusted. */
   content: z.string().optional(),
 });

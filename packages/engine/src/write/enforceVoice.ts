@@ -19,7 +19,7 @@ export interface VoiceOutcome {
 }
 
 /**
- * Lint every written field. A failing field gets one rewrite with the violations appended;
+ * Lint every written field an item has. A failing field gets one rewrite with the violations appended;
  * if it still fails, the item is dropped and its violations reported. Order is preserved.
  */
 export async function enforceVoice(args: {
@@ -40,13 +40,16 @@ export async function enforceVoice(args: {
     const rewrittenFields: string[] = [];
     const remaining: Violation[] = [];
     for (const field of VOICE_FIELDS) {
-      const violations = args.linter.lint(field, item[field]);
+      const text = item[field];
+      // The writer produces no why line, so there is usually nothing to lint for that field.
+      if (text === undefined) continue;
+      const violations = args.linter.lint(field, text);
       const result = await rewriteOnce({
         writer: args.writer,
         linter: args.linter,
         material,
         field,
-        text: item[field],
+        text,
         violations,
       });
       item[field] = result.text;

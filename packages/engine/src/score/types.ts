@@ -4,7 +4,10 @@ import type { Category, CategoryOrNone, Item, JudgmentEntry, Section } from "@di
 export interface ScoreBreakdown {
   /** Sum over categories of probability times preference weight. */
   taste: number;
-  /** Multiplier from craft depth, between CRAFT_FLOOR and 1. */
+  /**
+   * The depth multiplier. From craft depth, between CRAFT_FLOOR and 1; or, for an item whose
+   * most probable category is consumer tech, from launch scale, between TECH_FLOOR and 1.
+   */
   craftFactor: number;
   /** Multiplier from the hype, sponsored and funding flags, between 0 and 1. */
   penaltyFactor: number;
@@ -17,7 +20,7 @@ export interface ScoredItem {
   entry: JudgmentEntry;
   /** 0 to 1, four decimals. */
   score: number;
-  /** Most probable of the eleven options. Decides the section. */
+  /** Most probable of the twelve options. Decides the section and which depth answer is used. */
   topCategory: CategoryOrNone;
   breakdown: ScoreBreakdown;
 }
@@ -31,7 +34,10 @@ export interface Candidate {
   score: number;
 }
 
-/** A chosen item with its final section: "top" for the three highest scores, otherwise home. */
+/**
+ * A chosen item with its final section: "top" for the three highest scores outside Tech releases,
+ * otherwise home.
+ */
 export interface SelectedItem extends Candidate {
   section: Section;
 }

@@ -6,13 +6,15 @@ import { BudgetExceededError, describeError } from "../llm/errors.js";
 import type { ChatMessage, LlmClient } from "../llm/types.js";
 import { newBoundary, untrustedInstruction, wrapUntrusted } from "../llm/untrusted.js";
 import { round4 } from "../score/numbers.js";
-import { normalizeCraftDepth } from "./jevAnswers.js";
+import { normalizeCraftDepth, normalizeLaunchScale } from "./jevAnswers.js";
 import {
   CATEGORY_CRITERIA,
   CATEGORY_OPTIONS,
   CRAFT_LEVELS,
   CRAFT_MAX_LEVEL,
   FLAG_DEFINITIONS,
+  LAUNCH_LEVELS,
+  LAUNCH_MAX_LEVEL,
   NEBIUS_QUESTIONS_HASH,
 } from "./questions.js";
 import { judgeState } from "./state.js";
@@ -27,6 +29,7 @@ const JudgeAnswer = z.object({
   runner_up: Option,
   confidence: Confidence,
   craft_level: z.number(),
+  launch_level: z.number(),
   hype: z.boolean(),
   sponsored: z.boolean(),
   funding: z.boolean(),
@@ -71,6 +74,7 @@ export function entryFromNebiusAnswer(
   context: { model: string; questionsHash: string; now: Date },
 ): JudgmentEntry {
   const level = Math.min(CRAFT_MAX_LEVEL, Math.max(0, Math.round(answer.craft_level)));
+  const launch = Math.min(LAUNCH_MAX_LEVEL, Math.max(0, Math.round(answer.launch_level)));
   const flag = (value: boolean): number => (value ? FLAG_YES : FLAG_NO);
   return JudgmentEntry.parse({
     item_id: answer.id,
@@ -79,6 +83,7 @@ export function entryFromNebiusAnswer(
     judged_at: context.now.toISOString(),
     category_probs: categoryProbsFromAnswer(answer.category, answer.runner_up, answer.confidence),
     craft_depth: normalizeCraftDepth(level),
+    launch_scale: normalizeLaunchScale(launch),
     flags: {
       hype: flag(answer.hype),
       sponsored: flag(answer.sponsored),
@@ -92,6 +97,7 @@ function systemPrompt(boundary: string): string {
     "\n",
   );
   const levels = CRAFT_LEVELS.map((text, level) => `- ${level}: ${text}`).join("\n");
+  const launches = LAUNCH_LEVELS.map((text, level) => `- ${level}: ${text}`).join("\n");
   return [
     "You classify candidate items for a private news briefing read by a design engineer.",
     "Judge each item from its title and snippet only.",
@@ -100,7 +106,8 @@ function systemPrompt(boundary: string): string {
     "- category: the one best-fitting key from the list below.",
     '- runner_up: the second best key, or "none".',
     "- confidence: high, medium or low, for the category.",
-    "- craft_level: an integer from 0 to 4, using the levels below.",
+    "- craft_level: an integer from 0 to 4, using the craft levels below.",
+    "- launch_level: an integer from 0 to 4, using the launch levels below. Use 0 when the item is not consumer technology news.",
     `- hype: true if ${FLAG_DEFINITIONS.hype.describe}`,
     `- sponsored: true if ${FLAG_DEFINITIONS.sponsored.describe}`,
     `- funding: true if ${FLAG_DEFINITIONS.funding.describe}`,
@@ -111,8 +118,11 @@ function systemPrompt(boundary: string): string {
     "Craft levels:",
     levels,
     "",
+    "Launch levels:",
+    launches,
+    "",
     untrustedInstruction(boundary),
-    'Reply with one JSON object: {"items":[{"id","category","runner_up","confidence","craft_level","hype","sponsored","funding"}]}, one entry per item, keeping each id exactly.',
+    'Reply with one JSON object: {"items":[{"id","category","runner_up","confidence","craft_level","launch_level","hype","sponsored","funding"}]}, one entry per item, keeping each id exactly.',
   ].join("\n");
 }
 
@@ -189,7 +199,7 @@ export class NebiusJudge implements Judge {
         schema: NebiusJudgeOutput,
         schemaName: "judgments",
         messages,
-        maxTokens: 220 * batch.length + 200,
+        maxTokens: 240 * batch.length + 200,
         label: "fallback-judge",
       });
       const wanted = new Set(batch.map((item) => item.id));

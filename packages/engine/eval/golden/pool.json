@@ -520,5 +520,101 @@
       "keep": false,
       "category": "generic_ai_hype_listicles"
     }
+  },
+  {
+    "id": "64eb565d4c6d",
+    "url": "https://handset-daily.example/orbit-12-launch",
+    "canonical_url": "https://handset-daily.example/orbit-12-launch",
+    "title": "Orbit 12 launches at 799 dollars with seven years of updates",
+    "source_id": "handset-daily",
+    "source_type": "rss",
+    "published_at": "2026-10-06T09:00:00Z",
+    "fetched_at": "2026-10-07T05:00:00Z",
+    "snippet": "The flagship Orbit 12 goes on sale on 16 October at 799 dollars, the same price as last year. It has a larger 5,200 mAh battery, a new main camera sensor and seven years of software updates. The charger is still sold separately.",
+    "signals": {},
+    "expected": {
+      "keep": true,
+      "category": "consumer_tech_releases"
+    }
+  },
+  {
+    "id": "1ae749db0a71",
+    "url": "https://platform-notes.example/meridian-os-9-released",
+    "canonical_url": "https://platform-notes.example/meridian-os-9-released",
+    "title": "Meridian OS 9 is out today for every tablet since 2022",
+    "source_id": "platform-notes",
+    "source_type": "rss",
+    "published_at": "2026-10-06T09:00:00Z",
+    "fetched_at": "2026-10-07T05:00:00Z",
+    "snippet": "The largest Meridian OS release in four years adds resizable windows, a desktop-style file manager and background tasks for third-party apps. It rolls out today to all tablets sold since 2022. Stage layouts from the previous version are removed.",
+    "signals": {},
+    "expected": {
+      "keep": true,
+      "category": "consumer_tech_releases"
+    }
+  },
+  {
+    "id": "ae6d4b62bb51",
+    "url": "https://regulation-wire.example/eu-replaceable-battery-rule",
+    "canonical_url": "https://regulation-wire.example/eu-replaceable-battery-rule",
+    "title": "EU rule requiring user-replaceable phone batteries takes effect in February",
+    "source_id": "regulation-wire",
+    "source_type": "rss",
+    "published_at": "2026-10-06T09:00:00Z",
+    "fetched_at": "2026-10-07T05:00:00Z",
+    "snippet": "From 18 February, phones and tablets sold in the EU must have batteries an owner can replace with ordinary tools, and makers must sell spare parts for five years. Three large manufacturers have already published repair guides. Earbuds and watches are exempt.",
+    "signals": {},
+    "expected": {
+      "keep": true,
+      "category": "consumer_tech_releases"
+    }
+  },
+  {
+    "id": "07d2d3ba9f48",
+    "url": "https://leak-desk.example/orbit-fold-rumour",
+    "canonical_url": "https://leak-desk.example/orbit-fold-rumour",
+    "title": "Rumour: Orbit Fold 3 may get a larger cover screen, leaker says",
+    "source_id": "leak-desk",
+    "source_type": "rss",
+    "published_at": "2026-10-06T09:00:00Z",
+    "fetched_at": "2026-10-07T05:00:00Z",
+    "snippet": "An unverified post from a known leaker claims next year's Orbit Fold 3 will have a 6.5-inch cover screen. No price, date or source is given, and the company has not commented.",
+    "signals": {},
+    "expected": {
+      "keep": false,
+      "category": "consumer_tech_releases"
+    }
+  },
+  {
+    "id": "9a3c01817344",
+    "url": "https://deal-watch.example/aria-buds-record-low",
+    "canonical_url": "https://deal-watch.example/aria-buds-record-low",
+    "title": "Aria Buds 2 drop to a record low of 129 dollars this weekend",
+    "source_id": "deal-watch",
+    "source_type": "rss",
+    "published_at": "2026-10-06T09:00:00Z",
+    "fetched_at": "2026-10-07T05:00:00Z",
+    "snippet": "A retailer has cut the Aria Buds 2 by 50 dollars until Sunday. The earbuds were released last year and are unchanged. The discount applies to the black colour only.",
+    "signals": {},
+    "expected": {
+      "keep": false,
+      "category": "consumer_tech_releases"
+    }
+  },
+  {
+    "id": "6a117603a815",
+    "url": "https://accessory-post.example/orbit-12-clear-case",
+    "canonical_url": "https://accessory-post.example/orbit-12-clear-case",
+    "title": "A new clear case for the Orbit 12 comes in four colours",
+    "source_id": "accessory-post",
+    "source_type": "rss",
+    "published_at": "2026-10-06T09:00:00Z",
+    "fetched_at": "2026-10-07T05:00:00Z",
+    "snippet": "An accessory maker has announced a clear case for the Orbit 12 with a coloured bumper in blue, green, pink or grey. It costs 25 dollars and ships next week.",
+    "signals": {},
+    "expected": {
+      "keep": false,
+      "category": "consumer_tech_releases"
+    }
   }
 ]

@@ -262,9 +262,60 @@ describe("fetchExa", () => {
     await expect(fetchExa(source, WIDE, dead)).rejects.toThrow(/every Exa query failed/);
   });
 
+  it("copies a query's category hint onto its results and adds none for an unhinted query", async () => {
+    const mixed: ExaQuery[] = [
+      { id: "drawers", query: "interruptible drawer animation" },
+      {
+        id: "launches",
+        query: "consumer hardware launches",
+        category_hint: "consumer_tech_releases",
+      },
+      { id: "tokens", query: "design tokens specification" },
+    ];
+    const bodies: Record<string, unknown>[] = [];
+    const fake = fakeFetch({
+      "https://api.exa.ai/search": (_url, init) => {
+        bodies.push(JSON.parse(String(init?.body)) as Record<string, unknown>);
+        return new Response(fixture("fetch-exa.json"));
+      },
+    });
+    const deps = makeDeps(fake, { exa: { apiKey: "key-123456789", queries: mixed } });
+    const items = await fetchExa(source, window("2026-10-01T00:00:00Z"), deps);
+    // One in-window result per query, in query order.
+    expect(items).toHaveLength(3);
+    expect(items[0]).not.toHaveProperty("category_hint");
+    expect(items[1]?.category_hint).toBe("consumer_tech_releases");
+    expect(items[2]).not.toHaveProperty("category_hint");
+    // The hint is ours, for triage. It is never sent to the search API.
+    for (const body of bodies) expect(JSON.stringify(body)).not.toContain("category_hint");
+  });
+
+  it("keeps the results of the queries that worked, each with its own hint, when another fails", async () => {
+    const mixed: ExaQuery[] = [
+      { id: "broken", query: "this one fails", category_hint: "hci_empirical_research" },
+      {
+        id: "launches",
+        query: "consumer hardware launches",
+        category_hint: "consumer_tech_releases",
+      },
+    ];
+    const fake = fakeFetch({
+      "https://api.exa.ai/search": (_url, init) =>
+        String(init?.body).includes("this one fails")
+          ? new Response("boom", { status: 400 })
+          : new Response(fixture("fetch-exa.json")),
+    });
+    const deps = makeDeps(fake, { exa: { apiKey: "key-123456789", queries: mixed } });
+    const items = await fetchExa(source, window("2026-10-01T00:00:00Z"), deps);
+    expect(items.map((item) => item.category_hint)).toEqual(["consumer_tech_releases"]);
+  });
+
   it("builds request bodies and parses results", () => {
     const body = exaSearchBody({ id: "x", query: "q", include_domains: [] }, WIDE);
     expect(body).not.toHaveProperty("includeDomains");
+    expect(
+      exaSearchBody({ id: "x", query: "q", category_hint: "consumer_tech_releases" }, WIDE),
+    ).not.toHaveProperty("category_hint");
     expect(parseExaResults(JSON.parse(fixture("fetch-exa.json")))).toHaveLength(3);
     expect(() => parseExaResults({ nope: true })).toThrow(/unexpected Exa response/);
   });

@@ -1,9 +1,14 @@
 import { type CategoryOrNone, type Item, JudgmentEntry } from "@dispatch/core";
 import { z } from "zod";
 import { clamp01, round4 } from "../score/numbers.js";
-import { CATEGORY_OPTIONS, CRAFT_MAX_LEVEL, type FlagName } from "./questions.js";
+import { CATEGORY_OPTIONS, CRAFT_MAX_LEVEL, type FlagName, LAUNCH_MAX_LEVEL } from "./questions.js";
 
 const noulAnswer = z.object({ type: z.literal("noul"), noul: z.number() });
+const scoreAnswer = z.object({
+  type: z.literal("score"),
+  score: z.number(),
+  confidence: z.number().optional(),
+});
 
 /** The slice of a Jev response the judge reads. Validated, so a malformed reply fails one item. */
 export const JevJudgeResponse = z.object({
@@ -15,11 +20,8 @@ export const JevJudgeResponse = z.object({
       probabilities: z.record(z.string(), z.number()),
       confidence: z.number().optional(),
     }),
-    craft_depth: z.object({
-      type: z.literal("score"),
-      score: z.number(),
-      confidence: z.number().optional(),
-    }),
+    craft_depth: scoreAnswer,
+    launch_scale: scoreAnswer,
     hype: noulAnswer,
     sponsored: noulAnswer,
     funding: noulAnswer,
@@ -31,7 +33,7 @@ export type JevJudgeResponse = z.infer<typeof JevJudgeResponse>;
 const NORMALIZE_TOLERANCE = 0.01;
 
 /**
- * Probabilities for all eleven options, summing to 1. Unknown labels are ignored and missing
+ * Probabilities for all twelve options, summing to 1. Unknown labels are ignored and missing
  * ones count as 0. When the reply carries no usable mass the chosen label gets everything.
  */
 export function normalizeCategoryProbs(
@@ -62,6 +64,11 @@ export function normalizeCraftDepth(level: number): number {
   return round4(clamp01(level / CRAFT_MAX_LEVEL));
 }
 
+/** Expected launch level 0..4 to 0..1. */
+export function normalizeLaunchScale(level: number): number {
+  return round4(clamp01(level / LAUNCH_MAX_LEVEL));
+}
+
 export interface EntryContext {
   model: string;
   questionsHash: string;
@@ -82,6 +89,7 @@ export function entryFromJevResponse(
     judged_at: context.now.toISOString(),
     category_probs: normalizeCategoryProbs(answers.category.probabilities, answers.category.choice),
     craft_depth: normalizeCraftDepth(answers.craft_depth.score),
+    launch_scale: normalizeLaunchScale(answers.launch_scale.score),
     flags: { hype: flag("hype"), sponsored: flag("sponsored"), funding: flag("funding") },
   });
 }

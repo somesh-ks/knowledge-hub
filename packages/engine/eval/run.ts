@@ -207,6 +207,9 @@ async function runGrounding(env: Env, golden: GoldenEntry[]): Promise<Section | 
   };
 }
 
+/** Fields the writer produces for each item: the headline and the summary. */
+const WRITER_FIELD_COUNT = 2;
+
 async function runBakeoff(
   env: Env,
   golden: GoldenEntry[],
@@ -233,14 +236,18 @@ async function runBakeoff(
   const rows: BakeoffRow[] = [];
   const notes: string[] = [];
 
+  // The writer produces a headline and a summary; a field an item lacks is not counted.
   const sampleOf = (item: WrittenItem): VoiceSample => {
-    const rules = VOICE_FIELDS.flatMap((field) =>
-      linter.lint(field, item[field]).map((v) => v.rule),
-    );
-    const failingFields = VOICE_FIELDS.filter(
-      (field) => linter.lint(field, item[field]).length > 0,
-    ).length;
-    return { id: item.id, rules, fields: VOICE_FIELDS.length, failingFields };
+    const checked = VOICE_FIELDS.flatMap((field) => {
+      const text = item[field];
+      return text === undefined ? [] : [linter.lint(field, text)];
+    });
+    return {
+      id: item.id,
+      rules: checked.flat().map((v) => v.rule),
+      fields: checked.length,
+      failingFields: checked.filter((violations) => violations.length > 0).length,
+    };
   };
 
   for (const model of models) {
@@ -266,7 +273,7 @@ async function runBakeoff(
       ...outcome.dropped.map((d) => ({
         id: d.id,
         rules: d.violations.map((v) => v.rule),
-        fields: VOICE_FIELDS.length,
+        fields: WRITER_FIELD_COUNT,
         failingFields: 1,
       })),
     ]);
@@ -278,7 +285,7 @@ async function runBakeoff(
         const verdict = await grounder.ground({
           id: item.id,
           summary: item.summary,
-          why: item.why,
+          ...(item.why ? { why: item.why } : {}),
           sourceText: byId.get(item.id)?.text ?? "",
         });
         for (const s of verdict.sentences) {

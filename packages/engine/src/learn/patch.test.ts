@@ -16,6 +16,7 @@ const base: Preferences = {
     taste_and_design_philosophy: 0.5,
     venture_capital_and_gossip: 0.1,
     generic_ai_hype_listicles: 0.02,
+    consumer_tech_releases: 0.8,
   },
   preferred_keywords: ["shader"],
   preferred_authors: [],

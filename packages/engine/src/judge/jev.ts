@@ -42,7 +42,7 @@ export interface JevUsage {
 }
 
 /**
- * Judge backed by TypeSafe Jev: one request per item, five questions in parallel inside it.
+ * Judge backed by TypeSafe Jev: one request per item, six questions in parallel inside it.
  * Transient errors (429, 529, 5xx, timeouts) retry with backoff; anything else, or a reply that
  * does not validate, drops that one item and is reported. The batch itself never throws.
  */

@@ -68,6 +68,9 @@ async function searchOne(
 /**
  * Semantic discovery through Exa. Each query in config/queries.json is one search. A failed query
  * is dropped; only when every query fails does the source fail. Skips cleanly without a key.
+ *
+ * A query may carry a `category_hint`. Its results inherit the hint, which is how the consumer
+ * tech queries reach the tech pool of the prefilter even though they share this one source.
  */
 export const fetchExa: SourceFetcher = async (source, window, deps): Promise<Item[]> => {
   const config = deps.exa;
@@ -98,6 +101,15 @@ export const fetchExa: SourceFetcher = async (source, window, deps): Promise<Ite
   if (failures.length === results.length) {
     throw new Error(`every Exa query failed: ${failures[0]?.message ?? "unknown error"}`);
   }
-  const raws = results.flatMap((r) => (r instanceof Error ? [] : r));
-  return buildItems(raws, { source, window, fetchedAt: deps.now() });
+  const fetchedAt = deps.now();
+  return results.flatMap((raws, index) =>
+    raws instanceof Error
+      ? []
+      : buildItems(raws, {
+          source,
+          window,
+          fetchedAt,
+          categoryHint: config.queries[index]?.category_hint,
+        }),
+  );
 };

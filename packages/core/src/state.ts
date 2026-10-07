@@ -11,15 +11,36 @@ export const SeenFile = z.object({
 });
 export type SeenFile = z.infer<typeof SeenFile>;
 
+const unit = z.number().min(0).max(1);
+
+/**
+ * Probability per category, including "none". Sums to about 1. An entry cached before a category
+ * existed has no key for it; the missing key reads as 0, so an older state/judgments.json still
+ * parses and is rewritten with the full set of keys.
+ */
+const CategoryProbs = z.preprocess(
+  (value) => {
+    if (typeof value !== "object" || value === null || Array.isArray(value)) return value;
+    const filled: Record<string, unknown> = { ...(value as Record<string, unknown>) };
+    for (const key of CategoryOrNone.options) if (!Object.hasOwn(filled, key)) filled[key] = 0;
+    return filled;
+  },
+  z.record(CategoryOrNone, unit),
+);
+
 export const JudgmentEntry = z.object({
   item_id: z.string(),
   model: z.string(),
   questions_hash: z.string(),
   judged_at: isoDateTime,
-  /** Probability per category, including "none". Sums to about 1. */
-  category_probs: z.record(CategoryOrNone, z.number().min(0).max(1)),
+  category_probs: CategoryProbs,
   /** Normalized craft depth, 0 to 1. */
-  craft_depth: z.number().min(0).max(1),
+  craft_depth: unit,
+  /**
+   * Normalized launch scale, 0 to 1. Ranks consumer tech items in place of craft depth. Absent
+   * from entries judged before the question existed, where it counts as 0.
+   */
+  launch_scale: unit.optional(),
   flags: z.object({
     hype: z.number().min(0).max(1),
     sponsored: z.number().min(0).max(1),

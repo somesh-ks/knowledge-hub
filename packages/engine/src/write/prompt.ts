@@ -18,20 +18,25 @@ export function voiceBrief(voice: VoiceConfig): string {
 }
 
 const FIELD_RULES = [
-  `- headline: at most ${VOICE_LIMITS.headlineWords} words. Name the technique, feature, number or result. No trailing period.`,
-  `- summary: at most ${VOICE_LIMITS.summaryWords} words and at most ${VOICE_LIMITS.summarySentences} sentences. What it is, plus the most concrete detail the text gives.`,
-  `- why: at most ${VOICE_LIMITS.whyWords} words, one sentence, no trailing period. What the reader can try, copy or watch for. Never say that something matters.`,
+  `- headline: at most ${VOICE_LIMITS.headlineWords} words. Name the product, technique, number or result. No trailing period.`,
+  [
+    `- summary: three or four sentences, at most ${VOICE_LIMITS.summaryWords} words in total, each sentence at most ${VOICE_LIMITS.sentenceWords} words.`,
+    "Four beats in this order: what happened; the number that makes it concrete (a price, date, size or percentage);",
+    "why it happened or what it changes; the catch.",
+    "The catch is a limit, a cost, a missing piece or a date that is still far away, and it must come from the text.",
+    "If the text gives no catch, stop after three sentences.",
+  ].join(" "),
 ].join("\n");
 
 const FACT_RULES = [
   "Use facts from the source text only. Never add a claim, number, name, date or link that the text does not state.",
   "If the text lacks a detail, leave it out instead of guessing.",
-  "Write plain sentences: no markdown, no links, no quotation marks around a field, no labels such as 'Why:'.",
+  "Write plain sentences: no markdown, no links, no quotation marks around a field, no labels such as 'Summary:'.",
 ].join(" ");
 
 export function writerSystemPrompt(voice: VoiceConfig, boundary: string): string {
   return [
-    "You write items for Dispatch, a private news briefing read by a design engineer.",
+    "You write items for Singularity, a private tech and design engineering briefing. The reader is sharp but may not know the topic.",
     "",
     voiceBrief(voice),
     "",
@@ -45,7 +50,7 @@ export function writerSystemPrompt(voice: VoiceConfig, boundary: string): string
     untrustedInstruction(boundary),
     "",
     "OUTPUT",
-    'Reply with one JSON object: {"items":[{"id":"...","headline":"...","summary":"...","why":"..."}]}, one entry per source, keeping each id exactly.',
+    'Reply with one JSON object: {"items":[{"id":"...","headline":"...","summary":"..."}]}, one entry per source, keeping each id exactly.',
   ].join("\n");
 }
 
@@ -62,7 +67,7 @@ function materialBlock(material: SourceMaterial, boundary: string): string {
 
 export function writerUserMessage(items: readonly SourceMaterial[], boundary: string): string {
   return [
-    `Write the headline, summary and why for each of these ${items.length} sources.`,
+    `Write the headline and summary for each of these ${items.length} sources.`,
     "",
     ...items.map((item) => materialBlock(item, boundary)),
   ].join("\n\n");
@@ -70,7 +75,7 @@ export function writerUserMessage(items: readonly SourceMaterial[], boundary: st
 
 export function rewriteSystemPrompt(voice: VoiceConfig, boundary: string): string {
   return [
-    "You fix one field of a Dispatch item so that it follows the house voice.",
+    "You fix one field of a Singularity item so that it follows the house voice.",
     "",
     voiceBrief(voice),
     "",

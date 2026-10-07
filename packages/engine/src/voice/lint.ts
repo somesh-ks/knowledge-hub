@@ -1,5 +1,5 @@
 import { VOICE_LIMITS } from "@dispatch/core";
-import { countSentences, countWords } from "./sentences.js";
+import { countSentences, countWords, longSentences } from "./sentences.js";
 import type { VoiceConfig } from "./voice.js";
 
 export const VOICE_FIELDS = ["headline", "summary", "why"] as const;
@@ -16,7 +16,10 @@ export type ViolationRule =
   | "markdown"
   | "link"
   | "too_many_words"
-  | "too_many_sentences";
+  | "too_many_sentences"
+  | "too_few_words"
+  | "too_few_sentences"
+  | "sentence_too_long";
 
 export interface Violation {
   field: VoiceField;
@@ -113,12 +116,28 @@ function hits(regex: RegExp, text: string): Hit[] {
   return found;
 }
 
-function limitsFor(field: VoiceField): { words: number; sentences: number | null } {
+interface FieldLimits {
+  words: number;
+  sentences: number | null;
+  /** Lower bounds and the per-sentence cap. Only the summary has them. */
+  minWords?: number;
+  minSentences?: number;
+  sentenceWords?: number;
+}
+
+function limitsFor(field: VoiceField): FieldLimits {
   switch (field) {
     case "headline":
       return { words: VOICE_LIMITS.headlineWords, sentences: null };
     case "summary":
-      return { words: VOICE_LIMITS.summaryWords, sentences: VOICE_LIMITS.summarySentences };
+      return {
+        words: VOICE_LIMITS.summaryWords,
+        sentences: VOICE_LIMITS.summarySentences,
+        minWords: VOICE_LIMITS.summaryMinWords,
+        minSentences: VOICE_LIMITS.summaryMinSentences,
+        sentenceWords: VOICE_LIMITS.sentenceWords,
+      };
+    // Only digests written before the four-beat voice carry a why line.
     case "why":
       return { words: VOICE_LIMITS.whyWords, sentences: 1 };
     default: {
@@ -188,6 +207,12 @@ export function createLinter(config: VoiceConfig): Linter {
       if (words > limits.words) {
         add("too_many_words", `The ${field} has ${words} words; the limit is ${limits.words}.`);
       }
+      if (limits.minWords !== undefined && words < limits.minWords) {
+        add(
+          "too_few_words",
+          `The ${field} has ${words} words; it needs at least ${limits.minWords}.`,
+        );
+      }
       if (limits.sentences !== null) {
         const sentences = countSentences(text);
         if (sentences > limits.sentences) {
@@ -195,6 +220,23 @@ export function createLinter(config: VoiceConfig): Linter {
             "too_many_sentences",
             `The ${field} has ${sentences} sentences; the limit is ${limits.sentences}.`,
           );
+        }
+        if (limits.minSentences !== undefined && sentences < limits.minSentences) {
+          add(
+            "too_few_sentences",
+            `The ${field} has ${sentences} ${sentences === 1 ? "sentence" : "sentences"}; it needs at least ${limits.minSentences}.`,
+          );
+        }
+      }
+      if (limits.sentenceWords !== undefined) {
+        // The sentence came from the source, so it stays out of the message and travels in `match`.
+        for (const long of longSentences(text, limits.sentenceWords)) {
+          found.push({
+            field,
+            rule: "sentence_too_long",
+            message: `A sentence in the ${field} has ${long.words} words; split it so no sentence runs past ${limits.sentenceWords}.`,
+            match: long.sentence,
+          });
         }
       }
       return found;

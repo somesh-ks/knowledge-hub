@@ -9,6 +9,7 @@ import {
   stockholmDate,
 } from "@dispatch/core";
 import {
+  linkSourceIds,
   loadJudgments,
   loadPool,
   loadSources,
@@ -174,6 +175,7 @@ export async function commitStage(deps: RunDeps, options: RunOptions): Promise<C
       selection,
       pool: pool.items,
       sourceNames,
+      linkSources: linkSourceIds(sources),
       now,
       coverPicker: makeCoverPicker(deps.pickCover, lastRun.last_cover),
       allocateId: createIdAllocator(taken, pass.id),

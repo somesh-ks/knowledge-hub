@@ -1,7 +1,7 @@
 import { mkdir, mkdtemp, readFile, rm, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
-import { COVER_TEMPLATES, Digest, parseDigestFile } from "@dispatch/core";
+import { COVER_TEMPLATES, Digest, parseDigestFile, serializeDigestFile } from "@dispatch/core";
 import { afterEach, describe, expect, it } from "vitest";
 import { buildDigest } from "../src/render/buildDigest.js";
 import { createFallbackCoverPicker, loadCoverPalettes } from "../src/render/coverPicker.js";
@@ -14,7 +14,14 @@ import {
   readMinutes,
 } from "../src/render/readTime.js";
 import { writeDigestFile } from "../src/render/writeDigestFile.js";
-import { buildFixtureDigest, COVER, makeFixture, NOW, WINDOW } from "./render-factories.js";
+import {
+  buildFixtureDigest,
+  COVER,
+  LEGACY_WHY,
+  makeFixture,
+  NOW,
+  WINDOW,
+} from "./render-factories.js";
 
 const tempDirs: string[] = [];
 async function tempRoot(): Promise<string> {
@@ -48,6 +55,11 @@ describe("reading and listening time", () => {
 
   it("counts headline, summary and why words only", () => {
     expect(digestWords([{ headline: "one two", summary: "three four five.", why: "six" }])).toBe(6);
+  });
+
+  it("counts an item without a why line by its headline and summary", () => {
+    expect(digestWords([{ headline: "one two", summary: "three four five." }])).toBe(5);
+    expect(digestWords([{ headline: "one two", summary: "three.", why: undefined }])).toBe(3);
   });
 });
 
@@ -116,6 +128,46 @@ describe("buildDigest", () => {
     expect(Math.min(...topScores)).toBeGreaterThanOrEqual(Math.max(...restScores));
   });
 
+  it("keeps tech stories out of the top picks and files them after AI", () => {
+    const { digest } = buildFixtureDigest(10, {}, "regular", 3);
+    expect(digest.items).toHaveLength(13);
+    const top = digest.items.filter((i) => i.section === "top");
+    expect(top).toHaveLength(3);
+    expect(top.every((i) => i.category !== "consumer_tech_releases")).toBe(true);
+    const tech = digest.items.filter((i) => i.category === "consumer_tech_releases");
+    expect(tech.map((i) => i.section)).toEqual(["tech", "tech", "tech"]);
+    // Tech scores are the highest in the fixture, and still none of them leads.
+    expect(Math.min(...tech.map((i) => i.score))).toBeGreaterThan(
+      Math.max(...top.map((i) => i.score)),
+    );
+    const order = [...new Set(digest.items.map((i) => i.section))];
+    expect(order).toEqual(["top", "ui-craft", "ai", "tech", "research", "launches"]);
+
+    const text = serializeDigestFile(digest);
+    const at = (title: string): number => text.indexOf(`## ${title}`);
+    expect(at("AI models and products")).toBeGreaterThan(0);
+    expect(at("Tech releases")).toBeGreaterThan(at("AI models and products"));
+    expect(at("Research")).toBeGreaterThan(at("Tech releases"));
+    expect(parseDigestFile(text)).toEqual(digest);
+  });
+
+  it("recomputes the picks from the items outside tech when written text is missing", () => {
+    const fixture = makeFixture(4, 2);
+    const best = fixture.selected.find((s) => s.section === "top")?.item.id as string;
+    const digest = buildDigest({
+      selected: fixture.selected,
+      written: fixture.written.filter((w) => w.id !== best),
+      window: WINDOW,
+      kind: "regular",
+      now: NOW,
+      coverPicker: () => COVER,
+      allocateId: () => "2026-10-07",
+      audio: null,
+    });
+    expect(digest.items).toHaveLength(5);
+    expect(digest.items.map((i) => i.section)).toEqual(["top", "top", "top", "tech", "tech"]);
+  });
+
   it("maps item fields: canonical url, source name, optional author and date", () => {
     const fixture = makeFixture(4);
     const digest = buildDigest({
@@ -138,6 +190,53 @@ describe("buildDigest", () => {
     expect(second?.source).toBe("source-1");
     expect(second).not.toHaveProperty("author");
     expect(second).not.toHaveProperty("published_at");
+  });
+
+  it("credits an aggregated item to the publisher of its URL, not to the aggregator", () => {
+    const fixture = makeFixture(4);
+    const urls = [
+      "https://www.theverge.com/2026/10/6/ipad-pro",
+      "https://news.example.org/post",
+      "https://github.com/acme/lib/releases/tag/v2",
+      "https://example.com/fixture-3",
+    ];
+    const types = ["exa", "hn", "rss", "lobsters"] as const;
+    const selected = fixture.selected.map((sel) => {
+      const i = fixture.items.findIndex((item) => item.id === sel.item.id);
+      return {
+        ...sel,
+        item: {
+          ...sel.item,
+          canonical_url: urls[i] as string,
+          source_type: types[i] as (typeof types)[number],
+          source_id: ["exa-discovery", "hn-show", "brutalist-report", "lobsters"][i] as string,
+        },
+      };
+    });
+    const digest = buildDigest({
+      selected,
+      written: fixture.written,
+      window: WINDOW,
+      kind: "regular",
+      now: NOW,
+      coverPicker: () => COVER,
+      allocateId: () => "2026-10-07",
+      audio: null,
+      sourceNames: {
+        "exa-discovery": "Exa discovery",
+        "hn-show": "Hacker News: Show HN",
+        "brutalist-report": "Brutalist Report",
+        lobsters: "Lobsters",
+      },
+      linkSources: new Set(["brutalist-report"]),
+    });
+    const sourceOf = (i: number) =>
+      digest.items.find((item) => item.id === fixture.items[i]?.id)?.source;
+    expect(sourceOf(0)).toBe("The Verge");
+    expect(sourceOf(1)).toBe("news.example.org");
+    expect(sourceOf(2)).toBe("GitHub");
+    expect(sourceOf(3)).toBe("example.com");
+    expect(digest.items.map((item) => item.source)).not.toContain("Exa discovery");
   });
 
   it("skips selected items without written text and recomputes the top picks", () => {
@@ -176,6 +275,51 @@ describe("buildDigest", () => {
 
   it("marks a digest verified only when told", () => {
     expect(buildFixtureDigest(4, { verified: true }).digest.verified).toBe(true);
+  });
+
+  it("writes no why key when the text has none, in the frontmatter or the body", () => {
+    const { digest } = buildFixtureDigest(4);
+    for (const item of digest.items) expect(item).not.toHaveProperty("why");
+    const text = serializeDigestFile(digest);
+    expect(text).not.toMatch(/^\s+why:/m);
+    expect(text).not.toContain("Why:");
+    expect(parseDigestFile(text)).toEqual(digest);
+  });
+
+  it("keeps a why line that the text does carry, such as one from an agent session", () => {
+    const fixture = makeFixture(4);
+    const withWhy = fixture.written.map((w, i) => (i === 0 ? { ...w, why: LEGACY_WHY } : w));
+    const digest = buildDigest({
+      selected: fixture.selected,
+      written: withWhy,
+      window: WINDOW,
+      kind: "regular",
+      now: NOW,
+      coverPicker: () => COVER,
+      allocateId: () => "2026-10-07",
+      audio: null,
+    });
+    const first = digest.items.find((i) => i.id === fixture.written[0]?.id);
+    expect(first?.why).toBe(LEGACY_WHY);
+    expect(digest.items.filter((i) => i.why !== undefined)).toHaveLength(1);
+    const text = serializeDigestFile(digest);
+    expect(text.match(/^Why: /gm)).toHaveLength(1);
+    expect(parseDigestFile(text)).toEqual(digest);
+  });
+
+  it("treats an empty why as no why", () => {
+    const fixture = makeFixture(3);
+    const digest = buildDigest({
+      selected: fixture.selected,
+      written: fixture.written.map((w) => ({ ...w, why: "" })),
+      window: WINDOW,
+      kind: "regular",
+      now: NOW,
+      coverPicker: () => COVER,
+      allocateId: () => "2026-10-07",
+      audio: null,
+    });
+    for (const item of digest.items) expect(item).not.toHaveProperty("why");
   });
 });
 

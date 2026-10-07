@@ -3,6 +3,7 @@ import {
   Digest,
   type DigestItem,
   type DigestKind,
+  displaySource,
   stockholmDate,
   VOICE_LIMITS,
 } from "@dispatch/core";
@@ -39,6 +40,11 @@ export interface BuildDigestInput {
   audio: null;
   /** Display names by source id; the id itself is shown when a name is unknown. */
   sourceNames?: Readonly<Record<string, string>>;
+  /**
+   * Ids of sources whose items link to other publishers. Their items, like those of aggregator
+   * source types, are credited to the publisher of the URL instead of the registry name.
+   */
+  linkSources?: ReadonlySet<string>;
 }
 
 /**
@@ -64,11 +70,17 @@ export function buildDigest(input: BuildDigestInput): Digest {
       source_type: sel.item.source_type,
       headline: text.headline,
       url: sel.item.canonical_url,
-      source: input.sourceNames?.[sel.item.source_id] ?? sel.item.source_id,
+      source: displaySource({
+        url: sel.item.canonical_url,
+        sourceType: sel.item.source_type,
+        sourceName: input.sourceNames?.[sel.item.source_id] ?? sel.item.source_id,
+        linkSource: input.linkSources?.has(sel.item.source_id) ?? false,
+      }),
       summary: text.summary,
-      why: text.why,
       score: sel.score,
     };
+    // Only an agent session still supplies a why line; the frontmatter carries none otherwise.
+    if (text.why) item.why = text.why;
     if (sel.item.author) item.author = sel.item.author;
     if (sel.item.published_at) item.published_at = sel.item.published_at;
     return item;

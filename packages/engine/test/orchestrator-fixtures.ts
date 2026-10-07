@@ -55,6 +55,41 @@ function source(id: string, tier: Source["tier"]): Source {
   };
 }
 
+/** A consumer tech outlet: hinted, not high-signal, with the pool cap the registry gives it. */
+export function techSource(id: string): Source {
+  return {
+    ...source(id, "daily"),
+    high_signal: false,
+    category_hint: "consumer_tech_releases",
+    options: { pool_cap: "6" },
+  };
+}
+
+/**
+ * A launch story as one outlet headlined it. `launch` is the level (0 to 4) the test judge
+ * answers for it; the headline is what story clustering compares.
+ */
+export function techItem(
+  sourceId: string,
+  slug: string,
+  title: string,
+  launch: number,
+  publishedAt = "2026-10-06T08:00:00Z",
+): Item {
+  const url = `https://${sourceId}.example/${slug}`;
+  return Item.parse({
+    id: itemId(url),
+    url,
+    canonical_url: url,
+    title,
+    source_id: sourceId,
+    source_type: "rss",
+    published_at: publishedAt,
+    fetched_at: "2026-10-07T05:00:00Z",
+    snippet: `judge:consumer_tech_releases launch:${launch}`,
+  });
+}
+
 /** Three daily sources and one weekly source; every item from a high-signal source passes the prefilter. */
 export function sourcesFile(): { version: 1; sources: Source[] } {
   return {
@@ -111,7 +146,10 @@ export function goodFeeds(count: number, prefix = "good"): Record<string, Item[]
   return feeds;
 }
 
-/** Answers from the snippet tag. Items tagged "skip" get no answer, as when a judge fails. */
+/**
+ * Answers from the snippet tag. Items tagged "skip" get no answer, as when a judge fails. A
+ * `launch:<level>` tag sets the launch scale, which is what ranks a consumer tech item.
+ */
 export class PatternJudge implements Judge {
   readonly name = "pattern";
   readonly model = "pattern-model";
@@ -131,11 +169,13 @@ export class PatternJudge implements Judge {
     for (const item of items) {
       const tag = /judge:(\S+)/.exec(item.snippet)?.[1] ?? "none";
       if (tag === "skip") continue;
+      const launch = /launch:(\d)/.exec(item.snippet)?.[1];
       answers.push({
         ...makeEntry(item, {
           category: tag === "none" ? "none" : (tag as Category),
           p: 0.95,
           depth: 0.9,
+          ...(launch === undefined ? {} : { launchScale: Number(launch) / 4 }),
           model: this.entryModel,
         }),
         questions_hash: this.questionsHash,
@@ -407,12 +447,14 @@ export function poolFile(
         same_url: 0,
         newsletter_collapsed: 0,
         near_duplicate: 0,
+        story_clustered: 0,
         output: items.length,
       },
       prefilter: {
         input: items.length,
         kept: items.length,
         dropped: { disliked: 0, not_relevant: 0, source_cap: 0, cap: 0 },
+        tech: { input: 0, kept: 0, source_cap: 0, cap: 0 },
       },
     },
     items: [...items],

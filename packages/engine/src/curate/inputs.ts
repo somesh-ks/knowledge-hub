@@ -75,6 +75,11 @@ export function sourceNameMap(sources: readonly Source[]): Record<string, string
   return Object.fromEntries(sources.map((s) => [s.id, s.name]));
 }
 
+/** Ids of sources whose items link to other publishers (the "newsletter-link" kind). */
+export function linkSourceIds(sources: readonly Source[]): Set<string> {
+  return new Set(sources.filter((s) => s.options.kind === "newsletter-link").map((s) => s.id));
+}
+
 export interface PoolMeta {
   /** Digest id the pool was gathered for, which is also its run directory name. */
   id?: string;

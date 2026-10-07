@@ -1,6 +1,13 @@
-import { type DigestKind, homeSection, type Item, NEVER_PUBLISH } from "@dispatch/core";
-import { assignSections, capFor } from "../score/selectItems.js";
+import {
+  type DigestKind,
+  homeSection,
+  type Item,
+  NEVER_PUBLISH,
+  TECH_SECTION,
+} from "@dispatch/core";
+import { assignSections, capFor, TECH_ALLOWANCE } from "../score/selectItems.js";
 import { type Linter, VOICE_FIELDS } from "../voice/lint.js";
+import { writtenText } from "../write/text.js";
 import { AgentSelection, type Selection } from "./selectionFile.js";
 import type { DigestWindow } from "./window.js";
 
@@ -17,7 +24,7 @@ export type AgentValidation =
 /**
  * Validate the `selection.json` a Claude Code session wrote. The session reads untrusted text
  * with tools available, so nothing it says is trusted: ids must come from the pool, categories
- * must be publishable, every field must pass the voice lint and the size limits, and the
+ * must be publishable, every field it has must pass the voice lint and the size limits, and the
  * result is marked unverified because no grounding check ran. There is no rewrite step here;
  * the session fixes what the report lists and runs the command again.
  */
@@ -36,12 +43,6 @@ export function validateAgentSelection(
   }
   const issues: AgentIssue[] = [];
   const pool = new Map(context.pool.map((item) => [item.id, item]));
-  const cap = capFor(context.kind);
-  if (parsed.data.items.length > cap) {
-    issues.push({
-      message: `${parsed.data.items.length} items; the limit for a ${context.kind} digest is ${cap}.`,
-    });
-  }
 
   const seen = new Set<string>();
   const candidates = [];
@@ -66,11 +67,31 @@ export function validateAgentSelection(
       continue;
     }
     for (const field of VOICE_FIELDS) {
-      for (const violation of context.linter.lint(field, entry[field])) {
+      const text = entry[field];
+      // The why line is optional: the four beats live in the summary.
+      if (text === undefined) continue;
+      for (const violation of context.linter.lint(field, text)) {
         issues.push({ id: entry.id, message: `${field}: ${violation.message}` });
       }
     }
     candidates.push({ item, category: entry.category, home, score: entry.score, entry });
+  }
+
+  // Two pools, as in the engine's own selection: Tech releases has an allowance of its own.
+  const techCount = candidates.filter((candidate) => candidate.home === TECH_SECTION).length;
+  // Entries that failed a check above have no section yet; they count against the shared cap.
+  const mainCount = parsed.data.items.length - techCount;
+  const cap = capFor(context.kind);
+  if (mainCount > cap) {
+    issues.push({
+      message:
+        techCount === 0
+          ? `${mainCount} items; the limit for a ${context.kind} digest is ${cap}.`
+          : `${mainCount} items outside Tech releases; the limit for a ${context.kind} digest is ${cap}.`,
+    });
+  }
+  if (techCount > TECH_ALLOWANCE) {
+    issues.push({ message: `${techCount} Tech releases items; the limit is ${TECH_ALLOWANCE}.` });
   }
   if (issues.length > 0) return { ok: false, issues };
 
@@ -91,9 +112,7 @@ export function validateAgentSelection(
           id: sel.item.id,
           category: sel.category,
           score: sel.score,
-          headline: entry.headline,
-          summary: entry.summary,
-          why: entry.why,
+          ...writtenText(entry),
         };
       }),
     },
