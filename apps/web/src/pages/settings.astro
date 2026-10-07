@@ -1,0 +1,170 @@
+---
+import Icon from "../components/Icon.astro";
+import BaseLayout from "../layouts/BaseLayout.astro";
+import { PLAYBACK_RATES } from "../player/core/playerTypes";
+import { THEME_PREFERENCES, type ThemePreference } from "../player/core/preferences";
+// The build links this file before the layout's stylesheet, so its rules never rely on coming last:
+// where one adjusts a shared rule, it does so with a more specific selector.
+import "../styles/settings.css";
+
+const THEME_LABELS: Record<ThemePreference, string> = {
+  system: "System",
+  light: "Light",
+  dark: "Dark",
+};
+---
+
+<BaseLayout title="Settings" view="settings" skipLabel="Skip to the settings">
+  <main id="main" tabindex="-1">
+    {/* Static markup with native controls. No radio is checked and no value is set here: the stored
+         choice is only known in the browser, so settingsPage.ts fills the controls in and then marks
+         the page ready. Until then each control keeps its place and shows no state, which is why a
+         stored Dark never flashes System first. */}
+    <div class="settings-view" data-settings>
+      <h1 id="page-title" tabindex="-1">Settings</h1>
+      <noscript>
+        <p class="settings-note">These settings need JavaScript, which is turned off in this browser.</p>
+      </noscript>
+
+      <section>
+        <h2 class="section-head">Appearance</h2>
+        <div class="rows">
+          <div class="settings-row" data-layout="choice">
+            <div class="settings-text">
+              <span class="settings-label" id="settings-theme-label">Theme</span>
+              <span class="settings-hint" id="settings-theme-hint">System follows this device.</span>
+            </div>
+            <fieldset
+              class="settings-choice"
+              role="radiogroup"
+              aria-labelledby="settings-theme-label"
+              aria-describedby="settings-theme-hint"
+            >
+              {
+                THEME_PREFERENCES.map((theme) => (
+                  <label class="settings-segment">
+                    <input type="radio" name="theme" value={theme} />
+                    <span>{THEME_LABELS[theme]}</span>
+                  </label>
+                ))
+              }
+            </fieldset>
+          </div>
+        </div>
+      </section>
+
+      <section class="rule-above">
+        <h2 class="section-head">Sound</h2>
+        <div class="rows">
+          <div class="settings-row">
+            <div class="settings-text">
+              <label class="settings-label" for="settings-sounds">Interface sounds</label>
+              <span class="settings-hint" id="settings-sounds-hint">
+                Soft cues for play, skips and Generate. Follows your phone's silent switch.
+              </span>
+            </div>
+            <input
+              class="settings-switch"
+              id="settings-sounds"
+              name="sounds"
+              type="checkbox"
+              role="switch"
+              aria-describedby="settings-sounds-hint"
+            />
+          </div>
+          <div class="settings-row">
+            <label class="settings-label" for="settings-volume">Volume</label>
+            <input
+              class="settings-range"
+              id="settings-volume"
+              name="volume"
+              type="range"
+              min="0"
+              max="1"
+              step="0.05"
+            />
+          </div>
+        </div>
+      </section>
+
+      <section class="rule-above">
+        <h2 class="section-head">Playback</h2>
+        <div class="rows">
+          <div class="settings-row" data-layout="choice">
+            <div class="settings-text">
+              <span class="settings-label" id="settings-rate-label">Default speed</span>
+              <span class="settings-hint" id="settings-rate-hint">Every briefing starts at this speed.</span>
+            </div>
+            <fieldset
+              class="settings-choice"
+              role="radiogroup"
+              aria-labelledby="settings-rate-label"
+              aria-describedby="settings-rate-hint"
+            >
+              {
+                PLAYBACK_RATES.map((rate) => (
+                  <label class="settings-segment">
+                    <input type="radio" name="rate" value={String(rate)} />
+                    <span class="num">{rate}x</span>
+                  </label>
+                ))
+              }
+            </fieldset>
+          </div>
+        </div>
+      </section>
+
+      {/* Only Safari on iOS can do this, and only when the app is not already on the Home Screen, so
+           the section starts hidden and the script shows it where it applies. */}
+      <section class="rule-above" data-install-hint hidden>
+        <h2 class="section-head">This device</h2>
+        <div class="rows">
+          <div class="settings-row">
+            <div class="settings-text">
+              <span class="settings-label">Add Singularity to your Home Screen</span>
+              <span class="settings-hint">
+                In Safari, tap Share, then Add to Home Screen. It opens full screen and keeps playing in
+                the background.
+              </span>
+            </div>
+            <button class="btn press" type="button" data-install-dismiss>Hide this</button>
+          </div>
+        </div>
+      </section>
+
+      <section class="rule-above">
+        <h2 class="section-head">Briefings</h2>
+        <div class="rows">
+          {/* The sheets island opens the Generate sheet for any click inside [data-open]. */}
+          <button
+            class="row-action"
+            type="button"
+            data-open="generate"
+            aria-haspopup="dialog"
+            aria-labelledby="settings-generate-label"
+            aria-describedby="settings-generate-hint"
+          >
+            <span class="settings-text">
+              <span class="settings-label" id="settings-generate-label">Generate a briefing</span>
+              <span class="settings-hint" id="settings-generate-hint">
+                Starts a new briefing now. Needs the owner passphrase.
+              </span>
+            </span>
+            <Icon name="chevronRight" />
+          </button>
+        </div>
+      </section>
+
+      <section class="rule-above">
+        <h2 class="section-head">About</h2>
+        <p class="settings-about">Singularity. A private tech and design engineering briefing.</p>
+      </section>
+    </div>
+  </main>
+</BaseLayout>
+
+<script>
+  import { installSettingsPage } from "../scripts/settingsPage";
+
+  installSettingsPage();
+</script>

@@ -1,12 +1,14 @@
 /*
- * Dispatch sheets: Generate, Settings and the toast.
+ * Singularity sheets: Generate, the Settings sheet and the toast.
  *
  * Reads semantic and component tokens only. Base UI's Drawer supplies the states as attributes
  * (data-starting-style, data-ending-style, data-swiping) and the swipe values as custom
  * properties, so the transitions here are plain CSS: sheet in 300ms on the drawer curve, sheet out
  * 220ms, scaled by how hard the sheet was flicked away.
  *
- * Imported with player.css, which owns the segmented control and the icon set these sheets use.
+ * A sheet is a flat surface with one accent. Its buttons are the shared ones (.btn-primary, .btn,
+ * .icon-btn in buttons.css), so a page that mounts the sheets loads that file too. The Settings
+ * sheet also takes its segmented control and its icons from player.css.
  */
 
 /* ------------------------------------------------------------------ the sheet surface */
@@ -41,6 +43,7 @@
   transition-duration: 0ms;
 }
 
+/* On a phone the sheet rests on the bottom edge of the screen and only its top corners are round. */
 .sheet-viewport {
   position: fixed;
   inset: 0;
@@ -48,13 +51,13 @@
   display: flex;
   align-items: flex-end;
   justify-content: center;
-  padding: var(--space-2) var(--space-2) max(var(--space-2), var(--safe-bottom));
   /* Only the sheet takes the pointer; the scrim behind it handles dismissal. */
   pointer-events: none;
 }
 
 .sheet-popup {
   --color-focus-gap: var(--color-surface-raised);
+  position: relative;
   width: min(100%, var(--layout-column));
   color: var(--color-on-surface);
   outline: none;
@@ -65,10 +68,21 @@
     opacity var(--duration-state) var(--ease-out);
 }
 
+/* A sheet can be pulled a little above its resting place. Its surface continues below the screen
+   edge, so that pull never opens a gap under it. */
+.sheet-popup::after {
+  content: "";
+  position: absolute;
+  inset-inline: 0;
+  inset-block-start: 100%;
+  height: 100vh;
+  background: var(--sheet-bg);
+}
+
 .sheet-popup[data-starting-style],
 .sheet-popup[data-ending-style] {
   opacity: 0;
-  transform: translateY(calc(100% + var(--space-4) + var(--safe-bottom)));
+  transform: translateY(100%);
 }
 
 .sheet-popup[data-ending-style] {
@@ -89,20 +103,31 @@
 
 .sheet-panel {
   max-height: calc(var(--sheet-max-height) - var(--space-4));
-  padding: var(--sheet-padding);
+  /* The last control stays clear of the home indicator. */
+  padding: var(--space-2) var(--sheet-padding) max(var(--sheet-padding), var(--safe-bottom));
   overflow-y: auto;
   overscroll-behavior: contain;
   scrollbar-width: thin;
-  border-radius: var(--sheet-radius);
+  border-radius: var(--sheet-radius) var(--sheet-radius) 0 0;
   background: var(--sheet-bg);
   box-shadow: var(--sheet-shadow);
+}
+
+/* The grabber: on a phone a sheet can be dragged down to close it. */
+.sheet-panel::before {
+  content: "";
+  display: block;
+  width: var(--player-handle-width);
+  height: var(--player-handle-height);
+  margin: 0 auto var(--space-1);
+  border-radius: var(--radius-round);
+  background: var(--player-handle-color);
 }
 
 /* From 40rem a sheet is a centered dialog. Modals stay centered and scale in. */
 @media (min-width: 40rem) {
   .sheet-viewport {
     align-items: center;
-    padding: 0;
   }
 
   .sheet-popup {
@@ -117,46 +142,41 @@
 
   .sheet-panel {
     max-height: var(--sheet-max-height);
+    padding: var(--sheet-padding);
+    border-radius: var(--sheet-radius);
+  }
+
+  .sheet-popup::after,
+  .sheet-panel::before {
+    display: none;
   }
 }
 
 /* ------------------------------------------------------------------ head, lede, groups */
 
+/* The title in the heading role and a round close control (.icon-btn) at the end. */
 .sheet-head {
   display: flex;
   align-items: center;
   justify-content: space-between;
+  gap: var(--space-2);
+  min-height: var(--size-touch);
   margin-block-end: var(--space-2);
   padding-inline-start: var(--space-2);
 }
 
 .sheet-title {
   font-family: var(--text-heading-family);
-  font-size: var(--font-size-label-lg);
-  font-weight: var(--font-weight-bold);
-  letter-spacing: var(--font-tracking-label-lg);
-}
-
-.sheet-close {
-  display: grid;
-  place-items: center;
-  width: var(--size-touch);
-  height: var(--size-touch);
-  border-radius: var(--button-radius);
-  color: var(--color-on-surface-muted);
-}
-
-@media (hover: hover) and (pointer: fine) {
-  .sheet-close:hover {
-    background: var(--color-surface-sunken);
-    color: var(--color-on-surface);
-  }
+  font-size: var(--text-heading-size);
+  font-weight: var(--text-heading-weight);
+  letter-spacing: var(--text-heading-tracking);
+  line-height: var(--text-heading-leading);
 }
 
 .sheet-lede {
   padding-inline: var(--space-2);
   color: var(--color-on-surface-muted);
-  font-size: var(--font-size-meta);
+  font-size: var(--font-size-label);
 }
 
 .sheet-group {
@@ -170,10 +190,10 @@
   padding-inline: var(--space-2);
   color: var(--color-on-surface-muted);
   font-size: var(--font-size-meta);
-  font-weight: var(--font-weight-semibold);
+  font-weight: var(--font-weight-medium);
 }
 
-/* ------------------------------------------------------------------ fields and buttons */
+/* ------------------------------------------------------------------ fields and actions */
 
 .sheet-field {
   display: grid;
@@ -183,7 +203,9 @@
 
 .sheet-field-label {
   padding-inline: var(--space-2);
-  font-weight: var(--font-weight-semibold);
+  font-size: var(--font-size-label);
+  font-weight: var(--font-weight-medium);
+  line-height: var(--font-leading-label);
 }
 
 .sheet-input {
@@ -195,14 +217,32 @@
   color: var(--color-on-surface);
   /* 16px or larger, so iOS never zooms. The token is the body size, 1rem. */
   font-size: var(--font-size-body);
+  transition: border-color var(--duration-hover) var(--ease-hover);
 }
 
+@media (hover: hover) and (pointer: fine) {
+  .sheet-input:hover {
+    border-color: var(--color-on-surface);
+  }
+}
+
+/* The focus ring sits on the field's own edge and covers it, so a focused field has one accent line
+   around it, not a border inside a ring. */
+.sheet-input:focus-visible {
+  outline-offset: calc(var(--stroke-hairline) * -1);
+  box-shadow: none;
+}
+
+/* After the hover rule, so the invalid edge outranks it. The ring turns with it: focus returns to a
+   field that failed, and the ring would otherwise hide the edge that says so. */
 .sheet-input[aria-invalid="true"] {
+  --color-focus-ring: var(--color-danger);
   border-color: var(--color-danger);
 }
 
 .sheet-input[data-disabled],
 .sheet-input:disabled {
+  border-color: var(--field-border);
   color: var(--color-on-surface-disabled);
 }
 
@@ -219,168 +259,105 @@
   padding-inline: var(--space-2);
   color: var(--color-danger);
   font-size: var(--font-size-meta);
-  font-weight: var(--font-weight-semibold);
+  font-weight: var(--font-weight-medium);
 }
 
 .sheet-field-error .ui-icon {
-  width: 1rem;
-  height: 1rem;
+  width: var(--space-4);
+  height: var(--space-4);
   margin-block-start: 0.125rem;
 }
 
+/* One filled button for the action that commits (.btn-primary), text buttons for the rest (.btn). */
 .sheet-actions {
   display: grid;
   gap: var(--space-2);
   margin-block-start: var(--space-4);
 }
 
-.sheet-primary,
-.sheet-secondary {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  gap: var(--space-2);
-  width: 100%;
-  padding-inline: var(--space-4);
-  text-decoration: none;
-}
-
-.sheet-primary {
-  min-height: var(--cta-height);
-  border-radius: var(--cta-radius);
+/* Busy keeps its accent fill: the spinner and the word say "working", not "unavailable". */
+.sheet-actions .btn-primary[data-busy="true"] {
   background: var(--cta-bg);
   color: var(--cta-fg);
-  font-size: var(--font-size-label-lg);
-  font-weight: var(--font-weight-semibold);
-  letter-spacing: var(--font-tracking-label-lg);
-}
-
-.sheet-secondary {
-  min-height: var(--button-height);
-  border-radius: var(--button-radius);
-  background: var(--color-surface-sunken);
-  color: var(--color-on-surface);
-  font-weight: var(--font-weight-semibold);
-}
-
-@media (hover: hover) and (pointer: fine) {
-  .sheet-primary:hover {
-    background: var(--cta-bg-hover);
-  }
-
-  .sheet-secondary:hover {
-    background: color-mix(in oklch, var(--color-on-surface) 8%, var(--color-surface-sunken));
-  }
-}
-
-.sheet-primary:active {
-  background: var(--cta-bg-pressed);
-}
-
-/* Busy keeps its accent fill: the spinner and the word say "working", not "unavailable". */
-.sheet-primary[data-busy="true"] {
-  background: var(--cta-bg);
   cursor: progress;
 }
 
-.sheet-primary[aria-disabled="true"]:not([data-busy]) {
-  background: var(--color-surface-sunken);
-  color: var(--color-on-surface-disabled);
-}
-
-.sheet-primary[aria-disabled="true"]:active {
+.sheet-actions .btn-primary[aria-disabled="true"]:active {
   transform: none;
-}
-
-.sheet-primary .spinner {
-  color: var(--cta-fg);
 }
 
 /* ------------------------------------------------------------------ the run: steps and result */
 
+/* One row per step: a mark, the step and its state in words, so the list reads without colour. */
 .run-steps {
-  position: relative;
   display: grid;
-  margin-block-start: var(--space-6);
-  padding-inline-start: var(--rail-gutter);
-}
-
-/* The rail's line, as a list's spine. */
-.run-steps::before {
-  content: "";
-  position: absolute;
-  inset-block: var(--space-4);
-  inset-inline-start: calc(var(--rail-center) - var(--rail-width) / 2);
-  width: var(--rail-width);
-  border-radius: var(--stroke-rail);
-  background: var(--rail-track);
+  margin-block-start: var(--space-4);
+  padding-inline: var(--space-2);
 }
 
 .run-step {
-  position: relative;
-  display: flex;
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr) auto;
   align-items: center;
-  justify-content: space-between;
-  gap: var(--space-4);
+  gap: var(--space-3);
   min-height: var(--size-touch);
   color: var(--color-on-surface-muted);
   transition: color var(--duration-state) var(--ease-hover);
 }
 
+/* The mark. Waiting: a hollow ring. */
 .run-step::before {
   content: "";
-  position: absolute;
-  inset-inline-start: calc(var(--rail-center) - var(--rail-gutter) - var(--rail-node) / 2);
-  width: var(--rail-node);
-  height: var(--rail-node);
+  width: var(--space-4);
+  height: var(--space-4);
+  border: var(--stroke-ring) solid var(--color-track-strong);
   border-radius: var(--radius-round);
-  background: var(--color-surface-raised);
-  box-shadow: 0 0 0 var(--rail-node-ring) var(--rail-node-idle);
   transition:
     background-color var(--duration-state) var(--ease-out),
-    box-shadow var(--duration-state) var(--ease-out);
+    border-color var(--duration-state) var(--ease-out);
 }
 
+/* In progress: the ring turns, in the accent. */
+.run-step[data-state="active"] {
+  color: var(--color-on-surface);
+  font-weight: var(--font-weight-medium);
+}
+
+.run-step[data-state="active"]::before {
+  border-color: color-mix(in oklch, var(--color-accent) 24%, transparent);
+  border-block-start-color: var(--color-accent);
+  animation: spin var(--duration-spin) var(--ease-linear) infinite;
+}
+
+/* Done: filled, in the one place green is used. */
 .run-step[data-state="done"] {
   color: var(--color-on-surface);
 }
 
 .run-step[data-state="done"]::before {
-  background: var(--rail-fill);
-  box-shadow: 0 0 0 var(--rail-node-ring) var(--rail-fill);
-}
-
-.run-step[data-state="active"] {
-  color: var(--color-on-surface);
-  font-weight: var(--font-weight-semibold);
-}
-
-.run-step[data-state="active"]::before {
-  background: var(--rail-fill);
-  box-shadow:
-    0 0 0 var(--rail-node-ring) var(--rail-fill),
-    0 0 0 var(--rail-node-halo) color-mix(in oklch, var(--rail-fill) 24%, transparent);
+  border-color: var(--color-success);
+  background: var(--color-success);
 }
 
 .run-step[data-state="failed"] {
   color: var(--color-danger);
-  font-weight: var(--font-weight-semibold);
+  font-weight: var(--font-weight-medium);
 }
 
 .run-step[data-state="failed"]::before {
+  border-color: var(--color-danger);
   background: var(--color-danger);
-  box-shadow: 0 0 0 var(--rail-node-ring) var(--color-danger);
 }
 
 .run-step-state {
   font-size: var(--font-size-meta);
-  font-weight: var(--font-weight-medium);
 }
 
 .sheet-result {
   margin-block-start: var(--space-4);
 }
 
+/* A banner is a tint, an icon in the tone's colour and text. No stripe down its side. */
 .sheet-banner {
   display: grid;
   grid-template-columns: auto 1fr auto;
@@ -413,11 +390,12 @@
 }
 
 .sheet-banner-title {
-  font-weight: var(--font-weight-semibold);
+  font-weight: var(--font-weight-medium);
 }
 
+/* Quieter than the title, and drawn toward the tint it sits on rather than toward grey. */
 .sheet-banner-body {
-  color: var(--color-on-surface-muted);
+  color: color-mix(in oklch, var(--color-on-surface) 78%, var(--tone-bg));
   font-size: var(--font-size-meta);
 }
 
@@ -450,7 +428,8 @@
   padding: 0;
   border: 0;
   border-radius: var(--switch-radius);
-  background: var(--color-track-strong);
+  /* The same track as the settings page: a grey that stands 3 to 1 against the sheet and the thumb. */
+  background: var(--color-border-control);
   cursor: pointer;
   transition: background-color var(--duration-state) var(--ease-out);
 }
@@ -467,13 +446,17 @@
   height: calc(var(--switch-height) - var(--switch-padding) * 2);
   border-radius: var(--switch-thumb-radius);
   background: var(--switch-thumb-bg);
-  box-shadow: 0 1px 2px color-mix(in oklch, var(--color-on-surface) 30%, transparent);
+  box-shadow: 0 1px 2px color-mix(in oklch, var(--color-scrim) 60%, transparent);
   transition:
     transform var(--duration-state) var(--ease-out),
-    scale var(--duration-press-out) var(--ease-out);
+    scale var(--duration-press-out) var(--ease-out),
+    background-color var(--duration-state) var(--ease-out);
 }
 
+/* On the accent the thumb takes the on-accent colour: in dark mode the idle thumb is nearly as light
+   as the accent, and its position would be hard to see. */
 .switch[data-checked] .switch-thumb {
+  background: var(--color-on-accent);
   transform: translateX(
     calc(var(--switch-width) - var(--switch-thumb) - var(--switch-padding) * 2)
   );
@@ -482,7 +465,7 @@
 /* The thumb stretches while pressed, so the control answers before the finger lifts. */
 .switch:active .switch-thumb {
   scale: 1.12 1;
-  transition-duration: var(--duration-state), var(--duration-press-in);
+  transition-duration: var(--duration-state), var(--duration-press-in), var(--duration-state);
 }
 
 .range {
@@ -510,7 +493,7 @@
   width: 100%;
   height: var(--scrubber-track);
   border-radius: var(--radius-xs);
-  background: var(--color-track);
+  background: var(--color-track-strong);
 }
 
 .range-indicator {
@@ -534,6 +517,7 @@
   cursor: default;
 }
 
+/* How to add the app to the Home Screen: a quiet block with a text button to put it away. */
 .sheet-hint-card {
   display: grid;
   grid-template-columns: auto 1fr;
@@ -550,7 +534,7 @@
 
 .sheet-hint-title {
   margin-block-end: var(--space-1);
-  font-weight: var(--font-weight-semibold);
+  font-weight: var(--font-weight-medium);
 }
 
 .sheet-hint-body {
@@ -558,37 +542,26 @@
   font-size: var(--font-size-meta);
 }
 
-.sheet-hint-dismiss {
+/* The button's label lines up with the text above it; its padding hangs into the gap. */
+.sheet-hint-card .btn {
   grid-column: 2;
   justify-self: start;
-  min-height: var(--size-touch);
   margin-inline-start: calc(var(--space-3) * -1);
-  padding-inline: var(--space-3);
-  border-radius: var(--button-radius);
-  color: var(--color-on-surface-muted);
-  font-size: var(--font-size-meta);
-  font-weight: var(--font-weight-semibold);
-}
-
-@media (hover: hover) and (pointer: fine) {
-  .sheet-hint-dismiss:hover {
-    background: var(--color-surface-raised);
-    color: var(--color-on-surface);
-  }
 }
 
 /* ------------------------------------------------------------------ toast */
 
+/*
+ * A top-layer popover on the inverse surface, above whatever is docked at the bottom of the screen:
+ * the navigation bar, and the player once it is showing. The fallbacks cover a page without the
+ * shell (no navigation bar) and a player that has not published its height yet.
+ */
 .toast {
-  inset: auto 0
-    calc(
-      max(var(--mini-player-inset), var(--safe-bottom)) +
-      var(--mini-player-control-size) +
-      var(--mini-player-inset) *
-      2 +
-      var(--space-2)
-    )
-    0;
+  --toast-dock: 0px;
+  inset-block: auto
+    calc(var(--bottom-nav-height, var(--safe-bottom)) + var(--toast-dock) + var(--space-3));
+  /* Centred on the page, not on the screen: from 64rem the navigation is a column at the side. */
+  inset-inline: var(--side-nav-width, 0px) 0;
   /* Closed, a popover is display: none. Setting display here would keep it in the layout and the
      tab order, so the open state alone turns it on, and the exit plays through allow-discrete. */
   display: none;
@@ -603,6 +576,7 @@
   border-radius: var(--toast-radius);
   background: var(--toast-bg);
   color: var(--toast-fg);
+  font-size: var(--font-size-label);
   box-shadow: var(--toast-shadow);
   --color-focus-gap: var(--color-surface-inverse);
   --color-focus-ring: var(--toast-fg);
@@ -613,6 +587,10 @@
     transform var(--duration-exit) var(--ease-out),
     overlay var(--duration-exit) allow-discrete,
     display var(--duration-exit) allow-discrete;
+}
+
+html[data-mini="visible"] .toast {
+  --toast-dock: var(--player-dock-height, var(--nav-bar-height));
 }
 
 .toast:popover-open {
@@ -632,13 +610,14 @@
 .toast-action,
 .toast-dismiss {
   min-height: var(--size-touch);
-  border-radius: var(--control-radius-sm);
 }
 
+/* The accent is tuned for the page, not for the inverse surface, so the action is tonal instead. */
 .toast-action {
   padding-inline: var(--space-3);
+  border-radius: var(--button-radius);
   background: color-mix(in oklch, var(--toast-fg) 14%, transparent);
-  font-weight: var(--font-weight-semibold);
+  font-weight: var(--font-weight-medium);
 }
 
 .toast-dismiss {
@@ -646,15 +625,66 @@
   place-items: center;
   width: var(--size-touch);
   margin-inline-start: calc(var(--space-2) * -1);
+  border-radius: var(--radius-round);
   opacity: 0.8;
 }
 
+@media (hover: hover) and (pointer: fine) {
+  .toast-action:hover {
+    background: color-mix(in oklch, var(--toast-fg) 22%, transparent);
+  }
+
+  .toast-dismiss:hover {
+    background: color-mix(in oklch, var(--toast-fg) 14%, transparent);
+    opacity: 1;
+  }
+}
+
+.toast-action:active {
+  background: color-mix(in oklch, var(--toast-fg) 22%, transparent);
+}
+
+.toast-dismiss:active {
+  background: color-mix(in oklch, var(--toast-fg) 14%, transparent);
+  opacity: 1;
+}
+
 /* ------------------------------------------------------------------ preferences */
+
+/* The turning ring becomes a slow pulse, which still says the step is under way. */
+@media (prefers-reduced-motion: reduce) {
+  .run-step[data-state="active"]::before {
+    animation: pulse var(--duration-spin) var(--ease-in-out) infinite;
+  }
+}
 
 @media (forced-colors: active) {
   .sheet-panel,
   .toast {
     border: var(--stroke-hairline) solid CanvasText;
+  }
+
+  .sheet-panel::before {
+    background: GrayText;
+  }
+
+  .run-step::before {
+    border-color: GrayText;
+  }
+
+  .run-step[data-state="active"]::before {
+    border-color: GrayText;
+    border-block-start-color: Highlight;
+  }
+
+  .run-step[data-state="done"]::before {
+    border-color: Highlight;
+    background: Highlight;
+  }
+
+  .run-step[data-state="failed"]::before {
+    border-color: ButtonText;
+    background: ButtonText;
   }
 
   .switch {

@@ -8,9 +8,9 @@ interface GenerateStepsProps {
 }
 
 /**
- * The progress list, in the rail's grammar: a node on a line per step. Pending is hollow, active
- * is filled with a halo, done is filled, failed is danger. The state word is always written, so
- * the list reads without color.
+ * The progress list: one row per step, with a mark the stylesheet draws from data-state. Waiting is
+ * a hollow ring, in progress a turning ring, done is filled green, failed is filled in danger. The
+ * state word is always written, so the list reads without color.
  */
 export default function GenerateSteps({ phase, current, failedAt }: GenerateStepsProps) {
   const views = buildStepViews(phase, current, failedAt);

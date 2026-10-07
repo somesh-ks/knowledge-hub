@@ -16,9 +16,10 @@ interface SheetFrameProps {
 }
 
 /**
- * A floating bottom sheet on phones, a centered dialog from 40rem. Base UI's Drawer provides the
- * dialog semantics, the focus trap, the inert background, Escape, scrim tap, swipe to dismiss and
- * the transition states; the stylesheet gives it the design's surface, curve and radius.
+ * A bottom sheet on phones, resting on the screen's edge with a grabber, and a centered dialog from
+ * 40rem. Base UI's Drawer provides the dialog semantics, the focus trap, the inert background,
+ * Escape, scrim tap, swipe to dismiss and the transition states; the stylesheet gives it the
+ * design's surface, curve and radius, and draws the grabber.
  */
 export default function SheetFrame({
   open,
@@ -39,8 +40,8 @@ export default function SheetFrame({
           <Drawer.Content className="sheet-panel">
             <div className="sheet-head">
               <Drawer.Title className="sheet-title">{title}</Drawer.Title>
-              <Drawer.Close className="sheet-close press" aria-label={closeLabel}>
-                <Icon name="close" />
+              <Drawer.Close className="icon-btn press" aria-label={closeLabel}>
+                <Icon name="close" className="icon-lg" />
               </Drawer.Close>
             </div>
             {children}
