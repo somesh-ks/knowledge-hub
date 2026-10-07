@@ -88,11 +88,11 @@ export function storyCount(count: number): string {
 /** Why the briefing cannot be played, shown under its play chip. */
 export const AUDIO_UNAVAILABLE_COPY = {
   preparing: {
-    label: "Audio is still being prepared",
-    hint: "Narration is generated after the text. It usually takes a few minutes.",
+    label: "Not read aloud yet",
+    hint: "Press play to make the audio. The first time takes a few seconds and needs the passphrase.",
   },
   expired: {
     label: "The audio has expired",
-    hint: "Audio is kept for about four months. The text stays.",
+    hint: "Press play to make it again. It takes a few seconds and needs the passphrase.",
   },
 } as const;

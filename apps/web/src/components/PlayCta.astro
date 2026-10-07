@@ -19,13 +19,12 @@ const unavailable = mode === "ready" ? null : AUDIO_UNAVAILABLE_COPY[mode];
 
 <div class="hero-actions">
   {/* The player owns this chip once it hydrates (readerSync writes its state, label and name).
-       Without audio the chip stays in the page, disabled: aria-disabled keeps it focusable, so the
-       reason under it can be read, and the page can turn it into a working control later. */}
+       Without audio the chip still works: pressing it makes the audio first (narration on Play),
+       and the line under it says so. */}
   <PlayChip
     label={chip.label}
-    state={unavailable ? "unavailable" : "idle"}
+    state="idle"
     aria-label={chip.name}
-    aria-disabled={unavailable ? "true" : undefined}
     aria-describedby={unavailable ? "play-hint" : undefined}
     data-play-digest={digestId}
   />

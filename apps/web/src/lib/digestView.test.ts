@@ -76,7 +76,10 @@ describe("buildHero", () => {
 
 describe("audio copy", () => {
   it("explains both unavailable states in plain words", () => {
-    expect(AUDIO_UNAVAILABLE_COPY.preparing.label).toBe("Audio is still being prepared");
+    expect(AUDIO_UNAVAILABLE_COPY.preparing.label).toBe("Not read aloud yet");
+    // Both say what pressing play will do, since the audio is made on Play.
+    for (const copy of Object.values(AUDIO_UNAVAILABLE_COPY))
+      expect(copy.hint).toMatch(/^Press play/);
     expect(AUDIO_UNAVAILABLE_COPY.expired.label).toBe("The audio has expired");
     for (const copy of Object.values(AUDIO_UNAVAILABLE_COPY)) {
       // Voice rule: plain sentences, no dashes (the dash characters are built, not typed, here).

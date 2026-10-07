@@ -32,7 +32,10 @@ export interface PassphraseAnswer {
 }
 
 export interface ControllerDeps {
-  store: Pick<PlayerStore, "load" | "play" | "playItem" | "getState">;
+  store: Pick<
+    PlayerStore,
+    "load" | "play" | "playItem" | "getState" | "getPageDigest" | "setPageDigest"
+  >;
   audio: SwitchableAudio;
   api: ApiDeps;
   passphrase: {
@@ -119,6 +122,8 @@ export function createNarrationController(deps: ControllerDeps): NarrationContro
   }
 
   function start(digest: PlayerDigestData, itemId: string | undefined): void {
+    // The page still shows this briefing: from now on its chips drive the narrated copy.
+    if (deps.store.getPageDigest()?.id === digest.id) deps.store.setPageDigest(digest);
     deps.store.load(digest);
     if (itemId && digest.items.some((item) => item.id === itemId && item.start_ms !== null)) {
       deps.store.playItem(itemId);

@@ -252,6 +252,25 @@
   font-size: var(--font-size-meta);
 }
 
+/* A native checkbox with its label: the whole row is the target. */
+.sheet-check {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+  min-height: var(--size-touch);
+  padding-inline: var(--space-2);
+  font-size: var(--font-size-label);
+  cursor: pointer;
+}
+
+.sheet-check > input {
+  width: var(--size-icon);
+  height: var(--size-icon);
+  flex: none;
+  margin: 0;
+  accent-color: var(--color-accent);
+}
+
 .sheet-field-error {
   display: flex;
   align-items: flex-start;

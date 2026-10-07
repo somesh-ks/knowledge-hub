@@ -71,7 +71,11 @@ function writeChip(chip: HTMLElement, view: ChipView, blocked = false): void {
   else chip.removeAttribute("aria-disabled");
 }
 
-export function createReaderSync(store: PlayerStore): ReaderSync {
+export function createReaderSync(
+  store: PlayerStore,
+  /** Called for a tap on Play when the page's briefing has no audio yet. */
+  onNarrate?: (itemId?: string) => void,
+): ReaderSync {
   let elements: Elements = emptyElements();
   let lastUserScroll = Number.NEGATIVE_INFINITY;
   let pendingWrite = 0;
@@ -112,6 +116,11 @@ export function createReaderSync(store: PlayerStore): ReaderSync {
 
     // A briefing without audio keeps the state its page rendered.
     if (!page?.audio) return;
+    // Audio that arrived after the page was built (narrated on Play): the story chips the page
+    // rendered hidden now have something to play, and the note about making audio is done.
+    for (const chip of elements.playItem) if (chip.hidden) chip.hidden = false;
+    const note = document.getElementById("play-hint");
+    if (note && !note.hidden) note.hidden = true;
 
     const briefing = briefingChipView(state, store.getTime(), page);
     // Audio is never cached, so offline a chip that would have to fetch it cannot work. One that
@@ -183,6 +192,10 @@ export function createReaderSync(store: PlayerStore): ReaderSync {
     if (digestButton) {
       if (digestButton.getAttribute("aria-disabled") === "true") return;
       resumeFollow();
+      if (page && !page.audio) {
+        onNarrate?.();
+        return;
+      }
       togglePageDigest(store);
       return;
     }
