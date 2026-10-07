@@ -14,7 +14,12 @@ import {
 } from "../testing/fakeSpeechify";
 import { readFresh, versionedUrl } from "./blobStore";
 import { type BlobCredentials, MS_PER_CHARACTER, type ServerEnv } from "./config";
-import { BLOB_UPLOAD_TIMEOUT_MS, SYNTHESIS_DEADLINE_MS } from "./functionLimits.mjs";
+import {
+  BLOB_UPLOAD_TIMEOUT_MS,
+  FUNCTION_MAX_DURATION_S,
+  PRE_SYNTHESIS_BOUND_MS,
+  SYNTHESIS_DEADLINE_MS,
+} from "./functionLimits.mjs";
 import { WRONG_PASSPHRASE_DELAY_MS } from "./generate";
 import type { ApiResult } from "./http";
 import { NARRATE_DAILY_CAP } from "./limits";
@@ -30,6 +35,7 @@ import {
   type NarrateDeps,
   parseDigestId,
   parseNarrateRequest,
+  RESPONSE_MARGIN_MS,
   startDeadline,
   timelineKey,
   UPLOAD_ATTEMPTS,
@@ -48,7 +54,8 @@ const TODAY = "2026-10-07";
 const UNTIL_MIDNIGHT_S = 10 * 3600;
 const PASSPHRASE = "correct horse battery staple";
 const SPEECHIFY_KEY = "speechify-test-key-8f3a9c1e2b7d";
-const BLOB_TOKEN = "vercel_blob_rw_TestStore1234abcd_0123456789abcdefghij";
+/** The store's name is the fourth part, and with it the public address: FAKE_BLOB_HOST. */
+const BLOB_TOKEN = "vercel_blob_rw_teststore_0123456789abcdefghij";
 /** Text only an upstream service would say. It must never reach a caller. */
 const UPSTREAM = "UPSTREAM-DETAIL-4c1f";
 /** The engine's default voice and model, which the segment file names are hashed with. */
@@ -98,7 +105,14 @@ function setup(options: SetupOptions = {}) {
   const deadline = new AbortController();
   /** The wait for the marker's delete. A test aborts it to stop waiting for a delete that hangs. */
   const markerWait = new AbortController();
+  /** The one clock for the store calls before synthesis. A test aborts it to let it run out. */
+  const setupClock = new AbortController();
+  /** The time a failed attempt has to be counted in. Never runs out in these tests. */
+  const repeatClock = new AbortController();
+  /** How long each synthesis was given. */
   const deadlines: number[] = [];
+  /** Every clock that was started, as "purpose:milliseconds". */
+  const clocks: string[] = [];
   const state = { cancelled: 0 };
   const deps: NarrateDeps = {
     env: {
@@ -109,8 +123,10 @@ function setup(options: SetupOptions = {}) {
     },
     fetch: speech.fetch,
     now: () => clock,
+    // Waiting takes time: the clock moves, so time limits see every pause.
     delay: async (milliseconds) => {
       delays.push(milliseconds);
+      clock += milliseconds;
     },
     verifyPassphrase,
     openBlob: (credentials) => {
@@ -118,9 +134,17 @@ function setup(options: SetupOptions = {}) {
       return blob;
     },
     digests,
-    startDeadline: (milliseconds) => {
-      deadlines.push(milliseconds);
-      const controller = milliseconds === MARKER_CLEAR_WAIT_MS ? markerWait : deadline;
+    startDeadline: (milliseconds, purpose) => {
+      clocks.push(`${purpose}:${milliseconds}`);
+      if (purpose === "synthesis") deadlines.push(milliseconds);
+      const controller =
+        purpose === "marker"
+          ? markerWait
+          : purpose === "setup"
+            ? setupClock
+            : purpose === "repeat"
+              ? repeatClock
+              : deadline;
       return {
         signal: controller.signal,
         cancel: () => {
@@ -142,11 +166,15 @@ function setup(options: SetupOptions = {}) {
     opened,
     deadline,
     markerWait,
+    setupClock,
     deadlines,
+    clocks,
     state,
     advance: (milliseconds: number) => {
       clock += milliseconds;
     },
+    /** How long the request has been running, by the clock the handler reads. */
+    elapsed: () => clock - NOW,
   };
 }
 
@@ -163,8 +191,11 @@ const input = (bodyText: string = body(), origin: string | null = ORIGIN) => ({
 const post = (context: Setup, bodyText?: string) => handleNarrate(input(bodyText), context.deps);
 const postSegment = (context: Setup, segment: unknown, fields: Record<string, unknown> = {}) =>
   post(context, body({ segment, ...fields }));
-const lookup = (context: Setup, digest: string | null = ID) =>
-  handleNarrationLookup({ digest }, context.deps);
+const lookup = (context: Setup, digest: string | null = ID, params?: string[]) =>
+  handleNarrationLookup(
+    { digest, params: params ?? (digest === null ? [] : ["digest"]) },
+    context.deps,
+  );
 
 /** The length of everything said of a digest. It is what the digest is charged. */
 const wholeChars = (digest: Digest): number => buildSpokenText(digest).text.length;
@@ -215,7 +246,22 @@ function seedNarration(context: Setup, uploadedAt = NOW - HOUR) {
   return timeline;
 }
 
-type Charges = Record<string, { day: string; characters: number }>;
+type Charges = Record<
+  string,
+  {
+    day: string;
+    characters: number;
+    voice?: string;
+    whole?: boolean;
+    segments?: boolean;
+    repeats?: number;
+  }
+>;
+
+/** What a digest's entry records beside its day and characters, by the way it was narrated. */
+const IN_SEGMENTS = { voice: VOICE, whole: false, segments: true };
+const AS_WHOLE = { voice: VOICE, whole: true, segments: false };
+const NO_OPERATIONS = { advanced: 0, simple: 0, free: 0 };
 
 /** The month's document as the function stores it. */
 const stateDoc = (characters: number, digests: Charges = {}) =>
@@ -334,7 +380,14 @@ describe("parseNarrateRequest", () => {
 });
 
 describe("GET /api/narrate", () => {
-  it("answers 400 for a missing or malformed digest id, without opening the store", async () => {
+  /** Asserts the lookup asked the store nothing: not opened, not called, nothing billed. */
+  function expectNoStoreUse(context: Setup) {
+    expect(context.opened).toHaveLength(0);
+    expect(context.blob.calls).toEqual([]);
+    expect(context.blob.operations()).toEqual(NO_OPERATIONS);
+  }
+
+  it("answers 400 for a missing or malformed digest id", async () => {
     const context = setup();
     for (const bad of [null, "", "latest", "../x"]) {
       expect(await lookup(context, bad)).toEqual({
@@ -342,40 +395,42 @@ describe("GET /api/narrate", () => {
         body: { status: 400, error: "invalid_request" },
       });
     }
-    expect(context.opened).toHaveLength(0);
+    expectNoStoreUse(context);
   });
 
-  it("answers 400 before reading any configuration, as the static build needs", async () => {
-    const requestOidcToken = vi.fn(() => "token");
-    const context = setup({ env: { BLOB_READ_WRITE_TOKEN: undefined, BLOB_STORE_ID: "store_x" } });
-    const result = await handleNarrationLookup({ digest: null, requestOidcToken }, context.deps);
-    expect(result.status).toBe(400);
-    expect(requestOidcToken).not.toHaveBeenCalled();
+  it("answers 400 for any query parameter but one `digest`, before anything else", async () => {
+    const context = setup();
+    const readDigest = vi.spyOn(context.digests, "readDigest");
+    for (const params of [
+      ["digest", "cachebuster"],
+      ["cachebuster", "digest"],
+      ["digest", "digest"],
+      ["x"],
+    ]) {
+      const result = await lookup(context, ID, params);
+      expect(result).toEqual({ status: 400, body: { status: 400, error: "invalid_request" } });
+      // An error is never cached.
+      expect(result.headers).toBeUndefined();
+    }
+    // Refused before the digest was even looked for.
+    expect(readDigest).not.toHaveBeenCalled();
+    expectNoStoreUse(context);
   });
 
-  it("answers 503 when the store is not configured", async () => {
-    const context = setup({ env: { BLOB_READ_WRITE_TOKEN: undefined } });
-    expect(await lookup(context)).toEqual({
-      status: 503,
-      body: { status: 503, error: "unavailable" },
-    });
-    expect(context.opened).toHaveLength(0);
+  it("answers 400 for a request with no query at all, as the static build makes", async () => {
+    const context = setup({ env: {} });
+    expect((await lookup(context, null, [])).status).toBe(400);
   });
 
-  it("answers 503 when the configured voice is unusable, since segment files are keyed by it", async () => {
-    const context = setup({ env: { SPEECHIFY_VOICE_ID: "two words" } });
-    expect((await lookup(context)).status).toBe(503);
-    expect(context.opened).toHaveLength(0);
-  });
-
-  it("lists every segment of a digest nothing was narrated for, with one store call", async () => {
+  it("lists every segment with the address its audio would have, and asks the store nothing", async () => {
     const context = setup();
     const spoken = spokenSegments(context.digest);
     const result = await lookup(context);
 
-    expect(result.headers).toBeUndefined();
     expect(result).toEqual({
       status: 200,
+      // It depends on the build and the configuration alone, so the CDN may keep it for a minute.
+      headers: { "Cache-Control": "public, s-maxage=60" },
       body: {
         status: 200,
         audio: null,
@@ -384,7 +439,11 @@ describe("GET /api/narrate", () => {
           key: segment.key,
           item_id: segment.itemId,
           characters: segment.text.length,
-          audio: null,
+          audio: {
+            url: `${FAKE_BLOB_HOST}/${pathOf(context.digest, segment.key)}`,
+            duration_ms: Math.round(segment.text.length * MS_PER_CHARACTER),
+            confirmed: false,
+          },
         })),
         ms_per_character: MS_PER_CHARACTER,
       },
@@ -394,176 +453,158 @@ describe("GET /api/narrate", () => {
       "intro",
       ...buildSpokenText(context.digest).ranges.map((range) => range.id),
     ]);
-    expect(context.blob.calls).toEqual([{ op: "list", pathname: `audio/${ID}` }]);
-    expect(context.blob.operations()).toEqual({ advanced: 1, simple: 0, free: 0 });
+    expectNoStoreUse(context);
   });
 
-  it("answers 404 for a digest this deployment does not have, without a store call", async () => {
+  it("costs the store nothing however often it is asked, narrated or not", async () => {
     const context = setup();
-    // Even audio that exists is not looked up: only a digest with a page here can cost a call.
-    context.blob.seed(audioKey("2026-10-09"), FAKE_AUDIO);
+    seedSegment(context, "intro");
+    seedNarration(context);
+    for (let request = 0; request < 50; request += 1) await lookup(context);
+    expectNoStoreUse(context);
+  });
+
+  it("gives exactly the address a POST stores the segment at", async () => {
+    const context = setup();
+    const before = lookupBody(await lookup(context)).segments[0]?.audio;
+    expect(before?.confirmed).toBe(false);
+    const narrated = segmentBody(await postSegment(context, "intro"));
+    expect(narrated.audio.url).toBe(before?.url);
+    expect(narrated.audio.confirmed).toBe(true);
+    // And the lookup cannot tell the difference: it still says unconfirmed.
+    expect(lookupBody(await lookup(context)).segments[0]?.audio).toEqual(before);
+  });
+
+  it("follows the configured voice, since a segment's file is keyed by it", async () => {
+    const usual = lookupBody(await lookup(setup())).segments[0]?.audio?.url;
+    const context = setup({ env: { SPEECHIFY_VOICE_ID: "henry_7" } });
+    const other = lookupBody(await lookup(context)).segments[0]?.audio?.url;
+    expect(other).toBe(`${FAKE_BLOB_HOST}/${pathOf(context.digest, "intro", "henry_7")}`);
+    expect(other).not.toBe(usual);
+  });
+
+  it("answers 503 when the configured voice is unusable", async () => {
+    const context = setup({ env: { SPEECHIFY_VOICE_ID: "two words" } });
+    expect((await lookup(context)).status).toBe(503);
+    expectNoStoreUse(context);
+  });
+
+  it("works the address out from the store id when there is no read-write token", async () => {
+    const context = setup({
+      env: { BLOB_READ_WRITE_TOKEN: undefined, BLOB_STORE_ID: "store_AbCd1234efgh" },
+    });
+    expect(lookupBody(await lookup(context)).segments[0]?.audio?.url).toBe(
+      `https://abcd1234efgh.public.blob.vercel-storage.com/${pathOf(context.digest, "intro")}`,
+    );
+  });
+
+  it("gives every segment null audio when the store's address cannot be worked out", async () => {
+    for (const env of [
+      { BLOB_READ_WRITE_TOKEN: undefined },
+      { BLOB_READ_WRITE_TOKEN: "[SENSITIVE]" },
+      { BLOB_READ_WRITE_TOKEN: "not-a-blob-token" },
+      { BLOB_READ_WRITE_TOKEN: undefined, BLOB_STORE_ID: "store_../x" },
+    ]) {
+      const context = setup({ env });
+      const found = lookupBody(await lookup(context));
+      expect(found.segments).toHaveLength(5);
+      expect(found.segments.every((segment) => segment.audio === null)).toBe(true);
+      expect(found.segments[0]?.characters).toBeGreaterThan(0);
+    }
+  });
+
+  it("never puts a credential in the answer", async () => {
+    const context = setup();
+    const answer = JSON.stringify(await lookup(context));
+    expect(answer).not.toContain(BLOB_TOKEN);
+    expect(answer).not.toContain("0123456789abcdefghij");
+  });
+
+  it("answers 404 for a digest this deployment does not have", async () => {
+    const context = setup();
     expect(await lookup(context, "2026-10-09")).toEqual({
       status: 404,
       body: { status: 404, error: "digest_not_found" },
     });
-    expect(context.opened).toHaveLength(0);
-    expect(context.blob.calls).toEqual([]);
+    expectNoStoreUse(context);
   });
 
-  it("answers 422 for a digest that cannot be read aloud, without a store call", async () => {
+  it("answers 422 for a digest that cannot be read aloud", async () => {
     const long = makeDigest({
       id: ID,
       items: [1, 2, 3, 4].map((seed) => makeItem(seed, "top", { summary: "word ".repeat(1200) })),
     });
     const context = setup({ digests: [long] });
     expect((await lookup(context)).status).toBe(422);
-    expect(context.blob.calls).toEqual([]);
+    expectNoStoreUse(context);
   });
 
-  it("reads the listing back into segments, with each duration worked out from the file's size", async () => {
-    const context = setup();
-    // 44,000 bytes at 128 kbps is 2.75 seconds; 660,800 bytes is 41.3 seconds.
-    const intro = seedSegment(context, "intro", { bytes: 44_000 });
-    const story = seedSegment(context, storyKey(context.digest, 1), { bytes: 660_800 });
-
-    const { segments } = lookupBody(await lookup(context));
-    expect(segments.find((segment) => segment.key === "intro")?.audio).toEqual({
-      url: intro.audio.url,
-      duration_ms: 2750,
-    });
-    expect(intro.audio.url).toMatch(/\/audio\/2026-10-07\/seg\/intro\.[0-9a-f]{12}\.mp3$/);
-    expect(segments.find((segment) => segment.key === story.segment.key)?.audio).toEqual({
-      url: story.audio.url,
-      duration_ms: 41_300,
-    });
-    // The other three stories are not narrated yet.
-    expect(segments.filter((segment) => segment.audio === null)).toHaveLength(3);
-    // Still one call, and it is the only advanced operation a lookup makes.
-    expect(context.blob.calls).toEqual([{ op: "list", pathname: `audio/${ID}` }]);
-  });
-
-  it("estimates a duration from the text when the store reports no size", async () => {
-    const context = setup();
-    const intro = seedSegment(context, "intro", { bytes: 0 });
-    expect(lookupBody(await lookup(context)).segments[0]?.audio).toEqual({
-      url: intro.audio.url,
-      duration_ms: Math.round(intro.segment.text.length * MS_PER_CHARACTER),
-    });
-  });
-
-  it("does not take another text's, voice's or digest's file for a segment", async () => {
-    const context = setup();
-    const key = storyKey(context.digest, 0);
-    // The story as it read before an edit, and the same story in another voice.
-    seedSegment(context, key, { text: "An earlier wording of this story." });
-    seedSegment(context, key, { voice: "henry_7" });
-    // A same-day second digest shares the listing prefix "audio/2026-10-07".
-    const hash = segmentHash(segmentOf(context.digest, "intro").text, VOICE, MODEL);
-    context.blob.seed(segmentPath("2026-10-07-2", "intro", hash), FAKE_AUDIO);
-    context.blob.seed(audioKey("2026-10-07-2"), FAKE_AUDIO);
-    // Names in the folder that are not this segment's name.
-    context.blob.seed(`audio/${ID}/seg/intro.mp3`, FAKE_AUDIO);
-    context.blob.seed(`audio/${ID}/seg/intro.${hash}.wav`, FAKE_AUDIO);
-    context.blob.seed(`audio/${ID}/seg/intro.${hash}.1000.mp3`, FAKE_AUDIO);
-    context.blob.seed(`audio/${ID}/other/intro.${hash}.mp3`, FAKE_AUDIO);
+  it("reports whole-digest audio only from what the build carries", async () => {
+    const audio = { url: `${FAKE_BLOB_HOST}/audio/${ID}.mp3`, duration_ms: 12_000 };
+    const narrated = makeDigest({ id: ID, audio });
+    const context = setup({ digests: [narrated] });
+    const timeline = makeTimeline(narrated);
+    context.digests.timelines.set(ID, timeline);
 
     const found = lookupBody(await lookup(context));
-    expect(found.audio).toBeNull();
-    expect(found.segments.every((segment) => segment.audio === null)).toBe(true);
-  });
-
-  it("finds a segment by the configured voice", async () => {
-    const context = setup({ env: { SPEECHIFY_VOICE_ID: "henry_7" } });
-    seedSegment(context, "intro", { voice: VOICE });
-    expect(lookupBody(await lookup(context)).segments[0]?.audio).toBeNull();
-    const narrated = seedSegment(context, "intro", { voice: "henry_7" });
-    expect(lookupBody(await lookup(context)).segments[0]?.audio).toEqual(narrated.audio);
-  });
-
-  it("returns the whole-digest audio and its timeline beside the segments", async () => {
-    const context = setup();
-    const timeline = seedNarration(context);
-    const found = lookupBody(await lookup(context));
-    expect(found.audio).toEqual({
-      url: `${FAKE_BLOB_HOST}/audio/${ID}.mp3`,
-      duration_ms: timeline.duration_ms,
-    });
+    expect(found.audio).toEqual({ url: audio.url, duration_ms: timeline.duration_ms });
     expect(found.timeline).toEqual({
       kind: "marks",
       items: timeline.items,
       sections: timeline.sections,
     });
     expect(found.segments).toHaveLength(5);
-    // Voice, model and character count are stored but are not the page's business.
+    // Voice, model and character count are in the timeline file but are not the page's business.
     expect(JSON.stringify(found)).not.toContain("text_chars");
-    // Only a digest narrated as one file costs more: two simple operations for its timeline.
-    expect(context.blob.calls).toEqual([
-      { op: "list", pathname: `audio/${ID}` },
-      { op: "head", pathname: timelineKey(ID) },
-      { op: "fetch", pathname: timelineKey(ID) },
-    ]);
-    expect(context.blob.operations()).toEqual({ advanced: 1, simple: 2, free: 0 });
+    expectNoStoreUse(context);
   });
 
-  it("reports no whole-digest audio when there is an MP3 but no timeline for it", async () => {
+  it("does not report a whole-digest narration that is only in the store", async () => {
     const context = setup();
-    context.blob.seed(audioKey(ID), FAKE_AUDIO);
+    // Made by a POST after the build: the store has it, the build does not.
+    seedNarration(context);
     const found = lookupBody(await lookup(context));
     expect(found.audio).toBeNull();
     expect(found.timeline).toBeNull();
+    expectNoStoreUse(context);
   });
 
-  it("needs no passphrase, no Speechify key and spends nothing", async () => {
+  it("reports no whole-digest audio without both the address and the timeline in the build", async () => {
+    const audio = { url: `${FAKE_BLOB_HOST}/audio/${ID}.mp3`, duration_ms: 12_000 };
+    // The address but no timeline.
+    const addressOnly = setup({ digests: [makeDigest({ id: ID, audio })] });
+    expect(lookupBody(await lookup(addressOnly)).audio).toBeNull();
+    // A timeline for another digest.
+    addressOnly.digests.timelines.set(ID, {
+      ...makeTimeline(addressOnly.digest),
+      digest: "2026-10-06",
+    });
+    expect(lookupBody(await lookup(addressOnly)).audio).toBeNull();
+    // The timeline but no address.
+    const timelineOnly = setup();
+    timelineOnly.digests.timelines.set(ID, makeTimeline(timelineOnly.digest));
+    expect(lookupBody(await lookup(timelineOnly)).audio).toBeNull();
+  });
+
+  it("needs no passphrase and no Speechify key, and spends nothing: no characters, no operations", async () => {
     const context = setup({
       env: { GENERATE_PASSPHRASE_HASH: undefined, SPEECHIFY_API_KEY: undefined },
     });
-    seedNarration(context);
-    seedSegment(context, "intro");
     expect((await lookup(context)).status).toBe(200);
     expect(context.speech.calls).toHaveLength(0);
     expect(context.blob.changes()).toEqual([]);
+    expect(context.blob.operations().advanced).toBe(0);
+    expectNoStoreUse(context);
   });
 
-  it("uses the committed timeline for a digest the audio workflow narrated", async () => {
+  it("still answers when the bundled timeline cannot be read, without whole-digest audio", async () => {
     const context = setup();
-    const timeline = makeTimeline(context.digest);
-    context.blob.seed(audioKey(ID), FAKE_AUDIO);
-    context.digests.timelines.set(ID, timeline);
-    expect(lookupBody(await lookup(context)).audio?.duration_ms).toBe(timeline.duration_ms);
-  });
-
-  it("ignores a timeline that is malformed or belongs to another digest", async () => {
-    const context = setup();
-    context.blob.seed(audioKey(ID), FAKE_AUDIO);
-    context.blob.seed(timelineKey(ID), "{ not json");
-    context.digests.timelines.set(ID, { ...makeTimeline(context.digest), digest: "2026-10-06" });
-    expect(lookupBody(await lookup(context)).audio).toBeNull();
-  });
-
-  it("opens the store with OIDC credentials when there is no read-write token", async () => {
-    const context = setup({
-      env: { BLOB_READ_WRITE_TOKEN: undefined, BLOB_STORE_ID: "store_abc123" },
-    });
-    const result = await handleNarrationLookup(
-      { digest: ID, requestOidcToken: () => "oidc-token-from-the-request" },
-      context.deps,
-    );
-    expect(result.status).toBe(200);
-    expect(context.opened).toEqual([
-      { oidcToken: "oidc-token-from-the-request", storeId: "store_abc123" },
-    ]);
-  });
-
-  it("answers 503 when the store fails, with a generic body and a redacted log", async () => {
-    const context = setup();
-    context.blob.failNext("list", 1, {
-      error: new Error(`${UPSTREAM}: forbidden for ${BLOB_TOKEN}`),
-    });
-    const result = await lookup(context);
-    expect(result).toEqual({ status: 503, body: { status: 503, error: "unavailable" } });
-    expect(context.logs).toHaveLength(1);
-    expect(context.logs[0]).toContain("[redacted]");
-    expectNothingLeaked(result, context.logs);
+    context.digests.readTimeline = async () => {
+      throw new Error("chunk failed to load");
+    };
+    const found = lookupBody(await lookup(context));
+    expect(found.audio).toBeNull();
+    expect(found.segments).toHaveLength(5);
   });
 });
 
@@ -818,7 +859,58 @@ describe("POST /api/narrate: the in-progress marker", () => {
     context.markerWait.abort();
     const result = await post(context);
     expect(result.status).toBe(200);
-    expect(context.deadlines).toEqual([SYNTHESIS_DEADLINE_MS, MARKER_CLEAR_WAIT_MS]);
+    expect(context.clocks).toContain(`marker:${MARKER_CLEAR_WAIT_MS}`);
+    // The wait is shorter than the time kept free for answering.
+    expect(MARKER_CLEAR_WAIT_MS).toBeLessThan(RESPONSE_MARGIN_MS);
+  });
+
+  it("lets only one of two contenders take over a stale marker, and only that one narrates", async () => {
+    const context = setup();
+    context.blob.seed(markerKey(ID), "{}", NOW - MARKER_TTL_MS - 1);
+
+    // Both read the same stale marker. The second is then held until the first has replaced it
+    // with a fresh one, which is the moment a plain delete would wipe out the winner's marker and
+    // let the second narrate as well.
+    let releaseSecond: () => void = () => {};
+    const firstHasTakenOver = new Promise<void>((resolve) => {
+      releaseSecond = resolve;
+    });
+    let secondHasRead: () => void = () => {};
+    const bothHaveRead = new Promise<void>((resolve) => {
+      secondHasRead = resolve;
+    });
+    const head = context.blob.head.bind(context.blob);
+    let markerReads = 0;
+    context.blob.head = async (pathname) => {
+      const entry = await head(pathname);
+      if (pathname === markerKey(ID)) {
+        markerReads += 1;
+        if (markerReads === 1) {
+          await bothHaveRead;
+        } else {
+          secondHasRead();
+          await firstHasTakenOver;
+        }
+      }
+      return entry;
+    };
+    const create = context.blob.create.bind(context.blob);
+    context.blob.create = async (pathname, text, options) => {
+      const created = await create(pathname, text, options);
+      if (created && pathname === markerKey(ID)) releaseSecond();
+      return created;
+    };
+
+    const results = await Promise.all([post(context), post(context)]);
+    expect(results.map((result) => result.status).sort()).toEqual([200, 409]);
+    expect(context.speech.calls).toHaveLength(1);
+    expect(markerReads).toBe(2);
+    // One charge, one MP3, and the stale marker was deleted exactly once before the takeover.
+    const changes = context.blob.changes();
+    expect(changes.filter((change) => change === `put ${usageKey(MONTH)}`)).toHaveLength(1);
+    expect(changes.filter((change) => change === `put ${audioKey(ID)}`)).toHaveLength(1);
+    expect(changes.filter((change) => change === `create ${markerKey(ID)}`)).toHaveLength(1);
+    expect(changes.slice(0, 2)).toEqual([`del ${markerKey(ID)}`, `create ${markerKey(ID)}`]);
   });
 
   it("returns the audio even when the marker cannot be cleared", async () => {
@@ -876,17 +968,17 @@ describe("POST /api/narrate: narrating the whole digest", () => {
     const stored = AudioTimeline.parse(JSON.parse(context.blob.text(timelineKey(ID)) ?? ""));
     expect(stored.digest).toBe(ID);
     expect(stored.text_chars).toBe(spoken.text.length);
-    const found = lookupBody(await lookup(context));
-    expect(found.audio).toEqual(narrated.audio);
-    expect(found.timeline).toEqual(narrated.timeline);
+    // Asking again returns the same narration from the store, and Speechify is not asked twice.
+    expect(wholeBody(await post(context))).toEqual(narrated);
+    expect(context.speech.calls).toHaveLength(1);
     // Narrating the whole digest makes no segment files.
-    expect(found.segments.every((segment) => segment.audio === null)).toBe(true);
+    expect(context.blob.paths(`audio/${ID}/seg/`)).toEqual([]);
 
-    // The one document: the total, and the digest with its day and what it was charged.
+    // The one document: the total, and the digest with its day, its voice and what it was charged.
     expect(stateOf(context)).toEqual({
       version: 1,
       speechify: { month: MONTH, characters: spoken.text.length },
-      digests: { [ID]: { day: TODAY, characters: spoken.text.length } },
+      digests: { [ID]: { day: TODAY, characters: spoken.text.length, ...AS_WHOLE } },
     });
     expect(context.blob.has(markerKey(ID))).toBe(false);
   });
@@ -921,7 +1013,7 @@ describe("POST /api/narrate: narrating the whole digest", () => {
     expect(stateOf(context)).toEqual({
       version: 1,
       speechify: { month: MONTH, characters: 1000 + whole },
-      digests: { ...other, [ID]: { day: TODAY, characters: whole } },
+      digests: { ...other, [ID]: { day: TODAY, characters: whole, ...AS_WHOLE } },
     });
   });
 
@@ -999,8 +1091,10 @@ describe("POST /api/narrate: time limits, counted from the start of the request"
     const context = setup();
     slowSpeech(context, 15_000);
     expect((await postSegment(context, "intro")).status).toBe(200);
-    // 20 seconds, less one to answer, less the 15 gone: 4 seconds, not the usual 6.
-    expect(context.blob.written(pathOf(context.digest, "intro"))?.timeoutMs).toBe(4000);
+    // 20 seconds, less the margin kept for answering, less the 15 gone, not the usual 6.
+    expect(context.blob.written(pathOf(context.digest, "intro"))?.timeoutMs).toBe(
+      5000 - RESPONSE_MARGIN_MS,
+    );
   });
 
   it("does not start an upload it could not finish before the function is stopped", async () => {
@@ -1010,6 +1104,54 @@ describe("POST /api/narrate: time limits, counted from the start of the request"
     expect(result).toEqual({ status: 502, body: { status: 502, error: "storage_failed" } });
     expect(context.blob.has(pathOf(context.digest, "intro"))).toBe(false);
     expect(context.logs.join("\n")).toContain("no time left to upload");
+    // Nor is there time to count the failed attempt, and the log says what went uncounted.
+    expect(context.logs.join("\n")).toContain("no time left to count");
+  });
+
+  const LIMIT_MS = FUNCTION_MAX_DURATION_S * 1000;
+
+  it("never pauses before an upload retry for longer than the time that is left", async () => {
+    const context = setup();
+    // 2.4 seconds are left for uploads when Speechify answers, and every upload fails.
+    slowSpeech(context, LIMIT_MS - RESPONSE_MARGIN_MS - 2400);
+    context.blob.failNext("put", 10, { prefix: `audio/${ID}/seg/` });
+    const result = await postSegment(context, "intro");
+
+    expect(result).toEqual({ status: 502, body: { status: 502, error: "storage_failed" } });
+    // The usual pauses, 500 then 1,000 ms, fit: they were taken, and the clock moved with them.
+    expect(context.delays).toEqual([UPLOAD_RETRY_DELAY_MS, UPLOAD_RETRY_DELAY_MS * 2]);
+    // The answer leaves with the margin for answering still untouched.
+    expect(context.elapsed()).toBeLessThanOrEqual(LIMIT_MS - RESPONSE_MARGIN_MS);
+  });
+
+  it("cuts the pause short, or gives up at once, when the usual pause would not fit", async () => {
+    const context = setup();
+    // 900 ms are left. A 500 ms pause would leave too little for another attempt.
+    slowSpeech(context, LIMIT_MS - RESPONSE_MARGIN_MS - 900);
+    context.blob.failNext("put", 10, { prefix: `audio/${ID}/seg/` });
+    const result = await postSegment(context, "intro");
+
+    expect(result).toEqual({ status: 502, body: { status: 502, error: "storage_failed" } });
+    // One shortened pause of 400 ms, a second attempt with what was left, then no third.
+    expect(context.delays).toEqual([400]);
+    expect(
+      context.blob.calls.filter((call) => call.op === "put" && call.pathname.includes("/seg/")),
+    ).toHaveLength(2);
+    expect(context.elapsed()).toBeLessThanOrEqual(LIMIT_MS - RESPONSE_MARGIN_MS);
+  });
+
+  it("gives the store calls before synthesis one bound between them", async () => {
+    for (const request of [post, (context: Setup) => postSegment(context, "intro")]) {
+      const context = setup();
+      // The first store call never answers, and the shared clock runs out.
+      context.blob.hangNext("head");
+      context.setupClock.abort();
+      const result = await request(context);
+      expect(result).toEqual({ status: 503, body: { status: 503, error: "unavailable" } });
+      expect(context.clocks).toContain(`setup:${PRE_SYNTHESIS_BOUND_MS}`);
+      expect(context.speech.calls).toHaveLength(0);
+      expect(context.blob.changes()).toEqual([]);
+    }
   });
 });
 
@@ -1026,28 +1168,67 @@ describe("POST /api/narrate: when synthesis fails", () => {
     expect(result).toEqual({ status: 502, body: { status: 502, error: "synthesis_failed" } });
     expect(context.blob.changes()).toEqual([
       `create ${markerKey(ID)}`,
+      // The charge before synthesis, and the failed attempt counted after it.
+      `put ${usageKey(MONTH)}`,
       `put ${usageKey(MONTH)}`,
       `del ${markerKey(ID)}`,
     ]);
-    // The counter must never read below what was spent, so a failure is charged like a success.
-    expect(stateOf(context).digests[ID]).toEqual({
-      day: TODAY,
-      characters: wholeChars(context.digest),
+    // The counter must never read below what was spent. The charge paid for this attempt; what
+    // was added pays for the retry, which will have Speechify read the same text again.
+    const whole = wholeChars(context.digest);
+    expect(stateOf(context)).toEqual({
+      version: 1,
+      speechify: { month: MONTH, characters: 2 * whole },
+      digests: { [ID]: { day: TODAY, characters: whole, ...AS_WHOLE, repeats: whole } },
     });
     expect(context.logs.join("\n")).toContain("HTTP 500");
     expectNothingLeaked(result, context.logs);
   });
 
-  it("does not charge the digest a second time when the listener tries again", async () => {
+  it("counts every retry of a whole digest that fails after reaching Speechify", async () => {
     const context = setup({ speech: { kind: "http_error", status: 500, body: {} } });
+    const whole = wholeChars(context.digest);
     await post(context);
-    const charged = context.blob.text(usageKey(MONTH));
+    expect(stateOf(context).speechify.characters).toBe(2 * whole);
     await post(context);
-    await postSegment(context, "intro");
-    expect(context.blob.text(usageKey(MONTH))).toBe(charged);
-    expect(
-      context.blob.changes().filter((change) => change === `put ${usageKey(MONTH)}`),
-    ).toHaveLength(1);
+    await post(context);
+    // Three attempts reached Speechify. The counter holds the charge and three failures: one
+    // attempt more than was made, never one less.
+    expect(context.speech.calls).toHaveLength(3);
+    expect(stateOf(context).speechify.characters).toBe(4 * whole);
+    expect(stateOf(context).digests[ID]?.repeats).toBe(3 * whole);
+
+    // When it then succeeds, nothing more is added.
+    context.deps.fetch = createFakeSpeechify().fetch;
+    expect((await post(context)).status).toBe(200);
+    expect(stateOf(context).speechify.characters).toBe(4 * whole);
+  });
+
+  it("does not count a failure that never reached Speechify", async () => {
+    const context = setup();
+    context.blob.failNext("put", 1, { prefix: "state/usage-" });
+    expect((await post(context)).status).toBe(503);
+    expect(context.speech.calls).toHaveLength(0);
+    expect(context.blob.has(usageKey(MONTH))).toBe(false);
+    expect(context.clocks.some((clock) => clock.startsWith("repeat:"))).toBe(false);
+  });
+
+  it("still answers when the failed attempt cannot be counted, and says so in the log", async () => {
+    const context = setup({ speech: { kind: "http_error", status: 500, body: {} } });
+    // The charge is written; the count after the failure is not.
+    const put = context.blob.put.bind(context.blob);
+    let usageWrites = 0;
+    context.blob.put = async (pathname, bytes, options) => {
+      if (pathname === usageKey(MONTH)) {
+        usageWrites += 1;
+        if (usageWrites === 2) throw new Error(`${UPSTREAM} ${BLOB_TOKEN}`);
+      }
+      return put(pathname, bytes, options);
+    };
+    const result = await post(context);
+    expect(result).toEqual({ status: 502, body: { status: 502, error: "synthesis_failed" } });
+    expect(context.logs.join("\n")).toContain("could not be counted");
+    expectNothingLeaked(result, context.logs);
   });
 
   it("answers 502 when the request cannot be sent, with the key redacted from the log", async () => {
@@ -1075,11 +1256,13 @@ describe("POST /api/narrate: when synthesis fails", () => {
     expect(context.blob.changes()).toEqual([
       `create ${markerKey(ID)}`,
       `put ${usageKey(MONTH)}`,
+      `put ${usageKey(MONTH)}`,
       `del ${markerKey(ID)}`,
     ]);
     expect(context.blob.has(audioKey(ID))).toBe(false);
-    // Charged in full beforehand, which covers the five words the stream did synthesize.
-    expect(stateOf(context).speechify.characters).toBe(wholeChars(context.digest));
+    // Charged in full beforehand, which covers the five words the stream did synthesize, and
+    // once more for the retry a timeout invites.
+    expect(stateOf(context).speechify.characters).toBe(2 * wholeChars(context.digest));
     const spent = wordMarks(buildSpokenText(context.digest).text)[4]?.end;
     expect(context.logs.join("\n")).toContain(`at least ${spent} characters were synthesized`);
     expect(context.logs.join("\n")).toContain(`${SYNTHESIS_DEADLINE_MS} ms deadline`);
@@ -1121,6 +1304,11 @@ describe("POST /api/narrate: when the upload fails", () => {
     const result = await post(context);
     expect(result.status).toBe(200);
     expect(context.delays).toEqual([UPLOAD_RETRY_DELAY_MS, UPLOAD_RETRY_DELAY_MS * 2]);
+    // The pauses took real time, and each attempt was given what was then left of its limit.
+    expect(context.elapsed()).toBe(UPLOAD_RETRY_DELAY_MS * 3);
+    expect(context.blob.written(audioKey(ID))?.timeoutMs).toBe(BLOB_UPLOAD_TIMEOUT_MS);
+    // A success adds nothing to the charge.
+    expect(stateOf(context).speechify.characters).toBe(wholeChars(context.digest));
     expect(
       context.blob.calls.filter((call) => call.op === "put" && call.pathname === audioKey(ID)),
     ).toHaveLength(UPLOAD_ATTEMPTS);
@@ -1147,16 +1335,22 @@ describe("POST /api/narrate: when the upload fails", () => {
     expect(context.blob.has(timelineKey(ID))).toBe(false);
     expect(context.blob.has(markerKey(ID))).toBe(false);
     expect(context.blob.changes().at(-1)).toBe(`del ${markerKey(ID)}`);
-    expect(stateOf(context).digests[ID]?.characters).toBe(wholeChars(context.digest));
+    // Speechify was paid and the audio is lost: the retry will pay again, so it is counted now.
+    expect(stateOf(context).speechify.characters).toBe(2 * wholeChars(context.digest));
+    // The pauses between the attempts were real ones.
+    expect(context.delays).toEqual([UPLOAD_RETRY_DELAY_MS, UPLOAD_RETRY_DELAY_MS * 2]);
+    expect(context.elapsed()).toBe(UPLOAD_RETRY_DELAY_MS * 3);
     expectNothingLeaked(result, context.logs);
   });
 
-  it("reports no whole-digest audio when only the MP3 could be stored", async () => {
+  it("does not take an MP3 without its timeline for a narration", async () => {
     const context = setup();
     context.blob.failNext("put", UPLOAD_ATTEMPTS, { prefix: "timeline/" });
     expect((await post(context)).status).toBe(502);
-    // The MP3 alone is not a narration: a later request finds nothing and starts again.
-    expect(lookupBody(await lookup(context)).audio).toBeNull();
+    expect(context.blob.has(audioKey(ID))).toBe(true);
+    // The MP3 alone is not a narration: the next request finds nothing usable and starts again.
+    expect((await post(context)).status).toBe(200);
+    expect(context.speech.calls).toHaveLength(2);
   });
 
   it("treats an upload URL that is not https as a failed upload", async () => {
@@ -1264,7 +1458,7 @@ describe("POST /api/narrate with a segment", () => {
           key: "intro",
           item_id: null,
           characters: intro.text.length,
-          audio: { url: `${FAKE_BLOB_HOST}/${path}`, duration_ms: durationMs },
+          audio: { url: `${FAKE_BLOB_HOST}/${path}`, duration_ms: durationMs, confirmed: true },
         },
       },
     });
@@ -1274,9 +1468,8 @@ describe("POST /api/narrate with a segment", () => {
     expect(context.speech.calls).toHaveLength(1);
     expect(context.speech.calls[0]?.body.input).toBe(intro.text);
 
-    // The charge first, then the file. No marker, no listing, no whole-digest files.
+    // The charge first, then the file. No marker and no whole-digest files.
     expect(context.blob.changes()).toEqual([`put ${usageKey(MONTH)}`, `put ${path}`]);
-    expect(context.blob.calls.some((call) => call.op === "list")).toBe(false);
     expect(context.blob.operations()).toEqual({ advanced: 2, simple: 2, free: 0 });
     expect(context.blob.bytes(path)).toEqual(FAKE_AUDIO);
     expect(context.blob.written(path)).toEqual({
@@ -1292,7 +1485,7 @@ describe("POST /api/narrate with a segment", () => {
     expect(stateOf(context)).toEqual({
       version: 1,
       speechify: { month: MONTH, characters: whole },
-      digests: { [ID]: { day: TODAY, characters: whole } },
+      digests: { [ID]: { day: TODAY, characters: whole, ...IN_SEGMENTS } },
     });
     expect(lookupBody(await lookup(context)).segments[0]?.audio?.url).toBe(
       segmentBody(result).audio.url,
@@ -1375,12 +1568,14 @@ describe("POST /api/narrate with a segment", () => {
       item_id: null,
       characters: seeded.segment.text.length,
       // No stream this time, so the duration is the one the file's size gives.
-      audio: { url: seeded.audio.url, duration_ms: 2750 },
+      audio: { url: seeded.audio.url, duration_ms: 2750, confirmed: true },
     });
+    // Nothing spent: no characters, no writes, and not one advanced operation.
     expect(context.speech.calls).toHaveLength(0);
     expect(context.blob.changes()).toEqual([]);
     expect(context.blob.calls).toContainEqual({ op: "head", pathname: seeded.path });
-    expect(context.blob.operations().advanced).toBe(0);
+    expect(context.blob.operations()).toEqual({ advanced: 0, simple: 2, free: 0 });
+    expect(context.blob.has(usageKey(MONTH))).toBe(false);
   });
 
   it("returns a narrated segment even when the month's document cannot be read", async () => {
@@ -1419,8 +1614,50 @@ describe("POST /api/narrate with a segment", () => {
     expect(stateOf(context)).toEqual({
       version: 1,
       speechify: { month: MONTH, characters: 5100 },
-      digests: { [ID]: { day: "2026-10-03", characters: whole } },
+      digests: { [ID]: { day: "2026-10-03", characters: whole, ...IN_SEGMENTS } },
     });
+  });
+
+  it("charges the digest again when the voice has changed, since every file is made again", async () => {
+    const context = setup({ env: { SPEECHIFY_VOICE_ID: "henry_7" } });
+    const whole = wholeChars(context.digest);
+    seedState(context, whole, { [ID]: { day: "2026-10-03", characters: whole, ...IN_SEGMENTS } });
+    // The old voice's file is there; under the new voice's name there is none.
+    seedSegment(context, "intro");
+
+    expect((await postSegment(context, "intro")).status).toBe(200);
+    expect(context.speech.calls[0]?.body.voice_id).toBe("henry_7");
+    expect(stateOf(context)).toEqual({
+      version: 1,
+      speechify: { month: MONTH, characters: 2 * whole },
+      digests: {
+        [ID]: {
+          day: "2026-10-03",
+          characters: whole,
+          voice: "henry_7",
+          whole: false,
+          segments: true,
+        },
+      },
+    });
+    // The rest of the digest in the new voice is covered by that one charge.
+    expect((await postSegment(context, storyKey(context.digest, 0))).status).toBe(200);
+    expect(stateOf(context).speechify.characters).toBe(2 * whole);
+  });
+
+  it("answers 503 without spending when the month's document exists but cannot be had", async () => {
+    const context = setup();
+    seedState(context, 449_000);
+    // The store says the document is there; reading it comes back with nothing.
+    context.blob.fetchText = async () => null;
+    const result = await postSegment(context, "intro");
+    expect(result).toEqual({ status: 503, body: { status: 503, error: "unavailable" } });
+    // Not taken for an empty month: nothing synthesized, nothing written over the document.
+    expect(context.speech.calls).toHaveLength(0);
+    expect(context.blob.changes()).toEqual([]);
+    expect((await post(context)).status).toBe(503);
+    expect(context.speech.calls).toHaveLength(0);
+    expect(stateOf(context).speechify.characters).toBe(449_000);
   });
 
   it("needs room in the budget for the whole digest before its first segment", async () => {
@@ -1498,7 +1735,7 @@ describe("POST /api/narrate with a segment", () => {
     expect(stateOf(context)).toEqual({
       version: 1,
       speechify: { month: MONTH, characters: whole },
-      digests: { [ID]: { day: TODAY, characters: whole } },
+      digests: { [ID]: { day: TODAY, characters: whole, ...IN_SEGMENTS } },
     });
   });
 
@@ -1512,12 +1749,12 @@ describe("POST /api/narrate with a segment", () => {
     expect(segmentBody(a).audio.url).toBe(segmentBody(b).audio.url);
     // Neither saw the other's file, so both asked Speechify. One file is left.
     expect(context.speech.calls).toHaveLength(2);
-    expect(await context.blob.list(`audio/${ID}/seg/`)).toHaveLength(1);
+    expect(context.blob.paths(`audio/${ID}/seg/`)).toHaveLength(1);
     expect(stateOf(context).speechify.characters).toBe(wholeChars(context.digest));
     expect(Object.keys(stateOf(context).digests)).toEqual([ID]);
   });
 
-  it("leaves the digest charged when synthesis fails, and stores nothing", async () => {
+  it("leaves the digest charged when synthesis fails, counts the attempt, and stores no audio", async () => {
     const context = setup({
       speech: {
         kind: "http_error",
@@ -1527,13 +1764,31 @@ describe("POST /api/narrate with a segment", () => {
     });
     const result = await postSegment(context, "intro");
     expect(result).toEqual({ status: 502, body: { status: 502, error: "synthesis_failed" } });
-    expect(context.blob.changes()).toEqual([`put ${usageKey(MONTH)}`]);
-    expect(stateOf(context).digests[ID]).toEqual({
-      day: TODAY,
-      characters: wholeChars(context.digest),
+    // The digest's charge, then this attempt's characters for the retry to come.
+    expect(context.blob.changes()).toEqual([`put ${usageKey(MONTH)}`, `put ${usageKey(MONTH)}`]);
+    const whole = wholeChars(context.digest);
+    const intro = segmentOf(context.digest, "intro").text.length;
+    expect(stateOf(context)).toEqual({
+      version: 1,
+      speechify: { month: MONTH, characters: whole + intro },
+      digests: { [ID]: { day: TODAY, characters: whole, ...IN_SEGMENTS, repeats: intro } },
     });
     expect(context.logs.join("\n")).toContain(`narrate ${ID} intro: synthesis failed`);
     expectNothingLeaked(result, context.logs);
+  });
+
+  it("counts each retry of a segment that keeps failing, and nothing once it succeeds", async () => {
+    const context = setup({ speech: { kind: "http_error", status: 500, body: {} } });
+    const whole = wholeChars(context.digest);
+    const intro = segmentOf(context.digest, "intro").text.length;
+    await postSegment(context, "intro");
+    await postSegment(context, "intro");
+    expect(context.speech.calls).toHaveLength(2);
+    expect(stateOf(context).speechify.characters).toBe(whole + 2 * intro);
+
+    context.deps.fetch = createFakeSpeechify().fetch;
+    expect((await postSegment(context, "intro")).status).toBe(200);
+    expect(stateOf(context).speechify.characters).toBe(whole + 2 * intro);
   });
 
   it("stops the upstream request at the deadline and answers 504", async () => {
@@ -1549,6 +1804,9 @@ describe("POST /api/narrate with a segment", () => {
     expect(context.speech.calls[0]?.signal?.aborted).toBe(true);
     expect(context.deadlines).toEqual([SYNTHESIS_DEADLINE_MS]);
     expect(segmentPuts(context)).toEqual([]);
+    // A timeout invites a retry, so the attempt is counted like any other failure.
+    const story = segmentOf(context.digest, storyKey(context.digest, 0)).text.length;
+    expect(stateOf(context).speechify.characters).toBe(wholeChars(context.digest) + story);
   });
 
   it("retries the upload inside the function, and gives up with 502", async () => {
@@ -1565,7 +1823,11 @@ describe("POST /api/narrate with a segment", () => {
     });
     const result = await postSegment(failed, "intro");
     expect(result).toEqual({ status: 502, body: { status: 502, error: "storage_failed" } });
-    expect(lookupBody(await lookup(failed)).segments[0]?.audio).toBeNull();
+    expect(failed.blob.has(pathOf(failed.digest, "intro"))).toBe(false);
+    // Paid for and lost: the retry pays again, so the attempt is counted.
+    expect(stateOf(failed).speechify.characters).toBe(
+      wholeChars(failed.digest) + segmentOf(failed.digest, "intro").text.length,
+    );
     expectNothingLeaked(result, failed.logs);
   });
 
@@ -1670,23 +1932,29 @@ describe("what narrating a digest story by story costs the store", () => {
     // Play is pressed: one lookup, then every segment in order, one request at a time.
     const { segments } = lookupBody(await lookup(context));
     expect(segments).toHaveLength(19);
+    // The lookup itself cost nothing.
+    expect(context.blob.operations()).toEqual(NO_OPERATIONS);
     for (const segment of segments) {
-      expect((await postSegment(context, segment.key)).status).toBe(200);
+      const narrated = segmentBody(await postSegment(context, segment.key));
+      // Each file lands exactly where the lookup said it would be.
+      expect(narrated.audio.url).toBe(segment.audio?.url);
     }
 
     const cost = context.blob.operations();
-    // The listing, the month's charge, and nineteen files.
-    expect(cost.advanced).toBe(21);
+    // The month's charge, and nineteen files.
+    expect(cost.advanced).toBe(20);
     expect(cost.advanced).toBeLessThanOrEqual(22);
     // Two heads a request, and one read of the document that was not a cache hit.
     expect(cost.simple).toBe(2 * 19 + 1);
-    expect(context.blob.calls.filter((call) => call.op === "list")).toHaveLength(1);
 
-    // Every segment is there, and listening to it again costs no advanced operation at all.
-    const again = lookupBody(await lookup(context));
-    expect(again.segments.every((segment) => segment.audio !== null)).toBe(true);
-    for (const segment of again.segments) await postSegment(context, segment.key);
-    expect(context.blob.operations().advanced).toBe(22);
+    // Listening again, lookups and all, costs no advanced operation and no characters.
+    for (let visit = 0; visit < 3; visit += 1) {
+      const again = lookupBody(await lookup(context));
+      for (const segment of again.segments) {
+        expect(segmentBody(await postSegment(context, segment.key)).audio.confirmed).toBe(true);
+      }
+    }
+    expect(context.blob.operations().advanced).toBe(20);
     expect(context.speech.calls).toHaveLength(19);
   });
 });
@@ -1702,9 +1970,10 @@ describe("POST /api/narrate: the whole digest beside segments", () => {
     expect(narrated.audio.url).toBe(`${FAKE_BLOB_HOST}/audio/${ID}.mp3`);
     expect(narrated.timeline.items).toHaveLength(context.digest.items.length);
 
-    const found = lookupBody(await lookup(context));
-    expect(found.audio).toEqual(narrated.audio);
-    expect(found.segments[0]?.audio).toEqual(intro.audio);
+    // The segment's file is still there, and still what a request for it returns.
+    expect(context.blob.has(intro.path)).toBe(true);
+    expect(segmentBody(await postSegment(context, "intro")).audio.url).toBe(intro.audio.url);
+    expect(context.speech.calls).toHaveLength(1);
   });
 
   it("does not hold up a segment while the whole digest is being narrated", async () => {
@@ -1716,14 +1985,37 @@ describe("POST /api/narrate: the whole digest beside segments", () => {
     expect(context.blob.has(markerKey(ID))).toBe(true);
   });
 
-  it("charges a digest once when it is narrated both ways", async () => {
+  it("charges a digest for each way it is narrated: segments, then again as one file", async () => {
     const context = setup();
+    const whole = wholeChars(context.digest);
     expect((await postSegment(context, "intro")).status).toBe(200);
+    expect(stateOf(context).speechify.characters).toBe(whole);
+
+    // Speechify reads the whole text again for the one file, so it is charged again.
     expect((await post(context)).status).toBe(200);
-    expect(
-      context.blob.changes().filter((change) => change === `put ${usageKey(MONTH)}`),
-    ).toHaveLength(1);
-    expect(stateOf(context).speechify.characters).toBe(wholeChars(context.digest));
+    expect(stateOf(context)).toEqual({
+      version: 1,
+      speechify: { month: MONTH, characters: 2 * whole },
+      digests: {
+        [ID]: { day: TODAY, characters: whole, voice: VOICE, whole: true, segments: true },
+      },
+    });
+
+    // Both ways are paid for now: more of either adds nothing.
+    expect((await postSegment(context, storyKey(context.digest, 0))).status).toBe(200);
+    expect((await post(context)).status).toBe(200);
+    expect(stateOf(context).speechify.characters).toBe(2 * whole);
+  });
+
+  it("charges the reverse too: one file first, then segments", async () => {
+    const context = setup();
+    const whole = wholeChars(context.digest);
+    expect((await post(context)).status).toBe(200);
+    expect(stateOf(context).digests[ID]).toEqual({ day: TODAY, characters: whole, ...AS_WHOLE });
+    expect((await postSegment(context, "intro")).status).toBe(200);
+    expect(stateOf(context).speechify.characters).toBe(2 * whole);
+    expect((await postSegment(context, storyKey(context.digest, 0))).status).toBe(200);
+    expect(stateOf(context).speechify.characters).toBe(2 * whole);
   });
 });
 

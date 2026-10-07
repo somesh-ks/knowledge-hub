@@ -109,6 +109,23 @@ export function readVoiceId(env: ServerEnv): string | undefined | null {
   return VOICE_ID.test(voiceId) ? voiceId : null;
 }
 
+const STORE_NAME = /^[A-Za-z0-9]{8,64}$/;
+
+/**
+ * The public address of the Blob store, worked out from configuration alone, or null when it cannot
+ * be. The store's name is the fourth part of a read-write token ("vercel_blob_rw_<name>_<secret>")
+ * and the store id without its "store_" prefix, and it is not a secret: it is in every audio URL the
+ * page plays. The lookup uses this to say where a segment's file would be without asking the store.
+ */
+export function readPublicBlobBase(env: ServerEnv): string | null {
+  const token = credential(env.BLOB_READ_WRITE_TOKEN);
+  const fromToken = token?.startsWith("vercel_blob_rw_") ? token.split("_")[3] : undefined;
+  const fromId = credential(env.BLOB_STORE_ID)?.replace(/^store_/, "");
+  const name = fromToken || fromId;
+  if (!name || !STORE_NAME.test(name)) return null;
+  return `https://${name.toLowerCase()}.public.blob.vercel-storage.com`;
+}
+
 /** Returns null when anything is missing or malformed, so a half-configured site answers "unavailable". */
 export function readNarrateConfig(
   env: ServerEnv,

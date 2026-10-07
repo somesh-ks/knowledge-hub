@@ -1,4 +1,4 @@
-import { BlobError, BlobNotFoundError } from "@vercel/blob";
+import { BlobError, BlobNotFoundError, BlobPreconditionFailedError } from "@vercel/blob";
 import type { BlobCredentials } from "./config";
 import { BLOB_CALL_TIMEOUT_MS } from "./functionLimits.mjs";
 
@@ -7,7 +7,7 @@ import { BLOB_CALL_TIMEOUT_MS } from "./functionLimits.mjs";
  * an in-memory fake and never against the network. `createVercelBlobStore` is the real one.
  *
  * Operations are a budget here, like Speechify characters. The Hobby plan includes 2,000 ADVANCED
- * operations a month (put and list) and 10,000 SIMPLE ones (head, and a read by URL that misses the
+ * operations a month (put, and list, which this never calls) and 10,000 SIMPLE ones (head, and a read by URL that misses the
  * CDN cache). A delete and a cached read are free. Going over blocks the store for 30 days, so each
  * method below says what it costs, and narrate.ts counts what each request spends.
  */
@@ -21,6 +21,8 @@ export interface BlobEntry {
   size: number;
   /** Changes whenever the content does. `versionedUrl` puts it in the URL. */
   version: string;
+  /** The store's own ETag, as it sent it, for a delete that must only hit this exact content. */
+  etag: string | null;
 }
 
 export interface BlobWriteOptions {
@@ -40,8 +42,6 @@ export interface NarrateBlobStore {
    * copy. Never call this with a bare URL for anything that changes: use `readFresh`.
    */
   fetchText(url: string): Promise<string | null>;
-  /** ADVANCED, once per page of 1,000. Everything under a prefix. */
-  list(prefix: string): Promise<BlobEntry[]>;
   /** ADVANCED. Writes at a fixed pathname, replacing what was there, and returns the public URL. */
   put(
     pathname: string,
@@ -55,6 +55,11 @@ export interface NarrateBlobStore {
   create(pathname: string, body: string, options: BlobWriteOptions): Promise<boolean>;
   /** Free. */
   del(pathname: string): Promise<void>;
+  /**
+   * Free. Deletes the object only if it is still the one `entry` describes, and says whether it
+   * did. An object that has been replaced since it was read is left alone.
+   */
+  delIfUnchanged(entry: BlobEntry): Promise<boolean>;
 }
 
 /** The object's URL with its version in the query, so the CDN cannot answer with an older copy. */
@@ -77,7 +82,10 @@ export async function readFresh(
   const entry = await blob.head(pathname);
   if (entry === null) return null;
   const text = await blob.fetchText(versionedUrl(entry));
-  return text === null ? null : { entry, text };
+  // The store just said the object exists. If its content cannot be had, that is a failure, and it
+  // must not pass for "nothing stored": for the month's document that would read as an empty month.
+  if (text === null) throw new Error(`${pathname} exists but its content could not be read`);
+  return { entry, text };
 }
 
 interface SdkBlob {
@@ -96,9 +104,6 @@ type Bounded = BlobCredentials & { abortSignal: AbortSignal };
  */
 export interface BlobSdk {
   head(pathname: string, options: Bounded): Promise<SdkBlob>;
-  list(
-    options: Bounded & { prefix: string; cursor?: string },
-  ): Promise<{ blobs: SdkBlob[]; cursor?: string; hasMore: boolean }>;
   put(
     pathname: string,
     body: string | Buffer,
@@ -110,7 +115,7 @@ export interface BlobSdk {
       cacheControlMaxAge: number;
     },
   ): Promise<{ url: string }>;
-  del(pathname: string, options: Bounded): Promise<void>;
+  del(urlOrPathname: string, options: Bounded & { ifMatch?: string }): Promise<void>;
 }
 
 /** Reads a blob by URL. The global `fetch` in production, a fake in the adapter's test. */
@@ -118,8 +123,6 @@ export type BlobFetch = (url: string, init: { signal: AbortSignal }) => Promise<
 
 /** The store holds small JSON files besides the audio; nothing read as text should be near this. */
 export const MAX_TEXT_BYTES = 1_000_000;
-/** A listing is 1,000 objects a page. This is far past one digest's files. */
-const MAX_LIST_PAGES = 20;
 
 function toEntry(blob: SdkBlob): BlobEntry {
   return {
@@ -129,6 +132,7 @@ function toEntry(blob: SdkBlob): BlobEntry {
     size: blob.size && blob.size > 0 ? blob.size : 0,
     // The ETag changes with the content. The upload time is the fallback when there is none.
     version: blob.etag ? blob.etag.replace(/[^A-Za-z0-9]/g, "") : String(blob.uploadedAt.getTime()),
+    etag: blob.etag ?? null,
   };
 }
 
@@ -252,21 +256,6 @@ export function createVercelBlobStore(
       });
     },
 
-    async list(prefix) {
-      const entries: BlobEntry[] = [];
-      let cursor: string | undefined;
-      for (let page = 0; page < MAX_LIST_PAGES; page += 1) {
-        const from = cursor;
-        const result = await withLimit(BLOB_CALL_TIMEOUT_MS, (abortSignal) =>
-          sdk.list({ prefix, ...(from ? { cursor: from } : {}), ...credentials, abortSignal }),
-        );
-        entries.push(...result.blobs.map(toEntry));
-        if (!result.hasMore || !result.cursor) return entries;
-        cursor = result.cursor;
-      }
-      throw new Error(`Listing ${prefix} did not end after ${MAX_LIST_PAGES} pages`);
-    },
-
     async put(pathname, body, options) {
       const result = await write(pathname, body, options, true);
       return { url: result.url };
@@ -286,6 +275,28 @@ export function createVercelBlobStore(
       await withLimit(BLOB_CALL_TIMEOUT_MS, (abortSignal) =>
         sdk.del(pathname, { ...credentials, abortSignal }),
       );
+    },
+
+    async delIfUnchanged(entry) {
+      const etag = entry.etag;
+      // The store always reports an ETag. Without one there is nothing to match on, and a plain
+      // delete is the only way left to clear the object at all.
+      if (etag === null) {
+        await this.del(entry.pathname);
+        return true;
+      }
+      try {
+        // By URL: the SDK only takes a condition when it deletes one object by its URL.
+        await withLimit(BLOB_CALL_TIMEOUT_MS, (abortSignal) =>
+          sdk.del(entry.url, { ...credentials, abortSignal, ifMatch: etag }),
+        );
+        return true;
+      } catch (error) {
+        if (error instanceof BlobPreconditionFailedError || error instanceof BlobNotFoundError) {
+          return false;
+        }
+        throw error;
+      }
     },
   };
 }

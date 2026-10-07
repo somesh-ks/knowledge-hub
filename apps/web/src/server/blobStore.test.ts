@@ -1,4 +1,4 @@
-import { BlobError, BlobNotFoundError } from "@vercel/blob";
+import { BlobError, BlobNotFoundError, BlobPreconditionFailedError } from "@vercel/blob";
 import { describe, expect, it, vi } from "vitest";
 import {
   type BlobFetch,
@@ -33,7 +33,6 @@ function fakeSdk() {
     head: vi.fn<BlobSdk["head"]>(async (pathname) =>
       sdkBlob(pathname, { size: 10, etag: '"abc"' }),
     ),
-    list: vi.fn<BlobSdk["list"]>(async () => ({ blobs: [], hasMore: false })),
     put: vi.fn<BlobSdk["put"]>(async (pathname) => ({ url: sdkBlob(pathname).url })),
     del: vi.fn<BlobSdk["del"]>(async () => {}),
   };
@@ -59,6 +58,7 @@ describe("createVercelBlobStore", () => {
       uploadedAt: UPLOADED.getTime(),
       size: 10,
       version: "abc",
+      etag: '"abc"',
     });
     expect(sdk.head.mock.calls[0]?.[0]).toBe("audio/2026-10-07.mp3");
     expect(sdk.head.mock.calls[0]?.[1]).toMatchObject(TOKEN);
@@ -68,6 +68,7 @@ describe("createVercelBlobStore", () => {
     const sdk = { ...fakeSdk(), head: vi.fn<BlobSdk["head"]>(async (path) => sdkBlob(path)) };
     const entry = await createVercelBlobStore(TOKEN, sdk, neverFetched).head("x.json");
     expect(entry?.version).toBe(String(UPLOADED.getTime()));
+    expect(entry?.etag).toBeNull();
     expect(entry?.size).toBe(0);
   });
 
@@ -91,19 +92,31 @@ describe("createVercelBlobStore", () => {
     );
   });
 
+  it("has no way to list the store, so nothing built on it can spend a listing", () => {
+    const store = createVercelBlobStore(TOKEN, fakeSdk(), neverFetched);
+    expect(Object.keys(store).sort()).toEqual([
+      "create",
+      "del",
+      "delIfUnchanged",
+      "fetchText",
+      "head",
+      "put",
+    ]);
+  });
+
   it("gives every call to the store its own time limit", async () => {
     const sdk = fakeSdk();
     const store = createVercelBlobStore(TOKEN, sdk, neverFetched);
-    await store.head("a");
-    await store.list("audio/");
+    const entry = await store.head("a");
     await store.put("a", "{}", { contentType: "application/json", cacheSeconds: 60 });
     await store.create("b", "{}", { contentType: "application/json", cacheSeconds: 60 });
     await store.del("a");
+    if (entry) await store.delIfUnchanged(entry);
     expectBounded(sdk.head.mock.calls[0]?.[1]);
-    expectBounded(sdk.list.mock.calls[0]?.[0]);
     expectBounded(sdk.put.mock.calls[0]?.[2]);
     expectBounded(sdk.put.mock.calls[1]?.[2]);
     expectBounded(sdk.del.mock.calls[0]?.[1]);
+    expectBounded(sdk.del.mock.calls[1]?.[1]);
   });
 
   it("stops waiting for a call that outlasts its limit, even one that ignores its signal", async () => {
@@ -155,33 +168,6 @@ describe("createVercelBlobStore", () => {
     } finally {
       vi.useRealTimers();
     }
-  });
-
-  it("follows a listing across pages", async () => {
-    const first = { blobs: [sdkBlob("audio/a.mp3", { size: 3 })], cursor: "page-2", hasMore: true };
-    const second = { blobs: [sdkBlob("audio/b.mp3")], hasMore: false };
-    const sdk = {
-      ...fakeSdk(),
-      list: vi.fn<BlobSdk["list"]>(async (options) => (options.cursor ? second : first)),
-    };
-    const entries = await createVercelBlobStore(TOKEN, sdk, neverFetched).list("audio/");
-    expect(entries.map((entry) => [entry.pathname, entry.size])).toEqual([
-      ["audio/a.mp3", 3],
-      ["audio/b.mp3", 0],
-    ]);
-    expect(sdk.list.mock.calls[0]?.[0]).toMatchObject({ prefix: "audio/", ...TOKEN });
-    expect(sdk.list.mock.calls[1]?.[0]).toMatchObject({ prefix: "audio/", cursor: "page-2" });
-  });
-
-  it("stops a listing that never ends", async () => {
-    const sdk = {
-      ...fakeSdk(),
-      list: vi.fn<BlobSdk["list"]>(async () => ({ blobs: [], cursor: "again", hasMore: true })),
-    };
-    await expect(createVercelBlobStore(TOKEN, sdk, neverFetched).list("audio/")).rejects.toThrow(
-      "did not end",
-    );
-    expect(sdk.list).toHaveBeenCalledTimes(20);
   });
 
   it("writes public objects at a fixed pathname, replacing what was there", async () => {
@@ -244,6 +230,58 @@ describe("createVercelBlobStore", () => {
     await createVercelBlobStore(TOKEN, sdk, neverFetched).del("state/narrating-x.json");
     expect(sdk.del.mock.calls[0]?.[0]).toBe("state/narrating-x.json");
     expect(sdk.del.mock.calls[0]?.[1]).toMatchObject(TOKEN);
+    expect(sdk.del.mock.calls[0]?.[1]).not.toHaveProperty("ifMatch");
+  });
+});
+
+describe("deleting only the object that was read", () => {
+  const marker = {
+    pathname: "state/narrating-x.json",
+    url: `${HOST}/state/narrating-x.json`,
+    uploadedAt: 1,
+    size: 2,
+    version: "abc",
+    etag: '"abc"',
+  };
+
+  it("deletes by URL on the condition that the ETag still matches", async () => {
+    const sdk = fakeSdk();
+    const store = createVercelBlobStore(TOKEN, sdk, neverFetched);
+    expect(await store.delIfUnchanged(marker)).toBe(true);
+    expect(sdk.del.mock.calls[0]?.[0]).toBe(marker.url);
+    expect(sdk.del.mock.calls[0]?.[1]).toMatchObject({ ...TOKEN, ifMatch: '"abc"' });
+  });
+
+  it("says no, and deletes nothing, when the object was replaced or is gone", async () => {
+    for (const refusal of [new BlobPreconditionFailedError(), new BlobNotFoundError()]) {
+      const sdk = {
+        ...fakeSdk(),
+        del: vi.fn<BlobSdk["del"]>(async () => {
+          throw refusal;
+        }),
+      };
+      const store = createVercelBlobStore(TOKEN, sdk, neverFetched);
+      expect(await store.delIfUnchanged(marker)).toBe(false);
+    }
+  });
+
+  it("passes any other failure on", async () => {
+    const sdk = {
+      ...fakeSdk(),
+      del: vi.fn<BlobSdk["del"]>(async () => {
+        throw new Error("store is down");
+      }),
+    };
+    await expect(
+      createVercelBlobStore(TOKEN, sdk, neverFetched).delIfUnchanged(marker),
+    ).rejects.toThrow("store is down");
+  });
+
+  it("falls back to a plain delete only when the store gave no ETag to match", async () => {
+    const sdk = fakeSdk();
+    const store = createVercelBlobStore(TOKEN, sdk, neverFetched);
+    expect(await store.delIfUnchanged({ ...marker, etag: null })).toBe(true);
+    expect(sdk.del.mock.calls[0]?.[0]).toBe(marker.pathname);
   });
 });
 
@@ -315,12 +353,14 @@ describe("readFresh", () => {
     expect(await readFresh(store, "state/usage-2026-10.json")).toBeNull();
   });
 
-  it("is null when the object disappears between the two calls", async () => {
+  it("fails, and is not 'nothing stored', when the store has the object but not its content", async () => {
     const store = createVercelBlobStore(
       TOKEN,
       fakeSdk(),
       async () => new Response("", { status: 404 }),
     );
-    expect(await readFresh(store, "state/narrating-x.json")).toBeNull();
+    await expect(readFresh(store, "state/usage-2026-10.json")).rejects.toThrow(
+      "exists but its content could not be read",
+    );
   });
 });

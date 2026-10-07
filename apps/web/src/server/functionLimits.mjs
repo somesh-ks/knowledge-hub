@@ -38,5 +38,12 @@ export const NARRATE_OVERHEAD_MS = 8_000;
  */
 export const BLOB_CALL_TIMEOUT_MS = 3_000;
 
+/**
+ * The longest everything before synthesis may take together: finding out whether the audio exists,
+ * reading the month's charges, taking the marker and writing the charge. Each of those calls has its
+ * own limit, but several slow ones in a row must not use up the time synthesis needs.
+ */
+export const PRE_SYNTHESIS_BOUND_MS = 6_000;
+
 /** An audio upload is larger than a lookup, so it gets longer, but never more than the time left. */
 export const BLOB_UPLOAD_TIMEOUT_MS = 6_000;

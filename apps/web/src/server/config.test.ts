@@ -4,6 +4,7 @@ import {
   narrateSecretsOf,
   readBlobCredentials,
   readNarrateConfig,
+  readPublicBlobBase,
   readServerConfig,
   secretsOf,
 } from "./config";
@@ -110,6 +111,45 @@ describe("readBlobCredentials", () => {
     expect(
       readBlobCredentials({ BLOB_STORE_ID: "store/../x", VERCEL_OIDC_TOKEN: "env-oidc-token" }),
     ).toBeNull();
+  });
+});
+
+describe("readPublicBlobBase", () => {
+  it("works the store's public address out from the read-write token", () => {
+    expect(
+      readPublicBlobBase({ BLOB_READ_WRITE_TOKEN: "vercel_blob_rw_AbCd1234EfGh_secretsecret" }),
+    ).toBe("https://abcd1234efgh.public.blob.vercel-storage.com");
+  });
+
+  it("works it out from the store id when there is no token", () => {
+    expect(readPublicBlobBase({ BLOB_STORE_ID: "store_AbCd1234EfGh" })).toBe(
+      "https://abcd1234efgh.public.blob.vercel-storage.com",
+    );
+    expect(readPublicBlobBase({ BLOB_STORE_ID: "AbCd1234EfGh" })).toBe(
+      "https://abcd1234efgh.public.blob.vercel-storage.com",
+    );
+  });
+
+  it("never includes the secret part of the token", () => {
+    const base = readPublicBlobBase({
+      BLOB_READ_WRITE_TOKEN: "vercel_blob_rw_AbCd1234EfGh_thisIsTheSecretPart",
+    });
+    expect(base).not.toContain("thisIsTheSecretPart");
+    expect(base?.toLowerCase()).not.toContain("thisisthesecretpart");
+  });
+
+  it("is null when no usable store name is configured", () => {
+    for (const env of [
+      {},
+      { BLOB_READ_WRITE_TOKEN: "[SENSITIVE]" },
+      { BLOB_READ_WRITE_TOKEN: "some-other-token" },
+      { BLOB_READ_WRITE_TOKEN: "vercel_blob_rw_" },
+      { BLOB_STORE_ID: "store_../../x" },
+      { BLOB_STORE_ID: "store_evil.example/x" },
+      { BLOB_STORE_ID: "short" },
+    ]) {
+      expect(readPublicBlobBase(env), JSON.stringify(env)).toBeNull();
+    }
   });
 });
 

@@ -6,9 +6,10 @@ import {
   BLOB_UPLOAD_TIMEOUT_MS,
   FUNCTION_MAX_DURATION_S,
   NARRATE_OVERHEAD_MS,
+  PRE_SYNTHESIS_BOUND_MS,
   SYNTHESIS_DEADLINE_MS,
 } from "./functionLimits.mjs";
-import { MARKER_CLEAR_WAIT_MS, MARKER_TTL_MS } from "./narrate";
+import { MARKER_CLEAR_WAIT_MS, MARKER_TTL_MS, RESPONSE_MARGIN_MS } from "./narrate";
 
 /**
  * The numbers in functionLimits.mjs will be changed by hand once synthesis has been timed. These
@@ -39,8 +40,18 @@ describe("function limits", () => {
     expect(BLOB_UPLOAD_TIMEOUT_MS).toBeGreaterThanOrEqual(BLOB_CALL_TIMEOUT_MS);
     // One upload has to be able to run its full time after synthesis has used all of its own.
     expect(BLOB_UPLOAD_TIMEOUT_MS).toBeLessThan(NARRATE_OVERHEAD_MS);
-    // Waiting for the marker to be deleted is the shortest wait of all.
+    // Waiting for the marker to be deleted is the shortest wait of all, and it fits inside the
+    // time kept free for answering, which in turn fits inside the time kept back from synthesis.
     expect(MARKER_CLEAR_WAIT_MS).toBeLessThan(BLOB_CALL_TIMEOUT_MS);
+    expect(MARKER_CLEAR_WAIT_MS).toBeLessThan(RESPONSE_MARGIN_MS);
+    expect(RESPONSE_MARGIN_MS).toBeLessThan(NARRATE_OVERHEAD_MS);
+  });
+
+  it("bounds the store calls before synthesis so that synthesis still has time", () => {
+    expect(PRE_SYNTHESIS_BOUND_MS).toBeGreaterThanOrEqual(BLOB_CALL_TIMEOUT_MS);
+    expect(PRE_SYNTHESIS_BOUND_MS).toBeLessThan(
+      FUNCTION_MAX_DURATION_S * 1000 - NARRATE_OVERHEAD_MS,
+    );
   });
 
   it("is the only place the adapter's limit is written", () => {
