@@ -5,22 +5,31 @@ import { shouldActivateUpdate } from "./serviceWorker";
 const url = (path: string) => new URL(path, "https://news.someshks.work");
 
 describe("navigationKind", () => {
-  it("animates only the hop between the reader and the archive", () => {
-    expect(navigationKind(url("/"), url("/archive"))).toBe("archive");
-    expect(navigationKind(url("/archive"), url("/"))).toBe("archive");
-    expect(navigationKind(url("/archive"), url("/d/2026-10-07"))).toBe("archive");
-    expect(navigationKind(url("/d/2026-10-05"), url("/archive"))).toBe("archive");
+  it("fades through between destinations at the same level", () => {
+    expect(navigationKind(url("/"), url("/archive"))).toBe("peer");
+    expect(navigationKind(url("/archive"), url("/settings"))).toBe("peer");
+    expect(navigationKind(url("/settings"), url("/"))).toBe("peer");
+    expect(navigationKind(url("/"), url("/offline"))).toBe("peer");
+    // One briefing to another is a move sideways, not deeper.
+    expect(navigationKind(url("/d/2026-10-05"), url("/d/2026-10-04-weekly"))).toBe("peer");
   });
 
-  it("leaves every other navigation instant", () => {
-    expect(navigationKind(url("/"), url("/d/2026-10-05"))).toBe("none");
-    expect(navigationKind(url("/d/2026-10-05"), url("/d/2026-10-04-weekly"))).toBe("none");
+  it("goes in to a dated briefing and back out of one", () => {
+    expect(navigationKind(url("/archive"), url("/d/2026-10-07"))).toBe("in");
+    expect(navigationKind(url("/"), url("/d/2026-10-05"))).toBe("in");
+    expect(navigationKind(url("/d/2026-10-05"), url("/archive"))).toBe("out");
+    expect(navigationKind(url("/d/2026-10-05"), url("/"))).toBe("out");
+  });
+
+  it("does not move for the page it is already on", () => {
     expect(navigationKind(url("/archive"), url("/archive"))).toBe("none");
-    expect(navigationKind(url("/"), url("/offline"))).toBe("none");
+    expect(navigationKind(url("/archive/"), url("/archive"))).toBe("none");
+    expect(navigationKind(url("/"), url("/#c-ai"))).toBe("none");
   });
 
   it("accepts a trailing slash", () => {
-    expect(navigationKind(url("/archive/"), url("/"))).toBe("archive");
+    expect(navigationKind(url("/archive/"), url("/"))).toBe("peer");
+    expect(navigationKind(url("/archive/"), url("/d/2026-10-07/"))).toBe("in");
   });
 });
 

@@ -83,11 +83,6 @@
 
 /* ------------------------------------------------------------------ archive page */
 
-.back-link {
-  margin-inline-start: calc(var(--space-3) * -1);
-  margin-block-start: var(--space-2);
-}
-
 .archive-view {
   padding-block: var(--space-4) var(--space-16);
 }

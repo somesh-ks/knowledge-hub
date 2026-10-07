@@ -100,7 +100,7 @@ test.describe("navigating without reloading", () => {
     await expect(page.getByRole("heading", { level: 1 })).toHaveText("Wednesday 7 October");
   });
 
-  test("marks only the archive hop for animation", async ({ page }) => {
+  test("marks each navigation with the move it makes", async ({ page }) => {
     await page.goto("/");
     const marks: string[] = [];
     await page.exposeFunction("recordMark", (value: string) => marks.push(value));
@@ -116,6 +116,6 @@ test.describe("navigating without reloading", () => {
     await expect(page).toHaveURL(/\/d\/2026-10-05$/);
     await page.getByRole("link", { name: /All briefings/ }).click();
     await expect(page).toHaveURL(/\/archive$/);
-    expect(marks).toEqual(["none", "archive"]);
+    expect(marks).toEqual(["in", "out"]);
   });
 });

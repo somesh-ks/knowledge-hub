@@ -1,13 +1,13 @@
-/* Chapters aside: a cover and the chapter list, sticky beside the reading column from 64rem. */
+/* Contents aside: a cover and the section list, sticky past the reading column from 80rem. */
 
 .aside {
   display: none;
 }
 
-@media (min-width: 64rem) {
+@media (min-width: 80rem) {
   .aside {
     position: sticky;
-    inset-block-start: calc(var(--header-height) + var(--safe-top) + var(--space-6));
+    inset-block-start: calc(var(--sticky-top) + var(--space-6));
     align-self: start;
     display: grid;
     gap: var(--space-4);

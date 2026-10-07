@@ -1,6 +1,7 @@
 ---
 import { ClientRouter } from "astro:transitions";
 import appFont from "../assets/fonts/google-sans-flex-latin-wght-normal.woff2?url";
+import AppNav, { type Destination } from "../components/AppNav.astro";
 import Banner from "../components/Banner.astro";
 import SiteHeader from "../components/SiteHeader.astro";
 import { readBrandColors } from "../lib/brandColors";
@@ -27,9 +28,14 @@ interface Props {
   /** The page title. The site name is appended. */
   title?: string;
   description?: string;
-  /** Which route this is, for the Archive link and the data-view attribute the player reads. */
-  view: "home" | "archive";
-  /** "aside" adds the chapters column from 64rem. */
+  /** Which kind of page this is. */
+  view: "home" | "archive" | "settings";
+  /**
+   * The destination marked as current in the navigation. Defaults to the one the view belongs to; an
+   * earlier briefing passes "archive", and a page outside the three (not found, offline) passes null.
+   */
+  nav?: Destination | null;
+  /** "aside" adds the contents column from 80rem. */
   layout?: "aside" | "single";
   /** Set on digest pages so the player and CSS can tell which briefing is on screen. */
   digestId?: string;
@@ -40,12 +46,14 @@ const {
   title,
   description = "A private tech and design engineering briefing.",
   view,
+  nav,
   layout = "single",
   digestId,
   skipLabel = "Skip to the briefing",
 } = Astro.props;
 
 const colors = readBrandColors();
+const destination = nav === undefined ? (view === "home" ? "today" : view) : nav;
 const pageTitle = title ? `${title}, Singularity` : "Singularity";
 ---
 
@@ -83,7 +91,8 @@ const pageTitle = title ? `${title}, Singularity` : "Singularity";
   </head>
   <body>
     <a class="skip-link" href="#main">{skipLabel}</a>
-    <SiteHeader view={view} />
+    <SiteHeader />
+    <AppNav current={destination} />
     <div class="banner-stack page" id="banners"><slot name="banners" /></div>
     <div class="shell page"><slot /></div>
 

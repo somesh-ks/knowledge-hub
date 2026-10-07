@@ -213,8 +213,8 @@
   --size-icon: 1.25rem;
   --size-icon-lg: 1.5rem;
   --breakpoint-wide: 40rem;
-  --breakpoint-aside: 64rem;
-  --breakpoint-air: 72rem;
+  --breakpoint-side: 64rem;
+  --breakpoint-aside: 80rem;
   --text-display-family: var(--font-ui);
   --text-display-size: var(--font-size-display);
   --text-display-weight: var(--font-weight-regular);
@@ -375,10 +375,10 @@
   --chip-bg-current: var(--color-accent-subtle);
   --app-bar-height: 3.5rem;
   --nav-bar-height: 3.5rem;
-  --nav-rail-width: 5rem;
+  --nav-side-width: 13rem;
   --nav-item-icon: var(--size-icon-lg);
-  --nav-indicator-width: 4rem;
-  --nav-indicator-height: 2rem;
+  --nav-side-item-height: var(--size-touch-comfortable);
+  --nav-side-item-bg: var(--color-accent-subtle);
   --tabs-height: var(--size-touch-comfortable);
   --tabs-indicator-height: 3px;
   --tabs-indicator-radius: 3px;
