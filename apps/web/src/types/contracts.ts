@@ -237,3 +237,39 @@ export type NarrateSegmentResponse =
       };
     }
   | NarrateError;
+
+/**
+ * POST /api/config: one edit to the topics or the sources. The site is static and the settings live
+ * in the repository, so the function checks the passphrase and dispatches the config workflow,
+ * which commits the change. The change shows on the site after the next build.
+ */
+export type ConfigOp =
+  | {
+      op: "topic.upsert";
+      topic: {
+        id: string;
+        name: string;
+        description: string;
+        weight: number;
+        enabled: boolean;
+        keywords: string[];
+        section_id: string;
+      };
+    }
+  | { op: "topic.remove"; id: string }
+  | { op: "source.add"; url: string; topic_ids?: string[] }
+  | { op: "source.set"; id: string; enabled?: boolean; pinned?: boolean }
+  | { op: "source.remove"; id: string }
+  | { op: "weights.set"; weights: Record<string, number> };
+
+export interface ConfigRequest {
+  passphrase: string;
+  op: ConfigOp;
+}
+
+export type ConfigResponse =
+  | { status: 202; run_id: number }
+  | { status: 400; error: "invalid_request" }
+  | { status: 401; error: "wrong_passphrase" }
+  | { status: 429; error: "cooldown"; retry_after_s: number }
+  | { status: 503; error: "unavailable" };
