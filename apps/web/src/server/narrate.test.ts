@@ -206,6 +206,12 @@ function segmentOf(digest: Digest, key: string): SpokenSegment {
   return segment;
 }
 
+/** A value the test knows is there, failing with a clear message instead of using `!`. */
+function must<T>(value: T | undefined | null): T {
+  if (value === undefined || value === null) throw new Error("expected a value");
+  return value;
+}
+
 /** The key of the nth story in spoken order (0 is the first story, after the intro). */
 const storyKey = (digest: Digest, index: number): string =>
   spokenSegments(digest).filter((segment) => segment.itemId !== null)[index]?.key ?? "";
@@ -448,10 +454,11 @@ describe("GET /api/narrate", () => {
         ms_per_character: MS_PER_CHARACTER,
       },
     });
-    // The intro, then the four stories in the order they are spoken.
+    // The intro, then the four stories in the order they are spoken, then the sign-off.
     expect(lookupBody(result).segments.map((segment) => segment.key)).toEqual([
       "intro",
       ...buildSpokenText(context.digest).ranges.map((range) => range.id),
+      "outro",
     ]);
     expectNoStoreUse(context);
   });
@@ -507,7 +514,7 @@ describe("GET /api/narrate", () => {
     ]) {
       const context = setup({ env });
       const found = lookupBody(await lookup(context));
-      expect(found.segments).toHaveLength(5);
+      expect(found.segments).toHaveLength(6);
       expect(found.segments.every((segment) => segment.audio === null)).toBe(true);
       expect(found.segments[0]?.characters).toBeGreaterThan(0);
     }
@@ -553,7 +560,7 @@ describe("GET /api/narrate", () => {
       items: timeline.items,
       sections: timeline.sections,
     });
-    expect(found.segments).toHaveLength(5);
+    expect(found.segments).toHaveLength(6);
     // Voice, model and character count are in the timeline file but are not the page's business.
     expect(JSON.stringify(found)).not.toContain("text_chars");
     expectNoStoreUse(context);
@@ -604,7 +611,7 @@ describe("GET /api/narrate", () => {
     };
     const found = lookupBody(await lookup(context));
     expect(found.audio).toBeNull();
-    expect(found.segments).toHaveLength(5);
+    expect(found.segments).toHaveLength(6);
   });
 });
 
@@ -1507,22 +1514,36 @@ describe("POST /api/narrate with a segment", () => {
     expect(context.blob.operations().advanced).toBe(keys.length + 1);
   });
 
-  it("narrates a story with the section's lead-in when it opens the section", async () => {
+  it("narrates a story with the section's bridge when it opens a later section", async () => {
     const context = setup();
-    const key = storyKey(context.digest, 0);
+    const spoken = buildSpokenText(context.digest);
+    // The first story of the second section, which the host bridges into.
+    const second = must(spoken.sectionStarts[1]);
+    const own = must(spoken.ranges.find((range) => range.section === second.slug));
+    const key = own.id;
     const story = segmentOf(context.digest, key);
     const narrated = segmentBody(await postSegment(context, key));
     expect(narrated.item_id).toBe(key);
     expect(narrated.characters).toBe(story.text.length);
     expect(context.speech.calls[0]?.body.input).toBe(story.text);
-    // More than the story's own text: the announcement of its section comes first.
-    const own = buildSpokenText(context.digest).ranges.find((range) => range.id === key);
-    expect(story.text.length).toBeGreaterThan((own?.end ?? 0) - (own?.start ?? 0));
+    // More than the story's own text: the bridge into its section comes first.
+    expect(story.text.length).toBeGreaterThan(own.end - own.start);
+    expect(story.text.endsWith(spoken.text.slice(own.start, own.end))).toBe(true);
+  });
+
+  it("narrates the sign-off as the outro, a segment with no story", async () => {
+    const context = setup();
+    const outro = segmentOf(context.digest, "outro");
+    expect(outro.itemId).toBeNull();
+    expect(outro.text).toBe("That's the briefing. More in two days.");
+    const narrated = segmentBody(await postSegment(context, "outro"));
+    expect(narrated.item_id).toBeNull();
+    expect(context.speech.calls[0]?.body.input).toBe(outro.text);
   });
 
   it("refuses an unknown segment before any store or speech call", async () => {
     const context = setup();
-    for (const segment of ["outro", "ffffffffffff", "nope"]) {
+    for (const segment of ["ffffffffffff", "nope"]) {
       expect(await postSegment(context, segment)).toEqual({
         status: 404,
         body: { status: 404, error: "segment_not_found" },
@@ -1920,7 +1941,7 @@ describe("POST /api/narrate: the month's document is always read fresh", () => {
 });
 
 describe("what narrating a digest story by story costs the store", () => {
-  it("stays at or under 22 advanced operations for a 19-segment digest, lookup included", async () => {
+  it("stays at or under 22 advanced operations for a 20-segment digest, lookup included", async () => {
     const big = makeDigest({
       id: ID,
       items: Array.from({ length: 18 }, (_, index) =>
@@ -1931,7 +1952,8 @@ describe("what narrating a digest story by story costs the store", () => {
 
     // Play is pressed: one lookup, then every segment in order, one request at a time.
     const { segments } = lookupBody(await lookup(context));
-    expect(segments).toHaveLength(19);
+    // The intro, eighteen stories and the sign-off.
+    expect(segments).toHaveLength(20);
     // The lookup itself cost nothing.
     expect(context.blob.operations()).toEqual(NO_OPERATIONS);
     for (const segment of segments) {
@@ -1941,11 +1963,11 @@ describe("what narrating a digest story by story costs the store", () => {
     }
 
     const cost = context.blob.operations();
-    // The month's charge, and nineteen files.
-    expect(cost.advanced).toBe(20);
+    // The month's charge, and twenty files.
+    expect(cost.advanced).toBe(21);
     expect(cost.advanced).toBeLessThanOrEqual(22);
     // Two heads a request, and one read of the document that was not a cache hit.
-    expect(cost.simple).toBe(2 * 19 + 1);
+    expect(cost.simple).toBe(2 * 20 + 1);
 
     // Listening again, lookups and all, costs no advanced operation and no characters.
     for (let visit = 0; visit < 3; visit += 1) {
@@ -1954,8 +1976,8 @@ describe("what narrating a digest story by story costs the store", () => {
         expect(segmentBody(await postSegment(context, segment.key)).audio.confirmed).toBe(true);
       }
     }
-    expect(context.blob.operations().advanced).toBe(20);
-    expect(context.speech.calls).toHaveLength(19);
+    expect(context.blob.operations().advanced).toBe(21);
+    expect(context.speech.calls).toHaveLength(20);
   });
 });
 

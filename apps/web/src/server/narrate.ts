@@ -100,7 +100,8 @@ import { describeError } from "./redact";
  *   any POST that fails after        +1 advanced the failed attempt's characters, added to the
  *   reaching Speechify                           month's document
  *
- * A digest of 19 segments narrated story by story is therefore 2 + 18 = 20 advanced operations.
+ * A digest of 20 segments (the intro, 18 stories, the sign-off) narrated story by story is therefore
+ * 2 + 19 = 21 advanced operations.
  * narrate.test.ts counts them and fails above 22.
  */
 

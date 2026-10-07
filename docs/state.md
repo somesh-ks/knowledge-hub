@@ -11,6 +11,7 @@ Last updated 2026-10-07. Rewrite this file; do not append.
 
 ## Not working or unverified
 
+- Hosted narration (D29: spoken versions, host frame, outro) is tested but has not been heard through Speechify; stored audio for earlier digests no longer matches the narration text.
 - Audio: no digest has audio yet. The 2026-10-07 audio run got through the Vercel pull and Speechify narration, then the Blob upload failed: the store is connected to Production and Preview, and the CLI issues a development OIDC token. Fix in PR: `audio.yml` passes `BLOB_READ_WRITE_TOKEN` (a fresh store token, already in the GitHub secrets) so the engine skips OIDC. Each retry re-synthesizes and spends Speechify characters (about 7k per run), so do not rerun until that is changed.
 - Generate button and passphrase are untested against the live site.
 - Curation: half of the first digest was GitHub patch releases; needs grouping and down-weighting.

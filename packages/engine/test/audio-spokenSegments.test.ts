@@ -1,7 +1,8 @@
 import { existsSync, readdirSync, readFileSync } from "node:fs";
 import { join } from "node:path";
-import { type Digest, parseDigestFile, SECTION_TITLES } from "@dispatch/core";
+import { type Digest, parseDigestFile } from "@dispatch/core";
 import { describe, expect, it } from "vitest";
+import { bridgeCandidates } from "../src/audio/hostFrame.js";
 import {
   INTRO_KEY,
   OUTRO_KEY,
@@ -9,7 +10,7 @@ import {
   segmentSpokenText,
   spokenSegments,
 } from "../src/audio/spokenSegments.js";
-import { buildSpokenText, type SpokenText, toSpeech } from "../src/audio/spokenText.js";
+import { buildSpokenText, type SpokenText } from "../src/audio/spokenText.js";
 import { makeDigest, makeItem, must } from "./audio-fixtures.js";
 
 const DIGESTS = join(import.meta.dirname, "..", "..", "..", "Digests");
@@ -74,35 +75,62 @@ describe("spokenSegments", () => {
     expect(segments.map((segment) => segment.key)).toEqual([
       INTRO_KEY,
       ...spoken.ranges.map((range) => range.id),
+      OUTRO_KEY,
     ]);
     expect(segments[0]).toEqual({
       key: INTRO_KEY,
       itemId: null,
       text: spoken.text.slice(0, must(spoken.sectionStarts[0]).start).trim(),
     });
-    for (const segment of segments.slice(1)) expect(segment.itemId).toBe(segment.key);
-    // Today's narration has no closing line, so there is no outro.
-    expect(segments.some((segment) => segment.key === OUTRO_KEY)).toBe(false);
+    for (const segment of segments.slice(1, -1)) expect(segment.itemId).toBe(segment.key);
+    // The sign-off is a segment of its own, with no story behind it.
+    expect(segments.at(-1)).toEqual({
+      key: OUTRO_KEY,
+      itemId: null,
+      text: "That's the briefing. More in two days.",
+    });
   });
 
-  it("gives a section's announcement to the first story of that section, and to no other", () => {
+  it("keeps a bridge with the story it introduces, never with the one before it", () => {
+    const digest = makeDigest({
+      items: [
+        makeItem(0, { section: "top" }),
+        makeItem(1, { section: "ai" }),
+        makeItem(2, { section: "ai" }),
+      ],
+    });
+    const spoken = buildSpokenText(digest);
+    const segments = spokenSegments(digest);
+    const bridge = must(spoken.sectionStarts.find((section) => section.slug === "ai"));
+    const bridgeText = spoken.text.slice(bridge.start).split("\n")[0] ?? "";
+    expect(bridgeText.length).toBeGreaterThan(0);
+    const ai = must(segments.find((segment) => segment.key === must(digest.items[1]).id));
+    const top = must(segments.find((segment) => segment.key === must(digest.items[0]).id));
+    expect(ai.text.startsWith(bridgeText)).toBe(true);
+    expect(top.text).not.toContain(bridgeText);
+  });
+
+  it("gives a section's bridge to the first story of that section, and to no other", () => {
     const digest = makeDigest({
       items: [
         makeItem(0, { section: "top" }),
         makeItem(1, { section: "top" }),
         makeItem(2, { section: "ai" }),
+        makeItem(3, { section: "ai" }),
       ],
     });
-    const [, first, second, third] = spokenSegments(digest);
-    const top = `${toSpeech(SECTION_TITLES.top)}.`;
-    const ai = `${toSpeech(SECTION_TITLES.ai)}.`;
+    const [, first, second, third, fourth] = spokenSegments(digest);
+    const bridges = bridgeCandidates("ai", 2);
+    const bridgeOf = (text: string): string | undefined =>
+      bridges.find((candidate) => text.startsWith(candidate));
 
-    expect(must(first).text.startsWith(top)).toBe(true);
-    expect(must(first).text).toContain("Headline number 1");
-    expect(must(second).text.startsWith("Headline number 2")).toBe(true);
-    expect(must(second).text).not.toContain(top);
-    expect(must(third).text.startsWith(ai)).toBe(true);
+    // The opening already said the briefing starts with the top picks, so no bridge before them.
+    expect(must(first).text.startsWith("Headline number 1")).toBe(true);
+    expect(bridgeOf(must(second).text)).toBeUndefined();
+    expect(must(second).text).toContain("Headline number 2");
+    expect(bridgeOf(must(third).text)).toBeDefined();
     expect(must(third).text).toContain("Headline number 3");
+    expect(bridgeOf(must(fourth).text)).toBeUndefined();
   });
 
   it("holds exactly the item's own text plus the lead-in, so the item ranges still fit", () => {
