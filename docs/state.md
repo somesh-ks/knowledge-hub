@@ -11,7 +11,7 @@ Last updated 2026-10-07. Rewrite this file; do not append.
 
 ## Not working or unverified
 
-- Audio: no digest has audio yet. The 2026-10-07 audio run got through the Vercel pull and Speechify narration, then the Blob upload failed: the store is connected to Production and Preview, and the CLI issues a development OIDC token. Owner action: connect the store to Development (see learnings). Each retry re-synthesizes and spends Speechify characters (about 7k per run), so do not rerun until that is changed.
+- Audio: no digest has audio yet. The 2026-10-07 audio run got through the Vercel pull and Speechify narration, then the Blob upload failed: the store is connected to Production and Preview, and the CLI issues a development OIDC token. Fix in PR: `audio.yml` passes `BLOB_READ_WRITE_TOKEN` (a fresh store token, already in the GitHub secrets) so the engine skips OIDC. Each retry re-synthesizes and spends Speechify characters (about 7k per run), so do not rerun until that is changed.
 - Generate button and passphrase are untested against the live site.
 - Curation: half of the first digest was GitHub patch releases; needs grouping and down-weighting.
 - Extra Blob store `store_JmrDq8MB5Kwn3ejW` is empty and should be deleted (keep `store_IRMb7o0QWTVEacJt`).
