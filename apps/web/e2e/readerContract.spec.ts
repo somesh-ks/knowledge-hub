@@ -1,17 +1,12 @@
-import {
-  ACCENT_LIGHT,
-  computedColor,
-  expectColor,
-  INK_LIGHT,
-  SURFACE_LIGHT,
-  toRgb,
-} from "./colors";
-import { expect, test } from "./fixtures";
+import type { Locator } from "@playwright/test";
+import { ACCENT_LIGHT, computedColor, expectColor, INK_LIGHT } from "./colors";
+import { expect, hydrated, SILENT_DIGEST, test } from "./fixtures";
 
 /**
- * The player writes state onto the reader and the stylesheet reacts (design spec section 10). These
- * tests write the same attributes by hand, so the reader side of the contract is verified on its own,
- * before the player exists and after it changes. Colors are compared as sRGB, in the light theme.
+ * The contract between the reader page and the player (readerSync.ts). The first half drives the
+ * real player on a real built page and checks what it writes onto the chips and the stories. The
+ * second half writes the same attributes by hand and checks that the stylesheet reacts, so the
+ * page's side of the contract holds on its own. Colors are compared as sRGB, in the light theme.
  */
 
 test.beforeEach(async ({ page }) => {
@@ -19,163 +14,245 @@ test.beforeEach(async ({ page }) => {
   await page.goto("/");
 });
 
-test("an upcoming item has a hollow node and a played one is filled", async ({ page }) => {
-  const node = page.locator(".item").nth(0).locator(".node");
-  await expectColor(page, await computedColor(node, "backgroundColor"), SURFACE_LIGHT);
-  await page
-    .locator(".item")
-    .nth(0)
-    .evaluate((element) => element.setAttribute("data-state", "played"));
-  await page.waitForTimeout(250);
-  await expectColor(page, await computedColor(node, "backgroundColor"), ACCENT_LIGHT);
-});
+const face = (chip: Locator) =>
+  chip.evaluate((node) => ({
+    state: node.getAttribute("data-state"),
+    playing: node.getAttribute("data-playing"),
+    label: node.querySelector("[data-chip-label]")?.textContent,
+    name: node.getAttribute("aria-label"),
+  }));
 
-test("the current item scales its node and halos it", async ({ page }) => {
-  const item = page.locator(".item").nth(1);
-  await item.evaluate((element) => element.setAttribute("data-state", "current"));
-  await page.waitForTimeout(250);
-  const node = item.locator(".node");
-  expect(await node.evaluate((element) => getComputedStyle(element).transform)).toMatch(
-    /^matrix\(1\.35/,
-  );
-  expect(await node.evaluate((element) => getComputedStyle(element).boxShadow)).toContain("5px");
-});
-
-test("a chapter node fills when its chapter is current or played", async ({ page }) => {
-  const chapter = page.locator(".chapter").first();
-  const node = chapter.locator(".chapter-node");
-  await expectColor(page, await computedColor(node, "backgroundColor"), SURFACE_LIGHT);
-  await chapter.evaluate((element) => element.setAttribute("data-state", "current"));
-  await page.waitForTimeout(250);
-  await expectColor(page, await computedColor(node, "backgroundColor"), ACCENT_LIGHT);
-});
-
-test("while listening, summaries step back by color and titles keep full ink", async ({ page }) => {
-  const summary = page.locator(".item").nth(2).locator(".item-summary");
-  const title = page.locator(".item").nth(2).locator(".item-title");
-  const readingColor = await toRgb(page, await computedColor(summary, "color"));
-  await page.locator(".briefing").evaluate((element) => element.setAttribute("data-live", ""));
-  await page
-    .locator(".item")
-    .nth(1)
-    .evaluate((element) => element.setAttribute("data-state", "current"));
-  await page.waitForTimeout(250);
-  const dimmed = await toRgb(page, await computedColor(summary, "color"));
-  expect([...dimmed]).not.toEqual([...readingColor]);
-  // Color carries the change, never opacity, so every line keeps its contrast.
-  expect(await summary.evaluate((element) => getComputedStyle(element).opacity)).toBe("1");
-  await expectColor(page, await computedColor(title, "color"), INK_LIGHT);
-  // The current item's own summary stays at full ink.
-  const currentSummary = page.locator(".item").nth(1).locator(".item-summary");
-  expect([...(await toRgb(page, await computedColor(currentSummary, "color")))]).toEqual([
-    ...readingColor,
-  ]);
-});
-
-test("the rail fill scales with --player-progress on a leaf element", async ({ page }) => {
-  const fill = page.locator(".rail-fill");
-  expect(await fill.evaluate((node) => getComputedStyle(node).transform)).toBe(
-    "matrix(1, 0, 0, 0, 0, 0)",
-  );
-  await fill.evaluate((node) =>
-    (node as HTMLElement).style.setProperty("--player-progress", "0.5"),
-  );
-  expect(await fill.evaluate((node) => getComputedStyle(node).transform)).toBe(
-    "matrix(1, 0, 0, 0.5, 0, 0)",
-  );
-  expect(await fill.evaluate((node) => getComputedStyle(node).transformOrigin)).toMatch(
-    /^[\d.]+px 0px$/,
-  );
-  // The fill has no children, so writing its progress cannot restyle content.
-  expect(await fill.evaluate((node) => node.children.length)).toBe(0);
-});
-
-test("a seek glides the fill and playing does not", async ({ page }) => {
-  // Reduced motion collapses movement durations by design, so this one runs with motion allowed.
-  await page.emulateMedia({ reducedMotion: "no-preference" });
-  const fill = page.locator(".rail-fill");
-  expect(await fill.evaluate((node) => getComputedStyle(node).transitionDuration)).toBe("0s");
-  await fill.evaluate((node) => node.setAttribute("data-seeking", ""));
-  expect(await fill.evaluate((node) => getComputedStyle(node).transitionProperty)).toBe(
-    "transform",
-  );
-  expect(await fill.evaluate((node) => getComputedStyle(node).transitionDuration)).toBe("0.3s");
-});
-
-test("the item play button changes face for the current item and while playing", async ({
-  page,
-}) => {
-  const button = page.locator(".item-play").nth(1);
-  const face = button.locator(".item-play-face");
-  const upcoming = await toRgb(page, await computedColor(face, "backgroundColor"));
-  await button.evaluate((node) => node.setAttribute("data-current", "true"));
-  await page.waitForTimeout(250);
-  const current = await toRgb(page, await computedColor(face, "backgroundColor"));
-  await button.evaluate((node) => node.setAttribute("data-playing", "true"));
-  await page.waitForTimeout(250);
-  const playing = await computedColor(face, "backgroundColor");
-  expect(new Set([upcoming.join(), current.join()]).size).toBe(2);
-  await expectColor(page, playing, ACCENT_LIGHT);
-});
-
-test("the play and pause glyphs swap on data-playing", async ({ page }) => {
-  const button = page.locator(".cta");
-  const opacities = async () => ({
-    play: await button.locator(".swap-paused").evaluate((node) => getComputedStyle(node).opacity),
-    pause: await button.locator(".swap-playing").evaluate((node) => getComputedStyle(node).opacity),
-  });
-  expect(await opacities()).toEqual({ play: "1", pause: "0" });
-  await button.evaluate((node) => node.setAttribute("data-playing", "true"));
-  await page.waitForTimeout(250);
-  expect(await opacities()).toEqual({ play: "0", pause: "1" });
-});
-
-test("a loading call to action swaps its glyph for a spinner", async ({ page }) => {
-  const button = page.locator(".cta");
-  expect(await button.locator(".spinner").evaluate((node) => getComputedStyle(node).display)).toBe(
-    "none",
-  );
-  await button.evaluate((node) => node.setAttribute("data-loading", "true"));
-  expect(await button.locator(".spinner").evaluate((node) => getComputedStyle(node).display)).toBe(
-    "block",
-  );
-  expect(await button.locator(".swap").evaluate((node) => getComputedStyle(node).display)).toBe(
-    "none",
-  );
-});
-
-test("room is reserved for the mini player once it shows", async ({ page }) => {
-  const before = await page
-    .locator("main")
-    .evaluate((node) => getComputedStyle(node).paddingBottom);
-  await page.evaluate(() => {
-    document.documentElement.dataset.mini = "visible";
-  });
-  const after = await page.locator("main").evaluate((node) => getComputedStyle(node).paddingBottom);
-  // 44px control, two insets, the bottom inset and 32px of air.
-  expect(Number.parseFloat(after) - Number.parseFloat(before)).toBeGreaterThanOrEqual(100);
-});
-
-test("while offline the play controls step out of the way", async ({ page }) => {
-  await page.evaluate(() => {
-    document.documentElement.dataset.offline = "";
-  });
-  await expect(page.locator(".item-play").first()).toBeHidden();
-  await expect(page.locator(".rail-hit")).toBeHidden();
-  await expect(page.locator(".cta")).toBeVisible();
-});
-
-test("an aria-disabled control swallows clicks before any other handler sees them", async ({
-  page,
-}) => {
-  await page.goto("/d/2026-10-05");
-  await page.evaluate(() => {
-    (window as unknown as { __clicks: number }).__clicks = 0;
-    document.addEventListener("click", () => {
-      (window as unknown as { __clicks: number }).__clicks += 1;
+test.describe("what the player writes on a real page", () => {
+  test("the briefing chip follows play, pause and resume", async ({ page }) => {
+    await hydrated(page);
+    const chip = page.locator("[data-play-digest]");
+    expect(await face(chip)).toEqual({
+      state: "idle",
+      playing: "false",
+      label: "1 min",
+      name: "Play the briefing, 1 min",
     });
+
+    await chip.click();
+    await expect(page.locator("html")).toHaveAttribute("data-player-state", "playing");
+    await expect(chip).toHaveAttribute("data-state", "current");
+    await expect(chip).toHaveAttribute("data-playing", "true");
+    await expect(chip.locator("[data-chip-label]")).toHaveText("Playing");
+    await expect(chip).toHaveAccessibleName("Pause the briefing, playing");
+
+    await chip.click();
+    await expect(page.locator("html")).toHaveAttribute("data-player-state", "paused");
+    await expect(chip).toHaveAttribute("data-state", "current");
+    await expect(chip).toHaveAttribute("data-playing", "false");
+    await expect(chip.locator("[data-chip-label]")).toHaveText("1 min left");
+    await expect(chip).toHaveAccessibleName("Resume the briefing, 1 min left");
+
+    await chip.click();
+    await expect(page.locator("html")).toHaveAttribute("data-player-state", "playing");
+    await expect(chip.locator("[data-chip-label]")).toHaveText("Playing");
   });
-  // Playwright will not click a disabled control, which is the point; force it as a finger would.
-  await page.locator(".cta").click({ force: true });
-  expect(await page.evaluate(() => (window as unknown as { __clicks: number }).__clicks)).toBe(0);
+
+  test("a story chip plays from its story and marks what came before as played", async ({
+    page,
+  }) => {
+    await hydrated(page);
+    const stories = page.locator(".story");
+    const third = stories.nth(2);
+    const chip = third.locator("[data-play-item]");
+    const headline = (await third.locator("h3").textContent()) ?? "";
+
+    await chip.click();
+    await expect(chip.locator("[data-chip-label]")).toHaveText("Playing");
+    await expect(chip).toHaveAccessibleName(`Pause, playing: ${headline}`);
+    await expect(chip).toHaveAttribute("data-playing", "true");
+
+    // A fixture story lasts three seconds, so the rest is checked with the playhead held still.
+    await chip.click();
+    await expect(page.locator("html")).toHaveAttribute("data-player-state", "paused");
+    await expect(third).toHaveAttribute("data-state", "current");
+    await expect(chip).toHaveAttribute("data-state", "current");
+    await expect(chip).toHaveAttribute("data-playing", "false");
+    await expect(chip.locator("[data-chip-label]")).toHaveText("Paused");
+    await expect(chip).toHaveAccessibleName(`Resume, paused: ${headline}`);
+    // Only one story is the one being read.
+    await expect(page.locator('.story[data-state="current"]')).toHaveCount(1);
+
+    for (const index of [0, 1]) {
+      const earlier = stories.nth(index);
+      await expect(earlier).toHaveAttribute("data-state", "played");
+      await expect(earlier.locator("[data-play-item]")).toHaveAttribute("data-state", "played");
+      await expect(earlier.locator("[data-chip-label]")).toHaveText("Played");
+      await expect(earlier.locator("[data-play-item]")).toHaveAccessibleName(
+        /^Play again, played: /,
+      );
+    }
+    const later = stories.nth(5).locator("[data-play-item]");
+    await expect(later).toHaveAttribute("data-state", "idle");
+    await expect(later.locator("[data-chip-label]")).toHaveText("0:03");
+    await expect(stories.nth(5)).not.toHaveAttribute("data-state", /.*/);
+    // The briefing's own chip tells the same story: paused, with the time that is left.
+    const briefing = page.locator("[data-play-digest]");
+    await expect(briefing).toHaveAttribute("data-state", "current");
+    await expect(briefing.locator("[data-chip-label]")).toHaveText("1 min left");
+  });
+
+  test("the story being read takes the accent on its headline", async ({ page }) => {
+    await hydrated(page);
+    const story = page.locator(".story").nth(1);
+    const chip = story.locator("[data-play-item]");
+    await expectColor(page, await computedColor(story.locator("h3"), "color"), INK_LIGHT);
+    await chip.click();
+    await expect(chip.locator("[data-chip-label]")).toHaveText("Playing");
+    await chip.click();
+    await expect(story).toHaveAttribute("data-state", "current");
+    // The colour changes over 200ms.
+    await page.waitForTimeout(300);
+    await expectColor(page, await computedColor(story.locator("h3"), "color"), ACCENT_LIGHT);
+    const other = page.locator(".story").nth(4).locator("h3");
+    await expectColor(page, await computedColor(other, "color"), INK_LIGHT);
+  });
+
+  test("the chips are written again on every page the reader moves to", async ({ page }) => {
+    await hydrated(page);
+    await page.locator(".story").nth(1).locator("[data-play-item]").click();
+    await expect(page.locator("html")).toHaveAttribute("data-player-state", "playing");
+
+    // A briefing without audio keeps the state its page rendered, whatever is playing.
+    await page.getByRole("link", { name: /Monday 5 October/ }).click();
+    await expect(page).toHaveURL(/\/d\/2026-10-05$/);
+    const silent = page.locator("[data-play-digest]");
+    await expect(silent).toHaveAttribute("data-state", "unavailable");
+    await expect(silent).toHaveAttribute("aria-disabled", "true");
+    await expect(page.locator("[data-play-item]").first()).toBeHidden();
+    await expect(page.locator(".story[data-state]")).toHaveCount(0);
+    await expect(page.locator("html")).toHaveAttribute("data-player-state", "playing");
+
+    // Back on the briefing that is playing, the fresh markup takes the live state at once.
+    await page.getByRole("link", { name: "Today", exact: true }).click();
+    await expect(page).toHaveURL(/\/$/);
+    await expect(page.locator("[data-play-digest]")).toHaveAttribute("data-state", "current");
+    await expect(page.locator("[data-play-digest] [data-chip-label]")).toHaveText("Playing");
+    await expect(page.locator('.story[data-state="current"]')).toHaveCount(1);
+    await expect(page.locator('[data-play-item][data-state="current"]')).toHaveCount(1);
+  });
+
+  test("offline, with nothing loaded, the briefing chip is disabled and comes back", async ({
+    page,
+    context,
+  }) => {
+    await page.waitForLoadState("networkidle");
+    await hydrated(page);
+    const chip = page.locator("[data-play-digest]");
+    await context.setOffline(true);
+    await page.evaluate(() => window.dispatchEvent(new Event("offline")));
+    await expect(chip).toHaveAttribute("data-state", "unavailable");
+    await expect(chip).toHaveAttribute("aria-disabled", "true");
+    await expect(chip.locator("[data-chip-label]")).toHaveText("1 min");
+    await context.setOffline(false);
+    await page.evaluate(() => window.dispatchEvent(new Event("online")));
+    await expect(chip).toHaveAttribute("data-state", "idle");
+    await expect(chip).not.toHaveAttribute("aria-disabled", "true");
+  });
+});
+
+test.describe("how the page reacts to those attributes", () => {
+  const display = (locator: Locator) => locator.evaluate((node) => getComputedStyle(node).display);
+
+  test("a current story's headline takes the accent and the others keep full ink", async ({
+    page,
+  }) => {
+    const story = page.locator(".story").nth(1);
+    await story.evaluate((element) => element.setAttribute("data-state", "current"));
+    await page.waitForTimeout(250);
+    await expectColor(page, await computedColor(story.locator("h3"), "color"), ACCENT_LIGHT);
+    const other = page.locator(".story").nth(2);
+    await expectColor(page, await computedColor(other.locator("h3"), "color"), INK_LIGHT);
+    // A summary never steps back: every story stays readable while one is playing.
+    await expectColor(
+      page,
+      await computedColor(other.locator(".story-summary"), "color"),
+      INK_LIGHT,
+    );
+    await expectColor(
+      page,
+      await computedColor(story.locator(".story-summary"), "color"),
+      INK_LIGHT,
+    );
+  });
+
+  test("an idle chip shows the play glyph in a ring", async ({ page }) => {
+    const chip = page.locator("[data-play-item]").nth(1);
+    expect(await display(chip.locator(".chip-bars"))).toBe("none");
+    expect(await display(chip.locator(".chip-check"))).toBe("none");
+    expect(await display(chip.locator(".spinner"))).toBe("none");
+    expect(
+      await chip.locator(".swap-paused").evaluate((node) => getComputedStyle(node).opacity),
+    ).toBe("1");
+    expect(
+      await chip.locator(".swap-playing").evaluate((node) => getComputedStyle(node).opacity),
+    ).toBe("0");
+  });
+
+  test("a current chip is filled, and shows bars while it plays", async ({ page }) => {
+    const chip = page.locator("[data-play-item]").nth(1);
+    const idle = await computedColor(chip, "backgroundColor");
+    await chip.evaluate((node) => node.setAttribute("data-state", "current"));
+    await page.waitForTimeout(250);
+    expect(await computedColor(chip, "backgroundColor")).not.toBe(idle);
+    // Paused on this story: still the play glyph.
+    expect(await display(chip.locator(".chip-bars"))).toBe("none");
+    await chip.evaluate((node) => node.setAttribute("data-playing", "true"));
+    expect(await display(chip.locator(".chip-bars"))).toBe("flex");
+    expect(await display(chip.locator(".swap"))).toBe("none");
+  });
+
+  test("a played chip shows a check, and a preparing one a spinner", async ({ page }) => {
+    const chip = page.locator("[data-play-item]").nth(1);
+    await chip.evaluate((node) => node.setAttribute("data-state", "played"));
+    expect(await display(chip.locator(".chip-check"))).toBe("block");
+    expect(await display(chip.locator(".swap"))).toBe("none");
+    await chip.evaluate((node) => node.setAttribute("data-state", "preparing"));
+    expect(await display(chip.locator(".spinner"))).toBe("block");
+    expect(await display(chip.locator(".chip-check"))).toBe("none");
+  });
+
+  test("room is reserved for the docked player once it shows", async ({ page }) => {
+    const before = await page
+      .locator("main")
+      .evaluate((node) => getComputedStyle(node).paddingBottom);
+    await page.evaluate(() => {
+      document.documentElement.dataset.mini = "visible";
+    });
+    const after = await page
+      .locator("main")
+      .evaluate((node) => getComputedStyle(node).paddingBottom);
+    // At least a bar's height, until the player has measured itself and published its own.
+    expect(Number.parseFloat(after) - Number.parseFloat(before)).toBeGreaterThanOrEqual(48);
+  });
+
+  test("while offline the story chips step out of the way and the briefing chip stays", async ({
+    page,
+  }) => {
+    await page.evaluate(() => {
+      document.documentElement.dataset.offline = "";
+    });
+    await expect(page.locator("[data-play-item]").first()).toBeHidden();
+    await expect(page.locator(".story .source-link").first()).toBeVisible();
+    await expect(page.locator("[data-play-digest]")).toBeVisible();
+  });
+
+  test("an aria-disabled control swallows clicks before any other handler sees them", async ({
+    page,
+  }) => {
+    await page.goto(SILENT_DIGEST);
+    await page.evaluate(() => {
+      (window as unknown as { __clicks: number }).__clicks = 0;
+      document.addEventListener("click", () => {
+        (window as unknown as { __clicks: number }).__clicks += 1;
+      });
+    });
+    // Playwright will not click a disabled control, which is the point; force it as a finger would.
+    await page.locator("[data-play-digest]").click({ force: true });
+    expect(await page.evaluate(() => (window as unknown as { __clicks: number }).__clicks)).toBe(0);
+  });
 });
