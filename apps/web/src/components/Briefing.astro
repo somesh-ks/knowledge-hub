@@ -11,16 +11,29 @@ interface Props {
 const { sections, hasAudio } = Astro.props;
 ---
 
-{/* The rail: a track, a fill the player scales with --player-progress, and a strip for rail taps.
-     Server-rendered and complete without script; the player adds only the live state. */}
+{/* The tabs live inside this wrapper so they stay stuck for the sections and let go after the last
+     one. Server-rendered and complete without script: the tabs are plain links to the sections, and
+     briefingPage.ts only moves the mark to the section in view. */}
 <div class="briefing" id="briefing">
-  <div class="rail" aria-hidden="true"><div class="rail-fill"></div></div>
-  {hasAudio && <div class="rail-hit" aria-hidden="true"></div>}
+  <nav class="tabs" aria-label="Sections" data-section-tabs>
+    {
+      sections.map((section, index) => (
+        <a
+          class="tab"
+          href={`#c-${section.slug}`}
+          data-section={section.slug}
+          aria-current={index === 0 ? "true" : undefined}
+        >
+          {section.title}
+        </a>
+      ))
+    }
+  </nav>
   {
-    sections.map((section, sectionIndex) => (
-      <Chapter section={section} sectionIndex={sectionIndex} hasAudio={hasAudio}>
-        {section.items.map(({ item, index, isLead }) => (
-          <Item item={item} index={index} isLead={isLead} hasAudio={hasAudio} />
+    sections.map((section, index) => (
+      <Chapter section={section} isFirst={index === 0}>
+        {section.items.map(({ item, index: itemIndex, length }) => (
+          <Item item={item} index={itemIndex} length={length} hasAudio={hasAudio} />
         ))}
       </Chapter>
     ))

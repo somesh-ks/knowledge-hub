@@ -10,14 +10,19 @@ interface Props {
 const { entries } = Astro.props;
 ---
 
-<section class="earlier" aria-labelledby="earlier-title">
-  <h2 class="section-title" id="earlier-title">Earlier</h2>
-  {
-    entries.length > 0 && (
-      <ul class="archive-list" role="list">
+{/* The oldest briefing has nothing before it, and the archive is one tap away in the navigation,
+     so the section is left out there instead of standing empty. */}
+{
+  entries.length > 0 && (
+    <section class="earlier rule-above" aria-labelledby="earlier-title">
+      <h2 class="section-head" id="earlier-title">Earlier briefings</h2>
+      <ul class="rows archive-list" role="list">
         {entries.map((entry) => <ArchiveRow entry={entry} />)}
       </ul>
-    )
-  }
-  <a class="btn-secondary earlier-all press press-subtle" href="/archive" data-astro-prefetch="hover">All briefings<Icon name="chevronRight" /></a>
-</section>
+      <a class="btn earlier-all press press-subtle" href="/archive" data-astro-prefetch="hover">
+        All briefings
+        <Icon name="chevronRight" />
+      </a>
+    </section>
+  )
+}

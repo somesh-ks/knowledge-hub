@@ -13,7 +13,8 @@ interface Props {
 const { entry, hero } = Astro.props;
 ---
 
-<section class="hero" aria-labelledby="page-title">
+{/* The briefing header: the cover beside the date, one line of facts, then the play chip and share. */}
+<header class="hero">
   <Cover
     digestId={entry.id}
     size="hero"
@@ -22,11 +23,17 @@ const { entry, hero } = Astro.props;
     priority
   />
   <div class="hero-text">
-    <h1 id="page-title" tabindex="-1">{hero.title}</h1>
-    <p class="hero-meta">
-      <span>{hero.countLine}</span>
-      <span>{hero.timeLine}</span>
+    <h1 class="page-title" id="page-title" tabindex="-1">{hero.title}</h1>
+    {/* The space after each part is for a screen reader and a copied line; the layout ignores it. */}
+    <p class="meta meta-wrap">
+      {
+        hero.meta.map((part) => (
+          <Fragment>
+            <span>{part}</span>{" "}
+          </Fragment>
+        ))
+      }
     </p>
   </div>
-  <PlayCta digestId={entry.id} mode={entry.audioMode} clock={hero.clock} />
-</section>
+  <PlayCta digestId={entry.id} mode={entry.audioMode} length={hero.length} />
+</header>

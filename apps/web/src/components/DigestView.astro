@@ -9,7 +9,7 @@ import PlayerData from "./PlayerData.astro";
 
 interface Props {
   entry: DigestEntry;
-  /** The digests shown under "Earlier": the three before this one. */
+  /** The digests shown under "Earlier briefings": the three before this one. */
   earlier: DigestEntry[];
   /** True on the home page, where the stale check applies. */
   isLatest: boolean;
@@ -34,4 +34,10 @@ const hasAudio = entry.audioMode === "ready";
   <PlayerData data={entry.player} />
 </main>
 {/* After main in the document, as on the page: the contents column sits past the reading column. */}
-<ChapterAside entry={entry} sections={sections} hasAudio={hasAudio} />
+<ChapterAside sections={sections} />
+
+<script>
+  // Loaded on demand, so it stays one shared module. A script this small is otherwise inlined into
+  // the page, and an inline module runs again on every visit to a briefing, doubling its listeners.
+  void import("../scripts/briefingPage");
+</script>

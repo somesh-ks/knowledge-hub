@@ -1,14 +1,15 @@
-/* Banners and the empty state. One banner component; the tone sets its tint and icon color. */
+/*
+ * Banners, and the pages with nothing to list. A banner is flat: a tinted ground, an icon in the
+ * tone's colour, a title, a line of text and at most one text button. The tone sets the tint.
+ */
 
 .banner {
-  display: grid;
-  grid-template-columns: auto 1fr auto;
-  align-items: start;
+  display: flex;
+  align-items: flex-start;
   gap: var(--space-3);
   padding: var(--banner-padding);
   border-radius: var(--banner-radius);
   background: var(--tone-bg);
-  color: var(--color-on-surface);
 }
 
 .banner[data-tone="info"] {
@@ -31,62 +32,77 @@
   --tone: var(--color-success);
 }
 
-/* Only the icon takes the status color; the text stays on-surface so contrast never depends on it. */
-.banner .icon {
-  margin-block-start: 0.125rem;
+/* Only the icon takes the tone. The text stays at full ink on the tint, so its contrast never
+   depends on the tone, and the two lines differ by weight, not by a grey. */
+.banner > .icon {
+  /* Centred on the title's first line. */
+  margin-block-start: calc(
+    (var(--text-label-size) * var(--text-label-leading) - var(--size-icon)) /
+    2
+  );
   color: var(--tone);
 }
 
+.banner-text {
+  flex: 1;
+  min-width: 0;
+  font-size: var(--text-label-size);
+  letter-spacing: var(--text-label-tracking);
+  line-height: var(--text-label-leading);
+}
+
 .banner-title {
-  font-weight: var(--font-weight-semibold);
+  font-weight: var(--font-weight-medium);
 }
 
 .banner-body {
-  color: var(--color-on-surface-muted);
-  font-size: var(--font-size-meta);
+  margin-block-start: calc(var(--space-1) / 2);
+  line-height: var(--font-leading-body);
 }
 
-.banner-action {
+/* The button's target is 44px; negative margins keep it from making a one-line banner taller. */
+.banner > .btn {
+  flex: none;
   align-self: center;
-  min-height: var(--size-touch);
-  padding-inline: var(--space-3);
-  border-radius: var(--control-radius-sm);
-  background: color-mix(in oklch, var(--color-on-surface) 8%, transparent);
-  color: var(--color-on-surface);
-  font-size: var(--font-size-meta);
-  font-weight: var(--font-weight-semibold);
+  margin-block: calc(var(--space-2) * -1);
+  margin-inline-end: calc(var(--space-1) * -1);
 }
 
+/* Forced colors drops the tint, so an edge is what makes the banner a block. */
+@media (forced-colors: active) {
+  .banner {
+    border: var(--stroke-hairline) solid CanvasText;
+  }
+}
+
+/* ------------------------------------------------------------------ nothing to list */
+
+/* No briefings yet, offline, not found: a heading, one sentence and two ways on, set on the column
+   like any other page. */
 .empty {
   display: grid;
-  justify-items: start;
-  gap: var(--space-4);
-  padding-block: var(--space-8);
+  gap: var(--space-2);
+  padding-block: var(--space-6) var(--space-8);
 }
 
-.empty .cover {
-  width: var(--cover-size-hero);
-}
-
-.empty h1 {
-  font-size: var(--text-display-size);
-  font-weight: var(--text-display-weight);
-  letter-spacing: var(--text-display-tracking);
-  line-height: var(--text-display-leading);
-}
-
-.empty p {
-  max-width: 34ch;
+.empty > p {
+  max-width: 48ch;
   color: var(--color-on-surface-muted);
 }
 
-.empty .btn-primary,
-.empty .btn-secondary {
-  width: auto;
+/* Stacked on a phone, side by side from 40rem. */
+.empty-actions {
+  display: grid;
+  gap: var(--space-3);
+  margin-block-start: var(--space-4);
 }
 
-.empty-actions {
-  display: flex;
-  flex-wrap: wrap;
-  gap: var(--space-3);
+@media (min-width: 40rem) {
+  .empty {
+    padding-block-start: var(--space-8);
+  }
+
+  .empty-actions {
+    grid-template-columns: repeat(2, minmax(0, 14rem));
+  }
 }
