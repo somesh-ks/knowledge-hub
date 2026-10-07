@@ -37,6 +37,7 @@ D1 to D9 date from plan v2 (2026-10-05). D10 to D25 date from 2026-10-06. Reason
 | D25 | The Vercel GitHub integration deploys the site | active |
 | D26 | Audio uploads use Vercel Blob OIDC credentials | active |
 | D27 | Owner and Dependabot pull requests merge automatically | active |
+| D28 | The audio job runs the Vercel CLI outside the checkout, and its failure is not a failed run | active |
 
 ---
 
@@ -273,3 +274,10 @@ D1 to D9 date from plan v2 (2026-10-05). D10 to D25 date from 2026-10-06. Reason
 - Decision: `automerge.yml` squash-merges a pull request when `ci` passes on its current head and the author is the owner or Dependabot. Dependabot skips major versions.
 - Why: branch protection would block the digest commits that push to `main`, so the merge rule lives in a workflow instead.
 - Limit: the workflow token cannot merge changes to `.github/workflows`; those merge by hand.
+
+## D28: The audio job runs the Vercel CLI outside the checkout, and its failure is not a failed run
+
+- Decision: `audio.yml` runs `vercel link` and `vercel env pull` in a scratch directory, takes only `VERCEL_OIDC_TOKEN` and `BLOB_STORE_ID` from the pulled file, and fails loudly when either is missing. `loadEnv` treats the `[SENSITIVE]` placeholder as unset. The Generate status endpoint reads the run record when the only failing step is the nested `Audio` step. The site build also runs when `state/last-run.json` changes.
+- Why: the CLI edits `.gitignore`, which the write guard refuses; sourcing the whole pulled file lets it override secrets and mangles values with a dollar sign; the digest is already live when narration fails, so reporting "failed" invites a wasted retry; the site reads `last-run.json` for the "nothing cleared the bar" banner. This refines D25, which skipped every `state/` push.
+- Rejected: `continue-on-error` on the audio job (not allowed on a reusable-workflow call and it would hide failures); exiting non-zero from `publish` on missing credentials (D23 and its tests keep narration non-fatal).
+- Status: unverified until the first audio run succeeds.

@@ -298,6 +298,31 @@ describe("handleStatus", () => {
     expect(github.requests.some((request) => request.path.includes("contents"))).toBe(false);
   });
 
+  it("reads the record when only the nested audio step failed, because the briefing is live", async () => {
+    const github = setup({ status: "completed", conclusion: "failure" }, [
+      stepJson("Commit", 1, "completed", "success"),
+      stepJson("Audio", 2, "completed", "failure"),
+    ]);
+    github.on("GET /contents/state/last-run.json", { text: record() });
+    const result = await handleStatus("4242", { env, fetch: github.fetch });
+    expect(result.body).toEqual({
+      run_id: 4242,
+      state: "completed",
+      step: null,
+      outcome: "published",
+      digest_id: "2026-10-07",
+    });
+  });
+
+  it("still reports failed when a pipeline step failed alongside audio", async () => {
+    const github = setup({ status: "completed", conclusion: "failure" }, [
+      stepJson("Write", 1, "completed", "failure"),
+      stepJson("Audio", 2, "completed", "failure"),
+    ]);
+    const result = await handleStatus("4242", { env, fetch: github.fetch });
+    expect(result.body).toMatchObject({ outcome: "failed", step: "writing" });
+  });
+
   it("treats a success with no fresh record as failed rather than guessing", async () => {
     const github = setup({ status: "completed", conclusion: "success" });
     github.on("GET /contents/state/last-run.json", {

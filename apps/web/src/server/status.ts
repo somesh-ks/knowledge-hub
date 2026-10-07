@@ -81,6 +81,18 @@ export function failedStep(steps: readonly WorkflowStep[]): GenerateStep | null 
   return failed ? stepNameToProgress(failed.name) : null;
 }
 
+/**
+ * Narration runs in a nested job after the digest is committed, and its failure fails the whole
+ * run. When that is the only failure the briefing is live, so the sheet reads the run's record
+ * instead of reporting a failed run.
+ */
+export function isAudioOnlyFailure(steps: readonly WorkflowStep[]): boolean {
+  const failed = steps.filter(
+    (step) => step.conclusion === "failure" || step.conclusion === "timed_out",
+  );
+  return failed.length > 0 && failed.every((step) => step.name === "Audio");
+}
+
 interface OnDemandRecord {
   at: string;
   outcome: "published" | "nothing" | "gated" | "failed";
@@ -138,7 +150,7 @@ export async function handleStatus(
     }
 
     const runUrl = runUrlFor(config, runId);
-    if (run.conclusion !== "success") {
+    if (run.conclusion !== "success" && !isAudioOnlyFailure(steps)) {
       return {
         status: 200,
         headers,
