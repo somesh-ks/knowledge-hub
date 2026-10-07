@@ -26,6 +26,16 @@ export interface Fixture {
   written: WrittenItem[];
 }
 
+/** A summary in the four-beat voice: three sentences, 35 words, no sentence over 28. */
+export function fixtureSummary(i: number): string {
+  return `Springlet ${i} swaps the rest target without resetting velocity. Interrupted drawers keep their speed, and the change is about 120 lines of plain JavaScript. A fixed timestep keeps the motion the same on slow phones.`;
+}
+
+/** The kind of summary a digest carried before the four-beat voice, paired with a why line. */
+export const LEGACY_SUMMARY =
+  "Springlet swaps the rest target without resetting velocity. Interrupted drawers keep their speed.";
+export const LEGACY_WHY = "Copy the retargeting pattern for drawers and toasts";
+
 /** `count` items that pass every check: distinct urls, valid voice, scores falling from 0.95. */
 export function makeFixture(count = 8): Fixture {
   const items: Item[] = [];
@@ -59,8 +69,7 @@ export function makeFixture(count = 8): Fixture {
     written.push({
       id: item.id,
       headline: `Springlet ${i} retargets springs mid-flight`,
-      summary: `Springlet ${i} swaps the rest target without resetting velocity. Interrupted drawers keep their speed.`,
-      why: "Copy the retargeting pattern for drawers and toasts",
+      summary: fixtureSummary(i),
     });
   }
   return { items, selected: assignSections(candidates), written };

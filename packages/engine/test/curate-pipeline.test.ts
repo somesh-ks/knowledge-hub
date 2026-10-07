@@ -17,6 +17,10 @@ import { realPreferences } from "./score-factories.js";
 
 const WINDOW = { from: "2026-10-05T05:13:00Z", to: "2026-10-07T05:13:00Z" };
 
+/** A summary inside the voice limits: three sentences, 31 words. The writer adds no why line. */
+const SUMMARY =
+  "A fact sits here with a number, 120 lines. Another fact explains what the change means for drawers on slow phones. The catch is that older browsers still need a fallback.";
+
 function input(items: CurateInput["pool"], overrides: Partial<CurateInput> = {}): CurateInput {
   return {
     pool: items,
@@ -70,6 +74,17 @@ describe("curatePool: the happy path", () => {
     });
     expect(entry?.grounding.length).toBeGreaterThanOrEqual(3);
     expect(JSON.stringify(result.written)).not.toContain("Source text for");
+  });
+
+  it("carries no why line anywhere: the writer produces none and only the summary is grounded", async () => {
+    const { items, table } = makePool(goodSpecs(4));
+    const result = await curatePool(makeDeps({ judge: new TableJudge(table) }), input(items));
+    for (const item of result.selection?.items ?? []) expect(item).not.toHaveProperty("why");
+    for (const entry of result.written.items) {
+      expect(entry).not.toHaveProperty("why");
+      expect(entry.grounding.map((g) => g.field)).toEqual(["summary", "summary", "summary"]);
+    }
+    expect(result.selection?.verified).toBe(true);
   });
 
   it("returns the cache with the new judgments merged in", async () => {
@@ -134,14 +149,12 @@ describe("curatePool: the nothing outcome", () => {
           ? {
               id: m.id,
               headline: "An incredible release!",
-              summary: "A fact. Another fact.",
-              why: "Copy it",
+              summary: SUMMARY,
             }
           : {
               id: m.id,
               headline: `${m.title} retargets springs`,
-              summary: "A fact. Another fact.",
-              why: "Copy it",
+              summary: SUMMARY,
             },
       rewrite: () => "Still incredible",
     });
@@ -211,8 +224,7 @@ describe("curatePool: dropping items stage by stage", () => {
               : {
                   id: m.id,
                   headline: `${m.title} retargets springs`,
-                  summary: "A fact. Another fact.",
-                  why: "Copy the pattern for toasts",
+                  summary: SUMMARY,
                 },
         }),
       }),
@@ -234,14 +246,12 @@ describe("curatePool: dropping items stage by stage", () => {
           ? {
               id: m.id,
               headline: "An incredible release!",
-              summary: "A fact. Another fact.",
-              why: "Copy the pattern for toasts",
+              summary: SUMMARY,
             }
           : {
               id: m.id,
               headline: `${m.title} retargets springs`,
-              summary: "A fact. Another fact.",
-              why: "Copy the pattern for toasts",
+              summary: SUMMARY,
             },
       rewrite: (r) =>
         r.material.id === fixable.id ? "Springs retarget mid-flight" : "Still incredible",
@@ -272,16 +282,9 @@ describe("curatePool: dropping items stage by stage", () => {
       write: (m) => ({
         id: m.id,
         headline: `${m.title} retargets springs`,
-        summary:
-          m.id === fixable.id || m.id === hopeless.id
-            ? "UNSUPPORTED claim. Another fact."
-            : "A fact. Another fact.",
-        why: "Copy the pattern for toasts",
+        summary: m.id === fixable.id || m.id === hopeless.id ? `UNSUPPORTED ${SUMMARY}` : SUMMARY,
       }),
-      rewrite: (r) =>
-        r.material.id === fixable.id
-          ? "A supported fact. Another fact."
-          : "Still UNSUPPORTED. Another fact.",
+      rewrite: (r) => (r.material.id === fixable.id ? SUMMARY : `Still UNSUPPORTED ${SUMMARY}`),
     });
     const result = await curatePool(
       makeDeps({ judge: new TableJudge(table), writer }),
@@ -383,8 +386,7 @@ describe("curatePool: an outage is a failure, not a quiet day", () => {
       write: (m) => ({
         id: m.id,
         headline: "An incredible release!",
-        summary: "A fact. Another fact.",
-        why: "Copy it",
+        summary: SUMMARY,
       }),
       rewrite: () => "Still incredible",
     });

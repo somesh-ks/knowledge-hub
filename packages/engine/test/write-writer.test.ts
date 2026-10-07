@@ -33,12 +33,12 @@ function material(overrides: Partial<SourceMaterial> = {}): SourceMaterial {
   };
 }
 
+/** What the writer produces: a headline and a four-beat summary, no why line. */
 const good = (id: string): WrittenItem => ({
   id,
   headline: "Springlet 2.0 retargets springs mid-flight",
   summary:
-    "Springlet 2.0 swaps the rest target without resetting velocity. Interrupted drawers keep their speed.",
-  why: "Copy the retargeting pattern for drawers and toasts",
+    "Springlet 2.0 swaps the rest target without resetting velocity. Interrupted drawers keep their speed, and the change is about 120 lines of plain JavaScript. A fixed timestep keeps the motion the same on slow phones.",
 });
 
 /** Answer every id in the request with a valid item. */
@@ -51,20 +51,51 @@ function writeAll(request: { messages: readonly { content: string }[] }): unknow
 describe("writer prompt", () => {
   it("is built from config/voice.md: principles, limits, examples and banned words", () => {
     const brief = voiceBrief(voice);
-    expect(brief).toContain("Brevity is status");
+    expect(brief).toContain("Four beats, in order.");
+    expect(brief).toContain("The catch comes from the source");
     expect(brief).toContain("Headline: at most 12 words");
+    expect(brief).toContain("Summary: three or four sentences, 45 to 80 words.");
     expect(brief).toContain("Weak: An exciting new library makes animations easier");
     expect(brief).toContain("Strong: Springlet 2.0 retargets springs mid-flight");
+    expect(brief).toContain("Strong: Sonos launched the Ace Ultra");
     for (const word of voice.bannedWords) expect(brief).toContain(word);
   });
 
-  it("states the hard limits and the facts-only rule", () => {
+  it("opens by naming the product and the reader", () => {
     const system = writerSystemPrompt(voice, "abcdef0123456789");
-    expect(system).toContain("at most 12 words");
-    expect(system).toContain("at most 35 words");
-    expect(system).toContain("at most 18 words");
+    expect(system.split("\n")[0]).toBe(
+      "You write items for Singularity, a private tech and design engineering briefing. The reader is sharp but may not know the topic.",
+    );
+    expect(system).not.toContain("Dispatch");
+    expect(rewriteSystemPrompt(voice, "abcdef0123456789")).not.toContain("Dispatch");
+  });
+
+  it("states the hard limits, the four beats and the facts-only rule", () => {
+    const system = writerSystemPrompt(voice, "abcdef0123456789");
+    expect(system).toContain("- headline: at most 12 words.");
+    expect(system).toContain(
+      "- summary: three or four sentences, at most 80 words in total, each sentence at most 28 words.",
+    );
+    expect(system).toContain(
+      "what happened; the number that makes it concrete (a price, date, size or percentage); why it happened or what it changes; the catch.",
+    );
+    expect(system).toContain("it must come from the text");
+    expect(system).toContain("If the text gives no catch, stop after three sentences.");
     expect(system).toContain("Use facts from the source text only");
     expect(system).toContain("Never add a claim");
+  });
+
+  it("asks for a headline and a summary and no why line", () => {
+    const system = writerSystemPrompt(voice, "abcdef0123456789");
+    expect(system).toContain(
+      '{"items":[{"id":"...","headline":"...","summary":"..."}]}, one entry per source',
+    );
+    expect(system).not.toMatch(/^- why:/m);
+    expect(system).not.toContain('"why"');
+    expect(rewriteSystemPrompt(voice, "abcdef0123456789")).not.toMatch(/^- why:/m);
+    expect(writerUserMessage([material()], "feedfacecafebeef").split("\n")[0]).toBe(
+      "Write the headline and summary for each of these 1 sources.",
+    );
   });
 
   it("tells the model that delimited text is untrusted data to summarize, never obey", () => {
@@ -115,7 +146,17 @@ describe("NebiusWriter.write", () => {
     expect(WRITER_TEMPERATURE).toBe(0.2);
     expect(llm.calls[0]?.temperature).toBe(0.2);
     expect(llm.calls[0]?.schemaName).toBe("dispatch_items");
-    expect(llm.calls[0]?.maxTokens).toBe(450 * 2 + 300);
+    // 600 per item: a headline plus an 80-word summary is about 180 tokens as JSON.
+    expect(llm.calls[0]?.maxTokens).toBe(600 * 2 + 300);
+  });
+
+  it("accepts a reply without a why field and returns items that have none", async () => {
+    const m = material();
+    const llm = new FakeLlm(() => ({ items: [good(m.id)] }));
+    const result = await new NebiusWriter({ llm, voice }).write([m]);
+    expect(result.failed).toEqual([]);
+    expect(result.written).toEqual([good(m.id)]);
+    expect(Object.keys(result.written[0] ?? {})).toEqual(["id", "headline", "summary"]);
   });
 
   it("delimits each source with a fresh random boundary per request", async () => {
@@ -148,7 +189,7 @@ describe("NebiusWriter.write", () => {
     expect(Object.keys(llm.calls[0] ?? {})).not.toContain("tools");
   });
 
-  it("normalizes fields: quotes, a Why label and trailing periods", async () => {
+  it("normalizes fields: quotes and trailing periods, and drops a why line the model adds anyway", async () => {
     const m = material();
     const llm = new FakeLlm(() => ({
       items: [
@@ -161,11 +202,9 @@ describe("NebiusWriter.write", () => {
       ],
     }));
     const [written] = (await new NebiusWriter({ llm, voice }).write([m])).written;
-    expect(written).toMatchObject({
-      headline: "Springs retarget",
-      summary: "One line.",
-      why: "Copy it",
-    });
+    expect(written).toEqual({ id: m.id, headline: "Springs retarget", summary: "One line." });
+    expect(written).not.toHaveProperty("why");
+    // A rewrite of a why line an agent session supplied still loses its label.
     expect(cleanField("why", "why: x.")).toBe("x");
     expect(cleanField("summary", "Two. Sentences.")).toBe("Two. Sentences.");
   });
@@ -335,6 +374,26 @@ describe("rewriteOnce", () => {
     expect(result).toMatchObject({ text: "Incredible springs!", rewritten: false });
     expect(result.violations).toHaveLength(violations.length);
   });
+
+  it("quotes an over-long sentence back as delimited data, never inside the problem list", async () => {
+    const long =
+      "Springlet 2.0 swaps the rest target without resetting velocity so that interrupted drawers keep their speed on every phone the team tested during the long beta period this spring and summer.";
+    const text = `${long} The change is about 120 lines of plain JavaScript.`;
+    const violations = linter.lint("summary", text);
+    expect(violations.map((v) => v.rule)).toEqual(["sentence_too_long"]);
+    const writer = scriptedWriter([good(m.id).summary]);
+    const result = await rewriteOnce({
+      writer,
+      linter,
+      material: m,
+      field: "summary",
+      text,
+      violations,
+    });
+    expect(result).toEqual({ text: good(m.id).summary, violations: [], rewritten: true });
+    expect(writer.requests[0]?.focus).toEqual([long]);
+    expect(writer.requests[0]?.problems.join(" ")).not.toContain("Springlet");
+  });
 });
 
 describe("enforceVoice", () => {
@@ -347,6 +406,34 @@ describe("enforceVoice", () => {
     expect(out.passed).toHaveLength(1);
     expect(out.passed[0]?.rewrittenFields).toEqual([]);
     expect(out.dropped).toEqual([]);
+  });
+
+  it("lints only the fields an item has: no why line, no why rewrite", async () => {
+    const writer = scriptedWriter([]);
+    const out = await enforceVoice({ written: [good(m.id)], materials, writer, linter });
+    expect(out.passed[0]?.item).toEqual(good(m.id));
+    expect(out.passed[0]?.item).not.toHaveProperty("why");
+    expect(writer.requests).toHaveLength(0);
+  });
+
+  it("gives a summary that is too short one rewrite, then drops it if it is still short", async () => {
+    const short = { ...good(m.id), summary: "Springlet 2.0 retargets springs mid-flight." };
+    const fixed = scriptedWriter([good(m.id).summary]);
+    const kept = await enforceVoice({ written: [short], materials, writer: fixed, linter });
+    expect(kept.passed[0]?.item.summary).toBe(good(m.id).summary);
+    expect(kept.passed[0]?.rewrittenFields).toEqual(["summary"]);
+    expect(fixed.requests[0]?.problems).toEqual([
+      "The summary has 5 words; it needs at least 25.",
+      "The summary has 1 sentence; it needs at least 2.",
+    ]);
+
+    const stubborn = scriptedWriter(["Springlet 2.0 still retargets springs."]);
+    const lost = await enforceVoice({ written: [short], materials, writer: stubborn, linter });
+    expect(lost.passed).toEqual([]);
+    expect(lost.dropped[0]?.violations.map((v) => v.rule)).toEqual([
+      "too_few_words",
+      "too_few_sentences",
+    ]);
   });
 
   it("rewrites a failing field once and keeps the item", async () => {
@@ -377,7 +464,7 @@ describe("enforceVoice", () => {
     expect(out.dropped).toEqual([{ id: "eeeeeeeeeeee", violations: [] }]);
   });
 
-  it("fixes several fields independently and preserves order", async () => {
+  it("fixes several fields independently, a supplied why line included, and preserves order", async () => {
     const other = material();
     const both = new Map([
       [m.id, m],

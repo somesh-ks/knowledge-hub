@@ -88,6 +88,17 @@ describe("groundedSentences", () => {
       { field: "why", sentence: "Copy it" },
     ]);
   });
+
+  it("lists only the summary sentences when the item has no why line", () => {
+    expect(groundedSentences({ summary: "One fact. Two facts. A catch." })).toEqual([
+      { field: "summary", sentence: "One fact." },
+      { field: "summary", sentence: "Two facts." },
+      { field: "summary", sentence: "A catch." },
+    ]);
+    expect(groundedSentences({ summary: "One fact.", why: undefined })).toEqual([
+      { field: "summary", sentence: "One fact." },
+    ]);
+  });
 });
 
 interface FakeJev extends JevClientLike {
@@ -136,6 +147,14 @@ describe("JevGrounder", () => {
     expect(Object.keys(fake.calls[0]?.questions ?? {})).toEqual(["supported"]);
     expect(verdict.sentences.map((s) => s.status)).toEqual(["supported", "supported", "supported"]);
     expect(verdict.id).toBe("aaaaaaaaaaaa");
+  });
+
+  it("asks nothing about a why line the item does not have", async () => {
+    const fake = fakeJev(() => 0.9);
+    const { why: _why, ...withoutWhy } = target();
+    const verdict = await new JevGrounder({ client: fake, retry: NO_WAIT }).ground(withoutWhy);
+    expect(fake.calls).toHaveLength(2);
+    expect(verdict.sentences.map((s) => s.field)).toEqual(["summary", "summary"]);
   });
 
   it("states the question literally, pointing at the state fields", () => {
@@ -225,8 +244,10 @@ describe("groundAndRepair", () => {
     id,
     headline: "Springlet 2.0 keeps velocity",
     summary,
-    why: "Copy the pattern for toasts",
   });
+  /** A rewrite that passes the voice limits: three sentences, 34 words. */
+  const REWRITE =
+    "Springlet 2.0 keeps velocity when the target changes. Interrupted drawers keep their speed, and the change is about 120 lines of plain JavaScript. A fixed timestep keeps the motion the same on slow phones.";
 
   /** A grounder that flags any sentence containing the word UNSUPPORTED. */
   const grounder: Grounder = {
@@ -281,11 +302,34 @@ describe("groundAndRepair", () => {
     expect(writer.requests).toHaveLength(0);
   });
 
+  it("checks only the summary of an item without a why line, and keeps it that way", async () => {
+    const targets: GroundingTarget[] = [];
+    const recording: Grounder = {
+      threshold: 0.5,
+      async ground(t) {
+        targets.push(t);
+        return grounder.ground(t);
+      },
+    };
+    const out = await run([item("aaaaaaaaaaaa")], writerOf([]), recording);
+    expect(targets).toHaveLength(1);
+    expect(targets[0]).not.toHaveProperty("why");
+    expect(out.kept[0]?.checks.map((c) => c.field)).toEqual(["summary", "summary"]);
+    expect(out.kept[0]?.item).not.toHaveProperty("why");
+    expect(out.verified).toBe(true);
+  });
+
+  it("still checks a why line that an agent session supplied", async () => {
+    const withWhy = { ...item("aaaaaaaaaaaa"), why: "Copy the pattern for toasts" };
+    const out = await run([withWhy], writerOf([]));
+    expect(out.kept[0]?.checks.map((c) => c.field)).toEqual(["summary", "summary", "why"]);
+  });
+
   it("rewrites an unsupported sentence once, rechecks, and keeps the item", async () => {
-    const writer = writerOf(["Springlet 2.0 keeps velocity when the target changes."]);
+    const writer = writerOf([REWRITE]);
     const bad = item("aaaaaaaaaaaa", "Springlet 2.0 keeps velocity. UNSUPPORTED drawers claim.");
     const out = await run([bad], writer);
-    expect(out.kept[0]?.item.summary).toBe("Springlet 2.0 keeps velocity when the target changes.");
+    expect(out.kept[0]?.item.summary).toBe(REWRITE);
     expect(out.kept[0]?.rewrittenFields).toEqual(["summary"]);
     expect(out.kept[0]?.verified).toBe(true);
     expect(writer.requests).toHaveLength(1);
@@ -298,7 +342,9 @@ describe("groundAndRepair", () => {
   });
 
   it("drops an item still unsupported after its one rewrite and reports the sentences", async () => {
-    const writer = writerOf(["Another UNSUPPORTED claim."]);
+    const writer = writerOf([
+      "Another UNSUPPORTED claim about drawers that the source never makes at any point. Interrupted drawers keep their speed, and the change is about 120 lines of plain JavaScript.",
+    ]);
     const bad = item("aaaaaaaaaaaa", "Springlet 2.0 keeps velocity. UNSUPPORTED drawers claim.");
     const out = await run([bad], writer);
     expect(out.kept).toEqual([]);
@@ -320,6 +366,19 @@ describe("groundAndRepair", () => {
     const out = await run([bad], writerOf(["An incredible, game-changing release."]));
     expect(out.dropped[0]?.reason).toBe("voice");
     expect(out.dropped[0]?.violations.length).toBeGreaterThan(0);
+  });
+
+  it("drops an item whose rewrite falls under the summary minimum", async () => {
+    const bad = item("aaaaaaaaaaaa", "Springlet 2.0 keeps velocity. UNSUPPORTED drawers claim.");
+    const out = await run(
+      [bad],
+      writerOf(["Springlet 2.0 keeps velocity when the target changes."]),
+    );
+    expect(out.dropped[0]?.reason).toBe("voice");
+    expect(out.dropped[0]?.violations.map((v) => v.rule)).toEqual([
+      "too_few_words",
+      "too_few_sentences",
+    ]);
   });
 
   it("rewrites only the field that holds the unsupported sentence", async () => {

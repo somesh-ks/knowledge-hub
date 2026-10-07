@@ -21,6 +21,7 @@ import type { SelectedItem } from "../score/types.js";
 import { validateDigest } from "../validate/validateDigest.js";
 import { createLinter } from "../voice/lint.js";
 import { loadVoice } from "../voice/voice.js";
+import { writtenText } from "../write/text.js";
 
 export const RENDER_USAGE =
   "Usage: dispatch render [--run <id>] [--selection <path>] [--pool <path>] [--dry-run]";
@@ -131,12 +132,7 @@ export function makeRenderCommand(deps: RenderDeps = {}): CommandRun {
 
       const digest = buildDigest({
         selected,
-        written: selection.items.map((i) => ({
-          id: i.id,
-          headline: i.headline,
-          summary: i.summary,
-          why: i.why,
-        })),
+        written: selection.items.map((i) => ({ id: i.id, ...writtenText(i) })),
         window: selection.window,
         kind: selection.kind,
         now,

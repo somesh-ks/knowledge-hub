@@ -1,7 +1,7 @@
 import { mkdir, mkdtemp, readFile, rm, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
-import { COVER_TEMPLATES, Digest, parseDigestFile } from "@dispatch/core";
+import { COVER_TEMPLATES, Digest, parseDigestFile, serializeDigestFile } from "@dispatch/core";
 import { afterEach, describe, expect, it } from "vitest";
 import { buildDigest } from "../src/render/buildDigest.js";
 import { createFallbackCoverPicker, loadCoverPalettes } from "../src/render/coverPicker.js";
@@ -14,7 +14,14 @@ import {
   readMinutes,
 } from "../src/render/readTime.js";
 import { writeDigestFile } from "../src/render/writeDigestFile.js";
-import { buildFixtureDigest, COVER, makeFixture, NOW, WINDOW } from "./render-factories.js";
+import {
+  buildFixtureDigest,
+  COVER,
+  LEGACY_WHY,
+  makeFixture,
+  NOW,
+  WINDOW,
+} from "./render-factories.js";
 
 const tempDirs: string[] = [];
 async function tempRoot(): Promise<string> {
@@ -48,6 +55,11 @@ describe("reading and listening time", () => {
 
   it("counts headline, summary and why words only", () => {
     expect(digestWords([{ headline: "one two", summary: "three four five.", why: "six" }])).toBe(6);
+  });
+
+  it("counts an item without a why line by its headline and summary", () => {
+    expect(digestWords([{ headline: "one two", summary: "three four five." }])).toBe(5);
+    expect(digestWords([{ headline: "one two", summary: "three.", why: undefined }])).toBe(3);
   });
 });
 
@@ -176,6 +188,51 @@ describe("buildDigest", () => {
 
   it("marks a digest verified only when told", () => {
     expect(buildFixtureDigest(4, { verified: true }).digest.verified).toBe(true);
+  });
+
+  it("writes no why key when the text has none, in the frontmatter or the body", () => {
+    const { digest } = buildFixtureDigest(4);
+    for (const item of digest.items) expect(item).not.toHaveProperty("why");
+    const text = serializeDigestFile(digest);
+    expect(text).not.toMatch(/^\s+why:/m);
+    expect(text).not.toContain("Why:");
+    expect(parseDigestFile(text)).toEqual(digest);
+  });
+
+  it("keeps a why line that the text does carry, such as one from an agent session", () => {
+    const fixture = makeFixture(4);
+    const withWhy = fixture.written.map((w, i) => (i === 0 ? { ...w, why: LEGACY_WHY } : w));
+    const digest = buildDigest({
+      selected: fixture.selected,
+      written: withWhy,
+      window: WINDOW,
+      kind: "regular",
+      now: NOW,
+      coverPicker: () => COVER,
+      allocateId: () => "2026-10-07",
+      audio: null,
+    });
+    const first = digest.items.find((i) => i.id === fixture.written[0]?.id);
+    expect(first?.why).toBe(LEGACY_WHY);
+    expect(digest.items.filter((i) => i.why !== undefined)).toHaveLength(1);
+    const text = serializeDigestFile(digest);
+    expect(text.match(/^Why: /gm)).toHaveLength(1);
+    expect(parseDigestFile(text)).toEqual(digest);
+  });
+
+  it("treats an empty why as no why", () => {
+    const fixture = makeFixture(3);
+    const digest = buildDigest({
+      selected: fixture.selected,
+      written: fixture.written.map((w) => ({ ...w, why: "" })),
+      window: WINDOW,
+      kind: "regular",
+      now: NOW,
+      coverPicker: () => COVER,
+      allocateId: () => "2026-10-07",
+      audio: null,
+    });
+    for (const item of digest.items) expect(item).not.toHaveProperty("why");
   });
 });
 

@@ -11,6 +11,7 @@ import type { ScoredItem } from "../score/types.js";
 import { createLinter, type Linter } from "../voice/lint.js";
 import { loadVoice } from "../voice/voice.js";
 import { enforceVoice } from "../write/enforceVoice.js";
+import { type WrittenText, writtenText } from "../write/text.js";
 import type { SourceMaterial } from "../write/types.js";
 import { JudgedFile, type MaterialsFile, readArtifact } from "./artifacts.js";
 import { StageFailure } from "./errors.js";
@@ -29,8 +30,8 @@ interface PassContext {
 }
 
 /**
- * Score and select from the judge's answers, extract full text for the finalists, write
- * headline, summary and why with the Nebius writer, and give each failing field one rewrite. Fewer
+ * Score and select from the judge's answers, extract full text for the finalists, write the
+ * headline and summary with the Nebius writer, and give each failing field one rewrite. Fewer
  * than three survivors is the "nothing" outcome, never padded; an extraction or writing outage
  * fails the stage instead. Items already chosen for an earlier pass of the same run are withheld,
  * so the weekly digest never repeats the regular one published minutes before it.
@@ -123,7 +124,7 @@ async function writePass(
       category: Selection["items"][number]["category"];
       score: number;
     }>,
-    texts: Map<string, { headline: string; summary: string; why: string }>,
+    texts: Map<string, WrittenText>,
     entries: WrittenFile["items"],
     materials: MaterialsFile["items"],
   ): Promise<PassResult> => {
@@ -135,7 +136,7 @@ async function writePass(
             outcome: "selected",
             items: survivors.map((s) => ({
               ...s,
-              ...(texts.get(s.id) as { headline: string; summary: string; why: string }),
+              ...writtenText(texts.get(s.id) as WrittenText),
             })),
           };
     await writeJson(file("selection.json"), selection);
@@ -212,14 +213,9 @@ async function writePass(
   }
 
   const passed = new Map(voice.passed.map((p) => [p.item.id, p]));
-  const texts = new Map(
-    voice.passed.map((p) => [
-      p.item.id,
-      { headline: p.item.headline, summary: p.item.summary, why: p.item.why },
-    ]),
-  );
+  const texts = new Map(voice.passed.map((p) => [p.item.id, writtenText(p.item)]));
   const entries: WrittenFile["items"] = survivors.map((sel) => {
-    const text = texts.get(sel.item.id) as { headline: string; summary: string; why: string };
+    const text = writtenText(texts.get(sel.item.id) as WrittenText);
     const method = methods.get(sel.item.id);
     return {
       id: sel.item.id,

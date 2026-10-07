@@ -150,7 +150,7 @@ describe("grounding and validation", () => {
         ids.includes(material.id)
           ? {
               ...okWritten(material),
-              summary: "UNSUPPORTED claim about springs. Another plain sentence.",
+              summary: `UNSUPPORTED claim about springs. ${okWritten(material).summary}`,
             }
           : okWritten(material),
     });
@@ -301,8 +301,7 @@ describe("agent mode", () => {
         category: "design_engineering_craft",
         score: 0.9 - index * 0.05,
         headline: `Springlet ${index + 1} retargets springs mid-flight`,
-        summary: `Springlet ${index + 1} swaps the rest target without resetting velocity. Interrupted drawers keep their speed.`,
-        why: "Copy the retargeting pattern for drawers and toasts",
+        summary: `Springlet ${index + 1} swaps the rest target without resetting velocity. Interrupted drawers keep their speed, and the change is about 120 lines of plain JavaScript. A fixed timestep keeps the motion the same on slow phones.`,
       })),
     };
     await writeFile(join(dir, "selection.json"), `${JSON.stringify(selection, null, 2)}\n`, "utf8");

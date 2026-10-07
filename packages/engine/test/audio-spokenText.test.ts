@@ -8,7 +8,7 @@ import {
   SpokenTextTooLongError,
   toSpeech,
 } from "../src/audio/spokenText.js";
-import { makeDigest, makeItem, must } from "./audio-fixtures.js";
+import { makeDigest, makeItem, makeStory, must } from "./audio-fixtures.js";
 
 function digestWith(sections: Section[], overrides: Partial<Digest> = {}): Digest {
   return makeDigest({
@@ -21,34 +21,100 @@ describe("buildSpokenText opening line", () => {
   it("opens with the date and the count as a word", () => {
     const digest = makeDigest({}, 11);
     expect(
-      buildSpokenText(digest).text.startsWith("Dispatch, Wednesday 7 October. Eleven items."),
+      buildSpokenText(digest).text.startsWith("Singularity, Wednesday 7 October. Eleven stories."),
     ).toBe(true);
   });
 
   it.each([
-    [3, "Three items."],
-    [8, "Eight items."],
-    [12, "Twelve items."],
-    [18, "Eighteen items."],
+    [3, "Three stories."],
+    [8, "Eight stories."],
+    [12, "Twelve stories."],
+    [17, "Seventeen stories."],
+    [18, "Eighteen stories."],
+    [19, "Nineteen stories."],
+    [20, "Twenty stories."],
+    [21, "Twenty-one stories."],
+    [23, "Twenty-three stories."],
+    [24, "Twenty-four stories."],
   ])("spells %i as a word", (count, expected) => {
     expect(buildSpokenText(makeDigest({}, count)).text).toContain(expected);
   });
 
-  it("says 'One item.' for a single item", () => {
+  it("says 'One story.' for a single story", () => {
     expect(buildSpokenText(makeDigest({}, 1)).text).toContain(
-      "Dispatch, Wednesday 7 October. One item.",
+      "Singularity, Wednesday 7 October. One story.",
     );
   });
 
-  it("falls back to digits above eighteen", () => {
-    expect(buildSpokenText(makeDigest({}, 19)).text).toContain("19 items.");
+  it("falls back to digits above twenty-four, the most a digest can hold", () => {
+    expect(buildSpokenText(makeDigest({}, 25)).text).toContain("25 stories.");
   });
 
   it("names the weekly pass", () => {
     const text = buildSpokenText(
       makeDigest({ kind: "weekly", id: "2026-10-11-weekly", date: "2026-10-11" }, 4),
     ).text;
-    expect(text.startsWith("Dispatch weekly, Sunday 11 October. Four items.")).toBe(true);
+    expect(text.startsWith("Singularity weekly, Sunday 11 October. Four stories.")).toBe(true);
+  });
+
+  it("never says the old product name or calls a story an item", () => {
+    for (const kind of ["regular", "weekly", "on-demand"] as const) {
+      const opening = buildSpokenText(makeDigest({ kind }, 5)).text.split("\n")[0] ?? "";
+      expect(opening).not.toContain("Dispatch");
+      expect(opening).not.toMatch(/\bitems?\b/);
+    }
+  });
+});
+
+describe("buildSpokenText without a why line", () => {
+  it("narrates the headline and the four-beat summary, and ends on the summary", () => {
+    const digest = makeDigest({ items: [makeStory(0), makeStory(1), makeStory(2)] });
+    const { text, ranges } = buildSpokenText(digest);
+    for (const range of ranges) {
+      const item = must(digest.items.find((candidate) => candidate.id === range.id));
+      expect(item).not.toHaveProperty("why");
+      expect(text.slice(range.start, range.end)).toBe(`${item.headline}. ${item.summary}`);
+    }
+    expect(text.endsWith(must(digest.items.at(-1)).summary)).toBe(true);
+    expect(text).not.toContain("undefined");
+    expect(text).not.toContain("Copy the pattern");
+  });
+
+  it("keeps exact ranges when stories with and without a why line are mixed", () => {
+    const digest = makeDigest({
+      items: [makeItem(0), makeStory(1), makeItem(2), makeStory(3), makeStory(4)],
+    });
+    const { text, ranges } = buildSpokenText(digest);
+    expect(ranges).toHaveLength(5);
+    for (const range of ranges) {
+      const item = must(digest.items.find((candidate) => candidate.id === range.id));
+      const block = text.slice(range.start, range.end);
+      expect(block.startsWith(`${item.headline}. ${item.summary}`)).toBe(true);
+      expect(block.endsWith(item.why ? `${item.why}.` : item.summary)).toBe(true);
+    }
+  });
+
+  it("treats a why of undefined the same as no why", () => {
+    const digest = makeDigest({
+      items: [makeItem(0, { why: undefined }), makeStory(1), makeStory(2)],
+    });
+    const first = must(buildSpokenText(digest).ranges[0]);
+    const item = must(digest.items[0]);
+    expect(buildSpokenText(digest).text.slice(first.start, first.end)).toBe(
+      `${item.headline}. ${item.summary}`,
+    );
+  });
+
+  it("fits twenty-four stories at the full summary length inside the character limit", () => {
+    const longest = Array.from({ length: 80 }, (_, i) => (i % 20 === 19 ? "wordy." : "wordy")).join(
+      " ",
+    );
+    const digest = makeDigest({
+      items: Array.from({ length: 24 }, (_, index) => makeStory(index, { summary: longest })),
+    });
+    const { text } = buildSpokenText(digest);
+    expect(text.startsWith("Singularity, Wednesday 7 October. Twenty-four stories.")).toBe(true);
+    expect(text.length).toBeLessThan(MAX_SPOKEN_CHARS);
   });
 });
 

@@ -74,11 +74,11 @@ export function goodSpecs(count: number): PoolSpec[] {
   }));
 }
 
+/** What the writer returns: a headline and a four-beat summary in the house voice, no why line. */
 export const okWritten = (m: Pick<SourceMaterial, "id" | "title">): WrittenItem => ({
   id: m.id,
   headline: `${m.title} retargets springs mid-flight`,
-  summary: `${m.title} swaps the rest target without resetting velocity. Interrupted drawers keep their speed.`,
-  why: "Copy the retargeting pattern for drawers and toasts",
+  summary: `${m.title} swaps the rest target without resetting velocity. Interrupted drawers keep their speed, and the change is about 120 lines of plain JavaScript. A fixed timestep keeps the motion the same on slow phones.`,
 });
 
 export interface FakeWriter extends Writer {

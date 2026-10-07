@@ -24,6 +24,19 @@ export const FAKE_BLOB_TOKEN = "test-blob-token-5b07d2aa";
 
 const SECTION_CYCLE: Section[] = ["top", "top", "ui-craft", "ui-craft", "ai", "research"];
 
+/**
+ * A story in the four-beat voice: a headline and a three-sentence summary, no why line. `makeItem`
+ * below keeps the older shape, which both digests committed before the change still have.
+ */
+export function makeStory(index: number, overrides: Partial<DigestItem> = {}): DigestItem {
+  const { why: _why, ...story } = makeItem(index);
+  return {
+    ...story,
+    summary: `Story ${index + 1} ships a new drawer with a spring that keeps its velocity. It costs 120 lines of plain code and runs on every phone the team tested. The catch is that older browsers still need a fallback.`,
+    ...overrides,
+  };
+}
+
 export function makeItem(index: number, overrides: Partial<DigestItem> = {}): DigestItem {
   const id = (index + 1).toString(16).padStart(12, "0");
   return {

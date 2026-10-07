@@ -10,7 +10,13 @@ import {
 import { isHttpUrl } from "../extract/urlSafety.js";
 import { digestWords, listenMinutes, readMinutes } from "../render/readTime.js";
 import { capFor, TOP_PICKS } from "../score/selectItems.js";
-import { type Linter, VOICE_FIELDS } from "../voice/lint.js";
+import { type Linter, type ViolationRule, VOICE_FIELDS } from "../voice/lint.js";
+
+/** The lower bounds a summary gained with the four-beat voice. */
+const SUMMARY_MINIMUMS: ReadonlySet<ViolationRule> = new Set([
+  "too_few_words",
+  "too_few_sentences",
+]);
 
 export type IssueSeverity = "error" | "warning";
 
@@ -173,11 +179,15 @@ export function validateDigest(input: unknown, context: ValidateContext): Valida
       );
     }
 
+    // An item with a why line was written before the four-beat voice, when a summary was one or
+    // two short sentences. Its summary keeps the upper limits but not the newer lower bounds.
+    const legacy = item.why !== undefined;
     for (const field of VOICE_FIELDS) {
       const text = item[field];
       // A digest in the four-beat voice has no why line; there is nothing to lint.
       if (text === undefined) continue;
       for (const violation of context.linter.lint(field, text)) {
+        if (legacy && field === "summary" && SUMMARY_MINIMUMS.has(violation.rule)) continue;
         add("error", "voice", `${field}: ${violation.message}`, item.id);
       }
     }

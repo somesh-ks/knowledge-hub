@@ -27,6 +27,12 @@ const COUNT_WORDS = [
   "sixteen",
   "seventeen",
   "eighteen",
+  "nineteen",
+  "twenty",
+  "twenty-one",
+  "twenty-two",
+  "twenty-three",
+  "twenty-four",
 ] as const;
 
 /** Character range of one item inside the spoken string, end exclusive. */
@@ -67,7 +73,7 @@ export class SpokenTextTooLongError extends SpokenTextError {
   }
 }
 
-/** The count as a word up to eighteen (the weekly cap), digits beyond that. */
+/** The count as a word up to twenty-four (the most a digest can hold), digits beyond that. */
 function countWord(count: number): string {
   const word = COUNT_WORDS[count];
   return word ?? String(count);
@@ -78,9 +84,9 @@ function capitalize(word: string): string {
 }
 
 function openingLine(digest: Digest): string {
-  const name = digest.kind === "weekly" ? "Dispatch weekly" : "Dispatch";
+  const name = digest.kind === "weekly" ? "Singularity weekly" : "Singularity";
   const count = digest.items.length;
-  const noun = count === 1 ? "item" : "items";
+  const noun = count === 1 ? "story" : "stories";
   return `${name}, ${longDate(digest.date)}. ${capitalize(countWord(count))} ${noun}.`;
 }
 
@@ -105,8 +111,9 @@ function itemBlock(item: DigestItem): string {
 /**
  * Assemble the narration from the digest fields with exact character ranges per item.
  *
- * Voice: one opening line, the section name as the only transition, then headline, summary and
- * why as plain sentences. No "Why:" prefix, no URLs, no markdown, no outro. Items are narrated in
+ * Voice: one opening line, the section name as the only transition, then headline and summary as
+ * plain sentences, plus the why line of a digest that still has one. No "Why:" prefix, no URLs,
+ * no markdown, no outro. Items are narrated in
  * section order (the order the page shows them), keeping digest order inside a section. Ranges and
  * section starts index exactly into `text`, which is what Speechify receives as `input`.
  */

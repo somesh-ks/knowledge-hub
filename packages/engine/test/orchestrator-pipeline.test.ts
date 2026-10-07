@@ -1,4 +1,5 @@
-import { rm } from "node:fs/promises";
+import { readFile, rm } from "node:fs/promises";
+import { join } from "node:path";
 import {
   COVER_TEMPLATES,
   type JudgmentsFile,
@@ -97,6 +98,14 @@ describe("published run", () => {
     });
     expect(digest.items).toHaveLength(8);
     expect(digest.items.filter((item) => item.section === "top")).toHaveLength(3);
+    // The writer produces four-beat summaries and no why line, so the file carries none.
+    for (const item of digest.items) {
+      expect(item).not.toHaveProperty("why");
+      expect(item.summary.split(". ").length).toBe(3);
+    }
+    const fileText = await readFile(join(repo.root, DIGEST_PATH), "utf8");
+    expect(fileText).not.toMatch(/^\s+why:/m);
+    expect(fileText).not.toContain("Why:");
     expect(COVER_TEMPLATES).toContain(digest.cover.template);
     const state = await readJson<LastRunFile>(repo.root, "state/last-run.json");
     expect(state.last_cover).toEqual({

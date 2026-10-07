@@ -2,6 +2,7 @@ import { type Digest, homeSection, type Item } from "@dispatch/core";
 import type { Selection } from "../curate/selectionFile.js";
 import { buildDigest, type CoverPicker, type DigestIdAllocator } from "../render/buildDigest.js";
 import type { SelectedItem } from "../score/types.js";
+import { writtenText } from "../write/text.js";
 import { StageFailure } from "./errors.js";
 
 export interface DigestFromSelectionInput {
@@ -32,12 +33,7 @@ export function digestFromSelection(input: DigestFromSelectionInput): Digest {
   });
   return buildDigest({
     selected,
-    written: input.selection.items.map((entry) => ({
-      id: entry.id,
-      headline: entry.headline,
-      summary: entry.summary,
-      why: entry.why,
-    })),
+    written: input.selection.items.map((entry) => ({ id: entry.id, ...writtenText(entry) })),
     window: input.selection.window,
     kind: input.selection.kind,
     now: input.now,

@@ -15,7 +15,8 @@ export const SelectionItem = z.object({
   score: z.number().min(0).max(1),
   headline: z.string().min(1),
   summary: z.string().min(1),
-  why: z.string().min(1),
+  /** The writer produces none. An agent session may still supply one, and old files carry it. */
+  why: z.string().min(1).optional(),
 });
 export type SelectionItem = z.infer<typeof SelectionItem>;
 
@@ -54,7 +55,7 @@ export const WrittenEntry = z.object({
   id: z.string(),
   headline: z.string(),
   summary: z.string(),
-  why: z.string(),
+  why: z.string().optional(),
   extract_method: z.string().optional(),
   rewritten_fields: z.array(z.string()),
   verified: z.boolean(),

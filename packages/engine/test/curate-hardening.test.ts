@@ -113,8 +113,9 @@ describe("dispatch curate: agent mode keeps selection.json engine-written", () =
       score: 0.9 - i * 0.05,
       headline: `Springlet ${i} retargets springs mid-flight`,
       summary:
-        "Springlet swaps the rest target without resetting velocity. Interrupted drawers keep their speed.",
-      why: "Copy the retargeting pattern for drawers and toasts",
+        "Springlet swaps the rest target without resetting velocity. Interrupted drawers keep their speed, and the change is about 120 lines of plain JavaScript. A fixed timestep keeps the motion the same on slow phones.",
+      // The why line is optional in agent mode: every other item carries one.
+      ...(i % 2 === 0 ? { why: "Copy the retargeting pattern for drawers and toasts" } : {}),
     }));
 
   it("tells the session to write agent-selection.json", async () => {

@@ -1,6 +1,7 @@
 import { type DigestKind, homeSection, type Item, NEVER_PUBLISH } from "@dispatch/core";
 import { assignSections, capFor } from "../score/selectItems.js";
 import { type Linter, VOICE_FIELDS } from "../voice/lint.js";
+import { writtenText } from "../write/text.js";
 import { AgentSelection, type Selection } from "./selectionFile.js";
 import type { DigestWindow } from "./window.js";
 
@@ -66,7 +67,10 @@ export function validateAgentSelection(
       continue;
     }
     for (const field of VOICE_FIELDS) {
-      for (const violation of context.linter.lint(field, entry[field])) {
+      const text = entry[field];
+      // The why line is optional: the four beats live in the summary.
+      if (text === undefined) continue;
+      for (const violation of context.linter.lint(field, text)) {
         issues.push({ id: entry.id, message: `${field}: ${violation.message}` });
       }
     }
@@ -91,9 +95,7 @@ export function validateAgentSelection(
           id: sel.item.id,
           category: sel.category,
           score: sel.score,
-          headline: entry.headline,
-          summary: entry.summary,
-          why: entry.why,
+          ...writtenText(entry),
         };
       }),
     },

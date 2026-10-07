@@ -25,16 +25,25 @@ export const WRITER_BATCH_SIZE = 4;
 /** Low temperature keeps summaries close to the source. */
 export const WRITER_TEMPERATURE = 0.2;
 const WRITER_CONCURRENCY = 4;
+/**
+ * Output allowance per written item and per rewritten field. A headline plus an 80-word summary
+ * is about 180 tokens as JSON, so both leave room for a reply that runs long before the linter
+ * sees it; a reply cut off mid-object would fail its whole batch.
+ */
+const WRITE_TOKENS_PER_ITEM = 600;
+const WRITE_TOKENS_OVERHEAD = 300;
+const REWRITE_MAX_TOKENS = 400;
 
 const WriterOutput = z.object({
-  items: z.array(
-    z.object({ id: z.string(), headline: z.string(), summary: z.string(), why: z.string() }),
-  ),
+  items: z.array(z.object({ id: z.string(), headline: z.string(), summary: z.string() })),
 });
 
 const RewriteOutput = z.object({ text: z.string() });
 
-/** Collapse whitespace, drop wrapping quotes and a stray "Why:" label the model may add. */
+/**
+ * Collapse whitespace and drop wrapping quotes. The writer produces no why line; the "why" case
+ * serves a rewrite of one an agent session supplied, and drops a stray "Why:" label.
+ */
 export function cleanField(field: "headline" | "summary" | "why", raw: string): string {
   let text = raw.replace(/\s+/g, " ").trim();
   text = text.replace(/^["'\u201C\u2018](.*)["'\u201D\u2019]$/s, "$1").trim();
@@ -91,7 +100,7 @@ export class NebiusWriter implements Writer {
           { role: "user", content: writerUserMessage(batch, boundary) },
         ],
         temperature: WRITER_TEMPERATURE,
-        maxTokens: 450 * batch.length + 300,
+        maxTokens: WRITE_TOKENS_PER_ITEM * batch.length + WRITE_TOKENS_OVERHEAD,
         label: "writer",
       });
       const wanted = new Set(batch.map((m) => m.id));
@@ -102,7 +111,6 @@ export class NebiusWriter implements Writer {
           id: row.id,
           headline: cleanField("headline", row.headline),
           summary: cleanField("summary", row.summary),
-          why: cleanField("why", row.why),
         });
       }
       const failed: WriteFailure[] = batch
@@ -128,7 +136,7 @@ export class NebiusWriter implements Writer {
           { role: "user", content: rewriteUserMessage(request, boundary) },
         ],
         temperature: WRITER_TEMPERATURE,
-        maxTokens: 300,
+        maxTokens: REWRITE_MAX_TOKENS,
         label: "rewrite",
       });
       const text = cleanField(request.field, value.text);

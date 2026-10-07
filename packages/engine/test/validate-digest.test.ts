@@ -1,7 +1,10 @@
-import type { Digest, Source } from "@dispatch/core";
+import { readFileSync } from "node:fs";
+import { join } from "node:path";
+import { type Digest, digestRelPath, parseDigestFile, type Source } from "@dispatch/core";
 import { describe, expect, it } from "vitest";
 import { validateDigest } from "../src/validate/validateDigest.js";
-import { buildFixtureDigest } from "./render-factories.js";
+import { buildFixtureDigest, LEGACY_SUMMARY, LEGACY_WHY } from "./render-factories.js";
+import { REPO_ROOT } from "./score-factories.js";
 import { testLinter } from "./write-fakes.js";
 
 const linter = testLinter();
@@ -99,7 +102,8 @@ describe("validateDigest", () => {
     const { digest } = buildFixtureDigest(5);
     const bad = clone(digest);
     (bad.items[0] as { headline: string }).headline = "An incredible release!";
-    (bad.items[1] as { summary: string }).summary = "One. Two. Three sentences here.";
+    (bad.items[1] as { summary: string }).summary =
+      "One fact sits here. Two facts sit here. Three facts sit here. Four facts sit here. Five sentences is one more than a summary may hold.";
     (bad.items[2] as { why: string }).why = "Check out the drawers now. And toasts.";
     const report = validateDigest(bad, { linter });
     const voice = report.issues.filter((i) => i.code === "voice");
@@ -107,7 +111,49 @@ describe("validateDigest", () => {
     expect(voice.map((i) => i.itemId)).toContain(bad.items[1]?.id);
     expect(voice.map((i) => i.itemId)).toContain(bad.items[2]?.id);
     expect(voice.some((i) => i.message.startsWith("headline:"))).toBe(true);
+    expect(voice.find((i) => i.itemId === bad.items[1]?.id)?.message).toBe(
+      "summary: The summary has 5 sentences; the limit is 4.",
+    );
+    expect(voice.some((i) => i.message.startsWith("why:"))).toBe(true);
     expect(report.ok).toBe(false);
+  });
+
+  it("holds a summary to the four-beat minimum when the item has no why line", () => {
+    const { digest } = buildFixtureDigest(5);
+    const bad = clone(digest);
+    (bad.items[3] as { summary: string }).summary = LEGACY_SUMMARY;
+    const report = validateDigest(bad, { linter });
+    const voice = report.issues.filter((i) => i.code === "voice");
+    expect(voice.map((i) => `${i.severity}:${i.itemId}:${i.message}`)).toEqual([
+      `error:${bad.items[3]?.id}:summary: The summary has 13 words; it needs at least 25.`,
+    ]);
+    expect(report.ok).toBe(false);
+  });
+
+  it("accepts a digest written before the four-beat voice: short summaries with why lines", () => {
+    const { digest } = buildFixtureDigest(5);
+    const legacy = clone(digest);
+    for (const item of legacy.items) {
+      item.summary = LEGACY_SUMMARY;
+      item.why = LEGACY_WHY;
+    }
+    // Reading times are recomputed, so the only thing under test is the voice check.
+    const report = validateDigest(legacy, { linter });
+    expect(report.issues.filter((i) => i.code === "voice")).toEqual([]);
+    expect(report.ok).toBe(true);
+  });
+
+  it("still holds a legacy summary to the upper limits", () => {
+    const { digest } = buildFixtureDigest(5);
+    const legacy = clone(digest);
+    const item = legacy.items[0] as Digest["items"][number];
+    item.why = LEGACY_WHY;
+    item.summary =
+      "One fact sits here. Two facts sit here. Three facts sit here. Four facts sit here. Five sentences is one more than a summary may hold.";
+    const voice = validateDigest(legacy, { linter }).issues.filter((i) => i.code === "voice");
+    expect(voice.map((i) => i.message)).toEqual([
+      "summary: The summary has 5 sentences; the limit is 4.",
+    ]);
   });
 
   it("rejects categories that never publish", () => {
@@ -155,6 +201,23 @@ describe("validateDigest", () => {
       true,
     );
   });
+
+  it.each(["2026-10-06", "2026-10-07"])(
+    "raises no summary minimum against the committed digest %s, written in the older voice",
+    (id) => {
+      const text = readFileSync(join(REPO_ROOT, digestRelPath(id)), "utf8");
+      const digest = parseDigestFile(text);
+      const report = validateDigest(digest, { linter });
+      const messages = report.issues.map((i) => i.message).join("\n");
+      expect(messages).not.toMatch(/it needs at least/);
+      // Every summary in these files is shorter than the four-beat minimum, so the exemption is
+      // what keeps them valid.
+      const short = digest.items.filter((item) =>
+        linter.lint("summary", item.summary).some((v) => v.rule === "too_few_words"),
+      );
+      expect(short.length).toBeGreaterThan(0);
+    },
+  );
 
   it("counts errors and warnings in the summary", () => {
     const { digest } = buildFixtureDigest(5);

@@ -7,6 +7,7 @@ import { type GroundedItem, groundAndRepair } from "../validate/groundingRepair.
 import { validateDigest } from "../validate/validateDigest.js";
 import { createLinter } from "../voice/lint.js";
 import { loadVoice } from "../voice/voice.js";
+import { writtenText } from "../write/text.js";
 import type { SourceMaterial } from "../write/types.js";
 import { MaterialsFile, readArtifact } from "./artifacts.js";
 import { makeCoverPicker } from "./cover.js";
@@ -23,8 +24,8 @@ interface ValidateDrop {
 }
 
 /**
- * The grounding check and the final validation. Every summary and why sentence is checked
- * against its source text with Jev; an unsupported sentence gets one rewrite and one more check,
+ * The grounding check and the final validation. Every summary sentence (and a why sentence, when
+ * an item has one) is checked against its source text with Jev; an unsupported sentence gets one rewrite and one more check,
  * then the item drops. `verified` is true only when the grounder ran and every kept item passed
  * every check; without a Jev key the digest is kept and marked unverified. The surviving items
  * are then rendered as a digest and run through `validateDigest`: any item with an error drops,
@@ -69,24 +70,17 @@ export async function validateStage(deps: RunDeps, plan: Plan): Promise<StageRep
     const entryOf = new Map<string, SelectionItem>(selection.items.map((e) => [e.id, e]));
     const asSelection = (items: readonly GroundedItem[]): Selection => ({
       ...selection,
-      items: items.map((g) => ({
-        ...(entryOf.get(g.item.id) as SelectionItem),
-        headline: g.item.headline,
-        summary: g.item.summary,
-        why: g.item.why,
-      })),
+      items: items.map((g) => {
+        const { why: _why, ...entry } = entryOf.get(g.item.id) as SelectionItem;
+        return { ...entry, ...writtenText(g.item) };
+      }),
     });
 
     const grounding = await groundAndRepair({
       grounder: runtime.grounder,
       writer: runtime.writer,
       linter,
-      items: selection.items.map((entry) => ({
-        id: entry.id,
-        headline: entry.headline,
-        summary: entry.summary,
-        why: entry.why,
-      })),
+      items: selection.items.map((entry) => ({ id: entry.id, ...writtenText(entry) })),
       materials,
     });
 
@@ -177,9 +171,7 @@ function updatedWritten(
       const previous = before.get(g.item.id);
       return {
         id: g.item.id,
-        headline: g.item.headline,
-        summary: g.item.summary,
-        why: g.item.why,
+        ...writtenText(g.item),
         ...(previous?.extract_method ? { extract_method: previous.extract_method } : {}),
         rewritten_fields: [...(previous?.rewritten_fields ?? []), ...g.rewrittenFields],
         verified: g.verified,

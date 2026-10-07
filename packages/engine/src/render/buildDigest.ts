@@ -66,9 +66,10 @@ export function buildDigest(input: BuildDigestInput): Digest {
       url: sel.item.canonical_url,
       source: input.sourceNames?.[sel.item.source_id] ?? sel.item.source_id,
       summary: text.summary,
-      why: text.why,
       score: sel.score,
     };
+    // Only an agent session still supplies a why line; the frontmatter carries none otherwise.
+    if (text.why) item.why = text.why;
     if (sel.item.author) item.author = sel.item.author;
     if (sel.item.published_at) item.published_at = sel.item.published_at;
     return item;

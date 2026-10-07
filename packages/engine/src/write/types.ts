@@ -15,7 +15,8 @@ export interface WrittenItem {
   id: string;
   headline: string;
   summary: string;
-  why: string;
+  /** The writer no longer produces one. Present only when an agent session supplied it. */
+  why?: string | undefined;
 }
 
 export interface WriteFailure {
@@ -42,7 +43,7 @@ export interface RewriteRequest {
 }
 
 /**
- * Writes headline, summary and why lines in the house voice from source text only. The model
+ * Writes headlines and four-beat summaries in the house voice from source text only. The model
  * has no tools; a batch that fails reports its items instead of throwing, except for the spend
  * guard, whose BudgetExceededError always propagates.
  */
