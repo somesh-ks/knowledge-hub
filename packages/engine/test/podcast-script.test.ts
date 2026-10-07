@@ -184,8 +184,8 @@ describe("the reply", () => {
     const input = inputFor("readout", 5, 2);
     const reply = {
       turns: [
-        { speaker: "a", text: "Welcome to Singularity 2014 today." },
-        { speaker: "a", text: "Model 1 ships 2014 fast.", item_id: itemId(1) },
+        { speaker: "a", text: "Welcome to Singularity — today." },
+        { speaker: "a", text: "Model 1 ships — fast.", item_id: itemId(1) },
         { speaker: "a", text: "Bye." },
       ],
     };
