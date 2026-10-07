@@ -2,6 +2,7 @@
 
 One line each: symptom, cause, fix. Newest first. Search before debugging.
 
+- Blob upload failed with "OIDC is enabled for this project, but not for the development environment": the CLI pull issues a development OIDC token and the store was connected to Production and Preview only. Connect the store to Development too (dashboard, Storage, store, connected project, environments).
 - `audio.yml` failed at the write guard ("changes outside the publish allowlist: .gitignore"): `vercel link` and `vercel env pull` edit `.gitignore` and write `.vercel`; run them in a scratch directory outside the checkout.
 - `vercel env pull` writes the text `[SENSITIVE]` for hidden secrets, so `BLOB_READ_WRITE_TOKEN` would load as that string and beat the OIDC credentials; `loadEnv` now treats it as unset.
 - Doctor said voice `geffen_32` was missing: Speechify `GET /v1/voices` is cursor-paged (50 by default, 200 at most); follow `next_cursor` while `has_more` is true.
