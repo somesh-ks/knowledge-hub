@@ -158,6 +158,59 @@ describe("validateDigest", () => {
     expect(report.ok).toBe(false);
   });
 
+  it("warns, without failing, about a headline shaped like a changelog line", () => {
+    const { digest } = buildFixtureDigest(5);
+    const changelog = clone(digest);
+    (changelog.items[0] as { headline: string }).headline =
+      "Springlet 2.0 released with mid-flight spring retargeting";
+    const report = validateDigest(changelog, { linter });
+    const voice = report.issues.filter((i) => i.code === "voice");
+    expect(voice).toEqual([
+      {
+        severity: "warning",
+        code: "voice",
+        itemId: changelog.items[0]?.id,
+        message:
+          "headline: The headline reads like a changelog line. Say what happened and why a reader would care, with a real verb.",
+      },
+    ]);
+    expect(report.ok).toBe(true);
+    expect(report.warnings).toBe(1);
+  });
+
+  it("lints a spoken version, and rejects one that states a number the summary does not", () => {
+    const { digest } = buildFixtureDigest(5);
+    const target = digest.items[0];
+    const withSpoken = clone(digest);
+    const telling =
+      "Springlet has a new release, and it keeps velocity when a drawer is interrupted. It's about 120 lines of plain JavaScript. A fixed timestep keeps the motion the same on slow phones. The catch: older browsers still need a fallback for it.";
+    const summary = `${target?.summary} The change is about 120 lines.`;
+    (withSpoken.items[0] as { summary: string }).summary = summary;
+    (withSpoken.items[0] as { spoken: string }).spoken = telling;
+    expect(
+      validateDigest(withSpoken, { linter }).issues.filter((i) => i.message.startsWith("spoken")),
+    ).toEqual([]);
+
+    const invented = clone(withSpoken);
+    (invented.items[0] as { spoken: string }).spoken = telling.replace("120", "900");
+    const report = validateDigest(invented, { linter });
+    expect(report.issues.find((i) => i.message.startsWith("spoken:"))).toMatchObject({
+      severity: "error",
+      code: "voice",
+      itemId: target?.id,
+      message: "spoken: states 900, which the headline and summary do not.",
+    });
+    expect(report.ok).toBe(false);
+
+    const loud = clone(withSpoken);
+    (loud.items[0] as { spoken: string }).spoken = `${telling} Ready to try it?`;
+    expect(
+      validateDigest(loud, { linter }).issues.some((i) =>
+        i.message.startsWith("spoken: Do not ask"),
+      ),
+    ).toBe(true);
+  });
+
   it("holds a summary to the four-beat minimum when the item has no why line", () => {
     const { digest } = buildFixtureDigest(5);
     const bad = clone(digest);

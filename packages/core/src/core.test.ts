@@ -100,6 +100,29 @@ describe("digest file", () => {
     expect(parsed.items[0]).not.toHaveProperty("why");
   });
 
+  it("round-trips a spoken version, keeps it out of the generated body, and parses digests without one", () => {
+    const spoken = "Google has a new Pixel, and the headline feature is the screen.";
+    const withSpoken: Digest = {
+      ...sampleDigest,
+      items: [{ ...sampleItem(1), spoken }, sampleItem(2), sampleItem(3)],
+    };
+    const text = serializeDigestFile(withSpoken);
+    expect(text.match(/^ {4}spoken: /gm)).toHaveLength(1);
+    const parsed = parseDigestFile(text);
+    expect(parsed).toEqual(DigestSchema.parse(withSpoken));
+    expect(parsed.items[0]?.spoken).toBe(spoken);
+    expect(parsed.items[1]).not.toHaveProperty("spoken");
+    // The body is what GitHub shows; the telling is for the narrator alone.
+    const body = text.slice(text.indexOf("\n---\n", 4));
+    expect(body).not.toContain(spoken);
+    expect(
+      DigestSchema.safeParse({
+        ...sampleDigest,
+        items: [{ ...sampleItem(1), spoken: "" }, sampleItem(2), sampleItem(3)],
+      }).success,
+    ).toBe(false);
+  });
+
   it("holds the weekly cap plus the tech allowance, with one item to spare", () => {
     const items = (count: number) => Array.from({ length: count }, (_, n) => sampleItem(n));
     const most = VOICE_LIMITS.items.weeklyCap + VOICE_LIMITS.items.techCap;

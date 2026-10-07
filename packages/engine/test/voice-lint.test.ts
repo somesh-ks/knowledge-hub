@@ -16,7 +16,7 @@ const voiceMd = readFileSync(join(REPO_ROOT, "config", "voice.md"), "utf8");
 const voice: VoiceConfig = parseVoice(voiceMd);
 const linter = createLinter(voice);
 
-const rules = (field: "headline" | "summary" | "why", text: string): string[] =>
+const rules = (field: "headline" | "summary" | "why" | "spoken", text: string): string[] =>
   linter.lint(field, text).map((v) => v.rule);
 
 describe("parseVoice", () => {
@@ -351,5 +351,128 @@ describe("sentence and word counting", () => {
 
   it("splits on end punctuation followed by a capital", () => {
     expect(splitSentences("One. Two! Three?")).toEqual(["One.", "Two!", "Three?"]);
+  });
+});
+
+describe("the spoken field", () => {
+  const GOOD =
+    "Google has a new Pixel, and the headline feature is the screen. It's brighter than last year's, and it stays readable in direct sun. The phone goes on sale next month at 799 dollars. The catch: the faster charging only works with Google's own charger, which is sold separately.";
+
+  it("accepts a conversational telling inside the limits", () => {
+    expect(rules("spoken", GOOD)).toEqual([]);
+    expect(countWords(GOOD)).toBeGreaterThanOrEqual(VOICE_LIMITS.spokenMinWords);
+    expect(countSentences(GOOD)).toBeLessThanOrEqual(VOICE_LIMITS.spokenSentences);
+  });
+
+  it("states the limits: 40 to 95 words, 3 to 5 sentences, 700 characters", () => {
+    expect(VOICE_LIMITS.spokenMinWords).toBe(40);
+    expect(VOICE_LIMITS.spokenWords).toBe(95);
+    expect(VOICE_LIMITS.spokenMinSentences).toBe(3);
+    expect(VOICE_LIMITS.spokenSentences).toBe(5);
+    expect(VOICE_LIMITS.spokenChars).toBe(700);
+    const limits = voice.limits.join("\n");
+    expect(limits).toContain("3 to 5 sentences, 40 to 95 words, 700 characters at most");
+  });
+
+  it("flags a telling that is too short or too thin", () => {
+    expect(rules("spoken", "Google has a new Pixel. The screen is brighter.")).toEqual([
+      "too_few_words",
+      "too_few_sentences",
+    ]);
+  });
+
+  it("flags a telling over the word, sentence or character ceiling", () => {
+    const words = Array.from({ length: 96 }, () => "word").join(" ");
+    expect(rules("spoken", `${words}.`)).toContain("too_many_words");
+    const sentences = Array.from({ length: 6 }, () => `${"Word ".repeat(8).trim()}.`).join(" ");
+    expect(rules("spoken", sentences)).toContain("too_many_sentences");
+    const long = `${Array.from({ length: 80 }, () => "wordsmith").join(" ")}.`;
+    expect(rules("spoken", long)).toContain("too_many_characters");
+  });
+
+  it("keeps the shared bans: questions, dashes, hype and exclamations", () => {
+    expect(rules("spoken", `${GOOD} Ready for it?`)).toContain("question");
+    expect(
+      rules("spoken", GOOD.replace("The catch:", `The catch ${String.fromCharCode(0x2014)}`)),
+    ).toContain("dash");
+    expect(rules("spoken", GOOD.replace("new Pixel", "incredible Pixel"))).toContain("banned_word");
+    expect(rules("spoken", GOOD.replace("sun.", "sun!"))).toContain("exclamation");
+  });
+
+  it("keeps the host out of the story: no 'in this story', no 'we' or 'our'", () => {
+    expect(rules("spoken", `In this story, ${GOOD}`)).toContain("spoken_style");
+    expect(rules("spoken", GOOD.replace("Google's own", "our own"))).toContain("spoken_style");
+    expect(rules("spoken", GOOD.replace("It's brighter", "We think it's brighter"))).toContain(
+      "spoken_style",
+    );
+    // Words that merely contain them are fine, and so is the US.
+    expect(rules("spoken", GOOD.replace("Google", "The US arm of Google"))).toEqual([]);
+    expect(
+      rules("summary", "We tried it. Our team liked it. The rest is in the post, long enough."),
+    ).not.toContain("spoken_style");
+  });
+});
+
+describe("the changelog headline warning", () => {
+  const warn = (text: string): string[] => linter.warnings("headline", text).map((w) => w.rule);
+
+  it.each([
+    "Springlet 2.0 released with mid-flight spring retargeting",
+    "Node.js 24.1 launches with permission model and faster startup",
+    "Vite 7.0 adds Rolldown as default bundler",
+    "Tailwind v4 ships a new engine",
+    "React 19.2 added view transitions",
+    "Postgres 18 released",
+  ])("warns about %j", (headline) => {
+    expect(warn(headline)).toEqual(["changelog_headline"]);
+  });
+
+  it.each([
+    "Springlet 2.0 keeps a drawer's speed when it is interrupted mid-flight",
+    "Phone 3 launches with a seven-year update promise",
+    "Sonos will sell replacement batteries for its flagship headphones",
+    "Figma's variables API now handles modes and aliases",
+    "A new paper shows how agents get interrupted",
+    "Apple released the new iPhone with a faster chip",
+  ])("stays quiet about %j", (headline) => {
+    expect(warn(headline)).toEqual([]);
+  });
+
+  it("is a warning, not an error: lint does not report it and only headlines are checked", () => {
+    expect(rules("headline", "Springlet 2.0 released with spring retargeting")).toEqual([]);
+    expect(linter.warnings("summary", "Springlet 2.0 released with spring retargeting")).toEqual(
+      [],
+    );
+    const [found] = linter.warnings("headline", "Springlet 2.0 released with retargeting");
+    expect(found).toMatchObject({ field: "headline", match: "Springlet 2.0 released" });
+  });
+});
+
+describe("the headline examples in config/voice.md", () => {
+  it("has six before and after pairs", () => {
+    expect(voice.headlineExamples).toHaveLength(6);
+  });
+
+  it("passes the lint and the twelve word limit in every strong headline, with no changelog shape", () => {
+    for (const example of voice.headlineExamples) {
+      expect(rules("headline", example.strong), example.strong).toEqual([]);
+      expect(linter.warnings("headline", example.strong), example.strong).toEqual([]);
+      expect(countWords(example.strong)).toBeLessThanOrEqual(VOICE_LIMITS.headlineWords);
+    }
+  });
+
+  it("shows at least three changelog lines that the warning catches", () => {
+    const caught = voice.headlineExamples.filter(
+      (example) => linter.warnings("headline", example.weak).length > 0,
+    );
+    expect(caught.length).toBeGreaterThanOrEqual(3);
+  });
+
+  it("has no colon list or title case in a strong headline", () => {
+    for (const { strong } of voice.headlineExamples) {
+      expect(strong).not.toMatch(/:/);
+      const capitalized = strong.split(" ").filter((word) => /^[A-Z][a-z]+$/.test(word));
+      expect(capitalized.length).toBeLessThan(3);
+    }
   });
 });

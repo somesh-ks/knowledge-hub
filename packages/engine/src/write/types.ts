@@ -15,6 +15,8 @@ export interface WrittenItem {
   id: string;
   headline: string;
   summary: string;
+  /** The story as a host would tell it aloud. Narration only; absent when it failed a check. */
+  spoken?: string | undefined;
   /** The writer no longer produces one. Present only when an agent session supplied it. */
   why?: string | undefined;
 }

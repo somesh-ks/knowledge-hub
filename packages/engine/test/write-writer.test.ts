@@ -19,6 +19,7 @@ import { captureLog, FakeLlm, testLinter, testVoice } from "./write-fakes.js";
 
 const voice = testVoice();
 const linter = testLinter();
+const brief = (): string => voiceBrief(voice);
 
 let n = 0;
 function material(overrides: Partial<SourceMaterial> = {}): SourceMaterial {
@@ -72,7 +73,9 @@ describe("writer prompt", () => {
 
   it("states the hard limits, the four beats and the facts-only rule", () => {
     const system = writerSystemPrompt(voice, "abcdef0123456789");
-    expect(system).toContain("- headline: at most 12 words.");
+    expect(system).toContain("- headline: at most 12 words, no trailing period.");
+    expect(system).toContain("natural word order and a real verb");
+    expect(system).toContain("Not a changelog line");
     expect(system).toContain(
       "- summary: three or four sentences, at most 80 words in total, each sentence at most 28 words.",
     );
@@ -85,16 +88,28 @@ describe("writer prompt", () => {
     expect(system).toContain("Never add a claim");
   });
 
+  it("asks for the spoken telling in the same call, with the rules that keep it grounded", () => {
+    const system = writerSystemPrompt(voice, "abcdef0123456789");
+    expect(system).toContain(
+      "- spoken: the same story told aloud by a host, 3 to 5 sentences, 40 to 95 words and at most 700 characters in total.",
+    );
+    expect(system).toContain("use contractions");
+    expect(system).toContain("The catch: ...");
+    expect(system).toContain("no questions to the listener");
+    expect(system).toContain("Use only facts that are in your own summary");
+    expect(brief()).toContain("HEADLINE EXAMPLES (weak, then strong)");
+  });
+
   it("asks for a headline and a summary and no why line", () => {
     const system = writerSystemPrompt(voice, "abcdef0123456789");
     expect(system).toContain(
-      '{"items":[{"id":"...","headline":"...","summary":"..."}]}, one entry per source',
+      '{"items":[{"id":"...","headline":"...","summary":"...","spoken":"..."}]}, one entry per source',
     );
     expect(system).not.toMatch(/^- why:/m);
     expect(system).not.toContain('"why"');
     expect(rewriteSystemPrompt(voice, "abcdef0123456789")).not.toMatch(/^- why:/m);
     expect(writerUserMessage([material()], "feedfacecafebeef").split("\n")[0]).toBe(
-      "Write the headline and summary for each of these 1 sources.",
+      "Write the headline, summary and spoken version for each of these 1 sources.",
     );
   });
 
@@ -146,8 +161,8 @@ describe("NebiusWriter.write", () => {
     expect(WRITER_TEMPERATURE).toBe(0.2);
     expect(llm.calls[0]?.temperature).toBe(0.2);
     expect(llm.calls[0]?.schemaName).toBe("dispatch_items");
-    // 600 per item: a headline plus an 80-word summary is about 180 tokens as JSON.
-    expect(llm.calls[0]?.maxTokens).toBe(600 * 2 + 300);
+    // 800 per item: a headline, an 80-word summary and a 95-word telling are about 310 tokens as JSON.
+    expect(llm.calls[0]?.maxTokens).toBe(800 * 2 + 300);
   });
 
   it("accepts a reply without a why field and returns items that have none", async () => {
@@ -157,6 +172,22 @@ describe("NebiusWriter.write", () => {
     expect(result.failed).toEqual([]);
     expect(result.written).toEqual([good(m.id)]);
     expect(Object.keys(result.written[0] ?? {})).toEqual(["id", "headline", "summary"]);
+  });
+
+  it("carries the spoken telling through, tolerates a reply without one, and cleans it like a summary", async () => {
+    const [withSpoken, without, nulled] = [material(), material(), material()];
+    const llm = new FakeLlm(() => ({
+      items: [
+        { ...good(withSpoken.id), spoken: '  "Springlet has a new release.\nIt keeps speed."  ' },
+        good(without.id),
+        { ...good(nulled.id), spoken: null },
+      ],
+    }));
+    const result = await new NebiusWriter({ llm, voice }).write([withSpoken, without, nulled]);
+    expect(result.failed).toEqual([]);
+    expect(result.written[0]?.spoken).toBe("Springlet has a new release. It keeps speed.");
+    expect(result.written[1]).not.toHaveProperty("spoken");
+    expect(result.written[2]).not.toHaveProperty("spoken");
   });
 
   it("delimits each source with a fresh random boundary per request", async () => {
@@ -484,5 +515,67 @@ describe("enforceVoice", () => {
     });
     expect(out.passed.map((p) => p.item.id)).toEqual([m.id, other.id]);
     expect(out.passed[0]?.rewrittenFields).toEqual(["headline", "why"]);
+  });
+
+  describe("the spoken telling", () => {
+    const SPOKEN =
+      "Springlet 2.0 swaps the rest target without resetting velocity, so interrupted drawers keep their speed. It's about 120 lines of plain JavaScript. A fixed timestep keeps the motion the same on slow phones. The catch: it only covers springs, not tweens, so older code still needs a fallback for those.";
+
+    it("is kept when it passes the lint and every number is in the summary", async () => {
+      const writer = scriptedWriter([]);
+      const item = { ...good(m.id), spoken: SPOKEN };
+      const out = await enforceVoice({ written: [item], materials, writer, linter });
+      expect(out.passed[0]?.item.spoken).toBe(SPOKEN);
+      expect(writer.requests).toHaveLength(0);
+    });
+
+    it("is dropped, not the item, when it states a number the summary does not", async () => {
+      const writer = scriptedWriter([]);
+      const invented = SPOKEN.replace("about 120 lines", "about 900 lines");
+      const out = await enforceVoice({
+        written: [{ ...good(m.id), spoken: invented }],
+        materials,
+        writer,
+        linter,
+      });
+      expect(out.dropped).toEqual([]);
+      expect(out.passed[0]?.item).toEqual(good(m.id));
+      expect(out.passed[0]?.item).not.toHaveProperty("spoken");
+    });
+
+    it("gets one rewrite when it fails the lint, and is dropped if that fails too", async () => {
+      const tooShort = "Springlet 2.0 has a release. Drawers keep speed.";
+      const fixed = scriptedWriter([SPOKEN]);
+      const kept = await enforceVoice({
+        written: [{ ...good(m.id), spoken: tooShort }],
+        materials,
+        writer: fixed,
+        linter,
+      });
+      expect(kept.passed[0]?.item.spoken).toBe(SPOKEN);
+      expect(kept.passed[0]?.rewrittenFields).toEqual(["spoken"]);
+      expect(fixed.requests[0]?.field).toBe("spoken");
+
+      const stubborn = scriptedWriter([tooShort]);
+      const lost = await enforceVoice({
+        written: [{ ...good(m.id), spoken: tooShort }],
+        materials,
+        writer: stubborn,
+        linter,
+      });
+      expect(lost.dropped).toEqual([]);
+      expect(lost.passed[0]?.item).not.toHaveProperty("spoken");
+    });
+
+    it("is judged after the rewrite: a rewrite that invents a number loses the telling", async () => {
+      const writer = scriptedWriter([SPOKEN.replace("120", "500")]);
+      const out = await enforceVoice({
+        written: [{ ...good(m.id), spoken: "Too short." }],
+        materials,
+        writer,
+        linter,
+      });
+      expect(out.passed[0]?.item).not.toHaveProperty("spoken");
+    });
   });
 });

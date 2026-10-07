@@ -18,6 +18,8 @@ export interface VoiceConfig {
   principles: string[];
   limits: string[];
   examples: VoiceExample[];
+  /** Headlines that read like a changelog, each beside the version a person would write. */
+  headlineExamples: VoiceExample[];
   bannedWords: string[];
   bannedPatterns: BannedPattern[];
 }
@@ -97,6 +99,7 @@ export function parseVoice(markdown: string): VoiceConfig {
     principles: bullets(sections.principles),
     limits: bullets(sections.limits),
     examples: parseExamples(sections.examples),
+    headlineExamples: parseExamples(sections["headline examples"]),
     bannedWords: bannedWords.map(unwrapCode),
     bannedPatterns,
   };

@@ -341,6 +341,22 @@ describe("groundAndRepair", () => {
     expect(writer.requests[0]?.problems[0]).not.toContain("UNSUPPORTED");
   });
 
+  it("keeps the spoken telling when the summary stands, and drops it when the summary is rewritten", async () => {
+    const telling = "Springlet 2.0 keeps velocity, and drawers lose under 4 percent.";
+    const fine = { ...item("aaaaaaaaaaaa"), spoken: telling };
+    const kept = await run([fine], writerOf([]));
+    expect(kept.kept[0]?.item.spoken).toBe(telling);
+
+    const bad = {
+      ...item("bbbbbbbbbbbb", "Springlet 2.0 keeps velocity. UNSUPPORTED drawers claim."),
+      spoken: telling,
+    };
+    const fixed = await run([bad], writerOf([REWRITE]));
+    expect(fixed.kept[0]?.item.summary).toBe(REWRITE);
+    // The telling was written from the old summary, so narration falls back to the new one.
+    expect(fixed.kept[0]?.item).not.toHaveProperty("spoken");
+  });
+
   it("drops an item still unsupported after its one rewrite and reports the sentences", async () => {
     const writer = writerOf([
       "Another UNSUPPORTED claim about drawers that the source never makes at any point. Interrupted drawers keep their speed, and the change is about 120 lines of plain JavaScript.",
