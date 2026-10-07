@@ -109,11 +109,17 @@ export interface NarrateRequest {
   digest: string;
   /** The same passphrase the Generate sheet asks for. */
   passphrase: string;
+  /**
+   * Narrate only this segment: a `key` from the lookup's `segments`. Leave it out to narrate the
+   * whole digest as one file.
+   */
+  segment?: string;
 }
 
 /**
- * Where each story and section starts inside a narration. To show it, patch PlayerDigestData: `kind`
- * goes into `timeline`, and the times go onto the items and sections with the same `id` and `slug`.
+ * Where each story and section starts inside a whole-digest narration. To show it, patch
+ * PlayerDigestData: `kind` goes into `timeline`, and the times go onto the items and sections with
+ * the same `id` and `slug`.
  */
 export interface NarrationTimeline {
   /** How the times were derived: word marks from the voice, or an estimate from text length. */
@@ -123,28 +129,41 @@ export interface NarrationTimeline {
 }
 
 /**
- * GET /api/narrate?digest=<id> and POST /api/narrate responses. `status` repeats the HTTP status.
- *
- * GET asks whether a digest has audio. It needs no passphrase and spends nothing: 200 with the audio
- * and its timeline, or 404 "no_audio". POST narrates a digest that has none and answers 200 with the
- * same body; when the audio already exists it answers 200 without narrating again. POST takes as long
- * as the voice service does, so show progress and never retry it on a timer.
- *
- * Treat any answer outside this union (a 405, or a platform timeout page that is not JSON) as
- * "unavailable".
+ * One stretch of a digest's narration, stored as its own file so playback can start with the first
+ * one. In order they are a track list: the intro, one per story, and an outro if the narration has a
+ * closing line. A section's announcement is read at the start of that section's first story.
  */
-export type NarrateResponse =
-  | { status: 200; audio: { url: string; duration_ms: number }; timeline: NarrationTimeline }
-  // No digest id, a malformed id or body, or a request from another origin.
+export interface NarrationSegment {
+  /** "intro", a story's item id, or "outro". Send it back as `segment` to narrate it. */
+  key: string;
+  /** The story this segment reads, or null for the intro and the outro. */
+  item_id: string | null;
+  /** Length of the spoken text. Times `ms_per_character` it estimates a duration before the audio exists. */
+  characters: number;
+  /**
+   * The file, once this segment is narrated; null until then. The URL changes when the story's text
+   * changes, so never build it: read it from here.
+   */
+  audio: { url: string; duration_ms: number } | null;
+}
+
+/**
+ * Every refusal /api/narrate can answer with, for GET and POST alike. `status` repeats the HTTP
+ * status. Treat any answer that is not in these unions (a 405, or a platform timeout page that is
+ * not JSON) as "unavailable".
+ */
+export type NarrateError =
+  // No digest id, a malformed id, segment key or body, or a request from another origin.
   | { status: 400; error: "invalid_request" }
   | { status: 401; error: "wrong_passphrase" }
-  // GET: the digest has no audio yet. POST: this deployment has no such digest.
-  | { status: 404; error: "no_audio" | "digest_not_found" }
-  // Another request is narrating this digest right now. Ask GET again after `retry_after_s`.
+  // This deployment has no such digest, or the digest has no segment with that key (the page's list
+  // is out of date: ask GET again).
+  | { status: 404; error: "digest_not_found" | "segment_not_found" }
+  // Whole digest only: another request is narrating it right now. Ask GET again after `retry_after_s`.
   | { status: 409; error: "in_progress"; retry_after_s: number }
   // The digest cannot be read aloud: nothing to say, or too long for one request. Do not retry.
   | { status: 422; error: "not_narratable" }
-  // Too many narrations in 24 hours.
+  // Too many digests narrated in 24 hours. A digest that already has any narration is not refused.
   | { status: 429; error: "daily_cap"; retry_after_s: number }
   // The month's voice allowance is used up. It resets with the calendar month.
   | { status: 429; error: "monthly_budget" }
@@ -156,4 +175,43 @@ export type NarrateResponse =
   | { status: 504; error: "took_too_long" };
 
 /** Every error code /api/narrate can answer with. */
-export type NarrateErrorCode = Extract<NarrateResponse, { error: string }>["error"];
+export type NarrateErrorCode = NarrateError["error"];
+
+/**
+ * GET /api/narrate?digest=<id>: what narration a digest has. It needs no passphrase and spends
+ * nothing. It answers 200 for every digest this deployment has, narrated or not.
+ */
+export type NarrateLookupResponse =
+  | {
+      status: 200;
+      /** The whole digest as one file, or null when it was never narrated that way. */
+      audio: { url: string; duration_ms: number } | null;
+      /** The timeline of that one file; null exactly when `audio` is. */
+      timeline: NarrationTimeline | null;
+      /** Every segment in playing order, each with its file once it exists. */
+      segments: NarrationSegment[];
+      /** An estimate of the voice's pace, for laying out segments that have no audio yet. */
+      ms_per_character: number;
+    }
+  | NarrateError;
+
+/**
+ * POST /api/narrate without `segment`: narrates the whole digest as one file and answers with it.
+ * When that file already exists it answers 200 without narrating again. It takes as long as the
+ * voice service does, so show progress and never retry it on a timer.
+ */
+export type NarrateResponse =
+  | { status: 200; audio: { url: string; duration_ms: number }; timeline: NarrationTimeline }
+  | NarrateError;
+
+/**
+ * POST /api/narrate with `segment`: narrates that one segment and answers with it, `audio` filled
+ * in. A segment that is already narrated is returned as it is and nothing is spent. Send one segment
+ * at a time.
+ */
+export type NarrateSegmentResponse =
+  | {
+      status: 200;
+      segment: NarrationSegment & { audio: { url: string; duration_ms: number } };
+    }
+  | NarrateError;

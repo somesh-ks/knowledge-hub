@@ -91,6 +91,24 @@ export function readBlobCredentials(
   return oidcToken ? { oidcToken, storeId } : null;
 }
 
+/**
+ * The voice's pace, for estimating how long a segment will be before it is narrated. Measured from
+ * the two narrations committed so far with the default voice (61.7 and 62.4 ms per character).
+ * The page uses it only to lay out a timeline; real durations replace it as segments arrive.
+ */
+export const MS_PER_CHARACTER = 62;
+
+/**
+ * SPEECHIFY_VOICE_ID: the voice, undefined when it is unset (the engine's default applies), or null
+ * when it is set to something unusable. The lookup needs it without the secrets, because a segment's
+ * file is keyed by its text and the voice that read it.
+ */
+export function readVoiceId(env: ServerEnv): string | undefined | null {
+  const voiceId = env.SPEECHIFY_VOICE_ID?.trim();
+  if (!voiceId) return undefined;
+  return VOICE_ID.test(voiceId) ? voiceId : null;
+}
+
 /** Returns null when anything is missing or malformed, so a half-configured site answers "unavailable". */
 export function readNarrateConfig(
   env: ServerEnv,
@@ -101,8 +119,8 @@ export function readNarrateConfig(
   if (!passphraseHash || !speechifyKey) return null;
 
   // The two optional settings may be absent, but a value that is present has to be usable.
-  const voiceId = env.SPEECHIFY_VOICE_ID?.trim();
-  if (voiceId && !VOICE_ID.test(voiceId)) return null;
+  const voiceId = readVoiceId(env);
+  if (voiceId === null) return null;
   const monthlyChars = env.SPEECHIFY_MONTHLY_CHARS?.trim();
   if (monthlyChars && !MONTHLY_CHARS.test(monthlyChars)) return null;
 

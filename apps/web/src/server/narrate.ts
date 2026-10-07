@@ -14,19 +14,28 @@ import {
   SpeechifyError,
   type SpeechMark,
   type SpeechSynthesizer,
+  type SpokenSegment,
   type SpokenText,
   type SynthesisRequest,
+  spokenSegments,
   usageMonth,
 } from "@dispatch/engine/audio";
-import type { NarrateResponse } from "../types/contracts";
-import type { NarrateBlobStore } from "./blobStore";
+import type {
+  NarrateLookupResponse,
+  NarrateResponse,
+  NarrateSegmentResponse,
+  NarrationSegment,
+} from "../types/contracts";
+import type { BlobEntry, NarrateBlobStore } from "./blobStore";
 import {
   type BlobCredentials,
   blobSecretsOf,
+  MS_PER_CHARACTER,
   type NarrateConfig,
   narrateSecretsOf,
   readBlobCredentials,
   readNarrateConfig,
+  readVoiceId,
   type ServerEnv,
 } from "./config";
 import { FUNCTION_MAX_DURATION_S, SYNTHESIS_DEADLINE_MS } from "./functionLimits.mjs";
@@ -39,23 +48,33 @@ import {
 import type { FetchLike } from "./github";
 import type { ApiResult } from "./http";
 import { evaluateDailyCap } from "./limits";
+import {
+  describeSegments,
+  digestPrefix,
+  SEGMENT_KEY,
+  SLOT_PREFIX,
+  segmentHash,
+  segmentPath,
+  slotKey,
+} from "./narrateSegments";
 import { describeError } from "./redact";
 
 /**
  * /api/narrate: narration made when a listener presses Play, not ahead of time.
  *
- * GET asks whether a digest has audio and returns it with its timeline. It needs no passphrase and
- * spends nothing. POST checks the passphrase and the limits, has Speechify read the digest, stores the
- * MP3 and the timeline in Blob, and returns the same body.
+ * GET says what narration a digest has: the whole digest as one file, if it was narrated that way,
+ * and every segment (the intro, each story, an outro) with its file once it exists. It needs no
+ * passphrase and spends nothing. POST checks the passphrase and the limits and has Speechify read
+ * either one segment or the whole digest, stores the result in Blob, and returns it.
  *
- * The function keeps no state of its own. Everything it knows is in the Blob store: the audio, the
- * timeline, a marker while a narration runs, and the month's character count. Everything with a side
- * effect is a parameter (fetch, the clock, the deadline, the store, the digest files), so the whole
- * flow is tested with fakes and no network.
+ * The function keeps no state of its own. Everything it knows is in the Blob store: the audio (the
+ * listing of segment files is the record of which segments exist), the whole-digest timeline, a
+ * marker while a whole digest is being narrated, a slot per digest for the daily cap, and the
+ * month's character count. Everything with a side effect is a parameter (fetch, the clock, the
+ * deadline, the store, the digest files), so the whole flow is tested with fakes and no network.
  */
 
-export const AUDIO_PREFIX = "audio/";
-export const audioKey = (id: string): string => `${AUDIO_PREFIX}${id}.mp3`;
+export const audioKey = (id: string): string => `audio/${id}.mp3`;
 export const timelineKey = (id: string): string => `timeline/${id}.json`;
 export const markerKey = (id: string): string => `state/narrating-${id}.json`;
 /** One counter per Stockholm month, YYYY-MM. */
@@ -66,6 +85,11 @@ export const usageKey = (month: string): string => `state/usage-${month}.json`;
  * browser pair an old MP3 with a new timeline.
  */
 const AUDIO_CACHE_SECONDS = 60 * 60;
+/**
+ * A segment's name holds the hash of its text and its duration, so the file behind a URL never
+ * changes and can be kept for a month.
+ */
+const SEGMENT_CACHE_SECONDS = 30 * 24 * 60 * 60;
 /** The timeline and the bookkeeping files must be current. 60 seconds is the shortest Blob allows. */
 const JSON_CACHE_SECONDS = 60;
 
@@ -78,9 +102,6 @@ export const UPLOAD_RETRY_DELAY_MS = 500;
  * covers the difference between the store's clock and the function's.
  */
 export const MARKER_TTL_MS = FUNCTION_MAX_DURATION_S * 1000 + 30_000;
-
-/** A narration that exists rarely changes, and every page view asks, so the browser may keep it briefly. */
-export const NARRATION_CACHE_CONTROL = "private, max-age=300";
 
 const MAX_DIGEST_ID_CHARS = 32;
 /** One retry for a rate limit, and only a short wait: the deadline is the real bound. */
@@ -141,11 +162,16 @@ export interface LookupInput {
   requestOidcToken?: () => string | null;
 }
 
-type NarrateResult = ApiResult<NarrateResponse>;
+/** What any of the three calls can answer: the lookup, the whole digest, one segment. */
+export type NarrateBody = NarrateLookupResponse | NarrateResponse | NarrateSegmentResponse;
+type NarrateResult = ApiResult<NarrateBody>;
 
 const unavailable: NarrateResult = { status: 503, body: { status: 503, error: "unavailable" } };
 const invalid: NarrateResult = { status: 400, body: { status: 400, error: "invalid_request" } };
-const noAudio: NarrateResult = { status: 404, body: { status: 404, error: "no_audio" } };
+const segmentNotFound: NarrateResult = {
+  status: 404,
+  body: { status: 404, error: "segment_not_found" },
+};
 const digestNotFound: NarrateResult = {
   status: 404,
   body: { status: 404, error: "digest_not_found" },
@@ -191,10 +217,18 @@ export function parseDigestId(value: unknown): string | null {
   return parsed.success ? parsed.data : null;
 }
 
-/** Pulls the digest id and the passphrase out of a JSON body, or null when it is not that shape. */
-export function parseNarrateRequest(
-  bodyText: string,
-): { digest: string; passphrase: string } | null {
+export interface ParsedNarrateRequest {
+  digest: string;
+  passphrase: string;
+  /** Present when the request is for one segment. */
+  segment?: string;
+}
+
+/**
+ * Pulls the digest id, the passphrase and the optional segment key out of a JSON body, or null when
+ * it is not that shape.
+ */
+export function parseNarrateRequest(bodyText: string): ParsedNarrateRequest | null {
   if (bodyText.length === 0 || bodyText.length > MAX_BODY_CHARS) return null;
   let parsed: unknown;
   try {
@@ -203,11 +237,20 @@ export function parseNarrateRequest(
     return null;
   }
   if (typeof parsed !== "object" || parsed === null) return null;
-  const { digest, passphrase } = parsed as { digest?: unknown; passphrase?: unknown };
+  const { digest, passphrase, segment } = parsed as {
+    digest?: unknown;
+    passphrase?: unknown;
+    segment?: unknown;
+  };
   if (typeof passphrase !== "string") return null;
   if (passphrase.length === 0 || passphrase.length > MAX_PASSPHRASE_CHARS) return null;
   const id = parseDigestId(digest);
-  return id === null ? null : { digest: id, passphrase };
+  if (id === null) return null;
+  if (segment === undefined) return { digest: id, passphrase };
+  // A key that is sent has to be one. Anything else must not fall through to the whole digest, which
+  // costs far more than the caller asked for.
+  if (typeof segment !== "string" || !SEGMENT_KEY.test(segment)) return null;
+  return { digest: id, passphrase, segment };
 }
 
 interface Narration {
@@ -223,29 +266,29 @@ function isHttps(value: string): boolean {
   }
 }
 
-/** The body is built field by field, so nothing in a stored timeline reaches the page unasked. */
-function ready(narration: Narration): NarrateResult {
+/** Built field by field, so nothing in a stored timeline reaches the page unasked. */
+function narrationFields(narration: Narration) {
   const { timeline } = narration;
   return {
-    status: 200,
-    body: {
-      status: 200,
-      audio: { url: narration.url, duration_ms: timeline.duration_ms },
-      timeline: {
-        kind: timeline.timeline,
-        items: timeline.items.map((item) => ({
-          id: item.id,
-          section: item.section,
-          start_ms: item.start_ms,
-          end_ms: item.end_ms,
-        })),
-        sections: timeline.sections.map((section) => ({
-          slug: section.slug,
-          start_ms: section.start_ms,
-        })),
-      },
+    audio: { url: narration.url, duration_ms: timeline.duration_ms },
+    timeline: {
+      kind: timeline.timeline,
+      items: timeline.items.map((item) => ({
+        id: item.id,
+        section: item.section,
+        start_ms: item.start_ms,
+        end_ms: item.end_ms,
+      })),
+      sections: timeline.sections.map((section) => ({
+        slug: section.slug,
+        start_ms: section.start_ms,
+      })),
     },
   };
+}
+
+function ready(narration: Narration): NarrateResult {
+  return { status: 200, body: { status: 200, ...narrationFields(narration) } };
 }
 
 /** A timeline counts only when it is well formed and belongs to this digest. */
@@ -264,21 +307,57 @@ function parseJson(text: string | null): unknown {
 }
 
 /**
- * A narration exists when the store has the MP3 and a timeline for it. The timeline is the one this
- * function stored, or, for a digest the audio workflow narrated before narrate on Play, the one
- * committed next to the digest.
+ * A whole-digest narration exists when the store has the MP3 and a timeline for it. The timeline is
+ * the one this function stored, or, for a digest the audio workflow narrated before narrate on Play,
+ * the one committed next to the digest. `audio` is the MP3's entry, from a head or from a listing.
  */
+async function wholeNarration(
+  blob: NarrateBlobStore,
+  digests: DigestSource,
+  id: string,
+  audio: BlobEntry | null | undefined,
+): Promise<Narration | null> {
+  if (!audio || !isHttps(audio.url)) return null;
+  const timeline =
+    timelineFor(parseJson(await blob.readText(timelineKey(id))), id) ??
+    timelineFor(await digests.readTimeline(id), id);
+  return timeline ? { url: audio.url, timeline } : null;
+}
+
 async function findNarration(
   blob: NarrateBlobStore,
   digests: DigestSource,
   id: string,
 ): Promise<Narration | null> {
-  const audio = await blob.head(audioKey(id));
-  if (audio === null || !isHttps(audio.url)) return null;
-  const timeline =
-    timelineFor(parseJson(await blob.readText(timelineKey(id))), id) ??
-    timelineFor(await digests.readTimeline(id), id);
-  return timeline ? { url: audio.url, timeline } : null;
+  return wholeNarration(blob, digests, id, await blob.head(audioKey(id)));
+}
+
+interface DigestSegments {
+  digest: Digest;
+  segments: SpokenSegment[];
+}
+
+/**
+ * The digest and its segments, read from the bundle, or the answer to send when there are none.
+ * It touches neither the store nor Speechify, so a request for something that does not exist is
+ * refused before it can cost anything.
+ */
+async function loadSegments(
+  digests: DigestSource,
+  id: string,
+  log: (message: string) => void,
+  secrets: readonly string[],
+): Promise<DigestSegments | NarrateResult> {
+  const text = await digests.readDigest(id);
+  if (text === null) return digestNotFound;
+  try {
+    const digest = parseDigestFile(text);
+    if (digest.id !== id) throw new Error(`the file holds digest ${digest.id}`);
+    return { digest, segments: spokenSegments(digest) };
+  } catch (error) {
+    log(`narrate ${id}: cannot be read aloud: ${describeError(error, secrets)}`);
+    return notNarratable;
+  }
 }
 
 /** GET /api/narrate?digest=<id>. */
@@ -291,22 +370,49 @@ export async function handleNarrationLookup(
   const id = parseDigestId(input.digest);
   if (id === null) return invalid;
 
+  // Anyone can call this, and every store call is metered. An id that names no digest in this
+  // deployment is answered from the bundle, so only real digests can cost one.
+  let loaded: DigestSegments | NarrateResult;
   try {
-    // Anyone can call this, and every store lookup is metered. An id that names no digest in this
-    // deployment is answered from the bundle, so only real digests can cost a lookup.
-    if ((await deps.digests.readDigest(id)) === null) return noAudio;
+    loaded = await loadSegments(deps.digests, id, log, []);
   } catch (error) {
     log(`lookup of ${id} failed: ${describeError(error, [])}`);
     return unavailable;
   }
+  if (!("segments" in loaded)) return loaded;
 
+  const voice = readVoiceId(deps.env);
+  if (voice === null) return unavailable;
   const credentials = readBlobCredentials(deps.env, input.requestOidcToken);
   if (!credentials) return unavailable;
 
   try {
-    const found = await findNarration(deps.openBlob(credentials), deps.digests, id);
-    if (!found) return noAudio;
-    return { ...ready(found), headers: { "Cache-Control": NARRATION_CACHE_CONTROL } };
+    const blob = deps.openBlob(credentials);
+    // One listing is the whole answer: the digest's own MP3 and every segment file sit under this
+    // prefix, and a segment's name says which segment it is and how long it plays. Only a digest
+    // that was narrated as one file costs a second call, for that file's timeline.
+    const listing = await blob.list(digestPrefix(id));
+    const whole = await wholeNarration(
+      blob,
+      deps.digests,
+      id,
+      listing.find((entry) => entry.pathname === audioKey(id)),
+    );
+    return {
+      status: 200,
+      body: {
+        status: 200,
+        ...(whole ? narrationFields(whole) : { audio: null, timeline: null }),
+        segments: describeSegments(
+          loaded.segments,
+          listing,
+          id,
+          voice ?? DEFAULT_VOICE_ID,
+          DEFAULT_MODEL,
+        ),
+        ms_per_character: MS_PER_CHARACTER,
+      },
+    };
   } catch (error) {
     log(`lookup of ${id} failed: ${describeError(error, blobSecretsOf(credentials))}`);
     return unavailable;
@@ -324,7 +430,12 @@ async function readUsage(blob: NarrateBlobStore, month: string): Promise<UsageFi
   return parsed.data;
 }
 
-/** Read, add, write. Two narrations finishing together could lose one count; one listener makes that rare. */
+/**
+ * Read, add, write. Unlike the segment files, this counter is a single object, so two requests that
+ * finish together can lose one of the two counts. That is accepted: the page narrates one segment at
+ * a time, and the budget stops at 90 percent of the allowance, which leaves room for a lost count.
+ * The read is repeated here, right before the write, to keep that window as short as it can be.
+ */
 async function recordUsage(blob: NarrateBlobStore, now: Date, characters: number): Promise<void> {
   const month = usageMonth(now);
   const next = addUsage(await readUsage(blob, month), now, characters);
@@ -334,6 +445,36 @@ async function recordUsage(blob: NarrateBlobStore, now: Date, characters: number
   });
 }
 
+/**
+ * The daily cap counts digests, not requests. A digest takes a slot the first time anything is
+ * narrated for it, whole or one segment, and keeps it: every later segment of that digest passes.
+ * A digest without a slot is refused while the cap's worth of slots are less than a day old.
+ */
+function checkSlot(
+  slots: readonly BlobEntry[],
+  id: string,
+  now: number,
+): { held: boolean; refusal?: NarrateResult } {
+  if (slots.some((entry) => entry.pathname === slotKey(id))) return { held: true };
+  const cap = evaluateDailyCap(
+    slots.map((entry) => entry.uploadedAt),
+    now,
+  );
+  return cap.allowed ? { held: false } : { held: false, refusal: dailyCap(cap.retryAfterSeconds) };
+}
+
+/**
+ * Two requests for one digest may both find no slot and both write it. They write the same object,
+ * so the digest still holds exactly one.
+ */
+function takeSlot(blob: NarrateBlobStore, id: string, now: number): Promise<{ url: string }> {
+  return blob.put(
+    slotKey(id),
+    `${JSON.stringify({ digest: id, taken_at: new Date(now).toISOString() })}\n`,
+    { contentType: "application/json", cacheSeconds: JSON_CACHE_SECONDS },
+  );
+}
+
 interface Plan {
   digest: Digest;
   spoken: SpokenText;
@@ -341,6 +482,8 @@ interface Plan {
 
 interface Session {
   id: string;
+  /** What the log calls this request: the digest, and the segment when it is for one. */
+  label: string;
   config: NarrateConfig;
   blob: NarrateBlobStore;
   deps: NarrateDeps;
@@ -379,11 +522,8 @@ async function prepare(session: Session): Promise<Plan | NarrateResult> {
     return inProgress(Math.max(1, Math.ceil((marker.uploadedAt + MARKER_TTL_MS - now) / 1000)));
   }
 
-  const uploads = (await blob.list(AUDIO_PREFIX))
-    .filter((entry) => entry.pathname.endsWith(".mp3"))
-    .map((entry) => entry.uploadedAt);
-  const cap = evaluateDailyCap(uploads, now);
-  if (!cap.allowed) return dailyCap(cap.retryAfterSeconds);
+  const slot = checkSlot(await blob.list(SLOT_PREFIX), id, now);
+  if (slot.refusal) return slot.refusal;
 
   const today = new Date(now);
   const budget = checkBudget({
@@ -397,6 +537,9 @@ async function prepare(session: Session): Promise<Plan | NarrateResult> {
     return monthlyBudget;
   }
 
+  // The slot first and the marker last: if anything here fails, no marker is left behind to block
+  // the next attempt.
+  if (!slot.held) await takeSlot(blob, id, now);
   await blob.put(
     markerKey(id),
     `${JSON.stringify({ digest: id, started_at: today.toISOString() })}\n`,
@@ -463,7 +606,7 @@ async function putWithRetry(
     } catch (error) {
       if (attempt >= UPLOAD_ATTEMPTS) throw error;
       session.log(
-        `narrate ${session.id}: upload of ${pathname} failed on attempt ${attempt}, retrying: ` +
+        `${session.label}: upload of ${pathname} failed on attempt ${attempt}, retrying: ` +
           describeError(error, session.secrets),
       );
       await session.deps.delay(UPLOAD_RETRY_DELAY_MS * attempt);
@@ -471,14 +614,19 @@ async function putWithRetry(
   }
 }
 
+const voiceOf = (config: NarrateConfig): string => config.voiceId ?? DEFAULT_VOICE_ID;
+
+interface Spoken extends Synthesis {
+  synthesisMs: number;
+}
+
 /**
- * The paid part. The order of writes is the point: the MP3 first, because it is what was paid for;
- * the timeline second, because audio without it cannot be shown; the character count last, so the
- * counter never holds a narration the store does not.
+ * Has Speechify read `text`, under the one deadline. It returns the audio, or the answer to send
+ * when there is none. The deadline's signal goes into every request, so when it passes the upstream
+ * request is stopped, not left running.
  */
-async function synthesizeAndStore(session: Session, plan: Plan): Promise<NarrateResult> {
-  const { id, config, deps, log, secrets } = session;
-  const voice = config.voiceId ?? DEFAULT_VOICE_ID;
+async function speak(session: Session, text: string): Promise<Spoken | NarrateResult> {
+  const { label, config, deps, log, secrets } = session;
 
   const deadline = deps.startDeadline(SYNTHESIS_DEADLINE_MS);
   const speech = createSpeechifyClient({
@@ -492,13 +640,13 @@ async function synthesizeAndStore(session: Session, plan: Plan): Promise<Narrate
   });
 
   const startedAt = deps.now();
-  let narration: Synthesis;
   try {
-    narration = await synthesize(
+    const narration = await synthesize(
       speech,
-      { text: plan.spoken.text, voiceId: voice, model: DEFAULT_MODEL },
+      { text, voiceId: voiceOf(config), model: DEFAULT_MODEL },
       log,
     );
+    return { ...narration, synthesisMs: deps.now() - startedAt };
   } catch (error) {
     // Speechify bills what it synthesized even when the stream did not finish. That spend is not
     // counted here (the counter only ever holds stored narrations), so the log says how much it was.
@@ -506,16 +654,29 @@ async function synthesizeAndStore(session: Session, plan: Plan): Promise<Narrate
     const cost = spent > 0 ? `, at least ${spent} characters were synthesized and not counted` : "";
     if (deadline.signal.aborted) {
       log(
-        `narrate ${id}: synthesis passed the ${SYNTHESIS_DEADLINE_MS} ms deadline and was stopped${cost}`,
+        `${label}: synthesis passed the ${SYNTHESIS_DEADLINE_MS} ms deadline and was stopped${cost}`,
       );
       return tookTooLong;
     }
-    log(`narrate ${id}: synthesis failed${cost}: ${describeError(error, secrets)}`);
+    log(`${label}: synthesis failed${cost}: ${describeError(error, secrets)}`);
     return synthesisFailed;
   } finally {
     deadline.cancel();
   }
-  const synthesisMs = deps.now() - startedAt;
+}
+
+/**
+ * The paid part of a whole digest. The order of writes is the point: the MP3 first, because it is
+ * what was paid for; the timeline second, because audio without it cannot be shown; the character
+ * count last, so the counter never holds a narration the store does not.
+ */
+async function synthesizeAndStore(session: Session, plan: Plan): Promise<NarrateResult> {
+  const { id, config, deps, log, secrets } = session;
+  const voice = voiceOf(config);
+
+  const narration = await speak(session, plan.spoken.text);
+  if ("status" in narration) return narration;
+  const { synthesisMs } = narration;
   const characters = narration.billableCharacters;
 
   let timeline: AudioTimeline;
@@ -580,6 +741,120 @@ async function synthesizeAndStore(session: Session, plan: Plan): Promise<Narrate
   return ready({ url, timeline });
 }
 
+function segmentReady(segment: NarrationSegment): NarrateResult {
+  // Only called with a narrated segment; the check keeps the type honest without a cast.
+  if (segment.audio === null) return unavailable;
+  return { status: 200, body: { status: 200, segment: { ...segment, audio: segment.audio } } };
+}
+
+/**
+ * POST /api/narrate with a segment: one stretch of the digest, narrated and stored as its own file.
+ *
+ * There is no in-progress marker and no manifest here. The file's name is the record (see
+ * narrateSegments.ts), so two requests for different segments of one digest cannot undo each other:
+ * each adds its own file. The page sends one segment at a time; if the same segment were ever
+ * narrated twice at once, both files would be kept and every lookup would name the first.
+ */
+async function narrateSegment(session: Session, key: string): Promise<NarrateResult> {
+  const { id, label, config, blob, deps, log, secrets } = session;
+
+  // From the bundle only: an unknown digest or segment is refused before any store or speech call.
+  const loaded = await loadSegments(deps.digests, id, log, secrets);
+  if (!("segments" in loaded)) return loaded;
+  const segment = loaded.segments.find((candidate) => candidate.key === key);
+  if (!segment) return segmentNotFound;
+
+  const voice = voiceOf(config);
+  const hash = segmentHash(segment.text, voice, DEFAULT_MODEL);
+  const now = deps.now();
+  const today = new Date(now);
+
+  // One round trip answers the three questions that cost nothing: is it already narrated, does the
+  // digest hold a slot under the daily cap, and is there budget left this month.
+  const [listing, slots, usage] = await Promise.all([
+    blob.list(digestPrefix(id)),
+    blob.list(SLOT_PREFIX),
+    readUsage(blob, usageMonth(today)),
+  ]);
+
+  const [existing] = describeSegments([segment], listing, id, voice, DEFAULT_MODEL);
+  if (existing?.audio) return segmentReady(existing);
+
+  const slot = checkSlot(slots, id, now);
+  if (slot.refusal) return slot.refusal;
+
+  // The budget is charged for this segment's characters only.
+  const budget = checkBudget({
+    usage,
+    now: today,
+    requested: segment.text.length,
+    monthlyChars: config.monthlyChars ?? DEFAULT_MONTHLY_CHARS,
+  });
+  if (!budget.ok) {
+    log(`${label}: refused. ${describeRefusal(budget)}`);
+    return monthlyBudget;
+  }
+
+  // The first segment of a digest takes its slot. That write runs beside the synthesis, because the
+  // first segment is the one a listener is waiting to hear. If it fails the narration still stands
+  // and the cap is one digest short, which the log records.
+  const slotTaken = slot.held
+    ? Promise.resolve()
+    : takeSlot(blob, id, now).then(
+        () => undefined,
+        (error: unknown) => {
+          log(`${label}: the daily slot could not be written: ${describeError(error, secrets)}`);
+        },
+      );
+
+  // The duration comes from the stream's own done event. Word marks are not used for a segment.
+  const narration = await speak(session, segment.text);
+  if ("status" in narration) {
+    await slotTaken;
+    return narration;
+  }
+  const characters = narration.billableCharacters;
+  const durationMs = Math.round(narration.durationMs);
+
+  const uploadStartedAt = deps.now();
+  let url: string;
+  try {
+    url = await putWithRetry(session, segmentPath(id, key, hash, durationMs), narration.audio, {
+      contentType: "audio/mpeg",
+      cacheSeconds: SEGMENT_CACHE_SECONDS,
+    });
+  } catch (error) {
+    log(
+      `${label}: upload failed for good, ${characters} synthesized characters are lost ` +
+        `and not counted: ${describeError(error, secrets)}`,
+    );
+    await slotTaken;
+    return storageFailed;
+  }
+  const uploadMs = deps.now() - uploadStartedAt;
+
+  try {
+    await recordUsage(blob, new Date(deps.now()), characters);
+  } catch (error) {
+    log(
+      `${label}: stored, but ${characters} characters could not be added to the counter: ` +
+        describeError(error, secrets),
+    );
+  }
+  await slotTaken;
+
+  log(
+    `${label}: stored. ${characters} characters, synthesis ${narration.synthesisMs} ms, ` +
+      `upload ${uploadMs} ms, total ${deps.now() - session.startedAt} ms`,
+  );
+  return segmentReady({
+    key: segment.key,
+    item_id: segment.itemId,
+    characters: segment.text.length,
+    audio: { url, duration_ms: durationMs },
+  });
+}
+
 /** POST /api/narrate. */
 export async function handleNarrate(
   input: NarrateInput,
@@ -601,6 +876,10 @@ export async function handleNarrate(
 
   const session: Session = {
     id: request.digest,
+    label:
+      request.segment === undefined
+        ? `narrate ${request.digest}`
+        : `narrate ${request.digest} ${request.segment}`,
     config,
     blob: deps.openBlob(config.blob),
     deps,
@@ -608,6 +887,15 @@ export async function handleNarrate(
     log,
     startedAt: deps.now(),
   };
+
+  if (request.segment !== undefined) {
+    try {
+      return await narrateSegment(session, request.segment);
+    } catch (error) {
+      log(`${session.label}: failed: ${describeError(error, session.secrets)}`);
+      return unavailable;
+    }
+  }
 
   let plan: Plan | NarrateResult;
   try {
