@@ -88,13 +88,13 @@ test.describe("interface sounds", () => {
     await lab.open();
     await waitForEngine(page);
     await lab.play();
-    await page.locator(".mini-btn[data-primary]").tap();
+    await page.locator(".dock-btn[data-primary]").tap();
     await expect(page.locator("html")).toHaveAttribute("data-player-state", "paused");
     await page.waitForTimeout(400);
     await page.evaluate(() => {
       window.__soundLog.length = 0;
     });
-    await page.locator(".mini-btn[data-primary]").tap();
+    await page.locator(".dock-btn[data-primary]").tap();
     await expect(page.locator("html")).toHaveAttribute("data-player-state", "playing");
     const log = await page.evaluate(() => window.__soundLog);
     expect(log.indexOf("cue")).toBeGreaterThanOrEqual(0);

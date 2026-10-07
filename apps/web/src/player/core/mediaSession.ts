@@ -6,9 +6,12 @@
  * visible (build-plan 8.4). Position state is kept in sync so the lock-screen scrubber works.
  */
 import { longDateFromDigestId, monthLabelFromDate } from "./formatTime";
-import type { PlayerStore, Track } from "./playerTypes";
-
-export const DEFAULT_SEEK_OFFSET_SECONDS = 15;
+import {
+  type PlayerStore,
+  SKIP_BACK_SECONDS,
+  SKIP_FORWARD_SECONDS,
+  type Track,
+} from "./playerTypes";
 
 type ActionName =
   | "play"
@@ -38,7 +41,7 @@ export function trackMetadata(track: Track): MediaMetadataInit {
   const { digest } = track;
   return {
     title: digest.title || longDateFromDigestId(digest.id),
-    artist: "Dispatch",
+    artist: "Singularity",
     album: monthLabelFromDate(digest.date),
     artwork: [
       { src: digest.cover.src512, sizes: "512x512", type: "image/png" },
@@ -74,8 +77,9 @@ export function attachMediaSession(store: PlayerStore, deps: MediaSessionDeps = 
   const handlers: Record<ActionName, MediaSessionActionHandler> = {
     play: () => store.play("user"),
     pause: () => store.pause("user"),
-    seekbackward: (details) => store.skip(-(details.seekOffset ?? DEFAULT_SEEK_OFFSET_SECONDS)),
-    seekforward: (details) => store.skip(details.seekOffset ?? DEFAULT_SEEK_OFFSET_SECONDS),
+    // The system may name its own offset; otherwise these match the transport's two buttons.
+    seekbackward: (details) => store.skip(-(details.seekOffset ?? SKIP_BACK_SECONDS)),
+    seekforward: (details) => store.skip(details.seekOffset ?? SKIP_FORWARD_SECONDS),
     seekto: (details) => {
       if (typeof details.seekTime === "number") store.seekTo(details.seekTime * 1000);
     },

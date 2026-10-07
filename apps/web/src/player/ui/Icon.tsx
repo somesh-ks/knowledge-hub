@@ -1,4 +1,4 @@
-import { ICON_PATHS, type IconName, SOLID_ICONS } from "./iconPaths";
+import { ICON_PATHS, ICON_VIEW_BOX, type IconName, SOLID_ICONS } from "./iconPaths";
 
 interface IconProps {
   name: IconName;
@@ -10,7 +10,7 @@ export default function Icon({ name, className }: IconProps) {
     .filter(Boolean)
     .join(" ");
   return (
-    <svg className={classes} viewBox="0 0 24 24" aria-hidden="true" focusable="false">
+    <svg className={classes} viewBox={ICON_VIEW_BOX} aria-hidden="true" focusable="false">
       {ICON_PATHS[name]}
     </svg>
   );

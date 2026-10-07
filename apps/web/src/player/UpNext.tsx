@@ -18,8 +18,8 @@ export default function UpNext() {
     // The new page's data arrives after the navigation; the store plays it then, on the same
     // audio element, which the browser already trusts to play.
     getPlayerStore().playWhenPageLoads(id);
-    playerSheet.close();
-    void navigateTo(digestUrl(id), { direction: "back" });
+    // The page goes down first, so the new briefing arrives under the bar and not behind a modal.
+    void playerSheet.collapse().then(() => navigateTo(digestUrl(id), { direction: "back" }));
   }
 
   return (

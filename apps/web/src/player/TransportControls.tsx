@@ -1,10 +1,15 @@
 import { isPlayingStatus, toggleLabel } from "./core/playerCopy";
 import { getPlayerStore } from "./core/playerRuntime";
+import { SKIP_BACK_SECONDS, SKIP_FORWARD_SECONDS } from "./core/playerTypes";
 import { usePlayerState } from "./hooks/usePlayer";
 import Icon from "./ui/Icon";
 import PlayPauseGlyph from "./ui/PlayPauseGlyph";
 
-/** Five controls in a row, one dominant: item skip, 15-second skip, play and pause, and back. */
+/**
+ * Five controls in a row, one dominant: the previous story, back ten seconds, play and pause,
+ * forward thirty seconds, the next story. The skip glyphs are plain circular arrows; each button
+ * draws its own numeral in the arrow's open center, and the name stays on the button.
+ */
 export default function TransportControls() {
   const state = usePlayerState();
   const store = getPlayerStore();
@@ -24,13 +29,15 @@ export default function TransportControls() {
         <Icon name="skipBack" />
       </button>
       <button
-        className="transport-btn press"
+        className="transport-btn transport-skip press"
         type="button"
-        data-size="sm"
-        aria-label="Back 15 seconds"
-        onClick={() => store.skip(-15)}
+        aria-label={`Back ${SKIP_BACK_SECONDS} seconds`}
+        onClick={() => store.skip(-SKIP_BACK_SECONDS)}
       >
-        <Icon name="back15" />
+        <Icon name="replay10" />
+        <span className="transport-skip-num num" aria-hidden="true">
+          {SKIP_BACK_SECONDS}
+        </span>
       </button>
       <button
         className="transport-btn press"
@@ -46,13 +53,15 @@ export default function TransportControls() {
         <span className="spinner" aria-hidden="true" />
       </button>
       <button
-        className="transport-btn press"
+        className="transport-btn transport-skip press"
         type="button"
-        data-size="sm"
-        aria-label="Forward 15 seconds"
-        onClick={() => store.skip(15)}
+        aria-label={`Forward ${SKIP_FORWARD_SECONDS} seconds`}
+        onClick={() => store.skip(SKIP_FORWARD_SECONDS)}
       >
-        <Icon name="forward15" />
+        <Icon name="forward30" />
+        <span className="transport-skip-num num" aria-hidden="true">
+          {SKIP_FORWARD_SECONDS}
+        </span>
       </button>
       <button
         className="transport-btn press"

@@ -9,7 +9,7 @@ test.describe("keyboard operation of the player", () => {
     await lab.open();
     await lab.play();
     await lab.openPlayer();
-    await page.getByRole("button", { name: "Pause" }).first().press("Enter");
+    await lab.dialog.getByRole("button", { name: "Pause" }).press("Enter");
     await expect(page.locator("html")).toHaveAttribute("data-player-state", "paused");
     const scrubber = page.getByRole("slider", { name: "Playback position" });
     await scrubber.focus();
@@ -103,7 +103,7 @@ test.describe("keyboard operation of the player", () => {
     await expect(page.locator("html")).toHaveAttribute("data-player-state", "idle");
   });
 
-  test("tabs through the header, the briefing and the mini player in reading order", async ({
+  test("tabs through the header, the briefing and the bar in reading order", async ({
     lab,
     page,
   }) => {

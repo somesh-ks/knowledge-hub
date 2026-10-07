@@ -12,30 +12,32 @@ test.describe("playback in a real browser", () => {
     expect(snapshot?.paused).toBe(true);
     expect(snapshot?.inDom).toBe(false);
     expect(await audio.count()).toBe(1);
-    await expect(lab.mini).toHaveCSS("visibility", "hidden");
+    // The bar is in the document from the start, and out of sight and reach until the first play.
+    await expect(lab.page.locator("[data-player-dock]")).toHaveCSS("visibility", "hidden");
   });
 
-  test("plays from the first tap, shows the mini player and updates the call to action", async ({
+  test("plays from the first tap, shows the bar and updates the call to action", async ({
     lab,
     audio,
     page,
   }) => {
     await lab.open();
     await lab.play();
-    await expect(lab.mini).toHaveAttribute("data-visible", "true");
+    await expect(lab.surface).toHaveAttribute("data-visible", "true");
+    await expect(lab.openButton).toBeVisible();
     await expect(page.locator("[data-play-label]")).toHaveText("Pause");
     await expect.poll(async () => (await audio.read())?.currentTime ?? 0).toBeGreaterThan(0.4);
     expect((await audio.read())?.paused).toBe(false);
   });
 
-  test("pauses and resumes from the mini player", async ({ lab, audio, page }) => {
+  test("pauses and resumes from the bar", async ({ lab, audio, page }) => {
     await lab.open();
     await lab.play();
-    await page.locator(".mini-btn[data-primary]").tap();
+    await lab.dock.getByRole("button", { name: "Pause" }).tap();
     await expect(page.locator("html")).toHaveAttribute("data-player-state", "paused");
     expect((await audio.read())?.paused).toBe(true);
     await expect(page.locator("[data-play-label]")).toHaveText("Resume");
-    await page.locator(".mini-btn[data-primary]").tap();
+    await lab.dock.getByRole("button", { name: "Play", exact: true }).tap();
     await expect(page.locator("html")).toHaveAttribute("data-player-state", "playing");
   });
 
@@ -117,7 +119,7 @@ test.describe("playback in a real browser", () => {
     await expect.poll(async () => (await audio.read())?.playbackRate).toBe(1.5);
   });
 
-  test("moves by item and by fifteen seconds from the transport controls", async ({
+  test("moves by item, back ten seconds and forward thirty from the transport controls", async ({
     lab,
     audio,
     page,
@@ -125,23 +127,29 @@ test.describe("playback in a real browser", () => {
     await lab.open();
     await lab.play();
     await lab.openPlayer();
+    const time = async (): Promise<number> => (await audio.read())?.currentTime ?? 0;
+    await lab.dialog.getByRole("button", { name: "Pause" }).tap();
     await page.getByRole("button", { name: "Next item" }).tap();
-    await expect.poll(async () => (await audio.read())?.currentTime ?? 0).toBeGreaterThan(15);
-    await page.getByRole("button", { name: "Forward 15 seconds" }).tap();
-    await expect.poll(async () => (await audio.read())?.currentTime ?? 0).toBeGreaterThan(30);
-    await page.getByRole("button", { name: "Back 15 seconds" }).tap();
+    await expect.poll(time).toBeCloseTo(15, 0);
+    await page.getByRole("button", { name: "Forward 30 seconds" }).tap();
+    await expect.poll(time).toBeCloseTo(45, 0);
+    await page.getByRole("button", { name: "Back 10 seconds" }).tap();
+    await expect.poll(time).toBeCloseTo(35, 0);
+    // Five seconds into the third item: Previous restarts it.
     await page.getByRole("button", { name: "Previous item" }).tap();
-    await expect.poll(async () => (await audio.read())?.currentTime ?? 99).toBeLessThan(16);
+    await expect.poll(time).toBeCloseTo(30, 0);
+    // The numerals are drawn by the buttons, over plain arrows.
+    await expect(page.getByRole("button", { name: "Back 10 seconds" })).toHaveText("10");
+    await expect(page.getByRole("button", { name: "Forward 30 seconds" })).toHaveText("30");
   });
 
   test("remembers the position and restores it after a reload", async ({ lab, audio, page }) => {
     await lab.open();
     await lab.play();
     await lab.openPlayer();
-    await page.getByRole("button", { name: "Forward 15 seconds" }).tap();
-    await page.getByRole("button", { name: "Forward 15 seconds" }).tap();
+    await page.getByRole("button", { name: "Forward 30 seconds" }).tap();
     await expect.poll(async () => (await audio.read())?.currentTime ?? 0).toBeGreaterThan(29);
-    await page.getByRole("button", { name: "Pause" }).first().tap();
+    await lab.dialog.getByRole("button", { name: "Pause" }).tap();
     const saved = await page.evaluate(() => localStorage.getItem("dispatch:resume:2026-01-14"));
     expect(Number(saved)).toBeGreaterThan(29);
     await page.reload({ waitUntil: "networkidle" });
@@ -167,7 +175,7 @@ test.describe("playback in a real browser", () => {
     });
     expect(metadata).toEqual({
       title: "Wednesday 14 January",
-      artist: "Dispatch",
+      artist: "Singularity",
       album: "January 2026",
       artwork: ["512x512", "1024x1024"],
     });
@@ -204,7 +212,7 @@ test.describe("playback in a real browser", () => {
     const afterNavigation = await audio.read();
     expect(afterNavigation?.paused).toBe(false);
     expect(afterNavigation?.src).not.toContain("#older");
-    await expect(page.locator(".mini")).toHaveAttribute("data-visible", "true");
+    await expect(lab.surface).toHaveAttribute("data-visible", "true");
     await expect(page.locator("[data-play-label]")).toHaveText("Play the briefing");
     // Choosing the new digest switches the source and never plays two at once.
     await page.locator("[data-play-digest]").tap();

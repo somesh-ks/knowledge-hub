@@ -23,7 +23,7 @@ test.describe("when playback does not go to plan", () => {
     await expect(page.locator("[data-play-label]")).toHaveText("Pause");
     await expect(lab.cta).toHaveAttribute("data-loading", "true", { timeout: 3_000 });
     await expect(page.locator("[data-play-label]")).toHaveText("Preparing audio");
-    await expect(page.locator(".mini-btn[data-primary] .spinner")).toBeVisible();
+    await expect(page.locator(".dock-btn[data-primary] .spinner")).toBeVisible();
     release();
     await expect(page.locator("html")).toHaveAttribute("data-player-state", "playing", {
       timeout: 10_000,
@@ -42,14 +42,14 @@ test.describe("when playback does not go to plan", () => {
     await page.waitForTimeout(1_200);
     await page.evaluate(() => window.__audios[0]?.pause());
     await expect(page.locator("html")).toHaveAttribute("data-player-state", "paused");
-    await expect(page.locator(".mini-section")).toHaveText("Interrupted, press play to resume");
+    await expect(page.locator(".dock-caption")).toHaveText("Interrupted, press play to resume");
     await page.waitForTimeout(800);
     expect((await audio.read())?.paused).toBe(true);
     await lab.openPlayer();
     await expect(
       page.getByRole("status").filter({ hasText: "Playback was interrupted" }),
     ).toBeVisible();
-    await page.getByRole("button", { name: "Resume" }).tap();
+    await lab.dialog.getByRole("button", { name: "Resume" }).tap();
     await expect(page.locator("html")).toHaveAttribute("data-player-state", "playing");
     await expect(
       page.getByRole("status").filter({ hasText: "Playback was interrupted" }),
@@ -65,7 +65,7 @@ test.describe("when playback does not go to plan", () => {
     await lab.cta.tap();
     await expect(page.locator("html")).toHaveAttribute("data-player-state", "error");
     await expect(page.locator("[data-play-label]")).toHaveText("Try again");
-    await expect(page.locator(".mini-section")).toHaveText("Audio is not available");
+    await expect(page.locator(".dock-caption")).toHaveText("Audio is not available");
     await lab.openPlayer();
     const notice = page.getByRole("alert").filter({ hasText: "not available" });
     await expect(notice).toContainText("The text is still here to read.");
