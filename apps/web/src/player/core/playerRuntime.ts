@@ -13,6 +13,7 @@ import { announce } from "./announcerDom";
 import { readDigestData } from "./digestData";
 import { recordInstallVisit } from "./installHint";
 import { attachMediaSession } from "./mediaSession";
+import { playerSheet } from "./playerSheet";
 import { createPlayerStore } from "./playerStore";
 import type { PlayerStore } from "./playerTypes";
 import { getPreferences } from "./preferences";
@@ -86,14 +87,21 @@ export function startPlayerRuntime(): () => void {
     readPage(playerStore);
     reader.refresh();
   };
+  // A navigation never happens under an open player: the page goes down in one step first.
+  // Never preventDefault here; that turns the navigation into a full load and stops the audio.
+  const onBeforeNavigation = (): void => playerSheet.collapseNow();
   const onAfterSwap = (): void => {
+    // The safety net for a navigation that announced nothing: no modal over a new document.
+    playerSheet.collapseNow();
     reapplyRootState();
     reapplyTheme();
+    playerSheet.sync();
   };
   const onOnline = (): void => announce("You are back online.");
   const onOffline = (): void => announce("You are offline.");
 
   document.addEventListener("astro:page-load", onPageLoad);
+  document.addEventListener("astro:before-preparation", onBeforeNavigation);
   document.addEventListener("astro:after-swap", onAfterSwap);
   window.addEventListener("online", onOnline);
   window.addEventListener("offline", onOffline);
@@ -102,6 +110,7 @@ export function startPlayerRuntime(): () => void {
 
   return () => {
     document.removeEventListener("astro:page-load", onPageLoad);
+    document.removeEventListener("astro:before-preparation", onBeforeNavigation);
     document.removeEventListener("astro:after-swap", onAfterSwap);
     window.removeEventListener("online", onOnline);
     window.removeEventListener("offline", onOffline);

@@ -1,16 +1,24 @@
 import type { ReactNode } from "react";
 
 /**
- * One icon set, Lucide-style: 24px grid, 2px round strokes, currentColor. Decorative by default:
- * the button that holds an icon carries the accessible name.
+ * One icon set: 24px grid, 2px round strokes, currentColor. Decorative by default: the button that
+ * holds an icon carries the accessible name.
+ *
+ * This registry is regenerated from a single glyph source; keep its shape (the view box, the name
+ * union, the solid set, the path map) and add names rather than changing them. The skip glyphs are
+ * plain circular arrows with an open center: the button draws its own numeral over them.
  */
+export const ICON_VIEW_BOX = "0 0 24 24";
+
 export type IconName =
   | "play"
   | "pause"
   | "skipBack"
   | "skipForward"
-  | "back15"
-  | "forward15"
+  | "replay10"
+  | "forward30"
+  | "expandMore"
+  | "openInNew"
   | "chevronDown"
   | "chevronRight"
   | "close"
@@ -49,36 +57,24 @@ export const ICON_PATHS: Record<IconName, ReactNode> = {
       <line x1="19" x2="19" y1="5" y2="19" />
     </>
   ),
-  back15: (
+  replay10: (
     <>
       <path d="M3 12a9 9 0 1 0 9-9 9.75 9.75 0 0 0-6.74 2.74L3 8" />
       <path d="M3 3v5h5" />
-      <text
-        x="12"
-        y="15.2"
-        textAnchor="middle"
-        className="icon-skip-label"
-        fill="currentColor"
-        stroke="none"
-      >
-        15
-      </text>
     </>
   ),
-  forward15: (
+  forward30: (
     <>
       <path d="M21 12a9 9 0 1 1-9-9c2.52 0 4.93 1 6.74 2.74L21 8" />
       <path d="M21 3v5h-5" />
-      <text
-        x="12"
-        y="15.2"
-        textAnchor="middle"
-        className="icon-skip-label"
-        fill="currentColor"
-        stroke="none"
-      >
-        15
-      </text>
+    </>
+  ),
+  expandMore: <path d="m6 9 6 6 6-6" />,
+  openInNew: (
+    <>
+      <path d="M15 3h6v6" />
+      <path d="M10 14 21 3" />
+      <path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6" />
     </>
   ),
   chevronDown: <path d="m6 9 6 6 6-6" />,

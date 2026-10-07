@@ -1,5 +1,6 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { attachMediaSession, type MediaSessionLike, trackMetadata } from "./mediaSession";
+import { SKIP_BACK_SECONDS, SKIP_FORWARD_SECONDS } from "./playerTypes";
 import { createHarness, makeDigest } from "./testing";
 
 type Handler = (details: MediaSessionActionDetails) => void;
@@ -55,7 +56,7 @@ describe("media session", () => {
     const { session } = setup();
     expect(session.metadata).toEqual({
       title: "Wednesday 7 October",
-      artist: "Dispatch",
+      artist: "Singularity",
       album: "October 2026",
       artwork: [
         { src: "/covers/a-512.png", sizes: "512x512", type: "image/png" },
@@ -95,13 +96,24 @@ describe("media session", () => {
     expect(session.playbackState).toBe("paused");
   });
 
-  it("seeks by the offset the system sends, defaulting to fifteen seconds", () => {
+  it("skips back ten seconds and forward thirty, as the transport's buttons do", () => {
+    expect(SKIP_BACK_SECONDS).toBe(10);
+    expect(SKIP_FORWARD_SECONDS).toBe(30);
     const { session, harness } = setup();
     harness.store.seekTo(60_000);
-    session.fire("seekforward", { seekOffset: 10 });
-    expect(harness.store.getTime()).toBe(70);
     session.fire("seekbackward");
-    expect(harness.store.getTime()).toBe(55);
+    expect(harness.store.getTime()).toBe(50);
+    session.fire("seekforward");
+    expect(harness.store.getTime()).toBe(80);
+  });
+
+  it("seeks by the offset the system sends when it sends one", () => {
+    const { session, harness } = setup();
+    harness.store.seekTo(60_000);
+    session.fire("seekforward", { seekOffset: 15 });
+    expect(harness.store.getTime()).toBe(75);
+    session.fire("seekbackward", { seekOffset: 5 });
+    expect(harness.store.getTime()).toBe(70);
     session.fire("seekto", { seekTime: 100 });
     expect(harness.store.getTime()).toBe(100);
   });

@@ -1,408 +1,517 @@
 /**
- * The expanded player's motion: one variable, `p`, from 0 (closed) to 1 (open), drives the panel,
- * the scrim and the cover. Tap, keyboard, swipe up on the mini player and flick down are four
- * ways of moving `p`; each starts from the live value and keeps velocity, so any of them can be
- * interrupted by another without a jump.
+ * The player surface's motion, as a state machine.
+ *
+ * One number, `p`, runs from 0 (the bar, collapsed) to 1 (the page, expanded). A tap, the keyboard,
+ * a pull up on the bar and a flick down on the page are four ways of moving `p`; each starts from
+ * the live value and keeps velocity, so any of them can interrupt another without a jump.
+ *
+ *   collapsed -> dragging | expanding
+ *   dragging  -> expanding | collapsing        (the lift decides, never the move)
+ *   expanding -> expanded | dragging | collapsing
+ *   expanded  -> dragging | collapsing
+ *   collapsing -> collapsed | dragging | expanding
+ *
+ * Two things are kept apart on purpose. `state` is where the page is. `open` is whether the
+ * listener has committed to it: it turns true the moment a tap or a lift decides to open, long
+ * before the spring rests, and false the moment one decides to close. The rest of the document is
+ * inert exactly while `open` is true, so the page behind is usable again as the page starts down.
+ *
+ * Rules that came out of the ways the old sheet got stuck:
+ * - A lift decides on that gesture's own travel and velocity, never on how far the page has got.
+ * - A tap while the page is moving turns it toward expanded. It never closes.
+ * - Nothing here holds a DOM node. The view looks its elements up each time it is asked, so a
+ *   navigation that rebuilds the document cannot leave the machine bound to nodes that are gone.
  *
  * Why not the View Transitions API for the cover: a view transition cannot be driven by a finger,
- * cannot be interrupted, and freezes the page for its duration. Swipe up is a requirement, so the
- * same FLIP interpolation serves tap too: one path, no fallback.
- *
- * Why not Base UI Drawer's own swipe: it exposes progress only as CSS variables and animates open
- * and close with CSS transitions, so there is no per-frame value to interpolate a cover rectangle
- * with. Base UI still provides the dialog semantics, focus trap, inert background and scroll lock;
- * this controller owns the motion and the Drawer stays open until the exit spring comes to rest.
- *
- * Every per-frame write is a CSS custom property (--sheet-offset, --cover-x and friends), never a
- * style property: the stylesheet decides what they mean (a slide on phones, a scale and fade on
- * wide screens, a plain fade for reduced motion). Each is registered with `@property` as not
- * inherited, so a write restyles one element, not the subtree beneath it.
+ * cannot be interrupted, and freezes the page for its duration.
  */
-import {
-  type CoverMorph,
-  cardScale,
-  computeMorph,
-  coverFrame,
-  coverRadius,
-  panelOffset,
-} from "./coverMorph";
+import type { CoverMorph } from "./coverMorph";
 import {
   createVelocityTracker,
-  dismissProgressFromDrag,
-  openProgressFromDrag,
-  shouldDismissOnRelease,
-  shouldOpenOnRelease,
+  decideRelease,
+  isTap,
+  progressFromDrag,
+  type ReleaseThresholds,
+  TAP_SLOP_PX,
   velocityToProgressPerSecond,
 } from "./gestureMath";
 import { clamp } from "./mathUtils";
-import { setRootAttribute } from "./rootAttributes";
 import { runSpring, runTween, SPRING_DURATION_SECONDS, type SpringRun } from "./spring";
 
-export interface SheetBindings {
-  panel: HTMLElement;
-  scrim: HTMLElement;
-  /** Starts a dismiss drag: handle, header, cover, title. */
-  dragZone: HTMLElement;
-  /** The cover inside the panel, the other end of the shared element. */
-  cover: HTMLElement | null;
+export type SurfaceState = "collapsed" | "dragging" | "expanding" | "expanded" | "collapsing";
+
+/** Where a pointer went down: on the bar's open button, on the page's drag zone, or on its body. */
+export type GestureZone = "dock" | "drag" | "page";
+
+export interface PointerInput {
+  pointerId: number;
+  x: number;
+  y: number;
+  /** Event time in milliseconds. */
+  t: number;
+  zone: GestureZone;
+  /** False for a mouse, which has a wheel and never scrolls by dragging. */
+  touch: boolean;
 }
 
-export interface SheetControllerOptions {
-  onCommitOpen?: () => void;
-  onCommitClose?: () => void;
+export interface SurfaceSnapshot {
+  state: SurfaceState;
+  /** The listener has committed to the page: the rest of the document is inert. */
+  open: boolean;
+  /** The page is close enough to its place that its controls take presses. */
+  landed: boolean;
 }
 
-export interface PlayerSheetController {
-  attach(bindings: SheetBindings): () => void;
-  /** Presents the sheet from closed along the spring. Safe to call while it is already moving. */
-  open(): void;
-  /** Dismisses along the quicker exit. */
-  close(): void;
-  /** Starts a swipe-up. Returns false when the sheet is not mounted yet. */
-  beginOpenDrag(): boolean;
-  updateOpenDrag(dragUpPx: number): void;
-  endOpenDrag(velocityPxPerMs: number, cancelled: boolean): void;
-  isAttached(): boolean;
+export interface SurfaceMetrics {
+  /** Pixels between the page's collapsed and expanded positions. */
+  distance: number;
+  /** The cover's flight, or null when there is nothing to fly. */
+  morph: CoverMorph | null;
+}
+
+/**
+ * Everything the machine needs from the document. The real one is `surfaceView.ts`; the unit tests
+ * pass a recorder.
+ */
+export interface SurfaceView {
+  /** False when the surface is not in the document. Every motion is skipped then. */
+  isPresent(): boolean;
+  /** Reads layout. Called once each time the page leaves rest, never during motion. */
+  measure(): SurfaceMetrics;
+  setMorph(morph: CoverMorph | null): void;
+  /** Writes `p` for this frame. */
+  render(p: number): void;
+  /** Reflects the snapshot in attributes. */
+  apply(snapshot: SurfaceSnapshot): void;
+  /** Clears what motion left behind once the page is at rest. */
+  rest(state: "collapsed" | "expanded"): void;
+  enterModal(onEscape: () => void): void;
+  leaveModal(): void;
+  capturePointer(pointerId: number): void;
+  releasePointer(pointerId: number): void;
+  scrollTop(): number;
+  scrollTo(top: number): void;
+}
+
+export interface SurfaceControllerOptions {
+  view: SurfaceView;
+  reducedMotion(): boolean;
+  thresholds(): ReleaseThresholds;
+  /** Length of the fade that replaces the spring under reduced motion. */
+  fadeMs(): number;
+  /** Bounce of the spring that follows an opening gesture. A close never bounces. */
+  releaseBounce(): number;
+  setRootAttribute(name: string, value: string): void;
+  onCommitOpen?(): void;
+  onCommitClose?(): void;
+  requestFrame?: (callback: (timestamp: number) => void) => number;
+  cancelFrame?: (handle: number) => void;
+}
+
+export interface SurfaceController {
+  /** Opens along the spring. Safe at any time; while moving it retargets. */
+  expand(): void;
+  /** Closes along the quicker exit. Resolves when the page is at rest or the close is overtaken. */
+  collapse(): Promise<void>;
+  /** Closes in one step, without a sound. For navigations. */
+  collapseNow(): void;
+  /** The bar's own activation: opens, or closes a page that is fully open. */
+  toggle(): void;
+  pointerDown(input: PointerInput): void;
+  pointerMove(input: PointerInput): void;
+  /** A lift, or with `cancelled` a gesture the system took away (cancel, lost capture). */
+  pointerEnd(input: PointerInput, cancelled: boolean): void;
+  /** A click on the bar's open button. Drops the click that a handled gesture leaves behind. */
+  click(event: { t: number; fromPointer: boolean }): void;
+  /** Writes the current snapshot to the document again, for nodes that were rebuilt. */
+  sync(): void;
+  getSnapshot(): SurfaceSnapshot;
   getProgress(): number;
-  subscribePresence(listener: () => void): () => void;
-  /** Whether the Drawer should be mounted. It stays true until the exit spring rests. */
-  getPresence(): boolean;
-  setPresence(present: boolean): void;
+  subscribe(listener: () => void): () => void;
 }
 
-const DRAG_START_PX = 8;
 /** The exit is quicker than the entrance: the system gets out of the way. */
 const CLOSE_SPEED_UP = 0.72;
-const REDUCED_FADE_FALLBACK_MS = 200;
+/** From here on the page looks landed, so its controls should already answer. */
+const LANDED_AT = 0.98;
+/** A click this soon after a gesture the machine handled is that gesture's echo. */
+const CLICK_ECHO_MS = 500;
+/** The page counts as at the top within this, so a pixel of leftover scroll cannot block a dismissal. */
+const AT_TOP_PX = 1;
+/** Scroll carried past the lift decays with this time constant, as a native scroller's does. */
+const COAST_TAU_MS = 325;
+const COAST_MIN_PX_PER_MS = 0.02;
+const COAST_MAX_PX_PER_MS = 4;
 
-function readToken(name: string): string {
-  return getComputedStyle(document.documentElement).getPropertyValue(name).trim();
+interface Gesture {
+  pointerId: number;
+  zone: GestureZone;
+  touch: boolean;
+  startX: number;
+  startY: number;
+  startT: number;
+  /** Furthest the pointer got from the start on either axis, for telling a tap from a drag. */
+  reach: number;
+  mode: "pending" | "move" | "scroll" | "ignored";
+  /** Where the drag took hold: the pointer's y and the value it began from. */
+  anchorY: number;
+  anchorValue: number;
+  lastY: number;
+  /** Whether the page was committed open when the drag took hold. */
+  originOpen: boolean;
 }
 
-function readNumberToken(name: string): number {
-  return Number.parseFloat(readToken(name));
-}
+export function createSurfaceController(options: SurfaceControllerOptions): SurfaceController {
+  const { view } = options;
+  const requestFrame = options.requestFrame ?? ((callback) => requestAnimationFrame(callback));
+  const cancelFrame = options.cancelFrame ?? ((handle) => cancelAnimationFrame(handle));
+  const tracker = createVelocityTracker();
+  const listeners = new Set<() => void>();
+  const waiters: Array<() => void> = [];
 
-function readMillisecondsToken(name: string): number {
-  const raw = readToken(name);
-  const value = Number.parseFloat(raw);
-  if (!Number.isFinite(value)) return REDUCED_FADE_FALLBACK_MS;
-  return raw.endsWith("ms") ? value : value * 1000;
-}
-
-function prefersReducedMotion(): boolean {
-  return window.matchMedia("(prefers-reduced-motion: reduce)").matches;
-}
-
-/** The breakpoint token is the one source for where the player becomes a centered card. */
-function isWide(): boolean {
-  return window.matchMedia(`(min-width: ${readToken("--breakpoint-wide") || "40rem"})`).matches;
-}
-
-export function createPlayerSheetController(
-  options: SheetControllerOptions = {},
-): PlayerSheetController {
-  let bindings: SheetBindings | null = null;
-  let detachListeners: (() => void) | null = null;
-  let progress = 0;
+  let state: SurfaceState = "collapsed";
+  let open = false;
+  let landed = false;
+  let p = 0;
+  let distance = 0;
   let run: SpringRun | null = null;
-  let height = 0;
-  let morph: CoverMorph | null = null;
-  let enterScale = 0.96;
-  let thumbRadius = 0;
-  let restingRadius = 0;
-  let pendingOpen = false;
-  let present = false;
-  const presenceListeners = new Set<() => void>();
+  let gesture: Gesture | null = null;
+  let handledAt = Number.NEGATIVE_INFINITY;
+  let coasting = 0;
 
-  /* ------------------------------------------------------------------ presence */
+  const snapshot = (): SurfaceSnapshot => ({ state, open, landed });
 
-  function setPresence(next: boolean): void {
-    if (present === next) return;
-    present = next;
-    for (const listener of presenceListeners) listener();
+  function publish(): void {
+    view.apply(snapshot());
+    for (const listener of listeners) listener();
   }
 
-  /* ------------------------------------------------------------------ rendering */
-
-  function setVar(element: HTMLElement, name: string, value: string | null): void {
-    if (value === null) element.style.removeProperty(name);
-    else element.style.setProperty(name, value);
+  function setState(next: SurfaceState): void {
+    const nextLanded = next === "expanded" || (next === "expanding" && landed);
+    if (state === next && landed === nextLanded) return;
+    state = next;
+    landed = nextLanded;
+    publish();
   }
 
-  function render(p: number): void {
-    if (!bindings) return;
-    progress = p;
-    const { panel, scrim, cover } = bindings;
-    const visual = clamp(p, 0, 1);
-    setVar(scrim, "--scrim-opacity", String(visual));
-    // All three layouts are written; the stylesheet reads the ones that apply to the one in use.
-    setVar(panel, "--sheet-opacity", String(visual));
-    setVar(panel, "--sheet-scale", String(cardScale(p, enterScale)));
-    setVar(panel, "--sheet-offset", `${panelOffset(p, height)}px`);
-    if (cover && morph) {
-      const frame = coverFrame(p, morph, height);
-      setVar(cover, "--cover-x", `${frame.x}px`);
-      setVar(cover, "--cover-y", `${frame.y}px`);
-      setVar(cover, "--cover-scale", String(frame.scale));
-      setVar(
-        cover,
-        "--cover-radius",
-        `${coverRadius(p, thumbRadius, restingRadius, frame.scale)}px`,
-      );
-    }
+  function releaseWaiters(): void {
+    for (const resolve of waiters.splice(0)) resolve();
   }
-
-  /** First and Last of the FLIP: measured once per motion, with the panel at rest. */
-  function measure(): void {
-    if (!bindings) return;
-    const { panel, cover } = bindings;
-    const names = ["--sheet-offset", "--sheet-scale", "--sheet-opacity"] as const;
-    const coverNames = ["--cover-x", "--cover-y", "--cover-scale", "--cover-radius"] as const;
-    const saved = new Map<string, string>();
-    for (const name of names) saved.set(name, panel.style.getPropertyValue(name));
-    if (cover) for (const name of coverNames) saved.set(name, cover.style.getPropertyValue(name));
-    // The resting layout: the panel in place and the cover untransformed.
-    setVar(panel, "--sheet-offset", "0px");
-    setVar(panel, "--sheet-scale", "1");
-    if (cover) {
-      setVar(cover, "--cover-x", "0px");
-      setVar(cover, "--cover-y", "0px");
-      setVar(cover, "--cover-scale", "1");
-      setVar(cover, "--cover-radius", null);
-    }
-    height = panel.getBoundingClientRect().height;
-    enterScale = readNumberToken("--scale-enter") || 0.96;
-    const miniCover = document.querySelector<HTMLElement>("[data-mini-cover]");
-    morph =
-      cover && miniCover && !isWide() && !prefersReducedMotion()
-        ? computeMorph(miniCover.getBoundingClientRect(), cover.getBoundingClientRect())
-        : null;
-    if (cover && miniCover) {
-      restingRadius = Number.parseFloat(getComputedStyle(cover).borderTopLeftRadius) || 0;
-      thumbRadius = Number.parseFloat(getComputedStyle(miniCover).borderTopLeftRadius) || 0;
-    }
-    for (const name of names) setVar(panel, name, saved.get(name) || null);
-    if (cover) for (const name of coverNames) setVar(cover, name, saved.get(name) || null);
-  }
-
-  /* ------------------------------------------------------------------ motion */
 
   function stopRun(): void {
     run?.stop();
     run = null;
   }
 
-  function finishClose(): void {
-    stopRun();
-    if (bindings) {
-      const { panel, scrim, cover } = bindings;
-      for (const name of ["--sheet-offset", "--sheet-scale", "--sheet-opacity"]) {
-        setVar(panel, name, null);
-      }
-      setVar(scrim, "--scrim-opacity", null);
-      delete panel.dataset.moving;
-      if (cover) {
-        for (const name of ["--cover-x", "--cover-y", "--cover-scale", "--cover-radius"]) {
-          setVar(cover, name, null);
-        }
-      }
-    }
-    progress = 0;
-    setRootAttribute("data-player", "closed");
-    setPresence(false);
+  function stopCoast(): void {
+    if (coasting) cancelFrame(coasting);
+    coasting = 0;
   }
 
-  function settle(target: 0 | 1, velocity = 0, kind: "settle" | "release" = "settle"): void {
+  function paint(value: number): void {
+    p = value;
+    view.render(clamp(value, 0, 1));
+  }
+
+  /** Leaving rest: the one moment layout is read. */
+  function leaveRest(): void {
+    const metrics = view.measure();
+    distance = metrics.distance;
+    view.setMorph(metrics.morph);
+  }
+
+  /* ---------------------------------------------------------------- commits */
+
+  function commitOpen(): void {
+    if (open) return;
+    open = true;
+    options.setRootAttribute("data-player", "open");
+    publish();
+    view.enterModal(() => {
+      void collapse();
+    });
+    options.onCommitOpen?.();
+  }
+
+  function commitClose(silent = false): void {
+    if (!open) return;
+    open = false;
+    options.setRootAttribute("data-player", "closed");
+    // The document is given back before anyone is told, so a listener never sees a closed
+    // player with the page behind it still inert.
+    view.leaveModal();
+    publish();
+    if (!silent) options.onCommitClose?.();
+  }
+
+  /* ---------------------------------------------------------------- motion */
+
+  function finish(target: 0 | 1): void {
+    run = null;
+    p = target;
+    if (target === 1) {
+      setState("expanded");
+      view.rest("expanded");
+      return;
+    }
+    setState("collapsed");
+    view.rest("collapsed");
+    releaseWaiters();
+  }
+
+  /** `velocity` is in progress per second; without one the motion under way hands its own on. */
+  function settle(target: 0 | 1, kind: "settle" | "release", velocity?: number): void {
+    const carried = velocity ?? run?.velocity() ?? 0;
     stopRun();
-    if (!bindings) return;
-    bindings.panel.dataset.moving = "";
-    const onRest = (): void => {
-      run = null;
-      if (target === 0) finishClose();
-      else if (bindings) delete bindings.panel.dataset.moving;
+    if (target === 0) landed = false;
+    setState(target === 1 ? "expanding" : "collapsing");
+    const onUpdate = (value: number): void => {
+      paint(value);
+      if (target === 1 && !landed && value >= LANDED_AT) {
+        landed = true;
+        publish();
+      }
     };
-    if (prefersReducedMotion()) {
+    const onRest = (): void => finish(target);
+    if (options.reducedMotion()) {
       run = runTween({
-        from: progress,
+        from: p,
         to: target,
-        durationMs: readMillisecondsToken("--duration-state"),
-        onUpdate: render,
+        durationMs: options.fadeMs(),
+        onUpdate,
         onRest,
+        requestFrame,
+        cancelFrame,
       });
       return;
     }
-    const durationSeconds = SPRING_DURATION_SECONDS[kind] * (target === 0 ? CLOSE_SPEED_UP : 1);
     run = runSpring({
-      from: progress,
+      from: p,
       to: target,
-      velocity,
-      spec: { duration: durationSeconds, bounce: readNumberToken(`--spring-${kind}-bounce`) || 0 },
-      onUpdate: render,
+      velocity: carried,
+      spec: {
+        duration: SPRING_DURATION_SECONDS[kind] * (target === 0 ? CLOSE_SPEED_UP : 1),
+        // A close never bounces; an open bounces only when a gesture carried momentum into it.
+        bounce: target === 1 && kind === "release" ? options.releaseBounce() : 0,
+      },
+      onUpdate,
       onRest,
+      requestFrame,
+      cancelFrame,
     });
   }
 
-  function begin(): void {
+  /** A command (a key, a button) outranks a drag that is under way. */
+  function dropGesture(): void {
+    if (gesture?.mode === "move") view.releasePointer(gesture.pointerId);
+    gesture = null;
+  }
+
+  function expand(): void {
+    if (!view.isPresent()) return;
+    dropGesture();
+    if (state === "expanded" || state === "expanding") return;
+    if (state === "collapsed") leaveRest();
+    // A collapse that was being waited on has been overtaken.
+    releaseWaiters();
+    settle(1, "settle");
+    commitOpen();
+  }
+
+  function collapse(): Promise<void> {
+    if (state === "collapsed") return Promise.resolve();
+    if (!view.isPresent()) {
+      collapseNow();
+      return Promise.resolve();
+    }
+    dropGesture();
+    const done = new Promise<void>((resolve) => {
+      waiters.push(resolve);
+    });
+    if (state === "collapsing") return done;
+    if (state === "expanded") leaveRest();
+    settle(0, "settle");
+    commitClose();
+    return done;
+  }
+
+  function collapseNow(): void {
+    stopCoast();
+    dropGesture();
+    releaseWaiters();
+    if (state === "collapsed" && !open) return;
     stopRun();
-    setRootAttribute("data-player", "open");
-    if (bindings) bindings.panel.dataset.moving = "";
-    measure();
-    render(progress);
+    landed = false;
+    commitClose(true);
+    p = 0;
+    setState("collapsed");
+    view.rest("collapsed");
   }
 
-  function open(): void {
-    if (!bindings) {
-      pendingOpen = true;
-      setPresence(true);
+  function toggle(): void {
+    if (state === "expanded") void collapse();
+    else expand();
+  }
+
+  /* ---------------------------------------------------------------- gestures */
+
+  /** The pointer has left the slop: decide what this drag is, once. */
+  function takeHold(current: Gesture, input: PointerInput): void {
+    const dy = input.y - current.startY;
+    const atRestOpen = state === "expanded" || landed;
+    // Anchored on the edge of the slop, so travel is the finger's own and nothing jumps.
+    current.anchorY = current.startY + Math.sign(dy) * TAP_SLOP_PX;
+    current.originOpen = open;
+    tracker.reset({ value: current.anchorY, t: input.t });
+    if (current.zone === "drag" && atRestOpen && (dy < 0 || view.scrollTop() > AT_TOP_PX)) {
+      // Not a dismissal: the page scrolls under the finger, since the drag zone takes no native pan.
+      current.mode = current.touch ? "scroll" : "ignored";
+      current.anchorValue = view.scrollTop();
       return;
     }
-    if (progress === 0) begin();
-    options.onCommitOpen?.();
-    settle(1, 0, "settle");
-  }
-
-  function close(velocity = 0, fromGesture = false): void {
-    if (!bindings) {
-      pendingOpen = false;
-      setPresence(false);
+    if (state === "collapsed" && dy > 0) {
+      current.mode = "ignored";
       return;
     }
-    options.onCommitClose?.();
-    settle(0, velocity, fromGesture ? "release" : "settle");
+    if (state === "collapsed" || state === "expanded") leaveRest();
+    stopRun();
+    current.mode = "move";
+    current.anchorValue = clamp(p, 0, 1);
+    view.capturePointer(current.pointerId);
+    landed = false;
+    setState("dragging");
   }
 
-  /* ------------------------------------------------------------------ swipe up to open */
-
-  function beginOpenDrag(): boolean {
-    if (!bindings || isWide()) return false;
-    progress = 0;
-    begin();
-    return true;
-  }
-
-  function updateOpenDrag(dragUpPx: number): void {
-    render(openProgressFromDrag(dragUpPx, height));
-  }
-
-  function endOpenDrag(velocityPxPerMs: number, cancelled: boolean): void {
-    const thresholds = {
-      distance: readNumberToken("--player-dismiss-distance") || 0.35,
-      velocity: readNumberToken("--player-dismiss-velocity") || 0.5,
+  function pointerDown(input: PointerInput): void {
+    if (gesture || !view.isPresent()) return;
+    // On the open page the body belongs to its own controls and to native scrolling.
+    if (input.zone === "page" && (state === "expanded" || landed)) return;
+    if (input.zone !== "dock" && state === "collapsed") return;
+    stopCoast();
+    gesture = {
+      pointerId: input.pointerId,
+      zone: input.zone,
+      touch: input.touch,
+      startX: input.x,
+      startY: input.y,
+      startT: input.t,
+      reach: 0,
+      mode: "pending",
+      anchorY: input.y,
+      anchorValue: 0,
+      lastY: input.y,
+      originOpen: open,
     };
-    if (shouldOpenOnRelease(progress, velocityPxPerMs, thresholds, cancelled)) {
-      options.onCommitOpen?.();
-      settle(1, velocityToProgressPerSecond(velocityPxPerMs, height), "release");
-    } else {
-      // A cancelled swipe is not a commit, so it makes no sound.
-      settle(0, velocityToProgressPerSecond(velocityPxPerMs, height), "release");
+  }
+
+  function pointerMove(input: PointerInput): void {
+    const current = gesture;
+    if (!current || input.pointerId !== current.pointerId) return;
+    const dx = Math.abs(input.x - current.startX);
+    const dy = input.y - current.startY;
+    current.reach = Math.max(current.reach, dx, Math.abs(dy));
+    if (current.mode === "pending") {
+      // Vertical intent, past the slop. A sideways wander never takes hold.
+      if (Math.abs(dy) <= TAP_SLOP_PX || Math.abs(dy) < dx) return;
+      takeHold(current, input);
     }
+    current.lastY = input.y;
+    tracker.push(input.y, input.t);
+    const travel = input.y - current.anchorY;
+    if (current.mode === "move") paint(progressFromDrag(current.anchorValue, travel, distance));
+    else if (current.mode === "scroll") view.scrollTo(current.anchorValue - travel);
   }
 
-  /* ------------------------------------------------------------------ flick down to dismiss */
-
-  function bindDismissDrag(zone: HTMLElement): () => void {
-    const tracker = createVelocityTracker();
-    let dragging = false;
-    let activeId = -1;
-    let startY = 0;
-    let startProgress = 1;
-
-    const onDown = (event: PointerEvent): void => {
-      if (event.button !== 0 || dragging || isWide()) return;
-      if ((event.target as Element).closest("button, a, input")) return;
-      dragging = true;
-      activeId = event.pointerId;
-      startY = event.clientY;
-      startProgress = progress;
-      tracker.reset({ value: event.clientY, t: event.timeStamp });
-      zone.setPointerCapture(event.pointerId);
-      stopRun();
+  /** Scroll that the finger let go of while moving runs on for a moment. */
+  function coast(scrollVelocity: number): void {
+    let speed = clamp(scrollVelocity, -COAST_MAX_PX_PER_MS, COAST_MAX_PX_PER_MS);
+    let last: number | null = null;
+    const step = (timestamp: number): void => {
+      const dt = last === null ? 16 : Math.min(50, timestamp - last);
+      last = timestamp;
+      speed *= Math.exp(-dt / COAST_TAU_MS);
+      const before = view.scrollTop();
+      view.scrollTo(before + speed * dt);
+      const stuck = view.scrollTop() === before;
+      coasting = Math.abs(speed) < COAST_MIN_PX_PER_MS || stuck ? 0 : requestFrame(step);
     };
+    coasting = requestFrame(step);
+  }
 
-    const onMove = (event: PointerEvent): void => {
-      if (!dragging || event.pointerId !== activeId) return;
-      const dy = event.clientY - startY;
-      // An 8px dead zone keeps a tap from nudging the sheet.
-      if (Math.abs(dy) < DRAG_START_PX && startProgress === progress) return;
-      tracker.push(event.clientY, event.timeStamp);
-      if (bindings) bindings.panel.dataset.moving = "";
-      render(dismissProgressFromDrag(startProgress, dy, height));
-    };
-
-    const onEnd = (event: PointerEvent): void => {
-      if (!dragging || event.pointerId !== activeId) return;
-      dragging = false;
-      if (zone.hasPointerCapture(event.pointerId)) zone.releasePointerCapture(event.pointerId);
-      const velocity = tracker.velocity();
-      const thresholds = {
-        distance: readNumberToken("--player-dismiss-distance") || 0.35,
-        velocity: readNumberToken("--player-dismiss-velocity") || 0.5,
-      };
-      // Release decides, never the move: dismissal waits for the lift, so a drag can be abandoned.
-      const dismiss = shouldDismissOnRelease(
-        1 - progress,
-        velocity,
-        thresholds,
-        event.type === "pointercancel",
+  function pointerEnd(input: PointerInput, cancelled: boolean): void {
+    const current = gesture;
+    if (!current || input.pointerId !== current.pointerId) return;
+    // Cleared first: the lost-capture event that follows a lift finds nothing to end.
+    gesture = null;
+    if (current.mode === "move") {
+      view.releasePointer(current.pointerId);
+      // The lift is a sample too: a finger that stopped before lifting has no velocity.
+      tracker.push(input.y, input.t);
+      const velocity = cancelled ? 0 : tracker.velocity();
+      const target = decideRelease(
+        {
+          travelPx: current.lastY - current.anchorY,
+          velocityPxPerMs: velocity,
+          distancePx: distance,
+          originOpen: current.originOpen,
+          cancelled,
+        },
+        options.thresholds(),
       );
-      const progressVelocity = velocityToProgressPerSecond(velocity, height);
-      if (dismiss) close(progressVelocity, true);
-      else settle(1, progressVelocity, "release");
-    };
-
-    zone.addEventListener("pointerdown", onDown);
-    zone.addEventListener("pointermove", onMove);
-    zone.addEventListener("pointerup", onEnd);
-    zone.addEventListener("pointercancel", onEnd);
-    return () => {
-      zone.removeEventListener("pointerdown", onDown);
-      zone.removeEventListener("pointermove", onMove);
-      zone.removeEventListener("pointerup", onEnd);
-      zone.removeEventListener("pointercancel", onEnd);
-    };
+      handledAt = input.t;
+      settle(target, "release", velocityToProgressPerSecond(velocity, distance));
+      if (target === 1) commitOpen();
+      else commitClose();
+      return;
+    }
+    if (current.mode === "scroll") {
+      handledAt = input.t;
+      tracker.push(input.y, input.t);
+      if (!cancelled) coast(-tracker.velocity());
+      return;
+    }
+    if (current.mode === "ignored") {
+      handledAt = input.t;
+      return;
+    }
+    if (cancelled || !isTap(current.reach, input.t - current.startT)) return;
+    if (current.zone === "dock") {
+      handledAt = input.t;
+      toggle();
+      return;
+    }
+    // A tap on a page that is still moving turns it toward open. On the page at rest it belongs
+    // to whatever was tapped, so it is not marked as handled.
+    if (state === "expanding" || state === "collapsing") {
+      handledAt = input.t;
+      expand();
+    }
   }
 
-  /* ------------------------------------------------------------------ mounting */
-
-  function attach(next: SheetBindings): () => void {
-    bindings = next;
-    detachListeners = bindDismissDrag(next.dragZone);
-    measure();
-    render(progress);
-    if (pendingOpen) {
-      pendingOpen = false;
-      begin();
-      options.onCommitOpen?.();
-      settle(1, 0, "settle");
-    }
-    return () => {
-      stopRun();
-      detachListeners?.();
-      detachListeners = null;
-      if (bindings === next) bindings = null;
-      // Unmounted while the sheet was still wanted (a hot reload, a remount): whoever mounts it
-      // next presents it again, instead of leaving a modal that nobody can see.
-      if (present) pendingOpen = true;
-      progress = 0;
-      setRootAttribute("data-player", "closed");
-    };
+  function click(event: { t: number; fromPointer: boolean }): void {
+    if (event.fromPointer && event.t - handledAt < CLICK_ECHO_MS && event.t >= handledAt) return;
+    toggle();
   }
 
   return {
-    attach,
-    open,
-    close: () => close(),
-    beginOpenDrag,
-    updateOpenDrag,
-    endOpenDrag,
-    isAttached: () => bindings !== null,
-    getProgress: () => progress,
-    subscribePresence(listener) {
-      presenceListeners.add(listener);
-      return () => presenceListeners.delete(listener);
+    expand,
+    collapse,
+    collapseNow,
+    toggle,
+    pointerDown,
+    pointerMove,
+    pointerEnd,
+    click,
+    sync() {
+      // The root attribute as well: a page that never carried it gets it here.
+      options.setRootAttribute("data-player", open ? "open" : "closed");
+      view.apply(snapshot());
     },
-    getPresence: () => present,
-    setPresence,
+    getSnapshot: snapshot,
+    getProgress: () => clamp(p, 0, 1),
+    subscribe(listener) {
+      listeners.add(listener);
+      return () => listeners.delete(listener);
+    },
   };
 }
