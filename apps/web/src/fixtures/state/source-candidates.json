@@ -1,0 +1,26 @@
+{
+  "topic_id": "audio_interfaces",
+  "candidates": [
+    {
+      "feed_url": "https://waveform-journal.example/feed.xml",
+      "domain": "waveform-journal.example",
+      "q": 0.82,
+      "parts": {},
+      "sample_n": 8
+    },
+    {
+      "feed_url": "https://listening-lab.example/rss",
+      "domain": "listening-lab.example",
+      "q": 0.58,
+      "parts": {},
+      "sample_n": 5
+    },
+    {
+      "feed_url": "https://sounddesk.example/feed.xml",
+      "domain": "sounddesk.example",
+      "q": 0.9,
+      "parts": {},
+      "sample_n": 6
+    }
+  ]
+}

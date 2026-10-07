@@ -1,0 +1,25 @@
+{
+  "version": 1,
+  "added": [
+    {
+      "id": "sound-desk",
+      "name": "Sound Desk",
+      "type": "rss",
+      "url": "https://sounddesk.example/",
+      "feed_url": "https://sounddesk.example/feed.xml",
+      "tier": "daily",
+      "high_signal": false,
+      "enabled": true,
+      "failures": 0,
+      "options": {}
+    }
+  ],
+  "overrides": {
+    "studio-notes": {
+      "pinned": true
+    },
+    "pixel-weekly": {
+      "removed": true
+    }
+  }
+}
