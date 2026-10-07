@@ -35,6 +35,32 @@ export const SECTIONS = ["top", "ui-craft", "ai", "tech", "research", "launches"
 export const Section = z.enum(SECTIONS);
 export type Section = z.infer<typeof Section>;
 
+/**
+ * An id for a category, topic or section as it is persisted: lowercase letters, digits, hyphens
+ * and underscores. Digests store these as plain strings, not as the built-in enums, so a briefing
+ * written for a custom topic still parses after that topic is removed.
+ */
+export const ID_PATTERN = /^[a-z0-9][a-z0-9_-]*$/;
+export const ID_MAX_LENGTH = 64;
+export const IdString = z.string().min(1).max(ID_MAX_LENGTH).regex(ID_PATTERN);
+export type IdString = z.infer<typeof IdString>;
+
+/** Id of a section as stored in a digest: a built-in section or one a custom topic defined. */
+export const SectionId = IdString;
+export type SectionId = IdString;
+
+/** Id of a category as stored in a digest: a built-in category or a custom topic. */
+export const CategoryId = IdString;
+export type CategoryId = IdString;
+
+export function isBuiltinSection(id: string): id is Section {
+  return (SECTIONS as readonly string[]).includes(id);
+}
+
+export function isBuiltinCategory(id: string): id is Category {
+  return (CATEGORIES as readonly string[]).includes(id);
+}
+
 export const SECTION_TITLES: Record<Section, string> = {
   top: "Top picks",
   "ui-craft": "Interaction craft",
@@ -64,6 +90,15 @@ export const TECH_CATEGORY = "consumer_tech_releases" satisfies Category;
 
 /** The section with its own allowance of items. Its stories never move to Top picks. */
 export const TECH_SECTION = "tech" satisfies Section;
+
+/**
+ * True for a section that takes its stories from an allowance of its own, outside the main cap:
+ * Tech releases, and every section a custom topic defines. A custom topic placed in a built-in
+ * section shares that section's room under the main cap instead.
+ */
+export function hasOwnAllowance(section: string): boolean {
+  return section === TECH_SECTION || !isBuiltinSection(section);
+}
 
 /**
  * Home section for a category. Video items go to "watch" by source type, whatever their category.

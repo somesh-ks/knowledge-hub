@@ -1,5 +1,5 @@
 import { z } from "zod";
-import { Category } from "./categories.js";
+import { Category, IdString } from "./categories.js";
 
 export const SOURCE_TYPES = [
   "rss",
@@ -49,6 +49,11 @@ export const Item = z.object({
    * for triage only: the source's own hint wins over it, and the judge decides the category.
    */
   category_hint: Category.optional(),
+  /**
+   * Custom topics the item's source or discovery query was tagged with. Items with a tag are
+   * judged for those topics even when no keyword matches.
+   */
+  topic_ids: z.array(IdString).optional(),
   /** Extracted full text. Lives in the run cache only; never committed. Untrusted. */
   content: z.string().optional(),
 });

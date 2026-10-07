@@ -24,11 +24,17 @@ export const STATE_FILES = {
   lastRun: "state/last-run.json",
   usage: "state/usage.json",
   sourceHealth: "state/source-health.json",
+  topicJudgments: "state/topic-judgments.json",
+  sourceStats: "state/source-stats.json",
+  sourceCandidates: "state/source-candidates.json",
 } as const;
 
 export const CONFIG_FILES = {
   preferences: "config/preferences.json",
   sources: "config/sources.json",
+  sourcesUser: "config/sources.user.json",
+  topics: "config/topics.json",
+  queries: "config/queries.json",
   voice: "config/voice.md",
 } as const;
 

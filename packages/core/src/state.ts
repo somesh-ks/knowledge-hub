@@ -1,5 +1,5 @@
 import { z } from "zod";
-import { type Category, CategoryOrNone } from "./categories.js";
+import { type Category, CategoryOrNone, IdString } from "./categories.js";
 
 const isoDateTime = z.string().datetime({ offset: true });
 const ymd = z.string().regex(/^\d{4}-\d{2}-\d{2}$/);
@@ -102,6 +102,97 @@ export const SourceHealthFile = z.object({
 });
 export type SourceHealthFile = z.infer<typeof SourceHealthFile>;
 export const EMPTY_SOURCE_HEALTH: SourceHealthFile = { version: 1, sources: {} };
+
+/**
+ * One custom-topic fit answer. The cache key names the topic and a hash of its name and
+ * description, so editing one topic asks the judge about that topic again and nothing else.
+ */
+export const TopicJudgmentEntry = z.object({
+  item_id: z.string(),
+  topic_id: IdString,
+  /** Hash of the topic's name, description and the question wording. */
+  topic_hash: z.string(),
+  model: z.string(),
+  judged_at: isoDateTime,
+  /** Normalized fit, 0 (unrelated) to 1 (squarely on the topic). */
+  fit: unit,
+});
+export type TopicJudgmentEntry = z.infer<typeof TopicJudgmentEntry>;
+
+/** Cached fit answers keyed `${item_id}:${topic_id}:${topic_hash}:${model}`. Pruned at 30 days. */
+export const TopicJudgmentsFile = z.object({
+  version: z.literal(1),
+  entries: z.record(z.string(), TopicJudgmentEntry),
+});
+export type TopicJudgmentsFile = z.infer<typeof TopicJudgmentsFile>;
+export const EMPTY_TOPIC_JUDGMENTS: TopicJudgmentsFile = { version: 1, entries: {} };
+
+/**
+ * Counters for one source over a rolling 30-day window. `fetched` items entered a pool, `judged`
+ * were answered by a judge, `passed` cleared the score bar, `published` reached a digest. When the
+ * window is older than 30 days the counters are halved and the window restarts, so a source's
+ * recent record outweighs its history without a per-day log.
+ */
+export const SourceStat = z.object({
+  fetched: z.number().int().nonnegative(),
+  judged: z.number().int().nonnegative(),
+  passed: z.number().int().nonnegative(),
+  published: z.number().int().nonnegative(),
+  /** Stockholm calendar date the current window began. */
+  window_start: ymd,
+});
+export type SourceStat = z.infer<typeof SourceStat>;
+
+export const SourceStatsFile = z.object({
+  version: z.literal(1),
+  sources: z.record(z.string(), SourceStat),
+});
+export type SourceStatsFile = z.infer<typeof SourceStatsFile>;
+export const EMPTY_SOURCE_STATS: SourceStatsFile = { version: 1, sources: {} };
+
+const quality = z.number().min(0).max(1);
+
+/** One feed `dispatch sources suggest` looked at, kept so the app can show why it did or did not make the cut. */
+export const SourceCandidate = z.object({
+  /** Source id the entry would get. */
+  id: z.string(),
+  name: z.string(),
+  /** Human-facing page. */
+  url: z.string().url(),
+  feed_url: z.string().url().nullable(),
+  /** Null when the feed failed validation, so no score was computed. */
+  q: quality.nullable(),
+  parts: z
+    .object({
+      fit: quality,
+      pass_rate: quality,
+      freshness: quality,
+      reliability: quality,
+      prior: quality,
+    })
+    .nullable(),
+  /** Entries in the feed, and how many were published in the last 30 days. */
+  entries: z.number().int().nonnegative(),
+  recent_entries: z.number().int().nonnegative(),
+  status: z.enum(["added", "below_bar", "not_top", "rejected"]),
+  /** Why a candidate was rejected or skipped, in one sentence. */
+  reason: z.string().optional(),
+});
+export type SourceCandidate = z.infer<typeof SourceCandidate>;
+
+export const SourceCandidatesFile = z.object({
+  version: z.literal(1),
+  topics: z.record(
+    z.string(),
+    z.object({
+      suggested_at: isoDateTime,
+      queries: z.array(z.string()),
+      candidates: z.array(SourceCandidate),
+    }),
+  ),
+});
+export type SourceCandidatesFile = z.infer<typeof SourceCandidatesFile>;
+export const EMPTY_SOURCE_CANDIDATES: SourceCandidatesFile = { version: 1, topics: {} };
 
 export const EMPTY_SEEN: SeenFile = { version: 1, items: {} };
 export const EMPTY_JUDGMENTS: JudgmentsFile = { version: 1, entries: {} };

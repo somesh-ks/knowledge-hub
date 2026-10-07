@@ -100,12 +100,13 @@ describe("digest file", () => {
     expect(parsed.items[0]).not.toHaveProperty("why");
   });
 
-  it("holds the weekly cap plus the tech allowance, with one item to spare", () => {
+  it("holds the weekly cap plus the allowances of Tech and custom sections, up to a hard maximum", () => {
     const items = (count: number) => Array.from({ length: count }, (_, n) => sampleItem(n));
-    const most = VOICE_LIMITS.items.weeklyCap + VOICE_LIMITS.items.techCap;
-    expect(most).toBe(23);
-    expect(DigestSchema.safeParse({ ...sampleDigest, items: items(24) }).success).toBe(true);
-    expect(DigestSchema.safeParse({ ...sampleDigest, items: items(25) }).success).toBe(false);
+    expect(VOICE_LIMITS.items.weeklyCap + VOICE_LIMITS.items.techCap).toBe(23);
+    const most = VOICE_LIMITS.items.hardMax;
+    expect(most).toBe(48);
+    expect(DigestSchema.safeParse({ ...sampleDigest, items: items(most) }).success).toBe(true);
+    expect(DigestSchema.safeParse({ ...sampleDigest, items: items(most + 1) }).success).toBe(false);
   });
 });
 
@@ -146,6 +147,7 @@ describe("voice limits", () => {
       cap: 12,
       weeklyCap: 18,
       techCap: 5,
+      hardMax: 48,
     });
   });
 });

@@ -1,5 +1,5 @@
 import { z } from "zod";
-import { Category, Section } from "./categories.js";
+import { CategoryId, isBuiltinSection, SECTION_TITLES, SECTIONS, SectionId } from "./categories.js";
 import { SourceType } from "./item.js";
 
 const isoDateTime = z.string().datetime({ offset: true });
@@ -32,8 +32,10 @@ export type CoverSpec = z.infer<typeof CoverSpec>;
 
 export const DigestItem = z.object({
   id: z.string().regex(/^[0-9a-f]{12}$/),
-  section: Section,
-  category: Category,
+  /** A built-in section or one a custom topic defined; see `section_titles` on the digest. */
+  section: SectionId,
+  /** A built-in category or a custom topic id. */
+  category: CategoryId,
   source_type: SourceType,
   headline: z.string().min(1),
   url: z.string().url(),
@@ -61,8 +63,14 @@ export const Digest = z.object({
   listen_minutes: z.number().int().positive(),
   audio: z.object({ url: z.string().url(), duration_ms: z.number().int().positive() }).nullable(),
   cover: CoverSpec,
-  /** Weekly cap (18) plus the tech allowance (5), with one to spare. */
-  items: z.array(DigestItem).min(3).max(24),
+  /**
+   * Titles of the sections the items sit in, in digest order, written when the digest is rendered.
+   * Present only when a custom section is used. A digest therefore keeps its own headings after
+   * the topic behind a section is renamed or removed. Absent means the built-in sections.
+   */
+  section_titles: z.record(SectionId, z.string().min(1).max(60)).optional(),
+  /** Weekly cap (18) plus the tech allowance and the allowances of custom sections. */
+  items: z.array(DigestItem).min(3).max(48),
 });
 export type Digest = z.infer<typeof Digest>;
 
@@ -81,5 +89,32 @@ export const VOICE_LIMITS = {
   summaryMinSentences: 2,
   sentenceWords: 28,
   whyWords: 18,
-  items: { floor: 3, target: [8, 12], cap: 12, weeklyCap: 18, techCap: 5 },
+  items: { floor: 3, target: [8, 12], cap: 12, weeklyCap: 18, techCap: 5, hardMax: 48 },
 } as const;
+
+export interface DigestSection {
+  id: string;
+  title: string;
+}
+
+/**
+ * The sections of a digest in reading order, with their titles. The digest's own `section_titles`
+ * come first and set the order, so a briefing written for a topic that was later renamed or
+ * removed keeps its headings. The built-in table covers digests written before custom sections
+ * existed (and any built-in section a snapshot omits). An unknown id with no snapshot is titled
+ * by its id. Sections with no items are left out.
+ */
+export function digestSections(digest: Pick<Digest, "items" | "section_titles">): DigestSection[] {
+  const used = new Set(digest.items.map((item) => item.section));
+  const out: DigestSection[] = [];
+  const seen = new Set<string>();
+  const add = (id: string, title: string | undefined): void => {
+    if (!used.has(id) || seen.has(id)) return;
+    seen.add(id);
+    out.push({ id, title: title ?? (isBuiltinSection(id) ? SECTION_TITLES[id] : id) });
+  };
+  for (const [id, title] of Object.entries(digest.section_titles ?? {})) add(id, title);
+  for (const id of SECTIONS) add(id, undefined);
+  for (const item of digest.items) add(item.section, undefined);
+  return out;
+}

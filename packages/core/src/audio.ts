@@ -1,5 +1,5 @@
 import { z } from "zod";
-import { Section } from "./categories.js";
+import { SectionId } from "./categories.js";
 import { DigestId } from "./digest.js";
 
 /** Item and section start times inside one digest's MP3. Stored as Digests/YYYY/MM/<id>.audio.json. */
@@ -14,11 +14,11 @@ export const AudioTimeline = z.object({
   items: z.array(
     z.object({
       id: z.string().regex(/^[0-9a-f]{12}$/),
-      section: Section,
+      section: SectionId,
       start_ms: z.number().int().nonnegative(),
       end_ms: z.number().int().positive(),
     }),
   ),
-  sections: z.array(z.object({ slug: Section, start_ms: z.number().int().nonnegative() })),
+  sections: z.array(z.object({ slug: SectionId, start_ms: z.number().int().nonnegative() })),
 });
 export type AudioTimeline = z.infer<typeof AudioTimeline>;

@@ -1,6 +1,5 @@
 import { parse, stringify } from "yaml";
-import { SECTION_TITLES, SECTIONS } from "./categories.js";
-import { Digest } from "./digest.js";
+import { Digest, digestSections } from "./digest.js";
 import { longDate } from "./time.js";
 
 const FENCE = "---";
@@ -28,10 +27,9 @@ function renderBody(digest: Digest): string {
     "",
     `${digest.items.length} items. ${digest.read_minutes} min read, ${digest.listen_minutes} min listen.`,
   ];
-  for (const section of SECTIONS) {
-    const items = digest.items.filter((item) => item.section === section);
-    if (items.length === 0) continue;
-    lines.push("", `## ${SECTION_TITLES[section]}`);
+  for (const section of digestSections(digest)) {
+    const items = digest.items.filter((item) => item.section === section.id);
+    lines.push("", `## ${section.title}`);
     for (const item of items) {
       const byline = [item.source, item.author].filter(Boolean).join(", ");
       lines.push("", `### [${item.headline}](${item.url})`, byline, "", item.summary);
