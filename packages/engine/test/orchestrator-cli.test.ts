@@ -199,6 +199,7 @@ describe("runCli: help", () => {
       "publish",
       "learn",
       "run",
+      "podcast",
       "status",
       "doctor",
       "extract",

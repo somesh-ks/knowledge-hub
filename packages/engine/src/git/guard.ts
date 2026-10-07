@@ -5,7 +5,7 @@ import { parseDigestFile } from "@dispatch/core";
 import type { GitRunner } from "./runGit.js";
 import { gitOutput } from "./runGit.js";
 
-export type GitCommand = "run" | "publish" | "learn";
+export type GitCommand = "run" | "publish" | "learn" | "podcast";
 
 /**
  * Where each bot command may write. An entry ending in "/" allows everything beneath it; "*" matches
@@ -16,6 +16,7 @@ export const ALLOWLISTS: Record<GitCommand, readonly string[]> = {
   run: ["Digests/", "state/"],
   publish: ["Digests/**/*.audio.json", "Digests/**/*.md", "state/usage.json"],
   learn: ["config/preferences.json"],
+  podcast: ["Podcasts/"],
 };
 
 /** One line of `git status --porcelain`: the path, and the old path when git saw a rename or copy. */

@@ -86,6 +86,19 @@ selection-schema.json, then validates the agent-selection.json a Claude Code ses
     load: async () => (await import("./commands/run.js")).run,
   },
   {
+    name: "podcast",
+    summary: "Write one episode of Singularity from published digests and commit it",
+    help: `Usage: dispatch podcast --request '<json>' [--now <iso>] [--no-push]
+
+The request is JSON: { topic_ids: string[1..6], length_minutes: 3|5|10|15,
+format: "readout"|"discussion"|"headlines", window_days: 2|7|30,
+tone: "neutral"|"energetic"|"dry", title?: string }. Topic ids are sections or categories as they
+appear in published digests. Reads Digests/ only (no fetching), makes one writer call on Nebius
+(needs NEBIUS_API_KEY and DISPATCH_MODEL, spends tokens), writes Podcasts/YYYY/MM/<id>.md and
+commits it as feat(podcast) through the write guard. The last line printed is the episode id.`,
+    load: async () => (await import("./commands/podcast.js")).run,
+  },
+  {
     name: "status",
     summary: "Last runs, next due date, audio, failing sources and budget (offline)",
     help: `Usage: dispatch status [--json]

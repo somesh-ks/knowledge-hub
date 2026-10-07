@@ -1,0 +1,136 @@
+import { access, mkdir, writeFile } from "node:fs/promises";
+import { dirname, join } from "node:path";
+import {
+  type Episode,
+  episodeRelPath,
+  PODCAST_CHARS_PER_MINUTE,
+  type PodcastRequest,
+  SECTION_TITLES,
+  type Section,
+  serializeEpisodeFile,
+} from "@dispatch/core";
+import { createFallbackCoverPicker, loadCoverPalettes } from "../render/coverPicker.js";
+import type { PodcastStory, ScriptTurn } from "./types.js";
+
+const MINUTE_MS = 60_000;
+const MAX_ID_TRIES = 60;
+
+const STAMP = new Intl.DateTimeFormat("en-GB", {
+  timeZone: "Europe/Stockholm",
+  year: "numeric",
+  month: "2-digit",
+  day: "2-digit",
+  hour: "2-digit",
+  minute: "2-digit",
+  hourCycle: "h23",
+});
+
+/** `ep-YYYYMMDD-HHmm` in Stockholm time, the clock the digests use. */
+export function episodeIdAt(at: Date): string {
+  const part = (type: string): string =>
+    STAMP.formatToParts(at).find((p) => p.type === type)?.value ?? "00";
+  return `ep-${part("year")}${part("month")}${part("day")}-${part("hour")}${part("minute")}`;
+}
+
+async function exists(path: string): Promise<boolean> {
+  try {
+    await access(path);
+    return true;
+  } catch {
+    return false;
+  }
+}
+
+/** The id for this minute, or the next free minute when a file already holds it. */
+export async function allocateEpisodeId(root: string, now: Date): Promise<string> {
+  for (let step = 0; step < MAX_ID_TRIES; step++) {
+    const id = episodeIdAt(new Date(now.getTime() + step * MINUTE_MS));
+    if (!(await exists(join(root, episodeRelPath(id))))) return id;
+  }
+  throw new Error("No free episode id in the next hour.");
+}
+
+function topicLabel(topic: string): string {
+  if (topic in SECTION_TITLES) return SECTION_TITLES[topic as Section];
+  const words = topic.replace(/_/g, " ");
+  return words.charAt(0).toUpperCase() + words.slice(1);
+}
+
+const TITLE_MAX = 80;
+
+/** The listener's title, or "Singularity: <topics>" trimmed to the title limit on a whole topic. */
+export function episodeTitle(request: PodcastRequest): string {
+  if (request.title) return request.title;
+  let title = "Singularity";
+  for (const [index, topic] of request.topic_ids.entries()) {
+    const next = `${title}${index === 0 ? ": " : ", "}${topicLabel(topic)}`;
+    if (next.length > TITLE_MAX) break;
+    title = next;
+  }
+  return title;
+}
+
+export interface BuildEpisodeInput {
+  root: string;
+  id: string;
+  now: Date;
+  request: PodcastRequest;
+  stories: readonly PodcastStory[];
+  turns: readonly ScriptTurn[];
+}
+
+export async function buildEpisode(input: BuildEpisodeInput): Promise<Episode> {
+  const used = new Set(input.turns.flatMap((turn) => (turn.item_id ? [turn.item_id] : [])));
+  // Sources follow the order the script first mentions them.
+  const order = new Map<string, number>();
+  for (const turn of input.turns) {
+    if (turn.item_id && !order.has(turn.item_id)) order.set(turn.item_id, order.size);
+  }
+  const sources = input.stories
+    .filter((story) => used.has(story.item_id))
+    .sort((a, b) => (order.get(a.item_id) ?? 0) - (order.get(b.item_id) ?? 0))
+    .map((story) => ({
+      item_id: story.item_id,
+      url: story.url,
+      headline: story.headline,
+      source: story.source,
+    }));
+  const charCount = input.turns.reduce((sum, turn) => sum + turn.text.length, 0);
+  const pick = createFallbackCoverPicker({ palettes: await loadCoverPalettes(input.root) });
+  return {
+    id: input.id,
+    title: episodeTitle(input.request),
+    request: input.request,
+    generated_at: input.now.toISOString(),
+    listen_minutes: Math.max(1, Math.round(charCount / PODCAST_CHARS_PER_MINUTE)),
+    format: input.request.format,
+    sources,
+    turns: input.turns.map((turn, idx) => ({
+      idx,
+      speaker: turn.speaker,
+      text: turn.text,
+      ...(turn.item_id ? { item_id: turn.item_id } : {}),
+    })),
+    char_count: charCount,
+    cover: pick({ digestId: input.id, date: input.id.slice(3, 11), kind: "on-demand", items: [] }),
+  };
+}
+
+/** Write `Podcasts/YYYY/MM/<id>.md`, never over an existing file. */
+export async function writeEpisodeFile(
+  root: string,
+  episode: Episode,
+): Promise<{ path: string; relPath: string }> {
+  const relPath = episodeRelPath(episode.id);
+  const path = join(root, relPath);
+  await mkdir(dirname(path), { recursive: true });
+  try {
+    await writeFile(path, serializeEpisodeFile(episode), { encoding: "utf8", flag: "wx" });
+  } catch (error) {
+    if ((error as NodeJS.ErrnoException).code === "EEXIST") {
+      throw new Error(`Episode file already exists: ${relPath}. Episodes are never overwritten.`);
+    }
+    throw error;
+  }
+  return { path, relPath };
+}
