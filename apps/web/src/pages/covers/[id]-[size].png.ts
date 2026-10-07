@@ -1,21 +1,36 @@
 import { join } from "node:path";
-import type { Digest } from "@dispatch/core";
 import type { APIRoute, GetStaticPaths } from "astro";
-import { COVER_SIZES, type CoverSize, coverPng, rendererFingerprint } from "../../lib/covers";
+import {
+  COVER_SIZES,
+  type CoverSize,
+  type CoverSource,
+  coverPng,
+  rendererFingerprint,
+} from "../../lib/covers";
 import { findRepoRoot } from "../../lib/repoRoot";
 import { getSite } from "../../lib/site";
 
 interface Props {
-  digest: Digest;
+  digest: CoverSource;
   size: CoverSize;
 }
 
 export const getStaticPaths = (async () => {
-  const { entries } = await getSite();
-  return entries.flatMap((entry) =>
+  const { entries, episodes } = await getSite();
+  // A briefing and an episode are drawn the same way. An episode is dated by when it was written.
+  const covers: CoverSource[] = [
+    ...entries.map((entry) => entry.digest),
+    ...episodes.map((entry) => ({
+      id: entry.id,
+      date: entry.episode.date,
+      kind: "regular" as const,
+      cover: entry.cover,
+    })),
+  ];
+  return covers.flatMap((digest) =>
     COVER_SIZES.map((size) => ({
-      params: { id: entry.id, size: String(size) },
-      props: { digest: entry.digest, size } satisfies Props,
+      params: { id: digest.id, size: String(size) },
+      props: { digest, size } satisfies Props,
     })),
   );
 }) satisfies GetStaticPaths;

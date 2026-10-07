@@ -1,6 +1,7 @@
 import { join } from "node:path";
 import { readDigestFiles } from "./digestFiles";
 import { buildEntries, type DigestEntry } from "./digests";
+import { buildEpisodeEntries, type EpisodeEntry, readEpisodeFiles } from "./episodes";
 import { findRepoRoot } from "./repoRoot";
 import { type LastRunSummary, readLastRun, showsNothingBanner } from "./runState";
 
@@ -23,6 +24,8 @@ export function rewriteFixtureAudioUrl(url: string): string {
 export interface Site {
   /** Newest first. Empty when there are no digests, which the pages render as the empty state. */
   entries: DigestEntry[];
+  /** Podcast episodes, newest first. Empty until Podcasts/ has a file. */
+  episodes: EpisodeEntry[];
   lastRun: LastRunSummary;
   showNothingBanner: boolean;
   fixtures: boolean;
@@ -55,10 +58,15 @@ export async function loadSite(options: LoadSiteOptions = {}): Promise<Site> {
     { resolveAudioUrl: fixtures ? rewriteFixtureAudioUrl : undefined },
     warn,
   );
+  const podcastsDir = fixtures ? join(fixturesRoot, "podcasts") : join(root, "Podcasts");
+  const episodeFiles = await readEpisodeFiles(podcastsDir);
+  for (const message of episodeFiles.warnings) warn(message);
+  const episodes = buildEpisodeEntries(episodeFiles.episodes);
   const lastRun = await readLastRun(fixtures ? fixturesRoot : root);
   const latest = entries[0];
   return {
     entries,
+    episodes,
     lastRun,
     showNothingBanner: showsNothingBanner(lastRun, latest?.digest.generated_at ?? null),
     fixtures,
