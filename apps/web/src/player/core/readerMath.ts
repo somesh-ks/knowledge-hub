@@ -1,50 +1,11 @@
 /**
- * The reader coupling's pure parts: where the rail fill sits, which node a tap means, which item a
- * button belongs to and what the call to action says. Kept free of the DOM so they can be tested.
+ * The reader coupling's pure parts: which item a button belongs to, and what each play chip shows
+ * and is called in every state. Kept free of the DOM so they can be tested, and free of anything
+ * that only runs in a browser, so the pages render the same idle chips at build time.
  */
 import type { PlayerDigestData } from "../../types/contracts";
 import { formatClock } from "./formatTime";
-import { clamp, lerp } from "./mathUtils";
 import type { PlayerState } from "./playerTypes";
-import { fractionWithinItem, type Timeline } from "./timeline";
-
-/**
- * Fill position of the rail as a 0 to 1 fraction of its height. Piecewise linear between item node
- * centers, by time: for playhead t inside item i, y = lerp(node[i], node[i + 1], progress through
- * the item), and the last item ends at the bottom of the briefing. This is why the rail fills
- * continuously inside an item instead of in steps (design-spec.md, The rail).
- */
-export function railProgress(
-  nodeY: readonly (number | undefined)[],
-  totalHeight: number,
-  timeline: Timeline | null,
-  itemIndex: number,
-  timeSeconds: number,
-  ended: boolean,
-): number {
-  if (ended) return 1;
-  const item = timeline?.items[itemIndex];
-  const start = nodeY[itemIndex];
-  if (!timeline || !item || start === undefined || totalHeight <= 0) return 0;
-  const end = nodeY[itemIndex + 1] ?? totalHeight;
-  const y = lerp(start, end, fractionWithinItem(item, timeSeconds));
-  return clamp(y / totalHeight, 0, 1);
-}
-
-/** The node nearest a tap on the rail strip. The strip is one flush target, so gaps are live. */
-export function nearestNodeIndex(nodeY: readonly (number | undefined)[], tapY: number): number {
-  let nearest = -1;
-  let best = Number.POSITIVE_INFINITY;
-  nodeY.forEach((y, index) => {
-    if (y === undefined) return;
-    const distance = Math.abs(y - tapY);
-    if (distance < best) {
-      best = distance;
-      nearest = index;
-    }
-  });
-  return nearest;
-}
 
 export type ItemVisualState = "played" | "current" | "";
 
@@ -94,54 +55,121 @@ export function resolveChapterFirstItemId(
   return Number.isInteger(index) ? (digest.items[index]?.id ?? null) : null;
 }
 
-export interface CtaView {
-  label: string;
-  /** "3:32" before playback, "1:26 of 3:32" after. Empty when there is nothing to show. */
-  clock: string;
+/* ------------------------------------------------------------------ play chips */
+
+/**
+ * What a play chip shows. `state` and `playing` go to data-state and data-playing, `label` is the
+ * visible text and `name` the accessible name. The name always says the action and always contains
+ * the visible text, so a voice command that reads the chip finds it.
+ */
+export interface ChipView {
+  state: "idle" | "current" | "played" | "preparing";
   playing: boolean;
-  loading: boolean;
+  label: string;
+  name: string;
+}
+
+/** "8 min" for a whole recording: whole minutes, never less than one. */
+export function briefingLengthLabel(durationMs: number): string {
+  return `${Math.max(1, Math.round(durationMs / 60_000))} min`;
+}
+
+/** "0:24" for one story's share of the recording, or "" when it has no marks. */
+export function storyLengthLabel(startMs: number | null, endMs: number | null): string {
+  if (startMs === null || endMs === null) return "";
+  return formatClock(Math.round((endMs - startMs) / 1000));
+}
+
+/** The briefing's chip before anything has played. The pages render this one at build time. */
+export function idleBriefingChip(length: string): ChipView {
+  return { state: "idle", playing: false, label: length, name: `Play the briefing, ${length}` };
+}
+
+/** A story's chip before it has played. `length` is empty while the briefing has no audio. */
+export function idleStoryChip(length: string, headline: string): ChipView {
+  const action = length ? `Play from here, ${length}` : "Play from here";
+  return { state: "idle", playing: false, label: length, name: `${action}: ${headline}` };
 }
 
 /**
- * The hero button's face for a state (design-spec.md, Reader hero). While the first 300 ms of
- * buffering run, the label stays "Pause": the listener asked for playback, and swapping the label
- * twice inside a frame or two reads as a flicker.
+ * The briefing's chip for a player state. While the first 300 ms of buffering run it already says
+ * "Playing": the listener asked for playback, and a label that changes twice inside a few frames
+ * reads as a flicker.
  */
-export function ctaView(
+export function briefingChipView(
   state: PlayerState,
   timeSeconds: number,
-  pageDigest: PlayerDigestData | null,
-): CtaView {
-  const duration = (pageDigest?.audio?.duration_ms ?? 0) / 1000;
-  const isPageTrack = state.digestId !== null && state.digestId === pageDigest?.id;
-  if (!isPageTrack || state.status === "idle") {
-    const resumable = isPageTrack && timeSeconds > 0;
+  pageDigest: PlayerDigestData,
+): ChipView {
+  const pageDurationMs = pageDigest.audio?.duration_ms ?? 0;
+  const idle = idleBriefingChip(briefingLengthLabel(pageDurationMs));
+  // Another briefing is loaded: this chip starts its own from the top.
+  if (state.digestId !== pageDigest.id) return idle;
+
+  const total = state.duration || pageDurationMs / 1000;
+  const left = `${Math.max(1, Math.ceil(Math.max(0, total - timeSeconds) / 60))} min left`;
+  const resume = { playing: false, label: left, name: `Resume the briefing, ${left}` };
+  const playing: ChipView = {
+    state: "current",
+    playing: true,
+    label: "Playing",
+    name: "Pause the briefing, playing",
+  };
+  switch (state.status) {
+    case "idle":
+      // A remembered position is offered, but nothing is loaded into the ear yet.
+      return timeSeconds > 0 ? { state: "idle", ...resume } : idle;
+    case "playing":
+      return playing;
+    case "loading":
+      return state.buffering
+        ? {
+            state: "preparing",
+            playing: true,
+            label: "Loading",
+            name: "Pause the briefing, loading",
+          }
+        : playing;
+    case "paused":
+      return { state: "current", ...resume };
+    case "ended":
+      return {
+        state: "played",
+        playing: false,
+        label: "Played",
+        name: "Play the briefing again, played",
+      };
+    case "error":
+      return { state: "idle", playing: false, label: "Try again", name: "Try again" };
+  }
+}
+
+/** A story's chip, from where the playhead is relative to it. */
+export function storyChipView(
+  visual: ItemVisualState,
+  playing: boolean,
+  buffering: boolean,
+  length: string,
+  headline: string,
+): ChipView {
+  if (visual === "played") {
     return {
-      label: resumable ? "Resume" : "Play the briefing",
-      clock: resumable
-        ? `${formatClock(timeSeconds)} of ${formatClock(state.duration || duration)}`
-        : formatClock(duration),
+      state: "played",
       playing: false,
-      loading: false,
+      label: "Played",
+      name: `Play again, played: ${headline}`,
     };
   }
-  const total = state.duration || duration;
-  const clock = `${formatClock(timeSeconds)} of ${formatClock(total)}`;
-  switch (state.status) {
-    case "playing":
-      return { label: "Pause", clock, playing: true, loading: false };
-    case "loading":
-      return {
-        label: state.buffering ? "Preparing audio" : "Pause",
-        clock,
-        playing: true,
-        loading: state.buffering,
-      };
-    case "paused":
-      return { label: "Resume", clock, playing: false, loading: false };
-    case "ended":
-      return { label: "Play again", clock: formatClock(total), playing: false, loading: false };
-    case "error":
-      return { label: "Try again", clock, playing: false, loading: false };
+  if (visual !== "current") return idleStoryChip(length, headline);
+  if (playing && buffering) {
+    return {
+      state: "preparing",
+      playing: true,
+      label: "Loading",
+      name: `Pause, loading: ${headline}`,
+    };
   }
+  return playing
+    ? { state: "current", playing: true, label: "Playing", name: `Pause, playing: ${headline}` }
+    : { state: "current", playing: false, label: "Paused", name: `Resume, paused: ${headline}` };
 }
