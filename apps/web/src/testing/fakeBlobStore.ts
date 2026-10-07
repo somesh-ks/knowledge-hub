@@ -5,11 +5,11 @@ import type { BlobEntry, BlobWriteOptions, NarrateBlobStore } from "../server/bl
  * would cost on Vercel, can be told to fail or to hang, and can stand in for the CDN in front of
  * the store, which answers a URL it has seen before from its cache.
  */
-export type BlobOp = "head" | "fetch" | "list" | "put" | "create" | "del";
+export type BlobOp = "head" | "fetch" | "put" | "create" | "del";
 
 export interface BlobCall {
   op: BlobOp;
-  /** The pathname; for a listing, its prefix; for a fetch, the pathname in the URL. */
+  /** The pathname; for a fetch, the pathname in the URL. */
   pathname: string;
 }
 
@@ -34,6 +34,8 @@ export interface FakeBlobStore extends NarrateBlobStore {
   /** Puts an object in place as if it had been uploaded at `uploadedAt` (default: now). */
   seed(pathname: string, body: string | Uint8Array, uploadedAt?: number): void;
   has(pathname: string): boolean;
+  /** Every stored pathname under a prefix. Not a store call: it costs nothing and is not recorded. */
+  paths(prefix: string): string[];
   text(pathname: string): string | null;
   bytes(pathname: string): Uint8Array | null;
   /** The plain public URL of an object, with no version in it. */
@@ -88,6 +90,7 @@ export function createFakeBlobStore(
     uploadedAt: stored.uploadedAt,
     size: stored.body.byteLength,
     version: stored.version,
+    etag: `"${stored.version}"`,
   });
   const store = (pathname: string, body: string | Uint8Array, uploadedAt: number): Stored => {
     writes += 1;
@@ -129,13 +132,6 @@ export function createFakeBlobStore(
       if (options.cdn === true) cdn.set(url, text);
       return text;
     },
-    async list(prefix) {
-      count.advanced += 1;
-      await begin("list", prefix);
-      return [...objects.entries()]
-        .filter(([pathname]) => pathname.startsWith(prefix))
-        .map(([pathname, stored]) => entry(pathname, stored));
-    },
     async put(pathname, body, writeOptions) {
       count.advanced += 1;
       await begin("put", pathname);
@@ -156,6 +152,16 @@ export function createFakeBlobStore(
       await begin("del", pathname);
       if (objects.delete(pathname)) changes.push(`del ${pathname}`);
     },
+    async delIfUnchanged(target) {
+      count.free += 1;
+      await begin("del", target.pathname);
+      // Only the very object that was read: one that was replaced since has another version.
+      if (objects.get(target.pathname)?.version !== target.version) return false;
+      objects.delete(target.pathname);
+      changes.push(`del ${target.pathname}`);
+      return true;
+    },
+    paths: (prefix) => [...objects.keys()].filter((pathname) => pathname.startsWith(prefix)),
     seed(pathname, body, uploadedAt = now()) {
       store(pathname, body, uploadedAt);
     },

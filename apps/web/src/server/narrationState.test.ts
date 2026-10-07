@@ -1,6 +1,8 @@
 import { describe, expect, it } from "vitest";
 import {
+  addRepeat,
   emptyState,
+  type NarrationMode,
   type NarrationState,
   parseState,
   planCharge,
@@ -14,6 +16,9 @@ const NOW = Date.parse("2026-10-07T12:00:00Z");
 const MONTH = "2026-10";
 const TODAY = "2026-10-07";
 const ID = "2026-10-07";
+const VOICE = "geffen_32";
+/** What a first charge in segments records beside the day and the characters. */
+const SEGMENTS = { voice: VOICE, whole: false, segments: true };
 
 const state = (characters: number, digests: NarrationState["digests"] = {}): NarrationState => ({
   version: 1,
@@ -24,12 +29,21 @@ const state = (characters: number, digests: NarrationState["digests"] = {}): Nar
 const plan = (
   current: NarrationState,
   characters: number,
-  more: { digest?: string; now?: number; monthlyChars?: number; dailyCap?: number } = {},
+  more: {
+    digest?: string;
+    now?: number;
+    monthlyChars?: number;
+    dailyCap?: number;
+    voice?: string;
+    mode?: NarrationMode;
+  } = {},
 ) =>
   planCharge({
     state: current,
     digest: more.digest ?? ID,
     characters,
+    voice: more.voice ?? VOICE,
+    mode: more.mode ?? "segments",
     now: more.now ?? NOW,
     monthlyChars: more.monthlyChars ?? 500_000,
     dailyCap: more.dailyCap ?? 3,
@@ -84,7 +98,11 @@ describe("planCharge", () => {
     expect(plan(state(1000), 3294)).toEqual({
       kind: "charge",
       added: 3294,
-      next: state(4294, { [ID]: { day: TODAY, characters: 3294 } }),
+      next: state(4294, { [ID]: { day: TODAY, characters: 3294, ...SEGMENTS } }),
+    });
+    // Narrated as one file, it records that instead.
+    expect(plan(state(0), 3294, { mode: "whole" })).toMatchObject({
+      next: { digests: { [ID]: { voice: VOICE, whole: true, segments: false } } },
     });
   });
 
@@ -100,8 +118,81 @@ describe("planCharge", () => {
     expect(plan(charged, 3294)).toEqual({
       kind: "charge",
       added: 294,
-      next: state(5294, { [ID]: { day: "2026-10-03", characters: 3294 } }),
+      next: state(5294, { [ID]: { day: "2026-10-03", characters: 3294, ...SEGMENTS } }),
     });
+  });
+
+  it("charges the whole text again when the voice has changed, and starts over in the new one", () => {
+    const charged = state(3294, {
+      [ID]: { day: "2026-10-03", characters: 3294, voice: VOICE, whole: true, segments: true },
+    });
+    expect(plan(charged, 3294, { voice: "henry_7" })).toEqual({
+      kind: "charge",
+      added: 3294,
+      next: state(6588, {
+        [ID]: {
+          day: "2026-10-03",
+          characters: 3294,
+          voice: "henry_7",
+          whole: false,
+          segments: true,
+        },
+      }),
+    });
+    // The same voice again owes nothing.
+    expect(plan(charged, 3294)).toEqual({ kind: "covered" });
+  });
+
+  it("charges the whole text again when a digest narrated one way is narrated the other", () => {
+    const inSegments = state(3294, { [ID]: { day: TODAY, characters: 3294, ...SEGMENTS } });
+    const asWhole = plan(inSegments, 3294, { mode: "whole" });
+    expect(asWhole).toEqual({
+      kind: "charge",
+      added: 3294,
+      next: state(6588, {
+        [ID]: { day: TODAY, characters: 3294, voice: VOICE, whole: true, segments: true },
+      }),
+    });
+    // Both ways are paid for now: neither owes anything more.
+    if (asWhole.kind !== "charge") throw new Error("expected a charge");
+    expect(plan(asWhole.next, 3294, { mode: "whole" })).toEqual({ kind: "covered" });
+    expect(plan(asWhole.next, 3294, { mode: "segments" })).toEqual({ kind: "covered" });
+
+    // And the reverse: one file first, segments after.
+    const whole = state(3294, {
+      [ID]: { day: TODAY, characters: 3294, voice: VOICE, whole: true, segments: false },
+    });
+    expect(plan(whole, 3294, { mode: "segments" })).toMatchObject({ kind: "charge", added: 3294 });
+  });
+
+  it("keeps what failed attempts added when it charges a digest again", () => {
+    const charged = state(3594, {
+      [ID]: { day: TODAY, characters: 3294, ...SEGMENTS, repeats: 300 },
+    });
+    expect(plan(charged, 3294, { mode: "whole" })).toMatchObject({
+      next: { digests: { [ID]: { repeats: 300 } } },
+    });
+  });
+
+  it("applies neither the daily cap nor a new day to a digest charged again", () => {
+    const full = state(1200, {
+      "2026-10-01": { day: TODAY, characters: 300 },
+      "2026-10-02": { day: TODAY, characters: 300 },
+      "2026-10-03": { day: TODAY, characters: 300 },
+      [ID]: { day: "2026-10-05", characters: 300, ...SEGMENTS },
+    });
+    expect(plan(full, 300, { voice: "henry_7" })).toMatchObject({
+      kind: "charge",
+      added: 300,
+      next: { digests: { [ID]: { day: "2026-10-05" } } },
+    });
+  });
+
+  it("checks the month's budget for a digest charged again", () => {
+    const charged = state(8000, { [ID]: { day: TODAY, characters: 3000, ...SEGMENTS } });
+    expect(plan(charged, 3000, { mode: "whole", monthlyChars: 10_000 }).kind).toBe(
+      "monthly_budget",
+    );
   });
 
   it("leaves the other digests in the document as they are", () => {
@@ -109,7 +200,7 @@ describe("planCharge", () => {
     const next = plan(state(2000, others), 500);
     expect(next).toMatchObject({
       kind: "charge",
-      next: state(2500, { ...others, [ID]: { day: TODAY, characters: 500 } }),
+      next: state(2500, { ...others, [ID]: { day: TODAY, characters: 500, ...SEGMENTS } }),
     });
   });
 
@@ -183,6 +274,28 @@ describe("planCharge", () => {
       "2026-10-03": { day: TODAY, characters: 300 },
     });
     expect(plan(full, 3000, { monthlyChars: 10_000 }).kind).toBe("daily_cap");
+  });
+});
+
+describe("addRepeat", () => {
+  it("adds a failed attempt's characters to the total and to the digest, with no budget check", () => {
+    const charged = state(449_000, { [ID]: { day: TODAY, characters: 3294, ...SEGMENTS } });
+    const once = addRepeat(charged, ID, 120, NOW);
+    expect(once).toEqual(
+      state(449_120, { [ID]: { day: TODAY, characters: 3294, ...SEGMENTS, repeats: 120 } }),
+    );
+    // Every failure adds again, even past what the budget would allow: it records, it does not ask.
+    const twice = addRepeat(once, ID, 3294, NOW);
+    expect(twice.speechify.characters).toBe(452_414);
+    expect(twice.digests[ID]?.repeats).toBe(3414);
+    // The length the digest was charged for is untouched, so "the text grew" still works.
+    expect(twice.digests[ID]?.characters).toBe(3294);
+  });
+
+  it("still counts when the digest has no entry, which should not happen", () => {
+    expect(addRepeat(state(10), ID, 50, NOW)).toEqual(
+      state(60, { [ID]: { day: TODAY, characters: 0, repeats: 50 } }),
+    );
   });
 });
 

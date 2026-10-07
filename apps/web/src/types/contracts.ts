@@ -141,14 +141,20 @@ export interface NarrationSegment {
   /** Length of the spoken text. Times `ms_per_character` it estimates a duration before the audio exists. */
   characters: number;
   /**
-   * The file, once this segment is narrated; null until then. The URL changes when the story's text
-   * changes, so never build it: read it from here.
+   * Where this segment's file is. The URL changes when the story's text or the voice changes, so
+   * never build it: read it from here.
    *
-   * `duration_ms` is exact in the answer to the POST that narrated the segment. In a lookup it is
-   * worked out from the file's size and can be a few frames off, so once the audio element has
-   * loaded the file, take the duration from the element.
+   * In a lookup, `confirmed` is false: the URL is where the file WOULD be, worked out without asking
+   * the store, and `duration_ms` is a guess from the length of the text. Try the URL; when it is not
+   * there (a 404), POST this segment's `key` to have it narrated. It is null only when the site
+   * cannot work the address out, and then POST is the only way to get the file.
+   *
+   * In the answer to a POST, `confirmed` is true: the file exists. `duration_ms` is what the voice
+   * service reported when the segment was just narrated, or worked out from the file's size when it
+   * already existed. Either way, once the audio element has loaded the file, take the duration from
+   * the element.
    */
-  audio: { url: string; duration_ms: number } | null;
+  audio: { url: string; duration_ms: number; confirmed: boolean } | null;
 }
 
 /**
@@ -171,7 +177,8 @@ export type NarrateError =
   // there). A digest that was already narrated this month, in part or whole, is never refused.
   | { status: 429; error: "daily_cap"; retry_after_s: number }
   // The month's voice allowance has no room for this digest. A digest is charged whole the first
-  // time any part of it is narrated. It resets with the calendar month.
+  // time any part of it is narrated, and again after a failed attempt or a change of voice. It
+  // resets with the calendar month.
   | { status: 429; error: "monthly_budget" }
   // The voice service failed, or the finished audio could not be stored. Trying again later is safe.
   | { status: 502; error: "synthesis_failed" | "storage_failed" }
@@ -184,17 +191,24 @@ export type NarrateError =
 export type NarrateErrorCode = NarrateError["error"];
 
 /**
- * GET /api/narrate?digest=<id>: what narration a digest has. It needs no passphrase and spends
- * nothing. It answers 200 for every digest this deployment has, narrated or not.
+ * GET /api/narrate?digest=<id>: the segments of a digest and where their audio would be. It needs no
+ * passphrase, never narrates, and never asks the audio store anything, so it cannot say which
+ * segments exist: see `NarrationSegment.audio`. `digest` is the only query parameter it accepts;
+ * any other is a 400. It answers 200 for every digest this deployment has, and that answer may be
+ * cached for a minute.
  */
 export type NarrateLookupResponse =
   | {
       status: 200;
-      /** The whole digest as one file, or null when it was never narrated that way. */
+      /**
+       * The whole digest as one file, when the site was built with one: a narration the audio
+       * workflow committed. One made later by a POST without `segment` does not show here until
+       * the next build.
+       */
       audio: { url: string; duration_ms: number } | null;
       /** The timeline of that one file; null exactly when `audio` is. */
       timeline: NarrationTimeline | null;
-      /** Every segment in playing order, each with its file once it exists. */
+      /** Every segment in playing order, each with the address its file would have. */
       segments: NarrationSegment[];
       /** An estimate of the voice's pace, for laying out segments that have no audio yet. */
       ms_per_character: number;
@@ -212,12 +226,14 @@ export type NarrateResponse =
 
 /**
  * POST /api/narrate with `segment`: narrates that one segment and answers with it, `audio` filled
- * in. A segment that is already narrated is returned as it is and nothing is spent. Send one segment
- * at a time.
+ * in and confirmed. A segment that is already narrated is returned as it is, and no voice characters
+ * are spent on it. Send one segment at a time.
  */
 export type NarrateSegmentResponse =
   | {
       status: 200;
-      segment: NarrationSegment & { audio: { url: string; duration_ms: number } };
+      segment: NarrationSegment & {
+        audio: { url: string; duration_ms: number; confirmed: true };
+      };
     }
   | NarrateError;

@@ -9,18 +9,19 @@ import type { BlobEntry } from "./blobStore";
 import { MS_PER_CHARACTER } from "./config";
 
 /**
- * Where a narrated segment lives, and how the store is read back into segments.
+ * Where a narrated segment lives.
  *
  * A segment is stored at
  *
  *   audio/<digest>/seg/<key>.<hash>.mp3
  *
- * The hash covers the text, the voice and the model, so the name can be worked out from the digest
- * alone. That is what keeps the store cheap: a request for one segment finds out whether it exists
- * with a head, never a listing, and a lookup of the whole digest is one listing of this folder.
- * There is no manifest for two requests to overwrite; narrating two segments at once adds two
- * files. An edited story has no file under its new hash and is narrated again; an unchanged one
- * always finds its file and never is.
+ * The hash covers the text, the voice and the model, so the name, and with the store's public
+ * address the whole URL, can be worked out from the digest alone. That is what keeps the store
+ * cheap. A lookup asks the store nothing: it answers with the address each segment would have, and
+ * the page finds out by trying it. A request to narrate one segment finds out whether it exists
+ * with a head. There is no listing and no manifest for two requests to overwrite; narrating two
+ * segments at once adds two files. An edited story has no file under its new hash and is narrated
+ * again; an unchanged one always finds its file and never is.
  */
 
 export const SEGMENT_HASH_CHARS = 12;
@@ -28,8 +29,6 @@ export const SEGMENT_HASH_CHARS = 12;
 /** "intro", "outro", or an item id. Nothing that could leave the segment folder. */
 export const SEGMENT_KEY = /^[a-z0-9]{1,32}$/;
 
-/** Everything a digest has in the store sits under this prefix: its whole MP3 and its segments. */
-export const digestPrefix = (digest: string): string => `audio/${digest}`;
 export const segmentPrefix = (digest: string): string => `audio/${digest}/seg/`;
 
 export function segmentHash(text: string, voice: string, model: string): string {
@@ -51,46 +50,63 @@ function isHttps(value: string): boolean {
   }
 }
 
-/**
- * How long a stored segment plays, worked out from its size: the audio is constant bitrate, so
- * bytes are time. It is an estimate, a few frames off at most, and the player corrects it from the
- * audio element once the file loads. When the store reports no size, the estimate comes from the
- * text length instead.
- */
-export function estimateDurationMs(size: number, characters: number): number {
-  if (size > 0) return durationFromMp3Bytes(size, DEFAULT_OUTPUT_FORMAT);
+/** How long a segment should play, guessed from the length of its text alone. */
+export function estimateFromText(characters: number): number {
   return Math.max(1, Math.round(characters * MS_PER_CHARACTER));
 }
 
-/** A stored object as a segment's audio, or null when it cannot be played from. */
+/**
+ * How long a stored segment plays, worked out from its size: the audio is constant bitrate, so
+ * bytes are time. A few frames off at most. When the store reports no size, the guess comes from
+ * the text length instead.
+ */
+export function estimateDurationMs(size: number, characters: number): number {
+  return size > 0
+    ? durationFromMp3Bytes(size, DEFAULT_OUTPUT_FORMAT)
+    : estimateFromText(characters);
+}
+
+/** A stored object the store has just confirmed, as a segment's audio, or null when unusable. */
 export function segmentAudio(
   entry: BlobEntry | null | undefined,
   characters: number,
-): { url: string; duration_ms: number } | null {
+): { url: string; duration_ms: number; confirmed: true } | null {
   if (!entry || !isHttps(entry.url)) return null;
-  return { url: entry.url, duration_ms: estimateDurationMs(entry.size, characters) };
+  return {
+    url: entry.url,
+    duration_ms: estimateDurationMs(entry.size, characters),
+    confirmed: true,
+  };
 }
 
 /**
- * The digest's segments, each with the audio the listing holds for it. A segment's file is the one
- * at the path its current text and voice work out to, so a file made from other text or another
- * voice (an older hash) is not found, and nothing else in the folder can be mistaken for it.
+ * The digest's segments for a lookup, without asking the store anything. Each gets the address its
+ * file would have for its current text and voice, marked unconfirmed: the file may not exist yet,
+ * and the page finds out by trying it. Without the store's public address (`publicBase` null) no
+ * address can be worked out and every segment's audio is null.
  */
 export function describeSegments(
   segments: readonly SpokenSegment[],
-  listing: readonly BlobEntry[],
+  publicBase: string | null,
   digest: string,
   voice: string,
   model: string,
 ): NarrationSegment[] {
-  const files = new Map(listing.map((entry) => [entry.pathname, entry]));
   return segments.map((segment) => {
+    const characters = segment.text.length;
     const path = segmentPath(digest, segment.key, segmentHash(segment.text, voice, model));
     return {
       key: segment.key,
       item_id: segment.itemId,
-      characters: segment.text.length,
-      audio: segmentAudio(files.get(path), segment.text.length),
+      characters,
+      audio:
+        publicBase === null
+          ? null
+          : {
+              url: `${publicBase}/${path}`,
+              duration_ms: estimateFromText(characters),
+              confirmed: false,
+            },
     };
   });
 }

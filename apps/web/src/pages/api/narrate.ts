@@ -1,16 +1,11 @@
 import { verifyPassphrase } from "@dispatch/core/passphrase";
-import { del, head, list, put } from "@vercel/blob";
+import { del, head, put } from "@vercel/blob";
 import type { APIRoute } from "astro";
 import { createVercelBlobStore } from "../../server/blobStore";
 import { bundledDigests } from "../../server/digestSource";
 import { MAX_BODY_CHARS } from "../../server/generate";
 import { toResponse } from "../../server/http";
-import {
-  handleNarrate,
-  handleNarrationLookup,
-  type LookupDeps,
-  startDeadline,
-} from "../../server/narrate";
+import { handleNarrate, handleNarrationLookup, startDeadline } from "../../server/narrate";
 
 // The site is static; this route runs on demand, as a Vercel Function.
 export const prerender = false;
@@ -18,22 +13,14 @@ export const prerender = false;
 /** Where Vercel puts a function's OIDC token. Only read when the store is connected that way. */
 const OIDC_HEADER = "x-vercel-oidc-token";
 
-const lookupDeps: LookupDeps = {
-  env: process.env,
-  // The store's files are read by URL with the plain fetch; everything else goes through the SDK.
-  openBlob: (credentials) => createVercelBlobStore(credentials, { head, list, put, del }, fetch),
-  digests: bundledDigests,
-  log: (message) => console.error(`[api/narrate] ${message}`),
-};
+const log = (message: string): void => console.error(`[api/narrate] ${message}`);
 
-export const GET: APIRoute = async ({ request, url }) =>
+// The lookup is given no store at all: anyone may call it, and it must not be able to spend.
+export const GET: APIRoute = async ({ url }) =>
   toResponse(
     await handleNarrationLookup(
-      {
-        digest: url.searchParams.get("digest"),
-        requestOidcToken: () => request.headers.get(OIDC_HEADER),
-      },
-      lookupDeps,
+      { digest: url.searchParams.get("digest"), params: [...url.searchParams.keys()] },
+      { env: process.env, digests: bundledDigests, log },
     ),
   );
 
@@ -48,7 +35,11 @@ export const POST: APIRoute = async ({ request, url }) => {
       requestOidcToken: () => request.headers.get(OIDC_HEADER),
     },
     {
-      ...lookupDeps,
+      env: process.env,
+      // The store's files are read by URL with the plain fetch; everything else goes through the SDK.
+      openBlob: (credentials) => createVercelBlobStore(credentials, { head, put, del }, fetch),
+      digests: bundledDigests,
+      log,
       fetch,
       now: Date.now,
       delay: (milliseconds) => new Promise((resolve) => setTimeout(resolve, milliseconds)),
