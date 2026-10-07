@@ -290,6 +290,16 @@ export async function handleNarrationLookup(
   // The id comes first: a request without one (the static build makes one) reads no configuration.
   const id = parseDigestId(input.digest);
   if (id === null) return invalid;
+
+  try {
+    // Anyone can call this, and every store lookup is metered. An id that names no digest in this
+    // deployment is answered from the bundle, so only real digests can cost a lookup.
+    if ((await deps.digests.readDigest(id)) === null) return noAudio;
+  } catch (error) {
+    log(`lookup of ${id} failed: ${describeError(error, [])}`);
+    return unavailable;
+  }
+
   const credentials = readBlobCredentials(deps.env, input.requestOidcToken);
   if (!credentials) return unavailable;
 
@@ -336,6 +346,8 @@ interface Session {
   deps: NarrateDeps;
   secrets: string[];
   log: (message: string) => void;
+  /** When the request was authorized, for the total the log reports. */
+  startedAt: number;
 }
 
 /**
@@ -558,10 +570,12 @@ async function synthesizeAndStore(session: Session, plan: Plan): Promise<Narrate
     );
   }
 
-  // These two timings are what the limits in functionLimits.mjs have to be set from.
+  // The limits in functionLimits.mjs are set from these: synthesis against the deadline, and the
+  // total less synthesis against the time kept back for everything else.
   log(
     `narrate ${id}: stored. ${characters} characters, synthesis ${synthesisMs} ms, ` +
-      `upload ${uploadMs} ms, ${timeline.timeline} timeline`,
+      `upload ${uploadMs} ms, total ${deps.now() - session.startedAt} ms, ` +
+      `${timeline.timeline} timeline`,
   );
   return ready({ url, timeline });
 }
@@ -592,6 +606,7 @@ export async function handleNarrate(
     deps,
     secrets: narrateSecretsOf(config),
     log,
+    startedAt: deps.now(),
   };
 
   let plan: Plan | NarrateResult;

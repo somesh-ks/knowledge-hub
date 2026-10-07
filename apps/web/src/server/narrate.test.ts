@@ -258,6 +258,18 @@ describe("GET /api/narrate", () => {
     expect(result.headers).toBeUndefined();
   });
 
+  it("answers 404 for a digest this deployment does not have, without a store lookup", async () => {
+    const context = setup();
+    // Even audio that exists is not looked up: only a digest with a page here can cost a lookup.
+    context.blob.seed(audioKey("2026-10-09"), FAKE_AUDIO);
+    expect(await lookup(context, "2026-10-09")).toEqual({
+      status: 404,
+      body: { status: 404, error: "no_audio" },
+    });
+    expect(context.opened).toHaveLength(0);
+    expect(context.blob.calls).toEqual([]);
+  });
+
   it("answers 404 when there is audio but no timeline for it", async () => {
     const context = setup();
     context.blob.seed(audioKey(ID), FAKE_AUDIO);
@@ -617,8 +629,17 @@ describe("POST /api/narrate: narrating", () => {
 
   it("logs the timings the function limits have to be set from", async () => {
     const context = setup();
+    // Speechify takes 40 seconds in this run; everything else is instant.
+    const fetchSpeech = context.deps.fetch;
+    context.deps.fetch = async (url, init) => {
+      const response = await fetchSpeech(url, init);
+      context.advance(40_000);
+      return response;
+    };
     await post(context);
-    expect(context.logs.at(-1)).toMatch(/stored\. \d+ characters, synthesis \d+ ms, upload \d+ ms/);
+    expect(context.logs.at(-1)).toMatch(
+      /stored\. \d+ characters, synthesis 40000 ms, upload 0 ms, total 40000 ms, marks timeline$/,
+    );
   });
 });
 
