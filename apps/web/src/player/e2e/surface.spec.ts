@@ -170,8 +170,8 @@ test.describe("one surface @surface", () => {
     await first.release();
     await lab.collapsed();
     // Pulled past the top and held: the page is in place and the cover is on its slot.
-    const all = rest.window.height + 60;
-    const second = await finger.drag(line(start, { x: start.x, y: start.y - all }, 20), 16, {
+    // To the top edge and no further: a pointer that leaves the window ends the gesture.
+    const second = await finger.drag(line(start, { x: start.x, y: 3 }, 20), 16, {
       hold: true,
     });
     await expect.poll(async () => (await lab.geometry()).p).toBe(1);

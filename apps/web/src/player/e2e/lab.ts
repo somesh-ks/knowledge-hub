@@ -225,6 +225,8 @@ export const test = base.extend<
       if (/Failed to load resource/.test(message.text())) return;
       // Astro's router says this itself whenever reduced motion is on.
       if (message.text().startsWith("[transitions]")) return;
+      // WebKit's note about Astro's module preloads on a page that hydrates when idle.
+      if (message.text().includes("was preloaded using link preload but not used")) return;
       // Playwright's own note when a test asks for service workers to be blocked.
       if (message.text().includes("Service Worker registration blocked by Playwright")) return;
       problems.push(`[${message.type()}] ${message.text()}`);
