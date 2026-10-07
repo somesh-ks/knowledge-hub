@@ -4,12 +4,15 @@ import {
   buildPageRegistry,
   buildPlayerRegistry,
   GENERATED_HEADER,
+  GLYPHS_PATH,
   type GlyphDocument,
   isGenerated,
   loadGlyphs,
   PAGE_REGISTRY_PATH,
   PLAYER_REGISTRY_PATH,
   pathFromSvg,
+  serializeGlyphs,
+  symbolFile,
   validateGlyphs,
 } from "./buildGlyphs.js";
 
@@ -19,7 +22,7 @@ function withGlyph(name: string, glyph: Partial<GlyphDocument["glyphs"][string]>
   return {
     ...doc,
     glyphs: {
-      [name]: { symbol: "close", targets: ["page"], d: "M0 0h24Z", ...glyph },
+      [name]: { symbol: "x", targets: ["page"], d: "M0 0h24Z", ...glyph },
     },
   };
 }
@@ -30,9 +33,9 @@ describe("glyph source", () => {
   });
 
   it("records where the paths came from", () => {
-    expect(doc.source).toContain("@material-symbols/svg-400");
+    expect(doc.source).toContain("@phosphor-icons/core");
     expect(doc.sourceVersion).toMatch(/^\d+\.\d+\.\d+$/);
-    expect(doc.viewBox).toBe("0 -960 960 960");
+    expect(doc.viewBox).toBe("0 0 256 256");
   });
 
   it("gives a filled twin to each navigation icon, for the active destination", () => {
@@ -44,6 +47,10 @@ describe("glyph source", () => {
       expect(filled?.symbol).toBe(outline?.symbol);
       expect(filled?.d).not.toBe(outline?.d);
     }
+  });
+
+  it("is committed in the form the generator writes, so a fetch never leaves a lint failure", () => {
+    expect(readFileSync(GLYPHS_PATH, "utf8")).toBe(serializeGlyphs(doc));
   });
 
   it("names what is wrong with a bad glyph", () => {
@@ -63,10 +70,15 @@ describe("glyph source", () => {
 });
 
 describe("pathFromSvg", () => {
-  it("reads the single path of a Material Symbols file", () => {
+  it("reads the single path of a Phosphor file", () => {
     const svg =
-      '<svg xmlns="http://www.w3.org/2000/svg" width="48" height="48" viewBox="0 -960 960 960"><path d="M320-203v-560l440 280-440 280Z"/></svg>';
-    expect(pathFromSvg(svg)).toBe("M320-203v-560l440 280-440 280Z");
+      '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 256 256" fill="currentColor"><path d="M216,48V208a8,8,0,0,1-16,0V48a8,8,0,0,1,16,0Z"/></svg>';
+    expect(pathFromSvg(svg)).toBe("M216,48V208a8,8,0,0,1-16,0V48a8,8,0,0,1,16,0Z");
+  });
+
+  it("finds the regular and the fill weight inside the package", () => {
+    expect(symbolFile({ symbol: "caret-down" })).toBe("assets/regular/caret-down.svg");
+    expect(symbolFile({ symbol: "play", fill: true })).toBe("assets/fill/play-fill.svg");
   });
 
   it("refuses a file with no path or with several", () => {

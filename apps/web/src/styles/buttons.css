@@ -23,7 +23,7 @@
   padding-inline: 0;
 }
 
-/* Material Symbols: every glyph is one filled path, so an icon is just its colour and its size. */
+/* Phosphor: every glyph is one filled path, so an icon is just its colour and its size. */
 .icon {
   width: var(--size-icon);
   height: var(--size-icon);

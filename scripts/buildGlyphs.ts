@@ -20,15 +20,18 @@ export const PLAYER_REGISTRY_PATH = resolve(ROOT, "apps/web/src/player/ui/iconPa
 export const GENERATED_HEADER = "GENERATED FILE. Do not edit.";
 const LINE_WIDTH = 100;
 
+/** A Phosphor icon name: lower-case words joined by hyphens. */
+const SYMBOL_NAME = /^[a-z0-9]+(?:-[a-z0-9]+)*$/;
+
 export type GlyphTarget = "page" | "player";
 
 export interface Glyph {
-  /** Material Symbols name, snake_case. */
+  /** Phosphor icon name, kebab-case. */
   symbol: string;
-  /** True for the filled variant of the symbol. */
+  /** True for the fill weight of the icon; otherwise the regular weight. */
   fill?: boolean;
   targets: GlyphTarget[];
-  /** The single path of the symbol, in the document's view box. */
+  /** The single path of the icon, in the document's view box. */
   d: string;
 }
 
@@ -50,7 +53,7 @@ export function validateGlyphs(doc: GlyphDocument): string[] {
   if (!/^-?\d+ -?\d+ \d+ \d+$/.test(doc.viewBox)) problems.push(`viewBox "${doc.viewBox}"`);
   for (const [name, glyph] of Object.entries(doc.glyphs)) {
     if (!/^[a-z][A-Za-z0-9]*$/.test(name)) problems.push(`${name}: name is not camelCase`);
-    if (!/^[a-z0-9_]+$/.test(glyph.symbol)) problems.push(`${name}: symbol "${glyph.symbol}"`);
+    if (!SYMBOL_NAME.test(glyph.symbol)) problems.push(`${name}: symbol "${glyph.symbol}"`);
     if (glyph.targets.length === 0) problems.push(`${name}: no target`);
     for (const target of glyph.targets) {
       if (target !== "page" && target !== "player") problems.push(`${name}: target "${target}"`);
@@ -61,6 +64,14 @@ export function validateGlyphs(doc: GlyphDocument): string[] {
     }
   }
   return problems;
+}
+
+/** The document as the formatter prints it: two-space JSON with each list of targets on one line. */
+export function serializeGlyphs(doc: GlyphDocument): string {
+  const json = JSON.stringify(doc, null, 2);
+  const oneLine = (_list: string, body: string): string =>
+    `[${body.trim().split(/,\s*/).join(", ")}]`;
+  return `${json.replace(/\[\n\s+([^\]{}]+?)\n\s+\]/g, oneLine)}\n`;
 }
 
 function namesFor(doc: GlyphDocument, target: GlyphTarget): string[] {
@@ -86,9 +97,9 @@ function header(what: string): string[] {
     ` * ${GENERATED_HEADER} Source: tokens/glyphs.json, compiled by scripts/buildGlyphs.ts.`,
     " *",
     ` * ${what}`,
-    " * One icon set: Material Symbols, outlined, weight 400 (Google, Apache License 2.0). Every",
-    " * glyph is one filled path in currentColor. Decorative by default: the button or link that",
-    " * holds an icon carries the accessible name.",
+    " * One icon set: Phosphor, regular weight, with the fill weight where a glyph must read as",
+    " * solid (Phosphor Icons, MIT License). Every glyph is one filled path in currentColor.",
+    " * Decorative by default: the button or link that holds an icon carries the accessible name.",
     " */",
   ];
 }
@@ -133,11 +144,12 @@ export function isGenerated(source: string): boolean {
   return source.includes(GENERATED_HEADER);
 }
 
-function symbolFile(glyph: Glyph): string {
-  return `${glyph.symbol}${glyph.fill ? "-fill" : ""}.svg`;
+/** Where an icon lives inside the Phosphor core package. */
+export function symbolFile(glyph: Pick<Glyph, "symbol" | "fill">): string {
+  return glyph.fill ? `assets/fill/${glyph.symbol}-fill.svg` : `assets/regular/${glyph.symbol}.svg`;
 }
 
-/** Extracts the single path from a Material Symbols file. Throws when the file has another shape. */
+/** Extracts the single path from a Phosphor file. Throws when the file has another shape. */
 export function pathFromSvg(svg: string): string {
   const paths = [...svg.matchAll(/<path d="([^"]+)"\s*\/>/g)];
   if (paths.length !== 1 || !paths[0]?.[1]) throw new Error("Expected exactly one path");
@@ -148,7 +160,7 @@ async function fetchGlyphs(doc: GlyphDocument): Promise<GlyphDocument> {
   let version = "";
   const glyphs: Record<string, Glyph> = {};
   for (const [name, glyph] of Object.entries(doc.glyphs)) {
-    const url = `${doc.source}@${doc.sourceVersion || "latest"}/outlined/${symbolFile(glyph)}`;
+    const url = `${doc.source}@${doc.sourceVersion || "latest"}/${symbolFile(glyph)}`;
     const response = await fetch(url);
     if (!response.ok) throw new Error(`${name}: ${response.status} for ${url}`);
     version ||= response.headers.get("x-jsd-version") ?? "";
@@ -197,7 +209,7 @@ async function main(): Promise<number> {
   let doc = loadGlyphs();
   if (args.has("--fetch")) {
     doc = await fetchGlyphs(doc);
-    writeFileSync(GLYPHS_PATH, `${JSON.stringify(doc, null, 2)}\n`, "utf8");
+    writeFileSync(GLYPHS_PATH, serializeGlyphs(doc), "utf8");
     console.log(`Fetched ${Object.keys(doc.glyphs).length} glyphs at ${doc.sourceVersion}`);
   }
   return writeRegistries(doc, args.has("--check"));
