@@ -152,7 +152,7 @@ export function openEpisodeAction(trigger: HTMLElement): void {
   // A pick from the menu hands focus back to the More button; the menu itself is closed by then.
   const back = () => {
     const target = trigger.closest("[popover]")
-      ? root.querySelector<HTMLElement>("[data-episode-more]")
+      ? root.querySelector<HTMLElement>("[data-hero-more]")
       : trigger;
     if (target?.isConnected) target.focus();
   };

@@ -19,7 +19,7 @@ const destinations: Array<{
   icon: IconName;
   iconCurrent: IconName;
 }> = [
-  { id: "today", href: "/", label: "Today", icon: "home", iconCurrent: "homeFill" },
+  { id: "today", href: "/", label: "Today", icon: "today", iconCurrent: "todayFill" },
   {
     id: "library",
     href: "/library",
@@ -48,7 +48,7 @@ const destinations: Array<{
   </a>
   <a class="app-nav-create btn-primary press" href="/create" data-create-open>
     <Icon name="plus" class="icon-lg" />
-    <span>Create</span>
+    <span>Create Podcast</span>
   </a>
   <ul class="app-nav-list" role="list">
     {

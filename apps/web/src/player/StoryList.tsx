@@ -3,7 +3,7 @@ import { usePlayerState } from "./hooks/usePlayer";
 import Clock from "./ui/Clock";
 
 /**
- * "In this briefing": every story, under its section, with its length. Tapping one plays it from
+ * "Contents": every story, under its section, with its length. Tapping one plays it from
  * its start. The story being read is marked by shape and weight as well as color.
  */
 export default function StoryList() {
@@ -15,7 +15,7 @@ export default function StoryList() {
   return (
     <section className="story-list" aria-labelledby="player-stories-title">
       <h3 className="player-section-title" id="player-stories-title">
-        In this briefing
+        Contents
       </h3>
       {timeline.sections.map((section) => (
         <div key={section.slug} className="story-group">

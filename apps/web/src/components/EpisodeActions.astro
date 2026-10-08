@@ -1,5 +1,5 @@
 ---
-import { OPEN_PASSPHRASE, PASSPHRASE_REQUIRED } from "../lib/access";
+import { PASSPHRASE_REQUIRED } from "../lib/access";
 import Icon from "./Icon.astro";
 import "../styles/episode-actions.css";
 
@@ -29,42 +29,8 @@ const COPY = {
 } as const;
 ---
 
-{/* One More button for the header action row (PlayCta takes it in its slot) and the small menu it
-     opens: Regenerate and Delete. The menu is a native popover, so light dismiss and Escape are the
-     browser's. scripts/episodeActionsEntry.ts loads the rest on the first pick and marks both items
-     unavailable, with a reason, while a run for this episode is going. */}
-<div
-  class="episode-more"
-  data-episode-actions
-  data-episode={id}
-  data-open-passphrase={PASSPHRASE_REQUIRED ? undefined : OPEN_PASSPHRASE}
->
-  <button
-    class="icon-btn press"
-    type="button"
-    aria-label="More actions"
-    aria-haspopup="menu"
-    popovertarget="episode-menu"
-    data-episode-more
-  >
-    <Icon name="moreVert" />
-  </button>
-  <div class="episode-menu" id="episode-menu" popover role="menu" aria-label="More actions">
-    <button class="episode-menu-item press" type="button" role="menuitem" data-episode-action="regenerate">
-      Regenerate
-    </button>
-    <button
-      class="episode-menu-item episode-menu-delete press"
-      type="button"
-      role="menuitem"
-      data-episode-action="delete"
-    >
-      Delete
-    </button>
-  </div>
-  <span class="sr-only" id="episode-actions-busy" hidden>Unavailable while this episode is being updated.</span>
-</div>
-
+{/* The panel and the confirm the header's More menu opens (components/HeroMenu.astro), cloned from
+     these templates on the first pick by scripts/episodeActions.ts. */}
 {
   [
     ["regenerate", "episode-regenerate-template"],

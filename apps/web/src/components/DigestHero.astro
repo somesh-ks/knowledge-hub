@@ -3,6 +3,7 @@ import { paletteAccent } from "@dispatch/cover";
 import type { DigestEntry } from "../lib/digests";
 import type { HeroView } from "../lib/digestView";
 import Cover from "./Cover.astro";
+import HeroMenu from "./HeroMenu.astro";
 import PlayCta from "./PlayCta.astro";
 
 interface Props {
@@ -13,7 +14,8 @@ interface Props {
 const { entry, hero } = Astro.props;
 ---
 
-{/* The briefing header: the cover beside the date, one line of facts, then the play chip and share. */}
+{/* The briefing header: the cover beside the date and the More menu, then the play chip with the
+     number of stories at its side. */}
 <header class="hero">
   <Cover
     digestId={entry.id}
@@ -23,17 +25,10 @@ const { entry, hero } = Astro.props;
     priority
   />
   <div class="hero-text">
-    <h1 class="page-title" id="page-title" tabindex="-1">{hero.title}</h1>
-    {/* The space after each part is for a screen reader and a copied line; the layout ignores it. */}
-    <p class="meta meta-wrap">
-      {
-        hero.meta.map((part) => (
-          <Fragment>
-            <span>{part}</span>{" "}
-          </Fragment>
-        ))
-      }
-    </p>
+    <div class="hero-title-row">
+      <h1 class="page-title" id="page-title" tabindex="-1">{hero.title}</h1>
+      <HeroMenu sharePath={`/d/${entry.id}`} noun="briefing" />
+    </div>
   </div>
-  <PlayCta digestId={entry.id} mode={entry.audioMode} length={hero.length} />
+  <PlayCta digestId={entry.id} mode={entry.audioMode} length={hero.length} facts={hero.meta} />
 </header>

@@ -1,109 +1,8 @@
 /*
- * Regenerate and Delete on an episode page: a More button in the header action row with a small
- * popover menu, the rewrite panel (it wears the Create sheet's looks, create-sheet.css) and the
- * small confirm that Delete asks. Tokens only. Imported by components/EpisodeActions.astro; the
+ * Regenerate and Delete on an episode page: the rewrite panel (it wears the Create sheet's
+ * looks, create-sheet.css) and the small confirm that Delete asks. Tokens only. Imported by components/EpisodeActions.astro; the
  * dialogs are global because they are cloned into the body.
  */
-
-/* ------------------------------------------------------------------ the More menu */
-
-/* The button is an .icon-btn like Share, so the two sit as a pair. */
-.episode-more .icon-btn {
-  anchor-name: --episode-more;
-}
-
-/*
- * A popover lives in the top layer, so it is placed against the viewport, not the row. Where anchor
- * positioning exists it hangs under the button, right edges level; elsewhere the entry script
- * writes --menu-top and --menu-right from the button's box when it opens.
- */
-.episode-menu {
-  position: fixed;
-  inset: auto;
-  inset-block-start: var(--menu-top, 0);
-  inset-inline-end: var(--menu-right, 0);
-  min-width: 10rem;
-  margin: 0;
-  padding: var(--space-1);
-  border: 0;
-  border-radius: var(--radius-md);
-  background: var(--color-surface-overlay);
-  box-shadow: var(--shadow-popover);
-  color: var(--color-on-surface);
-  --color-focus-gap: var(--color-surface-overlay);
-  /* Closed, a popover is display: none; the open state alone turns it on. */
-  display: none;
-  opacity: 0;
-  transform: translateY(calc(var(--distance-micro) * -1));
-  transition:
-    opacity var(--duration-exit) var(--ease-out),
-    transform var(--duration-exit) var(--ease-out),
-    overlay var(--duration-exit) allow-discrete,
-    display var(--duration-exit) allow-discrete;
-}
-
-@supports (top: anchor(bottom)) {
-  .episode-menu {
-    position-anchor: --episode-more;
-    inset-block-start: anchor(bottom);
-    inset-inline-end: anchor(right);
-    margin-block-start: var(--space-1);
-    position-try-fallbacks: flip-block;
-  }
-}
-
-.episode-menu:popover-open {
-  display: block;
-  opacity: 1;
-  transform: none;
-  transition-duration: var(--duration-enter);
-}
-
-@starting-style {
-  .episode-menu:popover-open {
-    opacity: 0;
-    transform: translateY(calc(var(--distance-micro) * -1));
-  }
-}
-
-.episode-menu-item {
-  display: flex;
-  align-items: center;
-  width: 100%;
-  min-height: var(--size-touch);
-  padding-inline: var(--space-3);
-  border-radius: var(--radius-sm);
-  color: var(--color-on-surface);
-  font-size: var(--font-size-body);
-  line-height: var(--font-leading-label);
-  text-align: start;
-}
-
-@media (hover: hover) and (pointer: fine) {
-  .episode-menu-item:hover {
-    background: var(--color-surface-sunken);
-  }
-}
-
-.episode-menu-item:active {
-  background: var(--color-surface-sunken);
-}
-
-/* Red marks the one that destroys; the confirm still asks before anything is removed. */
-.episode-menu-delete {
-  color: var(--color-danger);
-}
-
-.episode-menu-item[aria-disabled="true"] {
-  color: var(--color-on-surface-disabled);
-  cursor: default;
-}
-
-@media (prefers-reduced-motion: reduce) {
-  .episode-menu {
-    transform: none;
-  }
-}
 
 /* ------------------------------------------------------------------ the rewrite panel */
 
@@ -190,12 +89,7 @@ dialog.confirm-dialog:focus-visible {
 }
 
 @media (forced-colors: active) {
-  dialog.confirm-dialog,
-  .episode-menu {
+  dialog.confirm-dialog {
     border: var(--stroke-hairline) solid CanvasText;
-  }
-
-  .episode-menu-item[aria-disabled="true"] {
-    color: GrayText;
   }
 }

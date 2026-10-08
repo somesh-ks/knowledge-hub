@@ -51,21 +51,20 @@ describe("buildSections", () => {
 });
 
 describe("buildHero", () => {
-  it("writes one meta line: stories and listening time", () => {
+  it("writes the line beside the chip: the story count only", () => {
     const hero = buildHero(entryFor(), "Wednesday 7 October");
     expect(hero.title).toBe("Wednesday 7 October");
-    expect(hero.meta).toEqual(["4 stories", "4 min listen"]);
+    expect(hero.meta).toEqual(["4 stories"]);
   });
 
   it("labels the play chip with the estimate until the recording exists", () => {
     expect(buildHero(entryFor(), "x").length).toBe("4 min");
   });
 
-  it("uses the length of the recording once there is one, on the chip and in the meta line", () => {
+  it("uses the length of the recording once there is one, on the chip", () => {
     const audio = { url: "https://example.com/a.mp3", duration_ms: 452_000 };
     const hero = buildHero(entryFor({ audio }, true), "x");
     expect(hero.length).toBe("8 min");
-    expect(hero.meta.at(-1)).toBe("8 min listen");
   });
 
   it("says stories, with the singular for one", () => {
