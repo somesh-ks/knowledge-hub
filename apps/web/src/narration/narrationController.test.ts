@@ -135,52 +135,6 @@ beforeEach(() => {
   forgetNarrated(page.id);
 });
 
-describe("prewarm", () => {
-  it("makes the intro and the first story in the background, and plays nothing", async () => {
-    const { controller, remembered, server, harness, said, asked, settle } = setup();
-    remembered.value = "open sesame";
-    await controller.prewarm(page);
-    await settle();
-    expect(server.posts.map((post) => post.segment)).toEqual(["intro", ids[0]]);
-    expect(harness.store.getState().status).toBe("idle");
-    expect(said).toEqual([]);
-    expect(asked).toEqual([]);
-  });
-
-  it("a press while it runs joins the request instead of sending another", async () => {
-    const { controller, remembered, server, element } = setup();
-    remembered.value = "open sesame";
-    const warming = controller.prewarm(page);
-    await expect(controller.play(page)).resolves.toBe("playing");
-    await warming;
-    expect(server.lookups).toBe(1);
-    expect(server.posts.filter((post) => post.segment === "intro")).toHaveLength(1);
-    expect(element.src).toBe("https://store.test/intro.mp3");
-  });
-
-  it("does nothing without a passphrase to ask with, and never opens the sheet", async () => {
-    const { controller, server, asked, settle } = setup();
-    await controller.prewarm(page);
-    await settle();
-    expect(server.posts).toEqual([]);
-    expect(asked).toEqual([]);
-  });
-
-  it("stays silent about a refusal, and a press then tries again and says so", async () => {
-    const { controller, remembered, server, said, settle } = setup({
-      refuse: { status: 429, error: "daily_cap" },
-    });
-    remembered.value = "open sesame";
-    await controller.prewarm(page);
-    await settle();
-    expect(said).toEqual([]);
-    expect(server.posts).toHaveLength(1);
-    await expect(controller.play(page)).resolves.toBe("failed");
-    expect(server.posts).toHaveLength(2);
-    expect(said).toHaveLength(1);
-  });
-});
-
 describe("createNarrationController", () => {
   it("asks for the passphrase, makes the first file, then plays the briefing as one track", async () => {
     const { controller, answers, server, element, harness, preparing, asked } = setup();

@@ -44,41 +44,6 @@ function setup(passphrase: string | null = "open sesame") {
 
 const reasonOf = (error: unknown) => (error as NarrationError).reason;
 
-describe("a guessed address", () => {
-  it("is asked of the server by warm and confirm, and confirm joins the request on its way", async () => {
-    const { list, queue, sent, ok } = setup();
-    const intro = list[0];
-    if (intro) intro.unconfirmed = true;
-    queue.warm(0);
-    expect(sent).toEqual(["intro"]);
-    const confirmed = queue.confirm(0);
-    expect(sent).toEqual(["intro"]);
-    await ok("intro");
-    await expect(confirmed).resolves.toBe("https://blob.test/intro.mp3");
-    expect(intro?.unconfirmed).toBe(false);
-    // Known now: nothing more to ask.
-    queue.warm(0);
-    await expect(queue.confirm(0)).resolves.toBe("https://blob.test/intro.mp3");
-    expect(sent).toEqual(["intro"]);
-  });
-
-  it("is still handed over at once by ensure, which only the playhead uses", async () => {
-    const { list, queue, sent } = setup();
-    const intro = list[0];
-    if (intro) intro.unconfirmed = true;
-    await expect(queue.ensure(0)).resolves.toBe("https://blob.test/intro.mp3");
-    expect(sent).toEqual([]);
-  });
-
-  it("warm sends nothing after a standing refusal", async () => {
-    const { queue, sent, answer } = setup();
-    queue.warm(1);
-    await answer("a", { ok: false, reason: "daily_cap" });
-    queue.warm(2);
-    expect(sent).toEqual(["a"]);
-  });
-});
-
 describe("createSegmentQueue", () => {
   it("answers at once for a segment that already has its file", async () => {
     const { queue, sent } = setup();

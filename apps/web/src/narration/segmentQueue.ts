@@ -64,17 +64,6 @@ export interface SegmentQueueOptions {
 }
 
 export interface SegmentQueue extends Playlist {
-  /**
-   * Like `ensure`, but a file at a guessed address does not count: the server is asked, which
-   * answers at once for a file that exists and makes it when it does not. Joins a request for the
-   * same segment that is already on its way.
-   */
-  confirm(index: number): Promise<string>;
-  /**
-   * Asks the server for a segment in the background, at the back of the line. Asks nothing of a
-   * file that is known to exist, and nothing at all after a standing refusal. Returns at once.
-   */
-  warm(index: number): void;
   /** Clears a standing refusal, after a new passphrase for instance. */
   reset(): void;
   /**
@@ -109,11 +98,7 @@ export function createSegmentQueue(options: SegmentQueueOptions): SegmentQueue {
     waiters.delete(index);
     if (outcome.ok) {
       const segment = segments[index];
-      if (segment) {
-        segment.url = outcome.url;
-        // The server just answered for this file: it is no longer a guess.
-        segment.unconfirmed = false;
-      }
+      if (segment) segment.url = outcome.url;
       failedOnce.delete(index);
       for (const waiter of waiting) waiter.resolve(outcome.url);
       options.onProgress?.(readyCount(), segments.length);
@@ -143,7 +128,7 @@ export function createSegmentQueue(options: SegmentQueueOptions): SegmentQueue {
     const index = line.shift();
     if (index === undefined) return;
     const segment = segments[index];
-    if (!segment || isConfirmed(segment)) {
+    if (!segment || segment.url !== null) {
       if (segment?.url) settle(index, { ok: true, url: segment.url });
       pump();
       return;
@@ -160,23 +145,6 @@ export function createSegmentQueue(options: SegmentQueueOptions): SegmentQueue {
     options.narrate(segment.key, passphrase).then((outcome) => {
       inFlight = null;
       settle(index, outcome);
-      pump();
-    });
-  }
-
-  /** A file the server has vouched for, as opposed to one at the address it would have. */
-  function isConfirmed(segment: TrackSegment): boolean {
-    return segment.url !== null && !segment.unconfirmed;
-  }
-
-  function wait(index: number): Promise<string> {
-    // The playhead needing a file outranks an earlier stop: the queue runs again.
-    stopped = false;
-    return new Promise<string>((resolve, reject) => {
-      const waiting = waiters.get(index) ?? [];
-      waiting.push({ resolve, reject });
-      waiters.set(index, waiting);
-      enqueue(index, true);
       pump();
     });
   }
@@ -199,20 +167,15 @@ export function createSegmentQueue(options: SegmentQueueOptions): SegmentQueue {
       if (!segment) return Promise.reject(new NarrationError("segment_not_found"));
       if (segment.url !== null) return Promise.resolve(segment.url);
       if (standing) return Promise.reject(new NarrationError(standing));
-      return wait(index);
-    },
-    confirm(index) {
-      const segment = segments[index];
-      if (!segment) return Promise.reject(new NarrationError("segment_not_found"));
-      if (isConfirmed(segment) && segment.url) return Promise.resolve(segment.url);
-      if (standing) return Promise.reject(new NarrationError(standing));
-      return wait(index);
-    },
-    warm(index) {
-      const segment = segments[index];
-      if (!segment || isConfirmed(segment) || standing || stopped || failedOnce.has(index)) return;
-      enqueue(index, false);
-      pump();
+      // The playhead needs this file, which outranks an earlier stop: the queue runs again.
+      stopped = false;
+      return new Promise<string>((resolve, reject) => {
+        const waiting = waiters.get(index) ?? [];
+        waiting.push({ resolve, reject });
+        waiters.set(index, waiting);
+        enqueue(index, true);
+        pump();
+      });
     },
     prepare(index) {
       const segment = segments[index];
