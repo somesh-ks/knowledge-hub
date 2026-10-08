@@ -46,6 +46,48 @@ describe("component stylesheets", () => {
     }
   });
 
+  it("takes spacing, type and radius from tokens, never a raw length", () => {
+    // Space, type size, leading, tracking and corner radius each have a scale in tokens.css. A
+    // literal length here is a value off that scale. Widths and heights are a component's own
+    // dimensions and are not held to it.
+    const scaled =
+      /^(?:margin|padding|gap|row-gap|column-gap|inset|top|right|bottom|left|scroll-margin|scroll-padding|font-size|line-height|letter-spacing|border-radius|border-(?:start|end)-(?:start|end)-radius)(?:-[a-z-]+)?$/;
+    const rawLength = /(?<![\w.-])-?\d*\.?\d+(?:px|rem|em)\b/;
+    for (const file of OWN_FILES) {
+      for (const [, property = "", value = ""] of withoutComments(read(file)).matchAll(
+        /^\s*([a-z-]+)\s*:\s*([^;{}]+);/gm,
+      )) {
+        if (!scaled.test(property)) continue;
+        // What a var() falls back to is not this file's choice of value.
+        const own = value.replace(/var\([^()]*(?:\([^()]*\)[^()]*)*\)/g, "token");
+        expect(rawLength.exec(own)?.[0], `${file}: ${property}: ${value.trim()}`).toBeUndefined();
+      }
+    }
+  });
+
+  it("reads no custom property that nothing defines", () => {
+    // `var(--space-5)` with no --space-5 is not an error to the browser: the whole declaration is
+    // dropped, silently. A property with a fallback is one that script or a library may set.
+    const src = join(STYLES, "..");
+    const sources = readdirSync(src, { recursive: true, encoding: "utf8" })
+      .filter((file) => /\.(css|astro|tsx|ts)$/.test(file) && !/\.(test|spec)\.tsx?$/.test(file))
+      .map((file) => readFileSync(join(src, file), "utf8"));
+    const defined = new Set(
+      sources.flatMap((text) =>
+        [
+          ...text.matchAll(/(--[a-z0-9-]+)\s*:/gi),
+          ...text.matchAll(/@property\s+(--[a-z0-9-]+)/gi),
+          ...text.matchAll(/["'`](--[a-z0-9-]+)["'`]/gi),
+        ].map((match) => match[1]),
+      ),
+    );
+    for (const file of [...OWN_FILES, "foundations.css"]) {
+      for (const [, name] of withoutComments(read(file)).matchAll(/var\(\s*(--[a-z0-9-]+)\s*\)/gi)) {
+        expect(defined.has(name), `${file} reads ${name}, which nothing defines`).toBe(true);
+      }
+    }
+  });
+
   it("uses only system colors that forced-colors mode defines", () => {
     const allowed = new Set(["GrayText", "Highlight", "CanvasText", "ButtonText"]);
     for (const file of OWN_FILES) {
