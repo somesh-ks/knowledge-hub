@@ -64,6 +64,15 @@ const items = libraryItems(entries, episodes);
                 </select>
                 <Icon name="chevronDown" />
               </label>
+              {/* How the library is laid out: covers in a grid, or compact rows. Remembered on this device. */}
+              <div class="view-switch" role="group" aria-label="View">
+                <button class="view-btn press press-subtle" type="button" aria-pressed="true" aria-label="Gallery view" data-library-view="gallery">
+                  <svg class="icon" viewBox="0 0 256 256" aria-hidden="true" focusable="false"><path d="M104 40H56a16 16 0 0 0-16 16v48a16 16 0 0 0 16 16h48a16 16 0 0 0 16-16V56a16 16 0 0 0-16-16Zm0 64H56V56h48Zm96-64h-48a16 16 0 0 0-16 16v48a16 16 0 0 0 16 16h48a16 16 0 0 0 16-16V56a16 16 0 0 0-16-16Zm0 64h-48V56h48Zm-96 32H56a16 16 0 0 0-16 16v48a16 16 0 0 0 16 16h48a16 16 0 0 0 16-16v-48a16 16 0 0 0-16-16Zm0 64H56v-48h48Zm96-64h-48a16 16 0 0 0-16 16v48a16 16 0 0 0 16 16h48a16 16 0 0 0 16-16v-48a16 16 0 0 0-16-16Zm0 64h-48v-48h48Z"></path></svg>
+                </button>
+                <button class="view-btn press press-subtle" type="button" aria-pressed="false" aria-label="List view" data-library-view="list">
+                  <svg class="icon" viewBox="0 0 256 256" aria-hidden="true" focusable="false"><path d="M224 128a8 8 0 0 1-8 8H40a8 8 0 0 1 0-16h176a8 8 0 0 1 8 8ZM40 72h176a8 8 0 0 0 0-16H40a8 8 0 0 0 0 16Zm176 112H40a8 8 0 0 0 0 16h176a8 8 0 0 0 0-16Z"></path></svg>
+                </button>
+              </div>
             </div>
           </form>
           <p class="sr-only" role="status" data-library-status>

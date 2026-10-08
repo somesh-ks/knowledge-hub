@@ -434,6 +434,39 @@ test.describe("library episodes", () => {
     await expect(links.nth(1)).not.toHaveAttribute("title", /.+/);
   });
 
+  test("a switch chooses between the gallery and a list, and the choice is remembered", async ({
+    page,
+  }) => {
+    await page.goto("/library");
+    await ready(page);
+    const gallery = page.getByRole("button", { name: "Gallery view" });
+    const list = page.getByRole("button", { name: "List view" });
+    await expect(gallery).toHaveAttribute("aria-pressed", "true");
+    const grid = page.locator("[data-library-grid]");
+    await expect(grid).toHaveCSS("display", "grid");
+    for (const button of [gallery, list]) {
+      const box = await button.boundingBox();
+      expect(box?.width).toBeGreaterThanOrEqual(44);
+    }
+    await list.click();
+    await expect(list).toHaveAttribute("aria-pressed", "true");
+    await expect(gallery).toHaveAttribute("aria-pressed", "false");
+    await expect(page.locator("[data-library]")).toHaveAttribute("data-view", "list");
+    await expect(grid).toHaveCSS("display", "block");
+    // Rows: each card is as wide as the column, with the kind in its meta line.
+    const first = page.locator("[data-card]:not([hidden])").first();
+    await expect(first.locator(".card-meta")).toBeVisible();
+    // Search, filters and sort still work in the list.
+    await page.getByRole("searchbox").fill("quiet interfaces");
+    expect(await titles(page)).toEqual([DISCUSSION]);
+    await page.getByRole("searchbox").fill("");
+    await page.reload();
+    await ready(page);
+    await expect(page.locator("[data-library]")).toHaveAttribute("data-view", "list");
+    await page.getByRole("button", { name: "Gallery view" }).click();
+    await expect(grid).toHaveCSS("display", "grid");
+  });
+
   test("search falls back to the cards when the index cannot be fetched", async ({ page }) => {
     await page.route("**/search-index.json", (route) =>
       route.fulfill({ status: 200, body: "not an index" }),

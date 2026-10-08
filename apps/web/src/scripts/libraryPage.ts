@@ -14,6 +14,8 @@ import {
   textHasWords,
 } from "../lib/library";
 
+const VIEW_KEY = "dispatch:library-view";
+
 interface Card {
   id: string;
   element: HTMLElement;
@@ -155,6 +157,33 @@ function install(): void {
   });
   // A search field inside a form would reload the page on Enter.
   root.querySelector("form")?.addEventListener("submit", (event) => event.preventDefault());
+  /** Gallery or list, remembered on this device. Storage that fails leaves the gallery. */
+  const viewButtons = [...root.querySelectorAll<HTMLButtonElement>("[data-library-view]")];
+  function showView(view: string): void {
+    root.dataset.view = view;
+    for (const button of viewButtons) {
+      button.setAttribute("aria-pressed", String(button.dataset.libraryView === view));
+    }
+    requestAnimationFrame(markTruncated);
+  }
+  let stored: string | null = null;
+  try {
+    stored = localStorage.getItem(VIEW_KEY);
+  } catch {
+    stored = null;
+  }
+  showView(stored === "list" ? "list" : "gallery");
+  for (const button of viewButtons) {
+    button.addEventListener("click", () => {
+      const view = button.dataset.libraryView === "list" ? "list" : "gallery";
+      showView(view);
+      try {
+        localStorage.setItem(VIEW_KEY, view);
+      } catch {
+        // Not remembered; it still works for this visit.
+      }
+    });
+  }
   window.addEventListener("resize", () => requestAnimationFrame(markTruncated));
   apply();
 }
