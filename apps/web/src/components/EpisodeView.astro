@@ -1,0 +1,116 @@
+---
+import { paletteAccent } from "@dispatch/cover";
+import { type EpisodeEntry, FORMAT_LABELS } from "../lib/episodes";
+import { longDate } from "../lib/format";
+import { sourceHost } from "../lib/sourceLabel";
+import Cover from "./Cover.astro";
+import Icon from "./Icon.astro";
+import PlayCta from "./PlayCta.astro";
+import PlayerData from "./PlayerData.astro";
+import "../styles/episode.css";
+
+interface Props {
+  entry: EpisodeEntry;
+}
+
+const { entry } = Astro.props;
+const { episode } = entry;
+const length = `${episode.listen_minutes} min`;
+// One host tells it, or two talk: only two voices need telling apart.
+const twoHosts = episode.format === "discussion";
+const NAMES = { a: "Host", b: "Guest" } as const;
+// "7 October": the long date without its weekday.
+const day = longDate(episode.date).split(" ").slice(1).join(" ");
+const sources = episode.sources.map((source) => ({ ...source, host: sourceHost(source.url) }));
+---
+
+<main
+  id="main"
+  tabindex="-1"
+  data-digest-id={entry.id}
+  data-digest-date={episode.date}
+  data-latest="false"
+>
+  <header class="hero">
+    <Cover
+      digestId={entry.id}
+      size="hero"
+      paletteBg={paletteAccent(entry.cover.palette).bg}
+      weekly={false}
+      priority
+    />
+    <div class="hero-text">
+      <h1 class="page-title" id="page-title" tabindex="-1">{episode.title}</h1>
+      <p class="meta meta-wrap">
+        <span>{FORMAT_LABELS[episode.format]}</span>{" "}
+        <span>{length}</span>{" "}
+        <span>{day}</span>
+      </p>
+    </div>
+    {/* The same path a briefing takes: audio is made when Play is pressed, one turn at a time. */}
+    <PlayCta
+      digestId={entry.id}
+      mode="preparing"
+      length={length}
+      sharePath={`/e/${entry.id}`}
+      noun="episode"
+    />
+  </header>
+
+  <section class="episode-block" aria-labelledby="episode-script-title">
+    <h2 class="section-head" id="episode-script-title">Script</h2>
+    <div class="episode-script">
+      {
+        episode.turns.map((turn) => (
+          <p class="episode-turn">
+            {twoHosts && <span class="episode-speaker">{NAMES[turn.speaker]}</span>}
+            {twoHosts && " "}
+            {turn.text}
+          </p>
+        ))
+      }
+    </div>
+  </section>
+
+  {
+    sources.length > 0 && (
+      <section class="episode-block rule-above" aria-labelledby="episode-stories-title">
+        <h2 class="section-head" id="episode-stories-title">Stories</h2>
+        <ul class="rows episode-sources" role="list">
+          {sources.map((source) => {
+            const text = (
+              <span class="episode-source-text">
+                <span class="episode-source-title">{source.headline}</span>
+                <span class="episode-source-meta">{source.source || source.host}</span>
+              </span>
+            );
+            return (
+              <li>
+                {source.host ? (
+                  <a
+                    class="row-action episode-source"
+                    href={source.url}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    aria-label={`${source.headline}, ${source.source || source.host}, opens in a new tab`}
+                  >
+                    {text}
+                    <Icon name="openInNew" />
+                  </a>
+                ) : (
+                  <div class="episode-source">{text}</div>
+                )}
+              </li>
+            );
+          })}
+        </ul>
+      </section>
+    )
+  }
+  <PlayerData data={entry.player} />
+</main>
+
+<script>
+  // Shared with the briefing pages: it shares the page's address.
+  void import("../scripts/briefingPage");
+</script>

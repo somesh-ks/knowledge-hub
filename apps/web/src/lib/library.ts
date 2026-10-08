@@ -1,18 +1,19 @@
 /**
- * The Library: every briefing as album art, with search, sort and filter. The page is static HTML;
+ * The Library: every briefing and podcast episode as album art, with search, sort and filter. The page is static HTML;
  * these pure functions decide what a card says and which cards a query keeps, and are shared by the
  * build (the card's facts) and the page script (the matching), so the two cannot disagree.
  *
  * Nothing here may import build-time code: this file ships to the browser with the page script.
  */
 
-export type LibraryFilter = "all" | "daily" | "weekly" | "audio";
+export type LibraryFilter = "all" | "daily" | "weekly" | "episodes" | "audio";
 export type LibrarySort = "newest" | "oldest" | "longest" | "stories";
 
 export const LIBRARY_FILTERS: ReadonlyArray<{ id: LibraryFilter; label: string }> = [
   { id: "all", label: "All" },
   { id: "daily", label: "Daily" },
   { id: "weekly", label: "Weekly" },
+  { id: "episodes", label: "Episodes" },
   { id: "audio", label: "With audio" },
 ];
 
@@ -22,6 +23,9 @@ export const LIBRARY_SORTS: ReadonlyArray<{ id: LibrarySort; label: string }> = 
   { id: "longest", label: "Longest first" },
   { id: "stories", label: "Most stories" },
 ];
+
+/** The `kind` a podcast episode's card carries, beside the kinds of briefing. */
+export const EPISODE_KIND = "episode";
 
 /** What search, sort and filter need to know about one card. Read from its data attributes. */
 export interface CardData {
@@ -52,7 +56,8 @@ export function normalize(text: string): string {
 
 export function matchesFilter(card: CardData, filter: LibraryFilter): boolean {
   if (filter === "weekly") return card.kind === "weekly";
-  if (filter === "daily") return card.kind !== "weekly";
+  if (filter === "episodes") return card.kind === EPISODE_KIND;
+  if (filter === "daily") return card.kind !== "weekly" && card.kind !== EPISODE_KIND;
   if (filter === "audio") return card.hasAudio;
   return true;
 }
@@ -79,9 +84,9 @@ export function compareCards(a: CardData, b: CardData, sort: LibrarySort): numbe
   return newest;
 }
 
-/** "3 briefings", "1 briefing", or "No briefings match". Announced after every change. */
+/** "3 results", "1 result", or "No results". Announced after every change. */
 export function resultSummary(shown: number, total: number): string {
-  if (shown === 0) return "No briefings match";
-  const noun = shown === 1 ? "briefing" : "briefings";
-  return shown === total ? `${shown} ${noun}` : `${shown} of ${total} briefings`;
+  if (shown === 0) return "No results";
+  const noun = shown === 1 ? "result" : "results";
+  return shown === total ? `${shown} ${noun}` : `${shown} of ${total} ${noun}`;
 }

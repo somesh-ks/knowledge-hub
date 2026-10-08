@@ -114,7 +114,7 @@ describe("buildEpisodeEntries", () => {
     const named = (palette: string, template: string) =>
       parseEpisodeFile(
         text("ep-20261007-1000", "2026-10-07T08:00:00Z", [
-          "cover: { palette: " + palette + ", template: " + template + ", seed: 3 }",
+          `cover: { palette: ${palette}, template: ${template}, seed: 3 }`,
         ]),
       );
     expect(buildEpisodeEntries([named("ultramarine", "orbit")])[0]?.cover).toEqual({

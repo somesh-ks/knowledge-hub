@@ -1,18 +1,21 @@
 ---
 import BriefingCard from "../components/BriefingCard.astro";
 import EmptyState from "../components/EmptyState.astro";
+import EpisodeCard from "../components/EpisodeCard.astro";
 import Icon from "../components/Icon.astro";
 import BaseLayout from "../layouts/BaseLayout.astro";
 import { LIBRARY_FILTERS, LIBRARY_SORTS, resultSummary } from "../lib/library";
+import { libraryItems } from "../lib/libraryCard";
 import { getSite } from "../lib/site";
 
-const { entries } = await getSite();
+const { entries, episodes } = await getSite();
+const items = libraryItems(entries, episodes);
 ---
 
 <BaseLayout title="Library" view="library" skipLabel="Skip to the library">
   <main id="main" class="library" tabindex="-1">
     {
-      entries.length === 0 ? (
+      items.length === 0 ? (
         <EmptyState />
       ) : (
         <div data-library>
@@ -24,11 +27,11 @@ const { entries } = await getSite();
           <form class="library-tools" role="search" aria-label="Library">
             <label class="search-field">
               <Icon name="search" />
-              <span class="sr-only">Search briefings and stories</span>
+              <span class="sr-only">Search briefings, episodes and stories</span>
               <input
                 type="search"
                 name="q"
-                placeholder="Search briefings and stories"
+                placeholder="Search briefings, episodes and stories"
                 autocomplete="off"
                 enterkeyhint="search"
                 data-library-search
@@ -59,15 +62,19 @@ const { entries } = await getSite();
             </div>
           </form>
           <p class="sr-only" role="status" data-library-status>
-            {resultSummary(entries.length, entries.length)}
+            {resultSummary(items.length, items.length)}
           </p>
           <ul class="library-grid" role="list" data-library-grid>
-            {entries.map((entry, index) => (
-              <BriefingCard entry={entry} priority={index < 6} />
-            ))}
+            {items.map((item, index) =>
+              item.kind === "episode" ? (
+                <EpisodeCard entry={item.entry} priority={index < 6} />
+              ) : (
+                <BriefingCard entry={item.entry} priority={index < 6} />
+              ),
+            )}
           </ul>
           <div class="library-empty" data-library-empty hidden>
-            <p>No briefings match.</p>
+            <p>Nothing matches.</p>
             <button class="btn press press-subtle" type="button" data-library-clear>
               Clear search
             </button>

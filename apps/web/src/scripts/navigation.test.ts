@@ -21,6 +21,13 @@ describe("navigationKind", () => {
     expect(navigationKind(url("/d/2026-10-05"), url("/"))).toBe("out");
   });
 
+  it("treats a podcast episode like a dated briefing", () => {
+    expect(navigationKind(url("/library"), url("/e/ep-20261007-1930"))).toBe("in");
+    expect(navigationKind(url("/e/ep-20261007-1930"), url("/library"))).toBe("out");
+    expect(navigationKind(url("/e/ep-20261007-1930"), url("/d/2026-10-05"))).toBe("peer");
+    expect(navigationKind(url("/create"), url("/library"))).toBe("peer");
+  });
+
   it("does not move for the page it is already on", () => {
     expect(navigationKind(url("/archive"), url("/archive"))).toBe("none");
     expect(navigationKind(url("/archive/"), url("/archive"))).toBe("none");
