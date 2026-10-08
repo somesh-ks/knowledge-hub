@@ -94,9 +94,9 @@ describe("topicOptions", () => {
 });
 
 describe("audiences", () => {
-  it("are General and Customized, Customized by default", () => {
+  it("are General and Somesh mode, Somesh mode by default", () => {
     expect(AUDIENCES.map((audience) => audience.value)).toEqual(["general", "custom"]);
-    expect(AUDIENCES.map((audience) => audience.label)).toEqual(["General", "Customized"]);
+    expect(AUDIENCES.map((audience) => audience.label)).toEqual(["General", "Somesh mode"]);
     expect(DEFAULTS.audience).toBe("custom");
   });
 });
@@ -135,7 +135,7 @@ describe("the topics each mode offers", () => {
     ]);
   });
 
-  it("are the five and the owner's own in Customized mode, and no general topic", () => {
+  it("are the five and the owner's own in Somesh mode mode, and no general topic", () => {
     expect(ids("custom")).toEqual([
       "design",
       "ui-craft",
