@@ -16,11 +16,13 @@ export interface LimitPolicy {
 const BRIEFING_POLICY: LimitPolicy = { cooldownMs: COOLDOWN_MS, dailyCap: DAILY_CAP };
 
 /**
- * Episodes of the Create page: two a day, and half an hour apart so one tap cannot queue two. Counted
- * over the runs of podcast.yml, apart from the briefings.
+ * Episodes of the Create page: twelve a day, and two minutes apart so one tap cannot queue two.
+ * Counted over the runs of podcast.yml, apart from the briefings. The first numbers (two a day,
+ * half an hour apart) were a guard nobody asked for, and the owner hit them on the first day. An
+ * episode costs one to three writer calls; narration is held by its own monthly budget.
  */
-export const PODCAST_COOLDOWN_MS = 30 * 60 * 1000;
-export const PODCAST_DAILY_CAP = 2;
+export const PODCAST_COOLDOWN_MS = 2 * 60 * 1000;
+export const PODCAST_DAILY_CAP = 12;
 export const PODCAST_POLICY: LimitPolicy = {
   cooldownMs: PODCAST_COOLDOWN_MS,
   dailyCap: PODCAST_DAILY_CAP,

@@ -97,25 +97,26 @@ describe("evaluateLimits for episodes", () => {
   const minutesAgo = (minutes: number) => NOW - minutes * 60 * 1000;
 
   it("keeps the documented numbers", () => {
-    expect(PODCAST_COOLDOWN_MS).toBe(30 * 60 * 1000);
-    expect(PODCAST_DAILY_CAP).toBe(2);
+    expect(PODCAST_COOLDOWN_MS).toBe(2 * 60 * 1000);
+    expect(PODCAST_DAILY_CAP).toBe(12);
   });
 
   it("allows a first episode and one after the cooldown", () => {
     expect(evaluateLimits([], NOW, PODCAST_POLICY)).toEqual({ allowed: true });
-    expect(evaluateLimits([minutesAgo(31)], NOW, PODCAST_POLICY)).toEqual({ allowed: true });
+    expect(evaluateLimits([minutesAgo(3)], NOW, PODCAST_POLICY)).toEqual({ allowed: true });
   });
 
   it("blocks within the cooldown and says how long is left", () => {
-    expect(evaluateLimits([minutesAgo(10)], NOW, PODCAST_POLICY)).toEqual({
+    expect(evaluateLimits([minutesAgo(1)], NOW, PODCAST_POLICY)).toEqual({
       allowed: false,
       reason: "cooldown",
-      retryAfterSeconds: 20 * 60,
+      retryAfterSeconds: 60,
     });
   });
 
-  it("blocks the third episode in a day until the oldest ages out", () => {
-    expect(evaluateLimits([hoursAgo(2), hoursAgo(5)], NOW, PODCAST_POLICY)).toEqual({
+  it("blocks the thirteenth episode in a day until the oldest ages out", () => {
+    const today = [2, 2.5, 3, 3.5, 4, 4.2, 4.4, 4.6, 4.8, 4.9, 4.95, 5].map(hoursAgo);
+    expect(evaluateLimits(today, NOW, PODCAST_POLICY)).toEqual({
       allowed: false,
       reason: "daily_cap",
       retryAfterSeconds: 19 * 3600,

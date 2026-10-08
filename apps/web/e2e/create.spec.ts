@@ -445,8 +445,8 @@ test.describe("the Create page when the server says no", () => {
     const cases: Array<[number, unknown, string]> = [
       [
         429,
-        { status: 429, error: "cooldown", retry_after_s: 1500 },
-        "Episodes need a short rest between them. Try again in 25 minutes.",
+        { status: 429, error: "cooldown", retry_after_s: 100 },
+        "Episodes need a short rest between them. Try again in 2 minutes.",
       ],
       [
         429,
