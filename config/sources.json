@@ -1506,9 +1506,7 @@
         "pool_cap": "6"
       },
       "origin": "seed",
-      "topic_ids": [
-        "design"
-      ]
+      "topic_ids": ["design"]
     },
     {
       "id": "ux-collective",
@@ -1524,9 +1522,7 @@
         "pool_cap": "6"
       },
       "origin": "seed",
-      "topic_ids": [
-        "design"
-      ]
+      "topic_ids": ["design"]
     },
     {
       "id": "creative-bloq",
@@ -1542,9 +1538,7 @@
         "pool_cap": "6"
       },
       "origin": "seed",
-      "topic_ids": [
-        "design"
-      ]
+      "topic_ids": ["design"]
     },
     {
       "id": "design-observer",
@@ -1560,9 +1554,7 @@
         "pool_cap": "6"
       },
       "origin": "seed",
-      "topic_ids": [
-        "design"
-      ]
+      "topic_ids": ["design"]
     },
     {
       "id": "creative-boom",
@@ -1578,9 +1570,7 @@
         "pool_cap": "6"
       },
       "origin": "seed",
-      "topic_ids": [
-        "design"
-      ]
+      "topic_ids": ["design"]
     },
     {
       "id": "npr-news",
@@ -1596,9 +1586,7 @@
         "pool_cap": "6"
       },
       "origin": "seed",
-      "topic_ids": [
-        "trending"
-      ]
+      "topic_ids": ["trending"]
     },
     {
       "id": "cbs-news",
@@ -1614,9 +1602,7 @@
         "pool_cap": "6"
       },
       "origin": "seed",
-      "topic_ids": [
-        "trending"
-      ]
+      "topic_ids": ["trending"]
     },
     {
       "id": "abc-news",
@@ -1632,9 +1618,7 @@
         "pool_cap": "6"
       },
       "origin": "seed",
-      "topic_ids": [
-        "trending"
-      ]
+      "topic_ids": ["trending"]
     },
     {
       "id": "al-jazeera",
@@ -1650,9 +1634,7 @@
         "pool_cap": "6"
       },
       "origin": "seed",
-      "topic_ids": [
-        "trending"
-      ]
+      "topic_ids": ["trending"]
     },
     {
       "id": "france-24",
@@ -1668,9 +1650,7 @@
         "pool_cap": "6"
       },
       "origin": "seed",
-      "topic_ids": [
-        "trending"
-      ]
+      "topic_ids": ["trending"]
     },
     {
       "id": "sky-news",
@@ -1686,9 +1666,7 @@
         "pool_cap": "6"
       },
       "origin": "seed",
-      "topic_ids": [
-        "trending"
-      ]
+      "topic_ids": ["trending"]
     },
     {
       "id": "pbs-newshour",
@@ -1704,9 +1682,7 @@
         "pool_cap": "6"
       },
       "origin": "seed",
-      "topic_ids": [
-        "trending"
-      ]
+      "topic_ids": ["trending"]
     }
   ]
 }

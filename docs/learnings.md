@@ -37,3 +37,4 @@ One line each: symptom, cause, fix. Newest first. Search before debugging.
 - Local Windows builds of the Vercel adapter fail on symlinks: use `DISPATCH_STATIC_ONLY=1`.
 - Nebius model ids change; take them from `dispatch models`, not docs (D24).
 - Auto-mode classifier blocks credential creation, store deletion and merging unreviewed PRs; the owner runs those.
+- 2026-10-08: heredoc-built edit scripts with backticks or backslashes aborted the shell; write them with the Write tool. A test that misfiles a story into a retired section no longer fails validation, because published briefings must still validate; use a live section instead.

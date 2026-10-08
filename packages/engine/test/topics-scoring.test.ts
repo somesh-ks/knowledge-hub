@@ -237,9 +237,9 @@ describe("selection with custom topics", () => {
     });
   });
 
-  it("sends a topic's video to watch, as for every other category", () => {
+  it("files a topic's video in the topic's own section, since watch no longer receives stories", () => {
     const verdict = eligibility(scoredFor(customTopic(), 0.7, "none", { source_type: "youtube" }));
-    expect(verdict).toMatchObject({ eligible: true, candidate: { home: "watch" } });
+    expect(verdict).toMatchObject({ eligible: true, candidate: { home: "quantum" } });
   });
 
   it("drops a never-publish topic and anything below the bar", () => {
@@ -342,6 +342,8 @@ describe("selection with custom topics", () => {
 describe("the seed file", () => {
   it("has no custom topic, so the layer is empty", () => {
     const seed = seedTopicsFile(preferences.weights);
-    expect(seed.topics.every((topic) => topic.origin === "builtin")).toBe(true);
+    // The two shipped topics have origin "app" and are not counted as custom.
+    expect(seed.topics.every((topic) => topic.origin !== "custom")).toBe(true);
+    expect(seed.topics.filter((topic) => topic.origin === "app")).toHaveLength(2);
   });
 });

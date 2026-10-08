@@ -234,7 +234,8 @@ describe("sections and top picks", () => {
     );
     const ai = scored("frontier_model_releases", 0.5);
     const research = scored("hci_empirical_research", 0.5);
-    const launch = scored("developer_tool_launches", 0.5);
+    // A second AI story stands in for the launch story, which now shares Design Engineering with craft.
+    const launch = scored("frontier_model_releases", 0.5);
     const result = selectItems({
       scored: [...craft, ai, research, launch],
       kind: "regular",
@@ -518,8 +519,18 @@ describe("the tech allowance", () => {
     }
   });
 
-  it("lists the tech section after AI and before research", () => {
-    expect(SECTIONS).toEqual(["top", "ui-craft", "ai", "tech", "research", "launches", "watch"]);
+  it("lists the sections in the order of the contract, retired ones last", () => {
+    expect(SECTIONS).toEqual([
+      "top",
+      "design",
+      "ui-craft",
+      "ai",
+      "tech",
+      "trending",
+      "research",
+      "launches",
+      "watch",
+    ]);
     const result = select([
       ...tech(2),
       scored("design_engineering_craft", 0.9),
@@ -535,13 +546,13 @@ describe("the tech allowance", () => {
       "top",
       "top",
       "top",
+      "design",
+      "ui-craft",
+      "ui-craft",
       "ui-craft",
       "ai",
       "tech",
       "tech",
-      "research",
-      "launches",
-      "watch",
     ]);
   });
 
@@ -572,22 +583,19 @@ describe("the tech allowance", () => {
     expect(result.selected).toHaveLength(7);
   });
 
-  it("treats a tech video as a watch item inside the cap, not as part of the allowance", () => {
+  it("counts a tech video in the tech allowance, since watch no longer receives stories", () => {
     const video = scored("consumer_tech_releases", 0.5, { source_type: "youtube" });
     const result = select([...craft(12), ...tech(5), video]);
-    // Twelve capped slots (the video takes one of them, in "watch") plus five tech stories.
+    // Twelve capped slots plus five tech stories; the video competes for the tech allowance.
     expect(result.selected).toHaveLength(17);
-    expect(result.selected.find((s) => s.item.id === video.item.id)?.section).toBe("watch");
     expect(count(result, "tech")).toBe(5);
     expect(result.selected.filter((s) => !isTech(s))).toHaveLength(12);
-    expect(result.dropped.filter((d) => d.reason === "over_cap")).toHaveLength(1);
-    expect(result.dropped.some((d) => d.reason === "over_tech_cap")).toBe(false);
+    expect(result.dropped.filter((d) => d.reason === "over_cap")).toHaveLength(0);
 
-    // With six tech stories the sixth is over the allowance, and the video is untouched by it.
+    // With six tech stories and a video, two are over the allowance of five.
     const full = select([...craft(3), ...tech(6), video]);
     expect(count(full, "tech")).toBe(5);
-    expect(full.selected.find((s) => s.item.id === video.item.id)?.section).toBe("watch");
-    expect(full.dropped.filter((d) => d.reason === "over_tech_cap")).toHaveLength(1);
+    expect(full.dropped.filter((d) => d.reason === "over_tech_cap")).toHaveLength(2);
   });
 
   it("drops a tech story below the threshold before the allowance is counted", () => {

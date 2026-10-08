@@ -8,13 +8,7 @@
       "feed_url": "https://www.designweek.co.uk/feed/",
       "about": "UK design industry, branding and agency news",
       "cadence": "daily",
-      "tags": [
-        "design",
-        "branding",
-        "agency",
-        "identity",
-        "graphic"
-      ]
+      "tags": ["design", "branding", "agency", "identity", "graphic"]
     },
     {
       "id": "creative-review",
@@ -23,13 +17,7 @@
       "feed_url": "https://www.creativereview.co.uk/feed/",
       "about": "Advertising, branding and visual culture commentary",
       "cadence": "several a week",
-      "tags": [
-        "design",
-        "branding",
-        "advertising",
-        "visual",
-        "culture"
-      ]
+      "tags": ["design", "branding", "advertising", "visual", "culture"]
     },
     {
       "id": "dezeen",
@@ -38,12 +26,7 @@
       "feed_url": "https://www.dezeen.com/feed/",
       "about": "Architecture, interiors and product design news",
       "cadence": "daily",
-      "tags": [
-        "design",
-        "architecture",
-        "interiors",
-        "product"
-      ]
+      "tags": ["design", "architecture", "interiors", "product"]
     },
     {
       "id": "designboom",
@@ -52,11 +35,7 @@
       "feed_url": "https://www.designboom.com/feed/",
       "about": "Architecture and product design news roundups",
       "cadence": "daily",
-      "tags": [
-        "design",
-        "architecture",
-        "product"
-      ]
+      "tags": ["design", "architecture", "product"]
     },
     {
       "id": "design-milk",
@@ -65,12 +44,7 @@
       "feed_url": "https://design-milk.com/feed/",
       "about": "Home, furniture and product design features",
       "cadence": "daily",
-      "tags": [
-        "design",
-        "furniture",
-        "home",
-        "product"
-      ]
+      "tags": ["design", "furniture", "home", "product"]
     },
     {
       "id": "wallpaper",
@@ -79,12 +53,7 @@
       "feed_url": "http://www.wallpaper.com/feeds.xml",
       "about": "Design, architecture and lifestyle features",
       "cadence": "daily",
-      "tags": [
-        "design",
-        "architecture",
-        "lifestyle",
-        "interiors"
-      ]
+      "tags": ["design", "architecture", "lifestyle", "interiors"]
     },
     {
       "id": "yanko-design",
@@ -93,13 +62,7 @@
       "feed_url": "https://www.yankodesign.com/feed/",
       "about": "Product design concepts and hardware renders",
       "cadence": "daily",
-      "tags": [
-        "design",
-        "product",
-        "concept",
-        "hardware",
-        "industrial"
-      ]
+      "tags": ["design", "product", "concept", "hardware", "industrial"]
     },
     {
       "id": "ux-planet",
@@ -108,12 +71,7 @@
       "feed_url": "https://uxplanet.org/feed",
       "about": "UX and product design essays",
       "cadence": "several a week",
-      "tags": [
-        "design",
-        "ux",
-        "product",
-        "research"
-      ]
+      "tags": ["design", "ux", "product", "research"]
     },
     {
       "id": "bram-us",
@@ -122,14 +80,7 @@
       "feed_url": "https://www.bram.us/feed/",
       "about": "CSS, JavaScript and browser feature write-ups",
       "cadence": "several a week",
-      "tags": [
-        "css",
-        "javascript",
-        "browser",
-        "frontend",
-        "web",
-        "animation"
-      ]
+      "tags": ["css", "javascript", "browser", "frontend", "web", "animation"]
     },
     {
       "id": "piccalilli",
@@ -138,13 +89,7 @@
       "feed_url": "https://piccalil.li/feed.xml",
       "about": "Front-end craft, CSS and accessibility essays",
       "cadence": "weekly",
-      "tags": [
-        "css",
-        "frontend",
-        "accessibility",
-        "web",
-        "craft"
-      ]
+      "tags": ["css", "frontend", "accessibility", "web", "craft"]
     },
     {
       "id": "ahmad-shadeed",
@@ -153,12 +98,7 @@
       "feed_url": "https://ishadeed.com/feed.xml",
       "about": "Deep CSS layout and component essays",
       "cadence": "monthly",
-      "tags": [
-        "css",
-        "layout",
-        "frontend",
-        "components"
-      ]
+      "tags": ["css", "layout", "frontend", "components"]
     },
     {
       "id": "brad-frost",
@@ -167,12 +107,7 @@
       "feed_url": "https://bradfrost.com/feed/",
       "about": "Design systems and component architecture notes",
       "cadence": "weekly",
-      "tags": [
-        "design",
-        "systems",
-        "components",
-        "frontend"
-      ]
+      "tags": ["design", "systems", "components", "frontend"]
     },
     {
       "id": "dave-rupert",
@@ -181,12 +116,7 @@
       "feed_url": "https://daverupert.com/atom.xml",
       "about": "Web craft, CSS and personal dev notes",
       "cadence": "several a week",
-      "tags": [
-        "web",
-        "css",
-        "frontend",
-        "craft"
-      ]
+      "tags": ["web", "css", "frontend", "craft"]
     },
     {
       "id": "adactio",
@@ -195,12 +125,7 @@
       "feed_url": "https://adactio.com/rss",
       "about": "Web standards, design and craft essays",
       "cadence": "several a week",
-      "tags": [
-        "web",
-        "standards",
-        "design",
-        "frontend"
-      ]
+      "tags": ["web", "standards", "design", "frontend"]
     },
     {
       "id": "swift-by-sundell",
@@ -209,13 +134,7 @@
       "feed_url": "https://www.swiftbysundell.com/rss",
       "about": "Swift, SwiftUI and Apple platform tutorials",
       "cadence": "weekly",
-      "tags": [
-        "swift",
-        "swiftui",
-        "apple",
-        "ios",
-        "development"
-      ]
+      "tags": ["swift", "swiftui", "apple", "ios", "development"]
     },
     {
       "id": "apple-developer-news",
@@ -224,12 +143,7 @@
       "feed_url": "https://developer.apple.com/news/rss/news.rss",
       "about": "Apple developer announcements and SDK news",
       "cadence": "several a week",
-      "tags": [
-        "apple",
-        "ios",
-        "developer",
-        "sdk"
-      ]
+      "tags": ["apple", "ios", "developer", "sdk"]
     },
     {
       "id": "webkit",
@@ -238,13 +152,7 @@
       "feed_url": "https://webkit.org/feed/",
       "about": "Safari engine features and release notes",
       "cadence": "several a week",
-      "tags": [
-        "webkit",
-        "safari",
-        "browser",
-        "web",
-        "css"
-      ]
+      "tags": ["webkit", "safari", "browser", "web", "css"]
     },
     {
       "id": "openai-news",
@@ -253,13 +161,7 @@
       "feed_url": "https://openai.com/news/rss.xml",
       "about": "Model, product and policy announcements",
       "cadence": "daily",
-      "tags": [
-        "ai",
-        "openai",
-        "models",
-        "chatgpt",
-        "products"
-      ]
+      "tags": ["ai", "openai", "models", "chatgpt", "products"]
     },
     {
       "id": "google-deepmind",
@@ -268,13 +170,7 @@
       "feed_url": "https://deepmind.google/blog/rss.xml",
       "about": "Gemini and DeepMind model and product posts",
       "cadence": "weekly",
-      "tags": [
-        "ai",
-        "models",
-        "gemini",
-        "research",
-        "deepmind"
-      ]
+      "tags": ["ai", "models", "gemini", "research", "deepmind"]
     },
     {
       "id": "google-ai-blog",
@@ -283,12 +179,7 @@
       "feed_url": "https://blog.google/technology/ai/rss/",
       "about": "Consumer Google AI feature launches",
       "cadence": "several a week",
-      "tags": [
-        "ai",
-        "google",
-        "gemini",
-        "products"
-      ]
+      "tags": ["ai", "google", "gemini", "products"]
     },
     {
       "id": "latent-space",
@@ -297,13 +188,7 @@
       "feed_url": "https://www.latent.space/feed",
       "about": "AI engineering essays, podcasts and model digests",
       "cadence": "several a week",
-      "tags": [
-        "ai",
-        "engineering",
-        "llm",
-        "agents",
-        "models"
-      ]
+      "tags": ["ai", "engineering", "llm", "agents", "models"]
     },
     {
       "id": "the-decoder",
@@ -312,12 +197,7 @@
       "feed_url": "https://the-decoder.com/feed/",
       "about": "Short AI model and product news items",
       "cadence": "daily",
-      "tags": [
-        "ai",
-        "models",
-        "products",
-        "news"
-      ]
+      "tags": ["ai", "models", "products", "news"]
     },
     {
       "id": "techcrunch-ai",
@@ -326,12 +206,7 @@
       "feed_url": "https://techcrunch.com/category/artificial-intelligence/feed/",
       "about": "AI launches, funding and company news",
       "cadence": "daily",
-      "tags": [
-        "ai",
-        "startups",
-        "launches",
-        "funding"
-      ]
+      "tags": ["ai", "startups", "launches", "funding"]
     },
     {
       "id": "github-changelog",
@@ -340,13 +215,7 @@
       "feed_url": "https://github.blog/changelog/feed/",
       "about": "Copilot and developer tool updates",
       "cadence": "daily",
-      "tags": [
-        "github",
-        "copilot",
-        "developer",
-        "tools",
-        "ai"
-      ]
+      "tags": ["github", "copilot", "developer", "tools", "ai"]
     },
     {
       "id": "aws-machine-learning",
@@ -355,14 +224,7 @@
       "feed_url": "https://aws.amazon.com/blogs/machine-learning/feed/",
       "about": "Model availability and AI service launches on AWS",
       "cadence": "daily",
-      "tags": [
-        "ai",
-        "machine",
-        "learning",
-        "aws",
-        "cloud",
-        "models"
-      ]
+      "tags": ["ai", "machine", "learning", "aws", "cloud", "models"]
     },
     {
       "id": "ollama-blog",
@@ -371,13 +233,7 @@
       "feed_url": "https://ollama.com/blog/rss.xml",
       "about": "Local model runtime and model support releases",
       "cadence": "monthly",
-      "tags": [
-        "ai",
-        "local",
-        "models",
-        "llm",
-        "open"
-      ]
+      "tags": ["ai", "local", "models", "llm", "open"]
     },
     {
       "id": "mit-technology-review",
@@ -386,12 +242,7 @@
       "feed_url": "https://www.technologyreview.com/feed/",
       "about": "Tech and AI analysis, science features",
       "cadence": "daily",
-      "tags": [
-        "ai",
-        "technology",
-        "science",
-        "analysis"
-      ]
+      "tags": ["ai", "technology", "science", "analysis"]
     },
     {
       "id": "techradar",
@@ -400,15 +251,7 @@
       "feed_url": "https://www.techradar.com/feeds.xml",
       "about": "Phone, laptop and wearable reviews and launches",
       "cadence": "daily",
-      "tags": [
-        "tech",
-        "phones",
-        "laptops",
-        "wearables",
-        "gadgets",
-        "reviews",
-        "launches"
-      ]
+      "tags": ["tech", "phones", "laptops", "wearables", "gadgets", "reviews", "launches"]
     },
     {
       "id": "gizmodo",
@@ -417,12 +260,7 @@
       "feed_url": "https://gizmodo.com/rss",
       "about": "Consumer tech, science and culture news",
       "cadence": "daily",
-      "tags": [
-        "tech",
-        "gadgets",
-        "consumer",
-        "science"
-      ]
+      "tags": ["tech", "gadgets", "consumer", "science"]
     },
     {
       "id": "macrumors",
@@ -431,14 +269,7 @@
       "feed_url": "https://feeds.macrumors.com/MacRumors-All",
       "about": "Apple hardware, software and rumor coverage",
       "cadence": "daily",
-      "tags": [
-        "apple",
-        "iphone",
-        "mac",
-        "ios",
-        "tech",
-        "launches"
-      ]
+      "tags": ["apple", "iphone", "mac", "ios", "tech", "launches"]
     },
     {
       "id": "android-police",
@@ -447,12 +278,7 @@
       "feed_url": "https://www.androidpolice.com/feed/",
       "about": "Android phones, apps and OS update news",
       "cadence": "daily",
-      "tags": [
-        "android",
-        "phones",
-        "google",
-        "tech"
-      ]
+      "tags": ["android", "phones", "google", "tech"]
     },
     {
       "id": "appleinsider",
@@ -461,13 +287,7 @@
       "feed_url": "https://appleinsider.com/rss/news/",
       "about": "Apple product news, reviews and deals",
       "cadence": "daily",
-      "tags": [
-        "apple",
-        "iphone",
-        "mac",
-        "tech",
-        "launches"
-      ]
+      "tags": ["apple", "iphone", "mac", "tech", "launches"]
     },
     {
       "id": "techspot",
@@ -476,14 +296,7 @@
       "feed_url": "https://www.techspot.com/backend.xml",
       "about": "PC hardware news and detailed reviews",
       "cadence": "daily",
-      "tags": [
-        "pc",
-        "hardware",
-        "gpu",
-        "cpu",
-        "tech",
-        "reviews"
-      ]
+      "tags": ["pc", "hardware", "gpu", "cpu", "tech", "reviews"]
     },
     {
       "id": "liliputing",
@@ -492,14 +305,7 @@
       "feed_url": "https://liliputing.com/feed/",
       "about": "Handhelds, mini PCs and small laptops",
       "cadence": "several a week",
-      "tags": [
-        "handheld",
-        "laptops",
-        "mini",
-        "pc",
-        "hardware",
-        "tech"
-      ]
+      "tags": ["handheld", "laptops", "mini", "pc", "hardware", "tech"]
     },
     {
       "id": "insideevs",
@@ -508,13 +314,7 @@
       "feed_url": "https://insideevs.com/rss/articles/all/",
       "about": "EV launches, reviews and industry news",
       "cadence": "daily",
-      "tags": [
-        "ev",
-        "cars",
-        "electric",
-        "vehicles",
-        "launches"
-      ]
+      "tags": ["ev", "cars", "electric", "vehicles", "launches"]
     },
     {
       "id": "teslarati",
@@ -523,12 +323,7 @@
       "feed_url": "https://www.teslarati.com/feed/",
       "about": "Tesla product, software and EV news",
       "cadence": "daily",
-      "tags": [
-        "tesla",
-        "ev",
-        "cars",
-        "electric"
-      ]
+      "tags": ["tesla", "ev", "cars", "electric"]
     },
     {
       "id": "windows-experience-blog",
@@ -537,13 +332,7 @@
       "feed_url": "https://blogs.windows.com/windowsexperience/feed/",
       "about": "Windows release and feature announcements",
       "cadence": "several a week",
-      "tags": [
-        "windows",
-        "microsoft",
-        "software",
-        "tech",
-        "launches"
-      ]
+      "tags": ["windows", "microsoft", "software", "tech", "launches"]
     },
     {
       "id": "android-developers-blog",
@@ -552,12 +341,7 @@
       "feed_url": "https://android-developers.googleblog.com/feeds/posts/default",
       "about": "Android OS and SDK releases",
       "cadence": "monthly",
-      "tags": [
-        "android",
-        "developer",
-        "sdk",
-        "google"
-      ]
+      "tags": ["android", "developer", "sdk", "google"]
     },
     {
       "id": "the-next-web",
@@ -566,12 +350,7 @@
       "feed_url": "https://thenextweb.com/feed",
       "about": "Startups and tech business",
       "cadence": "daily",
-      "tags": [
-        "tech",
-        "startups",
-        "business",
-        "news"
-      ]
+      "tags": ["tech", "startups", "business", "news"]
     },
     {
       "id": "techmeme",
@@ -580,11 +359,7 @@
       "feed_url": "https://www.techmeme.com/feed.xml",
       "about": "Ranked tech headlines",
       "cadence": "daily",
-      "tags": [
-        "tech",
-        "news",
-        "headlines"
-      ]
+      "tags": ["tech", "news", "headlines"]
     },
     {
       "id": "axios",
@@ -593,13 +368,7 @@
       "feed_url": "https://api.axios.com/feed/",
       "about": "US politics, business and tech headlines",
       "cadence": "daily",
-      "tags": [
-        "news",
-        "politics",
-        "business",
-        "world",
-        "headlines"
-      ]
+      "tags": ["news", "politics", "business", "world", "headlines"]
     },
     {
       "id": "upi-top-news",
@@ -608,12 +377,7 @@
       "feed_url": "https://rss.upi.com/news/top_news.rss",
       "about": "Wire-style top news",
       "cadence": "daily",
-      "tags": [
-        "news",
-        "world",
-        "wire",
-        "headlines"
-      ]
+      "tags": ["news", "world", "wire", "headlines"]
     },
     {
       "id": "sciencedaily",
@@ -622,11 +386,7 @@
       "feed_url": "https://www.sciencedaily.com/rss/top/science.xml",
       "about": "Science research releases",
       "cadence": "daily",
-      "tags": [
-        "science",
-        "research",
-        "news"
-      ]
+      "tags": ["science", "research", "news"]
     },
     {
       "id": "nasa-news",
@@ -635,12 +395,7 @@
       "feed_url": "https://www.nasa.gov/news-release/feed/",
       "about": "Space and science releases",
       "cadence": "several a week",
-      "tags": [
-        "space",
-        "science",
-        "nasa",
-        "news"
-      ]
+      "tags": ["space", "science", "nasa", "news"]
     }
   ]
 }
