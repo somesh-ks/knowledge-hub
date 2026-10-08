@@ -128,6 +128,17 @@ textarea.manage-input {
   padding-block: var(--space-6) 0;
 }
 
+.manage-tools.library-tools {
+  padding-block-end: 0;
+}
+
+/* The chip is 36px tall plus its border, so its 44px target is laid out from inside the border and
+   comes up 2px short. This takes the border back, as reader.css does for the play chip. */
+.manage-tools .filter-chip::after {
+  inset-block: calc((var(--size-touch) - var(--chip-height)) / -2 - var(--stroke-hairline));
+  inset-inline: calc(var(--stroke-hairline) * -1);
+}
+
 /* ------------------------------------------------------------------ rows */
 
 .manage-row {
@@ -339,8 +350,9 @@ html[data-mini="visible"] .manage-bar {
   flex: 1 1 0;
 }
 
-.manage-bar:not([data-state="done"]) [data-dismiss],
-.manage-bar:is([data-state="done"], [data-state="saving"]) :is([data-discard], [data-save]),
+.manage-bar:not([data-state="done"]) [data-act="dismiss"],
+.manage-bar:is([data-state="done"], [data-state="saving"])
+  :is([data-act="discard"], [data-act="save"]),
 .manage-bar[data-state="saving"] .manage-bar-actions {
   display: none;
 }

@@ -136,8 +136,11 @@ function mount(root: HTMLElement): void {
     const data = new FormData(form);
     const value = (name: string): string => String(data.get(name) ?? "").trim();
     if (form.dataset.add === "topic") {
-      const id = slugify(value("name"), taken);
-      taken.push(id);
+      // A topic still waiting to be saved holds its id; one that was cancelled gives it back.
+      const waiting = [...changes.values()].map(({ op }) =>
+        op.op === "topic.upsert" ? op.topic.id : "",
+      );
+      const id = slugify(value("name"), [...taken, ...waiting]);
       queue(value("name"), {
         op: "topic.upsert",
         topic: {
