@@ -73,6 +73,11 @@ export function runJudgmentsPath(root: string): string {
   return join(runCacheDir(root), "judgments.json");
 }
 
+/** Run-level cache of custom-topic fits, merged into state/topic-judgments.json at commit. */
+export function runTopicJudgmentsPath(root: string): string {
+  return join(runCacheDir(root), "topic-judgments.json");
+}
+
 export function passDir(root: string, id: string): string {
   return runDirFor(root, id);
 }

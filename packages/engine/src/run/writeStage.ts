@@ -1,4 +1,4 @@
-import { type Item, type Preferences, VOICE_LIMITS } from "@dispatch/core";
+import { activeCustomTopics, type Item, type Preferences, VOICE_LIMITS } from "@dispatch/core";
 import type { ApiRuntime } from "../curate/apiRuntime.js";
 import { loadPool, loadPreferences, loadSources, sourceNameMap } from "../curate/inputs.js";
 import { writeJson } from "../curate/output.js";
@@ -6,8 +6,11 @@ import type { DropStage, Selection, WrittenFile } from "../curate/selectionFile.
 import type { ExtractedText } from "../extract/extractText.js";
 import { mapConcurrent } from "../llm/concurrency.js";
 import { scoreItem } from "../score/scoreItem.js";
+import { applyTopics, type TopicLayer } from "../score/scoreTopics.js";
 import { assignSections, capFor, selectItems } from "../score/selectItems.js";
 import type { ScoredItem } from "../score/types.js";
+import { loadTopics } from "../topics/store.js";
+import { writerCategory } from "../topics/writerCategory.js";
 import { createLinter, type Linter } from "../voice/lint.js";
 import { loadVoice } from "../voice/voice.js";
 import { enforceVoice } from "../write/enforceVoice.js";
@@ -17,6 +20,7 @@ import { JudgedFile, type MaterialsFile, readArtifact } from "./artifacts.js";
 import { StageFailure } from "./errors.js";
 import { mostlyFailed } from "./judgeStage.js";
 import { markStage, type Plan, type PlanPass, passFile, requireStage } from "./plan.js";
+import { countSources } from "./sourceCounts.js";
 import type { PassReport, RunDeps, StageReport } from "./types.js";
 
 const EXTRACT_CONCURRENCY = 4;
@@ -27,6 +31,8 @@ interface PassContext {
   linter: Linter;
   preferences: Preferences;
   sourceNames: Record<string, string>;
+  /** Enabled custom topics, scored against the fits the judge stage recorded. */
+  customTopics: ReturnType<typeof activeCustomTopics>;
 }
 
 /**
@@ -43,12 +49,14 @@ export async function writeStage(deps: RunDeps, plan: Plan): Promise<StageReport
     loadPreferences(deps.root),
     loadSources(deps.root),
   ]);
+  const topics = await loadTopics(deps.root, preferences);
   const context: PassContext = {
     deps,
     runtime,
     linter,
     preferences,
     sourceNames: sourceNameMap(sources),
+    customTopics: activeCustomTopics(topics),
   };
 
   const claimed = new Set<string>();
@@ -85,7 +93,7 @@ async function writePass(
   pass: PlanPass,
   claimed: ReadonlySet<string>,
 ): Promise<PassResult> {
-  const { deps, runtime, linter, preferences, sourceNames } = context;
+  const { deps, runtime, linter, preferences, sourceNames, customTopics } = context;
   const file = (name: string): string => passFile(deps.root, pass.id, name);
   const pool = await loadPool(file("pool.json"));
   const judged = await readArtifact(file("judged.json"), "judged.json", JudgedFile);
@@ -97,6 +105,7 @@ async function writePass(
   };
   for (const id of judged.unjudged) drop(id, "judge", "no judgment");
 
+  const layer: TopicLayer = { topics: customTopics, fits: judged.topic_fits ?? {} };
   const scored: ScoredItem[] = [];
   for (const entry of judged.entries) {
     const item = byId.get(entry.item_id);
@@ -105,7 +114,7 @@ async function writePass(
       drop(item.id, "select", "already chosen for an earlier digest of this run");
       continue;
     }
-    scored.push(scoreItem(entry, preferences, item));
+    scored.push(applyTopics(scoreItem(entry, preferences, item), layer));
   }
 
   const chosen = selectItems({
@@ -116,6 +125,28 @@ async function writePass(
     weights: preferences.weights,
   });
   for (const d of chosen.dropped) drop(d.id, "select", `${d.reason} (score ${d.score})`);
+
+  // Per-source counters for state/source-stats.json, applied at commit. "Passed" is every judged
+  // item that cleared the eligibility rules and the score bar, whether or not the cap kept it.
+  const notPassed = new Set(
+    chosen.dropped
+      .filter(
+        (d) =>
+          d.reason === "no_category" ||
+          d.reason === "never_publish" ||
+          d.reason === "below_threshold",
+      )
+      .map((d) => d.id),
+  );
+  await writeJson(file("source-counts.json"), {
+    version: 1,
+    sources: countSources({
+      fetchedBySource: pool.fetchedBySource,
+      poolSourceIds: new Map(pool.items.map((item) => [item.id, item.source_id])),
+      judgedIds: scored.map((s) => s.item.id),
+      passedIds: new Set(scored.map((s) => s.item.id).filter((id) => !notPassed.has(id))),
+    }),
+  });
 
   /** Persist the pass's outputs and the stage marker. `survivors` empty means "nothing". */
   const finish = async (
@@ -163,6 +194,9 @@ async function writePass(
     return finish([], new Map(), [], []);
   }
 
+  // The writer prompt still takes a built-in category. A custom topic's story gets the nearest
+  // one the judge found for it, because the prompt text comes from the source, not the label.
+  const topCategoryOf = new Map(scored.map((s) => [s.item.id, s.topCategory]));
   // A finalist with no readable source cannot be written, so it drops.
   const extracted = await mapConcurrent(chosen.selected, EXTRACT_CONCURRENCY, async (sel) => ({
     sel,
@@ -181,7 +215,7 @@ async function writePass(
       title: sel.item.title,
       source: sourceNames[sel.item.source_id] ?? sel.item.source_id,
       ...(sel.item.author ? { author: sel.item.author } : {}),
-      category: sel.category,
+      category: writerCategory(sel.category, topCategoryOf.get(sel.item.id)),
       text: text.text,
     });
   }

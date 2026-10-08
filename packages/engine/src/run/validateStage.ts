@@ -3,6 +3,7 @@ import { linkSourceIds, loadPool, loadSources, sourceNameMap } from "../curate/i
 import { writeJson } from "../curate/output.js";
 import { Selection, WrittenFile } from "../curate/selectionFile.js";
 import { readLastRun } from "../state/store.js";
+import { loadTopicsFile } from "../topics/store.js";
 import { type GroundedItem, groundAndRepair } from "../validate/groundingRepair.js";
 import { validateDigest } from "../validate/validateDigest.js";
 import { createLinter } from "../voice/lint.js";
@@ -37,6 +38,7 @@ export async function validateStage(deps: RunDeps, plan: Plan): Promise<StageRep
   const linter = createLinter(await loadVoice(deps.root));
   const [sources, lastRun] = await Promise.all([loadSources(deps.root), readLastRun(deps.root)]);
   const sourceNames = sourceNameMap(sources);
+  const topics = await loadTopicsFile(deps.root);
   const coverPicker = makeCoverPicker(deps.pickCover, lastRun.last_cover);
   if (runtime.grounder === null) {
     deps.log.warn("No grounding check ran: the digest will be marked unverified");
@@ -99,8 +101,9 @@ export async function validateStage(deps: RunDeps, plan: Plan): Promise<StageRep
         coverPicker,
         allocateId: () => pass.id,
         verified: false,
+        topics,
       });
-      const report = validateDigest(digest, { pool: pool.items, sources, linter });
+      const report = validateDigest(digest, { pool: pool.items, sources, linter, topics });
       warnings = report.warnings;
       const general = report.issues.find((i) => i.severity === "error" && !i.itemId);
       if (general) {

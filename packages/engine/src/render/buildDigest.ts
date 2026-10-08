@@ -4,6 +4,8 @@ import {
   type DigestItem,
   type DigestKind,
   displaySource,
+  isBuiltinSection,
+  SECTION_TITLES,
   stockholmDate,
   VOICE_LIMITS,
 } from "@dispatch/core";
@@ -45,6 +47,11 @@ export interface BuildDigestInput {
    * source types, are credited to the publisher of the URL instead of the registry name.
    */
   linkSources?: ReadonlySet<string>;
+  /**
+   * Titles of custom sections by id, from config/topics.json. Copied into the digest as
+   * `section_titles` so the briefing keeps its headings if the topic is later renamed or removed.
+   */
+  sectionTitles?: Readonly<Record<string, string>>;
 }
 
 /**
@@ -86,6 +93,21 @@ export function buildDigest(input: BuildDigestInput): Digest {
     return item;
   });
 
+  // Sections in reading order. The snapshot is written only when a custom section is in use, so a
+  // digest without one is byte for byte what it was before custom sections existed.
+  const used: string[] = [];
+  for (const item of items) if (!used.includes(item.section)) used.push(item.section);
+  const sectionTitles = used.some((section) => !isBuiltinSection(section))
+    ? Object.fromEntries(
+        used.map((section) => [
+          section,
+          isBuiltinSection(section)
+            ? SECTION_TITLES[section]
+            : (input.sectionTitles?.[section] ?? section),
+        ]),
+      )
+    : undefined;
+
   const id = input.allocateId({ date: stockholmDate(input.now), kind: input.kind });
   // The date is part of the id, so a pool fetched before midnight and rendered after it still agrees.
   const date = id.slice(0, 10);
@@ -101,6 +123,7 @@ export function buildDigest(input: BuildDigestInput): Digest {
     listen_minutes: listenMinutes(words),
     audio: input.audio,
     cover: input.coverPicker({ digestId: id, date, kind: input.kind, items }),
+    ...(sectionTitles ? { section_titles: sectionTitles } : {}),
     items,
   });
 }

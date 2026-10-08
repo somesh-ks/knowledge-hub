@@ -1,12 +1,17 @@
 import {
   Digest,
   type Digest as DigestType,
+  digestSections,
   displaySource,
+  hasOwnAllowance,
   homeSection,
+  homeSectionFor,
   type Item,
+  isBuiltinCategory,
   NEVER_PUBLISH,
   type Source,
   TECH_SECTION,
+  type TopicsFile,
   VOICE_LIMITS,
 } from "@dispatch/core";
 import { isHttpUrl } from "../extract/urlSafety.js";
@@ -59,6 +64,11 @@ export interface ValidateContext {
   pool?: readonly Item[];
   /** Source registry, used to check the displayed source name against the pool item's source. */
   sources?: readonly Source[];
+  /**
+   * config/topics.json, to check a custom topic's section and its never-publish flag. Without it
+   * a custom topic's section is not checked, which is right for an old digest whose topic was removed.
+   */
+  topics?: TopicsFile | null | undefined;
   linter: Linter;
 }
 
@@ -95,22 +105,52 @@ export function validateDigest(input: unknown, context: ValidateContext): Valida
   }
   const digest: DigestType = parsed.data;
 
-  const isTech = (item: DigestType["items"][number]): boolean =>
-    homeSection(item.category, item.source_type) === TECH_SECTION;
-  const techCount = digest.items.filter(isTech).length;
-  const mainCount = digest.items.length - techCount;
+  // Where the item belongs by its category. Undefined when that cannot be known: a custom topic
+  // checked without config/topics.json, or one that has since been removed.
+  const homeOf = (item: DigestType["items"][number]): string | null | undefined => {
+    if (isBuiltinCategory(item.category)) return homeSection(item.category, item.source_type);
+    if (!context.topics) return undefined;
+    if (!context.topics.topics.some((topic) => topic.id === item.category)) return undefined;
+    return homeSectionFor(context.topics, item.category, item.source_type);
+  };
+  const ownerOf = (item: DigestType["items"][number]): string | undefined => {
+    const home = homeOf(item);
+    if (home !== undefined) return home ?? undefined;
+    return item.section === "top" ? undefined : item.section;
+  };
+  // Sections with an allowance of their own (Tech releases and custom sections) count apart from the cap.
+  const allowanceBySection = new Map<string, number>();
+  for (const item of digest.items) {
+    const owner = ownerOf(item);
+    if (owner !== undefined && hasOwnAllowance(owner)) {
+      allowanceBySection.set(owner, (allowanceBySection.get(owner) ?? 0) + 1);
+    }
+  }
+  const allowanceCount = [...allowanceBySection.values()].reduce((sum, n) => sum + n, 0);
+  const mainCount = digest.items.length - allowanceCount;
   const cap = capFor(digest.kind);
+  const onlyTech = [...allowanceBySection.keys()].every((section) => section === TECH_SECTION);
   if (mainCount > cap) {
     add(
       "error",
       "item_count",
-      techCount === 0
+      allowanceCount === 0
         ? `${mainCount} items; the limit for a ${digest.kind} digest is ${cap}.`
-        : `${mainCount} items outside Tech releases; the limit for a ${digest.kind} digest is ${cap}.`,
+        : onlyTech
+          ? `${mainCount} items outside Tech releases; the limit for a ${digest.kind} digest is ${cap}.`
+          : `${mainCount} items outside the sections with their own allowance; the limit for a ${digest.kind} digest is ${cap}.`,
     );
   }
-  if (techCount > TECH_ALLOWANCE) {
-    add("error", "item_count", `${techCount} Tech releases items; the limit is ${TECH_ALLOWANCE}.`);
+  const titles = new Map(digestSections(digest).map((section) => [section.id, section.title]));
+  for (const [section, count] of allowanceBySection) {
+    if (count <= TECH_ALLOWANCE) continue;
+    add(
+      "error",
+      "item_count",
+      section === TECH_SECTION
+        ? `${count} Tech releases items; the limit is ${TECH_ALLOWANCE}.`
+        : `${count} items in ${titles.get(section) ?? section}; the limit is ${TECH_ALLOWANCE}.`,
+    );
   }
   if (digest.items.length < VOICE_LIMITS.items.floor) {
     add(
@@ -190,18 +230,34 @@ export function validateDigest(input: unknown, context: ValidateContext): Valida
       }
     }
 
-    if (NEVER_PUBLISH.includes(item.category)) {
+    const customTopic = isBuiltinCategory(item.category)
+      ? undefined
+      : context.topics?.topics.find((topic) => topic.id === item.category);
+    if (
+      (isBuiltinCategory(item.category) && NEVER_PUBLISH.includes(item.category)) ||
+      customTopic?.never_publish
+    ) {
       add("error", "never_publish", `The category ${item.category} never publishes.`, item.id);
     }
-    const home = homeSection(item.category, item.source_type);
-    if (item.section === "top" && home === TECH_SECTION) {
+    if (!isBuiltinCategory(item.category) && context.topics && !customTopic) {
+      add(
+        "warning",
+        "section_mismatch",
+        `The topic ${item.category} is not in config/topics.json, so its section was not checked.`,
+        item.id,
+      );
+    }
+    const home = homeOf(item);
+    if (item.section === "top" && home !== undefined && home !== null && hasOwnAllowance(home)) {
       add(
         "error",
         "section_mismatch",
-        "A Tech releases story cannot be a Top pick; it belongs in the tech section.",
+        home === TECH_SECTION
+          ? "A Tech releases story cannot be a Top pick; it belongs in the tech section."
+          : `A story from ${titles.get(home) ?? home} cannot be a Top pick; it belongs in its own section.`,
         item.id,
       );
-    } else if (item.section !== "top" && item.section !== home) {
+    } else if (home !== undefined && item.section !== "top" && item.section !== home) {
       add(
         "error",
         "section_mismatch",

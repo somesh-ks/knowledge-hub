@@ -1,6 +1,6 @@
 import { readFile } from "node:fs/promises";
 import { join } from "node:path";
-import { Category } from "@dispatch/core";
+import { Category, IdString } from "@dispatch/core";
 import { z } from "zod";
 
 export const ExaQuery = z.object({
@@ -9,6 +9,8 @@ export const ExaQuery = z.object({
   query: z.string().min(1),
   include_domains: z.array(z.string().min(1)).optional(),
   category_hint: Category.optional(),
+  /** Custom topic the query was written for. Its results are judged against that topic. */
+  topic_id: IdString.optional(),
 });
 export type ExaQuery = z.infer<typeof ExaQuery>;
 

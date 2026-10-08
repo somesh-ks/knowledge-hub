@@ -8,6 +8,7 @@ import { FallbackJudge } from "../judge/fallbackJudge.js";
 import { JevJudge } from "../judge/jev.js";
 import { createJevClient } from "../judge/jevClient.js";
 import { NebiusJudge } from "../judge/nebiusJudge.js";
+import { TopicJudge } from "../judge/topicJudge.js";
 import type { Judge, JudgeFailure } from "../judge/types.js";
 import { withModelFailover } from "../llm/failoverClient.js";
 import { createNebiusLlm } from "../llm/nebiusClient.js";
@@ -26,6 +27,11 @@ export interface ApiRuntime {
   judge: Judge;
   writer: Writer;
   grounder: Grounder | null;
+  /**
+   * Judges items against custom topics. Null without a Jev key: the Nebius fallback judge only
+   * knows the built-in categories, so custom topics wait for a run that has the key.
+   */
+  topicJudge?: TopicJudge | null;
   extract: (item: Item) => Promise<ExtractedText | null>;
   /** Judge failures collected during the run, for the report. */
   judgeFailures: JudgeFailure[];
@@ -64,8 +70,10 @@ export function createApiRuntime(ctx: CommandContext, voice: VoiceConfig): ApiRu
   const nebiusJudge = new NebiusJudge({ llm, log, onFailure, secrets });
   let judge: Judge = nebiusJudge;
   let grounder: Grounder | null = null;
+  let topicJudge: TopicJudge | null = null;
   if (env.TYPESAFE_API_KEY) {
     const jevClient = createJevClient(env);
+    topicJudge = new TopicJudge({ client: jevClient, log, onFailure, secrets });
     judge = new FallbackJudge(
       new JevJudge({ client: jevClient, log, onFailure, secrets }),
       nebiusJudge,
@@ -85,6 +93,7 @@ export function createApiRuntime(ctx: CommandContext, voice: VoiceConfig): ApiRu
     judge,
     writer: new NebiusWriter({ llm, voice, log, secrets }),
     grounder,
+    topicJudge,
     extract: (item) => extractFullText(item, { scrape, log }),
     judgeFailures,
     usage: () => ({ nebiusTokens: budget.used, nebiusTokenLimit: budget.limit }),

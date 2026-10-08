@@ -91,6 +91,8 @@ function absorb(keep: Item, dropped: Item, sources: ReadonlyMap<string, Source>)
   const author = keep.author ?? dropped.author;
   const published = keep.published_at ?? dropped.published_at;
   const content = keep.content ?? dropped.content;
+  // A story one source filed under a custom topic stays under it when another copy survives.
+  const topicIds = [...new Set([...(keep.topic_ids ?? []), ...(dropped.topic_ids ?? [])])];
   // The kept item's own hint (from its source or its query) stands. Only an item with none takes
   // the dropped one's, which is then written onto the item because its source cannot supply it.
   const hint =
@@ -109,6 +111,7 @@ function absorb(keep: Item, dropped: Item, sources: ReadonlyMap<string, Source>)
       ...(coverage === undefined ? {} : { coverage }),
     },
     ...(hint ? { category_hint: hint } : {}),
+    ...(topicIds.length > 0 ? { topic_ids: topicIds } : {}),
     ...(content ? { content } : {}),
   };
 }

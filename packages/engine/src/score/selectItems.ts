@@ -2,11 +2,13 @@ import {
   CATEGORIES,
   type Category,
   type DigestKind,
+  hasOwnAllowance,
   homeSection,
   type Item,
+  isBuiltinCategory,
+  isBuiltinSection,
   NEVER_PUBLISH,
   SECTIONS,
-  type Section,
   TECH_SECTION,
   VOICE_LIMITS,
 } from "@dispatch/core";
@@ -31,7 +33,9 @@ export type DropReason =
   | "below_threshold"
   | "over_cap"
   /** A Tech releases candidate beyond that section's own allowance. */
-  | "over_tech_cap";
+  | "over_tech_cap"
+  /** A candidate beyond the allowance of a custom section, or beyond the digest's hard maximum. */
+  | "over_section_cap";
 
 export interface DroppedItem {
   id: string;
@@ -71,12 +75,24 @@ export function capFor(kind: DigestKind): number {
   return kind === "weekly" ? VOICE_LIMITS.items.weeklyCap : VOICE_LIMITS.items.cap;
 }
 
-/** Items the Tech releases section may hold, in addition to `capFor`. The same for every kind. */
+/**
+ * Items each section with an allowance of its own may hold, in addition to `capFor`. The same for
+ * every kind and every such section: Tech releases and each section a custom topic defines.
+ */
 export const TECH_ALLOWANCE = VOICE_LIMITS.items.techCap;
 
 /** True for a candidate that belongs in the Tech releases section. A tech video belongs in "watch". */
 export function isTech(candidate: Pick<Candidate, "home">): boolean {
   return candidate.home === TECH_SECTION;
+}
+
+/**
+ * True for a candidate whose section takes its stories from an allowance of its own, outside the
+ * main cap: Tech releases, or a section a custom topic defined. Such stories never move to Top
+ * picks, because Top picks is for the best of the main sections.
+ */
+export function hasOwnSection(candidate: Pick<Candidate, "home">): boolean {
+  return hasOwnAllowance(candidate.home);
 }
 
 /**
@@ -122,15 +138,48 @@ export function assignSections(chosen: readonly Candidate[]): SelectedItem[] {
   const ranked = [...chosen].sort(compareCandidates);
   let picks = 0;
   const withSection: SelectedItem[] = ranked.map((candidate) => {
-    const pick = !isTech(candidate) && picks < TOP_PICKS;
+    const pick = !hasOwnSection(candidate) && picks < TOP_PICKS;
     if (pick) picks += 1;
     return { ...candidate, section: pick ? "top" : candidate.home };
   });
-  const order = (section: Section): number => SECTIONS.indexOf(section);
+  // Built-in sections keep their fixed order. A custom section follows them, in order of its best
+  // story, so the digest reads the same whatever order the topics were added in.
+  const best = new Map<string, number>();
+  withSection.forEach((entry, index) => {
+    if (!best.has(entry.section)) best.set(entry.section, index);
+  });
+  const order = (section: string): number =>
+    isBuiltinSection(section)
+      ? SECTIONS.indexOf(section)
+      : SECTIONS.length + (best.get(section) ?? 0);
   return withSection.sort((a, b) => {
     if (a.section !== b.section) return order(a.section) - order(b.section);
     return compareCandidates(a, b);
   });
+}
+
+/**
+ * The stories of sections with an allowance of their own: up to TECH_ALLOWANCE per section, taken
+ * in rank order, and never more than `room` in all so the digest stays under its hard maximum.
+ * Each section is its own pool, so none borrows from or lends to the main cap or another section.
+ */
+export function takeOwnSections(
+  own: readonly Candidate[],
+  room: number,
+): { chosen: Candidate[]; over: Candidate[] } {
+  const perSection = new Map<string, number>();
+  const chosen: Candidate[] = [];
+  const over: Candidate[] = [];
+  for (const candidate of own) {
+    const count = perSection.get(candidate.home) ?? 0;
+    if (count < TECH_ALLOWANCE && chosen.length < room) {
+      chosen.push(candidate);
+      perSection.set(candidate.home, count + 1);
+    } else {
+      over.push(candidate);
+    }
+  }
+  return { chosen, over };
 }
 
 export type Eligibility =
@@ -142,6 +191,17 @@ export function eligibility(
   scored: ScoredItem,
   threshold: number = DEFAULT_SCORE_THRESHOLD,
 ): Eligibility {
+  if (scored.topic) {
+    // A custom topic won: it names the category, the section and whether the story may publish.
+    const { topic } = scored;
+    if (topic.never_publish) return { eligible: false, reason: "never_publish" };
+    if (scored.score < threshold) return { eligible: false, reason: "below_threshold" };
+    const home = scored.item.source_type === "youtube" ? "watch" : topic.section_id;
+    return {
+      eligible: true,
+      candidate: { item: scored.item, category: topic.id, home, score: scored.score },
+    };
+  }
   const category = scored.topCategory;
   if (category === "none") return { eligible: false, reason: "no_category" };
   if (NEVER_PUBLISH.includes(category)) return { eligible: false, reason: "never_publish" };
@@ -160,10 +220,11 @@ export function eligibility(
  *     overflow fill any remaining room, so a thin section never leaves slots empty.
  *  5. Weekly only: guarantee one of those slots for the best item whose category weight is below
  *     the median of preferences, so taste does not narrow week over week.
- *  6. Tech releases: take the best by rank up to its own allowance of 5, on top of the cap. The
- *     per-section target does not apply, and the pool never borrows from or lends to the cap.
+ *  6. Sections with an allowance of their own (Tech releases, and each section a custom topic
+ *     defines): take the best of each by rank up to its allowance of 5, on top of the cap. The
+ *     per-section target does not apply, and these pools never borrow from or lend to the cap.
  *  7. Fewer than `floor` chosen across both pools means nothing publishes.
- *  8. Assign sections: the three highest scores outside Tech releases become Top picks.
+ *  8. Assign sections: the three highest scores outside those sections become Top picks.
  */
 export function selectItems(input: SelectInput): SelectResult {
   const threshold = input.threshold ?? DEFAULT_SCORE_THRESHOLD;
@@ -178,11 +239,11 @@ export function selectItems(input: SelectInput): SelectResult {
   }
 
   const ranked = candidates.sort(compareCandidates);
-  const main = ranked.filter((candidate) => !isTech(candidate));
-  const tech = ranked.filter(isTech);
+  const main = ranked.filter((candidate) => !hasOwnSection(candidate));
+  const own = ranked.filter(hasOwnSection);
 
   const chosen = new Set<Candidate>();
-  const perSection = new Map<Section, number>();
+  const perSection = new Map<string, number>();
   const take = (candidate: Candidate): void => {
     chosen.add(candidate);
     perSection.set(candidate.home, (perSection.get(candidate.home) ?? 0) + 1);
@@ -200,7 +261,13 @@ export function selectItems(input: SelectInput): SelectResult {
   // releases has an allowance of its own and never needs it.
   if (input.kind === "weekly" && input.weights && limit > 0) {
     const median = medianWeight(input.weights);
-    const reserve = main.find((c) => input.weights && input.weights[c.category] < median);
+    // A custom topic has no preference weight, so it never fills the off-taste slot.
+    const reserve = main.find(
+      (c) =>
+        input.weights !== undefined &&
+        isBuiltinCategory(c.category) &&
+        input.weights[c.category] < median,
+    );
     if (reserve && !chosen.has(reserve)) {
       if (chosen.size >= limit) {
         const lowest = [...chosen].sort(compareCandidates).pop();
@@ -210,7 +277,8 @@ export function selectItems(input: SelectInput): SelectResult {
     }
   }
 
-  const chosenTech = tech.slice(0, TECH_ALLOWANCE);
+  const ownTaken = takeOwnSections(own, VOICE_LIMITS.items.hardMax - chosen.size);
+  const chosenTech = ownTaken.chosen;
   if (chosen.size + chosenTech.length < input.floor) {
     return { outcome: "nothing", selected: [], dropped, qualifying: ranked.length };
   }
@@ -220,8 +288,12 @@ export function selectItems(input: SelectInput): SelectResult {
       dropped.push({ id: candidate.item.id, reason: "over_cap", score: candidate.score });
     }
   }
-  for (const candidate of tech.slice(TECH_ALLOWANCE)) {
-    dropped.push({ id: candidate.item.id, reason: "over_tech_cap", score: candidate.score });
+  for (const candidate of ownTaken.over) {
+    dropped.push({
+      id: candidate.item.id,
+      reason: isTech(candidate) ? "over_tech_cap" : "over_section_cap",
+      score: candidate.score,
+    });
   }
   return {
     outcome: "selected",
