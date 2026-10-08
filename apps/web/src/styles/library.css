@@ -108,6 +108,38 @@
   opacity: 1;
 }
 
+/* The clear button is for touch, where there is no native one to rely on; the script shows it only
+   while the field has text. Its 44px box sits over the field's right end. */
+.search-wrap {
+  position: relative;
+}
+
+.search-field > input::-webkit-search-cancel-button {
+  appearance: none;
+  display: none;
+}
+
+.search-clear {
+  position: absolute;
+  inset-block: 0;
+  inset-inline-end: 0;
+  display: grid;
+  place-items: center;
+  width: var(--size-touch);
+  height: var(--size-touch);
+  margin-block: auto;
+  border: 0;
+  border-radius: var(--field-radius);
+  background: none;
+  color: var(--color-on-surface-muted);
+}
+
+@media (pointer: fine) {
+  .search-clear {
+    display: none;
+  }
+}
+
 .library-bar {
   display: flex;
   align-items: center;
