@@ -38,6 +38,65 @@ function scored(
 
 const ids = (items: { item: Item }[]): string[] => items.map((s) => s.item.id);
 
+describe("sections from the schedule", () => {
+  const pool = (): ScoredItem[] => [
+    scored("design_engineering_craft", 0.9),
+    scored("frontier_model_releases", 0.85),
+    scored("hci_empirical_research", 0.8),
+    scored("consumer_tech_releases", 0.75),
+  ];
+  const homeOf = (result: ReturnType<typeof selectItems>, id: string) =>
+    result.selected.find((s) => s.item.id === id)?.home;
+
+  it("covers every section when none are given", () => {
+    const items = pool();
+    for (const sections of [undefined, null]) {
+      const result = selectItems({ scored: items, kind: "regular", floor: 1, cap: 12, sections });
+      expect(result.selected).toHaveLength(4);
+    }
+  });
+
+  it("drops stories outside the chosen sections and records why", () => {
+    const items = pool();
+    const result = selectItems({
+      scored: items,
+      kind: "regular",
+      floor: 1,
+      cap: 12,
+      sections: ["ai"],
+    });
+    expect(result.selected.map((s) => s.item.id)).toEqual([items[1]?.item.id]);
+    expect(homeOf(result, items[1]?.item.id as string)).toBe("ai");
+    expect(result.dropped.filter((d) => d.reason === "excluded_section")).toHaveLength(3);
+  });
+
+  it("still builds Top picks from the covered sections", () => {
+    const items = pool();
+    const result = selectItems({
+      scored: items,
+      kind: "regular",
+      floor: 1,
+      cap: 12,
+      sections: ["ui-craft", "design"],
+    });
+    expect(result.selected.map((s) => s.section)).toEqual(["top", "top"]);
+    expect(result.selected.map((s) => s.item.id).sort()).toEqual(
+      [items[0]?.item.id, items[2]?.item.id].sort(),
+    );
+  });
+
+  it("returns nothing when the chosen sections have too few stories", () => {
+    const result = selectItems({
+      scored: pool(),
+      kind: "regular",
+      floor: 3,
+      cap: 12,
+      sections: ["tech"],
+    });
+    expect(result.outcome).toBe("nothing");
+  });
+});
+
 describe("eligibility", () => {
   it("drops items below the threshold and records why", () => {
     const low = scored("design_engineering_craft", DEFAULT_SCORE_THRESHOLD - 0.01);

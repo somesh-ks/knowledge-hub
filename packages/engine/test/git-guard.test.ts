@@ -27,6 +27,7 @@ describe("ALLOWLISTS", () => {
         "config/sources.user.json",
         "config/queries.json",
         "config/preferences.json",
+        "config/schedule.json",
         "state/source-candidates.json",
       ],
     });
@@ -37,6 +38,7 @@ describe("ALLOWLISTS", () => {
     ["config/sources.user.json", true],
     ["config/queries.json", true],
     ["config/preferences.json", true],
+    ["config/schedule.json", true],
     ["state/source-candidates.json", true],
     ["config/sources.json", false],
     ["config/sources.md", false],

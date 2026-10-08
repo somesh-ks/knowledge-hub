@@ -15,6 +15,40 @@ const lastWith = (regular?: RunRecord, weekly?: RunRecord): LastRunFile => ({
 const scheduled = (now: string, last: LastRunFile, force = false) =>
   decideRun({ now: new Date(now), mode: "scheduled", lastRun: last, force });
 
+describe("decideRun: cadence_days from the schedule", () => {
+  const last = lastWith(record("2026-10-01T05:13:00Z"));
+  const withCadence = (now: string, cadenceDays: number) =>
+    decideRun({
+      now: new Date(now),
+      mode: "scheduled",
+      lastRun: last,
+      force: false,
+      cadenceDays,
+    });
+
+  it.each([
+    [1, "2026-10-02T05:13:00Z", true],
+    [1, "2026-10-01T15:00:00Z", false],
+    [2, "2026-10-02T05:13:00Z", false],
+    [2, "2026-10-03T05:13:00Z", true],
+    [3, "2026-10-03T05:13:00Z", false],
+    [3, "2026-10-04T05:13:00Z", true],
+    [7, "2026-10-07T05:13:00Z", false],
+    [7, "2026-10-08T05:13:00Z", true],
+  ])("cadence %i on %s is due: %s", (cadence, now, due) => {
+    expect(withCadence(now, cadence).due).toBe(due);
+  });
+
+  it("keeps two days when no cadence is given", () => {
+    expect(scheduled("2026-10-02T05:13:00Z", last).due).toBe(false);
+    expect(scheduled("2026-10-03T05:13:00Z", last).due).toBe(true);
+  });
+
+  it("says how many days remain in the chosen cadence", () => {
+    expect(withCadence("2026-10-02T05:13:00Z", 7).reason).toContain("6 day(s)");
+  });
+});
+
 describe("decideRun: cadence by Stockholm calendar date", () => {
   it("is due when no regular digest exists", () => {
     expect(scheduled("2026-10-07T05:13:00Z", lastWith())).toMatchObject({

@@ -2,6 +2,7 @@ import { type DigestKind, stockholmDate } from "@dispatch/core";
 import { allocateDigestId } from "../gate/allocateDigestId.js";
 import { decideRun } from "../gate/decideRun.js";
 import { fetchWindow } from "../gate/fetchWindow.js";
+import { loadSchedule } from "../schedule/store.js";
 import { listDigestIds } from "../state/digestIds.js";
 import { readLastRun } from "../state/store.js";
 import { UsageError } from "./errors.js";
@@ -25,12 +26,13 @@ export function parseSince(since: string, now: Date): Date {
  */
 export async function gateStage(deps: RunDeps, options: RunOptions): Promise<GateReport> {
   const now = deps.now();
-  const lastRun = await readLastRun(deps.root);
+  const [lastRun, schedule] = await Promise.all([readLastRun(deps.root), loadSchedule(deps.root)]);
   const decision = decideRun({
     now,
     mode: options.mode,
     lastRun,
     force: options.force,
+    cadenceDays: schedule.cadence_days,
   });
   const since = options.since === undefined ? undefined : parseSince(options.since, now);
   const lastFetchAt = lastRun.last_fetch_at ? new Date(lastRun.last_fetch_at) : undefined;

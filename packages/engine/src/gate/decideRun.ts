@@ -9,6 +9,8 @@ export interface DecideRunInput {
   lastRun: LastRunFile;
   /** Ignore the cadence gate. */
   force: boolean;
+  /** Days between regular digests, from config/schedule.json. Defaults to REGULAR_CADENCE_DAYS. */
+  cadenceDays?: number;
 }
 
 export interface RunDecision {
@@ -22,7 +24,7 @@ export interface RunDecision {
   date: string;
 }
 
-/** Days between regular digests: a regular digest is due two or more calendar days after the last. */
+/** Default days between regular digests: due two or more calendar days after the last. */
 export const REGULAR_CADENCE_DAYS = 2;
 
 const SUNDAY = 0;
@@ -51,7 +53,13 @@ function weeklyAlreadyRanOn(lastRun: LastRunFile, date: string): boolean {
  * several hours still lands on its own date and the 23 and 25 hour days at daylight saving
  * changeovers cannot cost a cycle. A weekly pass is idempotent per Sunday, even when forced.
  */
-export function decideRun({ now, mode, lastRun, force }: DecideRunInput): RunDecision {
+export function decideRun({
+  now,
+  mode,
+  lastRun,
+  force,
+  cadenceDays = REGULAR_CADENCE_DAYS,
+}: DecideRunInput): RunDecision {
   const date = stockholmDate(now);
   const isSunday = weekday(date) === SUNDAY;
 
@@ -72,7 +80,7 @@ export function decideRun({ now, mode, lastRun, force }: DecideRunInput): RunDec
     return { due: true, runWeekly: weeklyDue, reason: "no regular digest has run yet", date };
   }
   const elapsed = daysBetween(last, date);
-  if (elapsed >= REGULAR_CADENCE_DAYS) {
+  if (elapsed >= cadenceDays) {
     return {
       due: true,
       runWeekly: weeklyDue,
@@ -83,6 +91,6 @@ export function decideRun({ now, mode, lastRun, force }: DecideRunInput): RunDec
   const reason =
     elapsed < 0
       ? `last regular digest is dated ${last}, after today; waiting`
-      : `last regular digest was ${last}; next is due ${REGULAR_CADENCE_DAYS - elapsed} day(s) from now`;
+      : `last regular digest was ${last}; next is due ${cadenceDays - elapsed} day(s) from now`;
   return { due: false, runWeekly: weeklyDue, reason, date };
 }

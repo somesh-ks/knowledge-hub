@@ -36,6 +36,7 @@ export const CONFIG_FILES = {
   sourceCatalog: "config/source-catalog.json",
   generalFeeds: "config/general-feeds.json",
   topics: "config/topics.json",
+  schedule: "config/schedule.json",
   queries: "config/queries.json",
   voice: "config/voice.md",
 } as const;

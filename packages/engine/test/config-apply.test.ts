@@ -214,6 +214,61 @@ describe("weights.set", () => {
   });
 });
 
+describe("schedule.set", () => {
+  const SET = { op: "schedule.set", hour: 9, cadence_days: 3, sections: null };
+
+  it("writes config/schedule.json and nothing else", async () => {
+    const { code, report } = await apply(SET);
+    expect(code).toBe(0);
+    expect(report.files).toEqual(["config/schedule.json"]);
+    expect(report.summary).toBe("set the briefing to 09:00, every 3 days");
+    expect(await repo.readJson("config/schedule.json")).toEqual({
+      version: 1,
+      hour: 9,
+      cadence_days: 3,
+      sections: null,
+    });
+  });
+
+  it("does not create the file when the values are the defaults", async () => {
+    const { code, report } = await apply({ ...SET, hour: 7, cadence_days: 2 });
+    expect(code).toBe(0);
+    expect(report.files).toEqual([]);
+    expect(repo.dirty()).toEqual([]);
+  });
+
+  it("stores a list of sections without Top picks", async () => {
+    await apply({ ...SET, sections: ["ai", "top", "ai"] });
+    expect(await repo.readJson("config/schedule.json")).toMatchObject({ sections: ["ai"] });
+  });
+
+  it("refuses an unknown section, an empty list and a bad hour, and writes nothing", async () => {
+    for (const bad of [
+      { ...SET, sections: ["nope"] },
+      { ...SET, sections: ["top"] },
+      { ...SET, sections: [] },
+      { ...SET, hour: 24 },
+      { ...SET, cadence_days: 4 },
+    ]) {
+      const { code } = await apply(bad);
+      expect(code, JSON.stringify(bad)).toBe(1);
+    }
+    expect(repo.dirty()).toEqual([]);
+  });
+
+  it("accepts a section a topic created earlier in the same batch", async () => {
+    const { run } = command();
+    const code = await run(
+      ["apply", "--op", JSON.stringify([QUANTUM, { ...SET, sections: ["quantum_computing"] }])],
+      repo.context(),
+    );
+    expect(code).toBe(0);
+    expect(await repo.readJson("config/schedule.json")).toMatchObject({
+      sections: ["quantum_computing"],
+    });
+  });
+});
+
 describe("topic.remove", () => {
   it("removes a custom topic with its section, queries, auto sources and candidates", async () => {
     await apply(QUANTUM);

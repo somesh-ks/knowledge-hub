@@ -9,6 +9,7 @@ import {
   isBuiltinSection,
   NEVER_PUBLISH,
   SECTIONS,
+  scheduleCovers,
   TECH_SECTION,
   VOICE_LIMITS,
 } from "@dispatch/core";
@@ -35,7 +36,9 @@ export type DropReason =
   /** A Tech releases candidate beyond that section's own allowance. */
   | "over_tech_cap"
   /** A candidate beyond the allowance of a custom section, or beyond the digest's hard maximum. */
-  | "over_section_cap";
+  | "over_section_cap"
+  /** A candidate whose section the scheduled briefing does not cover (config/schedule.json). */
+  | "excluded_section";
 
 export interface DroppedItem {
   id: string;
@@ -59,6 +62,11 @@ export interface SelectInput {
    */
   weights?: Record<Category, number>;
   threshold?: number;
+  /**
+   * Section ids this briefing covers, from config/schedule.json. Absent or null covers every
+   * section. Top picks is drawn from what is covered, so it needs no entry.
+   */
+  sections?: readonly string[] | null;
 }
 
 export interface SelectResult {
@@ -234,8 +242,13 @@ export function selectItems(input: SelectInput): SelectResult {
 
   for (const scored of input.scored) {
     const verdict = eligibility(scored, threshold);
-    if (verdict.eligible) candidates.push(verdict.candidate);
-    else dropped.push({ id: scored.item.id, reason: verdict.reason, score: scored.score });
+    if (verdict.eligible) {
+      if (!scheduleCovers({ sections: input.sections ?? null }, verdict.candidate.home)) {
+        dropped.push({ id: scored.item.id, reason: "excluded_section", score: scored.score });
+      } else {
+        candidates.push(verdict.candidate);
+      }
+    } else dropped.push({ id: scored.item.id, reason: verdict.reason, score: scored.score });
   }
 
   const ranked = candidates.sort(compareCandidates);

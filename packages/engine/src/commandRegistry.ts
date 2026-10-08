@@ -31,11 +31,12 @@ export const COMMANDS: readonly CommandSpec[] = [
     summary: "Apply one topic, source or weight change from the app, and commit it",
     help: `Usage:
   dispatch config apply --op '<json>' [--dry-run]    One ConfigOp: topic.upsert, topic.remove,
-                                                      source.add, source.set, source.remove, weights.set
+                                                      source.add, source.set, source.remove, weights.set,
+                                                      schedule.set
   dispatch config commit --message <text> [--no-push] Commit what apply wrote as chore(config): <text>
 
-Writes config/topics.json, config/sources.user.json, config/queries.json, config/preferences.json
-and state/source-candidates.json, and nothing else; the write guard enforces it.`,
+Writes config/topics.json, config/sources.user.json, config/queries.json, config/preferences.json,
+config/schedule.json and state/source-candidates.json, and nothing else; the write guard enforces it.`,
     load: async () => (await import("./commands/config.js")).run,
   },
   {
