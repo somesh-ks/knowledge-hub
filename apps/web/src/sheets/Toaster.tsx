@@ -28,7 +28,15 @@ export default function Toaster() {
   }, [toast]);
 
   return (
-    <div ref={ref} className="toast" popover="manual">
+    <div
+      ref={ref}
+      className="toast"
+      popover="manual"
+      role={shown?.kind === "error" ? "alert" : "status"}
+    >
+      {shown?.kind ? (
+        <Icon className="toast-icon" name={shown.kind === "error" ? "alert" : "check"} />
+      ) : null}
       <span className="toast-text">{shown?.message}</span>
       {shown?.actionLabel ? (
         <button
@@ -42,14 +50,16 @@ export default function Toaster() {
           {shown.actionLabel}
         </button>
       ) : null}
-      <button
-        className="toast-dismiss press"
-        type="button"
-        aria-label="Dismiss"
-        onClick={dismissToast}
-      >
-        <Icon name="close" />
-      </button>
+      {shown?.actionLabel ? (
+        <button
+          className="toast-dismiss press"
+          type="button"
+          aria-label="Dismiss"
+          onClick={dismissToast}
+        >
+          <Icon name="close" />
+        </button>
+      ) : null}
     </div>
   );
 }
