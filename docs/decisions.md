@@ -54,6 +54,7 @@ D1 to D9 date from plan v2 (2026-10-05). D10 to D25 date from 2026-10-06. Reason
 | D42 | One Jev request per item, and a per-run Firecrawl ceiling | active |
 | D43 | General episodes are built from general-news feeds, ranked by coverage | active |
 | D44 | An episode can be deleted, or regenerated with the listener's feedback | active |
+| D45 | The briefing's hour, cadence and topics are set in Settings | active |
 
 ---
 
@@ -425,3 +426,12 @@ D1 to D9 date from plan v2 (2026-10-05). D10 to D25 date from 2026-10-06. Reason
 - Why: the owner asked to keep paid calls low without losing curation quality.
 - Rejected: sharing one request across items (Jev takes one item's state); cutting sources.
 - Cost: a Trending item loses the hype, sponsored and funding penalties; an item with 200 to 599 characters of text no longer gets a paid scrape; a Firecrawl source skipped for the ceiling waits a run.
+
+## D45: The briefing's hour, cadence and topics are set in Settings
+
+- Date: 2026-10-08
+- Decision: the hour (Stockholm), the cadence (1, 2, 3 or 7 days) and the covered sections of the scheduled briefing live in `config/schedule.json`, written by the `schedule.set` config op from Settings, Schedule. A missing file means 07:00, every second day, every enabled topic. `run.yml` carries one schedule entry per hour, and its job runs only for the entry that equals the repository variable `RUN_CRON`, which the site sets when the hour is saved.
+- Why: the owner asked to choose when the briefing is made and what it covers, from the app. The repository is private, so an hourly job that gates itself would bill up to 744 minutes a month; a job skipped by its `if` starts no runner and costs nothing.
+- Cost: the hour lives in two places (the file for display, the variable for the trigger). If the variable cannot be written the page says so and the rest is still saved. GitHub can still fire a schedule hours late.
+- Owner: add "Variables: Read and write" to the site's GitHub token, and merge the workflow change by hand.
+- Rejected: an hourly job with a gate (minutes); Vercel Cron (once a day on the Hobby plan, static, imprecise); letting the app edit the workflow file (the token cannot change workflows).

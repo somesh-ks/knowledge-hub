@@ -8,6 +8,10 @@ import type { ConfigOp, ConfigResponse } from "../types/contracts";
 const KEY = "dispatch:narrate-passphrase";
 const SAVED = "Saved. The changes appear after the next build, in about a minute.";
 
+/** Shown when the edit went through but the site could not change the briefing time. */
+const TIME_REFUSED =
+  "The topics and cadence are saved. The time could not be changed: the site's GitHub token needs permission to write repository variables.";
+
 const REASONS: Record<number, string> = {
   400: "That change was not accepted.",
   401: PASSPHRASE_REQUIRED ? "That passphrase is not right." : "Saving was refused.",
@@ -72,6 +76,8 @@ export function buildQueue(
 }
 
 let passphrase: string | null = null;
+/** Set by `send` when a saved edit reports that the briefing time was not changed. */
+let timeRefused = false;
 
 /** Where the passphrase is kept between visits. Passing null forgets it. */
 function memory(value?: string | null): string | null {
@@ -102,6 +108,8 @@ async function send(
       });
       const body = (await response.json().catch(() => ({}))) as Partial<ConfigResponse>;
       status = body.status ?? response.status;
+      if (status === 202 && "time_changed" in body && body.time_changed === false)
+        timeRefused = true;
       if (status === 429) seconds = ("retry_after_s" in body && body.retry_after_s) || 10;
     } catch {
       status = 0;
@@ -142,6 +150,7 @@ export async function save(
   }
 
   passphrase = given;
+  timeRefused = false;
   fields.disabled = true;
   const total = changes.size;
   const queue = buildQueue(changes);
@@ -173,5 +182,5 @@ export async function save(
     }
   }
   fields.disabled = false;
-  show(failure || SAVED, failure ? "error" : "done");
+  show(failure || (timeRefused ? TIME_REFUSED : SAVED), failure ? "error" : "done");
 }

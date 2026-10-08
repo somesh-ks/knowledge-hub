@@ -1,5 +1,6 @@
 import { z } from "zod";
 import { IdString, SectionId } from "./categories.js";
+import { ScheduleSettings } from "./schedule.js";
 import { MAX_KEYWORDS, TOPIC_DEPTHS, TOPIC_ORIGINS } from "./topics.js";
 
 const weight = z.number().min(0).max(1);
@@ -38,6 +39,8 @@ export type TopicInput = z.input<typeof TopicInput>;
  * - source.set: switch a source on or off, or pin it. Works on seed and added sources.
  * - source.remove: delete an added source, or hide a seed source.
  * - weights.set: set weights by topic id. Built-in weights are written to config/preferences.json.
+ * - schedule.set: set the hour (Stockholm), the days between briefings and the sections a
+ *   scheduled briefing covers, in config/schedule.json. Unknown section ids are refused.
  */
 export const ConfigOp = z.discriminatedUnion("op", [
   z.object({ op: z.literal("topic.upsert"), topic: TopicInput }),
@@ -67,6 +70,7 @@ export const ConfigOp = z.discriminatedUnion("op", [
       .record(IdString, weight)
       .refine((value) => Object.keys(value).length > 0, "give at least one weight"),
   }),
+  z.object({ op: z.literal("schedule.set"), ...ScheduleSettings.shape }),
 ]);
 /** The op as a caller writes it, before defaults are filled in. */
 export type ConfigOp = z.input<typeof ConfigOp>;

@@ -262,7 +262,16 @@ export type ConfigOp =
   | { op: "source.add"; url: string; topic_ids?: string[] }
   | { op: "source.set"; id: string; enabled?: boolean; pinned?: boolean }
   | { op: "source.remove"; id: string }
-  | { op: "weights.set"; weights: Record<string, number> };
+  | { op: "weights.set"; weights: Record<string, number> }
+  | {
+      op: "schedule.set";
+      /** Whole hour of Stockholm time, 0 to 23. */
+      hour: number;
+      /** Days between briefings: 1, 2, 3 or 7. */
+      cadence_days: 1 | 2 | 3 | 7;
+      /** Section ids a scheduled briefing covers, or null for every enabled topic. */
+      sections: string[] | null;
+    };
 
 export interface ConfigRequest {
   passphrase: string;
@@ -271,7 +280,16 @@ export interface ConfigRequest {
 }
 
 export type ConfigResponse =
-  | { status: 202; run_id: number }
+  | {
+      status: 202;
+      run_id: number;
+      /**
+       * Only for an edit that carried schedule.set: false when the site could not change the
+       * briefing time (its GitHub token may lack permission to write repository variables). The
+       * rest of the edit is saved either way.
+       */
+      time_changed?: boolean;
+    }
   | { status: 400; error: "invalid_request" }
   | { status: 401; error: "wrong_passphrase" }
   | { status: 429; error: "cooldown"; retry_after_s: number }

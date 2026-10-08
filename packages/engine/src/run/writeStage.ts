@@ -5,6 +5,7 @@ import { writeJson } from "../curate/output.js";
 import type { DropStage, Selection, WrittenFile } from "../curate/selectionFile.js";
 import type { ExtractedText } from "../extract/extractText.js";
 import { mapConcurrent } from "../llm/concurrency.js";
+import { loadSchedule } from "../schedule/store.js";
 import { scoreItem } from "../score/scoreItem.js";
 import { applyTopics, type TopicLayer } from "../score/scoreTopics.js";
 import { assignSections, capFor, selectItems } from "../score/selectItems.js";
@@ -33,6 +34,8 @@ interface PassContext {
   sourceNames: Record<string, string>;
   /** Enabled custom topics, scored against the fits the judge stage recorded. */
   customTopics: ReturnType<typeof activeFitTopics>;
+  /** Sections a scheduled regular briefing covers; null for every section and for other modes. */
+  sections: readonly string[] | null;
 }
 
 /**
@@ -57,6 +60,7 @@ export async function writeStage(deps: RunDeps, plan: Plan): Promise<StageReport
     preferences,
     sourceNames: sourceNameMap(sources),
     customTopics: activeFitTopics(topics),
+    sections: plan.mode === "scheduled" ? (await loadSchedule(deps.root)).sections : null,
   };
 
   const claimed = new Set<string>();
@@ -93,7 +97,7 @@ async function writePass(
   pass: PlanPass,
   claimed: ReadonlySet<string>,
 ): Promise<PassResult> {
-  const { deps, runtime, linter, preferences, sourceNames, customTopics } = context;
+  const { deps, runtime, linter, preferences, sourceNames, customTopics, sections } = context;
   const file = (name: string): string => passFile(deps.root, pass.id, name);
   const pool = await loadPool(file("pool.json"));
   const judged = await readArtifact(file("judged.json"), "judged.json", JudgedFile);
@@ -123,6 +127,8 @@ async function writePass(
     floor: VOICE_LIMITS.items.floor,
     cap: capFor(pass.kind),
     weights: preferences.weights,
+    // Only the scheduled regular briefing is narrowed; the weekly pass keeps every section.
+    sections: pass.kind === "regular" ? sections : null,
   });
   for (const d of chosen.dropped) drop(d.id, "select", `${d.reason} (score ${d.score})`);
 

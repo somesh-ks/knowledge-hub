@@ -5,6 +5,7 @@ import {
   type ParsedConfigOp,
   type Preferences,
   RESERVED_TOPIC_IDS,
+  type ScheduleFile,
   type Source,
   type SourceCandidatesFile,
   type SourcesFile,
@@ -30,6 +31,7 @@ export interface ConfigBundle {
   /** Built-in weights already read from the preferences. */
   topics: TopicsFile;
   preferences: Preferences;
+  schedule: ScheduleFile;
   sourcesUser: SourcesUserFile;
   /** The merged registry, read only: used to find ids and pages that already exist. */
   registry: SourcesFile;
@@ -328,6 +330,34 @@ function setWeights(
   return { next, summary: `set ${count} topic weight${count === 1 ? "" : "s"}` };
 }
 
+function setSchedule(
+  op: Extract<ParsedConfigOp, { op: "schedule.set" }>,
+  bundle: ConfigBundle,
+): OpOutcome {
+  const next = clone(bundle);
+  let sections: string[] | null = null;
+  if (op.sections !== null) {
+    const known = new Set(["top", ...next.topics.sections.map((section) => section.id)]);
+    for (const id of op.sections) {
+      if (!known.has(id)) throw new ConfigOpError(`There is no section ${id}.`);
+    }
+    // Top picks is always covered, so it is never stored.
+    sections = [...new Set(op.sections)].filter((id) => id !== "top");
+    if (sections.length === 0) throw new ConfigOpError("Pick at least one topic to cover.");
+  }
+  next.schedule = {
+    version: 1,
+    hour: op.hour,
+    cadence_days: op.cadence_days,
+    sections,
+  };
+  const hour = `${String(op.hour).padStart(2, "0")}:00`;
+  return {
+    next,
+    summary: `set the briefing to ${hour}, every ${op.cadence_days} day${op.cadence_days === 1 ? "" : "s"}`,
+  };
+}
+
 /**
  * Apply one validated op to the configuration. Pure apart from the feed lookup `source.add`
  * makes through the injected client. Throws ConfigOpError with a message for the person who sent
@@ -351,6 +381,8 @@ export async function applyConfigOp(
       return removeSource(op, bundle);
     case "weights.set":
       return setWeights(op, bundle);
+    case "schedule.set":
+      return setSchedule(op, bundle);
     default: {
       const unreachable: never = op;
       throw new ConfigOpError(`Unknown op ${JSON.stringify(unreachable)}`);

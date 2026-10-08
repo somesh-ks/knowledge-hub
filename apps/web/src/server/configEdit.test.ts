@@ -196,6 +196,34 @@ describe("parseConfigOp", () => {
   });
 });
 
+describe("parseConfigOp: schedule.set", () => {
+  const schedule: ConfigOp = { op: "schedule.set", hour: 9, cadence_days: 3, sections: ["ai"] };
+
+  it("accepts a list of sections or null, and rebuilds the edit from its parts", () => {
+    expect(parseConfigOp(schedule)).toEqual(schedule);
+    expect(parseConfigOp({ ...schedule, sections: null })).toEqual({ ...schedule, sections: null });
+    expect(parseConfigOp({ ...schedule, extra: 1 })).toEqual(schedule);
+  });
+
+  it("refuses an hour or cadence out of range and a malformed list", () => {
+    for (const bad of [
+      { ...schedule, hour: 24 },
+      { ...schedule, hour: -1 },
+      { ...schedule, hour: 7.5 },
+      { ...schedule, hour: "7" },
+      { ...schedule, cadence_days: 4 },
+      { ...schedule, cadence_days: undefined },
+      { ...schedule, sections: [] },
+      { ...schedule, sections: undefined },
+      { ...schedule, sections: ["Bad Id"] },
+      { ...schedule, sections: "ai" },
+      { ...schedule, sections: Array(61).fill("ai") },
+    ]) {
+      expect(parseConfigOp(bad), JSON.stringify(bad)).toBeNull();
+    }
+  });
+});
+
 describe("parseConfigRequest", () => {
   it("reads a passphrase and an edit from a JSON body", () => {
     expect(parseConfigRequest(body(upsert))).toEqual({ passphrase: PASSPHRASE, op: upsert });
@@ -371,6 +399,74 @@ describe("handleConfig", () => {
       ref: "main",
       inputs: { op: '{"op":"source.remove","id":"openai-blog"}' },
       return_run_details: true,
+    });
+  });
+
+  describe("schedule.set", () => {
+    const schedule: ConfigOp = { op: "schedule.set", hour: 9, cadence_days: 2, sections: null };
+    const VARIABLE = "PATCH /actions/variables/RUN_CRON";
+    const CREATE = "POST /actions/variables";
+    const variableCalls = (github: ReturnType<typeof setup>["github"]) =>
+      github.requests.filter((request) => request.path.startsWith("/actions/variables"));
+
+    it("dispatches the edit, then sets RUN_CRON to the chosen hour", async () => {
+      const { deps, github } = setup();
+      github.on(RUNS, { json: { workflow_runs: [] } });
+      github.on(DISPATCH, { json: { workflow_run_id: 31 } });
+      github.on(VARIABLE, { status: 204 });
+      const result = await handleConfig(input(body(schedule)), deps);
+      expect(result).toEqual({
+        status: 202,
+        body: { status: 202, run_id: 31, time_changed: true },
+      });
+      const calls = variableCalls(github);
+      expect(calls).toHaveLength(1);
+      expect(calls[0]).toMatchObject({
+        method: "PATCH",
+        path: "/actions/variables/RUN_CRON",
+        body: { name: "RUN_CRON", value: "13 9 * * *" },
+      });
+    });
+
+    it("creates the variable when it does not exist yet", async () => {
+      const { deps, github } = setup();
+      github.on(RUNS, { json: { workflow_runs: [] } });
+      github.on(DISPATCH, { json: { workflow_run_id: 31 } });
+      github.on(CREATE, { status: 201 });
+      const result = await handleConfig(input(body([upsert, schedule])), deps);
+      expect(result).toMatchObject({ status: 202, body: { time_changed: true } });
+      expect(variableCalls(github).map((request) => request.method)).toEqual(["PATCH", "POST"]);
+      expect(variableCalls(github)[1]?.body).toEqual({ name: "RUN_CRON", value: "13 9 * * *" });
+    });
+
+    it("still answers 202 and says the time was not changed when GitHub refuses", async () => {
+      const { deps, github, logs } = setup();
+      github.on(RUNS, { json: { workflow_runs: [] } });
+      github.on(DISPATCH, { json: { workflow_run_id: 31 } });
+      github.on(VARIABLE, { status: 403 });
+      const result = await handleConfig(input(body(schedule)), deps);
+      expect(result).toEqual({
+        status: 202,
+        body: { status: 202, run_id: 31, time_changed: false },
+      });
+      expect(logs.join(" ")).toContain("403");
+      expect(JSON.stringify([result, logs])).not.toContain(TOKEN);
+    });
+
+    it("leaves the variable alone for an edit without a schedule", async () => {
+      const { deps, github } = setup();
+      github.on(RUNS, { json: { workflow_runs: [] } });
+      github.on(DISPATCH, { json: { workflow_run_id: 31 } });
+      const result = await handleConfig(input(body(upsert)), deps);
+      expect(result).toEqual({ status: 202, body: { status: 202, run_id: 31 } });
+      expect(variableCalls(github)).toHaveLength(0);
+    });
+
+    it("does not touch the variable while the cooldown holds", async () => {
+      const { deps, github } = setup();
+      github.on(RUNS, { json: { workflow_runs: [runJson({ created_at: secondsAgo(3) })] } });
+      expect((await handleConfig(input(body(schedule)), deps)).status).toBe(429);
+      expect(variableCalls(github)).toHaveLength(0);
     });
   });
 

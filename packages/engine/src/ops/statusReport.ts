@@ -1,6 +1,7 @@
 import { readFile } from "node:fs/promises";
 import { join } from "node:path";
 import {
+  DEFAULT_SCHEDULE,
   type Digest,
   type LastRunFile,
   parseDigestFile,
@@ -9,9 +10,10 @@ import {
   TIME_ZONE,
 } from "@dispatch/core";
 import { BUDGET_RATIO, loadUsage } from "../audio/budget.js";
-import { decideRun, REGULAR_CADENCE_DAYS } from "../gate/decideRun.js";
+import { decideRun } from "../gate/decideRun.js";
 import { listDigestTargets } from "../publish/publishAudio.js";
 import { AUDIO_RETENTION_DAYS, digestsLackingAudio } from "../run/pendingAudio.js";
+import { loadSchedule } from "../schedule/store.js";
 import { loadSources } from "../sources/registry.js";
 import { FAILURE_FLAG_THRESHOLD, failingSources, overlayHealth } from "../state/sourceHealth.js";
 import { readLastRun, readSourceHealth } from "../state/store.js";
@@ -144,7 +146,14 @@ export async function collectStatus(
     readLastRun(root),
   );
   const today = stockholmDate(now);
-  const decision = decideRun({ now, mode: "scheduled", lastRun, force: false });
+  const schedule = await guard("config/schedule.json", DEFAULT_SCHEDULE, () => loadSchedule(root));
+  const decision = decideRun({
+    now,
+    mode: "scheduled",
+    lastRun,
+    force: false,
+    cadenceDays: schedule.cadence_days,
+  });
   const last = lastRegularDate(lastRun);
 
   const registry = await guard("config/sources.json", null, () => loadSources(root));
@@ -172,7 +181,7 @@ export async function collectStatus(
       on_demand: summarize(lastRun.on_demand),
     },
     last_fetch_at: lastRun.last_fetch_at ?? null,
-    next_regular_due: last === undefined ? today : addDays(last, REGULAR_CADENCE_DAYS),
+    next_regular_due: last === undefined ? today : addDays(last, schedule.cadence_days),
     due_now: decision.due,
     due_reason: decision.reason,
     latest_digest: await guard("Digests/", null, () => latestDigest(root)),

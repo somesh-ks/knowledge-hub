@@ -54,7 +54,7 @@ export const AUDIENCES: ReadonlyArray<{
   },
   {
     value: "custom",
-    label: "Customized",
+    label: "Somesh mode",
     hint: "Written for you. Also draws on your own topics.",
     top: "Every episode opens with the top picks.",
   },
@@ -78,7 +78,7 @@ export interface TopicOption {
   /** A section id. */
   value: string;
   label: string;
-  /** The mode that offers it: General shows the general topics, Customized the rest. */
+  /** The mode that offers it: General shows the general topics, Somesh mode the rest. */
   mode: NonNullable<PodcastRequest["audience"]>;
 }
 
@@ -121,7 +121,7 @@ export interface TopicInfo {
  * The topics to offer: always the five above, whether or not a recent briefing has stories in them,
  * titled as config/topics.json titles their sections. After them come the owner's own topics (the
  * custom ones that are on), each by the section it publishes to and only when that section is not
- * one of the five already; the form shows these in Customized mode only.
+ * one of the five already; the form shows these in Somesh mode mode only.
  */
 export function topicOptions(
   sections: ReadonlyArray<{ id: string; title: string }>,
@@ -149,7 +149,7 @@ export function topicOptions(
 }
 
 /**
- * Every chip the form renders: the Customized set, then the General set. The form shows the set of
+ * Every chip the form renders: the Somesh mode set, then the General set. The form shows the set of
  * the chosen mode and hides the other, so a request only ever holds ids of one mode.
  */
 export function createTopicOptions(

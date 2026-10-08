@@ -1,0 +1,117 @@
+---
+import Icon from "../../components/Icon.astro";
+import ManageChrome from "../../components/ManageChrome.astro";
+import BaseLayout from "../../layouts/BaseLayout.astro";
+import { CADENCES, hourLabel, loadScheduleView } from "../../lib/schedule";
+import "../../styles/settings.css";
+import "../../styles/manage.css";
+import "../../styles/schedule.css";
+
+const { hour, cadenceDays, sections, options, next } = await loadScheduleView();
+const hours = Array.from({ length: 24 }, (_, value) => value);
+---
+
+<BaseLayout title="Schedule" view="settings" skipLabel="Skip to the schedule">
+  <main id="main" tabindex="-1">
+    {/* Static HTML with the saved values written in. scripts/schedulePage.ts only records a change
+         and sends it through the same bar and save step as the Topics page. */}
+    <div class="manage" data-manage="schedule" data-schedule>
+      <a class="btn manage-back press press-subtle" href="/settings">
+        <Icon name="arrowBack" />
+        <span>Settings</span>
+      </a>
+      <h1 class="page-title manage-title" id="page-title" tabindex="-1">Schedule</h1>
+      <noscript>
+        <p class="manage-note">Changing the schedule needs JavaScript, which is turned off in this browser.</p>
+      </noscript>
+
+      <fieldset class="manage-fields" data-fields>
+        <legend class="sr-only">Schedule</legend>
+
+        <div class="schedule-panel" data-panel>
+          <div class="manage-field">
+            <label for="schedule-hour">Time</label>
+            <select
+              class="manage-input"
+              id="schedule-hour"
+              name="hour"
+              autocomplete="off"
+              aria-describedby="schedule-hour-hint"
+            >
+              {
+                hours.map((value) => (
+                  <option value={value} selected={value === hour}>
+                    {hourLabel(value)}
+                  </option>
+                ))
+              }
+            </select>
+            <span class="manage-quiet" id="schedule-hour-hint">Stockholm time</span>
+          </div>
+
+          <div class="manage-field">
+            <label for="schedule-cadence">How often</label>
+            <select class="manage-input" id="schedule-cadence" name="cadence" autocomplete="off">
+              {
+                CADENCES.map((cadence) => (
+                  <option value={cadence.days} selected={cadence.days === cadenceDays}>
+                    {cadence.label}
+                  </option>
+                ))
+              }
+            </select>
+          </div>
+
+          <fieldset class="manage-suggest-group" data-covers>
+            <legend class="manage-legend">Topics</legend>
+            <ul class="rows" role="list">
+              <li>
+                <label class="manage-pick">
+                  <input type="checkbox" checked disabled />
+                  <span class="manage-text">
+                    <span class="manage-name">Top picks</span>
+                    <span class="manage-quiet">Always included</span>
+                  </span>
+                </label>
+              </li>
+              {
+                options.map((option) => (
+                  <li>
+                    <label class="manage-pick">
+                      <input
+                        type="checkbox"
+                        name="cover"
+                        value={option.id}
+                        autocomplete="off"
+                        checked={sections === null || sections.includes(option.id)}
+                      />
+                      <span class="manage-text">
+                        <span class="manage-name">{option.title}</span>
+                        <span class="manage-quiet">{option.topics.join(", ")}</span>
+                      </span>
+                    </label>
+                  </li>
+                ))
+              }
+            </ul>
+          </fieldset>
+
+          <p class="manage-quiet" data-next>{next}</p>
+
+          <a class="btn schedule-add press press-subtle" href="/settings/topics#add-topic">
+            <Icon name="plus" />
+            <span>Add a topic</span>
+          </a>
+        </div>
+      </fieldset>
+
+      <ManageChrome />
+    </div>
+  </main>
+</BaseLayout>
+
+<script>
+  import { installSchedulePage } from "../../scripts/schedulePage";
+
+  installSchedulePage();
+</script>

@@ -93,7 +93,7 @@ test.describe("the Create page", () => {
       "Tone",
       "Title",
     ]);
-    // The five topics in the contract's order, then the owner's own in Customized mode.
+    // The five topics in the contract's order, then the owner's own in Somesh mode mode.
     await expect(page.locator(".create-chip:visible")).toHaveText([
       "Design",
       "Design Engineering",
@@ -186,7 +186,7 @@ test.describe("the Create page", () => {
     expect(JSON.stringify(mock.bodies[0])).not.toContain('"top"');
   });
 
-  test("General offers six general topics and hides the five; Customized brings them back", async ({
+  test("General offers six general topics and hides the five; Somesh mode brings them back", async ({
     page,
   }) => {
     await openCreate(page);
@@ -204,7 +204,7 @@ test.describe("the Create page", () => {
     ]);
     await expect(top).toHaveText("Every episode opens with the day's top stories.");
     await expect(page.locator(".create-chip", { hasText: "Design Engineering" })).toBeHidden();
-    await segment(page, "Customized").click();
+    await segment(page, "Somesh mode").click();
     await expect(visible).toHaveText([
       "Design",
       "Design Engineering",
@@ -216,7 +216,7 @@ test.describe("the Create page", () => {
     await expect(top).toHaveText("Every episode opens with the top picks.");
   });
 
-  test("a ticked Customized topic is unticked and not sent after switching to General", async ({
+  test("a ticked Somesh mode topic is unticked and not sent after switching to General", async ({
     page,
   }) => {
     const mock = await mockPodcast(page, 202, { status: 202, run_id: 3, started_at: "x" });

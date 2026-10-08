@@ -13,7 +13,9 @@ The reader is called Singularity (D30). Identifiers keep `dispatch`. Everything 
 - Narration on Play, story by story (D33).
 - Custom episodes (D37): the first real run of `podcast.yml` succeeded on 2026-10-08 and published `ep-20261008-1155`. Discussion episodes use a second voice by default (`dominic_32`). Twelve episodes a day, two minutes apart.
 - Episode length: the writer is told the length in words and a script is held to what its stories can carry. Real dry runs on 2026-10-08 put 5 and 10 minute episodes at 83 to 90% of the length asked for (they were at 25 to 67%). `dispatch podcast --dry-run` measures one request without writing.
-- Delete an episode, or regenerate it with feedback, from the episode page (D44). Both go through `/api/podcast` and `podcast.yml`.
+- Delete an episode, or regenerate it with feedback, from a three-dots menu on the episode page (D44). Both go through `/api/podcast` and `podcast.yml`. A delete takes effect at once on the device that asked: the episode is hidden there while the workflow and the redeploy finish.
+- Nothing is said under the play chip before audio exists. Space plays and pauses from anywhere once the bar is there. The first Play on a page with no audio starts by itself (it used to spin until a second press).
+- Schedule in Settings (D45): hour, cadence and topics of the scheduled briefing. The Create audience "Customized" is called "Somesh mode".
 - Create is the primary action: a side button on wide screens, a floating button on phones, a panel for the form (full screen on a phone, a side panel on desktop) and a compact progress indicator.
 - General episodes built from 24 general-news feeds, ranked by coverage, with their own topics (D43).
 - One Jev request per item and a per-run Firecrawl ceiling of 30 (D42).
@@ -36,7 +38,9 @@ The reader is called Singularity (D30). Identifiers keep `dispatch`. Everything 
 
 - Not yet run through the real workflow: deleting an episode and regenerating one.
 - A 15 minute episode still falls short: 71% for a general readout with 30 stories, and 45% for the owner's topics on a day with 12 stories, where there is not enough material. The app does not yet say how much a window holds.
-- Open defects from the QA sweep of 2026-10-08: passphrase wording still shown on a 401 in Generate, Topics save and the narrate sheet; a Play tap before the page's scripts load is lost on a phone; dismissing the run indicator drops focus; Back with the Create panel open leaves the page; filter chips are 36px and topic switches 52 by 32 on touch; the Library search and sort have no visible focus ring and no clear control on touch; a topic name without letters gets the id "topic"; a failed run has no distinct styling and the phone run bar cuts through text; the six-topic limit cannot be reached.
+- The schedule needs two owner steps before the hour can change: "Variables: Read and write" on the site's GitHub token, and a manual merge of the workflow change (24 hourly entries and the `RUN_CRON` check). Until then the briefing stays at 07:13; cadence and topics already apply. The real variable call and a real scheduled run are unverified.
+- Prewarming the first audio segments on page open is written but not merged: it made the site suite fail, because the background request reaches the test server.
+- Left from the QA sweep of 2026-10-08: a Play tap before the page's scripts load is lost on a phone; a refused narration (429) shows no wait time; focus on opening the player is unchecked. The failed-run styling and the phone run bar were changed but not looked at.
 - Not yet run against live services: the Design and Trending topics in a real briefing (the Trending clustering threshold is untuned on real headlines), a config batch through `config.yml` (adding a topic with ticked sources), Exa source discovery, the second voice, first-time narration of a new briefing.
 - GitHub fired the scheduled run 6.5 hours late on 2026-10-07 and had not fired it by midday on 2026-10-08. The gate compares dates, so a late run still lands on its day, but the time is not dependable.
 - No end-to-end test applies a real op array through `config apply`, and none runs a full pipeline with Trending feeds.
@@ -45,7 +49,7 @@ The reader is called Singularity (D30). Identifiers keep `dispatch`. Everything 
 - `src/player/dev/LabGlyph.astro` is unused. Delete it when convenient.
 - Not tested on a real iPhone.
 - Audio stored for the briefings of 6 and 7 October says "Dispatch". It lives in each briefing's front matter, so Play uses it and does not re-make it.
-- First-load JavaScript is at 101.6 KB of the 102 KB budget.
+- First-load JavaScript budget is 103 KB: reading pages are at 100 to 101 KB, the management pages under Settings at 102.4.
 
 ## Known risks
 
@@ -57,8 +61,8 @@ The reader is called Singularity (D30). Identifiers keep `dispatch`. Everything 
 
 ## Next
 
-1. Owner asked for, not started: the script in the open player with the spoken word highlighted, beside the cover, and the episode page showing insights and links in place of the script; the schedule's time and cadence and the scheduled briefing's topics in the app, with Customized renamed "Somesh mode" (needs a workflow change, so a manual merge); live TTS on Play.
-2. The QA defects listed above.
+1. Owner asked for, not started: the script in the open player with the spoken word highlighted, beside the cover, and the episode page showing insights and links in place of the script.
+2. The wait before the first sound: merge the prewarm once its tests are sorted, measure on production, and stream only if it is still slow.
 3. Owner: revoke the Vercel token pasted in chat on 2026-10-07; delete the empty Blob store `store_JmrDq8MB5Kwn3ejW`.
 4. One generated briefing to see Design and Trending, then tune the Trending threshold.
 5. Two iPhone passes, with the six WebKit failures as the checklist.

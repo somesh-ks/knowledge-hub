@@ -15,6 +15,7 @@ import { loadQueries, QUERIES_PATH } from "../fetch/queries.js";
 import { commitAndPush } from "../git/commit.js";
 import { createGitRunner } from "../git/runGit.js";
 import { createHttpClient, type HttpClient } from "../http.js";
+import { loadSchedule, serializeSchedule } from "../schedule/store.js";
 import { loadSources, loadUserSources, serializeUserSources } from "../sources/registry.js";
 import { writeFileAtomic } from "../state/atomicWrite.js";
 import { stableStringify } from "../state/stableJson.js";
@@ -23,7 +24,7 @@ import { loadTopics, serializeTopics } from "../topics/store.js";
 
 const USAGE = `Usage: dispatch config <command>
 
-  apply --op '<json>' [--dry-run]    Apply a change to the topics, sources, queries or weights.
+  apply --op '<json>' [--dry-run]    Apply a change to the topics, sources, queries, weights or schedule.
                                      The op is one object or an array of 1 to 8; an array is checked
                                      whole, applied in order and lands all or nothing. Network only
                                      for source.add (feed lookup).
@@ -37,7 +38,8 @@ Ops (see ConfigOp in @dispatch/core):
   {"op":"source.add","url":"https://...","topic_ids":["..."]}
   {"op":"source.set","id":"...","enabled":false,"pinned":true}
   {"op":"source.remove","id":"..."}
-  {"op":"weights.set","weights":{"topic_id":0.8}}`;
+  {"op":"weights.set","weights":{"topic_id":0.8}}
+  {"op":"schedule.set","hour":7,"cadence_days":2,"sections":null}`;
 
 export interface ConfigDeps {
   /** Network client for source.add. Tests pass a fake. */
@@ -68,14 +70,15 @@ function serializeQueries(file: ConfigBundle["queries"]): string {
 
 async function readBundle(root: string): Promise<ConfigBundle> {
   const preferences = await loadPreferences(root);
-  const [topics, sourcesUser, registry, queries, candidates] = await Promise.all([
+  const [topics, schedule, sourcesUser, registry, queries, candidates] = await Promise.all([
     loadTopics(root, preferences),
+    loadSchedule(root),
     loadUserSources(root),
     loadSources(root),
     loadQueries(root),
     readSourceCandidates(root),
   ]);
-  return { topics, preferences, sourcesUser, registry, queries, candidates };
+  return { topics, preferences, schedule, sourcesUser, registry, queries, candidates };
 }
 
 /** What each file would contain, in the form it is committed in. */
@@ -83,6 +86,7 @@ function renderBundle(bundle: ConfigBundle): Record<string, string> {
   return {
     [CONFIG_FILES.topics]: serializeTopics(bundle.topics),
     [CONFIG_FILES.preferences]: serializePreferences(bundle.preferences),
+    [CONFIG_FILES.schedule]: serializeSchedule(bundle.schedule),
     [CONFIG_FILES.sourcesUser]: serializeUserSources(SourcesUserFile.parse(bundle.sourcesUser)),
     [QUERIES_PATH]: serializeQueries(bundle.queries),
     [STATE_FILES.sourceCandidates]: stableStringify(bundle.candidates),
