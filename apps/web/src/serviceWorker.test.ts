@@ -351,7 +351,7 @@ describe("service worker: install and update", () => {
     expect(names).not.toContain("dispatch-shell-v0");
     expect(names).not.toContain("dispatch-pages-v0");
     expect(names).toContain("someone-elses-cache");
-    expect(names).toContain("dispatch-shell-v2");
+    expect(names).toContain("dispatch-shell-v3");
     expect(worker.claim).toHaveBeenCalled();
   });
 

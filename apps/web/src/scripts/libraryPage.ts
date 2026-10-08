@@ -160,7 +160,7 @@ function install(): void {
   /** Gallery or list, remembered on this device. Storage that fails leaves the gallery. */
   const viewButtons = [...root.querySelectorAll<HTMLButtonElement>("[data-library-view]")];
   function showView(view: string): void {
-    root.dataset.view = view;
+    if (root) root.dataset.view = view;
     for (const button of viewButtons) {
       button.setAttribute("aria-pressed", String(button.dataset.libraryView === view));
     }
