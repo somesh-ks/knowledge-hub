@@ -1,12 +1,24 @@
 ---
 import Icon from "../components/Icon.astro";
 import BaseLayout from "../layouts/BaseLayout.astro";
-import { PASSPHRASE_REQUIRED } from "../lib/access";
+import { loadManage } from "../lib/manage";
+import { CADENCES, hourLabel, loadScheduleView } from "../lib/schedule";
 import { PLAYBACK_RATES } from "../player/core/playerTypes";
 import { THEME_PREFERENCES, type ThemePreference } from "../player/core/preferences";
 // The build links this file before the layout's stylesheet, so its rules never rely on coming last:
 // where one adjusts a shared rule, it does so with a more specific selector.
 import "../styles/settings.css";
+
+const schedule = await loadScheduleView();
+const { topics, sources } = await loadManage();
+const count = (n: number, noun: string): string => `${n} ${noun}${n === 1 ? "" : "s"}`;
+const cadence = CADENCES.find((entry) => entry.days === schedule.cadenceDays)?.label ?? "";
+// What each row leads to, in a few words: the current state, worked out when the site is built.
+const values = {
+  schedule: `${hourLabel(schedule.hour)}, ${cadence.toLowerCase()}`,
+  topics: count(topics.filter((topic) => topic.enabled && !topic.never_publish).length, "topic"),
+  sources: count(sources.filter((source) => source.enabled).length, "source"),
+};
 
 const THEME_LABELS: Record<ThemePreference, string> = {
   system: "System",
@@ -28,19 +40,69 @@ const THEME_LABELS: Record<ThemePreference, string> = {
       </noscript>
 
       <section>
+        <h2 class="section-head">Daily podcast</h2>
+        <div class="rows">
+          <a class="row-action" href="/settings/schedule">
+            <span class="settings-text">
+              <span class="settings-label">Schedule</span>
+              <span class="settings-hint">{values.schedule}</span>
+            </span>
+            <Icon name="chevronRight" />
+          </a>
+          <a class="row-action" href="/settings/topics">
+            <span class="settings-text">
+              <span class="settings-label">Topics</span>
+              <span class="settings-hint">{values.topics}</span>
+            </span>
+            <Icon name="chevronRight" />
+          </a>
+          <a class="row-action" href="/settings/sources">
+            <span class="settings-text">
+              <span class="settings-label">Sources</span>
+              <span class="settings-hint">{values.sources}</span>
+            </span>
+            <Icon name="chevronRight" />
+          </a>
+        </div>
+      </section>
+
+      <section class="rule-above">
+        <h2 class="section-head">Playback</h2>
+        <div class="rows">
+          <div class="settings-row" data-layout="choice">
+            <div class="settings-text">
+              <span class="settings-label" id="settings-rate-label">Default speed</span>
+            </div>
+            <fieldset class="settings-choice" role="radiogroup" aria-labelledby="settings-rate-label">
+              {
+                PLAYBACK_RATES.map((rate) => (
+                  <label class="settings-segment">
+                    <input type="radio" name="rate" value={String(rate)} />
+                    <span class="num">{rate}x</span>
+                  </label>
+                ))
+              }
+            </fieldset>
+          </div>
+          <div class="settings-row">
+            <label class="settings-label" for="settings-sounds">Interface sounds</label>
+            <input class="settings-switch" id="settings-sounds" name="sounds" type="checkbox" role="switch" />
+          </div>
+          <div class="settings-row">
+            <label class="settings-label" for="settings-volume">Volume</label>
+            <input class="settings-range" id="settings-volume" name="volume" type="range" min="0" max="1" step="0.05" />
+          </div>
+        </div>
+      </section>
+
+      <section class="rule-above">
         <h2 class="section-head">Appearance</h2>
         <div class="rows">
           <div class="settings-row" data-layout="choice">
             <div class="settings-text">
               <span class="settings-label" id="settings-theme-label">Theme</span>
-              <span class="settings-hint" id="settings-theme-hint">System follows this device.</span>
             </div>
-            <fieldset
-              class="settings-choice"
-              role="radiogroup"
-              aria-labelledby="settings-theme-label"
-              aria-describedby="settings-theme-hint"
-            >
+            <fieldset class="settings-choice" role="radiogroup" aria-labelledby="settings-theme-label">
               {
                 THEME_PREFERENCES.map((theme) => (
                   <label class="settings-segment">
@@ -55,135 +117,24 @@ const THEME_LABELS: Record<ThemePreference, string> = {
       </section>
 
       <section class="rule-above">
-        <h2 class="section-head">Sound</h2>
-        <div class="rows">
-          <div class="settings-row">
-            <div class="settings-text">
-              <label class="settings-label" for="settings-sounds">Interface sounds</label>
-              <span class="settings-hint" id="settings-sounds-hint">
-                Soft cues for play, skips and Generate.
-              </span>
-            </div>
-            <input
-              class="settings-switch"
-              id="settings-sounds"
-              name="sounds"
-              type="checkbox"
-              role="switch"
-              aria-describedby="settings-sounds-hint"
-            />
-          </div>
-          <div class="settings-row">
-            <label class="settings-label" for="settings-volume">Volume</label>
-            <input
-              class="settings-range"
-              id="settings-volume"
-              name="volume"
-              type="range"
-              min="0"
-              max="1"
-              step="0.05"
-            />
-          </div>
-        </div>
-      </section>
-
-      <section class="rule-above">
-        <h2 class="section-head">Playback</h2>
-        <div class="rows">
-          <div class="settings-row" data-layout="choice">
-            <div class="settings-text">
-              <span class="settings-label" id="settings-rate-label">Default speed</span>
-              <span class="settings-hint" id="settings-rate-hint">Every briefing starts at this speed.</span>
-            </div>
-            <fieldset
-              class="settings-choice"
-              role="radiogroup"
-              aria-labelledby="settings-rate-label"
-              aria-describedby="settings-rate-hint"
-            >
-              {
-                PLAYBACK_RATES.map((rate) => (
-                  <label class="settings-segment">
-                    <input type="radio" name="rate" value={String(rate)} />
-                    <span class="num">{rate}x</span>
-                  </label>
-                ))
-              }
-            </fieldset>
-          </div>
-        </div>
+        <h2 class="section-head">About</h2>
+        <p class="settings-about">
+          Singularity is a hobby project of Somesh Kesarla Suresh designed to curate content from favorite news outlets and favorite topics in an autonomous and easy to consume podcast format.
+        </p>
       </section>
 
       {/* Only Safari on iOS can do this, and only when the app is not already on the Home Screen, so
            the section starts hidden and the script shows it where it applies. */}
-      <section class="rule-above" data-install-hint hidden>
-        <h2 class="section-head">This device</h2>
+      <section data-install-hint hidden>
         <div class="rows">
           <div class="settings-row">
             <div class="settings-text">
               <span class="settings-label">Add Singularity to your Home Screen</span>
-              <span class="settings-hint">
-                In Safari, tap Share, then Add to Home Screen. It opens full screen and keeps playing in
-                the background.
-              </span>
+              <span class="settings-hint">In Safari, tap Share, then Add to Home Screen.</span>
             </div>
             <button class="btn press" type="button" data-install-dismiss>Hide this</button>
           </div>
         </div>
-      </section>
-
-      <section class="rule-above">
-        <h2 class="section-head">Briefings</h2>
-        <div class="rows">
-          {/* The sheets island opens the Generate sheet for any click inside [data-open]. */}
-          <button
-            class="row-action"
-            type="button"
-            data-open="generate"
-            aria-haspopup="dialog"
-            aria-labelledby="settings-generate-label"
-            aria-describedby="settings-generate-hint"
-          >
-            <span class="settings-text">
-              <span class="settings-label" id="settings-generate-label">Generate a briefing</span>
-              <span class="settings-hint" id="settings-generate-hint">
-                {
-                  PASSPHRASE_REQUIRED
-                    ? "Starts a new briefing now. Needs the owner passphrase."
-                    : "Starts a new briefing now."
-                }
-              </span>
-            </span>
-            <Icon name="chevronRight" />
-          </button>
-          <a class="row-action" href="/settings/schedule">
-            <span class="settings-text">
-              <span class="settings-label">Schedule</span>
-              <span class="settings-hint">When the briefing is made, and what it covers.</span>
-            </span>
-            <Icon name="chevronRight" />
-          </a>
-          <a class="row-action" href="/settings/topics">
-            <span class="settings-text">
-              <span class="settings-label">Topics</span>
-              <span class="settings-hint">What the briefing covers, and how much of each.</span>
-            </span>
-            <Icon name="chevronRight" />
-          </a>
-          <a class="row-action" href="/settings/sources">
-            <span class="settings-text">
-              <span class="settings-label">Sources</span>
-              <span class="settings-hint">Where the stories come from.</span>
-            </span>
-            <Icon name="chevronRight" />
-          </a>
-        </div>
-      </section>
-
-      <section class="rule-above">
-        <h2 class="section-head">About</h2>
-        <p class="settings-about">Singularity. A private tech and design engineering briefing.</p>
       </section>
     </div>
   </main>

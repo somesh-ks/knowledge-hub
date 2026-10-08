@@ -36,29 +36,6 @@ const quietLine = (host: string, record: string | null, struggling: boolean): st
       <fieldset class="manage-fields" data-fields>
         <legend class="sr-only">Sources</legend>
 
-        <form class="manage-form" data-needs-js data-add="source" aria-labelledby="add-source">
-          <h2 class="section-head" id="add-source">Add a source</h2>
-          <div class="manage-field">
-            <label for="source-url">Site or feed address</label>
-            <input
-              class="manage-input"
-              id="source-url"
-              name="url"
-              type="text"
-              inputmode="url"
-              required
-              maxlength="2048"
-              autocomplete="off"
-              autocapitalize="none"
-              spellcheck="false"
-            />
-          </div>
-          <button class="btn-primary manage-submit press press-subtle" type="submit">
-            <Icon name="plus" />
-            <span>Add source</span>
-          </button>
-        </form>
-
         <ul class="rows manage-queued" role="list" data-queued aria-label="Waiting to be saved"></ul>
 
         <form class="library-tools manage-tools" role="search" aria-label="Sources" data-needs-js>
@@ -94,9 +71,8 @@ const quietLine = (host: string, record: string | null, struggling: boolean): st
         <p class="sr-only" role="status" data-status></p>
 
         <section data-section-of="sources">
-          <h2 class="section-head">Your sources</h2>
-          {sources.length === 0 && <p class="manage-note">No sources yet.</p>}
-          <ul class="rows" role="list">
+          <h2 class="section-head">{sources.length} sources</h2>
+                    <ul class="rows" role="list">
             {
               sources.map((source) => (
                 <li
@@ -112,7 +88,7 @@ const quietLine = (host: string, record: string | null, struggling: boolean): st
                       <span class="manage-quiet" id={`line-${source.id}`} data-line>
                         {quietLine(source.host, source.record, source.struggling)}
                       </span>
-                      <span class="manage-quiet manage-flag">Removed when you save.</span>
+                      <span class="manage-quiet manage-flag">Removed when you save</span>
                     </div>
                     <button
                       class="icon-btn manage-pin press"
@@ -158,9 +134,6 @@ const quietLine = (host: string, record: string | null, struggling: boolean): st
           candidates.length > 0 && (
             <section data-section-of="suggested">
               <h2 class="section-head">Suggested</h2>
-              <p class="manage-note manage-below">
-                Found for your topics. Nothing here is added until you press Add and save.
-              </p>
               <ul class="rows" role="list">
                 {candidates.map((candidate) => (
                   <li
@@ -197,6 +170,34 @@ const quietLine = (host: string, record: string | null, struggling: boolean): st
             </section>
           )
         }
+
+        <details class="manage-add" data-needs-js>
+          <summary class="btn press press-subtle">
+            <Icon name="plus" />
+            <span>Add a source</span>
+          </summary>
+          <form class="manage-form" data-add="source" aria-label="Add a source">
+            <div class="manage-field">
+              <label for="source-url">Site or feed address</label>
+              <input
+                class="manage-input"
+                id="source-url"
+                name="url"
+                type="text"
+                inputmode="url"
+                required
+                maxlength="2048"
+                autocomplete="off"
+                autocapitalize="none"
+                spellcheck="false"
+              />
+            </div>
+            <button class="btn-primary manage-submit press press-subtle" type="submit">
+              <Icon name="plus" />
+              <span>Add source</span>
+            </button>
+          </form>
+        </details>
 
         <div class="library-empty manage-empty" data-empty hidden>
           <p>No sources match.</p>

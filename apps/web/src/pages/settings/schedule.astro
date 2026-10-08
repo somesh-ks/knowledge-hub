@@ -70,12 +70,14 @@ const hours = Array.from({ length: 24 }, (_, value) => value);
                   <input type="checkbox" checked disabled />
                   <span class="manage-text">
                     <span class="manage-name">Top picks</span>
-                    <span class="manage-quiet">Always included</span>
                   </span>
                 </label>
               </li>
               {
-                options.map((option) => (
+                options.map((option) => {
+                  // A line that only repeats the name is left out.
+                  const line = option.topics.filter((name) => name !== option.title).join(", ");
+                  return (
                   <li>
                     <label class="manage-pick">
                       <input
@@ -87,11 +89,12 @@ const hours = Array.from({ length: 24 }, (_, value) => value);
                       />
                       <span class="manage-text">
                         <span class="manage-name">{option.title}</span>
-                        <span class="manage-quiet">{option.topics.join(", ")}</span>
+                        {line && <span class="manage-quiet">{line}</span>}
                       </span>
                     </label>
                   </li>
-                ))
+                  );
+                })
               }
             </ul>
           </fieldset>

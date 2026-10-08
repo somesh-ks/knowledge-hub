@@ -40,6 +40,10 @@ async function mockConfig(page: Page, answers: Array<{ status: number; body: obj
 async function open(page: Page, path: "topics" | "sources"): Promise<void> {
   await page.goto(`/settings/${path}`);
   await expect(page.locator("[data-manage]")).toHaveAttribute("data-ready", "");
+  // The add form waits behind its button; most tests want it open.
+  await page.locator("details.manage-add").evaluateAll((all) => {
+    for (const d of all) (d as HTMLDetailsElement).open = true;
+  });
 }
 
 const row = (page: Page, name: string) => page.locator("li.manage-row", { hasText: name });
@@ -86,6 +90,16 @@ test.describe("settings entries", () => {
   });
 });
 
+test.describe("add forms", () => {
+  test("wait behind a button until asked for", async ({ page }) => {
+    await page.goto("/settings/topics");
+    await expect(page.locator("[data-manage]")).toHaveAttribute("data-ready", "");
+    await expect(page.getByLabel("Name", { exact: true })).toBeHidden();
+    await page.getByText("Add a topic", { exact: true }).click();
+    await expect(page.getByLabel("Name", { exact: true })).toBeVisible();
+  });
+});
+
 test.describe("topics", () => {
   test("render from the config, with the state each topic has", async ({ page }) => {
     await open(page, "topics");
@@ -104,9 +118,7 @@ test.describe("topics", () => {
     await expect(craft).toHaveAttribute("aria-valuetext", "More");
     await expect(row(page, "Frontier model releases").locator("[data-word]")).toHaveText("Normal");
     // A topic that never publishes is listed and has nothing to change.
-    await expect(row(page, "Venture capital and gossip")).toContainText(
-      "Left out of every briefing.",
-    );
+    await expect(row(page, "Venture capital and gossip")).toContainText("Never in a briefing");
     await expect(row(page, "Venture capital and gossip").getByRole("switch")).toHaveCount(0);
     // Only the topic made on the site can be removed.
     await expect(page.getByRole("button", { name: /^Remove/ })).toHaveCount(1);
@@ -188,7 +200,7 @@ test.describe("topics", () => {
     expect(await boxes.count()).toBeLessThanOrEqual(6);
     await expect(group.locator("li:visible .manage-name").first()).toHaveText("Motion Weekly");
     await expect(group.locator("input:checked")).toHaveCount(0);
-    await expect(page.getByText("about a minute after you save")).toBeHidden();
+    await expect(page.getByText("No matching sources yet.")).toBeHidden();
     await group.getByRole("checkbox", { name: /Motion Weekly/ }).check();
     await group.getByRole("checkbox", { name: /Interface Notes/ }).check();
     await page.getByRole("button", { name: "Add topic" }).click();
@@ -219,15 +231,13 @@ test.describe("topics", () => {
     );
   });
 
-  test("a topic that matches nothing says suggestions come to the Sources page in about a minute", async ({
-    page,
-  }) => {
+  test("a topic that matches nothing says so", async ({ page }) => {
     const sent = await mockConfig(page);
     await open(page, "topics");
     await page.getByLabel("Name", { exact: true }).fill("Gardening");
     await page.getByLabel("What should count as this topic").fill("Soil and seeds.");
     await expect(page.getByRole("group", { name: "Suggested sources" })).toBeHidden();
-    await expect(page.getByText("about a minute after you save")).toBeVisible();
+    await expect(page.getByText("No matching sources yet.")).toBeVisible();
     await page.getByRole("button", { name: "Add topic" }).click();
     await save(page);
     await expect(bar(page).locator("[data-bar-text]")).toContainText("Saved.");
@@ -348,7 +358,7 @@ test.describe("sources", () => {
 
     await page.getByRole("button", { name: "Suggested", exact: true }).click();
     await expect(names).toHaveText(["waveform-journal.example", "listening-lab.example"]);
-    await expect(page.getByRole("heading", { name: "Your sources" })).toBeHidden();
+    await expect(page.getByRole("heading", { name: /^d+ sources$/ })).toBeHidden();
 
     await page.getByRole("button", { name: "All", exact: true }).click();
     await expect(names).toHaveCount(8);
@@ -388,12 +398,9 @@ test.describe("sources", () => {
     await expect(page.getByRole("button", { name: "Add waveform-journal.example" })).toBeDisabled();
   });
 
-  test("a suggested source offers Add, says nothing was added, and sends source.add on save", async ({
-    page,
-  }) => {
+  test("a suggested source offers Add and sends source.add on save", async ({ page }) => {
     const sent = await mockConfig(page);
     await open(page, "sources");
-    await expect(page.getByText("Nothing here is added until you press Add")).toBeVisible();
     await page.getByRole("button", { name: "Add listening-lab.example" }).click();
     await save(page);
     await expect(bar(page).locator("[data-bar-text]")).toContainText("Saved.");
