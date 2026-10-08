@@ -1,8 +1,10 @@
 /*
  * Ambient cover light: a soft field of the cover's colors behind the briefing and episode header, as
- * if the sleeve were lit. The whole layer is one opacity, the peak tint, so the colors inside can
- * be full strength and the contrast proof (ambientPalette.test.ts) is a single blend. The still CSS
- * layer is what shows before script and where WebGL is missing; the canvas fades in over it.
+ * if the sleeve were lit. It starts at the cover's edge, spills toward the end side and a little
+ * down, and is gone before the first section. The whole layer is one opacity, the peak tint, so the
+ * colors inside can be full strength and the contrast proof (ambientPalette.test.ts) is a single
+ * blend. The still CSS layer is what shows before script and where WebGL is missing; the canvas
+ * fades in over it.
  */
 
 /* The header holds the layer in its own stacking context, behind its content, out of its layout. */
@@ -13,6 +15,9 @@
 
 .ambient {
   --ambient-tint: var(--opacity-ambient-light);
+  --ambient-a: var(--ambient-a-l);
+  --ambient-b: var(--ambient-b-l);
+  --ambient-c: var(--ambient-c-l);
   position: absolute;
   z-index: -1;
   inset-block: calc(var(--space-8) * -1) 0;
@@ -20,35 +25,41 @@
   inset-inline: calc(var(--space-12) * -1);
   opacity: var(--ambient-tint);
   pointer-events: none;
-  /* Zero at the top, the bottom and the far edges: the light never ends in a line. */
+  /* Strongest at the cover's edge, zero before the bottom and the far edge: no line anywhere. */
   mask-image:
     radial-gradient(
-      ellipse 58% 40% at 30% 50%,
+      ellipse 50% 46% at 36% 40%,
       black,
-      color-mix(in srgb, black 55%, transparent) 40%,
+      color-mix(in srgb, black 55%, transparent) 45%,
       transparent
     ),
-    linear-gradient(to right, transparent, black 20%, black 50%, transparent);
+    linear-gradient(to right, transparent, black 16%, black 45%, transparent 92%);
   mask-composite: intersect;
   -webkit-mask-image:
     radial-gradient(
-      ellipse 58% 40% at 30% 50%,
+      ellipse 50% 46% at 36% 40%,
       black,
-      color-mix(in srgb, black 55%, transparent) 40%,
+      color-mix(in srgb, black 55%, transparent) 45%,
       transparent
     ),
-    linear-gradient(to right, transparent, black 20%, black 50%, transparent);
+    linear-gradient(to right, transparent, black 16%, black 45%, transparent 92%);
   -webkit-mask-composite: source-in;
 }
 
 @media (prefers-color-scheme: dark) {
   :root:not([data-theme="light"]) .ambient {
     --ambient-tint: var(--opacity-ambient-dark);
+    --ambient-a: var(--ambient-a-d);
+    --ambient-b: var(--ambient-b-d);
+    --ambient-c: var(--ambient-c-d);
   }
 }
 
 :root[data-theme="dark"] .ambient {
   --ambient-tint: var(--opacity-ambient-dark);
+  --ambient-a: var(--ambient-a-d);
+  --ambient-b: var(--ambient-b-d);
+  --ambient-c: var(--ambient-c-d);
 }
 
 .ambient-still,
@@ -61,9 +72,9 @@
 
 .ambient-still {
   background:
-    radial-gradient(ellipse 50% 75% at 26% 42%, var(--ambient-a), transparent),
-    radial-gradient(ellipse 42% 60% at 58% 58%, var(--ambient-b), transparent),
-    radial-gradient(ellipse 36% 50% at 42% 16%, var(--ambient-c), transparent);
+    radial-gradient(ellipse 36% 70% at 36% 42%, var(--ambient-a), transparent),
+    radial-gradient(ellipse 34% 55% at 56% 58%, var(--ambient-b), transparent),
+    radial-gradient(ellipse 30% 45% at 30% 24%, var(--ambient-c), transparent);
   transition: opacity var(--duration-enter) var(--ease-out);
 }
 

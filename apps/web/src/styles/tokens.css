@@ -156,9 +156,9 @@
   --distance-base: 8px;
   --distance-medium: 12px;
   --blur-enter: 3px;
-  --opacity-disabled: 0.4;
-  --opacity-ambient-light: 0.1;
-  --opacity-ambient-dark: 0.16;
+  --opacity-disabled: 0.32;
+  --opacity-ambient-light: 0.6;
+  --opacity-ambient-dark: 0.32;
   --z-header: 10;
   --z-mini: 20;
   --z-sheet: 30;

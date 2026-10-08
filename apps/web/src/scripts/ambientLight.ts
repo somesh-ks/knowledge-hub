@@ -34,7 +34,7 @@ vec2 q=vec2(v(p+d),v(p+4.1-d.yx));
 float f=v(p+1.6*(q-.5));
 vec3 k=mix(c[0],c[1],.55*smoothstep(.35,.75,f));
 k=mix(k,c[2],.4*smoothstep(.5,.9,v(p*.8+q)));
-float a=.5+.5*smoothstep(.25,.75,f);
+float a=(.5+.5*smoothstep(.25,.75,f))*mix(.5,1.,smoothstep(.9,0.,length((u-vec2(.36,.6))*vec2(r.x/r.y,1.))));
 float z=(h(gl_FragCoord.xy+fract(t))-.5)/255.;
 gl_FragColor=vec4(k*a+z,a+z);}`;
 
@@ -97,7 +97,14 @@ export function mountAmbient(host: HTMLElement) {
   });
   if (!gl) return;
 
-  const colors = paletteUniforms((host.dataset.ambient ?? "").split(","));
+  const sets = (host.dataset.ambient ?? "").split(",");
+  const light = paletteUniforms(sets.slice(0, 3));
+  const dark = paletteUniforms(sets.slice(3));
+  const darkQuery = matchMedia("(prefers-color-scheme: dark)");
+  const isDark = () => {
+    const theme = document.documentElement.dataset.theme;
+    return theme ? theme === "dark" : darkQuery.matches;
+  };
   const motionQuery = matchMedia("(prefers-reduced-motion: reduce)");
   const dataQuery = matchMedia("(prefers-reduced-data: reduce)");
   const gate: FrameGate = { visible: !document.hidden, onScreen: true, motionAllowed: true };
@@ -112,7 +119,7 @@ export function mountAmbient(host: HTMLElement) {
     const turn = (((now - t0) / 1000 + 9) % DRIFT_SECONDS) / DRIFT_SECONDS;
     gl.uniform2f(program.r, canvas.width, canvas.height);
     gl.uniform1f(program.t, turn * Math.PI * 2);
-    gl.uniform3fv(program.c, colors);
+    gl.uniform3fv(program.c, isDark() ? dark : light);
     gl.drawArrays(gl.TRIANGLES, 0, 3);
     host.dataset.live = "";
   };

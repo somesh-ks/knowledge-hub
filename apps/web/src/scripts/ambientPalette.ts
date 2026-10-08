@@ -47,7 +47,7 @@ export function blendTint(color: string, surface: string, alpha: number): string
   const c = hexToUnit(color);
   const s = hexToUnit(surface);
   const channel = (i: number) =>
-    Math.round((c[i] * alpha + s[i] * (1 - alpha)) * 255)
+    Math.round(((c[i] ?? 0) * alpha + (s[i] ?? 0) * (1 - alpha)) * 255)
       .toString(16)
       .padStart(2, "0");
   return `#${channel(0)}${channel(1)}${channel(2)}`;
