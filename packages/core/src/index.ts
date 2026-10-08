@@ -10,6 +10,7 @@ export * from "./paths.js";
 export * from "./podcast.js";
 export * from "./preferences.js";
 export * from "./publisher.js";
+export * from "./sourceCatalog.js";
 export * from "./sources.js";
 export * from "./state.js";
 export * from "./time.js";

@@ -1,0 +1,646 @@
+{
+  "version": 1,
+  "sources": [
+    {
+      "id": "design-week",
+      "name": "Design Week",
+      "url": "https://www.designweek.co.uk",
+      "feed_url": "https://www.designweek.co.uk/feed/",
+      "about": "UK design industry, branding and agency news",
+      "cadence": "daily",
+      "tags": [
+        "design",
+        "branding",
+        "agency",
+        "identity",
+        "graphic"
+      ]
+    },
+    {
+      "id": "creative-review",
+      "name": "Creative Review",
+      "url": "https://www.creativereview.co.uk",
+      "feed_url": "https://www.creativereview.co.uk/feed/",
+      "about": "Advertising, branding and visual culture commentary",
+      "cadence": "several a week",
+      "tags": [
+        "design",
+        "branding",
+        "advertising",
+        "visual",
+        "culture"
+      ]
+    },
+    {
+      "id": "dezeen",
+      "name": "Dezeen",
+      "url": "https://www.dezeen.com",
+      "feed_url": "https://www.dezeen.com/feed/",
+      "about": "Architecture, interiors and product design news",
+      "cadence": "daily",
+      "tags": [
+        "design",
+        "architecture",
+        "interiors",
+        "product"
+      ]
+    },
+    {
+      "id": "designboom",
+      "name": "Designboom",
+      "url": "https://www.designboom.com",
+      "feed_url": "https://www.designboom.com/feed/",
+      "about": "Architecture and product design news roundups",
+      "cadence": "daily",
+      "tags": [
+        "design",
+        "architecture",
+        "product"
+      ]
+    },
+    {
+      "id": "design-milk",
+      "name": "Design Milk",
+      "url": "https://design-milk.com",
+      "feed_url": "https://design-milk.com/feed/",
+      "about": "Home, furniture and product design features",
+      "cadence": "daily",
+      "tags": [
+        "design",
+        "furniture",
+        "home",
+        "product"
+      ]
+    },
+    {
+      "id": "wallpaper",
+      "name": "Wallpaper",
+      "url": "http://www.wallpaper.com",
+      "feed_url": "http://www.wallpaper.com/feeds.xml",
+      "about": "Design, architecture and lifestyle features",
+      "cadence": "daily",
+      "tags": [
+        "design",
+        "architecture",
+        "lifestyle",
+        "interiors"
+      ]
+    },
+    {
+      "id": "yanko-design",
+      "name": "Yanko Design",
+      "url": "https://www.yankodesign.com",
+      "feed_url": "https://www.yankodesign.com/feed/",
+      "about": "Product design concepts and hardware renders",
+      "cadence": "daily",
+      "tags": [
+        "design",
+        "product",
+        "concept",
+        "hardware",
+        "industrial"
+      ]
+    },
+    {
+      "id": "ux-planet",
+      "name": "UX Planet",
+      "url": "https://uxplanet.org",
+      "feed_url": "https://uxplanet.org/feed",
+      "about": "UX and product design essays",
+      "cadence": "several a week",
+      "tags": [
+        "design",
+        "ux",
+        "product",
+        "research"
+      ]
+    },
+    {
+      "id": "bram-us",
+      "name": "Bram.us",
+      "url": "https://www.bram.us",
+      "feed_url": "https://www.bram.us/feed/",
+      "about": "CSS, JavaScript and browser feature write-ups",
+      "cadence": "several a week",
+      "tags": [
+        "css",
+        "javascript",
+        "browser",
+        "frontend",
+        "web",
+        "animation"
+      ]
+    },
+    {
+      "id": "piccalilli",
+      "name": "Piccalilli",
+      "url": "https://piccalil.li",
+      "feed_url": "https://piccalil.li/feed.xml",
+      "about": "Front-end craft, CSS and accessibility essays",
+      "cadence": "weekly",
+      "tags": [
+        "css",
+        "frontend",
+        "accessibility",
+        "web",
+        "craft"
+      ]
+    },
+    {
+      "id": "ahmad-shadeed",
+      "name": "Ahmad Shadeed",
+      "url": "https://ishadeed.com",
+      "feed_url": "https://ishadeed.com/feed.xml",
+      "about": "Deep CSS layout and component essays",
+      "cadence": "monthly",
+      "tags": [
+        "css",
+        "layout",
+        "frontend",
+        "components"
+      ]
+    },
+    {
+      "id": "brad-frost",
+      "name": "Brad Frost",
+      "url": "https://bradfrost.com",
+      "feed_url": "https://bradfrost.com/feed/",
+      "about": "Design systems and component architecture notes",
+      "cadence": "weekly",
+      "tags": [
+        "design",
+        "systems",
+        "components",
+        "frontend"
+      ]
+    },
+    {
+      "id": "dave-rupert",
+      "name": "Dave Rupert",
+      "url": "https://daverupert.com",
+      "feed_url": "https://daverupert.com/atom.xml",
+      "about": "Web craft, CSS and personal dev notes",
+      "cadence": "several a week",
+      "tags": [
+        "web",
+        "css",
+        "frontend",
+        "craft"
+      ]
+    },
+    {
+      "id": "adactio",
+      "name": "Adactio",
+      "url": "https://adactio.com",
+      "feed_url": "https://adactio.com/rss",
+      "about": "Web standards, design and craft essays",
+      "cadence": "several a week",
+      "tags": [
+        "web",
+        "standards",
+        "design",
+        "frontend"
+      ]
+    },
+    {
+      "id": "swift-by-sundell",
+      "name": "Swift by Sundell",
+      "url": "https://www.swiftbysundell.com",
+      "feed_url": "https://www.swiftbysundell.com/rss",
+      "about": "Swift, SwiftUI and Apple platform tutorials",
+      "cadence": "weekly",
+      "tags": [
+        "swift",
+        "swiftui",
+        "apple",
+        "ios",
+        "development"
+      ]
+    },
+    {
+      "id": "apple-developer-news",
+      "name": "Apple Developer News",
+      "url": "https://developer.apple.com/news/",
+      "feed_url": "https://developer.apple.com/news/rss/news.rss",
+      "about": "Apple developer announcements and SDK news",
+      "cadence": "several a week",
+      "tags": [
+        "apple",
+        "ios",
+        "developer",
+        "sdk"
+      ]
+    },
+    {
+      "id": "webkit",
+      "name": "WebKit",
+      "url": "https://webkit.org",
+      "feed_url": "https://webkit.org/feed/",
+      "about": "Safari engine features and release notes",
+      "cadence": "several a week",
+      "tags": [
+        "webkit",
+        "safari",
+        "browser",
+        "web",
+        "css"
+      ]
+    },
+    {
+      "id": "openai-news",
+      "name": "OpenAI News",
+      "url": "https://openai.com/news/",
+      "feed_url": "https://openai.com/news/rss.xml",
+      "about": "Model, product and policy announcements",
+      "cadence": "daily",
+      "tags": [
+        "ai",
+        "openai",
+        "models",
+        "chatgpt",
+        "products"
+      ]
+    },
+    {
+      "id": "google-deepmind",
+      "name": "Google DeepMind Blog",
+      "url": "https://deepmind.google/blog/",
+      "feed_url": "https://deepmind.google/blog/rss.xml",
+      "about": "Gemini and DeepMind model and product posts",
+      "cadence": "weekly",
+      "tags": [
+        "ai",
+        "models",
+        "gemini",
+        "research",
+        "deepmind"
+      ]
+    },
+    {
+      "id": "google-ai-blog",
+      "name": "Google AI Blog",
+      "url": "https://blog.google/technology/ai/",
+      "feed_url": "https://blog.google/technology/ai/rss/",
+      "about": "Consumer Google AI feature launches",
+      "cadence": "several a week",
+      "tags": [
+        "ai",
+        "google",
+        "gemini",
+        "products"
+      ]
+    },
+    {
+      "id": "latent-space",
+      "name": "Latent Space",
+      "url": "https://www.latent.space",
+      "feed_url": "https://www.latent.space/feed",
+      "about": "AI engineering essays, podcasts and model digests",
+      "cadence": "several a week",
+      "tags": [
+        "ai",
+        "engineering",
+        "llm",
+        "agents",
+        "models"
+      ]
+    },
+    {
+      "id": "the-decoder",
+      "name": "The Decoder",
+      "url": "https://the-decoder.com",
+      "feed_url": "https://the-decoder.com/feed/",
+      "about": "Short AI model and product news items",
+      "cadence": "daily",
+      "tags": [
+        "ai",
+        "models",
+        "products",
+        "news"
+      ]
+    },
+    {
+      "id": "techcrunch-ai",
+      "name": "TechCrunch AI",
+      "url": "https://techcrunch.com/category/artificial-intelligence/",
+      "feed_url": "https://techcrunch.com/category/artificial-intelligence/feed/",
+      "about": "AI launches, funding and company news",
+      "cadence": "daily",
+      "tags": [
+        "ai",
+        "startups",
+        "launches",
+        "funding"
+      ]
+    },
+    {
+      "id": "github-changelog",
+      "name": "GitHub Changelog",
+      "url": "https://github.blog/changelog/",
+      "feed_url": "https://github.blog/changelog/feed/",
+      "about": "Copilot and developer tool updates",
+      "cadence": "daily",
+      "tags": [
+        "github",
+        "copilot",
+        "developer",
+        "tools",
+        "ai"
+      ]
+    },
+    {
+      "id": "aws-machine-learning",
+      "name": "AWS Machine Learning Blog",
+      "url": "https://aws.amazon.com/blogs/machine-learning/",
+      "feed_url": "https://aws.amazon.com/blogs/machine-learning/feed/",
+      "about": "Model availability and AI service launches on AWS",
+      "cadence": "daily",
+      "tags": [
+        "ai",
+        "machine",
+        "learning",
+        "aws",
+        "cloud",
+        "models"
+      ]
+    },
+    {
+      "id": "ollama-blog",
+      "name": "Ollama Blog",
+      "url": "https://ollama.com/blog",
+      "feed_url": "https://ollama.com/blog/rss.xml",
+      "about": "Local model runtime and model support releases",
+      "cadence": "monthly",
+      "tags": [
+        "ai",
+        "local",
+        "models",
+        "llm",
+        "open"
+      ]
+    },
+    {
+      "id": "mit-technology-review",
+      "name": "MIT Technology Review",
+      "url": "https://www.technologyreview.com",
+      "feed_url": "https://www.technologyreview.com/feed/",
+      "about": "Tech and AI analysis, science features",
+      "cadence": "daily",
+      "tags": [
+        "ai",
+        "technology",
+        "science",
+        "analysis"
+      ]
+    },
+    {
+      "id": "techradar",
+      "name": "TechRadar",
+      "url": "https://www.techradar.com",
+      "feed_url": "https://www.techradar.com/feeds.xml",
+      "about": "Phone, laptop and wearable reviews and launches",
+      "cadence": "daily",
+      "tags": [
+        "tech",
+        "phones",
+        "laptops",
+        "wearables",
+        "gadgets",
+        "reviews",
+        "launches"
+      ]
+    },
+    {
+      "id": "gizmodo",
+      "name": "Gizmodo",
+      "url": "https://gizmodo.com",
+      "feed_url": "https://gizmodo.com/rss",
+      "about": "Consumer tech, science and culture news",
+      "cadence": "daily",
+      "tags": [
+        "tech",
+        "gadgets",
+        "consumer",
+        "science"
+      ]
+    },
+    {
+      "id": "macrumors",
+      "name": "MacRumors",
+      "url": "https://www.macrumors.com",
+      "feed_url": "https://feeds.macrumors.com/MacRumors-All",
+      "about": "Apple hardware, software and rumor coverage",
+      "cadence": "daily",
+      "tags": [
+        "apple",
+        "iphone",
+        "mac",
+        "ios",
+        "tech",
+        "launches"
+      ]
+    },
+    {
+      "id": "android-police",
+      "name": "Android Police",
+      "url": "https://www.androidpolice.com",
+      "feed_url": "https://www.androidpolice.com/feed/",
+      "about": "Android phones, apps and OS update news",
+      "cadence": "daily",
+      "tags": [
+        "android",
+        "phones",
+        "google",
+        "tech"
+      ]
+    },
+    {
+      "id": "appleinsider",
+      "name": "AppleInsider",
+      "url": "https://appleinsider.com",
+      "feed_url": "https://appleinsider.com/rss/news/",
+      "about": "Apple product news, reviews and deals",
+      "cadence": "daily",
+      "tags": [
+        "apple",
+        "iphone",
+        "mac",
+        "tech",
+        "launches"
+      ]
+    },
+    {
+      "id": "techspot",
+      "name": "TechSpot",
+      "url": "https://www.techspot.com",
+      "feed_url": "https://www.techspot.com/backend.xml",
+      "about": "PC hardware news and detailed reviews",
+      "cadence": "daily",
+      "tags": [
+        "pc",
+        "hardware",
+        "gpu",
+        "cpu",
+        "tech",
+        "reviews"
+      ]
+    },
+    {
+      "id": "liliputing",
+      "name": "Liliputing",
+      "url": "https://liliputing.com",
+      "feed_url": "https://liliputing.com/feed/",
+      "about": "Handhelds, mini PCs and small laptops",
+      "cadence": "several a week",
+      "tags": [
+        "handheld",
+        "laptops",
+        "mini",
+        "pc",
+        "hardware",
+        "tech"
+      ]
+    },
+    {
+      "id": "insideevs",
+      "name": "InsideEVs",
+      "url": "https://insideevs.com",
+      "feed_url": "https://insideevs.com/rss/articles/all/",
+      "about": "EV launches, reviews and industry news",
+      "cadence": "daily",
+      "tags": [
+        "ev",
+        "cars",
+        "electric",
+        "vehicles",
+        "launches"
+      ]
+    },
+    {
+      "id": "teslarati",
+      "name": "Teslarati",
+      "url": "https://www.teslarati.com",
+      "feed_url": "https://www.teslarati.com/feed/",
+      "about": "Tesla product, software and EV news",
+      "cadence": "daily",
+      "tags": [
+        "tesla",
+        "ev",
+        "cars",
+        "electric"
+      ]
+    },
+    {
+      "id": "windows-experience-blog",
+      "name": "Windows Experience Blog",
+      "url": "https://blogs.windows.com/windowsexperience/",
+      "feed_url": "https://blogs.windows.com/windowsexperience/feed/",
+      "about": "Windows release and feature announcements",
+      "cadence": "several a week",
+      "tags": [
+        "windows",
+        "microsoft",
+        "software",
+        "tech",
+        "launches"
+      ]
+    },
+    {
+      "id": "android-developers-blog",
+      "name": "Android Developers Blog",
+      "url": "https://android-developers.googleblog.com",
+      "feed_url": "https://android-developers.googleblog.com/feeds/posts/default",
+      "about": "Android OS and SDK releases",
+      "cadence": "monthly",
+      "tags": [
+        "android",
+        "developer",
+        "sdk",
+        "google"
+      ]
+    },
+    {
+      "id": "the-next-web",
+      "name": "The Next Web",
+      "url": "https://thenextweb.com",
+      "feed_url": "https://thenextweb.com/feed",
+      "about": "Startups and tech business",
+      "cadence": "daily",
+      "tags": [
+        "tech",
+        "startups",
+        "business",
+        "news"
+      ]
+    },
+    {
+      "id": "techmeme",
+      "name": "Techmeme",
+      "url": "https://www.techmeme.com",
+      "feed_url": "https://www.techmeme.com/feed.xml",
+      "about": "Ranked tech headlines",
+      "cadence": "daily",
+      "tags": [
+        "tech",
+        "news",
+        "headlines"
+      ]
+    },
+    {
+      "id": "axios",
+      "name": "Axios",
+      "url": "https://www.axios.com",
+      "feed_url": "https://api.axios.com/feed/",
+      "about": "US politics, business and tech headlines",
+      "cadence": "daily",
+      "tags": [
+        "news",
+        "politics",
+        "business",
+        "world",
+        "headlines"
+      ]
+    },
+    {
+      "id": "upi-top-news",
+      "name": "UPI Top News",
+      "url": "https://www.upi.com",
+      "feed_url": "https://rss.upi.com/news/top_news.rss",
+      "about": "Wire-style top news",
+      "cadence": "daily",
+      "tags": [
+        "news",
+        "world",
+        "wire",
+        "headlines"
+      ]
+    },
+    {
+      "id": "sciencedaily",
+      "name": "ScienceDaily Top Science",
+      "url": "https://www.sciencedaily.com",
+      "feed_url": "https://www.sciencedaily.com/rss/top/science.xml",
+      "about": "Science research releases",
+      "cadence": "daily",
+      "tags": [
+        "science",
+        "research",
+        "news"
+      ]
+    },
+    {
+      "id": "nasa-news",
+      "name": "NASA News Releases",
+      "url": "https://www.nasa.gov",
+      "feed_url": "https://www.nasa.gov/news-release/feed/",
+      "about": "Space and science releases",
+      "cadence": "several a week",
+      "tags": [
+        "space",
+        "science",
+        "nasa",
+        "news"
+      ]
+    }
+  ]
+}

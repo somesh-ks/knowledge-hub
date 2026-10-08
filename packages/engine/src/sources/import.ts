@@ -4,6 +4,7 @@ import { slugify } from "../normalize/slugify.js";
 import { type MdRow, parseSourcesMd } from "./parseSourcesMd.js";
 import {
   API_SEED,
+  APP_TOPIC_SOURCES,
   CURATIONS,
   type Curation,
   GITHUB_SEED,
@@ -151,7 +152,7 @@ function youtubeSources(): Source[] {
 }
 
 function apiSources(): Source[] {
-  return API_SEED.map((draft) => ({ ...draft, failures: 0 }));
+  return [...API_SEED, ...APP_TOPIC_SOURCES].map((draft) => ({ ...draft, failures: 0 }));
 }
 
 /** Years go stale: freshness comes from the fetch window, so queries must not name one. */

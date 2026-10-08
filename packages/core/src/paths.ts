@@ -33,6 +33,7 @@ export const CONFIG_FILES = {
   preferences: "config/preferences.json",
   sources: "config/sources.json",
   sourcesUser: "config/sources.user.json",
+  sourceCatalog: "config/source-catalog.json",
   topics: "config/topics.json",
   queries: "config/queries.json",
   voice: "config/voice.md",

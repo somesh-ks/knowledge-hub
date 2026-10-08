@@ -186,7 +186,8 @@ describe("sections and top picks", () => {
     expect(bySection[a.item.id]).toBe("top");
     expect(bySection[b.item.id]).toBe("top");
     expect(bySection[c.item.id]).toBe("top");
-    expect(bySection[d.item.id]).toBe("launches");
+    // Developer tool launches now file under Design Engineering (D39).
+    expect(bySection[d.item.id]).toBe("ui-craft");
     expect(bySection[e.item.id]).toBe("ui-craft");
     expect(result.selected.filter((s) => s.section === "top")).toHaveLength(3);
   });
@@ -205,13 +206,13 @@ describe("sections and top picks", () => {
       "top",
       "top",
       "top",
+      "design",
+      "ui-craft",
       "ai",
-      "research",
-      "launches",
     ]);
   });
 
-  it("sends video items to watch by source type", () => {
+  it("files a video in the section of its category, since watch no longer receives stories", () => {
     const video = scored("css_canvas_motion_techniques", 0.5, { source_type: "youtube" });
     const result = selectItems({
       scored: [
@@ -224,7 +225,7 @@ describe("sections and top picks", () => {
       floor: 3,
       cap: 12,
     });
-    expect(result.selected.find((s) => s.item.id === video.item.id)?.section).toBe("watch");
+    expect(result.selected.find((s) => s.item.id === video.item.id)?.section).toBe("ui-craft");
   });
 
   it("takes at most three per home section while other sections still have items", () => {

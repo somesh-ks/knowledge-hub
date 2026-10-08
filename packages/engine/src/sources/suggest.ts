@@ -29,9 +29,9 @@ export const QUALITY_WEIGHTS = {
   prior: 0.1,
 } as const;
 
-/** A candidate needs at least this q to be added, and at most this many are added per run. */
+/** A candidate needs at least this q to be suggested, and at most this many are suggested per run. */
 export const MIN_QUALITY = 0.6;
-export const MAX_ADDED = 3;
+export const MAX_SUGGESTED = 6;
 
 /** A feed must show a life of its own: this many entries, at least one in the last 30 days. */
 export const MIN_ENTRIES = 5;
@@ -83,9 +83,8 @@ export interface SuggestInput {
 
 export interface SuggestResult {
   queries: string[];
+  /** Every site looked at, with its score and status. Nothing here is added to the registry. */
   candidates: SourceCandidate[];
-  /** Sources to add to config/sources.user.json, best first. */
-  added: Source[];
 }
 
 /** Three searches from the topic's name, its description, and its keywords. */
@@ -272,12 +271,13 @@ export function qualityOf(parts: NonNullable<SourceCandidate["parts"]>): number 
 }
 
 /**
- * Find feeds for a custom topic. Three Exa searches give domains; each domain's feed is found
- * with the same discovery the registry uses, then validated by downloading and parsing it. A
- * survivor is scored on fit (the topic judge's mean answer over up to eight recent items), the
- * estimated pass rate, freshness, feed reliability and a prior from how many searches returned
- * it. The top three at 0.6 or better become sources tagged with the topic. Every candidate,
- * accepted or not, comes back with its score and parts so the app can show the reasoning.
+ * Find feeds for a custom topic, and only suggest them (D40). Three Exa searches give domains;
+ * each domain's feed is found with the same discovery the registry uses, then validated by
+ * downloading and parsing it. A survivor is scored on fit (the topic judge's mean answer over up
+ * to eight recent items), the estimated pass rate, freshness, feed reliability and a prior from
+ * how many searches returned it. The best six at 0.6 or better are marked "suggested". Nothing is
+ * added to the registry: the owner adds the ones they want from the Sources page. Every
+ * candidate comes back with its score and parts so the app can show the reasoning.
  */
 export async function suggestForTopic(
   input: SuggestInput,
@@ -301,7 +301,6 @@ export async function suggestForTopic(
 
   interface Scored {
     candidate: SourceCandidate;
-    source: Source | null;
   }
   const scored: Scored[] = await Promise.all(
     domains.map((domain) =>
@@ -318,7 +317,6 @@ export async function suggestForTopic(
         } satisfies Omit<SourceCandidate, "status">;
         const reject = (reason: string, feedUrl: string | null = null): Scored => ({
           candidate: { ...base, feed_url: feedUrl, status: "rejected", reason },
-          source: null,
         });
         try {
           const found = await discoverFeed(`${domain.origin}/`, { http: deps.http });
@@ -364,10 +362,6 @@ export async function suggestForTopic(
               status: "below_bar",
               ...(fits.length === 0 ? { reason: "the topic judge answered no items" } : {}),
             },
-            source: {
-              ...stub,
-              options: found.linkKind ? { kind: found.linkKind } : {},
-            },
           };
         } catch (error) {
           deps.log?.warn("A suggested site could not be checked", {
@@ -384,17 +378,16 @@ export async function suggestForTopic(
 
   // Best first; ties go to the more frequently returned domain, which is the earlier one.
   const ranked = scored
-    .filter((entry): entry is Scored & { source: Source } => entry.candidate.q !== null)
+    .filter((entry) => entry.candidate.q !== null)
     .sort((a, b) => (b.candidate.q ?? 0) - (a.candidate.q ?? 0));
-  const scoredAt = deps.now().toISOString();
-  const added: Source[] = [];
+  let suggested = 0;
   const knownPages = new Set(
     input.existing.flatMap((s) => [urlKey(s.url), ...(s.feed_url ? [urlKey(s.feed_url)] : [])]),
   );
   for (const entry of ranked) {
     const q = entry.candidate.q ?? 0;
     if (q < MIN_QUALITY) continue;
-    if (added.length >= MAX_ADDED) {
+    if (suggested >= MAX_SUGGESTED) {
       entry.candidate.status = "not_top";
       continue;
     }
@@ -406,18 +399,10 @@ export async function suggestForTopic(
       entry.candidate.reason = "already a source";
       continue;
     }
-    const source: Source = {
-      ...entry.source,
-      id: sourceIdFor(entry.candidate.url, new Set([...taken, ...added.map((s) => s.id)])),
-      origin: "auto",
-      topic_ids: [topic.id],
-      quality: { score: q, scored_at: scoredAt },
-    };
-    entry.candidate.id = source.id;
-    entry.candidate.status = "added";
-    added.push(source);
+    entry.candidate.status = "suggested";
+    suggested += 1;
   }
-  return { queries, candidates: scored.map((entry) => entry.candidate), added };
+  return { queries, candidates: scored.map((entry) => entry.candidate) };
 }
 
 /**

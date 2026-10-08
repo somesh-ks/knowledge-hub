@@ -89,7 +89,7 @@ describe("topic.upsert", () => {
     expect(topics.sections.at(-1)).toEqual({
       id: "quantum_computing",
       title: "Quantum computing",
-      order: 7,
+      order: 9,
     });
     // The built-in topics are all still there, materialized from the preferences.
     expect(topics.topics.filter((t) => t.origin === "builtin")).toHaveLength(11);

@@ -11,13 +11,7 @@ import { createJevClient } from "../judge/jevClient.js";
 import { TopicJudge } from "../judge/topicJudge.js";
 import { discoverAll } from "../sources/discoverAll.js";
 import { buildRegistry } from "../sources/import.js";
-import {
-  loadSources,
-  loadSourcesRaw,
-  loadUserSources,
-  saveSources,
-  saveUserSources,
-} from "../sources/registry.js";
+import { loadSources, loadSourcesRaw, saveSources } from "../sources/registry.js";
 import {
   createExaSearch,
   type SuggestDeps,
@@ -41,8 +35,9 @@ const USAGE = `Usage: dispatch sources <command>
   check [--only a,b] [--strict]      Reachability pass over every enabled source. Uses the network.
                                      Never run in tests. --strict exits 1 when any source fails.
   suggest --topic <id> [--dry-run]   Find feeds for a custom topic: three Exa searches, feed discovery,
-                                     validation, a quality score, and up to three sources added to
-                                     config/sources.user.json. Needs EXA_API_KEY and TYPESAFE_API_KEY.`;
+                                     validation and a quality score. Records the candidates in
+                                     state/source-candidates.json and adds nothing: the owner adds
+                                     the ones they want. Needs EXA_API_KEY and TYPESAFE_API_KEY.`;
 
 function print(line: string): void {
   process.stdout.write(`${line}\n`);
@@ -249,8 +244,6 @@ async function runSuggest(
   const result = await suggestForTopic({ topic, existing: registry.sources }, makeDeps(ctx));
 
   if (!values["dry-run"]) {
-    const user = await loadUserSources(ctx.root);
-    await saveUserSources(ctx.root, { ...user, added: [...user.added, ...result.added] });
     const candidates = withCandidates(
       await readSourceCandidates(ctx.root),
       topic.id,
@@ -264,14 +257,15 @@ async function runSuggest(
       JSON.stringify({
         topic: topic.id,
         candidates: result.candidates.length,
-        added: result.added.map((source) => source.id),
+        suggested: result.candidates
+          .filter((candidate) => candidate.status === "suggested")
+          .map((candidate) => candidate.id),
         dry_run: values["dry-run"] === true,
       }),
     );
   } else {
-    print(
-      `suggest ${topic.id}: ${result.candidates.length} candidates, ${result.added.length} added`,
-    );
+    const suggested = result.candidates.filter((c) => c.status === "suggested").length;
+    print(`suggest ${topic.id}: ${result.candidates.length} candidates, ${suggested} suggested`);
     for (const candidate of result.candidates) {
       const score = candidate.q === null ? "  - " : candidate.q.toFixed(2);
       print(

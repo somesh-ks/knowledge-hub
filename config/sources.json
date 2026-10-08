@@ -1491,6 +1491,222 @@
         "pool_cap": "25",
         "queries": "config/queries.json"
       }
+    },
+    {
+      "id": "nielsen-norman-group",
+      "name": "Nielsen Norman Group",
+      "type": "rss",
+      "url": "https://www.nngroup.com",
+      "feed_url": "https://www.nngroup.com/feed/rss/",
+      "tier": "daily",
+      "high_signal": false,
+      "enabled": true,
+      "failures": 0,
+      "options": {
+        "pool_cap": "6"
+      },
+      "origin": "seed",
+      "topic_ids": [
+        "design"
+      ]
+    },
+    {
+      "id": "ux-collective",
+      "name": "UX Collective",
+      "type": "rss",
+      "url": "https://uxdesign.cc",
+      "feed_url": "https://uxdesign.cc/feed",
+      "tier": "daily",
+      "high_signal": false,
+      "enabled": true,
+      "failures": 0,
+      "options": {
+        "pool_cap": "6"
+      },
+      "origin": "seed",
+      "topic_ids": [
+        "design"
+      ]
+    },
+    {
+      "id": "creative-bloq",
+      "name": "Creative Bloq",
+      "type": "rss",
+      "url": "https://www.creativebloq.com",
+      "feed_url": "https://www.creativebloq.com/feeds.xml",
+      "tier": "daily",
+      "high_signal": false,
+      "enabled": true,
+      "failures": 0,
+      "options": {
+        "pool_cap": "6"
+      },
+      "origin": "seed",
+      "topic_ids": [
+        "design"
+      ]
+    },
+    {
+      "id": "design-observer",
+      "name": "Design Observer",
+      "type": "rss",
+      "url": "https://designobserver.com",
+      "feed_url": "https://designobserver.com/feed/",
+      "tier": "daily",
+      "high_signal": false,
+      "enabled": true,
+      "failures": 0,
+      "options": {
+        "pool_cap": "6"
+      },
+      "origin": "seed",
+      "topic_ids": [
+        "design"
+      ]
+    },
+    {
+      "id": "creative-boom",
+      "name": "Creative Boom",
+      "type": "rss",
+      "url": "https://www.creativeboom.com",
+      "feed_url": "https://www.creativeboom.com/feed/",
+      "tier": "daily",
+      "high_signal": false,
+      "enabled": true,
+      "failures": 0,
+      "options": {
+        "pool_cap": "6"
+      },
+      "origin": "seed",
+      "topic_ids": [
+        "design"
+      ]
+    },
+    {
+      "id": "npr-news",
+      "name": "NPR News",
+      "type": "rss",
+      "url": "https://www.npr.org",
+      "feed_url": "https://feeds.npr.org/1001/rss.xml",
+      "tier": "daily",
+      "high_signal": false,
+      "enabled": true,
+      "failures": 0,
+      "options": {
+        "pool_cap": "6"
+      },
+      "origin": "seed",
+      "topic_ids": [
+        "trending"
+      ]
+    },
+    {
+      "id": "cbs-news",
+      "name": "CBS News",
+      "type": "rss",
+      "url": "https://www.cbsnews.com",
+      "feed_url": "https://www.cbsnews.com/latest/rss/main",
+      "tier": "daily",
+      "high_signal": false,
+      "enabled": true,
+      "failures": 0,
+      "options": {
+        "pool_cap": "6"
+      },
+      "origin": "seed",
+      "topic_ids": [
+        "trending"
+      ]
+    },
+    {
+      "id": "abc-news",
+      "name": "ABC News",
+      "type": "rss",
+      "url": "https://abcnews.com",
+      "feed_url": "https://abcnews.com/abcnews/topstories",
+      "tier": "daily",
+      "high_signal": false,
+      "enabled": true,
+      "failures": 0,
+      "options": {
+        "pool_cap": "6"
+      },
+      "origin": "seed",
+      "topic_ids": [
+        "trending"
+      ]
+    },
+    {
+      "id": "al-jazeera",
+      "name": "Al Jazeera",
+      "type": "rss",
+      "url": "https://www.aljazeera.com",
+      "feed_url": "https://www.aljazeera.com/xml/rss/all.xml",
+      "tier": "daily",
+      "high_signal": false,
+      "enabled": true,
+      "failures": 0,
+      "options": {
+        "pool_cap": "6"
+      },
+      "origin": "seed",
+      "topic_ids": [
+        "trending"
+      ]
+    },
+    {
+      "id": "france-24",
+      "name": "France 24",
+      "type": "rss",
+      "url": "https://www.france24.com",
+      "feed_url": "https://www.france24.com/en/rss",
+      "tier": "daily",
+      "high_signal": false,
+      "enabled": true,
+      "failures": 0,
+      "options": {
+        "pool_cap": "6"
+      },
+      "origin": "seed",
+      "topic_ids": [
+        "trending"
+      ]
+    },
+    {
+      "id": "sky-news",
+      "name": "Sky News",
+      "type": "rss",
+      "url": "https://news.sky.com",
+      "feed_url": "https://feeds.skynews.com/feeds/rss/home.xml",
+      "tier": "daily",
+      "high_signal": false,
+      "enabled": true,
+      "failures": 0,
+      "options": {
+        "pool_cap": "6"
+      },
+      "origin": "seed",
+      "topic_ids": [
+        "trending"
+      ]
+    },
+    {
+      "id": "pbs-newshour",
+      "name": "PBS NewsHour",
+      "type": "rss",
+      "url": "https://www.pbs.org/newshour/",
+      "feed_url": "https://www.pbs.org/newshour/feeds/rss/headlines",
+      "tier": "daily",
+      "high_signal": false,
+      "enabled": true,
+      "failures": 0,
+      "options": {
+        "pool_cap": "6"
+      },
+      "origin": "seed",
+      "topic_ids": [
+        "trending"
+      ]
     }
   ]
 }
