@@ -12,17 +12,15 @@ export default function SourceLink() {
   const host = sourceHost(url);
   if (!url || !host) return null;
   return (
-    <p className="player-source">
-      <a
-        className="player-source-link"
-        href={url}
-        target="_blank"
-        rel="noopener noreferrer"
-        aria-label={sourceLinkLabel(host)}
-      >
-        <span>{host}</span>
-        <Icon name="openInNew" />
-      </a>
-    </p>
+    <a
+      className="player-source-link"
+      href={url}
+      target="_blank"
+      rel="noopener noreferrer"
+      aria-label={sourceLinkLabel(host)}
+    >
+      <span>{host}</span>
+      <Icon name="openInNew" />
+    </a>
   );
 }

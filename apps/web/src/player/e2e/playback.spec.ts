@@ -153,7 +153,14 @@ test.describe("playback in a real browser", () => {
     await lab.open();
     await lab.play();
     await lab.openPlayer();
-    await page.getByLabel("1.5x").check({ force: true });
+    // One button that steps through the speeds: 1x, 1.25x, 1.5x.
+    const speed = lab.dialog.getByRole("button", { name: /^Speed / });
+    await expect(speed).toHaveText("1x");
+    await lab.finger.press(speed);
+    await expect(speed).toHaveText("1.25x");
+    await lab.finger.press(speed);
+    await expect(speed).toHaveText("1.5x");
+    await expect(speed).toHaveAccessibleName("Speed 1.5x. Change to 2x");
     await expect.poll(async () => (await audio.read())?.playbackRate).toBe(1.5);
     expect((await audio.read())?.preservesPitch).toBe(true);
     await page.reload({ waitUntil: "networkidle" });

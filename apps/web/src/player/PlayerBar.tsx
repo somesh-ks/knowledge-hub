@@ -106,7 +106,8 @@ function DockVolume() {
 
 /**
  * The dock: the bar at the bottom of the screen, and the collapsed end of the player surface. A
- * tap or a pull up on its open button grows it into the page; its cover is where the flying cover
+ * tap or a pull up anywhere on it that is not another control grows it into the page (the open
+ * button's target is stretched over the whole bar in CSS); its cover is where the flying cover
  * leaves from. On a wide screen it stays put and keeps working while the page is open above it:
  * what is playing on the left, the transport in the middle, volume on the right.
  */
@@ -149,7 +150,7 @@ export default function PlayerBar() {
       </div>
       <DockSeek duration={state.duration} />
       <button
-        className="dock-open press press-subtle"
+        className="dock-open"
         type="button"
         data-player-open
         aria-haspopup="dialog"
