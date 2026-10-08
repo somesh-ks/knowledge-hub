@@ -31,35 +31,41 @@ const hours = Array.from({ length: 24 }, (_, value) => value);
         <div class="schedule-panel" data-panel>
           <div class="manage-field">
             <label for="schedule-hour">Time</label>
-            <select
-              class="manage-input"
-              id="schedule-hour"
-              name="hour"
-              autocomplete="off"
-              aria-describedby="schedule-hour-hint"
-            >
-              {
-                hours.map((value) => (
-                  <option value={value} selected={value === hour}>
-                    {hourLabel(value)}
-                  </option>
-                ))
-              }
-            </select>
+            <span class="manage-select">
+              <select
+                class="manage-input"
+                id="schedule-hour"
+                name="hour"
+                autocomplete="off"
+                aria-describedby="schedule-hour-hint"
+              >
+                {
+                  hours.map((value) => (
+                    <option value={value} selected={value === hour}>
+                      {hourLabel(value)}
+                    </option>
+                  ))
+                }
+              </select>
+              <Icon name="chevronDown" />
+            </span>
             <span class="manage-quiet" id="schedule-hour-hint">Stockholm time</span>
           </div>
 
           <div class="manage-field">
             <label for="schedule-cadence">How often</label>
-            <select class="manage-input" id="schedule-cadence" name="cadence" autocomplete="off">
-              {
-                CADENCES.map((cadence) => (
-                  <option value={cadence.days} selected={cadence.days === cadenceDays}>
-                    {cadence.label}
-                  </option>
-                ))
-              }
-            </select>
+            <span class="manage-select">
+              <select class="manage-input" id="schedule-cadence" name="cadence" autocomplete="off">
+                {
+                  CADENCES.map((cadence) => (
+                    <option value={cadence.days} selected={cadence.days === cadenceDays}>
+                      {cadence.label}
+                    </option>
+                  ))
+                }
+              </select>
+              <Icon name="chevronDown" />
+            </span>
           </div>
 
           <fieldset class="manage-suggest-group" data-covers>

@@ -9,6 +9,53 @@
   padding-block: var(--space-4) 0;
 }
 
+/* A select drawn like the Library's search field and sort control: its own chevron, no browser arrow. */
+.manage-select {
+  position: relative;
+  display: grid;
+}
+
+select.manage-input {
+  appearance: none;
+  padding-inline-end: var(--space-12);
+  border-color: var(--color-border-hairline);
+  background: none;
+  cursor: pointer;
+}
+
+.manage-select > .icon {
+  position: absolute;
+  inset-block: 0;
+  inset-inline-end: var(--space-4);
+  margin-block: auto;
+  color: var(--color-on-surface-muted);
+  pointer-events: none;
+}
+
+select.manage-input:focus-visible {
+  border-color: var(--color-accent);
+}
+
+@media (hover: hover) and (pointer: fine) {
+  select.manage-input:hover {
+    border-color: var(--color-border-control);
+  }
+
+  select.manage-input:hover:focus-visible {
+    border-color: var(--color-accent);
+  }
+}
+
+@media (forced-colors: active) {
+  select.manage-input {
+    border-color: ButtonBorder;
+  }
+
+  .manage-select > .icon {
+    color: ButtonText;
+  }
+}
+
 /* The checklist heading sits with its rows, and a row is as tall as a comfortable target. */
 .schedule-panel .manage-suggest-group > .rows {
   margin-block-start: var(--space-2);
