@@ -230,3 +230,15 @@ describe("narrateSecretsOf", () => {
     expect(blobSecretsOf(null)).toEqual([]);
   });
 });
+
+describe("withSecondVoice", () => {
+  it("fills in the default second voice only when nothing sets one", async () => {
+    const { DEFAULT_SECOND_VOICE, withSecondVoice } = await import("./config");
+    expect(withSecondVoice({}).SPEECHIFY_VOICE_ID_B).toBe(DEFAULT_SECOND_VOICE);
+    expect(withSecondVoice({ SPEECHIFY_VOICE_ID_B: "other_1" }).SPEECHIFY_VOICE_ID_B).toBe(
+      "other_1",
+    );
+    // Blank is the owner saying one voice is wanted.
+    expect(withSecondVoice({ SPEECHIFY_VOICE_ID_B: "" }).SPEECHIFY_VOICE_ID_B).toBe("");
+  });
+});
