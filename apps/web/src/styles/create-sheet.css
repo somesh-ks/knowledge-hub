@@ -406,16 +406,12 @@ html[data-player="open"] .run-status {
 }
 
 @media (forced-colors: active) {
+  /* The track is its outline; the system paints the surface behind it. */
   .run-bar {
-    background: ButtonFace;
     outline: var(--stroke-hairline) solid CanvasText;
   }
 
   .run-bar::before {
     background: Highlight;
-  }
-
-  .run-link {
-    color: LinkText;
   }
 }

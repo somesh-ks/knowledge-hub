@@ -1,6 +1,6 @@
 import AxeBuilder from "@axe-core/playwright";
 import type { Page } from "@playwright/test";
-import { expect, test } from "./fixtures";
+import { expect, hydrated, test } from "./fixtures";
 import { PASSPHRASE_REQUIRED } from "./passphrase";
 
 const SENT = PASSPHRASE_REQUIRED ? "correct horse battery staple" : "open";
@@ -69,6 +69,8 @@ test.describe("Create as the primary action", () => {
   test("the floating button never overlaps the player bar's controls", async ({ page }, info) => {
     test.skip(info.project.name === "desktop", "the floating button is for phones");
     await page.goto("/");
+    // Until the player has hydrated, a press on the play chip is lost.
+    await hydrated(page);
     await page.locator("[data-play-digest]").click();
     await expect(page.locator("html")).toHaveAttribute("data-mini", "visible");
     await page.waitForTimeout(500);
