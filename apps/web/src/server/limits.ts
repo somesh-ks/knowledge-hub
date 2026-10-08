@@ -26,6 +26,9 @@ export const PODCAST_POLICY: LimitPolicy = {
   dailyCap: PODCAST_DAILY_CAP,
 };
 
+/** Deleting an episode: a short cooldown against double taps, and twenty a day. */
+export const DELETE_POLICY: LimitPolicy = { cooldownMs: 10 * 1000, dailyCap: 20 };
+
 export type LimitDecision =
   | { allowed: true }
   | { allowed: false; reason: "cooldown" | "daily_cap"; retryAfterSeconds: number };

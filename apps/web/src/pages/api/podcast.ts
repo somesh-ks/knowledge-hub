@@ -2,6 +2,7 @@ import type { APIRoute } from "astro";
 import { passphraseCheck } from "../../server/access";
 import { MAX_BODY_CHARS } from "../../server/generate";
 import { toResponse } from "../../server/http";
+import { bundledEpisodeIds } from "../../server/episodeSource";
 import { handlePodcast } from "../../server/podcast";
 
 // The site is static; this route runs on demand, as a Vercel Function.
@@ -18,6 +19,7 @@ export const POST: APIRoute = async ({ request, url }) => {
       now: Date.now,
       delay: (milliseconds) => new Promise((resolve) => setTimeout(resolve, milliseconds)),
       verifyPassphrase: passphraseCheck(),
+      episodeIds: bundledEpisodeIds,
       log: (message) => console.error(`[api/podcast] ${message}`),
     },
   );
