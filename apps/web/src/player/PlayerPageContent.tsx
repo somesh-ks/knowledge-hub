@@ -1,5 +1,7 @@
 import { getPlayerStore } from "./core/playerRuntime";
+import { usePlayerState } from "./hooks/usePlayer";
 import PlayerNotice from "./PlayerNotice";
+import ScriptView from "./ScriptView";
 import Scrubber from "./Scrubber";
 import SpeedControl from "./SpeedControl";
 import StoryList from "./StoryList";
@@ -12,6 +14,7 @@ import UpNext from "./UpNext";
  * the end of the transport row.
  */
 export default function PlayerPageContent() {
+  const hasScript = (usePlayerState().track?.digest.turns?.length ?? 0) > 0;
   return (
     <>
       <div className="player-controls">
@@ -24,7 +27,7 @@ export default function PlayerPageContent() {
       </div>
       <div className="player-list">
         <UpNext />
-        <StoryList />
+        {hasScript ? <ScriptView /> : <StoryList />}
       </div>
     </>
   );

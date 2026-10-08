@@ -1256,6 +1256,108 @@
   }
 }
 
+/* ------------------------------------------------------------------ the script */
+
+.player-script {
+  position: relative;
+}
+
+.script-turns {
+  display: grid;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+/* The two hosts: a lead on the page, and a guest on a faint sunken surface with an inset rule. */
+.script-turn {
+  --host-ink: var(--color-accent);
+  --host-wash: var(--color-accent-subtle);
+  display: grid;
+  gap: var(--space-1);
+  width: 100%;
+  padding-block: var(--space-3);
+  padding-inline: var(--space-3);
+  border-radius: var(--sheet-row-radius);
+  text-align: start;
+}
+
+.script-turn[data-tone="guest"] {
+  --host-ink: var(--color-warning);
+  --host-wash: var(--color-warning-subtle);
+  background: var(--color-surface-sunken);
+  box-shadow: inset var(--space-1) 0 0 var(--host-ink);
+}
+
+.script-speaker {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  color: var(--host-ink);
+  font-size: var(--font-size-meta);
+  font-weight: var(--font-weight-semibold);
+}
+
+.host-badge {
+  display: grid;
+  place-items: center;
+  width: var(--space-6);
+  height: var(--space-6);
+  border-radius: var(--radius-round);
+  background: var(--host-wash);
+  color: var(--host-ink);
+  font-size: var(--font-size-caption);
+  font-weight: var(--font-weight-semibold);
+}
+
+.script-text {
+  font-size: var(--font-size-label);
+  line-height: var(--font-leading-label);
+}
+
+/* The turn being spoken: a tint and a rule on the leading edge, so it never relies on colour alone. */
+.script-turn[aria-current="true"] {
+  background: var(--host-wash);
+  box-shadow: inset var(--space-1) 0 0 var(--host-ink);
+}
+
+.script-turn[aria-disabled="true"] {
+  cursor: default;
+}
+
+.script-back {
+  position: sticky;
+  inset-block-end: var(--space-4);
+  display: block;
+  margin-block-start: var(--space-3);
+  margin-inline: auto;
+  min-height: var(--size-touch);
+  padding-inline: var(--space-4);
+  border-radius: var(--control-radius-sm);
+  background: var(--color-surface-inverse);
+  color: var(--color-on-surface-inverse);
+  font-size: var(--font-size-label);
+  font-weight: var(--font-weight-semibold);
+}
+
+@media (min-width: 64rem) {
+  /* A column of its own that scrolls beside the cover, so the voice can be followed from the top. */
+  .player-script {
+    position: sticky;
+    inset-block-start: var(--space-2);
+    max-height: calc(100cqb - var(--space-8));
+    overflow-y: auto;
+    overscroll-behavior: contain;
+    scrollbar-width: thin;
+  }
+}
+
+@media (forced-colors: active) {
+  .script-turn[aria-current="true"] {
+    border: var(--stroke-rail) solid Highlight;
+  }
+}
+
 /* ------------------------------------------------------------------ segmented control */
 
 /* Used by the Settings sheet, which imports this stylesheet for it. */

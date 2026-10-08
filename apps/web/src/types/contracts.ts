@@ -21,6 +21,19 @@ export interface PlayerItem {
   end_ms: number | null;
 }
 
+/**
+ * One turn of an episode's script, in the order it is said. `key` is the narration segment that
+ * speaks it (t<idx>), so the player can place it on the timeline once the narration is laid out.
+ */
+export interface PlayerTurn {
+  key: string;
+  speaker: "a" | "b";
+  text: string;
+  /** Start and end inside the narration, or null before it has been laid out. */
+  start_ms: number | null;
+  end_ms: number | null;
+}
+
 export interface PlayerSection {
   slug: string;
   title: string;
@@ -44,6 +57,8 @@ export interface PlayerDigestData {
   timeline: "marks" | "estimated" | null;
   items: PlayerItem[];
   sections: PlayerSection[];
+  /** An episode's script. Briefings have none. */
+  turns?: PlayerTurn[];
   cover: {
     src512: string;
     src1024: string;
