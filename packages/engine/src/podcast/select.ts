@@ -2,6 +2,7 @@ import { readdir, readFile } from "node:fs/promises";
 import { basename, join } from "node:path";
 import { type Digest, parseDigestFile, stockholmDate } from "@dispatch/core";
 import type { Logger } from "../context.js";
+import { topicLabel } from "./episode.js";
 import type { PodcastPlan } from "./plan.js";
 import { PodcastError, type PodcastStory } from "./types.js";
 
@@ -13,6 +14,14 @@ export interface Selection {
   /** Stories that matched the topics and window, before the budget trimmed them. */
   matched: number;
   digests: number;
+  /** Chosen topics with no story in the window. The episode is built from the others. */
+  empty_topics: string[];
+}
+
+/** "Design", "Design and AI Products", "Design, AI Products and Trending". */
+export function joinNames(names: readonly string[]): string {
+  if (names.length <= 1) return names.join("");
+  return `${names.slice(0, -1).join(", ")} and ${names[names.length - 1]}`;
 }
 
 /** One story per URL: the same link in two digests is the same story. */
@@ -86,10 +95,13 @@ export async function selectStories(
   const topics = new Set(request.topic_ids);
   const seen = new Set<string>();
   const matched: PodcastStory[] = [];
+  // Topics that at least one story in the window belongs to; Top picks alone never fill a topic.
+  const covered = new Set<string>();
   for (const digest of digests) {
     const items = [...digest.items].sort((a, b) => b.score - a.score);
     for (const item of items) {
       if (!matchesRequest(item, topics)) continue;
+      for (const id of [item.section, item.category]) if (topics.has(id)) covered.add(id);
       const key = urlKey(item.url);
       if (seen.has(key)) continue;
       seen.add(key);
@@ -104,6 +116,16 @@ export async function selectStories(
       });
     }
   }
+  // Never fall back to the window's top picks alone: the listener asked for these topics.
+  const emptyTopics = request.topic_ids.filter((id) => !covered.has(id));
+  if (emptyTopics.length === request.topic_ids.length) {
+    throw new PodcastError(
+      `No stories in ${joinNames(emptyTopics.map(topicLabel))} in the last ${request.window_days} days.`,
+    );
+  }
+  if (emptyTopics.length > 0) {
+    log?.warn("Some chosen topics have no stories in the window", { topics: emptyTopics });
+  }
   if (matched.length < 2) {
     const advice =
       request.window_days < 30 ? "Try a longer window or more topics." : "Try more topics.";
@@ -115,5 +137,6 @@ export async function selectStories(
     stories: matched.slice(0, Math.max(2, plan.max_stories)),
     matched: matched.length,
     digests: digests.length,
+    empty_topics: emptyTopics,
   };
 }

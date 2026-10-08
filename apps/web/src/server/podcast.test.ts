@@ -124,6 +124,13 @@ describe("parsePodcastRequest", () => {
       expect(parsePodcastRequest(request), JSON.stringify(request)).toBeNull();
   });
 
+  it("accepts the six general topics with the general audience", () => {
+    const topic_ids = ["world", "business", "technology", "science", "culture", "sports"];
+    const parsed = parsePodcastRequest({ ...REQUEST, audience: "general", topic_ids });
+    expect(parsed?.audience).toBe("general");
+    expect(parsed?.topic_ids).toEqual(topic_ids);
+  });
+
   it("keeps the audience when it is general or custom, and leaves it out when it is absent", () => {
     expect(parsePodcastRequest({ ...REQUEST, audience: "general" })?.audience).toBe("general");
     expect(parsePodcastRequest({ ...REQUEST, audience: "custom" })?.audience).toBe("custom");

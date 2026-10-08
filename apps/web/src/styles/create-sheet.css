@@ -1,0 +1,417 @@
+/*
+ * Create as the one primary action: the button in the side column, the floating button below 64rem,
+ * the sheet the form opens in, and the run indicator that replaces a full-page progress view.
+ * Tokens only. The stylesheet is global because every page carries the buttons and the indicator.
+ *
+ * Contract with the shell (shell.css): --bottom-nav-height, --dock-room (the player bar, while it
+ * shows) and --run-room (the indicator, below 64rem, while a run is up) stack from the bottom edge.
+ */
+
+/* ------------------------------------------------------------------ the button in the side column */
+
+.app-nav-create {
+  display: none;
+}
+
+@media (min-width: 64rem) {
+  .app-nav-create {
+    display: flex;
+    justify-content: flex-start;
+    gap: var(--space-4);
+    padding-inline: var(--space-3);
+    border: var(--stroke-hairline) solid transparent;
+    font-size: var(--font-size-label);
+    outline-offset: var(--stroke-ring-gap);
+  }
+
+  .app-nav-create .icon {
+    width: var(--nav-item-icon);
+    height: var(--nav-item-icon);
+  }
+}
+
+/* ------------------------------------------------------------------ the floating button */
+
+.create-fab {
+  --fab-size: 3.5rem;
+  --color-focus-gap: var(--color-surface);
+  position: fixed;
+  inset-inline-end: max(var(--space-4), var(--safe-right));
+  /* Above the bottom bar, the player bar when it shows, and the run indicator when it is up. */
+  inset-block-end: calc(
+    var(--bottom-nav-height) +
+    var(--dock-room) +
+    var(--run-room) +
+    var(--space-4)
+  );
+  z-index: var(--z-header);
+  display: grid;
+  place-items: center;
+  width: var(--fab-size);
+  height: var(--fab-size);
+  border: var(--stroke-hairline) solid transparent;
+  border-radius: var(--radius-lg);
+  background: var(--cta-bg);
+  box-shadow: var(--shadow-floating);
+  color: var(--cta-fg);
+  text-decoration: none;
+  transition:
+    opacity var(--duration-state) var(--ease-out),
+    transform var(--duration-state) var(--ease-out),
+    background-color var(--duration-hover) var(--ease-hover),
+    visibility 0s;
+}
+
+@media (hover: hover) and (pointer: fine) {
+  .create-fab:hover {
+    background: var(--cta-bg-hover);
+  }
+}
+
+.create-fab:active {
+  background: var(--cta-bg-pressed);
+}
+
+/* Out of the way while the expanded player or a sheet owns the screen, and where it is already open. */
+html[data-player="open"] .create-fab,
+html:has(dialog[open]) .create-fab {
+  visibility: hidden;
+  opacity: 0;
+  transform: translateY(var(--space-4));
+  transition-duration: var(--duration-exit), var(--duration-exit), var(--duration-hover), 0s;
+  transition-delay: 0s, 0s, 0s, var(--duration-exit);
+}
+
+html[data-view="create"] .create-fab {
+  display: none;
+}
+
+@media (min-width: 64rem) {
+  .create-fab {
+    display: none;
+  }
+}
+
+/* ------------------------------------------------------------------ the sheet */
+
+/* A phone: the whole screen, sliding up. From 40rem: a panel on the right, sliding in, over a scrim. */
+dialog.create-sheet {
+  --color-focus-gap: var(--sheet-bg);
+  position: fixed;
+  inset: 0;
+  width: 100%;
+  max-width: none;
+  height: 100dvh;
+  max-height: none;
+  margin: 0;
+  padding: 0;
+  border: 0;
+  overflow: hidden;
+  background: var(--sheet-bg);
+  color: var(--color-on-surface);
+  opacity: 1;
+  transform: translateY(0);
+  transition:
+    transform var(--duration-sheet-out) var(--ease-drawer),
+    opacity var(--duration-state) var(--ease-out),
+    overlay var(--duration-sheet-out) allow-discrete,
+    display var(--duration-sheet-out) allow-discrete;
+}
+
+dialog.create-sheet[open] {
+  display: flex;
+  flex-direction: column;
+  transition-duration:
+    var(--duration-sheet-in), var(--duration-state), var(--duration-sheet-in),
+    var(--duration-sheet-in);
+}
+
+dialog.create-sheet:not([open]) {
+  opacity: 0;
+  transform: translateY(100%);
+}
+
+@starting-style {
+  dialog.create-sheet[open] {
+    opacity: 0;
+    transform: translateY(100%);
+  }
+}
+
+dialog.create-sheet:focus-visible {
+  outline: none;
+}
+
+dialog.create-sheet::backdrop {
+  background: var(--color-scrim);
+  opacity: 0;
+  transition:
+    opacity var(--duration-sheet-out) var(--ease-out),
+    overlay var(--duration-sheet-out) allow-discrete,
+    display var(--duration-sheet-out) allow-discrete;
+}
+
+dialog.create-sheet[open]::backdrop {
+  opacity: 1;
+  transition-duration: var(--duration-sheet-in), var(--duration-sheet-in), var(--duration-sheet-in);
+}
+
+@starting-style {
+  dialog.create-sheet[open]::backdrop {
+    opacity: 0;
+  }
+}
+
+/* One header row: the title and the close control. The form scrolls under it. */
+.create-sheet-head {
+  display: flex;
+  flex: none;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-2);
+  min-height: var(--size-touch-comfortable);
+  padding-block: max(var(--space-2), var(--safe-top)) var(--space-2);
+  padding-inline: max(var(--space-4), var(--safe-left)) max(var(--space-2), var(--safe-right));
+  border-block-end: var(--stroke-hairline) solid var(--color-border-hairline);
+}
+
+.create-sheet-body {
+  /* The hairline between groups runs to the edges of the scrolling area, as it does on the page. */
+  --sheet-gutter: var(--space-4);
+  --page-gutter-start: max(var(--sheet-gutter), var(--safe-left));
+  --page-gutter-end: max(var(--sheet-gutter), var(--safe-right));
+  flex: 1 1 auto;
+  min-height: 0;
+  padding-inline: var(--page-gutter-start) var(--page-gutter-end);
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  scrollbar-width: thin;
+}
+
+/* The form is the same one the page has; here its first group needs less air above it. */
+dialog.create-sheet .create-group:first-child .section-head {
+  padding-block-start: var(--space-4);
+}
+
+/* The button stays reachable: the foot of the form sticks to the foot of the sheet, on the sheet's
+   own surface, which also covers the side gutters where scrolled content would otherwise show. */
+dialog.create-sheet .create-submit {
+  position: sticky;
+  inset-block-end: 0;
+  z-index: 1;
+  padding-block: var(--space-4) max(var(--space-4), var(--safe-bottom));
+  background: var(--sheet-bg);
+  box-shadow: 0 0 0 100vmax var(--sheet-bg);
+  clip-path: inset(0 -100vmax);
+}
+
+dialog.create-sheet .create-submit > .btn-primary {
+  width: 100%;
+  min-width: 0;
+  justify-self: stretch;
+}
+
+@media (min-width: 40rem) {
+  /* A side panel docked to the right edge, full height, on top of everything including the player
+     bar, so its button at the foot is always reachable. The scrim covers the rest. */
+  dialog.create-sheet {
+    inset: 0 0 0 auto;
+    width: min(28rem, calc(100% - var(--space-12)));
+    box-shadow: var(--sheet-shadow);
+  }
+
+  dialog.create-sheet:not([open]) {
+    transform: translateX(100%);
+  }
+
+  @starting-style {
+    dialog.create-sheet[open] {
+      transform: translateX(100%);
+    }
+  }
+
+  .create-sheet-head {
+    padding-inline: var(--space-6) var(--space-3);
+  }
+
+  .create-sheet-body {
+    --sheet-gutter: var(--space-6);
+  }
+
+  dialog.create-sheet .create-submit {
+    padding-block-end: max(var(--space-6), var(--safe-bottom));
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  dialog.create-sheet,
+  dialog.create-sheet:not([open]) {
+    transform: none;
+  }
+
+  @starting-style {
+    dialog.create-sheet[open] {
+      transform: none;
+    }
+  }
+}
+
+@media (forced-colors: active) {
+  dialog.create-sheet {
+    border: var(--stroke-hairline) solid CanvasText;
+  }
+}
+
+/* ------------------------------------------------------------------ the run indicator */
+
+/* Below 64rem: a thin bar and one line of status, directly above the player bar, or above the bottom
+   bar while the player is hidden. */
+.run-status {
+  position: fixed;
+  inset-inline: 0;
+  inset-block-end: calc(var(--bottom-nav-height) + var(--dock-room));
+  z-index: var(--z-header);
+}
+
+.run-card {
+  position: relative;
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+  min-height: var(--run-height);
+  padding-inline: max(var(--space-4), var(--safe-left)) max(var(--space-2), var(--safe-right));
+  background: var(--color-surface);
+  box-shadow: 0 calc(var(--stroke-hairline) * -1) 0 var(--color-border-hairline);
+  font-size: var(--font-size-label);
+  font-weight: var(--font-weight-medium);
+  line-height: var(--font-leading-label);
+}
+
+.run-text {
+  flex: 1 1 auto;
+  min-width: 0;
+}
+
+.run-link {
+  display: inline-flex;
+  flex: none;
+  align-items: center;
+  min-height: var(--size-touch);
+  color: var(--color-accent);
+  text-decoration: none;
+}
+
+@media (hover: hover) and (pointer: fine) {
+  .run-link:hover {
+    text-decoration: underline;
+  }
+}
+
+.run-dismiss {
+  flex: none;
+}
+
+/* The bar: a track with a segment that travels along it. It never shows a share, because the
+   status route reports a state, not a percentage. It is gone once the run has finished. */
+.run-bar {
+  position: absolute;
+  inset-inline: 0;
+  inset-block-start: 0;
+  height: calc(var(--space-1) * 0.75);
+  overflow: hidden;
+  background: var(--rail-track);
+}
+
+.run-bar::before {
+  content: "";
+  position: absolute;
+  inset-block: 0;
+  inset-inline-start: 0;
+  width: 40%;
+  border-radius: var(--radius-round);
+  background: var(--color-accent);
+  animation: run-travel calc(var(--duration-spin) * 2) var(--ease-in-out) infinite;
+}
+
+.run-card:is([data-state="done"], [data-state="started"], [data-state="failed"]) .run-bar {
+  display: none;
+}
+
+@keyframes run-travel {
+  from {
+    transform: translateX(-100%);
+  }
+
+  to {
+    transform: translateX(250%);
+  }
+}
+
+html[data-player="open"] .run-status {
+  visibility: hidden;
+}
+
+/* From 64rem: at the foot of the side column, over the column's own surface. */
+@media (min-width: 64rem) {
+  .run-status {
+    inset-inline: 0 auto;
+    inset-block-end: var(--dock-room);
+    width: var(--side-nav-width);
+  }
+
+  .run-card {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) auto;
+    grid-template-areas:
+      "text close"
+      "extra extra";
+    align-items: center;
+    gap: 0 var(--space-2);
+    min-height: 0;
+    padding-block: var(--space-2) var(--space-4);
+    padding-inline: calc(var(--space-3) + var(--safe-left)) var(--space-2);
+    box-shadow: none;
+    border-inline-end: var(--stroke-hairline) solid var(--color-border-hairline);
+  }
+
+  .run-text {
+    grid-area: text;
+    padding-inline-end: var(--space-1);
+  }
+
+  .run-dismiss {
+    grid-area: close;
+  }
+
+  .run-link {
+    grid-area: extra;
+    justify-self: start;
+  }
+
+  .run-bar {
+    position: relative;
+    inset: auto;
+    grid-area: extra;
+    margin-block-start: var(--space-3);
+    border-radius: var(--radius-round);
+    height: var(--space-1);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .run-bar::before {
+    width: 100%;
+    animation: pulse calc(var(--duration-spin) * 2) var(--ease-in-out) infinite;
+  }
+}
+
+@media (forced-colors: active) {
+  /* The track is its outline; the system paints the surface behind it. */
+  .run-bar {
+    outline: var(--stroke-hairline) solid CanvasText;
+  }
+
+  .run-bar::before {
+    background: Highlight;
+  }
+}

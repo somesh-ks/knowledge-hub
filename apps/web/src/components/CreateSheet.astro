@@ -1,0 +1,22 @@
+---
+import CreateForm from "./CreateForm.astro";
+import Icon from "./Icon.astro";
+---
+
+{/* The Create sheet, kept inert in a template: nothing in it is on the page, so its ids and fields
+     cost nothing until scripts/createSheet.ts clones it on the first press of a Create button. A
+     full-screen panel on a phone and a side panel on the right from 40rem. One header row; the form scrolls
+     under it and its button stays at the foot. */}
+<template id="create-sheet-template">
+  <dialog class="create-sheet" aria-labelledby="create-sheet-title">
+    <div class="create-sheet-head">
+      <h2 class="sheet-title" id="create-sheet-title">Create a podcast</h2>
+      <button class="icon-btn press" type="button" data-create-close aria-label="Close">
+        <Icon name="close" class="icon-lg" />
+      </button>
+    </div>
+    <div class="create-sheet-body">
+      <CreateForm />
+    </div>
+  </dialog>
+</template>

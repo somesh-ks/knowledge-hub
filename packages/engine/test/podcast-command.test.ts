@@ -112,12 +112,12 @@ describe("dispatch podcast", () => {
     expect(git(root, "status", "--porcelain")).toBe("");
   });
 
-  it("fails without calling the writer when too few stories match", async () => {
+  it("fails without calling the writer when a chosen topic has no stories", async () => {
     const { code, errors, writer } = await runPodcast(
       args({ ...REQUEST, topic_ids: ["launches"] }),
     );
     expect(code).toBe(1);
-    expect(errors.join(" ")).toMatch(/needs at least 2.*longer window/);
+    expect(errors.join(" ")).toMatch(/No stories in Launches in the last 7 days\./);
     expect(writer.calls).toHaveLength(0);
   });
 

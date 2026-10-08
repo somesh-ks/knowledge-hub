@@ -1,7 +1,7 @@
 /*
  * The Create page: a form built from the settings page's grammar (hairline-divided groups, the
- * segmented choice) plus the few controls only it needs: topic chips, option rows with a radio, a
- * run panel. Imported by pages/create.astro, after settings.css.
+ * segmented choice) plus the few controls only it needs: topic chips and option rows with a radio. Imported by
+ * components/CreateForm.astro, after settings.css. The run is shown by the indicator (create-sheet.css).
  *
  * Type comes in two steps inside a block: a title at the body size in medium weight, and one quiet
  * line at the label size, always with air between them. Rules that adjust a shared rule are written
@@ -20,6 +20,11 @@
   padding-block-start: var(--space-4);
   color: var(--color-on-surface-muted);
   font-size: var(--font-size-label);
+}
+
+/* The form is also inside the Create sheet, outside .settings-view, so it carries its own width. */
+.create-view {
+  --settings-control-width: 18rem;
 }
 
 /* ------------------------------------------------------------------ groups */
@@ -244,45 +249,6 @@
     min-width: 14rem;
     justify-self: start;
   }
-}
-
-/* ------------------------------------------------------------------ the run */
-
-.create-run {
-  padding-block: var(--space-8);
-}
-
-.create-run-row {
-  display: flex;
-  align-items: flex-start;
-  gap: var(--space-4);
-}
-
-.create-run-row > .spinner {
-  margin-block-start: calc(var(--space-1) / 2);
-}
-
-.create-run:focus {
-  outline: none;
-}
-
-.create-result {
-  max-width: var(--layout-measure);
-  font-size: var(--font-size-body);
-  line-height: var(--font-leading-body);
-}
-
-.create-run-actions {
-  display: flex;
-  flex-wrap: wrap;
-  align-items: center;
-  gap: var(--space-3);
-  padding-block-start: var(--space-6);
-}
-
-.create-view .create-run-actions > .btn-primary {
-  width: auto;
-  padding-inline: var(--space-6);
 }
 
 /* ------------------------------------------------------------------ forced colors */

@@ -76,14 +76,27 @@ test.describe("theme", () => {
 
   test("a theme set while the page is open also survives navigation", async ({ page }) => {
     await page.emulateMedia({ colorScheme: "light" });
-    await page.goto("/");
-    // What the settings sheet does: write the choice, set the attribute.
-    await page.evaluate(() => {
-      localStorage.setItem("dispatch:preferences", JSON.stringify({ theme: "dark" }));
-      document.documentElement.dataset.theme = "dark";
-    });
-    await page.getByRole("link", { name: "See all" }).click();
+    // Through the real control. Writing storage behind the app's back raced the player's own copy
+    // of the preferences, and passed or failed by which loaded first.
+    await page.goto("/settings");
+    await expect(page.locator("[data-settings]")).toHaveAttribute("data-ready", "true");
+    await page
+      .getByRole("radiogroup", { name: "Theme" })
+      .getByRole("radio", { name: "Dark" })
+      .check();
+    await expect(page.locator("html")).toHaveAttribute("data-theme", "dark");
+    await page
+      .getByRole("navigation", { name: "Primary" })
+      .getByRole("link", { name: "Library", exact: true })
+      .click();
     await expect(page).toHaveURL(/\/library$/);
+    await expect(page.locator("html")).toHaveAttribute("data-theme", "dark");
+    // And it is still there on the page after that.
+    await page
+      .getByRole("navigation", { name: "Primary" })
+      .getByRole("link", { name: "Today", exact: true })
+      .click();
+    await expect(page).toHaveURL(/\/$/);
     await expect(page.locator("html")).toHaveAttribute("data-theme", "dark");
   });
 

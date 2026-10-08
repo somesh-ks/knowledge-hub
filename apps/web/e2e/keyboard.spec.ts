@@ -28,8 +28,9 @@ test.describe("keyboard", () => {
 
   test("tab order follows the page: navigation, header, then each story's chip and source", async ({
     page,
-  }) => {
+  }, info) => {
     await page.goto("/");
+    const wide = info.project.name === "desktop";
     const seen: string[] = [];
     for (let step = 0; step < 12; step += 1) {
       await page.keyboard.press("Tab");
@@ -38,10 +39,12 @@ test.describe("keyboard", () => {
     expect(seen).toEqual([
       "a: Skip to the briefing",
       "a: Singularity, today's briefing",
+      // Create is the one action: first in the side column, a floating button after the bar.
+      ...(wide ? ["a: Create"] : []),
       "a: Today",
       "a: Library",
-      "a: Create",
       "a: Settings",
+      ...(wide ? [] : ["a: Create a podcast"]),
       "button: Play the briefing, 1 min",
       "button: Share this briefing",
       "button: Play from here, 0:03: Springlet 2.0 retargets springs mid-flight, so interrupted drawers keep their velocity",

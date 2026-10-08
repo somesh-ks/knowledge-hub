@@ -35,7 +35,9 @@ async function titles(page: Page): Promise<string[]> {
  * test below pins the wording.
  */
 async function narrowedTo(page: Page, shown: number, total: number): Promise<void> {
-  await expect(page.getByRole("status")).toHaveText(new RegExp(`^${shown} of ${total} results?$`));
+  await expect(page.locator("[data-library-status]")).toHaveText(
+    new RegExp(`^${shown} of ${total} results?$`),
+  );
 }
 
 const filter = (page: Page, name: string) => page.getByRole("button", { name, exact: true });
@@ -59,7 +61,7 @@ test.describe("the library", () => {
     // A grid of covers, not a grouped list: no month headings, nothing to open or close.
     await expect(page.getByRole("heading", { level: 2 })).toHaveCount(0);
     await expect(page.locator("details, summary")).toHaveCount(0);
-    await expect(page.getByRole("status")).toHaveText("5 results");
+    await expect(page.locator("[data-library-status]")).toHaveText("5 results");
   });
 
   test("offers search, the five filter chips and a sort", async ({ page }) => {
@@ -161,7 +163,7 @@ test.describe("library search", () => {
     await expect(page.locator("[data-card]:not([hidden])")).toHaveCount(0);
     await expect(page.locator("[data-library-empty]")).toBeVisible();
     await expect(page.locator("[data-library-empty]")).toContainText("Nothing matches.");
-    await expect(page.getByRole("status")).toHaveText("No results");
+    await expect(page.locator("[data-library-status]")).toHaveText("No results");
     await page.getByRole("button", { name: "Clear search" }).click();
     await expect(input).toHaveValue("");
     await expect(input).toBeFocused();
@@ -169,7 +171,7 @@ test.describe("library search", () => {
     expect(await titles(page)).toEqual(NEWEST_FIRST);
     // The cards say their own facts again, not why they matched.
     await expect(page.locator("[data-card] .card-facts")).toHaveText(REST_FACTS);
-    await expect(page.getByRole("status")).toHaveText("5 results");
+    await expect(page.locator("[data-library-status]")).toHaveText("5 results");
   });
 
   test("Clear search also resets the filter", async ({ page }) => {
@@ -230,7 +232,7 @@ test.describe("library filters and order", () => {
     await filter(page, "All").click();
     await onlyPressed("All");
     expect(await titles(page)).toEqual(NEWEST_FIRST);
-    await expect(page.getByRole("status")).toHaveText("5 results");
+    await expect(page.locator("[data-library-status]")).toHaveText("5 results");
   });
 
   test("a filter and a search narrow together", async ({ page }) => {
@@ -246,7 +248,7 @@ test.describe("library filters and order", () => {
     await filter(page, "Custom").click();
     await page.getByRole("searchbox").fill("dither");
     await expect(page.locator("[data-card]:not([hidden])")).toHaveCount(0);
-    await expect(page.getByRole("status")).toHaveText("No results");
+    await expect(page.locator("[data-library-status]")).toHaveText("No results");
     await expect(page.locator("[data-library-empty]")).toBeVisible();
   });
 
@@ -370,7 +372,7 @@ test.describe("library episodes", () => {
     await page.goto("/library");
     await ready(page);
     await filter(page, "Weekly").click();
-    await expect(page.getByRole("status")).toHaveText("1 of 5 results");
+    await expect(page.locator("[data-library-status]")).toHaveText("1 of 5 results");
   });
 });
 

@@ -3,6 +3,7 @@ import { dirname, join } from "node:path";
 import {
   type Episode,
   episodeRelPath,
+  generalTopicTitle,
   PODCAST_CHARS_PER_MINUTE,
   type PodcastRequest,
   SECTION_TITLES,
@@ -50,7 +51,7 @@ export async function allocateEpisodeId(root: string, now: Date): Promise<string
   throw new Error("No free episode id in the next hour.");
 }
 
-function topicLabel(topic: string): string {
+export function topicLabel(topic: string): string {
   if (topic in SECTION_TITLES) return SECTION_TITLES[topic as Section];
   const words = topic.replace(/_/g, " ");
   return words.charAt(0).toUpperCase() + words.slice(1);
@@ -65,7 +66,8 @@ const TITLE_TOPICS = 2;
  */
 export function episodeTitle(request: PodcastRequest): string {
   if (request.title) return request.title;
-  const names = request.topic_ids.map(topicLabel);
+  const label = request.audience === "general" ? generalTopicTitle : topicLabel;
+  const names = request.topic_ids.map(label);
   if (names.length <= TITLE_TOPICS) return names.join(" and ");
   const rest = names.length - TITLE_TOPICS;
   return `${names.slice(0, TITLE_TOPICS).join(", ")} and ${rest} more`;

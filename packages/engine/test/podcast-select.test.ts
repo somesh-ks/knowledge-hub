@@ -73,7 +73,9 @@ describe("selectStories", () => {
       ctx.root,
       makeDigest(later.toISOString().slice(0, 10), later.toISOString(), [{ n: 1 }, { n: 2 }]),
     );
-    await expect(selectStories(ctx.root, planPodcast(REQUEST), NOW)).rejects.toThrow(/Only 0/);
+    await expect(selectStories(ctx.root, planPodcast(REQUEST), NOW)).rejects.toThrow(
+      /No stories in AI Products in the last 7 days\./,
+    );
   });
 
   it("fails clearly with fewer than two matching stories", async () => {
@@ -90,8 +92,43 @@ describe("selectStories", () => {
 
   it("fails the same way when there are no digests at all", async () => {
     await expect(selectStories(ctx.root, planPodcast(REQUEST), NOW)).rejects.toThrow(
-      /Only 0 stories match/,
+      /No stories in AI Products in the last 7 days\./,
     );
+  });
+
+  it("never builds an episode from top picks alone", async () => {
+    const recent = dayAgo(1);
+    await writeDigest(
+      ctx.root,
+      makeDigest(recent.id, recent.at, [
+        { n: 1, section: "top", category: "frontier_model_releases" },
+        { n: 2, section: "top", category: "frontier_model_releases" },
+        { n: 3, section: "ui-craft", category: "design_engineering_craft" },
+      ]),
+    );
+    const request = { ...REQUEST, topic_ids: ["design"] };
+    await expect(selectStories(ctx.root, planPodcast(request), NOW)).rejects.toThrow(
+      /^No stories in Design in the last 7 days\.$/,
+    );
+  });
+
+  it("builds from the topics that have stories and names the empty ones", async () => {
+    const recent = dayAgo(1);
+    await writeDigest(
+      ctx.root,
+      makeDigest(recent.id, recent.at, [
+        { n: 1, section: "ai" },
+        { n: 2, section: "ai" },
+        { n: 3, section: "top", category: "frontier_model_releases" },
+      ]),
+    );
+    const request = { ...REQUEST, topic_ids: ["ai", "design"] };
+    const selection = await selectStories(ctx.root, planPodcast(request), NOW);
+    expect(selection.empty_topics).toEqual(["design"]);
+    // Top picks still ride along with the chosen-topic stories.
+    expect(selection.stories).toHaveLength(3);
+    const full = await selectStories(ctx.root, planPodcast(REQUEST), NOW);
+    expect(full.empty_topics).toEqual([]);
   });
 
   it.each([

@@ -1,4 +1,5 @@
 ---
+import { PASSPHRASE_REQUIRED } from "../lib/access";
 import Icon from "./Icon.astro";
 ---
 
@@ -32,6 +33,7 @@ import Icon from "./Icon.astro";
   </div>
 </div>
 
+{PASSPHRASE_REQUIRED && (
 <dialog class="manage-dialog" aria-labelledby="manage-dialog-title">
   <form method="dialog" class="manage-dialog-form">
     <h2 id="manage-dialog-title">Save changes</h2>
@@ -56,3 +58,4 @@ import Icon from "./Icon.astro";
     </div>
   </form>
 </dialog>
+)}

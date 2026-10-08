@@ -1,0 +1,101 @@
+{
+  "version": 1,
+  "topics": {
+    "world": [
+      { "id": "npr", "name": "NPR", "feed_url": "https://feeds.npr.org/1004/rss.xml" },
+      {
+        "id": "abc-news",
+        "name": "ABC News",
+        "feed_url": "https://abcnews.com/abcnews/internationalheadlines"
+      },
+      {
+        "id": "al-jazeera",
+        "name": "Al Jazeera",
+        "feed_url": "https://www.aljazeera.com/xml/rss/all.xml"
+      },
+      { "id": "bbc", "name": "BBC News", "feed_url": "https://feeds.bbci.co.uk/news/world/rss.xml" }
+    ],
+    "business": [
+      { "id": "npr", "name": "NPR", "feed_url": "https://feeds.npr.org/1006/rss.xml" },
+      {
+        "id": "cbs-news",
+        "name": "CBS News",
+        "feed_url": "https://www.cbsnews.com/latest/rss/moneywatch"
+      },
+      {
+        "id": "abc-news",
+        "name": "ABC News",
+        "feed_url": "https://abcnews.com/abcnews/moneyheadlines"
+      },
+      {
+        "id": "sky-news",
+        "name": "Sky News",
+        "feed_url": "https://feeds.skynews.com/feeds/rss/business.xml"
+      }
+    ],
+    "technology": [
+      { "id": "npr", "name": "NPR", "feed_url": "https://feeds.npr.org/1019/rss.xml" },
+      {
+        "id": "cbs-news",
+        "name": "CBS News",
+        "feed_url": "https://www.cbsnews.com/latest/rss/technology"
+      },
+      {
+        "id": "abc-news",
+        "name": "ABC News",
+        "feed_url": "https://abcnews.com/abcnews/technologyheadlines"
+      },
+      {
+        "id": "sky-news",
+        "name": "Sky News",
+        "feed_url": "https://feeds.skynews.com/feeds/rss/technology.xml"
+      }
+    ],
+    "science": [
+      { "id": "npr", "name": "NPR", "feed_url": "https://feeds.npr.org/1007/rss.xml" },
+      {
+        "id": "pbs-newshour",
+        "name": "PBS NewsHour",
+        "feed_url": "https://www.pbs.org/newshour/feeds/rss/science"
+      },
+      {
+        "id": "sciencedaily",
+        "name": "ScienceDaily",
+        "feed_url": "https://www.sciencedaily.com/rss/top/science.xml"
+      },
+      {
+        "id": "guardian",
+        "name": "The Guardian",
+        "feed_url": "https://www.theguardian.com/science/rss"
+      }
+    ],
+    "culture": [
+      { "id": "npr", "name": "NPR", "feed_url": "https://feeds.npr.org/1008/rss.xml" },
+      {
+        "id": "pbs-newshour",
+        "name": "PBS NewsHour",
+        "feed_url": "https://www.pbs.org/newshour/feeds/rss/arts"
+      },
+      {
+        "id": "abc-news",
+        "name": "ABC News",
+        "feed_url": "https://abcnews.com/abcnews/entertainmentheadlines"
+      },
+      {
+        "id": "bbc",
+        "name": "BBC News",
+        "feed_url": "https://feeds.bbci.co.uk/news/entertainment_and_arts/rss.xml"
+      }
+    ],
+    "sports": [
+      { "id": "npr", "name": "NPR", "feed_url": "https://feeds.npr.org/1055/rss.xml" },
+      {
+        "id": "abc-news",
+        "name": "ABC News",
+        "feed_url": "https://abcnews.com/abcnews/sportsheadlines"
+      },
+      { "id": "espn", "name": "ESPN", "feed_url": "https://www.espn.com/espn/rss/news" },
+      { "id": "bbc", "name": "BBC Sport", "feed_url": "https://feeds.bbci.co.uk/sport/rss.xml" }
+    ]
+  }
+}

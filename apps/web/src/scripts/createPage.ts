@@ -1,13 +1,15 @@
+import { startRun } from "./runStatus";
+
 /**
- * The Create page: the live estimate, the six-topic limit, the passphrase dialog (while the page
- * has one), the request and the wait for the episode. Every sentence it shows is in the page (`[data-k]`), not here, and it
- * imports nothing, so it stays a small file that loads with the page.
+ * The Create form: the live estimate, the six-topic limit, the passphrase dialog (while the form has
+ * one) and the request. The form lives on /create and in the Create sheet; both call `installCreate`.
+ * Every sentence it shows is in the markup (`[data-k]`), not here. Once a run has started it hands
+ * the run to the status indicator (runStatus.ts), which follows it, and calls `onStart`.
  */
 const KEY = "dispatch:narrate-passphrase";
 
-function install(): void {
-  const root = document.querySelector<HTMLElement>("[data-create]");
-  if (!root || root.dataset.ready !== undefined) return;
+export function installCreate(root: HTMLElement, onStart?: () => void): void {
+  if (root.dataset.ready !== undefined) return;
   root.dataset.ready = "";
   const $ = (selector: string) => root.querySelector(selector) as HTMLElement;
   const form = $("[data-create-form]") as HTMLFormElement;
@@ -15,7 +17,6 @@ function install(): void {
   // has no dialog, and the form's own button sends the request.
   const open = root.dataset.openPassphrase;
   const dialog = root.querySelector<HTMLDialogElement>("[data-dialog]");
-  const box = $("[data-run]");
   const topics = [...form.querySelectorAll<HTMLInputElement>('input[name="topic"]')];
   const max = Number($("[data-max]").dataset.max);
   const copy = (key: string) => root.querySelector(`[data-k="${key}"]`)?.textContent ?? "";
@@ -40,16 +41,18 @@ function install(): void {
   };
 
   function sync(): void {
-    // A topic of the owner's is offered in Customized mode only; leaving that mode unticks it.
-    const custom = new FormData(form).get("audience") === "custom";
+    // Each mode offers its own topics: the other mode's chips are hidden and unticked, so a request
+    // only ever holds ids of the chosen mode.
+    const mode = new FormData(form).get("audience");
     for (const topic of topics) {
-      const chip = topic.closest<HTMLElement>("[data-custom]");
+      const chip = topic.closest<HTMLElement>("[data-mode]");
       if (!chip) continue;
-      chip.hidden = !custom;
-      if (!custom) topic.checked = false;
+      chip.hidden = chip.dataset.mode !== mode;
+      if (chip.hidden) topic.checked = false;
     }
     const picked = form.querySelector<HTMLInputElement>('input[name="audience"]:checked');
     $("[data-audience-hint]").textContent = picked?.dataset.hint ?? "";
+    $("[data-top-hint]").textContent = picked?.dataset.top ?? "";
     const n = topics.filter((topic) => topic.checked).length;
     for (const topic of topics) topic.disabled = !topic.checked && n >= max;
     $("[data-topics-count]").textContent = n ? `${n} chosen.` : "None chosen yet.";
@@ -72,39 +75,6 @@ function install(): void {
       tone: data.get("tone"),
       ...(title ? { title } : {}),
     };
-  }
-
-  function finish(key: string): void {
-    $("[data-run-working]").hidden = true;
-    $("[data-run-done]").hidden = false;
-    $("[data-run-result]").textContent = copy(key);
-  }
-
-  async function follow(id: number): Promise<void> {
-    for (let turn = 0; turn < 300 && root?.isConnected; turn += 1) {
-      await new Promise((resolve) => setTimeout(resolve, 4000));
-      const res = await fetch(`/api/status?run=${id}`).catch(() => null);
-      const body = res?.ok ? await res.json().catch(() => null) : null;
-      // A run the status route does not know (a 4xx): the episode was started all the same, so say
-      // that and stop asking. A hiccup is asked again, until the loop runs out.
-      if (res && res.status < 500 && !res.ok) break;
-      if (!body?.state) continue;
-      $("[data-run-hint]").textContent = copy(body.state === "queued" ? "queued" : "running");
-      if (body.state === "completed")
-        return finish(body.outcome === "failed" ? "failed" : "started");
-    }
-    finish("started");
-  }
-
-  function begin(id: number): void {
-    form.hidden = true;
-    box.hidden = false;
-    $("[data-run-working]").hidden = false;
-    $("[data-run-done]").hidden = true;
-    $("[data-run-hint]").textContent = copy("queued");
-    box.tabIndex = -1;
-    box.focus();
-    void follow(id);
   }
 
   /**
@@ -131,7 +101,8 @@ function install(): void {
       );
       return "done";
     }
-    begin(body.run_id);
+    startRun(body.run_id);
+    onStart?.();
     return "done";
   }
 
@@ -140,7 +111,7 @@ function install(): void {
     event.preventDefault();
     if (!topics.some((topic) => topic.checked)) {
       say("topics", copy("topics"));
-      topics[0]?.focus();
+      topics.find((topic) => !topic.closest("[hidden]"))?.focus();
       return;
     }
     say("form");
@@ -183,16 +154,15 @@ function install(): void {
     });
   }
 
-  $("[data-run-again]").addEventListener("click", () => {
-    box.hidden = true;
-    form.hidden = false;
-    $("h1").focus();
-  });
   sync();
 }
 
-document.addEventListener("astro:page-load", install);
-install();
+// On /create the page loads this file and the form is in the page. Elsewhere the sheet calls
+// installCreate itself, so only a form inside <main> installs here.
+function installOnPage(): void {
+  const root = document.querySelector<HTMLElement>("main [data-create]");
+  if (root) installCreate(root);
+}
 
-// Nothing is exported: the page loads this file for what it does. This line makes it a module.
-export {};
+document.addEventListener("astro:page-load", installOnPage);
+installOnPage();

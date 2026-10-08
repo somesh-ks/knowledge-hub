@@ -3,6 +3,9 @@ import { ClientRouter } from "astro:transitions";
 import appFont from "../assets/fonts/google-sans-flex-latin-wght-normal.woff2?url";
 import AppNav, { type Destination } from "../components/AppNav.astro";
 import Banner from "../components/Banner.astro";
+import CreateFab from "../components/CreateFab.astro";
+import CreateSheet from "../components/CreateSheet.astro";
+import RunStatus from "../components/RunStatus.astro";
 import SiteHeader from "../components/SiteHeader.astro";
 import { readBrandColors } from "../lib/brandColors";
 import PlayerRoot from "../player/PlayerRoot";
@@ -24,6 +27,7 @@ import "../styles/briefing.css";
 import "../styles/library.css";
 import "../styles/aside.css";
 import "../styles/view-transitions.css";
+import "../styles/create-sheet.css";
 import "../styles/utilities.css";
 
 interface Props {
@@ -34,7 +38,7 @@ interface Props {
   view: "home" | "library" | "create" | "settings";
   /**
    * The destination marked as current in the navigation. Defaults to the one the view belongs to; an
-   * earlier briefing or an episode passes "library", and a page outside the four (not found, offline)
+   * earlier briefing or an episode passes "library", and a page outside the three (not found, offline)
    * passes null.
    */
   nav?: Destination | null;
@@ -56,7 +60,9 @@ const {
 } = Astro.props;
 
 const colors = readBrandColors();
-const destination = nav === undefined ? (view === "home" ? "today" : view) : nav;
+// Create is the primary action, not a destination, so its page marks none in the navigation.
+const destination =
+  nav === undefined ? (view === "home" ? "today" : view === "create" ? null : view) : nav;
 const pageTitle = title ? `${title}, Singularity` : "Singularity";
 ---
 
@@ -96,6 +102,8 @@ const pageTitle = title ? `${title}, Singularity` : "Singularity";
     <a class="skip-link" href="#main">{skipLabel}</a>
     <SiteHeader />
     <AppNav current={destination} />
+    <CreateFab />
+    <RunStatus />
     <div class="banner-stack page" id="banners"><slot name="banners" /></div>
     <div class="shell page"><slot /></div>
 
@@ -103,6 +111,8 @@ const pageTitle = title ? `${title}, Singularity` : "Singularity";
          player module is never rebuilt and playback never stops while you move between pages. */}
     <PlayerRoot client:idle transition:persist="player" />
     <SheetsRoot client:idle transition:persist="sheets" />
+    {/* The Create page has the form in the page itself; every other page gets it as the sheet. */}
+    {view !== "create" && <CreateSheet />}
 
     {/* Banners that depend on the device are cloned from these by app.ts, so their markup has one home. */}
     <template id="banner-offline">

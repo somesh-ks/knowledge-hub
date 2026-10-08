@@ -10,7 +10,6 @@ const SENT = PASSPHRASE_REQUIRED ? PASSPHRASE : "open";
 const STORAGE_KEY = "dispatch:narrate-passphrase";
 const EPISODE = "/e/ep-20261007-1930";
 const EPISODE_ID = "ep-20261007-1930";
-const STARTED = "Your episode is being built. It appears in the Library in a few minutes.";
 
 async function violations(page: Page): Promise<string[]> {
   const results = await new AxeBuilder({ page }).withTags(WCAG).analyze();
@@ -38,7 +37,7 @@ async function mockPodcast(page: Page, status: number, body: unknown): Promise<M
   return mock;
 }
 
-const chip = (page: Page, name: string) => page.locator(".create-chip", { hasText: name });
+const chip = (page: Page, name: string) => page.locator(".create-chip:visible", { hasText: name });
 const segment = (page: Page, name: string) => page.locator(".settings-segment", { hasText: name });
 const option = (page: Page, name: string) => page.locator(".create-option", { hasText: name });
 const dialog = (page: Page) => page.getByRole("dialog", { name: "Enter the passphrase" });
@@ -75,7 +74,8 @@ test.describe("the Create page", () => {
     await openCreate(page);
     // Hidden in the DOM is not enough: a display rule on the line once showed its icon anyway.
     for (const line of await page.locator("[data-error]").all()) await expect(line).toBeHidden();
-    await expect(page.locator("[data-run-working], [data-run-done]").first()).toBeHidden();
+    // Nothing is running, so the indicator has nothing to say.
+    await expect(page.locator("[data-run-card]")).toBeHidden();
   });
 
   test("introduces itself in two lines and offers every choice", async ({ page }) => {
@@ -94,7 +94,7 @@ test.describe("the Create page", () => {
       "Title",
     ]);
     // The five topics in the contract's order, then the owner's own in Customized mode.
-    await expect(page.locator(".create-chip")).toHaveText([
+    await expect(page.locator(".create-chip:visible")).toHaveText([
       "Design",
       "Design Engineering",
       "AI Products",
@@ -175,12 +175,70 @@ test.describe("the Create page", () => {
     // The owner's own topic leaves the list, and is unticked.
     await expect(page.locator(".create-chip", { hasText: "Audio interfaces" })).toBeHidden();
     await expect(page.locator('input[name="topic"]:checked')).toHaveCount(0);
-    await chip(page, "AI Products").click();
+    await chip(page, "Technology").click();
     await page.locator("[data-submit]").click();
     await confirm(page);
     await expect.poll(() => mock.bodies.length).toBe(1);
-    expect(mock.bodies[0]?.request).toMatchObject({ audience: "general", topic_ids: ["ai"] });
+    expect(mock.bodies[0]?.request).toMatchObject({
+      audience: "general",
+      topic_ids: ["technology"],
+    });
     expect(JSON.stringify(mock.bodies[0])).not.toContain('"top"');
+  });
+
+  test("General offers six general topics and hides the five; Customized brings them back", async ({
+    page,
+  }) => {
+    await openCreate(page);
+    const visible = page.locator(".create-chip:visible");
+    const top = page.locator("[data-top-hint]");
+    await expect(top).toHaveText("Every episode opens with the top picks.");
+    await segment(page, "General").click();
+    await expect(visible).toHaveText([
+      "World",
+      "Business",
+      "Technology",
+      "Science",
+      "Culture",
+      "Sports",
+    ]);
+    await expect(top).toHaveText("Every episode opens with the day's top stories.");
+    await expect(page.locator(".create-chip", { hasText: "Design Engineering" })).toBeHidden();
+    await segment(page, "Customized").click();
+    await expect(visible).toHaveText([
+      "Design",
+      "Design Engineering",
+      "AI Products",
+      "Tech Product Launches",
+      "Trending",
+      "Audio interfaces",
+    ]);
+    await expect(top).toHaveText("Every episode opens with the top picks.");
+  });
+
+  test("a ticked Customized topic is unticked and not sent after switching to General", async ({
+    page,
+  }) => {
+    const mock = await mockPodcast(page, 202, { status: 202, run_id: 3, started_at: "x" });
+    await openCreate(page);
+    await chip(page, "Trending").click();
+    await chip(page, "Design").first().click();
+    await expect(page.locator("#create-topics-hint")).toHaveText("Choose up to 6. 2 chosen.");
+    await segment(page, "General").click();
+    await expect(page.locator('input[name="topic"]:checked')).toHaveCount(0);
+    await expect(page.locator("#create-topics-hint")).toHaveText(
+      "Choose up to 6. None chosen yet.",
+    );
+    await chip(page, "World").click();
+    await chip(page, "Sports").click();
+    await expect(page.locator("#create-topics-hint")).toHaveText("Choose up to 6. 2 chosen.");
+    await page.locator("[data-submit]").click();
+    await confirm(page);
+    await expect.poll(() => mock.bodies.length).toBe(1);
+    expect(mock.bodies[0]?.request).toMatchObject({
+      audience: "general",
+      topic_ids: ["world", "sports"],
+    });
   });
 
   test("updates the estimate as the length changes", async ({ page }) => {
@@ -220,7 +278,7 @@ test.describe("the Create page", () => {
     await page.locator("[data-submit]").click();
     await expect.poll(() => mock.bodies.length).toBe(1);
     expect(mock.bodies[0]?.passphrase).toBe("open");
-    await expect(page.locator("[data-run]")).toBeVisible();
+    await expect(page.locator("[data-run-card]")).toBeVisible();
     await expect(page.getByRole("dialog")).toHaveCount(0);
   });
 
@@ -301,32 +359,28 @@ test.describe("the Create page", () => {
       },
     });
 
-    // The form gives way to the progress, which says so in words.
-    const run = page.locator("[data-run]");
-    await expect(run).toBeVisible();
-    await expect(page.locator("[data-create-form]")).toBeHidden();
-    await expect(run).toContainText("Writing your episode");
-    await expect(page.locator("[data-run-hint]")).toHaveText("Waiting to start.");
+    // The form stays; the progress is a line in the indicator, which says so in words.
+    const card = page.locator("[data-run-card]");
+    const text = page.locator("[data-run-text]");
+    await expect(card).toBeVisible();
+    await expect(page.locator("[data-create-form]")).toBeVisible();
+    await expect(text).toHaveText("Waiting to start");
 
     await page.clock.runFor(4000);
-    await expect(page.locator("[data-run-hint]")).toHaveText("Waiting to start.");
+    await expect(text).toHaveText("Waiting to start");
     await page.clock.runFor(4000);
-    await expect(page.locator("[data-run-hint]")).toHaveText(
-      "Reading the stories and writing the script.",
-    );
+    await expect(text).toHaveText("Writing your episode");
     await page.clock.runFor(4000);
-    await expect(page.locator("[data-run-result]")).toHaveText(STARTED);
-    await expect(page.locator("[data-run-working]")).toBeHidden();
+    await expect(text).toHaveText("Episode ready");
     expect(asked).toEqual(["4242", "4242", "4242"]);
-    await expect(page.getByRole("link", { name: "Go to the Library" })).toHaveAttribute(
+    await expect(page.getByRole("link", { name: "Open Library" })).toHaveAttribute(
       "href",
       "/library",
     );
 
-    // Another episode brings the form back.
-    await page.getByRole("button", { name: "Create another" }).click();
-    await expect(page.locator("[data-create-form]")).toBeVisible();
-    await expect(run).toBeHidden();
+    // Once finished it can be dismissed, and then it is gone.
+    await page.getByRole("button", { name: "Dismiss" }).click();
+    await expect(card).toBeHidden();
   });
 
   test("tells a failed run apart from a started one", async ({ page }) => {
@@ -342,11 +396,12 @@ test.describe("the Create page", () => {
     await openCreate(page);
     await openDialog(page);
     await confirm(page);
-    await expect(page.locator("[data-run]")).toBeVisible();
+    await expect(page.locator("[data-run-card]")).toBeVisible();
     await page.clock.runFor(4000);
-    await expect(page.locator("[data-run-result]")).toHaveText(
-      "The episode could not be written. Nothing was added to the Library. Try again later.",
+    await expect(page.locator("[data-run-text]")).toHaveText(
+      "The episode could not be written. Try again later.",
     );
+    await expect(page.getByRole("link", { name: "Open Library" })).toBeHidden();
   });
 });
 
@@ -381,7 +436,7 @@ test.describe("the Create page when the server says no", () => {
       "That passphrase does not match. Check it and try again.",
     );
     await expect(dialog(page)).toBeVisible();
-    await expect(page.locator("[data-run]")).toBeHidden();
+    await expect(page.locator("[data-run-card]")).toBeHidden();
     // The wrong one is not kept.
     expect(await page.evaluate((key) => localStorage.getItem(key), STORAGE_KEY)).toBeNull();
   });
@@ -419,6 +474,7 @@ test.describe("the Create page when the server says no", () => {
       await expect(dialog(page)).toBeHidden();
       await expect(page.locator('[data-error="form"]')).toHaveText(words);
       await expect(page.locator("[data-create-form]")).toBeVisible();
+      await expect(page.locator("[data-run-card]")).toBeHidden();
     }
   });
 
@@ -445,11 +501,13 @@ test.describe("the Create page when the server says no", () => {
     await dialog(page).getByLabel("Passphrase").fill(PASSPHRASE);
     await dialog(page).getByLabel("Remember on this device").check();
     await dialog(page).getByRole("button", { name: "Create episode" }).click();
-    await expect(page.locator("[data-run]")).toBeVisible();
+    await expect(page.locator("[data-run-card]")).toBeVisible();
     expect(await page.evaluate((key) => localStorage.getItem(key), STORAGE_KEY)).toBe(PASSPHRASE);
 
     // A page that cannot follow the run still says the episode was started.
-    await expect(page.locator("[data-run-result]")).toHaveText(STARTED, { timeout: 15_000 });
+    await expect(page.locator("[data-run-text]")).toHaveText("Episode started", {
+      timeout: 15_000,
+    });
 
     await page.reload();
     await openDialog(page);
@@ -458,12 +516,14 @@ test.describe("the Create page when the server says no", () => {
   });
 });
 
-test.describe("navigation with four destinations", () => {
-  test("fits at 320px, every item a full target, and marks Create as current", async ({ page }) => {
+test.describe("navigation with three destinations and one action", () => {
+  test("fits at 320px, every item a full target, and marks none as current on Create", async ({
+    page,
+  }) => {
     await page.setViewportSize({ width: 320, height: 640 });
     await openCreate(page);
     const items = page.locator(".app-nav-item");
-    await expect(items).toHaveText(["Today", "Library", "Create", "Settings"]);
+    await expect(items).toHaveText(["Today", "Library", "Settings"]);
     const boxes = await items.evaluateAll((nodes) =>
       nodes.map((node) => {
         const box = node.getBoundingClientRect();
@@ -482,33 +542,27 @@ test.describe("navigation with four destinations", () => {
     for (const box of boxes) {
       expect(box.left).toBeGreaterThanOrEqual(0);
       expect(box.right).toBeLessThanOrEqual(320);
-      // Each of the four gets about a quarter of the bar and is at least 44px each way.
       expect(box.width).toBeGreaterThanOrEqual(44);
       expect(box.height).toBeGreaterThanOrEqual(44);
       expect(box.textWidth).toBeLessThanOrEqual(box.width);
       expect(box.clipped).toBe(false);
     }
-    // The four do not overlap.
     for (let index = 1; index < boxes.length; index += 1) {
       expect(boxes[index]?.left ?? 0).toBeGreaterThanOrEqual((boxes[index - 1]?.right ?? 0) - 0.5);
     }
-    await expect(page.locator('.app-nav-item[aria-current="page"]')).toHaveText("Create");
+    await expect(page.locator('.app-nav-item[aria-current="page"]')).toHaveCount(0);
     expect(await page.evaluate(() => document.documentElement.scrollWidth)).toBeLessThanOrEqual(
       320,
     );
   });
 
-  test("goes to Create from the navigation", async ({ page }) => {
-    await page.goto("/library");
-    await page.locator(".app-nav-item", { hasText: "Create" }).click();
-    await expect(page).toHaveURL(/\/create$/);
+  test("the deep link /create is the page, with the form in it and the Create button beside the list", async ({
+    page,
+  }) => {
+    await openCreate(page);
     await expect(page.getByRole("heading", { level: 1 })).toHaveText("Create a podcast");
-    await expect(page.locator('.app-nav-item[aria-current="page"]')).toHaveText("Create");
-    // And back, with no script blocked on the way: the page script survives client navigation.
-    await page.locator(".app-nav-item", { hasText: "Library" }).click();
-    await expect(page).toHaveURL(/\/library$/);
-    await page.locator(".app-nav-item", { hasText: "Create" }).click();
-    await expect(page.locator("[data-create]")).toHaveAttribute("data-ready", "");
+    // The page has the form itself, so it carries no sheet to clone.
+    await expect(page.locator("#create-sheet-template")).toHaveCount(0);
     await chip(page, "Trending").click();
     await expect(page.locator("#create-topics-hint")).toHaveText("Choose up to 6. 1 chosen.");
   });
@@ -532,12 +586,12 @@ test.describe("episodes in the Library", () => {
         .locator(".card-facts"),
     ).toHaveText("Headlines, 3 min");
 
-    await expect(page.getByRole("button", { name: "Episodes" })).toHaveAttribute(
+    await expect(page.getByRole("button", { name: "Custom" })).toHaveAttribute(
       "aria-pressed",
       "false",
     );
-    await page.getByRole("button", { name: "Episodes" }).click();
-    await expect(page.getByRole("button", { name: "Episodes" })).toHaveAttribute(
+    await page.getByRole("button", { name: "Custom" }).click();
+    await expect(page.getByRole("button", { name: "Custom" })).toHaveAttribute(
       "aria-pressed",
       "true",
     );

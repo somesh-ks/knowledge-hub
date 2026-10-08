@@ -1,6 +1,7 @@
 import { parse, stringify } from "yaml";
 import { z } from "zod";
 import { CoverSpec } from "./digest.js";
+import { GENERAL_TOPICS, isGeneralTopicId } from "./generalTopics.js";
 
 const isoDateTime = z.string().datetime({ offset: true });
 
@@ -18,8 +19,11 @@ export const PODCAST_WINDOWS = [2, 7, 30] as const;
 export const PODCAST_TONES = ["neutral", "energetic", "dry"] as const;
 export const PODCAST_AUDIENCES = ["general", "custom"] as const;
 
-/** What the listener asks for. Validated again by the engine, so a hand-edited request fails clearly. */
-export const PodcastRequest = z.object({
+/**
+ * The request as an episode file stores it: the fields, without the rules for a new request. An
+ * episode made before a rule existed must keep parsing.
+ */
+export const StoredPodcastRequest = z.object({
   /** Section or category ids exactly as they appear in published digests. */
   topic_ids: z.array(z.string().min(1).max(64)).min(1).max(6),
   length_minutes: z.union([z.literal(3), z.literal(5), z.literal(10), z.literal(15)]),
@@ -33,6 +37,22 @@ export const PodcastRequest = z.object({
    * "custom", so a request made before the field existed reads as it always did.
    */
   audience: z.enum(PODCAST_AUDIENCES).optional(),
+});
+
+/** What the listener asks for. Validated again by the engine, so a hand-edited request fails clearly. */
+export const PodcastRequest = StoredPodcastRequest.superRefine((request, ctx) => {
+  // A general episode is built from general news, so its topics come from the fixed general list.
+  // A custom request keeps the section and category ids of published digests, checked as before.
+  if (request.audience !== "general") return;
+  const unknown = request.topic_ids.filter((id) => !isGeneralTopicId(id));
+  if (unknown.length > 0) {
+    const allowed = GENERAL_TOPICS.map((topic) => topic.id).join(", ");
+    ctx.addIssue({
+      code: "custom",
+      path: ["topic_ids"],
+      message: `A general episode takes only ${allowed}; not ${unknown.join(", ")}`,
+    });
+  }
 });
 export type PodcastRequest = z.infer<typeof PodcastRequest>;
 
@@ -69,7 +89,7 @@ export type EpisodeTurn = z.infer<typeof EpisodeTurn>;
 export const Episode = z.object({
   id: EpisodeId,
   title: z.string().min(1).max(120),
-  request: PodcastRequest,
+  request: StoredPodcastRequest,
   generated_at: isoDateTime,
   listen_minutes: z.number().int().positive(),
   format: PodcastFormat,

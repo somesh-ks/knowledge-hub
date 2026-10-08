@@ -1,0 +1,27 @@
+---
+import Icon from "./Icon.astro";
+
+// Every line the indicator shows. scripts/runStatus.ts reads them from the element's data
+// attributes, so the script carries no copy.
+const lines = {
+  "data-queued": "Waiting to start",
+  "data-running": "Writing your episode",
+  "data-done": "Episode ready",
+  "data-started": "Episode started",
+  "data-failed": "The episode could not be written. Try again later.",
+};
+---
+
+{/* The progress of a Create run, out of the way: at the foot of the side column from 64rem, above the
+     player bar below it. A status region from the start and persisted across navigations, so what the
+     script put in it is still there on the next page. The card inside appears with the first run. */}
+<div class="run-status" role="status" data-run-status transition:persist="run-status" {...lines}>
+  <div class="run-card" data-run-card hidden>
+    <p class="run-text" data-run-text></p>
+    <a class="run-link" href="/library" data-run-library hidden>Open Library</a>
+    <button class="icon-btn run-dismiss press" type="button" data-run-dismiss aria-label="Dismiss" hidden>
+      <Icon name="close" class="icon-lg" />
+    </button>
+    <span class="run-bar" aria-hidden="true"></span>
+  </div>
+</div>

@@ -11,6 +11,7 @@ export const CARRIED_ATTRIBUTES = [
   "data-mini",
   "data-player",
   "data-player-state",
+  "data-run",
 ] as const;
 
 /**
