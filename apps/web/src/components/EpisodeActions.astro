@@ -29,16 +29,39 @@ const COPY = {
 } as const;
 ---
 
-{/* Two quiet text buttons under the header. scripts/episodeActionsEntry.ts loads the rest on the
-     first press and disables both, with a reason, while a run for this episode is going. */}
+{/* One More button for the header action row (PlayCta takes it in its slot) and the small menu it
+     opens: Regenerate and Delete. The menu is a native popover, so light dismiss and Escape are the
+     browser's. scripts/episodeActionsEntry.ts loads the rest on the first pick and marks both items
+     unavailable, with a reason, while a run for this episode is going. */}
 <div
-  class="episode-actions"
+  class="episode-more"
   data-episode-actions
   data-episode={id}
   data-open-passphrase={PASSPHRASE_REQUIRED ? undefined : OPEN_PASSPHRASE}
 >
-  <button class="btn press" type="button" data-episode-action="regenerate">Regenerate</button>
-  <button class="btn press" type="button" data-episode-action="delete">Delete</button>
+  <button
+    class="icon-btn press"
+    type="button"
+    aria-label="More actions"
+    aria-haspopup="menu"
+    popovertarget="episode-menu"
+    data-episode-more
+  >
+    <Icon name="moreVert" />
+  </button>
+  <div class="episode-menu" id="episode-menu" popover role="menu" aria-label="More actions">
+    <button class="episode-menu-item press" type="button" role="menuitem" data-episode-action="regenerate">
+      Regenerate
+    </button>
+    <button
+      class="episode-menu-item episode-menu-delete press"
+      type="button"
+      role="menuitem"
+      data-episode-action="delete"
+    >
+      Delete
+    </button>
+  </div>
   <span class="sr-only" id="episode-actions-busy" hidden>Unavailable while this episode is being updated.</span>
 </div>
 

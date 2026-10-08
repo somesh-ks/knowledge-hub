@@ -1,7 +1,6 @@
 import type { PlayerDigestData } from "../src/types/contracts";
 import { toRgba } from "./colors";
 import { AUDIO_DIGEST, expect, hydrated, SILENT_DIGEST, test } from "./fixtures";
-import { PASSPHRASE_REQUIRED } from "./passphrase";
 
 const FIRST_HEADLINE =
   "Springlet 2.0 retargets springs mid-flight, so interrupted drawers keep their velocity";
@@ -32,7 +31,7 @@ test.describe("the briefing header", () => {
     }
   });
 
-  test("a briefing without audio keeps a working chip and says what pressing it does", async ({
+  test("a briefing without audio keeps a working chip and says nothing about it", async ({
     page,
   }) => {
     await page.goto(SILENT_DIGEST);
@@ -42,12 +41,8 @@ test.describe("the briefing header", () => {
     await expect(chip).not.toHaveAttribute("aria-disabled", "true");
     // The estimate written with the text stands in until there is a recording to measure.
     await expect(chip.locator("[data-chip-label]")).toHaveText("3 min");
-    await expect(chip).toHaveAccessibleDescription(
-      PASSPHRASE_REQUIRED
-        ? "Not read aloud yet. Press play to make the audio. The first time takes a few seconds and needs the passphrase."
-        : "Not read aloud yet. Press play to make the audio. The first time takes a few seconds.",
-    );
-    await expect(page.locator(".hero-hint")).toBeVisible();
+    // Nothing is said under the chip: pressing it is self-explanatory.
+    await expect(page.locator(".hero-hint")).toHaveCount(0);
     // The player leaves a briefing without audio exactly as the page rendered it.
     await hydrated(page);
     await expect(chip).toHaveAttribute("data-state", "idle");

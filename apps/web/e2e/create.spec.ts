@@ -633,11 +633,7 @@ test.describe("an episode page", () => {
     await expect(page.getByRole("heading", { level: 1 })).toHaveText(
       "Quiet interfaces and fast latency",
     );
-    await expect(page.locator(".hero .meta > span")).toHaveText([
-      "Discussion",
-      "5 min",
-      "7 October",
-    ]);
+    await expect(page.locator(".hero .meta > span")).toHaveText(["Discussion", "7 October"]);
     await expect(page.locator(".hero .cover img")).toHaveAttribute(
       "srcset",
       new RegExp(EPISODE_ID),

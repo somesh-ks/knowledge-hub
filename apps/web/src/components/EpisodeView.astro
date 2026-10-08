@@ -44,7 +44,6 @@ const sources = episode.sources.map((source) => ({ ...source, host: sourceHost(s
       <h1 class="page-title" id="page-title" tabindex="-1">{episode.title}</h1>
       <p class="meta meta-wrap">
         <span>{FORMAT_LABELS[episode.format]}</span>{" "}
-        <span>{length}</span>{" "}
         <span>{day}</span>
       </p>
     </div>
@@ -55,10 +54,10 @@ const sources = episode.sources.map((source) => ({ ...source, host: sourceHost(s
       length={length}
       sharePath={`/e/${entry.id}`}
       noun="episode"
-    />
+    >
+      <EpisodeActions id={entry.id} />
+    </PlayCta>
   </header>
-
-  <EpisodeActions id={entry.id} />
 
   <section class="episode-block" aria-labelledby="episode-script-title">
     <h2 class="section-head" id="episode-script-title">Script</h2>
