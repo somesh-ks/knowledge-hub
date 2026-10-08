@@ -500,7 +500,6 @@
   translate: 0 0;
   transition:
     translate var(--duration-sheet-in) var(--ease-drawer),
-    background-color var(--duration-hover) var(--ease-hover),
     visibility 0s;
   /* Its own group during view transitions, so the bar stays put while the page crossfades. */
   view-transition-name: mini-player;
@@ -562,11 +561,6 @@
 
 :is(.dock-transport, .dock-tools) :is(button, input) {
   pointer-events: auto;
-}
-
-/* One target, so the whole bar answers a press. */
-.player-dock:has(.dock-open:active) {
-  background: var(--color-surface-sunken);
 }
 
 .player-thumb {
@@ -809,11 +803,6 @@
 
   .dock-btn:not([data-primary], [aria-disabled="true"]):hover,
   .player-collapse:hover {
-    background: var(--color-surface-sunken);
-  }
-
-  /* Not while the pointer is on one of the bar's own controls: then the control answers. */
-  .player-dock:has(.dock-open:hover) {
     background: var(--color-surface-sunken);
   }
 
