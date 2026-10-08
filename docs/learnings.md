@@ -2,6 +2,8 @@
 
 One line each: symptom, cause, fix. Newest first. Search before debugging.
 
+- Hidden elements rendered on four pages (an error icon with no error, a save bar with nothing to save): the `[hidden]` rule relied on being imported last, and the build reorders stylesheet chunks. The rule now carries an id's weight, and `e2e/hidden.spec.ts` checks every built page.
+- Both browser suites reported failures that were not real: `reuseExistingServer` picked up a preview server on 4321 serving an older build. Stop any preview server before running a suite.
 - A page's script did nothing after a client-side navigation: Vite inlined the small module as a `data:` script, which the CSP blocks. `vite.build.assetsInlineLimit: 0` keeps every page script a file.
 - The Library page shipped 135 KB of JavaScript: its script imported a pure helper from a module that also imported build-time code (`digestView`). Keep what a page script imports in a module with no build-time imports.
 - A merge was refused with "local changes would be overwritten" because an agent had staged work in the main checkout. Agents that share the main checkout commit before any merge; otherwise give them a worktree.
