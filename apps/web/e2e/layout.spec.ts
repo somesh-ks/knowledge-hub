@@ -141,8 +141,8 @@ test.describe("layout", () => {
     await expect(current).toHaveText(/Research/);
     await expect(current).toHaveCount(1);
     const box = await page.locator(".aside").boundingBox();
-    // Stuck 24px from the top of the window.
-    expect(box?.y).toBeCloseTo(24, 0);
+    // Stuck at the vertical middle of the window, whatever the scroll.
+    expect((box?.y ?? 0) + (box?.height ?? 0) / 2).toBeCloseTo(450, -1);
     await page.locator(".aside-link", { hasText: "Launches" }).click();
     await expect(page).toHaveURL(/#c-launches$/);
     await expect(current).toHaveText(/Launches/);
@@ -167,27 +167,16 @@ test.describe("layout", () => {
     expect(cover?.width).toBeCloseTo(88, 0);
     expect(cover?.height).toBeCloseTo(88, 0);
     expect(heading?.x ?? 0).toBeGreaterThan((cover?.x ?? 0) + (cover?.width ?? 0));
-    // On a phone the play chip and share run under the cover, from the column's edge.
+    // On a phone the play chip and the count run under the cover, from the column's edge.
     expect(actions?.y ?? 0).toBeGreaterThan((cover?.y ?? 0) + (cover?.height ?? 0));
     expect(actions?.x).toBeCloseTo(cover?.x ?? -1, 0);
-    // The two parts of the meta line ("12 stories", "1 min listen") now fit on one line at 320px.
-    // Narrow the line to force a wrap: a wrapped line never opens with a dot. Every part carries
-    // its dot in a 20px box, and the line is clipped by exactly that much at its start.
-    const meta = await page.locator(".hero .meta").evaluate((line) => {
-      (line as HTMLElement).style.width = "6rem";
-      const parts = [...line.children];
-      const top = parts[0]?.getBoundingClientRect().top ?? 0;
-      return {
-        wrapped: parts.filter((part) => part.getBoundingClientRect().top > top + 4).length,
-        dots: parts.map((part) => getComputedStyle(part, "::before").width),
-        clip: getComputedStyle(line).clipPath,
-        shift: getComputedStyle(line).marginLeft,
-      };
-    });
-    expect(meta.wrapped).toBeGreaterThanOrEqual(1);
-    expect(meta.dots).toEqual(["20px", "20px"]);
-    expect(meta.clip).toMatch(/^inset\(.* 20px\)$/);
-    expect(meta.shift).toBe("-20px");
+    // The story count stands at the chip's side, on the same line.
+    const chip = await page.locator("[data-play-digest]").boundingBox();
+    const facts = await page.locator(".hero-facts").boundingBox();
+    expect(facts?.x ?? 0).toBeGreaterThan((chip?.x ?? 0) + (chip?.width ?? 0));
+    const middle = (box: { y: number; height: number } | null) =>
+      (box?.y ?? 0) + (box?.height ?? 0) / 2;
+    expect(Math.abs(middle(facts) - middle(chip))).toBeLessThan(3);
   });
 
   test("from 40rem the play chip sits beside the cover, under the date", async ({ page }) => {
@@ -200,9 +189,7 @@ test.describe("layout", () => {
     expect(actions?.y ?? 999).toBeLessThan((cover?.y ?? 0) + (cover?.height ?? 0));
   });
 
-  test("hairlines between stories run edge to edge on a phone", async ({ page, isMobile }) => {
-    // A desktop browser keeps a scrollbar gutter, so its narrow window is not a phone's.
-    test.skip(!isMobile, "Edge to edge is a phone layout");
+  test("hairlines between stories stay inside the text column", async ({ page }) => {
     await page.setViewportSize({ width: 390, height: 844 });
     await page.goto("/");
     const rule = await page
@@ -212,15 +199,18 @@ test.describe("layout", () => {
         const style = getComputedStyle(node, "::before");
         const box = node.getBoundingClientRect();
         return {
-          left: box.left + Number.parseFloat(style.left),
+          left: box.left + Number.parseFloat(style.left) - box.left,
           width: Number.parseFloat(style.width),
+          row: box.width,
           height: style.height,
           // The page's own width: a desktop browser takes a scrollbar out of the 390.
           page: document.documentElement.clientWidth,
         };
       });
+    // The line starts and ends where the text does: no bleed past the gutters.
     expect(rule.left).toBeCloseTo(0, 0);
-    expect(rule.width).toBeCloseTo(rule.page, 0);
+    expect(rule.width).toBeCloseTo(rule.row, 0);
+    expect(rule.width).toBeLessThan(rule.page);
     expect(rule.height).toBe("1px");
     // The first story of a section has no rule: its section header is above it.
     expect(
@@ -315,7 +305,7 @@ test.describe("layout", () => {
     expect(requests.some((url) => url.endsWith(".woff2"))).toBe(true);
   });
 
-  test("type holds to two weights, with the date regular and headlines medium", async ({
+  test("type holds to two weights, with the date regular and headlines and section headings medium", async ({
     page,
   }) => {
     await page.goto("/");
@@ -325,7 +315,7 @@ test.describe("layout", () => {
         .first()
         .evaluate((node) => getComputedStyle(node).fontWeight);
     expect(await weight("h1")).toBe("400");
-    expect(await weight("[data-chapter] h2")).toBe("400");
+    expect(await weight("[data-chapter] h2")).toBe("500");
     expect(await weight(".story h3")).toBe("500");
     expect(await weight(".story-summary")).toBe("400");
     expect(await weight(".card-title")).toBe("500");

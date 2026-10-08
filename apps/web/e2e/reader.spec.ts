@@ -6,13 +6,15 @@ const FIRST_HEADLINE =
   "Springlet 2.0 retargets springs mid-flight, so interrupted drawers keep their velocity";
 
 test.describe("the briefing header", () => {
-  test("renders the date, one meta line, the play chip and share", async ({ page }) => {
+  test("renders the date, the play chip with the story count, and the More menu", async ({
+    page,
+  }) => {
     await page.goto("/");
     await expect(page.getByRole("heading", { level: 1 })).toHaveText("Wednesday 7 October");
-    const meta = page.locator(".hero .meta > span");
-    // The fixture recording is 36 seconds long, which a chip and a meta line round up to a minute.
-    // Reading time is gone: the line says how many stories and how long they take to hear.
-    await expect(meta).toHaveText(["12 stories", "1 min listen"]);
+    // The fixture recording is 36 seconds long, which a chip rounds up to a minute. The length is
+    // the chip's label alone; beside it stands how many stories there are.
+    await expect(page.locator(".hero-facts > span")).toHaveText(["12 stories"]);
+    await expect(page.locator(".hero-text .meta")).toHaveCount(0);
     const chip = page.locator("[data-play-digest]");
     await expect(chip).toHaveCount(1);
     await expect(chip).toHaveAttribute("data-play-digest", "2026-10-07");
@@ -20,7 +22,7 @@ test.describe("the briefing header", () => {
     await expect(chip).toHaveAccessibleName("Play the briefing, 1 min");
     await expect(chip).toHaveAttribute("data-state", "idle");
     await expect(chip).not.toHaveAttribute("aria-disabled", "true");
-    await expect(page.getByRole("button", { name: "Share this briefing" })).toBeVisible();
+    await expect(page.getByRole("button", { name: "More actions" })).toBeVisible();
     await expect(page.locator(".hero-hint")).toHaveCount(0);
   });
 
@@ -169,10 +171,11 @@ test.describe("sharing", () => {
       });
     });
     await page.goto("/");
-    const button = page.getByRole("button", { name: "Share this briefing" });
+    const more = page.getByRole("button", { name: "More actions" });
     await expect
       .poll(async () => {
-        await button.click();
+        await more.click();
+        await page.getByRole("menuitem", { name: "Share" }).click();
         return page.evaluate(() => (window as unknown as { __shared: ShareData[] }).__shared[0]);
       })
       .toBeTruthy();
@@ -182,7 +185,7 @@ test.describe("sharing", () => {
     // Today's page shares the dated address, so the link still opens this briefing next week.
     expect(shared?.url).toMatch(/\/d\/2026-10-07$/);
     expect(shared?.title).toBe("Wednesday 7 October, Singularity");
-    await expect(button).not.toHaveAttribute("data-copied", /.*/);
+    await expect(more).not.toHaveAttribute("data-copied", /.*/);
   });
 
   test("copies the address and says so where there is no share sheet", async ({ page }) => {
@@ -201,23 +204,25 @@ test.describe("sharing", () => {
       });
     });
     await page.goto(SILENT_DIGEST);
-    const button = page.locator("[data-share]");
-    await expect(button).toHaveAccessibleName("Share this briefing");
+    // By its hook: its name changes while the copy is confirmed.
+    const more = page.locator("[data-hero-more]");
     await expect(async () => {
-      await button.click();
-      await expect(button).toHaveAttribute("data-copied", "", { timeout: 500 });
+      await more.click();
+      await page.getByRole("menuitem", { name: "Share" }).click();
+      await expect(more).toHaveAttribute("data-copied", "", { timeout: 500 });
     }).toPass();
-    await expect(button).toHaveAccessibleName("Link copied");
+    // The menu closes on the pick, so the button says it was copied, and it is spoken.
+    await expect(more).toHaveAccessibleName("Link copied");
     await expect(page.locator("[data-share-status]")).toHaveText("Link copied");
-    await expect(button.locator(".share-done")).toBeVisible();
-    await expect(button.locator(".share-icon")).toBeHidden();
+    await expect(more.locator(".more-done")).toBeVisible();
+    await expect(more.locator(".more-icon")).toBeHidden();
     const copied = await page.evaluate(
       () => (window as unknown as { __copied: string[] }).__copied,
     );
     expect(copied[0]).toMatch(/\/d\/2026-10-05$/);
     // Two seconds later the button is itself again.
-    await expect(button).toHaveAccessibleName("Share this briefing", { timeout: 4_000 });
-    await expect(button).not.toHaveAttribute("data-copied", /.*/);
+    await expect(more).toHaveAccessibleName("More actions", { timeout: 4_000 });
+    await expect(more).not.toHaveAttribute("data-copied", /.*/);
     await expect(page.locator("[data-share-status]")).toHaveText("");
   });
 });

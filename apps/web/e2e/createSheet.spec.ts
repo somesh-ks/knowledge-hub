@@ -60,7 +60,7 @@ test.describe("Create as the primary action", () => {
 
   test("opens the sheet, Escape closes it and focus returns to the button", async ({ page }) => {
     await openSheet(page);
-    await expect(sheet(page).getByRole("heading", { name: "Create Podcast" })).toBeVisible();
+    await expect(sheet(page).getByRole("heading", { name: "Create a podcast" })).toBeVisible();
     await page.keyboard.press("Escape");
     await expect(sheet(page)).toBeHidden();
     await expect(trigger(page)).toBeFocused();

@@ -55,21 +55,25 @@ async function fillPassphrase(dialog: ReturnType<typeof panel>): Promise<void> {
 }
 
 test.describe("regenerate and delete an episode", () => {
-  test("one More button sits beside Share and opens a menu of two items", async ({ page }) => {
+  test("one More button holds the far end of the title row and opens a menu of three items", async ({
+    page,
+  }) => {
     await open(page);
     const button = more(page);
     await expect(button).toHaveAttribute("aria-haspopup", "menu");
     await expect(menu(page)).toBeHidden();
-    // Same size and row as Share, and a 44px target.
-    const share = page.getByRole("button", { name: "Share this episode" });
-    const [a, b] = await Promise.all([button.boundingBox(), share.boundingBox()]);
+    // No standalone Share: it lives in the menu. The button is a 44px target level with the title.
+    await expect(page.getByRole("button", { name: "Share this episode" })).toHaveCount(0);
+    const a = await button.boundingBox();
+    const title = await page.locator(".hero h1").boundingBox();
+    const row = await page.locator(".hero-title-row").boundingBox();
     expect(a?.width).toBeGreaterThanOrEqual(44);
-    expect(a?.height).toBe(b?.height);
-    expect(a?.y).toBe(b?.y);
+    expect(a?.y).toBeLessThanOrEqual((title?.y ?? 0) + 4);
+    expect((a?.x ?? 0) + (a?.width ?? 0)).toBeGreaterThan((row?.x ?? 0) + (row?.width ?? 0) - 12);
     await button.click();
     await expect(menu(page)).toBeVisible();
     const items = menu(page).getByRole("menuitem");
-    await expect(items).toHaveText(["Regenerate", "Delete"]);
+    await expect(items).toHaveText(["Share", "Regenerate", "Delete"]);
     await expect(items.first()).toBeFocused();
     // The menu hangs under the button, not at the edge of the page.
     const m = await menu(page).boundingBox();
@@ -80,9 +84,11 @@ test.describe("regenerate and delete an episode", () => {
     await page.keyboard.press("ArrowDown");
     await expect(items.nth(1)).toBeFocused();
     await page.keyboard.press("ArrowDown");
+    await expect(items.nth(2)).toBeFocused();
+    await page.keyboard.press("ArrowDown");
     await expect(items.first()).toBeFocused();
     await page.keyboard.press("ArrowUp");
-    await expect(items.nth(1)).toBeFocused();
+    await expect(items.nth(2)).toBeFocused();
     await page.keyboard.press("Escape");
     await expect(menu(page)).toBeHidden();
     await expect(button).toBeFocused();
@@ -95,11 +101,6 @@ test.describe("regenerate and delete an episode", () => {
     await expect(menu(page)).toBeHidden();
     await panel(page).getByRole("button", { name: "Close" }).click();
     await expect(more(page)).toBeFocused();
-  });
-
-  test("the header says the length once", async ({ page }) => {
-    await open(page);
-    await expect(page.locator(".hero-text .meta")).not.toContainText("min");
   });
 
   test("Regenerate sends the exact body and the indicator takes over", async ({ page }) => {

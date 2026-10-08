@@ -626,14 +626,14 @@ test.describe("episodes in the Library", () => {
 });
 
 test.describe("an episode page", () => {
-  test("shows the title, a quiet line, the play chip and the script with its two hosts", async ({
-    page,
-  }) => {
+  test("shows the title, the play chip with the date, and the highlights", async ({ page }) => {
     await page.goto(EPISODE);
     await expect(page.getByRole("heading", { level: 1 })).toHaveText(
       "Quiet interfaces and fast latency",
     );
-    await expect(page.locator(".hero .meta > span")).toHaveText(["Discussion", "7 October"]);
+    // The date stands at the chip's side; the length is the chip's label, said once.
+    await expect(page.locator(".hero-facts > span")).toHaveText(["7 October"]);
+    await expect(page.locator(".hero-text .meta")).toHaveCount(0);
     await expect(page.locator(".hero .cover img")).toHaveAttribute(
       "srcset",
       new RegExp(EPISODE_ID),
@@ -642,34 +642,33 @@ test.describe("an episode page", () => {
       "data-play-digest",
       EPISODE_ID,
     );
-
-    const turns = page.locator(".episode-turn");
-    await expect(turns).toHaveCount(7);
-    await expect(turns.nth(0).locator(".episode-speaker")).toHaveText("Host");
-    await expect(turns.nth(1).locator(".episode-speaker")).toHaveText("Guest");
-    await expect(turns.nth(1)).toContainText("Start with emphasis.");
-    // The name is medium weight and the words are regular.
-    const weights = await turns.nth(1).evaluate((turn) => ({
-      name: getComputedStyle(turn.querySelector(".episode-speaker") as Element).fontWeight,
-      words: getComputedStyle(turn).fontWeight,
-    }));
-    expect(Number(weights.name)).toBeGreaterThan(Number(weights.words));
+    // The script is read in the player, not on the page.
+    await expect(page.locator(".episode-turn")).toHaveCount(0);
+    await expect(page.getByRole("heading", { level: 2, name: "Script" })).toHaveCount(0);
+    await expect(page.getByRole("heading", { level: 2, name: "Stories" })).toHaveCount(0);
+    await expect(page.getByRole("heading", { level: 2, name: "Highlights" })).toBeVisible();
   });
 
-  test("links to each source story, opening it in a new tab", async ({ page }) => {
+  test("each highlight has its headline, what was said, and the link to the source", async ({
+    page,
+  }) => {
     await page.goto(EPISODE);
-    const rows = page.locator(".episode-sources a");
+    const rows = page.locator(".episode-highlight");
     await expect(rows).toHaveCount(2);
-    await expect(rows.nth(0)).toHaveAttribute(
-      "href",
-      "https://example.com/dispatch-fixture/f0a17c2d6b83",
-    );
-    await expect(rows.nth(0)).toHaveAttribute("target", "_blank");
-    await expect(rows.nth(0)).toHaveAttribute("rel", "noopener noreferrer");
-    await expect(rows.nth(0).locator(".episode-source-title")).toHaveText(
+    await expect(rows.nth(0).locator(".episode-highlight-title")).toHaveText(
       "Why a quiet interface needs one loud detail",
     );
-    await expect(rows.nth(0).locator(".episode-source-meta")).toHaveText("Margin Notes");
+    // What the hosts said about it, from the script: no speaker names.
+    await expect(rows.nth(0).locator(".episode-highlight-text")).toContainText(
+      "Start with emphasis.",
+    );
+    const link = rows.nth(0).locator("a");
+    await expect(link).toHaveAttribute("href", "https://example.com/dispatch-fixture/f0a17c2d6b83");
+    await expect(link).toHaveAttribute("target", "_blank");
+    await expect(link).toHaveAttribute("rel", "noopener noreferrer");
+    // The publisher's host, and never the name of the service that found it.
+    await expect(link).toHaveText("example.com");
+    await expect(page.locator("body")).not.toContainText("Exa discovery");
   });
 
   test("hands the player the data a briefing hands it: the episode, its stories, one section", async ({
@@ -689,12 +688,6 @@ test.describe("an episode page", () => {
       "f0a17c2d6b83",
       "6d3b8e0f94a1",
     ]);
-  });
-
-  test("a single-host episode shows no speaker names", async ({ page }) => {
-    await page.goto("/e/ep-20261006-0900");
-    await expect(page.locator(".episode-turn")).toHaveCount(1);
-    await expect(page.locator(".episode-speaker")).toHaveCount(0);
   });
 });
 
