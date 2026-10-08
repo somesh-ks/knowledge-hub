@@ -1,4 +1,4 @@
-import type { Category } from "@dispatch/core";
+import { type Category, isBuiltinCategory } from "@dispatch/core";
 import type { CoverPicker } from "../render/buildDigest.js";
 import type { CoverPickFn } from "./types.js";
 
@@ -15,7 +15,10 @@ export function makeCoverPicker(
     const leadCategory: Category | "watch" | undefined = lead
       ? lead.source_type === "youtube"
         ? "watch"
-        : lead.category
+        : // A custom topic has no cover weighting of its own, so it leaves the choice to chance.
+          isBuiltinCategory(lead.category)
+          ? lead.category
+          : undefined
       : undefined;
     return pick({
       id: digestId,

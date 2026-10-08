@@ -22,7 +22,31 @@ describe("ALLOWLISTS", () => {
       publish: ["Digests/**/*.audio.json", "Digests/**/*.md", "state/usage.json"],
       learn: ["config/preferences.json"],
       podcast: ["Podcasts/"],
+      config: [
+        "config/topics.json",
+        "config/sources.user.json",
+        "config/queries.json",
+        "config/preferences.json",
+        "state/source-candidates.json",
+      ],
     });
+  });
+
+  it.each([
+    ["config/topics.json", true],
+    ["config/sources.user.json", true],
+    ["config/queries.json", true],
+    ["config/preferences.json", true],
+    ["state/source-candidates.json", true],
+    ["config/sources.json", false],
+    ["config/sources.md", false],
+    ["config/voice.md", false],
+    ["state/seen.json", false],
+    ["Digests/2026/10/2026-10-07.md", false],
+    ["package.json", false],
+    [".github/workflows/config.yml", false],
+  ])("config: %s -> %s", (path, expected) => {
+    expect(isPathAllowed(path, ALLOWLISTS.config)).toBe(expected);
   });
 });
 

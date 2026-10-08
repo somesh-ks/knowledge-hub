@@ -1,4 +1,4 @@
-import type { DigestKind, Section } from "@dispatch/core";
+import type { DigestKind } from "@dispatch/core";
 
 /**
  * Contracts shared by the reader pages, the player island and the Generate sheet. Both the page
@@ -8,7 +8,8 @@ import type { DigestKind, Section } from "@dispatch/core";
 export interface PlayerItem {
   id: string;
   headline: string;
-  section: Section;
+  /** A section id: one of the built-in ones, or one that came with a topic the owner added. */
+  section: string;
   source: string;
   /**
    * The story's source page, already checked to be http or https, or null when it is not safe to
@@ -21,7 +22,7 @@ export interface PlayerItem {
 }
 
 export interface PlayerSection {
-  slug: Section;
+  slug: string;
   title: string;
   start_ms: number | null;
 }
@@ -124,8 +125,8 @@ export interface NarrateRequest {
 export interface NarrationTimeline {
   /** How the times were derived: word marks from the voice, or an estimate from text length. */
   kind: "marks" | "estimated";
-  items: { id: string; section: Section; start_ms: number; end_ms: number }[];
-  sections: { slug: Section; start_ms: number }[];
+  items: { id: string; section: string; start_ms: number; end_ms: number }[];
+  sections: { slug: string; start_ms: number }[];
 }
 
 /**

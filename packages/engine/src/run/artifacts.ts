@@ -1,7 +1,8 @@
-import { Category, JudgmentEntry, JudgmentsFile } from "@dispatch/core";
+import { Category, JudgmentEntry, JudgmentsFile, TopicJudgmentsFile } from "@dispatch/core";
 import { z } from "zod";
 import { readJsonIfExists } from "../curate/inputs.js";
 import { mergeJudgments } from "../judge/cache.js";
+import { mergeTopicJudgments } from "../judge/topicJudge.js";
 import { StageFailure } from "./errors.js";
 
 const count = z.number().int().nonnegative();
@@ -22,6 +23,11 @@ export const JudgedFile = z.object({
     /** Entries answered by a judge other than the primary (Jev's fallback). */
     fallback: count,
   }),
+  /**
+   * Fit of each item to the custom topics it was judged for: item id to topic id to 0..1. Absent
+   * when there are no custom topics, so a run without them writes the same file as before.
+   */
+  topic_fits: z.record(z.string(), z.record(z.string(), z.number().min(0).max(1))).optional(),
 });
 export type JudgedFile = z.infer<typeof JudgedFile>;
 
@@ -34,6 +40,7 @@ export const MaterialsFile = z.object({
       title: z.string(),
       source: z.string(),
       author: z.string().optional(),
+      /** The writer is told the nearest built-in category, even for a custom topic. */
       category: Category,
       text: z.string(),
     }),
@@ -66,6 +73,21 @@ export async function withRunJudgments(
   try {
     const parsed = JudgmentsFile.safeParse(await readJsonIfExists(runCachePath, "judgments.json"));
     return parsed.success ? mergeJudgments(base, Object.values(parsed.data.entries)) : base;
+  } catch {
+    return base;
+  }
+}
+
+/** Add the topic fits a run cache holds to a cache. An unreadable run cache is ignored. */
+export async function withRunTopicJudgments(
+  base: TopicJudgmentsFile,
+  runCachePath: string,
+): Promise<TopicJudgmentsFile> {
+  try {
+    const parsed = TopicJudgmentsFile.safeParse(
+      await readJsonIfExists(runCachePath, "topic-judgments.json"),
+    );
+    return parsed.success ? mergeTopicJudgments(base, Object.values(parsed.data.entries)) : base;
   } catch {
     return base;
   }

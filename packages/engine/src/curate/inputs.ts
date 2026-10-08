@@ -12,9 +12,11 @@ import {
   Preferences,
   type Source,
   SourcesFile,
+  SourcesUserFile,
   STATE_FILES,
 } from "@dispatch/core";
 import { z } from "zod";
+import { mergeUserSources } from "../sources/registry.js";
 
 /** Read and parse a JSON file. Null when it does not exist; any other failure throws a clear error. */
 export async function readJsonIfExists(path: string, label: string): Promise<unknown | null> {
@@ -53,7 +55,10 @@ export async function loadSources(root: string): Promise<Source[]> {
   if (raw === null) return [];
   const parsed = SourcesFile.safeParse(raw);
   if (!parsed.success) throw new Error(`${CONFIG_FILES.sources} is invalid.`);
-  return parsed.data.sources;
+  const user = SourcesUserFile.safeParse(
+    await readJsonIfExists(join(root, CONFIG_FILES.sourcesUser), CONFIG_FILES.sourcesUser),
+  );
+  return (user.success ? mergeUserSources(parsed.data, user.data) : parsed.data).sources;
 }
 
 export async function loadJudgments(root: string): Promise<JudgmentsFile> {
@@ -93,6 +98,8 @@ export interface ParsedPool {
   invalid: number;
   /** What `dispatch fetch` recorded about the run, when the pool is its `{ version, id, ... }` file. */
   meta: PoolMeta;
+  /** Items each source returned before dedupe, from the fetch report; absent for a bare array. */
+  fetchedBySource?: Record<string, number>;
 }
 
 const isoDateTime = z.string().datetime({ offset: true });
@@ -102,6 +109,13 @@ const PoolHeader = z.object({
   id: DigestId.optional().catch(undefined),
   kind: DigestKind.optional().catch(undefined),
   window: z.object({ from: isoDateTime, to: isoDateTime }).optional().catch(undefined),
+});
+
+const FetchReport = z.object({
+  sources: z
+    .array(z.object({ source_id: z.string(), count: z.number().int().nonnegative() }))
+    .optional()
+    .catch(undefined),
 });
 
 function metaOf(header: z.infer<typeof PoolHeader>): PoolMeta {
@@ -129,7 +143,19 @@ export function parsePool(raw: unknown): ParsedPool {
     else invalid += 1;
   }
   const header = Array.isArray(raw) ? null : PoolHeader.safeParse(raw);
-  return { items, invalid, meta: header?.success ? metaOf(header.data) : {} };
+  const fetched = Array.isArray(raw) ? null : FetchReport.safeParse(raw);
+  return {
+    items,
+    invalid,
+    meta: header?.success ? metaOf(header.data) : {},
+    ...(fetched?.success && fetched.data.sources
+      ? {
+          fetchedBySource: Object.fromEntries(
+            fetched.data.sources.map((source) => [source.source_id, source.count]),
+          ),
+        }
+      : {}),
+  };
 }
 
 export async function loadPool(path: string): Promise<ParsedPool> {

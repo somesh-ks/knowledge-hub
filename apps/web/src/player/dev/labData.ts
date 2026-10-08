@@ -140,7 +140,7 @@ function digestFor(variant: LabVariant): PlayerDigestData {
     items,
     sections: slugs.map((slug) => ({
       slug,
-      title: SECTION_TITLES[slug],
+      title: labSectionTitle(slug),
       start_ms: hasAudio
         ? LAB_ITEMS.findIndex((item) => item.section === slug) * SECONDS_PER_ITEM * 1000
         : null,
@@ -155,6 +155,6 @@ export function labDigest(variant: LabVariant): PlayerDigestData {
   return digestFor(variant);
 }
 
-export function labSectionTitle(slug: LabItem["section"]): string {
-  return SECTION_TITLES[slug];
+export function labSectionTitle(slug: string): string {
+  return SECTION_TITLES[slug] ?? slug;
 }

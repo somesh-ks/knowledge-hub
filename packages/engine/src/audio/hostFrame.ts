@@ -1,4 +1,4 @@
-import type { Digest, DigestKind, Section } from "@dispatch/core";
+import { type Digest, type DigestKind, isBuiltinSection, type Section } from "@dispatch/core";
 
 /**
  * The words around the stories: the opening, the bridge into each new section, the small
@@ -113,12 +113,23 @@ const LEAD: Record<Section, string> = {
   watch: "something to watch and listen to",
 };
 
+/** A section the owner added is spoken by its title, in lower case as it falls mid-sentence. */
+function spokenSection(section: SpokenSection): string {
+  return isBuiltinSection(section.id) ? LEAD[section.id] : section.title.toLowerCase();
+}
+
+/** A section as the narration needs it: its id, and the title to say for one that is not built in. */
+export interface SpokenSection {
+  id: string;
+  title: string;
+}
+
 /** The opening line. `firstSection` is the section whose story is heard first. */
-export function openingLine(digest: Digest, firstSection: Section | undefined): string {
+export function openingLine(digest: Digest, firstSection: SpokenSection | undefined): string {
   const count = digest.items.length;
   const stories = count === 1 ? "story" : "stories";
   const date = spokenDate(digest.date);
-  const lead = firstSection ? `, starting with ${LEAD[firstSection]}` : "";
+  const lead = firstSection ? `, starting with ${spokenSection(firstSection)}` : "";
   const total = capitalize(countWord(count));
   switch (digest.kind) {
     case "weekly":
@@ -131,7 +142,20 @@ export function openingLine(digest: Digest, firstSection: Section | undefined): 
 }
 
 /** Phrases that introduce a section. None repeats a section title word for word. */
-export function bridgeCandidates(section: Section, count: number): readonly string[] {
+export function bridgeCandidates(
+  /** A bare id is enough for a built-in section. */
+  given: SpokenSection | string,
+  count: number,
+): readonly string[] {
+  const section = typeof given === "string" ? { id: given, title: given } : given;
+  if (!isBuiltinSection(section.id)) {
+    const name = section.title.toLowerCase();
+    return [`Now, ${name}.`, `On to ${name}.`, `Over to ${name}.`];
+  }
+  return builtinBridges(section.id, count);
+}
+
+function builtinBridges(section: Section, count: number): readonly string[] {
   switch (section) {
     case "top":
       return ["Back to the top picks.", "Now, the top picks."];
@@ -168,12 +192,12 @@ export function bridgeCandidates(section: Section, count: number): readonly stri
  */
 export function sectionBridge(args: {
   digestId: string;
-  section: Section;
+  section: SpokenSection;
   count: number;
   previous: string | null;
 }): string {
   const pool = bridgeCandidates(args.section, args.count);
-  const first = stableHash(`${args.digestId}:${args.section}`) % pool.length;
+  const first = stableHash(`${args.digestId}:${args.section.id}`) % pool.length;
   for (let step = 0; step < pool.length; step++) {
     const phrase = pool[(first + step) % pool.length] as string;
     if (phrase !== args.previous) return phrase;

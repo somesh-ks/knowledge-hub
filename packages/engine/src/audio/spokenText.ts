@@ -1,5 +1,5 @@
-import type { Digest, DigestItem, Section } from "@dispatch/core";
-import { SECTIONS } from "@dispatch/core";
+import type { Digest, DigestItem } from "@dispatch/core";
+import { digestSections } from "@dispatch/core";
 import { openingLine, sectionBridge, signOff, storyConnective } from "./hostFrame.js";
 
 /**
@@ -11,13 +11,14 @@ export const MAX_SPOKEN_CHARS = 19_000;
 /** Character range of one item inside the spoken string, end exclusive. */
 export interface SpokenRange {
   id: string;
-  section: Section;
+  /** A section id: built in, or one the owner added. */
+  section: string;
   start: number;
   end: number;
 }
 
 export interface SpokenSectionStart {
-  slug: Section;
+  slug: string;
   start: number;
 }
 
@@ -84,16 +85,20 @@ function itemBlock(item: DigestItem): string {
 export function buildSpokenText(digest: Digest): SpokenText {
   const ranges: SpokenRange[] = [];
   const sectionStarts: SpokenSectionStart[] = [];
-  const groups = SECTIONS.map((section) => ({
-    section,
-    items: digest.items.filter((item) => item.section === section),
-  })).filter((group) => group.items.length > 0);
+  // The digest's own sections, in its own order: a topic the owner added is read like any other.
+  const groups = digestSections(digest)
+    .map((entry) => ({
+      entry,
+      section: entry.id,
+      items: digest.items.filter((item) => item.section === entry.id),
+    }))
+    .filter((group) => group.items.length > 0);
 
-  let text = openingLine(digest, groups[0]?.section);
+  let text = openingLine(digest, groups[0]?.entry);
   let previousBridge: string | null = null;
   let previousConnective: string | null = null;
 
-  for (const [groupIndex, { section, items }] of groups.entries()) {
+  for (const [groupIndex, { entry, section, items }] of groups.entries()) {
     text += "\n\n";
     if (groupIndex === 0) {
       // The opening already said where the briefing starts, so the first section needs no bridge.
@@ -101,7 +106,7 @@ export function buildSpokenText(digest: Digest): SpokenText {
     } else {
       const bridge = sectionBridge({
         digestId: digest.id,
-        section,
+        section: entry,
         count: items.length,
         previous: previousBridge,
       });

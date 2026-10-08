@@ -34,14 +34,14 @@ describe("orderItems", () => {
       makeItem(4, "ai"),
       makeItem(5, "top"),
     ];
-    expect(orderItems(items).map((item) => item.section)).toEqual([
+    expect(orderItems({ items }).map((item) => item.section)).toEqual([
       "top",
       "top",
       "ai",
       "ai",
       "watch",
     ]);
-    expect(orderItems(items).map((item) => item.id)).toEqual(
+    expect(orderItems({ items }).map((item) => item.id)).toEqual(
       [3, 5, 2, 4, 1].map((seed) => items.find((item) => item.url.endsWith(`-${seed}`))?.id),
     );
   });

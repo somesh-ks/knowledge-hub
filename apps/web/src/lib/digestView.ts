@@ -1,4 +1,4 @@
-import { type DigestItem, SECTION_TITLES, SECTIONS, type Section } from "@dispatch/core";
+import { type DigestItem, digestSections } from "@dispatch/core";
 import { briefingLengthLabel, storyLengthLabel } from "../player/core/readerMath";
 import type { DigestEntry } from "./digests";
 import { formatClock, pluralize } from "./format";
@@ -12,7 +12,7 @@ export interface ItemView {
 }
 
 export interface SectionView {
-  slug: Section;
+  slug: string;
   title: string;
   items: ItemView[];
   /** Index of the section's first item. */
@@ -26,7 +26,7 @@ export function buildSections(entry: DigestEntry): SectionView[] {
   const timed = new Map(entry.timeline?.items.map((item) => [item.id, item]));
   const sectionStarts = new Map(entry.timeline?.sections.map((section) => [section.slug, section]));
   const views: SectionView[] = [];
-  for (const slug of SECTIONS) {
+  for (const { id: slug, title } of digestSections(entry.digest)) {
     const items = entry.items
       .map((item, index) => {
         const marks = hasAudio ? timed.get(item.id) : undefined;
@@ -42,7 +42,7 @@ export function buildSections(entry: DigestEntry): SectionView[] {
     const end = timed.get(last.item.id)?.end_ms;
     views.push({
       slug,
-      title: SECTION_TITLES[slug],
+      title,
       items,
       firstIndex: first.index,
       clock: hasAudio && start !== undefined && end !== undefined ? formatClock(end - start) : null,

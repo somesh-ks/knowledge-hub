@@ -13,6 +13,7 @@ import { mapConcurrent } from "../llm/concurrency.js";
 import { scoreItem } from "../score/scoreItem.js";
 import { assignSections, capFor, selectItems } from "../score/selectItems.js";
 import type { ScoredItem, SelectedItem } from "../score/types.js";
+import { writerCategory } from "../topics/writerCategory.js";
 import type { Grounder } from "../validate/grounding.js";
 import { groundAndRepair } from "../validate/groundingRepair.js";
 import type { Linter } from "../voice/lint.js";
@@ -254,7 +255,7 @@ export async function curatePool(deps: CurateDeps, input: CurateInput): Promise<
       title: sel.item.title,
       source: input.sourceNames?.[sel.item.source_id] ?? sel.item.source_id,
       ...(sel.item.author ? { author: sel.item.author } : {}),
-      category: sel.category,
+      category: writerCategory(sel.category, undefined),
       text: text.text,
     });
   }

@@ -215,6 +215,8 @@ export interface WorldOptions {
   judge?: Judge;
   writer?: FakeWriter;
   extract?: ApiRuntime["extract"];
+  /** Judges custom topics. Omitted means none, as when there is no Jev key. */
+  topicJudge?: ApiRuntime["topicJudge"];
 }
 
 /**
@@ -279,6 +281,7 @@ export function makeWorld(root: string, options: WorldOptions = {}): World {
       judge: options.judge ?? judge,
       writer,
       grounder: options.grounder === undefined ? keywordGrounder : options.grounder,
+      ...(options.topicJudge === undefined ? {} : { topicJudge: options.topicJudge }),
       extract: options.extract ?? (async (item) => longText(item)),
       judgeFailures: [],
       usage: () => ({ nebiusTokens: 0, nebiusTokenLimit: 400_000 }),

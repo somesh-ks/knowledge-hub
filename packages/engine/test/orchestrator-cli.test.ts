@@ -191,6 +191,7 @@ describe("runCli: help", () => {
   it("registers the commands the plan names, each once", () => {
     expect(COMMANDS.map((spec) => spec.name)).toEqual([
       "sources",
+      "config",
       "fetch",
       "curate",
       "validate",

@@ -51,6 +51,10 @@ export function parseExaResults(payload: unknown): RawItem[] {
   return raws;
 }
 
+function topicIdsOf(query: ExaQuery | undefined): string[] | undefined {
+  return query?.topic_id ? [query.topic_id] : undefined;
+}
+
 async function searchOne(
   query: ExaQuery,
   window: FetchWindow,
@@ -110,6 +114,7 @@ export const fetchExa: SourceFetcher = async (source, window, deps): Promise<Ite
           window,
           fetchedAt,
           categoryHint: config.queries[index]?.category_hint,
+          topicIds: topicIdsOf(config.queries[index]),
         }),
   );
 };

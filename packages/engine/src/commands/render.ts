@@ -1,6 +1,6 @@
 import { dirname, join } from "node:path";
 import { parseArgs } from "node:util";
-import { homeSection, stockholmDate } from "@dispatch/core";
+import { homeSectionFor, stockholmDate } from "@dispatch/core";
 import { type CommandRun, secretsFromEnv } from "../context.js";
 import {
   linkSourceIds,
@@ -19,6 +19,7 @@ import { createFallbackCoverPicker, loadCoverPalettes } from "../render/coverPic
 import { createIdAllocator, listTakenIds } from "../render/digestId.js";
 import { writeDigestFile } from "../render/writeDigestFile.js";
 import type { SelectedItem } from "../score/types.js";
+import { loadTopicsFile } from "../topics/store.js";
 import { validateDigest } from "../validate/validateDigest.js";
 import { createLinter } from "../voice/lint.js";
 import { loadVoice } from "../voice/voice.js";
@@ -100,6 +101,7 @@ export function makeRenderCommand(deps: RenderDeps = {}): CommandRun {
         return 0;
       }
 
+      const topics = await loadTopicsFile(root);
       const loaded = await loadPool(location.poolPath);
       const pool = new Map(loaded.items.map((item) => [item.id, item]));
       const selected: SelectedItem[] = [];
@@ -111,7 +113,7 @@ export function makeRenderCommand(deps: RenderDeps = {}): CommandRun {
           );
           return 1;
         }
-        const home = homeSection(entry.category, item.source_type);
+        const home = homeSectionFor(topics, entry.category, item.source_type);
         if (home === null) {
           log.error(`The category ${entry.category} of ${entry.id} never publishes.`);
           return 1;
@@ -144,9 +146,12 @@ export function makeRenderCommand(deps: RenderDeps = {}): CommandRun {
         audio: null,
         sourceNames: sourceNameMap(sources),
         linkSources: linkSourceIds(sources),
+        ...(topics
+          ? { sectionTitles: Object.fromEntries(topics.sections.map((s) => [s.id, s.title])) }
+          : {}),
       });
 
-      const report = validateDigest(digest, { pool: [...pool.values()], sources, linter });
+      const report = validateDigest(digest, { pool: [...pool.values()], sources, linter, topics });
       if (!report.ok) {
         log.error(`The digest failed validation with ${report.errors} errors; nothing was written`);
         emit(

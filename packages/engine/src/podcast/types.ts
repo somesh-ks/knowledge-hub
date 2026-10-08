@@ -1,4 +1,4 @@
-import type { Category, PodcastRequest, Section } from "@dispatch/core";
+import type { PodcastRequest } from "@dispatch/core";
 
 /** Raised for a problem the listener can act on: a bad request, too few stories, an unusable script. */
 export class PodcastError extends Error {
@@ -23,8 +23,9 @@ export interface PodcastStory {
   summary: string;
   source: string;
   url: string;
-  section: Section;
-  category: Category;
+  /** Ids, not the built-in enums: a briefing can carry sections and topics the owner added. */
+  section: string;
+  category: string;
 }
 
 export interface ScriptTurn {

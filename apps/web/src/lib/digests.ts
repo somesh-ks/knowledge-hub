@@ -1,10 +1,4 @@
-import {
-  type AudioTimeline,
-  type Digest,
-  type DigestItem,
-  SECTION_TITLES,
-  SECTIONS,
-} from "@dispatch/core";
+import { type AudioTimeline, type Digest, type DigestItem, digestSections } from "@dispatch/core";
 import { paletteAccent } from "@dispatch/cover";
 import type { PlayerDigestData, PlayerItem, PlayerSection } from "../types/contracts";
 import type { DigestSource } from "./digestFiles";
@@ -41,9 +35,15 @@ export function audioModeOf(digest: Digest, timeline: AudioTimeline | null): Aud
   return "preparing";
 }
 
-/** Reading order, which is also narration order: sections as listed, items in digest order. */
-export function orderItems(items: readonly DigestItem[]): DigestItem[] {
-  return SECTIONS.flatMap((section) => items.filter((item) => item.section === section));
+/**
+ * Reading order, which is also narration order: the digest's sections in their order, items in
+ * digest order inside each. The sections are the digest's own, so one that came with a topic the
+ * owner added takes its place among the built-in ones.
+ */
+export function orderItems(digest: Pick<Digest, "items" | "section_titles">): DigestItem[] {
+  return digestSections(digest).flatMap((section) =>
+    digest.items.filter((item) => item.section === section.id),
+  );
 }
 
 /** Newest first. Same-day digests (a second run, a weekly) fall back to when they were written. */
@@ -66,12 +66,14 @@ function playerItems(items: DigestItem[], timeline: AudioTimeline | null): Playe
   }));
 }
 
-function playerSections(items: DigestItem[], timeline: AudioTimeline | null): PlayerSection[] {
-  const starts = new Map(timeline?.sections.map((entry) => [entry.slug, entry.start_ms]));
-  return SECTIONS.filter((slug) => items.some((item) => item.section === slug)).map((slug) => ({
-    slug,
-    title: SECTION_TITLES[slug],
-    start_ms: starts.get(slug) ?? null,
+function playerSections(digest: Digest, timeline: AudioTimeline | null): PlayerSection[] {
+  const starts = new Map<string, number>(
+    timeline?.sections.map((entry) => [entry.slug, entry.start_ms]),
+  );
+  return digestSections(digest).map((section) => ({
+    slug: section.id,
+    title: section.title,
+    start_ms: starts.get(section.id) ?? null,
   }));
 }
 
@@ -83,7 +85,7 @@ function toEntry(
 ): DigestEntry {
   const { digest, timeline } = source;
   const audioMode = audioModeOf(digest, timeline);
-  const items = orderItems(digest.items);
+  const items = orderItems(digest);
   const resolve = options.resolveAudioUrl ?? ((url: string) => url);
   const player: PlayerDigestData = {
     id: digest.id,
@@ -96,7 +98,7 @@ function toEntry(
         : null,
     timeline: audioMode === "ready" ? (timeline?.timeline ?? null) : null,
     items: playerItems(items, audioMode === "ready" ? timeline : null),
-    sections: playerSections(items, audioMode === "ready" ? timeline : null),
+    sections: playerSections(digest, audioMode === "ready" ? timeline : null),
     cover: {
       src512: `/covers/${digest.id}-512.png`,
       src1024: `/covers/${digest.id}-1024.png`,

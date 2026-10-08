@@ -156,6 +156,7 @@ describe("published run", () => {
       "state/last-run.json",
       "state/seen.json",
       "state/source-health.json",
+      "state/source-stats.json",
     ]);
     expect(git(repo.root, "status", "--porcelain")).toBe("");
   });

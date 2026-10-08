@@ -20,15 +20,28 @@ import {
 import { Selection } from "../curate/selectionFile.js";
 import { type CommitOutcome, commitAndPush } from "../git/commit.js";
 import { ALLOWLISTS, findViolations, readChangedPaths } from "../git/guard.js";
+import { pruneTopicJudgments } from "../judge/topicJudge.js";
 import { createIdAllocator, listTakenIds } from "../render/digestId.js";
 import { writeDigestFile } from "../render/writeDigestFile.js";
 import { markSeen, pruneJudgments, pruneSeen } from "../state/prune.js";
 import { recordRun } from "../state/runRecord.js";
-import { readLastRun, readSeen, writeJudgments, writeLastRun, writeSeen } from "../state/store.js";
+import { recordSourceStats, type SourceCounts } from "../state/sourceStats.js";
+import {
+  readLastRun,
+  readSeen,
+  readSourceStats,
+  readTopicJudgments,
+  writeJudgments,
+  writeLastRun,
+  writeSeen,
+  writeSourceStats,
+  writeTopicJudgments,
+} from "../state/store.js";
+import { loadTopicsFile } from "../topics/store.js";
 import { validateDigest } from "../validate/validateDigest.js";
 import { createLinter } from "../voice/lint.js";
 import { loadVoice } from "../voice/voice.js";
-import { JudgedFile, withRunJudgments } from "./artifacts.js";
+import { JudgedFile, withRunJudgments, withRunTopicJudgments } from "./artifacts.js";
 import { makeCoverPicker } from "./cover.js";
 import { digestFromSelection } from "./digestFromSelection.js";
 import { StageFailure } from "./errors.js";
@@ -39,9 +52,11 @@ import {
   passFile,
   requireStage,
   runJudgmentsPath,
+  runTopicJudgmentsPath,
   writePlan,
 } from "./plan.js";
 import { markAdoptedCommitted, resolveCommitPlan } from "./resolveCommitPlan.js";
+import { readSourceCounts } from "./sourceCounts.js";
 import type { CommitReport, DigestReport, RunDeps, RunOptions } from "./types.js";
 
 /** What the commit stage reads for one pass. */
@@ -51,6 +66,8 @@ interface PassData {
   pool: ParsedPool;
   /** Pool items a judge answered; recorded as seen so they are not judged again for 90 days. */
   judgedIds: string[];
+  /** Per-source fetched, judged and passed counts the write stage recorded; null when absent. */
+  sourceCounts: Record<string, SourceCounts> | null;
 }
 
 async function loadPassData(deps: RunDeps, plan: Plan, pass: PlanPass): Promise<PassData> {
@@ -75,6 +92,7 @@ async function loadPassData(deps: RunDeps, plan: Plan, pass: PlanPass): Promise<
     selection: selection.data,
     pool,
     judgedIds: judged.success ? judged.data.entries.map((entry) => entry.item_id) : [],
+    sourceCounts: await readSourceCounts(passFile(deps.root, pass.id, "source-counts.json")),
   };
 }
 
@@ -141,6 +159,13 @@ export async function commitStage(deps: RunDeps, options: RunOptions): Promise<C
   let lastRun = await readLastRun(root);
   let seen = await readSeen(root);
   let judgments = await withRunJudgments(await loadJudgments(root), runJudgmentsPath(root));
+  let topicJudgments = await withRunTopicJudgments(
+    await readTopicJudgments(root),
+    runTopicJudgmentsPath(root),
+  );
+  let sourceStats = await readSourceStats(root);
+  let statsTouched = false;
+  const topics = await loadTopicsFile(root);
 
   const taken = new Set<string>();
   for (const date of new Set(plan.passes.map((pass) => pass.id.slice(0, 10)))) {
@@ -150,7 +175,7 @@ export async function commitStage(deps: RunDeps, options: RunOptions): Promise<C
   const digests: Digest[] = [];
   const reports: DigestReport[] = [];
   for (const data of passData) {
-    const { pass, selection, pool, judgedIds } = data;
+    const { pass, selection, pool, judgedIds, sourceCounts } = data;
     const fetchedThrough = new Date(selection.window.to);
     if (selection.outcome === "nothing" || selection.items.length === 0) {
       lastRun = recordRun(lastRun, {
@@ -159,6 +184,10 @@ export async function commitStage(deps: RunDeps, options: RunOptions): Promise<C
         fetchedThrough,
       });
       seen = markSeen(seen, judgedIds, today);
+      if (sourceCounts) {
+        sourceStats = recordSourceStats(sourceStats, sourceCounts, [], today);
+        statsTouched = true;
+      }
       reports.push({
         id: pass.id,
         kind: pass.kind,
@@ -181,8 +210,9 @@ export async function commitStage(deps: RunDeps, options: RunOptions): Promise<C
       allocateId: createIdAllocator(taken, pass.id),
       // Nothing an agent session wrote counts as grounded, whatever the file claims.
       verified: selection.mode === "agent" ? false : selection.verified,
+      topics,
     });
-    const report = validateDigest(digest, { pool: pool.items, sources, linter });
+    const report = validateDigest(digest, { pool: pool.items, sources, linter, topics });
     if (!report.ok) {
       const first = report.issues.find((issue) => issue.severity === "error");
       throw new StageFailure(
@@ -205,6 +235,12 @@ export async function commitStage(deps: RunDeps, options: RunOptions): Promise<C
       last_cover: { template: digest.cover.template, palette: digest.cover.palette },
     };
     seen = markSeen(seen, [...judgedIds, ...digest.items.map((item) => item.id)], today);
+    if (sourceCounts) {
+      const bySource = new Map(pool.items.map((item) => [item.id, item.source_id]));
+      const published = digest.items.flatMap((item) => bySource.get(item.id) ?? []);
+      sourceStats = recordSourceStats(sourceStats, sourceCounts, published, today);
+      statsTouched = true;
+    }
     reports.push({
       id: digest.id,
       kind: pass.kind,
@@ -217,6 +253,7 @@ export async function commitStage(deps: RunDeps, options: RunOptions): Promise<C
   }
   seen = pruneSeen(seen, now);
   judgments = pruneJudgments(judgments, now);
+  topicJudgments = pruneTopicJudgments(topicJudgments, now);
 
   const published = reports.filter((report) => report.outcome === "published");
   const outcome: Outcome = published.length > 0 ? "published" : "nothing";
@@ -253,6 +290,12 @@ export async function commitStage(deps: RunDeps, options: RunOptions): Promise<C
   for (const digest of digests) await writeDigestFile(root, digest);
   await writeSeen(root, seen);
   await writeJudgments(root, judgments);
+  // New files are created only when there is something to keep, so a repository without custom
+  // topics, or a run that recorded no counts, commits exactly the files it always did.
+  if (Object.keys(topicJudgments.entries).length > 0) {
+    await writeTopicJudgments(root, topicJudgments);
+  }
+  if (statsTouched) await writeSourceStats(root, sourceStats);
   await writeLastRun(root, lastRun);
 
   const message =
