@@ -14,14 +14,14 @@ D1 to D9 date from plan v2 (2026-10-05). D10 to D25 date from 2026-10-06. Reason
 | D2 | The repository lives in this folder | active |
 | D3 | Judge is TypeSafe Jev, writer is a cheap Nebius model chosen by a bake-off | active |
 | D4 | Astro with React islands, Base UI and hand-written token CSS | active |
-| D5 | One MP3 per digest with word marks, from Speechify | active |
+| D5 | One MP3 per digest with word marks, from Speechify | superseded by D33 for new narration |
 | D6 | Daily cron with a calendar-date gate, plus a Sunday weekly pass | active |
 | D7 | Podcast feed deferred | active |
 | D8 | "Thought of the Day" cut | active |
 | D9 | Repository `somesh-ks/knowledge-hub`, private | active |
 | D10 | Hosting on Vercel | partly superseded by D25 |
 | D11 | Notification is the commit only | active |
-| D12 | Voice limits confirmed | active |
+| D12 | Voice limits confirmed | superseded by D34 |
 | D13 | Accounts exist | active |
 | D14 | Docs and config filenames are lowercase kebab-case | active |
 | D15 | Persisted keys are snake_case and code follows them | active |
@@ -39,6 +39,14 @@ D1 to D9 date from plan v2 (2026-10-05). D10 to D25 date from 2026-10-06. Reason
 | D27 | Owner and Dependabot pull requests merge automatically | active |
 | D28 | The audio job runs the Vercel CLI outside the checkout, and its failure is not a failed run | active |
 | D29 | Narration is hosted: a spoken version per story and a code-built host frame | active |
+| D30 | The reader is called Singularity; identifiers keep `dispatch` | active |
+| D31 | The visual language follows Google Podcasts and YouTube Music | active |
+| D32 | The player is one always-mounted surface, without Base UI Drawer | active |
+| D33 | Narration is made on Play, story by story | active |
+| D34 | Stories are told in four beats; the why line is no longer written | active |
+| D35 | A Tech releases section, ranked by launch scale, with its own allowance | active |
+| D36 | Topics and sources are data the owner edits from the app | active |
+| D37 | Custom podcast episodes live in `Podcasts/` and are built by a workflow | active |
 
 ---
 
@@ -290,3 +298,68 @@ D1 to D9 date from plan v2 (2026-10-05). D10 to D25 date from 2026-10-06. Reason
 - Rejected: grounding the spoken text with Jev (more spend for a retelling of text already grounded; a number check is cheap); a model-written host frame (cost, and the same phrases would drift between runs); a clock-based greeting (a digest is written once and heard at any hour).
 - Cost: the narration text of every briefing changes, so audio already stored for the old text is not reused. The sign-off adds one segment, so a story-by-story narration of 18 stories is 21 advanced Blob operations.
 - Status: unverified against live Speechify.
+
+## D30: The reader is called Singularity; identifiers keep `dispatch`
+
+- Date: 2026-10-08
+- Decision: Every string a reader sees or hears says Singularity: titles, the manifest, the wordmark on covers, the narration's opening line. The repository, the CLI, the `@dispatch/*` packages, `DISPATCH_*` variables, storage keys, cache names and element ids keep `dispatch`.
+- Why: renaming identifiers would wipe saved preferences and playback positions and touch every import for no reader benefit.
+- Rejected: a full rename.
+
+## D31: The visual language follows Google Podcasts and YouTube Music
+
+- Date: 2026-10-08
+- Decision: Flat surfaces, hairline rows, one blue accent, Google Sans Flex in two weights, Phosphor icons from one generated source (`tokens/glyphs.json`), an outlined play chip as the one pill. Navigation is Today, Library, Create, Settings: a bottom bar below 64rem, a side column from 64rem. The Library is a cover grid with search, sort and filter. Type rule from the owner: no small text pressed against larger text, at most two type steps per block, a quiet line goes under its title with space, never above it. This updates D4 and D17; `docs/design/design-spec.md` describes the old look and is out of date.
+- Why: the owner named the reference and asked for a real podcast app. A pinned reference beats a new invention.
+- Rejected: Material Symbols (the owner asked for Phosphor); a page called Archive (no podcast app has one); reading time and per-section clocks in the reader (small text beside headings).
+- Cost: the first-load JavaScript budget moved from 100 to 102 KB when the bottom bar became a full transport.
+
+## D32: The player is one always-mounted surface, without Base UI Drawer
+
+- Date: 2026-10-08
+- Decision: A dock, a stage and a page live in one persisted island with no portal. One progress value drives the travel in CSS; a state machine owns open, drag and close; `inert` gives modal scope. Below 40rem the dock rides the page; from 40rem the dock stays put and the page rises behind it. The dock carries seek, a clock and volume on wide screens.
+- Why: the old sheet lived in a body-level portal that a client-side navigation destroyed while the controller still thought it was open, which is what "stuck" was. Drawer cannot model a bar that is non-modal at rest and modal when open.
+- Rejected: native `dialog` (cannot go from non-modal to modal without closing); a view transition for the cover (not interruptible).
+- Status: Chromium verified by its suite; two mouse-drag tests failed on desktop and WebKit is unverified.
+
+## D33: Narration is made on Play, story by story
+
+- Date: 2026-10-08
+- Decision: A briefing has no audio until someone plays it. Play asks `GET /api/narrate` for the briefing's segments (an intro, one per story, a sign-off), which costs no store operation because each segment's address is computed. The player tries each address and `POST`s only for a file that is missing, which needs the passphrase. The client presents the files as one track on a fixed timeline (`narration/trackAudio.ts`) and makes the next few ahead of the playhead. A briefing is charged whole to the monthly budget the first time any part of it is narrated. This supersedes D5 for new narration; the whole-briefing path and `audio.yml` remain.
+- Why: a whole briefing took too long to synthesize inside a function for the first Play to be audible, and narrating every run spent characters on briefings nobody played. A byte stream to the browser would have lost scrubbing, story jumps and resume.
+- Rejected: streaming audio to the browser; a manifest file (read-modify-write races between segments); listing the store on lookup (an anonymous caller could exhaust the Hobby Blob quota of 2,000 advanced operations a month).
+- Open: a reader without the passphrase cannot make audio. Decide whether the engine should narrate each new briefing once, so the Play path never dead-ends for a wider audience.
+- Status: unverified against live Speechify and Blob.
+
+## D34: Stories are told in four beats; the why line is no longer written
+
+- Date: 2026-10-08
+- Decision: A story is a headline of at most 12 words and a summary of three or four sentences, 25 to 80 words: what happened, one number, why it matters, the catch from the source. Two sentences are accepted so a thin source is not padded. `why` stays optional in the schema so old briefings parse. Supersedes D12.
+- Why: the owner wanted to understand a story cold, in the register of The Friday Checkout. Two sentences left no room for the number or the catch.
+- Rejected: a required fifth field; migrating old briefings.
+
+## D35: A Tech releases section, ranked by launch scale, with its own allowance
+
+- Date: 2026-10-08
+- Decision: Category `consumer_tech_releases` feeds a Tech releases section of up to 5 stories on top of the cap, never promoted to Top picks. The judge answers a five-level `launch_scale` question, used as the depth factor with a floor of 0.35. Tech-hinted sources get their own prefilter pool, ranked by how many outlets cover the same launch (`dedupe/storyCluster.ts`). Aggregated items are credited to their publisher.
+- Why: launch news shows no technique, so craft depth scored every launch at the floor and the keyword prefilter dropped it first.
+- Rejected: sharing the cap of 12; scoring tech by craft depth; a model call to rank launches before the judge.
+- Cost: both question hashes changed, so the first run re-judges every cached item once.
+
+## D36: Topics and sources are data the owner edits from the app
+
+- Date: 2026-10-08
+- Decision: `config/topics.json` holds the built-in categories and any topic the owner adds. A custom topic is judged by a Jev fit question built from its name and description, cached per topic in `state/topic-judgments.json`, scored as weight times fit, and gets its own section. The built-in category question and its hash are untouched. Sources gain an overlay, `config/sources.user.json`, so regenerating the registry never clobbers app edits. `dispatch sources suggest` finds feeds for a topic through Exa, validates them, scores them, and adds the top three on probation. The app edits config by dispatching `config.yml`, which runs `dispatch config apply` and commits through the write guard.
+- Why: a new topic must not need a code change, and a Contents-write token on Vercel would be a far larger blast radius than dispatching a workflow.
+- Rejected: one enum option per topic (re-judges everything on every edit); committing from the function.
+- Cost: an edit takes about a minute to show, since the site is rebuilt.
+- Status: unverified live (Jev fit questions, Exa discovery, the workflow).
+
+## D37: Custom podcast episodes live in `Podcasts/` and are built by a workflow
+
+- Date: 2026-10-08
+- Decision: The Create page posts a request (topics, length of 3 to 15 minutes, format: readout, discussion or headlines, look-back window, tone) to `/api/podcast`, which dispatches `podcast.yml`. `dispatch podcast` selects stories from published briefings in the window, has the writer produce a script of turns, checks every number against the stories, and commits `Podcasts/YYYY/MM/<id>.md`. Episodes appear in the Library and play through D33, one segment per turn, with a second voice for the second host (`SPEECHIFY_VOICE_ID_B`).
+- Why: a function is too short-lived to write a script, and reusing judged, summarized stories makes an episode cost one writer call.
+- Rejected: storing episodes as digests (a digest needs three items and a date id); a fresh fetch and judge per episode in the first version.
+- Limits: 2 episodes a day, a 30 minute cooldown, 15,000 characters per episode.
+- Status: unverified live.
