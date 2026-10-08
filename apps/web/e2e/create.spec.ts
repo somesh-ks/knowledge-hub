@@ -37,8 +37,7 @@ async function mockPodcast(page: Page, status: number, body: unknown): Promise<M
   return mock;
 }
 
-const chip = (page: Page, name: string) =>
-  page.locator(".create-chip:visible", { hasText: name });
+const chip = (page: Page, name: string) => page.locator(".create-chip:visible", { hasText: name });
 const segment = (page: Page, name: string) => page.locator(".settings-segment", { hasText: name });
 const option = (page: Page, name: string) => page.locator(".create-option", { hasText: name });
 const dialog = (page: Page) => page.getByRole("dialog", { name: "Enter the passphrase" });
@@ -227,7 +226,9 @@ test.describe("the Create page", () => {
     await expect(page.locator("#create-topics-hint")).toHaveText("Choose up to 6. 2 chosen.");
     await segment(page, "General").click();
     await expect(page.locator('input[name="topic"]:checked')).toHaveCount(0);
-    await expect(page.locator("#create-topics-hint")).toHaveText("Choose up to 6. None chosen yet.");
+    await expect(page.locator("#create-topics-hint")).toHaveText(
+      "Choose up to 6. None chosen yet.",
+    );
     await chip(page, "World").click();
     await chip(page, "Sports").click();
     await expect(page.locator("#create-topics-hint")).toHaveText("Choose up to 6. 2 chosen.");

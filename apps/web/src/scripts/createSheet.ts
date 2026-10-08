@@ -10,12 +10,19 @@ const SELECTOR = "dialog.create-sheet";
 
 function build(): HTMLDialogElement | null {
   const template = document.getElementById("create-sheet-template");
-  const clone = (template as HTMLTemplateElement | null)?.content.firstElementChild?.cloneNode(true);
+  const clone = (template as HTMLTemplateElement | null)?.content.firstElementChild?.cloneNode(
+    true,
+  );
   if (!(clone instanceof HTMLDialogElement)) return null;
   document.body.append(clone);
   const root = clone.querySelector<HTMLElement>("[data-create]");
   // A started run closes the sheet; the form is then spent, so the next press builds a fresh one.
-  if (root) installCreate(root, () => ((clone.dataset.started = ""), clone.close()));
+  if (root) {
+    installCreate(root, () => {
+      clone.dataset.started = "";
+      clone.close();
+    });
+  }
   clone.querySelector("[data-create-close]")?.addEventListener("click", () => clone.close());
   // A press on the scrim lands on the dialog itself; everything else is inside its panel.
   clone.addEventListener("click", (event) => {

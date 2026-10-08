@@ -125,11 +125,25 @@ describe("the topics each mode offers", () => {
       ["culture", "Culture"],
       ["sports", "Sports"],
     ]);
-    expect(ids("general")).toEqual(["world", "business", "technology", "science", "culture", "sports"]);
+    expect(ids("general")).toEqual([
+      "world",
+      "business",
+      "technology",
+      "science",
+      "culture",
+      "sports",
+    ]);
   });
 
   it("are the five and the owner's own in Customized mode, and no general topic", () => {
-    expect(ids("custom")).toEqual(["design", "ui-craft", "ai", "tech", "trending", "audio_interfaces"]);
+    expect(ids("custom")).toEqual([
+      "design",
+      "ui-craft",
+      "ai",
+      "tech",
+      "trending",
+      "audio_interfaces",
+    ]);
   });
 
   it("never offer one id in both modes, and say how an episode opens in each", () => {

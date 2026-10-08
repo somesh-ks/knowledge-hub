@@ -1,5 +1,5 @@
-import { installDeviceBanners } from "./deviceBanners";
 import { installCreateEntry } from "./createEntry";
+import { installDeviceBanners } from "./deviceBanners";
 import { installDisabledGuard } from "./disabledGuard";
 import { installNavigation } from "./navigation";
 import { registerServiceWorker } from "./serviceWorker";

@@ -56,11 +56,13 @@ function show(run: Stored | null): void {
   card.hidden = !run;
   if (run) {
     card.dataset.state = run.phase;
-    card.querySelector("[data-run-text]")!.textContent = root.dataset[run.phase] ?? "";
+    const text = card.querySelector("[data-run-text]");
+    if (text) text.textContent = root.dataset[run.phase] ?? "";
   }
-  card.querySelector<HTMLElement>("[data-run-library]")!.hidden =
-    run?.phase !== "done" && run?.phase !== "started";
-  card.querySelector<HTMLElement>("[data-run-dismiss]")!.hidden = !finished;
+  const library = card.querySelector<HTMLElement>("[data-run-library]");
+  if (library) library.hidden = run?.phase !== "done" && run?.phase !== "started";
+  const close = card.querySelector<HTMLElement>("[data-run-dismiss]");
+  if (close) close.hidden = !finished;
   // The page reserves room for the indicator while it is up, the way it does for the player bar.
   if (run) document.documentElement.dataset.run = run.phase;
   else delete document.documentElement.dataset.run;
@@ -89,7 +91,10 @@ async function follow(run: Stored, now: boolean): Promise<void> {
       return set({ id: run.id, phase: body.outcome === "failed" ? "failed" : "done" });
     }
     const next = body.state === "queued" ? "queued" : "running";
-    if (next !== phase) set({ id: run.id, phase: (phase = next) });
+    if (next !== phase) {
+      phase = next;
+      set({ id: run.id, phase });
+    }
   }
   if (following === run.id) {
     following = 0;

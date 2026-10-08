@@ -39,7 +39,10 @@
   inset-inline-end: max(var(--space-4), var(--safe-right));
   /* Above the bottom bar, the player bar when it shows, and the run indicator when it is up. */
   inset-block-end: calc(
-    var(--bottom-nav-height) + var(--dock-room) + var(--run-room) + var(--space-4)
+    var(--bottom-nav-height) +
+    var(--dock-room) +
+    var(--run-room) +
+    var(--space-4)
   );
   z-index: var(--z-header);
   display: grid;
@@ -404,7 +407,7 @@ html[data-player="open"] .run-status {
 
 @media (forced-colors: active) {
   .run-bar {
-    background: Canvas;
+    background: ButtonFace;
     outline: var(--stroke-hairline) solid CanvasText;
   }
 
