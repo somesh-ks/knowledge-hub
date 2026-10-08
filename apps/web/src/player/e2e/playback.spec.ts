@@ -244,10 +244,9 @@ test.describe("playback in a real browser", () => {
       return route.fulfill({ status: 503, json: { error: "unavailable" } });
     });
     await lab.open("/dev/player-lab-preparing");
-    await expect(page.locator(".hero-hint")).toHaveText(/^Not read aloud yet\. Press play/);
+    await expect(page.locator(".hero-hint")).toHaveCount(0);
     await expect(lab.cta).toHaveAttribute("data-state", "idle");
     await expect(lab.cta).not.toHaveAttribute("aria-disabled", "true");
-    await expect(lab.cta).toHaveAccessibleDescription(/Not read aloud yet/);
     // There is nothing to play from yet, so the stories carry no play chips.
     await expect(page.locator("[data-play-item]").first()).toBeHidden();
     await lab.cta.tap();

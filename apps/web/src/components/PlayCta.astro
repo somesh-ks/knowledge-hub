@@ -18,13 +18,13 @@ interface Props {
 
 const { digestId, mode, length, sharePath = `/d/${digestId}`, noun = "briefing" } = Astro.props;
 const chip = idleBriefingChip(length);
-const unavailable = mode === "ready" ? null : AUDIO_UNAVAILABLE_COPY[mode];
+const unavailable = mode === "expired" ? AUDIO_UNAVAILABLE_COPY.expired : null;
 ---
 
 <div class="hero-actions">
   {/* The player owns this chip once it hydrates (readerSync writes its state, label and name).
-       Without audio the chip still works: pressing it makes the audio first (narration on Play),
-       and the line under it says so. */}
+       Without audio the chip still works: pressing it makes the audio first (narration on Play).
+       Only audio that has expired gets a line under it. */}
   <PlayChip
     label={chip.label}
     state="idle"

@@ -86,14 +86,11 @@ export function storyCount(count: number): string {
   return pluralize(count, "story", "stories");
 }
 
-/** Why the briefing cannot be played, shown under its play chip. */
+/**
+ * Why the briefing cannot be played, shown under its play chip. Audio not made yet says nothing:
+ * the chip makes it on press. Only audio that was there and is gone is worth a line.
+ */
 export const AUDIO_UNAVAILABLE_COPY = {
-  preparing: {
-    label: "Not read aloud yet",
-    hint: PASSPHRASE_REQUIRED
-      ? "Press play to make the audio. The first time takes a few seconds and needs the passphrase."
-      : "Press play to make the audio. The first time takes a few seconds.",
-  },
   expired: {
     label: "The audio has expired",
     hint: PASSPHRASE_REQUIRED
