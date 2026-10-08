@@ -1,6 +1,13 @@
 import type { PodcastFormat, PodcastRequest } from "@dispatch/core";
 import { untrustedInstruction, wrapUntrusted } from "../llm/untrusted.js";
-import { perStoryChars, scriptFloorChars, scriptTargetChars } from "./plan.js";
+import {
+  perStoryChars,
+  reachableChars,
+  scriptFloorChars,
+  scriptTargetChars,
+  WORDS_PER_SENTENCE,
+  wordsFor,
+} from "./plan.js";
 import type { PodcastStory, ScriptInput, TurnRewrite } from "./types.js";
 
 const TONES: Record<PodcastRequest["tone"], string> = {
@@ -14,15 +21,15 @@ const FORMATS: Record<PodcastFormat, string> = {
   readout: [
     'FORMAT: readout. One host, speaker "a" only.',
     "Open with one or two sentences that say the show is Singularity and what today's episode covers.",
-    "Then tell each story in the order given, in a natural spoken voice, in one or two turns, with a short bridge into the next story.",
+    "Then tell each story in the order given, in a natural spoken voice, in one or two turns of several sentences each: what happened, the detail or number that matters, why it matters to the listener, and the catch or what to watch next, each only as far as the block supports. End a story with a short bridge into the next.",
     "Close with one short sign-off sentence.",
   ].join(" "),
   discussion: [
     'FORMAT: discussion. Two hosts. Speaker "a" leads, speaker "b" reacts.',
     'The first turn is "a" and says the show is Singularity. The last turn is "a" with a short sign-off.',
-    'For each story, in the order given: "a" introduces it, "b" reacts and asks the obvious question, "a" answers from the summary, "b" adds the catch if the summary has one.',
-    'Turns alternate between "a" and "b" and run one to three sentences each.',
-    '"b" may only react to, question or restate what the summary supports. Neither host invents a fact, a number, a quote or a motive.',
+    'For each story, in the order given, six to eight turns: "a" introduces it in two or three sentences, "b" reacts and asks the obvious question, "a" answers from the summary in two or three sentences, "b" puts in plain words what that means in practice, "a" adds the catch if the summary has one, and "b" closes the story with a short thought that leads on.',
+    'Turns alternate between "a" and "b" and run two to four sentences each; a one-word or one-line reaction is not a turn.',
+    'A host may say what a fact could mean for the listener, clearly as their own view ("that sounds like", "I would want to know"), never as a fact about the product, the company or anyone\'s motive. Neither host invents a fact, a number, a quote or a motive.',
   ].join(" "),
   headlines: [
     'FORMAT: headlines. One host, speaker "a" only.',
@@ -51,6 +58,23 @@ const RULES = [
   "Tone changes wording only, never the facts.",
 ].join("\n");
 
+/**
+ * The length, said in words and sentences. It aims at what the stories can carry (see
+ * reachableChars), so the writer is never asked to stretch a few short summaries over a long episode.
+ */
+export function lengthLines(input: ScriptInput): string[] {
+  const stories = input.stories.length;
+  const reach = reachableChars(input.budget_chars, stories, input.request.format);
+  const perStory = wordsFor(perStoryChars(reach, stories));
+  const sentences = Math.max(1, Math.round(perStory / WORDS_PER_SENTENCE));
+  return [
+    `Write about ${wordsFor(scriptTargetChars(reach))} words in total, all turns together, and no more than ${wordsFor(reach)}. A script under ${wordsFor(scriptFloorChars(reach))} words is rejected as too short.`,
+    `That is about ${perStory} words on each of the ${stories} stories, after a short opening and sign-off. A spoken sentence is about ${WORDS_PER_SENTENCE} words, so give each story about ${sentences} sentences.`,
+    "Reach that length with substance: say what happened, who is involved, the detail or number that matters, why it matters, and what the summary gives as the catch. Use only the facts in the story block. Never pad with filler and never repeat a fact.",
+    "If the stories still would not fit, leave out the last ones; never cut a story halfway.",
+  ];
+}
+
 export function scriptSystemPrompt(input: ScriptInput, boundary: string): string {
   const { request } = input;
   return [
@@ -63,9 +87,7 @@ export function scriptSystemPrompt(input: ScriptInput, boundary: string): string
     "RULES",
     RULES,
     "LENGTH",
-    `The whole script, all turns together, must land between ${scriptTargetChars(input.budget_chars)} and ${input.budget_chars} characters. That is about ${perStoryChars(input.budget_chars, input.stories.length)} characters for each of the ${input.stories.length} stories, after the opening and the sign-off. A script under ${scriptFloorChars(input.budget_chars)} characters is rejected.`,
-    "When there are few stories, go deeper on each one: say what happened, who is involved and what the summary gives as the catch. Use only the facts in the story block. Never pad with filler and never repeat a fact.",
-    "If the stories still would not fit, leave out the last ones; never cut a story halfway.",
+    ...lengthLines(input),
     "OUTPUT",
     'Answer with JSON only: {"turns":[{"speaker":"a","text":"...","item_id":"..."}]}.',
     'Put the story\'s id, copied exactly from its block, in "item_id" on every turn about that story. Leave "item_id" out of the opening and sign-off turns.',

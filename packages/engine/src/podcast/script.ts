@@ -4,7 +4,13 @@ import { BudgetExceededError, describeError } from "../llm/errors.js";
 import { checkTurns } from "./check.js";
 import { charCount, fitToBudget, mergeNeighbours } from "./fit.js";
 import { ScriptReply } from "./nebiusScriptWriter.js";
-import { scriptFloorChars, scriptTargetChars } from "./plan.js";
+import {
+  perStoryChars,
+  reachableChars,
+  scriptFloorChars,
+  scriptTargetChars,
+  wordsFor,
+} from "./plan.js";
 import { PodcastError, type PodcastStory, type ScriptTurn, type ScriptWriter } from "./types.js";
 
 /** Attempts at a valid reply: the first call and two retries that name what was wrong. */
@@ -71,7 +77,9 @@ export function validateReply(
   for (const row of parsed.data.turns) {
     const text = cleanText(row.text);
     if (text === "") continue;
-    const itemId = row.item_id ? row.item_id : undefined;
+    const given = row.item_id ? row.item_id : undefined;
+    // A model that drops or swaps a character of an id has still said which story it means.
+    const itemId = given === undefined || known.has(given) ? given : closestId(given, known);
     if (itemId !== undefined && !known.has(itemId)) unknownIds.add(itemId);
     turns.push({
       speaker: request.format === "discussion" ? row.speaker : "a",
@@ -103,6 +111,20 @@ export function validateReply(
     : { ok: true, turns: mergeNeighbours(turns) };
 }
 
+/** Ids of this many leading characters in common are taken to be the same id, mistyped. */
+const ID_PREFIX_MATCH = 8;
+
+/**
+ * The one known id a mistyped id can only mean: the same leading characters, and no other known id
+ * shares them. Anything less certain is returned as given, and reported.
+ */
+export function closestId(given: string, known: ReadonlySet<string>): string {
+  if (given.length < ID_PREFIX_MATCH) return given;
+  const head = given.slice(0, ID_PREFIX_MATCH);
+  const matches = [...known].filter((id) => id.startsWith(head));
+  return matches.length === 1 && matches[0] !== undefined ? matches[0] : given;
+}
+
 /** How many characters a script falls short of the floor (80% of the budget); 0 when it reaches it. */
 export function shortByChars(turns: readonly ScriptTurn[], budget: number): number {
   return Math.max(0, scriptFloorChars(budget) - charCount(turns));
@@ -125,7 +147,8 @@ function tooShortProblem(
     .sort((a, b) => (used.get(a.item_id) ?? 0) - (used.get(b.item_id) ?? 0))
     .slice(0, 3)
     .map((story) => `"${story.headline}"`);
-  return `The script is too short by ${shortByChars(turns, budget)} characters: it has ${charCount(turns)} and needs at least ${scriptFloorChars(budget)} (aim for ${scriptTargetChars(budget)}). Add depth to these stories first: ${thinnest.join("; ")}. Use only the facts in each story block; do not pad or repeat a fact.`;
+  const perStory = wordsFor(perStoryChars(budget, stories.length));
+  return `The script is too short by about ${wordsFor(shortByChars(turns, budget))} words: it has about ${wordsFor(charCount(turns))} and needs at least ${wordsFor(scriptFloorChars(budget))} (aim for ${wordsFor(scriptTargetChars(budget))}). Every story needs about ${perStory} words. Add depth to these stories first: ${thinnest.join("; ")}. Use only the facts in each story block; do not pad or repeat a fact.`;
 }
 
 interface Requested {
@@ -137,8 +160,9 @@ interface Requested {
 async function requestTurns(deps: ScriptDeps): Promise<Requested> {
   let problems: string[] = [];
   let rejected: string[] = [];
-  // The last reply that was valid but short: a short true episode beats none.
+  // The longest reply that was valid but short: a short true episode beats none.
   let short: ScriptTurn[] | null = null;
+  const reach = reachableChars(deps.budget_chars, deps.stories.length, deps.request.format);
   for (let attempt = 1; attempt <= ATTEMPTS; attempt++) {
     try {
       const raw = await deps.writer.writeScript(
@@ -147,11 +171,13 @@ async function requestTurns(deps: ScriptDeps): Promise<Requested> {
       );
       const result = validateReply(raw, deps.request, deps.stories);
       if (result.ok) {
-        if (shortByChars(result.turns, deps.budget_chars) === 0) {
+        // Held to what the stories can carry, not to a length they cannot fill.
+        if (shortByChars(result.turns, reach) === 0) {
           return { turns: result.turns, calls: attempt, rejected };
         }
-        short = result.turns;
-        problems = [tooShortProblem(result.turns, deps.stories, deps.budget_chars)];
+        // Keep the longest of the short replies: a rewrite is not always longer.
+        if (!short || charCount(result.turns) > charCount(short)) short = result.turns;
+        problems = [tooShortProblem(result.turns, deps.stories, reach)];
       } else {
         problems = result.problems;
       }
