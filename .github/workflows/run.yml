@@ -78,9 +78,11 @@ on:
         type: boolean
         default: false
 
-# One run at a time. GitHub keeps a single pending run, so duplicate presses collapse.
+# One run at a time. GitHub keeps a single pending run, so duplicate presses collapse. An hourly
+# trigger that is not the chosen hour gets a group of its own: it does nothing, and it must not take
+# the single pending place from a real run.
 concurrency:
-  group: dispatch
+  group: ${{ (github.event_name == 'schedule' && github.event.schedule != (vars.RUN_CRON || '13 7 * * *')) && format('dispatch-skipped-{0}', github.run_id) || 'dispatch' }}
   cancel-in-progress: false
 
 permissions:
