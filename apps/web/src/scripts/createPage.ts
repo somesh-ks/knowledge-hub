@@ -40,6 +40,16 @@ function install(): void {
   };
 
   function sync(): void {
+    // A topic of the owner's is offered in Customized mode only; leaving that mode unticks it.
+    const custom = new FormData(form).get("audience") === "custom";
+    for (const topic of topics) {
+      const chip = topic.closest<HTMLElement>("[data-custom]");
+      if (!chip) continue;
+      chip.hidden = !custom;
+      if (!custom) topic.checked = false;
+    }
+    const picked = form.querySelector<HTMLInputElement>('input[name="audience"]:checked');
+    $("[data-audience-hint]").textContent = picked?.dataset.hint ?? "";
     const n = topics.filter((topic) => topic.checked).length;
     for (const topic of topics) topic.disabled = !topic.checked && n >= max;
     $("[data-topics-count]").textContent = n ? `${n} chosen.` : "None chosen yet.";
@@ -54,6 +64,7 @@ function install(): void {
     const data = new FormData(form);
     const title = String(data.get("title")).trim();
     return {
+      audience: data.get("audience"),
       topic_ids: data.getAll("topic"),
       length_minutes: Number(data.get("length")),
       format: data.get("format"),

@@ -52,6 +52,11 @@
   margin-block-start: var(--space-1);
 }
 
+/* A quiet line under a control or another line: air above it, never pressed against it. */
+.create-below {
+  margin-block-start: var(--space-3);
+}
+
 .create-error {
   display: flex;
   align-items: flex-start;

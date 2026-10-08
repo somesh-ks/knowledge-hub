@@ -49,8 +49,8 @@ async function openCreate(page: Page): Promise<void> {
 
 /** Chooses two topics and opens the passphrase dialog. */
 async function openDialog(page: Page): Promise<void> {
-  await chip(page, "Top picks").click();
-  await chip(page, "Research").click();
+  await chip(page, "Design Engineering").click();
+  await chip(page, "Trending").click();
   await page.locator("[data-submit]").click();
   await expect(dialog(page)).toBeVisible();
 }
@@ -72,6 +72,7 @@ test.describe("the Create page", () => {
       "Pick topics and a length. Singularity writes and reads an episode from the last few days of stories.",
     );
     await expect(page.getByRole("heading", { level: 2 })).toHaveText([
+      "Written for",
       "Topics",
       "Length",
       "Format",
@@ -79,14 +80,14 @@ test.describe("the Create page", () => {
       "Tone",
       "Title",
     ]);
-    // The topics are the sections the published briefings actually have.
+    // The five topics in the contract's order, then the owner's own in Customized mode.
     await expect(page.locator(".create-chip")).toHaveText([
-      "Top picks",
-      "Interaction craft",
-      "AI models and products",
-      "Research",
-      "Launches",
-      "Watch and listen",
+      "Design",
+      "Design Engineering",
+      "AI Products",
+      "Tech Product Launches",
+      "Trending",
+      "Audio interfaces",
     ]);
     await expect(page.locator('input[name="length"]')).toHaveCount(4);
     await expect(page.locator('input[name="window"]')).toHaveCount(3);
@@ -115,7 +116,7 @@ test.describe("the Create page", () => {
     // Focus goes to the first topic, where the fix is.
     await expect(page.locator('input[name="topic"]').first()).toBeFocused();
     // Choosing one clears the message.
-    await chip(page, "AI models and products").click();
+    await chip(page, "AI Products").click();
     await expect(error).toBeHidden();
   });
 
@@ -124,20 +125,50 @@ test.describe("the Create page", () => {
     await expect(page.locator("#create-topics-hint")).toHaveText(
       "Choose up to 6. None chosen yet.",
     );
-    await chip(page, "Top picks").click();
+    await chip(page, "Design").first().click();
     await expect(page.locator("#create-topics-hint")).toHaveText("Choose up to 6. 1 chosen.");
     for (const name of [
-      "Interaction craft",
-      "AI models and products",
-      "Research",
-      "Launches",
-      "Watch and listen",
+      "Design Engineering",
+      "AI Products",
+      "Tech Product Launches",
+      "Trending",
+      "Audio interfaces",
     ]) {
       await chip(page, name).click();
     }
     await expect(page.locator("#create-topics-hint")).toHaveText("Choose up to 6. 6 chosen.");
-    await chip(page, "Launches").click();
+    await chip(page, "Trending").click();
     await expect(page.locator("#create-topics-hint")).toHaveText("Choose up to 6. 5 chosen.");
+  });
+
+  test("Top picks is not a chip, and a line says every episode opens with it", async ({ page }) => {
+    await openCreate(page);
+    await expect(page.locator(".create-chip", { hasText: "Top picks" })).toHaveCount(0);
+    await expect(page.locator('input[name="topic"][value="top"]')).toHaveCount(0);
+    await expect(page.getByText("Every episode opens with the top picks.")).toBeVisible();
+  });
+
+  test("choosing a mode changes the line under it and the audience in the request", async ({
+    page,
+  }) => {
+    const mock = await mockPodcast(page, 202, { status: 202, run_id: 3, started_at: "x" });
+    await openCreate(page);
+    const hint = page.locator("[data-audience-hint]");
+    await expect(page.locator('input[name="audience"]:checked')).toHaveValue("custom");
+    await expect(hint).toHaveText("Written for you. Also draws on your own topics.");
+    await chip(page, "Audio interfaces").click();
+    await segment(page, "General").click();
+    await expect(hint).toHaveText("Written for anyone. Explains terms as it goes.");
+    // The owner's own topic leaves the list, and is unticked.
+    await expect(page.locator(".create-chip", { hasText: "Audio interfaces" })).toBeHidden();
+    await expect(page.locator('input[name="topic"]:checked')).toHaveCount(0);
+    await chip(page, "AI Products").click();
+    await page.locator("[data-submit]").click();
+    await dialog(page).getByLabel("Passphrase").fill(PASSPHRASE);
+    await dialog(page).getByRole("button", { name: "Create episode" }).click();
+    await expect.poll(() => mock.bodies.length).toBe(1);
+    expect(mock.bodies[0]?.request).toMatchObject({ audience: "general", topic_ids: ["ai"] });
+    expect(JSON.stringify(mock.bodies[0])).not.toContain('"top"');
   });
 
   test("updates the estimate as the length changes", async ({ page }) => {
@@ -213,8 +244,8 @@ test.describe("the Create page", () => {
     });
     await openCreate(page);
 
-    await chip(page, "Top picks").click();
-    await chip(page, "Research").click();
+    await chip(page, "Design Engineering").click();
+    await chip(page, "Trending").click();
     await segment(page, "10 min").click();
     await option(page, "Discussion").click();
     await segment(page, "A month").click();
@@ -230,7 +261,8 @@ test.describe("the Create page", () => {
     expect(mock.bodies[0]).toEqual({
       passphrase: PASSPHRASE,
       request: {
-        topic_ids: ["top", "research"],
+        audience: "custom",
+        topic_ids: ["ui-craft", "trending"],
         length_minutes: 10,
         format: "discussion",
         window_days: 30,
@@ -301,7 +333,8 @@ test.describe("the Create page when the server says no", () => {
     await dialog(page).getByRole("button", { name: "Create episode" }).click();
     await expect.poll(() => mock.bodies.length).toBe(1);
     expect(mock.bodies[0]?.request).toEqual({
-      topic_ids: ["top", "research"],
+      audience: "custom",
+      topic_ids: ["ui-craft", "trending"],
       length_minutes: 5,
       format: "readout",
       window_days: 7,
@@ -348,7 +381,7 @@ test.describe("the Create page when the server says no", () => {
       ],
     ];
     await openCreate(page);
-    await chip(page, "Top picks").click();
+    await chip(page, "Trending").click();
     for (const [status, body, words] of cases) {
       await page.unroute("**/api/podcast");
       await mockPodcast(page, status, body);
@@ -448,7 +481,7 @@ test.describe("navigation with four destinations", () => {
     await expect(page).toHaveURL(/\/library$/);
     await page.locator(".app-nav-item", { hasText: "Create" }).click();
     await expect(page.locator("[data-create]")).toHaveAttribute("data-ready", "");
-    await chip(page, "Research").click();
+    await chip(page, "Trending").click();
     await expect(page.locator("#create-topics-hint")).toHaveText("Choose up to 6. 1 chosen.");
   });
 });
@@ -604,8 +637,8 @@ test.describe("axe, the Create page and episodes", () => {
       await page.locator("[data-submit]").click();
       await expect(page.locator('[data-error="topics"]')).toBeVisible();
       expect(await violations(page)).toEqual([]);
-      await chip(page, "Research").click();
-      await chip(page, "Top picks").click();
+      await chip(page, "Trending").click();
+      await chip(page, "Design Engineering").click();
       await page.waitForTimeout(300);
       expect(await violations(page)).toEqual([]);
     });
