@@ -101,7 +101,7 @@
   flex: none;
   width: var(--space-4);
   height: var(--space-4);
-  margin-block-start: 0.125rem;
+  margin-block-start: calc(var(--space-1) / 2);
 }
 
 .manage-input {

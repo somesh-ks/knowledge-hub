@@ -424,7 +424,7 @@
 
 .player-fallback-action {
   min-height: var(--size-touch);
-  padding-inline: var(--space-5);
+  padding-inline: var(--space-6);
   border-radius: var(--control-radius-sm);
   background: var(--color-accent);
   color: var(--color-on-accent);
@@ -959,7 +959,7 @@
   .player-list {
     grid-column: 2;
     grid-row: 1 / span 2;
-    padding-block-start: var(--space-10);
+    padding-block-start: var(--space-6);
   }
 }
 

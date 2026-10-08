@@ -284,7 +284,7 @@
 .sheet-field-error .ui-icon {
   width: var(--space-4);
   height: var(--space-4);
-  margin-block-start: 0.125rem;
+  margin-block-start: calc(var(--space-1) / 2);
 }
 
 /* One filled button for the action that commits (.btn-primary), text buttons for the rest (.btn). */
@@ -404,7 +404,7 @@
 }
 
 .sheet-banner .ui-icon {
-  margin-block-start: 0.125rem;
+  margin-block-start: calc(var(--space-1) / 2);
   color: var(--tone);
 }
 
@@ -547,7 +547,7 @@
 }
 
 .sheet-hint-card .ui-icon {
-  margin-block-start: 0.125rem;
+  margin-block-start: calc(var(--space-1) / 2);
   color: var(--color-accent);
 }
 

@@ -10,10 +10,10 @@ const colors = readBrandColors(TOKENS);
 describe("parseBrandColors", () => {
   it("reads the surface and accent values from the generated footer", () => {
     const css = `
- * theme-color and manifest background (surface): light #FFFFFF, dark #202124
+ * theme-color and manifest background (surface): light #F8F9FA, dark #202124
  * accent: light #1967D2, dark #8AB4F8`;
     expect(parseBrandColors(css)).toEqual({
-      surfaceLight: "#ffffff",
+      surfaceLight: "#f8f9fa",
       surfaceDark: "#202124",
       accentLight: "#1967d2",
       accentDark: "#8ab4f8",
@@ -25,7 +25,7 @@ describe("parseBrandColors", () => {
   });
 
   it("matches the committed tokens.css", () => {
-    expect(colors.surfaceLight).toBe("#ffffff");
+    expect(colors.surfaceLight).toBe("#f8f9fa");
     expect(colors.surfaceDark).toBe("#202124");
     expect(readFileSync(TOKENS, "utf8")).toContain(colors.accentLight);
   });

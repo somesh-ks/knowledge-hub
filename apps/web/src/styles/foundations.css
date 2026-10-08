@@ -112,6 +112,13 @@
     cursor: pointer;
   }
 
+  /* A select with a see-through box hands its list no background, and the list then falls back to
+     white whatever the theme. The list is told its surface and its ink outright. */
+  :where(select) :where(option, optgroup) {
+    background-color: var(--color-surface-overlay);
+    color: var(--color-on-surface);
+  }
+
   /* Controls: no gray tap flash because every one has a pressed state, no double-tap zoom,
      no text selection while scrubbing. */
   :where(button, [role="button"], [role="switch"], [role="slider"], summary, label) {
