@@ -61,8 +61,40 @@ const fitAnswer = z.object({
   confidence: z.number().optional(),
 });
 
+export interface TopicAnswerInput {
+  item: Item;
+  topics: readonly Topic[];
+  /** Question key to topic id, from buildTopicQuestions. */
+  topicByKey: ReadonlyMap<string, string>;
+  /** The `answers` of a Jev reply. Keys that are not fit questions are ignored. */
+  answers: Record<string, unknown>;
+  model: string;
+  now: Date;
+}
+
+/** Fit entries from the answers of one reply. A malformed answer drops that topic, not the others. */
+export function topicEntriesFromAnswers(input: TopicAnswerInput): TopicJudgmentEntry[] {
+  const { item, topics, topicByKey, answers, model, now } = input;
+  const byId = new Map(topics.map((topic) => [topic.id, topic]));
+  const entries: TopicJudgmentEntry[] = [];
+  for (const [key, topicId] of topicByKey) {
+    const answer = fitAnswer.safeParse(answers[key]);
+    const topic = byId.get(topicId);
+    if (!answer.success || !topic) continue;
+    entries.push({
+      item_id: item.id,
+      topic_id: topicId,
+      topic_hash: topicHash(topic),
+      model,
+      judged_at: now.toISOString(),
+      fit: round4(clamp01(normalizeFit(answer.data.score))),
+    });
+  }
+  return entries;
+}
+
 /** One Jev reply for a set of topic questions: only the fit answers are read. */
-const TopicResponse = z.object({
+export const TopicResponse = z.object({
   answers: z.record(z.string(), z.unknown()),
   usage: z.object({ input_tokens: z.number(), output_tokens: z.number() }).optional(),
 });
@@ -135,23 +167,15 @@ export class TopicJudge {
       );
       const parsed = TopicResponse.safeParse(raw);
       if (!parsed.success) throw new Error("Jev answered in an unexpected shape.");
-      const now = (this.options.now ?? (() => new Date()))().toISOString();
-      const entries: TopicJudgmentEntry[] = [];
-      const byId = new Map(topics.map((topic) => [topic.id, topic]));
-      for (const [key, topicId] of topicByKey) {
-        const answer = fitAnswer.safeParse(parsed.data.answers[key]);
-        const topic = byId.get(topicId);
-        // One malformed answer drops that topic for this item, not the others.
-        if (!answer.success || !topic) continue;
-        entries.push({
-          item_id: item.id,
-          topic_id: topicId,
-          topic_hash: topicHash(topic),
-          model: this.model,
-          judged_at: now,
-          fit: round4(clamp01(normalizeFit(answer.data.score))),
-        });
-      }
+      const now = (this.options.now ?? (() => new Date()))();
+      const entries = topicEntriesFromAnswers({
+        item,
+        topics,
+        topicByKey,
+        answers: parsed.data.answers,
+        model: this.model,
+        now,
+      });
       this.totals.requests += 1;
       this.totals.inputTokens += parsed.data.usage?.input_tokens ?? 0;
       this.totals.outputTokens += parsed.data.usage?.output_tokens ?? 0;
@@ -205,23 +229,26 @@ export function pruneTopicJudgments(
   return { version: 1, entries: Object.fromEntries(kept) };
 }
 
-/**
- * Fit of every gated (item, topic) pair. Cached answers are reused; only the pairs the cache
- * lacks go to the judge, grouped by item so each item costs one request. Editing a topic changes
- * its hash, so that topic is asked again and the others keep their cached answers.
- */
-export async function judgeTopicsWithCache(
-  judge: Pick<TopicJudge, "model" | "judge">,
+export interface TopicPlan {
+  /** Fits already in the cache. */
+  fits: TopicFits;
+  /** Items with at least one gated pair the cache lacks, and the topics to ask. */
+  requests: TopicRequest[];
+  hits: number;
+  /** Gated (item, topic) pairs. */
+  pairs: number;
+  /** Items that matched the gate for at least one topic. */
+  gated: number;
+}
+
+/** Which gated (item, topic) pairs the cache answers and which still need a judge. */
+export function planTopicJudging(
+  model: string,
   items: readonly Item[],
   topics: readonly Topic[],
   cache: TopicJudgmentsFile = EMPTY_TOPIC_JUDGMENTS,
-): Promise<CachedTopicResult> {
+): TopicPlan {
   const fits: TopicFits = {};
-  const record = (itemId: string, topicId: string, fit: number): void => {
-    const row = fits[itemId] ?? {};
-    row[topicId] = fit;
-    fits[itemId] = row;
-  };
   const requests: TopicRequest[] = [];
   const hashes = new Map(topics.map((topic) => [topic.id, topicHash(topic)]));
   let hits = 0;
@@ -234,25 +261,57 @@ export async function judgeTopicsWithCache(
     const missing: Topic[] = [];
     for (const topic of matched) {
       pairs += 1;
-      const key = topicJudgmentKey(item.id, topic.id, hashes.get(topic.id) ?? "", judge.model);
+      const key = topicJudgmentKey(item.id, topic.id, hashes.get(topic.id) ?? "", model);
       const cached = cache.entries[key];
       if (cached) {
         hits += 1;
-        record(item.id, topic.id, cached.fit);
+        recordFit(fits, item.id, topic.id, cached.fit);
       } else {
         missing.push(topic);
       }
     }
     if (missing.length > 0) requests.push({ item, topics: missing });
   }
-  const fresh = requests.length > 0 ? await judge.judge(requests) : [];
-  for (const entry of fresh) record(entry.item_id, entry.topic_id, entry.fit);
+  return { fits, requests, hits, pairs, gated };
+}
+
+function recordFit(fits: TopicFits, itemId: string, topicId: string, fit: number): void {
+  const row = fits[itemId] ?? {};
+  row[topicId] = fit;
+  fits[itemId] = row;
+}
+
+/** The plan's cached fits plus the fresh entries, merged into the cache. */
+export function finishTopicJudging(
+  plan: TopicPlan,
+  fresh: readonly TopicJudgmentEntry[],
+  cache: TopicJudgmentsFile = EMPTY_TOPIC_JUDGMENTS,
+): CachedTopicResult {
+  const fits: TopicFits = {};
+  for (const [itemId, row] of Object.entries(plan.fits)) fits[itemId] = { ...row };
+  for (const entry of fresh) recordFit(fits, entry.item_id, entry.topic_id, entry.fit);
   return {
     fits,
     cache: mergeTopicJudgments(cache, fresh),
-    hits,
+    hits: plan.hits,
     asked: fresh.length,
-    unanswered: pairs - hits - fresh.length,
-    gated,
+    unanswered: plan.pairs - plan.hits - fresh.length,
+    gated: plan.gated,
   };
+}
+
+/**
+ * Fit of every gated (item, topic) pair. Cached answers are reused; only the pairs the cache
+ * lacks go to the judge, grouped by item so each item costs one request. Editing a topic changes
+ * its hash, so that topic is asked again and the others keep their cached answers.
+ */
+export async function judgeTopicsWithCache(
+  judge: Pick<TopicJudge, "model" | "judge">,
+  items: readonly Item[],
+  topics: readonly Topic[],
+  cache: TopicJudgmentsFile = EMPTY_TOPIC_JUDGMENTS,
+): Promise<CachedTopicResult> {
+  const plan = planTopicJudging(judge.model, items, topics, cache);
+  const fresh = plan.requests.length > 0 ? await judge.judge(plan.requests) : [];
+  return finishTopicJudging(plan, fresh, cache);
 }

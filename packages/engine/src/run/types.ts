@@ -1,10 +1,12 @@
 import type { Category, CoverSpec, DigestKind, Outcome, SourceType } from "@dispatch/core";
 import type { Logger } from "../context.js";
 import type { ApiRuntime } from "../curate/apiRuntime.js";
+import type { FirecrawlGuard } from "../fetch/firecrawlBudget.js";
 import type { SourceFetcher } from "../fetch/types.js";
 import type { RunMode } from "../gate/decideRun.js";
 import type { GitRunner } from "../git/runGit.js";
 import type { HttpClient } from "../http.js";
+import type { SpendTracker, SpendTotals } from "./spend.js";
 
 export type { RunMode };
 
@@ -58,6 +60,8 @@ export interface FetchSetup {
   http: HttpClient;
   exaKey?: string | undefined;
   firecrawlKey?: string | undefined;
+  /** Counts and limits Firecrawl requests for the run. Without it there is no ceiling (tests). */
+  firecrawlGuard?: FirecrawlGuard | undefined;
   /** Replace fetchers by source type, for tests. */
   fetchers?: Partial<Record<SourceType, SourceFetcher>>;
   /** Skips rate-limit waits in tests. */
@@ -83,6 +87,8 @@ export interface RunDeps {
   runtime: () => Promise<ApiRuntime>;
   pickCover: CoverPickFn;
   git: GitRunner;
+  /** Counts paid requests and holds the Firecrawl ceiling for the run. Absent in most tests. */
+  spend?: SpendTracker;
 }
 
 /** One pass of a run, as the stages report it. */
@@ -97,6 +103,8 @@ export interface StageReport {
   ok: true;
   dry_run: boolean;
   passes: PassReport[];
+  /** Paid requests of the run so far, by service. */
+  spend?: SpendTotals;
 }
 
 export interface GatePassReport {
@@ -146,6 +154,8 @@ export interface CommitReport {
   commit: { status: CommitStatus; sha?: string; message?: string; detail?: string };
   /** Why the run failed or was gated, in one sentence. */
   reason?: string;
+  /** Paid requests the whole run made, by service. */
+  spend?: SpendTotals;
 }
 
 /** A stage that exited non-zero. It carries the commit report's fields so the workflow's jq finds them. */

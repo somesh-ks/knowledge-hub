@@ -3,7 +3,9 @@ import { type CommandContext, secretsFromEnv } from "../context.js";
 import { type ApiRuntime, createApiRuntime } from "../curate/apiRuntime.js";
 import { createGitRunner } from "../git/runGit.js";
 import { createHttpClient } from "../http.js";
+import { meterExa } from "../llm/requestMeter.js";
 import { loadVoice } from "../voice/voice.js";
+import { SpendTracker } from "./spend.js";
 import type { RunDeps } from "./types.js";
 
 /**
@@ -15,18 +17,21 @@ import type { RunDeps } from "./types.js";
  */
 export function buildDeps(ctx: CommandContext): RunDeps {
   let runtime: Promise<ApiRuntime> | undefined;
+  const spend = new SpendTracker();
   return {
     root: ctx.root,
     now: ctx.now,
     log: ctx.log,
     secrets: secretsFromEnv(ctx.env),
     fetch: {
-      http: createHttpClient({ retries: 2 }),
+      http: meterExa(createHttpClient({ retries: 2 }), spend.meter),
       exaKey: ctx.env.EXA_API_KEY,
       firecrawlKey: ctx.env.FIRECRAWL_API_KEY,
+      firecrawlGuard: spend.guard,
     },
+    spend,
     runtime: () => {
-      runtime ??= loadVoice(ctx.root).then((voice) => createApiRuntime(ctx, voice));
+      runtime ??= loadVoice(ctx.root).then((voice) => createApiRuntime(ctx, voice, spend));
       return runtime;
     },
     pickCover,

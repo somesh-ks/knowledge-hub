@@ -1,7 +1,12 @@
 import type { DigestKind, SourcesFile } from "@dispatch/core";
 import { loadPreferences } from "../curate/inputs.js";
 import { dedupe } from "../dedupe/dedupe.js";
-import { fetchAll } from "../fetch/fetchAll.js";
+import {
+  FIRECRAWL_SKIP_CEILING,
+  FIRECRAWL_SKIP_STOPPED,
+  planFirecrawlListing,
+} from "../fetch/firecrawlBudget.js";
+import { fetchAll, selectSources } from "../fetch/fetchAll.js";
 import type { PoolFile } from "../fetch/pool.js";
 import { loadQueries } from "../fetch/queries.js";
 import type { SourceResult } from "../fetch/types.js";
@@ -44,6 +49,20 @@ export async function gatherPool(input: GatherInput): Promise<GatherResult> {
   // Health lives in state/, not config/, so a run never rewrites hand-edited configuration.
   const sources = overlayHealth(configured, health);
 
+  // Over the listing ceiling, the Firecrawl sources fetched longest ago run and the rest wait for
+  // the next run, so the skipped set rotates. Pages this run already holds cost nothing.
+  const mode = input.kind === "weekly" ? "weekly" : "regular";
+  const guard = setup.firecrawlGuard;
+  const skip = new Map<string, string>();
+  if (guard) {
+    const listed = selectSources(sources.sources, mode).filter(
+      (source) => source.type === "firecrawl" && !guard.has(source.feed_url ?? source.url),
+    );
+    const plan = planFirecrawlListing(listed, guard.listingRoom);
+    for (const id of plan.skipped) skip.set(id, guard.stopped ? FIRECRAWL_SKIP_STOPPED : FIRECRAWL_SKIP_CEILING);
+    guard.recordSkipped(plan.skipped);
+  }
+
   const { items, results } = await fetchAll(
     sources.sources,
     input.window,
@@ -51,10 +70,11 @@ export async function gatherPool(input: GatherInput): Promise<GatherResult> {
       http: setup.http,
       now: () => now,
       exa: { apiKey: setup.exaKey, queries: queries.queries },
-      firecrawl: { apiKey: setup.firecrawlKey },
+      firecrawl: { apiKey: setup.firecrawlKey, guard },
     },
     {
-      mode: input.kind === "weekly" ? "weekly" : "regular",
+      mode,
+      ...(skip.size > 0 ? { skip } : {}),
       ...(setup.fetchers ? { fetchers: setup.fetchers } : {}),
       ...(setup.sleep ? { sleep: setup.sleep } : {}),
     },
