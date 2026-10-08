@@ -5,7 +5,7 @@ import {
   pendingQuestion,
   subscribeQuestion,
 } from "../narration/passphrasePrompt";
-import Icon from "../player/ui/Icon";
+import Icon from "../player/ui/LazyIcon";
 import SheetFrame from "./SheetFrame";
 
 interface NarrateSheetProps {

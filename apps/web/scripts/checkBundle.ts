@@ -11,7 +11,7 @@ import {
 } from "../src/lib/bundleBudget";
 
 /**
- * Fails the build when a page loads more than 100 KB of gzipped JavaScript on first visit, when any
+ * Fails the build when a page loads more than the first-load budget of gzipped JavaScript, when any
  * script blocks rendering, when the fonts exceed 80 KB, or when an inline script is not allowed by the
  * page's Content-Security-Policy. Run after a build.
  *

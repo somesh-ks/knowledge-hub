@@ -3,7 +3,7 @@ import { digestUrl, navigateTo } from "./core/navigation";
 import { getPlayerStore } from "./core/playerRuntime";
 import { playerSheet } from "./core/playerSheet";
 import { usePlayerState } from "./hooks/usePlayer";
-import Icon from "./ui/Icon";
+import Icon from "./ui/LazyIcon";
 
 /**
  * After the last item the player offers the previous briefing. It never autoplays a chain: the

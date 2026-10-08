@@ -1,6 +1,6 @@
 import { Drawer } from "@base-ui/react/drawer";
 import type { ComponentProps, ReactNode } from "react";
-import Icon from "../player/ui/Icon";
+import Icon from "../player/ui/LazyIcon";
 
 type InitialFocus = ComponentProps<typeof Drawer.Popup>["initialFocus"];
 

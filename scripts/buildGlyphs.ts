@@ -3,8 +3,9 @@ import { dirname, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 
 /**
- * Compiles tokens/glyphs.json into the two icon registries the site uses: one for Astro pages and
- * one for the React player. Both come from the same file, so a glyph can never look different in
+ * Compiles tokens/glyphs.json into the icon registries the site uses: one for Astro pages, and two
+ * for the React player (a small one that loads with every page, and the full one for code that
+ * loads on demand). Both come from the same file, so a glyph can never look different in
  * the two places.
  *
  *   npx tsx scripts/buildGlyphs.ts           writes the registries
@@ -16,6 +17,8 @@ const ROOT = resolve(dirname(fileURLToPath(import.meta.url)), "..");
 export const GLYPHS_PATH = resolve(ROOT, "tokens/glyphs.json");
 export const PAGE_REGISTRY_PATH = resolve(ROOT, "apps/web/src/lib/icons.ts");
 export const PLAYER_REGISTRY_PATH = resolve(ROOT, "apps/web/src/player/ui/iconPaths.tsx");
+/** Every player glyph. Only code that loads on demand imports it, so its size costs no page load. */
+export const PLAYER_LAZY_REGISTRY_PATH = resolve(ROOT, "apps/web/src/player/ui/iconPathsLazy.tsx");
 
 export const GENERATED_HEADER = "GENERATED FILE. Do not edit.";
 const LINE_WIDTH = 100;
@@ -23,7 +26,7 @@ const LINE_WIDTH = 100;
 /** A Phosphor icon name: lower-case words joined by hyphens. */
 const SYMBOL_NAME = /^[a-z0-9]+(?:-[a-z0-9]+)*$/;
 
-export type GlyphTarget = "page" | "player";
+export type GlyphTarget = "page" | "player" | "playerLazy";
 
 export interface Glyph {
   /** Phosphor icon name, kebab-case. */
@@ -56,7 +59,8 @@ export function validateGlyphs(doc: GlyphDocument): string[] {
     if (!SYMBOL_NAME.test(glyph.symbol)) problems.push(`${name}: symbol "${glyph.symbol}"`);
     if (glyph.targets.length === 0) problems.push(`${name}: no target`);
     for (const target of glyph.targets) {
-      if (target !== "page" && target !== "player") problems.push(`${name}: target "${target}"`);
+      if (target !== "page" && target !== "player" && target !== "playerLazy")
+        problems.push(`${name}: target "${target}"`);
     }
     // A path is move, line and curve commands only. Anything else is not a path from the set.
     if (!/^[Mm][\dA-Za-z .,-]+$/.test(glyph.d)) {
@@ -139,6 +143,23 @@ export function buildPlayerRegistry(doc: GlyphDocument): string | null {
   return lines.join("\n");
 }
 
+/** The full player registry: the first-load glyphs and the ones only on-demand code draws. */
+export function buildPlayerLazyRegistry(doc: GlyphDocument): string {
+  const names = [...new Set([...namesFor(doc, "player"), ...namesFor(doc, "playerLazy")])].sort();
+  const lines = [
+    ...header("The full icon registry for the React player, for code that loads on demand."),
+    `export const ICON_VIEW_BOX = "${doc.viewBox}";`,
+    "",
+    "export const ICON_PATHS = {",
+    ...names.map((name) => property(name, JSON.stringify(doc.glyphs[name]?.d ?? ""), "  ")),
+    "} as const;",
+    "",
+    "export type IconName = keyof typeof ICON_PATHS;",
+    "",
+  ];
+  return lines.join("\n");
+}
+
 /** Whether a committed registry is one this script wrote, as opposed to a hand-written one. */
 export function isGenerated(source: string): boolean {
   return source.includes(GENERATED_HEADER);
@@ -180,6 +201,7 @@ function writeRegistries(doc: GlyphDocument, check: boolean): number {
   const outputs: Array<[string, string | null]> = [
     [PAGE_REGISTRY_PATH, buildPageRegistry(doc)],
     [PLAYER_REGISTRY_PATH, buildPlayerRegistry(doc)],
+    [PLAYER_LAZY_REGISTRY_PATH, buildPlayerLazyRegistry(doc)],
   ];
   let stale = 0;
   for (const [path, source] of outputs) {

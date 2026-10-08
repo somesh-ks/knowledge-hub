@@ -1,6 +1,6 @@
 import { Field } from "@base-ui/react/field";
 import { type FormEvent, useEffect, useRef } from "react";
-import Icon from "../player/ui/Icon";
+import Icon from "../player/ui/LazyIcon";
 import GenerateResult from "./GenerateResult";
 import GenerateSteps from "./GenerateSteps";
 import { getGenerateStore } from "./generate/generateRuntime";

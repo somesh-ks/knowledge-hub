@@ -1,6 +1,6 @@
 import type { ReactNode } from "react";
-import Icon from "../player/ui/Icon";
-import type { IconName } from "../player/ui/iconPaths";
+import type { IconName } from "../player/ui/iconPathsLazy";
+import Icon from "../player/ui/LazyIcon";
 
 type Tone = "info" | "success" | "danger";
 

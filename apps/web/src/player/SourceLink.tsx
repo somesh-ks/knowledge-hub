@@ -1,6 +1,6 @@
 import { sourceHost, sourceLinkLabel } from "../lib/sourceLabel";
 import { usePlayerState } from "./hooks/usePlayer";
-import Icon from "./ui/Icon";
+import Icon from "./ui/LazyIcon";
 
 /**
  * Where the story being read came from: the bare host, opening in a new tab. Nothing is rendered

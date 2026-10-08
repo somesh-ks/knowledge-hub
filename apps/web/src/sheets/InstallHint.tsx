@@ -1,4 +1,4 @@
-import Icon from "../player/ui/Icon";
+import Icon from "../player/ui/LazyIcon";
 
 interface InstallHintProps {
   onDismiss: () => void;
