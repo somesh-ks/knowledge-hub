@@ -1,9 +1,7 @@
 /**
- * Asks for the first segments of the page's briefing or episode while the browser is idle, so that
- * Play has a file to start with. Loaded on demand from the page; none of it is first-load code.
+ * When a page may ask for its first segments in the background. Plain checks, so the narration
+ * runtime can decide before it asks anything.
  */
-import { getPlayerStore } from "../player/core/playerRuntime";
-
 const KEY_PREFIX = "dispatch:prewarm:";
 
 interface Connection {
@@ -33,30 +31,20 @@ export function prewarmAllowed(env: {
   return !env.hidden && !env.saveData && env.online;
 }
 
-function whenIdle(task: () => void): void {
-  if (typeof requestIdleCallback === "function") requestIdleCallback(task, { timeout: 3_000 });
-  else setTimeout(task, 1_500);
-}
-
-export function prewarmWhenIdle(): void {
-  whenIdle(() => {
-    const page = getPlayerStore().getPageDigest();
-    // The page is read again at idle: the listener may have moved on, or audio may have arrived.
-    if (!page || page.audio) return;
-    const connection = (navigator as Navigator & { connection?: Connection }).connection;
-    const allowed = prewarmAllowed({
-      hidden: document.hidden,
-      saveData: connection?.saveData === true,
-      online: navigator.onLine,
-    });
-    if (!allowed) return;
-    let storage: Storage | null = null;
-    try {
-      storage = window.sessionStorage;
-    } catch {
-      storage = null;
-    }
-    if (!claimPrewarm(storage, page.id)) return;
-    void import("./narrationRuntime").then((narration) => narration.prewarmPage(page));
+/** Checks the browser and marks the page tried. True when the prewarm may go ahead. */
+export function startPrewarm(id: string): boolean {
+  const connection = (navigator as Navigator & { connection?: Connection }).connection;
+  const allowed = prewarmAllowed({
+    hidden: document.hidden,
+    saveData: connection?.saveData === true,
+    online: navigator.onLine,
   });
+  if (!allowed) return false;
+  let storage: Storage | null = null;
+  try {
+    storage = window.sessionStorage;
+  } catch {
+    storage = null;
+  }
+  return claimPrewarm(storage, id);
 }

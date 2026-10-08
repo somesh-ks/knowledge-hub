@@ -25,6 +25,8 @@ import { safeLocalStorage } from "./resume";
 import { reapplyRootState, setRootAttribute, setRootProperty } from "./rootAttributes";
 import { reapplyTheme, startThemeSync } from "./themeRuntime";
 
+const PREWARM_DELAY_MS = 1_500;
+
 let store: PlayerStore | null = null;
 
 function onPageHide(callback: () => void): () => void {
@@ -133,9 +135,12 @@ export function startPlayerRuntime(): () => void {
     readPage(playerStore);
     reader.refresh();
     if (navigator.onLine && !playerStore.getPageDigest()?.audio) {
-      import("../../narration/prewarmPage")
-        .then((module) => module.prewarmWhenIdle())
-        .catch(() => undefined);
+      // A moment after the page settles, so it never competes with the first load.
+      setTimeout(() => {
+        import("../../narration/narrationRuntime")
+          .then((narration) => narration.prewarmPage())
+          .catch(() => undefined);
+      }, PREWARM_DELAY_MS);
     }
   };
   // A navigation never happens under an open player: the page goes down in one step first.

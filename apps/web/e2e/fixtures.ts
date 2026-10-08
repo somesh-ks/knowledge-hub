@@ -21,13 +21,6 @@ export const test = base.extend<Options & { problems: Problems }>({
       const problems: Problems = { messages: [] };
       // A page the test asks for on purpose and that answers 404 logs one console line for itself.
       const expectedNotFound = new Set<string>();
-      // A page without audio asks for its narration at idle. The static fixture server has no API
-      // (it answers 501, which the browser logs), so the default is "nothing to narrate": a 200
-      // with no segments, which the client treats as a quiet refusal. A test that mocks the route
-      // itself registers later and wins.
-      await page.route("**/api/narrate?digest=*", (route) =>
-        route.fulfill({ json: { status: 200, audio: null, timeline: null, segments: [] } }),
-      );
       page.on("response", (response) => {
         if (response.status() === 404 && response.request().isNavigationRequest()) {
           expectedNotFound.add(response.url());
@@ -37,6 +30,11 @@ export const test = base.extend<Options & { problems: Problems }>({
         if (message.type() !== "error") return;
         const text = message.text();
         if (expectedNotFound.has(message.location().url)) return;
+        // A page without audio asks for its narration shortly after it loads. The static fixture
+        // server has no API and answers 501, which the browser logs on the page's behalf. The
+        // client takes it as a quiet refusal; this one line is not a problem.
+        if (/status of 501/.test(text) && /\/api\/narrate(\?|$)/.test(message.location().url))
+          return;
         const isNetworkNoise =
           /Failed to load resource|net::ERR|Failed to fetch|Error hydrating/.test(text);
         if (allowNetworkErrors && isNetworkNoise) return;

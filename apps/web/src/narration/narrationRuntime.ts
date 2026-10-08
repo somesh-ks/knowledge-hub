@@ -6,10 +6,10 @@ import { OPEN_PASSPHRASE, PASSPHRASE_REQUIRED } from "../lib/access";
 import { getPlayerAudio, getPlayerStore } from "../player/core/playerRuntime";
 import { safeLocalStorage } from "../player/core/resume";
 import { showToast } from "../sheets/toastStore";
-import type { PlayerDigestData } from "../types/contracts";
 import { createNarrationController, type NarrationController } from "./narrationController";
 import { createOpenPassphraseMemory, createPassphraseMemory } from "./passphraseMemory";
 import { askPassphrase } from "./passphrasePrompt";
+import { startPrewarm } from "./prewarmPage";
 
 const PREPARING_LABEL = "Preparing audio";
 
@@ -54,7 +54,10 @@ function getController(): NarrationController {
 }
 
 /** Asks for the first segments of a page's briefing in the background. Silent whatever happens. */
-export function prewarmPage(page: PlayerDigestData): Promise<void> {
+export function prewarmPage(): Promise<void> {
+  const page = getPlayerStore().getPageDigest();
+  // Read again now: the listener may have moved on, or the audio may have arrived meanwhile.
+  if (!page || page.audio || !startPrewarm(page.id)) return Promise.resolve();
   return getController().prewarm(page);
 }
 
