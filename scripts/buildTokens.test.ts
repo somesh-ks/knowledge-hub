@@ -363,7 +363,7 @@ describe("generated CSS", () => {
   });
 
   it("keeps the tier chain visible through var() references", () => {
-    expect(css).toMatch(/--color-surface: var\(--color-white\);/);
+    expect(css).toMatch(/--color-surface: var\(--color-grey-50\);/);
     expect(css).toMatch(/--mini-player-bg: var\(--color-surface-overlay\);/);
   });
 
