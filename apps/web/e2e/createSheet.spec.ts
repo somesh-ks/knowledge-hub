@@ -66,6 +66,19 @@ test.describe("Create as the primary action", () => {
     await expect(trigger(page)).toBeFocused();
   });
 
+  test("browser Back closes the sheet and stays on the page", async ({ page }) => {
+    await page.goto("/library");
+    await page.locator(".app-nav-item", { hasText: "Today" }).click();
+    await expect(page).toHaveURL(/\/$/);
+    await expect(page.locator("astro-island[ssr]")).toHaveCount(0);
+    await trigger(page).click();
+    await expect(sheet(page)).toBeVisible();
+    await page.goBack();
+    await expect(sheet(page)).toBeHidden();
+    await expect(page).toHaveURL(/\/$/);
+    await expect(trigger(page)).toBeFocused();
+  });
+
   test("the floating button never overlaps the player bar's controls", async ({ page }, info) => {
     test.skip(info.project.name === "desktop", "the floating button is for phones");
     await page.goto("/");
