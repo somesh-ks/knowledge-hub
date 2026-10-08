@@ -6,7 +6,7 @@ import type { SourceFetcher } from "../fetch/types.js";
 import type { RunMode } from "../gate/decideRun.js";
 import type { GitRunner } from "../git/runGit.js";
 import type { HttpClient } from "../http.js";
-import type { SpendTracker, SpendTotals } from "./spend.js";
+import type { SpendTotals, SpendTracker } from "./spend.js";
 
 export type { RunMode };
 

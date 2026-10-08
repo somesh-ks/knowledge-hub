@@ -28,7 +28,10 @@ export function spendPath(root: string): string {
   return join(runCacheDir(root), "spend.json");
 }
 
-export type SpendTotals = Pick<RunSpend, "requests" | "firecrawl_rate_limited" | "firecrawl_skipped">;
+export type SpendTotals = Pick<
+  RunSpend,
+  "requests" | "firecrawl_rate_limited" | "firecrawl_skipped"
+>;
 
 /**
  * Paid requests of one run, across stages that may be separate processes. The meter counts Jev,

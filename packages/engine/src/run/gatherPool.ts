@@ -1,12 +1,12 @@
 import type { DigestKind, SourcesFile } from "@dispatch/core";
 import { loadPreferences } from "../curate/inputs.js";
 import { dedupe } from "../dedupe/dedupe.js";
+import { fetchAll, selectSources } from "../fetch/fetchAll.js";
 import {
   FIRECRAWL_SKIP_CEILING,
   FIRECRAWL_SKIP_STOPPED,
   planFirecrawlListing,
 } from "../fetch/firecrawlBudget.js";
-import { fetchAll, selectSources } from "../fetch/fetchAll.js";
 import type { PoolFile } from "../fetch/pool.js";
 import { loadQueries } from "../fetch/queries.js";
 import type { SourceResult } from "../fetch/types.js";
@@ -59,7 +59,8 @@ export async function gatherPool(input: GatherInput): Promise<GatherResult> {
       (source) => source.type === "firecrawl" && !guard.has(source.feed_url ?? source.url),
     );
     const plan = planFirecrawlListing(listed, guard.listingRoom);
-    for (const id of plan.skipped) skip.set(id, guard.stopped ? FIRECRAWL_SKIP_STOPPED : FIRECRAWL_SKIP_CEILING);
+    for (const id of plan.skipped)
+      skip.set(id, guard.stopped ? FIRECRAWL_SKIP_STOPPED : FIRECRAWL_SKIP_CEILING);
     guard.recordSkipped(plan.skipped);
   }
 

@@ -1,6 +1,6 @@
 import type { Item } from "@dispatch/core";
 import { z } from "zod";
-import { HttpError, type HttpClient } from "../http.js";
+import { type HttpClient, HttpError } from "../http.js";
 import { buildItems, type RawItem } from "../normalize/buildItem.js";
 import { FIRECRAWL_SKIP_CEILING, FIRECRAWL_SKIP_STOPPED } from "./firecrawlBudget.js";
 import { extractEntries } from "./firecrawlExtract.js";
@@ -78,9 +78,10 @@ export async function scrapePage(
 export const fetchFirecrawl: SourceFetcher = async (source, window, deps): Promise<Item[]> => {
   const config = deps.firecrawl;
   if (!config?.apiKey) throw new SourceSkipped("FIRECRAWL_API_KEY is not set");
+  const apiKey = config.apiKey;
   const pageUrl = source.feed_url ?? source.url;
   const load = (): Promise<ScrapedPage> =>
-    scrapePage(pageUrl, { apiKey: config.apiKey, baseUrl: config.baseUrl }, deps.http, deps.signal);
+    scrapePage(pageUrl, { apiKey, baseUrl: config.baseUrl }, deps.http, deps.signal);
   const guard = config.guard;
   let page: ScrapedPage | null;
   if (guard) {
