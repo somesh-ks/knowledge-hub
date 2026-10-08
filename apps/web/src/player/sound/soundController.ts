@@ -87,9 +87,9 @@ export function startSound(wiring: SoundWiring): () => void {
 }
 
 /** For the interface: sheets, switches, Generate, scrub detents. Silent until the engine is ready. */
-export function playUiCue(cue: Cue | null): void {
+export function playUiCue(cue: Cue | null): boolean {
   if (cue) lastCueAt = performance.now();
-  playCue(engine, cue);
+  return playCue(engine, cue);
 }
 
 /** True when some other path chose a cue at or after `since` (a `performance.now()` stamp). */

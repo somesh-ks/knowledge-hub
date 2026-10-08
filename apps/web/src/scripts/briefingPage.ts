@@ -3,8 +3,6 @@
  * section tabs and the contents list, and it shares the briefing's address. Loaded by the briefing
  * view. A bundled module runs once per session, so the per-page work listens for astro:page-load.
  */
-import { soundOutcome } from "./uiSound";
-
 const COPIED_MS = 2_000;
 
 let observer: IntersectionObserver | null = null;
@@ -77,7 +75,7 @@ async function share(button: HTMLElement): Promise<void> {
   button.setAttribute("data-copied", "");
   button.setAttribute("aria-label", "Link copied");
   if (status) status.textContent = "Link copied";
-  soundOutcome("success");
+  document.dispatchEvent(new CustomEvent("dispatch:sound", { detail: "success" }));
   setTimeout(() => {
     button.removeAttribute("data-copied");
     button.setAttribute("aria-label", name);

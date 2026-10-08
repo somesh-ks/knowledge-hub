@@ -63,7 +63,11 @@ export function onUiEvent(event: Event): void {
   const target = event.target;
   if (!(target instanceof Element) || !event.isTrusted) return;
   // A select is answered by its change, when the choice is made; opening it is silent.
-  if ((event.type === "change") !== (target.tagName === "SELECT")) return;
+  // A checkbox or radio answers its change too, which runs after the page's own handler for it.
+  const answersChange =
+    target.tagName === "SELECT" ||
+    (target instanceof HTMLInputElement && (target.type === "checkbox" || target.type === "radio"));
+  if ((event.type === "change") !== answersChange) return;
   const control = target.closest(CONTROL);
   if (!control || control.matches(OWNED)) return;
   const info = describeControl(control);
@@ -71,5 +75,8 @@ export function onUiEvent(event: Event): void {
   if (kind === "none") return;
   const start = performance.now();
   if (cuePlayedSince(start - 30) || !allow(start)) return;
-  playUiCue(cueForKind(kind, info.on));
+  const cue = cueForKind(kind, info.on);
+  // Announced so a test (and anything else that cares) can see which cue was heard.
+  if (cue && playUiCue(cue))
+    document.dispatchEvent(new CustomEvent("dispatch:cue", { detail: cue.name }));
 }
