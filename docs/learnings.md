@@ -2,6 +2,10 @@
 
 One line each: symptom, cause, fix. Newest first. Search before debugging.
 
+- A probe of freshly edited agents showed the old behavior (`rm` allowed, `Explore` with every MCP tool): agent files are read at session start. Restart the session before testing an agent definition.
+- The built-in `Explore` carried every MCP tool family, and a three-call lookup used about 275k subagent tokens; a `reviewer` probe of the same size used 13k. Restrict `tools` on any agent that does not need MCP.
+- `docs/build-plan.md` says a 100 KB first-load budget; the enforced value is 102 KB in `apps/web/src/lib/bundleBudget.ts`. Trust the constant.
+
 - Hidden elements rendered on four pages (an error icon with no error, a save bar with nothing to save): the `[hidden]` rule relied on being imported last, and the build reorders stylesheet chunks. The rule now carries an id's weight, and `e2e/hidden.spec.ts` checks every built page.
 - Flick tests failed about one run in seven: the harness asks for 8 ms between touch moves and the page receives them 30 to 50 ms apart, which put a six-step flick on the velocity threshold. Synthesize a flick in three large steps, and log the events the page received before blaming the gesture code.
 - Every lab test failed with `_jsxDEV is not a function`: the dev server's dependency cache went stale while a build ran beside it. Delete `apps/web/node_modules/.vite/deps` and start the dev server on its own.

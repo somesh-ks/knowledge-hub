@@ -19,6 +19,13 @@ The reader is now called Singularity (D30). Identifiers keep `dispatch`. Everyth
 - Checks on the merged branch: typecheck clean, 3,683 unit tests, lint clean, site build at 100.6 KB of the 102 KB first-load budget, site browser suite green (466 tests, including a check on every page that nothing marked hidden renders).
 - Player browser suite, Chromium (the lab on a phone, the built site on a phone, a short phone and a desktop): green. Its dev lab page now renders the real reader components.
 
+## Tooling (D38)
+
+- Ten subagents are defined (eight user level, `dispatch-verify` and `dispatch-worker` in `.claude/agents/`), plus the `/close-session` skill and a read-only Bash hook. Settings add a 1 hour subagent cache and a cap of 4 concurrent agents at depth 1.
+- Verified in a fresh session (agent files load at session start): `reviewer` is blocked on `rm` and on `>` by the hook and has no Write tool; `Explore` has only Read, Grep, Glob, Bash; `general-purpose` runs Sonnet 5.5 without the Agent tool; `dispatch-verify` passed typecheck, 3,686 tests, lint and the static build (100.6 of 102 KB).
+- Untested: the per-call `effort` override, the `omitClaudeMd` saving, `researcher`'s Firecrawl tool names and post cap, `dispatch-worker`, `ui-critic`. `general-purpose` was restricted to core tools and web after one trivial call cost about 289k subagent tokens with every MCP family loaded (`Explore` and `reviewer` cost 9k and 14k); the new tool list is untested until a session restart. `scout` was retired.
+- Lint exit code was not captured by `dispatch-verify`; its pass rests on Biome's summary line.
+
 ## Not working or unverified
 
 - Nothing on the branch has run against live services: Speechify narration (per story and per turn, two voices), the Blob store address the lookup computes, Jev topic-fit questions, Exa source discovery, the writer's `spoken` tellings and podcast scripts.
