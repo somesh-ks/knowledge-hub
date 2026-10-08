@@ -412,6 +412,12 @@ html[data-player="open"] .run-status {
     padding-inline-end: var(--space-1);
   }
 
+  /* The column has room to grow, so the whole line shows. */
+  .run-message {
+    display: block;
+    overflow: visible;
+  }
+
   .run-dismiss {
     grid-area: close;
   }
