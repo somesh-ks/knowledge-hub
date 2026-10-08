@@ -1,6 +1,6 @@
 /**
- * The Create page: the live estimate, the six-topic limit, the passphrase dialog, the request and
- * the wait for the episode. Every sentence it shows is in the page (`[data-k]`), not here, and it
+ * The Create page: the live estimate, the six-topic limit, the passphrase dialog (while the page
+ * has one), the request and the wait for the episode. Every sentence it shows is in the page (`[data-k]`), not here, and it
  * imports nothing, so it stays a small file that loads with the page.
  */
 const KEY = "dispatch:narrate-passphrase";
@@ -11,11 +11,10 @@ function install(): void {
   root.dataset.ready = "";
   const $ = (selector: string) => root.querySelector(selector) as HTMLElement;
   const form = $("[data-create-form]") as HTMLFormElement;
-  const dialog = $("[data-dialog]") as HTMLDialogElement;
-  const dform = $("[data-dialog-form]") as HTMLFormElement;
-  const pass = dform.elements.namedItem("passphrase") as HTMLInputElement;
-  const remember = dform.elements.namedItem("remember") as HTMLInputElement;
-  const send = $("[data-dialog-submit]") as HTMLButtonElement;
+  // Set by the page while no passphrase is asked for: what to send in its place. The page then
+  // has no dialog, and the form's own button sends the request.
+  const open = root.dataset.openPassphrase;
+  const dialog = root.querySelector<HTMLDialogElement>("[data-dialog]");
   const box = $("[data-run]");
   const topics = [...form.querySelectorAll<HTMLInputElement>('input[name="topic"]')];
   const max = Number($("[data-max]").dataset.max);
@@ -29,7 +28,8 @@ function install(): void {
   };
   // Shows a line of error text, or hides the line when given none.
   const say = (name: string, text?: string) => {
-    const line = $(`[data-error="${name}"]`);
+    const line = root.querySelector<HTMLElement>(`[data-error="${name}"]`);
+    if (!line) return;
     line.hidden = !text;
     if (text && line.lastElementChild) line.lastElementChild.textContent = text;
   };
@@ -107,8 +107,36 @@ function install(): void {
     void follow(id);
   }
 
+  /**
+   * Sends the request. A refused passphrase is the caller's to explain; every other answer is
+   * shown here, and a started run is followed.
+   */
+  async function post(passphrase: string, button: HTMLButtonElement): Promise<"wrong" | "done"> {
+    button.disabled = true;
+    const res = await fetch("/api/podcast", {
+      method: "POST",
+      headers: { "content-type": "application/json" },
+      body: JSON.stringify({ passphrase, request: request() }),
+    }).catch(() => null);
+    button.disabled = false;
+    const body = (await res?.json().catch(() => null)) ?? {};
+    if (res?.status === 401) return "wrong";
+    dialog?.close();
+    if (res?.status !== 202 || !body.run_id) {
+      say(
+        "form",
+        res?.status === 429
+          ? `${copy(body.error)} ${wait(body.retry_after_s)}.`
+          : copy(!res ? "network" : res.status === 400 ? "400" : "503"),
+      );
+      return "done";
+    }
+    begin(body.run_id);
+    return "done";
+  }
+
   form.addEventListener("change", sync);
-  form.addEventListener("submit", (event) => {
+  form.addEventListener("submit", async (event) => {
     event.preventDefault();
     if (!topics.some((topic) => topic.checked)) {
       say("topics", copy("topics"));
@@ -116,50 +144,44 @@ function install(): void {
       return;
     }
     say("form");
+    if (open !== undefined || !dialog) {
+      // Nothing was asked, so a refusal here is the service's, not a mistyped passphrase.
+      const sent = await post(open ?? "", $("[data-submit]") as HTMLButtonElement);
+      if (sent === "wrong") say("form", copy("503"));
+      return;
+    }
     say("dialog");
-    pass.value = String(store((s) => s.getItem(KEY)) ?? "");
-    remember.checked = pass.value !== "";
+    const pass = dialog.querySelector<HTMLInputElement>('[name="passphrase"]');
+    const remember = dialog.querySelector<HTMLInputElement>('[name="remember"]');
+    if (pass) pass.value = String(store((s) => s.getItem(KEY)) ?? "");
+    if (remember) remember.checked = pass?.value !== "";
     dialog.showModal();
   });
 
-  $("[data-cancel]").addEventListener("click", () => dialog.close());
+  if (dialog) {
+    const dform = $("[data-dialog-form]") as HTMLFormElement;
+    const pass = dform.elements.namedItem("passphrase") as HTMLInputElement;
+    const remember = dform.elements.namedItem("remember") as HTMLInputElement;
+    const send = $("[data-dialog-submit]") as HTMLButtonElement;
+    $("[data-cancel]").addEventListener("click", () => dialog.close());
 
-  dform.addEventListener("submit", async (event) => {
-    event.preventDefault();
-    const passphrase = pass.value.trim();
-    if (!passphrase) {
-      say("dialog", copy("passphrase"));
-      pass.focus();
-      return;
-    }
-    send.disabled = true;
-    const res = await fetch("/api/podcast", {
-      method: "POST",
-      headers: { "content-type": "application/json" },
-      body: JSON.stringify({ passphrase, request: request() }),
-    }).catch(() => null);
-    send.disabled = false;
-    const body = (await res?.json().catch(() => null)) ?? {};
-    if (res?.status === 401) {
-      store((s) => s.removeItem(KEY));
-      say("dialog", copy("401"));
-      pass.select();
-      return;
-    }
-    if (res?.status !== 202 || !body.run_id) {
-      dialog.close();
-      say(
-        "form",
-        res?.status === 429
-          ? `${copy(body.error)} ${wait(body.retry_after_s)}.`
-          : copy(!res ? "network" : res.status === 400 ? "400" : "503"),
-      );
-      return;
-    }
-    store((s) => (remember.checked ? s.setItem(KEY, passphrase) : s.removeItem(KEY)));
-    dialog.close();
-    begin(body.run_id);
-  });
+    dform.addEventListener("submit", async (event) => {
+      event.preventDefault();
+      const passphrase = pass.value.trim();
+      if (!passphrase) {
+        say("dialog", copy("passphrase"));
+        pass.focus();
+        return;
+      }
+      if ((await post(passphrase, send)) === "wrong") {
+        store((s) => s.removeItem(KEY));
+        say("dialog", copy("401"));
+        pass.select();
+        return;
+      }
+      store((s) => (remember.checked ? s.setItem(KEY, passphrase) : s.removeItem(KEY)));
+    });
+  }
 
   $("[data-run-again]").addEventListener("click", () => {
     box.hidden = true;

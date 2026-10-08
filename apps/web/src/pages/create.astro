@@ -1,6 +1,7 @@
 ---
 import Icon from "../components/Icon.astro";
 import BaseLayout from "../layouts/BaseLayout.astro";
+import { OPEN_PASSPHRASE, PASSPHRASE_REQUIRED } from "../lib/access";
 import {
   AUDIENCES,
   DEFAULTS,
@@ -27,8 +28,12 @@ const topics = topicOptions(sections, allTopics);
 // one by its key, which keeps the page script small.
 const COPY = {
   topics: "Pick at least one topic.",
-  passphrase: "Enter the passphrase to continue.",
-  "401": "That passphrase does not match. Check it and try again.",
+  ...(PASSPHRASE_REQUIRED
+    ? {
+        passphrase: "Enter the passphrase to continue.",
+        "401": "That passphrase does not match. Check it and try again.",
+      }
+    : {}),
   "400": "That request did not go through. Reload the page and try again.",
   cooldown: "Episodes need a short rest between them. Try again in",
   daily_cap: "The limit for today is reached. Try again in",
@@ -43,7 +48,13 @@ const COPY = {
 
 <BaseLayout title="Create a podcast" view="create" skipLabel="Skip to the form">
   <main id="main" tabindex="-1">
-    <div class="settings-view create-view" data-create data-pace={CHARS_PER_MINUTE}>
+    {/* While no passphrase is asked for, the page carries the value its script sends instead. */}
+    <div
+      class="settings-view create-view"
+      data-create
+      data-pace={CHARS_PER_MINUTE}
+      data-open-passphrase={PASSPHRASE_REQUIRED ? undefined : OPEN_PASSPHRASE}
+    >
       <h1 id="page-title" tabindex="-1">Create a podcast</h1>
       <p class="create-lede">
         Pick topics and a length. Singularity writes and reads an episode from the last few days of stories.
@@ -193,6 +204,7 @@ const COPY = {
         </div>
       </section>
 
+      {PASSPHRASE_REQUIRED && (
       <dialog class="sheet" data-dialog aria-labelledby="create-dialog-title">
         <div class="sheet-panel">
           <form class="sheet-form" data-dialog-form novalidate>
@@ -230,6 +242,7 @@ const COPY = {
           </form>
         </div>
       </dialog>
+      )}
 
       <div hidden data-copy>
         {Object.entries(COPY).map(([key, text]) => <p data-k={key}>{text}</p>)}

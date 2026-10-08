@@ -2,6 +2,7 @@
  * Sending the pending edits. Loaded the first time Save is pressed, not with the page: nothing here
  * is needed to read or edit, so it stays out of the first-load budget.
  */
+import { OPEN_PASSPHRASE, PASSPHRASE_REQUIRED } from "../lib/access";
 import type { ConfigOp, ConfigResponse } from "../types/contracts";
 
 const KEY = "dispatch:narrate-passphrase";
@@ -112,8 +113,14 @@ async function send(
   return 429;
 }
 
-/** Asks for the passphrase once if it is not known, then sends the changes one at a time. */
-export async function save(context: SaveContext, given = passphrase ?? memory()): Promise<void> {
+/**
+ * Asks for the passphrase once if it is not known, then sends the changes one at a time. While the
+ * passphrase step is off (lib/access.ts) the fixed value stands in and the dialog never opens.
+ */
+export async function save(
+  context: SaveContext,
+  given = PASSPHRASE_REQUIRED ? (passphrase ?? memory()) : OPEN_PASSPHRASE,
+): Promise<void> {
   const { changes, show, fields, dialog } = context;
   if (!given) {
     const field = dialog.querySelector<HTMLInputElement>("[data-passphrase]") as HTMLInputElement;

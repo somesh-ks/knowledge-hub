@@ -1,6 +1,7 @@
 import AxeBuilder from "@axe-core/playwright";
 import type { Page, Route } from "@playwright/test";
 import { expect, test } from "./fixtures";
+import { PASSPHRASE_OFF, PASSPHRASE_REQUIRED } from "./passphrase";
 
 const WCAG = ["wcag2a", "wcag2aa", "wcag21a", "wcag21aa", "wcag22aa"];
 const PASSPHRASE_KEY = "dispatch:narrate-passphrase";
@@ -44,9 +45,17 @@ async function open(page: Page, path: "topics" | "sources"): Promise<void> {
 const row = (page: Page, name: string) => page.locator("li.manage-row", { hasText: name });
 const bar = (page: Page) => page.locator("[data-bar]");
 
+/** What the page sends as the passphrase: what was typed, or the fixed value while none is asked. */
+const sentAs = (typed: string): string => (PASSPHRASE_REQUIRED ? typed : "open");
+
 async function save(page: Page, passphrase = "correct horse"): Promise<void> {
   await bar(page).getByRole("button", { name: "Save" }).click();
   const dialog = page.getByRole("dialog");
+  if (!PASSPHRASE_REQUIRED) {
+    // Switched off: Save sends at once and no dialog opens.
+    await expect(dialog).toHaveCount(0);
+    return;
+  }
   await expect(dialog).toBeVisible();
   await dialog.getByLabel("Passphrase").fill(passphrase);
   await dialog.getByRole("button", { name: "Continue" }).click();
@@ -147,7 +156,7 @@ test.describe("topics", () => {
       "Saved. The changes appear after the next build, in about a minute.",
     );
     expect(sent).toHaveLength(2);
-    expect(sent.every((request) => request.passphrase === "correct horse")).toBe(true);
+    expect(sent.every((request) => request.passphrase === sentAs("correct horse"))).toBe(true);
     expect(sent[0]?.op).toMatchObject({
       op: "topic.upsert",
       topic: { id: "frontier_model_releases", enabled: false, weight: 1 },
@@ -342,7 +351,7 @@ test.describe("sources", () => {
     await save(page, "open sesame");
     await expect(bar(page).locator("[data-bar-text]")).toContainText("Saved.");
 
-    expect(sent.map((request) => request.passphrase)).toEqual(Array(4).fill("open sesame"));
+    expect(sent.map((request) => request.passphrase)).toEqual(Array(4).fill(sentAs("open sesame")));
     expect(sent.map((request) => request.op)).toEqual(
       expect.arrayContaining([
         { op: "source.set", id: "model-ledger", pinned: true },
@@ -397,6 +406,7 @@ test.describe("sources", () => {
 
 test.describe("saving", () => {
   test("remembers the passphrase only when asked, under the narration key", async ({ page }) => {
+    test.skip(!PASSPHRASE_REQUIRED, PASSPHRASE_OFF);
     const sent = await mockConfig(page);
     await open(page, "sources");
     await page.getByRole("switch", { name: "Quiet Motion" }).click();
@@ -419,6 +429,7 @@ test.describe("saving", () => {
   });
 
   test("cancelling the dialog sends nothing and keeps the changes", async ({ page }) => {
+    test.skip(!PASSPHRASE_REQUIRED, PASSPHRASE_OFF);
     const sent = await mockConfig(page);
     await open(page, "sources");
     await page.getByRole("switch", { name: "Quiet Motion" }).click();
@@ -453,6 +464,7 @@ test.describe("saving", () => {
     test("a wrong passphrase is said plainly, the change stays pending, and the passphrase is forgotten", async ({
       page,
     }) => {
+      test.skip(!PASSPHRASE_REQUIRED, PASSPHRASE_OFF);
       const sent = await mockConfig(page, [
         { status: 401, body: { status: 401, error: "wrong_passphrase" } },
       ]);
@@ -575,6 +587,7 @@ for (const scheme of ["light", "dark"] as const) {
     }
 
     test("the passphrase dialog has none", async ({ page }) => {
+      test.skip(!PASSPHRASE_REQUIRED, PASSPHRASE_OFF);
       await page.emulateMedia({ colorScheme: scheme });
       await open(page, "sources");
       await page.getByRole("switch", { name: "Quiet Motion" }).click();
