@@ -1,14 +1,62 @@
 name: run
 
-# Produces a digest every second day (schedule), on demand (workflow_dispatch), and the weekly pass.
+# Produces a digest on the chosen cadence (schedule), on demand (workflow_dispatch), and the weekly pass.
 # Step names are part of a contract: the site's Generate sheet maps them to its progress list.
 # Gate, Fetch, Judge, Write, Validate and Commit must keep these exact names.
 
 on:
   schedule:
-    # 07:13 Stockholm, off the top of the hour because GitHub delays runs at :00. The timezone key
-    # keeps it at 07:13 local time across daylight saving.
+    # One entry per hour at :13 Stockholm time (off the top of the hour because GitHub delays runs
+    # at :00). Only the hour in the repository variable RUN_CRON (default 13 7 * * *) starts a
+    # runner: the job below is skipped for every other entry, which costs no Actions minutes. The
+    # site sets RUN_CRON from Settings, Schedule.
+    - cron: "13 0 * * *"
+      timezone: "Europe/Stockholm"
+    - cron: "13 1 * * *"
+      timezone: "Europe/Stockholm"
+    - cron: "13 2 * * *"
+      timezone: "Europe/Stockholm"
+    - cron: "13 3 * * *"
+      timezone: "Europe/Stockholm"
+    - cron: "13 4 * * *"
+      timezone: "Europe/Stockholm"
+    - cron: "13 5 * * *"
+      timezone: "Europe/Stockholm"
+    - cron: "13 6 * * *"
+      timezone: "Europe/Stockholm"
     - cron: "13 7 * * *"
+      timezone: "Europe/Stockholm"
+    - cron: "13 8 * * *"
+      timezone: "Europe/Stockholm"
+    - cron: "13 9 * * *"
+      timezone: "Europe/Stockholm"
+    - cron: "13 10 * * *"
+      timezone: "Europe/Stockholm"
+    - cron: "13 11 * * *"
+      timezone: "Europe/Stockholm"
+    - cron: "13 12 * * *"
+      timezone: "Europe/Stockholm"
+    - cron: "13 13 * * *"
+      timezone: "Europe/Stockholm"
+    - cron: "13 14 * * *"
+      timezone: "Europe/Stockholm"
+    - cron: "13 15 * * *"
+      timezone: "Europe/Stockholm"
+    - cron: "13 16 * * *"
+      timezone: "Europe/Stockholm"
+    - cron: "13 17 * * *"
+      timezone: "Europe/Stockholm"
+    - cron: "13 18 * * *"
+      timezone: "Europe/Stockholm"
+    - cron: "13 19 * * *"
+      timezone: "Europe/Stockholm"
+    - cron: "13 20 * * *"
+      timezone: "Europe/Stockholm"
+    - cron: "13 21 * * *"
+      timezone: "Europe/Stockholm"
+    - cron: "13 22 * * *"
+      timezone: "Europe/Stockholm"
+    - cron: "13 23 * * *"
       timezone: "Europe/Stockholm"
   workflow_dispatch:
     inputs:
@@ -30,9 +78,11 @@ on:
         type: boolean
         default: false
 
-# One run at a time. GitHub keeps a single pending run, so duplicate presses collapse.
+# One run at a time. GitHub keeps a single pending run, so duplicate presses collapse. An hourly
+# trigger that is not the chosen hour gets a group of its own: it does nothing, and it must not take
+# the single pending place from a real run.
 concurrency:
-  group: dispatch
+  group: ${{ (github.event_name == 'schedule' && github.event.schedule != (vars.RUN_CRON || '13 7 * * *')) && format('dispatch-skipped-{0}', github.run_id) || 'dispatch' }}
   cancel-in-progress: false
 
 permissions:
@@ -40,6 +90,7 @@ permissions:
 
 jobs:
   run:
+    if: github.event_name != 'schedule' || github.event.schedule == (vars.RUN_CRON || '13 7 * * *')
     runs-on: ubuntu-latest
     timeout-minutes: 25
     outputs:
