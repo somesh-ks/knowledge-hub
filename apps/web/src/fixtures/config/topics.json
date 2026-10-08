@@ -1,0 +1,91 @@
+{
+  "version": 1,
+  "sections": [
+    {
+      "id": "top",
+      "title": "Top picks",
+      "order": 0
+    },
+    {
+      "id": "ui-craft",
+      "title": "Interaction craft",
+      "order": 1
+    },
+    {
+      "id": "ai",
+      "title": "AI models and products",
+      "order": 2
+    },
+    {
+      "id": "tech",
+      "title": "Tech releases",
+      "order": 3
+    }
+  ],
+  "topics": [
+    {
+      "id": "design_engineering_craft",
+      "name": "Design engineering craft",
+      "description": "How an interface detail was built, with the technique shown.",
+      "weight": 0.95,
+      "enabled": true,
+      "keywords": [],
+      "section_id": "ui-craft",
+      "never_publish": false,
+      "origin": "builtin",
+      "depth": 3
+    },
+    {
+      "id": "frontier_model_releases",
+      "name": "Frontier model releases",
+      "description": "Releases, model cards and benchmarks for frontier AI models.",
+      "weight": 0.5,
+      "enabled": true,
+      "keywords": [],
+      "section_id": "ai",
+      "never_publish": false,
+      "origin": "builtin",
+      "depth": 2
+    },
+    {
+      "id": "consumer_tech_releases",
+      "name": "Consumer tech releases",
+      "description": "Phones, laptops, wearables and the software that ships on them.",
+      "weight": 0.1,
+      "enabled": false,
+      "keywords": [],
+      "section_id": "tech",
+      "never_publish": false,
+      "origin": "builtin",
+      "depth": 1
+    },
+    {
+      "id": "audio_interfaces",
+      "name": "Audio interfaces",
+      "description": "Interface work on players, voice and sound.",
+      "weight": 0.75,
+      "enabled": true,
+      "keywords": [
+        "audio",
+        "voice",
+        "player"
+      ],
+      "section_id": "tech",
+      "never_publish": false,
+      "origin": "custom",
+      "depth": 2
+    },
+    {
+      "id": "venture_capital_and_gossip",
+      "name": "Venture capital and gossip",
+      "description": "Funding rounds, valuations and industry gossip.",
+      "weight": 0.1,
+      "enabled": true,
+      "keywords": [],
+      "section_id": "top",
+      "never_publish": true,
+      "origin": "builtin",
+      "depth": 0
+    }
+  ]
+}

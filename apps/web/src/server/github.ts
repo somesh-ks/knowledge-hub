@@ -164,3 +164,62 @@ export function createGitHubClient(config: ServerConfig, fetchImpl: FetchLike): 
     },
   };
 }
+
+export const CONFIG_WORKFLOW_FILE = "config.yml";
+
+/** The two calls the config route makes on a workflow other than run.yml. */
+export interface WorkflowDispatcher {
+  /** Recent workflow_dispatch runs of the workflow on main, newest first. */
+  listDispatchRuns(): Promise<WorkflowRun[]>;
+  /** Starts the workflow on main. Returns the new run's id, or null when GitHub did not report one. */
+  dispatch(inputs: Record<string, string>): Promise<number | null>;
+}
+
+/**
+ * The same two calls as createGitHubClient makes for run.yml, for any workflow file. It stands beside
+ * that client and leaves it alone: the Generate flow keeps its fixed file name.
+ */
+export function createWorkflowDispatcher(
+  config: ServerConfig,
+  fetchImpl: FetchLike,
+  workflowFile: string,
+): WorkflowDispatcher {
+  const base = `${API}/repos/${config.owner}/${config.repo}/actions/workflows/${workflowFile}`;
+
+  function request(path: string, init: RequestInit = {}): Promise<Response> {
+    return fetchImpl(`${base}${path}`, {
+      ...init,
+      headers: {
+        Authorization: `Bearer ${config.token}`,
+        Accept: "application/vnd.github+json",
+        "X-GitHub-Api-Version": API_VERSION,
+        "User-Agent": "dispatch-site",
+        ...(init.body ? { "Content-Type": "application/json" } : {}),
+      },
+      signal: AbortSignal.timeout(REQUEST_TIMEOUT_MS),
+    });
+  }
+
+  return {
+    async listDispatchRuns() {
+      const response = await request("/runs?event=workflow_dispatch&branch=main&per_page=30");
+      if (!response.ok) throw new GitHubError(response.status);
+      const body: unknown = await response.json();
+      const runs = isRecord(body) && Array.isArray(body.workflow_runs) ? body.workflow_runs : [];
+      return runs.map(parseRun).filter((run): run is WorkflowRun => run !== null);
+    },
+
+    async dispatch(inputs) {
+      const response = await request("/dispatches", {
+        method: "POST",
+        body: JSON.stringify({ ref: "main", inputs, return_run_details: true }),
+      });
+      if (!response.ok) throw new GitHubError(response.status);
+      if (response.status === 204) return null;
+      const body: unknown = await response.json().catch(() => null);
+      return isRecord(body) && typeof body.workflow_run_id === "number"
+        ? body.workflow_run_id
+        : null;
+    },
+  };
+}

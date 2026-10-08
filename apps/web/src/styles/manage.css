@@ -1,0 +1,473 @@
+/*
+ * The Topics and Sources pages: rows in the shared row grammar (primitives.css), a form of fields,
+ * the bar that counts unsaved changes, and the passphrase dialog. The switch and the slider are the
+ * settings page's (settings.css), the search field and the chips are the Library's (library.css).
+ * Imported by pages/settings/topics.astro and sources.astro, after the layout's stylesheets.
+ *
+ * Type comes in two steps only: a name at the body size and one quiet line at the label size, with
+ * air between them. Nothing small sits tight against anything larger.
+ *
+ * Until managePage.ts has mounted, .manage has no data-ready: the list reads as it is, the controls
+ * keep their places and do not answer, and the forms that need the script stay out of the page.
+ */
+
+.manage {
+  padding-block: var(--space-2) var(--space-8);
+}
+
+/* Room for the bar that floats over the end of the page, so the last row is never covered. */
+.manage[data-pending] {
+  padding-block-end: var(--space-24);
+}
+
+.manage:not([data-ready]) [data-needs-js] {
+  display: none;
+}
+
+.manage:not([data-ready]) .manage-row :is(input, button) {
+  pointer-events: none;
+}
+
+/* ------------------------------------------------------------------ the top of the page */
+
+/* A text button that goes back. Its glyph lines up with the page gutter, not its padding. */
+.manage-back {
+  margin-inline-start: calc(var(--space-3) * -1);
+}
+
+.manage-title {
+  padding-block: var(--space-2) 0;
+}
+
+.manage-note {
+  color: var(--color-on-surface-muted);
+  font-size: var(--font-size-label);
+  line-height: var(--font-leading-caption);
+}
+
+/* A fieldset is how one flag, disabled, switches every control off while the changes are sent. */
+.manage-fields {
+  min-width: 0;
+  margin: 0;
+  padding: 0;
+  border: 0;
+}
+
+.manage-fields:disabled :is(.settings-switch, .filter-chip, .manage-input, .search-field) {
+  opacity: var(--opacity-disabled);
+  cursor: default;
+}
+
+/* ------------------------------------------------------------------ the add form */
+
+.manage-form {
+  display: grid;
+  gap: var(--space-4);
+  padding-block-end: var(--space-2);
+}
+
+.manage-form > .section-head {
+  padding-block: var(--space-6) 0;
+}
+
+.manage-field {
+  display: grid;
+  gap: var(--space-2);
+}
+
+.manage-field > label {
+  font-size: var(--font-size-label);
+  font-weight: var(--font-weight-medium);
+  line-height: var(--font-leading-label);
+}
+
+.manage-input {
+  width: 100%;
+  min-height: var(--field-height);
+  padding-inline: var(--field-padding);
+  border: var(--stroke-hairline) solid var(--field-border);
+  border-radius: var(--field-radius);
+  background: var(--field-bg);
+  color: var(--color-on-surface);
+  /* The body size, 16px, so iOS never zooms into a field. */
+  font-size: var(--font-size-body);
+  line-height: var(--font-leading-body);
+  transition: border-color var(--duration-hover) var(--ease-hover);
+}
+
+textarea.manage-input {
+  padding-block: var(--space-3);
+  resize: vertical;
+}
+
+.manage-input::placeholder {
+  color: var(--color-on-surface-muted);
+  opacity: 1;
+}
+
+/* The focus ring sits on the field's own edge and covers it, so a focused field has one accent line. */
+.manage-input:focus-visible {
+  outline-offset: calc(var(--stroke-hairline) * -1);
+  border-color: var(--color-accent);
+  box-shadow: none;
+}
+
+.manage-form .manage-submit {
+  width: 100%;
+}
+
+@media (min-width: 40rem) {
+  .manage-form .manage-submit {
+    width: auto;
+    justify-self: start;
+    padding-inline: var(--space-6);
+  }
+}
+
+.manage-tools {
+  padding-block: var(--space-6) 0;
+}
+
+.manage-tools.library-tools {
+  padding-block-end: 0;
+}
+
+/* The chip is 36px tall plus its border, so its 44px target is laid out from inside the border and
+   comes up 2px short. This takes the border back, as reader.css does for the play chip. */
+.manage-tools .filter-chip::after {
+  inset-block: calc((var(--size-touch) - var(--chip-height)) / -2 - var(--stroke-hairline));
+  inset-inline: calc(var(--stroke-hairline) * -1);
+}
+
+/* ------------------------------------------------------------------ rows */
+
+.manage-row {
+  scroll-margin-block-end: calc(var(--size-touch-comfortable) + var(--space-8));
+}
+
+.manage-main {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+  min-height: var(--size-touch);
+}
+
+.manage-text {
+  display: grid;
+  flex: 1 1 0;
+  gap: var(--space-1);
+  min-width: 0;
+}
+
+.manage-name {
+  font-size: var(--font-size-body);
+  font-weight: var(--font-weight-medium);
+  line-height: var(--font-leading-label);
+  overflow-wrap: anywhere;
+}
+
+.manage-quiet {
+  color: var(--color-on-surface-muted);
+  font-size: var(--font-size-label);
+  line-height: var(--font-leading-caption);
+  overflow-wrap: anywhere;
+}
+
+/* A row waiting to be removed says so in place of its line, and its name is struck through. */
+.manage-flag {
+  display: none;
+}
+
+.manage-row:has([data-remove][aria-pressed="true"]) .manage-flag {
+  display: block;
+}
+
+.manage-row:has([data-remove][aria-pressed="true"]) [data-line] {
+  display: none;
+}
+
+.manage-row:has([data-remove][aria-pressed="true"]) .manage-name {
+  text-decoration: line-through;
+}
+
+/* Saved, so out of the list. The next build drops it for good. */
+.manage-row[data-gone] {
+  display: none;
+}
+
+/* The search hides rows by text (the hidden attribute); a section left with no row goes with them. */
+.manage-fields [data-section-of]:not(:has([data-find]:not([hidden], [data-gone]))) {
+  display: none;
+}
+
+/* The chips only name a filter on the page; these rules do the filtering. */
+.manage[data-filter="pinned"] .manage-row[data-find]:not(:has([data-pin][aria-pressed="true"])),
+.manage[data-filter="off"] .manage-row[data-find]:not(:has(.settings-switch:not(:checked))),
+.manage[data-filter="suggested"] [data-section-of="sources"],
+.manage:is([data-filter="pinned"], [data-filter="off"]) [data-section-of="suggested"] {
+  display: none;
+}
+
+/* The icon buttons sit flush with the gutter at the end of the row. */
+.manage-main > .icon-btn:last-child {
+  margin-inline-end: calc(var(--space-3) * -1);
+}
+
+.manage-pin[aria-pressed="true"] {
+  color: var(--color-accent);
+}
+
+.manage-pin .icon:first-child {
+  display: block;
+}
+
+.manage-pin .icon:last-child,
+.manage-pin[aria-pressed="true"] .icon:first-child {
+  display: none;
+}
+
+.manage-pin[aria-pressed="true"] .icon:last-child {
+  display: block;
+}
+
+.manage-remove[aria-pressed="true"] {
+  color: var(--color-danger);
+}
+
+/* The amount: a five-step slider and, beside it, the step in words. */
+.manage-weight {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+  margin-block-start: var(--space-2);
+}
+
+.manage-weight > .settings-range {
+  flex: 1 1 auto;
+}
+
+/* A topic that is off keeps its slider, set where it was, and shows it as unused. */
+.manage-row:has(.settings-switch:not(:checked)) .settings-range {
+  opacity: var(--opacity-disabled);
+}
+
+.manage-word {
+  flex: none;
+  min-width: 6rem;
+  text-align: end;
+}
+
+/* A suggestion's button shows Add, or Added once it is picked. */
+.manage-suggest {
+  margin-inline-end: calc(var(--space-3) * -1);
+}
+
+.manage-suggest .icon:last-of-type,
+.manage-suggest-added,
+.manage-suggest[aria-pressed="true"] .icon:first-of-type,
+.manage-suggest[aria-pressed="true"] .manage-suggest-add {
+  display: none;
+}
+
+.manage-suggest[aria-pressed="true"] .icon:last-of-type,
+.manage-suggest[aria-pressed="true"] .manage-suggest-added {
+  display: inline;
+}
+
+.manage-suggest[aria-pressed="true"] .icon:last-of-type {
+  display: block;
+}
+
+.manage-queued:empty {
+  display: none;
+}
+
+/* ------------------------------------------------------------------ the bar of unsaved changes */
+
+/*
+ * Floats above the bottom navigation, and above the docked player when there is one. From 64rem the
+ * navigation is a side column and the bar rests at the foot of the page beside it.
+ */
+.manage-bar {
+  position: fixed;
+  inset-inline: calc(var(--side-nav-width) + var(--space-2)) var(--space-2);
+  inset-block-end: calc(var(--bottom-nav-height) + var(--space-2));
+  z-index: calc(var(--z-mini) - 1);
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--space-2) var(--space-3);
+  max-width: var(--layout-mini-max);
+  margin-inline: auto;
+  padding: var(--space-2) var(--space-2) var(--space-2) var(--space-4);
+  border-radius: var(--mini-player-radius);
+  background: var(--mini-player-bg);
+  box-shadow: var(--mini-player-shadow);
+  animation: manage-bar-in var(--duration-enter) var(--ease-out);
+}
+
+html[data-mini="visible"] .manage-bar {
+  inset-block-end: calc(
+    var(--bottom-nav-height) +
+    var(--player-dock-height, var(--nav-bar-height)) +
+    var(--space-2)
+  );
+}
+
+@keyframes manage-bar-in {
+  from {
+    opacity: 0;
+    transform: translateY(var(--distance-base));
+  }
+}
+
+.manage-bar-text {
+  flex: 1 1 auto;
+  min-width: 0;
+  font-size: var(--font-size-label);
+  font-weight: var(--font-weight-medium);
+  line-height: var(--font-leading-label);
+}
+
+.manage-bar-actions {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  margin-inline-start: auto;
+}
+
+/* The save button here is a compact one, not the full-width block of a form. */
+.manage-bar .btn-primary {
+  width: auto;
+  padding-inline: var(--space-6);
+}
+
+.manage-bar[data-state="done"] {
+  flex-wrap: nowrap;
+}
+
+.manage-bar[data-state="done"] .manage-bar-text {
+  flex: 1 1 0;
+}
+
+.manage-bar:not([data-state="done"]) [data-act="dismiss"],
+.manage-bar:is([data-state="done"], [data-state="saving"])
+  :is([data-act="discard"], [data-act="save"]),
+.manage-bar[data-state="saving"] .manage-bar-actions {
+  display: none;
+}
+
+.manage-bar[data-state="error"] .manage-bar-text {
+  color: var(--color-danger);
+}
+
+/* ------------------------------------------------------------------ the passphrase dialog */
+
+.manage-dialog {
+  width: min(calc(100% - var(--space-8)), var(--layout-dialog));
+  padding: var(--space-6);
+  border: 0;
+  border-radius: var(--radius-xl);
+  background: var(--color-surface-overlay);
+  box-shadow: var(--shadow-popover);
+  color: var(--color-on-surface);
+  animation: manage-dialog-in var(--duration-enter) var(--ease-out);
+}
+
+.manage-dialog::backdrop {
+  background: var(--color-scrim);
+}
+
+@keyframes manage-dialog-in {
+  from {
+    opacity: 0;
+    transform: scale(var(--scale-enter));
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .manage-dialog,
+  .manage-bar {
+    animation-name: manage-fade-in;
+  }
+
+  @keyframes manage-fade-in {
+    from {
+      opacity: 0;
+    }
+  }
+}
+
+.manage-dialog-form {
+  display: grid;
+  gap: var(--space-4);
+}
+
+.manage-dialog-form > h2 {
+  font-family: var(--text-heading-family);
+  font-size: var(--text-heading-size);
+  font-weight: var(--text-heading-weight);
+  line-height: var(--text-heading-leading);
+}
+
+/* A native checkbox with its label: the whole line is the target. */
+.manage-check {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+  min-height: var(--size-touch);
+  font-size: var(--font-size-label);
+  cursor: pointer;
+}
+
+.manage-check > input {
+  width: var(--size-icon);
+  height: var(--size-icon);
+  flex: none;
+  margin: 0;
+  accent-color: var(--color-accent);
+}
+
+.manage-dialog-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: var(--space-2);
+}
+
+.manage-dialog-actions .btn-primary {
+  width: auto;
+  padding-inline: var(--space-6);
+}
+
+@media (hover: hover) and (pointer: fine) {
+  .manage-input:hover {
+    border-color: var(--color-on-surface);
+  }
+
+  .manage-input:hover:focus-visible {
+    border-color: var(--color-accent);
+  }
+}
+
+@media (forced-colors: active) {
+  .manage-bar,
+  .manage-dialog {
+    border: var(--stroke-hairline) solid CanvasText;
+  }
+
+  .manage-pin[aria-pressed="true"] {
+    color: Highlight;
+  }
+}
+
+/* ------------------------------------------------------------------ hairlines in a filtered list */
+
+/* A hairline runs above a row only when a row that shows sits above it, so a list that starts at
+   its third row does not open with a line. */
+.manage-fields .rows > * + *::before {
+  content: none;
+}
+
+.manage-fields .rows > :not([hidden], [data-gone]) ~ :not([hidden], [data-gone])::before {
+  content: "";
+}
