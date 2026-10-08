@@ -1,33 +1,24 @@
-import { useId } from "react";
 import { getPlayerStore } from "./core/playerRuntime";
 import { PLAYBACK_RATES } from "./core/playerTypes";
 import { usePlayerState } from "./hooks/usePlayer";
 
 /**
- * 1x, 1.25x, 1.5x, 2x with pitch preserved, as a row of round outlined chips. Native radios inside
- * labels: arrow keys, form state and the accessible group come free. The choice is remembered and
- * shared with Settings.
+ * One quiet button that shows the speed and steps to the next one: 1x, 1.25x, 1.5x, 2x, and round
+ * again, with pitch preserved. The choice is remembered and shared with Settings, where all four
+ * are laid out to pick from.
  */
 export default function SpeedControl() {
   const state = usePlayerState();
-  const name = useId();
+  const index = (PLAYBACK_RATES as readonly number[]).indexOf(state.rate);
+  const next = PLAYBACK_RATES[(index + 1) % PLAYBACK_RATES.length] ?? 1;
   return (
-    <fieldset className="speed">
-      <legend className="speed-legend">Speed</legend>
-      <div className="speed-chips">
-        {PLAYBACK_RATES.map((rate) => (
-          <label key={rate} className="speed-chip">
-            <input
-              type="radio"
-              name={name}
-              value={rate}
-              checked={rate === state.rate}
-              onChange={() => getPlayerStore().setRate(rate)}
-            />
-            <span>{rate}x</span>
-          </label>
-        ))}
-      </div>
-    </fieldset>
+    <button
+      className="speed-btn press num"
+      type="button"
+      aria-label={`Speed ${state.rate}x. Change to ${next}x`}
+      onClick={() => getPlayerStore().setRate(next)}
+    >
+      {state.rate}x
+    </button>
   );
 }

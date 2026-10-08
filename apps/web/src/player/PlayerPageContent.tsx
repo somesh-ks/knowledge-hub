@@ -9,7 +9,8 @@ import UpNext from "./UpNext";
 
 /**
  * The player page's lazy half. Two groups, so a wide screen can set them side by side: the
- * controls that belong with the cover, and the list of what is in the briefing.
+ * controls that belong with the cover, and the list of what is in the briefing. Under the
+ * transport sits one quiet row: the speed, and where the story came from.
  */
 export default function PlayerPageContent() {
   return (
@@ -18,8 +19,10 @@ export default function PlayerPageContent() {
         <PlayerNotice onRetry={() => getPlayerStore().retry()} />
         <Scrubber />
         <TransportControls />
-        <SpeedControl />
-        <SourceLink />
+        <div className="player-utility">
+          <SpeedControl />
+          <SourceLink />
+        </div>
       </div>
       <div className="player-list">
         <UpNext />

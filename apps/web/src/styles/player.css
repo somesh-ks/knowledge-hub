@@ -38,7 +38,6 @@
   --player-column-max: 28rem;
   /* The cover never takes more than this share of the window's height. */
   --player-cover-share: 40cqb;
-  --player-chip-size: var(--size-touch-comfortable);
   --player-skip-glyph: 2rem;
   --player-row-mark: var(--space-2);
 }
@@ -323,6 +322,13 @@
   background: var(--player-handle-color);
 }
 
+@media (hover: hover) and (pointer: fine) {
+  /* A mouse closes with the chevron or Escape; there is nothing to grab. */
+  .player-handle {
+    visibility: hidden;
+  }
+}
+
 .player-head {
   display: grid;
   grid-template-columns: var(--size-touch) minmax(0, 1fr) var(--size-touch);
@@ -396,8 +402,7 @@
 }
 
 .player-section-title,
-.segmented-legend,
-.speed-legend {
+.segmented-legend {
   display: block;
   margin-block: var(--space-4) var(--space-2);
   padding: 0;
@@ -495,6 +500,7 @@
   translate: 0 0;
   transition:
     translate var(--duration-sheet-in) var(--ease-drawer),
+    background-color var(--duration-hover) var(--ease-hover),
     visibility 0s;
   /* Its own group during view transitions, so the bar stays put while the page crossfades. */
   view-transition-name: mini-player;
@@ -537,6 +543,30 @@
   text-align: start;
   /* The open button owns vertical pans, so a pull up reaches script instead of scrolling the page. */
   touch-action: none;
+}
+
+/* The whole bar opens the player: the open button's target is stretched over it. The bar's other
+   controls sit above that, and the gaps between them fall through to it. */
+.dock-open::after {
+  position: absolute;
+  inset: 0;
+  content: "";
+}
+
+.dock-transport,
+.dock-tools {
+  position: relative;
+  z-index: 1;
+  pointer-events: none;
+}
+
+:is(.dock-transport, .dock-tools) :is(button, input) {
+  pointer-events: auto;
+}
+
+/* One target, so the whole bar answers a press. */
+.player-dock:has(.dock-open:active) {
+  background: var(--color-surface-sunken);
 }
 
 .player-thumb {
@@ -778,8 +808,12 @@
   }
 
   .dock-btn:not([data-primary], [aria-disabled="true"]):hover,
-  .dock-open:hover,
   .player-collapse:hover {
+    background: var(--color-surface-sunken);
+  }
+
+  /* Not while the pointer is on one of the bar's own controls: then the control answers. */
+  .player-dock:has(.dock-open:hover) {
     background: var(--color-surface-sunken);
   }
 
@@ -805,7 +839,8 @@
   }
 
   /* Committed open: what is left of the bar must not catch a press meant for the page. */
-  .player[data-open="true"] .player-dock {
+  .player[data-open="true"] .player-dock,
+  .player[data-open="true"] .player-dock :is(button, input) {
     pointer-events: none;
   }
 
@@ -1138,67 +1173,33 @@
   }
 }
 
-/* ------------------------------------------------------------------ speed */
+/* ------------------------------------------------------------------ speed and source */
 
-.speed {
-  min-width: 0;
-  margin: 0;
-  padding: 0;
-  border: 0;
-}
-
-.speed-chips {
+/* The quiet row under the transport: the speed on one side, where the story came from on the other. */
+.player-utility {
   display: flex;
-  justify-content: center;
-  gap: var(--space-3);
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-4);
+  /* The labels sit on the content edge; the targets extend outward. */
+  margin-inline: calc(var(--space-3) * -1);
 }
 
-/* Round and outlined. The chosen one gets a heavier ring and a fill, so selection never depends
-   on color alone. */
-.speed-chip {
-  position: relative;
-  display: grid;
-  place-items: center;
-  width: var(--player-chip-size);
-  height: var(--player-chip-size);
-  border-radius: var(--radius-round);
-  box-shadow: inset 0 0 0 var(--stroke-hairline) var(--color-border-control);
-  color: var(--color-on-surface-muted);
-  font-size: var(--font-size-caption);
-  font-weight: var(--font-weight-semibold);
-  transition:
-    background-color var(--duration-hover) var(--ease-hover),
-    color var(--duration-hover) var(--ease-hover),
-    transform var(--duration-press-out) var(--ease-out);
-}
-
-.speed-chip:active {
-  transform: scale(var(--scale-press));
-  transition-duration: var(--duration-hover), var(--duration-hover), var(--duration-press-in);
-}
-
-.speed-chip input {
-  position: absolute;
-  inset: 0;
-  margin: 0;
-  opacity: 0;
-  cursor: pointer;
-}
-
-.speed-chip:has(input:checked) {
-  background: var(--color-accent-subtle);
-  box-shadow: inset 0 0 0 var(--stroke-rail) var(--color-accent);
+/* Shows the speed and steps to the next. Text only: it is the least used control on the page. */
+.speed-btn {
+  min-width: var(--size-touch);
+  min-height: var(--size-touch);
+  padding-inline: var(--space-3);
+  border-radius: var(--control-radius-sm);
   color: var(--color-on-surface);
-}
-
-.speed-chip:has(input:focus-visible) {
-  outline: var(--stroke-ring) solid var(--color-focus-ring);
-  outline-offset: var(--stroke-ring-gap);
+  font-size: var(--font-size-label);
+  font-weight: var(--font-weight-medium);
 }
 
 @media (hover: hover) and (pointer: fine) {
-  .speed-chip:hover {
-    color: var(--color-on-surface);
+  .speed-btn:hover,
+  .player-source-link:hover {
+    background: var(--color-surface-sunken);
   }
 }
 
@@ -1275,23 +1276,27 @@
 
 /* ------------------------------------------------------------------ source, stories, notice, up next */
 
-.player-source {
-  display: flex;
-  justify-content: center;
-  padding-block-start: var(--space-2);
-}
-
 .player-source-link {
   display: inline-flex;
   align-items: center;
   gap: var(--space-2);
+  min-width: 0;
   min-height: var(--size-touch);
+  /* On the far side of the row, with or without a speed button beside it. */
+  margin-inline-start: auto;
   padding-inline: var(--space-3);
   border-radius: var(--control-radius-sm);
   color: var(--color-accent);
   font-size: var(--font-size-meta);
-  font-weight: var(--font-weight-semibold);
+  font-weight: var(--font-weight-medium);
   text-decoration: none;
+  transition: background-color var(--duration-hover) var(--ease-hover);
+}
+
+.player-source-link span {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
 .player-source-link .ui-icon {
@@ -1427,6 +1432,56 @@
   font-size: var(--font-size-meta);
 }
 
+/* ------------------------------------------------------------------ wide, with a mouse: nothing said twice */
+
+/* After the rules it changes, so it wins at equal weight. */
+@media (min-width: 64rem) and (hover: hover) and (pointer: fine) {
+  /* The bar stays under the page here, with previous, play, next, the clock and the volume. The
+     page does not say them twice: it keeps the scrubber and what the bar has not, the two skips,
+     in one row with the speed and the source. */
+  .player-controls {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) auto minmax(0, 1fr);
+    /* The column is as tall as the list beside it; its rows stay together at the top. */
+    align-content: start;
+    row-gap: var(--space-2);
+    align-items: center;
+  }
+
+  .player-controls > :is(.player-notice, .scrubber-wrap) {
+    grid-column: 1 / -1;
+  }
+
+  .player-utility {
+    display: contents;
+  }
+
+  .transport {
+    grid-row: 3;
+    grid-column: 2;
+    gap: var(--space-2);
+    padding-block: 0;
+  }
+
+  .transport-btn:not(.transport-skip) {
+    display: none;
+  }
+
+  .speed-btn {
+    grid-row: 3;
+    grid-column: 1;
+    justify-self: start;
+    margin-inline-start: calc(var(--space-3) * -1);
+  }
+
+  .player-source-link {
+    grid-row: 3;
+    grid-column: 3;
+    justify-self: end;
+    margin-inline-end: calc(var(--space-3) * -1);
+  }
+}
+
 /* ------------------------------------------------------------------ the document behind */
 
 /* Through the root attribute the navigation code already carries from page to page. With the
@@ -1494,7 +1549,6 @@ html[data-player="open"] {
   /* Shadows are dropped in forced colors, so every edge that was a shadow becomes a border. */
   .player-cover-frame,
   .player-page,
-  .speed-chip,
   .player-upnext-row {
     border: var(--stroke-hairline) solid CanvasText;
   }
@@ -1510,7 +1564,6 @@ html[data-player="open"] {
   }
 
   .segmented label:has(input:checked),
-  .speed-chip:has(input:checked),
   .story-row[aria-current="true"] {
     border: var(--stroke-rail) solid Highlight;
   }
