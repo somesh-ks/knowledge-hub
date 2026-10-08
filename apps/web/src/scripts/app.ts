@@ -17,3 +17,8 @@ installCreateEntry();
 installDeviceBanners();
 installThemeColor();
 registerServiceWorker();
+try {
+  if (localStorage.getItem("dispatch:deleted-episodes")) void import("./deletedEpisodes");
+} catch {
+  // Storage can be blocked; nothing is then hidden.
+}
