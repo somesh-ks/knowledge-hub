@@ -302,11 +302,11 @@ describe("handlePodcast for an episode action", () => {
 
   it("holds regenerate to the episode policy, like a new episode", async () => {
     const { deps, github } = setup();
-    github.on(RUNS, { json: { workflow_runs: [podcastRun({ created_at: minutesAgo(10) })] } });
+    github.on(RUNS, { json: { workflow_runs: [podcastRun({ created_at: minutesAgo(1) })] } });
     const result = await handlePodcast(input(regen()), deps);
     expect(result).toMatchObject({
       status: 429,
-      body: { error: "cooldown", retry_after_s: PODCAST_COOLDOWN_MS / 1000 - 600 },
+      body: { error: "cooldown", retry_after_s: PODCAST_COOLDOWN_MS / 1000 - 60 },
     });
   });
 });
