@@ -56,18 +56,19 @@ function topicLabel(topic: string): string {
   return words.charAt(0).toUpperCase() + words.slice(1);
 }
 
-const TITLE_MAX = 80;
+/** How many topics a default title names before it says "and N more". */
+const TITLE_TOPICS = 2;
 
-/** The listener's title, or "Singularity: <topics>" trimmed to the title limit on a whole topic. */
+/**
+ * The listener's title, or a short one made of the topics: "AI Products and Design", or the first
+ * two "and 2 more". It sits under album art in a grid, so it has to read in two short lines.
+ */
 export function episodeTitle(request: PodcastRequest): string {
   if (request.title) return request.title;
-  let title = "Singularity";
-  for (const [index, topic] of request.topic_ids.entries()) {
-    const next = `${title}${index === 0 ? ": " : ", "}${topicLabel(topic)}`;
-    if (next.length > TITLE_MAX) break;
-    title = next;
-  }
-  return title;
+  const names = request.topic_ids.map(topicLabel);
+  if (names.length <= TITLE_TOPICS) return names.join(" and ");
+  const rest = names.length - TITLE_TOPICS;
+  return `${names.slice(0, TITLE_TOPICS).join(", ")} and ${rest} more`;
 }
 
 export interface BuildEpisodeInput {

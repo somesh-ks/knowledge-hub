@@ -22,9 +22,15 @@
 }
 
 .card-title {
+  /* Two lines at most: an episode can carry a long title, and a tall card breaks the row. */
+  display: -webkit-box;
+  overflow: hidden;
   font-size: var(--font-size-body);
   font-weight: var(--font-weight-medium);
   line-height: var(--font-leading-label);
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 2;
+  line-clamp: 2;
 }
 
 .card-facts {
