@@ -21,7 +21,7 @@ import { writeFileAtomic } from "../state/atomicWrite.js";
 import { stableStringify } from "../state/stableJson.js";
 import { readSourceCandidates } from "../state/store.js";
 import { loadTopics, serializeTopics } from "../topics/store.js";
-import { loadWriter, serializeWriter } from "../writer/store.js";
+import { loadWriterForEdit, serializeWriter } from "../writer/store.js";
 
 const USAGE = `Usage: dispatch config <command>
 
@@ -75,7 +75,7 @@ async function readBundle(root: string): Promise<ConfigBundle> {
   const [topics, schedule, writer, sourcesUser, registry, queries, candidates] = await Promise.all([
     loadTopics(root, preferences),
     loadSchedule(root),
-    loadWriter(root),
+    loadWriterForEdit(root),
     loadUserSources(root),
     loadSources(root),
     loadQueries(root),

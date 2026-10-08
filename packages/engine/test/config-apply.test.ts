@@ -309,6 +309,31 @@ describe("writer.set", () => {
     }
     expect(repo.dirty()).toEqual([]);
   });
+
+  it("a broken config/writer.json does not block an edit to something else", async () => {
+    await writeFileIn("config/writer.json", "{ not json");
+    const { code, report } = await apply({
+      op: "schedule.set",
+      hour: 9,
+      cadence_days: 3,
+      sections: null,
+    });
+    expect(code).toBe(0);
+    // The schedule is saved, and the broken file is left for the next pick of a model to replace.
+    expect(report.files).toEqual(["config/schedule.json"]);
+  });
+
+  it("picking a model replaces a broken config/writer.json", async () => {
+    await writeFileIn("config/writer.json", '{ "version": 1, "provider": "someone-else" }');
+    const { code, report } = await apply(SET);
+    expect(code).toBe(0);
+    expect(report.files).toEqual(["config/writer.json"]);
+    expect(await repo.readJson("config/writer.json")).toEqual({
+      version: 1,
+      provider: "nebius",
+      model: "meta-llama/Llama-3.3-70B-Instruct",
+    });
+  });
 });
 
 describe("topic.remove", () => {

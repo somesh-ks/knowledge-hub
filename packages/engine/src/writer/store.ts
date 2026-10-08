@@ -40,6 +40,20 @@ export async function loadWriter(root: string): Promise<WriterFile> {
 }
 
 /**
+ * The writer settings a config edit starts from. A file that cannot be read counts as the defaults
+ * here, as it does for a run: one broken settings file must not block edits to topics, sources or
+ * the schedule, and the next pick of a model replaces it.
+ */
+export async function loadWriterForEdit(root: string): Promise<WriterFile> {
+  try {
+    return await loadWriter(root);
+  } catch (error) {
+    if (error instanceof WriterConfigError) return DEFAULT_WRITER;
+    throw error;
+  }
+}
+
+/**
  * The model the owner chose in Settings, or null. A missing or broken file means null: a bad
  * settings file must never stop a briefing, which then runs on the environment's models.
  */

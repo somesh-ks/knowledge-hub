@@ -1,7 +1,7 @@
 /**
  * Pure helpers for model ids, shared by the build-time pages and the Model page's script. They
  * import nothing, so the browser bundle stays small. The id pattern is core's MODEL_ID_PATTERN
- * (packages/core/src/writer.ts); modelId.test.ts pins the two together.
+ * (packages/core/src/writer.ts); writer.test.ts pins the two together.
  */
 export const MODEL_ID_PATTERN = /^[A-Za-z0-9._\-/:]{1,120}$/;
 
