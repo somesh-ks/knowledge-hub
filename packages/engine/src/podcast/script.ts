@@ -24,6 +24,8 @@ export interface ScriptDeps {
   request: PodcastRequest;
   stories: readonly PodcastStory[];
   budget_chars: number;
+  /** The listener's changes to a previous version; reaches the writer as delimited text. */
+  feedback?: string | undefined;
   log?: Logger;
 }
 
@@ -166,7 +168,12 @@ async function requestTurns(deps: ScriptDeps): Promise<Requested> {
   for (let attempt = 1; attempt <= ATTEMPTS; attempt++) {
     try {
       const raw = await deps.writer.writeScript(
-        { request: deps.request, stories: deps.stories, budget_chars: deps.budget_chars },
+        {
+          request: deps.request,
+          stories: deps.stories,
+          budget_chars: deps.budget_chars,
+          ...(deps.feedback ? { feedback: deps.feedback } : {}),
+        },
         problems,
       );
       const result = validateReply(raw, deps.request, deps.stories);

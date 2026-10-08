@@ -1,5 +1,5 @@
-import { mkdir, writeFile } from "node:fs/promises";
-import { dirname, isAbsolute, relative, resolve } from "node:path";
+import { mkdir, rm, writeFile } from "node:fs/promises";
+import { dirname, isAbsolute, join, relative, resolve } from "node:path";
 import { parseArgs } from "node:util";
 import { requireKey } from "@dispatch/core";
 import { type CommandContext, type CommandRun, secretsFromEnv } from "../context.js";
@@ -11,13 +11,14 @@ import { withModelFailover } from "../llm/failoverClient.js";
 import { createNebiusLlm } from "../llm/nebiusClient.js";
 import { createOpenAiChatApi } from "../llm/openAiChatApi.js";
 import { TokenBudget } from "../llm/tokenBudget.js";
+import { episodeExists, parseCommand, readEpisode } from "../podcast/actions.js";
 import { generateEpisode } from "../podcast/generate.js";
 import { NebiusScriptWriter } from "../podcast/nebiusScriptWriter.js";
-import { parseRequest, planPodcast } from "../podcast/plan.js";
+import { planPodcast } from "../podcast/plan.js";
 import { InvalidRequestError, PodcastError, type ScriptWriter } from "../podcast/types.js";
 
 export const PODCAST_USAGE =
-  "Usage: dispatch podcast --request '<json>' [--now <iso>] [--no-push] | [--dry-run [--save <path outside the repository>]]";
+  'Usage: dispatch podcast --request \'<json: a new episode, {"action":"delete","id":...} or {"action":"regenerate","id":...,"feedback":...}>\' [--now <iso>] [--no-push] | [--dry-run [--save <path outside the repository>]]';
 
 /** True when `path` is the repository root or anything under it. */
 function isInside(root: string, path: string): boolean {
@@ -127,7 +128,44 @@ export function makePodcastCommand(deps: PodcastDeps = {}): CommandRun {
     }
 
     try {
-      const request = parseRequest(values.request);
+      const command = parseCommand(values.request);
+      if (command.action === "delete") {
+        const relPath = await episodeExists(ctx.root, command.id);
+        if (dryRun) {
+          process.stdout.write(
+            `${JSON.stringify({ action: "delete", episode_id: command.id, would_remove: [relPath] })}
+`,
+          );
+          return 0;
+        }
+        await rm(join(ctx.root, relPath));
+        const outcome = await commitAndPush({
+          root: ctx.root,
+          message: `chore(podcast): remove ${command.id}`,
+          command: "podcast",
+          push: values["no-push"] !== true,
+        });
+        const failure = commitFailure(outcome);
+        if (failure !== null) {
+          ctx.log.error(
+            `${failure}. The episode file was removed from the working tree: ${relPath}.`,
+          );
+          return 1;
+        }
+        emit(ctx, [`Removed ${relPath}.`, command.id], {
+          outcome: outcome.status,
+          action: "delete",
+          episode_id: command.id,
+          path: relPath,
+        });
+        return 0;
+      }
+      // A regeneration reuses the stored request of the old episode and adds the listener feedback.
+      const replaced =
+        command.action === "regenerate" ? await readEpisode(ctx.root, command.id) : null;
+      const request = command.action === "create" ? command.request : replaced?.episode.request;
+      if (!request) throw new PodcastError("The request names no episode to replace.");
+      const feedback = command.action === "regenerate" ? command.feedback : undefined;
       const result = await generateEpisode({
         root: ctx.root,
         request,
@@ -136,6 +174,7 @@ export function makePodcastCommand(deps: PodcastDeps = {}): CommandRun {
         ...(deps.http ? { http: deps.http } : {}),
         log: ctx.log,
         dryRun,
+        ...(replaced && feedback ? { replaces: replaced.episode.id, feedback } : {}),
       });
       const { episode, relPath } = result;
       if (dryRun) {
@@ -162,14 +201,21 @@ export function makePodcastCommand(deps: PodcastDeps = {}): CommandRun {
             writer_calls: result.script.writer_calls,
             short_by_chars: result.script.short_by_chars,
             title: episode.title,
+            ...(replaced
+              ? { replaces: replaced.episode.id, would_remove: [replaced.relPath] }
+              : {}),
             problems: result.script.last_problems,
           })}\n`,
         );
         return 0;
       }
+      // The old file goes only now: generation has succeeded and the new file is written.
+      if (replaced) await rm(join(ctx.root, replaced.relPath));
       const outcome = await commitAndPush({
         root: ctx.root,
-        message: `feat(podcast): add ${episode.id}`,
+        message: replaced
+          ? `feat(podcast): replace ${replaced.episode.id} with ${episode.id}`
+          : `feat(podcast): add ${episode.id}`,
         command: "podcast",
         push: values["no-push"] !== true,
       });
@@ -192,12 +238,14 @@ export function makePodcastCommand(deps: PodcastDeps = {}): CommandRun {
                 `The script is ${result.script.short_by_chars} characters under the length asked for.`,
               ]
             : []),
+          ...(replaced ? [`Removed ${replaced.relPath}.`] : []),
           `Wrote ${relPath}: ${episode.turns.length} turns, ${episode.char_count} characters, about ${episode.listen_minutes} min.`,
           episode.id,
         ],
         {
           outcome: outcome.status,
           episode_id: episode.id,
+          ...(replaced ? { replaces: replaced.episode.id } : {}),
           path: relPath,
           stories: episode.sources.length,
           turns: episode.turns.length,

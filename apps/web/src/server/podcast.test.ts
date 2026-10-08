@@ -28,6 +28,7 @@ beforeAll(async () => {
   passphraseHash = await hashPassphrase(PASSPHRASE);
 });
 
+const EPISODE_ID = "ep-20261007-0900";
 const REQUEST: PodcastRequest = {
   topic_ids: ["ai", "research"],
   length_minutes: 5,
@@ -53,6 +54,7 @@ function setup(overrides: Partial<PodcastDeps> = {}) {
       delays.push(milliseconds);
     },
     verifyPassphrase,
+    episodeIds: () => [EPISODE_ID],
     log: (message) => logs.push(message),
     ...overrides,
   };
@@ -168,6 +170,144 @@ describe("parsePodcastBody", () => {
     ]) {
       expect(parsePodcastBody(bad)).toBeNull();
     }
+  });
+});
+
+const action = (fields: Record<string, unknown>) =>
+  JSON.stringify({ passphrase: PASSPHRASE, ...fields });
+const del = (fields: Record<string, unknown> = {}) =>
+  action({ action: "delete", id: EPISODE_ID, ...fields });
+const regen = (fields: Record<string, unknown> = {}) =>
+  action({ action: "regenerate", id: EPISODE_ID, feedback: "Shorter intro", ...fields });
+
+describe("parsePodcastBody for an episode action", () => {
+  it("reads delete and regenerate", () => {
+    expect(parsePodcastBody(del())).toEqual({
+      passphrase: PASSPHRASE,
+      action: "delete",
+      id: EPISODE_ID,
+    });
+    expect(parsePodcastBody(regen({ feedback: "  Less\nhype  " }))).toEqual({
+      passphrase: PASSPHRASE,
+      action: "regenerate",
+      id: EPISODE_ID,
+      feedback: "Less hype",
+    });
+  });
+
+  it("accepts feedback of exactly 500 characters and refuses 501", () => {
+    expect(parsePodcastBody(regen({ feedback: "x".repeat(500) }))).not.toBeNull();
+    expect(parsePodcastBody(regen({ feedback: "x".repeat(501) }))).toBeNull();
+  });
+
+  it("rejects a bad id, an unknown action and empty or missing feedback", () => {
+    for (const bad of [
+      del({ id: "ep-2026100-0900" }),
+      del({ id: "../ep-20261007-0900" }),
+      del({ id: "ep-20261007-0900x" }),
+      del({ id: 7 }),
+      del({ id: undefined }),
+      del({ action: "wipe" }),
+      regen({ feedback: "" }),
+      regen({ feedback: "  \n " }),
+      regen({ feedback: undefined }),
+      regen({ feedback: 4 }),
+    ]) {
+      expect(parsePodcastBody(bad), bad).toBeNull();
+    }
+  });
+});
+
+describe("handlePodcast for an episode action", () => {
+  const dispatchOf = (github: ReturnType<typeof setup>["github"]) =>
+    github.requests.find((request) => request.method === "POST");
+
+  it("dispatches delete with the exact JSON input and returns 202", async () => {
+    const { deps, github } = setup();
+    github.on(RUNS, { json: { workflow_runs: [] } });
+    github.on(DISPATCH, { json: { workflow_run_id: 55 } });
+    const result = await handlePodcast(input(del()), deps);
+    expect(result).toMatchObject({ status: 202, body: { run_id: 55 } });
+    expect(dispatchOf(github)?.body).toEqual({
+      ref: "main",
+      inputs: { request: `{"action":"delete","id":"${EPISODE_ID}"}` },
+      return_run_details: true,
+    });
+  });
+
+  it("dispatches regenerate with the cleaned feedback", async () => {
+    const { deps, github } = setup();
+    github.on(RUNS, { json: { workflow_runs: [] } });
+    github.on(DISPATCH, { json: { workflow_run_id: 56 } });
+    await handlePodcast(input(regen({ feedback: " Add\tmore design " })), deps);
+    expect(dispatchOf(github)?.body).toEqual({
+      ref: "main",
+      inputs: {
+        request: `{"action":"regenerate","id":"${EPISODE_ID}","feedback":"Add more design"}`,
+      },
+      return_run_details: true,
+    });
+  });
+
+  it("answers 400 for an id this build does not have, before the passphrase check", async () => {
+    const verify = vi.fn(async () => true);
+    const { deps, github } = setup({ verifyPassphrase: verify });
+    const result = await handlePodcast(input(del({ id: "ep-20200101-0000" })), deps);
+    expect(result.status).toBe(400);
+    expect(verify).not.toHaveBeenCalled();
+    expect(github.requests).toHaveLength(0);
+  });
+
+  it("answers 400 for a malformed id, empty feedback and feedback over the limit", async () => {
+    const { deps, github } = setup();
+    for (const bad of [
+      del({ id: "nope" }),
+      regen({ feedback: "" }),
+      regen({ feedback: "x".repeat(501) }),
+    ]) {
+      expect((await handlePodcast(input(bad), deps)).status).toBe(400);
+    }
+    expect(github.requests).toHaveLength(0);
+  });
+
+  it("answers 401 for a wrong passphrase and 400 for another origin", async () => {
+    const { deps } = setup();
+    expect((await handlePodcast(input(del({ passphrase: "nope" })), deps)).status).toBe(401);
+    expect((await handlePodcast(input(del(), "https://evil.example"), deps)).status).toBe(400);
+  });
+
+  it("holds delete to a 10 second cooldown and 20 a day, not the episode limits", async () => {
+    const { deps, github } = setup();
+    github.on(DISPATCH, { json: { workflow_run_id: 9 } });
+    const secondsAgo = (seconds: number) => new Date(NOW - seconds * 1000).toISOString();
+
+    github.on(RUNS, { json: { workflow_runs: [podcastRun({ created_at: secondsAgo(4) })] } });
+    expect(await handlePodcast(input(del()), deps)).toMatchObject({
+      status: 429,
+      body: { error: "cooldown", retry_after_s: 6 },
+    });
+
+    github.on(RUNS, { json: { workflow_runs: [podcastRun({ created_at: secondsAgo(20) })] } });
+    expect((await handlePodcast(input(del()), deps)).status).toBe(202);
+
+    const twenty = Array.from({ length: 20 }, (_, index) =>
+      podcastRun({ id: index + 1, created_at: minutesAgo(5 + index) }),
+    );
+    github.on(RUNS, { json: { workflow_runs: twenty } });
+    expect(await handlePodcast(input(del()), deps)).toMatchObject({
+      status: 429,
+      body: { error: "daily_cap" },
+    });
+  });
+
+  it("holds regenerate to the episode policy, like a new episode", async () => {
+    const { deps, github } = setup();
+    github.on(RUNS, { json: { workflow_runs: [podcastRun({ created_at: minutesAgo(1) })] } });
+    const result = await handlePodcast(input(regen()), deps);
+    expect(result).toMatchObject({
+      status: 429,
+      body: { error: "cooldown", retry_after_s: PODCAST_COOLDOWN_MS / 1000 - 60 },
+    });
   });
 });
 

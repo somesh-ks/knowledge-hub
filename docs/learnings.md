@@ -48,3 +48,5 @@ One line each: symptom, cause, fix. Newest first. Search before debugging.
 
 - A worktree whose `node_modules` is a junction to the main checkout resolves `@dispatch/core` to the main checkout, so core edits are invisible to tsc and tests; link each package separately and point `@dispatch/*` at the worktree.
 - The shell tool refused some multi-command heredocs and `cmd` calls in a worktree; use the Edit and Write tools and plain single commands.
+- `npx vitest` and `npx tsc` do nothing useful in a worktree whose `node_modules` has no `.bin`; run `node node_modules/vitest/vitest.mjs` and `node node_modules/typescript/bin/tsc` directly.
+- A commit that adds one file and removes a similar one shows as a rename; pass `--no-renames` to `show` when a test checks a replace commit.
