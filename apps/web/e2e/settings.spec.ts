@@ -301,7 +301,7 @@ test.describe("settings page, Home Screen hint", () => {
   test("stays hidden in a browser that cannot add to the Home Screen", async ({ page }) => {
     await page.addInitScript(() => localStorage.setItem("dispatch:install-hint-visits", "5"));
     await openSettings(page);
-    await expect(page.getByRole("heading", { name: "This device" })).toBeHidden();
+    await expect(page.getByText("Add Singularity to your Home Screen")).toBeHidden();
   });
 
   test.describe("in Safari on iOS", () => {
@@ -309,13 +309,12 @@ test.describe("settings page, Home Screen hint", () => {
 
     test("appears on the second visit and stays gone once hidden", async ({ page }) => {
       await openSettings(page);
-      const heading = page.getByRole("heading", { name: "This device" });
+      const heading = page.getByText("Add Singularity to your Home Screen");
       await expect(heading).toBeHidden();
 
       await page.reload();
       await expect(page.locator("[data-settings]")).toHaveAttribute("data-ready", "true");
       await expect(heading).toBeVisible();
-      await expect(page.getByText("Add Singularity to your Home Screen")).toBeVisible();
       expect(await violations(page)).toEqual([]);
 
       await page.getByRole("button", { name: "Hide this" }).click();

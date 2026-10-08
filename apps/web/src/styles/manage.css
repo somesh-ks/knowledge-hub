@@ -535,3 +535,12 @@ html[data-mini="visible"] .manage-bar {
 .manage .rows > * + * {
   margin-block-start: var(--space-1);
 }
+
+.manage-row .manage-text {
+  grid-template-columns: minmax(0, 1fr);
+}
+
+.manage-add > summary,
+.schedule-add {
+  margin-inline-start: calc(var(--space-3) * -1);
+}
