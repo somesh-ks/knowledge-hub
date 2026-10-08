@@ -1,0 +1,34 @@
+---
+import type { HTMLAttributes } from "astro/types";
+import Icon from "./Icon.astro";
+import PlayPauseIcons from "./PlayPauseIcons.astro";
+
+export type ChipState = "idle" | "current" | "played" | "preparing" | "unavailable";
+
+interface Props extends HTMLAttributes<"button"> {
+  /** The visible text: a length such as "1:24", or a state such as "Playing". */
+  label: string;
+  state?: ChipState;
+}
+
+const { label, state = "idle", class: className, ...rest } = Astro.props;
+---
+
+{/* The play chip: buttons.css documents the states. The glyph slot holds every mark and the state
+     picks which one shows, so script writes data-state, data-playing and the label, nothing more.
+     Pass the hooks the player reads (data-play-digest, data-play-item) as attributes. */}
+<button
+  class:list={["chip press press-subtle", className]}
+  type="button"
+  data-state={state}
+  data-playing="false"
+  {...rest}
+>
+  <span class="chip-glyph" aria-hidden="true">
+    <PlayPauseIcons />
+    <span class="chip-bars"><i></i><i></i><i></i></span>
+    <Icon name="check" class="chip-check" />
+    <span class="spinner"></span>
+  </span>
+  <span class="chip-label num" data-chip-label>{label}</span>
+</button>

@@ -2,9 +2,12 @@ import { readFile } from "node:fs/promises";
 import { join } from "node:path";
 import {
   CONFIG_FILES,
+  EMPTY_SOURCES_USER,
   type Source,
   type SourcesFile,
   SourcesFile as SourcesSchema,
+  type SourcesUserFile,
+  SourcesUserFile as SourcesUserSchema,
 } from "@dispatch/core";
 import { writeFileAtomic } from "../state/atomicWrite.js";
 
@@ -85,29 +88,111 @@ function sortedRecord(record: Record<string, string>): Record<string, string> {
   );
 }
 
+function orderedSource(s: Source): Record<string, unknown> {
+  return {
+    id: s.id,
+    name: s.name,
+    type: s.type,
+    url: s.url,
+    feed_url: s.feed_url,
+    tier: s.tier,
+    high_signal: s.high_signal,
+    ...(s.category_hint ? { category_hint: s.category_hint } : {}),
+    enabled: s.enabled,
+    failures: s.failures,
+    ...(s.last_ok ? { last_ok: s.last_ok } : {}),
+    options: sortedRecord(s.options),
+    ...(s.pinned === undefined ? {} : { pinned: s.pinned }),
+    ...(s.origin ? { origin: s.origin } : {}),
+    ...(s.topic_ids ? { topic_ids: s.topic_ids } : {}),
+    ...(s.quality ? { quality: s.quality } : {}),
+  };
+}
+
 /** Stable text for the file: schema key order per source, options sorted, trailing newline. */
 export function serializeSources(file: SourcesFile): string {
-  const ordered = {
-    version: file.version,
-    sources: file.sources.map((s) => ({
-      id: s.id,
-      name: s.name,
-      type: s.type,
-      url: s.url,
-      feed_url: s.feed_url,
-      tier: s.tier,
-      high_signal: s.high_signal,
-      ...(s.category_hint ? { category_hint: s.category_hint } : {}),
-      enabled: s.enabled,
-      failures: s.failures,
-      ...(s.last_ok ? { last_ok: s.last_ok } : {}),
-      options: sortedRecord(s.options),
-    })),
-  };
+  const ordered = { version: file.version, sources: file.sources.map(orderedSource) };
   return `${JSON.stringify(ordered, null, 2)}\n`;
 }
 
+/** Stable text for config/sources.user.json. */
+export function serializeUserSources(file: SourcesUserFile): string {
+  const overrides = Object.fromEntries(
+    Object.entries(file.overrides).sort(([a], [b]) => (a < b ? -1 : a > b ? 1 : 0)),
+  );
+  const ordered = { version: file.version, added: file.added.map(orderedSource), overrides };
+  return `${JSON.stringify(ordered, null, 2)}\n`;
+}
+
+/**
+ * The seed registry with the app's edits applied. Added sources join the list (a seed id always
+ * wins a clash, so a hand-written line in sources.md cannot be shadowed); overrides then switch,
+ * pin or hide sources by id, seed or added alike. Pure, so a run and a test see the same result.
+ */
+export function mergeUserSources(file: SourcesFile, user: SourcesUserFile): SourcesFile {
+  const known = new Set(file.sources.map((source) => source.id));
+  const merged: Source[] = [...file.sources];
+  for (const added of user.added) {
+    if (known.has(added.id)) continue;
+    known.add(added.id);
+    merged.push(added);
+  }
+  const sources = merged
+    .filter((source) => user.overrides[source.id]?.removed !== true)
+    .map((source): Source => {
+      const override = user.overrides[source.id];
+      if (!override) return source;
+      return {
+        ...source,
+        ...(override.enabled === undefined ? {} : { enabled: override.enabled }),
+        ...(override.pinned === undefined ? {} : { pinned: override.pinned }),
+      };
+    });
+  return { ...file, sources };
+}
+
+/** config/sources.user.json, or an empty edit set when the app has not changed anything yet. */
+export async function loadUserSources(root: string): Promise<SourcesUserFile> {
+  let text: string;
+  try {
+    text = await readFile(join(root, CONFIG_FILES.sourcesUser), "utf8");
+  } catch (error) {
+    if ((error as NodeJS.ErrnoException).code === "ENOENT") {
+      return structuredClone(EMPTY_SOURCES_USER);
+    }
+    throw error;
+  }
+  const parsed = SourcesUserSchema.safeParse(JSON.parse(text) as unknown);
+  if (!parsed.success) {
+    throw new SourcesError(
+      parsed.error.issues.map(
+        (issue) =>
+          `${CONFIG_FILES.sourcesUser} ${issue.path.join(".") || "(root)"}: ${issue.message}`,
+      ),
+    );
+  }
+  return parsed.data;
+}
+
+export async function saveUserSources(root: string, file: SourcesUserFile): Promise<void> {
+  const checked = SourcesUserSchema.parse(file);
+  await writeFileAtomic(join(root, CONFIG_FILES.sourcesUser), serializeUserSources(checked));
+}
+
+/**
+ * The registry a run works from: config/sources.json plus config/sources.user.json. Validated
+ * after merging, so an added source missing what its type needs fails here and not mid-fetch.
+ */
 export async function loadSources(root: string): Promise<SourcesFile> {
+  const [base, user] = await Promise.all([loadSourcesRaw(root), loadUserSources(root)]);
+  return parseSources(mergeUserSources(base, user));
+}
+
+/**
+ * config/sources.json alone. The commands that regenerate or rewrite that file use this, so the
+ * app's edits are never copied into it.
+ */
+export async function loadSourcesRaw(root: string): Promise<SourcesFile> {
   let text: string;
   try {
     text = await readFile(join(root, CONFIG_FILES.sources), "utf8");

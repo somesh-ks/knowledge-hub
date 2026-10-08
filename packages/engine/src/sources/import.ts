@@ -176,17 +176,31 @@ function buildQueries(rawQueries: readonly string[]): QueriesFile {
   return { version: 1, queries };
 }
 
-/** Keep what discovery and earlier runs learned; the table only supplies what is new. */
+/**
+ * Keep what discovery and earlier runs learned; the table only supplies what is new.
+ *
+ * Discovery uses up two options and deletes them: the feed hint once a feed is known, and the
+ * "channel id not resolved yet" note once the id is. The draft still carries both, so they are
+ * left out here; otherwise every import would put them back and a resolved source would read as
+ * unresolved.
+ */
 function mergeExisting(draft: Source, existing: Source | undefined): Source {
   if (!existing) return draft;
   const keepsDiscovery = existing.feed_url !== null && draft.feed_url === null;
+  const options = { ...draft.options, ...existing.options };
+  if (existing.feed_url !== null && existing.options.feed_hint === undefined) {
+    delete options.feed_hint;
+  }
+  if (existing.options.channel_id !== undefined && existing.options.note === undefined) {
+    delete options.note;
+  }
   const merged: Source = {
     ...draft,
     type: keepsDiscovery ? existing.type : draft.type,
     feed_url: draft.feed_url ?? existing.feed_url,
     enabled: existing.enabled,
     failures: existing.failures,
-    options: { ...draft.options, ...existing.options },
+    options,
   };
   if (existing.last_ok) merged.last_ok = existing.last_ok;
   return merged;

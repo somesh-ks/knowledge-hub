@@ -1,6 +1,6 @@
 import { Field } from "@base-ui/react/field";
 import { type FormEvent, useEffect, useRef } from "react";
-import Icon from "../player/ui/Icon";
+import Icon from "../player/ui/LazyIcon";
 import GenerateResult from "./GenerateResult";
 import GenerateSteps from "./GenerateSteps";
 import { getGenerateStore } from "./generate/generateRuntime";
@@ -88,7 +88,7 @@ export default function GenerateSheet({ open, onOpenChange }: GenerateSheetProps
               onChange={() => store.clearError()}
             />
             <Field.Description className="sheet-field-hint">
-              The passphrase set when Dispatch was set up.
+              The passphrase set when Singularity was set up.
             </Field.Description>
             <Field.Error
               match={Boolean(state.fieldError)}
@@ -101,7 +101,7 @@ export default function GenerateSheet({ open, onOpenChange }: GenerateSheetProps
           </Field.Root>
           <div className="sheet-actions">
             <button
-              className="sheet-primary press press-subtle"
+              className="btn-primary press press-subtle"
               type="submit"
               aria-disabled={busy || undefined}
               data-busy={busy ? "true" : undefined}

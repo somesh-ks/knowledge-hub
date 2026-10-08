@@ -72,7 +72,7 @@ flowchart TD
 
 ## 3. Digest specification
 
-The voice is high brevity, specific and peer to peer. The rules are in [voice.md](../config/voice.md) and the limits and lint in [build-plan.md](build-plan.md) Section 7.6. The body below is generated from the frontmatter for reading in an editor or on GitHub; the site renders from the frontmatter.
+The reader sees and hears the product as Singularity. Each story runs four beats in three or four plain sentences: what happened, the number that makes it concrete, why it happened or what it changes, and the catch, which always comes from the source. It is written to be heard and plain enough to follow cold. The rules are in [voice.md](../config/voice.md) and the limits and lint in [build-plan.md](build-plan.md) Section 7.6. The body below is generated from the frontmatter for reading in an editor or on GitHub; the site renders from the frontmatter.
 
 ```markdown
 # Wednesday 7 October
@@ -84,9 +84,7 @@ The voice is high brevity, specific and peer to peer. The rules are in [voice.md
 ### [Headline](url)
 Source, Author
 
-Summary in at most two short sentences.
-
-Why: one line on what the reader can use.
+Three or four sentences, at most 80 words: what happened, the number, why it matters, the catch.
 
 ## Interaction craft
 
@@ -94,7 +92,11 @@ Why: one line on what the reader can use.
 ...
 ```
 
-**Sections** appear in this order and are omitted when empty: Top picks, Interaction craft, AI models and products, Research, Launches, Watch and listen.
+**Sections** appear in this order and are omitted when empty: Top picks, Interaction craft, AI models and products, Tech releases, Research, Launches, Watch and listen.
+
+**Tech releases** is the consumer tech beat: phones, tablets, laptops, audio, wearables, headsets, electric vehicles, chips, operating systems, and rules that change what ships. It holds up to five stories on top of the cap for everything else, ranked by how big the release is, and its stories never become Top picks.
+
+Digests written before this voice carry a two-sentence summary and a separate "Why:" line. They still parse, render and narrate as they were written.
 
 **Digest rules**
 
@@ -127,10 +129,10 @@ The source of truth is [`preferences.json`](../config/preferences.json) (weights
 **Scoring contract** (implemented by the engine; detail in [build-plan.md](build-plan.md) Sections 7.2 and 7.5)
 
 1. Hard filter: drop items matching `disliked_patterns` (title or lead paragraph).
-2. Cheap pre-filter: keep items that match a preferred keyword or author, or come from a source tagged high-signal. Cap candidates at about 60 per run.
-3. Judge: per item, category probabilities, craft depth, and hype, sponsorship and funding flags.
-4. Score in code: probability-weighted category weight, times craft depth, reduced by the flags, plus a small bonus for a preferred author or keyword. Threshold and caps are code, not prompt text.
-5. Publish up to 12 items (hard cap), at least 3, grouped into sections.
+2. Cheap pre-filter: keep items that match a preferred keyword or author, or come from a source tagged high-signal. Cap candidates at about 60 per run. Items from the consumer tech beat form a second pool of up to 20, ranked by how many outlets covered the story.
+3. Judge: per item, category probabilities, craft depth, launch scale, and hype, sponsorship and funding flags.
+4. Score in code: probability-weighted category weight, times craft depth (launch scale for consumer tech), reduced by the flags, plus a small bonus for a preferred author or keyword. Threshold and caps are code, not prompt text.
+5. Publish up to 12 items (hard cap, 18 in the weekly digest) plus up to 5 Tech releases stories, at least 3 in all, grouped into sections.
 
 **State files** (committed by the engine)
 

@@ -4,6 +4,13 @@ import type { Timeline } from "./timeline";
 export const PLAYBACK_RATES = [1, 1.25, 1.5, 2] as const;
 export type PlaybackRate = (typeof PLAYBACK_RATES)[number];
 
+/**
+ * How far the skip controls move: back a little to hear something again, forward a lot to get past
+ * a story. The transport, the lock screen and headset buttons all read these.
+ */
+export const SKIP_BACK_SECONDS = 10;
+export const SKIP_FORWARD_SECONDS = 30;
+
 export type PlayerStatus = "idle" | "loading" | "playing" | "paused" | "ended" | "error";
 
 export type PlayerErrorKind = "network" | "decode" | "unavailable" | "blocked" | "unknown";

@@ -1,5 +1,6 @@
-import type { Digest, DigestItem, Section } from "@dispatch/core";
-import { longDate, SECTION_TITLES, SECTIONS } from "@dispatch/core";
+import type { Digest, DigestItem } from "@dispatch/core";
+import { digestSections } from "@dispatch/core";
+import { openingLine, sectionBridge, signOff, storyConnective } from "./hostFrame.js";
 
 /**
  * Speechify accepts 20,000 characters per stream request. The plan fails closed at 19,000 instead
@@ -7,38 +8,17 @@ import { longDate, SECTION_TITLES, SECTIONS } from "@dispatch/core";
  */
 export const MAX_SPOKEN_CHARS = 19_000;
 
-const COUNT_WORDS = [
-  "zero",
-  "one",
-  "two",
-  "three",
-  "four",
-  "five",
-  "six",
-  "seven",
-  "eight",
-  "nine",
-  "ten",
-  "eleven",
-  "twelve",
-  "thirteen",
-  "fourteen",
-  "fifteen",
-  "sixteen",
-  "seventeen",
-  "eighteen",
-] as const;
-
 /** Character range of one item inside the spoken string, end exclusive. */
 export interface SpokenRange {
   id: string;
-  section: Section;
+  /** A section id: built in, or one the owner added. */
+  section: string;
   start: number;
   end: number;
 }
 
 export interface SpokenSectionStart {
-  slug: Section;
+  slug: string;
   start: number;
 }
 
@@ -67,23 +47,6 @@ export class SpokenTextTooLongError extends SpokenTextError {
   }
 }
 
-/** The count as a word up to eighteen (the weekly cap), digits beyond that. */
-function countWord(count: number): string {
-  const word = COUNT_WORDS[count];
-  return word ?? String(count);
-}
-
-function capitalize(word: string): string {
-  return word.charAt(0).toUpperCase() + word.slice(1);
-}
-
-function openingLine(digest: Digest): string {
-  const name = digest.kind === "weekly" ? "Dispatch weekly" : "Dispatch";
-  const count = digest.items.length;
-  const noun = count === 1 ? "item" : "items";
-  return `${name}, ${longDate(digest.date)}. ${capitalize(countWord(count))} ${noun}.`;
-}
-
 /** Terminal punctuation keeps the voice from running two fields together. */
 function asSentence(text: string): string {
   // A field that trails off with a colon or comma still ends as a sentence, not as ":.".
@@ -91,8 +54,14 @@ function asSentence(text: string): string {
   return /[.!?]["')\]]*$/.test(trimmed) ? trimmed : `${trimmed}.`;
 }
 
+/**
+ * What the host says for one story. A digest written with a spoken version reads that alone: it
+ * already has its own lead-in and carries the headline's news. Older digests read the headline and
+ * the summary, as before, and the why line of those that still have one.
+ */
 function itemBlock(item: DigestItem): string {
-  const parts = [item.headline, item.summary, item.why]
+  const fields = item.spoken ? [item.spoken] : [item.headline, item.summary, item.why ?? ""];
+  const parts = fields
     .map((field) => toSpeech(field))
     .filter((field) => field.length > 0)
     .map(asSentence);
@@ -105,29 +74,65 @@ function itemBlock(item: DigestItem): string {
 /**
  * Assemble the narration from the digest fields with exact character ranges per item.
  *
- * Voice: one opening line, the section name as the only transition, then headline, summary and
- * why as plain sentences. No "Why:" prefix, no URLs, no markdown, no outro. Items are narrated in
+ * The host frame wraps the stories: an opening that names the product, the day and the count; a
+ * short bridge when the section changes, which stands where the section starts; a light connective
+ * before most stories that are not the first of their section, which is part of that story's own
+ * range so a story and its lead-in play as one; and a sign-off, the only text after the last story.
+ * Then each story as plain sentences. No "Why:" prefix, no URLs, no markdown. Items are narrated in
  * section order (the order the page shows them), keeping digest order inside a section. Ranges and
  * section starts index exactly into `text`, which is what Speechify receives as `input`.
  */
 export function buildSpokenText(digest: Digest): SpokenText {
   const ranges: SpokenRange[] = [];
   const sectionStarts: SpokenSectionStart[] = [];
-  let text = openingLine(digest);
+  // The digest's own sections, in its own order: a topic the owner added is read like any other.
+  const groups = digestSections(digest)
+    .map((entry) => ({
+      entry,
+      section: entry.id,
+      items: digest.items.filter((item) => item.section === entry.id),
+    }))
+    .filter((group) => group.items.length > 0);
 
-  for (const section of SECTIONS) {
-    const items = digest.items.filter((item) => item.section === section);
-    if (items.length === 0) continue;
+  let text = openingLine(digest, groups[0]?.entry);
+  let previousBridge: string | null = null;
+  let previousConnective: string | null = null;
+
+  for (const [groupIndex, { entry, section, items }] of groups.entries()) {
     text += "\n\n";
-    sectionStarts.push({ slug: section, start: text.length });
-    text += `${toSpeech(SECTION_TITLES[section])}.`;
-    for (const item of items) {
-      text += "\n\n";
+    if (groupIndex === 0) {
+      // The opening already said where the briefing starts, so the first section needs no bridge.
+      sectionStarts.push({ slug: section, start: text.length });
+    } else {
+      const bridge = sectionBridge({
+        digestId: digest.id,
+        section: entry,
+        count: items.length,
+        previous: previousBridge,
+      });
+      previousBridge = bridge;
+      sectionStarts.push({ slug: section, start: text.length });
+      text += `${toSpeech(bridge)}\n\n`;
+    }
+    previousConnective = null;
+    for (const [itemIndex, item] of items.entries()) {
+      if (itemIndex > 0) text += "\n\n";
       const start = text.length;
+      if (itemIndex > 0) {
+        const connective = storyConnective({
+          itemId: item.id,
+          kind: digest.kind,
+          previous: previousConnective,
+        });
+        previousConnective = connective === "" ? null : connective;
+        if (connective !== "") text += `${connective} `;
+      }
       text += itemBlock(item);
       ranges.push({ id: item.id, section, start, end: text.length });
     }
   }
+
+  text += `\n\n${signOff(digest.kind)}`;
 
   if (text.length > MAX_SPOKEN_CHARS)
     throw new SpokenTextTooLongError(text.length, MAX_SPOKEN_CHARS);

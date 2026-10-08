@@ -1,3 +1,6 @@
+import { readFileSync } from "node:fs";
+import { dirname, join } from "node:path";
+import { fileURLToPath } from "node:url";
 import { describe, expect, it } from "vitest";
 import {
   type Digest,
@@ -10,8 +13,12 @@ import {
   parseDigestFile,
   serializeDigestFile,
   stockholmDate,
+  VOICE_LIMITS,
   weekday,
 } from "./index.js";
+
+/** Repository root, found from this file so the test never depends on the working directory. */
+const REPO_ROOT = join(dirname(fileURLToPath(import.meta.url)), "..", "..", "..");
 
 const sampleItem = (n: number): Digest["items"][number] => ({
   id: itemId(`https://example.com/${n}`),
@@ -80,5 +87,90 @@ describe("digest file", () => {
   });
   it("rejects a digest with fewer than three items", () => {
     expect(() => serializeDigestFile({ ...sampleDigest, items: [sampleItem(1)] })).toThrow();
+  });
+
+  it("round-trips an item without a why line and prints no Why line for it", () => {
+    const { why: _why, ...story } = sampleItem(1);
+    const digest: Digest = { ...sampleDigest, items: [story, sampleItem(2), sampleItem(3)] };
+    const text = serializeDigestFile(digest);
+    expect(text.match(/^Why: /gm)).toHaveLength(2);
+    expect(text.match(/^ {4}why: /gm)).toHaveLength(2);
+    const parsed = parseDigestFile(text);
+    expect(parsed).toEqual(DigestSchema.parse(digest));
+    expect(parsed.items[0]).not.toHaveProperty("why");
+  });
+
+  it("round-trips a spoken version, keeps it out of the generated body, and parses digests without one", () => {
+    const spoken = "Google has a new Pixel, and the headline feature is the screen.";
+    const withSpoken: Digest = {
+      ...sampleDigest,
+      items: [{ ...sampleItem(1), spoken }, sampleItem(2), sampleItem(3)],
+    };
+    const text = serializeDigestFile(withSpoken);
+    expect(text.match(/^ {4}spoken: /gm)).toHaveLength(1);
+    const parsed = parseDigestFile(text);
+    expect(parsed).toEqual(DigestSchema.parse(withSpoken));
+    expect(parsed.items[0]?.spoken).toBe(spoken);
+    expect(parsed.items[1]).not.toHaveProperty("spoken");
+    // The body is what GitHub shows; the telling is for the narrator alone.
+    const body = text.slice(text.indexOf("\n---\n", 4));
+    expect(body).not.toContain(spoken);
+    expect(
+      DigestSchema.safeParse({
+        ...sampleDigest,
+        items: [{ ...sampleItem(1), spoken: "" }, sampleItem(2), sampleItem(3)],
+      }).success,
+    ).toBe(false);
+  });
+
+  it("holds the weekly cap plus the allowances of Tech and custom sections, up to a hard maximum", () => {
+    const items = (count: number) => Array.from({ length: count }, (_, n) => sampleItem(n));
+    expect(VOICE_LIMITS.items.weeklyCap + VOICE_LIMITS.items.techCap).toBe(23);
+    const most = VOICE_LIMITS.items.hardMax;
+    expect(most).toBe(48);
+    expect(DigestSchema.safeParse({ ...sampleDigest, items: items(most) }).success).toBe(true);
+    expect(DigestSchema.safeParse({ ...sampleDigest, items: items(most + 1) }).success).toBe(false);
+  });
+});
+
+describe("digests committed before the four-beat voice", () => {
+  it.each(["2026-10-06", "2026-10-07"])(
+    "parses Digests/2026/10/%s.md, which carries a why line on every item",
+    (id) => {
+      const text = readFileSync(join(REPO_ROOT, digestRelPath(id)), "utf8");
+      const digest = parseDigestFile(text);
+      expect(digest.id).toBe(id);
+      expect(digest.items.length).toBeGreaterThanOrEqual(3);
+      for (const item of digest.items) {
+        expect(item.why, item.id).toEqual(expect.any(String));
+        expect((item.why ?? "").length, item.id).toBeGreaterThan(0);
+      }
+      // Serializing what was parsed keeps every why line, in the frontmatter and in the body.
+      const again = serializeDigestFile(digest);
+      expect(again.match(/^Why: /gm)).toHaveLength(digest.items.length);
+      expect(parseDigestFile(again)).toEqual(digest);
+    },
+  );
+});
+
+describe("voice limits", () => {
+  it("describes a four-beat summary and keeps the legacy why limit", () => {
+    expect(VOICE_LIMITS).toMatchObject({
+      headlineWords: 12,
+      summaryWords: 80,
+      summarySentences: 4,
+      summaryMinWords: 25,
+      summaryMinSentences: 2,
+      sentenceWords: 28,
+      whyWords: 18,
+    });
+    expect(VOICE_LIMITS.items).toEqual({
+      floor: 3,
+      target: [8, 12],
+      cap: 12,
+      weeklyCap: 18,
+      techCap: 5,
+      hardMax: 48,
+    });
   });
 });

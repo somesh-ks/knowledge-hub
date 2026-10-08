@@ -63,7 +63,7 @@ test.describe("routes and headers", () => {
   test("every response carries the security and no-index headers", async ({ request }) => {
     for (const path of [
       "/",
-      "/archive",
+      "/library",
       "/d/2026-10-07",
       "/latest.json",
       "/manifest.webmanifest",
@@ -107,6 +107,17 @@ test.describe("routes and headers", () => {
         policy.split(";").find((part) => part.trim().startsWith("script-src")) ?? "";
       expect(scriptSrc, route.path).not.toContain("unsafe-inline");
       expect(scriptSrc, route.path).not.toContain("unsafe-eval");
+    }
+  });
+
+  test("no page carries an inline module script, which the router answers with a blocked data: script", async ({
+    request,
+  }) => {
+    // When the router swaps in a page whose last module script is inline, it adds
+    // <script src="data:application/javascript,"> to wait for it, and the policy blocks that.
+    for (const route of ROUTES) {
+      const html = await (await request.get(route.path)).text();
+      expect(html.match(/<script type="module">/g) ?? [], route.path).toEqual([]);
     }
   });
 

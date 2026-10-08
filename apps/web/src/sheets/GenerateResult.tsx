@@ -27,7 +27,7 @@ export default function GenerateResult({
           body="It may still be going. Check your connection, then check again."
         />
         <div className="sheet-actions">
-          <button className="sheet-primary press press-subtle" type="button" onClick={onCheckAgain}>
+          <button className="btn-primary press press-subtle" type="button" onClick={onCheckAgain}>
             Check again
           </button>
         </div>
@@ -51,7 +51,7 @@ export default function GenerateResult({
           <div className="sheet-actions">
             {state.digestId ? (
               <button
-                className="sheet-primary press press-subtle"
+                className="btn-primary press press-subtle"
                 type="button"
                 onClick={() => {
                   if (state.digestId) openBriefing(state.digestId);
@@ -61,7 +61,7 @@ export default function GenerateResult({
                 Open the new briefing
               </button>
             ) : null}
-            <button className="sheet-secondary press press-subtle" type="button" onClick={onClose}>
+            <button className="btn press" type="button" onClick={onClose}>
               Close
             </button>
           </div>
@@ -76,7 +76,7 @@ export default function GenerateResult({
             body="No new items since the last briefing. The next scheduled run is in about two days."
           />
           <div className="sheet-actions">
-            <button className="sheet-secondary press press-subtle" type="button" onClick={onClose}>
+            <button className="btn press" type="button" onClick={onClose}>
               Close
             </button>
           </div>
@@ -91,7 +91,7 @@ export default function GenerateResult({
             body="The schedule held this run back. The next scheduled run is in about two days."
           />
           <div className="sheet-actions">
-            <button className="sheet-secondary press press-subtle" type="button" onClick={onClose}>
+            <button className="btn press" type="button" onClick={onClose}>
               Close
             </button>
           </div>
@@ -106,12 +106,12 @@ export default function GenerateResult({
             body="Open the run for details, or try again in a few minutes."
           />
           <div className="sheet-actions">
-            <button className="sheet-primary press press-subtle" type="button" onClick={onTryAgain}>
+            <button className="btn-primary press press-subtle" type="button" onClick={onTryAgain}>
               Try again
             </button>
             {state.runUrl ? (
               <a
-                className="sheet-secondary press press-subtle"
+                className="btn press"
                 href={state.runUrl}
                 target="_blank"
                 rel="noopener noreferrer"

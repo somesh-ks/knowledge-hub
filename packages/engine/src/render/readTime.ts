@@ -8,14 +8,14 @@ export const LISTEN_WORDS_PER_SECOND = 2.6;
 export interface TimedFields {
   headline: string;
   summary: string;
-  why: string;
+  why?: string | undefined;
 }
 
 /** Words in the fields the reader sees and the narrator speaks. */
 export function digestWords(items: readonly TimedFields[]): number {
   return items.reduce(
     (sum, item) =>
-      sum + countWords(item.headline) + countWords(item.summary) + countWords(item.why),
+      sum + countWords(item.headline) + countWords(item.summary) + countWords(item.why ?? ""),
     0,
   );
 }

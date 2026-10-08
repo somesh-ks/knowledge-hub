@@ -7,7 +7,8 @@ export interface JudgeFailure {
 }
 
 /**
- * Turns candidate items into judgments (category probabilities, craft depth, flags). Scoring and
+ * Turns candidate items into judgments (category probabilities, craft depth, launch scale and
+ * flags). Scoring and
  * thresholds live in code, never here. An item the judge cannot answer yields no entry; the
  * failure is reported through the implementation's `onFailure` hook, and `judge` never throws
  * for a single item.

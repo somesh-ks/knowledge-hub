@@ -3,7 +3,16 @@ import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { afterEach, describe, expect, it } from "vitest";
 import { parseBrandColors } from "../apps/web/src/lib/brandColors";
-import { buildIcons, faviconSvg, ICON_SPECS, iconSvg, renderIcon } from "./buildIcons";
+import {
+  buildIcons,
+  faviconSvg,
+  ICON_SPECS,
+  iconSvg,
+  MARK_DOT_RADIUS,
+  MARK_RING,
+  renderIcon,
+  staleIcons,
+} from "./buildIcons";
 
 const TOKENS = join(import.meta.dirname, "..", "apps", "web", "src", "styles", "tokens.css");
 const colors = parseBrandColors(readFileSync(TOKENS, "utf8"));
@@ -42,15 +51,28 @@ describe("app icons", () => {
 
   it("keeps the maskable mark inside the central safe zone", () => {
     const maskable = ICON_SPECS.find((spec) => spec.file === "icon-maskable-512.png");
-    // The rail's ends are half the mark height from the center; the circle radius is 40 percent.
+    // The ring's edge is half the mark height from the center; the circle radius is 40 percent.
     expect((maskable?.markShare ?? 1) / 2).toBeLessThanOrEqual(0.4);
   });
 
-  it("makes a favicon that follows the color scheme", () => {
+  it("makes a favicon that follows the color scheme and carries the product name", () => {
     const svg = faviconSvg(colors);
     expect(svg).toContain(colors.accentLight);
     expect(svg).toContain(colors.accentDark);
     expect(svg).toContain("prefers-color-scheme:dark");
+    expect(svg).toContain("<title>Singularity</title>");
+  });
+
+  it("draws the mark as a ringed dot: a point inside a circle, with a clear gap between them", () => {
+    const svg = iconSvg(colors, 512, 0.5);
+    expect(svg).toContain(MARK_RING);
+    expect(svg).toContain(`r="${MARK_DOT_RADIUS}"`);
+    // Inner edge of the ring is 8.25 from the centre; the dot must stay well inside it.
+    expect(MARK_DOT_RADIUS).toBeLessThan(8.25 - 2);
+  });
+
+  it("matches the icons committed under apps/web/public", () => {
+    expect(staleIcons(), "run npm run icons").toEqual([]);
   });
 
   it("writes the icon files", () => {

@@ -1,8 +1,9 @@
 import { dirname, join } from "node:path";
 import { parseArgs } from "node:util";
-import { homeSection, stockholmDate } from "@dispatch/core";
+import { homeSectionFor, stockholmDate } from "@dispatch/core";
 import { type CommandRun, secretsFromEnv } from "../context.js";
 import {
+  linkSourceIds,
   loadLastRun,
   loadPool,
   loadSources,
@@ -18,9 +19,11 @@ import { createFallbackCoverPicker, loadCoverPalettes } from "../render/coverPic
 import { createIdAllocator, listTakenIds } from "../render/digestId.js";
 import { writeDigestFile } from "../render/writeDigestFile.js";
 import type { SelectedItem } from "../score/types.js";
+import { loadTopicsFile } from "../topics/store.js";
 import { validateDigest } from "../validate/validateDigest.js";
 import { createLinter } from "../voice/lint.js";
 import { loadVoice } from "../voice/voice.js";
+import { writtenText } from "../write/text.js";
 
 export const RENDER_USAGE =
   "Usage: dispatch render [--run <id>] [--selection <path>] [--pool <path>] [--dry-run]";
@@ -98,6 +101,7 @@ export function makeRenderCommand(deps: RenderDeps = {}): CommandRun {
         return 0;
       }
 
+      const topics = await loadTopicsFile(root);
       const loaded = await loadPool(location.poolPath);
       const pool = new Map(loaded.items.map((item) => [item.id, item]));
       const selected: SelectedItem[] = [];
@@ -109,7 +113,7 @@ export function makeRenderCommand(deps: RenderDeps = {}): CommandRun {
           );
           return 1;
         }
-        const home = homeSection(entry.category, item.source_type);
+        const home = homeSectionFor(topics, entry.category, item.source_type);
         if (home === null) {
           log.error(`The category ${entry.category} of ${entry.id} never publishes.`);
           return 1;
@@ -131,12 +135,7 @@ export function makeRenderCommand(deps: RenderDeps = {}): CommandRun {
 
       const digest = buildDigest({
         selected,
-        written: selection.items.map((i) => ({
-          id: i.id,
-          headline: i.headline,
-          summary: i.summary,
-          why: i.why,
-        })),
+        written: selection.items.map((i) => ({ id: i.id, ...writtenText(i) })),
         window: selection.window,
         kind: selection.kind,
         now,
@@ -146,9 +145,13 @@ export function makeRenderCommand(deps: RenderDeps = {}): CommandRun {
         verified: selection.mode === "agent" ? false : selection.verified,
         audio: null,
         sourceNames: sourceNameMap(sources),
+        linkSources: linkSourceIds(sources),
+        ...(topics
+          ? { sectionTitles: Object.fromEntries(topics.sections.map((s) => [s.id, s.title])) }
+          : {}),
       });
 
-      const report = validateDigest(digest, { pool: [...pool.values()], sources, linter });
+      const report = validateDigest(digest, { pool: [...pool.values()], sources, linter, topics });
       if (!report.ok) {
         log.error(`The digest failed validation with ${report.errors} errors; nothing was written`);
         emit(

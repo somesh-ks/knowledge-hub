@@ -38,6 +38,7 @@ export function isPlayerDigestData(value: unknown): value is PlayerDigestData {
       typeof item.headline === "string" &&
       typeof item.section === "string" &&
       typeof item.source === "string" &&
+      (item.url === undefined || item.url === null || typeof item.url === "string") &&
       isNullableMs(item.start_ms) &&
       isNullableMs(item.end_ms),
   );

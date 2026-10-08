@@ -1,0 +1,26 @@
+{
+  "version": 1,
+  "sources": {
+    "studio-notes": {
+      "fetched": 52,
+      "judged": 40,
+      "passed": 20,
+      "published": 12,
+      "window_start": "2026-09-08T00:00:00.000Z"
+    },
+    "model-ledger": {
+      "fetched": 30,
+      "judged": 30,
+      "passed": 3,
+      "published": 0,
+      "window_start": "2026-09-08T00:00:00.000Z"
+    },
+    "type-and-grid": {
+      "fetched": 9,
+      "judged": 8,
+      "passed": 6,
+      "published": 1,
+      "window_start": "2026-09-08T00:00:00.000Z"
+    }
+  }
+}

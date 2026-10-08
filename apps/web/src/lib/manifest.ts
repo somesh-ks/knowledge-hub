@@ -22,9 +22,9 @@ export interface WebManifest {
 export function buildManifest(colors: BrandColors): WebManifest {
   return {
     id: "/",
-    name: "Dispatch",
-    short_name: "Dispatch",
-    description: "A private design engineering briefing, read or heard in minutes.",
+    name: "Singularity",
+    short_name: "Singularity",
+    description: "A private tech and design engineering briefing, read or heard in minutes.",
     start_url: "/",
     scope: "/",
     display: "standalone",

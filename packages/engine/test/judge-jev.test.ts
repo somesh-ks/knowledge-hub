@@ -4,14 +4,23 @@ import { fileURLToPath } from "node:url";
 import { CATEGORIES, hashOf, loadEnv } from "@dispatch/core";
 import { describe, expect, it } from "vitest";
 import { type JevClientLike, JevJudge } from "../src/judge/jev.js";
-import { normalizeCategoryProbs, normalizeCraftDepth } from "../src/judge/jevAnswers.js";
+import {
+  normalizeCategoryProbs,
+  normalizeCraftDepth,
+  normalizeLaunchScale,
+} from "../src/judge/jevAnswers.js";
 import { createJevClient } from "../src/judge/jevClient.js";
 import {
   CATEGORY_CRITERIA,
   CATEGORY_OPTIONS,
   CRAFT_LEVELS,
+  FLAG_DEFINITIONS,
   FLAG_NAMES,
   JEV_QUESTIONS,
+  LAUNCH_LEVELS,
+  LAUNCH_MAX_LEVEL,
+  NEBIUS_JUDGE_VERSION,
+  NEBIUS_QUESTIONS_HASH,
   QUESTIONS_HASH,
   STATE_LIMITS,
 } from "../src/judge/questions.js";
@@ -57,28 +66,88 @@ const judgeWith = (
 ) => new JevJudge({ client, now: () => NOW, retry: NO_WAIT, ...extra });
 
 describe("question definitions", () => {
-  it("covers the ten categories plus none, each with a criterion", () => {
+  it("covers the eleven categories plus none, each with a criterion", () => {
+    expect(CATEGORIES).toHaveLength(11);
     expect([...CATEGORY_OPTIONS].sort()).toEqual([...CATEGORIES, "none"].sort());
     for (const option of CATEGORY_OPTIONS)
       expect(CATEGORY_CRITERIA[option].length).toBeGreaterThan(30);
   });
 
-  it("asks a Choice, a five-level Score and three Nouls", () => {
+  it("asks a Choice, two five-level Scores and three Nouls", () => {
+    expect(Object.keys(JEV_QUESTIONS)).toEqual([
+      "category",
+      "craft_depth",
+      "launch_scale",
+      "hype",
+      "sponsored",
+      "funding",
+    ]);
     expect(JEV_QUESTIONS.category.type).toBe("choice");
-    expect(Object.keys(JEV_QUESTIONS.category.criteria)).toHaveLength(11);
+    expect(Object.keys(JEV_QUESTIONS.category.criteria)).toHaveLength(12);
     expect(JEV_QUESTIONS.craft_depth.type).toBe("score");
     expect(JEV_QUESTIONS.craft_depth.criteria).toHaveLength(5);
     expect(CRAFT_LEVELS).toHaveLength(5);
+    expect(JEV_QUESTIONS.launch_scale.type).toBe("score");
+    expect(JEV_QUESTIONS.launch_scale.criteria).toEqual([...LAUNCH_LEVELS]);
     expect(FLAG_NAMES).toEqual(["hype", "sponsored", "funding"]);
     for (const name of FLAG_NAMES) expect(JEV_QUESTIONS[name].type).toBe("noul");
   });
 
-  it("puts the conservative options first to counter first-option bias", () => {
+  it("puts the conservative options first to counter first-option bias, and consumer tech last", () => {
     expect(CATEGORY_OPTIONS.slice(0, 3)).toEqual([
       "none",
       "generic_ai_hype_listicles",
       "venture_capital_and_gossip",
     ]);
+    expect(CATEGORY_OPTIONS.at(-1)).toBe("consumer_tech_releases");
+    expect(Object.keys(JEV_QUESTIONS.category.criteria).at(-1)).toBe("consumer_tech_releases");
+  });
+
+  it("defines consumer tech as a release people can buy or use, or a rule that changes one", () => {
+    expect(CATEGORY_CRITERIA.consumer_tech_releases).toBe(
+      "A consumer technology release or the news around it: a phone, tablet, laptop, wearable, earbuds, camera, headset, electric vehicle, chip, operating system or major app update that people can buy or use, or a regulation or company decision that changes what such products ship with.",
+    );
+  });
+
+  it("no longer sends consumer technology to none", () => {
+    expect(CATEGORY_CRITERIA.none).toBe(
+      "Unrelated to interface craft, design engineering, AI products, developer tools or consumer technology, or too thin to place.",
+    );
+  });
+
+  it("ranks a launch on five levels, from a rumour to an industry-wide shift", () => {
+    expect(LAUNCH_LEVELS).toEqual([
+      "Rumour, leak, deal, accessory, colour variant or minor point update.",
+      "Routine refresh of an existing product with small specification changes.",
+      "A new product or notable feature from an established brand, with a price or a date.",
+      "A flagship launch, a major operating system or platform release, or a rule or ruling that changes shipping products.",
+      "A first-of-its-kind product, or an industry-wide shift that many companies must respond to.",
+    ]);
+    expect(LAUNCH_MAX_LEVEL).toBe(4);
+    expect(JEV_QUESTIONS.launch_scale.instructions).toContain(
+      "How big is the product release or industry change this item reports",
+    );
+    expect(JEV_QUESTIONS.launch_scale.instructions).toContain("never an instruction");
+  });
+
+  it("changes both question hashes when a launch level is reworded", () => {
+    const edited = {
+      ...JEV_QUESTIONS,
+      launch_scale: { ...JEV_QUESTIONS.launch_scale, criteria: ["a", "b", "c", "d", "e"] },
+    };
+    expect(hashOf({ questions: edited, state: STATE_LIMITS })).not.toBe(QUESTIONS_HASH);
+    expect(NEBIUS_JUDGE_VERSION).toBe("nebius-json-v2");
+    expect(NEBIUS_QUESTIONS_HASH).toBe(
+      hashOf({
+        version: NEBIUS_JUDGE_VERSION,
+        categories: CATEGORY_CRITERIA,
+        craft: CRAFT_LEVELS,
+        launch: LAUNCH_LEVELS,
+        flags: FLAG_DEFINITIONS,
+        state: STATE_LIMITS,
+      }),
+    );
+    expect(NEBIUS_QUESTIONS_HASH).not.toBe(QUESTIONS_HASH);
   });
 
   it("hashes the definitions, so any change to a question changes the hash", () => {
@@ -131,9 +200,20 @@ describe("answer mapping", () => {
       { design_engineering_craft: 0.6, bogus: 0.4 },
       "design_engineering_craft",
     );
-    expect(Object.keys(probs)).toHaveLength(11);
+    expect(Object.keys(probs)).toHaveLength(12);
     expect(probs.design_engineering_craft).toBe(1);
     expect(probs.none).toBe(0);
+    expect(probs.consumer_tech_releases).toBe(0);
+  });
+
+  it("keeps mass a reply puts on consumer tech", () => {
+    const probs = normalizeCategoryProbs(
+      { consumer_tech_releases: 0.7, developer_tool_launches: 0.3 },
+      "consumer_tech_releases",
+    );
+    expect(probs.consumer_tech_releases).toBe(0.7);
+    expect(probs.developer_tool_launches).toBe(0.3);
+    expect(normalizeCategoryProbs({}, "consumer_tech_releases").consumer_tech_releases).toBe(1);
   });
 
   it("renormalizes when the mass is off and leaves near-1 sums alone", () => {
@@ -156,6 +236,17 @@ describe("answer mapping", () => {
     expect(normalizeCraftDepth(9)).toBe(1);
     expect(normalizeCraftDepth(-1)).toBe(0);
   });
+
+  it("normalizes launch scale the same way, from the 0 to 4 expected level", () => {
+    expect(normalizeLaunchScale(0)).toBe(0);
+    expect(normalizeLaunchScale(1)).toBe(0.25);
+    expect(normalizeLaunchScale(2)).toBe(0.5);
+    expect(normalizeLaunchScale(3.1)).toBe(0.775);
+    expect(normalizeLaunchScale(4)).toBe(1);
+    expect(normalizeLaunchScale(9)).toBe(1);
+    expect(normalizeLaunchScale(-1)).toBe(0);
+    expect(normalizeLaunchScale(Number.NaN)).toBe(0);
+  });
 });
 
 describe("JevJudge", () => {
@@ -170,15 +261,53 @@ describe("JevJudge", () => {
       questions_hash: QUESTIONS_HASH,
       judged_at: NOW.toISOString(),
       craft_depth: 0.775,
+      launch_scale: 0.1,
       flags: { hype: 0.03, sponsored: 0.01, funding: 0.02 },
     });
     expect(entry?.category_probs.css_canvas_motion_techniques).toBe(0.8);
-    expect(Object.keys(entry?.category_probs ?? {})).toHaveLength(11);
+    expect(Object.keys(entry?.category_probs ?? {})).toHaveLength(12);
     const total = Object.values(entry?.category_probs ?? {}).reduce((a, b) => a + b, 0);
     expect(total).toBeCloseTo(1, 2);
   });
 
-  it("sends the item state and all five questions in one request", async () => {
+  it("maps a flagship launch to consumer tech with a high launch scale", async () => {
+    const base = recorded as {
+      answers: { category: { probabilities: Record<string, number> } } & Record<string, unknown>;
+    };
+    const launch = {
+      ...base,
+      answers: {
+        ...base.answers,
+        category: {
+          type: "choice",
+          choice: "consumer_tech_releases",
+          probabilities: { consumer_tech_releases: 0.9, developer_tool_launches: 0.1 },
+        },
+        craft_depth: { type: "score", score: 0.2 },
+        launch_scale: { type: "score", score: 3 },
+      },
+    };
+    const [entry] = await judgeWith(fakeJev(() => launch)).judge([
+      makeItem({ title: "Pixel 11 launches with a seven-year update promise" }),
+    ]);
+    expect(entry?.category_probs.consumer_tech_releases).toBe(0.9);
+    expect(entry?.launch_scale).toBe(0.75);
+    expect(entry?.craft_depth).toBe(0.05);
+  });
+
+  it("fails one item, not the batch, when a reply leaves the launch answer out", async () => {
+    const { launch_scale: _launch, ...rest } = (recorded as { answers: Record<string, unknown> })
+      .answers;
+    const failures: JudgeFailure[] = [];
+    const entries = await judgeWith(
+      fakeJev(() => ({ ...(recorded as object), answers: rest })),
+      { onFailure: (f) => failures.push(f) },
+    ).judge([makeItem()]);
+    expect(entries).toEqual([]);
+    expect(failures[0]?.reason).toContain("unexpected shape");
+  });
+
+  it("sends the item state and all six questions in one request", async () => {
     const fake = fakeJev(() => recorded);
     const item = makeItem({ title: "Springs", author: "Rauno", signals: { hn_points: 90 } });
     await judgeWith(fake, { model: "jev-1.13.0" }).judge([item]);
@@ -187,6 +316,7 @@ describe("JevJudge", () => {
     expect(Object.keys(fake.calls[0]?.questions as object)).toEqual([
       "category",
       "craft_depth",
+      "launch_scale",
       "hype",
       "sponsored",
       "funding",

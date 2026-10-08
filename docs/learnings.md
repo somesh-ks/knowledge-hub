@@ -2,6 +2,21 @@
 
 One line each: symptom, cause, fix. Newest first. Search before debugging.
 
+- Hidden elements rendered on four pages (an error icon with no error, a save bar with nothing to save): the `[hidden]` rule relied on being imported last, and the build reorders stylesheet chunks. The rule now carries an id's weight, and `e2e/hidden.spec.ts` checks every built page.
+- Flick tests failed about one run in seven: the harness asks for 8 ms between touch moves and the page receives them 30 to 50 ms apart, which put a six-step flick on the velocity threshold. Synthesize a flick in three large steps, and log the events the page received before blaming the gesture code.
+- Every lab test failed with `_jsxDEV is not a function`: the dev server's dependency cache went stale while a build ran beside it. Delete `apps/web/node_modules/.vite/deps` and start the dev server on its own.
+- A wide-only control showed on phones: `.dock-wide { display: none }` lost to a later `.dock-btn { display: grid }` at the same weight. A hide rule needs more weight than the rule that sets the display.
+- Both browser suites reported failures that were not real: `reuseExistingServer` picked up a preview server on 4321 serving an older build. Stop any preview server before running a suite.
+- A page's script did nothing after a client-side navigation: Vite inlined the small module as a `data:` script, which the CSP blocks. `vite.build.assetsInlineLimit: 0` keeps every page script a file.
+- The Library page shipped 135 KB of JavaScript: its script imported a pure helper from a module that also imported build-time code (`digestView`). Keep what a page script imports in a module with no build-time imports.
+- A merge was refused with "local changes would be overwritten" because an agent had staged work in the main checkout. Agents that share the main checkout commit before any merge; otherwise give them a worktree.
+- A function's budget counter could lose counts: `@vercel/blob` honours `useCache: false` only for private stores, and this store is public, so a state read could be a minute stale. Read mutable state with `head()` and then the URL plus a version query built from what `head` returned.
+- Vercel Hobby includes 2,000 advanced Blob operations a month (`put`, `copy`, `list`) and 10,000 simple ones (`head`, a read that misses the cache); going over locks the store for 30 days. Count operations per call when designing anything that writes to Blob, and never `list` on a page view.
+- The live Play control never changed to Pause: the page rendered `.cta-label` while `readerSync` wrote to `[data-play-label]`, and every player test ran against the dev lab page, which had the right hooks. Test the contract between markup and script on a real built page.
+- The disk filled (0 bytes free) when two agents each ran `npm ci` in their own worktree. Give a worktree junctions into the main `node_modules` instead, and never install inside one.
+- `npm run lint` fails inside a worktree under `.claude/`: `biome.json` ignores `**/.claude`, so Biome ignores `.` there. Run `npx biome check apps packages scripts tokens` in the worktree and the full lint from the main checkout.
+- An inline `node -e` or heredoc script lost its backslashes in the agent shell (a regex `/\/+$/` arrived as `//+$/`). Write any script that contains a backslash to a file first.
+
 - Blob upload failed with "OIDC is enabled for this project, but not for the development environment": the CLI pull issues a development OIDC token and the store was connected to Production and Preview only. Connect the store to Development too (dashboard, Storage, store, connected project, environments).
 - `audio.yml` failed at the write guard ("changes outside the publish allowlist: .gitignore"): `vercel link` and `vercel env pull` edit `.gitignore` and write `.vercel`; run them in a scratch directory outside the checkout.
 - `vercel env pull` writes the text `[SENSITIVE]` for hidden secrets, so `BLOB_READ_WRITE_TOKEN` would load as that string and beat the OIDC credentials; `loadEnv` now treats it as unset.

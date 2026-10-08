@@ -1,11 +1,21 @@
 import type { Category, COVER_TEMPLATES, CoverSpec, DigestKind } from "@dispatch/core";
+import type { LockupLayout } from "./lockup.js";
 import type { Rng } from "./prng.js";
+
+/**
+ * What a record is. The digest kinds plus "episode", a briefing the user made on request, which the
+ * digest schema does not carry yet but the cover already presses differently.
+ */
+export type CoverKind = DigestKind | "episode";
+
+/** How a cover is dressed: briefings plain, weeklies matted and framed, episodes inverted. */
+export type Variant = "regular" | "weekly" | "episode";
 
 /** What the renderer needs to know about the digest, besides the cover spec. */
 export interface CoverMeta {
   /** Stockholm calendar date, YYYY-MM-DD. */
   date: string;
-  kind: DigestKind;
+  kind: CoverKind;
   id: string;
 }
 
@@ -16,6 +26,11 @@ export interface PickInput extends CoverMeta {
    */
   lead_category?: Category | "watch";
   previous?: { template: string; palette: string };
+  /**
+   * Older covers, most recent first, after `previous`. When given, the picker also avoids their
+   * templates and palettes so a run of neighbours in a grid rarely shares one.
+   */
+  recent?: ReadonlyArray<{ template: string; palette: string }>;
 }
 
 export type TemplateId = (typeof COVER_TEMPLATES)[number];
@@ -33,10 +48,12 @@ export interface Rect {
   h: number;
 }
 
-export type Corner = "bl" | "br" | "tl" | "tr";
 export type Tone = "light" | "dark";
 
-/** A palette resolved to sRGB hex. Roles: ground, quiet field tint, mid shade, focal accent, date text. */
+/**
+ * A palette resolved to sRGB hex. Roles: flat ground, a quiet field tint and a mid shade (both
+ * derived), the figure color (3:1 or better on the ground) and the lockup text (4.5:1 or better).
+ */
 export interface Palette {
   id: string;
   name: string;
@@ -50,35 +67,32 @@ export interface Palette {
 
 /** Everything a template may read. Templates are pure functions of this. */
 export interface Ctx {
-  /** Canvas size. 1024 by 1024 for the cover, 1200 by 630 for the social card. */
+  /** Canvas size: always square. The social card composes the square on a wider ground. */
   w: number;
   h: number;
   /** Design unit: min(w, h) / 1024. All sizes below are written in units and multiplied by u. */
   u: number;
   rng: Rng;
   seed: number;
+  /** Already dressed for the variant, so an episode arrives with ground and figure swapped. */
   pal: Palette;
-  weekly: boolean;
+  variant: Variant;
   day: number;
   monthName: string;
   /** Unique per cover so several inline SVGs can share one HTML document. */
   uid: string;
   margin: number;
-  /** Corner holding the date lockup. */
-  corner: Corner;
   /** Padded rectangles that art must keep clear so type always sits on flat ground. */
   quiet: Rect[];
-  /** Drawable area, the full canvas, or the inset plate on weekly covers. */
+  /** Drawable area: the full canvas, or the inset plate on weekly covers. */
   area: Rect;
-  /** A focal point biased away from the date lockup. */
-  focus: Point;
+  /** Where the date numeral and wordmark go, for a template that draws its own date. */
+  lockup: LockupLayout;
 }
 
 export interface TemplateOutput {
   defs?: string;
   body: string;
-  /** "standard" adds the date lockup. "own" means the template draws its own date. */
-  lockup?: "standard" | "own";
 }
 
 export type Template = (ctx: Ctx) => TemplateOutput;

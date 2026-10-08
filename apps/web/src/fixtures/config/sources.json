@@ -1,0 +1,77 @@
+{
+  "version": 1,
+  "sources": [
+    {
+      "id": "studio-notes",
+      "name": "Studio Notes",
+      "type": "rss",
+      "url": "https://www.studio-notes.example/",
+      "feed_url": "https://www.studio-notes.example/feed.xml",
+      "tier": "daily",
+      "high_signal": true,
+      "enabled": true,
+      "failures": 0,
+      "options": {}
+    },
+    {
+      "id": "model-ledger",
+      "name": "Model Ledger",
+      "type": "rss",
+      "url": "https://model-ledger.example/blog",
+      "feed_url": "https://model-ledger.example/rss",
+      "tier": "daily",
+      "high_signal": true,
+      "enabled": true,
+      "failures": 0,
+      "options": {}
+    },
+    {
+      "id": "pixel-weekly",
+      "name": "Pixel Weekly",
+      "type": "rss",
+      "url": "https://pixelweekly.example/",
+      "feed_url": "https://pixelweekly.example/index.xml",
+      "tier": "weekly",
+      "high_signal": false,
+      "enabled": true,
+      "failures": 0,
+      "options": {}
+    },
+    {
+      "id": "quiet-motion",
+      "name": "Quiet Motion",
+      "type": "rss",
+      "url": "https://quietmotion.example/",
+      "feed_url": "https://quietmotion.example/rss.xml",
+      "tier": "daily",
+      "high_signal": false,
+      "enabled": false,
+      "failures": 0,
+      "options": {}
+    },
+    {
+      "id": "launch-board",
+      "name": "Launch Board",
+      "type": "firecrawl",
+      "url": "https://launchboard.example/new",
+      "feed_url": null,
+      "tier": "daily",
+      "high_signal": false,
+      "enabled": true,
+      "failures": 4,
+      "options": {}
+    },
+    {
+      "id": "type-and-grid",
+      "name": "Type and Grid",
+      "type": "rss",
+      "url": "https://typeandgrid.example/",
+      "feed_url": "https://typeandgrid.example/feed",
+      "tier": "daily",
+      "high_signal": false,
+      "enabled": true,
+      "failures": 0,
+      "options": {}
+    }
+  ]
+}

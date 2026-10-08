@@ -6,7 +6,11 @@
  * a client-side navigation between them exercises the player the way the real pages will: the
  * audio keeps playing and the new page's data arrives on astro:page-load.
  */
-import LabGlyph from "./LabGlyph.astro";
+import type { DigestItem } from "@dispatch/core";
+import Briefing from "../../components/Briefing.astro";
+import PlayCta from "../../components/PlayCta.astro";
+import type { SectionView } from "../../lib/digestView";
+import { briefingLengthLabel, storyLengthLabel } from "../core/readerMath";
 import LabLayout from "./LabLayout.astro";
 import { LAB_ITEMS, type LabVariant, labDigest, labSectionTitle } from "./labData";
 
@@ -16,11 +20,40 @@ interface Props {
 const { variant } = Astro.props;
 const digest = labDigest(variant);
 const hasAudio = digest.audio !== null;
-const sections = digest.sections.filter((section) =>
-  digest.items.some((item) => item.section === section.slug),
-);
-const seconds = (digest.audio?.duration_ms ?? 0) / 1000;
-const clock = `${Math.floor(seconds / 60)}:${String(Math.floor(seconds % 60)).padStart(2, "0")}`;
+const length = briefingLengthLabel(digest.audio?.duration_ms ?? LAB_ITEMS.length * 15_000);
+
+// The reader's own components render the page, so the hooks the player reads are the real ones.
+const sections: SectionView[] = [];
+for (const section of digest.sections) {
+  const items = digest.items.flatMap((entry, index) => {
+    const source = LAB_ITEMS[index];
+    if (!source || source.section !== section.slug) return [];
+    const item: DigestItem = {
+      id: source.id,
+      section: source.section,
+      category: source.section,
+      source_type: "rss",
+      headline: source.headline,
+      url: entry.url ?? "",
+      source: source.source,
+      author: source.author,
+      summary: source.summary,
+      why: source.why,
+      score: 0.5,
+    };
+    return [{ item, index, length: storyLengthLabel(entry.start_ms, entry.end_ms) }];
+  });
+  const first = items[0];
+  if (first) {
+    sections.push({
+      slug: section.slug,
+      title: labSectionTitle(section.slug),
+      items,
+      firstIndex: first.index,
+      clock: null,
+    });
+  }
+}
 ---
 
 <LabLayout title={`${digest.title}, Dispatch lab`}>
@@ -51,106 +84,21 @@ const clock = `${Math.floor(seconds / 60)}:${String(Math.floor(seconds % 60)).pa
   </header>
 
   <main id="main" class="page">
-    <section class="hero" aria-labelledby="page-title">
-      <img class="lab-hero-cover" src={digest.cover.src512} alt="" width="136" height="136" />
+    <header class="hero">
+      <span class="cover" data-size="hero" style={`--cover-bg:${digest.cover.key}`}>
+        <img class="cover-image" src={digest.cover.src512} alt="" width="512" height="512" />
+      </span>
       <div class="hero-text">
-        <h1 id="page-title">{digest.title}</h1>
-        <p class="hero-meta">
-          {LAB_ITEMS.length} items since Monday<br />2 min to read, {Math.round(seconds / 60) || 0} to listen
+        <h1 class="page-title" id="page-title" tabindex="-1">{digest.title}</h1>
+        <p class="meta meta-wrap">
+          <span>{LAB_ITEMS.length} stories</span>{" "}
+          <span>{length} listen</span>
         </p>
       </div>
-      <div class="hero-cta">
-        <button
-          class="cta press press-subtle"
-          type="button"
-          data-play-digest
-          data-playing="false"
-          aria-disabled={hasAudio ? undefined : "true"}
-          aria-describedby={hasAudio ? undefined : "cta-hint"}
-        >
-          <span class="cta-main">
-            <LabGlyph class="cta-icon" />
-            <span class="spinner" aria-hidden="true"></span>
-            <span data-play-label>{hasAudio ? "Play the briefing" : "Audio is still being prepared"}</span>
-          </span>
-          <span class="cta-time num" data-play-time>{hasAudio ? clock : ""}</span>
-        </button>
-      </div>
-      {
-        hasAudio ? null : (
-          <p class="hero-hint" id="cta-hint">
-            Narration is generated after the text. It usually takes a few minutes.
-          </p>
-        )
-      }
-    </section>
+      <PlayCta digestId={digest.id} mode={hasAudio ? "ready" : "preparing"} length={length} />
+    </header>
 
-    <div class="briefing">
-      <div class="rail" aria-hidden="true"><div class="rail-fill"></div></div>
-      <div class="rail-hit" aria-hidden="true"></div>
-      {
-        sections.map((section) => {
-          const items = LAB_ITEMS.filter((item) => item.section === section.slug);
-          const length = items.length * 15;
-          const time = `${Math.floor(length / 60)}:${String(length % 60).padStart(2, "0")}`;
-          return (
-            <section class="chapter-block" data-chapter={section.slug} aria-labelledby={`c-${section.slug}`}>
-              <div class="chapter">
-                <span class="chapter-node" aria-hidden="true" />
-                <h2 id={`c-${section.slug}`}>
-                  <button
-                    class="chapter-btn press"
-                    type="button"
-                    data-chapter-play={section.slug}
-                    aria-label={`Listen to ${labSectionTitle(section.slug)}, ${time}`}
-                  >
-                    <span>{labSectionTitle(section.slug)}</span>
-                    <span class="chapter-time">{time}</span>
-                  </button>
-                </h2>
-              </div>
-              {items.map((item) => {
-                const index = digest.items.findIndex((entry) => entry.id === item.id);
-                return (
-                  <article
-                    class="item"
-                    data-item-id={item.id}
-                    data-index={index}
-                    data-lead={index === 0 ? "" : undefined}
-                    aria-labelledby={`t-${item.id}`}
-                  >
-                    <span class="node" aria-hidden="true" />
-                    <h3 class="item-title" id={`t-${item.id}`}>
-                      <a href="#top" rel="noopener noreferrer">{item.headline}</a>
-                    </h3>
-                    <div class="item-meta">
-                      <p class="item-byline">
-                        <span class="item-source">{item.source}</span>
-                        <span><span class="sr-only">by </span>{item.author}</span>
-                      </p>
-                      {hasAudio ? (
-                        <button
-                          class="item-play press"
-                          type="button"
-                          data-play-item={item.id}
-                          data-current="false"
-                          data-playing="false"
-                          aria-label={`Listen from here: ${item.headline}`}
-                        >
-                          <span class="item-play-face"><LabGlyph /></span>
-                        </button>
-                      ) : null}
-                    </div>
-                    <p class="item-summary">{item.summary}</p>
-                    <p class="item-why"><span class="item-why-label">Why</span>{item.why}</p>
-                  </article>
-                );
-              })}
-            </section>
-          );
-        })
-      }
-    </div>
+    <Briefing sections={sections} hasAudio={hasAudio} />
 
     <nav class="lab-links" aria-label="Lab states">
       <a href="/dev/player-lab">Today, with audio</a>
@@ -163,16 +111,6 @@ const clock = `${Math.floor(seconds / 60)}:${String(Math.floor(seconds % 60)).pa
 </LabLayout>
 
 <style is:global>
-  .lab-hero-cover {
-    width: var(--cover-size-hero);
-    aspect-ratio: 1;
-    object-fit: cover;
-    border-radius: var(--cover-radius-hero);
-    outline: var(--stroke-hairline) solid var(--cover-outline);
-    outline-offset: calc(var(--stroke-hairline) * -1);
-    box-shadow: var(--cover-shadow);
-  }
-
   .lab-links {
     display: grid;
     padding-block: var(--space-8) var(--space-12);

@@ -150,7 +150,7 @@ describe("grounding and validation", () => {
         ids.includes(material.id)
           ? {
               ...okWritten(material),
-              summary: "UNSUPPORTED claim about springs. Another plain sentence.",
+              summary: `UNSUPPORTED claim about springs. ${okWritten(material).summary}`,
             }
           : okWritten(material),
     });
@@ -278,12 +278,14 @@ describe("agent mode", () => {
           same_url: 0,
           newsletter_collapsed: 0,
           near_duplicate: 0,
+          story_clustered: 0,
           output: items.length,
         },
         prefilter: {
           input: items.length,
           kept: items.length,
           dropped: { disliked: 0, not_relevant: 0, source_cap: 0, cap: 0 },
+          tech: { input: 0, kept: 0, source_cap: 0, cap: 0 },
         },
       },
       items,
@@ -301,8 +303,7 @@ describe("agent mode", () => {
         category: "design_engineering_craft",
         score: 0.9 - index * 0.05,
         headline: `Springlet ${index + 1} retargets springs mid-flight`,
-        summary: `Springlet ${index + 1} swaps the rest target without resetting velocity. Interrupted drawers keep their speed.`,
-        why: "Copy the retargeting pattern for drawers and toasts",
+        summary: `Springlet ${index + 1} swaps the rest target without resetting velocity. Interrupted drawers keep their speed, and the change is about 120 lines of plain JavaScript. A fixed timestep keeps the motion the same on slow phones.`,
       })),
     };
     await writeFile(join(dir, "selection.json"), `${JSON.stringify(selection, null, 2)}\n`, "utf8");

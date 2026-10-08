@@ -1,6 +1,7 @@
 /**
- * Client-side navigation rules for Astro's ClientRouter. A view transition is used only for the hop
- * between the reader and the archive; every other navigation swaps at once (design spec section 7).
+ * Client-side navigation rules for Astro's ClientRouter. The chrome (app bar, navigation, player)
+ * stays put; only the page between them moves, and how it moves says where you went: across to
+ * another destination, into one briefing, or back out of it.
  */
 
 /** Root attributes owned by the theme, the player and the connection check. A swap would replace them with the new page's. */
@@ -12,15 +13,30 @@ export const CARRIED_ATTRIBUTES = [
   "data-player-state",
 ] as const;
 
-export type NavigationKind = "archive" | "none";
+/**
+ * "peer": between two pages at the same level, a fade through. "in": into one dated briefing, the
+ * page settles from the end side. "out": back out of one, from the start side. "none": no move.
+ */
+export type NavigationKind = "peer" | "in" | "out" | "none";
 
-function isArchivePath(pathname: string): boolean {
-  return pathname === "/archive" || pathname === "/archive/";
+function normalize(pathname: string): string {
+  return pathname.length > 1 ? pathname.replace(/\/+$/, "") : pathname;
 }
 
-/** The archive hop is any navigation where exactly one end is the archive. */
+/** A dated briefing or an episode: one level below the destinations in the navigation. */
+function isBriefingPath(pathname: string): boolean {
+  return pathname.startsWith("/d/") || pathname.startsWith("/e/");
+}
+
 export function navigationKind(from: URL, to: URL): NavigationKind {
-  return isArchivePath(from.pathname) !== isArchivePath(to.pathname) ? "archive" : "none";
+  const fromPath = normalize(from.pathname);
+  const toPath = normalize(to.pathname);
+  if (fromPath === toPath) return "none";
+  const fromBriefing = isBriefingPath(fromPath);
+  const toBriefing = isBriefingPath(toPath);
+  if (toBriefing && !fromBriefing) return "in";
+  if (fromBriefing && !toBriefing) return "out";
+  return "peer";
 }
 
 /**
@@ -35,7 +51,7 @@ export function carryRootAttributes(from: HTMLElement, to: HTMLElement): void {
   }
 }
 
-/** Marks the root so the stylesheet can animate the archive hop and nothing else. */
+/** Marks the root so the stylesheet can pick the move. A data-astro-* name survives the swap. */
 const NAV_ATTRIBUTE = "data-astro-nav";
 
 export function installNavigation(): void {

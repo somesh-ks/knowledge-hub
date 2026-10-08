@@ -1,61 +1,98 @@
 /*
- * Dispatch player: the mini player, the expanded player, the scrubber and the controls inside it.
+ * The player: one surface that grows from a bar docked at the bottom into a full page, plus the
+ * scrubber and the controls inside it, and the icon and segmented-control styles the sheets share.
  *
  * Reads semantic and component tokens only (tokens.css); scale families (space, radius, type,
  * motion) are consumed directly because the scale is already the semantic layer. Unlayered, so it
  * wins over the foundations layers without specificity fights.
  *
  * Conventions
+ * - One number moves everything: --p, 0 collapsed and 1 expanded. Script writes it; every rule
+ *   below that travels, fades or flies is a function of it. No pixel height is cached anywhere.
  * - Hover only inside (hover: hover) and (pointer: fine).
- * - Movement uses the movement duration tokens, so reduced motion needs no per-component query.
  * - Interactive siblings sit flush; spacing lives inside each target (interactive-hit-areas).
  * - Progress is written to leaf elements only (--player-progress), never to a parent of content.
  * - Class names are prefixed so they cannot collide with the reader's own components.
  */
 
+/* ------------------------------------------------------------------ local dimensions */
+
+/* Sizes the player needs that the token set does not carry yet. Candidates for tokens. */
+:root {
+  /* The bar's one row: a control and its inset above and below. */
+  --player-dock-row: calc(var(--mini-player-control-size) + var(--mini-player-inset) * 2);
+  /*
+   * The bar's full height, for the shell to reserve. Constant per breakpoint. It includes whatever
+   * part of the bottom safe area a bottom navigation does not already cover.
+   */
+  --player-dock-height: calc(
+    var(--player-dock-row) +
+    max(0px, var(--safe-bottom) - var(--bottom-nav-height, 0px))
+  );
+  /* The page's top corners while it travels. They ease to square as it lands. */
+  --player-page-radius: var(--radius-lg);
+  /* On a phone the bar has faded out by this much of the way up. */
+  --player-dock-fade: 0.3;
+  /* Two columns of this much, from 64rem. */
+  --player-page-max: 68rem;
+  --player-column-max: 28rem;
+  /* The cover never takes more than this share of the window's height. */
+  --player-cover-share: 40cqb;
+  --player-chip-size: var(--size-touch-comfortable);
+  --player-skip-glyph: 2rem;
+  --player-row-mark: var(--space-2);
+}
+
 /* ------------------------------------------------------------------ per-frame properties */
 
-/* Script writes these several times a frame (sheetController, Scrubber). Registered as not
-   inherited, so a write restyles the one element and not everything inside it. Each initial value
-   is the closed or resting state, which is also the fallback in every var() below for browsers
-   that ignore @property. */
-@property --sheet-offset {
-  syntax: "<length-percentage>";
-  inherits: false;
-  initial-value: 100%;
-}
-
-@property --sheet-scale {
-  syntax: "<number>";
-  inherits: false;
-  initial-value: 1;
-}
-
-@property --sheet-opacity {
+/* Script writes these several times a frame (surfaceView, Scrubber). Registered as not inherited,
+   so a write restyles the one element and not everything inside it. Each initial value is the
+   collapsed or resting state. */
+@property --p {
   syntax: "<number>";
   inherits: false;
   initial-value: 0;
 }
 
-@property --scrim-opacity {
+/* The same number, offered to the shell's bottom navigation so it can slide out of the way. */
+@property --player-p {
   syntax: "<number>";
   inherits: false;
   initial-value: 0;
 }
 
-@property --cover-x {
+/* The cover's flight, measured once per motion. */
+@property --art-from-x {
   syntax: "<length>";
   inherits: false;
   initial-value: 0px;
 }
 
-@property --cover-y {
+@property --art-from-y {
   syntax: "<length>";
   inherits: false;
   initial-value: 0px;
 }
 
-@property --cover-scale {
+@property --art-to-x {
+  syntax: "<length>";
+  inherits: false;
+  initial-value: 0px;
+}
+
+@property --art-to-y {
+  syntax: "<length>";
+  inherits: false;
+  initial-value: 0px;
+}
+
+@property --art-size {
+  syntax: "<length>";
+  inherits: false;
+  initial-value: 0px;
+}
+
+@property --art-scale {
   syntax: "<number>";
   inherits: false;
   initial-value: 1;
@@ -79,11 +116,8 @@
   width: var(--size-icon);
   height: var(--size-icon);
   flex: none;
-  fill: none;
-  stroke: currentColor;
-  stroke-width: 2;
-  stroke-linecap: round;
-  stroke-linejoin: round;
+  /* Phosphor: every glyph is one filled path. */
+  fill: currentColor;
 }
 
 .ui-icon-solid {
@@ -93,12 +127,6 @@
 .icon-lg {
   width: var(--size-icon-lg);
   height: var(--size-icon-lg);
-}
-
-.icon-skip-label {
-  font-family: var(--font-ui);
-  font-size: var(--font-size-caption);
-  font-weight: var(--font-weight-bold);
 }
 
 /* Play and pause share one slot. The outgoing glyph shrinks, fades and blurs as the incoming one
@@ -144,33 +172,21 @@
 
 /* ------------------------------------------------------------------ the cover */
 
+/* Drawn three times: on the bar, on the page, and in flight between them. The rules under
+   "one cover at a time" show exactly one. */
 .player-cover-frame {
   --cover-fill: var(--cover-key, var(--color-surface-sunken));
   position: relative;
   display: block;
+  width: 100%;
   aspect-ratio: 1;
   overflow: hidden;
-  border-radius: var(--cover-radius, var(--cover-radius-hero));
+  border-radius: var(--radius-sm);
   background: var(--cover-fill);
   outline: var(--stroke-hairline) solid var(--cover-outline);
   outline-offset: calc(var(--stroke-hairline) * -1);
-  box-shadow: var(--cover-shadow);
   user-select: none;
   -webkit-user-select: none;
-}
-
-.player-cover-frame[data-size="thumb"] {
-  --cover-radius: var(--cover-radius-thumb);
-  width: var(--mini-player-cover-size);
-  box-shadow: none;
-}
-
-.player-cover-frame[data-size="player"] {
-  --cover-radius: var(--cover-radius-large);
-  width: min(100%, var(--cover-size-player), 36dvh);
-  transform-origin: top left;
-  /* The shared element's travel from the mini player's cover; identity until the controller writes. */
-  transform: translate3d(var(--cover-x, 0px), var(--cover-y, 0px), 0) scale(var(--cover-scale, 1));
 }
 
 .player-cover-image {
@@ -181,258 +197,121 @@
   -webkit-touch-callout: none;
 }
 
-/* ------------------------------------------------------------------ mini player */
+/* ------------------------------------------------------------------ the surface */
 
-html[data-mini="visible"] main {
-  /* Room for the mini player and its inset, so the last line is never covered. */
-  padding-block-end: calc(
-    var(--mini-player-control-size) +
-    var(--mini-player-inset) *
-    2 +
-    max(var(--mini-player-inset), var(--safe-bottom)) +
-    var(--space-8)
-  );
-}
-
-.mini {
+.player {
+  /* How far the bar's top edge sits above the bottom of the window. */
+  --player-rest-inset: calc(var(--player-dock-height) + var(--bottom-nav-height, 0px));
+  /* What the page's travel stops short of: on a phone it starts from behind the bar. */
+  --player-page-inset: var(--player-rest-inset);
+  --color-focus-gap: var(--color-surface);
   position: fixed;
+  inset: 0;
   z-index: var(--z-mini);
-  inset-inline: max(var(--mini-player-inset), var(--safe-left))
-    max(var(--mini-player-inset), var(--safe-right));
-  inset-block-end: max(var(--mini-player-inset), var(--safe-bottom));
-  display: grid;
-  grid-template-columns: minmax(0, 1fr) auto auto;
-  align-items: center;
-  max-width: var(--layout-mini-max);
-  margin-inline: auto;
-  padding: var(--mini-player-inset);
-  border-radius: var(--mini-player-radius);
-  background: var(--mini-player-bg);
+  /* Its own box is the unit for everything inside (cqb, cqi), so no viewport unit is needed and
+     the address bar moving cannot leave a stale height behind. */
+  container-type: size;
   color: var(--color-on-surface);
-  box-shadow: var(--mini-player-shadow);
-  --color-focus-gap: var(--color-surface-overlay);
-  /* Hidden state: translated away and not focusable. */
-  transform: translateY(calc(100% + var(--space-6)));
-  opacity: 0;
-  visibility: hidden;
-  transition:
-    transform var(--duration-sheet-out) var(--ease-drawer),
-    opacity var(--duration-state) var(--ease-out),
-    visibility 0s linear var(--duration-sheet-out);
-  /* Its own group during view transitions, so the bar stays put while the page crossfades. */
-  view-transition-name: mini-player;
-}
-
-.mini[data-visible="true"] {
-  transform: none;
-  opacity: 1;
-  visibility: visible;
-  transition:
-    transform var(--duration-sheet-in) var(--ease-drawer),
-    opacity var(--duration-state) var(--ease-out),
-    visibility 0s;
-}
-
-.mini-progress {
-  position: absolute;
-  inset-inline: var(--mini-player-inset);
-  inset-block-start: 0;
-  height: var(--mini-player-progress-height);
-  overflow: hidden;
-  border-radius: var(--radius-xs);
+  /* Only the bar and the page take the pointer. */
   pointer-events: none;
 }
 
-.mini-progress-fill {
-  display: block;
-  height: 100%;
-  background: var(--color-accent);
-  transform-origin: left;
-  transform: scaleX(var(--player-progress, 0));
-}
-
-.mini-open {
-  display: grid;
-  grid-template-columns: var(--mini-player-cover-size) minmax(0, 1fr);
-  align-items: center;
-  gap: var(--space-3);
-  min-height: var(--mini-player-control-size);
-  padding-inline-end: var(--space-2);
-  border-radius: var(--mini-player-control-radius);
-  text-align: start;
-  /* The open button owns vertical pans, so a swipe up reaches script instead of scrolling the page. */
-  touch-action: none;
-}
-
-.mini-text {
-  display: grid;
-  min-width: 0;
-}
-
-.mini-section {
-  overflow: hidden;
-  color: var(--color-on-surface-muted);
-  font-size: var(--font-size-caption);
-  font-weight: var(--font-weight-semibold);
-  line-height: var(--font-leading-caption);
-  text-overflow: ellipsis;
-  white-space: nowrap;
-}
-
-.mini-section[data-tone="danger"] {
-  color: var(--color-danger);
-}
-
-.mini-title {
-  overflow: hidden;
-  font-size: var(--font-size-meta);
-  font-weight: var(--font-weight-semibold);
-  line-height: var(--font-leading-caption);
-  text-overflow: ellipsis;
-  white-space: nowrap;
-}
-
-.mini-btn {
-  position: relative;
-  display: grid;
-  place-items: center;
-  width: var(--mini-player-control-size);
-  height: var(--mini-player-control-size);
-  border-radius: var(--mini-player-control-radius);
-}
-
-.mini-btn[data-primary] {
-  background: var(--color-accent);
-  color: var(--color-on-accent);
-}
-
-.mini-btn[aria-disabled="true"] {
-  color: var(--color-on-surface-disabled);
-}
-
-.mini-btn .spinner,
-.transport-btn .spinner {
+/* The clip box the page rises in. */
+.player-stage {
   position: absolute;
-  display: none;
-  color: var(--color-on-cover-accent);
-}
-
-.mini-btn[data-loading="true"] .spinner,
-.transport-btn[data-loading="true"] .spinner {
-  display: block;
-}
-
-@media (hover: hover) and (pointer: fine) {
-  .mini-btn:not([data-primary], [aria-disabled="true"]):hover,
-  .mini-open:hover {
-    background: var(--color-surface-sunken);
-  }
-
-  .mini-btn[data-primary]:hover {
-    background: var(--color-accent-hover);
-  }
-}
-
-.mini-btn[data-primary]:active {
-  background: var(--color-accent-pressed);
-}
-
-/* While the player sheet is open, its cover is the one on screen. */
-html[data-player="open"] .mini-open .player-cover-frame {
-  visibility: hidden;
-}
-
-/* ------------------------------------------------------------------ expanded player */
-
-.player-viewport {
-  position: fixed;
   inset: 0;
-  z-index: var(--z-sheet);
-  overflow: hidden;
-  /* Only the panel and the scrim take the pointer. */
-  pointer-events: none;
+  z-index: 0;
+  /* Clipped without becoming a scroll container, so focus can never scroll the page off its place. */
+  overflow: clip;
 }
 
-.player-scrim {
-  position: fixed;
-  inset: 0;
-  z-index: var(--z-sheet);
-  min-height: 100dvh;
-  background: var(--color-scrim);
-  opacity: var(--scrim-opacity, 0);
-}
+/* ------------------------------------------------------------------ the page */
 
-/* iOS 26 clips fixed elements to the inner viewport; Base UI's own guidance is to position the
-   backdrop absolutely there so it covers everything visible. */
-@supports (-webkit-touch-callout: none) {
-  .player-scrim {
-    position: absolute;
-  }
-}
-
-.player-panel {
-  /* The cover's key color arrives inline from the digest; the app accent is the fallback. */
-  --cover-key: var(--color-accent);
-  --player-key: var(--color-accent);
-  --color-cover-accent: var(--player-key);
-  --color-on-cover-accent: var(--color-on-accent);
-  --color-focus-ring: var(--player-key);
-  --color-focus-gap: var(--player-surface);
-  --player-surface: color-mix(
-    in oklch,
-    var(--cover-key, var(--color-accent)) calc(var(--player-tint-mix) * 100%),
-    var(--color-surface-raised)
+.player-page,
+.player-dock {
+  /* Square at rest at either end, rounded while it travels. */
+  --player-corner: calc(
+    var(--player-page-radius) *
+    clamp(0, var(--p) * 10, 1) *
+    clamp(0, (1 - var(--p)) * 4, 1)
   );
+}
+
+.player-page {
   position: absolute;
   inset: 0;
-  display: flex;
-  flex-direction: column;
-  max-width: var(--layout-column);
-  margin-inline: auto;
-  padding-block-start: var(--safe-top);
-  padding-inline: max(var(--player-padding), var(--safe-left))
-    max(var(--player-padding), var(--safe-right));
-  background: var(--player-surface);
-  color: var(--color-on-surface);
+  /* The one scroll container: header and cover scroll with everything else, so no part of the
+     page can be squeezed at any window height. */
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  scrollbar-width: thin;
+  /* While it moves the whole page is one handle. At rest it scrolls. */
+  touch-action: none;
+  border-start-start-radius: var(--player-corner);
+  border-start-end-radius: var(--player-corner);
+  background: var(--color-surface);
   outline: none;
   pointer-events: auto;
-  /* Closed until the controller moves it: no flash on mount, whatever the first frame is. */
-  transform: translate3d(0, var(--sheet-offset, 100%), 0);
+  transform: translate3d(0, calc((1 - var(--p)) * (100% - var(--player-page-inset))), 0);
 }
 
-.player-panel[data-moving] {
+.player[data-state="collapsed"] .player-page {
+  visibility: hidden;
+}
+
+.player[data-state="expanded"] :is(.player-page, .player-dock, .player-art) {
+  --p: 1;
+}
+
+.player:is([data-state="dragging"], [data-state="expanding"], [data-state="collapsing"])
+  :is(.player-page, .player-dock, .player-art) {
   /* Promoted only while it can move, and demoted when the spring rests. */
   will-change: transform;
 }
 
-/* Cover accent flows into the player: lightness is pinned per mode so the derived color always
-   clears 3:1 against the sheet, whatever the palette. Hue and chroma come from the cover. */
-.player-panel[data-cover-key] {
-  --player-key: oklch(from var(--cover-key) 0.5 min(c, 0.17) h);
+.player[data-landed] .player-page {
+  touch-action: pan-y;
 }
 
-:root[data-theme="dark"] .player-panel[data-cover-key] {
-  --player-key: oklch(from var(--cover-key) 0.78 min(c, 0.17) h);
-}
-
-@media (prefers-color-scheme: dark) {
-  :root:not([data-theme="light"]) .player-panel[data-cover-key] {
-    --player-key: oklch(from var(--cover-key) 0.78 min(c, 0.17) h);
-  }
-}
-
-.player-panel:focus-visible {
-  /* Containers that take focus on open show no ring of their own; the controls inside carry it. */
+.player-page:focus-visible {
+  /* A container that takes focus on open shows no ring of its own; the controls inside carry it. */
   outline: none;
   box-shadow: none;
 }
 
+.player-page-inner {
+  display: flex;
+  flex-direction: column;
+  max-width: var(--layout-column);
+  min-height: 100%;
+  margin-inline: auto;
+  padding-block: var(--safe-top) max(var(--space-8), var(--safe-bottom));
+  padding-inline: max(var(--player-padding), var(--safe-left))
+    max(var(--player-padding), var(--safe-right));
+  /* Until the page has landed, a press on it is a press on the page, not on a control. */
+  pointer-events: none;
+}
+
+.player[data-landed] .player-page-inner {
+  pointer-events: auto;
+}
+
+@media (pointer: coarse) {
+  /* Always a pixel to scroll, so the scroller always contains a pan instead of handing it to
+     the document behind. */
+  .player-page-inner {
+    min-height: calc(100% + 1px);
+  }
+}
+
+/* Starts a dismissal when the page is at the top. It takes no native pan; the controller scrolls
+   the page under a finger that is not dismissing. */
 .player-drag {
   display: flex;
-  flex: 0 1 auto;
   flex-direction: column;
-  min-height: 0;
   touch-action: none;
+  user-select: none;
+  -webkit-user-select: none;
 }
 
 .player-handle {
@@ -444,54 +323,55 @@ html[data-player="open"] .mini-open .player-cover-frame {
   background: var(--player-handle-color);
 }
 
-.player-bar {
-  display: flex;
+.player-head {
+  display: grid;
+  grid-template-columns: var(--size-touch) minmax(0, 1fr) var(--size-touch);
   align-items: center;
-  justify-content: space-between;
   min-height: var(--size-touch);
+  /* The glyphs sit on the content edge; the targets extend outward. */
+  margin-inline: calc(var(--space-3) * -1);
 }
 
-.player-bar-date {
-  color: var(--color-on-surface-muted);
-  font-size: var(--font-size-meta);
-  font-weight: var(--font-weight-semibold);
-}
-
-.player-close {
+.player-collapse {
   display: grid;
   place-items: center;
   width: var(--size-touch);
   height: var(--size-touch);
-  /* The glyph sits in the trailing corner; the target extends inward. */
-  margin-inline-end: calc(var(--space-2) * -1);
-  border-radius: var(--control-radius-sm);
+  border-radius: var(--radius-round);
   color: var(--color-on-surface-muted);
 }
 
-@media (hover: hover) and (pointer: fine) {
-  .player-close:hover {
-    background: var(--color-surface-sunken);
-    color: var(--color-on-surface);
-  }
+.player-date {
+  overflow: hidden;
+  color: var(--color-on-surface-muted);
+  font-size: var(--font-size-meta);
+  font-weight: var(--font-weight-semibold);
+  text-align: center;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
-.player-cover {
+.player-cover-slot {
   display: grid;
   place-items: center;
-  flex: 0 1 auto;
-  min-height: 0;
-  padding-block: var(--space-2) var(--space-4);
+  padding-block: var(--space-3) var(--space-6);
 }
 
+.player-cover-box {
+  width: min(100%, var(--cover-size-player), var(--player-cover-share));
+}
+
+/* The headline, then where it sits in the briefing, with air between the two. */
 .player-meta {
   display: grid;
-  gap: var(--space-1);
+  gap: var(--space-2);
+  text-align: center;
 }
 
 .player-section {
   color: var(--color-on-surface-muted);
-  font-size: var(--font-size-meta);
-  font-weight: var(--font-weight-semibold);
+  font-size: var(--font-size-label);
+  line-height: var(--font-leading-label);
 }
 
 .player-title {
@@ -502,36 +382,561 @@ html[data-player="open"] .mini-open .player-cover-frame {
   font-weight: var(--text-title-weight);
   letter-spacing: var(--text-title-tracking);
   line-height: var(--text-title-leading);
+  text-wrap: balance;
   -webkit-box-orient: vertical;
-  -webkit-line-clamp: 2;
-}
-
-.player-source {
-  color: var(--color-on-surface-muted);
-  font-size: var(--font-size-meta);
+  -webkit-line-clamp: 3;
 }
 
 .player-controls {
-  flex: none;
   padding-block-start: var(--space-4);
 }
 
-.player-scroll {
-  flex: 1 1 0;
-  min-height: 0;
-  margin-inline: calc(var(--player-padding) * -1);
-  padding-inline: var(--player-padding);
-  padding-block-end: max(var(--space-6), var(--safe-bottom));
+.player-list {
+  padding-block-start: var(--space-4);
 }
 
 .player-section-title,
-.segmented-legend {
+.segmented-legend,
+.speed-legend {
   display: block;
   margin-block: var(--space-4) var(--space-2);
   padding: 0;
   color: var(--color-on-surface-muted);
   font-size: var(--font-size-meta);
   font-weight: var(--font-weight-semibold);
+}
+
+/* What stands in for the controls while their code is on the way, or did not arrive. */
+.player-fallback {
+  display: grid;
+  justify-items: center;
+  gap: var(--space-3);
+  padding-block: var(--space-8);
+  color: var(--color-on-surface-muted);
+  font-size: var(--font-size-meta);
+  text-align: center;
+}
+
+.player-fallback-action {
+  min-height: var(--size-touch);
+  padding-inline: var(--space-5);
+  border-radius: var(--control-radius-sm);
+  background: var(--color-accent);
+  color: var(--color-on-accent);
+  font-weight: var(--font-weight-semibold);
+}
+
+/* ------------------------------------------------------------------ the flying cover */
+
+/* One box, placed and sized entirely by its transform, from two ends measured when the page
+   leaves rest: the bar's thumbnail at p = 0, the page's cover slot at p = 1. */
+.player-art {
+  --art-scale-now: calc(var(--art-scale) + (1 - var(--art-scale)) * var(--p));
+  position: absolute;
+  top: 0;
+  left: 0;
+  z-index: 2;
+  width: var(--art-size);
+  visibility: hidden;
+  pointer-events: none;
+  transform-origin: 0 0;
+  transform: translate3d(
+      calc(var(--art-from-x) + (var(--art-to-x) - var(--art-from-x)) * var(--p)),
+      calc(var(--art-from-y) + (var(--art-to-y) - var(--art-from-y)) * var(--p)),
+      0
+    )
+    scale(var(--art-scale-now));
+}
+
+.player-art .player-cover-frame {
+  /* Scaling squeezes a corner radius, so it is divided by the scale to stay visually true. */
+  border-radius: calc(var(--radius-sm) / var(--art-scale-now));
+  box-shadow: var(--cover-shadow);
+}
+
+.player-cover-box .player-cover-frame {
+  box-shadow: var(--cover-shadow);
+}
+
+/* One cover at a time. At rest it is the bar's or the page's; in between it is the one in flight,
+   and the two at the ends are identical to it at the moment they swap. */
+.player:is([data-state="dragging"], [data-state="expanding"], [data-state="collapsing"])
+.player-art {
+  visibility: visible;
+}
+
+.player:not([data-state="collapsed"]) .player-thumb .player-cover-frame,
+.player:not([data-state="expanded"]) .player-cover-box .player-cover-frame {
+  visibility: hidden;
+}
+
+/* ------------------------------------------------------------------ the dock */
+
+.player-dock {
+  position: absolute;
+  inset-inline: 0;
+  inset-block-end: var(--bottom-nav-height, 0px);
+  z-index: 1;
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  column-gap: var(--space-2);
+  align-items: start;
+  height: var(--player-dock-height);
+  /* Whatever the row's height, its controls sit in the middle of it. */
+  padding-block-start: calc((var(--player-dock-row) - var(--mini-player-control-size)) / 2);
+  padding-inline: max(var(--mini-player-inset), var(--safe-left))
+    max(var(--mini-player-inset), var(--safe-right));
+  background: var(--mini-player-bg);
+  /* A hairline along the top edge, drawn outside the box so the height stays exact. */
+  box-shadow: 0 calc(var(--stroke-hairline) * -1) 0 var(--color-border-hairline);
+  --color-focus-gap: var(--mini-player-bg);
+  pointer-events: auto;
+  /* Shown and hidden with `translate`, so that transition never touches the travel in `transform`. */
+  translate: 0 0;
+  transition:
+    translate var(--duration-sheet-in) var(--ease-drawer),
+    visibility 0s;
+  /* Its own group during view transitions, so the bar stays put while the page crossfades. */
+  view-transition-name: mini-player;
+}
+
+/* Before the first play: off the bottom, and out of the tab order. */
+.player[data-visible="false"] .player-dock {
+  translate: 0 calc(100% + var(--space-2));
+  visibility: hidden;
+  transition:
+    translate var(--duration-sheet-out) var(--ease-drawer),
+    visibility 0s linear var(--duration-sheet-out);
+}
+
+.dock-progress {
+  position: absolute;
+  inset-inline: 0;
+  inset-block-start: 0;
+  height: var(--mini-player-progress-height);
+  overflow: hidden;
+  pointer-events: none;
+}
+
+.dock-progress-fill {
+  display: block;
+  height: 100%;
+  background: var(--color-accent);
+  transform-origin: left;
+  transform: scaleX(var(--player-progress, 0));
+}
+
+.dock-open {
+  display: grid;
+  grid-template-columns: var(--mini-player-cover-size) minmax(0, 1fr);
+  align-items: center;
+  gap: var(--space-3);
+  min-height: var(--mini-player-control-size);
+  padding-inline-end: var(--space-2);
+  border-radius: var(--mini-player-control-radius);
+  text-align: start;
+  /* The open button owns vertical pans, so a pull up reaches script instead of scrolling the page. */
+  touch-action: none;
+}
+
+.player-thumb {
+  display: block;
+  width: var(--mini-player-cover-size);
+  aspect-ratio: 1;
+}
+
+.dock-text {
+  display: grid;
+  min-width: 0;
+}
+
+/* The title, then one quieter line under it: what is playing, then where it sits in the briefing. */
+.dock-caption {
+  overflow: hidden;
+  color: var(--color-on-surface-muted);
+  font-size: var(--font-size-meta);
+  line-height: var(--font-leading-label);
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.dock-caption[data-tone="danger"] {
+  color: var(--color-danger);
+}
+
+.dock-title {
+  overflow: hidden;
+  font-size: var(--font-size-label);
+  font-weight: var(--font-weight-medium);
+  line-height: var(--font-leading-label);
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.dock-text {
+  gap: calc(var(--space-1) / 2);
+}
+
+/* Play and next, a clear 8px apart: two targets a thumb can tell from each other. */
+.dock-transport {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+}
+
+/* Only where the bar has the room: previous, the clock, volume. */
+.dock-wide,
+.dock-tools {
+  display: none;
+}
+
+.dock-time {
+  align-items: baseline;
+  gap: var(--space-1);
+  margin-inline-start: var(--space-3);
+  color: var(--color-on-surface-muted);
+  font-size: var(--font-size-label);
+  white-space: nowrap;
+}
+
+/*
+ * The bar's scrubber: a native range laid over the progress line along the bar's top edge. The line
+ * shows the position; the range takes the pointer and the keyboard, and shows its thumb when used.
+ */
+.dock-seek {
+  position: absolute;
+  inset-inline: 0;
+  inset-block-start: calc(var(--space-2) * -1);
+  z-index: 1;
+  display: none;
+  width: 100%;
+  height: var(--space-4);
+  margin: 0;
+  padding: 0;
+  border-radius: var(--radius-xs);
+  background: none;
+  appearance: none;
+  cursor: pointer;
+  touch-action: none;
+}
+
+.dock-seek::-webkit-slider-runnable-track {
+  height: 100%;
+  background: none;
+}
+
+.dock-seek::-moz-range-track {
+  height: 100%;
+  background: none;
+}
+
+.dock-seek::-webkit-slider-thumb {
+  width: var(--space-3);
+  height: var(--space-3);
+  margin-block-start: calc((var(--space-4) - var(--space-3)) / 2);
+  border: 0;
+  border-radius: var(--radius-round);
+  background: var(--color-accent);
+  appearance: none;
+  opacity: 0;
+  transition: opacity var(--duration-hover) var(--ease-hover);
+}
+
+.dock-seek::-moz-range-thumb {
+  width: var(--space-3);
+  height: var(--space-3);
+  border: 0;
+  border-radius: var(--radius-round);
+  background: var(--color-accent);
+  opacity: 0;
+  transition: opacity var(--duration-hover) var(--ease-hover);
+}
+
+.dock-seek:is(:focus-visible, :active)::-webkit-slider-thumb {
+  opacity: 1;
+}
+
+.dock-seek:is(:focus-visible, :active)::-moz-range-thumb {
+  opacity: 1;
+}
+
+.dock-progress {
+  transition: height var(--duration-hover) var(--ease-hover);
+}
+
+.player-dock:has(.dock-seek:is(:focus-visible, :active)) .dock-progress {
+  height: calc(var(--mini-player-progress-height) * 2);
+}
+
+.dock-volume {
+  display: flex;
+  align-items: center;
+  gap: var(--space-1);
+}
+
+.dock-volume-level {
+  width: 6rem;
+  height: var(--size-touch);
+  margin: 0;
+  background: none;
+  appearance: none;
+  cursor: pointer;
+}
+
+.dock-volume-level::-webkit-slider-runnable-track {
+  height: var(--scrubber-track);
+  border-radius: var(--radius-round);
+  background: linear-gradient(
+    to right,
+    var(--color-accent) calc(var(--level, 1) * 100%),
+    var(--color-track) 0
+  );
+}
+
+.dock-volume-level::-moz-range-track {
+  height: var(--scrubber-track);
+  border-radius: var(--radius-round);
+  background: var(--color-track);
+}
+
+.dock-volume-level::-moz-range-progress {
+  height: var(--scrubber-track);
+  border-radius: var(--radius-round);
+  background: var(--color-accent);
+}
+
+.dock-volume-level::-webkit-slider-thumb {
+  width: var(--space-3);
+  height: var(--space-3);
+  margin-block-start: calc((var(--scrubber-track) - var(--space-3)) / 2);
+  border: 0;
+  border-radius: var(--radius-round);
+  background: var(--color-accent);
+  appearance: none;
+}
+
+.dock-volume-level::-moz-range-thumb {
+  width: var(--space-3);
+  height: var(--space-3);
+  border: 0;
+  border-radius: var(--radius-round);
+  background: var(--color-accent);
+}
+
+.dock-btn {
+  position: relative;
+  display: grid;
+  place-items: center;
+  width: var(--mini-player-control-size);
+  height: var(--mini-player-control-size);
+  border-radius: var(--radius-round);
+}
+
+/* Previous belongs to the wide bar. Said again here, because the rule above gives every bar button
+   a display and would bring it back on a phone. */
+.dock-btn.dock-wide {
+  display: none;
+}
+
+.dock-btn[data-primary] {
+  background: var(--color-accent);
+  color: var(--color-on-accent);
+}
+
+.dock-btn[aria-disabled="true"] {
+  color: var(--color-on-surface-disabled);
+}
+
+.dock-btn .spinner,
+.transport-btn .spinner {
+  position: absolute;
+  display: none;
+  color: var(--color-on-accent);
+}
+
+.dock-btn[data-loading="true"] .spinner,
+.transport-btn[data-loading="true"] .spinner {
+  display: block;
+}
+
+.dock-btn[data-primary]:active,
+.transport-btn[data-primary]:active {
+  background: var(--color-accent-pressed);
+}
+
+@media (hover: hover) and (pointer: fine) {
+  .dock-seek:hover::-webkit-slider-thumb {
+    opacity: 1;
+  }
+
+  .dock-seek:hover::-moz-range-thumb {
+    opacity: 1;
+  }
+
+  .player-dock:has(.dock-seek:hover) .dock-progress {
+    height: calc(var(--mini-player-progress-height) * 2);
+  }
+
+  .dock-btn:not([data-primary], [aria-disabled="true"]):hover,
+  .dock-open:hover,
+  .player-collapse:hover {
+    background: var(--color-surface-sunken);
+  }
+
+  .player-collapse:hover {
+    color: var(--color-on-surface);
+  }
+
+  .dock-btn[data-primary]:hover,
+  .transport-btn[data-primary]:hover {
+    background: var(--color-accent-hover);
+  }
+}
+
+/* ------------------------------------------------------------------ phones: the bar rides the page */
+
+@media (max-width: 39.9375rem) {
+  .player-dock {
+    border-start-start-radius: var(--player-corner);
+    border-start-end-radius: var(--player-corner);
+    /* The same travel as the page, so the bar stays on the page's top edge while it fades. */
+    transform: translate3d(0, calc(var(--p) * -1 * (100cqb - var(--player-rest-inset))), 0);
+    opacity: calc(1 - var(--p) / var(--player-dock-fade));
+  }
+
+  /* Committed open: what is left of the bar must not catch a press meant for the page. */
+  .player[data-open="true"] .player-dock {
+    pointer-events: none;
+  }
+
+  /* Fully open: gone from the tab order and from assistive technology as well. */
+  .player[data-state="expanded"] .player-dock {
+    visibility: hidden;
+  }
+}
+
+/* ------------------------------------------------------------------ wide: the page rises from behind the bar */
+
+@media (min-width: 40rem) {
+  .player {
+    /* How far the bar goes down as the player opens. Where there is a bottom navigation it slides
+       away, and the bar follows it to the window's edge, less the safe area. Nothing from 64rem. */
+    --player-nav-travel: max(0px, var(--bottom-nav-height, 0px) - var(--safe-bottom));
+    /* The page starts that much higher, so it leaves from the bar's top edge wherever the bar is. */
+    --player-page-inset: var(--player-nav-travel);
+  }
+
+  /* The stage ends at the top edge the bar has once the player is open. The bar keeps working. */
+  .player-stage {
+    inset-block-end: calc(var(--player-rest-inset) - var(--player-nav-travel));
+  }
+
+  .player-page-inner {
+    padding-block: var(--space-2) var(--space-8);
+  }
+
+  .player-dock {
+    /* The same number under a name the bar's own children can read: --p does not inherit. */
+    --dock-p: var(--p);
+    padding-inline: max(var(--page-gutter), var(--safe-left))
+      max(var(--page-gutter), var(--safe-right));
+    transform: translate3d(0, calc(var(--p, 0) * var(--player-nav-travel)), 0);
+    /* The hairline along the top, and the bar's own colour over the safe area it comes to rest on. */
+    box-shadow:
+      0 calc(var(--stroke-hairline) * -1) 0 var(--color-border-hairline),
+      0 calc(var(--p, 0) * var(--safe-bottom)) 0 var(--mini-player-bg);
+  }
+
+  .dock-open {
+    width: 100%;
+    max-width: var(--player-column-max);
+  }
+
+  /* The bar stays put from here, so it can carry its own scrubber. It is a 16px strip along the
+     bar's edge, a target for a mouse; a finger scrubs on the player page, where the bar is 44px. */
+  @media (pointer: fine) {
+    .dock-seek {
+      display: block;
+    }
+  }
+
+  /* The bar stays while its cover is away on the page, so its text closes the gap the cover left
+     and opens it again as the cover comes home. */
+  .dock-text {
+    transform: translate3d(
+      calc(var(--dock-p, 0) * -1 * (var(--mini-player-cover-size) + var(--space-3))),
+      0,
+      0
+    );
+  }
+}
+
+/* From 64rem the bar is a full transport: what is playing, the controls in the middle, volume. */
+@media (min-width: 64rem) {
+  :root {
+    --player-dock-row: 4.5rem;
+  }
+
+  .player-dock {
+    grid-template-columns: minmax(0, 1fr) auto minmax(0, 1fr);
+    column-gap: var(--space-6);
+  }
+
+  .dock-btn.dock-wide {
+    display: grid;
+  }
+
+  .dock-time {
+    display: inline-flex;
+  }
+}
+
+@media (min-width: 64rem) and (hover: hover) and (pointer: fine) {
+  .dock-tools {
+    display: flex;
+    justify-self: end;
+  }
+}
+
+@media (min-width: 64rem) {
+  /* Two columns: the cover, the story being read and its controls; and the briefing's list. */
+  .player-page-inner {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+    grid-template-rows: auto 1fr;
+    align-content: start;
+    column-gap: var(--space-12);
+    max-width: var(--player-page-max);
+    padding-inline: var(--space-12);
+  }
+
+  .player-drag,
+  .player-controls,
+  .player-fallback {
+    grid-column: 1;
+    width: 100%;
+    max-width: var(--player-column-max);
+    justify-self: center;
+  }
+
+  .player-drag {
+    grid-row: 1;
+  }
+
+  .player-body {
+    display: contents;
+  }
+
+  .player-controls,
+  .player-fallback {
+    grid-row: 2;
+  }
+
+  .player-list {
+    grid-column: 2;
+    grid-row: 1 / span 2;
+    padding-block-start: var(--space-10);
+  }
 }
 
 /* ------------------------------------------------------------------ scrubber */
@@ -568,7 +973,7 @@ html[data-player="open"] .mini-open .player-cover-frame {
 .scrubber-fill {
   display: block;
   height: 100%;
-  background: var(--color-cover-accent);
+  background: var(--color-accent);
   transform-origin: left;
   transform: scaleX(var(--player-progress, 0));
 }
@@ -596,7 +1001,7 @@ html[data-player="open"] .mini-open .player-cover-frame {
 }
 
 .scrubber-tick[data-played] {
-  background: var(--color-cover-accent);
+  background: var(--color-accent);
 }
 
 /* The thumb is a zero-size anchor that script moves with --thumb-x. The visible disc is a
@@ -620,8 +1025,8 @@ html[data-player="open"] .mini-open .player-cover-frame {
   width: var(--scrubber-thumb);
   height: var(--scrubber-thumb);
   border-radius: var(--radius-round);
-  background: var(--color-cover-accent);
-  box-shadow: 0 0 0 var(--scrubber-thumb-ring) var(--player-surface, var(--color-surface-raised));
+  background: var(--color-accent);
+  box-shadow: 0 0 0 var(--scrubber-thumb-ring) var(--color-surface);
   transition: scale var(--duration-spring-pop) var(--ease-spring-pop);
 }
 
@@ -676,37 +1081,54 @@ html[data-player="open"] .mini-open .player-cover-frame {
 }
 
 .transport-btn {
+  --transport-glyph: var(--size-icon-lg);
   position: relative;
   display: grid;
   place-items: center;
   width: var(--control-size-md);
   height: var(--control-size-md);
-  border-radius: var(--control-radius-md);
+  border-radius: var(--radius-round);
   color: var(--color-on-surface);
 }
 
 .transport-btn .ui-icon {
-  width: var(--size-icon-lg);
-  height: var(--size-icon-lg);
+  width: var(--transport-glyph);
+  height: var(--transport-glyph);
 }
 
-.transport-btn[data-size="sm"] {
-  width: var(--control-size-sm);
-  height: var(--control-size-sm);
-  border-radius: var(--control-radius-sm);
-  color: var(--color-on-surface-muted);
-}
-
+/* The play button is a filled circle, the one dominant control. */
 .transport-btn[data-primary] {
+  --transport-glyph: var(--player-skip-glyph);
   width: var(--control-size-lg);
   height: var(--control-size-lg);
-  border-radius: var(--control-radius-lg);
-  background: var(--color-cover-accent);
-  color: var(--color-on-cover-accent);
+  background: var(--color-accent);
+  color: var(--color-on-accent);
 }
 
 .transport-btn[aria-disabled="true"] {
   color: var(--color-on-surface-disabled);
+}
+
+/* A skip control: a circular arrow with its own numeral set in the arrow's open center. */
+.transport-skip {
+  --transport-glyph: var(--player-skip-glyph);
+  width: var(--size-touch-comfortable);
+  height: var(--size-touch-comfortable);
+  color: var(--color-on-surface-muted);
+}
+
+.transport-skip-num {
+  position: absolute;
+  inset: 0;
+  display: grid;
+  place-items: center;
+  font-size: calc(var(--player-skip-glyph) * 0.31);
+  font-weight: var(--font-weight-medium);
+  letter-spacing: 0;
+  line-height: 1;
+  pointer-events: none;
+  /* A touch low, where the arc's open center sits. */
+  translate: 0 calc(var(--player-skip-glyph) * 0.03);
 }
 
 @media (hover: hover) and (pointer: fine) {
@@ -716,8 +1138,73 @@ html[data-player="open"] .mini-open .player-cover-frame {
   }
 }
 
+/* ------------------------------------------------------------------ speed */
+
+.speed {
+  min-width: 0;
+  margin: 0;
+  padding: 0;
+  border: 0;
+}
+
+.speed-chips {
+  display: flex;
+  justify-content: center;
+  gap: var(--space-3);
+}
+
+/* Round and outlined. The chosen one gets a heavier ring and a fill, so selection never depends
+   on color alone. */
+.speed-chip {
+  position: relative;
+  display: grid;
+  place-items: center;
+  width: var(--player-chip-size);
+  height: var(--player-chip-size);
+  border-radius: var(--radius-round);
+  box-shadow: inset 0 0 0 var(--stroke-hairline) var(--color-border-control);
+  color: var(--color-on-surface-muted);
+  font-size: var(--font-size-caption);
+  font-weight: var(--font-weight-semibold);
+  transition:
+    background-color var(--duration-hover) var(--ease-hover),
+    color var(--duration-hover) var(--ease-hover),
+    transform var(--duration-press-out) var(--ease-out);
+}
+
+.speed-chip:active {
+  transform: scale(var(--scale-press));
+  transition-duration: var(--duration-hover), var(--duration-hover), var(--duration-press-in);
+}
+
+.speed-chip input {
+  position: absolute;
+  inset: 0;
+  margin: 0;
+  opacity: 0;
+  cursor: pointer;
+}
+
+.speed-chip:has(input:checked) {
+  background: var(--color-accent-subtle);
+  box-shadow: inset 0 0 0 var(--stroke-rail) var(--color-accent);
+  color: var(--color-on-surface);
+}
+
+.speed-chip:has(input:focus-visible) {
+  outline: var(--stroke-ring) solid var(--color-focus-ring);
+  outline-offset: var(--stroke-ring-gap);
+}
+
+@media (hover: hover) and (pointer: fine) {
+  .speed-chip:hover {
+    color: var(--color-on-surface);
+  }
+}
+
 /* ------------------------------------------------------------------ segmented control */
 
+/* Used by the Settings sheet, which imports this stylesheet for it. */
 .segmented-group {
   min-width: 0;
   margin: 0;
@@ -780,63 +1267,102 @@ html[data-player="open"] .mini-open .player-cover-frame {
   outline-offset: var(--stroke-ring-gap);
 }
 
-.player-panel .segmented {
-  --segment-selected-bg: var(--color-cover-accent);
-  --segment-selected-fg: var(--color-on-cover-accent);
-}
-
 @media (hover: hover) and (pointer: fine) {
   .segmented label:hover {
     color: var(--color-on-surface);
   }
-
-  .player-panel .segmented label:hover:has(input:checked) {
-    color: var(--segment-selected-fg);
-  }
 }
 
-/* ------------------------------------------------------------------ chapters, notice, up next */
+/* ------------------------------------------------------------------ source, stories, notice, up next */
 
-.chapter-rows {
-  display: grid;
-}
-
-.chapter-row {
+.player-source {
   display: flex;
+  justify-content: center;
+  padding-block-start: var(--space-2);
+}
+
+.player-source-link {
+  display: inline-flex;
   align-items: center;
-  justify-content: space-between;
-  gap: var(--space-4);
-  width: 100%;
-  min-height: var(--size-touch-comfortable);
+  gap: var(--space-2);
+  min-height: var(--size-touch);
   padding-inline: var(--space-3);
-  border-radius: var(--sheet-row-radius);
-  text-align: start;
+  border-radius: var(--control-radius-sm);
+  color: var(--color-accent);
+  font-size: var(--font-size-meta);
+  font-weight: var(--font-weight-semibold);
+  text-decoration: none;
+}
+
+.player-source-link .ui-icon {
+  width: var(--space-4);
+  height: var(--space-4);
+}
+
+.story-group-title {
+  padding-block: var(--space-3) var(--space-1);
+  padding-inline: var(--space-3);
+  color: var(--color-on-surface-muted);
+  font-size: var(--font-size-caption);
   font-weight: var(--font-weight-semibold);
 }
 
-.chapter-row[aria-current="true"] {
-  background: color-mix(in oklch, var(--color-cover-accent) 12%, transparent);
+.story-rows {
+  display: grid;
 }
 
-.chapter-row[aria-current="true"] .chapter-row-name::before {
-  content: "";
-  display: inline-block;
-  width: var(--space-2);
-  height: var(--space-2);
-  margin-inline-end: var(--space-3);
-  border-radius: var(--radius-xs);
-  background: var(--color-cover-accent);
+.story-row {
+  display: grid;
+  grid-template-columns: var(--player-row-mark) minmax(0, 1fr) auto;
+  align-items: center;
+  gap: var(--space-3);
+  width: 100%;
+  min-height: var(--size-touch-comfortable);
+  padding-block: var(--space-2);
+  padding-inline: var(--space-3);
+  border-radius: var(--sheet-row-radius);
+  text-align: start;
 }
 
-.chapter-row-time {
+.story-row-title {
+  display: -webkit-box;
+  overflow: hidden;
+  font-size: var(--font-size-meta);
+  font-weight: var(--font-weight-medium);
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 2;
+}
+
+.story-row-time {
   color: var(--color-on-surface-muted);
   font-size: var(--font-size-meta);
   font-weight: var(--font-weight-medium);
 }
 
+.story-row-mark {
+  width: var(--player-row-mark);
+  height: var(--player-row-mark);
+  border-radius: var(--radius-round);
+}
+
+/* The story being read: a tint and a filled mark. The title keeps its weight, because a heavier
+   one wraps differently and would move every row below it each time the story changes. */
+.story-row[aria-current="true"] {
+  background: var(--color-accent-subtle);
+}
+
+.story-row[aria-current="true"] .story-row-mark {
+  background: var(--color-accent);
+}
+
 @media (hover: hover) and (pointer: fine) {
-  .chapter-row:hover {
+  .story-row:not([aria-current="true"]):hover,
+  .player-upnext-row:hover {
     background: var(--color-surface-sunken);
+  }
+
+  .player-source-link:hover {
+    background: var(--color-accent-subtle);
   }
 }
 
@@ -845,7 +1371,7 @@ html[data-player="open"] .mini-open .player-cover-frame {
   grid-template-columns: auto minmax(0, 1fr) auto;
   align-items: center;
   gap: var(--space-3);
-  margin-block-start: var(--space-4);
+  margin-block-end: var(--space-4);
   padding: var(--banner-padding);
   border-radius: var(--banner-radius);
   background: var(--tone-bg);
@@ -881,9 +1407,10 @@ html[data-player="open"] .mini-open .player-cover-frame {
   gap: var(--space-4);
   width: 100%;
   min-height: var(--size-touch-comfortable);
+  padding-block: var(--space-2);
   padding-inline: var(--space-3);
   border-radius: var(--sheet-row-radius);
-  background: var(--color-surface-sunken);
+  box-shadow: inset 0 0 0 var(--stroke-hairline) var(--color-border-hairline);
   text-align: start;
 }
 
@@ -900,50 +1427,40 @@ html[data-player="open"] .mini-open .player-cover-frame {
   font-size: var(--font-size-meta);
 }
 
-/* ------------------------------------------------------------------ wide layouts */
+/* ------------------------------------------------------------------ the document behind */
 
-/* From 40rem the player is a centered card that fades and scales in. Modals stay centered. The
-   cover does not morph: there is no bottom edge for it to travel from. */
-@media (min-width: 40rem) {
-  .player-panel {
-    inset: 0;
-    margin: auto;
-    width: var(--layout-player-dialog);
-    max-width: 100%;
-    height: fit-content;
-    max-height: calc(100dvh - var(--space-12));
-    padding-block-start: var(--space-2);
-    padding-inline: var(--player-padding);
-    border-radius: var(--sheet-radius);
-    box-shadow: var(--sheet-shadow);
-    overflow: hidden;
-    transform: scale(var(--sheet-scale, var(--scale-enter)));
-    opacity: var(--sheet-opacity, 0);
-  }
-
-  .player-scroll {
-    flex: 0 1 auto;
-    max-height: 15rem;
-    padding-block-end: var(--space-4);
-  }
-
-  .player-cover-frame[data-size="player"] {
-    width: min(100%, var(--cover-size-player), 34dvh);
-    transform: none;
-  }
+/* Through the root attribute the navigation code already carries from page to page. With the
+   page's own containment (touch-action, overscroll-behavior) this needs no touch listener. */
+html[data-player="open"] {
+  overflow: hidden;
 }
 
 /* ------------------------------------------------------------------ preferences */
 
 @media (prefers-reduced-motion: reduce) {
-  /* The sheet fades instead of sliding, so it starts in place. */
-  .player-panel {
+  /* No travel. The page fades in place, the bar fades where it sits, and nothing flies: the
+     page's own cover is the one on screen for as long as the page is. */
+  .player-page {
+    border-radius: 0;
     transform: none;
-    opacity: var(--sheet-opacity, 0);
+    opacity: var(--p);
   }
 
-  .player-cover-frame[data-size="player"] {
+  .player-dock {
+    border-radius: 0;
     transform: none;
+  }
+
+  .player-art {
+    display: none;
+  }
+
+  .dock-text {
+    transform: none;
+  }
+
+  .player:not([data-state="collapsed"]) .player-cover-box .player-cover-frame {
+    visibility: visible;
   }
 
   .glyph-swap > .ui-icon {
@@ -958,13 +1475,14 @@ html[data-player="open"] .mini-open .player-cover-frame {
 }
 
 @media (forced-colors: active) {
-  .mini-progress-fill,
+  .dock-progress-fill,
   .scrubber-fill {
     background: Highlight;
   }
 
   .scrubber-thumb::before,
-  .scrubber-tick[data-played] {
+  .scrubber-tick[data-played],
+  .story-row[aria-current="true"] .story-row-mark {
     background: Highlight;
     forced-color-adjust: none;
   }
@@ -973,18 +1491,27 @@ html[data-player="open"] .mini-open .player-cover-frame {
     background: GrayText;
   }
 
-  .mini,
+  /* Shadows are dropped in forced colors, so every edge that was a shadow becomes a border. */
   .player-cover-frame,
-  .player-panel {
+  .player-page,
+  .speed-chip,
+  .player-upnext-row {
     border: var(--stroke-hairline) solid CanvasText;
   }
 
-  .mini-btn[data-primary],
-  .transport-btn[data-primary] {
+  .player-dock {
+    border-block-start: var(--stroke-hairline) solid CanvasText;
+  }
+
+  .dock-btn[data-primary],
+  .transport-btn[data-primary],
+  .player-fallback-action {
     border: var(--stroke-rail) solid ButtonText;
   }
 
-  .segmented label:has(input:checked) {
+  .segmented label:has(input:checked),
+  .speed-chip:has(input:checked),
+  .story-row[aria-current="true"] {
     border: var(--stroke-rail) solid Highlight;
   }
 }

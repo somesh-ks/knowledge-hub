@@ -1,4 +1,4 @@
-import type { DigestKind, Section } from "@dispatch/core";
+import type { DigestKind } from "@dispatch/core";
 
 /**
  * Contracts shared by the reader pages, the player island and the Generate sheet. Both the page
@@ -8,15 +8,21 @@ import type { DigestKind, Section } from "@dispatch/core";
 export interface PlayerItem {
   id: string;
   headline: string;
-  section: Section;
+  /** A section id: one of the built-in ones, or one that came with a topic the owner added. */
+  section: string;
   source: string;
+  /**
+   * The story's source page, already checked to be http or https, or null when it is not safe to
+   * link. Optional because a page cached before this field existed does not carry it.
+   */
+  url?: string | null;
   /** Start and end inside the MP3, or null while the digest has no audio. */
   start_ms: number | null;
   end_ms: number | null;
 }
 
 export interface PlayerSection {
-  slug: Section;
+  slug: string;
   title: string;
   start_ms: number | null;
 }
@@ -97,3 +103,203 @@ export interface StatusResponse {
   digest_id?: string;
   run_url?: string;
 }
+
+/** POST /api/narrate request body. */
+export interface NarrateRequest {
+  /** The digest to narrate, by id: "2026-10-07", "2026-10-07-2" or "2026-10-11-weekly". */
+  digest: string;
+  /** The same passphrase the Generate sheet asks for. */
+  passphrase: string;
+  /**
+   * Narrate only this segment: a `key` from the lookup's `segments`. Leave it out to narrate the
+   * whole digest as one file.
+   */
+  segment?: string;
+}
+
+/**
+ * Where each story and section starts inside a whole-digest narration. To show it, patch
+ * PlayerDigestData: `kind` goes into `timeline`, and the times go onto the items and sections with
+ * the same `id` and `slug`.
+ */
+export interface NarrationTimeline {
+  /** How the times were derived: word marks from the voice, or an estimate from text length. */
+  kind: "marks" | "estimated";
+  items: { id: string; section: string; start_ms: number; end_ms: number }[];
+  sections: { slug: string; start_ms: number }[];
+}
+
+/**
+ * One stretch of a digest's narration, stored as its own file so playback can start with the first
+ * one. In order they are a track list: the intro, one per story, and an outro if the narration has a
+ * closing line. A section's announcement is read at the start of that section's first story.
+ */
+export interface NarrationSegment {
+  /** "intro", a story's item id, or "outro". Send it back as `segment` to narrate it. */
+  key: string;
+  /** The story this segment reads, or null for the intro and the outro. */
+  item_id: string | null;
+  /** Length of the spoken text. Times `ms_per_character` it estimates a duration before the audio exists. */
+  characters: number;
+  /**
+   * Where this segment's file is. The URL changes when the story's text or the voice changes, so
+   * never build it: read it from here.
+   *
+   * In a lookup, `confirmed` is false: the URL is where the file WOULD be, worked out without asking
+   * the store, and `duration_ms` is a guess from the length of the text. Try the URL; when it is not
+   * there (a 404), POST this segment's `key` to have it narrated. It is null only when the site
+   * cannot work the address out, and then POST is the only way to get the file.
+   *
+   * In the answer to a POST, `confirmed` is true: the file exists. `duration_ms` is what the voice
+   * service reported when the segment was just narrated, or worked out from the file's size when it
+   * already existed. Either way, once the audio element has loaded the file, take the duration from
+   * the element.
+   */
+  audio: { url: string; duration_ms: number; confirmed: boolean } | null;
+}
+
+/**
+ * Every refusal /api/narrate can answer with, for GET and POST alike. `status` repeats the HTTP
+ * status. Treat any answer that is not in these unions (a 405, or a platform timeout page that is
+ * not JSON) as "unavailable".
+ */
+export type NarrateError =
+  // No digest id, a malformed id, segment key or body, or a request from another origin.
+  | { status: 400; error: "invalid_request" }
+  | { status: 401; error: "wrong_passphrase" }
+  // This deployment has no such digest, or the digest has no segment with that key (the page's list
+  // is out of date: ask GET again).
+  | { status: 404; error: "digest_not_found" | "segment_not_found" }
+  // Whole digest only: another request is narrating it right now. Ask GET again after `retry_after_s`.
+  | { status: 409; error: "in_progress"; retry_after_s: number }
+  // The digest cannot be read aloud: nothing to say, or too long for one request. Do not retry.
+  | { status: 422; error: "not_narratable" }
+  // Too many digests were first narrated today (a Stockholm day; `retry_after_s` runs to midnight
+  // there). A digest that was already narrated this month, in part or whole, is never refused.
+  | { status: 429; error: "daily_cap"; retry_after_s: number }
+  // The month's voice allowance has no room for this digest. A digest is charged whole the first
+  // time any part of it is narrated, and again after a failed attempt or a change of voice. It
+  // resets with the calendar month.
+  | { status: 429; error: "monthly_budget" }
+  // The voice service failed, or the finished audio could not be stored. Trying again later is safe.
+  | { status: 502; error: "synthesis_failed" | "storage_failed" }
+  // The site is not configured for narration, or the audio store could not be reached.
+  | { status: 503; error: "unavailable" }
+  // The voice service took longer than the function allows.
+  | { status: 504; error: "took_too_long" };
+
+/** Every error code /api/narrate can answer with. */
+export type NarrateErrorCode = NarrateError["error"];
+
+/**
+ * GET /api/narrate?digest=<id>: the segments of a digest and where their audio would be. It needs no
+ * passphrase, never narrates, and never asks the audio store anything, so it cannot say which
+ * segments exist: see `NarrationSegment.audio`. `digest` is the only query parameter it accepts;
+ * any other is a 400. It answers 200 for every digest this deployment has, and that answer may be
+ * cached for a minute.
+ */
+export type NarrateLookupResponse =
+  | {
+      status: 200;
+      /**
+       * The whole digest as one file, when the site was built with one: a narration the audio
+       * workflow committed. One made later by a POST without `segment` does not show here until
+       * the next build.
+       */
+      audio: { url: string; duration_ms: number } | null;
+      /** The timeline of that one file; null exactly when `audio` is. */
+      timeline: NarrationTimeline | null;
+      /** Every segment in playing order, each with the address its file would have. */
+      segments: NarrationSegment[];
+      /** An estimate of the voice's pace, for laying out segments that have no audio yet. */
+      ms_per_character: number;
+    }
+  | NarrateError;
+
+/**
+ * POST /api/narrate without `segment`: narrates the whole digest as one file and answers with it.
+ * When that file already exists it answers 200 without narrating again. It takes as long as the
+ * voice service does, so show progress and never retry it on a timer.
+ */
+export type NarrateResponse =
+  | { status: 200; audio: { url: string; duration_ms: number }; timeline: NarrationTimeline }
+  | NarrateError;
+
+/**
+ * POST /api/narrate with `segment`: narrates that one segment and answers with it, `audio` filled
+ * in and confirmed. A segment that is already narrated is returned as it is, and no voice characters
+ * are spent on it. Send one segment at a time.
+ */
+export type NarrateSegmentResponse =
+  | {
+      status: 200;
+      segment: NarrationSegment & {
+        audio: { url: string; duration_ms: number; confirmed: true };
+      };
+    }
+  | NarrateError;
+
+/**
+ * POST /api/config: one edit to the topics or the sources. The site is static and the settings live
+ * in the repository, so the function checks the passphrase and dispatches the config workflow,
+ * which commits the change. The change shows on the site after the next build.
+ */
+export type ConfigOp =
+  | {
+      op: "topic.upsert";
+      topic: {
+        id: string;
+        name: string;
+        description: string;
+        weight: number;
+        enabled: boolean;
+        keywords: string[];
+        section_id: string;
+      };
+    }
+  | { op: "topic.remove"; id: string }
+  | { op: "source.add"; url: string; topic_ids?: string[] }
+  | { op: "source.set"; id: string; enabled?: boolean; pinned?: boolean }
+  | { op: "source.remove"; id: string }
+  | { op: "weights.set"; weights: Record<string, number> };
+
+export interface ConfigRequest {
+  passphrase: string;
+  op: ConfigOp;
+}
+
+export type ConfigResponse =
+  | { status: 202; run_id: number }
+  | { status: 400; error: "invalid_request" }
+  | { status: 401; error: "wrong_passphrase" }
+  | { status: 429; error: "cooldown"; retry_after_s: number }
+  | { status: 503; error: "unavailable" };
+
+/**
+ * Podcast episodes. These mirror packages/core/src/podcast.ts; they are declared here so the page
+ * scripts never pull the engine's schemas into the browser. Keep the two in step.
+ */
+export interface PodcastRequest {
+  /** Section slugs the episode draws on. One to six. */
+  topic_ids: string[];
+  length_minutes: 3 | 5 | 10 | 15;
+  format: "readout" | "discussion" | "headlines";
+  /** How many days of stories to draw on. */
+  window_days: 2 | 7 | 30;
+  tone: "neutral" | "energetic" | "dry";
+  title?: string;
+}
+
+/** POST /api/podcast request body. */
+export interface PodcastCreateRequest {
+  passphrase: string;
+  request: PodcastRequest;
+}
+
+/** POST /api/podcast responses. */
+export type PodcastCreateResponse =
+  | { status: 202; run_id: number; started_at: string }
+  | { status: 400; error: "invalid_request" }
+  | { status: 401; error: "wrong_passphrase" }
+  | { status: 429; error: "cooldown" | "daily_cap"; retry_after_s: number }
+  | { status: 503; error: "unavailable" };

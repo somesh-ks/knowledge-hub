@@ -8,6 +8,8 @@ export interface TimelineItem {
   endSec: number;
   headline: string;
   source: string;
+  /** The story's source page, or null when the digest has none that is safe to link. */
+  url: string | null;
   section: PlayerItem["section"];
 }
 
@@ -51,6 +53,7 @@ export function buildTimeline(digest: PlayerDigestData): Timeline | null {
       endSec: Math.max(endSec, startSec),
       headline: item.headline,
       source: item.source,
+      url: item.url ?? null,
       section: item.section,
     };
   });

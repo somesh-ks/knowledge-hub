@@ -1,0 +1,295 @@
+/*
+ * The Create page: a form built from the settings page's grammar (hairline-divided groups, the
+ * segmented choice) plus the few controls only it needs: topic chips, option rows with a radio, a
+ * run panel. Imported by pages/create.astro, after settings.css.
+ *
+ * Type comes in two steps inside a block: a title at the body size in medium weight, and one quiet
+ * line at the label size, always with air between them. Rules that adjust a shared rule are written
+ * with a more specific selector, because this file is linked before the layout's stylesheet.
+ */
+
+.create-lede {
+  max-width: var(--layout-measure);
+  padding-block-start: var(--space-4);
+  color: var(--color-on-surface-muted);
+  font-size: var(--font-size-body);
+  line-height: var(--font-leading-body);
+}
+
+.create-note {
+  padding-block-start: var(--space-4);
+  color: var(--color-on-surface-muted);
+  font-size: var(--font-size-label);
+}
+
+/* ------------------------------------------------------------------ groups */
+
+.create-group {
+  padding-block-end: var(--space-8);
+}
+
+.create-text {
+  display: grid;
+  flex: 1 1 0;
+  gap: var(--space-2);
+  min-width: 0;
+}
+
+.create-label {
+  font-size: var(--font-size-body);
+  font-weight: var(--font-weight-medium);
+  line-height: var(--font-leading-label);
+}
+
+.create-hint {
+  color: var(--color-on-surface-muted);
+  font-size: var(--font-size-label);
+  line-height: var(--font-leading-body);
+}
+
+/* A heading and the quiet line under it: the heading's own bottom padding plus this makes 12px. */
+.create-group .section-head + .create-hint {
+  margin-block-start: var(--space-1);
+}
+
+.create-error {
+  display: flex;
+  align-items: flex-start;
+  gap: var(--space-2);
+  color: var(--color-danger);
+  font-size: var(--font-size-label);
+  font-weight: var(--font-weight-medium);
+  line-height: var(--font-leading-body);
+}
+
+.create-error > .icon {
+  width: var(--space-4);
+  height: var(--space-4);
+  margin-block-start: calc(var(--space-1) / 2);
+}
+
+.create-group > .create-error {
+  margin-block-start: var(--space-3);
+}
+
+/* ------------------------------------------------------------------ topic chips */
+
+.create-chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-2);
+  min-width: 0;
+  margin: var(--space-4) 0 0;
+  padding: 0;
+  border: 0;
+}
+
+.create-chip {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-1);
+  height: var(--chip-height);
+  padding-inline: var(--space-3);
+  border: var(--stroke-hairline) solid var(--color-border-hairline);
+  border-radius: var(--button-radius);
+  color: var(--color-on-surface);
+  font-size: var(--font-size-label);
+  font-weight: var(--font-weight-medium);
+  line-height: var(--font-leading-label);
+  white-space: nowrap;
+  cursor: pointer;
+  transition:
+    transform var(--duration-press-out) var(--ease-out),
+    background-color var(--duration-hover) var(--ease-hover),
+    border-color var(--duration-hover) var(--ease-hover),
+    color var(--duration-hover) var(--ease-hover);
+}
+
+/* The chip is 36px tall; its target is 44px. */
+.create-chip::after {
+  content: "";
+  position: absolute;
+  inset-inline: 0;
+  inset-block: calc((var(--size-touch) - var(--chip-height)) / -2);
+}
+
+/* The checkbox is the chip's whole face and invisible: the chip draws every state. */
+.create-chip > input {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  margin: 0;
+  appearance: none;
+  opacity: 0;
+  cursor: inherit;
+}
+
+.create-chip > .icon {
+  display: none;
+  width: var(--space-4);
+  height: var(--space-4);
+  margin-inline-start: calc(var(--space-1) * -1);
+}
+
+.create-chip:has(input:checked) {
+  border-color: transparent;
+  background: var(--color-accent-subtle);
+  color: var(--color-accent);
+}
+
+.create-chip:has(input:checked) > .icon {
+  display: block;
+}
+
+.create-chip:has(input:focus-visible) {
+  outline: var(--stroke-ring) solid var(--color-focus-ring);
+  outline-offset: var(--stroke-ring-gap);
+}
+
+.create-chip:has(input:disabled) {
+  opacity: var(--opacity-disabled);
+  cursor: default;
+}
+
+@media (hover: hover) and (pointer: fine) {
+  .create-chip:not(:has(input:checked, input:disabled)):hover {
+    background: var(--color-surface-sunken);
+  }
+}
+
+/* ------------------------------------------------------------------ segmented choices */
+
+.create-view .create-choice {
+  margin-block-start: var(--space-3);
+}
+
+/* ------------------------------------------------------------------ format rows */
+
+.create-options {
+  min-width: 0;
+  margin: var(--space-2) 0 0;
+  padding: 0;
+  border: 0;
+}
+
+/* The first row sits against the heading, so the heading's own space is all it needs. */
+.create-view .create-options > .create-option {
+  align-items: flex-start;
+  min-height: var(--size-touch-comfortable);
+}
+
+.create-view .create-options > :first-child {
+  padding-block-start: var(--space-2);
+}
+
+.create-option > input {
+  flex: none;
+  width: var(--size-icon);
+  height: var(--size-icon);
+  margin: 0;
+  appearance: none;
+  border: var(--stroke-rail) solid var(--color-border-control);
+  border-radius: var(--radius-round);
+  background: none;
+  cursor: pointer;
+  transition: border-color var(--duration-hover) var(--ease-hover);
+}
+
+.create-option > input:checked {
+  border-color: var(--color-accent);
+  background: radial-gradient(circle, var(--color-accent) 0 38%, transparent 42%);
+}
+
+.create-option > input:focus-visible {
+  outline: var(--stroke-ring) solid var(--color-focus-ring);
+  outline-offset: var(--stroke-ring-gap);
+}
+
+@media (hover: hover) and (pointer: fine) {
+  .create-option > input:not(:checked):hover {
+    border-color: var(--color-on-surface);
+  }
+}
+
+/* ------------------------------------------------------------------ title and submit */
+
+.create-title {
+  width: 100%;
+  margin-block: var(--space-3);
+}
+
+.create-submit {
+  display: grid;
+  gap: var(--space-4);
+  justify-items: stretch;
+  padding-block: var(--space-6) var(--space-8);
+}
+
+.create-estimate {
+  color: var(--color-on-surface-muted);
+  font-size: var(--font-size-body);
+  line-height: var(--font-leading-body);
+}
+
+@media (min-width: 40rem) {
+  .create-view .create-submit > .btn-primary {
+    width: auto;
+    min-width: 14rem;
+    justify-self: start;
+  }
+}
+
+/* ------------------------------------------------------------------ the run */
+
+.create-run {
+  padding-block: var(--space-8);
+}
+
+.create-run-row {
+  display: flex;
+  align-items: flex-start;
+  gap: var(--space-4);
+}
+
+.create-run-row > .spinner {
+  margin-block-start: calc(var(--space-1) / 2);
+}
+
+.create-run:focus {
+  outline: none;
+}
+
+.create-result {
+  max-width: var(--layout-measure);
+  font-size: var(--font-size-body);
+  line-height: var(--font-leading-body);
+}
+
+.create-run-actions {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--space-3);
+  padding-block-start: var(--space-6);
+}
+
+.create-view .create-run-actions > .btn-primary {
+  width: auto;
+  padding-inline: var(--space-6);
+}
+
+/* ------------------------------------------------------------------ forced colors */
+
+@media (forced-colors: active) {
+  .create-chip:has(input:checked) {
+    border-color: Highlight;
+    color: Highlight;
+  }
+
+  .create-option > input:checked {
+    border-color: Highlight;
+    background: radial-gradient(circle, Highlight 0 38%, transparent 42%);
+  }
+}

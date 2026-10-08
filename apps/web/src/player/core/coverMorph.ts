@@ -1,31 +1,47 @@
 import { clamp, lerp } from "./mathUtils";
 
-export interface RectLike {
+export interface BoxLike {
   left: number;
   top: number;
   width: number;
 }
 
-/** The mini player's cover relative to the player cover's resting place. */
+/**
+ * The cover's flight between the bar and the page, as FLIP driven by one progress variable `p`
+ * (0 collapsed, 1 expanded). Both ends are measured once, when the page leaves rest; every frame
+ * after that is a transform the stylesheet computes from `p`, so a finger, a tap and a spring all
+ * take the same path and any of them can interrupt another from the live value.
+ *
+ * Coordinates are in the surface's own box, from layout alone, so a bar or a page that is already
+ * transformed when the measurement is taken does not skew it.
+ */
 export interface CoverMorph {
-  /** Scale at p = 0: mini width over resting width. */
-  scaleAtClosed: number;
-  dx: number;
-  dy: number;
+  /** The bar's thumbnail: where the flying cover sits at p = 0. */
+  fromX: number;
+  fromY: number;
+  /** The page's cover slot: where it sits at p = 1. */
+  toX: number;
+  toY: number;
+  /** Width of the flying cover at rest on the page. */
+  size: number;
+  /** Thumbnail width over resting width: the scale at p = 0. */
+  scale: number;
 }
 
 /**
- * The shared-element morph, as FLIP driven by one progress variable `p` (0 closed, 1 open). First
- * and Last are measured once when the sheet starts to move; every frame after that is a transform
- * computed from `p`, so a finger, a tap and a spring all take the same path and any of them can be
- * interrupted from the live value.
+ * `scrollTop` is how far the page was scrolled when the motion began. The slot sits that much
+ * higher than its layout box, so a page closed while scrolled hands the cover over from where it
+ * actually was.
  */
-export function computeMorph(mini: RectLike, resting: RectLike): CoverMorph | null {
-  if (resting.width <= 0 || mini.width <= 0) return null;
+export function computeMorph(thumb: BoxLike, slot: BoxLike, scrollTop = 0): CoverMorph | null {
+  if (slot.width <= 0 || thumb.width <= 0) return null;
   return {
-    scaleAtClosed: mini.width / resting.width,
-    dx: mini.left - resting.left,
-    dy: mini.top - resting.top,
+    fromX: thumb.left,
+    fromY: thumb.top,
+    toX: slot.left,
+    toY: slot.top - Math.max(0, scrollTop),
+    size: slot.width,
+    scale: thumb.width / slot.width,
   };
 }
 
@@ -36,34 +52,37 @@ export interface CoverFrame {
 }
 
 /**
- * The panel itself translates by (1 - p) * height, so the cover's own offset subtracts that to land
- * on the mini player's cover at p = 0 and on its resting place at p = 1.
+ * The cover's transform at progress `p`. The stylesheet computes the same three numbers from the
+ * properties below; this is the formula in one place, and the tests hold the two together.
  */
-export function coverFrame(progress: number, morph: CoverMorph, panelHeight: number): CoverFrame {
+export function coverFrame(progress: number, morph: CoverMorph): CoverFrame {
   const visual = clamp(progress, 0, 1);
   return {
-    x: (1 - visual) * morph.dx,
-    y: (1 - visual) * (morph.dy - panelHeight),
-    scale: lerp(morph.scaleAtClosed, 1, visual),
+    x: lerp(morph.fromX, morph.toX, visual),
+    y: lerp(morph.fromY, morph.toY, visual),
+    scale: lerp(morph.scale, 1, visual),
   };
 }
 
-/** Scaling squeezes a corner radius, so it is divided by the scale to stay visually true. */
-export function coverRadius(
-  progress: number,
-  thumbRadiusPx: number,
-  restingRadiusPx: number,
-  scale: number,
-): number {
-  const visual = clamp(progress, 0, 1);
-  return lerp(thumbRadiusPx, restingRadiusPx, visual) / scale;
-}
+/** The custom properties a morph is written as, once per motion, on the flying cover. */
+export const MORPH_PROPERTIES = [
+  "--art-from-x",
+  "--art-from-y",
+  "--art-to-x",
+  "--art-to-y",
+  "--art-size",
+  "--art-scale",
+] as const;
 
-export function panelOffset(progress: number, panelHeight: number): number {
-  return (1 - clamp(progress, 0, 1)) * panelHeight;
-}
+export type MorphProperty = (typeof MORPH_PROPERTIES)[number];
 
-/** Wide layouts: a centered card that fades and scales in from `enterScale`. */
-export function cardScale(progress: number, enterScale: number): number {
-  return lerp(enterScale, 1, clamp(progress, 0, 1));
+export function morphStyle(morph: CoverMorph): Record<MorphProperty, string> {
+  return {
+    "--art-from-x": `${morph.fromX}px`,
+    "--art-from-y": `${morph.fromY}px`,
+    "--art-to-x": `${morph.toX}px`,
+    "--art-to-y": `${morph.toY}px`,
+    "--art-size": `${morph.size}px`,
+    "--art-scale": String(morph.scale),
+  };
 }

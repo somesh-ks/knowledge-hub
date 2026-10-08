@@ -7,12 +7,15 @@
  * exactly one set of listeners behind.
  */
 
+import { narratedOrPage } from "../../narration/narrationRegistry";
+import { createSwitchableAudio, type SwitchableAudio } from "../../narration/switchableAudio";
 import { startSound } from "../sound/soundController";
 import { announcementForEvent } from "./announcements";
 import { announce } from "./announcerDom";
 import { readDigestData } from "./digestData";
 import { recordInstallVisit } from "./installHint";
 import { attachMediaSession } from "./mediaSession";
+import { playerSheet } from "./playerSheet";
 import { createPlayerStore } from "./playerStore";
 import type { PlayerStore } from "./playerTypes";
 import { getPreferences } from "./preferences";
@@ -36,11 +39,29 @@ function onPageHide(callback: () => void): () => void {
   };
 }
 
+let playerAudio: SwitchableAudio | null = null;
+
+/**
+ * The one audio element, behind a seam (see narration/switchableAudio.ts). Created in script and
+ * never placed in the DOM, so a router that swaps the page cannot take it down with the markup.
+ */
+export function getPlayerAudio(): SwitchableAudio {
+  playerAudio ??= createSwitchableAudio(new Audio());
+  return playerAudio;
+}
+
+/** A tap on Play for a briefing with no finished audio: unlock the element now, narrate next. */
+function narrateFromTap(itemId?: string): void {
+  // Inside the tap, so a phone lets the audio start a few seconds later without another one.
+  getPlayerAudio().prime("/silence.wav");
+  void import("../../narration/narrationRuntime").then((narration) =>
+    narration.narratePage(itemId),
+  );
+}
+
 export function getPlayerStore(): PlayerStore {
   store ??= createPlayerStore({
-    // The one audio element: created here, in script, and never placed in the DOM, so a router
-    // that swaps the page cannot take it down with the markup.
-    createAudio: () => new Audio(),
+    createAudio: getPlayerAudio,
     storage: safeLocalStorage(),
     getPreferredRate: () => getPreferences().get().rate,
     onRateChange: (rate) => {
@@ -61,7 +82,8 @@ function syncRootState(playerStore: PlayerStore): void {
 
 /** Reads the page's digest into the store and refreshes the reader coupling. */
 function readPage(playerStore: PlayerStore): void {
-  playerStore.setPageDigest(readDigestData());
+  // A briefing narrated earlier in this session comes back with its audio, not as the page built it.
+  playerStore.setPageDigest(narratedOrPage(readDigestData()));
 }
 
 export function startPlayerRuntime(): () => void {
@@ -70,7 +92,7 @@ export function startPlayerRuntime(): () => void {
   recordInstallVisit(safeLocalStorage());
 
   const detachMediaSession = attachMediaSession(playerStore);
-  const reader = createReaderSync(playerStore);
+  const reader = createReaderSync(playerStore, narrateFromTap);
   const stopSound = startSound({ store: playerStore, preferences });
 
   const stopTheme = startThemeSync();
@@ -86,14 +108,21 @@ export function startPlayerRuntime(): () => void {
     readPage(playerStore);
     reader.refresh();
   };
+  // A navigation never happens under an open player: the page goes down in one step first.
+  // Never preventDefault here; that turns the navigation into a full load and stops the audio.
+  const onBeforeNavigation = (): void => playerSheet.collapseNow();
   const onAfterSwap = (): void => {
+    // The safety net for a navigation that announced nothing: no modal over a new document.
+    playerSheet.collapseNow();
     reapplyRootState();
     reapplyTheme();
+    playerSheet.sync();
   };
   const onOnline = (): void => announce("You are back online.");
   const onOffline = (): void => announce("You are offline.");
 
   document.addEventListener("astro:page-load", onPageLoad);
+  document.addEventListener("astro:before-preparation", onBeforeNavigation);
   document.addEventListener("astro:after-swap", onAfterSwap);
   window.addEventListener("online", onOnline);
   window.addEventListener("offline", onOffline);
@@ -102,6 +131,7 @@ export function startPlayerRuntime(): () => void {
 
   return () => {
     document.removeEventListener("astro:page-load", onPageLoad);
+    document.removeEventListener("astro:before-preparation", onBeforeNavigation);
     document.removeEventListener("astro:after-swap", onAfterSwap);
     window.removeEventListener("online", onOnline);
     window.removeEventListener("offline", onOffline);

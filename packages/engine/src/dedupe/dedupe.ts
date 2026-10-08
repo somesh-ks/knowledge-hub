@@ -1,4 +1,6 @@
 import type { Item, SeenFile, Source } from "@dispatch/core";
+import { categoryHint, isTechHinted } from "../sources/hint.js";
+import { clusterStories } from "./storyCluster.js";
 import { jaccard, MIN_TOKENS, titleTokens } from "./titleTokens.js";
 
 export const NEAR_DUPLICATE_THRESHOLD = 0.8;
@@ -17,6 +19,8 @@ export interface DedupeReport {
   same_url: number;
   newsletter_collapsed: number;
   near_duplicate: number;
+  /** Consumer tech items absorbed because another source reported the same launch. */
+  story_clustered: number;
   output: number;
 }
 
@@ -73,14 +77,28 @@ function maxOf(a: number | undefined, b: number | undefined): number | undefined
   return Math.max(a, b);
 }
 
-/** The kept item, enriched with what the dropped duplicate knew: votes, author, snippet. */
-function absorb(keep: Item, dropped: Item): Item {
+/**
+ * The kept item, enriched with what the dropped duplicate knew: votes, author, snippet, and its
+ * category hint when the kept item has none. The hint of the dropped item's source counts too: a
+ * tech outlet's article that survives as the copy a discovery search found still belongs to the
+ * tech beat.
+ */
+function absorb(keep: Item, dropped: Item, sources: ReadonlyMap<string, Source>): Item {
   const hnPoints = maxOf(keep.signals.hn_points, dropped.signals.hn_points);
   const hnComments = maxOf(keep.signals.hn_comments, dropped.signals.hn_comments);
   const lobsters = maxOf(keep.signals.lobsters_score, dropped.signals.lobsters_score);
+  const coverage = maxOf(keep.signals.coverage, dropped.signals.coverage);
   const author = keep.author ?? dropped.author;
   const published = keep.published_at ?? dropped.published_at;
   const content = keep.content ?? dropped.content;
+  // A story one source filed under a custom topic stays under it when another copy survives.
+  const topicIds = [...new Set([...(keep.topic_ids ?? []), ...(dropped.topic_ids ?? [])])];
+  // The kept item's own hint (from its source or its query) stands. Only an item with none takes
+  // the dropped one's, which is then written onto the item because its source cannot supply it.
+  const hint =
+    categoryHint(keep, sources.get(keep.source_id)) === undefined
+      ? categoryHint(dropped, sources.get(dropped.source_id))
+      : keep.category_hint;
   return {
     ...keep,
     ...(author ? { author } : {}),
@@ -90,7 +108,10 @@ function absorb(keep: Item, dropped: Item): Item {
       ...(hnPoints === undefined ? {} : { hn_points: hnPoints }),
       ...(hnComments === undefined ? {} : { hn_comments: hnComments }),
       ...(lobsters === undefined ? {} : { lobsters_score: lobsters }),
+      ...(coverage === undefined ? {} : { coverage }),
     },
+    ...(hint ? { category_hint: hint } : {}),
+    ...(topicIds.length > 0 ? { topic_ids: topicIds } : {}),
     ...(content ? { content } : {}),
   };
 }
@@ -104,18 +125,21 @@ function byRecency(a: Item, b: Item): number {
 
 /**
  * Collapse the pool to one entry per story. Order of passes: items already in seen.json, same
- * canonical URL, newsletter links that point at an original already in the pool, then titles that
- * are near duplicates across different sources. The survivor of each pass is the higher-signal
- * item and it inherits the duplicates' votes. The result is sorted newest first, ties by id.
+ * canonical URL, newsletter links that point at an original already in the pool, titles that are
+ * near duplicates across different sources, and last, for the consumer tech beat only, different
+ * headlines about the same launch. The survivor of each pass is the higher-signal item and it
+ * inherits the duplicates' votes. The result is sorted newest first, ties by id.
  */
 export function dedupe({ items, sources, seen }: DedupeInput): DedupeResult {
   const sourceById = new Map(sources.map((source) => [source.id, source]));
+  const merge = (keep: Item, dropped: Item): Item => absorb(keep, dropped, sourceById);
   const report: DedupeReport = {
     input: items.length,
     already_seen: 0,
     same_url: 0,
     newsletter_collapsed: 0,
     near_duplicate: 0,
+    story_clustered: 0,
     output: 0,
   };
 
@@ -133,7 +157,7 @@ export function dedupe({ items, sources, seen }: DedupeInput): DedupeResult {
   for (const item of [...fresh].sort((a, b) => compareQuality(a, b, sourceById))) {
     const existing = byUrl.get(item.canonical_url);
     if (existing) {
-      byUrl.set(item.canonical_url, absorb(existing, item));
+      byUrl.set(item.canonical_url, merge(existing, item));
       report.same_url++;
     } else {
       byUrl.set(item.canonical_url, item);
@@ -165,12 +189,15 @@ export function dedupe({ items, sources, seen }: DedupeInput): DedupeResult {
       afterNewsletters.push(item);
       continue;
     }
-    absorbed.set(match.id, absorb(absorbed.get(match.id) ?? match, item));
+    absorbed.set(match.id, merge(absorbed.get(match.id) ?? match, item));
     report.newsletter_collapsed++;
   }
   const merged = afterNewsletters.map((item) => absorbed.get(item.id) ?? item);
 
   // 4. Near-duplicate titles across different sources. Best item first so it is the one kept.
+  const isTech = (item: Item): boolean => isTechHinted(item, sourceById.get(item.source_id));
+  // The other sources behind a kept tech item, so a twin merged here still counts as coverage.
+  const outlets = new Map<string, Set<string>>();
   const ranked = [...merged].sort((a, b) => compareQuality(a, b, sourceById));
   const kept: { item: Item; tokens: Set<string> }[] = [];
   for (const item of ranked) {
@@ -185,14 +212,29 @@ export function dedupe({ items, sources, seen }: DedupeInput): DedupeResult {
         )
       : undefined;
     if (twin) {
-      twin.item = absorb(twin.item, item);
+      if (isTech(twin.item) && isTech(item)) {
+        const sources = outlets.get(twin.item.id) ?? new Set<string>();
+        sources.add(item.source_id);
+        outlets.set(twin.item.id, sources);
+      }
+      twin.item = merge(twin.item, item);
       report.near_duplicate++;
     } else {
       kept.push({ item, tokens });
     }
   }
 
-  const output = kept.map((entry) => entry.item).sort(byRecency);
+  // 5. One launch, several outlets, different headlines. Tech-hinted items only.
+  const clustered = clusterStories({
+    items: kept.map((entry) => entry.item),
+    eligible: isTech,
+    compare: (a, b) => compareQuality(a, b, sourceById),
+    absorb: merge,
+    outlets,
+  });
+  report.story_clustered = clustered.merged;
+
+  const output = clustered.items.sort(byRecency);
   report.output = output.length;
   return { items: output, report };
 }

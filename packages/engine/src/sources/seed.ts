@@ -8,7 +8,10 @@ export interface Curation {
   options?: Record<string, string>;
   /** A feed address believed correct; discovery verifies it before use. */
   feed_hint?: string;
-  /** A feed address set without verification, for a host that could not be reached to check it. */
+  /**
+   * A feed address set directly, without discovery: one checked by hand, or one for a host that
+   * could not be reached to check it. The source starts as an rss source.
+   */
   pinned_feed_url?: string;
   enabled?: boolean;
 }
@@ -230,6 +233,18 @@ const DEV = "developer_tool_launches" as const;
 const FRONTIER = "frontier_model_releases" as const;
 const AIUX = "ai_ux_interaction_patterns" as const;
 const TASTE = "taste_and_design_philosophy" as const;
+const TECH = "consumer_tech_releases" as const;
+
+/**
+ * A consumer tech outlet: hinted for the Tech releases section, six candidates a run so no one
+ * outlet fills the tech pool, and a feed address that answered with RSS when it was checked by
+ * hand on 2026-10-07.
+ */
+const techOutlet = (feed: string): Curation => ({
+  category_hint: TECH,
+  pinned_feed_url: feed,
+  options: { pool_cap: "6" },
+});
 
 /** Source-by-source decisions, keyed by id. Anything not listed gets the importer's defaults. */
 export const CURATIONS: Readonly<Record<string, Curation>> = {
@@ -295,7 +310,8 @@ export const CURATIONS: Readonly<Record<string, Curation>> = {
   codrops: { category_hint: CSS },
   "css-tricks": { category_hint: CSS },
   // Design engineering newsletters
-  "friday-checkout": { category_hint: IND },
+  // Friday Checkout is a weekly consumer tech roundup, not a design newsletter.
+  "friday-checkout": { category_hint: TECH },
   "toools-newsletter": { category_hint: AIUX },
   "ui-things": { category_hint: UI },
   "frontend-focus": { category_hint: CSS },
@@ -343,6 +359,16 @@ export const CURATIONS: Readonly<Record<string, Curation>> = {
   // Aggregators and journalism
   "brutalist-report": { options: { kind: "newsletter-link" } },
   techcrunch: { category_hint: "venture_capital_and_gossip" },
+  "the-verge": { category_hint: TECH },
+  "ars-technica": { category_hint: TECH },
+  // Consumer tech outlets
+  "9to5google": techOutlet("https://9to5google.com/feed/"),
+  "9to5mac": techOutlet("https://9to5mac.com/feed/"),
+  "android-authority": techOutlet("https://www.androidauthority.com/feed/"),
+  gsmarena: techOutlet("https://www.gsmarena.com/rss-news-reviews.php3"),
+  engadget: techOutlet("https://www.engadget.com/rss.xml"),
+  electrek: techOutlet("https://electrek.co/feed/"),
+  "toms-hardware": techOutlet("https://www.tomshardware.com/feeds.xml"),
   // Framework blogs from the Firecrawl watch list
   "nextjs-blog": { category_hint: DEV, feed_hint: "https://nextjs.org/feed.xml" },
   "vite-blog": { category_hint: DEV },
@@ -368,4 +394,5 @@ export const ID_OVERRIDES: Readonly<Record<string, string>> = {
   "linear-method-blog": "linear-blog",
   "simon-willison-s-weblog": "simon-willison",
   "shadcn-ui": "shadcn-changelog",
+  "tom-s-hardware": "toms-hardware",
 };

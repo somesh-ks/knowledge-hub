@@ -1,0 +1,74 @@
+---
+import type { IconName } from "../lib/icons";
+import BrandMark from "./BrandMark.astro";
+import Icon from "./Icon.astro";
+
+export type Destination = "today" | "library" | "create" | "settings";
+
+interface Props {
+  /** The destination this page belongs to, or null when it belongs to none of them. */
+  current: Destination | null;
+}
+
+const { current } = Astro.props;
+
+const destinations: Array<{
+  id: Destination;
+  href: string;
+  label: string;
+  icon: IconName;
+  iconCurrent: IconName;
+}> = [
+  { id: "today", href: "/", label: "Today", icon: "home", iconCurrent: "homeFill" },
+  {
+    id: "library",
+    href: "/library",
+    label: "Library",
+    icon: "library",
+    iconCurrent: "libraryFill",
+  },
+  {
+    id: "create",
+    href: "/create",
+    label: "Create",
+    icon: "create",
+    iconCurrent: "createFill",
+  },
+  {
+    id: "settings",
+    href: "/settings",
+    label: "Settings",
+    icon: "settings",
+    iconCurrent: "settingsFill",
+  },
+];
+---
+
+{/* One navigation, two shapes: a bottom bar below 64rem and a side column from 64rem. The player
+     slides the bottom bar away as it opens; it finds it by data-bottom-nav. */}
+<nav class="app-nav" aria-label="Primary" data-bottom-nav>
+  <a class="app-nav-brand wordmark press press-subtle" href="/" aria-label="Singularity, today's briefing" data-astro-prefetch="hover">
+    <BrandMark />
+    <span>Singularity</span>
+  </a>
+  <ul class="app-nav-list" role="list">
+    {
+      destinations.map((destination) => {
+        const isCurrent = destination.id === current;
+        return (
+          <li>
+            <a
+              class="app-nav-item press press-subtle"
+              href={destination.href}
+              aria-current={isCurrent ? "page" : undefined}
+              data-astro-prefetch="hover"
+            >
+              <Icon name={isCurrent ? destination.iconCurrent : destination.icon} class="icon-lg" />
+              <span>{destination.label}</span>
+            </a>
+          </li>
+        );
+      })
+    }
+  </ul>
+</nav>

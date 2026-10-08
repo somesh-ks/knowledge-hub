@@ -1,4 +1,4 @@
-import type { Category, Item } from "@dispatch/core";
+import { type Category, type Item, SECTIONS, VOICE_LIMITS } from "@dispatch/core";
 import { describe, expect, it } from "vitest";
 import { scoreItem } from "../src/score/scoreItem.js";
 import {
@@ -6,9 +6,12 @@ import {
   capFor,
   compareCandidates,
   DEFAULT_SCORE_THRESHOLD,
+  isTech,
   medianWeight,
   SECTION_TARGET_MAX,
   selectItems,
+  TECH_ALLOWANCE,
+  TOP_PICKS,
 } from "../src/score/selectItems.js";
 import type { ScoredItem } from "../src/score/types.js";
 import { makeEntry, makeItem, plainPreferences, realPreferences } from "./score-factories.js";
@@ -352,8 +355,16 @@ describe("weekly reserved slot", () => {
     ...Array.from({ length: 3 }, (_, i) => scored("hci_empirical_research", 0.8 - i * 0.01)),
   ];
 
-  it("computes the median of the ten weights", () => {
-    expect(medianWeight(weights)).toBeCloseTo(0.865, 6);
+  it("computes the median of the eleven weights: the middle one", () => {
+    expect(Object.keys(weights)).toHaveLength(11);
+    // Sorted: 0.02, 0.1, 0.8, 0.82, 0.85, [0.85], 0.88, 0.9, 0.92, 0.92, 0.95.
+    expect(medianWeight(weights)).toBe(0.85);
+  });
+
+  it("moves with the weights: one category raised above the middle shifts the median up", () => {
+    // Before consumer tech (0.8) joined, the median of ten weights was 0.865.
+    expect(medianWeight({ ...weights, consumer_tech_releases: 0.9 })).toBe(0.88);
+    expect(medianWeight({ ...weights, consumer_tech_releases: 0 })).toBe(0.85);
   });
 
   it("guarantees one slot to the best below-median category in a weekly digest", () => {
@@ -368,7 +379,7 @@ describe("weekly reserved slot", () => {
 
   it("picks the best-ranked below-median item as the reserve", () => {
     const worse = scored("developer_tool_launches", 0.42);
-    const better = scored("taste_and_design_philosophy", 0.47);
+    const better = scored("developer_tool_launches", 0.47);
     const weekly = selectItems({
       scored: [...build(), worse, better],
       kind: "weekly",
@@ -378,6 +389,28 @@ describe("weekly reserved slot", () => {
     });
     expect(ids(weekly.selected)).toContain(better.item.id);
     expect(ids(weekly.selected)).not.toContain(worse.item.id);
+  });
+
+  it("reserves nothing for a category whose weight sits exactly at the median", () => {
+    // Taste essays and frontier models weigh 0.85, the median itself, so they are not below it.
+    expect(weights.taste_and_design_philosophy).toBe(medianWeight(weights));
+    const atMedian = scored("taste_and_design_philosophy", 0.47);
+    const pool = [...build(), atMedian];
+    const weekly = selectItems({ scored: pool, kind: "weekly", floor: 3, cap: 6, weights });
+    expect(ids(weekly.selected)).not.toContain(atMedian.item.id);
+  });
+
+  it("never spends the reserved slot on a tech candidate, which has its own allowance", () => {
+    expect(weights.consumer_tech_releases).toBeLessThan(medianWeight(weights));
+    const techItem = scored("consumer_tech_releases", 0.6);
+    const launch = scored("developer_tool_launches", 0.45);
+    const pool = [...build(), techItem, launch];
+    const weekly = selectItems({ scored: pool, kind: "weekly", floor: 3, cap: 6, weights });
+    // Six capped slots, one of them the reserved launch, plus the tech story on top.
+    expect(weekly.selected).toHaveLength(7);
+    expect(ids(weekly.selected)).toContain(launch.item.id);
+    expect(weekly.selected.filter((s) => !isTech(s))).toHaveLength(6);
+    expect(weekly.selected.find((s) => s.item.id === techItem.item.id)?.section).toBe("tech");
   });
 
   it("changes nothing when a below-median item is already selected", () => {
@@ -400,6 +433,191 @@ describe("weekly reserved slot", () => {
     expect(
       selectItems({ scored: pool, kind: "weekly", floor: 3, cap: 4, weights }).selected,
     ).toHaveLength(4);
+  });
+});
+
+describe("the tech allowance", () => {
+  const craft = (n: number, base = 0.9): ScoredItem[] =>
+    Array.from({ length: n }, (_, i) => scored("design_engineering_craft", base - i * 0.001));
+  const tech = (n: number, base = 0.7): ScoredItem[] =>
+    Array.from({ length: n }, (_, i) => scored("consumer_tech_releases", base - i * 0.01));
+  const select = (pool: ScoredItem[], kind: "regular" | "weekly" = "regular", cap = 99) =>
+    selectItems({ scored: pool, kind, floor: 3, cap });
+  const count = (result: ReturnType<typeof select>, section: string): number =>
+    result.selected.filter((s) => s.section === section).length;
+
+  it("is five stories, the same number the voice limits state", () => {
+    expect(TECH_ALLOWANCE).toBe(5);
+    expect(VOICE_LIMITS.items.techCap).toBe(5);
+  });
+
+  it("takes up to five tech stories on top of the cap of twelve", () => {
+    const result = select([...craft(30), ...tech(8)]);
+    expect(result.selected).toHaveLength(17);
+    expect(count(result, "tech")).toBe(5);
+    expect(result.selected.filter((s) => !isTech(s))).toHaveLength(12);
+  });
+
+  it("adds the same five to a weekly digest of eighteen", () => {
+    const result = select([...craft(30), ...tech(8)], "weekly");
+    expect(result.selected).toHaveLength(23);
+    expect(count(result, "tech")).toBe(5);
+    expect(result.selected.length).toBeLessThanOrEqual(24);
+  });
+
+  it("keeps the five best tech stories by rank and records the rest as over the tech cap", () => {
+    const pool = tech(8);
+    const result = select([...craft(4), ...pool]);
+    const chosen = result.selected.filter(isTech).map((s) => s.item.id);
+    expect(chosen).toEqual(ids(pool.slice(0, 5)));
+    expect(result.dropped.filter((d) => d.reason === "over_tech_cap").map((d) => d.id)).toEqual(
+      ids(pool.slice(5)),
+    );
+    expect(result.dropped.some((d) => d.reason === "over_cap")).toBe(false);
+  });
+
+  it("never lends tech slots to other sections or borrows from them", () => {
+    // A small cap is not raised by the tech allowance, and a thin tech pool leaves it unused.
+    const small = select([...craft(10), ...tech(5)], "regular", 5);
+    expect(small.selected.filter((s) => !isTech(s))).toHaveLength(5);
+    expect(count(small, "tech")).toBe(5);
+    expect(small.dropped.filter((d) => d.reason === "over_cap")).toHaveLength(5);
+
+    const thin = select([...craft(30), ...tech(1)]);
+    expect(thin.selected).toHaveLength(13);
+    expect(count(thin, "tech")).toBe(1);
+  });
+
+  it("does not hold tech to three per section", () => {
+    expect(SECTION_TARGET_MAX).toBe(3);
+    const others = [
+      scored("frontier_model_releases", 0.9),
+      scored("hci_empirical_research", 0.9),
+      scored("developer_tool_launches", 0.9),
+    ];
+    const result = select([...craft(3), ...others, ...tech(5)], "regular", 6);
+    expect(count(result, "tech")).toBe(5);
+  });
+
+  it("never makes a tech story a Top pick, however high it scores", () => {
+    const loud = tech(5, 0.99);
+    const quiet = [
+      scored("design_engineering_craft", 0.6),
+      scored("hci_empirical_research", 0.55),
+      scored("frontier_model_releases", 0.5),
+      scored("developer_tool_launches", 0.45),
+    ];
+    const result = select([...loud, ...quiet]);
+    const top = result.selected.filter((s) => s.section === "top");
+    expect(top).toHaveLength(TOP_PICKS);
+    expect(top.map((s) => s.score)).toEqual([0.6, 0.55, 0.5]);
+    expect(top.some(isTech)).toBe(false);
+    for (const item of loud) {
+      expect(result.selected.find((s) => s.item.id === item.item.id)?.section).toBe("tech");
+    }
+  });
+
+  it("lists the tech section after AI and before research", () => {
+    expect(SECTIONS).toEqual(["top", "ui-craft", "ai", "tech", "research", "launches", "watch"]);
+    const result = select([
+      ...tech(2),
+      scored("design_engineering_craft", 0.9),
+      scored("ui_component_primitives", 0.88),
+      scored("css_canvas_motion_techniques", 0.86),
+      scored("design_engineering_craft", 0.5),
+      scored("frontier_model_releases", 0.5),
+      scored("hci_empirical_research", 0.5),
+      scored("developer_tool_launches", 0.5),
+      scored("css_canvas_motion_techniques", 0.5, { source_type: "youtube" }),
+    ]);
+    expect(result.selected.map((s) => s.section)).toEqual([
+      "top",
+      "top",
+      "top",
+      "ui-craft",
+      "ai",
+      "tech",
+      "tech",
+      "research",
+      "launches",
+      "watch",
+    ]);
+  });
+
+  it("counts craft and tech together against the floor of three", () => {
+    const mixed = select([...craft(2), ...tech(1)]);
+    expect(mixed.outcome).toBe("selected");
+    expect(mixed.selected).toHaveLength(3);
+    // Two items outside tech, so two Top picks.
+    expect(count(mixed, "top")).toBe(2);
+    expect(count(mixed, "tech")).toBe(1);
+
+    const short = select([...craft(1), ...tech(1)]);
+    expect(short.outcome).toBe("nothing");
+    expect(short.selected).toEqual([]);
+    expect(short.qualifying).toBe(2);
+    expect(short.dropped).toEqual([]);
+  });
+
+  it("publishes a digest of tech stories alone, with no Top picks", () => {
+    const result = select(tech(4));
+    expect(result.outcome).toBe("selected");
+    expect(result.selected.map((s) => s.section)).toEqual(["tech", "tech", "tech", "tech"]);
+  });
+
+  it("does not let more than five tech stories stand in for the floor", () => {
+    // Only what is chosen counts: two capped slots and five tech stories is seven, not twelve.
+    const result = select([...craft(10), ...tech(9)], "regular", 2);
+    expect(result.selected).toHaveLength(7);
+  });
+
+  it("treats a tech video as a watch item inside the cap, not as part of the allowance", () => {
+    const video = scored("consumer_tech_releases", 0.5, { source_type: "youtube" });
+    const result = select([...craft(12), ...tech(5), video]);
+    // Twelve capped slots (the video takes one of them, in "watch") plus five tech stories.
+    expect(result.selected).toHaveLength(17);
+    expect(result.selected.find((s) => s.item.id === video.item.id)?.section).toBe("watch");
+    expect(count(result, "tech")).toBe(5);
+    expect(result.selected.filter((s) => !isTech(s))).toHaveLength(12);
+    expect(result.dropped.filter((d) => d.reason === "over_cap")).toHaveLength(1);
+    expect(result.dropped.some((d) => d.reason === "over_tech_cap")).toBe(false);
+
+    // With six tech stories the sixth is over the allowance, and the video is untouched by it.
+    const full = select([...craft(3), ...tech(6), video]);
+    expect(count(full, "tech")).toBe(5);
+    expect(full.selected.find((s) => s.item.id === video.item.id)?.section).toBe("watch");
+    expect(full.dropped.filter((d) => d.reason === "over_tech_cap")).toHaveLength(1);
+  });
+
+  it("drops a tech story below the threshold before the allowance is counted", () => {
+    const rumour = scored("consumer_tech_releases", 0.28);
+    const result = select([...craft(3), ...tech(4), rumour]);
+    expect(count(result, "tech")).toBe(4);
+    expect(result.dropped).toContainEqual({
+      id: rumour.item.id,
+      reason: "below_threshold",
+      score: 0.28,
+    });
+  });
+
+  it("recomputes Top picks from the items outside tech when later stages drop some", () => {
+    const first = select([...craft(4), ...tech(3, 0.99)]);
+    const survivors = first.selected.filter((s) => s.score !== 0.9);
+    const again = assignSections(survivors);
+    expect(again.filter((s) => s.section === "top")).toHaveLength(3);
+    expect(again.filter((s) => s.section === "top").some(isTech)).toBe(false);
+    const fewer = assignSections(first.selected.filter((s) => isTech(s) || s.score === 0.9));
+    expect(fewer.map((s) => s.section)).toEqual(["top", "tech", "tech", "tech"]);
+  });
+
+  it("is idempotent and independent of input order with tech in the pool", () => {
+    const pool = [...craft(6), ...tech(7)];
+    const baseline = select(pool, "regular", 4);
+    expect(assignSections(baseline.selected)).toEqual(baseline.selected);
+    const shuffled = select([...pool].reverse(), "regular", 4);
+    expect(shuffled.selected.map((s) => [s.item.id, s.section])).toEqual(
+      baseline.selected.map((s) => [s.item.id, s.section]),
+    );
   });
 });
 
@@ -431,5 +649,42 @@ describe("scoring and selection together", () => {
     });
     expect(result.outcome).toBe("selected");
     expect(ids(result.selected).sort()).toEqual(ids(keep).sort());
+  });
+
+  it("publishes launches by scale and leaves rumours, deals and accessories out", () => {
+    const prefs = plainPreferences();
+    const make = (opts: Parameters<typeof makeEntry>[1]): ScoredItem => {
+      const item = makeItem();
+      return scoreItem(makeEntry(item, opts), prefs, item);
+    };
+    const launch = (launchScale: number): ScoredItem =>
+      make({ category: "consumer_tech_releases", p: 0.9, depth: 0, launchScale });
+    const craft = [
+      make({ category: "design_engineering_craft", p: 0.9, depth: 0.9 }),
+      make({ category: "css_canvas_motion_techniques", p: 0.85, depth: 0.75 }),
+      make({ category: "ai_ux_interaction_patterns", p: 0.8, depth: 0.5 }),
+    ];
+    const flagship = launch(0.75);
+    const newProduct = launch(0.5);
+    const refresh = launch(0.25);
+    const rumour = launch(0);
+    const result = selectItems({
+      scored: [rumour, refresh, newProduct, flagship, ...craft],
+      kind: "regular",
+      floor: 3,
+      cap: 12,
+    });
+    const techIds = result.selected.filter((s) => s.section === "tech").map((s) => s.item.id);
+    expect(techIds).toEqual([flagship.item.id, newProduct.item.id, refresh.item.id]);
+    expect(result.dropped).toContainEqual({
+      id: rumour.item.id,
+      reason: "below_threshold",
+      score: 0.252,
+    });
+    // The flagship outscores one craft item and still stays out of the Top picks.
+    expect(flagship.score).toBeGreaterThan(craft[2]?.score ?? 1);
+    expect(result.selected.filter((s) => s.section === "top").map((s) => s.item.id)).toEqual(
+      ids(craft),
+    );
   });
 });

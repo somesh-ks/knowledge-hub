@@ -7,10 +7,11 @@ import { PALETTE_IDS } from "./palettes.js";
 import { renderCoverSvg, renderSocialSvg } from "./render.js";
 import { nonFiniteCount } from "./svg.js";
 import { TEMPLATES } from "./templates/index.js";
-import type { CoverMeta, CoverSpec, TemplateId } from "./types.js";
+import type { CoverKind, CoverMeta, CoverSpec, TemplateId } from "./types.js";
 
 const META: CoverMeta = { date: "2026-10-06", kind: "regular", id: "2026-10-06" };
 const WEEKLY: CoverMeta = { date: "2026-10-04", kind: "weekly", id: "2026-10-04-weekly" };
+const EPISODE: CoverMeta = { date: "2026-10-06", kind: "episode", id: "2026-10-06-2" };
 
 /** One fixed palette per template so snapshots cover a spread of looks. */
 const SNAPSHOT_PALETTE: Record<TemplateId, string> = {
@@ -86,11 +87,11 @@ describe.each(TEMPLATES)("template %s", (template) => {
   it("carries only the date and the wordmark as text", () => {
     const strings = [...svg.matchAll(/<text[^>]*>([^<]*)<\/text>/g)].map((m) => m[1]);
     const day = "6";
-    const allowed = new Set([...day, "October", "Dispatch"]);
+    const allowed = new Set([...day, "October", "Singularity"]);
     expect(strings.length).toBeGreaterThanOrEqual(3);
     for (const text of strings)
       expect(allowed.has(text as string), `unexpected text "${text}"`).toBe(true);
-    expect(strings).toContain("Dispatch");
+    expect(strings).toContain("Singularity");
     expect(strings).toContain("October");
     expect(strings).toContain("6");
   });
@@ -131,6 +132,7 @@ describe.each(TEMPLATES)("template %s", (template) => {
       seed1: summarize(svg),
       seed424242: summarize(renderCoverSvg(spec(template, 424242), META)),
       weekly: summarize(renderCoverSvg(spec(template, 7, "sea-lingonberry"), WEEKLY)),
+      episode: summarize(renderCoverSvg(spec(template, 7, "ultramarine"), EPISODE)),
     }).toMatchSnapshot();
   });
 });
@@ -152,7 +154,7 @@ describe("all templates across all palettes", () => {
     expect(nonFiniteCount()).toBe(before);
   });
 
-  it("holds up across many dates, kinds and corners", () => {
+  it("holds up across many dates and kinds", () => {
     const before = nonFiniteCount();
     for (let i = 0; i < 160; i += 1) {
       const template = TEMPLATES[i % TEMPLATES.length] as TemplateId;
@@ -160,7 +162,9 @@ describe("all templates across all palettes", () => {
       const day = String((i % 28) + 1).padStart(2, "0");
       const meta: CoverMeta = {
         date: `2026-${month}-${day}`,
-        kind: i % 5 === 0 ? "weekly" : "regular",
+        kind: (["weekly", "regular", "episode", "regular", "on-demand"] as const)[
+          i % 5
+        ] as CoverKind,
         id: `2026-${month}-${day}`,
       };
       const svg = renderCoverSvg(
@@ -203,8 +207,8 @@ describe("all templates across all palettes", () => {
   it("gives every cover its own ids so inline SVGs can share a page", () => {
     const idsOf = (svg: string): string[] =>
       [...svg.matchAll(/id="([^"]+)"/g)].map((m) => m[1] as string);
-    const a = idsOf(renderCoverSvg(spec("contour", 1), META));
-    const b = idsOf(renderCoverSvg(spec("contour", 2), META));
+    const a = idsOf(renderCoverSvg(spec("aperture", 1), META));
+    const b = idsOf(renderCoverSvg(spec("aperture", 2), META));
     expect(a.length).toBeGreaterThan(0);
     expect(a.filter((id) => b.includes(id))).toEqual([]);
   });

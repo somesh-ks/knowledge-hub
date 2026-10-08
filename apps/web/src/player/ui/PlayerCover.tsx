@@ -5,23 +5,22 @@ interface PlayerCoverProps {
   cover: PlayerDigestData["cover"];
   /** Weekly deep dives carry a framing rule so they read as a different record at a glance. */
   weekly: boolean;
+  /** "thumb" on the bar. "player" on the page and in flight, where it fills the box it is given. */
   size: "thumb" | "player";
-  /** The mini player's cover, the other end of the shared element the sheet morphs from. */
-  isMini?: boolean;
 }
 
 /**
  * The cover as the player shows it: a decorative image (the title sits beside it) on a box in the
- * palette's key color, so there is no empty flash while the PNG decodes.
+ * palette's key color, so there is no empty flash while the PNG decodes. The player draws it three
+ * times (on the bar, on the page, in flight) and its stylesheet shows exactly one of them.
  */
-export default function PlayerCover({ cover, weekly, size, isMini = false }: PlayerCoverProps) {
+export default function PlayerCover({ cover, weekly, size }: PlayerCoverProps) {
   const style = { "--cover-key": cover.key } as CSSProperties;
   return (
     <span
       className="player-cover-frame"
       data-size={size}
       data-weekly={weekly ? "" : undefined}
-      data-mini-cover={isMini ? "" : undefined}
       style={style}
     >
       <img

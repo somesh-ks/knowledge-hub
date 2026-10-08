@@ -21,8 +21,22 @@ export const COMMANDS: readonly CommandSpec[] = [
   import [--fresh] [--dry-run]      Build config/sources.json from config/sources.md. Offline.
   discover [--all] [--only a,b] [--dry-run]
                                     Find and verify feeds. Uses the network.
-  check [--only a,b] [--strict]     Reachability pass over every enabled source. Uses the network.`,
+  check [--only a,b] [--strict]     Reachability pass over every enabled source. Uses the network.
+  suggest --topic <id> [--dry-run]  Find feeds for a custom topic with Exa, score them, and add the
+                                    best to config/sources.user.json. Uses Exa, Jev and the network.`,
     load: async () => (await import("./commands/sources.js")).run,
+  },
+  {
+    name: "config",
+    summary: "Apply one topic, source or weight change from the app, and commit it",
+    help: `Usage:
+  dispatch config apply --op '<json>' [--dry-run]    One ConfigOp: topic.upsert, topic.remove,
+                                                      source.add, source.set, source.remove, weights.set
+  dispatch config commit --message <text> [--no-push] Commit what apply wrote as chore(config): <text>
+
+Writes config/topics.json, config/sources.user.json, config/queries.json, config/preferences.json
+and state/source-candidates.json, and nothing else; the write guard enforces it.`,
+    load: async () => (await import("./commands/config.js")).run,
   },
   {
     name: "fetch",
@@ -84,6 +98,19 @@ selection-schema.json, then validates the agent-selection.json a Claude Code ses
     summary: "The staged pipeline: gate, fetch, judge, write, validate, commit",
     help: RUN_USAGE,
     load: async () => (await import("./commands/run.js")).run,
+  },
+  {
+    name: "podcast",
+    summary: "Write one episode of Singularity from published digests and commit it",
+    help: `Usage: dispatch podcast --request '<json>' [--now <iso>] [--no-push]
+
+The request is JSON: { topic_ids: string[1..6], length_minutes: 3|5|10|15,
+format: "readout"|"discussion"|"headlines", window_days: 2|7|30,
+tone: "neutral"|"energetic"|"dry", title?: string }. Topic ids are sections or categories as they
+appear in published digests. Reads Digests/ only (no fetching), makes one writer call on Nebius
+(needs NEBIUS_API_KEY and DISPATCH_MODEL, spends tokens), writes Podcasts/YYYY/MM/<id>.md and
+commits it as feat(podcast) through the write guard. The last line printed is the episode id.`,
+    load: async () => (await import("./commands/podcast.js")).run,
   },
   {
     name: "status",

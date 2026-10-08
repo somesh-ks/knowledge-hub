@@ -3,6 +3,9 @@ import {
   Digest,
   type DigestItem,
   type DigestKind,
+  displaySource,
+  isBuiltinSection,
+  SECTION_TITLES,
   stockholmDate,
   VOICE_LIMITS,
 } from "@dispatch/core";
@@ -39,6 +42,16 @@ export interface BuildDigestInput {
   audio: null;
   /** Display names by source id; the id itself is shown when a name is unknown. */
   sourceNames?: Readonly<Record<string, string>>;
+  /**
+   * Ids of sources whose items link to other publishers. Their items, like those of aggregator
+   * source types, are credited to the publisher of the URL instead of the registry name.
+   */
+  linkSources?: ReadonlySet<string>;
+  /**
+   * Titles of custom sections by id, from config/topics.json. Copied into the digest as
+   * `section_titles` so the briefing keeps its headings if the topic is later renamed or removed.
+   */
+  sectionTitles?: Readonly<Record<string, string>>;
 }
 
 /**
@@ -64,15 +77,37 @@ export function buildDigest(input: BuildDigestInput): Digest {
       source_type: sel.item.source_type,
       headline: text.headline,
       url: sel.item.canonical_url,
-      source: input.sourceNames?.[sel.item.source_id] ?? sel.item.source_id,
+      source: displaySource({
+        url: sel.item.canonical_url,
+        sourceType: sel.item.source_type,
+        sourceName: input.sourceNames?.[sel.item.source_id] ?? sel.item.source_id,
+        linkSource: input.linkSources?.has(sel.item.source_id) ?? false,
+      }),
       summary: text.summary,
-      why: text.why,
       score: sel.score,
     };
+    if (text.spoken) item.spoken = text.spoken;
+    // Only an agent session still supplies a why line; the frontmatter carries none otherwise.
+    if (text.why) item.why = text.why;
     if (sel.item.author) item.author = sel.item.author;
     if (sel.item.published_at) item.published_at = sel.item.published_at;
     return item;
   });
+
+  // Sections in reading order. The snapshot is written only when a custom section is in use, so a
+  // digest without one is byte for byte what it was before custom sections existed.
+  const used: string[] = [];
+  for (const item of items) if (!used.includes(item.section)) used.push(item.section);
+  const sectionTitles = used.some((section) => !isBuiltinSection(section))
+    ? Object.fromEntries(
+        used.map((section) => [
+          section,
+          isBuiltinSection(section)
+            ? SECTION_TITLES[section]
+            : (input.sectionTitles?.[section] ?? section),
+        ]),
+      )
+    : undefined;
 
   const id = input.allocateId({ date: stockholmDate(input.now), kind: input.kind });
   // The date is part of the id, so a pool fetched before midnight and rendered after it still agrees.
@@ -89,6 +124,7 @@ export function buildDigest(input: BuildDigestInput): Digest {
     listen_minutes: listenMinutes(words),
     audio: input.audio,
     cover: input.coverPicker({ digestId: id, date, kind: input.kind, items }),
+    ...(sectionTitles ? { section_titles: sectionTitles } : {}),
     items,
   });
 }

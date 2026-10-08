@@ -22,6 +22,12 @@ interface Props {
 const { entry, earlier, isLatest } = Astro.props;
 ---
 
-<BaseLayout title={entry.player.title} view="home" layout="aside" digestId={entry.id}>
+<BaseLayout
+  title={entry.player.title}
+  view="home"
+  nav={isLatest ? "today" : "library"}
+  layout="aside"
+  digestId={entry.id}
+>
   <DigestView entry={entry} earlier={earlier} isLatest={isLatest} />
 </BaseLayout>

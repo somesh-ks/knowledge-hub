@@ -1,33 +1,46 @@
 # State
 
-Last updated 2026-10-07. Rewrite this file; do not append.
+Last updated 2026-10-08. Rewrite this file; do not append.
 
-## Working
+The reader is now called Singularity (D30). Identifiers keep `dispatch`. Everything under "On the branch" lives on local branch `feat/singularity` and is not deployed; production still runs `main`.
 
-- Engine end to end on live services: fetch (Exa, Firecrawl, feeds), judge (TypeSafe Jev), write (Nebius Qwen3 235B), validate, commit as the owner.
-- First digest `2026-10-06` committed and deployed by Vercel (Git integration, Hobby accepts the owner identity).
-- CI on Linux: typecheck, lint, tests, site build, gitleaks. Auto-merge for owner and Dependabot PRs (PR #4).
-- GitHub secrets and variables are set from `.env`; Vercel has the Generate button variables.
+## Working in production (main)
+
+- Engine end to end on live services: fetch (Exa, Firecrawl, feeds), judge (TypeSafe Jev), write (Nebius), validate, commit as the owner.
+- Vercel deploys the site from the Git integration. CI on Linux: typecheck, lint, tests, site build, gitleaks. Auto-merge for owner and Dependabot PRs.
+
+## On the branch, tested but not deployed
+
+- Reader in the visual language of Google Podcasts (D31): Today, Library, Create, Settings. Library is a cover grid with search, sort and filter. Settings has Topics and Sources pages.
+- Player rebuilt as one surface that grows from the bottom bar to a full page (D32). On wide screens the bar is a full transport with seek, a clock and volume.
+- Narration on Play, story by story (D33): `/api/narrate`, the client in `apps/web/src/narration/`, the passphrase sheet.
+- Engine: four-beat voice (D34), Tech releases section and launch-scale ranking (D35), hosted narration (D29), user-defined topics with Jev topic-fit judging, source overlay and source discovery (D36), custom podcast episodes (D37).
+- New cover art: eight templates, sixteen palettes, an episode variant.
+- Checks on the merged branch: typecheck clean, 3,683 unit tests, lint clean, site build at 100.6 KB of the 102 KB first-load budget, site browser suite green (466 tests, including a check on every page that nothing marked hidden renders).
+- Player browser suite, Chromium (the lab on a phone, the built site on a phone, a short phone and a desktop): green. Its dev lab page now renders the real reader components.
 
 ## Not working or unverified
 
-- Audio: no digest has audio yet. The 2026-10-07 audio run got through the Vercel pull and Speechify narration, then the Blob upload failed: the store is connected to Production and Preview, and the CLI issues a development OIDC token. Fix in PR: `audio.yml` passes `BLOB_READ_WRITE_TOKEN` (a fresh store token, already in the GitHub secrets) so the engine skips OIDC. Each retry re-synthesizes and spends Speechify characters (about 7k per run), so do not rerun until that is changed.
-- Generate button and passphrase are untested against the live site.
-- Curation: half of the first digest was GitHub patch releases; needs grouping and down-weighting.
-- Extra Blob store `store_JmrDq8MB5Kwn3ejW` is empty and should be deleted (keep `store_IRMb7o0QWTVEacJt`).
-- Not tested on a real iPhone (lock-screen controls, silent switch, sounds).
+- Nothing on the branch has run against live services: Speechify narration (per story and per turn, two voices), the Blob store address the lookup computes, Jev topic-fit questions, Exa source discovery, the writer's `spoken` tellings and podcast scripts.
+- Three new workflows have never run on GitHub: `config.yml`, `podcast.yml`, and the changed `run.yml`. Workflow changes need a manual merge.
+- The player suite's WebKit projects were not re-run in full after the last fixes. Four of their tests are skipped in WebKit only, because Playwright cannot send a wheel or a touch drag there; scroll containment and the cover's flight are therefore unverified in WebKit.
+- `src/player/dev/LabGlyph.astro` is unused since the lab renders the real components. Delete it when convenient.
+- Not tested on a real iPhone: scroll containment behind the open player, the swipe, safe areas, lock-screen controls, audio starting after the passphrase sheet.
+- Audio already stored for the first two briefings says "Dispatch" and no longer matches the narration text. It is re-made on Play.
+- Curation: release-note noise in the first briefings is still there (see Next).
 
-## Known risks (audit 2026-10-07, not fixed)
+## Known risks
 
-- A failed Blob upload loses the paid narration and the next daily run pays for it again, for up to 7 days.
-- `publish` writes the timeline before the digest; a failure between them shows "The audio has expired" for a digest never narrated.
-- `markSeen` records every judged id, so items cut by the digest cap are hidden for 90 days.
-- The Generate passphrase check has no attempt limit before the cooldown applies.
-- Missing Speechify credentials leave `publish` green with audio still null (D23).
-- Dependabot merges may fail on a read-only `workflow_run` token; the merge-by-hand notice still prints.
+- Budget counters can read below real spend in narrow cases: an edit that does not lengthen a briefing, two briefings charged in the same instant, a function killed mid-synthesis. The engine workflow and the site function keep separate counters against one Speechify allowance.
+- An anonymous reader can open the passphrase sheet but cannot make audio. A briefing nobody with the passphrase has played has no audio for anyone (see the open question in D33).
+- `markSeen` records every judged id, so items cut by the cap are hidden for 90 days.
+- The Generate, narrate, config and podcast passphrase checks have no attempt limit beyond their cooldowns.
+- `podcast.yml` and `config.yml` push to main beside `run.yml`; the push rebases and retries, which has not been exercised.
 
 ## Next
 
-1. Merge PR #5, run a digest, confirm audio plays.
-2. Test Generate against the live site.
-3. Tune release-note noise in prefilter and score.
+1. Owner: confirm a push. Then a preview deploy, and on it: play a briefing (first Play asks for the passphrase), add a topic, create an episode.
+2. Owner: manual merge of the workflow files; revoke the Vercel token pasted in chat on 2026-10-07; delete the empty Blob store `store_JmrDq8MB5Kwn3ejW`.
+3. One engine dry run to hear the new voice and see the Tech section (a few cents).
+4. Two iPhone passes, then the player's browser suite on WebKit.
+5. Curation quality, in order: group patch releases per repository, record only published ids in `markSeen`, calibrate the 0.4 threshold on the golden set, feed per-source pass rates into the score.

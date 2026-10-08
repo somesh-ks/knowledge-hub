@@ -13,6 +13,8 @@ const loadGenerate = () => import("./GenerateSheet");
 const loadSettings = () => import("./SettingsSheet");
 const GenerateSheet = lazy(loadGenerate);
 const SettingsSheet = lazy(loadSettings);
+// Not preloaded when idle: it is only ever needed after a tap on Play, which fetches it.
+const NarrateSheet = lazy(() => import("./NarrateSheet"));
 
 function whenIdle(task: () => void): () => void {
   if (typeof requestIdleCallback === "function") {
@@ -33,6 +35,7 @@ export default function SheetsRoot() {
   const [mounted, setMounted] = useState<Record<SheetName, boolean>>({
     generate: false,
     settings: false,
+    narrate: false,
   });
 
   const openSheet = useCallback((name: SheetName) => {
@@ -112,6 +115,14 @@ export default function SheetsRoot() {
           <SettingsSheet
             open={active === "settings"}
             onOpenChange={(open) => closeSheet("settings", open)}
+          />
+        ) : null}
+      </Suspense>
+      <Suspense fallback={null}>
+        {mounted.narrate ? (
+          <NarrateSheet
+            open={active === "narrate"}
+            onOpenChange={(open) => closeSheet("narrate", open)}
           />
         ) : null}
       </Suspense>

@@ -1,6 +1,6 @@
-import { COVER_TEMPLATES, CoverSpec } from "@dispatch/core";
+import { CATEGORIES, COVER_TEMPLATES, CoverSpec, NEVER_PUBLISH } from "@dispatch/core";
 import { describe, expect, it } from "vitest";
-import { DARK_PALETTE_IDS, PALETTE_IDS } from "./palettes.js";
+import { DARK_PALETTE_IDS, groundDistance, PALETTE_IDS } from "./palettes.js";
 import { pickCover } from "./pick.js";
 import { TEMPLATES } from "./templates/index.js";
 import type { PickInput } from "./types.js";
@@ -55,7 +55,57 @@ describe("pickCover", () => {
       previous = { template: spec.template, palette: spec.palette };
     }
     expect(templates.size).toBe(8);
-    expect(palettes.size).toBe(12);
+    expect(palettes.size).toBe(PALETTE_IDS.length);
+  });
+
+  it("never repeats a template or palette on consecutive days over a 60-day run", () => {
+    let previous: { template: string; palette: string } | undefined;
+    for (let i = 0; i < 60; i += 1) {
+      const spec = pickCover(input(i, { previous }));
+      if (previous) {
+        expect(spec.template, `day ${i}`).not.toBe(previous.template);
+        expect(spec.palette, `day ${i}`).not.toBe(previous.palette);
+      }
+      previous = { template: spec.template, palette: spec.palette };
+    }
+  });
+
+  it("spreads a run so neighbours in a grid rarely match: nothing from the last three covers", () => {
+    const history: { template: string; palette: string }[] = [];
+    for (let i = 0; i < 120; i += 1) {
+      const [previous, ...recent] = history.slice(0, 3);
+      const spec = pickCover(input(i, { previous, recent }));
+      for (const old of history.slice(0, 3)) {
+        expect(spec.template, `day ${i}`).not.toBe(old.template);
+        expect(spec.palette, `day ${i}`).not.toBe(old.palette);
+      }
+      history.unshift({ template: spec.template, palette: spec.palette });
+    }
+  });
+
+  it("steers away from a palette that looks like the previous one", () => {
+    let similar = 0;
+    let total = 0;
+    let previous: { template: string; palette: string } | undefined;
+    for (let i = 0; i < 300; i += 1) {
+      const spec = pickCover(input(i, { previous }));
+      if (previous) {
+        total += 1;
+        if (groundDistance(spec.palette, previous.palette) < 0.28) similar += 1;
+      }
+      previous = { template: spec.template, palette: spec.palette };
+    }
+    expect(similar / total).toBeLessThan(0.1);
+  });
+
+  it("covers a user-made episode with any palette", () => {
+    const palettes = new Set<string>();
+    for (let i = 0; i < 300; i += 1) {
+      const spec = pickCover({ ...input(i), id: `${dayId(i)}-2`, kind: "episode" });
+      expect(CoverSpec.safeParse(spec).success).toBe(true);
+      palettes.add(spec.palette);
+    }
+    expect(palettes.size).toBe(PALETTE_IDS.length);
   });
 
   it("draws weekly digests from the dark family, still never repeating the previous palette", () => {
@@ -98,10 +148,20 @@ describe("pickCover", () => {
     ["hci_empirical_research", ["contour", "lattice"]],
     ["developer_tool_launches", ["lattice", "aperture"]],
     ["taste_and_design_philosophy", ["orbit", "numeral"]],
+    ["consumer_tech_releases", ["aperture", "numeral"]],
     ["watch", ["band"]],
   ] as const)("biases %s toward %j", (lead, favored) => {
     const baseline = favored.length / 8;
     expect(share(lead, [...favored])).toBeGreaterThan(baseline + 0.2);
+  });
+
+  it("gives every publishable category a bias and leaves the never-publish ones without", () => {
+    for (const category of CATEGORIES) {
+      // An unbiased template is drawn about one time in eight; a favored one at least twice that.
+      const favored = TEMPLATES.filter((template) => share(category, [template]) > 0.2);
+      if (NEVER_PUBLISH.includes(category)) expect(favored, category).toEqual([]);
+      else expect(favored.length, category).toBeGreaterThanOrEqual(1);
+    }
   });
 
   it("leaves unknown or non-publishing categories unbiased", () => {

@@ -5,13 +5,13 @@
  *   - Precaches the shell (the home page and /offline) with their stylesheet, fonts and scripts.
  *   - Digest pages: stale-while-revalidate. A digest never changes once published, so the cached copy
  *     is right and the refresh in the background only matters for a correction.
- *   - Home, archive and /latest.json change whenever a briefing lands, so they go to the network first
+ *   - Home, the library and /latest.json change whenever a briefing lands, so they go to the network first
  *     and fall back to the cache after a short wait. A stale "today" would be a wrong answer.
  *   - NEVER touches audio. Serving media from the Cache API without correct Range handling breaks
  *     Safari playback, so audio, ranged requests and cross-origin requests all pass straight through.
  *   - Bump VERSION when this file's logic changes; activation removes caches from older versions.
  */
-const VERSION = "v1";
+const VERSION = "v2";
 const SHELL_CACHE = `dispatch-shell-${VERSION}`;
 const PAGES_CACHE = `dispatch-pages-${VERSION}`;
 const MEDIA_CACHE = `dispatch-media-${VERSION}`;

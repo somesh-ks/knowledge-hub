@@ -1,50 +1,21 @@
 import { describe, expect, it } from "vitest";
 import { digestUrl, directionBetween } from "./navigation";
-import { playPageChapter, playPageItemAt, togglePageDigest, togglePageItem } from "./pageActions";
+import { playPageChapter, togglePageDigest, togglePageItem } from "./pageActions";
 import { classifyKeyTarget, type KeyLike, shouldToggleOnKey } from "./playerKeys";
 import {
-  ctaView,
+  briefingChipView,
+  briefingLengthLabel,
+  idleBriefingChip,
+  idleStoryChip,
   itemVisualState,
-  nearestNodeIndex,
-  railProgress,
   resolveChapterFirstItemId,
   resolveItemId,
+  storyChipView,
+  storyLengthLabel,
 } from "./readerMath";
 import { createHarness, makeDigest, makeDigestWithoutAudio } from "./testing";
-import { buildTimeline } from "./timeline";
 
-describe("the rail", () => {
-  const timeline = buildTimeline(makeDigest());
-  // Four item nodes down a 1000px briefing.
-  const nodeY = [40, 280, 520, 760];
-
-  it("fills piecewise linearly between node centers, by time", () => {
-    expect(railProgress(nodeY, 1000, timeline, 0, 0, false)).toBeCloseTo(0.04, 5);
-    expect(railProgress(nodeY, 1000, timeline, 0, 15, false)).toBeCloseTo(0.16, 5);
-    expect(railProgress(nodeY, 1000, timeline, 1, 30, false)).toBeCloseTo(0.28, 5);
-    expect(railProgress(nodeY, 1000, timeline, 1, 45, false)).toBeCloseTo(0.4, 5);
-  });
-
-  it("runs the last item to the bottom of the briefing and fills it when the digest ends", () => {
-    expect(railProgress(nodeY, 1000, timeline, 3, 90, false)).toBeCloseTo(0.76, 5);
-    expect(railProgress(nodeY, 1000, timeline, 3, 105, false)).toBeCloseTo(0.88, 5);
-    expect(railProgress(nodeY, 1000, timeline, 3, 120, true)).toBe(1);
-  });
-
-  it("is empty without measurements, a timeline or a height", () => {
-    expect(railProgress([], 1000, timeline, 0, 10, false)).toBe(0);
-    expect(railProgress(nodeY, 0, timeline, 0, 10, false)).toBe(0);
-    expect(railProgress(nodeY, 1000, null, 0, 10, false)).toBe(0);
-  });
-
-  it("resolves a tap to the nearest node, skipping unmeasured items", () => {
-    expect(nearestNodeIndex(nodeY, 100)).toBe(0);
-    expect(nearestNodeIndex(nodeY, 410)).toBe(2);
-    expect(nearestNodeIndex(nodeY, 5000)).toBe(3);
-    expect(nearestNodeIndex([undefined, 300], 10)).toBe(1);
-    expect(nearestNodeIndex([], 10)).toBe(-1);
-  });
-
+describe("where the playhead is, per story", () => {
   it("marks items played, current or upcoming, and nothing when there is no playhead", () => {
     expect(itemVisualState(0, true, 2, false)).toBe("played");
     expect(itemVisualState(2, true, 2, false)).toBe("current");
@@ -80,49 +51,158 @@ describe("reader markup contract", () => {
   });
 });
 
-describe("the call to action", () => {
-  function stateFor(status: Parameters<typeof ctaView>[0]["status"], extra = {}) {
+describe("chip lengths", () => {
+  it("writes a briefing as whole minutes, never less than one", () => {
+    expect(briefingLengthLabel(480_000)).toBe("8 min");
+    expect(briefingLengthLabel(449_000)).toBe("7 min");
+    expect(briefingLengthLabel(450_000)).toBe("8 min");
+    expect(briefingLengthLabel(36_000)).toBe("1 min");
+    expect(briefingLengthLabel(0)).toBe("1 min");
+  });
+
+  it("writes a story as a clock rounded to the second, and nothing without marks", () => {
+    expect(storyLengthLabel(0, 24_000)).toBe("0:24");
+    expect(storyLengthLabel(30_000, 94_600)).toBe("1:05");
+    expect(storyLengthLabel(null, null)).toBe("");
+    expect(storyLengthLabel(0, null)).toBe("");
+  });
+});
+
+describe("the briefing chip", () => {
+  function stateFor(status: Parameters<typeof briefingChipView>[0]["status"], extra = {}) {
     const harness = createHarness();
     harness.store.load(makeDigest());
     return { ...harness.store.getState(), status, ...extra };
   }
 
   it("offers the full length before anything has played", () => {
-    expect(ctaView(stateFor("idle"), 0, makeDigest())).toEqual({
-      label: "Play the briefing",
-      clock: "2:00",
+    expect(briefingChipView(stateFor("idle"), 0, makeDigest())).toEqual({
+      state: "idle",
       playing: false,
-      loading: false,
+      label: "2 min",
+      name: "Play the briefing, 2 min",
     });
+    expect(idleBriefingChip("8 min").name).toBe("Play the briefing, 8 min");
   });
 
-  it("offers to resume a remembered position", () => {
-    const view = ctaView(stateFor("idle"), 58, makeDigest());
-    expect(view.label).toBe("Resume");
-    expect(view.clock).toBe("0:58 of 2:00");
+  it("offers to resume a remembered position, in whole minutes left", () => {
+    expect(briefingChipView(stateFor("idle"), 58, makeDigest())).toEqual({
+      state: "idle",
+      playing: false,
+      label: "2 min left",
+      name: "Resume the briefing, 2 min left",
+    });
+    expect(briefingChipView(stateFor("idle"), 61, makeDigest()).label).toBe("1 min left");
+    expect(briefingChipView(stateFor("idle"), 119, makeDigest()).label).toBe("1 min left");
   });
 
-  it("follows playback: pause, resume, play again, try again", () => {
-    expect(ctaView(stateFor("playing"), 86, makeDigest())).toMatchObject({
-      label: "Pause",
-      clock: "1:26 of 2:00",
+  it("follows playback: playing, paused, played, try again", () => {
+    expect(briefingChipView(stateFor("playing"), 86, makeDigest())).toEqual({
+      state: "current",
       playing: true,
+      label: "Playing",
+      name: "Pause the briefing, playing",
     });
-    expect(ctaView(stateFor("paused"), 86, makeDigest()).label).toBe("Resume");
-    expect(ctaView(stateFor("ended"), 120, makeDigest()).label).toBe("Play again");
-    expect(ctaView(stateFor("error"), 86, makeDigest()).label).toBe("Try again");
+    expect(briefingChipView(stateFor("paused"), 30, makeDigest())).toEqual({
+      state: "current",
+      playing: false,
+      label: "2 min left",
+      name: "Resume the briefing, 2 min left",
+    });
+    expect(briefingChipView(stateFor("ended"), 120, makeDigest())).toEqual({
+      state: "played",
+      playing: false,
+      label: "Played",
+      name: "Play the briefing again, played",
+    });
+    expect(briefingChipView(stateFor("error"), 86, makeDigest())).toEqual({
+      state: "idle",
+      playing: false,
+      label: "Try again",
+      name: "Try again",
+    });
   });
 
-  it("keeps the label steady for the first 300 ms of buffering, then says what is happening", () => {
-    const early = ctaView(stateFor("loading", { buffering: false }), 0, makeDigest());
-    expect(early).toMatchObject({ label: "Pause", playing: true, loading: false });
-    const late = ctaView(stateFor("loading", { buffering: true }), 0, makeDigest());
-    expect(late).toMatchObject({ label: "Preparing audio", playing: true, loading: true });
+  it("says Playing for the first 300 ms of buffering, then that it is loading", () => {
+    const early = briefingChipView(stateFor("loading", { buffering: false }), 0, makeDigest());
+    expect(early).toMatchObject({ state: "current", label: "Playing", playing: true });
+    const late = briefingChipView(stateFor("loading", { buffering: true }), 0, makeDigest());
+    expect(late).toEqual({
+      state: "preparing",
+      playing: true,
+      label: "Loading",
+      name: "Pause the briefing, loading",
+    });
   });
 
-  it("is a plain play button when another digest is loaded", () => {
-    const view = ctaView(stateFor("playing"), 86, makeDigest({ id: "2026-10-05" }));
-    expect(view).toMatchObject({ label: "Play the briefing", playing: false });
+  it("is a plain play chip when another briefing is loaded", () => {
+    const other = makeDigest({ id: "2026-10-05", audio: { url: "/a.mp3", duration_ms: 480_000 } });
+    expect(briefingChipView(stateFor("playing"), 86, other)).toEqual(idleBriefingChip("8 min"));
+  });
+
+  it("always says the action and carries the visible text in its name", () => {
+    const statuses = ["idle", "playing", "loading", "paused", "ended", "error"] as const;
+    for (const status of statuses) {
+      for (const buffering of [false, true]) {
+        const view = briefingChipView(stateFor(status, { buffering }), 40, makeDigest());
+        expect(view.name.toLowerCase()).toContain(view.label.toLowerCase());
+        expect(view.name).toMatch(/^(Play|Pause|Resume|Try again)/);
+      }
+    }
+  });
+});
+
+describe("a story chip", () => {
+  const headline = "The safe triangle, rebuilt";
+
+  it("shows its length and plays from its story while it is upcoming", () => {
+    expect(storyChipView("", false, false, "0:30", headline)).toEqual({
+      state: "idle",
+      playing: false,
+      label: "0:30",
+      name: "Play from here, 0:30: The safe triangle, rebuilt",
+    });
+    // Another story is playing: this one still offers its own length.
+    expect(storyChipView("", true, false, "0:30", headline).label).toBe("0:30");
+  });
+
+  it("has a name without a length while the briefing has no audio", () => {
+    expect(idleStoryChip("", headline)).toEqual({
+      state: "idle",
+      playing: false,
+      label: "",
+      name: "Play from here: The safe triangle, rebuilt",
+    });
+  });
+
+  it("says Playing, Paused or Loading for the story being read", () => {
+    expect(storyChipView("current", true, false, "0:30", headline)).toEqual({
+      state: "current",
+      playing: true,
+      label: "Playing",
+      name: "Pause, playing: The safe triangle, rebuilt",
+    });
+    expect(storyChipView("current", false, false, "0:30", headline)).toEqual({
+      state: "current",
+      playing: false,
+      label: "Paused",
+      name: "Resume, paused: The safe triangle, rebuilt",
+    });
+    expect(storyChipView("current", true, true, "0:30", headline)).toEqual({
+      state: "preparing",
+      playing: true,
+      label: "Loading",
+      name: "Pause, loading: The safe triangle, rebuilt",
+    });
+  });
+
+  it("says Played once the playhead has passed it", () => {
+    expect(storyChipView("played", true, false, "0:30", headline)).toEqual({
+      state: "played",
+      playing: false,
+      label: "Played",
+      name: "Play again, played: The safe triangle, rebuilt",
+    });
   });
 });
 
@@ -134,7 +214,7 @@ describe("what a tap on the page does", () => {
     return harness;
   }
 
-  it("toggles the page's digest from the hero button", () => {
+  it("toggles the page's digest from the briefing chip", () => {
     const { store, audio } = playing();
     togglePageDigest(store);
     audio.startPlaying();
@@ -163,7 +243,7 @@ describe("what a tap on the page does", () => {
     const harness = createHarness();
     harness.store.setPageDigest(makeDigestWithoutAudio());
     togglePageDigest(harness.store);
-    playPageItemAt(harness.store, 0);
+    togglePageItem(harness.store, "a1b2c3d4e5f6");
     expect(harness.createdAudios).toHaveLength(0);
   });
 

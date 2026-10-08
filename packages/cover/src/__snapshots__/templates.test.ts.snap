@@ -2,184 +2,232 @@
 
 exports[`template aperture > matches its snapshot at fixed seeds 1`] = `
 {
+  "episode": {
+    "bytes": 950,
+    "elements": 12,
+    "paths": 0,
+    "sha1": "b4b070f0e30a26b102f8a5f502b1f1fbb519988a",
+  },
   "seed1": {
-    "bytes": 1809,
-    "elements": 28,
-    "paths": 1,
-    "sha1": "2cdb9d2206097632bc4d3f43c840a5ef7bf99cdb",
+    "bytes": 950,
+    "elements": 12,
+    "paths": 0,
+    "sha1": "976ef1dbf7b5d2975ab4c50b11cb2f7179993a5f",
   },
   "seed424242": {
-    "bytes": 1412,
-    "elements": 20,
-    "paths": 1,
-    "sha1": "6fd7bd8d58e9b5822c57b7dca1f3090793bd6bc7",
+    "bytes": 954,
+    "elements": 12,
+    "paths": 0,
+    "sha1": "c79939c52ba5497923dd894f6b487f11fc0d2205",
   },
   "weekly": {
-    "bytes": 1693,
-    "elements": 25,
-    "paths": 3,
-    "sha1": "042a5e196bd7cb2739f0ebc701d9b25878ff98c7",
+    "bytes": 1145,
+    "elements": 16,
+    "paths": 1,
+    "sha1": "2d01fcf7dcc75e8fb381b30d3b5cc5686f16e28c",
   },
 }
 `;
 
 exports[`template band > matches its snapshot at fixed seeds 1`] = `
 {
+  "episode": {
+    "bytes": 865,
+    "elements": 9,
+    "paths": 0,
+    "sha1": "dc79249d34552b2b6f6f992cc7d5031cb0cbf4e1",
+  },
   "seed1": {
-    "bytes": 89539,
-    "elements": 24,
-    "paths": 15,
-    "sha1": "5f2390bb5ce73e4df24a6852e6f219698a54f14b",
+    "bytes": 931,
+    "elements": 10,
+    "paths": 0,
+    "sha1": "3873a0cc91a935948499f4ca98ca077f8af30930",
   },
   "seed424242": {
-    "bytes": 76802,
-    "elements": 22,
-    "paths": 13,
-    "sha1": "f1524b3c63d510e7272240e035d12d10ba1ee22e",
+    "bytes": 865,
+    "elements": 9,
+    "paths": 0,
+    "sha1": "db86ab93cef09701568553eb90b33b229ecc8fb3",
   },
   "weekly": {
-    "bytes": 77066,
-    "elements": 27,
-    "paths": 15,
-    "sha1": "e2c51dcd594a41f8e9e07c95f115fcdde3124e9f",
+    "bytes": 1075,
+    "elements": 14,
+    "paths": 1,
+    "sha1": "7f921486aa9c36d258ae60eb037cd64ce8f36611",
   },
 }
 `;
 
 exports[`template contour > matches its snapshot at fixed seeds 1`] = `
 {
+  "episode": {
+    "bytes": 836,
+    "elements": 9,
+    "paths": 0,
+    "sha1": "0abe9a30261a47c4d727d31b52bbad53127178b3",
+  },
   "seed1": {
-    "bytes": 117641,
-    "elements": 151,
-    "paths": 42,
-    "sha1": "9cc562bb7884046c3c1b9337e223a846ac15075b",
+    "bytes": 836,
+    "elements": 9,
+    "paths": 0,
+    "sha1": "31dea2f9c0dc7ed56ebc7e37c010bc338401458f",
   },
   "seed424242": {
-    "bytes": 225039,
-    "elements": 157,
-    "paths": 48,
-    "sha1": "1c93a226f55134bf74bfd595682698535bd49504",
+    "bytes": 839,
+    "elements": 9,
+    "paths": 0,
+    "sha1": "ced2b0a8e1b76d1b0bda677ae007d63268e1e9be",
   },
   "weekly": {
-    "bytes": 232718,
-    "elements": 192,
-    "paths": 80,
-    "sha1": "0c759270cec585fabe9c576ad1243c1f60e6f3ab",
+    "bytes": 1044,
+    "elements": 14,
+    "paths": 1,
+    "sha1": "a0d03fa27c0f9bd26fec740e9783d63f7a759fde",
   },
 }
 `;
 
 exports[`template dither > matches its snapshot at fixed seeds 1`] = `
 {
+  "episode": {
+    "bytes": 1816,
+    "elements": 21,
+    "paths": 0,
+    "sha1": "c75f86cf312483a9ee89ffd928c865a4ec74bc24",
+  },
   "seed1": {
-    "bytes": 17459,
-    "elements": 14,
-    "paths": 2,
-    "sha1": "54b0f8eb95615dab2e047048fade965288b1f4fd",
+    "bytes": 2469,
+    "elements": 29,
+    "paths": 0,
+    "sha1": "da281165f5384b060bd302926f97b69a78fc98dc",
   },
   "seed424242": {
-    "bytes": 49694,
-    "elements": 15,
-    "paths": 3,
-    "sha1": "fe524bd5375e6bae3292040b38ffe851590d1008",
+    "bytes": 1941,
+    "elements": 22,
+    "paths": 0,
+    "sha1": "f62308cd6a921d3c283f60a2d8a2de54ab2b0807",
   },
   "weekly": {
-    "bytes": 25701,
-    "elements": 15,
-    "paths": 4,
-    "sha1": "a71f8318cbc44d3729586f709f5ee47131566662",
+    "bytes": 2070,
+    "elements": 26,
+    "paths": 1,
+    "sha1": "a56fcb1f4571c734b47846897662068eb862c0e4",
   },
 }
 `;
 
 exports[`template lattice > matches its snapshot at fixed seeds 1`] = `
 {
+  "episode": {
+    "bytes": 1249,
+    "elements": 17,
+    "paths": 0,
+    "sha1": "0bf80032b9e94030ad6d752b43c78e65d682a1a8",
+  },
   "seed1": {
-    "bytes": 67037,
-    "elements": 124,
-    "paths": 15,
-    "sha1": "cdb18deeab118d1c952c65acf4ec31be1e8317f8",
+    "bytes": 1615,
+    "elements": 25,
+    "paths": 0,
+    "sha1": "fa25f550678a88824931d57adc78818a5051e74f",
   },
   "seed424242": {
-    "bytes": 44673,
-    "elements": 119,
-    "paths": 10,
-    "sha1": "906bbcc7e0662607872336a9334093aed3c5fea7",
+    "bytes": 1250,
+    "elements": 17,
+    "paths": 0,
+    "sha1": "172313a911b567c6cc3add07a4497128592f2f79",
   },
   "weekly": {
-    "bytes": 40725,
-    "elements": 122,
-    "paths": 10,
-    "sha1": "7772a5cee71a0498494af404c558fca13381b0cc",
+    "bytes": 1382,
+    "elements": 21,
+    "paths": 1,
+    "sha1": "408ce86d7f41723ad4f4ad5c6600a77becc23381",
   },
 }
 `;
 
 exports[`template numeral > matches its snapshot at fixed seeds 1`] = `
 {
+  "episode": {
+    "bytes": 751,
+    "elements": 6,
+    "paths": 0,
+    "sha1": "752b82ffebfb364374c03295be9b455f867bf2f1",
+  },
   "seed1": {
-    "bytes": 890,
-    "elements": 10,
-    "paths": 4,
-    "sha1": "78e57898437eefa27e0f740b49b73e1ca1412995",
+    "bytes": 750,
+    "elements": 6,
+    "paths": 0,
+    "sha1": "e5075c411c2444c6a158a54b1d0a1755f3beb99e",
   },
   "seed424242": {
-    "bytes": 877,
-    "elements": 10,
-    "paths": 4,
-    "sha1": "49b655a15264a1c9bd57c27ad776f2878bdd1590",
+    "bytes": 692,
+    "elements": 6,
+    "paths": 0,
+    "sha1": "6f1847beee347da859ea0c71207d234659317ad5",
   },
   "weekly": {
-    "bytes": 1185,
-    "elements": 16,
-    "paths": 6,
-    "sha1": "df97ff5301adcf2dc095b435a7d90db70d03dbb2",
+    "bytes": 960,
+    "elements": 11,
+    "paths": 1,
+    "sha1": "60878abaeb844a36c6edcb0d4e6d3bc4aebc68ed",
   },
 }
 `;
 
 exports[`template orbit > matches its snapshot at fixed seeds 1`] = `
 {
-  "seed1": {
-    "bytes": 9547,
-    "elements": 142,
+  "episode": {
+    "bytes": 1173,
+    "elements": 12,
     "paths": 0,
-    "sha1": "915a728d935bfe898b07c73647dd33a06f8eacec",
+    "sha1": "8934cbef90197ef8826b3e4b71469facf8783759",
+  },
+  "seed1": {
+    "bytes": 1261,
+    "elements": 13,
+    "paths": 0,
+    "sha1": "b0b6b1ab569a8742d1fafba25150b4b8eb247c21",
   },
   "seed424242": {
-    "bytes": 8598,
-    "elements": 127,
-    "paths": 16,
-    "sha1": "59aa4aceb70ae551805ac9187bdfc0af5120b319",
+    "bytes": 1081,
+    "elements": 11,
+    "paths": 0,
+    "sha1": "714e6afaf9a8bacbd0edcb9460189c44ac3afcc3",
   },
   "weekly": {
-    "bytes": 8676,
-    "elements": 132,
-    "paths": 2,
-    "sha1": "19c6062f980a2987f1a9d1809bdf5b1f47d088dd",
+    "bytes": 1380,
+    "elements": 17,
+    "paths": 1,
+    "sha1": "d93960996d6520a28f07c2997c0fb1a475f6205f",
   },
 }
 `;
 
 exports[`template spring > matches its snapshot at fixed seeds 1`] = `
 {
+  "episode": {
+    "bytes": 742,
+    "elements": 7,
+    "paths": 0,
+    "sha1": "9ce3192e96b2d8197d87414b9472e75d14e6dbe7",
+  },
   "seed1": {
-    "bytes": 280068,
-    "elements": 182,
-    "paths": 72,
-    "sha1": "779e5b732455205efdb4225fff96e91b325c27ba",
+    "bytes": 810,
+    "elements": 8,
+    "paths": 0,
+    "sha1": "7db775ee21abfd2e099a3b3d6df729eaacc0ebea",
   },
   "seed424242": {
-    "bytes": 108781,
-    "elements": 137,
-    "paths": 27,
-    "sha1": "aa28c0b464465a1756745eed4be6750c2014211b",
+    "bytes": 738,
+    "elements": 7,
+    "paths": 0,
+    "sha1": "ddf10ce68fb8074dc61f376f35b6ed133db216f8",
   },
   "weekly": {
-    "bytes": 136290,
-    "elements": 149,
-    "paths": 36,
-    "sha1": "631ace5b057c759caa1527dabeeafb5d1248a4d1",
+    "bytes": 954,
+    "elements": 12,
+    "paths": 1,
+    "sha1": "3f7b1d81f25c9a5554c0672cf5177d4b167ef406",
   },
 }
 `;

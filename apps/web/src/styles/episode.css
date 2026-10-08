@@ -1,0 +1,67 @@
+/*
+ * A podcast episode's page: the header is the briefing's (hero.css), then the script as readable
+ * text and the stories it draws on as hairline rows. Type stays in two steps in each block: the
+ * script is one size with the speaker's name in medium weight, and a story is a title with one quiet
+ * line under it, always with air between them. Imported by components/EpisodeView.astro.
+ */
+
+.episode-block {
+  padding-block-end: var(--space-8);
+}
+
+/* ------------------------------------------------------------------ the script */
+
+.episode-script {
+  display: grid;
+  gap: var(--space-4);
+  max-width: var(--layout-measure);
+  padding-block-start: var(--space-2);
+}
+
+.episode-turn {
+  font-family: var(--text-reading-family);
+  font-size: var(--text-reading-size);
+  line-height: var(--text-reading-leading);
+}
+
+.episode-speaker {
+  margin-inline-end: var(--space-1);
+  font-weight: var(--font-weight-medium);
+}
+
+/* ------------------------------------------------------------------ the stories */
+
+.episode-sources {
+  padding-block-start: var(--space-2);
+}
+
+.episode-source {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-4);
+}
+
+.episode-source-text {
+  display: grid;
+  flex: 1 1 0;
+  gap: var(--space-2);
+  min-width: 0;
+}
+
+.episode-source-title {
+  font-size: var(--font-size-body);
+  font-weight: var(--font-weight-medium);
+  line-height: var(--font-leading-label);
+  overflow-wrap: anywhere;
+}
+
+.episode-source-meta {
+  color: var(--color-on-surface-muted);
+  font-size: var(--font-size-label);
+  line-height: var(--font-leading-body);
+}
+
+.episode-source > .icon {
+  color: var(--color-on-surface-subtle);
+}

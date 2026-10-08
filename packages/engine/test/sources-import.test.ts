@@ -44,11 +44,30 @@ describe("parseSourcesMd", () => {
     expect(parsed.watchUrls).toEqual(["https://watch.example/blog"]);
   });
 
-  it("reads the real registry file: ten queries, twenty-one watch URLs, dozens of rows", () => {
+  it("reads the real registry file: twelve queries, twenty-one watch URLs, dozens of rows", () => {
     const parsed = parseSourcesMd(markdown);
-    expect(parsed.exaQueries).toHaveLength(10);
+    expect(parsed.exaQueries).toHaveLength(12);
+    expect(parsed.exaQueries.slice(-2)).toEqual([
+      "consumer hardware and platform launches",
+      "consumer device regulation or ruling",
+    ]);
     expect(parsed.watchUrls).toHaveLength(21);
-    expect(parsed.rows.length).toBeGreaterThanOrEqual(80);
+    expect(parsed.rows.length).toBeGreaterThanOrEqual(87);
+  });
+
+  it("reads the consumer tech outlets from their own table", () => {
+    const rows = parseSourcesMd(markdown).rows.filter(
+      (row) => row.heading === "Consumer Tech Releases (Tech releases section)",
+    );
+    expect(rows.map((row) => [row.name, row.url])).toEqual([
+      ["9to5Google", "https://9to5google.com"],
+      ["9to5Mac", "https://9to5mac.com"],
+      ["Android Authority", "https://www.androidauthority.com"],
+      ["GSMArena", "https://www.gsmarena.com"],
+      ["Engadget", "https://www.engadget.com"],
+      ["Electrek", "https://electrek.co"],
+      ["Tom's Hardware", "https://www.tomshardware.com"],
+    ]);
   });
 });
 
@@ -73,7 +92,7 @@ describe("buildRegistry from config/sources.md", () => {
 
   it("produces a registry that passes validation, with unique kebab-case ids", () => {
     expect(() => parseSources(file)).not.toThrow();
-    expect(file.sources.length).toBeGreaterThanOrEqual(95);
+    expect(file.sources).toHaveLength(108);
     expect(new Set(file.sources.map((s) => s.id)).size).toBe(file.sources.length);
     expect(warnings).toEqual([]);
   });
@@ -182,6 +201,52 @@ describe("buildRegistry from config/sources.md", () => {
     expect(byId.get("techcrunch")?.category_hint).toBe("venture_capital_and_gossip");
   });
 
+  it("adds the seven consumer tech outlets as feeds, hinted, six candidates each", () => {
+    const outlets = {
+      "9to5google": ["9to5Google", "https://9to5google.com/feed/"],
+      "9to5mac": ["9to5Mac", "https://9to5mac.com/feed/"],
+      "android-authority": ["Android Authority", "https://www.androidauthority.com/feed/"],
+      gsmarena: ["GSMArena", "https://www.gsmarena.com/rss-news-reviews.php3"],
+      engadget: ["Engadget", "https://www.engadget.com/rss.xml"],
+      electrek: ["Electrek", "https://electrek.co/feed/"],
+      "toms-hardware": ["Tom's Hardware", "https://www.tomshardware.com/feeds.xml"],
+    } as const;
+    for (const [id, [name, feed]] of Object.entries(outlets)) {
+      expect(byId.get(id), id).toMatchObject({
+        name,
+        type: "rss",
+        feed_url: feed,
+        tier: "daily",
+        high_signal: false,
+        category_hint: "consumer_tech_releases",
+        enabled: true,
+        options: { pool_cap: "6" },
+      });
+    }
+    // The apostrophe in the name does not leak into the id.
+    expect(byId.has("tom-s-hardware")).toBe(false);
+  });
+
+  it("hints The Verge, Ars Technica and Friday Checkout for the tech beat without a cap of their own", () => {
+    for (const id of ["the-verge", "ars-technica", "friday-checkout"]) {
+      expect(byId.get(id)?.category_hint, id).toBe("consumer_tech_releases");
+      expect(byId.get(id)?.options, id).not.toHaveProperty("pool_cap");
+    }
+    const hinted = file.sources.filter((s) => s.category_hint === "consumer_tech_releases");
+    expect(hinted.map((s) => s.id).sort()).toEqual([
+      "9to5google",
+      "9to5mac",
+      "android-authority",
+      "ars-technica",
+      "electrek",
+      "engadget",
+      "friday-checkout",
+      "gsmarena",
+      "the-verge",
+      "toms-hardware",
+    ]);
+  });
+
   it("starts page sources as scrape sources and keeps account-only feeds disabled with a note", () => {
     expect(byId.get("rauno-freiberg")).toMatchObject({
       type: "firecrawl",
@@ -221,8 +286,12 @@ describe("buildRegistry from config/sources.md", () => {
     );
   });
 
-  it("derives ten Exa queries with no years", () => {
-    expect(queries.queries).toHaveLength(10);
+  it("derives twelve Exa queries with no years", () => {
+    expect(queries.queries).toHaveLength(12);
+    expect(queries.queries.slice(-2).map((q) => q.id)).toEqual([
+      "consumer-hardware-and-platform-launches",
+      "consumer-device-regulation-or-ruling",
+    ]);
     expect(QueriesFile.safeParse(queries).success).toBe(true);
     for (const { query } of queries.queries) expect(query).not.toMatch(/\b20\d{2}\b/);
     expect(queries.queries[0]?.query).toBe("new UI component library release");
@@ -266,6 +335,66 @@ describe("buildRegistry with an existing registry", () => {
     });
     expect(file.sources.at(-1)?.id).toBe("my-own-source");
     expect(file.sources.length).toBe(fresh.sources.length + 1);
+  });
+
+  it("does not put back the feed hint that discovery used up", () => {
+    const josh = fresh.sources.find((s) => s.id === "josh-w-comeau");
+    if (!josh) throw new Error("fixture changed");
+    expect(josh.options.feed_hint).toBe("https://www.joshwcomeau.com/rss.xml");
+    const { feed_hint: _hint, ...withoutHint } = josh.options;
+    const discovered = {
+      ...josh,
+      type: "rss" as const,
+      feed_url: "https://www.joshwcomeau.com/rss.xml",
+      options: withoutHint,
+    };
+    const { file } = buildRegistry(markdown, { version: 1, sources: [discovered] });
+    expect(file.sources.find((s) => s.id === "josh-w-comeau")).toEqual(discovered);
+  });
+
+  it("keeps the feed hint of a source that has no feed yet, so discovery can still use it", () => {
+    const josh = fresh.sources.find((s) => s.id === "josh-w-comeau");
+    if (!josh) throw new Error("fixture changed");
+    const { feed_hint: _hint, ...withoutHint } = josh.options;
+    const { file } = buildRegistry(markdown, {
+      version: 1,
+      sources: [{ ...josh, options: withoutHint }],
+    });
+    expect(file.sources.find((s) => s.id === "josh-w-comeau")?.options.feed_hint).toBe(
+      "https://www.joshwcomeau.com/rss.xml",
+    );
+  });
+
+  it("does not mark a resolved YouTube channel as unresolved again", () => {
+    const fireship = fresh.sources.find((s) => s.id === "fireship");
+    if (!fireship) throw new Error("fixture changed");
+    expect(fireship.options.note).toMatch(/channel id not resolved yet/);
+    const resolved = {
+      ...fireship,
+      enabled: true,
+      feed_url: "https://www.youtube.com/feeds/videos.xml?channel_id=UCsBjURrPoezykLs9EqgamOA",
+      options: { handle: "Fireship", channel_id: "UCsBjURrPoezykLs9EqgamOA" },
+    };
+    const { file } = buildRegistry(markdown, { version: 1, sources: [resolved] });
+    expect(file.sources.find((s) => s.id === "fireship")).toEqual(resolved);
+    // A channel that failed to resolve keeps the note discovery wrote for it.
+    const failed = {
+      ...fireship,
+      options: { handle: "Fireship", note: "channel id not resolved: timed out" },
+    };
+    const again = buildRegistry(markdown, { version: 1, sources: [failed] }).file;
+    expect(again.sources.find((s) => s.id === "fireship")?.options.note).toBe(
+      "channel id not resolved: timed out",
+    );
+  });
+
+  it("is a no-op over the committed registry: importing twice changes nothing", () => {
+    const committed = parseSources(
+      JSON.parse(readFileSync(new URL("../../../config/sources.json", import.meta.url), "utf8")),
+    );
+    const once = buildRegistry(markdown, committed).file;
+    expect(once).toEqual(committed);
+    expect(buildRegistry(markdown, once).file).toEqual(once);
   });
 
   it("respects a source the user disabled", () => {

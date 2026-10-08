@@ -16,7 +16,8 @@
         "css_canvas_motion_techniques": 0.8,
         "frontier_model_releases": 0.0,
         "developer_tool_launches": 0.0,
-        "taste_and_design_philosophy": 0.0
+        "taste_and_design_philosophy": 0.0,
+        "consumer_tech_releases": 0.0
       }
     },
     "craft_depth": {
@@ -31,6 +32,19 @@
         "4": "Shows the mechanism in depth with code, measurements or reproducible results."
       },
       "probabilities": { "0": 0.0, "1": 0.02, "2": 0.08, "3": 0.7, "4": 0.2 }
+    },
+    "launch_scale": {
+      "type": "score",
+      "score": 0.4,
+      "confidence": 0.62,
+      "legend": {
+        "0": "Rumour, leak, deal, accessory, colour variant or minor point update.",
+        "1": "Routine refresh of an existing product with small specification changes.",
+        "2": "A new product or notable feature from an established brand, with a price or a date.",
+        "3": "A flagship launch, a major operating system or platform release, or a rule or ruling that changes shipping products.",
+        "4": "A first-of-its-kind product, or an industry-wide shift that many companies must respond to."
+      },
+      "probabilities": { "0": 0.7, "1": 0.2, "2": 0.1, "3": 0.0, "4": 0.0 }
     },
     "hype": { "type": "noul", "noul": 0.03 },
     "sponsored": { "type": "noul", "noul": 0.01 },

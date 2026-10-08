@@ -120,4 +120,43 @@ describe("createGitHubClient", () => {
     expect(github.requests[0]?.headers.accept).toBe("application/vnd.github.raw+json");
     expect(await client.readFile("state/missing.json", "main")).toBeNull();
   });
+
+  it("lists the runs of any plain workflow file, and keeps run.yml's own listing the same", async () => {
+    const { github, client } = setup();
+    github.on("GET /actions/workflows/podcast.yml/runs", {
+      json: { workflow_runs: [runJson({ id: 7 })] },
+    });
+    const runs = await client.listWorkflowFileRuns("podcast.yml");
+    expect(runs.map((run) => run.id)).toEqual([7]);
+    expect(github.requests[0]?.path).toContain("event=workflow_dispatch");
+    expect(github.requests[0]?.path).toContain("branch=main");
+  });
+
+  it("dispatches a named workflow file on main and returns the run id", async () => {
+    const { github, client } = setup();
+    github.on("POST /actions/workflows/podcast.yml/dispatches", { json: { workflow_run_id: 55 } });
+    expect(await client.dispatchWorkflowFile("podcast.yml", { request: "{}" })).toBe(55);
+    expect(github.requests[0]?.body).toEqual({
+      ref: "main",
+      inputs: { request: "{}" },
+      return_run_details: true,
+    });
+  });
+
+  it("returns null when GitHub dispatches a named file without naming the run", async () => {
+    const { github, client } = setup();
+    github.on("POST /actions/workflows/podcast.yml/dispatches", { status: 204 });
+    expect(await client.dispatchWorkflowFile("podcast.yml", {})).toBeNull();
+  });
+
+  it("refuses a workflow name that is not a plain file name, without calling GitHub", async () => {
+    const { github, client } = setup();
+    for (const bad of ["../run.yml", "run.yml/../x", "podcast", "a b.yml", "podcast.yml?x=1", ""]) {
+      await expect(client.dispatchWorkflowFile(bad, {})).rejects.toThrow(
+        "not a workflow file name",
+      );
+      await expect(client.listWorkflowFileRuns(bad)).rejects.toThrow("not a workflow file name");
+    }
+    expect(github.requests).toHaveLength(0);
+  });
 });

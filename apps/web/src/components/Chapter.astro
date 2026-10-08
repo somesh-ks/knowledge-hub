@@ -3,37 +3,23 @@ import type { SectionView } from "../lib/digestView";
 
 interface Props {
   section: SectionView;
-  /** Zero-based position among the digest's chapters. */
-  sectionIndex: number;
-  hasAudio: boolean;
+  /** Every section but the first is ruled off from the one above it. */
+  isFirst: boolean;
 }
 
-const { section, sectionIndex, hasAudio } = Astro.props;
+const { section, isFirst } = Astro.props;
 const headingId = `c-${section.slug}`;
 ---
 
-<section class="chapter-block" data-chapter={section.slug} aria-labelledby={headingId}>
-  <div class="chapter" data-section-index={sectionIndex}>
-    <span class="chapter-node" aria-hidden="true"></span>
-    <h2 id={headingId}>
-      {
-        hasAudio ? (
-          <button
-            class="chapter-row press"
-            type="button"
-            data-play-item={section.firstIndex}
-            aria-label={`Listen to ${section.title}, ${section.clock}`}
-          >
-            <span>{section.title}</span>
-            <span class="chapter-time">{section.clock}</span>
-          </button>
-        ) : (
-          <span class="chapter-row">
-            <span>{section.title}</span>
-          </span>
-        )
-      }
-    </h2>
+{/* One section: a header, then its stories as rows. The tabs and the contents list link to the
+     heading by its id, and the scroll-spy watches the section by data-chapter. */}
+<section
+  class:list={["chapter", { "rule-above": !isFirst }]}
+  data-chapter={section.slug}
+  aria-labelledby={headingId}
+>
+  <h2 class="section-head" id={headingId}>{section.title}</h2>
+  <div class="rows">
+    <slot />
   </div>
-  <slot />
 </section>

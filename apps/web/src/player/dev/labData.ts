@@ -19,6 +19,11 @@ export interface LabItem {
   why: string;
 }
 
+/** Where a lab story claims to come from. Invented, and never fetched. */
+function labUrl(id: string): string {
+  return `https://lab.example.com/stories/${id}`;
+}
+
 const SECONDS_PER_ITEM = 15;
 
 export const LAB_ITEMS: readonly LabItem[] = [
@@ -89,6 +94,7 @@ const SECTION_TITLES: Record<LabItem["section"], string> = {
   top: "Top picks",
   "ui-craft": "Interaction craft",
   ai: "AI models and products",
+  tech: "Tech releases",
   research: "Research",
   launches: "Launches",
   watch: "Watch and listen",
@@ -106,6 +112,8 @@ function digestFor(variant: LabVariant): PlayerDigestData {
     headline: item.headline,
     section: item.section,
     source: item.source,
+    // The last story has no address, so the player's source link is seen both present and absent.
+    url: index === LAB_ITEMS.length - 1 ? null : labUrl(item.id),
     start_ms: hasAudio ? index * SECONDS_PER_ITEM * 1000 : null,
     end_ms: hasAudio ? (index + 1) * SECONDS_PER_ITEM * 1000 : null,
   }));
@@ -132,7 +140,7 @@ function digestFor(variant: LabVariant): PlayerDigestData {
     items,
     sections: slugs.map((slug) => ({
       slug,
-      title: SECTION_TITLES[slug],
+      title: labSectionTitle(slug),
       start_ms: hasAudio
         ? LAB_ITEMS.findIndex((item) => item.section === slug) * SECONDS_PER_ITEM * 1000
         : null,
@@ -147,6 +155,6 @@ export function labDigest(variant: LabVariant): PlayerDigestData {
   return digestFor(variant);
 }
 
-export function labSectionTitle(slug: LabItem["section"]): string {
-  return SECTION_TITLES[slug];
+export function labSectionTitle(slug: string): string {
+  return SECTION_TITLES[slug] ?? slug;
 }

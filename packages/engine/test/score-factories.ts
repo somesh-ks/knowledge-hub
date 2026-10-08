@@ -39,6 +39,8 @@ export interface EntryOptions {
   /** Probability on `category`; the rest goes to "none". */
   p?: number;
   depth?: number;
+  /** Normalized launch scale. Left out of the entry when not given, as in older cache entries. */
+  launchScale?: number;
   hype?: number;
   sponsored?: number;
   funding?: number;
@@ -62,6 +64,7 @@ export function makeEntry(itemOrId: Item | string, options: EntryOptions = {}): 
     judged_at: options.judgedAt ?? "2026-10-05T06:00:00Z",
     category_probs: probs,
     craft_depth: options.depth ?? 1,
+    ...(options.launchScale === undefined ? {} : { launch_scale: options.launchScale }),
     flags: {
       hype: options.hype ?? 0,
       sponsored: options.sponsored ?? 0,

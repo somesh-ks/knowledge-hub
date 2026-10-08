@@ -1,9 +1,11 @@
 import { describe, expect, it } from "vitest";
-import { contrastRatio, relativeLuminance } from "./color.js";
+import { contrastRatio, hexToOklch, relativeLuminance } from "./color.js";
 import {
   allPalettes,
   DARK_PALETTE_IDS,
   getPalette,
+  invertPalette,
+  LOCKUP_CONTRAST,
   PALETTE_IDS,
   paletteAccent,
   SURFACE_DARK,
@@ -11,11 +13,30 @@ import {
 } from "./palettes.js";
 
 const HEX = /^#[0-9a-f]{6}$/;
+/** Non-text contrast for a figure against its ground (WCAG 1.4.11). */
+const UI_CONTRAST = 3;
+
+/** Ids that old digests name in their frontmatter. They must keep resolving whatever they draw. */
+const LEGACY_IDS = [
+  "fog-lingonberry",
+  "sea-lingonberry",
+  "ultramarine",
+  "indigo-aqua",
+  "lichen",
+  "kelp",
+  "marigold-fog",
+  "saffron-ink",
+  "plum-pearl",
+  "oxblood",
+  "glacier",
+  "graphite-signal",
+];
 
 describe("palettes", () => {
-  it("ships twelve palettes with unique ids", () => {
-    expect(PALETTE_IDS).toHaveLength(12);
-    expect(new Set(PALETTE_IDS).size).toBe(12);
+  it("keeps every id an old digest can name, and adds more", () => {
+    for (const id of LEGACY_IDS) expect(PALETTE_IDS, id).toContain(id);
+    expect(PALETTE_IDS.length).toBeGreaterThan(LEGACY_IDS.length);
+    expect(new Set(PALETTE_IDS).size).toBe(PALETTE_IDS.length);
   });
 
   it("resolves every role to a hex color", () => {
@@ -26,29 +47,60 @@ describe("palettes", () => {
     }
   });
 
-  it("holds the date text at 4.5:1 or better on ground and on the field tint", () => {
+  it("holds the figure at 3:1 or better against the ground", () => {
     for (const p of allPalettes()) {
-      expect(contrastRatio(p.text, p.ground), `${p.id} on ground`).toBeGreaterThanOrEqual(4.5);
-      expect(contrastRatio(p.text, p.field), `${p.id} on field`).toBeGreaterThanOrEqual(4.5);
+      expect(contrastRatio(p.accent, p.ground), p.id).toBeGreaterThanOrEqual(UI_CONTRAST);
     }
   });
 
-  it("keeps the accent distinguishable from the ground", () => {
+  it("holds the lockup text at 4.5:1 or better against the ground it sits on", () => {
     for (const p of allPalettes()) {
-      expect(contrastRatio(p.accent, p.ground), p.id).toBeGreaterThanOrEqual(2);
+      expect(contrastRatio(p.text, p.ground), p.id).toBeGreaterThanOrEqual(LOCKUP_CONTRAST);
     }
   });
 
-  it("labels tone honestly: light grounds are light, dark grounds are dark", () => {
+  it("keeps both contrasts when an episode inverts the palette", () => {
+    for (const p of allPalettes()) {
+      const inverted = invertPalette(p);
+      expect(inverted.ground, p.id).toBe(p.accent);
+      expect(inverted.accent, p.id).toBe(p.ground);
+      expect(
+        contrastRatio(inverted.accent, inverted.ground),
+        `${p.id} figure`,
+      ).toBeGreaterThanOrEqual(UI_CONTRAST);
+      expect(contrastRatio(inverted.text, inverted.ground), `${p.id} text`).toBeGreaterThanOrEqual(
+        LOCKUP_CONTRAST,
+      );
+    }
+  });
+
+  it("uses saturated, confident grounds: every ground is either strongly chromatic or an ink or bone neutral", () => {
+    for (const p of allPalettes()) {
+      const ground = hexToOklch(p.ground);
+      const neutral = ground.c < 0.04;
+      if (neutral) expect(ground.l > 0.9 || ground.l < 0.2, `${p.id} neutral`).toBe(true);
+      else expect(ground.c, p.id).toBeGreaterThan(0.06);
+    }
+  });
+
+  it("gives the family a spread of hues, not one blue in sixteen shades", () => {
+    const hues = allPalettes()
+      .map((p) => hexToOklch(p.ground))
+      .filter((c) => c.c >= 0.08)
+      .map((c) => Math.floor(c.h / 60));
+    expect(new Set(hues).size).toBeGreaterThanOrEqual(5);
+  });
+
+  it("labels tone honestly: dark grounds are deep, light grounds are not", () => {
     for (const p of allPalettes()) {
       const luminance = relativeLuminance(p.ground);
-      if (p.tone === "light") expect(luminance, p.id).toBeGreaterThan(0.6);
-      else expect(luminance, p.id).toBeLessThan(0.05);
+      if (p.tone === "light") expect(luminance, p.id).toBeGreaterThan(0.2);
+      else expect(luminance, p.id).toBeLessThan(0.15);
     }
   });
 
   it("offers enough dark palettes for weekly digests to avoid repeats", () => {
-    expect(DARK_PALETTE_IDS.length).toBeGreaterThanOrEqual(4);
+    expect(DARK_PALETTE_IDS.length).toBeGreaterThanOrEqual(6);
     for (const id of DARK_PALETTE_IDS) expect(getPalette(id).tone).toBe("dark");
   });
 

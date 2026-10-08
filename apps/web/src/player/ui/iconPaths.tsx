@@ -1,135 +1,32 @@
-import type { ReactNode } from "react";
-
 /**
- * One icon set, Lucide-style: 24px grid, 2px round strokes, currentColor. Decorative by default:
- * the button that holds an icon carries the accessible name.
+ * GENERATED FILE. Do not edit. Source: tokens/glyphs.json, compiled by scripts/buildGlyphs.ts.
+ *
+ * The icon registry for the React player.
+ * One icon set: Phosphor, regular weight, with the fill weight where a glyph must read as
+ * solid (Phosphor Icons, MIT License). Every glyph is one filled path in currentColor.
+ * Decorative by default: the button or link that holds an icon carries the accessible name.
  */
-export type IconName =
-  | "play"
-  | "pause"
-  | "skipBack"
-  | "skipForward"
-  | "back15"
-  | "forward15"
-  | "chevronDown"
-  | "chevronRight"
-  | "close"
-  | "check"
-  | "alert"
-  | "info"
-  | "share"
-  | "refresh"
-  | "sliders";
+export const ICON_VIEW_BOX = "0 0 256 256";
 
-/** Glyphs drawn as filled shapes rather than strokes. */
-export const SOLID_ICONS: ReadonlySet<IconName> = new Set([
-  "play",
-  "pause",
-  "skipBack",
-  "skipForward",
-]);
+export const ICON_PATHS = {
+  alert:
+    "M236.8,188.09,149.35,36.22h0a24.76,24.76,0,0,0-42.7,0L19.2,188.09a23.51,23.51,0,0,0,0,23.72A24.35,24.35,0,0,0,40.55,224h174.9a24.35,24.35,0,0,0,21.33-12.19A23.51,23.51,0,0,0,236.8,188.09ZM222.93,203.8a8.5,8.5,0,0,1-7.48,4.2H40.55a8.5,8.5,0,0,1-7.48-4.2,7.59,7.59,0,0,1,0-7.72L120.52,44.21a8.75,8.75,0,0,1,15,0l87.45,151.87A7.59,7.59,0,0,1,222.93,203.8ZM120,144V104a8,8,0,0,1,16,0v40a8,8,0,0,1-16,0Zm20,36a12,12,0,1,1-12-12A12,12,0,0,1,140,180Z",
+  close:
+    "M205.66,194.34a8,8,0,0,1-11.32,11.32L128,139.31,61.66,205.66a8,8,0,0,1-11.32-11.32L116.69,128,50.34,61.66A8,8,0,0,1,61.66,50.34L128,116.69l66.34-66.35a8,8,0,0,1,11.32,11.32L139.31,128Z",
+  expandMore:
+    "M213.66,101.66l-80,80a8,8,0,0,1-11.32,0l-80-80A8,8,0,0,1,53.66,90.34L128,164.69l74.34-74.35a8,8,0,0,1,11.32,11.32Z",
+  info: "M128,24A104,104,0,1,0,232,128,104.11,104.11,0,0,0,128,24Zm0,192a88,88,0,1,1,88-88A88.1,88.1,0,0,1,128,216Zm16-40a8,8,0,0,1-8,8,16,16,0,0,1-16-16V128a8,8,0,0,1,0-16,16,16,0,0,1,16,16v40A8,8,0,0,1,144,176ZM112,84a12,12,0,1,1,12,12A12,12,0,0,1,112,84Z",
+  pause:
+    "M216,48V208a16,16,0,0,1-16,16H160a16,16,0,0,1-16-16V48a16,16,0,0,1,16-16h40A16,16,0,0,1,216,48ZM96,32H56A16,16,0,0,0,40,48V208a16,16,0,0,0,16,16H96a16,16,0,0,0,16-16V48A16,16,0,0,0,96,32Z",
+  play: "M240,128a15.74,15.74,0,0,1-7.6,13.51L88.32,229.65a16,16,0,0,1-16.2.3A15.86,15.86,0,0,1,64,216.13V39.87a15.86,15.86,0,0,1,8.12-13.82,16,16,0,0,1,16.2.3L232.4,114.49A15.74,15.74,0,0,1,240,128Z",
+  skipBack:
+    "M208,47.88V208.12a16,16,0,0,1-24.43,13.43L64,146.77V216a8,8,0,0,1-16,0V40a8,8,0,0,1,16,0v69.23L183.57,34.45A15.95,15.95,0,0,1,208,47.88Z",
+  skipForward:
+    "M208,40V216a8,8,0,0,1-16,0V146.77L72.43,221.55A15.95,15.95,0,0,1,48,208.12V47.88A15.95,15.95,0,0,1,72.43,34.45L192,109.23V40a8,8,0,0,1,16,0Z",
+  volume:
+    "M160,32.25V223.69a8.29,8.29,0,0,1-3.91,7.18,8,8,0,0,1-9-.56l-65.57-51A4,4,0,0,1,80,176.16V79.84a4,4,0,0,1,1.55-3.15l65.57-51a8,8,0,0,1,10,.16A8.27,8.27,0,0,1,160,32.25ZM60,80H32A16,16,0,0,0,16,96v64a16,16,0,0,0,16,16H60a4,4,0,0,0,4-4V84A4,4,0,0,0,60,80Zm126.77,20.84a8,8,0,0,0-.72,11.3,24,24,0,0,1,0,31.72,8,8,0,1,0,12,10.58,40,40,0,0,0,0-52.88A8,8,0,0,0,186.74,100.84Zm40.89-26.17a8,8,0,1,0-11.92,10.66,64,64,0,0,1,0,85.34,8,8,0,1,0,11.92,10.66,80,80,0,0,0,0-106.66Z",
+  volumeMute:
+    "M245.66,146.34a8,8,0,0,1-11.32,11.32L216,139.31l-18.34,18.35a8,8,0,0,1-11.32-11.32L204.69,128l-18.35-18.34a8,8,0,0,1,11.32-11.32L216,116.69l18.34-18.35a8,8,0,0,1,11.32,11.32L227.31,128ZM60,80H32A16,16,0,0,0,16,96v64a16,16,0,0,0,16,16H60a4,4,0,0,0,4-4V84A4,4,0,0,0,60,80Zm97.15-54.15a8,8,0,0,0-10-.16l-65.57,51A4,4,0,0,0,80,79.84v96.32a4,4,0,0,0,1.55,3.15l65.57,51a8,8,0,0,0,9,.56,8.29,8.29,0,0,0,3.91-7.18V32.25A8.27,8.27,0,0,0,157.12,25.85Z",
+} as const;
 
-export const ICON_PATHS: Record<IconName, ReactNode> = {
-  play: <polygon points="7 4 20 12 7 20 7 4" />,
-  pause: (
-    <>
-      <rect x="14" y="4" width="4" height="16" rx="1" />
-      <rect x="6" y="4" width="4" height="16" rx="1" />
-    </>
-  ),
-  skipBack: (
-    <>
-      <polygon points="19 20 9 12 19 4 19 20" />
-      <line x1="5" x2="5" y1="19" y2="5" />
-    </>
-  ),
-  skipForward: (
-    <>
-      <polygon points="5 4 15 12 5 20 5 4" />
-      <line x1="19" x2="19" y1="5" y2="19" />
-    </>
-  ),
-  back15: (
-    <>
-      <path d="M3 12a9 9 0 1 0 9-9 9.75 9.75 0 0 0-6.74 2.74L3 8" />
-      <path d="M3 3v5h5" />
-      <text
-        x="12"
-        y="15.2"
-        textAnchor="middle"
-        className="icon-skip-label"
-        fill="currentColor"
-        stroke="none"
-      >
-        15
-      </text>
-    </>
-  ),
-  forward15: (
-    <>
-      <path d="M21 12a9 9 0 1 1-9-9c2.52 0 4.93 1 6.74 2.74L21 8" />
-      <path d="M21 3v5h-5" />
-      <text
-        x="12"
-        y="15.2"
-        textAnchor="middle"
-        className="icon-skip-label"
-        fill="currentColor"
-        stroke="none"
-      >
-        15
-      </text>
-    </>
-  ),
-  chevronDown: <path d="m6 9 6 6 6-6" />,
-  chevronRight: <path d="m9 6 6 6-6 6" />,
-  close: (
-    <>
-      <path d="M18 6 6 18" />
-      <path d="m6 6 12 12" />
-    </>
-  ),
-  check: <path d="M20 6 9 17l-5-5" />,
-  alert: (
-    <>
-      <path d="m21.73 18-8-14a2 2 0 0 0-3.48 0l-8 14A2 2 0 0 0 4 21h16a2 2 0 0 0 1.73-3" />
-      <path d="M12 9v4" />
-      <path d="M12 17h.01" />
-    </>
-  ),
-  info: (
-    <>
-      <circle cx="12" cy="12" r="10" />
-      <path d="M12 16v-4" />
-      <path d="M12 8h.01" />
-    </>
-  ),
-  share: (
-    <>
-      <path d="M12 2v13" />
-      <path d="m16 6-4-4-4 4" />
-      <path d="M4 12v7a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-7" />
-    </>
-  ),
-  refresh: (
-    <>
-      <path d="M3 12a9 9 0 0 1 9-9 9.75 9.75 0 0 1 6.74 2.74L21 8" />
-      <path d="M21 3v5h-5" />
-      <path d="M21 12a9 9 0 0 1-9 9 9.75 9.75 0 0 1-6.74-2.74L3 16" />
-      <path d="M8 16H3v5" />
-    </>
-  ),
-  sliders: (
-    <>
-      <line x1="21" x2="14" y1="4" y2="4" />
-      <line x1="10" x2="3" y1="4" y2="4" />
-      <line x1="21" x2="12" y1="12" y2="12" />
-      <line x1="8" x2="3" y1="12" y2="12" />
-      <line x1="21" x2="16" y1="20" y2="20" />
-      <line x1="12" x2="3" y1="20" y2="20" />
-      <line x1="14" x2="14" y1="2" y2="6" />
-      <line x1="8" x2="8" y1="10" y2="14" />
-      <line x1="16" x2="16" y1="18" y2="22" />
-    </>
-  ),
-};
+export type IconName = keyof typeof ICON_PATHS;

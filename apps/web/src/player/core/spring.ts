@@ -57,6 +57,8 @@ export function isAtRest(state: SpringState, target: number): boolean {
 
 export interface SpringRun {
   stop(): void;
+  /** Units per second right now, so whatever takes over can carry the motion on. */
+  velocity(): number;
 }
 
 export interface SpringRunOptions {
@@ -104,6 +106,7 @@ export function runSpring(options: SpringRunOptions): SpringRun {
       stopped = true;
       cancelFrame(handle);
     },
+    velocity: () => (stopped ? 0 : state.velocity),
   };
 }
 
@@ -140,5 +143,7 @@ export function runTween(options: {
       stopped = true;
       cancelFrame(handle);
     },
+    // A fade has no momentum worth handing on.
+    velocity: () => 0,
   };
 }

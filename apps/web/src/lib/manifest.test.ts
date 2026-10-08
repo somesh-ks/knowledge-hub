@@ -10,13 +10,13 @@ const colors = readBrandColors(TOKENS);
 describe("parseBrandColors", () => {
   it("reads the surface and accent values from the generated footer", () => {
     const css = `
- * theme-color and manifest background (surface): light #F4F8FB, dark #0A1119
- * accent: light #AB2442, dark #F36D7F`;
+ * theme-color and manifest background (surface): light #FFFFFF, dark #202124
+ * accent: light #1967D2, dark #8AB4F8`;
     expect(parseBrandColors(css)).toEqual({
-      surfaceLight: "#f4f8fb",
-      surfaceDark: "#0a1119",
-      accentLight: "#ab2442",
-      accentDark: "#f36d7f",
+      surfaceLight: "#ffffff",
+      surfaceDark: "#202124",
+      accentLight: "#1967d2",
+      accentDark: "#8ab4f8",
     });
   });
 
@@ -25,8 +25,8 @@ describe("parseBrandColors", () => {
   });
 
   it("matches the committed tokens.css", () => {
-    expect(colors.surfaceLight).toBe("#f4f8fb");
-    expect(colors.surfaceDark).toBe("#0a1119");
+    expect(colors.surfaceLight).toBe("#ffffff");
+    expect(colors.surfaceDark).toBe("#202124");
     expect(readFileSync(TOKENS, "utf8")).toContain(colors.accentLight);
   });
 });
@@ -36,8 +36,8 @@ describe("buildManifest", () => {
 
   it("is a standalone app rooted at the site", () => {
     expect(manifest).toMatchObject({
-      name: "Dispatch",
-      short_name: "Dispatch",
+      name: "Singularity",
+      short_name: "Singularity",
       start_url: "/",
       scope: "/",
       display: "standalone",

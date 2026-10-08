@@ -1,0 +1,89 @@
+---
+import BriefingCard from "../components/BriefingCard.astro";
+import EmptyState from "../components/EmptyState.astro";
+import EpisodeCard from "../components/EpisodeCard.astro";
+import Icon from "../components/Icon.astro";
+import BaseLayout from "../layouts/BaseLayout.astro";
+import { LIBRARY_FILTERS, LIBRARY_SORTS, resultSummary } from "../lib/library";
+import { libraryItems } from "../lib/libraryCard";
+import { getSite } from "../lib/site";
+
+const { entries, episodes } = await getSite();
+const items = libraryItems(entries, episodes);
+---
+
+<BaseLayout title="Library" view="library" skipLabel="Skip to the library">
+  <main id="main" class="library" tabindex="-1">
+    {
+      items.length === 0 ? (
+        <EmptyState />
+      ) : (
+        <div data-library>
+          <h1 class="page-title library-title" id="page-title" tabindex="-1">
+            Library
+          </h1>
+          {/* Search, then what to show, then the order. Every briefing is already in the page, so
+               all three work without a round trip, and the page is whole with scripts off. */}
+          <form class="library-tools" role="search" aria-label="Library">
+            <label class="search-field">
+              <Icon name="search" />
+              <span class="sr-only">Search briefings, episodes and stories</span>
+              <input
+                type="search"
+                name="q"
+                placeholder="Search briefings, episodes and stories"
+                autocomplete="off"
+                enterkeyhint="search"
+                data-library-search
+              />
+            </label>
+            <div class="library-bar">
+              <div class="filter-chips" role="group" aria-label="Show">
+                {LIBRARY_FILTERS.map((filter) => (
+                  <button
+                    class="filter-chip press press-subtle"
+                    type="button"
+                    aria-pressed={filter.id === "all" ? "true" : "false"}
+                    data-library-filter={filter.id}
+                  >
+                    {filter.label}
+                  </button>
+                ))}
+              </div>
+              <label class="sort-field">
+                <span class="sr-only">Sort</span>
+                <select data-library-sort>
+                  {LIBRARY_SORTS.map((sort) => (
+                    <option value={sort.id}>{sort.label}</option>
+                  ))}
+                </select>
+                <Icon name="chevronDown" />
+              </label>
+            </div>
+          </form>
+          <p class="sr-only" role="status" data-library-status>
+            {resultSummary(items.length, items.length)}
+          </p>
+          <ul class="library-grid" role="list" data-library-grid>
+            {items.map((item, index) =>
+              item.kind === "episode" ? (
+                <EpisodeCard entry={item.entry} priority={index < 6} />
+              ) : (
+                <BriefingCard entry={item.entry} priority={index < 6} />
+              ),
+            )}
+          </ul>
+          <div class="library-empty" data-library-empty hidden>
+            <p>Nothing matches.</p>
+            <button class="btn press press-subtle" type="button" data-library-clear>
+              Clear search
+            </button>
+          </div>
+        </div>
+      )
+    }
+  </main>
+  <script>
+    import "../scripts/libraryPage";
+  </script>
+</BaseLayout>

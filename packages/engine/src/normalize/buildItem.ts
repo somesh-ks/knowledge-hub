@@ -1,4 +1,4 @@
-import { Item, itemId, type Source } from "@dispatch/core";
+import { type Category, Item, itemId, type Source } from "@dispatch/core";
 import type { FetchWindow } from "../gate/fetchWindow.js";
 import { canonicalizeUrl } from "./canonicalizeUrl.js";
 import { collapseWhitespace, htmlToText } from "./htmlToText.js";
@@ -27,6 +27,10 @@ export interface BuildContext {
   undated?: "keep" | "drop";
   /** Keep URL fragments in identity, for single-page changelogs whose entries are anchors. */
   keepFragment?: boolean;
+  /** Hint of the discovery query that found these entries, copied onto each item. */
+  categoryHint?: Category | undefined;
+  /** Custom topics of the discovery query that found these entries. */
+  topicIds?: readonly string[] | undefined;
 }
 
 /** Full text beyond this adds cost without helping a judge or writer. */
@@ -79,6 +83,8 @@ export function buildItem(raw: RawItem, context: BuildContext): Item | null {
   const author = raw.author ? collapseWhitespace(htmlToText(raw.author)).slice(0, 120) : "";
   const content = contentText.length >= CONTENT_MIN ? contentText.slice(0, CONTENT_MAX) : undefined;
 
+  // Topics of the source and of the query that found the entry; either one tags the item.
+  const topicIds = [...new Set([...(context.source.topic_ids ?? []), ...(context.topicIds ?? [])])];
   const parsed = Item.safeParse({
     id: itemId(canonical),
     url,
@@ -91,6 +97,8 @@ export function buildItem(raw: RawItem, context: BuildContext): Item | null {
     fetched_at: context.fetchedAt.toISOString(),
     snippet,
     signals: raw.signals ?? {},
+    ...(context.categoryHint ? { category_hint: context.categoryHint } : {}),
+    ...(topicIds.length > 0 ? { topic_ids: topicIds } : {}),
     ...(content ? { content } : {}),
   });
   return parsed.success ? parsed.data : null;

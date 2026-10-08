@@ -1,0 +1,57 @@
+name: podcast
+
+# Writes one episode of Singularity on request and commits it under Podcasts/. The site is deployed
+# by the Vercel GitHub integration on every push to main. Vercel Hobby only deploys commits authored
+# by the team owner, so the commit uses the owner's identity from DISPATCH_GIT_NAME and
+# DISPATCH_GIT_EMAIL, exactly as run.yml does.
+
+on:
+  workflow_dispatch:
+    inputs:
+      request:
+        description: 'Request JSON: {"topic_ids":["ai"],"length_minutes":5,"format":"readout","window_days":7,"tone":"neutral"}'
+        type: string
+        required: true
+
+# The same group as run.yml, so an episode and a digest never push at the same moment. GitHub keeps
+# one pending run per group, so a request made while a digest is running waits for it to finish.
+concurrency:
+  # Its own group: sharing the run's group would let an episode request replace a queued briefing.
+  # The push rebases and retries, so the two can overlap.
+  group: dispatch-podcast
+  cancel-in-progress: false
+
+permissions:
+  contents: write
+
+jobs:
+  podcast:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          ref: main
+          fetch-depth: 0
+
+      - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
+        with:
+          node-version-file: .nvmrc
+          cache: npm
+
+      - name: Install
+        run: npm ci --ignore-scripts
+
+      # The request reaches the command through an environment variable and is expanded inside
+      # double quotes, so its text is never parsed as shell. The command validates it again.
+      - name: Podcast
+        shell: bash
+        env:
+          REQUEST: ${{ inputs.request }}
+          NEBIUS_API_KEY: ${{ secrets.NEBIUS_API_KEY }}
+          NEBIUS_BASE_URL: ${{ vars.NEBIUS_BASE_URL }}
+          DISPATCH_MODEL: ${{ vars.DISPATCH_MODEL }}
+          DISPATCH_FALLBACK_MODEL: ${{ vars.DISPATCH_FALLBACK_MODEL }}
+          DISPATCH_GIT_NAME: ${{ vars.DISPATCH_GIT_NAME }}
+          DISPATCH_GIT_EMAIL: ${{ vars.DISPATCH_GIT_EMAIL }}
+        run: npm run --silent dispatch -- podcast --request "$REQUEST"

@@ -1,0 +1,189 @@
+---
+import Icon from "../../components/Icon.astro";
+import ManageChrome from "../../components/ManageChrome.astro";
+import BaseLayout from "../../layouts/BaseLayout.astro";
+import { loadManage, WEIGHT_STEP_MAX, WEIGHT_STEPS } from "../../lib/manage";
+// The switch and the slider are the settings page's own; the rows and fields are manage.css.
+import "../../styles/settings.css";
+import "../../styles/manage.css";
+
+const { topics, defaultSectionId } = await loadManage();
+// A topic that never publishes has nothing to turn on or weigh, so it comes last and stays plain.
+const editable = topics.filter((topic) => !topic.never_publish);
+const fixed = topics.filter((topic) => topic.never_publish);
+---
+
+<BaseLayout title="Topics" view="settings" skipLabel="Skip to the topics">
+  <main id="main" tabindex="-1">
+    {/* Every row is static HTML with its current state written in, so the list reads with scripts
+         off. managePage.ts adds the editing: it only ever records a change and sends it on Save. */}
+    <div
+      class="manage"
+      data-manage="topics"
+      data-steps={WEIGHT_STEPS.join("|")}
+      data-taken={topics.map((topic) => topic.id).join(" ")}
+      data-section={defaultSectionId}
+    >
+      <a class="btn manage-back press press-subtle" href="/settings">
+        <Icon name="arrowBack" />
+        <span>Settings</span>
+      </a>
+      <h1 class="page-title manage-title" id="page-title" tabindex="-1">Topics</h1>
+      <noscript>
+        <p class="manage-note">Changing topics needs JavaScript, which is turned off in this browser.</p>
+      </noscript>
+
+      <fieldset class="manage-fields" data-fields>
+        <legend class="sr-only">Topics</legend>
+
+        <form class="manage-form" data-needs-js data-add="topic" aria-labelledby="add-topic">
+          <h2 class="section-head" id="add-topic">Add a topic</h2>
+          <div class="manage-field">
+            <label for="topic-name">Name</label>
+            <input
+              class="manage-input"
+              id="topic-name"
+              name="name"
+              type="text"
+              required
+              maxlength="60"
+              autocomplete="off"
+            />
+          </div>
+          <div class="manage-field">
+            <label for="topic-description">What should count as this topic</label>
+            <textarea
+              class="manage-input"
+              id="topic-description"
+              name="description"
+              required
+              maxlength="400"
+              rows="3"></textarea>
+          </div>
+          <div class="manage-field">
+            <label for="topic-keywords">Keywords, optional</label>
+            <input
+              class="manage-input"
+              id="topic-keywords"
+              name="keywords"
+              type="text"
+              placeholder="spring, easing, shader"
+              autocomplete="off"
+              autocapitalize="none"
+              spellcheck="false"
+            />
+          </div>
+          <button class="btn-primary manage-submit press press-subtle" type="submit">
+            <Icon name="plus" />
+            <span>Add topic</span>
+          </button>
+          <p class="manage-note">
+            Adding a topic also looks for the best sources for it. Changes show up after about a minute.
+          </p>
+        </form>
+
+        <ul class="rows manage-queued" role="list" data-queued aria-label="Waiting to be saved"></ul>
+
+        <section>
+          <h2 class="section-head">Your topics</h2>
+          <ul class="rows" role="list">
+            {
+              editable.map((topic) => (
+                <li
+                  class="manage-row"
+                  data-id={topic.id}
+                >
+                  <div class="manage-main">
+                    <div class="manage-text">
+                      <span class="manage-name" id={`name-${topic.id}`}>
+                        {topic.name}
+                      </span>
+                      <span class="manage-quiet" id={`line-${topic.id}`} data-line>
+                        {topic.description}
+                      </span>
+                      <span class="manage-quiet manage-flag">Removed when you save.</span>
+                    </div>
+                    <input
+                      class="settings-switch"
+                      type="checkbox"
+                      role="switch"
+                      autocomplete="off"
+                      checked={topic.enabled}
+                      aria-labelledby={`name-${topic.id}`}
+                      aria-describedby={`line-${topic.id}`}
+                      data-op={JSON.stringify({
+                        op: "topic.upsert",
+                        topic: {
+                          id: topic.id,
+                          name: topic.name,
+                          description: topic.description,
+                          weight: topic.weight,
+                          enabled: topic.enabled,
+                          keywords: topic.keywords,
+                          section_id: topic.section_id,
+                        },
+                      })}
+                      data-field="topic.enabled"
+                    />
+                    {topic.origin === "custom" && (
+                      <button
+                        class="icon-btn manage-remove press"
+                        type="button"
+                        aria-pressed="false"
+                        aria-label={`Remove ${topic.name}`}
+                        data-op={JSON.stringify({ op: "topic.remove", id: topic.id })}
+                        data-remove
+                      >
+                        <Icon name="trash" />
+                      </button>
+                    )}
+                  </div>
+                  <div class="manage-weight">
+                    <input
+                      class="settings-range"
+                      type="range"
+                      min="0"
+                      max="1"
+                      step={1 / WEIGHT_STEP_MAX}
+                      value={topic.step / WEIGHT_STEP_MAX}
+                      autocomplete="off"
+                      aria-label={`${topic.name}, amount in briefings`}
+                      aria-valuetext={WEIGHT_STEPS[topic.step]}
+                      style={`--range-fill: ${(topic.step / WEIGHT_STEP_MAX) * 100}%`}
+                      data-op={JSON.stringify({ op: "weights.set", weights: {} })}
+                      data-field={`weights.${topic.id}`}
+                      data-weight
+                    />
+                    <span class="manage-quiet manage-word" aria-hidden="true" data-word>
+                      {WEIGHT_STEPS[topic.step]}
+                    </span>
+                  </div>
+                </li>
+              ))
+            }
+            {
+              fixed.map((topic) => (
+                <li class="manage-row">
+                  <div class="manage-main">
+                    <div class="manage-text">
+                      <span class="manage-name">{topic.name}</span>
+                      <span class="manage-quiet">Left out of every briefing.</span>
+                    </div>
+                  </div>
+                </li>
+              ))
+            }
+          </ul>
+        </section>
+      </fieldset>
+
+      <ManageChrome />
+    </div>
+  </main>
+</BaseLayout>
+
+<script>
+  import { installManagePage } from "../../scripts/managePage";
+
+  installManagePage();
+</script>

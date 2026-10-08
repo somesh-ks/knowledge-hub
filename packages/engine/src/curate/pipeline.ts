@@ -13,10 +13,12 @@ import { mapConcurrent } from "../llm/concurrency.js";
 import { scoreItem } from "../score/scoreItem.js";
 import { assignSections, capFor, selectItems } from "../score/selectItems.js";
 import type { ScoredItem, SelectedItem } from "../score/types.js";
+import { writerCategory } from "../topics/writerCategory.js";
 import type { Grounder } from "../validate/grounding.js";
 import { groundAndRepair } from "../validate/groundingRepair.js";
 import type { Linter } from "../voice/lint.js";
 import { enforceVoice } from "../write/enforceVoice.js";
+import { type WrittenText, writtenText } from "../write/text.js";
 import type { SourceMaterial, Writer } from "../write/types.js";
 import type { DropStage, Selection, WrittenFile } from "./selectionFile.js";
 import type { DigestWindow } from "./window.js";
@@ -182,7 +184,7 @@ export async function curatePool(deps: CurateDeps, input: CurateInput): Promise<
     kept: SelectedItem[],
     writtenFile: WrittenFile,
     verified: boolean,
-    texts: Map<string, { headline: string; summary: string; why: string }>,
+    texts: Map<string, WrittenText>,
   ): CurateResult => {
     counts.final = kept.length;
     return {
@@ -197,11 +199,7 @@ export async function curatePool(deps: CurateDeps, input: CurateInput): Promise<
         items:
           outcome === "selected"
             ? kept.map((sel) => {
-                const text = texts.get(sel.item.id) as {
-                  headline: string;
-                  summary: string;
-                  why: string;
-                };
+                const text = writtenText(texts.get(sel.item.id) as WrittenText);
                 return { id: sel.item.id, category: sel.category, score: sel.score, ...text };
               })
             : [],
@@ -257,7 +255,7 @@ export async function curatePool(deps: CurateDeps, input: CurateInput): Promise<
       title: sel.item.title,
       source: input.sourceNames?.[sel.item.source_id] ?? sel.item.source_id,
       ...(sel.item.author ? { author: sel.item.author } : {}),
-      category: sel.category,
+      category: writerCategory(sel.category, undefined),
       text: text.text,
     });
   }
@@ -296,20 +294,13 @@ export async function curatePool(deps: CurateDeps, input: CurateInput): Promise<
 
   const keptIds = new Set(grounding.kept.map((k) => k.item.id));
   const survivors = assignSections(selection.selected.filter((sel) => keptIds.has(sel.item.id)));
-  const texts = new Map(
-    grounding.kept.map((k) => [
-      k.item.id,
-      { headline: k.item.headline, summary: k.item.summary, why: k.item.why },
-    ]),
-  );
+  const texts = new Map(grounding.kept.map((k) => [k.item.id, writtenText(k.item)]));
 
   const writtenFile: WrittenFile = {
     version: 1,
     items: grounding.kept.map((k) => ({
       id: k.item.id,
-      headline: k.item.headline,
-      summary: k.item.summary,
-      why: k.item.why,
+      ...writtenText(k.item),
       ...(methods.get(k.item.id) ? { extract_method: methods.get(k.item.id) as string } : {}),
       rewritten_fields: [
         ...(voice.passed.find((p) => p.item.id === k.item.id)?.rewrittenFields ?? []),

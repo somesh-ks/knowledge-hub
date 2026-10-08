@@ -1,6 +1,7 @@
 import type { Digest, Section } from "@dispatch/core";
-import { SECTION_TITLES, SECTIONS } from "@dispatch/core";
+import { SECTIONS, VOICE_LIMITS } from "@dispatch/core";
 import { describe, expect, it } from "vitest";
+import { bridgeCandidates } from "../src/audio/hostFrame.js";
 import {
   buildSpokenText,
   MAX_SPOKEN_CHARS,
@@ -8,7 +9,8 @@ import {
   SpokenTextTooLongError,
   toSpeech,
 } from "../src/audio/spokenText.js";
-import { makeDigest, makeItem, must } from "./audio-fixtures.js";
+import { countWords } from "../src/voice/sentences.js";
+import { makeDigest, makeItem, makeStory, must } from "./audio-fixtures.js";
 
 function digestWith(sections: Section[], overrides: Partial<Digest> = {}): Digest {
   return makeDigest({
@@ -18,42 +20,130 @@ function digestWith(sections: Section[], overrides: Partial<Digest> = {}): Diges
 }
 
 describe("buildSpokenText opening line", () => {
-  it("opens with the date and the count as a word", () => {
-    const digest = makeDigest({}, 11);
+  it("names the product, the day as a person says it, and the count as a word", () => {
+    const text = buildSpokenText(makeDigest({}, 11)).text;
     expect(
-      buildSpokenText(digest).text.startsWith("Dispatch, Wednesday 7 October. Eleven items."),
+      text.startsWith(
+        "This is Singularity for Wednesday the seventh of October. Eleven stories today, starting with the top picks.",
+      ),
     ).toBe(true);
   });
 
   it.each([
-    [3, "Three items."],
-    [8, "Eight items."],
-    [12, "Twelve items."],
-    [18, "Eighteen items."],
+    [3, "Three stories today"],
+    [8, "Eight stories today"],
+    [12, "Twelve stories today"],
+    [17, "Seventeen stories today"],
+    [18, "Eighteen stories today"],
+    [19, "Nineteen stories today"],
+    [20, "Twenty stories today"],
+    [21, "Twenty-one stories today"],
+    [23, "Twenty-three stories today"],
+    [24, "Twenty-four stories today"],
   ])("spells %i as a word", (count, expected) => {
     expect(buildSpokenText(makeDigest({}, count)).text).toContain(expected);
   });
 
-  it("says 'One item.' for a single item", () => {
+  it("says 'One story' for a single story", () => {
     expect(buildSpokenText(makeDigest({}, 1)).text).toContain(
-      "Dispatch, Wednesday 7 October. One item.",
+      "This is Singularity for Wednesday the seventh of October. One story today",
     );
   });
 
-  it("falls back to digits above eighteen", () => {
-    expect(buildSpokenText(makeDigest({}, 19)).text).toContain("19 items.");
+  it("falls back to digits above twenty-four, the most a digest can hold", () => {
+    expect(buildSpokenText(makeDigest({}, 25)).text).toContain("25 stories today");
   });
 
-  it("names the weekly pass", () => {
-    const text = buildSpokenText(
+  it("names the weekly pass and the special edition, with the greeting chosen by kind not clock", () => {
+    const weekly = buildSpokenText(
       makeDigest({ kind: "weekly", id: "2026-10-11-weekly", date: "2026-10-11" }, 4),
     ).text;
-    expect(text.startsWith("Dispatch weekly, Sunday 11 October. Four items.")).toBe(true);
+    expect(
+      weekly.startsWith(
+        "This is the Singularity weekly, for Sunday the eleventh of October. Four stories from the week, starting with the top picks.",
+      ),
+    ).toBe(true);
+    const onDemand = buildSpokenText(makeDigest({ kind: "on-demand" }, 4)).text;
+    expect(
+      onDemand.startsWith("This is Singularity, a special edition for Wednesday the seventh"),
+    ).toBe(true);
+    for (const text of [weekly, onDemand])
+      expect(text).not.toMatch(/good (morning|evening|afternoon)/i);
+  });
+
+  it("starts with the section the briefing actually opens on", () => {
+    const text = buildSpokenText(digestWith(["research", "research", "research"])).text;
+    expect(text).toContain("Three stories today, starting with research.");
+  });
+
+  it("never says the old product name or calls a story an item", () => {
+    for (const kind of ["regular", "weekly", "on-demand"] as const) {
+      const opening = buildSpokenText(makeDigest({ kind }, 5)).text.split("\n")[0] ?? "";
+      expect(opening).not.toContain("Dispatch");
+      expect(opening).not.toMatch(/\bitems?\b/);
+    }
+  });
+});
+
+describe("buildSpokenText without a why line", () => {
+  it("narrates the headline and the four-beat summary, and ends on the summary", () => {
+    const digest = makeDigest({ items: [makeStory(0), makeStory(1), makeStory(2)] });
+    const { text, ranges } = buildSpokenText(digest);
+    for (const range of ranges) {
+      const item = must(digest.items.find((candidate) => candidate.id === range.id));
+      expect(item).not.toHaveProperty("why");
+      // A story after the first of its section may carry a short connective in front.
+      expect(text.slice(range.start, range.end).endsWith(`${item.headline}. ${item.summary}`)).toBe(
+        true,
+      );
+    }
+    expect(text).toContain(must(digest.items.at(-1)).summary);
+    expect(text).not.toContain("undefined");
+    expect(text).not.toContain("Copy the pattern");
+  });
+
+  it("keeps exact ranges when stories with and without a why line are mixed", () => {
+    const digest = makeDigest({
+      items: [makeItem(0), makeStory(1), makeItem(2), makeStory(3), makeStory(4)],
+    });
+    const { text, ranges } = buildSpokenText(digest);
+    expect(ranges).toHaveLength(5);
+    for (const range of ranges) {
+      const item = must(digest.items.find((candidate) => candidate.id === range.id));
+      const block = text.slice(range.start, range.end);
+      expect(block).toContain(`${item.headline}. ${item.summary}`);
+      expect(block.endsWith(item.why ? `${item.why}.` : item.summary)).toBe(true);
+    }
+  });
+
+  it("treats a why of undefined the same as no why", () => {
+    const digest = makeDigest({
+      items: [makeItem(0, { why: undefined }), makeStory(1), makeStory(2)],
+    });
+    const first = must(buildSpokenText(digest).ranges[0]);
+    const item = must(digest.items[0]);
+    expect(buildSpokenText(digest).text.slice(first.start, first.end)).toBe(
+      `${item.headline}. ${item.summary}`,
+    );
+    // The first story of the briefing opens its section, so nothing comes before it.
+  });
+
+  it("fits twenty-four stories at the full summary length inside the character limit", () => {
+    const longest = Array.from({ length: 80 }, (_, i) => (i % 20 === 19 ? "wordy." : "wordy")).join(
+      " ",
+    );
+    const digest = makeDigest({
+      items: Array.from({ length: 24 }, (_, index) => makeStory(index, { summary: longest })),
+    });
+    const { text } = buildSpokenText(digest);
+    expect(text.startsWith("This is Singularity for Wednesday the seventh of October.")).toBe(true);
+    expect(text).toContain("Twenty-four stories today");
+    expect(text.length).toBeLessThan(MAX_SPOKEN_CHARS);
   });
 });
 
 describe("buildSpokenText structure", () => {
-  it("uses the section title as the only transition, in section order", () => {
+  it("bridges into each section after the first, in section order, with no bridge before the first", () => {
     const digest = digestWith(["ai", "top", "research", "ui-craft", "top"]);
     const { text, sectionStarts } = buildSpokenText(digest);
     expect(sectionStarts.map((section) => section.slug)).toEqual([
@@ -62,8 +152,34 @@ describe("buildSpokenText structure", () => {
       "ai",
       "research",
     ]);
-    for (const section of sectionStarts) {
-      expect(text.slice(section.start).startsWith(`${SECTION_TITLES[section.slug]}.`)).toBe(true);
+    const [first, ...later] = sectionStarts;
+    // The opening already said "starting with the top picks": the first story follows at once.
+    expect(text.slice(must(first).start)).toMatch(/^Headline number 2\./);
+    for (const section of later) {
+      const sentence = /^[^\n]+/.exec(text.slice(section.start))?.[0] ?? "";
+      expect(bridgeCandidates(section.slug, 1)).toContain(sentence);
+    }
+  });
+
+  it("never says the same bridge twice in a row, and says the same thing every time it is built", () => {
+    for (const id of [
+      "2026-10-07",
+      "2026-10-09",
+      "2026-10-11-weekly",
+      "2026-11-01",
+      "2026-12-24",
+    ]) {
+      const digest = digestWith([...SECTIONS], { id, kind: "regular" });
+      const build = (): string[] => {
+        const { text, sectionStarts } = buildSpokenText(digest);
+        return sectionStarts.slice(1).map((s) => /^[^\n]+/.exec(text.slice(s.start))?.[0] ?? "");
+      };
+      const bridges = build();
+      expect(bridges).toHaveLength(SECTIONS.length - 1);
+      bridges.forEach((bridge, index) => {
+        if (index > 0) expect(bridge).not.toBe(bridges[index - 1]);
+      });
+      expect(build()).toEqual(bridges);
     }
   });
 
@@ -87,8 +203,7 @@ describe("buildSpokenText structure", () => {
     for (const range of ranges) {
       const item = must(digest.items.find((candidate) => candidate.id === range.id));
       const block = text.slice(range.start, range.end);
-      expect(block.startsWith(item.headline)).toBe(true);
-      expect(block).toContain(item.summary);
+      expect(block).toContain(`${item.headline}. ${item.summary}`);
       expect(block.endsWith(`${item.why}.`)).toBe(true);
       expect(range.section).toBe(item.section);
     }
@@ -105,20 +220,35 @@ describe("buildSpokenText structure", () => {
     expect(previousEnd).toBeLessThanOrEqual(text.length);
   });
 
-  it("places each section start before that section's first item", () => {
+  it("places each section start before that section's first item, and at it for the first section", () => {
     const { ranges, sectionStarts } = buildSpokenText(makeDigest({}, 12));
-    for (const section of sectionStarts) {
+    sectionStarts.forEach((section, index) => {
       const first = must(ranges.find((range) => range.section === section.slug));
-      expect(section.start).toBeLessThan(first.start);
-    }
+      if (index === 0) expect(section.start).toBe(first.start);
+      else expect(section.start).toBeLessThan(first.start);
+    });
   });
 
-  it("ends on the last item with no outro", () => {
+  it("ends with the sign-off after the last item, and the item range stops before it", () => {
     const digest = makeDigest({}, 5);
     const { text, ranges } = buildSpokenText(digest);
-    expect(text.endsWith(`${must(digest.items.at(-1)).why}.`)).toBe(true);
-    expect(must(ranges.at(-1)).end).toBe(text.length);
-    expect(text.toLowerCase()).not.toContain("that was");
+    expect(text.endsWith("\n\nThat's the briefing. More in two days.")).toBe(true);
+    const last = must(ranges.at(-1));
+    expect(text.slice(last.end)).toBe("\n\nThat's the briefing. More in two days.");
+    expect(text.slice(last.start, last.end).endsWith(`${must(digest.items.at(-1)).why}.`)).toBe(
+      true,
+    );
+  });
+
+  it("signs off a weekly and a special edition in their own words", () => {
+    expect(
+      buildSpokenText(makeDigest({ kind: "weekly" }, 5)).text.endsWith(
+        "That's the weekly briefing. Back next week.",
+      ),
+    ).toBe(true);
+    const onDemand = buildSpokenText(makeDigest({ kind: "on-demand" }, 5)).text;
+    expect(onDemand.endsWith("That's the briefing.")).toBe(true);
+    expect(onDemand).not.toContain("More in two days");
   });
 
   it("drops the 'Why:' prefix, URLs and markdown", () => {
@@ -197,9 +327,14 @@ describe("buildSpokenText structure", () => {
     expect(() => buildSpokenText(digest)).toThrow(SpokenTextError);
   });
 
-  it("covers every section title in SECTION_TITLES", () => {
-    const { text } = buildSpokenText(digestWith([...SECTIONS]));
-    for (const section of SECTIONS) expect(text).toContain(`${SECTION_TITLES[section]}.`);
+  it("introduces every section: the opening names the first, a bridge names each later one", () => {
+    const { text, sectionStarts } = buildSpokenText(digestWith([...SECTIONS]));
+    expect(text).toContain("starting with the top picks");
+    expect(sectionStarts).toHaveLength(SECTIONS.length);
+    for (const section of sectionStarts.slice(1)) {
+      const sentence = /^[^\n]+/.exec(text.slice(section.start))?.[0] ?? "";
+      expect(bridgeCandidates(section.slug, 1)).toContain(sentence);
+    }
   });
 });
 
@@ -375,5 +510,163 @@ describe("toSpeech", () => {
 
   it("returns an empty string for text that is only a URL", () => {
     expect(toSpeech("https://example.com/only")).toBe("");
+  });
+});
+
+/** A telling of about 70 words, the length a typical story runs to. */
+const TYPICAL_TELLING =
+  "Google has a new Pixel, and the headline feature is the screen. It's brighter than last year's, and it stays readable in direct sun. The phone goes on sale next month at 799 dollars, the same price as before. The catch: the faster charging only works with Google's own charger, which is sold separately, so check the box before you count on it.";
+
+describe("buildSpokenText with a spoken version", () => {
+  it("reads the spoken version alone, without the headline, the summary or the why line", () => {
+    const digest = makeDigest({
+      items: [
+        makeItem(0, { spoken: "Springlet has a new release, and it keeps velocity." }),
+        makeStory(1),
+        makeStory(2),
+      ],
+    });
+    const { text, ranges } = buildSpokenText(digest);
+    const first = must(ranges[0]);
+    expect(text.slice(first.start, first.end)).toBe(
+      "Springlet has a new release, and it keeps velocity.",
+    );
+    expect(text).not.toContain("Headline number 1");
+    expect(text).not.toContain("Copy the pattern from item 1");
+  });
+
+  it("falls back to the headline and the summary for a story without one, in the same briefing", () => {
+    const digest = makeDigest({
+      items: [
+        makeStory(0, { spoken: "A spoken story. It has two sentences." }),
+        makeStory(1),
+        makeStory(2),
+      ],
+    });
+    const { text } = buildSpokenText(digest);
+    expect(text).toContain("A spoken story. It has two sentences.");
+    expect(text).toContain("Headline number 2. Story 2 ships");
+  });
+
+  it("normalizes the spoken text like any other field", () => {
+    const digest = makeDigest({
+      items: [
+        makeStory(0, { spoken: "It costs **799** dollars at https://example.com/buy and no more" }),
+        makeStory(1),
+        makeStory(2),
+      ],
+    });
+    const { text, ranges } = buildSpokenText(digest);
+    const first = must(ranges[0]);
+    expect(text.slice(first.start, first.end)).toBe("It costs 799 dollars at and no more.");
+  });
+});
+
+describe("buildSpokenText connectives between stories", () => {
+  const stories = (count: number) =>
+    makeDigest({
+      items: Array.from({ length: count }, (_, index) => makeStory(index, { section: "ai" })),
+    });
+
+  it("puts none before the first story of a section and may put one before the rest", () => {
+    const digest = stories(8);
+    const { text, ranges } = buildSpokenText(digest);
+    const first = must(ranges[0]);
+    const item = must(digest.items.find((candidate) => candidate.id === first.id));
+    expect(text.slice(first.start, first.end)).toBe(`${item.headline}. ${item.summary}`);
+    const connectives = ranges.slice(1).map((range) => {
+      const block = text.slice(range.start, range.end);
+      const story = must(digest.items.find((candidate) => candidate.id === range.id));
+      return block.slice(0, block.length - `${story.headline}. ${story.summary}`.length).trim();
+    });
+    expect(connectives.some((connective) => connective !== "")).toBe(true);
+    expect(connectives.some((connective) => connective === "")).toBe(true);
+    for (const connective of connectives) expect(connective.length).toBeLessThan(20);
+  });
+
+  it("never repeats a connective back to back, and is the same on every build", () => {
+    const digest = stories(24);
+    const build = (): string[] => {
+      const { text, ranges } = buildSpokenText(digest);
+      return ranges.map((range) => text.slice(range.start, range.end).split(". ")[0] ?? "");
+    };
+    const heads = build();
+    const connected = heads.filter((head) => !head.startsWith("Headline number"));
+    expect(connected.length).toBeGreaterThan(0);
+    heads.forEach((head, index) => {
+      if (index > 0 && !head.startsWith("Headline number")) expect(head).not.toBe(heads[index - 1]);
+    });
+    expect(build()).toEqual(heads);
+  });
+
+  it("says 'Also this week' only in a weekly", () => {
+    const weekly = makeDigest({
+      kind: "weekly",
+      id: "2026-10-11-weekly",
+      date: "2026-10-11",
+      items: Array.from({ length: 24 }, (_, index) => makeStory(index, { section: "ai" })),
+    });
+    expect(buildSpokenText(weekly).text).toContain("Also this week.");
+    expect(buildSpokenText(stories(24)).text).not.toContain("Also this week.");
+    expect(buildSpokenText(stories(24)).text).toContain("Also today.");
+  });
+});
+
+describe("buildSpokenText keeps the host frame out of the page", () => {
+  it("adds nothing to the digest: the frame exists only in the narration text", () => {
+    const digest = makeDigest({}, 8);
+    const before = JSON.stringify(digest);
+    const { text } = buildSpokenText(digest);
+    expect(JSON.stringify(digest)).toBe(before);
+    expect(text).toContain("This is Singularity");
+    expect(JSON.stringify(digest)).not.toContain("This is Singularity");
+    expect(JSON.stringify(digest)).not.toContain("More in two days");
+  });
+});
+
+describe("how long a full briefing runs", () => {
+  /** 62 ms per character: the rate Speechify's narration has measured in this product. */
+  const MS_PER_CHAR = 62;
+  const minutes = (chars: number): number => (chars * MS_PER_CHAR) / 60_000;
+
+  /** The longest telling the lint lets through: the character ceiling, ending on a full stop. */
+  function longestTelling(): string {
+    return `${"abcdefgh "
+      .repeat(80)
+      .slice(0, VOICE_LIMITS.spokenChars - 1)
+      .trimEnd()}.`;
+  }
+
+  const SECTION_CYCLE: Section[] = ["top", "ui-craft", "ai", "research", "launches", "watch"];
+
+  /** `count` stories: up to twelve in the main sections, the rest in Tech releases. */
+  function fullDigest(count: number, spoken: string): Digest {
+    const sections = Array.from(
+      { length: count },
+      (_, index): Section => (index < 12 ? (SECTION_CYCLE[index % 6] as Section) : "tech"),
+    );
+    return makeDigest({
+      items: sections.map((section, index) => makeStory(index, { section, spoken })),
+    });
+  }
+
+  it("stays under the request limit at the longest the lint allows, even for 24 stories", () => {
+    const longest = longestTelling();
+    expect(longest.length).toBeLessThanOrEqual(VOICE_LIMITS.spokenChars);
+    for (const count of [17, 24]) {
+      const { text } = buildSpokenText(fullDigest(count, longest));
+      expect(text.length).toBeLessThan(MAX_SPOKEN_CHARS);
+    }
+    // 12 stories plus 5 tech, every telling at its ceiling: the worst case for a regular digest.
+    expect(minutes(buildSpokenText(fullDigest(17, longest)).text.length)).toBeLessThan(13);
+  });
+
+  it("runs under seven minutes for a typical 14-story briefing, well under ten", () => {
+    expect(countWords(TYPICAL_TELLING)).toBeGreaterThanOrEqual(VOICE_LIMITS.spokenMinWords);
+    expect(countWords(TYPICAL_TELLING)).toBeLessThanOrEqual(VOICE_LIMITS.spokenWords);
+    const { text } = buildSpokenText(fullDigest(14, TYPICAL_TELLING));
+    expect(text.length).toBeGreaterThan(5_000);
+    expect(minutes(text.length)).toBeGreaterThan(4);
+    expect(minutes(text.length)).toBeLessThan(10);
   });
 });

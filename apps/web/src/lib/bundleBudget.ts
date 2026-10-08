@@ -7,8 +7,12 @@ import { gzipSync } from "node:zlib";
  * functions are pure (the file reads are passed in) so the rules are tested without a build.
  */
 
-/** First-load JavaScript, gzipped. Design spec section 10 and build plan 8.8. */
-export const FIRST_LOAD_BUDGET_BYTES = 100 * 1024;
+/**
+ * First-load JavaScript, gzipped. It was 100 KB until the bottom bar became a full transport (seek,
+ * clock, volume) and the Topics and Sources pages arrived; 63 KB of it is React itself. Raise it
+ * again only with a reason written here.
+ */
+export const FIRST_LOAD_BUDGET_BYTES = 102 * 1024;
 /** Self-hosted fonts, build plan 8.8: subset, one preloaded, 80 KB or less in total. */
 export const FONT_BUDGET_BYTES = 80 * 1024;
 /** The inline theme script runs before first paint, so it must stay tiny. */

@@ -26,8 +26,22 @@ export interface Fixture {
   written: WrittenItem[];
 }
 
-/** `count` items that pass every check: distinct urls, valid voice, scores falling from 0.95. */
-export function makeFixture(count = 8): Fixture {
+/** A summary in the four-beat voice: three sentences, 35 words, no sentence over 28. */
+export function fixtureSummary(i: number): string {
+  return `Springlet ${i} swaps the rest target without resetting velocity. Interrupted drawers keep their speed, and the change is about 120 lines of plain JavaScript. A fixed timestep keeps the motion the same on slow phones.`;
+}
+
+/** The kind of summary a digest carried before the four-beat voice, paired with a why line. */
+export const LEGACY_SUMMARY =
+  "Springlet swaps the rest target without resetting velocity. Interrupted drawers keep their speed.";
+export const LEGACY_WHY = "Copy the retargeting pattern for drawers and toasts";
+
+/**
+ * `count` items that pass every check: distinct urls, valid voice, scores falling from 0.95.
+ * `tech` adds that many consumer tech stories on top, scored above everything else (from 0.99
+ * down), so a test can see that a high score never makes one a Top pick.
+ */
+export function makeFixture(count = 8, tech = 0): Fixture {
   const items: Item[] = [];
   const written: WrittenItem[] = [];
   const candidates: Array<{
@@ -59,8 +73,26 @@ export function makeFixture(count = 8): Fixture {
     written.push({
       id: item.id,
       headline: `Springlet ${i} retargets springs mid-flight`,
-      summary: `Springlet ${i} swaps the rest target without resetting velocity. Interrupted drawers keep their speed.`,
-      why: "Copy the retargeting pattern for drawers and toasts",
+      summary: fixtureSummary(i),
+    });
+  }
+  for (let j = 0; j < tech; j++) {
+    const item = makeItem({
+      url: `https://example.com/tech-${j}`,
+      source_id: `source-${j % 3}`,
+      published_at: "2026-10-06T08:00:00Z",
+    });
+    items.push(item);
+    candidates.push({
+      item,
+      category: "consumer_tech_releases",
+      home: "tech",
+      score: Math.round((0.99 - j * 0.01) * 1000) / 1000,
+    });
+    written.push({
+      id: item.id,
+      headline: `Phone ${j} launches with a seven-year update promise`,
+      summary: `Phone ${j} went on sale today at 799 dollars, the same price as last year. It adds a larger battery and seven years of software updates. The maker says the longer support answers new repair rules in Europe. The catch is that the charger is still sold separately.`,
     });
   }
   return { items, selected: assignSections(candidates), written };
@@ -70,8 +102,9 @@ export function buildFixtureDigest(
   count = 8,
   overrides: Partial<BuildDigestInput> = {},
   kind: DigestKind = "regular",
+  tech = 0,
 ): { digest: Digest; fixture: Fixture } {
-  const fixture = makeFixture(count);
+  const fixture = makeFixture(count, tech);
   const digest = buildDigest({
     selected: fixture.selected,
     written: fixture.written,

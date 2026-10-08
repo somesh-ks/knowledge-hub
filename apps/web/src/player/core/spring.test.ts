@@ -1,5 +1,4 @@
 import { describe, expect, it } from "vitest";
-import { cardScale, computeMorph, coverFrame, coverRadius, panelOffset } from "./coverMorph";
 import {
   isAtRest,
   runSpring,
@@ -106,6 +105,27 @@ describe("spring", () => {
     expect(updates.length).toBe(before);
   });
 
+  it("reports its live velocity, so a retarget can carry the motion on", () => {
+    const pending: Array<(timestamp: number) => void> = [];
+    const run = runSpring({
+      from: 0,
+      to: 1,
+      spec: settle,
+      onUpdate: () => undefined,
+      onRest: () => undefined,
+      requestFrame: (callback) => {
+        pending.push(callback);
+        return pending.length;
+      },
+      cancelFrame: () => undefined,
+    });
+    expect(run.velocity()).toBe(0);
+    for (let time = 16; time <= 96; time += 16) pending.shift()?.(time);
+    expect(run.velocity()).toBeGreaterThan(1);
+    run.stop();
+    expect(run.velocity()).toBe(0);
+  });
+
   it("tweens to the target for reduced motion", () => {
     const pending: Array<(timestamp: number) => void> = [];
     const updates: number[] = [];
@@ -130,53 +150,5 @@ describe("spring", () => {
     expect(updates.every((value, index) => index === 0 || value >= (updates[index - 1] ?? 0))).toBe(
       true,
     );
-  });
-});
-
-describe("cover morph", () => {
-  const mini = { left: 16, top: 780, width: 44 };
-  const resting = { left: 32, top: 150, width: 326 };
-  const morph = computeMorph(mini, resting);
-
-  it("measures the first and last rectangles once", () => {
-    expect(morph).toMatchObject({ dx: -16, dy: 630 });
-    expect(morph?.scaleAtClosed).toBeCloseTo(44 / 326, 6);
-  });
-
-  it("lands on the mini cover when closed and on its resting place when open", () => {
-    if (!morph) throw new Error("no morph");
-    const height = 844;
-    // The panel sits (1 - p) * height lower, so the cover's own translation is what remains.
-    const closed = coverFrame(0, morph, height);
-    expect(panelOffset(0, height) + closed.y).toBeCloseTo(morph.dy, 6);
-    expect(closed.x).toBe(morph.dx);
-    expect(closed.scale).toBeCloseTo(morph.scaleAtClosed, 6);
-    const open = coverFrame(1, morph, height);
-    expect(open.x).toBeCloseTo(0, 10);
-    expect(open.y).toBeCloseTo(0, 10);
-    expect(open.scale).toBe(1);
-  });
-
-  it("clamps overshoot so the sheet cannot rise above the top of the screen", () => {
-    if (!morph) throw new Error("no morph");
-    expect(coverFrame(1.04, morph, 844)).toEqual(coverFrame(1, morph, 844));
-    expect(panelOffset(1.04, 844)).toBe(0);
-    expect(cardScale(1.2, 0.96)).toBe(1);
-  });
-
-  it("keeps the corner radius true under the scale", () => {
-    if (!morph) throw new Error("no morph");
-    expect(coverRadius(0, 8, 16, morph.scaleAtClosed) * morph.scaleAtClosed).toBeCloseTo(8, 6);
-    expect(coverRadius(1, 8, 16, 1)).toBe(16);
-  });
-
-  it("returns null when either rectangle has no size", () => {
-    expect(computeMorph({ left: 0, top: 0, width: 0 }, resting)).toBeNull();
-    expect(computeMorph(mini, { left: 0, top: 0, width: 0 })).toBeNull();
-  });
-
-  it("scales a wide-layout card from the enter scale", () => {
-    expect(cardScale(0, 0.96)).toBe(0.96);
-    expect(cardScale(0.5, 0.96)).toBeCloseTo(0.98, 6);
   });
 });

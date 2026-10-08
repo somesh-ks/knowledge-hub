@@ -4,16 +4,25 @@ import {
   EMPTY_JUDGMENTS,
   EMPTY_LAST_RUN,
   EMPTY_SEEN,
+  EMPTY_SOURCE_CANDIDATES,
   EMPTY_SOURCE_HEALTH,
+  EMPTY_SOURCE_STATS,
+  EMPTY_TOPIC_JUDGMENTS,
   type JudgmentsFile,
   JudgmentsFile as JudgmentsSchema,
   type LastRunFile,
   LastRunFile as LastRunSchema,
   type SeenFile,
   SeenFile as SeenSchema,
+  type SourceCandidatesFile,
+  SourceCandidatesFile as SourceCandidatesSchema,
   type SourceHealthFile,
   SourceHealthFile as SourceHealthSchema,
+  type SourceStatsFile,
+  SourceStatsFile as SourceStatsSchema,
   STATE_FILES,
+  type TopicJudgmentsFile,
+  TopicJudgmentsFile as TopicJudgmentsSchema,
   type UsageFile,
   UsageFile as UsageSchema,
 } from "@dispatch/core";
@@ -91,6 +100,27 @@ export const readSourceHealth = (root: string): Promise<SourceHealthFile> =>
   );
 export const writeSourceHealth = (root: string, file: SourceHealthFile): Promise<void> =>
   writeState(root, STATE_FILES.sourceHealth, SourceHealthSchema, file);
+
+export const readTopicJudgments = (root: string): Promise<TopicJudgmentsFile> =>
+  readState(root, STATE_FILES.topicJudgments, TopicJudgmentsSchema, () =>
+    structuredClone(EMPTY_TOPIC_JUDGMENTS),
+  );
+export const writeTopicJudgments = (root: string, file: TopicJudgmentsFile): Promise<void> =>
+  writeState(root, STATE_FILES.topicJudgments, TopicJudgmentsSchema, file);
+
+export const readSourceStats = (root: string): Promise<SourceStatsFile> =>
+  readState(root, STATE_FILES.sourceStats, SourceStatsSchema, () =>
+    structuredClone(EMPTY_SOURCE_STATS),
+  );
+export const writeSourceStats = (root: string, file: SourceStatsFile): Promise<void> =>
+  writeState(root, STATE_FILES.sourceStats, SourceStatsSchema, file);
+
+export const readSourceCandidates = (root: string): Promise<SourceCandidatesFile> =>
+  readState(root, STATE_FILES.sourceCandidates, SourceCandidatesSchema, () =>
+    structuredClone(EMPTY_SOURCE_CANDIDATES),
+  );
+export const writeSourceCandidates = (root: string, file: SourceCandidatesFile): Promise<void> =>
+  writeState(root, STATE_FILES.sourceCandidates, SourceCandidatesSchema, file);
 
 export function defaultUsage(now: Date): UsageFile {
   return { version: 1, speechify: { month: now.toISOString().slice(0, 7), characters: 0 } };

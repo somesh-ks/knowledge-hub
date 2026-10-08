@@ -1,0 +1,76 @@
+name: config
+
+# Applies one change made in the app's settings: a topic, a source or a weight. The app sends a
+# single ConfigOp as JSON (see ConfigOp in packages/core/src/configOps.ts). The change is written
+# to config/, a new topic gets its first source suggestions, and everything lands in one commit
+# through the write guard, whose "config" allowlist names exactly the files this workflow may touch.
+
+on:
+  workflow_dispatch:
+    inputs:
+      op:
+        description: "One ConfigOp as a JSON string"
+        type: string
+        required: true
+
+# The same group as run.yml, so a config commit and a digest commit never push at the same moment.
+# GitHub keeps one pending run per group: if several changes are sent while a digest is building,
+# only the newest waits. The app shows the change as pending until its commit appears.
+concurrency:
+  group: dispatch
+  cancel-in-progress: false
+
+permissions:
+  contents: write
+
+jobs:
+  config:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          ref: main
+          fetch-depth: 0
+
+      - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
+        with:
+          node-version-file: .nvmrc
+          cache: npm
+
+      - name: Install
+        run: npm ci --ignore-scripts
+
+      # The input reaches the command through an environment variable and is quoted in the shell
+      # line, never interpolated into it, so its text cannot become shell syntax.
+      - name: Apply
+        id: apply
+        shell: bash
+        env:
+          OP: ${{ inputs.op }}
+        run: |
+          npm run --silent dispatch -- config apply --op "$OP" --json | tee "$RUNNER_TEMP/apply.json"
+          echo "topic_id=$(jq -r '.topic_id // empty' "$RUNNER_TEMP/apply.json")" >> "$GITHUB_OUTPUT"
+          echo "new_topic=$(jq -r '.new_topic' "$RUNNER_TEMP/apply.json")" >> "$GITHUB_OUTPUT"
+
+      # A new topic starts with feeds of its own. The topic is already written, so a missing key or
+      # an Exa outage costs only the suggestions; they can be asked for again from the app.
+      - name: Suggest sources
+        if: steps.apply.outputs.new_topic == 'true' && steps.apply.outputs.topic_id != ''
+        continue-on-error: true
+        shell: bash
+        env:
+          TOPIC_ID: ${{ steps.apply.outputs.topic_id }}
+          EXA_API_KEY: ${{ secrets.EXA_API_KEY }}
+          TYPESAFE_API_KEY: ${{ secrets.TYPESAFE_API_KEY }}
+        run: npm run --silent dispatch -- sources suggest --topic "$TOPIC_ID" --json
+
+      - name: Commit
+        shell: bash
+        # Vercel Hobby deploys only commits authored by the team owner, so commit as the owner.
+        env:
+          DISPATCH_GIT_NAME: ${{ vars.DISPATCH_GIT_NAME }}
+          DISPATCH_GIT_EMAIL: ${{ vars.DISPATCH_GIT_EMAIL }}
+        run: |
+          message="$(jq -r '.commit_message' "$RUNNER_TEMP/apply.json")"
+          npm run --silent dispatch -- config commit --message "$message" --json

@@ -1,7 +1,7 @@
 /*
- * View transitions are used where they fit (design spec section 7): the move between the reader and
- * the archive, and the theme change. Every other navigation swaps at once. Without the API both are
- * instant swaps.
+ * View transitions: the theme change, and the page between the bars on a navigation. The chrome
+ * (app bar, navigation, player) holds still; only the page moves, and how it moves says where you
+ * went. Without the API every one of these is an instant swap.
  */
 
 /* Theme change: the page crossfades. The player's own cover morph never uses a view transition. */
@@ -11,35 +11,62 @@
   animation-timing-function: var(--ease-out);
 }
 
-/* The mini player stays put while the page behind it changes. */
+/* The chrome stays put while the page behind it changes. Its old and new images crossfade in place,
+   which is how the current destination changes colour without a jump. */
+::view-transition-group(app-bar),
+::view-transition-group(app-nav),
 ::view-transition-group(mini-player) {
   animation: none;
 }
 
-/* A ClientRouter navigation is not a theme change, so only the archive hop animates. app.ts marks
-   it with data-astro-nav on the root, a data-astro-* name that survives the document swap. */
-html[data-astro-transition]:not([data-astro-nav="archive"])::view-transition-old(root),
-html[data-astro-transition]:not([data-astro-nav="archive"])::view-transition-new(root) {
+::view-transition-old(app-bar),
+::view-transition-new(app-bar),
+::view-transition-old(app-nav),
+::view-transition-new(app-nav) {
+  animation-duration: var(--duration-hover);
+  animation-timing-function: var(--ease-out);
+}
+
+/* A navigation to the page already on screen does not move. app.ts marks every navigation with
+   data-astro-nav on the root, a data-astro-* name that survives the document swap. */
+html[data-astro-nav="none"]::view-transition-old(root),
+html[data-astro-nav="none"]::view-transition-new(root) {
   animation: none;
 }
 
-/* Archive hop: the new page fades in while it settles 8px from the side it came from. */
+/* Every other navigation is a fade through: the old page leaves before the new one arrives, so two
+   pages of text never show through each other. */
+html[data-astro-nav]:not([data-astro-nav="none"])::view-transition-old(root) {
+  animation: fade-out var(--duration-press-in) var(--ease-out) both;
+}
+
+html[data-astro-nav]:not([data-astro-nav="none"])::view-transition-new(root) {
+  animation: fade-in var(--duration-hover) var(--ease-out) calc(var(--duration-press-in) / 2) both;
+}
+
+@keyframes fade-out {
+  to {
+    opacity: 0;
+  }
+}
+
+/* Into a briefing the page settles 8px from the end side; back out of one, from the start side. */
 @media (prefers-reduced-motion: no-preference) {
-  html[data-astro-nav="archive"][data-astro-transition="forward"]::view-transition-new(root) {
-    animation-name: fade-in, archive-from-end;
+  html[data-astro-nav="in"]::view-transition-new(root) {
+    animation-name: fade-in, page-from-end;
   }
 
-  html[data-astro-nav="archive"][data-astro-transition="back"]::view-transition-new(root) {
-    animation-name: fade-in, archive-from-start;
+  html[data-astro-nav="out"]::view-transition-new(root) {
+    animation-name: fade-in, page-from-start;
   }
 
-  @keyframes archive-from-end {
+  @keyframes page-from-end {
     from {
       transform: translateX(var(--distance-base));
     }
   }
 
-  @keyframes archive-from-start {
+  @keyframes page-from-start {
     from {
       transform: translateX(calc(var(--distance-base) * -1));
     }

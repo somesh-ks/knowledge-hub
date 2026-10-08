@@ -1,58 +1,52 @@
 ---
 import type { DigestItem } from "@dispatch/core";
-import { isWebUrl } from "../lib/safeUrl";
-import PlayPauseIcons from "./PlayPauseIcons.astro";
+import { sourceHost, sourceLinkLabel } from "../lib/sourceLabel";
+import { idleStoryChip } from "../player/core/readerMath";
+import Icon from "./Icon.astro";
+import PlayChip from "./PlayChip.astro";
 
 interface Props {
   item: DigestItem;
   /** Reading-order index. The same number the player uses and the one in data-play-item. */
   index: number;
-  isLead: boolean;
-  /** Item play buttons exist only when the digest has audio. */
+  /** The story's length as "m:ss", or "" while the briefing has no audio. */
+  length: string;
   hasAudio: boolean;
 }
 
-const { item, index, isLead, hasAudio } = Astro.props;
+const { item, index, length, hasAudio } = Astro.props;
 const titleId = `t-${item.id}`;
-// The first screenful renders at once; later items let the browser skip layout until they near.
-const isDeferred = index >= 4;
+const chip = idleStoryChip(length, item.headline);
+// Null for anything that is not an http or https address: such a story gets no link at all.
+const host = sourceHost(item.url);
+// The link names the publisher. An aggregator's name ("Exa discovery") says nothing, so the host
+// stands in for it.
+const publisher = /discovery|hacker news|lobsters|product hunt/i.test(item.source)
+  ? host
+  : item.source;
 ---
 
-<article
-  class="item"
-  data-item-id={item.id}
-  data-index={index}
-  data-lead={isLead ? "" : undefined}
-  data-deferred={isDeferred ? "" : undefined}
-  aria-labelledby={titleId}
->
-  <span class="node" aria-hidden="true"></span>
-  <div class="item-body">
-    <h3 class="item-title" id={titleId}>
-      {/* A URL that is not http or https is never an href: the headline stays, unlinked. */}
-      {isWebUrl(item.url) ? <a href={item.url} rel="noopener noreferrer">{item.headline}</a> : item.headline}
-    </h3>
-    <div class="item-meta">
-      <p class="item-byline">
-        <span class="item-source">{item.source}</span>
-        {item.author && <span><span class="sr-only">by </span>{item.author}</span>}
-      </p>
-      {
-        hasAudio && (
-          <button
-            class="item-play press"
-            type="button"
-            data-play-item={index}
-            data-current="false"
-            data-playing="false"
-            aria-label={`Listen from here: ${item.headline}`}
-          >
-            <span class="item-play-face"><PlayPauseIcons /></span>
-          </button>
-        )
-      }
-    </div>
-    <p class="item-summary">{item.summary}</p>
-    <p class="item-why"><span class="item-why-label">Why</span>{" "}{item.why}</p>
+<article class="story" data-item-id={item.id} data-index={index} aria-labelledby={titleId}>
+  <h3 class="story-title" id={titleId}>{item.headline}</h3>
+  <p class="story-summary">{item.summary}</p>
+  {item.why && <p class="story-why"><span class="story-why-label">Why</span>{" "}{item.why}</p>}
+  <div class="story-actions">
+    {/* Always in the page. Hidden while the briefing has no audio timeline, so audio that arrives
+         later only has to reveal it. */}
+    <PlayChip label={chip.label} aria-label={chip.name} data-play-item={index} hidden={!hasAudio} />
+    {
+      host && (
+        <a
+          class="source-link"
+          href={item.url}
+          target="_blank"
+          rel="noopener noreferrer"
+          aria-label={sourceLinkLabel(host)}
+        >
+          <span>{publisher}</span>
+          <Icon name="openInNew" />
+        </a>
+      )
+    }
   </div>
 </article>

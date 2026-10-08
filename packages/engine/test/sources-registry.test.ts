@@ -4,6 +4,7 @@ import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { type SourcesFile, SourcesFile as SourcesSchema } from "@dispatch/core";
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
+import { parseQueries } from "../src/fetch/queries.js";
 import {
   loadSources,
   parseSources,
@@ -198,6 +199,59 @@ describe("the committed registry", () => {
     if (!existsSync(path)) return;
     const parsed = SourcesSchema.parse(JSON.parse(readFileSync(path, "utf8")));
     expect(parseSources(parsed).sources.length).toBeGreaterThanOrEqual(90);
+  });
+
+  it("carries the consumer tech beat: ten hinted sources, seven of them capped at six", () => {
+    if (!existsSync(path)) return;
+    const { sources } = parseSources(JSON.parse(readFileSync(path, "utf8")));
+    expect(sources).toHaveLength(108);
+    const tech = sources.filter((s) => s.category_hint === "consumer_tech_releases");
+    expect(tech).toHaveLength(10);
+    for (const source of tech) {
+      expect(source.enabled, source.id).toBe(true);
+      expect(source.type, source.id).toBe("rss");
+      expect(source.feed_url, source.id).toMatch(/^https:\/\//);
+    }
+    expect(
+      tech
+        .filter((s) => s.options.pool_cap === "6")
+        .map((s) => s.id)
+        .sort(),
+    ).toEqual([
+      "9to5google",
+      "9to5mac",
+      "android-authority",
+      "electrek",
+      "engadget",
+      "gsmarena",
+      "toms-hardware",
+    ]);
+    // No resolved source carries leftovers that discovery already used up.
+    for (const source of sources) {
+      if (source.feed_url !== null)
+        expect(source.options, source.id).not.toHaveProperty("feed_hint");
+      if (source.options.channel_id) expect(source.options.note, source.id).toBeUndefined();
+    }
+  });
+
+  it("sends two discovery queries to the tech pool and leaves the other ten unhinted", () => {
+    const queriesPath = new URL("../../../config/queries.json", import.meta.url);
+    const { queries } = parseQueries(JSON.parse(readFileSync(queriesPath, "utf8")));
+    expect(queries).toHaveLength(12);
+    expect(queries.filter((q) => q.category_hint !== undefined)).toEqual([
+      {
+        id: "consumer-hardware-and-platform-launches",
+        query: "consumer hardware and platform launches",
+        category_hint: "consumer_tech_releases",
+      },
+      {
+        id: "consumer-device-regulation-or-ruling",
+        query: "consumer device regulation or ruling",
+        category_hint: "consumer_tech_releases",
+      },
+    ]);
+    expect(new Set(queries.map((q) => q.id)).size).toBe(queries.length);
+    for (const { query } of queries) expect(query).not.toMatch(/\b20\d{2}\b/);
   });
 
   it("never fetches the same feed twice and explains every disabled source", () => {

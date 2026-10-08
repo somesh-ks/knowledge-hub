@@ -1,6 +1,7 @@
 ---
 import { ClientRouter } from "astro:transitions";
-import schibstedFont from "../assets/fonts/schibsted-grotesk-latin-wght-normal.woff2?url";
+import appFont from "../assets/fonts/google-sans-flex-latin-wght-normal.woff2?url";
+import AppNav, { type Destination } from "../components/AppNav.astro";
 import Banner from "../components/Banner.astro";
 import SiteHeader from "../components/SiteHeader.astro";
 import { readBrandColors } from "../lib/brandColors";
@@ -14,11 +15,13 @@ import "../styles/foundations.css";
 import "../styles/fonts.css";
 import "../styles/shell.css";
 import "../styles/buttons.css";
+import "../styles/primitives.css";
 import "../styles/cover.css";
+import "../styles/reader.css";
 import "../styles/banner.css";
 import "../styles/hero.css";
 import "../styles/briefing.css";
-import "../styles/archive.css";
+import "../styles/library.css";
 import "../styles/aside.css";
 import "../styles/view-transitions.css";
 import "../styles/utilities.css";
@@ -27,9 +30,15 @@ interface Props {
   /** The page title. The site name is appended. */
   title?: string;
   description?: string;
-  /** Which route this is, for the Archive link and the data-view attribute the player reads. */
-  view: "home" | "archive";
-  /** "aside" adds the chapters column from 64rem. */
+  /** Which kind of page this is. */
+  view: "home" | "library" | "create" | "settings";
+  /**
+   * The destination marked as current in the navigation. Defaults to the one the view belongs to; an
+   * earlier briefing or an episode passes "library", and a page outside the four (not found, offline)
+   * passes null.
+   */
+  nav?: Destination | null;
+  /** "aside" adds the contents column from 80rem. */
   layout?: "aside" | "single";
   /** Set on digest pages so the player and CSS can tell which briefing is on screen. */
   digestId?: string;
@@ -38,15 +47,17 @@ interface Props {
 
 const {
   title,
-  description = "A private design engineering briefing.",
+  description = "A private tech and design engineering briefing.",
   view,
+  nav,
   layout = "single",
   digestId,
   skipLabel = "Skip to the briefing",
 } = Astro.props;
 
 const colors = readBrandColors();
-const pageTitle = title ? `${title}, Dispatch` : "Dispatch";
+const destination = nav === undefined ? (view === "home" ? "today" : view) : nav;
+const pageTitle = title ? `${title}, Singularity` : "Singularity";
 ---
 
 <!doctype html>
@@ -67,7 +78,7 @@ const pageTitle = title ? `${title}, Dispatch` : "Dispatch";
     <meta name="theme-color" media="(prefers-color-scheme: dark)" content={colors.surfaceDark} />
     <meta name="apple-mobile-web-app-capable" content="yes" />
     <meta name="mobile-web-app-capable" content="yes" />
-    <meta name="apple-mobile-web-app-title" content="Dispatch" />
+    <meta name="apple-mobile-web-app-title" content="Singularity" />
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
     <meta name="robots" content="noindex, nofollow" />
     <meta name="referrer" content="no-referrer" />
@@ -77,13 +88,14 @@ const pageTitle = title ? `${title}, Dispatch` : "Dispatch";
     <link rel="icon" href="/favicon.svg" type="image/svg+xml" />
     <link rel="icon" href="/icon-192.png" type="image/png" sizes="192x192" />
     <link rel="apple-touch-icon" href="/apple-touch-icon.png" />
-    <link rel="preload" href={schibstedFont} as="font" type="font/woff2" crossorigin />
+    <link rel="preload" href={appFont} as="font" type="font/woff2" crossorigin />
     <script is:inline set:html={themeInit.trim()} />
     <ClientRouter fallback="swap" />
   </head>
   <body>
     <a class="skip-link" href="#main">{skipLabel}</a>
-    <SiteHeader view={view} />
+    <SiteHeader />
+    <AppNav current={destination} />
     <div class="banner-stack page" id="banners"><slot name="banners" /></div>
     <div class="shell page"><slot /></div>
 
@@ -106,8 +118,7 @@ const pageTitle = title ? `${title}, Dispatch` : "Dispatch";
         tone="warning"
         icon="clock"
         title="This briefing is a few days old"
-        body="Generate a new one to see what changed since."
-        action={{ label: "Generate", open: "generate" }}
+        body="No newer briefing has been published yet."
       />
     </template>
 

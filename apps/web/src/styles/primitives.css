@@ -1,0 +1,219 @@
+/*
+ * The row grammar every page is built from: rows divided by full-bleed hairlines, section headers,
+ * a meta line, the sticky section tabs and the source link. No cards: a surface is the page, and
+ * structure comes from lines and space.
+ */
+
+/* ------------------------------------------------------------------ rows */
+
+/* A list whose items are divided by a hairline that runs past the gutters, edge to edge on a phone. */
+.rows > * {
+  position: relative;
+  /* A row is its own stacking context, so a hover fill can sit behind its content. */
+  isolation: isolate;
+  padding-block: var(--row-padding-block);
+}
+
+.rows > * + *::before,
+.rule-above::before {
+  content: "";
+  position: absolute;
+  inset-block-start: 0;
+  inset-inline: calc(var(--page-gutter-start) * -1) calc(var(--page-gutter-end) * -1);
+  height: var(--stroke-hairline);
+  background: var(--color-border-hairline);
+  pointer-events: none;
+}
+
+.rule-above {
+  position: relative;
+}
+
+/* A row that is one link or button: the whole row responds, and the fill runs past the gutters too. */
+.row-action {
+  display: flex;
+  align-items: center;
+  gap: var(--space-4);
+  width: 100%;
+  min-height: var(--size-touch-comfortable);
+  color: inherit;
+  text-align: start;
+  text-decoration: none;
+}
+
+.row-action::after {
+  content: "";
+  position: absolute;
+  inset-block: 0;
+  inset-inline: calc(var(--page-gutter-start) * -1) calc(var(--page-gutter-end) * -1);
+  z-index: -1;
+  background: var(--color-surface-sunken);
+  opacity: 0;
+  transition: opacity var(--duration-hover) var(--ease-hover);
+}
+
+@media (hover: hover) and (pointer: fine) {
+  .row-action:hover::after {
+    opacity: 1;
+  }
+}
+
+.row-action:active::after {
+  opacity: 1;
+}
+
+/* A row runs the width of its column, so a ring drawn outside it is cut by the column's edge. */
+.row-action:focus-visible {
+  outline-offset: calc(var(--stroke-ring) * -1);
+}
+
+/* ------------------------------------------------------------------ section header and meta line */
+
+/* More room above a header than below it: the header belongs to what follows. */
+.section-head {
+  padding-block: var(--space-8) var(--space-2);
+  font-family: var(--text-heading-family);
+  font-size: var(--text-heading-size);
+  font-weight: var(--text-heading-weight);
+  letter-spacing: var(--text-heading-tracking);
+  line-height: var(--text-heading-leading);
+}
+
+/* One quiet line of facts, its parts separated by a centred dot. */
+.meta {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  color: var(--color-on-surface-muted);
+  font-size: var(--text-meta-size);
+  font-weight: var(--text-meta-weight);
+  letter-spacing: var(--text-meta-tracking);
+  line-height: var(--text-meta-leading);
+}
+
+.meta > * + *::before {
+  content: "\00b7";
+  margin-inline: var(--space-2);
+}
+
+/* ------------------------------------------------------------------ section tabs */
+
+/*
+ * Sticky under the app bar, scrollable sideways, with an accent underline on the section in view.
+ * The strip runs past the gutters so labels slide off the edge of the screen, not off a margin.
+ * Markup: <nav class="tabs"><a class="tab" aria-current="true">...</a>...</nav>
+ */
+.tabs {
+  position: sticky;
+  inset-block-start: var(--sticky-top);
+  z-index: calc(var(--z-header) - 1);
+  display: flex;
+  margin-inline: calc(var(--page-gutter-start) * -1) calc(var(--page-gutter-end) * -1);
+  padding-inline: calc(var(--page-gutter-start) - var(--space-3))
+    calc(var(--page-gutter-end) - var(--space-3));
+  overflow-x: auto;
+  overscroll-behavior-x: contain;
+  scroll-padding-inline: var(--page-gutter-start);
+  scrollbar-width: none;
+  background: var(--color-surface);
+  box-shadow: inset 0 calc(var(--stroke-hairline) * -1) 0 var(--color-border-hairline);
+}
+
+.tabs::-webkit-scrollbar {
+  display: none;
+}
+
+.tab {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  flex: none;
+  height: var(--tabs-height);
+  padding-inline: var(--space-3);
+  color: var(--color-on-surface-muted);
+  font-size: var(--font-size-label);
+  font-weight: var(--font-weight-medium);
+  line-height: var(--font-leading-label);
+  white-space: nowrap;
+  text-decoration: none;
+  /* The ring sits inside the tab: the strip's edges would clip one drawn outside. */
+  outline-offset: calc((var(--stroke-ring) + var(--stroke-ring-gap)) * -1);
+  transition: color var(--duration-hover) var(--ease-hover);
+}
+
+.tab:focus-visible {
+  border-radius: var(--button-radius);
+  box-shadow: none;
+}
+
+.tab::after {
+  content: "";
+  position: absolute;
+  inset-inline: var(--space-3);
+  inset-block-end: 0;
+  height: var(--tabs-indicator-height);
+  border-start-start-radius: var(--tabs-indicator-radius);
+  border-start-end-radius: var(--tabs-indicator-radius);
+  background: var(--color-accent);
+  opacity: 0;
+  transform: scaleX(0.4);
+  transition:
+    opacity var(--duration-state) var(--ease-out),
+    transform var(--duration-state) var(--ease-out);
+}
+
+.tab[aria-current="true"] {
+  color: var(--color-accent);
+}
+
+.tab[aria-current="true"]::after {
+  opacity: 1;
+  transform: none;
+}
+
+@media (hover: hover) and (pointer: fine) {
+  .tab:not([aria-current="true"]):hover {
+    color: var(--color-on-surface);
+  }
+}
+
+@media (forced-colors: active) {
+  .tab::after {
+    background: Highlight;
+  }
+}
+
+/* ------------------------------------------------------------------ source link */
+
+/* The one link out of a story: the publisher's host and an opens-elsewhere glyph. */
+.source-link {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-1);
+  min-width: 0;
+  min-height: var(--size-touch);
+  border-radius: var(--button-radius);
+  color: var(--color-accent);
+  font-size: var(--font-size-label);
+  font-weight: var(--font-weight-medium);
+  line-height: var(--font-leading-label);
+  text-decoration: none;
+}
+
+/* A long host shortens with an ellipsis; the glyph always stays. */
+.source-link > span {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.source-link .icon {
+  width: var(--space-4);
+  height: var(--space-4);
+}
+
+@media (hover: hover) and (pointer: fine) {
+  .source-link:hover > span {
+    text-decoration: underline;
+  }
+}

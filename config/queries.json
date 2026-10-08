@@ -40,6 +40,16 @@
     {
       "id": "design-tokens-specification",
       "query": "design tokens specification"
+    },
+    {
+      "id": "consumer-hardware-and-platform-launches",
+      "query": "consumer hardware and platform launches",
+      "category_hint": "consumer_tech_releases"
+    },
+    {
+      "id": "consumer-device-regulation-or-ruling",
+      "query": "consumer device regulation or ruling",
+      "category_hint": "consumer_tech_releases"
     }
   ]
 }

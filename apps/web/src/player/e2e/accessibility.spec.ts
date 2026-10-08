@@ -17,7 +17,7 @@ for (const scheme of ["light", "dark"] as const) {
   test.describe(`axe, WCAG 2.2 AA, ${scheme}`, () => {
     test.use({ colorScheme: scheme });
 
-    test("the page with the mini player", async ({ lab, page }) => {
+    test("the page with the bar docked", async ({ lab, page }) => {
       await lab.open();
       await lab.play();
       expect(await violations(page)).toEqual([]);
@@ -97,31 +97,62 @@ for (const scheme of ["light", "dark"] as const) {
 test.describe("reduced motion", () => {
   test.use({ reducedMotion: "reduce" });
 
-  test("the sheet fades in place instead of sliding, and the cover does not morph", async ({
+  test("the page fades in place instead of travelling, and no cover flies", async ({
     lab,
     page,
   }) => {
     await lab.open();
     await lab.play();
-    await page.locator(".mini-open").tap();
-    await expect(page.locator("html")).toHaveAttribute("data-player", "open");
-    await lab.settled();
-    const panel = page.locator(".player-panel");
-    await expect(panel).toHaveCSS("transform", "none");
-    await expect(panel).toHaveCSS("opacity", "1");
-    // The shared element stays where it is; only the fade runs.
-    await expect(page.locator(".player-cover-frame[data-size=player]")).toHaveCSS(
-      "transform",
-      "none",
-    );
+    await lab.openButton.tap();
+    await lab.expanded();
+    // Nothing travelled: the page is where layout put it, and opacity carried the change.
+    await expect(lab.sheet).toHaveCSS("transform", "none");
+    await expect(lab.sheet).toHaveCSS("opacity", "1");
+    await expect(page.locator("[data-player-art]")).toHaveCSS("display", "none");
+    // The page's own cover is the one on screen for as long as the page is.
+    await expect(lab.sheet.locator(".player-cover-frame")).toHaveCSS("visibility", "visible");
+    // The way back is the same fade, over the state duration.
+    const started = Date.now();
+    await page.keyboard.press("Escape");
+    await lab.collapsed();
+    expect(Date.now() - started).toBeLessThan(1_500);
+    await expect(lab.sheet).toBeHidden();
+    await expect(lab.openButton.locator(".player-cover-frame")).toHaveCSS("visibility", "visible");
   });
 
-  test("the rail and the scrubber still update", async ({ lab, page }) => {
+  test("under reduced motion a held pull changes opacity, never position", async ({
+    lab,
+    page,
+  }) => {
+    await lab.open();
+    await lab.play();
+    const box = await lab.dockSettled();
+    const start = { x: box.x + box.width / 2, y: box.y + box.height / 2 };
+    const held = await lab.finger.drag(
+      [0, 60, 120, 180, 240, 300].map((dy) => ({ x: start.x, y: start.y - dy })),
+      30,
+      { hold: true },
+    );
+    await expect(lab.surface).toHaveAttribute("data-state", "dragging");
+    await expect(lab.sheet).toHaveCSS("transform", "none");
+    const opacity = Number(
+      await lab.sheet.evaluate((element) => getComputedStyle(element).opacity),
+    );
+    expect(opacity).toBeGreaterThan(0.1);
+    expect(opacity).toBeLessThan(0.9);
+    await expect(page.locator("[data-player-art]")).toHaveCSS("display", "none");
+    await held.release();
+    await lab.settled();
+  });
+
+  test("the bar's progress and the story chip still update", async ({ lab, page }) => {
     await lab.open();
     await lab.play();
     const before = await lab.progressOf();
     await page.waitForTimeout(1_000);
     expect(await lab.progressOf()).toBeGreaterThan(before);
+    const chip = page.locator('[data-item-id="a1f3c9d2b401"] [data-play-item]');
+    await expect(chip.locator("[data-chip-label]")).toHaveText("Playing");
   });
 
   test("movement tokens collapse while fades keep their timing", async ({ lab, page }) => {

@@ -81,7 +81,8 @@ function buildDigest(spec: FixtureSpec): Digest {
     id: spec.id,
     date: spec.date,
     kind: spec.kind,
-    lead_category: leadCategory,
+    // Fixture stories only use the built-in categories, which is what the picker weighs.
+    lead_category: leadCategory as Parameters<typeof pickCover>[0]["lead_category"],
     previous: spec.previous,
   });
   const durationMs = items.length * FIXTURE_ITEM_MS;

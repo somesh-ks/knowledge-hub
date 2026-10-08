@@ -1,4 +1,4 @@
-import { Category, DigestKind } from "@dispatch/core";
+import { CategoryId, DigestKind, VOICE_LIMITS } from "@dispatch/core";
 import { z } from "zod";
 
 const isoDateTime = z.string().datetime({ offset: true });
@@ -10,12 +10,16 @@ const isoDateTime = z.string().datetime({ offset: true });
  */
 export const SelectionItem = z.object({
   id: z.string().regex(/^[0-9a-f]{12}$/, "must be a 12-character item id from the pool"),
-  category: Category,
-  /** 0 to 1. Ranks the items: the three highest become Top picks. */
+  /** A built-in category or the id of a custom topic. */
+  category: CategoryId,
+  /** 0 to 1. Ranks the items: the three highest outside the sections with their own allowance become Top picks. */
   score: z.number().min(0).max(1),
   headline: z.string().min(1),
   summary: z.string().min(1),
-  why: z.string().min(1),
+  /** The host's telling of the story, for narration only. Optional: old files and agents have none. */
+  spoken: z.string().min(1).optional(),
+  /** The writer produces none. An agent session may still supply one, and old files carry it. */
+  why: z.string().min(1).optional(),
 });
 export type SelectionItem = z.infer<typeof SelectionItem>;
 
@@ -43,7 +47,8 @@ export type Selection = z.infer<typeof Selection>;
  */
 export const AgentSelection = z.object({
   version: z.literal(1),
-  items: z.array(SelectionItem).min(3).max(18),
+  /** At most the digest hard maximum. The command checks each pool and section for the kind. */
+  items: z.array(SelectionItem).min(VOICE_LIMITS.items.floor).max(VOICE_LIMITS.items.hardMax),
 });
 export type AgentSelection = z.infer<typeof AgentSelection>;
 
@@ -54,7 +59,8 @@ export const WrittenEntry = z.object({
   id: z.string(),
   headline: z.string(),
   summary: z.string(),
-  why: z.string(),
+  spoken: z.string().optional(),
+  why: z.string().optional(),
   extract_method: z.string().optional(),
   rewritten_fields: z.array(z.string()),
   verified: z.boolean(),

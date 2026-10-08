@@ -1,5 +1,14 @@
 import { describe, expect, it } from "vitest";
-import { COOLDOWN_MS, DAILY_CAP, DAY_MS, evaluateLimits } from "./limits";
+import {
+  COOLDOWN_MS,
+  DAILY_CAP,
+  DAY_MS,
+  evaluateLimits,
+  NARRATE_DAILY_CAP,
+  PODCAST_COOLDOWN_MS,
+  PODCAST_DAILY_CAP,
+  PODCAST_POLICY,
+} from "./limits";
 
 const NOW = Date.parse("2026-10-07T12:00:00Z");
 const hoursAgo = (hours: number) => NOW - hours * 60 * 60 * 1000;
@@ -74,5 +83,49 @@ describe("evaluateLimits", () => {
     expect(COOLDOWN_MS).toBe(6 * 3600 * 1000);
     expect(DAY_MS).toBe(24 * 3600 * 1000);
     expect(DAILY_CAP).toBe(3);
+  });
+});
+
+describe("the narrate daily cap", () => {
+  // How it is applied is tested with the document it is read from, in narrationState.test.ts.
+  it("keeps the documented number", () => {
+    expect(NARRATE_DAILY_CAP).toBe(3);
+  });
+});
+
+describe("evaluateLimits for episodes", () => {
+  const minutesAgo = (minutes: number) => NOW - minutes * 60 * 1000;
+
+  it("keeps the documented numbers", () => {
+    expect(PODCAST_COOLDOWN_MS).toBe(30 * 60 * 1000);
+    expect(PODCAST_DAILY_CAP).toBe(2);
+  });
+
+  it("allows a first episode and one after the cooldown", () => {
+    expect(evaluateLimits([], NOW, PODCAST_POLICY)).toEqual({ allowed: true });
+    expect(evaluateLimits([minutesAgo(31)], NOW, PODCAST_POLICY)).toEqual({ allowed: true });
+  });
+
+  it("blocks within the cooldown and says how long is left", () => {
+    expect(evaluateLimits([minutesAgo(10)], NOW, PODCAST_POLICY)).toEqual({
+      allowed: false,
+      reason: "cooldown",
+      retryAfterSeconds: 20 * 60,
+    });
+  });
+
+  it("blocks the third episode in a day until the oldest ages out", () => {
+    expect(evaluateLimits([hoursAgo(2), hoursAgo(5)], NOW, PODCAST_POLICY)).toEqual({
+      allowed: false,
+      reason: "daily_cap",
+      retryAfterSeconds: 19 * 3600,
+    });
+  });
+
+  it("leaves the briefing numbers alone when no policy is given", () => {
+    expect(evaluateLimits([minutesAgo(31)], NOW)).toMatchObject({
+      allowed: false,
+      reason: "cooldown",
+    });
   });
 });

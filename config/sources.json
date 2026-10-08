@@ -550,7 +550,7 @@
       "feed_url": "https://www.youtube.com/feeds/videos.xml?channel_id=UCRG_N2uO405WO4P3Ruef9NA",
       "tier": "daily",
       "high_signal": false,
-      "category_hint": "design_engineering_craft",
+      "category_hint": "consumer_tech_releases",
       "enabled": true,
       "failures": 0,
       "options": {}
@@ -951,6 +951,7 @@
       "feed_url": "https://www.theverge.com/rss/index.xml",
       "tier": "daily",
       "high_signal": false,
+      "category_hint": "consumer_tech_releases",
       "enabled": true,
       "failures": 0,
       "options": {}
@@ -963,6 +964,7 @@
       "feed_url": "https://arstechnica.com/feed",
       "tier": "daily",
       "high_signal": false,
+      "category_hint": "consumer_tech_releases",
       "enabled": true,
       "failures": 0,
       "options": {}
@@ -979,6 +981,111 @@
       "enabled": true,
       "failures": 0,
       "options": {}
+    },
+    {
+      "id": "9to5google",
+      "name": "9to5Google",
+      "type": "rss",
+      "url": "https://9to5google.com",
+      "feed_url": "https://9to5google.com/feed/",
+      "tier": "daily",
+      "high_signal": false,
+      "category_hint": "consumer_tech_releases",
+      "enabled": true,
+      "failures": 0,
+      "options": {
+        "pool_cap": "6"
+      }
+    },
+    {
+      "id": "9to5mac",
+      "name": "9to5Mac",
+      "type": "rss",
+      "url": "https://9to5mac.com",
+      "feed_url": "https://9to5mac.com/feed/",
+      "tier": "daily",
+      "high_signal": false,
+      "category_hint": "consumer_tech_releases",
+      "enabled": true,
+      "failures": 0,
+      "options": {
+        "pool_cap": "6"
+      }
+    },
+    {
+      "id": "android-authority",
+      "name": "Android Authority",
+      "type": "rss",
+      "url": "https://www.androidauthority.com",
+      "feed_url": "https://www.androidauthority.com/feed/",
+      "tier": "daily",
+      "high_signal": false,
+      "category_hint": "consumer_tech_releases",
+      "enabled": true,
+      "failures": 0,
+      "options": {
+        "pool_cap": "6"
+      }
+    },
+    {
+      "id": "gsmarena",
+      "name": "GSMArena",
+      "type": "rss",
+      "url": "https://www.gsmarena.com",
+      "feed_url": "https://www.gsmarena.com/rss-news-reviews.php3",
+      "tier": "daily",
+      "high_signal": false,
+      "category_hint": "consumer_tech_releases",
+      "enabled": true,
+      "failures": 0,
+      "options": {
+        "pool_cap": "6"
+      }
+    },
+    {
+      "id": "engadget",
+      "name": "Engadget",
+      "type": "rss",
+      "url": "https://www.engadget.com",
+      "feed_url": "https://www.engadget.com/rss.xml",
+      "tier": "daily",
+      "high_signal": false,
+      "category_hint": "consumer_tech_releases",
+      "enabled": true,
+      "failures": 0,
+      "options": {
+        "pool_cap": "6"
+      }
+    },
+    {
+      "id": "electrek",
+      "name": "Electrek",
+      "type": "rss",
+      "url": "https://electrek.co",
+      "feed_url": "https://electrek.co/feed/",
+      "tier": "daily",
+      "high_signal": false,
+      "category_hint": "consumer_tech_releases",
+      "enabled": true,
+      "failures": 0,
+      "options": {
+        "pool_cap": "6"
+      }
+    },
+    {
+      "id": "toms-hardware",
+      "name": "Tom's Hardware",
+      "type": "rss",
+      "url": "https://www.tomshardware.com",
+      "feed_url": "https://www.tomshardware.com/feeds.xml",
+      "tier": "daily",
+      "high_signal": false,
+      "category_hint": "consumer_tech_releases",
+      "enabled": true,
+      "failures": 0,
+      "options": {
+        "pool_cap": "6"
+      }
     },
     {
       "id": "nextjs-blog",

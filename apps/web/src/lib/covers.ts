@@ -4,6 +4,9 @@ import { join } from "node:path";
 import type { Digest } from "@dispatch/core";
 import { renderCoverPng } from "@dispatch/cover";
 
+/** What a cover is drawn from. A briefing and a podcast episode both have these. */
+export type CoverSource = Pick<Digest, "id" | "date" | "kind" | "cover">;
+
 export type CoverSize = 512 | 1024;
 export const COVER_SIZES: readonly CoverSize[] = [512, 1024];
 
@@ -34,7 +37,7 @@ export async function rendererFingerprint(
 }
 
 /** Deterministic cache key for one image: same digest cover, same renderer, same size. */
-export function coverCacheKey(digest: Digest, size: CoverSize, fingerprint: string): string {
+export function coverCacheKey(digest: CoverSource, size: CoverSize, fingerprint: string): string {
   const input = JSON.stringify({
     fingerprint,
     size,
@@ -52,7 +55,7 @@ export interface CoverCacheOptions {
 
 /** The cover PNG, from the content-addressed cache when present, rendered and stored otherwise. */
 export async function coverPng(
-  digest: Digest,
+  digest: CoverSource,
   size: CoverSize,
   options: CoverCacheOptions,
 ): Promise<Uint8Array<ArrayBuffer>> {

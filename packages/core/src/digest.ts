@@ -1,5 +1,5 @@
 import { z } from "zod";
-import { Category, Section } from "./categories.js";
+import { CategoryId, isBuiltinSection, SECTION_TITLES, SECTIONS, SectionId } from "./categories.js";
 import { SourceType } from "./item.js";
 
 const isoDateTime = z.string().datetime({ offset: true });
@@ -32,15 +32,23 @@ export type CoverSpec = z.infer<typeof CoverSpec>;
 
 export const DigestItem = z.object({
   id: z.string().regex(/^[0-9a-f]{12}$/),
-  section: Section,
-  category: Category,
+  /** A built-in section or one a custom topic defined; see `section_titles` on the digest. */
+  section: SectionId,
+  /** A built-in category or a custom topic id. */
+  category: CategoryId,
   source_type: SourceType,
   headline: z.string().min(1),
   url: z.string().url(),
   source: z.string().min(1),
   author: z.string().optional(),
   summary: z.string().min(1),
-  why: z.string().min(1),
+  /**
+   * The story as a host would tell it aloud. Narration only: the page never shows it. Digests
+   * written before it existed have none, and narration then reads the headline and the summary.
+   */
+  spoken: z.string().min(1).optional(),
+  /** Digests written before the four-beat voice carry a separate why line; newer ones do not. */
+  why: z.string().min(1).optional(),
   score: z.number().min(0).max(1),
   published_at: isoDateTime.optional(),
 });
@@ -60,15 +68,64 @@ export const Digest = z.object({
   listen_minutes: z.number().int().positive(),
   audio: z.object({ url: z.string().url(), duration_ms: z.number().int().positive() }).nullable(),
   cover: CoverSpec,
-  items: z.array(DigestItem).min(3).max(18),
+  /**
+   * Titles of the sections the items sit in, in digest order, written when the digest is rendered.
+   * Present only when a custom section is used. A digest therefore keeps its own headings after
+   * the topic behind a section is renamed or removed. Absent means the built-in sections.
+   */
+  section_titles: z.record(SectionId, z.string().min(1).max(60)).optional(),
+  /** Weekly cap (18) plus the tech allowance and the allowances of custom sections. */
+  items: z.array(DigestItem).min(3).max(48),
 });
 export type Digest = z.infer<typeof Digest>;
 
-/** Voice and size limits. Enforced by the validator and quoted in the writer prompt. */
+/**
+ * Voice and size limits. Enforced by the validator and quoted in the writer prompt.
+ *
+ * A summary runs the four beats in three or four sentences. Two sentences are accepted so a thin
+ * source is never padded. `whyWords` applies only to the why line of digests written before the
+ * four-beat voice. The `spoken*` limits are for the host's telling of a story. `techCap` is the allowance for the Tech releases section, on top of `cap`.
+ */
 export const VOICE_LIMITS = {
   headlineWords: 12,
-  summaryWords: 35,
-  summarySentences: 2,
+  summaryWords: 80,
+  summarySentences: 4,
+  summaryMinWords: 25,
+  summaryMinSentences: 2,
+  sentenceWords: 28,
   whyWords: 18,
-  items: { floor: 3, target: [8, 12], cap: 12, weeklyCap: 18 },
+  spokenWords: 95,
+  spokenMinWords: 40,
+  /** A hard ceiling in characters, so 24 stories can never outgrow the narration request. */
+  spokenChars: 700,
+  spokenSentences: 5,
+  spokenMinSentences: 3,
+  items: { floor: 3, target: [8, 12], cap: 12, weeklyCap: 18, techCap: 5, hardMax: 48 },
 } as const;
+
+export interface DigestSection {
+  id: string;
+  title: string;
+}
+
+/**
+ * The sections of a digest in reading order, with their titles. The digest's own `section_titles`
+ * come first and set the order, so a briefing written for a topic that was later renamed or
+ * removed keeps its headings. The built-in table covers digests written before custom sections
+ * existed (and any built-in section a snapshot omits). An unknown id with no snapshot is titled
+ * by its id. Sections with no items are left out.
+ */
+export function digestSections(digest: Pick<Digest, "items" | "section_titles">): DigestSection[] {
+  const used = new Set(digest.items.map((item) => item.section));
+  const out: DigestSection[] = [];
+  const seen = new Set<string>();
+  const add = (id: string, title: string | undefined): void => {
+    if (!used.has(id) || seen.has(id)) return;
+    seen.add(id);
+    out.push({ id, title: title ?? (isBuiltinSection(id) ? SECTION_TITLES[id] : id) });
+  };
+  for (const [id, title] of Object.entries(digest.section_titles ?? {})) add(id, title);
+  for (const id of SECTIONS) add(id, undefined);
+  for (const item of digest.items) add(item.section, undefined);
+  return out;
+}

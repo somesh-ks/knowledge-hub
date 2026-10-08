@@ -3,7 +3,7 @@ import { digestUrl, navigateTo } from "./core/navigation";
 import { getPlayerStore } from "./core/playerRuntime";
 import { playerSheet } from "./core/playerSheet";
 import { usePlayerState } from "./hooks/usePlayer";
-import Icon from "./ui/Icon";
+import Icon from "./ui/LazyIcon";
 
 /**
  * After the last item the player offers the previous briefing. It never autoplays a chain: the
@@ -18,8 +18,8 @@ export default function UpNext() {
     // The new page's data arrives after the navigation; the store plays it then, on the same
     // audio element, which the browser already trusts to play.
     getPlayerStore().playWhenPageLoads(id);
-    playerSheet.close();
-    void navigateTo(digestUrl(id), { direction: "back" });
+    // The page goes down first, so the new briefing arrives under the bar and not behind a modal.
+    void playerSheet.collapse().then(() => navigateTo(digestUrl(id), { direction: "back" }));
   }
 
   return (

@@ -1,153 +1,210 @@
-import { expect, line, test, touchDrag } from "./lab";
+import { center, expect, type LabPage, line, type Point, test } from "./lab";
 
-/** Progress of the sheet read from its computed transform: 1 at rest open, 0 fully below the screen. */
-async function sheetProgress(page: import("@playwright/test").Page): Promise<number> {
-  return page.evaluate(() => {
-    const panel = document.querySelector<HTMLElement>(".player-panel");
-    if (!panel) return 0;
-    const offset = new DOMMatrix(getComputedStyle(panel).transform).m42;
-    return 1 - offset / panel.getBoundingClientRect().height;
-  });
+/** A point on the page's header that is not the close button: the date. */
+async function headerSpot(lab: LabPage): Promise<Point> {
+  return center(await lab.boxOf(lab.dialog.locator(".player-date")));
 }
 
-test.describe("touch gestures on the sheet", () => {
-  test("swiping up on the mini player opens the sheet interactively, following the finger", async ({
+async function opened(lab: LabPage): Promise<{ header: Point; height: number }> {
+  await lab.open();
+  await lab.play();
+  await lab.openPlayer();
+  const { window } = await lab.geometry();
+  return { header: await headerSpot(lab), height: window.height };
+}
+
+// A flick here is three large steps, not six small ones. The harness asks for 8 ms between
+// touch moves and the page receives them 30 to 50 ms apart, so six steps arrive at about 0.5 px/ms,
+// which is the threshold itself. A finger flicks at 1 to 3 px/ms.
+test.describe("opening by gesture @surface", () => {
+  test("a short, slow pull up goes back down without opening", async ({ lab, finger }) => {
+    await lab.open();
+    await lab.play();
+    const start = center(await lab.dockSettled());
+    await finger.drag(line(start, { x: start.x, y: start.y - 60 }, 6), 60);
+    await lab.collapsed();
+    await expect(lab.sheet).toBeHidden();
+    // Not a commit: the page behind was never taken away.
+    await expect(lab.root).toHaveAttribute("data-player", "closed");
+  });
+
+  test("a flick up opens the page even when the finger travelled little", async ({
     lab,
-    page,
+    finger,
   }) => {
     await lab.open();
     await lab.play();
-    const bar = await page.locator(".mini-open").boundingBox();
-    if (!bar) throw new Error("mini player not found");
-    const start = { x: bar.x + bar.width / 2, y: bar.y + bar.height / 2 };
-    // Halfway up the screen, slowly, and hold: the sheet is mid-gesture and follows the finger.
-    const finger = await touchDrag(page, line(start, { x: start.x, y: start.y - 360 }, 18), 20, {
-      hold: true,
-    });
-    await expect(page.locator("html")).toHaveAttribute("data-player", "open");
-    const held = await sheetProgress(page);
-    expect(held).toBeGreaterThan(0.3);
-    expect(held).toBeLessThan(0.95);
-    // The cover is morphing between the mini player's cover and its resting place.
-    const morph = await page
-      .locator(".player-cover-frame[data-size=player]")
-      .evaluate((element) => {
-        const matrix = new DOMMatrix(getComputedStyle(element).transform);
-        return { scale: matrix.a, travel: matrix.m42 };
-      });
-    expect(morph.scale).toBeGreaterThan(0);
-    expect(morph.scale).toBeLessThan(1);
-    // It sits away from its resting place: the sheet is mid-travel and the cover leads it.
-    expect(Math.abs(morph.travel)).toBeGreaterThan(1);
-    // Per-frame motion is custom properties only: the stylesheet owns what they mean.
-    const written = await page.evaluate(() =>
-      [".player-panel", ".player-scrim", ".player-cover-frame[data-size=player]"].map(
-        (selector) => document.querySelector(selector)?.getAttribute("style") ?? "",
-      ),
+    const start = center(await lab.dockSettled());
+    await finger.drag(line(start, { x: start.x, y: start.y - 120 }, 3), 8);
+    await lab.expanded();
+    expect(await lab.progress()).toBeCloseTo(1, 2);
+  });
+
+  test("a long pull up opens on release, and nothing behind is inert until then", async ({
+    lab,
+    page,
+    finger,
+  }) => {
+    await lab.open();
+    await lab.play();
+    const start = center(await lab.dockSettled());
+    const { window } = await lab.geometry();
+    const held = await finger.drag(
+      line(start, { x: start.x, y: start.y - window.height * 0.5 }, 14),
+      30,
+      { hold: true },
     );
-    for (const style of written) expect(style).not.toMatch(/(^|;)\s*(transform|opacity)\s*:/);
-    await finger.release();
-    await lab.settled();
-    expect(await sheetProgress(page)).toBeCloseTo(1, 2);
-    await expect(page.locator(".mini-open .player-cover-frame")).toHaveCSS("visibility", "hidden");
+    await expect(lab.surface).toHaveAttribute("data-state", "dragging");
+    // Following a finger is not a decision.
+    await expect(lab.root).toHaveAttribute("data-player", "closed");
+    expect(await page.locator("[data-player-inert]").count()).toBe(0);
+    await held.release();
+    await lab.expanded();
   });
+});
 
-  test("a short, slow swipe up springs back closed without opening", async ({ lab, page }) => {
-    await lab.open();
-    await lab.play();
-    const bar = await page.locator(".mini-open").boundingBox();
-    if (!bar) throw new Error("mini player not found");
-    const start = { x: bar.x + bar.width / 2, y: bar.y + bar.height / 2 };
-    await touchDrag(page, line(start, { x: start.x, y: start.y - 60 }, 6), 60);
-    await expect(page.locator("html")).toHaveAttribute("data-player", "closed", { timeout: 4_000 });
-    await expect(lab.panel).toHaveCount(0);
-  });
-
-  test("a flick up opens the sheet even when the finger travelled little", async ({
+test.describe("closing by gesture @surface", () => {
+  test("a flick down on the header dismisses the page along its spring", async ({
     lab,
-    page,
+    finger,
   }) => {
-    await lab.open();
-    await lab.play();
-    const bar = await page.locator(".mini-open").boundingBox();
-    if (!bar) throw new Error("mini player not found");
-    const start = { x: bar.x + bar.width / 2, y: bar.y + bar.height / 2 };
-    await touchDrag(page, line(start, { x: start.x, y: start.y - 120 }, 6), 8);
-    await lab.settled();
-    await expect(page.locator("html")).toHaveAttribute("data-player", "open");
-    expect(await sheetProgress(page)).toBeCloseTo(1, 2);
-  });
-
-  test("a flick down on the header dismisses the sheet along its spring", async ({ lab, page }) => {
-    await lab.open();
-    await lab.play();
-    await lab.openPlayer();
-    await touchDrag(page, line({ x: 195, y: 130 }, { x: 195, y: 360 }, 6), 8);
-    await expect(page.locator("html")).toHaveAttribute("data-player", "closed", { timeout: 4_000 });
-    await expect(lab.panel).toHaveCount(0);
-    await expect(lab.mini).toHaveAttribute("data-visible", "true");
+    const { header } = await opened(lab);
+    await finger.drag(line(header, { x: header.x, y: header.y + 230 }, 3), 8);
+    await lab.collapsed();
+    await expect(lab.sheet).toBeHidden();
+    await expect(lab.openButton).toBeVisible();
   });
 
   test("a slow, short drag down snaps back open, because release decides", async ({
     lab,
-    page,
+    finger,
   }) => {
-    await lab.open();
-    await lab.play();
-    await lab.openPlayer();
-    await touchDrag(page, line({ x: 195, y: 130 }, { x: 195, y: 250 }, 8), 50);
-    await lab.settled();
-    await expect(page.locator("html")).toHaveAttribute("data-player", "open");
-    expect(await sheetProgress(page)).toBeCloseTo(1, 2);
+    const { header } = await opened(lab);
+    await finger.drag(line(header, { x: header.x, y: header.y + 110 }, 8), 50);
+    await lab.expanded();
+    expect(await lab.progress()).toBeCloseTo(1, 2);
   });
 
-  test("a long, slow drag down past the threshold dismisses on release", async ({ lab, page }) => {
-    await lab.open();
-    await lab.play();
-    await lab.openPlayer();
-    await touchDrag(page, line({ x: 195, y: 130 }, { x: 195, y: 560 }, 10), 60);
-    await expect(page.locator("html")).toHaveAttribute("data-player", "closed", { timeout: 4_000 });
-  });
-
-  test("never dismisses mid-drag: the sheet follows the finger and waits for the lift", async ({
+  test("a long, slow drag down past the threshold dismisses on release", async ({
     lab,
-    page,
+    finger,
   }) => {
-    await lab.open();
-    await lab.play();
-    await lab.openPlayer();
-    const finger = await touchDrag(page, line({ x: 195, y: 130 }, { x: 195, y: 700 }, 12), 30, {
-      hold: true,
-    });
-    await expect(page.locator("html")).toHaveAttribute("data-player", "open");
-    expect(await sheetProgress(page)).toBeLessThan(0.45);
-    await finger.release();
-    await expect(page.locator("html")).toHaveAttribute("data-player", "closed", { timeout: 4_000 });
+    const { header, height } = await opened(lab);
+    await finger.drag(line(header, { x: header.x, y: header.y + height * 0.55 }, 10), 60);
+    await lab.collapsed();
   });
 
-  test("scrolling the chapter list never drags the sheet", async ({ lab, page }) => {
-    await lab.open();
-    await lab.play();
-    await lab.openPlayer();
-    await touchDrag(page, line({ x: 195, y: 700 }, { x: 195, y: 820 }, 6), 8);
-    await lab.settled();
-    expect(await sheetProgress(page)).toBeCloseTo(1, 2);
-    await expect(page.locator("html")).toHaveAttribute("data-player", "open");
+  test("never dismisses mid-drag: the page follows the pointer and waits for the lift", async ({
+    lab,
+    finger,
+  }) => {
+    const { header, height } = await opened(lab);
+    const held = await finger.drag(
+      line(header, { x: header.x, y: header.y + height * 0.7 }, 12),
+      30,
+      { hold: true },
+    );
+    await expect(lab.surface).toHaveAttribute("data-state", "dragging");
+    await expect(lab.root).toHaveAttribute("data-player", "open");
+    await expect.poll(() => lab.progress()).toBeLessThan(0.45);
+    await held.release();
+    await lab.collapsed();
+  });
+
+  test("a pull down on the cover dismisses too: the whole top of the page is the handle", async ({
+    lab,
+    finger,
+  }) => {
+    await opened(lab);
+    const cover = center(await lab.boxOf(lab.dialog.locator("[data-player-cover]")));
+    await finger.drag(line(cover, { x: cover.x, y: cover.y + 260 }, 3), 8);
+    await lab.collapsed();
+  });
+
+  test("a drag that starts on the close button still moves the page, and does not press it", async ({
+    lab,
+    finger,
+  }) => {
+    await opened(lab);
+    const button = center(await lab.boxOf(lab.closeButton));
+    // Slow and short: the page follows and comes back. Had the button been pressed, it would close.
+    await finger.drag(line(button, { x: button.x, y: button.y + 90 }, 8), 40);
+    await lab.expanded();
   });
 });
 
-test.describe("closing the sheet", () => {
-  test("closes from the button and gives the page back with the mini player in place", async ({
+test.describe("scrolling inside the page @surface", () => {
+  test("scrolling the list never drags the page", async ({ lab, page, finger, browserName }) => {
+    test.skip(
+      browserName === "webkit",
+      "Playwright's mobile WebKit rejects mouse.wheel and has no touch scroll to stand in for it",
+    );
+    await opened(lab);
+    const row = lab.dialog.getByRole("list").last().getByRole("button").last();
+    await row.scrollIntoViewIfNeeded();
+    const spot = center(await lab.boxOf(row));
+    if (finger.touch && browserName === "chromium") {
+      await finger.drag(line(spot, { x: spot.x, y: spot.y + 140 }, 6), 8);
+    } else {
+      await page.mouse.move(spot.x, spot.y);
+      await page.mouse.wheel(0, -300);
+    }
+    await page.waitForTimeout(300);
+    await lab.expanded();
+    expect(await lab.progress()).toBeCloseTo(1, 2);
+  });
+
+  test("on a scrolled page a pull down on the top scrolls back instead of dismissing", async ({
     lab,
     page,
+    finger,
+    browserName,
   }) => {
-    await lab.open();
-    await lab.play();
-    await lab.openPlayer();
-    await page.getByRole("button", { name: "Close the player" }).tap();
-    await expect(page.locator("html")).toHaveAttribute("data-player", "closed", { timeout: 4_000 });
-    await expect(lab.panel).toHaveCount(0);
-    await expect(page.locator(".mini-open .player-cover-frame")).toHaveCSS("visibility", "visible");
+    test.skip(!finger.touch || browserName !== "chromium", "needs a real touch sequence");
+    await page.setViewportSize({ width: 375, height: 553 });
+    await opened(lab);
+    await lab.sheet.evaluate((element) => {
+      element.scrollTop = 60;
+    });
+    const cover = center(await lab.boxOf(lab.dialog.locator("[data-player-cover]")));
+    await finger.drag(line(cover, { x: cover.x, y: cover.y + 50 }, 8), 30);
+    await page.waitForTimeout(500);
+    await lab.expanded();
+    expect(await lab.sheet.evaluate((element) => element.scrollTop)).toBeLessThan(40);
+    // From the top the same pull, carried on, is a dismissal again.
+    await lab.sheet.evaluate((element) => {
+      element.scrollTop = 0;
+    });
+    await finger.drag(line(cover, { x: cover.x, y: cover.y + 260 }, 6), 8);
+    await lab.collapsed();
+  });
+
+  test("a pull up on the top of the page scrolls it", async ({
+    lab,
+    page,
+    finger,
+    browserName,
+  }) => {
+    test.skip(!finger.touch || browserName !== "chromium", "needs a real touch sequence");
+    await page.setViewportSize({ width: 375, height: 553 });
+    await opened(lab);
+    const cover = center(await lab.boxOf(lab.dialog.locator("[data-player-cover]")));
+    await finger.drag(line(cover, { x: cover.x, y: cover.y - 120 }, 8), 30);
+    await expect.poll(() => lab.sheet.evaluate((element) => element.scrollTop)).toBeGreaterThan(60);
+    await lab.expanded();
+  });
+});
+
+test.describe("closing the page @surface", () => {
+  test("closes from the button and gives the document back with the bar in place", async ({
+    lab,
+    finger,
+  }) => {
+    await opened(lab);
+    await finger.press(lab.closeButton);
+    await lab.collapsed();
+    await expect(lab.sheet).toBeHidden();
+    await expect(lab.openButton.locator(".player-cover-frame")).toBeVisible();
   });
 
   test("closes with Escape and returns focus to the control that opened it", async ({
@@ -156,27 +213,36 @@ test.describe("closing the sheet", () => {
   }) => {
     await lab.open();
     await lab.play();
-    await page.locator(".mini-open").focus();
+    await lab.openButton.focus();
     await page.keyboard.press("Enter");
-    await expect(page.locator("html")).toHaveAttribute("data-player", "open");
-    await lab.settled();
+    await lab.expanded();
+    // Focus went into the page when it opened.
+    expect(
+      await page.evaluate(() => document.activeElement?.hasAttribute("data-player-page") ?? false),
+    ).toBe(true);
     await page.keyboard.press("Escape");
-    await expect(page.locator("html")).toHaveAttribute("data-player", "closed", { timeout: 4_000 });
-    await expect(page.locator(".mini-open")).toBeFocused();
+    await lab.collapsed();
+    await expect(lab.openButton).toBeFocused();
   });
 
-  test("traps focus inside the open player and makes the page inert", async ({ lab, page }) => {
-    await lab.open();
-    await lab.play();
-    await lab.openPlayer();
-    for (let press = 0; press < 14; press += 1) {
+  test("Tab never reaches anything behind the open page", async ({ lab, page }) => {
+    await opened(lab);
+    const seen = new Set<string>();
+    for (let press = 0; press < 24; press += 1) {
       await page.keyboard.press("Tab");
-      // Base UI hands focus back from its guard on the next frame.
-      await page.waitForTimeout(80);
-      const inside = await page.evaluate(() =>
-        Boolean(document.activeElement?.closest(".player-panel")),
-      );
-      expect(inside).toBe(true);
+      const where = await page.evaluate(() => {
+        const active = document.activeElement;
+        if (!active || active === document.body) return "outside the document";
+        if (active.closest("[data-player-surface]")) {
+          return `player: ${active.getAttribute("aria-label") ?? active.textContent?.trim()}`;
+        }
+        return `behind: ${active.tagName} ${active.textContent?.trim().slice(0, 30)}`;
+      });
+      expect(where).not.toMatch(/^behind/);
+      seen.add(where);
     }
+    // It did go round the player's own controls.
+    expect([...seen].some((where) => where.startsWith("player: Close the player"))).toBe(true);
+    expect([...seen].some((where) => where.startsWith("player: Playback position"))).toBe(true);
   });
 });

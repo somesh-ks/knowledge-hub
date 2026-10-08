@@ -145,7 +145,11 @@ describe("dispatch audio", () => {
           wouldSynthesize: true,
         },
       });
-      expect(result.text.startsWith("Dispatch, Wednesday 7 October.")).toBe(true);
+      expect(
+        result.text.startsWith(
+          "This is Singularity for Wednesday the seventh of October. Five stories today",
+        ),
+      ).toBe(true);
     });
 
     it("says when the budget would refuse the request", async () => {

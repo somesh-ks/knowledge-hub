@@ -1,26 +1,50 @@
-/* Chapters aside: a cover and the chapter list, sticky beside the reading column from 64rem. */
+/*
+ * "In this briefing": the contents list beside the reading column from 80rem, where it replaces the
+ * section tabs. Each entry links to its section, and the section in view is marked the way the side
+ * navigation marks the current destination.
+ */
 
 .aside {
   display: none;
 }
 
-@media (min-width: 64rem) {
+@media (min-width: 80rem) {
   .aside {
     position: sticky;
-    inset-block-start: calc(var(--header-height) + var(--safe-top) + var(--space-6));
+    inset-block-start: calc(var(--sticky-top) + var(--space-6));
     align-self: start;
-    display: grid;
-    gap: var(--space-4);
-    padding-block-start: var(--space-6);
+    display: block;
+    /* A short window scrolls the list instead of cutting it off. */
+    max-height: calc(100dvh - var(--sticky-top) - var(--space-12));
+    /* Level with the date in the header beside it. A margin, so the list still sticks at 24px. */
+    margin-block-start: var(--space-8);
+    /* A scrolling box clips what is drawn outside it. This much padding, taken back by the margin,
+       leaves room for an entry's focus ring. */
+    margin-inline: calc(var(--space-1) * -1);
+    padding: var(--space-1);
+    overflow-y: auto;
+    overscroll-behavior: contain;
+    scrollbar-width: thin;
   }
 
-  .aside .cover {
-    --cover-radius: var(--cover-radius-hero);
-    width: 100%;
+  /* The docked player spans the bottom of the window here, so the list ends above it. */
+  html[data-mini="visible"] .aside {
+    max-height: calc(
+      100dvh -
+      var(--sticky-top) -
+      var(--space-12) -
+      var(--player-dock-height, var(--nav-bar-height))
+    );
   }
 
-  .aside-nav {
-    display: grid;
+  .aside-title {
+    padding-block-end: var(--space-2);
+    padding-inline: var(--space-3);
+    color: var(--color-on-surface-muted);
+    font-size: var(--text-label-size);
+    font-weight: var(--text-label-weight);
+    letter-spacing: var(--text-label-tracking);
+    line-height: var(--text-label-leading);
   }
 
   .aside-link {
@@ -30,24 +54,38 @@
     gap: var(--space-3);
     min-height: var(--size-touch);
     padding-inline: var(--space-3);
-    margin-inline: calc(var(--space-3) * -1);
-    border-radius: var(--sheet-row-radius);
-    color: var(--color-on-surface-muted);
-    font-size: var(--font-size-meta);
-    font-weight: var(--font-weight-semibold);
-    text-align: start;
+    border-radius: var(--button-radius);
+    color: var(--color-on-surface);
+    font-size: var(--text-label-size);
+    letter-spacing: var(--text-label-tracking);
+    line-height: var(--text-label-leading);
     text-decoration: none;
+    transition:
+      background-color var(--duration-hover) var(--ease-hover),
+      color var(--duration-hover) var(--ease-hover);
   }
 
-  .aside-link[data-state="current"] {
-    color: var(--color-on-surface);
-    background: var(--color-accent-subtle);
+  /* The section in view: a filled entry and the accent, so the mark is a shape as well as a colour. */
+  .aside-link[aria-current="true"] {
+    background: var(--nav-side-item-bg);
+    color: var(--color-accent);
   }
 
   @media (hover: hover) and (pointer: fine) {
-    .aside-link:hover {
+    .aside-link:not([aria-current="true"]):hover {
       background: var(--color-surface-sunken);
-      color: var(--color-on-surface);
     }
+  }
+
+  .aside-link:not([aria-current="true"]):active {
+    background: var(--color-surface-sunken);
+  }
+}
+
+/* Forced colors drops the fill, so the section in view takes the system highlight and an edge. */
+@media (forced-colors: active) {
+  .aside-link[aria-current="true"] {
+    outline: var(--stroke-hairline) solid Highlight;
+    color: Highlight;
   }
 }

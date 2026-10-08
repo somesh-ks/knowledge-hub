@@ -32,8 +32,23 @@ const GITHUB_VARIABLES = [
   "DISPATCH_GIT_EMAIL",
 ];
 
-/** Environment variables for the Generate button's server routes on Vercel. */
-const VERCEL_ENV = ["GITHUB_DISPATCH_TOKEN", "GITHUB_REPOSITORY", "GENERATE_PASSPHRASE_HASH"];
+/**
+ * Environment variables for the site's server routes on Vercel: the Generate button's three, then
+ * what /api/narrate needs to narrate a digest on Play. The Blob token is sent only when .env holds
+ * one; a store connected through OIDC needs none (D26).
+ */
+const VERCEL_ENV = [
+  "GITHUB_DISPATCH_TOKEN",
+  "GITHUB_REPOSITORY",
+  "GENERATE_PASSPHRASE_HASH",
+  "SPEECHIFY_API_KEY",
+  "SPEECHIFY_VOICE_ID",
+  "SPEECHIFY_MONTHLY_CHARS",
+  "BLOB_READ_WRITE_TOKEN",
+];
+
+/** What `vercel env pull` writes in place of a hidden value. Sending it on would overwrite the real one. */
+const SENSITIVE_PLACEHOLDER = "[SENSITIVE]";
 
 const TARGETS: Target[] = [
   ...GITHUB_SECRETS.map((name): Target => ({ name, where: "github-secret" })),
@@ -117,8 +132,9 @@ function main(): void {
     const value = values[target.name];
     const scope = target.where === "vercel" ? "vercel" : "github";
     if (only && only !== scope) continue;
-    if (!value) {
-      skipped.push(target.name);
+    if (!value || value === SENSITIVE_PLACEHOLDER) {
+      // A name can have two destinations now (GitHub and Vercel); report it once.
+      if (!skipped.includes(target.name)) skipped.push(target.name);
       continue;
     }
     if (dryRun) {

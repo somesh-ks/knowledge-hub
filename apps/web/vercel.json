@@ -2,7 +2,7 @@
   "$schema": "https://openapi.vercel.sh/vercel.json",
   "installCommand": "cd ../.. && npm ci --ignore-scripts",
   "buildCommand": "npm run build",
-  "ignoreCommand": "git diff --quiet HEAD^ HEAD -- . ../../Digests ../../packages ../../tokens ../../scripts ../../state/last-run.json ../../package.json ../../package-lock.json",
+  "ignoreCommand": "git diff --quiet HEAD^ HEAD -- . ../../Digests ../../packages ../../tokens ../../scripts ../../state/last-run.json ../../state/source-stats.json ../../state/source-candidates.json ../../config ../../Podcasts ../../package.json ../../package-lock.json",
   "headers": [
     {
       "source": "/(.*)",
@@ -82,7 +82,7 @@
       ]
     },
     {
-      "source": "/archive",
+      "source": "/library",
       "headers": [
         {
           "key": "Cache-Control",

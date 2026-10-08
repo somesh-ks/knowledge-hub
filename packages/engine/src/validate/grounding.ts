@@ -13,7 +13,8 @@ export type GroundedField = "summary" | "why";
 export interface GroundingTarget {
   id: string;
   summary: string;
-  why: string;
+  /** Checked only when the item has one. */
+  why?: string | undefined;
   /** Extracted source text. Untrusted. */
   sourceText: string;
 }
@@ -33,21 +34,21 @@ export interface GroundingVerdict {
   sentences: SentenceVerdict[];
 }
 
-/** Checks that each summary and why sentence is supported by the source text. */
+/** Checks that each summary sentence, and each why sentence when there is one, is supported by the source text. */
 export interface Grounder {
   /** Probability at or above which a sentence counts as supported. */
   readonly threshold: number;
   ground(target: GroundingTarget): Promise<GroundingVerdict>;
 }
 
-/** The sentences of an item that grounding checks: summary then why. */
+/** The sentences of an item that grounding checks: summary, then why when the item has one. */
 export function groundedSentences(target: Pick<GroundingTarget, "summary" | "why">): Array<{
   field: GroundedField;
   sentence: string;
 }> {
   return [
     ...splitSentences(target.summary).map((sentence) => ({ field: "summary" as const, sentence })),
-    ...splitSentences(target.why).map((sentence) => ({ field: "why" as const, sentence })),
+    ...splitSentences(target.why ?? "").map((sentence) => ({ field: "why" as const, sentence })),
   ];
 }
 

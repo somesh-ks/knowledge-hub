@@ -1,15 +1,9 @@
-import { useEffect, useSyncExternalStore } from "react";
+import { useEffect } from "react";
 import "../styles/player.css";
 import { startPlayerRuntime } from "./core/playerRuntime";
-import { playerSheet } from "./core/playerSheet";
-import {
-  getExpandedPlayer,
-  loadExpandedPlayer,
-  subscribeExpandedPlayer,
-} from "./expandedPlayerLoader";
 import { usePlayerState } from "./hooks/usePlayer";
-import { useSheetPresence } from "./hooks/useSheetPresence";
-import PlayerBar from "./PlayerBar";
+import PlayerSurface from "./PlayerSurface";
+import { loadPageContent } from "./pageContentLoader";
 
 function whenIdle(task: () => void): () => void {
   if (typeof requestIdleCallback === "function") {
@@ -23,35 +17,18 @@ function whenIdle(task: () => void): () => void {
 /**
  * The player island. Mount it once in the base layout as a persistent `client:idle` island: it
  * owns the audio store's wiring (Media Session, the reader coupling, announcements, sounds) and
- * renders the mini player. The expanded player is a separate chunk, fetched when the browser is
- * idle, so reading and pressing play never wait on it.
+ * renders the player surface. The page's controls are a separate chunk, fetched when the browser
+ * is idle, so reading and pressing play never wait on them.
  */
 export default function PlayerRoot() {
-  const presence = useSheetPresence();
-  const state = usePlayerState();
-  const coverSrc = state.track?.digest.cover.src1024;
-  const ExpandedPlayer = useSyncExternalStore(
-    subscribeExpandedPlayer,
-    getExpandedPlayer,
-    () => null,
-  );
+  const coverSrc = usePlayerState().track?.digest.cover.src1024;
 
   useEffect(() => startPlayerRuntime(), []);
-  useEffect(() => {
-    // Ready before it is wanted. If it is wanted sooner, fetch it now.
-    if (presence) {
-      // The sheet was asked for and its code never arrived: give the screen back.
-      loadExpandedPlayer().catch(() => playerSheet.close());
-      return;
-    }
-    return whenIdle(() => {
-      // Nothing is waiting on this one, so a failure just means the next open tries again.
-      loadExpandedPlayer().catch(() => undefined);
-    });
-  }, [presence]);
+  // Ready before it is wanted. A failure here is retried at the first touch on the bar.
+  useEffect(() => whenIdle(() => void loadPageContent()), []);
   useEffect(() => {
     if (!coverSrc) return;
-    // Decode the large cover ahead of time, so the morph never starts on an empty box.
+    // Decode the large cover ahead of time, so the flight never starts on an empty box.
     return whenIdle(() => {
       const image = new Image();
       image.src = coverSrc;
@@ -59,10 +36,5 @@ export default function PlayerRoot() {
     });
   }, [coverSrc]);
 
-  return (
-    <>
-      <PlayerBar />
-      {presence && ExpandedPlayer ? <ExpandedPlayer /> : null}
-    </>
-  );
+  return <PlayerSurface />;
 }

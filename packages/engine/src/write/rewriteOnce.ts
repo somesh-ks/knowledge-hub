@@ -1,5 +1,8 @@
-import type { Linter, Violation, VoiceField } from "../voice/lint.js";
+import type { Linter, Violation, ViolationRule, VoiceField } from "../voice/lint.js";
 import type { SourceMaterial, Writer } from "./types.js";
+
+/** Rules whose `match` is a passage of the field, quoted back to the model as data. */
+const FOCUS_RULES: ReadonlySet<ViolationRule> = new Set(["banned_pattern", "sentence_too_long"]);
 
 export interface RewriteOnceArgs {
   writer: Writer;
@@ -24,11 +27,12 @@ export interface RewriteOnceResult {
  */
 export async function rewriteOnce(args: RewriteOnceArgs): Promise<RewriteOnceResult> {
   if (args.violations.length === 0) return { text: args.text, violations: [], rewritten: false };
-  // Text matched by a banned pattern came from the source, so it travels as delimited data.
+  // Text matched by a banned pattern, and a sentence that runs too long, came from the source,
+  // so they travel as delimited data.
   const focus = [
     ...new Set(
       args.violations
-        .filter((v) => v.rule === "banned_pattern" && v.match !== undefined)
+        .filter((v) => FOCUS_RULES.has(v.rule) && v.match !== undefined)
         .map((v) => (v.match as string).trim())
         .filter((match) => match.length > 0),
     ),

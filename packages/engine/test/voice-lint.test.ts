@@ -1,8 +1,14 @@
 import { readFileSync } from "node:fs";
 import { join } from "node:path";
+import { VOICE_LIMITS } from "@dispatch/core";
 import { describe, expect, it } from "vitest";
 import { createLinter, lint } from "../src/voice/lint.js";
-import { countSentences, countWords, splitSentences } from "../src/voice/sentences.js";
+import {
+  countSentences,
+  countWords,
+  longSentences,
+  splitSentences,
+} from "../src/voice/sentences.js";
 import { parseVoice, type VoiceConfig } from "../src/voice/voice.js";
 import { REPO_ROOT } from "./score-factories.js";
 
@@ -10,7 +16,7 @@ const voiceMd = readFileSync(join(REPO_ROOT, "config", "voice.md"), "utf8");
 const voice: VoiceConfig = parseVoice(voiceMd);
 const linter = createLinter(voice);
 
-const rules = (field: "headline" | "summary" | "why", text: string): string[] =>
+const rules = (field: "headline" | "summary" | "why" | "spoken", text: string): string[] =>
   linter.lint(field, text).map((v) => v.rule);
 
 describe("parseVoice", () => {
@@ -23,10 +29,26 @@ describe("parseVoice", () => {
   });
 
   it("reads principles, limits and the weak versus strong examples", () => {
-    expect(voice.principles.length).toBeGreaterThanOrEqual(6);
+    expect(voice.principles).toHaveLength(7);
+    expect(voice.principles[0]).toMatch(/^Four beats, in order\./);
     expect(voice.limits.some((line) => line.startsWith("Headline: at most 12 words"))).toBe(true);
     expect(voice.examples).toHaveLength(3);
     expect(voice.examples[0]?.strong).toContain("Springlet 2.0");
+    expect(voice.examples[1]?.strong).toContain("Sonos launched the Ace Ultra");
+  });
+
+  it("states the same limits in prose as the code enforces", () => {
+    const limits = voice.limits.join("\n");
+    expect(limits).toContain(`Headline: at most ${VOICE_LIMITS.headlineWords} words.`);
+    expect(limits).toContain(`45 to ${VOICE_LIMITS.summaryWords} words`);
+    expect(limits).toContain("three or four sentences");
+    expect(limits).toContain("Two sentences are accepted when the source is thin.");
+    expect(limits).toContain(`No sentence longer than ${VOICE_LIMITS.sentenceWords} words.`);
+    expect(VOICE_LIMITS.summarySentences).toBe(4);
+    expect(VOICE_LIMITS.summaryMinSentences).toBe(2);
+    // No why line is described any more: the fourth beat lives in the summary.
+    expect(voiceMd).not.toMatch(/^- Why:/m);
+    expect(voiceMd.startsWith("# Singularity voice\n")).toBe(true);
   });
 
   it("rejects a file with no banned words", () => {
@@ -59,11 +81,16 @@ describe("banned words", () => {
   });
 
   it("matches whole words only", () => {
-    expect(rules("summary", "Robustness tests cover the popular drawer.")).toEqual([]);
+    // Headlines have no lower bound, so a clean one lints to nothing at all.
+    expect(rules("headline", "Robustness tests cover the popular drawer")).toEqual([]);
     expect(rules("summary", "Landscaping is out of scope for the drawer.")).toContain(
       "banned_word",
     );
-    expect(rules("summary", "The hug gesture closes the drawer.")).toEqual([]);
+    expect(rules("headline", "The hug gesture closes the drawer")).toEqual([]);
+    expect(rules("summary", "Robustness tests cover the popular drawer.")).not.toContain(
+      "banned_word",
+    );
+    expect(rules("summary", "The hug gesture closes the drawer.")).not.toContain("banned_word");
   });
 
   it("is case-insensitive", () => {
@@ -179,24 +206,57 @@ describe("markdown and links", () => {
   });
 
   it("leaves ordinary technical text alone", () => {
-    expect(rules("summary", "Next.js 16 adds useSpring_ref and a 2.0 build of Three.js.")).toEqual(
+    expect(rules("headline", "Next.js 16 adds useSpring_ref and a 2.0 build of Three.js")).toEqual(
       [],
     );
-    expect(rules("summary", "Snake_case names and 3 * 4 products stay as they are.")).toEqual([]);
+    expect(rules("headline", "Snake_case names and 3 * 4 products stay as they are")).toEqual([]);
+    expect(
+      rules(
+        "summary",
+        "Next.js 16 adds useSpring_ref and a 2.0 build of Three.js for teams that render drawers on the server. Snake_case names and 3 * 4 products stay as they are in the generated code.",
+      ),
+    ).toEqual([]);
   });
 });
 
 describe("limits", () => {
   const words = (n: number): string => Array.from({ length: n }, (_, i) => `word${i}`).join(" ");
+  /** A summary made of sentences with the given word counts. */
+  const prose = (...counts: number[]): string => counts.map((n) => `${words(n)}.`).join(" ");
 
   it("allows a 12-word headline and flags 13", () => {
     expect(rules("headline", words(12))).toEqual([]);
     expect(rules("headline", words(13))).toEqual(["too_many_words"]);
   });
 
-  it("allows a 35-word summary and flags 36", () => {
-    expect(rules("summary", `${words(35)}.`)).toEqual([]);
-    expect(rules("summary", `${words(36)}.`)).toEqual(["too_many_words"]);
+  it("allows an 80-word summary and flags 81", () => {
+    expect(rules("summary", prose(20, 20, 20, 20))).toEqual([]);
+    expect(rules("summary", prose(20, 20, 20, 21))).toEqual(["too_many_words"]);
+  });
+
+  it("allows a 25-word summary and flags 24", () => {
+    expect(rules("summary", prose(12, 13))).toEqual([]);
+    expect(rules("summary", prose(12, 12))).toEqual(["too_few_words"]);
+    const [violation] = linter.lint("summary", prose(12, 12));
+    expect(violation?.message).toBe("The summary has 24 words; it needs at least 25.");
+  });
+
+  it("allows a 28-word sentence in a summary and flags 29", () => {
+    expect(rules("summary", prose(28, 10))).toEqual([]);
+    expect(rules("summary", prose(10, 29, 10))).toEqual(["sentence_too_long"]);
+    const [violation] = linter.lint("summary", prose(10, 29, 10));
+    expect(violation?.match).toBe(`${words(29)}.`);
+    // The sentence came from the source, so it travels in `match` and never in the message.
+    expect(violation?.message).toBe(
+      "A sentence in the summary has 29 words; split it so no sentence runs past 28.",
+    );
+    expect(rules("summary", prose(29, 30))).toEqual(["sentence_too_long", "sentence_too_long"]);
+  });
+
+  it("holds the sentence cap and the lower bounds to the summary only", () => {
+    expect(rules("headline", words(3))).toEqual([]);
+    expect(rules("why", `${words(3)}.`)).toEqual([]);
+    expect(longSentences(prose(28, 29, 5), 28).map((s) => s.words)).toEqual([29]);
   });
 
   it("allows an 18-word why and flags 19", () => {
@@ -204,11 +264,18 @@ describe("limits", () => {
     expect(rules("why", `${words(19)}.`)).toEqual(["too_many_words"]);
   });
 
-  it("allows two summary sentences and flags three", () => {
-    expect(rules("summary", "Springs retarget. Drawers keep velocity.")).toEqual([]);
-    expect(rules("summary", "Springs retarget. Drawers keep velocity. Toasts follow.")).toEqual([
-      "too_many_sentences",
-    ]);
+  it("allows two to four summary sentences and flags one or five", () => {
+    expect(rules("summary", prose(13, 13))).toEqual([]);
+    expect(rules("summary", prose(13, 13, 13))).toEqual([]);
+    expect(rules("summary", prose(13, 13, 13, 13))).toEqual([]);
+    expect(rules("summary", prose(13, 13, 13, 13, 13))).toEqual(["too_many_sentences"]);
+    expect(rules("summary", prose(26))).toEqual(["too_few_sentences"]);
+    const [violation] = linter.lint("summary", prose(26));
+    expect(violation?.message).toBe("The summary has 1 sentence; it needs at least 2.");
+  });
+
+  it("reports a single short sentence on both lower bounds", () => {
+    expect(rules("summary", "Springs retarget.")).toEqual(["too_few_words", "too_few_sentences"]);
   });
 
   it("allows one why sentence and flags two", () => {
@@ -228,20 +295,31 @@ describe("limits", () => {
 
 describe("the examples in config/voice.md", () => {
   it("passes every strong example in the field it belongs to", () => {
-    const [springlet, measures, why] = voice.examples;
+    const [springlet, sonos, measures] = voice.examples;
     expect(rules("headline", springlet?.strong ?? "")).toEqual([]);
-    expect(rules("headline", measures?.strong ?? "")).toEqual([]);
-    expect(rules("why", (why?.strong ?? "").replace(/^Why:\s*/, ""))).toEqual([]);
+    expect(rules("summary", sonos?.strong ?? "")).toEqual([]);
+    expect(rules("summary", measures?.strong ?? "")).toEqual([]);
   });
 
-  it("counts the longest strong headline at exactly the limit", () => {
-    expect(countWords(voice.examples[1]?.strong ?? "")).toBe(12);
-  });
-
-  it("flags none of the weak examples for banned vocabulary, since they fail on vagueness", () => {
-    for (const example of voice.examples) {
-      expect(rules("headline", example.weak.replace(/^Why:\s*/, ""))).not.toContain("banned_word");
+  it("shows the four beats in both strong summaries: four sentences inside the stated range", () => {
+    for (const example of voice.examples.slice(1)) {
+      expect(countSentences(example.strong)).toBe(4);
+      expect(countWords(example.strong)).toBeGreaterThanOrEqual(45);
+      expect(countWords(example.strong)).toBeLessThanOrEqual(VOICE_LIMITS.summaryWords);
+      expect(longSentences(example.strong, VOICE_LIMITS.sentenceWords)).toEqual([]);
     }
+  });
+
+  it("keeps the strong headline inside the headline limit", () => {
+    expect(countWords(voice.examples[0]?.strong ?? "")).toBe(11);
+  });
+
+  it("trips the linter on the hype example only: the other weak lines fail on vagueness", () => {
+    expect(voice.examples.map((example) => rules("headline", example.weak))).toEqual([
+      [],
+      ["banned_word"],
+      [],
+    ]);
   });
 
   it("exposes lint as a plain function over a parsed config", () => {
@@ -257,7 +335,10 @@ describe("sentence and word counting", () => {
 
   it("splits when the next sentence starts lowercase, so the sentence limits cannot be dodged", () => {
     expect(countSentences("Springs retarget. iPadOS 27 follows. npm packages ship.")).toBe(3);
-    expect(rules("summary", "A fact. iPadOS adds it. npm ships it.")).toContain(
+    expect(
+      rules("summary", "A fact. iPadOS adds it. npm ships it. tvOS follows it. watchOS gets it."),
+    ).toContain("too_many_sentences");
+    expect(rules("summary", "A fact. iPadOS adds it. npm ships it.")).not.toContain(
       "too_many_sentences",
     );
     expect(rules("why", "Copy it. npm has an example.")).toContain("too_many_sentences");
@@ -270,5 +351,128 @@ describe("sentence and word counting", () => {
 
   it("splits on end punctuation followed by a capital", () => {
     expect(splitSentences("One. Two! Three?")).toEqual(["One.", "Two!", "Three?"]);
+  });
+});
+
+describe("the spoken field", () => {
+  const GOOD =
+    "Google has a new Pixel, and the headline feature is the screen. It's brighter than last year's, and it stays readable in direct sun. The phone goes on sale next month at 799 dollars. The catch: the faster charging only works with Google's own charger, which is sold separately.";
+
+  it("accepts a conversational telling inside the limits", () => {
+    expect(rules("spoken", GOOD)).toEqual([]);
+    expect(countWords(GOOD)).toBeGreaterThanOrEqual(VOICE_LIMITS.spokenMinWords);
+    expect(countSentences(GOOD)).toBeLessThanOrEqual(VOICE_LIMITS.spokenSentences);
+  });
+
+  it("states the limits: 40 to 95 words, 3 to 5 sentences, 700 characters", () => {
+    expect(VOICE_LIMITS.spokenMinWords).toBe(40);
+    expect(VOICE_LIMITS.spokenWords).toBe(95);
+    expect(VOICE_LIMITS.spokenMinSentences).toBe(3);
+    expect(VOICE_LIMITS.spokenSentences).toBe(5);
+    expect(VOICE_LIMITS.spokenChars).toBe(700);
+    const limits = voice.limits.join("\n");
+    expect(limits).toContain("3 to 5 sentences, 40 to 95 words, 700 characters at most");
+  });
+
+  it("flags a telling that is too short or too thin", () => {
+    expect(rules("spoken", "Google has a new Pixel. The screen is brighter.")).toEqual([
+      "too_few_words",
+      "too_few_sentences",
+    ]);
+  });
+
+  it("flags a telling over the word, sentence or character ceiling", () => {
+    const words = Array.from({ length: 96 }, () => "word").join(" ");
+    expect(rules("spoken", `${words}.`)).toContain("too_many_words");
+    const sentences = Array.from({ length: 6 }, () => `${"Word ".repeat(8).trim()}.`).join(" ");
+    expect(rules("spoken", sentences)).toContain("too_many_sentences");
+    const long = `${Array.from({ length: 80 }, () => "wordsmith").join(" ")}.`;
+    expect(rules("spoken", long)).toContain("too_many_characters");
+  });
+
+  it("keeps the shared bans: questions, dashes, hype and exclamations", () => {
+    expect(rules("spoken", `${GOOD} Ready for it?`)).toContain("question");
+    expect(
+      rules("spoken", GOOD.replace("The catch:", `The catch ${String.fromCharCode(0x2014)}`)),
+    ).toContain("dash");
+    expect(rules("spoken", GOOD.replace("new Pixel", "incredible Pixel"))).toContain("banned_word");
+    expect(rules("spoken", GOOD.replace("sun.", "sun!"))).toContain("exclamation");
+  });
+
+  it("keeps the host out of the story: no 'in this story', no 'we' or 'our'", () => {
+    expect(rules("spoken", `In this story, ${GOOD}`)).toContain("spoken_style");
+    expect(rules("spoken", GOOD.replace("Google's own", "our own"))).toContain("spoken_style");
+    expect(rules("spoken", GOOD.replace("It's brighter", "We think it's brighter"))).toContain(
+      "spoken_style",
+    );
+    // Words that merely contain them are fine, and so is the US.
+    expect(rules("spoken", GOOD.replace("Google", "The US arm of Google"))).toEqual([]);
+    expect(
+      rules("summary", "We tried it. Our team liked it. The rest is in the post, long enough."),
+    ).not.toContain("spoken_style");
+  });
+});
+
+describe("the changelog headline warning", () => {
+  const warn = (text: string): string[] => linter.warnings("headline", text).map((w) => w.rule);
+
+  it.each([
+    "Springlet 2.0 released with mid-flight spring retargeting",
+    "Node.js 24.1 launches with permission model and faster startup",
+    "Vite 7.0 adds Rolldown as default bundler",
+    "Tailwind v4 ships a new engine",
+    "React 19.2 added view transitions",
+    "Postgres 18 released",
+  ])("warns about %j", (headline) => {
+    expect(warn(headline)).toEqual(["changelog_headline"]);
+  });
+
+  it.each([
+    "Springlet 2.0 keeps a drawer's speed when it is interrupted mid-flight",
+    "Phone 3 launches with a seven-year update promise",
+    "Sonos will sell replacement batteries for its flagship headphones",
+    "Figma's variables API now handles modes and aliases",
+    "A new paper shows how agents get interrupted",
+    "Apple released the new iPhone with a faster chip",
+  ])("stays quiet about %j", (headline) => {
+    expect(warn(headline)).toEqual([]);
+  });
+
+  it("is a warning, not an error: lint does not report it and only headlines are checked", () => {
+    expect(rules("headline", "Springlet 2.0 released with spring retargeting")).toEqual([]);
+    expect(linter.warnings("summary", "Springlet 2.0 released with spring retargeting")).toEqual(
+      [],
+    );
+    const [found] = linter.warnings("headline", "Springlet 2.0 released with retargeting");
+    expect(found).toMatchObject({ field: "headline", match: "Springlet 2.0 released" });
+  });
+});
+
+describe("the headline examples in config/voice.md", () => {
+  it("has six before and after pairs", () => {
+    expect(voice.headlineExamples).toHaveLength(6);
+  });
+
+  it("passes the lint and the twelve word limit in every strong headline, with no changelog shape", () => {
+    for (const example of voice.headlineExamples) {
+      expect(rules("headline", example.strong), example.strong).toEqual([]);
+      expect(linter.warnings("headline", example.strong), example.strong).toEqual([]);
+      expect(countWords(example.strong)).toBeLessThanOrEqual(VOICE_LIMITS.headlineWords);
+    }
+  });
+
+  it("shows at least three changelog lines that the warning catches", () => {
+    const caught = voice.headlineExamples.filter(
+      (example) => linter.warnings("headline", example.weak).length > 0,
+    );
+    expect(caught.length).toBeGreaterThanOrEqual(3);
+  });
+
+  it("has no colon list or title case in a strong headline", () => {
+    for (const { strong } of voice.headlineExamples) {
+      expect(strong).not.toMatch(/:/);
+      const capitalized = strong.split(" ").filter((word) => /^[A-Z][a-z]+$/.test(word));
+      expect(capitalized.length).toBeLessThan(3);
+    }
   });
 });

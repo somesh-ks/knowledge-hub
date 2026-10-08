@@ -1,6 +1,6 @@
 import { readFileSync } from "node:fs";
 import { join } from "node:path";
-import { CATEGORIES, type CategoryOrNone, itemId } from "@dispatch/core";
+import { CATEGORIES, type CategoryOrNone, itemId, NEVER_PUBLISH } from "@dispatch/core";
 import { describe, expect, it } from "vitest";
 import {
   bestGroundingRow,
@@ -32,8 +32,8 @@ const groundingCases = parseGroundingCases(
 );
 
 describe("the golden set", () => {
-  it("holds about 30 valid items with unique ids derived from their URLs", () => {
-    expect(golden.length).toBeGreaterThanOrEqual(28);
+  it("holds 36 valid items with unique ids derived from their URLs", () => {
+    expect(golden).toHaveLength(36);
     expect(new Set(golden.map((g) => g.id)).size).toBe(golden.length);
     for (const g of golden) expect(g.id).toBe(itemId(g.canonical_url));
   });
@@ -43,11 +43,34 @@ describe("the golden set", () => {
     expect(keep.length).toBeGreaterThanOrEqual(12);
     expect(golden.length - keep.length).toBeGreaterThanOrEqual(12);
     const kept = new Set(keep.map((g) => g.expected.category));
-    for (const category of CATEGORIES.slice(0, 8)) expect(kept.has(category)).toBe(true);
+    const publishable = CATEGORIES.filter((category) => !NEVER_PUBLISH.includes(category));
+    expect(publishable).toHaveLength(9);
+    expect(publishable).toContain("consumer_tech_releases");
+    for (const category of publishable) expect(kept.has(category), category).toBe(true);
+    for (const category of NEVER_PUBLISH) expect(kept.has(category), category).toBe(false);
     const dropped = new Set(golden.filter((g) => !g.expected.keep).map((g) => g.expected.category));
     expect(dropped.has("venture_capital_and_gossip")).toBe(true);
     expect(dropped.has("generic_ai_hype_listicles")).toBe(true);
     expect(dropped.has("none")).toBe(true);
+  });
+
+  it("holds six consumer tech items: three launches to publish and three to drop", () => {
+    const tech = golden.filter((g) => g.expected.category === "consumer_tech_releases");
+    expect(tech).toHaveLength(6);
+    const titles = (keep: boolean): string =>
+      tech
+        .filter((g) => g.expected.keep === keep)
+        .map((g) => g.title)
+        .join("\n");
+    expect(tech.filter((g) => g.expected.keep)).toHaveLength(3);
+    // A flagship phone, a major OS release and a regulation that changes devices.
+    expect(titles(true)).toMatch(/Orbit 12 launches/);
+    expect(titles(true)).toMatch(/Meridian OS 9 is out/);
+    expect(titles(true)).toMatch(/EU rule requiring user-replaceable phone batteries/);
+    // A rumour, a discount deal and a case accessory.
+    expect(titles(false)).toMatch(/Rumour/);
+    expect(titles(false)).toMatch(/record low/);
+    expect(titles(false)).toMatch(/clear case/);
   });
 
   it("never expects a never-publish or unplaceable item to be kept", () => {
@@ -86,7 +109,11 @@ describe("the golden set", () => {
   });
 });
 
-/** A judge that always answers what the golden set expects, with plausible depth. */
+/**
+ * A judge that always answers what the golden set expects, with plausible depth. For a launch it
+ * answers level 3 when the item should publish and level 0 (rumour, deal, accessory) when not,
+ * which is the distinction the launch-scale question exists to draw.
+ */
 function oracleScored(
   entries: readonly GoldenEntry[],
   overrides: Partial<Record<string, CategoryOrNone>> = {},
@@ -94,7 +121,12 @@ function oracleScored(
   const prefs = plainPreferences();
   return entries.map((g) => {
     const category = overrides[g.id] ?? g.expected.category;
-    const entry = makeEntry(g.id, { category, p: 0.9, depth: g.expected.keep ? 0.6 : 0.2 });
+    const entry = makeEntry(g.id, {
+      category,
+      p: 0.9,
+      depth: g.expected.keep ? 0.6 : 0.2,
+      launchScale: g.expected.keep ? 0.75 : 0,
+    });
     return scoreItem(entry, prefs, g);
   });
 }
@@ -105,6 +137,16 @@ describe("scoring against the golden set", () => {
     const confusion = confusionOf(keepDecisions(scored, DEFAULT_SCORE_THRESHOLD), golden);
     expect(confusion.fp + confusion.fn).toBe(0);
     expect(keepMistakes(scored, golden, DEFAULT_SCORE_THRESHOLD)).toEqual([]);
+  });
+
+  it("decides the tech items on launch scale alone: the category is the same for all six", () => {
+    const tech = golden.filter((g) => g.expected.category === "consumer_tech_releases");
+    const scores = new Map(oracleScored(tech).map((s) => [s.item.id, s.score]));
+    for (const g of tech) {
+      // 0.9 x 0.8 x the launch factor: 0.6908 at level 3 and 0.252 at level 0.
+      expect(scores.get(g.id), g.title).toBe(g.expected.keep ? 0.6908 : 0.252);
+    }
+    expect(keepMistakes(oracleScored(tech), tech, DEFAULT_SCORE_THRESHOLD)).toEqual([]);
   });
 
   it("reports a miss when the judge mislabels a kept item as hype", () => {

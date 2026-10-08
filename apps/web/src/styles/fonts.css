@@ -1,50 +1,30 @@
 /*
- * Self-hosted variable fonts, latin subset only (design spec section 3). The two files total about
- * 72 KB, under the 80 KB budget. They were cut from the Fontsource packages with fonttools: the weight
- * axis narrowed to the 400 to 700 the design uses, then subset to basic Latin, Latin-1 and a few
- * punctuation marks:
- *   fonttools varLib.instancer <font>-latin-wght-normal.woff2 wght=400:700 -o <name>.woff2
- *   pyftsubset <name>.woff2 --unicodes="U+0020-007E,U+00A0-00FF,U+2018-201D,U+2022,U+2026,U+2190-2193,U+2212" \
- *     --flavor=woff2 --layout-features="kern,liga,calt,ccmp,locl,mark,mkmk,tnum,lnum,pnum,onum,case,frac" \
- *     --no-hinting --desubroutinize --output-file=<font>-latin-wght-normal.woff2
- * The unicode-range below matches, so a page that stays inside it downloads each file once. Both
- * families are open source under the SIL Open Font License 1.1.
+ * One self-hosted variable font, latin subset only: Google Sans Flex, weight axis, about 51 KB,
+ * under the 80 KB font budget. The file is the stock latin weight-axis build that Fontsource
+ * publishes (google-sans-flex-latin-wght-normal.woff2), unmodified, so the unicode-range below is
+ * the standard Google Fonts latin range. Open source under the SIL Open Font License 1.1.
  *
- * Metric-matched fallbacks stop layout shift while the files load. The values are measured from the
- * font files with @capsizecss/unpack against Arial and Georgia (design spec section 3).
+ * A metric-matched fallback stops layout shift while the file loads. Its values are measured from
+ * the font file against Arial, the same way capsize does it: the ratio of the two fonts'
+ * frequency-weighted average advance widths gives the size adjustment, and the ascent and descent
+ * are then expressed in the adjusted em.
  */
 @font-face {
-  font-family: "Schibsted Grotesk Variable";
+  font-family: "Google Sans Flex Variable";
   font-style: normal;
   font-display: swap;
   font-weight: 400 700;
-  src: url("../assets/fonts/schibsted-grotesk-latin-wght-normal.woff2") format("woff2-variations");
-  unicode-range: U+0020-007E, U+00A0-00FF, U+2018-201D, U+2022, U+2026, U+2190-2193, U+2212;
+  src: url("../assets/fonts/google-sans-flex-latin-wght-normal.woff2") format("woff2-variations");
+  unicode-range:
+    U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA, U+02DC, U+0304, U+0308, U+0329,
+    U+2000-206F, U+20AC, U+2122, U+2191, U+2193, U+2212, U+2215, U+FEFF, U+FFFD;
 }
 
 @font-face {
-  font-family: "Literata Variable";
-  font-style: normal;
-  font-display: swap;
-  font-weight: 400 700;
-  src: url("../assets/fonts/literata-latin-wght-normal.woff2") format("woff2-variations");
-  unicode-range: U+0020-007E, U+00A0-00FF, U+2018-201D, U+2022, U+2026, U+2190-2193, U+2212;
-}
-
-@font-face {
-  font-family: "Schibsted Grotesk Fallback";
+  font-family: "Google Sans Flex Fallback";
   src: local("Arial");
-  size-adjust: 104.49%;
-  ascent-override: 93.46%;
-  descent-override: 24.67%;
-  line-gap-override: 0%;
-}
-
-@font-face {
-  font-family: "Literata Fallback";
-  src: local("Georgia");
-  size-adjust: 107.67%;
-  ascent-override: 109.31%;
-  descent-override: 28.61%;
+  size-adjust: 101.85%;
+  ascent-override: 94.85%;
+  descent-override: 28.08%;
   line-gap-override: 0%;
 }

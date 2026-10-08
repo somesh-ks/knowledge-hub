@@ -52,55 +52,77 @@ export function velocityToProgressPerSecond(pxPerMs: number, travelPx: number): 
 }
 
 export interface ReleaseThresholds {
-  /** Fraction of the sheet's height travelled that counts as a decision. */
+  /** Fraction of the travel, downward, that dismisses on a slow lift. */
   distance: number;
   /** px/ms downward that counts as a flick. */
   velocity: number;
 }
 
 /**
- * Flick down: dismisses when the finger left fast, or when it travelled far and is not moving back
- * up. Release decides, never the move, so a dismissal can be abandoned by lifting early.
+ * Travel inside this box is a tap, however fast it was. Fingers drift and thumbs drift more: an
+ * 8 px slop swallowed real taps as cancelled swipes.
  */
-export function shouldDismissOnRelease(
-  travelledFraction: number,
-  velocityPxPerMs: number,
-  thresholds: ReleaseThresholds,
-  cancelled: boolean,
-): boolean {
-  if (cancelled) return false;
-  if (velocityPxPerMs > thresholds.velocity) return true;
-  return travelledFraction > thresholds.distance && velocityPxPerMs > -0.1;
-}
+export const TAP_SLOP_PX = 12;
+/** A press held longer than this is not a tap. The browser's own click decides what it was. */
+export const TAP_MAX_MS = 500;
 
-/** Swipe up on the mini player: a flick up, or past the distance threshold. */
-export function shouldOpenOnRelease(
-  progress: number,
-  velocityPxPerMs: number,
-  thresholds: ReleaseThresholds,
-  cancelled: boolean,
-): boolean {
-  if (cancelled) return false;
-  return velocityPxPerMs < -0.4 || progress > thresholds.distance;
+/** `reachPx` is the furthest the pointer got from where it went down, on either axis. */
+export function isTap(reachPx: number, durationMs: number): boolean {
+  return reachPx <= TAP_SLOP_PX && durationMs <= TAP_MAX_MS;
 }
 
 /**
- * The finger travels less than the sheet: the whole height opens over three quarters of the
- * finger's travel, so the gesture feels eager without the sheet outrunning the touch.
+ * Opening asks for less than closing. A pull up the whole screen is a long way, and opening by
+ * mistake costs nothing; closing by mistake takes the player away.
  */
-export const OPEN_GESTURE_AMPLIFICATION = 0.75;
+export const OPEN_DISTANCE = 0.25;
+/** px/ms upward that counts as a flick open. */
+export const OPEN_VELOCITY = 0.4;
+/** A finger still moving back at this speed has changed its mind. */
+const REVERSING_VELOCITY = 0.1;
 
-export function openProgressFromDrag(dragUpPx: number, sheetHeightPx: number): number {
-  if (sheetHeightPx <= 0) return 0;
-  return clamp(dragUpPx / (sheetHeightPx * OPEN_GESTURE_AMPLIFICATION), 0, 1);
+export interface ReleaseInput {
+  /** This gesture's own travel since it took hold, in px. Positive is downward. */
+  travelPx: number;
+  /** px/ms at the lift. Positive is downward. */
+  velocityPxPerMs: number;
+  /** Pixels between collapsed and expanded. */
+  distancePx: number;
+  /** Whether the page was committed open when the gesture took hold. */
+  originOpen: boolean;
+  /** The system ended the gesture: a cancel, or capture lost without a lift. */
+  cancelled: boolean;
 }
 
-/** Dismiss drag follows the finger 1:1 and stops at fully open; it never pulls the sheet upward. */
-export function dismissProgressFromDrag(
+/**
+ * Where a lift sends the page: 1 to expanded, 0 to collapsed. The decision reads only what this
+ * gesture did. How far up the page happens to be is not part of it, so catching a rising page
+ * can never read as "dragged most of the way down".
+ *
+ * A flick wins. Otherwise far enough travel wins, unless the finger was coming back. Otherwise the
+ * page returns to where it was headed before the finger arrived.
+ */
+export function decideRelease(input: ReleaseInput, thresholds: ReleaseThresholds): 0 | 1 {
+  const origin = input.originOpen ? 1 : 0;
+  if (input.cancelled || input.distancePx <= 0) return origin;
+  const velocity = input.velocityPxPerMs;
+  if (velocity > thresholds.velocity) return 0;
+  if (velocity < -OPEN_VELOCITY) return 1;
+  const fraction = input.travelPx / input.distancePx;
+  if (fraction > thresholds.distance && velocity > -REVERSING_VELOCITY) return 0;
+  if (fraction < -OPEN_DISTANCE && velocity < REVERSING_VELOCITY) return 1;
+  return origin;
+}
+
+/**
+ * The page follows the finger one to one, from the value it had when the finger took hold, and
+ * stops at both ends: it is never pulled above fully open or below the bar.
+ */
+export function progressFromDrag(
   startProgress: number,
-  dragDownPx: number,
-  sheetHeightPx: number,
+  travelPx: number,
+  distancePx: number,
 ): number {
-  if (sheetHeightPx <= 0) return startProgress;
-  return clamp(startProgress - dragDownPx / sheetHeightPx, 0, 1);
+  if (distancePx <= 0) return startProgress;
+  return clamp(startProgress - travelPx / distancePx, 0, 1);
 }
