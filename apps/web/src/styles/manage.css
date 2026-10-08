@@ -86,6 +86,24 @@
   line-height: var(--font-leading-label);
 }
 
+/* A message beside the field it is about: an icon and the danger colour, so colour is not alone. */
+.manage-error {
+  display: flex;
+  align-items: flex-start;
+  gap: var(--space-2);
+  margin: 0;
+  color: var(--color-danger);
+  font-size: var(--font-size-meta);
+  font-weight: var(--font-weight-medium);
+}
+
+.manage-error .icon {
+  flex: none;
+  width: var(--space-4);
+  height: var(--space-4);
+  margin-block-start: 0.125rem;
+}
+
 .manage-input {
   width: 100%;
   min-height: var(--field-height);

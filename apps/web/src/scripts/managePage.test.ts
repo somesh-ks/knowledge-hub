@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import type { ConfigOp } from "../types/contracts";
-import { slugify, webAddress } from "./managePage";
+import { idText, slugify, webAddress } from "./managePage";
 import { buildQueue, failureText, type Pending } from "./managePageSave";
 
 describe("slugify", () => {
@@ -24,6 +24,15 @@ describe("slugify", () => {
     expect(slugify("Motion craft", ["motion-craft"])).toBe("motion-craft-2");
     expect(slugify("Motion craft", ["motion-craft", "motion-craft-2"])).toBe("motion-craft-3");
     expect(slugify("x".repeat(80), ["x".repeat(36)])).toHaveLength(38);
+  });
+});
+
+describe("idText", () => {
+  it("is empty for a name with no letters or digits, so it can be refused", () => {
+    for (const name of ["", "   ", "\u{1F525}", "---", "日本語", "a"]) {
+      expect(idText(name).length).toBeLessThan(2);
+    }
+    expect(idText("AI")).toBe("ai");
   });
 });
 
