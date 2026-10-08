@@ -21,8 +21,11 @@
   position: absolute;
   z-index: -1;
   inset-block: calc(var(--space-8) * -1) 0;
-  /* Past the column into the empty page, never as far as the side navigation. */
-  inset-inline: calc(var(--space-12) * -1);
+  /* Past the column into the page's own gutter and no further. The gutter is all the room a phone
+     has: a layer wider than the screen would make the whole page scroll sideways and stretch the
+     navigation with it, so the reach is capped by the gutter on each side, not by a fixed length. */
+  inset-inline: calc(min(var(--space-12), var(--page-gutter-start)) * -1)
+    calc(min(var(--space-12), var(--page-gutter-end)) * -1);
   opacity: var(--ambient-tint);
   pointer-events: none;
   /* Strongest at the cover's edge, zero before the bottom and the far edge: no line anywhere. */

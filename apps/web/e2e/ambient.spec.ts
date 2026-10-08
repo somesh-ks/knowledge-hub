@@ -118,16 +118,38 @@ test.describe("ambient light", () => {
     expect(await draws(page)).toBe(c);
   });
 
-  test("leaves exactly one canvas and no errors across client navigations", async ({
-    page,
-    problems,
-  }) => {
+  // The layer reaches into the page's gutter. Reaching past it once made Today 422px wide on a
+  // 390px phone: the page scrolled sideways, the bottom navigation stretched off the screen and
+  // could not be tapped, and every move away from Today aborted its transition with "Viewport size
+  // changed". A decorative layer must never change how wide a page is.
+  for (const path of ["/", EPISODE]) {
+    test(`never makes ${path} wider than the screen`, async ({ page }) => {
+      await page.goto(path);
+      await expect(page.locator(".ambient")).toHaveCount(1);
+      const width = page.viewportSize()?.width ?? 0;
+      const measured = await page.evaluate(() => {
+        const layer = document.querySelector(".ambient")?.getBoundingClientRect();
+        return {
+          inner: window.innerWidth,
+          client: document.documentElement.clientWidth,
+          scroll: document.documentElement.scrollWidth,
+          layerLeft: Math.floor(layer?.left ?? 0),
+          layerRight: Math.ceil(layer?.right ?? 0),
+        };
+      });
+      expect(measured.inner).toBe(width);
+      expect(measured.scroll).toBeLessThanOrEqual(measured.client);
+      expect(measured.layerLeft).toBeGreaterThanOrEqual(0);
+      expect(measured.layerRight).toBeLessThanOrEqual(measured.client);
+    });
+  }
+
+  test("leaves exactly one canvas and no errors across client navigations", async ({ page }) => {
     await page.goto("/");
     await expect(page.locator(".ambient")).toHaveCount(1);
-    // A script click goes through the router like a tap would; the phone emulation parks the fixed
-    // bar below the visible area, where a pointer click would hit the page behind it.
-    const nav = (name: string) =>
-      page.locator(".app-nav-item", { hasText: name }).evaluate((a) => (a as HTMLElement).click());
+    // A real press on the navigation, as a person makes it, and no error is excused: the fixture
+    // fails this test on any page error.
+    const nav = (name: string) => page.locator(".app-nav-item", { hasText: name }).click();
     for (let i = 0; i < 3; i += 1) {
       await nav("Library");
       await expect(page.locator(".ambient")).toHaveCount(0);
@@ -135,8 +157,5 @@ test.describe("ambient light", () => {
       await expect(page.locator(".ambient")).toHaveCount(1);
       await expect(page.locator("canvas.ambient-canvas")).toHaveCount(1);
     }
-    // The phone emulation resizes the viewport mid-transition on any page pair, ambient or not
-    // (Library to Settings does it too); that browser message is not this feature.
-    problems.messages = problems.messages.filter((m) => !/Viewport size changed/.test(m));
   });
 });
