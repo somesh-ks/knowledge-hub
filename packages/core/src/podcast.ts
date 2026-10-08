@@ -16,6 +16,7 @@ export const PODCAST_LENGTHS = [3, 5, 10, 15] as const;
 export const PODCAST_FORMATS = ["readout", "discussion", "headlines"] as const;
 export const PODCAST_WINDOWS = [2, 7, 30] as const;
 export const PODCAST_TONES = ["neutral", "energetic", "dry"] as const;
+export const PODCAST_AUDIENCES = ["general", "custom"] as const;
 
 /** What the listener asks for. Validated again by the engine, so a hand-edited request fails clearly. */
 export const PodcastRequest = z.object({
@@ -26,6 +27,12 @@ export const PodcastRequest = z.object({
   window_days: z.union([z.literal(2), z.literal(7), z.literal(30)]),
   tone: z.enum(PODCAST_TONES),
   title: z.string().min(1).max(80).optional(),
+  /**
+   * Who the script is written for. "general" explains a term the first time it is used and leaves
+   * out insider shorthand; "custom" is written for the owner, a design engineer. Absent means
+   * "custom", so a request made before the field existed reads as it always did.
+   */
+  audience: z.enum(PODCAST_AUDIENCES).optional(),
 });
 export type PodcastRequest = z.infer<typeof PodcastRequest>;
 

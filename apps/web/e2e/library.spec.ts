@@ -69,7 +69,7 @@ test.describe("the library", () => {
       page.getByRole("searchbox", { name: "Search briefings, episodes and stories" }),
     ).toBeVisible();
     const chips = page.locator("[data-library-filter]");
-    await expect(chips).toHaveText(["All", "Daily", "Weekly", "Episodes", "With audio"]);
+    await expect(chips).toHaveText(["All", "Daily", "Weekly", "Custom"]);
     await expect(chips.first()).toHaveAttribute("aria-pressed", "true");
     const sort = page.getByRole("combobox", { name: "Sort" });
     await expect(sort.locator("option")).toHaveText([
@@ -220,16 +220,12 @@ test.describe("library filters and order", () => {
     expect(await titles(page)).toEqual(["Wednesday 7 October", "Monday 5 October"]);
     await narrowedTo(page, 2, 5);
 
-    // Episodes are a kind of their own: only they show, and the status counts them.
-    await filter(page, "Episodes").click();
-    await onlyPressed("Episodes");
+    // Custom is what was made on request: only that shows, and the status counts it.
+    await filter(page, "Custom").click();
+    await onlyPressed("Custom");
     expect(await titles(page)).toEqual([DISCUSSION, HEADLINES]);
     await expect(page.locator("[data-card][data-kind='episode']:not([hidden])")).toHaveCount(2);
     await narrowedTo(page, 2, 5);
-
-    await filter(page, "With audio").click();
-    await onlyPressed("With audio");
-    expect(await titles(page)).toEqual(["Wednesday 7 October"]);
 
     await filter(page, "All").click();
     await onlyPressed("All");
@@ -244,9 +240,11 @@ test.describe("library filters and order", () => {
     expect(await titles(page)).toEqual(["Wednesday 7 October", "Sunday 4 October"]);
     await filter(page, "Weekly").click();
     expect(await titles(page)).toEqual(["Sunday 4 October"]);
-    await filter(page, "With audio").click();
+    await filter(page, "Daily").click();
     expect(await titles(page)).toEqual(["Wednesday 7 October"]);
-    await page.getByRole("searchbox").fill("gridwork");
+    // A word only the weekly briefing has, while the filter keeps the weekly out.
+    await filter(page, "Custom").click();
+    await page.getByRole("searchbox").fill("dither");
     await expect(page.locator("[data-card]:not([hidden])")).toHaveCount(0);
     await expect(page.getByRole("status")).toHaveText("No results");
     await expect(page.locator("[data-library-empty]")).toBeVisible();
@@ -286,10 +284,10 @@ test.describe("library filters and order", () => {
 });
 
 test.describe("library episodes", () => {
-  test("the Episodes chip shows only episodes, newest first", async ({ page }) => {
+  test("the Custom chip shows only what was made on request, newest first", async ({ page }) => {
     await page.goto("/library");
     await ready(page);
-    await filter(page, "Episodes").click();
+    await filter(page, "Custom").click();
     expect(await titles(page)).toEqual([DISCUSSION, HEADLINES]);
     await expect(page.locator("[data-card]:not([hidden])")).toHaveCount(2);
     await expect(page.locator("[data-card][data-kind='episode']:not([hidden])")).toHaveCount(2);
@@ -297,10 +295,17 @@ test.describe("library episodes", () => {
       "Discussion, 5 min",
       "Headlines, 3 min",
     ]);
-    // An episode has no recording until someone presses play, so audio never includes one.
-    await filter(page, "With audio").click();
-    expect(await titles(page)).not.toContain(DISCUSSION);
-    expect(await titles(page)).not.toContain(HEADLINES);
+    // A long title is cut at two lines, so one card never stands taller than its neighbours by much.
+    const lines = await page
+      .locator("[data-card]:not([hidden]) .card-title")
+      .evaluateAll((nodes) =>
+        nodes.map(
+          (node) =>
+            node.getBoundingClientRect().height /
+            Number.parseFloat(getComputedStyle(node).lineHeight),
+        ),
+      );
+    for (const count of lines) expect(count).toBeLessThanOrEqual(2.1);
   });
 
   test("the Daily chip leaves episodes and the weekly out", async ({ page }) => {

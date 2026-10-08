@@ -29,7 +29,7 @@ The briefing is filtered by a taste model the owner tunes in one sentence, never
 ## Capabilities and Constraints
 
 - Static Astro site with React islands; two on-demand functions. Digests are Markdown files with frontmatter under `Digests/`.
-- Sections, in order, omitted when empty: Top picks, Interaction craft, AI models and products, Tech releases, Research, Launches, Watch and listen.
+- Sections, in order, omitted when empty: Top picks, Design, Design Engineering, AI Products, Tech Product Launches, Trending. Research, Launches and Watch and listen no longer receive stories; briefings published earlier keep them.
 - One recording per briefing with a start time per story, so any story can be played directly.
 - Audio is being moved from narrated-after-every-run to narrated-on-first-play. Undecided: who may trigger that first narration once readers other than the owner exist. Until decided, the passphrase gates it.
 - Self-hosted fonts and assets only (strict content security policy). First-load JavaScript stays under 100 KB gzipped per page.

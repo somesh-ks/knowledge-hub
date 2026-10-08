@@ -8,6 +8,7 @@ import {
   homeSectionFor,
   type Item,
   isBuiltinCategory,
+  isRetiredSection,
   NEVER_PUBLISH,
   type Source,
   TECH_SECTION,
@@ -258,7 +259,13 @@ export function validateDigest(input: unknown, context: ValidateContext): Valida
           : `A story from ${titles.get(home) ?? home} cannot be a Top pick; it belongs in its own section.`,
         item.id,
       );
-    } else if (home !== undefined && item.section !== "top" && item.section !== home) {
+    } else if (
+      home !== undefined &&
+      item.section !== "top" &&
+      item.section !== home &&
+      // A briefing published before the sections were retitled keeps the section it was filed in.
+      !isRetiredSection(item.section)
+    ) {
       add(
         "error",
         "section_mismatch",

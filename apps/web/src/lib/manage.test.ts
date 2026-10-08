@@ -11,7 +11,6 @@ import {
   humanize,
   loadManage,
   parseTopicsFile,
-  pickDefaultSection,
   qualityInWords,
   recordInWords,
   stepToWeight,
@@ -141,7 +140,7 @@ describe("parseTopicsFile", () => {
   const file = {
     version: 1,
     sections: [
-      { id: "tech", title: "Tech releases", order: 2 },
+      { id: "tech", title: "Tech Product Launches", order: 2 },
       { id: "top", title: "Top picks", order: 0 },
     ],
     topics: [
@@ -190,24 +189,6 @@ describe("parseTopicsFile", () => {
     expect(parseTopicsFile(null)).toBeNull();
     expect(parseTopicsFile({ topics: "no" })).toBeNull();
     expect(parseTopicsFile({ topics: [{ id: "x" }] })).toBeNull();
-  });
-});
-
-describe("pickDefaultSection", () => {
-  it("prefers Tech releases, then the last section", () => {
-    expect(
-      pickDefaultSection([
-        { id: "top", title: "Top", order: 0 },
-        { id: "tech", title: "Tech", order: 1 },
-        { id: "watch", title: "Watch", order: 2 },
-      ]),
-    ).toBe("tech");
-    expect(
-      pickDefaultSection([
-        { id: "top", title: "Top", order: 0 },
-        { id: "watch", title: "Watch", order: 1 },
-      ]),
-    ).toBe("watch");
   });
 });
 
@@ -355,7 +336,6 @@ describe("loadManage", () => {
     expect(data.topics).toHaveLength(CATEGORIES.length);
     expect(data.topics[0]).toMatchObject({ id: "design_engineering_craft", step: 1 });
     expect(data.sections.length).toBeGreaterThan(0);
-    expect(data.defaultSectionId).toBe("tech");
     expect(data.sources.map((source) => source.id)).toEqual(["one"]);
     expect(data.candidates).toEqual([]);
   });
@@ -375,7 +355,7 @@ describe("loadManage", () => {
     const root = await repo({
       "config/topics.json": {
         version: 1,
-        sections: [{ id: "tech", title: "Tech releases", order: 0 }],
+        sections: [{ id: "tech", title: "Tech Product Launches", order: 0 }],
         topics: [{ id: "mine", name: "Mine", description: "Mine.", weight: 1, origin: "custom" }],
       },
       "config/sources.json": { sources: [{ id: "one", name: "One", url: "https://one.example/" }] },

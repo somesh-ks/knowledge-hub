@@ -52,10 +52,25 @@ async function loadDigests(root: string, from: Date, now: Date, log?: Logger): P
   return digests;
 }
 
+/** The section id of Top picks. It is never a choice: every episode carries the window's top picks. */
+export const TOP_SECTION = "top";
+
 /**
- * Pick the stories for an episode from published digests, with no fetching and no judging. A story
- * matches when its section or its category is one of the requested topics. Newest digest first,
- * best score first inside a digest, one story per URL, trimmed to what the budget can carry.
+ * Whether a story belongs in an episode. A story matches when its section or its category is one
+ * of the requested topics, and a Top pick always matches (D39): it is the best of any topic in the
+ * window, whatever the listener chose.
+ */
+export function matchesRequest(
+  item: { section: string; category: string },
+  topicIds: ReadonlySet<string>,
+): boolean {
+  return item.section === TOP_SECTION || topicIds.has(item.section) || topicIds.has(item.category);
+}
+
+/**
+ * Pick the stories for an episode from published digests, with no fetching and no judging. See
+ * `matchesRequest` for what matches. Newest digest first, best score first inside a digest, one
+ * story per URL, trimmed to what the budget can carry.
  */
 export async function selectStories(
   root: string,
@@ -74,7 +89,7 @@ export async function selectStories(
   for (const digest of digests) {
     const items = [...digest.items].sort((a, b) => b.score - a.score);
     for (const item of items) {
-      if (!topics.has(item.section) && !topics.has(item.category)) continue;
+      if (!matchesRequest(item, topics)) continue;
       const key = urlKey(item.url);
       if (seen.has(key)) continue;
       seen.add(key);

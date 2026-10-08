@@ -1,5 +1,5 @@
 import type { Item, SeenFile, Source } from "@dispatch/core";
-import { categoryHint, isTechHinted } from "../sources/hint.js";
+import { categoryHint, isTechHinted, isTrendingHinted } from "../sources/hint.js";
 import { clusterStories } from "./storyCluster.js";
 import { jaccard, MIN_TOKENS, titleTokens } from "./titleTokens.js";
 
@@ -19,7 +19,10 @@ export interface DedupeReport {
   same_url: number;
   newsletter_collapsed: number;
   near_duplicate: number;
-  /** Consumer tech items absorbed because another source reported the same launch. */
+  /**
+   * Items absorbed because another source reported the same story: the same launch in the
+   * consumer tech beat, or the same news story among the Trending outlets.
+   */
   story_clustered: number;
   output: number;
 }
@@ -196,7 +199,12 @@ export function dedupe({ items, sources, seen }: DedupeInput): DedupeResult {
 
   // 4. Near-duplicate titles across different sources. Best item first so it is the one kept.
   const isTech = (item: Item): boolean => isTechHinted(item, sourceById.get(item.source_id));
-  // The other sources behind a kept tech item, so a twin merged here still counts as coverage.
+  const isTrending = (item: Item): boolean =>
+    isTrendingHinted(item, sourceById.get(item.source_id));
+  // The other sources behind a kept tech or Trending item, so a twin merged here still counts as
+  // coverage. A Trending story is only ever merged with another outlet's Trending story, so a
+  // general news copy never disappears into an item of another beat.
+
   const outlets = new Map<string, Set<string>>();
   const ranked = [...merged].sort((a, b) => compareQuality(a, b, sourceById));
   const kept: { item: Item; tokens: Set<string> }[] = [];
@@ -207,12 +215,13 @@ export function dedupe({ items, sources, seen }: DedupeInput): DedupeResult {
       ? kept.find(
           (entry) =>
             entry.item.source_id !== item.source_id &&
+            isTrending(entry.item) === isTrending(item) &&
             entry.tokens.size >= MIN_TOKENS &&
             jaccard(tokens, entry.tokens) >= NEAR_DUPLICATE_THRESHOLD,
         )
       : undefined;
     if (twin) {
-      if (isTech(twin.item) && isTech(item)) {
+      if ((isTech(twin.item) && isTech(item)) || (isTrending(twin.item) && isTrending(item))) {
         const sources = outlets.get(twin.item.id) ?? new Set<string>();
         sources.add(item.source_id);
         outlets.set(twin.item.id, sources);
@@ -232,9 +241,18 @@ export function dedupe({ items, sources, seen }: DedupeInput): DedupeResult {
     absorb: merge,
     outlets,
   });
-  report.story_clustered = clustered.merged;
+  // 6. The same news story at several outlets (D40), by the news vocabulary and a 48 hour window.
+  const trending = clusterStories({
+    profile: "news",
+    items: clustered.items,
+    eligible: isTrending,
+    compare: (a, b) => compareQuality(a, b, sourceById),
+    absorb: merge,
+    outlets,
+  });
+  report.story_clustered = clustered.merged + trending.merged;
 
-  const output = clustered.items.sort(byRecency);
+  const output = trending.items.sort(byRecency);
   report.output = output.length;
   return { items: output, report };
 }

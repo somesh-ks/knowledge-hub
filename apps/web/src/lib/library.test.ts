@@ -58,22 +58,20 @@ describe("matchesFilter", () => {
   it("separates weekly briefings from the rest", () => {
     expect(matchesFilter(card({ kind: "weekly" }), "weekly")).toBe(true);
     expect(matchesFilter(card({ kind: "weekly" }), "daily")).toBe(false);
-    expect(matchesFilter(card({ kind: "on-demand" }), "daily")).toBe(true);
+    expect(matchesFilter(card({ kind: "regular" }), "daily")).toBe(true);
   });
 
-  it("keeps podcast episodes out of the daily briefings and in their own filter", () => {
+  it("puts everything made on request under Custom: episodes and generated briefings", () => {
     const episode = card({ kind: "episode", hasAudio: false });
-    expect(matchesFilter(episode, "episodes")).toBe(true);
-    expect(matchesFilter(episode, "daily")).toBe(false);
-    expect(matchesFilter(episode, "weekly")).toBe(false);
-    expect(matchesFilter(episode, "all")).toBe(true);
-    expect(matchesFilter(card(), "episodes")).toBe(false);
-    expect(matchesFilter(card({ kind: "weekly" }), "episodes")).toBe(false);
-  });
-
-  it("keeps only briefings with audio when asked", () => {
-    expect(matchesFilter(card({ hasAudio: false }), "audio")).toBe(false);
-    expect(matchesFilter(card({ hasAudio: false }), "all")).toBe(true);
+    const generated = card({ kind: "on-demand" });
+    for (const made of [episode, generated]) {
+      expect(matchesFilter(made, "custom")).toBe(true);
+      expect(matchesFilter(made, "daily")).toBe(false);
+      expect(matchesFilter(made, "weekly")).toBe(false);
+      expect(matchesFilter(made, "all")).toBe(true);
+    }
+    expect(matchesFilter(card(), "custom")).toBe(false);
+    expect(matchesFilter(card({ kind: "weekly" }), "custom")).toBe(false);
   });
 });
 

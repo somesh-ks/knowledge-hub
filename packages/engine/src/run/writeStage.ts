@@ -1,4 +1,4 @@
-import { activeCustomTopics, type Item, type Preferences, VOICE_LIMITS } from "@dispatch/core";
+import { activeFitTopics, type Item, type Preferences, VOICE_LIMITS } from "@dispatch/core";
 import type { ApiRuntime } from "../curate/apiRuntime.js";
 import { loadPool, loadPreferences, loadSources, sourceNameMap } from "../curate/inputs.js";
 import { writeJson } from "../curate/output.js";
@@ -32,7 +32,7 @@ interface PassContext {
   preferences: Preferences;
   sourceNames: Record<string, string>;
   /** Enabled custom topics, scored against the fits the judge stage recorded. */
-  customTopics: ReturnType<typeof activeCustomTopics>;
+  customTopics: ReturnType<typeof activeFitTopics>;
 }
 
 /**
@@ -56,7 +56,7 @@ export async function writeStage(deps: RunDeps, plan: Plan): Promise<StageReport
     linter,
     preferences,
     sourceNames: sourceNameMap(sources),
-    customTopics: activeCustomTopics(topics),
+    customTopics: activeFitTopics(topics),
   };
 
   const claimed = new Set<string>();

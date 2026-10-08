@@ -2,6 +2,7 @@ import { del, head, put } from "@vercel/blob";
 import type { APIRoute } from "astro";
 import { passphraseCheck } from "../../server/access";
 import { createVercelBlobStore } from "../../server/blobStore";
+import { withSecondVoice } from "../../server/config";
 import { bundledDigests } from "../../server/digestSource";
 import { bundledEpisodes } from "../../server/episodeSource";
 import { MAX_BODY_CHARS } from "../../server/generate";
@@ -21,7 +22,12 @@ export const GET: APIRoute = async ({ url }) =>
   toResponse(
     await handleNarrationLookup(
       { digest: url.searchParams.get("digest"), params: [...url.searchParams.keys()] },
-      { env: process.env, digests: bundledDigests, episodes: bundledEpisodes, log },
+      {
+        env: withSecondVoice(process.env),
+        digests: bundledDigests,
+        episodes: bundledEpisodes,
+        log,
+      },
     ),
   );
 
@@ -36,7 +42,7 @@ export const POST: APIRoute = async ({ request, url }) => {
       requestOidcToken: () => request.headers.get(OIDC_HEADER),
     },
     {
-      env: process.env,
+      env: withSecondVoice(process.env),
       // The store's files are read by URL with the plain fetch; everything else goes through the SDK.
       openBlob: (credentials) => createVercelBlobStore(credentials, { head, put, del }, fetch),
       digests: bundledDigests,

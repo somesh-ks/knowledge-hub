@@ -158,6 +158,9 @@ const quietLine = (host: string, record: string | null, struggling: boolean): st
           candidates.length > 0 && (
             <section data-section-of="suggested">
               <h2 class="section-head">Suggested</h2>
+              <p class="manage-note manage-below">
+                Found for your topics. Nothing here is added until you press Add and save.
+              </p>
               <ul class="rows" role="list">
                 {candidates.map((candidate) => (
                   <li

@@ -1,4 +1,4 @@
-import type { Item } from "@dispatch/core";
+import { type Item, TRENDING_WINDOW_HOURS } from "@dispatch/core";
 
 /**
  * Story clustering for the consumer tech beat. Several outlets cover one launch under headlines
@@ -14,6 +14,12 @@ import type { Item } from "@dispatch/core";
  * The word list and the thresholds were tuned on headline sets in the tests. They are heuristics:
  * two stories about one product inside the window can still merge (a launch and its teardown),
  * which costs the digest nothing, and two products are kept apart by their model tokens.
+ *
+ * The same clustering serves Trending (D40) through the "news" profile: general news has no
+ * product or model tokens, so a headline is reduced to its names, numbers and content words, a
+ * name or number counts double, and a pair must share a name or number. The window is 48 hours
+ * and the number of different outlets is the coverage that ranks the story. Only the vocabulary
+ * and the thresholds differ; the clustering loop is shared.
  */
 
 /** Stories published further apart than this are not the same launch. */
@@ -32,6 +38,15 @@ export const MIN_PRODUCT_TOKENS = 2;
 const MODEL_TOKEN_WEIGHT = 2;
 
 const HOUR_MS = 3_600_000;
+
+/** Stories published further apart than this are not the same news story. */
+export const NEWS_WINDOW_HOURS = TRENDING_WINDOW_HOURS;
+
+/** Weighted Jaccard similarity of two headlines' news tokens at which they are one story. */
+export const NEWS_CLUSTER_THRESHOLD = 0.4;
+
+/** A pair of news headlines must share this many tokens, one of them a name or a number. */
+export const NEWS_MIN_SHARED = 2;
 
 /**
  * Words that say a launch happened, or pad a headline, without saying which product it was.
@@ -185,7 +200,122 @@ export function isSameStory(
   return similarity >= (sharesModel(a, b) ? threshold - SHARED_MODEL_ALLOWANCE : threshold);
 }
 
+/**
+ * Words that carry no story in a news headline: function words, reporting verbs and the labels
+ * outlets put on a piece ("live", "analysis"). Verbs like "signs" or "hits" are listed because two
+ * unrelated stories share them far more often than two reports of one story depend on them.
+ */
+const NEWS_FILLER: ReadonlySet<string> = new Set(
+  [
+    "a an the and or but nor of to in on at by for from with without within as is are was were be",
+    "been being it its this that these those their his her you your we our us i my they them he she",
+    "not no yes than then so if up out off over under into onto about after before during while",
+    "more most less least all any some each every both just still now here there also too very",
+    "can could will would may might should must has have had do does did get gets got getting",
+    "go goes going went come comes coming came make makes made making via per vs versus amid again",
+    "once ever never yet already almost nearly much many few lot what how why when where who which",
+    "whose thing things way ways",
+    "say says said saying tell tells told reportedly report reports reported",
+    "new newest latest breaking live update updates updated news today tonight tomorrow yesterday",
+    "week weeks month months year years day days time watch video videos photos photo opinion",
+    "analysis explained explainer know need needs want wants look looks see sees show shows",
+    "sign signs signed call calls called urge urges urged warn warns warned vow vows plan plans",
+    "planned hit hits seek seeks sought face faces faced take takes took lead leads set sets",
+    "announce announces announced unveil unveils reveal reveals revealed",
+    "first last next big major top key",
+  ]
+    .join(" ")
+    .split(" "),
+);
+
+const NEWS_EDGES = /^[^\p{L}\p{N}]+|[^\p{L}\p{N}]+$/gu;
+
+/** "kills", "killed" and "killing" are one word to a reader; a crude stem makes them one token. */
+function newsStem(word: string): string {
+  if (word.length < 5) return word;
+  const stripped = word.replace(/(?:ing|ed|es|s)$/, "");
+  return stripped.length >= 3 ? stripped.replace(/e$/, "") : word;
+}
+
+/**
+ * The tokens of a news headline with their weights. A name (a capitalized word that does not open
+ * the headline, or an acronym) and a number weigh 2; every other content word weighs 1. Filler,
+ * years and punctuation drop out. The key is lowercase and lightly stemmed, so "Trump" at the
+ * start of one headline matches "Trump" in the middle of another.
+ */
+export function newsTokens(title: string): Map<string, number> {
+  const tokens = new Map<string, number>();
+  const words = title.replace(/[\u2018\u2019]/g, "'").split(/\s+/);
+  for (const [index, raw] of words.entries()) {
+    const word = raw.replace(NEWS_EDGES, "").replace(/'s$/i, "").replace(NEWS_EDGES, "");
+    if (word === "") continue;
+    const lower = word.toLowerCase();
+    if (NEWS_FILLER.has(lower) || YEAR.test(lower)) continue;
+    const acronym = word.length >= 2 && word === word.toUpperCase() && /\p{L}/u.test(word);
+    const heavy = acronym || (index > 0 && /^\p{Lu}/u.test(word)) || HAS_DIGIT.test(lower);
+    const key = heavy ? lower : newsStem(lower);
+    tokens.set(key, Math.max(tokens.get(key) ?? 0, heavy ? MODEL_TOKEN_WEIGHT : 1));
+  }
+  return tokens;
+}
+
+/**
+ * Whether two news headlines report one story: they share at least two tokens, one of them a name
+ * or a number, and the shared weight is at least the threshold of the combined weight.
+ */
+export function isSameNewsStory(
+  a: ReadonlyMap<string, number>,
+  b: ReadonlyMap<string, number>,
+  threshold: number = NEWS_CLUSTER_THRESHOLD,
+): boolean {
+  if (a.size < NEWS_MIN_SHARED || b.size < NEWS_MIN_SHARED) return false;
+  let sharedCount = 0;
+  let sharedHeavy = false;
+  let shared = 0;
+  let total = 0;
+  for (const [token, weight] of a) {
+    const other = b.get(token);
+    if (other === undefined) {
+      total += weight;
+      continue;
+    }
+    const w = Math.max(weight, other);
+    total += w;
+    shared += w;
+    sharedCount += 1;
+    if (w >= MODEL_TOKEN_WEIGHT) sharedHeavy = true;
+  }
+  for (const [token, weight] of b) if (!a.has(token)) total += weight;
+  if (sharedCount < NEWS_MIN_SHARED || !sharedHeavy) return false;
+  return shared / total >= threshold;
+}
+
+/** How a vocabulary reduces a headline and decides two headlines are one story. */
+interface Profile {
+  tokens(title: string): ReadonlyMap<string, number>;
+  same(a: ReadonlyMap<string, number>, b: ReadonlyMap<string, number>, threshold: number): boolean;
+  threshold: number;
+  windowHours: number;
+}
+
+const PROFILES: Record<"product" | "news", Profile> = {
+  product: {
+    tokens: (title) => new Map([...productTokens(title)].map((token) => [token, weightOf(token)])),
+    same: (a, b, threshold) => isSameStory(new Set(a.keys()), new Set(b.keys()), threshold),
+    threshold: STORY_CLUSTER_THRESHOLD,
+    windowHours: STORY_WINDOW_HOURS,
+  },
+  news: {
+    tokens: newsTokens,
+    same: isSameNewsStory,
+    threshold: NEWS_CLUSTER_THRESHOLD,
+    windowHours: NEWS_WINDOW_HOURS,
+  },
+};
+
 export interface ClusterInput {
+  /** Which vocabulary to cluster with. "product" (the default) is the consumer tech beat. */
+  profile?: "product" | "news";
   items: readonly Item[];
   /** Only these items are clustered. Everything else passes through untouched. */
   eligible: (item: Item) => boolean;
@@ -211,7 +341,7 @@ export interface ClusterResult {
 
 interface Cluster {
   leader: Item;
-  tokens: Set<string>;
+  tokens: ReadonlyMap<string, number>;
   at: number;
   members: Item[];
   sources: Set<string>;
@@ -229,19 +359,20 @@ function timeOf(item: Item): number {
  * chain of loosely related headlines from pulling two different products together.
  */
 export function clusterStories(input: ClusterInput): ClusterResult {
-  const threshold = input.threshold ?? STORY_CLUSTER_THRESHOLD;
-  const windowMs = (input.windowHours ?? STORY_WINDOW_HOURS) * HOUR_MS;
+  const profile = PROFILES[input.profile ?? "product"];
+  const threshold = input.threshold ?? profile.threshold;
+  const windowMs = (input.windowHours ?? profile.windowHours) * HOUR_MS;
   const candidates = input.items.filter(input.eligible).sort(input.compare);
 
   const clusters: Cluster[] = [];
   for (const item of candidates) {
-    const tokens = productTokens(item.title);
+    const tokens = profile.tokens(item.title);
     const at = timeOf(item);
     const home = clusters.find(
       (cluster) =>
         cluster.leader.source_id !== item.source_id &&
         Math.abs(cluster.at - at) <= windowMs &&
-        isSameStory(tokens, cluster.tokens, threshold),
+        profile.same(tokens, cluster.tokens, threshold),
     );
     const sources = new Set([item.source_id, ...(input.outlets?.get(item.id) ?? [])]);
     if (home) {

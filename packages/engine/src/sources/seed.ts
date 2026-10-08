@@ -213,6 +213,123 @@ export const API_SEED: readonly Draft[] = [
   }),
 ];
 
+const feed = (
+  id: string,
+  name: string,
+  url: string,
+  feedUrl: string,
+  topicId: "design" | "trending",
+): Draft =>
+  api({
+    id,
+    name,
+    type: "rss",
+    url,
+    feed_url: feedUrl,
+    tier: "daily",
+    high_signal: false,
+    origin: "seed",
+    topic_ids: [topicId],
+    options: { pool_cap: "6" },
+  });
+
+/**
+ * Feeds that ship with the app for its two own topics (D39, D40). Feeds only, each checked on
+ * 2026-10-08, none of them needing Firecrawl. A source tagged for a topic is judged for that topic
+ * and, for Trending, kept out of every other section: general news enters Trending alone.
+ *
+ * Design takes five feeds chosen for UI, UX and product design, leaving out the architecture,
+ * furniture and concept-render feeds. Trending takes seven general news outlets; the story is
+ * only as strong as the number of different outlets that carry it, so they are different outlets
+ * rather than several desks of one.
+ */
+export const APP_TOPIC_SOURCES: readonly Draft[] = [
+  feed(
+    "nielsen-norman-group",
+    "Nielsen Norman Group",
+    "https://www.nngroup.com",
+    "https://www.nngroup.com/feed/rss/",
+    "design",
+  ),
+  feed(
+    "ux-collective",
+    "UX Collective",
+    "https://uxdesign.cc",
+    "https://uxdesign.cc/feed",
+    "design",
+  ),
+  feed(
+    "creative-bloq",
+    "Creative Bloq",
+    "https://www.creativebloq.com",
+    "https://www.creativebloq.com/feeds.xml",
+    "design",
+  ),
+  feed(
+    "design-observer",
+    "Design Observer",
+    "https://designobserver.com",
+    "https://designobserver.com/feed/",
+    "design",
+  ),
+  feed(
+    "creative-boom",
+    "Creative Boom",
+    "https://www.creativeboom.com",
+    "https://www.creativeboom.com/feed/",
+    "design",
+  ),
+  feed(
+    "npr-news",
+    "NPR News",
+    "https://www.npr.org",
+    "https://feeds.npr.org/1001/rss.xml",
+    "trending",
+  ),
+  feed(
+    "cbs-news",
+    "CBS News",
+    "https://www.cbsnews.com",
+    "https://www.cbsnews.com/latest/rss/main",
+    "trending",
+  ),
+  feed(
+    "abc-news",
+    "ABC News",
+    "https://abcnews.com",
+    "https://abcnews.com/abcnews/topstories",
+    "trending",
+  ),
+  feed(
+    "al-jazeera",
+    "Al Jazeera",
+    "https://www.aljazeera.com",
+    "https://www.aljazeera.com/xml/rss/all.xml",
+    "trending",
+  ),
+  feed(
+    "france-24",
+    "France 24",
+    "https://www.france24.com",
+    "https://www.france24.com/en/rss",
+    "trending",
+  ),
+  feed(
+    "sky-news",
+    "Sky News",
+    "https://news.sky.com",
+    "https://feeds.skynews.com/feeds/rss/home.xml",
+    "trending",
+  ),
+  feed(
+    "pbs-newshour",
+    "PBS NewsHour",
+    "https://www.pbs.org/newshour/",
+    "https://www.pbs.org/newshour/feeds/rss/headlines",
+    "trending",
+  ),
+];
+
 /**
  * Hosts whose rows in sources.md are covered by the API seed above, so the table rows are skipped.
  * dl.acm.org's RSS endpoint is superseded by Crossref, which needs no browser headers.

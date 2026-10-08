@@ -153,9 +153,13 @@ describe("the title", () => {
     expect(episodeTitle({ ...REQUEST, title: "Week in models" })).toBe("Week in models");
   });
 
-  it("names the topics and stays within the limit", () => {
-    expect(episodeTitle({ ...REQUEST, topic_ids: ["ai", "research"] })).toBe(
-      "Singularity: AI models and products, Research",
+  it("names up to two topics and counts the rest, so it reads in two short lines", () => {
+    expect(episodeTitle({ ...REQUEST, topic_ids: ["ai"] })).toBe("AI Products");
+    expect(episodeTitle({ ...REQUEST, topic_ids: ["ai", "design"] })).toBe(
+      "AI Products and Design",
+    );
+    expect(episodeTitle({ ...REQUEST, topic_ids: ["ai", "design", "tech", "trending"] })).toBe(
+      "AI Products, Design and 2 more",
     );
     const long = episodeTitle({
       ...REQUEST,
@@ -167,6 +171,5 @@ describe("the title", () => {
       ],
     });
     expect(long.length).toBeLessThanOrEqual(80);
-    expect(long.startsWith("Singularity: ")).toBe(true);
   });
 });

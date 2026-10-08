@@ -196,7 +196,7 @@ export function eligibility(
     const { topic } = scored;
     if (topic.never_publish) return { eligible: false, reason: "never_publish" };
     if (scored.score < threshold) return { eligible: false, reason: "below_threshold" };
-    const home = scored.item.source_type === "youtube" ? "watch" : topic.section_id;
+    const home = topic.section_id;
     return {
       eligible: true,
       candidate: { item: scored.item, category: topic.id, home, score: scored.score },

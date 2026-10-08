@@ -65,8 +65,8 @@ export function makeFixture(count = 8, tech = 0): Fixture {
         css_canvas_motion_techniques: "ui-craft",
         frontier_model_releases: "ai",
         ai_ux_interaction_patterns: "ai",
-        hci_empirical_research: "research",
-        developer_tool_launches: "launches",
+        hci_empirical_research: "design",
+        developer_tool_launches: "ui-craft",
       } as Record<string, SelectedItem["home"]>
     )[category] as SelectedItem["home"];
     candidates.push({ item, category, home, score: Math.round((0.95 - i * 0.03) * 1000) / 1000 });

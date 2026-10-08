@@ -204,7 +204,7 @@ describe("the committed registry", () => {
   it("carries the consumer tech beat: ten hinted sources, seven of them capped at six", () => {
     if (!existsSync(path)) return;
     const { sources } = parseSources(JSON.parse(readFileSync(path, "utf8")));
-    expect(sources).toHaveLength(108);
+    expect(sources).toHaveLength(120);
     const tech = sources.filter((s) => s.category_hint === "consumer_tech_releases");
     expect(tech).toHaveLength(10);
     for (const source of tech) {

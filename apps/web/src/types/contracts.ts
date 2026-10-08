@@ -240,7 +240,8 @@ export type NarrateSegmentResponse =
   | NarrateError;
 
 /**
- * POST /api/config: one edit to the topics or the sources. The site is static and the settings live
+ * POST /api/config: one edit to the topics or the sources, or several that belong together (a new
+ * topic and the sources chosen for it) in one request. The site is static and the settings live
  * in the repository, so the function checks the passphrase and dispatches the config workflow,
  * which commits the change. The change shows on the site after the next build.
  */
@@ -265,7 +266,8 @@ export type ConfigOp =
 
 export interface ConfigRequest {
   passphrase: string;
-  op: ConfigOp;
+  /** One edit, or up to 8 that are applied together, in order. */
+  op: ConfigOp | ConfigOp[];
 }
 
 export type ConfigResponse =
@@ -280,8 +282,13 @@ export type ConfigResponse =
  * scripts never pull the engine's schemas into the browser. Keep the two in step.
  */
 export interface PodcastRequest {
-  /** Section slugs the episode draws on. One to six. */
+  /** Section ids the episode draws on. One to six. Never "top": the engine always adds the top picks. */
   topic_ids: string[];
+  /**
+   * Who the script is written for. "general" explains terms and leaves out insider shorthand;
+   * "custom" is written for the owner, a design engineer. Absent means "custom".
+   */
+  audience?: "general" | "custom";
   length_minutes: 3 | 5 | 10 | 15;
   format: "readout" | "discussion" | "headlines";
   /** How many days of stories to draw on. */

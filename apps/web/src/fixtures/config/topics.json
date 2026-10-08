@@ -7,19 +7,49 @@
       "order": 0
     },
     {
-      "id": "ui-craft",
-      "title": "Interaction craft",
+      "id": "design",
+      "title": "Design",
       "order": 1
     },
     {
-      "id": "ai",
-      "title": "AI models and products",
+      "id": "ui-craft",
+      "title": "Design Engineering",
       "order": 2
     },
     {
-      "id": "tech",
-      "title": "Tech releases",
+      "id": "ai",
+      "title": "AI Products",
       "order": 3
+    },
+    {
+      "id": "tech",
+      "title": "Tech Product Launches",
+      "order": 4
+    },
+    {
+      "id": "trending",
+      "title": "Trending",
+      "order": 5
+    },
+    {
+      "id": "research",
+      "title": "Research",
+      "order": 6
+    },
+    {
+      "id": "launches",
+      "title": "Launches",
+      "order": 7
+    },
+    {
+      "id": "watch",
+      "title": "Watch and listen",
+      "order": 8
+    },
+    {
+      "id": "audio_interfaces",
+      "title": "Audio interfaces",
+      "order": 9
     }
   ],
   "topics": [
@@ -60,6 +90,30 @@
       "depth": 1
     },
     {
+      "id": "product_design",
+      "name": "Product design",
+      "description": "Product, UI, UX and visual design news and essays for a designer.",
+      "weight": 0.8,
+      "enabled": true,
+      "keywords": [],
+      "section_id": "design",
+      "never_publish": false,
+      "origin": "builtin",
+      "depth": 2
+    },
+    {
+      "id": "trending_news",
+      "name": "Trending",
+      "description": "A story several major outlets are covering at once, in any field.",
+      "weight": 0.5,
+      "enabled": true,
+      "keywords": [],
+      "section_id": "trending",
+      "never_publish": false,
+      "origin": "builtin",
+      "depth": 1
+    },
+    {
       "id": "audio_interfaces",
       "name": "Audio interfaces",
       "description": "Interface work on players, voice and sound.",
@@ -70,7 +124,7 @@
         "voice",
         "player"
       ],
-      "section_id": "tech",
+      "section_id": "audio_interfaces",
       "never_publish": false,
       "origin": "custom",
       "depth": 2
