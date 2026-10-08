@@ -1,3 +1,4 @@
+import { navigateTo } from "../player/core/navigation";
 import { startRun } from "./runStatus";
 
 /**
@@ -125,6 +126,14 @@ function bind(kind: Kind, dialog: HTMLDialogElement, root: HTMLElement): void {
       return;
     }
     if (pass) store((s) => s.setItem(KEY, passphrase));
+    if (kind === "delete") {
+      // Instant: the redeploy takes minutes, so this device hides the episode meanwhile and the
+      // person lands on the Library with no progress to watch.
+      (await import("./deletedEpisodes")).rememberDeleted(id);
+      dialog.close();
+      void navigateTo("/library");
+      return;
+    }
     startRun(reply.run_id, { kind, episode: id });
     form.reset();
     if (count) count.hidden = true;

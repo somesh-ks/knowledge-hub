@@ -18,6 +18,7 @@ async function choose(page: Page, item: "Regenerate" | "Delete"): Promise<void> 
 }
 const panel = (page: Page) => page.locator("dialog.regen-sheet");
 const confirm = (page: Page) => page.locator("dialog.confirm-dialog");
+const card = (page: Page) => page.locator(`[data-card] a[href="/e/${ID}"]`);
 const indicator = (page: Page) => page.locator("[data-run-text]");
 
 async function open(page: Page): Promise<void> {
@@ -180,13 +181,10 @@ test.describe("regenerate and delete an episode", () => {
     await expect(page).toHaveURL(new RegExp(`/e/${ID}$`));
   });
 
-  test("Delete sends the exact body, then lands on the Library when the run completes", async ({
+  test("Delete sends the exact body, lands on the Library at once and hides the episode", async ({
     page,
   }) => {
-    const bodies = await mock(page, [
-      { run_id: 77, state: "running", step: null },
-      { run_id: 77, state: "completed", step: null, outcome: "published" },
-    ]);
+    const bodies = await mock(page, [{ run_id: 77, state: "queued", step: null }]);
     await open(page);
     await choose(page, "Delete");
     await fillPassphrase(confirm(page));
@@ -194,15 +192,41 @@ test.describe("regenerate and delete an episode", () => {
 
     await expect.poll(() => bodies.length).toBe(1);
     expect(bodies[0]).toEqual({ passphrase: SENT, action: "delete", id: ID });
-    await expect(confirm(page)).toBeHidden();
-    await expect(indicator(page)).toHaveText("Removing the episode", { timeout: 10_000 });
-    await expect(page).toHaveURL(/\/library$/, { timeout: 15_000 });
-    await expect(indicator(page)).toHaveText("Episode removed");
+    await expect(page).toHaveURL(/\/library$/, { timeout: 5_000 });
+    // No progress to watch, and the card is gone while the site still has it.
+    await expect(indicator(page)).toBeHidden();
+    await expect(page.locator(".library-grid")).toBeVisible();
+    await expect(card(page)).toHaveCount(0);
+    await expect(page.locator("[data-card]").first()).toBeVisible();
+    // A reload and the episode's own address agree.
+    await page.reload();
+    await expect(card(page)).toHaveCount(0);
+    await page.goto(`/e/${ID}`);
+    await expect(page).toHaveURL(/\/library$/);
+    await expect(card(page)).toHaveCount(0);
   });
 
   test.describe("a refusal", () => {
     // The browser logs the 429 it was served on purpose.
     test.use({ allowNetworkErrors: true });
+
+    test("a refused delete hides nothing", async ({ page }) => {
+      await page.route("**/api/podcast", (route) =>
+        route.fulfill({
+          status: 429,
+          contentType: "application/json",
+          body: JSON.stringify({ status: 429, error: "cooldown", retry_after_s: 90 }),
+        }),
+      );
+      await open(page);
+      await choose(page, "Delete");
+      await fillPassphrase(confirm(page));
+      await confirm(page).getByRole("button", { name: "Delete", exact: true }).click();
+      await expect(confirm(page).getByRole("alert")).toContainText("Try again in 2 minutes.");
+      await expect(page).toHaveURL(new RegExp(`/e/${ID}$`));
+      await page.goto("/library");
+      await expect(card(page)).toHaveCount(1);
+    });
 
     test("shows its reason in the panel", async ({ page }) => {
       await page.route("**/api/podcast", (route) =>
