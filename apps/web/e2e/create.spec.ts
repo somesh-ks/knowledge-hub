@@ -586,12 +586,12 @@ test.describe("episodes in the Library", () => {
         .locator(".card-facts"),
     ).toHaveText("Headlines, 3 min");
 
-    await expect(page.getByRole("button", { name: "Episodes" })).toHaveAttribute(
+    await expect(page.getByRole("button", { name: "Custom" })).toHaveAttribute(
       "aria-pressed",
       "false",
     );
-    await page.getByRole("button", { name: "Episodes" }).click();
-    await expect(page.getByRole("button", { name: "Episodes" })).toHaveAttribute(
+    await page.getByRole("button", { name: "Custom" }).click();
+    await expect(page.getByRole("button", { name: "Custom" })).toHaveAttribute(
       "aria-pressed",
       "true",
     );
