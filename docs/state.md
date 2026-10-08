@@ -11,7 +11,7 @@ The reader is called Singularity (D30). Identifiers keep `dispatch`. Everything 
 - Reader in the visual language of Google Podcasts (D31): Today, Library, Create Podcast, Settings. The light page surface is a cool off-white (`grey.50`); sheets, menus and the player bar are white.
 - Today and episode pages: one three-dots menu at the far right of the title (Share, Regenerate, and Delete on an episode), the story count or date beside the play chip, "Contents" centred beside the page, "Other episodes" below. An episode page shows Highlights (headline, what was said, link per story), not the script.
 - Library: filters All, Daily, Weekly, Custom; search that also matches episode scripts and story text through an index fetched on first use; Gallery and List views; a play button on a cover under a mouse or keyboard focus.
-- Player (D32): one surface from the bottom bar to a full page. The whole bar opens it. On wide screens the bar follows YouTube Music's layout (transport and clock, then cover and title in the centre, then volume) and carries the one timeline, with a tick per story. The open page keeps the cover, the title on one line, the story's source link, the two 10 second skips and a speed menu; on phones it also keeps a scrubber and the transport. The cover no longer flies between bar and page. Play has no accent fill. For an episode the open player shows the script, with two named hosts, Ada and Leo, and the turn being spoken highlighted and kept in view.
+- Player (D32): one surface from the bottom bar to a full page, with seek, a clock and volume on wide screens. The whole bar opens it, with no colour change under the pointer. The open player has one quiet row for speed (one button that steps through the speeds) and the story's source; on a wide screen with a mouse the page keeps the scrubber and the two skips and leaves previous, play and next to the bar.
 - Narration on Play, story by story (D33). The first segments are made when a page opens, so Play starts sooner. The first Play on a page with no audio starts by itself. Space plays and pauses from anywhere once the bar is there.
 - Interface sounds by kind of action (navigate, select, open and close, transport, success, failure) through one delegated listener, loaded on the first gesture, following the Sounds setting.
 - Making something shows live stages in the run indicator: seven for a briefing (one per workflow step, then "Updating the site"), three for an episode ("Getting ready", "Making the episode", "Updating the site"). Toasts share one quiet style.
@@ -34,18 +34,22 @@ The reader is called Singularity (D30). Identifiers keep `dispatch`. Everything 
 - `dispatch-worker` stops at 60 turns, often mid-task and without a report; resume it with "commit first, verify, report". Its worktree cannot start the player lab's dev server, so workers can run only the `site-*` player projects.
 - Untested: the per-call `effort` override, the `omitClaudeMd` saving, `researcher`'s Firecrawl tool names and post cap, `ui-critic`.
 
+## Written, not merged
+
+- `feat/player-bar-and-script` (also in `ship/final`): the bar in YouTube Music's layout carrying the one timeline with a tick per story; the open page reduced to cover, one-line title, source link, two 10 second skips and a speed menu; no flying cover; play without an accent fill; for an episode, the script in the open player with two named hosts, Ada and Leo, and the turn being spoken highlighted. Screenshots look right. It is NOT merged: on the combined branch the player suite fails 10 tests on the Chromium site projects (`stuck.spec.ts` 71, 95, 113, 195: a tap on the bar does not open the player again after a navigation, and the fallback when the lazy half cannot load; `gestures.spec.ts` 67 and 228: flick down to close, and Tab reaching behind the open page; `layout.spec.ts` 103 at 1280x620 and 1280x800), and `e2e/persistence.spec.ts:57` fails in the site suite. Its worker ran only part of the suite. Whether these are stale tests or real faults is not yet known.
+
 ## Not working or unverified
 
-- Not verified by the owner on the live site: everything shipped on 2026-10-08 after the first-Play fix. In particular the bar layout, the script view, interface sounds and the live stages were checked only in the fixture build's browser tests and screenshots.
+- Not verified by the owner on the live site: everything shipped on 2026-10-08 after the first-Play fix. Interface sounds and the live stages were checked only in the fixture build's browser tests.
 - The cause of "no player bar, narration is not available" on 2026-10-08 was not reproduced. Production played correctly in a fresh browser; the stale-tab recovery addresses the likely cause.
-- Word-level highlighting in the script is not built. It needs Speechify's word marks stored beside each segment's audio and returned by the lookup; today only turn-level focus exists.
+- Word-level highlighting in the script is not built, and the script view itself is in the unmerged player branch. Word level needs Speechify's word marks stored beside each segment's audio and returned by the lookup.
 - Episode stages are coarse because `podcast.yml` makes the whole episode in one step. Finer stages need the engine's podcast command split into phases and a workflow change (a manual merge).
 - The schedule's hour: the workflow change is merged; the site's GitHub token still needs "Variables: Read and write" before the hour can change from Settings. Until then it stays at 07:13. The real variable call and a real scheduled run are unverified.
 - Not yet run through the real workflow: deleting an episode and regenerating one.
 - A 15 minute episode still falls short: 71% for a general readout with 30 stories, 45% for the owner's topics on a day with 12 stories. The app does not say how much a window holds.
 - First-load JavaScript budget is 104 KB, raised twice on 2026-10-08 (from 102). Reading pages are at 101.5 to 102.4 KB; Topics and Sources are at 103.5. Loading those two pages' editor on first use would bring it back down.
 - The player's dev lab page is served in production (`/dev/player-lab`). It should be left out of production builds.
-- The player suite: every Chromium project passed on 2026-10-08 before the player redesign; after it, only the `site-desktop` and `site-phone-short` projects were run. Six tests fail in WebKit on the code from before the redesign as well; in WebKit a mouse stands in for the finger, so only a real iPhone settles it. Not tested on a real iPhone.
+- The player suite: every Chromium project passed on 2026-10-08 on the player that is on `main`. Six tests fail in WebKit on that code; in WebKit a mouse stands in for the finger, so only a real iPhone settles it. Not tested on a real iPhone.
 - Left from the QA sweep: a Play tap before the page's scripts load is lost on a phone; a refused narration (429) shows no wait time.
 - Not yet run against live services: the Design and Trending topics in a real briefing, a config batch through `config.yml`, Exa source discovery, the second voice heard.
 - GitHub fires scheduled runs hours late on some days. The gate compares dates, so a late run still lands on its day.
@@ -62,11 +66,12 @@ The reader is called Singularity (D30). Identifiers keep `dispatch`. Everything 
 
 ## Next
 
-1. Owner: look at the live site and send notes; add "Variables: Read and write" to the site token; revoke the Vercel token pasted in chat on 2026-10-07; decide on the 13 MB of old design files.
-2. Word-level highlighting in the script (store and return word marks).
-3. Finer stages for episodes (podcast command in phases, workflow change).
-4. Bring first-load JavaScript back under 103 KB by loading the Topics and Sources editor on first use; leave the dev lab out of production builds.
-5. Name the hosts Ada and Leo in the writer's prompt, so the audio matches the page.
-6. Measure the wait before the first sound on production; stream only if it is still slow.
-7. One generated briefing to see Design and Trending, then tune the Trending threshold. Two iPhone passes.
-8. Curation quality: group patch releases per repository, record only published ids in `markSeen`, calibrate the 0.4 threshold, feed per-source pass rates into the score.
+1. Fix or explain the 10 failing player tests on `feat/player-bar-and-script`, then merge it. Start by running `stuck.spec.ts` alone on `site-desktop` and reading the first failure.
+2. Owner: look at the live site and send notes; add "Variables: Read and write" to the site token; revoke the Vercel token pasted in chat on 2026-10-07; decide on the 13 MB of old design files.
+3. Word-level highlighting in the script (store and return word marks).
+4. Finer stages for episodes (podcast command in phases, workflow change).
+5. Bring first-load JavaScript back under 103 KB by loading the Topics and Sources editor on first use; leave the dev lab out of production builds.
+6. Name the hosts Ada and Leo in the writer's prompt, so the audio matches the page.
+7. Measure the wait before the first sound on production; stream only if it is still slow.
+8. One generated briefing to see Design and Trending, then tune the Trending threshold. Two iPhone passes.
+9. Curation quality: group patch releases per repository, record only published ids in `markSeen`, calibrate the 0.4 threshold, feed per-source pass rates into the score.

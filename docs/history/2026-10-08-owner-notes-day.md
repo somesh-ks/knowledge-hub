@@ -2,7 +2,7 @@
 
 ## What happened
 
-The owner used the app on production all day and sent notes as they came, many through the Agentation toolbar. Seventeen pull requests went out (#17 to #33, then one final one for the player, the live stages and the interface sounds).
+The owner used the app on production all day and sent notes as they came, many through the Agentation toolbar. Eighteen pull requests went out (#17 to #33, then one for the live stages, the toasts and the interface sounds). The player redesign was written and looks right in screenshots, but was held back: on the combined branch its own browser suite fails ten tests, and its worker had run only part of that suite.
 
 ## Why the work changed shape
 
