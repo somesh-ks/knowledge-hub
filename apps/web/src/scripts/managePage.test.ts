@@ -56,9 +56,7 @@ describe("webAddress", () => {
 
 describe("failureText", () => {
   it("names the refusal and says the changes are kept", () => {
-    expect(failureText(401, 0, 3)).toBe(
-      "Saving was refused. Your changes are still waiting.",
-    );
+    expect(failureText(401, 0, 3)).toBe("Saving was refused. Your changes are still waiting.");
     expect(failureText(503, 0, 1)).toBe(
       "Saving is not available right now. Your changes are still waiting.",
     );

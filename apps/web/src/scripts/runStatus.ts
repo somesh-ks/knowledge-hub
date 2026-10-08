@@ -48,7 +48,10 @@ function dismiss(): void {
   show(null);
   // The button that was pressed is gone with the card: hand focus to the Create button in view.
   for (const create of document.querySelectorAll<HTMLElement>("[data-create-open]")) {
-    if (create.getClientRects().length) return create.focus();
+    if (create.getClientRects().length) {
+      create.focus();
+      return;
+    }
   }
 }
 

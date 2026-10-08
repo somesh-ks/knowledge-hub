@@ -140,7 +140,14 @@ function mount(root: HTMLElement): void {
     if (form.dataset.add === "topic") {
       // The form skips the browser's own check so the message sits beside the field.
       const bad = [
-        ["name", !value("name") ? "Enter a name." : idText(value("name")).length < 2 ? "Use at least two letters or numbers in the name." : ""],
+        [
+          "name",
+          !value("name")
+            ? "Enter a name."
+            : idText(value("name")).length < 2
+              ? "Use at least two letters or numbers in the name."
+              : "",
+        ],
         ["description", value("description") ? "" : "Say what should count as this topic."],
       ] as const;
       let first: HTMLElement | null = null;
