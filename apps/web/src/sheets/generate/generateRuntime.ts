@@ -22,6 +22,7 @@ function toastForFinishedRun(run: FinishedRun, reopen: () => void): void {
     const digestId = run.digestId;
     showToast({
       message: "Briefing ready",
+      kind: "success",
       actionLabel: "Open",
       onAction: () => openBriefing(digestId),
     });
@@ -37,6 +38,7 @@ function toastForFinishedRun(run: FinishedRun, reopen: () => void): void {
   }
   showToast({
     message: failureTitle(null),
+    kind: "error",
     actionLabel: "Details",
     onAction: reopen,
   });

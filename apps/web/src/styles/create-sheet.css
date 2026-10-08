@@ -312,6 +312,16 @@ dialog.create-sheet .create-submit > .btn-primary {
   color: var(--color-danger);
 }
 
+.run-ok {
+  display: none;
+  flex: none;
+  color: var(--color-success);
+}
+
+.run-card[data-state="done"] .run-ok {
+  display: block;
+}
+
 .run-card[data-state="failed"] .run-alert {
   display: block;
 }
