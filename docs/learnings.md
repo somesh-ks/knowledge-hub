@@ -41,3 +41,5 @@ One line each: symptom, cause, fix. Newest first. Search before debugging.
 - Nebius model ids change; take them from `dispatch models`, not docs (D24).
 - Auto-mode classifier blocks credential creation, store deletion and merging unreviewed PRs; the owner runs those.
 - 2026-10-08: heredoc-built edit scripts with backticks or backslashes aborted the shell; write them with the Write tool. A test that misfiles a story into a retired section no longer fails validation, because published briefings must still validate; use a live section instead.
+- A worktree whose `node_modules` is a junction to the main checkout resolves `@dispatch/core` to the main checkout, so core edits are invisible to tsc and tests; link each package separately and point `@dispatch/*` at the worktree.
+- The shell tool refused some multi-command heredocs and `cmd` calls in a worktree; use the Edit and Write tools and plain single commands.

@@ -50,6 +50,7 @@ D1 to D9 date from plan v2 (2026-10-05). D10 to D25 date from 2026-10-06. Reason
 | D39 | Five topics, Top picks always included, General and Customized audiences | active |
 | D40 | Trending is ranked by coverage; discovery only suggests | active |
 | D41 | The passphrase step is switched off, with its code kept | active |
+| D42 | One Jev request per item, and a per-run Firecrawl ceiling | active |
 
 ---
 
@@ -389,3 +390,11 @@ D1 to D9 date from plan v2 (2026-10-05). D10 to D25 date from 2026-10-06. Reason
 - Why: the owner asked for it ("remove passphrase for now, but we can have the code for future") after a failure that was blamed on the passphrase and was in fact the site's GitHub token lacking access to the repository.
 - Cost: anyone who can open the site can start a briefing, an episode, narration or a config edit, inside the caps. The owner accepted this.
 - Rejected: deleting the passphrase code; unlocking one device at a time (offered, not chosen).
+
+## D42: One Jev request per item, and a per-run Firecrawl ceiling
+
+- Date: 2026-10-08
+- Decision: An item that needs the six main questions and topic-fit questions gets one Jev request with both sets (`judge/combinedJudge.ts`); the answers are split into the same cache entries as before, so no hash changed. An item from a source tagged for a coverage topic (Trending) with no category hint is asked only its fit question and scored with a neutral main judgment that is never cached. Firecrawl is held to 30 requests a run (`fetch/firecrawlBudget.ts`): 16 for listing pages, the rest for scrapes. Listing sources over the allowance wait, oldest `last_ok` first, so the skipped set rotates, and the skip is recorded. The weekly pass reuses the regular pass's pages. The scrape fallback runs only for selected items and not when 600 characters are already in hand. A 429 backs off; three stop Firecrawl for the run. Requests per service go to `.cache/run/spend.json`, the run report and `state/last-run.json` (`spend`).
+- Why: the owner asked to keep paid calls low without losing curation quality.
+- Rejected: sharing one request across items (Jev takes one item's state); cutting sources.
+- Cost: a Trending item loses the hype, sponsored and funding penalties; an item with 200 to 599 characters of text no longer gets a paid scrape; a Firecrawl source skipped for the ceiling waits a run.
