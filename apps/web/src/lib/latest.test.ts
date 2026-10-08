@@ -11,6 +11,7 @@ describe("buildLatest", () => {
       date: null,
       kind: null,
       generated_at: null,
+      episode_at: null,
       outcome: null,
       outcome_at: null,
     });
@@ -30,6 +31,7 @@ describe("buildLatest", () => {
       date: "2026-10-07",
       kind: "regular",
       generated_at: "2026-10-07T05:20:00.000Z",
+      episode_at: null,
       outcome: "published",
       outcome_at: "2026-10-07T05:20:00.000Z",
     });
@@ -40,6 +42,7 @@ describe("buildLatest", () => {
     const body = buildLatest({ entries, lastRun: NO_RUN });
     expect(Object.keys(body).sort()).toEqual([
       "date",
+      "episode_at",
       "generated_at",
       "id",
       "kind",

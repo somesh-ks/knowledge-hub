@@ -98,6 +98,10 @@ export interface StatusResponse {
   run_id: number;
   state: "queued" | "running" | "completed";
   step: GenerateStep | null;
+  /** Where the run is in its stages (lib/runStages.ts): zero-based index, how many, and its name. */
+  stage?: number;
+  stages?: number;
+  label?: string;
   /** Present once state is "completed". Read from state/last-run.json. */
   outcome?: "published" | "nothing" | "gated" | "failed";
   digest_id?: string;

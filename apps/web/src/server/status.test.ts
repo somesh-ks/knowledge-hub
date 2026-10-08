@@ -201,17 +201,29 @@ describe("parseOnDemandRecord", () => {
 });
 
 describe("handleStatus for an episode run", () => {
-  const episode = (overrides: Record<string, unknown> = {}) =>
-    setup({ path: ".github/workflows/podcast.yml", ...overrides });
+  const episode = (overrides: Record<string, unknown> = {}, steps?: unknown[]) =>
+    setup({ path: ".github/workflows/podcast.yml", ...overrides }, steps);
 
-  it("reports a run that is still going without reading its jobs", async () => {
-    const github = episode();
-    const result = await handleStatus("4242", { env, fetch: github.fetch });
-    expect(result).toMatchObject({
-      status: 200,
-      body: { run_id: 4242, state: "running", step: null },
+  it("names the stage a running episode is in, from its steps", async () => {
+    const preparing = await handleStatus("4242", {
+      env,
+      fetch: episode({}, [stepJson("Install", 3, "in_progress")]).fetch,
     });
-    expect(github.requests.some((request) => request.path.includes("/jobs"))).toBe(false);
+    expect(preparing.body).toMatchObject({
+      state: "running",
+      step: null,
+      stage: 0,
+      stages: 3,
+      label: "Getting ready",
+    });
+    const making = await handleStatus("4242", {
+      env,
+      fetch: episode({}, [
+        stepJson("Install", 3, "completed", "success"),
+        stepJson("Podcast", 4, "in_progress"),
+      ]).fetch,
+    });
+    expect(making.body).toMatchObject({ stage: 1, stages: 3, label: "Making the episode" });
   });
 
   it("reports a queued run as queued", async () => {
@@ -229,6 +241,9 @@ describe("handleStatus for an episode run", () => {
       run_id: 4242,
       state: "completed",
       step: null,
+      stage: 2,
+      stages: 3,
+      label: "Updating the site",
       outcome: "published",
     });
     expect(github.requests.some((request) => request.path.includes("/contents/"))).toBe(false);
@@ -237,12 +252,18 @@ describe("handleStatus for an episode run", () => {
   it("reports any other end as failed, with the run's address", async () => {
     const result = await handleStatus("4242", {
       env,
-      fetch: episode({ status: "completed", conclusion: "failure" }).fetch,
+      fetch: episode({ status: "completed", conclusion: "failure" }, [
+        stepJson("Install", 3, "completed", "success"),
+        stepJson("Podcast", 4, "completed", "failure"),
+      ]).fetch,
     });
     expect(result.body).toEqual({
       run_id: 4242,
       state: "completed",
       step: null,
+      stage: 1,
+      stages: 3,
+      label: "Making the episode",
       outcome: "failed",
       run_url: runUrlFor(config, 4242),
     });
@@ -297,7 +318,7 @@ describe("handleStatus", () => {
     const github = setup({ status: "queued" });
     const result = await handleStatus("4242", { env, fetch: github.fetch });
     expect(result.status).toBe(200);
-    expect(result.body).toEqual({ run_id: 4242, state: "queued", step: "waiting" });
+    expect(result.body).toMatchObject({ run_id: 4242, state: "queued", step: "waiting", stage: 0 });
     expect(result.headers).toEqual({ "Cache-Control": STATUS_CACHE_CONTROL });
   });
 
@@ -308,7 +329,7 @@ describe("handleStatus", () => {
       stepJson("Judge", 3, "in_progress"),
     ]);
     const result = await handleStatus("4242", { env, fetch: github.fetch });
-    expect(result.body).toEqual({ run_id: 4242, state: "running", step: "judging" });
+    expect(result.body).toMatchObject({ state: "running", step: "judging", stage: 2, stages: 7 });
   });
 
   it("reports a published digest from the on-demand record", async () => {
@@ -351,6 +372,9 @@ describe("handleStatus", () => {
       run_id: 4242,
       state: "completed",
       step: "writing",
+      stage: 3,
+      stages: 7,
+      label: "Writing the briefing",
       outcome: "failed",
       run_url: runUrlFor(config, 4242),
     });
@@ -437,7 +461,17 @@ describe("handleStatus", () => {
     );
     github.on("GET /contents/state/last-run.json", { text: record() });
     const result = await handleStatus("4242", { env, fetch: github.fetch });
-    const allowed = ["run_id", "state", "step", "outcome", "digest_id", "run_url"];
+    const allowed = [
+      "run_id",
+      "state",
+      "step",
+      "stage",
+      "stages",
+      "label",
+      "outcome",
+      "digest_id",
+      "run_url",
+    ];
     expect(Object.keys(result.body).every((key) => allowed.includes(key))).toBe(true);
     expect(JSON.stringify(result.body)).not.toMatch(/private|login|secret/);
   });
