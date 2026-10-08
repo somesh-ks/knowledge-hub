@@ -303,6 +303,11 @@ export interface PodcastCreateRequest {
   request: PodcastRequest;
 }
 
+/** POST /api/podcast with an action: delete an episode, or write it again with feedback. */
+export type PodcastActionRequest =
+  | { passphrase: string; action: "delete"; id: string }
+  | { passphrase: string; action: "regenerate"; id: string; feedback: string };
+
 /** POST /api/podcast responses. */
 export type PodcastCreateResponse =
   | { status: 202; run_id: number; started_at: string }

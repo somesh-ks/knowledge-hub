@@ -6,7 +6,8 @@ import { installCreate } from "./createPage";
  * press of a Create button, never with the page. It does not outlive a navigation; the next press
  * builds it again. Escape closes it, and focus goes back to the button that opened it.
  */
-const SELECTOR = "dialog.create-sheet";
+// The episode page's rewrite panel wears the same class for its looks; it is not this sheet.
+const SELECTOR = "dialog.create-sheet:not(.regen-sheet)";
 
 function build(): HTMLDialogElement | null {
   const template = document.getElementById("create-sheet-template");

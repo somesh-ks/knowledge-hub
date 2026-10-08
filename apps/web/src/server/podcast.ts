@@ -10,7 +10,7 @@ import {
 } from "./generate";
 import { createGitHubClient, PODCAST_WORKFLOW_FILE } from "./github";
 import type { ApiResult } from "./http";
-import { evaluateLimits, PODCAST_POLICY } from "./limits";
+import { DELETE_POLICY, evaluateLimits, PODCAST_POLICY } from "./limits";
 import { describeError } from "./redact";
 
 /**
@@ -19,7 +19,8 @@ import { describeError } from "./redact";
  * the same guards, and tested the same way: every side effect is a parameter.
  */
 
-export type PodcastDeps = GenerateDeps;
+/** `episodeIds` lists the episodes this build knows; delete and regenerate refuse any other id. */
+export type PodcastDeps = GenerateDeps & { episodeIds?: () => readonly string[] };
 export type PodcastInput = GenerateInput;
 type PodcastResult = ApiResult<PodcastCreateResponse>;
 
@@ -88,9 +89,24 @@ export function parsePodcastRequest(value: unknown): PodcastRequest | null {
   };
 }
 
-export interface ParsedPodcastBody {
-  passphrase: string;
-  request: PodcastRequest;
+export const MAX_FEEDBACK_CHARS = 500;
+const EPISODE_ID = /^ep-\d{8}-\d{4}$/;
+
+/** What the workflow's one input carries for an action on an episode that already exists. */
+export type EpisodeAction =
+  | { action: "delete"; id: string }
+  | { action: "regenerate"; id: string; feedback: string };
+
+export type ParsedPodcastBody =
+  | { passphrase: string; request: PodcastRequest }
+  | ({ passphrase: string } & EpisodeAction);
+
+/** The feedback of a regenerate: control characters become spaces, 1 to 500 characters once trimmed. */
+function cleanFeedback(value: unknown): string | null {
+  if (typeof value !== "string") return null;
+  // biome-ignore lint/suspicious/noControlCharactersInRegex: that is the point of this check.
+  const cleaned = value.replace(/[\u0000-\u001f\u007f]/g, " ").trim();
+  return cleaned.length >= 1 && cleaned.length <= MAX_FEEDBACK_CHARS ? cleaned : null;
 }
 
 /** The passphrase and the episode request out of a JSON body, or null when it is not that shape. */
@@ -106,8 +122,19 @@ export function parsePodcastBody(bodyText: string): ParsedPodcastBody | null {
   const { passphrase } = parsed;
   if (typeof passphrase !== "string") return null;
   if (passphrase.length === 0 || passphrase.length > MAX_PASSPHRASE_CHARS) return null;
-  const request = parsePodcastRequest(parsed.request);
-  return request ? { passphrase, request } : null;
+  const { action } = parsed;
+  if (action === undefined) {
+    const request = parsePodcastRequest(parsed.request);
+    return request ? { passphrase, request } : null;
+  }
+  const { id } = parsed;
+  if (typeof id !== "string" || !EPISODE_ID.test(id)) return null;
+  if (action === "delete") return { passphrase, action, id };
+  if (action === "regenerate") {
+    const feedback = cleanFeedback(parsed.feedback);
+    return feedback === null ? null : { passphrase, action, id, feedback };
+  }
+  return null;
 }
 
 export async function handlePodcast(
@@ -121,6 +148,7 @@ export async function handlePodcast(
   if (!isSameOrigin(input.origin, input.expectedOrigin)) return invalid;
   const body = parsePodcastBody(input.bodyText);
   if (body === null) return invalid;
+  if ("action" in body && !(deps.episodeIds?.() ?? []).includes(body.id)) return invalid;
 
   const isValid = await deps.verifyPassphrase(body.passphrase, config.passphraseHash);
   if (!isValid) {
@@ -132,7 +160,11 @@ export async function handlePodcast(
   try {
     const runs = await github.listWorkflowFileRuns(PODCAST_WORKFLOW_FILE);
     const started = runs.map((run) => Date.parse(run.createdAt)).filter(Number.isFinite);
-    const decision = evaluateLimits(started, deps.now(), PODCAST_POLICY);
+    const decision = evaluateLimits(
+      started,
+      deps.now(),
+      "action" in body && body.action === "delete" ? DELETE_POLICY : PODCAST_POLICY,
+    );
     if (!decision.allowed) {
       return {
         status: 429,
@@ -146,7 +178,8 @@ export async function handlePodcast(
     }
 
     const startedAt = deps.now();
-    const inputs = { request: JSON.stringify(body.request) };
+    const { passphrase: _passphrase, ...rest } = body;
+    const inputs = { request: JSON.stringify("request" in rest ? rest.request : rest) };
     let runId = await github.dispatchWorkflowFile(PODCAST_WORKFLOW_FILE, inputs);
     for (let attempt = 0; runId === null && attempt < RUN_LOOKUP_ATTEMPTS; attempt += 1) {
       // GitHub started the run but did not name it. The newest run created since the request is it.

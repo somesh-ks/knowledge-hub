@@ -1,0 +1,143 @@
+---
+import { OPEN_PASSPHRASE, PASSPHRASE_REQUIRED } from "../lib/access";
+import Icon from "./Icon.astro";
+import "../styles/episode-actions.css";
+
+interface Props {
+  /** The episode these actions are about. */
+  id: string;
+}
+
+const { id } = Astro.props;
+const MAX_FEEDBACK_CHARS = 500;
+
+// Every sentence the script can show is here, in the markup, not in the script.
+const COPY = {
+  empty: "Describe what should change.",
+  left: "characters left",
+  ...(PASSPHRASE_REQUIRED
+    ? {
+        passphrase: "Enter the passphrase to continue.",
+        "401": "That passphrase does not match. Check it and try again.",
+      }
+    : {}),
+  "400": "That request did not go through. Reload the page and try again.",
+  cooldown: "Please wait a moment before doing that again. Try again in",
+  daily_cap: "The limit for today is reached. Try again in",
+  "503": "That is not available right now. Try again in a few minutes.",
+  network: "The request did not go through. Check your connection, then try again.",
+} as const;
+---
+
+{/* Two quiet text buttons under the header. scripts/episodeActionsEntry.ts loads the rest on the
+     first press and disables both, with a reason, while a run for this episode is going. */}
+<div
+  class="episode-actions"
+  data-episode-actions
+  data-episode={id}
+  data-open-passphrase={PASSPHRASE_REQUIRED ? undefined : OPEN_PASSPHRASE}
+>
+  <button class="btn press" type="button" data-episode-action="regenerate">Regenerate</button>
+  <button class="btn press" type="button" data-episode-action="delete">Delete</button>
+  <span class="sr-only" id="episode-actions-busy" hidden>Unavailable while this episode is being updated.</span>
+</div>
+
+{
+  [
+    ["regenerate", "episode-regenerate-template"],
+    ["delete", "episode-delete-template"],
+  ].map(([kind, templateId]) => (
+    <template id={templateId}>
+      {kind === "regenerate" ? (
+        <dialog class="create-sheet regen-sheet" aria-labelledby="regen-title">
+          <div class="create-sheet-head">
+            <h2 class="sheet-title" id="regen-title">Regenerate this episode</h2>
+            <button class="icon-btn press" type="button" data-dialog-close aria-label="Close">
+              <Icon name="close" class="icon-lg" />
+            </button>
+          </div>
+          <div class="create-sheet-body">
+            <form class="regen-form" data-regen-form novalidate>
+              <p class="create-hint regen-lede">
+                This replaces the episode and keeps its topics, length and format.
+              </p>
+              <section class="create-group">
+                <h3 class="section-head">
+                  <label for="regen-feedback">What should change?</label>
+                </h3>
+                <textarea
+                  class="sheet-input regen-feedback"
+                  id="regen-feedback"
+                  name="feedback"
+                  rows="6"
+                  maxlength={MAX_FEEDBACK_CHARS}
+                  data-max={MAX_FEEDBACK_CHARS}
+                  aria-describedby="regen-count"
+                />
+                <p class="create-hint regen-count" id="regen-count" data-count aria-live="polite" hidden />
+                {PASSPHRASE_REQUIRED && (
+                  <div class="sheet-field regen-pass">
+                    <label class="sheet-field-label" for="regen-passphrase">Passphrase</label>
+                    <input
+                      class="sheet-input"
+                      id="regen-passphrase"
+                      name="passphrase"
+                      type="password"
+                      autocomplete="off"
+                      autocapitalize="none"
+                      spellcheck="false"
+                    />
+                  </div>
+                )}
+              </section>
+              <div class="create-submit rule-above">
+                <button class="btn-primary press press-subtle" type="submit" data-submit>
+                  Regenerate episode
+                </button>
+                <p class="create-error" role="alert" data-error hidden>
+                  <Icon name="alert" /><span />
+                </p>
+              </div>
+            </form>
+          </div>
+          <div hidden data-copy>
+            {Object.entries(COPY).map(([key, text]) => <p data-k={key}>{text}</p>)}
+          </div>
+        </dialog>
+      ) : (
+        <dialog class="confirm-dialog" aria-labelledby="delete-title" aria-describedby="delete-lede">
+          <form class="confirm-form" data-delete-form novalidate>
+            <h2 class="sheet-title" id="delete-title">Delete this episode?</h2>
+            <p class="create-hint confirm-lede" id="delete-lede">
+              It is removed from the Library for everyone.
+            </p>
+            {PASSPHRASE_REQUIRED && (
+              <div class="sheet-field">
+                <label class="sheet-field-label" for="delete-passphrase">Passphrase</label>
+                <input
+                  class="sheet-input"
+                  id="delete-passphrase"
+                  name="passphrase"
+                  type="password"
+                  autocomplete="off"
+                  autocapitalize="none"
+                  spellcheck="false"
+                />
+              </div>
+            )}
+            <p class="create-error" role="alert" data-error hidden>
+              <Icon name="alert" /><span />
+            </p>
+            <div class="confirm-actions">
+              <button class="btn press" type="button" data-dialog-close autofocus>Cancel</button>
+              <button class="btn confirm-delete press" type="submit" data-submit>Delete</button>
+            </div>
+          </form>
+          <div hidden data-copy>
+            {Object.entries(COPY).map(([key, text]) => <p data-k={key}>{text}</p>)}
+          </div>
+        </dialog>
+      )}
+    </template>
+  ))
+}

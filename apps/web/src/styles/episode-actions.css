@@ -1,0 +1,107 @@
+/*
+ * Regenerate and Delete on an episode page: two quiet text buttons under the header, the rewrite
+ * panel (it wears the Create sheet's looks, create-sheet.css) and the small confirm that Delete asks.
+ * Tokens only. Imported by components/EpisodeActions.astro; the dialogs are global because they are
+ * cloned into the body.
+ */
+
+/* ------------------------------------------------------------------ the two buttons */
+
+.episode-actions {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--space-2);
+  margin-inline-start: calc(var(--space-3) * -1);
+  padding-block-end: var(--space-4);
+}
+
+/* ------------------------------------------------------------------ the rewrite panel */
+
+.regen-lede {
+  padding-block: var(--space-4) 0;
+}
+
+.sheet-input.regen-feedback {
+  display: block;
+  width: 100%;
+  min-height: calc(var(--field-height) * 3);
+  margin-block: var(--space-3) 0;
+  padding-block: var(--space-3);
+  font-family: inherit;
+  line-height: var(--font-leading-body);
+  resize: vertical;
+}
+
+/* Shown only near the limit, a quiet line under the field with air above it. */
+.regen-count {
+  margin-block-start: var(--space-3);
+  font-variant-numeric: tabular-nums;
+}
+
+.regen-pass {
+  margin-block-start: var(--space-4);
+}
+
+.regen-pass .sheet-field-label {
+  padding-inline: 0;
+}
+
+/* ------------------------------------------------------------------ the confirm */
+
+dialog.confirm-dialog {
+  --color-focus-gap: var(--sheet-bg);
+  width: min(24rem, calc(100% - var(--space-8)));
+  margin: auto;
+  padding: var(--space-6);
+  border: 0;
+  border-radius: var(--radius-lg);
+  background: var(--sheet-bg);
+  box-shadow: var(--sheet-shadow);
+  color: var(--color-on-surface);
+}
+
+dialog.confirm-dialog::backdrop {
+  background: var(--color-scrim);
+}
+
+dialog.confirm-dialog:focus-visible {
+  outline: none;
+}
+
+.confirm-form {
+  display: grid;
+  gap: var(--space-3);
+}
+
+.confirm-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: var(--space-2);
+  margin-block-start: var(--space-3);
+}
+
+/* Red only here, once the person has asked to delete. */
+.confirm-delete {
+  color: var(--color-danger);
+}
+
+@media (hover: hover) and (pointer: fine) {
+  .confirm-delete:hover {
+    background: var(--color-danger-subtle);
+  }
+}
+
+.confirm-delete:active {
+  background: var(--color-danger-subtle);
+}
+
+.confirm-delete:disabled {
+  color: var(--color-on-surface-disabled);
+}
+
+@media (forced-colors: active) {
+  dialog.confirm-dialog {
+    border: var(--stroke-hairline) solid CanvasText;
+  }
+}
