@@ -33,3 +33,61 @@ export function shouldToggleOnKey(event: KeyLike, target: KeyTarget): boolean {
   if (event.key === " " || event.key === "Spacebar") return target !== "control";
   return false;
 }
+
+/** Roles whose own job for Space (press, toggle, pick, drag) the page-wide shortcut must not take. */
+const SPACE_ROLES = [
+  "button",
+  "checkbox",
+  "radio",
+  "switch",
+  "slider",
+  "tab",
+  "menuitem",
+  "menuitemcheckbox",
+  "menuitemradio",
+  "option",
+  "link",
+  "combobox",
+  "textbox",
+  "searchbox",
+  "spinbutton",
+  "listbox",
+  "treeitem",
+];
+
+/** Everything Space already does: type, press, pick, open. */
+export const SPACE_OWNERS = [
+  "input",
+  "textarea",
+  "select",
+  "button",
+  "a",
+  "summary",
+  "audio",
+  "video",
+  "[contenteditable]:not([contenteditable='false'])",
+  ...SPACE_ROLES.map((role) => `[role='${role}']`),
+].join(", ");
+
+export interface PageSpaceEvent extends KeyLike {
+  repeat: boolean;
+  defaultPrevented: boolean;
+  isComposing?: boolean;
+}
+
+/**
+ * Space anywhere on the page, once the player has something loaded: play or pause, as in a video
+ * player. It steps aside for everything Space already does, for a dialog or popover other than the
+ * player, for any modifier, for a held key, and for a key something else has already handled.
+ */
+export function shouldToggleOnPageSpace(
+  event: PageSpaceEvent,
+  target: Element | null,
+  context: { loaded: boolean; overlayOpen: boolean },
+): boolean {
+  if (event.key !== " " && event.key !== "Spacebar") return false;
+  if (!context.loaded || context.overlayOpen) return false;
+  if (event.repeat || event.defaultPrevented || event.isComposing) return false;
+  if (event.ctrlKey || event.metaKey || event.altKey || event.shiftKey) return false;
+  return !target?.closest(SPACE_OWNERS);
+}

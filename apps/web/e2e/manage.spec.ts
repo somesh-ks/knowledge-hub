@@ -235,6 +235,26 @@ test.describe("topics", () => {
     expect(sent[0]?.op).toMatchObject({ op: "topic.upsert" });
   });
 
+  test("an empty or letterless topic is refused beside the field, and nothing is queued", async ({
+    page,
+  }) => {
+    await open(page, "topics");
+    await page.getByRole("button", { name: "Add topic" }).click();
+    await expect(page.locator('[data-error="name"]')).toBeVisible();
+    await expect(page.locator('[data-error="name"]')).toHaveText("Enter a name.");
+    await expect(page.locator('[data-error="description"]')).toBeVisible();
+    await expect(bar(page)).toBeHidden();
+    await page.getByLabel("Name", { exact: true }).fill("\u{1F525}");
+    await page.getByLabel("What should count as this topic").fill("Hot takes.");
+    await expect(page.locator('[data-error="name"]')).toBeHidden();
+    await page.getByRole("button", { name: "Add topic" }).click();
+    await expect(page.locator('[data-error="name"]')).toContainText("letters or numbers");
+    await expect(bar(page)).toBeHidden();
+    await page.getByLabel("Name", { exact: true }).fill("Hot takes");
+    await page.getByRole("button", { name: "Add topic" }).click();
+    await expect(bar(page).locator("[data-bar-text]")).toHaveText("1 change");
+  });
+
   test("a topic waiting to be saved can be cancelled", async ({ page }) => {
     await open(page, "topics");
     await page.getByLabel("Name", { exact: true }).fill("Spatial computing");
@@ -520,6 +540,30 @@ test.describe("saving", () => {
 });
 
 test.describe("layout", () => {
+  test("every control on Topics has a 44px target", async ({ page }) => {
+    await open(page, "topics");
+    const small = await page.evaluate(() => {
+      const found: string[] = [];
+      for (const node of document.querySelectorAll<HTMLElement>(
+        "[data-manage] button, [data-manage] [role=switch]",
+      )) {
+        node.scrollIntoView({ block: "center" });
+        const rect = node.getBoundingClientRect();
+        if (rect.width === 0) continue;
+        const x = rect.left + rect.width / 2;
+        const y = rect.top + rect.height / 2;
+        const at = (dy: number) => {
+          const hit = document.elementFromPoint(x, y + dy);
+          return hit !== null && node.contains(hit);
+        };
+        // 21px each way from the centre is a 44px target.
+        if (!at(-21) || !at(21)) found.push(node.getAttribute("aria-label") ?? node.tagName);
+      }
+      return found;
+    });
+    expect(small).toEqual([]);
+  });
+
   test("every control has a 44px target", async ({ page }) => {
     await open(page, "sources");
     await page.getByRole("switch", { name: "Quiet Motion" }).click();

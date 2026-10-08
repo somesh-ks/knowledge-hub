@@ -203,8 +203,20 @@ export function createTrackAudio(real: AudioLike, options: TrackAudioOptions): A
     emit("pause");
   }
 
+  /**
+   * A browser rejects the play() of a file it could not load after it has raised the error event,
+   * by which time the adapter has moved on (to the made file, say). A start that was overtaken has
+   * no say in whether the listener's play stands, so its refusal is dropped.
+   */
+  function unlessOvertaken(started: Promise<void>): Promise<void> {
+    const mine = generation;
+    return started.catch((error: unknown) => {
+      if (mine === generation) throw error;
+    });
+  }
+
   function start(): void {
-    startCurrent().catch(onStartRefused);
+    unlessOvertaken(startCurrent()).catch(onStartRefused);
   }
 
   /** Plays the current segment, fetching or making its file first when needed. */
@@ -483,7 +495,7 @@ export function createTrackAudio(real: AudioLike, options: TrackAudioOptions): A
       wantsPlay = true;
       // Before the player knows the length, the start waits for it (see `announced`).
       if (!announced) return Promise.resolve();
-      return startCurrent();
+      return unlessOvertaken(startCurrent());
     },
     pause() {
       if (!playlist) return real.pause();

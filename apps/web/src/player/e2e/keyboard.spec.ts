@@ -92,15 +92,76 @@ test.describe("keyboard operation of the player", () => {
     await expect(page.locator("html")).toHaveAttribute("data-player-state", "playing");
   });
 
-  test("a bare Space on the page does not start playback: it is the page's scroll key", async ({
-    lab,
-    page,
-  }) => {
+  test("a bare Space does nothing until the player has something loaded", async ({ lab, page }) => {
     await lab.open();
     await page.locator("body").press("Space");
     await expect(page.locator("html")).toHaveAttribute("data-player-state", "idle");
     await page.keyboard.press("k");
     await expect(page.locator("html")).toHaveAttribute("data-player-state", "idle");
+  });
+
+  test("Space plays and pauses from anywhere on the page once the bar is there @surface", async ({
+    lab,
+    page,
+  }) => {
+    await lab.open();
+    await lab.play();
+    await page.evaluate(() => {
+      (document.activeElement as HTMLElement | null)?.blur();
+      window.scrollTo(0, 120);
+    });
+    const scrolled = await page.evaluate(() => window.scrollY);
+    await page.locator("body").press("Space");
+    await expect(page.locator("html")).toHaveAttribute("data-player-state", "paused");
+    await page.keyboard.press("Space");
+    await expect(page.locator("html")).toHaveAttribute("data-player-state", "playing");
+    // It acted, so the page did not scroll with it.
+    expect(await page.evaluate(() => window.scrollY)).toBe(scrolled);
+  });
+
+  test("Space leaves typing, controls, held keys, modifiers and other dialogs alone @surface", async ({
+    lab,
+    page,
+  }) => {
+    await lab.open();
+    await lab.play();
+    await page.evaluate(() => {
+      const field = document.createElement("input");
+      field.id = "probe-field";
+      const editable = document.createElement("div");
+      editable.id = "probe-editable";
+      editable.contentEditable = "true";
+      editable.tabIndex = 0;
+      const slider = document.createElement("div");
+      slider.id = "probe-slider";
+      slider.setAttribute("role", "slider");
+      slider.tabIndex = 0;
+      document.body.append(field, editable, slider);
+    });
+    const playing = (): Promise<void> =>
+      expect(page.locator("html")).toHaveAttribute("data-player-state", "playing");
+    for (const selector of ["#probe-field", "#probe-editable", "#probe-slider"]) {
+      await page.locator(selector).focus();
+      await page.keyboard.press("Space");
+    }
+    await page.keyboard.press("Control+Space");
+    await playing();
+    await page.getByRole("link").first().focus();
+    await page.keyboard.press("Space");
+    await playing();
+    // A dialog that is not the player.
+    await page.evaluate(() => {
+      const dialog = document.createElement("dialog");
+      dialog.id = "probe-dialog";
+      dialog.append(document.createTextNode("Hello"));
+      document.body.append(dialog);
+      dialog.show();
+    });
+    await page.locator("body").press("Space");
+    await playing();
+    await page.evaluate(() => document.getElementById("probe-dialog")?.remove());
+    await page.locator("body").press("Space");
+    await expect(page.locator("html")).toHaveAttribute("data-player-state", "paused");
   });
 
   test("tabs through the header, the briefing and the bar in reading order", async ({

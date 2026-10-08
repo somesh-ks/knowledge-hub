@@ -45,6 +45,7 @@ function install(): void {
   const select = root.querySelector<HTMLSelectElement>("[data-library-sort]");
   const status = root.querySelector<HTMLElement>("[data-library-status]");
   const empty = root.querySelector<HTMLElement>("[data-library-empty]");
+  const clearText = root.querySelector<HTMLButtonElement>("[data-library-clear-text]");
   const chips = [...root.querySelectorAll<HTMLButtonElement>("[data-library-filter]")];
   if (!grid) return;
   const cards = [...grid.querySelectorAll<HTMLElement>("[data-card]")].map(readCard);
@@ -54,6 +55,7 @@ function install(): void {
   function apply(): void {
     const query = input?.value ?? "";
     const searching = query.trim() !== "";
+    if (clearText) clearText.hidden = query === "";
     const sort = (select?.value ?? "newest") as LibrarySort;
     let shown = 0;
     for (const card of cards) {
@@ -87,6 +89,11 @@ function install(): void {
       apply();
     });
   }
+  clearText?.addEventListener("click", () => {
+    if (input) input.value = "";
+    apply();
+    input?.focus();
+  });
   root.querySelector("[data-library-clear]")?.addEventListener("click", () => {
     if (input) input.value = "";
     filter = "all";

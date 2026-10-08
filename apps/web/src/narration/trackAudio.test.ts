@@ -226,6 +226,44 @@ describe("a playlist as one track", () => {
     expect(audio.paused).toBe(false);
   });
 
+  it("is not stopped by the late refusal of a guessed file it has already given up on", async () => {
+    const list = segments();
+    for (const segment of list) {
+      segment.url = `https://blob.test/guess-${segment.key}.mp3`;
+      segment.unconfirmed = true;
+    }
+    const { real, audio, events, ensured, deliver } = harness(list);
+    // A browser rejects the play() of a file it could not load after it has raised the error event.
+    let refuse: (error: Error) => void = () => undefined;
+    real.play = () => {
+      real.playCalls += 1;
+      real.paused = false;
+      return new Promise<void>((_, reject) => {
+        refuse = reject;
+      });
+    };
+    audio.src = "narration:2026-10-07";
+    // Pressed before the length is announced, as the first press of Play is.
+    void audio.play();
+    await announced();
+    expect(real.src).toBe("https://blob.test/guess-intro.mp3");
+    real.error = { code: 4 };
+    real.emit("error");
+    await Promise.resolve();
+    expect(ensured).toEqual([0]);
+    const refusal = new Error("The element has no supported sources.");
+    refusal.name = "NotSupportedError";
+    refuse(refusal);
+    await new Promise<void>((resolve) => setTimeout(resolve, 0));
+    // The listener still wants to hear it: no pause is announced, and the made file plays.
+    expect(events).not.toContain("pause");
+    expect(audio.paused).toBe(false);
+    real.play = FakeAudio.prototype.play;
+    await deliver(0);
+    expect(real.src).toBe("https://blob.test/intro.mp3");
+    expect(real.paused).toBe(false);
+  });
+
   it("trusts a guessed address once its file plays", async () => {
     const list = segments();
     const intro = list[0];

@@ -15,6 +15,7 @@ import { announce } from "./announcerDom";
 import { readDigestData } from "./digestData";
 import { recordInstallVisit } from "./installHint";
 import { attachMediaSession } from "./mediaSession";
+import { shouldToggleOnPageSpace } from "./playerKeys";
 import { playerSheet } from "./playerSheet";
 import { createPlayerStore } from "./playerStore";
 import type { PlayerStore } from "./playerTypes";
@@ -86,6 +87,30 @@ function readPage(playerStore: PlayerStore): void {
   playerStore.setPageDigest(narratedOrPage(readDigestData()));
 }
 
+/** A dialog or popover other than the player is open. The toast is a popover, but not a modal one. */
+function otherOverlayOpen(): boolean {
+  try {
+    return document.querySelector("dialog[open], [popover]:popover-open:not(.toast)") !== null;
+  } catch {
+    // Safari before 17 does not know :popover-open.
+    return document.querySelector("dialog[open]") !== null;
+  }
+}
+
+/** Space plays and pauses from anywhere on the page once the bar is there. */
+function toggleOnSpace(playerStore: PlayerStore): (event: KeyboardEvent) => void {
+  return (event) => {
+    const state = playerStore.getState();
+    const loaded = state.hasStarted && Boolean(state.track?.digest.audio);
+    const target = event.target instanceof Element ? event.target : null;
+    if (!shouldToggleOnPageSpace(event, target, { loaded, overlayOpen: otherOverlayOpen() }))
+      return;
+    // Only when it acts: otherwise Space stays the page's scroll key.
+    event.preventDefault();
+    playerStore.toggle();
+  };
+}
+
 export function startPlayerRuntime(): () => void {
   const playerStore = getPlayerStore();
   const preferences = getPreferences();
@@ -118,12 +143,14 @@ export function startPlayerRuntime(): () => void {
     reapplyTheme();
     playerSheet.sync();
   };
+  const onSpace = toggleOnSpace(playerStore);
   const onOnline = (): void => announce("You are back online.");
   const onOffline = (): void => announce("You are offline.");
 
   document.addEventListener("astro:page-load", onPageLoad);
   document.addEventListener("astro:before-preparation", onBeforeNavigation);
   document.addEventListener("astro:after-swap", onAfterSwap);
+  document.addEventListener("keydown", onSpace);
   window.addEventListener("online", onOnline);
   window.addEventListener("offline", onOffline);
   // The island usually hydrates after the first astro:page-load has already fired.
@@ -133,6 +160,7 @@ export function startPlayerRuntime(): () => void {
     document.removeEventListener("astro:page-load", onPageLoad);
     document.removeEventListener("astro:before-preparation", onBeforeNavigation);
     document.removeEventListener("astro:after-swap", onAfterSwap);
+    document.removeEventListener("keydown", onSpace);
     window.removeEventListener("online", onOnline);
     window.removeEventListener("offline", onOffline);
     offEvent();

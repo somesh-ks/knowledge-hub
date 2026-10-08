@@ -25,6 +25,7 @@ const items = libraryItems(entries, episodes);
           {/* Search, then what to show, then the order. Every briefing is already in the page, so
                all three work without a round trip, and the page is whole with scripts off. */}
           <form class="library-tools" role="search" aria-label="Library">
+            <div class="search-wrap">
             <label class="search-field">
               <Icon name="search" />
               <span class="sr-only">Search briefings, episodes and stories</span>
@@ -37,6 +38,10 @@ const items = libraryItems(entries, episodes);
                 data-library-search
               />
             </label>
+            <button class="search-clear press press-subtle" type="button" aria-label="Clear text" data-library-clear-text hidden>
+              <Icon name="close" />
+            </button>
+            </div>
             <div class="library-bar">
               <div class="filter-chips" role="group" aria-label="Show">
                 {LIBRARY_FILTERS.map((filter) => (

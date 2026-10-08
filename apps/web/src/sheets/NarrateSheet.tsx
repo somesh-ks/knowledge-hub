@@ -1,5 +1,6 @@
 import { Field } from "@base-ui/react/field";
 import { type FormEvent, useRef, useState, useSyncExternalStore } from "react";
+import { PASSPHRASE_REQUIRED } from "../lib/access";
 import {
   answerPassphrase,
   pendingQuestion,
@@ -27,7 +28,9 @@ export default function NarrateSheet({ open, onOpenChange }: NarrateSheetProps) 
   const error = empty
     ? "Enter the passphrase to make the audio."
     : wrong
-      ? "That passphrase is not right. Check it and try again."
+      ? PASSPHRASE_REQUIRED
+        ? "That passphrase is not right. Check it and try again."
+        : "The audio was refused. Try again in a few minutes."
       : null;
 
   function onSubmit(event: FormEvent<HTMLFormElement>): void {
@@ -59,8 +62,9 @@ export default function NarrateSheet({ open, onOpenChange }: NarrateSheetProps) 
       initialFocus={(openType) => (openType === "touch" ? true : inputRef.current)}
     >
       <p className="sheet-lede">
-        This briefing has not been read aloud yet. Making its audio takes a few seconds and needs
-        the passphrase. After that it plays for everyone.
+        {PASSPHRASE_REQUIRED
+          ? "This briefing has not been read aloud yet. Making its audio takes a few seconds and needs the passphrase. After that it plays for everyone."
+          : "This briefing has not been read aloud yet. Making its audio takes a few seconds. After that it plays for everyone."}
       </p>
       <form className="sheet-form" onSubmit={onSubmit} noValidate>
         <Field.Root invalid={Boolean(error)} className="sheet-field">
