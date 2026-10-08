@@ -20,7 +20,6 @@
  * Writes go through one animation-frame writer.
  */
 
-import { navigateTo } from "./navigation";
 import { playPageChapter, togglePageDigest, togglePageItem } from "./pageActions";
 import type { PlayerStore } from "./playerTypes";
 import {
@@ -199,35 +198,28 @@ export function createReaderSync(
 
   /* ------------------------------------------------------------------ input */
 
-  /** The button over a cover: plays or pauses its item, going to its page first from a list. */
-  function pressCover(id: string | undefined, href: string | undefined): void {
-    if (!id) return;
-    const page = store.getPageDigest();
-    resumeFollow();
-    if (page?.id === id) {
-      if (page.audio) togglePageDigest(store);
-      else onNarrate?.();
-      return;
-    }
-    const { digestId, status } = store.getState();
-    if (digestId === id && status !== "idle") {
-      if (status === "playing" || status === "loading") store.pause("user");
-      else store.play("user");
-      return;
-    }
-    if (!href) return;
-    pendingNarrate = id;
-    store.playWhenPageLoads(id);
-    void navigateTo(href);
-  }
-
   function onClick(event: MouseEvent): void {
     if (!(event.target instanceof Element)) return;
     const page = store.getPageDigest();
 
     const coverButton = event.target.closest<HTMLElement>("[data-cover-play]");
     if (coverButton) {
-      pressCover(coverButton.dataset.coverPlay, coverButton.dataset.coverHref);
+      const id = coverButton.dataset.coverPlay;
+      const href = coverButton.dataset.coverHref;
+      resumeFollow();
+      if (id) {
+        void import("./coverPress").then((cover) =>
+          cover.pressCover({
+            store,
+            onNarrate,
+            expectPage: (expected) => {
+              pendingNarrate = expected;
+            },
+            id,
+            href,
+          }),
+        );
+      }
       return;
     }
 
