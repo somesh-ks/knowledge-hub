@@ -2,6 +2,9 @@
 
 One line each: symptom, cause, fix. Newest first. Search before debugging.
 
+- A page's script did nothing after a client-side navigation: Vite inlined the small module as a `data:` script, which the CSP blocks. `vite.build.assetsInlineLimit: 0` keeps every page script a file.
+- The Library page shipped 135 KB of JavaScript: its script imported a pure helper from a module that also imported build-time code (`digestView`). Keep what a page script imports in a module with no build-time imports.
+- A merge was refused with "local changes would be overwritten" because an agent had staged work in the main checkout. Agents that share the main checkout commit before any merge; otherwise give them a worktree.
 - A function's budget counter could lose counts: `@vercel/blob` honours `useCache: false` only for private stores, and this store is public, so a state read could be a minute stale. Read mutable state with `head()` and then the URL plus a version query built from what `head` returned.
 - Vercel Hobby includes 2,000 advanced Blob operations a month (`put`, `copy`, `list`) and 10,000 simple ones (`head`, a read that misses the cache); going over locks the store for 30 days. Count operations per call when designing anything that writes to Blob, and never `list` on a page view.
 - The live Play control never changed to Pause: the page rendered `.cta-label` while `readerSync` wrote to `[data-play-label]`, and every player test ran against the dev lab page, which had the right hooks. Test the contract between markup and script on a real built page.

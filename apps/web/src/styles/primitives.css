@@ -62,6 +62,11 @@
   opacity: 1;
 }
 
+/* A row runs the width of its column, so a ring drawn outside it is cut by the column's edge. */
+.row-action:focus-visible {
+  outline-offset: calc(var(--stroke-ring) * -1);
+}
+
 /* ------------------------------------------------------------------ section header and meta line */
 
 /* More room above a header than below it: the header belongs to what follows. */

@@ -65,20 +65,10 @@
       color var(--duration-hover) var(--ease-hover);
   }
 
-  .aside-length {
-    flex: none;
-    color: var(--color-on-surface-muted);
-    font-size: var(--text-meta-size);
-  }
-
   /* The section in view: a filled entry and the accent, so the mark is a shape as well as a colour. */
   .aside-link[aria-current="true"] {
     background: var(--nav-side-item-bg);
     color: var(--color-accent);
-  }
-
-  .aside-link[aria-current="true"] .aside-length {
-    color: inherit;
   }
 
   @media (hover: hover) and (pointer: fine) {

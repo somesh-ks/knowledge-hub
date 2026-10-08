@@ -1,4 +1,4 @@
-import { SECTION_TITLES, SECTIONS, type Section } from "@dispatch/core";
+import { SECTION_TITLES, SECTIONS } from "@dispatch/core";
 import type { PodcastRequest } from "../types/contracts";
 import { CHARS_PER_MINUTE } from "./episodeFile";
 import { pluralize } from "./format";

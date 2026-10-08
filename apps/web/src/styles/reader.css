@@ -66,29 +66,3 @@
   margin-inline: 0;
   text-align: center;
 }
-
-/* ------------------------------------------------------------------ section header with a fact */
-
-/* The header's text on the left, a length or a count at the end of the line. The heading element
-   sits inside, so the fact is not read out as part of the heading. */
-.head-split {
-  display: flex;
-  align-items: baseline;
-  justify-content: space-between;
-  gap: var(--space-4);
-}
-
-.head-split > :is(h2, h3) {
-  min-width: 0;
-  font: inherit;
-  letter-spacing: inherit;
-}
-
-.head-fact {
-  flex: none;
-  color: var(--color-on-surface-muted);
-  font-size: var(--text-meta-size);
-  font-weight: var(--text-meta-weight);
-  letter-spacing: var(--text-meta-tracking);
-  line-height: var(--text-meta-leading);
-}

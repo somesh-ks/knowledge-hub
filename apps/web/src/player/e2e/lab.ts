@@ -45,8 +45,8 @@ const TARGETS: Record<PlayerOptions["target"], TargetFacts> = {
   site: {
     path: "/d/2026-10-07",
     title: "Wednesday 7 October",
-    nextLink: /All briefings/,
-    nextUrl: /\/archive$/,
+    nextLink: /^Library$/,
+    nextUrl: /\/library$/,
     generated: { id: "2026-10-05", servedFrom: null },
   },
 };
