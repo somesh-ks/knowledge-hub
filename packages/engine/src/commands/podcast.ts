@@ -7,10 +7,9 @@ import { emit } from "../curate/output.js";
 import { type CommitOutcome, commitAndPush } from "../git/commit.js";
 import type { HttpClient } from "../http.js";
 import { describeError } from "../llm/errors.js";
-import { withModelFailover } from "../llm/failoverClient.js";
-import { createNebiusLlm } from "../llm/nebiusClient.js";
 import { createOpenAiChatApi } from "../llm/openAiChatApi.js";
 import { TokenBudget } from "../llm/tokenBudget.js";
+import { createWriterLlm } from "../llm/writerLlm.js";
 import { episodeExists, parseCommand, readEpisode } from "../podcast/actions.js";
 import { generateEpisode } from "../podcast/generate.js";
 import { NebiusScriptWriter } from "../podcast/nebiusScriptWriter.js";
@@ -33,19 +32,14 @@ export interface PodcastDeps {
   http?: HttpClient;
 }
 
-/** The Nebius writer, with the same model and fallback the digest writer uses. */
+/** The Nebius writer, with the same models and failover the digest writer uses. */
 function nebiusWriter(ctx: CommandContext): ScriptWriter {
   const { env, log } = ctx;
   requireKey(env, "NEBIUS_API_KEY");
-  const model = requireKey(env, "DISPATCH_MODEL");
   const budget = new TokenBudget(env.MAX_TOKENS_PER_RUN);
   const api = createOpenAiChatApi(env);
-  const primary = createNebiusLlm({ api, model, budget, log });
-  const fallback = env.DISPATCH_FALLBACK_MODEL
-    ? createNebiusLlm({ api, model: env.DISPATCH_FALLBACK_MODEL, budget, log })
-    : null;
   return new NebiusScriptWriter({
-    llm: withModelFailover(primary, fallback, log),
+    llm: createWriterLlm({ root: ctx.root, env, api, budget, log }),
     log,
     secrets: secretsFromEnv(env),
   });

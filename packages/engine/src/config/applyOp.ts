@@ -14,6 +14,7 @@ import {
   type TopicsFile,
   TopicsFile as TopicsSchema,
   topicIdFromName,
+  type WriterFile,
 } from "@dispatch/core";
 import type { ExaQuery, QueriesFile } from "../fetch/queries.js";
 import { buildSourceFromUrl } from "../sources/addSource.js";
@@ -32,6 +33,7 @@ export interface ConfigBundle {
   topics: TopicsFile;
   preferences: Preferences;
   schedule: ScheduleFile;
+  writer: WriterFile;
   sourcesUser: SourcesUserFile;
   /** The merged registry, read only: used to find ids and pages that already exist. */
   registry: SourcesFile;
@@ -358,6 +360,19 @@ function setSchedule(
   };
 }
 
+function setWriter(
+  op: Extract<ParsedConfigOp, { op: "writer.set" }>,
+  bundle: ConfigBundle,
+): OpOutcome {
+  const next = clone(bundle);
+  next.writer = { version: 1, provider: op.provider, model: op.model };
+  return {
+    next,
+    summary:
+      op.model === null ? "set the writer to automatic" : `set the writer to ${tidy(op.model)}`,
+  };
+}
+
 /**
  * Apply one validated op to the configuration. Pure apart from the feed lookup `source.add`
  * makes through the injected client. Throws ConfigOpError with a message for the person who sent
@@ -383,6 +398,8 @@ export async function applyConfigOp(
       return setWeights(op, bundle);
     case "schedule.set":
       return setSchedule(op, bundle);
+    case "writer.set":
+      return setWriter(op, bundle);
     default: {
       const unreachable: never = op;
       throw new ConfigOpError(`Unknown op ${JSON.stringify(unreachable)}`);

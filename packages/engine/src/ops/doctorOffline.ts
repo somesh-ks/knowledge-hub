@@ -5,6 +5,7 @@ import { loadQueries } from "../fetch/queries.js";
 import type { GitRunner } from "../git/runGit.js";
 import { parseSources } from "../sources/registry.js";
 import { parseVoice } from "../voice/voice.js";
+import { loadWriterModel } from "../writer/store.js";
 import {
   type Check,
   type DoctorDeps,
@@ -251,7 +252,7 @@ const KEYS: readonly KeySpec[] = [
   },
 ];
 
-function keyChecks(env: Env): Check[] {
+function keyChecks(env: Env, settingsModel: string | null): Check[] {
   const checks = KEYS.map((key): Check => {
     const set = env[key.name] !== undefined;
     if (set) return ok(`key.${key.name}`, "set");
@@ -268,6 +269,9 @@ function keyChecks(env: Env): Check[] {
         )
       : ok(`model.${name}`, `set (${env[name]})`);
   checks.push(
+    settingsModel === null
+      ? ok("model.source", "the environment (DISPATCH_MODEL); Settings is on Automatic")
+      : ok("model.source", `Settings (${settingsModel}); the environment models are the fallback`),
     model("DISPATCH_MODEL", "The writer cannot run."),
     model("DISPATCH_FALLBACK_MODEL", "There is no failover if the primary id is retired."),
   );
@@ -285,6 +289,6 @@ export async function offlineChecks(
     ...(await gitChecks(root, deps.git)),
     ...(await configChecks(root)),
     ...(await stateChecks(root)),
-    ...keyChecks(env),
+    ...keyChecks(env, loadWriterModel(root)),
   ];
 }

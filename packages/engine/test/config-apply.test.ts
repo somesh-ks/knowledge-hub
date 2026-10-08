@@ -269,6 +269,48 @@ describe("schedule.set", () => {
   });
 });
 
+describe("writer.set", () => {
+  const SET = { op: "writer.set", provider: "nebius", model: "meta-llama/Llama-3.3-70B-Instruct" };
+
+  it("writes config/writer.json and nothing else", async () => {
+    const { code, report } = await apply(SET);
+    expect(code).toBe(0);
+    expect(report.files).toEqual(["config/writer.json"]);
+    expect(report.summary).toBe("set the writer to meta-llama/Llama-3.3-70B-Instruct");
+    expect(await repo.readJson("config/writer.json")).toEqual({
+      version: 1,
+      provider: "nebius",
+      model: "meta-llama/Llama-3.3-70B-Instruct",
+    });
+  });
+
+  it("does not create the file for the automatic default", async () => {
+    const { code, report } = await apply({ ...SET, model: null });
+    expect(code).toBe(0);
+    expect(report.files).toEqual([]);
+    expect(repo.dirty()).toEqual([]);
+  });
+
+  it("returns to automatic after a pick", async () => {
+    await apply(SET);
+    const { report } = await apply({ ...SET, model: null });
+    expect(report.summary).toBe("set the writer to automatic");
+    expect(await repo.readJson("config/writer.json")).toMatchObject({ model: null });
+  });
+
+  it("refuses an odd id and an unknown provider, and writes nothing", async () => {
+    for (const bad of [
+      { ...SET, model: "has space" },
+      { ...SET, model: "" },
+      { ...SET, provider: "other" },
+    ]) {
+      const { code } = await apply(bad);
+      expect(code, JSON.stringify(bad)).toBe(1);
+    }
+    expect(repo.dirty()).toEqual([]);
+  });
+});
+
 describe("topic.remove", () => {
   it("removes a custom topic with its section, queries, auto sources and candidates", async () => {
     await apply(QUANTUM);
