@@ -92,6 +92,8 @@
 }
 
 .settings-view .row-action .icon {
+  /* The glyph sits inside its box; this pulls its right edge out to the switch's and the segments'. */
+  margin-inline-end: calc(var(--size-icon) * -0.28);
   color: var(--color-on-surface-subtle);
 }
 
