@@ -12,6 +12,20 @@
   scroll-margin-block-start: var(--tabs-height);
 }
 
+/* A chapter heading is one step up from the row grammar's, and has more air above it, so each
+   chapter reads as a group of its own. */
+.chapter > .section-head {
+  padding-block-start: var(--space-12);
+  font-size: var(--font-size-section);
+  font-weight: var(--font-weight-medium);
+}
+
+/* The hairlines between chapters and between stories start and end at the text column's edges. */
+.chapter.rule-above::before,
+.chapter .rows > * + *::before {
+  inset-inline: 0;
+}
+
 /* From 80rem the contents list beside the column does the tabs' job. */
 @media (min-width: 80rem) {
   .briefing > .tabs {

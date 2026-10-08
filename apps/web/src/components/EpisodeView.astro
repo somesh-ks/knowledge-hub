@@ -1,10 +1,11 @@
 ---
 import { paletteAccent } from "@dispatch/cover";
-import { type EpisodeEntry, FORMAT_LABELS } from "../lib/episodes";
+import { episodeHighlights } from "../lib/episodeHighlights";
+import type { EpisodeEntry } from "../lib/episodes";
 import { longDate } from "../lib/format";
-import { sourceHost } from "../lib/sourceLabel";
 import Cover from "./Cover.astro";
 import EpisodeActions from "./EpisodeActions.astro";
+import HeroMenu from "./HeroMenu.astro";
 import Icon from "./Icon.astro";
 import PlayCta from "./PlayCta.astro";
 import PlayerData from "./PlayerData.astro";
@@ -17,12 +18,9 @@ interface Props {
 const { entry } = Astro.props;
 const { episode } = entry;
 const length = `${episode.listen_minutes} min`;
-// One host tells it, or two talk: only two voices need telling apart.
-const twoHosts = episode.format === "discussion";
-const NAMES = { a: "Host", b: "Guest" } as const;
 // "7 October": the long date without its weekday.
 const day = longDate(episode.date).split(" ").slice(1).join(" ");
-const sources = episode.sources.map((source) => ({ ...source, host: sourceHost(source.url) }));
+const highlights = episodeHighlights(episode);
 ---
 
 <main
@@ -41,70 +39,42 @@ const sources = episode.sources.map((source) => ({ ...source, host: sourceHost(s
       priority
     />
     <div class="hero-text">
-      <h1 class="page-title" id="page-title" tabindex="-1">{episode.title}</h1>
-      <p class="meta meta-wrap">
-        <span>{FORMAT_LABELS[episode.format]}</span>{" "}
-        <span>{day}</span>
-      </p>
+      <div class="hero-title-row">
+        <h1 class="page-title" id="page-title" tabindex="-1">{episode.title}</h1>
+        <HeroMenu sharePath={`/e/${entry.id}`} noun="episode" episodeId={entry.id} />
+      </div>
     </div>
     {/* The same path a briefing takes: audio is made when Play is pressed, one turn at a time. */}
-    <PlayCta
-      digestId={entry.id}
-      mode="preparing"
-      length={length}
-      sharePath={`/e/${entry.id}`}
-      noun="episode"
-    >
-      <EpisodeActions id={entry.id} />
-    </PlayCta>
+    <PlayCta digestId={entry.id} mode="preparing" length={length} facts={[day]} />
   </header>
 
-  <section class="episode-block" aria-labelledby="episode-script-title">
-    <h2 class="section-head" id="episode-script-title">Script</h2>
-    <div class="episode-script">
-      {
-        episode.turns.map((turn) => (
-          <p class="episode-turn">
-            {twoHosts && <span class="episode-speaker">{NAMES[turn.speaker]}</span>}
-            {twoHosts && " "}
-            {turn.text}
-          </p>
-        ))
-      }
-    </div>
-  </section>
+  <EpisodeActions id={entry.id} />
 
+  {/* The script is read in the player. The page is for the news itself: each story the episode
+       covers, what was said about it, and the way to the source. */}
   {
-    sources.length > 0 && (
-      <section class="episode-block rule-above" aria-labelledby="episode-stories-title">
-        <h2 class="section-head" id="episode-stories-title">Stories</h2>
-        <ul class="rows episode-sources" role="list">
-          {sources.map((source) => {
-            const text = (
-              <span class="episode-source-text">
-                <span class="episode-source-title">{source.headline}</span>
-                <span class="episode-source-meta">{source.source || source.host}</span>
-              </span>
-            );
-            return (
-              <li>
-                {source.host ? (
-                  <a
-                    class="row-action episode-source"
-                    href={source.url}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    aria-label={`${source.headline}, ${source.source || source.host}, opens in a new tab`}
-                  >
-                    {text}
-                    <Icon name="openInNew" />
-                  </a>
-                ) : (
-                  <div class="episode-source">{text}</div>
-                )}
-              </li>
-            );
-          })}
+    highlights.length > 0 && (
+      <section class="episode-block" aria-labelledby="episode-highlights-title">
+        <h2 class="section-head" id="episode-highlights-title">Highlights</h2>
+        <ul class="rows episode-highlights" role="list">
+          {highlights.map((highlight) => (
+            <li class="episode-highlight">
+              <h3 class="episode-highlight-title">{highlight.headline}</h3>
+              {highlight.text && <p class="episode-highlight-text">{highlight.text}</p>}
+              {highlight.host && (
+                <a
+                  class="episode-highlight-link press press-subtle"
+                  href={highlight.url}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  aria-label={`${highlight.headline}, read at ${highlight.host}, opens in a new tab`}
+                >
+                  <span>{highlight.host}</span>
+                  <Icon name="openInNew" />
+                </a>
+              )}
+            </li>
+          ))}
         </ul>
       </section>
     )

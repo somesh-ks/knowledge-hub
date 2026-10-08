@@ -505,7 +505,7 @@ test.describe("earlier briefings", () => {
     await page.goto("/");
     // A shelf of covers, not a list: the same card the Library uses.
     await expect(
-      page.getByRole("heading", { level: 2, name: "Earlier", exact: true }),
+      page.getByRole("heading", { level: 2, name: "Other episodes", exact: true }),
     ).toBeVisible();
     await expect(page.locator(".earlier .shelf > .card")).toHaveCount(2);
     await expect(page.getByRole("link", { name: "See all" })).toHaveAttribute("href", "/library");

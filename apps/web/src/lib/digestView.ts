@@ -54,7 +54,7 @@ export function buildSections(entry: DigestEntry): SectionView[] {
 
 export interface HeroView {
   title: string;
-  /** The parts of the one meta line: "12 stories", "2 min read", "4 min listen". */
+  /** The parts of the line beside the play chip: "12 stories". The length is the chip's own label. */
   meta: string[];
   /** The play chip's label before anything plays: "4 min". */
   length: string;
@@ -76,7 +76,7 @@ export function buildHero(entry: DigestEntry, title: string): HeroView {
   const length = listenLength(entry);
   return {
     title,
-    meta: [storyCount(digest.items.length), `${length} listen`],
+    meta: [storyCount(digest.items.length)],
     length,
   };
 }

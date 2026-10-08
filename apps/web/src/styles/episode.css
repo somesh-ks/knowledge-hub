@@ -1,67 +1,73 @@
 /*
- * A podcast episode's page: the header is the briefing's (hero.css), then the script as readable
- * text and the stories it draws on as hairline rows. Type stays in two steps in each block: the
- * script is one size with the speaker's name in medium weight, and a story is a title with one quiet
- * line under it, always with air between them. Imported by components/EpisodeView.astro.
+ * A podcast episode's page: the header is the briefing's (hero.css), then the highlights: one hairline
+ * row per story the episode covers, with what was said about it and the way to the source. The row
+ * keeps three steps (a title, a few plain sentences, a link) with air between them. Imported by
+ * components/EpisodeView.astro.
  */
 
 .episode-block {
   padding-block-end: var(--space-8);
 }
 
-/* ------------------------------------------------------------------ the script */
-
-.episode-script {
-  display: grid;
-  gap: var(--space-4);
-  max-width: var(--layout-measure);
-  padding-block-start: var(--space-2);
-}
-
-.episode-turn {
-  font-family: var(--text-reading-family);
-  font-size: var(--text-reading-size);
-  line-height: var(--text-reading-leading);
-}
-
-.episode-speaker {
-  margin-inline-end: var(--space-1);
+/* A section heading one step up from the row grammar's, so it reads as a heading. */
+.episode-block .section-head {
+  font-size: var(--font-size-section);
   font-weight: var(--font-weight-medium);
 }
 
-/* ------------------------------------------------------------------ the stories */
-
-.episode-sources {
+/* The hairlines stop at the text column's edges. */
+.episode-highlights {
   padding-block-start: var(--space-2);
 }
 
-.episode-source {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: var(--space-4);
+.episode-highlights > * + *::before {
+  inset-inline: 0;
 }
 
-.episode-source-text {
+.episode-highlight {
   display: grid;
-  flex: 1 1 0;
+  justify-items: start;
   gap: var(--space-2);
-  min-width: 0;
 }
 
-.episode-source-title {
+.episode-highlight-title {
   font-size: var(--font-size-body);
   font-weight: var(--font-weight-medium);
   line-height: var(--font-leading-label);
   overflow-wrap: anywhere;
 }
 
-.episode-source-meta {
-  color: var(--color-on-surface-muted);
-  font-size: var(--font-size-label);
-  line-height: var(--font-leading-body);
+.episode-highlight-text {
+  max-width: var(--layout-measure);
+  font-family: var(--text-reading-family);
+  font-size: var(--text-reading-size);
+  line-height: var(--text-reading-leading);
 }
 
-.episode-source > .icon {
-  color: var(--color-on-surface-subtle);
+/* The host and an arrow out: a text link with a 44px target. */
+.episode-highlight-link {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-2);
+  min-height: var(--size-touch);
+  margin-block-end: calc((var(--size-touch) - var(--space-4)) / -2);
+  padding-inline: var(--space-3);
+  margin-inline-start: calc(var(--space-3) * -1);
+  border-radius: var(--button-radius);
+  color: var(--color-accent);
+  font-size: var(--font-size-label);
+  font-weight: var(--font-weight-medium);
+  line-height: var(--font-leading-label);
+  text-decoration: none;
+  overflow-wrap: anywhere;
+}
+
+@media (hover: hover) and (pointer: fine) {
+  .episode-highlight-link:hover {
+    background: var(--color-accent-subtle);
+  }
+}
+
+.episode-highlight-link:active {
+  background: var(--color-accent-subtle);
 }

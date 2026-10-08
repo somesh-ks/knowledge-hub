@@ -102,7 +102,7 @@ test.describe("layout", () => {
   test("the contents list replaces the section tabs from 80rem", async ({ page }) => {
     await page.setViewportSize({ width: 1280, height: 900 });
     await page.goto("/");
-    const aside = page.getByRole("navigation", { name: "In this briefing" });
+    const aside = page.getByRole("navigation", { name: "Contents" });
     await expect(aside).toBeVisible();
     await expect(aside.locator(".aside-link")).toHaveCount(6);
     await expect(aside.locator(".aside-link").first()).toHaveAttribute("href", "#c-top");

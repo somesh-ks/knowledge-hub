@@ -104,6 +104,7 @@
   --font-size-label: 0.875rem;
   --font-size-body: 1rem;
   --font-size-label-lg: 1.25rem;
+  --font-size-section: 1.375rem;
   --font-size-reading: clamp(0.9375rem, 0.8958rem + 0.2083vw, 1.0625rem);
   --font-size-title: clamp(1rem, 0.9792rem + 0.1042vw, 1.0625rem);
   --font-size-lead: clamp(1.125rem, 1.0833rem + 0.2083vw, 1.25rem);
