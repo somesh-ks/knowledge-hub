@@ -40,6 +40,9 @@ The reader is called Singularity (D30). Identifiers keep `dispatch`. Everything 
 
 ## Not working or unverified
 
+- Two player tests fail on `main` on the `site-desktop` project, so one of the pull requests merged on 2026-10-08 (#25 to #33) broke them; which one is not known: `gestures.spec.ts:67` (a flick down on the open player's header with a mouse does not close it) and `stuck.spec.ts:95` (with the player open, the toast's Open action cannot be pressed). Both passed that morning. The chevron and Escape still close the player. Bisect these first.
+- `ship/progress-sounds` (live run stages, quiet toasts, interface sounds, the cursor fix, budget 104 KB) is committed locally and checked (552 site tests, 3,939 unit tests) but was not pushed: the owner stopped the push on 2026-10-09.
+
 - Not verified by the owner on the live site: everything shipped on 2026-10-08 after the first-Play fix. Interface sounds and the live stages were checked only in the fixture build's browser tests.
 - The cause of "no player bar, narration is not available" on 2026-10-08 was not reproduced. Production played correctly in a fresh browser; the stale-tab recovery addresses the likely cause.
 - Word-level highlighting in the script is not built, and the script view itself is in the unmerged player branch. Word level needs Speechify's word marks stored beside each segment's audio and returned by the lookup.
