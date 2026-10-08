@@ -159,8 +159,8 @@ test.describe("sections and stories", () => {
     await expect(sections).toHaveCount(6);
     await expect(sections.locator("h2")).toHaveText([
       "Top picks",
-      "Interaction craft",
-      "AI models and products",
+      "Design Engineering",
+      "AI Products",
       "Research",
       "Launches",
       "Watch and listen",
@@ -352,8 +352,8 @@ test.describe("section tabs", () => {
     const tabs = page.locator('nav[aria-label="Sections"] .tab');
     await expect(tabs).toHaveText([
       "Top picks",
-      "Interaction craft",
-      "AI models and products",
+      "Design Engineering",
+      "AI Products",
       "Research",
       "Launches",
       "Watch and listen",

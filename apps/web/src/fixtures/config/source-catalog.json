@@ -1,0 +1,86 @@
+{
+  "version": 1,
+  "sources": [
+    {
+      "id": "interface-notes",
+      "name": "Interface Notes",
+      "url": "https://interface-notes.example",
+      "feed_url": "https://interface-notes.example/feed.xml",
+      "about": "UX research articles and usability guidance",
+      "cadence": "several a week",
+      "tags": ["design", "ux", "research", "usability", "interface"]
+    },
+    {
+      "id": "motion-weekly",
+      "name": "Motion Weekly",
+      "url": "https://motion-weekly.example",
+      "feed_url": "https://motion-weekly.example/rss.xml",
+      "about": "Animation and motion design for interfaces",
+      "cadence": "weekly",
+      "tags": ["motion", "animation", "design", "interface"]
+    },
+    {
+      "id": "type-and-grid",
+      "name": "Type and Grid",
+      "url": "https://type-and-grid.example",
+      "feed_url": "https://type-and-grid.example/feed",
+      "about": "Typography and layout essays",
+      "cadence": "monthly",
+      "tags": ["design", "typography", "layout", "visual"]
+    },
+    {
+      "id": "pixel-ledger",
+      "name": "Pixel Ledger",
+      "url": "https://pixel-ledger.example",
+      "feed_url": "https://pixel-ledger.example/atom.xml",
+      "about": "Visual design critique and case studies",
+      "cadence": "daily",
+      "tags": ["design", "visual", "critique", "product"]
+    },
+    {
+      "id": "craft-bench",
+      "name": "Craft Bench",
+      "url": "https://craft-bench.example",
+      "feed_url": "https://craft-bench.example/feed.xml",
+      "about": "How polished interface details are built, with code",
+      "cadence": "weekly",
+      "tags": ["css", "frontend", "interface", "motion", "engineering"]
+    },
+    {
+      "id": "model-ledger",
+      "name": "Model Ledger",
+      "url": "https://model-ledger.example",
+      "feed_url": "https://model-ledger.example/rss",
+      "about": "Releases and benchmarks for frontier AI models",
+      "cadence": "several a week",
+      "tags": ["ai", "models", "benchmark", "release"]
+    },
+    {
+      "id": "agent-patterns",
+      "name": "Agent Patterns",
+      "url": "https://agent-patterns.example",
+      "feed_url": "https://agent-patterns.example/feed.xml",
+      "about": "Interface patterns for chat and agent products",
+      "cadence": "weekly",
+      "tags": ["ai", "agent", "product", "interface"]
+    },
+    {
+      "id": "launch-board",
+      "name": "Launch Board",
+      "url": "https://launch-board.example",
+      "feed_url": "https://launch-board.example/feed",
+      "about": "New devices and software, the day they launch",
+      "cadence": "daily",
+      "tags": ["tech", "launch", "device", "release", "headset"]
+    },
+    {
+      "id": "headline-desk",
+      "name": "Headline Desk",
+      "url": "https://headline-desk.example",
+      "feed_url": "https://headline-desk.example/rss",
+      "about": "General news from a wire service",
+      "cadence": "daily",
+      "tags": ["news", "world", "business"]
+    }
+  ]
+}

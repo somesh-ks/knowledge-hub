@@ -100,7 +100,9 @@ describe("parsePodcastRequest", () => {
       [],
       { ...REQUEST, topic_ids: [] },
       { ...REQUEST, topic_ids: ["ai", "ai"] },
-      { ...REQUEST, topic_ids: ["nonsense"] },
+      { ...REQUEST, topic_ids: ["Not A Section!"] },
+      { ...REQUEST, topic_ids: [""] },
+      { ...REQUEST, topic_ids: ["x".repeat(65)] },
       { ...REQUEST, topic_ids: [7] },
       { ...REQUEST, topic_ids: "ai" },
       {
@@ -112,11 +114,25 @@ describe("parsePodcastRequest", () => {
       { ...REQUEST, format: "essay" },
       { ...REQUEST, window_days: 3 },
       { ...REQUEST, tone: "angry" },
+      { ...REQUEST, audience: "everyone" },
+      { ...REQUEST, audience: 1 },
+      { ...REQUEST, audience: null },
       { ...REQUEST, title: 12 },
       { ...REQUEST, title: "x".repeat(MAX_TITLE_CHARS + 1) },
     ];
     for (const request of bad)
       expect(parsePodcastRequest(request), JSON.stringify(request)).toBeNull();
+  });
+
+  it("keeps the audience when it is general or custom, and leaves it out when it is absent", () => {
+    expect(parsePodcastRequest({ ...REQUEST, audience: "general" })?.audience).toBe("general");
+    expect(parsePodcastRequest({ ...REQUEST, audience: "custom" })?.audience).toBe("custom");
+    expect(parsePodcastRequest(REQUEST)).not.toHaveProperty("audience");
+  });
+
+  it("accepts the new sections and the section of a topic the owner added", () => {
+    const ids = ["design", "ui-craft", "ai", "tech", "trending", "audio_interfaces"];
+    expect(parsePodcastRequest({ ...REQUEST, topic_ids: ids })?.topic_ids).toEqual(ids);
   });
 
   it("allows six topics", () => {

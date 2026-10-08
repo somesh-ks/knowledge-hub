@@ -66,8 +66,6 @@ export interface ManageCandidate {
 export interface ManageData {
   topics: ManageTopic[];
   sections: ManageSection[];
-  /** Where a topic made on the page goes until the engine places it better. */
-  defaultSectionId: string;
   sources: ManageSource[];
   candidates: ManageCandidate[];
 }
@@ -257,11 +255,6 @@ export function parseTopicsFile(
     .filter((section): section is ManageSection => section !== null)
     .sort((a, b) => a.order - b.order);
   return { topics, sections: sections.length > 0 ? sections : fallbackSections() };
-}
-
-/** The section a topic made on the page goes in: Tech releases when there is one, else the last. */
-export function pickDefaultSection(sections: readonly ManageSection[]): string {
-  return sections.find((section) => section.id === "tech")?.id ?? sections.at(-1)?.id ?? "tech";
 }
 
 // ----------------------------------------------------------------------------------------- sources
@@ -477,7 +470,6 @@ export async function loadManage(options: LoadManageOptions = {}): Promise<Manag
   return {
     topics,
     sections,
-    defaultSectionId: pickDefaultSection(sections),
     sources,
     candidates: buildCandidates(candidates, topics, knownFeeds),
   };

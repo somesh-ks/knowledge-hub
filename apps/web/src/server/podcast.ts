@@ -1,4 +1,3 @@
-import { SECTIONS } from "@dispatch/core";
 import type { PodcastCreateResponse, PodcastRequest } from "../types/contracts";
 import { readServerConfig, secretsOf } from "./config";
 import {
@@ -30,6 +29,9 @@ const LENGTHS: readonly number[] = [3, 5, 10, 15];
 const FORMATS: readonly string[] = ["readout", "discussion", "headlines"];
 const WINDOWS: readonly number[] = [2, 7, 30];
 const TONES: readonly string[] = ["neutral", "energetic", "dry"];
+const AUDIENCES: readonly string[] = ["general", "custom"];
+/** A section id: a built-in one or one that came with a topic the owner added. */
+const SECTION_ID = /^[a-z0-9][a-z0-9_-]{0,63}$/;
 /** How long to wait for GitHub to list a run it was just asked to start, when dispatch gave no id. */
 const RUN_LOOKUP_ATTEMPTS = 3;
 const RUN_LOOKUP_DELAY_MS = 1500;
@@ -49,16 +51,19 @@ export function parsePodcastRequest(value: unknown): PodcastRequest | null {
   if (!isRecord(value)) return null;
   const { topic_ids: topics, length_minutes: length, format, window_days: window, tone } = value;
   if (!Array.isArray(topics) || topics.length < 1 || topics.length > MAX_TOPICS) return null;
-  const known: readonly string[] = SECTIONS;
   const chosen: string[] = [];
   for (const topic of topics) {
-    if (typeof topic !== "string" || !known.includes(topic) || chosen.includes(topic)) return null;
+    if (typeof topic !== "string" || !SECTION_ID.test(topic) || chosen.includes(topic)) return null;
     chosen.push(topic);
   }
   if (typeof length !== "number" || !LENGTHS.includes(length)) return null;
   if (typeof format !== "string" || !FORMATS.includes(format)) return null;
   if (typeof window !== "number" || !WINDOWS.includes(window)) return null;
   if (typeof tone !== "string" || !TONES.includes(tone)) return null;
+  const audience = value.audience;
+  if (audience !== undefined && (typeof audience !== "string" || !AUDIENCES.includes(audience))) {
+    return null;
+  }
 
   let title: string | undefined;
   if (value.title !== undefined) {
@@ -76,6 +81,7 @@ export function parsePodcastRequest(value: unknown): PodcastRequest | null {
     format: format as PodcastRequest["format"],
     window_days: window as PodcastRequest["window_days"],
     tone: tone as PodcastRequest["tone"],
+    ...(audience === undefined ? {} : { audience: audience as NonNullable<PodcastRequest["audience"]> }),
     ...(title ? { title } : {}),
   };
 }

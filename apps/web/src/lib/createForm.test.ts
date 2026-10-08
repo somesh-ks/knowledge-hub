@@ -1,6 +1,6 @@
-import { SECTIONS } from "@dispatch/core";
 import { describe, expect, it } from "vitest";
 import {
+  AUDIENCES,
   DEFAULTS,
   estimateText,
   FORMATS,
@@ -12,9 +12,6 @@ import {
   WINDOWS,
 } from "./createForm";
 import { CHARS_PER_MINUTE } from "./episodeFile";
-
-/** A section as a briefing lists it. The title only matters for one that is not built in. */
-const section = (id: string, title = id) => ({ id, title });
 
 describe("estimateText", () => {
   it("says the minutes and the characters they come to", () => {
@@ -45,24 +42,59 @@ describe("the options", () => {
 });
 
 describe("topicOptions", () => {
-  it("offers only the sections that appear, in the order a briefing lists them", () => {
-    expect(
-      topicOptions([section("research"), section("top"), section("top")]).map(
-        (option) => option.value,
-      ),
-    ).toEqual(["top", "research"]);
-    expect(topicOptions([section("ai")])[0]?.label).toBe("AI models and products");
+  const titles = [
+    { id: "design", title: "Design" },
+    { id: "ui-craft", title: "Design Engineering" },
+    { id: "ai", title: "AI Products" },
+    { id: "tech", title: "Tech Product Launches" },
+    { id: "trending", title: "Trending" },
+  ];
+  const mine = (over: Record<string, unknown> = {}) => ({
+    name: "Audio interfaces",
+    section_id: "audio_interfaces",
+    origin: "custom" as const,
+    enabled: true,
+    never_publish: false,
+    ...over,
   });
 
-  it("offers every section when no briefing says which exist", () => {
-    expect(topicOptions([]).map((option) => option.value)).toEqual([...SECTIONS]);
-  });
-
-  it("offers a section that came with a topic the owner added, after the built-in ones", () => {
-    const options = topicOptions([section("robotics", "Robotics"), section("ai")]);
-    expect(options).toEqual([
-      { value: "ai", label: "AI models and products" },
-      { value: "robotics", label: "Robotics" },
+  it("always offers the five topics in the contract's order, never Top picks", () => {
+    const options = topicOptions(titles, []);
+    expect(options.map((option) => option.label)).toEqual([
+      "Design",
+      "Design Engineering",
+      "AI Products",
+      "Tech Product Launches",
+      "Trending",
     ]);
+    expect(options.map((option) => option.value)).not.toContain("top");
+    expect(options.every((option) => !option.custom)).toBe(true);
+  });
+
+  it("titles follow the file, and fall back when the file lacks a section", () => {
+    expect(topicOptions([{ id: "ai", title: "Artificial" }], [])[2]?.label).toBe("Artificial");
+    expect(topicOptions([], [])[0]?.label).toBe("Design");
+  });
+
+  it("adds the owner's enabled custom topics after the five, marked custom", () => {
+    const options = topicOptions(titles, [
+      mine(),
+      mine({ name: "Off", section_id: "off", enabled: false }),
+      mine({ name: "Builtin", section_id: "x", origin: "builtin" }),
+      mine({ name: "Hidden", section_id: "y", never_publish: true }),
+      mine({ name: "Shares", section_id: "ai" }),
+      mine({ name: "Again", section_id: "audio_interfaces" }),
+    ]);
+    expect(options.slice(5)).toEqual([
+      { value: "audio_interfaces", label: "Audio interfaces", custom: true },
+    ]);
+  });
+});
+
+describe("audiences", () => {
+  it("are General and Customized, Customized by default", () => {
+    expect(AUDIENCES.map((audience) => audience.value)).toEqual(["general", "custom"]);
+    expect(AUDIENCES.map((audience) => audience.label)).toEqual(["General", "Customized"]);
+    expect(DEFAULTS.audience).toBe("custom");
   });
 });
