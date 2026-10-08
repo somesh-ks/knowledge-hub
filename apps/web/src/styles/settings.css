@@ -468,3 +468,8 @@
     opacity: 1;
   }
 }
+
+/* Rows inside a section are separated by space, not lines; the rule-above hairline divides sections. */
+.settings-view .rows > * + *::before {
+  content: none;
+}

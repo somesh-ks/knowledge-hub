@@ -527,14 +527,11 @@ html[data-mini="visible"] .manage-bar {
   }
 }
 
-/* ------------------------------------------------------------------ hairlines in a filtered list */
-
-/* A hairline runs above a row only when a row that shows sits above it, so a list that starts at
-   its third row does not open with a line. */
-.manage-fields .rows > * + *::before {
+/* Rows are separated by space, never by a line; only sections are divided. */
+.manage .rows > * + *::before {
   content: none;
 }
 
-.manage-fields .rows > :not([hidden], [data-gone]) ~ :not([hidden], [data-gone])::before {
-  content: "";
+.manage .rows > * + * {
+  margin-block-start: var(--space-1);
 }

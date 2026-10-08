@@ -204,6 +204,7 @@ function mount(root: HTMLElement): void {
       queue(new URL(url).hostname.replace(/^www\./, ""), { op: "source.add", url });
     } else return;
     form.reset();
+    form.closest("details")?.removeAttribute("open");
     if (form.dataset.add === "topic") showSuggestions(form);
   });
 

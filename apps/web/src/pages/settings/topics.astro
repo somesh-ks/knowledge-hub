@@ -37,78 +37,10 @@ const fixed = topics.filter((topic) => topic.never_publish);
       <fieldset class="manage-fields" data-fields>
         <legend class="sr-only">Topics</legend>
 
-        <form class="manage-form" data-needs-js data-add="topic" aria-labelledby="add-topic" novalidate>
-          <h2 class="section-head" id="add-topic">Add a topic</h2>
-          <div class="manage-field">
-            <label for="topic-name">Name</label>
-            <input
-              class="manage-input"
-              id="topic-name"
-              name="name"
-              type="text"
-              required
-              maxlength="60"
-              autocomplete="off"
-              aria-describedby="topic-name-error"
-            />
-            <p class="manage-error" id="topic-name-error" role="alert" data-error="name" hidden>
-              <Icon name="alert" /><span></span>
-            </p>
-          </div>
-          <div class="manage-field">
-            <label for="topic-description">What should count as this topic</label>
-            <textarea
-              class="manage-input"
-              id="topic-description"
-              name="description"
-              required
-              maxlength="400"
-              rows="3"
-              aria-describedby="topic-description-error"></textarea>
-            <p class="manage-error" id="topic-description-error" role="alert" data-error="description" hidden>
-              <Icon name="alert" /><span></span>
-            </p>
-          </div>
-          <fieldset class="manage-suggest-group" data-suggestions hidden>
-            <legend class="manage-legend">Suggested sources</legend>
-            <p class="manage-quiet manage-legend-hint">Free feeds that suit this topic. Tick the ones to follow.</p>
-            <ul class="rows" role="list">
-              {
-                catalog.map((source) => (
-                  <li
-                    hidden
-                    data-offer={source.name}
-                    data-tags={source.tags.join(" ")}
-                    data-feed={source.feed_url}
-                  >
-                    <label class="manage-pick">
-                      <input type="checkbox" name="source" value={source.feed_url} />
-                      <span class="manage-text">
-                        <span class="manage-name">{source.name}</span>
-                        <span class="manage-quiet">{catalogLine(source)}</span>
-                      </span>
-                    </label>
-                  </li>
-                ))
-              }
-            </ul>
-          </fieldset>
-          <p class="manage-quiet" data-no-suggestions hidden>
-            No free sources match yet. Suggestions appear on the Sources page about a minute after you save.
-          </p>
-          <button class="btn-primary manage-submit press press-subtle" type="submit">
-            <Icon name="plus" />
-            <span>Add topic</span>
-          </button>
-          <p class="manage-note">
-            Changes show up after about a minute.
-          </p>
-        </form>
-
         <ul class="rows manage-queued" role="list" data-queued aria-label="Waiting to be saved"></ul>
 
         <section>
-          <h2 class="section-head">Your topics</h2>
+          <h2 class="section-head">{editable.length} topics</h2>
           <ul class="rows" role="list">
             {
               editable.map((topic) => (
@@ -124,7 +56,7 @@ const fixed = topics.filter((topic) => topic.never_publish);
                       <span class="manage-quiet" id={`line-${topic.id}`} data-line>
                         {topic.description}
                       </span>
-                      <span class="manage-quiet manage-flag">Removed when you save.</span>
+                      <span class="manage-quiet manage-flag">Removed when you save</span>
                     </div>
                     <input
                       class="settings-switch"
@@ -190,7 +122,7 @@ const fixed = topics.filter((topic) => topic.never_publish);
                   <div class="manage-main">
                     <div class="manage-text">
                       <span class="manage-name">{topic.name}</span>
-                      <span class="manage-quiet">Left out of every briefing.</span>
+                      <span class="manage-quiet">Never in a briefing</span>
                     </div>
                   </div>
                 </li>
@@ -198,6 +130,75 @@ const fixed = topics.filter((topic) => topic.never_publish);
             }
           </ul>
         </section>
+
+        <details class="manage-add" id="add-topic" data-needs-js>
+          <summary class="btn press press-subtle">
+            <Icon name="plus" />
+            <span>Add a topic</span>
+          </summary>
+          <form class="manage-form" data-add="topic" aria-label="Add a topic" novalidate>
+            <div class="manage-field">
+              <label for="topic-name">Name</label>
+              <input
+                class="manage-input"
+                id="topic-name"
+                name="name"
+                type="text"
+                required
+                maxlength="60"
+                autocomplete="off"
+                aria-describedby="topic-name-error"
+              />
+              <p class="manage-error" id="topic-name-error" role="alert" data-error="name" hidden>
+                <Icon name="alert" /><span></span>
+              </p>
+            </div>
+            <div class="manage-field">
+              <label for="topic-description">What should count as this topic</label>
+              <textarea
+                class="manage-input"
+                id="topic-description"
+                name="description"
+                required
+                maxlength="400"
+                rows="3"
+                aria-describedby="topic-description-error"></textarea>
+              <p class="manage-error" id="topic-description-error" role="alert" data-error="description" hidden>
+                <Icon name="alert" /><span></span>
+              </p>
+            </div>
+            <fieldset class="manage-suggest-group" data-suggestions hidden>
+              <legend class="manage-legend">Suggested sources</legend>
+              <ul class="rows" role="list">
+                {
+                  catalog.map((source) => (
+                    <li
+                      hidden
+                      data-offer={source.name}
+                      data-tags={source.tags.join(" ")}
+                      data-feed={source.feed_url}
+                    >
+                      <label class="manage-pick">
+                        <input type="checkbox" name="source" value={source.feed_url} />
+                        <span class="manage-text">
+                          <span class="manage-name">{source.name}</span>
+                          <span class="manage-quiet">{catalogLine(source)}</span>
+                        </span>
+                      </label>
+                    </li>
+                  ))
+                }
+              </ul>
+            </fieldset>
+            <p class="manage-quiet" data-no-suggestions hidden>
+              No matching sources yet.
+            </p>
+            <button class="btn-primary manage-submit press press-subtle" type="submit">
+              <Icon name="plus" />
+              <span>Add topic</span>
+            </button>
+          </form>
+        </details>
       </fieldset>
 
       <ManageChrome />

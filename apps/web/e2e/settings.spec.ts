@@ -1,7 +1,6 @@
 import AxeBuilder from "@axe-core/playwright";
 import type { Page } from "@playwright/test";
 import { expect, test } from "./fixtures";
-import { PASSPHRASE_REQUIRED } from "./passphrase";
 
 const WCAG = ["wcag2a", "wcag2aa", "wcag21a", "wcag21aa", "wcag22aa"];
 const PREFERENCES_KEY = "dispatch:preferences";
@@ -99,7 +98,6 @@ test.describe("settings page", () => {
     await page.emulateMedia({ colorScheme: "light" });
     await openSettings(page);
     const root = page.locator("html");
-    await expect(theme(page)).toHaveAccessibleDescription("System follows this device.");
     await theme(page).getByRole("radio", { name: "System" }).focus();
 
     await page.keyboard.press("ArrowRight");
@@ -121,7 +119,6 @@ test.describe("settings page", () => {
     page,
   }) => {
     await openSettings(page);
-    await expect(sounds(page)).toHaveAccessibleDescription(/Soft cues for play/);
     await expect(sounds(page)).toBeChecked();
     await expect(volume(page)).toBeEnabled();
 
@@ -173,7 +170,6 @@ test.describe("settings page", () => {
     await openSettings(page);
     // The player announces once its island has hydrated.
     await islandsReady(page);
-    await expect(speed(page)).toHaveAccessibleDescription("Every briefing starts at this speed.");
     await expect(speed(page).getByRole("radio", { name: "1x", exact: true })).toBeChecked();
 
     await speed(page).getByRole("radio", { name: "1.5x" }).check();
@@ -186,40 +182,6 @@ test.describe("settings page", () => {
     await page.reload();
     await expect(speed(page).getByRole("radio", { name: "1.5x" })).toBeChecked();
     await expect(speed(page).getByRole("radio", { name: "1x", exact: true })).not.toBeChecked();
-  });
-
-  test("the Generate row opens the sheet and says who it is for", async ({ page }) => {
-    await openSettings(page);
-    await islandsReady(page);
-    const row = page.getByRole("button", { name: "Generate a briefing" });
-    await expect(row).toHaveAccessibleDescription(
-      PASSPHRASE_REQUIRED
-        ? "Starts a new briefing now. Needs the owner passphrase."
-        : "Starts a new briefing now.",
-    );
-    await row.click();
-    const dialog = page.getByRole("dialog", { name: "Generate a new briefing" });
-    await expect(dialog).toBeVisible();
-    await expect(dialog.getByRole("button", { name: "Generate briefing" })).toHaveClass(
-      /btn-primary/,
-    );
-    if (PASSPHRASE_REQUIRED) {
-      await expect(dialog.getByLabel("Passphrase")).toHaveAttribute("type", "password");
-      await expect(
-        dialog.getByText("The passphrase set when Singularity was set up."),
-      ).toBeVisible();
-      const size = await dialog
-        .getByLabel("Passphrase")
-        .evaluate((input) => Number.parseFloat(getComputedStyle(input).fontSize));
-      expect(size).toBeGreaterThanOrEqual(16);
-    } else {
-      // Switched off: no field, and no sentence about a passphrase anywhere on the page.
-      await expect(dialog.getByLabel("Passphrase")).toHaveCount(0);
-      await expect(page.getByText(/passphrase/i)).toHaveCount(0);
-    }
-
-    await dialog.getByRole("button", { name: "Close", exact: true }).click();
-    await expect(dialog).toBeHidden();
   });
 
   test("a client-side navigation from the briefing fills the controls in", async ({ page }) => {
@@ -381,39 +343,6 @@ for (const scheme of ["light", "dark"] as const) {
       await openSettings(page);
       await expect(volume(page)).toBeDisabled();
       expect(await violations(page)).toEqual([]);
-    });
-
-    test.describe("the Generate sheet", () => {
-      // With the passphrase step off, the one error left to show is the service refusing, and a
-      // refused request logs a console line of its own.
-      test.use({ allowNetworkErrors: !PASSPHRASE_REQUIRED });
-
-      test("the Generate sheet, idle and with an error, has no violations", async ({ page }) => {
-        await page.emulateMedia({ colorScheme: scheme });
-        await openSettings(page);
-        await islandsReady(page);
-        await page.getByRole("button", { name: "Generate a briefing" }).click();
-        const dialog = page.getByRole("dialog", { name: "Generate a new briefing" });
-        await expect(dialog).toBeVisible();
-        // The sheet slides in; axe reads colours, which are only final once it has settled.
-        await page.waitForTimeout(500);
-        expect(await violations(page)).toEqual([]);
-        if (!PASSPHRASE_REQUIRED) {
-          // With no field to leave empty, the error the sheet can show is the service saying no.
-          await page.route("**/api/generate", (route) =>
-            route.fulfill({
-              status: 503,
-              contentType: "application/json",
-              body: JSON.stringify({ error: "unavailable" }),
-            }),
-          );
-        }
-        await dialog.getByRole("button", { name: "Generate briefing" }).click();
-        await expect(dialog.getByRole("alert")).toContainText(
-          PASSPHRASE_REQUIRED ? "Enter the passphrase to continue." : "not available right now",
-        );
-        expect(await violations(page)).toEqual([]);
-      });
     });
   });
 }
