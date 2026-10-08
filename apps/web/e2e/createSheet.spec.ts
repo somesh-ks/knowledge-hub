@@ -48,10 +48,10 @@ test.describe("Create as the primary action", () => {
     if (wide) {
       await expect(page.locator(".create-fab")).toBeHidden();
       await expect(page.locator(".app-nav-create")).toBeVisible();
-      await expect(page.locator(".app-nav-create")).toHaveText("Create");
+      await expect(page.locator(".app-nav-create")).toHaveText("Create Podcast");
     } else {
       await expect(page.locator(".app-nav-create")).toBeHidden();
-      await expect(page.getByRole("link", { name: "Create a podcast" })).toBeVisible();
+      await expect(page.getByRole("link", { name: "Create Podcast" })).toBeVisible();
       const box = await page.locator(".create-fab").boundingBox();
       expect(Math.round(box?.width ?? 0)).toBe(56);
     }
@@ -60,7 +60,7 @@ test.describe("Create as the primary action", () => {
 
   test("opens the sheet, Escape closes it and focus returns to the button", async ({ page }) => {
     await openSheet(page);
-    await expect(sheet(page).getByRole("heading", { name: "Create a podcast" })).toBeVisible();
+    await expect(sheet(page).getByRole("heading", { name: "Create Podcast" })).toBeVisible();
     await page.keyboard.press("Escape");
     await expect(sheet(page)).toBeHidden();
     await expect(trigger(page)).toBeFocused();

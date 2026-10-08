@@ -44,7 +44,7 @@ test.describe("keyboard", () => {
       "a: Today",
       "a: Library",
       "a: Settings",
-      ...(wide ? [] : ["a: Create a podcast"]),
+      ...(wide ? [] : ["a: Create Podcast"]),
       "button: Play the briefing, 1 min",
       "button: Share this briefing",
       "button: Play from here, 0:03: Springlet 2.0 retargets springs mid-flight, so interrupted drawers keep their velocity",
