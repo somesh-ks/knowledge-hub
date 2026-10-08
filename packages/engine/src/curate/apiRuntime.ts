@@ -4,6 +4,8 @@ import { type CommandContext, secretsFromEnv } from "../context.js";
 import type { ExtractedText } from "../extract/extractText.js";
 import { extractFullText } from "../extract/extractText.js";
 import { createFirecrawlScrape } from "../extract/firecrawlScrape.js";
+import type { FirecrawlGuard } from "../fetch/firecrawlBudget.js";
+import { CombinedJudge } from "../judge/combinedJudge.js";
 import { FallbackJudge } from "../judge/fallbackJudge.js";
 import { JevJudge } from "../judge/jev.js";
 import { createJevClient } from "../judge/jevClient.js";
@@ -13,6 +15,7 @@ import type { Judge, JudgeFailure } from "../judge/types.js";
 import { withModelFailover } from "../llm/failoverClient.js";
 import { createNebiusLlm } from "../llm/nebiusClient.js";
 import { createOpenAiChatApi } from "../llm/openAiChatApi.js";
+import { meterChat, meterJev, type RequestMeter } from "../llm/requestMeter.js";
 import { TokenBudget } from "../llm/tokenBudget.js";
 import { type Grounder, JevGrounder } from "../validate/grounding.js";
 import type { VoiceConfig } from "../voice/voice.js";
@@ -32,6 +35,11 @@ export interface ApiRuntime {
    * knows the built-in categories, so custom topics wait for a run that has the key.
    */
   topicJudge?: TopicJudge | null;
+  /**
+   * Asks the main questions and the topic fits in one Jev request for an item that needs both.
+   * Null without a Jev key. Tests that inject fakes leave it out and get two separate requests.
+   */
+  combinedJudge?: CombinedJudge | null;
   extract: (item: Item) => Promise<ExtractedText | null>;
   /** Judge failures collected during the run, for the report. */
   judgeFailures: JudgeFailure[];
@@ -49,7 +57,11 @@ export interface ApiRuntime {
  *   grounder  Jev, or none (the digest is then unverified).
  *   scraper   Firecrawl when FIRECRAWL_API_KEY is set.
  */
-export function createApiRuntime(ctx: CommandContext, voice: VoiceConfig): ApiRuntime {
+export function createApiRuntime(
+  ctx: CommandContext,
+  voice: VoiceConfig,
+  spend?: { meter: RequestMeter; guard: FirecrawlGuard },
+): ApiRuntime {
   const { env, log } = ctx;
   requireKey(env, "NEBIUS_API_KEY");
   const model = requireKey(env, "DISPATCH_MODEL");
@@ -60,7 +72,8 @@ export function createApiRuntime(ctx: CommandContext, voice: VoiceConfig): ApiRu
   };
 
   const budget = new TokenBudget(env.MAX_TOKENS_PER_RUN);
-  const api = createOpenAiChatApi(env);
+  const rawApi = createOpenAiChatApi(env);
+  const api = spend ? meterChat(rawApi, spend.meter) : rawApi;
   const primary = createNebiusLlm({ api, model, budget, log });
   const fallback = env.DISPATCH_FALLBACK_MODEL
     ? createNebiusLlm({ api, model: env.DISPATCH_FALLBACK_MODEL, budget, log })
@@ -71,8 +84,17 @@ export function createApiRuntime(ctx: CommandContext, voice: VoiceConfig): ApiRu
   let judge: Judge = nebiusJudge;
   let grounder: Grounder | null = null;
   let topicJudge: TopicJudge | null = null;
+  let combinedJudge: CombinedJudge | null = null;
   if (env.TYPESAFE_API_KEY) {
-    const jevClient = createJevClient(env);
+    const rawJev = createJevClient(env);
+    const jevClient = spend ? meterJev(rawJev, spend.meter) : rawJev;
+    combinedJudge = new CombinedJudge({
+      client: jevClient,
+      log,
+      onFailure,
+      secrets,
+      fallback: nebiusJudge,
+    });
     topicJudge = new TopicJudge({ client: jevClient, log, onFailure, secrets });
     judge = new FallbackJudge(
       new JevJudge({ client: jevClient, log, onFailure, secrets }),
@@ -87,13 +109,14 @@ export function createApiRuntime(ctx: CommandContext, voice: VoiceConfig): ApiRu
   }
 
   const scrape = env.FIRECRAWL_API_KEY
-    ? createFirecrawlScrape({ apiKey: env.FIRECRAWL_API_KEY })
+    ? createFirecrawlScrape({ apiKey: env.FIRECRAWL_API_KEY, guard: spend?.guard })
     : null;
   return {
     judge,
     writer: new NebiusWriter({ llm, voice, log, secrets }),
     grounder,
     topicJudge,
+    combinedJudge,
     extract: (item) => extractFullText(item, { scrape, log }),
     judgeFailures,
     usage: () => ({ nebiusTokens: budget.used, nebiusTokenLimit: budget.limit }),

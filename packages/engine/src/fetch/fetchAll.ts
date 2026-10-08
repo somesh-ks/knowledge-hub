@@ -37,6 +37,8 @@ export interface FetchAllOptions {
   fetchers?: Partial<Record<SourceType, SourceFetcher>>;
   /** Restrict the run to these source ids. */
   only?: readonly string[];
+  /** Sources to leave alone this run, by id, with the note that explains why. */
+  skip?: ReadonlyMap<string, string>;
   sleep?: (ms: number) => Promise<void>;
 }
 
@@ -107,9 +109,17 @@ export async function fetchAll(
   };
 
   const outcomes = await Promise.all(
-    selected.map((source) =>
+    selected.map((source) => {
+      const skipNote = options.skip?.get(source.id);
+      if (skipNote !== undefined) {
+        const skipped: { items: Item[]; result: SourceResult } = {
+          items: [],
+          result: { source_id: source.id, ok: true, count: 0, ms: 0, note: skipNote },
+        };
+        return Promise.resolve(skipped);
+      }
       // The type limiter is entered first so a queue of slow-rate sources holds no global slot.
-      limiterFor(source.type).run(() =>
+      return limiterFor(source.type).run(() =>
         global.run(async (): Promise<{ items: Item[]; result: SourceResult }> => {
           const timeoutMs = limits[source.type]?.timeoutMs ?? defaultTimeout;
           const signal = AbortSignal.timeout(timeoutMs);
@@ -155,8 +165,8 @@ export async function fetchAll(
             };
           }
         }),
-      ),
-    ),
+      );
+    }),
   );
 
   return {

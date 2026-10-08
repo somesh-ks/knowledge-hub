@@ -68,6 +68,18 @@ export const RunRecord = z.object({
 });
 export type RunRecord = z.infer<typeof RunRecord>;
 
+/** Paid requests one run made, by service, written by the commit stage. */
+export const RunSpend = z.object({
+  at: isoDateTime,
+  /** Request counts by service: jev, nebius, exa, firecrawl_listing, firecrawl_scrape. */
+  requests: z.record(z.string(), z.number().int().nonnegative()),
+  /** 429 replies from Firecrawl; three stop it for the rest of the run. */
+  firecrawl_rate_limited: z.number().int().nonnegative().default(0),
+  /** Firecrawl listing sources left out of the run for the ceiling. */
+  firecrawl_skipped: z.array(z.string()).default([]),
+});
+export type RunSpend = z.infer<typeof RunSpend>;
+
 export const LastRunFile = z.object({
   version: z.literal(1),
   regular: RunRecord.optional(),
@@ -77,6 +89,8 @@ export const LastRunFile = z.object({
   last_fetch_at: isoDateTime.optional(),
   /** Most recent cover, so the next one can avoid repeating it. */
   last_cover: z.object({ template: z.string(), palette: z.string() }).optional(),
+  /** What the most recent run spent on paid services. */
+  spend: RunSpend.optional(),
 });
 export type LastRunFile = z.infer<typeof LastRunFile>;
 

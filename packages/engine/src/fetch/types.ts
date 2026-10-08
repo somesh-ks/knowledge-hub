@@ -1,6 +1,7 @@
 import type { Item, Source } from "@dispatch/core";
 import type { FetchWindow } from "../gate/fetchWindow.js";
 import type { HttpClient } from "../http.js";
+import type { FirecrawlGuard } from "./firecrawlBudget.js";
 import type { ExaQuery } from "./queries.js";
 
 export type { FetchWindow };
@@ -19,7 +20,7 @@ export interface FetchDeps {
   /** Deadline for the current source. Fetchers pass it to every request. */
   signal?: AbortSignal | undefined;
   exa?: (ServiceConfig & { queries: readonly ExaQuery[] }) | undefined;
-  firecrawl?: ServiceConfig | undefined;
+  firecrawl?: (ServiceConfig & { guard?: FirecrawlGuard | undefined }) | undefined;
   /** Optional contact address for Crossref's polite pool. */
   crossrefMailto?: string | undefined;
 }
