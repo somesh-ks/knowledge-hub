@@ -1,0 +1,43 @@
+/*
+ * The Schedule page: two native selects, a checklist and the next run, laid out with the fields,
+ * rows and bar of manage.css. Imported by pages/settings/schedule.astro, after manage.css.
+ */
+
+.schedule-panel {
+  display: grid;
+  gap: var(--space-6);
+  padding-block: var(--space-4) 0;
+}
+
+/* The checklist heading sits with its rows, and a row is as tall as a comfortable target. */
+.schedule-panel .manage-suggest-group > .rows {
+  margin-block-start: var(--space-2);
+}
+
+/* Top picks cannot be turned off, so its checkbox and words read as fixed. */
+.schedule-panel .manage-pick:has(input:disabled) {
+  cursor: default;
+}
+
+.schedule-panel .manage-pick input:disabled + .manage-text {
+  opacity: var(--opacity-disabled);
+}
+
+/* The page is not ready until the script has mounted; the controls keep their places until then. */
+.manage:not([data-ready]) .schedule-panel :is(select, input) {
+  pointer-events: none;
+}
+
+.schedule-add {
+  justify-self: start;
+}
+
+.manage-fields:disabled .manage-pick {
+  opacity: var(--opacity-disabled);
+  cursor: default;
+}
+
+/* With no topic ticked there is nothing to send, so only Discard is left on the bar. */
+.manage[data-nothing] .manage-bar [data-act="save"] {
+  display: none;
+}
