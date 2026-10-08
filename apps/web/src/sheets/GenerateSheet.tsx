@@ -1,5 +1,6 @@
 import { Field } from "@base-ui/react/field";
 import { type FormEvent, useEffect, useRef } from "react";
+import { OPEN_PASSPHRASE, PASSPHRASE_REQUIRED } from "../lib/access";
 import Icon from "../player/ui/LazyIcon";
 import GenerateResult from "./GenerateResult";
 import GenerateSteps from "./GenerateSteps";
@@ -13,7 +14,8 @@ interface GenerateSheetProps {
 }
 
 /**
- * Generate a new briefing: a passphrase, a run that takes a few minutes, and an honest outcome. The
+ * Generate a new briefing: a passphrase while one is asked for (lib/access.ts), a run that takes a
+ * few minutes, and an honest outcome. The
  * run lives in a module-level store, so closing the sheet does not stop it and reopening finds it.
  */
 export default function GenerateSheet({ open, onOpenChange }: GenerateSheetProps) {
@@ -45,7 +47,7 @@ export default function GenerateSheet({ open, onOpenChange }: GenerateSheetProps
   function onSubmit(event: FormEvent<HTMLFormElement>): void {
     event.preventDefault();
     if (busy) return;
-    void store.submit(inputRef.current?.value ?? "");
+    void store.submit(PASSPHRASE_REQUIRED ? (inputRef.current?.value ?? "") : OPEN_PASSPHRASE);
   }
 
   function tryAgain(): void {
@@ -63,7 +65,7 @@ export default function GenerateSheet({ open, onOpenChange }: GenerateSheetProps
       keyboardAware
       // A keyboard or a mouse lands in the field. A touch lands on the sheet, so the keyboard does
       // not cover half of it before the listener has read it.
-      initialFocus={(openType) => (openType === "touch" ? true : inputRef.current)}
+      initialFocus={(openType) => (openType === "touch" ? true : (inputRef.current ?? true))}
     >
       {finished || state.lostContact ? null : (
         <p className="sheet-lede">
@@ -74,31 +76,38 @@ export default function GenerateSheet({ open, onOpenChange }: GenerateSheetProps
 
       {showForm ? (
         <form className="sheet-form" onSubmit={onSubmit} noValidate>
-          <Field.Root invalid={Boolean(state.fieldError)} disabled={busy} className="sheet-field">
-            <Field.Label className="sheet-field-label">Passphrase</Field.Label>
-            <Field.Control
-              ref={inputRef}
-              className="sheet-input"
-              type="password"
-              name="passphrase"
-              autoComplete="off"
-              autoCapitalize="none"
-              spellCheck={false}
-              enterKeyHint="go"
-              onChange={() => store.clearError()}
-            />
-            <Field.Description className="sheet-field-hint">
-              The passphrase set when Singularity was set up.
-            </Field.Description>
-            <Field.Error
-              match={Boolean(state.fieldError)}
-              className="sheet-field-error"
-              role="alert"
-            >
+          {PASSPHRASE_REQUIRED ? (
+            <Field.Root invalid={Boolean(state.fieldError)} disabled={busy} className="sheet-field">
+              <Field.Label className="sheet-field-label">Passphrase</Field.Label>
+              <Field.Control
+                ref={inputRef}
+                className="sheet-input"
+                type="password"
+                name="passphrase"
+                autoComplete="off"
+                autoCapitalize="none"
+                spellCheck={false}
+                enterKeyHint="go"
+                onChange={() => store.clearError()}
+              />
+              <Field.Description className="sheet-field-hint">
+                The passphrase set when Singularity was set up.
+              </Field.Description>
+              <Field.Error
+                match={Boolean(state.fieldError)}
+                className="sheet-field-error"
+                role="alert"
+              >
+                <Icon name="alert" />
+                <span>{state.fieldError}</span>
+              </Field.Error>
+            </Field.Root>
+          ) : state.fieldError ? (
+            <p className="sheet-field-error" role="alert">
               <Icon name="alert" />
               <span>{state.fieldError}</span>
-            </Field.Error>
-          </Field.Root>
+            </p>
+          ) : null}
           <div className="sheet-actions">
             <button
               className="btn-primary press press-subtle"

@@ -1,6 +1,7 @@
 import AxeBuilder from "@axe-core/playwright";
 import type { Page } from "@playwright/test";
 import { expect, test } from "./fixtures";
+import { PASSPHRASE_REQUIRED } from "./passphrase";
 
 const WCAG = ["wcag2a", "wcag2aa", "wcag21a", "wcag21aa", "wcag22aa"];
 const PREFERENCES_KEY = "dispatch:preferences";
@@ -192,20 +193,30 @@ test.describe("settings page", () => {
     await islandsReady(page);
     const row = page.getByRole("button", { name: "Generate a briefing" });
     await expect(row).toHaveAccessibleDescription(
-      "Starts a new briefing now. Needs the owner passphrase.",
+      PASSPHRASE_REQUIRED
+        ? "Starts a new briefing now. Needs the owner passphrase."
+        : "Starts a new briefing now.",
     );
     await row.click();
     const dialog = page.getByRole("dialog", { name: "Generate a new briefing" });
     await expect(dialog).toBeVisible();
-    await expect(dialog.getByLabel("Passphrase")).toHaveAttribute("type", "password");
-    await expect(dialog.getByText("The passphrase set when Singularity was set up.")).toBeVisible();
     await expect(dialog.getByRole("button", { name: "Generate briefing" })).toHaveClass(
       /btn-primary/,
     );
-    const size = await dialog
-      .getByLabel("Passphrase")
-      .evaluate((input) => Number.parseFloat(getComputedStyle(input).fontSize));
-    expect(size).toBeGreaterThanOrEqual(16);
+    if (PASSPHRASE_REQUIRED) {
+      await expect(dialog.getByLabel("Passphrase")).toHaveAttribute("type", "password");
+      await expect(
+        dialog.getByText("The passphrase set when Singularity was set up."),
+      ).toBeVisible();
+      const size = await dialog
+        .getByLabel("Passphrase")
+        .evaluate((input) => Number.parseFloat(getComputedStyle(input).fontSize));
+      expect(size).toBeGreaterThanOrEqual(16);
+    } else {
+      // Switched off: no field, and no sentence about a passphrase anywhere on the page.
+      await expect(dialog.getByLabel("Passphrase")).toHaveCount(0);
+      await expect(page.getByText(/passphrase/i)).toHaveCount(0);
+    }
 
     await dialog.getByRole("button", { name: "Close", exact: true }).click();
     await expect(dialog).toBeHidden();
@@ -372,19 +383,37 @@ for (const scheme of ["light", "dark"] as const) {
       expect(await violations(page)).toEqual([]);
     });
 
-    test("the Generate sheet, idle and with an error, has no violations", async ({ page }) => {
-      await page.emulateMedia({ colorScheme: scheme });
-      await openSettings(page);
-      await islandsReady(page);
-      await page.getByRole("button", { name: "Generate a briefing" }).click();
-      const dialog = page.getByRole("dialog", { name: "Generate a new briefing" });
-      await expect(dialog).toBeVisible();
-      // The sheet slides in; axe reads colours, which are only final once it has settled.
-      await page.waitForTimeout(500);
-      expect(await violations(page)).toEqual([]);
-      await dialog.getByRole("button", { name: "Generate briefing" }).click();
-      await expect(dialog.getByRole("alert")).toHaveText("Enter the passphrase to continue.");
-      expect(await violations(page)).toEqual([]);
+    test.describe("the Generate sheet", () => {
+      // With the passphrase step off, the one error left to show is the service refusing, and a
+      // refused request logs a console line of its own.
+      test.use({ allowNetworkErrors: !PASSPHRASE_REQUIRED });
+
+      test("the Generate sheet, idle and with an error, has no violations", async ({ page }) => {
+        await page.emulateMedia({ colorScheme: scheme });
+        await openSettings(page);
+        await islandsReady(page);
+        await page.getByRole("button", { name: "Generate a briefing" }).click();
+        const dialog = page.getByRole("dialog", { name: "Generate a new briefing" });
+        await expect(dialog).toBeVisible();
+        // The sheet slides in; axe reads colours, which are only final once it has settled.
+        await page.waitForTimeout(500);
+        expect(await violations(page)).toEqual([]);
+        if (!PASSPHRASE_REQUIRED) {
+          // With no field to leave empty, the error the sheet can show is the service saying no.
+          await page.route("**/api/generate", (route) =>
+            route.fulfill({
+              status: 503,
+              contentType: "application/json",
+              body: JSON.stringify({ error: "unavailable" }),
+            }),
+          );
+        }
+        await dialog.getByRole("button", { name: "Generate briefing" }).click();
+        await expect(dialog.getByRole("alert")).toContainText(
+          PASSPHRASE_REQUIRED ? "Enter the passphrase to continue." : "not available right now",
+        );
+        expect(await violations(page)).toEqual([]);
+      });
     });
   });
 }

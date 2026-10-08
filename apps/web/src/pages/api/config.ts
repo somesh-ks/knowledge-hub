@@ -1,5 +1,5 @@
-import { verifyPassphrase } from "@dispatch/core/passphrase";
 import type { APIRoute } from "astro";
+import { passphraseCheck } from "../../server/access";
 import { handleConfig, MAX_CONFIG_BODY_CHARS } from "../../server/configEdit";
 import { toResponse } from "../../server/http";
 
@@ -16,7 +16,7 @@ export const POST: APIRoute = async ({ request, url }) => {
       fetch,
       now: Date.now,
       delay: (milliseconds) => new Promise((resolve) => setTimeout(resolve, milliseconds)),
-      verifyPassphrase,
+      verifyPassphrase: passphraseCheck(),
       log: (message) => console.error(`[api/config] ${message}`),
     },
   );
