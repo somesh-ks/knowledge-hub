@@ -1,4 +1,9 @@
-import type { Episode, PodcastRequest } from "@dispatch/core";
+import {
+  type Episode,
+  episodeRelPath,
+  type PodcastRequest,
+  serializeEpisodeFile,
+} from "@dispatch/core";
 import type { Logger } from "../context.js";
 import { createHttpClient, type HttpClient } from "../http.js";
 import { allocateEpisodeId, buildEpisode, writeEpisodeFile } from "./episode.js";
@@ -17,11 +22,16 @@ export interface GenerateInput {
   /** Reads the news feeds of a general episode. Defaults to the engine's HTTP client. */
   http?: HttpClient;
   log?: Logger;
+  /** Run everything but write no file; the episode Markdown comes back in `markdown`. */
+  dryRun?: boolean;
 }
 
 export interface GenerateResult {
   episode: Episode;
+  /** Where the file went, or would go in a dry run. */
   relPath: string;
+  /** The episode file text; set in a dry run only. */
+  markdown?: string;
   matched: number;
   digests: number;
   /** Chosen topics that had no story in the window; the episode is built from the others. */
@@ -95,10 +105,13 @@ export async function generateEpisode(input: GenerateInput): Promise<GenerateRes
     stories: selection.stories,
     turns,
   });
-  const { relPath } = await writeEpisodeFile(input.root, episode);
+  const relPath = input.dryRun
+    ? episodeRelPath(id)
+    : (await writeEpisodeFile(input.root, episode)).relPath;
   return {
     episode,
     relPath,
+    ...(input.dryRun ? { markdown: serializeEpisodeFile(episode) } : {}),
     matched: selection.matched,
     digests: selection.digests,
     empty_topics: selection.empty_topics,

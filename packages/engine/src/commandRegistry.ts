@@ -103,13 +103,20 @@ selection-schema.json, then validates the agent-selection.json a Claude Code ses
     name: "podcast",
     summary: "Write one episode of Singularity from published digests and commit it",
     help: `Usage: dispatch podcast --request '<json>' [--now <iso>] [--no-push]
+       dispatch podcast --request '<json>' --dry-run [--save <path outside the repository>]
 
 The request is JSON: { topic_ids: string[1..6], length_minutes: 3|5|10|15,
 format: "readout"|"discussion"|"headlines", window_days: 2|7|30,
 tone: "neutral"|"energetic"|"dry", title?: string }. Topic ids are sections or categories as they
 appear in published digests. Reads Digests/ only (no fetching), makes one writer call on Nebius
 (needs NEBIUS_API_KEY and DISPATCH_MODEL, spends tokens), writes Podcasts/YYYY/MM/<id>.md and
-commits it as feat(podcast) through the write guard. The last line printed is the episode id.`,
+commits it as feat(podcast) through the write guard. The last line printed is the episode id.
+
+--dry-run runs the whole pipeline with the real writer (it spends tokens) but writes nothing under
+Podcasts/, commits and pushes nothing, and prints one JSON line last: audience, format,
+length_minutes, topic_ids, budget_chars, script_chars, percent_of_budget, listen_minutes, turns,
+speakers, stories, empty_topics, writer_calls, short_by_chars, title, problems. --save writes the
+episode Markdown to a path outside the repository. It cannot be combined with --no-push.`,
     load: async () => (await import("./commands/podcast.js")).run,
   },
   {

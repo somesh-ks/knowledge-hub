@@ -28,6 +28,10 @@ export interface ScriptResult {
   /** Characters under the floor (80% of the budget) the kept script still is; 0 when it reaches it. */
   short_by_chars: number;
   dropped_stories: number;
+  /** How many times the writer was asked for a script (the first call and any retries). */
+  writer_calls: number;
+  /** The problems found in the last reply that was sent back; empty when every reply was accepted. */
+  last_problems: string[];
 }
 
 /** Spoken text has no em dashes or stray whitespace; the model sometimes sends both anyway. */
@@ -124,8 +128,15 @@ function tooShortProblem(
   return `The script is too short by ${shortByChars(turns, budget)} characters: it has ${charCount(turns)} and needs at least ${scriptFloorChars(budget)} (aim for ${scriptTargetChars(budget)}). Add depth to these stories first: ${thinnest.join("; ")}. Use only the facts in each story block; do not pad or repeat a fact.`;
 }
 
-async function requestTurns(deps: ScriptDeps): Promise<ScriptTurn[]> {
+interface Requested {
+  turns: ScriptTurn[];
+  calls: number;
+  rejected: string[];
+}
+
+async function requestTurns(deps: ScriptDeps): Promise<Requested> {
   let problems: string[] = [];
+  let rejected: string[] = [];
   // The last reply that was valid but short: a short true episode beats none.
   let short: ScriptTurn[] | null = null;
   for (let attempt = 1; attempt <= ATTEMPTS; attempt++) {
@@ -136,7 +147,9 @@ async function requestTurns(deps: ScriptDeps): Promise<ScriptTurn[]> {
       );
       const result = validateReply(raw, deps.request, deps.stories);
       if (result.ok) {
-        if (shortByChars(result.turns, deps.budget_chars) === 0) return result.turns;
+        if (shortByChars(result.turns, deps.budget_chars) === 0) {
+          return { turns: result.turns, calls: attempt, rejected };
+        }
         short = result.turns;
         problems = [tooShortProblem(result.turns, deps.stories, deps.budget_chars)];
       } else {
@@ -146,9 +159,10 @@ async function requestTurns(deps: ScriptDeps): Promise<ScriptTurn[]> {
       if (error instanceof BudgetExceededError) throw error;
       problems = [`The last call failed: ${describeError(error)}`];
     }
+    rejected = problems;
     deps.log?.warn("The script reply was not usable", { attempt, problems });
   }
-  if (short) return short;
+  if (short) return { turns: short, calls: ATTEMPTS, rejected };
   throw new PodcastError(`The writer did not return a usable script. ${problems.join(" ")}`);
 }
 
@@ -157,7 +171,7 @@ async function requestTurns(deps: ScriptDeps): Promise<ScriptTurn[]> {
  * dealt with, the show is always named in the opening, and the length is enforced in code.
  */
 export async function generateScript(deps: ScriptDeps): Promise<ScriptResult> {
-  const raw = await requestTurns(deps);
+  const { turns: raw, calls, rejected } = await requestTurns(deps);
   const checked = await checkTurns({
     request: deps.request,
     turns: raw,
@@ -184,5 +198,7 @@ export async function generateScript(deps: ScriptDeps): Promise<ScriptResult> {
     dropped_turns: checked.dropped,
     dropped_stories: fitted.dropped_stories,
     short_by_chars: shortBy,
+    writer_calls: calls,
+    last_problems: rejected,
   };
 }

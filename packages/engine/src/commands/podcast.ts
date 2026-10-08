@@ -1,3 +1,5 @@
+import { mkdir, writeFile } from "node:fs/promises";
+import { dirname, isAbsolute, relative, resolve } from "node:path";
 import { parseArgs } from "node:util";
 import { requireKey } from "@dispatch/core";
 import { type CommandContext, type CommandRun, secretsFromEnv } from "../context.js";
@@ -11,10 +13,17 @@ import { createOpenAiChatApi } from "../llm/openAiChatApi.js";
 import { TokenBudget } from "../llm/tokenBudget.js";
 import { generateEpisode } from "../podcast/generate.js";
 import { NebiusScriptWriter } from "../podcast/nebiusScriptWriter.js";
-import { parseRequest } from "../podcast/plan.js";
+import { parseRequest, planPodcast } from "../podcast/plan.js";
 import { InvalidRequestError, PodcastError, type ScriptWriter } from "../podcast/types.js";
 
-export const PODCAST_USAGE = "Usage: dispatch podcast --request '<json>' [--now <iso>] [--no-push]";
+export const PODCAST_USAGE =
+  "Usage: dispatch podcast --request '<json>' [--now <iso>] [--no-push] | [--dry-run [--save <path outside the repository>]]";
+
+/** True when `path` is the repository root or anything under it. */
+function isInside(root: string, path: string): boolean {
+  const rel = relative(resolve(root), resolve(path));
+  return rel === "" || (!rel.startsWith("..") && !isAbsolute(rel));
+}
 
 export interface PodcastDeps {
   /** The script writer. Defaults to a Nebius model from DISPATCH_MODEL. */
@@ -61,7 +70,13 @@ function commitFailure(outcome: CommitOutcome): string | null {
  */
 export function makePodcastCommand(deps: PodcastDeps = {}): CommandRun {
   return async (argv, ctx) => {
-    let values: { request?: string; now?: string; "no-push"?: boolean };
+    let values: {
+      request?: string;
+      now?: string;
+      "no-push"?: boolean;
+      "dry-run"?: boolean;
+      save?: string;
+    };
     try {
       values = parseArgs({
         args: argv,
@@ -71,6 +86,8 @@ export function makePodcastCommand(deps: PodcastDeps = {}): CommandRun {
           request: { type: "string" },
           now: { type: "string" },
           "no-push": { type: "boolean" },
+          "dry-run": { type: "boolean" },
+          save: { type: "string" },
         },
       }).values;
     } catch (error) {
@@ -82,6 +99,22 @@ export function makePodcastCommand(deps: PodcastDeps = {}): CommandRun {
     if (values.request === undefined) {
       ctx.log.error(`--request is required. ${PODCAST_USAGE}`);
       return 2;
+    }
+
+    const dryRun = values["dry-run"] === true;
+    if (dryRun && values["no-push"] === true) {
+      ctx.log.error(`--dry-run and --no-push cannot be used together. ${PODCAST_USAGE}`);
+      return 2;
+    }
+    if (values.save !== undefined) {
+      if (!dryRun) {
+        ctx.log.error(`--save needs --dry-run. ${PODCAST_USAGE}`);
+        return 2;
+      }
+      if (isInside(ctx.root, values.save)) {
+        ctx.log.error(`--save must be a path outside the repository: ${values.save}`);
+        return 2;
+      }
     }
 
     let now = ctx.now();
@@ -102,8 +135,38 @@ export function makePodcastCommand(deps: PodcastDeps = {}): CommandRun {
         makeWriter: () => (deps.makeWriter ?? nebiusWriter)(ctx),
         ...(deps.http ? { http: deps.http } : {}),
         log: ctx.log,
+        dryRun,
       });
       const { episode, relPath } = result;
+      if (dryRun) {
+        if (values.save !== undefined && result.markdown !== undefined) {
+          await mkdir(dirname(resolve(values.save)), { recursive: true });
+          await writeFile(resolve(values.save), result.markdown, "utf8");
+        }
+        const budget = planPodcast(request).budget_chars;
+        const chars = episode.char_count;
+        process.stdout.write(
+          `${JSON.stringify({
+            audience: request.audience ?? "custom",
+            format: request.format,
+            length_minutes: request.length_minutes,
+            topic_ids: request.topic_ids,
+            budget_chars: budget,
+            script_chars: chars,
+            percent_of_budget: Math.round((chars / budget) * 100),
+            listen_minutes: episode.listen_minutes,
+            turns: episode.turns.length,
+            speakers: [...new Set(episode.turns.map((turn) => turn.speaker))],
+            stories: episode.sources.length,
+            empty_topics: result.empty_topics,
+            writer_calls: result.script.writer_calls,
+            short_by_chars: result.script.short_by_chars,
+            title: episode.title,
+            problems: result.script.last_problems,
+          })}\n`,
+        );
+        return 0;
+      }
       const outcome = await commitAndPush({
         root: ctx.root,
         message: `feat(podcast): add ${episode.id}`,
