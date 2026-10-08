@@ -145,12 +145,14 @@ test.describe("reduced motion", () => {
     await lab.settled();
   });
 
-  test("the rail and the scrubber still update", async ({ lab, page }) => {
+  test("the bar's progress and the story chip still update", async ({ lab, page }) => {
     await lab.open();
     await lab.play();
     const before = await lab.progressOf();
     await page.waitForTimeout(1_000);
     expect(await lab.progressOf()).toBeGreaterThan(before);
+    const chip = page.locator('[data-item-id="a1f3c9d2b401"] [data-play-item]');
+    await expect(chip.locator("[data-chip-label]")).toHaveText("Playing");
   });
 
   test("movement tokens collapse while fades keep their timing", async ({ lab, page }) => {

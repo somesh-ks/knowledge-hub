@@ -132,6 +132,10 @@ test.describe("closing by gesture @surface", () => {
 
 test.describe("scrolling inside the page @surface", () => {
   test("scrolling the list never drags the page", async ({ lab, page, finger, browserName }) => {
+    test.skip(
+      browserName === "webkit",
+      "Playwright's mobile WebKit rejects mouse.wheel and has no touch scroll to stand in for it",
+    );
     await opened(lab);
     const row = lab.dialog.getByRole("list").last().getByRole("button").last();
     await row.scrollIntoViewIfNeeded();

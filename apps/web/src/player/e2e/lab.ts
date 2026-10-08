@@ -488,10 +488,10 @@ export class LabPage {
     await expect(this.page).toHaveURL(this.facts.nextUrl);
   }
 
-  /** Lab only: the reader rail's fill. */
+  /** How far along the bar's progress line is, 0 to 1. */
   async progressOf(): Promise<number> {
     return this.page
-      .locator(".rail-fill")
+      .locator(".dock-progress-fill")
       .evaluate((fill) => Number(fill.style.getPropertyValue("--player-progress")));
   }
 }

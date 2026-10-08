@@ -18,17 +18,20 @@ test.describe("when playback does not go to plan", () => {
     await page.waitForFunction(() => document.querySelector("astro-island[ssr]") === null);
     await lab.cta.tap();
     await expect(page.locator("html")).toHaveAttribute("data-player-state", "loading");
-    // Inside the first 300 ms the button already reads as playing and shows no spinner.
-    await expect(lab.cta).not.toHaveAttribute("data-loading", "true");
-    await expect(page.locator("[data-play-label]")).toHaveText("Pause");
-    await expect(lab.cta).toHaveAttribute("data-loading", "true", { timeout: 3_000 });
-    await expect(page.locator("[data-play-label]")).toHaveText("Preparing audio");
+    // Inside the first 300 ms the chip already reads as playing and shows no spinner.
+    await expect(lab.cta).toHaveAttribute("data-state", "current");
+    await expect(lab.cta.locator("[data-chip-label]")).toHaveText("Playing");
+    await expect(lab.cta).toHaveAccessibleName("Pause the briefing, playing");
+    await expect(lab.cta).toHaveAttribute("data-state", "preparing", { timeout: 3_000 });
+    await expect(lab.cta.locator("[data-chip-label]")).toHaveText("Loading");
+    await expect(lab.cta).toHaveAccessibleName("Pause the briefing, loading");
     await expect(page.locator(".dock-btn[data-primary] .spinner")).toBeVisible();
     release();
     await expect(page.locator("html")).toHaveAttribute("data-player-state", "playing", {
       timeout: 10_000,
     });
-    await expect(lab.cta).not.toHaveAttribute("data-loading", "true");
+    await expect(lab.cta).toHaveAttribute("data-state", "current");
+    await expect(lab.cta.locator("[data-chip-label]")).toHaveText("Playing");
   });
 
   test("remembers a pause the system caused and offers resume instead of playing again", async ({
@@ -64,7 +67,8 @@ test.describe("when playback does not go to plan", () => {
     await lab.open();
     await lab.cta.tap();
     await expect(page.locator("html")).toHaveAttribute("data-player-state", "error");
-    await expect(page.locator("[data-play-label]")).toHaveText("Try again");
+    await expect(lab.cta).toHaveAttribute("data-state", "idle");
+    await expect(lab.cta.locator("[data-chip-label]")).toHaveText("Try again");
     await expect(page.locator(".dock-caption")).toHaveText("Audio is not available");
     await lab.openPlayer();
     const notice = page.getByRole("alert").filter({ hasText: "not available" });

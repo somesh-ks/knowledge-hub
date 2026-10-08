@@ -115,21 +115,23 @@ test.describe("the Settings sheet", () => {
     await page.locator('[data-open-sheet="settings"]').tap();
     const first = page.getByRole("dialog", { name: "Settings" });
     await expect(first).toBeVisible();
-    await expect(first.getByText("Add Dispatch to your Home Screen")).toHaveCount(0);
+    await expect(first.getByText("Add Singularity to your Home Screen")).toHaveCount(0);
     await page.keyboard.press("Escape");
     await page.reload({ waitUntil: "networkidle" });
     await page.locator('[data-open-sheet="settings"]').tap();
     const second = page.getByRole("dialog", { name: "Settings" });
-    await expect(second.getByText("Add Dispatch to your Home Screen")).toBeVisible();
+    await expect(second.getByText("Add Singularity to your Home Screen")).toBeVisible();
     await expect(second.getByText(/Add to Home Screen/).first()).toBeVisible();
     expect(await second.innerText()).not.toMatch(/install/i);
     await second.getByRole("button", { name: "Hide this" }).tap();
-    await expect(second.getByText("Add Dispatch to your Home Screen")).toHaveCount(0);
+    await expect(second.getByText("Add Singularity to your Home Screen")).toHaveCount(0);
     await page.keyboard.press("Escape");
     await page.reload({ waitUntil: "networkidle" });
     await page.locator('[data-open-sheet="settings"]').tap();
     await expect(
-      page.getByRole("dialog", { name: "Settings" }).getByText("Add Dispatch to your Home Screen"),
+      page
+        .getByRole("dialog", { name: "Settings" })
+        .getByText("Add Singularity to your Home Screen"),
     ).toHaveCount(0);
     await context.close();
   });
@@ -138,6 +140,6 @@ test.describe("the Settings sheet", () => {
     await lab.open();
     await page.reload({ waitUntil: "networkidle" });
     const dialog = await openSettings(page);
-    await expect(dialog.getByText("Add Dispatch to your Home Screen")).toHaveCount(0);
+    await expect(dialog.getByText("Add Singularity to your Home Screen")).toHaveCount(0);
   });
 });

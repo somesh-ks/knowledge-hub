@@ -8,7 +8,10 @@ function reply(route: Route, status: number, body: Record<string, unknown>) {
   return route.fulfill({ status, contentType: "application/json", body: JSON.stringify(body) });
 }
 
-/** Starts a Generate run, closes the sheet, and lets the run finish while the player is open. */
+/**
+ * Starts a Generate run, closes the sheet, and lets the run finish while the player is open. On the
+ * lab that is the briefing's own page; on the site it is Settings, the only page with the opener.
+ */
 async function finishRunBehindThePlayer(page: Page, lab: LabPage): Promise<void> {
   const { id, servedFrom } = lab.facts.generated;
   if (servedFrom) {
@@ -41,6 +44,15 @@ async function finishRunBehindThePlayer(page: Page, lab: LabPage): Promise<void>
   });
   await lab.open();
   await lab.play();
+  if (lab.target === "site") {
+    // A briefing page has no Generate button; Settings does. Reach it by a client-side link, from
+    // the keyboard so nothing floating over the navigation takes the press, and the islands and
+    // the narration carry over.
+    await page.getByRole("link", { name: "Settings", exact: true }).first().focus();
+    await page.keyboard.press("Enter");
+    await expect(page).toHaveURL(/\/settings$/);
+    await lab.dockSettled();
+  }
   // The store reads its timers from the page clock, so the background check can be hurried.
   await page.clock.install();
   await lab.finger.press(

@@ -10,6 +10,10 @@ test.describe("the page behind the open player stays where it was @surface", () 
     finger,
     browserName,
   }) => {
+    test.skip(
+      browserName === "webkit",
+      "Playwright's mobile WebKit rejects mouse.wheel and has no touch scroll to stand in for it",
+    );
     await lab.open();
     await lab.play();
     // Paused, so the reader's own follow-the-narration scroll has nothing to react to.

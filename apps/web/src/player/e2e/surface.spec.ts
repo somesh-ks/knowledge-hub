@@ -102,7 +102,12 @@ test.describe("one surface @surface", () => {
     lab,
     page,
     finger,
+    browserName,
   }) => {
+    test.skip(
+      browserName === "webkit",
+      "Playwright has no touch input in WebKit, so lab.ts pulls with a held mouse drag, and mobile WebKit does not carry that to the sheet",
+    );
     await lab.open();
     await lab.play();
     const start = center(await lab.dockSettled());
@@ -153,7 +158,12 @@ test.describe("one surface @surface", () => {
   test("the flying cover leaves from the bar's cover and lands on the page's cover", async ({
     lab,
     finger,
+    browserName,
   }) => {
+    test.skip(
+      browserName === "webkit",
+      "Playwright has no touch input in WebKit, so lab.ts pulls with a held mouse drag, and mobile WebKit does not carry that to the sheet",
+    );
     await lab.open();
     await lab.play();
     const start = center(await lab.dockSettled());
