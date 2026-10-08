@@ -117,13 +117,13 @@ test.describe("axe, banners and live states", () => {
     });
   }
 
-  test("the unavailable chip and its hint have no violations in either scheme", async ({
-    page,
-  }) => {
+  test("a briefing with no audio yet has no violations in either scheme", async ({ page }) => {
     for (const scheme of ["light", "dark"] as const) {
       await page.emulateMedia({ colorScheme: scheme });
       await page.goto("/d/2026-10-05");
-      await expect(page.locator(".hero-hint")).toBeVisible();
+      // Nothing is said under the chip before audio exists; the chip itself is the whole state.
+      await expect(page.locator("[data-play-digest]")).toBeVisible();
+      await expect(page.locator(".hero-hint")).toHaveCount(0);
       expect(await violations(page)).toEqual([]);
     }
   });
