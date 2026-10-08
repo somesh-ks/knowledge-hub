@@ -24,6 +24,9 @@ export interface GenerateInput {
   log?: Logger;
   /** Run everything but write no file; the episode Markdown comes back in `markdown`. */
   dryRun?: boolean;
+  /** Regeneration: the episode being replaced and what the listener wants changed. */
+  replaces?: string;
+  feedback?: string;
 }
 
 export interface GenerateResult {
@@ -94,6 +97,7 @@ export async function generateEpisode(input: GenerateInput): Promise<GenerateRes
     request: input.request,
     stories: selection.stories,
     budget_chars: plan.budget_chars,
+    ...(input.feedback ? { feedback: input.feedback } : {}),
     ...(input.log ? { log: input.log } : {}),
   });
   const id = await allocateEpisodeId(input.root, input.now);
@@ -104,6 +108,8 @@ export async function generateEpisode(input: GenerateInput): Promise<GenerateRes
     request: input.request,
     stories: selection.stories,
     turns,
+    ...(input.replaces ? { replaces: input.replaces } : {}),
+    ...(input.feedback ? { feedback: input.feedback } : {}),
   });
   const relPath = input.dryRun
     ? episodeRelPath(id)
