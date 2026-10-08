@@ -67,9 +67,7 @@ test.describe("the library", () => {
   test("offers search, the five filter chips and a sort", async ({ page }) => {
     await page.goto("/library");
     await expect(page.getByRole("search", { name: "Library" })).toBeVisible();
-    await expect(
-      page.getByRole("searchbox", { name: "Search briefings, episodes and stories" }),
-    ).toBeVisible();
+    await expect(page.getByRole("searchbox", { name: "Search episodes" })).toBeVisible();
     const chips = page.locator("[data-library-filter]");
     await expect(chips).toHaveText(["All", "Daily", "Weekly", "Custom"]);
     await expect(chips.first()).toHaveAttribute("aria-pressed", "true");
@@ -402,6 +400,35 @@ test.describe("library episodes", () => {
     expect(await titles(page)).toEqual([HEADLINES]);
     await input.fill("frontier notes");
     expect(await titles(page)).toEqual([HEADLINES]);
+  });
+
+  test("search also reads an episode's script, which no card shows", async ({ page }) => {
+    await page.goto("/library");
+    await ready(page);
+    const input = page.getByRole("searchbox", { name: "Search episodes" });
+    await expect(input).toHaveAttribute("placeholder", "Search episodes");
+    // "fraction" is said in a script and written nowhere on a card.
+    await input.fill("fraction cost");
+    await expect.poll(() => titles(page)).toEqual([HEADLINES]);
+    await expect(page.locator("[data-card]:not([hidden]) .card-facts")).toHaveText([
+      "Found in the full text",
+    ]);
+    // Every word has to be there, so one that is not takes the card away again.
+    await input.fill("fraction zebra");
+    await expect(page.locator("[data-card]:not([hidden])")).toHaveCount(0);
+  });
+
+  test("search falls back to the cards when the index cannot be fetched", async ({ page }) => {
+    await page.route("**/search-index.json", (route) =>
+      route.fulfill({ status: 200, body: "not an index" }),
+    );
+    await page.goto("/library");
+    await ready(page);
+    const input = page.getByRole("searchbox");
+    await input.fill("frontier notes");
+    expect(await titles(page)).toEqual([HEADLINES]);
+    await input.fill("fraction cost");
+    await expect(page.locator("[data-card]:not([hidden])")).toHaveCount(0);
   });
 
   test("puts the cards of one day in reverse too, when the order is oldest first", async ({

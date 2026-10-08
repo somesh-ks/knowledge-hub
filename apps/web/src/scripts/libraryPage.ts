@@ -10,17 +10,28 @@ import {
   matchCount,
   matchesFilter,
   resultSummary,
+  type SearchIndexEntry,
+  textHasWords,
 } from "../lib/library";
 
 interface Card {
+  id: string;
   element: HTMLElement;
   facts: HTMLElement | null;
   data: CardData;
 }
 
 function readCard(element: HTMLElement, order: number): Card {
-  const { date = "", kind = "", stories = "0", minutes = "0", search = "" } = element.dataset;
+  const {
+    id = "",
+    date = "",
+    kind = "",
+    stories = "0",
+    minutes = "0",
+    search = "",
+  } = element.dataset;
   return {
+    id,
     element,
     facts: element.querySelector<HTMLElement>("[data-card-facts]"),
     data: {
@@ -51,6 +62,23 @@ function install(): void {
   const cards = [...grid.querySelectorAll<HTMLElement>("[data-card]")].map(readCard);
 
   let filter: LibraryFilter = "all";
+  /** The full text of every card, once fetched. Until then, and if it never comes, only the card's own lines are searched. */
+  let fullText: Map<string, string> | null = null;
+  let fetching = false;
+
+  function loadFullText(): void {
+    if (fullText || fetching) return;
+    fetching = true;
+    fetch("/search-index.json")
+      .then((response) => (response.ok ? response.json() : Promise.reject(new Error("no index"))))
+      .then((entries: SearchIndexEntry[]) => {
+        fullText = new Map(entries.map((entry) => [entry.id, entry.text]));
+        apply();
+      })
+      .catch(() => {
+        // Offline or missing: the search goes on with what the page holds, and does not ask again.
+      });
+  }
 
   function apply(): void {
     const query = input?.value ?? "";
@@ -59,7 +87,11 @@ function install(): void {
     const sort = (select?.value ?? "newest") as LibrarySort;
     let shown = 0;
     for (const card of cards) {
-      const matches = matchesFilter(card.data, filter) ? matchCount(card.data, query) : 0;
+      const passes = matchesFilter(card.data, filter);
+      let matches = passes ? matchCount(card.data, query) : 0;
+      // A word that only the script or a story's text holds: the card is there, for another reason.
+      const inText = passes && matches === 0 && textHasWords(fullText?.get(card.id) ?? "", query);
+      if (inText) matches = 1;
       card.element.hidden = matches === 0;
       if (matches > 0) shown += 1;
       if (card.facts) {
@@ -67,9 +99,11 @@ function install(): void {
         const rest = card.facts.dataset.rest ?? "";
         const text =
           searching && matches > 0
-            ? matches === 1
-              ? "1 matching story"
-              : `${matches} matching stories`
+            ? inText
+              ? "Found in the full text"
+              : matches === 1
+                ? "1 matching story"
+                : `${matches} matching stories`
             : rest;
         if (card.facts.textContent !== text) card.facts.textContent = text;
       }
@@ -80,7 +114,11 @@ function install(): void {
     if (empty) empty.hidden = shown > 0;
   }
 
-  input?.addEventListener("input", apply);
+  input?.addEventListener("focus", loadFullText);
+  input?.addEventListener("input", () => {
+    loadFullText();
+    apply();
+  });
   select?.addEventListener("change", apply);
   for (const chip of chips) {
     chip.addEventListener("click", () => {

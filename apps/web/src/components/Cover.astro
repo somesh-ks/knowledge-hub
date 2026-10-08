@@ -1,5 +1,6 @@
 ---
 import CoverPlay from "./CoverPlay.astro";
+
 interface Props {
   digestId: string;
   size: "thumb" | "row" | "card" | "hero" | "aside" | "player";
@@ -22,7 +23,6 @@ const SIZES: Record<Props["size"], string> = {
   aside: "14rem",
   player: "22rem",
 };
-
 ---
 
 <span class="cover" data-size={size} data-weekly={weekly ? "" : undefined} style={`--cover-bg:${paletteBg}`}>

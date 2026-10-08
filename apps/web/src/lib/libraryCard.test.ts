@@ -3,7 +3,7 @@ import { makeDigest } from "../testing/digestFactory";
 import { buildEntries } from "./digests";
 import { parseEpisodeFile } from "./episodeFile";
 import { buildEpisodeEntries } from "./episodes";
-import { episodeFacts, libraryItems } from "./libraryCard";
+import { episodeFacts, libraryItems, searchIndex } from "./libraryCard";
 
 const episodeText = (id: string, at: string, format = "discussion") =>
   [
@@ -40,6 +40,25 @@ describe("episodeFacts", () => {
     for (const word of ["the week in ai", "discussion", "a new model ships", "the verge"]) {
       expect(search).toContain(word);
     }
+  });
+});
+
+describe("searchIndex", () => {
+  it("holds an episode's whole script and a briefing's story text, normalized, one blob each", () => {
+    const [episode] = episodes(
+      episodeText("ep-20261007-1930", "2026-10-07T17:30:00Z").replace(
+        "text: Hello.",
+        "text: Café talk about a fraction.",
+      ),
+    );
+    const entries = buildEntries([{ digest: makeDigest({ id: "2026-10-07" }), timeline: null }]);
+    const index = searchIndex(entries, episode ? [episode] : []);
+    expect(index.map((entry) => [entry.id, entry.kind])).toEqual([
+      ["2026-10-07", "briefing"],
+      ["ep-20261007-1930", "episode"],
+    ]);
+    expect(index[1]?.text).toContain("cafe talk about a fraction");
+    expect(index[0]?.text.split("\n")).toHaveLength(entries[0]?.digest.items.length ?? -1);
   });
 });
 
