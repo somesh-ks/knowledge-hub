@@ -114,7 +114,13 @@ test.describe("layout at real window sizes @surface", () => {
       // The last control and the last row of the list can both be reached.
       const last = lab.dialog.getByRole("button").last();
       await last.scrollIntoViewIfNeeded();
-      await expect(last).toBeInViewport({ ratio: 1 });
+      // Not 1: a minimal scroll lands on a whole pixel while the row sits on a fraction of one, so
+      // a quarter of a pixel of a fully reachable row can fall outside the clip.
+      await expect(last).toBeInViewport({ ratio: 0.99 });
+      // And it stays there: the list must not shift when the story being read changes.
+      const before = await last.boundingBox();
+      await page.waitForTimeout(7_000);
+      expect((await last.boundingBox())?.y).toBe(before?.y);
     });
   }
 });
