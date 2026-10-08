@@ -1,5 +1,6 @@
 import type { Page, Route } from "@playwright/test";
 import { expect, test } from "./lab";
+import { enterPassphrase, PASSPHRASE_OFF, PASSPHRASE_ON, PASSPHRASE_REQUIRED } from "./passphrase";
 
 type Json = Record<string, unknown>;
 
@@ -68,7 +69,28 @@ test.describe("with a mouse", () => {
 });
 
 test.describe("the Generate sheet", () => {
+  test("with the passphrase step off, asks for nothing and sends the run request", async ({
+    lab,
+    page,
+  }) => {
+    test.skip(PASSPHRASE_REQUIRED, PASSPHRASE_ON);
+    let sent: unknown = null;
+    await page.route("**/api/generate", (route) => {
+      sent = route.request().postDataJSON();
+      return reply(route, 503, { error: "unavailable" });
+    });
+    await lab.open();
+    const dialog = await openGenerate(page);
+    await expect(dialog.getByLabel("Passphrase")).toHaveCount(0);
+    await expect(dialog.getByText(/passphrase/i)).toHaveCount(0);
+    await dialog.getByRole("button", { name: "Generate briefing" }).tap();
+    // The one error left to show still has a place, without a field to sit under.
+    await expect(dialog.getByRole("alert")).toContainText("not available right now");
+    expect(sent).toEqual({ passphrase: "open" });
+  });
+
   test("opens from the header button, labelled and focused on the field", async ({ lab, page }) => {
+    test.skip(!PASSPHRASE_REQUIRED, PASSPHRASE_OFF);
     await lab.open();
     await page.locator('[data-open-sheet="generate"]').focus();
     await page.keyboard.press("Enter");
@@ -86,6 +108,7 @@ test.describe("the Generate sheet", () => {
   });
 
   test("explains an empty submit inline and keeps focus on the field", async ({ lab, page }) => {
+    test.skip(!PASSPHRASE_REQUIRED, PASSPHRASE_OFF);
     await lab.open();
     const dialog = await openGenerate(page);
     await dialog.getByRole("button", { name: "Generate briefing" }).tap();
@@ -98,6 +121,7 @@ test.describe("the Generate sheet", () => {
     lab,
     page,
   }) => {
+    test.skip(!PASSPHRASE_REQUIRED, PASSPHRASE_OFF);
     await page.route("**/api/generate", (route) =>
       reply(route, 401, { error: "wrong_passphrase" }),
     );
@@ -124,7 +148,7 @@ test.describe("the Generate sheet", () => {
     );
     await lab.open();
     const dialog = await openGenerate(page);
-    await dialog.getByLabel("Passphrase").fill("secret");
+    await enterPassphrase(dialog);
     await dialog.getByRole("button", { name: "Generate briefing" }).tap();
     await expect(dialog.getByRole("alert")).toHaveText(
       "Generate is on cooldown. Try again in 5 hours 12 minutes.",
@@ -135,7 +159,7 @@ test.describe("the Generate sheet", () => {
     await page.route("**/api/generate", (route) => reply(route, 503, { error: "unavailable" }));
     await lab.open();
     const dialog = await openGenerate(page);
-    await dialog.getByLabel("Passphrase").fill("secret");
+    await enterPassphrase(dialog);
     await dialog.getByRole("button", { name: "Generate briefing" }).tap();
     await expect(dialog.getByRole("alert")).toContainText("not available right now");
   });
@@ -161,7 +185,7 @@ test.describe("the Generate sheet", () => {
     ]);
     await lab.open();
     const dialog = await openGenerate(page);
-    await dialog.getByLabel("Passphrase").fill("secret");
+    await enterPassphrase(dialog);
     await dialog.getByRole("button", { name: "Generate briefing" }).tap();
     const steps = dialog.getByRole("list", { name: "Progress" }).getByRole("listitem");
     await expect(steps).toHaveCount(6);
@@ -191,7 +215,7 @@ test.describe("the Generate sheet", () => {
     ]);
     await lab.open();
     const dialog = await openGenerate(page);
-    await dialog.getByLabel("Passphrase").fill("secret");
+    await enterPassphrase(dialog);
     await dialog.getByRole("button", { name: "Generate briefing" }).tap();
     await expect(dialog.getByText("Nothing cleared the bar.")).toBeVisible({ timeout: 10_000 });
     await expect(dialog.getByRole("button", { name: "Close", exact: true }).last()).toBeVisible();
@@ -213,7 +237,7 @@ test.describe("the Generate sheet", () => {
     ]);
     await lab.open();
     const dialog = await openGenerate(page);
-    await dialog.getByLabel("Passphrase").fill("secret");
+    await enterPassphrase(dialog);
     await dialog.getByRole("button", { name: "Generate briefing" }).tap();
     await expect(
       dialog.getByRole("alert").filter({ hasText: "The run failed while writing" }),
@@ -225,7 +249,9 @@ test.describe("the Generate sheet", () => {
     const failed = dialog.getByRole("list", { name: "Progress" }).getByRole("listitem").nth(3);
     await expect(failed).toContainText("Failed");
     await dialog.getByRole("button", { name: "Try again" }).tap();
-    await expect(dialog.getByLabel("Passphrase")).toBeVisible();
+    // Back to the form: the field while a passphrase is asked for, the button either way.
+    if (PASSPHRASE_REQUIRED) await expect(dialog.getByLabel("Passphrase")).toBeVisible();
+    await expect(dialog.getByRole("button", { name: "Generate briefing" })).toBeVisible();
   });
 
   test("keeps a run going when the sheet closes and resumes it on reopen", async ({
@@ -238,7 +264,7 @@ test.describe("the Generate sheet", () => {
     const status = await scriptStatus(page, [{ run_id: 80, state: "running", step: "judging" }]);
     await lab.open();
     const dialog = await openGenerate(page);
-    await dialog.getByLabel("Passphrase").fill("secret");
+    await enterPassphrase(dialog);
     await dialog.getByRole("button", { name: "Generate briefing" }).tap();
     await expect(
       dialog.getByRole("list", { name: "Progress" }).getByRole("listitem").nth(2),
@@ -279,7 +305,7 @@ test.describe("the Generate sheet", () => {
     // A short background cadence for the test: the store reads its timers from the page clock.
     await page.clock.install();
     const dialog = await openGenerate(page);
-    await dialog.getByLabel("Passphrase").fill("secret");
+    await enterPassphrase(dialog);
     await dialog.getByRole("button", { name: "Generate briefing" }).tap();
     await page.clock.runFor(3_100);
     await dialog.getByRole("button", { name: "Close", exact: true }).first().tap();

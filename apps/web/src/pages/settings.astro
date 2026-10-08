@@ -1,6 +1,7 @@
 ---
 import Icon from "../components/Icon.astro";
 import BaseLayout from "../layouts/BaseLayout.astro";
+import { PASSPHRASE_REQUIRED } from "../lib/access";
 import { PLAYBACK_RATES } from "../player/core/playerTypes";
 import { THEME_PREFERENCES, type ThemePreference } from "../player/core/preferences";
 // The build links this file before the layout's stylesheet, so its rules never rely on coming last:
@@ -147,7 +148,11 @@ const THEME_LABELS: Record<ThemePreference, string> = {
             <span class="settings-text">
               <span class="settings-label" id="settings-generate-label">Generate a briefing</span>
               <span class="settings-hint" id="settings-generate-hint">
-                Starts a new briefing now. Needs the owner passphrase.
+                {
+                  PASSPHRASE_REQUIRED
+                    ? "Starts a new briefing now. Needs the owner passphrase."
+                    : "Starts a new briefing now."
+                }
               </span>
             </span>
             <Icon name="chevronRight" />

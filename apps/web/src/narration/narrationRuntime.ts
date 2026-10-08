@@ -2,11 +2,12 @@
  * Narration on Play, assembled for the browser. Loaded on demand, the first time a listener presses
  * Play on a briefing that has no finished audio, so none of it weighs on an ordinary visit.
  */
+import { OPEN_PASSPHRASE, PASSPHRASE_REQUIRED } from "../lib/access";
 import { getPlayerAudio, getPlayerStore } from "../player/core/playerRuntime";
 import { safeLocalStorage } from "../player/core/resume";
 import { showToast } from "../sheets/toastStore";
 import { createNarrationController, type NarrationController } from "./narrationController";
-import { createPassphraseMemory } from "./passphraseMemory";
+import { createOpenPassphraseMemory, createPassphraseMemory } from "./passphraseMemory";
 import { askPassphrase } from "./passphrasePrompt";
 
 const PREPARING_LABEL = "Preparing audio";
@@ -40,7 +41,10 @@ function getController(): NarrationController {
     store: getPlayerStore(),
     audio: getPlayerAudio(),
     api: { fetch: (input, init) => fetch(input, init), isOnline: () => navigator.onLine },
-    passphrase: createPassphraseMemory(safeLocalStorage()),
+    // With the passphrase step off, the fixed value is always at hand and the sheet is never opened.
+    passphrase: PASSPHRASE_REQUIRED
+      ? createPassphraseMemory(safeLocalStorage())
+      : createOpenPassphraseMemory(OPEN_PASSPHRASE),
     askPassphrase,
     notify: (message) => showToast({ message }),
     setPreparing,

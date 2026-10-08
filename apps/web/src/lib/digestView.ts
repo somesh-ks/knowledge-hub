@@ -1,5 +1,6 @@
 import { type DigestItem, digestSections } from "@dispatch/core";
 import { briefingLengthLabel, storyLengthLabel } from "../player/core/readerMath";
+import { PASSPHRASE_REQUIRED } from "./access";
 import type { DigestEntry } from "./digests";
 import { formatClock, pluralize } from "./format";
 
@@ -89,10 +90,14 @@ export function storyCount(count: number): string {
 export const AUDIO_UNAVAILABLE_COPY = {
   preparing: {
     label: "Not read aloud yet",
-    hint: "Press play to make the audio. The first time takes a few seconds and needs the passphrase.",
+    hint: PASSPHRASE_REQUIRED
+      ? "Press play to make the audio. The first time takes a few seconds and needs the passphrase."
+      : "Press play to make the audio. The first time takes a few seconds.",
   },
   expired: {
     label: "The audio has expired",
-    hint: "Press play to make it again. It takes a few seconds and needs the passphrase.",
+    hint: PASSPHRASE_REQUIRED
+      ? "Press play to make it again. It takes a few seconds and needs the passphrase."
+      : "Press play to make it again. It takes a few seconds.",
   },
 } as const;
