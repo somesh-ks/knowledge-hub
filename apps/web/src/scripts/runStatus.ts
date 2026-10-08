@@ -1,16 +1,17 @@
 /**
  * The run indicator: one line of status over a thin progress bar, in the side column from 64rem and
  * above the player bar below it. It lives in the layout and persists across client-side navigations;
- * the run id is kept in sessionStorage, so a reload picks the run up again. The bar is indeterminate
- * while the run is going, because the status route reports a state, not a share. Every sentence is
- * in the element (`data-<state>`, or `data-<kind>-<state>` for a rewrite or a removal), and this
+ * the run id is kept in sessionStorage, so a reload picks the run up again. The status route names
+ * the stage (n of m, lib/runStages.ts); the bar sits at the start of that stage and creeps toward,
+ * never to, the next one on a slow CSS transition, so it never stands still and never goes back.
+ * After the workflow has published, the last stage waits for the new page. Every sentence is in the element (`data-<state>`, or `data-<kind>-<state>` for a rewrite or a removal), and this
  * file imports nothing.
  */
 const KEY = "dispatch:run";
 const POLL_MS = 4000;
 const MAX_POLLS = 300;
 
-type Phase = "queued" | "running" | "done" | "started" | "failed";
+type Phase = "queued" | "running" | "updating" | "done" | "started" | "failed";
 /** What the run does to an episode that exists. Absent means a new episode. */
 type Kind = "regenerate" | "delete";
 interface Stored {
@@ -19,7 +20,20 @@ interface Stored {
   kind?: Kind;
   /** The episode a rewrite or a removal is about; its page disables its actions while the run goes. */
   episode?: string;
+  /** Where the status route said the run is; the label is its name for the stage. */
+  stage?: number;
+  stages?: number;
+  label?: string;
+  /** When the run was started, so the new page can be told from the old ones. */
+  t0?: number;
 }
+
+/** The stage fields of a status answer, kept with the run. */
+const staged = (body: { stage?: number; stages?: number; label?: string }) => ({
+  stage: body.stage,
+  stages: body.stages,
+  label: body.label,
+});
 
 const FINISHED: Phase[] = ["done", "started", "failed"];
 let following = 0;
@@ -72,7 +86,16 @@ function show(run: Stored | null): void {
     const text = card.querySelector("[data-run-text]");
     // A rewrite in the "running" phase reads data-regenerate-running; a new episode reads data-running.
     const key = run.kind ? run.kind + run.phase.charAt(0).toUpperCase() + run.phase.slice(1) : "";
-    if (text) text.textContent = root.dataset[key] ?? root.dataset[run.phase] ?? "";
+    // A new episode says its stage. Only a change is written, so a screen reader hears each stage once.
+    const named = !run.kind && run.label && run.phase !== "queued";
+    const line =
+      named && run.phase === "failed"
+        ? (root.dataset.failedStage ?? "").replace("{label}", run.label?.toLowerCase() ?? "")
+        : named && run.phase !== "done" && run.phase !== "started"
+          ? run.label
+          : (root.dataset[key] ?? root.dataset[run.phase]);
+    if (text && text.textContent !== (line ?? "")) text.textContent = line ?? "";
+    fill(card, run);
   }
   const library = card.querySelector<HTMLElement>("[data-run-library]");
   if (library) {
@@ -87,15 +110,66 @@ function show(run: Stored | null): void {
   document.dispatchEvent(new Event("dispatch:run"));
 }
 
+/** The bar: at the start of the stage at once, then slowly toward its end, and never back. */
+let creep = 0;
+function fill(card: HTMLElement, run: Stored): void {
+  // A rewrite or a removal has no last stage of its own: the page has nothing to wait for.
+  const total = (run.stages ?? 3) - (run.kind ? 1 : 0);
+  const stage = Math.min(run.stage ?? 0, total - 1);
+  const key = `${run.id}:${run.phase}:${stage}`;
+  if (card.dataset.fill === key) return;
+  card.dataset.fill = key;
+  clearTimeout(creep);
+  const at = (to: number, seconds: number) => {
+    const now = Number(card.style.getPropertyValue("--run-to")) || 0;
+    card.style.setProperty("--run-to", String(Math.max(now, to)));
+    card.style.setProperty("--run-span", `${seconds}s`);
+  };
+  at(stage / total, 0.4);
+  // With reduced motion the bar waits at the start of the stage instead of drifting.
+  if (matchMedia("(prefers-reduced-motion: reduce)").matches) return;
+  creep = window.setTimeout(() => at((stage + 0.9) / total, 60), 400);
+}
+
 function set(run: Stored): void {
   write(run);
   show(run);
+}
+
+/** The last stage: ask until the redeployed site lists the new episode, then offer it. */
+async function waitForSite(run: Stored): Promise<void> {
+  if (following === run.id) return;
+  following = run.id;
+  for (let turn = 0; turn < 60 && following === run.id; turn += 1) {
+    const res = await fetch(`/latest.json?t=${Date.now()}`, { cache: "no-store" }).catch(
+      () => null,
+    );
+    const body = res?.ok ? await res.json().catch(() => null) : null;
+    if (following !== run.id) return;
+    if (body?.episode_at && Date.parse(body.episode_at) >= (run.t0 ?? 0) - 60_000) {
+      following = 0;
+      const link = document.querySelector<HTMLAnchorElement>("[data-run-library]");
+      if (link && body.episode_id) {
+        link.href = `/e/${body.episode_id}`;
+        link.textContent =
+          document.querySelector<HTMLElement>("[data-run-status]")?.dataset.open ?? "";
+      }
+      set({ ...run, phase: "done" });
+      return;
+    }
+    await new Promise((resolve) => setTimeout(resolve, 10_000));
+  }
+  if (following === run.id) {
+    following = 0;
+    set({ ...run, phase: "started" });
+  }
 }
 
 async function follow(run: Stored, now: boolean): Promise<void> {
   if (following === run.id) return;
   following = run.id;
   let phase = run.phase;
+  let stage = run.stage;
   for (let turn = 0; turn < MAX_POLLS && following === run.id; turn += 1) {
     if (turn > 0 || !now) await new Promise((resolve) => setTimeout(resolve, POLL_MS));
     if (following !== run.id) return;
@@ -108,7 +182,18 @@ async function follow(run: Stored, now: boolean): Promise<void> {
     if (body.state === "completed") {
       following = 0;
       const failed = body.outcome === "failed";
-      set({ ...run, phase: failed ? "failed" : "done" });
+      // Published: a new episode still has to reach the site. An answer without stages is an older
+      // route's, and finishes at once.
+      const waiting = !failed && !run.kind && body.stages;
+      const next = {
+        ...run,
+        ...staged(body),
+        phase: failed ? "failed" : waiting ? "updating" : "done",
+      };
+      if (waiting)
+        next.label = document.querySelector<HTMLElement>("[data-run-status]")?.dataset.updating;
+      set(next);
+      if (waiting) void waitForSite(next);
       // The removed episode's page has nothing left to show: go to the Library, where the line stays.
       if (!failed && run.kind === "delete" && location.pathname.startsWith("/e/")) {
         location.assign("/library");
@@ -116,9 +201,10 @@ async function follow(run: Stored, now: boolean): Promise<void> {
       return;
     }
     const next = body.state === "queued" ? "queued" : "running";
-    if (next !== phase) {
+    if (next !== phase || body.stage !== stage) {
       phase = next;
-      set({ ...run, phase });
+      stage = body.stage;
+      set({ ...run, ...staged(body), phase });
     }
   }
   if (following === run.id) {
@@ -129,7 +215,7 @@ async function follow(run: Stored, now: boolean): Promise<void> {
 
 /** Starts showing and following a run that has just been accepted. */
 export function startRun(id: number, about?: { kind: Kind; episode: string }): void {
-  const run: Stored = { id, phase: "queued", ...about };
+  const run: Stored = { id, phase: "queued", t0: Date.now(), ...about };
   following = 0;
   set(run);
   void follow(run, false);
@@ -139,5 +225,6 @@ export function startRun(id: number, about?: { kind: Kind; episode: string }): v
 export function resumeRun(): void {
   const run = read();
   show(run);
-  if (run && !FINISHED.includes(run.phase)) void follow(run, true);
+  if (run?.phase === "updating") void waitForSite(run);
+  else if (run && !FINISHED.includes(run.phase)) void follow(run, true);
 }

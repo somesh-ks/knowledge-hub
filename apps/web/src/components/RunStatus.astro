@@ -1,4 +1,5 @@
 ---
+import { UPDATING_LABEL } from "../lib/runStages";
 import Icon from "./Icon.astro";
 
 // Every line the indicator shows. scripts/runStatus.ts reads them from the element's data
@@ -9,6 +10,10 @@ const lines = {
   "data-done": "Episode ready",
   "data-started": "Episode started",
   "data-failed": "The episode could not be written. Try again later.",
+  // The stage names come from the status route (lib/runStages.ts); these are the sentences around them.
+  "data-failed-stage": "Stopped while {label}. Try again later.",
+  "data-updating": UPDATING_LABEL,
+  "data-open": "Open episode",
   // A rewrite or a removal of an episode that exists: data-<kind>-<state>.
   "data-regenerate-queued": "Waiting to start",
   "data-regenerate-running": "Rewriting your episode",
@@ -36,6 +41,6 @@ const lines = {
     <button class="icon-btn run-dismiss press" type="button" data-run-dismiss aria-label="Dismiss" hidden>
       <Icon name="close" class="icon-lg" />
     </button>
-    <span class="run-bar" aria-hidden="true"></span>
+    <span class="run-bar" aria-hidden="true"><span class="run-fill"></span></span>
   </div>
 </div>

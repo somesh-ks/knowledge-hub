@@ -9,6 +9,7 @@ export interface LatestResponse {
   generated_at: string | null;
   /** When the newest episode was written, so a page can see its own episode go live. */
   episode_at: string | null;
+  episode_id: string | null;
   outcome: Outcome | null;
   outcome_at: string | null;
 }
@@ -24,6 +25,7 @@ export function buildLatest(
     kind: latest?.kind ?? null,
     generated_at: latest?.generated_at ?? null,
     episode_at: site.episodes?.[0]?.episode.generated_at ?? null,
+    episode_id: site.episodes?.[0]?.id ?? null,
     outcome: site.lastRun.outcome,
     outcome_at: site.lastRun.at,
   };
