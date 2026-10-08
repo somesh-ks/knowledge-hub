@@ -4,6 +4,7 @@ import type { DigestEntry } from "../lib/digests";
 import { longDate } from "../lib/format";
 import { cardFacts } from "../lib/libraryCard";
 import Cover from "./Cover.astro";
+import CoverPlay from "./CoverPlay.astro";
 
 interface Props {
   entry: DigestEntry;
@@ -39,4 +40,5 @@ const facts = cardFacts(entry);
     <span class="card-title">{longDate(digest.date)}</span>
     <span class="card-facts" data-card-facts data-rest={facts.line}>{facts.line}</span>
   </a>
+  <CoverPlay digestId={entry.id} href={`/d/${entry.id}`} title={longDate(digest.date)} />
 </li>

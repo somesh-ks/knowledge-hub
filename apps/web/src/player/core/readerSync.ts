@@ -20,6 +20,7 @@
  * Writes go through one animation-frame writer.
  */
 
+import { navigateTo } from "./navigation";
 import { playPageChapter, togglePageDigest, togglePageItem } from "./pageActions";
 import type { PlayerStore } from "./playerTypes";
 import {
@@ -50,6 +51,8 @@ interface Elements {
   items: Map<string, HTMLElement>;
   playDigest: HTMLElement[];
   playItem: HTMLElement[];
+  /** The play buttons over covers, on a card or a hero. */
+  coverPlay: HTMLElement[];
 }
 
 function reducedMotion(): boolean {
@@ -81,9 +84,11 @@ export function createReaderSync(
   let pendingWrite = 0;
   let lastItemIndex = -1;
   let wasScrubbing = false;
+  /** The id of a briefing a cover sent the listener to, until its page has loaded. */
+  let pendingNarrate: string | null = null;
 
   function emptyElements(): Elements {
-    return { items: new Map(), playDigest: [], playItem: [] };
+    return { items: new Map(), playDigest: [], playItem: [], coverPlay: [] };
   }
 
   function isLive(): boolean {
@@ -112,6 +117,16 @@ export function createReaderSync(
       const value = visualOf(id);
       if (value) setDataset(element, "state", value);
       else delete element.dataset.state;
+    }
+
+    // A cover's button shows pause while its own item plays, on any page.
+    for (const button of elements.coverPlay) {
+      const on = state.digestId !== null && button.dataset.coverPlay === state.digestId && playing;
+      if (button.parentElement) setDataset(button.parentElement, "playing", String(on));
+      const verb = on ? "Pause" : "Play";
+      const title = button.dataset.coverTitle;
+      const name = title ? `${verb} ${title}` : verb;
+      if (button.getAttribute("aria-label") !== name) button.setAttribute("aria-label", name);
     }
 
     // A briefing without audio keeps the state its page rendered.
@@ -184,9 +199,37 @@ export function createReaderSync(
 
   /* ------------------------------------------------------------------ input */
 
+  /** The button over a cover: plays or pauses its item, going to its page first from a list. */
+  function pressCover(id: string | undefined, href: string | undefined): void {
+    if (!id) return;
+    const page = store.getPageDigest();
+    resumeFollow();
+    if (page?.id === id) {
+      if (page.audio) togglePageDigest(store);
+      else onNarrate?.();
+      return;
+    }
+    const { digestId, status } = store.getState();
+    if (digestId === id && status !== "idle") {
+      if (status === "playing" || status === "loading") store.pause("user");
+      else store.play("user");
+      return;
+    }
+    if (!href) return;
+    pendingNarrate = id;
+    store.playWhenPageLoads(id);
+    void navigateTo(href);
+  }
+
   function onClick(event: MouseEvent): void {
     if (!(event.target instanceof Element)) return;
     const page = store.getPageDigest();
+
+    const coverButton = event.target.closest<HTMLElement>("[data-cover-play]");
+    if (coverButton) {
+      pressCover(coverButton.dataset.coverPlay, coverButton.dataset.coverHref);
+      return;
+    }
 
     const digestButton = event.target.closest<HTMLElement>("[data-play-digest]");
     if (digestButton) {
@@ -238,12 +281,19 @@ export function createReaderSync(
     }
     found.playDigest = [...document.querySelectorAll<HTMLElement>("[data-play-digest]")];
     found.playItem = [...document.querySelectorAll<HTMLElement>("[data-play-item]")];
+    found.coverPlay = [...document.querySelectorAll<HTMLElement>("[data-cover-play]")];
     return found;
   }
 
   function refresh(): void {
     elements = collect();
     writeCoarse();
+    // A cover pressed in a list brought the listener here: a page with no audio yet is narrated now.
+    const page = store.getPageDigest();
+    if (pendingNarrate !== null && page?.id === pendingNarrate) {
+      pendingNarrate = null;
+      if (!page.audio) onNarrate?.();
+    }
   }
 
   window.addEventListener("wheel", markUserScroll, { passive: true });

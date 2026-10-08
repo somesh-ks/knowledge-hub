@@ -68,3 +68,139 @@
     border: var(--stroke-hairline) solid CanvasText;
   }
 }
+
+/* ------------------------------------------------------------------ play over a cover */
+
+/*
+ * A round play button centred on a cover, over a light scrim, where a mouse can hover. On touch
+ * nothing is added and the card behaves as it always did. The button stays in the tab order while
+ * hidden and shows itself on focus. While its item plays it stays, quietly, as pause.
+ */
+.cover-over {
+  display: none;
+}
+
+@media (hover: hover) and (pointer: fine) {
+  .card {
+    position: relative;
+  }
+
+  /* On a card the button sits beside the link and covers exactly the cover's square. */
+  .card > .cover-over {
+    position: absolute;
+    inset-block-start: 0;
+    inset-inline: 0;
+    aspect-ratio: 1;
+    border-radius: var(--cover-radius-hero);
+    overflow: hidden;
+  }
+
+  .cover > .cover-over {
+    position: absolute;
+    inset: 0;
+  }
+
+  .cover-over {
+    display: grid;
+    place-items: center;
+    opacity: 0;
+    background: color-mix(in oklab, var(--color-surface) 38%, transparent);
+    pointer-events: none;
+    transition: opacity var(--duration-hover) var(--ease-hover);
+  }
+
+  .card:has(.cover:hover, .cover-play:hover) > .cover-over,
+  .cover:hover > .cover-over,
+  .cover-over:has(:focus-visible) {
+    opacity: 1;
+  }
+
+  /* Playing: the pause button stays, quiet, with no scrim until the cover is pointed at. */
+  .cover-over[data-playing="true"] {
+    opacity: 1;
+    background: transparent;
+  }
+
+  .cover-over[data-playing="true"] .cover-play {
+    opacity: 0.72;
+  }
+
+  .card:has(.cover:hover, .cover-play:hover) > .cover-over[data-playing="true"],
+  .cover:hover > .cover-over[data-playing="true"],
+  .cover-over[data-playing="true"]:has(:focus-visible) {
+    background: color-mix(in oklab, var(--color-surface) 38%, transparent);
+  }
+
+  .card:has(.cover:hover, .cover-play:hover) > .cover-over[data-playing="true"] .cover-play,
+  .cover:hover > .cover-over[data-playing="true"] .cover-play,
+  .cover-over[data-playing="true"]:has(:focus-visible) .cover-play {
+    opacity: 1;
+  }
+
+  .cover-play {
+    display: grid;
+    place-items: center;
+    width: var(--size-touch-comfortable);
+    height: var(--size-touch-comfortable);
+    padding: 0;
+    border: 0;
+    border-radius: var(--radius-round);
+    background: var(--color-accent);
+    color: var(--color-on-accent);
+    cursor: pointer;
+    pointer-events: auto;
+    scale: var(--scale-enter);
+    transition:
+      scale var(--duration-hover) var(--ease-hover),
+      opacity var(--duration-hover) var(--ease-hover),
+      background-color var(--duration-hover) var(--ease-hover);
+  }
+
+  .card:has(.cover:hover, .cover-play:hover) .cover-play,
+  .cover:hover .cover-play,
+  .cover-play:focus-visible {
+    scale: 1;
+  }
+
+  .cover-play:hover {
+    background: var(--color-accent-hover);
+  }
+
+  .cover-play:active {
+    scale: var(--scale-press);
+  }
+
+  .cover-play:focus-visible {
+    outline: var(--stroke-ring) solid var(--color-on-accent);
+    outline-offset: calc(var(--stroke-ring-gap) * -1);
+  }
+
+  /* The card's own hover dims the cover; under the button that only muddies it. */
+  .card-link:hover .cover {
+    opacity: 1;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .cover-over,
+  .cover-play {
+    transition: none;
+    scale: 1;
+  }
+}
+
+@media (forced-colors: active) {
+  .cover-over {
+    background: transparent;
+  }
+
+  .cover-play {
+    /* The system paints the disc; the border keeps its edge on any cover. */
+    border: var(--stroke-hairline) solid ButtonText;
+  }
+
+  .cover-play:focus-visible {
+    outline: var(--stroke-ring) solid Highlight;
+    outline-offset: var(--stroke-ring-gap);
+  }
+}

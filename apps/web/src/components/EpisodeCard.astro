@@ -4,6 +4,7 @@ import type { EpisodeEntry } from "../lib/episodes";
 import { EPISODE_KIND } from "../lib/library";
 import { episodeFacts } from "../lib/libraryCard";
 import Cover from "./Cover.astro";
+import CoverPlay from "./CoverPlay.astro";
 
 interface Props {
   entry: EpisodeEntry;
@@ -39,4 +40,5 @@ const facts = episodeFacts(entry);
     <span class="card-title">{episode.title}</span>
     <span class="card-facts" data-card-facts data-rest={facts.line}>{facts.line}</span>
   </a>
+  <CoverPlay digestId={entry.id} href={`/e/${entry.id}`} title={episode.title} />
 </li>
