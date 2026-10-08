@@ -295,7 +295,8 @@
   content: "";
   position: absolute;
   inset-inline: 0;
-  inset-block: calc((var(--size-touch) - var(--chip-height)) / -2);
+  /* From the button's own height, whatever border the group draws around it. */
+  inset-block: calc((var(--size-touch) - 100%) / -2);
 }
 
 .view-btn[aria-pressed="true"] {

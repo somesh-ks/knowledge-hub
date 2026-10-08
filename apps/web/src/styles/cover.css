@@ -170,11 +170,6 @@
     scale: var(--scale-press);
   }
 
-  .cover-play:focus-visible {
-    outline: var(--stroke-ring) solid var(--color-on-accent);
-    outline-offset: calc(var(--stroke-ring-gap) * -1);
-  }
-
   /* The card's own hover dims the cover; under the button that only muddies it. */
   .card-link:hover .cover {
     opacity: 1;

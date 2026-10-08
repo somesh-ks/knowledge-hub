@@ -35,16 +35,17 @@ test.describe("the play button over a cover", () => {
     test.skip(info.project.name !== "desktop", "needs a mouse");
     await page.goto("/d/2026-10-07");
     await hydrated(page);
+    // For a pointer only: the play chip beside it is the named, focusable control.
     const button = page.locator(".hero [data-cover-play]");
-    await expect(button).toHaveAccessibleName("Play Wednesday 7 October");
+    await expect(button).toHaveAttribute("aria-hidden", "true");
+    await expect(button).toHaveAttribute("tabindex", "-1");
     await page.locator(".hero .cover").hover({ position: { x: 12, y: 12 } });
     await button.click();
     await expect(page.locator("html")).toHaveAttribute("data-player-state", "playing");
-    await expect(button).toHaveAccessibleName("Pause Wednesday 7 October");
     await expect(page.locator(".hero .cover-over")).toHaveAttribute("data-playing", "true");
     await button.click();
     await expect(page.locator("html")).toHaveAttribute("data-player-state", "paused");
-    await expect(button).toHaveAccessibleName("Play Wednesday 7 October");
+    await expect(page.locator(".hero .cover-over")).toHaveAttribute("data-playing", "false");
   });
 
   test("shows on keyboard focus, and Space plays", async ({ page }, info) => {

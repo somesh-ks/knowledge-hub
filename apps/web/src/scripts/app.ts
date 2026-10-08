@@ -21,6 +21,8 @@ registerServiceWorker();
 // (the player's controls, narration). One reload with the saved pages dropped gets the current
 // site; the flag stops a second one.
 addEventListener("vite:preloadError", () => {
+  // Offline, a failed import is the network's doing and a reload would lose the page.
+  if (!navigator.onLine) return;
   try {
     if (sessionStorage.getItem("dispatch:reloaded")) return;
     sessionStorage.setItem("dispatch:reloaded", "1");

@@ -68,7 +68,11 @@ test.describe("keyboard", () => {
 
   test("every interactive control shows a two layer focus ring", async ({ page }) => {
     await page.goto("/");
-    const controls = await page.locator("a[href], button:not([disabled]), summary").all();
+    // A control taken out of the tab order (the hero cover's pointer-only play button) is never
+    // reached by keyboard, so it has no ring to show.
+    const controls = await page
+      .locator('a[href], button:not([disabled]):not([tabindex="-1"]), summary')
+      .all();
     expect(controls.length).toBeGreaterThan(20);
     let checked = 0;
     for (const control of controls) {

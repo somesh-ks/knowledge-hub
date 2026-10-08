@@ -8,9 +8,14 @@ interface Props {
   href?: string;
   /** What the button names: the date or episode title. Omitted when the page's heading names it. */
   title?: string;
+  /**
+   * For a pointer only: out of the tab order and hidden from assistive technology. The hero cover
+   * sits beside the play chip, which is the same action with a name and a length.
+   */
+  pointerOnly?: boolean;
 }
 
-const { digestId, href, title } = Astro.props;
+const { digestId, href, title, pointerOnly = false } = Astro.props;
 ---
 
 {/* The play button over a cover, shown on hover and focus where there is a mouse. It is a sibling of
@@ -26,6 +31,8 @@ const { digestId, href, title } = Astro.props;
     id={`cover-play-${digestId}`}
     aria-label={title ? `Play ${title}` : "Play"}
     aria-labelledby={title ? undefined : `cover-play-${digestId} page-title`}
+    tabindex={pointerOnly ? -1 : undefined}
+    aria-hidden={pointerOnly ? "true" : undefined}
   >
     <PlayPauseIcons class="icon-lg" />
   </button>

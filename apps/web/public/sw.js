@@ -11,7 +11,7 @@
  *     Safari playback, so audio, ranged requests and cross-origin requests all pass straight through.
  *   - Bump VERSION when this file's logic changes; activation removes caches from older versions.
  */
-const VERSION = "v2";
+const VERSION = "v3";
 const SHELL_CACHE = `dispatch-shell-${VERSION}`;
 const PAGES_CACHE = `dispatch-pages-${VERSION}`;
 const MEDIA_CACHE = `dispatch-media-${VERSION}`;
@@ -94,7 +94,8 @@ async function precacheShell() {
       }
     }),
   );
-  await precacheAssets(cache, [...assets, ...SHELL_FILES], self.location.origin, 3);
+  // Deep enough for the longest chain of lazy imports: a file missed here fails offline.
+  await precacheAssets(cache, [...assets, ...SHELL_FILES], self.location.origin, 6);
 }
 
 self.addEventListener("install", (event) => {
