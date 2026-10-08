@@ -1,0 +1,98 @@
+---
+import Icon from "../../components/Icon.astro";
+import ManageChrome from "../../components/ManageChrome.astro";
+import BaseLayout from "../../layouts/BaseLayout.astro";
+import { loadWriterView } from "../../lib/writer";
+import "../../styles/settings.css";
+import "../../styles/manage.css";
+import "../../styles/model.css";
+
+const { model } = await loadWriterView();
+const skeletons = Array.from({ length: 6 }, (_, index) => index);
+---
+
+<BaseLayout title="Model" view="settings" skipLabel="Skip to the model">
+  <main id="main" tabindex="-1">
+    {/* Static HTML with the saved choice written in. scripts/modelPage.ts loads the live list into
+         the placeholder rows, then records a change through the same bar and save step as the
+         Schedule page. The placeholder rows are as tall as the real ones, so nothing moves. */}
+    <div class="manage" data-manage="model" data-model>
+      <a class="btn manage-back press press-subtle" href="/settings">
+        <Icon name="arrowBack" />
+        <span>Settings</span>
+      </a>
+      <h1 class="page-title manage-title" id="page-title" tabindex="-1">Model</h1>
+      <noscript>
+        <p class="manage-note">Changing the model needs JavaScript, which is turned off in this browser.</p>
+      </noscript>
+
+      <fieldset class="manage-fields" data-fields>
+        <legend class="sr-only">Model</legend>
+
+        <div class="model-panel" data-panel data-saved={model ?? ""}>
+          <div class="manage-field">
+            <label for="model-provider">Provider</label>
+            <select class="manage-input" id="model-provider" name="provider" autocomplete="off">
+              <option value="nebius" selected>Nebius</option>
+            </select>
+          </div>
+
+          <div class="manage-field" data-filter>
+            <label for="model-filter">Filter models</label>
+            <input
+              class="manage-input"
+              id="model-filter"
+              type="search"
+              autocomplete="off"
+              autocapitalize="off"
+              spellcheck="false"
+              placeholder="Filter models"
+              disabled
+            />
+          </div>
+          <p class="sr-only" aria-live="polite" data-count></p>
+
+          <fieldset class="manage-suggest-group" data-models aria-busy="true">
+            <legend class="manage-legend">Model</legend>
+            <ul class="rows model-list" role="list" data-list aria-hidden="true">
+              {
+                skeletons.map(() => (
+                  <li class="model-row model-skeleton">
+                    <span class="model-bar model-bar-name"></span>
+                    <span class="model-bar model-bar-hint"></span>
+                  </li>
+                ))
+              }
+            </ul>
+          </fieldset>
+
+          <div class="manage-field" data-fallback hidden>
+            <p class="manage-quiet">The model list is not available right now.</p>
+            <label for="model-typed">Model id</label>
+            <input
+              class="manage-input"
+              id="model-typed"
+              type="text"
+              autocomplete="off"
+              autocapitalize="off"
+              spellcheck="false"
+              maxlength="120"
+              aria-describedby="model-typed-note"
+            />
+            <span class="manage-quiet" id="model-typed-note" data-typed-note hidden>
+              Use letters, digits and . _ - / : only.
+            </span>
+          </div>
+        </div>
+      </fieldset>
+
+      <ManageChrome />
+    </div>
+  </main>
+</BaseLayout>
+
+<script>
+  import { installModelPage } from "../../scripts/modelPage";
+
+  installModelPage();
+</script>

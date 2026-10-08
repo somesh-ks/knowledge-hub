@@ -9,6 +9,7 @@ const ROUTES = [
   "/settings",
   "/settings/topics",
   "/settings/sources",
+  "/settings/model",
 ];
 
 /**

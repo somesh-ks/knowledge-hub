@@ -3,6 +3,7 @@ import Icon from "../components/Icon.astro";
 import BaseLayout from "../layouts/BaseLayout.astro";
 import { loadManage } from "../lib/manage";
 import { CADENCES, hourLabel, loadScheduleView } from "../lib/schedule";
+import { loadWriterView } from "../lib/writer";
 import { PLAYBACK_RATES } from "../player/core/playerTypes";
 import { THEME_PREFERENCES, type ThemePreference } from "../player/core/preferences";
 // The build links this file before the layout's stylesheet, so its rules never rely on coming last:
@@ -11,6 +12,7 @@ import "../styles/settings.css";
 
 const schedule = await loadScheduleView();
 const { topics, sources } = await loadManage();
+const writer = await loadWriterView();
 const count = (n: number, noun: string): string => `${n} ${noun}${n === 1 ? "" : "s"}`;
 const cadence = CADENCES.find((entry) => entry.days === schedule.cadenceDays)?.label ?? "";
 // What each row leads to, in a few words: the current state, worked out when the site is built.
@@ -60,6 +62,13 @@ const THEME_LABELS: Record<ThemePreference, string> = {
             <span class="settings-text">
               <span class="settings-label">Sources</span>
               <span class="settings-hint">{values.sources}</span>
+            </span>
+            <Icon name="chevronRight" />
+          </a>
+          <a class="row-action" href="/settings/model">
+            <span class="settings-text">
+              <span class="settings-label">Model</span>
+              <span class="settings-hint">{writer.label}</span>
             </span>
             <Icon name="chevronRight" />
           </a>

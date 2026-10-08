@@ -1,0 +1,83 @@
+/*
+ * The Model page: a provider select, a filter, and a radio list, laid out with the fields, rows
+ * and bar of manage.css. Imported by pages/settings/model.astro, after manage.css.
+ */
+
+.model-panel {
+  display: grid;
+  gap: var(--space-6);
+  padding-block: var(--space-4) 0;
+}
+
+/* A row is one radio target. Placeholder and real rows share this height, so the list does not
+   move when the live models arrive. */
+.model-list .model-row {
+  min-height: calc(var(--size-touch-comfortable) * 1.5);
+}
+
+.model-list {
+  margin-block-start: var(--space-2);
+}
+
+/* Placeholder rows: two quiet bars where the name and the hint will be. */
+.model-skeleton {
+  display: grid;
+  align-content: center;
+  gap: var(--space-2);
+}
+
+.model-bar {
+  display: block;
+  height: var(--space-3);
+  border-radius: var(--radius-xs);
+  background: var(--color-surface-sunken);
+}
+
+.model-bar-name {
+  inline-size: 55%;
+}
+
+.model-bar-hint {
+  inline-size: 35%;
+}
+
+@media (prefers-reduced-motion: no-preference) {
+  .model-skeleton .model-bar {
+    animation: model-pulse var(--duration-spring-release) var(--ease-in-out) infinite alternate;
+  }
+}
+
+@keyframes model-pulse {
+  from {
+    opacity: 1;
+  }
+
+  to {
+    opacity: var(--opacity-disabled);
+  }
+}
+
+.model-panel .manage-input[aria-invalid] {
+  border-color: var(--color-danger);
+}
+
+.model-panel .manage-input[aria-invalid]:focus-visible {
+  outline: var(--stroke-ring) solid var(--color-focus-ring);
+  outline-offset: var(--stroke-ring-gap);
+}
+
+/* Until the script has mounted, the controls keep their places and take no input. */
+.manage:not([data-ready]) .model-panel :is(select, input) {
+  pointer-events: none;
+}
+
+.manage-fields:disabled .manage-pick {
+  opacity: var(--opacity-disabled);
+  cursor: default;
+}
+
+@media (hover: hover) and (pointer: fine) {
+  .model-list .manage-pick:hover .manage-name {
+    color: var(--color-accent);
+  }
+}

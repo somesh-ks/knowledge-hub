@@ -271,6 +271,12 @@ export type ConfigOp =
       cadence_days: 1 | 2 | 3 | 7;
       /** Section ids a scheduled briefing covers, or null for every enabled topic. */
       sections: string[] | null;
+    }
+  | {
+      op: "writer.set";
+      provider: "nebius";
+      /** A Nebius model id, or null for the engine's own setting. */
+      model: string | null;
     };
 
 export interface ConfigRequest {
