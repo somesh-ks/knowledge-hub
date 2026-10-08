@@ -37,7 +37,7 @@ const fixed = topics.filter((topic) => topic.never_publish);
       <fieldset class="manage-fields" data-fields>
         <legend class="sr-only">Topics</legend>
 
-        <form class="manage-form" data-needs-js data-add="topic" aria-labelledby="add-topic">
+        <form class="manage-form" data-needs-js data-add="topic" aria-labelledby="add-topic" novalidate>
           <h2 class="section-head" id="add-topic">Add a topic</h2>
           <div class="manage-field">
             <label for="topic-name">Name</label>
@@ -49,7 +49,11 @@ const fixed = topics.filter((topic) => topic.never_publish);
               required
               maxlength="60"
               autocomplete="off"
+              aria-describedby="topic-name-error"
             />
+            <p class="manage-error" id="topic-name-error" role="alert" data-error="name" hidden>
+              <Icon name="alert" /><span></span>
+            </p>
           </div>
           <div class="manage-field">
             <label for="topic-description">What should count as this topic</label>
@@ -59,7 +63,11 @@ const fixed = topics.filter((topic) => topic.never_publish);
               name="description"
               required
               maxlength="400"
-              rows="3"></textarea>
+              rows="3"
+              aria-describedby="topic-description-error"></textarea>
+            <p class="manage-error" id="topic-description-error" role="alert" data-error="description" hidden>
+              <Icon name="alert" /><span></span>
+            </p>
           </div>
           <fieldset class="manage-suggest-group" data-suggestions hidden>
             <legend class="manage-legend">Suggested sources</legend>

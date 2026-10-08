@@ -11,13 +11,18 @@ import { matchOffers } from "../lib/sourceMatch";
 import type { ConfigOp } from "../types/contracts";
 import type { Pending, SaveContext } from "./managePageSave";
 
-/** A topic's id from its name: lowercase letters, digits and hyphens, unique among `taken`. */
-export function slugify(name: string, taken: readonly string[]): string {
-  const cleaned = name
+/** What a name leaves for an id: lowercase letters, digits and hyphens. Under two characters is no id. */
+export function idText(name: string): string {
+  return name
     .toLowerCase()
     .replace(/[^a-z0-9]+/g, "-")
     .replace(/^-+|-+$/g, "")
     .slice(0, 36);
+}
+
+/** A topic's id from its name: lowercase letters, digits and hyphens, unique among `taken`. */
+export function slugify(name: string, taken: readonly string[]): string {
+  const cleaned = idText(name);
   const base = cleaned.length >= 2 ? cleaned : "topic";
   let id = base;
   for (let n = 2; taken.includes(id); n += 1) id = `${base}-${n}`;
@@ -133,6 +138,33 @@ function mount(root: HTMLElement): void {
     const data = new FormData(form);
     const value = (name: string): string => String(data.get(name) ?? "").trim();
     if (form.dataset.add === "topic") {
+      // The form skips the browser's own check so the message sits beside the field.
+      const bad = [
+        [
+          "name",
+          !value("name")
+            ? "Enter a name."
+            : idText(value("name")).length < 2
+              ? "Use at least two letters or numbers in the name."
+              : "",
+        ],
+        ["description", value("description") ? "" : "Say what should count as this topic."],
+      ] as const;
+      let first: HTMLElement | null = null;
+      for (const [field, message] of bad) {
+        const input = form.elements.namedItem(field) as HTMLInputElement;
+        const note = form.querySelector<HTMLElement>(`[data-error="${field}"]`);
+        if (!note) continue;
+        note.hidden = !message;
+        const text = note.querySelector("span");
+        if (text) text.textContent = message;
+        input.toggleAttribute("aria-invalid", Boolean(message));
+        if (message) first ??= input;
+      }
+      if (first) {
+        first.focus();
+        return;
+      }
       // A topic still waiting to be saved holds its id; one that was cancelled gives it back.
       const waiting = [...changes.values()].map(({ op }) =>
         op.op === "topic.upsert" ? op.topic.id : "",
@@ -210,6 +242,11 @@ function mount(root: HTMLElement): void {
     const control = event.target as Control;
     control.setCustomValidity("");
     const form = control.closest<HTMLFormElement>("form[data-add=topic]");
+    if (form && control.hasAttribute("aria-invalid")) {
+      control.removeAttribute("aria-invalid");
+      const note = form.querySelector<HTMLElement>(`[data-error="${control.name}"]`);
+      if (note) note.hidden = true;
+    }
     if (form && (control.name === "name" || control.name === "description")) showSuggestions(form);
     if (control.matches("[data-op]")) update(control);
   });

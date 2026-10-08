@@ -28,7 +28,10 @@ const lines = {
      script put in it is still there on the next page. The card inside appears with the first run. */}
 <div class="run-status" role="status" data-run-status transition:persist="run-status" {...lines}>
   <div class="run-card" data-run-card hidden>
-    <p class="run-text" data-run-text></p>
+    <p class="run-text">
+      <Icon name="alert" class="run-alert" />
+      <span class="run-message" data-run-text></span>
+    </p>
     <a class="run-link" href="/library" data-run-library hidden>Open Library</a>
     <button class="icon-btn run-dismiss press" type="button" data-run-dismiss aria-label="Dismiss" hidden>
       <Icon name="close" class="icon-lg" />

@@ -40,7 +40,29 @@ export function openCreateSheet(trigger: HTMLElement | null): void {
   }
   dialog ??= build();
   if (!dialog || dialog.open) return;
-  const back = () => trigger?.isConnected && trigger.focus();
-  dialog.addEventListener("close", back, { once: true });
-  dialog.showModal();
+  const sheet = dialog;
+  const refocus = () => trigger?.isConnected && trigger.focus();
+  // Browser Back closes the sheet and stays on the page. The sheet takes one history entry. The
+  // head script (themeInit.js) asks first on every pop; answering "handled" keeps Astro's router
+  // from re-rendering the page for it.
+  let entry = true;
+  const onBack = (event: Event) => {
+    if (!entry) return;
+    entry = false;
+    event.preventDefault();
+    removeEventListener("dispatch:back", onBack);
+    if (sheet.open) sheet.close();
+  };
+  history.pushState({ ...history.state, createSheet: true }, "");
+  addEventListener("dispatch:back", onBack);
+  sheet.addEventListener(
+    "close",
+    () => {
+      refocus();
+      // Closed any other way: give the entry back. The pop this causes is swallowed too.
+      if (entry) history.go(-1);
+    },
+    { once: true },
+  );
+  sheet.showModal();
 }

@@ -2,6 +2,7 @@
  * The Generate sheet's network layer. Plain functions over an injected `fetch`, so every response
  * and outcome is testable without a network.
  */
+import { PASSPHRASE_REQUIRED } from "../../lib/access";
 import type { GenerateRequest, StatusResponse } from "../../types/contracts";
 import { GENERATE_STEPS } from "../../types/contracts";
 
@@ -27,9 +28,13 @@ export type StartResult =
   | { kind: "rejected"; reason: StartRejection; message: string; retryAfterSeconds?: number };
 
 export const MESSAGES = {
-  empty: "Enter the passphrase to continue.",
+  empty: PASSPHRASE_REQUIRED
+    ? "Enter the passphrase to continue."
+    : "Generate refused that request. Try again in a few minutes.",
   offline: "You are offline. Reconnect, then try again.",
-  wrongPassphrase: "That passphrase does not match. Check it and try again.",
+  wrongPassphrase: PASSPHRASE_REQUIRED
+    ? "That passphrase does not match. Check it and try again."
+    : "Generate refused that request. Try again in a few minutes.",
   unavailable: "Generate is not available right now. Try again in a few minutes.",
   invalid: "That request did not go through. Reload the page and try again.",
   network: "The request did not go through. Check your connection, then try again.",

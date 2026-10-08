@@ -174,6 +174,53 @@ test.describe("library search", () => {
     await expect(page.locator("[data-library-status]")).toHaveText("5 results");
   });
 
+  test("a clear button shows on touch only while the field has text, and returns focus to it", async ({
+    page,
+  }, info) => {
+    await page.goto("/library");
+    await ready(page);
+    const clear = page.getByRole("button", { name: "Clear text" });
+    const input = page.getByRole("searchbox");
+    if (info.project.name === "desktop") {
+      await input.fill("gridwork");
+      await expect(clear).toBeHidden();
+      return;
+    }
+    await expect(clear).toBeHidden();
+    await input.fill("gridwork");
+    await expect(clear).toBeVisible();
+    const box = await clear.boundingBox();
+    expect(Math.round(box?.width ?? 0)).toBeGreaterThanOrEqual(44);
+    expect(Math.round(box?.height ?? 0)).toBeGreaterThanOrEqual(44);
+    await clear.click();
+    await expect(input).toHaveValue("");
+    await expect(input).toBeFocused();
+    await expect(clear).toBeHidden();
+  });
+
+  test("the filter chips and the sort have a 44px target", async ({ page }) => {
+    await page.goto("/library");
+    await ready(page);
+    const small = await page.evaluate(() => {
+      const found: string[] = [];
+      for (const node of document.querySelectorAll<HTMLElement>(
+        "[data-library-filter], .sort-field > select",
+      )) {
+        node.scrollIntoView({ block: "center", inline: "center" });
+        const rect = node.getBoundingClientRect();
+        const x = rect.left + rect.width / 2;
+        const y = rect.top + rect.height / 2;
+        const at = (dy: number) => {
+          const hit = document.elementFromPoint(x, y + dy);
+          return hit !== null && node.contains(hit);
+        };
+        if (!at(-21) || !at(21)) found.push(node.textContent?.trim() || node.tagName);
+      }
+      return found;
+    });
+    expect(small).toEqual([]);
+  });
+
   test("Clear search also resets the filter", async ({ page }) => {
     await page.goto("/library");
     await ready(page);

@@ -278,7 +278,8 @@ dialog.create-sheet .create-submit > .btn-primary {
   display: flex;
   align-items: center;
   gap: var(--space-3);
-  min-height: var(--run-height);
+  /* A fixed height, so a long line never grows the card into the Create button above it. */
+  height: var(--run-height);
   padding-inline: max(var(--space-4), var(--safe-left)) max(var(--space-2), var(--safe-right));
   background: var(--color-surface);
   box-shadow: 0 calc(var(--stroke-hairline) * -1) 0 var(--color-border-hairline);
@@ -290,6 +291,33 @@ dialog.create-sheet .create-submit > .btn-primary {
 .run-text {
   flex: 1 1 auto;
   min-width: 0;
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+}
+
+.run-message {
+  min-width: 0;
+  display: -webkit-box;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 2;
+  line-clamp: 2;
+  overflow: hidden;
+}
+
+/* A failed run is told apart by an icon and the danger colour, not by colour alone. */
+.run-alert {
+  display: none;
+  flex: none;
+  color: var(--color-danger);
+}
+
+.run-card[data-state="failed"] .run-alert {
+  display: block;
+}
+
+.run-card[data-state="failed"] .run-text {
+  color: var(--color-danger);
 }
 
 .run-link {
@@ -316,7 +344,7 @@ dialog.create-sheet .create-submit > .btn-primary {
 .run-bar {
   position: absolute;
   inset-inline: 0;
-  inset-block-start: 0;
+  inset-block-end: 0;
   height: calc(var(--space-1) * 0.75);
   overflow: hidden;
   background: var(--rail-track);
@@ -367,7 +395,7 @@ html[data-player="open"] .run-status {
       "extra extra";
     align-items: center;
     gap: 0 var(--space-2);
-    min-height: 0;
+    height: auto;
     padding-block: var(--space-2) var(--space-4);
     padding-inline: calc(var(--space-3) + var(--safe-left)) var(--space-2);
     box-shadow: none;

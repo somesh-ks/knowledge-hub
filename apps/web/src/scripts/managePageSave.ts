@@ -10,7 +10,7 @@ const SAVED = "Saved. The changes appear after the next build, in about a minute
 
 const REASONS: Record<number, string> = {
   400: "That change was not accepted.",
-  401: "That passphrase is not right.",
+  401: PASSPHRASE_REQUIRED ? "That passphrase is not right." : "Saving was refused.",
   429: "There were too many edits in a row.",
   503: "Saving is not available right now.",
 };
