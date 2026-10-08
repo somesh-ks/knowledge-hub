@@ -16,6 +16,24 @@ export const STORY_CHARS: Record<PodcastFormat, number> = {
 /** Room for the opening and the sign-off. */
 export const FRAME_CHARS = 300;
 
+/** The writer is asked to land at or above this share of the budget (a range, not a ceiling). */
+export const SCRIPT_TARGET_SHARE = 0.9;
+/** A reply under this share of the budget is sent back once or twice, then kept if still short. */
+export const SCRIPT_FLOOR_SHARE = 0.8;
+
+/** Characters the writer is asked to reach at least, and the floor below which a reply is sent back. */
+export function scriptTargetChars(budget: number): number {
+  return Math.floor(budget * SCRIPT_TARGET_SHARE);
+}
+export function scriptFloorChars(budget: number): number {
+  return Math.floor(budget * SCRIPT_FLOOR_SHARE);
+}
+
+/** What each of `stories` stories should carry once the opening and sign-off are taken out. */
+export function perStoryChars(budget: number, stories: number): number {
+  return Math.max(1, Math.floor((budget - FRAME_CHARS) / Math.max(1, stories)));
+}
+
 export interface PodcastPlan {
   request: PodcastRequest;
   /** Total characters of speech: minutes x 968, never above the hard cap. */

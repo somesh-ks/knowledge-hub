@@ -168,7 +168,7 @@ describe("the reply", () => {
   it("fails after the retry when the reply is still unusable", async () => {
     const writer = new FakeScriptWriter(() => ({ turns: "nope" }));
     await expect(run(inputFor("readout", 5, 3), writer)).rejects.toBeInstanceOf(PodcastError);
-    expect(writer.calls).toHaveLength(2);
+    expect(writer.calls).toHaveLength(3);
   });
 
   it("recovers when the first call throws", async () => {

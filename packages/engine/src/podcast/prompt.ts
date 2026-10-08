@@ -1,6 +1,6 @@
 import type { PodcastFormat, PodcastRequest } from "@dispatch/core";
 import { untrustedInstruction, wrapUntrusted } from "../llm/untrusted.js";
-import { STORY_CHARS } from "./plan.js";
+import { perStoryChars, scriptFloorChars, scriptTargetChars } from "./plan.js";
 import type { PodcastStory, ScriptInput, TurnRewrite } from "./types.js";
 
 const TONES: Record<PodcastRequest["tone"], string> = {
@@ -53,16 +53,19 @@ const RULES = [
 
 export function scriptSystemPrompt(input: ScriptInput, boundary: string): string {
   const { request } = input;
-  const perStory = STORY_CHARS[request.format];
   return [
-    "You write the script of one episode of Singularity, a private tech and design briefing that people listen to as a podcast.",
+    request.audience === "general"
+      ? "You write the script of one episode of Singularity, a news podcast for a general audience."
+      : "You write the script of one episode of Singularity, a private tech and design briefing that people listen to as a podcast.",
     FORMATS[request.format],
     `TONE: ${TONES[request.tone]}`,
     ...(AUDIENCES[request.audience ?? "custom"] ? [AUDIENCES[request.audience ?? "custom"]] : []),
     "RULES",
     RULES,
     "LENGTH",
-    `The whole script, all turns together, must stay under ${input.budget_chars} characters. Aim for about ${perStory} characters per story. You may leave out the last stories if they would not fit; never cut a story halfway.`,
+    `The whole script, all turns together, must land between ${scriptTargetChars(input.budget_chars)} and ${input.budget_chars} characters. That is about ${perStoryChars(input.budget_chars, input.stories.length)} characters for each of the ${input.stories.length} stories, after the opening and the sign-off. A script under ${scriptFloorChars(input.budget_chars)} characters is rejected.`,
+    "When there are few stories, go deeper on each one: say what happened, who is involved and what the summary gives as the catch. Use only the facts in the story block. Never pad with filler and never repeat a fact.",
+    "If the stories still would not fit, leave out the last ones; never cut a story halfway.",
     "OUTPUT",
     'Answer with JSON only: {"turns":[{"speaker":"a","text":"...","item_id":"..."}]}.',
     'Put the story\'s id, copied exactly from its block, in "item_id" on every turn about that story. Leave "item_id" out of the opening and sign-off turns.',
