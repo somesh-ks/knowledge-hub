@@ -393,37 +393,51 @@ export function buildCandidates(
   topics: readonly ManageTopic[],
   knownFeeds: readonly string[],
 ): ManageCandidate[] {
-  if (!isRecord(file) || !Array.isArray(file.candidates)) return [];
-  const topicId = asString(file.topic_id) ?? "";
-  const topicName = topics.find((topic) => topic.id === topicId)?.name ?? null;
+  if (!isRecord(file)) return [];
+  // The engine writes one entry per topic: { topics: { <topic id>: { candidates: [...] } } }.
+  const groups: { topicId: string; entries: unknown[] }[] = [];
+  if (isRecord(file.topics)) {
+    for (const [topicId, group] of Object.entries(file.topics)) {
+      if (isRecord(group) && Array.isArray(group.candidates)) {
+        groups.push({ topicId, entries: group.candidates });
+      }
+    }
+  } else if (Array.isArray(file.candidates)) {
+    groups.push({ topicId: asString(file.topic_id) ?? "", entries: file.candidates });
+  }
   const rows: { quality: number; candidate: ManageCandidate }[] = [];
   const taken = [...knownFeeds];
 
-  for (const entry of file.candidates) {
-    if (!isRecord(entry)) continue;
-    const feed = asString(entry.feed_url);
-    if (!feed || !hostOf(feed) || taken.some((known) => sameFeed(known, feed))) continue;
-    taken.push(feed);
-    const domain = asString(entry.domain) ?? hostOf(feed);
-    const quality = asNumber(entry.q) ?? 0;
-    const words = qualityInWords(quality);
-    const samples = asNumber(entry.sample_n);
-    const basis =
-      samples !== null && samples > 0
-        ? `, from ${samples} recent ${samples === 1 ? "story" : "stories"}`
-        : "";
-    rows.push({
-      quality,
-      candidate: {
-        feed_url: feed,
-        domain,
-        quality: words,
-        detail: `${words}${topicName ? ` for ${topicName}` : ""}${basis}`,
-        topic_id: topicId,
-        search: `${domain} ${topicName ?? ""}`.toLowerCase(),
-      },
-    });
-  }
+  for (const { topicId, entries } of groups)
+    for (const entry of entries) {
+      if (!isRecord(entry)) continue;
+      // A candidate the engine already added is in the list above; one it rejected has no working feed.
+      const status = asString(entry.status);
+      if (status === "added" || status === "rejected") continue;
+      const topicName = topics.find((topic) => topic.id === topicId)?.name ?? null;
+      const feed = asString(entry.feed_url);
+      if (!feed || !hostOf(feed) || taken.some((known) => sameFeed(known, feed))) continue;
+      taken.push(feed);
+      const domain = asString(entry.domain) ?? asString(entry.name) ?? hostOf(feed);
+      const quality = asNumber(entry.q) ?? 0;
+      const words = qualityInWords(quality);
+      const samples = asNumber(entry.recent_entries) ?? asNumber(entry.sample_n);
+      const basis =
+        samples !== null && samples > 0
+          ? `, from ${samples} recent ${samples === 1 ? "story" : "stories"}`
+          : "";
+      rows.push({
+        quality,
+        candidate: {
+          feed_url: feed,
+          domain,
+          quality: words,
+          detail: `${words}${topicName ? ` for ${topicName}` : ""}${basis}`,
+          topic_id: topicId,
+          search: `${domain} ${topicName ?? ""}`.toLowerCase(),
+        },
+      });
+    }
   return rows.sort((a, b) => b.quality - a.quality).map((row) => row.candidate);
 }
 

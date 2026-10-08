@@ -472,7 +472,8 @@ test.describe("layout", () => {
       "[data-manage] button:visible, [data-manage] [role=switch]:visible, [data-manage] input:not([type=checkbox]):visible",
     );
     for (const handle of await controls.elementHandles()) {
-      const box = await handle.evaluate((node) => {
+      const box = await handle.evaluate((element) => {
+        const node = element as HTMLElement;
         node.scrollIntoView({ block: "center" });
         const rect = node.getBoundingClientRect();
         const x = rect.left + rect.width / 2;
