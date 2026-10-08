@@ -1,3 +1,10 @@
+import {
+  briefingStage,
+  EPISODE_STEP,
+  episodeStage,
+  type StageInfo,
+  updatingStage,
+} from "../lib/runStages";
 import { type GenerateStep, STEP_FOR_WORKFLOW_STEP, type StatusResponse } from "../types/contracts";
 import { readServerConfig, type ServerConfig, type ServerEnv, secretsOf } from "./config";
 import {
@@ -42,6 +49,18 @@ export function parseRunId(value: string | null): number | null {
 }
 
 const workflowPath = (run: WorkflowRun): string => run.path.split("@")[0] ?? "";
+
+const stageFields = ({ stage, stages, label }: StageInfo) => ({ stage, stages, label });
+
+/** The stage an episode run failed in: the Podcast step, or the setup before it. */
+function failedEpisodeStage(steps: readonly WorkflowStep[]): StageInfo {
+  const failed = steps.find(
+    (step) => step.conclusion === "failure" || step.conclusion === "timed_out",
+  );
+  return episodeStage(
+    failed?.name === EPISODE_STEP ? [{ name: EPISODE_STEP, status: "completed" }] : [],
+  );
+}
 
 /** Whether a run is an episode run: podcast.yml, which has no named steps and no last-run record. */
 export function isPodcastRun(run: WorkflowRun): boolean {
@@ -155,12 +174,20 @@ export async function handleStatus(
     const state = stateOf(run);
     const headers = { "Cache-Control": STATUS_CACHE_CONTROL };
 
-    // An episode run reports only whether it is still going and whether it worked: its steps have no
-    // names the sheet knows, and it leaves no record in state/last-run.json.
+    // An episode run is one step to the workflow, so it has two stages the run can see (getting
+    // ready, making the episode) and leaves no record in state/last-run.json. The page adds the
+    // last stage, the wait for the new page.
     if (isPodcastRun(run)) {
-      if (state !== "completed")
-        return { status: 200, headers, body: { run_id: runId, state, step: null } };
+      const steps = state === "queued" ? [] : await github.listSteps(runId);
+      if (state !== "completed") {
+        return {
+          status: 200,
+          headers,
+          body: { run_id: runId, state, step: null, ...stageFields(episodeStage(steps)) },
+        };
+      }
       const done = run.conclusion === "success";
+      const stage = done ? updatingStage("episode") : failedEpisodeStage(steps);
       return {
         status: 200,
         headers,
@@ -168,6 +195,7 @@ export async function handleStatus(
           run_id: runId,
           state,
           step: null,
+          ...stageFields(stage),
           outcome: done ? "published" : "failed",
           ...(done ? {} : { run_url: runUrlFor(config, runId) }),
         },
@@ -177,7 +205,12 @@ export async function handleStatus(
     const steps = await github.listSteps(runId);
 
     if (state !== "completed") {
-      return { status: 200, headers, body: { run_id: runId, state, step: currentStep(steps) } };
+      const step = currentStep(steps);
+      return {
+        status: 200,
+        headers,
+        body: { run_id: runId, state, step, ...stageFields(briefingStage(step)) },
+      };
     }
 
     const runUrl = runUrlFor(config, runId);
@@ -189,6 +222,7 @@ export async function handleStatus(
           run_id: runId,
           state,
           step: failedStep(steps),
+          ...stageFields(briefingStage(failedStep(steps))),
           outcome: "failed",
           run_url: runUrl,
         },

@@ -312,6 +312,16 @@ dialog.create-sheet .create-submit > .btn-primary {
   color: var(--color-danger);
 }
 
+.run-ok {
+  display: none;
+  flex: none;
+  color: var(--color-success);
+}
+
+.run-card[data-state="done"] .run-ok {
+  display: block;
+}
+
 .run-card[data-state="failed"] .run-alert {
   display: block;
 }
@@ -339,8 +349,10 @@ dialog.create-sheet .create-submit > .btn-primary {
   flex: none;
 }
 
-/* The bar: a track with a segment that travels along it. It never shows a share, because the
-   status route reports a state, not a percentage. It is gone once the run has finished. */
+/* The bar: a track and a fill that is a share of it. runStatus.ts sets --run-to (0 to 1) and
+   --run-span: a quick move to the start of the stage, then a slow one toward its end, so the bar
+   moves all the time and never passes the next stage before the run does. It is gone once the run
+   has finished. */
 .run-bar {
   position: absolute;
   inset-inline: 0;
@@ -350,29 +362,22 @@ dialog.create-sheet .create-submit > .btn-primary {
   background: var(--rail-track);
 }
 
-.run-bar::before {
-  content: "";
+.run-fill {
   position: absolute;
-  inset-block: 0;
-  inset-inline-start: 0;
-  width: 40%;
+  inset: 0;
   border-radius: var(--radius-round);
   background: var(--color-accent);
-  animation: run-travel calc(var(--duration-spin) * 2) var(--ease-in-out) infinite;
+  transform: scaleX(var(--run-to, 0));
+  transform-origin: left center;
+  transition: transform var(--run-span, var(--duration-state)) linear;
+}
+
+.run-card:dir(rtl) .run-fill {
+  transform-origin: right center;
 }
 
 .run-card:is([data-state="done"], [data-state="started"], [data-state="failed"]) .run-bar {
   display: none;
-}
-
-@keyframes run-travel {
-  from {
-    transform: translateX(-100%);
-  }
-
-  to {
-    transform: translateX(250%);
-  }
 }
 
 html[data-player="open"] .run-status {
@@ -407,6 +412,12 @@ html[data-player="open"] .run-status {
     padding-inline-end: var(--space-1);
   }
 
+  /* The column has room to grow, so the whole line shows. */
+  .run-message {
+    display: block;
+    overflow: visible;
+  }
+
   .run-dismiss {
     grid-area: close;
   }
@@ -426,10 +437,10 @@ html[data-player="open"] .run-status {
   }
 }
 
+/* The bar still fills, stage by stage; it just does not glide. */
 @media (prefers-reduced-motion: reduce) {
-  .run-bar::before {
-    width: 100%;
-    animation: pulse calc(var(--duration-spin) * 2) var(--ease-in-out) infinite;
+  .run-fill {
+    transition: none;
   }
 }
 
@@ -439,7 +450,7 @@ html[data-player="open"] .run-status {
     outline: var(--stroke-hairline) solid CanvasText;
   }
 
-  .run-bar::before {
+  .run-fill {
     background: Highlight;
   }
 }

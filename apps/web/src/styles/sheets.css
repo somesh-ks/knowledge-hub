@@ -571,12 +571,17 @@
 /* ------------------------------------------------------------------ toast */
 
 /*
- * A top-layer popover on the inverse surface, above whatever is docked at the bottom of the screen:
- * the navigation bar, and the player once it is showing. The fallbacks cover a page without the
- * shell (no navigation bar) and a player that has not published its height yet.
+ * One quiet message at a time: a flat, inverse surface with a hairline radius, an optional leading
+ * icon (a check or an alert, so the outcome is not told by colour alone), the message at the label
+ * size, at most one text action in the accent and, only while it stays until used, a close button.
+ * A top-layer popover above whatever is docked at the bottom: the navigation bar, and the player once
+ * it is showing. The fallbacks cover a page without the shell and a player that has not published
+ * its height yet.
  */
 .toast {
   --toast-dock: 0px;
+  /* The page accent is tuned for the page, so on the inverse surface the other theme's accent is used. */
+  --toast-accent: var(--color-blue-300);
   inset-block: auto
     calc(var(--bottom-nav-height, var(--safe-bottom)) + var(--toast-dock) + var(--space-3));
   /* Centred on the page, not on the screen: from 64rem the navigation is a column at the side. */
@@ -588,24 +593,34 @@
   gap: var(--space-3);
   width: max-content;
   max-width: min(calc(100% - var(--page-gutter) * 2), var(--layout-dialog));
-  min-height: var(--toast-min-height);
+  min-height: var(--size-touch-comfortable);
   margin-inline: auto;
-  padding: var(--toast-padding) var(--toast-padding) var(--toast-padding) var(--space-4);
+  padding: var(--space-1) var(--space-2) var(--space-1) var(--space-4);
   border: 0;
-  border-radius: var(--toast-radius);
+  border-radius: var(--radius-md);
   background: var(--toast-bg);
   color: var(--toast-fg);
   font-size: var(--font-size-label);
-  box-shadow: var(--toast-shadow);
+  line-height: var(--font-leading-label);
   --color-focus-gap: var(--color-surface-inverse);
   --color-focus-ring: var(--toast-fg);
   opacity: 0;
   transform: translateY(var(--distance-medium));
   transition:
-    opacity var(--duration-exit) var(--ease-out),
-    transform var(--duration-exit) var(--ease-out),
-    overlay var(--duration-exit) allow-discrete,
-    display var(--duration-exit) allow-discrete;
+    opacity var(--duration-press-in) var(--ease-out),
+    transform var(--duration-press-in) var(--ease-out),
+    overlay var(--duration-press-in) allow-discrete,
+    display var(--duration-press-in) allow-discrete;
+}
+
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) .toast {
+    --toast-accent: var(--color-blue-700);
+  }
+}
+
+:root[data-theme="dark"] .toast {
+  --toast-accent: var(--color-blue-700);
 }
 
 html[data-mini="visible"] .toast {
@@ -616,7 +631,7 @@ html[data-mini="visible"] .toast {
   display: flex;
   opacity: 1;
   transform: none;
-  transition-duration: var(--duration-enter);
+  transition-duration: var(--duration-hover);
 }
 
 @starting-style {
@@ -626,16 +641,24 @@ html[data-mini="visible"] .toast {
   }
 }
 
+.toast-icon {
+  flex: none;
+}
+
+.toast-text {
+  min-width: 0;
+}
+
 .toast-action,
 .toast-dismiss {
   min-height: var(--size-touch);
 }
 
-/* The accent is tuned for the page, not for the inverse surface, so the action is tonal instead. */
+/* A text action: the accent on the inverse surface, no fill. */
 .toast-action {
   padding-inline: var(--space-3);
-  border-radius: var(--button-radius);
-  background: color-mix(in oklch, var(--toast-fg) 14%, transparent);
+  border-radius: var(--radius-sm);
+  color: var(--toast-accent);
   font-weight: var(--font-weight-medium);
 }
 
@@ -643,29 +666,36 @@ html[data-mini="visible"] .toast {
   display: grid;
   place-items: center;
   width: var(--size-touch);
-  margin-inline-start: calc(var(--space-2) * -1);
   border-radius: var(--radius-round);
   opacity: 0.8;
 }
 
 @media (hover: hover) and (pointer: fine) {
   .toast-action:hover {
-    background: color-mix(in oklch, var(--toast-fg) 22%, transparent);
+    background: color-mix(in oklch, var(--toast-fg) 10%, transparent);
   }
 
   .toast-dismiss:hover {
-    background: color-mix(in oklch, var(--toast-fg) 14%, transparent);
+    background: color-mix(in oklch, var(--toast-fg) 10%, transparent);
     opacity: 1;
   }
 }
 
-.toast-action:active {
-  background: color-mix(in oklch, var(--toast-fg) 22%, transparent);
+.toast-action:active,
+.toast-dismiss:active {
+  background: color-mix(in oklch, var(--toast-fg) 16%, transparent);
 }
 
 .toast-dismiss:active {
-  background: color-mix(in oklch, var(--toast-fg) 14%, transparent);
   opacity: 1;
+}
+
+/* No slide under reduced motion; the fade stays, and the zero durations of the token set do the rest. */
+@media (prefers-reduced-motion: reduce) {
+  .toast,
+  .toast:popover-open {
+    transform: none;
+  }
 }
 
 /* ------------------------------------------------------------------ preferences */
