@@ -61,14 +61,14 @@ function PageFallback({ status }: { status: PageContentSnapshot["status"] }) {
 }
 
 /**
- * The player, as one surface: a bar docked at the bottom that grows into a full page. It is always
+ * The player, as one surface: a bar docked at the bottom that grows into a full page. The bar
+ * keeps its own thumbnail and the page has its own cover; nothing flies between them. It is always
  * mounted, inside the persisted island and never in a portal, so a navigation cannot separate the
  * page from the code that moves it.
  *
  *   .player          the surface. One set of pointer listeners, for both directions of travel.
  *     .player-stage  the clip box the page rises in. On a wide screen it ends at the bar's top.
  *       .player-page a dialog while open, inert while collapsed, and the one scroll container.
- *     .player-art    the one cover in flight between the bar and the page.
  *     .player-dock   the bar.
  *
  * The attributes that say where the page is (data-state, data-open, inert, aria-expanded, the
@@ -177,9 +177,6 @@ export default function PlayerSurface() {
             </div>
           </div>
         </section>
-      </div>
-      <div className="player-art" data-player-art aria-hidden="true">
-        {cover}
       </div>
       <PlayerBar />
     </div>

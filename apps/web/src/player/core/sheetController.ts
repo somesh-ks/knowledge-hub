@@ -22,10 +22,9 @@
  * - Nothing here holds a DOM node. The view looks its elements up each time it is asked, so a
  *   navigation that rebuilds the document cannot leave the machine bound to nodes that are gone.
  *
- * Why not the View Transitions API for the cover: a view transition cannot be driven by a finger,
+ * Why not the View Transitions API for the page: a view transition cannot be driven by a finger,
  * cannot be interrupted, and freezes the page for its duration.
  */
-import type { CoverMorph } from "./coverMorph";
 import {
   createVelocityTracker,
   decideRelease,
@@ -65,8 +64,6 @@ export interface SurfaceSnapshot {
 export interface SurfaceMetrics {
   /** Pixels between the page's collapsed and expanded positions. */
   distance: number;
-  /** The cover's flight, or null when there is nothing to fly. */
-  morph: CoverMorph | null;
 }
 
 /**
@@ -78,7 +75,6 @@ export interface SurfaceView {
   isPresent(): boolean;
   /** Reads layout. Called once each time the page leaves rest, never during motion. */
   measure(): SurfaceMetrics;
-  setMorph(morph: CoverMorph | null): void;
   /** Writes `p` for this frame. */
   render(p: number): void;
   /** Reflects the snapshot in attributes. */
@@ -215,9 +211,7 @@ export function createSurfaceController(options: SurfaceControllerOptions): Surf
 
   /** Leaving rest: the one moment layout is read. */
   function leaveRest(): void {
-    const metrics = view.measure();
-    distance = metrics.distance;
-    view.setMorph(metrics.morph);
+    distance = view.measure().distance;
   }
 
   /* ---------------------------------------------------------------- commits */

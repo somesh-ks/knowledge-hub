@@ -299,14 +299,6 @@ export interface SurfaceGeometry {
   surface: Box;
   sheet: Box;
   dock: Box;
-  /** Where the cover rests on the bar and on the page. */
-  thumb: Box;
-  slot: Box;
-  /** The flying cover, as drawn. */
-  art: Box;
-  artTransform: { x: number; y: number; scale: number };
-  /** The flight as script wrote it: --art-from-x and the rest, in px and as a bare scale. */
-  morph: Record<string, number>;
   window: { width: number; height: number };
 }
 
@@ -456,24 +448,13 @@ export class LabPage {
       };
       if (!surface) throw new Error("no player surface");
       const sheet = find("[data-player-page]");
-      const art = find("[data-player-art]");
-      const matrix = new DOMMatrix(getComputedStyle(art).transform);
       const p = Number.parseFloat(getComputedStyle(sheet).getPropertyValue("--p"));
-      const morph: Record<string, number> = {};
-      for (const name of ["from-x", "from-y", "to-x", "to-y", "size", "scale"]) {
-        morph[name] = Number.parseFloat(art.style.getPropertyValue(`--art-${name}`));
-      }
       return {
         state: surface.dataset.state ?? "",
         p: Number.isFinite(p) ? p : 0,
         surface: box(surface),
         sheet: box(sheet),
         dock: box(find("[data-player-dock]")),
-        thumb: box(find("[data-player-thumb]")),
-        slot: box(find("[data-player-cover]")),
-        art: box(art),
-        artTransform: { x: matrix.m41, y: matrix.m42, scale: matrix.a },
-        morph,
         window: { width: window.innerWidth, height: window.innerHeight },
       };
     });

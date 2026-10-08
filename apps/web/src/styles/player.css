@@ -36,6 +36,8 @@
   /* Two columns of this much, from 64rem. */
   --player-page-max: 68rem;
   --player-column-max: 28rem;
+  /* What is playing, in the middle of the wide bar: the cover, and a title and caption beside it. */
+  --player-dock-centre: 26rem;
   /* The cover never takes more than this share of the window's height. */
   --player-cover-share: 40cqb;
   --player-skip-glyph: 2rem;
@@ -58,43 +60,6 @@
   syntax: "<number>";
   inherits: false;
   initial-value: 0;
-}
-
-/* The cover's flight, measured once per motion. */
-@property --art-from-x {
-  syntax: "<length>";
-  inherits: false;
-  initial-value: 0px;
-}
-
-@property --art-from-y {
-  syntax: "<length>";
-  inherits: false;
-  initial-value: 0px;
-}
-
-@property --art-to-x {
-  syntax: "<length>";
-  inherits: false;
-  initial-value: 0px;
-}
-
-@property --art-to-y {
-  syntax: "<length>";
-  inherits: false;
-  initial-value: 0px;
-}
-
-@property --art-size {
-  syntax: "<length>";
-  inherits: false;
-  initial-value: 0px;
-}
-
-@property --art-scale {
-  syntax: "<number>";
-  inherits: false;
-  initial-value: 1;
 }
 
 @property --thumb-x {
@@ -171,8 +136,7 @@
 
 /* ------------------------------------------------------------------ the cover */
 
-/* Drawn three times: on the bar, on the page, and in flight between them. The rules under
-   "one cover at a time" show exactly one. */
+/* Drawn twice: on the bar, and on the page, where it rises with the page. */
 .player-cover-frame {
   --cover-fill: var(--cover-key, var(--color-surface-sunken));
   position: relative;
@@ -258,12 +222,12 @@
   visibility: hidden;
 }
 
-.player[data-state="expanded"] :is(.player-page, .player-dock, .player-art) {
+.player[data-state="expanded"] :is(.player-page, .player-dock) {
   --p: 1;
 }
 
 .player:is([data-state="dragging"], [data-state="expanding"], [data-state="collapsing"])
-  :is(.player-page, .player-dock, .player-art) {
+  :is(.player-page, .player-dock) {
   /* Promoted only while it can move, and demoted when the spring rests. */
   will-change: transform;
 }
@@ -431,48 +395,8 @@
   font-weight: var(--font-weight-semibold);
 }
 
-/* ------------------------------------------------------------------ the flying cover */
-
-/* One box, placed and sized entirely by its transform, from two ends measured when the page
-   leaves rest: the bar's thumbnail at p = 0, the page's cover slot at p = 1. */
-.player-art {
-  --art-scale-now: calc(var(--art-scale) + (1 - var(--art-scale)) * var(--p));
-  position: absolute;
-  top: 0;
-  left: 0;
-  z-index: 2;
-  width: var(--art-size);
-  visibility: hidden;
-  pointer-events: none;
-  transform-origin: 0 0;
-  transform: translate3d(
-      calc(var(--art-from-x) + (var(--art-to-x) - var(--art-from-x)) * var(--p)),
-      calc(var(--art-from-y) + (var(--art-to-y) - var(--art-from-y)) * var(--p)),
-      0
-    )
-    scale(var(--art-scale-now));
-}
-
-.player-art .player-cover-frame {
-  /* Scaling squeezes a corner radius, so it is divided by the scale to stay visually true. */
-  border-radius: calc(var(--radius-sm) / var(--art-scale-now));
-  box-shadow: var(--cover-shadow);
-}
-
 .player-cover-box .player-cover-frame {
   box-shadow: var(--cover-shadow);
-}
-
-/* One cover at a time. At rest it is the bar's or the page's; in between it is the one in flight,
-   and the two at the ends are identical to it at the moment they swap. */
-.player:is([data-state="dragging"], [data-state="expanding"], [data-state="collapsing"])
-.player-art {
-  visibility: visible;
-}
-
-.player:not([data-state="collapsed"]) .player-thumb .player-cover-frame,
-.player:not([data-state="expanded"]) .player-cover-box .player-cover-frame {
-  visibility: hidden;
 }
 
 /* ------------------------------------------------------------------ the dock */
@@ -532,6 +456,8 @@
 }
 
 .dock-open {
+  grid-row: 1;
+  grid-column: 1;
   display: grid;
   grid-template-columns: var(--mini-player-cover-size) minmax(0, 1fr);
   align-items: center;
@@ -603,6 +529,8 @@
 
 /* Play and next, a clear 8px apart: two targets a thumb can tell from each other. */
 .dock-transport {
+  grid-row: 1;
+  grid-column: 2;
   display: flex;
   align-items: center;
   gap: var(--space-2);
@@ -783,7 +711,6 @@
   display: block;
 }
 
-.dock-btn[data-primary]:active,
 .transport-btn[data-primary]:active {
   background: var(--color-accent-pressed);
 }
@@ -801,7 +728,6 @@
     height: calc(var(--mini-player-progress-height) * 2);
   }
 
-  .dock-btn:not([data-primary], [aria-disabled="true"]):hover,
   .player-collapse:hover {
     background: var(--color-surface-sunken);
   }
@@ -810,7 +736,6 @@
     color: var(--color-on-surface);
   }
 
-  .dock-btn[data-primary]:hover,
   .transport-btn[data-primary]:hover {
     background: var(--color-accent-hover);
   }
@@ -860,8 +785,6 @@
   }
 
   .player-dock {
-    /* The same number under a name the bar's own children can read: --p does not inherit. */
-    --dock-p: var(--p);
     padding-inline: max(var(--page-gutter), var(--safe-left))
       max(var(--page-gutter), var(--safe-right));
     transform: translate3d(0, calc(var(--p, 0) * var(--player-nav-travel)), 0);
@@ -883,27 +806,34 @@
       display: block;
     }
   }
-
-  /* The bar stays while its cover is away on the page, so its text closes the gap the cover left
-     and opens it again as the cover comes home. */
-  .dock-text {
-    transform: translate3d(
-      calc(var(--dock-p, 0) * -1 * (var(--mini-player-cover-size) + var(--space-3))),
-      0,
-      0
-    );
-  }
 }
 
-/* From 64rem the bar is a full transport: what is playing, the controls in the middle, volume. */
+/* From 64rem the bar follows YouTube Music's: the transport and the clock on the left, what is
+   playing in the middle, the volume on the right. */
 @media (min-width: 64rem) {
   :root {
     --player-dock-row: 4.5rem;
   }
 
   .player-dock {
-    grid-template-columns: minmax(0, 1fr) auto minmax(0, 1fr);
+    grid-template-columns: minmax(0, 1fr) minmax(0, var(--player-dock-centre)) minmax(0, 1fr);
     column-gap: var(--space-6);
+  }
+
+  .dock-transport {
+    grid-column: 1;
+    justify-self: start;
+  }
+
+  /* The group is as wide as its words, centred in the bar, with the text left-aligned beside the
+     cover. The whole bar still opens the player through the button's stretched target. */
+  .dock-open {
+    grid-column: 2;
+    grid-template-columns: var(--mini-player-cover-size) minmax(0, max-content);
+    justify-content: center;
+    justify-self: center;
+    width: auto;
+    max-width: 100%;
   }
 
   .dock-btn.dock-wide {
@@ -918,6 +848,7 @@
 @media (min-width: 64rem) and (hover: hover) and (pointer: fine) {
   .dock-tools {
     display: flex;
+    grid-column: 3;
     justify-self: end;
   }
 }
@@ -1482,8 +1413,7 @@ html[data-player="open"] {
 /* ------------------------------------------------------------------ preferences */
 
 @media (prefers-reduced-motion: reduce) {
-  /* No travel. The page fades in place, the bar fades where it sits, and nothing flies: the
-     page's own cover is the one on screen for as long as the page is. */
+  /* No travel. The page fades in place and the bar fades where it sits. */
   .player-page {
     border-radius: 0;
     transform: none;
@@ -1493,18 +1423,6 @@ html[data-player="open"] {
   .player-dock {
     border-radius: 0;
     transform: none;
-  }
-
-  .player-art {
-    display: none;
-  }
-
-  .dock-text {
-    transform: none;
-  }
-
-  .player:not([data-state="collapsed"]) .player-cover-box .player-cover-frame {
-    visibility: visible;
   }
 
   .glyph-swap > .ui-icon {

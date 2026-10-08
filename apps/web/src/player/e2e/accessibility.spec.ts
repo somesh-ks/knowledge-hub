@@ -109,7 +109,6 @@ test.describe("reduced motion", () => {
     // Nothing travelled: the page is where layout put it, and opacity carried the change.
     await expect(lab.sheet).toHaveCSS("transform", "none");
     await expect(lab.sheet).toHaveCSS("opacity", "1");
-    await expect(page.locator("[data-player-art]")).toHaveCSS("display", "none");
     // The page's own cover is the one on screen for as long as the page is.
     await expect(lab.sheet.locator(".player-cover-frame")).toHaveCSS("visibility", "visible");
     // The way back is the same fade, over the state duration.
@@ -121,10 +120,7 @@ test.describe("reduced motion", () => {
     await expect(lab.openButton.locator(".player-cover-frame")).toHaveCSS("visibility", "visible");
   });
 
-  test("under reduced motion a held pull changes opacity, never position", async ({
-    lab,
-    page,
-  }) => {
+  test("under reduced motion a held pull changes opacity, never position", async ({ lab }) => {
     await lab.open();
     await lab.play();
     const box = await lab.dockSettled();
@@ -141,7 +137,6 @@ test.describe("reduced motion", () => {
     );
     expect(opacity).toBeGreaterThan(0.1);
     expect(opacity).toBeLessThan(0.9);
-    await expect(page.locator("[data-player-art]")).toHaveCSS("display", "none");
     await held.release();
     await lab.settled();
   });

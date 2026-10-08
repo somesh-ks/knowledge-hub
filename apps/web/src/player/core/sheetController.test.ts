@@ -1,5 +1,4 @@
 import { describe, expect, it } from "vitest";
-import type { CoverMorph } from "./coverMorph";
 import {
   createSurfaceController,
   type GestureZone,
@@ -20,7 +19,6 @@ class FakeView implements SurfaceView {
   readonly rests: string[] = [];
   readonly log: string[] = [];
   readonly captured = new Set<number>();
-  morph: CoverMorph | null = null;
   escape: (() => void) | null = null;
 
   isPresent(): boolean {
@@ -29,14 +27,7 @@ class FakeView implements SurfaceView {
 
   measure() {
     this.measures += 1;
-    return {
-      distance: DISTANCE,
-      morph: { fromX: 8, fromY: 792, toX: 32, toY: 150 - this.scroll, size: 352, scale: 0.125 },
-    };
-  }
-
-  setMorph(morph: CoverMorph | null): void {
-    this.morph = morph;
+    return { distance: DISTANCE };
   }
 
   render(p: number): void {
@@ -270,7 +261,6 @@ describe("expanding and collapsing", () => {
     settle();
     void surface.collapse();
     expect(view.measures).toBe(2);
-    expect(view.morph).toMatchObject({ fromY: 792, toY: 150 });
   });
 
   it("does nothing when the surface is not in the document", async () => {
