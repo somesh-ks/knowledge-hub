@@ -16,6 +16,7 @@ Private design-engineering news briefing. A GitHub Actions engine writes a diges
 - `npm run dispatch -- <command>`: engine CLI (`doctor`, `status`, `models`, `run`, `publish`).
 - `npm test`, `npm run typecheck`, `npm run lint`: all must pass.
 - `DISPATCH_STATIC_ONLY=1 npm run build`: local site build (the Vercel adapter fails on Windows symlinks).
+- `npm run dev`: the site with the Agentation toolbar for leaving notes on elements. Development only; `checkBundle` fails a build that contains it. Stop it when done (`npx astro dev stop` in `apps/web`): a server left running across an install serves broken islands.
 
 ## Rules
 

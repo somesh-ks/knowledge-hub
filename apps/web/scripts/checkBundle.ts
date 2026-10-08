@@ -75,6 +75,18 @@ console.log(
 if (fontBytes > FONT_BUDGET_BYTES)
   failures.push(`Fonts total ${kilobytes(fontBytes)}, budget ${kilobytes(FONT_BUDGET_BYTES)}`);
 
+// Development tools (src/dev) must never be built into the site.
+const DEV_ONLY = /agentation/i;
+for (const entry of readdirSync(root, { recursive: true, withFileTypes: true })) {
+  if (!entry.isFile() || !/\.(js|mjs|html|css)$/.test(entry.name)) continue;
+  const file = join(entry.parentPath, entry.name);
+  if (DEV_ONLY.test(entry.name) || DEV_ONLY.test(readFileSync(file, "utf8"))) {
+    failures.push(
+      `${file.slice(root.length).replaceAll("\\", "/")}: a development-only tool is in the build`,
+    );
+  }
+}
+
 console.log(`Largest first load: ${kilobytes(largest)} of ${kilobytes(FIRST_LOAD_BUDGET_BYTES)}`);
 if (failures.length > 0) {
   console.error(`\n${failures.length} problem(s):\n- ${failures.join("\n- ")}`);
