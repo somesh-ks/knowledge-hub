@@ -56,14 +56,12 @@
   grid-column: 1 / -1;
 }
 
-.library-title {
-  padding-block: var(--space-6) var(--space-4);
+.shell > main.library {
+  padding-block-start: var(--page-top);
 }
 
-@media (min-width: 40rem) {
-  .library-title {
-    padding-block-start: var(--space-8);
-  }
+.library-title {
+  padding-block: 0 var(--space-4);
 }
 
 .library-tools {

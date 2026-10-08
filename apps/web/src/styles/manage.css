@@ -12,7 +12,7 @@
  */
 
 .manage {
-  padding-block: var(--space-2) var(--space-8);
+  padding-block: var(--page-top) var(--space-8);
 }
 
 /* Room for the bar that floats over the end of the page, so the last row is never covered. */

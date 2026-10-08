@@ -14,7 +14,7 @@
 .settings-view {
   /* The segmented choices and the slider share one width from 40rem, so their edges line up. */
   --settings-control-width: 18rem;
-  padding-block: var(--space-4) var(--space-8);
+  padding-block: var(--page-top) var(--space-8);
 }
 
 .settings-view h1 {

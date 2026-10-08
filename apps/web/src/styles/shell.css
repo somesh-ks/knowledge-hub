@@ -22,6 +22,8 @@
   --dock-room: 0px;
   --run-height: 3rem;
   --run-room: 0px;
+  /* Where the first block of every destination starts, under the app bar: Today's cover sets it. */
+  --page-top: var(--space-8);
   /* Everything that sticks under the top chrome sticks here: section tabs, the aside. */
   --sticky-top: calc(var(--app-bar-height) + var(--safe-top));
   /* The text column itself: the page width less its two gutters. */
@@ -37,6 +39,12 @@ html[data-mini="visible"] {
 
 html[data-run] {
   --run-room: var(--run-height);
+}
+
+@media (min-width: 40rem) {
+  :root {
+    --page-top: var(--space-12);
+  }
 }
 
 @media (min-width: 64rem) {
