@@ -85,7 +85,11 @@ function memory(value?: string | null): string | null {
 }
 
 /** One request. The server allows an edit every ten seconds, so a 429 waits as long as it says. */
-async function send(op: ConfigOp | ConfigOp[], given: string, wait: (seconds: number) => void): Promise<number> {
+async function send(
+  op: ConfigOp | ConfigOp[],
+  given: string,
+  wait: (seconds: number) => void,
+): Promise<number> {
   for (let tries = 0; tries < 7; tries += 1) {
     let seconds = 0;
     let status = 0;
@@ -139,7 +143,9 @@ export async function save(context: SaveContext, given = passphrase ?? memory())
   for (const [index, { op, ops, keys }] of queue.entries()) {
     const place = `Saving ${index + 1} of ${queue.length}`;
     show(place, "saving");
-    const status = await send(ops ?? op, given, () => show(`${place}. Waiting a few seconds.`, "saving"));
+    const status = await send(ops ?? op, given, () =>
+      show(`${place}. Waiting a few seconds.`, "saving"),
+    );
     if (status !== 202) {
       if (status === 401) {
         memory(null);

@@ -85,10 +85,9 @@ describe("matchOffers", () => {
   });
 
   it("keeps the extra fields of each offer", () => {
-    const found = matchOffers(
-      { name: "Design", description: "" },
-      [{ name: "A", tags: ["design"], id: "a" }],
-    );
+    const found = matchOffers({ name: "Design", description: "" }, [
+      { name: "A", tags: ["design"], id: "a" },
+    ]);
     expect(found[0]?.id).toBe("a");
   });
 });

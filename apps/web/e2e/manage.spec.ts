@@ -196,7 +196,12 @@ test.describe("topics", () => {
     expect(ops[0]).toMatchObject({
       topic: { id: "spatial-design", name: "Spatial design", section_id: "spatial-design" },
     });
-    expect(ops.slice(1).map((op) => op.url).sort()).toEqual([
+    expect(
+      ops
+        .slice(1)
+        .map((op) => op.url)
+        .sort(),
+    ).toEqual([
       "https://interface-notes.example/feed.xml",
       "https://motion-weekly.example/rss.xml",
     ]);
@@ -218,7 +223,7 @@ test.describe("topics", () => {
     await save(page);
     await expect(bar(page).locator("[data-bar-text]")).toContainText("Saved.");
     // A single edit still goes as an edit, not a list.
-    expect((sent[0]?.op as Record<string, unknown>).op).toBe("topic.upsert");
+    expect(sent[0]?.op).toMatchObject({ op: "topic.upsert" });
   });
 
   test("a topic waiting to be saved can be cancelled", async ({ page }) => {

@@ -202,7 +202,11 @@ describe("parseConfigRequest", () => {
   });
 
   it("reads a list of edits that belong together, in order", () => {
-    const add: ConfigOp = { op: "source.add", url: "https://a.example/feed", topic_ids: ["motion-craft"] };
+    const add: ConfigOp = {
+      op: "source.add",
+      url: "https://a.example/feed",
+      topic_ids: ["motion-craft"],
+    };
     expect(parseConfigRequest(body([upsert, add]))).toEqual({
       passphrase: PASSPHRASE,
       op: [upsert, add],
@@ -214,7 +218,9 @@ describe("parseConfigRequest", () => {
     expect(parseConfigRequest(body([]))).toBeNull();
     expect(parseConfigRequest(body(Array(MAX_OPS + 1).fill(add)))).toBeNull();
     expect(parseConfigRequest(body(Array(MAX_OPS).fill(add)))).not.toBeNull();
-    expect(parseConfigRequest(body([upsert, { op: "source.add", url: "ftp://x.test" }]))).toBeNull();
+    expect(
+      parseConfigRequest(body([upsert, { op: "source.add", url: "ftp://x.test" }])),
+    ).toBeNull();
     expect(parseConfigRequest(body([[upsert]]))).toBeNull();
   });
 
@@ -310,8 +316,15 @@ describe("handleConfig", () => {
     const { deps, github } = setup();
     github.on(RUNS, { json: { workflow_runs: [] } });
     github.on(DISPATCH, { json: { workflow_run_id: 77 } });
-    const add: ConfigOp = { op: "source.add", url: "https://a.example/feed", topic_ids: ["motion-craft"] };
-    const result = await handleConfig(input(body([upsert, add, { ...add, url: "https://b.example/rss" }])), deps);
+    const add: ConfigOp = {
+      op: "source.add",
+      url: "https://a.example/feed",
+      topic_ids: ["motion-craft"],
+    };
+    const result = await handleConfig(
+      input(body([upsert, add, { ...add, url: "https://b.example/rss" }])),
+      deps,
+    );
     expect(result).toEqual({ status: 202, body: { status: 202, run_id: 77 } });
     const posts = github.requests.filter((request) => request.method === "POST");
     expect(posts).toHaveLength(1);

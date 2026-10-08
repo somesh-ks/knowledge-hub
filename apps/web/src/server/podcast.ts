@@ -81,7 +81,9 @@ export function parsePodcastRequest(value: unknown): PodcastRequest | null {
     format: format as PodcastRequest["format"],
     window_days: window as PodcastRequest["window_days"],
     tone: tone as PodcastRequest["tone"],
-    ...(audience === undefined ? {} : { audience: audience as NonNullable<PodcastRequest["audience"]> }),
+    ...(audience === undefined
+      ? {}
+      : { audience: audience as NonNullable<PodcastRequest["audience"]> }),
     ...(title ? { title } : {}),
   };
 }

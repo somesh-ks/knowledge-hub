@@ -115,7 +115,12 @@ function mount(root: HTMLElement): void {
     (row.querySelector("[data-q-name]") as HTMLElement).textContent = name;
     row.querySelector("button")?.setAttribute("aria-label", `Cancel adding ${name}`);
     queued.append(row);
-    changes.set(row.dataset.key, { op, ...(extra.length > 0 ? { with: extra } : {}), el: row, now: "" });
+    changes.set(row.dataset.key, {
+      op,
+      ...(extra.length > 0 ? { with: extra } : {}),
+      el: row,
+      now: "",
+    });
     refresh();
   };
 
@@ -135,7 +140,9 @@ function mount(root: HTMLElement): void {
       const id = slugify(value("name"), [...taken, ...waiting]);
       // One request: the topic, then each source ticked for it, hinted to the topic.
       const chosen = [...form.querySelectorAll<HTMLInputElement>('input[name="source"]:checked')];
-      const label = chosen.length ? `${value("name")}, with ${chosen.length} ${chosen.length === 1 ? "source" : "sources"}` : value("name");
+      const label = chosen.length
+        ? `${value("name")}, with ${chosen.length} ${chosen.length === 1 ? "source" : "sources"}`
+        : value("name");
       queue(
         label,
         {
@@ -196,8 +203,7 @@ function mount(root: HTMLElement): void {
       if (!shown.has(row)) box.checked = false;
     }
     group.hidden = shown.size === 0;
-    (form.querySelector("[data-no-suggestions]") as HTMLElement).hidden =
-      shown.size > 0 || !name;
+    (form.querySelector("[data-no-suggestions]") as HTMLElement).hidden = shown.size > 0 || !name;
   };
 
   root.addEventListener("input", (event) => {

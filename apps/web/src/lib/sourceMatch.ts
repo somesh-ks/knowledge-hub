@@ -51,9 +51,7 @@ export function matchOffers<T extends Offer>(
   return offers
     .map((offer) => ({ offer, score: matchScore(words, offer.tags) }))
     .filter((entry) => entry.score > 0)
-    .sort(
-      (a, b) => b.score - a.score || a.offer.name.localeCompare(b.offer.name, "en"),
-    )
+    .sort((a, b) => b.score - a.score || a.offer.name.localeCompare(b.offer.name, "en"))
     .slice(0, limit)
     .map((entry) => entry.offer);
 }
