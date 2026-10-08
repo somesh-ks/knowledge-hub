@@ -3,6 +3,7 @@ import { longDateFromDigestId } from "./core/formatTime";
 import { classifyKeyTarget, shouldToggleOnKey } from "./core/playerKeys";
 import { getPlayerStore } from "./core/playerRuntime";
 import { playerSheet } from "./core/playerSheet";
+import { KEY_SEEK_SECONDS, KEY_SEEK_SHIFT_SECONDS } from "./core/scrubberMath";
 import type { GestureZone, PointerInput } from "./core/sheetController";
 import { usePlayerState } from "./hooks/usePlayer";
 import PlayerBar, { PLAYER_PAGE_ID } from "./PlayerBar";
@@ -135,6 +136,19 @@ export default function PlayerSurface() {
               event.target instanceof Element ? event.target : null,
               event.currentTarget,
             );
+            // The bar carries the seek control on a wide screen, so the arrows seek from the page.
+            if (
+              (target === "panel" || target === "other") &&
+              (event.key === "ArrowLeft" || event.key === "ArrowRight") &&
+              !event.ctrlKey &&
+              !event.metaKey &&
+              !event.altKey
+            ) {
+              event.preventDefault();
+              const step = event.shiftKey ? KEY_SEEK_SHIFT_SECONDS : KEY_SEEK_SECONDS;
+              getPlayerStore().skip(event.key === "ArrowLeft" ? -step : step);
+              return;
+            }
             if (!shouldToggleOnKey(event, target)) return;
             // Only here, with focus in the open player: no page-wide Space shortcut.
             event.preventDefault();
@@ -163,7 +177,9 @@ export default function PlayerSurface() {
                 </div>
               </div>
               <div className="player-meta">
-                <p className="player-title">{title}</p>
+                <p className="player-title" title={title}>
+                  {title}
+                </p>
                 {/* The story being read, and where it came from. Their room is kept when empty. */}
                 <p className="player-story">{item?.headline}</p>
                 <SourceLink />
