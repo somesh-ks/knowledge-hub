@@ -1,0 +1,87 @@
+/*
+ * Ambient cover light: a soft field of the cover's colors behind the briefing and episode header, as
+ * if the sleeve were lit. The whole layer is one opacity, the peak tint, so the colors inside can
+ * be full strength and the contrast proof (ambientPalette.test.ts) is a single blend. The still CSS
+ * layer is what shows before script and where WebGL is missing; the canvas fades in over it.
+ */
+
+/* The header holds the layer in its own stacking context, behind its content, out of its layout. */
+.hero {
+  position: relative;
+  isolation: isolate;
+}
+
+.ambient {
+  --ambient-tint: var(--opacity-ambient-light);
+  position: absolute;
+  z-index: -1;
+  inset-block: calc(var(--space-8) * -1) 0;
+  /* Past the column into the empty page, never as far as the side navigation. */
+  inset-inline: calc(var(--space-12) * -1);
+  opacity: var(--ambient-tint);
+  pointer-events: none;
+  /* Zero at the top, the bottom and the far edges: the light never ends in a line. */
+  mask-image:
+    radial-gradient(
+      ellipse 58% 40% at 30% 50%,
+      black,
+      color-mix(in srgb, black 55%, transparent) 40%,
+      transparent
+    ),
+    linear-gradient(to right, transparent, black 20%, black 50%, transparent);
+  mask-composite: intersect;
+  -webkit-mask-image:
+    radial-gradient(
+      ellipse 58% 40% at 30% 50%,
+      black,
+      color-mix(in srgb, black 55%, transparent) 40%,
+      transparent
+    ),
+    linear-gradient(to right, transparent, black 20%, black 50%, transparent);
+  -webkit-mask-composite: source-in;
+}
+
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) .ambient {
+    --ambient-tint: var(--opacity-ambient-dark);
+  }
+}
+
+:root[data-theme="dark"] .ambient {
+  --ambient-tint: var(--opacity-ambient-dark);
+}
+
+.ambient-still,
+.ambient-canvas {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+}
+
+.ambient-still {
+  background:
+    radial-gradient(ellipse 50% 75% at 26% 42%, var(--ambient-a), transparent),
+    radial-gradient(ellipse 42% 60% at 58% 58%, var(--ambient-b), transparent),
+    radial-gradient(ellipse 36% 50% at 42% 16%, var(--ambient-c), transparent);
+  transition: opacity var(--duration-enter) var(--ease-out);
+}
+
+.ambient-canvas {
+  opacity: 0;
+  transition: opacity var(--duration-enter) var(--ease-out);
+}
+
+.ambient[data-live] .ambient-canvas {
+  opacity: 1;
+}
+
+.ambient[data-live] .ambient-still {
+  opacity: 0;
+}
+
+@media (forced-colors: active) {
+  .ambient {
+    display: none;
+  }
+}

@@ -1,0 +1,25 @@
+---
+import { getPalette } from "@dispatch/cover";
+import { ambientColors } from "../scripts/ambientPalette";
+import "../styles/ambient.css";
+
+interface Props {
+  /** The cover's palette id. */
+  palette: string;
+}
+
+const { ground, accent, shade } = getPalette(Astro.props.palette);
+// Most colorful first, so a briefing and its pressed-the-other-way episode light the page alike.
+const [a, b, c] = ambientColors(ground, accent, shade);
+---
+
+{/* Light from the cover spilling onto the page behind the header. A CSS layer shows the same colors
+     before any script runs and wherever WebGL is missing; the canvas fades in over it. */}
+<div class="ambient" aria-hidden="true" data-ambient={`${a},${b},${c}`} style={`--ambient-a:${a};--ambient-b:${b};--ambient-c:${c}`}>
+  <div class="ambient-still"></div>
+  <canvas class="ambient-canvas"></canvas>
+</div>
+
+<script>
+  import "../scripts/ambientEntry";
+</script>
