@@ -20,8 +20,12 @@ const store = (run: (s: Storage) => unknown) => {
 };
 
 function build(kind: Kind, root: HTMLElement): HTMLDialogElement | null {
-  const template = document.getElementById(`episode-${kind === "delete" ? "delete" : "regenerate"}-template`);
-  const clone = (template as HTMLTemplateElement | null)?.content.firstElementChild?.cloneNode(true);
+  const template = document.getElementById(
+    `episode-${kind === "delete" ? "delete" : "regenerate"}-template`,
+  );
+  const clone = (template as HTMLTemplateElement | null)?.content.firstElementChild?.cloneNode(
+    true,
+  );
   if (!(clone instanceof HTMLDialogElement)) return null;
   document.body.append(clone);
   bind(kind, clone, root);

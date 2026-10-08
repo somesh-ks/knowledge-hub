@@ -13,7 +13,8 @@ function sync(): void {
   try {
     const run = JSON.parse(sessionStorage.getItem("dispatch:run") ?? "null");
     busy =
-      run?.episode === root.dataset.episode && (run?.phase === "queued" || run?.phase === "running");
+      run?.episode === root.dataset.episode &&
+      (run?.phase === "queued" || run?.phase === "running");
   } catch {
     // Storage can be blocked; nothing is then known to be running.
   }

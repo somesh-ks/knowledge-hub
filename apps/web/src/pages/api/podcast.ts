@@ -1,8 +1,8 @@
 import type { APIRoute } from "astro";
 import { passphraseCheck } from "../../server/access";
+import { bundledEpisodeIds } from "../../server/episodeSource";
 import { MAX_BODY_CHARS } from "../../server/generate";
 import { toResponse } from "../../server/http";
-import { bundledEpisodeIds } from "../../server/episodeSource";
 import { handlePodcast } from "../../server/podcast";
 
 // The site is static; this route runs on demand, as a Vercel Function.
