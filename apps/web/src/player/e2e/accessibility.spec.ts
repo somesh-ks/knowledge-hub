@@ -1,6 +1,7 @@
 import AxeBuilder from "@axe-core/playwright";
 import type { Page } from "@playwright/test";
 import { expect, test } from "./lab";
+import { enterPassphrase } from "./passphrase";
 
 const TAGS = ["wcag2a", "wcag2aa", "wcag21a", "wcag21aa", "wcag22aa"];
 
@@ -75,7 +76,7 @@ for (const scheme of ["light", "dark"] as const) {
       await lab.open();
       await page.locator('[data-open-sheet="generate"]').tap();
       const dialog = page.getByRole("dialog", { name: "Generate a new briefing" });
-      await dialog.getByLabel("Passphrase").fill("secret");
+      await enterPassphrase(dialog);
       await dialog.getByRole("button", { name: "Generate briefing" }).tap();
       await expect(dialog.getByRole("list", { name: "Progress" })).toBeVisible();
       expect(await violations(page)).toEqual([]);

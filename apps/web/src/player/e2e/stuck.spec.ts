@@ -1,5 +1,6 @@
 import type { Page, Route } from "@playwright/test";
 import { center, expect, type LabPage, line, test } from "./lab";
+import { enterPassphrase } from "./passphrase";
 
 /** The player's lazily loaded half, by any name the bundler or the dev server gives it. */
 const LAZY_CHUNK = /PlayerPageContent|ExpandedPlayer/;
@@ -59,7 +60,7 @@ async function finishRunBehindThePlayer(page: Page, lab: LabPage): Promise<void>
     page.locator('[data-open-sheet="generate"], [data-open="generate"]').first(),
   );
   const dialog = page.getByRole("dialog", { name: "Generate a new briefing" });
-  await dialog.getByLabel("Passphrase").fill("secret");
+  await enterPassphrase(dialog);
   await lab.finger.press(dialog.getByRole("button", { name: "Generate briefing" }));
   await page.clock.runFor(3_100);
   await lab.finger.press(dialog.getByRole("button", { name: "Close", exact: true }).first());

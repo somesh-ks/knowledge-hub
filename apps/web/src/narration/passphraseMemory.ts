@@ -22,6 +22,22 @@ export interface PassphraseMemory {
   clear(): void;
 }
 
+/**
+ * The memory while the passphrase step is switched off (lib/access.ts): one fixed value that is
+ * always there, so nothing ever asks for it and nothing is written to the device.
+ */
+export function createOpenPassphraseMemory(value: string): PassphraseMemory {
+  return {
+    get: () => value,
+    set() {
+      // Nothing to keep: the value never changes.
+    },
+    clear() {
+      // Nothing was kept.
+    },
+  };
+}
+
 /** `storage` is null where the device refuses storage (private mode); memory still works. */
 export function createPassphraseMemory(storage: StorageLike | null): PassphraseMemory {
   let session: string | null = null;
