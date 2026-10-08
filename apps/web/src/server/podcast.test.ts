@@ -3,7 +3,7 @@ import { beforeAll, describe, expect, it, vi } from "vitest";
 import { createFakeGitHub, REPO, runJson } from "../testing/fakeGitHub";
 import type { PodcastRequest } from "../types/contracts";
 import { WRONG_PASSPHRASE_DELAY_MS } from "./generate";
-import { PODCAST_COOLDOWN_MS } from "./limits";
+import { PODCAST_COOLDOWN_MS, PODCAST_DAILY_CAP } from "./limits";
 import {
   handlePodcast,
   MAX_TITLE_CHARS,
@@ -252,9 +252,9 @@ describe("handlePodcast", () => {
 
   it("answers 429 with the time left during the cooldown", async () => {
     const { deps, github } = setup();
-    github.on(RUNS, { json: { workflow_runs: [podcastRun({ created_at: minutesAgo(10) })] } });
+    github.on(RUNS, { json: { workflow_runs: [podcastRun({ created_at: minutesAgo(1) })] } });
     const result = await handlePodcast(input(body()), deps);
-    const wait = PODCAST_COOLDOWN_MS / 1000 - 10 * 60;
+    const wait = PODCAST_COOLDOWN_MS / 1000 - 60;
     expect(result).toEqual({
       status: 429,
       headers: { "Retry-After": String(wait) },
@@ -263,20 +263,21 @@ describe("handlePodcast", () => {
     expect(github.requests.some((request) => request.method === "POST")).toBe(false);
   });
 
-  it("allows two episodes a day and answers 429 for the third", async () => {
+  it("allows a day's episodes up to the cap and answers 429 for the next", async () => {
     const { deps, github } = setup();
+    // Spread between one and five hours ago, the oldest exactly five hours back.
+    const runsToday = (count: number) =>
+      Array.from({ length: count }, (_, index) =>
+        podcastRun({
+          id: index + 1,
+          created_at: minutesAgo(index === count - 1 ? 5 * 60 : 60 + index * 10),
+        }),
+      );
     github.on(DISPATCH, { json: { workflow_run_id: 9 } });
-    github.on(RUNS, { json: { workflow_runs: [podcastRun({ created_at: minutesAgo(60) })] } });
+    github.on(RUNS, { json: { workflow_runs: runsToday(PODCAST_DAILY_CAP - 1) } });
     expect((await handlePodcast(input(body()), deps)).status).toBe(202);
 
-    github.on(RUNS, {
-      json: {
-        workflow_runs: [
-          podcastRun({ id: 1, created_at: minutesAgo(60) }),
-          podcastRun({ id: 2, created_at: minutesAgo(5 * 60) }),
-        ],
-      },
-    });
+    github.on(RUNS, { json: { workflow_runs: runsToday(PODCAST_DAILY_CAP) } });
     const refused = await handlePodcast(input(body()), deps);
     expect(refused).toMatchObject({
       status: 429,

@@ -13,8 +13,39 @@ export const STORY_CHARS: Record<PodcastFormat, number> = {
   headlines: 160,
 };
 
+/**
+ * The most one story can carry in each format without padding. A story block is a headline and a
+ * summary of a few sentences, so there is only so much to say; past this a writer repeats itself.
+ * Measured on real runs on 2026-10-08.
+ */
+export const STORY_CAPACITY_CHARS: Record<PodcastFormat, number> = {
+  readout: 650,
+  discussion: 950,
+  // One sentence a story: real headlines ran 137 to 154 characters each, 140 on a thin day.
+  headlines: 170,
+};
+
 /** Room for the opening and the sign-off. */
 export const FRAME_CHARS = 300;
+
+/** English speech runs about six characters a word, spaces included. */
+export const CHARS_PER_WORD = 6;
+/** A spoken sentence is about this many words. */
+export const WORDS_PER_SENTENCE = 15;
+
+/** Words in so many characters of speech. Models keep to a word count far better than to characters. */
+export function wordsFor(chars: number): number {
+  return Math.max(1, Math.round(chars / CHARS_PER_WORD));
+}
+
+/**
+ * The length a script can honestly reach: the budget asked for, or less when the stories given
+ * cannot fill it. The writer aims at this and the floor is measured against it, so a thin window
+ * gives a shorter true episode instead of three futile rewrites.
+ */
+export function reachableChars(budget: number, stories: number, format: PodcastFormat): number {
+  return Math.min(budget, FRAME_CHARS + Math.max(1, stories) * STORY_CAPACITY_CHARS[format]);
+}
 
 /** The writer is asked to land at or above this share of the budget (a range, not a ceiling). */
 export const SCRIPT_TARGET_SHARE = 0.9;
