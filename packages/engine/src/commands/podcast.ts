@@ -3,6 +3,7 @@ import { requireKey } from "@dispatch/core";
 import { type CommandContext, type CommandRun, secretsFromEnv } from "../context.js";
 import { emit } from "../curate/output.js";
 import { type CommitOutcome, commitAndPush } from "../git/commit.js";
+import type { HttpClient } from "../http.js";
 import { describeError } from "../llm/errors.js";
 import { withModelFailover } from "../llm/failoverClient.js";
 import { createNebiusLlm } from "../llm/nebiusClient.js";
@@ -18,6 +19,8 @@ export const PODCAST_USAGE = "Usage: dispatch podcast --request '<json>' [--now 
 export interface PodcastDeps {
   /** The script writer. Defaults to a Nebius model from DISPATCH_MODEL. */
   makeWriter?: (ctx: CommandContext) => ScriptWriter;
+  /** Reads the news feeds of a general episode. Defaults to the engine's HTTP client. */
+  http?: HttpClient;
 }
 
 /** The Nebius writer, with the same model and fallback the digest writer uses. */
@@ -97,6 +100,7 @@ export function makePodcastCommand(deps: PodcastDeps = {}): CommandRun {
         request,
         now,
         makeWriter: () => (deps.makeWriter ?? nebiusWriter)(ctx),
+        ...(deps.http ? { http: deps.http } : {}),
         log: ctx.log,
       });
       const { episode, relPath } = result;
@@ -111,10 +115,20 @@ export function makePodcastCommand(deps: PodcastDeps = {}): CommandRun {
         ctx.log.error(`${failure}. The episode file stays at ${relPath}.`);
         return 1;
       }
+      const emptyNote =
+        result.empty_topics.length > 0
+          ? ` No stories in ${result.empty_topics.join(", ")} in the window.`
+          : "";
+      const from = result.feeds ? `${result.feeds.ok} news feeds` : `${result.digests} digests`;
       emit(
         ctx,
         [
-          `Selected ${episode.sources.length} of ${result.matched} matching stories from ${result.digests} digests.`,
+          `Selected ${episode.sources.length} of ${result.matched} matching stories from ${from}.${emptyNote}`,
+          ...(result.script.short_by_chars > 0
+            ? [
+                `The script is ${result.script.short_by_chars} characters under the length asked for.`,
+              ]
+            : []),
           `Wrote ${relPath}: ${episode.turns.length} turns, ${episode.char_count} characters, about ${episode.listen_minutes} min.`,
           episode.id,
         ],
@@ -126,6 +140,8 @@ export function makePodcastCommand(deps: PodcastDeps = {}): CommandRun {
           turns: episode.turns.length,
           char_count: episode.char_count,
           listen_minutes: episode.listen_minutes,
+          short_by_chars: result.script.short_by_chars,
+          empty_topics: result.empty_topics,
         },
       );
       return 0;

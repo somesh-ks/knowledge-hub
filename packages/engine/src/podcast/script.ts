@@ -2,12 +2,13 @@ import type { PodcastRequest } from "@dispatch/core";
 import type { Logger } from "../context.js";
 import { BudgetExceededError, describeError } from "../llm/errors.js";
 import { checkTurns } from "./check.js";
-import { fitToBudget, mergeNeighbours } from "./fit.js";
+import { charCount, fitToBudget, mergeNeighbours } from "./fit.js";
 import { ScriptReply } from "./nebiusScriptWriter.js";
+import { scriptFloorChars, scriptTargetChars } from "./plan.js";
 import { PodcastError, type PodcastStory, type ScriptTurn, type ScriptWriter } from "./types.js";
 
-/** Attempts at a valid reply: the first call and one retry that names what was wrong. */
-const ATTEMPTS = 2;
+/** Attempts at a valid reply: the first call and two retries that name what was wrong. */
+const ATTEMPTS = 3;
 
 /** Said when the opening turn was dropped by the checks, so the show is always named. */
 const FALLBACK_OPENING = "This is Singularity.";
@@ -24,6 +25,8 @@ export interface ScriptResult {
   turns: ScriptTurn[];
   rewritten: number;
   dropped_turns: number;
+  /** Characters under the floor (80% of the budget) the kept script still is; 0 when it reaches it. */
+  short_by_chars: number;
   dropped_stories: number;
 }
 
@@ -96,8 +99,35 @@ export function validateReply(
     : { ok: true, turns: mergeNeighbours(turns) };
 }
 
+/** How many characters a script falls short of the floor (80% of the budget); 0 when it reaches it. */
+export function shortByChars(turns: readonly ScriptTurn[], budget: number): number {
+  return Math.max(0, scriptFloorChars(budget) - charCount(turns));
+}
+
+/**
+ * The problem to send back when a valid reply is under the floor: how short it is and which
+ * stories carry the least text, so the retry adds depth where it is thinnest.
+ */
+function tooShortProblem(
+  turns: readonly ScriptTurn[],
+  stories: readonly PodcastStory[],
+  budget: number,
+): string {
+  const used = new Map<string, number>();
+  for (const turn of turns) {
+    if (turn.item_id) used.set(turn.item_id, (used.get(turn.item_id) ?? 0) + turn.text.length);
+  }
+  const thinnest = [...stories]
+    .sort((a, b) => (used.get(a.item_id) ?? 0) - (used.get(b.item_id) ?? 0))
+    .slice(0, 3)
+    .map((story) => `"${story.headline}"`);
+  return `The script is too short by ${shortByChars(turns, budget)} characters: it has ${charCount(turns)} and needs at least ${scriptFloorChars(budget)} (aim for ${scriptTargetChars(budget)}). Add depth to these stories first: ${thinnest.join("; ")}. Use only the facts in each story block; do not pad or repeat a fact.`;
+}
+
 async function requestTurns(deps: ScriptDeps): Promise<ScriptTurn[]> {
   let problems: string[] = [];
+  // The last reply that was valid but short: a short true episode beats none.
+  let short: ScriptTurn[] | null = null;
   for (let attempt = 1; attempt <= ATTEMPTS; attempt++) {
     try {
       const raw = await deps.writer.writeScript(
@@ -105,14 +135,20 @@ async function requestTurns(deps: ScriptDeps): Promise<ScriptTurn[]> {
         problems,
       );
       const result = validateReply(raw, deps.request, deps.stories);
-      if (result.ok) return result.turns;
-      problems = result.problems;
+      if (result.ok) {
+        if (shortByChars(result.turns, deps.budget_chars) === 0) return result.turns;
+        short = result.turns;
+        problems = [tooShortProblem(result.turns, deps.stories, deps.budget_chars)];
+      } else {
+        problems = result.problems;
+      }
     } catch (error) {
       if (error instanceof BudgetExceededError) throw error;
       problems = [`The last call failed: ${describeError(error)}`];
     }
     deps.log?.warn("The script reply was not usable", { attempt, problems });
   }
+  if (short) return short;
   throw new PodcastError(`The writer did not return a usable script. ${problems.join(" ")}`);
 }
 
@@ -134,10 +170,19 @@ export async function generateScript(deps: ScriptDeps): Promise<ScriptResult> {
     turns = [{ speaker: "a", text: FALLBACK_OPENING }, ...turns];
   }
   const fitted = fitToBudget(turns, deps.budget_chars);
+  const shortBy = shortByChars(fitted.turns, deps.budget_chars);
+  if (shortBy > 0) {
+    deps.log?.warn("The script is shorter than the length asked for", {
+      short_by_chars: shortBy,
+      chars: charCount(fitted.turns),
+      budget_chars: deps.budget_chars,
+    });
+  }
   return {
     turns: fitted.turns,
     rewritten: checked.rewritten,
     dropped_turns: checked.dropped,
     dropped_stories: fitted.dropped_stories,
+    short_by_chars: shortBy,
   };
 }

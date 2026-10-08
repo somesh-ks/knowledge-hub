@@ -124,13 +124,24 @@ export class FakeScriptWriter implements ScriptWriter {
   }
 }
 
+/** Filler per story turn that brings a default script to about 90% of its budget. */
+export function padFor(input: ScriptInput, duo: boolean): string {
+  const turnsPerStory = duo ? 2 : 1;
+  const count = Math.max(1, input.stories.length * turnsPerStory);
+  const base = 120 + input.stories.reduce((sum, s) => sum + s.headline.length * turnsPerStory, 0);
+  const each = Math.floor((input.budget_chars * 0.9 - base) / count);
+  return each > 0 ? "word ".repeat(Math.ceil(each / 5)).trim() : "";
+}
+
 /**
  * A valid script: an opening, a block per story, a sign-off. `fill` pads every story turn. A
  * discussion opens with both hosts and gives each story an a-then-b pair, so the hosts alternate
  * from the first turn to the last.
  */
-export function scriptOf(input: ScriptInput, fill = ""): { turns: ScriptTurn[] } {
+export function scriptOf(input: ScriptInput, explicitFill?: string): { turns: ScriptTurn[] } {
   const duo = input.request.format === "discussion";
+  // Unless a test asks for a fill, pad to 90% of the budget so the length floor is met.
+  const fill = explicitFill ?? padFor(input, duo);
   const turns: ScriptTurn[] = [
     { speaker: "a", text: "Welcome to Singularity. Here is what moved." },
   ];

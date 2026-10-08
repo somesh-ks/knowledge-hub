@@ -1,6 +1,7 @@
 import { parse, stringify } from "yaml";
 import { z } from "zod";
 import { CoverSpec } from "./digest.js";
+import { GENERAL_TOPICS, isGeneralTopicId } from "./generalTopics.js";
 
 const isoDateTime = z.string().datetime({ offset: true });
 
@@ -19,21 +20,36 @@ export const PODCAST_TONES = ["neutral", "energetic", "dry"] as const;
 export const PODCAST_AUDIENCES = ["general", "custom"] as const;
 
 /** What the listener asks for. Validated again by the engine, so a hand-edited request fails clearly. */
-export const PodcastRequest = z.object({
-  /** Section or category ids exactly as they appear in published digests. */
-  topic_ids: z.array(z.string().min(1).max(64)).min(1).max(6),
-  length_minutes: z.union([z.literal(3), z.literal(5), z.literal(10), z.literal(15)]),
-  format: z.enum(PODCAST_FORMATS),
-  window_days: z.union([z.literal(2), z.literal(7), z.literal(30)]),
-  tone: z.enum(PODCAST_TONES),
-  title: z.string().min(1).max(80).optional(),
-  /**
-   * Who the script is written for. "general" explains a term the first time it is used and leaves
-   * out insider shorthand; "custom" is written for the owner, a design engineer. Absent means
-   * "custom", so a request made before the field existed reads as it always did.
-   */
-  audience: z.enum(PODCAST_AUDIENCES).optional(),
-});
+export const PodcastRequest = z
+  .object({
+    /** Section or category ids exactly as they appear in published digests. */
+    topic_ids: z.array(z.string().min(1).max(64)).min(1).max(6),
+    length_minutes: z.union([z.literal(3), z.literal(5), z.literal(10), z.literal(15)]),
+    format: z.enum(PODCAST_FORMATS),
+    window_days: z.union([z.literal(2), z.literal(7), z.literal(30)]),
+    tone: z.enum(PODCAST_TONES),
+    title: z.string().min(1).max(80).optional(),
+    /**
+     * Who the script is written for. "general" explains a term the first time it is used and leaves
+     * out insider shorthand; "custom" is written for the owner, a design engineer. Absent means
+     * "custom", so a request made before the field existed reads as it always did.
+     */
+    audience: z.enum(PODCAST_AUDIENCES).optional(),
+  })
+  .superRefine((request, ctx) => {
+    // A general episode is built from general news, so its topics come from the fixed general list.
+    // A custom request keeps the section and category ids of published digests, checked as before.
+    if (request.audience !== "general") return;
+    const unknown = request.topic_ids.filter((id) => !isGeneralTopicId(id));
+    if (unknown.length > 0) {
+      const allowed = GENERAL_TOPICS.map((topic) => topic.id).join(", ");
+      ctx.addIssue({
+        code: "custom",
+        path: ["topic_ids"],
+        message: `A general episode takes only ${allowed}; not ${unknown.join(", ")}`,
+      });
+    }
+  });
 export type PodcastRequest = z.infer<typeof PodcastRequest>;
 
 export const PodcastFormat = z.enum(PODCAST_FORMATS);
