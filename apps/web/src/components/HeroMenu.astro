@@ -1,0 +1,94 @@
+---
+import { OPEN_PASSPHRASE, PASSPHRASE_REQUIRED } from "../lib/access";
+import Icon from "./Icon.astro";
+
+interface Props {
+  /** Where Share points. A briefing's dated address, or the episode's own. */
+  sharePath: string;
+  /** What Share names: "briefing" or "episode". */
+  noun: "briefing" | "episode";
+  /** Set on an episode page: Regenerate and Delete then act on this episode. */
+  episodeId?: string;
+}
+
+const { sharePath, noun, episodeId } = Astro.props;
+---
+
+{/* One More button beside the title and the small menu it opens: Share, Regenerate and, on an
+     episode, Delete. The menu is a native popover, so light dismiss and Escape are the browser's;
+     scripts/heroMenu.ts adds the arrow keys and focus. Share shares the dated address, so a link
+     sent from today's page still opens this briefing next week. On a briefing Regenerate opens the
+     Generate sheet (the sheets island answers any click inside [data-open]); on an episode it opens
+     the rewrite panel (scripts/episodeActionsEntry.ts), and both items there wait, with a reason,
+     while a run for this episode is going. */}
+<div
+  class="hero-menu"
+  data-share-host
+  data-episode-actions={episodeId ? "" : undefined}
+  data-episode={episodeId}
+  data-open-passphrase={episodeId && !PASSPHRASE_REQUIRED ? OPEN_PASSPHRASE : undefined}
+>
+  <button
+    class="icon-btn hero-more press"
+    type="button"
+    aria-label="More actions"
+    aria-haspopup="menu"
+    popovertarget="hero-menu"
+    data-hero-more
+  >
+    <Icon name="moreVert" class="more-icon" />
+    <Icon name="check" class="more-done" />
+  </button>
+  <div class="hero-menu-list" id="hero-menu" popover role="menu" aria-label="More actions">
+    <button
+      class="hero-menu-item press"
+      type="button"
+      role="menuitem"
+      data-share={sharePath}
+    >
+      Share
+    </button>
+    {
+      episodeId ? (
+        <button
+          class="hero-menu-item press"
+          type="button"
+          role="menuitem"
+          data-episode-action="regenerate"
+        >
+          Regenerate
+        </button>
+      ) : (
+        <button
+          class="hero-menu-item press"
+          type="button"
+          role="menuitem"
+          data-open="generate"
+          aria-haspopup="dialog"
+        >
+          Regenerate
+        </button>
+      )
+    }
+    {
+      episodeId && (
+        <button
+          class="hero-menu-item hero-menu-delete press"
+          type="button"
+          role="menuitem"
+          data-episode-action="delete"
+        >
+          Delete
+        </button>
+      )
+    }
+  </div>
+  <span class="sr-only" role="status" data-share-status></span>
+  {
+    episodeId && (
+      <span class="sr-only" id="episode-actions-busy" hidden>
+        Unavailable while this episode is being updated.
+      </span>
+    )
+  }
+</div>

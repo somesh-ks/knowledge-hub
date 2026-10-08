@@ -1,5 +1,5 @@
 /*
- * "In this briefing": the contents list beside the reading column from 80rem, where it replaces the
+ * "Contents": the contents list beside the reading column from 80rem, where it replaces the
  * section tabs. Each entry links to its section, and the section in view is marked the way the side
  * navigation marks the current destination.
  */
@@ -9,15 +9,17 @@
 }
 
 @media (min-width: 80rem) {
+  /* Centred on the room the window leaves between the top chrome and the docked player, and
+     held there while the page scrolls. A list taller than that room scrolls inside itself, so
+     every entry stays reachable. */
   .aside {
+    --aside-room: calc(100dvh - var(--sticky-top) - var(--dock-room));
     position: sticky;
-    inset-block-start: calc(var(--sticky-top) + var(--space-6));
+    inset-block-start: calc(var(--sticky-top) + var(--aside-room) / 2);
+    translate: 0 -50%;
     align-self: start;
     display: block;
-    /* A short window scrolls the list instead of cutting it off. */
-    max-height: calc(100dvh - var(--sticky-top) - var(--space-12));
-    /* Level with the date in the header beside it. A margin, so the list still sticks at 24px. */
-    margin-block-start: var(--space-8);
+    max-height: calc(var(--aside-room) - var(--space-12));
     /* A scrolling box clips what is drawn outside it. This much padding, taken back by the margin,
        leaves room for an entry's focus ring. */
     margin-inline: calc(var(--space-1) * -1);
@@ -25,16 +27,6 @@
     overflow-y: auto;
     overscroll-behavior: contain;
     scrollbar-width: thin;
-  }
-
-  /* The docked player spans the bottom of the window here, so the list ends above it. */
-  html[data-mini="visible"] .aside {
-    max-height: calc(
-      100dvh -
-      var(--sticky-top) -
-      var(--space-12) -
-      var(--player-dock-height, var(--nav-bar-height))
-    );
   }
 
   .aside-title {

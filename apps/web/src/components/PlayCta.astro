@@ -2,7 +2,6 @@
 import type { AudioMode } from "../lib/digests";
 import { AUDIO_UNAVAILABLE_COPY } from "../lib/digestView";
 import { idleBriefingChip } from "../player/core/readerMath";
-import Icon from "./Icon.astro";
 import PlayChip from "./PlayChip.astro";
 
 interface Props {
@@ -10,13 +9,11 @@ interface Props {
   mode: AudioMode;
   /** The chip's label before anything plays: "8 min". */
   length: string;
-  /** Where the share button points. A briefing's dated address unless the page says otherwise. */
-  sharePath?: string;
-  /** What the share button names: "briefing" or "episode". */
-  noun?: string;
+  /** What is said beside the chip, in the chip's own size: "12 stories", or "Discussion", "7 October". */
+  facts?: string[];
 }
 
-const { digestId, mode, length, sharePath = `/d/${digestId}`, noun = "briefing" } = Astro.props;
+const { digestId, mode, length, facts = [] } = Astro.props;
 const chip = idleBriefingChip(length);
 const unavailable = mode === "expired" ? AUDIO_UNAVAILABLE_COPY.expired : null;
 ---
@@ -32,18 +29,16 @@ const unavailable = mode === "expired" ? AUDIO_UNAVAILABLE_COPY.expired : null;
     aria-describedby={unavailable ? "play-hint" : undefined}
     data-play-digest={digestId}
   />
-  {/* Shares the dated address, so a link sent from today's page still opens this briefing next week. */}
-  <button
-    class="icon-btn share press"
-    type="button"
-    aria-label={`Share this ${noun}`}
-    data-share={sharePath}
-  >
-    <Icon name="share" class="share-icon" />
-    <Icon name="check" class="share-done" />
-  </button>
-  <span class="sr-only" role="status" data-share-status></span>
-  {/* Whatever else the page keeps beside Share: an episode's More menu. */}
-  <slot />
+  {
+    facts.length > 0 && (
+      <p class="meta hero-facts">
+        {facts.map((part) => (
+          <Fragment>
+            <span>{part}</span>{" "}
+          </Fragment>
+        ))}
+      </p>
+    )
+  }
 </div>
 {unavailable && <p class="hero-hint" id="play-hint">{unavailable.label}. {unavailable.hint}</p>}

@@ -60,7 +60,11 @@ test.describe("axe, banners and live states", () => {
       // True for any reader: nothing here opens the owner's passphrase sheet.
       await expect(banner.locator("button, a, [data-open]")).toHaveCount(0);
       await expect(page.getByRole("button", { name: /Generate/ })).toHaveCount(0);
-      await expect(page.locator("main [data-open], #banners [data-open]")).toHaveCount(0);
+      // The header's More menu has Regenerate, which opens the same sheet by the owner's choice; the
+      // banner and the page body offer nothing of the kind.
+      await expect(
+        page.locator("main [data-open]:not([role=menuitem]), #banners [data-open]"),
+      ).toHaveCount(0);
       expect(await violations(page)).toEqual([]);
     });
   }

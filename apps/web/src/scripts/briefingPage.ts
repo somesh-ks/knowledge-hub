@@ -3,6 +3,9 @@
  * section tabs and the contents list, and it shares the briefing's address. Loaded by the briefing
  * view. A bundled module runs once per session, so the per-page work listens for astro:page-load.
  */
+import { installHeroMenu } from "./heroMenu";
+
+installHeroMenu();
 
 const COPIED_MS = 2_000;
 
@@ -71,14 +74,17 @@ async function share(button: HTMLElement): Promise<void> {
     // The clipboard is not available here (an insecure origin, a denied permission).
     return;
   }
-  const status = button.parentElement?.querySelector("[data-share-status]");
-  const name = button.getAttribute("aria-label") ?? "";
-  button.setAttribute("data-copied", "");
-  button.setAttribute("aria-label", "Link copied");
+  // The menu closes on a pick, so the confirmation shows on its More button, and is spoken.
+  const host = button.closest("[data-share-host]");
+  const status = host?.querySelector("[data-share-status]");
+  const mark = host?.querySelector<HTMLElement>("[data-hero-more]") ?? button;
+  const name = mark.getAttribute("aria-label") ?? "";
+  mark.setAttribute("data-copied", "");
+  mark.setAttribute("aria-label", "Link copied");
   if (status) status.textContent = "Link copied";
   setTimeout(() => {
-    button.removeAttribute("data-copied");
-    button.setAttribute("aria-label", name);
+    mark.removeAttribute("data-copied");
+    mark.setAttribute("aria-label", name);
     if (status) status.textContent = "";
   }, COPIED_MS);
 }
@@ -92,7 +98,8 @@ document.addEventListener("click", (event) => {
     return;
   }
   const button = event.target.closest<HTMLElement>("[data-share]");
-  if (button && !button.hasAttribute("data-copied")) void share(button);
+  if (button && !button.closest("[data-share-host]")?.querySelector("[data-copied]"))
+    void share(button);
 });
 
 const release = (): void => {
@@ -104,6 +111,3 @@ window.addEventListener("keydown", release);
 
 document.addEventListener("astro:page-load", watchSections);
 watchSections();
-
-// Nothing is exported: the file is imported for what it does. This line makes it a module.
-export {};

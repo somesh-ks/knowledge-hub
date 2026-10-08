@@ -48,10 +48,10 @@ test.describe("Create as the primary action", () => {
     if (wide) {
       await expect(page.locator(".create-fab")).toBeHidden();
       await expect(page.locator(".app-nav-create")).toBeVisible();
-      await expect(page.locator(".app-nav-create")).toHaveText("Create");
+      await expect(page.locator(".app-nav-create")).toHaveText("Create Podcast");
     } else {
       await expect(page.locator(".app-nav-create")).toBeHidden();
-      await expect(page.getByRole("link", { name: "Create a podcast" })).toBeVisible();
+      await expect(page.getByRole("link", { name: "Create Podcast" })).toBeVisible();
       const box = await page.locator(".create-fab").boundingBox();
       expect(Math.round(box?.width ?? 0)).toBe(56);
     }
