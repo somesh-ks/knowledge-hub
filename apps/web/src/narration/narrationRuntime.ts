@@ -9,6 +9,7 @@ import { showToast } from "../sheets/toastStore";
 import { createNarrationController, type NarrationController } from "./narrationController";
 import { createOpenPassphraseMemory, createPassphraseMemory } from "./passphraseMemory";
 import { askPassphrase } from "./passphrasePrompt";
+import { startPrewarm } from "./prewarmPage";
 
 const PREPARING_LABEL = "Preparing audio";
 
@@ -50,6 +51,14 @@ function getController(): NarrationController {
     setPreparing,
   });
   return controller;
+}
+
+/** Asks for the first segments of a page's briefing in the background. Silent whatever happens. */
+export function prewarmPage(): Promise<void> {
+  const page = getPlayerStore().getPageDigest();
+  // Read again now: the listener may have moved on, or the audio may have arrived meanwhile.
+  if (!page || page.audio || !startPrewarm(page.id)) return Promise.resolve();
+  return getController().prewarm(page);
 }
 
 /** Plays the briefing on this page, narrating what is missing. */
