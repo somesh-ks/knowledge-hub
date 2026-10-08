@@ -5,13 +5,16 @@
  *   - Precaches the shell (the home page and /offline) with their stylesheet, fonts and scripts.
  *   - Digest pages: stale-while-revalidate. A digest never changes once published, so the cached copy
  *     is right and the refresh in the background only matters for a correction.
- *   - Home, the library and /latest.json change whenever a briefing lands, so they go to the network first
- *     and fall back to the cache after a short wait. A stale "today" would be a wrong answer.
+ *   - Home, the library and /latest.json change whenever a briefing lands, so a page load goes to the
+ *     network first and falls back to the cache after a short wait. A stale "today" would be a wrong answer.
+ *   - A move inside the app (the client router's fetch, or a prefetch) is answered at once from a copy
+ *     saved in the last few minutes and checked against the network behind it. If the page changed, the
+ *     page on screen is told. When /latest.json changes, every saved page counts as old again.
  *   - NEVER touches audio. Serving media from the Cache API without correct Range handling breaks
  *     Safari playback, so audio, ranged requests and cross-origin requests all pass straight through.
  *   - Bump VERSION when this file's logic changes; activation removes caches from older versions.
  */
-const VERSION = "v3";
+const VERSION = "v4";
 const SHELL_CACHE = `dispatch-shell-${VERSION}`;
 const PAGES_CACHE = `dispatch-pages-${VERSION}`;
 const MEDIA_CACHE = `dispatch-media-${VERSION}`;
@@ -21,6 +24,13 @@ const OFFLINE_URL = "/offline";
 const SHELL_PAGES = ["/", OFFLINE_URL];
 const SHELL_FILES = ["/manifest.webmanifest", "/favicon.svg", "/icon-192.png"];
 const NETWORK_WAIT_MS = 3000;
+/** A saved page younger than this answers a move inside the app without waiting for the network. */
+const FRESH_MS = 10 * 60 * 1000;
+/** A saved page younger than this is not checked against the network again. */
+const RECHECK_MS = 15 * 1000;
+/** When a page was saved, in milliseconds, on the saved copy. */
+const STORED_AT = "x-dispatch-stored-at";
+const LATEST_PATH = "/latest.json";
 const MAX_PAGES = 60;
 const MAX_MEDIA = 80;
 const AUDIO_PATH = /\.(mp3|m4a|aac|wav|ogg|opus|flac)$/i;
@@ -61,6 +71,8 @@ async function precacheAssets(cache, startUrls, baseUrl, depth) {
       batch.map(async (url) => {
         seen.add(url);
         try {
+          // A hashed file never changes, so one already saved is not fetched again.
+          if (url.startsWith("/_astro/") && (await cache.match(url))) return [];
           const response = await fetch(url);
           if (!response.ok) return [];
           await cache.put(url, response.clone());
@@ -134,11 +146,65 @@ async function trim(cacheName, limit) {
   );
 }
 
+/** Keeps the worker alive for work that outlasts the answer. Its failure never reaches the page. */
+function background(event, work) {
+  const quiet = work.catch(() => undefined);
+  try {
+    event.waitUntil(quiet);
+  } catch {
+    // The event has already ended; the work still runs while the worker lives.
+  }
+}
+
+/** A copy of a response that records when it was saved. */
+async function stamped(response, time) {
+  const headers = new Headers(response.headers);
+  headers.set(STORED_AT, String(time));
+  return new Response(await response.clone().arrayBuffer(), {
+    status: response.status,
+    statusText: response.statusText,
+    headers,
+  });
+}
+
 async function store(cacheName, request, response, limit) {
   if (!response.ok || response.type === "opaque") return;
   const cache = await caches.open(cacheName);
-  await cache.put(request, response.clone());
+  // Pages carry the time they were saved, so a move inside the app can tell a recent copy from an old one.
+  const copy = cacheName === PAGES_CACHE ? await stamped(response, Date.now()) : response.clone();
+  await cache.put(request, copy);
   if (limit) await trim(cacheName, limit);
+}
+
+/**
+ * Marks every saved page as old without deleting it: it still answers when the network is down, but
+ * no longer answers a move inside the app. Briefings are left alone, since one never changes.
+ */
+async function expirePages() {
+  const cache = await caches.open(PAGES_CACHE);
+  for (const key of await cache.keys()) {
+    const path = new URL(key.url).pathname;
+    if (path === LATEST_PATH || path.startsWith("/d/")) continue;
+    const saved = await cache.match(key);
+    if (saved) await cache.put(key, await stamped(saved, 0));
+  }
+}
+
+/** /latest.json names the newest briefing: a different answer means the site was rebuilt. */
+async function expirePagesIfChanged(request, response) {
+  const cache = await caches.open(PAGES_CACHE);
+  const saved = await cache.match(request);
+  if (!saved) return;
+  const [was, is] = await Promise.all([saved.text(), response.clone().text()]);
+  if (was !== is) await expirePages();
+}
+
+/** Saves the scripts and styles a page names, so the first move to it does not wait for them. */
+async function warmAssets(response) {
+  if (!(response.headers.get("content-type") || "").includes("text/html")) return;
+  const cache = await caches.open(SHELL_CACHE);
+  const assets = referencedAssets(await response.text(), self.location.origin);
+  await precacheAssets(cache, [...assets], self.location.origin, 2);
 }
 
 function staleWhileRevalidate(event, cacheName, limit) {
@@ -155,10 +221,30 @@ function staleWhileRevalidate(event, cacheName, limit) {
     .then((cached) => cached || refresh.then((fresh) => fresh || offline(request)));
 }
 
-function networkFirst(event, cacheName, limit) {
+/** Requests for pages that are on their way, by address. */
+const inFlight = new Map();
+
+/**
+ * One network request for a page, shared by everyone asking for it at the same moment: a prefetch
+ * started on finger-down and the client router's fetch a tenth of a second later.
+ */
+function sharedFetch(request) {
+  let pending = inFlight.get(request.url);
+  if (!pending) {
+    pending = fetch(request.url);
+    inFlight.set(request.url, pending);
+    const done = () => inFlight.delete(request.url);
+    pending.then(done, done);
+  }
+  return pending.then((response) => response.clone());
+}
+
+function networkFirst(event, cacheName, limit, beforeStore, shared) {
   const request = event.request;
-  const network = fetch(request).then(async (response) => {
+  const network = (shared ? sharedFetch(request) : fetch(request)).then(async (response) => {
+    if (response.ok && beforeStore) await beforeStore(request, response);
     await store(cacheName, request, response, limit);
+    if (response.ok) background(event, warmAssets(response.clone()));
     return response;
   });
   const timeout = new Promise((resolve) => setTimeout(() => resolve(undefined), NETWORK_WAIT_MS));
@@ -169,6 +255,38 @@ function networkFirst(event, cacheName, limit) {
     // Slow network and nothing saved: keep waiting for the real answer, then fall back to /offline.
     return cached || network.catch(() => offline(request));
   });
+}
+
+/**
+ * A move inside the app: the saved copy answers at once when it is recent, and the network is asked
+ * behind it. An older copy, or none, waits for the network as a page load does.
+ */
+async function inAppPage(event) {
+  const request = event.request;
+  const cache = await caches.open(PAGES_CACHE);
+  const saved = await cache.match(request, { ignoreVary: true });
+  const age = saved ? Date.now() - Number(saved.headers.get(STORED_AT) || 0) : Infinity;
+  if (!saved || age > FRESH_MS) return networkFirst(event, PAGES_CACHE, MAX_PAGES, undefined, true);
+  if (age > RECHECK_MS) background(event, recheck(request, saved.clone()));
+  return saved;
+}
+
+/** Fetches a page that was answered from its saved copy, and tells open pages when it has changed. */
+async function recheck(request, saved) {
+  try {
+    const fresh = await fetch(request.url);
+    if (!fresh.ok) return;
+    const [was, is] = await Promise.all([saved.text(), fresh.clone().text()]);
+    await store(PAGES_CACHE, request, fresh, MAX_PAGES);
+    if (was === is) return;
+    await warmAssets(fresh.clone());
+    const path = new URL(request.url).pathname;
+    for (const client of await self.clients.matchAll({ type: "window" })) {
+      client.postMessage({ type: "PAGE_CHANGED", path });
+    }
+  } catch {
+    // Offline or a failed read: the saved copy already answered.
+  }
 }
 
 async function cacheFirst(event, cacheName) {
@@ -214,8 +332,13 @@ self.addEventListener("fetch", (event) => {
     event.respondWith(cacheFirst(event, SHELL_CACHE));
   } else if (url.pathname.startsWith("/d/")) {
     event.respondWith(staleWhileRevalidate(event, PAGES_CACHE, MAX_PAGES));
-  } else if (isPage(request) || url.pathname === "/latest.json") {
-    event.respondWith(networkFirst(event, PAGES_CACHE, MAX_PAGES));
+  } else if (url.pathname === LATEST_PATH) {
+    event.respondWith(networkFirst(event, PAGES_CACHE, MAX_PAGES, expirePagesIfChanged));
+  } else if (isPage(request)) {
+    // A page load waits for the network. The client router's fetch and a prefetch do not have to.
+    event.respondWith(
+      request.mode === "navigate" ? networkFirst(event, PAGES_CACHE, MAX_PAGES) : inAppPage(event),
+    );
   } else if (url.pathname.startsWith("/covers/")) {
     event.respondWith(staleWhileRevalidate(event, MEDIA_CACHE, MAX_MEDIA));
   } else if (SHELL_FILES.includes(url.pathname)) {

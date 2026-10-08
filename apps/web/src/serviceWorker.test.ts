@@ -83,6 +83,10 @@ function load(network: (url: string) => Response | Promise<Response> = () => new
   const skipWaiting = vi.fn();
   const claim = vi.fn(async () => {});
   const fetched: string[] = [];
+  /** The worker's clock, so a test can age a saved page. */
+  const clock = { now: 1_700_000_000_000 };
+  /** Messages the worker posted to open pages. */
+  const posted: unknown[] = [];
   const fakeFetch = async (input: FakeRequest | string) => {
     const url =
       typeof input === "string"
@@ -97,7 +101,10 @@ function load(network: (url: string) => Response | Promise<Response> = () => new
     location: { origin: ORIGIN },
     addEventListener: (type: string, handler: Handler) => handlers.set(type, handler),
     skipWaiting,
-    clients: { claim },
+    clients: {
+      claim,
+      matchAll: async () => [{ postMessage: (message: unknown) => posted.push(message) }],
+    },
   };
   runInNewContext(SOURCE, {
     self,
@@ -112,6 +119,7 @@ function load(network: (url: string) => Response | Promise<Response> = () => new
     Math,
     Array,
     console,
+    Date: { now: () => clock.now },
   });
 
   async function dispatchFetch(req: FakeRequest) {
@@ -135,7 +143,7 @@ function load(network: (url: string) => Response | Promise<Response> = () => new
     await Promise.all(waits);
   }
 
-  return { handlers, caches, skipWaiting, claim, fetched, dispatchFetch, lifecycle };
+  return { handlers, caches, skipWaiting, claim, fetched, clock, posted, dispatchFetch, lifecycle };
 }
 
 describe("service worker: audio is never cached or touched", () => {
@@ -299,6 +307,135 @@ describe("service worker: caching strategies", () => {
   });
 });
 
+describe("service worker: a move inside the app", () => {
+  const SECOND = 1000;
+  const MINUTE = 60 * SECOND;
+
+  it("answers from a copy saved moments ago without asking the network", async () => {
+    const worker = load(() => new Response("library v1"));
+    await worker.dispatchFetch(request("/library", { mode: "navigate" }));
+    worker.clock.now += 5 * SECOND;
+    const move = await worker.dispatchFetch(request("/library"));
+    expect(await move.response?.text()).toBe("library v1");
+    expect(worker.fetched).toEqual([`${ORIGIN}/library`]);
+  });
+
+  it("answers from a recent copy and asks the network behind it", async () => {
+    let version = 1;
+    const worker = load(() => new Response(`library v${version}`));
+    await worker.dispatchFetch(request("/library", { mode: "navigate" }));
+    version = 2;
+    worker.clock.now += MINUTE;
+    const move = await worker.dispatchFetch(request("/library"));
+    expect(await move.response?.text()).toBe("library v1");
+    expect(worker.posted).toEqual([{ type: "PAGE_CHANGED", path: "/library" }]);
+    worker.clock.now += 5 * SECOND;
+    const next = await worker.dispatchFetch(request("/library"));
+    expect(await next.response?.text()).toBe("library v2");
+  });
+
+  it("says nothing when the page behind a recent copy is the same", async () => {
+    const worker = load(() => new Response("settings"));
+    await worker.dispatchFetch(request("/settings", { mode: "navigate" }));
+    worker.clock.now += MINUTE;
+    await worker.dispatchFetch(request("/settings"));
+    expect(worker.fetched).toHaveLength(2);
+    expect(worker.posted).toEqual([]);
+  });
+
+  it("waits for the network when the saved copy is old", async () => {
+    let version = 1;
+    const worker = load(() => new Response(`home v${version}`));
+    await worker.dispatchFetch(request("/", { mode: "navigate" }));
+    version = 2;
+    worker.clock.now += 11 * MINUTE;
+    const move = await worker.dispatchFetch(request("/"));
+    expect(await move.response?.text()).toBe("home v2");
+    expect(worker.posted).toEqual([]);
+  });
+
+  it("still waits for the network on a page load, however recent the copy", async () => {
+    let version = 1;
+    const worker = load(() => new Response(`home v${version}`));
+    await worker.dispatchFetch(request("/"));
+    version = 2;
+    worker.clock.now += 5 * SECOND;
+    const loaded = await worker.dispatchFetch(request("/", { mode: "navigate" }));
+    expect(await loaded.response?.text()).toBe("home v2");
+  });
+
+  it("answers from the recent copy when the network is down", async () => {
+    let online = true;
+    const worker = load(() => {
+      if (!online) throw new TypeError("offline");
+      return new Response("library v1");
+    });
+    await worker.dispatchFetch(request("/library", { mode: "navigate" }));
+    online = false;
+    worker.clock.now += MINUTE;
+    const move = await worker.dispatchFetch(request("/library"));
+    expect(await move.response?.text()).toBe("library v1");
+    expect(worker.posted).toEqual([]);
+  });
+
+  it("treats every saved page as old once /latest.json changes, except briefings", async () => {
+    let version = 1;
+    const worker = load((url) =>
+      url.endsWith("/latest.json")
+        ? new Response(`{"id":${version}}`)
+        : new Response(`${new URL(url).pathname} v${version}`),
+    );
+    await worker.dispatchFetch(request("/latest.json"));
+    await worker.dispatchFetch(request("/", { mode: "navigate" }));
+    await worker.dispatchFetch(request("/d/2026-10-07"));
+    worker.clock.now += 5 * SECOND;
+    // The same answer changes nothing: the saved home page still answers.
+    version = 1;
+    await worker.dispatchFetch(request("/latest.json"));
+    version = 2;
+    expect(await (await worker.dispatchFetch(request("/"))).response?.text()).toBe("/ v1");
+    // A new briefing: the home page waits for the network, the briefing keeps its saved copy.
+    await worker.dispatchFetch(request("/latest.json"));
+    expect(await (await worker.dispatchFetch(request("/"))).response?.text()).toBe("/ v2");
+    const briefing = await worker.dispatchFetch(request("/d/2026-10-07"));
+    expect(await briefing.response?.text()).toBe("/d/2026-10-07 v1");
+  });
+
+  it("keeps an expired page for when the network is down", async () => {
+    let online = true;
+    let version = 1;
+    const worker = load((url) => {
+      if (!online) throw new TypeError("offline");
+      return url.endsWith("/latest.json")
+        ? new Response(`{"id":${version}}`)
+        : new Response("library v1");
+    });
+    await worker.dispatchFetch(request("/latest.json"));
+    await worker.dispatchFetch(request("/library", { mode: "navigate" }));
+    version = 2;
+    await worker.dispatchFetch(request("/latest.json"));
+    online = false;
+    const move = await worker.dispatchFetch(request("/library"));
+    expect(await move.response?.text()).toBe("library v1");
+  });
+
+  it("saves the scripts a page names when it saves the page", async () => {
+    const worker = load((url) =>
+      url.endsWith("/library")
+        ? new Response('<script type="module" src="/_astro/libraryPage.abc.js"></script>', {
+            headers: { "content-type": "text/html; charset=utf-8" },
+          })
+        : new Response("export {}"),
+    );
+    await worker.dispatchFetch(request("/library"));
+    expect(worker.caches.stored()).toContain(`${ORIGIN}/_astro/libraryPage.abc.js`);
+    // A second save does not fetch the hashed file again.
+    worker.clock.now += 11 * 60 * 1000;
+    await worker.dispatchFetch(request("/library"));
+    expect(worker.fetched.filter((url) => url.endsWith("libraryPage.abc.js"))).toHaveLength(1);
+  });
+});
+
 describe("service worker: install and update", () => {
   it("precaches the shell and the assets it names", async () => {
     const worker = load((url) => {
@@ -351,7 +488,7 @@ describe("service worker: install and update", () => {
     expect(names).not.toContain("dispatch-shell-v0");
     expect(names).not.toContain("dispatch-pages-v0");
     expect(names).toContain("someone-elses-cache");
-    expect(names).toContain("dispatch-shell-v3");
+    expect(names).toContain("dispatch-shell-v4");
     expect(worker.claim).toHaveBeenCalled();
   });
 
