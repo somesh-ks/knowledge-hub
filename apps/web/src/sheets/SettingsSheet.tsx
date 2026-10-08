@@ -82,7 +82,7 @@ export default function SettingsSheet({ open, onOpenChange }: SettingsSheetProps
           <span className="setting-text">
             <Field.Label className="setting-label">Interface sounds</Field.Label>
             <Field.Description className="setting-hint">
-              Soft cues for play, skips and Generate. Follows your phone's silent switch.
+              Soft cues for play, taps, saving and Generate. Follows your phone's silent switch.
             </Field.Description>
           </span>
           <Switch.Root className="switch" checked={soundsOn} onCheckedChange={changeSounds}>

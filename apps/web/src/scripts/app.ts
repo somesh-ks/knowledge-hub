@@ -4,6 +4,7 @@ import { installDisabledGuard } from "./disabledGuard";
 import { installNavigation } from "./navigation";
 import { registerServiceWorker } from "./serviceWorker";
 import { installThemeColor } from "./themeColor";
+import { installUiSound } from "./uiSound";
 
 /**
  * Page-level behavior that belongs to the shell, not to the player: navigation rules, device
@@ -16,6 +17,7 @@ installNavigation();
 installCreateEntry();
 installDeviceBanners();
 installThemeColor();
+installUiSound();
 registerServiceWorker();
 // A tab left open across a deploy asks for script files the deploy removed, and the import fails
 // (the player's controls, narration). One reload with the saved pages dropped gets the current

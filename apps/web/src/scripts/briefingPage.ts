@@ -82,6 +82,7 @@ async function share(button: HTMLElement): Promise<void> {
   mark.setAttribute("data-copied", "");
   mark.setAttribute("aria-label", "Link copied");
   if (status) status.textContent = "Link copied";
+  document.dispatchEvent(new CustomEvent("dispatch:sound", { detail: "success" }));
   setTimeout(() => {
     mark.removeAttribute("data-copied");
     mark.setAttribute("aria-label", name);
