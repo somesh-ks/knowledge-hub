@@ -1,7 +1,8 @@
 import type { Item } from "@dispatch/core";
 import { z } from "zod";
-import type { HttpClient } from "../http.js";
+import { type HttpClient, HttpError } from "../http.js";
 import { buildItems, type RawItem } from "../normalize/buildItem.js";
+import { FIRECRAWL_SKIP_CEILING, FIRECRAWL_SKIP_STOPPED } from "./firecrawlBudget.js";
 import { extractEntries } from "./firecrawlExtract.js";
 import { type SourceFetcher, SourceSkipped } from "./types.js";
 
@@ -77,13 +78,26 @@ export async function scrapePage(
 export const fetchFirecrawl: SourceFetcher = async (source, window, deps): Promise<Item[]> => {
   const config = deps.firecrawl;
   if (!config?.apiKey) throw new SourceSkipped("FIRECRAWL_API_KEY is not set");
+  const apiKey = config.apiKey;
   const pageUrl = source.feed_url ?? source.url;
-  const page = await scrapePage(
-    pageUrl,
-    { apiKey: config.apiKey, baseUrl: config.baseUrl },
-    deps.http,
-    deps.signal,
-  );
+  const load = (): Promise<ScrapedPage> =>
+    scrapePage(pageUrl, { apiKey, baseUrl: config.baseUrl }, deps.http, deps.signal);
+  const guard = config.guard;
+  let page: ScrapedPage | null;
+  if (guard) {
+    try {
+      page = await guard.listing(pageUrl, load);
+    } catch (error) {
+      // The HTTP client already retried with backoff; a 429 that survives counts toward the stop.
+      if (error instanceof HttpError && error.status === 429) guard.noteRateLimited();
+      throw error;
+    }
+    if (page === null) {
+      throw new SourceSkipped(guard.stopped ? FIRECRAWL_SKIP_STOPPED : FIRECRAWL_SKIP_CEILING);
+    }
+  } else {
+    page = await load();
+  }
   const fetchedAt = deps.now();
 
   const { dated, headings, undated } = extractEntries(page.markdown, pageUrl);

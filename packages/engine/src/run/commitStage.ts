@@ -148,6 +148,10 @@ export async function commitStage(deps: RunDeps, options: RunOptions): Promise<C
 
   if (plan.passes.length === 0) return commitGated(deps, options, plan, dryRun);
 
+  // An adopted agent run made no model or Firecrawl calls through the stages, so it records none.
+  if (!adopted) await deps.spend?.begin(root, plan.created_at);
+  const spend = adopted ? undefined : deps.spend?.totals();
+
   const passData: PassData[] = [];
   for (const pass of plan.passes) passData.push(await loadPassData(deps, plan, pass));
 
@@ -275,6 +279,7 @@ export async function commitStage(deps: RunDeps, options: RunOptions): Promise<C
       items,
       dry_run: true,
       commit: { status: "dry_run" },
+      ...(spend ? { spend } : {}),
       ...(outcome === "nothing" ? { reason: "Nothing cleared the bar." } : {}),
     };
   }
@@ -296,6 +301,7 @@ export async function commitStage(deps: RunDeps, options: RunOptions): Promise<C
     await writeTopicJudgments(root, topicJudgments);
   }
   if (statsTouched) await writeSourceStats(root, sourceStats);
+  if (spend) lastRun = { ...lastRun, spend: { at: nowIso, ...spend } };
   await writeLastRun(root, lastRun);
 
   const message =
@@ -349,6 +355,7 @@ export async function commitStage(deps: RunDeps, options: RunOptions): Promise<C
     items,
     dry_run: false,
     commit,
+    ...(spend ? { spend } : {}),
     ...(outcome === "nothing" ? { reason: "Nothing cleared the bar." } : {}),
   };
 }

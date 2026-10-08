@@ -1,3 +1,4 @@
+import { formatSpend } from "./spend.js";
 import type {
   CommitReport,
   FailureReport,
@@ -35,6 +36,7 @@ function formatStage(report: StageReport): string[] {
     const { id, kind, ...detail } = pass;
     lines.push(`  ${id} (${kind}) ${JSON.stringify(detail)}`);
   }
+  if (report.spend) lines.push(`Requests so far: ${formatSpend(report.spend)}`);
   return lines;
 }
 
@@ -51,6 +53,7 @@ function formatCommit(report: CommitReport): string[] {
     `Commit: ${commit.status}${commit.sha ? ` ${commit.sha.slice(0, 7)}` : ""}${commit.message ? ` "${commit.message}"` : ""}${commit.detail ? ` (${commit.detail})` : ""}`,
   );
   lines.push(`Deploy: ${report.deploy ? "yes" : "no"}`);
+  if (report.spend) lines.push(`Requests: ${formatSpend(report.spend)}`);
   return lines;
 }
 

@@ -53,6 +53,22 @@ async function runPassStage(
   stage: "fetch" | "judge" | "write" | "validate",
 ): Promise<StageReport> {
   const plan = await loadPlan(deps, options);
+  // Spend is saved after every stage, failed or not, so the next stage (a new process in the
+  // workflow) carries on from the same Firecrawl ceiling and the commit stage can report it all.
+  await deps.spend?.begin(deps.root, plan.created_at);
+  try {
+    const report = await runStage(deps, plan, stage);
+    return deps.spend ? { ...report, spend: deps.spend.totals() } : report;
+  } finally {
+    await deps.spend?.save(deps.root);
+  }
+}
+
+function runStage(
+  deps: RunDeps,
+  plan: Plan,
+  stage: "fetch" | "judge" | "write" | "validate",
+): Promise<StageReport> {
   switch (stage) {
     case "fetch":
       return fetchStage(deps, plan);

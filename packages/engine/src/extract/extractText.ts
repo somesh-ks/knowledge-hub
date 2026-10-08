@@ -9,6 +9,11 @@ import { fetchRefusal } from "./urlSafety.js";
 export const MIN_FULL_TEXT_CHARS = 1_000;
 /** Below this, text is a teaser or an empty shell and is not worth writing from. */
 export const MIN_ACCEPT_CHARS = 200;
+/**
+ * Text from the feed or the page this long counts as enough: the paid scrape fallback is not
+ * called for it, even though it falls short of full text.
+ */
+export const FEED_TEXT_ENOUGH_CHARS = 600;
 
 export type ExtractMethod = "content" | "snippet" | "readability" | "scrape";
 
@@ -94,7 +99,9 @@ export async function extractFullText(
         reason: page.reason,
       });
     }
-    if (deps.scrape) {
+    // The paid scrape is for pages the free routes could not read. Text this long is enough to write from.
+    const longest = candidates.reduce((max, c) => Math.max(max, c.text.length), 0);
+    if (deps.scrape && longest < FEED_TEXT_ENOUGH_CHARS) {
       try {
         const markdown = await deps.scrape(item.url);
         const full = markdown ? consider("scrape", markdownToText(markdown)) : null;

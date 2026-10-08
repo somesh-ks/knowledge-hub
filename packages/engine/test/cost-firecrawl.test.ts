@@ -1,0 +1,145 @@
+import { mkdtemp, rm } from "node:fs/promises";
+import { tmpdir } from "node:os";
+import { join } from "node:path";
+import { LastRunFile } from "@dispatch/core";
+import { afterEach, describe, expect, it } from "vitest";
+import { extractFullText, FEED_TEXT_ENOUGH_CHARS } from "../src/extract/extractText.js";
+import { createFirecrawlScrape } from "../src/extract/firecrawlScrape.js";
+import {
+  FIRECRAWL_LISTING_CEILING,
+  FIRECRAWL_RUN_CEILING,
+  FirecrawlGuard,
+  planFirecrawlListing,
+} from "../src/fetch/firecrawlBudget.js";
+import { SpendTracker, spendPath } from "../src/run/spend.js";
+import { makeItem } from "./score-factories.js";
+
+describe("the Firecrawl ceiling", () => {
+  it("holds across listing and scraping together", async () => {
+    const guard = new FirecrawlGuard();
+    for (let i = 0; i < FIRECRAWL_LISTING_CEILING + 5; i++) {
+      await guard.listing(`https://s${i}.example/`, async () => i);
+    }
+    expect(guard.snapshot.listing).toBe(FIRECRAWL_LISTING_CEILING);
+    let scrapes = 0;
+    while (guard.takeScrape()) scrapes += 1;
+    expect(scrapes).toBe(FIRECRAWL_RUN_CEILING - FIRECRAWL_LISTING_CEILING);
+    expect(guard.used).toBe(FIRECRAWL_RUN_CEILING);
+    expect(await guard.listing("https://new.example/", async () => 1)).toBeNull();
+  });
+
+  it("reuses a page already fetched in the run at no cost", async () => {
+    const guard = new FirecrawlGuard();
+    await guard.listing("https://a.example/", async () => "page");
+    expect(await guard.listing("https://a.example/", async () => "again")).toBe("page");
+    expect(guard.snapshot.listing).toBe(1);
+  });
+
+  it("rotates skipped listing sources by oldest last_ok across two runs", () => {
+    let sources: { id: string; last_ok?: string }[] = ["a", "b", "c", "d", "e"].map((id) => ({
+      id,
+    }));
+    const first = planFirecrawlListing(sources, 3);
+    expect(first.run).toEqual(["a", "b", "c"]);
+    expect(first.skipped).toEqual(["d", "e"]);
+    // The ones that ran now carry a last_ok; the skipped ones do not.
+    sources = sources.map((s) =>
+      first.run.includes(s.id) ? { ...s, last_ok: "2026-10-06T06:00:00Z" } : s,
+    );
+    const second = planFirecrawlListing(sources, 3);
+    expect(second.run.slice(0, 2)).toEqual(["d", "e"]);
+    expect(second.skipped).toHaveLength(2);
+    expect(second.skipped.every((id) => first.run.includes(id))).toBe(true);
+  });
+
+  it("records skipped sources", () => {
+    const guard = new FirecrawlGuard();
+    guard.recordSkipped(["d", "e", "d"]);
+    expect(guard.snapshot.skipped).toEqual(["d", "e"]);
+  });
+});
+
+describe("the scrape fallback", () => {
+  const notFound = (async () => new Response("", { status: 404 })) as unknown as typeof fetch;
+
+  it("is skipped at 600 characters in hand and made at 599", async () => {
+    let calls = 0;
+    const scrape = async () => {
+      calls += 1;
+      return null;
+    };
+    const enough = makeItem({ snippet: "a".repeat(FEED_TEXT_ENOUGH_CHARS) });
+    await extractFullText(enough, { fetchImpl: notFound, scrape });
+    expect(calls).toBe(0);
+    const short = makeItem({ snippet: "a".repeat(FEED_TEXT_ENOUGH_CHARS - 1) });
+    await extractFullText(short, { fetchImpl: notFound, scrape });
+    expect(calls).toBe(1);
+  });
+
+  it("stops after three 429s and later items fall back to the feed text", async () => {
+    const guard = new FirecrawlGuard();
+    let requests = 0;
+    const fetchImpl = (async () => {
+      requests += 1;
+      return new Response("", { status: 429, headers: { "retry-after": "1" } });
+    }) as unknown as typeof fetch;
+    const scrape = createFirecrawlScrape({
+      apiKey: "k",
+      fetchImpl,
+      guard,
+      minIntervalMs: 0,
+      sleep: async () => {},
+    });
+    const first = await extractFullText(makeItem({ snippet: "b".repeat(300) }), {
+      fetchImpl: notFound,
+      scrape,
+    });
+    expect(requests).toBe(3);
+    expect(guard.stopped).toBe(true);
+    const second = await extractFullText(makeItem({ snippet: "c".repeat(300) }), {
+      fetchImpl: notFound,
+      scrape,
+    });
+    expect(requests).toBe(3);
+    expect(first?.method).toBe("snippet");
+    expect(second?.method).toBe("snippet");
+  });
+});
+
+describe("the spend record", () => {
+  const dirs: string[] = [];
+  afterEach(async () => {
+    for (const d of dirs.splice(0)) await rm(d, { recursive: true, force: true });
+  });
+
+  it("survives between stages and fits the last-run schema", async () => {
+    const root = await mkdtemp(join(tmpdir(), "spend-"));
+    dirs.push(root);
+    const run = "2026-10-08T06:00:00.000Z";
+    const fetchStage = new SpendTracker();
+    await fetchStage.begin(root, run);
+    fetchStage.meter.add("exa", 4);
+    await fetchStage.guard.listing("https://a.example/", async () => 1);
+    fetchStage.guard.recordSkipped(["z"]);
+    await fetchStage.save(root);
+
+    const judgeStage = new SpendTracker();
+    await judgeStage.begin(root, run);
+    judgeStage.meter.add("jev", 7);
+    await judgeStage.save(root);
+
+    const commit = new SpendTracker();
+    await commit.begin(root, run);
+    const totals = commit.totals();
+    expect(totals.requests).toMatchObject({ exa: 4, jev: 7, firecrawl_listing: 1 });
+    expect(totals.firecrawl_skipped).toEqual(["z"]);
+    const parsed = LastRunFile.parse({ version: 1, spend: { at: run, ...totals } });
+    expect(parsed.spend?.requests.jev).toBe(7);
+    expect(spendPath(root)).toContain("spend.json");
+
+    // Another run's file is ignored.
+    const other = new SpendTracker();
+    await other.begin(root, "2026-10-10T06:00:00.000Z");
+    expect(other.totals().requests.jev).toBeUndefined();
+  });
+});
