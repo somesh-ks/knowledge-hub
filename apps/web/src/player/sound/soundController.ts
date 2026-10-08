@@ -10,6 +10,8 @@ import { type Cue, cueForPlayerEvent, playCue } from "./soundMap";
 
 let engine: SoundEngine | null = null;
 let loading: Promise<void> | null = null;
+/** When a cue was last chosen by any path, so the delegated click cue never doubles one. */
+let lastCueAt = Number.NEGATIVE_INFINITY;
 let removeUnlock: (() => void) | null = null;
 /** Bumped by every teardown, so a load that was still in flight can tell it is no longer wanted. */
 let generation = 0;
@@ -41,7 +43,9 @@ function loadEngine({ store, preferences }: SoundWiring): Promise<void> {
 /** Starts the lazy load and routes player events to sounds. Returns a teardown. */
 export function startSound(wiring: SoundWiring): () => void {
   const offEvent = wiring.store.onEvent((event) => {
-    playCue(engine, cueForPlayerEvent(event));
+    const cue = cueForPlayerEvent(event);
+    if (cue) lastCueAt = performance.now();
+    playCue(engine, cue);
   });
 
   let idleHandle: number | null = null;
@@ -84,5 +88,11 @@ export function startSound(wiring: SoundWiring): () => void {
 
 /** For the interface: sheets, switches, Generate, scrub detents. Silent until the engine is ready. */
 export function playUiCue(cue: Cue | null): void {
+  if (cue) lastCueAt = performance.now();
   playCue(engine, cue);
+}
+
+/** True when some other path chose a cue at or after `since` (a `performance.now()` stamp). */
+export function cuePlayedSince(since: number): boolean {
+  return lastCueAt >= since;
 }

@@ -4,6 +4,7 @@
  */
 import { OPEN_PASSPHRASE, PASSPHRASE_REQUIRED } from "../lib/access";
 import type { ConfigOp, ConfigResponse } from "../types/contracts";
+import { soundOutcome } from "./uiSound";
 
 const KEY = "dispatch:narrate-passphrase";
 const SAVED = "Saved. The changes appear after the next build, in about a minute.";
@@ -183,4 +184,5 @@ export async function save(
   }
   fields.disabled = false;
   show(failure || (timeRefused ? TIME_REFUSED : SAVED), failure ? "error" : "done");
+  soundOutcome(failure ? "failure" : "success");
 }
