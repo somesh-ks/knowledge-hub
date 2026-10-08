@@ -50,11 +50,11 @@ export function openCreateSheet(trigger: HTMLElement | null): void {
     if (!entry) return;
     entry = false;
     event.preventDefault();
-    document.removeEventListener("dispatch:back", onBack);
+    removeEventListener("dispatch:back", onBack);
     if (sheet.open) sheet.close();
   };
   history.pushState({ ...history.state, createSheet: true }, "");
-  document.addEventListener("dispatch:back", onBack);
+  addEventListener("dispatch:back", onBack);
   sheet.addEventListener(
     "close",
     () => {
