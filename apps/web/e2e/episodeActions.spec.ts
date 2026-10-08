@@ -6,8 +6,16 @@ import { PASSPHRASE_REQUIRED } from "./passphrase";
 const ID = "ep-20261007-1930";
 const SENT = PASSPHRASE_REQUIRED ? "correct horse battery staple" : "open";
 
-const regenerate = (page: Page) => page.getByRole("button", { name: "Regenerate", exact: true });
-const remove = (page: Page) => page.getByRole("button", { name: "Delete", exact: true });
+const more = (page: Page) => page.getByRole("button", { name: "More actions" });
+const menu = (page: Page) => page.getByRole("menu", { name: "More actions" });
+const regenerate = (page: Page) => page.locator('[data-episode-action="regenerate"]');
+const remove = (page: Page) => page.locator('[data-episode-action="delete"]');
+
+/** Opens the More menu and picks one of its two items. */
+async function choose(page: Page, item: "Regenerate" | "Delete"): Promise<void> {
+  await more(page).click();
+  await menu(page).getByRole("menuitem", { name: item }).click();
+}
 const panel = (page: Page) => page.locator("dialog.regen-sheet");
 const confirm = (page: Page) => page.locator("dialog.confirm-dialog");
 const indicator = (page: Page) => page.locator("[data-run-text]");
@@ -46,13 +54,60 @@ async function fillPassphrase(dialog: ReturnType<typeof panel>): Promise<void> {
 }
 
 test.describe("regenerate and delete an episode", () => {
+  test("one More button sits beside Share and opens a menu of two items", async ({ page }) => {
+    await open(page);
+    const button = more(page);
+    await expect(button).toHaveAttribute("aria-haspopup", "menu");
+    await expect(menu(page)).toBeHidden();
+    // Same size and row as Share, and a 44px target.
+    const share = page.getByRole("button", { name: "Share this episode" });
+    const [a, b] = await Promise.all([button.boundingBox(), share.boundingBox()]);
+    expect(a?.width).toBeGreaterThanOrEqual(44);
+    expect(a?.height).toBe(b?.height);
+    expect(a?.y).toBe(b?.y);
+    await button.click();
+    await expect(menu(page)).toBeVisible();
+    const items = menu(page).getByRole("menuitem");
+    await expect(items).toHaveText(["Regenerate", "Delete"]);
+    await expect(items.first()).toBeFocused();
+    // The menu hangs under the button, not at the edge of the page.
+    const m = await menu(page).boundingBox();
+    expect(m?.y).toBeGreaterThanOrEqual((a?.y ?? 0) + (a?.height ?? 0));
+    expect(Math.abs((m?.x ?? 0) + (m?.width ?? 0) - ((a?.x ?? 0) + (a?.width ?? 0)))).toBeLessThan(
+      2,
+    );
+    await page.keyboard.press("ArrowDown");
+    await expect(items.nth(1)).toBeFocused();
+    await page.keyboard.press("ArrowDown");
+    await expect(items.first()).toBeFocused();
+    await page.keyboard.press("ArrowUp");
+    await expect(items.nth(1)).toBeFocused();
+    await page.keyboard.press("Escape");
+    await expect(menu(page)).toBeHidden();
+    await expect(button).toBeFocused();
+  });
+
+  test("a pick closes the menu before its panel opens", async ({ page }) => {
+    await open(page);
+    await choose(page, "Regenerate");
+    await expect(panel(page)).toBeVisible();
+    await expect(menu(page)).toBeHidden();
+    await panel(page).getByRole("button", { name: "Close" }).click();
+    await expect(more(page)).toBeFocused();
+  });
+
+  test("the header says the length once", async ({ page }) => {
+    await open(page);
+    await expect(page.locator(".hero-text .meta")).not.toContainText("min");
+  });
+
   test("Regenerate sends the exact body and the indicator takes over", async ({ page }) => {
     const bodies = await mock(page, [
       { run_id: 77, state: "running", step: null },
       { run_id: 77, state: "completed", step: null, outcome: "published" },
     ]);
     await open(page);
-    await regenerate(page).click();
+    await choose(page, "Regenerate");
     await expect(panel(page)).toBeVisible();
     await expect(
       panel(page).getByRole("heading", { name: "Regenerate this episode" }),
@@ -74,9 +129,11 @@ test.describe("regenerate and delete an episode", () => {
     // Both actions wait for the run, and say why.
     await expect(regenerate(page)).toHaveAttribute("aria-disabled", "true");
     await expect(remove(page)).toHaveAttribute("aria-disabled", "true");
-    await expect(regenerate(page)).toHaveAccessibleDescription(
-      "Unavailable while this episode is being updated.",
-    );
+    await more(page).click();
+    await expect(
+      menu(page).getByRole("menuitem", { name: "Regenerate" }),
+    ).toHaveAccessibleDescription("Unavailable while this episode is being updated.");
+    await page.keyboard.press("Escape");
     await expect(indicator(page)).toHaveText("Episode ready", { timeout: 15_000 });
     await expect(regenerate(page)).not.toHaveAttribute("aria-disabled", "true");
   });
@@ -84,7 +141,7 @@ test.describe("regenerate and delete an episode", () => {
   test("empty feedback is refused inline and nothing is sent", async ({ page }) => {
     const bodies = await mock(page, [{ run_id: 77, state: "queued", step: null }]);
     await open(page);
-    await regenerate(page).click();
+    await choose(page, "Regenerate");
     await fillPassphrase(panel(page));
     await panel(page).getByLabel("What should change?").fill("   ");
     await panel(page).getByRole("button", { name: "Regenerate episode" }).click();
@@ -99,7 +156,7 @@ test.describe("regenerate and delete an episode", () => {
 
   test("the character count shows only near the limit", async ({ page }) => {
     await open(page);
-    await regenerate(page).click();
+    await choose(page, "Regenerate");
     const field = panel(page).getByLabel("What should change?");
     const count = panel(page).locator("[data-count]");
     await field.fill("a".repeat(100));
@@ -112,13 +169,13 @@ test.describe("regenerate and delete an episode", () => {
   test("Delete asks first, and Cancel sends nothing", async ({ page }) => {
     const bodies = await mock(page, [{ run_id: 77, state: "queued", step: null }]);
     await open(page);
-    await remove(page).click();
+    await choose(page, "Delete");
     await expect(confirm(page)).toBeVisible();
     await expect(confirm(page)).toContainText("Delete this episode?");
     await expect(confirm(page)).toContainText("It is removed from the Library for everyone.");
     await confirm(page).getByRole("button", { name: "Cancel" }).click();
     await expect(confirm(page)).toBeHidden();
-    await expect(remove(page)).toBeFocused();
+    await expect(more(page)).toBeFocused();
     expect(bodies).toHaveLength(0);
     await expect(page).toHaveURL(new RegExp(`/e/${ID}$`));
   });
@@ -131,7 +188,7 @@ test.describe("regenerate and delete an episode", () => {
       { run_id: 77, state: "completed", step: null, outcome: "published" },
     ]);
     await open(page);
-    await remove(page).click();
+    await choose(page, "Delete");
     await fillPassphrase(confirm(page));
     await confirm(page).getByRole("button", { name: "Delete", exact: true }).click();
 
@@ -156,7 +213,7 @@ test.describe("regenerate and delete an episode", () => {
         }),
       );
       await open(page);
-      await regenerate(page).click();
+      await choose(page, "Regenerate");
       await fillPassphrase(panel(page));
       await panel(page).getByLabel("What should change?").fill("More depth");
       await panel(page).getByRole("button", { name: "Regenerate episode" }).click();
@@ -166,10 +223,22 @@ test.describe("regenerate and delete an episode", () => {
   });
 
   for (const scheme of ["light", "dark"] as const) {
+    test(`axe finds nothing with the menu open, ${scheme}`, async ({ page }) => {
+      await page.emulateMedia({ colorScheme: scheme });
+      await open(page);
+      await more(page).click();
+      await expect(menu(page)).toBeVisible();
+      await page.waitForTimeout(500);
+      const results = await new AxeBuilder({ page })
+        .withTags(["wcag2a", "wcag2aa", "wcag21a", "wcag21aa", "wcag22aa"])
+        .analyze();
+      expect(results.violations.map((v) => v.id)).toEqual([]);
+    });
+
     test(`axe finds nothing with the panel open, ${scheme}`, async ({ page }) => {
       await page.emulateMedia({ colorScheme: scheme });
       await open(page);
-      await regenerate(page).click();
+      await choose(page, "Regenerate");
       await expect(panel(page)).toBeVisible();
       await page.waitForTimeout(500);
       const results = await new AxeBuilder({ page })
@@ -181,7 +250,7 @@ test.describe("regenerate and delete an episode", () => {
     test(`axe finds nothing with the confirm open, ${scheme}`, async ({ page }) => {
       await page.emulateMedia({ colorScheme: scheme });
       await open(page);
-      await remove(page).click();
+      await choose(page, "Delete");
       await expect(confirm(page)).toBeVisible();
       await page.waitForTimeout(500);
       const results = await new AxeBuilder({ page })

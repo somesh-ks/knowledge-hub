@@ -1,7 +1,7 @@
 import { startRun } from "./runStatus";
 
 /**
- * Regenerate and Delete on an episode page. Loaded on the first press of either button, never with
+ * Regenerate and Delete on an episode page. Loaded on the first pick of either menu item, never with
  * the page. Each is a dialog cloned from a template in EpisodeActions.astro: the rewrite panel looks
  * like the Create sheet, and the removal is a small confirm. Every sentence it shows is in the
  * markup (`[data-k]`). A started run is handed to the run indicator (runStatus.ts), which follows it.
@@ -140,7 +140,13 @@ export function openEpisodeAction(trigger: HTMLElement): void {
   const selector = kind === "delete" ? "dialog.confirm-dialog" : "dialog.regen-sheet";
   const dialog = document.querySelector<HTMLDialogElement>(selector) ?? build(kind, root);
   if (!dialog || dialog.open) return;
-  const back = () => trigger.isConnected && trigger.focus();
+  // A pick from the menu hands focus back to the More button; the menu itself is closed by then.
+  const back = () => {
+    const target = trigger.closest("[popover]")
+      ? root.querySelector<HTMLElement>("[data-episode-more]")
+      : trigger;
+    if (target?.isConnected) target.focus();
+  };
   dialog.addEventListener("close", back, { once: true });
   dialog.showModal();
 }

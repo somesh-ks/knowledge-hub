@@ -43,5 +43,7 @@ const unavailable = mode === "expired" ? AUDIO_UNAVAILABLE_COPY.expired : null;
     <Icon name="check" class="share-done" />
   </button>
   <span class="sr-only" role="status" data-share-status></span>
+  {/* Whatever else the page keeps beside Share: an episode's More menu. */}
+  <slot />
 </div>
 {unavailable && <p class="hero-hint" id="play-hint">{unavailable.label}. {unavailable.hint}</p>}
