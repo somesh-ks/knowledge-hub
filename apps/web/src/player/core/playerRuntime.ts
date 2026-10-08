@@ -132,8 +132,10 @@ export function startPlayerRuntime(): () => void {
   const onPageLoad = (): void => {
     readPage(playerStore);
     reader.refresh();
-    if (!playerStore.getPageDigest()?.audio) {
-      void import("../../narration/prewarmPage").then((module) => module.prewarmWhenIdle());
+    if (navigator.onLine && !playerStore.getPageDigest()?.audio) {
+      import("../../narration/prewarmPage")
+        .then((module) => module.prewarmWhenIdle())
+        .catch(() => undefined);
     }
   };
   // A navigation never happens under an open player: the page goes down in one step first.

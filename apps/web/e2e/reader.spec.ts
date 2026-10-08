@@ -128,6 +128,22 @@ test.describe("the briefing header", () => {
         },
       }),
     );
+    // Asked about the first one, the server answers that it exists.
+    await page.route("**/api/narrate", (route) => {
+      if (route.request().method() !== "POST") return route.fallback();
+      const { segment } = route.request().postDataJSON() as { segment: string };
+      return route.fulfill({
+        json: {
+          status: 200,
+          segment: {
+            key: segment,
+            item_id: segment === "intro" ? null : segment,
+            characters: 300,
+            audio: { url: "/fixtures/audio.wav", duration_ms: 18_600, confirmed: true },
+          },
+        },
+      });
+    });
     await page.locator("[data-play-digest]").click();
     await expect(page.locator("html")).toHaveAttribute("data-player-state", "playing");
     const chip = page.locator("[data-play-digest]");

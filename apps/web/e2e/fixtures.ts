@@ -40,7 +40,7 @@ export const test = base.extend<Options & { problems: Problems }>({
         const isNetworkNoise =
           /Failed to load resource|net::ERR|Failed to fetch|Error hydrating/.test(text);
         if (allowNetworkErrors && isNetworkNoise) return;
-        problems.messages.push(`console: ${text}`);
+        problems.messages.push(`console: ${text} ${message.location().url}`);
       });
       page.on("pageerror", (error) => problems.messages.push(`pageerror: ${error.message}`));
       await page.addInitScript(() => {
