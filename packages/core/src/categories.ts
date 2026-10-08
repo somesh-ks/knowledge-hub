@@ -31,9 +31,30 @@ export const NEVER_PUBLISH: readonly Category[] = [
   "generic_ai_hype_listicles",
 ];
 
-export const SECTIONS = ["top", "ui-craft", "ai", "tech", "research", "launches", "watch"] as const;
+export const SECTIONS = [
+  "top",
+  "design",
+  "ui-craft",
+  "ai",
+  "tech",
+  "trending",
+  "research",
+  "launches",
+  "watch",
+] as const;
 export const Section = z.enum(SECTIONS);
 export type Section = z.infer<typeof Section>;
+
+/**
+ * Sections that no longer receive stories (D39). They stay known ids so a briefing published
+ * before the change keeps its headings and keeps validating. HCI research now goes to Design,
+ * developer tool launches to Design Engineering, and a video to the section of its topic.
+ */
+export const RETIRED_SECTIONS = ["research", "launches", "watch"] as const;
+
+export function isRetiredSection(id: string): boolean {
+  return (RETIRED_SECTIONS as readonly string[]).includes(id);
+}
 
 /**
  * An id for a category, topic or section as it is persisted: lowercase letters, digits, hyphens
@@ -63,9 +84,11 @@ export function isBuiltinCategory(id: string): id is Category {
 
 export const SECTION_TITLES: Record<Section, string> = {
   top: "Top picks",
-  "ui-craft": "Interaction craft",
-  ai: "AI models and products",
-  tech: "Tech releases",
+  design: "Design",
+  "ui-craft": "Design Engineering",
+  ai: "AI Products",
+  tech: "Tech Product Launches",
+  trending: "Trending",
   research: "Research",
   launches: "Launches",
   watch: "Watch and listen",
@@ -76,35 +99,48 @@ const HOME_SECTION: Record<Category, Section | null> = {
   ui_component_primitives: "ui-craft",
   css_canvas_motion_techniques: "ui-craft",
   taste_and_design_philosophy: "ui-craft",
+  developer_tool_launches: "ui-craft",
   ai_ux_interaction_patterns: "ai",
   frontier_model_releases: "ai",
-  hci_empirical_research: "research",
-  developer_tool_launches: "launches",
+  hci_empirical_research: "design",
   venture_capital_and_gossip: null,
   generic_ai_hype_listicles: null,
   consumer_tech_releases: "tech",
 };
 
-/** The category behind the Tech releases section. Ranked by launch scale instead of craft depth. */
+/** The category behind the Tech Product Launches section. Ranked by launch scale instead of craft depth. */
 export const TECH_CATEGORY = "consumer_tech_releases" satisfies Category;
 
 /** The section with its own allowance of items. Its stories never move to Top picks. */
 export const TECH_SECTION = "tech" satisfies Section;
 
+/** Ids of the two topics that ship with the app (D39). Both are judged by fit, like a custom topic. */
+export const DESIGN_TOPIC_ID = "design";
+export const TRENDING_TOPIC_ID = "trending";
+
+/** The Trending section: stories several outlets cover at once. Own allowance, never a Top pick. */
+export const TRENDING_SECTION = "trending" satisfies Section;
+
+/** A story is Trending only when at least this many distinct outlets reported it... */
+export const TRENDING_MIN_OUTLETS = 2;
+/** ...within this many hours of each other. */
+export const TRENDING_WINDOW_HOURS = 48;
+
 /**
  * True for a section that takes its stories from an allowance of its own, outside the main cap:
- * Tech releases, and every section a custom topic defines. A custom topic placed in a built-in
- * section shares that section's room under the main cap instead.
+ * Tech Product Launches, Trending, and every section a custom topic defines. A custom topic
+ * placed in a built-in section shares that section's room under the main cap instead, as Design
+ * does.
  */
 export function hasOwnAllowance(section: string): boolean {
-  return section === TECH_SECTION || !isBuiltinSection(section);
+  return section === TECH_SECTION || section === TRENDING_SECTION || !isBuiltinSection(section);
 }
 
 /**
- * Home section for a category. Video items go to "watch" by source type, whatever their category.
- * Returns null for categories that never publish.
+ * Home section for a category. A video goes to the section of its category like any other story;
+ * "watch" no longer receives stories (D39). The source type stays in the signature so callers
+ * need not change. Returns null for categories that never publish.
  */
-export function homeSection(category: Category, sourceType: string): Section | null {
-  if (sourceType === "youtube") return "watch";
+export function homeSection(category: Category, _sourceType?: string): Section | null {
   return HOME_SECTION[category];
 }

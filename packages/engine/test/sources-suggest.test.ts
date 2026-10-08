@@ -8,7 +8,7 @@ import {
   collectDomains,
   createExaSearch,
   freshnessOf,
-  MAX_ADDED,
+  MAX_SUGGESTED,
   MIN_QUALITY,
   passRateOf,
   priorOf,
@@ -219,7 +219,7 @@ describe("suggestForTopic", () => {
 
     expect(queries).toEqual(suggestionQueries(quantum));
     expect(result.queries).toEqual(queries);
-    expect(MAX_ADDED).toBe(3);
+    expect(MAX_SUGGESTED).toBe(6);
     expect(MIN_QUALITY).toBe(0.6);
 
     const byHost = Object.fromEntries(result.candidates.map((c) => [new URL(c.url).host, c]));
@@ -228,14 +228,14 @@ describe("suggestForTopic", () => {
 
     // good.example: fit 1, every item passes, fresh, well formed, three searches agree.
     expect(byHost["good.example"]).toMatchObject({
-      status: "added",
+      status: "suggested",
       q: 0.98,
       parts: { fit: 1, pass_rate: 1, freshness: 1, reliability: 1, prior: 0.8 },
       entries: 8,
       recent_entries: 8,
       feed_url: "https://good.example/feed.xml",
     });
-    expect(byHost["second.example"]).toMatchObject({ status: "added", parts: { fit: 0.75 } });
+    expect(byHost["second.example"]).toMatchObject({ status: "suggested", parts: { fit: 0.75 } });
     expect(byHost["low.example"]).toMatchObject({
       status: "below_bar",
       parts: { fit: 0.25, pass_rate: 0 },
@@ -253,31 +253,25 @@ describe("suggestForTopic", () => {
     });
     expect(byHost["nofeed.example"]).toMatchObject({ status: "rejected", reason: "no feed found" });
 
-    // Of the four good sites, three are added (best first) and the fourth is just outside the top.
-    expect(result.added).toHaveLength(3);
-    const statuses = ["good.example", "second.example", "third.example", "fourth.example"].map(
-      (host) => byHost[host]?.status,
-    );
-    expect(statuses.filter((s) => s === "added")).toHaveLength(3);
-    expect(statuses.filter((s) => s === "not_top")).toHaveLength(1);
-    const qs = result.added.map((s) => s.quality?.score ?? 0);
-    expect(qs).toEqual([...qs].sort((a, b) => b - a));
-    expect(result.added[0]).toMatchObject({
-      id: "good-example",
-      origin: "auto",
-      type: "rss",
-      topic_ids: ["quantum_computing"],
-      feed_url: "https://good.example/feed.xml",
-      quality: { score: 0.98, scored_at: NOW.toISOString() },
-      enabled: true,
-    });
-    // The id in the report is the id the source got.
-    expect(result.added.map((s) => s.id)).toEqual(
-      result.candidates
-        .filter((c) => c.status === "added")
-        .sort((a, b) => (b.q ?? 0) - (a.q ?? 0))
-        .map((c) => c.id),
-    );
+    // The four good sites are suggested; nothing is added to the registry (D40).
+    expect(result).not.toHaveProperty("added");
+    const good = ["good.example", "second.example", "third.example", "fourth.example"];
+    expect(good.map((host) => byHost[host]?.status)).toEqual(Array(4).fill("suggested"));
+    expect(MAX_SUGGESTED).toBeGreaterThanOrEqual(4);
+  });
+
+  it("suggests at most MAX_SUGGESTED, the rest are marked not_top", async () => {
+    const many: Site[] = Array.from({ length: MAX_SUGGESTED + 2 }, (_, n) => ({
+      host: `site${n}.example`,
+      entries: datedEntries(`site${n}.example`, 8, NOW, n),
+      fit: 1,
+      hits: 1,
+    }));
+    const { deps } = depsFor(many);
+    const result = await suggestForTopic(input, deps);
+    const count = (status: string) => result.candidates.filter((c) => c.status === status).length;
+    expect(count("suggested")).toBe(MAX_SUGGESTED);
+    expect(count("not_top")).toBe(2);
   });
 
   it("takes the fit from at most eight recent items per feed", async () => {
@@ -296,7 +290,7 @@ describe("suggestForTopic", () => {
       parts: { fit: 0, pass_rate: 0 },
       reason: "the topic judge answered no items",
     });
-    expect(result.added).toEqual([]);
+    expect(result.candidates.some((c) => c.status === "suggested")).toBe(false);
   });
 
   it("fails only when every search fails, and a failed search costs nothing else", async () => {
@@ -307,7 +301,7 @@ describe("suggestForTopic", () => {
       if (n === 1) throw new Error("rate limited");
       return ["https://good.example/posts/a-post"];
     };
-    expect((await suggestForTopic(input, deps)).added).toHaveLength(1);
+    expect((await suggestForTopic(input, deps)).candidates).toHaveLength(1);
     deps.search = async () => {
       throw new Error("Exa is down");
     };
@@ -386,7 +380,7 @@ describe("dispatch sources suggest", () => {
 
   const command = (sites: readonly Site[] = SITES) => makeSourcesCommand(() => depsFor(sites).deps);
 
-  it("adds the best sources, records every candidate, and writes only files the config command may", async () => {
+  it("records every candidate, adds no source, and writes only files the config command may", async () => {
     expect(await command()(["suggest", "--topic", "quantum_computing"], repo.context())).toBe(0);
     expect(JSON.parse(out.join(""))).toMatchObject({
       topic: "quantum_computing",
@@ -394,13 +388,8 @@ describe("dispatch sources suggest", () => {
       dry_run: false,
     });
 
-    const user = await repo.readJson<{
-      added: { id: string; origin: string; topic_ids: string[] }[];
-    }>("config/sources.user.json");
-    expect(user.added).toHaveLength(3);
-    expect(
-      user.added.every((s) => s.origin === "auto" && s.topic_ids[0] === "quantum_computing"),
-    ).toBe(true);
+    // Discovery only suggests: the registry the owner edits is untouched.
+    expect(repo.dirty()).not.toContain("config/sources.user.json");
 
     const candidates = await repo.readJson<SourceCandidatesFile>("state/source-candidates.json");
     const entry = candidates.topics.quantum_computing;
@@ -415,17 +404,14 @@ describe("dispatch sources suggest", () => {
     expect(repo.dirty()).toContain("state/source-candidates.json");
   });
 
-  it("does not look at sites it already added, and keeps them listed on a second run", async () => {
+  it("replaces the topic's candidates on a second run and lists each site once", async () => {
     await command()(["suggest", "--topic", "quantum_computing"], repo.context());
     await command()(["suggest", "--topic", "quantum_computing"], repo.context());
-    // Three were added the first time; the fourth good site, left out of the top three, joins now.
-    const user = await repo.readJson<{ added: { id: string }[] }>("config/sources.user.json");
-    expect(user.added).toHaveLength(4);
-    expect(new Set(user.added.map((s) => s.id)).size).toBe(4);
     const candidates = await repo.readJson<SourceCandidatesFile>("state/source-candidates.json");
     expect(Object.keys(candidates.topics)).toEqual(["quantum_computing"]);
     const entry = candidates.topics.quantum_computing?.candidates ?? [];
-    expect(entry.filter((c) => c.status === "added")).toHaveLength(4);
+    expect(entry).toHaveLength(SITES.length);
+    expect(entry.filter((c) => c.status === "suggested")).toHaveLength(4);
     expect(new Set(entry.map((c) => c.id)).size).toBe(entry.length);
   });
 

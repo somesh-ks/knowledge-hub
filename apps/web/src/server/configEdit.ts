@@ -52,6 +52,8 @@ const MAX_KEYWORD = 40;
 const MAX_URL = 2048;
 const MAX_TOPIC_IDS = 12;
 const MAX_WEIGHTS = 100;
+/** A new topic and the sources chosen for it: one topic, up to six sources, and room to spare. */
+export const MAX_OPS = 8;
 
 function isRecord(value: unknown): value is Record<string, unknown> {
   return typeof value === "object" && value !== null && !Array.isArray(value);
@@ -209,8 +211,13 @@ export function parseConfigOp(value: unknown): ConfigOp | null {
   }
 }
 
-/** Pulls the passphrase and the edit out of a JSON body, or null when the body is not valid. */
-export function parseConfigRequest(bodyText: string): { passphrase: string; op: ConfigOp } | null {
+/**
+ * Pulls the passphrase and the edit out of a JSON body, or null when the body is not valid. `op` is
+ * one edit, or a list of 1 to 8 that are applied together; one bad entry refuses the whole list.
+ */
+export function parseConfigRequest(
+  bodyText: string,
+): { passphrase: string; op: ConfigOp | ConfigOp[] } | null {
   if (bodyText.length === 0 || bodyText.length > MAX_CONFIG_BODY_CHARS) return null;
   let parsed: unknown;
   try {
@@ -222,6 +229,11 @@ export function parseConfigRequest(bodyText: string): { passphrase: string; op: 
   const passphrase = parsed.passphrase;
   if (typeof passphrase !== "string") return null;
   if (passphrase.length === 0 || passphrase.length > MAX_PASSPHRASE_CHARS) return null;
+  if (Array.isArray(parsed.op)) {
+    if (parsed.op.length === 0 || parsed.op.length > MAX_OPS) return null;
+    const ops = parsed.op.map(parseConfigOp);
+    return ops.every((op): op is ConfigOp => op !== null) ? { passphrase, op: ops } : null;
+  }
   const op = parseConfigOp(parsed.op);
   return op === null ? null : { passphrase, op };
 }
@@ -270,7 +282,9 @@ export async function handleConfig(input: ConfigInput, deps: ConfigDeps): Promis
     }
 
     const startedAt = deps.now();
-    let runId = await github.dispatch({ op: JSON.stringify(request.op) });
+    // One edit goes as it always did, an object; several go as an array in the same input.
+    const edit = Array.isArray(request.op) && request.op.length === 1 ? request.op[0] : request.op;
+    let runId = await github.dispatch({ op: JSON.stringify(edit) });
     for (let attempt = 0; runId === null && attempt < RUN_LOOKUP_ATTEMPTS; attempt += 1) {
       // GitHub started the run but did not name it. The newest run created since the request is it.
       await deps.delay(RUN_LOOKUP_DELAY_MS);

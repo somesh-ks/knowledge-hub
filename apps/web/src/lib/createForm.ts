@@ -1,4 +1,3 @@
-import { SECTION_TITLES, SECTIONS } from "@dispatch/core";
 import type { PodcastRequest } from "../types/contracts";
 import { CHARS_PER_MINUTE } from "./episodeFile";
 import { pluralize } from "./format";
@@ -40,7 +39,30 @@ export const TONES: ReadonlyArray<{ value: PodcastRequest["tone"]; label: string
   { value: "dry", label: "Dry" },
 ];
 
-export const DEFAULTS = { length: 5, format: "readout", window: 7, tone: "neutral" } as const;
+export const AUDIENCES: ReadonlyArray<{
+  value: NonNullable<PodcastRequest["audience"]>;
+  label: string;
+  hint: string;
+}> = [
+  {
+    value: "general",
+    label: "General",
+    hint: "Written for anyone. Explains terms as it goes.",
+  },
+  {
+    value: "custom",
+    label: "Customized",
+    hint: "Written for you. Also draws on your own topics.",
+  },
+];
+
+export const DEFAULTS = {
+  audience: "custom",
+  length: 5,
+  format: "readout",
+  window: 7,
+  tone: "neutral",
+} as const;
 
 /** "About 5 minutes, roughly 4,800 characters of narration." */
 export function estimateText(minutes: number): string {
@@ -49,30 +71,62 @@ export function estimateText(minutes: number): string {
 }
 
 export interface TopicOption {
-  /** A section id: built in, or one that came with a topic the owner added. */
+  /** A section id. */
   value: string;
   label: string;
+  /** True for a topic the owner added: offered in Customized mode only. */
+  custom: boolean;
 }
 
 /**
- * The topics to offer: the sections that appear in published briefings, in the order a briefing
- * lists them. With no briefing published yet there is nothing to go by, so every section is offered.
+ * The topics every episode can draw on, in the order the app lists them. Top picks is not here: an
+ * episode always opens with the top picks of its window, so it is never a choice. The titles are
+ * only a fallback; config/topics.json names the sections and wins.
  */
-export function topicOptions(appearing: Iterable<{ id: string; title: string }>): TopicOption[] {
-  const titles = new Map<string, string>();
-  for (const section of appearing)
-    if (!titles.has(section.id)) titles.set(section.id, section.title);
-  if (titles.size === 0)
-    return SECTIONS.map((slug) => ({ value: slug, label: SECTION_TITLES[slug] }));
-  // The built-in sections keep their usual order; sections that came with a topic the owner added
-  // follow, in the order they first appear.
-  const builtin = SECTIONS.filter((slug) => titles.has(slug)).map((slug) => ({
-    value: slug as string,
-    label: SECTION_TITLES[slug],
+export const CREATE_SECTIONS: ReadonlyArray<{ id: string; title: string }> = [
+  { id: "design", title: "Design" },
+  { id: "ui-craft", title: "Design Engineering" },
+  { id: "ai", title: "AI Products" },
+  { id: "tech", title: "Tech Product Launches" },
+  { id: "trending", title: "Trending" },
+];
+
+/** What topicOptions needs to know of a topic in config/topics.json. */
+export interface TopicInfo {
+  name: string;
+  section_id: string;
+  origin: "builtin" | "custom";
+  enabled: boolean;
+  never_publish: boolean;
+}
+
+/**
+ * The topics to offer: always the five above, whether or not a recent briefing has stories in them,
+ * titled as config/topics.json titles their sections. After them come the owner's own topics (the
+ * custom ones that are on), each by the section it publishes to and only when that section is not
+ * one of the five already; the page shows these in Customized mode only.
+ */
+export function topicOptions(
+  sections: ReadonlyArray<{ id: string; title: string }>,
+  topics: readonly TopicInfo[],
+): TopicOption[] {
+  const titles = new Map(sections.map((section) => [section.id, section.title]));
+  const offered = CREATE_SECTIONS.map(({ id, title }) => ({
+    value: id,
+    label: titles.get(id) ?? title,
+    custom: false,
   }));
-  const known = new Set<string>(SECTIONS);
-  const custom = [...titles]
-    .filter(([id]) => !known.has(id))
-    .map(([value, label]) => ({ value, label }));
-  return [...builtin, ...custom];
+  const taken = new Set(["top", ...CREATE_SECTIONS.map((section) => section.id)]);
+  const own: TopicOption[] = [];
+  for (const topic of topics) {
+    if (topic.origin !== "custom" || !topic.enabled || topic.never_publish) continue;
+    if (taken.has(topic.section_id)) continue;
+    taken.add(topic.section_id);
+    own.push({
+      value: topic.section_id,
+      label: titles.get(topic.section_id) ?? topic.name,
+      custom: true,
+    });
+  }
+  return [...offered, ...own];
 }

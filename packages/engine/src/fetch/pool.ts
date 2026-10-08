@@ -41,6 +41,16 @@ export const PoolFile = z.object({
       dropped: z.object({ disliked: count, not_relevant: count, source_cap: count, cap: count }),
       /** The consumer tech sub-pool, which has its own cap beside the main one. */
       tech: z.object({ input: count, kept: count, source_cap: count, cap: count }),
+      /** The Trending sub-pool: stories at least two outlets covered. */
+      trending: z
+        .object({
+          input: count,
+          single_outlet: count,
+          kept: count,
+          source_cap: count,
+          cap: count,
+        })
+        .default({ input: 0, single_outlet: 0, kept: 0, source_cap: 0, cap: 0 }),
     }),
   }),
   /** Best candidate first. Item text is untrusted. */

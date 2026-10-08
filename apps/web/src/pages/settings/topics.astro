@@ -3,11 +3,13 @@ import Icon from "../../components/Icon.astro";
 import ManageChrome from "../../components/ManageChrome.astro";
 import BaseLayout from "../../layouts/BaseLayout.astro";
 import { loadManage, WEIGHT_STEP_MAX, WEIGHT_STEPS } from "../../lib/manage";
+import { catalogLine, loadSourceCatalog } from "../../lib/sourceCatalog";
 // The switch and the slider are the settings page's own; the rows and fields are manage.css.
 import "../../styles/settings.css";
 import "../../styles/manage.css";
 
-const { topics, defaultSectionId } = await loadManage();
+const { topics } = await loadManage();
+const catalog = await loadSourceCatalog();
 // A topic that never publishes has nothing to turn on or weigh, so it comes last and stays plain.
 const editable = topics.filter((topic) => !topic.never_publish);
 const fixed = topics.filter((topic) => topic.never_publish);
@@ -22,7 +24,6 @@ const fixed = topics.filter((topic) => topic.never_publish);
       data-manage="topics"
       data-steps={WEIGHT_STEPS.join("|")}
       data-taken={topics.map((topic) => topic.id).join(" ")}
-      data-section={defaultSectionId}
     >
       <a class="btn manage-back press press-subtle" href="/settings">
         <Icon name="arrowBack" />
@@ -60,25 +61,39 @@ const fixed = topics.filter((topic) => topic.never_publish);
               maxlength="400"
               rows="3"></textarea>
           </div>
-          <div class="manage-field">
-            <label for="topic-keywords">Keywords, optional</label>
-            <input
-              class="manage-input"
-              id="topic-keywords"
-              name="keywords"
-              type="text"
-              placeholder="spring, easing, shader"
-              autocomplete="off"
-              autocapitalize="none"
-              spellcheck="false"
-            />
-          </div>
+          <fieldset class="manage-suggest-group" data-suggestions hidden>
+            <legend class="manage-legend">Suggested sources</legend>
+            <p class="manage-quiet manage-legend-hint">Free feeds that suit this topic. Tick the ones to follow.</p>
+            <ul class="rows" role="list">
+              {
+                catalog.map((source) => (
+                  <li
+                    hidden
+                    data-offer={source.name}
+                    data-tags={source.tags.join(" ")}
+                    data-feed={source.feed_url}
+                  >
+                    <label class="manage-pick">
+                      <input type="checkbox" name="source" value={source.feed_url} />
+                      <span class="manage-text">
+                        <span class="manage-name">{source.name}</span>
+                        <span class="manage-quiet">{catalogLine(source)}</span>
+                      </span>
+                    </label>
+                  </li>
+                ))
+              }
+            </ul>
+          </fieldset>
+          <p class="manage-quiet" data-no-suggestions hidden>
+            No free sources match yet. Suggestions appear on the Sources page about a minute after you save.
+          </p>
           <button class="btn-primary manage-submit press press-subtle" type="submit">
             <Icon name="plus" />
             <span>Add topic</span>
           </button>
           <p class="manage-note">
-            Adding a topic also looks for the best sources for it. Changes show up after about a minute.
+            Changes show up after about a minute.
           </p>
         </form>
 

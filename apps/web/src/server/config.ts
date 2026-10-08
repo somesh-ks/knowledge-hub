@@ -8,7 +8,7 @@ export interface ServerEnv {
   GENERATE_PASSPHRASE_HASH?: string;
   SPEECHIFY_API_KEY?: string;
   SPEECHIFY_VOICE_ID?: string;
-  /** The second host of a two-voice episode. Unset means the first voice reads both. */
+  /** The second host of a two-voice episode. Blank means the first voice reads both. */
   SPEECHIFY_VOICE_ID_B?: string;
   SPEECHIFY_MONTHLY_CHARS?: string;
   /** The Blob store's long-lived token. Vercel injects it when the store is connected that way. */
@@ -111,6 +111,20 @@ export function readVoiceId(env: ServerEnv): string | undefined | null {
   const voiceId = env.SPEECHIFY_VOICE_ID?.trim();
   if (!voiceId) return undefined;
   return VOICE_ID.test(voiceId) ? voiceId : null;
+}
+
+/**
+ * The second host's voice when SPEECHIFY_VOICE_ID_B is not set at all: a deeper male voice from the
+ * same generation as the default first voice (geffen_32), so a discussion sounds like two people.
+ * Checked against the Speechify catalogue on 2026-10-08.
+ */
+export const DEFAULT_SECOND_VOICE = "dominic_32";
+
+/** The environment a narration route reads, with the second voice filled in when nothing sets it. */
+export function withSecondVoice<T extends ServerEnv>(env: T): T {
+  return env.SPEECHIFY_VOICE_ID_B === undefined
+    ? { ...env, SPEECHIFY_VOICE_ID_B: DEFAULT_SECOND_VOICE }
+    : env;
 }
 
 /**

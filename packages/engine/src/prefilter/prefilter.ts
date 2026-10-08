@@ -1,5 +1,5 @@
 import type { Item, Preferences, Source, SourceType } from "@dispatch/core";
-import { categoryHint, isTechHinted } from "../sources/hint.js";
+import { categoryHint, isDesignHinted, isTechHinted, isTrendingHinted } from "../sources/hint.js";
 import { authorMatches, containsPhrase, keywordRegExp } from "./phrase.js";
 import { releaseWeight } from "./releaseWeight.js";
 
@@ -9,6 +9,13 @@ export const DEFAULT_CAP = 60;
  * section publishes five, so twenty leaves the judge four to choose from for every slot.
  */
 export const TECH_CAP = 20;
+/**
+ * Candidates the Trending beat may send to the judge. Only stories at least two outlets covered
+ * get this far, ranked by coverage, and the section publishes five.
+ */
+export const TRENDING_CAP = 12;
+/** A Trending story needs this many distinct outlets (D40). */
+export const MIN_TRENDING_COVERAGE = 2;
 /** HN points above which an item stays even with no keyword or author match. */
 export const STRONG_HN_POINTS = 100;
 
@@ -37,6 +44,8 @@ export interface PrefilterInput {
   cap?: number;
   /** Cap for the consumer tech beat. */
   techCap?: number;
+  /** Cap for the Trending beat. */
+  trendingCap?: number;
 }
 
 export interface PrefilterReport {
@@ -57,6 +66,14 @@ export interface PrefilterReport {
   /** The consumer tech sub-pool on its own: what entered it, what stayed, and what each cap cut. */
   tech: {
     input: number;
+    kept: number;
+    source_cap: number;
+    cap: number;
+  };
+  /** The Trending sub-pool: what entered it, what only one outlet carried, what stayed. */
+  trending: {
+    input: number;
+    single_outlet: number;
     kept: number;
     source_cap: number;
     cap: number;
@@ -141,6 +158,7 @@ export function prefilter({
   now,
   cap = DEFAULT_CAP,
   techCap = TECH_CAP,
+  trendingCap = TRENDING_CAP,
 }: PrefilterInput): PrefilterResult {
   const sourceById = new Map(sources.map((source) => [source.id, source]));
   const keywords = preferences.preferred_keywords.map((keyword) => keywordRegExp(keyword));
@@ -149,10 +167,12 @@ export function prefilter({
     kept: 0,
     dropped: { disliked: 0, not_relevant: 0, source_cap: 0, cap: 0 },
     tech: { input: 0, kept: 0, source_cap: 0, cap: 0 },
+    trending: { input: 0, single_outlet: 0, kept: 0, source_cap: 0, cap: 0 },
   };
 
   const main: Scored[] = [];
   const tech: Scored[] = [];
+  const trending: Scored[] = [];
   for (const item of items) {
     const text = `${item.title} ${item.snippet}`;
     if (preferences.disliked_patterns.some((pattern) => containsPhrase(text, pattern))) {
@@ -162,6 +182,19 @@ export function prefilter({
 
     const source = sourceById.get(item.source_id);
     const recency = recencyOf(item, now);
+    // General news outlets feed Trending and nothing else (D40). Only a story several outlets
+    // carried goes on, ranked by how many; a story one outlet carried never qualifies.
+    if (isTrendingHinted(item, source)) {
+      report.trending.input++;
+      const coverage = item.signals.coverage ?? 1;
+      if (coverage < MIN_TRENDING_COVERAGE) {
+        report.trending.single_outlet++;
+        report.dropped.not_relevant++;
+        continue;
+      }
+      trending.push({ item, score: 2 * Math.log2(1 + coverage) + recency });
+      continue;
+    }
     if (isTechHinted(item, source)) {
       const coverage = Math.max(1, item.signals.coverage ?? 1);
       tech.push({ item, score: 2 * Math.log2(1 + coverage) + recency });
@@ -179,7 +212,9 @@ export function prefilter({
     const hnPoints = item.signals.hn_points ?? 0;
     const strong = hnPoints > STRONG_HN_POINTS;
 
-    if (titleHits + snippetHits === 0 && !authorHit && !highSignal && !strong) {
+    // A source shipped for Design is relevant by being tagged, as the tech beat is by its hint.
+    const designTagged = isDesignHinted(item, source);
+    if (titleHits + snippetHits === 0 && !authorHit && !highSignal && !strong && !designTagged) {
       report.dropped.not_relevant++;
       continue;
     }
@@ -204,11 +239,15 @@ export function prefilter({
   report.tech.input = tech.length;
   const mainPool = rankAndCap(main, cap, sourceById);
   const techPool = rankAndCap(tech, techCap, sourceById);
+  const trendingPool = rankAndCap(trending, trendingCap, sourceById);
+  report.trending.kept = trendingPool.kept.length;
+  report.trending.source_cap = trendingPool.overSource;
+  report.trending.cap = trendingPool.overCap;
   report.tech.kept = techPool.kept.length;
   report.tech.source_cap = techPool.overSource;
   report.tech.cap = techPool.overCap;
-  report.dropped.source_cap = mainPool.overSource + techPool.overSource;
-  report.dropped.cap = mainPool.overCap + techPool.overCap;
-  report.kept = mainPool.kept.length + techPool.kept.length;
-  return { items: [...mainPool.kept, ...techPool.kept], report };
+  report.dropped.source_cap = mainPool.overSource + techPool.overSource + trendingPool.overSource;
+  report.dropped.cap = mainPool.overCap + techPool.overCap + trendingPool.overCap;
+  report.kept = mainPool.kept.length + techPool.kept.length + trendingPool.kept.length;
+  return { items: [...mainPool.kept, ...techPool.kept, ...trendingPool.kept], report };
 }

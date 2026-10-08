@@ -381,11 +381,11 @@ describe("scoreItem for consumer tech", () => {
     expect(topCategory(tied)).toBe("developer_tool_launches");
   });
 
-  it("sends a tech video to the watch section while still scoring it by launch scale", () => {
+  it("files a tech video in the tech section, not watch, while still scoring it by launch scale", () => {
     const item = makeItem({ source_type: "youtube" });
     const scored = scoreItem(makeEntry(item, { category: TECH, launchScale: 0.75 }), prefs, item);
     expect(scored.score).toBe(0.7675);
     const verdict = eligibility(scored);
-    expect(verdict.eligible && verdict.candidate.home).toBe("watch");
+    expect(verdict.eligible && verdict.candidate.home).toBe("tech");
   });
 });

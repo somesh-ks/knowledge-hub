@@ -2,6 +2,9 @@
 
 One line each: symptom, cause, fix. Newest first. Search before debugging.
 
+- Create, Generate and saving topics all answered "not available right now" on production: the site's fine-grained GitHub token was valid but had no access to this repository, so GitHub answered 404 for the repo, its workflows and its runs. `doctor --online` does not check `GITHUB_DISPATCH_TOKEN`; it should.
+- A discussion episode had one voice: `SPEECHIFY_VOICE_ID_B` was read but set nowhere, not in `.env.example` and not in `secrets:push`. A setting a feature depends on needs a default or a place in the setup path.
+- Browser suites showed failures from another session's build: every session writes `apps/web/dist`. A page reading "10 stories" in a fixture run is the real briefing; rerun, and give each session its own worktree.
 - Hidden elements rendered on four pages (an error icon with no error, a save bar with nothing to save): the `[hidden]` rule relied on being imported last, and the build reorders stylesheet chunks. The rule now carries an id's weight, and `e2e/hidden.spec.ts` checks every built page.
 - Flick tests failed about one run in seven: the harness asks for 8 ms between touch moves and the page receives them 30 to 50 ms apart, which put a six-step flick on the velocity threshold. Synthesize a flick in three large steps, and log the events the page received before blaming the gesture code.
 - Every lab test failed with `_jsxDEV is not a function`: the dev server's dependency cache went stale while a build ran beside it. Delete `apps/web/node_modules/.vite/deps` and start the dev server on its own.
@@ -37,3 +40,4 @@ One line each: symptom, cause, fix. Newest first. Search before debugging.
 - Local Windows builds of the Vercel adapter fail on symlinks: use `DISPATCH_STATIC_ONLY=1`.
 - Nebius model ids change; take them from `dispatch models`, not docs (D24).
 - Auto-mode classifier blocks credential creation, store deletion and merging unreviewed PRs; the owner runs those.
+- 2026-10-08: heredoc-built edit scripts with backticks or backslashes aborted the shell; write them with the Write tool. A test that misfiles a story into a retired section no longer fails validation, because published briefings must still validate; use a live section instead.

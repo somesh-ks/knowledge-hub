@@ -1,8 +1,14 @@
 import { readFile } from "node:fs/promises";
 import { join } from "node:path";
 import { parseArgs } from "node:util";
-import { CONFIG_FILES, ConfigOp, SourcesUserFile, STATE_FILES } from "@dispatch/core";
-import { applyConfigOp, type ConfigBundle, ConfigOpError, tidy } from "../config/applyOp.js";
+import { CONFIG_FILES, parseConfigOps, SourcesUserFile, STATE_FILES } from "@dispatch/core";
+import {
+  applyConfigOp,
+  type ConfigBundle,
+  ConfigOpError,
+  type OpOutcome,
+  tidy,
+} from "../config/applyOp.js";
 import { type CommandContext, type CommandRun, redact, secretsFromEnv } from "../context.js";
 import { loadPreferences } from "../curate/inputs.js";
 import { loadQueries, QUERIES_PATH } from "../fetch/queries.js";
@@ -17,8 +23,10 @@ import { loadTopics, serializeTopics } from "../topics/store.js";
 
 const USAGE = `Usage: dispatch config <command>
 
-  apply --op '<json>' [--dry-run]    Apply one change to the topics, sources, queries or weights.
-                                     One op per call. Network only for source.add (feed lookup).
+  apply --op '<json>' [--dry-run]    Apply a change to the topics, sources, queries or weights.
+                                     The op is one object or an array of 1 to 8; an array is checked
+                                     whole, applied in order and lands all or nothing. Network only
+                                     for source.add (feed lookup).
   commit --message <text> [--no-push]
                                      Commit the files apply may change as chore(config): <text>
                                      and push. The write guard refuses anything else.
@@ -134,28 +142,40 @@ async function runApply(argv: string[], ctx: CommandContext, deps: ConfigDeps): 
     ctx.log.error("--op is not valid JSON.");
     return 1;
   }
-  const parsed = ConfigOp.safeParse(json);
+  const parsed = parseConfigOps(json);
   if (!parsed.success) {
     // One line per problem, so the caller sees which field to fix.
-    for (const issue of parsed.error.issues) {
+    for (const issue of parsed.issues) {
       ctx.log.error(`Invalid op at ${issue.path.join(".") || "(root)"}: ${issue.message}`);
     }
     return 1;
   }
 
+  // Every op was validated above. They now apply in order to one in-memory bundle, so an op can
+  // rely on an earlier one (a source hinted to a topic created just before it), and nothing is
+  // written unless all of them succeed.
   const before = await readBundle(ctx.root);
-  let outcome: Awaited<ReturnType<typeof applyConfigOp>>;
-  try {
-    outcome = await applyConfigOp(parsed.data, before, {
-      discover: { http: deps.http ?? createHttpClient({ retries: 1 }) },
-    });
-  } catch (error) {
-    if (error instanceof ConfigOpError) {
-      ctx.log.error(error.message);
-      return 1;
+  const outcomes: OpOutcome[] = [];
+  let current = before;
+  const discover = { http: deps.http ?? createHttpClient({ retries: 1 }) };
+  for (const [index, op] of parsed.data.entries()) {
+    try {
+      const outcome = await applyConfigOp(op, current, { discover });
+      outcomes.push(outcome);
+      current = outcome.next;
+    } catch (error) {
+      if (error instanceof ConfigOpError) {
+        ctx.log.error(
+          parsed.data.length === 1
+            ? error.message
+            : `Op ${index + 1} of ${parsed.data.length}: ${error.message}`,
+        );
+        return 1;
+      }
+      throw error;
     }
-    throw error;
   }
+  const outcome = combineOutcomes(outcomes);
 
   const was = renderBundle(before);
   const now = renderBundle(outcome.next);
@@ -173,7 +193,8 @@ async function runApply(argv: string[], ctx: CommandContext, deps: ConfigDeps): 
   const commitMessage = `chore(config): ${tidy(outcome.summary, 56)}`;
   const report = {
     ok: true,
-    op: parsed.data.op,
+    op: parsed.data.length === 1 ? (parsed.data[0]?.op ?? "batch") : "batch",
+    ops: parsed.data.length,
     summary: outcome.summary,
     commit_message: commitMessage,
     ...(outcome.topic_id ? { topic_id: outcome.topic_id } : {}),
@@ -187,6 +208,35 @@ async function runApply(argv: string[], ctx: CommandContext, deps: ConfigDeps): 
       : `${outcome.summary}${changed.length === 0 ? " (no change)" : `: ${changed.join(", ")}`}`,
   );
   return 0;
+}
+
+/**
+ * One outcome for a batch, for the report and the commit subject. A single op keeps its own
+ * summary. Several name the topic when one was created (the usual case: a topic and its sources),
+ * and otherwise count the changes. The topic id is the first one an op touched, and a new topic
+ * anywhere in the batch counts as new so the workflow still looks for suggestions.
+ */
+export function combineOutcomes(outcomes: readonly OpOutcome[]): OpOutcome {
+  const last = outcomes[outcomes.length - 1] as OpOutcome;
+  if (outcomes.length === 1) return last;
+  const created = outcomes.find((outcome) => outcome.new_topic === true);
+  const touched = created ?? outcomes.find((outcome) => outcome.topic_id !== undefined);
+  const others = outcomes.filter((outcome) => outcome !== created);
+  const sources = others.filter((outcome) => outcome.summary.startsWith("add source")).length;
+  let summary: string;
+  if (created && sources === others.length) {
+    summary = `${created.summary} with ${sources} source${sources === 1 ? "" : "s"}`;
+  } else if (!created && sources === outcomes.length) {
+    summary = `add ${sources} sources`;
+  } else {
+    summary = `${outcomes.length} config changes`;
+  }
+  return {
+    next: last.next,
+    summary,
+    ...(touched?.topic_id ? { topic_id: touched.topic_id } : {}),
+    ...(created ? { new_topic: true } : {}),
+  };
 }
 
 async function runCommit(argv: string[], ctx: CommandContext): Promise<number> {

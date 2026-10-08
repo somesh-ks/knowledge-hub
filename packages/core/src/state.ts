@@ -174,7 +174,11 @@ export const SourceCandidate = z.object({
   /** Entries in the feed, and how many were published in the last 30 days. */
   entries: z.number().int().nonnegative(),
   recent_entries: z.number().int().nonnegative(),
-  status: z.enum(["added", "below_bar", "not_top", "rejected"]),
+  /**
+   * "suggested" cleared the quality bar and is offered to the owner; discovery adds nothing by
+   * itself (D40). "added" only appears in files written before that: the source was added then.
+   */
+  status: z.enum(["suggested", "added", "below_bar", "not_top", "rejected"]),
   /** Why a candidate was rejected or skipped, in one sentence. */
   reason: z.string().optional(),
 });

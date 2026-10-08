@@ -72,3 +72,46 @@ export const ConfigOp = z.discriminatedUnion("op", [
 export type ConfigOp = z.input<typeof ConfigOp>;
 /** The op after validation, with every default applied. */
 export type ParsedConfigOp = z.output<typeof ConfigOp>;
+
+/** Most ops one request may carry: a topic and the handful of sources ticked for it. */
+export const MAX_CONFIG_OPS = 8;
+
+/** An array of 1 to 8 ops. */
+export const ConfigOpList = z.array(ConfigOp).min(1).max(MAX_CONFIG_OPS);
+
+/**
+ * One request's worth of changes: a single op, or an array of 1 to 8. A single op is wrapped, so
+ * the parsed value is always an array. `dispatch config apply --op` takes either form: every op
+ * is validated before any is applied, they apply in the order given (so a `topic.upsert` can
+ * precede the `source.add` ops hinted to it), and the batch lands as one commit or not at all.
+ */
+export const ConfigOpBatch = z.preprocess(
+  (value) => (Array.isArray(value) ? value : [value]),
+  ConfigOpList,
+);
+/** The batch as a caller writes it: one op, or an array of them. */
+export type ConfigOpBatch = ConfigOp | ConfigOp[];
+/** The batch after validation: always an array, defaults applied. */
+export type ParsedConfigOpBatch = ParsedConfigOp[];
+
+export type ConfigOpsResult =
+  | { success: true; data: ParsedConfigOpBatch }
+  | { success: false; issues: { path: (string | number)[]; message: string }[] };
+
+/**
+ * Validate one op or an array of ops. A single op reports problems at the paths it always did
+ * (`topic.name`); inside an array each path starts with the op's position.
+ */
+export function parseConfigOps(json: unknown): ConfigOpsResult {
+  const parsed = Array.isArray(json) ? ConfigOpList.safeParse(json) : ConfigOp.safeParse(json);
+  if (!parsed.success) {
+    return {
+      success: false,
+      issues: parsed.error.issues.map((issue) => ({
+        path: issue.path.map((part) => (typeof part === "symbol" ? String(part) : part)),
+        message: issue.message,
+      })),
+    };
+  }
+  return { success: true, data: Array.isArray(parsed.data) ? parsed.data : [parsed.data] };
+}

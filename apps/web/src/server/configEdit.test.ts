@@ -9,6 +9,7 @@ import {
   configCooldownSeconds,
   handleConfig,
   MAX_CONFIG_BODY_CHARS,
+  MAX_OPS,
   parseConfigOp,
   parseConfigRequest,
 } from "./configEdit";
@@ -200,6 +201,29 @@ describe("parseConfigRequest", () => {
     expect(parseConfigRequest(body(upsert))).toEqual({ passphrase: PASSPHRASE, op: upsert });
   });
 
+  it("reads a list of edits that belong together, in order", () => {
+    const add: ConfigOp = {
+      op: "source.add",
+      url: "https://a.example/feed",
+      topic_ids: ["motion-craft"],
+    };
+    expect(parseConfigRequest(body([upsert, add]))).toEqual({
+      passphrase: PASSPHRASE,
+      op: [upsert, add],
+    });
+  });
+
+  it("refuses a list that is empty, longer than eight, or holds one bad edit", () => {
+    const add: ConfigOp = { op: "source.add", url: "https://a.example/feed" };
+    expect(parseConfigRequest(body([]))).toBeNull();
+    expect(parseConfigRequest(body(Array(MAX_OPS + 1).fill(add)))).toBeNull();
+    expect(parseConfigRequest(body(Array(MAX_OPS).fill(add)))).not.toBeNull();
+    expect(
+      parseConfigRequest(body([upsert, { op: "source.add", url: "ftp://x.test" }])),
+    ).toBeNull();
+    expect(parseConfigRequest(body([[upsert]]))).toBeNull();
+  });
+
   it("rejects anything else", () => {
     const padded = `{"passphrase":"x","op":{"op":"topic.remove","id":"ab"},"pad":"${"y".repeat(MAX_CONFIG_BODY_CHARS)}"}`;
     for (const bad of [
@@ -286,6 +310,49 @@ describe("handleConfig", () => {
       inputs: { op: JSON.stringify(upsert) },
       return_run_details: true,
     });
+  });
+
+  it("dispatches a list of edits as one JSON array in the same input, after one cooldown check", async () => {
+    const { deps, github } = setup();
+    github.on(RUNS, { json: { workflow_runs: [] } });
+    github.on(DISPATCH, { json: { workflow_run_id: 77 } });
+    const add: ConfigOp = {
+      op: "source.add",
+      url: "https://a.example/feed",
+      topic_ids: ["motion-craft"],
+    };
+    const result = await handleConfig(
+      input(body([upsert, add, { ...add, url: "https://b.example/rss" }])),
+      deps,
+    );
+    expect(result).toEqual({ status: 202, body: { status: 202, run_id: 77 } });
+    const posts = github.requests.filter((request) => request.method === "POST");
+    expect(posts).toHaveLength(1);
+    expect(posts[0]?.body).toEqual({
+      ref: "main",
+      inputs: {
+        op: JSON.stringify([upsert, add, { ...add, url: "https://b.example/rss" }]),
+      },
+      return_run_details: true,
+    });
+  });
+
+  it("dispatches a list of one as the edit itself, as before", async () => {
+    const { deps, github } = setup();
+    github.on(RUNS, { json: { workflow_runs: [] } });
+    github.on(DISPATCH, { json: { workflow_run_id: 5 } });
+    await handleConfig(input(body([upsert])), deps);
+    const dispatch = github.requests.find((request) => request.method === "POST");
+    expect(dispatch?.body).toMatchObject({ inputs: { op: JSON.stringify(upsert) } });
+  });
+
+  it("refuses a list while the cooldown holds, as it would one edit", async () => {
+    const { deps, github } = setup();
+    github.on(RUNS, { json: { workflow_runs: [runJson({ created_at: secondsAgo(3) })] } });
+    const add: ConfigOp = { op: "source.add", url: "https://a.example/feed" };
+    const result = await handleConfig(input(body([upsert, add])), deps);
+    expect(result.status).toBe(429);
+    expect(github.requests.some((request) => request.method === "POST")).toBe(false);
   });
 
   it("dispatches only the validated edit, whatever else the caller sends", async () => {

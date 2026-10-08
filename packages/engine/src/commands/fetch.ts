@@ -158,6 +158,7 @@ export const run: CommandRun = async (argv: string[], ctx: CommandContext): Prom
       kept: filtered.report.kept,
       dropped: filtered.report.dropped,
       tech: filtered.report.tech,
+      trending: filtered.report.trending,
       pool: outPath,
     };
     if (ctx.json) {

@@ -72,8 +72,10 @@ describe("paths and sections", () => {
     expect(digestRelPath("2026-10-07-weekly")).toBe("Digests/2026/10/2026-10-07-weekly.md");
   });
   it("maps categories to sections", () => {
-    expect(homeSection("hci_empirical_research", "rss")).toBe("research");
-    expect(homeSection("design_engineering_craft", "youtube")).toBe("watch");
+    expect(homeSection("hci_empirical_research", "rss")).toBe("design");
+    expect(homeSection("developer_tool_launches", "rss")).toBe("ui-craft");
+    // A video goes where its category goes; "watch" no longer receives stories.
+    expect(homeSection("design_engineering_craft", "youtube")).toBe("ui-craft");
     expect(homeSection("venture_capital_and_gossip", "rss")).toBeNull();
   });
 });

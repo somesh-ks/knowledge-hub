@@ -260,7 +260,7 @@ describe("validateDigest", () => {
     const { digest } = buildFixtureDigest(8);
     const bad = clone(digest);
     const target = bad.items.find((i) => i.section !== "top") as { section: string };
-    target.section = target.section === "research" ? "launches" : "research";
+    target.section = target.section === "design" ? "trending" : "design";
     expect(codes(bad)).toContain("error:section_mismatch");
   });
 
@@ -332,7 +332,7 @@ describe("validateDigest", () => {
   it("rejects a tech story filed under another section, and another story filed under tech", () => {
     const { digest } = buildFixtureDigest(6, {}, "regular", 2);
     const misfiled = clone(digest);
-    (misfiled.items.find((i) => i.section === "tech") as { section: string }).section = "launches";
+    (misfiled.items.find((i) => i.section === "tech") as { section: string }).section = "design";
     expect(codes(misfiled)).toContain("error:section_mismatch");
     const wrong = clone(digest);
     (wrong.items.find((i) => i.section === "ai") as { section: string }).section = "tech";

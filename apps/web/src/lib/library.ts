@@ -6,16 +6,18 @@
  * Nothing here may import build-time code: this file ships to the browser with the page script.
  */
 
-export type LibraryFilter = "all" | "daily" | "weekly" | "episodes" | "audio";
+export type LibraryFilter = "all" | "daily" | "weekly" | "custom";
 export type LibrarySort = "newest" | "oldest" | "longest" | "stories";
 
 export const LIBRARY_FILTERS: ReadonlyArray<{ id: LibraryFilter; label: string }> = [
   { id: "all", label: "All" },
   { id: "daily", label: "Daily" },
   { id: "weekly", label: "Weekly" },
-  { id: "episodes", label: "Episodes" },
-  { id: "audio", label: "With audio" },
+  { id: "custom", label: "Custom" },
 ];
+
+/** The `kind` of a briefing made on request, with the Generate button, instead of on schedule. */
+const ON_DEMAND_KIND = "on-demand";
 
 export const LIBRARY_SORTS: ReadonlyArray<{ id: LibrarySort; label: string }> = [
   { id: "newest", label: "Newest first" },
@@ -57,10 +59,11 @@ export function normalize(text: string): string {
 }
 
 export function matchesFilter(card: CardData, filter: LibraryFilter): boolean {
+  // Custom is everything made on request: podcast episodes and briefings from the Generate button.
+  const custom = card.kind === EPISODE_KIND || card.kind === ON_DEMAND_KIND;
   if (filter === "weekly") return card.kind === "weekly";
-  if (filter === "episodes") return card.kind === EPISODE_KIND;
-  if (filter === "daily") return card.kind !== "weekly" && card.kind !== EPISODE_KIND;
-  if (filter === "audio") return card.hasAudio;
+  if (filter === "custom") return custom;
+  if (filter === "daily") return card.kind !== "weekly" && !custom;
   return true;
 }
 

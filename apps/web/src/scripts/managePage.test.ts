@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import type { ConfigOp } from "../types/contracts";
-import { parseKeywords, slugify, webAddress } from "./managePage";
+import { slugify, webAddress } from "./managePage";
 import { buildQueue, failureText, type Pending } from "./managePageSave";
 
 describe("slugify", () => {
@@ -24,23 +24,6 @@ describe("slugify", () => {
     expect(slugify("Motion craft", ["motion-craft"])).toBe("motion-craft-2");
     expect(slugify("Motion craft", ["motion-craft", "motion-craft-2"])).toBe("motion-craft-3");
     expect(slugify("x".repeat(80), ["x".repeat(36)])).toHaveLength(38);
-  });
-});
-
-describe("parseKeywords", () => {
-  it("splits on commas, trims and drops empties and repeats", () => {
-    expect(parseKeywords(" spring, easing ,,spring,  shader ")).toEqual([
-      "spring",
-      "easing",
-      "shader",
-    ]);
-    expect(parseKeywords("")).toEqual([]);
-  });
-
-  it("keeps within 12 words of 40 characters", () => {
-    const many = Array.from({ length: 20 }, (_, i) => `word${i}`).join(",");
-    expect(parseKeywords(many)).toHaveLength(12);
-    expect(parseKeywords("k".repeat(60))[0]).toHaveLength(40);
   });
 });
 
@@ -117,6 +100,18 @@ describe("buildQueue", () => {
       { op: { op: "source.set", id: "studio-notes", enabled: false }, keys: ["e1"] },
       { op: { op: "weights.set", weights: { audio: 1, motion: 0.25 } }, keys: ["w1", "w2"] },
     ]);
+  });
+
+  it("sends a new topic and the sources chosen for it as one request, topic first", () => {
+    const add: ConfigOp = { op: "source.add", url: "https://a.example/feed", topic_ids: ["audio"] };
+    const upsert: ConfigOp = { op: "topic.upsert", topic };
+    const changes = new Map<string, Pending>([
+      ["new1", { ...pending(upsert), with: [add, { ...add, url: "https://b.example/feed" }] }],
+    ]);
+    const steps = buildQueue(changes);
+    expect(steps).toHaveLength(1);
+    expect(steps[0]?.ops?.map((op) => op.op)).toEqual(["topic.upsert", "source.add", "source.add"]);
+    expect(steps[0]?.keys).toEqual(["new1"]);
   });
 
   it("sends removals last, so nothing is edited after it is gone", () => {
