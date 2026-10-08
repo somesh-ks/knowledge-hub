@@ -49,6 +49,7 @@ D1 to D9 date from plan v2 (2026-10-05). D10 to D25 date from 2026-10-06. Reason
 | D37 | Custom podcast episodes live in `Podcasts/` and are built by a workflow | active |
 | D39 | Five topics, Top picks always included, General and Customized audiences | active |
 | D40 | Trending is ranked by coverage; discovery only suggests | active |
+| D41 | The passphrase step is switched off, with its code kept | active |
 
 ---
 
@@ -380,3 +381,11 @@ D1 to D9 date from plan v2 (2026-10-05). D10 to D25 date from 2026-10-06. Reason
 - Decision: Trending sources are tagged `trending` and enter no other section. `clusterStories` has a second `news` profile (names and numbers weigh double, 48 hour window); the number of distinct outlets is `signals.coverage`. One outlet never qualifies (prefilter drops it; `coverageFactor` is 0). Score is weight x fit^1.5 x coverageFactor (0.7 at two outlets, 1 at four). Trending has the D35 allowance of 5 on top of the cap and is never a Top pick. Coverage is computed by code; the only model call is the existing fit question, which also rejects non-news. `dispatch sources suggest` now records up to six candidates as `suggested` and adds none; old `added` entries still parse. `dispatch config apply --op` accepts one op or an array of 1 to 8 (`ConfigOpBatch`), validated whole, applied in order, all or nothing, one commit.
 - Why: coverage is the honest signal for "trending" and costs nothing; auto-adding sources was noise and risk the owner did not ask for.
 - Rejected: a model call to rank stories; Google Trends as a signal.
+
+## D41: The passphrase step is switched off, with its code kept
+
+- Date: 2026-10-08
+- Decision: `PASSPHRASE_REQUIRED` in `apps/web/src/lib/access.ts` is false. The four routes hand their handlers a check that lets a request through, Play narrates without the sheet, and Create, Generate and the Topics and Sources save show no prompt. Same-origin checks, cooldowns, daily caps and the monthly narration budget stay enforced. Setting the constant to true restores every prompt and check. Tests of the prompts are kept and skipped while it is off.
+- Why: the owner asked for it ("remove passphrase for now, but we can have the code for future") after a failure that was blamed on the passphrase and was in fact the site's GitHub token lacking access to the repository.
+- Cost: anyone who can open the site can start a briefing, an episode, narration or a config edit, inside the caps. The owner accepted this.
+- Rejected: deleting the passphrase code; unlocking one device at a time (offered, not chosen).
