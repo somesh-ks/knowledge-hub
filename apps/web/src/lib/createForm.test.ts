@@ -1,9 +1,11 @@
 import { describe, expect, it } from "vitest";
 import {
   AUDIENCES,
+  createTopicOptions,
   DEFAULTS,
   estimateText,
   FORMATS,
+  GENERAL_TOPICS,
   LENGTHS,
   MAX_TITLE_CHARS,
   MAX_TOPICS,
@@ -68,7 +70,7 @@ describe("topicOptions", () => {
       "Trending",
     ]);
     expect(options.map((option) => option.value)).not.toContain("top");
-    expect(options.every((option) => !option.custom)).toBe(true);
+    expect(options.every((option) => option.mode === "custom")).toBe(true);
   });
 
   it("titles follow the file, and fall back when the file lacks a section", () => {
@@ -86,7 +88,7 @@ describe("topicOptions", () => {
       mine({ name: "Again", section_id: "audio_interfaces" }),
     ]);
     expect(options.slice(5)).toEqual([
-      { value: "audio_interfaces", label: "Audio interfaces", custom: true },
+      { value: "audio_interfaces", label: "Audio interfaces", mode: "custom" },
     ]);
   });
 });
@@ -96,5 +98,48 @@ describe("audiences", () => {
     expect(AUDIENCES.map((audience) => audience.value)).toEqual(["general", "custom"]);
     expect(AUDIENCES.map((audience) => audience.label)).toEqual(["General", "Customized"]);
     expect(DEFAULTS.audience).toBe("custom");
+  });
+});
+
+describe("the topics each mode offers", () => {
+  const owners = [
+    {
+      name: "Audio interfaces",
+      section_id: "audio_interfaces",
+      origin: "custom" as const,
+      enabled: true,
+      never_publish: false,
+    },
+  ];
+  const ids = (mode: string) =>
+    createTopicOptions([], owners)
+      .filter((option) => option.mode === mode)
+      .map((option) => option.value);
+
+  it("are six general topics in General mode, none of them a design topic or the owner's", () => {
+    expect(GENERAL_TOPICS.map((topic) => [topic.id, topic.title])).toEqual([
+      ["world", "World"],
+      ["business", "Business"],
+      ["technology", "Technology"],
+      ["science", "Science"],
+      ["culture", "Culture"],
+      ["sports", "Sports"],
+    ]);
+    expect(ids("general")).toEqual(["world", "business", "technology", "science", "culture", "sports"]);
+  });
+
+  it("are the five and the owner's own in Customized mode, and no general topic", () => {
+    expect(ids("custom")).toEqual(["design", "ui-craft", "ai", "tech", "trending", "audio_interfaces"]);
+  });
+
+  it("never offer one id in both modes, and say how an episode opens in each", () => {
+    const all = createTopicOptions([], owners).map((option) => option.value);
+    expect(new Set(all).size).toBe(all.length);
+    expect(AUDIENCES.find((audience) => audience.value === "general")?.top).toBe(
+      "Every episode opens with the day's top stories.",
+    );
+    expect(AUDIENCES.find((audience) => audience.value === "custom")?.top).toBe(
+      "Every episode opens with the top picks.",
+    );
   });
 });

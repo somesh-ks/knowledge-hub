@@ -43,16 +43,20 @@ export const AUDIENCES: ReadonlyArray<{
   value: NonNullable<PodcastRequest["audience"]>;
   label: string;
   hint: string;
+  /** The line about how an episode opens, which says "top stories" in General mode. */
+  top: string;
 }> = [
   {
     value: "general",
     label: "General",
     hint: "Written for anyone. Explains terms as it goes.",
+    top: "Every episode opens with the day's top stories.",
   },
   {
     value: "custom",
     label: "Customized",
     hint: "Written for you. Also draws on your own topics.",
+    top: "Every episode opens with the top picks.",
   },
 ];
 
@@ -74,8 +78,8 @@ export interface TopicOption {
   /** A section id. */
   value: string;
   label: string;
-  /** True for a topic the owner added: offered in Customized mode only. */
-  custom: boolean;
+  /** The mode that offers it: General shows the general topics, Customized the rest. */
+  mode: NonNullable<PodcastRequest["audience"]>;
 }
 
 /**
@@ -91,6 +95,19 @@ export const CREATE_SECTIONS: ReadonlyArray<{ id: string; title: string }> = [
   { id: "trending", title: "Trending" },
 ];
 
+/**
+ * What General mode offers instead of the five above: the topics of a general news podcast. The
+ * engine defines the same ids; none is a design topic or one of the owner's.
+ */
+export const GENERAL_TOPICS: ReadonlyArray<{ id: string; title: string }> = [
+  { id: "world", title: "World" },
+  { id: "business", title: "Business" },
+  { id: "technology", title: "Technology" },
+  { id: "science", title: "Science" },
+  { id: "culture", title: "Culture" },
+  { id: "sports", title: "Sports" },
+];
+
 /** What topicOptions needs to know of a topic in config/topics.json. */
 export interface TopicInfo {
   name: string;
@@ -104,7 +121,7 @@ export interface TopicInfo {
  * The topics to offer: always the five above, whether or not a recent briefing has stories in them,
  * titled as config/topics.json titles their sections. After them come the owner's own topics (the
  * custom ones that are on), each by the section it publishes to and only when that section is not
- * one of the five already; the page shows these in Customized mode only.
+ * one of the five already; the form shows these in Customized mode only.
  */
 export function topicOptions(
   sections: ReadonlyArray<{ id: string; title: string }>,
@@ -114,7 +131,7 @@ export function topicOptions(
   const offered = CREATE_SECTIONS.map(({ id, title }) => ({
     value: id,
     label: titles.get(id) ?? title,
-    custom: false,
+    mode: "custom" as const,
   }));
   const taken = new Set(["top", ...CREATE_SECTIONS.map((section) => section.id)]);
   const own: TopicOption[] = [];
@@ -125,8 +142,24 @@ export function topicOptions(
     own.push({
       value: topic.section_id,
       label: titles.get(topic.section_id) ?? topic.name,
-      custom: true,
+      mode: "custom",
     });
   }
   return [...offered, ...own];
+}
+
+/**
+ * Every chip the form renders: the Customized set, then the General set. The form shows the set of
+ * the chosen mode and hides the other, so a request only ever holds ids of one mode.
+ */
+export function createTopicOptions(
+  sections: ReadonlyArray<{ id: string; title: string }>,
+  topics: readonly TopicInfo[],
+): TopicOption[] {
+  const general = GENERAL_TOPICS.map(({ id, title }) => ({
+    value: id,
+    label: title,
+    mode: "general" as const,
+  }));
+  return [...topicOptions(sections, topics), ...general];
 }

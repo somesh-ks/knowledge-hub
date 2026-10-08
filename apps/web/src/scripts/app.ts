@@ -1,4 +1,5 @@
 import { installDeviceBanners } from "./deviceBanners";
+import { installCreateEntry } from "./createEntry";
 import { installDisabledGuard } from "./disabledGuard";
 import { installNavigation } from "./navigation";
 import { registerServiceWorker } from "./serviceWorker";
@@ -12,6 +13,7 @@ import { installThemeColor } from "./themeColor";
  */
 installDisabledGuard();
 installNavigation();
+installCreateEntry();
 installDeviceBanners();
 installThemeColor();
 registerServiceWorker();

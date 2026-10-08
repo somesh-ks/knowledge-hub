@@ -17,6 +17,11 @@
 :root {
   --bottom-nav-height: calc(var(--nav-bar-height) + var(--safe-bottom));
   --side-nav-width: 0px;
+  /* What sits above the bottom bar, bottom to top: the player bar once it shows, then the Create run
+     indicator while a run is up. The page keeps this much room, and the floating button clears it. */
+  --dock-room: 0px;
+  --run-height: 3rem;
+  --run-room: 0px;
   /* Everything that sticks under the top chrome sticks here: section tabs, the aside. */
   --sticky-top: calc(var(--app-bar-height) + var(--safe-top));
   /* The text column itself: the page width less its two gutters. */
@@ -26,11 +31,24 @@
     calc(var(--bottom-nav-height) + var(--space-4));
 }
 
+html[data-mini="visible"] {
+  --dock-room: var(--player-dock-height, var(--nav-bar-height));
+}
+
+html[data-run] {
+  --run-room: var(--run-height);
+}
+
 @media (min-width: 64rem) {
   :root {
     --bottom-nav-height: 0px;
     --side-nav-width: calc(var(--nav-side-width) + var(--safe-left));
     --sticky-top: var(--safe-top);
+  }
+
+  /* The side column carries the indicator, so the page needs no room for it. */
+  html[data-run] {
+    --run-room: 0px;
   }
 }
 
@@ -65,7 +83,7 @@ main {
   display: block;
   min-width: 0;
   /* Room for the bottom bar, so the last line is never covered. */
-  padding-block-end: calc(var(--bottom-nav-height) + var(--space-12));
+  padding-block-end: calc(var(--bottom-nav-height) + var(--run-room) + var(--space-12));
 }
 
 main:focus {
@@ -76,7 +94,8 @@ html[data-mini="visible"] main {
   /* And for the player docked on top of it. The fallback holds until the player has measured itself. */
   padding-block-end: calc(
     var(--bottom-nav-height) +
-    var(--player-dock-height, var(--nav-bar-height)) +
+    var(--dock-room) +
+    var(--run-room) +
     var(--space-12)
   );
 }

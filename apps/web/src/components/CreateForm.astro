@@ -1,0 +1,219 @@
+---
+import Icon from "./Icon.astro";
+import { OPEN_PASSPHRASE, PASSPHRASE_REQUIRED } from "../lib/access";
+import {
+  AUDIENCES,
+  DEFAULTS,
+  estimateText,
+  FORMATS,
+  LENGTHS,
+  MAX_TITLE_CHARS,
+  MAX_TOPICS,
+  TONES,
+  createTopicOptions,
+  WINDOWS,
+} from "../lib/createForm";
+import { CHARS_PER_MINUTE } from "../lib/episodeFile";
+import { loadManage } from "../lib/manage";
+// The layout renders this form for the Create sheet on every page, so these styles are global. The
+// build links them before the layout's own stylesheets, so their rules never rely on coming last:
+// where one adjusts a shared rule, it does so with a more specific selector.
+import "../styles/settings.css";
+import "../styles/create.css";
+
+const { sections, topics: allTopics } = await loadManage();
+const topics = createTopicOptions(sections, allTopics);
+
+// Every sentence the form's script can show lives here, in the markup, not in the script. The
+// script picks one by its key, which keeps it small. The run's own lines are in RunStatus.astro.
+const COPY = {
+  topics: "Pick at least one topic.",
+  ...(PASSPHRASE_REQUIRED
+    ? {
+        passphrase: "Enter the passphrase to continue.",
+        "401": "That passphrase does not match. Check it and try again.",
+      }
+    : {}),
+  "400": "That request did not go through. Reload the page and try again.",
+  cooldown: "Episodes need a short rest between them. Try again in",
+  daily_cap: "The limit for today is reached. Try again in",
+  "503": "Episodes are not available right now. Try again in a few minutes.",
+  network: "The request did not go through. Check your connection, then try again.",
+} as const;
+---
+
+{/* The one Create form. /create renders it in the page; the layout renders it into a template that
+     the sheet clones on first open. A page never renders both, so its ids stay unique. */}
+<div
+  class="create-view"
+  data-create
+  data-pace={CHARS_PER_MINUTE}
+  data-open-passphrase={PASSPHRASE_REQUIRED ? undefined : OPEN_PASSPHRASE}
+>
+  <form data-create-form novalidate>
+    <section class="create-group" aria-labelledby="create-audience-label">
+      <h2 class="section-head" id="create-audience-label">Written for</h2>
+      <fieldset class="settings-choice create-choice" role="radiogroup" aria-labelledby="create-audience-label" aria-describedby="create-audience-hint">
+        {
+          AUDIENCES.map((audience) => (
+            <label class="settings-segment">
+              <input type="radio" name="audience" value={audience.value} data-hint={audience.hint} data-top={audience.top} checked={audience.value === DEFAULTS.audience} />
+              <span>{audience.label}</span>
+            </label>
+          ))
+        }
+      </fieldset>
+      <p class="create-hint create-below" id="create-audience-hint" data-audience-hint>
+        {AUDIENCES.find((audience) => audience.value === DEFAULTS.audience)?.hint}
+      </p>
+    </section>
+
+    <section class="create-group rule-above" aria-labelledby="create-topics-label">
+      <h2 class="section-head" id="create-topics-label">Topics</h2>
+      <p class="create-hint" id="create-topics-hint">
+        Choose up to {MAX_TOPICS}. <span data-topics-count>None chosen yet.</span>
+      </p>
+      <p class="create-hint create-below" data-top-hint>{AUDIENCES.find((audience) => audience.value === DEFAULTS.audience)?.top}</p>
+      <fieldset class="create-chips" aria-labelledby="create-topics-label" aria-describedby="create-topics-hint" data-max={MAX_TOPICS}>
+        {
+          topics.map((topic) => (
+            <label class="create-chip press press-subtle" data-mode={topic.mode} hidden={topic.mode !== DEFAULTS.audience}>
+              <input type="checkbox" name="topic" value={topic.value} />
+              <Icon name="check" class="create-chip-check" />
+              <span>{topic.label}</span>
+            </label>
+          ))
+        }
+      </fieldset>
+      <p class="create-error" role="alert" data-error="topics" hidden>
+        <Icon name="alert" /><span></span>
+      </p>
+    </section>
+
+    <section class="create-group rule-above" aria-labelledby="create-length-label">
+      <h2 class="section-head" id="create-length-label">Length</h2>
+      <fieldset class="settings-choice create-choice" role="radiogroup" aria-labelledby="create-length-label">
+        {
+          LENGTHS.map((length) => (
+            <label class="settings-segment">
+              <input type="radio" name="length" value={length.value} checked={length.value === DEFAULTS.length} />
+              <span class="num">{length.label}</span>
+            </label>
+          ))
+        }
+      </fieldset>
+    </section>
+
+    <section class="create-group rule-above" aria-labelledby="create-format-label">
+      <h2 class="section-head" id="create-format-label">Format</h2>
+      <fieldset class="rows create-options" role="radiogroup" aria-labelledby="create-format-label">
+        {
+          FORMATS.map((format) => (
+            <label class="row-action create-option">
+              <input type="radio" name="format" value={format.value} checked={format.value === DEFAULTS.format} />
+              <span class="create-text">
+                <span class="create-label">{format.label}</span>
+                <span class="create-hint">{format.hint}</span>
+              </span>
+            </label>
+          ))
+        }
+      </fieldset>
+    </section>
+
+    <section class="create-group rule-above" aria-labelledby="create-window-label">
+      <h2 class="section-head" id="create-window-label">Look back</h2>
+      <fieldset class="settings-choice create-choice" role="radiogroup" aria-labelledby="create-window-label">
+        {
+          WINDOWS.map((window) => (
+            <label class="settings-segment">
+              <input type="radio" name="window" value={window.value} checked={window.value === DEFAULTS.window} />
+              <span>{window.label}</span>
+            </label>
+          ))
+        }
+      </fieldset>
+    </section>
+
+    <section class="create-group rule-above" aria-labelledby="create-tone-label">
+      <h2 class="section-head" id="create-tone-label">Tone</h2>
+      <fieldset class="settings-choice create-choice" role="radiogroup" aria-labelledby="create-tone-label">
+        {
+          TONES.map((tone) => (
+            <label class="settings-segment">
+              <input type="radio" name="tone" value={tone.value} checked={tone.value === DEFAULTS.tone} />
+              <span>{tone.label}</span>
+            </label>
+          ))
+        }
+      </fieldset>
+    </section>
+
+    <section class="create-group rule-above">
+      <h2 class="section-head"><label for="create-title">Title</label></h2>
+      <input
+        class="sheet-input create-title"
+        id="create-title"
+        name="title"
+        type="text"
+        maxlength={MAX_TITLE_CHARS}
+        autocomplete="off"
+        enterkeyhint="done"
+        aria-describedby="create-title-hint"
+      />
+      <p class="create-hint" id="create-title-hint">Optional. Singularity writes one if you leave it empty.</p>
+    </section>
+
+    <div class="create-submit rule-above">
+      <p class="create-estimate" id="create-estimate" data-estimate aria-live="polite">{estimateText(DEFAULTS.length)}</p>
+      <button class="btn-primary press press-subtle" type="submit" data-submit>Create episode</button>
+      <p class="create-error" role="alert" data-error="form" hidden>
+        <Icon name="alert" /><span></span>
+      </p>
+    </div>
+  </form>
+
+  {PASSPHRASE_REQUIRED && (
+  <dialog class="sheet" data-dialog aria-labelledby="create-dialog-title">
+    <div class="sheet-panel">
+      <form class="sheet-form" data-dialog-form novalidate>
+        <div class="sheet-head">
+          <h2 class="sheet-title" id="create-dialog-title">Enter the passphrase</h2>
+          <button class="icon-btn press" type="button" data-cancel aria-label="Close">
+            <Icon name="close" class="icon-lg" />
+          </button>
+        </div>
+        <p class="sheet-lede">Writing an episode spends from a daily allowance, so it asks for the passphrase.</p>
+        <div class="sheet-field">
+          <label class="sheet-field-label" for="create-passphrase">Passphrase</label>
+          <input
+            class="sheet-input"
+            id="create-passphrase"
+            name="passphrase"
+            type="password"
+            autocomplete="off"
+            autocapitalize="none"
+            spellcheck="false"
+            enterkeyhint="go"
+            autofocus
+          />
+          <p class="sheet-field-error" role="alert" data-error="dialog" hidden>
+            <Icon name="alert" /><span></span>
+          </p>
+        </div>
+        <label class="sheet-check">
+          <input type="checkbox" name="remember" />
+          <span>Remember on this device</span>
+        </label>
+        <div class="sheet-actions">
+          <button class="btn-primary press press-subtle" type="submit" data-dialog-submit>Create episode</button>
+        </div>
+      </form>
+    </div>
+  </dialog>
+  )}
+
+  <div hidden data-copy>
+    {Object.entries(COPY).map(([key, text]) => <p data-k={key}>{text}</p>)}
+  </div>
+</div>
