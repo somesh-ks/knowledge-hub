@@ -21,8 +21,22 @@ export const COMMANDS: readonly CommandSpec[] = [
   import [--fresh] [--dry-run]      Build config/sources.json from config/sources.md. Offline.
   discover [--all] [--only a,b] [--dry-run]
                                     Find and verify feeds. Uses the network.
-  check [--only a,b] [--strict]     Reachability pass over every enabled source. Uses the network.`,
+  check [--only a,b] [--strict]     Reachability pass over every enabled source. Uses the network.
+  suggest --topic <id> [--dry-run]  Find feeds for a custom topic with Exa, score them, and add the
+                                    best to config/sources.user.json. Uses Exa, Jev and the network.`,
     load: async () => (await import("./commands/sources.js")).run,
+  },
+  {
+    name: "config",
+    summary: "Apply one topic, source or weight change from the app, and commit it",
+    help: `Usage:
+  dispatch config apply --op '<json>' [--dry-run]    One ConfigOp: topic.upsert, topic.remove,
+                                                      source.add, source.set, source.remove, weights.set
+  dispatch config commit --message <text> [--no-push] Commit what apply wrote as chore(config): <text>
+
+Writes config/topics.json, config/sources.user.json, config/queries.json, config/preferences.json
+and state/source-candidates.json, and nothing else; the write guard enforces it.`,
+    load: async () => (await import("./commands/config.js")).run,
   },
   {
     name: "fetch",

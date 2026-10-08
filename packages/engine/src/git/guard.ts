@@ -5,7 +5,7 @@ import { parseDigestFile } from "@dispatch/core";
 import type { GitRunner } from "./runGit.js";
 import { gitOutput } from "./runGit.js";
 
-export type GitCommand = "run" | "publish" | "learn";
+export type GitCommand = "run" | "publish" | "learn" | "config";
 
 /**
  * Where each bot command may write. An entry ending in "/" allows everything beneath it; "*" matches
@@ -16,6 +16,14 @@ export const ALLOWLISTS: Record<GitCommand, readonly string[]> = {
   run: ["Digests/", "state/"],
   publish: ["Digests/**/*.audio.json", "Digests/**/*.md", "state/usage.json"],
   learn: ["config/preferences.json"],
+  // Exactly the files `dispatch config apply` and `dispatch sources suggest` write, and no others.
+  config: [
+    "config/topics.json",
+    "config/sources.user.json",
+    "config/queries.json",
+    "config/preferences.json",
+    "state/source-candidates.json",
+  ],
 };
 
 /** One line of `git status --porcelain`: the path, and the old path when git saw a rename or copy. */
