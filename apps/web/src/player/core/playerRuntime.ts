@@ -132,6 +132,9 @@ export function startPlayerRuntime(): () => void {
   const onPageLoad = (): void => {
     readPage(playerStore);
     reader.refresh();
+    if (!playerStore.getPageDigest()?.audio) {
+      void import("../../narration/prewarmPage").then((module) => module.prewarmWhenIdle());
+    }
   };
   // A navigation never happens under an open player: the page goes down in one step first.
   // Never preventDefault here; that turns the navigation into a full load and stops the audio.
