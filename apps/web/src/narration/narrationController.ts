@@ -9,7 +9,13 @@
 import type { PlayerStore } from "../player/core/playerTypes";
 import type { NarrationTimeline, PlayerDigestData } from "../types/contracts";
 import { type ApiDeps, FAILURE_COPY, lookupNarration, narrateSegment } from "./narrationApi";
-import { narratedDigest, narrationSource, planNarration } from "./narrationPlan";
+import {
+  type NarrationPlan,
+  narratedDigest,
+  narrationSource,
+  planNarration,
+  type SegmentInfo,
+} from "./narrationPlan";
 import { rememberNarrated } from "./narrationRegistry";
 import {
   createSegmentQueue,
@@ -59,6 +65,12 @@ export interface NarrationController {
    * audio element in that same tap.
    */
   play(digest: PlayerDigestData, itemId?: string): Promise<PlayOutcome>;
+  /**
+   * Asks for the first segments of a briefing in the background, so that Play starts at once.
+   * Never plays, never speaks, never throws, and asks nothing of a listener: a refusal of any kind
+   * ends it quietly. A press of Play while it runs joins its request.
+   */
+  prewarm(digest: PlayerDigestData): Promise<void>;
 }
 
 /** One briefing narrated in this session: its queue, and the copy of it the player loads. */
@@ -66,6 +78,22 @@ interface Session {
   queue: SegmentQueue;
   narrated: PlayerDigestData;
 }
+
+/** What a lookup of one briefing came to, kept so that a prewarm and a press share it. */
+type Prepared =
+  | { ok: false; reason: NarrationFailure }
+  | { ok: true; whole: PlayerDigestData }
+  | {
+      ok: true;
+      whole: null;
+      segments: SegmentInfo[];
+      plan: NarrationPlan;
+      narrated: PlayerDigestData;
+      queue: SegmentQueue;
+    };
+
+/** The first segments a prewarm asks for: the intro, then the first story. */
+const PREWARM_SEGMENTS = 2;
 
 /** Puts a whole-file narration's times onto the page's briefing, as the page build would have. */
 function withWholeAudio(
@@ -169,7 +197,9 @@ export function createNarrationController(deps: ControllerDeps): NarrationContro
         queue.reset();
       }
       try {
-        await queue.ensure(index);
+        // With a passphrase to ask with, the server is asked even where a file is expected to be:
+        // it answers at once for one that exists, and a guess that is wrong costs a failed fetch.
+        await (deps.passphrase.get() !== null ? queue.confirm(index) : queue.ensure(index));
         return mine === attempt ? "playing" : "cancelled";
       } catch (error) {
         if (mine !== attempt) return "cancelled";
@@ -187,37 +217,17 @@ export function createNarrationController(deps: ControllerDeps): NarrationContro
     return "failed";
   }
 
-  async function play(digest: PlayerDigestData, itemId?: string): Promise<PlayOutcome> {
-    attempt += 1;
-    const mine = attempt;
+  /** One lookup per briefing, shared by a prewarm and a press. A failed one is forgotten. */
+  const lookups = new Map<string, Promise<Prepared>>();
 
-    // Narrated earlier in this session: its files and its place in the player are still good.
-    const known = sessions.get(digest.id);
-    if (known) {
-      activate(digest.id);
-      start(known.narrated, itemId);
-      return "playing";
-    }
-
-    deps.setPreparing(digest.id);
-    try {
-      const found = await lookupNarration(digest.id, deps.api);
-      if (mine !== attempt) return "cancelled";
-      if (!found.ok) {
-        say(found.reason);
-        return "failed";
-      }
-
+  function prepare(digest: PlayerDigestData): Promise<Prepared> {
+    const existing = lookups.get(digest.id);
+    if (existing) return existing;
+    const made = lookupNarration(digest.id, deps.api).then((found): Prepared => {
+      if (!found.ok) return found;
       // Someone already narrated it as one file since this page was built.
-      if (found.whole) {
-        const whole = withWholeAudio(digest, found.whole);
-        rememberNarrated(whole);
-        start(whole, itemId);
-        return "playing";
-      }
-
+      if (found.whole) return { ok: true, whole: withWholeAudio(digest, found.whole) };
       const plan = planNarration(found.segments, found.msPerCharacter || FALLBACK_MS_PER_CHARACTER);
-      const narrated = narratedDigest(digest, plan);
       const queue = createSegmentQueue({
         segments: plan.segments,
         narrate: (key, passphrase) => narrateSegment(digest.id, key, passphrase, deps.api),
@@ -232,11 +242,68 @@ export function createNarrationController(deps: ControllerDeps): NarrationContro
           }
         },
       });
+      return {
+        ok: true,
+        whole: null,
+        segments: found.segments,
+        plan,
+        narrated: narratedDigest(digest, plan),
+        queue,
+      };
+    });
+    lookups.set(digest.id, made);
+    void made.then((outcome) => {
+      if (!outcome.ok && lookups.get(digest.id) === made) lookups.delete(digest.id);
+    });
+    return made;
+  }
+
+  async function prewarm(digest: PlayerDigestData): Promise<void> {
+    // Nothing to ask with, nothing to ask for, or a press already has it: stay out of the way.
+    if (sessions.has(digest.id) || deps.passphrase.get() === null) return;
+    try {
+      const prepared = await prepare(digest);
+      if (!prepared.ok || prepared.whole) return;
+      for (let index = 0; index < PREWARM_SEGMENTS; index += 1) prepared.queue.warm(index);
+    } catch {
+      // A prewarm is never worth an error.
+    }
+  }
+
+  async function play(digest: PlayerDigestData, itemId?: string): Promise<PlayOutcome> {
+    attempt += 1;
+    const mine = attempt;
+
+    // Narrated earlier in this session: its files and its place in the player are still good.
+    const known = sessions.get(digest.id);
+    if (known) {
+      activate(digest.id);
+      start(known.narrated, itemId);
+      return "playing";
+    }
+
+    deps.setPreparing(digest.id);
+    try {
+      const prepared = await prepare(digest);
+      if (mine !== attempt) return "cancelled";
+      if (!prepared.ok) {
+        say(prepared.reason);
+        return "failed";
+      }
+
+      // Someone already narrated it as one file since this page was built.
+      if (prepared.whole) {
+        rememberNarrated(prepared.whole);
+        start(prepared.whole, itemId);
+        return "playing";
+      }
+
+      const { segments, plan, narrated, queue } = prepared;
+      // A press is a fresh ask: whatever a prewarm was refused is tried again, and told if it stands.
+      queue.reset();
 
       // Where the listener will start: the story they tapped, or the top.
-      const tapped = itemId
-        ? found.segments.findIndex((segment) => segment.item_id === itemId)
-        : -1;
+      const tapped = itemId ? segments.findIndex((segment) => segment.item_id === itemId) : -1;
       const first = Math.max(0, tapped);
       if (!plan.complete) {
         starting = true;
@@ -258,5 +325,5 @@ export function createNarrationController(deps: ControllerDeps): NarrationContro
     }
   }
 
-  return { play };
+  return { play, prewarm };
 }

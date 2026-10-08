@@ -30,10 +30,15 @@ export const test = base.extend<Options & { problems: Problems }>({
         if (message.type() !== "error") return;
         const text = message.text();
         if (expectedNotFound.has(message.location().url)) return;
+        // A page without audio asks for its narration shortly after it loads. The static fixture
+        // server has no API and answers 501, which the browser logs on the page's behalf. The
+        // client takes it as a quiet refusal; this one line is not a problem.
+        if (/status of 501/.test(text) && /\/api\/narrate(\?|$)/.test(message.location().url))
+          return;
         const isNetworkNoise =
           /Failed to load resource|net::ERR|Failed to fetch|Error hydrating/.test(text);
         if (allowNetworkErrors && isNetworkNoise) return;
-        problems.messages.push(`console: ${text}`);
+        problems.messages.push(`console: ${text} ${message.location().url}`);
       });
       page.on("pageerror", (error) => problems.messages.push(`pageerror: ${error.message}`));
       await page.addInitScript(() => {
