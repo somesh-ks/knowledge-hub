@@ -35,6 +35,11 @@
   margin-inline-start: calc(var(--space-3) * -1);
 }
 
+/* A quiet line under a section heading, with air between them. */
+.manage-below {
+  padding-block-end: var(--space-2);
+}
+
 .manage-title {
   padding-block: var(--space-2) 0;
 }
@@ -137,6 +142,50 @@ textarea.manage-input {
 .manage-tools .filter-chip::after {
   inset-block: calc((var(--size-touch) - var(--chip-height)) / -2 - var(--stroke-hairline));
   inset-inline: calc(var(--stroke-hairline) * -1);
+}
+
+/* ------------------------------------------------------------------ suggested sources */
+
+.manage-suggest-group {
+  min-width: 0;
+  margin: 0;
+  padding: 0;
+  border: 0;
+}
+
+.manage-legend {
+  padding: 0;
+  font-size: var(--font-size-label);
+  font-weight: var(--font-weight-medium);
+  line-height: var(--font-leading-label);
+}
+
+/* The quiet line goes under its title with air between them. */
+.manage-legend-hint {
+  margin-block: var(--space-2) var(--space-2);
+}
+
+/* A whole row is one checkbox target, at least 44px tall. */
+.manage-pick {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+  min-height: var(--size-touch-comfortable);
+  padding-block: var(--space-2);
+  cursor: pointer;
+}
+
+.manage-pick > input {
+  flex: none;
+  width: var(--size-icon);
+  height: var(--size-icon);
+  margin: 0;
+  accent-color: var(--color-accent);
+}
+
+.manage-pick:has(input:focus-visible) {
+  outline: var(--stroke-ring) solid var(--color-focus-ring);
+  outline-offset: var(--stroke-ring-gap);
 }
 
 /* ------------------------------------------------------------------ rows */

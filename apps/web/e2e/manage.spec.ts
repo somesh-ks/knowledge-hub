@@ -161,48 +161,74 @@ test.describe("topics", () => {
     await expect(bar(page)).toBeHidden();
   });
 
-  test("a topic is added with an id made from its name, and can be cancelled before saving", async ({
+  test("a topic shows matching sources as you type; ticking two sends one request with three edits", async ({
     page,
   }) => {
     const sent = await mockConfig(page);
     await open(page, "topics");
-    await page.getByLabel("Name", { exact: true }).fill("Spatial computing");
+    const group = page.getByRole("group", { name: "Suggested sources" });
+    await expect(group).toBeHidden();
+    await page.getByLabel("Name", { exact: true }).fill("Spatial design");
     await page
       .getByLabel("What should count as this topic")
-      .fill("Headsets and the interfaces made for them.");
-    await page.getByLabel("Keywords, optional").fill("visionOS, headset, , visionOS");
+      .fill("Motion and interface design for headsets.");
+    await expect(group).toBeVisible();
+    const boxes = group.getByRole("checkbox");
+    // Best match first: the offer sharing the most words, none ticked.
+    await expect(boxes.first()).toBeVisible();
+    expect(await boxes.count()).toBeLessThanOrEqual(6);
+    await expect(group.locator("li:visible .manage-name").first()).toHaveText("Motion Weekly");
+    await expect(group.locator("input:checked")).toHaveCount(0);
+    await expect(page.getByText("about a minute after you save")).toBeHidden();
+    await group.getByRole("checkbox", { name: /Motion Weekly/ }).check();
+    await group.getByRole("checkbox", { name: /Interface Notes/ }).check();
     await page.getByRole("button", { name: "Add topic" }).click();
     await expect(page.getByRole("list", { name: "Waiting to be saved" })).toContainText(
-      "Spatial computing",
+      "Spatial design, with 2 sources",
     );
     await expect(bar(page).locator("[data-bar-text]")).toHaveText("1 change");
-    await expect(page.getByLabel("Name", { exact: true })).toHaveValue("");
-
-    await page.getByRole("button", { name: "Cancel adding Spatial computing" }).click();
-    await expect(bar(page)).toBeHidden();
-
-    await page.getByLabel("Name", { exact: true }).fill("Spatial computing");
-    await page
-      .getByLabel("What should count as this topic")
-      .fill("Headsets and the interfaces made for them.");
-    await page.getByLabel("Keywords, optional").fill("visionOS, headset, , visionOS");
-    await page.getByRole("button", { name: "Add topic" }).click();
+    await expect(group).toBeHidden();
     await save(page);
     await expect(bar(page).locator("[data-bar-text]")).toContainText("Saved.");
     expect(sent).toHaveLength(1);
-    expect(sent[0]?.op).toEqual({
-      op: "topic.upsert",
-      topic: {
-        id: "spatial-computing",
-        name: "Spatial computing",
-        description: "Headsets and the interfaces made for them.",
-        weight: 0.5,
-        enabled: true,
-        keywords: ["visionOS", "headset"],
-        section_id: "tech",
-      },
+    const ops = sent[0]?.op as unknown as Array<Record<string, unknown>>;
+    expect(ops.map((op) => op.op)).toEqual(["topic.upsert", "source.add", "source.add"]);
+    expect(ops[0]).toMatchObject({
+      topic: { id: "spatial-design", name: "Spatial design", section_id: "spatial-design" },
     });
-    await expect(page.getByRole("list", { name: "Waiting to be saved" })).toBeHidden();
+    expect(ops.slice(1).map((op) => op.url).sort()).toEqual([
+      "https://interface-notes.example/feed.xml",
+      "https://motion-weekly.example/rss.xml",
+    ]);
+    expect(ops.slice(1).every((op) => (op.topic_ids as string[])[0] === "spatial-design")).toBe(
+      true,
+    );
+  });
+
+  test("a topic that matches nothing says suggestions come to the Sources page in about a minute", async ({
+    page,
+  }) => {
+    const sent = await mockConfig(page);
+    await open(page, "topics");
+    await page.getByLabel("Name", { exact: true }).fill("Gardening");
+    await page.getByLabel("What should count as this topic").fill("Soil and seeds.");
+    await expect(page.getByRole("group", { name: "Suggested sources" })).toBeHidden();
+    await expect(page.getByText("about a minute after you save")).toBeVisible();
+    await page.getByRole("button", { name: "Add topic" }).click();
+    await save(page);
+    await expect(bar(page).locator("[data-bar-text]")).toContainText("Saved.");
+    // A single edit still goes as an edit, not a list.
+    expect((sent[0]?.op as Record<string, unknown>).op).toBe("topic.upsert");
+  });
+
+  test("a topic waiting to be saved can be cancelled", async ({ page }) => {
+    await open(page, "topics");
+    await page.getByLabel("Name", { exact: true }).fill("Spatial computing");
+    await page.getByLabel("What should count as this topic").fill("Headsets.");
+    await page.getByRole("button", { name: "Add topic" }).click();
+    await expect(page.getByLabel("Name", { exact: true })).toHaveValue("");
+    await page.getByRole("button", { name: "Cancel adding Spatial computing" }).click();
+    await expect(bar(page)).toBeHidden();
   });
 
   test("a removal waits to be saved and is sent last", async ({ page }) => {
@@ -326,6 +352,19 @@ test.describe("sources", () => {
     );
     // What was sent is settled: the suggestion is added for good.
     await expect(page.getByRole("button", { name: "Add waveform-journal.example" })).toBeDisabled();
+  });
+
+  test("a suggested source offers Add, says nothing was added, and sends source.add on save", async ({
+    page,
+  }) => {
+    const sent = await mockConfig(page);
+    await open(page, "sources");
+    await expect(page.getByText("Nothing here is added until you press Add")).toBeVisible();
+    await page.getByRole("button", { name: "Add listening-lab.example" }).click();
+    await save(page);
+    await expect(bar(page).locator("[data-bar-text]")).toContainText("Saved.");
+    expect(sent).toHaveLength(1);
+    expect(sent[0]?.op).toMatchObject({ op: "source.add", topic_ids: ["audio_interfaces"] });
   });
 
   test("a removal strikes the row and can be undone", async ({ page }) => {

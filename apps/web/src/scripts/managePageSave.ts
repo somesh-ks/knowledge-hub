@@ -25,6 +25,8 @@ export function failureText(status: number, done: number, total: number): string
 /** One pending change: the edit, the control (or queued row) behind it, and what the control now holds. */
 export interface Pending {
   op: ConfigOp;
+  /** Edits that go in the same request, after `op`: the sources chosen for a new topic. */
+  with?: ConfigOp[];
   el: HTMLElement;
   now: string;
 }
@@ -42,12 +44,12 @@ export interface SaveContext {
  */
 export function buildQueue(
   changes: ReadonlyMap<string, Pending>,
-): { op: ConfigOp; keys: string[] }[] {
+): { op: ConfigOp; ops?: ConfigOp[]; keys: string[] }[] {
   const weights: Record<string, number> = {};
   const weightKeys: string[] = [];
-  const edits: { op: ConfigOp; keys: string[] }[] = [];
-  const removals: { op: ConfigOp; keys: string[] }[] = [];
-  for (const [key, { op, el }] of changes) {
+  const edits: { op: ConfigOp; ops?: ConfigOp[]; keys: string[] }[] = [];
+  const removals: { op: ConfigOp; ops?: ConfigOp[]; keys: string[] }[] = [];
+  for (const [key, { op, el, with: extra }] of changes) {
     if (op.op === "topic.upsert") {
       // The switch was built with the slider's value from the page load, which may have moved since.
       const slider = el.closest("li")?.querySelector<HTMLInputElement>("[data-weight]");
@@ -57,7 +59,11 @@ export function buildQueue(
       Object.assign(weights, op.weights);
       weightKeys.push(key);
     } else {
-      (op.op.endsWith(".remove") ? removals : edits).push({ op, keys: [key] });
+      (op.op.endsWith(".remove") ? removals : edits).push({
+        op,
+        ...(extra && extra.length > 0 ? { ops: [op, ...extra] } : {}),
+        keys: [key],
+      });
     }
   }
   if (weightKeys.length > 0) edits.push({ op: { op: "weights.set", weights }, keys: weightKeys });
@@ -79,7 +85,7 @@ function memory(value?: string | null): string | null {
 }
 
 /** One request. The server allows an edit every ten seconds, so a 429 waits as long as it says. */
-async function send(op: ConfigOp, given: string, wait: (seconds: number) => void): Promise<number> {
+async function send(op: ConfigOp | ConfigOp[], given: string, wait: (seconds: number) => void): Promise<number> {
   for (let tries = 0; tries < 7; tries += 1) {
     let seconds = 0;
     let status = 0;
@@ -130,10 +136,10 @@ export async function save(context: SaveContext, given = passphrase ?? memory())
   const queue = buildQueue(changes);
   let done = 0;
   let failure = "";
-  for (const [index, { op, keys }] of queue.entries()) {
+  for (const [index, { op, ops, keys }] of queue.entries()) {
     const place = `Saving ${index + 1} of ${queue.length}`;
     show(place, "saving");
-    const status = await send(op, given, () => show(`${place}. Waiting a few seconds.`, "saving"));
+    const status = await send(ops ?? op, given, () => show(`${place}. Waiting a few seconds.`, "saving"));
     if (status !== 202) {
       if (status === 401) {
         memory(null);

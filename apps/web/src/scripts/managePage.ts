@@ -7,6 +7,7 @@
  *
  * The pure parts are exported and tested; the rest is wiring.
  */
+import { matchOffers } from "../lib/sourceMatch";
 import type { ConfigOp } from "../types/contracts";
 import type { Pending, SaveContext } from "./managePageSave";
 
@@ -21,15 +22,6 @@ export function slugify(name: string, taken: readonly string[]): string {
   let id = base;
   for (let n = 2; taken.includes(id); n += 1) id = `${base}-${n}`;
   return id;
-}
-
-/** Up to 12 distinct keywords from comma separated text. */
-export function parseKeywords(text: string): string[] {
-  const words = text
-    .split(",")
-    .map((word) => word.trim().slice(0, 40))
-    .filter(Boolean);
-  return [...new Set(words)].slice(0, 12);
 }
 
 /** A web address from what a person types: "example.com" is "https://example.com/". */
@@ -115,7 +107,7 @@ function mount(root: HTMLElement): void {
 
   // ------------------------------------------------------------------------------------ the rows
 
-  const queue = (name: string, op: ConfigOp): void => {
+  const queue = (name: string, op: ConfigOp, extra: ConfigOp[] = []): void => {
     const template = one<HTMLTemplateElement>("template");
     const row = template.content.firstElementChild?.cloneNode(true) as HTMLElement;
     added += 1;
@@ -123,7 +115,7 @@ function mount(root: HTMLElement): void {
     (row.querySelector("[data-q-name]") as HTMLElement).textContent = name;
     row.querySelector("button")?.setAttribute("aria-label", `Cancel adding ${name}`);
     queued.append(row);
-    changes.set(row.dataset.key, { op, el: row, now: "" });
+    changes.set(row.dataset.key, { op, ...(extra.length > 0 ? { with: extra } : {}), el: row, now: "" });
     refresh();
   };
 
@@ -141,18 +133,27 @@ function mount(root: HTMLElement): void {
         op.op === "topic.upsert" ? op.topic.id : "",
       );
       const id = slugify(value("name"), [...taken, ...waiting]);
-      queue(value("name"), {
-        op: "topic.upsert",
-        topic: {
-          id,
-          name: value("name"),
-          description: value("description"),
-          weight: 0.5,
-          enabled: true,
-          keywords: parseKeywords(value("keywords")),
-          section_id: root.dataset.section ?? "tech",
+      // One request: the topic, then each source ticked for it, hinted to the topic.
+      const chosen = [...form.querySelectorAll<HTMLInputElement>('input[name="source"]:checked')];
+      const label = chosen.length ? `${value("name")}, with ${chosen.length} ${chosen.length === 1 ? "source" : "sources"}` : value("name");
+      queue(
+        label,
+        {
+          op: "topic.upsert",
+          topic: {
+            id,
+            name: value("name"),
+            description: value("description"),
+            weight: 0.5,
+            enabled: true,
+            keywords: [],
+            // A new topic gets a section of its own, titled after it.
+            section_id: id,
+          },
         },
-      });
+        chosen.map((box): ConfigOp => ({ op: "source.add", url: box.value, topic_ids: [id] })),
+      );
+      showSuggestions(form);
     } else if (form.dataset.add === "source") {
       const url = webAddress(value("url"));
       const field = form.elements.namedItem("url") as Control;
@@ -164,11 +165,46 @@ function mount(root: HTMLElement): void {
       queue(new URL(url).hostname.replace(/^www\./, ""), { op: "source.add", url });
     } else return;
     form.reset();
+    if (form.dataset.add === "topic") showSuggestions(form);
   });
+
+  /** Shows the catalogue entries that suit what is typed so far, best first, none ticked. */
+  const showSuggestions = (form: HTMLFormElement): void => {
+    const group = form.querySelector<HTMLElement>("[data-suggestions]");
+    if (!group) return;
+    const field = (name: string) =>
+      (form.elements.namedItem(name) as HTMLInputElement | HTMLTextAreaElement).value;
+    const name = field("name").trim();
+    const rows = [...group.querySelectorAll<HTMLElement>("[data-offer]")];
+    const offers = rows.map((row) => ({
+      row,
+      name: row.dataset.offer ?? "",
+      tags: (row.dataset.tags ?? "").split(" "),
+    }));
+    const shown = new Set(
+      name || field("description").trim()
+        ? matchOffers({ name, description: field("description") }, offers).map((offer) => offer.row)
+        : [],
+    );
+    const list = group.querySelector("ul") as HTMLElement;
+    for (const offer of matchOffers({ name, description: field("description") }, offers)) {
+      list.append(offer.row);
+    }
+    for (const row of rows) {
+      row.hidden = !shown.has(row);
+      const box = row.querySelector("input") as HTMLInputElement;
+      if (!shown.has(row)) box.checked = false;
+    }
+    group.hidden = shown.size === 0;
+    (form.querySelector("[data-no-suggestions]") as HTMLElement).hidden =
+      shown.size > 0 || !name;
+  };
 
   root.addEventListener("input", (event) => {
     const control = event.target as Control;
     control.setCustomValidity("");
+    const form = control.closest<HTMLFormElement>("form[data-add=topic]");
+    if (form && (control.name === "name" || control.name === "description")) showSuggestions(form);
     if (control.matches("[data-op]")) update(control);
   });
 
