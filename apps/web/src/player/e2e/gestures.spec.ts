@@ -13,6 +13,9 @@ async function opened(lab: LabPage): Promise<{ header: Point; height: number }> 
   return { header: await headerSpot(lab), height: window.height };
 }
 
+// A flick here is three large steps, not six small ones. The harness asks for 8 ms between
+// touch moves and the page receives them 30 to 50 ms apart, so six steps arrive at about 0.5 px/ms,
+// which is the threshold itself. A finger flicks at 1 to 3 px/ms.
 test.describe("opening by gesture @surface", () => {
   test("a short, slow pull up goes back down without opening", async ({ lab, finger }) => {
     await lab.open();
@@ -32,7 +35,7 @@ test.describe("opening by gesture @surface", () => {
     await lab.open();
     await lab.play();
     const start = center(await lab.dockSettled());
-    await finger.drag(line(start, { x: start.x, y: start.y - 120 }, 6), 8);
+    await finger.drag(line(start, { x: start.x, y: start.y - 120 }, 3), 8);
     await lab.expanded();
     expect(await lab.progress()).toBeCloseTo(1, 2);
   });
@@ -66,7 +69,7 @@ test.describe("closing by gesture @surface", () => {
     finger,
   }) => {
     const { header } = await opened(lab);
-    await finger.drag(line(header, { x: header.x, y: header.y + 230 }, 6), 8);
+    await finger.drag(line(header, { x: header.x, y: header.y + 230 }, 3), 8);
     await lab.collapsed();
     await expect(lab.sheet).toBeHidden();
     await expect(lab.openButton).toBeVisible();
@@ -114,7 +117,7 @@ test.describe("closing by gesture @surface", () => {
   }) => {
     await opened(lab);
     const cover = center(await lab.boxOf(lab.dialog.locator("[data-player-cover]")));
-    await finger.drag(line(cover, { x: cover.x, y: cover.y + 260 }, 6), 8);
+    await finger.drag(line(cover, { x: cover.x, y: cover.y + 260 }, 3), 8);
     await lab.collapsed();
   });
 

@@ -120,7 +120,9 @@ test.describe("layout at real window sizes @surface", () => {
       // And it stays there: the list must not shift when the story being read changes.
       const before = await last.boundingBox();
       await page.waitForTimeout(7_000);
-      expect((await last.boundingBox())?.y).toBe(before?.y);
+      const after = await last.boundingBox();
+      // A fraction of a pixel is the scroll settling; a re-wrapped title moved rows by six.
+      expect(Math.abs((after?.y ?? 0) - (before?.y ?? 0))).toBeLessThanOrEqual(1);
     });
   }
 });

@@ -48,6 +48,9 @@ export default defineConfig<PlayerOptions>({
   expect: { timeout: 8_000 },
   fullyParallel: false,
   workers: 1,
+  // One retry: a flick is synthesized as touch events 8 ms apart, and its speed is real time. A
+  // busy machine stretches the gaps until it is no longer a flick. A pass on retry reports as flaky.
+  retries: 1,
   reporter: [["list"]],
   outputDir: "../../../test-results/player",
   use: { colorScheme: "light" },

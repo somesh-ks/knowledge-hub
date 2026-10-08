@@ -732,6 +732,12 @@
   border-radius: var(--radius-round);
 }
 
+/* Previous belongs to the wide bar. Said again here, because the rule above gives every bar button
+   a display and would bring it back on a phone. */
+.dock-btn.dock-wide {
+  display: none;
+}
+
 .dock-btn[data-primary] {
   background: var(--color-accent);
   color: var(--color-on-accent);
@@ -813,10 +819,11 @@
 
 @media (min-width: 40rem) {
   .player {
-    --player-page-inset: 0px;
     /* How far the bar goes down as the player opens. Where there is a bottom navigation it slides
        away, and the bar follows it to the window's edge, less the safe area. Nothing from 64rem. */
     --player-nav-travel: max(0px, var(--bottom-nav-height, 0px) - var(--safe-bottom));
+    /* The page starts that much higher, so it leaves from the bar's top edge wherever the bar is. */
+    --player-page-inset: var(--player-nav-travel);
   }
 
   /* The stage ends at the top edge the bar has once the player is open. The bar keeps working. */
