@@ -331,17 +331,25 @@
   width: min(100%, var(--cover-size-player), var(--player-cover-share));
 }
 
-/* The headline, then where it sits in the briefing, with air between the two. */
+/* The podcast's title, the story being read under it, and where that story came from. */
 .player-meta {
   display: grid;
+  justify-items: center;
   gap: var(--space-2);
   text-align: center;
 }
 
-.player-section {
+/* Two lines of room are kept, so a long headline changing to a short one moves nothing below. */
+.player-story {
+  display: -webkit-box;
+  overflow: hidden;
+  min-height: calc(var(--font-size-label) * var(--font-leading-label) * 2);
   color: var(--color-on-surface-muted);
   font-size: var(--font-size-label);
   line-height: var(--font-leading-label);
+  text-wrap: balance;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 2;
 }
 
 .player-title {
@@ -354,7 +362,7 @@
   line-height: var(--text-title-leading);
   text-wrap: balance;
   -webkit-box-orient: vertical;
-  -webkit-line-clamp: 3;
+  -webkit-line-clamp: 2;
 }
 
 .player-controls {
@@ -1064,6 +1072,12 @@
   color: var(--color-on-surface-disabled);
 }
 
+/* Previous and next are the smaller targets of the five, so the speed fits at the row's end. */
+.transport-btn:not([data-primary], .transport-skip) {
+  width: var(--size-touch-comfortable);
+  height: var(--size-touch-comfortable);
+}
+
 /* A skip control: a circular arrow with its own numeral set in the arrow's open center. */
 .transport-skip {
   --transport-glyph: var(--player-skip-glyph);
@@ -1093,33 +1107,109 @@
   }
 }
 
-/* ------------------------------------------------------------------ speed and source */
+/* ------------------------------------------------------------------ speed */
 
-/* The quiet row under the transport: the speed on one side, where the story came from on the other. */
-.player-utility {
+/* The transport, with the speed at its end. */
+.transport-row {
   display: flex;
   align-items: center;
-  justify-content: space-between;
-  gap: var(--space-4);
-  /* The labels sit on the content edge; the targets extend outward. */
-  margin-inline: calc(var(--space-3) * -1);
+  gap: var(--space-1);
 }
 
-/* Shows the speed and steps to the next. Text only: it is the least used control on the page. */
+.transport-row > .transport {
+  flex: 1 1 auto;
+}
+
+/* The glyph and the speed it is at. One tap opens the four. */
 .speed-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: var(--space-1);
   min-width: var(--size-touch);
   min-height: var(--size-touch);
-  padding-inline: var(--space-3);
+  padding-inline: var(--space-2);
   border-radius: var(--control-radius-sm);
-  color: var(--color-on-surface);
+  color: var(--color-on-surface-muted);
   font-size: var(--font-size-label);
   font-weight: var(--font-weight-medium);
 }
 
+.speed-btn .ui-icon {
+  width: var(--space-4);
+  height: var(--space-4);
+}
+
+.speed-btn[aria-expanded="true"] {
+  color: var(--color-on-surface);
+}
+
+/* A native popover: in the top layer, placed above the button by script just before it opens. */
+.speed-menu {
+  --menu-bottom: 0px;
+  --menu-right: 0px;
+  position: fixed;
+  inset: auto var(--menu-right) var(--menu-bottom) auto;
+  min-width: 8rem;
+  margin: 0;
+  padding: var(--space-1);
+  border: 0;
+  border-radius: var(--radius-md);
+  background: var(--color-surface-overlay);
+  color: var(--color-on-surface);
+  box-shadow: var(--shadow-popover);
+  opacity: 0;
+  transform: translateY(var(--space-1));
+  transition:
+    opacity var(--duration-state) var(--ease-out),
+    transform var(--duration-state) var(--ease-out),
+    overlay var(--duration-state) allow-discrete,
+    display var(--duration-state) allow-discrete;
+}
+
+.speed-menu:popover-open {
+  opacity: 1;
+  transform: none;
+}
+
+@starting-style {
+  .speed-menu:popover-open {
+    opacity: 0;
+    transform: translateY(var(--space-1));
+  }
+}
+
+.speed-item {
+  display: grid;
+  grid-template-columns: var(--size-icon) minmax(0, 1fr);
+  align-items: center;
+  gap: var(--space-2);
+  width: 100%;
+  min-height: var(--size-touch);
+  padding-inline: var(--space-3);
+  border-radius: var(--control-radius-sm);
+  font-size: var(--font-size-label);
+  text-align: start;
+}
+
+.speed-item[aria-checked="true"] {
+  color: var(--color-accent);
+  font-weight: var(--font-weight-semibold);
+}
+
+.speed-item-mark {
+  display: grid;
+  place-items: center;
+}
+
 @media (hover: hover) and (pointer: fine) {
   .speed-btn:hover,
-  .player-source-link:hover {
+  .speed-item:hover {
     background: var(--color-surface-sunken);
+  }
+
+  .speed-btn:hover {
+    color: var(--color-on-surface);
   }
 }
 
@@ -1202,8 +1292,6 @@
   gap: var(--space-2);
   min-width: 0;
   min-height: var(--size-touch);
-  /* On the far side of the row, with or without a speed button beside it. */
-  margin-inline-start: auto;
   padding-inline: var(--space-3);
   border-radius: var(--control-radius-sm);
   color: var(--color-accent);
@@ -1357,8 +1445,8 @@
 /* After the rules it changes, so it wins at equal weight. */
 @media (min-width: 64rem) and (hover: hover) and (pointer: fine) {
   /* The bar stays under the page here, with previous, play, next, the clock and the volume. The
-     page does not say them twice: it keeps the scrubber and what the bar has not, the two skips,
-     in one row with the speed and the source. */
+     page does not say them twice: it keeps the scrubber and what the bar has not, the two skips
+     and the speed. */
   .player-controls {
     display: grid;
     grid-template-columns: minmax(0, 1fr) auto minmax(0, 1fr);
@@ -1372,7 +1460,7 @@
     grid-column: 1 / -1;
   }
 
-  .player-utility {
+  .transport-row {
     display: contents;
   }
 
@@ -1387,18 +1475,11 @@
     display: none;
   }
 
-  .speed-btn {
-    grid-row: 3;
-    grid-column: 1;
-    justify-self: start;
-    margin-inline-start: calc(var(--space-3) * -1);
-  }
-
-  .player-source-link {
+  .speed {
     grid-row: 3;
     grid-column: 3;
     justify-self: end;
-    margin-inline-end: calc(var(--space-3) * -1);
+    margin-inline-end: calc(var(--space-2) * -1);
   }
 }
 

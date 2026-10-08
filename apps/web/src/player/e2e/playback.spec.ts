@@ -149,25 +149,62 @@ test.describe("playback in a real browser", () => {
     await expect(page.locator("html")).toHaveAttribute("data-player-state", "playing");
   });
 
-  test("changes speed with pitch preserved and remembers it", async ({ lab, audio, page }) => {
+  test("picks a speed from a menu in one step, with pitch preserved, and remembers it", async ({
+    lab,
+    audio,
+    page,
+  }) => {
     await lab.open();
     await lab.play();
     await lab.openPlayer();
-    // One button that steps through the speeds: 1x, 1.25x, 1.5x.
-    const speed = lab.dialog.getByRole("button", { name: /^Speed / });
+    const speed = lab.dialog.getByRole("button", { name: /^Playback speed / });
     await expect(speed).toHaveText("1x");
+    // One press opens the four; one more picks any of them, not the next in a cycle.
     await lab.finger.press(speed);
-    await expect(speed).toHaveText("1.25x");
-    await lab.finger.press(speed);
+    const menu = lab.dialog.getByRole("menu", { name: "Playback speed" });
+    await expect(menu).toBeVisible();
+    await expect(menu.getByRole("menuitemradio")).toHaveText(["1x", "1.25x", "1.5x", "2x"]);
+    await expect(menu.getByRole("menuitemradio", { name: "1x" })).toBeChecked();
+    await lab.finger.press(menu.getByRole("menuitemradio", { name: "1.5x" }));
+    await expect(menu).toBeHidden();
     await expect(speed).toHaveText("1.5x");
-    await expect(speed).toHaveAccessibleName("Speed 1.5x. Change to 2x");
+    await expect(speed).toHaveAccessibleName("Playback speed 1.5x");
+    await expect(speed).toBeFocused();
     await expect.poll(async () => (await audio.read())?.playbackRate).toBe(1.5);
     expect((await audio.read())?.preservesPitch).toBe(true);
     await page.reload({ waitUntil: "networkidle" });
     await expect.poll(async () => (await audio.read())?.playbackRate).toBe(1.5);
   });
 
-  test("moves by item, back ten seconds and forward thirty from the transport controls", async ({
+  test("the speed menu works from the keyboard, and Escape closes only the menu", async ({
+    lab,
+    page,
+  }) => {
+    await lab.open();
+    await lab.play();
+    await lab.openPlayer();
+    const speed = lab.dialog.getByRole("button", { name: /^Playback speed / });
+    await speed.focus();
+    await page.keyboard.press("Enter");
+    const menu = lab.dialog.getByRole("menu", { name: "Playback speed" });
+    await expect(menu.getByRole("menuitemradio", { name: "1x" })).toBeFocused();
+    await page.keyboard.press("ArrowDown");
+    await expect(menu.getByRole("menuitemradio", { name: "1.25x" })).toBeFocused();
+    await page.keyboard.press("ArrowUp");
+    await page.keyboard.press("ArrowUp");
+    await expect(menu.getByRole("menuitemradio", { name: "2x" })).toBeFocused();
+    await page.keyboard.press("Escape");
+    await expect(menu).toBeHidden();
+    await expect(speed).toBeFocused();
+    // The player behind it is still open.
+    await expect(lab.sheet).toHaveAttribute("aria-modal", "true");
+    await page.keyboard.press("Enter");
+    await page.keyboard.press("End");
+    await page.keyboard.press("Enter");
+    await expect(speed).toHaveText("2x");
+  });
+
+  test("moves by item, back ten seconds and forward ten from the transport controls", async ({
     lab,
     audio,
     page,
@@ -179,27 +216,29 @@ test.describe("playback in a real browser", () => {
     await lab.dialog.getByRole("button", { name: "Pause" }).tap();
     await page.getByRole("button", { name: "Next item" }).tap();
     await expect.poll(time).toBeCloseTo(15, 0);
-    await page.getByRole("button", { name: "Forward 30 seconds" }).tap();
-    await expect.poll(time).toBeCloseTo(45, 0);
+    await page.getByRole("button", { name: "Forward 10 seconds" }).tap();
+    await expect.poll(time).toBeCloseTo(25, 0);
     await page.getByRole("button", { name: "Back 10 seconds" }).tap();
-    await expect.poll(time).toBeCloseTo(35, 0);
-    // Five seconds into the third item: Previous restarts it.
+    await expect.poll(time).toBeCloseTo(15, 0);
+    await page.getByRole("button", { name: "Forward 10 seconds" }).tap();
+    await expect.poll(time).toBeCloseTo(25, 0);
+    // Ten seconds into the second item: Previous restarts it.
     await page.getByRole("button", { name: "Previous item" }).tap();
-    await expect.poll(time).toBeCloseTo(30, 0);
+    await expect.poll(time).toBeCloseTo(15, 0);
     // The numerals are drawn by the buttons, over plain arrows.
     await expect(page.getByRole("button", { name: "Back 10 seconds" })).toHaveText("10");
-    await expect(page.getByRole("button", { name: "Forward 30 seconds" })).toHaveText("30");
+    await expect(page.getByRole("button", { name: "Forward 10 seconds" })).toHaveText("10");
   });
 
   test("remembers the position and restores it after a reload", async ({ lab, audio, page }) => {
     await lab.open();
     await lab.play();
     await lab.openPlayer();
-    await page.getByRole("button", { name: "Forward 30 seconds" }).tap();
-    await expect.poll(async () => (await audio.read())?.currentTime ?? 0).toBeGreaterThan(29);
+    await page.getByRole("button", { name: "Forward 10 seconds" }).tap();
+    await expect.poll(async () => (await audio.read())?.currentTime ?? 0).toBeGreaterThan(9);
     await lab.dialog.getByRole("button", { name: "Pause" }).tap();
     const saved = await page.evaluate(() => localStorage.getItem("dispatch:resume:2026-01-14"));
-    expect(Number(saved)).toBeGreaterThan(29);
+    expect(Number(saved)).toBeGreaterThan(9);
     await page.reload({ waitUntil: "networkidle" });
     // Nothing is loaded yet, but the chip offers the place that was kept: a minute is left.
     await expect(lab.cta).toHaveAttribute("data-state", "idle");

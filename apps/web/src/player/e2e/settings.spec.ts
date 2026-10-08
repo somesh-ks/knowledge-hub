@@ -79,7 +79,7 @@ test.describe("the Settings sheet", () => {
     await lab.play();
     await expect.poll(async () => (await audio.read())?.playbackRate).toBe(1.5);
     await lab.openPlayer();
-    await expect(lab.dialog.getByRole("button", { name: /^Speed / })).toHaveText("1.5x");
+    await expect(lab.dialog.getByRole("button", { name: /^Playback speed / })).toHaveText("1.5x");
   });
 
   test("starts with interface sounds off for people who ask for reduced motion", async ({
