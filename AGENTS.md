@@ -28,4 +28,6 @@ Private design-engineering news briefing. A GitHub Actions engine writes a diges
 
 ## Keeping the record
 
+Project agents (`dispatch-verify`, `dispatch-worker`) are in `.claude/agents/`; `/close-session` runs the steps below.
+
 At the end of a session: update `docs/state.md`, add a decision (next D-number, and a row in the Index) for anything that changes direction, add one line to `docs/learnings.md` per failure, and add a note under `docs/history/`. Keep each fact in one place and link to it.
