@@ -80,6 +80,9 @@ export interface BuildEpisodeInput {
   request: PodcastRequest;
   stories: readonly PodcastStory[];
   turns: readonly ScriptTurn[];
+  /** Set when the episode replaces an earlier one. */
+  replaces?: string;
+  feedback?: string;
 }
 
 export async function buildEpisode(input: BuildEpisodeInput): Promise<Episode> {
@@ -104,6 +107,8 @@ export async function buildEpisode(input: BuildEpisodeInput): Promise<Episode> {
     id: input.id,
     title: episodeTitle(input.request),
     request: input.request,
+    ...(input.replaces ? { replaces: input.replaces } : {}),
+    ...(input.feedback ? { feedback: input.feedback } : {}),
     generated_at: input.now.toISOString(),
     listen_minutes: Math.max(1, Math.round(charCount / PODCAST_CHARS_PER_MINUTE)),
     format: input.request.format,

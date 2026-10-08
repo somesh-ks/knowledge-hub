@@ -63,6 +63,36 @@ export type PodcastFormat = z.infer<typeof PodcastFormat>;
 export const EpisodeId = z.string().regex(/^ep-\d{8}-\d{4}$/);
 export type EpisodeId = z.infer<typeof EpisodeId>;
 
+export const PODCAST_FEEDBACK_MAX = 500;
+
+/** Listener feedback: control characters become spaces, the ends are trimmed, 1 to 500 characters. */
+export const PodcastFeedback = z
+  .string()
+  // biome-ignore lint/suspicious/noControlCharactersInRegex: replacing control characters is the point
+  .transform((text) => text.replace(/[\u0000-\u001F\u007F]/g, " ").trim())
+  .pipe(z.string().min(1).max(PODCAST_FEEDBACK_MAX));
+
+/**
+ * What `podcast.yml` may pass in: a new episode (no `action`), a deletion, or a regeneration with
+ * feedback. A request with no `action` is wrapped as `{ action: "create", request }`.
+ */
+export const PodcastCommand = z.preprocess(
+  (raw) =>
+    typeof raw === "object" && raw !== null && !Array.isArray(raw) && !("action" in raw)
+      ? { action: "create", request: raw }
+      : raw,
+  z.discriminatedUnion("action", [
+    z.strictObject({ action: z.literal("create"), request: PodcastRequest }),
+    z.strictObject({ action: z.literal("delete"), id: EpisodeId }),
+    z.strictObject({
+      action: z.literal("regenerate"),
+      id: EpisodeId,
+      feedback: PodcastFeedback,
+    }),
+  ]),
+);
+export type PodcastCommand = z.output<typeof PodcastCommand>;
+
 export const EpisodeSource = z.object({
   item_id: z.string().regex(/^[0-9a-f]{12}$/),
   url: z.string().url(),
@@ -93,6 +123,10 @@ export const Episode = z.object({
   generated_at: isoDateTime,
   listen_minutes: z.number().int().positive(),
   format: PodcastFormat,
+  /** The episode this one replaced, when the listener asked for a regeneration. */
+  replaces: EpisodeId.optional(),
+  /** What the listener asked to change in the episode it replaced. */
+  feedback: z.string().min(1).max(PODCAST_FEEDBACK_MAX).optional(),
   sources: z.array(EpisodeSource),
   turns: z.array(EpisodeTurn).min(1),
   /** Sum of the characters of every turn; what the narration is billed on. */

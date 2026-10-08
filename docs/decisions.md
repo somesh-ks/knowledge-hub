@@ -53,6 +53,7 @@ D1 to D9 date from plan v2 (2026-10-05). D10 to D25 date from 2026-10-06. Reason
 | D41 | The passphrase step is switched off, with its code kept | active |
 | D42 | One Jev request per item, and a per-run Firecrawl ceiling | active |
 | D43 | General episodes are built from general-news feeds, ranked by coverage | active |
+| D44 | An episode can be deleted, or regenerated with the listener's feedback | active |
 
 ---
 
@@ -400,6 +401,14 @@ D1 to D9 date from plan v2 (2026-10-05). D10 to D25 date from 2026-10-06. Reason
 - Why: the owner asked for it ("remove passphrase for now, but we can have the code for future") after a failure that was blamed on the passphrase and was in fact the site's GitHub token lacking access to the repository.
 - Cost: anyone who can open the site can start a briefing, an episode, narration or a config edit, inside the caps. The owner accepted this.
 - Rejected: deleting the passphrase code; unlocking one device at a time (offered, not chosen).
+
+## D44: An episode can be deleted, or regenerated with the listener's feedback
+
+- Date: 2026-10-08
+- Decision: `podcast.yml` still passes one JSON input to `dispatch podcast --request`; it is now a new episode (no `action`), `{"action":"delete","id"}` or `{"action":"regenerate","id","feedback"}` (`PodcastCommand` in core; feedback 1 to 500 characters, control characters become spaces). Delete removes `Podcasts/YYYY/MM/<id>.md` and commits `chore(podcast): remove <id>` through the existing `podcast` allowlist (`Podcasts/` only, unchanged). Regenerate reuses the stored request of the old file, writes a new episode with a new id, removes the old file after generation succeeds, and commits both in one `feat(podcast): replace <old> with <new>`. The feedback reaches the writer as an optional `ScriptInput.feedback`, rendered in the user message inside the untrusted-text wrapper and never overriding the rules about facts and numbers. The new file records `replaces` and `feedback` (optional, so old files parse). `--dry-run` generates or reports and removes nothing.
+- Why: the owner wanted to delete an episode after it is made, and to regenerate it with extra feedback when the content is not right.
+- Cost: a regeneration is a full writer run. A failed one leaves the old episode in place.
+- Rejected: editing an episode in place (script, audio and checks are made together); keeping the old episode beside the new one.
 
 ## D43: General episodes are built from general-news feeds, ranked by coverage
 
