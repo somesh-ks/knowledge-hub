@@ -2,7 +2,7 @@
 import type { DigestEntry } from "./digests";
 import { listenLength, storyCount } from "./digestView";
 import { type EpisodeEntry, FORMAT_LABELS } from "./episodes";
-import { type CardFacts, normalize } from "./library";
+import { type CardFacts, normalize, type SearchIndexEntry } from "./library";
 
 export function cardFacts(entry: DigestEntry): CardFacts {
   const { digest } = entry;
@@ -33,6 +33,32 @@ export function episodeFacts(entry: EpisodeEntry): CardFacts {
     minutes: episode.listen_minutes,
     search: normalize(lines.join("\n")),
   };
+}
+
+/**
+ * The full text behind every card, for the Library's search: an episode's whole script and every
+ * story of a briefing, with what the host says aloud. One normalized blob per item. It goes in its
+ * own file (/search-index.json), fetched when search is first used, so no page carries it.
+ */
+export function searchIndex(
+  entries: readonly DigestEntry[],
+  episodes: readonly EpisodeEntry[],
+): SearchIndexEntry[] {
+  const briefings = entries.map((entry): SearchIndexEntry => {
+    const parts: string[] = [];
+    // A story is one line, so a query's words have to meet in one story.
+    for (const item of entry.digest.items) {
+      const words = [item.headline, item.source, item.summary, item.spoken ?? "", item.why ?? ""];
+      parts.push(words.join(" ").replace(/\s+/g, " "));
+    }
+    return { id: entry.id, kind: "briefing", text: normalize(parts.join("\n")) };
+  });
+  const scripts = episodes.map((entry): SearchIndexEntry => {
+    const parts: string[] = [];
+    for (const turn of entry.episode.turns) parts.push(turn.text.replace(/\s+/g, " "));
+    return { id: entry.id, kind: "episode", text: normalize(parts.join("\n")) };
+  });
+  return [...briefings, ...scripts];
 }
 
 export type LibraryItem =

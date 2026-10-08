@@ -4,6 +4,7 @@ import type { DigestEntry } from "../lib/digests";
 import { longDate } from "../lib/format";
 import { cardFacts } from "../lib/libraryCard";
 import Cover from "./Cover.astro";
+import CoverPlay from "./CoverPlay.astro";
 
 interface Props {
   entry: DigestEntry;
@@ -22,6 +23,7 @@ const facts = cardFacts(entry);
   class="card"
   data-card
   data-date={digest.date}
+  data-id={entry.id}
   data-kind={digest.kind}
   data-stories={digest.items.length}
   data-minutes={facts.minutes}
@@ -37,6 +39,10 @@ const facts = cardFacts(entry);
       priority={priority}
     />
     <span class="card-title">{longDate(digest.date)}</span>
-    <span class="card-facts" data-card-facts data-rest={facts.line}>{facts.line}</span>
+    <span class="card-sub">
+      <span class="card-meta">{digest.kind === "weekly" ? "Weekly briefing" : digest.kind === "on-demand" ? "Custom briefing" : "Daily briefing"}</span>
+      <span class="card-facts" data-card-facts data-rest={facts.line}>{facts.line}</span>
+    </span>
   </a>
+  <CoverPlay digestId={entry.id} href={`/d/${entry.id}`} title={longDate(digest.date)} />
 </li>
