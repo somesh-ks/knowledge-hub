@@ -1,0 +1,58 @@
+---
+import Icon from "./Icon.astro";
+---
+
+{/* What the Topics and Sources pages share besides their rows: the live region the script writes to,
+     the row it copies for an addition that waits to be saved, the bar that counts the changes, and the
+     dialog that asks for the passphrase once. All of it is inert until managePage.ts mounts. */}
+<p class="sr-only" role="status" data-live></p>
+
+<template>
+  <li class="manage-row" data-queued-row>
+    <div class="manage-main">
+      <div class="manage-text">
+        <span class="manage-name" data-q-name></span>
+        <span class="manage-quiet">Waiting to be saved</span>
+      </div>
+      <button class="icon-btn press" type="button" data-act="cancel">
+        <Icon name="close" />
+      </button>
+    </div>
+  </li>
+</template>
+
+<div class="manage-bar" data-bar data-state="idle" hidden>
+  <p class="manage-bar-text" data-bar-text></p>
+  <div class="manage-bar-actions">
+    <button class="btn press press-subtle" type="button" data-act="discard">Discard</button>
+    <button class="btn-primary manage-save press press-subtle" type="button" data-act="save">Save</button>
+    <button class="icon-btn press" type="button" data-act="dismiss" aria-label="Dismiss">
+      <Icon name="close" />
+    </button>
+  </div>
+</div>
+
+<dialog class="manage-dialog" aria-labelledby="manage-dialog-title">
+  <form method="dialog" class="manage-dialog-form">
+    <h2 id="manage-dialog-title">Save changes</h2>
+    <div class="manage-field">
+      <label for="manage-passphrase">Passphrase</label>
+      <input
+        class="manage-input"
+        id="manage-passphrase"
+        type="password"
+        required
+        autocomplete="current-password"
+        data-passphrase
+      />
+    </div>
+    <label class="manage-check">
+      <input type="checkbox" data-remember />
+      <span>Remember on this device</span>
+    </label>
+    <div class="manage-dialog-actions">
+      <button class="btn press press-subtle" type="button" data-act="close">Cancel</button>
+      <button class="btn-primary press press-subtle" type="submit" value="ok">Continue</button>
+    </div>
+  </form>
+</dialog>
