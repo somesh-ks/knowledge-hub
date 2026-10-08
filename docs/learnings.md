@@ -3,6 +3,9 @@
 One line each: symptom, cause, fix. Newest first. Search before debugging.
 
 - Hidden elements rendered on four pages (an error icon with no error, a save bar with nothing to save): the `[hidden]` rule relied on being imported last, and the build reorders stylesheet chunks. The rule now carries an id's weight, and `e2e/hidden.spec.ts` checks every built page.
+- Flick tests failed about one run in seven: the harness asks for 8 ms between touch moves and the page receives them 30 to 50 ms apart, which put a six-step flick on the velocity threshold. Synthesize a flick in three large steps, and log the events the page received before blaming the gesture code.
+- Every lab test failed with `_jsxDEV is not a function`: the dev server's dependency cache went stale while a build ran beside it. Delete `apps/web/node_modules/.vite/deps` and start the dev server on its own.
+- A wide-only control showed on phones: `.dock-wide { display: none }` lost to a later `.dock-btn { display: grid }` at the same weight. A hide rule needs more weight than the rule that sets the display.
 - Both browser suites reported failures that were not real: `reuseExistingServer` picked up a preview server on 4321 serving an older build. Stop any preview server before running a suite.
 - A page's script did nothing after a client-side navigation: Vite inlined the small module as a `data:` script, which the CSP blocks. `vite.build.assetsInlineLimit: 0` keeps every page script a file.
 - The Library page shipped 135 KB of JavaScript: its script imported a pure helper from a module that also imported build-time code (`digestView`). Keep what a page script imports in a module with no build-time imports.

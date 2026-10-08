@@ -16,13 +16,15 @@ The reader is now called Singularity (D30). Identifiers keep `dispatch`. Everyth
 - Narration on Play, story by story (D33): `/api/narrate`, the client in `apps/web/src/narration/`, the passphrase sheet.
 - Engine: four-beat voice (D34), Tech releases section and launch-scale ranking (D35), hosted narration (D29), user-defined topics with Jev topic-fit judging, source overlay and source discovery (D36), custom podcast episodes (D37).
 - New cover art: eight templates, sixteen palettes, an episode variant.
-- Checks on the merged branch: typecheck clean, 3,682 unit tests, lint clean, site build inside the 102 KB first-load budget, site browser suite green apart from specs being reconciled after the last merge.
+- Checks on the merged branch: typecheck clean, 3,683 unit tests, lint clean, site build at 100.6 KB of the 102 KB first-load budget, site browser suite green (466 tests, including a check on every page that nothing marked hidden renders).
+- Player browser suite, Chromium (the lab on a phone, the built site on a phone, a short phone and a desktop): green. Its dev lab page now renders the real reader components.
 
 ## Not working or unverified
 
 - Nothing on the branch has run against live services: Speechify narration (per story and per turn, two voices), the Blob store address the lookup computes, Jev topic-fit questions, Exa source discovery, the writer's `spoken` tellings and podcast scripts.
 - Three new workflows have never run on GitHub: `config.yml`, `podcast.yml`, and the changed `run.yml`. Workflow changes need a manual merge.
-- The player's own browser suite (`npm run e2e:player`) was not re-run after the final merges; its agent reported two mouse-drag tests failing on desktop and WebKit unverified.
+- The player suite's WebKit projects were not re-run in full after the last fixes. Four of their tests are skipped in WebKit only, because Playwright cannot send a wheel or a touch drag there; scroll containment and the cover's flight are therefore unverified in WebKit.
+- `src/player/dev/LabGlyph.astro` is unused since the lab renders the real components. Delete it when convenient.
 - Not tested on a real iPhone: scroll containment behind the open player, the swipe, safe areas, lock-screen controls, audio starting after the passphrase sheet.
 - Audio already stored for the first two briefings says "Dispatch" and no longer matches the narration text. It is re-made on Play.
 - Curation: release-note noise in the first briefings is still there (see Next).
