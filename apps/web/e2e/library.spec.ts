@@ -418,6 +418,22 @@ test.describe("library episodes", () => {
     await expect(page.locator("[data-card]:not([hidden])")).toHaveCount(0);
   });
 
+  test("a title the card cuts short carries the whole title as a tooltip, and a short one none", async ({
+    page,
+  }) => {
+    await page.goto("/library");
+    await ready(page);
+    const long = "A title that runs on and on, well past the two lines a card allows, to prove it";
+    await page.evaluate((text) => {
+      const title = document.querySelector("[data-card] .card-title");
+      if (title) title.textContent = text;
+      window.dispatchEvent(new Event("resize"));
+    }, long);
+    const links = page.locator("[data-card]:not([hidden]) .card-link");
+    await expect(links.first()).toHaveAttribute("title", long);
+    await expect(links.nth(1)).not.toHaveAttribute("title", /.+/);
+  });
+
   test("search falls back to the cards when the index cannot be fetched", async ({ page }) => {
     await page.route("**/search-index.json", (route) =>
       route.fulfill({ status: 200, body: "not an index" }),

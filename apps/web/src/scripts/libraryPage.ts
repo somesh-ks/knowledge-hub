@@ -80,6 +80,17 @@ function install(): void {
       });
   }
 
+  /** A title the card cuts short gets the whole title as a tooltip; one that fits gets none. */
+  function markTruncated(): void {
+    for (const card of cards) {
+      const title = card.element.querySelector<HTMLElement>(".card-title");
+      const link = card.element.querySelector<HTMLElement>(".card-link");
+      if (!title || !link || card.element.hidden) continue;
+      if (title.scrollHeight > title.clientHeight + 1) link.title = title.textContent ?? "";
+      else link.removeAttribute("title");
+    }
+  }
+
   function apply(): void {
     const query = input?.value ?? "";
     const searching = query.trim() !== "";
@@ -112,6 +123,7 @@ function install(): void {
     for (const card of ordered) grid?.append(card.element);
     if (status) status.textContent = resultSummary(shown, cards.length);
     if (empty) empty.hidden = shown > 0;
+    requestAnimationFrame(markTruncated);
   }
 
   input?.addEventListener("focus", loadFullText);
@@ -143,6 +155,7 @@ function install(): void {
   });
   // A search field inside a form would reload the page on Enter.
   root.querySelector("form")?.addEventListener("submit", (event) => event.preventDefault());
+  window.addEventListener("resize", () => requestAnimationFrame(markTruncated));
   apply();
 }
 
