@@ -48,6 +48,62 @@ test.describe("the briefing header", () => {
     await expect(chip).toHaveAttribute("data-state", "idle");
   });
 
+  test("asks for the intro and the first story at idle, and a press joins that work", async ({
+    page,
+  }) => {
+    const asked: string[] = [];
+    await page.route("**/api/narrate?digest=*", async (route) => {
+      const ids: string[] = await page.evaluate(() => {
+        const data = JSON.parse(
+          document.getElementById("dispatch-digest-data")?.textContent ?? "{}",
+        );
+        return (data.items as { id: string }[]).map((item) => item.id);
+      });
+      await route.fulfill({
+        json: {
+          status: 200,
+          audio: null,
+          timeline: null,
+          ms_per_character: 62,
+          segments: ["intro", ...ids].map((key) => ({
+            key,
+            item_id: key === "intro" ? null : key,
+            characters: 300,
+            audio: null,
+          })),
+        },
+      });
+    });
+    await page.route("**/api/narrate", async (route) => {
+      if (route.request().method() !== "POST") return route.fallback();
+      const { segment } = route.request().postDataJSON() as { segment: string };
+      asked.push(segment);
+      // Slow enough that the press below lands while the first request is still on its way.
+      await new Promise((resolve) => setTimeout(resolve, 600));
+      return route.fulfill({
+        json: {
+          status: 200,
+          segment: {
+            key: segment,
+            item_id: segment === "intro" ? null : segment,
+            characters: 300,
+            audio: { url: "/fixtures/audio.wav", duration_ms: 18_600, confirmed: true },
+          },
+        },
+      });
+    });
+    await page.goto(SILENT_DIGEST);
+    await hydrated(page);
+    await expect.poll(() => asked.length, { timeout: 10_000 }).toBeGreaterThan(0);
+    await page.locator("[data-play-digest]").click();
+    await expect(page.locator("html")).toHaveAttribute("data-player-state", "playing");
+    await expect.poll(() => asked.length).toBeGreaterThanOrEqual(2);
+    // The intro and the first story were each asked for once, by the prewarm, not again by the press.
+    expect(asked.slice(0, 2)[0]).toBe("intro");
+    expect(asked.filter((key) => key === "intro")).toHaveLength(1);
+    expect(new Set(asked).size).toBe(asked.length);
+  });
+
   test("pressing play on a briefing without audio narrates it story by story", async ({ page }) => {
     await page.goto(SILENT_DIGEST);
     await hydrated(page);

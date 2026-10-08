@@ -21,6 +21,13 @@ export const test = base.extend<Options & { problems: Problems }>({
       const problems: Problems = { messages: [] };
       // A page the test asks for on purpose and that answers 404 logs one console line for itself.
       const expectedNotFound = new Set<string>();
+      // A page without audio asks for its narration at idle. The static fixture server has no API
+      // (it answers 501, which the browser logs), so the default is "nothing to narrate": a 200
+      // with no segments, which the client treats as a quiet refusal. A test that mocks the route
+      // itself registers later and wins.
+      await page.route("**/api/narrate?digest=*", (route) =>
+        route.fulfill({ json: { status: 200, audio: null, timeline: null, segments: [] } }),
+      );
       page.on("response", (response) => {
         if (response.status() === 404 && response.request().isNavigationRequest()) {
           expectedNotFound.add(response.url());
