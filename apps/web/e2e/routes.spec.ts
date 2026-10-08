@@ -39,6 +39,9 @@ test.describe("routes and headers", () => {
     const body = await response.json();
     expect(Object.keys(body).sort()).toEqual([
       "date",
+      // The newest episode, so a page that asked for one can see it go live.
+      "episode_at",
+      "episode_id",
       "generated_at",
       "id",
       "kind",
