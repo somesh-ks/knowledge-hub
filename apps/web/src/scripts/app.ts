@@ -17,6 +17,23 @@ installCreateEntry();
 installDeviceBanners();
 installThemeColor();
 registerServiceWorker();
+// A tab left open across a deploy asks for script files the deploy removed, and the import fails
+// (the player's controls, narration). One reload with the saved pages dropped gets the current
+// site; the flag stops a second one.
+addEventListener("vite:preloadError", () => {
+  try {
+    if (sessionStorage.getItem("dispatch:reloaded")) return;
+    sessionStorage.setItem("dispatch:reloaded", "1");
+  } catch {
+    return;
+  }
+  void caches
+    ?.keys()
+    .then((keys) =>
+      Promise.all(keys.filter((key) => /-pages-/.test(key)).map((key) => caches.delete(key))),
+    )
+    .finally(() => location.reload());
+});
 try {
   if (localStorage.getItem("dispatch:deleted-episodes")) void import("./deletedEpisodes");
 } catch {
