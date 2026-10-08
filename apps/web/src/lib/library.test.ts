@@ -11,6 +11,7 @@ import {
 function card(overrides: Partial<CardData> = {}): CardData {
   return {
     date: "2026-10-07",
+    order: 0,
     kind: "regular",
     stories: 12,
     minutes: 8,
@@ -85,6 +86,13 @@ describe("compareCards", () => {
     expect([newer, older].sort((a, b) => compareCards(a, b, "oldest"))).toEqual([older, newer]);
   });
 
+  it("reverses two cards of one day along with the rest", () => {
+    const later = card({ order: 0 });
+    const earlier = card({ order: 1 });
+    expect([earlier, later].sort((a, b) => compareCards(a, b, "newest"))).toEqual([later, earlier]);
+    expect([later, earlier].sort((a, b) => compareCards(a, b, "oldest"))).toEqual([earlier, later]);
+  });
+
   it("sorts by length and by story count, newest first on a tie", () => {
     expect([newer, older].sort((a, b) => compareCards(a, b, "longest"))).toEqual([older, newer]);
     expect([older, newer].sort((a, b) => compareCards(a, b, "stories"))).toEqual([newer, older]);
@@ -98,6 +106,7 @@ describe("resultSummary", () => {
     expect(resultSummary(3, 3)).toBe("3 results");
     expect(resultSummary(1, 1)).toBe("1 result");
     expect(resultSummary(2, 9)).toBe("2 of 9 results");
+    expect(resultSummary(1, 5)).toBe("1 of 5 results");
     expect(resultSummary(0, 9)).toBe("No results");
   });
 });

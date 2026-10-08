@@ -30,6 +30,8 @@ export const EPISODE_KIND = "episode";
 /** What search, sort and filter need to know about one card. Read from its data attributes. */
 export interface CardData {
   date: string;
+  /** The card's place in the page's own order, newest first. Tells apart two cards of one day. */
+  order: number;
   kind: string;
   stories: number;
   minutes: number;
@@ -77,16 +79,17 @@ export function matchCount(card: CardData, query: string): number {
 }
 
 export function compareCards(a: CardData, b: CardData, sort: LibrarySort): number {
-  const newest = b.date.localeCompare(a.date);
+  const newest = b.date.localeCompare(a.date) || a.order - b.order;
   if (sort === "oldest") return -newest;
   if (sort === "longest") return b.minutes - a.minutes || newest;
   if (sort === "stories") return b.stories - a.stories || newest;
   return newest;
 }
 
-/** "3 results", "1 result", or "No results". Announced after every change. */
+/** "3 results", "1 result", "1 of 5 results", or "No results". Announced after every change. */
 export function resultSummary(shown: number, total: number): string {
   if (shown === 0) return "No results";
-  const noun = shown === 1 ? "result" : "results";
-  return shown === total ? `${shown} ${noun}` : `${shown} of ${total} ${noun}`;
+  // After "of", the noun counts the whole list, not the part shown.
+  if (shown !== total) return `${shown} of ${total} results`;
+  return shown === 1 ? "1 result" : `${shown} results`;
 }

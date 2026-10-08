@@ -31,9 +31,8 @@ async function titles(page: Page): Promise<string[]> {
 }
 
 /**
- * The status line for a narrowed list. The singular case is matched loosely on purpose: the product
- * says "1 of 5 result" (see the failing test "reads 'results' after 'of'" below), and the other tests
- * are about filtering, not grammar.
+ * The status line for a narrowed list. Matched loosely: these tests are about filtering, and one
+ * test below pins the wording.
  */
 async function narrowedTo(page: Page, shown: number, total: number): Promise<void> {
   await expect(page.getByRole("status")).toHaveText(new RegExp(`^${shown} of ${total} results?$`));
@@ -355,8 +354,7 @@ test.describe("library episodes", () => {
     page,
   }) => {
     // The discussion was written after the Wednesday briefing, so newest first lists it first and
-    // oldest first should list it last. The page script sorts on the day alone, so the two keep
-    // their newest-first order. Product defect: this test is expected to fail until it is fixed.
+    // oldest first lists it last.
     await page.goto("/library");
     await ready(page);
     await page.getByRole("combobox", { name: "Sort" }).selectOption("oldest");
@@ -364,7 +362,6 @@ test.describe("library episodes", () => {
   });
 
   test("reads 'results' after 'of' when one card is left", async ({ page }) => {
-    // Product defect: resultSummary(1, 5) returns "1 of 5 result". Expected to fail until it is fixed.
     await page.goto("/library");
     await ready(page);
     await filter(page, "Weekly").click();

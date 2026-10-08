@@ -18,13 +18,14 @@ interface Card {
   data: CardData;
 }
 
-function readCard(element: HTMLElement): Card {
+function readCard(element: HTMLElement, order: number): Card {
   const { date = "", kind = "", stories = "0", minutes = "0", search = "" } = element.dataset;
   return {
     element,
     facts: element.querySelector<HTMLElement>("[data-card-facts]"),
     data: {
       date,
+      order,
       kind,
       stories: Number(stories),
       minutes: Number(minutes),
