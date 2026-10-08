@@ -105,9 +105,11 @@ export function spokenDate(date: string): string {
 /** What the opening says it starts with. */
 const LEAD: Record<Section, string> = {
   top: "the top picks",
-  "ui-craft": "interaction craft",
-  ai: "AI models and products",
-  tech: "tech releases",
+  design: "design",
+  "ui-craft": "design engineering",
+  ai: "AI products",
+  tech: "tech product launches",
+  trending: "what is trending",
   research: "research",
   launches: "launches",
   watch: "something to watch and listen to",
@@ -159,14 +161,18 @@ function builtinBridges(section: Section, count: number): readonly string[] {
   switch (section) {
     case "top":
       return ["Back to the top picks.", "Now, the top picks."];
+    case "design":
+      return ["Now, design.", "On to design.", "Over in design."];
     case "ui-craft":
-      return ["Now, interaction craft.", "On to interaction craft.", "Over to the craft side."];
+      return ["Now, design engineering.", "On to design engineering.", "Over to the craft side."];
     case "ai":
-      return ["Over in AI.", "Now, AI models and products.", "On the AI side."];
+      return ["Over in AI.", "Now, AI products.", "On the AI side."];
     case "tech":
       return count === 2
-        ? ["Now, tech releases.", "A couple of releases.", "On to tech releases."]
-        : ["Now, tech releases.", "On to tech releases.", "Some releases worth knowing."];
+        ? ["Now, tech launches.", "A couple of launches.", "On to tech launches."]
+        : ["Now, tech launches.", "On to tech launches.", "Some launches worth knowing."];
+    case "trending":
+      return ["Now, what is trending.", "On to what everyone is covering.", "In the wider news."];
     case "research":
       return ["Now, research.", "On the research side.", "Over in research."];
     case "launches":

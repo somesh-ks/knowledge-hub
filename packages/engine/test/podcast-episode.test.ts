@@ -155,7 +155,7 @@ describe("the title", () => {
 
   it("names the topics and stays within the limit", () => {
     expect(episodeTitle({ ...REQUEST, topic_ids: ["ai", "research"] })).toBe(
-      "Singularity: AI models and products, Research",
+      "Singularity: AI Products, Research",
     );
     const long = episodeTitle({
       ...REQUEST,

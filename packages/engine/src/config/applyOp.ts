@@ -51,7 +51,7 @@ export interface OpOutcome {
   new_topic?: boolean;
 }
 
-const RESERVED_SECTIONS: readonly string[] = ["top", "watch"];
+const RESERVED_SECTIONS: readonly string[] = ["top", "watch", "design", "trending"];
 const QUERY_ID = /^[a-z0-9][a-z0-9-]*$/;
 
 function clone<T>(value: T): T {
@@ -123,8 +123,22 @@ function upsertTopic(
       new_topic: false,
     };
   }
-  if (input.origin === "builtin") {
-    throw new ConfigOpError("Only the built-in topics are built in; a new topic is custom.");
+  if (existing?.origin === "app") {
+    // A topic that ships with the app keeps its judge question, section and depth, so switching it
+    // off and on never re-judges anything. The owner can change its weight and keywords, and
+    // switch it off. Its sources are shipped with it, so no discovery queries are written.
+    existing.weight = input.weight;
+    existing.keywords = [...new Set(input.keywords)];
+    existing.enabled = input.enabled;
+    return {
+      next,
+      summary: `${input.enabled ? "turn on" : "turn off"} ${tidy(existing.name)}`,
+      topic_id: id,
+      new_topic: false,
+    };
+  }
+  if (input.origin === "builtin" || input.origin === "app") {
+    throw new ConfigOpError("Only the shipped topics are built in; a new topic is custom.");
   }
   if (existing === undefined) {
     if (isBuiltinCategory(id) || RESERVED_TOPIC_IDS.includes(id)) {
@@ -199,6 +213,11 @@ function removeTopic(
   if (topic.origin === "builtin") {
     throw new ConfigOpError(
       "Built-in topics cannot be removed. Set the weight to 0 to silence one.",
+    );
+  }
+  if (topic.origin === "app") {
+    throw new ConfigOpError(
+      `${topic.name} ships with the app and cannot be removed. Turn it off instead.`,
     );
   }
   next.topics.topics = next.topics.topics.filter((candidate) => candidate.id !== op.id);

@@ -1,4 +1,4 @@
-import { activeCustomTopics } from "@dispatch/core";
+import { activeFitTopics } from "@dispatch/core";
 import { loadJudgments, loadPool } from "../curate/inputs.js";
 import { writeJson } from "../curate/output.js";
 import { judgeWithCache } from "../judge/cache.js";
@@ -43,7 +43,7 @@ export async function judgeStage(deps: RunDeps, plan: Plan): Promise<StageReport
 
   // Built-in weights do not matter here, so a repository without topics.json needs nothing else.
   const topicsFile = await loadTopicsFile(deps.root);
-  const customTopics = topicsFile ? activeCustomTopics(topicsFile) : [];
+  const customTopics = topicsFile ? activeFitTopics(topicsFile) : [];
   const topicJudge = customTopics.length > 0 ? (runtime.topicJudge ?? null) : null;
   if (customTopics.length > 0 && topicJudge === null) {
     deps.log.warn("Custom topics are set but TYPESAFE_API_KEY is not; they are skipped this run", {

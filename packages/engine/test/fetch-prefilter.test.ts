@@ -268,6 +268,7 @@ describe("prefilter", () => {
         kept: 0,
         dropped: { disliked: 0, not_relevant: 0, source_cap: 0, cap: 0 },
         tech: { input: 0, kept: 0, source_cap: 0, cap: 0 },
+        trending: { input: 0, single_outlet: 0, kept: 0, source_cap: 0, cap: 0 },
       },
     });
   });

@@ -7,34 +7,44 @@
       "order": 0
     },
     {
-      "id": "ui-craft",
-      "title": "Interaction craft",
+      "id": "design",
+      "title": "Design",
       "order": 1
     },
     {
-      "id": "ai",
-      "title": "AI models and products",
+      "id": "ui-craft",
+      "title": "Design Engineering",
       "order": 2
     },
     {
-      "id": "tech",
-      "title": "Tech releases",
+      "id": "ai",
+      "title": "AI Products",
       "order": 3
+    },
+    {
+      "id": "tech",
+      "title": "Tech Product Launches",
+      "order": 4
+    },
+    {
+      "id": "trending",
+      "title": "Trending",
+      "order": 5
     },
     {
       "id": "research",
       "title": "Research",
-      "order": 4
+      "order": 6
     },
     {
       "id": "launches",
       "title": "Launches",
-      "order": 5
+      "order": 7
     },
     {
       "id": "watch",
       "title": "Watch and listen",
-      "order": 6
+      "order": 8
     }
   ],
   "topics": [
@@ -57,7 +67,7 @@
       "weight": 0.92,
       "enabled": true,
       "keywords": [],
-      "section_id": "research",
+      "section_id": "design",
       "never_publish": false,
       "origin": "builtin",
       "depth": "craft"
@@ -117,7 +127,7 @@
       "weight": 0.82,
       "enabled": true,
       "keywords": [],
-      "section_id": "launches",
+      "section_id": "ui-craft",
       "never_publish": false,
       "origin": "builtin",
       "depth": "craft"
@@ -169,6 +179,30 @@
       "never_publish": false,
       "origin": "builtin",
       "depth": "launch"
+    },
+    {
+      "id": "design",
+      "name": "Design",
+      "description": "Product, UI, UX and visual design news and essays for a designer: interface and interaction design, usability research, design systems, branding and the craft and practice of design. Not architecture, furniture or interiors.",
+      "weight": 0.85,
+      "enabled": true,
+      "keywords": [],
+      "section_id": "design",
+      "never_publish": false,
+      "origin": "app",
+      "depth": "fit_only"
+    },
+    {
+      "id": "trending",
+      "name": "Trending",
+      "description": "A news story that several major outlets are covering at once, in any field: politics, economy, science, health, technology, world events. Not sports results, celebrity gossip, obituaries of no wider interest, local crime, opinion columns or product reviews.",
+      "weight": 1,
+      "enabled": true,
+      "keywords": [],
+      "section_id": "trending",
+      "never_publish": false,
+      "origin": "app",
+      "depth": "coverage"
     }
   ]
 }

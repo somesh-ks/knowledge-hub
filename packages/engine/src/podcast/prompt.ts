@@ -32,6 +32,17 @@ const FORMATS: Record<PodcastFormat, string> = {
   ].join(" "),
 };
 
+/**
+ * Who the script is for. "custom" is the owner, a design engineer, and is today's behaviour: the
+ * prompt says nothing more. "general" is anyone, so a term is explained the first time it is used
+ * and insider shorthand is left out.
+ */
+export const AUDIENCES: Record<NonNullable<PodcastRequest["audience"]>, string> = {
+  custom: "",
+  general:
+    "AUDIENCE: a general listener with no background in design or software. Explain any technical term, product name or acronym the first time you use it, in a few plain words. Leave out insider shorthand and jargon. Never talk down to the listener, and add no fact the story blocks do not state, even to explain a term: explain by describing what the thing does, not by adding claims about it.",
+};
+
 const RULES = [
   "The listener hears this script read aloud, so write for the ear: short sentences, contractions allowed, no markdown, no lists, no links, no stage directions, no emoji, no em dashes.",
   "Use facts from the story blocks only. Never add a claim, number, name, date, quote or link that a block does not state. If a block lacks a detail, leave it out.",
@@ -47,6 +58,7 @@ export function scriptSystemPrompt(input: ScriptInput, boundary: string): string
     "You write the script of one episode of Singularity, a private tech and design briefing that people listen to as a podcast.",
     FORMATS[request.format],
     `TONE: ${TONES[request.tone]}`,
+    ...(AUDIENCES[request.audience ?? "custom"] ? [AUDIENCES[request.audience ?? "custom"]] : []),
     "RULES",
     RULES,
     "LENGTH",

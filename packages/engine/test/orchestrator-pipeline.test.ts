@@ -852,8 +852,8 @@ describe("tech releases in a published run", () => {
       const sections = [...new Set(digest.items.map((item) => item.section))];
       expect(sections.indexOf("tech")).toBe(sections.indexOf("ai") + 1);
       const fileText = await readFile(join(repo.root, DIGEST_PATH), "utf8");
-      expect(fileText.indexOf("## Tech releases")).toBeGreaterThan(
-        fileText.indexOf("## AI models and products"),
+      expect(fileText.indexOf("## Tech Product Launches")).toBeGreaterThan(
+        fileText.indexOf("## AI Products"),
       );
       expect(fileText).not.toContain("Why:");
 

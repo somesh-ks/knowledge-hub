@@ -2,32 +2,50 @@ import { z } from "zod";
 import {
   CATEGORIES,
   type Category,
+  DESIGN_TOPIC_ID,
   hasOwnAllowance,
   homeSection,
   IdString,
   isBuiltinCategory,
+  isBuiltinSection,
   NEVER_PUBLISH,
   SECTION_TITLES,
   SECTIONS,
   SectionId,
+  TRENDING_TOPIC_ID,
 } from "./categories.js";
 import type { Preferences } from "./preferences.js";
 
 /**
  * How a topic is scored beyond fit. "craft" and "launch" multiply the fit by the same depth
  * factors the built-in categories use; "fit_only" scores on fit alone, which suits most custom
- * topics because the reader asked for a subject, not for technique.
+ * topics because the reader asked for a subject, not for technique. "coverage" multiplies by how
+ * many distinct outlets reported the story (Trending, D40); a story one outlet carried scores 0.
  */
-export const TOPIC_DEPTHS = ["craft", "launch", "fit_only"] as const;
+export const TOPIC_DEPTHS = ["craft", "launch", "fit_only", "coverage"] as const;
 export const TopicDepth = z.enum(TOPIC_DEPTHS);
 export type TopicDepth = z.infer<typeof TopicDepth>;
 
-export const TOPIC_ORIGINS = ["builtin", "custom"] as const;
+/**
+ * "builtin" topics are the eleven judge categories. "custom" topics are the owner's. "app" topics
+ * ship with the app (Design and Trending): judged by fit like a custom topic, but they can be
+ * switched off and never removed, and they do not count toward MAX_CUSTOM_TOPICS.
+ */
+export const TOPIC_ORIGINS = ["builtin", "custom", "app"] as const;
 export const TopicOrigin = z.enum(TOPIC_ORIGINS);
 export type TopicOrigin = z.infer<typeof TopicOrigin>;
 
 /** Ids a custom topic can never take: they mean something to the judge or to the layout. */
-export const RESERVED_TOPIC_IDS: readonly string[] = ["none", "top", "watch"];
+export const RESERVED_TOPIC_IDS: readonly string[] = [
+  "none",
+  "top",
+  "watch",
+  DESIGN_TOPIC_ID,
+  TRENDING_TOPIC_ID,
+];
+
+/** Ids of the topics that ship with the app. */
+export const APP_TOPIC_IDS: readonly string[] = [DESIGN_TOPIC_ID, TRENDING_TOPIC_ID];
 
 /** Judging a custom topic costs a model call per candidate, so the number of them is bounded. */
 export const MAX_CUSTOM_TOPICS = 12;
@@ -101,6 +119,14 @@ export const TopicsFile = z
             code: "custom",
             path: at("id"),
             message: `${topic.id} is not a built-in category`,
+          });
+        }
+      } else if (topic.origin === "app") {
+        if (!APP_TOPIC_IDS.includes(topic.id)) {
+          ctx.addIssue({
+            code: "custom",
+            path: at("id"),
+            message: `${topic.id} is not a topic that ships with the app`,
           });
         }
       } else {
@@ -221,12 +247,48 @@ export function builtinTopics(weights: Readonly<Record<Category, number>>): Topi
   });
 }
 
+/**
+ * The topics that ship with the app (D39). Each is judged by fit with the existing custom-topic
+ * question, publishes in the section of the same id, and is fed by the sources tagged with its id.
+ * The wording is part of the judge question's hash, so edit it only on purpose.
+ */
+export function appTopics(): Topic[] {
+  return [
+    {
+      id: DESIGN_TOPIC_ID,
+      name: "Design",
+      description:
+        "Product, UI, UX and visual design news and essays for a designer: interface and interaction design, usability research, design systems, branding and the craft and practice of design. Not architecture, furniture or interiors.",
+      weight: 0.85,
+      enabled: true,
+      keywords: [],
+      section_id: "design",
+      never_publish: false,
+      origin: "app",
+      depth: "fit_only",
+    },
+    {
+      id: TRENDING_TOPIC_ID,
+      name: "Trending",
+      description:
+        "A news story that several major outlets are covering at once, in any field: politics, economy, science, health, technology, world events. Not sports results, celebrity gossip, obituaries of no wider interest, local crime, opinion columns or product reviews.",
+      weight: 1,
+      enabled: true,
+      keywords: [],
+      section_id: "trending",
+      never_publish: false,
+      origin: "app",
+      depth: "coverage",
+    },
+  ];
+}
+
 /** What config/topics.json holds before anyone adds a topic: the built-ins and today's sections. */
 export function seedTopicsFile(weights: Readonly<Record<Category, number>>): TopicsFile {
   return {
     version: 1,
     sections: BUILTIN_SECTIONS.map((section) => ({ ...section })),
-    topics: builtinTopics(weights),
+    topics: [...builtinTopics(weights), ...appTopics()],
   };
 }
 
@@ -241,38 +303,60 @@ export function resolveTopics(
   preferences: Pick<Preferences, "weights">,
 ): TopicsFile {
   const base = file ?? seedTopicsFile(preferences.weights);
-  const seed = new Map(builtinTopics(preferences.weights).map((topic) => [topic.id, topic]));
+  const seed = new Map(
+    [...builtinTopics(preferences.weights), ...appTopics()].map((topic) => [topic.id, topic]),
+  );
   const present = new Set(base.topics.map((topic) => topic.id));
   const topics = base.topics.map((topic): Topic => {
     if (topic.origin !== "builtin") return topic;
-    const fromPrefs = isBuiltinCategory(topic.id) ? preferences.weights[topic.id] : topic.weight;
-    return { ...topic, weight: fromPrefs };
+    if (!isBuiltinCategory(topic.id)) return topic;
+    // Weight is the owner's (preferences); the section follows the code, so a routing change
+    // (D39) reaches a topics.json written before it.
+    return {
+      ...topic,
+      weight: preferences.weights[topic.id],
+      section_id: seed.get(topic.id)?.section_id ?? topic.section_id,
+    };
   });
   for (const [id, topic] of seed) if (!present.has(id)) topics.push(topic);
-  const sections = [...base.sections];
-  const haveSection = new Set(sections.map((section) => section.id));
-  for (const section of BUILTIN_SECTIONS) {
-    if (!haveSection.has(section.id)) sections.push({ ...section });
-  }
+  // Built-in sections take their title and order from the code, so a retitle reaches a file
+  // written before it. A section a custom topic created is the owner's and is left alone.
+  const sections = [
+    ...BUILTIN_SECTIONS.map((section) => ({ ...section })),
+    ...base.sections.filter((section) => !isBuiltinSection(section.id)),
+  ];
   return { version: 1, sections, topics };
 }
 
-/** Custom topics that are switched on: the ones a run judges. */
+/** Custom topics that are switched on. */
 export function activeCustomTopics(file: TopicsFile): Topic[] {
   return file.topics.filter((topic) => topic.origin === "custom" && topic.enabled);
 }
 
 /**
+ * Topics a run judges by fit: the owner's custom topics and the app's own (Design, Trending),
+ * when switched on. The built-in categories are judged by the fixed question set instead.
+ */
+export function activeFitTopics(file: TopicsFile): Topic[] {
+  return file.topics.filter((topic) => topic.origin !== "builtin" && topic.enabled);
+}
+
+/** True when the id names a topic that ships with the app and the file has it switched off. */
+export function isDisabledAppTopic(file: TopicsFile | null | undefined, id: string): boolean {
+  if (!APP_TOPIC_IDS.includes(id)) return false;
+  return file?.topics.find((topic) => topic.id === id)?.enabled === false;
+}
+
+/**
  * Home section for a category or topic id. A built-in category keeps the section it has always
- * had; a custom topic follows its `section_id`. Video goes to "watch" by source type. Null for a
- * topic that never publishes, and for an id nobody knows (a removed topic).
+ * had; a custom or app topic follows its `section_id`. Null for a topic that never publishes, and
+ * for an id nobody knows (a removed topic). A video goes where its topic goes.
  */
 export function homeSectionFor(
   topics: TopicsFile | null | undefined,
   id: string,
   sourceType: string,
 ): string | null {
-  if (sourceType === "youtube") return "watch";
   if (isBuiltinCategory(id)) return homeSection(id, sourceType);
   const topic = topics?.topics.find((candidate) => candidate.id === id);
   if (!topic || topic.never_publish) return null;

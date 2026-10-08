@@ -141,13 +141,12 @@ describe("buildDigest", () => {
       Math.max(...top.map((i) => i.score)),
     );
     const order = [...new Set(digest.items.map((i) => i.section))];
-    expect(order).toEqual(["top", "ui-craft", "ai", "tech", "research", "launches"]);
+    expect(order).toEqual(["top", "design", "ui-craft", "ai", "tech"]);
 
     const text = serializeDigestFile(digest);
     const at = (title: string): number => text.indexOf(`## ${title}`);
-    expect(at("AI models and products")).toBeGreaterThan(0);
-    expect(at("Tech releases")).toBeGreaterThan(at("AI models and products"));
-    expect(at("Research")).toBeGreaterThan(at("Tech releases"));
+    expect(at("AI Products")).toBeGreaterThan(0);
+    expect(at("Tech Product Launches")).toBeGreaterThan(at("AI Products"));
     expect(parseDigestFile(text)).toEqual(digest);
   });
 

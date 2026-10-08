@@ -63,10 +63,13 @@ describe("config/topics.json", () => {
     expect(file).toEqual(seedTopicsFile(preferences.weights));
   });
 
-  it("names every category with its preference weight and today's section", () => {
-    expect(file.topics.map((topic) => topic.id)).toEqual([...CATEGORIES]);
-    for (const topic of file.topics) {
-      expect(topic.origin).toBe("builtin");
+  it("names every category with its preference weight and today's section, then the app's topics", () => {
+    expect(file.topics.map((topic) => topic.id)).toEqual([...CATEGORIES, "design", "trending"]);
+    expect(file.topics.filter((topic) => topic.origin === "app").map((t) => t.id)).toEqual([
+      "design",
+      "trending",
+    ]);
+    for (const topic of file.topics.filter((t) => t.origin === "builtin")) {
       expect(topic.weight).toBe(preferences.weights[topic.id as (typeof CATEGORIES)[number]]);
       const home = homeSection(topic.id as (typeof CATEGORIES)[number], "rss");
       if (home !== null) expect(topic.section_id).toBe(home);
@@ -120,7 +123,10 @@ describe("home sections", () => {
   it("keeps every built-in category where it has always been, topics file or not", () => {
     for (const category of CATEGORIES) {
       expect(homeSectionFor(null, category, "rss")).toBe(homeSection(category, "rss"));
-      expect(homeSectionFor(customTopics(), category, "youtube")).toBe("watch");
+      // A video goes where its topic goes.
+      expect(homeSectionFor(customTopics(), category, "youtube")).toBe(
+        homeSection(category, "youtube"),
+      );
     }
   });
 
@@ -133,7 +139,8 @@ describe("home sections", () => {
   it("gives Tech and custom sections their own allowance, and no other built-in section", () => {
     expect(hasOwnAllowance("tech")).toBe(true);
     expect(hasOwnAllowance("quantum")).toBe(true);
-    for (const id of ["top", "ui-craft", "ai", "research", "launches", "watch"]) {
+    expect(hasOwnAllowance("trending")).toBe(true);
+    for (const id of ["top", "design", "ui-craft", "ai", "research", "launches", "watch"]) {
       expect(hasOwnAllowance(id)).toBe(false);
     }
   });
@@ -183,11 +190,14 @@ describe("digest sections", () => {
   });
 
   it("orders built-in sections by the built-in table when there is no snapshot", () => {
-    const digest = digestWith(["watch", "ai", "top", "tech"]);
+    const digest = digestWith(["watch", "ai", "top", "tech", "trending", "research"]);
     expect(digestSections(digest)).toEqual([
       { id: "top", title: "Top picks" },
-      { id: "ai", title: "AI models and products" },
-      { id: "tech", title: "Tech releases" },
+      { id: "ai", title: "AI Products" },
+      { id: "tech", title: "Tech Product Launches" },
+      { id: "trending", title: "Trending" },
+      // Retired sections keep their old titles so a published briefing renders as it did.
+      { id: "research", title: "Research" },
       { id: "watch", title: "Watch and listen" },
     ]);
   });
@@ -210,7 +220,7 @@ describe("digest sections", () => {
     expect(digestSections(digest).map((s) => s.title)).toEqual([
       "Quantum",
       "Top picks",
-      "Interaction craft",
+      "Design Engineering",
     ]);
     const bare = digestWith(["top", "ui-craft", "quantum"]);
     expect(digestSections(bare).at(-1)).toEqual({ id: "quantum", title: "quantum" });

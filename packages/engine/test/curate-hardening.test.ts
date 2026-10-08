@@ -200,13 +200,13 @@ describe("the example a session copies", () => {
     );
     expect(selection.items).toHaveLength(5);
     for (const item of selection.items) expect(item).not.toHaveProperty("why");
-    // Digest order: three Top picks, then Tech releases, then Research.
+    // Digest order: three Top picks, then Design (HCI research), then Tech Product Launches.
     expect(selection.items.map((item) => item.category)).toEqual([
       "css_canvas_motion_techniques",
       "css_canvas_motion_techniques",
       "ui_component_primitives",
-      "consumer_tech_releases",
       "hci_empirical_research",
+      "consumer_tech_releases",
     ]);
   });
 });

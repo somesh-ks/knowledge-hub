@@ -26,6 +26,16 @@ import type { ScoredItem } from "./types.js";
  */
 export const FIT_EXPONENT = 1.5;
 
+/**
+ * Multiplier for a "coverage" topic (Trending, D40) from the number of distinct outlets that
+ * reported the story. One outlet is 0, so such a story never publishes; two is 0.7, rising 0.15
+ * per extra outlet to 1 at four. Computed by code from the clustering, at no model cost.
+ */
+export function coverageFactor(coverage: number | undefined): number {
+  if (coverage === undefined || coverage < 2) return 0;
+  return Math.min(1, 0.55 + 0.15 * (coverage - 1));
+}
+
 export function fitCurve(fit: number): number {
   return clamp01(fit) ** FIT_EXPONENT;
 }
@@ -42,6 +52,7 @@ export function topicScore(
   topic: Topic,
   fit: number | undefined,
   entry: JudgmentEntry,
+  item?: Pick<Item, "signals">,
 ): { score: number; curve: number; depth: number; penalty: number } | null {
   if (fit === undefined) return null;
   const curve = fitCurve(fit);
@@ -50,7 +61,9 @@ export function topicScore(
       ? craftFactor(entry.craft_depth)
       : topic.depth === "launch"
         ? launchFactor(entry.launch_scale ?? 0)
-        : 1;
+        : topic.depth === "coverage"
+          ? coverageFactor(item?.signals.coverage)
+          : 1;
   const penalty = penaltyFactor(entry.flags);
   return {
     score: round4(clamp01(topic.weight * curve * depth * penalty)),
@@ -76,11 +89,18 @@ export function applyTopics(scored: ScoredItem, layer: TopicLayer | undefined): 
   } | null = null;
   for (const topic of layer.topics) {
     const fit = row[topic.id];
-    const result = topicScore(topic, fit, scored.entry);
+    const result = topicScore(topic, fit, scored.entry, scored.item);
     if (!result || fit === undefined) continue;
+    // A story from a Trending outlet publishes in Trending or nowhere: general news never
+    // enters another section because a built-in category happens to score it higher.
+    if (topic.depth === "coverage" && scored.item.topic_ids?.includes(topic.id)) {
+      best = { topic, fit, result };
+      break;
+    }
     if (best === null || result.score > best.result.score) best = { topic, fit, result };
   }
-  if (best === null || best.result.score <= scored.score) return scored;
+  const forced = best !== null && best.topic.depth === "coverage";
+  if (best === null || (!forced && best.result.score <= scored.score)) return scored;
   return {
     ...scored,
     score: best.result.score,
