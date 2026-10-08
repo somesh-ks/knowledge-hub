@@ -162,7 +162,7 @@
   --z-toast: 40;
 
   /* Semantic tokens, light */
-  --color-surface: var(--color-white);
+  --color-surface: var(--color-grey-50);
   --color-surface-sunken: var(--color-grey-100);
   --color-surface-raised: var(--color-white);
   --color-surface-overlay: var(--color-white);
@@ -495,7 +495,7 @@
 
 /*
  * Derived sRGB values for places that cannot take OKLCH (theme-color meta, web manifest).
- * theme-color and manifest background (surface): light #ffffff, dark #202124
+ * theme-color and manifest background (surface): light #f8f9fa, dark #202124
  * accent: light #1967d2, dark #8ab4f8
  * on-surface: light #202124, dark #e8eaed
  */

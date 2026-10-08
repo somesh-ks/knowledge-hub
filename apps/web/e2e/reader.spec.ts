@@ -561,7 +561,7 @@ test.describe("the page head", () => {
     await expect(head.locator('meta[name="theme-color"]')).toHaveCount(2);
     await expect(head.locator('meta[name="theme-color"][media*="light"]')).toHaveAttribute(
       "content",
-      "#ffffff",
+      "#f8f9fa",
     );
     await expect(head.locator('meta[name="theme-color"][media*="dark"]')).toHaveAttribute(
       "content",

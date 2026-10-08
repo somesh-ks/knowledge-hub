@@ -50,7 +50,7 @@ export async function expectColor(
   }
 }
 
-export const SURFACE_LIGHT: Rgb = [255, 255, 255];
+export const SURFACE_LIGHT: Rgb = [248, 249, 250];
 export const SURFACE_DARK: Rgb = [32, 33, 36];
 export const ACCENT_LIGHT: Rgb = [25, 103, 210];
 export const INK_LIGHT: Rgb = [32, 33, 36];

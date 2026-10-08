@@ -82,7 +82,9 @@ describe("component stylesheets", () => {
       ),
     );
     for (const file of [...OWN_FILES, "foundations.css"]) {
-      for (const [, name] of withoutComments(read(file)).matchAll(/var\(\s*(--[a-z0-9-]+)\s*\)/gi)) {
+      for (const [, name] of withoutComments(read(file)).matchAll(
+        /var\(\s*(--[a-z0-9-]+)\s*\)/gi,
+      )) {
         expect(defined.has(name), `${file} reads ${name}, which nothing defines`).toBe(true);
       }
     }
