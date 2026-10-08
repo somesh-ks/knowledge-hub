@@ -4,6 +4,7 @@ import { type EpisodeEntry, FORMAT_LABELS } from "../lib/episodes";
 import { longDate } from "../lib/format";
 import { sourceHost } from "../lib/sourceLabel";
 import Cover from "./Cover.astro";
+import EpisodeActions from "./EpisodeActions.astro";
 import Icon from "./Icon.astro";
 import PlayCta from "./PlayCta.astro";
 import PlayerData from "./PlayerData.astro";
@@ -56,6 +57,8 @@ const sources = episode.sources.map((source) => ({ ...source, host: sourceHost(s
       noun="episode"
     />
   </header>
+
+  <EpisodeActions id={entry.id} />
 
   <section class="episode-block" aria-labelledby="episode-script-title">
     <h2 class="section-head" id="episode-script-title">Script</h2>
@@ -113,4 +116,7 @@ const sources = episode.sources.map((source) => ({ ...source, host: sourceHost(s
 <script>
   // Shared with the briefing pages: it shares the page's address.
   void import("../scripts/briefingPage");
+  import { installEpisodeActions } from "../scripts/episodeActionsEntry";
+
+  installEpisodeActions();
 </script>
