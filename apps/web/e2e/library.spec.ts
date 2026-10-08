@@ -1,7 +1,24 @@
 import type { Page } from "@playwright/test";
 import { expect, test } from "./fixtures";
 
-const NEWEST_FIRST = ["Wednesday 7 October", "Monday 5 October", "Sunday 4 October"];
+const DISCUSSION = "Quiet interfaces and fast latency";
+const HEADLINES = "AI headlines";
+/** Every card, newest first: the day, then when each was written (the discussion came after the briefing). */
+const NEWEST_FIRST = [
+  DISCUSSION,
+  "Wednesday 7 October",
+  HEADLINES,
+  "Monday 5 October",
+  "Sunday 4 October",
+];
+/** What each card says under its title, in the same order. */
+const REST_FACTS = [
+  "Discussion, 5 min",
+  "12 stories, 1 min",
+  "Headlines, 3 min",
+  "8 stories, 3 min",
+  "Weekly, 14 stories, 8 min",
+];
 
 /** The page script has run: search, filter and sort only work from here. */
 async function ready(page: Page): Promise<void> {
@@ -13,23 +30,29 @@ async function titles(page: Page): Promise<string[]> {
   return page.locator("[data-card]:not([hidden]) .card-title").allTextContents();
 }
 
+/**
+ * The status line for a narrowed list. The singular case is matched loosely on purpose: the product
+ * says "1 of 5 result" (see the failing test "reads 'results' after 'of'" below), and the other tests
+ * are about filtering, not grammar.
+ */
+async function narrowedTo(page: Page, shown: number, total: number): Promise<void> {
+  await expect(page.getByRole("status")).toHaveText(new RegExp(`^${shown} of ${total} results?$`));
+}
+
 const filter = (page: Page, name: string) => page.getByRole("button", { name, exact: true });
 
 test.describe("the library", () => {
-  test("shows every briefing as a cover card, newest first, with no month headings", async ({
+  test("shows every briefing and episode as a cover card, newest first, with no month headings", async ({
     page,
   }) => {
     await page.goto("/library");
     await expect(page).toHaveTitle("Library, Singularity");
     await expect(page.getByRole("heading", { level: 1 })).toHaveText("Library");
     await expect(page.locator("[data-card] .card-title")).toHaveText(NEWEST_FIRST);
-    // One quiet line each: the recording's own length where there is one, the estimate elsewhere.
-    await expect(page.locator("[data-card] .card-facts")).toHaveText([
-      "12 stories, 1 min",
-      "8 stories, 3 min",
-      "Weekly, 14 stories, 8 min",
-    ]);
-    await expect(page.locator("[data-card] .cover")).toHaveCount(3);
+    // One quiet line each: a briefing's recording length where there is one, the estimate elsewhere;
+    // an episode says its format and length.
+    await expect(page.locator("[data-card] .card-facts")).toHaveText(REST_FACTS);
+    await expect(page.locator("[data-card] .cover")).toHaveCount(5);
     await expect(page.locator("[data-card][data-kind='weekly'] .cover[data-weekly]")).toHaveCount(
       1,
     );
@@ -37,17 +60,17 @@ test.describe("the library", () => {
     // A grid of covers, not a grouped list: no month headings, nothing to open or close.
     await expect(page.getByRole("heading", { level: 2 })).toHaveCount(0);
     await expect(page.locator("details, summary")).toHaveCount(0);
-    await expect(page.getByRole("status")).toHaveText("3 briefings");
+    await expect(page.getByRole("status")).toHaveText("5 results");
   });
 
-  test("offers search, the four filter chips and a sort", async ({ page }) => {
+  test("offers search, the five filter chips and a sort", async ({ page }) => {
     await page.goto("/library");
     await expect(page.getByRole("search", { name: "Library" })).toBeVisible();
     await expect(
-      page.getByRole("searchbox", { name: "Search briefings and stories" }),
+      page.getByRole("searchbox", { name: "Search briefings, episodes and stories" }),
     ).toBeVisible();
     const chips = page.locator("[data-library-filter]");
-    await expect(chips).toHaveText(["All", "Daily", "Weekly", "With audio"]);
+    await expect(chips).toHaveText(["All", "Daily", "Weekly", "Episodes", "With audio"]);
     await expect(chips.first()).toHaveAttribute("aria-pressed", "true");
     const sort = page.getByRole("combobox", { name: "Sort" });
     await expect(sort.locator("option")).toHaveText([
@@ -92,7 +115,7 @@ test.describe("the library", () => {
     await page.goto("/archive");
     await page.waitForURL(/\/library$/);
     await expect(page.getByRole("heading", { level: 1 })).toHaveText("Library");
-    await expect(page.locator("[data-card]")).toHaveCount(3);
+    await expect(page.locator("[data-card]")).toHaveCount(5);
   });
 });
 
@@ -108,7 +131,7 @@ test.describe("library search", () => {
     await expect(page.locator("[data-card]:not([hidden]) .card-facts")).toHaveText(
       "1 matching story",
     );
-    await expect(page.getByRole("status")).toHaveText("1 of 3 briefings");
+    await narrowedTo(page, 1, 5);
   });
 
   test("matches publishers and ignores case and accents", async ({ page }) => {
@@ -117,7 +140,8 @@ test.describe("library search", () => {
     await page.getByRole("searchbox").fill("SMALL TEAMS");
     expect(await titles(page)).toEqual(["Monday 5 October"]);
     await page.getByRole("searchbox").fill("tap latençy");
-    expect(await titles(page)).toEqual(["Monday 5 October", "Sunday 4 October"]);
+    // Two briefings and the discussion, whose second story is about tap latency.
+    expect(await titles(page)).toEqual([DISCUSSION, "Monday 5 October", "Sunday 4 October"]);
   });
 
   test("a query with several briefings keeps them in the chosen order", async ({ page }) => {
@@ -129,7 +153,7 @@ test.describe("library search", () => {
     expect(await titles(page)).toEqual(["Sunday 4 October", "Monday 5 October"]);
   });
 
-  test("says no briefings match, and Clear search brings every card back", async ({ page }) => {
+  test("says nothing matches, and Clear search brings every card back", async ({ page }) => {
     await page.goto("/library");
     await ready(page);
     const input = page.getByRole("searchbox");
@@ -137,20 +161,16 @@ test.describe("library search", () => {
     await input.fill("zzzz nothing");
     await expect(page.locator("[data-card]:not([hidden])")).toHaveCount(0);
     await expect(page.locator("[data-library-empty]")).toBeVisible();
-    await expect(page.locator("[data-library-empty]")).toContainText("No briefings match");
-    await expect(page.getByRole("status")).toHaveText("No briefings match");
+    await expect(page.locator("[data-library-empty]")).toContainText("Nothing matches.");
+    await expect(page.getByRole("status")).toHaveText("No results");
     await page.getByRole("button", { name: "Clear search" }).click();
     await expect(input).toHaveValue("");
     await expect(input).toBeFocused();
     await expect(page.locator("[data-library-empty]")).toBeHidden();
     expect(await titles(page)).toEqual(NEWEST_FIRST);
     // The cards say their own facts again, not why they matched.
-    await expect(page.locator("[data-card] .card-facts")).toHaveText([
-      "12 stories, 1 min",
-      "8 stories, 3 min",
-      "Weekly, 14 stories, 8 min",
-    ]);
-    await expect(page.getByRole("status")).toHaveText("3 briefings");
+    await expect(page.locator("[data-card] .card-facts")).toHaveText(REST_FACTS);
+    await expect(page.getByRole("status")).toHaveText("5 results");
   });
 
   test("Clear search also resets the filter", async ({ page }) => {
@@ -183,7 +203,7 @@ test.describe("library search", () => {
 });
 
 test.describe("library filters and order", () => {
-  test("a filter chip keeps one kind of briefing and is the only one pressed", async ({ page }) => {
+  test("a filter chip keeps one kind of card and is the only one pressed", async ({ page }) => {
     await page.goto("/library");
     await ready(page);
     const onlyPressed = async (name: string) => {
@@ -194,11 +214,19 @@ test.describe("library filters and order", () => {
     await filter(page, "Weekly").click();
     await onlyPressed("Weekly");
     expect(await titles(page)).toEqual(["Sunday 4 October"]);
-    await expect(page.getByRole("status")).toHaveText("1 of 3 briefings");
+    await narrowedTo(page, 1, 5);
 
     await filter(page, "Daily").click();
     await onlyPressed("Daily");
     expect(await titles(page)).toEqual(["Wednesday 7 October", "Monday 5 October"]);
+    await narrowedTo(page, 2, 5);
+
+    // Episodes are a kind of their own: only they show, and the status counts them.
+    await filter(page, "Episodes").click();
+    await onlyPressed("Episodes");
+    expect(await titles(page)).toEqual([DISCUSSION, HEADLINES]);
+    await expect(page.locator("[data-card][data-kind='episode']:not([hidden])")).toHaveCount(2);
+    await narrowedTo(page, 2, 5);
 
     await filter(page, "With audio").click();
     await onlyPressed("With audio");
@@ -207,7 +235,7 @@ test.describe("library filters and order", () => {
     await filter(page, "All").click();
     await onlyPressed("All");
     expect(await titles(page)).toEqual(NEWEST_FIRST);
-    await expect(page.getByRole("status")).toHaveText("3 briefings");
+    await expect(page.getByRole("status")).toHaveText("5 results");
   });
 
   test("a filter and a search narrow together", async ({ page }) => {
@@ -221,7 +249,7 @@ test.describe("library filters and order", () => {
     expect(await titles(page)).toEqual(["Wednesday 7 October"]);
     await page.getByRole("searchbox").fill("gridwork");
     await expect(page.locator("[data-card]:not([hidden])")).toHaveCount(0);
-    await expect(page.getByRole("status")).toHaveText("No briefings match");
+    await expect(page.getByRole("status")).toHaveText("No results");
     await expect(page.locator("[data-library-empty]")).toBeVisible();
   });
 
@@ -230,23 +258,117 @@ test.describe("library filters and order", () => {
     await ready(page);
     const sort = page.getByRole("combobox", { name: "Sort" });
     await sort.selectOption("oldest");
-    expect(await titles(page)).toEqual([...NEWEST_FIRST].reverse());
-    // The longest recording or estimate first: 8, 3, then 1 minute.
+    // Sorted by day. The discussion and the Wednesday briefing share a day: their order is the
+    // subject of the test "puts the cards of one day in reverse too" below.
+    const oldest = await titles(page);
+    expect(oldest.slice(0, 3)).toEqual(["Sunday 4 October", "Monday 5 October", HEADLINES]);
+    expect([...oldest.slice(3)].sort()).toEqual([DISCUSSION, "Wednesday 7 October"].sort());
+    // The longest recording or estimate first: 8, 5, 3, 3 (the newer of the two first), then 1 minute.
     await sort.selectOption("longest");
     expect(await titles(page)).toEqual([
       "Sunday 4 October",
+      DISCUSSION,
+      HEADLINES,
       "Monday 5 October",
       "Wednesday 7 October",
     ]);
-    // The most stories first: 14, 12, then 8.
+    // The most stories first: 14, 12, 8, 2, then 1 (an episode's stories are the ones it covers).
     await sort.selectOption("stories");
     expect(await titles(page)).toEqual([
       "Sunday 4 October",
       "Wednesday 7 October",
       "Monday 5 October",
+      DISCUSSION,
+      HEADLINES,
     ]);
     await sort.selectOption("newest");
     expect(await titles(page)).toEqual(NEWEST_FIRST);
+  });
+});
+
+test.describe("library episodes", () => {
+  test("the Episodes chip shows only episodes, newest first", async ({ page }) => {
+    await page.goto("/library");
+    await ready(page);
+    await filter(page, "Episodes").click();
+    expect(await titles(page)).toEqual([DISCUSSION, HEADLINES]);
+    await expect(page.locator("[data-card]:not([hidden])")).toHaveCount(2);
+    await expect(page.locator("[data-card][data-kind='episode']:not([hidden])")).toHaveCount(2);
+    await expect(page.locator("[data-card]:not([hidden]) .card-facts")).toHaveText([
+      "Discussion, 5 min",
+      "Headlines, 3 min",
+    ]);
+    // An episode has no recording until someone presses play, so audio never includes one.
+    await filter(page, "With audio").click();
+    expect(await titles(page)).not.toContain(DISCUSSION);
+    expect(await titles(page)).not.toContain(HEADLINES);
+  });
+
+  test("the Daily chip leaves episodes and the weekly out", async ({ page }) => {
+    await page.goto("/library");
+    await ready(page);
+    await filter(page, "Daily").click();
+    expect(await titles(page)).toEqual(["Wednesday 7 October", "Monday 5 October"]);
+    await expect(page.locator("[data-card][data-kind='episode']:not([hidden])")).toHaveCount(0);
+    await expect(page.locator("[data-card][data-kind='weekly']:not([hidden])")).toHaveCount(0);
+  });
+
+  test("an episode card links to its own page", async ({ page }) => {
+    await page.goto("/library");
+    const links = page.locator("[data-card][data-kind='episode'] .card-link");
+    await expect(links).toHaveCount(2);
+    expect(
+      await links.evaluateAll((nodes) => nodes.map((node) => node.getAttribute("href"))),
+    ).toEqual(["/e/ep-20261007-1930", "/e/ep-20261006-0900"]);
+    await expect(
+      page.locator("[data-card]", { hasText: DISCUSSION }).locator(".card-link"),
+    ).toHaveAttribute("href", "/e/ep-20261007-1930");
+    await expect(
+      page.locator("[data-card]", { hasText: HEADLINES }).locator(".card-link"),
+    ).toHaveAttribute("href", "/e/ep-20261006-0900");
+    await page.getByRole("link", { name: /AI headlines/ }).click();
+    await expect(page).toHaveURL(/\/e\/ep-20261006-0900$/);
+    await expect(page.getByRole("heading", { level: 1 })).toHaveText(HEADLINES);
+  });
+
+  test("search finds an episode by title, by its format, by a story it covers and by a publisher", async ({
+    page,
+  }) => {
+    await page.goto("/library");
+    await ready(page);
+    const input = page.getByRole("searchbox");
+    await input.fill("quiet interfaces");
+    expect(await titles(page)).toEqual([DISCUSSION]);
+    // The same story sits in two briefings too, so all three cards come back, newest first.
+    await input.fill("loud detail");
+    expect(await titles(page)).toEqual([DISCUSSION, "Monday 5 October", "Sunday 4 October"]);
+    // Its format is searchable too, and no briefing has that word on a line.
+    await input.fill("discussion");
+    expect(await titles(page)).toEqual([DISCUSSION]);
+    await input.fill("open model coding");
+    expect(await titles(page)).toEqual([HEADLINES]);
+    await input.fill("frontier notes");
+    expect(await titles(page)).toEqual([HEADLINES]);
+  });
+
+  test("puts the cards of one day in reverse too, when the order is oldest first", async ({
+    page,
+  }) => {
+    // The discussion was written after the Wednesday briefing, so newest first lists it first and
+    // oldest first should list it last. The page script sorts on the day alone, so the two keep
+    // their newest-first order. Product defect: this test is expected to fail until it is fixed.
+    await page.goto("/library");
+    await ready(page);
+    await page.getByRole("combobox", { name: "Sort" }).selectOption("oldest");
+    expect(await titles(page)).toEqual([...NEWEST_FIRST].reverse());
+  });
+
+  test("reads 'results' after 'of' when one card is left", async ({ page }) => {
+    // Product defect: resultSummary(1, 5) returns "1 of 5 result". Expected to fail until it is fixed.
+    await page.goto("/library");
+    await ready(page);
+    await filter(page, "Weekly").click();
+    await expect(page.getByRole("status")).toHaveText("1 of 5 results");
   });
 });
 

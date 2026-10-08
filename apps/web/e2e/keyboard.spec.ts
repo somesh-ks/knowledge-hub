@@ -31,7 +31,7 @@ test.describe("keyboard", () => {
   }) => {
     await page.goto("/");
     const seen: string[] = [];
-    for (let step = 0; step < 11; step += 1) {
+    for (let step = 0; step < 12; step += 1) {
       await page.keyboard.press("Tab");
       seen.push(await focused(page));
     }
@@ -40,6 +40,7 @@ test.describe("keyboard", () => {
       "a: Singularity, today's briefing",
       "a: Today",
       "a: Library",
+      "a: Create",
       "a: Settings",
       "button: Play the briefing, 1 min",
       "button: Share this briefing",
