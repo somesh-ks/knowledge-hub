@@ -1,5 +1,11 @@
 import { describe, expect, it } from "vitest";
-import { CARRIED_ATTRIBUTES, carryRootAttributes, navigationKind } from "./navigation";
+import {
+  CARRIED_ATTRIBUTES,
+  carryNavigationKind,
+  carryRootAttributes,
+  NAV_ATTRIBUTE,
+  navigationKind,
+} from "./navigation";
 import { shouldActivateUpdate } from "./serviceWorker";
 
 const url = (path: string) => new URL(path, "https://news.someshks.work");
@@ -84,6 +90,21 @@ describe("carryRootAttributes", () => {
 
   it("carries the connection flag too", () => {
     expect(CARRIED_ATTRIBUTES).toContain("data-offline");
+  });
+});
+
+describe("carryNavigationKind", () => {
+  it("puts the mark for the move on the incoming page, where the move is drawn", () => {
+    const live = fakeRoot({ [NAV_ATTRIBUTE]: "peer" });
+    const incoming = fakeRoot({ "data-view": "library" });
+    carryNavigationKind(live, incoming);
+    expect(incoming.getAttribute(NAV_ATTRIBUTE)).toBe("peer");
+  });
+
+  it("adds nothing when no move is under way", () => {
+    const incoming = fakeRoot({});
+    carryNavigationKind(fakeRoot({}), incoming);
+    expect(incoming.getAttribute(NAV_ATTRIBUTE)).toBeNull();
   });
 });
 

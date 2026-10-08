@@ -36,6 +36,10 @@ addEventListener("vite:preloadError", () => {
     )
     .finally(() => location.reload());
 });
+// What makes a move between destinations immediate is not needed for first paint.
+(window.requestIdleCallback ?? ((run: () => void) => setTimeout(run, 200)))(() => {
+  void import("./navigationBoost").then((boost) => boost.installNavigationBoost());
+});
 try {
   if (localStorage.getItem("dispatch:deleted-episodes")) void import("./deletedEpisodes");
 } catch {

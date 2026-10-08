@@ -235,6 +235,12 @@ html[data-mini="visible"] main {
   color: var(--color-accent);
 }
 
+/* An item carries its outlined and its filled icon; which one shows follows aria-current alone. */
+.app-nav-item:not([aria-current="page"]) .app-nav-icon-current,
+.app-nav-item[aria-current="page"] .app-nav-icon-rest {
+  display: none;
+}
+
 @media (hover: hover) and (pointer: fine) {
   .app-nav-item:not([aria-current="page"]):hover {
     color: var(--color-on-surface);
