@@ -185,11 +185,8 @@ async function follow(run: Stored, now: boolean): Promise<void> {
       // Published: a new episode still has to reach the site. An answer without stages is an older
       // route's, and finishes at once.
       const waiting = !failed && !run.kind && body.stages;
-      const next = {
-        ...run,
-        ...staged(body),
-        phase: failed ? "failed" : waiting ? "updating" : "done",
-      };
+      const phase: Phase = failed ? "failed" : waiting ? "updating" : "done";
+      const next = { ...run, ...staged(body), phase };
       if (waiting)
         next.label = document.querySelector<HTMLElement>("[data-run-status]")?.dataset.updating;
       set(next);
