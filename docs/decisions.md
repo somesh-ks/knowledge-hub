@@ -47,6 +47,7 @@ D1 to D9 date from plan v2 (2026-10-05). D10 to D25 date from 2026-10-06. Reason
 | D35 | A Tech releases section, ranked by launch scale, with its own allowance | active |
 | D36 | Topics and sources are data the owner edits from the app | active |
 | D37 | Custom podcast episodes live in `Podcasts/` and are built by a workflow | active |
+| D38 | Subagents are few, narrow, enforced and capped | active |
 | D39 | Five topics, Top picks always included, General and Customized audiences | active |
 | D40 | Trending is ranked by coverage; discovery only suggests | active |
 | D41 | The passphrase step is switched off, with its code kept | active |
@@ -367,6 +368,14 @@ D1 to D9 date from plan v2 (2026-10-05). D10 to D25 date from 2026-10-06. Reason
 - Rejected: storing episodes as digests (a digest needs three items and a date id); a fresh fetch and judge per episode in the first version.
 - Limits: 2 episodes a day, a 30 minute cooldown, 15,000 characters per episode.
 - Status: unverified live.
+
+## D38: Subagents are few, narrow, enforced and capped
+
+- Date: 2026-10-08
+- Decision: Ten agents, each with one job, a model tier, `effort`, `maxTurns` and (except `general-purpose`) a tool allowlist in its frontmatter. User level (`~/.claude/agents/`): `Explore` (overrides the built-in, haiku), `general-purpose` (overrides the built-in, sonnet, core tools and web only, no MCP because the full MCP schemas cost about 289k tokens per call; 118 of 214 past calls used it on the main model; the `claude` agent covers MCP tasks), `scout` retired, `planner`, `reviewer`, `ui-critic`, `motion-reviewer`, `researcher`, `deep`. Project level (`.claude/agents/`): `dispatch-verify` (haiku; typecheck, tests, lint, build, 102 KB budget) and `dispatch-worker` (sonnet; one workstream in a worktree, never merges). Read-only agents run Bash through `~/.claude/hooks/readonly-bash.mjs`. No agent preloads a skill and no plugin is enabled for them. Subagent cache TTL is 1 hour; at most 4 concurrent agents, depth 1. Effort is chosen once at first launch (rule in the global CLAUDE.md). `/close-session` is a main-thread skill because a subagent cannot see the conversation.
+- Why: delegation costs about 4x chat tokens and multi-agent about 15x, so an agent earns its place only by reading a lot and returning a little. Prose "read-only" did not stop `deep` and `motion-reviewer` inheriting every tool.
+- Rejected: preloading design skills into `ui-critic` (full text on every run); enabling `motion-design` for `motion-reviewer`; agent teams; a docs-keeper agent.
+- Status: active. Hook, tool allowlists, overrides and `dispatch-verify` verified in a fresh session; the rest is listed in state.md.
 
 ## D39: Five topics, Top picks always included, General and Customized audiences
 

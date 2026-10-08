@@ -2,6 +2,9 @@
 
 One line each: symptom, cause, fix. Newest first. Search before debugging.
 
+- A probe of freshly edited agents showed the old behavior (`rm` allowed, `Explore` with every MCP tool): agent files are read at session start. Restart the session before testing an agent definition.
+- The built-in `Explore` carried every MCP tool family, and a three-call lookup used about 275k subagent tokens; a `reviewer` probe of the same size used 13k. Restrict `tools` on any agent that does not need MCP.
+- `docs/build-plan.md` says a 100 KB first-load budget; the enforced value is 102 KB in `apps/web/src/lib/bundleBudget.ts`. Trust the constant.
 - Create, Generate and saving topics all answered "not available right now" on production: the site's fine-grained GitHub token was valid but had no access to this repository, so GitHub answered 404 for the repo, its workflows and its runs. `doctor --online` does not check `GITHUB_DISPATCH_TOKEN`; it should.
 - A discussion episode had one voice: `SPEECHIFY_VOICE_ID_B` was read but set nowhere, not in `.env.example` and not in `secrets:push`. A setting a feature depends on needs a default or a place in the setup path.
 - Browser suites showed failures from another session's build: every session writes `apps/web/dist`. A page reading "10 stories" in a fixture run is the real briefing; rerun, and give each session its own worktree.
