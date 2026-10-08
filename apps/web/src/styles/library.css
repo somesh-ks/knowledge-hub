@@ -69,7 +69,7 @@
 .library-tools {
   display: grid;
   gap: var(--space-3);
-  padding-block-end: var(--space-6);
+  padding-block-end: var(--space-12);
 }
 
 /* The search field: one outlined box, the glyph inside it. */
