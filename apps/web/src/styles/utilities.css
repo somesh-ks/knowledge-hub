@@ -1,5 +1,7 @@
-/* Imported last. A component rule that sets display must not defeat the hidden attribute. */
+/* A component rule that sets display must not defeat the hidden attribute. The build splits the
+   stylesheets into chunks and does not keep this file last, so the rule cannot count on order. The
+   :not() matches every element and adds the weight of an id, which no component rule carries. */
 
-[hidden] {
+[hidden]:not(#shown) {
   display: none;
 }

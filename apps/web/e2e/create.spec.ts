@@ -56,6 +56,15 @@ async function openDialog(page: Page): Promise<void> {
 }
 
 test.describe("the Create page", () => {
+  test("shows no error line, and no part of one, before anything has gone wrong", async ({
+    page,
+  }) => {
+    await openCreate(page);
+    // Hidden in the DOM is not enough: a display rule on the line once showed its icon anyway.
+    for (const line of await page.locator("[data-error]").all()) await expect(line).toBeHidden();
+    await expect(page.locator("[data-run-working], [data-run-done]").first()).toBeHidden();
+  });
+
   test("introduces itself in two lines and offers every choice", async ({ page }) => {
     await openCreate(page);
     await expect(page.getByRole("heading", { level: 1 })).toHaveText("Create a podcast");

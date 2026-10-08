@@ -97,13 +97,13 @@ describe("component stylesheets", () => {
     }
   });
 
-  it("imports the [hidden] rule last, so no component rule can override it", () => {
-    const layout = readFileSync(join(STYLES, "..", "layouts", "BaseLayout.astro"), "utf8");
-    const imports = [...layout.matchAll(/import "\.\.\/styles\/([a-z-]+\.css)"/g)].map(
-      (match) => match[1],
+  // Import order is not enough: the build splits stylesheets into chunks and reorders them, and a
+  // page's own stylesheet comes after the layout's. The rule carries an id's weight instead, and
+  // e2e/hidden.spec.ts checks the result on every built page.
+  it("gives the [hidden] rule more weight than any component rule", () => {
+    expect(withoutComments(read("utilities.css")).trim()).toBe(
+      "[hidden]:not(#shown) {\n  display: none;\n}",
     );
-    expect(imports.at(-1)).toBe("utilities.css");
-    expect(withoutComments(read("utilities.css")).trim()).toBe("[hidden] {\n  display: none;\n}");
   });
 });
 
