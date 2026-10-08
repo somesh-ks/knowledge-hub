@@ -67,9 +67,7 @@ test.describe("the library", () => {
   test("offers search, the five filter chips and a sort", async ({ page }) => {
     await page.goto("/library");
     await expect(page.getByRole("search", { name: "Library" })).toBeVisible();
-    await expect(
-      page.getByRole("searchbox", { name: "Search briefings, episodes and stories" }),
-    ).toBeVisible();
+    await expect(page.getByRole("searchbox", { name: "Search episodes" })).toBeVisible();
     const chips = page.locator("[data-library-filter]");
     await expect(chips).toHaveText(["All", "Daily", "Weekly", "Custom"]);
     await expect(chips.first()).toHaveAttribute("aria-pressed", "true");
@@ -402,6 +400,84 @@ test.describe("library episodes", () => {
     expect(await titles(page)).toEqual([HEADLINES]);
     await input.fill("frontier notes");
     expect(await titles(page)).toEqual([HEADLINES]);
+  });
+
+  test("search also reads an episode's script, which no card shows", async ({ page }) => {
+    await page.goto("/library");
+    await ready(page);
+    const input = page.getByRole("searchbox", { name: "Search episodes" });
+    await expect(input).toHaveAttribute("placeholder", "Search episodes");
+    // "fraction" is said in a script and written nowhere on a card.
+    await input.fill("fraction cost");
+    await expect.poll(() => titles(page)).toEqual([HEADLINES]);
+    await expect(page.locator("[data-card]:not([hidden]) .card-facts")).toHaveText([
+      "Found in the full text",
+    ]);
+    // Every word has to be there, so one that is not takes the card away again.
+    await input.fill("fraction zebra");
+    await expect(page.locator("[data-card]:not([hidden])")).toHaveCount(0);
+  });
+
+  test("a title the card cuts short carries the whole title as a tooltip, and a short one none", async ({
+    page,
+  }) => {
+    await page.goto("/library");
+    await ready(page);
+    const long = "A title that runs on and on, well past the two lines a card allows, to prove it";
+    await page.evaluate((text) => {
+      const title = document.querySelector("[data-card] .card-title");
+      if (title) title.textContent = text;
+      window.dispatchEvent(new Event("resize"));
+    }, long);
+    const links = page.locator("[data-card]:not([hidden]) .card-link");
+    await expect(links.first()).toHaveAttribute("title", long);
+    await expect(links.nth(1)).not.toHaveAttribute("title", /.+/);
+  });
+
+  test("a switch chooses between the gallery and a list, and the choice is remembered", async ({
+    page,
+  }) => {
+    await page.goto("/library");
+    await ready(page);
+    const gallery = page.getByRole("button", { name: "Gallery view" });
+    const list = page.getByRole("button", { name: "List view" });
+    await expect(gallery).toHaveAttribute("aria-pressed", "true");
+    const grid = page.locator("[data-library-grid]");
+    await expect(grid).toHaveCSS("display", "grid");
+    for (const button of [gallery, list]) {
+      const box = await button.boundingBox();
+      expect(box?.width).toBeGreaterThanOrEqual(44);
+    }
+    await list.click();
+    await expect(list).toHaveAttribute("aria-pressed", "true");
+    await expect(gallery).toHaveAttribute("aria-pressed", "false");
+    await expect(page.locator("[data-library]")).toHaveAttribute("data-view", "list");
+    await expect(grid).toHaveCSS("display", "block");
+    // Rows: each card is as wide as the column, with the kind in its meta line.
+    const first = page.locator("[data-card]:not([hidden])").first();
+    await expect(first.locator(".card-meta")).toBeVisible();
+    // Search, filters and sort still work in the list.
+    await page.getByRole("searchbox").fill("quiet interfaces");
+    expect(await titles(page)).toEqual([DISCUSSION]);
+    await page.getByRole("searchbox").fill("");
+    await page.reload();
+    await ready(page);
+    await expect(page.locator("[data-library]")).toHaveAttribute("data-view", "list");
+    await page.getByRole("button", { name: "Gallery view" }).click();
+    await expect(grid).toHaveCSS("display", "grid");
+  });
+
+  test("search falls back to the cards when the index cannot be fetched", async ({ page }) => {
+    await page.route("**/search-index.json", (route) =>
+      route.fulfill({ status: 200, body: "not an index" }),
+    );
+    await page.goto("/library");
+    await ready(page);
+    const input = page.getByRole("searchbox");
+    await input.fill("frontier notes");
+    expect(await titles(page)).toEqual([HEADLINES]);
+    await input.fill("fraction cost");
+    await expect(page.locator("[data-card]:not([hidden])")).toHaveCount(0);
   });
 
   test("puts the cards of one day in reverse too, when the order is oldest first", async ({

@@ -1,4 +1,6 @@
 ---
+import CoverPlay from "./CoverPlay.astro";
+
 interface Props {
   digestId: string;
   size: "thumb" | "row" | "card" | "hero" | "aside" | "player";
@@ -37,4 +39,6 @@ const SIZES: Record<Props["size"], string> = {
     fetchpriority={priority ? "high" : undefined}
   />
   {weekly && <span class="cover-frame" aria-hidden="true"></span>}
+  {/* The cover on an item's own page plays it in place. A list's card adds its own button beside the link. */}
+  {size === "hero" && <CoverPlay digestId={digestId} pointerOnly />}
 </span>

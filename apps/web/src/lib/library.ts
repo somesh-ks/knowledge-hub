@@ -81,6 +81,24 @@ export function matchCount(card: CardData, query: string): number {
   return count;
 }
 
+/**
+ * True when one line of a long text holds every word of the query: a turn of an episode's script,
+ * one story of a briefing. `text` is already normalized, a line each (the search index is built that
+ * way). An empty query matches nothing: the cards' own lines answer that.
+ */
+export function textHasWords(text: string, query: string): boolean {
+  const words = normalize(query).split(/\s+/).filter(Boolean);
+  if (words.length === 0) return false;
+  return text.split("\n").some((line) => words.every((word) => line.includes(word)));
+}
+
+/** One entry of /search-index.json: what a card's full text holds, normalized. */
+export interface SearchIndexEntry {
+  id: string;
+  kind: "briefing" | "episode";
+  text: string;
+}
+
 export function compareCards(a: CardData, b: CardData, sort: LibrarySort): number {
   const newest = b.date.localeCompare(a.date) || a.order - b.order;
   if (sort === "oldest") return -newest;

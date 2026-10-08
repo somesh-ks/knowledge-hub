@@ -69,7 +69,7 @@
 .library-tools {
   display: grid;
   gap: var(--space-3);
-  padding-block-end: var(--space-6);
+  padding-block-end: var(--space-12);
 }
 
 /* The search field: one outlined box, the glyph inside it. */
@@ -262,6 +262,122 @@
   .library-grid {
     grid-template-columns: repeat(auto-fill, minmax(11rem, 1fr));
     column-gap: var(--space-6);
+  }
+}
+
+/* ------------------------------------------------------------------ gallery and list */
+
+/* The view switch: two square buttons in one outlined group, at the far end of the bar. The chosen
+   one is filled and underlined, so it is told apart by more than its colour. */
+.view-switch {
+  display: inline-flex;
+  flex: none;
+  height: var(--chip-height);
+  border: var(--stroke-hairline) solid var(--color-border-hairline);
+  border-radius: var(--button-radius);
+}
+
+.view-btn {
+  position: relative;
+  display: grid;
+  place-items: center;
+  width: var(--size-touch);
+  height: 100%;
+  padding: 0;
+  border: 0;
+  border-radius: inherit;
+  background: transparent;
+  color: var(--color-on-surface-muted);
+}
+
+/* The group is 36px tall; each button's target is the full 44px. */
+.view-btn::after {
+  content: "";
+  position: absolute;
+  inset-inline: 0;
+  /* From the button's own height, whatever border the group draws around it. */
+  inset-block: calc((var(--size-touch) - 100%) / -2);
+}
+
+.view-btn[aria-pressed="true"] {
+  background: var(--color-accent-subtle);
+  color: var(--color-accent);
+  box-shadow: inset 0 calc(var(--stroke-rail) * -1) 0 currentColor;
+}
+
+@media (forced-colors: active) {
+  .view-btn[aria-pressed="true"] {
+    color: Highlight;
+  }
+}
+
+/* The meta line (kind, date) is for the list; the gallery says only the card's facts. */
+.card-meta {
+  display: none;
+}
+
+[data-library][data-view="list"] .library-grid {
+  display: block;
+}
+
+[data-library][data-view="list"] .card {
+  --list-cover: calc(var(--size-touch) + var(--space-3));
+  border-block-end: var(--stroke-hairline) solid var(--color-border-hairline);
+}
+
+[data-library][data-view="list"] .card-link {
+  grid-template-columns: var(--list-cover) 1fr;
+  column-gap: var(--space-4);
+  align-items: center;
+  padding-block: var(--space-3);
+}
+
+[data-library][data-view="list"] .card-link .cover {
+  grid-row: 1 / span 2;
+  width: var(--list-cover);
+  margin-block-end: 0;
+}
+
+/* The whole title, over one line or two: no clamp. */
+[data-library][data-view="list"] .card-title {
+  display: block;
+  -webkit-line-clamp: unset;
+  line-clamp: unset;
+}
+
+[data-library][data-view="list"] .card-sub {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0 var(--space-2);
+  color: var(--color-on-surface-muted);
+}
+
+[data-library][data-view="list"] .card-meta {
+  display: inline;
+  font-size: var(--font-size-label);
+  line-height: var(--font-leading-label);
+}
+
+[data-library][data-view="list"] .card-meta::after {
+  content: " \00b7";
+}
+
+/* The play button covers the small cover in the row, not a card's square. */
+@media (hover: hover) and (pointer: fine) {
+  [data-library][data-view="list"] .card > .cover-over {
+    inset-block-start: var(--space-3);
+    inset-inline-end: auto;
+    width: var(--list-cover);
+  }
+
+  [data-library][data-view="list"] .cover-play {
+    width: var(--size-icon-lg);
+    height: var(--size-icon-lg);
+  }
+
+  [data-library][data-view="list"] .cover-play .icon {
+    width: var(--size-icon);
+    height: var(--size-icon);
   }
 }
 

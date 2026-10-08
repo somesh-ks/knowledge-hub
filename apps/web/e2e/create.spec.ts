@@ -604,7 +604,7 @@ test.describe("episodes in the Library", () => {
     await expect(page.locator('[data-card][data-kind="episode"]:not([hidden])')).toHaveCount(0);
 
     // Search finds an episode by a story it covers.
-    await page.getByRole("button", { name: "All" }).click();
+    await page.getByRole("button", { name: "All", exact: true }).click();
     // Search finds an episode by its title, on one line like a story.
     await page.getByRole("searchbox").fill("interfaces and fast");
     await expect(page.locator("[data-card]:not([hidden])")).toHaveCount(1);

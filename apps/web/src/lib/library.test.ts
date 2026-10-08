@@ -6,6 +6,7 @@ import {
   matchesFilter,
   normalize,
   resultSummary,
+  textHasWords,
 } from "./library";
 
 function card(overrides: Partial<CardData> = {}): CardData {
@@ -106,5 +107,18 @@ describe("resultSummary", () => {
     expect(resultSummary(2, 9)).toBe("2 of 9 results");
     expect(resultSummary(1, 5)).toBe("1 of 5 results");
     expect(resultSummary(0, 9)).toBe("No results");
+  });
+});
+
+describe("textHasWords", () => {
+  it("wants every word, in any order, ignoring case and accents", () => {
+    const text = normalize("The host said: a fraction of the Café cost");
+    expect(textHasWords(text, "Cost FRACTION")).toBe(true);
+    expect(textHasWords(text, "cafe")).toBe(true);
+    expect(textHasWords(text, "fraction zebra")).toBe(false);
+  });
+
+  it("does not match an empty query: the cards' own lines answer that", () => {
+    expect(textHasWords("anything", "  ")).toBe(false);
   });
 });

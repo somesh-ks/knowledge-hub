@@ -1,9 +1,11 @@
 ---
 import { paletteAccent } from "@dispatch/cover";
 import type { EpisodeEntry } from "../lib/episodes";
+import { longDate } from "../lib/format";
 import { EPISODE_KIND } from "../lib/library";
 import { episodeFacts } from "../lib/libraryCard";
 import Cover from "./Cover.astro";
+import CoverPlay from "./CoverPlay.astro";
 
 interface Props {
   entry: EpisodeEntry;
@@ -23,6 +25,7 @@ const facts = episodeFacts(entry);
   class="card"
   data-card
   data-date={episode.date}
+  data-id={entry.id}
   data-kind={EPISODE_KIND}
   data-stories={episode.sources.length}
   data-minutes={facts.minutes}
@@ -37,6 +40,10 @@ const facts = episodeFacts(entry);
       priority={priority}
     />
     <span class="card-title">{episode.title}</span>
-    <span class="card-facts" data-card-facts data-rest={facts.line}>{facts.line}</span>
+    <span class="card-sub">
+      <span class="card-meta">Episode, {longDate(episode.date)}</span>
+      <span class="card-facts" data-card-facts data-rest={facts.line}>{facts.line}</span>
+    </span>
   </a>
+  <CoverPlay digestId={entry.id} href={`/e/${entry.id}`} title={episode.title} />
 </li>

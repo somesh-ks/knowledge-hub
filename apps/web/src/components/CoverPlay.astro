@@ -1,0 +1,39 @@
+---
+import PlayPauseIcons from "./PlayPauseIcons.astro";
+
+interface Props {
+  /** The briefing or episode the button plays. */
+  digestId: string;
+  /** Where its page is, for a button that sits in a list. Omitted on the item's own page. */
+  href?: string;
+  /** What the button names: the date or episode title. Omitted when the page's heading names it. */
+  title?: string;
+  /**
+   * For a pointer only: out of the tab order and hidden from assistive technology. The hero cover
+   * sits beside the play chip, which is the same action with a name and a length.
+   */
+  pointerOnly?: boolean;
+}
+
+const { digestId, href, title, pointerOnly = false } = Astro.props;
+---
+
+{/* The play button over a cover, shown on hover and focus where there is a mouse. It is a sibling of
+     the card's link, never inside it. The player (readerSync) reads the data attributes, writes
+     data-playing and the name, and handles the press. */}
+<span class="cover-over" data-playing="false">
+  <button
+    class="cover-play"
+    type="button"
+    data-cover-play={digestId}
+    data-cover-href={href}
+    data-cover-title={title}
+    id={`cover-play-${digestId}`}
+    aria-label={title ? `Play ${title}` : "Play"}
+    aria-labelledby={title ? undefined : `cover-play-${digestId} page-title`}
+    tabindex={pointerOnly ? -1 : undefined}
+    aria-hidden={pointerOnly ? "true" : undefined}
+  >
+    <PlayPauseIcons class="icon-lg" />
+  </button>
+</span>
