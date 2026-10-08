@@ -191,6 +191,43 @@ export function createGitHubClient(config: ServerConfig, fetchImpl: FetchLike): 
 
 export const CONFIG_WORKFLOW_FILE = "config.yml";
 
+/** The repository variable holding the one cron that run.yml acts on. */
+export const RUN_CRON_VARIABLE = "RUN_CRON";
+
+/**
+ * Sets a repository Actions variable, creating it when it does not exist. Needs the token's
+ * "Variables: write" permission; without it GitHub answers 403 and this throws a GitHubError (its
+ * message names the status only, never the token).
+ */
+export type VariableWriter = (name: string, value: string) => Promise<void>;
+
+export function createVariableWriter(config: ServerConfig, fetchImpl: FetchLike): VariableWriter {
+  const base = `${API}/repos/${config.owner}/${config.repo}/actions/variables`;
+
+  function request(path: string, method: string, body: unknown): Promise<Response> {
+    return fetchImpl(`${base}${path}`, {
+      method,
+      body: JSON.stringify(body),
+      headers: {
+        Authorization: `Bearer ${config.token}`,
+        Accept: "application/vnd.github+json",
+        "X-GitHub-Api-Version": API_VERSION,
+        "User-Agent": "dispatch-site",
+        "Content-Type": "application/json",
+      },
+      signal: AbortSignal.timeout(REQUEST_TIMEOUT_MS),
+    });
+  }
+
+  return async (name, value) => {
+    const update = await request(`/${encodeURIComponent(name)}`, "PATCH", { name, value });
+    if (update.ok) return;
+    if (update.status !== 404) throw new GitHubError(update.status);
+    const create = await request("", "POST", { name, value });
+    if (!create.ok) throw new GitHubError(create.status);
+  };
+}
+
 /** The two calls the config route makes on a workflow other than run.yml. */
 export interface WorkflowDispatcher {
   /** Recent workflow_dispatch runs of the workflow on main, newest first. */

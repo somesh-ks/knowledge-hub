@@ -6,7 +6,12 @@ import {
   MAX_PASSPHRASE_CHARS,
   WRONG_PASSPHRASE_DELAY_MS,
 } from "./generate";
-import { CONFIG_WORKFLOW_FILE, createWorkflowDispatcher } from "./github";
+import {
+  CONFIG_WORKFLOW_FILE,
+  createVariableWriter,
+  createWorkflowDispatcher,
+  RUN_CRON_VARIABLE,
+} from "./github";
 import type { ApiResult } from "./http";
 import { describeError } from "./redact";
 
@@ -52,6 +57,8 @@ const MAX_KEYWORD = 40;
 const MAX_URL = 2048;
 const MAX_TOPIC_IDS = 12;
 const MAX_WEIGHTS = 100;
+const MAX_SECTIONS = 60;
+const CADENCES = [1, 2, 3, 7] as const;
 /** A new topic and the sources chosen for it: one topic, up to six sources, and room to spare. */
 export const MAX_OPS = 8;
 
@@ -206,9 +213,39 @@ export function parseConfigOp(value: unknown): ConfigOp | null {
       }
       return { op: "weights.set", weights };
     }
+    case "schedule.set": {
+      const { hour, cadence_days: cadence } = value;
+      if (typeof hour !== "number" || !Number.isInteger(hour) || hour < 0 || hour > 23) return null;
+      const cadenceDays = CADENCES.find((days) => days === cadence);
+      if (cadenceDays === undefined) return null;
+      if (value.sections === null) {
+        return { op: "schedule.set", hour, cadence_days: cadenceDays, sections: null };
+      }
+      if (!Array.isArray(value.sections)) return null;
+      if (value.sections.length === 0 || value.sections.length > MAX_SECTIONS) return null;
+      const sections: string[] = [];
+      for (const entry of value.sections) {
+        const section = id(entry);
+        if (section === null) return null;
+        sections.push(section);
+      }
+      return { op: "schedule.set", hour, cadence_days: cadenceDays, sections };
+    }
     default:
       return null;
   }
+}
+
+/**
+ * The hour of the last schedule.set in an edit, or null when it holds none. The last one wins,
+ * as it does when the engine applies them in order.
+ */
+function scheduledHour(op: ConfigOp | ConfigOp[]): number | null {
+  let hour: number | null = null;
+  for (const entry of Array.isArray(op) ? op : [op]) {
+    if (entry.op === "schedule.set") hour = entry.hour;
+  }
+  return hour;
 }
 
 /**
@@ -294,7 +331,19 @@ export async function handleConfig(input: ConfigInput, deps: ConfigDeps): Promis
           ?.id ?? null;
     }
     if (runId === null) return unavailable;
-    return { status: 202, body: { status: 202, run_id: runId } };
+
+    // The hour lives in a repository variable, which run.yml compares against its schedule. A
+    // token without "Variables: write" is refused; the rest of the edit is already on its way.
+    const hour = scheduledHour(request.op);
+    if (hour === null) return { status: 202, body: { status: 202, run_id: runId } };
+    let timeChanged = true;
+    try {
+      await createVariableWriter(config, deps.fetch)(RUN_CRON_VARIABLE, `13 ${hour} * * *`);
+    } catch (error) {
+      timeChanged = false;
+      log(`run time not changed: ${describeError(error, secretsOf(config))}`);
+    }
+    return { status: 202, body: { status: 202, run_id: runId, time_changed: timeChanged } };
   } catch (error) {
     log(`config failed: ${describeError(error, secretsOf(config))}`);
     return unavailable;
