@@ -8,6 +8,8 @@ export interface ServerEnv {
   GENERATE_PASSPHRASE_HASH?: string;
   SPEECHIFY_API_KEY?: string;
   SPEECHIFY_VOICE_ID?: string;
+  /** The second host of a two-voice episode. Unset means the first voice reads both. */
+  SPEECHIFY_VOICE_ID_B?: string;
   SPEECHIFY_MONTHLY_CHARS?: string;
   /** The Blob store's long-lived token. Vercel injects it when the store is connected that way. */
   BLOB_READ_WRITE_TOKEN?: string;
@@ -59,6 +61,8 @@ export interface NarrateConfig {
   speechifyKey: string;
   /** Unset means the engine's default voice. */
   voiceId?: string;
+  /** The second host's voice. Unset means the first voice reads every turn. */
+  voiceIdB?: string;
   /** Unset means the engine's default monthly allowance. */
   monthlyChars?: number;
 }
@@ -109,6 +113,16 @@ export function readVoiceId(env: ServerEnv): string | undefined | null {
   return VOICE_ID.test(voiceId) ? voiceId : null;
 }
 
+/**
+ * SPEECHIFY_VOICE_ID_B: the second host's voice, undefined when it is unset (the first voice reads
+ * both hosts), or null when it is set to something unusable.
+ */
+export function readVoiceIdB(env: ServerEnv): string | undefined | null {
+  const voiceId = env.SPEECHIFY_VOICE_ID_B?.trim();
+  if (!voiceId) return undefined;
+  return VOICE_ID.test(voiceId) ? voiceId : null;
+}
+
 const STORE_NAME = /^[A-Za-z0-9]{8,64}$/;
 
 /**
@@ -138,6 +152,8 @@ export function readNarrateConfig(
   // The two optional settings may be absent, but a value that is present has to be usable.
   const voiceId = readVoiceId(env);
   if (voiceId === null) return null;
+  const voiceIdB = readVoiceIdB(env);
+  if (voiceIdB === null) return null;
   const monthlyChars = env.SPEECHIFY_MONTHLY_CHARS?.trim();
   if (monthlyChars && !MONTHLY_CHARS.test(monthlyChars)) return null;
 
@@ -148,6 +164,7 @@ export function readNarrateConfig(
     passphraseHash,
     speechifyKey,
     ...(voiceId ? { voiceId } : {}),
+    ...(voiceIdB ? { voiceIdB } : {}),
     ...(monthlyChars ? { monthlyChars: Number(monthlyChars) } : {}),
   };
 }

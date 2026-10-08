@@ -3,6 +3,7 @@ import { readServerConfig, type ServerConfig, type ServerEnv, secretsOf } from "
 import {
   createGitHubClient,
   type FetchLike,
+  PODCAST_WORKFLOW_FILE,
   WORKFLOW_FILE,
   type WorkflowRun,
   type WorkflowStep,
@@ -40,12 +41,22 @@ export function parseRunId(value: string | null): number | null {
   return Number.isSafeInteger(id) ? id : null;
 }
 
-/** Whether a run is a workflow_dispatch run of run.yml in the configured repository. */
+const workflowPath = (run: WorkflowRun): string => run.path.split("@")[0] ?? "";
+
+/** Whether a run is an episode run: podcast.yml, which has no named steps and no last-run record. */
+export function isPodcastRun(run: WorkflowRun): boolean {
+  return workflowPath(run) === `.github/workflows/${PODCAST_WORKFLOW_FILE}`;
+}
+
+/**
+ * Whether a run is a workflow_dispatch run of run.yml (a briefing) or podcast.yml (an episode) in
+ * the configured repository.
+ */
 export function isOurRun(run: WorkflowRun, config: ServerConfig): boolean {
-  const path = run.path.split("@")[0] ?? "";
+  const path = workflowPath(run);
   return (
     run.event === "workflow_dispatch" &&
-    path === `.github/workflows/${WORKFLOW_FILE}` &&
+    (path === `.github/workflows/${WORKFLOW_FILE}` || isPodcastRun(run)) &&
     run.repositoryFullName.toLowerCase() === config.repository.toLowerCase()
   );
 }
@@ -143,6 +154,26 @@ export async function handleStatus(
 
     const state = stateOf(run);
     const headers = { "Cache-Control": STATUS_CACHE_CONTROL };
+
+    // An episode run reports only whether it is still going and whether it worked: its steps have no
+    // names the sheet knows, and it leaves no record in state/last-run.json.
+    if (isPodcastRun(run)) {
+      if (state !== "completed")
+        return { status: 200, headers, body: { run_id: runId, state, step: null } };
+      const done = run.conclusion === "success";
+      return {
+        status: 200,
+        headers,
+        body: {
+          run_id: runId,
+          state,
+          step: null,
+          outcome: done ? "published" : "failed",
+          ...(done ? {} : { run_url: runUrlFor(config, runId) }),
+        },
+      };
+    }
+
     const steps = await github.listSteps(runId);
 
     if (state !== "completed") {

@@ -274,3 +274,32 @@ export type ConfigResponse =
   | { status: 401; error: "wrong_passphrase" }
   | { status: 429; error: "cooldown"; retry_after_s: number }
   | { status: 503; error: "unavailable" };
+
+/**
+ * Podcast episodes. These mirror packages/core/src/podcast.ts; they are declared here so the page
+ * scripts never pull the engine's schemas into the browser. Keep the two in step.
+ */
+export interface PodcastRequest {
+  /** Section slugs the episode draws on. One to six. */
+  topic_ids: string[];
+  length_minutes: 3 | 5 | 10 | 15;
+  format: "readout" | "discussion" | "headlines";
+  /** How many days of stories to draw on. */
+  window_days: 2 | 7 | 30;
+  tone: "neutral" | "energetic" | "dry";
+  title?: string;
+}
+
+/** POST /api/podcast request body. */
+export interface PodcastCreateRequest {
+  passphrase: string;
+  request: PodcastRequest;
+}
+
+/** POST /api/podcast responses. */
+export type PodcastCreateResponse =
+  | { status: 202; run_id: number; started_at: string }
+  | { status: 400; error: "invalid_request" }
+  | { status: 401; error: "wrong_passphrase" }
+  | { status: 429; error: "cooldown" | "daily_cap"; retry_after_s: number }
+  | { status: 503; error: "unavailable" };

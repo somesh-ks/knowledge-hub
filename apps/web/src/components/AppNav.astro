@@ -3,7 +3,7 @@ import type { IconName } from "../lib/icons";
 import BrandMark from "./BrandMark.astro";
 import Icon from "./Icon.astro";
 
-export type Destination = "today" | "library" | "settings";
+export type Destination = "today" | "library" | "create" | "settings";
 
 interface Props {
   /** The destination this page belongs to, or null when it belongs to none of them. */
@@ -26,6 +26,13 @@ const destinations: Array<{
     label: "Library",
     icon: "library",
     iconCurrent: "libraryFill",
+  },
+  {
+    id: "create",
+    href: "/create",
+    label: "Create",
+    icon: "create",
+    iconCurrent: "createFill",
   },
   {
     id: "settings",

@@ -60,6 +60,16 @@ describe("matchesFilter", () => {
     expect(matchesFilter(card({ kind: "on-demand" }), "daily")).toBe(true);
   });
 
+  it("keeps podcast episodes out of the daily briefings and in their own filter", () => {
+    const episode = card({ kind: "episode", hasAudio: false });
+    expect(matchesFilter(episode, "episodes")).toBe(true);
+    expect(matchesFilter(episode, "daily")).toBe(false);
+    expect(matchesFilter(episode, "weekly")).toBe(false);
+    expect(matchesFilter(episode, "all")).toBe(true);
+    expect(matchesFilter(card(), "episodes")).toBe(false);
+    expect(matchesFilter(card({ kind: "weekly" }), "episodes")).toBe(false);
+  });
+
   it("keeps only briefings with audio when asked", () => {
     expect(matchesFilter(card({ hasAudio: false }), "audio")).toBe(false);
     expect(matchesFilter(card({ hasAudio: false }), "all")).toBe(true);
@@ -84,10 +94,10 @@ describe("compareCards", () => {
 });
 
 describe("resultSummary", () => {
-  it("says how many briefings are shown", () => {
-    expect(resultSummary(3, 3)).toBe("3 briefings");
-    expect(resultSummary(1, 1)).toBe("1 briefing");
-    expect(resultSummary(2, 9)).toBe("2 of 9 briefings");
-    expect(resultSummary(0, 9)).toBe("No briefings match");
+  it("says how many results are shown", () => {
+    expect(resultSummary(3, 3)).toBe("3 results");
+    expect(resultSummary(1, 1)).toBe("1 result");
+    expect(resultSummary(2, 9)).toBe("2 of 9 results");
+    expect(resultSummary(0, 9)).toBe("No results");
   });
 });

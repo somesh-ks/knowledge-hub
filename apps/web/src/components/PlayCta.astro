@@ -10,9 +10,13 @@ interface Props {
   mode: AudioMode;
   /** The chip's label before anything plays: "8 min". */
   length: string;
+  /** Where the share button points. A briefing's dated address unless the page says otherwise. */
+  sharePath?: string;
+  /** What the share button names: "briefing" or "episode". */
+  noun?: string;
 }
 
-const { digestId, mode, length } = Astro.props;
+const { digestId, mode, length, sharePath = `/d/${digestId}`, noun = "briefing" } = Astro.props;
 const chip = idleBriefingChip(length);
 const unavailable = mode === "ready" ? null : AUDIO_UNAVAILABLE_COPY[mode];
 ---
@@ -32,8 +36,8 @@ const unavailable = mode === "ready" ? null : AUDIO_UNAVAILABLE_COPY[mode];
   <button
     class="icon-btn share press"
     type="button"
-    aria-label="Share this briefing"
-    data-share={`/d/${digestId}`}
+    aria-label={`Share this ${noun}`}
+    data-share={sharePath}
   >
     <Icon name="share" class="share-icon" />
     <Icon name="check" class="share-done" />

@@ -1,0 +1,42 @@
+---
+import { paletteAccent } from "@dispatch/cover";
+import type { EpisodeEntry } from "../lib/episodes";
+import { EPISODE_KIND } from "../lib/library";
+import { episodeFacts } from "../lib/libraryCard";
+import Cover from "./Cover.astro";
+
+interface Props {
+  entry: EpisodeEntry;
+  /** The first row of a grid loads its covers at once; the rest wait until they are near. */
+  priority?: boolean;
+}
+
+const { entry, priority = false } = Astro.props;
+const { episode } = entry;
+const facts = episodeFacts(entry);
+---
+
+{/* One episode as album art, like a briefing's card: the cover, its title and one quiet line that
+     says the format and the length. The data attributes are what the Library's search, sort and
+     filter read. An episode has no recording until someone presses play, so it is never "with audio". */}
+<li
+  class="card"
+  data-card
+  data-date={episode.date}
+  data-kind={EPISODE_KIND}
+  data-stories={episode.sources.length}
+  data-minutes={facts.minutes}
+  data-search={facts.search}
+>
+  <a class="card-link press press-subtle" href={`/e/${entry.id}`} data-astro-prefetch="hover">
+    <Cover
+      digestId={entry.id}
+      size="card"
+      paletteBg={paletteAccent(entry.cover.palette).bg}
+      weekly={false}
+      priority={priority}
+    />
+    <span class="card-title">{episode.title}</span>
+    <span class="card-facts" data-card-facts data-rest={facts.line}>{facts.line}</span>
+  </a>
+</li>

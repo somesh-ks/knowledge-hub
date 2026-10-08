@@ -31,10 +31,11 @@ interface Props {
   title?: string;
   description?: string;
   /** Which kind of page this is. */
-  view: "home" | "library" | "settings";
+  view: "home" | "library" | "create" | "settings";
   /**
    * The destination marked as current in the navigation. Defaults to the one the view belongs to; an
-   * earlier briefing passes "library", and a page outside the three (not found, offline) passes null.
+   * earlier briefing or an episode passes "library", and a page outside the four (not found, offline)
+   * passes null.
    */
   nav?: Destination | null;
   /** "aside" adds the contents column from 80rem. */

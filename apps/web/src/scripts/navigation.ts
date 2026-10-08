@@ -23,9 +23,9 @@ function normalize(pathname: string): string {
   return pathname.length > 1 ? pathname.replace(/\/+$/, "") : pathname;
 }
 
-/** A dated briefing: one level below the destinations in the navigation. */
+/** A dated briefing or an episode: one level below the destinations in the navigation. */
 function isBriefingPath(pathname: string): boolean {
-  return pathname.startsWith("/d/");
+  return pathname.startsWith("/d/") || pathname.startsWith("/e/");
 }
 
 export function navigationKind(from: URL, to: URL): NavigationKind {

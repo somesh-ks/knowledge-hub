@@ -54,6 +54,38 @@ describe("planNarration", () => {
     expect(plan.items.size).toBe(4);
   });
 
+  it("merges the segments of one story: it starts at its first and ends at its last", () => {
+    const turn = (key: string, itemId: string | null, characters: number): SegmentInfo => ({
+      key,
+      item_id: itemId,
+      characters,
+      audio: { url: `https://blob.test/${key}.mp3`, duration_ms: characters * 100 },
+    });
+    const plan = planNarration(
+      [
+        turn("t0", null, 10),
+        turn("t1", "s1", 20),
+        turn("t2", "s1", 30),
+        turn("t3", "s2", 40),
+        turn("t4", "s1", 10),
+        turn("t5", null, 10),
+      ],
+      60,
+    );
+    // Every turn keeps its own span on the timeline.
+    expect(plan.segments.map((segment) => [segment.start, segment.end])).toEqual([
+      [0, 1],
+      [1, 3],
+      [3, 6],
+      [6, 10],
+      [10, 11],
+      [11, 12],
+    ]);
+    expect(plan.items.get("s1")).toEqual({ start_ms: 1_000, end_ms: 11_000 });
+    expect(plan.items.get("s2")).toEqual({ start_ms: 6_000, end_ms: 10_000 });
+    expect(plan.items.size).toBe(2);
+  });
+
   it("carries the file of every segment that has one", () => {
     const plan = planNarration(lookup(), 60);
     expect(plan.segments.map((segment) => segment.url)).toEqual([
