@@ -87,7 +87,12 @@ export default defineConfig({
   trailingSlash: "never",
   // The Library used to be the archive. Old links and installed shortcuts still land on it: the
   // Vercel adapter turns this into a real 308, and the static test build into a refresh page.
-  redirects: { "/archive": { status: 308, destination: "/library" } },
+  redirects: {
+    "/archive": { status: 308, destination: "/library" },
+    // Topics and Sources are one page under the podcast settings.
+    "/settings/topics": { status: 308, destination: "/settings/podcast/topics" },
+    "/settings/sources": { status: 308, destination: "/settings/podcast/topics" },
+  },
   build: {
     // External stylesheets: cached once, listed once for the service worker, and no inline style
     // hashes to track in the Content-Security-Policy.
@@ -115,7 +120,8 @@ export default defineConfig({
       },
       directives: [
         "default-src 'self'",
-        "img-src 'self' data:",
+        // Source icons are each site's own favicon, drawn over a letter that stays if one never loads.
+        "img-src 'self' data: https:",
         "font-src 'self'",
         "media-src 'self' https://*.public.blob.vercel-storage.com",
         "connect-src 'self'",

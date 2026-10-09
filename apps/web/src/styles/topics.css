@@ -1,0 +1,558 @@
+/*
+ * The Topics & sources page (pages/settings/podcast/topics.astro): each topic with its switch, its
+ * weight and the sources under it; the stars and the score; the filter row; and the Add source panel.
+ * Tokens only. It is loaded after manage.css, whose form fields, bar of unsaved changes and dialog it
+ * reuses, and after settings.css, which draws the switch and the slider.
+ *
+ * Rows are separated by space, never by a line; only the topics are divided. Every row is at least
+ * 44px tall and rows touch, so there is no dead zone between two targets.
+ */
+
+/* ------------------------------------------------------------------ the top of the page */
+
+/* A phone stacks: back, title, tabs, then the one primary action at full width. From 40rem the action
+   sits at the end of the title row. */
+.topics {
+  --source-row: var(--size-touch-comfortable);
+}
+
+.topics > .topics-add-source {
+  margin-block: 0 var(--space-6);
+}
+
+@media (min-width: 40rem) {
+  .topics {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) auto;
+    column-gap: var(--space-4);
+    align-content: start;
+  }
+
+  .topics > * {
+    grid-column: 1 / -1;
+  }
+
+  .topics > .manage-title {
+    grid-column: 1;
+    grid-row: 2;
+    align-self: center;
+  }
+
+  .topics > .topics-add-source {
+    grid-column: 2;
+    grid-row: 2;
+    width: auto;
+    margin-block: var(--space-2) 0;
+    padding-inline: var(--space-6);
+  }
+
+  .topics > .podcast-tabs {
+    grid-row: 3;
+  }
+}
+
+/* ------------------------------------------------------------------ the filter row */
+
+.topics-filters {
+  padding-block-end: var(--space-2);
+}
+
+/* The chip is 36px plus its border; this keeps its 44px target true, as in the Library. */
+.topics-filters .filter-chip::after {
+  inset-block: calc((var(--size-touch) - var(--chip-height)) / -2 - var(--stroke-hairline));
+  inset-inline: calc(var(--stroke-hairline) * -1);
+}
+
+/* The chips only name a filter; these rules hide the sources a score leaves out. */
+.topics[data-band="good"] .source-row:not([data-band="good"]),
+.topics[data-band="fair"] .source-row:not([data-band="fair"]),
+.topics[data-band="poor"] .source-row:not([data-band="poor"]),
+.topics[data-band="new"] .source-row:not([data-band="new"]) {
+  display: none;
+}
+
+/* ------------------------------------------------------------------ topics */
+
+.topics-list {
+  display: grid;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.topic {
+  padding-block: var(--space-6);
+  border-block-start: var(--stroke-hairline) solid var(--color-border-hairline);
+}
+
+.topic:first-child {
+  border-block-start: 0;
+  padding-block-start: var(--space-4);
+}
+
+.topic-head {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+  min-height: var(--size-touch);
+}
+
+.topic-name {
+  flex: 1 1 0;
+  min-width: 0;
+  margin: 0;
+  font-family: inherit;
+  font-size: var(--font-size-body);
+  font-weight: var(--font-weight-medium);
+  line-height: var(--font-leading-label);
+  overflow-wrap: anywhere;
+}
+
+.topic-flag {
+  display: none;
+}
+
+.topic-head:has([data-remove][aria-pressed="true"]) .topic-flag {
+  display: block;
+}
+
+.topic-head:has([data-remove][aria-pressed="true"]) .topic-name {
+  text-decoration: line-through;
+}
+
+.topic-head > .icon-btn:last-child {
+  margin-inline-end: calc(var(--space-3) * -1);
+}
+
+.topic-remove[aria-pressed="true"] {
+  color: var(--color-danger);
+}
+
+.topic-weight {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+  min-height: var(--size-touch);
+}
+
+.topic-weight-label {
+  flex: none;
+  min-width: 3.5rem;
+  color: var(--color-on-surface-muted);
+  font-size: var(--font-size-label);
+  line-height: var(--font-leading-label);
+}
+
+.topic-weight > .settings-range {
+  flex: 1 1 auto;
+}
+
+.topic-percent {
+  flex: none;
+  min-width: 3ch;
+  color: var(--color-on-surface-muted);
+  font-size: var(--font-size-label);
+  font-variant-numeric: tabular-nums;
+  text-align: end;
+}
+
+/* A topic that is off keeps its slider, set where it was, and shows it as unused. */
+.topic:has(> .topic-head > .settings-switch:not(:checked)) .topic-weight {
+  opacity: var(--opacity-disabled);
+}
+
+.topic-hint {
+  margin: 0;
+  padding-inline-start: calc(3.5rem + var(--space-3));
+}
+
+.topic-sources {
+  display: flex;
+  flex-direction: column;
+  margin: var(--space-2) 0 0;
+  padding: 0;
+  list-style: none;
+}
+
+.topic-sources:empty,
+.topic-other:not(:has(.source-row)) {
+  display: none;
+}
+
+.topics [data-gone] {
+  display: none;
+}
+
+/* ------------------------------------------------------------------ a source */
+
+.source-row {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr) auto auto;
+  align-items: center;
+  column-gap: var(--space-3);
+  min-height: var(--source-row);
+  border-radius: var(--radius-md);
+}
+
+/* The site's icon over a letter. The icon is hidden until it has loaded, so a missing one leaves the
+   letter, and a transparent one is drawn over the tile's own surface. */
+.source-icon {
+  position: relative;
+  display: grid;
+  place-items: center;
+  width: var(--space-6);
+  height: var(--space-6);
+  overflow: hidden;
+  border-radius: var(--radius-sm);
+  background: var(--color-surface-sunken);
+}
+
+.source-letter {
+  color: var(--color-on-surface-muted);
+  font-size: var(--font-size-meta);
+  font-weight: var(--font-weight-medium);
+  line-height: 1;
+}
+
+.source-icon > img {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  padding: var(--space-1);
+  object-fit: contain;
+  background: var(--color-surface-sunken);
+  opacity: 0;
+}
+
+.source-icon > img[data-loaded] {
+  opacity: 1;
+}
+
+.source-text {
+  display: flex;
+  align-items: baseline;
+  gap: var(--space-3);
+  min-width: 0;
+}
+
+.source-name {
+  min-width: 0;
+  overflow: hidden;
+  font-size: var(--font-size-body);
+  font-weight: var(--font-weight-medium);
+  line-height: var(--font-leading-label);
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.source-host,
+.source-note {
+  min-width: 0;
+  overflow: hidden;
+  color: var(--color-on-surface-muted);
+  font-size: var(--font-size-label);
+  line-height: var(--font-leading-caption);
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.source-host {
+  display: none;
+}
+
+@media (min-width: 40rem) {
+  .source-host {
+    display: block;
+  }
+}
+
+.source-row[data-off] .source-name {
+  color: var(--color-on-surface-muted);
+}
+
+.source-row:has([data-remove][aria-pressed="true"]) :is(.source-name, .source-host) {
+  text-decoration: line-through;
+}
+
+.source-remove {
+  margin-inline-end: calc(var(--space-3) * -1);
+}
+
+/* Keeps a row that has no button lined up with the rows that do. */
+.source-slot {
+  width: var(--size-touch);
+  height: var(--size-touch);
+  margin-inline-end: calc(var(--space-3) * -1);
+}
+
+.source-undo {
+  display: none;
+}
+
+.source-remove[aria-pressed="true"] {
+  padding-inline: var(--space-3);
+  border-radius: var(--button-radius);
+  color: var(--color-accent);
+}
+
+.source-remove[aria-pressed="true"] .icon {
+  display: none;
+}
+
+.source-remove[aria-pressed="true"] .source-undo {
+  display: inline;
+}
+
+/* A switch that turns an off source back on sits where the remove button would. */
+.source-row > .settings-switch {
+  margin-inline-end: 0;
+}
+
+/* A source just added: tinted until the page is left, and the tint settles in at first. */
+.source-row.is-new {
+  background: var(--color-accent-subtle);
+  box-shadow: 0 0 0 var(--space-2) var(--color-accent-subtle);
+  animation: source-flash var(--duration-progress) var(--ease-out);
+}
+
+@keyframes source-flash {
+  from {
+    background: color-mix(in oklch, var(--color-accent) 28%, transparent);
+    box-shadow: 0 0 0 var(--space-2) color-mix(in oklch, var(--color-accent) 28%, transparent);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .source-row.is-new {
+    animation: none;
+  }
+}
+
+/* ------------------------------------------------------------------ the score */
+
+.score {
+  --star-on: var(--color-accent);
+  --star-off: var(--color-track-strong);
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-2);
+  color: var(--color-on-surface-muted);
+  font-size: var(--font-size-label);
+  line-height: var(--font-leading-caption);
+  white-space: nowrap;
+}
+
+.source-row:has([data-remove][aria-pressed="true"]) .score {
+  opacity: var(--opacity-disabled);
+}
+
+.score-num {
+  color: var(--color-on-surface);
+  font-variant-numeric: tabular-nums;
+  font-weight: var(--font-weight-medium);
+}
+
+/* Five stars: a mask of one star repeated, behind a fill that stops at the score. */
+.stars {
+  --star: 0.875rem;
+  flex: none;
+  width: calc(var(--star) * 5);
+  height: var(--star);
+  background: linear-gradient(
+    90deg,
+    var(--star-on) calc(var(--score, 0) * 20%),
+    var(--star-off) calc(var(--score, 0) * 20%)
+  );
+  -webkit-mask:
+    url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'%3E%3Cpath d='M12 17.27 18.18 21l-1.64-7.03L22 9.24l-7.19-.61L12 2 9.19 8.63 2 9.24l5.46 4.73L5.82 21z'/%3E%3C/svg%3E")
+    0 0 / var(--star) var(--star) repeat-x;
+  mask:
+    url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'%3E%3Cpath d='M12 17.27 18.18 21l-1.64-7.03L22 9.24l-7.19-.61L12 2 9.19 8.63 2 9.24l5.46 4.73L5.82 21z'/%3E%3C/svg%3E")
+    0 0 / var(--star) var(--star) repeat-x;
+}
+
+/* Poor is told apart by its word in a tinted chip, and by the stars' colour: never by colour alone. */
+.score[data-label="Poor"] {
+  --star-on: var(--color-danger);
+}
+
+.score[data-label="Poor"] .score-label {
+  padding-inline: var(--space-2);
+  border-radius: var(--radius-sm);
+  background: var(--color-danger-subtle);
+  color: var(--color-danger);
+  font-weight: var(--font-weight-medium);
+}
+
+@media (forced-colors: active) {
+  .stars {
+    forced-color-adjust: none;
+    --star-on: Highlight;
+    --star-off: GrayText;
+  }
+
+  .score[data-label="Poor"] .score-label {
+    border: var(--stroke-hairline) solid CanvasText;
+    color: CanvasText;
+  }
+}
+
+/* ------------------------------------------------------------------ adding a topic */
+
+.topics-add-topic {
+  margin-block-start: var(--space-2);
+}
+
+/* ------------------------------------------------------------------ the Add source panel */
+
+/* The foot of the panel stays at the bottom of the sheet; the form scrolls above it. */
+.source-sheet-foot {
+  flex: none;
+  padding-block: var(--space-4) max(var(--space-4), var(--safe-bottom));
+  padding-inline: max(var(--space-4), var(--safe-left)) max(var(--space-4), var(--safe-right));
+  border-block-start: var(--stroke-hairline) solid var(--color-border-hairline);
+  background: var(--sheet-bg);
+}
+
+@media (min-width: 40rem) {
+  .source-sheet-foot {
+    padding-block-end: max(var(--space-6), var(--safe-bottom));
+    padding-inline: var(--space-6);
+  }
+}
+
+.source-form {
+  padding-block: var(--space-4);
+}
+
+.source-preview[data-state="idle"] {
+  display: none;
+}
+
+/* The card, the skeleton and the message share one height, so the panel does not move as they swap. */
+.source-card {
+  display: grid;
+  grid-template-rows: auto auto 1fr;
+  gap: var(--space-4);
+  min-height: 14rem;
+  padding: var(--space-4);
+  border: var(--stroke-hairline) solid var(--color-border-hairline);
+  border-radius: var(--radius-lg);
+}
+
+.source-card-head {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+  min-width: 0;
+}
+
+.source-card .source-icon {
+  width: var(--space-12);
+  height: var(--space-12);
+  flex: none;
+  border-radius: var(--radius-md);
+}
+
+.source-card .source-letter {
+  font-size: var(--font-size-body);
+}
+
+.source-card-title {
+  display: grid;
+  min-width: 0;
+}
+
+.source-card-name {
+  overflow: hidden;
+  font-size: var(--font-size-body);
+  font-weight: var(--font-weight-medium);
+  line-height: var(--font-leading-label);
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.source-card-score {
+  display: grid;
+  gap: var(--space-1);
+}
+
+.source-card-reason {
+  margin: 0;
+  color: var(--color-on-surface-muted);
+  font-size: var(--font-size-label);
+  line-height: var(--font-leading-caption);
+}
+
+.source-facts {
+  display: grid;
+  align-content: start;
+  gap: var(--space-2);
+  margin: 0;
+  color: var(--color-on-surface-muted);
+  font-size: var(--font-size-label);
+  line-height: var(--font-leading-caption);
+}
+
+.source-facts > div {
+  display: flex;
+  gap: var(--space-2);
+}
+
+.source-facts dt {
+  flex: none;
+  min-width: 6.5rem;
+}
+
+.source-facts dd {
+  min-width: 0;
+  margin: 0;
+  color: var(--color-on-surface);
+  overflow-wrap: anywhere;
+}
+
+/* An address or an error that has no card: one sentence in the card's frame. */
+.source-card[data-kind="error"] {
+  grid-template-rows: auto;
+  align-content: start;
+  color: var(--color-danger);
+}
+
+.source-card[data-kind="error"] .manage-error {
+  font-size: var(--font-size-label);
+}
+
+.skeleton-bar {
+  display: block;
+  height: var(--space-4);
+  border-radius: var(--radius-sm);
+  background: var(--color-surface-sunken);
+  animation: skeleton-pulse 1.4s var(--ease-out) infinite alternate;
+}
+
+.skeleton-bar[data-wide] {
+  width: 70%;
+}
+
+.skeleton-circle {
+  flex: none;
+  width: var(--space-12);
+  height: var(--space-12);
+  border-radius: var(--radius-md);
+  background: var(--color-surface-sunken);
+  animation: skeleton-pulse 1.4s var(--ease-out) infinite alternate;
+}
+
+@keyframes skeleton-pulse {
+  from {
+    opacity: 0.5;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .skeleton-bar,
+  .skeleton-circle {
+    animation: none;
+  }
+}

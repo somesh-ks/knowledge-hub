@@ -1,7 +1,8 @@
 import { describe, expect, it } from "vitest";
 import type { ConfigOp } from "../types/contracts";
-import { idText, slugify, webAddress } from "./managePage";
 import { buildQueue, failureText, type Pending } from "./managePageSave";
+import { idText, keywordList, slugify } from "./topicsEditor";
+import { problemText, webAddress } from "./topicsSheet";
 
 describe("slugify", () => {
   it("makes lowercase letters, digits and hyphens", () => {
@@ -50,6 +51,26 @@ describe("webAddress", () => {
   it("refuses anything that is not a web address", () => {
     for (const bad of ["", "   ", "ftp://example.com", "javascript:alert(1)", "localhost", "a b"]) {
       expect(webAddress(bad), bad).toBeNull();
+    }
+  });
+});
+
+describe("keywordList", () => {
+  it("splits on commas, trims, and drops empties and repeats", () => {
+    expect(keywordList(" motion, , type ,motion")).toEqual(["motion", "type"]);
+    expect(keywordList("")).toEqual([]);
+  });
+
+  it("holds no more than a topic can", () => {
+    expect(keywordList(Array.from({ length: 50 }, (_, i) => `w${i}`).join(","))).toHaveLength(30);
+  });
+});
+
+describe("problemText", () => {
+  it("says one thing to do for each refusal", () => {
+    for (const status of [400, 422, 429, 504, 0]) {
+      expect(problemText(status)).toMatch(/\.$/);
+      expect(problemText(status).split(". ").length).toBeLessThanOrEqual(2);
     }
   });
 });
