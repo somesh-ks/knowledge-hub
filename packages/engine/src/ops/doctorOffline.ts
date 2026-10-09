@@ -5,7 +5,7 @@ import { loadQueries } from "../fetch/queries.js";
 import type { GitRunner } from "../git/runGit.js";
 import { parseSources } from "../sources/registry.js";
 import { parseVoice } from "../voice/voice.js";
-import { loadWriterModel } from "../writer/store.js";
+import { loadWriterChoice } from "../writer/store.js";
 import {
   type Check,
   type DoctorDeps,
@@ -252,7 +252,8 @@ const KEYS: readonly KeySpec[] = [
   },
 ];
 
-function keyChecks(env: Env, settingsModel: string | null): Check[] {
+function keyChecks(env: Env, choice: { provider: string; model: string | null } | null): Check[] {
+  const settingsModel = choice?.model ?? null;
   const checks = KEYS.map((key): Check => {
     const set = env[key.name] !== undefined;
     if (set) return ok(`key.${key.name}`, "set");
@@ -268,6 +269,17 @@ function keyChecks(env: Env, settingsModel: string | null): Check[] {
           `${consequence} Run \`dispatch models\` to pick one, then set ${name} in .env.`,
         )
       : ok(`model.${name}`, `set (${env[name]})`);
+  if (choice?.provider === "anthropic") {
+    checks.push(
+      env.ANTHROPIC_API_KEY === undefined
+        ? warn(
+            "key.ANTHROPIC_API_KEY",
+            "not set",
+            "The writer is on Anthropic but has no key, so every call falls through to the Nebius models. Add ANTHROPIC_API_KEY to .env and run npm run secrets:push.",
+          )
+        : ok("key.ANTHROPIC_API_KEY", "set"),
+    );
+  }
   checks.push(
     settingsModel === null
       ? ok("model.source", "the environment (DISPATCH_MODEL); Settings is on Automatic")
@@ -289,6 +301,6 @@ export async function offlineChecks(
     ...(await gitChecks(root, deps.git)),
     ...(await configChecks(root)),
     ...(await stateChecks(root)),
-    ...keyChecks(env, loadWriterModel(root)),
+    ...keyChecks(env, loadWriterChoice(root)),
   ];
 }

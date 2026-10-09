@@ -1,20 +1,22 @@
 /**
  * The Daily podcast page's script. The page is static HTML with the saved values written in; this
- * loads the live model list, draws the radio rows, and records the changes the controls add up to
- * in the shared bar: one schedule.set (time, rhythm, type, length) and one writer.set (model).
- * Sending them is managePageSave.ts, loaded the first time Save is pressed, the same step the
- * Topics page uses.
+ * loads the live Nebius model list, runs the model combobox, and records the changes the controls
+ * add up to in the shared bar: one schedule.set (time, rhythm, type, length) and one writer.set
+ * (provider and model). Sending them is managePageSave.ts, loaded the first time Save is pressed,
+ * the same step the Topics page uses.
  *
- * Only pure, dependency-free helpers are imported at run time.
+ * The option logic is pure and lives in lib/combobox.ts. Anthropic's two models are static and
+ * never ask for the live list.
  */
-import { contextLabel, isModelId, modelParts } from "../lib/modelId";
-import { shortlist } from "../lib/modelRank";
+import type { ModelOption } from "../lib/combobox";
+import { isModelId } from "../lib/modelId";
 import type { ConfigOp } from "../types/contracts";
 import type { Pending, SaveContext } from "./managePageSave";
 
 type Cadence = 1 | 2 | 3 | 7;
 type Format = "readout" | "discussion" | "headlines";
 type Length = 3 | 5 | 10 | 15;
+export type Provider = "nebius" | "anthropic";
 
 export interface ModelEntry {
   id: string;
@@ -41,9 +43,9 @@ export function scheduleOp(
   };
 }
 
-/** The edit a model choice stands for. `null` is Automatic. */
-export function modelOp(model: string | null): ConfigOp {
-  return { op: "writer.set", provider: "nebius", model };
+/** The edit a provider and model choice stand for. `null` on Nebius is Automatic. */
+export function modelOp(model: string | null, provider: Provider = "nebius"): ConfigOp {
+  return { op: "writer.set", provider, model };
 }
 
 /** The list as the API sends it, or null when it is not in the expected shape. */
@@ -61,31 +63,6 @@ export function parseModelList(body: unknown): ModelEntry[] | null {
   return rows;
 }
 
-/** The rows to draw: the live list, with the saved model added when the list no longer has it. */
-export function rowsFor(live: readonly ModelEntry[], saved: string | null): ModelEntry[] {
-  if (saved === null || live.some((entry) => entry.id === saved)) return [...live];
-  return [{ id: saved, context_length: null }, ...live];
-}
-
-/** Ids that contain the query, ignoring case. An empty query matches everything. */
-export function matchesFilter(id: string, query: string): boolean {
-  const needle = query.trim().toLowerCase();
-  return needle === "" || id.toLowerCase().includes(needle);
-}
-
-/** What the live region says after a filter. */
-export function countText(count: number): string {
-  if (count === 0) return "No models match";
-  return `${count} ${count === 1 ? "model" : "models"}`;
-}
-
-/** The line under a model's name: its vendor and context window, or why it is odd. */
-export function hintFor(entry: ModelEntry, listed: boolean): string {
-  const { vendor } = modelParts(entry.id);
-  const parts = [vendor, listed ? contextLabel(entry.context_length) : "Not in the live list"];
-  return parts.filter((part) => part !== "").join(", ");
-}
-
 function element<K extends keyof HTMLElementTagNameMap>(
   tag: K,
   className?: string,
@@ -97,26 +74,14 @@ function element<K extends keyof HTMLElementTagNameMap>(
   return node;
 }
 
-/** One radio row: the input inside a label, with a name and a quiet line. */
-function radioRow(value: string, name: string, hint: string, checked: boolean): HTMLLIElement {
-  const item = element("li");
-  item.dataset.id = value;
-  const label = element("label", "manage-pick model-row");
-  const input = element("input");
-  input.type = "radio";
-  input.name = "model";
-  input.value = value;
-  input.checked = checked;
-  input.autocomplete = "off";
-  const text = element("span", "manage-text");
-  text.append(element("span", "manage-name", name));
-  if (hint) text.append(element("span", "manage-quiet", hint));
-  label.append(input, text);
-  item.append(label);
-  return item;
-}
-
-function mount(root: HTMLElement): void {
+/**
+ * The combobox's pure logic is loaded when the page mounts, not with the page's first script: the
+ * controls stay inert (see daily.css) for that moment, and the first-load budget is kept.
+ */
+async function mount(root: HTMLElement): Promise<void> {
+  root.dataset.mounting = "";
+  const lib = await import("../lib/combobox");
+  const { CLAUDE_OPTIONS, countText, filterOptions, labelFor, moveIndex, nebiusOptions } = lib;
   const one = <T extends HTMLElement = HTMLElement>(selector: string): T =>
     root.querySelector(selector) as T;
   const bar = one("[data-bar]");
@@ -130,23 +95,26 @@ function mount(root: HTMLElement): void {
     root.querySelector<HTMLInputElement>(`input[name="${name}"]:checked`)?.value ?? "";
   const sections = JSON.parse(panel.dataset.sections ?? "null") as string[] | null;
 
-  const list = one<HTMLUListElement>("[data-list]");
-  const group = one<HTMLFieldSetElement>("[data-models]");
-  const filter = one<HTMLInputElement>("#model-filter");
+  const group = one("[data-models]");
+  const vendor = one<HTMLSelectElement>("#daily-vendor");
+  const input = one<HTMLInputElement>("#model-input");
+  const listbox = one<HTMLUListElement>("[data-list]");
+  const toggle = one<HTMLButtonElement>("[data-toggle]");
   const count = one("[data-count]");
   const fallback = one("[data-fallback]");
   const typed = one<HTMLInputElement>("#model-typed");
   const typedNote = one("[data-typed-note]");
-  const all = one<HTMLButtonElement>("[data-all]");
-  const filterBox = one("[data-filter]");
-  const saved = group.dataset.saved ? group.dataset.saved : null;
+  const savedModel = group.dataset.saved ? group.dataset.saved : null;
+  const savedProvider: Provider = group.dataset.provider === "anthropic" ? "anthropic" : "nebius";
+  const provider = (): Provider => (vendor.value === "anthropic" ? "anthropic" : "nebius");
   const changes = new Map<string, Pending>();
-  let failed = false;
-  let expanded = false;
 
-  const radios = (): HTMLInputElement[] => [
-    ...list.querySelectorAll<HTMLInputElement>('input[name="model"]'),
-  ];
+  /** The live Nebius list: undefined until asked for, null when it failed. */
+  let nebius: ModelEntry[] | null | undefined;
+  let options: ModelOption[] = [];
+  let shown: ModelOption[] = [];
+  let selected: string | null = savedModel;
+  let active = -1;
 
   const show = (message: string, state: string): void => {
     text.textContent = message;
@@ -164,14 +132,13 @@ function mount(root: HTMLElement): void {
   const scheduleState = (): string =>
     JSON.stringify([hour.value, cadence.value, checked("format"), checked("length")]);
 
-  /** The model the controls hold: a typed id when the list is unavailable, else the checked row. */
+  /** The model the controls hold: a typed id when the list is unavailable, else the chosen option. */
   const choice = (): { model: string | null; valid: boolean } => {
-    if (failed && typed.value.trim() !== "") {
+    if (provider() === "nebius" && nebius === null && typed.value.trim() !== "") {
       const value = typed.value.trim();
       return { model: value, valid: isModelId(value) };
     }
-    const picked = radios().find((radio) => radio.checked);
-    return { model: picked && picked.value !== "" ? picked.value : null, valid: true };
+    return { model: selected, valid: true };
   };
 
   const update = (): void => {
@@ -192,66 +159,88 @@ function mount(root: HTMLElement): void {
     const { model, valid } = choice();
     typed.toggleAttribute("aria-invalid", !valid);
     typedNote.hidden = valid;
-    if (!valid || JSON.stringify(model) === group.dataset.was) changes.delete("writer");
-    else changes.set("writer", { op: modelOp(model), el: group, now: JSON.stringify(model) });
+    const now = JSON.stringify([provider(), model]);
+    if (!valid || now === group.dataset.was) changes.delete("writer");
+    else changes.set("writer", { op: modelOp(model, provider()), el: group, now });
 
     if (changes.size === 0) hide();
     else show(changes.size === 1 ? "1 change" : `${changes.size} changes`, "idle");
   };
 
-  /** The recommended rows always show; the rest only once "Show all models" is open. */
-  const applyFilter = (): void => {
-    const query = filter.value;
-    let shown = 0;
-    for (const item of list.querySelectorAll<HTMLLIElement>("li[data-id]")) {
-      const id = item.dataset.id ?? "";
-      const input = item.querySelector<HTMLInputElement>("input");
-      const matches = id === "" || matchesFilter(id, query);
-      const open = item.dataset.group === "rest" ? expanded : true;
-      const keep = id === "" ? true : (open && matches) || input?.checked === true;
-      item.hidden = !keep;
-      if (id !== "" && open && matches) shown += 1;
-    }
-    for (const head of list.querySelectorAll<HTMLLIElement>("li[data-head=rest]"))
-      head.hidden = !expanded;
-    count.textContent = query.trim() === "" ? "" : countText(shown);
+  const isOpen = (): boolean => !listbox.hidden;
+
+  const close = (): void => {
+    listbox.hidden = true;
+    active = -1;
+    input.setAttribute("aria-expanded", "false");
+    input.removeAttribute("aria-activedescendant");
+    // A half-typed query is not a choice: the field goes back to the chosen model's name.
+    input.value = labelFor(options, selected);
   };
 
-  const draw = (entries: ModelEntry[], liveList: ModelEntry[] | null): void => {
-    list.replaceChildren();
-    list.removeAttribute("aria-hidden");
-    group.removeAttribute("aria-busy");
-    const listed = new Set((liveList ?? []).map((entry) => entry.id));
-    // With no live list there is nothing to rank: the saved model is the only row.
-    const top = new Set(liveList === null ? [] : shortlist(entries));
-    const row = (entry: ModelEntry, group: "rec" | "rest"): HTMLLIElement => {
-      const item = radioRow(
-        entry.id,
-        modelParts(entry.id).name,
-        hintFor(entry, liveList === null || listed.has(entry.id)),
-        entry.id === saved,
-      );
-      item.dataset.group = group;
-      return item;
-    };
-    const head = (label: string, group: "rec" | "rest"): HTMLLIElement => {
-      const item = element("li", "manage-quiet daily-head", label);
-      item.dataset.head = group;
-      return item;
-    };
-    const auto = radioRow("", "Automatic", "The engine's own setting", saved === null);
-    auto.dataset.group = "rec";
-    list.append(auto);
-    const recommended = entries.filter((entry) => top.has(entry.id));
-    const rest = entries.filter((entry) => !top.has(entry.id));
-    if (recommended.length > 0) list.append(head("Recommended", "rec"));
-    for (const entry of recommended) list.append(row(entry, "rec"));
-    if (rest.length > 0 && recommended.length > 0) list.append(head("All models", "rest"));
-    // Without a ranking (no live list) every row is simply shown.
-    for (const entry of rest) list.append(row(entry, recommended.length > 0 ? "rest" : "rec"));
-    all.hidden = !list.querySelector('li[data-group="rest"]');
-    applyFilter();
+  const highlight = (index: number): void => {
+    active = index;
+    listbox.querySelectorAll<HTMLElement>("[role=option]").forEach((item, at) => {
+      item.toggleAttribute("data-active", at === index);
+    });
+    const item = listbox.querySelectorAll<HTMLElement>("[role=option]")[index];
+    if (item) {
+      input.setAttribute("aria-activedescendant", item.id);
+      item.scrollIntoView({ block: "nearest" });
+    } else input.removeAttribute("aria-activedescendant");
   };
+
+  /** Draws the options matching `query`, with the recommended ones captioned apart from the rest. */
+  const open = (query: string): void => {
+    shown = filterOptions(options, query);
+    listbox.replaceChildren();
+    let last = "";
+    shown.forEach((option, index) => {
+      if (option.group !== last && option.group !== "") {
+        const head = element(
+          "li",
+          "daily-head",
+          option.group === "rec" ? "Recommended" : "All models",
+        );
+        head.setAttribute("role", "presentation");
+        listbox.append(head);
+      }
+      last = option.group;
+      const item = element("li", "daily-option");
+      item.id = `model-option-${index}`;
+      item.setAttribute("role", "option");
+      item.setAttribute("aria-selected", String(option.id === (selected ?? "")));
+      item.dataset.index = String(index);
+      item.append(element("span", "daily-option-name", option.label));
+      if (option.hint) item.append(element("span", "daily-option-hint", option.hint));
+      listbox.append(item);
+    });
+    listbox.hidden = false;
+    input.setAttribute("aria-expanded", "true");
+    count.textContent = countText(shown.length);
+    // Typing highlights the first match; opening with the chevron starts on the chosen model.
+    const start = query.trim() === "" ? shown.findIndex((o) => o.id === (selected ?? "")) : 0;
+    highlight(start);
+  };
+
+  const choose = (option: ModelOption): void => {
+    selected = option.id === "" ? null : option.id;
+    typed.value = "";
+    close();
+    update();
+  };
+
+  /** The options for the vendor on screen. */
+  const refresh = (): void => {
+    options =
+      provider() === "anthropic"
+        ? [...CLAUDE_OPTIONS]
+        : nebiusOptions(nebius ?? null, savedFor("nebius"));
+    fallback.hidden = !(provider() === "nebius" && nebius === null);
+    input.value = labelFor(options, selected);
+  };
+  const savedFor = (which: Provider): string | null =>
+    which === savedProvider ? savedModel : null;
 
   const load = async (): Promise<void> => {
     let entries: ModelEntry[] | null = null;
@@ -261,16 +250,9 @@ function mount(root: HTMLElement): void {
     } catch {
       entries = null;
     }
-    if (entries === null) {
-      failed = true;
-      fallback.hidden = false;
-      draw(saved === null ? [] : [{ id: saved, context_length: null }], null);
-    } else {
-      draw(rowsFor(entries, saved), entries);
-      filter.disabled = false;
-      // Without a shortlist (a short list) the whole list is the list, so the filter shows at once.
-      if (all.hidden) filterBox.hidden = false;
-    }
+    nebius = entries;
+    // The owner may have moved to Anthropic while the list was loading.
+    if (provider() === "nebius") refresh();
     root.dataset.loaded = "";
   };
 
@@ -281,32 +263,55 @@ function mount(root: HTMLElement): void {
     dialog: one("dialog"),
   };
 
-  root.addEventListener("change", (event) => {
-    const target = event.target as HTMLElement;
-    if (target.matches('input[name="model"]')) {
-      if (failed) typed.value = "";
-      applyFilter();
-    }
-    if (target.closest("[data-panel]")) update();
-  });
-  filter.addEventListener("input", applyFilter);
-  all.addEventListener("click", () => {
-    expanded = !expanded;
-    all.setAttribute("aria-expanded", String(expanded));
-    all.textContent = expanded ? "Show fewer models" : "Show all models";
-    filterBox.hidden = !expanded;
-    if (!expanded) filter.value = "";
-    applyFilter();
-  });
-  typed.addEventListener("input", () => {
-    // A typed id replaces the radio choice; clearing the field returns to the row that was checked.
-    if (typed.value.trim() !== "") for (const radio of radios()) radio.checked = false;
-    else {
-      const back = radios().find((radio) => radio.value === (saved ?? ""));
-      if (back) back.checked = true;
-    }
+  vendor.addEventListener("change", () => {
+    // Each vendor starts on its first model: Automatic on Nebius, Claude Sonnet on Anthropic.
+    selected = provider() === "anthropic" ? (CLAUDE_OPTIONS[0]?.id ?? null) : null;
+    typed.value = "";
+    if (provider() === "nebius" && nebius === undefined) void load().then(update);
+    refresh();
     update();
   });
+  root.addEventListener("change", (event) => {
+    const target = event.target as HTMLElement;
+    if (target.closest("[data-panel]") && target !== vendor) update();
+  });
+
+  input.addEventListener("input", () => open(input.value));
+  input.addEventListener("keydown", (event) => {
+    const { key } = event;
+    if (key === "ArrowDown" || key === "ArrowUp") {
+      event.preventDefault();
+      if (!isOpen()) open("");
+      else highlight(moveIndex(active, shown.length, key));
+    } else if (isOpen() && (key === "Home" || key === "End") && event.ctrlKey) {
+      event.preventDefault();
+      highlight(moveIndex(active, shown.length, key));
+    } else if (key === "Enter" && isOpen()) {
+      event.preventDefault();
+      const option = shown[active];
+      if (option) choose(option);
+    } else if (key === "Escape" && isOpen()) {
+      event.preventDefault();
+      close();
+    }
+  });
+  input.addEventListener("focusout", (event) => {
+    if (!(event.relatedTarget instanceof Node && listbox.contains(event.relatedTarget))) close();
+  });
+  // Pressing an option must not blur the field first, or the list would close under the pointer.
+  listbox.addEventListener("pointerdown", (event) => event.preventDefault());
+  listbox.addEventListener("click", (event) => {
+    const item = (event.target as Element).closest<HTMLElement>("[role=option]");
+    const option = item ? shown[Number(item.dataset.index)] : undefined;
+    if (option) choose(option);
+  });
+  toggle.addEventListener("pointerdown", (event) => event.preventDefault());
+  toggle.addEventListener("click", () => {
+    input.focus();
+    if (isOpen()) close();
+    else open("");
+  });
+  typed.addEventListener("input", update);
 
   root.addEventListener("click", (event) => {
     const button = (event.target as Element).closest("button");
@@ -318,15 +323,17 @@ function mount(root: HTMLElement): void {
   });
 
   box.dataset.was = scheduleState();
-  group.dataset.was = JSON.stringify(saved);
+  group.dataset.was = JSON.stringify([savedProvider, savedModel]);
+  refresh();
   root.dataset.ready = "";
-  void load();
+  if (provider() === "nebius") void load();
+  else root.dataset.loaded = "";
 }
 
 export function installDailyPage(): void {
   const sync = (): void => {
     const root = document.querySelector<HTMLElement>("[data-manage=daily]");
-    if (root && root.dataset.ready === undefined) mount(root);
+    if (root && root.dataset.mounting === undefined) void mount(root);
   };
   document.addEventListener("astro:page-load", sync);
   sync();

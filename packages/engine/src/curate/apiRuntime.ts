@@ -72,7 +72,14 @@ export function createApiRuntime(
   const budget = new TokenBudget(env.MAX_TOKENS_PER_RUN);
   const rawApi = createOpenAiChatApi(env);
   const api = spend ? meterChat(rawApi, spend.meter) : rawApi;
-  const llm = createWriterLlm({ root: ctx.root, env, api, budget, log });
+  const llm = createWriterLlm({
+    root: ctx.root,
+    env,
+    api,
+    budget,
+    log,
+    onAnthropicRequest: spend ? () => spend.meter.add("anthropic") : undefined,
+  });
 
   const nebiusJudge = new NebiusJudge({ llm, log, onFailure, secrets });
   let judge: Judge = nebiusJudge;

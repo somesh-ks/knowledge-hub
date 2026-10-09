@@ -1,4 +1,9 @@
-import { MODEL_ID_PATTERN, PODCAST_FORMATS, SCHEDULE_LENGTHS } from "@dispatch/core";
+import {
+  isAnthropicModel,
+  MODEL_ID_PATTERN,
+  PODCAST_FORMATS,
+  SCHEDULE_LENGTHS,
+} from "@dispatch/core";
 import type { ConfigOp, ConfigResponse, PodcastRequest } from "../types/contracts";
 import { readServerConfig, secretsOf } from "./config";
 import {
@@ -246,9 +251,14 @@ export function parseConfigOp(value: unknown): ConfigOp | null {
       return { op: "schedule.set", hour, cadence_days: cadenceDays, sections, ...podcast };
     }
     case "writer.set": {
+      if (value.provider === "anthropic") {
+        if (typeof value.model !== "string" || !isAnthropicModel(value.model)) return null;
+        return { op: "writer.set", provider: "anthropic", model: value.model };
+      }
       if (value.provider !== "nebius") return null;
       if (value.model === null) return { op: "writer.set", provider: "nebius", model: null };
       if (typeof value.model !== "string" || !MODEL_ID_PATTERN.test(value.model)) return null;
+      if (value.model.startsWith("claude-")) return null;
       return { op: "writer.set", provider: "nebius", model: value.model };
     }
     default:

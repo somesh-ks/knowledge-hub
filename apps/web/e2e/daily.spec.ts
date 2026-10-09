@@ -43,7 +43,15 @@ async function open(page: Page): Promise<void> {
 
 const bar = (page: Page) => page.locator("[data-bar]");
 const barText = (page: Page) => bar(page).locator("[data-bar-text]");
-const radio = (page: Page, name: RegExp | string) => page.getByRole("radio", { name });
+const combo = (page: Page) => page.getByRole("combobox", { name: "Model" });
+const options = (page: Page, name?: RegExp) =>
+  page.getByRole("listbox", { name: "Models" }).getByRole("option", name ? { name } : undefined);
+
+/** Types a query into the model field and picks the option that matches. */
+async function pick(page: Page, query: string, name: RegExp): Promise<void> {
+  await combo(page).fill(query);
+  await options(page, name).click();
+}
 
 async function save(page: Page, passphrase = "correct horse"): Promise<void> {
   await bar(page).getByRole("button", { name: "Save" }).click();
@@ -77,7 +85,7 @@ test.describe("daily podcast", () => {
     await expect(page.getByLabel("How often")).toHaveValue("2");
     await expect(page.getByRole("radio", { name: "Readout" })).toBeChecked();
     await expect(page.getByRole("radio", { name: "10 min", exact: true })).toBeChecked();
-    await expect(radio(page, /^Automatic/)).toBeChecked();
+    await expect(combo(page)).toHaveValue("Automatic");
     await expect(page.locator("[data-next]")).toHaveText(
       /^Next briefing: about (today|tomorrow|[A-Z][a-z]+day) at 07:00$/,
     );
@@ -97,7 +105,8 @@ test.describe("daily podcast", () => {
       page.getByLabel("Time"),
       page.getByLabel("How often"),
       page.getByRole("link", { name: /^Topics/ }),
-      page.locator("label.manage-pick").first(),
+      combo(page),
+      page.getByLabel("Provider"),
     ]) {
       const box = await target.boundingBox();
       expect(box?.height ?? 0).toBeGreaterThanOrEqual(44);
@@ -160,33 +169,54 @@ test.describe("daily podcast", () => {
     );
   });
 
-  test("lists Automatic and the live models, with Automatic chosen", async ({ page }) => {
+  test("lists Automatic and the live models in the combobox, with Automatic chosen", async ({
+    page,
+  }) => {
     await open(page);
-    await expect(radio(page, /^Automatic/)).toBeChecked();
-    await expect(page.locator("input[name=model]")).toHaveCount(4);
-    const llama = radio(page, /^Llama-3\.3-70B-Instruct/);
-    await expect(llama).not.toBeChecked();
-    await expect(
-      page.locator("label.manage-pick", { hasText: "Llama-3.3-70B-Instruct" }),
-    ).toContainText("meta-llama, 128k context");
+    await expect(combo(page)).toHaveValue("Automatic");
+    await expect(page.getByLabel("Provider")).toHaveValue("nebius");
+    await combo(page).click();
+    await page.getByRole("button", { name: "Show all models" }).click();
+    await expect(options(page)).toHaveCount(4);
+    await expect(options(page, /^Llama-3\.3-70B-Instruct/)).toContainText(
+      "meta-llama, 128k context",
+    );
     await expect(bar(page)).toBeHidden();
   });
 
-  test("the filter narrows the list and announces the count", async ({ page }) => {
+  test("typing filters the list and announces the count", async ({ page }) => {
     await open(page);
-    await page.getByLabel("Filter models").fill("QWEN");
-    await expect(page.locator("input[name=model]:visible")).toHaveCount(2);
-    await expect(radio(page, /^Qwen3-235B/)).toBeVisible();
+    await combo(page).fill("QWEN");
+    await expect(options(page)).toHaveCount(1);
+    await expect(options(page, /^Qwen3-235B/)).toBeVisible();
     await expect(page.locator("[data-count]")).toHaveText("1 model");
-    await page.getByLabel("Filter models").fill("zzz");
+    await combo(page).fill("zzz");
+    await expect(options(page)).toHaveCount(0);
     await expect(page.locator("[data-count]")).toHaveText("No models match");
-    await page.getByLabel("Filter models").fill("");
-    await expect(page.locator("input[name=model]:visible")).toHaveCount(4);
   });
 
-  test("a long list shows the recommended models first, and Show all reveals the rest", async ({
-    page,
-  }) => {
+  test("the keyboard moves, picks and closes", async ({ page }) => {
+    await open(page);
+    await combo(page).focus();
+    await page.keyboard.press("ArrowDown");
+    await expect(combo(page)).toHaveAttribute("aria-expanded", "true");
+    await combo(page).fill("llama");
+    await page.keyboard.press("Enter");
+    await expect(combo(page)).toHaveValue("Llama-3.3-70B-Instruct");
+    await expect(combo(page)).toHaveAttribute("aria-expanded", "false");
+    await expect(barText(page)).toHaveText("1 change");
+    // Escape closes without choosing, and the field goes back to the chosen name.
+    await combo(page).fill("qw");
+    await expect(options(page)).toHaveCount(1);
+    await page.keyboard.press("Escape");
+    await expect(combo(page)).toHaveValue("Llama-3.3-70B-Instruct");
+    await page.keyboard.press("ArrowDown");
+    await page.keyboard.press("ArrowDown");
+    await page.keyboard.press("Enter");
+    await expect(combo(page)).not.toHaveValue("Llama-3.3-70B-Instruct");
+  });
+
+  test("a long list shows the recommended models first, then the rest", async ({ page }) => {
     const models = [
       ["deepseek-ai/DeepSeek-V3.2", 163840],
       ["Qwen/Qwen3-235B-A22B-Instruct-2507", 262144],
@@ -204,28 +234,19 @@ test.describe("daily podcast", () => {
       }),
     );
     await open(page);
-    const visible = page.locator("input[name=model]:visible");
-    // Automatic and five recommended models; the filter and the rest wait behind the button.
-    await expect(visible).toHaveCount(6);
+    await page.getByRole("button", { name: "Show all models" }).click();
+    // Automatic, five recommended and two others, with a caption over each group.
+    await expect(options(page)).toHaveCount(8);
     await expect(page.getByText("Recommended", { exact: true })).toBeVisible();
-    await expect(page.getByLabel("Filter models")).toBeHidden();
-    const all = page.getByRole("button", { name: "Show all models" });
-    await expect(all).toHaveAttribute("aria-expanded", "false");
-    await all.click();
-    await expect(visible).toHaveCount(8);
-    await expect(page.getByLabel("Filter models")).toBeVisible();
-    await expect(page.getByRole("button", { name: "Show fewer models" })).toHaveAttribute(
-      "aria-expanded",
-      "true",
-    );
-    await page.getByLabel("Filter models").fill("llama");
+    await expect(page.getByText("All models", { exact: true })).toBeVisible();
+    await combo(page).fill("llama");
     await expect(page.locator("[data-count]")).toHaveText("1 model");
   });
 
   test("choosing a model and a length saves both in one request", async ({ page }) => {
     const sent = await mockConfig(page);
     await open(page);
-    await radio(page, /^Llama-3\.3-70B-Instruct/).check();
+    await pick(page, "llama", /^Llama-3\.3-70B-Instruct/);
     await expect(barText(page)).toHaveText("1 change");
     await page.getByRole("radio", { name: "5 min", exact: true }).check();
     await expect(barText(page)).toHaveText("2 changes");
@@ -240,15 +261,45 @@ test.describe("daily podcast", () => {
     expect(ops).toContainEqual(expect.objectContaining({ op: "schedule.set", length_minutes: 5 }));
     // Saved is the new starting point: going back to Automatic is a change again.
     await bar(page).getByRole("button", { name: "Dismiss" }).click();
-    await radio(page, /^Automatic/).check();
+    await pick(page, "auto", /^Automatic/);
     await expect(barText(page)).toHaveText("1 change");
   });
 
-  test("going back to the saved model drops the change", async ({ page }) => {
+  test("Anthropic offers the two Claude models, without asking for the live list", async ({
+    page,
+  }) => {
+    const sent = await mockConfig(page);
     await open(page);
-    await radio(page, /^Qwen3-235B/).check();
+    let asked = 0;
+    await page.route("**/api/models", (route) => {
+      asked += 1;
+      return route.abort();
+    });
+    await page.getByLabel("Provider").selectOption("anthropic");
+    await expect(combo(page)).toHaveValue("Claude Sonnet 5.5");
+    await combo(page).click();
+    await page.getByRole("button", { name: "Show all models" }).click();
+    await expect(options(page)).toHaveCount(2);
+    await expect(options(page, /^Claude Haiku 5\.5/)).toBeVisible();
+    expect(asked).toBe(0);
+    await page.keyboard.press("Escape");
+    await pick(page, "haiku", /^Claude Haiku 5\.5/);
+    await save(page);
+    await expect(barText(page)).toContainText("Saved.");
+    const ops = sent.flatMap((request) => (Array.isArray(request.op) ? request.op : [request.op]));
+    expect(ops).toContainEqual({
+      op: "writer.set",
+      provider: "anthropic",
+      model: "claude-haiku-5-5",
+    });
+  });
+
+  test("going back to the saved provider and model drops the change", async ({ page }) => {
+    await open(page);
+    await page.getByLabel("Provider").selectOption("anthropic");
     await expect(bar(page)).toBeVisible();
-    await radio(page, /^Automatic/).check();
+    await page.getByLabel("Provider").selectOption("nebius");
+    await expect(combo(page)).toHaveValue("Automatic");
     await expect(bar(page)).toBeHidden();
   });
 
@@ -278,8 +329,7 @@ test.describe("daily podcast", () => {
       const sent = await mockConfig(page);
       await open(page);
       await expect(page.getByText("The model list is not available right now.")).toBeVisible();
-      await expect(page.locator("input[name=model]")).toHaveCount(1);
-      await expect(radio(page, /^Automatic/)).toBeChecked();
+      await expect(combo(page)).toHaveValue("Automatic");
 
       const typed = page.getByLabel("Model id");
       await typed.fill("not valid!");

@@ -1,7 +1,7 @@
 import { readFile } from "node:fs/promises";
 import { join } from "node:path";
 import { DEFAULT_WRITER, WriterFile } from "@dispatch/core";
-import { modelParts } from "./modelId";
+import { CLAUDE_MODELS, modelParts } from "./modelId";
 import { findRepoRoot } from "./repoRoot";
 import { usesFixtures } from "./site";
 
@@ -10,15 +10,22 @@ import { usesFixtures } from "./site";
  * invalid config/writer.json means Automatic, which is what the engine runs on too.
  */
 export interface WriterView {
-  provider: "nebius";
+  provider: "nebius" | "anthropic";
   /** The model chosen in Settings, or null for the engine's own setting. */
   model: string | null;
   /** What the Settings row says: the id's last segment, or "Automatic". */
   label: string;
 }
 
-export function writerLabel(model: string | null): string {
-  return model === null ? "Automatic" : modelParts(model).name;
+export function writerLabel(
+  model: string | null,
+  provider: "nebius" | "anthropic" = "nebius",
+): string {
+  if (model === null) return "Automatic";
+  if (provider === "anthropic") {
+    return CLAUDE_MODELS.find((entry) => entry.id === model)?.label ?? model;
+  }
+  return modelParts(model).name;
 }
 
 export async function loadWriterView(
@@ -35,5 +42,5 @@ export async function loadWriterView(
   }
   const parsed = WriterFile.safeParse(json);
   const { provider, model } = parsed.success ? parsed.data : DEFAULT_WRITER;
-  return { provider, model, label: writerLabel(model) };
+  return { provider, model, label: writerLabel(model, provider) };
 }

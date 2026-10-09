@@ -9,6 +9,15 @@ export function isModelId(value: string): boolean {
   return MODEL_ID_PATTERN.test(value);
 }
 
+/**
+ * The Anthropic models Settings offers. Core's ANTHROPIC_MODELS is the source; writer.test.ts pins
+ * the two together.
+ */
+export const CLAUDE_MODELS: ReadonlyArray<{ id: string; label: string; hint: string }> = [
+  { id: "claude-sonnet-5-5", label: "Claude Sonnet 5.5", hint: "Best prose and judgment" },
+  { id: "claude-haiku-5-5", label: "Claude Haiku 5.5", hint: "Fastest and cheapest" },
+];
+
 /** "meta-llama/Llama-3.3-70B-Instruct" gives name "Llama-3.3-70B-Instruct", vendor "meta-llama". */
 export function modelParts(id: string): { name: string; vendor: string } {
   const cut = id.lastIndexOf("/");

@@ -1,5 +1,6 @@
 import { describe, expect, it } from "vitest";
 import {
+  ANTHROPIC_MODELS,
   ConfigOp,
   DEFAULT_WRITER,
   isTextModel,
@@ -9,6 +10,44 @@ import {
   WriterFile,
   WriterSettings,
 } from "./index.js";
+
+describe("Anthropic provider", () => {
+  it("accepts the two listed models and nothing else", () => {
+    for (const id of ["claude-sonnet-5-5", "claude-haiku-5-5"]) {
+      expect(WriterFile.safeParse({ version: 1, provider: "anthropic", model: id }).success).toBe(
+        true,
+      );
+      expect(
+        ConfigOp.safeParse({ op: "writer.set", provider: "anthropic", model: id }).success,
+      ).toBe(true);
+    }
+    for (const model of ["claude-opus-9", "Qwen/Qwen3-235B", "claude-", null]) {
+      expect(
+        WriterSettings.safeParse({ provider: "anthropic", model }).success,
+        String(model),
+      ).toBe(false);
+      expect(ConfigOp.safeParse({ op: "writer.set", provider: "anthropic", model }).success).toBe(
+        false,
+      );
+    }
+  });
+
+  it("refuses a claude id on Nebius", () => {
+    expect(
+      WriterSettings.safeParse({ provider: "nebius", model: "claude-sonnet-5-5" }).success,
+    ).toBe(false);
+    expect(WriterSettings.safeParse({ provider: "nebius", model: "Qwen/Qwen3-235B" }).success).toBe(
+      true,
+    );
+  });
+
+  it("lists both models with a label and a hint", () => {
+    expect(ANTHROPIC_MODELS.map((model) => model.id)).toEqual([
+      "claude-sonnet-5-5",
+      "claude-haiku-5-5",
+    ]);
+  });
+});
 
 describe("WriterFile", () => {
   it("accepts the default and a chosen model", () => {

@@ -31,13 +31,83 @@
 }
 
 .daily-model {
+  /* Its own layer, so the open list covers the links under it. */
+  position: relative;
+  z-index: 1;
   display: grid;
   gap: var(--space-6);
 }
 
-.daily-all {
-  justify-self: start;
-  margin-inline-start: calc(var(--space-3) * -1);
+.daily-selects-one {
+  grid-template-columns: minmax(0, 1fr);
+}
+
+/* The model combobox: a field with a chevron button at its end and a panel of options under it. */
+.daily-combo {
+  position: relative;
+}
+
+.daily-combo .manage-input {
+  padding-inline-end: var(--space-12);
+}
+
+.daily-combo-toggle {
+  position: absolute;
+  inset-block: 0;
+  inset-inline-end: 0;
+  display: grid;
+  place-items: center;
+  inline-size: var(--size-touch);
+  padding: 0;
+  border: 0;
+  background: none;
+  color: var(--color-on-surface-muted);
+  cursor: pointer;
+}
+
+.daily-listbox {
+  position: absolute;
+  z-index: 2;
+  inset-inline: 0;
+  inset-block-start: calc(100% + var(--space-1));
+  max-block-size: min(60vh, calc(var(--size-touch) * 7));
+  margin: 0;
+  padding: var(--space-1);
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  list-style: none;
+  border: var(--stroke-hairline) solid var(--color-border-hairline);
+  border-radius: var(--radius-sm);
+  background: var(--color-surface-raised);
+  box-shadow: var(--shadow-popover);
+}
+
+.daily-option {
+  display: grid;
+  align-content: center;
+  min-block-size: var(--size-touch);
+  padding-inline: var(--space-3);
+  border-radius: var(--radius-xs);
+  cursor: pointer;
+}
+
+.daily-option[data-active] {
+  background: var(--color-surface-sunken);
+}
+
+.daily-option[aria-selected="true"] .daily-option-name {
+  color: var(--color-accent);
+}
+
+.daily-option-hint,
+.daily-head {
+  font-size: var(--font-size-label);
+  line-height: var(--font-leading-caption);
+  color: var(--color-on-surface-muted);
+}
+
+.daily-head {
+  padding: var(--space-3) var(--space-3) var(--space-1);
 }
 
 .daily-links {
@@ -52,54 +122,6 @@
 .daily-links .row-action .icon {
   margin-inline-end: calc(var(--size-icon) * -0.28);
   color: var(--color-on-surface-subtle);
-}
-
-/* Placeholder rows: two quiet bars where the name and the hint will be. As tall as a real row with a name and a line under it (the row's padding, the two lines and the
-   gap between them), so the list does not move when the live models arrive. */
-.model-skeleton {
-  display: grid;
-  align-content: center;
-  gap: var(--space-2);
-  min-height: calc(
-    var(--space-3) *
-    2 +
-    var(--font-size-body) *
-    var(--font-leading-label) +
-    var(--space-1) +
-    var(--font-size-label) *
-    var(--font-leading-caption)
-  );
-}
-
-.model-bar {
-  display: block;
-  height: var(--space-3);
-  border-radius: var(--radius-xs);
-  background: var(--color-surface-sunken);
-}
-
-.model-bar-name {
-  inline-size: 55%;
-}
-
-.model-bar-hint {
-  inline-size: 35%;
-}
-
-@media (prefers-reduced-motion: no-preference) {
-  .model-skeleton .model-bar {
-    animation: model-pulse var(--duration-spring-release) var(--ease-in-out) infinite alternate;
-  }
-}
-
-@keyframes model-pulse {
-  from {
-    opacity: 1;
-  }
-
-  to {
-    opacity: var(--opacity-disabled);
-  }
 }
 
 /* The filter and the typed id are drawn like the selects: an outline on the page's own surface.
@@ -127,29 +149,7 @@
   pointer-events: none;
 }
 
-.manage-fields:disabled .manage-pick {
-  opacity: var(--opacity-disabled);
-  cursor: default;
-}
-
-@media (hover: hover) and (pointer: fine) {
-  .model-list .manage-pick:hover .manage-name {
-    color: var(--color-accent);
-  }
-
-  .daily-panel input.manage-input:hover:not(:focus-visible, [aria-invalid]) {
-    border-color: var(--color-border-control);
-  }
-}
-
 /* [hidden] closes the stylesheet: the rules above set display on elements the script hides. */
 .daily-panel [hidden] {
   display: none;
-}
-
-/* The captions that split the model list into the recommended ones and the rest. */
-.model-list > .daily-head {
-  padding-block: var(--space-4) var(--space-1);
-  font-size: var(--font-size-label);
-  line-height: var(--font-leading-caption);
 }
