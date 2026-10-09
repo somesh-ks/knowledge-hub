@@ -121,7 +121,7 @@ test.describe("daily podcast", () => {
     await expect(barText(page)).toHaveText("1 change");
     await page.getByLabel("Time").selectOption("7");
     await expect(bar(page)).toBeHidden();
-    await page.getByRole("radio", { name: "Headlines" }).check();
+    await page.getByRole("radio", { name: "Discussion" }).check();
     await expect(barText(page)).toHaveText("1 change");
     await page.getByRole("radio", { name: "Readout" }).check();
     await expect(bar(page)).toBeHidden();
