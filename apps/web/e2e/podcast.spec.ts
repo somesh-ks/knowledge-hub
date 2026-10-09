@@ -405,6 +405,35 @@ test.describe("podcast settings", () => {
     await expect(bar(page)).toBeHidden();
   });
 
+  test("the open model list has equal padding above and below and stays on screen", async ({
+    page,
+  }) => {
+    await open(page);
+    await combo(page).focus();
+    await page.keyboard.press("ArrowDown");
+    const list = page.getByRole("listbox", { name: "Models" });
+    await expect(list).toBeVisible();
+    const gaps = await list.evaluate((element) => {
+      const panel = element.getBoundingClientRect();
+      const rows = [...element.querySelectorAll("li")].map((row) => row.getBoundingClientRect());
+      const first = rows[0] as DOMRect;
+      const last = rows[rows.length - 1] as DOMRect;
+      const style = getComputedStyle(element);
+      return {
+        padTop: Number.parseFloat(style.paddingTop),
+        padBottom: Number.parseFloat(style.paddingBottom),
+        top: first.top - panel.top,
+        bottom: panel.bottom - last.bottom,
+        scrolls: element.scrollHeight > element.clientHeight,
+        inside: panel.top >= 0 && panel.bottom <= window.innerHeight,
+      };
+    });
+    expect(Math.abs(gaps.padTop - gaps.padBottom)).toBeLessThanOrEqual(1);
+    // Scrolled to the top, the first row sits a padding under the panel's edge (the border adds one).
+    if (!gaps.scrolls) expect(Math.abs(gaps.top - gaps.bottom)).toBeLessThanOrEqual(2);
+    expect(gaps.inside).toBe(true);
+  });
+
   test.describe("offline", () => {
     test.use({ allowNetworkErrors: true });
 

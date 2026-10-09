@@ -196,6 +196,14 @@ async function mount(root: HTMLElement): Promise<void> {
       listbox.append(item);
     });
     listbox.hidden = false;
+    // Opens below the field, and above it when the room under it is short and the room over it is not.
+    const field = input.getBoundingClientRect();
+    const below = window.innerHeight - field.bottom - 16;
+    const above = field.top - 16;
+    const wants = Math.min(listbox.scrollHeight, 352);
+    const flip = below < wants && above > below;
+    listbox.toggleAttribute("data-above", flip);
+    listbox.style.setProperty("--list-room", `${Math.max(flip ? above : below, 176)}px`);
     input.setAttribute("aria-expanded", "true");
     count.textContent = countText(shown.length);
     // Typing highlights the first match; opening with the chevron starts on the chosen model.

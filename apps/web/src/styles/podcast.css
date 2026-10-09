@@ -6,6 +6,7 @@
  */
 
 .daily-panel {
+  --check-mask: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 256 256'%3E%3Cpath d='M229.66,77.66l-128,128a8,8,0,0,1-11.32,0l-56-56a8,8,0,0,1,11.32-11.32L96,188.69,218.34,66.34a8,8,0,0,1,11.32,11.32Z'/%3E%3C/svg%3E");
   /* The segmented choices share one width from 40rem, as on the Settings page. */
   --settings-control-width: 18rem;
   display: grid;
@@ -66,38 +67,88 @@
   cursor: pointer;
 }
 
+/* The panel speaks the More menu's language: the overlay surface, a hairline, the popover shadow.
+   Its padding is the same above and below, so the first and last rows sit equally far from the edge. */
 .daily-listbox {
   position: absolute;
   z-index: 2;
   inset-inline: 0;
   inset-block-start: calc(100% + var(--space-1));
-  max-block-size: min(60vh, calc(var(--size-touch) * 7));
+  /* script sets --list-room to the space left on the side it opens to. */
+  max-block-size: min(22rem, var(--list-room, 22rem));
   margin: 0;
-  padding: var(--space-1);
+  padding: var(--space-2);
   overflow-y: auto;
   overscroll-behavior: contain;
+  scrollbar-width: thin;
   list-style: none;
   border: var(--stroke-hairline) solid var(--color-border-hairline);
-  border-radius: var(--radius-sm);
-  background: var(--color-surface-raised);
+  border-radius: var(--radius-md);
+  background: var(--color-surface-overlay);
   box-shadow: var(--shadow-popover);
+  color: var(--color-on-surface);
+  display: grid;
+  gap: var(--space-1);
+  --color-focus-gap: var(--color-surface-overlay);
+}
+
+.daily-listbox[data-above] {
+  inset-block-start: auto;
+  inset-block-end: calc(100% + var(--space-1));
 }
 
 .daily-option {
   display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  grid-template-areas: "name check" "hint check";
+  column-gap: var(--space-3);
+  row-gap: var(--space-1);
   align-content: center;
+  align-items: center;
   min-block-size: var(--size-touch);
+  padding-block: var(--space-2);
   padding-inline: var(--space-3);
-  border-radius: var(--radius-xs);
+  border-radius: var(--button-radius);
   cursor: pointer;
 }
 
-.daily-option[data-active] {
-  background: var(--color-surface-sunken);
+.daily-option-name {
+  grid-area: name;
+  font-size: var(--font-size-body);
+  font-weight: var(--font-weight-medium);
+  line-height: var(--font-leading-label);
+  overflow-wrap: anywhere;
 }
 
+.daily-option-hint {
+  grid-area: hint;
+}
+
+@media (hover: hover) and (pointer: fine) {
+  .daily-option:hover {
+    background: var(--color-surface-sunken);
+  }
+}
+
+/* The keyboard's row: a tint and the focus ring, so it never rests on colour alone. */
+.daily-option[data-active] {
+  background: var(--color-surface-sunken);
+  outline: var(--stroke-ring) solid var(--color-focus-ring);
+  outline-offset: calc(var(--stroke-ring) * -1);
+}
+
+/* The chosen row: accent text and a check at its end. */
 .daily-option[aria-selected="true"] .daily-option-name {
   color: var(--color-accent);
+}
+
+.daily-option[aria-selected="true"]::after {
+  content: "";
+  grid-area: check;
+  inline-size: var(--size-icon);
+  block-size: var(--size-icon);
+  background: var(--color-accent);
+  mask: var(--check-mask) center / contain no-repeat;
 }
 
 .daily-option-hint,
@@ -107,8 +158,14 @@
   color: var(--color-on-surface-muted);
 }
 
+/* A quiet heading, not a divider. */
 .daily-head {
-  padding: var(--space-3) var(--space-3) var(--space-1);
+  padding-block: var(--space-3) var(--space-1);
+  padding-inline: var(--space-3);
+}
+
+.daily-head:first-child {
+  padding-block-start: var(--space-1);
 }
 
 /* The profile switch is a segmented choice of its own width; the rows under it are the profile's. */
