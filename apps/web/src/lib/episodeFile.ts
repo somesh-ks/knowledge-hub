@@ -79,12 +79,21 @@ function instant(value: unknown): string | null {
   return raw !== null && Number.isFinite(Date.parse(raw)) ? new Date(raw).toISOString() : null;
 }
 
+/** A Speechify voice id as the engine accepts one; anything else reads as "the default". */
+const VOICE_ID = /^[A-Za-z0-9_-]{1,64}$/;
+function voice(value: unknown): string | null {
+  const id = text(value);
+  return id !== null && VOICE_ID.test(id) ? id : null;
+}
+
 function readRequest(value: unknown, format: PodcastRequest["format"]): PodcastRequest {
   const raw = isRecord(value) ? value : {};
   const topics = Array.isArray(raw.topic_ids)
     ? raw.topic_ids.map(text).filter((topic): topic is string => topic !== null)
     : [];
   const title = text(raw.title);
+  const voiceId = voice(raw.voice_id);
+  const voiceIdB = voice(raw.voice_id_b);
   return {
     topic_ids: topics,
     length_minutes: oneOf(raw.length_minutes, LENGTHS, 5),
@@ -92,6 +101,8 @@ function readRequest(value: unknown, format: PodcastRequest["format"]): PodcastR
     window_days: oneOf(raw.window_days, WINDOWS, 2),
     tone: oneOf(raw.tone, TONES, "neutral"),
     ...(title ? { title } : {}),
+    ...(voiceId ? { voice_id: voiceId } : {}),
+    ...(voiceIdB ? { voice_id_b: voiceIdB } : {}),
   };
 }
 

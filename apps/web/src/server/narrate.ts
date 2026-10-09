@@ -483,12 +483,18 @@ interface HostVoices {
   b: string;
 }
 
-function hostVoices(env: ServerEnv): HostVoices | null {
+/** The voices an episode asked for, if any. The body of a narration request is never one of them. */
+interface AskedVoices {
+  voice_id?: string | null | undefined;
+  voice_id_b?: string | null | undefined;
+}
+
+function hostVoices(env: ServerEnv, asked: AskedVoices = {}): HostVoices | null {
   const a = readVoiceId(env);
   const b = readVoiceIdB(env);
   if (a === null || b === null) return null;
-  const first = a ?? DEFAULT_VOICE_ID;
-  return { a: first, b: b ?? first };
+  const first = asked.voice_id ?? a ?? DEFAULT_VOICE_ID;
+  return { a: first, b: asked.voice_id_b ?? b ?? first };
 }
 
 /** GET /api/narrate?digest=<ep-id>: the turns of an episode and where their audio would be. */
@@ -502,7 +508,7 @@ async function lookupEpisode(id: string, deps: LookupDeps): Promise<NarrateResul
     return unavailable;
   }
   if (!("episode" in script)) return script;
-  const voices = hostVoices(deps.env);
+  const voices = hostVoices(deps.env, script.episode.request);
   if (voices === null) return unavailable;
   return {
     status: 200,
@@ -1110,8 +1116,9 @@ async function loadSegmentScript(session: Session): Promise<SegmentScript | Narr
   }
   const script = await loadEpisodeScript(deps.episodes, id, log, secrets);
   if (!("episode" in script)) return script;
-  const first = voiceOf(config);
-  const second = config.voiceIdB ?? first;
+  const asked = script.episode.request;
+  const first = asked.voice_id ?? voiceOf(config);
+  const second = asked.voice_id_b ?? config.voiceIdB ?? first;
   return {
     segments: script.segments,
     characters: script.characters,

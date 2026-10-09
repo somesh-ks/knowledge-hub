@@ -59,12 +59,13 @@ const TURNS: Turn[] = [
   { idx: 5, speaker: "b", text: "Thanks for listening." },
 ];
 
-function episodeFile(turns: Turn[] = TURNS, id = ID): string {
+function episodeFile(turns: Turn[] = TURNS, id = ID, request?: Record<string, unknown>): string {
   const front = stringify({
     id,
     title: "The week",
     generated_at: "2026-10-07T17:30:00.000Z",
     format: "discussion",
+    ...(request ? { request } : {}),
     sources: [
       { item_id: "s1", url: "https://example.com/1", headline: "New model", source: "Example" },
       { item_id: "s2", url: "https://example.com/2", headline: "CSS feature", source: "Example" },
@@ -210,6 +211,44 @@ describe("GET /api/narrate for an episode", () => {
     const { segments } = lookupBody(await lookup(context));
     expect(segments[0]?.audio?.url).toBe(`${FAKE_BLOB_HOST}/${pathOf(TURNS[0] as Turn, "mine_1")}`);
     expect(segments[2]?.audio?.url).toBe(`${FAKE_BLOB_HOST}/${pathOf(TURNS[2] as Turn, VOICE_B)}`);
+  });
+
+  it("reads the voices the episode's request chose over the server's, a missing one from the server", async () => {
+    const files = new Map([
+      [ID, episodeFile(TURNS, ID, { topic_ids: ["x"], voice_id: "mine_1", voice_id_b: "other_2" })],
+    ]);
+    const context = setup({ env: { SPEECHIFY_VOICE_ID: "env_a", ...TWO_VOICES }, files });
+    const { segments } = lookupBody(await lookup(context));
+    expect(segments[0]?.audio?.url).toBe(`${FAKE_BLOB_HOST}/${pathOf(TURNS[0] as Turn, "mine_1")}`);
+    expect(segments[2]?.audio?.url).toBe(
+      `${FAKE_BLOB_HOST}/${pathOf(TURNS[2] as Turn, "other_2")}`,
+    );
+
+    const half = new Map([[ID, episodeFile(TURNS, ID, { topic_ids: ["x"], voice_id: "mine_1" })]]);
+    const rest = lookupBody(await lookup(setup({ env: TWO_VOICES, files: half })));
+    expect(rest.segments[2]?.audio?.url).toBe(
+      `${FAKE_BLOB_HOST}/${pathOf(TURNS[2] as Turn, VOICE_B)}`,
+    );
+  });
+
+  it("synthesizes with the episode's voices and ignores a voice in the request body", async () => {
+    const files = new Map([
+      [ID, episodeFile(TURNS, ID, { topic_ids: ["x"], voice_id: "mine_1", voice_id_b: "other_2" })],
+    ]);
+    const context = setup({ files });
+    await post(context, { segment: "t1", voice_id: "sneaky" });
+    await post(context, { segment: "t2", voice_id: "sneaky" });
+    expect(context.speech.calls.map((call) => call.body.voice_id)).toEqual(["mine_1", "other_2"]);
+    const state = JSON.parse(context.blob.text(usageKey(MONTH)) ?? "null");
+    expect(state.digests[ID].voice).toBe("mine_1+other_2");
+  });
+
+  it("ignores a voice id in the file that is not a voice id", async () => {
+    const files = new Map([
+      [ID, episodeFile(TURNS, ID, { topic_ids: ["x"], voice_id: "two words!" })],
+    ]);
+    const { segments } = lookupBody(await lookup(setup({ files })));
+    expect(segments[0]?.audio?.url).toBe(`${FAKE_BLOB_HOST}/${pathOf(TURNS[0] as Turn, VOICE)}`);
   });
 
   it("asks the store nothing, and may be cached for a minute", async () => {
