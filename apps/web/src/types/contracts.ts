@@ -282,8 +282,8 @@ export type ConfigOp =
     }
   | {
       op: "writer.set";
-      provider: "nebius";
-      /** A Nebius model id, or null for the engine's own setting. */
+      provider: "nebius" | "anthropic";
+      /** A Nebius model id or null for the engine's own setting; Anthropic needs one of its two ids. */
       model: string | null;
     };
 

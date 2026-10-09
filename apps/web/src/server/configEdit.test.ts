@@ -209,6 +209,17 @@ describe("parseConfigOp: writer.set", () => {
     expect(parseConfigOp({ ...writer, extra: 1 })).toEqual(writer);
   });
 
+  it("accepts the two Claude models on Anthropic and nothing else there", () => {
+    for (const model of ["claude-sonnet-5-5", "claude-haiku-5-5"]) {
+      const op: ConfigOp = { op: "writer.set", provider: "anthropic", model };
+      expect(parseConfigOp(op)).toEqual(op);
+    }
+    for (const model of [null, "claude-opus-9", "meta-llama/Llama-3.3-70B-Instruct"]) {
+      expect(parseConfigOp({ ...writer, provider: "anthropic", model })).toBeNull();
+    }
+    expect(parseConfigOp({ ...writer, model: "claude-sonnet-5-5" })).toBeNull();
+  });
+
   it("refuses another provider, an odd id and a missing model", () => {
     for (const bad of [
       { ...writer, provider: "other" },

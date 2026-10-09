@@ -326,6 +326,28 @@ describe("writer.set", () => {
     expect(repo.dirty()).toEqual([]);
   });
 
+  it("writes an Anthropic pick and refuses a Claude id on Nebius or a free one on Anthropic", async () => {
+    const { code, report } = await apply({
+      op: "writer.set",
+      provider: "anthropic",
+      model: "claude-haiku-5-5",
+    });
+    expect(code).toBe(0);
+    expect(await repo.readJson("config/writer.json")).toEqual({
+      version: 1,
+      provider: "anthropic",
+      model: "claude-haiku-5-5",
+    });
+    expect(report.summary).toBe("set the writer to claude-haiku-5-5");
+    for (const bad of [
+      { ...SET, model: "claude-haiku-5-5" },
+      { ...SET, provider: "anthropic", model: "claude-opus-9" },
+      { ...SET, provider: "anthropic", model: null },
+    ]) {
+      expect((await apply(bad)).code, JSON.stringify(bad)).toBe(1);
+    }
+  });
+
   it("a broken config/writer.json does not block an edit to something else", async () => {
     await writeFileIn("config/writer.json", "{ not json");
     const { code, report } = await apply({
