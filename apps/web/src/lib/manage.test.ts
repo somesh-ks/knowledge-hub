@@ -249,6 +249,26 @@ describe("buildSources", () => {
     expect(byId["alpha-blog"]?.struggling).toBe(false);
   });
 
+  it("scores a source from its record and health, and calls one with no history New", () => {
+    const rows = buildSources({
+      registry: {
+        sources: [
+          { id: "busy", name: "Busy", url: "https://busy.example/", quality: { score: 0.9 } },
+          { id: "fresh", name: "Fresh", url: "https://fresh.example/" },
+        ],
+      },
+      user: null,
+      stats: { sources: { busy: { fetched: 60, judged: 40, passed: 20, published: 10 } } },
+      health: { sources: { busy: { failures: 0, last_ok: "2026-10-09T06:00:00.000Z" } } },
+      now: new Date("2026-10-09T12:00:00Z"),
+    });
+    const byId = Object.fromEntries(rows.map((row) => [row.id, row]));
+    expect(byId.busy).toMatchObject({ score_label: "Excellent" });
+    expect(byId.busy?.score).toBeGreaterThanOrEqual(4.5);
+    expect(byId.busy?.score_reason).toBe("10 of 40 judged items published, no failures.");
+    expect(byId.fresh).toMatchObject({ score: null, score_label: "New" });
+  });
+
   it("builds lowercase search text from the name, host and id", () => {
     const rows = buildSources({ registry, user: null, stats: null, health: null });
     expect(rows.find((row) => row.id === "zeta-blog")?.search).toBe(
