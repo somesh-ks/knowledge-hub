@@ -1,6 +1,13 @@
 import { readFile } from "node:fs/promises";
 import { join } from "node:path";
-import { CATEGORIES, homeSection, NEVER_PUBLISH, SECTION_TITLES, SECTIONS } from "@dispatch/core";
+import {
+  CATEGORIES,
+  homeSection,
+  NEVER_PUBLISH,
+  SECTION_TITLES,
+  SECTIONS,
+  sourceScore,
+} from "@dispatch/core";
 import { findRepoRoot } from "./repoRoot";
 import { usesFixtures } from "./site";
 
@@ -47,6 +54,12 @@ export interface ManageSource {
   record: string | null;
   /** True when the source has failed to load several times in a row. */
   struggling: boolean;
+  /** Quality score, 0 to 5 with one decimal; null while the source is new. */
+  score: number | null;
+  /** "Excellent", "Good", "Fair", "Poor", or "New" before there is enough history. */
+  score_label: string;
+  /** One short sentence behind the score. */
+  score_reason: string;
   /** Lowercase text the search matches. */
   search: string;
 }
@@ -266,6 +279,9 @@ interface RawSource {
   feed_url: string | null;
   enabled: boolean;
   failures: number;
+  last_ok: string | null;
+  /** Discovery quality, 0 to 1. */
+  quality: number | null;
 }
 
 function parseSource(value: unknown): RawSource | null {
@@ -281,6 +297,8 @@ function parseSource(value: unknown): RawSource | null {
     feed_url: feed,
     enabled: asBool(value.enabled, true),
     failures: asNumber(value.failures) ?? 0,
+    last_ok: asString(value.last_ok),
+    quality: isRecord(value.quality) ? asNumber(value.quality.score) : null,
   };
 }
 
@@ -327,11 +345,17 @@ function parseStats(file: unknown): Map<string, SourceStats> {
   return result;
 }
 
-function parseHealth(file: unknown): Map<string, number> {
-  const result = new Map<string, number>();
+interface Health {
+  failures: number;
+  last_ok: string | null;
+}
+
+function parseHealth(file: unknown): Map<string, Health> {
+  const result = new Map<string, Health>();
   if (!isRecord(file) || !isRecord(file.sources)) return result;
   for (const [id, entry] of Object.entries(file.sources)) {
-    if (isRecord(entry)) result.set(id, asNumber(entry.failures) ?? 0);
+    if (isRecord(entry))
+      result.set(id, { failures: asNumber(entry.failures) ?? 0, last_ok: asString(entry.last_ok) });
   }
   return result;
 }
@@ -345,7 +369,10 @@ export function buildSources(input: {
   user: unknown;
   stats: unknown;
   health: unknown;
+  /** Clock for the freshness of a source's last good fetch; tests pass a fixed one. */
+  now?: Date;
 }): ManageSource[] {
+  const now = input.now ?? new Date();
   const { added, overrides } = parseOverrides(input.user);
   const stats = parseStats(input.stats);
   const health = parseHealth(input.health);
@@ -358,15 +385,27 @@ export function buildSources(input: {
     const override = overrides.get(source.id) ?? {};
     if (override.removed) continue;
     const host = hostOf(source.url) || hostOf(source.feed_url);
-    const failures = Math.max(source.failures, health.get(source.id) ?? 0);
+    const sourceHealth = health.get(source.id);
+    const failures = Math.max(source.failures, sourceHealth?.failures ?? 0);
+    const sourceStats = stats.get(source.id);
+    const lastOk = sourceHealth?.last_ok ?? source.last_ok ?? undefined;
+    const rated = sourceScore({
+      stat: sourceStats,
+      health: { failures, last_ok: lastOk },
+      quality: source.quality === null ? undefined : { score: source.quality },
+      now,
+    });
     rows.push({
       id: source.id,
       name: source.name,
       host,
       enabled: override.enabled ?? source.enabled,
       pinned: override.pinned ?? false,
-      record: recordInWords(stats.get(source.id)),
+      record: recordInWords(sourceStats),
       struggling: failures >= STRUGGLING_FAILURES,
+      score: rated.score,
+      score_label: rated.label,
+      score_reason: rated.reason,
       search: `${source.name} ${host} ${source.id}`.toLowerCase(),
     });
   }
