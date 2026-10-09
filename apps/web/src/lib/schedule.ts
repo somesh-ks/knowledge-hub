@@ -42,7 +42,11 @@ export function dailySummary(input: {
   lengthMinutes: number;
 }): string {
   const cadence = CADENCES.find((entry) => entry.days === input.cadenceDays)?.label ?? "";
-  const format = FORMATS.find((entry) => entry.value === input.format)?.label ?? "";
+  // A schedule saved before Headlines was dropped from the forms still reads as Headlines.
+  const format =
+    input.format === "headlines"
+      ? "Headlines"
+      : (FORMATS.find((entry) => entry.value === input.format)?.label ?? "");
   return [hourLabel(input.hour), cadence.toLowerCase(), format, `${input.lengthMinutes} min`]
     .filter((part) => part !== "")
     .join(", ");
