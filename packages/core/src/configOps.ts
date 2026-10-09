@@ -3,7 +3,7 @@ import { IdString, SectionId } from "./categories.js";
 import { PodcastFormat } from "./podcast.js";
 import { ScheduleLengthMinutes, ScheduleSettings } from "./schedule.js";
 import { MAX_KEYWORDS, TOPIC_DEPTHS, TOPIC_ORIGINS } from "./topics.js";
-import { WriterSettings } from "./writer.js";
+import { WriterSettingsShape, writerModelProblem } from "./writer.js";
 
 const weight = z.number().min(0).max(1);
 
@@ -81,7 +81,12 @@ export const ConfigOp = z.discriminatedUnion("op", [
     format: PodcastFormat.optional(),
     length_minutes: ScheduleLengthMinutes.optional(),
   }),
-  z.object({ op: z.literal("writer.set"), ...WriterSettings.shape }),
+  z
+    .object({ op: z.literal("writer.set"), ...WriterSettingsShape.shape })
+    .superRefine((value, ctx) => {
+      const problem = writerModelProblem(value.provider, value.model);
+      if (problem) ctx.addIssue({ code: "custom", path: ["model"], message: problem });
+    }),
 ]);
 /** The op as a caller writes it, before defaults are filled in. */
 export type ConfigOp = z.input<typeof ConfigOp>;

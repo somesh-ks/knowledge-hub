@@ -6,6 +6,7 @@ const optionalString = z.string().min(1).optional();
 export const Env = z.object({
   TYPESAFE_API_KEY: optionalString,
   NEBIUS_API_KEY: optionalString,
+  ANTHROPIC_API_KEY: optionalString,
   NEBIUS_BASE_URL: z.string().url().default("https://api.tokenfactory.nebius.com/v1/"),
   DISPATCH_MODEL: optionalString,
   DISPATCH_FALLBACK_MODEL: optionalString,
