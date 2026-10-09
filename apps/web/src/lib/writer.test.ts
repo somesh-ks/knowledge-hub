@@ -1,9 +1,9 @@
 import { mkdir, mkdtemp, rm, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
-import { MODEL_ID_PATTERN } from "@dispatch/core";
+import { ANTHROPIC_MODELS, MODEL_ID_PATTERN } from "@dispatch/core";
 import { afterEach, describe, expect, it } from "vitest";
-import { contextLabel, isModelId, modelParts } from "./modelId";
+import { CLAUDE_MODELS, contextLabel, isModelId, modelParts } from "./modelId";
 import { loadWriterView, writerLabel } from "./writer";
 
 describe("modelId", () => {
@@ -12,6 +12,10 @@ describe("modelId", () => {
     for (const id of ["a", "meta-llama/Llama-3.3-70B-Instruct", "x:y_z.1", "a b", "", "é"]) {
       expect(isModelId(id), id).toBe(MODEL_ID_PATTERN.test(id));
     }
+  });
+
+  it("keeps the Claude list identical to core's", () => {
+    expect(CLAUDE_MODELS).toEqual(ANTHROPIC_MODELS.map((entry) => ({ ...entry })));
   });
 
   it("splits the vendor from the name", () => {
@@ -79,5 +83,6 @@ describe("loadWriterView", () => {
   it("labels", () => {
     expect(writerLabel(null)).toBe("Automatic");
     expect(writerLabel("a/b")).toBe("b");
+    expect(writerLabel("claude-sonnet-5-5", "anthropic")).toBe("Claude Sonnet 5.5");
   });
 });
