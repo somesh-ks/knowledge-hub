@@ -71,7 +71,9 @@ export function installCreate(root: HTMLElement, onStart?: () => void): void {
     const discussion = new FormData(form).get("format") === "discussion";
     for (const voice of voiceRows) {
       if (voice.dataset.voice === "voice_b") voice.hidden = !discussion;
-      voice.querySelector<HTMLElement>("[data-voice-caption]")?.toggleAttribute("hidden", !discussion);
+      voice
+        .querySelector<HTMLElement>("[data-voice-caption]")
+        ?.toggleAttribute("hidden", !discussion);
     }
     // The button says how long the episode will run; each length carries its own label.
     const length = form.querySelector<HTMLInputElement>('input[name="length"]:checked');

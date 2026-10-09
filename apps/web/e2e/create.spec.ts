@@ -327,6 +327,8 @@ test.describe("the Create page", () => {
         format: "discussion",
         window_days: 30,
         tone: "dry",
+        voice_id: null,
+        voice_id_b: null,
         title: "My week in AI",
       },
     });
@@ -469,6 +471,49 @@ test.describe("the Create page", () => {
   });
 });
 
+test.describe("the Create panel's voices", () => {
+  test("a readout has one voice select, a discussion adds Leo's, and both are sent", async ({
+    page,
+  }) => {
+    const mock = await mockPodcast(page, 202, { status: 202, run_id: 7, started_at: "now" });
+    await openCreate(page);
+    const ada = page.getByLabel("Voice (Ada)");
+    const leo = page.getByLabel("Voice (Leo)");
+    await expect(ada.locator("option")).toHaveText([
+      "Default",
+      "Ada, female",
+      "Leo, male",
+      "Nora, female",
+    ]);
+    await expect(ada).toBeVisible();
+    await expect(leo).toBeHidden();
+    await segment(page, "Discussion").click();
+    await expect(leo).toBeVisible();
+    await ada.selectOption("voice-ada");
+    await leo.selectOption("voice-leo");
+    await openDialog(page);
+    await confirm(page);
+    await expect.poll(() => mock.bodies.length).toBe(1);
+    expect(mock.bodies[0]?.request).toMatchObject({
+      format: "discussion",
+      voice_id: "voice-ada",
+      voice_id_b: "voice-leo",
+    });
+  });
+
+  test("a readout sends no second voice", async ({ page }) => {
+    const mock = await mockPodcast(page, 202, { status: 202, run_id: 7, started_at: "now" });
+    await openCreate(page);
+    await page.getByLabel("Voice (Ada)").selectOption("voice-nora");
+    await openDialog(page);
+    await confirm(page);
+    await expect.poll(() => mock.bodies.length).toBe(1);
+    const request = mock.bodies[0]?.request as Record<string, unknown>;
+    expect(request.voice_id).toBe("voice-nora");
+    expect(request).not.toHaveProperty("voice_id_b");
+  });
+});
+
 test.describe("the Create page when the server says no", () => {
   // A 4xx or a dropped request is logged by the browser as a failed load; here it is the point.
   test.use({ allowNetworkErrors: true });
@@ -486,6 +531,7 @@ test.describe("the Create page when the server says no", () => {
       format: "readout",
       window_days: 7,
       tone: "neutral",
+      voice_id: null,
     });
   });
 

@@ -103,6 +103,33 @@ export function startServer({ root, port }) {
       );
       return;
     }
+    if (pathname === "/api/voices" && request.method === "GET") {
+      // A small fixed list in the route's contract, so the voice selects fill in tests without a
+      // Speechify key. Only the first voice has a sample.
+      response.writeHead(200, { "Content-Type": "application/json" });
+      response.end(
+        JSON.stringify({
+          voices: [
+            {
+              id: "voice-ada",
+              name: "Ada",
+              gender: "female",
+              language: "en-US",
+              preview_url: "/fixtures/voice-ada.mp3",
+            },
+            { id: "voice-leo", name: "Leo", gender: "male", language: "en-US", preview_url: null },
+            {
+              id: "voice-nora",
+              name: "Nora",
+              gender: "female",
+              language: "en-GB",
+              preview_url: null,
+            },
+          ],
+        }),
+      );
+      return;
+    }
     if (pathname.startsWith("/api/")) {
       response.writeHead(501, { "Content-Type": "application/json" });
       response.end(JSON.stringify({ error: "not served by the static test server" }));

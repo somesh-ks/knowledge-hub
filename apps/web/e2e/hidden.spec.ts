@@ -8,7 +8,7 @@ const ROUTES = [
   "/create",
   "/settings",
   "/settings/podcast/topics",
-  "/settings/daily",
+  "/settings/podcast",
 ];
 
 /**
