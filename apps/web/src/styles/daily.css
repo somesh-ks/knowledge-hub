@@ -31,6 +31,9 @@
 }
 
 .daily-model {
+  /* Its own layer, so the open list covers the links under it. */
+  position: relative;
+  z-index: 1;
   display: grid;
   gap: var(--space-6);
 }

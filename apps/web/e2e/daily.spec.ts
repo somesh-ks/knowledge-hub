@@ -45,7 +45,7 @@ const bar = (page: Page) => page.locator("[data-bar]");
 const barText = (page: Page) => bar(page).locator("[data-bar-text]");
 const combo = (page: Page) => page.getByRole("combobox", { name: "Model" });
 const options = (page: Page, name?: RegExp) =>
-  page.getByRole("option", name ? { name } : undefined);
+  page.getByRole("listbox", { name: "Models" }).getByRole("option", name ? { name } : undefined);
 
 /** Types a query into the model field and picks the option that matches. */
 async function pick(page: Page, query: string, name: RegExp): Promise<void> {

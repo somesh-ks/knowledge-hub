@@ -8,15 +8,7 @@
  * The option logic is pure and lives in lib/combobox.ts. Anthropic's two models are static and
  * never ask for the live list.
  */
-import {
-  CLAUDE_OPTIONS,
-  countText,
-  filterOptions,
-  labelFor,
-  type ModelOption,
-  moveIndex,
-  nebiusOptions,
-} from "../lib/combobox";
+import type { ModelOption } from "../lib/combobox";
 import { isModelId } from "../lib/modelId";
 import type { ConfigOp } from "../types/contracts";
 import type { Pending, SaveContext } from "./managePageSave";
@@ -82,7 +74,14 @@ function element<K extends keyof HTMLElementTagNameMap>(
   return node;
 }
 
-function mount(root: HTMLElement): void {
+/**
+ * The combobox's pure logic is loaded when the page mounts, not with the page's first script: the
+ * controls stay inert (see daily.css) for that moment, and the first-load budget is kept.
+ */
+async function mount(root: HTMLElement): Promise<void> {
+  root.dataset.mounting = "";
+  const lib = await import("../lib/combobox");
+  const { CLAUDE_OPTIONS, countText, filterOptions, labelFor, moveIndex, nebiusOptions } = lib;
   const one = <T extends HTMLElement = HTMLElement>(selector: string): T =>
     root.querySelector(selector) as T;
   const bar = one("[data-bar]");
@@ -334,7 +333,7 @@ function mount(root: HTMLElement): void {
 export function installDailyPage(): void {
   const sync = (): void => {
     const root = document.querySelector<HTMLElement>("[data-manage=daily]");
-    if (root && root.dataset.ready === undefined) mount(root);
+    if (root && root.dataset.mounting === undefined) void mount(root);
   };
   document.addEventListener("astro:page-load", sync);
   sync();
