@@ -106,7 +106,7 @@ selection-schema.json, then validates the agent-selection.json a Claude Code ses
     help: `Usage: dispatch podcast --request '<json>' [--now <iso>] [--no-push]
        dispatch podcast --request '<json>' --dry-run [--save <path outside the repository>]
 
-The request is JSON: { topic_ids: string[1..6], length_minutes: 3|5|10|15,
+The request is JSON: { topic_ids: string[1..50], length_minutes: 3|5|10|15,
 format: "readout"|"discussion"|"headlines", window_days: 2|7|30,
 tone: "neutral"|"energetic"|"dry", title?: string }. Topic ids are sections or categories as they
 appear in published digests. Reads Digests/ only (no fetching), makes one writer call on Nebius

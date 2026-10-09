@@ -4,15 +4,13 @@ import {
   AUDIENCES,
   createTopicOptions,
   DEFAULTS,
-  estimateText,
   FORMATS,
   LENGTHS,
   MAX_TITLE_CHARS,
-  MAX_TOPICS,
+  submitLabel,
   TONES,
   WINDOWS,
 } from "../lib/createForm";
-import { CHARS_PER_MINUTE } from "../lib/episodeFile";
 import { loadManage } from "../lib/manage";
 import Icon from "./Icon.astro";
 // The layout renders this form for the Create sheet on every page, so these styles are global. The
@@ -47,34 +45,26 @@ const COPY = {
 <div
   class="create-view"
   data-create
-  data-pace={CHARS_PER_MINUTE}
   data-open-passphrase={PASSPHRASE_REQUIRED ? undefined : OPEN_PASSPHRASE}
 >
   <form data-create-form novalidate>
     <section class="create-group" aria-labelledby="create-audience-label">
       <h2 class="section-head" id="create-audience-label">Written for</h2>
-      <fieldset class="settings-choice create-choice" role="radiogroup" aria-labelledby="create-audience-label" aria-describedby="create-audience-hint">
+      <fieldset class="settings-choice create-choice" role="radiogroup" aria-labelledby="create-audience-label">
         {
           AUDIENCES.map((audience) => (
             <label class="settings-segment">
-              <input type="radio" name="audience" value={audience.value} data-hint={audience.hint} data-top={audience.top} checked={audience.value === DEFAULTS.audience} />
+              <input type="radio" name="audience" value={audience.value} checked={audience.value === DEFAULTS.audience} />
               <span>{audience.label}</span>
             </label>
           ))
         }
       </fieldset>
-      <p class="create-hint create-below" id="create-audience-hint" data-audience-hint>
-        {AUDIENCES.find((audience) => audience.value === DEFAULTS.audience)?.hint}
-      </p>
     </section>
 
     <section class="create-group rule-above" aria-labelledby="create-topics-label">
       <h2 class="section-head" id="create-topics-label">Topics</h2>
-      <p class="create-hint" id="create-topics-hint">
-        Choose up to {MAX_TOPICS}. <span data-topics-count>None chosen yet.</span>
-      </p>
-      <p class="create-hint create-below" data-top-hint>{AUDIENCES.find((audience) => audience.value === DEFAULTS.audience)?.top}</p>
-      <fieldset class="create-chips" aria-labelledby="create-topics-label" aria-describedby="create-topics-hint" data-max={MAX_TOPICS}>
+      <fieldset class="create-chips" aria-labelledby="create-topics-label">
         {
           topics.map((topic) => (
             <label class="create-chip press press-subtle" data-mode={topic.mode} hidden={topic.mode !== DEFAULTS.audience}>
@@ -96,7 +86,7 @@ const COPY = {
         {
           LENGTHS.map((length) => (
             <label class="settings-segment">
-              <input type="radio" name="length" value={length.value} checked={length.value === DEFAULTS.length} />
+              <input type="radio" name="length" value={length.value} data-submit-label={submitLabel(length.value)} checked={length.value === DEFAULTS.length} />
               <span class="num">{length.label}</span>
             </label>
           ))
@@ -106,15 +96,12 @@ const COPY = {
 
     <section class="create-group rule-above" aria-labelledby="create-format-label">
       <h2 class="section-head" id="create-format-label">Format</h2>
-      <fieldset class="rows create-options" role="radiogroup" aria-labelledby="create-format-label">
+      <fieldset class="settings-choice create-choice" role="radiogroup" aria-labelledby="create-format-label">
         {
           FORMATS.map((format) => (
-            <label class="row-action create-option">
+            <label class="settings-segment">
               <input type="radio" name="format" value={format.value} checked={format.value === DEFAULTS.format} />
-              <span class="create-text">
-                <span class="create-label">{format.label}</span>
-                <span class="create-hint">{format.hint}</span>
-              </span>
+              <span>{format.label}</span>
             </label>
           ))
         }
@@ -150,7 +137,10 @@ const COPY = {
     </section>
 
     <section class="create-group rule-above">
-      <h2 class="section-head"><label for="create-title">Title</label></h2>
+      <div class="create-title-row">
+        <h2 class="section-head"><label for="create-title">Title</label></h2>
+        <span class="create-optional">Optional</span>
+      </div>
       <input
         class="sheet-input create-title"
         id="create-title"
@@ -159,14 +149,11 @@ const COPY = {
         maxlength={MAX_TITLE_CHARS}
         autocomplete="off"
         enterkeyhint="done"
-        aria-describedby="create-title-hint"
       />
-      <p class="create-hint" id="create-title-hint">Optional. Singularity writes one if you leave it empty.</p>
     </section>
 
     <div class="create-submit rule-above">
-      <p class="create-estimate" id="create-estimate" data-estimate aria-live="polite">{estimateText(DEFAULTS.length)}</p>
-      <button class="btn-primary press press-subtle" type="submit" data-submit>Create episode</button>
+      <button class="btn-primary press press-subtle" type="submit" data-submit>{submitLabel(DEFAULTS.length)}</button>
       <p class="create-error" role="alert" data-error="form" hidden>
         <Icon name="alert" /><span></span>
       </p>

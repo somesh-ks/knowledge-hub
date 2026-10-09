@@ -11,7 +11,7 @@ describe("PodcastRequest", () => {
 
   it.each([
     ["no topics", { ...REQUEST, topic_ids: [] }],
-    ["seven topics", { ...REQUEST, topic_ids: ["a", "b", "c", "d", "e", "f", "g"] }],
+    ["fifty-one topics", { ...REQUEST, topic_ids: Array.from({ length: 51 }, (_, i) => `t${i}`) }],
     ["length 4", { ...REQUEST, length_minutes: 4 }],
     ["window 14", { ...REQUEST, window_days: 14 }],
     ["format chat", { ...REQUEST, format: "chat" }],

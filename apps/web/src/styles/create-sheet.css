@@ -188,11 +188,6 @@ dialog.create-sheet[open]::backdrop {
   scrollbar-width: thin;
 }
 
-/* The form is the same one the page has; here its first group needs less air above it. */
-dialog.create-sheet .create-group:first-child .section-head {
-  padding-block-start: var(--space-4);
-}
-
 /* The button stays reachable: the foot of the form sticks to the foot of the sheet, on the sheet's
    own surface, which also covers the side gutters where scrolled content would otherwise show. */
 dialog.create-sheet .create-submit {

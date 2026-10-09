@@ -1,6 +1,4 @@
 import type { PodcastRequest } from "../types/contracts";
-import { CHARS_PER_MINUTE } from "./episodeFile";
-import { pluralize } from "./format";
 
 /**
  * What the Create page offers, and what it says about a choice. Build time only: the page script
@@ -8,7 +6,7 @@ import { pluralize } from "./format";
  */
 
 // The limits the server enforces, so the form can never offer more than it accepts.
-export { MAX_TITLE_CHARS, MAX_TOPICS } from "../server/podcast";
+export { MAX_TITLE_CHARS } from "../server/podcast";
 
 export const LENGTHS: ReadonlyArray<{ value: PodcastRequest["length_minutes"]; label: string }> = [
   { value: 3, label: "3 min" },
@@ -17,14 +15,10 @@ export const LENGTHS: ReadonlyArray<{ value: PodcastRequest["length_minutes"]; l
   { value: 15, label: "15 min" },
 ];
 
-export const FORMATS: ReadonlyArray<{
-  value: PodcastRequest["format"];
-  label: string;
-  hint: string;
-}> = [
-  { value: "readout", label: "Readout", hint: "One host tells each story." },
-  { value: "discussion", label: "Discussion", hint: "Two hosts talk it through." },
-  { value: "headlines", label: "Headlines", hint: "Quick hits, a line or two each." },
+export const FORMATS: ReadonlyArray<{ value: PodcastRequest["format"]; label: string }> = [
+  { value: "readout", label: "Readout" },
+  { value: "discussion", label: "Discussion" },
+  { value: "headlines", label: "Headlines" },
 ];
 
 export const WINDOWS: ReadonlyArray<{ value: PodcastRequest["window_days"]; label: string }> = [
@@ -42,22 +36,9 @@ export const TONES: ReadonlyArray<{ value: PodcastRequest["tone"]; label: string
 export const AUDIENCES: ReadonlyArray<{
   value: NonNullable<PodcastRequest["audience"]>;
   label: string;
-  hint: string;
-  /** The line about how an episode opens, which says "top stories" in General mode. */
-  top: string;
 }> = [
-  {
-    value: "general",
-    label: "General",
-    hint: "Written for anyone. Explains terms as it goes.",
-    top: "Every episode opens with the day's top stories.",
-  },
-  {
-    value: "custom",
-    label: "Somesh mode",
-    hint: "Written for you. Also draws on your own topics.",
-    top: "Every episode opens with the top picks.",
-  },
+  { value: "general", label: "General" },
+  { value: "custom", label: "Somesh" },
 ];
 
 export const DEFAULTS = {
@@ -68,17 +49,16 @@ export const DEFAULTS = {
   tone: "neutral",
 } as const;
 
-/** "About 5 minutes, roughly 4,800 characters of narration." */
-export function estimateText(minutes: number): string {
-  const characters = (minutes * CHARS_PER_MINUTE).toLocaleString("en-US");
-  return `About ${pluralize(minutes, "minute")}, roughly ${characters} characters of narration.`;
+/** The button names what it makes and how long it will run: "Generate • 10 mins". */
+export function submitLabel(minutes: number): string {
+  return `Generate • ${minutes} mins`;
 }
 
 export interface TopicOption {
   /** A section id. */
   value: string;
   label: string;
-  /** The mode that offers it: General shows the general topics, Somesh mode the rest. */
+  /** The mode that offers it: General shows the general topics, Somesh the rest. */
   mode: NonNullable<PodcastRequest["audience"]>;
 }
 
@@ -121,7 +101,7 @@ export interface TopicInfo {
  * The topics to offer: always the five above, whether or not a recent briefing has stories in them,
  * titled as config/topics.json titles their sections. After them come the owner's own topics (the
  * custom ones that are on), each by the section it publishes to and only when that section is not
- * one of the five already; the form shows these in Somesh mode mode only.
+ * one of the five already; the form shows these in Somesh only.
  */
 export function topicOptions(
   sections: ReadonlyArray<{ id: string; title: string }>,
@@ -149,7 +129,7 @@ export function topicOptions(
 }
 
 /**
- * Every chip the form renders: the Somesh mode set, then the General set. The form shows the set of
+ * Every chip the form renders: the Somesh set, then the General set. The form shows the set of
  * the chosen mode and hides the other, so a request only ever holds ids of one mode.
  */
 export function createTopicOptions(

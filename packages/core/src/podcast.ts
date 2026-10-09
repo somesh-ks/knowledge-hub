@@ -19,13 +19,16 @@ export const PODCAST_WINDOWS = [2, 7, 30] as const;
 export const PODCAST_TONES = ["neutral", "energetic", "dry"] as const;
 export const PODCAST_AUDIENCES = ["general", "custom"] as const;
 
+/** A guard on the request's size, far above any topic list the app offers; the owner sets no limit. */
+export const PODCAST_MAX_TOPICS = 50;
+
 /**
  * The request as an episode file stores it: the fields, without the rules for a new request. An
  * episode made before a rule existed must keep parsing.
  */
 export const StoredPodcastRequest = z.object({
   /** Section or category ids exactly as they appear in published digests. */
-  topic_ids: z.array(z.string().min(1).max(64)).min(1).max(6),
+  topic_ids: z.array(z.string().min(1).max(64)).min(1).max(PODCAST_MAX_TOPICS),
   length_minutes: z.union([z.literal(3), z.literal(5), z.literal(10), z.literal(15)]),
   format: z.enum(PODCAST_FORMATS),
   window_days: z.union([z.literal(2), z.literal(7), z.literal(30)]),
