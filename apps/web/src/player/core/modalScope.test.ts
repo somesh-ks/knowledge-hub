@@ -38,8 +38,12 @@ class FakeElement implements ScopeElement {
   matches(selectors: string): boolean {
     return selectors.split(",").some((raw) => {
       const selector = raw.trim();
-      const attribute = /^\[([a-z-]+)\]$/.exec(selector);
-      return attribute ? this.attributes.has(attribute[1] ?? "") : selector === this.tag;
+      const attribute = /^\[([a-z-]+)(?:=([a-z]+))?\]$/.exec(selector);
+      if (!attribute) return selector === this.tag;
+      const name = attribute[1] ?? "";
+      return attribute[2] === undefined
+        ? this.attributes.has(name)
+        : this.attributes.get(name) === attribute[2];
     });
   }
 
@@ -103,7 +107,9 @@ function makePage() {
   const toast = new FakeElement("div", { popover: "manual" });
   const sheetsIsland = new FakeElement("astro-island", {}, [toast]);
   const header = new FakeElement("header");
-  const main = new FakeElement("div", {}, [new FakeElement("main")]);
+  // The header's More menu is an auto popover inside the page behind the player.
+  const moreMenu = new FakeElement("div", { popover: "" });
+  const main = new FakeElement("div", {}, [new FakeElement("main", {}, [moreMenu])]);
   const announcer = new FakeElement("div", { "aria-live": "polite" });
   const routeAnnouncer = new FakeElement("div", { "aria-live": "assertive" });
   const data = new FakeElement("script");

@@ -11,7 +11,7 @@ function reply(route: Route, status: number, body: Record<string, unknown>) {
 
 /**
  * Starts a Generate run, closes the sheet, and lets the run finish while the player is open. On the
- * lab that is the briefing's own page; on the site it is Settings, the only page with the opener.
+ * lab that is a button on the page; on the site it is Regenerate in the briefing header's More menu.
  */
 async function finishRunBehindThePlayer(page: Page, lab: LabPage): Promise<void> {
   const { id, servedFrom } = lab.facts.generated;
@@ -45,20 +45,15 @@ async function finishRunBehindThePlayer(page: Page, lab: LabPage): Promise<void>
   });
   await lab.open();
   await lab.play();
-  if (lab.target === "site") {
-    // A briefing page has no Generate button; Settings does. Reach it by a client-side link, from
-    // the keyboard so nothing floating over the navigation takes the press, and the islands and
-    // the narration carry over.
-    await page.getByRole("link", { name: "Settings", exact: true }).first().focus();
-    await page.keyboard.press("Enter");
-    await expect(page).toHaveURL(/\/settings$/);
-    await lab.dockSettled();
-  }
   // The store reads its timers from the page clock, so the background check can be hurried.
   await page.clock.install();
-  await lab.finger.press(
-    page.locator('[data-open-sheet="generate"], [data-open="generate"]').first(),
-  );
+  if (lab.target === "site") {
+    // Settings lost its Generate row (#31); Regenerate in the briefing's More menu opens the sheet.
+    await lab.finger.press(page.getByRole("button", { name: "More actions" }));
+    await lab.finger.press(page.getByRole("menuitem", { name: "Regenerate" }));
+  } else {
+    await lab.finger.press(page.locator('[data-open-sheet="generate"]').first());
+  }
   const dialog = page.getByRole("dialog", { name: "Generate a new briefing" });
   await enterPassphrase(dialog);
   await lab.finger.press(dialog.getByRole("button", { name: "Generate briefing" }));
