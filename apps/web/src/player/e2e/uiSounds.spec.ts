@@ -101,7 +101,7 @@ test.describe("interface cues by kind of action @surface", () => {
   });
 
   test("a switch is a select, and its own cue is not doubled", async ({ lab, page }) => {
-    await lab.open("/settings/topics");
+    await lab.open("/settings/podcast/topics");
     await prime(page);
     const topic = page.getByRole("switch").first();
     await topic.click();
