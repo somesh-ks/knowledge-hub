@@ -68,6 +68,18 @@ export function loadWriterModel(root: string): string | null {
   }
 }
 
+/** The provider and model chosen in Settings, or null for a missing or broken file. */
+export function loadWriterChoice(root: string): WriterFile | null {
+  try {
+    const parsed = WriterFile.safeParse(
+      JSON.parse(readFileSync(join(root, CONFIG_FILES.writer), "utf8")),
+    );
+    return parsed.success ? parsed.data : null;
+  } catch {
+    return null;
+  }
+}
+
 /** Stable text for the file: fields in schema order, two-space indent, trailing newline. */
 export function serializeWriter(file: WriterFile): string {
   const checked = WriterFile.parse(file);

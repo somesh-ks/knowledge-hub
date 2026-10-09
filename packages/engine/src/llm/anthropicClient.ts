@@ -1,0 +1,143 @@
+import { type Env, requireKey } from "@dispatch/core";
+import type { Logger } from "../context.js";
+import { type ChatApi, type ChatApiResponse, createNebiusLlm } from "./nebiusClient.js";
+import type { TokenBudget } from "./tokenBudget.js";
+import type { LlmClient } from "./types.js";
+
+export const ANTHROPIC_MESSAGES_URL = "https://api.anthropic.com/v1/messages";
+const ANTHROPIC_VERSION = "2023-06-01";
+const REQUEST_TIMEOUT_MS = 120_000;
+
+/** An HTTP failure from the Messages API. `status` and `headers` are what withRetry reads. */
+class AnthropicHttpError extends Error {
+  readonly status: number;
+  readonly headers: Headers;
+  constructor(status: number, message: string, headers: Headers) {
+    super(message);
+    this.name = "AnthropicHttpError";
+    this.status = status;
+    this.headers = headers;
+  }
+}
+
+interface MessagesResponse {
+  content?: Array<{ type?: string; text?: string }>;
+  usage?: { input_tokens?: number; output_tokens?: number };
+}
+
+async function failureMessage(response: Response): Promise<string> {
+  try {
+    const json = (await response.json()) as { error?: { type?: string; message?: string } };
+    const detail = json.error?.message ?? json.error?.type;
+    if (detail) return `Anthropic ${response.status}: ${detail}`.slice(0, 400);
+  } catch {
+    // Not JSON: fall through to the status line.
+  }
+  return `Anthropic ${response.status}`;
+}
+
+export interface AnthropicChatApiOptions {
+  apiKey: string;
+  fetch?: typeof fetch;
+  /** Counts each request, retries included. */
+  onRequest?: () => void;
+}
+
+/**
+ * The ChatApi slice the Nebius client uses, answered by the Anthropic Messages API. System
+ * messages move to the `system` field; response_format and thinking fields are not sent, since
+ * JSON is asked for in the prompt and validated by the caller. The key is only ever a header.
+ */
+export function createAnthropicChatApi(options: AnthropicChatApiOptions): ChatApi {
+  const doFetch = options.fetch ?? fetch;
+  return {
+    async createChatCompletion(body): Promise<ChatApiResponse> {
+      const all = (body.messages as Array<{ role: string; content: string }>) ?? [];
+      const system = all
+        .filter((message) => message.role === "system")
+        .map((message) => message.content)
+        .join("\n\n");
+      const payload: Record<string, unknown> = {
+        model: body.model,
+        max_tokens: body.max_tokens,
+        temperature: body.temperature,
+        messages: all
+          .filter((message) => message.role !== "system")
+          .map((message) => ({ role: message.role, content: message.content })),
+      };
+      if (system) payload.system = system;
+      options.onRequest?.();
+      let response: Response;
+      try {
+        response = await doFetch(ANTHROPIC_MESSAGES_URL, {
+          method: "POST",
+          headers: {
+            "x-api-key": options.apiKey,
+            "anthropic-version": ANTHROPIC_VERSION,
+            "content-type": "application/json",
+          },
+          body: JSON.stringify(payload),
+          signal: AbortSignal.timeout(REQUEST_TIMEOUT_MS),
+        });
+      } catch (error) {
+        const timedOut = error instanceof Error && error.name === "TimeoutError";
+        const wrapped = new Error(
+          timedOut ? "Anthropic request timed out" : "Anthropic connection failed",
+        );
+        wrapped.name = timedOut ? "APITimeoutError" : "APIConnectionError";
+        throw wrapped;
+      }
+      if (!response.ok) {
+        throw new AnthropicHttpError(
+          response.status,
+          await failureMessage(response),
+          response.headers,
+        );
+      }
+      const json = (await response.json()) as MessagesResponse;
+      const text = (json.content ?? [])
+        .filter((block) => block.type === "text" && typeof block.text === "string")
+        .map((block) => block.text)
+        .join("");
+      const input = json.usage?.input_tokens;
+      const output = json.usage?.output_tokens;
+      return {
+        choices: [{ message: { content: text } }],
+        usage:
+          input === undefined && output === undefined
+            ? null
+            : {
+                prompt_tokens: input,
+                completion_tokens: output,
+                total_tokens: (input ?? 0) + (output ?? 0),
+              },
+      };
+    },
+  };
+}
+
+export interface AnthropicLlmOptions {
+  env: Env;
+  model: string;
+  budget: TokenBudget;
+  log?: Logger;
+  fetch?: typeof fetch;
+  onRequest?: () => void;
+}
+
+/** LlmClient on the Anthropic Messages API, with the Nebius client's retries and validation. */
+export function createAnthropicLlm(options: AnthropicLlmOptions): LlmClient {
+  const api = createAnthropicChatApi({
+    apiKey: requireKey(options.env, "ANTHROPIC_API_KEY"),
+    fetch: options.fetch,
+    onRequest: options.onRequest,
+  });
+  return createNebiusLlm({
+    api,
+    model: options.model,
+    budget: options.budget,
+    log: options.log,
+    responseMode: "json_object",
+    thinkingOff: { kind: "omit" },
+  });
+}
