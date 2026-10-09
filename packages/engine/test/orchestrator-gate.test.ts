@@ -208,8 +208,47 @@ describe("gate: the Sunday weekly pass", () => {
 
   it("finds the Sunday in Stockholm time across the daylight saving change", async () => {
     // The clocks went back at 01:00 UTC on Sunday 25 October 2026.
-    const report = await gate(new Date("2026-10-25T05:13:00Z"));
+    // 07:13 in Stockholm is 06:13Z after the clocks went back.
+    const report = await gate(new Date("2026-10-25T06:13:00Z"));
     expect(report.passes.map((pass) => pass.id)).toEqual(["2026-10-25", "2026-10-25-weekly"]);
+  });
+
+  it("follows the weekly day and hour in config/schedule.json", async () => {
+    await put(
+      "config/schedule.json",
+      JSON.stringify({
+        version: 1,
+        hour: 7,
+        cadence_days: 2,
+        sections: null,
+        weekly: { day: 3, hour: 18 },
+      }),
+    );
+    await lastRun({ regular: record("2026-10-06T05:13:00Z") });
+    // Wednesday 07:13: the daily slot, before the weekly hour.
+    expect((await gate(WED)).passes.map((pass) => pass.kind)).toEqual([]);
+    // Wednesday 18:13 Stockholm (16:13Z): the weekly slot; the daily cadence is not due.
+    const evening = await gate(new Date("2026-10-07T16:13:00Z"));
+    expect(evening.passes).toMatchObject([{ id: "2026-10-07-weekly", kind: "weekly" }]);
+    // Sunday no longer runs it.
+    await lastRun({ regular: record("2026-10-10T05:13:00Z") });
+    expect((await gate(SUN)).passes).toEqual([]);
+  });
+
+  it("does not run the weekly pass when it is switched off, but weekly mode still does", async () => {
+    await put(
+      "config/schedule.json",
+      JSON.stringify({
+        version: 1,
+        hour: 7,
+        cadence_days: 2,
+        sections: null,
+        weekly: { enabled: false },
+      }),
+    );
+    await lastRun({ regular: record("2026-10-10T05:13:00Z") });
+    expect((await gate(SUN)).passes).toEqual([]);
+    expect((await gate(SUN, { mode: "weekly" })).passes).toMatchObject([{ kind: "weekly" }]);
   });
 });
 
