@@ -1,5 +1,28 @@
 import { describe, expect, it } from "vitest";
-import { countText, hintFor, matchesFilter, modelOp, parseModelList, rowsFor } from "./modelPage";
+import {
+  countText,
+  hintFor,
+  matchesFilter,
+  modelOp,
+  parseModelList,
+  rowsFor,
+  scheduleOp,
+} from "./dailyPage";
+
+describe("scheduleOp", () => {
+  it("builds schedule.set with the type and length, and passes the saved topics through", () => {
+    const values = { hour: 9, cadence: 3, format: "headlines", length: 5 };
+    expect(scheduleOp(values, null)).toEqual({
+      op: "schedule.set",
+      hour: 9,
+      cadence_days: 3,
+      sections: null,
+      format: "headlines",
+      length_minutes: 5,
+    });
+    expect(scheduleOp(values, ["ai"])).toMatchObject({ sections: ["ai"] });
+  });
+});
 
 describe("modelOp", () => {
   it("builds writer.set for a model and for Automatic", () => {

@@ -1,14 +1,19 @@
 /**
- * The Model page's script. The page is static HTML with the saved choice written in; this loads
- * the live model list, draws the radio rows, and records the one change the choice adds up to in
- * the shared bar. Sending it is managePageSave.ts, loaded the first time Save is pressed, the
- * same step the Schedule page uses.
+ * The Daily podcast page's script. The page is static HTML with the saved values written in; this
+ * loads the live model list, draws the radio rows, and records the changes the controls add up to
+ * in the shared bar: one schedule.set (time, rhythm, type, length) and one writer.set (model).
+ * Sending them is managePageSave.ts, loaded the first time Save is pressed, the same step the
+ * Topics page uses.
  *
  * Only pure, dependency-free helpers are imported at run time.
  */
 import { contextLabel, isModelId, modelParts } from "../lib/modelId";
 import type { ConfigOp } from "../types/contracts";
 import type { Pending, SaveContext } from "./managePageSave";
+
+type Cadence = 1 | 2 | 3 | 7;
+type Format = "readout" | "discussion" | "headlines";
+type Length = 3 | 5 | 10 | 15;
 
 export interface ModelEntry {
   id: string;
@@ -17,7 +22,25 @@ export interface ModelEntry {
 
 const LIST_TIMEOUT_MS = 10_000;
 
-/** The edit a choice stands for. `null` is Automatic. */
+/**
+ * The schedule edit the controls stand for. The topics a briefing covers are not chosen here, so
+ * the saved ones go back unchanged (null is every enabled topic).
+ */
+export function scheduleOp(
+  values: { hour: number; cadence: number; format: string; length: number },
+  sections: string[] | null,
+): ConfigOp {
+  return {
+    op: "schedule.set",
+    hour: values.hour,
+    cadence_days: values.cadence as Cadence,
+    sections,
+    format: values.format as Format,
+    length_minutes: values.length as Length,
+  };
+}
+
+/** The edit a model choice stands for. `null` is Automatic. */
 export function modelOp(model: string | null): ConfigOp {
   return { op: "writer.set", provider: "nebius", model };
 }
@@ -99,6 +122,13 @@ function mount(root: HTMLElement): void {
   const text = one("[data-bar-text]");
   const live = one("[data-live]");
   const panel = one("[data-panel]");
+  const box = one("[data-schedule-box]");
+  const hour = one<HTMLSelectElement>("#daily-hour");
+  const cadence = one<HTMLSelectElement>("#daily-cadence");
+  const checked = (name: string): string =>
+    root.querySelector<HTMLInputElement>(`input[name="${name}"]:checked`)?.value ?? "";
+  const sections = JSON.parse(panel.dataset.sections ?? "null") as string[] | null;
+
   const list = one<HTMLUListElement>("[data-list]");
   const group = one<HTMLFieldSetElement>("[data-models]");
   const filter = one<HTMLInputElement>("#model-filter");
@@ -106,7 +136,7 @@ function mount(root: HTMLElement): void {
   const fallback = one("[data-fallback]");
   const typed = one<HTMLInputElement>("#model-typed");
   const typedNote = one("[data-typed-note]");
-  const saved = panel.dataset.saved ? panel.dataset.saved : null;
+  const saved = group.dataset.saved ? group.dataset.saved : null;
   const changes = new Map<string, Pending>();
   let failed = false;
 
@@ -126,6 +156,10 @@ function mount(root: HTMLElement): void {
     root.removeAttribute("data-pending");
   };
 
+  /** What the schedule controls hold, as text: the page's starting point and the test for "changed". */
+  const scheduleState = (): string =>
+    JSON.stringify([hour.value, cadence.value, checked("format"), checked("length")]);
+
   /** The model the controls hold: a typed id when the list is unavailable, else the checked row. */
   const choice = (): { model: string | null; valid: boolean } => {
     if (failed && typed.value.trim() !== "") {
@@ -137,21 +171,28 @@ function mount(root: HTMLElement): void {
   };
 
   const update = (): void => {
+    if (scheduleState() === box.dataset.was) changes.delete("schedule");
+    else {
+      const op = scheduleOp(
+        {
+          hour: Number(hour.value),
+          cadence: Number(cadence.value),
+          format: checked("format"),
+          length: Number(checked("length")),
+        },
+        sections,
+      );
+      changes.set("schedule", { op, el: box, now: scheduleState() });
+    }
+
     const { model, valid } = choice();
     typed.toggleAttribute("aria-invalid", !valid);
     typedNote.hidden = valid;
-    if (!valid) {
-      changes.delete("writer");
-      hide();
-      return;
-    }
-    if (JSON.stringify(model) === panel.dataset.was) {
-      changes.delete("writer");
-      hide();
-      return;
-    }
-    changes.set("writer", { op: modelOp(model), el: panel, now: JSON.stringify(model) });
-    show("1 change", "idle");
+    if (!valid || JSON.stringify(model) === group.dataset.was) changes.delete("writer");
+    else changes.set("writer", { op: modelOp(model), el: group, now: JSON.stringify(model) });
+
+    if (changes.size === 0) hide();
+    else show(changes.size === 1 ? "1 change" : `${changes.size} changes`, "idle");
   };
 
   const applyFilter = (): void => {
@@ -198,10 +239,10 @@ function mount(root: HTMLElement): void {
       failed = true;
       fallback.hidden = false;
       draw(saved === null ? [] : [{ id: saved, context_length: null }], null);
-      filter.closest<HTMLElement>("[data-filter]")?.setAttribute("hidden", "");
     } else {
       draw(rowsFor(entries, saved), entries);
       filter.disabled = false;
+      filter.closest<HTMLElement>("[data-filter]")?.removeAttribute("hidden");
     }
     root.dataset.loaded = "";
   };
@@ -218,8 +259,8 @@ function mount(root: HTMLElement): void {
     if (target.matches('input[name="model"]')) {
       if (failed) typed.value = "";
       applyFilter();
-      update();
     }
+    if (target.closest("[data-panel]")) update();
   });
   filter.addEventListener("input", applyFilter);
   typed.addEventListener("input", () => {
@@ -241,14 +282,15 @@ function mount(root: HTMLElement): void {
     else if (act === "discard") location.reload();
   });
 
-  panel.dataset.was = JSON.stringify(saved);
+  box.dataset.was = scheduleState();
+  group.dataset.was = JSON.stringify(saved);
   root.dataset.ready = "";
   void load();
 }
 
-export function installModelPage(): void {
+export function installDailyPage(): void {
   const sync = (): void => {
-    const root = document.querySelector<HTMLElement>("[data-manage=model]");
+    const root = document.querySelector<HTMLElement>("[data-manage=daily]");
     if (root && root.dataset.ready === undefined) mount(root);
   };
   document.addEventListener("astro:page-load", sync);

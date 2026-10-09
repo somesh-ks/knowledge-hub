@@ -1,26 +1,5 @@
 import { describe, expect, it } from "vitest";
-import type { ManageTopic } from "./manage";
-import { coverOptions, hourLabel, nextBriefing } from "./schedule";
-
-const topic = (overrides: Partial<ManageTopic>): ManageTopic => ({
-  id: "t",
-  name: "Topic",
-  description: "",
-  weight: 0.5,
-  step: 2,
-  enabled: true,
-  keywords: [],
-  section_id: "ai",
-  never_publish: false,
-  origin: "builtin",
-  ...overrides,
-});
-
-const sections = [
-  { id: "top", title: "Top picks", order: 0 },
-  { id: "ai", title: "AI Products", order: 1 },
-  { id: "tech", title: "Tech Product Launches", order: 2 },
-];
+import { dailySummary, hourLabel, nextBriefing } from "./schedule";
 
 describe("hourLabel", () => {
   it("pads to two digits", () => {
@@ -29,23 +8,14 @@ describe("hourLabel", () => {
   });
 });
 
-describe("coverOptions", () => {
-  it("lists sections that have a live topic, without Top picks, with their topic names", () => {
-    const options = coverOptions(
-      [
-        topic({ id: "a", name: "Frontier models", section_id: "ai" }),
-        topic({ id: "b", name: "AI UX", section_id: "ai" }),
-        topic({ id: "c", name: "Phones", section_id: "tech", enabled: false }),
-      ],
-      sections,
+describe("dailySummary", () => {
+  it("reads as the time, the rhythm, the type and the length", () => {
+    expect(dailySummary({ hour: 7, cadenceDays: 2, format: "readout", lengthMinutes: 10 })).toBe(
+      "07:00, every second day, Readout, 10 min",
     );
-    expect(options).toEqual([
-      { id: "ai", title: "AI Products", topics: ["Frontier models", "AI UX"] },
-    ]);
-  });
-
-  it("leaves out a topic that never publishes", () => {
-    expect(coverOptions([topic({ never_publish: true, section_id: "top" })], sections)).toEqual([]);
+    expect(
+      dailySummary({ hour: 18, cadenceDays: 7, format: "headlines", lengthMinutes: 3 }),
+    ).toBe("18:00, once a week, Headlines, 3 min");
   });
 });
 
