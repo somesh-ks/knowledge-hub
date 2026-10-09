@@ -110,7 +110,6 @@ test.describe("the Create page", () => {
     await expect(page.locator('.settings-segment:has(input[name="format"])')).toHaveText([
       "Readout",
       "Discussion",
-      "Headlines",
     ]);
     // The helper lines are gone: nothing under Written for or Topics, and Title says Optional beside it.
     await expect(
