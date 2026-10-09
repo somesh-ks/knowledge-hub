@@ -269,16 +269,38 @@ export type ConfigOp =
   | { op: "weights.set"; weights: Record<string, number> }
   | {
       op: "schedule.set";
+      /** Any subset of these; a field left out keeps what the file holds. At least one is required. */
       /** Whole hour of Stockholm time, 0 to 23. */
-      hour: number;
+      hour?: number;
       /** Days between briefings: 1, 2, 3 or 7. */
-      cadence_days: 1 | 2 | 3 | 7;
+      cadence_days?: 1 | 2 | 3 | 7;
       /** Section ids a scheduled briefing covers, or null for every enabled topic. */
-      sections: string[] | null;
-      /** Podcast format of the scheduled briefing; left out, the saved one stays. */
+      sections?: string[] | null;
+      /** Podcast type of the daily briefing. */
       format?: PodcastRequest["format"];
-      /** Minutes the scheduled podcast runs; left out, the saved one stays. */
+      /** Minutes the daily podcast runs. */
       length_minutes?: PodcastRequest["length_minutes"];
+      /** Speechify voice ids of the daily podcast; null means the engine's default. */
+      voice_id?: string | null;
+      voice_id_b?: string | null;
+      /** The weekly podcast. Fields left out keep what the file holds. */
+      weekly?: {
+        enabled?: boolean;
+        /** Day of the week in Stockholm time, 0 = Sunday. */
+        day?: number;
+        hour?: number;
+        format?: "readout" | "discussion";
+        length_minutes?: PodcastRequest["length_minutes"];
+        voice_id?: string | null;
+        voice_id_b?: string | null;
+      };
+      /** What the Create panel starts from. */
+      custom?: {
+        format?: "readout" | "discussion";
+        length_minutes?: PodcastRequest["length_minutes"];
+        voice_id?: string | null;
+        voice_id_b?: string | null;
+      };
     }
   | {
       op: "writer.set";
@@ -322,7 +344,12 @@ export interface PodcastRequest {
    */
   audience?: "general" | "custom";
   length_minutes: 3 | 5 | 10 | 15;
+  /** New requests take "readout" or "discussion"; a stored episode may still say "headlines". */
   format: "readout" | "discussion" | "headlines";
+  /** Speechify voice id of the lead host (Ada); absent means the engine's default. */
+  voice_id?: string | null;
+  /** Voice id of the second host (Leo, discussion only); absent means the default. */
+  voice_id_b?: string | null;
   /** How many days of stories to draw on. */
   window_days: 2 | 7 | 30;
   tone: "neutral" | "energetic" | "dry";

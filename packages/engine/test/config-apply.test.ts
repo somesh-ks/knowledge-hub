@@ -229,7 +229,53 @@ describe("schedule.set", () => {
       sections: null,
       format: "readout",
       length_minutes: 10,
+      voice_id: null,
+      voice_id_b: null,
+      weekly: {
+        enabled: true,
+        day: 0,
+        hour: 7,
+        format: "readout",
+        length_minutes: 10,
+        voice_id: null,
+        voice_id_b: null,
+      },
+      custom: { format: "readout", length_minutes: 5, voice_id: null, voice_id_b: null },
     });
+  });
+
+  it("saves any subset in one write: voices, the weekly podcast and the Create defaults", async () => {
+    const { code, report } = await apply({
+      op: "schedule.set",
+      voice_id: "ada_1",
+      weekly: { enabled: false, day: 5, hour: 18, format: "discussion", voice_id_b: "leo_1" },
+      custom: { length_minutes: 15 },
+    });
+    expect(code).toBe(0);
+    expect(report.files).toEqual(["config/schedule.json"]);
+    expect(await repo.readJson("config/schedule.json")).toMatchObject({
+      hour: 7,
+      cadence_days: 2,
+      voice_id: "ada_1",
+      weekly: { enabled: false, day: 5, hour: 18, format: "discussion", voice_id_b: "leo_1" },
+      custom: { length_minutes: 15, format: "readout" },
+    });
+    await apply({ op: "schedule.set", weekly: { day: 2 } });
+    expect(await repo.readJson("config/schedule.json")).toMatchObject({
+      weekly: { enabled: false, day: 2, hour: 18 },
+      voice_id: "ada_1",
+    });
+  });
+
+  it("refuses a bad voice id or weekly day and writes nothing", async () => {
+    for (const bad of [
+      { op: "schedule.set", voice_id: "not a voice" },
+      { op: "schedule.set", weekly: { day: 7 } },
+      { op: "schedule.set", custom: { format: "headlines" } },
+    ]) {
+      expect((await apply(bad)).code, JSON.stringify(bad)).toBe(1);
+    }
+    expect(repo.dirty()).toEqual([]);
   });
 
   it("saves the podcast format and length, and keeps them when a later edit leaves them out", async () => {

@@ -29,6 +29,10 @@ describe("loadSchedule", () => {
       sections: ["ai"],
       format: "headlines" as const,
       length_minutes: 5 as const,
+      voice_id: "ada",
+      voice_id_b: null,
+      weekly: { ...DEFAULT_SCHEDULE.weekly, hour: 9, day: 5 },
+      custom: { ...DEFAULT_SCHEDULE.custom },
     };
     await writeFile(join(root, "config", "schedule.json"), serializeSchedule(saved));
     expect(await loadSchedule(root)).toEqual(saved);
@@ -37,7 +41,15 @@ describe("loadSchedule", () => {
   it("reads a file written before format and length existed", async () => {
     const old = { version: 1, hour: 9, cadence_days: 7, sections: null };
     await writeFile(join(root, "config", "schedule.json"), JSON.stringify(old));
-    expect(await loadSchedule(root)).toEqual({ ...old, format: "readout", length_minutes: 10 });
+    expect(await loadSchedule(root)).toEqual({
+      ...old,
+      format: "readout",
+      length_minutes: 10,
+      voice_id: null,
+      voice_id_b: null,
+      weekly: { ...DEFAULT_SCHEDULE.weekly, hour: 9 },
+      custom: DEFAULT_SCHEDULE.custom,
+    });
   });
 
   it("names the problem when the file is invalid", async () => {

@@ -337,29 +337,50 @@ function setSchedule(
   bundle: ConfigBundle,
 ): OpOutcome {
   const next = clone(bundle);
-  let sections: string[] | null = null;
-  if (op.sections !== null) {
-    const known = new Set(["top", ...next.topics.sections.map((section) => section.id)]);
-    for (const id of op.sections) {
-      if (!known.has(id)) throw new ConfigOpError(`There is no section ${id}.`);
+  const current = bundle.schedule;
+  let sections = current.sections;
+  if (op.sections !== undefined) {
+    sections = null;
+    if (op.sections !== null) {
+      const known = new Set(["top", ...next.topics.sections.map((section) => section.id)]);
+      for (const id of op.sections) {
+        if (!known.has(id)) throw new ConfigOpError(`There is no section ${id}.`);
+      }
+      // Top picks is always covered, so it is never stored.
+      sections = [...new Set(op.sections)].filter((id) => id !== "top");
+      if (sections.length === 0) throw new ConfigOpError("Pick at least one topic to cover.");
     }
-    // Top picks is always covered, so it is never stored.
-    sections = [...new Set(op.sections)].filter((id) => id !== "top");
-    if (sections.length === 0) throw new ConfigOpError("Pick at least one topic to cover.");
   }
+  const hour = op.hour ?? current.hour;
+  const cadence = op.cadence_days ?? current.cadence_days;
   next.schedule = {
     version: 1,
-    hour: op.hour,
-    cadence_days: op.cadence_days,
+    hour,
+    cadence_days: cadence,
     sections,
-    format: op.format ?? bundle.schedule.format,
-    length_minutes: op.length_minutes ?? bundle.schedule.length_minutes,
+    format: op.format ?? current.format,
+    length_minutes: op.length_minutes ?? current.length_minutes,
+    voice_id: op.voice_id !== undefined ? op.voice_id : current.voice_id,
+    voice_id_b: op.voice_id_b !== undefined ? op.voice_id_b : current.voice_id_b,
+    weekly: { ...current.weekly, ...definedOnly(op.weekly) },
+    custom: { ...current.custom, ...definedOnly(op.custom) },
   };
-  const hour = `${String(op.hour).padStart(2, "0")}:00`;
-  return {
-    next,
-    summary: `set the briefing to ${hour}, every ${op.cadence_days} day${op.cadence_days === 1 ? "" : "s"}`,
-  };
+  const parts: string[] = [];
+  if (op.hour !== undefined || op.cadence_days !== undefined) {
+    parts.push(
+      `set the briefing to ${String(hour).padStart(2, "0")}:00, every ${cadence} day${cadence === 1 ? "" : "s"}`,
+    );
+  }
+  if (op.weekly) parts.push("set the weekly podcast");
+  if (op.custom) parts.push("set the Create defaults");
+  if (parts.length === 0) parts.push("set the daily podcast");
+  return { next, summary: parts.join("; ") };
+}
+
+function definedOnly<T extends object>(value: T | undefined): Partial<T> {
+  return Object.fromEntries(
+    Object.entries(value ?? {}).filter(([, entry]) => entry !== undefined),
+  ) as Partial<T>;
 }
 
 function setWriter(
