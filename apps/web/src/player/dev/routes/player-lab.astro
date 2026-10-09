@@ -5,13 +5,11 @@
  * Dev lab for the player and the sheets. A stand-in reader page with a fixture digest, so the
  * mini player, the expanded player, scrubbing, Generate and Settings can be used in a real browser.
  *
- * Development only: in a production build this route answers 404.
+ * Development only: astro.config.mjs injects this route for `astro dev` and nowhere else, so a
+ * production build has no such page (a guard in the page itself does not stop a static build from
+ * writing it).
  */
-import LabPage from "../../player/dev/LabPage.astro";
-
-if (!import.meta.env.DEV) {
-  return new Response(null, { status: 404 });
-}
+import LabPage from "../LabPage.astro";
 ---
 
 <LabPage variant="today" />

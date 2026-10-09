@@ -51,12 +51,37 @@ function stubApiRoutesForStaticBuild() {
   };
 }
 
+// The player lab pages exist only under `astro dev`: the player suite's lab target drives them. They
+// are injected here instead of living in src/pages, so no build writes them.
+const LAB_ROUTES = ["player-lab", "player-lab-older", "player-lab-preparing"];
+
+function injectLabRoutesInDev() {
+  return {
+    name: "dispatch-dev-lab",
+    hooks: {
+      "astro:config:setup": ({ command, injectRoute }) => {
+        if (command !== "dev") return;
+        for (const name of LAB_ROUTES) {
+          injectRoute({
+            pattern: `/dev/${name}`,
+            entrypoint: `./src/player/dev/routes/${name}.astro`,
+          });
+        }
+      },
+    },
+  };
+}
+
 export default defineConfig({
   site: "https://news.someshks.work",
   // Static output. Only the routes that export `prerender = false` run on demand.
   output: "static",
   adapter: staticOnly ? undefined : vercel({ maxDuration: FUNCTION_MAX_DURATION_S }),
-  integrations: [react(), ...(staticOnly ? [stubApiRoutesForStaticBuild()] : [])],
+  integrations: [
+    react(),
+    injectLabRoutesInDev(),
+    ...(staticOnly ? [stubApiRoutesForStaticBuild()] : []),
+  ],
   // `true` keeps single spaces between inline elements, which the default "jsx" mode would strip.
   compressHTML: true,
   trailingSlash: "never",
