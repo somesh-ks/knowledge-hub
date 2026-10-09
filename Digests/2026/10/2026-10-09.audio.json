@@ -1,0 +1,86 @@
+{
+  "digest": "2026-10-09",
+  "voice": "geffen_32",
+  "model": "simba-3.2",
+  "timeline": "marks",
+  "duration_ms": 205354,
+  "text_chars": 3419,
+  "items": [
+    {
+      "id": "a43209d1b601",
+      "section": "top",
+      "start_ms": 6221,
+      "end_ms": 31266
+    },
+    {
+      "id": "4783e7a5e36c",
+      "section": "top",
+      "start_ms": 31266,
+      "end_ms": 56614
+    },
+    {
+      "id": "7729565e5373",
+      "section": "top",
+      "start_ms": 56614,
+      "end_ms": 76070
+    },
+    {
+      "id": "4356423fa3f8",
+      "section": "design",
+      "start_ms": 76070,
+      "end_ms": 97193
+    },
+    {
+      "id": "e795790bb7b1",
+      "section": "ui-craft",
+      "start_ms": 97193,
+      "end_ms": 111614
+    },
+    {
+      "id": "dcb6b1ef5da6",
+      "section": "ui-craft",
+      "start_ms": 111614,
+      "end_ms": 133929
+    },
+    {
+      "id": "11ef50a24dfe",
+      "section": "ai",
+      "start_ms": 133929,
+      "end_ms": 155049
+    },
+    {
+      "id": "506da5a2e0fd",
+      "section": "tech",
+      "start_ms": 155049,
+      "end_ms": 186068
+    },
+    {
+      "id": "7249b88eea3e",
+      "section": "tech",
+      "start_ms": 186068,
+      "end_ms": 205354
+    }
+  ],
+  "sections": [
+    {
+      "slug": "top",
+      "start_ms": 6221
+    },
+    {
+      "slug": "design",
+      "start_ms": 74790
+    },
+    {
+      "slug": "ui-craft",
+      "start_ms": 95572
+    },
+    {
+      "slug": "ai",
+      "start_ms": 132350
+    },
+    {
+      "slug": "tech",
+      "start_ms": 153811
+    }
+  ]
+}
