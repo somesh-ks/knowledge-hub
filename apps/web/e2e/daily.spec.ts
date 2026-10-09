@@ -244,6 +244,34 @@ test.describe("daily podcast", () => {
     await expect(barText(page)).toHaveText("1 change");
   });
 
+  test("Anthropic lists the two Claude models without asking for the live list", async ({
+    page,
+  }) => {
+    const sent = await mockConfig(page);
+    await open(page);
+    let asked = 0;
+    await page.route("**/api/models", (route) => {
+      asked += 1;
+      return route.abort();
+    });
+    await page.getByLabel("Provider").selectOption("anthropic");
+    await expect(radio(page, /^Claude Sonnet 5.5/)).toBeChecked();
+    await expect(radio(page, /^Claude Haiku 5.5/)).toBeVisible();
+    await expect(page.locator('input[name="model"]')).toHaveCount(2);
+    await expect(page.getByRole("button", { name: "Show all models" })).toBeHidden();
+    await expect(page.getByLabel("Filter models")).toBeHidden();
+    expect(asked).toBe(0);
+    await radio(page, /^Claude Haiku 5.5/).check();
+    await save(page);
+    await expect(barText(page)).toContainText("Saved.");
+    const ops = sent.flatMap((request) => (Array.isArray(request.op) ? request.op : [request.op]));
+    expect(ops).toContainEqual({
+      op: "writer.set",
+      provider: "anthropic",
+      model: "claude-haiku-5-5",
+    });
+  });
+
   test("going back to the saved model drops the change", async ({ page }) => {
     await open(page);
     await radio(page, /^Qwen3-235B/).check();
