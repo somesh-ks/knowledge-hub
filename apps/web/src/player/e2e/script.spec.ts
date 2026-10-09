@@ -48,6 +48,10 @@ test.describe("an episode's script in the open player", () => {
     await lab.openPlayer();
     const script = lab.dialog.getByRole("region", { name: "Script" });
     await expect(script).toBeVisible();
+    // Opening shows the top of the page (the cover and the controls); the script does not scroll
+    // the first turn into the middle. Smooth scrolling takes a moment, so wait it out.
+    await page.waitForTimeout(1_500);
+    expect(await lab.sheet.evaluate((element) => element.scrollTop)).toBe(0);
     await expect(script.locator('[data-tone="lead"] .script-name').first()).toHaveText("Ada");
     await expect(script.locator('[data-tone="guest"] .script-name').first()).toHaveText("Leo");
     // Exactly one turn is the current one, and it is the first.

@@ -16,17 +16,25 @@ export default function ScriptView() {
   const current = state.hasStarted ? currentTurnIndex(turns, second) : -1;
   const rootRef = useRef<HTMLElement>(null);
   const pausedUntil = useRef(0);
+  // Opening the page shows its top. Following starts when the voice moves to another turn.
+  const followed = useRef<number | null>(null);
   const [away, setAway] = useState(false);
 
   function reveal(index: number): void {
     const node = rootRef.current?.querySelector<HTMLElement>(`[data-turn="${index}"]`);
-    node?.scrollIntoView({ block: "center", behavior: "smooth" });
+    // On a wide screen the script is its own column and the turn is centred in it. On one column
+    // the page also holds the cover and the controls, so it moves only as far as the turn needs.
+    const column = window.matchMedia("(min-width: 64rem)").matches;
+    node?.scrollIntoView({ block: column ? "center" : "nearest", behavior: "smooth" });
   }
 
   // Follows the voice, unless a person is reading elsewhere.
   // biome-ignore lint/correctness/useExhaustiveDependencies: it runs when the turn changes
   useEffect(() => {
     if (current < 0) return;
+    const first = followed.current === null;
+    followed.current = current;
+    if (first) return;
     if (Date.now() < pausedUntil.current) {
       setAway(true);
       return;
