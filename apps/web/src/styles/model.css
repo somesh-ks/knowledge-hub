@@ -9,21 +9,21 @@
   padding-block: var(--space-4) 0;
 }
 
-/* A row is one radio target. Placeholder and real rows share this height, so the list does not
-   move when the live models arrive. */
-.model-list .model-row {
-  min-height: calc(var(--size-touch-comfortable) * 1.5);
-}
-
-.model-list {
-  margin-block-start: var(--space-2);
-}
-
-/* Placeholder rows: two quiet bars where the name and the hint will be. */
+/* Placeholder rows: two quiet bars where the name and the hint will be. As tall as a real row with a name and a line under it (the row's padding, the two lines and the
+   gap between them), so the list does not move when the live models arrive. */
 .model-skeleton {
   display: grid;
   align-content: center;
   gap: var(--space-2);
+  min-height: calc(
+    var(--space-3) *
+    2 +
+    var(--font-size-body) *
+    var(--font-leading-label) +
+    var(--space-1) +
+    var(--font-size-label) *
+    var(--font-leading-caption)
+  );
 }
 
 .model-bar {
@@ -57,7 +57,18 @@
   }
 }
 
-.model-panel .manage-input[aria-invalid] {
+/* The filter and the typed id sit under the provider select, so they are drawn like it: an outline
+   on the page's own surface. Focus and a refused id keep their colours. */
+.model-panel input.manage-input {
+  border-color: var(--color-border-hairline);
+  background: none;
+}
+
+.model-panel input.manage-input:focus-visible {
+  border-color: var(--color-accent);
+}
+
+.model-panel input.manage-input[aria-invalid] {
   border-color: var(--color-danger);
 }
 
@@ -79,5 +90,9 @@
 @media (hover: hover) and (pointer: fine) {
   .model-list .manage-pick:hover .manage-name {
     color: var(--color-accent);
+  }
+
+  .model-panel input.manage-input:hover:not(:focus-visible, [aria-invalid]) {
+    border-color: var(--color-border-control);
   }
 }

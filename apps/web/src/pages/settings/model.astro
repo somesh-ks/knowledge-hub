@@ -32,13 +32,17 @@ const skeletons = Array.from({ length: 6 }, (_, index) => index);
         <div class="model-panel" data-panel data-saved={model ?? ""}>
           <div class="manage-field">
             <label for="model-provider">Provider</label>
-            <select class="manage-input" id="model-provider" name="provider" autocomplete="off">
-              <option value="nebius" selected>Nebius</option>
-            </select>
+            <span class="manage-select">
+              <select class="manage-input" id="model-provider" name="provider" autocomplete="off">
+                <option value="nebius" selected>Nebius</option>
+              </select>
+              <Icon name="chevronDown" />
+            </span>
           </div>
 
           <div class="manage-field" data-filter>
-            <label for="model-filter">Filter models</label>
+            {/* The field says what it is in its placeholder; the label is for assistive tech. */}
+            <label class="sr-only" for="model-filter">Filter models</label>
             <input
               class="manage-input"
               id="model-filter"

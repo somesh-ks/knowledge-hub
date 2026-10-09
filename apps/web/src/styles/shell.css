@@ -22,6 +22,10 @@
   --dock-room: 0px;
   --run-height: 3rem;
   --run-room: 0px;
+  /* Where the first block of every destination starts, under the app bar: Today's cover sets it. */
+  --page-top: var(--space-8);
+  /* Room under the last control: the floating Create button (its size and its margin) and some air. */
+  --page-end: var(--space-24);
   /* Everything that sticks under the top chrome sticks here: section tabs, the aside. */
   --sticky-top: calc(var(--app-bar-height) + var(--safe-top));
   /* The text column itself: the page width less its two gutters. */
@@ -39,11 +43,18 @@ html[data-run] {
   --run-room: var(--run-height);
 }
 
+@media (min-width: 40rem) {
+  :root {
+    --page-top: var(--space-12);
+  }
+}
+
 @media (min-width: 64rem) {
   :root {
     --bottom-nav-height: 0px;
     --side-nav-width: calc(var(--nav-side-width) + var(--safe-left));
     --sticky-top: var(--safe-top);
+    --page-end: var(--space-12);
   }
 
   /* The side column carries the indicator, so the page needs no room for it. */
@@ -83,7 +94,7 @@ main {
   display: block;
   min-width: 0;
   /* Room for the bottom bar, so the last line is never covered. */
-  padding-block-end: calc(var(--bottom-nav-height) + var(--run-room) + var(--space-12));
+  padding-block-end: calc(var(--bottom-nav-height) + var(--run-room) + var(--page-end));
 }
 
 main:focus {
@@ -96,7 +107,7 @@ html[data-mini="visible"] main {
     var(--bottom-nav-height) +
     var(--dock-room) +
     var(--run-room) +
-    var(--space-12)
+    var(--page-end)
   );
 }
 
