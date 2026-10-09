@@ -25,6 +25,7 @@ import type { SpokenText } from "../audio/spokenText.js";
 import { buildSpokenText } from "../audio/spokenText.js";
 import { resolveTimeline } from "../audio/timeline.js";
 import type { Logger } from "../context.js";
+import { loadSchedule } from "../schedule/store.js";
 import type { BlobClient, PruneResult } from "./blob.js";
 import { pruneAudio, uploadAudio } from "./blob.js";
 
@@ -263,6 +264,27 @@ const failed = (digestId: string, stage: AudioFailureStage, error: unknown): Dig
   changed: [],
 });
 
+/**
+ * The voice config/schedule.json gives a briefing: the weekly one for a weekly digest, the daily
+ * one for any other. Undefined when the file is missing or invalid, or sets none; then the
+ * SPEECHIFY_VOICE_ID of the run, or the engine's default, reads it.
+ */
+async function scheduledVoice(
+  root: string,
+  kind: Digest["kind"],
+  log: Logger,
+): Promise<string | undefined> {
+  try {
+    const schedule = await loadSchedule(root);
+    return (kind === "weekly" ? schedule.weekly.voice_id : schedule.voice_id) ?? undefined;
+  } catch (error) {
+    log.warn("The schedule could not be read; narrating in the default voice", {
+      reason: message(error),
+    });
+    return undefined;
+  }
+}
+
 async function processDigest(
   deps: PublishAudioDeps,
   target: DigestTarget,
@@ -304,7 +326,7 @@ async function processDigest(
   if (!decision.ok)
     return { outcome: { status: "refused", digestId, refusal: decision }, changed: [] };
 
-  const voice = deps.voiceId ?? DEFAULT_VOICE_ID;
+  const voice = (await scheduledVoice(root, digest.kind, log)) ?? deps.voiceId ?? DEFAULT_VOICE_ID;
   const model = deps.model ?? DEFAULT_MODEL;
   log.info(`Synthesizing ${digestId}`, { characters: spoken.text.length });
 
