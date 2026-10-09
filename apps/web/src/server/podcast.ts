@@ -24,7 +24,8 @@ export type PodcastDeps = GenerateDeps & { episodeIds?: () => readonly string[] 
 export type PodcastInput = GenerateInput;
 type PodcastResult = ApiResult<PodcastCreateResponse>;
 
-export const MAX_TOPICS = 6;
+/** A guard on the request's size (core's PODCAST_MAX_TOPICS), not a product limit. */
+const MAX_TOPICS = 50;
 export const MAX_TITLE_CHARS = 80;
 const LENGTHS: readonly number[] = [3, 5, 10, 15];
 const FORMATS: readonly string[] = ["readout", "discussion", "headlines"];

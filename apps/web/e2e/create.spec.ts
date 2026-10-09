@@ -39,9 +39,8 @@ async function mockPodcast(page: Page, status: number, body: unknown): Promise<M
 
 const chip = (page: Page, name: string) => page.locator(".create-chip:visible", { hasText: name });
 const segment = (page: Page, name: string) => page.locator(".settings-segment", { hasText: name });
-const option = (page: Page, name: string) => page.locator(".create-option", { hasText: name });
 const dialog = (page: Page) => page.getByRole("dialog", { name: "Enter the passphrase" });
-const estimate = (page: Page) => page.locator("[data-estimate]");
+const submit = (page: Page) => page.locator("[data-submit]");
 
 /** Opens the page and waits for its script, which is what makes the form do anything. */
 async function openCreate(page: Page): Promise<void> {
@@ -96,7 +95,7 @@ test.describe("the Create page", () => {
       "Tone",
       "Title",
     ]);
-    // The five topics in the contract's order, then the owner's own in Somesh mode mode.
+    // The five topics in the contract's order, then the owner's own in Somesh.
     await expect(page.locator(".create-chip:visible")).toHaveText([
       "Design",
       "Design Engineering",
@@ -108,17 +107,37 @@ test.describe("the Create page", () => {
     await expect(page.locator('input[name="length"]')).toHaveCount(4);
     await expect(page.locator('input[name="window"]')).toHaveCount(3);
     await expect(page.locator('input[name="tone"]')).toHaveCount(3);
-    await expect(page.locator(".create-option")).toHaveText([
-      /Readout\s*One host tells each story\./,
-      /Discussion\s*Two hosts talk it through\./,
-      /Headlines\s*Quick hits, a line or two each\./,
+    await expect(page.locator('.settings-segment:has(input[name="format"])')).toHaveText([
+      "Readout",
+      "Discussion",
+      "Headlines",
     ]);
+    // The helper lines are gone: nothing under Written for or Topics, and Title says Optional beside it.
+    await expect(
+      page.locator("[data-audience-hint], [data-top-hint], #create-topics-hint"),
+    ).toHaveCount(0);
+    await expect(page.locator(".create-title-row")).toHaveText("Title Optional");
+    await expect(submit(page)).toHaveText("Generate • 5 mins");
     // Sensible defaults are already chosen, and no topic is.
     await expect(page.locator('input[name="length"]:checked')).toHaveValue("5");
     await expect(page.locator('input[name="format"]:checked')).toHaveValue("readout");
     await expect(page.locator('input[name="window"]:checked')).toHaveValue("7");
     await expect(page.locator('input[name="tone"]:checked')).toHaveValue("neutral");
     await expect(page.locator('input[name="topic"]:checked')).toHaveCount(0);
+  });
+
+  test("the button says how long the episode will be, and follows the length", async ({ page }) => {
+    await openCreate(page);
+    await expect(submit(page)).toHaveText("Generate • 5 mins");
+    await segment(page, "10 min").click();
+    await expect(submit(page)).toHaveText("Generate • 10 mins");
+    await segment(page, "15 min").click();
+    await expect(submit(page)).toHaveText("Generate • 15 mins");
+    await segment(page, "3 min").click();
+    await expect(submit(page)).toHaveText("Generate • 3 mins");
+    // The other choices do not change it.
+    await segment(page, "Discussion").click();
+    await expect(submit(page)).toHaveText("Generate • 3 mins");
   });
 
   test("needs at least one topic before it asks for the passphrase", async ({ page }) => {
@@ -136,45 +155,27 @@ test.describe("the Create page", () => {
     await expect(error).toBeHidden();
   });
 
-  test("counts the topics, and stops at six", async ({ page }) => {
+  test("has no limit on topics: every chip can be chosen", async ({ page }) => {
     await openCreate(page);
-    await expect(page.locator("#create-topics-hint")).toHaveText(
-      "Choose up to 6. None chosen yet.",
-    );
-    await chip(page, "Design").first().click();
-    await expect(page.locator("#create-topics-hint")).toHaveText("Choose up to 6. 1 chosen.");
-    for (const name of [
-      "Design Engineering",
-      "AI Products",
-      "Tech Product Launches",
-      "Trending",
-      "Audio interfaces",
-    ]) {
-      await chip(page, name).click();
-    }
-    await expect(page.locator("#create-topics-hint")).toHaveText("Choose up to 6. 6 chosen.");
-    await chip(page, "Trending").click();
-    await expect(page.locator("#create-topics-hint")).toHaveText("Choose up to 6. 5 chosen.");
+    const chips = page.locator(".create-chip:visible");
+    const total = await chips.count();
+    for (let index = 0; index < total; index += 1) await chips.nth(index).click();
+    await expect(page.locator('input[name="topic"]:checked')).toHaveCount(total);
+    await expect(page.locator('input[name="topic"]:disabled')).toHaveCount(0);
   });
 
-  test("Top picks is not a chip, and a line says every episode opens with it", async ({ page }) => {
+  test("Top picks is not a chip", async ({ page }) => {
     await openCreate(page);
     await expect(page.locator(".create-chip", { hasText: "Top picks" })).toHaveCount(0);
     await expect(page.locator('input[name="topic"][value="top"]')).toHaveCount(0);
-    await expect(page.getByText("Every episode opens with the top picks.")).toBeVisible();
   });
 
-  test("choosing a mode changes the line under it and the audience in the request", async ({
-    page,
-  }) => {
+  test("choosing a mode changes the audience in the request", async ({ page }) => {
     const mock = await mockPodcast(page, 202, { status: 202, run_id: 3, started_at: "x" });
     await openCreate(page);
-    const hint = page.locator("[data-audience-hint]");
     await expect(page.locator('input[name="audience"]:checked')).toHaveValue("custom");
-    await expect(hint).toHaveText("Written for you. Also draws on your own topics.");
     await chip(page, "Audio interfaces").click();
     await segment(page, "General").click();
-    await expect(hint).toHaveText("Written for anyone. Explains terms as it goes.");
     // The owner's own topic leaves the list, and is unticked.
     await expect(page.locator(".create-chip", { hasText: "Audio interfaces" })).toBeHidden();
     await expect(page.locator('input[name="topic"]:checked')).toHaveCount(0);
@@ -189,13 +190,11 @@ test.describe("the Create page", () => {
     expect(JSON.stringify(mock.bodies[0])).not.toContain('"top"');
   });
 
-  test("General offers six general topics and hides the five; Somesh mode brings them back", async ({
+  test("General offers six general topics and hides the five; Somesh brings them back", async ({
     page,
   }) => {
     await openCreate(page);
     const visible = page.locator(".create-chip:visible");
-    const top = page.locator("[data-top-hint]");
-    await expect(top).toHaveText("Every episode opens with the top picks.");
     await segment(page, "General").click();
     await expect(visible).toHaveText([
       "World",
@@ -205,9 +204,8 @@ test.describe("the Create page", () => {
       "Culture",
       "Sports",
     ]);
-    await expect(top).toHaveText("Every episode opens with the day's top stories.");
     await expect(page.locator(".create-chip", { hasText: "Design Engineering" })).toBeHidden();
-    await segment(page, "Somesh mode").click();
+    await segment(page, "Somesh").click();
     await expect(visible).toHaveText([
       "Design",
       "Design Engineering",
@@ -216,25 +214,21 @@ test.describe("the Create page", () => {
       "Trending",
       "Audio interfaces",
     ]);
-    await expect(top).toHaveText("Every episode opens with the top picks.");
   });
 
-  test("a ticked Somesh mode topic is unticked and not sent after switching to General", async ({
+  test("a ticked Somesh topic is unticked and not sent after switching to General", async ({
     page,
   }) => {
     const mock = await mockPodcast(page, 202, { status: 202, run_id: 3, started_at: "x" });
     await openCreate(page);
     await chip(page, "Trending").click();
     await chip(page, "Design").first().click();
-    await expect(page.locator("#create-topics-hint")).toHaveText("Choose up to 6. 2 chosen.");
+    await expect(page.locator('input[name="topic"]:checked')).toHaveCount(2);
     await segment(page, "General").click();
     await expect(page.locator('input[name="topic"]:checked')).toHaveCount(0);
-    await expect(page.locator("#create-topics-hint")).toHaveText(
-      "Choose up to 6. None chosen yet.",
-    );
     await chip(page, "World").click();
     await chip(page, "Sports").click();
-    await expect(page.locator("#create-topics-hint")).toHaveText("Choose up to 6. 2 chosen.");
+    await expect(page.locator('input[name="topic"]:checked')).toHaveCount(2);
     await page.locator("[data-submit]").click();
     await confirm(page);
     await expect.poll(() => mock.bodies.length).toBe(1);
@@ -242,30 +236,6 @@ test.describe("the Create page", () => {
       audience: "general",
       topic_ids: ["world", "sports"],
     });
-  });
-
-  test("updates the estimate as the length changes", async ({ page }) => {
-    await openCreate(page);
-    await expect(estimate(page)).toHaveText(
-      "About 5 minutes, roughly 4,800 characters of narration.",
-    );
-    await segment(page, "10 min").click();
-    await expect(estimate(page)).toHaveText(
-      "About 10 minutes, roughly 9,600 characters of narration.",
-    );
-    await segment(page, "15 min").click();
-    await expect(estimate(page)).toHaveText(
-      "About 15 minutes, roughly 14,400 characters of narration.",
-    );
-    await segment(page, "3 min").click();
-    await expect(estimate(page)).toHaveText(
-      "About 3 minutes, roughly 2,880 characters of narration.",
-    );
-    // The other choices do not change what is said about the length.
-    await option(page, "Discussion").click();
-    await expect(estimate(page)).toHaveText(
-      "About 3 minutes, roughly 2,880 characters of narration.",
-    );
   });
 
   test("with the passphrase step off, Create sends straight away and mentions none", async ({
@@ -339,7 +309,7 @@ test.describe("the Create page", () => {
     await chip(page, "Design Engineering").click();
     await chip(page, "Trending").click();
     await segment(page, "10 min").click();
-    await option(page, "Discussion").click();
+    await segment(page, "Discussion").click();
     await segment(page, "A month").click();
     await segment(page, "Dry").click();
     await page.getByLabel("Title").fill("  My week in AI  ");
@@ -659,7 +629,7 @@ test.describe("navigation with three destinations and one action", () => {
     // The page has the form itself, so it carries no sheet to clone.
     await expect(page.locator("#create-sheet-template")).toHaveCount(0);
     await chip(page, "Trending").click();
-    await expect(page.locator("#create-topics-hint")).toHaveText("Choose up to 6. 1 chosen.");
+    await expect(page.locator('input[name="topic"]:checked')).toHaveCount(1);
   });
 });
 

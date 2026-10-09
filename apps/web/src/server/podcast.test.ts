@@ -107,10 +107,7 @@ describe("parsePodcastRequest", () => {
       { ...REQUEST, topic_ids: ["x".repeat(65)] },
       { ...REQUEST, topic_ids: [7] },
       { ...REQUEST, topic_ids: "ai" },
-      {
-        ...REQUEST,
-        topic_ids: ["top", "ui-craft", "ai", "tech", "research", "launches", "watch"],
-      },
+      { ...REQUEST, topic_ids: Array.from({ length: 51 }, (_, index) => `topic-${index}`) },
       { ...REQUEST, length_minutes: 4 },
       { ...REQUEST, length_minutes: "5" },
       { ...REQUEST, format: "essay" },
@@ -144,9 +141,11 @@ describe("parsePodcastRequest", () => {
     expect(parsePodcastRequest({ ...REQUEST, topic_ids: ids })?.topic_ids).toEqual(ids);
   });
 
-  it("allows six topics", () => {
-    const six = ["top", "ui-craft", "ai", "tech", "research", "launches"];
-    expect(parsePodcastRequest({ ...REQUEST, topic_ids: six })?.topic_ids).toEqual(six);
+  it("sets no limit on topics a person would reach, only a guard on the size", () => {
+    const ten = Array.from({ length: 10 }, (_, index) => `topic-${index}`);
+    expect(parsePodcastRequest({ ...REQUEST, topic_ids: ten })?.topic_ids).toEqual(ten);
+    const fifty = Array.from({ length: 50 }, (_, index) => `topic-${index}`);
+    expect(parsePodcastRequest({ ...REQUEST, topic_ids: fifty })?.topic_ids).toEqual(fifty);
   });
 });
 

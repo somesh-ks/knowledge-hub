@@ -3,23 +3,21 @@ import {
   AUDIENCES,
   createTopicOptions,
   DEFAULTS,
-  estimateText,
   FORMATS,
   GENERAL_TOPICS,
   LENGTHS,
   MAX_TITLE_CHARS,
-  MAX_TOPICS,
+  submitLabel,
   TONES,
   topicOptions,
   WINDOWS,
 } from "./createForm";
 import { CHARS_PER_MINUTE } from "./episodeFile";
 
-describe("estimateText", () => {
-  it("says the minutes and the characters they come to", () => {
-    expect(estimateText(5)).toBe("About 5 minutes, roughly 4,800 characters of narration.");
-    expect(estimateText(15)).toBe("About 15 minutes, roughly 14,400 characters of narration.");
-    expect(estimateText(1)).toBe("About 1 minute, roughly 960 characters of narration.");
+describe("submitLabel", () => {
+  it("names the action and the length, with a dot between", () => {
+    expect(submitLabel(10)).toBe("Generate • 10 mins");
+    expect(submitLabel(3)).toBe("Generate • 3 mins");
   });
 
   it("uses the pace the episode files are measured at", () => {
@@ -38,7 +36,6 @@ describe("the options", () => {
   });
 
   it("keep the limits the server enforces", () => {
-    expect(MAX_TOPICS).toBe(6);
     expect(MAX_TITLE_CHARS).toBe(80);
   });
 });
@@ -94,9 +91,9 @@ describe("topicOptions", () => {
 });
 
 describe("audiences", () => {
-  it("are General and Somesh mode, Somesh mode by default", () => {
+  it("are General and Somesh, Somesh by default", () => {
     expect(AUDIENCES.map((audience) => audience.value)).toEqual(["general", "custom"]);
-    expect(AUDIENCES.map((audience) => audience.label)).toEqual(["General", "Somesh mode"]);
+    expect(AUDIENCES.map((audience) => audience.label)).toEqual(["General", "Somesh"]);
     expect(DEFAULTS.audience).toBe("custom");
   });
 });
@@ -146,14 +143,8 @@ describe("the topics each mode offers", () => {
     ]);
   });
 
-  it("never offer one id in both modes, and say how an episode opens in each", () => {
+  it("never offer one id in both modes", () => {
     const all = createTopicOptions([], owners).map((option) => option.value);
     expect(new Set(all).size).toBe(all.length);
-    expect(AUDIENCES.find((audience) => audience.value === "general")?.top).toBe(
-      "Every episode opens with the day's top stories.",
-    );
-    expect(AUDIENCES.find((audience) => audience.value === "custom")?.top).toBe(
-      "Every episode opens with the top picks.",
-    );
   });
 });

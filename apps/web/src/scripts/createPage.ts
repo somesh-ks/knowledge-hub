@@ -1,7 +1,7 @@
 import { startRun } from "./runStatus";
 
 /**
- * The Create form: the live estimate, the six-topic limit, the passphrase dialog (while the form has
+ * The Create form: the button's length, the passphrase dialog (while the form has
  * one) and the request. The form lives on /create and in the Create sheet; both call `installCreate`.
  * Every sentence it shows is in the markup (`[data-k]`), not here. Once a run has started it hands
  * the run to the status indicator (runStatus.ts), which follows it, and calls `onStart`.
@@ -18,7 +18,6 @@ export function installCreate(root: HTMLElement, onStart?: () => void): void {
   const open = root.dataset.openPassphrase;
   const dialog = root.querySelector<HTMLDialogElement>("[data-dialog]");
   const topics = [...form.querySelectorAll<HTMLInputElement>('input[name="topic"]')];
-  const max = Number($("[data-max]").dataset.max);
   const copy = (key: string) => root.querySelector(`[data-k="${key}"]`)?.textContent ?? "";
   const store = (run: (s: Storage) => unknown) => {
     try {
@@ -50,17 +49,10 @@ export function installCreate(root: HTMLElement, onStart?: () => void): void {
       chip.hidden = chip.dataset.mode !== mode;
       if (chip.hidden) topic.checked = false;
     }
-    const picked = form.querySelector<HTMLInputElement>('input[name="audience"]:checked');
-    $("[data-audience-hint]").textContent = picked?.dataset.hint ?? "";
-    $("[data-top-hint]").textContent = picked?.dataset.top ?? "";
-    const n = topics.filter((topic) => topic.checked).length;
-    for (const topic of topics) topic.disabled = !topic.checked && n >= max;
-    $("[data-topics-count]").textContent = n ? `${n} chosen.` : "None chosen yet.";
-    if (n) say("topics");
-    const minutes = Number(new FormData(form).get("length"));
-    const characters = (minutes * Number(root?.dataset.pace)).toLocaleString("en-US");
-    $("[data-estimate]").textContent =
-      `About ${minutes} minutes, roughly ${characters} characters of narration.`;
+    if (topics.some((topic) => topic.checked)) say("topics");
+    // The button says how long the episode will run; each length carries its own label.
+    const length = form.querySelector<HTMLInputElement>('input[name="length"]:checked');
+    if (length?.dataset.submitLabel) $("[data-submit]").textContent = length.dataset.submitLabel;
   }
 
   function request() {
