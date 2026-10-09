@@ -1,0 +1,59 @@
+/*
+ * The tab bar of the podcast settings (components/PodcastTabs.astro): the segmented control's track
+ * and thumb from settings.css, drawn for links. Rules that adjust a shared rule are written with a
+ * more specific selector, because this file is linked before the layout's stylesheet.
+ */
+
+.podcast-tabs {
+  display: grid;
+  grid-auto-flow: column;
+  grid-auto-columns: minmax(0, 1fr);
+  max-width: 24rem;
+  margin-block: var(--space-4) var(--space-6);
+  padding: var(--segmented-padding);
+  border-radius: var(--segmented-radius);
+  background: var(--color-surface-sunken);
+}
+
+.podcast-tabs .podcast-tab {
+  display: grid;
+  place-items: center;
+  min-height: calc(var(--segmented-height) - var(--segmented-padding) * 2);
+  border-radius: var(--segmented-segment-radius);
+  color: var(--color-on-surface-muted);
+  font-size: var(--font-size-label);
+  font-weight: var(--font-weight-medium);
+  line-height: var(--font-leading-label);
+  white-space: nowrap;
+  text-decoration: none;
+  transition:
+    background-color var(--duration-hover) var(--ease-hover),
+    box-shadow var(--duration-hover) var(--ease-hover),
+    color var(--duration-hover) var(--ease-hover);
+}
+
+.podcast-tabs .podcast-tab[aria-current="page"] {
+  background: var(--segmented-selected-bg);
+  box-shadow:
+    0 0 0 var(--stroke-hairline) color-mix(in oklch, var(--color-on-surface) 14%, transparent),
+    0 1px 2px color-mix(in oklch, var(--color-on-surface) 14%, transparent);
+  color: var(--color-on-surface);
+}
+
+.podcast-tabs .podcast-tab:focus-visible {
+  outline: var(--stroke-ring) solid var(--color-focus-ring);
+  outline-offset: var(--stroke-ring-gap);
+}
+
+@media (hover: hover) and (pointer: fine) {
+  .podcast-tabs .podcast-tab:not([aria-current="page"]):hover {
+    color: var(--color-on-surface);
+  }
+}
+
+@media (forced-colors: active) {
+  .podcast-tabs .podcast-tab[aria-current="page"] {
+    border: var(--stroke-hairline) solid Highlight;
+    color: Highlight;
+  }
+}

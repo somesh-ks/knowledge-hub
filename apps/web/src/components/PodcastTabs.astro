@@ -1,0 +1,31 @@
+---
+import "../styles/podcast-tabs.css";
+
+interface Props {
+  /** Which page is open. */
+  active: "general" | "topics";
+}
+
+const { active } = Astro.props;
+
+const TABS = [
+  { id: "general", label: "General", href: "/settings/podcast" },
+  { id: "topics", label: "Topics & sources", href: "/settings/podcast/topics" },
+] as const;
+---
+
+{/* The two pages of the podcast settings, as a segmented group of links. The open page is the raised
+     segment, ringed on all four sides, so it never depends on colour or on a single edge. */}
+<nav class="podcast-tabs" aria-label="Podcast settings">
+  {
+    TABS.map((tab) => (
+      <a
+        class="podcast-tab press press-subtle"
+        href={tab.href}
+        aria-current={tab.id === active ? "page" : undefined}
+      >
+        {tab.label}
+      </a>
+    ))
+  }
+</nav>
