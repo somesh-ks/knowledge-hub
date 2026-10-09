@@ -55,6 +55,9 @@ D1 to D9 date from plan v2 (2026-10-05). D10 to D25 date from 2026-10-06. Reason
 | D43 | General episodes are built from general-news feeds, ranked by coverage | active |
 | D44 | An episode can be deleted, or regenerated with the listener's feedback | active |
 | D45 | The briefing's hour, cadence and topics are set in Settings | active |
+| D46 | The writer's provider and model are chosen in Settings | active |
+| D47 | A move between pages is answered from a saved copy and swapped at once | active |
+| D48 | One shader: a light in the cover's colours behind the header, on a GPU only | active |
 
 ---
 
@@ -435,3 +438,30 @@ D1 to D9 date from plan v2 (2026-10-05). D10 to D25 date from 2026-10-06. Reason
 - Cost: the hour lives in two places (the file for display, the variable for the trigger). If the variable cannot be written the page says so and the rest is still saved. GitHub can still fire a schedule hours late.
 - Owner: add "Variables: Read and write" to the site's GitHub token, and merge the workflow change by hand.
 - Rejected: an hourly job with a gate (minutes); Vercel Cron (once a day on the Hobby plan, static, imprecise); letting the app edit the workflow file (the token cannot change workflows).
+
+## D46: The writer's provider and model are chosen in Settings
+
+- Date: 2026-10-09
+- Decision: the provider (Nebius, the only one) and the model of the writer live in `config/writer.json`, written by the `writer.set` config op from Settings, Model. A missing or unreadable file means "Automatic". The engine tries, in order and without repeats, the Settings model, `DISPATCH_MODEL`, then `DISPATCH_FALLBACK_MODEL`; a Settings model that fails for any reason falls through. The live list comes from `GET /api/models`, a site function that asks Nebius with a server-side key and is cached for an hour.
+- Why: the owner asked to pick the model, and the provider, from the app. D24 already said model ids change and must come from the live list; this puts that list where the choice is made.
+- Cost: `NEBIUS_API_KEY` must also be on Vercel, a second place to rotate it. Until it is, the page offers the saved model and a typed id. One failed call on the Settings model moves the rest of that run to the environment's model.
+- Owner: run `npm run secrets:push` once.
+- Rejected: writing the `DISPATCH_MODEL` repository variable from the site (needs the token's Variables permission and gives no fallback); a list saved by the engine at each run (stale by up to two days, and a new file for the run's write guard to allow); a native select of sixty ids (no filter).
+- Supersedes: the "set the two variables" step of D24 for choosing a model. The variables remain the fallback.
+
+## D47: A move between pages is answered from a saved copy and swapped at once
+
+- Date: 2026-10-09
+- Decision: the service worker answers a move inside the app (the client router's fetch, or a prefetch) from a copy of the page saved in the last ten minutes, and asks the network behind it; a page load still waits for the network. A changed page is reported to the page on screen, which refreshes quietly if nobody has touched it. A new `/latest.json` makes every saved page old again, except briefings. Once the page is idle, the router's view transition is replaced for a move by an immediate swap, and the incoming page fades up by itself in 100 ms (150 ms with the 8px settle into or out of a briefing). The theme change keeps its view transition.
+- Why: measured on production, a move took about 400 ms to a fully drawn page with the new page ready after 70. The network was not the cause on a fast connection; the transition was, and it was not the designed one (see learnings). A view transition also spends two frames taking pictures before anything moves. After the change the same script measures 2 ms for the page, 32 ms to the new page on screen and 132 ms fully drawn.
+- Cost: `document.startViewTransition` is stood in for, for one call, during a move; a move in the first moment after a page load still uses the browser's transition. A saved page can be up to ten minutes old for one view before the quiet refresh. The service worker is more than "offline reading and nothing else" now.
+- Rejected: network-first with a shorter wait (still a round trip per move); stale-while-revalidate with no age limit (a two-day-old Today for a moment); keeping the view transition with shorter timings (still two frames late).
+- Supersedes: the "fade through" between destinations described in the stylesheet before this date.
+
+## D48: One shader: a light in the cover's colours behind the header, on a GPU only
+
+- Date: 2026-10-09
+- Decision: the header of Today and of an episode has a soft field of light in the cover's colours behind it. A CSS layer is the light everywhere; where WebGL draws on a GPU a small canvas (128px on its long side, scaled up, which is the blur) fades in over it and drifts through one cycle in 40 s or more, at 30 frames a second at most, only while the header is on screen and the tab is visible. Reduced motion and data saver get one still frame. A software renderer, a missing or lost context and forced colours get the CSS layer or nothing. The layer is the header's own box and fades to nothing on all four sides.
+- Why: the owner asked for a clever but mild use of shaders. The cover is the one thing that differs from day to day, so its colours are the only decoration that says something.
+- Cost: 325 bytes of eager JavaScript on those two page types and 2.3 KB loaded on idle. The canvas path cannot run in CI, where Chromium draws on the processor; it is checked by a script in a real window. The play chip stands on the page's surface inside a header, because its accent text fell short of 4.5:1 over the light.
+- Rejected: a shader behind the whole page or the navigation (not mild); a CSS `filter: blur` (repaints, and costs more than the canvas); a library (the budget has 0.1 KB left); drawing on a software renderer (a warning per frame and a busy processor for a decoration).

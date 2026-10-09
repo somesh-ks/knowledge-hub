@@ -88,6 +88,21 @@ export function startServer({ root, port }) {
 
   const server = createServer((request, response) => {
     const { pathname } = new URL(request.url ?? "/", "http://localhost");
+    if (pathname === "/api/models" && request.method === "GET") {
+      // A small fixed list, so the Model page renders in tests without a Nebius key.
+      response.writeHead(200, { "Content-Type": "application/json" });
+      response.end(
+        JSON.stringify({
+          provider: "nebius",
+          models: [
+            { id: "deepseek-ai/DeepSeek-V3.2", context_length: 163840 },
+            { id: "meta-llama/Llama-3.3-70B-Instruct", context_length: 131072 },
+            { id: "Qwen/Qwen3-235B-A22B-Instruct-2507", context_length: 262144 },
+          ],
+        }),
+      );
+      return;
+    }
     if (pathname.startsWith("/api/")) {
       response.writeHead(501, { "Content-Type": "application/json" });
       response.end(JSON.stringify({ error: "not served by the static test server" }));

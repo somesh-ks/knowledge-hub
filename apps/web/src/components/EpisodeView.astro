@@ -3,6 +3,7 @@ import { paletteAccent } from "@dispatch/cover";
 import { episodeHighlights } from "../lib/episodeHighlights";
 import type { EpisodeEntry } from "../lib/episodes";
 import { longDate } from "../lib/format";
+import AmbientLight from "./AmbientLight.astro";
 import Cover from "./Cover.astro";
 import EpisodeActions from "./EpisodeActions.astro";
 import HeroMenu from "./HeroMenu.astro";
@@ -31,6 +32,7 @@ const highlights = episodeHighlights(episode);
   data-latest="false"
 >
   <header class="hero">
+    <AmbientLight palette={entry.cover.palette} />
     <Cover
       digestId={entry.id}
       size="hero"

@@ -62,7 +62,9 @@ const destinations: Array<{
               aria-current={isCurrent ? "page" : undefined}
               data-astro-prefetch="hover"
             >
-              <Icon name={isCurrent ? destination.iconCurrent : destination.icon} class="icon-lg" />
+              {/* Both drawings are in the page, so the item can light up on the press, before its page arrives. */}
+              <Icon name={destination.icon} class="icon-lg app-nav-icon-rest" />
+              <Icon name={destination.iconCurrent} class="icon-lg app-nav-icon-current" />
               <span>{destination.label}</span>
             </a>
           </li>

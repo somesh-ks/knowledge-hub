@@ -14,7 +14,7 @@
 .settings-view {
   /* The segmented choices and the slider share one width from 40rem, so their edges line up. */
   --settings-control-width: 18rem;
-  padding-block: var(--space-4) var(--space-8);
+  padding-block: var(--page-top) var(--space-8);
 }
 
 .settings-view h1 {
@@ -92,6 +92,8 @@
 }
 
 .settings-view .row-action .icon {
+  /* The glyph sits inside its box; this pulls its right edge out to the switch's and the segments'. */
+  margin-inline-end: calc(var(--size-icon) * -0.28);
   color: var(--color-on-surface-subtle);
 }
 
@@ -169,13 +171,77 @@
   cursor: pointer;
 }
 
-/* Raised and ringed, so the choice never depends on colour alone. */
 .settings-segment:has(input:checked) {
-  background: var(--segmented-selected-bg);
   color: var(--color-on-surface);
+}
+
+/*
+ * One raised thumb, ringed so the choice never depends on colour alone, slides under the labels. The
+ * segments are equal columns, so its width is one column and its place is a multiple of that width:
+ * --seg-n is how many segments there are and --seg-i the checked one, both read from the markup.
+ * It slides only while the control is being used, so a stored choice that arrives with the page
+ * never travels from the first segment.
+ */
+.settings-choice {
+  --seg-n: 1;
+  --seg-i: 0;
+  position: relative;
+}
+
+.settings-choice:has(.settings-segment:nth-of-type(2)) {
+  --seg-n: 2;
+}
+
+.settings-choice:has(.settings-segment:nth-of-type(3)) {
+  --seg-n: 3;
+}
+
+.settings-choice:has(.settings-segment:nth-of-type(4)) {
+  --seg-n: 4;
+}
+
+.settings-choice:has(.settings-segment:nth-of-type(5)) {
+  --seg-n: 5;
+}
+
+.settings-choice:has(.settings-segment:nth-of-type(2) input:checked) {
+  --seg-i: 1;
+}
+
+.settings-choice:has(.settings-segment:nth-of-type(3) input:checked) {
+  --seg-i: 2;
+}
+
+.settings-choice:has(.settings-segment:nth-of-type(4) input:checked) {
+  --seg-i: 3;
+}
+
+.settings-choice:has(.settings-segment:nth-of-type(5) input:checked) {
+  --seg-i: 4;
+}
+
+.settings-choice::before {
+  content: "";
+  position: absolute;
+  inset-block: var(--segmented-padding);
+  inset-inline-start: var(--segmented-padding);
+  width: calc((100% - var(--segmented-padding) * 2) / var(--seg-n));
+  border-radius: var(--segmented-segment-radius);
+  background: var(--segmented-selected-bg);
   box-shadow:
     0 0 0 var(--stroke-hairline) color-mix(in oklch, var(--color-on-surface) 14%, transparent),
     0 1px 2px color-mix(in oklch, var(--color-on-surface) 14%, transparent);
+  opacity: 0;
+  pointer-events: none;
+  transform: translateX(calc(var(--seg-i) * 100%));
+}
+
+.settings-choice:has(input:checked)::before {
+  opacity: 1;
+}
+
+.settings-choice:is(:focus-within, :has(.settings-segment:active))::before {
+  transition: transform var(--duration-state) var(--ease-out);
 }
 
 /* The ring belongs on the segment: an invisible input cannot show one. */
@@ -406,6 +472,12 @@
   .settings-switch::before {
     transition-property: background-color, opacity;
   }
+
+  /* The segmented thumb jumps to the chosen segment. */
+  .settings-choice::before,
+  .settings-choice:is(:focus-within, :has(.settings-segment:active))::before {
+    transition: none;
+  }
 }
 
 /*
@@ -420,6 +492,11 @@
 
   .settings-segment:has(input:checked) {
     border: var(--stroke-rail) solid Highlight;
+  }
+
+  /* The chosen segment carries its own border here, so the thumb is not drawn. */
+  .settings-choice::before {
+    display: none;
   }
 
   .settings-switch {

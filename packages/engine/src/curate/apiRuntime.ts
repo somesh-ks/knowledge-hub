@@ -12,11 +12,10 @@ import { createJevClient } from "../judge/jevClient.js";
 import { NebiusJudge } from "../judge/nebiusJudge.js";
 import { TopicJudge } from "../judge/topicJudge.js";
 import type { Judge, JudgeFailure } from "../judge/types.js";
-import { withModelFailover } from "../llm/failoverClient.js";
-import { createNebiusLlm } from "../llm/nebiusClient.js";
 import { createOpenAiChatApi } from "../llm/openAiChatApi.js";
 import { meterChat, meterJev, type RequestMeter } from "../llm/requestMeter.js";
 import { TokenBudget } from "../llm/tokenBudget.js";
+import { createWriterLlm } from "../llm/writerLlm.js";
 import { type Grounder, JevGrounder } from "../validate/grounding.js";
 import type { VoiceConfig } from "../voice/voice.js";
 import { NebiusWriter } from "../write/nebiusWriter.js";
@@ -53,7 +52,7 @@ export interface ApiRuntime {
  *
  *   judge     Jev when TYPESAFE_API_KEY is set (the Nebius judge answers items Jev cannot);
  *             otherwise the Nebius fallback judge alone, with a warning.
- *   writer    DISPATCH_MODEL on Nebius, failing over to DISPATCH_FALLBACK_MODEL on model-not-found.
+ *   writer    the Settings model, then DISPATCH_MODEL, then DISPATCH_FALLBACK_MODEL, on Nebius.
  *   grounder  Jev, or none (the digest is then unverified).
  *   scraper   Firecrawl when FIRECRAWL_API_KEY is set.
  */
@@ -64,7 +63,6 @@ export function createApiRuntime(
 ): ApiRuntime {
   const { env, log } = ctx;
   requireKey(env, "NEBIUS_API_KEY");
-  const model = requireKey(env, "DISPATCH_MODEL");
   const secrets = secretsFromEnv(env);
   const judgeFailures: JudgeFailure[] = [];
   const onFailure = (failure: JudgeFailure): void => {
@@ -74,11 +72,7 @@ export function createApiRuntime(
   const budget = new TokenBudget(env.MAX_TOKENS_PER_RUN);
   const rawApi = createOpenAiChatApi(env);
   const api = spend ? meterChat(rawApi, spend.meter) : rawApi;
-  const primary = createNebiusLlm({ api, model, budget, log });
-  const fallback = env.DISPATCH_FALLBACK_MODEL
-    ? createNebiusLlm({ api, model: env.DISPATCH_FALLBACK_MODEL, budget, log })
-    : null;
-  const llm = withModelFailover(primary, fallback, log);
+  const llm = createWriterLlm({ root: ctx.root, env, api, budget, log });
 
   const nebiusJudge = new NebiusJudge({ llm, log, onFailure, secrets });
   let judge: Judge = nebiusJudge;

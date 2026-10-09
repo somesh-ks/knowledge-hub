@@ -2,6 +2,7 @@ import { z } from "zod";
 import { IdString, SectionId } from "./categories.js";
 import { ScheduleSettings } from "./schedule.js";
 import { MAX_KEYWORDS, TOPIC_DEPTHS, TOPIC_ORIGINS } from "./topics.js";
+import { WriterSettings } from "./writer.js";
 
 const weight = z.number().min(0).max(1);
 
@@ -41,6 +42,8 @@ export type TopicInput = z.input<typeof TopicInput>;
  * - weights.set: set weights by topic id. Built-in weights are written to config/preferences.json.
  * - schedule.set: set the hour (Stockholm), the days between briefings and the sections a
  *   scheduled briefing covers, in config/schedule.json. Unknown section ids are refused.
+ * - writer.set: set the writer's provider and model in config/writer.json. A null model means
+ *   the engine's own DISPATCH_MODEL.
  */
 export const ConfigOp = z.discriminatedUnion("op", [
   z.object({ op: z.literal("topic.upsert"), topic: TopicInput }),
@@ -71,6 +74,7 @@ export const ConfigOp = z.discriminatedUnion("op", [
       .refine((value) => Object.keys(value).length > 0, "give at least one weight"),
   }),
   z.object({ op: z.literal("schedule.set"), ...ScheduleSettings.shape }),
+  z.object({ op: z.literal("writer.set"), ...WriterSettings.shape }),
 ]);
 /** The op as a caller writes it, before defaults are filled in. */
 export type ConfigOp = z.input<typeof ConfigOp>;

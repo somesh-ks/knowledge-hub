@@ -21,6 +21,7 @@ import { writeFileAtomic } from "../state/atomicWrite.js";
 import { stableStringify } from "../state/stableJson.js";
 import { readSourceCandidates } from "../state/store.js";
 import { loadTopics, serializeTopics } from "../topics/store.js";
+import { loadWriterForEdit, serializeWriter } from "../writer/store.js";
 
 const USAGE = `Usage: dispatch config <command>
 
@@ -39,7 +40,8 @@ Ops (see ConfigOp in @dispatch/core):
   {"op":"source.set","id":"...","enabled":false,"pinned":true}
   {"op":"source.remove","id":"..."}
   {"op":"weights.set","weights":{"topic_id":0.8}}
-  {"op":"schedule.set","hour":7,"cadence_days":2,"sections":null}`;
+  {"op":"schedule.set","hour":7,"cadence_days":2,"sections":null}
+  {"op":"writer.set","provider":"nebius","model":null}`;
 
 export interface ConfigDeps {
   /** Network client for source.add. Tests pass a fake. */
@@ -70,15 +72,16 @@ function serializeQueries(file: ConfigBundle["queries"]): string {
 
 async function readBundle(root: string): Promise<ConfigBundle> {
   const preferences = await loadPreferences(root);
-  const [topics, schedule, sourcesUser, registry, queries, candidates] = await Promise.all([
+  const [topics, schedule, writer, sourcesUser, registry, queries, candidates] = await Promise.all([
     loadTopics(root, preferences),
     loadSchedule(root),
+    loadWriterForEdit(root),
     loadUserSources(root),
     loadSources(root),
     loadQueries(root),
     readSourceCandidates(root),
   ]);
-  return { topics, preferences, schedule, sourcesUser, registry, queries, candidates };
+  return { topics, preferences, schedule, writer, sourcesUser, registry, queries, candidates };
 }
 
 /** What each file would contain, in the form it is committed in. */
@@ -87,6 +90,7 @@ function renderBundle(bundle: ConfigBundle): Record<string, string> {
     [CONFIG_FILES.topics]: serializeTopics(bundle.topics),
     [CONFIG_FILES.preferences]: serializePreferences(bundle.preferences),
     [CONFIG_FILES.schedule]: serializeSchedule(bundle.schedule),
+    [CONFIG_FILES.writer]: serializeWriter(bundle.writer),
     [CONFIG_FILES.sourcesUser]: serializeUserSources(SourcesUserFile.parse(bundle.sourcesUser)),
     [QUERIES_PATH]: serializeQueries(bundle.queries),
     [STATE_FILES.sourceCandidates]: stableStringify(bundle.candidates),

@@ -2,6 +2,7 @@
 import { paletteAccent } from "@dispatch/cover";
 import type { DigestEntry } from "../lib/digests";
 import type { HeroView } from "../lib/digestView";
+import AmbientLight from "./AmbientLight.astro";
 import Cover from "./Cover.astro";
 import HeroMenu from "./HeroMenu.astro";
 import PlayCta from "./PlayCta.astro";
@@ -17,6 +18,7 @@ const { entry, hero } = Astro.props;
 {/* The briefing header: the cover beside the date and the More menu, then the play chip with the
      number of stories at its side. */}
 <header class="hero">
+  <AmbientLight palette={entry.digest.cover.palette} />
   <Cover
     digestId={entry.id}
     size="hero"

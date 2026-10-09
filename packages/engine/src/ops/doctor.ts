@@ -1,4 +1,5 @@
 import type { CommandContext } from "../context.js";
+import { loadWriterModel } from "../writer/store.js";
 import { offlineChecks } from "./doctorOffline.js";
 import { onlineChecks } from "./doctorOnline.js";
 import type { Check, CheckStatus, DoctorDeps, DoctorReport } from "./doctorTypes.js";
@@ -34,6 +35,7 @@ export async function runDoctor(
   secrets: readonly string[],
 ): Promise<DoctorReport> {
   const checks = await offlineChecks(ctx.root, ctx.env, deps);
-  if (online) checks.push(...(await onlineChecks(ctx.env, deps, secrets)));
+  if (online)
+    checks.push(...(await onlineChecks(ctx.env, deps, secrets, loadWriterModel(ctx.root))));
   return summarizeChecks(checks, online);
 }

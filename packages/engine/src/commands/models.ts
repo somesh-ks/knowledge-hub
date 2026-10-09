@@ -1,47 +1,13 @@
 import { parseArgs } from "node:util";
-import { requireKey } from "@dispatch/core";
-import { z } from "zod";
+import { isTextModel, listModels, type ModelRow, requireKey } from "@dispatch/core";
 import { type CommandRun, redact, secretsFromEnv } from "../context.js";
 
 const USAGE = "Usage: dispatch models [--all] [--limit <n>] [--json]";
 const DEFAULT_LIMIT = 60;
 const TIMEOUT_MS = 20_000;
 
-const ModelEntry = z
-  .object({
-    id: z.string(),
-    context_length: z.number().optional(),
-    max_model_len: z.number().optional(),
-    type: z.string().optional(),
-  })
-  .loose();
-const ModelsReply = z.object({ data: z.array(ModelEntry) });
-
-export interface ModelRow {
-  id: string;
-  context_length: number | null;
-}
-
-/** Embedding, image, speech and rerank models cannot write a digest. */
-const NOT_TEXT_ID = /embed|rerank|flux|sdxl|diffusion|whisper|tts|ocr|bge-/i;
-const NOT_TEXT_TYPE = /embed|rerank|text2image|image-gen|audio|speech|transcri/i;
-
-export function isTextModel(entry: { id: string; type?: string | undefined }): boolean {
-  if (NOT_TEXT_ID.test(entry.id)) return false;
-  return entry.type === undefined || !NOT_TEXT_TYPE.test(entry.type);
-}
-
-/** Pure part of the command, so a test can feed it a recorded reply. */
-export function listModels(body: unknown, showAll: boolean): ModelRow[] {
-  const parsed = ModelsReply.parse(body);
-  return parsed.data
-    .filter((entry) => showAll || isTextModel(entry))
-    .map((entry) => ({
-      id: entry.id,
-      context_length: entry.context_length ?? entry.max_model_len ?? null,
-    }))
-    .sort((a, b) => (a.id < b.id ? -1 : a.id > b.id ? 1 : 0));
-}
+// The list schema and the text-model filter live in core so the site shares them.
+export { isTextModel, listModels, type ModelRow };
 
 function joinUrl(base: string, path: string): string {
   return `${base.endsWith("/") ? base : `${base}/`}${path}`;

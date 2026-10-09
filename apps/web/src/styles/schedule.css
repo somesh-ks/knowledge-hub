@@ -9,11 +9,6 @@
   padding-block: var(--space-4) 0;
 }
 
-/* The checklist heading sits with its rows, and a row is as tall as a comfortable target. */
-.schedule-panel .manage-suggest-group > .rows {
-  margin-block-start: var(--space-2);
-}
-
 /* Top picks cannot be turned off, so its checkbox and words read as fixed. */
 .schedule-panel .manage-pick:has(input:disabled) {
   cursor: default;

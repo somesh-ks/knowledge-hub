@@ -1,0 +1,98 @@
+/*
+ * The Model page: a provider select, a filter, and a radio list, laid out with the fields, rows
+ * and bar of manage.css. Imported by pages/settings/model.astro, after manage.css.
+ */
+
+.model-panel {
+  display: grid;
+  gap: var(--space-6);
+  padding-block: var(--space-4) 0;
+}
+
+/* Placeholder rows: two quiet bars where the name and the hint will be. As tall as a real row with a name and a line under it (the row's padding, the two lines and the
+   gap between them), so the list does not move when the live models arrive. */
+.model-skeleton {
+  display: grid;
+  align-content: center;
+  gap: var(--space-2);
+  min-height: calc(
+    var(--space-3) *
+    2 +
+    var(--font-size-body) *
+    var(--font-leading-label) +
+    var(--space-1) +
+    var(--font-size-label) *
+    var(--font-leading-caption)
+  );
+}
+
+.model-bar {
+  display: block;
+  height: var(--space-3);
+  border-radius: var(--radius-xs);
+  background: var(--color-surface-sunken);
+}
+
+.model-bar-name {
+  inline-size: 55%;
+}
+
+.model-bar-hint {
+  inline-size: 35%;
+}
+
+@media (prefers-reduced-motion: no-preference) {
+  .model-skeleton .model-bar {
+    animation: model-pulse var(--duration-spring-release) var(--ease-in-out) infinite alternate;
+  }
+}
+
+@keyframes model-pulse {
+  from {
+    opacity: 1;
+  }
+
+  to {
+    opacity: var(--opacity-disabled);
+  }
+}
+
+/* The filter and the typed id sit under the provider select, so they are drawn like it: an outline
+   on the page's own surface. Focus and a refused id keep their colours. */
+.model-panel input.manage-input {
+  border-color: var(--color-border-hairline);
+  background: none;
+}
+
+.model-panel input.manage-input:focus-visible {
+  border-color: var(--color-accent);
+}
+
+.model-panel input.manage-input[aria-invalid] {
+  border-color: var(--color-danger);
+}
+
+.model-panel .manage-input[aria-invalid]:focus-visible {
+  outline: var(--stroke-ring) solid var(--color-focus-ring);
+  outline-offset: var(--stroke-ring-gap);
+}
+
+/* Until the script has mounted, the controls keep their places and take no input. */
+.manage:not([data-ready]) .model-panel :is(select, input) {
+  pointer-events: none;
+}
+
+.manage-fields:disabled .manage-pick {
+  opacity: var(--opacity-disabled);
+  cursor: default;
+}
+
+@media (hover: hover) and (pointer: fine) {
+  .model-list .manage-pick:hover .manage-name {
+    color: var(--color-accent);
+  }
+
+  .model-panel input.manage-input:hover:not(:focus-visible, [aria-invalid]) {
+    border-color: var(--color-border-control);
+  }
+}

@@ -1,3 +1,4 @@
+import { MODEL_ID_PATTERN } from "@dispatch/core";
 import type { ConfigOp, ConfigResponse } from "../types/contracts";
 import { readServerConfig, secretsOf } from "./config";
 import {
@@ -230,6 +231,12 @@ export function parseConfigOp(value: unknown): ConfigOp | null {
         sections.push(section);
       }
       return { op: "schedule.set", hour, cadence_days: cadenceDays, sections };
+    }
+    case "writer.set": {
+      if (value.provider !== "nebius") return null;
+      if (value.model === null) return { op: "writer.set", provider: "nebius", model: null };
+      if (typeof value.model !== "string" || !MODEL_ID_PATTERN.test(value.model)) return null;
+      return { op: "writer.set", provider: "nebius", model: value.model };
     }
     default:
       return null;
