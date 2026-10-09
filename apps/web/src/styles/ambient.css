@@ -20,7 +20,9 @@
   --ambient-c: var(--ambient-c-l);
   position: absolute;
   z-index: -1;
-  inset-block: calc(var(--space-8) * -1) 0;
+  /* The header's own box, top padding included: that padding is the room above the cover. Nothing
+     reaches past it, so neither the phone's app bar nor the top of the window can cut the light. */
+  inset-block: 0;
   /* Past the column into the page's own gutter and no further. The gutter is all the room a phone
      has: a layer wider than the screen would make the whole page scroll sideways and stretch the
      navigation with it, so the reach is capped by the gutter on each side, not by a fixed length. */
@@ -28,10 +30,15 @@
     calc(min(var(--space-12), var(--page-gutter-end)) * -1);
   opacity: var(--ambient-tint);
   pointer-events: none;
-  /* Strongest at the cover's edge, zero before the bottom and the far edge: no line anywhere. */
+  /* Chromium on a GPU leaves the layer's outermost device row unmasked: a line one device pixel
+     thick and a few levels off, measured along the top edge. The clip takes that row away. */
+  clip-path: inset(1px);
+  /* Strongest at the cover's edge and zero at all four edges of the layer: the ellipse is as tall
+     above its centre as the centre is from the top, and the sweep closes both sides. No line
+     anywhere. */
   mask-image:
     radial-gradient(
-      ellipse 50% 46% at 36% 40%,
+      ellipse 50% 46% at 36% 46%,
       black,
       color-mix(in srgb, black 55%, transparent) 45%,
       transparent
@@ -40,7 +47,7 @@
   mask-composite: intersect;
   -webkit-mask-image:
     radial-gradient(
-      ellipse 50% 46% at 36% 40%,
+      ellipse 50% 46% at 36% 46%,
       black,
       color-mix(in srgb, black 55%, transparent) 45%,
       transparent

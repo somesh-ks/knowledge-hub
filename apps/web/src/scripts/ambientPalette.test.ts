@@ -84,6 +84,30 @@ describe("ambient light contrast", () => {
   });
 });
 
+describe("ambient layer shape", () => {
+  const css = readFileSync(join(import.meta.dirname, "..", "styles", "ambient.css"), "utf8");
+
+  it("stays inside the header's box from top to bottom", () => {
+    // Reaching above the header put the light under the phone's app bar, which cut it in a line.
+    expect(css).toMatch(/\.ambient \{[^}]*\n {2}inset-block: 0;/);
+  });
+
+  it("fades to nothing at the top and before the bottom, in both spellings of the mask", () => {
+    const ellipses = [
+      ...css.matchAll(/ellipse ([\d.]+)% ([\d.]+)% at ([\d.]+)% ([\d.]+)%,\s+black,/g),
+    ];
+    expect(ellipses).toHaveLength(2);
+    for (const [, , radiusY, , centreY] of ellipses) {
+      expect(Number(radiusY)).toBeLessThanOrEqual(Number(centreY));
+      expect(Number(centreY) + Number(radiusY)).toBeLessThanOrEqual(100);
+    }
+  });
+
+  it("clips its outermost row, which a GPU leaves unmasked", () => {
+    expect(css).toMatch(/\.ambient \{[^}]*\n {2}clip-path: inset\(1px\);/);
+  });
+});
+
 describe("ambient palette", () => {
   it("puts the most colorful color first", () => {
     expect(ambientColors("#808080", "#ff0000", "#aa4040")[0]).toBe("#ff0000");
