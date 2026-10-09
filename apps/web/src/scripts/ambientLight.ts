@@ -82,18 +82,57 @@ function teardown() {
   live = undefined;
 }
 
+/**
+ * A frame is due this long after the last one. Less than FRAME_MS on purpose: frame times jitter by
+ * a millisecond or two, and a strict comparison would skip every third due frame on a 60Hz screen.
+ */
+const FRAME_DUE_MS = FRAME_MS - 4;
+
+let onProcessor: boolean | undefined;
+
+/**
+ * True where WebGL would draw on the processor (Chromium's SwiftShader, Mesa's llvmpipe and
+ * softpipe, Windows' basic render driver) or is missing. A decoration is not worth that: the CSS
+ * layer is the light there. Asking for a context that may fail on a slow renderer is not enough,
+ * since a headless Chromium grants its software one all the same, and then logs a warning for every
+ * frame it has to read back. Asked once, of a canvas that is never shown, so the page's own canvas
+ * is left untouched. A browser that hides the renderer's name is taken to have a GPU.
+ */
+function drawsOnProcessor(): boolean {
+  if (onProcessor !== undefined) return onProcessor;
+  const gl = document
+    .createElement("canvas")
+    .getContext("webgl", { failIfMajorPerformanceCaveat: true });
+  if (!gl) {
+    onProcessor = true;
+    return onProcessor;
+  }
+  const info = gl.getExtension("WEBGL_debug_renderer_info");
+  const renderer = String(
+    info ? gl.getParameter(info.UNMASKED_RENDERER_WEBGL) : gl.getParameter(gl.RENDERER),
+  );
+  onProcessor = /swiftshader|llvmpipe|softpipe|software|basic render/i.test(renderer);
+  return onProcessor;
+}
+
 export function mountAmbient(host: HTMLElement) {
-  if (live?.host === host && host.isConnected) return;
+  // This module loads on idle, so the page it was asked for may be gone by now. A header that has
+  // left the document must not stop the light of the page that replaced it.
+  if (!host.isConnected) return;
+  if (live?.host === host) return;
+  if (drawsOnProcessor()) return;
   teardown();
   const canvas = host.querySelector("canvas");
-  if (!canvas || !host.isConnected) return;
+  if (!canvas) return;
   const gl = canvas.getContext("webgl", {
     antialias: false,
     depth: false,
     stencil: false,
     premultipliedAlpha: true,
-    preserveDrawingBuffer: true,
     powerPreference: "low-power",
+    // A browser that can tell this context would be slow may refuse it; drawsOnProcessor covers
+    // the ones that grant it anyway.
+    failIfMajorPerformanceCaveat: true,
   });
   if (!gl) return;
 
@@ -126,7 +165,7 @@ export function mountAmbient(host: HTMLElement) {
 
   const loop = (now: number) => {
     frame = requestAnimationFrame(loop);
-    if (now - last < FRAME_MS) return;
+    if (now - last < FRAME_DUE_MS) return;
     last = now;
     draw(now);
   };
@@ -144,14 +183,23 @@ export function mountAmbient(host: HTMLElement) {
     }
   };
 
+  /** One frame now: at the present moment where the light may move, at the still frame's otherwise. */
+  const redraw = () => draw(gate.motionAllowed ? performance.now() : t0);
+
   const size = () => {
     const [w, h] = backingSize(host.clientWidth, host.clientHeight);
     if (canvas.width === w && canvas.height === h) return;
     canvas.width = w;
     canvas.height = h;
     gl.viewport(0, 0, w, h);
-    if (!frame) draw(t0);
+    // Setting the size clears the canvas. The loop may skip its next frame, so draw here always;
+    // otherwise a resize or a turned phone shows one empty frame.
+    redraw();
   };
+
+  // While the light is still (reduced motion, off screen, a hidden tab) nothing would repaint it in
+  // the other theme's colours, and the CSS layer under it is hidden once the canvas is live.
+  const themed = new MutationObserver(redraw);
 
   const onLost = (event: Event) => {
     event.preventDefault();
@@ -182,6 +230,9 @@ export function mountAmbient(host: HTMLElement) {
   canvas.addEventListener("webglcontextrestored", onRestored);
   document.addEventListener("visibilitychange", onVisibility);
   motionQuery.addEventListener("change", sync);
+  dataQuery.addEventListener("change", sync);
+  darkQuery.addEventListener("change", redraw);
+  themed.observe(document.documentElement, { attributes: true, attributeFilter: ["data-theme"] });
   seen.observe(host);
   sized.observe(host);
 
@@ -192,10 +243,13 @@ export function mountAmbient(host: HTMLElement) {
       frame = 0;
       seen.disconnect();
       sized.disconnect();
+      themed.disconnect();
       canvas.removeEventListener("webglcontextlost", onLost);
       canvas.removeEventListener("webglcontextrestored", onRestored);
       document.removeEventListener("visibilitychange", onVisibility);
       motionQuery.removeEventListener("change", sync);
+      dataQuery.removeEventListener("change", sync);
+      darkQuery.removeEventListener("change", redraw);
       gl.getExtension("WEBGL_lose_context")?.loseContext();
     },
   };

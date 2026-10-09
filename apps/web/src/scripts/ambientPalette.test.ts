@@ -1,3 +1,5 @@
+import { readFileSync } from "node:fs";
+import { join } from "node:path";
 import { describe, expect, it } from "vitest";
 import { contrastRatio } from "../../../../packages/cover/src/color";
 import { allPalettes } from "../../../../packages/cover/src/palettes";
@@ -49,29 +51,37 @@ describe("ambient light contrast", () => {
   });
 
   for (const mode of ["light", "dark"] as const) {
-    it(`keeps the title and the meta line at 4.5:1 under every palette's light, ${mode} theme`, () => {
+    it(`keeps every kind of text in the header at 4.5:1 under every palette's light, ${mode} theme`, () => {
       const surface = colorOf("semantic.color.surface", mode);
+      // What sits over the light: the title and the meta line. The play chip's accent words would
+      // not hold the ratio on the light theme (4.24 to 4.33 across the palettes), so ambient.css
+      // gives the chip the page's own surface; the test below keeps that rule in place.
       const texts = {
         title: colorOf("semantic.color.on-surface", mode),
         meta: colorOf("semantic.color.on-surface-muted", mode),
       };
-      let worst = { ratio: Number.POSITIVE_INFINITY, where: "" };
+      // Every offender at once, so a tint that is too strong shows how far off it is and where.
+      const tooFaint: string[] = [];
       for (const palette of allPalettes()) {
         for (const color of tintColors(palette.ground, palette.accent, palette.shade, mode)) {
           const blended = blendTint(color, surface, TINT[mode]);
           for (const [role, text] of Object.entries(texts)) {
             const ratio = contrastRatio(text, blended);
-            if (ratio < worst.ratio) worst = { ratio, where: `${palette.id} ${role} ${color}` };
-            expect(ratio, `${palette.id} ${role} over ${color}, ${mode}`).toBeGreaterThanOrEqual(
-              4.5,
-            );
+            if (ratio < 4.5)
+              tooFaint.push(`${palette.id} ${role} over ${color}: ${ratio.toFixed(2)}`);
           }
         }
       }
-      if (process.env.SHOW)
-        throw new Error(`worst ${mode}: ${worst.ratio.toFixed(2)} (${worst.where})`);
+      expect(tooFaint).toEqual([]);
     });
   }
+
+  it("stands the play chip on the page's surface, where its accent words keep their contrast", () => {
+    const css = readFileSync(join(import.meta.dirname, "..", "styles", "ambient.css"), "utf8");
+    expect(css.replace(/\s+/g, " ")).toContain(
+      ":where(.hero) .chip { background-color: var(--color-surface); }",
+    );
+  });
 });
 
 describe("ambient palette", () => {

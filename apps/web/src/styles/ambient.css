@@ -94,6 +94,15 @@
   opacity: 0;
 }
 
+/* The play chip's words are the accent colour, and over a cover's light they fall just short of
+   4.5:1 on the light theme (the title and the meta line hold it; ambientPalette.test.ts proves
+   those). So in a header the chip stands on the page's own surface. Where there is no light it looks
+   as it always did. :where() keeps this rule as light as the chip's own, so the chip's hover,
+   pressed and current fills still win wherever this file lands in the build. */
+:where(.hero) .chip {
+  background-color: var(--color-surface);
+}
+
 @media (forced-colors: active) {
   .ambient {
     display: none;

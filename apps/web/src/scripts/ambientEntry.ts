@@ -2,7 +2,11 @@
 const start = () => {
   const host = document.querySelector<HTMLElement>("[data-ambient]");
   const load = () => import("./ambientLight").then((m) => m.mountAmbient(host as HTMLElement));
-  if (host) "requestIdleCallback" in window ? requestIdleCallback(load, { timeout: 2e3 }) : load();
+  // Safari has no idle callback; a short wait keeps the drawing code out of the page's first moments.
+  if (host)
+    "requestIdleCallback" in window
+      ? requestIdleCallback(load, { timeout: 2e3 })
+      : setTimeout(load, 200);
 };
 start();
 document.addEventListener("astro:page-load", start);
