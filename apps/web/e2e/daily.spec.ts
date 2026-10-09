@@ -76,7 +76,7 @@ test.describe("daily podcast", () => {
     await expect(page.getByText("Stockholm time")).toBeVisible();
     await expect(page.getByLabel("How often")).toHaveValue("2");
     await expect(page.getByRole("radio", { name: "Readout" })).toBeChecked();
-    await expect(page.getByRole("radio", { name: "10 min" })).toBeChecked();
+    await expect(page.getByRole("radio", { name: "10 min", exact: true })).toBeChecked();
     await expect(radio(page, /^Automatic/)).toBeChecked();
     await expect(page.locator("[data-next]")).toHaveText(
       /^Next briefing: about (today|tomorrow|[A-Z][a-z]+day) at 07:00$/,
@@ -227,7 +227,7 @@ test.describe("daily podcast", () => {
     await open(page);
     await radio(page, /^Llama-3\.3-70B-Instruct/).check();
     await expect(barText(page)).toHaveText("1 change");
-    await page.getByRole("radio", { name: "5 min" }).check();
+    await page.getByRole("radio", { name: "5 min", exact: true }).check();
     await expect(barText(page)).toHaveText("2 changes");
     await save(page);
     await expect(barText(page)).toContainText("Saved.");
