@@ -13,7 +13,8 @@
       "!**/playwright-report",
       "!docs/prototype",
       "!**/fixtures",
-      "!package-lock.json"
+      "!package-lock.json",
+      "!state"
     ]
   },
   "formatter": { "enabled": true, "indentStyle": "space", "indentWidth": 2, "lineWidth": 100 },
