@@ -1,0 +1,83 @@
+---
+import type { ManageSource } from "../lib/manage";
+import Icon from "./Icon.astro";
+import StarMeter from "./StarMeter.astro";
+
+interface Props {
+  source: ManageSource;
+}
+
+const { source } = Astro.props;
+const letter = (source.name.match(/[\p{L}\p{N}]/u)?.[0] ?? "?").toUpperCase();
+// The filter bands: Good is 4 and up, Fair 3 to 4, Poor under 3, New has no score yet.
+const band =
+  source.score === null ? "new" : source.score >= 4 ? "good" : source.score >= 3 ? "fair" : "poor";
+---
+
+{/* One source under its topic. The icon is the site's own, drawn over a letter that stays if it
+     never loads (topicsPage.ts marks it loaded). Removing is switching it off, so a source that is
+     already off shows a switch instead, to turn it back on. */}
+<li
+  class="source-row"
+  data-id={source.id}
+  data-band={band}
+  data-score={source.score ?? -1}
+  data-name={source.name.toLowerCase()}
+  data-off={source.enabled ? undefined : ""}
+>
+  <span class="source-icon" aria-hidden="true">
+    <span class="source-letter">{letter}</span>
+    {
+      source.favicon_url && (
+        <img
+          src={`/api/site-icon?url=${encodeURIComponent(source.favicon_url)}`}
+          alt=""
+          width="20"
+          height="20"
+          loading="lazy"
+          decoding="async"
+          referrerpolicy="no-referrer"
+          data-favicon
+        />
+      )
+    }
+  </span>
+  <span class="source-text">
+    <span class="source-name" id={`source-${source.id}`}>{source.name}</span>
+    <span class="source-host">{source.host}</span>
+  </span>
+  {
+    source.enabled ? (
+      <StarMeter score={source.score} label={source.score_label} />
+    ) : (
+      <span class="score"><span class="score-label">Off</span></span>
+    )
+  }
+  {
+    source.enabled ? (
+      <button
+        class="icon-btn source-remove press"
+        type="button"
+        aria-pressed="false"
+        aria-label={`Remove ${source.name}`}
+        data-label={`Remove ${source.name}`}
+        data-label-undo={`Keep ${source.name}`}
+        data-op={JSON.stringify({ op: "source.set", id: source.id, enabled: false })}
+        data-remove
+      >
+        <Icon name="trash" />
+        <span class="source-undo">Undo</span>
+      </button>
+    ) : (
+      <input
+        class="settings-switch"
+        type="checkbox"
+        role="switch"
+        autocomplete="off"
+        aria-label={`Turn on ${source.name}`}
+        data-op={JSON.stringify({ op: "source.set", id: source.id, enabled: true })}
+        data-field="enabled"
+      />
+    )
+  }
+</li>

@@ -9,6 +9,9 @@
       "feed_url": "https://sounddesk.example/feed.xml",
       "tier": "daily",
       "high_signal": false,
+      "topic_ids": [
+        "audio_interfaces"
+      ],
       "enabled": true,
       "failures": 0,
       "options": {}

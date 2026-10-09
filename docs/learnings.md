@@ -77,6 +77,7 @@ One line each: symptom, cause, fix. Newest first. Search before debugging.
 - 2026-10-08: during a view transition the page is drawn as images in an overlay that takes the pointer, so the cursor flickers to the arrow over a link and a press is lost. `::view-transition { pointer-events: none; }` fixes it; a style test keeps the rule.
 - 2026-10-08: a tab left open across a deploy asks for lazy script files the deploy removed; the player's controls and narration then fail quietly. Listen for `vite:preloadError`, drop saved pages and reload once, but not while offline.
 - 2026-10-08: the service worker followed script imports only three levels deep when saving the shell, so each new lazy import pushed another file out of the offline copy and broke the offline specs. Follow them deep (six) and bump the cache version.
+- 2026-10-10: the bundler writes a lazy import with a backtick quote (import(`./x.js`)), which the service worker's reference patterns missed, so the lazy file was not saved. The patterns accept backticks now; VERSION v5.
 - 2026-10-08: a background request made on page load (the narration prewarm) reaches the fixture server in every browser test and fails the "no console errors" rule. Decide how the fixture answers it before merging.
 - 2026-10-08: `getByRole("button", { name: "All" })` matched "Gallery view". Use `exact: true` for short names.
 - 2026-10-08: a glyph listed only for the lazy icon set renders nothing through the eager `Icon`; `tsc` passes and only `astro check` catches it. Run `astro check` before a PR: CI does not.

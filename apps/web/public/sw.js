@@ -14,7 +14,7 @@
  *     Safari playback, so audio, ranged requests and cross-origin requests all pass straight through.
  *   - Bump VERSION when this file's logic changes; activation removes caches from older versions.
  */
-const VERSION = "v4";
+const VERSION = "v5";
 const SHELL_CACHE = `dispatch-shell-${VERSION}`;
 const PAGES_CACHE = `dispatch-pages-${VERSION}`;
 const MEDIA_CACHE = `dispatch-media-${VERSION}`;
@@ -41,10 +41,11 @@ const AUDIO_PATH = /\.(mp3|m4a|aac|wav|ogg|opus|flac)$/i;
 function referencedAssets(text, baseUrl) {
   const found = new Set();
   const patterns = [
-    /["'(]\s*((?:\/|\.\/|\.\.\/)[^"')\s]*?\.(?:css|js|woff2|png|svg))/g,
-    /\bfrom\s*["']([^"']+\.js)["']/g,
-    /\bimport\s*\(\s*["']([^"']+\.js)["']\s*\)/g,
-    /\bimport\s*["']([^"']+\.js)["']/g,
+    // The bundler writes a literal import with a backtick quote as often as with a plain one.
+    /["'`(]\s*((?:\/|\.\/|\.\.\/)[^"'`)\s]*?\.(?:css|js|woff2|png|svg))/g,
+    /\bfrom\s*["'`]([^"'`]+\.js)["'`]/g,
+    /\bimport\s*\(\s*["'`]([^"'`]+\.js)["'`]\s*\)/g,
+    /\bimport\s*["'`]([^"'`]+\.js)["'`]/g,
   ];
   for (const pattern of patterns) {
     for (const match of text.matchAll(pattern)) {

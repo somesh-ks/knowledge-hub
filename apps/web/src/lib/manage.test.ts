@@ -7,6 +7,7 @@ import {
   buildCandidates,
   buildSources,
   fallbackTopics,
+  faviconOf,
   hostOf,
   humanize,
   loadManage,
@@ -227,6 +228,37 @@ describe("buildSources", () => {
     expect(byId["off-blog"]?.enabled).toBe(true);
     expect(byId["alpha-blog"]?.enabled).toBe(false);
     expect(byId["gone-blog"]).toBeUndefined();
+  });
+
+  it("names the topic a source feeds and the icon at its host", () => {
+    const rows = buildSources({
+      registry: {
+        sources: [
+          { id: "a", name: "A", url: "https://www.a.example/x", category_hint: "cat" },
+          {
+            id: "b",
+            name: "B",
+            url: "https://b.example/",
+            topic_ids: ["mine"],
+            category_hint: "cat",
+          },
+          { id: "c", name: "C", url: "https://c.example/" },
+        ],
+      },
+      user: null,
+      stats: null,
+      health: null,
+    });
+    const byId = Object.fromEntries(rows.map((row) => [row.id, row]));
+    expect(byId.a).toMatchObject({
+      topic_id: "cat",
+      favicon_url: "https://www.a.example/favicon.ico",
+    });
+    expect(byId.b?.topic_id).toBe("mine");
+    expect(byId.c?.topic_id).toBeNull();
+    expect(faviconOf("not a url")).toBeNull();
+    expect(faviconOf("ftp://a.example/")).toBeNull();
+    expect(faviconOf(null)).toBeNull();
   });
 
   it("works with no user file at all", () => {

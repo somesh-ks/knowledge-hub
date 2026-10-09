@@ -9,6 +9,7 @@
       "feed_url": "https://www.studio-notes.example/feed.xml",
       "tier": "daily",
       "high_signal": true,
+      "category_hint": "design_engineering_craft",
       "enabled": true,
       "failures": 0,
       "options": {}
@@ -21,6 +22,7 @@
       "feed_url": "https://model-ledger.example/rss",
       "tier": "daily",
       "high_signal": true,
+      "category_hint": "frontier_model_releases",
       "enabled": true,
       "failures": 0,
       "options": {}
@@ -57,6 +59,7 @@
       "feed_url": null,
       "tier": "daily",
       "high_signal": false,
+      "category_hint": "trending_news",
       "enabled": true,
       "failures": 4,
       "options": {}
@@ -69,6 +72,7 @@
       "feed_url": "https://typeandgrid.example/feed",
       "tier": "daily",
       "high_signal": false,
+      "category_hint": "product_design",
       "enabled": true,
       "failures": 0,
       "options": {}

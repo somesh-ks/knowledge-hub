@@ -1,0 +1,271 @@
+---
+import Icon from "../../../components/Icon.astro";
+import ManageChrome from "../../../components/ManageChrome.astro";
+import PodcastTabs from "../../../components/PodcastTabs.astro";
+import SourceRow from "../../../components/SourceRow.astro";
+import SourceSheet from "../../../components/SourceSheet.astro";
+import BaseLayout from "../../../layouts/BaseLayout.astro";
+import { loadManage, type ManageSource } from "../../../lib/manage";
+// The switch and the slider are the settings page's own; the form fields, the bar of unsaved changes
+// and the passphrase dialog are manage.css; the rows, stars and filters are topics.css.
+import "../../../styles/settings.css";
+import "../../../styles/manage.css";
+import "../../../styles/podcast-tabs.css";
+import "../../../styles/topics.css";
+
+const { topics, sources } = await loadManage();
+// A topic that never publishes has nothing to turn on or weigh, so it comes last and stays plain.
+const editable = topics.filter((topic) => !topic.never_publish);
+const fixed = topics.filter((topic) => topic.never_publish);
+const known = new Set(topics.map((topic) => topic.id));
+
+/** Best first: a score before none, then the name. The page's script re-sorts by name on request. */
+const byScore = (a: ManageSource, b: ManageSource): number =>
+  (b.score ?? -1) - (a.score ?? -1) || a.name.localeCompare(b.name, "en");
+const under = (id: string): ManageSource[] =>
+  sources.filter((source) => source.topic_id === id).sort(byScore);
+const other = sources
+  .filter((source) => !source.topic_id || !known.has(source.topic_id))
+  .sort(byScore);
+
+/** The slider moves in twentieths; a stored weight is shown at the nearest one. */
+const WEIGHT_STEP = 0.05;
+const snap = (weight: number): number => Math.round(weight / WEIGHT_STEP) * WEIGHT_STEP;
+const percent = (weight: number): string => `${Math.round(snap(weight) * 100)}%`;
+
+const bands = [
+  { id: "all", label: "All" },
+  { id: "good", label: "Good 4+" },
+  { id: "fair", label: "Fair 3 to 4" },
+  { id: "poor", label: "Poor under 3" },
+  { id: "new", label: "New" },
+];
+---
+
+<BaseLayout title="Topics & sources" view="settings" skipLabel="Skip to the topics">
+  <main id="main" tabindex="-1">
+    {/* Every topic and source is static HTML with its current state written in, so the page reads with
+         scripts off. topicsPage.ts does the filtering at once; the editor, which records a change and
+         sends it on Save, and the Add source panel load on first use. */}
+    <div
+      class="manage topics"
+      data-topics
+      data-taken={topics.map((topic) => topic.id).join(" ")}
+    >
+      <a class="btn manage-back press press-subtle" href="/settings">
+        <Icon name="arrowBack" />
+        <span>Settings</span>
+      </a>
+      <h1 class="page-title manage-title" id="page-title" tabindex="-1">Podcast</h1>
+      <PodcastTabs active="topics" />
+      <button class="btn-primary topics-add-source press press-subtle" type="button" data-add-source="" data-needs-js>
+          <Icon name="plus" class="icon-lg" />
+          <span>Add source</span>
+        </button>
+      <noscript>
+        <p class="manage-note">Changing topics and sources needs JavaScript, which is turned off in this browser.</p>
+      </noscript>
+
+      <fieldset class="manage-fields" data-fields>
+        <legend class="sr-only">Topics and sources</legend>
+
+        <ul class="rows manage-queued" role="list" data-queued aria-label="Waiting to be saved"></ul>
+
+        <div class="topics-filters library-bar" data-needs-js>
+          <div class="filter-chips" role="group" aria-label="Show sources with score">
+            {
+              bands.map((band) => (
+                <button
+                  class="filter-chip"
+                  type="button"
+                  aria-pressed={band.id === "all" ? "true" : "false"}
+                  data-band-filter={band.id}
+                >
+                  {band.label}
+                </button>
+              ))
+            }
+          </div>
+          <label class="sort-field">
+            <span class="sr-only">Sort sources</span>
+            <select data-sort>
+              <option value="score">Score</option>
+              <option value="name">Name</option>
+            </select>
+            <Icon name="chevronDown" />
+          </label>
+        </div>
+
+        <ul class="topics-list" role="list">
+          {
+            editable.map((topic, index) => (
+              <li class="topic" data-id={topic.id}>
+                <div class="topic-head">
+                  <h2 class="topic-name" id={`name-${topic.id}`}>{topic.name}</h2>
+                  <span class="topic-flag manage-quiet">Removed when you save</span>
+                  <input
+                    class="settings-switch"
+                    type="checkbox"
+                    role="switch"
+                    autocomplete="off"
+                    checked={topic.enabled}
+                    aria-labelledby={`name-${topic.id}`}
+                    data-op={JSON.stringify({
+                      op: "topic.upsert",
+                      topic: {
+                        id: topic.id,
+                        name: topic.name,
+                        description: topic.description,
+                        weight: topic.weight,
+                        enabled: topic.enabled,
+                        keywords: topic.keywords,
+                        section_id: topic.section_id,
+                      },
+                    })}
+                    data-field="topic.enabled"
+                  />
+                  {topic.origin === "custom" && (
+                    <button
+                      class="icon-btn manage-remove topic-remove press"
+                      type="button"
+                      aria-pressed="false"
+                      aria-label={`Remove ${topic.name}`}
+                      data-label={`Remove ${topic.name}`}
+                      data-label-undo={`Keep ${topic.name}`}
+                      data-op={JSON.stringify({ op: "topic.remove", id: topic.id })}
+                      data-remove
+                    >
+                      <Icon name="trash" />
+                    </button>
+                  )}
+                </div>
+                <div class="topic-weight">
+                  <label class="topic-weight-label" for={`weight-${topic.id}`}>Weight</label>
+                  <input
+                    class="settings-range"
+                    id={`weight-${topic.id}`}
+                    type="range"
+                    min="0"
+                    max="1"
+                    step={WEIGHT_STEP}
+                    value={snap(topic.weight).toFixed(2)}
+                    autocomplete="off"
+                    aria-valuetext={percent(topic.weight)}
+                    aria-describedby={index === 0 ? "weight-hint" : undefined}
+                    style={`--range-fill: ${snap(topic.weight) * 100}%`}
+                    data-op={JSON.stringify({ op: "weights.set", weights: {} })}
+                    data-field={`weights.${topic.id}`}
+                    data-weight
+                  />
+                  <output class="topic-percent" for={`weight-${topic.id}`} data-word>{percent(topic.weight)}</output>
+                </div>
+                {index === 0 && <p class="topic-hint manage-quiet" id="weight-hint">A hint. Each briefing still follows the news.</p>}
+                <ul class="topic-sources" role="list" data-sources aria-label={`${topic.name} sources`}>
+                  {under(topic.id).map((source) => <SourceRow source={source} />)}
+                </ul>
+                <button
+                  class="btn topic-add-source press press-subtle"
+                  type="button"
+                  aria-label={`Add source to ${topic.name}`}
+                  data-add-source={topic.id}
+                  data-needs-js
+                >
+                  <Icon name="plus" />
+                  <span>Add source</span>
+                </button>
+              </li>
+            ))
+          }
+          {
+            fixed.map((topic) => (
+              <li class="topic topic-fixed" data-id={topic.id}>
+                <div class="topic-head">
+                  <h2 class="topic-name">{topic.name}</h2>
+                  <span class="manage-quiet">Never in a briefing</span>
+                </div>
+                {under(topic.id).length > 0 && (
+                  <ul class="topic-sources" role="list" data-sources aria-label={`${topic.name} sources`}>
+                    {under(topic.id).map((source) => <SourceRow source={source} />)}
+                  </ul>
+                )}
+              </li>
+            ))
+          }
+          <li class="topic topic-other" data-id="">
+            <div class="topic-head">
+              <h2 class="topic-name">Other</h2>
+              <span class="manage-quiet">No topic yet</span>
+            </div>
+            <ul class="topic-sources" role="list" data-sources aria-label="Other sources">
+              {other.map((source) => <SourceRow source={source} />)}
+            </ul>
+          </li>
+        </ul>
+
+        <details class="manage-add topics-add-topic" id="add-topic" data-needs-js>
+          <summary class="btn press press-subtle">
+            <Icon name="plus" />
+            <span>Add topic</span>
+          </summary>
+          <form class="manage-form" data-add="topic" aria-label="Add a topic" novalidate>
+            <div class="manage-field">
+              <label for="topic-name">Name</label>
+              <input
+                class="manage-input"
+                id="topic-name"
+                name="name"
+                type="text"
+                required
+                maxlength="60"
+                autocomplete="off"
+                aria-describedby="topic-name-error"
+              />
+              <p class="manage-error" id="topic-name-error" role="alert" data-error="name" hidden>
+                <Icon name="alert" /><span></span>
+              </p>
+            </div>
+            <div class="manage-field">
+              <label for="topic-description">What should count as this topic</label>
+              <textarea
+                class="manage-input"
+                id="topic-description"
+                name="description"
+                required
+                maxlength="400"
+                rows="3"
+                aria-describedby="topic-description-error"></textarea>
+              <p class="manage-error" id="topic-description-error" role="alert" data-error="description" hidden>
+                <Icon name="alert" /><span></span>
+              </p>
+            </div>
+            <div class="manage-field">
+              <label for="topic-keywords">Keywords, separated by commas (optional)</label>
+              <input
+                class="manage-input"
+                id="topic-keywords"
+                name="keywords"
+                type="text"
+                maxlength="400"
+                autocomplete="off"
+                autocapitalize="none"
+              />
+            </div>
+            <button class="btn-primary manage-submit press press-subtle" type="submit">
+              <Icon name="plus" />
+              <span>Add topic</span>
+            </button>
+          </form>
+        </details>
+      </fieldset>
+
+      <ManageChrome />
+      <SourceSheet topics={editable.map((topic) => ({ id: topic.id, name: topic.name }))} />
+    </div>
+  </main>
+</BaseLayout>
+
+<script>
+  import { installTopicsPage } from "../../../scripts/topicsPage";
+
+  installTopicsPage();
+</script>
