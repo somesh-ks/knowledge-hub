@@ -219,10 +219,9 @@ export function openSourceSheet(trigger: HTMLElement | null, onAdd: (pick: Chose
     () => {
       clearTimeout(timer);
       seq += 1;
-      removeEventListener("dispatch:back", onBack);
       if (trigger?.isConnected) trigger.focus();
       sheet.remove();
-      // Closed any other way: give the entry back. The pop this causes is swallowed too.
+      // Closed any other way: give the entry back. The pop this causes reaches onBack, which swallows it.
       if (entry) history.go(-1);
     },
     { once: true },

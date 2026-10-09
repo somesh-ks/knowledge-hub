@@ -19,6 +19,18 @@ export const test = base.extend<Options & { problems: Problems }>({
   problems: [
     async ({ page, allowNetworkErrors }, use) => {
       const problems: Problems = { messages: [] };
+      // The sources' own icons (https://<host>/favicon.ico) are on invented hosts; a one-pixel image
+      // answers them, so the page is not blamed for a network that is not there.
+      await page.route("https://**/favicon.ico", (route) =>
+        route.fulfill({
+          status: 200,
+          contentType: "image/png",
+          body: Buffer.from(
+            "iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNkYPhfDwAChwGA60e6kgAAAABJRU5ErkJggg==",
+            "base64",
+          ),
+        }),
+      );
       // A page the test asks for on purpose and that answers 404 logs one console line for itself.
       const expectedNotFound = new Set<string>();
       page.on("response", (response) => {

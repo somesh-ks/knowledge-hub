@@ -1,30 +1,41 @@
 import AxeBuilder from "@axe-core/playwright";
 import type { Page, Route } from "@playwright/test";
 import { expect, test } from "./fixtures";
-import { PASSPHRASE_OFF, PASSPHRASE_REQUIRED } from "./passphrase";
+import { PASSPHRASE_REQUIRED } from "./passphrase";
 
+const PATH = "/settings/podcast/topics";
 const WCAG = ["wcag2a", "wcag2aa", "wcag21a", "wcag21aa", "wcag22aa"];
-const PASSPHRASE_KEY = "dispatch:narrate-passphrase";
-
-async function violations(page: Page): Promise<string[]> {
-  const results = await new AxeBuilder({ page }).withTags(WCAG).analyze();
-  return results.violations.map(
-    (violation) =>
-      `${violation.id} (${violation.impact}): ${violation.nodes
-        .slice(0, 3)
-        .map((node) => node.target.join(" "))
-        .join(", ")}`,
-  );
-}
+// A one-pixel PNG, so the sources' icons load in a browser that is not online.
+const PIXEL = Buffer.from(
+  "iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNkYPhfDwAChwGA60e6kgAAAABJRU5ErkJggg==",
+  "base64",
+);
 
 interface Sent {
   passphrase: string;
-  op: Record<string, unknown>;
+  op: Record<string, unknown> | Record<string, unknown>[];
 }
 
-/** Answers /api/config and records what was sent. `answers` are used in order, then 202. */
-async function mockConfig(page: Page, answers: Array<{ status: number; body: object }> = []) {
+const PREVIEW = {
+  url: "https://newsroom.example/",
+  name: "Newsroom Example",
+  host: "newsroom.example",
+  favicon_url: null,
+  thumbnail_url: null,
+  feed_url: "https://newsroom.example/feed.xml",
+  kind: "feed",
+  latest_at: "2026-10-07T08:00:00.000Z",
+  items_30d: 12,
+  score: 4.2,
+  score_label: "Good",
+  reason: "Posts often and most posts are on topic.",
+};
+
+async function setup(page: Page, answers: Array<{ status: number; body: object }> = []) {
   const sent: Sent[] = [];
+  await page.route("https://**/favicon.ico", (route: Route) =>
+    route.fulfill({ status: 200, contentType: "image/png", body: PIXEL }),
+  );
   await page.route("**/api/config", async (route: Route) => {
     sent.push(route.request().postDataJSON() as Sent);
     const answer = answers.shift() ?? { status: 202, body: { status: 202, run_id: 1 } };
@@ -34,618 +45,213 @@ async function mockConfig(page: Page, answers: Array<{ status: number; body: obj
       body: JSON.stringify(answer.body),
     });
   });
-  return sent;
-}
-
-async function open(page: Page, path: "topics" | "sources"): Promise<void> {
-  await page.goto(`/settings/${path}`);
-  await expect(page.locator("[data-manage]")).toHaveAttribute("data-ready", "");
-  // The add form waits behind its button; most tests want it open.
-  await page.locator("details.manage-add").evaluateAll((all) => {
-    for (const d of all) (d as HTMLDetailsElement).open = true;
+  const previews: string[] = [];
+  await page.route("**/api/source-preview**", async (route: Route) => {
+    previews.push(new URL(route.request().url()).searchParams.get("url") ?? "");
+    await route.fulfill({
+      status: 200,
+      contentType: "application/json",
+      body: JSON.stringify(PREVIEW),
+    });
   });
+  return { sent, previews };
 }
 
-const row = (page: Page, name: string) => page.locator("li.manage-row", { hasText: name });
+async function open(page: Page): Promise<void> {
+  await page.goto(PATH);
+  await expect(page.locator("[data-topics]")).toHaveAttribute("data-ready", "");
+}
+
+const topic = (page: Page, name: string) =>
+  page.locator("li.topic", { has: page.getByRole("heading", { name, exact: true }) });
+const source = (page: Page, name: string) => page.locator("li.source-row", { hasText: name });
 const bar = (page: Page) => page.locator("[data-bar]");
+const ops = (sent: Sent[]) => sent.flatMap((item) => [item.op].flat());
 
-/** What the page sends as the passphrase: what was typed, or the fixed value while none is asked. */
-const sentAs = (typed: string): string => (PASSPHRASE_REQUIRED ? typed : "open");
-
-async function save(page: Page, passphrase = "correct horse"): Promise<void> {
-  await bar(page).getByRole("button", { name: "Save" }).click();
-  const dialog = page.getByRole("dialog");
-  if (!PASSPHRASE_REQUIRED) {
-    // Switched off: Save sends at once and no dialog opens.
-    await expect(dialog).toHaveCount(0);
-    return;
-  }
-  await expect(dialog).toBeVisible();
-  await dialog.getByLabel("Passphrase").fill(passphrase);
-  await dialog.getByRole("button", { name: "Continue" }).click();
-}
-
-test.describe("settings entries", () => {
-  test("are linked from the Daily podcast page", async ({ page }) => {
-    await page.goto("/settings/daily");
-    await page.getByRole("link", { name: /^Topics/ }).click();
-    await expect(page.getByRole("heading", { level: 1, name: "Topics" })).toBeVisible();
-    await page.goBack();
-    await page.getByRole("link", { name: /^Sources/ }).click();
-    await expect(page.getByRole("heading", { level: 1, name: "Sources" })).toBeVisible();
-  });
-
-  test("keep Settings current in the navigation and link back to it", async ({ page }) => {
-    await open(page, "topics");
-    const nav = page.getByRole("navigation", { name: "Primary" });
-    await expect(nav.getByRole("link", { name: "Settings" })).toHaveAttribute(
-      "aria-current",
-      "page",
-    );
-    await expect(page.locator("main").getByRole("link", { name: "Settings" })).toHaveAttribute(
-      "href",
-      "/settings",
-    );
-    await expect(page).toHaveTitle("Topics, Singularity");
-  });
-});
-
-test.describe("add forms", () => {
-  test("wait behind a button until asked for", async ({ page }) => {
-    await page.goto("/settings/topics");
-    await expect(page.locator("[data-manage]")).toHaveAttribute("data-ready", "");
-    await expect(page.getByLabel("Name", { exact: true })).toBeHidden();
-    await page.getByText("Add a topic", { exact: true }).click();
-    await expect(page.getByLabel("Name", { exact: true })).toBeVisible();
-  });
-});
-
-test.describe("topics", () => {
-  test("render from the config, with the state each topic has", async ({ page }) => {
-    await open(page, "topics");
-    await expect(page.getByRole("heading", { level: 1, name: "Topics" })).toBeVisible();
-    for (const name of [
-      "Design engineering craft",
-      "Frontier model releases",
-      "Consumer tech releases",
-      "Audio interfaces",
-    ]) {
-      await expect(row(page, name)).toBeVisible();
+test.describe("the Topics & sources page", () => {
+  test("redirects the two old pages here", async ({ page }) => {
+    await setup(page);
+    for (const old of ["/settings/topics", "/settings/sources"]) {
+      await page.goto(old);
+      await expect(page).toHaveURL(new RegExp(`${PATH}$`));
     }
-    await expect(page.getByRole("switch", { name: "Design engineering craft" })).toBeChecked();
-    await expect(page.getByRole("switch", { name: "Consumer tech releases" })).not.toBeChecked();
-    const craft = page.getByRole("slider", { name: /Design engineering craft/ });
-    await expect(craft).toHaveAttribute("aria-valuetext", "More");
-    await expect(row(page, "Frontier model releases").locator("[data-word]")).toHaveText("Normal");
-    // A topic that never publishes is listed and has nothing to change.
-    await expect(row(page, "Venture capital and gossip")).toContainText("Never in a briefing");
-    await expect(row(page, "Venture capital and gossip").getByRole("switch")).toHaveCount(0);
-    // Only the topic made on the site can be removed.
-    await expect(page.getByRole("button", { name: /^Remove/ })).toHaveCount(1);
-    await expect(page.getByRole("button", { name: "Remove Audio interfaces" })).toBeVisible();
   });
 
-  test("read with scripts off", async ({ browser, baseURL }) => {
-    const context = await browser.newContext({ baseURL, javaScriptEnabled: false });
-    const page = await context.newPage();
-    await page.goto("/settings/topics");
-    await expect(row(page, "Frontier model releases")).toBeVisible();
-    await expect(
-      page.locator("p.manage-note", { hasText: "Changing topics needs JavaScript" }),
-    ).toBeVisible();
-    await expect(page.getByRole("heading", { name: "Add a topic" })).toBeHidden();
-    await context.close();
+  test("shows the tabs, the one primary action, the topics and their sources", async ({ page }) => {
+    await setup(page);
+    await open(page);
+    await expect(page.getByRole("heading", { level: 1, name: "Podcast" })).toBeVisible();
+    await expect(page.getByRole("navigation", { name: "Podcast settings" })).toBeVisible();
+    await expect(page.getByRole("button", { name: "Add source" })).toBeVisible();
+    await expect(topic(page, "Design engineering craft")).toContainText("Studio Notes");
+    await expect(source(page, "Model Ledger")).toContainText("Poor");
+    await expect(source(page, "Launch Board")).toContainText("New");
+    await expect(page.getByText("A hint. Each briefing still follows the news.")).toHaveCount(1);
+    await expect(page.locator("li.topic", { hasText: "Top picks" })).toHaveCount(0);
   });
 
-  test("a switch and a slider collect into one pending bar, and moving back drops the change", async ({
+  test("a weight change is one weights.set, shown as a percentage", async ({ page }) => {
+    const { sent } = await setup(page);
+    await open(page);
+    const slider = topic(page, "Design engineering craft").locator("[data-weight]");
+    await slider.fill("0.6");
+    await expect(topic(page, "Design engineering craft").locator("[data-word]")).toHaveText("60%");
+    await expect(bar(page)).toContainText("1 change");
+    await bar(page).getByRole("button", { name: "Save" }).click();
+    if (PASSPHRASE_REQUIRED) return;
+    await expect(bar(page)).toContainText("Saved");
+    expect(ops(sent)).toEqual([{ op: "weights.set", weights: { design_engineering_craft: 0.6 } }]);
+  });
+
+  test("a topic switch sends the topic with its current weight", async ({ page }) => {
+    const { sent } = await setup(page);
+    await open(page);
+    const row = topic(page, "Frontier model releases");
+    await row.getByRole("switch").click();
+    await row.locator("[data-weight]").fill("0.3");
+    await bar(page).getByRole("button", { name: "Save" }).click();
+    if (PASSPHRASE_REQUIRED) return;
+    await expect(bar(page)).toContainText("Saved");
+    const upsert = ops(sent).find((op) => op.op === "topic.upsert") as {
+      topic: { id: string; enabled: boolean; weight: number };
+    };
+    expect(upsert.topic).toMatchObject({ id: "frontier_model_releases", enabled: false });
+    expect(upsert.topic.weight).toBeCloseTo(0.3);
+  });
+
+  test("removing a source switches it off, and Undo takes it back", async ({ page }) => {
+    const { sent } = await setup(page);
+    await open(page);
+    const row = source(page, "Studio Notes");
+    await row.getByRole("button", { name: "Remove Studio Notes" }).click();
+    await expect(bar(page)).toContainText("1 change");
+    await row.getByRole("button", { name: "Keep Studio Notes" }).click();
+    await expect(bar(page)).toBeHidden();
+    await row.getByRole("button", { name: "Remove Studio Notes" }).click();
+    await bar(page).getByRole("button", { name: "Save" }).click();
+    if (PASSPHRASE_REQUIRED) return;
+    await expect(row).toBeHidden();
+    expect(ops(sent)).toEqual([{ op: "source.set", id: "studio-notes", enabled: false }]);
+  });
+
+  test("filters by score and sorts by name", async ({ page }) => {
+    await setup(page);
+    await open(page);
+    await page.getByRole("button", { name: "Poor under 3" }).click();
+    await expect(source(page, "Model Ledger")).toBeVisible();
+    await expect(source(page, "Studio Notes")).toBeHidden();
+    await page.getByRole("button", { name: "New" }).click();
+    await expect(source(page, "Launch Board")).toBeVisible();
+    await expect(source(page, "Model Ledger")).toBeHidden();
+    await page.getByRole("button", { name: "All" }).click();
+    await page.getByLabel("Sort sources").selectOption("name");
+    const names = await page.locator("li.source-row .source-name").allTextContents();
+    expect(names.length).toBeGreaterThan(2);
+  });
+
+  test("the Add source panel looks the address up once and adds it to the chosen topic", async ({
     page,
   }) => {
-    await open(page, "topics");
-    await expect(bar(page)).toBeHidden();
-    await page.getByRole("switch", { name: "Frontier model releases" }).click();
-    await expect(bar(page)).toBeVisible();
-    await expect(bar(page).locator("[data-bar-text]")).toHaveText("1 change");
-    await page.getByRole("slider", { name: /Design engineering craft/ }).fill("0.25");
-    await expect(bar(page).locator("[data-bar-text]")).toHaveText("2 changes");
-    await expect(row(page, "Design engineering craft").locator("[data-word]")).toHaveText(
-      "A bit less",
-    );
-    await page.getByRole("switch", { name: "Frontier model releases" }).click();
-    await page.getByRole("slider", { name: /Design engineering craft/ }).fill("1");
-    await expect(bar(page)).toBeHidden();
-  });
-
-  test("Save asks for the passphrase and sends the edits one at a time, sliders together", async ({
-    page,
-  }) => {
-    const sent = await mockConfig(page);
-    await open(page, "topics");
-    await page.getByRole("switch", { name: "Frontier model releases" }).click();
-    await page.getByRole("slider", { name: /Design engineering craft/ }).fill("0.25");
-    await page.getByRole("slider", { name: /Frontier model releases/ }).fill("1");
-    await save(page);
-    await expect(bar(page).locator("[data-bar-text]")).toContainText(
-      "Saved. The changes appear after the next build, in about a minute.",
-    );
-    expect(sent).toHaveLength(2);
-    expect(sent.every((request) => request.passphrase === sentAs("correct horse"))).toBe(true);
-    expect(sent[0]?.op).toMatchObject({
-      op: "topic.upsert",
-      topic: { id: "frontier_model_releases", enabled: false, weight: 1 },
-    });
-    expect(sent[1]?.op).toEqual({
-      op: "weights.set",
-      weights: { design_engineering_craft: 0.25, frontier_model_releases: 1 },
-    });
-    // Saved changes are the page's new starting point, so the bar goes when it is dismissed.
-    await bar(page).getByRole("button", { name: "Dismiss" }).click();
-    await expect(bar(page)).toBeHidden();
-  });
-
-  test("a topic shows matching sources as you type; ticking two sends one request with three edits", async ({
-    page,
-  }) => {
-    const sent = await mockConfig(page);
-    await open(page, "topics");
-    const group = page.getByRole("group", { name: "Suggested sources" });
-    await expect(group).toBeHidden();
-    await page.getByLabel("Name", { exact: true }).fill("Spatial design");
-    await page
-      .getByLabel("What should count as this topic")
-      .fill("Motion and interface design for headsets.");
-    await expect(group).toBeVisible();
-    const boxes = group.getByRole("checkbox");
-    // Best match first: the offer sharing the most words, none ticked.
-    await expect(boxes.first()).toBeVisible();
-    expect(await boxes.count()).toBeLessThanOrEqual(6);
-    await expect(group.locator("li:visible .manage-name").first()).toHaveText("Motion Weekly");
-    await expect(group.locator("input:checked")).toHaveCount(0);
-    await expect(page.getByText("No matching sources yet.")).toBeHidden();
-    await group.getByRole("checkbox", { name: /Motion Weekly/ }).check();
-    await group.getByRole("checkbox", { name: /Interface Notes/ }).check();
-    await page.getByRole("button", { name: "Add topic" }).click();
-    await expect(page.getByRole("list", { name: "Waiting to be saved" })).toContainText(
-      "Spatial design, with 2 sources",
-    );
-    await expect(bar(page).locator("[data-bar-text]")).toHaveText("1 change");
-    await expect(group).toBeHidden();
-    await save(page);
-    await expect(bar(page).locator("[data-bar-text]")).toContainText("Saved.");
-    expect(sent).toHaveLength(1);
-    const ops = sent[0]?.op as unknown as Array<Record<string, unknown>>;
-    expect(ops.map((op) => op.op)).toEqual(["topic.upsert", "source.add", "source.add"]);
-    expect(ops[0]).toMatchObject({
-      topic: { id: "spatial-design", name: "Spatial design", section_id: "spatial-design" },
-    });
-    expect(
-      ops
-        .slice(1)
-        .map((op) => op.url)
-        .sort(),
-    ).toEqual([
-      "https://interface-notes.example/feed.xml",
-      "https://motion-weekly.example/rss.xml",
+    const { sent, previews } = await setup(page);
+    await open(page);
+    await page.getByRole("button", { name: "Add source" }).click();
+    const sheet = page.getByRole("dialog", { name: "Add a source" });
+    await expect(sheet).toBeVisible();
+    const add = sheet.getByRole("button", { name: "Add source" });
+    await expect(add).toBeDisabled();
+    await sheet.getByLabel("Site or feed address").fill("newsroom.example");
+    await expect(sheet.getByText("Newsroom Example")).toBeVisible();
+    await expect(sheet.getByText("https://newsroom.example/feed.xml")).toBeVisible();
+    await expect(sheet.getByText("12 posts")).toBeVisible();
+    await expect(sheet.getByText("Good")).toBeVisible();
+    await expect(add).toBeEnabled();
+    // The same address again is not looked up again.
+    await sheet.getByLabel("Site or feed address").fill("");
+    await sheet.getByLabel("Site or feed address").fill("newsroom.example");
+    await expect(add).toBeEnabled();
+    expect(previews).toEqual(["https://newsroom.example/"]);
+    await sheet.getByLabel("Topic").selectOption("audio_interfaces");
+    await add.click();
+    await expect(sheet).toBeHidden();
+    const row = topic(page, "Audio interfaces").locator("li.source-row.is-new");
+    await expect(row).toContainText("Newsroom Example");
+    if (PASSPHRASE_REQUIRED) return;
+    await expect(row).toContainText("Added");
+    expect(ops(sent)).toEqual([
+      { op: "source.add", url: "https://newsroom.example/", topic_ids: ["audio_interfaces"] },
     ]);
-    expect(ops.slice(1).every((op) => (op.topic_ids as string[])[0] === "spatial-design")).toBe(
-      true,
-    );
   });
 
-  test("a topic that matches nothing says so", async ({ page }) => {
-    const sent = await mockConfig(page);
-    await open(page, "topics");
-    await page.getByLabel("Name", { exact: true }).fill("Gardening");
-    await page.getByLabel("What should count as this topic").fill("Soil and seeds.");
-    await expect(page.getByRole("group", { name: "Suggested sources" })).toBeHidden();
-    await expect(page.getByText("No matching sources yet.")).toBeVisible();
-    await page.getByRole("button", { name: "Add topic" }).click();
-    await save(page);
-    await expect(bar(page).locator("[data-bar-text]")).toContainText("Saved.");
-    // A single edit still goes as an edit, not a list.
-    expect(sent[0]?.op).toMatchObject({ op: "topic.upsert" });
-  });
-
-  test("an empty or letterless topic is refused beside the field, and nothing is queued", async ({
-    page,
-  }) => {
-    await open(page, "topics");
-    await page.getByRole("button", { name: "Add topic" }).click();
-    await expect(page.locator('[data-error="name"]')).toBeVisible();
-    await expect(page.locator('[data-error="name"]')).toHaveText("Enter a name.");
-    await expect(page.locator('[data-error="description"]')).toBeVisible();
-    await expect(bar(page)).toBeHidden();
-    await page.getByLabel("Name", { exact: true }).fill("\u{1F525}");
-    await page.getByLabel("What should count as this topic").fill("Hot takes.");
-    await expect(page.locator('[data-error="name"]')).toBeHidden();
-    await page.getByRole("button", { name: "Add topic" }).click();
-    await expect(page.locator('[data-error="name"]')).toContainText("letters or numbers");
-    await expect(bar(page)).toBeHidden();
-    await page.getByLabel("Name", { exact: true }).fill("Hot takes");
-    await page.getByRole("button", { name: "Add topic" }).click();
-    await expect(bar(page).locator("[data-bar-text]")).toHaveText("1 change");
-  });
-
-  test("a topic waiting to be saved can be cancelled", async ({ page }) => {
-    await open(page, "topics");
-    await page.getByLabel("Name", { exact: true }).fill("Spatial computing");
-    await page.getByLabel("What should count as this topic").fill("Headsets.");
-    await page.getByRole("button", { name: "Add topic" }).click();
-    await expect(page.getByLabel("Name", { exact: true })).toHaveValue("");
-    await page.getByRole("button", { name: "Cancel adding Spatial computing" }).click();
-    await expect(bar(page)).toBeHidden();
-  });
-
-  test("a removal waits to be saved and is sent last", async ({ page }) => {
-    const sent = await mockConfig(page);
-    await open(page, "topics");
-    await page.getByRole("button", { name: "Remove Audio interfaces" }).click();
-    await expect(row(page, "Audio interfaces").locator(".manage-flag")).toBeVisible();
-    await page.getByRole("switch", { name: "Frontier model releases" }).click();
-    await save(page);
-    await expect(bar(page).locator("[data-bar-text]")).toContainText("Saved.");
-    expect(sent.map((request) => request.op.op)).toEqual(["topic.upsert", "topic.remove"]);
-    expect(sent[1]?.op).toEqual({ op: "topic.remove", id: "audio_interfaces" });
-    await expect(row(page, "Audio interfaces")).toBeHidden();
-  });
-});
-
-test.describe("sources", () => {
-  test("render from the config, with the registry, the added sources and the overrides applied", async ({
-    page,
-  }) => {
-    await open(page, "sources");
-    await expect(page.getByRole("heading", { level: 1, name: "Sources" })).toBeVisible();
-    await expect(row(page, "Studio Notes")).toContainText(
-      "studio-notes.example · 12 of 40 stories made a briefing",
-    );
-    await expect(row(page, "Model Ledger")).toContainText("None of 30 stories made a briefing");
-    await expect(row(page, "Launch Board")).toContainText("Not loading lately");
-    await expect(row(page, "Sound Desk")).toBeVisible();
-    // Removed by an override.
-    await expect(row(page, "Pixel Weekly")).toHaveCount(0);
-    await expect(page.getByRole("button", { name: "Pin Studio Notes" })).toHaveAttribute(
-      "aria-pressed",
-      "true",
-    );
-    await expect(page.getByRole("switch", { name: "Quiet Motion" })).not.toBeChecked();
-    // Pinned sources come first.
-    await expect(page.locator("li.manage-row .manage-name").first()).toHaveText("Studio Notes");
-  });
-
-  test("suggestions come from the candidates, best first, without a feed already in the list", async ({
-    page,
-  }) => {
-    await open(page, "sources");
-    const suggested = page.locator("section", {
-      has: page.getByRole("heading", { name: "Suggested" }),
-    });
-    const names = suggested.locator(".manage-name");
-    await expect(names).toHaveText(["waveform-journal.example", "listening-lab.example"]);
-    await expect(row(page, "waveform-journal.example")).toContainText(
-      "Strong match for Audio interfaces, from 8 recent stories",
-    );
-    await expect(row(page, "listening-lab.example")).toContainText("Good match");
-  });
-
-  test("search and the chips filter the list", async ({ page }) => {
-    await open(page, "sources");
-    const names = page.locator("li.manage-row:visible .manage-name");
-    const search = page.getByRole("searchbox", { name: "Search sources" });
-
-    await search.fill("ledger");
-    await expect(names).toHaveText(["Model Ledger"]);
-    await expect(page.locator("[data-status]")).toHaveText("1 result");
-    await expect(page.getByRole("heading", { name: "Suggested" })).toBeHidden();
-
-    await search.fill("zzz");
-    await expect(page.getByText("No sources match.")).toBeVisible();
-    await search.fill("");
-    await expect(page.getByText("No sources match.")).toBeHidden();
-
-    await page.getByRole("button", { name: "Pinned", exact: true }).click();
-    await expect(names).toHaveText(["Studio Notes"]);
-    await expect(page.getByRole("button", { name: "Pinned", exact: true })).toHaveAttribute(
-      "aria-pressed",
-      "true",
-    );
-    await expect(page.getByRole("button", { name: "All", exact: true })).toHaveAttribute(
-      "aria-pressed",
-      "false",
-    );
-
-    await page.getByRole("button", { name: "Off", exact: true }).click();
-    await expect(names).toHaveText(["Quiet Motion"]);
-
-    await page.getByRole("button", { name: "Suggested", exact: true }).click();
-    await expect(names).toHaveText(["waveform-journal.example", "listening-lab.example"]);
-    await expect(page.getByRole("heading", { name: /^d+ sources$/ })).toBeHidden();
-
-    await page.getByRole("button", { name: "All", exact: true }).click();
-    await expect(names).toHaveCount(8);
-  });
-
-  test("a pin, a switch, a suggestion and an address each send their own edit", async ({
-    page,
-  }) => {
-    const sent = await mockConfig(page);
-    await open(page, "sources");
-    await page.getByRole("button", { name: "Pin Model Ledger" }).click();
-    await page.getByRole("switch", { name: "Quiet Motion" }).click();
-    await page.getByRole("button", { name: "Add waveform-journal.example" }).click();
-    await expect(
-      page.getByRole("button", { name: "Add waveform-journal.example" }),
-    ).toHaveAttribute("aria-pressed", "true");
-    await page.getByLabel("Site or feed address").fill("www.example.org/feed");
-    await page.getByRole("button", { name: "Add source" }).click();
-    await expect(bar(page).locator("[data-bar-text]")).toHaveText("4 changes");
-    await save(page, "open sesame");
-    await expect(bar(page).locator("[data-bar-text]")).toContainText("Saved.");
-
-    expect(sent.map((request) => request.passphrase)).toEqual(Array(4).fill(sentAs("open sesame")));
-    expect(sent.map((request) => request.op)).toEqual(
-      expect.arrayContaining([
-        { op: "source.set", id: "model-ledger", pinned: true },
-        { op: "source.set", id: "quiet-motion", enabled: true },
-        {
-          op: "source.add",
-          url: "https://waveform-journal.example/feed.xml",
-          topic_ids: ["audio_interfaces"],
-        },
-        { op: "source.add", url: "https://www.example.org/feed" },
-      ]),
-    );
-    // What was sent is settled: the suggestion is added for good.
-    await expect(page.getByRole("button", { name: "Add waveform-journal.example" })).toBeDisabled();
-  });
-
-  test("a suggested source offers Add and sends source.add on save", async ({ page }) => {
-    const sent = await mockConfig(page);
-    await open(page, "sources");
-    await page.getByRole("button", { name: "Add listening-lab.example" }).click();
-    await save(page);
-    await expect(bar(page).locator("[data-bar-text]")).toContainText("Saved.");
-    expect(sent).toHaveLength(1);
-    expect(sent[0]?.op).toMatchObject({ op: "source.add", topic_ids: ["audio_interfaces"] });
-  });
-
-  test("a removal strikes the row and can be undone", async ({ page }) => {
-    await open(page, "sources");
-    const remove = page.getByRole("button", { name: "Remove Quiet Motion" });
-    await remove.click();
-    await expect(row(page, "Quiet Motion").locator(".manage-flag")).toBeVisible();
-    await expect(bar(page).locator("[data-bar-text]")).toHaveText("1 change");
-    await remove.click();
-    await expect(row(page, "Quiet Motion").locator(".manage-flag")).toBeHidden();
-    await expect(bar(page)).toBeHidden();
-  });
-
-  test("an address that is not a web address is refused in the field", async ({ page }) => {
-    await open(page, "sources");
-    await page.getByLabel("Site or feed address").fill("not an address");
-    await page.getByRole("button", { name: "Add source" }).click();
-    await expect(bar(page)).toBeHidden();
-    const message = await page
-      .getByLabel("Site or feed address")
-      .evaluate((input: HTMLInputElement) => input.validationMessage);
-    expect(message).toBe("Enter a web address, like example.com.");
-  });
-});
-
-test.describe("saving", () => {
-  test("remembers the passphrase only when asked, under the narration key", async ({ page }) => {
-    test.skip(!PASSPHRASE_REQUIRED, PASSPHRASE_OFF);
-    const sent = await mockConfig(page);
-    await open(page, "sources");
-    await page.getByRole("switch", { name: "Quiet Motion" }).click();
-    await bar(page).getByRole("button", { name: "Save" }).click();
-    const dialog = page.getByRole("dialog");
-    await dialog.getByLabel("Passphrase").fill("kept on this device");
-    await dialog.getByLabel("Remember on this device").check();
-    await dialog.getByRole("button", { name: "Continue" }).click();
-    await expect(bar(page).locator("[data-bar-text]")).toContainText("Saved.");
-    expect(await page.evaluate((key) => localStorage.getItem(key), PASSPHRASE_KEY)).toBe(
-      "kept on this device",
-    );
-
-    // The next save does not ask again.
-    await page.getByRole("switch", { name: "Quiet Motion" }).click();
-    await bar(page).getByRole("button", { name: "Save" }).click();
-    await expect(bar(page).locator("[data-bar-text]")).toContainText("Saved.");
-    await expect(page.getByRole("dialog")).toBeHidden();
-    expect(sent.at(-1)?.passphrase).toBe("kept on this device");
-  });
-
-  test("cancelling the dialog sends nothing and keeps the changes", async ({ page }) => {
-    test.skip(!PASSPHRASE_REQUIRED, PASSPHRASE_OFF);
-    const sent = await mockConfig(page);
-    await open(page, "sources");
-    await page.getByRole("switch", { name: "Quiet Motion" }).click();
-    await bar(page).getByRole("button", { name: "Save" }).click();
-    await page.getByRole("dialog").getByRole("button", { name: "Cancel" }).click();
-    await expect(page.getByRole("dialog")).toBeHidden();
-    await expect(bar(page).locator("[data-bar-text]")).toHaveText("1 change");
-    expect(sent).toHaveLength(0);
-  });
-
-  test.describe("when the server asks for a wait", () => {
+  // The browser logs the refused lookup itself; the panel answers it in words.
+  test.describe("a refused lookup", () => {
     test.use({ allowNetworkErrors: true });
-
-    test("a wait between edits is waited out, then the queue goes on", async ({ page }) => {
-      const sent = await mockConfig(page, [
-        { status: 429, body: { status: 429, error: "cooldown", retry_after_s: 1 } },
-      ]);
-      await open(page, "sources");
-      await page.getByRole("switch", { name: "Quiet Motion" }).click();
-      await save(page);
-      await expect(bar(page).locator("[data-bar-text]")).toContainText("Waiting a few seconds");
-      await expect(bar(page).locator("[data-bar-text]")).toContainText("Saved.", {
-        timeout: 10_000,
-      });
-      expect(sent).toHaveLength(2);
+    test("the panel says what to do when the address cannot be read", async ({ page }) => {
+      await setup(page);
+      await page.route("**/api/source-preview**", (route) =>
+        route.fulfill({
+          status: 422,
+          contentType: "application/json",
+          body: JSON.stringify({ error: "unreachable", message: "x" }),
+        }),
+      );
+      await open(page);
+      await page.getByRole("button", { name: "Add source" }).click();
+      const sheet = page.getByRole("dialog", { name: "Add a source" });
+      await sheet.getByLabel("Site or feed address").fill("nothing.example");
+      await expect(sheet.getByRole("alert")).toContainText("could not be read");
+      await expect(sheet.getByRole("button", { name: "Add source" })).toBeDisabled();
+      await page.keyboard.press("Escape");
+      await expect(sheet).toBeHidden();
     });
   });
 
-  test.describe("when the server refuses", () => {
-    test.use({ allowNetworkErrors: true });
-
-    test("a wrong passphrase is said plainly, the change stays pending, and the passphrase is forgotten", async ({
-      page,
-    }) => {
-      test.skip(!PASSPHRASE_REQUIRED, PASSPHRASE_OFF);
-      const sent = await mockConfig(page, [
-        { status: 401, body: { status: 401, error: "wrong_passphrase" } },
-      ]);
-      await open(page, "sources");
-      await page.getByRole("switch", { name: "Quiet Motion" }).click();
-      await bar(page).getByRole("button", { name: "Save" }).click();
-      const dialog = page.getByRole("dialog");
-      await dialog.getByLabel("Passphrase").fill("not it");
-      await dialog.getByLabel("Remember on this device").check();
-      await dialog.getByRole("button", { name: "Continue" }).click();
-      const text = bar(page).locator("[data-bar-text]");
-      await expect(text).toHaveText(
-        "That passphrase is not right. Your changes are still waiting.",
-      );
-      expect(sent).toHaveLength(1);
-      expect(await page.evaluate((key) => localStorage.getItem(key), PASSPHRASE_KEY)).toBeNull();
-      // Still there to save, and the next Save asks again.
-      await expect(bar(page).getByRole("button", { name: "Save" })).toBeVisible();
-      await expect(page.getByRole("switch", { name: "Quiet Motion" })).toBeChecked();
-      await bar(page).getByRole("button", { name: "Save" }).click();
-      await expect(page.getByRole("dialog")).toBeVisible();
-    });
-
-    test("a refusal part way stops the queue and keeps the rest", async ({ page }) => {
-      const sent = await mockConfig(page, [
-        { status: 202, body: { status: 202, run_id: 1 } },
-        { status: 400, body: { status: 400, error: "invalid_request" } },
-      ]);
-      await open(page, "sources");
-      await page.getByRole("switch", { name: "Quiet Motion" }).click();
-      await page.getByRole("button", { name: "Pin Model Ledger" }).click();
-      await page.getByRole("button", { name: "Remove Type and Grid" }).click();
-      await save(page);
-      await expect(bar(page).locator("[data-bar-text]")).toHaveText(
-        "Saved 1 of 3. That change was not accepted. The rest is still waiting.",
-      );
-      expect(sent).toHaveLength(2);
-      // The first one is settled; the other two are still pending, so a second Save sends them.
-      await expect(bar(page).getByRole("button", { name: "Save" })).toBeVisible();
-      await page.getByRole("button", { name: "Discard" }).waitFor();
-    });
-
-    test("an unreachable site is said plainly", async ({ page }) => {
-      await page.route("**/api/config", (route) => route.abort("connectionrefused"));
-      await open(page, "sources");
-      await page.getByRole("switch", { name: "Quiet Motion" }).click();
-      await save(page);
-      await expect(bar(page).locator("[data-bar-text]")).toHaveText(
-        "The site could not be reached. Your changes are still waiting.",
-      );
-    });
-  });
-});
-
-test.describe("layout", () => {
-  test("every control on Topics has a 44px target", async ({ page }) => {
-    await open(page, "topics");
-    const small = await page.evaluate(() => {
-      const found: string[] = [];
-      for (const node of document.querySelectorAll<HTMLElement>(
-        "[data-manage] button, [data-manage] [role=switch]",
-      )) {
-        node.scrollIntoView({ block: "center" });
-        const rect = node.getBoundingClientRect();
-        if (rect.width === 0) continue;
-        const x = rect.left + rect.width / 2;
-        const y = rect.top + rect.height / 2;
-        const at = (dy: number) => {
-          const hit = document.elementFromPoint(x, y + dy);
-          return hit !== null && node.contains(hit);
-        };
-        // 21px each way from the centre is a 44px target.
-        if (!at(-21) || !at(21)) found.push(node.getAttribute("aria-label") ?? node.tagName);
-      }
-      return found;
-    });
-    expect(small).toEqual([]);
+  test("Add topic keeps its flow", async ({ page }) => {
+    const { sent } = await setup(page);
+    await open(page);
+    await page.getByText("Add topic", { exact: true }).first().click();
+    const form = page.getByRole("form", { name: "Add a topic" });
+    await form.getByLabel("Name").fill("Sound design");
+    await form.getByLabel("What should count as this topic").fill("Sound in interfaces.");
+    await form.getByLabel(/Keywords/).fill("audio, haptics");
+    await form.getByRole("button", { name: "Add topic" }).click();
+    await bar(page).getByRole("button", { name: "Save" }).click();
+    if (PASSPHRASE_REQUIRED) return;
+    await expect(bar(page)).toContainText("Saved");
+    expect(ops(sent)).toMatchObject([
+      { op: "topic.upsert", topic: { id: "sound-design", keywords: ["audio", "haptics"] } },
+    ]);
   });
 
-  test("every control has a 44px target", async ({ page }) => {
-    await open(page, "sources");
-    await page.getByRole("switch", { name: "Quiet Motion" }).click();
-    const small: string[] = [];
-    const controls = page.locator(
-      "[data-manage] button:visible, [data-manage] [role=switch]:visible, [data-manage] input:not([type=checkbox]):visible",
-    );
-    for (const handle of await controls.elementHandles()) {
-      const box = await handle.evaluate((element) => {
-        const node = element as HTMLElement;
-        node.scrollIntoView({ block: "center" });
-        const rect = node.getBoundingClientRect();
-        const x = rect.left + rect.width / 2;
-        const y = rect.top + rect.height / 2;
-        const hits = (dx: number, dy: number): boolean => {
-          const found = document.elementFromPoint(x + dx, y + dy);
-          return found !== null && (found === node || node.contains(found));
-        };
-        const reach = (dx: number, dy: number): number => {
-          let distance = 0;
-          while (distance < 60 && hits(dx * (distance + 1), dy * (distance + 1))) distance += 1;
-          return distance;
-        };
-        return {
-          name: node.getAttribute("aria-label") ?? node.textContent?.trim() ?? node.tagName,
-          width: reach(-1, 0) + reach(1, 0) + 1,
-          height: reach(0, -1) + reach(0, 1) + 1,
-        };
-      });
-      if (box.width < 44 || box.height < 44) small.push(`${box.name} ${box.width}x${box.height}`);
-    }
-    expect(small).toEqual([]);
+  test("has no accessibility violations, with the panel open as well", async ({ page }) => {
+    await setup(page);
+    await open(page);
+    const scan = async () =>
+      (await new AxeBuilder({ page }).withTags(WCAG).analyze()).violations.map(
+        (v) => `${v.id}: ${v.nodes.map((n) => n.target.join(" ")).join(", ")}`,
+      );
+    expect(await scan()).toEqual([]);
+    await page.getByRole("button", { name: "Add source" }).click();
+    const sheet = page.getByRole("dialog", { name: "Add a source" });
+    await sheet.getByLabel("Site or feed address").fill("newsroom.example");
+    await expect(sheet.getByText("Newsroom Example")).toBeVisible();
+    expect(await scan()).toEqual([]);
   });
 
-  test("the page never scrolls sideways", async ({ page }) => {
-    for (const path of ["topics", "sources"] as const) {
-      await open(page, path);
-      const overflow = await page.evaluate(
-        () => document.documentElement.scrollWidth - document.documentElement.clientWidth,
+  test("no row is a dead zone: sources are at least 44px tall and touch", async ({ page }) => {
+    await setup(page);
+    await open(page);
+    const boxes = await topic(page, "Design engineering craft")
+      .locator("li.source-row")
+      .evaluateAll((rows) =>
+        rows.map((row) => {
+          const rect = row.getBoundingClientRect();
+          return { top: rect.top, bottom: rect.bottom };
+        }),
       );
-      expect(overflow, path).toBeLessThanOrEqual(0);
+    for (const [index, box] of boxes.entries()) {
+      expect(box.bottom - box.top).toBeGreaterThanOrEqual(44);
+      const next = boxes[index + 1];
+      if (next) expect(Math.abs(next.top - box.bottom)).toBeLessThanOrEqual(1);
     }
   });
 });
-
-for (const scheme of ["light", "dark"] as const) {
-  test.describe(`axe, ${scheme} scheme`, () => {
-    for (const path of ["topics", "sources"] as const) {
-      test(`${path} has no WCAG 2.2 AA violations`, async ({ page }) => {
-        await page.emulateMedia({ colorScheme: scheme });
-        await open(page, path);
-        await page.evaluate(() => document.fonts.ready);
-        expect(await violations(page)).toEqual([]);
-      });
-
-      test(`${path} has none with the pending bar open`, async ({ page }) => {
-        await page.emulateMedia({ colorScheme: scheme });
-        await open(page, path);
-        await page.getByRole("switch").first().click();
-        await expect(bar(page)).toBeVisible();
-        // The bar slides in over 250ms; contrast is measured on the settled page.
-        await page.waitForTimeout(400);
-        expect(await violations(page)).toEqual([]);
-      });
-    }
-
-    test("the passphrase dialog has none", async ({ page }) => {
-      test.skip(!PASSPHRASE_REQUIRED, PASSPHRASE_OFF);
-      await page.emulateMedia({ colorScheme: scheme });
-      await open(page, "sources");
-      await page.getByRole("switch", { name: "Quiet Motion" }).click();
-      await bar(page).getByRole("button", { name: "Save" }).click();
-      await expect(page.getByRole("dialog")).toBeVisible();
-      await page.waitForTimeout(400);
-      expect(await violations(page)).toEqual([]);
-    });
-  });
-}

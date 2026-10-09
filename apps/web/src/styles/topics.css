@@ -157,7 +157,7 @@
 }
 
 /* A topic that is off keeps its slider, set where it was, and shows it as unused. */
-.topic:has(> .topic-head > .settings-switch:not(:checked)) .topic-weight {
+.topic:has(> .topic-head > .settings-switch:not(:checked)) .topic-weight > .settings-range {
   opacity: var(--opacity-disabled);
 }
 
