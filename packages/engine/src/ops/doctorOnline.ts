@@ -1,4 +1,4 @@
-import type { Env } from "@dispatch/core";
+import { type Env, ModelsReply } from "@dispatch/core";
 import { noul } from "@typesafe-ai/sdk";
 import { z } from "zod";
 import { redact } from "../context.js";
@@ -80,8 +80,6 @@ function skipped(id: string, keyName: string): Check {
   );
 }
 
-const NebiusModels = z.object({ data: z.array(z.object({ id: z.string() }).loose()) });
-
 /** Ids that share the start of `wanted`'s family, to suggest a replacement for a retired id. */
 export function similarModels(wanted: string, ids: readonly string[]): string[] {
   const family = (wanted.split("/").pop() ?? wanted).toLowerCase().split(/[-_.]/)[0] ?? "";
@@ -97,6 +95,7 @@ async function nebiusChecks(
   env: Env,
   deps: DoctorDeps,
   secrets: readonly string[],
+  settingsModel: string | null,
 ): Promise<Check[]> {
   const key = env.NEBIUS_API_KEY;
   if (key === undefined) {
@@ -113,7 +112,7 @@ async function nebiusChecks(
   if (result.status !== 200) {
     return [httpProblem("online.nebius", "Nebius", result.status, "NEBIUS_API_KEY")];
   }
-  const parsed = NebiusModels.safeParse(result.body);
+  const parsed = ModelsReply.safeParse(result.body);
   if (!parsed.success) {
     return [
       fail(
@@ -143,6 +142,19 @@ async function nebiusChecks(
         ),
       );
     }
+  }
+  if (settingsModel !== null) {
+    // A Settings model that left the list is not an error: every run falls through to the
+    // environment models.
+    checks.push(
+      ids.includes(settingsModel)
+        ? ok("online.model.settings", `${settingsModel} (chosen in Settings) is listed`)
+        : warn(
+            "online.model.settings",
+            `${settingsModel} (chosen in Settings) is not in the live model list`,
+            "Runs fall back to DISPATCH_MODEL. Choose another model in Settings.",
+          ),
+    );
   }
   return checks;
 }
@@ -346,9 +358,10 @@ export async function onlineChecks(
   env: Env,
   deps: DoctorDeps,
   secrets: readonly string[],
+  settingsModel: string | null = null,
 ): Promise<Check[]> {
   const [nebius, jev, exa, firecrawl, speechify, blob, vercel] = await Promise.all([
-    nebiusChecks(env, deps, secrets),
+    nebiusChecks(env, deps, secrets, settingsModel),
     jevCheck(env, deps, secrets),
     exaCheck(env, deps, secrets),
     firecrawlCheck(env, deps, secrets),

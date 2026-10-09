@@ -45,6 +45,7 @@ const VERCEL_ENV = [
   "SPEECHIFY_VOICE_ID",
   "SPEECHIFY_MONTHLY_CHARS",
   "BLOB_READ_WRITE_TOKEN",
+  "NEBIUS_API_KEY",
 ];
 
 /** What `vercel env pull` writes in place of a hidden value. Sending it on would overwrite the real one. */

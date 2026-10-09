@@ -16,6 +16,9 @@ export interface ServerEnv {
   /** With VERCEL_OIDC_TOKEN, the credentials of a store connected through OIDC (D26). */
   BLOB_STORE_ID?: string;
   VERCEL_OIDC_TOKEN?: string;
+  /** Only /api/models reads these two, to list the models the Model picker offers. */
+  NEBIUS_API_KEY?: string;
+  NEBIUS_BASE_URL?: string;
 }
 
 export interface ServerConfig {

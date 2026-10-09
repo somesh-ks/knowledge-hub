@@ -196,6 +196,35 @@ describe("parseConfigOp", () => {
   });
 });
 
+describe("parseConfigOp: writer.set", () => {
+  const writer: ConfigOp = {
+    op: "writer.set",
+    provider: "nebius",
+    model: "meta-llama/Llama-3.3-70B-Instruct",
+  };
+
+  it("accepts a model id or null, and rebuilds the edit from its parts", () => {
+    expect(parseConfigOp(writer)).toEqual(writer);
+    expect(parseConfigOp({ ...writer, model: null })).toEqual({ ...writer, model: null });
+    expect(parseConfigOp({ ...writer, extra: 1 })).toEqual(writer);
+  });
+
+  it("refuses another provider, an odd id and a missing model", () => {
+    for (const bad of [
+      { ...writer, provider: "other" },
+      { ...writer, provider: undefined },
+      { ...writer, model: "has space" },
+      { ...writer, model: "" },
+      { ...writer, model: "a".repeat(121) },
+      { ...writer, model: 7 },
+      { ...writer, model: undefined },
+      { ...writer, model: "x\ny" },
+    ]) {
+      expect(parseConfigOp(bad), JSON.stringify(bad)).toBeNull();
+    }
+  });
+});
+
 describe("parseConfigOp: schedule.set", () => {
   const schedule: ConfigOp = { op: "schedule.set", hour: 9, cadence_days: 3, sections: ["ai"] };
 
