@@ -178,6 +178,51 @@ describe("decideRun: weekly pass on Sundays", () => {
   });
 });
 
+describe("decideRun: the weekly slot", () => {
+  const slot = { enabled: true, day: 5, hour: 18 };
+  const at = (now: string, last: LastRunFile, weekly = slot) =>
+    decideRun({ now: new Date(now), mode: "scheduled", lastRun: last, force: false, weekly });
+  // Friday 9 October 2026; 18:00 in Stockholm (CEST) is 16:00Z.
+  const quiet = lastWith(record("2026-10-09T05:13:00Z"));
+
+  it("is due on its day from its hour, independent of the daily cadence", () => {
+    expect(at("2026-10-09T15:59:00Z", quiet).runWeekly).toBe(false);
+    expect(at("2026-10-09T16:00:00Z", quiet)).toMatchObject({ due: false, runWeekly: true });
+    expect(at("2026-10-09T21:30:00Z", quiet).runWeekly).toBe(true);
+  });
+
+  it("is not due on other days, including Sunday", () => {
+    expect(at("2026-10-10T16:13:00Z", quiet).runWeekly).toBe(false);
+    expect(at("2026-10-11T16:13:00Z", quiet).runWeekly).toBe(false);
+  });
+
+  it("runs once per date and retries after a failed one", () => {
+    const done = lastWith(quiet.regular, record("2026-10-09T16:20:00Z"));
+    expect(at("2026-10-09T18:13:00Z", done).runWeekly).toBe(false);
+    const failed = lastWith(quiet.regular, record("2026-10-09T16:20:00Z", "failed"));
+    expect(at("2026-10-09T18:13:00Z", failed).runWeekly).toBe(true);
+  });
+
+  it("is off when disabled, and weekly mode still forces it", () => {
+    expect(at("2026-10-09T16:13:00Z", quiet, { ...slot, enabled: false }).runWeekly).toBe(false);
+    const forced = decideRun({
+      now: new Date("2026-10-07T05:13:00Z"),
+      mode: "weekly",
+      lastRun: lastWith(),
+      force: false,
+      weekly: { ...slot, enabled: false },
+    });
+    expect(forced).toMatchObject({ due: false, runWeekly: true });
+  });
+
+  it("uses the Stockholm hour across the changeover", () => {
+    // Sunday 25 October 2026, after the clocks went back: 18:00 CET is 17:00Z.
+    const sunday = { enabled: true, day: 0, hour: 18 };
+    expect(at("2026-10-25T16:59:00Z", quiet, sunday).runWeekly).toBe(false);
+    expect(at("2026-10-25T17:00:00Z", quiet, sunday).runWeekly).toBe(true);
+  });
+});
+
 describe("decideRun: modes and force", () => {
   const justRan = lastWith(record("2026-10-07T05:13:00Z"));
 

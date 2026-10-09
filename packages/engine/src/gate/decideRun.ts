@@ -11,6 +11,20 @@ export interface DecideRunInput {
   force: boolean;
   /** Days between regular digests, from config/schedule.json. Defaults to REGULAR_CADENCE_DAYS. */
   cadenceDays?: number;
+  /**
+   * The weekly podcast's own slot, from config/schedule.json. Left out, a weekly pass is due on
+   * any Sunday at any hour, as it was before the slot could be chosen.
+   */
+  weekly?: WeeklySlot;
+}
+
+/** When the weekly pass is due: a day of the week and an hour, in Stockholm time. */
+export interface WeeklySlot {
+  enabled: boolean;
+  /** 0 = Sunday. */
+  day: number;
+  /** Whole hour; the pass is due from this hour on, so a delayed cron still lands on its day. */
+  hour: number;
 }
 
 export interface RunDecision {
@@ -27,7 +41,18 @@ export interface RunDecision {
 /** Default days between regular digests: due two or more calendar days after the last. */
 export const REGULAR_CADENCE_DAYS = 2;
 
-const SUNDAY = 0;
+const LEGACY_WEEKLY: WeeklySlot = { enabled: true, day: 0, hour: 0 };
+
+const hourFormat = new Intl.DateTimeFormat("en-GB", {
+  timeZone: "Europe/Stockholm",
+  hour: "2-digit",
+  hourCycle: "h23",
+});
+
+/** Whole hour of an instant in Stockholm time, 0 to 23. */
+function stockholmHour(at: Date): number {
+  return Number(hourFormat.format(at));
+}
 
 /**
  * Stockholm date of the last regular run that counts toward the cadence. A run counts when it
@@ -51,7 +76,8 @@ function weeklyAlreadyRanOn(lastRun: LastRunFile, date: string): boolean {
 /**
  * The gate. It compares Stockholm calendar dates, never elapsed hours, so a cron delayed by
  * several hours still lands on its own date and the 23 and 25 hour days at daylight saving
- * changeovers cannot cost a cycle. A weekly pass is idempotent per Sunday, even when forced.
+ * changeovers cannot cost a cycle. The weekly pass has its own slot (day and hour, Stockholm
+ * time) apart from the daily cadence, and is idempotent per date, even when forced.
  */
 export function decideRun({
   now,
@@ -59,9 +85,11 @@ export function decideRun({
   lastRun,
   force,
   cadenceDays = REGULAR_CADENCE_DAYS,
+  weekly = LEGACY_WEEKLY,
 }: DecideRunInput): RunDecision {
   const date = stockholmDate(now);
-  const isSunday = weekday(date) === SUNDAY;
+  const inWeeklySlot =
+    weekly.enabled && weekday(date) === weekly.day && stockholmHour(now) >= weekly.hour;
 
   if (mode === "weekly") {
     return { due: false, runWeekly: true, reason: "weekly pass requested", date };
@@ -70,7 +98,7 @@ export function decideRun({
     return { due: true, runWeekly: false, reason: "on-demand run ignores the gate", date };
   }
 
-  const weeklyDue = isSunday && !weeklyAlreadyRanOn(lastRun, date);
+  const weeklyDue = inWeeklySlot && !weeklyAlreadyRanOn(lastRun, date);
   if (force) {
     return { due: true, runWeekly: weeklyDue, reason: "forced run ignores the gate", date };
   }

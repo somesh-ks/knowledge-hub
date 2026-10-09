@@ -153,6 +153,7 @@ export async function collectStatus(
     lastRun,
     force: false,
     cadenceDays: schedule.cadence_days,
+    weekly: schedule.weekly,
   });
   const last = lastRegularDate(lastRun);
 

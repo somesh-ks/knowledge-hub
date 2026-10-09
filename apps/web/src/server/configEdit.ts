@@ -65,7 +65,6 @@ const MAX_TOPIC_IDS = 12;
 const MAX_WEIGHTS = 100;
 const MAX_SECTIONS = 60;
 const CADENCES = [1, 2, 3, 7] as const;
-type PodcastFormat = PodcastRequest["format"];
 type PodcastLength = PodcastRequest["length_minutes"];
 /** A new topic and the sources chosen for it: one topic, up to six sources, and room to spare. */
 export const MAX_OPS = 8;
@@ -137,6 +136,120 @@ function topicIds(value: unknown): string[] | null {
     result.push(topic);
   }
   return result;
+}
+
+const NEW_FORMATS = ["readout", "discussion"] as const;
+const VOICE_ID = /^[A-Za-z0-9_-]{1,64}$/;
+type ScheduleSetOp = Extract<ConfigOp, { op: "schedule.set" }>;
+type WeeklyOp = NonNullable<ScheduleSetOp["weekly"]>;
+type CustomOp = NonNullable<ScheduleSetOp["custom"]>;
+
+/** A voice id, null for the default, undefined when left out, or false when it is something else. */
+function voice(value: unknown): string | null | undefined | false {
+  if (value === undefined || value === null) return value;
+  return typeof value === "string" && VOICE_ID.test(value) ? value : false;
+}
+
+function hourOf(value: unknown): number | null {
+  return typeof value === "number" && Number.isInteger(value) && value >= 0 && value <= 23
+    ? value
+    : null;
+}
+
+function lengthOf(value: unknown): PodcastLength | null {
+  return SCHEDULE_LENGTHS.find((minutes) => minutes === value) ?? null;
+}
+
+/** The part `weekly` and `custom` share: type, length and the two voices. False when one is invalid. */
+function podcastParts(value: Record<string, unknown>, into: WeeklyOp | CustomOp): boolean {
+  if (value.format !== undefined) {
+    const format = NEW_FORMATS.find((entry) => entry === value.format);
+    if (format === undefined) return false;
+    into.format = format;
+  }
+  if (value.length_minutes !== undefined) {
+    const length = lengthOf(value.length_minutes);
+    if (length === null) return false;
+    into.length_minutes = length;
+  }
+  for (const key of ["voice_id", "voice_id_b"] as const) {
+    const checked = voice(value[key]);
+    if (checked === false) return false;
+    if (checked !== undefined) into[key] = checked;
+  }
+  return true;
+}
+
+/** A `schedule.set` rebuilt from the fields it names: any subset, and at least one. */
+function parseScheduleSet(value: Record<string, unknown>): ConfigOp | null {
+  const op: ScheduleSetOp = { op: "schedule.set" };
+  if (value.hour !== undefined) {
+    const hour = hourOf(value.hour);
+    if (hour === null) return null;
+    op.hour = hour;
+  }
+  if (value.cadence_days !== undefined) {
+    const cadence = CADENCES.find((days) => days === value.cadence_days);
+    if (cadence === undefined) return null;
+    op.cadence_days = cadence;
+  }
+  if (value.sections !== undefined) {
+    if (value.sections === null) {
+      op.sections = null;
+    } else {
+      if (!Array.isArray(value.sections)) return null;
+      if (value.sections.length === 0 || value.sections.length > MAX_SECTIONS) return null;
+      const sections: string[] = [];
+      for (const entry of value.sections) {
+        const section = id(entry);
+        if (section === null) return null;
+        sections.push(section);
+      }
+      op.sections = sections;
+    }
+  }
+  if (value.format !== undefined) {
+    const format = PODCAST_FORMATS.find((entry) => entry === value.format);
+    if (format === undefined) return null;
+    op.format = format;
+  }
+  if (value.length_minutes !== undefined) {
+    const length = lengthOf(value.length_minutes);
+    if (length === null) return null;
+    op.length_minutes = length;
+  }
+  for (const key of ["voice_id", "voice_id_b"] as const) {
+    const checked = voice(value[key]);
+    if (checked === false) return null;
+    if (checked !== undefined) op[key] = checked;
+  }
+  if (value.weekly !== undefined) {
+    if (!isRecord(value.weekly)) return null;
+    const weekly: WeeklyOp = {};
+    if (value.weekly.enabled !== undefined) {
+      if (typeof value.weekly.enabled !== "boolean") return null;
+      weekly.enabled = value.weekly.enabled;
+    }
+    if (value.weekly.day !== undefined) {
+      const day = value.weekly.day;
+      if (typeof day !== "number" || !Number.isInteger(day) || day < 0 || day > 6) return null;
+      weekly.day = day;
+    }
+    if (value.weekly.hour !== undefined) {
+      const hour = hourOf(value.weekly.hour);
+      if (hour === null) return null;
+      weekly.hour = hour;
+    }
+    if (!podcastParts(value.weekly, weekly)) return null;
+    op.weekly = weekly;
+  }
+  if (value.custom !== undefined) {
+    if (!isRecord(value.custom)) return null;
+    const custom: CustomOp = {};
+    if (!podcastParts(value.custom, custom)) return null;
+    op.custom = custom;
+  }
+  return Object.keys(op).length > 1 ? op : null;
 }
 
 /** The edit as the contract defines it, rebuilt from validated parts, or null when it is not valid. */
@@ -221,35 +334,8 @@ export function parseConfigOp(value: unknown): ConfigOp | null {
       }
       return { op: "weights.set", weights };
     }
-    case "schedule.set": {
-      const { hour, cadence_days: cadence } = value;
-      if (typeof hour !== "number" || !Number.isInteger(hour) || hour < 0 || hour > 23) return null;
-      const cadenceDays = CADENCES.find((days) => days === cadence);
-      if (cadenceDays === undefined) return null;
-      const podcast: { format?: PodcastFormat; length_minutes?: PodcastLength } = {};
-      if (value.format !== undefined) {
-        const format = PODCAST_FORMATS.find((entry) => entry === value.format);
-        if (format === undefined) return null;
-        podcast.format = format;
-      }
-      if (value.length_minutes !== undefined) {
-        const length = SCHEDULE_LENGTHS.find((minutes) => minutes === value.length_minutes);
-        if (length === undefined) return null;
-        podcast.length_minutes = length;
-      }
-      if (value.sections === null) {
-        return { op: "schedule.set", hour, cadence_days: cadenceDays, sections: null, ...podcast };
-      }
-      if (!Array.isArray(value.sections)) return null;
-      if (value.sections.length === 0 || value.sections.length > MAX_SECTIONS) return null;
-      const sections: string[] = [];
-      for (const entry of value.sections) {
-        const section = id(entry);
-        if (section === null) return null;
-        sections.push(section);
-      }
-      return { op: "schedule.set", hour, cadence_days: cadenceDays, sections, ...podcast };
-    }
+    case "schedule.set":
+      return parseScheduleSet(value);
     case "writer.set": {
       if (value.provider === "anthropic") {
         if (typeof value.model !== "string" || !isAnthropicModel(value.model)) return null;
@@ -267,13 +353,13 @@ export function parseConfigOp(value: unknown): ConfigOp | null {
 }
 
 /**
- * The hour of the last schedule.set in an edit, or null when it holds none. The last one wins,
+ * The daily hour of the last schedule.set that names one, or null when none does. The last one wins,
  * as it does when the engine applies them in order.
  */
 function scheduledHour(op: ConfigOp | ConfigOp[]): number | null {
   let hour: number | null = null;
   for (const entry of Array.isArray(op) ? op : [op]) {
-    if (entry.op === "schedule.set") hour = entry.hour;
+    if (entry.op === "schedule.set" && entry.hour !== undefined) hour = entry.hour;
   }
   return hour;
 }

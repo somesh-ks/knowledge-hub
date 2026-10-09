@@ -39,6 +39,8 @@ interface PassContext {
   sections: readonly string[] | null;
   /** Minutes the scheduled podcast runs, which sizes the regular briefing; null for other modes. */
   lengthMinutes: number | null;
+  /** Minutes of the weekly podcast, which sizes the weekly pass in any run mode. */
+  weeklyLengthMinutes: number;
 }
 
 /**
@@ -56,7 +58,8 @@ export async function writeStage(deps: RunDeps, plan: Plan): Promise<StageReport
     loadSources(deps.root),
   ]);
   const topics = await loadTopics(deps.root, preferences);
-  const schedule = plan.mode === "scheduled" ? await loadSchedule(deps.root) : null;
+  const fullSchedule = await loadSchedule(deps.root);
+  const schedule = plan.mode === "scheduled" ? fullSchedule : null;
   const context: PassContext = {
     deps,
     runtime,
@@ -66,6 +69,7 @@ export async function writeStage(deps: RunDeps, plan: Plan): Promise<StageReport
     customTopics: activeFitTopics(topics),
     sections: schedule?.sections ?? null,
     lengthMinutes: schedule?.length_minutes ?? null,
+    weeklyLengthMinutes: fullSchedule.weekly.length_minutes,
   };
 
   const claimed = new Set<string>();
@@ -102,8 +106,17 @@ async function writePass(
   pass: PlanPass,
   claimed: ReadonlySet<string>,
 ): Promise<PassResult> {
-  const { deps, runtime, linter, preferences, sourceNames, customTopics, sections, lengthMinutes } =
-    context;
+  const {
+    deps,
+    runtime,
+    linter,
+    preferences,
+    sourceNames,
+    customTopics,
+    sections,
+    lengthMinutes,
+    weeklyLengthMinutes,
+  } = context;
   const file = (name: string): string => passFile(deps.root, pass.id, name);
   const pool = await loadPool(file("pool.json"));
   const judged = await readArtifact(file("judged.json"), "judged.json", JudgedFile);
@@ -131,11 +144,14 @@ async function writePass(
     scored,
     kind: pass.kind,
     floor: VOICE_LIMITS.items.floor,
-    // The owner's chosen length sizes the scheduled regular briefing only.
+    // The owner's chosen length sizes the scheduled regular briefing, and the weekly pass takes
+    // the weekly podcast's own length.
     cap:
       pass.kind === "regular" && lengthMinutes !== null
         ? capForLength(capFor(pass.kind), VOICE_LIMITS.items.floor, lengthMinutes)
-        : capFor(pass.kind),
+        : pass.kind === "weekly"
+          ? capForLength(capFor(pass.kind), VOICE_LIMITS.items.floor, weeklyLengthMinutes)
+          : capFor(pass.kind),
     weights: preferences.weights,
     // Only the scheduled regular briefing is narrowed; the weekly pass keeps every section.
     sections: pass.kind === "regular" ? sections : null,

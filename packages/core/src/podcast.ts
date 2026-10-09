@@ -15,9 +15,16 @@ export const PODCAST_MAX_CHARS = 15_000;
 
 export const PODCAST_LENGTHS = [3, 5, 10, 15] as const;
 export const PODCAST_FORMATS = ["readout", "discussion", "headlines"] as const;
+/** The formats a new request may ask for; a stored episode may still say "headlines". */
+export const NEW_PODCAST_FORMATS = ["readout", "discussion"] as const;
 export const PODCAST_WINDOWS = [2, 7, 30] as const;
 export const PODCAST_TONES = ["neutral", "energetic", "dry"] as const;
 export const PODCAST_AUDIENCES = ["general", "custom"] as const;
+
+/** A Speechify voice id: the engine's own rule for a voice (see apps/web/src/server/config.ts). */
+export const VOICE_ID_PATTERN = /^[A-Za-z0-9_-]{1,64}$/;
+/** A voice id, or null for the engine's default voice. */
+export const VoiceId = z.string().regex(VOICE_ID_PATTERN).nullable();
 
 /** A guard on the request's size, far above any topic list the app offers; the owner sets no limit. */
 export const PODCAST_MAX_TOPICS = 50;
@@ -40,10 +47,19 @@ export const StoredPodcastRequest = z.object({
    * "custom", so a request made before the field existed reads as it always did.
    */
   audience: z.enum(PODCAST_AUDIENCES).optional(),
+  /** Speechify voice of the lead host (Ada). Absent or null means the engine's default. */
+  voice_id: VoiceId.optional(),
+  /** Voice of the second host (Leo, discussion only). Absent or null means the default. */
+  voice_id_b: VoiceId.optional(),
 });
 
-/** What the listener asks for. Validated again by the engine, so a hand-edited request fails clearly. */
-export const PodcastRequest = StoredPodcastRequest.superRefine((request, ctx) => {
+/**
+ * What the listener asks for. Validated again by the engine, so a hand-edited request fails
+ * clearly. A new request is a readout or a discussion; headlines is no longer offered.
+ */
+export const PodcastRequest = StoredPodcastRequest.extend({
+  format: z.enum(NEW_PODCAST_FORMATS),
+}).superRefine((request, ctx) => {
   // A general episode is built from general news, so its topics come from the fixed general list.
   // A custom request keeps the section and category ids of published digests, checked as before.
   if (request.audience !== "general") return;
@@ -57,7 +73,8 @@ export const PodcastRequest = StoredPodcastRequest.superRefine((request, ctx) =>
     });
   }
 });
-export type PodcastRequest = z.infer<typeof PodcastRequest>;
+/** The request as the engine handles it: the stored shape, so a regenerated headlines episode still fits. */
+export type PodcastRequest = z.infer<typeof StoredPodcastRequest>;
 
 export const PodcastFormat = z.enum(PODCAST_FORMATS);
 export type PodcastFormat = z.infer<typeof PodcastFormat>;

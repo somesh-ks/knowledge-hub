@@ -75,6 +75,9 @@ describe("parsePodcastRequest", () => {
   });
 
   it("leaves the title out when it is empty or only spaces", () => {
+    const voiced = { ...REQUEST, voice_id: "ada_1", voice_id_b: null };
+    expect(parsePodcastRequest(voiced)).toEqual(voiced);
+    expect(parsePodcastRequest(REQUEST)).not.toHaveProperty("voice_id");
     expect(parsePodcastRequest({ ...REQUEST, title: "   " })).not.toHaveProperty("title");
     expect(parsePodcastRequest({ ...REQUEST, title: undefined })).not.toHaveProperty("title");
   });
@@ -111,6 +114,9 @@ describe("parsePodcastRequest", () => {
       { ...REQUEST, length_minutes: 4 },
       { ...REQUEST, length_minutes: "5" },
       { ...REQUEST, format: "essay" },
+      { ...REQUEST, format: "headlines" },
+      { ...REQUEST, voice_id: "has space" },
+      { ...REQUEST, voice_id_b: 4 },
       { ...REQUEST, window_days: 3 },
       { ...REQUEST, tone: "angry" },
       { ...REQUEST, audience: "everyone" },

@@ -18,7 +18,6 @@ export const LENGTHS: ReadonlyArray<{ value: PodcastRequest["length_minutes"]; l
 export const FORMATS: ReadonlyArray<{ value: PodcastRequest["format"]; label: string }> = [
   { value: "readout", label: "Readout" },
   { value: "discussion", label: "Discussion" },
-  { value: "headlines", label: "Headlines" },
 ];
 
 export const WINDOWS: ReadonlyArray<{ value: PodcastRequest["window_days"]; label: string }> = [

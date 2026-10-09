@@ -29,7 +29,7 @@ describe("the options", () => {
   it("are the ones the server accepts, and the defaults are among them", () => {
     expect(LENGTHS.map((option) => option.value)).toEqual([3, 5, 10, 15]);
     expect(WINDOWS.map((option) => option.value)).toEqual([2, 7, 30]);
-    expect(FORMATS.map((option) => option.value)).toEqual(["readout", "discussion", "headlines"]);
+    expect(FORMATS.map((option) => option.value)).toEqual(["readout", "discussion"]);
     expect(TONES.map((option) => option.value)).toEqual(["neutral", "energetic", "dry"]);
     expect(LENGTHS.some((option) => option.value === DEFAULTS.length)).toBe(true);
     expect(WINDOWS.some((option) => option.value === DEFAULTS.window)).toBe(true);

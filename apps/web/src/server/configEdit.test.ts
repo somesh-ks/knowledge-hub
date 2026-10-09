@@ -252,6 +252,57 @@ describe("parseConfigOp: schedule.set", () => {
     expect(parseConfigOp({ ...schedule, length_minutes: 7 })).toBeNull();
   });
 
+  it("accepts any subset of the fields and refuses an empty edit", () => {
+    expect(parseConfigOp({ op: "schedule.set", hour: 9 })).toEqual({ op: "schedule.set", hour: 9 });
+    expect(parseConfigOp({ op: "schedule.set", sections: null })).toEqual({
+      op: "schedule.set",
+      sections: null,
+    });
+    expect(parseConfigOp({ op: "schedule.set", extra: 1 })).toBeNull();
+    expect(parseConfigOp({ op: "schedule.set" })).toBeNull();
+  });
+
+  it("carries voices, the weekly podcast and the Create defaults, rebuilt from their parts", () => {
+    const full: ConfigOp = {
+      op: "schedule.set",
+      voice_id: "ada_1",
+      voice_id_b: null,
+      weekly: {
+        enabled: true,
+        day: 6,
+        hour: 18,
+        format: "discussion",
+        length_minutes: 15,
+        voice_id: "ada_1",
+        voice_id_b: "leo-2",
+      },
+      custom: { format: "readout", length_minutes: 3, voice_id: null },
+    };
+    expect(parseConfigOp(full)).toEqual(full);
+    expect(parseConfigOp({ ...full, weekly: { day: 2, extra: 1 } })).toEqual({
+      ...full,
+      weekly: { day: 2 },
+    });
+  });
+
+  it("refuses a bad voice id, weekly day or hour, and a headlines type for weekly or custom", () => {
+    for (const bad of [
+      { ...schedule, voice_id: "has space" },
+      { ...schedule, voice_id_b: 7 },
+      { ...schedule, weekly: "x" },
+      { ...schedule, weekly: { day: 7 } },
+      { ...schedule, weekly: { day: 1.5 } },
+      { ...schedule, weekly: { hour: 24 } },
+      { ...schedule, weekly: { enabled: "yes" } },
+      { ...schedule, weekly: { format: "headlines" } },
+      { ...schedule, weekly: { length_minutes: 4 } },
+      { ...schedule, custom: { format: "headlines" } },
+      { ...schedule, custom: { voice_id: "a/b" } },
+    ]) {
+      expect(parseConfigOp(bad), JSON.stringify(bad)).toBeNull();
+    }
+  });
+
   it("refuses an hour or cadence out of range and a malformed list", () => {
     for (const bad of [
       { ...schedule, hour: 24 },
@@ -259,9 +310,7 @@ describe("parseConfigOp: schedule.set", () => {
       { ...schedule, hour: 7.5 },
       { ...schedule, hour: "7" },
       { ...schedule, cadence_days: 4 },
-      { ...schedule, cadence_days: undefined },
       { ...schedule, sections: [] },
-      { ...schedule, sections: undefined },
       { ...schedule, sections: ["Bad Id"] },
       { ...schedule, sections: "ai" },
       { ...schedule, sections: Array(61).fill("ai") },
