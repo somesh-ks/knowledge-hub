@@ -2,7 +2,6 @@
 import Icon from "../components/Icon.astro";
 import BaseLayout from "../layouts/BaseLayout.astro";
 import { dailySummary, loadScheduleView } from "../lib/schedule";
-import { PLAYBACK_RATES } from "../player/core/playerTypes";
 import { THEME_PREFERENCES, type ThemePreference } from "../player/core/preferences";
 // The build links this file before the layout's stylesheet, so its rules never rely on coming last:
 // where one adjusts a shared rule, it does so with a more specific selector.
@@ -45,25 +44,10 @@ const THEME_LABELS: Record<ThemePreference, string> = {
       </section>
 
       <section class="rule-above">
-        <h2 class="section-head">Playback</h2>
+        <h2 class="section-head">Interface sounds</h2>
         <div class="rows">
-          <div class="settings-row" data-layout="choice">
-            <div class="settings-text">
-              <span class="settings-label" id="settings-rate-label">Default speed</span>
-            </div>
-            <fieldset class="settings-choice" role="radiogroup" aria-labelledby="settings-rate-label">
-              {
-                PLAYBACK_RATES.map((rate) => (
-                  <label class="settings-segment">
-                    <input type="radio" name="rate" value={String(rate)} />
-                    <span class="num">{rate}x</span>
-                  </label>
-                ))
-              }
-            </fieldset>
-          </div>
           <div class="settings-row">
-            <label class="settings-label" for="settings-sounds">Interface sounds</label>
+            <label class="settings-label" for="settings-sounds">Sounds</label>
             <input class="settings-switch" id="settings-sounds" name="sounds" type="checkbox" role="switch" />
           </div>
           <div class="settings-row">

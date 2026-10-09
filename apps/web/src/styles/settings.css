@@ -109,6 +109,11 @@
   }
 }
 
+/* A divider between groups spans the content, no wider: the page's own rows end at the same edges. */
+.settings-view .rule-above::before {
+  inset-inline: 0;
+}
+
 /* ------------------------------------------------------------------ segmented choice */
 
 /*
@@ -151,7 +156,6 @@
   line-height: var(--font-leading-label);
   white-space: nowrap;
   transition:
-    transform var(--duration-press-out) var(--ease-out),
     background-color var(--duration-hover) var(--ease-hover),
     box-shadow var(--duration-hover) var(--ease-hover),
     color var(--duration-hover) var(--ease-hover);
@@ -251,11 +255,9 @@
   outline-offset: var(--stroke-ring-gap);
 }
 
-.settings-segment:active {
-  transform: scale(var(--scale-press));
-  transition-duration:
-    var(--duration-press-in), var(--duration-hover), var(--duration-hover), var(--duration-hover);
-}
+/* No press scale here, or anywhere a label sits on a track (segments, chips, tabs): scaling text on a
+   press makes it smaller and draws its weight differently for a moment. Pressing shows on the
+   thumb and the colour, never on the size of the words. pressText.test.ts holds the rule. */
 
 /* ------------------------------------------------------------------ switch */
 

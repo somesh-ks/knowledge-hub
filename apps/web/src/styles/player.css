@@ -1230,11 +1230,6 @@
     transform var(--duration-press-out) var(--ease-out);
 }
 
-.segmented label:active {
-  transform: scale(var(--scale-press));
-  transition-duration: var(--duration-press-in), var(--duration-hover), var(--duration-hover);
-}
-
 .segmented input {
   position: absolute;
   inset: 0;

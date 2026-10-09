@@ -1,14 +1,6 @@
 import { describe, expect, it } from "vitest";
-import { PLAYBACK_RATES } from "../player/core/playerTypes";
 import { DEFAULT_PREFERENCES, THEME_PREFERENCES } from "../player/core/preferences";
-import {
-  changeSounds,
-  controlState,
-  toRate,
-  toTheme,
-  toVolume,
-  volumePercent,
-} from "./settingsPage";
+import { changeSounds, controlState, toTheme, toVolume, volumePercent } from "./settingsPage";
 
 describe("toTheme", () => {
   it("accepts every theme the store knows", () => {
@@ -19,18 +11,6 @@ describe("toTheme", () => {
     expect(toTheme("sepia")).toBeNull();
     expect(toTheme("")).toBeNull();
     expect(toTheme("Dark")).toBeNull();
-  });
-});
-
-describe("toRate", () => {
-  it("matches a radio's text against the playback rates", () => {
-    for (const rate of PLAYBACK_RATES) expect(toRate(String(rate))).toBe(rate);
-  });
-
-  it("rejects a speed the player does not offer", () => {
-    expect(toRate("3")).toBeNull();
-    expect(toRate("1.0")).toBeNull();
-    expect(toRate("")).toBeNull();
   });
 });
 
@@ -76,19 +56,11 @@ describe("controlState", () => {
   it("shows the defaults", () => {
     expect(controlState(DEFAULT_PREFERENCES, true)).toEqual({
       theme: "system",
-      rate: "1",
       sounds: true,
       volume: "0.8",
       volumePercent: "80%",
       volumeDisabled: false,
     });
-  });
-
-  it("checks the radio whose value is the stored speed", () => {
-    for (const rate of PLAYBACK_RATES) {
-      const state = controlState({ ...DEFAULT_PREFERENCES, rate }, true);
-      expect(toRate(state.rate)).toBe(rate);
-    }
   });
 
   it("takes sounds from the resolved setting, not from the unset preference", () => {
