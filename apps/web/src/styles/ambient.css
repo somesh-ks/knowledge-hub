@@ -1,0 +1,117 @@
+/*
+ * Ambient cover light: a soft field of the cover's colors behind the briefing and episode header, as
+ * if the sleeve were lit. It starts at the cover's edge, spills toward the end side and a little
+ * down, and is gone before the first section. The whole layer is one opacity, the peak tint, so the
+ * colors inside can be full strength and the contrast proof (ambientPalette.test.ts) is a single
+ * blend. The still CSS layer is what shows before script and where WebGL is missing; the canvas
+ * fades in over it.
+ */
+
+/* The header holds the layer in its own stacking context, behind its content, out of its layout. */
+.hero {
+  position: relative;
+  isolation: isolate;
+}
+
+.ambient {
+  --ambient-tint: var(--opacity-ambient-light);
+  --ambient-a: var(--ambient-a-l);
+  --ambient-b: var(--ambient-b-l);
+  --ambient-c: var(--ambient-c-l);
+  position: absolute;
+  z-index: -1;
+  /* The header's own box, top padding included: that padding is the room above the cover. Nothing
+     reaches past it, so neither the phone's app bar nor the top of the window can cut the light. */
+  inset-block: 0;
+  /* Past the column into the page's own gutter and no further. The gutter is all the room a phone
+     has: a layer wider than the screen would make the whole page scroll sideways and stretch the
+     navigation with it, so the reach is capped by the gutter on each side, not by a fixed length. */
+  inset-inline: calc(min(var(--space-12), var(--page-gutter-start)) * -1)
+    calc(min(var(--space-12), var(--page-gutter-end)) * -1);
+  opacity: var(--ambient-tint);
+  pointer-events: none;
+  /* Chromium on a GPU leaves the layer's outermost device row unmasked: a line one device pixel
+     thick and a few levels off, measured along the top edge. The clip takes that row away. */
+  clip-path: inset(1px);
+  /* Strongest at the cover's edge and zero at all four edges of the layer: the ellipse is as tall
+     above its centre as the centre is from the top, and the sweep closes both sides. No line
+     anywhere. */
+  mask-image:
+    radial-gradient(
+      ellipse 50% 46% at 36% 46%,
+      black,
+      color-mix(in srgb, black 55%, transparent) 45%,
+      transparent
+    ),
+    linear-gradient(to right, transparent, black 16%, black 45%, transparent 92%);
+  mask-composite: intersect;
+  -webkit-mask-image:
+    radial-gradient(
+      ellipse 50% 46% at 36% 46%,
+      black,
+      color-mix(in srgb, black 55%, transparent) 45%,
+      transparent
+    ),
+    linear-gradient(to right, transparent, black 16%, black 45%, transparent 92%);
+  -webkit-mask-composite: source-in;
+}
+
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) .ambient {
+    --ambient-tint: var(--opacity-ambient-dark);
+    --ambient-a: var(--ambient-a-d);
+    --ambient-b: var(--ambient-b-d);
+    --ambient-c: var(--ambient-c-d);
+  }
+}
+
+:root[data-theme="dark"] .ambient {
+  --ambient-tint: var(--opacity-ambient-dark);
+  --ambient-a: var(--ambient-a-d);
+  --ambient-b: var(--ambient-b-d);
+  --ambient-c: var(--ambient-c-d);
+}
+
+.ambient-still,
+.ambient-canvas {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+}
+
+.ambient-still {
+  background:
+    radial-gradient(ellipse 36% 70% at 36% 42%, var(--ambient-a), transparent),
+    radial-gradient(ellipse 34% 55% at 56% 58%, var(--ambient-b), transparent),
+    radial-gradient(ellipse 30% 45% at 30% 24%, var(--ambient-c), transparent);
+  transition: opacity var(--duration-enter) var(--ease-out);
+}
+
+.ambient-canvas {
+  opacity: 0;
+  transition: opacity var(--duration-enter) var(--ease-out);
+}
+
+.ambient[data-live] .ambient-canvas {
+  opacity: 1;
+}
+
+.ambient[data-live] .ambient-still {
+  opacity: 0;
+}
+
+/* The play chip's words are the accent colour, and over a cover's light they fall just short of
+   4.5:1 on the light theme (the title and the meta line hold it; ambientPalette.test.ts proves
+   those). So in a header the chip stands on the page's own surface. Where there is no light it looks
+   as it always did. :where() keeps this rule as light as the chip's own, so the chip's hover,
+   pressed and current fills still win wherever this file lands in the build. */
+:where(.hero) .chip {
+  background-color: var(--color-surface);
+}
+
+@media (forced-colors: active) {
+  .ambient {
+    display: none;
+  }
+}
