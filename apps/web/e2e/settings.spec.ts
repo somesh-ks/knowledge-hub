@@ -36,8 +36,7 @@ async function islandsReady(page: Page): Promise<void> {
 }
 
 const theme = (page: Page) => page.getByRole("radiogroup", { name: "Theme" });
-const speed = (page: Page) => page.getByRole("radiogroup", { name: "Default speed" });
-const sounds = (page: Page) => page.getByRole("switch", { name: "Interface sounds" });
+const sounds = (page: Page) => page.getByRole("switch", { name: "Sounds", exact: true });
 const volume = (page: Page) => page.getByRole("slider", { name: "Volume" });
 const settingsLink = (page: Page) =>
   page.getByRole("navigation", { name: "Primary" }).getByRole("link", { name: "Settings" });
@@ -166,22 +165,11 @@ test.describe("settings page", () => {
     await expect(volume(page)).toHaveValue("0.7");
   });
 
-  test("the default speed persists and reaches the player", async ({ page }) => {
+  test("has no speed setting: the player keeps the last speed chosen in it", async ({ page }) => {
     await openSettings(page);
-    // The player announces once its island has hydrated.
-    await islandsReady(page);
-    await expect(speed(page).getByRole("radio", { name: "1x", exact: true })).toBeChecked();
-
-    await speed(page).getByRole("radio", { name: "1.5x" }).check();
-    await expect.poll(async () => (await stored(page)).rate).toBe(1.5);
-    // The player store announces a speed change, so hearing it means the live player took the rate.
-    await expect(page.locator("[data-announcer]").filter({ hasText: "Speed 1.5x." })).toHaveCount(
-      1,
-    );
-
-    await page.reload();
-    await expect(speed(page).getByRole("radio", { name: "1.5x" })).toBeChecked();
-    await expect(speed(page).getByRole("radio", { name: "1x", exact: true })).not.toBeChecked();
+    await expect(page.getByRole("radiogroup", { name: "Default speed" })).toHaveCount(0);
+    await expect(page.getByRole("heading", { level: 2, name: "Interface sounds" })).toBeVisible();
+    await expect(page.getByRole("heading", { level: 2, name: "Playback" })).toHaveCount(0);
   });
 
   test("a client-side navigation from the briefing fills the controls in", async ({ page }) => {
@@ -208,7 +196,6 @@ test.describe("settings page", () => {
     await expect(settingsLink(page)).toHaveAttribute("aria-current", "page");
     await expect(page.locator("html")).toHaveAttribute("data-theme", "dark");
     await expect(theme(page).getByRole("radio", { name: "Dark" })).toBeChecked();
-    await expect(speed(page).getByRole("radio", { name: "1.25x" })).toBeChecked();
     await expect(sounds(page)).not.toBeChecked();
     await expect(volume(page)).toBeDisabled();
     await expect(volume(page)).toHaveValue("0.35");
@@ -216,8 +203,8 @@ test.describe("settings page", () => {
 
   test("the controls still work on a second visit in the same session", async ({ page }) => {
     await openSettings(page);
-    await speed(page).getByRole("radio", { name: "2x" }).check();
-    await expect.poll(async () => (await stored(page)).rate).toBe(2);
+    await theme(page).getByRole("radio", { name: "Dark" }).check();
+    await expect.poll(async () => (await stored(page)).theme).toBe("dark");
 
     await page
       .getByRole("navigation", { name: "Primary" })
@@ -228,10 +215,10 @@ test.describe("settings page", () => {
     await settingsLink(page).click();
     await expect(page).toHaveURL(/\/settings$/);
     await expect(page.locator("[data-settings]")).toHaveAttribute("data-ready", "true");
-    await expect(speed(page).getByRole("radio", { name: "2x" })).toBeChecked();
+    await expect(theme(page).getByRole("radio", { name: "Dark" })).toBeChecked();
 
-    await speed(page).getByRole("radio", { name: "1.25x" }).check();
-    await expect.poll(async () => (await stored(page)).rate).toBe(1.25);
+    await theme(page).getByRole("radio", { name: "Light" }).check();
+    await expect.poll(async () => (await stored(page)).theme).toBe("light");
     await sounds(page).click();
     await expect(volume(page)).toBeDisabled();
   });
@@ -249,9 +236,9 @@ test.describe("settings page", () => {
     // The column is measured, not assumed: a desktop browser keeps a scrollbar's width back from it.
     const column = await page.locator("[data-settings]").boundingBox();
     expect(column?.x ?? 0).toBeGreaterThanOrEqual(16);
-    for (const group of [theme(page), speed(page)]) {
+    for (const group of [theme(page)]) {
       const box = await group.boundingBox();
-      // Under its label and as wide as the column, so four speeds never fight the label for room.
+      // Under its label and as wide as the column, so the choices never fight the label for room.
       expect(box?.x ?? 0).toBeCloseTo(column?.x ?? -1, 0);
       expect(box?.width ?? 0).toBeCloseTo(column?.width ?? -1, 0);
       const segments = await group

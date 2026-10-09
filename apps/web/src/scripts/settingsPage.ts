@@ -13,8 +13,6 @@ import {
   recordInstallVisit,
   shouldShowInstallHint,
 } from "../player/core/installHint";
-import { getPlayerStore } from "../player/core/playerRuntime";
-import { PLAYBACK_RATES, type PlaybackRate } from "../player/core/playerTypes";
 import {
   getPreferences,
   type Preferences,
@@ -32,11 +30,6 @@ export function toTheme(value: string): ThemePreference | null {
   return THEME_PREFERENCES.find((theme) => theme === value) ?? null;
 }
 
-/** A radio's value is text, so "1.5" is matched against the rates rather than parsed. */
-export function toRate(value: string): PlaybackRate | null {
-  return PLAYBACK_RATES.find((rate) => String(rate) === value) ?? null;
-}
-
 /** A slider's reading as a volume, or null when the control holds something that is not a number. */
 export function toVolume(value: string): number | null {
   const volume = Number(value);
@@ -52,8 +45,6 @@ export function volumePercent(volume: number): string {
 /** What every control on the page should show for a set of preferences. */
 export interface ControlState {
   theme: ThemePreference;
-  /** The value of the speed radio to check. */
-  rate: string;
   sounds: boolean;
   /** The slider's value, as the text a range input holds. */
   volume: string;
@@ -69,7 +60,6 @@ export interface ControlState {
 export function controlState(preferences: Preferences, soundsEnabled: boolean): ControlState {
   return {
     theme: preferences.theme,
-    rate: String(preferences.rate),
     sounds: soundsEnabled,
     volume: String(preferences.volume),
     volumePercent: volumePercent(preferences.volume),
@@ -117,7 +107,6 @@ function installHintApplies(): boolean {
 function mountSettings(root: HTMLElement): () => void {
   const preferences = getPreferences();
   const themes = [...root.querySelectorAll<HTMLInputElement>('input[name="theme"]')];
-  const rates = [...root.querySelectorAll<HTMLInputElement>('input[name="rate"]')];
   const sounds = root.querySelector<HTMLInputElement>('input[name="sounds"]');
   const volume = root.querySelector<HTMLInputElement>('input[name="volume"]');
   const hint = root.querySelector<HTMLElement>("[data-install-hint]");
@@ -125,7 +114,6 @@ function mountSettings(root: HTMLElement): () => void {
   const render = (): void => {
     const state = controlState(preferences.get(), preferences.getSoundsEnabled());
     for (const input of themes) input.checked = input.value === state.theme;
-    for (const input of rates) input.checked = input.value === state.rate;
     if (sounds) sounds.checked = state.sounds;
     if (volume) {
       volume.value = state.volume;
@@ -143,12 +131,6 @@ function mountSettings(root: HTMLElement): () => void {
       const theme = toTheme(input.value);
       // The theme runtime watches the preference and crossfades the change; no sound.
       if (theme) preferences.set({ theme });
-    } else if (input.name === "rate") {
-      const rate = toRate(input.value);
-      if (rate === null) return;
-      preferences.set({ rate });
-      // The default is also the speed of whatever is playing now.
-      getPlayerStore().setRate(rate);
     } else if (input === sounds) {
       changeSounds(input.checked, {
         setSounds: (enabled) => preferences.set({ sounds: enabled }),

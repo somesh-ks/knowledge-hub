@@ -67,7 +67,7 @@ const COPY = {
       <fieldset class="create-chips" aria-labelledby="create-topics-label">
         {
           topics.map((topic) => (
-            <label class="create-chip press press-subtle" data-mode={topic.mode} hidden={topic.mode !== DEFAULTS.audience}>
+            <label class="create-chip" data-mode={topic.mode} hidden={topic.mode !== DEFAULTS.audience}>
               <input type="checkbox" name="topic" value={topic.value} />
               <Icon name="check" class="create-chip-check" />
               <span>{topic.label}</span>
