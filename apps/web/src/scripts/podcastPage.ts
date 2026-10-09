@@ -13,6 +13,7 @@ import type { ModelOption } from "../lib/combobox";
 import { isModelId } from "../lib/modelId";
 import type { ConfigOp } from "../types/contracts";
 import type { Pending, SaveContext } from "./managePageSave";
+import type { FieldValues, scheduleOp as ScheduleOp } from "./podcastProfiles";
 
 export type Provider = "nebius" | "anthropic";
 
@@ -22,43 +23,6 @@ export interface ModelEntry {
 }
 
 const LIST_TIMEOUT_MS = 10_000;
-
-/** What the schedule controls hold, by field: "daily.hour", "weekly.day", "custom.voice_b". */
-export type FieldValues = Record<string, string>;
-
-const nullable = (value: string): string | null => (value === "" ? null : value);
-
-/**
- * The schedule edit the controls stand for: every field whose value differs from `was`, in the
- * profile it belongs to. The topics a briefing covers are not chosen here, so they are left out and
- * keep what the file holds. Null when nothing differs.
- */
-export function scheduleOp(was: FieldValues, now: FieldValues): ConfigOp | null {
-  // The daily fields sit at the top of the op; the weekly and custom ones in their own object.
-  const top: Record<string, unknown> = {};
-  const nested: Record<string, Record<string, unknown>> = { weekly: {}, custom: {} };
-  const names: Record<string, string> = { cadence: "cadence_days", length: "length_minutes" };
-  for (const [key, value] of Object.entries(now)) {
-    if (was[key] === value) continue;
-    const [profile = "", field = ""] = key.split(".");
-    const name = names[field] ?? field;
-    const number = ["hour", "day", "cadence", "length"].includes(field);
-    const parsed = number
-      ? Number(value)
-      : field === "enabled"
-        ? value === "true"
-        : field.startsWith("voice")
-          ? nullable(value)
-          : value;
-    const voice = field === "voice" ? "voice_id" : field === "voice_b" ? "voice_id_b" : name;
-    (nested[profile] ?? top)[voice] = parsed;
-  }
-  const weekly = Object.keys(nested.weekly ?? {}).length > 0 ? { weekly: nested.weekly } : {};
-  const custom = Object.keys(nested.custom ?? {}).length > 0 ? { custom: nested.custom } : {};
-  if (Object.keys(top).length + Object.keys(weekly).length + Object.keys(custom).length === 0)
-    return null;
-  return { op: "schedule.set", ...top, ...weekly, ...custom } as ConfigOp;
-}
 
 /** The edit a provider and model choice stand for. `null` on Nebius is Automatic. */
 export function modelOp(model: string | null, provider: Provider = "nebius"): ConfigOp {
@@ -121,6 +85,8 @@ async function mount(root: HTMLElement): Promise<void> {
   const savedProvider: Provider = group.dataset.provider === "anthropic" ? "anthropic" : "nebius";
   const provider = (): Provider => (vendor.value === "anthropic" ? "anthropic" : "nebius");
   const changes = new Map<string, Pending>();
+  /** The diff, from the profiles script, which loads right after the page is up. */
+  let ops: typeof ScheduleOp | undefined;
 
   /** The live Nebius list: undefined until asked for, null when it failed. */
   let nebius: ModelEntry[] | null | undefined;
@@ -166,7 +132,7 @@ async function mount(root: HTMLElement): Promise<void> {
 
   const update = (): void => {
     const now = fields();
-    const op = scheduleOp(JSON.parse(box.dataset.was ?? "{}") as FieldValues, now);
+    const op = ops?.(JSON.parse(box.dataset.was ?? "{}") as FieldValues, now);
     if (op) changes.set("schedule", { op, el: box, now: JSON.stringify(now) });
     else changes.delete("schedule");
 
@@ -337,7 +303,10 @@ async function mount(root: HTMLElement): Promise<void> {
   });
 
   box.dataset.was = JSON.stringify(fields());
-  void import("./podcastProfiles").then((module) => module.mountProfiles(root, update));
+  void import("./podcastProfiles").then((module) => {
+    ops = module.scheduleOp;
+    module.mountProfiles(root, update);
+  });
   group.dataset.was = JSON.stringify([savedProvider, savedModel]);
   refresh();
   root.dataset.ready = "";

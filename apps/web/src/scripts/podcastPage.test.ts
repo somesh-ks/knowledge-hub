@@ -1,5 +1,6 @@
 import { describe, expect, it } from "vitest";
-import { modelOp, parseModelList, scheduleOp } from "./podcastPage";
+import { modelOp, parseModelList } from "./podcastPage";
+import { scheduleOp } from "./podcastProfiles";
 
 describe("scheduleOp", () => {
   const was = {
