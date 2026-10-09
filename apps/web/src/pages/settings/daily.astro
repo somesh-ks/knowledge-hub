@@ -132,24 +132,24 @@ const sourceCount = count(sources.filter((source) => source.enabled).length, "so
           <p class="manage-quiet" data-next>{next}</p>
 
           <div class="daily-model">
-            <div class="manage-field" data-filter hidden>
-              {/* The field says what it is in its placeholder; the label is for assistive tech. */}
-              <label class="sr-only" for="model-filter">Filter models</label>
-              <input
-                class="manage-input"
-                id="model-filter"
-                type="search"
-                autocomplete="off"
-                autocapitalize="off"
-                spellcheck="false"
-                placeholder="Filter models"
-                disabled
-              />
-            </div>
-            <p class="sr-only" aria-live="polite" data-count></p>
-
             <fieldset class="manage-suggest-group" data-models data-saved={model ?? ""} aria-busy="true">
               <legend class="manage-legend">Model</legend>
+                <div class="manage-field" data-filter hidden>
+                  {/* The field says what it is in its placeholder; the label is for assistive tech. */}
+                  <label class="sr-only" for="model-filter">Filter models</label>
+                  <input
+                    class="manage-input"
+                    id="model-filter"
+                    type="search"
+                    autocomplete="off"
+                    autocapitalize="off"
+                    spellcheck="false"
+                    placeholder="Filter models"
+                    disabled
+                  />
+                </div>
+                <p class="sr-only" aria-live="polite" data-count></p>
+
               <ul class="rows model-list" role="list" data-list aria-hidden="true">
                 {
                   skeletons.map(() => (

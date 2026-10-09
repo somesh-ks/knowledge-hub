@@ -22,8 +22,11 @@
 }
 
 @media (min-width: 40rem) {
+  /* The cadence reads "Every second day": the row gives the pair more than a segmented choice gets,
+     and the time, which is five characters, less than half of it. */
   .daily-selects {
-    flex: 0 0 var(--settings-control-width);
+    flex: 0 0 calc(var(--settings-control-width) * 1.4);
+    grid-template-columns: minmax(0, 2fr) minmax(0, 3fr);
   }
 }
 
