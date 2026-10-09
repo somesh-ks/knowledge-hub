@@ -49,7 +49,7 @@ const profile = (page: Page, id: "daily" | "weekly" | "custom") =>
 
 /** Opens a profile with the switch at the top of the page. */
 async function show(page: Page, name: "Daily" | "Weekly" | "Custom"): Promise<void> {
-  await page.getByRole("radiogroup", { name: "Podcast" }).getByText(name, { exact: true }).click();
+  await page.getByRole("radiogroup", { name: "Podcast" }).getByRole("radio", { name }).check();
 }
 
 const bar = (page: Page) => page.locator("[data-bar]");
@@ -209,7 +209,6 @@ test.describe("podcast settings", () => {
       page.locator("#daily-hour"),
       page.locator("#daily-cadence"),
       page.locator("#daily-voice"),
-      page.getByRole("link", { name: "Topics & sources" }),
       combo(page),
       page.getByLabel("Provider"),
     ]) {

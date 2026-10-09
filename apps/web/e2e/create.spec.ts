@@ -91,6 +91,7 @@ test.describe("the Create page", () => {
       "Topics",
       "Length",
       "Format",
+      "Voice",
       "Look back",
       "Tone",
       "Title",
