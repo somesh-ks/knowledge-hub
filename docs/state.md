@@ -1,6 +1,6 @@
 # State
 
-Last updated 2026-10-09. Rewrite this file; do not append.
+Last updated 2026-10-10. Rewrite this file; do not append.
 
 The reader is called Singularity (D30). Identifiers keep `dispatch`. Everything below is on `main` and deployed at news.someshks.work unless a line says otherwise.
 
@@ -31,10 +31,17 @@ The reader is called Singularity (D30). Identifiers keep `dispatch`. Everything 
 - Interface sounds by kind of action (navigate, select, open and close, success, failure) through one delegated listener that loads the sound code on the first gesture and follows the Sounds setting.
 - Today and episode pages carry one three-dots menu (Share, Regenerate, Delete on an episode); an episode page shows Highlights with links, not the script. The Library has a List view, search inside episode scripts, and a play button on covers. Settings is Daily podcast, Playback, Appearance, About.
 - Style tests forbid raw lengths for spacing, type size and radius, and reading a custom property nothing defines. The view transition overlay lets the pointer through, so the cursor does not flicker over a link.
+- Create panel (2026-10-10): Somesh (not "Somesh mode"), no topic limit (a guard of 50 in `PODCAST_MAX_TOPICS`), no helper text under Written for or Topics, Title says "Optional" beside it, Format is a segmented choice (Readout, Discussion; Headlines is gone from new requests), and the button reads "Generate • 10 mins".
+- Writer providers (D49): Nebius and Anthropic (Claude Sonnet 5.5, Haiku 5.5), chosen with a vendor select and a model combobox. A failed Anthropic pick falls through to the Nebius environment models.
+- Schedule profiles: `config/schedule.json` holds the Daily fields, a `weekly` profile (day, hour, type, length, voices, on/off) and a `custom` profile (the Create panel's defaults). The engine's weekly run follows its own day, hour and length.
+- Sources: a 0 to 5 score from the 30 day stats (Excellent, Good, Fair, Poor, New under 10 judged items) and `GET /api/source-preview` (name, favicon, feed, latest post, score) behind an SSRF guard.
+- Voices: `GET /api/voices`; custom episodes are narrated in the voices of their request, briefings in the schedule's (a schedule change reaches Play after a redeploy).
+- The writer is told the hosts are Ada and Leo. Settings: no default-speed row (the player keeps the last speed), "Interface sounds", dividers inside the content. A press never scales a label control (`pressText.test.ts`). The player lab pages are in `astro dev` only.
 
 ## Written, not merged
 
-- `feat/player-bar-and-script`: the bar in YouTube Music's layout carrying the one timeline with a tick per story; the open page reduced to cover, one-line title, source link, two 10 second skips and a speed menu; no flying cover; play without an accent fill; for an episode, the script in the open player with two named hosts, Ada and Leo. It looks right in screenshots but is NOT merged: stacked on the main of 2026-10-08 its player suite failed 10 tests on the Chromium site projects (`stuck.spec.ts` 71, 95, 113, 195; `gestures.spec.ts` 67 and 228; `layout.spec.ts` 103 at 1280x620 and 1280x800) and `e2e/persistence.spec.ts:57`. Its worker had run only part of the suite. Some of these also fail on `main` (see below); the rest are not yet explained.
+- #47 (draft, waits for the owner's "merge"): the player redesign. The bar in YouTube Music's layout with the one timeline and a tick per story, an open page of cover, title, source link, 10 second skips and a speed menu, no flying cover, and the script with Ada and Leo for an episode. Rebased on main; its 7 old failures were stale tests (the timeline is the bar's on a wide screen with a mouse) and one real bug (opening an episode scrolled the page 388px). Whole site suite 618 passed. The bar's scrubber and the page's are never on screen together (64rem with a mouse).
+- #58 and #59 (open): the Topics & sources page (weights, source scores, Add source panel) and the Podcast page (Daily, Weekly, Custom, voices, model, tidier dropdowns). Whole stack: site suite 586 passed. #59 contains #58.
 
 ## Development
 
@@ -63,11 +70,18 @@ The reader is called Singularity (D30). Identifiers keep `dispatch`. Everything 
 - GitHub fired the scheduled run 6.5 hours late on 2026-10-07 and had not fired it by midday on 2026-10-08. The gate compares dates, so a late run still lands on its day, but the time is not dependable.
 - No end-to-end test applies a real op array through `config apply`, and none runs a full pipeline with Trending feeds.
 - `doctor --online` does not check `GITHUB_DISPATCH_TOKEN`.
-- The player suite's three Chromium site projects, run on 2026-10-09 against the fixture build: 115 pass and 6 fail, on `main` before and after that night's merges (`gestures.spec.ts:228` and `stuck.spec.ts:95` on both phone projects, `gestures.spec.ts:67` and `stuck.spec.ts:95` on desktop). Not investigated. On 2026-10-08 every Chromium project passed (399 tests in 42 minutes with the WebKit projects). Six tests fail in WebKit on the unchanged code as well, so they are not regressions: a flick up and a long pull up on the bar do not open the page, three "stuck" paths (after Back, after the toast's Open action, and when the lazy half cannot load), and the cover flight check. In WebKit a mouse stands in for the finger, so this may be the stand-in and not Safari; only a real iPhone settles it.
+- The player suite on the Chromium site projects passes on main as of 2026-10-10 (the two regressions were a hero cover that started a native image drag and a modal scope that left the page behind reachable by Tab; #42). Six tests fail in WebKit on the unchanged code: a flick up and a long pull up on the bar do not open the page, three "stuck" paths (after Back, after the toast's Open action, when the lazy half cannot load), and the cover flight check. In WebKit a mouse stands in for the finger, so this may be the stand-in and not Safari; only a real iPhone settles it.
 - `src/player/dev/LabGlyph.astro` is unused. Delete it when convenient.
 - Not tested on a real iPhone.
 - Audio stored for the briefings of 6 and 7 October says "Dispatch". It lives in each briefing's front matter, so Play uses it and does not re-make it.
 - First-load JavaScript budget is 103 KB and the heaviest page is at 102.9. Anything new has to load on idle or take something out.
+
+- Owner steps: add `ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}` to every step with `NEBIUS_API_KEY` in `run.yml` and `podcast.yml`; for a weekly run at its own hour let the job's `if` accept a `RUN_CRON_WEEKLY` variable (`13 <hour> * * <day>`) that the site would set beside `RUN_CRON`. Until then the weekly follows the daily hour. The `VERCEL_TOKEN` in `.env` is probably dead (it is also the `audio.yml` secret).
+- The daily briefing's Type is saved but not applied: narration is built from the digest verbatim, so Discussion needs a podcast step in `audio.yml` (a workflow change). Length does scale the story count.
+- Unverified live: any Anthropic call, the Speechify voice list and voice samples (`media-src` may block the sample URLs), `/api/source-preview` and `/api/site-icon` on real feeds, the Nebius shortlist against the live list, the base-select dropdown picker in a screenshot.
+- `audio-speechify.test.ts` flakes under load (passes alone). `SettingsSheet.tsx` (reachable only from the dev lab) still has a Default speed.
+- Bundle: the budget stays 104 KB; the heaviest page (/settings/podcast) is 103.7.
+- A leftover folder `.claude/worktrees/agent-aa3d6c40ca7009eee` could not be deleted (something holds it); it is not a git worktree.
 
 ## Known risks
 
@@ -79,10 +93,7 @@ The reader is called Singularity (D30). Identifiers keep `dispatch`. Everything 
 
 ## Next
 
-1. Owner: `npm run secrets:push` for the Model page; decide whether sound may create its audio context before the first press.
-2. Owner asked for, not started: the script in the open player with the spoken word highlighted, beside the cover, and the episode page showing insights and links in place of the script.
-3. The wait before the first sound: merge the prewarm once its tests are sorted, measure on production, and stream only if it is still slow.
-4. Owner: revoke the Vercel token pasted in chat on 2026-10-07; delete the empty Blob store `store_JmrDq8MB5Kwn3ejW`.
-5. One generated briefing to see Design and Trending, then tune the Trending threshold.
-6. Two iPhone passes, with the six WebKit failures as the checklist.
-7. Curation quality, in order: group patch releases per repository, record only published ids in `markSeen`, calibrate the 0.4 threshold on the golden set, feed per-source pass rates into the score.
+1. Owner: "merge" for #47; the two workflow edits above; revoke the Vercel token pasted in chat on 2026-10-07 and replace the `.env` one; delete the empty Blob store `store_JmrDq8MB5Kwn3ejW`.
+2. Word-level highlighting in the script (store the Speechify word marks per segment and return them from the lookup); finer episode stages (the podcast command in phases, a workflow change); the daily Type through the audio workflow.
+3. One generated briefing to see Design and Trending, then tune the Trending threshold; two iPhone passes with the six WebKit failures as the checklist.
+4. Curation quality: group patch releases per repository, record only published ids in `markSeen`, calibrate the 0.4 threshold on the golden set, feed per-source pass rates into the score.
