@@ -1,0 +1,237 @@
+{
+  "version": 1,
+  "entries": {
+    "058d4d6095bf:trending:8cdb20c64d6d:jev-latest": {
+      "fit": 0.5225,
+      "item_id": "058d4d6095bf",
+      "judged_at": "2026-10-09T11:56:31.839Z",
+      "model": "jev-latest",
+      "topic_hash": "8cdb20c64d6d",
+      "topic_id": "trending"
+    },
+    "1428acab7b04:design:52215b733fd1:jev-latest": {
+      "fit": 0.16,
+      "item_id": "1428acab7b04",
+      "judged_at": "2026-10-09T11:56:31.275Z",
+      "model": "jev-latest",
+      "topic_hash": "52215b733fd1",
+      "topic_id": "design"
+    },
+    "1ce36caa6c8f:trending:8cdb20c64d6d:jev-latest": {
+      "fit": 0.76,
+      "item_id": "1ce36caa6c8f",
+      "judged_at": "2026-10-09T11:56:31.694Z",
+      "model": "jev-latest",
+      "topic_hash": "8cdb20c64d6d",
+      "topic_id": "trending"
+    },
+    "26e36e4bf4ee:design:52215b733fd1:jev-latest": {
+      "fit": 0.15,
+      "item_id": "26e36e4bf4ee",
+      "judged_at": "2026-10-09T11:56:31.286Z",
+      "model": "jev-latest",
+      "topic_hash": "52215b733fd1",
+      "topic_id": "design"
+    },
+    "34690158d974:trending:8cdb20c64d6d:jev-latest": {
+      "fit": 0.5525,
+      "item_id": "34690158d974",
+      "judged_at": "2026-10-09T11:56:31.685Z",
+      "model": "jev-latest",
+      "topic_hash": "8cdb20c64d6d",
+      "topic_id": "trending"
+    },
+    "412b5a92b45a:design:52215b733fd1:jev-latest": {
+      "fit": 0.9025,
+      "item_id": "412b5a92b45a",
+      "judged_at": "2026-10-09T11:56:31.436Z",
+      "model": "jev-latest",
+      "topic_hash": "52215b733fd1",
+      "topic_id": "design"
+    },
+    "433bb76c89bd:trending:8cdb20c64d6d:jev-latest": {
+      "fit": 0.87,
+      "item_id": "433bb76c89bd",
+      "judged_at": "2026-10-09T11:56:31.687Z",
+      "model": "jev-latest",
+      "topic_hash": "8cdb20c64d6d",
+      "topic_id": "trending"
+    },
+    "4356423fa3f8:design:52215b733fd1:jev-latest": {
+      "fit": 0.96,
+      "item_id": "4356423fa3f8",
+      "judged_at": "2026-10-09T11:56:31.271Z",
+      "model": "jev-latest",
+      "topic_hash": "52215b733fd1",
+      "topic_id": "design"
+    },
+    "4f6e3a0b9986:trending:8cdb20c64d6d:jev-latest": {
+      "fit": 0.5525,
+      "item_id": "4f6e3a0b9986",
+      "judged_at": "2026-10-09T11:56:31.844Z",
+      "model": "jev-latest",
+      "topic_hash": "8cdb20c64d6d",
+      "topic_id": "trending"
+    },
+    "57e258978689:design:52215b733fd1:jev-latest": {
+      "fit": 0.0825,
+      "item_id": "57e258978689",
+      "judged_at": "2026-10-09T11:56:31.284Z",
+      "model": "jev-latest",
+      "topic_hash": "52215b733fd1",
+      "topic_id": "design"
+    },
+    "6a81342efae6:design:52215b733fd1:jev-latest": {
+      "fit": 0.7775,
+      "item_id": "6a81342efae6",
+      "judged_at": "2026-10-09T11:56:31.435Z",
+      "model": "jev-latest",
+      "topic_hash": "52215b733fd1",
+      "topic_id": "design"
+    },
+    "6b11a5968c29:trending:8cdb20c64d6d:jev-latest": {
+      "fit": 0.685,
+      "item_id": "6b11a5968c29",
+      "judged_at": "2026-10-09T11:56:31.729Z",
+      "model": "jev-latest",
+      "topic_hash": "8cdb20c64d6d",
+      "topic_id": "trending"
+    },
+    "6d69db8d2d81:design:52215b733fd1:jev-latest": {
+      "fit": 0.215,
+      "item_id": "6d69db8d2d81",
+      "judged_at": "2026-10-09T11:56:31.572Z",
+      "model": "jev-latest",
+      "topic_hash": "52215b733fd1",
+      "topic_id": "design"
+    },
+    "70580eb406f8:trending:8cdb20c64d6d:jev-latest": {
+      "fit": 0.485,
+      "item_id": "70580eb406f8",
+      "judged_at": "2026-10-09T11:56:31.724Z",
+      "model": "jev-latest",
+      "topic_hash": "8cdb20c64d6d",
+      "topic_id": "trending"
+    },
+    "73d33c680e9e:design:52215b733fd1:jev-latest": {
+      "fit": 0.2875,
+      "item_id": "73d33c680e9e",
+      "judged_at": "2026-10-09T11:56:31.263Z",
+      "model": "jev-latest",
+      "topic_hash": "52215b733fd1",
+      "topic_id": "design"
+    },
+    "7729565e5373:design:52215b733fd1:jev-latest": {
+      "fit": 0.8875,
+      "item_id": "7729565e5373",
+      "judged_at": "2026-10-09T11:56:31.276Z",
+      "model": "jev-latest",
+      "topic_hash": "52215b733fd1",
+      "topic_id": "design"
+    },
+    "888237ce3ec6:design:52215b733fd1:jev-latest": {
+      "fit": 0.23,
+      "item_id": "888237ce3ec6",
+      "judged_at": "2026-10-09T11:56:31.404Z",
+      "model": "jev-latest",
+      "topic_hash": "52215b733fd1",
+      "topic_id": "design"
+    },
+    "8c3dc4d7dc2b:design:52215b733fd1:jev-latest": {
+      "fit": 0.4475,
+      "item_id": "8c3dc4d7dc2b",
+      "judged_at": "2026-10-09T11:56:31.533Z",
+      "model": "jev-latest",
+      "topic_hash": "52215b733fd1",
+      "topic_id": "design"
+    },
+    "95f5133972e3:design:52215b733fd1:jev-latest": {
+      "fit": 0.0425,
+      "item_id": "95f5133972e3",
+      "judged_at": "2026-10-09T11:56:31.439Z",
+      "model": "jev-latest",
+      "topic_hash": "52215b733fd1",
+      "topic_id": "design"
+    },
+    "96912caa5a20:design:52215b733fd1:jev-latest": {
+      "fit": 0.63,
+      "item_id": "96912caa5a20",
+      "judged_at": "2026-10-09T11:56:31.423Z",
+      "model": "jev-latest",
+      "topic_hash": "52215b733fd1",
+      "topic_id": "design"
+    },
+    "aa75992805c4:trending:8cdb20c64d6d:jev-latest": {
+      "fit": 0.645,
+      "item_id": "aa75992805c4",
+      "judged_at": "2026-10-09T11:56:31.714Z",
+      "model": "jev-latest",
+      "topic_hash": "8cdb20c64d6d",
+      "topic_id": "trending"
+    },
+    "bfa32b91614e:design:52215b733fd1:jev-latest": {
+      "fit": 0.12,
+      "item_id": "bfa32b91614e",
+      "judged_at": "2026-10-09T11:56:31.291Z",
+      "model": "jev-latest",
+      "topic_hash": "52215b733fd1",
+      "topic_id": "design"
+    },
+    "c6a6fccc2ba8:design:52215b733fd1:jev-latest": {
+      "fit": 0.0175,
+      "item_id": "c6a6fccc2ba8",
+      "judged_at": "2026-10-09T11:56:31.415Z",
+      "model": "jev-latest",
+      "topic_hash": "52215b733fd1",
+      "topic_id": "design"
+    },
+    "d8ae9ac2ecc3:trending:8cdb20c64d6d:jev-latest": {
+      "fit": 0.6075,
+      "item_id": "d8ae9ac2ecc3",
+      "judged_at": "2026-10-09T11:56:31.686Z",
+      "model": "jev-latest",
+      "topic_hash": "8cdb20c64d6d",
+      "topic_id": "trending"
+    },
+    "db3ed1c37512:trending:8cdb20c64d6d:jev-latest": {
+      "fit": 0.7,
+      "item_id": "db3ed1c37512",
+      "judged_at": "2026-10-09T11:56:31.701Z",
+      "model": "jev-latest",
+      "topic_hash": "8cdb20c64d6d",
+      "topic_id": "trending"
+    },
+    "e1d48157cbbd:design:52215b733fd1:jev-latest": {
+      "fit": 0.4825,
+      "item_id": "e1d48157cbbd",
+      "judged_at": "2026-10-09T11:56:31.466Z",
+      "model": "jev-latest",
+      "topic_hash": "52215b733fd1",
+      "topic_id": "design"
+    },
+    "e53acac2ecfa:design:52215b733fd1:jev-latest": {
+      "fit": 0.0525,
+      "item_id": "e53acac2ecfa",
+      "judged_at": "2026-10-09T11:56:31.522Z",
+      "model": "jev-latest",
+      "topic_hash": "52215b733fd1",
+      "topic_id": "design"
+    },
+    "eca184ae485f:design:52215b733fd1:jev-latest": {
+      "fit": 0.67,
+      "item_id": "eca184ae485f",
+      "judged_at": "2026-10-09T11:56:31.283Z",
+      "model": "jev-latest",
+      "topic_hash": "52215b733fd1",
+      "topic_id": "design"
+    },
+    "eed8d79920e2:design:52215b733fd1:jev-latest": {
+      "fit": 0.6925,
+      "item_id": "eed8d79920e2",
+      "judged_at": "2026-10-09T11:56:31.409Z",
+      "model": "jev-latest",
+      "topic_hash": "52215b733fd1",
+      "topic_id": "design"
+    }
+  }
+}
