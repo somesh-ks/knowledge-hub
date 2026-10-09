@@ -544,3 +544,86 @@ html[data-mini="visible"] .manage-bar {
 .schedule-add {
   margin-inline-start: calc(var(--space-3) * -1);
 }
+
+/* ------------------------------------------------------------------ selects and pick lists */
+
+/* Shared by the Schedule and Model pages: a native select with the page's own chevron, and a list
+   of checkboxes or radios where each label is a whole row. Topics and Sources keep the plainer
+   checklist above. Last in the file, as these rules were when they lived in the page stylesheet
+   loaded after this one: they refine the general rules, including the ones in the blocks above. */
+/* A select drawn like the Library's search field and sort control: its own chevron, no browser arrow. */
+.manage-select {
+  position: relative;
+  display: grid;
+}
+
+select.manage-input {
+  appearance: none;
+  padding-inline-end: var(--space-12);
+  border-color: var(--color-border-hairline);
+  background: none;
+  cursor: pointer;
+}
+
+.manage-select > .icon {
+  position: absolute;
+  inset-block: 0;
+  inset-inline-end: var(--space-4);
+  margin-block: auto;
+  color: var(--color-on-surface-muted);
+  pointer-events: none;
+}
+
+select.manage-input:focus-visible {
+  border-color: var(--color-accent);
+}
+
+@media (hover: hover) and (pointer: fine) {
+  select.manage-input:hover {
+    border-color: var(--color-border-control);
+  }
+
+  select.manage-input:hover:focus-visible {
+    border-color: var(--color-accent);
+  }
+}
+
+@media (forced-colors: active) {
+  select.manage-input {
+    border-color: ButtonBorder;
+  }
+
+  .manage-select > .icon {
+    color: ButtonText;
+  }
+}
+
+/* The checklist heading sits with its rows, and a row is as tall as a comfortable target. */
+:is(.schedule-panel, .model-panel) .manage-suggest-group > .rows {
+  margin-block-start: var(--space-2);
+}
+
+/* A list: the label is the whole row, so there is no dead zone between rows, and a hairline divides
+   them as on the Settings index. */
+:is(.schedule-panel, .model-panel) .manage-suggest-group > .rows > * {
+  padding-block: 0;
+  margin-block-start: 0;
+}
+
+:is(.schedule-panel, .model-panel) .manage-suggest-group > .rows > * + *::before {
+  content: "";
+}
+
+:is(.schedule-panel, .model-panel) .manage-pick {
+  align-items: flex-start;
+  min-height: var(--size-touch);
+  padding-block: var(--space-3);
+}
+
+/* The box sits on the first line of the label, whether the row has one line or two. */
+:is(.schedule-panel, .model-panel) .manage-pick > input {
+  margin-block-start: calc(
+    (var(--font-size-body) * var(--font-leading-label) - var(--size-icon)) /
+    2
+  );
+}
