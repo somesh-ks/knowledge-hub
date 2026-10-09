@@ -120,8 +120,7 @@ export default defineConfig({
       },
       directives: [
         "default-src 'self'",
-        // Source icons are each site's own favicon, drawn over a letter that stays if one never loads.
-        "img-src 'self' data: https:",
+        "img-src 'self' data:",
         "font-src 'self'",
         "media-src 'self' https://*.public.blob.vercel-storage.com",
         "connect-src 'self'",

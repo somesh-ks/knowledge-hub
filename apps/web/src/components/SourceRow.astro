@@ -30,7 +30,7 @@ const band =
     {
       source.favicon_url && (
         <img
-          src={source.favicon_url}
+          src={`/api/site-icon?url=${encodeURIComponent(source.favicon_url)}`}
           alt=""
           width="20"
           height="20"

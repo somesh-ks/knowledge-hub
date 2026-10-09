@@ -21,7 +21,7 @@ export const test = base.extend<Options & { problems: Problems }>({
       const problems: Problems = { messages: [] };
       // The sources' own icons (https://<host>/favicon.ico) are on invented hosts; a one-pixel image
       // answers them, so the page is not blamed for a network that is not there.
-      await page.route("https://**/favicon.ico", (route) =>
+      await page.route("**/api/site-icon**", (route) =>
         route.fulfill({
           status: 200,
           contentType: "image/png",

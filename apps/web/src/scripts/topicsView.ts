@@ -49,6 +49,7 @@ export function iconNode(name: string, src: string | null): HTMLElement {
   tile.append(element("span", "source-letter", letterOf(name)));
   // Only a secure address is drawn; anything else leaves the letter.
   if (src?.startsWith("https://")) {
+    // Icons come through the site's own function, so the policy never allows another host.
     const image = new Image();
     image.alt = "";
     image.referrerPolicy = "no-referrer";
@@ -56,7 +57,7 @@ export function iconNode(name: string, src: string | null): HTMLElement {
     image.addEventListener("load", () => {
       if (image.naturalWidth > 0) image.dataset.loaded = "";
     });
-    image.src = src;
+    image.src = `/api/site-icon?url=${encodeURIComponent(src)}`;
     tile.append(image);
   }
   return tile;

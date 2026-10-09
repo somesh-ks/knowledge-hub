@@ -33,7 +33,7 @@ const PREVIEW = {
 
 async function setup(page: Page, answers: Array<{ status: number; body: object }> = []) {
   const sent: Sent[] = [];
-  await page.route("https://**/favicon.ico", (route: Route) =>
+  await page.route("**/api/site-icon**", (route: Route) =>
     route.fulfill({ status: 200, contentType: "image/png", body: PIXEL }),
   );
   await page.route("**/api/config", async (route: Route) => {
