@@ -21,19 +21,23 @@ interface LayoutReport {
 /** Runs in the page: measures the five parts every size must show whole. */
 const LAYOUT_CHECK = (): LayoutReport => {
   const problems: string[] = [];
-  const slider = document.querySelector<HTMLElement>(
-    '[role="slider"][aria-label="Playback position"]',
-  );
-  const dialog = slider?.closest<HTMLElement>('[role="dialog"]') ?? null;
+  const dialog = document.querySelector<HTMLElement>('[data-player-page][role="dialog"]');
   const close = dialog?.querySelector<HTMLElement>('[aria-label="Close the player"]') ?? null;
-  if (!slider || !dialog || !close) return { problems: ["the player is not open"], parts: {} };
+  if (!dialog || !close) return { problems: ["the player is not open"], parts: {} };
   const parts: Record<string, HTMLElement | null> = {
     header: close.parentElement,
     cover: dialog.querySelector<HTMLElement>(".player-cover-frame"),
     title: dialog.querySelector<HTMLElement>(".player-title"),
-    scrubber: slider,
     transport: dialog.querySelector<HTMLElement>(".transport"),
   };
+  // One timeline: on a wide screen with a mouse it is the bar's and the page has none, so the page's
+  // scrubber is measured only where it is drawn. The bar's must then be there instead.
+  const pageSlider = dialog.querySelector<HTMLElement>('[role="slider"]');
+  if (pageSlider && pageSlider.getBoundingClientRect().width > 0) {
+    parts.scrubber = pageSlider;
+  } else if (!((document.querySelector(".dock-seek")?.getBoundingClientRect().width ?? 0) > 0)) {
+    problems.push("no timeline is shown, on the page or on the bar");
+  }
   const scroller = (element: HTMLElement): HTMLElement => {
     for (let node: HTMLElement | null = element; node && node !== document.body; ) {
       const overflow = getComputedStyle(node).overflowY;

@@ -360,8 +360,17 @@ export class LabPage {
     return this.page.getByRole("button", { name: "Close the player" });
   }
 
+  /**
+   * The timeline that is drawn: the page's "Playback position", or on a wide screen with a mouse
+   * the bar's "Seek" (one timeline, the bar's). Where both show, the page's comes first.
+   */
   get scrubber() {
-    return this.page.getByRole("slider", { name: "Playback position" });
+    return this.page.getByRole("slider", { name: /^(Playback position|Seek)$/ }).first();
+  }
+
+  /** Only the page's own scrubber, which the page's lazy half renders. */
+  get pageScrubber() {
+    return this.dialog.getByRole("slider", { name: "Playback position" });
   }
 
   async boxOf(target: Locator): Promise<Box> {

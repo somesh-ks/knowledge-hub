@@ -198,10 +198,11 @@ test.describe("when the player's lazy half cannot load @surface", () => {
     await expect(lab.closeButton).toBeVisible();
     const retry = lab.dialog.getByRole("button", { name: "Try again" });
     await expect(retry).toBeVisible();
-    await expect(lab.scrubber).toHaveCount(0);
+    await expect(lab.dialog.getByRole("slider")).toHaveCount(0);
     failing = false;
     await finger.press(retry);
-    await expect(lab.scrubber).toBeVisible();
+    // The lazy half is back: its controls are there (its scrubber is hidden on a wide screen).
+    await expect(lab.dialog.getByRole("button", { name: /^Playback speed/ })).toBeVisible();
     await expect(retry).toHaveCount(0);
   });
 });

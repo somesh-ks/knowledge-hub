@@ -243,6 +243,7 @@ test.describe("closing the page @surface", () => {
     }
     // It did go round the player's own controls.
     expect([...seen].some((where) => where.startsWith("player: Close the player"))).toBe(true);
-    expect([...seen].some((where) => where.startsWith("player: Playback position"))).toBe(true);
+    // The timeline is the page's, or on a wide screen with a mouse the bar's.
+    expect([...seen].some((where) => /^player: (Playback position|Seek)/.test(where))).toBe(true);
   });
 });
