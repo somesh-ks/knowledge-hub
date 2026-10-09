@@ -137,7 +137,7 @@
 
 .topic-weight-label {
   flex: none;
-  min-width: 3.5rem;
+  min-width: var(--space-16);
   color: var(--color-on-surface-muted);
   font-size: var(--font-size-label);
   line-height: var(--font-leading-label);
@@ -163,7 +163,7 @@
 
 .topic-hint {
   margin: 0;
-  padding-inline-start: calc(3.5rem + var(--space-3));
+  padding-inline-start: calc(var(--space-16) + var(--space-3));
 }
 
 .topic-sources {
@@ -528,7 +528,7 @@
   height: var(--space-4);
   border-radius: var(--radius-sm);
   background: var(--color-surface-sunken);
-  animation: skeleton-pulse 1.4s var(--ease-out) infinite alternate;
+  animation: skeleton-pulse var(--duration-progress) var(--ease-out) infinite alternate;
 }
 
 .skeleton-bar[data-wide] {
@@ -541,7 +541,7 @@
   height: var(--space-12);
   border-radius: var(--radius-md);
   background: var(--color-surface-sunken);
-  animation: skeleton-pulse 1.4s var(--ease-out) infinite alternate;
+  animation: skeleton-pulse var(--duration-progress) var(--ease-out) infinite alternate;
 }
 
 @keyframes skeleton-pulse {
