@@ -1,7 +1,6 @@
 import { z } from "zod";
 import { IdString, SectionId } from "./categories.js";
-import { PodcastFormat } from "./podcast.js";
-import { ScheduleLengthMinutes, ScheduleSettings } from "./schedule.js";
+import { ScheduleChange } from "./schedule.js";
 import { MAX_KEYWORDS, TOPIC_DEPTHS, TOPIC_ORIGINS } from "./topics.js";
 import { WriterSettingsShape, writerModelProblem } from "./writer.js";
 
@@ -41,8 +40,10 @@ export type TopicInput = z.input<typeof TopicInput>;
  * - source.set: switch a source on or off, or pin it. Works on seed and added sources.
  * - source.remove: delete an added source, or hide a seed source.
  * - weights.set: set weights by topic id. Built-in weights are written to config/preferences.json.
- * - schedule.set: set the hour (Stockholm), the days between briefings and the sections a
- *   scheduled briefing covers, plus its podcast format and length, in config/schedule.json. Unknown section ids are refused.
+ * - schedule.set: set any of the daily hour (Stockholm), cadence, sections, podcast type, length
+ *   and voices, the weekly podcast (`weekly`: on/off, day, hour, type, length, voices) and the
+ *   Create panel defaults (`custom`), in config/schedule.json, in one write. Fields left out keep
+ *   what the file holds. Unknown section ids are refused.
  * - writer.set: set the writer's provider and model in config/writer.json. A null model means
  *   the engine's own DISPATCH_MODEL.
  */
@@ -74,13 +75,14 @@ export const ConfigOp = z.discriminatedUnion("op", [
       .record(IdString, weight)
       .refine((value) => Object.keys(value).length > 0, "give at least one weight"),
   }),
-  z.object({
-    op: z.literal("schedule.set"),
-    ...ScheduleSettings.shape,
-    // Left out, they keep what the file holds, so an older client cannot reset them.
-    format: PodcastFormat.optional(),
-    length_minutes: ScheduleLengthMinutes.optional(),
-  }),
+  z
+    .object({ op: z.literal("schedule.set"), ...ScheduleChange.shape })
+    .refine(
+      (value) => Object.entries(value).some(([key, entry]) => key !== "op" && entry !== undefined),
+      {
+        message: "set at least one field",
+      },
+    ),
   z
     .object({ op: z.literal("writer.set"), ...WriterSettingsShape.shape })
     .superRefine((value, ctx) => {
