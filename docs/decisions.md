@@ -58,6 +58,7 @@ D1 to D9 date from plan v2 (2026-10-05). D10 to D25 date from 2026-10-06. Reason
 | D46 | The writer's provider and model are chosen in Settings | active |
 | D47 | A move between pages is answered from a saved copy and swapped at once | active |
 | D48 | One shader: a light in the cover's colours behind the header, on a GPU only | active |
+| D49 | One Podcast settings page: Daily, Weekly and Custom profiles, a shared writer vendor and model, topics and sources clubbed | active |
 
 ---
 
@@ -465,3 +466,12 @@ D1 to D9 date from plan v2 (2026-10-05). D10 to D25 date from 2026-10-06. Reason
 - Why: the owner asked for a clever but mild use of shaders. The cover is the one thing that differs from day to day, so its colours are the only decoration that says something.
 - Cost: 325 bytes of eager JavaScript on those two page types and 2.3 KB loaded on idle. The canvas path cannot run in CI, where Chromium draws on the processor; it is checked by a script in a real window. The play chip stands on the page's surface inside a header, because its accent text fell short of 4.5:1 over the light.
 - Rejected: a shader behind the whole page or the navigation (not mild); a CSS `filter: blur` (repaints, and costs more than the canvas); a library (the budget has 0.1 KB left); drawing on a software renderer (a warning per frame and a busy processor for a decoration).
+
+## D49: One Podcast settings page: Daily, Weekly and Custom profiles, a shared writer, topics and sources clubbed
+
+- Date: 2026-10-10
+- Decision: Settings has one "Podcast" row. `/settings/podcast` holds one configuration with three profiles (Daily: hour and cadence; Weekly: day and hour; Custom: the Create panel's defaults), each with a Type (Readout or Discussion), a Length and Voices (Ada, and Leo for a Discussion), and one shared Model (a vendor select, Nebius or Anthropic, then a model combobox). Topics and sources are one tab, `/settings/podcast/topics`: each topic has a weight (a hint; the model still decides per run) and its sources with a 0 to 5 quality score, and an Add source panel previews a URL (name, icon, feed, score) before it is added. Headlines is not offered for new requests.
+- Why: the owner called Settings "a mess" and asked for one podcast configuration, a clubbed topics and sources view with a rating per source, a discoverable Add source, and a voice choice for Daily, Weekly and manual episodes.
+- Cost: the daily Type is saved but the audio workflow does not apply it (a workflow change); a weekly run at its own hour needs a `RUN_CRON_WEEKLY` variable in `run.yml`; `/api/source-preview`, `/api/site-icon` and `/api/voices` are open like `/api/models` (SSRF-guarded, cached); the heaviest page has 0.3 KB of budget left.
+- Rejected: favicons straight from each host (needs `img-src https:`, loosening the policy; they go through `/api/site-icon`); per-profile models (the owner asked for one vendor and model in general); a quota per topic (the weight is a hint).
+- Supersedes: the Schedule and Model pages (D45, D46 placement), the separate Topics and Sources pages.
