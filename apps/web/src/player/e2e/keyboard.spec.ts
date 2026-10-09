@@ -86,9 +86,9 @@ test.describe("keyboard operation of the player", () => {
     await expect(page.locator("html")).toHaveAttribute("data-player-state", "playing");
     // On a button, Space activates the button instead.
     await page.getByRole("button", { name: "Next item" }).focus();
-    const before = await page.locator(".player-meta .player-section").textContent();
+    const before = await page.locator(".player-meta .player-story").textContent();
     await page.keyboard.press("Space");
-    await expect(page.locator(".player-meta .player-section")).not.toHaveText(before ?? "");
+    await expect(page.locator(".player-meta .player-story")).not.toHaveText(before ?? "");
     await expect(page.locator("html")).toHaveAttribute("data-player-state", "playing");
   });
 

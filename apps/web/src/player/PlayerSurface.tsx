@@ -3,6 +3,7 @@ import { longDateFromDigestId } from "./core/formatTime";
 import { classifyKeyTarget, shouldToggleOnKey } from "./core/playerKeys";
 import { getPlayerStore } from "./core/playerRuntime";
 import { playerSheet } from "./core/playerSheet";
+import { KEY_SEEK_SECONDS, KEY_SEEK_SHIFT_SECONDS } from "./core/scrubberMath";
 import type { GestureZone, PointerInput } from "./core/sheetController";
 import { usePlayerState } from "./hooks/usePlayer";
 import PlayerBar, { PLAYER_PAGE_ID } from "./PlayerBar";
@@ -13,6 +14,7 @@ import {
   type PageContentSnapshot,
   subscribePageContent,
 } from "./pageContentLoader";
+import SourceLink from "./SourceLink";
 import Icon from "./ui/Icon";
 import PlayerCover from "./ui/PlayerCover";
 
@@ -61,14 +63,14 @@ function PageFallback({ status }: { status: PageContentSnapshot["status"] }) {
 }
 
 /**
- * The player, as one surface: a bar docked at the bottom that grows into a full page. It is always
+ * The player, as one surface: a bar docked at the bottom that grows into a full page. The bar
+ * keeps its own thumbnail and the page has its own cover; nothing flies between them. It is always
  * mounted, inside the persisted island and never in a portal, so a navigation cannot separate the
  * page from the code that moves it.
  *
  *   .player          the surface. One set of pointer listeners, for both directions of travel.
  *     .player-stage  the clip box the page rises in. On a wide screen it ends at the bar's top.
  *       .player-page a dialog while open, inert while collapsed, and the one scroll container.
- *     .player-art    the one cover in flight between the bar and the page.
  *     .player-dock   the bar.
  *
  * The attributes that say where the page is (data-state, data-open, inert, aria-expanded, the
@@ -89,8 +91,6 @@ export default function PlayerSurface() {
   const digest = state.track?.digest;
   const timeline = state.track?.timeline;
   const item = timeline?.items[state.itemIndex];
-  const section = timeline?.sections[state.sectionIndex];
-  const itemCount = timeline?.items.length ?? 0;
   const title = digest ? digest.title || longDateFromDigestId(digest.id) : "";
   const visible = state.hasStarted && Boolean(digest?.audio);
   const cover = digest ? (
@@ -136,6 +136,19 @@ export default function PlayerSurface() {
               event.target instanceof Element ? event.target : null,
               event.currentTarget,
             );
+            // The bar carries the seek control on a wide screen, so the arrows seek from the page.
+            if (
+              (target === "panel" || target === "other") &&
+              (event.key === "ArrowLeft" || event.key === "ArrowRight") &&
+              !event.ctrlKey &&
+              !event.metaKey &&
+              !event.altKey
+            ) {
+              event.preventDefault();
+              const step = event.shiftKey ? KEY_SEEK_SHIFT_SECONDS : KEY_SEEK_SECONDS;
+              getPlayerStore().skip(event.key === "ArrowLeft" ? -step : step);
+              return;
+            }
             if (!shouldToggleOnKey(event, target)) return;
             // Only here, with focus in the open player: no page-wide Space shortcut.
             event.preventDefault();
@@ -155,7 +168,7 @@ export default function PlayerSurface() {
                   <Icon name="expandMore" className="icon-lg" />
                 </button>
                 <h2 className="player-date" id={TITLE_ID}>
-                  {title}
+                  Now playing
                 </h2>
               </div>
               <div className="player-cover-slot">
@@ -164,12 +177,12 @@ export default function PlayerSurface() {
                 </div>
               </div>
               <div className="player-meta">
-                <p className="player-title">{item?.headline ?? title}</p>
-                <p className="player-section">
-                  {section && itemCount > 0
-                    ? `${section.title}, ${state.itemIndex + 1} of ${itemCount}`
-                    : title}
+                <p className="player-title" title={title}>
+                  {title}
                 </p>
+                {/* The story being read, and where it came from. Their room is kept when empty. */}
+                <p className="player-story">{item?.headline}</p>
+                <SourceLink />
               </div>
             </div>
             <div className="player-body">
@@ -177,9 +190,6 @@ export default function PlayerSurface() {
             </div>
           </div>
         </section>
-      </div>
-      <div className="player-art" data-player-art aria-hidden="true">
-        {cover}
       </div>
       <PlayerBar />
     </div>

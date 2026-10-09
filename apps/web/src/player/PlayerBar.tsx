@@ -3,7 +3,8 @@ import { formatClock } from "./core/formatTime";
 import { errorSummary, isPlayingStatus, toggleLabel } from "./core/playerCopy";
 import { getPlayerStore } from "./core/playerRuntime";
 import { playerSheet } from "./core/playerSheet";
-import { fractionOfTime } from "./core/scrubberMath";
+import { fractionOfTime, scrubberValueText } from "./core/scrubberMath";
+import { itemIndexAt } from "./core/timeline";
 import { applyVolume, getVolume, setVolume } from "./core/volume";
 import { usePlayerFrame, usePlayerSecond, usePlayerState } from "./hooks/usePlayer";
 import Clock from "./ui/Clock";
@@ -21,10 +22,17 @@ export const PLAYER_PAGE_ID = "dispatch-player-page";
 function DockSeek({ duration }: { duration: number }) {
   const store = getPlayerStore();
   const second = usePlayerSecond();
+  const state = usePlayerState();
   const [drag, setDrag] = useState<number | null>(null);
   const max = Math.floor(duration);
   if (max <= 0) return null;
   const value = drag ?? Math.min(second, max);
+  const timeline = state.track?.timeline ?? null;
+  const itemCount = timeline?.items.length ?? 0;
+  // The story under the thumb, so a screen reader hears where a seek would land.
+  const at = itemIndexAt(timeline, value);
+  const section = timeline?.sections.find((entry) => entry.slug === timeline.items[at]?.section);
+  const sectionStarts = new Set(timeline?.sections.map((entry) => entry.firstIndex));
 
   function commit(): void {
     if (drag === null) return;
@@ -33,27 +41,52 @@ function DockSeek({ duration }: { duration: number }) {
   }
 
   return (
-    <input
-      className="dock-seek"
-      type="range"
-      min={0}
-      max={max}
-      step={1}
-      value={value}
-      aria-label="Seek"
-      aria-valuetext={`${formatClock(value)} of ${formatClock(max)}`}
-      onChange={(event) => {
-        const next = Number(event.currentTarget.value);
-        // The audio waits while the thumb moves, and seeks once when it is let go.
-        if (drag === null) store.beginScrub();
-        store.scrubTo(next);
-        setDrag(next);
-      }}
-      onPointerUp={commit}
-      onPointerCancel={commit}
-      onKeyUp={commit}
-      onBlur={commit}
-    />
+    <>
+      <div className="dock-ticks" aria-hidden="true">
+        {timeline?.items.map((entry) => (
+          <span
+            key={entry.id}
+            className="dock-tick"
+            data-chapter={sectionStarts.has(entry.index) ? "" : undefined}
+            data-played={entry.startSec <= value ? "" : undefined}
+            style={
+              {
+                "--tick-position": `${(fractionOfTime(entry.startSec, max) * 100).toFixed(3)}%`,
+              } as React.CSSProperties
+            }
+          />
+        ))}
+      </div>
+      {drag !== null ? (
+        <output
+          className="dock-seek-time num"
+          style={{ "--seek-at": fractionOfTime(drag, max).toFixed(4) } as React.CSSProperties}
+        >
+          {formatClock(drag)}
+        </output>
+      ) : null}
+      <input
+        className="dock-seek"
+        type="range"
+        min={0}
+        max={max}
+        step={1}
+        value={value}
+        aria-label="Seek"
+        aria-valuetext={scrubberValueText(value, max, section?.title ?? "", at, itemCount)}
+        onChange={(event) => {
+          const next = Number(event.currentTarget.value);
+          // The audio waits while the thumb moves, and seeks once when it is let go.
+          if (drag === null) store.beginScrub();
+          store.scrubTo(next);
+          setDrag(next);
+        }}
+        onPointerUp={commit}
+        onPointerCancel={commit}
+        onKeyUp={commit}
+        onBlur={commit}
+      />
+    </>
   );
 }
 
@@ -107,9 +140,9 @@ function DockVolume() {
 /**
  * The dock: the bar at the bottom of the screen, and the collapsed end of the player surface. A
  * tap or a pull up anywhere on it that is not another control grows it into the page (the open
- * button's target is stretched over the whole bar in CSS); its cover is where the flying cover
- * leaves from. On a wide screen it stays put and keeps working while the page is open above it:
- * what is playing on the left, the transport in the middle, volume on the right.
+ * button's target is stretched over the whole bar in CSS). On a wide screen it stays put and keeps
+ * working while the page is open above it, laid out as YouTube Music's is: the transport and the
+ * clock on the left, what is playing in the middle, volume on the right.
  */
 export default function PlayerBar() {
   const state = usePlayerState();
@@ -149,31 +182,6 @@ export default function PlayerBar() {
         <span className="dock-progress-fill" ref={fillRef} />
       </div>
       <DockSeek duration={state.duration} />
-      <button
-        className="dock-open"
-        type="button"
-        data-player-open
-        aria-haspopup="dialog"
-        // The surface controller keeps this in step with the page; false is the collapsed truth.
-        aria-expanded="false"
-        aria-controls={PLAYER_PAGE_ID}
-        aria-label={`Open the player. ${headline}`}
-        onClick={(event) =>
-          playerSheet.click({ t: event.timeStamp, fromPointer: event.detail > 0 })
-        }
-      >
-        <span className="player-thumb" data-player-thumb>
-          {digest ? (
-            <PlayerCover cover={digest.cover} weekly={digest.kind === "weekly"} size="thumb" />
-          ) : null}
-        </span>
-        <span className="dock-text">
-          <span className="dock-title">{headline}</span>
-          <span className="dock-caption" data-tone={state.error ? "danger" : undefined}>
-            {caption}
-          </span>
-        </span>
-      </button>
       <div className="dock-transport">
         <button
           className="dock-btn dock-wide press"
@@ -216,6 +224,31 @@ export default function PlayerBar() {
           <Clock seconds={state.duration} />
         </span>
       </div>
+      <button
+        className="dock-open"
+        type="button"
+        data-player-open
+        aria-haspopup="dialog"
+        // The surface controller keeps this in step with the page; false is the collapsed truth.
+        aria-expanded="false"
+        aria-controls={PLAYER_PAGE_ID}
+        aria-label={`Open the player. ${headline}`}
+        onClick={(event) =>
+          playerSheet.click({ t: event.timeStamp, fromPointer: event.detail > 0 })
+        }
+      >
+        <span className="player-thumb">
+          {digest ? (
+            <PlayerCover cover={digest.cover} weekly={digest.kind === "weekly"} size="thumb" />
+          ) : null}
+        </span>
+        <span className="dock-text">
+          <span className="dock-title">{headline}</span>
+          <span className="dock-caption" data-tone={state.error ? "danger" : undefined}>
+            {caption}
+          </span>
+        </span>
+      </button>
       <div className="dock-tools">
         <DockVolume />
       </div>

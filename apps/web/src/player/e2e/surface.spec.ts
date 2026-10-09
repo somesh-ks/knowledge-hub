@@ -1,23 +1,6 @@
-import type { Page } from "@playwright/test";
-import { coverFrame } from "../core/coverMorph";
-import { type Box, center, expect, line, test } from "./lab";
+import { center, expect, line, test } from "./lab";
 
 const WIDE_PX = 640;
-
-/** How many covers a person can see right now. The morph hands one cover from bar to page. */
-function visibleCovers(page: Page): Promise<number> {
-  return page.evaluate(
-    () =>
-      [...document.querySelectorAll(".player-cover-frame")].filter((element) =>
-        element.checkVisibility({ visibilityProperty: true, opacityProperty: true }),
-      ).length,
-  );
-}
-
-/** The largest difference between two boxes' left edge, top edge and width. */
-function apart(a: Box, b: Box): number {
-  return Math.max(Math.abs(a.x - b.x), Math.abs(a.y - b.y), Math.abs(a.width - b.width));
-}
 
 test.describe("one surface @surface", () => {
   test("the bar and the player are one mounted element, and nothing lives in a portal", async ({
@@ -64,7 +47,7 @@ test.describe("one surface @surface", () => {
     await expect(lab.sheet).toHaveAttribute("aria-modal", "true");
   });
 
-  test("the page rises from the bar's top edge, and one cover is on screen all the way", async ({
+  test("the page rises from the bar's top edge, and no cover flies between the two", async ({
     lab,
     page,
     finger,
@@ -73,7 +56,9 @@ test.describe("one surface @surface", () => {
     await lab.play();
     const start = center(await lab.dockSettled());
     const rest = await lab.geometry();
-    expect(await visibleCovers(page)).toBe(1);
+    // The bar keeps its own thumbnail and the page its own cover: nothing is shared or in flight.
+    await expect(page.locator("[data-player-art]")).toHaveCount(0);
+    await expect(page.locator("[data-player-open] .player-cover-frame")).toBeVisible();
     // A slow, short pull, held: the page has only just left the bar.
     const held = await finger.drag(line(start, { x: start.x, y: start.y - 48 }, 12), 30, {
       hold: true,
@@ -91,14 +76,14 @@ test.describe("one surface @surface", () => {
       // On a wide screen the bar does not move.
       expect(Math.abs(now.dock.y - rest.dock.y)).toBeLessThanOrEqual(0.5);
     }
-    expect(await visibleCovers(page)).toBe(1);
+    // The bar's thumbnail has not moved, whatever the page is doing.
+    await expect(page.locator("[data-player-open] .player-cover-frame")).toBeVisible();
     await held.release();
     // A short, slow pull is not a decision: it goes back.
     await lab.collapsed();
-    expect(await visibleCovers(page)).toBe(1);
   });
 
-  test("the cover is mid-flight while the page is mid-travel, at any width", async ({
+  test("per-frame motion is custom properties only, and none is left at rest", async ({
     lab,
     page,
     finger,
@@ -117,24 +102,8 @@ test.describe("one surface @surface", () => {
       hold: true,
     });
     await expect.poll(async () => (await lab.geometry()).p).toBeGreaterThan(0.3);
-    const now = await lab.geometry();
-    expect(now.state).toBe("dragging");
-    expect(now.artTransform.scale).toBeGreaterThan(0.05);
-    expect(now.artTransform.scale).toBeLessThan(0.98);
-    // The stylesheet's transform is the formula in coverMorph.ts, for the flight script measured.
-    const expected = coverFrame(now.p, {
-      fromX: now.morph["from-x"] ?? Number.NaN,
-      fromY: now.morph["from-y"] ?? Number.NaN,
-      toX: now.morph["to-x"] ?? Number.NaN,
-      toY: now.morph["to-y"] ?? Number.NaN,
-      size: now.morph.size ?? Number.NaN,
-      scale: now.morph.scale ?? Number.NaN,
-    });
-    expect(Math.abs(now.artTransform.x - expected.x)).toBeLessThanOrEqual(0.5);
-    expect(Math.abs(now.artTransform.y - expected.y)).toBeLessThanOrEqual(0.5);
-    expect(Math.abs(now.artTransform.scale - expected.scale)).toBeLessThanOrEqual(0.005);
-    expect(await visibleCovers(page)).toBe(1);
-    // Per-frame motion is custom properties only: the stylesheet owns what they mean.
+    expect((await lab.geometry()).state).toBe("dragging");
+    // The stylesheet owns what the property means.
     const written = await page.evaluate(() =>
       [...document.querySelectorAll("[data-player-surface], [data-player-surface] *")]
         .map((element) => element.getAttribute("style") ?? "")
@@ -144,52 +113,14 @@ test.describe("one surface @surface", () => {
     await held.release();
     // Far enough, and not moving back: it opens.
     await lab.expanded();
-    expect(await visibleCovers(page)).toBe(1);
     expect(await lab.progress()).toBeCloseTo(1, 2);
     // At rest nothing that motion wrote is left behind.
     const leftovers = await page.evaluate(() =>
       [...document.querySelectorAll("[data-player-surface] *")]
         .map((element) => element.getAttribute("style") ?? "")
-        .filter((style) => /--p\s*:|--art-/.test(style)),
+        .filter((style) => /--p\s*:/.test(style)),
     );
     expect(leftovers).toEqual([]);
-  });
-
-  test("the flying cover leaves from the bar's cover and lands on the page's cover", async ({
-    lab,
-    finger,
-    browserName,
-  }) => {
-    test.skip(
-      browserName === "webkit",
-      "Playwright has no touch input in WebKit, so lab.ts pulls with a held mouse drag, and mobile WebKit does not carry that to the sheet",
-    );
-    await lab.open();
-    await lab.play();
-    const start = center(await lab.dockSettled());
-    const rest = await lab.geometry();
-    // Just past the slop: the cover has taken off and has not gone anywhere yet.
-    const first = await finger.drag(line(start, { x: start.x, y: start.y - 14 }, 7), 30, {
-      hold: true,
-    });
-    await expect(lab.surface).toHaveAttribute("data-state", "dragging");
-    const takeoff = await lab.geometry();
-    expect(takeoff.p).toBeLessThan(0.01);
-    // Two pixels past the slop is a quarter of a percent of the way: under two pixels of flight.
-    expect(apart(takeoff.art, rest.thumb)).toBeLessThanOrEqual(3);
-    await first.release();
-    await lab.collapsed();
-    // Pulled past the top and held: the page is in place and the cover is on its slot.
-    // To the top edge and no further: a pointer that leaves the window ends the gesture.
-    const second = await finger.drag(line(start, { x: start.x, y: 3 }, 20), 16, {
-      hold: true,
-    });
-    await expect.poll(async () => (await lab.geometry()).p).toBe(1);
-    const landing = await lab.geometry();
-    expect(landing.state).toBe("dragging");
-    expect(apart(landing.art, landing.slot)).toBeLessThanOrEqual(1);
-    await second.release();
-    await lab.expanded();
   });
 
   test("a bottom navigation is told how far the page is, and let go at rest", async ({

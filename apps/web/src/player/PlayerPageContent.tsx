@@ -1,7 +1,8 @@
 import { getPlayerStore } from "./core/playerRuntime";
+import { usePlayerState } from "./hooks/usePlayer";
 import PlayerNotice from "./PlayerNotice";
+import ScriptView from "./ScriptView";
 import Scrubber from "./Scrubber";
-import SourceLink from "./SourceLink";
 import SpeedControl from "./SpeedControl";
 import StoryList from "./StoryList";
 import TransportControls from "./TransportControls";
@@ -9,24 +10,24 @@ import UpNext from "./UpNext";
 
 /**
  * The player page's lazy half. Two groups, so a wide screen can set them side by side: the
- * controls that belong with the cover, and the list of what is in the briefing. Under the
- * transport sits one quiet row: the speed, and where the story came from.
+ * controls that belong with the cover, and the list of what is in the briefing. The speed sits at
+ * the end of the transport row.
  */
 export default function PlayerPageContent() {
+  const hasScript = (usePlayerState().track?.digest.turns?.length ?? 0) > 0;
   return (
     <>
       <div className="player-controls">
         <PlayerNotice onRetry={() => getPlayerStore().retry()} />
         <Scrubber />
-        <TransportControls />
-        <div className="player-utility">
+        <div className="transport-row">
+          <TransportControls />
           <SpeedControl />
-          <SourceLink />
         </div>
       </div>
       <div className="player-list">
         <UpNext />
-        <StoryList />
+        {hasScript ? <ScriptView /> : <StoryList />}
       </div>
     </>
   );

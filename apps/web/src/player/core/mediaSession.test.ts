@@ -96,15 +96,15 @@ describe("media session", () => {
     expect(session.playbackState).toBe("paused");
   });
 
-  it("skips back ten seconds and forward thirty, as the transport's buttons do", () => {
+  it("skips back and forward ten seconds, as the transport's buttons do", () => {
     expect(SKIP_BACK_SECONDS).toBe(10);
-    expect(SKIP_FORWARD_SECONDS).toBe(30);
+    expect(SKIP_FORWARD_SECONDS).toBe(10);
     const { session, harness } = setup();
     harness.store.seekTo(60_000);
     session.fire("seekbackward");
     expect(harness.store.getTime()).toBe(50);
     session.fire("seekforward");
-    expect(harness.store.getTime()).toBe(80);
+    expect(harness.store.getTime()).toBe(60);
   });
 
   it("seeks by the offset the system sends when it sends one", () => {

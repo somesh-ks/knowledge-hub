@@ -7,7 +7,7 @@ import PlayPauseGlyph from "./ui/PlayPauseGlyph";
 
 /**
  * Five controls in a row, one dominant: the previous story, back ten seconds, play and pause,
- * forward thirty seconds, the next story. The skip glyphs are plain circular arrows; each button
+ * forward ten seconds, the next story. The skip glyphs are plain circular arrows; each button
  * draws its own numeral in the arrow's open center, and the name stays on the button.
  */
 export default function TransportControls() {
@@ -58,7 +58,7 @@ export default function TransportControls() {
         aria-label={`Forward ${SKIP_FORWARD_SECONDS} seconds`}
         onClick={() => store.skip(SKIP_FORWARD_SECONDS)}
       >
-        <Icon name="forward30" />
+        <Icon name="forward10" />
         <span className="transport-skip-num num" aria-hidden="true">
           {SKIP_FORWARD_SECONDS}
         </span>

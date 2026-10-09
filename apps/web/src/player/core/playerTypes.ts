@@ -5,11 +5,11 @@ export const PLAYBACK_RATES = [1, 1.25, 1.5, 2] as const;
 export type PlaybackRate = (typeof PLAYBACK_RATES)[number];
 
 /**
- * How far the skip controls move: back a little to hear something again, forward a lot to get past
- * a story. The transport, the lock screen and headset buttons all read these.
+ * How far the skip controls move: ten seconds either way, to hear something again or to move on a
+ * little. The transport, the lock screen and headset buttons all read these.
  */
 export const SKIP_BACK_SECONDS = 10;
-export const SKIP_FORWARD_SECONDS = 30;
+export const SKIP_FORWARD_SECONDS = 10;
 
 export type PlayerStatus = "idle" | "loading" | "playing" | "paused" | "ended" | "error";
 

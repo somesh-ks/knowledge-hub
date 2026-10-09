@@ -102,6 +102,14 @@ function toEntry(episode: Episode): EpisodeEntry {
     audio: null,
     timeline: null,
     items,
+    // The segment key is the turn's index behind a t, as the narration names them.
+    turns: episode.turns.map((turn) => ({
+      key: `t${turn.idx}`,
+      speaker: turn.speaker,
+      text: turn.text,
+      start_ms: null,
+      end_ms: null,
+    })),
     sections:
       items.length > 0
         ? [{ slug: EPISODE_SECTION.slug, title: EPISODE_SECTION.title, start_ms: null }]

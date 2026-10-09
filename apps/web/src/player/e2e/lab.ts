@@ -299,14 +299,6 @@ export interface SurfaceGeometry {
   surface: Box;
   sheet: Box;
   dock: Box;
-  /** Where the cover rests on the bar and on the page. */
-  thumb: Box;
-  slot: Box;
-  /** The flying cover, as drawn. */
-  art: Box;
-  artTransform: { x: number; y: number; scale: number };
-  /** The flight as script wrote it: --art-from-x and the rest, in px and as a bare scale. */
-  morph: Record<string, number>;
   window: { width: number; height: number };
 }
 
@@ -368,8 +360,17 @@ export class LabPage {
     return this.page.getByRole("button", { name: "Close the player" });
   }
 
+  /**
+   * The timeline that is drawn: the page's "Playback position", or on a wide screen with a mouse
+   * the bar's "Seek" (one timeline, the bar's). Where both show, the page's comes first.
+   */
   get scrubber() {
-    return this.page.getByRole("slider", { name: "Playback position" });
+    return this.page.getByRole("slider", { name: /^(Playback position|Seek)$/ }).first();
+  }
+
+  /** Only the page's own scrubber, which the page's lazy half renders. */
+  get pageScrubber() {
+    return this.dialog.getByRole("slider", { name: "Playback position" });
   }
 
   async boxOf(target: Locator): Promise<Box> {
@@ -456,24 +457,13 @@ export class LabPage {
       };
       if (!surface) throw new Error("no player surface");
       const sheet = find("[data-player-page]");
-      const art = find("[data-player-art]");
-      const matrix = new DOMMatrix(getComputedStyle(art).transform);
       const p = Number.parseFloat(getComputedStyle(sheet).getPropertyValue("--p"));
-      const morph: Record<string, number> = {};
-      for (const name of ["from-x", "from-y", "to-x", "to-y", "size", "scale"]) {
-        morph[name] = Number.parseFloat(art.style.getPropertyValue(`--art-${name}`));
-      }
       return {
         state: surface.dataset.state ?? "",
         p: Number.isFinite(p) ? p : 0,
         surface: box(surface),
         sheet: box(sheet),
         dock: box(find("[data-player-dock]")),
-        thumb: box(find("[data-player-thumb]")),
-        slot: box(find("[data-player-cover]")),
-        art: box(art),
-        artTransform: { x: matrix.m41, y: matrix.m42, scale: matrix.a },
-        morph,
         window: { width: window.innerWidth, height: window.innerHeight },
       };
     });

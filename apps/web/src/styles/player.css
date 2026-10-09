@@ -36,9 +36,12 @@
   /* Two columns of this much, from 64rem. */
   --player-page-max: 68rem;
   --player-column-max: 28rem;
+  /* What is playing, in the middle of the wide bar: the cover, and a title and caption beside it. */
+  --player-dock-centre: 26rem;
   /* The cover never takes more than this share of the window's height. */
   --player-cover-share: 40cqb;
   --player-skip-glyph: 2rem;
+  --player-play-glyph: 2.75rem;
   --player-row-mark: var(--space-2);
 }
 
@@ -58,43 +61,6 @@
   syntax: "<number>";
   inherits: false;
   initial-value: 0;
-}
-
-/* The cover's flight, measured once per motion. */
-@property --art-from-x {
-  syntax: "<length>";
-  inherits: false;
-  initial-value: 0px;
-}
-
-@property --art-from-y {
-  syntax: "<length>";
-  inherits: false;
-  initial-value: 0px;
-}
-
-@property --art-to-x {
-  syntax: "<length>";
-  inherits: false;
-  initial-value: 0px;
-}
-
-@property --art-to-y {
-  syntax: "<length>";
-  inherits: false;
-  initial-value: 0px;
-}
-
-@property --art-size {
-  syntax: "<length>";
-  inherits: false;
-  initial-value: 0px;
-}
-
-@property --art-scale {
-  syntax: "<number>";
-  inherits: false;
-  initial-value: 1;
 }
 
 @property --thumb-x {
@@ -171,8 +137,7 @@
 
 /* ------------------------------------------------------------------ the cover */
 
-/* Drawn three times: on the bar, on the page, and in flight between them. The rules under
-   "one cover at a time" show exactly one. */
+/* Drawn twice: on the bar, and on the page, where it rises with the page. */
 .player-cover-frame {
   --cover-fill: var(--cover-key, var(--color-surface-sunken));
   position: relative;
@@ -258,12 +223,12 @@
   visibility: hidden;
 }
 
-.player[data-state="expanded"] :is(.player-page, .player-dock, .player-art) {
+.player[data-state="expanded"] :is(.player-page, .player-dock) {
   --p: 1;
 }
 
 .player:is([data-state="dragging"], [data-state="expanding"], [data-state="collapsing"])
-  :is(.player-page, .player-dock, .player-art) {
+  :is(.player-page, .player-dock) {
   /* Promoted only while it can move, and demoted when the spring rests. */
   will-change: transform;
 }
@@ -367,30 +332,38 @@
   width: min(100%, var(--cover-size-player), var(--player-cover-share));
 }
 
-/* The headline, then where it sits in the briefing, with air between the two. */
+/* The podcast's title, the story being read under it, and where that story came from. */
 .player-meta {
   display: grid;
+  justify-items: center;
   gap: var(--space-2);
   text-align: center;
 }
 
-.player-section {
+/* Two lines of room are kept, so a long headline changing to a short one moves nothing below. */
+.player-story {
+  display: -webkit-box;
+  overflow: hidden;
+  min-height: calc(var(--font-size-label) * var(--font-leading-label) * 2);
   color: var(--color-on-surface-muted);
   font-size: var(--font-size-label);
   line-height: var(--font-leading-label);
+  text-wrap: balance;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 2;
 }
 
 .player-title {
-  display: -webkit-box;
+  display: block;
+  max-width: 100%;
   overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
   font-family: var(--text-title-family);
   font-size: var(--text-title-size);
   font-weight: var(--text-title-weight);
   letter-spacing: var(--text-title-tracking);
   line-height: var(--text-title-leading);
-  text-wrap: balance;
-  -webkit-box-orient: vertical;
-  -webkit-line-clamp: 3;
 }
 
 .player-controls {
@@ -431,48 +404,8 @@
   font-weight: var(--font-weight-semibold);
 }
 
-/* ------------------------------------------------------------------ the flying cover */
-
-/* One box, placed and sized entirely by its transform, from two ends measured when the page
-   leaves rest: the bar's thumbnail at p = 0, the page's cover slot at p = 1. */
-.player-art {
-  --art-scale-now: calc(var(--art-scale) + (1 - var(--art-scale)) * var(--p));
-  position: absolute;
-  top: 0;
-  left: 0;
-  z-index: 2;
-  width: var(--art-size);
-  visibility: hidden;
-  pointer-events: none;
-  transform-origin: 0 0;
-  transform: translate3d(
-      calc(var(--art-from-x) + (var(--art-to-x) - var(--art-from-x)) * var(--p)),
-      calc(var(--art-from-y) + (var(--art-to-y) - var(--art-from-y)) * var(--p)),
-      0
-    )
-    scale(var(--art-scale-now));
-}
-
-.player-art .player-cover-frame {
-  /* Scaling squeezes a corner radius, so it is divided by the scale to stay visually true. */
-  border-radius: calc(var(--radius-sm) / var(--art-scale-now));
-  box-shadow: var(--cover-shadow);
-}
-
 .player-cover-box .player-cover-frame {
   box-shadow: var(--cover-shadow);
-}
-
-/* One cover at a time. At rest it is the bar's or the page's; in between it is the one in flight,
-   and the two at the ends are identical to it at the moment they swap. */
-.player:is([data-state="dragging"], [data-state="expanding"], [data-state="collapsing"])
-.player-art {
-  visibility: visible;
-}
-
-.player:not([data-state="collapsed"]) .player-thumb .player-cover-frame,
-.player:not([data-state="expanded"]) .player-cover-box .player-cover-frame {
-  visibility: hidden;
 }
 
 /* ------------------------------------------------------------------ the dock */
@@ -532,6 +465,8 @@
 }
 
 .dock-open {
+  grid-row: 1;
+  grid-column: 1;
   display: grid;
   grid-template-columns: var(--mini-player-cover-size) minmax(0, 1fr);
   align-items: center;
@@ -603,6 +538,8 @@
 
 /* Play and next, a clear 8px apart: two targets a thumb can tell from each other. */
 .dock-transport {
+  grid-row: 1;
+  grid-column: 2;
   display: flex;
   align-items: center;
   gap: var(--space-2);
@@ -630,11 +567,11 @@
 .dock-seek {
   position: absolute;
   inset-inline: 0;
-  inset-block-start: calc(var(--space-2) * -1);
+  inset-block-start: calc(var(--space-3) * -1);
   z-index: 1;
   display: none;
   width: 100%;
-  height: var(--space-4);
+  height: var(--space-6);
   margin: 0;
   padding: 0;
   border-radius: var(--radius-xs);
@@ -657,7 +594,7 @@
 .dock-seek::-webkit-slider-thumb {
   width: var(--space-3);
   height: var(--space-3);
-  margin-block-start: calc((var(--space-4) - var(--space-3)) / 2);
+  margin-block-start: calc((var(--space-6) - var(--space-3)) / 2);
   border: 0;
   border-radius: var(--radius-round);
   background: var(--color-accent);
@@ -682,6 +619,53 @@
 
 .dock-seek:is(:focus-visible, :active)::-moz-range-thumb {
   opacity: 1;
+}
+
+.dock-ticks,
+.dock-seek-time {
+  display: none;
+}
+
+.dock-ticks {
+  position: absolute;
+  inset-inline: 0;
+  inset-block-start: 0;
+  height: 0;
+  pointer-events: none;
+}
+
+.dock-tick {
+  position: absolute;
+  inset-block-start: calc(var(--scrubber-tick-height) / -2);
+  inset-inline-start: var(--tick-position, 0%);
+  width: var(--scrubber-tick-width);
+  height: var(--scrubber-tick-height);
+  background: var(--color-track-strong);
+}
+
+.dock-tick[data-chapter] {
+  inset-block-start: calc(var(--scrubber-tick-chapter-height) / -2);
+  height: var(--scrubber-tick-chapter-height);
+}
+
+.dock-tick[data-played] {
+  background: var(--color-accent);
+}
+
+/* The clock at the thumb while it is being moved. */
+.dock-seek-time {
+  position: absolute;
+  inset-block-start: calc(var(--space-8) * -1);
+  inset-inline-start: calc(var(--seek-at, 0) * 100%);
+  padding: var(--space-1) var(--space-2);
+  border-radius: var(--scrubber-bubble-radius);
+  background: var(--color-surface-inverse);
+  color: var(--color-on-surface-inverse);
+  font-size: var(--font-size-caption);
+  font-weight: var(--font-weight-semibold);
+  line-height: var(--font-leading-caption);
+  pointer-events: none;
+  translate: -50% 0;
 }
 
 .dock-progress {
@@ -762,9 +746,9 @@
   display: none;
 }
 
-.dock-btn[data-primary] {
-  background: var(--color-accent);
-  color: var(--color-on-accent);
+.dock-btn[data-primary] .ui-icon {
+  width: var(--size-icon-lg);
+  height: var(--size-icon-lg);
 }
 
 .dock-btn[aria-disabled="true"] {
@@ -775,17 +759,12 @@
 .transport-btn .spinner {
   position: absolute;
   display: none;
-  color: var(--color-on-accent);
+  color: var(--color-on-surface);
 }
 
 .dock-btn[data-loading="true"] .spinner,
 .transport-btn[data-loading="true"] .spinner {
   display: block;
-}
-
-.dock-btn[data-primary]:active,
-.transport-btn[data-primary]:active {
-  background: var(--color-accent-pressed);
 }
 
 @media (hover: hover) and (pointer: fine) {
@@ -801,18 +780,12 @@
     height: calc(var(--mini-player-progress-height) * 2);
   }
 
-  .dock-btn:not([data-primary], [aria-disabled="true"]):hover,
   .player-collapse:hover {
     background: var(--color-surface-sunken);
   }
 
   .player-collapse:hover {
     color: var(--color-on-surface);
-  }
-
-  .dock-btn[data-primary]:hover,
-  .transport-btn[data-primary]:hover {
-    background: var(--color-accent-hover);
   }
 }
 
@@ -860,8 +833,6 @@
   }
 
   .player-dock {
-    /* The same number under a name the bar's own children can read: --p does not inherit. */
-    --dock-p: var(--p);
     padding-inline: max(var(--page-gutter), var(--safe-left))
       max(var(--page-gutter), var(--safe-right));
     transform: translate3d(0, calc(var(--p, 0) * var(--player-nav-travel)), 0);
@@ -875,35 +846,34 @@
     width: 100%;
     max-width: var(--player-column-max);
   }
-
-  /* The bar stays put from here, so it can carry its own scrubber. It is a 16px strip along the
-     bar's edge, a target for a mouse; a finger scrubs on the player page, where the bar is 44px. */
-  @media (pointer: fine) {
-    .dock-seek {
-      display: block;
-    }
-  }
-
-  /* The bar stays while its cover is away on the page, so its text closes the gap the cover left
-     and opens it again as the cover comes home. */
-  .dock-text {
-    transform: translate3d(
-      calc(var(--dock-p, 0) * -1 * (var(--mini-player-cover-size) + var(--space-3))),
-      0,
-      0
-    );
-  }
 }
 
-/* From 64rem the bar is a full transport: what is playing, the controls in the middle, volume. */
+/* From 64rem the bar follows YouTube Music's: the transport and the clock on the left, what is
+   playing in the middle, the volume on the right. */
 @media (min-width: 64rem) {
   :root {
     --player-dock-row: 4.5rem;
   }
 
   .player-dock {
-    grid-template-columns: minmax(0, 1fr) auto minmax(0, 1fr);
+    grid-template-columns: minmax(0, 1fr) minmax(0, var(--player-dock-centre)) minmax(0, 1fr);
     column-gap: var(--space-6);
+  }
+
+  .dock-transport {
+    grid-column: 1;
+    justify-self: start;
+  }
+
+  /* The group is as wide as its words, centred in the bar, with the text left-aligned beside the
+     cover. The whole bar still opens the player through the button's stretched target. */
+  .dock-open {
+    grid-column: 2;
+    grid-template-columns: var(--mini-player-cover-size) minmax(0, max-content);
+    justify-content: center;
+    justify-self: center;
+    width: auto;
+    max-width: 100%;
   }
 
   .dock-btn.dock-wide {
@@ -918,7 +888,18 @@
 @media (min-width: 64rem) and (hover: hover) and (pointer: fine) {
   .dock-tools {
     display: flex;
+    grid-column: 3;
     justify-self: end;
+  }
+
+  /* The one timeline is the bar's: a 16px strip along its edge, a target for a mouse, with the
+     clock beside the transport. The player page has none (see "nothing said twice" below). Under
+     this width, or with a finger, the page's scrubber is the only one, so the two never show
+     together. */
+  .dock-seek,
+  .dock-ticks,
+  .dock-seek-time {
+    display: block;
   }
 }
 
@@ -1120,17 +1101,21 @@
   height: var(--transport-glyph);
 }
 
-/* The play button is a filled circle, the one dominant control. */
+/* The play button is told apart by size alone: a larger glyph in the same ink. */
 .transport-btn[data-primary] {
-  --transport-glyph: var(--player-skip-glyph);
+  --transport-glyph: var(--player-play-glyph);
   width: var(--control-size-lg);
   height: var(--control-size-lg);
-  background: var(--color-accent);
-  color: var(--color-on-accent);
 }
 
 .transport-btn[aria-disabled="true"] {
   color: var(--color-on-surface-disabled);
+}
+
+/* Previous and next are the smaller targets of the five, so the speed fits at the row's end. */
+.transport-btn:not([data-primary], .transport-skip) {
+  width: var(--size-touch-comfortable);
+  height: var(--size-touch-comfortable);
 }
 
 /* A skip control: a circular arrow with its own numeral set in the arrow's open center. */
@@ -1156,39 +1141,217 @@
 }
 
 @media (hover: hover) and (pointer: fine) {
-  .transport-btn:not([data-primary], [aria-disabled="true"]):hover {
+  .transport-btn:not([aria-disabled="true"]):hover {
     background: var(--color-surface-sunken);
     color: var(--color-on-surface);
   }
 }
 
-/* ------------------------------------------------------------------ speed and source */
+/* ------------------------------------------------------------------ speed */
 
-/* The quiet row under the transport: the speed on one side, where the story came from on the other. */
-.player-utility {
+/* The transport, with the speed at its end. */
+.transport-row {
   display: flex;
   align-items: center;
-  justify-content: space-between;
-  gap: var(--space-4);
-  /* The labels sit on the content edge; the targets extend outward. */
-  margin-inline: calc(var(--space-3) * -1);
+  gap: var(--space-1);
 }
 
-/* Shows the speed and steps to the next. Text only: it is the least used control on the page. */
+.transport-row > .transport {
+  flex: 1 1 auto;
+}
+
+/* The glyph and the speed it is at. One tap opens the four. */
 .speed-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: var(--space-1);
   min-width: var(--size-touch);
   min-height: var(--size-touch);
-  padding-inline: var(--space-3);
+  padding-inline: var(--space-2);
   border-radius: var(--control-radius-sm);
-  color: var(--color-on-surface);
+  color: var(--color-on-surface-muted);
   font-size: var(--font-size-label);
   font-weight: var(--font-weight-medium);
 }
 
+.speed-btn .ui-icon {
+  width: var(--space-4);
+  height: var(--space-4);
+}
+
+.speed-btn[aria-expanded="true"] {
+  color: var(--color-on-surface);
+}
+
+/* A native popover: in the top layer, placed above the button by script just before it opens. */
+.speed-menu {
+  --menu-bottom: 0px;
+  --menu-right: 0px;
+  position: fixed;
+  inset: auto var(--menu-right) var(--menu-bottom) auto;
+  min-width: 8rem;
+  margin: 0;
+  padding: var(--space-1);
+  border: 0;
+  border-radius: var(--radius-md);
+  background: var(--color-surface-overlay);
+  color: var(--color-on-surface);
+  box-shadow: var(--shadow-popover);
+  opacity: 0;
+  transform: translateY(var(--space-1));
+  transition:
+    opacity var(--duration-state) var(--ease-out),
+    transform var(--duration-state) var(--ease-out),
+    overlay var(--duration-state) allow-discrete,
+    display var(--duration-state) allow-discrete;
+}
+
+.speed-menu:popover-open {
+  opacity: 1;
+  transform: none;
+}
+
+@starting-style {
+  .speed-menu:popover-open {
+    opacity: 0;
+    transform: translateY(var(--space-1));
+  }
+}
+
+.speed-item {
+  display: grid;
+  grid-template-columns: var(--size-icon) minmax(0, 1fr);
+  align-items: center;
+  gap: var(--space-2);
+  width: 100%;
+  min-height: var(--size-touch);
+  padding-inline: var(--space-3);
+  border-radius: var(--control-radius-sm);
+  font-size: var(--font-size-label);
+  text-align: start;
+}
+
+.speed-item[aria-checked="true"] {
+  color: var(--color-accent);
+  font-weight: var(--font-weight-semibold);
+}
+
+.speed-item-mark {
+  display: grid;
+  place-items: center;
+}
+
 @media (hover: hover) and (pointer: fine) {
   .speed-btn:hover,
-  .player-source-link:hover {
+  .speed-item:hover {
     background: var(--color-surface-sunken);
+  }
+
+  .speed-btn:hover {
+    color: var(--color-on-surface);
+  }
+}
+
+/* ------------------------------------------------------------------ the script */
+
+.player-script {
+  position: relative;
+}
+
+.script-turns {
+  display: grid;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+/* The two hosts: a lead on the page, and a guest on a faint sunken surface with an inset rule. */
+.script-turn {
+  --host-ink: var(--color-accent);
+  --host-wash: var(--color-accent-subtle);
+  display: grid;
+  gap: var(--space-1);
+  width: 100%;
+  padding-block: var(--space-3);
+  padding-inline: var(--space-3);
+  border-radius: var(--sheet-row-radius);
+  text-align: start;
+}
+
+.script-turn[data-tone="guest"] {
+  --host-ink: var(--color-warning);
+  --host-wash: var(--color-warning-subtle);
+  background: var(--color-surface-sunken);
+  box-shadow: inset var(--space-1) 0 0 var(--host-ink);
+}
+
+.script-speaker {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  color: var(--host-ink);
+  font-size: var(--font-size-meta);
+  font-weight: var(--font-weight-semibold);
+}
+
+.host-badge {
+  display: grid;
+  place-items: center;
+  width: var(--space-6);
+  height: var(--space-6);
+  border-radius: var(--radius-round);
+  background: var(--host-wash);
+  color: var(--host-ink);
+  font-size: var(--font-size-caption);
+  font-weight: var(--font-weight-semibold);
+}
+
+.script-text {
+  font-size: var(--font-size-label);
+  line-height: var(--font-leading-label);
+}
+
+/* The turn being spoken: a tint and a rule on the leading edge, so it never relies on colour alone. */
+.script-turn[aria-current="true"] {
+  background: var(--host-wash);
+  box-shadow: inset var(--space-1) 0 0 var(--host-ink);
+}
+
+.script-turn[aria-disabled="true"] {
+  cursor: default;
+}
+
+.script-back {
+  position: sticky;
+  inset-block-end: var(--space-4);
+  display: block;
+  margin-block-start: var(--space-3);
+  margin-inline: auto;
+  min-height: var(--size-touch);
+  padding-inline: var(--space-4);
+  border-radius: var(--control-radius-sm);
+  background: var(--color-surface-inverse);
+  color: var(--color-on-surface-inverse);
+  font-size: var(--font-size-label);
+  font-weight: var(--font-weight-semibold);
+}
+
+@media (min-width: 64rem) {
+  /* A column of its own that scrolls beside the cover, so the voice can be followed from the top. */
+  .player-script {
+    position: sticky;
+    inset-block-start: var(--space-2);
+    max-height: calc(100cqb - var(--space-8));
+    overflow-y: auto;
+    overscroll-behavior: contain;
+    scrollbar-width: thin;
+  }
+}
+
+@media (forced-colors: active) {
+  .script-turn[aria-current="true"] {
+    border: var(--stroke-rail) solid Highlight;
   }
 }
 
@@ -1266,8 +1429,6 @@
   gap: var(--space-2);
   min-width: 0;
   min-height: var(--size-touch);
-  /* On the far side of the row, with or without a speed button beside it. */
-  margin-inline-start: auto;
   padding-inline: var(--space-3);
   border-radius: var(--control-radius-sm);
   color: var(--color-accent);
@@ -1421,8 +1582,8 @@
 /* After the rules it changes, so it wins at equal weight. */
 @media (min-width: 64rem) and (hover: hover) and (pointer: fine) {
   /* The bar stays under the page here, with previous, play, next, the clock and the volume. The
-     page does not say them twice: it keeps the scrubber and what the bar has not, the two skips,
-     in one row with the speed and the source. */
+     page does not say them twice: it keeps the scrubber and what the bar has not, the two skips
+     and the speed. */
   .player-controls {
     display: grid;
     grid-template-columns: minmax(0, 1fr) auto minmax(0, 1fr);
@@ -1432,16 +1593,22 @@
     align-items: center;
   }
 
-  .player-controls > :is(.player-notice, .scrubber-wrap) {
+  .player-controls > :is(.player-notice) {
     grid-column: 1 / -1;
   }
 
-  .player-utility {
+  /* One timeline: the bar's. The page keeps the cover, the title, the source and the skips. */
+  .scrubber-wrap,
+  .player-story {
+    display: none;
+  }
+
+  .transport-row {
     display: contents;
   }
 
   .transport {
-    grid-row: 3;
+    grid-row: 1;
     grid-column: 2;
     gap: var(--space-2);
     padding-block: 0;
@@ -1451,18 +1618,11 @@
     display: none;
   }
 
-  .speed-btn {
-    grid-row: 3;
-    grid-column: 1;
-    justify-self: start;
-    margin-inline-start: calc(var(--space-3) * -1);
-  }
-
-  .player-source-link {
-    grid-row: 3;
+  .speed {
+    grid-row: 1;
     grid-column: 3;
     justify-self: end;
-    margin-inline-end: calc(var(--space-3) * -1);
+    margin-inline-end: calc(var(--space-2) * -1);
   }
 }
 
@@ -1477,8 +1637,7 @@ html[data-player="open"] {
 /* ------------------------------------------------------------------ preferences */
 
 @media (prefers-reduced-motion: reduce) {
-  /* No travel. The page fades in place, the bar fades where it sits, and nothing flies: the
-     page's own cover is the one on screen for as long as the page is. */
+  /* No travel. The page fades in place and the bar fades where it sits. */
   .player-page {
     border-radius: 0;
     transform: none;
@@ -1488,18 +1647,6 @@ html[data-player="open"] {
   .player-dock {
     border-radius: 0;
     transform: none;
-  }
-
-  .player-art {
-    display: none;
-  }
-
-  .dock-text {
-    transform: none;
-  }
-
-  .player:not([data-state="collapsed"]) .player-cover-box .player-cover-frame {
-    visibility: visible;
   }
 
   .glyph-swap > .ui-icon {
@@ -1541,8 +1688,6 @@ html[data-player="open"] {
     border-block-start: var(--stroke-hairline) solid CanvasText;
   }
 
-  .dock-btn[data-primary],
-  .transport-btn[data-primary],
   .player-fallback-action {
     border: var(--stroke-rail) solid ButtonText;
   }

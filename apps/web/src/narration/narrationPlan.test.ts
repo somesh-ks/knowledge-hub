@@ -124,6 +124,30 @@ describe("narratedDigest", () => {
     expect(digest.audio).toBeNull();
   });
 
+  it("places an episode's turns on the timeline from their segments", () => {
+    const turn = (key: string, speaker: "a" | "b") => ({
+      key,
+      speaker,
+      text: "Words.",
+      start_ms: null,
+      end_ms: null,
+    });
+    const talk = { ...digest, turns: [turn("t0", "a"), turn("t1", "b"), turn("t9", "a")] };
+    const plan = planNarration(
+      [
+        { key: "t0", item_id: null, characters: 60, audio: { url: "/0.mp3", duration_ms: 4_000 } },
+        { key: "t1", item_id: null, characters: 60, audio: null },
+      ],
+      60,
+    );
+    const turns = narratedDigest(talk, plan).turns ?? [];
+    expect(turns.map((entry) => [entry.start_ms, entry.end_ms])).toEqual([
+      [0, 4_000],
+      [4_000, 7_600],
+      [null, null],
+    ]);
+  });
+
   it("round-trips the briefing id through the source string", () => {
     expect(digestIdOfSource(narrationSource("2026-10-07-weekly"))).toBe("2026-10-07-weekly");
     expect(digestIdOfSource("https://blob.test/whole.mp3")).toBeNull();

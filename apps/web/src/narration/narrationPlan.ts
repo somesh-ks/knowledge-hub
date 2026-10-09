@@ -102,8 +102,18 @@ export function narratedDigest(digest: PlayerDigestData, plan: NarrationPlan): P
     const first = items.find((item) => item.section === section.slug && item.start_ms !== null);
     return { ...section, start_ms: first?.start_ms ?? null };
   });
+  const spans = new Map(plan.segments.map((segment) => [segment.key, segment]));
+  const turns = digest.turns?.map((turn) => {
+    const span = spans.get(turn.key);
+    return {
+      ...turn,
+      start_ms: span ? Math.round(span.start * 1000) : null,
+      end_ms: span ? Math.round(span.end * 1000) : null,
+    };
+  });
   return {
     ...digest,
+    ...(turns ? { turns } : {}),
     audio: { url: narrationSource(digest.id), duration_ms: plan.total_ms },
     timeline: "estimated",
     items,
