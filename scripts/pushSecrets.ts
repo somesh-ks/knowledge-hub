@@ -77,6 +77,29 @@ function parseDotenv(text: string): Record<string, string> {
   return out;
 }
 
+/** The first useful line of what a failed command wrote to stderr, with every .env value masked. */
+function reasonOf(error: unknown, values: Record<string, string>): string {
+  const stderr = (error as { stderr?: Buffer | string }).stderr;
+  let text = stderr ? String(stderr) : error instanceof Error ? error.message : String(error);
+  for (const value of Object.values(values)) {
+    if (value.length >= 6) text = text.split(value).join("***");
+  }
+  const lines = text
+    .split(/\r?\n/)
+    .map((entry) => entry.trim())
+    .filter(
+      (entry) =>
+        entry !== "" &&
+        !/DeprecationWarning|trace-deprecation|^npm (notice|warn)|^<claude-code-hint/.test(entry),
+    );
+  // Prefer the line that says what went wrong; tools print notices and hints around it.
+  const line =
+    lines.find((entry) =>
+      /error|invalid|denied|not found|unauthor|token|login|link/i.test(entry),
+    ) ?? lines.at(-1);
+  return (line ?? "no message").slice(0, 200);
+}
+
 function run(
   file: string,
   args: string[],
@@ -116,7 +139,10 @@ function main(): void {
   const values = parseDotenv(readFileSync(envPath, "utf8"));
   const repo = values.GITHUB_REPOSITORY || "somesh-ks/knowledge-hub";
   const childEnv: NodeJS.ProcessEnv = { ...process.env };
-  if (values.VERCEL_TOKEN) childEnv.VERCEL_TOKEN = values.VERCEL_TOKEN;
+  // The Vercel CLI uses its own login. The VERCEL_TOKEN in .env is the one GitHub Actions needs;
+  // passing it to the CLI as well made every Vercel push fail with "Could not retrieve Project
+  // Settings" once that token was rotated or revoked, while the login still worked.
+  delete childEnv.VERCEL_TOKEN;
 
   const vercelDir = linkedVercelDir();
   if (!vercelDir && only !== "github" && !dryRun) {
@@ -128,6 +154,7 @@ function main(): void {
   const sent: string[] = [];
   const skipped: string[] = [];
   const failed: string[] = [];
+  const reasons = new Map<string, string>();
 
   for (const target of TARGETS) {
     const value = values[target.name];
@@ -165,8 +192,9 @@ function main(): void {
         }
       }
       sent.push(`${target.name} -> ${target.where}`);
-    } catch {
+    } catch (error) {
       failed.push(target.name);
+      reasons.set(`${target.name} -> ${target.where}`, reasonOf(error, values));
     }
   }
 
@@ -178,6 +206,8 @@ function main(): void {
     console.error(
       `Failed (${failed.length}): ${failed.join(", ")}. Check gh and vercel login, then retry.`,
     );
+    // The reason, not the value: stderr is masked against every value in .env before it is shown.
+    for (const [target, reason] of reasons) console.error(`  ${target}: ${reason}`);
     process.exitCode = 1;
   }
 }
