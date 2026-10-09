@@ -15,9 +15,10 @@ export const INERT_MARKER = "data-player-inert";
 const LEAVE_ALONE = "script, style, template, link, meta, noscript, [aria-live]";
 /**
  * A body child that holds one of these stays reachable: a live region (the player's announcer, the
- * router's), or a popover, which is how a toast gets above the player and must still be pressed.
+ * router's), or a manual popover, which is how a toast gets above the player and must still be
+ * pressed. An auto popover (the header's More menu) does not count: its host is the page behind.
  */
-const HOLDS_SOMETHING_LIVE = "[aria-live], [popover]";
+const HOLDS_SOMETHING_LIVE = "[aria-live], [popover=manual]";
 
 /** The slice of Element the scope uses, so a test can stand in a plain object. */
 export interface ScopeElement {
