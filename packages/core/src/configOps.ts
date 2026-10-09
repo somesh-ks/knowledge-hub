@@ -1,6 +1,7 @@
 import { z } from "zod";
 import { IdString, SectionId } from "./categories.js";
-import { ScheduleSettings } from "./schedule.js";
+import { PodcastFormat } from "./podcast.js";
+import { ScheduleLengthMinutes, ScheduleSettings } from "./schedule.js";
 import { MAX_KEYWORDS, TOPIC_DEPTHS, TOPIC_ORIGINS } from "./topics.js";
 import { WriterSettings } from "./writer.js";
 
@@ -41,7 +42,7 @@ export type TopicInput = z.input<typeof TopicInput>;
  * - source.remove: delete an added source, or hide a seed source.
  * - weights.set: set weights by topic id. Built-in weights are written to config/preferences.json.
  * - schedule.set: set the hour (Stockholm), the days between briefings and the sections a
- *   scheduled briefing covers, in config/schedule.json. Unknown section ids are refused.
+ *   scheduled briefing covers, plus its podcast format and length, in config/schedule.json. Unknown section ids are refused.
  * - writer.set: set the writer's provider and model in config/writer.json. A null model means
  *   the engine's own DISPATCH_MODEL.
  */
@@ -73,7 +74,13 @@ export const ConfigOp = z.discriminatedUnion("op", [
       .record(IdString, weight)
       .refine((value) => Object.keys(value).length > 0, "give at least one weight"),
   }),
-  z.object({ op: z.literal("schedule.set"), ...ScheduleSettings.shape }),
+  z.object({
+    op: z.literal("schedule.set"),
+    ...ScheduleSettings.shape,
+    // Left out, they keep what the file holds, so an older client cannot reset them.
+    format: PodcastFormat.optional(),
+    length_minutes: ScheduleLengthMinutes.optional(),
+  }),
   z.object({ op: z.literal("writer.set"), ...WriterSettings.shape }),
 ]);
 /** The op as a caller writes it, before defaults are filled in. */

@@ -47,6 +47,8 @@ export function serializeSchedule(file: ScheduleFile): string {
       hour: checked.hour,
       cadence_days: checked.cadence_days,
       sections: checked.sections,
+      format: checked.format,
+      length_minutes: checked.length_minutes,
     },
     null,
     2,
