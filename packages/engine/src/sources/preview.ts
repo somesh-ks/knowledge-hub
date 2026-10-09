@@ -258,7 +258,7 @@ export async function previewSource(url: string, deps: PreviewDeps): Promise<Sou
       discover,
     );
   } catch (error) {
-    if (isTimeout(error) || isTimeout(pageError)) {
+    if (isTimeout(error) || isTimeout(pageError) || deps.signal?.aborted) {
       throw new PreviewError("timeout", "The address took too long to answer.");
     }
     if (error instanceof AddSourceError) throw new PreviewError("unreachable", error.message);
