@@ -34,7 +34,8 @@ function colorOf(path: string, mode: Mode): string {
 }
 
 const numberOf = (name: string): number =>
-  (tokens.primitive.opacity as unknown as Record<string, { $value: number }>)[name]?.$value ?? Number.NaN;
+  (tokens.primitive.opacity as unknown as Record<string, { $value: number }>)[name]?.$value ??
+  Number.NaN;
 
 const TINT: Record<Mode, number> = {
   light: numberOf("ambient-light"),
