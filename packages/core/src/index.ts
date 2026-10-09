@@ -14,6 +14,7 @@ export * from "./preferences.js";
 export * from "./publisher.js";
 export * from "./schedule.js";
 export * from "./sourceCatalog.js";
+export * from "./sourceScore.js";
 export * from "./sources.js";
 export * from "./state.js";
 export * from "./time.js";
