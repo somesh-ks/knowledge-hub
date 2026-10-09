@@ -56,14 +56,12 @@ const bands = [
         <Icon name="arrowBack" />
         <span>Settings</span>
       </a>
-      <div class="topics-head">
-        <h1 class="page-title manage-title" id="page-title" tabindex="-1">Podcast</h1>
-        <button class="btn-primary topics-add-source press press-subtle" type="button" data-add-source data-needs-js>
+      <h1 class="page-title manage-title" id="page-title" tabindex="-1">Podcast</h1>
+      <PodcastTabs active="topics" />
+      <button class="btn-primary topics-add-source press press-subtle" type="button" data-add-source data-needs-js>
           <Icon name="plus" class="icon-lg" />
           <span>Add source</span>
         </button>
-      </div>
-      <PodcastTabs active="topics" />
       <noscript>
         <p class="manage-note">Changing topics and sources needs JavaScript, which is turned off in this browser.</p>
       </noscript>

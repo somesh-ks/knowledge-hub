@@ -347,6 +347,13 @@
   opacity: var(--opacity-disabled);
 }
 
+/* A phone keeps the row to one line: only a word that flags a source (Poor, New) stays beside the number. */
+@media (width < 40rem) {
+  .source-row .score:not([data-label="Poor"], [data-label="New"]) .score-label {
+    display: none;
+  }
+}
+
 .score-num {
   color: var(--color-on-surface);
   font-variant-numeric: tabular-nums;
