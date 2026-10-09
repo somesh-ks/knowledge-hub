@@ -235,7 +235,10 @@ export function mountEditor(root: HTMLElement): Editor {
   };
 
   const openPanel = (trigger: HTMLElement): void => {
-    void import("./topicsSheet").then((module) => module.openSourceSheet(trigger, addSource));
+    const topic = trigger.dataset.addSource ?? "";
+    void import("./topicsSheet").then((module) =>
+      module.openSourceSheet(trigger, addSource, topic),
+    );
   };
 
   // -------------------------------------------------------------------------------- the events

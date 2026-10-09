@@ -131,7 +131,11 @@ export interface Chosen {
 }
 
 /** Opens the panel. `onAdd` runs when Add source is pressed; the panel closes after it. */
-export function openSourceSheet(trigger: HTMLElement | null, onAdd: (pick: Chosen) => void): void {
+export function openSourceSheet(
+  trigger: HTMLElement | null,
+  onAdd: (pick: Chosen) => void,
+  topicId = "",
+): void {
   const template = document.getElementById("source-sheet-template") as HTMLTemplateElement | null;
   const clone = template?.content.firstElementChild?.cloneNode(true);
   if (!(clone instanceof HTMLDialogElement)) return;
@@ -142,6 +146,7 @@ export function openSourceSheet(trigger: HTMLElement | null, onAdd: (pick: Chose
   const topic = sheet.querySelector("[data-sheet-topic]") as HTMLSelectElement;
   const area = sheet.querySelector("[data-sheet-preview]") as HTMLElement;
   const add = sheet.querySelector("[data-sheet-add]") as HTMLButtonElement;
+  topic.value = topicId;
   let loaded: { url: string; preview: SourcePreview } | null = null;
   let timer = 0;
   let seq = 0;

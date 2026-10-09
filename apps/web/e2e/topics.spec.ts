@@ -82,7 +82,7 @@ test.describe("the Topics & sources page", () => {
     await open(page);
     await expect(page.getByRole("heading", { level: 1, name: "Podcast" })).toBeVisible();
     await expect(page.getByRole("navigation", { name: "Podcast settings" })).toBeVisible();
-    await expect(page.getByRole("button", { name: "Add source" })).toBeVisible();
+    await expect(page.getByRole("button", { name: "Add source", exact: true })).toBeVisible();
     await expect(topic(page, "Design engineering craft")).toContainText("Studio Notes");
     await expect(source(page, "Model Ledger")).toContainText("Poor");
     await expect(source(page, "Launch Board")).toContainText("New");
@@ -154,10 +154,10 @@ test.describe("the Topics & sources page", () => {
   }) => {
     const { sent, previews } = await setup(page);
     await open(page);
-    await page.getByRole("button", { name: "Add source" }).click();
+    await page.getByRole("button", { name: "Add source", exact: true }).click();
     const sheet = page.getByRole("dialog", { name: "Add a source" });
     await expect(sheet).toBeVisible();
-    const add = sheet.getByRole("button", { name: "Add source" });
+    const add = sheet.getByRole("button", { name: "Add source", exact: true });
     await expect(add).toBeDisabled();
     await sheet.getByLabel("Site or feed address").fill("newsroom.example");
     await expect(sheet.getByText("Newsroom Example")).toBeVisible();
@@ -195,14 +195,32 @@ test.describe("the Topics & sources page", () => {
         }),
       );
       await open(page);
-      await page.getByRole("button", { name: "Add source" }).click();
+      await page.getByRole("button", { name: "Add source", exact: true }).click();
       const sheet = page.getByRole("dialog", { name: "Add a source" });
       await sheet.getByLabel("Site or feed address").fill("nothing.example");
       await expect(sheet.getByRole("alert")).toContainText("could not be read");
-      await expect(sheet.getByRole("button", { name: "Add source" })).toBeDisabled();
+      await expect(sheet.getByRole("button", { name: "Add source", exact: true })).toBeDisabled();
       await page.keyboard.press("Escape");
       await expect(sheet).toBeHidden();
     });
+  });
+
+  test("a topic has its own Add source button, with that topic chosen", async ({ page }) => {
+    await setup(page);
+    await open(page);
+    await page.getByRole("button", { name: "Add source to Audio interfaces" }).click();
+    const sheet = page.getByRole("dialog", { name: "Add a source" });
+    await expect(sheet.getByLabel("Topic")).toHaveValue("audio_interfaces");
+  });
+
+  test("the filter pills are never clipped on a phone", async ({ page }) => {
+    await setup(page);
+    await open(page);
+    const width = page.viewportSize()?.width ?? 0;
+    const edges = await page
+      .locator(".topics-filters .filter-chip")
+      .evaluateAll((chips) => chips.map((chip) => chip.getBoundingClientRect().right));
+    for (const right of edges) expect(right).toBeLessThanOrEqual(width);
   });
 
   test("Add topic keeps its flow", async ({ page }) => {
@@ -230,7 +248,7 @@ test.describe("the Topics & sources page", () => {
         (v) => `${v.id}: ${v.nodes.map((n) => n.target.join(" ")).join(", ")}`,
       );
     expect(await scan()).toEqual([]);
-    await page.getByRole("button", { name: "Add source" }).click();
+    await page.getByRole("button", { name: "Add source", exact: true }).click();
     const sheet = page.getByRole("dialog", { name: "Add a source" });
     await sheet.getByLabel("Site or feed address").fill("newsroom.example");
     await expect(sheet.getByText("Newsroom Example")).toBeVisible();

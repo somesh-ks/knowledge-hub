@@ -58,7 +58,7 @@ const bands = [
       </a>
       <h1 class="page-title manage-title" id="page-title" tabindex="-1">Podcast</h1>
       <PodcastTabs active="topics" />
-      <button class="btn-primary topics-add-source press press-subtle" type="button" data-add-source data-needs-js>
+      <button class="btn-primary topics-add-source press press-subtle" type="button" data-add-source="" data-needs-js>
           <Icon name="plus" class="icon-lg" />
           <span>Add source</span>
         </button>
@@ -163,6 +163,16 @@ const bands = [
                 <ul class="topic-sources" role="list" data-sources aria-label={`${topic.name} sources`}>
                   {under(topic.id).map((source) => <SourceRow source={source} />)}
                 </ul>
+                <button
+                  class="btn topic-add-source press press-subtle"
+                  type="button"
+                  aria-label={`Add source to ${topic.name}`}
+                  data-add-source={topic.id}
+                  data-needs-js
+                >
+                  <Icon name="plus" />
+                  <span>Add source</span>
+                </button>
               </li>
             ))
           }

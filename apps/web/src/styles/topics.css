@@ -53,6 +53,11 @@
 
 /* ------------------------------------------------------------------ the filter row */
 
+/* The back link starts at the title's left edge; in the grid it would stretch and centre its label. */
+.topics > .manage-back {
+  justify-self: start;
+}
+
 .topics-filters {
   padding-block-end: var(--space-2);
 }
@@ -61,6 +66,18 @@
 .topics-filters .filter-chip::after {
   inset-block: calc((var(--size-touch) - var(--chip-height)) / -2 - var(--stroke-hairline));
   inset-inline: calc(var(--stroke-hairline) * -1);
+}
+
+/* On a phone the pills wrap onto a second line instead of scrolling, so none is ever cut off. */
+@media (width < 40rem) {
+  .topics-filters .filter-chips {
+    flex-wrap: wrap;
+    margin-inline: 0;
+    padding-inline: 0;
+    overflow: visible;
+    animation: none;
+    mask-image: none;
+  }
 }
 
 /* The chips only name a filter; these rules hide the sources a score leaves out. */
@@ -177,6 +194,11 @@
 .topic-sources:empty,
 .topic-other:not(:has(.source-row)) {
   display: none;
+}
+
+/* A quiet text button at the end of a topic's sources; it flushes left with the names above it. */
+.topic-add-source {
+  margin-inline-start: calc(var(--space-3) * -1);
 }
 
 .topics [data-gone] {
