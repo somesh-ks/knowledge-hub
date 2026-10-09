@@ -5,6 +5,7 @@ One note per session, newest first. Read a note only to learn why something was 
 | Date | Note | Summary |
 | :--- | :--- | :--- |
 | 2026-10-09 | [Snappy navigation and model choice](2026-10-09-snappy-navigation-and-model-choice.md) | Moves answered from a saved copy and swapped at once, Model in Settings, polish pass, ambient cover light (D46 to D48) |
+| 2026-10-08 | [Session learnings](2026-10-08-session-learnings.md) | What went wrong in an 18-PR day and the rules that follow: owner working style, running subagents, engineering practice |
 | 2026-10-08 | [Subagent roster](2026-10-08-subagent-roster.md) | Ten capped agents, read-only Bash hook, effort at launch, no preloaded skills (D38) |
 | 2026-10-08 | [Singularity](2026-10-08-singularity.md) | Rename, Google Podcasts redesign, one-surface player, narration on Play, tech section, topics, sources, custom episodes (D30 to D37) |
 | 2026-10-08 | [Hosted narration](2026-10-08-hosted-narration.md) | Spoken version per story, code-built host frame and sign-off, natural headlines (D29) |
