@@ -13,9 +13,9 @@ describe("dailySummary", () => {
     expect(dailySummary({ hour: 7, cadenceDays: 2, format: "readout", lengthMinutes: 10 })).toBe(
       "07:00, every second day, Readout, 10 min",
     );
-    expect(
-      dailySummary({ hour: 18, cadenceDays: 7, format: "headlines", lengthMinutes: 3 }),
-    ).toBe("18:00, once a week, Headlines, 3 min");
+    expect(dailySummary({ hour: 18, cadenceDays: 7, format: "headlines", lengthMinutes: 3 })).toBe(
+      "18:00, once a week, Headlines, 3 min",
+    );
   });
 });
 
