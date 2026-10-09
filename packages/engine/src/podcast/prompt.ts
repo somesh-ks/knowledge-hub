@@ -19,20 +19,20 @@ const TONES: Record<PodcastRequest["tone"], string> = {
 
 const FORMATS: Record<PodcastFormat, string> = {
   readout: [
-    'FORMAT: readout. One host, speaker "a" only.',
+    'FORMAT: readout. One host, Ada, speaker "a" only.',
     "Open with one or two sentences that say the show is Singularity and what today's episode covers.",
     "Then tell each story in the order given, in a natural spoken voice, in one or two turns of several sentences each: what happened, the detail or number that matters, why it matters to the listener, and the catch or what to watch next, each only as far as the block supports. End a story with a short bridge into the next.",
     "Close with one short sign-off sentence.",
   ].join(" "),
   discussion: [
-    'FORMAT: discussion. Two hosts. Speaker "a" leads, speaker "b" reacts.',
-    'The first turn is "a" and says the show is Singularity. The last turn is "a" with a short sign-off.',
+    'FORMAT: discussion. Two hosts: Ada, speaker "a", leads; Leo, speaker "b", reacts.',
+    'The first turn is "a" and says the show is Singularity and that she is joined by Leo. The hosts may call each other by name now and then, not in most turns. The last turn is "a" with a short sign-off.',
     'For each story, in the order given, six to eight turns: "a" introduces it in two or three sentences, "b" reacts and asks the obvious question, "a" answers from the summary in two or three sentences, "b" puts in plain words what that means in practice, "a" adds the catch if the summary has one, and "b" closes the story with a short thought that leads on.',
     'Turns alternate between "a" and "b" and run two to four sentences each; a one-word or one-line reaction is not a turn.',
     'A host may say what a fact could mean for the listener, clearly as their own view ("that sounds like", "I would want to know"), never as a fact about the product, the company or anyone\'s motive. Neither host invents a fact, a number, a quote or a motive.',
   ].join(" "),
   headlines: [
-    'FORMAT: headlines. One host, speaker "a" only.',
+    'FORMAT: headlines. One host, Ada, speaker "a" only.',
     "Open with one sentence that says the show is Singularity.",
     "Then give each story in the order given in one or two short sentences, one turn per story.",
     "Close with a five-word sign-off at most.",
