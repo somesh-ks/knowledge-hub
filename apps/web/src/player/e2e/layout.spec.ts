@@ -113,6 +113,8 @@ test.describe("layout at real window sizes @surface", () => {
       await lab.play();
       await lab.openPlayer();
       await expect(lab.scrubber).toBeVisible();
+      // One timeline, never two: the bar's, or the page's where the bar has none.
+      await expect(page.getByRole("slider", { name: /^(Playback position|Seek)$/ })).toHaveCount(1);
       const report = await page.evaluate(LAYOUT_CHECK);
       expect(report.problems, JSON.stringify(report.parts)).toEqual([]);
       // The last control and the last row of the list can both be reached.
