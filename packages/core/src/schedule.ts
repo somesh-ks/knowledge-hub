@@ -1,6 +1,6 @@
 import { z } from "zod";
 import { SectionId } from "./categories.js";
-import { PodcastFormat } from "./podcast.js";
+import { PodcastFormat, VoiceId } from "./podcast.js";
 
 /** Days between scheduled briefings the owner can pick: every day, second day, third day, weekly. */
 export const SCHEDULE_CADENCES = [1, 2, 3, 7] as const;
@@ -20,11 +20,6 @@ export const ScheduleLengthMinutes = z.union([
 ]);
 
 const CadenceDays = z.union([z.literal(1), z.literal(2), z.literal(3), z.literal(7)]);
-
-/** A Speechify voice id: the engine's own rule for a voice (see apps/web/src/server/config.ts). */
-export const VOICE_ID_PATTERN = /^[A-Za-z0-9_-]{1,64}$/;
-/** A voice id, or null for the engine's default voice. */
-export const VoiceId = z.string().regex(VOICE_ID_PATTERN).nullable();
 
 /** Types a weekly or Create-panel podcast may be: the owner no longer picks Headlines. */
 export const SCHEDULE_FORMATS = ["readout", "discussion"] as const;

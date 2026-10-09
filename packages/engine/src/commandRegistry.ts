@@ -107,8 +107,11 @@ selection-schema.json, then validates the agent-selection.json a Claude Code ses
        dispatch podcast --request '<json>' --dry-run [--save <path outside the repository>]
 
 The request is JSON: { topic_ids: string[1..50], length_minutes: 3|5|10|15,
-format: "readout"|"discussion"|"headlines", window_days: 2|7|30,
-tone: "neutral"|"energetic"|"dry", title?: string }. Topic ids are sections or categories as they
+format: "readout"|"discussion", window_days: 2|7|30,
+tone: "neutral"|"energetic"|"dry", voice_id?: string|null, voice_id_b?: string|null,
+title?: string }. voice_id is the lead host's Speechify voice and voice_id_b the second host's
+(discussion only); null or absent means the default. An episode already stored as headlines
+still plays and can be regenerated. Topic ids are sections or categories as they
 appear in published digests. Reads Digests/ only (no fetching), makes one writer call on Nebius
 (needs NEBIUS_API_KEY and DISPATCH_MODEL, spends tokens), writes Podcasts/YYYY/MM/<id>.md and
 commits it as feat(podcast) through the write guard. The last line printed is the episode id.

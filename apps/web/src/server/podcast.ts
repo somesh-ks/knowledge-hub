@@ -28,7 +28,9 @@ type PodcastResult = ApiResult<PodcastCreateResponse>;
 const MAX_TOPICS = 50;
 export const MAX_TITLE_CHARS = 80;
 const LENGTHS: readonly number[] = [3, 5, 10, 15];
-const FORMATS: readonly string[] = ["readout", "discussion", "headlines"];
+/** New requests are a readout or a discussion; a stored episode may still say "headlines". */
+const FORMATS: readonly string[] = ["readout", "discussion"];
+const VOICE_ID = /^[A-Za-z0-9_-]{1,64}$/;
 const WINDOWS: readonly number[] = [2, 7, 30];
 const TONES: readonly string[] = ["neutral", "energetic", "dry"];
 const AUDIENCES: readonly string[] = ["general", "custom"];
@@ -67,6 +69,14 @@ export function parsePodcastRequest(value: unknown): PodcastRequest | null {
     return null;
   }
 
+  const voices: { voice_id?: string | null; voice_id_b?: string | null } = {};
+  for (const key of ["voice_id", "voice_id_b"] as const) {
+    const voice = value[key];
+    if (voice === undefined) continue;
+    if (voice !== null && (typeof voice !== "string" || !VOICE_ID.test(voice))) return null;
+    voices[key] = voice;
+  }
+
   let title: string | undefined;
   if (value.title !== undefined) {
     if (typeof value.title !== "string") return null;
@@ -86,6 +96,7 @@ export function parsePodcastRequest(value: unknown): PodcastRequest | null {
     ...(audience === undefined
       ? {}
       : { audience: audience as NonNullable<PodcastRequest["audience"]> }),
+    ...voices,
     ...(title ? { title } : {}),
   };
 }
