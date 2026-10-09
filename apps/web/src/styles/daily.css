@@ -143,3 +143,10 @@
 .daily-panel [hidden] {
   display: none;
 }
+
+/* The captions that split the model list into the recommended ones and the rest. */
+.model-list > .daily-head {
+  padding-block: var(--space-4) var(--space-1);
+  font-size: var(--font-size-label);
+  line-height: var(--font-leading-caption);
+}

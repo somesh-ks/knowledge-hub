@@ -184,6 +184,44 @@ test.describe("daily podcast", () => {
     await expect(page.locator("input[name=model]:visible")).toHaveCount(4);
   });
 
+  test("a long list shows the recommended models first, and Show all reveals the rest", async ({
+    page,
+  }) => {
+    const models = [
+      ["deepseek-ai/DeepSeek-V3.2", 163840],
+      ["Qwen/Qwen3-235B-A22B-Instruct-2507", 262144],
+      ["moonshotai/Kimi-K2-Instruct", 131072],
+      ["openai/gpt-oss-120b", 131072],
+      ["zai-org/GLM-4.5", 131072],
+      ["meta-llama/Meta-Llama-3.1-8B-Instruct", 131072],
+      ["Qwen/Qwen2.5-VL-72B-Instruct", 32768],
+    ].map(([id, context_length]) => ({ id, context_length }));
+    await page.route("**/api/models", (route) =>
+      route.fulfill({
+        status: 200,
+        contentType: "application/json",
+        body: JSON.stringify({ provider: "nebius", models }),
+      }),
+    );
+    await open(page);
+    const visible = page.locator("input[name=model]:visible");
+    // Automatic and five recommended models; the filter and the rest wait behind the button.
+    await expect(visible).toHaveCount(6);
+    await expect(page.getByText("Recommended", { exact: true })).toBeVisible();
+    await expect(page.getByLabel("Filter models")).toBeHidden();
+    const all = page.getByRole("button", { name: "Show all models" });
+    await expect(all).toHaveAttribute("aria-expanded", "false");
+    await all.click();
+    await expect(visible).toHaveCount(8);
+    await expect(page.getByLabel("Filter models")).toBeVisible();
+    await expect(page.getByRole("button", { name: "Show fewer models" })).toHaveAttribute(
+      "aria-expanded",
+      "true",
+    );
+    await page.getByLabel("Filter models").fill("llama");
+    await expect(page.locator("[data-count]")).toHaveText("1 model");
+  });
+
   test("choosing a model and a length saves both in one request", async ({ page }) => {
     const sent = await mockConfig(page);
     await open(page);

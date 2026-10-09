@@ -8,6 +8,7 @@
  * Only pure, dependency-free helpers are imported at run time.
  */
 import { contextLabel, isModelId, modelParts } from "../lib/modelId";
+import { shortlist } from "../lib/modelRank";
 import type { ConfigOp } from "../types/contracts";
 import type { Pending, SaveContext } from "./managePageSave";
 
@@ -136,9 +137,12 @@ function mount(root: HTMLElement): void {
   const fallback = one("[data-fallback]");
   const typed = one<HTMLInputElement>("#model-typed");
   const typedNote = one("[data-typed-note]");
+  const all = one<HTMLButtonElement>("[data-all]");
+  const filterBox = one("[data-filter]");
   const saved = group.dataset.saved ? group.dataset.saved : null;
   const changes = new Map<string, Pending>();
   let failed = false;
+  let expanded = false;
 
   const radios = (): HTMLInputElement[] => [
     ...list.querySelectorAll<HTMLInputElement>('input[name="model"]'),
@@ -195,16 +199,21 @@ function mount(root: HTMLElement): void {
     else show(changes.size === 1 ? "1 change" : `${changes.size} changes`, "idle");
   };
 
+  /** The recommended rows always show; the rest only once "Show all models" is open. */
   const applyFilter = (): void => {
     const query = filter.value;
     let shown = 0;
     for (const item of list.querySelectorAll<HTMLLIElement>("li[data-id]")) {
       const id = item.dataset.id ?? "";
       const input = item.querySelector<HTMLInputElement>("input");
-      const keep = id === "" ? true : matchesFilter(id, query) || input?.checked === true;
+      const matches = id === "" || matchesFilter(id, query);
+      const open = item.dataset.group === "rest" ? expanded : true;
+      const keep = id === "" ? true : (open && matches) || input?.checked === true;
       item.hidden = !keep;
-      if (id !== "" && matchesFilter(id, query)) shown += 1;
+      if (id !== "" && open && matches) shown += 1;
     }
+    for (const head of list.querySelectorAll<HTMLLIElement>("li[data-head=rest]"))
+      head.hidden = !expanded;
     count.textContent = query.trim() === "" ? "" : countText(shown);
   };
 
@@ -213,18 +222,35 @@ function mount(root: HTMLElement): void {
     list.removeAttribute("aria-hidden");
     group.removeAttribute("aria-busy");
     const listed = new Set((liveList ?? []).map((entry) => entry.id));
-    list.append(radioRow("", "Automatic", "The engine's own setting", saved === null));
-    for (const entry of entries) {
-      const { name } = modelParts(entry.id);
-      list.append(
-        radioRow(
-          entry.id,
-          name,
-          hintFor(entry, liveList === null || listed.has(entry.id)),
-          entry.id === saved,
-        ),
+    // With no live list there is nothing to rank: the saved model is the only row.
+    const top = new Set(liveList === null ? [] : shortlist(entries));
+    const row = (entry: ModelEntry, group: "rec" | "rest"): HTMLLIElement => {
+      const item = radioRow(
+        entry.id,
+        modelParts(entry.id).name,
+        hintFor(entry, liveList === null || listed.has(entry.id)),
+        entry.id === saved,
       );
-    }
+      item.dataset.group = group;
+      return item;
+    };
+    const head = (label: string, group: "rec" | "rest"): HTMLLIElement => {
+      const item = element("li", "manage-quiet daily-head", label);
+      item.dataset.head = group;
+      return item;
+    };
+    const auto = radioRow("", "Automatic", "The engine's own setting", saved === null);
+    auto.dataset.group = "rec";
+    list.append(auto);
+    const recommended = entries.filter((entry) => top.has(entry.id));
+    const rest = entries.filter((entry) => !top.has(entry.id));
+    if (recommended.length > 0) list.append(head("Recommended", "rec"));
+    for (const entry of recommended) list.append(row(entry, "rec"));
+    if (rest.length > 0 && recommended.length > 0) list.append(head("All models", "rest"));
+    // Without a ranking (no live list) every row is simply shown.
+    for (const entry of rest) list.append(row(entry, recommended.length > 0 ? "rest" : "rec"));
+    all.hidden = !list.querySelector('li[data-group="rest"]');
+    applyFilter();
   };
 
   const load = async (): Promise<void> => {
@@ -242,7 +268,8 @@ function mount(root: HTMLElement): void {
     } else {
       draw(rowsFor(entries, saved), entries);
       filter.disabled = false;
-      filter.closest<HTMLElement>("[data-filter]")?.removeAttribute("hidden");
+      // Without a shortlist (a short list) the whole list is the list, so the filter shows at once.
+      if (all.hidden) filterBox.hidden = false;
     }
     root.dataset.loaded = "";
   };
@@ -263,6 +290,14 @@ function mount(root: HTMLElement): void {
     if (target.closest("[data-panel]")) update();
   });
   filter.addEventListener("input", applyFilter);
+  all.addEventListener("click", () => {
+    expanded = !expanded;
+    all.setAttribute("aria-expanded", String(expanded));
+    all.textContent = expanded ? "Show fewer models" : "Show all models";
+    filterBox.hidden = !expanded;
+    if (!expanded) filter.value = "";
+    applyFilter();
+  });
   typed.addEventListener("input", () => {
     // A typed id replaces the radio choice; clearing the field returns to the row that was checked.
     if (typed.value.trim() !== "") for (const radio of radios()) radio.checked = false;
