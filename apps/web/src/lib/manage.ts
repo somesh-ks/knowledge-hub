@@ -50,6 +50,10 @@ export interface ManageSource {
   host: string;
   enabled: boolean;
   pinned: boolean;
+  /** The topic the source feeds: its first custom topic, else its category, else null. */
+  topic_id: string | null;
+  /** The site's own icon, https://<host>/favicon.ico; null when the address has no host. */
+  favicon_url: string | null;
   /** "12 of 40 stories made a briefing", or null when there is no record yet. */
   record: string | null;
   /** True when the source has failed to load several times in a row. */
@@ -106,6 +110,17 @@ export function hostOf(address: string | null | undefined): string {
     return new URL(address).hostname.replace(/^www\./, "");
   } catch {
     return "";
+  }
+}
+
+/** A site's icon at the conventional place, or null when the address is not a web address. */
+export function faviconOf(address: string | null | undefined): string | null {
+  if (!address) return null;
+  try {
+    const url = new URL(address);
+    return /^https?:$/.test(url.protocol) ? `https://${url.hostname}/favicon.ico` : null;
+  } catch {
+    return null;
   }
 }
 
@@ -278,6 +293,7 @@ interface RawSource {
   url: string | null;
   feed_url: string | null;
   enabled: boolean;
+  topic_id: string | null;
   failures: number;
   last_ok: string | null;
   /** Discovery quality, 0 to 1. */
@@ -296,6 +312,9 @@ function parseSource(value: unknown): RawSource | null {
     url,
     feed_url: feed,
     enabled: asBool(value.enabled, true),
+    topic_id:
+      (Array.isArray(value.topic_ids) ? asString(value.topic_ids[0]) : null) ??
+      asString(value.category_hint),
     failures: asNumber(value.failures) ?? 0,
     last_ok: asString(value.last_ok),
     quality: isRecord(value.quality) ? asNumber(value.quality.score) : null,
@@ -401,6 +420,8 @@ export function buildSources(input: {
       host,
       enabled: override.enabled ?? source.enabled,
       pinned: override.pinned ?? false,
+      topic_id: source.topic_id,
+      favicon_url: faviconOf(source.url ?? source.feed_url),
       record: recordInWords(sourceStats),
       struggling: failures >= STRUGGLING_FAILURES,
       score: rated.score,
