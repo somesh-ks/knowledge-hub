@@ -2,6 +2,8 @@ export interface ToastContent {
   /** Bumped on every show, so an identical message still re-announces and re-keys. */
   id: number;
   message: string;
+  /** A finished run that worked, or one that did not: it gets an icon and, for an error, an alert role. */
+  kind?: "success" | "error";
   actionLabel?: string;
   onAction?: () => void;
 }
@@ -16,17 +18,25 @@ function emit(): void {
   for (const listener of listeners) listener();
 }
 
+/** How long a message with no action stays. */
+export const TOAST_MS = 5000;
+let timer: ReturnType<typeof setTimeout> | undefined;
+
 /**
- * One toast at a time, for things that finish while their sheet is closed. A toast with an action
- * stays until it is used or dismissed, so nothing is lost to a timer.
+ * One toast at a time, for things that finish while their sheet is closed; a new one replaces the
+ * old. A toast with an action stays until it is used or dismissed, so nothing is lost to a timer;
+ * one without goes by itself.
  */
 export function showToast(content: Omit<ToastContent, "id">): void {
   counter += 1;
+  clearTimeout(timer);
   current = { id: counter, ...content };
+  if (!content.actionLabel) timer = setTimeout(dismissToast, TOAST_MS);
   emit();
 }
 
 export function dismissToast(): void {
+  clearTimeout(timer);
   if (!current) return;
   current = null;
   emit();

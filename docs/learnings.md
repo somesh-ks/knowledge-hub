@@ -74,3 +74,11 @@ One line each: symptom, cause, fix. Newest first. Search before debugging.
 - 2026-10-08: a limit nobody asked for is a bug waiting for its first user: two episodes a day stopped the owner on the first day. Tests that hard-code a policy number (a cooldown of 30 minutes) break when the policy moves; compute from the constant.
 - 2026-10-08: in one stylesheet, a media block placed before the base rules it changes loses at equal specificity. Put the override after the rules it overrides.
 - 2026-10-08: `npx` sometimes stalls for a minute on this machine before running a local binary; a stalled command is not a failed one, and reading its output file is quicker than rerunning it.
+- 2026-10-08: during a view transition the page is drawn as images in an overlay that takes the pointer, so the cursor flickers to the arrow over a link and a press is lost. `::view-transition { pointer-events: none; }` fixes it; a style test keeps the rule.
+- 2026-10-08: a tab left open across a deploy asks for lazy script files the deploy removed; the player's controls and narration then fail quietly. Listen for `vite:preloadError`, drop saved pages and reload once, but not while offline.
+- 2026-10-08: the service worker followed script imports only three levels deep when saving the shell, so each new lazy import pushed another file out of the offline copy and broke the offline specs. Follow them deep (six) and bump the cache version.
+- 2026-10-08: a background request made on page load (the narration prewarm) reaches the fixture server in every browser test and fails the "no console errors" rule. Decide how the fixture answers it before merging.
+- 2026-10-08: `getByRole("button", { name: "All" })` matched "Gallery view". Use `exact: true` for short names.
+- 2026-10-08: a glyph listed only for the lazy icon set renders nothing through the eager `Icon`; `tsc` passes and only `astro check` catches it. Run `astro check` before a PR: CI does not.
+- 2026-10-08: branches that each pass alone can fail together (tab order, focus ring, touch targets, bundle size). Stack them and run the whole site suite before the PR, and measure the bundle on the stack.
+- 2026-10-08: 37 GB of a full disk was one other project's Claude temp folder under `%TEMP%\claude`; this repository with its dependencies is under 600 MB. Measure before deleting.

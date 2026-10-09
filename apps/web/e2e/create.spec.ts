@@ -67,6 +67,9 @@ async function confirm(page: Page): Promise<void> {
   await dialog(page).getByRole("button", { name: "Create episode" }).click();
 }
 
+// The service worker answers /latest.json itself, which a route handler cannot see.
+test.use({ serviceWorkers: "block" });
+
 test.describe("the Create page", () => {
   test("shows no error line, and no part of one, before anything has gone wrong", async ({
     page,
@@ -381,6 +384,98 @@ test.describe("the Create page", () => {
     // Once finished it can be dismissed, and then it is gone.
     await page.getByRole("button", { name: "Dismiss" }).click();
     await expect(card).toBeHidden();
+  });
+
+  test("names each stage, fills the bar, and waits for the new page", async ({ page }) => {
+    await page.clock.install();
+    await mockPodcast(page, 202, { status: 202, run_id: 7, started_at: "2026-10-07T12:00:00Z" });
+    const stages = [
+      { run_id: 7, state: "running", step: null, stage: 0, stages: 3, label: "Getting ready" },
+      { run_id: 7, state: "running", step: null, stage: 1, stages: 3, label: "Making the episode" },
+      {
+        run_id: 7,
+        state: "completed",
+        step: null,
+        stage: 2,
+        stages: 3,
+        label: "Updating the site",
+        outcome: "published",
+      },
+    ];
+    let asked = 0;
+    await page.route("**/api/status?**", (route) => {
+      const body = stages[Math.min(asked, stages.length - 1)];
+      asked += 1;
+      return route.fulfill({
+        status: 200,
+        contentType: "application/json",
+        body: JSON.stringify(body),
+      });
+    });
+    let live = false;
+    await page.route(/latest.json/, (route) => {
+      return route.fulfill({
+        status: 200,
+        contentType: "application/json",
+        body: JSON.stringify({
+          episode_at: live
+            ? new Date(Date.now() + 3_600_000).toISOString()
+            : "2020-01-01T00:00:00Z",
+          episode_id: "ep-new",
+        }),
+      });
+    });
+    await openCreate(page);
+    await openDialog(page);
+    await confirm(page);
+    const text = page.locator("[data-run-text]");
+    const card = page.locator("[data-run-card]");
+    await expect(text).toHaveText("Waiting to start");
+    await page.clock.runFor(4000);
+    await expect(text).toHaveText("Getting ready");
+    await page.clock.runFor(4000);
+    await expect(text).toHaveText("Making the episode");
+    // The bar is a share of the whole, never past the start of the next stage.
+    const share = () => card.evaluate((el) => Number(el.style.getPropertyValue("--run-to")));
+    expect(await share()).toBeGreaterThanOrEqual(1 / 3);
+    expect(await share()).toBeLessThan(2 / 3);
+    await page.clock.runFor(4000);
+    await expect(text).toHaveText("Updating the site");
+    live = true;
+    await expect(async () => {
+      await page.clock.runFor(10_000);
+      await expect(text).toHaveText("Episode ready", { timeout: 500 });
+    }).toPass();
+    await expect(page.locator("[data-run-library]")).toHaveAttribute("href", "/e/ep-new");
+    await expect(page.locator("[data-run-library]")).toHaveText("Open episode");
+  });
+
+  test("a failed run names the stage it stopped in", async ({ page }) => {
+    await page.clock.install();
+    await mockPodcast(page, 202, { status: 202, run_id: 8, started_at: "2026-10-07T12:00:00Z" });
+    await page.route("**/api/status?**", (route) =>
+      route.fulfill({
+        status: 200,
+        contentType: "application/json",
+        body: JSON.stringify({
+          run_id: 8,
+          state: "completed",
+          step: null,
+          stage: 1,
+          stages: 3,
+          label: "Making the episode",
+          outcome: "failed",
+          run_url: "https://example.com/run",
+        }),
+      }),
+    );
+    await openCreate(page);
+    await openDialog(page);
+    await confirm(page);
+    await page.clock.runFor(4000);
+    await expect(page.locator("[data-run-text]")).toHaveText(
+      "Stopped while making the episode. Try again later.",
+    );
   });
 
   test("tells a failed run apart from a started one", async ({ page }) => {

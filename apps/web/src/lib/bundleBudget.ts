@@ -12,10 +12,12 @@ import { gzipSync } from "node:zlib";
  * clock, volume) and the Topics and Sources pages arrived; 63 KB of it is React itself. It went
  * from 102 to 103 KB on 2026-10-08 for the Space key, instant deletion and the Back key closing the
  * Create panel, which must be on every page: the reading pages sit at 100 to 101 KB, and only the
- * management pages under Settings, which carry their editor, reach 102.5. Raise it again only with
- * a reason written here.
+ * management pages under Settings, which carry their editor, reach 102.5. To 104 KB the same day
+ * for interface sounds on every control, live run stages and the cover play button: reading pages
+ * are at 101.5 to 102.4, and Topics and Sources at 103.5. The way back down is to load those two
+ * pages' editor on first use; do that before raising this again.
  */
-export const FIRST_LOAD_BUDGET_BYTES = 103 * 1024;
+export const FIRST_LOAD_BUDGET_BYTES = 104 * 1024;
 /** Self-hosted fonts, build plan 8.8: subset, one preloaded, 80 KB or less in total. */
 export const FONT_BUDGET_BYTES = 80 * 1024;
 /** The inline theme script runs before first paint, so it must stay tiny. */

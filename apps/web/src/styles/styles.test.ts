@@ -101,6 +101,24 @@ describe("component stylesheets", () => {
     }
   });
 
+  it("lets the pointer through the view transition overlay", () => {
+    // Without it the cursor flickers to the arrow over a link on every navigation, and a press
+    // during the transition is lost.
+    const css = withoutComments(read("view-transitions.css")).replace(/\s+/g, " ");
+    expect(css).toMatch(/::view-transition \{ pointer-events: none; \}/);
+  });
+
+  it("keeps a pressable control the same size under the pointer", () => {
+    // A control that shrinks while pressed can slip out from under the pointer at its edge: the
+    // cursor flickers and the press is dropped. The press scale stays close to 1.
+    const tokens = read("tokens.css");
+    for (const name of ["--scale-press", "--scale-press-subtle"]) {
+      const value = Number(new RegExp(`${name}:\\s*([0-9.]+)`).exec(tokens)?.[1]);
+      expect(value, name).toBeGreaterThanOrEqual(0.94);
+      expect(value, name).toBeLessThanOrEqual(1);
+    }
+  });
+
   it("never uses !important or transition: all", () => {
     for (const file of OWN_FILES) {
       const css = withoutComments(read(file));

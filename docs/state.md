@@ -27,6 +27,15 @@ The reader is called Singularity (D30). Identifiers keep `dispatch`. Everything 
 - The passphrase step is switched off (D41). Caps, cooldowns and the narration budget stay enforced.
 - Five topics with Top picks always included, General and Customized audiences (D39); Design and Trending ship with the app, Trending ranked by coverage, discovery only suggests (D40); a 44-entry source catalogue feeds the add-topic flow.
 
+- Making something shows live stages in the run indicator: seven for a briefing (one per workflow step, then "Updating the site"), three for an episode ("Getting ready", "Making the episode", "Updating the site"; `podcast.yml` makes the whole episode in one step, so nothing finer is shown). Toasts share one quiet style with an icon for success and failure.
+- Interface sounds by kind of action (navigate, select, open and close, success, failure) through one delegated listener that loads the sound code on the first gesture and follows the Sounds setting.
+- Today and episode pages carry one three-dots menu (Share, Regenerate, Delete on an episode); an episode page shows Highlights with links, not the script. The Library has a List view, search inside episode scripts, and a play button on covers. Settings is Daily podcast, Playback, Appearance, About.
+- Style tests forbid raw lengths for spacing, type size and radius, and reading a custom property nothing defines. The view transition overlay lets the pointer through, so the cursor does not flicker over a link.
+
+## Written, not merged
+
+- `feat/player-bar-and-script`: the bar in YouTube Music's layout carrying the one timeline with a tick per story; the open page reduced to cover, one-line title, source link, two 10 second skips and a speed menu; no flying cover; play without an accent fill; for an episode, the script in the open player with two named hosts, Ada and Leo. It looks right in screenshots but is NOT merged: stacked on the main of 2026-10-08 its player suite failed 10 tests on the Chromium site projects (`stuck.spec.ts` 71, 95, 113, 195; `gestures.spec.ts` 67 and 228; `layout.spec.ts` 103 at 1280x620 and 1280x800) and `e2e/persistence.spec.ts:57`. Its worker had run only part of the suite. Some of these also fail on `main` (see below); the rest are not yet explained.
+
 ## Development
 
 - `npm run dev` shows the Agentation toolbar for leaving notes on elements. It is behind `import.meta.env.DEV`, and `checkBundle` fails any build that contains it. Stop the dev server when done: one left running across an install serves broken islands.

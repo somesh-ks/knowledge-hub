@@ -183,4 +183,8 @@ export async function save(
   }
   fields.disabled = false;
   show(failure || (timeRefused ? TIME_REFUSED : SAVED), failure ? "error" : "done");
+  // The interface sound for an outcome the screen already states (see scripts/uiSound.ts).
+  document.dispatchEvent(
+    new CustomEvent("dispatch:sound", { detail: failure ? "failure" : "success" }),
+  );
 }

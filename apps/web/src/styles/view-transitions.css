@@ -4,6 +4,13 @@
  * went. Without the API every one of these is an instant swap.
  */
 
+/* While a transition runs the page is drawn as images in an overlay over everything, and the overlay
+   takes the pointer: over a link the cursor falls back to the arrow, and a press in that moment is
+   lost. The pointer goes through to the real page underneath instead. */
+::view-transition {
+  pointer-events: none;
+}
+
 /* Theme change: the page crossfades. The player's own cover morph never uses a view transition. */
 ::view-transition-old(root),
 ::view-transition-new(root) {
