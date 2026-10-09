@@ -14,7 +14,6 @@ import { isModelId } from "../lib/modelId";
 import type { ConfigOp } from "../types/contracts";
 import type { Pending, SaveContext } from "./managePageSave";
 
-type Length = 3 | 5 | 10 | 15;
 export type Provider = "nebius" | "anthropic";
 
 export interface ModelEntry {
@@ -35,36 +34,30 @@ const nullable = (value: string): string | null => (value === "" ? null : value)
  * keep what the file holds. Null when nothing differs.
  */
 export function scheduleOp(was: FieldValues, now: FieldValues): ConfigOp | null {
-  const op: Extract<ConfigOp, { op: "schedule.set" }> = { op: "schedule.set" };
-  const weekly: NonNullable<typeof op.weekly> = {};
-  const custom: NonNullable<typeof op.custom> = {};
-  let changed = false;
+  // The daily fields sit at the top of the op; the weekly and custom ones in their own object.
+  const top: Record<string, unknown> = {};
+  const nested: Record<string, Record<string, unknown>> = { weekly: {}, custom: {} };
+  const names: Record<string, string> = { cadence: "cadence_days", length: "length_minutes" };
   for (const [key, value] of Object.entries(now)) {
     if (was[key] === value) continue;
-    const [profile, field] = key.split(".");
-    changed = true;
-    if (profile === "daily") {
-      if (field === "hour") op.hour = Number(value);
-      else if (field === "cadence") op.cadence_days = Number(value) as 1 | 2 | 3 | 7;
-      else if (field === "format") op.format = value as "readout" | "discussion";
-      else if (field === "length") op.length_minutes = Number(value) as Length;
-      else if (field === "voice") op.voice_id = nullable(value);
-      else if (field === "voice_b") op.voice_id_b = nullable(value);
-    } else {
-      const target = profile === "weekly" ? weekly : custom;
-      if (field === "format") target.format = value as "readout" | "discussion";
-      else if (field === "length") target.length_minutes = Number(value) as Length;
-      else if (field === "voice") target.voice_id = nullable(value);
-      else if (field === "voice_b") target.voice_id_b = nullable(value);
-      else if (profile === "weekly" && field === "hour") weekly.hour = Number(value);
-      else if (profile === "weekly" && field === "day") weekly.day = Number(value);
-      else if (profile === "weekly" && field === "enabled") weekly.enabled = value === "true";
-    }
+    const [profile = "", field = ""] = key.split(".");
+    const name = names[field] ?? field;
+    const number = ["hour", "day", "cadence", "length"].includes(field);
+    const parsed = number
+      ? Number(value)
+      : field === "enabled"
+        ? value === "true"
+        : field.startsWith("voice")
+          ? nullable(value)
+          : value;
+    const voice = field === "voice" ? "voice_id" : field === "voice_b" ? "voice_id_b" : name;
+    (nested[profile] ?? top)[voice] = parsed;
   }
-  if (!changed) return null;
-  if (Object.keys(weekly).length > 0) op.weekly = weekly;
-  if (Object.keys(custom).length > 0) op.custom = custom;
-  return op;
+  const weekly = Object.keys(nested.weekly ?? {}).length > 0 ? { weekly: nested.weekly } : {};
+  const custom = Object.keys(nested.custom ?? {}).length > 0 ? { custom: nested.custom } : {};
+  if (Object.keys(top).length + Object.keys(weekly).length + Object.keys(custom).length === 0)
+    return null;
+  return { op: "schedule.set", ...top, ...weekly, ...custom } as ConfigOp;
 }
 
 /** The edit a provider and model choice stand for. `null` on Nebius is Automatic. */
