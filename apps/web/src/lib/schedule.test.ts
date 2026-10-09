@@ -14,9 +14,9 @@ describe("podcastSummary", () => {
     expect(podcastSummary({ hour: 7, format: "readout", weekly })).toBe(
       "Daily 07:00 · Weekly Sun · Readout",
     );
-    expect(podcastSummary({ hour: 18, format: "headlines", weekly: { enabled: false, day: 3 } })).toBe(
-      "Daily 18:00 · Headlines",
-    );
+    expect(
+      podcastSummary({ hour: 18, format: "headlines", weekly: { enabled: false, day: 3 } }),
+    ).toBe("Daily 18:00 · Headlines");
   });
 });
 

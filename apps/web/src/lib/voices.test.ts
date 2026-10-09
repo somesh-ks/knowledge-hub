@@ -6,7 +6,13 @@ describe("parseVoices", () => {
     expect(
       parseVoices({
         voices: [
-          { id: "a", name: "Ada", gender: "female", language: "en-US", preview_url: "https://x/a.mp3" },
+          {
+            id: "a",
+            name: "Ada",
+            gender: "female",
+            language: "en-US",
+            preview_url: "https://x/a.mp3",
+          },
           { id: "", name: "No id" },
           { id: "b", name: "Leo", gender: 3 },
           7,

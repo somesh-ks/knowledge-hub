@@ -1,7 +1,8 @@
 /**
- * The Daily podcast page's script. The page is static HTML with the saved values written in; this
- * loads the live Nebius model list, runs the model combobox, and records the changes the controls
- * add up to in the shared bar: one schedule.set (time, rhythm, type, length) and one writer.set
+ * The Podcast page's script. The page is static HTML with the saved values written in, for the
+ * Daily, Weekly and Custom profiles; this switches between them, loads the voices and the live
+ * Nebius model list, runs the model combobox, and records the changes the controls add up to in the
+ * shared bar: one schedule.set (every field of the three profiles that changed) and one writer.set
  * (provider and model). Sending them is managePageSave.ts, loaded the first time Save is pressed,
  * the same step the Topics page uses.
  *
@@ -10,11 +11,10 @@
  */
 import type { ModelOption } from "../lib/combobox";
 import { isModelId } from "../lib/modelId";
+import type { Voice } from "../lib/voices";
 import type { ConfigOp } from "../types/contracts";
 import type { Pending, SaveContext } from "./managePageSave";
 
-type Cadence = 1 | 2 | 3 | 7;
-type Format = "readout" | "discussion" | "headlines";
 type Length = 3 | 5 | 10 | 15;
 export type Provider = "nebius" | "anthropic";
 
@@ -25,22 +25,47 @@ export interface ModelEntry {
 
 const LIST_TIMEOUT_MS = 10_000;
 
+/** What the schedule controls hold, by field: "daily.hour", "weekly.day", "custom.voice_b". */
+export type FieldValues = Record<string, string>;
+
+const nullable = (value: string): string | null => (value === "" ? null : value);
+
 /**
- * The schedule edit the controls stand for. The topics a briefing covers are not chosen here, so
- * the saved ones go back unchanged (null is every enabled topic).
+ * The schedule edit the controls stand for: every field whose value differs from `was`, in the
+ * profile it belongs to. The topics a briefing covers are not chosen here, so they are left out and
+ * keep what the file holds. Null when nothing differs.
  */
-export function scheduleOp(
-  values: { hour: number; cadence: number; format: string; length: number },
-  sections: string[] | null,
-): ConfigOp {
-  return {
-    op: "schedule.set",
-    hour: values.hour,
-    cadence_days: values.cadence as Cadence,
-    sections,
-    format: values.format as Format,
-    length_minutes: values.length as Length,
-  };
+export function scheduleOp(was: FieldValues, now: FieldValues): ConfigOp | null {
+  const op: Extract<ConfigOp, { op: "schedule.set" }> = { op: "schedule.set" };
+  const weekly: NonNullable<typeof op.weekly> = {};
+  const custom: NonNullable<typeof op.custom> = {};
+  let changed = false;
+  for (const [key, value] of Object.entries(now)) {
+    if (was[key] === value) continue;
+    const [profile, field] = key.split(".");
+    changed = true;
+    if (profile === "daily") {
+      if (field === "hour") op.hour = Number(value);
+      else if (field === "cadence") op.cadence_days = Number(value) as 1 | 2 | 3 | 7;
+      else if (field === "format") op.format = value as "readout" | "discussion";
+      else if (field === "length") op.length_minutes = Number(value) as Length;
+      else if (field === "voice") op.voice_id = nullable(value);
+      else if (field === "voice_b") op.voice_id_b = nullable(value);
+    } else {
+      const target = profile === "weekly" ? weekly : custom;
+      if (field === "format") target.format = value as "readout" | "discussion";
+      else if (field === "length") target.length_minutes = Number(value) as Length;
+      else if (field === "voice") target.voice_id = nullable(value);
+      else if (field === "voice_b") target.voice_id_b = nullable(value);
+      else if (profile === "weekly" && field === "hour") weekly.hour = Number(value);
+      else if (profile === "weekly" && field === "day") weekly.day = Number(value);
+      else if (profile === "weekly" && field === "enabled") weekly.enabled = value === "true";
+    }
+  }
+  if (!changed) return null;
+  if (Object.keys(weekly).length > 0) op.weekly = weekly;
+  if (Object.keys(custom).length > 0) op.custom = custom;
+  return op;
 }
 
 /** The edit a provider and model choice stand for. `null` on Nebius is Automatic. */
@@ -75,6 +100,78 @@ function element<K extends keyof HTMLElementTagNameMap>(
 }
 
 /**
+ * The profile switch, the voice rows that follow the type, and the voices. The voice list is loaded
+ * here, once the page is up, and fills every voice select; a failed load leaves the default and the
+ * saved voice, which is all a person needs to keep what they have.
+ */
+function mountProfiles(root: HTMLElement, changed: () => void): void {
+  const profiles = root.querySelectorAll<HTMLElement>("[data-profile]");
+  const showProfile = (id: string): void => {
+    for (const profile of profiles) profile.hidden = profile.dataset.profile !== id;
+  };
+  const syncType = (profile: HTMLElement): void => {
+    const format = profile.querySelector<HTMLInputElement>('input[data-f$=".format"]:checked');
+    const discussion = format?.value === "discussion";
+    const rows = profile.querySelectorAll<HTMLElement>("[data-voice-row]");
+    rows[1]?.toggleAttribute("hidden", !discussion);
+    rows.forEach((row) => {
+      const label = row.querySelector<HTMLElement>("[data-voice-label]");
+      const name = label?.dataset.name ?? "";
+      if (label) label.textContent = discussion ? name : `Voice (${name})`;
+    });
+  };
+  let voices: Voice[] = [];
+  let audio: HTMLAudioElement | undefined;
+  const previewOf = (select: HTMLSelectElement): string | null =>
+    voices.find((voice) => voice.id === select.value)?.preview_url ?? null;
+  const syncPreview = (select: HTMLSelectElement): void => {
+    const button = select.closest(".podcast-voice")?.querySelector<HTMLElement>("[data-preview]");
+    if (button) button.hidden = previewOf(select) === null;
+  };
+
+  root.addEventListener("change", (event) => {
+    const target = event.target as HTMLElement;
+    if (target instanceof HTMLInputElement && target.name === "profile") showProfile(target.value);
+    const profile = target.closest<HTMLElement>("[data-profile]");
+    if (profile && target.matches('input[data-f$=".format"]')) syncType(profile);
+    if (target instanceof HTMLSelectElement && target.closest(".podcast-voice")) {
+      audio?.pause();
+      syncPreview(target);
+    }
+  });
+  root.addEventListener("click", (event) => {
+    const button = (event.target as Element).closest<HTMLButtonElement>("[data-preview]");
+    const select = button?.closest(".podcast-voice")?.querySelector("select");
+    const url = select ? previewOf(select) : null;
+    if (!button || !url) return;
+    // The player is built on the first press, so the page loads no audio code up front.
+    audio ??= new Audio();
+    if (!audio.paused && audio.src === url) {
+      audio.pause();
+      return;
+    }
+    audio.src = url;
+    void audio.play().catch(() => undefined);
+  });
+
+  void (async () => {
+    try {
+      const lib = await import("../lib/voices");
+      const response = await fetch("/api/voices", { signal: AbortSignal.timeout(LIST_TIMEOUT_MS) });
+      voices = (response.ok ? lib.parseVoices(await response.json()) : null) ?? [];
+      for (const select of root.querySelectorAll<HTMLSelectElement>(".podcast-voice select")) {
+        lib.fillVoiceSelect(select, voices, select.value);
+        syncPreview(select);
+      }
+    } catch {
+      voices = [];
+    }
+    root.dataset.voices = "";
+    changed();
+  })();
+}
+
+/**
  * The combobox's pure logic is loaded when the page mounts, not with the page's first script: the
  * controls stay inert (see daily.css) for that moment, and the first-load budget is kept.
  */
@@ -88,12 +185,8 @@ async function mount(root: HTMLElement): Promise<void> {
   const text = one("[data-bar-text]");
   const live = one("[data-live]");
   const panel = one("[data-panel]");
-  const box = one("[data-schedule-box]");
-  const hour = one<HTMLSelectElement>("#daily-hour");
-  const cadence = one<HTMLSelectElement>("#daily-cadence");
-  const checked = (name: string): string =>
-    root.querySelector<HTMLInputElement>(`input[name="${name}"]:checked`)?.value ?? "";
-  const sections = JSON.parse(panel.dataset.sections ?? "null") as string[] | null;
+  const controls = root.querySelectorAll<HTMLInputElement | HTMLSelectElement>("[data-f]");
+  const box = panel;
 
   const group = one("[data-models]");
   const vendor = one<HTMLSelectElement>("#daily-vendor");
@@ -128,9 +221,19 @@ async function mount(root: HTMLElement): Promise<void> {
     root.removeAttribute("data-pending");
   };
 
-  /** What the schedule controls hold, as text: the page's starting point and the test for "changed". */
-  const scheduleState = (): string =>
-    JSON.stringify([hour.value, cadence.value, checked("format"), checked("length")]);
+  /** What the schedule controls hold: the page's starting point and the test for "changed". */
+  const fields = (): FieldValues => {
+    const out: FieldValues = {};
+    for (const control of controls) {
+      const key = control.dataset.f ?? "";
+      if (control instanceof HTMLInputElement && control.type === "radio") {
+        out[key] ??= "";
+        if (control.checked) out[key] = control.value;
+      } else if (control instanceof HTMLInputElement) out[key] = String(control.checked);
+      else out[key] = control.value;
+    }
+    return out;
+  };
 
   /** The model the controls hold: a typed id when the list is unavailable, else the chosen option. */
   const choice = (): { model: string | null; valid: boolean } => {
@@ -142,26 +245,17 @@ async function mount(root: HTMLElement): Promise<void> {
   };
 
   const update = (): void => {
-    if (scheduleState() === box.dataset.was) changes.delete("schedule");
-    else {
-      const op = scheduleOp(
-        {
-          hour: Number(hour.value),
-          cadence: Number(cadence.value),
-          format: checked("format"),
-          length: Number(checked("length")),
-        },
-        sections,
-      );
-      changes.set("schedule", { op, el: box, now: scheduleState() });
-    }
+    const now = fields();
+    const op = scheduleOp(JSON.parse(box.dataset.was ?? "{}") as FieldValues, now);
+    if (op) changes.set("schedule", { op, el: box, now: JSON.stringify(now) });
+    else changes.delete("schedule");
 
     const { model, valid } = choice();
     typed.toggleAttribute("aria-invalid", !valid);
     typedNote.hidden = valid;
-    const now = JSON.stringify([provider(), model]);
-    if (!valid || now === group.dataset.was) changes.delete("writer");
-    else changes.set("writer", { op: modelOp(model, provider()), el: group, now });
+    const writer = JSON.stringify([provider(), model]);
+    if (!valid || writer === group.dataset.was) changes.delete("writer");
+    else changes.set("writer", { op: modelOp(model, provider()), el: group, now: writer });
 
     if (changes.size === 0) hide();
     else show(changes.size === 1 ? "1 change" : `${changes.size} changes`, "idle");
@@ -322,7 +416,8 @@ async function mount(root: HTMLElement): Promise<void> {
     else if (act === "discard") location.reload();
   });
 
-  box.dataset.was = scheduleState();
+  box.dataset.was = JSON.stringify(fields());
+  mountProfiles(root, update);
   group.dataset.was = JSON.stringify([savedProvider, savedModel]);
   refresh();
   root.dataset.ready = "";
@@ -330,9 +425,9 @@ async function mount(root: HTMLElement): Promise<void> {
   else root.dataset.loaded = "";
 }
 
-export function installDailyPage(): void {
+export function installPodcastPage(): void {
   const sync = (): void => {
-    const root = document.querySelector<HTMLElement>("[data-manage=daily]");
+    const root = document.querySelector<HTMLElement>("[data-manage=podcast]");
     if (root && root.dataset.mounting === undefined) void mount(root);
   };
   document.addEventListener("astro:page-load", sync);

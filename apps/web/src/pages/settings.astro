@@ -1,7 +1,7 @@
 ---
 import Icon from "../components/Icon.astro";
 import BaseLayout from "../layouts/BaseLayout.astro";
-import { dailySummary, loadScheduleView } from "../lib/schedule";
+import { loadScheduleView, podcastSummary } from "../lib/schedule";
 import { THEME_PREFERENCES, type ThemePreference } from "../player/core/preferences";
 // The build links this file before the layout's stylesheet, so its rules never rely on coming last:
 // where one adjusts a shared rule, it does so with a more specific selector.
@@ -9,7 +9,7 @@ import "../styles/settings.css";
 
 const schedule = await loadScheduleView();
 // What the row leads to, in a few words: the current state, worked out when the site is built.
-const value = dailySummary(schedule);
+const value = podcastSummary(schedule);
 
 const THEME_LABELS: Record<ThemePreference, string> = {
   system: "System",
@@ -31,11 +31,11 @@ const THEME_LABELS: Record<ThemePreference, string> = {
       </noscript>
 
       <section>
-        <h2 class="section-head">Briefing</h2>
+        <h2 class="section-head">Podcast</h2>
         <div class="rows">
-          <a class="row-action" href="/settings/daily">
+          <a class="row-action" href="/settings/podcast">
             <span class="settings-text">
-              <span class="settings-label">Daily podcast</span>
+              <span class="settings-label">Podcast</span>
               <span class="settings-hint">{value}</span>
             </span>
             <Icon name="chevronRight" />

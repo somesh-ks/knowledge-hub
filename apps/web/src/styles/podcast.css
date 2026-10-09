@@ -1,7 +1,8 @@
 /*
- * The Daily podcast page: rows for the time, the type and the length (selects and segmented
- * choices from settings.css and manage.css), a model list, and two links, laid out with the fields,
- * rows and bar of manage.css. Imported by pages/settings/daily.astro, after manage.css.
+ * The Podcast page: the Daily | Weekly | Custom switch, one profile's rows at a time (selects and
+ * segmented choices from settings.css and manage.css), the voice rows, and the shared model list,
+ * laid out with the fields, rows and bar of manage.css. Imported by pages/settings/podcast.astro,
+ * after manage.css.
  */
 
 .daily-panel {
@@ -110,18 +111,25 @@
   padding: var(--space-3) var(--space-3) var(--space-1);
 }
 
-.daily-links {
-  padding-block-start: var(--space-6);
+/* The profile switch is a segmented choice of its own width; the rows under it are the profile's. */
+.podcast-switch {
+  inline-size: 100%;
+  max-inline-size: var(--settings-control-width);
 }
 
-/* A row that is one link: the ring follows the row's shape, and the glyph stays quiet. */
-.daily-links .row-action {
-  border-radius: var(--button-radius);
+.podcast-profile {
+  display: grid;
+  gap: var(--space-3);
 }
 
-.daily-links .row-action .icon {
-  margin-inline-end: calc(var(--size-icon) * -0.28);
-  color: var(--color-on-surface-subtle);
+/* A voice is a select with a small play button after it. The button is hidden until the voice has a sample. */
+.daily-selects.podcast-voice {
+  grid-template-columns: minmax(0, 1fr) auto;
+  align-items: center;
+}
+
+.daily-selects.podcast-voice:not(:has([data-preview]:not([hidden]))) {
+  grid-template-columns: minmax(0, 1fr);
 }
 
 /* The filter and the typed id are drawn like the selects: an outline on the page's own surface.

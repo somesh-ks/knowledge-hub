@@ -1,18 +1,50 @@
 import { describe, expect, it } from "vitest";
-import { modelOp, parseModelList, scheduleOp } from "./dailyPage";
+import { modelOp, parseModelList, scheduleOp } from "./podcastPage";
 
 describe("scheduleOp", () => {
-  it("builds schedule.set with the type and length, and passes the saved topics through", () => {
-    const values = { hour: 9, cadence: 3, format: "headlines", length: 5 };
-    expect(scheduleOp(values, null)).toEqual({
+  const was = {
+    "daily.hour": "7",
+    "daily.format": "readout",
+    "daily.voice": "",
+    "weekly.enabled": "true",
+    "weekly.day": "0",
+    "weekly.length": "10",
+    "custom.voice_b": "",
+  };
+
+  it("is null while nothing differs", () => {
+    expect(scheduleOp(was, { ...was })).toBeNull();
+  });
+
+  it("sends only the changed fields, each in its own profile", () => {
+    const now = {
+      ...was,
+      "daily.hour": "9",
+      "daily.voice": "v1",
+      "weekly.enabled": "false",
+      "weekly.day": "5",
+      "custom.voice_b": "v2",
+    };
+    expect(scheduleOp(was, now)).toEqual({
       op: "schedule.set",
       hour: 9,
-      cadence_days: 3,
-      sections: null,
-      format: "headlines",
-      length_minutes: 5,
+      voice_id: "v1",
+      weekly: { enabled: false, day: 5 },
+      custom: { voice_id_b: "v2" },
     });
-    expect(scheduleOp(values, ["ai"])).toMatchObject({ sections: ["ai"] });
+  });
+
+  it("turns the default voice back into null and the cadence into days", () => {
+    expect(
+      scheduleOp(
+        { "daily.voice": "v1", "daily.cadence": "2" },
+        { "daily.voice": "", "daily.cadence": "7" },
+      ),
+    ).toEqual({
+      op: "schedule.set",
+      voice_id: null,
+      cadence_days: 7,
+    });
   });
 });
 
