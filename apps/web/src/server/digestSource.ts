@@ -25,7 +25,16 @@ const timelineFiles = import.meta.glob<unknown>("../../../../Digests/**/*.audio.
   import: "default",
 });
 
+/** The schedule, for the voices of the Daily and Weekly briefings. Absent until it is first saved. */
+const scheduleFile = import.meta.glob<unknown>("../../../../config/schedule.json", {
+  import: "default",
+});
+
 export const bundledDigests: DigestSource = {
+  async readSchedule() {
+    const load = scheduleFile[`${REPO_ROOT}config/schedule.json`];
+    return load ? await load() : null;
+  },
   async readDigest(id) {
     const load = digestFiles[`${REPO_ROOT}${digestRelPath(id)}`];
     return load ? await load() : null;

@@ -167,6 +167,54 @@ describe("publishAudio: one digest", () => {
     });
   });
 
+  it("reads a regular digest in the schedule's voice and a weekly one in the weekly voice", async () => {
+    await writeRepoFile(
+      harness.temp.root,
+      "config/schedule.json",
+      JSON.stringify({
+        version: 1,
+        hour: 7,
+        cadence_days: 2,
+        sections: null,
+        voice_id: "daily_v",
+        weekly: { voice_id: "weekly_v" },
+      }),
+    );
+    await writeDigest(harness.temp.root, makeDigest());
+    await writeDigest(
+      harness.temp.root,
+      makeDigest({ id: "2026-10-06-weekly", date: "2026-10-06", kind: "weekly" }),
+    );
+    await publishAudio({ ...harness.deps, voiceId: "env_v" });
+    const voices = Object.fromEntries(
+      harness.speech.calls.marks.map((call) => [
+        call.text.includes("Wednesday") ? "reg" : "wk",
+        call.voiceId,
+      ]),
+    );
+    expect(voices.reg).toBe("daily_v");
+    expect(voices.wk).toBe("weekly_v");
+  });
+
+  it("falls back to the run's voice when the schedule sets none or is invalid", async () => {
+    await writeDigest(harness.temp.root, makeDigest());
+    await publishAudio({ ...harness.deps, voiceId: "env_v" });
+    expect(must(harness.speech.calls.marks[0]).voiceId).toBe("env_v");
+
+    const next = await setup();
+    try {
+      await writeRepoFile(next.temp.root, "config/schedule.json", "{ not json");
+      await writeDigest(next.temp.root, makeDigest());
+      await publishAudio({ ...next.deps, voiceId: "env_v" });
+      expect(must(next.speech.calls.marks[0]).voiceId).toBe("env_v");
+      expect(
+        next.log.lines.some((line) => line.message.includes("schedule could not be read")),
+      ).toBe(true);
+    } finally {
+      await next.temp.cleanup();
+    }
+  });
+
   it("lists exactly the files it wrote", async () => {
     await writeDigest(harness.temp.root, makeDigest());
     const result = await publishAudio(harness.deps);

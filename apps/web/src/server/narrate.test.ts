@@ -490,6 +490,57 @@ describe("GET /api/narrate", () => {
     expect(other).not.toBe(usual);
   });
 
+  describe("a briefing's voice comes from the schedule", () => {
+    const WEEKLY_ID = "2026-10-11-weekly";
+    const schedule = {
+      version: 1,
+      hour: 7,
+      cadence_days: 2,
+      sections: null,
+      voice_id: "daily_v",
+      weekly: { voice_id: "weekly_v" },
+    };
+    const withSchedule = (value: unknown, options: SetupOptions = {}) => {
+      const context = setup(options);
+      context.digests.readSchedule = async () => value;
+      return context;
+    };
+    const firstUrl = async (context: Setup, id: string) =>
+      lookupBody(await lookup(context, id)).segments[0]?.audio?.url;
+
+    it("uses the daily voice for a daily briefing and the weekly voice for a weekly one", async () => {
+      const weekly = makeDigest({ id: WEEKLY_ID, kind: "weekly" });
+      const context = withSchedule(schedule, {
+        env: { SPEECHIFY_VOICE_ID: "env_v" },
+        digests: [makeDigest({ id: ID }), weekly],
+      });
+      const daily = await firstUrl(context, ID);
+      expect(daily).toBe(`${FAKE_BLOB_HOST}/${pathOf(context.digest, "intro", "daily_v")}`);
+      const week = await firstUrl(context, WEEKLY_ID);
+      const key = segmentPath(
+        WEEKLY_ID,
+        "intro",
+        segmentHash(segmentOf(weekly, "intro").text, "weekly_v", MODEL),
+      );
+      expect(week).toBe(`${FAKE_BLOB_HOST}/${key}`);
+    });
+
+    it("synthesizes with the schedule's voice and ignores a voice in the request", async () => {
+      const context = withSchedule(schedule);
+      await postSegment(context, "intro", { voice_id: "sneaky" });
+      expect(context.speech.calls[0]?.body.voice_id).toBe("daily_v");
+    });
+
+    it("falls back to the server's voice when the schedule sets none or is unusable", async () => {
+      for (const value of [null, { nonsense: true }, { ...schedule, voice_id: null }]) {
+        const context = withSchedule(value, { env: { SPEECHIFY_VOICE_ID: "env_v" } });
+        expect(await firstUrl(context, ID)).toBe(
+          `${FAKE_BLOB_HOST}/${pathOf(context.digest, "intro", "env_v")}`,
+        );
+      }
+    });
+  });
+
   it("answers 503 when the configured voice is unusable", async () => {
     const context = setup({ env: { SPEECHIFY_VOICE_ID: "two words" } });
     expect((await lookup(context)).status).toBe(503);

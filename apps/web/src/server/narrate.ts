@@ -1,4 +1,10 @@
-import { AudioTimeline, type Digest, DigestId, parseDigestFile } from "@dispatch/core";
+import {
+  AudioTimeline,
+  type Digest,
+  DigestId,
+  parseDigestFile,
+  ScheduleFile,
+} from "@dispatch/core";
 import {
   buildSpokenText,
   createSpeechifyClient,
@@ -171,6 +177,30 @@ export interface DigestSource {
   readDigest(id: string): Promise<string | null>;
   /** The timeline the audio workflow committed next to the digest, or null. Not yet validated. */
   readTimeline(id: string): Promise<unknown>;
+  /**
+   * config/schedule.json as this build holds it, not yet validated, or null when there is none. It
+   * names the voices of the Daily and Weekly briefings. Optional: without it the server's voice
+   * reads every briefing.
+   */
+  readSchedule?(): Promise<unknown>;
+}
+
+/**
+ * The voice the schedule gives a briefing: the weekly one for a weekly digest (its id ends in
+ * "-weekly"), the daily one otherwise. Undefined when the schedule is missing, unreadable or sets
+ * none, and the server's voice applies. The schedule is part of the build, so this asks no one.
+ */
+async function scheduledVoice(source: DigestSource, id: string): Promise<string | undefined> {
+  if (isEpisodeId(id)) return undefined;
+  try {
+    const parsed = ScheduleFile.safeParse(await source.readSchedule?.());
+    if (!parsed.success) return undefined;
+    return (
+      (id.endsWith("-weekly") ? parsed.data.weekly.voice_id : parsed.data.voice_id) ?? undefined
+    );
+  } catch {
+    return undefined;
+  }
 }
 
 /** The episode files this deployment was built with. */
@@ -552,8 +582,9 @@ export async function handleNarrationLookup(
   }
   if (!("spoken" in script)) return script;
 
-  const voice = readVoiceId(deps.env);
-  if (voice === null) return unavailable;
+  const envVoice = readVoiceId(deps.env);
+  if (envVoice === null) return unavailable;
+  const voice = (await scheduledVoice(deps.digests, id)) ?? envVoice;
 
   // Anyone can call this, as often as they like, so it asks the store nothing at all: every store
   // operation is metered and running out locks the store for a month. A segment's address follows
@@ -1198,13 +1229,16 @@ export async function handleNarrate(
     return { status: 401, body: { status: 401, error: "wrong_passphrase" } };
   }
 
+  // A briefing is read in the voice its schedule names; the body of the request never picks one.
+  const scheduled = await scheduledVoice(deps.digests, request.digest);
+
   const session: Session = {
     id: request.digest,
     label:
       request.segment === undefined
         ? `narrate ${request.digest}`
         : `narrate ${request.digest} ${request.segment}`,
-    config,
+    config: scheduled ? { ...config, voiceId: scheduled } : config,
     blob: deps.openBlob(config.blob),
     deps,
     secrets: narrateSecretsOf(config),
