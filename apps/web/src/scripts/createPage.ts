@@ -39,6 +39,23 @@ export function installCreate(root: HTMLElement, onStart?: () => void): void {
     return m < 60 ? `${m} minute${m === 1 ? "" : "s"}` : `${h} hour${h === 1 ? "" : "s"}`;
   };
 
+  const voiceRows = [...form.querySelectorAll<HTMLElement>("[data-voice]")];
+
+  /** The voices are fetched when the panel is first used, and fill the selects they belong to. */
+  async function loadVoices(): Promise<void> {
+    try {
+      const lib = await import("../lib/voices");
+      const response = await fetch("/api/voices", { signal: AbortSignal.timeout(10_000) });
+      const voices = response.ok ? lib.parseVoices(await response.json()) : null;
+      if (!voices) return;
+      for (const select of form.querySelectorAll<HTMLSelectElement>("[data-voice] select")) {
+        lib.fillVoiceSelect(select, voices, select.value);
+      }
+    } catch {
+      // The default and the saved voice stay: an episode can always be made without the list.
+    }
+  }
+
   function sync(): void {
     // Each mode offers its own topics: the other mode's chips are hidden and unticked, so a request
     // only ever holds ids of the chosen mode.
@@ -50,6 +67,12 @@ export function installCreate(root: HTMLElement, onStart?: () => void): void {
       if (chip.hidden) topic.checked = false;
     }
     if (topics.some((topic) => topic.checked)) say("topics");
+    // A discussion has two hosts, so it takes Leo's voice as well as Ada's.
+    const discussion = new FormData(form).get("format") === "discussion";
+    for (const voice of voiceRows) {
+      if (voice.dataset.voice === "voice_b") voice.hidden = !discussion;
+      voice.querySelector<HTMLElement>("[data-voice-caption]")?.toggleAttribute("hidden", !discussion);
+    }
     // The button says how long the episode will run; each length carries its own label.
     const length = form.querySelector<HTMLInputElement>('input[name="length"]:checked');
     if (length?.dataset.submitLabel) $("[data-submit]").textContent = length.dataset.submitLabel;
@@ -65,6 +88,10 @@ export function installCreate(root: HTMLElement, onStart?: () => void): void {
       format: data.get("format"),
       window_days: Number(data.get("window")),
       tone: data.get("tone"),
+      voice_id: String(data.get("voice") ?? "") || null,
+      ...(data.get("format") === "discussion"
+        ? { voice_id_b: String(data.get("voice_b") ?? "") || null }
+        : {}),
       ...(title ? { title } : {}),
     };
   }
@@ -147,6 +174,7 @@ export function installCreate(root: HTMLElement, onStart?: () => void): void {
   }
 
   sync();
+  void loadVoices();
 }
 
 // On /create the page loads this file and the form is in the page. Elsewhere the sheet calls

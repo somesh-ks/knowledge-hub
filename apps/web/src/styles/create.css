@@ -196,6 +196,59 @@
   }
 }
 
+/* ------------------------------------------------------------------ voices */
+
+/* One select for a readout; a discussion adds a second, side by side from 40rem. */
+.create-voices {
+  display: grid;
+  gap: var(--space-3);
+}
+
+@media (min-width: 40rem) {
+  .create-voices {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+.create-voice {
+  display: grid;
+  gap: var(--space-1);
+  min-width: 0;
+}
+
+.create-voice-name {
+  color: var(--color-on-surface-muted);
+  font-size: var(--font-size-label);
+  line-height: var(--font-leading-label);
+}
+
+/* A select with its own chevron, drawn like the title field. */
+.create-select {
+  position: relative;
+  display: grid;
+}
+
+.create-select > select {
+  appearance: none;
+  inline-size: 100%;
+  padding-inline-end: var(--space-12);
+  text-overflow: ellipsis;
+  cursor: pointer;
+}
+
+.create-select > .icon {
+  position: absolute;
+  inset-block: 0;
+  inset-inline-end: var(--space-4);
+  margin-block: auto;
+  color: var(--color-on-surface-muted);
+  pointer-events: none;
+}
+
+.create-view [hidden] {
+  display: none;
+}
+
 /* ------------------------------------------------------------------ forced colors */
 
 @media (forced-colors: active) {
