@@ -11,7 +11,7 @@ const SIZES = [
 ];
 
 const DESTINATIONS = ["/", "/library", "/create", "/settings"];
-const SUBPAGES = ["/settings/schedule", "/settings/topics", "/settings/sources"];
+const SUBPAGES = ["/settings/daily", "/settings/topics", "/settings/sources"];
 
 /** The top edge of a page's first block, measured from the top of <main>. */
 async function firstBlockTop(

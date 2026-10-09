@@ -227,6 +227,22 @@ describe("schedule.set", () => {
       hour: 9,
       cadence_days: 3,
       sections: null,
+      format: "readout",
+      length_minutes: 10,
+    });
+  });
+
+  it("saves the podcast format and length, and keeps them when a later edit leaves them out", async () => {
+    await apply({ ...SET, format: "headlines", length_minutes: 5 });
+    expect(await repo.readJson("config/schedule.json")).toMatchObject({
+      format: "headlines",
+      length_minutes: 5,
+    });
+    await apply({ ...SET, hour: 10 });
+    expect(await repo.readJson("config/schedule.json")).toMatchObject({
+      hour: 10,
+      format: "headlines",
+      length_minutes: 5,
     });
   });
 

@@ -22,9 +22,22 @@ describe("loadSchedule", () => {
   });
 
   it("reads a saved schedule", async () => {
-    const saved = { version: 1 as const, hour: 9, cadence_days: 7 as const, sections: ["ai"] };
+    const saved = {
+      version: 1 as const,
+      hour: 9,
+      cadence_days: 7 as const,
+      sections: ["ai"],
+      format: "headlines" as const,
+      length_minutes: 5 as const,
+    };
     await writeFile(join(root, "config", "schedule.json"), serializeSchedule(saved));
     expect(await loadSchedule(root)).toEqual(saved);
+  });
+
+  it("reads a file written before format and length existed", async () => {
+    const old = { version: 1, hour: 9, cadence_days: 7, sections: null };
+    await writeFile(join(root, "config", "schedule.json"), JSON.stringify(old));
+    expect(await loadSchedule(root)).toEqual({ ...old, format: "readout", length_minutes: 10 });
   });
 
   it("names the problem when the file is invalid", async () => {

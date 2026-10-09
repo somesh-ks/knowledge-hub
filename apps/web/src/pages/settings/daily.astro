@@ -1,0 +1,215 @@
+---
+import Icon from "../../components/Icon.astro";
+import ManageChrome from "../../components/ManageChrome.astro";
+import BaseLayout from "../../layouts/BaseLayout.astro";
+import { FORMATS, LENGTHS } from "../../lib/createForm";
+import { loadManage } from "../../lib/manage";
+import { CADENCES, hourLabel, loadScheduleView } from "../../lib/schedule";
+import { loadWriterView } from "../../lib/writer";
+import "../../styles/settings.css";
+import "../../styles/manage.css";
+import "../../styles/daily.css";
+
+const { hour, cadenceDays, sections, format, lengthMinutes, next } = await loadScheduleView();
+const { model } = await loadWriterView();
+const { topics, sources } = await loadManage();
+const hours = Array.from({ length: 24 }, (_, value) => value);
+const skeletons = Array.from({ length: 6 }, (_, index) => index);
+const count = (n: number, noun: string): string => `${n} ${noun}${n === 1 ? "" : "s"}`;
+const topicCount = count(
+  topics.filter((topic) => topic.enabled && !topic.never_publish).length,
+  "topic",
+);
+const sourceCount = count(sources.filter((source) => source.enabled).length, "source");
+---
+
+<BaseLayout title="Daily podcast" view="settings" skipLabel="Skip to the daily podcast settings">
+  <main id="main" tabindex="-1">
+    {/* Static HTML with the saved values written in. scripts/dailyPage.ts only records a change and
+         shows it in the shared bar; sending it is managePageSave.ts, the step the Topics page uses.
+         The model list is loaded into the placeholder rows, which are as tall as the real ones. */}
+    <div class="manage" data-manage="daily" data-daily>
+      <a class="btn manage-back press press-subtle" href="/settings">
+        <Icon name="arrowBack" />
+        <span>Settings</span>
+      </a>
+      <h1 class="page-title manage-title" id="page-title" tabindex="-1">Daily podcast</h1>
+      <noscript>
+        <p class="manage-note">Changing the daily podcast needs JavaScript, which is turned off in this browser.</p>
+      </noscript>
+
+      <fieldset class="manage-fields" data-fields>
+        <legend class="sr-only">Daily podcast</legend>
+
+        <div class="daily-panel" data-panel data-sections={JSON.stringify(sections)}>
+          <div class="rows" data-schedule-box>
+            <div class="settings-row daily-when">
+              <div class="settings-text">
+                <span class="settings-label">When</span>
+                <span class="settings-hint" id="daily-when-hint">Stockholm time</span>
+              </div>
+              <div class="daily-selects">
+                <label class="sr-only" for="daily-hour">Time</label>
+                <span class="manage-select">
+                  <select
+                    class="manage-input"
+                    id="daily-hour"
+                    name="hour"
+                    autocomplete="off"
+                    aria-describedby="daily-when-hint"
+                  >
+                    {
+                      hours.map((value) => (
+                        <option value={value} selected={value === hour}>
+                          {hourLabel(value)}
+                        </option>
+                      ))
+                    }
+                  </select>
+                  <Icon name="chevronDown" />
+                </span>
+                <label class="sr-only" for="daily-cadence">How often</label>
+                <span class="manage-select">
+                  <select class="manage-input" id="daily-cadence" name="cadence" autocomplete="off">
+                    {
+                      CADENCES.map((cadence) => (
+                        <option value={cadence.days} selected={cadence.days === cadenceDays}>
+                          {cadence.label}
+                        </option>
+                      ))
+                    }
+                  </select>
+                  <Icon name="chevronDown" />
+                </span>
+              </div>
+            </div>
+
+            <div class="settings-row" data-layout="choice">
+              <div class="settings-text">
+                <span class="settings-label" id="daily-format-label">Type</span>
+              </div>
+              <fieldset class="settings-choice" role="radiogroup" aria-labelledby="daily-format-label">
+                {
+                  FORMATS.map((entry) => (
+                    <label class="settings-segment">
+                      <input
+                        type="radio"
+                        name="format"
+                        value={entry.value}
+                        checked={entry.value === format}
+                        autocomplete="off"
+                      />
+                      <span>{entry.label}</span>
+                    </label>
+                  ))
+                }
+              </fieldset>
+            </div>
+
+            <div class="settings-row" data-layout="choice">
+              <div class="settings-text">
+                <span class="settings-label" id="daily-length-label">Length</span>
+              </div>
+              <fieldset class="settings-choice" role="radiogroup" aria-labelledby="daily-length-label">
+                {
+                  LENGTHS.map((entry) => (
+                    <label class="settings-segment">
+                      <input
+                        type="radio"
+                        name="length"
+                        value={String(entry.value)}
+                        checked={entry.value === lengthMinutes}
+                        autocomplete="off"
+                      />
+                      <span class="num">{entry.label}</span>
+                    </label>
+                  ))
+                }
+              </fieldset>
+            </div>
+          </div>
+
+          <p class="manage-quiet" data-next>{next}</p>
+
+          <div class="daily-model">
+            <fieldset class="manage-suggest-group" data-models data-saved={model ?? ""} aria-busy="true">
+              <legend class="manage-legend">Model</legend>
+                <div class="manage-field" data-filter hidden>
+                  {/* The field says what it is in its placeholder; the label is for assistive tech. */}
+                  <label class="sr-only" for="model-filter">Filter models</label>
+                  <input
+                    class="manage-input"
+                    id="model-filter"
+                    type="search"
+                    autocomplete="off"
+                    autocapitalize="off"
+                    spellcheck="false"
+                    placeholder="Filter models"
+                    disabled
+                  />
+                </div>
+                <p class="sr-only" aria-live="polite" data-count></p>
+
+              <ul class="rows model-list" role="list" data-list aria-hidden="true">
+                {
+                  skeletons.map(() => (
+                    <li class="model-row model-skeleton">
+                      <span class="model-bar model-bar-name"></span>
+                      <span class="model-bar model-bar-hint"></span>
+                    </li>
+                  ))
+                }
+              </ul>
+              <button class="btn daily-all press press-subtle" type="button" data-all aria-expanded="false" hidden>
+                Show all models
+              </button>
+            </fieldset>
+
+            <div class="manage-field" data-fallback hidden>
+              <p class="manage-quiet">The model list is not available right now.</p>
+              <label for="model-typed">Model id</label>
+              <input
+                class="manage-input"
+                id="model-typed"
+                type="text"
+                autocomplete="off"
+                autocapitalize="off"
+                spellcheck="false"
+                maxlength="120"
+                aria-describedby="model-typed-note"
+              />
+              <span class="manage-quiet" id="model-typed-note" data-typed-note hidden>
+                Use letters, digits and . _ - / : only.
+              </span>
+            </div>
+          </div>
+        </div>
+      </fieldset>
+
+      <div class="rows daily-links">
+        <a class="row-action" href="/settings/topics">
+          <span class="settings-text">
+            <span class="settings-label">Topics</span>
+            <span class="settings-hint">{topicCount}</span>
+          </span>
+          <Icon name="chevronRight" />
+        </a>
+        <a class="row-action" href="/settings/sources">
+          <span class="settings-text">
+            <span class="settings-label">Sources</span>
+            <span class="settings-hint">{sourceCount}</span>
+          </span>
+          <Icon name="chevronRight" />
+        </a>
+      </div>
+
+      <ManageChrome />
+    </div>
+  </main>
+</BaseLayout>
+
+<script>
+  import { installDailyPage } from "../../scripts/dailyPage";
+
+  installDailyPage();
+</script>

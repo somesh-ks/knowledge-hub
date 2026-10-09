@@ -66,11 +66,11 @@ async function save(page: Page, passphrase = "correct horse"): Promise<void> {
 }
 
 test.describe("settings entries", () => {
-  test("link to the two pages", async ({ page }) => {
-    await page.goto("/settings");
+  test("are linked from the Daily podcast page", async ({ page }) => {
+    await page.goto("/settings/daily");
     await page.getByRole("link", { name: /^Topics/ }).click();
     await expect(page.getByRole("heading", { level: 1, name: "Topics" })).toBeVisible();
-    await page.getByRole("link", { name: "Settings" }).first().click();
+    await page.goBack();
     await page.getByRole("link", { name: /^Sources/ }).click();
     await expect(page.getByRole("heading", { level: 1, name: "Sources" })).toBeVisible();
   });

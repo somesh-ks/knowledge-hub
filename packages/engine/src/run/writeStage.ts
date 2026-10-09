@@ -21,6 +21,7 @@ import { JudgedFile, type MaterialsFile, readArtifact } from "./artifacts.js";
 import { StageFailure } from "./errors.js";
 import { mostlyFailed } from "./judgeStage.js";
 import { markStage, type Plan, type PlanPass, passFile, requireStage } from "./plan.js";
+import { capForLength } from "./scheduleSize.js";
 import { countSources } from "./sourceCounts.js";
 import type { PassReport, RunDeps, StageReport } from "./types.js";
 
@@ -36,6 +37,8 @@ interface PassContext {
   customTopics: ReturnType<typeof activeFitTopics>;
   /** Sections a scheduled regular briefing covers; null for every section and for other modes. */
   sections: readonly string[] | null;
+  /** Minutes the scheduled podcast runs, which sizes the regular briefing; null for other modes. */
+  lengthMinutes: number | null;
 }
 
 /**
@@ -53,6 +56,7 @@ export async function writeStage(deps: RunDeps, plan: Plan): Promise<StageReport
     loadSources(deps.root),
   ]);
   const topics = await loadTopics(deps.root, preferences);
+  const schedule = plan.mode === "scheduled" ? await loadSchedule(deps.root) : null;
   const context: PassContext = {
     deps,
     runtime,
@@ -60,7 +64,8 @@ export async function writeStage(deps: RunDeps, plan: Plan): Promise<StageReport
     preferences,
     sourceNames: sourceNameMap(sources),
     customTopics: activeFitTopics(topics),
-    sections: plan.mode === "scheduled" ? (await loadSchedule(deps.root)).sections : null,
+    sections: schedule?.sections ?? null,
+    lengthMinutes: schedule?.length_minutes ?? null,
   };
 
   const claimed = new Set<string>();
@@ -97,7 +102,8 @@ async function writePass(
   pass: PlanPass,
   claimed: ReadonlySet<string>,
 ): Promise<PassResult> {
-  const { deps, runtime, linter, preferences, sourceNames, customTopics, sections } = context;
+  const { deps, runtime, linter, preferences, sourceNames, customTopics, sections, lengthMinutes } =
+    context;
   const file = (name: string): string => passFile(deps.root, pass.id, name);
   const pool = await loadPool(file("pool.json"));
   const judged = await readArtifact(file("judged.json"), "judged.json", JudgedFile);
@@ -125,7 +131,11 @@ async function writePass(
     scored,
     kind: pass.kind,
     floor: VOICE_LIMITS.items.floor,
-    cap: capFor(pass.kind),
+    // The owner's chosen length sizes the scheduled regular briefing only.
+    cap:
+      pass.kind === "regular" && lengthMinutes !== null
+        ? capForLength(capFor(pass.kind), VOICE_LIMITS.items.floor, lengthMinutes)
+        : capFor(pass.kind),
     weights: preferences.weights,
     // Only the scheduled regular briefing is narrowed; the weekly pass keeps every section.
     sections: pass.kind === "regular" ? sections : null,

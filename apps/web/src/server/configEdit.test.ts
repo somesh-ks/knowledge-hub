@@ -234,6 +234,13 @@ describe("parseConfigOp: schedule.set", () => {
     expect(parseConfigOp({ ...schedule, extra: 1 })).toEqual(schedule);
   });
 
+  it("carries a podcast format and length, and refuses ones that do not exist", () => {
+    const full: ConfigOp = { ...schedule, format: "discussion", length_minutes: 15 };
+    expect(parseConfigOp(full)).toEqual(full);
+    expect(parseConfigOp({ ...schedule, format: "song" })).toBeNull();
+    expect(parseConfigOp({ ...schedule, length_minutes: 7 })).toBeNull();
+  });
+
   it("refuses an hour or cadence out of range and a malformed list", () => {
     for (const bad of [
       { ...schedule, hour: 24 },

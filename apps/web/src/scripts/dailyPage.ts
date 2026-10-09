@@ -1,14 +1,20 @@
 /**
- * The Model page's script. The page is static HTML with the saved choice written in; this loads
- * the live model list, draws the radio rows, and records the one change the choice adds up to in
- * the shared bar. Sending it is managePageSave.ts, loaded the first time Save is pressed, the
- * same step the Schedule page uses.
+ * The Daily podcast page's script. The page is static HTML with the saved values written in; this
+ * loads the live model list, draws the radio rows, and records the changes the controls add up to
+ * in the shared bar: one schedule.set (time, rhythm, type, length) and one writer.set (model).
+ * Sending them is managePageSave.ts, loaded the first time Save is pressed, the same step the
+ * Topics page uses.
  *
  * Only pure, dependency-free helpers are imported at run time.
  */
 import { contextLabel, isModelId, modelParts } from "../lib/modelId";
+import { shortlist } from "../lib/modelRank";
 import type { ConfigOp } from "../types/contracts";
 import type { Pending, SaveContext } from "./managePageSave";
+
+type Cadence = 1 | 2 | 3 | 7;
+type Format = "readout" | "discussion" | "headlines";
+type Length = 3 | 5 | 10 | 15;
 
 export interface ModelEntry {
   id: string;
@@ -17,7 +23,25 @@ export interface ModelEntry {
 
 const LIST_TIMEOUT_MS = 10_000;
 
-/** The edit a choice stands for. `null` is Automatic. */
+/**
+ * The schedule edit the controls stand for. The topics a briefing covers are not chosen here, so
+ * the saved ones go back unchanged (null is every enabled topic).
+ */
+export function scheduleOp(
+  values: { hour: number; cadence: number; format: string; length: number },
+  sections: string[] | null,
+): ConfigOp {
+  return {
+    op: "schedule.set",
+    hour: values.hour,
+    cadence_days: values.cadence as Cadence,
+    sections,
+    format: values.format as Format,
+    length_minutes: values.length as Length,
+  };
+}
+
+/** The edit a model choice stands for. `null` is Automatic. */
 export function modelOp(model: string | null): ConfigOp {
   return { op: "writer.set", provider: "nebius", model };
 }
@@ -99,6 +123,13 @@ function mount(root: HTMLElement): void {
   const text = one("[data-bar-text]");
   const live = one("[data-live]");
   const panel = one("[data-panel]");
+  const box = one("[data-schedule-box]");
+  const hour = one<HTMLSelectElement>("#daily-hour");
+  const cadence = one<HTMLSelectElement>("#daily-cadence");
+  const checked = (name: string): string =>
+    root.querySelector<HTMLInputElement>(`input[name="${name}"]:checked`)?.value ?? "";
+  const sections = JSON.parse(panel.dataset.sections ?? "null") as string[] | null;
+
   const list = one<HTMLUListElement>("[data-list]");
   const group = one<HTMLFieldSetElement>("[data-models]");
   const filter = one<HTMLInputElement>("#model-filter");
@@ -106,9 +137,12 @@ function mount(root: HTMLElement): void {
   const fallback = one("[data-fallback]");
   const typed = one<HTMLInputElement>("#model-typed");
   const typedNote = one("[data-typed-note]");
-  const saved = panel.dataset.saved ? panel.dataset.saved : null;
+  const all = one<HTMLButtonElement>("[data-all]");
+  const filterBox = one("[data-filter]");
+  const saved = group.dataset.saved ? group.dataset.saved : null;
   const changes = new Map<string, Pending>();
   let failed = false;
+  let expanded = false;
 
   const radios = (): HTMLInputElement[] => [
     ...list.querySelectorAll<HTMLInputElement>('input[name="model"]'),
@@ -126,6 +160,10 @@ function mount(root: HTMLElement): void {
     root.removeAttribute("data-pending");
   };
 
+  /** What the schedule controls hold, as text: the page's starting point and the test for "changed". */
+  const scheduleState = (): string =>
+    JSON.stringify([hour.value, cadence.value, checked("format"), checked("length")]);
+
   /** The model the controls hold: a typed id when the list is unavailable, else the checked row. */
   const choice = (): { model: string | null; valid: boolean } => {
     if (failed && typed.value.trim() !== "") {
@@ -137,33 +175,45 @@ function mount(root: HTMLElement): void {
   };
 
   const update = (): void => {
+    if (scheduleState() === box.dataset.was) changes.delete("schedule");
+    else {
+      const op = scheduleOp(
+        {
+          hour: Number(hour.value),
+          cadence: Number(cadence.value),
+          format: checked("format"),
+          length: Number(checked("length")),
+        },
+        sections,
+      );
+      changes.set("schedule", { op, el: box, now: scheduleState() });
+    }
+
     const { model, valid } = choice();
     typed.toggleAttribute("aria-invalid", !valid);
     typedNote.hidden = valid;
-    if (!valid) {
-      changes.delete("writer");
-      hide();
-      return;
-    }
-    if (JSON.stringify(model) === panel.dataset.was) {
-      changes.delete("writer");
-      hide();
-      return;
-    }
-    changes.set("writer", { op: modelOp(model), el: panel, now: JSON.stringify(model) });
-    show("1 change", "idle");
+    if (!valid || JSON.stringify(model) === group.dataset.was) changes.delete("writer");
+    else changes.set("writer", { op: modelOp(model), el: group, now: JSON.stringify(model) });
+
+    if (changes.size === 0) hide();
+    else show(changes.size === 1 ? "1 change" : `${changes.size} changes`, "idle");
   };
 
+  /** The recommended rows always show; the rest only once "Show all models" is open. */
   const applyFilter = (): void => {
     const query = filter.value;
     let shown = 0;
     for (const item of list.querySelectorAll<HTMLLIElement>("li[data-id]")) {
       const id = item.dataset.id ?? "";
       const input = item.querySelector<HTMLInputElement>("input");
-      const keep = id === "" ? true : matchesFilter(id, query) || input?.checked === true;
+      const matches = id === "" || matchesFilter(id, query);
+      const open = item.dataset.group === "rest" ? expanded : true;
+      const keep = id === "" ? true : (open && matches) || input?.checked === true;
       item.hidden = !keep;
-      if (id !== "" && matchesFilter(id, query)) shown += 1;
+      if (id !== "" && open && matches) shown += 1;
     }
+    for (const head of list.querySelectorAll<HTMLLIElement>("li[data-head=rest]"))
+      head.hidden = !expanded;
     count.textContent = query.trim() === "" ? "" : countText(shown);
   };
 
@@ -172,18 +222,35 @@ function mount(root: HTMLElement): void {
     list.removeAttribute("aria-hidden");
     group.removeAttribute("aria-busy");
     const listed = new Set((liveList ?? []).map((entry) => entry.id));
-    list.append(radioRow("", "Automatic", "The engine's own setting", saved === null));
-    for (const entry of entries) {
-      const { name } = modelParts(entry.id);
-      list.append(
-        radioRow(
-          entry.id,
-          name,
-          hintFor(entry, liveList === null || listed.has(entry.id)),
-          entry.id === saved,
-        ),
+    // With no live list there is nothing to rank: the saved model is the only row.
+    const top = new Set(liveList === null ? [] : shortlist(entries));
+    const row = (entry: ModelEntry, group: "rec" | "rest"): HTMLLIElement => {
+      const item = radioRow(
+        entry.id,
+        modelParts(entry.id).name,
+        hintFor(entry, liveList === null || listed.has(entry.id)),
+        entry.id === saved,
       );
-    }
+      item.dataset.group = group;
+      return item;
+    };
+    const head = (label: string, group: "rec" | "rest"): HTMLLIElement => {
+      const item = element("li", "manage-quiet daily-head", label);
+      item.dataset.head = group;
+      return item;
+    };
+    const auto = radioRow("", "Automatic", "The engine's own setting", saved === null);
+    auto.dataset.group = "rec";
+    list.append(auto);
+    const recommended = entries.filter((entry) => top.has(entry.id));
+    const rest = entries.filter((entry) => !top.has(entry.id));
+    if (recommended.length > 0) list.append(head("Recommended", "rec"));
+    for (const entry of recommended) list.append(row(entry, "rec"));
+    if (rest.length > 0 && recommended.length > 0) list.append(head("All models", "rest"));
+    // Without a ranking (no live list) every row is simply shown.
+    for (const entry of rest) list.append(row(entry, recommended.length > 0 ? "rest" : "rec"));
+    all.hidden = !list.querySelector('li[data-group="rest"]');
+    applyFilter();
   };
 
   const load = async (): Promise<void> => {
@@ -198,10 +265,11 @@ function mount(root: HTMLElement): void {
       failed = true;
       fallback.hidden = false;
       draw(saved === null ? [] : [{ id: saved, context_length: null }], null);
-      filter.closest<HTMLElement>("[data-filter]")?.setAttribute("hidden", "");
     } else {
       draw(rowsFor(entries, saved), entries);
       filter.disabled = false;
+      // Without a shortlist (a short list) the whole list is the list, so the filter shows at once.
+      if (all.hidden) filterBox.hidden = false;
     }
     root.dataset.loaded = "";
   };
@@ -218,10 +286,18 @@ function mount(root: HTMLElement): void {
     if (target.matches('input[name="model"]')) {
       if (failed) typed.value = "";
       applyFilter();
-      update();
     }
+    if (target.closest("[data-panel]")) update();
   });
   filter.addEventListener("input", applyFilter);
+  all.addEventListener("click", () => {
+    expanded = !expanded;
+    all.setAttribute("aria-expanded", String(expanded));
+    all.textContent = expanded ? "Show fewer models" : "Show all models";
+    filterBox.hidden = !expanded;
+    if (!expanded) filter.value = "";
+    applyFilter();
+  });
   typed.addEventListener("input", () => {
     // A typed id replaces the radio choice; clearing the field returns to the row that was checked.
     if (typed.value.trim() !== "") for (const radio of radios()) radio.checked = false;
@@ -241,14 +317,15 @@ function mount(root: HTMLElement): void {
     else if (act === "discard") location.reload();
   });
 
-  panel.dataset.was = JSON.stringify(saved);
+  box.dataset.was = scheduleState();
+  group.dataset.was = JSON.stringify(saved);
   root.dataset.ready = "";
   void load();
 }
 
-export function installModelPage(): void {
+export function installDailyPage(): void {
   const sync = (): void => {
-    const root = document.querySelector<HTMLElement>("[data-manage=model]");
+    const root = document.querySelector<HTMLElement>("[data-manage=daily]");
     if (root && root.dataset.ready === undefined) mount(root);
   };
   document.addEventListener("astro:page-load", sync);

@@ -275,6 +275,10 @@ export type ConfigOp =
       cadence_days: 1 | 2 | 3 | 7;
       /** Section ids a scheduled briefing covers, or null for every enabled topic. */
       sections: string[] | null;
+      /** Podcast format of the scheduled briefing; left out, the saved one stays. */
+      format?: PodcastRequest["format"];
+      /** Minutes the scheduled podcast runs; left out, the saved one stays. */
+      length_minutes?: PodcastRequest["length_minutes"];
     }
   | {
       op: "writer.set";

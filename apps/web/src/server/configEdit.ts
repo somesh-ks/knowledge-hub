@@ -1,5 +1,5 @@
-import { MODEL_ID_PATTERN } from "@dispatch/core";
-import type { ConfigOp, ConfigResponse } from "../types/contracts";
+import { MODEL_ID_PATTERN, PODCAST_FORMATS, SCHEDULE_LENGTHS } from "@dispatch/core";
+import type { ConfigOp, ConfigResponse, PodcastRequest } from "../types/contracts";
 import { readServerConfig, secretsOf } from "./config";
 import {
   type GenerateDeps,
@@ -60,6 +60,8 @@ const MAX_TOPIC_IDS = 12;
 const MAX_WEIGHTS = 100;
 const MAX_SECTIONS = 60;
 const CADENCES = [1, 2, 3, 7] as const;
+type PodcastFormat = PodcastRequest["format"];
+type PodcastLength = PodcastRequest["length_minutes"];
 /** A new topic and the sources chosen for it: one topic, up to six sources, and room to spare. */
 export const MAX_OPS = 8;
 
@@ -219,8 +221,19 @@ export function parseConfigOp(value: unknown): ConfigOp | null {
       if (typeof hour !== "number" || !Number.isInteger(hour) || hour < 0 || hour > 23) return null;
       const cadenceDays = CADENCES.find((days) => days === cadence);
       if (cadenceDays === undefined) return null;
+      const podcast: { format?: PodcastFormat; length_minutes?: PodcastLength } = {};
+      if (value.format !== undefined) {
+        const format = PODCAST_FORMATS.find((entry) => entry === value.format);
+        if (format === undefined) return null;
+        podcast.format = format;
+      }
+      if (value.length_minutes !== undefined) {
+        const length = SCHEDULE_LENGTHS.find((minutes) => minutes === value.length_minutes);
+        if (length === undefined) return null;
+        podcast.length_minutes = length;
+      }
       if (value.sections === null) {
-        return { op: "schedule.set", hour, cadence_days: cadenceDays, sections: null };
+        return { op: "schedule.set", hour, cadence_days: cadenceDays, sections: null, ...podcast };
       }
       if (!Array.isArray(value.sections)) return null;
       if (value.sections.length === 0 || value.sections.length > MAX_SECTIONS) return null;
@@ -230,7 +243,7 @@ export function parseConfigOp(value: unknown): ConfigOp | null {
         if (section === null) return null;
         sections.push(section);
       }
-      return { op: "schedule.set", hour, cadence_days: cadenceDays, sections };
+      return { op: "schedule.set", hour, cadence_days: cadenceDays, sections, ...podcast };
     }
     case "writer.set": {
       if (value.provider !== "nebius") return null;

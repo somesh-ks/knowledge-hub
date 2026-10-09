@@ -352,6 +352,8 @@ function setSchedule(
     hour: op.hour,
     cadence_days: op.cadence_days,
     sections,
+    format: op.format ?? bundle.schedule.format,
+    length_minutes: op.length_minutes ?? bundle.schedule.length_minutes,
   };
   const hour = `${String(op.hour).padStart(2, "0")}:00`;
   return {

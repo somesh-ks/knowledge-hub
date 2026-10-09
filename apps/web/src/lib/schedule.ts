@@ -4,12 +4,13 @@ import {
   DEFAULT_SCHEDULE,
   daysBetween,
   LastRunFile,
+  type PodcastFormat,
   ScheduleFile,
   STATE_FILES,
   stockholmDate,
   TIME_ZONE,
 } from "@dispatch/core";
-import { type ManageTopic, parseTopicsFile } from "./manage";
+import { FORMATS } from "./createForm";
 import { findRepoRoot } from "./repoRoot";
 import { usesFixtures } from "./site";
 
@@ -30,29 +31,21 @@ export function hourLabel(hour: number): string {
   return `${String(hour).padStart(2, "0")}:00`;
 }
 
-/** One line of the checklist: a section the briefing can cover, with the topics that feed it. */
-export interface CoverOption {
-  id: string;
-  title: string;
-  topics: string[];
-}
-
 /**
- * The sections a scheduled briefing can cover: those with at least one topic that is on and may
- * publish, in page order, without Top picks (always covered). A custom topic has a section of its
- * own and so reads as the topic; a built-in section reads as its title with its topics under it.
+ * The one line the Settings index shows for the Daily podcast: "07:00, every second day, Readout,
+ * 10 min". The page behind it holds the controls.
  */
-export function coverOptions(
-  topics: readonly ManageTopic[],
-  sections: readonly { id: string; title: string; order: number }[],
-): CoverOption[] {
-  const live = topics.filter((topic) => topic.enabled && !topic.never_publish);
-  return sections
-    .filter((section) => section.id !== "top")
-    .flatMap((section) => {
-      const names = live.filter((topic) => topic.section_id === section.id).map((t) => t.name);
-      return names.length > 0 ? [{ id: section.id, title: section.title, topics: names }] : [];
-    });
+export function dailySummary(input: {
+  hour: number;
+  cadenceDays: number;
+  format: string;
+  lengthMinutes: number;
+}): string {
+  const cadence = CADENCES.find((entry) => entry.days === input.cadenceDays)?.label ?? "";
+  const format = FORMATS.find((entry) => entry.value === input.format)?.label ?? "";
+  return [hourLabel(input.hour), cadence.toLowerCase(), format, `${input.lengthMinutes} min`]
+    .filter((part) => part !== "")
+    .join(", ");
 }
 
 function addDays(date: string, days: number): string {
@@ -100,9 +93,10 @@ export function nextBriefing(input: {
 export interface ScheduleView {
   hour: number;
   cadenceDays: number;
-  /** Section ids covered, or null for every one. */
+  /** Section ids covered, or null for every one. The Daily podcast page sends them back as saved. */
   sections: string[] | null;
-  options: CoverOption[];
+  format: PodcastFormat;
+  lengthMinutes: number;
   next: string;
 }
 
@@ -120,9 +114,8 @@ export async function loadScheduleView(
   const env = options.env ?? process.env;
   const repo = options.root ?? findRepoRoot(process.cwd(), env);
   const base = usesFixtures(env) ? join(repo, "apps", "web", "src", "fixtures") : repo;
-  const [scheduleFile, topicsFile, lastRunFile] = await Promise.all([
+  const [scheduleFile, lastRunFile] = await Promise.all([
     readJson(join(base, "config", "schedule.json")),
-    readJson(join(base, "config", "topics.json")),
     readJson(join(base, STATE_FILES.lastRun)),
   ]);
   const schedule = ScheduleFile.safeParse(scheduleFile);
@@ -130,9 +123,9 @@ export async function loadScheduleView(
     hour,
     cadence_days: cadenceDays,
     sections,
+    format,
+    length_minutes: lengthMinutes,
   } = schedule.success ? schedule.data : DEFAULT_SCHEDULE;
-  const parsed = parseTopicsFile(topicsFile);
-  const covers = parsed ? coverOptions(parsed.topics, parsed.sections) : [];
   const lastRun = LastRunFile.safeParse(lastRunFile);
   const regular = lastRun.success ? lastRun.data.regular : undefined;
   const counts = regular && (regular.outcome === "published" || regular.outcome === "nothing");
@@ -140,7 +133,8 @@ export async function loadScheduleView(
     hour,
     cadenceDays,
     sections,
-    options: covers,
+    format,
+    lengthMinutes,
     next: nextBriefing({
       now: options.now ?? new Date(),
       hour,

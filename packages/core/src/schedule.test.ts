@@ -33,6 +33,31 @@ describe("ScheduleFile", () => {
       true,
     );
   });
+
+  it("fills a readout of 10 minutes into a file written before format and length existed", () => {
+    const old = { version: 1, hour: 9, cadence_days: 3, sections: null };
+    expect(ScheduleFile.parse(old)).toEqual({ ...old, format: "readout", length_minutes: 10 });
+  });
+
+  it("accepts every format and length and refuses others", () => {
+    for (const format of ["readout", "discussion", "headlines"]) {
+      expect(ScheduleFile.safeParse({ ...DEFAULT_SCHEDULE, format }).success).toBe(true);
+    }
+    for (const length_minutes of [3, 5, 10, 15]) {
+      expect(ScheduleFile.safeParse({ ...DEFAULT_SCHEDULE, length_minutes }).success).toBe(true);
+    }
+    expect(ScheduleFile.safeParse({ ...DEFAULT_SCHEDULE, format: "song" }).success).toBe(false);
+    expect(ScheduleFile.safeParse({ ...DEFAULT_SCHEDULE, length_minutes: 7 }).success).toBe(false);
+  });
+
+  it("lets the schedule.set op leave format and length out", () => {
+    const set = { op: "schedule.set", hour: 9, cadence_days: 1, sections: null };
+    expect(ConfigOp.safeParse(set).success).toBe(true);
+    expect(ConfigOp.safeParse({ ...set, format: "headlines", length_minutes: 5 }).success).toBe(
+      true,
+    );
+    expect(ConfigOp.safeParse({ ...set, length_minutes: 4 }).success).toBe(false);
+  });
 });
 
 describe("scheduleCovers", () => {
