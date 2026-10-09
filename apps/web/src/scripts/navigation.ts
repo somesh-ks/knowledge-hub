@@ -52,8 +52,18 @@ export function carryRootAttributes(from: HTMLElement, to: HTMLElement): void {
   }
 }
 
-/** Marks the root so the stylesheet can pick the move. A data-astro-* name survives the swap. */
-const NAV_ATTRIBUTE = "data-astro-nav";
+/**
+ * Marks the root so the stylesheet can pick the move. The swap replaces the root's attributes with
+ * the new page's (Astro keeps only its own fixed few), and the move is drawn after the swap, so the
+ * mark is carried onto the incoming document like the others.
+ */
+export const NAV_ATTRIBUTE = "data-astro-nav";
+
+/** Puts the mark for this move on the incoming document, so it is still there when the move is drawn. */
+export function carryNavigationKind(from: HTMLElement, to: HTMLElement): void {
+  const kind = from.getAttribute(NAV_ATTRIBUTE);
+  if (kind !== null) to.setAttribute(NAV_ATTRIBUTE, kind);
+}
 
 export function installNavigation(): void {
   let isNavigating = false;
@@ -66,6 +76,7 @@ export function installNavigation(): void {
 
   document.addEventListener("astro:before-swap", (event) => {
     carryRootAttributes(document.documentElement, event.newDocument.documentElement);
+    carryNavigationKind(document.documentElement, event.newDocument.documentElement);
     const clear = (): void => document.documentElement.removeAttribute(NAV_ATTRIBUTE);
     void event.viewTransition.finished.then(clear, clear);
   });

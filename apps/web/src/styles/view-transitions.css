@@ -23,41 +23,72 @@
 ::view-transition-new(app-bar),
 ::view-transition-old(app-nav),
 ::view-transition-new(app-nav) {
-  animation-duration: var(--duration-hover);
+  animation-duration: var(--duration-press-in);
   animation-timing-function: var(--ease-out);
 }
 
 /* A navigation to the page already on screen does not move. app.ts marks every navigation with
-   data-astro-nav on the root, a data-astro-* name that survives the document swap. */
+   data-astro-nav on the root and carries it onto the incoming document. */
 html[data-astro-nav="none"]::view-transition-old(root),
 html[data-astro-nav="none"]::view-transition-new(root) {
   animation: none;
 }
 
-/* Every other navigation is a fade through: the old page leaves before the new one arrives, so two
-   pages of text never show through each other. */
-html[data-astro-nav]:not([data-astro-nav="none"])::view-transition-old(root) {
-  animation: fade-out var(--duration-press-in) var(--ease-out) both;
+/* Every other navigation swaps at once. The old page is gone in the frame the new one arrives, and
+   the new one comes up from the page surface, so two pages of text never show through each other
+   and nothing waits for an exit. A move between destinations happens tens of times a day: it is
+   as short as a press. The selectors name the three kinds of move, and weigh the same as the rules
+   for one kind further down, which therefore win by coming later. */
+html:is(
+  [data-astro-nav="peer"],
+  [data-astro-nav="in"],
+  [data-astro-nav="out"]
+)::view-transition-old(root) {
+  animation: none;
+  opacity: 0;
 }
 
-html[data-astro-nav]:not([data-astro-nav="none"])::view-transition-new(root) {
-  animation: fade-in var(--duration-hover) var(--ease-out) calc(var(--duration-press-in) / 2) both;
+html:is(
+  [data-astro-nav="peer"],
+  [data-astro-nav="in"],
+  [data-astro-nav="out"]
+)::view-transition-new(root) {
+  animation: fade-in var(--duration-press-in) var(--ease-out) both;
 }
 
-@keyframes fade-out {
-  to {
-    opacity: 0;
-  }
+/* The group's own animation is the browser's quarter second. Nothing in it moves, and while it runs
+   the page is a picture of itself: hover and selection wait for it. */
+html[data-astro-nav]::view-transition-group(root) {
+  animation: none;
+}
+
+/* Once the page is idle, a move is made without a view transition at all (navigationBoost.ts): the
+   new page is simply there on the next frame, and it fades up by itself in the same short time. The
+   rules above still draw a move made in the first moment after a page load. */
+html:is([data-nav-swap="peer"], [data-nav-swap="in"], [data-nav-swap="out"]) .shell {
+  animation: fade-in var(--duration-press-in) var(--ease-out) both;
 }
 
 /* Into a briefing the page settles 8px from the end side; back out of one, from the start side. */
 @media (prefers-reduced-motion: no-preference) {
+  html[data-nav-swap="in"] .shell {
+    animation-name: fade-in, page-from-end;
+    animation-duration: var(--duration-hover);
+  }
+
+  html[data-nav-swap="out"] .shell {
+    animation-name: fade-in, page-from-start;
+    animation-duration: var(--duration-hover);
+  }
+
   html[data-astro-nav="in"]::view-transition-new(root) {
     animation-name: fade-in, page-from-end;
+    animation-duration: var(--duration-hover);
   }
 
   html[data-astro-nav="out"]::view-transition-new(root) {
     animation-name: fade-in, page-from-start;
+    animation-duration: var(--duration-hover);
   }
 
   @keyframes page-from-end {
