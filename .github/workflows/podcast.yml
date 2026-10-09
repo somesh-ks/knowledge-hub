@@ -21,6 +21,11 @@ concurrency:
   group: dispatch-podcast
   cancel-in-progress: false
 
+# Every step that calls the writer can reach Claude when Settings picks Anthropic: a secret is only
+# visible to a step that is given it, so it is given once here.
+env:
+  ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
+
 permissions:
   contents: write
 
