@@ -223,6 +223,21 @@ describe("doctor: offline", () => {
     for (const value of Object.values(SECRETS)) expect(stdout).not.toContain(value);
   });
 
+  it("reports a missing Anthropic key only when the writer is on Anthropic", async () => {
+    const off = await doctor([]);
+    expect(off.report?.checks.some((c) => c.id === "key.ANTHROPIC_API_KEY")).toBe(false);
+    await writeFile(
+      join(root, "config/writer.json"),
+      '{"version":1,"provider":"anthropic","model":"claude-haiku-5-5"}\n',
+      "utf8",
+    );
+    const missing = await doctor([]);
+    expect(check(missing.report, "key.ANTHROPIC_API_KEY")).toMatchObject({ status: "warn" });
+    const set = await doctor([], { env: { ANTHROPIC_API_KEY: "an-secret-888888888888" } });
+    expect(check(set.report, "key.ANTHROPIC_API_KEY")).toMatchObject({ status: "ok" });
+    expect(set.stdout).not.toContain("an-secret-888888888888");
+  });
+
   it("checks that the model ids are set", async () => {
     const missing = await doctor([]);
     expect(check(missing.report, "model.DISPATCH_MODEL")).toMatchObject({ status: "warn" });
