@@ -2,6 +2,8 @@
 
 One line each: symptom, cause, fix. Newest first. Search before debugging.
 
+- 2026-10-10: a player fix for track contrast read right in the diff and failed in the browser (played and unplayed 1.46:1 apart); the worker had marked it unverified. Send a read-only verifier to measure every fix a worker marks unverified before calling an area done.
+- 2026-10-10: `document.documentElement.clientWidth` returned the full window width with a stable 15px scrollbar gutter in headless Chromium; measure the gutter as `innerWidth - documentElement.offsetWidth`.
 - 2026-10-10: every test server on the machine died mid-session (connection refused on 4710): a worker stopped its own server with a pattern kill on `run.mjs`. Note your server's PID when you start it and kill only that; tell workers so in their brief.
 - 2026-10-10: two `dispatch-worker` agents stopped at their 60-turn limit halfway through a 13 to 15 item brief, with no report. Give long briefs to `general-purpose` in a worktree, or split them; resume a stopped worker with SendMessage.
 - 2026-10-10: a worker's commit trailers landed on the subject line (`git commit -m` with literal \n). Ask for `git commit -F - <<'EOF'` in the brief; on cherry-pick, `git cherry-pick -n` then commit with a proper message.
