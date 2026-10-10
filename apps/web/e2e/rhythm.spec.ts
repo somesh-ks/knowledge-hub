@@ -3,7 +3,7 @@ import { expect, test } from "./fixtures";
 /**
  * Switching destinations is instant, so a title that starts at a different height on each one reads
  * as a jump. The first block of every destination starts at the same distance under the top chrome,
- * and on a sub-page the back link takes that place.
+ * and on a sub-page its title, which carries the way back, takes that place.
  */
 const SIZES = [
   { width: 1280, height: 800 },
@@ -11,7 +11,14 @@ const SIZES = [
 ];
 
 const DESTINATIONS = ["/", "/library", "/create", "/settings"];
-const SUBPAGES = ["/settings/podcast", "/settings/podcast/topics"];
+const SUBPAGES = [
+  "/settings/daily",
+  "/settings/weekly",
+  "/settings/custom",
+  "/settings/model",
+  "/settings/topics",
+  "/settings/topics/audio_interfaces",
+];
 
 /** The top edge of a page's first block, measured from the top of <main>. */
 async function firstBlockTop(
@@ -46,12 +53,12 @@ for (const size of SIZES) {
       }
     });
 
-    test("a sub-page puts its back link where the destinations start", async ({ page }) => {
+    test("a sub-page puts its title where the destinations start", async ({ page }) => {
       await page.goto("/");
       const reference = await firstBlockTop(page, "main .hero .cover, main h1");
       for (const path of SUBPAGES) {
         await page.goto(path);
-        const top = await firstBlockTop(page, "main .manage-back");
+        const top = await firstBlockTop(page, "main .settings-head");
         expect(
           Math.abs(top - reference),
           `${path} starts at ${top}, Today at ${reference}`,

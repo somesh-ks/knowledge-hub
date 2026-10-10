@@ -15,13 +15,9 @@
   padding-block: var(--page-top) var(--space-8);
 }
 
-/* Room for the bar that floats over the end of the page, so the last row is never covered. */
-.manage[data-pending] {
-  padding-block-end: var(--space-24);
-}
-
+/* What needs the script keeps its place until the script is up, so nothing below it moves. */
 .manage:not([data-ready]) [data-needs-js] {
-  display: none;
+  visibility: hidden;
 }
 
 .manage:not([data-ready]) .manage-row :is(input, button) {
@@ -30,18 +26,9 @@
 
 /* ------------------------------------------------------------------ the top of the page */
 
-/* A text button that goes back. Its glyph lines up with the page gutter, not its padding. */
-.manage-back {
-  margin-inline-start: calc(var(--space-3) * -1);
-}
-
 /* A quiet line under a section heading, with air between them. */
 .manage-below {
   padding-block-end: var(--space-2);
-}
-
-.manage-title {
-  padding-block: var(--space-2) 0;
 }
 
 .manage-note {
@@ -50,7 +37,7 @@
   line-height: var(--font-leading-caption);
 }
 
-/* A fieldset is how one flag, disabled, switches every control off while the changes are sent. */
+/* The fields of a settings page, with a legend for screen readers. Disabled, every control is off. */
 .manage-fields {
   min-width: 0;
   margin: 0;
@@ -80,8 +67,10 @@
   gap: var(--space-2);
 }
 
+/* A field's label is the body size, as the Create panel's are: the Add source panel wears that panel's
+   looks, and the Add topic form sits among 16px rows. */
 .manage-field > label {
-  font-size: var(--font-size-label);
+  font-size: var(--font-size-body);
   font-weight: var(--font-weight-medium);
   line-height: var(--font-leading-label);
 }
@@ -93,7 +82,7 @@
   gap: var(--space-2);
   margin: 0;
   color: var(--color-danger);
-  font-size: var(--font-size-meta);
+  font-size: var(--font-size-label);
   font-weight: var(--font-weight-medium);
 }
 
@@ -136,7 +125,10 @@ textarea.manage-input {
   box-shadow: none;
 }
 
+/* The ring turns with the edge: focus returns to a field that failed, and an accent ring would hide
+   the edge that says so. */
 .manage-input[aria-invalid]:not([aria-invalid="false"]) {
+  --color-focus-ring: var(--color-danger);
   border-color: var(--color-danger);
 }
 
@@ -353,83 +345,22 @@ textarea.manage-input {
   display: none;
 }
 
-/* ------------------------------------------------------------------ the bar of unsaved changes */
+/* ------------------------------------------------------------------ the saving toast */
 
-/*
- * Floats above the bottom navigation, and above the docked player when there is one. From 64rem the
- * navigation is a side column and the bar rests at the foot of the page beside it.
- */
-.manage-bar {
-  position: fixed;
-  inset-inline: calc(var(--side-nav-width) + var(--space-2)) var(--space-2);
-  inset-block-end: calc(var(--bottom-nav-height) + var(--space-2));
-  z-index: calc(var(--z-mini) - 1);
-  display: flex;
-  flex-wrap: wrap;
-  align-items: center;
-  gap: var(--space-2) var(--space-3);
-  max-width: var(--layout-mini-max);
-  margin-inline: auto;
-  padding: var(--space-2) var(--space-2) var(--space-2) var(--space-4);
-  border-radius: var(--mini-player-radius);
-  background: var(--mini-player-bg);
-  box-shadow: var(--mini-player-shadow);
-  animation: manage-bar-in var(--duration-enter) var(--ease-out);
-}
-
-html[data-mini="visible"] .manage-bar {
-  inset-block-end: calc(
-    var(--bottom-nav-height) +
-    var(--player-dock-height, var(--nav-bar-height)) +
-    var(--space-2)
-  );
-}
-
-@keyframes manage-bar-in {
-  from {
-    opacity: 0;
-    transform: translateY(var(--distance-base));
-  }
-}
-
-.manage-bar-text {
-  flex: 1 1 auto;
-  min-width: 0;
-  font-size: var(--font-size-label);
-  font-weight: var(--font-weight-medium);
-  line-height: var(--font-leading-label);
-}
-
-.manage-bar-actions {
-  display: flex;
-  align-items: center;
-  gap: var(--space-2);
-  margin-inline-start: auto;
-}
-
-/* The save button here is a compact one, not the full-width block of a form. */
-.manage-bar .btn-primary {
-  width: auto;
-  padding-inline: var(--space-6);
-}
-
-.manage-bar[data-state="done"] {
-  flex-wrap: nowrap;
-}
-
-.manage-bar[data-state="done"] .manage-bar-text {
-  flex: 1 1 0;
-}
-
-.manage-bar:not([data-state="done"]) [data-act="dismiss"],
-.manage-bar:is([data-state="done"], [data-state="saving"])
-  :is([data-act="discard"], [data-act="save"]),
-.manage-bar[data-state="saving"] .manage-bar-actions {
+/* The toast of sheets.css (ManageChrome.astro), told by its state what to show: Undo while a removal
+   waits, a spinner while saving, a check once saved, an alert and Retry when it failed. Dismiss shows
+   once there is nothing left to wait for. */
+.manage-bar:not([data-state="saving"]) .manage-bar-busy,
+.manage-bar:not([data-state="done"]) .manage-bar-done,
+.manage-bar:not([data-state="error"]) :is(.manage-bar-error, [data-act="retry"]),
+.manage-bar:not([data-state="undo"]) [data-act="undo"],
+.manage-bar:is([data-state="saving"], [data-state="undo"]) [data-act="dismiss"] {
   display: none;
 }
 
-.manage-bar[data-state="error"] .manage-bar-text {
-  color: var(--color-danger);
+/* The spinner takes the icon's place, in the toast's ink. */
+.manage-bar-busy {
+  flex: none;
 }
 
 /* ------------------------------------------------------------------ the passphrase dialog */
@@ -457,8 +388,7 @@ html[data-mini="visible"] .manage-bar {
 }
 
 @media (prefers-reduced-motion: reduce) {
-  .manage-dialog,
-  .manage-bar {
+  .manage-dialog {
     animation-name: manage-fade-in;
   }
 
@@ -521,7 +451,6 @@ html[data-mini="visible"] .manage-bar {
 }
 
 @media (forced-colors: active) {
-  .manage-bar,
   .manage-dialog {
     border: var(--stroke-hairline) solid CanvasText;
   }

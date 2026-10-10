@@ -30,6 +30,62 @@
   outline: none;
 }
 
+/* ------------------------------------------------------------------ a settings page's title */
+
+/* Settings > Daily. The way up is the first word, muted, at the title's size and on its line, so a
+   page needs no back button above its title. A long name wraps under the trail. */
+.settings-crumbs {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  column-gap: var(--space-1);
+  font-family: var(--text-display-family);
+  font-size: var(--text-display-size);
+  font-weight: var(--text-display-weight);
+  letter-spacing: var(--text-display-tracking);
+  line-height: var(--text-display-leading);
+}
+
+.settings-crumbs > nav {
+  display: contents;
+}
+
+.settings-up {
+  position: relative;
+  border-radius: var(--radius-sm);
+  color: var(--color-on-surface-muted);
+  text-decoration: none;
+  transition: color var(--duration-hover) var(--ease-hover);
+}
+
+/* The word is shorter than a finger: the target reaches 44px tall around it. */
+.settings-up::after {
+  content: "";
+  position: absolute;
+  inset-block: calc((100% - var(--size-touch)) / 2);
+  inset-inline: 0;
+}
+
+.settings-crumb-gap {
+  inline-size: 0.75em;
+  block-size: 0.75em;
+  color: var(--color-on-surface-subtle);
+}
+
+@media (hover: hover) and (pointer: fine) {
+  .settings-up:hover {
+    color: var(--color-on-surface);
+  }
+}
+
+.settings-up:active {
+  color: var(--color-on-surface);
+}
+
+.settings-head h1:focus {
+  outline: none;
+}
+
 /* The first group sits closer to the page title than the groups sit to each other. */
 .settings-view > section:first-of-type .section-head {
   padding-block-start: var(--space-6);
@@ -69,13 +125,13 @@
   flex: 1 0 auto;
 }
 
+/* Every quiet line in Settings is one size, the label size, a step under the 16px labels. */
 .settings-hint,
 .settings-about,
 .settings-note {
   color: var(--color-on-surface-muted);
-  font-size: var(--text-meta-size);
-  letter-spacing: var(--text-meta-tracking);
-  line-height: var(--text-meta-leading);
+  font-size: var(--font-size-label);
+  line-height: var(--font-leading-caption);
 }
 
 .settings-about {
@@ -128,7 +184,6 @@
   flex: 1 1 100%;
   /* A fieldset will not shrink below its content unless told it may. */
   min-width: 0;
-  max-width: 24rem;
   margin: 0;
   padding: var(--segmented-padding);
   border: 0;
@@ -147,7 +202,8 @@
   display: grid;
   place-items: center;
   min-width: 0;
-  /* With the track's padding this makes the control 44px tall, and taller if the text grows. */
+  /* With the track's padding this makes the control 48px tall, as tall as a select, and taller if
+     the text grows. */
   min-height: calc(var(--segmented-height) - var(--segmented-padding) * 2);
   border-radius: var(--segmented-segment-radius);
   color: var(--color-on-surface-muted);
@@ -162,7 +218,7 @@
 }
 
 /* The radio is the target. It covers its segment and the track's padding above and below, which
-   makes the target the track's full 44px. It is invisible, so the segment draws every state. */
+   makes the target the track's full height. It is invisible, so the segment draws every state. */
 .settings-segment input {
   position: absolute;
   inset-block: calc(var(--segmented-padding) * -1);
@@ -232,8 +288,8 @@
   width: calc((100% - var(--segmented-padding) * 2) / var(--seg-n));
   border-radius: var(--segmented-segment-radius);
   background: var(--segmented-selected-bg);
-  box-shadow: 0 0 0 var(--stroke-hairline)
-    color-mix(in oklch, var(--color-on-surface) 14%, transparent);
+  /* The control boundary colour, 3:1 against the track: the choice is seen, not only coloured. */
+  box-shadow: 0 0 0 var(--stroke-hairline) var(--color-border-control);
   opacity: 0;
   pointer-events: none;
   transform: translateX(calc(var(--seg-i) * 100%));
@@ -255,8 +311,15 @@
 }
 
 /* No press scale here, or anywhere a label sits on a track (segments, chips, tabs): scaling text on a
-   press makes it smaller and draws its weight differently for a moment. Pressing shows on the
-   thumb and the colour, never on the size of the words. pressText.test.ts holds the rule. */
+   press makes it smaller and draws its weight differently for a moment. Pressing shows as a state
+   layer on the segment, over the thumb when it has one, never on the size of the words.
+   pressText.test.ts holds the rule. */
+.settings-segment:active {
+  background-image: linear-gradient(
+    color-mix(in oklch, var(--color-on-surface) 10%, transparent),
+    color-mix(in oklch, var(--color-on-surface) 10%, transparent)
+  );
+}
 
 /* ------------------------------------------------------------------ switch */
 
@@ -446,7 +509,13 @@
 
 /* ------------------------------------------------------------------ before the values arrive */
 
-/* No transition here: the first value lands in place, and only then does the thumb fade in. */
+/* Until the stored value is known the switch is a neutral track with no thumb, not an "off" one. No
+   transition here: the first value lands in place, and only then does the thumb fade in. */
+.settings-view:not([data-ready]) .settings-switch {
+  background: var(--color-track);
+  transition: none;
+}
+
 .settings-view:not([data-ready]) .settings-switch::before {
   opacity: 0;
   transition: none;

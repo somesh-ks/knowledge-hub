@@ -1,15 +1,16 @@
 import AxeBuilder from "@axe-core/playwright";
 import type { Page, Route } from "@playwright/test";
 import { expect, test } from "./fixtures";
-import { PASSPHRASE_REQUIRED } from "./passphrase";
 
-const PATH = "/settings/podcast/topics";
+const LIST = "/settings/topics";
 const WCAG = ["wcag2a", "wcag2aa", "wcag21a", "wcag21aa", "wcag22aa"];
 // A one-pixel PNG, so the sources' icons load in a browser that is not online.
 const PIXEL = Buffer.from(
   "iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNkYPhfDwAChwGA60e6kgAAAABJRU5ErkJggg==",
   "base64",
 );
+const SAVED = "Saved. Live in about a minute.";
+const ADDED = "Added. It appears after the next build.";
 
 interface Sent {
   passphrase: string;
@@ -57,102 +58,52 @@ async function setup(page: Page, answers: Array<{ status: number; body: object }
   return { sent, previews };
 }
 
-async function open(page: Page): Promise<void> {
-  await page.goto(PATH);
+async function open(page: Page, path = LIST): Promise<void> {
+  await page.goto(path);
   await expect(page.locator("[data-topics]")).toHaveAttribute("data-ready", "");
 }
 
-const topic = (page: Page, name: string) =>
-  page.locator("li.topic", { has: page.getByRole("heading", { name, exact: true }) });
 const source = (page: Page, name: string) => page.locator("li.source-row", { hasText: name });
-const bar = (page: Page) => page.locator("[data-bar]");
+const toast = (page: Page) => page.locator("[data-bar]");
+const toastText = (page: Page) => toast(page).locator("[data-bar-text]");
 const ops = (sent: Sent[]) => sent.flatMap((item) => [item.op].flat());
+/** A removal waits five seconds with Undo before it is sent. */
+const AFTER_UNDO = { timeout: 10_000 };
 
-test.describe("the Topics & sources page", () => {
-  test("redirects the two old pages here", async ({ page }) => {
-    await setup(page);
-    for (const old of ["/settings/topics", "/settings/sources"]) {
-      await page.goto(old);
-      await expect(page).toHaveURL(new RegExp(`${PATH}$`));
-    }
-  });
-
-  test("shows the tabs, the one primary action, the topics and their sources", async ({ page }) => {
+test.describe("the Topics list", () => {
+  test("has one row per topic, each with what it holds now, and no filters", async ({ page }) => {
     await setup(page);
     await open(page);
-    await expect(page.getByRole("heading", { level: 1, name: "Podcast" })).toBeVisible();
-    await expect(page.getByRole("navigation", { name: "Podcast settings" })).toBeVisible();
+    await expect(page.getByRole("heading", { level: 1, name: "Topics" })).toBeVisible();
     await expect(page.getByRole("button", { name: "Add source", exact: true })).toBeVisible();
-    await expect(topic(page, "Design engineering craft")).toContainText("Studio Notes");
-    await expect(source(page, "Model Ledger")).toContainText("Poor");
-    await expect(source(page, "Launch Board")).toContainText("New");
-    await expect(page.getByText("A hint. Each briefing still follows the news.")).toHaveCount(0);
-    await expect(page.locator("li.topic", { hasText: "Top picks" })).toHaveCount(0);
+    const rows = [
+      ["Design engineering craft", "Weight 95%, 1 source"],
+      ["Consumer tech releases", "Off, 0 sources"],
+      ["Venture capital and gossip", "Never in a briefing"],
+      ["Other", "1 source with no topic yet"],
+    ] as const;
+    for (const [name, hint] of rows) {
+      await expect(page.getByRole("link", { name: new RegExp(`^${name}`) })).toContainText(hint);
+    }
+    await expect(page.locator("li.source-row")).toHaveCount(0);
+    await expect(page.getByRole("combobox", { name: "Show sources with score" })).toHaveCount(0);
+    await expect(page.getByText("Top picks")).toHaveCount(0);
   });
 
-  test("a weight change is one weights.set, shown as a percentage", async ({ page }) => {
-    const { sent } = await setup(page);
-    await open(page);
-    const slider = topic(page, "Design engineering craft").locator("[data-weight]");
-    await slider.fill("0.6");
-    await expect(topic(page, "Design engineering craft").locator("[data-word]")).toHaveText("60%");
-    await expect(bar(page)).toContainText("1 change");
-    await bar(page).getByRole("button", { name: "Save" }).click();
-    if (PASSPHRASE_REQUIRED) return;
-    await expect(bar(page)).toContainText("Saved");
-    expect(ops(sent)).toEqual([{ op: "weights.set", weights: { design_engineering_craft: 0.6 } }]);
-  });
-
-  test("a topic switch sends the topic with its current weight", async ({ page }) => {
-    const { sent } = await setup(page);
-    await open(page);
-    const row = topic(page, "Frontier model releases");
-    await row.getByRole("switch").click();
-    await row.locator("[data-weight]").fill("0.3");
-    await bar(page).getByRole("button", { name: "Save" }).click();
-    if (PASSPHRASE_REQUIRED) return;
-    await expect(bar(page)).toContainText("Saved");
-    const upsert = ops(sent).find((op) => op.op === "topic.upsert") as {
-      topic: { id: string; enabled: boolean; weight: number };
-    };
-    expect(upsert.topic).toMatchObject({ id: "frontier_model_releases", enabled: false });
-    expect(upsert.topic.weight).toBeCloseTo(0.3);
-  });
-
-  test("removing a source switches it off, and Undo takes it back", async ({ page }) => {
-    const { sent } = await setup(page);
-    await open(page);
-    const row = source(page, "Studio Notes");
-    await row.getByRole("button", { name: "Remove Studio Notes" }).click();
-    await expect(bar(page)).toContainText("1 change");
-    await row.getByRole("button", { name: "Keep Studio Notes" }).click();
-    await expect(bar(page)).toBeHidden();
-    await row.getByRole("button", { name: "Remove Studio Notes" }).click();
-    await bar(page).getByRole("button", { name: "Save" }).click();
-    if (PASSPHRASE_REQUIRED) return;
-    await expect(row).toBeHidden();
-    expect(ops(sent)).toEqual([{ op: "source.set", id: "studio-notes", enabled: false }]);
-  });
-
-  test("filters by score and sorts by name", async ({ page }) => {
+  test("a row leads to the topic's page, whose title leads back", async ({ page }) => {
     await setup(page);
     await open(page);
-    const band = page.getByRole("combobox", { name: "Show sources with score" });
-    await band.selectOption({ label: "Poor under 3" });
-    await expect(source(page, "Model Ledger")).toBeVisible();
-    await expect(source(page, "Studio Notes")).toBeHidden();
-    await band.selectOption({ label: "New" });
-    await expect(source(page, "Launch Board")).toBeVisible();
-    await expect(source(page, "Model Ledger")).toBeHidden();
-    await band.selectOption({ label: "All" });
-    await page.getByLabel("Sort sources").selectOption("name");
-    const names = await page.locator("li.source-row .source-name").allTextContents();
-    expect(names.length).toBeGreaterThan(2);
+    await page.getByRole("link", { name: /^Design engineering craft/ }).click();
+    await expect(
+      page.getByRole("heading", { level: 1, name: "Design engineering craft" }),
+    ).toBeVisible();
+    const crumb = page.getByRole("navigation", { name: "Breadcrumb" }).getByRole("link");
+    await expect(crumb).toHaveText("Topics");
+    await expect(crumb).toHaveAttribute("href", LIST);
+    await expect(source(page, "Studio Notes")).toBeVisible();
   });
 
-  test("the Add source panel looks the address up once and adds it to the chosen topic", async ({
-    page,
-  }) => {
+  test("Add source files the source under the topic chosen in the panel", async ({ page }) => {
     const { sent, previews } = await setup(page);
     await open(page);
     await page.getByRole("button", { name: "Add source", exact: true }).click();
@@ -174,76 +125,15 @@ test.describe("the Topics & sources page", () => {
     await sheet.getByLabel("Topic").selectOption("audio_interfaces");
     await add.click();
     await expect(sheet).toBeHidden();
-    const row = topic(page, "Audio interfaces").locator("li.source-row.is-new");
+    const row = page.locator("[data-added] li.source-row.is-new");
     await expect(row).toContainText("Newsroom Example");
-    if (PASSPHRASE_REQUIRED) return;
-    await expect(row).toContainText("Added");
+    await expect(row).toContainText(ADDED);
     expect(ops(sent)).toEqual([
       { op: "source.add", url: "https://newsroom.example/", topic_ids: ["audio_interfaces"] },
     ]);
   });
 
-  // The browser logs the refused lookup itself; the panel answers it in words.
-  test.describe("a refused lookup", () => {
-    test.use({ allowNetworkErrors: true });
-    test("the panel says what to do when the address cannot be read", async ({ page }) => {
-      await setup(page);
-      await page.route("**/api/source-preview**", (route) =>
-        route.fulfill({
-          status: 422,
-          contentType: "application/json",
-          body: JSON.stringify({ error: "unreachable", message: "x" }),
-        }),
-      );
-      await open(page);
-      await page.getByRole("button", { name: "Add source", exact: true }).click();
-      const sheet = page.getByRole("dialog", { name: "Add a source" });
-      await sheet.getByLabel("Site or feed address").fill("nothing.example");
-      await expect(sheet.getByRole("alert")).toContainText("could not be read");
-      await expect(sheet.getByRole("button", { name: "Add source", exact: true })).toBeDisabled();
-      await page.keyboard.press("Escape");
-      await expect(sheet).toBeHidden();
-    });
-  });
-
-  test("a topic has its own Add source button, with that topic chosen", async ({ page }) => {
-    await setup(page);
-    await open(page);
-    await page.getByRole("button", { name: "Add source to Audio interfaces" }).click();
-    const sheet = page.getByRole("dialog", { name: "Add a source" });
-    await expect(sheet.getByLabel("Topic")).toHaveValue("audio_interfaces");
-  });
-
-  test("the score filter and the sort are never clipped on a phone", async ({ page }) => {
-    await setup(page);
-    await open(page);
-    const width = page.viewportSize()?.width ?? 0;
-    const edges = await page
-      .locator(".topics-filters .sort-field")
-      .evaluateAll((fields) => fields.map((field) => field.getBoundingClientRect().right));
-    expect(edges).toHaveLength(2);
-    for (const right of edges) expect(right).toBeLessThanOrEqual(width);
-  });
-
-  test("the score filter is one select that hides the other bands", async ({ page }) => {
-    await setup(page);
-    await open(page);
-    const band = page.getByRole("combobox", { name: "Show sources with score" });
-    await expect(band.locator("option")).toHaveText([
-      "All",
-      "Good 4+",
-      "Fair 3 to 4",
-      "Poor under 3",
-      "New",
-    ]);
-    await band.selectOption("good");
-    await expect(page.locator(".topics")).toHaveAttribute("data-band", "good");
-    await expect(page.locator(".source-row:not([data-band='good'])").first()).toBeHidden();
-    await band.selectOption("all");
-    await expect(page.locator(".topics")).toHaveAttribute("data-band", "all");
-  });
-
-  test("Add topic keeps its flow", async ({ page }) => {
+  test("Add topic saves itself and says it is added", async ({ page }) => {
     const { sent } = await setup(page);
     await open(page);
     await page.getByText("Add topic", { exact: true }).first().click();
@@ -252,44 +142,183 @@ test.describe("the Topics & sources page", () => {
     await form.getByLabel("What should count as this topic").fill("Sound in interfaces.");
     await form.getByLabel(/Keywords/).fill("audio, haptics");
     await form.getByRole("button", { name: "Add topic" }).click();
-    await bar(page).getByRole("button", { name: "Save" }).click();
-    if (PASSPHRASE_REQUIRED) return;
-    await expect(bar(page)).toContainText("Saved");
+    const queued = page.locator("[data-queued] li");
+    await expect(queued).toContainText("Sound design");
+    await expect(queued).toContainText(ADDED);
+    await expect(queued.getByRole("button")).toHaveCount(0);
     expect(ops(sent)).toMatchObject([
       { op: "topic.upsert", topic: { id: "sound-design", keywords: ["audio", "haptics"] } },
     ]);
   });
 
-  test("has no accessibility violations, with the panel open as well", async ({ page }) => {
-    await setup(page);
+  test("a topic cannot take the address of the Other page", async ({ page }) => {
+    const { sent } = await setup(page);
     await open(page);
-    const scan = async () =>
-      (await new AxeBuilder({ page }).withTags(WCAG).analyze()).violations.map(
-        (v) => `${v.id}: ${v.nodes.map((n) => n.target.join(" ")).join(", ")}`,
-      );
-    expect(await scan()).toEqual([]);
-    await page.getByRole("button", { name: "Add source", exact: true }).click();
+    await page.getByText("Add topic", { exact: true }).first().click();
+    const form = page.getByRole("form", { name: "Add a topic" });
+    await form.getByLabel("Name").fill("Other");
+    await form.getByLabel("What should count as this topic").fill("Anything else.");
+    await form.getByRole("button", { name: "Add topic" }).click();
+    await expect.poll(() => sent.length).toBe(1);
+    expect(ops(sent)).toMatchObject([{ op: "topic.upsert", topic: { id: "other-2" } }]);
+  });
+});
+
+test.describe("a topic's page", () => {
+  const CRAFT = "/settings/topics/design_engineering_craft";
+
+  test("a weight change saves itself as one weights.set, shown as a percentage", async ({
+    page,
+  }) => {
+    const { sent } = await setup(page);
+    await open(page, CRAFT);
+    const slider = page.locator("[data-weight]");
+    await slider.fill("0.6");
+    await expect(page.locator("[data-word]")).toHaveText("60%");
+    await expect(toastText(page)).toHaveText(SAVED);
+    expect(ops(sent)).toEqual([{ op: "weights.set", weights: { design_engineering_craft: 0.6 } }]);
+  });
+
+  test("the switch sends the topic with its current weight", async ({ page }) => {
+    const { sent } = await setup(page);
+    await open(page, "/settings/topics/frontier_model_releases");
+    await page.locator("[data-weight]").fill("0.3");
+    await page.getByRole("switch", { name: "In briefings" }).click();
+    await expect.poll(() => ops(sent).some((op) => op.op === "topic.upsert")).toBe(true);
+    const upsert = ops(sent).find((op) => op.op === "topic.upsert") as {
+      topic: { id: string; enabled: boolean; weight: number };
+    };
+    expect(upsert.topic).toMatchObject({ id: "frontier_model_releases", enabled: false });
+    expect(upsert.topic.weight).toBeCloseTo(0.3);
+  });
+
+  test("removing a source waits with Undo, and Undo takes it back", async ({ page }) => {
+    const { sent } = await setup(page);
+    await open(page, CRAFT);
+    const row = source(page, "Studio Notes");
+    await row.getByRole("button", { name: "Remove Studio Notes" }).click();
+    await expect(toastText(page)).toHaveText("Removing Studio Notes");
+    await toast(page).getByRole("button", { name: "Undo" }).click();
+    await expect(toast(page)).toBeHidden();
+    await expect(row.getByRole("button", { name: "Remove Studio Notes" })).toBeVisible();
+    // The row's own button takes it back as well.
+    await row.getByRole("button", { name: "Remove Studio Notes" }).click();
+    await row.getByRole("button", { name: "Keep Studio Notes" }).click();
+    await expect(toast(page)).toBeHidden();
+    await page.waitForTimeout(1500);
+    expect(sent).toHaveLength(0);
+    await row.getByRole("button", { name: "Remove Studio Notes" }).click();
+    await expect(row).toBeHidden(AFTER_UNDO);
+    expect(ops(sent)).toEqual([{ op: "source.set", id: "studio-notes", enabled: false }]);
+  });
+
+  test("its Add source button opens the panel with the topic chosen", async ({ page }) => {
+    const { sent } = await setup(page);
+    await open(page, "/settings/topics/audio_interfaces");
+    await page.getByRole("button", { name: "Add source to Audio interfaces" }).click();
     const sheet = page.getByRole("dialog", { name: "Add a source" });
+    await expect(sheet.getByLabel("Topic")).toHaveValue("audio_interfaces");
     await sheet.getByLabel("Site or feed address").fill("newsroom.example");
-    await expect(sheet.getByText("Newsroom Example")).toBeVisible();
-    expect(await scan()).toEqual([]);
+    await sheet.getByRole("button", { name: "Add source", exact: true }).click();
+    const row = page.locator("[data-sources] li.source-row.is-new");
+    await expect(row).toContainText("Newsroom Example");
+    await expect(row).toContainText(ADDED);
+    expect(ops(sent)).toEqual([
+      { op: "source.add", url: "https://newsroom.example/", topic_ids: ["audio_interfaces"] },
+    ]);
+  });
+
+  test("removing a custom topic waits with Undo, then says the page goes", async ({ page }) => {
+    const { sent } = await setup(page);
+    await open(page, "/settings/topics/audio_interfaces");
+    await page.getByRole("button", { name: "Remove Audio interfaces" }).click();
+    await expect(toastText(page)).toHaveText("Removing Audio interfaces");
+    await expect(page.getByRole("button", { name: "Keep Audio interfaces" })).toBeVisible();
+    await expect(page.getByText("Removed. The page goes after the next build.")).toBeVisible(
+      AFTER_UNDO,
+    );
+    await expect(page.getByRole("switch", { name: "In briefings" })).toBeHidden();
+    expect(ops(sent)).toEqual([{ op: "topic.remove", id: "audio_interfaces" }]);
+  });
+
+  test("a built-in topic cannot be removed", async ({ page }) => {
+    await setup(page);
+    await open(page, CRAFT);
+    await expect(
+      page.getByRole("button", { name: /^Remove Design engineering craft/ }),
+    ).toHaveCount(0);
+  });
+
+  test("a topic that never publishes has only its sources", async ({ page }) => {
+    await setup(page);
+    await open(page, "/settings/topics/venture_capital_and_gossip");
+    await expect(page.getByText("Never in a briefing.")).toBeVisible();
+    await expect(page.getByRole("switch")).toHaveCount(0);
+    await expect(page.getByRole("button", { name: /^Add source/ })).toHaveCount(0);
+  });
+
+  test("Other lists the sources with no topic, and can turn one back on", async ({ page }) => {
+    const { sent } = await setup(page);
+    await open(page, "/settings/topics/other");
+    await expect(page.getByRole("heading", { level: 1, name: "Other" })).toBeVisible();
+    await page.getByRole("switch", { name: "Turn on Quiet Motion" }).click();
+    await expect(toastText(page)).toHaveText(SAVED);
+    expect(ops(sent)).toEqual([{ op: "source.set", id: "quiet-motion", enabled: true }]);
   });
 
   test("no row is a dead zone: sources are at least 44px tall and touch", async ({ page }) => {
     await setup(page);
-    await open(page);
-    const boxes = await topic(page, "Design engineering craft")
-      .locator("li.source-row")
-      .evaluateAll((rows) =>
-        rows.map((row) => {
-          const rect = row.getBoundingClientRect();
-          return { top: rect.top, bottom: rect.bottom };
-        }),
-      );
+    await open(page, CRAFT);
+    const boxes = await page.locator("li.source-row").evaluateAll((rows) =>
+      rows.map((row) => {
+        const rect = row.getBoundingClientRect();
+        return { top: rect.top, bottom: rect.bottom };
+      }),
+    );
     for (const [index, box] of boxes.entries()) {
       expect(box.bottom - box.top).toBeGreaterThanOrEqual(44);
       const next = boxes[index + 1];
       if (next) expect(Math.abs(next.top - box.bottom)).toBeLessThanOrEqual(1);
     }
   });
+});
+
+// The browser logs the refused lookup itself; the panel answers it in words.
+test.describe("a refused lookup", () => {
+  test.use({ allowNetworkErrors: true });
+  test("the panel says what to do when the address cannot be read", async ({ page }) => {
+    await setup(page);
+    await page.route("**/api/source-preview**", (route) =>
+      route.fulfill({
+        status: 422,
+        contentType: "application/json",
+        body: JSON.stringify({ error: "unreachable", message: "x" }),
+      }),
+    );
+    await open(page);
+    await page.getByRole("button", { name: "Add source", exact: true }).click();
+    const sheet = page.getByRole("dialog", { name: "Add a source" });
+    await sheet.getByLabel("Site or feed address").fill("nothing.example");
+    await expect(sheet.getByRole("alert")).toContainText("could not be read");
+    await expect(sheet.getByRole("button", { name: "Add source", exact: true })).toBeDisabled();
+    await page.keyboard.press("Escape");
+    await expect(sheet).toBeHidden();
+  });
+});
+
+test("has no accessibility violations: the list, a topic, and the panel open", async ({ page }) => {
+  await setup(page);
+  const scan = async () =>
+    (await new AxeBuilder({ page }).withTags(WCAG).analyze()).violations.map(
+      (v) => `${v.id}: ${v.nodes.map((n) => n.target.join(" ")).join(", ")}`,
+    );
+  await open(page);
+  expect(await scan()).toEqual([]);
+  await open(page, "/settings/topics/design_engineering_craft");
+  expect(await scan()).toEqual([]);
+  await page.getByRole("button", { name: "Add source to Design engineering craft" }).click();
+  const sheet = page.getByRole("dialog", { name: "Add a source" });
+  await sheet.getByLabel("Site or feed address").fill("newsroom.example");
+  await expect(sheet.getByText("Newsroom Example")).toBeVisible();
+  expect(await scan()).toEqual([]);
 });

@@ -1,94 +1,36 @@
 ---
 import Icon from "../../components/Icon.astro";
 import ManageChrome from "../../components/ManageChrome.astro";
-import PodcastProfile from "../../components/PodcastProfile.astro";
-import PodcastTabs from "../../components/PodcastTabs.astro";
+import SettingsHead from "../../components/SettingsHead.astro";
 import BaseLayout from "../../layouts/BaseLayout.astro";
-import { loadScheduleView } from "../../lib/schedule";
 import { loadWriterView, writerLabel } from "../../lib/writer";
 import "../../styles/settings.css";
 import "../../styles/manage.css";
 import "../../styles/podcast.css";
 
-const schedule = await loadScheduleView();
 const { model, provider } = await loadWriterView();
-const { daily, weekly, custom } = {
-  daily: {
-    hour: schedule.hour,
-    cadenceDays: schedule.cadenceDays,
-    format: schedule.format,
-    lengthMinutes: schedule.lengthMinutes,
-    voiceId: schedule.voiceId,
-    voiceIdB: schedule.voiceIdB,
-  },
-  weekly: {
-    enabled: schedule.weekly.enabled,
-    hour: schedule.weekly.hour,
-    day: schedule.weekly.day,
-    format: schedule.weekly.format,
-    lengthMinutes: schedule.weekly.length_minutes,
-    voiceId: schedule.weekly.voice_id,
-    voiceIdB: schedule.weekly.voice_id_b,
-  },
-  custom: {
-    format: schedule.custom.format,
-    lengthMinutes: schedule.custom.length_minutes,
-    voiceId: schedule.custom.voice_id,
-    voiceIdB: schedule.custom.voice_id_b,
-  },
-};
-const PROFILES = [
-  { id: "daily", label: "Daily" },
-  { id: "weekly", label: "Weekly" },
-  { id: "custom", label: "Custom" },
-] as const;
 ---
 
-<BaseLayout title="Podcast" view="settings" skipLabel="Skip to the podcast settings">
+<BaseLayout title="Model" view="settings" skipLabel="Skip to the model settings">
   <main id="main" tabindex="-1">
-    {/* Static HTML with the saved values written in, for all three profiles; the switch shows one.
-         scripts/podcastPage.ts only records a change and shows it in the shared bar; sending it is
-         managePageSave.ts, the step the Topics page uses. The voice and model lists are loaded into
-         the placeholder rows, which are as tall as the real ones. */}
+    {/* The writer: a vendor, then a model from that vendor's list. scripts/podcastPage.ts runs the
+         combobox and records a change; autosave.ts sends it a moment later. */}
     <div class="manage" data-manage="podcast">
-      <a class="btn manage-back press press-subtle" href="/settings">
-        <Icon name="arrowBack" />
-        <span>Settings</span>
-      </a>
-      <h1 class="page-title manage-title" id="page-title" tabindex="-1">Podcast</h1>
-      <PodcastTabs active="general" />
+      <SettingsHead title="Model" note="Writes the script of every episode." />
       <noscript>
-        <p class="manage-note">Changing the podcast needs JavaScript, which is turned off in this browser.</p>
+        <p class="manage-note">Changing the model needs JavaScript, which is turned off in this browser.</p>
       </noscript>
 
       <fieldset class="manage-fields" data-fields>
-        <legend class="sr-only">Podcast</legend>
-
+        <legend class="sr-only">Model</legend>
         <div class="daily-panel" data-panel>
-          <fieldset class="settings-choice podcast-switch" role="radiogroup" aria-label="Podcast">
-            {
-              PROFILES.map((profile) => (
-                <label class="settings-segment">
-                  <input type="radio" name="profile" value={profile.id} checked={profile.id === "daily"} autocomplete="off" />
-                  <span>{profile.label}</span>
-                </label>
-              ))
-            }
-          </fieldset>
-
-          <PodcastProfile id="daily" values={daily} next={schedule.next} />
-          <PodcastProfile id="weekly" values={weekly} next={schedule.nextWeekly} />
-          <PodcastProfile id="custom" values={custom} />
-
           <div class="daily-model">
-            <h2 class="section-head">Model</h2>
             <div class="rows" data-models data-saved={model ?? ""} data-provider={provider}>
               <div class="settings-row">
                 <div class="settings-text">
-                  <span class="settings-label" id="daily-vendor-label">Provider</span>
+                  <label class="settings-label" for="daily-vendor">Provider</label>
                 </div>
                 <div class="daily-selects daily-selects-one">
-                  <label class="sr-only" for="daily-vendor">Provider</label>
                   <span class="manage-select">
                     <select class="manage-input" id="daily-vendor" name="vendor" autocomplete="off">
                       <option value="anthropic" selected={provider === "anthropic"}>Anthropic</option>

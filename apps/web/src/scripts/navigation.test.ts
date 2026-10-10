@@ -3,6 +3,7 @@ import {
   CARRIED_ATTRIBUTES,
   carryNavigationKind,
   carryRootAttributes,
+  isSamePage,
   NAV_ATTRIBUTE,
   navigationKind,
 } from "./navigation";
@@ -56,6 +57,20 @@ function fakeRoot(initial: Record<string, string> = {}): HTMLElement {
     attributes,
   } as unknown as HTMLElement;
 }
+
+describe("isSamePage", () => {
+  const here = new URL("https://news.someshks.work/library");
+
+  it("matches the page on screen, a trailing slash or a query aside", () => {
+    expect(isSamePage(new URL("https://news.someshks.work/library/"), here)).toBe(true);
+    expect(isSamePage(new URL("https://news.someshks.work/library?q=x"), here)).toBe(true);
+  });
+
+  it("does not match another page or another site", () => {
+    expect(isSamePage(new URL("https://news.someshks.work/"), here)).toBe(false);
+    expect(isSamePage(new URL("https://example.com/library"), here)).toBe(false);
+  });
+});
 
 describe("carryRootAttributes", () => {
   it("copies the theme and the player's state onto the incoming page", () => {

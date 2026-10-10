@@ -1,16 +1,23 @@
 /**
- * Sending the pending edits. Loaded the first time Save is pressed, not with the page: nothing here
- * is needed to read or edit, so it stays out of the first-load budget.
+ * Sending the pending edits, on their own. autosave.ts loads this with the first change and calls
+ * `flush` once the controls have been still for a moment: one request carries every pending edit
+ * (the server takes up to eight), and a change made while it is on its way goes in the next one.
+ * Nothing here is needed to read or edit a page, so it stays out of the first-load budget.
  */
 import { OPEN_PASSPHRASE, PASSPHRASE_REQUIRED } from "../lib/access";
 import type { ConfigOp, ConfigResponse } from "../types/contracts";
 
 const KEY = "dispatch:narrate-passphrase";
-const SAVED = "Saved. The changes appear after the next build, in about a minute.";
+
+export const SAVING = "Saving";
+export const SAVED = "Saved. Live in about a minute.";
 
 /** Shown when the edit went through but the site could not change the briefing time. */
-const TIME_REFUSED =
-  "The topics and cadence are saved. The time could not be changed: the site's GitHub token needs permission to write repository variables.";
+export const TIME_REFUSED =
+  "Saved, except the time: the site's GitHub token needs permission to write repository variables.";
+
+/** What a topic or a source added on the page says once it is in the repository. */
+export const ADDED = "Added. It appears after the next build.";
 
 const REASONS: Record<number, string> = {
   400: "That change was not accepted.",
@@ -19,15 +26,15 @@ const REASONS: Record<number, string> = {
   503: "Saving is not available right now.",
 };
 
-/** What a refusal means to the person saving, and what is left of their changes. */
-export function failureText(status: number, done: number, total: number): string {
-  const reason = REASONS[status] ?? "The site could not be reached.";
-  return done > 0
-    ? `Saved ${done} of ${total}. ${reason} The rest is still waiting.`
-    : `${reason} Your changes are still waiting.`;
+/** What a refusal means. The change is still on the page, and Retry sends it again. */
+export function failureText(status: number): string {
+  return `${REASONS[status] ?? "The site could not be reached."} Not saved yet.`;
 }
 
-/** One pending change: the edit, the control (or queued row) behind it, and what the control now holds. */
+/** The most edits one request may carry (MAX_OPS in server/configEdit.ts). */
+export const MAX_OPS = 8;
+
+/** One pending change: the edit, the control (or added row) behind it, and what the control now holds. */
 export interface Pending {
   op: ConfigOp;
   /** Edits that go in the same request, after `op`: the sources chosen for a new topic. */
@@ -36,28 +43,39 @@ export interface Pending {
   now: string;
 }
 
+/** What the toast shows: a removal that can still be undone, a save on its way, its outcome. */
+export type SaveState = "undo" | "saving" | "done" | "error";
+
 export interface SaveContext {
   changes: Map<string, Pending>;
-  show(message: string, state: string): void;
-  fields: HTMLFieldSetElement;
-  dialog: HTMLDialogElement;
+  show(message: string, state: SaveState): void;
+  /** The passphrase dialog, on a site that asks for one (lib/access.ts). */
+  dialog: HTMLDialogElement | null;
+  /** After a request went through: read the controls again against their new starting point. */
+  settled?(): void;
+}
+
+interface Step {
+  op: ConfigOp;
+  ops?: ConfigOp[];
+  keys: string[];
 }
 
 /**
- * The requests that settle the pending changes. Every slider change goes in one request, after the
- * rest, and a removal goes last so nothing is edited after it is gone.
+ * The steps that settle the pending changes. Every slider change goes in one step, after the rest,
+ * and a removal goes last so nothing is edited after it is gone.
  */
-export function buildQueue(
-  changes: ReadonlyMap<string, Pending>,
-): { op: ConfigOp; ops?: ConfigOp[]; keys: string[] }[] {
+export function buildQueue(changes: ReadonlyMap<string, Pending>): Step[] {
   const weights: Record<string, number> = {};
   const weightKeys: string[] = [];
-  const edits: { op: ConfigOp; ops?: ConfigOp[]; keys: string[] }[] = [];
-  const removals: { op: ConfigOp; ops?: ConfigOp[]; keys: string[] }[] = [];
+  const edits: Step[] = [];
+  const removals: Step[] = [];
   for (const [key, { op, el, with: extra }] of changes) {
     if (op.op === "topic.upsert") {
       // The switch was built with the slider's value from the page load, which may have moved since.
-      const slider = el.closest("li")?.querySelector<HTMLInputElement>("[data-weight]");
+      const slider = el
+        .closest("li, [data-topic]")
+        ?.querySelector<HTMLInputElement>("[data-weight]");
       if (slider) op.topic.weight = Number(slider.value);
     }
     if (op.op === "weights.set") {
@@ -75,9 +93,64 @@ export function buildQueue(
   return [...edits, ...removals];
 }
 
+/** One request: the edits it carries, and the pending changes it settles. */
+export interface Batch {
+  ops: ConfigOp[];
+  sent: [string, Pending][];
+}
+
+/**
+ * The steps packed into as few requests as the server allows, in their order. A step never splits:
+ * an edit and the sources chosen with it go together.
+ */
+export function pack(steps: readonly Step[], changes: ReadonlyMap<string, Pending>): Batch[] {
+  const batches: Batch[] = [];
+  let current: Batch = { ops: [], sent: [] };
+  for (const step of steps) {
+    const ops = step.ops ?? [step.op];
+    if (current.ops.length > 0 && current.ops.length + ops.length > MAX_OPS) {
+      batches.push(current);
+      current = { ops: [], sent: [] };
+    }
+    current.ops.push(...ops);
+    for (const key of step.keys) {
+      const pending = changes.get(key);
+      if (pending) current.sent.push([key, pending]);
+    }
+  }
+  if (current.ops.length > 0) batches.push(current);
+  return batches;
+}
+
+/**
+ * Marks what a request saved. A control takes the value it was sent with as its new starting point.
+ * A change made while the request was on its way is a newer entry under the same key, so it stays
+ * pending and goes next.
+ */
+export function settle(batch: Batch, changes: Map<string, Pending>): void {
+  for (const [key, pending] of batch.sent) {
+    const { el, now } = pending;
+    if (el.matches("li")) {
+      // A topic added on the page: it stays listed, saved, until the build shows it in place.
+      const note = el.querySelector(".manage-quiet");
+      if (note) note.textContent = ADDED;
+      el.querySelector("[data-act=cancel]")?.remove();
+    } else if (el.matches(".source-note")) el.textContent = ADDED;
+    else {
+      if (el.matches("[data-remove]"))
+        (el.closest("li") ?? el.closest("[data-topic]"))?.setAttribute("data-gone", "");
+      else if (el.matches("[data-suggest]")) (el as HTMLButtonElement).disabled = true;
+      // Every control, a pressed remove button included, now starts from what was saved: read again,
+      // it is no longer a change.
+      el.dataset.was = now;
+    }
+    if (changes.get(key) === pending) changes.delete(key);
+  }
+}
+
 let passphrase: string | null = null;
-/** Set by `send` when a saved edit reports that the briefing time was not changed. */
-let timeRefused = false;
+/** True while a flush runs. A second call returns at once: the running one sends what is waiting. */
+let busy = false;
 
 /** Where the passphrase is kept between visits. Passing null forgets it. */
 function memory(value?: string | null): string | null {
@@ -91,46 +164,50 @@ function memory(value?: string | null): string | null {
   return null;
 }
 
-/** One request. The server allows an edit every ten seconds, so a 429 waits as long as it says. */
-async function send(
-  op: ConfigOp | ConfigOp[],
-  given: string,
-  wait: (seconds: number) => void,
-): Promise<number> {
-  for (let tries = 0; tries < 7; tries += 1) {
-    let seconds = 0;
-    let status = 0;
-    try {
-      const response = await fetch("/api/config", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ passphrase: given, op }),
-      });
-      const body = (await response.json().catch(() => ({}))) as Partial<ConfigResponse>;
-      status = body.status ?? response.status;
-      if (status === 202 && "time_changed" in body && body.time_changed === false)
-        timeRefused = true;
-      if (status === 429) seconds = ("retry_after_s" in body && body.retry_after_s) || 10;
-    } catch {
-      status = 0;
-    }
-    if (!seconds) return status;
-    wait(seconds);
-    await new Promise((resolve) => setTimeout(resolve, seconds * 1000 + 250));
-  }
-  return 429;
+interface Answer {
+  status: number;
+  /** For a 429: how long the server asks to wait. */
+  wait: number;
+  timeRefused: boolean;
 }
 
+/** One request. `keepalive` lets it finish when the page is closed right after a change. */
+async function post(ops: ConfigOp[], given: string): Promise<Answer> {
+  try {
+    const response = await fetch("/api/config", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ passphrase: given, op: ops.length === 1 ? ops[0] : ops }),
+      keepalive: true,
+    });
+    const body = (await response.json().catch(() => ({}))) as Partial<ConfigResponse>;
+    const status = body.status ?? response.status;
+    return {
+      status,
+      wait: status === 429 ? ("retry_after_s" in body && body.retry_after_s) || 10 : 0,
+      timeRefused: status === 202 && "time_changed" in body && body.time_changed === false,
+    };
+  } catch {
+    return { status: 0, wait: 0, timeRefused: false };
+  }
+}
+
+/** How many times a run waits out the server's ten seconds between edits before it gives up. */
+const MAX_WAITS = 6;
+
 /**
- * Asks for the passphrase once if it is not known, then sends the changes one at a time. While the
- * passphrase step is off (lib/access.ts) the fixed value stands in and the dialog never opens.
+ * Sends what is pending until nothing is, then says how it went. The server allows an edit every
+ * ten seconds: a 429 waits as long as it asks and then sends whatever is pending by then, so
+ * changes made during the wait ride along. Asks for the passphrase once where one is required.
  */
-export async function save(
+export async function flush(
   context: SaveContext,
   given = PASSPHRASE_REQUIRED ? (passphrase ?? memory()) : OPEN_PASSPHRASE,
 ): Promise<void> {
-  const { changes, show, fields, dialog } = context;
+  const { changes, show, dialog } = context;
+  if (busy || changes.size === 0) return;
   if (!given) {
+    if (!dialog) return;
     const field = dialog.querySelector<HTMLInputElement>("[data-passphrase]") as HTMLInputElement;
     const remember = dialog.querySelector<HTMLInputElement>("[data-remember]") as HTMLInputElement;
     dialog.returnValue = "";
@@ -141,7 +218,7 @@ export async function save(
         field.value = "";
         if (!value) return;
         if (remember.checked) memory(value);
-        void save(context, value);
+        void flush(context, value);
       },
       { once: true },
     );
@@ -150,41 +227,43 @@ export async function save(
   }
 
   passphrase = given;
-  timeRefused = false;
-  fields.disabled = true;
-  const total = changes.size;
-  const queue = buildQueue(changes);
-  let done = 0;
+  busy = true;
   let failure = "";
-  for (const [index, { op, ops, keys }] of queue.entries()) {
-    const place = `Saving ${index + 1} of ${queue.length}`;
-    show(place, "saving");
-    const status = await send(ops ?? op, given, () =>
-      show(`${place}. Waiting a few seconds.`, "saving"),
-    );
-    if (status !== 202) {
-      if (status === 401) {
-        memory(null);
-        passphrase = null;
+  let timeRefused = false;
+  let waits = 0;
+  /** The last request that went through. The same edits twice in a row would be a loop, not a change. */
+  let last = "";
+  try {
+    while (changes.size > 0) {
+      const [batch] = pack(buildQueue(changes), changes);
+      if (!batch || JSON.stringify(batch.ops) === last) break;
+      show(SAVING, "saving");
+      const answer = await post(batch.ops, given);
+      if (answer.status === 429 && waits < MAX_WAITS) {
+        waits += 1;
+        await new Promise((resolve) => setTimeout(resolve, answer.wait * 1000 + 250));
+        continue;
       }
-      failure = failureText(status, done, total);
-      break;
+      if (answer.status !== 202) {
+        if (answer.status === 401) {
+          memory(null);
+          passphrase = null;
+        }
+        failure = failureText(answer.status);
+        break;
+      }
+      timeRefused ||= answer.timeRefused;
+      last = JSON.stringify(batch.ops);
+      settle(batch, changes);
+      context.settled?.();
     }
-    for (const key of keys) {
-      const { el, now } = changes.get(key) as Pending;
-      // A change that reached the repository is the page's new starting point.
-      if (el.matches("li")) el.remove();
-      else if (el.matches("[data-remove]")) el.closest("li")?.setAttribute("data-gone", "");
-      else if (el.matches("[data-suggest]")) (el as HTMLButtonElement).disabled = true;
-      else el.dataset.was = now;
-      changes.delete(key);
-      done += 1;
-    }
+  } finally {
+    busy = false;
   }
-  fields.disabled = false;
-  show(failure || (timeRefused ? TIME_REFUSED : SAVED), failure ? "error" : "done");
-  // The interface sound for an outcome the screen already states (see scripts/uiSound.ts).
-  document.dispatchEvent(
-    new CustomEvent("dispatch:sound", { detail: failure ? "failure" : "success" }),
-  );
+  if (failure) {
+    show(failure, "error");
+    // The interface sound for an outcome the screen already states (see scripts/uiSound.ts). A save
+    // that went through makes none: it happens on its own after every change.
+    document.dispatchEvent(new CustomEvent("dispatch:sound", { detail: "failure" }));
+  } else show(timeRefused ? TIME_REFUSED : SAVED, "done");
 }

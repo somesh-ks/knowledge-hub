@@ -1,10 +1,9 @@
 /**
- * The Podcast page's editor, loaded by podcastEntry.ts. The page is static HTML with the saved
- * values written in, for the Daily, Weekly and Custom profiles; this switches between them, loads
- * the voices and the live Nebius model list, runs the model combobox, and records the changes the
- * controls add up to in the shared bar: one schedule.set (every field of the three profiles that changed) and one writer.set
- * (provider and model). Sending them is managePageSave.ts, loaded the first time Save is pressed,
- * the same step the Topics page uses.
+ * The editor of the podcast settings pages, loaded by podcastEntry.ts. Each page is static HTML with
+ * the saved values written in: a profile page (Daily, Weekly, Custom) or the Model page. This loads
+ * the voices and the live Nebius model list, runs the model combobox, and records what the controls
+ * add up to: one schedule.set (every field that changed) or one writer.set (provider and model).
+ * autosave.ts sends them a moment later through managePageSave.ts, the step the Topics page uses.
  *
  * The option logic is pure and lives in lib/combobox.ts. Anthropic's two models are static and
  * never ask for the live list.
@@ -12,7 +11,8 @@
 import type { ModelOption } from "../lib/combobox";
 import { isModelId } from "../lib/modelId";
 import type { ConfigOp } from "../types/contracts";
-import type { Pending, SaveContext } from "./managePageSave";
+import { mountAutosave } from "./autosave";
+import type { Pending } from "./managePageSave";
 import type { FieldValues, scheduleOp as ScheduleOp } from "./podcastProfiles";
 
 export type Provider = "nebius" | "anthropic";
@@ -72,55 +72,19 @@ function element<K extends keyof HTMLElementTagNameMap>(
 }
 
 /**
- * Mounts the editor. podcastEntry.ts loads this file and the combobox's pure logic after the page's
- * first script, so neither counts against the first-load budget.
+ * Mounts the editor on whichever settings page holds it: a profile page (Daily, Weekly, Custom) has
+ * schedule fields, the Model page has the writer's vendor and model. podcastEntry.ts loads this file
+ * and the combobox's pure logic after the page's first script, so neither counts against the
+ * first-load budget. A change is recorded here and sent by autosave.ts a moment later.
  */
 export async function mount(root: HTMLElement): Promise<void> {
-  const lib = await import("../lib/combobox");
-  const { CLAUDE_OPTIONS, countText, filterOptions, labelFor, moveIndex, nebiusOptions } = lib;
-  const one = <T extends HTMLElement = HTMLElement>(selector: string): T =>
-    root.querySelector(selector) as T;
-  const bar = one("[data-bar]");
-  const text = one("[data-bar-text]");
-  const live = one("[data-live]");
-  const panel = one("[data-panel]");
+  const box = root.querySelector<HTMLElement>("[data-panel]") ?? root;
   const controls = root.querySelectorAll<HTMLInputElement | HTMLSelectElement>("[data-f]");
-  const box = panel;
-
-  const group = one("[data-models]");
-  const vendor = one<HTMLSelectElement>("#daily-vendor");
-  const input = one<HTMLInputElement>("#model-input");
-  const listbox = one<HTMLUListElement>("[data-list]");
-  const toggle = one<HTMLButtonElement>("[data-toggle]");
-  const count = one("[data-count]");
-  const fallback = one("[data-fallback]");
-  const typed = one<HTMLInputElement>("#model-typed");
-  const typedNote = one("[data-typed-note]");
-  const savedModel = group.dataset.saved ? group.dataset.saved : null;
-  const savedProvider: Provider = group.dataset.provider === "anthropic" ? "anthropic" : "nebius";
-  const provider = (): Provider => (vendor.value === "anthropic" ? "anthropic" : "nebius");
   const changes = new Map<string, Pending>();
   /** The diff, from the profiles script, which loads right after the page is up. */
   let ops: typeof ScheduleOp | undefined;
-
-  /** The live Nebius list: undefined until asked for, null when it failed. */
-  let nebius: ModelEntry[] | null | undefined;
-  let options: ModelOption[] = [];
-  let shown: ModelOption[] = [];
-  let selected: string | null = savedModel;
-  let active = -1;
-
-  const show = (message: string, state: string): void => {
-    text.textContent = message;
-    live.textContent = message;
-    bar.dataset.state = state;
-    bar.hidden = false;
-    root.setAttribute("data-pending", "");
-  };
-  const hide = (): void => {
-    bar.hidden = true;
-    root.removeAttribute("data-pending");
-  };
+  /** The writer edit the Model page's controls stand for, or null when they hold the saved one. */
+  let writer: (() => Pending | null) | undefined;
 
   /** What the schedule controls hold: the page's starting point and the test for "changed". */
   const fields = (): FieldValues => {
@@ -136,6 +100,69 @@ export async function mount(root: HTMLElement): Promise<void> {
     return out;
   };
 
+  /** Records what the controls now differ by. `save` is false while a typed id is still being typed. */
+  const update = (save = true): void => {
+    const now = fields();
+    const op = ops?.(JSON.parse(box.dataset.was ?? "{}") as FieldValues, now);
+    if (op) changes.set("schedule", { op, el: box, now: JSON.stringify(now) });
+    else changes.delete("schedule");
+    const edit = writer?.() ?? null;
+    if (edit) changes.set("writer", edit);
+    else changes.delete("writer");
+    if (save) autosave.changed();
+  };
+
+  const autosave = mountAutosave(root, changes, () => update(false));
+
+  root.addEventListener("change", (event) => {
+    const target = event.target as HTMLElement;
+    if (target.closest("[data-profile]")) update();
+  });
+
+  box.dataset.was = JSON.stringify(fields());
+  if (root.querySelector("[data-profile]")) {
+    void import("./podcastProfiles").then((module) => {
+      ops = module.scheduleOp;
+      module.mountProfiles(root, () => update(false));
+    });
+  }
+  const group = root.querySelector<HTMLElement>("[data-models]");
+  if (group) writer = await mountModel(root, group, update);
+  root.dataset.ready = "";
+}
+
+/**
+ * The Model page: the vendor select and the model combobox. Returns what the controls stand for as
+ * a pending writer edit, or null while they hold the saved choice.
+ */
+async function mountModel(
+  root: HTMLElement,
+  group: HTMLElement,
+  update: (save?: boolean) => void,
+): Promise<() => Pending | null> {
+  const lib = await import("../lib/combobox");
+  const { CLAUDE_OPTIONS, countText, filterOptions, labelFor, moveIndex, nebiusOptions } = lib;
+  const one = <T extends HTMLElement = HTMLElement>(selector: string): T =>
+    root.querySelector(selector) as T;
+  const vendor = one<HTMLSelectElement>("#daily-vendor");
+  const input = one<HTMLInputElement>("#model-input");
+  const listbox = one<HTMLUListElement>("[data-list]");
+  const toggle = one<HTMLButtonElement>("[data-toggle]");
+  const count = one("[data-count]");
+  const fallback = one("[data-fallback]");
+  const typed = one<HTMLInputElement>("#model-typed");
+  const typedNote = one("[data-typed-note]");
+  const savedModel = group.dataset.saved ? group.dataset.saved : null;
+  const savedProvider: Provider = group.dataset.provider === "anthropic" ? "anthropic" : "nebius";
+  const provider = (): Provider => (vendor.value === "anthropic" ? "anthropic" : "nebius");
+
+  /** The live Nebius list: undefined until asked for, null when it failed. */
+  let nebius: ModelEntry[] | null | undefined;
+  let options: ModelOption[] = [];
+  let shown: ModelOption[] = [];
+  let selected: string | null = savedModel;
+  let active = -1;
+
   /** The model the controls hold: a typed id when the list is unavailable, else the chosen option. */
   const choice = (): { model: string | null; valid: boolean } => {
     if (provider() === "nebius" && nebius === null && typed.value.trim() !== "") {
@@ -145,21 +172,13 @@ export async function mount(root: HTMLElement): Promise<void> {
     return { model: selected, valid: true };
   };
 
-  const update = (): void => {
-    const now = fields();
-    const op = ops?.(JSON.parse(box.dataset.was ?? "{}") as FieldValues, now);
-    if (op) changes.set("schedule", { op, el: box, now: JSON.stringify(now) });
-    else changes.delete("schedule");
-
+  const pending = (): Pending | null => {
     const { model, valid } = choice();
     typed.toggleAttribute("aria-invalid", !valid);
     typedNote.hidden = valid;
-    const writer = JSON.stringify([provider(), model]);
-    if (!valid || writer === group.dataset.was) changes.delete("writer");
-    else changes.set("writer", { op: modelOp(model, provider()), el: group, now: writer });
-
-    if (changes.size === 0) hide();
-    else show(changes.size === 1 ? "1 change" : `${changes.size} changes`, "idle");
+    const now = JSON.stringify([provider(), model]);
+    if (!valid || now === group.dataset.was) return null;
+    return { op: modelOp(model, provider()), el: group, now };
   };
 
   const isOpen = (): boolean => !listbox.hidden;
@@ -263,7 +282,7 @@ export async function mount(root: HTMLElement): Promise<void> {
         ? [...CLAUDE_OPTIONS]
         : nebiusOptions(nebius ?? null, savedFor("nebius"));
     fallback.hidden = !(provider() === "nebius" && nebius === null);
-    input.value = labelFor(options, selected);
+    if (!isOpen()) input.value = labelFor(options, selected);
   };
   const savedFor = (which: Provider): string | null =>
     which === savedProvider ? savedModel : null;
@@ -282,24 +301,13 @@ export async function mount(root: HTMLElement): Promise<void> {
     root.dataset.loaded = "";
   };
 
-  const context: SaveContext = {
-    changes,
-    show,
-    fields: one("[data-fields]"),
-    dialog: one("dialog"),
-  };
-
   vendor.addEventListener("change", () => {
     // Each vendor starts on its first model: Automatic on Nebius, Claude Sonnet on Anthropic.
     selected = provider() === "anthropic" ? (CLAUDE_OPTIONS[0]?.id ?? null) : null;
     typed.value = "";
-    if (provider() === "nebius" && nebius === undefined) void load().then(update);
+    if (provider() === "nebius" && nebius === undefined) void load().then(() => update());
     refresh();
     update();
-  });
-  root.addEventListener("change", (event) => {
-    const target = event.target as HTMLElement;
-    if (target.closest("[data-panel]") && target !== vendor) update();
   });
 
   input.addEventListener("input", () => open(input.value, true));
@@ -355,25 +363,13 @@ export async function mount(root: HTMLElement): Promise<void> {
     if (isOpen()) close();
     else browse();
   });
-  typed.addEventListener("input", update);
+  // A typed id is saved once it is finished (Enter or leaving the field), not letter by letter.
+  typed.addEventListener("input", () => update(false));
+  typed.addEventListener("change", () => update());
 
-  root.addEventListener("click", (event) => {
-    const button = (event.target as Element).closest("button");
-    const act = button?.dataset.act;
-    if (act === "save") void import("./managePageSave").then((module) => module.save(context));
-    else if (act === "close") context.dialog.close();
-    else if (act === "dismiss") hide();
-    else if (act === "discard") location.reload();
-  });
-
-  box.dataset.was = JSON.stringify(fields());
-  void import("./podcastProfiles").then((module) => {
-    ops = module.scheduleOp;
-    module.mountProfiles(root, update);
-  });
   group.dataset.was = JSON.stringify([savedProvider, savedModel]);
   refresh();
-  root.dataset.ready = "";
   if (provider() === "nebius") void load();
   else root.dataset.loaded = "";
+  return pending;
 }

@@ -87,4 +87,29 @@ export function installNavigation(): void {
     isNavigating = false;
     document.querySelector<HTMLElement>("main h1")?.focus({ preventScroll: true });
   });
+
+  // Pressing the destination you are already on takes you back to its top, as a native tab bar does,
+  // instead of loading the same page again. From a page below it (a briefing under Library) the
+  // press goes to the destination as usual. Captured first, so the router never sees it.
+  document.addEventListener(
+    "click",
+    (event) => {
+      if (event.button !== 0 || event.metaKey || event.ctrlKey || event.shiftKey || event.altKey)
+        return;
+      const link = (event.target as Element | null)?.closest<HTMLAnchorElement>(
+        "a.app-nav-item[aria-current='page']",
+      );
+      if (!link || !isSamePage(new URL(link.href), new URL(location.href))) return;
+      event.preventDefault();
+      event.stopPropagation();
+      const reduce = matchMedia("(prefers-reduced-motion: reduce)").matches;
+      window.scrollTo({ top: 0, behavior: reduce ? "instant" : "smooth" });
+    },
+    { capture: true },
+  );
+}
+
+/** True when a link points at the page on screen. */
+export function isSamePage(link: URL, here: URL): boolean {
+  return link.origin === here.origin && normalize(link.pathname) === normalize(here.pathname);
 }

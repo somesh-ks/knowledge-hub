@@ -1,8 +1,8 @@
 /**
- * The Topics & sources editor, loaded the first time a switch, a slider, a remove button or Add
- * source is used (topicsPage.ts forwards the event that woke it). It records each change as an op,
- * counts them in the bar, and sends them on Save through managePageSave.ts. The Add source panel is
- * topicsSheet.ts, loaded when it is first opened.
+ * The Topics editor, loaded the first time a switch, a slider, a remove button or Add source is used
+ * (topicsPage.ts forwards the event that woke it). It records each change as an op, and autosave.ts
+ * sends it a moment later through managePageSave.ts. The Add source panel is topicsSheet.ts, loaded
+ * when it is first opened.
  *
  * The page is built with every control at its saved state, so what the editor holds is a comparison:
  * a control that differs from the state it was built (or last saved) in is a pending change.
@@ -10,7 +10,8 @@
  * The pure parts are exported and tested; the rest is wiring.
  */
 import type { ConfigOp } from "../types/contracts";
-import type { Pending, SaveContext } from "./managePageSave";
+import { mountAutosave } from "./autosave";
+import type { Pending } from "./managePageSave";
 import type { Chosen } from "./topicsSheet";
 import { bandOf, element, iconNode, scoreNode } from "./topicsView";
 
@@ -76,56 +77,51 @@ export interface Editor {
 export function mountEditor(root: HTMLElement): Editor {
   const one = <T extends HTMLElement = HTMLElement>(selector: string): T =>
     root.querySelector(selector) as T;
-  const bar = one("[data-bar]");
-  const text = one("[data-bar-text]");
-  const live = one("[data-live]");
   const queued = one("[data-queued]");
   const taken = (root.dataset.taken ?? "").split(" ");
   /** Each pending change by a key: an op string and its field, or the key of a queued row. */
   const changes = new Map<string, Pending>();
   let added = 0;
 
-  const show = (message: string, state: string): void => {
-    text.textContent = message;
-    live.textContent = message;
-    bar.dataset.state = state;
-    bar.hidden = false;
-    root.setAttribute("data-pending", "");
-  };
-  const refresh = (): void => {
-    const count = changes.size;
-    if (count > 0) show(`${count} ${count === 1 ? "change" : "changes"}`, "idle");
-    else {
-      bar.hidden = true;
-      root.removeAttribute("data-pending");
-    }
-  };
-
   /** Records or drops the change a control stands for. */
-  const update = (control: Control): void => {
+  const record = (control: Control): void => {
     const key = (control.dataset.op ?? "") + (control.dataset.field ?? "");
     const now = String(held(control));
     if (now === control.dataset.was) changes.delete(key);
     else changes.set(key, { op: editOf(control), el: control, now });
-    refresh();
+  };
+  const update = (control: Control): void => {
+    record(control);
+    autosave.changed();
   };
 
-  const context: SaveContext = {
+  // After each save every control is compared again with what it was saved as. A removal waits with
+  // an Undo in the toast; Undo presses each removal's button again.
+  const controls = [...root.querySelectorAll<Control>("[data-op]")];
+  const removals = (): HTMLButtonElement[] =>
+    [...changes.values()]
+      .map(({ el }) => el)
+      .filter((el): el is HTMLButtonElement => el.matches("button[data-remove]"));
+  const autosave = mountAutosave(
+    root,
     changes,
-    show,
-    fields: one("[data-fields]"),
-    dialog: root.querySelector("dialog") as HTMLDialogElement,
-  };
-
-  // A source added from the panel says so in its row once the save has gone through.
-  new MutationObserver(() => {
-    if (bar.dataset.state !== "done") return;
-    for (const row of root.querySelectorAll<HTMLElement>(".source-row[data-key]")) {
-      if (changes.has(row.dataset.key ?? "")) continue;
-      const note = row.querySelector(".source-note");
-      if (note) note.textContent = "Added. It appears after the next build.";
-    }
-  }).observe(bar, { attributes: true, attributeFilter: ["data-state"] });
+    () => {
+      for (const control of controls)
+        if (control.isConnected && !control.closest("[data-gone]")) record(control);
+    },
+    {
+      removing() {
+        const names = removals().map((button) =>
+          (button.dataset.label ?? "").replace(/^Remove /, ""),
+        );
+        if (names.length === 0) return null;
+        return names.length === 1 ? `Removing ${names[0]}` : `Removing ${names.length} items`;
+      },
+      undo() {
+        for (const button of removals()) press(button);
+      },
+    },
+  );
 
   // ------------------------------------------------------------------------------------ adding
 
@@ -139,7 +135,7 @@ export function mountEditor(root: HTMLElement): Editor {
     row.querySelector("button")?.setAttribute("aria-label", `Cancel adding ${name}`);
     queued.append(row);
     changes.set(row.dataset.key, { op, el: row, now: "" });
-    refresh();
+    autosave.changed();
   };
 
   const addTopic = (form: HTMLFormElement): void => {
@@ -204,7 +200,7 @@ export function mountEditor(root: HTMLElement): Editor {
     row.dataset.score = String(preview.score);
     row.dataset.name = preview.name.toLowerCase();
     const label = element("span", "source-text");
-    const note = element("span", "source-note", "Adding when you save");
+    const note = element("span", "source-note", "Adding");
     label.append(element("span", "source-name", preview.name), note);
     row.append(
       iconNode(preview.favicon_url ?? preview.thumbnail_url),
@@ -212,25 +208,24 @@ export function mountEditor(root: HTMLElement): Editor {
       scoreNode(preview.score, preview.score_label),
       element("span", "source-slot"),
     );
+    // On a topic's page the row joins its list; on the Topics list it waits under Add source until
+    // the build files it under its topic.
     const topic = [...root.querySelectorAll<HTMLElement>(".topic")].find(
-      (item) => item.dataset.id === topic_id,
+      (item) => item.dataset.id === (topic_id ?? ""),
     );
-    const list = topic?.querySelector("[data-sources]") ?? one(".topic-other [data-sources]");
+    const list =
+      topic?.querySelector("[data-sources]") ??
+      root.querySelector("[data-added]") ??
+      one("[data-sources]");
     list.prepend(row);
-    // The page may be filtered; a source that was just added is always shown.
-    if (root.dataset.band && root.dataset.band !== "all") {
-      root.dataset.band = "all";
-      const bandFilter = root.querySelector<HTMLSelectElement>("select[data-band-filter]");
-      if (bandFilter) bandFilter.value = "all";
-    }
     row.scrollIntoView({ block: "center" });
     changes.set(key, {
       op: { op: "source.add", url, ...(topic_id ? { topic_ids: [topic_id] } : {}) },
       el: note,
       now: "",
     });
-    refresh();
-    void import("./managePageSave").then((module) => module.save(context));
+    // Chosen in the panel, a source is a decision already made: it goes now, with anything waiting.
+    autosave.now();
   };
 
   const openPanel = (trigger: HTMLElement): void => {
@@ -246,14 +241,10 @@ export function mountEditor(root: HTMLElement): Editor {
     const act = button.dataset.act;
     const row = button.closest<HTMLElement>("li");
     if ("addSource" in button.dataset) openPanel(button);
-    else if (act === "save") void import("./managePageSave").then((module) => module.save(context));
-    else if (act === "close") context.dialog.close();
-    else if (act === "dismiss") refresh();
-    else if (act === "discard") location.reload();
     else if (act === "cancel" && row) {
       changes.delete(row.dataset.key ?? "");
       row.remove();
-      refresh();
+      autosave.changed();
     } else if (button.dataset.op) {
       const control = button as unknown as Control;
       const pressed = !held(control);
@@ -266,7 +257,6 @@ export function mountEditor(root: HTMLElement): Editor {
 
   // Each control remembers how the page was built, so putting it back drops the change; whatever
   // was moved before this loaded is picked up now.
-  const controls = [...root.querySelectorAll<Control>("[data-op]")];
   for (const control of controls) control.dataset.was = builtAs(control);
   for (const control of controls)
     if (String(held(control)) !== control.dataset.was) update(control);

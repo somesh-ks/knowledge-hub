@@ -43,28 +43,33 @@ export const WEEKDAYS = [
   "Saturday",
 ] as const;
 
+/** A type's name: "Readout". A schedule saved before Headlines left the forms still reads as Headlines. */
+function formatLabel(format: string): string {
+  if (format === "headlines") return "Headlines";
+  return FORMATS.find((entry) => entry.value === format)?.label ?? "";
+}
+
 /**
- * The one line the Settings index shows for the Podcast row: "Daily 07:00 · Weekly Sun · Readout".
- * The weekly part is left out while the weekly podcast is off. The page behind it holds the controls.
+ * What each row of the Settings index says about the page behind it, in a few words worked out when
+ * the site is built: "Every second day at 07:00", "Sundays at 07:00" or "Off", "Discussion, 5 min".
  */
-export function podcastSummary(input: {
-  hour: number;
-  format: string;
-  weekly: { enabled: boolean; day: number };
-}): string {
-  // A schedule saved before Headlines was dropped from the forms still reads as Headlines.
-  const format =
-    input.format === "headlines"
-      ? "Headlines"
-      : (FORMATS.find((entry) => entry.value === input.format)?.label ?? "");
-  const weekday = WEEKDAYS[input.weekly.day]?.slice(0, 3) ?? "";
-  return [
-    `Daily ${hourLabel(input.hour)}`,
-    input.weekly.enabled && weekday !== "" ? `Weekly ${weekday}` : "",
-    format,
-  ]
+export function dailySummary(input: { hour: number; cadenceDays: number }): string {
+  const cadence =
+    CADENCES.find((entry) => entry.days === input.cadenceDays)?.label ??
+    `Every ${input.cadenceDays} days`;
+  return `${cadence} at ${hourLabel(input.hour)}`;
+}
+
+export function weeklySummary(input: { enabled: boolean; day: number; hour: number }): string {
+  const day = WEEKDAYS[input.day];
+  if (!input.enabled || !day) return "Off";
+  return `${day}s at ${hourLabel(input.hour)}`;
+}
+
+export function customSummary(input: { format: string; length_minutes: number }): string {
+  return [formatLabel(input.format), `${input.length_minutes} min`]
     .filter((part) => part !== "")
-    .join(" · ");
+    .join(", ");
 }
 
 function addDays(date: string, days: number): string {

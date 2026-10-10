@@ -333,7 +333,7 @@
   --scrubber-tick-dot: 0.3125rem;
   --scrubber-bubble-radius: var(--radius-sm);
   --scrubber-detent-hysteresis: 0.02;
-  --segmented-height: var(--size-touch);
+  --segmented-height: var(--size-touch-comfortable);
   --segmented-padding: var(--space-1);
   --segmented-radius: var(--radius-md);
   --segmented-segment-radius: var(--radius-sm);

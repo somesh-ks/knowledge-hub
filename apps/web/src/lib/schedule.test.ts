@@ -1,5 +1,12 @@
 import { describe, expect, it } from "vitest";
-import { hourLabel, nextBriefing, nextWeekly, podcastSummary } from "./schedule";
+import {
+  customSummary,
+  dailySummary,
+  hourLabel,
+  nextBriefing,
+  nextWeekly,
+  weeklySummary,
+} from "./schedule";
 
 describe("hourLabel", () => {
   it("pads to two digits", () => {
@@ -8,15 +15,21 @@ describe("hourLabel", () => {
   });
 });
 
-describe("podcastSummary", () => {
-  it("reads as the daily time, the weekly day and the type", () => {
-    const weekly = { enabled: true, day: 0 };
-    expect(podcastSummary({ hour: 7, format: "readout", weekly })).toBe(
-      "Daily 07:00 · Weekly Sun · Readout",
-    );
-    expect(
-      podcastSummary({ hour: 18, format: "headlines", weekly: { enabled: false, day: 3 } }),
-    ).toBe("Daily 18:00 · Headlines");
+describe("the Settings rows", () => {
+  it("say when the daily podcast runs", () => {
+    expect(dailySummary({ hour: 7, cadenceDays: 2 })).toBe("Every second day at 07:00");
+    expect(dailySummary({ hour: 18, cadenceDays: 1 })).toBe("Every day at 18:00");
+    expect(dailySummary({ hour: 6, cadenceDays: 5 })).toBe("Every 5 days at 06:00");
+  });
+
+  it("say when the weekly podcast runs, or that it is off", () => {
+    expect(weeklySummary({ enabled: true, day: 0, hour: 7 })).toBe("Sundays at 07:00");
+    expect(weeklySummary({ enabled: false, day: 0, hour: 7 })).toBe("Off");
+  });
+
+  it("say what Create starts from, Headlines included for an old file", () => {
+    expect(customSummary({ format: "discussion", length_minutes: 5 })).toBe("Discussion, 5 min");
+    expect(customSummary({ format: "headlines", length_minutes: 3 })).toBe("Headlines, 3 min");
   });
 });
 

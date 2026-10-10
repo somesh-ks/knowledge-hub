@@ -13,21 +13,30 @@
   padding-block: var(--space-4) 0;
 }
 
-/* The two selects sit side by side under the label on a phone, and at the end of the row from 40rem. */
+/* On a phone the selects stack under their label at full width, so "Every second day" and
+   "Wednesday" are never cut, at any text size. From 40rem they sit side by side at the end of the
+   row: the time takes two fifths beside the cadence, and three beside the weekday, which comes first.
+   Every control in the column, segmented choices included, is one width and starts at one edge. */
 .daily-selects {
   display: grid;
-  grid-template-columns: repeat(2, minmax(0, 1fr));
+  grid-template-columns: minmax(0, 1fr);
   flex: 1 1 100%;
   gap: var(--space-2);
   min-width: 0;
 }
 
 @media (min-width: 40rem) {
-  /* The cadence reads "Every second day": the row gives the pair more than a segmented choice gets,
-     and the time, which is five characters, less than half of it. */
   .daily-selects {
     flex: 0 0 calc(var(--settings-control-width) * 1.4);
     grid-template-columns: minmax(0, 2fr) minmax(0, 3fr);
+  }
+
+  .daily-selects:has(#weekly-day) {
+    grid-template-columns: minmax(0, 3fr) minmax(0, 2fr);
+  }
+
+  .daily-panel .settings-row > .settings-choice {
+    flex-basis: calc(var(--settings-control-width) * 1.4);
   }
 }
 
@@ -211,10 +220,10 @@
   padding-block-start: var(--space-1);
 }
 
-/* The profile switch is a segmented choice of its own width; the rows under it are the profile's. */
-.podcast-switch {
-  inline-size: 100%;
-  max-inline-size: var(--settings-control-width);
+/* Off, the weekly podcast is one switch: its other rows and its next run wait until it is on. */
+.manage:has(#weekly-enabled:not(:checked))
+:is(.podcast-profile > .rows > :not(:first-child), [data-next]) {
+  display: none;
 }
 
 .podcast-profile {
@@ -230,6 +239,12 @@
 
 .daily-selects.podcast-voice:not(:has([data-preview]:not([hidden]))) {
   grid-template-columns: minmax(0, 1fr);
+}
+
+/* The sample button shows what a press does next: play, or pause while the sample plays. */
+.podcast-sample[aria-pressed="true"] .sample-play,
+.podcast-sample:not([aria-pressed="true"]) .sample-pause {
+  display: none;
 }
 
 /* The filter and the typed id are drawn like the selects: an outline on the page's own surface.

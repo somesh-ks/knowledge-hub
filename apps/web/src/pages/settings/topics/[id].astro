@@ -1,0 +1,169 @@
+---
+import Icon from "../../../components/Icon.astro";
+import ManageChrome from "../../../components/ManageChrome.astro";
+import SettingsHead from "../../../components/SettingsHead.astro";
+import SourceRow from "../../../components/SourceRow.astro";
+import SourceSheet from "../../../components/SourceSheet.astro";
+import BaseLayout from "../../../layouts/BaseLayout.astro";
+import { loadManage, type ManageSource, type ManageTopic } from "../../../lib/manage";
+import { OTHER_ID, percent, snap, sourcesByTopic, WEIGHT_STEP } from "../../../lib/topicPages";
+import "../../../styles/settings.css";
+import "../../../styles/manage.css";
+import "../../../styles/topics.css";
+
+/** One page per topic, and one for the sources that feed no topic yet. */
+export async function getStaticPaths() {
+  const { topics, sources } = await loadManage();
+  const groups = sourcesByTopic(topics, sources);
+  const choices = topics
+    .filter((topic) => !topic.never_publish)
+    .map((topic) => ({ id: topic.id, name: topic.name }));
+  return [
+    ...topics.map((topic) => ({
+      params: { id: topic.id },
+      props: { topic, list: groups.get(topic.id) ?? [], choices, taken: topics.map((t) => t.id) },
+    })),
+    {
+      params: { id: OTHER_ID },
+      props: {
+        topic: null,
+        list: groups.get(OTHER_ID) ?? [],
+        choices,
+        taken: topics.map((t) => t.id),
+      },
+    },
+  ];
+}
+
+interface Props {
+  topic: ManageTopic | null;
+  list: ManageSource[];
+  choices: { id: string; name: string }[];
+  taken: string[];
+}
+
+const { topic, list, choices, taken } = Astro.props;
+const name = topic?.name ?? "Other";
+const note = topic ? topic.description : "Sources that feed no topic yet.";
+const editable = topic !== null && !topic.never_publish;
+---
+
+<BaseLayout title={name} view="settings" skipLabel={`Skip to ${name}`}>
+  <main id="main" tabindex="-1">
+    {/* A topic's page: whether it is in the briefings, how much it counts, and its sources. The
+         controls carry the edit they stand for (data-op); topicsEditor.ts records a change and
+         autosave.ts sends it a moment later. */}
+    <div class="manage topics topic-page" data-topics data-taken={[...taken, OTHER_ID].join(" ")}>
+      <SettingsHead title={name} up={{ href: "/settings/topics", label: "Topics" }} note={note} />
+      <noscript>
+        <p class="manage-note">Changing topics and sources needs JavaScript, which is turned off in this browser.</p>
+      </noscript>
+
+      <fieldset class="manage-fields" data-fields>
+        <legend class="sr-only">{name}</legend>
+        <div class="topic" data-id={topic?.id ?? ""} data-topic>
+          {
+            editable && topic && (
+              <div class="rows topic-controls">
+                <div class="settings-row">
+                  <label class="settings-label" for={`enabled-${topic.id}`}>In briefings</label>
+                  <input
+                    class="settings-switch"
+                    id={`enabled-${topic.id}`}
+                    type="checkbox"
+                    role="switch"
+                    autocomplete="off"
+                    checked={topic.enabled}
+                    data-op={JSON.stringify({
+                      op: "topic.upsert",
+                      topic: {
+                        id: topic.id,
+                        name: topic.name,
+                        description: topic.description,
+                        weight: topic.weight,
+                        enabled: topic.enabled,
+                        keywords: topic.keywords,
+                        section_id: topic.section_id,
+                      },
+                    })}
+                    data-field="topic.enabled"
+                  />
+                </div>
+                <div class="settings-row topic-weight">
+                  <label class="settings-label" for={`weight-${topic.id}`}>Weight</label>
+                  <input
+                    class="settings-range"
+                    id={`weight-${topic.id}`}
+                    type="range"
+                    min="0"
+                    max="1"
+                    step={WEIGHT_STEP}
+                    value={snap(topic.weight).toFixed(2)}
+                    autocomplete="off"
+                    aria-valuetext={percent(topic.weight)}
+                    style={`--range-fill: ${snap(topic.weight) * 100}%`}
+                    data-op={JSON.stringify({ op: "weights.set", weights: {} })}
+                    data-field={`weights.${topic.id}`}
+                    data-weight
+                  />
+                  <output class="topic-percent" for={`weight-${topic.id}`} data-word>{percent(topic.weight)}</output>
+                </div>
+              </div>
+            )
+          }
+          {topic?.never_publish && <p class="manage-quiet topic-never">Never in a briefing.</p>}
+
+          <h2 class="section-head">Sources</h2>
+          <ul class="topic-sources" role="list" data-sources aria-label={`${name} sources`}>
+            {list.map((source) => <SourceRow source={source} />)}
+          </ul>
+          <p class="manage-quiet topic-empty">No sources yet.</p>
+          {
+            (topic === null || editable) && (
+              <button
+                class="btn topic-add-source press press-subtle"
+                type="button"
+                aria-label={`Add source to ${name}`}
+                data-add-source={topic?.id ?? ""}
+                data-needs-js
+              >
+                <Icon name="plus" />
+                <span>Add source</span>
+              </button>
+            )
+          }
+          {
+            topic?.origin === "custom" && (
+              <div class="topic-remove-row">
+                <button
+                  class="btn topic-remove press press-subtle"
+                  type="button"
+                  aria-pressed="false"
+                  aria-label={`Remove ${name}`}
+                  data-label={`Remove ${name}`}
+                  data-label-undo={`Keep ${name}`}
+                  data-op={JSON.stringify({ op: "topic.remove", id: topic.id })}
+                  data-remove
+                >
+                  <Icon name="trash" />
+                  <span class="topic-remove-do">Remove topic</span>
+                  <span class="topic-remove-undo">Keep topic</span>
+                </button>
+              </div>
+            )
+          }
+          <p class="manage-quiet topic-gone">Removed. The page goes after the next build.</p>
+        </div>
+      </fieldset>
+
+      <ManageChrome />
+      <SourceSheet topics={choices} />
+    </div>
+  </main>
+</BaseLayout>
+
+<script>
+  import { installTopicsPage } from "../../../scripts/topicsPage";
+
+  installTopicsPage();
+</script>

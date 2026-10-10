@@ -62,8 +62,16 @@
   opacity: 1;
 }
 
-/* A row runs the width of its column, so a ring drawn outside it is cut by the column's edge. */
+/* The ring takes the fill's shape, past the gutters and clear of the text: drawn on the column's own
+   box it would run through the first letters and the chevron. */
 .row-action:focus-visible {
+  outline: none;
+  box-shadow: none;
+}
+
+.row-action:focus-visible::after {
+  opacity: 1;
+  outline: var(--stroke-ring) solid var(--color-focus-ring);
   outline-offset: calc(var(--stroke-ring) * -1);
 }
 
@@ -249,10 +257,14 @@
     display: none;
   }
 
-  /* Drawn, a select is a flex box with a little padding of its own: its text would ride at the top. */
+  /* Drawn, a select is a flex box with a little padding of its own: its text would ride at the top,
+     and a long choice would wrap onto a second line. It stays on one, and an ellipsis ends it. */
   :is(.manage-select, .sort-field, .create-select) > select {
     align-items: center;
     padding-block: 0;
+    overflow: hidden;
+    white-space: nowrap;
+    text-overflow: ellipsis;
   }
 
   :is(.manage-select, .sort-field, .create-select) > select::picker(select) {

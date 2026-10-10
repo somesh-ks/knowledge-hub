@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import type { ConfigOp } from "../types/contracts";
-import { buildQueue, failureText, type Pending } from "./managePageSave";
+import { buildQueue, failureText, MAX_OPS, type Pending, pack, settle } from "./managePageSave";
 import { idText, keywordList, slugify } from "./topicsEditor";
 import { problemText, webAddress } from "./topicsSheet";
 
@@ -76,26 +76,102 @@ describe("problemText", () => {
 });
 
 describe("failureText", () => {
-  it("names the refusal and says the changes are kept", () => {
-    expect(failureText(401, 0, 3)).toBe("Saving was refused. Your changes are still waiting.");
-    expect(failureText(503, 0, 1)).toBe(
-      "Saving is not available right now. Your changes are still waiting.",
-    );
-    expect(failureText(0, 0, 1)).toBe(
-      "The site could not be reached. Your changes are still waiting.",
-    );
-  });
-
-  it("says how many were saved when the queue stopped part of the way", () => {
-    expect(failureText(400, 2, 5)).toBe(
-      "Saved 2 of 5. That change was not accepted. The rest is still waiting.",
-    );
+  it("names the refusal and says the change is not saved yet", () => {
+    expect(failureText(401)).toBe("Saving was refused. Not saved yet.");
+    expect(failureText(503)).toBe("Saving is not available right now. Not saved yet.");
+    expect(failureText(0)).toBe("The site could not be reached. Not saved yet.");
+    expect(failureText(400)).toBe("That change was not accepted. Not saved yet.");
   });
 
   it("never asks for the passphrase back in a message that is not about it", () => {
     for (const status of [400, 429, 503, 0]) {
-      expect(failureText(status, 0, 1)).not.toMatch(/passphrase/i);
+      expect(failureText(status)).not.toMatch(/passphrase/i);
     }
+  });
+});
+
+describe("pack", () => {
+  const control = (): HTMLElement =>
+    ({ matches: () => false, dataset: {} }) as unknown as HTMLElement;
+  const edit = (id: string): ConfigOp => ({ op: "source.set", id, enabled: false });
+
+  it("sends every pending edit in one request when the server takes them all", () => {
+    const changes = new Map<string, Pending>([
+      ["a", { op: edit("a"), el: control(), now: "false" }],
+      ["b", { op: edit("b"), el: control(), now: "false" }],
+    ]);
+    const batches = pack(buildQueue(changes), changes);
+    expect(batches).toHaveLength(1);
+    expect(batches[0]?.ops.map((op) => (op as { id: string }).id)).toEqual(["a", "b"]);
+    expect(batches[0]?.sent.map(([key]) => key)).toEqual(["a", "b"]);
+  });
+
+  it("starts a new request at the server's limit, and never splits a topic from its sources", () => {
+    const changes = new Map<string, Pending>(
+      Array.from({ length: MAX_OPS - 1 }, (_, n): [string, Pending] => [
+        `e${n}`,
+        { op: edit(`e${n}`), el: control(), now: "false" },
+      ]),
+    );
+    const add: ConfigOp = { op: "source.add", url: "https://a.example/feed" };
+    changes.set("new1", {
+      op: {
+        op: "topic.upsert",
+        topic: {
+          id: "audio",
+          name: "Audio",
+          description: "Audio.",
+          weight: 0.5,
+          enabled: true,
+          keywords: [],
+          section_id: "audio",
+        },
+      },
+      with: [add],
+      el: { matches: () => false, dataset: {}, closest: () => null } as unknown as HTMLElement,
+      now: "",
+    });
+    const batches = pack(buildQueue(changes), changes);
+    expect(batches.map((batch) => batch.ops.length)).toEqual([MAX_OPS - 1, 2]);
+    expect(batches[1]?.ops.map((op) => op.op)).toEqual(["topic.upsert", "source.add"]);
+  });
+});
+
+describe("settle", () => {
+  const control = (): HTMLElement =>
+    ({ matches: () => false, dataset: {} as Record<string, string> }) as unknown as HTMLElement;
+
+  it("makes the sent value a control's new starting point and clears its change", () => {
+    const el = control();
+    const sent: Pending = { op: { op: "source.set", id: "a", enabled: false }, el, now: "false" };
+    const changes = new Map([["a", sent]]);
+    settle({ ops: [sent.op], sent: [["a", sent]] }, changes);
+    expect(el.dataset.was).toBe("false");
+    expect(changes.size).toBe(0);
+  });
+
+  it("makes a pressed remove button's state its starting point, so it is not sent again", () => {
+    const row = { setAttribute: () => undefined };
+    const el = {
+      matches: (selector: string) => selector === "[data-remove]",
+      closest: () => row,
+      dataset: {} as Record<string, string>,
+    } as unknown as HTMLElement;
+    const sent: Pending = { op: { op: "source.set", id: "a", enabled: false }, el, now: "true" };
+    const changes = new Map([["a", sent]]);
+    settle({ ops: [sent.op], sent: [["a", sent]] }, changes);
+    expect(el.dataset.was).toBe("true");
+    expect(changes.size).toBe(0);
+  });
+
+  it("keeps a change made while the request was on its way, for the next one", () => {
+    const el = control();
+    const sent: Pending = { op: { op: "source.set", id: "a", enabled: false }, el, now: "false" };
+    const newer: Pending = { op: { op: "source.set", id: "a", enabled: true }, el, now: "true" };
+    const changes = new Map([["a", newer]]);
+    settle({ ops: [sent.op], sent: [["a", sent]] }, changes);
+    expect(el.dataset.was).toBe("false");
+    expect(changes.get("a")).toBe(newer);
   });
 });
 

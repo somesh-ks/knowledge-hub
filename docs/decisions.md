@@ -58,8 +58,9 @@ D1 to D9 date from plan v2 (2026-10-05). D10 to D25 date from 2026-10-06. Reason
 | D46 | The writer's provider and model are chosen in Settings | active |
 | D47 | A move between pages is answered from a saved copy and swapped at once | active |
 | D48 | One shader: a light in the cover's colours behind the header, on a GPU only | active |
-| D49 | One Podcast settings page: Daily, Weekly and Custom profiles, a shared writer vendor and model, topics and sources clubbed | active |
+| D49 | One Podcast settings page: Daily, Weekly and Custom profiles, a shared writer vendor and model, topics and sources clubbed | page layout superseded by D51 |
 | D50 | The open player: a speed slider, Chapters or a Speechify-style transcript, word marks stored beside each segment | active |
+| D51 | Settings is two levels and saves itself; every select opens one drawn list | active |
 
 ---
 
@@ -484,4 +485,13 @@ D1 to D9 date from plan v2 (2026-10-05). D10 to D25 date from 2026-10-06. Reason
 - Why: the owner asked for each of these, and for a mobile layout that is clean and optically balanced.
 - Cost: a newly narrated segment costs 2 advanced Blob operations instead of 1 (about 48 newly narrated briefings a month on the Hobby quota); the owner accepted it. A screen-reader user on a phone has no visible close control, only the focus-revealed button.
 - Rejected: fetching marks from the Blob host in the browser (needs `connect-src` loosened); returning marks from the narration lookup (a store read per segment on every lookup); the speed beside play on a phone (pulls the row off its axis).
+
+## D51: Settings is two levels and saves itself; every select opens one drawn list
+
+- Date: 2026-10-10
+- Decision: The Settings index lists one row per page, each saying what it holds now: Daily, Weekly, Custom, Topics and Model under Podcast; sounds, the theme and About stay on the index. Each page has one job: `/settings/daily`, `/settings/weekly` and `/settings/custom` hold one profile each (Weekly is one switch while it is off); `/settings/model` the writer; `/settings/topics` lists the topics, each leading to its own page (`/settings/topics/<id>`, and `/settings/topics/other` for sources with no topic) with its switch, its weight and its sources. A page's title carries the way back: "Settings > Daily", the parent muted at the title's own size, so there is no back button, no tab bar and no small line above a title. Changes save themselves (`scripts/autosave.ts`): a change waits until the controls have been still for 1.2 s, then every pending edit goes in one request (up to eight ops); a 429 waits as asked and then sends whatever is pending by then; a removal waits 5 s with Undo in the toast; hiding or leaving the page sends what is waiting. The status is the app's toast: Saving, Saved, or the error with Retry. Every select (Settings, Library, Topics, the Create panel, Add source) opens the model list's drawn list through `appearance: base-select`, set in one place (`primitives.css`); browsers without it keep the native list. The model field reads as a select: the hand cursor at rest, the caret once focused, and a press opens the whole list.
+- Why: the owner called the podcast settings complex with too many controls, asked for breadcrumbs instead of the back button, for autosave instead of Save, and for every dropdown to look like the Anthropic model list.
+- Cost: topics are one level deeper; a removal takes 5 s to send; there is no Discard (a change is undone by changing it back, a removal by Undo); each save is still a `config.yml` run and a commit, about a minute to show.
+- Rejected: saving on every change with no settle (a commit per step, and the server's 10 s cooldown); keeping Save for removals only (two ways of saving); a breadcrumb in small text above the title (the owner's type rule); the score filter and sort on Topics (sources are already split by topic and listed best first); a scripted select for every browser (weight on every page that has one, and `base-select` covers Chromium and Safari 27).
+- Supersedes: D49's page layout (one Podcast page with a profile switch and two tabs). Its data model (profiles, one shared writer, topics with weights and scored sources) stands.
 
