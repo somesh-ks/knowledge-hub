@@ -44,6 +44,20 @@ function place(panel: HTMLElement, button: HTMLElement | null): DOMRect | null {
 }
 
 /**
+ * With a finger the panel opens below the button, clear of the transport above it. When the window
+ * has no room there, the page scrolls up by the shortfall first (when it has that much to give)
+ * rather than the panel flipping over the controls.
+ */
+function makeRoom(panel: HTMLElement, button: HTMLElement | null): void {
+  if (!button || !window.matchMedia("(pointer: coarse)").matches) return;
+  const page = button.closest<HTMLElement>("[data-player-page]");
+  if (!page) return;
+  const needed = button.getBoundingClientRect().bottom + PANEL_GAP_PX + panel.offsetHeight;
+  const shortfall = needed - (window.innerHeight - PANEL_GAP_PX);
+  if (shortfall > 0) page.scrollBy({ top: shortfall, behavior: "instant" });
+}
+
+/**
  * The speed: a button between the two skips that shows it, and a panel with a slider from half
  * speed to double (pitch preserved) and the common speeds under it. The panel is a modal dialog: a
  * press outside it lands on its backdrop, which closes it and reaches nothing underneath. Escape
@@ -89,7 +103,9 @@ export default function SpeedControl() {
     const panel = panelRef.current;
     if (!panel || panel.open) return;
     panel.showModal();
-    // Measured once it is laid out, so the side is chosen from its real height.
+    // Measured once it is laid out, so the side is chosen from its real height. The scroll comes
+    // first and the watch for scrolls starts after it (in the effect), so it cannot close the panel.
+    makeRoom(panel, buttonRef.current);
     place(panel, buttonRef.current);
     panel.querySelector<HTMLElement>(".speed-slider")?.focus({ preventScroll: true });
     setOpen(true);

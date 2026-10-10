@@ -343,7 +343,7 @@ export class LabPage {
   }
 
   get openButton() {
-    return this.page.getByRole("button", { name: /^Open the player/ });
+    return this.page.getByRole("button", { name: /^Player: / });
   }
 
   /** The expanded player: the page, while it is a dialog. */

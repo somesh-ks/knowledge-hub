@@ -804,7 +804,7 @@ Baseline WCAG 2.2 AA. Native elements first.
 | --- | --- |
 | Item play button | "Listen from here: {headline}" or "Pause: {headline}" |
 | Chapter button | "Listen to {section}, {m:ss}" |
-| Mini player open button | "Open the player. {headline}" |
+| Mini player open button | "Player: {headline}" (aria-expanded carries open or closed) |
 | Mini and transport toggle | "Play" or "Pause" |
 | Skip buttons | "Previous item", "Next item", "Back 15 seconds", "Forward 15 seconds" |
 | Close buttons | "Close the player", "Close settings", "Close", "Dismiss" |

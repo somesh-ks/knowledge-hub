@@ -227,7 +227,7 @@ export default function PlayerBar() {
         // The surface controller keeps this in step with the page; false is the collapsed truth.
         aria-expanded="false"
         aria-controls={PLAYER_PAGE_ID}
-        aria-label={`Open the player. ${headline}`}
+        aria-label={`Player: ${headline}`}
         onClick={(event) =>
           playerSheet.click({ t: event.timeStamp, fromPointer: event.detail > 0 })
         }

@@ -189,6 +189,10 @@ export default function ScriptView({ titleHidden = false }: { titleHidden?: bool
           type="button"
           onClick={() => {
             pausedUntil.current = 0;
+            // The button goes away with this press; keyboard focus moves to the turn it points at.
+            rootRef.current
+              ?.querySelector<HTMLElement>(`[data-turn="${current}"]`)
+              ?.focus({ preventScroll: true });
             setAway(false);
             if (current >= 0) reveal(current);
           }}

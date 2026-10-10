@@ -183,7 +183,7 @@ test.describe("keyboard operation of the player", () => {
     await lab.play();
     const region = page.getByRole("region", { name: "Audio player" });
     await expect(region.getByRole("button")).toHaveCount(3);
-    await region.getByRole("button", { name: /^Open the player/ }).focus();
+    await region.getByRole("button", { name: /^Player: / }).focus();
     await page.keyboard.press("Tab");
     await expect(region.getByRole("button", { name: "Pause" })).toBeFocused();
     await page.keyboard.press("Tab");

@@ -13,7 +13,7 @@ test.describe("one surface @surface", () => {
     const facts = await page.evaluate(() => {
       const slider = document.querySelector('[role="slider"][aria-label="Playback position"]');
       const open = [...document.querySelectorAll("button")].find((button) =>
-        (button.getAttribute("aria-label") ?? "").startsWith("Open the player"),
+        (button.getAttribute("aria-label") ?? "").startsWith("Player: "),
       );
       const surface = slider?.closest("[data-player-surface]") ?? null;
       return {
