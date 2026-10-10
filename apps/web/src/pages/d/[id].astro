@@ -28,6 +28,7 @@ const { entry, earlier, isLatest } = Astro.props;
   nav={isLatest ? "today" : "library"}
   layout="aside"
   digestId={entry.id}
+  latestDate={isLatest ? entry.digest.date : undefined}
 >
   <DigestView entry={entry} earlier={earlier} isLatest={isLatest} />
 </BaseLayout>

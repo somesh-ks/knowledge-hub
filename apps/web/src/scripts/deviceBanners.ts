@@ -35,18 +35,18 @@ function syncConnection(): void {
 }
 
 function syncStale(): void {
-  hide("stale");
   const latest = document.querySelector<HTMLElement>('main[data-latest="true"]');
   const date = latest?.dataset.digestDate;
-  if (!date) return;
-  const age = staleAge(date, todayInStockholm());
-  if (age !== null) show("stale", staleTitle(age));
+  const age = date ? staleAge(date, todayInStockholm()) : null;
+  // On a first load the inline script (bannersInit.js) has already put a stale banner in; it stays.
+  if (age === null) hide("stale");
+  else show("stale", staleTitle(age));
 }
 
 export function installDeviceBanners(): void {
-  // A banner goes in before a page shows where it can, so it does not push the page down after it
-  // has drawn: as soon as this runs on the first load, and on a navigation right after the swap,
-  // before the new page is shown.
+  // A banner goes in before the page it belongs to shows, so it never pushes the page down after it
+  // has drawn: on a first load the inline script has put it in (bannersInit.js) and this only
+  // checks; on a navigation this runs right after the swap, before the new page is shown.
   const sync = (): void => {
     syncConnection();
     syncStale();

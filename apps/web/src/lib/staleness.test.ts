@@ -3,6 +3,7 @@ import {
   daysBetweenDates,
   STALE_AFTER_DAYS,
   staleAge,
+  staleFrom,
   staleTitle,
   todayInStockholm,
 } from "./staleness";
@@ -45,6 +46,22 @@ describe("staleAge", () => {
 
   it("is not stale for a date in the future, as in a clock set back", () => {
     expect(staleAge("2026-10-07", "2026-10-01")).toBeNull();
+  });
+});
+
+describe("staleFrom", () => {
+  it("is the first day staleAge calls stale, and the day before is not", () => {
+    for (const date of ["2026-10-07", "2026-10-29", "2026-12-30", "2028-02-27"]) {
+      const first = staleFrom(date);
+      const before = new Date(Date.parse(`${first}T00:00:00Z`) - 86_400_000).toISOString();
+      expect(staleAge(date, first)).toBe(STALE_AFTER_DAYS + 1);
+      expect(staleAge(date, before.slice(0, 10))).toBeNull();
+    }
+  });
+
+  it("crosses month and year ends", () => {
+    expect(staleFrom("2026-10-29")).toBe("2026-11-02");
+    expect(staleFrom("2026-12-30")).toBe("2027-01-03");
   });
 });
 
