@@ -97,8 +97,9 @@
   width: 100%;
   min-height: var(--field-height);
   padding-inline: var(--field-padding);
-  /* A hairline on the page's own surface, drawn like the selects: no fill. */
-  border: var(--stroke-hairline) solid var(--color-border-hairline);
+  /* An outline on the page's own surface, no fill, so the outline is what shows the field is
+     there: at 3:1 (--field-border, WCAG 1.4.11), as Material's outlined fields are. */
+  border: var(--stroke-hairline) solid var(--field-border);
   border-radius: var(--field-radius);
   background: none;
   color: var(--color-on-surface);
@@ -134,7 +135,7 @@ textarea.manage-input {
 
 @media (hover: hover) and (pointer: fine) {
   .manage-input:not(:focus-visible, [aria-invalid]):hover {
-    border-color: var(--color-border-control);
+    border-color: var(--color-on-surface);
   }
 }
 
@@ -511,7 +512,7 @@ select.manage-input {
   padding-block: 0;
   padding-inline-end: var(--space-12);
   line-height: calc(var(--field-height) - var(--stroke-hairline) * 2);
-  border-color: var(--color-border-hairline);
+  border-color: var(--field-border);
   background: none;
   cursor: pointer;
 }
@@ -531,7 +532,7 @@ select.manage-input:focus-visible {
 
 @media (hover: hover) and (pointer: fine) {
   select.manage-input:hover {
-    border-color: var(--color-border-control);
+    border-color: var(--color-on-surface);
   }
 
   select.manage-input:hover:focus-visible {

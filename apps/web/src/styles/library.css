@@ -91,7 +91,7 @@
   gap: var(--space-3);
   height: var(--field-height);
   padding-inline: var(--space-4);
-  border: var(--stroke-hairline) solid var(--color-border-hairline);
+  border: var(--stroke-hairline) solid var(--field-border);
   border-radius: var(--field-radius);
   color: var(--color-on-surface-muted);
   cursor: text;
@@ -233,7 +233,7 @@
 
   /* Not while it is focused: the focus edge stays under the pointer. */
   .search-field:hover:not(:focus-within) {
-    border-color: var(--color-border-control);
+    border-color: var(--color-on-surface);
   }
 }
 

@@ -68,11 +68,11 @@
   cursor: text;
 }
 
-/* Chosen with a pointer, the field rests as a select does after a choice: its hairline and no
+/* Chosen with a pointer, the field rests as a select does after a choice: its outline and no
    keyboard ring. A key brings the ring back (podcastPage.ts). */
 .daily-combo .manage-input[data-pointer]:not([aria-expanded="true"]):focus-visible {
   outline: none;
-  border-color: var(--color-border-hairline);
+  border-color: var(--field-border);
 }
 
 /* The chevron sits where every select's does, 16px in from the end; the button around it keeps a
@@ -95,7 +95,7 @@
 /* The chevron is part of the field: pointing at it lights the field's edge, as on a select. */
 @media (hover: hover) and (pointer: fine) {
   .daily-combo .manage-select:hover > .manage-input:not(:focus-visible, [aria-invalid]) {
-    border-color: var(--color-border-control);
+    border-color: var(--color-on-surface);
   }
 }
 
@@ -259,7 +259,7 @@
 /* The filter and the typed id are drawn like the selects: an outline on the page's own surface.
    Focus and a refused id keep their colours. */
 .daily-panel input.manage-input {
-  border-color: var(--color-border-hairline);
+  border-color: var(--field-border);
   background: none;
 }
 

@@ -1188,10 +1188,16 @@
   color: var(--color-on-surface-disabled);
 }
 
-/* Previous and next are the smaller targets of the five. */
+/* Previous and next are the smaller targets of the five, and as quiet as the skips: with only play
+   in full ink, the row reads as one control and its helpers, not dark, light, dark, light, dark. */
 .transport-btn:not([data-primary], .transport-skip) {
   width: var(--size-touch-comfortable);
   height: var(--size-touch-comfortable);
+  color: var(--color-on-surface-muted);
+}
+
+.transport-btn:not([data-primary], .transport-skip)[aria-disabled="true"] {
+  color: var(--color-on-surface-disabled);
 }
 
 /* A skip control: a circular arrow with its own numeral set in the arrow's open center. */

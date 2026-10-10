@@ -211,7 +211,7 @@
 .sheet-input {
   min-height: var(--field-height);
   padding-inline: var(--field-padding);
-  border: var(--stroke-hairline) solid var(--color-border-hairline);
+  border: var(--stroke-hairline) solid var(--field-border);
   border-radius: var(--field-radius);
   background: none;
   color: var(--color-on-surface);
