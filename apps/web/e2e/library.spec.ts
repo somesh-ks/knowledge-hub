@@ -203,9 +203,7 @@ test.describe("library search", () => {
     await ready(page);
     const small = await page.evaluate(() => {
       const found: string[] = [];
-      for (const node of document.querySelectorAll<HTMLElement>(
-        ".sort-field > select",
-      )) {
+      for (const node of document.querySelectorAll<HTMLElement>(".sort-field > select")) {
         node.scrollIntoView({ block: "center", inline: "center" });
         const rect = node.getBoundingClientRect();
         const x = rect.left + rect.width / 2;
