@@ -62,6 +62,7 @@ D1 to D9 date from plan v2 (2026-10-05). D10 to D25 date from 2026-10-06. Reason
 | D50 | The open player: a speed slider, Chapters or a Speechify-style transcript, word marks stored beside each segment | active |
 | D51 | Settings is two levels and saves itself; every select opens one drawn list | active |
 | D52 | On a phone the Create button floats only on Today and the Library, extended until you scroll | active |
+| D53 | First-load JavaScript budget 110 KB, kept as low as the code allows | active |
 
 ---
 
@@ -504,4 +505,13 @@ D1 to D9 date from plan v2 (2026-10-05). D10 to D25 date from 2026-10-06. Reason
 - Cost: a few hundred bytes of script after the first scroll; the button changes width while scrolling (reduced motion: no width animation).
 - Rejected: hiding the bottom bar on scroll (Material's navigation bar stays, and playback controls dock on it); a haptic on press (Android only, and the app already has interface sounds); pull to refresh (it would restart a briefing mid-listen, see shell.css).
 - Supersedes: the part of the Create placement (state.md, D31 era) that put the floating button on every page.
+
+## D53: First-load JavaScript budget 110 KB, kept as low as the code allows
+
+- Date: 2026-10-10
+- Decision: `FIRST_LOAD_BUDGET_BYTES` is 110 KB gzipped (was 104). The budget is a ceiling, not a target: a change that adds first-load script says what it costs, and anything a first visit does not need loads on demand, as the Podcast and Topics editors, the floating button's fold and the navigation boost already do.
+- Why: the owner allowed 110 KB and asked to keep it low. The branch measured 103.2 KB on /library with the design pass, 0.8 KB under the old ceiling, so every further change would have been a fight over a few hundred bytes.
+- Measured split (2026-10-10, /library): React's client 63.4 KB plus react 3.2 and react-dom 1.4; the player runtime 12.4 (store 2.7, reader sync 1.5, open-player controller 1.4, runtime 1.0, media session 0.7, reader math 0.7, surface view 0.6, switchable audio 0.6); Astro's router 4.2 with prefetch 1.1; the player island 3.8; the layout script 2.5; the sheets island 1.7; icons 1.5; the rest under 1.4 each. Own code is about 27 KB; React is the floor while it loads with every page.
+- What could still come off, largest first, in [first-load-js.md](first-load-js.md): React and the player and sheets islands only when there is something to show (about 76 KB off a first visit with nothing playing); the open-player machinery and media session on first play (about 4 KB); the service worker code after load (about 0.2 KB, done).
+- Rejected: preact/compat (declined by the owner on 2026-10-10); dropping hover prefetch (1.1 KB) or the router (4.2 KB), which make moves between destinations immediate (D47).
 

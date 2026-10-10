@@ -12,10 +12,11 @@ import { gzipSync } from "node:zlib";
  * clock, volume) and the Topics and Sources pages arrived; 68 KB of it is React itself. Raised to
  * 104 KB on 2026-10-08 for interface sounds, live run stages and the cover play button. On
  * 2026-10-10 the Podcast page's editor moved after first paint (the Topics editor already was), so
- * the heaviest page is /library at 102.7 KB. The owner declined preact/compat (about 57 KB off every
- * page), so React stays and this budget cannot come down much; see docs/first-load-js.md.
+ * the heaviest page was /library at 102.7 KB. The owner declined preact/compat (about 57 KB off every
+ * page), so React stays. Raised to 110 KB on 2026-10-10 (D53) with the ask to keep it low: the
+ * budget is a ceiling, not a target, and docs/first-load-js.md lists what could still come off.
  */
-export const FIRST_LOAD_BUDGET_BYTES = 104 * 1024;
+export const FIRST_LOAD_BUDGET_BYTES = 110 * 1024;
 /** Self-hosted fonts, build plan 8.8: subset, one preloaded, 80 KB or less in total. */
 export const FONT_BUDGET_BYTES = 80 * 1024;
 /** The inline theme script runs before first paint, so it must stay tiny. */

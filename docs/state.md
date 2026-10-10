@@ -40,7 +40,7 @@ The reader is called Singularity (D30). Identifiers keep `dispatch`. Everything 
 
 ## Written, not merged
 
-- Nothing. The preact/compat prototype (about 57 KB off every page) was declined by the owner on 2026-10-10: React stays, so the 104 KB budget stays.
+- The design pass of 2026-10-10 on `claude/charming-sagan-m6evyy` (D51, D52, D53; the lines that name them). No pull request is open. The preact/compat prototype (about 57 KB off every page) was declined by the owner on 2026-10-10: React stays, and the budget is 110 KB (D53).
 
 ## Development
 
@@ -80,7 +80,7 @@ The reader is called Singularity (D30). Identifiers keep `dispatch`. Everything 
 - Unverified live: any Anthropic call, the Speechify voice list and voice samples (`media-src` may block the sample URLs), `/api/source-preview` and `/api/site-icon` on real feeds, the Nebius shortlist against the live list. The drawn select lists are checked in Chromium screenshots only; Safari 27 and a real phone are unseen.
 - `audio-speechify.test.ts` flakes under load (passes alone). `SettingsSheet.tsx` (reachable only from the dev lab) still has a Default speed.
 - Covers are served as lossless WebP (pixel-identical, about a third of the PNG bytes; Library images 66 to 20 KB on a phone), encoded with sharp at build time and cached beside the PNG. The PNG is still built for the lock screen's media controls. The section tabs test "follow the page again after a client-side navigation" flakes about 1 in 4 in the cloud container on main.
-- Bundle: the budget is 104 KB; the heaviest page is /library at 102.7 on main and 103.0 on the branch (the Podcast editor loads after first paint since #63). React is 68 of the 101 KB every page shares; without preact the budget cannot come down much. Per-chunk tables and a throttled phone run are in [first-load-js.md](first-load-js.md).
+- Bundle: the budget is 110 KB since D53 (was 104), kept as low as the code allows; the heaviest page is /library at 102.7 on main and 103.2 on the branch (the Podcast editor loads after first paint since #63). React is 68 of the 101 KB every page shares. What could still come off, with sizes (React only when there is something to show, about 76 KB off a first visit; the open-player machinery on first play, about 4 KB), is in [first-load-js.md](first-load-js.md) with the per-chunk tables and a throttled phone run.
 - A leftover folder `.claude/worktrees/agent-aa3d6c40ca7009eee` could not be deleted (something holds it); it is not a git worktree.
 
 ## Known risks
