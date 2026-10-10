@@ -33,6 +33,10 @@ export interface Glyph {
   symbol: string;
   /** True for the fill weight of the icon; otherwise the regular weight. */
   fill?: boolean;
+  /** True for the bold weight: a glyph made of one thin line that reads too light at its size. */
+  bold?: boolean;
+  /** Why the path is drawn here instead of taken from Phosphor. A fetch keeps a drawn path as it is. */
+  drawn?: string;
   targets: GlyphTarget[];
   /** The single path of the icon, in the document's view box. */
   d: string;
@@ -58,6 +62,9 @@ export function validateGlyphs(doc: GlyphDocument): string[] {
     if (!/^[a-z][A-Za-z0-9]*$/.test(name)) problems.push(`${name}: name is not camelCase`);
     if (!SYMBOL_NAME.test(glyph.symbol)) problems.push(`${name}: symbol "${glyph.symbol}"`);
     if (glyph.targets.length === 0) problems.push(`${name}: no target`);
+    if (glyph.fill && glyph.bold) problems.push(`${name}: both the fill and the bold weight`);
+    if (glyph.drawn !== undefined && (glyph.drawn.trim() === "" || glyph.fill || glyph.bold))
+      problems.push(`${name}: a drawn glyph says why, and has no Phosphor weight`);
     for (const target of glyph.targets) {
       if (target !== "page" && target !== "player" && target !== "playerLazy")
         problems.push(`${name}: target "${target}"`);
@@ -102,7 +109,8 @@ function header(what: string): string[] {
     " *",
     ` * ${what}`,
     " * One icon set: Phosphor, regular weight, with the fill weight where a glyph must read as",
-    " * solid (Phosphor Icons, MIT License). Every glyph is one filled path in currentColor.",
+    " * solid, the bold weight for the plus, and the More dots drawn to the bold plus's weight",
+    " * (Phosphor Icons, MIT License). Every glyph is one filled path in currentColor.",
     " * Decorative by default: the button or link that holds an icon carries the accessible name.",
     " */",
   ];
@@ -166,8 +174,10 @@ export function isGenerated(source: string): boolean {
 }
 
 /** Where an icon lives inside the Phosphor core package. */
-export function symbolFile(glyph: Pick<Glyph, "symbol" | "fill">): string {
-  return glyph.fill ? `assets/fill/${glyph.symbol}-fill.svg` : `assets/regular/${glyph.symbol}.svg`;
+export function symbolFile(glyph: Pick<Glyph, "symbol" | "fill" | "bold">): string {
+  if (glyph.fill) return `assets/fill/${glyph.symbol}-fill.svg`;
+  if (glyph.bold) return `assets/bold/${glyph.symbol}-bold.svg`;
+  return `assets/regular/${glyph.symbol}.svg`;
 }
 
 /** Extracts the single path from a Phosphor file. Throws when the file has another shape. */
@@ -181,6 +191,10 @@ async function fetchGlyphs(doc: GlyphDocument): Promise<GlyphDocument> {
   let version = "";
   const glyphs: Record<string, Glyph> = {};
   for (const [name, glyph] of Object.entries(doc.glyphs)) {
+    if (glyph.drawn) {
+      glyphs[name] = glyph;
+      continue;
+    }
     const url = `${doc.source}@${doc.sourceVersion || "latest"}/${symbolFile(glyph)}`;
     const response = await fetch(url);
     if (!response.ok) throw new Error(`${name}: ${response.status} for ${url}`);

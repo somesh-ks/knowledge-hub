@@ -76,9 +76,17 @@ describe("pathFromSvg", () => {
     expect(pathFromSvg(svg)).toBe("M216,48V208a8,8,0,0,1-16,0V48a8,8,0,0,1,16,0Z");
   });
 
-  it("finds the regular and the fill weight inside the package", () => {
+  it("finds the regular, the fill and the bold weight inside the package", () => {
     expect(symbolFile({ symbol: "caret-down" })).toBe("assets/regular/caret-down.svg");
     expect(symbolFile({ symbol: "play", fill: true })).toBe("assets/fill/play-fill.svg");
+    expect(symbolFile({ symbol: "plus", bold: true })).toBe("assets/bold/plus-bold.svg");
+  });
+
+  it("keeps a drawn glyph's reason, and refuses one without a reason or with a Phosphor weight", () => {
+    expect(doc.glyphs.moreVert?.drawn).toMatch(/\S/);
+    expect(validateGlyphs(withGlyph("dots", { drawn: "why" }))).toEqual([]);
+    expect(validateGlyphs(withGlyph("dots", { drawn: " " }))).not.toEqual([]);
+    expect(validateGlyphs(withGlyph("dots", { drawn: "why", bold: true }))).not.toEqual([]);
   });
 
   it("refuses a file with no path or with several", () => {
