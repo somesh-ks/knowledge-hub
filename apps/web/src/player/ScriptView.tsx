@@ -21,9 +21,14 @@ import { usePlayerSecond, usePlayerState } from "./hooks/usePlayer";
  */
 export default function ScriptView({ titleHidden = false }: { titleHidden?: boolean }) {
   const state = usePlayerState();
-  const second = usePlayerSecond();
+  // A render each second, and after a seek while paused. The turn itself is read from the playhead,
+  // not from the floored second, which kept the last turn marked for most of a second after a jump
+  // into the next one; the frame loop below renders again the moment the spoken turn changes.
+  usePlayerSecond();
+  const [, setTurnMoved] = useState(0);
+  const spokenTurn = useRef(-1);
   const turns = state.track?.digest.turns ?? [];
-  const current = state.hasStarted ? currentTurnIndex(turns, second) : -1;
+  const current = state.hasStarted ? currentTurnIndex(turns, getPlayerStore().getTime()) : -1;
   const rootRef = useRef<HTMLElement>(null);
   const pausedUntil = useRef(0);
   // Opening the page shows its top. Following starts when the voice moves to another turn.
@@ -70,6 +75,10 @@ export default function ScriptView({ titleHidden = false }: { titleHidden?: bool
     const light = (seconds: number): void => {
       const ms = seconds * 1000;
       const turn = getPlayerStore().getState().hasStarted ? currentTurnIndex(turns, seconds) : -1;
+      if (turn !== spokenTurn.current) {
+        spokenTurn.current = turn;
+        setTurnMoved((count) => count + 1);
+      }
       const starts = turn >= 0 ? words[turn]?.starts : null;
       const word = starts ? wordIndexAt(starts, ms) : -1;
       const next =
