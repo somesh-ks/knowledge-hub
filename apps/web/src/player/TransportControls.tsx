@@ -7,9 +7,10 @@ import Icon from "./ui/LazyIcon";
 import PlayPauseGlyph from "./ui/PlayPauseGlyph";
 
 /**
- * The transport, one control dominant: the previous story, back ten seconds, play and pause, the
- * speed, forward ten seconds, the next story. On a wide screen with a mouse the bar has previous,
- * play and next, so the page shows the two skips with the speed between them. The skip glyphs are plain circular arrows; each button
+ * The transport, one control dominant: the previous story, back ten seconds, play and pause,
+ * forward ten seconds, the next story, with the speed under play on a phone. On a wide screen with
+ * a mouse the bar has previous, play and next, so the page shows the two skips with the speed
+ * between them. The skip glyphs are plain circular arrows; each button
  * draws its own numeral in the arrow's open center, and the name stays on the button.
  */
 export default function TransportControls() {
