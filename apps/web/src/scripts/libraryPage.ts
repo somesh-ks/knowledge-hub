@@ -20,6 +20,8 @@ interface Card {
   id: string;
   element: HTMLElement;
   facts: HTMLElement | null;
+  /** "Weekly, " before the facts, on a weekly briefing's card only. */
+  kind: HTMLElement | null;
   data: CardData;
 }
 
@@ -36,6 +38,7 @@ function readCard(element: HTMLElement, order: number): Card {
     id,
     element,
     facts: element.querySelector<HTMLElement>("[data-card-facts]"),
+    kind: element.querySelector<HTMLElement>("[data-card-kind]"),
     data: {
       date,
       order,
@@ -108,17 +111,18 @@ function install(): void {
       card.element.hidden = matches === 0;
       if (matches > 0) shown += 1;
       if (card.facts) {
-        // While searching, the line under a card says why it is there.
+        // While searching, the line under a card says why it is there, and that alone.
         const rest = card.facts.dataset.rest ?? "";
-        const text =
-          searching && matches > 0
-            ? inText
-              ? "Found in the full text"
-              : matches === 1
-                ? "1 matching story"
-                : `${matches} matching stories`
-            : rest;
+        const found = searching && matches > 0;
+        const text = found
+          ? inText
+            ? "Found in the full text"
+            : matches === 1
+              ? "1 matching story"
+              : `${matches} matching stories`
+          : rest;
         if (card.facts.textContent !== text) card.facts.textContent = text;
+        if (card.kind && card.kind.hidden !== found) card.kind.hidden = found;
       }
     }
     const ordered = [...cards].sort((a, b) => compareCards(a.data, b.data, sort));
