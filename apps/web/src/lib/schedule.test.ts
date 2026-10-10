@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { dailySummary, hourLabel, nextBriefing } from "./schedule";
+import { hourLabel, nextBriefing, nextWeekly, podcastSummary } from "./schedule";
 
 describe("hourLabel", () => {
   it("pads to two digits", () => {
@@ -8,14 +8,30 @@ describe("hourLabel", () => {
   });
 });
 
-describe("dailySummary", () => {
-  it("reads as the time, the rhythm, the type and the length", () => {
-    expect(dailySummary({ hour: 7, cadenceDays: 2, format: "readout", lengthMinutes: 10 })).toBe(
-      "07:00, every second day, Readout, 10 min",
+describe("podcastSummary", () => {
+  it("reads as the daily time, the weekly day and the type", () => {
+    const weekly = { enabled: true, day: 0 };
+    expect(podcastSummary({ hour: 7, format: "readout", weekly })).toBe(
+      "Daily 07:00 · Weekly Sun · Readout",
     );
-    expect(dailySummary({ hour: 18, cadenceDays: 7, format: "headlines", lengthMinutes: 3 })).toBe(
-      "18:00, once a week, Headlines, 3 min",
-    );
+    expect(
+      podcastSummary({ hour: 18, format: "headlines", weekly: { enabled: false, day: 3 } }),
+    ).toBe("Daily 18:00 · Headlines");
+  });
+});
+
+describe("nextWeekly", () => {
+  // 2026-10-08 is a Thursday. 09:00 UTC is 11:00 in Stockholm.
+  const now = new Date("2026-10-08T09:00:00Z");
+
+  it("names the day, today or tomorrow", () => {
+    expect(nextWeekly({ now, day: 0, hour: 7 })).toBe("Next weekly: about Sunday at 07:00");
+    expect(nextWeekly({ now, day: 4, hour: 18 })).toBe("Next weekly: about today at 18:00");
+    expect(nextWeekly({ now, day: 5, hour: 7 })).toBe("Next weekly: about tomorrow at 07:00");
+  });
+
+  it("waits a week once the hour has passed", () => {
+    expect(nextWeekly({ now, day: 4, hour: 7 })).toBe("Next weekly: about Thursday at 07:00");
   });
 });
 

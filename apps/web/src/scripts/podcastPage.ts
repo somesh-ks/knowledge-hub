@@ -1,7 +1,8 @@
 /**
- * The Daily podcast page's script. The page is static HTML with the saved values written in; this
- * loads the live Nebius model list, runs the model combobox, and records the changes the controls
- * add up to in the shared bar: one schedule.set (time, rhythm, type, length) and one writer.set
+ * The Podcast page's script. The page is static HTML with the saved values written in, for the
+ * Daily, Weekly and Custom profiles; this switches between them, loads the voices and the live
+ * Nebius model list, runs the model combobox, and records the changes the controls add up to in the
+ * shared bar: one schedule.set (every field of the three profiles that changed) and one writer.set
  * (provider and model). Sending them is managePageSave.ts, loaded the first time Save is pressed,
  * the same step the Topics page uses.
  *
@@ -12,10 +13,8 @@ import type { ModelOption } from "../lib/combobox";
 import { isModelId } from "../lib/modelId";
 import type { ConfigOp } from "../types/contracts";
 import type { Pending, SaveContext } from "./managePageSave";
+import type { FieldValues, scheduleOp as ScheduleOp } from "./podcastProfiles";
 
-type Cadence = 1 | 2 | 3 | 7;
-type Format = "readout" | "discussion" | "headlines";
-type Length = 3 | 5 | 10 | 15;
 export type Provider = "nebius" | "anthropic";
 
 export interface ModelEntry {
@@ -24,24 +23,6 @@ export interface ModelEntry {
 }
 
 const LIST_TIMEOUT_MS = 10_000;
-
-/**
- * The schedule edit the controls stand for. The topics a briefing covers are not chosen here, so
- * the saved ones go back unchanged (null is every enabled topic).
- */
-export function scheduleOp(
-  values: { hour: number; cadence: number; format: string; length: number },
-  sections: string[] | null,
-): ConfigOp {
-  return {
-    op: "schedule.set",
-    hour: values.hour,
-    cadence_days: values.cadence as Cadence,
-    sections,
-    format: values.format as Format,
-    length_minutes: values.length as Length,
-  };
-}
 
 /** The edit a provider and model choice stand for. `null` on Nebius is Automatic. */
 export function modelOp(model: string | null, provider: Provider = "nebius"): ConfigOp {
@@ -88,12 +69,8 @@ async function mount(root: HTMLElement): Promise<void> {
   const text = one("[data-bar-text]");
   const live = one("[data-live]");
   const panel = one("[data-panel]");
-  const box = one("[data-schedule-box]");
-  const hour = one<HTMLSelectElement>("#daily-hour");
-  const cadence = one<HTMLSelectElement>("#daily-cadence");
-  const checked = (name: string): string =>
-    root.querySelector<HTMLInputElement>(`input[name="${name}"]:checked`)?.value ?? "";
-  const sections = JSON.parse(panel.dataset.sections ?? "null") as string[] | null;
+  const controls = root.querySelectorAll<HTMLInputElement | HTMLSelectElement>("[data-f]");
+  const box = panel;
 
   const group = one("[data-models]");
   const vendor = one<HTMLSelectElement>("#daily-vendor");
@@ -108,6 +85,8 @@ async function mount(root: HTMLElement): Promise<void> {
   const savedProvider: Provider = group.dataset.provider === "anthropic" ? "anthropic" : "nebius";
   const provider = (): Provider => (vendor.value === "anthropic" ? "anthropic" : "nebius");
   const changes = new Map<string, Pending>();
+  /** The diff, from the profiles script, which loads right after the page is up. */
+  let ops: typeof ScheduleOp | undefined;
 
   /** The live Nebius list: undefined until asked for, null when it failed. */
   let nebius: ModelEntry[] | null | undefined;
@@ -128,9 +107,19 @@ async function mount(root: HTMLElement): Promise<void> {
     root.removeAttribute("data-pending");
   };
 
-  /** What the schedule controls hold, as text: the page's starting point and the test for "changed". */
-  const scheduleState = (): string =>
-    JSON.stringify([hour.value, cadence.value, checked("format"), checked("length")]);
+  /** What the schedule controls hold: the page's starting point and the test for "changed". */
+  const fields = (): FieldValues => {
+    const out: FieldValues = {};
+    for (const control of controls) {
+      const key = control.dataset.f ?? "";
+      if (control instanceof HTMLInputElement && control.type === "radio") {
+        out[key] ??= "";
+        if (control.checked) out[key] = control.value;
+      } else if (control instanceof HTMLInputElement) out[key] = String(control.checked);
+      else out[key] = control.value;
+    }
+    return out;
+  };
 
   /** The model the controls hold: a typed id when the list is unavailable, else the chosen option. */
   const choice = (): { model: string | null; valid: boolean } => {
@@ -142,26 +131,17 @@ async function mount(root: HTMLElement): Promise<void> {
   };
 
   const update = (): void => {
-    if (scheduleState() === box.dataset.was) changes.delete("schedule");
-    else {
-      const op = scheduleOp(
-        {
-          hour: Number(hour.value),
-          cadence: Number(cadence.value),
-          format: checked("format"),
-          length: Number(checked("length")),
-        },
-        sections,
-      );
-      changes.set("schedule", { op, el: box, now: scheduleState() });
-    }
+    const now = fields();
+    const op = ops?.(JSON.parse(box.dataset.was ?? "{}") as FieldValues, now);
+    if (op) changes.set("schedule", { op, el: box, now: JSON.stringify(now) });
+    else changes.delete("schedule");
 
     const { model, valid } = choice();
     typed.toggleAttribute("aria-invalid", !valid);
     typedNote.hidden = valid;
-    const now = JSON.stringify([provider(), model]);
-    if (!valid || now === group.dataset.was) changes.delete("writer");
-    else changes.set("writer", { op: modelOp(model, provider()), el: group, now });
+    const writer = JSON.stringify([provider(), model]);
+    if (!valid || writer === group.dataset.was) changes.delete("writer");
+    else changes.set("writer", { op: modelOp(model, provider()), el: group, now: writer });
 
     if (changes.size === 0) hide();
     else show(changes.size === 1 ? "1 change" : `${changes.size} changes`, "idle");
@@ -216,6 +196,14 @@ async function mount(root: HTMLElement): Promise<void> {
       listbox.append(item);
     });
     listbox.hidden = false;
+    // Opens below the field, and above it when the room under it is short and the room over it is not.
+    const field = input.getBoundingClientRect();
+    const below = window.innerHeight - field.bottom - 16;
+    const above = field.top - 16;
+    const wants = Math.min(listbox.scrollHeight, 352);
+    const flip = below < wants && above > below;
+    listbox.toggleAttribute("data-above", flip);
+    listbox.style.setProperty("--list-room", `${Math.max(flip ? above : below, 176)}px`);
     input.setAttribute("aria-expanded", "true");
     count.textContent = countText(shown.length);
     // Typing highlights the first match; opening with the chevron starts on the chosen model.
@@ -322,7 +310,11 @@ async function mount(root: HTMLElement): Promise<void> {
     else if (act === "discard") location.reload();
   });
 
-  box.dataset.was = scheduleState();
+  box.dataset.was = JSON.stringify(fields());
+  void import("./podcastProfiles").then((module) => {
+    ops = module.scheduleOp;
+    module.mountProfiles(root, update);
+  });
   group.dataset.was = JSON.stringify([savedProvider, savedModel]);
   refresh();
   root.dataset.ready = "";
@@ -330,9 +322,9 @@ async function mount(root: HTMLElement): Promise<void> {
   else root.dataset.loaded = "";
 }
 
-export function installDailyPage(): void {
+export function installPodcastPage(): void {
   const sync = (): void => {
-    const root = document.querySelector<HTMLElement>("[data-manage=daily]");
+    const root = document.querySelector<HTMLElement>("[data-manage=podcast]");
     if (root && root.dataset.mounting === undefined) void mount(root);
   };
   document.addEventListener("astro:page-load", sync);

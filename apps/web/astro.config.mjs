@@ -87,11 +87,15 @@ export default defineConfig({
   trailingSlash: "never",
   // The Library used to be the archive. Old links and installed shortcuts still land on it: the
   // Vercel adapter turns this into a real 308, and the static test build into a refresh page.
+  // The Topics, Sources, Daily, Schedule and Model pages became two: /settings/podcast and its
+  // Topics & sources tab.
   redirects: {
     "/archive": { status: 308, destination: "/library" },
-    // Topics and Sources are one page under the podcast settings.
     "/settings/topics": { status: 308, destination: "/settings/podcast/topics" },
     "/settings/sources": { status: 308, destination: "/settings/podcast/topics" },
+    "/settings/daily": { status: 308, destination: "/settings/podcast" },
+    "/settings/schedule": { status: 308, destination: "/settings/podcast" },
+    "/settings/model": { status: 308, destination: "/settings/podcast" },
   },
   build: {
     // External stylesheets: cached once, listed once for the service worker, and no inline style

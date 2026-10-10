@@ -552,3 +552,87 @@
 .settings-view .rows > * + *::before {
   content: none;
 }
+
+/* ------------------------------------------------------------------ the open list of a drawn select */
+
+/* Where the browser can style the list (appearance: base-select), it opens as the More menu's panel:
+   the overlay surface, a hairline, the popover shadow, equal padding above and below, 44px rows.
+   Elsewhere the native list stays. The drawn chevron stays too, so the picker's own is hidden. */
+@supports (appearance: base-select) {
+  .manage-select > select,
+  .manage-select > select::picker(select) {
+    appearance: base-select;
+  }
+
+  .manage-select > select::picker-icon {
+    display: none;
+  }
+
+  .manage-select > select::picker(select) {
+    box-sizing: border-box;
+    margin-block: var(--space-1);
+    padding: var(--space-2);
+    border: var(--stroke-hairline) solid var(--color-border-hairline);
+    border-radius: var(--radius-md);
+    background: var(--color-surface-overlay);
+    box-shadow: var(--shadow-popover);
+    color: var(--color-on-surface);
+    scrollbar-width: thin;
+    overscroll-behavior: contain;
+    opacity: 0;
+    transition:
+      opacity var(--duration-exit) var(--ease-out),
+      overlay var(--duration-exit) allow-discrete,
+      display var(--duration-exit) allow-discrete;
+  }
+
+  .manage-select > select:open::picker(select) {
+    opacity: 1;
+    transition-duration: var(--duration-enter);
+  }
+
+  @starting-style {
+    .manage-select > select:open::picker(select) {
+      opacity: 0;
+    }
+  }
+
+  .manage-select > select option {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: var(--space-3);
+    min-block-size: var(--size-touch);
+    padding-block: var(--space-2);
+    padding-inline: var(--space-3);
+    border-radius: var(--button-radius);
+    font-size: var(--font-size-body);
+    font-weight: var(--font-weight-medium);
+    line-height: var(--font-leading-label);
+  }
+
+  .manage-select > select option + option {
+    margin-block-start: var(--space-1);
+  }
+
+  .manage-select > select option:checked {
+    color: var(--color-accent);
+  }
+
+  .manage-select > select option::checkmark {
+    order: 1;
+    color: var(--color-accent);
+  }
+
+  .manage-select > select option:focus-visible {
+    background: var(--color-surface-sunken);
+    outline: var(--stroke-ring) solid var(--color-focus-ring);
+    outline-offset: calc(var(--stroke-ring) * -1);
+  }
+
+  @media (hover: hover) and (pointer: fine) {
+    .manage-select > select option:hover {
+      background: var(--color-surface-sunken);
+    }
+  }
+}

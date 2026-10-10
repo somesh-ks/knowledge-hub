@@ -1,6 +1,7 @@
 import { readFile } from "node:fs/promises";
 import { join } from "node:path";
 import {
+  type CustomDefaults,
   DEFAULT_SCHEDULE,
   daysBetween,
   LastRunFile,
@@ -9,6 +10,7 @@ import {
   STATE_FILES,
   stockholmDate,
   TIME_ZONE,
+  type WeeklySchedule,
 } from "@dispatch/core";
 import { FORMATS } from "./createForm";
 import { findRepoRoot } from "./repoRoot";
@@ -31,25 +33,38 @@ export function hourLabel(hour: number): string {
   return `${String(hour).padStart(2, "0")}:00`;
 }
 
+export const WEEKDAYS = [
+  "Sunday",
+  "Monday",
+  "Tuesday",
+  "Wednesday",
+  "Thursday",
+  "Friday",
+  "Saturday",
+] as const;
+
 /**
- * The one line the Settings index shows for the Daily podcast: "07:00, every second day, Readout,
- * 10 min". The page behind it holds the controls.
+ * The one line the Settings index shows for the Podcast row: "Daily 07:00 · Weekly Sun · Readout".
+ * The weekly part is left out while the weekly podcast is off. The page behind it holds the controls.
  */
-export function dailySummary(input: {
+export function podcastSummary(input: {
   hour: number;
-  cadenceDays: number;
   format: string;
-  lengthMinutes: number;
+  weekly: { enabled: boolean; day: number };
 }): string {
-  const cadence = CADENCES.find((entry) => entry.days === input.cadenceDays)?.label ?? "";
   // A schedule saved before Headlines was dropped from the forms still reads as Headlines.
   const format =
     input.format === "headlines"
       ? "Headlines"
       : (FORMATS.find((entry) => entry.value === input.format)?.label ?? "");
-  return [hourLabel(input.hour), cadence.toLowerCase(), format, `${input.lengthMinutes} min`]
+  const weekday = WEEKDAYS[input.weekly.day]?.slice(0, 3) ?? "";
+  return [
+    `Daily ${hourLabel(input.hour)}`,
+    input.weekly.enabled && weekday !== "" ? `Weekly ${weekday}` : "",
+    format,
+  ]
     .filter((part) => part !== "")
-    .join(", ");
+    .join(" · ");
 }
 
 function addDays(date: string, days: number): string {
@@ -94,6 +109,18 @@ export function nextBriefing(input: {
   return `Next briefing: about ${day} at ${hourLabel(input.hour)}`;
 }
 
+/**
+ * "Next weekly: about Sunday at 07:00", worked out at build time from the day and the hour.
+ */
+export function nextWeekly(input: { now: Date; day: number; hour: number }): string {
+  const today = stockholmDate(input.now);
+  const todayDay = new Date(`${today}T12:00:00Z`).getUTCDay();
+  let ahead = (input.day - todayDay + 7) % 7;
+  if (ahead === 0 && stockholmHour(input.now) >= input.hour) ahead = 7;
+  const day = ahead === 0 ? "today" : ahead === 1 ? "tomorrow" : (WEEKDAYS[input.day] ?? "");
+  return `Next weekly: about ${day} at ${hourLabel(input.hour)}`;
+}
+
 export interface ScheduleView {
   hour: number;
   cadenceDays: number;
@@ -101,7 +128,13 @@ export interface ScheduleView {
   sections: string[] | null;
   format: PodcastFormat;
   lengthMinutes: number;
+  /** Speechify voice ids of the daily podcast; null is the engine's default. */
+  voiceId: string | null;
+  voiceIdB: string | null;
+  weekly: WeeklySchedule;
+  custom: CustomDefaults;
   next: string;
+  nextWeekly: string;
 }
 
 async function readJson(file: string): Promise<unknown> {
@@ -129,6 +162,10 @@ export async function loadScheduleView(
     sections,
     format,
     length_minutes: lengthMinutes,
+    voice_id: voiceId,
+    voice_id_b: voiceIdB,
+    weekly,
+    custom,
   } = schedule.success ? schedule.data : DEFAULT_SCHEDULE;
   const lastRun = LastRunFile.safeParse(lastRunFile);
   const regular = lastRun.success ? lastRun.data.regular : undefined;
@@ -139,11 +176,16 @@ export async function loadScheduleView(
     sections,
     format,
     lengthMinutes,
+    voiceId,
+    voiceIdB,
+    weekly,
+    custom,
     next: nextBriefing({
       now: options.now ?? new Date(),
       hour,
       cadenceDays,
       lastRegularAt: counts ? regular.at : null,
     }),
+    nextWeekly: nextWeekly({ now: options.now ?? new Date(), day: weekly.day, hour: weekly.hour }),
   };
 }

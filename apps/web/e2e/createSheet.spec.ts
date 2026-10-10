@@ -131,6 +131,7 @@ test.describe("Create as the primary action", () => {
         format: "readout",
         window_days: 7,
         tone: "neutral",
+        voice_id: null,
       },
     });
     await expect(sheet(page)).toBeHidden();

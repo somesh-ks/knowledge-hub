@@ -12,6 +12,7 @@ import {
   WINDOWS,
 } from "../lib/createForm";
 import { loadManage } from "../lib/manage";
+import { loadScheduleView } from "../lib/schedule";
 import Icon from "./Icon.astro";
 // The layout renders this form for the Create sheet on every page, so these styles are global. The
 // build links them before the layout's own stylesheets, so their rules never rely on coming last:
@@ -21,6 +22,14 @@ import "../styles/create.css";
 
 const { sections, topics: allTopics } = await loadManage();
 const topics = createTopicOptions(sections, allTopics);
+// What the panel starts from is the Custom profile of the podcast settings: type, length and voices.
+const { custom } = await loadScheduleView();
+const startFormat = custom.format;
+const startLength = custom.length_minutes;
+const VOICES = [
+  { name: "voice", saved: custom.voice_id, label: "Ada" },
+  { name: "voice_b", saved: custom.voice_id_b, label: "Leo" },
+] as const;
 
 // Every sentence the form's script can show lives here, in the markup, not in the script. The
 // script picks one by its key, which keeps it small. The run's own lines are in RunStatus.astro.
@@ -86,7 +95,7 @@ const COPY = {
         {
           LENGTHS.map((length) => (
             <label class="settings-segment">
-              <input type="radio" name="length" value={length.value} data-submit-label={submitLabel(length.value)} checked={length.value === DEFAULTS.length} />
+              <input type="radio" name="length" value={length.value} data-submit-label={submitLabel(length.value)} checked={length.value === startLength} />
               <span class="num">{length.label}</span>
             </label>
           ))
@@ -100,12 +109,41 @@ const COPY = {
         {
           FORMATS.map((format) => (
             <label class="settings-segment">
-              <input type="radio" name="format" value={format.value} checked={format.value === DEFAULTS.format} />
+              <input type="radio" name="format" value={format.value} checked={format.value === startFormat} />
               <span>{format.label}</span>
             </label>
           ))
         }
       </fieldset>
+    </section>
+
+    {/* Ada reads a readout alone; a discussion adds Leo. The options come from /api/voices when the
+         panel opens, so the markup carries only the default and the saved voice. */}
+    <section class="create-group rule-above" aria-labelledby="create-voice-label">
+      <h2 class="section-head" id="create-voice-label">Voice</h2>
+      <div class="create-voices">
+        {
+          VOICES.map((voice, index) => (
+            <div class="create-voice" data-voice={voice.name} hidden={index === 1 && startFormat !== "discussion"}>
+              <label class="create-voice-name" for={`create-${voice.name}`} data-voice-caption hidden={startFormat !== "discussion"}>{voice.label}</label>
+              <span class="create-select">
+                <select
+                  class="sheet-input"
+                  id={`create-${voice.name}`}
+                  name={voice.name}
+                  data-saved={voice.saved ?? ""}
+                  aria-label={`Voice (${voice.label})`}
+                  autocomplete="off"
+                >
+                  <option value="">Default</option>
+                  {voice.saved && <option value={voice.saved} selected>Saved voice</option>}
+                </select>
+                <Icon name="chevronDown" />
+              </span>
+            </div>
+          ))
+        }
+      </div>
     </section>
 
     <section class="create-group rule-above" aria-labelledby="create-window-label">
@@ -153,7 +191,7 @@ const COPY = {
     </section>
 
     <div class="create-submit rule-above">
-      <button class="btn-primary press press-subtle" type="submit" data-submit>{submitLabel(DEFAULTS.length)}</button>
+      <button class="btn-primary press press-subtle" type="submit" data-submit>{submitLabel(startLength)}</button>
       <p class="create-error" role="alert" data-error="form" hidden>
         <Icon name="alert" /><span></span>
       </p>
