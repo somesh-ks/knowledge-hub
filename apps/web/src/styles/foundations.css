@@ -430,9 +430,11 @@
 /* ------------------------------------------------------------------ sheets and dialogs */
 
 @layer foundations.sheet {
-  /* Scroll lock while a modal is open. */
+  /* Scroll lock while a modal is open. The stable scrollbar gutter goes with the scrollbar, or a
+     panel docked to the right and its scrim would stop short of the window's edge. */
   :root:has(dialog[open]) {
     overflow: hidden;
+    scrollbar-gutter: auto;
   }
 
   /*
