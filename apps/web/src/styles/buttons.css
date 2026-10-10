@@ -167,7 +167,7 @@
  * The outlined pill that plays a briefing or one story: a ringed glyph and a short label. The one
  * pill in the system. Markup:
  *
- *   <button class="chip press press-subtle" data-state="idle" data-playing="false">
+ *   <button class="chip" data-state="idle" data-playing="false">
  *     <span class="chip-glyph"> play and pause icons, .chip-bars, a check icon, .spinner </span>
  *     <span class="chip-label num">1:24</span>
  *   </button>
@@ -239,8 +239,11 @@
   }
 }
 
+/* A press is not a hover: the fill stays and the label takes the pressed accent. The words never
+   scale (pressText.test.ts). */
 .chip:active {
   background: var(--chip-bg-current);
+  color: var(--color-accent-pressed);
 }
 
 .chip-bars {

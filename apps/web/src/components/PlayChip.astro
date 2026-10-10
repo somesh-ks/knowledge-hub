@@ -18,7 +18,7 @@ const { label, state = "idle", class: className, ...rest } = Astro.props;
      picks which one shows, so script writes data-state, data-playing and the label, nothing more.
      Pass the hooks the player reads (data-play-digest, data-play-item) as attributes. */}
 <button
-  class:list={["chip press press-subtle", className]}
+  class:list={["chip", className]}
   type="button"
   data-state={state}
   data-playing="false"

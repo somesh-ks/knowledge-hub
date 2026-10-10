@@ -197,6 +197,10 @@
   color: var(--color-on-surface);
 }
 
+.tab[aria-current="true"]:active {
+  color: var(--color-accent-pressed);
+}
+
 /* Reduced motion: the indicator fades in at its full width instead of growing. */
 @media (prefers-reduced-motion: reduce) {
   .tab::after {
@@ -254,8 +258,10 @@
   }
 }
 
+/* A press is not a hover: the fill stays and the words take the pressed accent. */
 .source-link:active {
   background: var(--color-accent-subtle);
+  color: var(--color-accent-pressed);
 }
 
 /* ------------------------------------------------------------------ the open list of a field */

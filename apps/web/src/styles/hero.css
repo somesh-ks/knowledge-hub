@@ -16,9 +16,11 @@
   padding-block: var(--page-top) var(--space-2);
 }
 
-/* Flat, like every surface here: the cover keeps its hairline outline and loses its shadow. */
+/* Flat, like every surface here: the cover keeps its hairline outline and loses its shadow. It
+   stays level with the title's first line, not centred on a tall title block. */
 .hero .cover {
   grid-area: cover;
+  align-self: start;
   width: 100%;
   box-shadow: none;
 }
@@ -45,18 +47,29 @@
 .hero-title-row > .page-title {
   min-width: 0;
   flex: 1 1 auto;
+  /* A long word breaks inside the column instead of widening the page. */
+  overflow-wrap: anywhere;
+  hyphens: auto;
   font-size: var(--hero-title-size);
   line-height: var(--hero-title-leading);
 }
 
 /* Below a 360px screen the text column beside the cover is under 14rem: a long episode title runs to
    four or five lines there, and a date such as "Wednesday 30 September", whose day and month never
-   part, no longer fits. There the title takes the lead size; from 360px it keeps the display size. */
+   part, no longer fits. There the title takes the section heading's size, so it is never smaller
+   than the headings under it; from 360px it keeps the display size. */
 @container (width < 14rem) {
   .hero-title-row {
-    --hero-title-size: var(--text-lead-size);
+    --hero-title-size: var(--font-size-section);
     --hero-title-leading: var(--text-lead-leading);
   }
+}
+
+/* The chip holds the width of its common labels ("1 min", "Playing", "1 min left"), so the facts
+   beside it stay where they are as the label changes. */
+.hero-actions > .chip {
+  min-inline-size: 8rem;
+  justify-content: center;
 }
 
 .hero-actions {
@@ -135,7 +148,9 @@
   /* Closed, a popover is display: none; the open state alone turns it on. */
   display: none;
   opacity: 0;
-  transform: translateY(calc(var(--distance-micro) * -1));
+  /* It grows out of the corner by the More button. */
+  transform: scale(var(--scale-enter));
+  transform-origin: top right;
   transition:
     opacity var(--duration-exit) var(--ease-out),
     transform var(--duration-exit) var(--ease-out),
@@ -163,7 +178,7 @@
 @starting-style {
   .hero-menu-list:popover-open {
     opacity: 0;
-    transform: translateY(calc(var(--distance-micro) * -1));
+    transform: scale(var(--scale-enter));
   }
 }
 

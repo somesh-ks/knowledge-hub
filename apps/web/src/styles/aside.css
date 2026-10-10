@@ -65,12 +65,17 @@
 
   @media (hover: hover) and (pointer: fine) {
     .aside-link:not([aria-current="true"]):hover {
-      background: var(--color-surface-sunken);
+      background: color-mix(in oklab, currentColor 8%, transparent);
     }
   }
 
-  .aside-link:not([aria-current="true"]):active {
-    background: var(--color-surface-sunken);
+  /* A press goes one step deeper than a hover, on the section in view too. */
+  .aside-link:active {
+    background: color-mix(in oklab, currentColor 12%, transparent);
+  }
+
+  .aside-link[aria-current="true"]:active {
+    color: var(--color-accent-pressed);
   }
 }
 

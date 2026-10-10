@@ -18,6 +18,7 @@ const LABEL_CONTROLS = [
   "settings-segment",
   "segmented",
   "create-chip",
+  "chip",
   "app-nav-item",
   "app-nav-create",
   "wordmark",
@@ -64,11 +65,16 @@ describe("a press never scales words", () => {
     const offenders: string[] = [];
     for (const file of filesUnder(SRC, [".astro", ".tsx"])) {
       const markup = readFileSync(file, "utf8");
-      for (const match of markup.matchAll(/class(?:Name)?="([^"]*)"/g)) {
-        const classes = (match[1] ?? "").split(/\s+/);
+      // A class attribute, or the string literals inside a class:list={[...]} array.
+      const lists = [...markup.matchAll(/class:list=\{\[([^\]]*)\]\}/g)].flatMap((match) =>
+        [...(match[1] ?? "").matchAll(/(["'`])((?:(?!\1).)*)\1/g)].map((literal) => literal[2]),
+      );
+      const attributes = [...markup.matchAll(/class(?:Name)?="([^"]*)"/g)].map((match) => match[1]);
+      for (const value of [...attributes, ...lists]) {
+        const classes = (value ?? "").split(/\s+/);
         const label = classes.some((name) => LABEL_CONTROLS.includes(name));
         const press = classes.some((name) => name === "press" || name === "press-subtle");
-        if (label && press) offenders.push(`${file}: ${match[1]}`);
+        if (label && press) offenders.push(`${file}: ${value}`);
       }
     }
     expect(offenders).toEqual([]);
