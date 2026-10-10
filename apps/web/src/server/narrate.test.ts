@@ -1479,7 +1479,9 @@ describe("POST /api/narrate: nothing leaks", () => {
 
 describe("POST /api/narrate with a segment", () => {
   const segmentPuts = (context: Setup) =>
-    context.blob.changes().filter((change) => change.startsWith(`put audio/${ID}/seg/`));
+    context.blob
+      .changes()
+      .filter((change) => change.startsWith(`put audio/${ID}/seg/`) && change.endsWith(".mp3"));
 
   /**
    * Makes two requests truly overlap. Each is held at its look for the segment's file until both
@@ -1526,9 +1528,24 @@ describe("POST /api/narrate with a segment", () => {
     expect(context.speech.calls).toHaveLength(1);
     expect(context.speech.calls[0]?.body.input).toBe(intro.text);
 
-    // The charge first, then the file. No marker and no whole-digest files.
-    expect(context.blob.changes()).toEqual([`put ${usageKey(MONTH)}`, `put ${path}`]);
-    expect(context.blob.operations()).toEqual({ advanced: 2, simple: 2, free: 0 });
+    // The charge first, then the file and its word marks. No marker and no whole-digest files.
+    const marksPath = path.replace(/\.mp3$/, ".marks.json");
+    expect(context.blob.changes()).toEqual([
+      `put ${usageKey(MONTH)}`,
+      `put ${path}`,
+      `put ${marksPath}`,
+    ]);
+    expect(context.blob.operations()).toEqual({ advanced: 3, simple: 2, free: 0 });
+    // One mark per word, from the start of the segment's own audio.
+    const words = intro.text.split(/\s+/).filter((word) => word !== "");
+    expect(JSON.parse(context.blob.text(marksPath) ?? "{}")).toEqual({
+      words: words.map((_, word) => ({
+        word,
+        start_ms: word * MS_PER_WORD,
+        end_ms: (word + 1) * MS_PER_WORD,
+      })),
+    });
+    expect(context.blob.written(marksPath)?.contentType).toBe("application/json");
     expect(context.blob.bytes(path)).toEqual(FAKE_AUDIO);
     expect(context.blob.written(path)).toEqual({
       contentType: "audio/mpeg",
@@ -1561,8 +1578,32 @@ describe("POST /api/narrate with a segment", () => {
       context.blob.changes().filter((change) => change === `put ${usageKey(MONTH)}`),
     ).toHaveLength(1);
     expect(stateOf(context).speechify.characters).toBe(wholeChars(context.digest));
-    // One advanced operation per segment, and one for the charge.
-    expect(context.blob.operations().advanced).toBe(keys.length + 1);
+    // Two advanced operations per segment, its file and its word marks, and one for the charge.
+    expect(context.blob.operations().advanced).toBe(2 * keys.length + 1);
+  });
+
+  it("still answers with the audio when the word marks cannot be stored", async () => {
+    const context = setup();
+    const logs: string[] = [];
+    context.deps.log = (message) => logs.push(message);
+    const path = pathOf(context.digest, "intro");
+    const marksPath = path.replace(/\.mp3$/, ".marks.json");
+    context.blob.failNext("put", 1, { prefix: marksPath });
+    const narrated = segmentBody(await postSegment(context, "intro"));
+    expect(narrated.audio.url).toBe(`${FAKE_BLOB_HOST}/${path}`);
+    expect(context.blob.has(path)).toBe(true);
+    expect(context.blob.has(marksPath)).toBe(false);
+    // Tried once: marks are worth one operation, not a retry.
+    expect(context.blob.calls.filter((call) => call.pathname === marksPath)).toHaveLength(1);
+    expect(logs.some((line) => line.includes("word marks were not stored"))).toBe(true);
+  });
+
+  it("stores no word marks when Speechify gave none", async () => {
+    const context = setup({ speech: { kind: "no_marks" } });
+    expect((await postSegment(context, "intro")).status).toBe(200);
+    expect(context.blob.paths(`audio/${ID}/seg/`).some((path) => path.endsWith(".json"))).toBe(
+      false,
+    );
   });
 
   it("narrates a story with the section's bridge when it opens a later section", async () => {
@@ -1821,7 +1862,9 @@ describe("POST /api/narrate with a segment", () => {
     expect(segmentBody(a).audio.url).toBe(segmentBody(b).audio.url);
     // Neither saw the other's file, so both asked Speechify. One file is left.
     expect(context.speech.calls).toHaveLength(2);
-    expect(context.blob.paths(`audio/${ID}/seg/`)).toHaveLength(1);
+    expect(
+      context.blob.paths(`audio/${ID}/seg/`).filter((path) => path.endsWith(".mp3")),
+    ).toHaveLength(1);
     expect(stateOf(context).speechify.characters).toBe(wholeChars(context.digest));
     expect(Object.keys(stateOf(context).digests)).toEqual([ID]);
   });
@@ -1992,7 +2035,7 @@ describe("POST /api/narrate: the month's document is always read fresh", () => {
 });
 
 describe("what narrating a digest story by story costs the store", () => {
-  it("stays at or under 22 advanced operations for a 20-segment digest, lookup included", async () => {
+  it("stays at or under 42 advanced operations for a 20-segment digest, lookup included", async () => {
     const big = makeDigest({
       id: ID,
       items: Array.from({ length: 18 }, (_, index) =>
@@ -2014,9 +2057,9 @@ describe("what narrating a digest story by story costs the store", () => {
     }
 
     const cost = context.blob.operations();
-    // The month's charge, and twenty files.
-    expect(cost.advanced).toBe(21);
-    expect(cost.advanced).toBeLessThanOrEqual(22);
+    // The month's charge, and twenty files with their word marks.
+    expect(cost.advanced).toBe(41);
+    expect(cost.advanced).toBeLessThanOrEqual(42);
     // Two heads a request, and one read of the document that was not a cache hit.
     expect(cost.simple).toBe(2 * 20 + 1);
 
@@ -2027,7 +2070,7 @@ describe("what narrating a digest story by story costs the store", () => {
         expect(segmentBody(await postSegment(context, segment.key)).audio.confirmed).toBe(true);
       }
     }
-    expect(context.blob.operations().advanced).toBe(21);
+    expect(context.blob.operations().advanced).toBe(41);
     expect(context.speech.calls).toHaveLength(20);
   });
 });

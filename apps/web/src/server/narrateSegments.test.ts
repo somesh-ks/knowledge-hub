@@ -2,12 +2,14 @@ import { describe, expect, it } from "vitest";
 import type { BlobEntry } from "./blobStore";
 import { MS_PER_CHARACTER } from "./config";
 import {
+  deriveSegmentMarks,
   describeSegments,
   estimateDurationMs,
   estimateFromText,
   SEGMENT_KEY,
   segmentAudio,
   segmentHash,
+  segmentMarksPath,
   segmentPath,
   segmentPrefix,
 } from "./narrateSegments";
@@ -145,5 +147,65 @@ describe("segment keys", () => {
     for (const key of ["", "../x", "a/b", "a.b", "Intro", "x".repeat(33)]) {
       expect(SEGMENT_KEY.test(key), key).toBe(false);
     }
+  });
+});
+
+describe("segment word marks", () => {
+  const mark = (start: number, value: string, startTime: number, endTime = startTime + 200) => ({
+    type: "word",
+    start,
+    end: start + value.length,
+    start_time: startTime,
+    end_time: endTime,
+    value,
+  });
+
+  it("live beside the audio, under the same hash", () => {
+    const path = segmentPath(DIGEST, "t3", "0123456789ab");
+    expect(segmentMarksPath(path)).toBe("audio/2026-10-07/seg/t3.0123456789ab.marks.json");
+  });
+
+  it("number the words as the text split on white space, with times from the segment's start", () => {
+    const text = "  Hello,\n there  world ";
+    const marks = [mark(2, "Hello,", 0.4), mark(10, "there", 300.6), mark(17, "world", 610)];
+    expect(deriveSegmentMarks(text, marks)).toEqual([
+      { word: 0, start_ms: 0, end_ms: 200 },
+      { word: 1, start_ms: 301, end_ms: 501 },
+      { word: 2, start_ms: 610, end_ms: 810 },
+    ]);
+  });
+
+  it("re-anchor a mark whose offsets are off, and drop one whose text is not there", () => {
+    const text = "One two three";
+    const marks = [
+      mark(0, "One", 0),
+      mark(9, "two", 250),
+      mark(20, "four", 400),
+      mark(1, "three", 600),
+    ];
+    expect(deriveSegmentMarks(text, marks).map((word) => word.word)).toEqual([0, 1, 2]);
+  });
+
+  it("give a word with several marks the first start and the last end", () => {
+    const text = "e-mail me";
+    const marks = [mark(0, "e", 0, 100), mark(2, "mail", 120, 300), mark(7, "me", 320)];
+    expect(deriveSegmentMarks(text, marks)).toEqual([
+      { word: 0, start_ms: 0, end_ms: 300 },
+      { word: 1, start_ms: 320, end_ms: 520 },
+    ]);
+  });
+
+  it("skip marks that are not words, and never let a start run backwards", () => {
+    const text = "a b";
+    const marks = [{ ...mark(0, "a", 0), type: "sentence" }, mark(0, "a", 500), mark(2, "b", 400)];
+    expect(deriveSegmentMarks(text, marks)).toEqual([
+      { word: 0, start_ms: 500, end_ms: 700 },
+      { word: 1, start_ms: 500, end_ms: 600 },
+    ]);
+  });
+
+  it("are empty without marks or words", () => {
+    expect(deriveSegmentMarks("a b", [])).toEqual([]);
+    expect(deriveSegmentMarks("   ", [mark(0, " ", 0)])).toEqual([]);
   });
 });
