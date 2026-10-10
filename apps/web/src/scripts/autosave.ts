@@ -13,6 +13,8 @@ export const SETTLE_MS = 1200;
 export const UNDO_MS = 5000;
 /** How long "Saved" stays before the toast goes. */
 export const SAVED_MS = 4000;
+/** The air kept between the control just changed and the toast over the page. */
+const CLEAR_PX = 12;
 
 export interface AutosaveOptions {
   /** What a pending removal is, for the toast that offers to undo it, or null when none is pending. */
@@ -41,8 +43,17 @@ export function mountAutosave(
   const bar = root.querySelector<HTMLElement>("[data-bar]");
   const text = root.querySelector<HTMLElement>("[data-bar-text]");
   const live = root.querySelector<HTMLElement>("[data-live]");
+  const alert = root.querySelector<HTMLElement>("[data-alert]");
   let still = 0;
   let linger = 0;
+  /** The control the owner last used, which the toast must not cover. */
+  let touched: Element | null = null;
+  const touch = (event: Event): void => {
+    const control = (event.target as Element).closest?.("input, select, textarea, button");
+    if (control && !bar?.contains(control)) touched = control;
+  };
+  root.addEventListener("change", touch);
+  root.addEventListener("click", touch);
 
   /** The toast is a popover, so it sits above the bottom bar and the player like every toast. */
   const open = (shown: boolean): void => {
@@ -55,16 +66,33 @@ export function mountAutosave(
     else if (!shown && bar.matches(":popover-open")) bar.hidePopover();
   };
 
+  /**
+   * The toast floats over the bottom of the page, where the control just changed may be. If it
+   * lands on it, the page moves up by the overlap; manage.css keeps room under the last control
+   * while the toast shows. A control in a dialog is above the page and needs nothing.
+   */
+  const reveal = (): void => {
+    if (!bar?.matches(":popover-open") || !touched?.isConnected || touched.closest("dialog"))
+      return;
+    // Where the toast rests: its offset box, without the slide it enters with.
+    const top =
+      window.innerHeight - Number.parseFloat(getComputedStyle(bar).bottom) - bar.offsetHeight;
+    const overlap = touched.getBoundingClientRect().bottom + CLEAR_PX - top;
+    if (overlap <= 0) return;
+    const reduce = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+    window.scrollBy({ top: overlap, behavior: reduce ? "instant" : "smooth" });
+  };
+
   const show = (message: string, state: SaveState): void => {
     window.clearTimeout(linger);
     if (text) text.textContent = message;
-    // The live region repeats it; an error is also an alert, so it is heard at once.
-    if (live) live.textContent = message;
-    if (bar) {
-      bar.dataset.state = state;
-      bar.setAttribute("role", state === "error" ? "alert" : "status");
-    }
+    // One live region speaks it, and an error is an alert, so it is heard at once. The toast itself
+    // has no role: two regions would say the same words twice.
+    if (live) live.textContent = state === "error" ? "" : message;
+    if (alert) alert.textContent = state === "error" ? message : "";
+    if (bar) bar.dataset.state = state;
     open(true);
+    reveal();
     if (state === "done") linger = window.setTimeout(() => open(false), SAVED_MS);
   };
 

@@ -300,9 +300,16 @@ test.describe("a refused save", () => {
     await open(page, "daily");
     await page.locator("#daily-hour").selectOption("9");
     await expect(toastText(page)).toHaveText("Saving is not available right now. Not saved yet.");
-    await expect(toast(page)).toHaveAttribute("role", "alert");
+    // One region speaks each message, an error through the alert region; the toast has no role.
+    await expect(page.locator("[data-alert]")).toHaveText(
+      "Saving is not available right now. Not saved yet.",
+    );
+    await expect(page.locator("[data-live]")).toHaveText("");
+    await expect(toast(page)).not.toHaveAttribute("role", /.+/);
     await toast(page).getByRole("button", { name: "Retry" }).click();
     await expect(toastText(page)).toHaveText(SAVED);
+    await expect(page.locator("[data-live]")).toHaveText(SAVED);
+    await expect(page.locator("[data-alert]")).toHaveText("");
     expect(sent).toHaveLength(2);
     expect(sent[1]?.op).toEqual({ op: "schedule.set", hour: 9 });
   });

@@ -3,11 +3,13 @@ import { PASSPHRASE_REQUIRED } from "../lib/access";
 import Icon from "./Icon.astro";
 ---
 
-{/* What the settings pages share besides their rows: the live region the script writes to, the row
-     it copies for a topic added on the page, the toast that says how saving goes (scripts/autosave.ts;
-     it looks and sits like every toast), and the dialog that asks for the passphrase once. All of it is
-     inert until the page's script mounts. */}
+{/* What the settings pages share besides their rows: the live regions the script writes to (one
+     polite, one for errors), the row it copies for a topic added on the page, the toast that says how
+     saving goes (scripts/autosave.ts; it looks and sits like every toast, and leaves speaking to the
+     regions), and the dialog that asks for the passphrase once. All of it is inert until the page's
+     script mounts. */}
 <p class="sr-only" role="status" data-live></p>
+<p class="sr-only" role="alert" data-alert></p>
 
 <template>
   <li class="manage-row" data-queued-row>
@@ -23,7 +25,7 @@ import Icon from "./Icon.astro";
   </li>
 </template>
 
-<div class="toast manage-bar" popover="manual" role="status" data-bar data-state="saving">
+<div class="toast manage-bar" popover="manual" data-bar data-state="saving">
   <span class="spinner manage-bar-busy" aria-hidden="true"></span>
   <Icon name="check" class="toast-icon manage-bar-done" />
   <Icon name="alert" class="toast-icon manage-bar-error" />

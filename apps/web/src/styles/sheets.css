@@ -598,7 +598,8 @@
   gap: var(--space-3);
   width: max-content;
   max-width: min(calc(100% - var(--page-gutter) * 2), var(--layout-dialog));
-  min-height: var(--size-touch-comfortable);
+  /* As tall as a 44px button and its padding, so a toast keeps its height when its buttons come and go. */
+  min-height: calc(var(--size-touch) + var(--space-1) * 2);
   margin-inline: auto;
   padding: var(--space-1) var(--space-2) var(--space-1) var(--space-4);
   border: 0;
@@ -649,6 +650,14 @@ html[data-mini="visible"] .toast {
   }
 }
 
+/* From 80rem every page but the Library keeps a track at its end for a contents list (shell.css), so
+   the reading column sits left of the window's middle: a toast centres on the column instead. */
+@media (min-width: 80rem) {
+  html:not([data-player="open"]):not(:has(.shell > main.library)) .toast {
+    inset-inline-end: calc(var(--space-12) + var(--layout-aside));
+  }
+}
+
 .toast:popover-open {
   display: flex;
   opacity: 1;
@@ -678,8 +687,10 @@ html[data-mini="visible"] .toast {
   min-width: 0;
 }
 
+/* The words give way first: a button keeps its 44px however long the message runs. */
 .toast-action,
 .toast-dismiss {
+  flex: none;
   min-height: var(--size-touch);
 }
 

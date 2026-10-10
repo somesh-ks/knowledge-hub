@@ -363,6 +363,20 @@ textarea.manage-input {
   flex: none;
 }
 
+/* While it shows, the page keeps room for the toast under its last control, and focus scrolling
+   stops above it, so the control just changed can always be moved clear of it (autosave.ts). */
+html:has(.manage-bar:popover-open) {
+  --page-end: calc(var(--space-12) + var(--size-touch) + var(--space-1) * 2 + var(--space-3));
+  scroll-padding-block-end: calc(
+    var(--bottom-nav-height) +
+    var(--run-room) +
+    var(--size-touch) +
+    var(--space-1) *
+    2 +
+    var(--space-6)
+  );
+}
+
 /* ------------------------------------------------------------------ the passphrase dialog */
 
 .manage-dialog {
