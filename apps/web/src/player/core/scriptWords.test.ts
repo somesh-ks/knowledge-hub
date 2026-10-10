@@ -1,6 +1,12 @@
 import { describe, expect, it } from "vitest";
 import type { PlayerTurn } from "../../types/contracts";
-import { estimateWordStarts, splitWords, turnEndMs, wordIndexAt } from "./scriptMath";
+import {
+  estimateWordStarts,
+  markedWordStarts,
+  splitWords,
+  turnEndMs,
+  wordIndexAt,
+} from "./scriptMath";
 
 const turn = (start_ms: number | null, end_ms: number | null): PlayerTurn => ({
   key: `t${start_ms}`,
@@ -40,5 +46,48 @@ describe("the transcript's words", () => {
     expect(turnEndMs(turns, 0)).toBe(900);
     expect(turnEndMs(turns, 1)).toBe(3000);
     expect(turnEndMs(turns, 3)).toBeNull();
+  });
+});
+
+describe("the transcript's word marks", () => {
+  const mark = (word: number, start_ms: number) => ({ word, start_ms, end_ms: start_ms + 100 });
+
+  it("places marked words at the turn's start plus the mark", () => {
+    const estimate = [1000, 1250, 1750];
+    expect(markedWordStarts(3, [mark(0, 0), mark(1, 400), mark(2, 900)], 1000, estimate)).toEqual([
+      1000, 1400, 1900,
+    ]);
+  });
+
+  it("keeps the estimate for a word without a mark, held between its marked neighbours", () => {
+    // Word 1 is estimated at 1250, between 1000 and 1200: held at the later mark.
+    expect(markedWordStarts(3, [mark(0, 0), mark(2, 200)], 1000, [1000, 1250, 1750])).toEqual([
+      1000, 1200, 1200,
+    ]);
+    // Word 1 estimated inside the gap keeps its estimate.
+    expect(markedWordStarts(3, [mark(0, 0), mark(2, 800)], 1000, [1000, 1250, 1750])).toEqual([
+      1000, 1250, 1800,
+    ]);
+    // Without an estimate, a gap takes the mark before it.
+    expect(markedWordStarts(3, [mark(0, 0), mark(2, 800)], 1000, null)).toEqual([1000, 1000, 1800]);
+  });
+
+  it("never runs backwards, so the word being said can be searched for", () => {
+    const starts = markedWordStarts(4, [mark(0, 500), mark(1, 100), mark(3, 50)], 0, [0, 1, 2, 3]);
+    expect(starts).toEqual([500, 500, 500, 500]);
+    expect(wordIndexAt(starts ?? [], 500)).toBe(3);
+  });
+
+  it("ignores marks past the turn's words and repeats of a word", () => {
+    expect(markedWordStarts(2, [mark(0, 0), mark(0, 90), mark(5, 10)], 100, [100, 200])).toEqual([
+      100, 200,
+    ]);
+  });
+
+  it("is the estimate when there are no marks or no start", () => {
+    expect(markedWordStarts(2, undefined, 100, [100, 200])).toEqual([100, 200]);
+    expect(markedWordStarts(2, [], 100, null)).toBeNull();
+    expect(markedWordStarts(2, [mark(0, 0)], null, null)).toBeNull();
+    expect(markedWordStarts(2, [mark(7, 0)], 100, [100, 200])).toEqual([100, 200]);
   });
 });

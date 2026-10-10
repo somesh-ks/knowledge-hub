@@ -1,3 +1,4 @@
+import type { SegmentWordMark } from "../../lib/segmentMarks";
 import type { PlayerTurn } from "../../types/contracts";
 
 /**
@@ -27,9 +28,9 @@ export function splitWords(text: string): string[] {
 
 /**
  * When each word starts, in ms, estimated by spreading the turn's span over its words in
- * proportion to their length (one extra character for the pause after each). Speechify's word
- * marks are not sent to the browser yet; this keeps the highlight close, and it snaps back at
- * every turn, whose start is exact. Null when the turn has no span.
+ * proportion to their length (one extra character for the pause after each). It stands in until
+ * the turn's word marks arrive, and for any word they leave out; it snaps back at every turn,
+ * whose start is exact. Null when the turn has no span.
  */
 export function estimateWordStarts(
   words: readonly string[],
@@ -46,6 +47,52 @@ export function estimateWordStarts(
     before += weight;
   }
   return starts;
+}
+
+/**
+ * When each of a turn's `count` words starts, in track ms: Speechify's mark where there is one
+ * (`word` indexes the turn's text split on white space, its times count from the turn's start),
+ * the estimate where there is not. A word without a mark is kept between its marked neighbours, so
+ * the starts never run backwards and `wordIndexAt` can search them. The estimate, unchanged, when
+ * no mark fits the turn or the turn has no start.
+ */
+export function markedWordStarts(
+  count: number,
+  marks: readonly SegmentWordMark[] | undefined,
+  startMs: number | null,
+  estimate: readonly number[] | null,
+): number[] | null {
+  const real: Array<number | undefined> = new Array(count).fill(undefined);
+  let found = false;
+  for (const mark of marks ?? []) {
+    if (startMs === null || mark.word >= count || real[mark.word] !== undefined) continue;
+    real[mark.word] = startMs + mark.start_ms;
+    found = true;
+  }
+  if (!found || startMs === null) return estimate ? [...estimate] : null;
+  // Marks in order: one that steps back is held at the one before.
+  let latest = startMs;
+  for (let index = 0; index < count; index += 1) {
+    const start = real[index];
+    if (start === undefined) continue;
+    latest = Math.max(latest, start);
+    real[index] = latest;
+  }
+  const nextMark: number[] = new Array(count);
+  let next = Number.POSITIVE_INFINITY;
+  for (let index = count - 1; index >= 0; index -= 1) {
+    next = real[index] ?? next;
+    nextMark[index] = next;
+  }
+  let previous = startMs;
+  return real.map((start, index) => {
+    if (start !== undefined) {
+      previous = start;
+      return start;
+    }
+    const guess = estimate?.[index] ?? previous;
+    return Math.min(Math.max(guess, previous), nextMark[index] ?? next);
+  });
 }
 
 /** The word being said at `ms`: the last one that has started, or -1 before the first. */

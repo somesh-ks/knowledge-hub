@@ -1,10 +1,12 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import { hostOf } from "../lib/hosts";
+import type { SegmentWordMark } from "../lib/segmentMarks";
 import { getPlayerStore } from "./core/playerRuntime";
 import {
   currentTurnIndex,
   estimateWordStarts,
   FOLLOW_PAUSE_MS,
+  markedWordStarts,
   splitWords,
   turnEndMs,
   wordIndexAt,
@@ -27,14 +29,40 @@ export default function ScriptView({ titleHidden = false }: { titleHidden?: bool
   // Opening the page shows its top. Following starts when the voice moves to another turn.
   const followed = useRef<number | null>(null);
   const [away, setAway] = useState(false);
+  const digestId = state.track?.digest.id;
+  // Speechify's word marks, by segment key, for the turns that have been near the voice.
+  const [marks, setMarks] = useState<Record<string, SegmentWordMark[]>>({});
   const words = useMemo(
     () =>
       turns.map((turn, index) => {
         const list = splitWords(turn.text);
-        return { list, starts: estimateWordStarts(list, turn.start_ms, turnEndMs(turns, index)) };
+        const estimate = estimateWordStarts(list, turn.start_ms, turnEndMs(turns, index));
+        return {
+          list,
+          starts: markedWordStarts(list.length, marks[turn.key], turn.start_ms, estimate),
+        };
       }),
-    [turns],
+    [turns, marks],
   );
+
+  // The turn being spoken and the next: their marks, once each, on demand. A miss keeps the estimate.
+  useEffect(() => {
+    if (current < 0 || !digestId) return;
+    let live = true;
+    for (const turn of turns.slice(current, current + 2)) {
+      if (turn.start_ms === null) continue;
+      void import("./core/wordMarks")
+        .then(({ loadWordMarks }) => loadWordMarks(digestId, turn.key))
+        .then((found) => {
+          if (live && found && found.length > 0)
+            setMarks((known) => (known[turn.key] ? known : { ...known, [turn.key]: found }));
+        })
+        .catch(() => undefined);
+    }
+    return () => {
+      live = false;
+    };
+  }, [current, digestId, turns]);
 
   // The spoken word, at frame rate, without a render: one attribute moves from word to word.
   useEffect(() => {
