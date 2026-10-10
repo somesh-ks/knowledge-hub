@@ -2,7 +2,7 @@
 
 Last updated 2026-10-10. Rewrite this file; do not append.
 
-The reader is called Singularity (D30). Identifiers keep `dispatch`. Everything below is on `main` and deployed at news.someshks.work unless a line says otherwise. The design pass of 2026-10-10 (D51 to D54, and the lines that name them) is on the branch `claude/charming-sagan-m6evyy`, pushed and not yet merged.
+The reader is called Singularity (D30). Identifiers keep `dispatch`. Everything below is on `main` and deployed at news.someshks.work unless a line says otherwise. The design pass of 2026-10-10 (D51 to D54, and the lines that name them) is on the branch `claude/charming-sagan-m6evyy`, with a pull request to `main` that merges once CI passes.
 
 ## Working in production
 
@@ -40,7 +40,7 @@ The reader is called Singularity (D30). Identifiers keep `dispatch`. Everything 
 
 ## Written, not merged
 
-- The design pass of 2026-10-10 on `claude/charming-sagan-m6evyy` (D51 to D54; the lines that name them). No pull request is open. The preact/compat prototype (about 57 KB off every page) was declined by the owner on 2026-10-10: React stays, and the budget is 110 KB (D53).
+- The design pass of 2026-10-10 on `claude/charming-sagan-m6evyy` (D51 to D54; the lines that name them), in a pull request to `main` that merges once CI passes. The preact/compat prototype (about 57 KB off every page) was declined by the owner on 2026-10-10: React stays, and the budget is 110 KB (D53).
 
 ## Development
 
@@ -60,7 +60,8 @@ The reader is called Singularity (D30). Identifiers keep `dispatch`. Everything 
 - Unverified on a real deploy: the quiet refresh of a page that changed behind a saved copy, and a new `/latest.json` making saved pages old. Both are covered by unit tests only.
 - The first press after opening the app blocks for about 200 ms on a cold audio device (75 ms warm): `new AudioContext()` runs inside the press in `packages/sound`. Moving it changes that package's first rule, so it waits for the owner.
 - The ambient light's canvas is unseen on a real phone, in Safari and in Firefox, and its frame cost is unprofiled. Its GPU tests skip in headless Chromium, so CI covers only the CSS layer and the decision not to draw.
-- The press, hover and focus audit of every pressable was done in the design pass (two audits, see the 2026-10-10 history note). The Settings switches show the track colour until the page's script is ready.
+- The press, hover and focus audit of every pressable was done in the design pass (two audits and a final check at phone, tablet and desktop sizes; see the 2026-10-10 history note). The Settings switches show the track colour until the page's script is ready.
+- On a first load the stale banner (shown only when no briefing has come for more than three days) arrives after the page has drawn and moves it down by its height (layout shift about 0.045). A navigation adds it before the page shows. Fixing the first load needs the staleness rule in an inline script as well, so it waits.
 - A 15 minute episode still falls short: 71% for a general readout with 30 stories, and 45% for the owner's topics on a day with 12 stories, where there is not enough material. The app does not yet say how much a window holds.
 - The schedule's hour: the workflow change is merged and, since 2026-10-09, the site's GitHub token can read and write repository variables (checked with the token itself: `RUN_CRON` was created with the default `13 7 * * *`). Not yet seen: a save from Settings, Schedule changing the variable, and a scheduled run firing at a chosen hour. Until a time is saved the briefing stays at 07:13.
 - Prewarming the first audio segments on page open is written but not merged: it made the site suite fail, because the background request reaches the test server.
@@ -80,7 +81,7 @@ The reader is called Singularity (D30). Identifiers keep `dispatch`. Everything 
 - Unverified live: any Anthropic call, the Speechify voice list and voice samples (`media-src` may block the sample URLs), `/api/source-preview` and `/api/site-icon` on real feeds, the Nebius shortlist against the live list. The drawn select lists are checked in Chromium screenshots only; Safari 27 and a real phone are unseen.
 - `audio-speechify.test.ts` flakes under load (passes alone). `SettingsSheet.tsx` (reachable only from the dev lab) still has a Default speed.
 - Covers are served as lossless WebP (pixel-identical, about a third of the PNG bytes; Library images 66 to 20 KB on a phone), encoded with sharp at build time and cached beside the PNG. The PNG is still built for the lock screen's media controls. The section tabs test "follow the page again after a client-side navigation" flakes about 1 in 4 in the cloud container on main.
-- Bundle: the budget is 110 KB since D53 (was 104), kept as low as the code allows; the heaviest page is /library at 102.7 on main and 103.1 on the branch (the Podcast editor loads after first paint since #63). React is 68 of the 101 KB every page shares. What could still come off, with sizes (React only when there is something to show, about 76 KB off a first visit; the open-player machinery on first play, about 4 KB), is in [first-load-js.md](first-load-js.md) with the per-chunk tables and a throttled phone run.
+- Bundle: the budget is 110 KB since D53 (was 104), kept as low as the code allows; the heaviest page is /library at 102.7 on main and 103.2 on the branch (the Podcast editor loads after first paint since #63). React is 68 of the 101 KB every page shares. What could still come off, with sizes (React only when there is something to show, about 76 KB off a first visit; the open-player machinery on first play, about 4 KB), is in [first-load-js.md](first-load-js.md) with the per-chunk tables and a throttled phone run.
 - A leftover folder `.claude/worktrees/agent-aa3d6c40ca7009eee` could not be deleted (something holds it); it is not a git worktree.
 
 ## Known risks

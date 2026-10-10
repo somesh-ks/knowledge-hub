@@ -115,3 +115,5 @@ One line each: symptom, cause, fix. Newest first. Search before debugging.
 - 2026-10-10: a "played" colour on timeline dots showed as a hole on the unfilled track, because the current story counts as played. Style a marker so it reads on both the fill and the track.
 - 2026-10-10: in the cloud container Playwright 1.63 wants Chromium 1243 and only 1194 is installed. Point a config override at `/opt/pw-browsers/chromium-1194` rather than installing browsers, and use a different PORT per worktree.
 
+- 2026-10-10: with a lone threshold of 1, Chromium's IntersectionObserver reports a target partly past the root edge as not intersecting, and never calls back when it then leaves. To tell a sticky element is stuck, observe with thresholds `[0, 1]` and compare `boundingClientRect.top` with `rootBounds.top`.
+- 2026-10-10: a "before" server from hours earlier still held port 4711, so a new server died with EADDRINUSE in a log nobody read and the tests ran against the old build (seven false failures). Check `lsof -iTCP -sTCP:LISTEN` or the server's log before trusting a port.

@@ -524,4 +524,5 @@ D1 to D9 date from plan v2 (2026-10-05). D10 to D25 date from 2026-10-06. Reason
 - Why: the owner left the open decisions to the design pass. The fields have no fill, so their outline is the only thing that shows a field is there; WCAG 1.4.11 asks 3:1 for it, Material's outlined fields meet it, and the token already existed unused. The transport row read dark, light, dark, light, dark (ink mass 156, 100, play, 100, 156); with the helpers equal, the row reads as one control and its helpers.
 - Cost: fields look firmer than before; a muted Previous and Next read as secondary, which they are.
 - Rejected: a filled field with no outline (a second surface colour on a page that has none); full ink for all five transport controls (Play then stands out by size alone).
+- Refined 2026-10-10: in the dark theme a disabled Previous or Next was only 1.67:1 from the muted skips beside it and read as enabled, so the dark disabled ink is one step dimmer (grey-650): 2.37:1 from muted, as the light theme's pair is 2.29:1.
 
