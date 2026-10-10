@@ -1,5 +1,9 @@
 {
   "permissions": {
+    "allow": [
+      "Read(./.env.example)",
+      "Edit(./.env.example)"
+    ],
     "deny": [
       "Read(./.env)",
       "Read(./.env.local)",
@@ -12,10 +16,9 @@
       "Edit(./.env.production)",
       "Edit(./.env.development)",
       "Edit(./.env.*.local)"
-    ],
-    "allow": [
-      "Read(./.env.example)",
-      "Edit(./.env.example)"
     ]
+  },
+  "enabledPlugins": {
+    "impeccable@agents-plugins": true
   }
 }
