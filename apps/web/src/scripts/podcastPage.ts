@@ -315,6 +315,7 @@ async function mountModel(
   let pressed = false;
   input.addEventListener("pointerdown", () => {
     pressed = true;
+    input.dataset.pointer = "";
   });
   input.addEventListener("focus", () => {
     if (!pressed) input.select();
@@ -325,6 +326,8 @@ async function mountModel(
   });
   input.addEventListener("keydown", (event) => {
     const { key } = event;
+    // From the keyboard, the field shows its ring again (podcast.css).
+    delete input.dataset.pointer;
     if (key === "ArrowDown" || key === "ArrowUp") {
       event.preventDefault();
       if (!isOpen()) open("", true);
@@ -349,7 +352,10 @@ async function mountModel(
     if (!(event.relatedTarget instanceof Node && listbox.contains(event.relatedTarget))) close();
   });
   // Pressing an option must not blur the field first, or the list would close under the pointer.
-  listbox.addEventListener("pointerdown", (event) => event.preventDefault());
+  listbox.addEventListener("pointerdown", (event) => {
+    event.preventDefault();
+    input.dataset.pointer = "";
+  });
   // The pointer takes over from the keyboard: the hover tint shows the row, the ring goes.
   listbox.addEventListener("pointermove", () => listbox.removeAttribute("data-keyboard"));
   listbox.addEventListener("click", (event) => {
@@ -357,7 +363,10 @@ async function mountModel(
     const option = item ? shown[Number(item.dataset.index)] : undefined;
     if (option) choose(option);
   });
-  toggle.addEventListener("pointerdown", (event) => event.preventDefault());
+  toggle.addEventListener("pointerdown", (event) => {
+    event.preventDefault();
+    input.dataset.pointer = "";
+  });
   toggle.addEventListener("click", () => {
     input.focus();
     if (isOpen()) close();

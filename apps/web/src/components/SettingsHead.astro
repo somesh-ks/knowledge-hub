@@ -8,11 +8,20 @@ interface Props {
   up?: { href: string; label: string };
   /** One quiet line under the title: what the page is for, or when it next runs. */
   note?: string;
-  /** Marks the note as the "next run" line, which the page hides while the profile is off. */
+  /** Marks the note as the "next run" line. */
   next?: boolean;
+  /** Said in the next run's place while the profile is off, so the line, and the switch under it,
+      hold still. */
+  off?: string;
 }
 
-const { title, up = { href: "/settings", label: "Settings" }, note, next = false } = Astro.props;
+const {
+  title,
+  up = { href: "/settings", label: "Settings" },
+  note,
+  next = false,
+  off,
+} = Astro.props;
 ---
 
 {/* Where the page sits, at the title's own size and on its line: the way up is the first word,
@@ -26,5 +35,12 @@ const { title, up = { href: "/settings", label: "Settings" }, note, next = false
     <Icon name="chevronRight" class="settings-crumb-gap" />
     <h1 class="page-title" id="page-title" tabindex="-1">{title}</h1>
   </div>
-  {note && <p class="settings-note" data-next={next ? "" : undefined}>{note}</p>}
+  {
+    note && (
+      <p class="settings-note">
+        <span data-next={next ? "" : undefined}>{note}</span>
+        {off && <span data-off>{off}</span>}
+      </p>
+    )
+  }
 </header>

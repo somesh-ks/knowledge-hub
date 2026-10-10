@@ -144,10 +144,15 @@ test.describe("the profile pages", () => {
     await expect(page.locator("[data-next]")).toHaveText(
       /^Next weekly: about (today|tomorrow|Sunday) at 07:00$/,
     );
+    await expect(page.locator("[data-off]")).toBeHidden();
+    const before = await on.boundingBox();
     await on.uncheck();
     await expect(page.locator("#weekly-day")).toBeHidden();
     await expect(page.getByRole("radio", { name: "Readout" })).toBeHidden();
+    // The line under the title says it is off in the next run's place, so the switch holds still.
     await expect(page.locator("[data-next]")).toBeHidden();
+    await expect(page.locator("[data-off]")).toHaveText("No weekly episode while it is off.");
+    expect((await on.boundingBox())?.y).toBe(before?.y);
   });
 
   test("Custom says what it is for, and has no time", async ({ page }) => {

@@ -68,6 +68,13 @@
   cursor: text;
 }
 
+/* Chosen with a pointer, the field rests as a select does after a choice: its hairline and no
+   keyboard ring. A key brings the ring back (podcastPage.ts). */
+.daily-combo .manage-input[data-pointer]:not([aria-expanded="true"]):focus-visible {
+  outline: none;
+  border-color: var(--color-border-hairline);
+}
+
 /* The chevron sits where every select's does, 16px in from the end; the button around it keeps a
    full-size target. */
 .daily-combo-toggle {
@@ -220,9 +227,11 @@
   padding-block-start: var(--space-1);
 }
 
-/* Off, the weekly podcast is one switch: its other rows and its next run wait until it is on. */
+/* Off, the weekly podcast is one switch: its other rows wait until it is on, and the line under the
+   title says it is off in its next run's place, so the switch under it holds still. */
 .manage:has(#weekly-enabled:not(:checked))
-:is(.podcast-profile > .rows > :not(:first-child), [data-next]) {
+:is(.podcast-profile > .rows > :not(:first-child), [data-next]),
+.manage:not(:has(#weekly-enabled:not(:checked))) [data-off] {
   display: none;
 }
 

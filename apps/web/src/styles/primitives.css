@@ -303,6 +303,9 @@
     box-sizing: border-box;
     /* Half the screen less a field: the side the list opens to always has that much room. */
     max-block-size: min(var(--pick-list-height), 50dvh - var(--space-12));
+    /* Below the field whenever it fits, as the model list opens; the browser's default would pick
+       the roomier side and cover the controls above. */
+    position-try-order: normal;
     margin-block: var(--space-1);
     padding: var(--space-2);
     border: var(--stroke-hairline) solid var(--color-border-hairline);
