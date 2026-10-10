@@ -41,7 +41,7 @@ import { loadTopicsFile } from "../topics/store.js";
 import { validateDigest } from "../validate/validateDigest.js";
 import { createLinter } from "../voice/lint.js";
 import { loadVoice } from "../voice/voice.js";
-import { JudgedFile, withRunJudgments, withRunTopicJudgments } from "./artifacts.js";
+import { withRunJudgments, withRunTopicJudgments } from "./artifacts.js";
 import { makeCoverPicker } from "./cover.js";
 import { digestFromSelection } from "./digestFromSelection.js";
 import { StageFailure } from "./errors.js";
@@ -64,8 +64,6 @@ interface PassData {
   pass: PlanPass;
   selection: Selection;
   pool: ParsedPool;
-  /** Pool items a judge answered; recorded as seen so they are not judged again for 90 days. */
-  judgedIds: string[];
   /** Per-source fetched, judged and passed counts the write stage recorded; null when absent. */
   sourceCounts: Record<string, SourceCounts> | null;
 }
@@ -84,14 +82,10 @@ async function loadPassData(deps: RunDeps, plan: Plan, pass: PlanPass): Promise<
     );
   }
   const pool = await loadPool(passFile(deps.root, pass.id, "pool.json"));
-  const judged = JudgedFile.safeParse(
-    await readJsonIfExists(passFile(deps.root, pass.id, "judged.json"), "judged.json"),
-  );
   return {
     pass,
     selection: selection.data,
     pool,
-    judgedIds: judged.success ? judged.data.entries.map((entry) => entry.item_id) : [],
     sourceCounts: await readSourceCounts(passFile(deps.root, pass.id, "source-counts.json")),
   };
 }
@@ -131,7 +125,7 @@ function failedReport(
 /**
  * Persist the run. Digests are built from each pass's validated selection, with the cover from
  * the cover package (avoiding the previous cover), and written without ever overwriting. Then
- * state/seen.json (shown items plus every item a judge answered), state/judgments.json (merged,
+ * state/seen.json (the items the briefings show), state/judgments.json (merged,
  * pruned), state/last-run.json (the record for each pass's kind, the fetch window and the last
  * cover) and the pruned seen list are written, the write guard checks the tree, and one commit
  * is made and pushed with a rebase retry.
@@ -179,7 +173,7 @@ export async function commitStage(deps: RunDeps, options: RunOptions): Promise<C
   const digests: Digest[] = [];
   const reports: DigestReport[] = [];
   for (const data of passData) {
-    const { pass, selection, pool, judgedIds, sourceCounts } = data;
+    const { pass, selection, pool, sourceCounts } = data;
     const fetchedThrough = new Date(selection.window.to);
     if (selection.outcome === "nothing" || selection.items.length === 0) {
       lastRun = recordRun(lastRun, {
@@ -187,7 +181,6 @@ export async function commitStage(deps: RunDeps, options: RunOptions): Promise<C
         record: { at: nowIso, outcome: "nothing", items: 0 },
         fetchedThrough,
       });
-      seen = markSeen(seen, judgedIds, today);
       if (sourceCounts) {
         sourceStats = recordSourceStats(sourceStats, sourceCounts, [], today);
         statsTouched = true;
@@ -238,7 +231,14 @@ export async function commitStage(deps: RunDeps, options: RunOptions): Promise<C
       ...lastRun,
       last_cover: { template: digest.cover.template, palette: digest.cover.palette },
     };
-    seen = markSeen(seen, [...judgedIds, ...digest.items.map((item) => item.id)], today);
+    // Only what the briefing shows is seen. An item judged but cut (by the cap, the bar or a
+    // "nothing" run) stays eligible: if a later pass fetches it again, its judgment comes from
+    // state/judgments.json (30 days), so it is reconsidered without being judged twice.
+    seen = markSeen(
+      seen,
+      digest.items.map((item) => item.id),
+      today,
+    );
     if (sourceCounts) {
       const bySource = new Map(pool.items.map((item) => [item.id, item.source_id]));
       const published = digest.items.flatMap((item) => bySource.get(item.id) ?? []);
