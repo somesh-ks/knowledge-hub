@@ -1,9 +1,11 @@
 import { useEffect, useRef, useState } from "react";
+import type { PlayerDigestData } from "../types/contracts";
 import { chapterMask } from "./core/chapterMask";
 import { formatClock } from "./core/formatTime";
 import { errorSummary, isPlayingStatus, toggleLabel } from "./core/playerCopy";
 import { getPlayerStore } from "./core/playerRuntime";
 import { playerSheet } from "./core/playerSheet";
+import { briefingLengthLabel } from "./core/readerMath";
 import { fractionOfTime, scrubberValueText } from "./core/scrubberMath";
 import { itemIndexAt } from "./core/timeline";
 import { applyVolume, getVolume, setVolume } from "./core/volume";
@@ -15,6 +17,13 @@ import PlayPauseGlyph from "./ui/PlayPauseGlyph";
 
 /** The page the bar's open button controls. An element id, so it keeps the product's first name. */
 export const PLAYER_PAGE_ID = "dispatch-player-page";
+
+/** Under the title when there are no stories to name: what kind of recording it is, and how long. */
+function noStoriesCaption(digest: PlayerDigestData | undefined): string {
+  if (!digest) return "";
+  const kind = digest.kind === "weekly" ? "Weekly briefing" : "Briefing";
+  return digest.audio ? `${kind}, ${briefingLengthLabel(digest.audio.duration_ms)}` : kind;
+}
 
 /**
  * The bar's own scrubber, along its top edge, on screens wide enough for the bar to stay put. A
@@ -154,7 +163,7 @@ export default function PlayerBar() {
   let caption =
     section && itemCount > 0
       ? `${section.title}, ${state.itemIndex + 1} of ${itemCount}`
-      : (digest?.title ?? "");
+      : noStoriesCaption(digest);
   if (state.error) caption = errorSummary(state.error.kind);
   else if (state.interrupted) caption = "Interrupted, press play to resume";
 

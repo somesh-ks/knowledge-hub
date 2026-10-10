@@ -54,7 +54,8 @@ function makeRoom(panel: HTMLElement, button: HTMLElement | null): void {
   if (!page) return;
   const needed = button.getBoundingClientRect().bottom + PANEL_GAP_PX + panel.offsetHeight;
   const shortfall = needed - (window.innerHeight - PANEL_GAP_PX);
-  if (shortfall > 0) page.scrollBy({ top: shortfall, behavior: "instant" });
+  // A pixel over, so the side check afterwards never fails on rounding.
+  if (shortfall > 0) page.scrollBy({ top: Math.ceil(shortfall) + 1, behavior: "instant" });
 }
 
 /**
