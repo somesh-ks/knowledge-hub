@@ -14,8 +14,8 @@ const TABS = [
 ] as const;
 ---
 
-{/* The two pages of the podcast settings, as a segmented group of links. The open page is the raised
-     segment, ringed on all four sides, so it never depends on colour or on a single edge. */}
+{/* The two pages of the podcast settings, as a tab bar of links like the Today page's section tabs.
+     The open page carries aria-current and an underline the width of its label. */}
 <nav class="podcast-tabs" aria-label="Podcast settings">
   {
     TABS.map((tab) => (

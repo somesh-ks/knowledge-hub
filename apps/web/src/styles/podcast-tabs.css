@@ -1,45 +1,55 @@
 /*
- * The tab bar of the podcast settings (components/PodcastTabs.astro): the segmented control's track
- * and thumb from settings.css, drawn for links. Rules that adjust a shared rule are written with a
- * more specific selector, because this file is linked before the layout's stylesheet.
+ * The tab bar of the podcast settings (components/PodcastTabs.astro): page navigation, drawn in the
+ * language of the Today page's section tabs. Text links on a hairline that stays inside the content;
+ * the open page is the accent text with an underline the full width of its label. Rules that adjust
+ * a shared rule are written with a more specific selector, because this file is linked before the
+ * layout's stylesheet.
  */
 
 .podcast-tabs {
-  display: grid;
-  grid-auto-flow: column;
-  grid-auto-columns: minmax(0, 1fr);
-  max-width: 24rem;
+  display: flex;
+  gap: var(--space-6);
   margin-block: var(--space-4) var(--space-6);
-  padding: var(--segmented-padding);
-  border-radius: var(--segmented-radius);
-  background: var(--color-surface-sunken);
+  box-shadow: inset 0 calc(var(--stroke-hairline) * -1) 0 var(--color-border-hairline);
 }
 
 .podcast-tabs .podcast-tab {
-  display: grid;
-  place-items: center;
-  min-height: calc(var(--segmented-height) - var(--segmented-padding) * 2);
-  border-radius: var(--segmented-segment-radius);
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  flex: none;
+  height: var(--tabs-height);
   color: var(--color-on-surface-muted);
   font-size: var(--font-size-label);
   font-weight: var(--font-weight-medium);
   line-height: var(--font-leading-label);
   white-space: nowrap;
   text-decoration: none;
-  transition:
-    background-color var(--duration-hover) var(--ease-hover),
-    box-shadow var(--duration-hover) var(--ease-hover),
-    color var(--duration-hover) var(--ease-hover);
+  transition: color var(--duration-hover) var(--ease-hover);
+}
+
+.podcast-tabs .podcast-tab::after {
+  content: "";
+  position: absolute;
+  inset-inline: 0;
+  inset-block-end: 0;
+  height: var(--tabs-indicator-height);
+  border-start-start-radius: var(--tabs-indicator-radius);
+  border-start-end-radius: var(--tabs-indicator-radius);
+  background: var(--color-accent);
+  opacity: 0;
 }
 
 .podcast-tabs .podcast-tab[aria-current="page"] {
-  background: var(--segmented-selected-bg);
-  box-shadow: 0 0 0 var(--stroke-hairline)
-    color-mix(in oklch, var(--color-on-surface) 14%, transparent);
-  color: var(--color-on-surface);
+  color: var(--color-accent);
+}
+
+.podcast-tabs .podcast-tab[aria-current="page"]::after {
+  opacity: 1;
 }
 
 .podcast-tabs .podcast-tab:focus-visible {
+  border-radius: var(--button-radius);
   outline: var(--stroke-ring) solid var(--color-focus-ring);
   outline-offset: var(--stroke-ring-gap);
 }
@@ -51,8 +61,7 @@
 }
 
 @media (forced-colors: active) {
-  .podcast-tabs .podcast-tab[aria-current="page"] {
-    border: var(--stroke-hairline) solid Highlight;
-    color: Highlight;
+  .podcast-tabs .podcast-tab::after {
+    background: Highlight;
   }
 }
