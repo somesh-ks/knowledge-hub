@@ -427,7 +427,9 @@
   align-items: center;
   justify-content: space-between;
   gap: var(--space-4);
-  padding-block: var(--space-8) var(--space-4);
+  /* The row is centred on its 44px control, which seats the heading about 8px lower than its padding:
+     taking that back leaves the heading 48px under the rule, like a chapter's. */
+  padding-block: calc(var(--space-12) - var(--space-2)) var(--space-4);
 }
 
 /* The same step as a chapter's heading (briefing.css), which it follows on the page. */

@@ -11,6 +11,7 @@
 
 /* A section heading one step up from the row grammar's, so it reads as a heading. */
 .episode-block .section-head {
+  padding-block-start: var(--space-12);
   font-size: var(--font-size-section);
   font-weight: var(--font-weight-medium);
 }
@@ -52,5 +53,5 @@
 /* The source link (primitives.css). Its 44px target hangs into the row's padding below instead of
    adding to the row's height. */
 .episode-highlight-link {
-  margin-block-end: calc((var(--size-touch) - var(--space-4)) / -2);
+  margin-block-end: calc(var(--space-1) * -1);
 }
