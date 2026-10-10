@@ -41,6 +41,7 @@ import {
   UPLOAD_ATTEMPTS,
   UPLOAD_RETRY_DELAY_MS,
 } from "./narrate";
+import { handleNarrationMarks, MARKS_CACHE_CONTROL } from "./narrateMarks";
 import { segmentHash, segmentPath } from "./narrateSegments";
 import { usageKey } from "./narrationState";
 
@@ -2156,5 +2157,103 @@ describe("startDeadline", () => {
     deadline.cancel();
     vi.advanceTimersByTime(5000);
     expect(deadline.signal.aborted).toBe(false);
+  });
+});
+
+describe("GET /api/narrate-marks", () => {
+  /** Reads by public URL through the fake store, as the route's plain fetch reads the real one. */
+  const readerOf = (context: Setup, urls: string[] = []) => ({
+    ...context.deps,
+    fetch: async (url: string) => {
+      urls.push(url);
+      const text = await context.blob.fetchText(url);
+      return text === null ? new Response("Not found", { status: 404 }) : new Response(text);
+    },
+  });
+  const marks = (
+    context: Setup,
+    segment: string | null,
+    digest: string | null = ID,
+    params?: string[],
+    urls?: string[],
+  ) =>
+    handleNarrationMarks(
+      { digest, segment, params: params ?? ["digest", "segment"] },
+      readerOf(context, urls),
+    );
+
+  it("answers with the marks a narration stored, by their public URL, and spends nothing", async () => {
+    const context = setup();
+    await postSegment(context, "intro");
+    const before = context.blob.calls.length;
+    const urls: string[] = [];
+    const result = await marks(context, "intro", ID, undefined, urls);
+    const words = segmentOf(context.digest, "intro").text.split(/\s+/).filter(Boolean);
+    expect(result.status).toBe(200);
+    expect(result.headers).toEqual({ "Cache-Control": MARKS_CACHE_CONTROL });
+    expect(result.body).toEqual({
+      status: 200,
+      words: words.map((_, word) => ({
+        word,
+        start_ms: word * MS_PER_WORD,
+        end_ms: (word + 1) * MS_PER_WORD,
+      })),
+    });
+    // One plain read of the computed address: no head, no list, no advanced operation.
+    const path = pathOf(context.digest, "intro").replace(/\.mp3$/, ".marks.json");
+    expect(urls).toEqual([`${FAKE_BLOB_HOST}/${path}`]);
+    expect(context.blob.calls.slice(before).map((call) => call.op)).toEqual(["fetch"]);
+  });
+
+  it("is a briefly cached 404 for a segment with no marks yet, or an unknown one", async () => {
+    const context = setup();
+    for (const segment of ["intro", "zzzzzzzzzzzz"]) {
+      const result = await marks(context, segment);
+      expect(result.status).toBe(404);
+      expect(result.headers?.["Cache-Control"]).toMatch(/s-maxage=60/);
+    }
+  });
+
+  it("is a 404 when the stored file is not marks", async () => {
+    const context = setup();
+    const path = pathOf(context.digest, "intro").replace(/\.mp3$/, ".marks.json");
+    for (const text of [
+      "<html>",
+      JSON.stringify({ words: [{ word: -1, start_ms: 0, end_ms: 1 }] }),
+    ]) {
+      context.blob.seed(path, text);
+      expect((await marks(context, "intro")).status).toBe(404);
+    }
+  });
+
+  it("refuses anything but one digest and one segment key, before any read", async () => {
+    const context = setup();
+    const urls: string[] = [];
+    const cases: Array<[string | null, string | null, string[]]> = [
+      [ID, "intro", ["digest"]],
+      [ID, "intro", ["digest", "segment", "x"]],
+      [ID, "intro", ["digest", "digest"]],
+      [ID, null, ["digest", "segment"]],
+      [ID, "../intro", ["digest", "segment"]],
+      [ID, "https://evil.example/x", ["digest", "segment"]],
+      ["../../etc", "intro", ["digest", "segment"]],
+      [null, "intro", ["digest", "segment"]],
+    ];
+    for (const [digest, segment, params] of cases) {
+      expect((await marks(context, segment, digest, params, urls)).status).toBe(400);
+    }
+    expect(urls).toEqual([]);
+    expect(context.blob.calls).toEqual([]);
+  });
+
+  it("is unavailable when the store cannot be read, or its address is not known", async () => {
+    const context = setup();
+    const failing = handleNarrationMarks(
+      { digest: ID, segment: "intro", params: ["digest", "segment"] },
+      { ...context.deps, fetch: async () => new Response("", { status: 500 }) },
+    );
+    expect((await failing).status).toBe(503);
+    const unconfigured = setup({ env: { BLOB_READ_WRITE_TOKEN: undefined } });
+    expect((await marks(unconfigured, "intro")).status).toBe(503);
   });
 });

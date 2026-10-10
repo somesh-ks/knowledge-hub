@@ -198,6 +198,26 @@ async function withLimit<T>(
 }
 
 /**
+ * SIMPLE when the CDN has not seen this URL, free when it has. A public object's text, read by URL
+ * with no credentials, or null when there is none. The same read as `fetchText`, for a caller that
+ * is given no store.
+ */
+export async function readPublicText(
+  url: string,
+  doFetch: BlobFetch,
+  limit = MAX_TEXT_BYTES,
+): Promise<string | null> {
+  if (!url.startsWith("https://")) throw new Error("refusing to read a blob that is not https");
+  return withLimit(BLOB_CALL_TIMEOUT_MS, async (signal) => {
+    const response = await doFetch(url, { signal });
+    if (response.status === 404) return null;
+    // The status only: a body from the store or the CDN never goes into a message.
+    if (!response.ok) throw new Error(`the store answered ${response.status} to a read`);
+    return readText(response, limit);
+  });
+}
+
+/**
  * Wraps `@vercel/blob` with the credentials passed on every call, so it never depends on what
  * happens to be in process.env. Objects are public and at fixed pathnames. Every call has a time
  * limit of its own.
@@ -245,16 +265,7 @@ export function createVercelBlobStore(
       }
     },
 
-    async fetchText(url) {
-      if (!url.startsWith("https://")) throw new Error("refusing to read a blob that is not https");
-      return withLimit(BLOB_CALL_TIMEOUT_MS, async (signal) => {
-        const response = await doFetch(url, { signal });
-        if (response.status === 404) return null;
-        // The status only: a body from the store or the CDN never goes into a message.
-        if (!response.ok) throw new Error(`the store answered ${response.status} to a read`);
-        return readText(response, MAX_TEXT_BYTES);
-      });
-    },
+    fetchText: (url) => readPublicText(url, doFetch),
 
     async put(pathname, body, options) {
       const result = await write(pathname, body, options, true);
