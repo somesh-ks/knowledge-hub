@@ -108,9 +108,10 @@
   width: 100%;
   min-height: var(--field-height);
   padding-inline: var(--field-padding);
-  border: var(--stroke-hairline) solid var(--field-border);
+  /* A hairline on the page's own surface, drawn like the selects: no fill. */
+  border: var(--stroke-hairline) solid var(--color-border-hairline);
   border-radius: var(--field-radius);
-  background: var(--field-bg);
+  background: none;
   color: var(--color-on-surface);
   /* The body size, 16px, so iOS never zooms into a field. */
   font-size: var(--font-size-body);
@@ -133,6 +134,16 @@ textarea.manage-input {
   outline-offset: calc(var(--stroke-hairline) * -1);
   border-color: var(--color-accent);
   box-shadow: none;
+}
+
+.manage-input[aria-invalid]:not([aria-invalid="false"]) {
+  border-color: var(--color-danger);
+}
+
+@media (hover: hover) and (pointer: fine) {
+  .manage-input:not(:focus-visible, [aria-invalid]):hover {
+    border-color: var(--color-border-control);
+  }
 }
 
 .manage-form .manage-submit {
