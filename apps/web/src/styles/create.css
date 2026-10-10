@@ -157,6 +157,16 @@
   }
 }
 
+/* Held down, the chip darkens at once: a layer over whatever it wears, the checked tint or the hover
+   fill, so the words never change size. It comes after the hover rule and outweighs the checked one,
+   whose background shorthand would otherwise clear it. */
+.create-chip:not(:has(input:disabled)):active {
+  background-image: linear-gradient(
+    color-mix(in oklch, var(--color-on-surface) 10%, transparent),
+    color-mix(in oklch, var(--color-on-surface) 10%, transparent)
+  );
+}
+
 /* ------------------------------------------------------------------ segmented choices */
 
 .create-view .create-choice {
