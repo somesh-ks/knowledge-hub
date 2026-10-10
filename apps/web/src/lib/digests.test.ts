@@ -97,7 +97,7 @@ describe("buildEntries", () => {
       kind: "regular",
       audio: null,
       timeline: null,
-      cover: { src512: "/covers/2026-10-07-512.png", src1024: "/covers/2026-10-07-1024.png" },
+      cover: { src512: "/covers/2026-10-07-512.webp", src1024: "/covers/2026-10-07-1024.webp" },
       prev_id: null,
       next_id: null,
     });

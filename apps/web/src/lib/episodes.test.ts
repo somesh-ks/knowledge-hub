@@ -91,8 +91,8 @@ describe("buildEpisodeEntries", () => {
       timeline: null,
       sections: [{ slug: "top", title: "Stories", start_ms: null }],
       cover: {
-        src512: "/covers/ep-20261009-1000-512.png",
-        src1024: "/covers/ep-20261009-1000-1024.png",
+        src512: "/covers/ep-20261009-1000-512.webp",
+        src1024: "/covers/ep-20261009-1000-1024.webp",
       },
       prev_id: null,
       next_id: null,

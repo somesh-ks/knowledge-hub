@@ -136,8 +136,8 @@ export function makeDigest(overrides: Partial<PlayerDigestData> = {}): PlayerDig
       { slug: "ai", title: "AI models and products", start_ms: 60_000 },
     ],
     cover: {
-      src512: "/covers/a-512.png",
-      src1024: "/covers/a-1024.png",
+      src512: "/covers/a-512.webp",
+      src1024: "/covers/a-1024.webp",
       key: "oklch(74% 0.13 330)",
     },
     prev_id: "2026-10-05",

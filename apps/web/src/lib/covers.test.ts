@@ -1,9 +1,10 @@
 import { mkdir, mkdtemp, readdir, rm, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
+import sharp from "sharp";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { makeDigest } from "../testing/digestFactory";
-import { coverCacheKey, coverPng, rendererFingerprint } from "./covers";
+import { coverCacheKey, coverPng, coverWebp, rendererFingerprint } from "./covers";
 
 let directory = "";
 
@@ -111,5 +112,38 @@ describe("coverPng", () => {
       { id: "2026-10-04-weekly", date: "2026-10-04", kind: "weekly" },
       1024,
     );
+  });
+});
+
+describe("coverWebp", () => {
+  const options = () => ({ cacheDir: join(directory, "cache"), fingerprint: "fp" });
+  // A real PNG with hard-edged flat colour, like a cover, so the encoder has something to keep.
+  const realPng = async () =>
+    new Uint8Array(
+      await sharp({
+        create: { width: 8, height: 8, channels: 3, background: { r: 24, g: 40, b: 168 } },
+      })
+        .composite([
+          {
+            input: Buffer.from([250, 220, 60]),
+            raw: { width: 1, height: 1, channels: 3 },
+            left: 3,
+            top: 3,
+          },
+        ])
+        .png()
+        .toBuffer(),
+    );
+
+  it("is WebP with the PNG's exact pixels, rendered once and then cached", async () => {
+    const png = await realPng();
+    const render = vi.fn(() => png);
+    const digest = makeDigest();
+    const webp = await coverWebp(digest, 512, { ...options(), render });
+    expect(Buffer.from(webp.subarray(8, 12)).toString("ascii")).toBe("WEBP");
+    const decoded = await sharp(webp).removeAlpha().raw().toBuffer();
+    expect(decoded.equals(await sharp(png).removeAlpha().raw().toBuffer())).toBe(true);
+    expect(await coverWebp(digest, 512, { ...options(), render })).toEqual(webp);
+    expect(render).toHaveBeenCalledTimes(1);
   });
 });

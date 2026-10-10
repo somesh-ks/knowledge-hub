@@ -385,7 +385,12 @@ test.describe("sections and stories", () => {
       "launches",
       "watch",
     ]);
-    expect(data.cover.src512).toBe("/covers/2026-10-07-512.png");
+    expect(data.cover.src512).toBe("/covers/2026-10-07-512.webp");
+    // Pages show the WebP; the PNG beside it is for the lock screen's media controls.
+    const webp = await page.request.get(data.cover.src512);
+    expect(webp.headers()["content-type"]).toBe("image/webp");
+    const png = await page.request.get("/covers/2026-10-07-512.png");
+    expect(png.headers()["content-type"]).toBe("image/png");
     expect(data.cover.key).toMatch(/^#[0-9a-f]{6}$/);
     expect(data.prev_id).toBe("2026-10-05");
     expect(data.next_id).toBeNull();

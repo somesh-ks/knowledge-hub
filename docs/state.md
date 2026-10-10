@@ -79,6 +79,7 @@ The reader is called Singularity (D30). Identifiers keep `dispatch`. Everything 
 - The daily briefing's Type is saved but not applied: narration is built from the digest verbatim, so Discussion needs a podcast step in `audio.yml` (a workflow change). Length does scale the story count.
 - Unverified live: any Anthropic call, the Speechify voice list and voice samples (`media-src` may block the sample URLs), `/api/source-preview` and `/api/site-icon` on real feeds, the Nebius shortlist against the live list, the base-select dropdown picker in a screenshot.
 - `audio-speechify.test.ts` flakes under load (passes alone). `SettingsSheet.tsx` (reachable only from the dev lab) still has a Default speed.
+- Covers are served as lossless WebP (pixel-identical, about a third of the PNG bytes; Library images 66 to 20 KB on a phone), encoded with sharp at build time and cached beside the PNG. The PNG is still built for the lock screen's media controls. The section tabs test "follow the page again after a client-side navigation" flakes about 1 in 4 in the cloud container on main.
 - Bundle: the budget is 104 KB; the heaviest page is /library at 102.7 (the Podcast editor loads after first paint since #63). React is 68 of the 101 KB every page shares; without preact the budget cannot come down much. Per-chunk tables and a throttled phone run are in [first-load-js.md](first-load-js.md).
 - A leftover folder `.claude/worktrees/agent-aa3d6c40ca7009eee` could not be deleted (something holds it); it is not a git worktree.
 
