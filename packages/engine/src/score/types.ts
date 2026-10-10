@@ -13,6 +13,8 @@ export interface ScoreBreakdown {
   penaltyFactor: number;
   /** Preferred author and keyword bonus, at most 0.05. */
   bonus: number;
+  /** Change from the source's 30-day pass rate, within SOURCE_ADJUSTMENT_MAX. Absent when 0. */
+  source?: number;
 }
 
 /** The custom topic that outscored the built-in categories for an item. */

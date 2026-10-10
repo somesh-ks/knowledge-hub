@@ -39,6 +39,9 @@ import type { ScoreBreakdown, ScoredItem } from "./types.js";
  *                 funding least because the venture category weight already discounts it.
  * bonus         = 0.03 for a preferred author plus 0.02 for a preferred keyword, so at most 0.05.
  *                 A nudge between near-ties, never enough to rescue an off-taste item.
+ *
+ * After custom topics, the run adds a source adjustment of at most 0.03 either way from the
+ * source's 30-day pass rate (score/sourceAdjust.ts). It is not part of this function.
  */
 export const CRAFT_FLOOR = 0.55;
 /** Lower than the craft floor, so a tech item with nothing to launch cannot reach the threshold. */

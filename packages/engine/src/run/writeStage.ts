@@ -1,4 +1,10 @@
-import { activeFitTopics, type Item, type Preferences, VOICE_LIMITS } from "@dispatch/core";
+import {
+  activeFitTopics,
+  type Item,
+  type Preferences,
+  type SourceStatsFile,
+  VOICE_LIMITS,
+} from "@dispatch/core";
 import type { ApiRuntime } from "../curate/apiRuntime.js";
 import { loadPool, loadPreferences, loadSources, sourceNameMap } from "../curate/inputs.js";
 import { writeJson } from "../curate/output.js";
@@ -9,7 +15,9 @@ import { loadSchedule } from "../schedule/store.js";
 import { scoreItem } from "../score/scoreItem.js";
 import { applyTopics, type TopicLayer } from "../score/scoreTopics.js";
 import { assignSections, capFor, selectItems } from "../score/selectItems.js";
+import { withSourceAdjustment } from "../score/sourceAdjust.js";
 import type { ScoredItem } from "../score/types.js";
+import { readSourceStats } from "../state/store.js";
 import { loadTopics } from "../topics/store.js";
 import { writerCategory } from "../topics/writerCategory.js";
 import { createLinter, type Linter } from "../voice/lint.js";
@@ -41,6 +49,8 @@ interface PassContext {
   lengthMinutes: number | null;
   /** Minutes of the weekly podcast, which sizes the weekly pass in any run mode. */
   weeklyLengthMinutes: number;
+  /** 30-day per-source counters, for the small score adjustment from each source's pass rate. */
+  sourceStats: SourceStatsFile;
 }
 
 /**
@@ -70,6 +80,7 @@ export async function writeStage(deps: RunDeps, plan: Plan): Promise<StageReport
     sections: schedule?.sections ?? null,
     lengthMinutes: schedule?.length_minutes ?? null,
     weeklyLengthMinutes: fullSchedule.weekly.length_minutes,
+    sourceStats: await readSourceStats(deps.root),
   };
 
   const claimed = new Set<string>();
@@ -116,6 +127,7 @@ async function writePass(
     sections,
     lengthMinutes,
     weeklyLengthMinutes,
+    sourceStats,
   } = context;
   const file = (name: string): string => passFile(deps.root, pass.id, name);
   const pool = await loadPool(file("pool.json"));
@@ -137,7 +149,9 @@ async function writePass(
       drop(item.id, "select", "already chosen for an earlier digest of this run");
       continue;
     }
-    scored.push(applyTopics(scoreItem(entry, preferences, item), layer));
+    scored.push(
+      withSourceAdjustment(applyTopics(scoreItem(entry, preferences, item), layer), sourceStats),
+    );
   }
 
   const chosen = selectItems({
