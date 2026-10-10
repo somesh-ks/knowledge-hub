@@ -91,11 +91,18 @@ export default function ScriptView({ titleHidden = false }: { titleHidden?: bool
   }, [turns, words]);
 
   function reveal(index: number): void {
+    // The page holds still under a dialog (the speed panel), which would otherwise lose its button.
+    if (document.querySelector("dialog[open]")) return;
     const node = rootRef.current?.querySelector<HTMLElement>(`[data-turn="${index}"]`);
     // On a wide screen the script is its own column and the turn is centred in it. On one column
     // the page also holds the cover and the controls, so it moves only as far as the turn needs.
     const column = window.matchMedia("(min-width: 64rem)").matches;
-    node?.scrollIntoView({ block: column ? "center" : "nearest", behavior: "smooth" });
+    // Under reduced motion it jumps: a scripted glide is movement the person asked not to see.
+    const still = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+    node?.scrollIntoView({
+      block: column ? "center" : "nearest",
+      behavior: still ? "instant" : "smooth",
+    });
   }
 
   // Follows the voice, unless a person is reading elsewhere.
@@ -178,7 +185,7 @@ export default function ScriptView({ titleHidden = false }: { titleHidden?: bool
       </ol>
       {away ? (
         <button
-          className="script-back press"
+          className="script-back"
           type="button"
           onClick={() => {
             pausedUntil.current = 0;

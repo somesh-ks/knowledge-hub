@@ -19,7 +19,7 @@ import { shouldToggleOnPageSpace } from "./playerKeys";
 import { playerSheet } from "./playerSheet";
 import { createPlayerStore } from "./playerStore";
 import type { PlayerStore } from "./playerTypes";
-import { getPreferences } from "./preferences";
+import { getPreferences, rememberRate } from "./preferences";
 import { createReaderSync } from "./readerSync";
 import { safeLocalStorage } from "./resume";
 import { reapplyRootState, setRootAttribute, setRootProperty } from "./rootAttributes";
@@ -67,10 +67,7 @@ export function getPlayerStore(): PlayerStore {
     createAudio: getPlayerAudio,
     storage: safeLocalStorage(),
     getPreferredRate: () => getPreferences().get().rate,
-    onRateChange: (rate) => {
-      const preferred = getPreferences();
-      if (rate === 1 || rate === 1.25 || rate === 1.5 || rate === 2) preferred.set({ rate });
-    },
+    onRateChange: (rate) => rememberRate(getPreferences(), rate),
     onPageHide,
   });
   return store;

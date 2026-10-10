@@ -32,9 +32,10 @@ export default function PlayerPageContent() {
   return (
     <>
       <div className="player-controls">
-        <PlayerNotice onRetry={() => getPlayerStore().retry()} />
         <Scrubber />
         <TransportControls />
+        {/* Under the transport, so a notice arriving never moves the timeline or play. */}
+        <PlayerNotice onRetry={() => getPlayerStore().retry()} />
       </div>
       <div className="player-list">
         <UpNext />

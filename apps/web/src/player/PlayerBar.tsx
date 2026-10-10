@@ -158,7 +158,6 @@ export default function PlayerBar() {
   if (state.error) caption = errorSummary(state.error.kind);
   else if (state.interrupted) caption = "Interrupted, press play to resume";
 
-  const isFirstItem = itemCount === 0 || state.itemIndex <= 0;
   const isLastItem = itemCount === 0 || state.itemIndex >= itemCount - 1;
 
   return (
@@ -180,14 +179,13 @@ export default function PlayerBar() {
       </div>
       <DockSeek duration={state.duration} />
       <div className="dock-transport">
+        {/* As on the page: on the first story, previous goes back to its start. */}
         <button
           className="dock-btn dock-wide press"
           type="button"
           aria-label="Previous item"
-          aria-disabled={isFirstItem || undefined}
-          onClick={() => {
-            if (!isFirstItem) store.previous();
-          }}
+          aria-disabled={itemCount === 0 || undefined}
+          onClick={() => store.previous()}
         >
           <Icon name="skipBack" />
         </button>
