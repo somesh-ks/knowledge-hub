@@ -62,25 +62,7 @@
   padding-block-end: var(--space-2);
 }
 
-/* The chip is 36px plus its border; this keeps its 44px target true, as in the Library. */
-.topics-filters .filter-chip::after {
-  inset-block: calc((var(--size-touch) - var(--chip-height)) / -2 - var(--stroke-hairline));
-  inset-inline: calc(var(--stroke-hairline) * -1);
-}
-
-/* On a phone the pills wrap onto a second line instead of scrolling, so none is ever cut off. */
-@media (width < 40rem) {
-  .topics-filters .filter-chips {
-    flex-wrap: wrap;
-    margin-inline: 0;
-    padding-inline: 0;
-    overflow: visible;
-    animation: none;
-    mask-image: none;
-  }
-}
-
-/* The chips only name a filter; these rules hide the sources a score leaves out. */
+/* The select only names a filter; these rules hide the sources a score leaves out. */
 .topics[data-band="good"] .source-row:not([data-band="good"]),
 .topics[data-band="fair"] .source-row:not([data-band="fair"]),
 .topics[data-band="poor"] .source-row:not([data-band="poor"]),
@@ -97,13 +79,12 @@
   list-style: none;
 }
 
+/* Topics are set apart by space, not lines: far more air between two topics than between rows. */
 .topic {
   padding-block: var(--space-6);
-  border-block-start: var(--stroke-hairline) solid var(--color-border-hairline);
 }
 
 .topic:first-child {
-  border-block-start: 0;
   padding-block-start: var(--space-4);
 }
 
@@ -211,8 +192,9 @@
   border-radius: var(--radius-md);
 }
 
-/* The site's icon over a letter. The icon is hidden until it has loaded, so a missing one leaves the
-   letter, and a transparent one is drawn over the tile's own surface. */
+/* The site's icon. It is hidden until it has loaded, so a source without one shows nothing: the
+   empty slot stays in a row, so every name in a list starts at the same edge. A transparent icon is
+   drawn over a sunken surface of its own. */
 .source-icon {
   position: relative;
   display: grid;
@@ -221,14 +203,6 @@
   height: var(--space-6);
   overflow: hidden;
   border-radius: var(--radius-sm);
-  background: var(--color-surface-sunken);
-}
-
-.source-letter {
-  color: var(--color-on-surface-muted);
-  font-size: var(--font-size-meta);
-  font-weight: var(--font-weight-medium);
-  line-height: 1;
 }
 
 .source-icon > img {
@@ -476,8 +450,9 @@
   border-radius: var(--radius-md);
 }
 
-.source-card .source-letter {
-  font-size: var(--font-size-body);
+/* In the sheet's card the name stands alone when there is no icon: no empty square beside it. */
+.source-card .source-icon:not(:has(img[data-loaded])) {
+  display: none;
 }
 
 .source-card-title {

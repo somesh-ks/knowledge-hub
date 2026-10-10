@@ -58,7 +58,7 @@
   border: 0;
 }
 
-.manage-fields:disabled :is(.settings-switch, .filter-chip, .manage-input, .search-field) {
+.manage-fields:disabled :is(.settings-switch, .sort-field, .manage-input, .search-field) {
   opacity: var(--opacity-disabled);
   cursor: default;
 }
@@ -164,13 +164,6 @@ textarea.manage-input {
 
 .manage-tools.library-tools {
   padding-block-end: 0;
-}
-
-/* The chip is 36px tall plus its border, so its 44px target is laid out from inside the border and
-   comes up 2px short. This takes the border back, as reader.css does for the play chip. */
-.manage-tools .filter-chip::after {
-  inset-block: calc((var(--size-touch) - var(--chip-height)) / -2 - var(--stroke-hairline));
-  inset-inline: calc(var(--stroke-hairline) * -1);
 }
 
 /* ------------------------------------------------------------------ suggested sources */

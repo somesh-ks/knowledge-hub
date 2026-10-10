@@ -207,7 +207,7 @@ export function mountEditor(root: HTMLElement): Editor {
     const note = element("span", "source-note", "Adding when you save");
     label.append(element("span", "source-name", preview.name), note);
     row.append(
-      iconNode(preview.name, preview.favicon_url ?? preview.thumbnail_url),
+      iconNode(preview.favicon_url ?? preview.thumbnail_url),
       label,
       scoreNode(preview.score, preview.score_label),
       element("span", "source-slot"),
@@ -220,9 +220,8 @@ export function mountEditor(root: HTMLElement): Editor {
     // The page may be filtered; a source that was just added is always shown.
     if (root.dataset.band && root.dataset.band !== "all") {
       root.dataset.band = "all";
-      for (const chip of root.querySelectorAll<HTMLElement>("[data-band-filter]")) {
-        chip.setAttribute("aria-pressed", String(chip.dataset.bandFilter === "all"));
-      }
+      const bandFilter = root.querySelector<HTMLSelectElement>("select[data-band-filter]");
+      if (bandFilter) bandFilter.value = "all";
     }
     row.scrollIntoView({ block: "center" });
     changes.set(key, {

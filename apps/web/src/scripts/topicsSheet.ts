@@ -73,7 +73,7 @@ function card(preview: SourcePreview): HTMLElement {
     element("span", "source-card-name", preview.name),
     element("span", "source-host", preview.host),
   );
-  head.append(iconNode(preview.name, preview.thumbnail_url ?? preview.favicon_url), title);
+  head.append(iconNode(preview.thumbnail_url ?? preview.favicon_url), title);
 
   const score = element("div", "source-card-score");
   score.append(

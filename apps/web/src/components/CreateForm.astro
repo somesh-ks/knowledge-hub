@@ -71,7 +71,7 @@ const COPY = {
       </fieldset>
     </section>
 
-    <section class="create-group rule-above" aria-labelledby="create-topics-label">
+    <section class="create-group" aria-labelledby="create-topics-label">
       <h2 class="section-head" id="create-topics-label">Topics</h2>
       <fieldset class="create-chips" aria-labelledby="create-topics-label">
         {
@@ -89,7 +89,7 @@ const COPY = {
       </p>
     </section>
 
-    <section class="create-group rule-above" aria-labelledby="create-length-label">
+    <section class="create-group" aria-labelledby="create-length-label">
       <h2 class="section-head" id="create-length-label">Length</h2>
       <fieldset class="settings-choice create-choice" role="radiogroup" aria-labelledby="create-length-label">
         {
@@ -103,7 +103,7 @@ const COPY = {
       </fieldset>
     </section>
 
-    <section class="create-group rule-above" aria-labelledby="create-format-label">
+    <section class="create-group" aria-labelledby="create-format-label">
       <h2 class="section-head" id="create-format-label">Format</h2>
       <fieldset class="settings-choice create-choice" role="radiogroup" aria-labelledby="create-format-label">
         {
@@ -119,7 +119,7 @@ const COPY = {
 
     {/* Ada reads a readout alone; a discussion adds Leo. The options come from /api/voices when the
          panel opens, so the markup carries only the default and the saved voice. */}
-    <section class="create-group rule-above" aria-labelledby="create-voice-label">
+    <section class="create-group" aria-labelledby="create-voice-label">
       <h2 class="section-head" id="create-voice-label">Voice</h2>
       <div class="create-voices">
         {
@@ -146,7 +146,7 @@ const COPY = {
       </div>
     </section>
 
-    <section class="create-group rule-above" aria-labelledby="create-window-label">
+    <section class="create-group" aria-labelledby="create-window-label">
       <h2 class="section-head" id="create-window-label">Look back</h2>
       <fieldset class="settings-choice create-choice" role="radiogroup" aria-labelledby="create-window-label">
         {
@@ -160,7 +160,7 @@ const COPY = {
       </fieldset>
     </section>
 
-    <section class="create-group rule-above" aria-labelledby="create-tone-label">
+    <section class="create-group" aria-labelledby="create-tone-label">
       <h2 class="section-head" id="create-tone-label">Tone</h2>
       <fieldset class="settings-choice create-choice" role="radiogroup" aria-labelledby="create-tone-label">
         {
@@ -174,7 +174,7 @@ const COPY = {
       </fieldset>
     </section>
 
-    <section class="create-group rule-above">
+    <section class="create-group">
       <div class="create-title-row">
         <h2 class="section-head"><label for="create-title">Title</label></h2>
         <span class="create-optional">Optional</span>
@@ -190,7 +190,7 @@ const COPY = {
       />
     </section>
 
-    <div class="create-submit rule-above">
+    <div class="create-submit">
       <button class="btn-primary press press-subtle" type="submit" data-submit>{submitLabel(startLength)}</button>
       <p class="create-error" role="alert" data-error="form" hidden>
         <Icon name="alert" /><span></span>

@@ -90,10 +90,10 @@ test.describe("interface cues by kind of action @surface", () => {
     expect(await sounded(page)).toBe(1);
   });
 
-  test("a filter chip is a select", async ({ lab, page }) => {
+  test("a toggle button is a select", async ({ lab, page }) => {
     await lab.open("/library");
     await prime(page);
-    const chip = page.locator("[data-library-filter]").nth(1);
+    const chip = page.locator("[data-library-view='list']");
     await chip.click();
     await page.waitForTimeout(250);
     expect(await heard(page)).toEqual(["toggleOn"]);
@@ -131,7 +131,7 @@ test.describe("interface cues by kind of action @surface", () => {
       .getByRole("link", { name: "Library" })
       .click();
     await expect(page).toHaveURL(/\/library$/);
-    await page.locator("[data-library-filter]").nth(1).click();
+    await page.locator("[data-library-view='list']").click();
     await page.waitForTimeout(400);
     expect(await heard(page)).toEqual([]);
     expect(await sounded(page)).toBe(0);

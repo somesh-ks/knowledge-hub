@@ -1,5 +1,5 @@
 /*
- * The Create page: a form built from the settings page's grammar (hairline-divided groups, the
+ * The Create page: a form built from the settings page's grammar (groups set apart by space, the
  * segmented choice) plus the one control only it needs: topic chips. Imported by
  * components/CreateForm.astro, after settings.css. The run is shown by the indicator (create-sheet.css).
  *
@@ -29,8 +29,9 @@
 
 /* ------------------------------------------------------------------ groups */
 
+/* No lines between groups: a group ends with more air than its heading has above its controls. */
 .create-group {
-  padding-block-end: var(--space-4);
+  padding-block-end: var(--space-6);
 }
 
 /* Inside the form a heading is a field label, not a page heading: body size, medium weight, little air. */
@@ -89,7 +90,7 @@
   height: var(--chip-height);
   padding-inline: var(--space-3);
   border: var(--stroke-hairline) solid var(--color-border-hairline);
-  border-radius: var(--button-radius);
+  border-radius: var(--chip-radius);
   color: var(--color-on-surface);
   font-size: var(--font-size-label);
   font-weight: var(--font-weight-medium);

@@ -59,11 +59,10 @@ function install(): void {
   const status = root.querySelector<HTMLElement>("[data-library-status]");
   const empty = root.querySelector<HTMLElement>("[data-library-empty]");
   const clearText = root.querySelector<HTMLButtonElement>("[data-library-clear-text]");
-  const chips = [...root.querySelectorAll<HTMLButtonElement>("[data-library-filter]")];
+  const filterSelect = root.querySelector<HTMLSelectElement>("[data-library-filter]");
   if (!grid) return;
   const cards = [...grid.querySelectorAll<HTMLElement>("[data-card]")].map(readCard);
 
-  let filter: LibraryFilter = "all";
   /** The full text of every card, once fetched. Until then, and if it never comes, only the card's own lines are searched. */
   let fullText: Map<string, string> | null = null;
   let fetching = false;
@@ -98,6 +97,7 @@ function install(): void {
     const searching = query.trim() !== "";
     if (clearText) clearText.hidden = query === "";
     const sort = (select?.value ?? "newest") as LibrarySort;
+    const filter = (filterSelect?.value || "all") as LibraryFilter;
     let shown = 0;
     for (const card of cards) {
       const passes = matchesFilter(card.data, filter);
@@ -134,13 +134,7 @@ function install(): void {
     apply();
   });
   select?.addEventListener("change", apply);
-  for (const chip of chips) {
-    chip.addEventListener("click", () => {
-      filter = (chip.dataset.libraryFilter ?? "all") as LibraryFilter;
-      for (const other of chips) other.setAttribute("aria-pressed", String(other === chip));
-      apply();
-    });
-  }
+  filterSelect?.addEventListener("change", apply);
   clearText?.addEventListener("click", () => {
     if (input) input.value = "";
     apply();
@@ -148,10 +142,7 @@ function install(): void {
   });
   root.querySelector("[data-library-clear]")?.addEventListener("click", () => {
     if (input) input.value = "";
-    filter = "all";
-    for (const chip of chips) {
-      chip.setAttribute("aria-pressed", String(chip.dataset.libraryFilter === "all"));
-    }
+    if (filterSelect) filterSelect.value = "all";
     apply();
     input?.focus();
   });

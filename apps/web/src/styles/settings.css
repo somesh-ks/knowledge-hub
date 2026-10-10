@@ -109,9 +109,9 @@
   }
 }
 
-/* A divider between groups spans the content, no wider: the page's own rows end at the same edges. */
-.settings-view .rule-above::before {
-  inset-inline: 0;
+/* Groups are told apart by space, not lines: more air between two groups than between two rows. */
+.settings-view > section + section {
+  margin-block-start: var(--space-6);
 }
 
 /* ------------------------------------------------------------------ segmented choice */
@@ -546,7 +546,7 @@
   }
 }
 
-/* Rows inside a section are separated by space, not lines; the rule-above hairline divides sections. */
+/* Rows inside a section are separated by space, not lines, and so are the sections themselves. */
 .settings-view .rows > * + *::before {
   content: none;
 }

@@ -40,7 +40,7 @@ The reader is called Singularity (D30). Identifiers keep `dispatch`. Everything 
 
 ## Written, not merged
 
-- `claude/eager-bardeen-dfqufp-preact-prototype` (local to the 2026-10-10 cloud session, not pushed): React aliased to preact/compat in the browser only (the server still renders with React). Every page drops about 57 KB (heaviest 103.9 to 46.6). The site suite and the player specs on the Chromium site projects fail only where main fails. Waits for the owner: it adds a dependency.
+- Nothing. The preact/compat prototype (about 57 KB off every page) was declined by the owner on 2026-10-10: React stays, so the 104 KB budget stays.
 
 ## Development
 
@@ -92,7 +92,7 @@ The reader is called Singularity (D30). Identifiers keep `dispatch`. Everything 
 
 ## Next
 
-1. Owner: decide on preact (see Written, not merged) and on the audit's judgement calls listed in #68 (source letter tiles, the filter rows on Library and Topics, the chip shape, the Podcast page's navigation, the FAB); the two workflow edits above; revoke the Vercel token pasted in chat on 2026-10-07 and replace the `.env` one; delete the empty Blob store `store_JmrDq8MB5Kwn3ejW`.
+1. Owner: the two workflow edits above; revoke the Vercel token pasted in chat on 2026-10-07 and replace the `.env` one; delete the empty Blob store `store_JmrDq8MB5Kwn3ejW`.
 2. Finer episode stages (the podcast command in phases, a workflow change); the daily Type through the audio workflow.
 3. One generated briefing to see Design and Trending, then tune the Trending threshold; two iPhone passes with the six WebKit failures as the checklist.
 4. Curation: calibrate the 0.4 threshold on the golden set (needs judge keys: `eval/run.ts --only judges`); apply the source pass-rate nudge in the `curate` path too. Done in #65: one release per repository, only published items marked seen, a source pass-rate nudge in the run path.
