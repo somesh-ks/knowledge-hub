@@ -369,6 +369,7 @@ html:has(.manage-bar:popover-open) {
   --page-end: calc(var(--space-12) + var(--size-touch) + var(--space-1) * 2 + var(--space-3));
   scroll-padding-block-end: calc(
     var(--bottom-nav-height) +
+    var(--dock-room) +
     var(--run-room) +
     var(--size-touch) +
     var(--space-1) *

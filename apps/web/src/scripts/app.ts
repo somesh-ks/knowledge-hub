@@ -2,7 +2,6 @@ import { installCreateEntry } from "./createEntry";
 import { installDeviceBanners } from "./deviceBanners";
 import { installDisabledGuard } from "./disabledGuard";
 import { installNavigation } from "./navigation";
-import { registerServiceWorker } from "./serviceWorker";
 import { installThemeColor } from "./themeColor";
 import { installUiSound } from "./uiSound";
 
@@ -18,7 +17,11 @@ installCreateEntry();
 installDeviceBanners();
 installThemeColor();
 installUiSound();
-registerServiceWorker();
+// The service worker registers once the page has loaded, so its code can arrive then too.
+const registerWorker = (): void =>
+  void import("./serviceWorker").then((worker) => worker.registerServiceWorker());
+if (document.readyState === "complete") registerWorker();
+else addEventListener("load", registerWorker, { once: true });
 // The scrollbar's width, measured while no dialog holds the page: an open dialog takes the
 // scrollbar away, and the page keeps this much room instead so it does not move (foundations.css).
 // A swap replaces the root's style, so the value goes back on after each one.
@@ -32,17 +35,6 @@ const measureGutter = (): void => {
 measureGutter();
 addEventListener("resize", measureGutter, { passive: true });
 document.addEventListener("astro:after-swap", holdGutter);
-// A saved List view is on the incoming Library before it is drawn. The page's inline script
-// (libraryViewInit.js) does the same on a load; libraryPage.ts takes over once it runs.
-document.addEventListener("astro:after-swap", () => {
-  const library = document.querySelector<HTMLElement>("[data-library]:not([data-view])");
-  try {
-    if (library && localStorage.getItem("dispatch:library-view") === "list")
-      library.dataset.view = "list";
-  } catch {
-    // Storage can be blocked; the gallery shows, as it does without a saved view.
-  }
-});
 // A tab left open across a deploy asks for script files the deploy removed, and the import fails
 // (the player's controls, narration). One reload with the saved pages dropped gets the current
 // site; the flag stops a second one.
