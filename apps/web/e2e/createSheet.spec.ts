@@ -194,6 +194,10 @@ test.describe("Create as the primary action", () => {
     await page.reload();
     await expect(page.locator("[data-run-card]")).toBeVisible();
     await expect(page.locator("[data-run-text]")).toHaveText("Episode ready", { timeout: 15_000 });
+    // On the Library the line offers no link to the page on screen; from Today it does.
+    await expect(page.locator("[data-run-library]")).toBeHidden();
+    await page.locator(".app-nav-item", { hasText: "Today" }).click();
+    await expect(page).toHaveURL(/\/$/);
     await expect(page.getByRole("link", { name: "Open Library" })).toHaveAttribute(
       "href",
       "/library",

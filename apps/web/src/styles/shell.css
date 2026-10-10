@@ -299,6 +299,14 @@ html[data-mini="visible"] main {
   }
 }
 
+/* An open dialog takes the scrollbar away and the window's edge moves out by its width
+   (foundations.css). The bar runs to that edge, so it keeps the room and its items hold still. */
+@media not all and (min-width: 64rem) {
+  :root:has(dialog[open]) .app-nav {
+    padding-inline-end: calc(var(--safe-right) + var(--gutter, 0px));
+  }
+}
+
 /* ------------------------------------------------------------------ navigation: side column */
 
 @media (min-width: 64rem) {
@@ -340,6 +348,7 @@ html[data-mini="visible"] main {
     margin-inline: 0;
   }
 
+  /* The fill fades in and out like Create Podcast's above it. */
   .app-nav-item {
     flex-direction: row;
     justify-content: flex-start;
@@ -351,6 +360,9 @@ html[data-mini="visible"] main {
     font-size: var(--font-size-label);
     letter-spacing: 0;
     outline-offset: var(--stroke-ring-gap);
+    transition:
+      background-color var(--duration-hover) var(--ease-hover),
+      color var(--duration-hover) var(--ease-hover);
   }
 
   .app-nav-item:focus-visible {
@@ -368,8 +380,13 @@ html[data-mini="visible"] main {
     }
   }
 
+  /* A press darkens the hover fill at once with a layer over it, so it reads apart from a hover. */
   .app-nav-item:not([aria-current="page"]):active {
-    background: var(--color-surface-sunken);
+    background: linear-gradient(
+        color-mix(in oklch, var(--color-on-surface) 8%, transparent),
+        color-mix(in oklch, var(--color-on-surface) 8%, transparent)
+      )
+      var(--color-surface-sunken);
   }
 }
 

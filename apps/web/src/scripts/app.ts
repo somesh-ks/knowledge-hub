@@ -19,6 +19,19 @@ installDeviceBanners();
 installThemeColor();
 installUiSound();
 registerServiceWorker();
+// The scrollbar's width, measured while no dialog holds the page: an open dialog takes the
+// scrollbar away, and the page keeps this much room instead so it does not move (foundations.css).
+// A swap replaces the root's style, so the value goes back on after each one.
+let gutter = "0px";
+const holdGutter = (): void => document.documentElement.style.setProperty("--gutter", gutter);
+const measureGutter = (): void => {
+  if (!document.querySelector("dialog[open]"))
+    gutter = `${Math.max(0, innerWidth - document.documentElement.offsetWidth)}px`;
+  holdGutter();
+};
+measureGutter();
+addEventListener("resize", measureGutter, { passive: true });
+document.addEventListener("astro:after-swap", holdGutter);
 // A saved List view is on the incoming Library before it is drawn. The page's inline script
 // (libraryViewInit.js) does the same on a load; libraryPage.ts takes over once it runs.
 document.addEventListener("astro:after-swap", () => {

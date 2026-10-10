@@ -67,12 +67,14 @@
   color: var(--cta-fg);
   text-decoration: none;
   /* The transform is the press's (.press) as well as the slide: in fast, out softer, like every
-     pressable. This list replaces the utility's, so the press timing is spelt out here. */
+     pressable. This list replaces the utility's, so the press timing is spelt out here. The height
+     glides when the run indicator or the player bar comes or goes under the button. */
   transition:
     opacity var(--duration-state) var(--ease-out),
     transform var(--duration-press-out) var(--ease-out),
     background-color var(--duration-hover) var(--ease-hover),
-    visibility 0s;
+    visibility 0s,
+    inset-block-end var(--duration-enter) var(--ease-out);
 }
 
 /* The ring's gap stays round the button; the button's own shadow sits under it. */
@@ -90,7 +92,9 @@
 
 .create-fab:active {
   background: var(--cta-bg-pressed);
-  transition-duration: var(--duration-state), var(--duration-press-in), var(--duration-hover), 0s;
+  transition-duration:
+    var(--duration-state), var(--duration-press-in), var(--duration-hover), 0s,
+    var(--duration-enter);
 }
 
 /* Out of the way while the expanded player or a sheet owns the screen, and where it is already open. */
@@ -99,8 +103,15 @@ html:has(dialog[open]) .create-fab {
   visibility: hidden;
   opacity: 0;
   transform: translateY(var(--space-4));
-  transition-duration: var(--duration-exit), var(--duration-exit), var(--duration-hover), 0s;
-  transition-delay: 0s, 0s, 0s, var(--duration-exit);
+  transition-duration:
+    var(--duration-exit), var(--duration-exit), var(--duration-hover), 0s, var(--duration-enter);
+  transition-delay: 0s, 0s, 0s, var(--duration-exit), 0s;
+}
+
+/* An open dialog takes the scrollbar away and the window's edge moves out by its width
+   (foundations.css): the button keeps that room as it fades, so it does not jump aside. */
+html:has(dialog[open]) .create-fab {
+  inset-inline-end: calc(max(var(--space-4), var(--safe-right)) + var(--gutter, 0px));
 }
 
 /* With reduced motion it only fades, out and back in; it does not move. */
@@ -108,8 +119,9 @@ html:has(dialog[open]) .create-fab {
   html[data-player="open"] .create-fab,
   html:has(dialog[open]) .create-fab {
     transform: none;
-    transition-duration: var(--duration-hover), 0s, var(--duration-hover), 0s;
-    transition-delay: 0s, 0s, 0s, var(--duration-hover);
+    transition-duration:
+      var(--duration-hover), 0s, var(--duration-hover), 0s, var(--duration-enter);
+    transition-delay: 0s, 0s, 0s, var(--duration-hover), 0s;
   }
 }
 
@@ -407,12 +419,19 @@ dialog.create-sheet .create-submit > .btn-primary {
   min-height: var(--size-touch);
   color: var(--color-accent);
   text-decoration: none;
+  /* It shows its own press below, so no grey flash from the browser. */
+  -webkit-tap-highlight-color: transparent;
 }
 
 @media (hover: hover) and (pointer: fine) {
   .run-link:hover {
     text-decoration: underline;
   }
+}
+
+.run-link:active {
+  color: var(--color-accent-pressed);
+  text-decoration: underline;
 }
 
 .run-dismiss {
@@ -452,6 +471,14 @@ dialog.create-sheet .create-submit > .btn-primary {
 
 html[data-player="open"] .run-status {
   visibility: hidden;
+}
+
+/* Below 64rem the line runs to the window's right edge, which an open dialog moves out by the
+   scrollbar's width (foundations.css): it keeps that room, so its link and button hold still. */
+@media not all and (min-width: 64rem) {
+  html:has(dialog[open]) .run-card {
+    padding-inline-end: calc(max(var(--space-2), var(--safe-right)) + var(--gutter, 0px));
+  }
 }
 
 /* From 64rem: at the foot of the side column, over the column's own surface. The line starts where
