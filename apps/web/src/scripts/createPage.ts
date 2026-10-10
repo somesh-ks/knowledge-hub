@@ -77,7 +77,8 @@ export function installCreate(root: HTMLElement, onStart?: () => void): void {
     }
     // The button says how long the episode will run; each length carries its own label.
     const length = form.querySelector<HTMLInputElement>('input[name="length"]:checked');
-    if (length?.dataset.submitLabel) $("[data-submit]").textContent = length.dataset.submitLabel;
+    if (length?.dataset.submitLabel)
+      $("[data-submit-text]").textContent = length.dataset.submitLabel;
   }
 
   function request() {
@@ -98,38 +99,55 @@ export function installCreate(root: HTMLElement, onStart?: () => void): void {
     };
   }
 
+  // True while a request is out. The button is then aria-disabled, not disabled: it keeps its fill
+  // and its focus, and a press or an Enter in the title still submits, so the handlers check this.
+  let sending = false;
+
+  /** Marks the button as working (busy, with its spinner) or gives it back. */
+  function busy(button: HTMLButtonElement, on: boolean): void {
+    sending = on;
+    for (const name of ["aria-disabled", "aria-busy", "data-busy"]) {
+      if (on) button.setAttribute(name, "true");
+      else button.removeAttribute(name);
+    }
+  }
+
   /**
    * Sends the request. A refused passphrase is the caller's to explain; every other answer is
-   * shown here, and a started run is followed.
+   * shown here, and a started run is followed. The button is busy until the answer is shown.
    */
   async function post(passphrase: string, button: HTMLButtonElement): Promise<"wrong" | "done"> {
-    button.disabled = true;
-    const res = await fetch("/api/podcast", {
-      method: "POST",
-      headers: { "content-type": "application/json" },
-      body: JSON.stringify({ passphrase, request: request() }),
-    }).catch(() => null);
-    button.disabled = false;
-    const body = (await res?.json().catch(() => null)) ?? {};
-    if (res?.status === 401) return "wrong";
-    dialog?.close();
-    if (res?.status !== 202 || !body.run_id) {
-      say(
-        "form",
-        res?.status === 429
-          ? `${copy(body.error)} ${wait(body.retry_after_s)}.`
-          : copy(!res ? "network" : res.status === 400 ? "400" : "503"),
-      );
+    busy(button, true);
+    try {
+      const res = await fetch("/api/podcast", {
+        method: "POST",
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify({ passphrase, request: request() }),
+      }).catch(() => null);
+      const body = (await res?.json().catch(() => null)) ?? {};
+      if (res?.status === 401) return "wrong";
+      dialog?.close();
+      if (res?.status !== 202 || !body.run_id) {
+        say(
+          "form",
+          res?.status === 429
+            ? `${copy(body.error)} ${wait(body.retry_after_s)}.`
+            : copy(!res ? "network" : res.status === 400 ? "400" : "503"),
+        );
+        return "done";
+      }
+      startRun(body.run_id);
+      onStart?.();
       return "done";
+    } finally {
+      busy(button, false);
     }
-    startRun(body.run_id);
-    onStart?.();
-    return "done";
   }
 
   form.addEventListener("change", sync);
   form.addEventListener("submit", async (event) => {
     event.preventDefault();
+    if (sending) return;
     if (!topics.some((topic) => topic.checked)) {
       say("topics", copy("topics"));
       topics.find((topic) => !topic.closest("[hidden]"))?.focus();
@@ -159,6 +177,7 @@ export function installCreate(root: HTMLElement, onStart?: () => void): void {
 
     dform.addEventListener("submit", async (event) => {
       event.preventDefault();
+      if (sending) return;
       const passphrase = pass.value.trim();
       if (!passphrase) {
         say("dialog", copy("passphrase"));

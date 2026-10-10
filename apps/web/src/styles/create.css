@@ -207,6 +207,26 @@
   }
 }
 
+/* While the request is out the button keeps its fill and shows a spinner beside its words: it is
+   working, not unavailable. createPage.ts ignores a press then, so the press does not shrink it. */
+.create-view .btn-primary > .spinner {
+  display: none;
+}
+
+.create-view .btn-primary[data-busy="true"] > .spinner {
+  display: block;
+}
+
+.create-submit .btn-primary[data-busy="true"] {
+  background: var(--cta-bg);
+  color: var(--cta-fg);
+  cursor: progress;
+}
+
+.create-submit .btn-primary[aria-disabled="true"]:active {
+  transform: none;
+}
+
 /* ------------------------------------------------------------------ voices */
 
 /* One select for a readout; a discussion adds a second, side by side from 40rem. */
