@@ -2,6 +2,8 @@
 
 One line each: symptom, cause, fix. Newest first. Search before debugging.
 
+- 2026-10-10: the player's flick tests failed about half the time: the page reads speed from each event's timeStamp, and under load the harness delivered moves 30 to 100 ms apart where 8 were asked for. Give each CDP touch or mouse event a `timestamp` (lab.ts, gestureClock); then they pass every repeat.
+- 2026-10-10: a desktop flick test failed every time once its events were timestamped: a mouse, unlike a touch, is not captured by what it pressed, so a 40px jump left the bar before the drag could take hold. Send a mouse drag as the small moves a real mouse reports.
 - 2026-10-10: a player fix for track contrast read right in the diff and failed in the browser (played and unplayed 1.46:1 apart); the worker had marked it unverified. Send a read-only verifier to measure every fix a worker marks unverified before calling an area done.
 - 2026-10-10: `document.documentElement.clientWidth` returned the full window width with a stable 15px scrollbar gutter in headless Chromium; measure the gutter as `innerWidth - documentElement.offsetWidth`.
 - 2026-10-10: every test server on the machine died mid-session (connection refused on 4710): a worker stopped its own server with a pattern kill on `run.mjs`. Note your server's PID when you start it and kill only that; tell workers so in their brief.
