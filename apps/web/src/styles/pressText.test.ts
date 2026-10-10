@@ -24,6 +24,15 @@ const LABEL_CONTROLS = [
   "toast-action",
   "card-link",
   "create-fab",
+  "source-link",
+  "hero-menu-item",
+  "story-row",
+  "player-upnext-row",
+  "player-notice-action",
+  "player-fallback-action",
+  "script-back",
+  "speed-btn",
+  "speed-preset",
 ];
 
 function filesUnder(dir: string, extensions: string[]): string[] {
