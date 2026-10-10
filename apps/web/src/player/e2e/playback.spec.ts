@@ -149,7 +149,7 @@ test.describe("playback in a real browser", () => {
     await expect(page.locator("html")).toHaveAttribute("data-player-state", "playing");
   });
 
-  test("picks a speed from a menu in one step, with pitch preserved, and remembers it", async ({
+  test("picks a common speed in one press, with pitch preserved, and remembers it @surface", async ({
     lab,
     audio,
     page,
@@ -159,24 +159,39 @@ test.describe("playback in a real browser", () => {
     await lab.openPlayer();
     const speed = lab.dialog.getByRole("button", { name: /^Playback speed / });
     await expect(speed).toHaveText("1x");
-    // One press opens the four; one more picks any of them, not the next in a cycle.
+    // One press opens the panel: the slider, and the common speeds one more press away.
     await lab.finger.press(speed);
-    const menu = lab.dialog.getByRole("menu", { name: "Playback speed" });
-    await expect(menu).toBeVisible();
-    await expect(menu.getByRole("menuitemradio")).toHaveText(["1x", "1.25x", "1.5x", "2x"]);
-    await expect(menu.getByRole("menuitemradio", { name: "1x" })).toBeChecked();
-    await lab.finger.press(menu.getByRole("menuitemradio", { name: "1.5x" }));
-    await expect(menu).toBeHidden();
+    const panel = page.getByRole("dialog", { name: "Playback speed" });
+    await expect(panel).toBeVisible();
+    await expect(page.getByRole("slider", { name: "Playback speed" })).toBeFocused();
+    await expect(panel.getByRole("button")).toHaveText(["1x", "1.25x", "1.5x", "2x"]);
+    await expect(panel.getByRole("button", { name: "1x" })).toHaveAttribute("aria-pressed", "true");
+    await lab.finger.press(panel.getByRole("button", { name: "1.5x" }));
+    await expect(panel.getByRole("button", { name: "1.5x" })).toHaveAttribute(
+      "aria-pressed",
+      "true",
+    );
     await expect(speed).toHaveText("1.5x");
     await expect(speed).toHaveAccessibleName("Playback speed 1.5x");
-    await expect(speed).toBeFocused();
     await expect.poll(async () => (await audio.read())?.playbackRate).toBe(1.5);
     expect((await audio.read())?.preservesPitch).toBe(true);
+    // Around it is its backdrop, so a press there closes it and reaches nothing underneath.
+    const corner = { x: 8, y: 8 };
+    expect(
+      await page.evaluate(
+        ({ x, y }) => document.elementFromPoint(x, y)?.classList.contains("speed-panel"),
+        corner,
+      ),
+    ).toBe(true);
+    await lab.finger.pressAt(corner);
+    await expect(panel).toBeHidden();
+    await expect(speed).toBeFocused();
+    await expect(lab.root).toHaveAttribute("data-player", "open");
     await page.reload({ waitUntil: "networkidle" });
     await expect.poll(async () => (await audio.read())?.playbackRate).toBe(1.5);
   });
 
-  test("the speed menu works from the keyboard, and Escape closes only the menu", async ({
+  test("the speed panel works from the keyboard, and Escape closes only the panel @surface", async ({
     lab,
     page,
   }) => {
@@ -186,21 +201,25 @@ test.describe("playback in a real browser", () => {
     const speed = lab.dialog.getByRole("button", { name: /^Playback speed / });
     await speed.focus();
     await page.keyboard.press("Enter");
-    const menu = lab.dialog.getByRole("menu", { name: "Playback speed" });
-    await expect(menu.getByRole("menuitemradio", { name: "1x" })).toBeFocused();
-    await page.keyboard.press("ArrowDown");
-    await expect(menu.getByRole("menuitemradio", { name: "1.25x" })).toBeFocused();
-    await page.keyboard.press("ArrowUp");
-    await page.keyboard.press("ArrowUp");
-    await expect(menu.getByRole("menuitemradio", { name: "2x" })).toBeFocused();
+    const panel = page.getByRole("dialog", { name: "Playback speed" });
+    const slider = page.getByRole("slider", { name: "Playback speed" });
+    await expect(slider).toBeFocused();
+    await page.keyboard.press("ArrowRight");
+    await expect(speed).toHaveText("1.05x");
+    // Tab stays inside the panel and reaches the common speeds.
+    await page.keyboard.press("Tab");
+    await expect(panel.getByRole("button", { name: "1x" })).toBeFocused();
+    await page.keyboard.press("Enter");
+    await expect(speed).toHaveText("1x");
     await page.keyboard.press("Escape");
-    await expect(menu).toBeHidden();
+    await expect(panel).toBeHidden();
     await expect(speed).toBeFocused();
     // The player behind it is still open.
     await expect(lab.sheet).toHaveAttribute("aria-modal", "true");
     await page.keyboard.press("Enter");
+    await expect(slider).toBeFocused();
     await page.keyboard.press("End");
-    await page.keyboard.press("Enter");
+    await page.keyboard.press("Escape");
     await expect(speed).toHaveText("2x");
   });
 

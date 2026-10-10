@@ -1,14 +1,16 @@
 import { type KeyboardEvent, useEffect, useId, useRef, useState } from "react";
 import { getPlayerStore } from "./core/playerRuntime";
+import { playerSheet } from "./core/playerSheet";
 import {
   MAX_PLAYBACK_RATE,
   MIN_PLAYBACK_RATE,
   PLAYBACK_RATE_STEP,
+  PLAYBACK_RATES,
   toPlaybackRate,
 } from "./core/playerTypes";
 import { usePlayerState } from "./hooks/usePlayer";
 
-/** The gap between the button and its panel. */
+/** The gap between the button and its panel, and the least the panel keeps from the window's edge. */
 const PANEL_GAP_PX = 8;
 
 /** "1x", "1.25x", "0.5x": no trailing zeros. */
@@ -17,55 +19,87 @@ export function rateLabel(rate: number): string {
 }
 
 /**
+ * Puts the panel against the button, centred on it. On a phone the transport is above the button,
+ * so with a finger the panel goes below it; with a mouse it goes above. Either way it takes the
+ * other side when its own has no room, and it never leaves the window.
+ */
+function place(panel: HTMLElement, button: HTMLElement | null): DOMRect | null {
+  if (!button) return null;
+  const anchor = button.getBoundingClientRect();
+  const height = panel.offsetHeight;
+  const above = anchor.top - PANEL_GAP_PX - height;
+  const below = anchor.bottom + PANEL_GAP_PX;
+  const fitsAbove = above >= PANEL_GAP_PX;
+  const fitsBelow = below + height <= window.innerHeight - PANEL_GAP_PX;
+  const touch = window.matchMedia("(pointer: coarse)").matches;
+  const side = (touch ? fitsBelow || !fitsAbove : fitsBelow && !fitsAbove) ? "below" : "above";
+  const top = Math.max(
+    PANEL_GAP_PX,
+    Math.min(side === "below" ? below : above, window.innerHeight - height - PANEL_GAP_PX),
+  );
+  panel.dataset.side = side;
+  panel.style.setProperty("--panel-top", `${top}px`);
+  panel.style.setProperty("--panel-center", `${anchor.left + anchor.width / 2}px`);
+  return anchor;
+}
+
+/**
  * The speed: a button between the two skips that shows it, and a panel with a slider from half
- * speed to double (pitch preserved). The panel is a native popover, so it sits in the top layer
- * and closes on an outside press; Escape closes it without closing the player behind it. The
- * choice is remembered.
+ * speed to double (pitch preserved) and the common speeds under it. The panel is a modal dialog: a
+ * press outside it lands on its backdrop, which closes it and reaches nothing underneath. Escape
+ * closes it without closing the player behind it. The choice is remembered.
  */
 export default function SpeedControl() {
   const state = usePlayerState();
   const panelId = useId();
   const buttonRef = useRef<HTMLButtonElement>(null);
-  const panelRef = useRef<HTMLDivElement>(null);
+  const panelRef = useRef<HTMLDialogElement>(null);
+  // Where the press began, so a drag that starts on the slider and ends outside does not close it.
+  const pressedBackdrop = useRef(false);
   const [open, setOpen] = useState(false);
 
+  // While open it follows the button when the window changes size, and goes away when a scroll
+  // carries the button out from under it or the player closes behind it. The briefing behind the
+  // player scrolls as the voice moves on; that moves nothing here, so it is let be.
   useEffect(() => {
     const panel = panelRef.current;
-    if (!panel) return;
-    // Placed against the button, centred on it: above it when there is room, else below it.
-    const place = (): void => {
-      const button = buttonRef.current?.getBoundingClientRect();
-      if (!button) return;
-      const above = button.top - PANEL_GAP_PX - panel.offsetHeight;
-      const top = above >= PANEL_GAP_PX ? above : button.bottom + PANEL_GAP_PX;
-      panel.style.setProperty("--panel-top", `${top}px`);
-      panel.style.setProperty("--panel-center", `${button.left + button.width / 2}px`);
+    if (!open || !panel) return;
+    let anchor = buttonRef.current?.getBoundingClientRect() ?? null;
+    const follow = (): void => {
+      anchor = place(panel, buttonRef.current);
     };
-    const settle = (event: Event): void => {
-      const isOpen = (event as ToggleEvent).newState === "open";
-      setOpen(isOpen);
-      if (!isOpen) return;
-      // Measured once it is laid out, so the side is chosen from its real height.
-      place();
-      panel.querySelector<HTMLElement>("input")?.focus();
+    const dismiss = (): void => {
+      const now = buttonRef.current?.getBoundingClientRect();
+      if (!anchor || !now) return;
+      if (Math.abs(now.top - anchor.top) > 1 || Math.abs(now.left - anchor.left) > 1) panel.close();
     };
-    const beforeOpen = (event: Event): void => {
-      if ((event as ToggleEvent).newState === "open") place();
-    };
-    panel.addEventListener("beforetoggle", beforeOpen);
-    panel.addEventListener("toggle", settle);
+    const offSheet = playerSheet.subscribe(() => {
+      if (!playerSheet.getSnapshot().open) panel.close();
+    });
+    window.addEventListener("resize", follow);
+    document.addEventListener("scroll", dismiss, { capture: true, passive: true });
     return () => {
-      panel.removeEventListener("beforetoggle", beforeOpen);
-      panel.removeEventListener("toggle", settle);
+      offSheet();
+      window.removeEventListener("resize", follow);
+      document.removeEventListener("scroll", dismiss, { capture: true });
     };
-  }, []);
+  }, [open]);
 
-  function onKeyDown(event: KeyboardEvent<HTMLDivElement>): void {
-    if (event.key !== "Escape" && event.key !== "Tab") return;
+  function show(): void {
+    const panel = panelRef.current;
+    if (!panel || panel.open) return;
+    panel.showModal();
+    // Measured once it is laid out, so the side is chosen from its real height.
+    place(panel, buttonRef.current);
+    panel.querySelector<HTMLElement>(".speed-slider")?.focus({ preventScroll: true });
+    setOpen(true);
+  }
+
+  function onKeyDown(event: KeyboardEvent<HTMLDialogElement>): void {
+    if (event.key !== "Escape") return;
     // Escape belongs to the panel while it is open: the player behind it stays.
     event.preventDefault();
-    panelRef.current?.hidePopover();
-    buttonRef.current?.focus();
+    event.currentTarget.close();
   }
 
   const fill = (state.rate - MIN_PLAYBACK_RATE) / (MAX_PLAYBACK_RATE - MIN_PLAYBACK_RATE);
@@ -74,46 +108,68 @@ export default function SpeedControl() {
     <div className="speed">
       <button
         ref={buttonRef}
-        className="speed-btn press num"
+        className="speed-btn num"
         type="button"
-        popoverTarget={panelId}
         aria-haspopup="dialog"
         aria-expanded={open}
+        aria-controls={panelId}
         aria-label={`Playback speed ${rateLabel(state.rate)}`}
+        onClick={show}
       >
         {rateLabel(state.rate)}
       </button>
-      <div
+      <dialog
         ref={panelRef}
         id={panelId}
         className="speed-panel"
-        popover="auto"
-        role="dialog"
         aria-label="Playback speed"
         onKeyDown={onKeyDown}
-      >
-        <output className="speed-value num" aria-hidden="true">
-          {rateLabel(state.rate)}
-        </output>
-        <input
-          className="speed-slider"
-          type="range"
-          min={MIN_PLAYBACK_RATE}
-          max={MAX_PLAYBACK_RATE}
-          step={PLAYBACK_RATE_STEP}
-          value={state.rate}
-          aria-label="Playback speed"
-          aria-valuetext={rateLabel(state.rate)}
-          style={{ "--range-fill": `${(fill * 100).toFixed(1)}%` } as React.CSSProperties}
-          onChange={(event) =>
-            getPlayerStore().setRate(toPlaybackRate(event.currentTarget.valueAsNumber))
+        onPointerDown={(event) => {
+          pressedBackdrop.current = event.target === event.currentTarget;
+        }}
+        onClick={(event) => {
+          // The backdrop is the dialog's own box: everything drawn inside it is a child.
+          if (pressedBackdrop.current && event.target === event.currentTarget) {
+            event.currentTarget.close();
           }
-        />
-        <div className="speed-scale num" aria-hidden="true">
-          <span>{rateLabel(MIN_PLAYBACK_RATE)}</span>
-          <span>{rateLabel(MAX_PLAYBACK_RATE)}</span>
+          pressedBackdrop.current = false;
+        }}
+        onClose={() => {
+          setOpen(false);
+          buttonRef.current?.focus({ preventScroll: true });
+        }}
+      >
+        <div className="speed-panel-body">
+          <input
+            className="speed-slider"
+            type="range"
+            min={MIN_PLAYBACK_RATE}
+            max={MAX_PLAYBACK_RATE}
+            step={PLAYBACK_RATE_STEP}
+            value={state.rate}
+            aria-label="Playback speed"
+            aria-valuetext={rateLabel(state.rate)}
+            style={{ "--range-fill": `${(fill * 100).toFixed(1)}%` } as React.CSSProperties}
+            onChange={(event) =>
+              getPlayerStore().setRate(toPlaybackRate(event.currentTarget.valueAsNumber))
+            }
+          />
+          {/* The common speeds, a press away: the slider's steps are too fine to land on 1x by finger. */}
+          <div className="speed-presets">
+            {PLAYBACK_RATES.map((preset) => (
+              <button
+                key={preset}
+                className="speed-preset num"
+                type="button"
+                aria-pressed={state.rate === preset}
+                onClick={() => getPlayerStore().setRate(preset)}
+              >
+                {rateLabel(preset)}
+              </button>
+            ))}
+          </div>
         </div>
-      </div>
+      </dialog>
     </div>
   );
 }

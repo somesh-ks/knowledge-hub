@@ -1049,10 +1049,6 @@
   grid-column: 3;
 }
 
-.transport > .speed .speed-btn {
-  background: var(--color-surface-sunken);
-}
-
 .transport-btn {
   --transport-glyph: var(--size-icon-lg);
   position: relative;
@@ -1124,73 +1120,120 @@
   place-items: center;
 }
 
+/* A quiet pill, so it reads as a control and not as a caption. It is as wide as its longest label
+   ("0.55x") in tabular figures, so the skips either side stay put as the speed changes. A press
+   shows on the fill; the words keep their size. */
 .speed-btn {
   display: grid;
   place-items: center;
-  min-width: var(--size-touch-comfortable);
+  min-width: calc(5ch + var(--space-3) * 2);
   min-height: var(--size-touch);
   padding-inline: var(--space-3);
   border-radius: var(--radius-round);
+  background: var(--color-surface-sunken);
   color: var(--color-on-surface-muted);
   font-size: var(--font-size-label);
   font-weight: var(--font-weight-semibold);
+  transition:
+    background-color var(--duration-press-in) var(--ease-out),
+    color var(--duration-hover) var(--ease-hover);
 }
 
 .speed-btn[aria-expanded="true"] {
   color: var(--color-on-surface);
 }
 
-/* A native popover: in the top layer, centred on the button by script, above it when there is room
-   and below it when not, and kept inside the screen. */
+@media (hover: hover) and (pointer: fine) {
+  .speed-btn:hover {
+    background: color-mix(in oklch, var(--color-on-surface) 8%, var(--color-surface-sunken));
+    color: var(--color-on-surface);
+  }
+}
+
+.speed-btn:active {
+  background: color-mix(in oklch, var(--color-on-surface) 14%, var(--color-surface-sunken));
+}
+
+/*
+ * A modal dialog, so a press outside it lands on its backdrop, which closes it and reaches nothing
+ * underneath. It sits in the top layer, centred on the button by script: below it with a finger and
+ * above it with a mouse, on the other side when that one has no room, and inside the window. It
+ * grows out of the button and shrinks back into it, quicker out than in.
+ */
 .speed-panel {
   --panel-top: 0px;
   --panel-center: 50vw;
   --panel-width: 16rem;
+  --panel-left: clamp(
+    var(--space-3),
+    var(--panel-center) -
+    var(--panel-width) /
+    2,
+    100vw -
+    var(--panel-width) -
+    var(--space-3)
+  );
+  --panel-scale: var(--scale-enter);
+  --color-focus-gap: var(--color-surface-overlay);
   position: fixed;
-  inset: var(--panel-top) auto auto
-    clamp(
-      var(--space-3),
-      var(--panel-center) -
-      var(--panel-width) /
-      2,
-      100vw -
-      var(--panel-width) -
-      var(--space-3)
-    );
+  inset: var(--panel-top) auto auto var(--panel-left);
   width: var(--panel-width);
+  max-width: none;
+  max-height: none;
   margin: 0;
-  padding: var(--space-3) var(--space-4) var(--space-2);
+  padding: 0;
+  overflow: visible;
   border: 0;
   border-radius: var(--radius-md);
   background: var(--color-surface-overlay);
   color: var(--color-on-surface);
   box-shadow: var(--shadow-popover);
   opacity: 0;
-  transform: translateY(var(--space-1));
+  pointer-events: none;
+  transform: scale(var(--panel-scale));
+  /* The button's centre, on the edge of the panel that faces it. */
+  transform-origin: calc(var(--panel-center) - var(--panel-left)) 100%;
   transition:
-    opacity var(--duration-state) var(--ease-out),
-    transform var(--duration-state) var(--ease-out),
-    overlay var(--duration-state) allow-discrete,
-    display var(--duration-state) allow-discrete;
+    opacity var(--duration-exit) var(--ease-out),
+    transform var(--duration-exit) var(--ease-out),
+    overlay var(--duration-exit) allow-discrete,
+    display var(--duration-exit) allow-discrete;
 }
 
-.speed-panel:popover-open {
+.speed-panel[data-side="below"] {
+  transform-origin: calc(var(--panel-center) - var(--panel-left)) 0;
+}
+
+.speed-panel[open] {
   opacity: 1;
+  pointer-events: auto;
   transform: none;
+  transition-duration: var(--duration-state);
 }
 
 @starting-style {
-  .speed-panel:popover-open {
+  .speed-panel[open] {
     opacity: 0;
-    transform: translateY(var(--space-1));
+    transform: scale(var(--panel-scale));
   }
 }
 
-.speed-value {
-  display: block;
-  font-size: var(--font-size-label-lg);
-  font-weight: var(--font-weight-semibold);
-  text-align: center;
+/* No dim: the panel is small and sits by its button, and the player stays in view around it. */
+.speed-panel::backdrop {
+  background: transparent;
+}
+
+/* On its way out it is no longer modal, so a press goes straight through to what is under it. */
+.speed-panel:not([open])::backdrop {
+  pointer-events: none;
+}
+
+/* The panel's padding is here, so a press anywhere inside it lands on a child of the dialog and only
+   the backdrop is the dialog itself. */
+.speed-panel-body {
+  display: grid;
+  /* The chosen speed's fill keeps the same distance from the bottom as from the sides. */
+  padding: var(--space-2) var(--space-4) var(--space-4);
 }
 
 /*
@@ -1263,18 +1306,37 @@
   transition-duration: var(--duration-press-in);
 }
 
-.speed-scale {
-  display: flex;
-  justify-content: space-between;
+/* The common speeds under the slider, whose fine steps are hard to land on by finger: quiet text
+   buttons, the chosen one in full ink on a soft fill. */
+.speed-presets {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+}
+
+.speed-preset {
+  min-height: var(--size-touch);
+  border-radius: var(--radius-sm);
   color: var(--color-on-surface-muted);
-  font-size: var(--font-size-caption);
+  font-size: var(--font-size-label);
+  font-weight: var(--font-weight-medium);
+  transition:
+    background-color var(--duration-press-in) var(--ease-out),
+    color var(--duration-hover) var(--ease-hover);
+}
+
+.speed-preset[aria-pressed="true"] {
+  background: color-mix(in oklch, var(--color-on-surface) 8%, transparent);
+  color: var(--color-on-surface);
 }
 
 @media (hover: hover) and (pointer: fine) {
-  .speed-btn:hover {
-    background: var(--color-surface-sunken);
+  .speed-preset:hover {
     color: var(--color-on-surface);
   }
+}
+
+.speed-preset:active {
+  background: color-mix(in oklch, var(--color-on-surface) 14%, transparent);
 }
 
 /* ------------------------------------------------------------------ the script */
@@ -1684,6 +1746,11 @@ html[data-player="open"] {
     transform: none;
     filter: none;
   }
+
+  /* The speed panel fades without growing. */
+  .speed-panel {
+    --panel-scale: 1;
+  }
 }
 
 @media (forced-colors: active) {
@@ -1717,8 +1784,19 @@ html[data-player="open"] {
     border: var(--stroke-rail) solid ButtonText;
   }
 
+  /* Fills are dropped too, so each text control keeps an edge of its own. */
+  .speed-btn,
+  .speed-preset {
+    border: var(--stroke-hairline) solid ButtonText;
+  }
+
+  .speed-panel {
+    border: var(--stroke-hairline) solid CanvasText;
+  }
+
   .segmented label:has(input:checked),
-  .story-row[aria-current="true"] {
+  .story-row[aria-current="true"],
+  .speed-preset[aria-pressed="true"] {
     border: var(--stroke-rail) solid Highlight;
   }
 }
