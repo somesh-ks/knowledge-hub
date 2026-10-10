@@ -211,9 +211,9 @@
 .sheet-input {
   min-height: var(--field-height);
   padding-inline: var(--field-padding);
-  border: var(--stroke-hairline) solid var(--field-border);
+  border: var(--stroke-hairline) solid var(--color-border-hairline);
   border-radius: var(--field-radius);
-  background: var(--field-bg);
+  background: none;
   color: var(--color-on-surface);
   /* 16px or larger, so iOS never zooms. The token is the body size, 1rem. */
   font-size: var(--font-size-body);
@@ -242,7 +242,7 @@
 
 .sheet-input[data-disabled],
 .sheet-input:disabled {
-  border-color: var(--field-border);
+  border-color: var(--color-border-hairline);
   color: var(--color-on-surface-disabled);
 }
 
@@ -465,7 +465,6 @@
   height: calc(var(--switch-height) - var(--switch-padding) * 2);
   border-radius: var(--switch-thumb-radius);
   background: var(--switch-thumb-bg);
-  box-shadow: 0 1px 2px color-mix(in oklch, var(--color-scrim) 60%, transparent);
   transition:
     transform var(--duration-state) var(--ease-out),
     scale var(--duration-press-out) var(--ease-out),

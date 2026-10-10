@@ -329,8 +329,7 @@
   --scrubber-thumb: 1rem;
   --scrubber-thumb-active-scale: 1.4;
   --scrubber-thumb-ring: 2px;
-  --scrubber-tick-dot: 0.375rem;
-  --scrubber-tick-dot-chapter: 0.5rem;
+  --scrubber-tick-dot: 0.3125rem;
   --scrubber-bubble-radius: var(--radius-sm);
   --scrubber-detent-hysteresis: 0.02;
   --segmented-height: var(--size-touch);
@@ -347,8 +346,8 @@
   --switch-height: 2rem;
   --switch-padding: 0.1875rem;
   --switch-thumb: 1.625rem;
-  --switch-radius: 0.625rem;
-  --switch-thumb-radius: 0.4375rem;
+  --switch-radius: var(--radius-round);
+  --switch-thumb-radius: var(--radius-round);
   --switch-thumb-bg: var(--color-surface-raised);
   --sheet-radius: var(--radius-sheet);
   --sheet-padding: var(--space-4);

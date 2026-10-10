@@ -98,7 +98,7 @@ const bands = [
 
         <ul class="topics-list" role="list">
           {
-            editable.map((topic, index) => (
+            editable.map((topic) => (
               <li class="topic" data-id={topic.id}>
                 <div class="topic-head">
                   <h2 class="topic-name" id={`name-${topic.id}`}>{topic.name}</h2>
@@ -151,7 +151,6 @@ const bands = [
                     value={snap(topic.weight).toFixed(2)}
                     autocomplete="off"
                     aria-valuetext={percent(topic.weight)}
-                    aria-describedby={index === 0 ? "weight-hint" : undefined}
                     style={`--range-fill: ${snap(topic.weight) * 100}%`}
                     data-op={JSON.stringify({ op: "weights.set", weights: {} })}
                     data-field={`weights.${topic.id}`}
@@ -159,7 +158,6 @@ const bands = [
                   />
                   <output class="topic-percent" for={`weight-${topic.id}`} data-word>{percent(topic.weight)}</output>
                 </div>
-                {index === 0 && <p class="topic-hint manage-quiet" id="weight-hint">A hint. Each briefing still follows the news.</p>}
                 <ul class="topic-sources" role="list" data-sources aria-label={`${topic.name} sources`}>
                   {under(topic.id).map((source) => <SourceRow source={source} />)}
                 </ul>

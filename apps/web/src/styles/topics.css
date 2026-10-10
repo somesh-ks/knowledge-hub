@@ -178,11 +178,6 @@
   opacity: var(--opacity-disabled);
 }
 
-.topic-hint {
-  margin: 0;
-  padding-inline-start: calc(var(--space-16) + var(--space-3));
-}
-
 .topic-sources {
   display: flex;
   flex-direction: column;
@@ -401,15 +396,12 @@
     0 0 / var(--star) var(--star) repeat-x;
 }
 
-/* Poor is told apart by its word in a tinted chip, and by the stars' colour: never by colour alone. */
+/* Poor is told apart by its word, and by the stars' colour: never by colour alone. */
 .score[data-label="Poor"] {
   --star-on: var(--color-danger);
 }
 
 .score[data-label="Poor"] .score-label {
-  padding-inline: var(--space-2);
-  border-radius: var(--radius-sm);
-  background: var(--color-danger-subtle);
   color: var(--color-danger);
   font-weight: var(--font-weight-medium);
 }

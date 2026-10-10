@@ -263,7 +263,7 @@ describe("scales", () => {
       );
       checked += 1;
     }
-    expect(checked).toBeGreaterThanOrEqual(5);
+    expect(checked).toBeGreaterThanOrEqual(4);
   });
 
   it("compiles fluid sizes to a clamp that hits both endpoints", () => {
