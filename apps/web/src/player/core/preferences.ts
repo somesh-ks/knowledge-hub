@@ -107,6 +107,11 @@ export function createPreferencesStore(options: PreferencesStoreOptions): Prefer
   };
 }
 
+/** Keeps the speed the player moved to for next time: any step the slider reaches, not only a preset. */
+export function rememberRate(preferences: Pick<PreferencesStore, "set">, rate: number): void {
+  if (isPlaybackRate(rate)) preferences.set({ rate });
+}
+
 /** Matches defaultSoundsEnabled() in @dispatch/sound; used before that module has loaded. */
 export function prefersReducedMotion(): boolean {
   return (

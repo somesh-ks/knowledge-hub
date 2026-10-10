@@ -3,17 +3,20 @@ import { PASSPHRASE_REQUIRED } from "../lib/access";
 import Icon from "./Icon.astro";
 ---
 
-{/* What the Topics and Sources pages share besides their rows: the live region the script writes to,
-     the row it copies for an addition that waits to be saved, the bar that counts the changes, and the
-     dialog that asks for the passphrase once. All of it is inert until managePage.ts mounts. */}
+{/* What the settings pages share besides their rows: the live regions the script writes to (one
+     polite, one for errors), the row it copies for a topic added on the page, the toast that says how
+     saving goes (scripts/autosave.ts; it looks and sits like every toast, and leaves speaking to the
+     regions), and the dialog that asks for the passphrase once. All of it is inert until the page's
+     script mounts. */}
 <p class="sr-only" role="status" data-live></p>
+<p class="sr-only" role="alert" data-alert></p>
 
 <template>
   <li class="manage-row" data-queued-row>
     <div class="manage-main">
       <div class="manage-text">
         <span class="manage-name" data-q-name></span>
-        <span class="manage-quiet">Waiting to be saved</span>
+        <span class="manage-quiet">Adding</span>
       </div>
       <button class="icon-btn press" type="button" data-act="cancel">
         <Icon name="close" />
@@ -22,15 +25,16 @@ import Icon from "./Icon.astro";
   </li>
 </template>
 
-<div class="manage-bar" data-bar data-state="idle" hidden>
-  <p class="manage-bar-text" data-bar-text></p>
-  <div class="manage-bar-actions">
-    <button class="btn press press-subtle" type="button" data-act="discard">Discard</button>
-    <button class="btn-primary manage-save press press-subtle" type="button" data-act="save">Save</button>
-    <button class="icon-btn press" type="button" data-act="dismiss" aria-label="Dismiss">
-      <Icon name="close" />
-    </button>
-  </div>
+<div class="toast manage-bar" popover="manual" data-bar data-state="saving">
+  <span class="spinner manage-bar-busy" aria-hidden="true"></span>
+  <Icon name="check" class="toast-icon manage-bar-done" />
+  <Icon name="alert" class="toast-icon manage-bar-error" />
+  <span class="toast-text" data-bar-text></span>
+  <button class="toast-action" type="button" data-act="undo">Undo</button>
+  <button class="toast-action" type="button" data-act="retry">Retry</button>
+  <button class="toast-dismiss press" type="button" data-act="dismiss" aria-label="Dismiss">
+    <Icon name="close" />
+  </button>
 </div>
 
 {PASSPHRASE_REQUIRED && (

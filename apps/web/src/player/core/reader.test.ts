@@ -135,6 +135,20 @@ describe("the briefing chip", () => {
     });
   });
 
+  it("names an episode an episode, in every state", () => {
+    expect(idleBriefingChip("5 min", "episode").name).toBe("Play the episode, 5 min");
+    const names = (["idle", "playing", "paused", "ended"] as const).map(
+      (status) => briefingChipView(stateFor(status), 30, makeDigest(), "episode").name,
+    );
+    expect(names).toEqual([
+      "Resume the episode, 2 min left",
+      "Pause the episode, playing",
+      "Resume the episode, 2 min left",
+      "Play the episode again, played",
+    ]);
+    for (const name of names) expect(name).not.toContain("briefing");
+  });
+
   it("is a plain play chip when another briefing is loaded", () => {
     const other = makeDigest({ id: "2026-10-05", audio: { url: "/a.mp3", duration_ms: 480_000 } });
     expect(briefingChipView(stateFor("playing"), 86, other)).toEqual(idleBriefingChip("8 min"));

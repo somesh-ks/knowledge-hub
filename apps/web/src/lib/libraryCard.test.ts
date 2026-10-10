@@ -3,7 +3,7 @@ import { makeDigest } from "../testing/digestFactory";
 import { buildEntries } from "./digests";
 import { parseEpisodeFile } from "./episodeFile";
 import { buildEpisodeEntries } from "./episodes";
-import { episodeFacts, libraryItems, searchIndex } from "./libraryCard";
+import { cardFacts, episodeFacts, libraryItems, searchIndex } from "./libraryCard";
 
 const episodeText = (id: string, at: string, format = "discussion") =>
   [
@@ -23,6 +23,28 @@ const episodeText = (id: string, at: string, format = "discussion") =>
 
 const episodes = (...texts: string[]) =>
   buildEpisodeEntries(texts.map((text) => parseEpisodeFile(text)));
+
+describe("cardFacts", () => {
+  it("says Weekly first on a weekly briefing, and keeps the kind apart for the list", () => {
+    const entries = buildEntries([
+      { digest: makeDigest({ id: "2026-10-04-weekly", kind: "weekly" }), timeline: null },
+      { digest: makeDigest({ id: "2026-10-05" }), timeline: null },
+    ]);
+    const weekly = entries.find((entry) => entry.digest.kind === "weekly");
+    const daily = entries.find((entry) => entry.digest.kind === "regular");
+    expect(weekly && cardFacts(weekly)).toMatchObject({
+      line: "Weekly, 4 stories, 4 min",
+      kind: "Weekly",
+      rest: "4 stories, 4 min",
+      minutes: 4,
+    });
+    expect(daily && cardFacts(daily)).toMatchObject({
+      line: "4 stories, 4 min",
+      kind: "",
+      rest: "4 stories, 4 min",
+    });
+  });
+});
 
 describe("episodeFacts", () => {
   it("names the format and the length on the quiet line", () => {

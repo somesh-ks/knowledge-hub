@@ -1,9 +1,11 @@
 import { useEffect, useRef, useState } from "react";
+import type { PlayerDigestData } from "../types/contracts";
 import { chapterMask } from "./core/chapterMask";
 import { formatClock } from "./core/formatTime";
 import { errorSummary, isPlayingStatus, toggleLabel } from "./core/playerCopy";
 import { getPlayerStore } from "./core/playerRuntime";
 import { playerSheet } from "./core/playerSheet";
+import { briefingLengthLabel } from "./core/readerMath";
 import { fractionOfTime, scrubberValueText } from "./core/scrubberMath";
 import { itemIndexAt } from "./core/timeline";
 import { applyVolume, getVolume, setVolume } from "./core/volume";
@@ -15,6 +17,14 @@ import PlayPauseGlyph from "./ui/PlayPauseGlyph";
 
 /** The page the bar's open button controls. An element id, so it keeps the product's first name. */
 export const PLAYER_PAGE_ID = "dispatch-player-page";
+
+/** Under the title when there are no stories to name: what kind of recording it is, and how long. */
+function noStoriesCaption(digest: PlayerDigestData | undefined): string {
+  if (!digest) return "";
+  // An episode carries its script; a briefing does not.
+  const kind = digest.turns ? "Episode" : digest.kind === "weekly" ? "Weekly briefing" : "Briefing";
+  return digest.audio ? `${kind}, ${briefingLengthLabel(digest.audio.duration_ms)}` : kind;
+}
 
 /**
  * The bar's own scrubber, along its top edge, on screens wide enough for the bar to stay put. A
@@ -133,11 +143,12 @@ export default function PlayerBar() {
   const state = usePlayerState();
   const store = getPlayerStore();
   const second = usePlayerSecond();
-  const fillRef = useRef<HTMLSpanElement>(null);
+  const lineRef = useRef<HTMLDivElement>(null);
 
-  // The playhead goes straight to a leaf element: React never renders at frame rate.
+  // The playhead goes straight to the line, whose fill and notch read it: React never renders at
+  // frame rate, and the line holds only those two.
   usePlayerFrame((time, duration) => {
-    fillRef.current?.style.setProperty(
+    lineRef.current?.style.setProperty(
       "--player-progress",
       fractionOfTime(time, duration).toFixed(5),
     );
@@ -154,17 +165,17 @@ export default function PlayerBar() {
   let caption =
     section && itemCount > 0
       ? `${section.title}, ${state.itemIndex + 1} of ${itemCount}`
-      : (digest?.title ?? "");
+      : noStoriesCaption(digest);
   if (state.error) caption = errorSummary(state.error.kind);
   else if (state.interrupted) caption = "Interrupted, press play to resume";
 
-  const isFirstItem = itemCount === 0 || state.itemIndex <= 0;
   const isLastItem = itemCount === 0 || state.itemIndex >= itemCount - 1;
 
   return (
     <section className="player-dock" aria-label="Audio player" data-player-dock>
       <div
         className="dock-progress"
+        ref={lineRef}
         aria-hidden="true"
         style={
           {
@@ -176,18 +187,17 @@ export default function PlayerBar() {
           } as React.CSSProperties
         }
       >
-        <span className="dock-progress-fill" ref={fillRef} />
+        <span className="dock-progress-fill" />
       </div>
       <DockSeek duration={state.duration} />
       <div className="dock-transport">
+        {/* As on the page: on the first story, previous goes back to its start. */}
         <button
           className="dock-btn dock-wide press"
           type="button"
           aria-label="Previous item"
-          aria-disabled={isFirstItem || undefined}
-          onClick={() => {
-            if (!isFirstItem) store.previous();
-          }}
+          aria-disabled={itemCount === 0 || undefined}
+          onClick={() => store.previous()}
         >
           <Icon name="skipBack" />
         </button>
@@ -229,7 +239,7 @@ export default function PlayerBar() {
         // The surface controller keeps this in step with the page; false is the collapsed truth.
         aria-expanded="false"
         aria-controls={PLAYER_PAGE_ID}
-        aria-label={`Open the player. ${headline}`}
+        aria-label={`Player: ${headline}`}
         onClick={(event) =>
           playerSheet.click({ t: event.timeStamp, fromPointer: event.detail > 0 })
         }

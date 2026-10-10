@@ -431,11 +431,16 @@ describe("the Generate store", () => {
   });
 
   it("reports a run that finishes while the sheet is closed, once", async () => {
-    const { store, finished } = setup(accepted(), done("published", { digest_id: "2026-10-07" }));
+    const { store, finished, announcements } = setup(
+      accepted(),
+      done("published", { digest_id: "2026-10-07" }),
+    );
     await store.submit("secret");
     store.setSheetOpen(false);
     await vi.advanceTimersByTimeAsync(BACKGROUND_POLL_MS);
     expect(finished).toEqual([{ phase: "published", digestId: "2026-10-07", runUrl: null }]);
+    // The toast that reports it speaks it; the announcer does not say it a second time.
+    expect(announcements).not.toContain("Briefing ready.");
     store.setSheetOpen(true);
     expect(store.getState().phase).toBe("published");
     store.setSheetOpen(false);

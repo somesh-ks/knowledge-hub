@@ -24,15 +24,34 @@
   --run-room: 0px;
   /* Where the first block of every destination starts, under the app bar: Today's cover sets it. */
   --page-top: var(--space-8);
-  /* Room under the last control: the floating Create button (its size and its margin) and some air. */
+  /* Room under the last control: the floating Create button (its size and its margin) and some air.
+     Only Today and the Library have the button (D52); every other page needs only the air. */
   --page-end: var(--space-24);
   /* Everything that sticks under the top chrome sticks here: section tabs, the aside. */
   --sticky-top: calc(var(--app-bar-height) + var(--safe-top));
   /* The text column itself: the page width less its two gutters. */
   --column-inner: calc(var(--layout-column) - var(--page-gutter) * 2);
-  /* Anchors and focus scrolling land below the sticky chrome, not under it. */
+  /* Anchors and focus scrolling land below the sticky chrome, not under it, and above everything
+     that stacks on the bottom edge: the bar, the player bar and the run indicator. */
   scroll-padding-block: calc(var(--sticky-top) + var(--space-4))
-    calc(var(--bottom-nav-height) + var(--space-4));
+    calc(var(--bottom-nav-height) + var(--dock-room) + var(--run-room) + var(--space-4));
+}
+
+html:not([data-fab]) {
+  --page-end: var(--space-12);
+}
+
+/* Where the floating Create button shows, focus stops above it too. */
+@media not all and (min-width: 64rem) {
+  html[data-fab] {
+    scroll-padding-block-end: calc(
+      var(--bottom-nav-height) +
+      var(--dock-room) +
+      var(--run-room) +
+      var(--fab-size) +
+      var(--space-8)
+    );
+  }
 }
 
 html[data-mini="visible"] {
@@ -132,6 +151,13 @@ html[data-mini="visible"] main {
   height: var(--size-icon-lg);
   flex: none;
   color: var(--color-accent);
+  transition: scale var(--duration-press-out) var(--ease-out);
+}
+
+/* A press scales the mark, never the name beside it. */
+.wordmark:active .wordmark-mark {
+  scale: var(--scale-press);
+  transition-duration: var(--duration-press-in);
 }
 
 /* ------------------------------------------------------------------ top app bar (below 64rem) */
@@ -157,10 +183,14 @@ html[data-mini="visible"] main {
   pointer-events: none;
 }
 
-/* The hairline appears over the first 16px of scroll. Without scroll timelines there is none. */
+/* The hairline appears over the first 16px of scroll. Without scroll timelines there is none.
+   Longhands, not the shorthand: the minifier folds a shorthand and the timeline into one
+   declaration that browsers reject, and the line never showed. */
 @supports (animation-timeline: scroll()) {
   .app-bar::after {
-    animation: app-bar-line linear both;
+    animation-name: app-bar-line;
+    animation-timing-function: linear;
+    animation-fill-mode: both;
     animation-timeline: scroll(root);
     animation-range: 0 var(--space-4);
   }
@@ -240,6 +270,17 @@ html[data-mini="visible"] main {
 .app-nav-item .icon {
   width: var(--nav-item-icon);
   height: var(--nav-item-icon);
+  transition: scale var(--duration-press-out) var(--ease-out);
+}
+
+/* A press darkens the label and scales only the icon: words never change size under a finger. */
+.app-nav-item:not([aria-current="page"]):active {
+  color: var(--color-on-surface);
+}
+
+.app-nav-item:active .icon {
+  scale: var(--scale-press);
+  transition-duration: var(--duration-press-in);
 }
 
 .app-nav-item[aria-current="page"] {
@@ -255,6 +296,14 @@ html[data-mini="visible"] main {
 @media (hover: hover) and (pointer: fine) {
   .app-nav-item:not([aria-current="page"]):hover {
     color: var(--color-on-surface);
+  }
+}
+
+/* An open dialog takes the scrollbar away and the window's edge moves out by its width
+   (foundations.css). The bar runs to that edge, so it keeps the room and its items hold still. */
+@media not all and (min-width: 64rem) {
+  :root:has(dialog[open]) .app-nav {
+    padding-inline-end: calc(var(--safe-right) + var(--gutter, 0px));
   }
 }
 
@@ -299,6 +348,7 @@ html[data-mini="visible"] main {
     margin-inline: 0;
   }
 
+  /* The fill fades in and out like Create Podcast's above it. */
   .app-nav-item {
     flex-direction: row;
     justify-content: flex-start;
@@ -310,6 +360,9 @@ html[data-mini="visible"] main {
     font-size: var(--font-size-label);
     letter-spacing: 0;
     outline-offset: var(--stroke-ring-gap);
+    transition:
+      background-color var(--duration-hover) var(--ease-hover),
+      color var(--duration-hover) var(--ease-hover);
   }
 
   .app-nav-item:focus-visible {
@@ -327,8 +380,13 @@ html[data-mini="visible"] main {
     }
   }
 
+  /* A press darkens the hover fill at once with a layer over it, so it reads apart from a hover. */
   .app-nav-item:not([aria-current="page"]):active {
-    background: var(--color-surface-sunken);
+    background: linear-gradient(
+        color-mix(in oklch, var(--color-on-surface) 8%, transparent),
+        color-mix(in oklch, var(--color-on-surface) 8%, transparent)
+      )
+      var(--color-surface-sunken);
   }
 }
 

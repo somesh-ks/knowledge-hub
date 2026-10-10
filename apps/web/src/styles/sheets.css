@@ -211,7 +211,7 @@
 .sheet-input {
   min-height: var(--field-height);
   padding-inline: var(--field-padding);
-  border: var(--stroke-hairline) solid var(--color-border-hairline);
+  border: var(--stroke-hairline) solid var(--field-border);
   border-radius: var(--field-radius);
   background: none;
   color: var(--color-on-surface);
@@ -579,10 +579,16 @@
  */
 .toast {
   --toast-dock: 0px;
+  --toast-lift: 0px;
   /* The page accent is tuned for the page, so on the inverse surface the other theme's accent is used. */
   --toast-accent: var(--color-blue-300);
   inset-block: auto
-    calc(var(--bottom-nav-height, var(--safe-bottom)) + var(--toast-dock) + var(--space-3));
+    calc(
+      var(--bottom-nav-height, var(--safe-bottom)) +
+      var(--toast-dock) +
+      var(--toast-lift) +
+      var(--space-3)
+    );
   /* Centred on the page, not on the screen: from 64rem the navigation is a column at the side. */
   inset-inline: var(--side-nav-width, 0px) 0;
   /* Closed, a popover is display: none. Setting display here would keep it in the layout and the
@@ -592,7 +598,8 @@
   gap: var(--space-3);
   width: max-content;
   max-width: min(calc(100% - var(--page-gutter) * 2), var(--layout-dialog));
-  min-height: var(--size-touch-comfortable);
+  /* As tall as a 44px button and its padding, so a toast keeps its height when its buttons come and go. */
+  min-height: calc(var(--size-touch) + var(--space-1) * 2);
   margin-inline: auto;
   padding: var(--space-1) var(--space-2) var(--space-1) var(--space-4);
   border: 0;
@@ -612,18 +619,48 @@
     display var(--duration-press-in) allow-discrete;
 }
 
+/* The open player covers the navigation column too, so a toast centres on the player. */
+html[data-player="open"] .toast {
+  inset-inline-start: 0;
+}
+
+/* One step darker than the light page's accent: 5.4:1 on the light inverse surface. */
 @media (prefers-color-scheme: dark) {
   :root:not([data-theme="light"]) .toast {
-    --toast-accent: var(--color-blue-700);
+    --toast-accent: var(--color-blue-800);
   }
 }
 
 :root[data-theme="dark"] .toast {
-  --toast-accent: var(--color-blue-700);
+  --toast-accent: var(--color-blue-800);
 }
 
 html[data-mini="visible"] .toast {
   --toast-dock: var(--player-dock-height, var(--nav-bar-height));
+}
+
+/*
+ * Below 64rem the run line and, above it, the floating Create button stack over the bottom bar
+ * (create-sheet.css). A toast sits 12px above the higher of the two that shows: the run line alone
+ * where there is no button (every page but Today and the Library, D52) or it is hidden (a sheet is
+ * open), neither while the player is open.
+ */
+@media (width < 64rem) {
+  html:not([data-player="open"]) .toast {
+    --toast-lift: var(--run-room);
+  }
+
+  html[data-fab]:not([data-player="open"]):not(:has(dialog[open])) .toast {
+    --toast-lift: calc(var(--run-room) + var(--space-4) + var(--fab-size));
+  }
+}
+
+/* From 80rem every page but the Library keeps a track at its end for a contents list (shell.css), so
+   the reading column sits left of the window's middle: a toast centres on the column instead. */
+@media (min-width: 80rem) {
+  html:not([data-player="open"]):not(:has(.shell > main.library)) .toast {
+    inset-inline-end: calc(var(--space-12) + var(--layout-aside));
+  }
 }
 
 .toast:popover-open {
@@ -640,6 +677,13 @@ html[data-mini="visible"] .toast {
   }
 }
 
+/* With no button at its end, the text has the same room on both sides. The settings toast keeps its
+   buttons in the page and hides them by its state (manage.css); while saving it shows none. */
+.toast:not(:has(button:not([hidden]))),
+.toast[data-state="saving"] {
+  padding-inline-end: var(--space-4);
+}
+
 .toast-icon {
   flex: none;
 }
@@ -648,17 +692,20 @@ html[data-mini="visible"] .toast {
   min-width: 0;
 }
 
+/* The words give way first: a button keeps its 44px however long the message runs. */
 .toast-action,
 .toast-dismiss {
+  flex: none;
   min-height: var(--size-touch);
 }
 
-/* A text action: the accent on the inverse surface, no fill. */
+/* A text action: the accent on the inverse surface, no fill until it is pointed at or pressed. */
 .toast-action {
   padding-inline: var(--space-3);
   border-radius: var(--radius-sm);
   color: var(--toast-accent);
   font-weight: var(--font-weight-medium);
+  transition: background-color var(--duration-hover) var(--ease-hover);
 }
 
 .toast-dismiss {

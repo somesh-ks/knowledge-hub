@@ -97,9 +97,12 @@ function show(run: Stored | null): void {
     if (text && text.textContent !== (line ?? "")) text.textContent = line ?? "";
     fill(card, run);
   }
-  const library = card.querySelector<HTMLElement>("[data-run-library]");
+  const library = card.querySelector<HTMLAnchorElement>("[data-run-library]");
   if (library) {
-    library.hidden = (run?.phase !== "done" && run?.phase !== "started") || run?.kind === "delete";
+    // A link to the page on screen would only load it again, so the line offers none there.
+    const onScreen = library.pathname.replace(/\/$/, "") === location.pathname.replace(/\/$/, "");
+    library.hidden =
+      (run?.phase !== "done" && run?.phase !== "started") || run?.kind === "delete" || onScreen;
   }
   const close = card.querySelector<HTMLElement>("[data-run-dismiss]");
   if (close) close.hidden = !finished;

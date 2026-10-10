@@ -100,6 +100,8 @@
   position: relative;
   display: grid;
   place-items: center;
+  /* It fades out while the spinner stands in for it, and back, rather than blinking. */
+  transition: opacity var(--duration-hover) var(--ease-out);
 }
 
 .glyph-swap > .ui-icon {
@@ -205,8 +207,9 @@
   position: absolute;
   inset: 0;
   /* The one scroll container: header and cover scroll with everything else, so no part of the
-     page can be squeezed at any window height. */
+     page can be squeezed at any window height. Focus stops short of its edges, ring included. */
   overflow-y: auto;
+  scroll-padding-block: var(--space-4);
   overscroll-behavior: contain;
   scrollbar-width: thin;
   /* While it moves the whole page is one handle. At rest it scrolls. */
@@ -231,6 +234,13 @@
   :is(.player-page, .player-dock) {
   /* Promoted only while it can move, and demoted when the spring rests. */
   will-change: transform;
+}
+
+/* While it moves, a hairline along its top edge sets it off from the page behind, which is the
+   same colour. Drawn outside the box, so nothing inside shifts. */
+.player:is([data-state="dragging"], [data-state="expanding"], [data-state="collapsing"])
+.player-page {
+  box-shadow: 0 calc(var(--stroke-hairline) * -1) 0 var(--color-border-hairline);
 }
 
 .player[data-landed] .player-page {
@@ -298,7 +308,8 @@
 /* Out of sight until the keyboard reaches it, like a skip link. */
 .player-collapse {
   position: absolute;
-  inset-block-start: 0;
+  /* Room for its ring above it: the phone's top padding is the safe area, which can be zero. */
+  inset-block-start: calc(var(--stroke-ring) + var(--stroke-ring-gap));
   inset-inline-start: 50%;
   z-index: 1;
   padding: var(--space-2) var(--space-4);
@@ -359,12 +370,15 @@
   -webkit-line-clamp: 2;
 }
 
+/* Two lines, so a long title reads in full on the page instead of one ellipsised line. */
 .player-title {
-  display: block;
+  display: -webkit-box;
   max-width: 100%;
   overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
+  white-space: normal;
+  text-wrap: balance;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 2;
   font-family: var(--text-title-family);
   font-size: var(--text-title-size);
   font-weight: var(--text-title-weight);
@@ -408,6 +422,12 @@
   background: var(--color-accent);
   color: var(--color-on-accent);
   font-weight: var(--font-weight-semibold);
+  transition: background-color var(--duration-press-in) var(--ease-out);
+}
+
+/* A press darkens the fill, as on the primary buttons; the words keep their size. */
+.player-fallback-action:active {
+  background: var(--color-accent-pressed);
 }
 
 .player-cover-box .player-cover-frame {
@@ -576,15 +596,18 @@
 /*
  * The bar's scrubber: a native range laid over the progress line along the bar's top edge. The line
  * shows the position; the range takes the pointer and the keyboard, and shows its thumb when used.
+ * The range starts at the bar's edge, so a press on the page above it never seeks; its thumb is
+ * lifted onto the middle of the line as it is drawn while in use (twice as thick, grown downward
+ * from the edge).
  */
 .dock-seek {
   position: absolute;
   inset-inline: 0;
-  inset-block-start: calc(var(--space-3) * -1);
+  inset-block-start: 0;
   z-index: 1;
   display: none;
   width: 100%;
-  height: var(--space-6);
+  height: var(--space-4);
   margin: 0;
   padding: 0;
   border-radius: var(--radius-xs);
@@ -607,7 +630,7 @@
 .dock-seek::-webkit-slider-thumb {
   width: var(--space-3);
   height: var(--space-3);
-  margin-block-start: calc((var(--space-6) - var(--space-3)) / 2);
+  margin-block-start: calc(var(--mini-player-progress-height) - var(--space-3) / 2);
   border: 0;
   border-radius: var(--radius-round);
   background: var(--color-accent);
@@ -622,12 +645,33 @@
   border: 0;
   border-radius: var(--radius-round);
   background: var(--color-accent);
+  /* Firefox centres the thumb in the strip; it moves up onto the line like the one above. */
+  transform: translateY(calc(var(--mini-player-progress-height) - var(--space-2)));
   opacity: 0;
   transition: opacity var(--duration-hover) var(--ease-hover);
 }
 
 .dock-seek:is(:focus-visible, :active)::-webkit-slider-thumb {
   opacity: 1;
+}
+
+/* The keyboard ring is drawn on the thumb: a ring on the input would be a full-width box across the
+   bar's edge and the content above it. */
+.dock-seek:focus-visible {
+  outline: none;
+  box-shadow: none;
+}
+
+.dock-seek:focus-visible::-webkit-slider-thumb {
+  box-shadow:
+    0 0 0 var(--stroke-ring-gap) var(--color-focus-gap),
+    0 0 0 calc(var(--stroke-ring-gap) + var(--stroke-ring)) var(--color-focus-ring);
+}
+
+.dock-seek:focus-visible::-moz-range-thumb {
+  box-shadow:
+    0 0 0 var(--stroke-ring-gap) var(--color-focus-gap),
+    0 0 0 calc(var(--stroke-ring-gap) + var(--stroke-ring)) var(--color-focus-ring);
 }
 
 .dock-seek:is(:focus-visible, :active)::-moz-range-thumb {
@@ -638,11 +682,16 @@
   display: none;
 }
 
-/* The clock at the thumb while it is being moved. */
+/* The clock at the thumb while it is being moved. Near either end it stops short of the window's
+   edge, so all of it stays on screen at 0:00 and at the end. */
 .dock-seek-time {
   position: absolute;
   inset-block-start: calc(var(--space-8) * -1);
-  inset-inline-start: calc(var(--seek-at, 0) * 100%);
+  inset-inline-start: clamp(
+    var(--space-8),
+    calc(var(--seek-at, 0) * 100%),
+    calc(100% - var(--space-8))
+  );
   padding: var(--space-1) var(--space-2);
   border-radius: var(--scrubber-bubble-radius);
   background: var(--color-surface-inverse);
@@ -654,12 +703,14 @@
   translate: -50% 0;
 }
 
+/* In use the line doubles, downward from the bar's edge. A scale, so nothing is laid out again. */
 .dock-progress {
-  transition: height var(--duration-hover) var(--ease-hover);
+  transform-origin: top;
+  transition: transform var(--duration-hover) var(--ease-hover);
 }
 
 .player-dock:has(.dock-seek:is(:focus-visible, :active)) .dock-progress {
-  height: calc(var(--mini-player-progress-height) * 2);
+  transform: scaleY(2);
 }
 
 .dock-volume {
@@ -683,14 +734,14 @@
   background: linear-gradient(
     to right,
     var(--color-accent) calc(var(--level, 1) * 100%),
-    var(--color-track) 0
+    var(--color-border-control) 0
   );
 }
 
 .dock-volume-level::-moz-range-track {
   height: var(--scrubber-track);
   border-radius: var(--radius-round);
-  background: var(--color-track);
+  background: var(--color-border-control);
 }
 
 .dock-volume-level::-moz-range-progress {
@@ -741,19 +792,56 @@
   color: var(--color-on-surface-disabled);
 }
 
+/* A control that does nothing does not look pressable, and does not answer a press. */
+:is(.dock-btn, .transport-btn)[aria-disabled="true"] {
+  cursor: default;
+}
+
+:is(.dock-btn, .transport-btn)[aria-disabled="true"]:active {
+  transform: none;
+}
+
+/* While the audio is on its way a spinner takes the glyph's place, at the glyph's size, and the
+   two cross-fade. */
 .dock-btn .spinner,
 .transport-btn .spinner {
   position: absolute;
   display: none;
   color: var(--color-on-surface);
+  opacity: 0;
+  transition:
+    opacity var(--duration-hover) var(--ease-out),
+    display var(--duration-hover) allow-discrete;
+}
+
+.dock-btn[data-primary] .spinner {
+  width: var(--size-icon-lg);
+  height: var(--size-icon-lg);
+}
+
+.transport-btn[data-primary] .spinner {
+  width: var(--player-skip-glyph);
+  height: var(--player-skip-glyph);
 }
 
 .dock-btn[data-loading="true"] .spinner,
 .transport-btn[data-loading="true"] .spinner {
   display: block;
+  opacity: 1;
+}
+
+@starting-style {
+  .dock-btn[data-loading="true"] .spinner,
+  .transport-btn[data-loading="true"] .spinner {
+    opacity: 0;
+  }
 }
 
 @media (hover: hover) and (pointer: fine) {
+  .dock-btn:not([aria-disabled="true"]):hover {
+    background: color-mix(in oklch, var(--color-on-surface) 8%, transparent);
+  }
+
   .dock-seek:hover::-webkit-slider-thumb {
     opacity: 1;
   }
@@ -763,7 +851,7 @@
   }
 
   .player-dock:has(.dock-seek:hover) .dock-progress {
-    height: calc(var(--mini-player-progress-height) * 2);
+    transform: scaleY(2);
   }
 }
 
@@ -879,9 +967,24 @@
     display: block;
   }
 
-  /* Here the line is the timeline, so the unplayed part shows too, and its chapter gaps. */
+  /* Here the line is the timeline, so the unplayed part shows too, and its chapter gaps. The strong
+     track, so it reads on the bar's raised colour in the dark theme as well. */
   .dock-progress {
-    background: var(--color-track);
+    container-type: inline-size;
+    background: var(--color-border-control);
+  }
+
+  /* No grey is 3:1 from both the bar and the accent, so a notch in the bar's own colour marks where
+     the played part ends: three times as wide as the line is thick, so it never reads as one of the
+     chapter gaps, which are as wide as the line. It moves with the progress, by transform. */
+  .dock-progress::after {
+    content: "";
+    position: absolute;
+    inset-block: 0;
+    inset-inline-start: 0;
+    width: calc(var(--mini-player-progress-height) * 3);
+    background: var(--mini-player-bg);
+    translate: calc(var(--player-progress, 0) * 100cqi) 0;
   }
 }
 
@@ -947,7 +1050,7 @@
   height: var(--scrubber-track);
   margin-block-start: calc(var(--scrubber-track) / -2);
   border-radius: var(--radius-xs);
-  background: var(--color-track);
+  background: var(--color-border-control);
   overflow: hidden;
   transition: transform var(--duration-press-out) var(--ease-out);
 }
@@ -987,16 +1090,27 @@
   border-radius: var(--radius-round);
   background: var(--color-accent);
   box-shadow: 0 0 0 var(--scrubber-thumb-ring) var(--color-surface);
+  /* Let go, it settles quickly and without overshoot. */
+  transition: scale var(--duration-press-out) var(--ease-out);
+}
+
+/* Taken hold of, it pops up with a little overshoot. */
+.scrubber[data-dragging] .scrubber-thumb::before {
+  scale: var(--scrubber-thumb-active-scale);
   transition: scale var(--duration-spring-pop) var(--ease-spring-pop);
 }
 
-.scrubber[data-dragging] .scrubber-thumb::before {
-  scale: var(--scrubber-thumb-active-scale);
+/* The keyboard ring is drawn on the thumb, past a gap of the surface's colour: a ring on the strip
+   would sit outside it, over the clock below, and the thumb would poke through it at either end. */
+.scrubber:focus-visible {
+  outline: none;
+  box-shadow: none;
 }
 
-/* The thumb ring is a box-shadow, so the focus ring sits on the whole slider instead. */
-.scrubber:focus-visible {
-  border-radius: var(--control-radius-sm);
+.scrubber:focus-visible .scrubber-thumb::before {
+  box-shadow:
+    0 0 0 var(--scrubber-thumb-ring) var(--color-surface),
+    0 0 0 calc(var(--scrubber-thumb-ring) + var(--stroke-ring)) var(--color-focus-ring);
 }
 
 .scrubber-bubble {
@@ -1049,10 +1163,6 @@
   grid-column: 3;
 }
 
-.transport > .speed .speed-btn {
-  background: var(--color-surface-sunken);
-}
-
 .transport-btn {
   --transport-glyph: var(--size-icon-lg);
   position: relative;
@@ -1080,10 +1190,16 @@
   color: var(--color-on-surface-disabled);
 }
 
-/* Previous and next are the smaller targets of the five. */
+/* Previous and next are the smaller targets of the five, and as quiet as the skips: with only play
+   in full ink, the row reads as one control and its helpers, not dark, light, dark, light, dark. */
 .transport-btn:not([data-primary], .transport-skip) {
   width: var(--size-touch-comfortable);
   height: var(--size-touch-comfortable);
+  color: var(--color-on-surface-muted);
+}
+
+.transport-btn:not([data-primary], .transport-skip)[aria-disabled="true"] {
+  color: var(--color-on-surface-disabled);
 }
 
 /* A skip control: a circular arrow with its own numeral set in the arrow's open center. */
@@ -1124,73 +1240,120 @@
   place-items: center;
 }
 
+/* A quiet pill, so it reads as a control and not as a caption. It is as wide as its longest label
+   ("0.55x") in tabular figures, so the skips either side stay put as the speed changes. A press
+   shows on the fill; the words keep their size. */
 .speed-btn {
   display: grid;
   place-items: center;
-  min-width: var(--size-touch-comfortable);
+  min-width: calc(5ch + var(--space-3) * 2);
   min-height: var(--size-touch);
   padding-inline: var(--space-3);
   border-radius: var(--radius-round);
+  background: var(--color-surface-sunken);
   color: var(--color-on-surface-muted);
   font-size: var(--font-size-label);
   font-weight: var(--font-weight-semibold);
+  transition:
+    background-color var(--duration-press-in) var(--ease-out),
+    color var(--duration-hover) var(--ease-hover);
 }
 
 .speed-btn[aria-expanded="true"] {
   color: var(--color-on-surface);
 }
 
-/* A native popover: in the top layer, centred on the button by script, above it when there is room
-   and below it when not, and kept inside the screen. */
+@media (hover: hover) and (pointer: fine) {
+  .speed-btn:hover {
+    background: color-mix(in oklch, var(--color-on-surface) 8%, var(--color-surface-sunken));
+    color: var(--color-on-surface);
+  }
+}
+
+.speed-btn:active {
+  background: color-mix(in oklch, var(--color-on-surface) 14%, var(--color-surface-sunken));
+}
+
+/*
+ * A modal dialog, so a press outside it lands on its backdrop, which closes it and reaches nothing
+ * underneath. It sits in the top layer, centred on the button by script: below it with a finger and
+ * above it with a mouse, on the other side when that one has no room, and inside the window. It
+ * grows out of the button and shrinks back into it, quicker out than in.
+ */
 .speed-panel {
   --panel-top: 0px;
   --panel-center: 50vw;
   --panel-width: 16rem;
+  --panel-left: clamp(
+    var(--space-3),
+    var(--panel-center) -
+    var(--panel-width) /
+    2,
+    100vw -
+    var(--panel-width) -
+    var(--space-3)
+  );
+  --panel-scale: var(--scale-enter);
+  --color-focus-gap: var(--color-surface-overlay);
   position: fixed;
-  inset: var(--panel-top) auto auto
-    clamp(
-      var(--space-3),
-      var(--panel-center) -
-      var(--panel-width) /
-      2,
-      100vw -
-      var(--panel-width) -
-      var(--space-3)
-    );
+  inset: var(--panel-top) auto auto var(--panel-left);
   width: var(--panel-width);
+  max-width: none;
+  max-height: none;
   margin: 0;
-  padding: var(--space-3) var(--space-4) var(--space-2);
+  padding: 0;
+  overflow: visible;
   border: 0;
   border-radius: var(--radius-md);
   background: var(--color-surface-overlay);
   color: var(--color-on-surface);
   box-shadow: var(--shadow-popover);
   opacity: 0;
-  transform: translateY(var(--space-1));
+  pointer-events: none;
+  transform: scale(var(--panel-scale));
+  /* The button's centre, on the edge of the panel that faces it. */
+  transform-origin: calc(var(--panel-center) - var(--panel-left)) 100%;
   transition:
-    opacity var(--duration-state) var(--ease-out),
-    transform var(--duration-state) var(--ease-out),
-    overlay var(--duration-state) allow-discrete,
-    display var(--duration-state) allow-discrete;
+    opacity var(--duration-exit) var(--ease-out),
+    transform var(--duration-exit) var(--ease-out),
+    overlay var(--duration-exit) allow-discrete,
+    display var(--duration-exit) allow-discrete;
 }
 
-.speed-panel:popover-open {
+.speed-panel[data-side="below"] {
+  transform-origin: calc(var(--panel-center) - var(--panel-left)) 0;
+}
+
+.speed-panel[open] {
   opacity: 1;
+  pointer-events: auto;
   transform: none;
+  transition-duration: var(--duration-state);
 }
 
 @starting-style {
-  .speed-panel:popover-open {
+  .speed-panel[open] {
     opacity: 0;
-    transform: translateY(var(--space-1));
+    transform: scale(var(--panel-scale));
   }
 }
 
-.speed-value {
-  display: block;
-  font-size: var(--font-size-label-lg);
-  font-weight: var(--font-weight-semibold);
-  text-align: center;
+/* No dim: the panel is small and sits by its button, and the player stays in view around it. */
+.speed-panel::backdrop {
+  background: transparent;
+}
+
+/* On its way out it is no longer modal, so a press goes straight through to what is under it. */
+.speed-panel:not([open])::backdrop {
+  pointer-events: none;
+}
+
+/* The panel's padding is here, so a press anywhere inside it lands on a child of the dialog and only
+   the backdrop is the dialog itself. */
+.speed-panel-body {
+  display: grid;
+  /* The chosen speed's fill keeps the same distance from the bottom as from the sides. */
+  padding: var(--space-2) var(--space-4) var(--space-4);
 }
 
 /*
@@ -1216,7 +1379,7 @@
   background: linear-gradient(
     to right,
     var(--range-fill-color) var(--range-fill),
-    var(--color-track-strong) var(--range-fill)
+    var(--color-border-control) var(--range-fill)
   );
 }
 
@@ -1234,7 +1397,7 @@
 .speed-slider::-moz-range-track {
   height: var(--scrubber-track);
   border-radius: var(--radius-round);
-  background: var(--color-track-strong);
+  background: var(--color-border-control);
 }
 
 .speed-slider::-moz-range-progress {
@@ -1263,18 +1426,38 @@
   transition-duration: var(--duration-press-in);
 }
 
-.speed-scale {
-  display: flex;
-  justify-content: space-between;
+/* The common speeds under the slider, whose fine steps are hard to land on by finger: quiet text
+   buttons, the chosen one in full ink on a soft fill. */
+.speed-presets {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+}
+
+.speed-preset {
+  min-height: var(--size-touch);
+  border-radius: var(--radius-sm);
   color: var(--color-on-surface-muted);
-  font-size: var(--font-size-caption);
+  font-size: var(--font-size-label);
+  font-weight: var(--font-weight-medium);
+  transition:
+    background-color var(--duration-press-in) var(--ease-out),
+    color var(--duration-hover) var(--ease-hover);
+}
+
+.speed-preset[aria-pressed="true"] {
+  background: color-mix(in oklch, var(--color-on-surface) 8%, transparent);
+  box-shadow: inset 0 0 0 var(--stroke-hairline) var(--color-border-control);
+  color: var(--color-on-surface);
 }
 
 @media (hover: hover) and (pointer: fine) {
-  .speed-btn:hover {
-    background: var(--color-surface-sunken);
+  .speed-preset:hover {
     color: var(--color-on-surface);
   }
+}
+
+.speed-preset:active {
+  background: color-mix(in oklch, var(--color-on-surface) 14%, transparent);
 }
 
 /* ------------------------------------------------------------------ the script */
@@ -1292,13 +1475,21 @@
 
 /* A reading column, as in Speechify: no boxes, no badges, no rules. Each turn is a small name over
    its text; while it plays, what has been said is in full ink, what is still to come is muted, and
-   the word being said sits on a soft fill. */
+   the word being said sits on a soft fill. A turn is shaped and inset like a chapter row, so its
+   text starts where the chapter list's does and its focus ring has room inside the column. */
 .script-turn {
   display: grid;
   gap: var(--space-1);
   width: 100%;
   padding-block: var(--space-3);
+  padding-inline: var(--space-3);
+  border-radius: var(--sheet-row-radius);
   text-align: start;
+}
+
+/* Drawn inside the turn: the column clips anything outside it on a wide screen. */
+.script-turn:focus-visible {
+  outline-offset: calc(var(--stroke-ring) * -1);
 }
 
 .script-speaker {
@@ -1322,11 +1513,15 @@
   color: var(--color-on-surface-muted);
 }
 
+/* The fill and the hair of ring around it move together, so the highlight never shows as an empty
+   outline as it passes from word to word. */
 .script-word {
   border-radius: var(--radius-xs);
   box-decoration-break: clone;
   -webkit-box-decoration-break: clone;
-  transition: background-color var(--duration-press-in) linear;
+  transition:
+    background-color var(--duration-press-in) var(--ease-hover),
+    box-shadow var(--duration-press-in) var(--ease-hover);
 }
 
 /* The fill grows a hair past the word on each side, so it reads as a highlight and not a box. */
@@ -1336,24 +1531,35 @@
     color-mix(in oklch, var(--color-on-surface) 14%, transparent);
 }
 
+/* The spoken word keeps its own fill under the pointer. */
 @media (hover: hover) and (pointer: fine) {
-  .script-turn:not([aria-disabled="true"]) .script-word:hover {
+  .script-turn:not([aria-disabled="true"]) .script-word:not([data-spoken]):hover {
     background: var(--color-surface-sunken);
   }
 }
 
-/* Chapters or the transcript, when an episode has both. */
-.player-views {
+/* Chapters or the transcript, when an episode has both. Past .segmented-group's own margin. */
+.segmented-group.player-views {
   margin-block-end: var(--space-3);
+}
+
+/* One column: the list is never shorter than the player, so choosing the shorter view cannot shrink
+   the page and move the switch from under the finger. */
+.player-list:has(.player-views) {
+  min-height: 100cqb;
 }
 
 .script-turn[aria-disabled="true"] {
   cursor: default;
 }
 
+.script-turn:not([aria-disabled="true"]):active {
+  background: color-mix(in oklch, var(--color-on-surface) 8%, transparent);
+}
+
 .script-back {
   position: sticky;
-  inset-block-end: var(--space-4);
+  inset-block-end: max(var(--space-4), calc(var(--safe-bottom) + var(--space-2)));
   display: block;
   margin-block-start: var(--space-3);
   margin-inline: auto;
@@ -1364,16 +1570,51 @@
   color: var(--color-on-surface-inverse);
   font-size: var(--font-size-label);
   font-weight: var(--font-weight-semibold);
+  transition: background-color var(--duration-press-in) var(--ease-out);
+}
+
+@media (hover: hover) and (pointer: fine) {
+  .script-back:hover {
+    background: color-mix(
+      in oklch,
+      var(--color-on-surface-inverse) 10%,
+      var(--color-surface-inverse)
+    );
+  }
+}
+
+.script-back:active {
+  background: color-mix(
+    in oklch,
+    var(--color-on-surface-inverse) 16%,
+    var(--color-surface-inverse)
+  );
 }
 
 @media (min-width: 64rem) {
-  /* A column of its own that scrolls beside the cover, so the voice can be followed from the top. */
-  .player-script {
+  /* A column of its own that scrolls beside the cover, so the voice can be followed from the top.
+     The whole column ends above the bar, switch included, so the transcript's last turn can always
+     be scrolled into view, and at either end it hands the scroll on to the page. */
+  .player-list:has(.player-script) {
+    display: flex;
+    flex-direction: column;
+    align-self: start;
     position: sticky;
     inset-block-start: var(--space-2);
-    max-height: calc(100cqb - var(--space-8));
+    max-height: calc(100cqb - var(--player-dock-height) - var(--space-8));
+  }
+
+  .player-list:has(.player-views) {
+    min-height: 0;
+  }
+
+  .player-script {
+    position: static;
+    flex: 1 1 auto;
+    min-height: 0;
+    max-height: none;
     overflow-y: auto;
-    overscroll-behavior: contain;
+    overscroll-behavior-y: auto;
     scrollbar-width: thin;
   }
 }
@@ -1396,53 +1637,122 @@
   border: 0;
 }
 
+/* The same control as the Settings page's segmented choice (settings.css), which this stylesheet
+   cannot import: the same track, thumb, type, targets and timing. */
 .segmented {
+  --seg-n: 1;
+  --seg-i: 0;
+  position: relative;
   display: grid;
   grid-auto-flow: column;
-  grid-auto-columns: 1fr;
+  grid-auto-columns: minmax(0, 1fr);
   padding: var(--segmented-padding);
   border-radius: var(--segmented-radius);
   background: var(--color-surface-sunken);
-  --segment-selected-bg: var(--segmented-selected-bg);
-  --segment-selected-fg: var(--color-on-surface);
 }
 
 .segmented label {
   position: relative;
   display: grid;
   place-items: center;
+  min-width: 0;
+  /* With the track's padding this makes the control 44px tall, and taller if the text grows. */
   min-height: calc(var(--segmented-height) - var(--segmented-padding) * 2);
   border-radius: var(--segmented-segment-radius);
   color: var(--color-on-surface-muted);
-  font-size: var(--font-size-meta);
-  font-weight: var(--font-weight-semibold);
+  font-size: var(--font-size-label);
+  font-weight: var(--font-weight-medium);
+  line-height: var(--font-leading-label);
+  white-space: nowrap;
   -webkit-tap-highlight-color: transparent;
   touch-action: manipulation;
-  transition:
-    background-color var(--duration-hover) var(--ease-hover),
-    color var(--duration-hover) var(--ease-hover),
-    transform var(--duration-press-out) var(--ease-out);
+  transition: color var(--duration-hover) var(--ease-hover);
 }
 
+/* The radio is the target. It covers its segment and the track's padding above and below, which
+   makes the target the track's full 44px. It is invisible, so the segment draws every state. */
 .segmented input {
   position: absolute;
-  inset: 0;
+  inset-block: calc(var(--segmented-padding) * -1);
+  inset-inline: 0;
+  width: 100%;
+  height: calc(100% + var(--segmented-padding) * 2);
   margin: 0;
+  appearance: none;
   opacity: 0;
   cursor: pointer;
 }
 
-/* The selected segment is filled and ringed, so selection never depends on color alone. */
 .segmented label:has(input:checked) {
-  background: var(--segment-selected-bg);
-  color: var(--segment-selected-fg);
-  box-shadow: 0 0 0 var(--stroke-hairline)
-    color-mix(in oklch, var(--color-on-surface) 14%, transparent);
+  color: var(--color-on-surface);
 }
 
+/*
+ * One raised thumb, ringed so the choice never depends on colour alone, slides under the labels. The
+ * segments are equal columns, so its width is one column and its place a multiple of that width:
+ * --seg-n is how many segments there are and --seg-i the checked one, both read from the markup. It
+ * slides only while the control is being used, so the view a page opens on never travels in.
+ */
+.segmented:has(label:nth-of-type(2)) {
+  --seg-n: 2;
+}
+
+.segmented:has(label:nth-of-type(3)) {
+  --seg-n: 3;
+}
+
+.segmented:has(label:nth-of-type(4)) {
+  --seg-n: 4;
+}
+
+.segmented:has(label:nth-of-type(2) input:checked) {
+  --seg-i: 1;
+}
+
+.segmented:has(label:nth-of-type(3) input:checked) {
+  --seg-i: 2;
+}
+
+.segmented:has(label:nth-of-type(4) input:checked) {
+  --seg-i: 3;
+}
+
+.segmented::before {
+  content: "";
+  position: absolute;
+  inset-block: var(--segmented-padding);
+  inset-inline-start: var(--segmented-padding);
+  width: calc((100% - var(--segmented-padding) * 2) / var(--seg-n));
+  border-radius: var(--segmented-segment-radius);
+  background: var(--segmented-selected-bg);
+  box-shadow: 0 0 0 var(--stroke-hairline) var(--color-border-control);
+  opacity: 0;
+  pointer-events: none;
+  transform: translateX(calc(var(--seg-i) * 100%));
+}
+
+.segmented:has(input:checked)::before {
+  opacity: 1;
+}
+
+.segmented:is(:focus-within, :has(label:active))::before {
+  transition: transform var(--duration-state) var(--ease-out);
+}
+
+/* The ring belongs on the segment: an invisible input cannot show one. A press shows on the thumb
+   and the colour, never on the size of the words (pressText.test.ts). */
 .segmented label:has(input:focus-visible) {
+  z-index: 1;
   outline: var(--stroke-ring) solid var(--color-focus-ring);
   outline-offset: var(--stroke-ring-gap);
+}
+
+/* A press is a state layer on the segment, as in Settings: a fill, never a scale on the words. */
+.segmented label:active {
+  background-image: linear-gradient(
+    color-mix(in oklch, var(--color-on-surface) 10%, transparent),
+    color-mix(in oklch, var(--color-on-surface) 10%, transparent)
+  );
 }
 
 @media (hover: hover) and (pointer: fine) {
@@ -1462,10 +1772,15 @@
   padding-inline: var(--space-3);
   border-radius: var(--control-radius-sm);
   color: var(--color-accent);
-  font-size: var(--font-size-meta);
+  /* The story's size, so the block under the title keeps to two type sizes. */
+  font-size: var(--font-size-label);
   font-weight: var(--font-weight-medium);
   text-decoration: none;
   transition: background-color var(--duration-hover) var(--ease-hover);
+}
+
+.player-source-link:active {
+  background: var(--color-accent-subtle);
 }
 
 .player-source-link span {
@@ -1502,6 +1817,8 @@
   padding-inline: var(--space-3);
   border-radius: var(--sheet-row-radius);
   text-align: start;
+  /* A press shows on the fill; the headline keeps its size. */
+  transition: background-color var(--duration-press-in) var(--ease-out);
 }
 
 .story-row-title {
@@ -1546,6 +1863,17 @@
   }
 }
 
+/* After the hovers, so a press shows under a mouse too. */
+.story-row:not([aria-current="true"]):active,
+.player-upnext-row:active {
+  background: color-mix(in oklch, var(--color-on-surface) 8%, transparent);
+}
+
+.story-row[aria-current="true"]:active {
+  background: color-mix(in oklch, var(--color-on-surface) 8%, var(--color-accent-subtle));
+}
+
+/* Rounder than the button inside it, which keeps the banner's padding from its edge. */
 .player-notice {
   display: grid;
   grid-template-columns: auto minmax(0, 1fr) auto;
@@ -1553,7 +1881,7 @@
   gap: var(--space-3);
   margin-block-end: var(--space-4);
   padding: var(--banner-padding);
-  border-radius: var(--banner-radius);
+  border-radius: var(--radius-lg);
   background: var(--tone-bg);
   font-size: var(--font-size-meta);
 }
@@ -1575,9 +1903,14 @@
 .player-notice-action {
   min-height: var(--size-touch);
   padding-inline: var(--space-3);
-  border-radius: var(--control-radius-sm);
+  border-radius: var(--radius-sm);
   background: color-mix(in oklch, var(--color-on-surface) 8%, transparent);
   font-weight: var(--font-weight-semibold);
+  transition: background-color var(--duration-press-in) var(--ease-out);
+}
+
+.player-notice-action:active {
+  background: color-mix(in oklch, var(--color-on-surface) 14%, transparent);
 }
 
 .player-upnext-row {
@@ -1592,6 +1925,7 @@
   border-radius: var(--sheet-row-radius);
   box-shadow: inset 0 0 0 var(--stroke-hairline) var(--color-border-hairline);
   text-align: start;
+  transition: background-color var(--duration-press-in) var(--ease-out);
 }
 
 .player-upnext-text {
@@ -1660,6 +1994,12 @@ html[data-player="open"] {
   overflow: hidden;
 }
 
+/* A modal dialog drops the gutter (foundations.css) so a docked panel reaches the window's edge. The
+   speed panel is small and by its button, and the open player must not slide sideways under it. */
+html[data-player="open"]:has(.speed-panel[open]) {
+  scrollbar-gutter: stable;
+}
+
 /* ------------------------------------------------------------------ preferences */
 
 @media (prefers-reduced-motion: reduce) {
@@ -1675,6 +2015,21 @@ html[data-player="open"] {
     transform: none;
   }
 
+  /* Its slide is gone with the movement tokens, so it fades in where it sits instead of appearing
+     at once, and fades out the same way. An animation and not a transition on opacity, which a
+     held pull on a phone also moves. */
+  .player[data-visible="true"] .player-dock {
+    animation: fade-in var(--duration-state) var(--ease-out);
+  }
+
+  .player[data-visible="false"] .player-dock {
+    opacity: 0;
+    translate: none;
+    transition:
+      opacity var(--duration-state) var(--ease-out),
+      visibility 0s linear var(--duration-state);
+  }
+
   .glyph-swap > .ui-icon {
     transition: opacity var(--duration-state) var(--ease-out);
   }
@@ -1683,6 +2038,19 @@ html[data-player="open"] {
   [data-playing="true"] .glyph-paused {
     transform: none;
     filter: none;
+  }
+
+  /* The speed panel fades without growing; the segmented thumb jumps to its segment. */
+  .speed-panel {
+    --panel-scale: 1;
+    /* The exit token drops to nothing here; a fade keeps its time, so the panel fades out too. The
+       open rule has its own duration and keeps it. */
+    transition-duration: var(--duration-hover);
+  }
+
+  .segmented::before,
+  .segmented:is(:focus-within, :has(label:active))::before {
+    transition: none;
   }
 }
 
@@ -1702,6 +2070,11 @@ html[data-player="open"] {
     background: GrayText;
   }
 
+  .scrubber:focus-visible .scrubber-thumb::before {
+    outline: var(--stroke-ring) solid Highlight;
+    outline-offset: var(--scrubber-thumb-ring);
+  }
+
   /* Shadows are dropped in forced colors, so every edge that was a shadow becomes a border. */
   .player-cover-frame,
   .player-page,
@@ -1717,9 +2090,29 @@ html[data-player="open"] {
     border: var(--stroke-rail) solid ButtonText;
   }
 
+  /* Fills are dropped too, so each text control keeps an edge of its own. */
+  .speed-btn,
+  .speed-preset,
+  .story-row,
+  .player-notice-action,
+  .script-back,
+  .segmented {
+    border: var(--stroke-hairline) solid ButtonText;
+  }
+
+  .speed-panel {
+    border: var(--stroke-hairline) solid CanvasText;
+  }
+
   .segmented label:has(input:checked),
-  .story-row[aria-current="true"] {
+  .story-row[aria-current="true"],
+  .speed-preset[aria-pressed="true"] {
     border: var(--stroke-rail) solid Highlight;
+  }
+
+  /* The chosen segment carries its own border here, so the thumb is not drawn. */
+  .segmented::before {
+    display: none;
   }
 }
 

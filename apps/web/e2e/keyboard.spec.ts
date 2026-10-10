@@ -48,9 +48,9 @@ test.describe("keyboard", () => {
       "button: More actions",
       "button: Play the briefing, 1 min",
       "button: Play from here, 0:03: Springlet 2.0 retargets springs mid-flight, so interrupted drawers keep their velocity",
-      "a: Read at example.com, opens in a new tab",
+      "a: Springlet Blog (opens in a new tab)",
       "button: Play from here, 0:03: A dither shader that stays sharp at any pixel density",
-      "a: Read at example.com, opens in a new tab",
+      "a: Fathom Notes (opens in a new tab)",
     ]);
   });
 

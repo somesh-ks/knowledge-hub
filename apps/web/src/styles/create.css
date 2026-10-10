@@ -104,12 +104,12 @@
     color var(--duration-hover) var(--ease-hover);
 }
 
-/* The chip is 36px tall; its target is 44px. */
+/* The chip is 36px tall; its target is 44px, measured from the outside of its border. */
 .create-chip::after {
   content: "";
   position: absolute;
   inset-inline: 0;
-  inset-block: calc((var(--size-touch) - var(--chip-height)) / -2);
+  inset-block: calc((var(--size-touch) - var(--chip-height)) / -2 - var(--stroke-hairline));
 }
 
 /* The checkbox is the chip's whole face and invisible: the chip draws every state. */
@@ -157,6 +157,16 @@
   }
 }
 
+/* Held down, the chip darkens at once: a layer over whatever it wears, the checked tint or the hover
+   fill, so the words never change size. It comes after the hover rule and outweighs the checked one,
+   whose background shorthand would otherwise clear it. */
+.create-chip:not(:has(input:disabled)):active {
+  background-image: linear-gradient(
+    color-mix(in oklch, var(--color-on-surface) 10%, transparent),
+    color-mix(in oklch, var(--color-on-surface) 10%, transparent)
+  );
+}
+
 /* ------------------------------------------------------------------ segmented choices */
 
 .create-view .create-choice {
@@ -165,16 +175,9 @@
 
 /* ------------------------------------------------------------------ title and submit */
 
-/* The label and its one word of help sit on one line. */
-.create-title-row {
-  display: flex;
-  align-items: baseline;
-  gap: var(--space-2);
-}
-
+/* "(optional)" is part of the label, at the label's size, only quieter. */
 .create-optional {
   color: var(--color-on-surface-muted);
-  font-size: var(--font-size-label);
   font-weight: var(--font-weight-regular);
 }
 
@@ -197,16 +200,43 @@
   }
 }
 
+/* While the request is out the button keeps its fill and shows a spinner at its start: it is
+   working, not unavailable. createPage.ts ignores a press then, so the press does not shrink it.
+   The spinner is out of the flow, so the words stay where they were when it appears. */
+.create-view .btn-primary {
+  position: relative;
+}
+
+.create-view .btn-primary > .spinner {
+  display: none;
+}
+
+.create-view .btn-primary[data-busy="true"] > .spinner {
+  display: block;
+  position: absolute;
+  inset-inline-start: var(--space-4);
+}
+
+.create-submit .btn-primary[data-busy="true"] {
+  background: var(--cta-bg);
+  color: var(--cta-fg);
+  cursor: progress;
+}
+
+.create-submit .btn-primary[aria-disabled="true"]:active {
+  transform: none;
+}
+
 /* ------------------------------------------------------------------ voices */
 
-/* One select for a readout; a discussion adds a second, side by side from 40rem. */
+/* One select for a readout, as wide as the panel; a discussion adds Leo's beside it from 40rem. */
 .create-voices {
   display: grid;
   gap: var(--space-3);
 }
 
 @media (min-width: 40rem) {
-  .create-voices {
+  .create-voices:has(> [data-voice="voice_b"]:not([hidden])) {
     grid-template-columns: repeat(2, minmax(0, 1fr));
   }
 }
@@ -230,7 +260,6 @@
 }
 
 .create-select > select {
-  appearance: none;
   inline-size: 100%;
   padding-inline-end: var(--space-12);
   text-overflow: ellipsis;

@@ -3,7 +3,8 @@
  *
  * The full icon registry for the React player, for code that loads on demand.
  * One icon set: Phosphor, regular weight, with the fill weight where a glyph must read as
- * solid (Phosphor Icons, MIT License). Every glyph is one filled path in currentColor.
+ * solid, the bold weight for the plus, and the More dots drawn to the bold plus's weight
+ * (Phosphor Icons, MIT License). Every glyph is one filled path in currentColor.
  * Decorative by default: the button or link that holds an icon carries the accessible name.
  */
 export const ICON_VIEW_BOX = "0 0 256 256";

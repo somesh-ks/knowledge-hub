@@ -1,0 +1,96 @@
+---
+import ManageChrome from "../../components/ManageChrome.astro";
+import PodcastProfile from "../../components/PodcastProfile.astro";
+import SettingsHead from "../../components/SettingsHead.astro";
+import BaseLayout from "../../layouts/BaseLayout.astro";
+import { loadScheduleView } from "../../lib/schedule";
+import "../../styles/settings.css";
+import "../../styles/manage.css";
+import "../../styles/podcast.css";
+
+/** One page per kind of episode: the scheduled Daily and Weekly, and Custom, which is what Create starts from. */
+export function getStaticPaths() {
+  return [
+    { params: { profile: "daily" } },
+    { params: { profile: "weekly" } },
+    { params: { profile: "custom" } },
+  ];
+}
+
+type Profile = "daily" | "weekly" | "custom";
+const profile = Astro.params.profile as Profile;
+const schedule = await loadScheduleView();
+
+const PAGES = {
+  daily: {
+    title: "Daily",
+    note: schedule.next,
+    values: {
+      hour: schedule.hour,
+      cadenceDays: schedule.cadenceDays,
+      format: schedule.format,
+      lengthMinutes: schedule.lengthMinutes,
+      voiceId: schedule.voiceId,
+      voiceIdB: schedule.voiceIdB,
+    },
+  },
+  weekly: {
+    title: "Weekly",
+    note: schedule.nextWeekly,
+    values: {
+      enabled: schedule.weekly.enabled,
+      hour: schedule.weekly.hour,
+      day: schedule.weekly.day,
+      format: schedule.weekly.format,
+      lengthMinutes: schedule.weekly.length_minutes,
+      voiceId: schedule.weekly.voice_id,
+      voiceIdB: schedule.weekly.voice_id_b,
+    },
+  },
+  custom: {
+    title: "Custom",
+    note: "What the Create panel starts from.",
+    values: {
+      format: schedule.custom.format,
+      lengthMinutes: schedule.custom.length_minutes,
+      voiceId: schedule.custom.voice_id,
+      voiceIdB: schedule.custom.voice_id_b,
+    },
+  },
+} as const;
+const { title, note, values } = PAGES[profile];
+---
+
+<BaseLayout title={title} view="settings" skipLabel={`Skip to the ${title} settings`}>
+  <main id="main" tabindex="-1">
+    {/* Static HTML with the saved values written in. scripts/podcastPage.ts records a change and
+         autosave.ts sends it a moment later; the voice list loads into the rows, which are as tall
+         as the real ones. */}
+    <div class="manage" data-manage="podcast">
+      <SettingsHead
+        title={title}
+        note={note}
+        next={profile !== "custom"}
+        off={profile === "weekly" ? "No weekly episode while it is off." : undefined}
+      />
+      <noscript>
+        <p class="manage-note">Changing these settings needs JavaScript, which is turned off in this browser.</p>
+      </noscript>
+
+      <fieldset class="manage-fields" data-fields>
+        <legend class="sr-only">{title}</legend>
+        <div class="daily-panel" data-panel>
+          <PodcastProfile id={profile} values={values} />
+        </div>
+      </fieldset>
+
+      <ManageChrome />
+    </div>
+  </main>
+</BaseLayout>
+
+<script>
+  import { installPodcastPage } from "../../scripts/podcastEntry";
+
+  installPodcastPage();
+</script>

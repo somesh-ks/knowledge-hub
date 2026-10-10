@@ -44,7 +44,7 @@ function PageFallback({ status }: { status: PageContentSnapshot["status"] }) {
       <div className="player-fallback" role="alert">
         <p>The controls did not load. Check your connection.</p>
         <button
-          className="player-fallback-action press"
+          className="player-fallback-action"
           type="button"
           onClick={() => void loadPageContent()}
         >

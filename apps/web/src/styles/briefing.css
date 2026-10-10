@@ -7,9 +7,15 @@
 
 /* ------------------------------------------------------------------ sections */
 
-/* The tabs' links land their heading clear of the sticky strip, not under it. */
+/* While the section tabs stick, focus and anchors land below them as well as below the app bar. */
+html:has(.briefing > .tabs) {
+  scroll-padding-block-start: calc(var(--sticky-top) + var(--tabs-height) + var(--space-4));
+}
+
+/* A tab's jump takes back the heading's padding above its words, less a little: the section's rule
+   tucks under the strip, so the strip's own line is the only one, and the words sit 24px below it. */
 .chapter h2 {
-  scroll-margin-block-start: var(--tabs-height);
+  scroll-margin-block-start: calc(var(--space-2) - var(--space-12));
 }
 
 /* A chapter heading is one step up from the row grammar's, and has more air above it, so each
@@ -26,10 +32,43 @@
   inset-inline: 0;
 }
 
-/* From 80rem the contents list beside the column does the tabs' job. */
+/* Stuck under the app bar, the strip draws the one line under the top chrome: while it sticks the
+   bar's own line goes (briefingPage.ts sets data-stuck), so one line shows, not two. The strip sits
+   under the bar, a hairline up, so where the end of the briefing pushes it up it slides beneath the
+   bar instead of over the wordmark. From 64rem there is no app bar. */
+@media (width < 64rem) {
+  .briefing > .tabs {
+    inset-block-start: calc(var(--sticky-top) - var(--stroke-hairline));
+    z-index: calc(var(--z-header) - 1);
+  }
+
+  html:has(.briefing > .tabs[data-stuck]) .app-bar::after {
+    display: none;
+  }
+}
+
+/* Between a phone and the side column the window is wider than the column, so the strip's surface
+   and line reach on to the window's edges: otherwise the bar's line shows beside the strip, a step
+   above the strip's own. */
+@media (40rem <= width < 64rem) {
+  .briefing > .tabs {
+    box-shadow: 0 0 0 100vmax var(--color-surface);
+    clip-path: inset(0 -100vmax);
+    border-block-end: var(--stroke-hairline) solid transparent;
+    border-image: linear-gradient(var(--color-border-hairline) 0 0) 0 0 1 0 / 0 0
+      var(--stroke-hairline) 0 / 0 100vmax;
+  }
+}
+
+/* From 80rem the contents list beside the column does the tabs' job, and nothing sticks but the
+   top chrome. */
 @media (min-width: 80rem) {
   .briefing > .tabs {
     display: none;
+  }
+
+  html:has(.briefing > .tabs) {
+    scroll-padding-block-start: calc(var(--sticky-top) + var(--space-4));
   }
 
   .chapter h2 {
@@ -101,6 +140,9 @@
 
 .story-actions > .chip {
   flex: none;
+  /* Holds the common labels ("0:24", "Playing", "1 min left"), so the source link beside it stays put. */
+  min-inline-size: 6.5rem;
+  justify-content: center;
 }
 
 /* Audio needs a connection, so while offline the story chips step out of the way. The briefing's

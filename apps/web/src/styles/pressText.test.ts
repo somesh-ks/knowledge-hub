@@ -10,8 +10,31 @@ import { describe, expect, it } from "vitest";
  */
 const SRC = join(dirname(fileURLToPath(import.meta.url)), "..");
 
-/** The classes of controls that carry a label on a track. */
-const LABEL_CONTROLS = ["settings-segment", "segmented", "create-chip", "podcast-tab"];
+/**
+ * The classes of controls whose face is words: a label on a track, a navigation item, the wordmark,
+ * a text action, a card with a title. A press shows on their fill, their colour or an icon.
+ */
+const LABEL_CONTROLS = [
+  "settings-segment",
+  "segmented",
+  "create-chip",
+  "chip",
+  "app-nav-item",
+  "app-nav-create",
+  "wordmark",
+  "toast-action",
+  "card-link",
+  "create-fab",
+  "source-link",
+  "hero-menu-item",
+  "story-row",
+  "player-upnext-row",
+  "player-notice-action",
+  "player-fallback-action",
+  "script-back",
+  "speed-btn",
+  "speed-preset",
+];
 
 function filesUnder(dir: string, extensions: string[]): string[] {
   return readdirSync(dir, { withFileTypes: true }).flatMap((entry) => {
@@ -42,11 +65,16 @@ describe("a press never scales words", () => {
     const offenders: string[] = [];
     for (const file of filesUnder(SRC, [".astro", ".tsx"])) {
       const markup = readFileSync(file, "utf8");
-      for (const match of markup.matchAll(/class(?:Name)?="([^"]*)"/g)) {
-        const classes = (match[1] ?? "").split(/\s+/);
+      // A class attribute, or the string literals inside a class:list={[...]} array.
+      const lists = [...markup.matchAll(/class:list=\{\[([^\]]*)\]\}/g)].flatMap((match) =>
+        [...(match[1] ?? "").matchAll(/(["'`])((?:(?!\1).)*)\1/g)].map((literal) => literal[2]),
+      );
+      const attributes = [...markup.matchAll(/class(?:Name)?="([^"]*)"/g)].map((match) => match[1]);
+      for (const value of [...attributes, ...lists]) {
+        const classes = (value ?? "").split(/\s+/);
         const label = classes.some((name) => LABEL_CONTROLS.includes(name));
         const press = classes.some((name) => name === "press" || name === "press-subtle");
-        if (label && press) offenders.push(`${file}: ${match[1]}`);
+        if (label && press) offenders.push(`${file}: ${value}`);
       }
     }
     expect(offenders).toEqual([]);

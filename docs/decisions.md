@@ -58,8 +58,12 @@ D1 to D9 date from plan v2 (2026-10-05). D10 to D25 date from 2026-10-06. Reason
 | D46 | The writer's provider and model are chosen in Settings | active |
 | D47 | A move between pages is answered from a saved copy and swapped at once | active |
 | D48 | One shader: a light in the cover's colours behind the header, on a GPU only | active |
-| D49 | One Podcast settings page: Daily, Weekly and Custom profiles, a shared writer vendor and model, topics and sources clubbed | active |
+| D49 | One Podcast settings page: Daily, Weekly and Custom profiles, a shared writer vendor and model, topics and sources clubbed | page layout superseded by D51 |
 | D50 | The open player: a speed slider, Chapters or a Speechify-style transcript, word marks stored beside each segment | active |
+| D51 | Settings is two levels and saves itself; every select opens one drawn list | active |
+| D52 | On a phone the Create button floats only on Today and the Library, extended until you scroll | active |
+| D53 | First-load JavaScript budget 110 KB, kept as low as the code allows | active |
+| D54 | Form fields carry a 3:1 outline; in the player only Play is in full ink | active |
 
 ---
 
@@ -484,4 +488,41 @@ D1 to D9 date from plan v2 (2026-10-05). D10 to D25 date from 2026-10-06. Reason
 - Why: the owner asked for each of these, and for a mobile layout that is clean and optically balanced.
 - Cost: a newly narrated segment costs 2 advanced Blob operations instead of 1 (about 48 newly narrated briefings a month on the Hobby quota); the owner accepted it. A screen-reader user on a phone has no visible close control, only the focus-revealed button.
 - Rejected: fetching marks from the Blob host in the browser (needs `connect-src` loosened); returning marks from the narration lookup (a store read per segment on every lookup); the speed beside play on a phone (pulls the row off its axis).
+
+## D51: Settings is two levels and saves itself; every select opens one drawn list
+
+- Date: 2026-10-10
+- Decision: The Settings index lists one row per page, each saying what it holds now: Daily, Weekly, Custom, Topics and Model under Podcast; sounds, the theme and About stay on the index. Each page has one job: `/settings/daily`, `/settings/weekly` and `/settings/custom` hold one profile each (Weekly is one switch while it is off); `/settings/model` the writer; `/settings/topics` lists the topics, each leading to its own page (`/settings/topics/<id>`, and `/settings/topics/other` for sources with no topic) with its switch, its weight and its sources. A page's title carries the way back: "Settings > Daily", the parent muted at the title's own size, so there is no back button, no tab bar and no small line above a title. Changes save themselves (`scripts/autosave.ts`): a change waits until the controls have been still for 1.2 s, then every pending edit goes in one request (up to eight ops); a 429 waits as asked and then sends whatever is pending by then; a removal waits 5 s with Undo in the toast; hiding or leaving the page sends what is waiting. The status is the app's toast: Saving, Saved, or the error with Retry. Every select (Settings, Library, Topics, the Create panel, Add source) opens the model list's drawn list through `appearance: base-select`, set in one place (`primitives.css`); browsers without it keep the native list. The model field reads as a select: the hand cursor at rest, the caret once focused, and a press opens the whole list.
+- Why: the owner called the podcast settings complex with too many controls, asked for breadcrumbs instead of the back button, for autosave instead of Save, and for every dropdown to look like the Anthropic model list.
+- Cost: topics are one level deeper; a removal takes 5 s to send; there is no Discard (a change is undone by changing it back, a removal by Undo); each save is still a `config.yml` run and a commit, about a minute to show.
+- Rejected: saving on every change with no settle (a commit per step, and the server's 10 s cooldown); keeping Save for removals only (two ways of saving); a breadcrumb in small text above the title (the owner's type rule); the score filter and sort on Topics (sources are already split by topic and listed best first); a scripted select for every browser (weight on every page that has one, and `base-select` covers Chromium and Safari 27).
+- Supersedes: D49's page layout (one Podcast page with a profile switch and two tabs). Its data model (profiles, one shared writer, topics with weights and scored sources) stands.
+
+## D52: On a phone the Create button floats only on Today and the Library, extended until you scroll
+
+- Date: 2026-10-10
+- Decision: Below 64rem the floating Create button is rendered only on Today and the Library, the two lists where making an episode is the next thing to do (`BaseLayout.astro`, `data-fab` on the root). Today includes the latest briefing at its dated address (what Share sends), which the navigation marks as Today: it has the button, and pressing Today there goes to its top. Settings, briefings, episodes, Create itself, offline and not found have none, and keep no room for it; the side column carries Create Podcast on wide screens everywhere. Where it shows, it is extended (the plus and "Create") at the top of the page and while scrolling up, and folds to the plus while scrolling down (`scripts/fabScroll.ts`, loaded on the first scroll). Pressing the tab of the page you are on scrolls it to the top instead of loading it again. Back dismisses what is on top before it leaves the page: the Create panel, the Add source panel and the open player; section tabs replace the history entry instead of adding one.
+- Why: the owner asked for Android's rule for a floating action (on the screens whose primary action it is, not on Settings) and for patterns that make the phone layout feel native. An unlabelled plus says nothing about what it makes; the extended button says it at the top and gets out of the way while reading, as Gmail's Compose does.
+- Cost: a few hundred bytes of script after the first scroll; the button changes width while scrolling (reduced motion: no width animation).
+- Rejected: hiding the bottom bar on scroll (Material's navigation bar stays, and playback controls dock on it); a haptic on press (Android only, and the app already has interface sounds); pull to refresh (it would restart a briefing mid-listen, see shell.css).
+- Supersedes: the part of the Create placement (state.md, D31 era) that put the floating button on every page.
+
+## D53: First-load JavaScript budget 110 KB, kept as low as the code allows
+
+- Date: 2026-10-10
+- Decision: `FIRST_LOAD_BUDGET_BYTES` is 110 KB gzipped (was 104). The budget is a ceiling, not a target: a change that adds first-load script says what it costs, and anything a first visit does not need loads on demand, as the Podcast and Topics editors, the floating button's fold and the navigation boost already do.
+- Why: the owner allowed 110 KB and asked to keep it low. The branch measured 103.2 KB on /library with the design pass, 0.8 KB under the old ceiling, so every further change would have been a fight over a few hundred bytes.
+- Measured split (2026-10-10, /library): React's client 63.4 KB plus react 3.2 and react-dom 1.4; the player runtime 12.4 (store 2.7, reader sync 1.5, open-player controller 1.4, runtime 1.0, media session 0.7, reader math 0.7, surface view 0.6, switchable audio 0.6); Astro's router 4.2 with prefetch 1.1; the player island 3.8; the layout script 2.5; the sheets island 1.7; icons 1.5; the rest under 1.4 each. Own code is about 27 KB; React is the floor while it loads with every page.
+- What could still come off, largest first, in [first-load-js.md](first-load-js.md): React and the player and sheets islands only when there is something to show (about 76 KB off a first visit with nothing playing); the open-player machinery and media session on first play (about 4 KB); the service worker code after load (about 0.2 KB, done).
+- Chosen by the owner's delegation (2026-10-10): React keeps loading on idle. On-demand would move a download that never blocks first paint (LCP is CSS, the font and the HTML) to the first press of Play or Create, the app's main actions, which would then wait a network round trip on a cold visit; the service worker serves everything from cache on later visits either way. The open-player machinery stays eager too: about 4 KB against a facade over the gesture code the bar and the page share. Reopen if first visits on mobile data become the measure that matters.
+- Rejected: preact/compat (declined by the owner on 2026-10-10); dropping hover prefetch (1.1 KB) or the router (4.2 KB), which make moves between destinations immediate (D47).
+
+## D54: Form fields carry a 3:1 outline; in the player only Play is in full ink
+
+- Date: 2026-10-10
+- Decision: Text fields and form selects (Settings, the Add source panel, the Create panel, the Library search) draw their outline in `--field-border` (grey-600: 3.49:1 on the light page, 4.37:1 on the dark) instead of the 1.3:1 hairline, and every field takes the full ink on hover. Toolbar chips, the view switch and the Library sort keep their hairline: their own words say what they are. In the open player, Previous and Next take the muted ink the skips already had, so Play is the one control in full ink.
+- Why: the owner left the open decisions to the design pass. The fields have no fill, so their outline is the only thing that shows a field is there; WCAG 1.4.11 asks 3:1 for it, Material's outlined fields meet it, and the token already existed unused. The transport row read dark, light, dark, light, dark (ink mass 156, 100, play, 100, 156); with the helpers equal, the row reads as one control and its helpers.
+- Cost: fields look firmer than before; a muted Previous and Next read as secondary, which they are.
+- Rejected: a filled field with no outline (a second surface colour on a page that has none); full ink for all five transport controls (Play then stands out by size alone).
+- Refined 2026-10-10: in the dark theme a disabled Previous or Next was only 1.67:1 from the muted skips beside it and read as enabled, so the dark disabled ink is one step dimmer (grey-650): 2.37:1 from muted, as the light theme's pair is 2.29:1.
 

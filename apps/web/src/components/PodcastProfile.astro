@@ -4,7 +4,7 @@ import { CADENCES, hourLabel, WEEKDAYS } from "../lib/schedule";
 import Icon from "./Icon.astro";
 
 interface Props {
-  /** The profile: its fields are named and identified by it, so the three share one page. */
+  /** The profile: its fields are named and identified by it, as the engine's schedule file names them. */
   id: "daily" | "weekly" | "custom";
   /** The saved values. A field the profile has no row for is ignored. */
   values: {
@@ -17,11 +17,9 @@ interface Props {
     voiceId: string | null;
     voiceIdB: string | null;
   };
-  /** The "Next briefing" line, for the profiles that run on a schedule. */
-  next?: string;
 }
 
-const { id, values, next } = Astro.props;
+const { id, values } = Astro.props;
 const hours = Array.from({ length: 24 }, (_, value) => value);
 const discussion = values.format === "discussion";
 // A stored Headlines schedule has no radio to show; the first change picks one of the two.
@@ -31,8 +29,7 @@ const VOICES = [
 ] as const;
 ---
 
-<div class="podcast-profile" data-profile={id} hidden={id !== "daily"}>
-  {id === "custom" && <p class="manage-quiet">What the Create panel starts from.</p>}
+<div class="podcast-profile" data-profile={id}>
   <div class="rows">
     {
       id === "weekly" && (
@@ -175,14 +172,13 @@ const VOICES = [
               </select>
               <Icon name="chevronDown" />
             </span>
-            <button class="icon-btn press" type="button" data-preview hidden aria-label={`Play a sample of the ${voice.name} voice`}>
-              <Icon name="play" />
+            <button class="icon-btn press podcast-sample" type="button" data-preview hidden aria-pressed="false" aria-label={`Play a sample of the ${voice.name} voice`}>
+              <Icon name="play" class="sample-play" />
+              <Icon name="pause" class="sample-pause" />
             </button>
           </div>
         </div>
       ))
     }
   </div>
-
-  {next && <p class="manage-quiet" data-next>{next}</p>}
 </div>

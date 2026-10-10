@@ -6,8 +6,6 @@ import { staleAge, staleTitle, todayInStockholm } from "../lib/staleness";
  * home. Everything here is progressive: without script the page reads the same, minus the banner.
  */
 
-const OFFLINE_LABEL = "Audio needs a connection";
-
 function bannerStack(): HTMLElement | null {
   return document.getElementById("banners");
 }
@@ -28,30 +26,12 @@ function hide(kind: "offline" | "stale"): void {
   bannerStack()?.querySelector(`[data-banner="${kind}"]`)?.remove();
 }
 
-/** The hero button can say why audio is unavailable, but only while the player is idle. */
-function syncOfflineButton(isOffline: boolean): void {
-  const button = document.querySelector<HTMLElement>(".cta[data-play-digest]");
-  if (!button) return;
-  const idle = document.documentElement.dataset.playerState === "idle";
-  const label = button.querySelector(".cta-label");
-  if (!label) return;
-  if (isOffline && idle) {
-    button.dataset.onlineLabel = label.textContent ?? "";
-    button.setAttribute("aria-disabled", "true");
-    label.textContent = OFFLINE_LABEL;
-  } else if (!isOffline && button.dataset.onlineLabel !== undefined) {
-    button.removeAttribute("aria-disabled");
-    label.textContent = button.dataset.onlineLabel;
-    delete button.dataset.onlineLabel;
-  }
-}
-
+/** The play chips disable themselves offline (the player's readerSync); this only says why. */
 function syncConnection(): void {
   const isOffline = !navigator.onLine;
   document.documentElement.toggleAttribute("data-offline", isOffline);
   if (isOffline) show("offline");
   else hide("offline");
-  syncOfflineButton(isOffline);
 }
 
 function syncStale(): void {
@@ -64,10 +44,15 @@ function syncStale(): void {
 }
 
 export function installDeviceBanners(): void {
-  document.addEventListener("astro:page-load", () => {
+  // A banner goes in before a page shows where it can, so it does not push the page down after it
+  // has drawn: as soon as this runs on the first load, and on a navigation right after the swap,
+  // before the new page is shown.
+  const sync = (): void => {
     syncConnection();
     syncStale();
-  });
+  };
+  sync();
+  document.addEventListener("astro:after-swap", sync);
   window.addEventListener("online", syncConnection);
   window.addEventListener("offline", syncConnection);
 }

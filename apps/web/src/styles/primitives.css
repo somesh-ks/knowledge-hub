@@ -62,8 +62,16 @@
   opacity: 1;
 }
 
-/* A row runs the width of its column, so a ring drawn outside it is cut by the column's edge. */
+/* The ring takes the fill's shape, past the gutters and clear of the text: drawn on the column's own
+   box it would run through the first letters and the chevron. */
 .row-action:focus-visible {
+  outline: none;
+  box-shadow: none;
+}
+
+.row-action:focus-visible::after {
+  opacity: 1;
+  outline: var(--stroke-ring) solid var(--color-focus-ring);
   outline-offset: calc(var(--stroke-ring) * -1);
 }
 
@@ -136,13 +144,20 @@
   line-height: var(--font-leading-label);
   white-space: nowrap;
   text-decoration: none;
-  /* The ring sits inside the tab: the strip's edges would clip one drawn outside. */
-  outline-offset: calc((var(--stroke-ring) + var(--stroke-ring-gap)) * -1);
+  /* The ring sits inside the tab, where the strip's edges cannot clip it, and above the indicator
+     with a gap's width between them. */
+  --tab-ring-inset: calc(
+    var(--stroke-ring) +
+    var(--stroke-ring-gap) +
+    var(--tabs-indicator-height)
+  );
   transition: color var(--duration-hover) var(--ease-hover);
 }
 
+/* The radius grows by the inset, so the ring's own corners keep the button radius. */
 .tab:focus-visible {
-  border-radius: var(--button-radius);
+  outline-offset: calc(var(--tab-ring-inset) * -1);
+  border-radius: calc(var(--button-radius) + var(--tab-ring-inset));
   box-shadow: none;
 }
 
@@ -177,6 +192,22 @@
   }
 }
 
+/* A press shows on any pointer the way a hover does with a mouse: the label takes the full ink. */
+.tab:not([aria-current="true"]):active {
+  color: var(--color-on-surface);
+}
+
+.tab[aria-current="true"]:active {
+  color: var(--color-accent-pressed);
+}
+
+/* Reduced motion: the indicator fades in at its full width instead of growing. */
+@media (prefers-reduced-motion: reduce) {
+  .tab::after {
+    transform: none;
+  }
+}
+
 @media (forced-colors: active) {
   .tab::after {
     background: Highlight;
@@ -185,22 +216,31 @@
 
 /* ------------------------------------------------------------------ source link */
 
-/* The one link out of a story: the publisher's host and an opens-elsewhere glyph. */
+/*
+ * The one link out of a story or an episode highlight: the publisher's name (or its host) and an
+ * opens-elsewhere glyph. A text button: no container until it is hovered or pressed. The padding is
+ * taken back at the start, so the words sit where they would without it and the fill reaches past
+ * them; at the end it stays, so the fill never runs past the column.
+ */
 .source-link {
   display: inline-flex;
   align-items: center;
   gap: var(--space-1);
   min-width: 0;
+  max-width: 100%;
   min-height: var(--size-touch);
+  padding-inline: var(--space-2);
+  margin-inline-start: calc(var(--space-2) * -1);
   border-radius: var(--button-radius);
   color: var(--color-accent);
   font-size: var(--font-size-label);
   font-weight: var(--font-weight-medium);
   line-height: var(--font-leading-label);
   text-decoration: none;
+  transition: background-color var(--duration-hover) var(--ease-hover);
 }
 
-/* A long host shortens with an ellipsis; the glyph always stays. */
+/* A long name shortens with an ellipsis; the glyph always stays. */
 .source-link > span {
   overflow: hidden;
   text-overflow: ellipsis;
@@ -213,7 +253,170 @@
 }
 
 @media (hover: hover) and (pointer: fine) {
-  .source-link:hover > span {
-    text-decoration: underline;
+  .source-link:hover {
+    background: var(--color-accent-subtle);
+  }
+}
+
+/* A press is not a hover: the fill stays and the words take the pressed accent. */
+.source-link:active {
+  background: var(--color-accent-subtle);
+  color: var(--color-accent-pressed);
+}
+
+/* ------------------------------------------------------------------ the open list of a field */
+
+/*
+ * Every list that opens from a field looks and moves the same. The model combobox draws its own
+ * (.daily-listbox in podcast.css). A select draws this one where the browser lets a page style its
+ * list (appearance: base-select: Chromium 135 and Safari 27) and keeps the native list elsewhere.
+ * The look: the overlay surface, a hairline, the popover shadow, the same padding above and below,
+ * 44px rows in the body size, a check at the end of the chosen row, never taller than 22rem. Each
+ * select keeps its own drawn chevron, so the picker's own is hidden.
+ */
+:root {
+  --check-mask: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 256 256'%3E%3Cpath d='M229.66,77.66l-128,128a8,8,0,0,1-11.32,0l-56-56a8,8,0,0,1,11.32-11.32L96,188.69,218.34,66.34a8,8,0,0,1,11.32,11.32Z'/%3E%3C/svg%3E");
+  --pick-list-height: 22rem;
+}
+
+/* No browser arrow anywhere: each select draws its own chevron. This is the one place a select's
+   appearance is set, so no component rule can undo the list's below. */
+:is(.manage-select, .sort-field, .create-select) > select {
+  appearance: none;
+}
+
+@supports (appearance: base-select) {
+  :is(.manage-select, .sort-field, .create-select) > select,
+  :is(.manage-select, .sort-field, .create-select) > select::picker(select) {
+    appearance: base-select;
+  }
+
+  :is(.manage-select, .sort-field, .create-select) > select::picker-icon {
+    display: none;
+  }
+
+  /* Drawn, a select is a flex box with a little padding of its own: its text would ride at the top,
+     and a long choice would wrap onto a second line. It stays on one, and an ellipsis ends it. */
+  :is(.manage-select, .sort-field, .create-select) > select {
+    align-items: center;
+    padding-block: 0;
+    overflow: hidden;
+    white-space: nowrap;
+    text-overflow: ellipsis;
+  }
+
+  :is(.manage-select, .sort-field, .create-select) > select::picker(select) {
+    box-sizing: border-box;
+    /* Half the screen less a field: the side the list opens to always has that much room. */
+    max-block-size: min(var(--pick-list-height), 50dvh - var(--space-12));
+    /* Below the field whenever it fits, as the model list opens; the browser's default would pick
+       the roomier side and cover the controls above. */
+    position-try-order: normal;
+    margin-block: var(--space-1);
+    padding: var(--space-2);
+    border: var(--stroke-hairline) solid var(--color-border-hairline);
+    border-radius: var(--radius-md);
+    background: var(--color-surface-overlay);
+    box-shadow: var(--shadow-popover);
+    color: var(--color-on-surface);
+    scrollbar-width: thin;
+    overscroll-behavior: contain;
+    opacity: 0;
+    transition:
+      opacity var(--duration-exit) var(--ease-out),
+      overlay var(--duration-exit) allow-discrete,
+      display var(--duration-exit) allow-discrete;
+  }
+
+  /* The Library's controls draw their outline on the label, and the select inside reaches past it
+     above and below for a full-size target: the list lines up with the outline, not the select. */
+  .sort-field > select::picker(select) {
+    min-inline-size: calc(anchor-size(self-inline) + var(--stroke-hairline) * 2);
+    margin-block: calc(
+      var(--space-1) +
+      (var(--chip-height) - var(--size-touch)) /
+      2 -
+      var(--stroke-hairline)
+    );
+    margin-inline: calc(var(--stroke-hairline) * -1);
+  }
+
+  :is(.manage-select, .sort-field, .create-select) > select:open::picker(select) {
+    opacity: 1;
+    transition-duration: var(--duration-enter);
+  }
+
+  @starting-style {
+    :is(.manage-select, .sort-field, .create-select) > select:open::picker(select) {
+      opacity: 0;
+    }
+  }
+
+  :is(.manage-select, .sort-field, .create-select) > select option {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: var(--space-3);
+    min-block-size: var(--size-touch);
+    padding-block: var(--space-2);
+    padding-inline: var(--space-3);
+    border-radius: var(--button-radius);
+    font-size: var(--font-size-body);
+    font-weight: var(--font-weight-medium);
+    line-height: var(--font-leading-label);
+    cursor: pointer;
+  }
+
+  :is(.manage-select, .sort-field, .create-select) > select option + option {
+    margin-block-start: var(--space-1);
+  }
+
+  :is(.manage-select, .sort-field, .create-select) > select option:checked {
+    color: var(--color-accent);
+  }
+
+  /* The model list's check, not the font's: the same glyph at the same size in every list. */
+  :is(.manage-select, .sort-field, .create-select) > select option::checkmark {
+    content: "";
+    order: 1;
+    flex: none;
+    inline-size: var(--size-icon);
+    block-size: var(--size-icon);
+    background: var(--color-accent);
+    mask: var(--check-mask) center / contain no-repeat;
+  }
+
+  :is(.manage-select, .sort-field, .create-select) > select option:focus-visible {
+    background: var(--color-surface-sunken);
+    outline: var(--stroke-ring) solid var(--color-focus-ring);
+    outline-offset: calc(var(--stroke-ring) * -1);
+  }
+
+  @media (hover: hover) and (pointer: fine) {
+    :is(.manage-select, .sort-field, .create-select) > select option:hover {
+      background: var(--color-surface-sunken);
+    }
+  }
+
+  /* An open select is drawn like a focused field, as the model field is while its list is open: one
+     accent line on its edge. The Library's controls draw it on their label. */
+  :is(.manage-select, .create-select) > select:open {
+    border-color: var(--color-accent);
+    outline: var(--stroke-ring) solid var(--color-focus-ring);
+    outline-offset: calc(var(--stroke-hairline) * -1);
+    box-shadow: none;
+  }
+
+  .sort-field:has(> select:open) {
+    border-color: var(--color-accent);
+    outline: var(--stroke-ring) solid var(--color-focus-ring);
+    outline-offset: calc(var(--stroke-hairline) * -1);
+  }
+
+  @media (forced-colors: active) {
+    :is(.manage-select, .sort-field, .create-select) > select option::checkmark {
+      forced-color-adjust: none;
+      background: CanvasText;
+    }
   }
 }

@@ -7,8 +7,13 @@ const ROUTES = [
   "/library",
   "/create",
   "/settings",
-  "/settings/podcast/topics",
-  "/settings/podcast",
+  "/settings/daily",
+  "/settings/weekly",
+  "/settings/custom",
+  "/settings/model",
+  "/settings/topics",
+  "/settings/topics/audio_interfaces",
+  "/settings/topics/other",
 ];
 
 /**

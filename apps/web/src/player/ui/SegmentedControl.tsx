@@ -17,8 +17,9 @@ interface SegmentedControlProps<Value extends string> {
 }
 
 /**
- * Native radios inside labels: arrow keys, form state and the accessible group come free. The
- * selected segment is raised and ringed, so selection never depends on color alone.
+ * Native radios inside labels: arrow keys, form state and the accessible group come free. A raised,
+ * ringed thumb slides to the selected segment, so selection never depends on color alone. Up to four
+ * segments: the thumb's place is worked out in player.css.
  */
 export default function SegmentedControl<Value extends string>({
   legend,

@@ -18,7 +18,7 @@ export default function PlayerNotice({ onRetry }: PlayerNoticeProps) {
       <div className="player-notice" data-tone="danger" role="alert">
         <Icon name="alert" />
         <p>{state.error.message}</p>
-        <button className="player-notice-action press" type="button" onClick={onRetry}>
+        <button className="player-notice-action" type="button" onClick={onRetry}>
           {blocked ? "Play" : "Try again"}
         </button>
       </div>
@@ -30,7 +30,7 @@ export default function PlayerNotice({ onRetry }: PlayerNoticeProps) {
         <Icon name="info" />
         <p>Playback was interrupted. Press play when you are ready.</p>
         <button
-          className="player-notice-action press"
+          className="player-notice-action"
           type="button"
           onClick={() => getPlayerStore().play()}
         >

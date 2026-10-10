@@ -4,16 +4,29 @@ import { listenLength, storyCount } from "./digestView";
 import { type EpisodeEntry, FORMAT_LABELS } from "./episodes";
 import { type CardFacts, normalize, type SearchIndexEntry } from "./library";
 
-export function cardFacts(entry: DigestEntry): CardFacts {
+/**
+ * A briefing's facts, with the kind apart from the rest: the gallery says "Weekly" first, and the
+ * list leaves it out, because its meta line already says "Weekly briefing".
+ */
+export interface BriefingFacts extends CardFacts {
+  /** "Weekly" on a weekly briefing, empty on any other. */
+  kind: string;
+  /** The line after the kind: "14 stories, 8 min". */
+  rest: string;
+}
+
+export function cardFacts(entry: DigestEntry): BriefingFacts {
   const { digest } = entry;
   const length = listenLength(entry);
-  const parts = [storyCount(digest.items.length), length];
-  if (digest.kind === "weekly") parts.unshift("Weekly");
+  const kind = digest.kind === "weekly" ? "Weekly" : "";
+  const rest = [storyCount(digest.items.length), length].join(", ");
   const lines = [digest.date, entry.player.title];
   // One line per story, headline and publisher together, so a story counts once however it matches.
   for (const item of digest.items) lines.push(`${item.headline} ${item.source}`);
   return {
-    line: parts.join(", "),
+    line: kind ? `${kind}, ${rest}` : rest,
+    kind,
+    rest,
     minutes: Number.parseInt(length, 10) || digest.listen_minutes,
     search: normalize(lines.join("\n")),
   };

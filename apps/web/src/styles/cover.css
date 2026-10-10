@@ -1,7 +1,8 @@
 /*
- * Covers. The box carries the palette color, so there is no empty flash while the PNG decodes.
- * Weekly digests have their framing rule drawn into the image; at thumb size that hairline is too
- * fine to see, so the small covers get an extra inset rule.
+ * Covers. The box carries the palette color, so there is no empty flash while the image decodes.
+ * Weekly digests have their framing rule drawn into the image; at thumb size (3rem and under) that
+ * hairline is too fine to see, so the small covers get an extra inset rule. Larger covers show the
+ * drawn one alone.
  */
 
 .cover {
@@ -57,7 +58,7 @@
   }
 }
 
-@container (max-width: 6rem) {
+@container (max-width: 3rem) {
   .cover-frame {
     display: block;
   }
@@ -156,8 +157,8 @@
       background-color var(--duration-hover) var(--ease-hover);
   }
 
-  .card:has(.cover:hover, .cover-play:hover) .cover-play,
-  .cover:hover .cover-play,
+  /* The hover that brings the button in weighs no more than one class, so the press below wins. */
+  :where(.card:has(.cover:hover, .cover-play:hover), .cover:hover) .cover-play,
   .cover-play:focus-visible {
     scale: 1;
   }
@@ -169,18 +170,15 @@
   .cover-play:active {
     scale: var(--scale-press);
   }
-
-  /* The card's own hover dims the cover; under the button that only muddies it. */
-  .card-link:hover .cover {
-    opacity: 1;
-  }
 }
 
+/* No growing in: the button is at full size and fades with the scrim, and its fill still changes. */
 @media (prefers-reduced-motion: reduce) {
-  .cover-over,
   .cover-play {
-    transition: none;
     scale: 1;
+    transition:
+      opacity var(--duration-hover) var(--ease-hover),
+      background-color var(--duration-hover) var(--ease-hover);
   }
 }
 

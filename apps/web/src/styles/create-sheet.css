@@ -13,15 +13,18 @@
   display: none;
 }
 
+/* Its icon and label line up with the navigation items' below it: the padding gives back the
+   hairline the border takes. A press shows in the fill (buttons.css), never by scaling the label. */
 @media (min-width: 64rem) {
   .app-nav-create {
     display: flex;
     justify-content: flex-start;
     gap: var(--space-4);
-    padding-inline: var(--space-3);
+    padding-inline: calc(var(--space-3) - var(--stroke-hairline));
     border: var(--stroke-hairline) solid transparent;
     font-size: var(--font-size-label);
     outline-offset: var(--stroke-ring-gap);
+    transition: background-color var(--duration-hover) var(--ease-hover);
   }
 
   .app-nav-create .icon {
@@ -32,8 +35,12 @@
 
 /* ------------------------------------------------------------------ the floating button */
 
-.create-fab {
+/* On the root, so the toast (sheets.css) can keep clear of the button. */
+:root {
   --fab-size: 3.5rem;
+}
+
+.create-fab {
   --color-focus-gap: var(--color-surface);
   position: fixed;
   inset-inline-end: max(var(--space-4), var(--safe-right));
@@ -45,21 +52,36 @@
     var(--space-4)
   );
   z-index: var(--z-header);
-  display: grid;
-  place-items: center;
-  width: var(--fab-size);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  /* Folded it is a square of the button's size: the plus with equal padding round it. Extended, the
+     word adds its own width, and the button grows to the left from its fixed right edge. */
+  min-width: var(--fab-size);
   height: var(--fab-size);
+  padding-inline: calc((var(--fab-size) - var(--size-icon-lg)) / 2 - var(--stroke-hairline));
   border: var(--stroke-hairline) solid transparent;
   border-radius: var(--radius-lg);
   background: var(--cta-bg);
   box-shadow: var(--shadow-floating);
   color: var(--cta-fg);
   text-decoration: none;
+  /* The transform is the press's (.press) as well as the slide: in fast, out softer, like every
+     pressable. This list replaces the utility's, so the press timing is spelt out here. The height
+     glides when the run indicator or the player bar comes or goes under the button. */
   transition:
     opacity var(--duration-state) var(--ease-out),
-    transform var(--duration-state) var(--ease-out),
+    transform var(--duration-press-out) var(--ease-out),
     background-color var(--duration-hover) var(--ease-hover),
-    visibility 0s;
+    visibility 0s,
+    inset-block-end var(--duration-enter) var(--ease-out);
+}
+
+/* The ring's gap stays round the button; the button's own shadow sits under it. */
+.create-fab:focus-visible {
+  box-shadow:
+    0 0 0 var(--stroke-ring-gap) var(--color-focus-gap),
+    var(--shadow-floating);
 }
 
 @media (hover: hover) and (pointer: fine) {
@@ -70,6 +92,9 @@
 
 .create-fab:active {
   background: var(--cta-bg-pressed);
+  transition-duration:
+    var(--duration-state), var(--duration-press-in), var(--duration-hover), 0s,
+    var(--duration-enter);
 }
 
 /* Out of the way while the expanded player or a sheet owns the screen, and where it is already open. */
@@ -78,12 +103,56 @@ html:has(dialog[open]) .create-fab {
   visibility: hidden;
   opacity: 0;
   transform: translateY(var(--space-4));
-  transition-duration: var(--duration-exit), var(--duration-exit), var(--duration-hover), 0s;
-  transition-delay: 0s, 0s, 0s, var(--duration-exit);
+  transition-duration:
+    var(--duration-exit), var(--duration-exit), var(--duration-hover), 0s, var(--duration-enter);
+  transition-delay: 0s, 0s, 0s, var(--duration-exit), 0s;
 }
 
-html[data-view="create"] .create-fab {
-  display: none;
+/* An open dialog takes the scrollbar away and the window's edge moves out by its width
+   (foundations.css): the button keeps that room as it fades, so it does not jump aside. */
+html:has(dialog[open]) .create-fab {
+  inset-inline-end: calc(max(var(--space-4), var(--safe-right)) + var(--gutter, 0px));
+}
+
+/* With reduced motion it only fades, out and back in; it does not move. */
+@media (prefers-reduced-motion: reduce) {
+  html[data-player="open"] .create-fab,
+  html:has(dialog[open]) .create-fab {
+    transform: none;
+    transition-duration:
+      var(--duration-hover), 0s, var(--duration-hover), 0s, var(--duration-enter);
+    transition-delay: 0s, 0s, 0s, var(--duration-hover), 0s;
+  }
+}
+
+/* The word folds away while scrolling down to read, and comes back at the top and on the way up. */
+.create-fab-label {
+  max-width: 6rem;
+  margin-inline: var(--space-3) var(--space-1);
+  overflow: hidden;
+  font-size: var(--font-size-label);
+  font-weight: var(--font-weight-medium);
+  line-height: var(--font-leading-label);
+  white-space: nowrap;
+  transition:
+    max-width var(--duration-state) var(--ease-out),
+    margin-inline var(--duration-state) var(--ease-out),
+    opacity var(--duration-hover) var(--ease-out);
+}
+
+.create-fab[data-folded] .create-fab-label {
+  max-width: 0;
+  margin-inline: 0;
+  opacity: 0;
+}
+
+/* Folding is a change of size, so with reduced motion the button stays extended. */
+@media (prefers-reduced-motion: reduce) {
+  .create-fab[data-folded] .create-fab-label {
+    max-width: 6rem;
+    margin-inline: var(--space-3) var(--space-1);
+    opacity: 1;
+  }
 }
 
 @media (min-width: 64rem) {
@@ -185,6 +254,10 @@ dialog.create-sheet[open]::backdrop {
   padding-inline: var(--page-gutter-start) var(--page-gutter-end);
   overflow-y: auto;
   overscroll-behavior: contain;
+  /* A field that keyboard focus scrolls to stops clear of the sticky foot below (its button, its
+     padding and the safe area), ring included, instead of sliding under it. */
+  scroll-padding-block: var(--space-4)
+    calc(var(--button-height) + var(--space-12) + var(--safe-bottom));
   scrollbar-width: thin;
 }
 
@@ -198,6 +271,19 @@ dialog.create-sheet .create-submit {
   background: var(--sheet-bg);
   box-shadow: 0 0 0 100vmax var(--sheet-bg);
   clip-path: inset(0 -100vmax);
+}
+
+/* A hairline along the top of the foot, edge to edge like the one under the header, so the fields
+   that scroll under it end at a line instead of being cut off. The sticky foot is its containing
+   block, and the clip lets it run out over the side gutters. */
+dialog.create-sheet .create-submit::before {
+  content: "";
+  position: absolute;
+  inset-block-start: 0;
+  inset-inline: calc(var(--page-gutter-start) * -1) calc(var(--page-gutter-end) * -1);
+  height: var(--stroke-hairline);
+  background: var(--color-border-hairline);
+  pointer-events: none;
 }
 
 dialog.create-sheet .create-submit > .btn-primary {
@@ -283,11 +369,12 @@ dialog.create-sheet .create-submit > .btn-primary {
   line-height: var(--font-leading-label);
 }
 
+/* The icon stays with the first line when the message wraps. */
 .run-text {
   flex: 1 1 auto;
   min-width: 0;
   display: flex;
-  align-items: center;
+  align-items: start;
   gap: var(--space-2);
 }
 
@@ -332,12 +419,19 @@ dialog.create-sheet .create-submit > .btn-primary {
   min-height: var(--size-touch);
   color: var(--color-accent);
   text-decoration: none;
+  /* It shows its own press below, so no grey flash from the browser. */
+  -webkit-tap-highlight-color: transparent;
 }
 
 @media (hover: hover) and (pointer: fine) {
   .run-link:hover {
     text-decoration: underline;
   }
+}
+
+.run-link:active {
+  color: var(--color-accent-pressed);
+  text-decoration: underline;
 }
 
 .run-dismiss {
@@ -379,7 +473,17 @@ html[data-player="open"] .run-status {
   visibility: hidden;
 }
 
-/* From 64rem: at the foot of the side column, over the column's own surface. */
+/* Below 64rem the line runs to the window's right edge, which an open dialog moves out by the
+   scrollbar's width (foundations.css): it keeps that room, so its link and button hold still. */
+@media not all and (min-width: 64rem) {
+  html:has(dialog[open]) .run-card {
+    padding-inline-end: calc(max(var(--space-2), var(--safe-right)) + var(--gutter, 0px));
+  }
+}
+
+/* From 64rem: at the foot of the side column, over the column's own surface. The line starts where
+   the navigation's icons do and has the column's whole width; the link and the close button share
+   the row under it, and the bar takes that row's whole width when there is no close button. */
 @media (min-width: 64rem) {
   .run-status {
     inset-inline: 0 auto;
@@ -391,13 +495,13 @@ html[data-player="open"] .run-status {
     display: grid;
     grid-template-columns: minmax(0, 1fr) auto;
     grid-template-areas:
-      "text close"
-      "extra extra";
+      "text text"
+      "extra close";
     align-items: center;
     gap: 0 var(--space-2);
     height: auto;
     padding-block: var(--space-2) var(--space-4);
-    padding-inline: calc(var(--space-3) + var(--safe-left)) var(--space-2);
+    padding-inline: calc(var(--space-6) + var(--safe-left)) var(--space-2);
     box-shadow: none;
     border-inline-end: var(--stroke-hairline) solid var(--color-border-hairline);
   }
@@ -429,6 +533,10 @@ html[data-player="open"] .run-status {
     margin-block-start: var(--space-3);
     border-radius: var(--radius-round);
     height: var(--space-1);
+  }
+
+  .run-card:not(:has(.run-dismiss:not([hidden]))) .run-bar {
+    grid-column: 1 / -1;
   }
 }
 

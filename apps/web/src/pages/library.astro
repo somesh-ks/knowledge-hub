@@ -7,6 +7,9 @@ import BaseLayout from "../layouts/BaseLayout.astro";
 import { LIBRARY_FILTERS, LIBRARY_SORTS, resultSummary } from "../lib/library";
 import { libraryItems } from "../lib/libraryCard";
 import { getSite } from "../lib/site";
+// Inline, so a saved List view is on the page before its first frame, not after the page's script.
+// astro.config.mjs hashes this same file into the Content-Security-Policy.
+import libraryViewInit from "../scripts/libraryViewInit.js?raw";
 
 const { entries, episodes } = await getSite();
 const items = libraryItems(entries, episodes);
@@ -72,6 +75,8 @@ const items = libraryItems(entries, episodes);
               </div>
             </div>
           </form>
+          {/* After the view switch and before the first card: a saved List view is set here. */}
+          <script is:inline set:html={libraryViewInit.trim()} />
           <p class="sr-only" role="status" data-library-status>
             {resultSummary(items.length, items.length)}
           </p>
@@ -86,7 +91,7 @@ const items = libraryItems(entries, episodes);
           </ul>
           <div class="library-empty" data-library-empty hidden>
             <p>Nothing matches.</p>
-            <button class="btn press press-subtle" type="button" data-library-clear>
+            <button class="btn" type="button" data-library-clear>
               Clear search
             </button>
           </div>

@@ -78,11 +78,16 @@
 /* ------------------------------------------------------------------ nothing to list */
 
 /* No briefings yet, offline, not found: a heading, one sentence and two ways on, set on the column
-   like any other page. */
+   like any other page, and starting where every other page starts. */
 .empty {
   display: grid;
   gap: var(--space-2);
-  padding-block: var(--space-6) var(--space-8);
+  padding-block: var(--page-top) var(--space-8);
+}
+
+/* The Library's main already starts at the page top. */
+.library > .empty {
+  padding-block-start: 0;
 }
 
 .empty > p {
@@ -98,10 +103,6 @@
 }
 
 @media (min-width: 40rem) {
-  .empty {
-    padding-block-start: var(--space-8);
-  }
-
   .empty-actions {
     grid-template-columns: repeat(2, minmax(0, 14rem));
   }

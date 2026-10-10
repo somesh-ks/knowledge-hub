@@ -113,11 +113,14 @@ function skeleton(): HTMLElement {
   return shell;
 }
 
-function problem(status: number): HTMLElement {
+/** Why the address gave nothing, with the alert glyph every error in Settings has, so colour is not alone. */
+function problem(status: number, glyph: Node | null): HTMLElement {
   const shell = element("div", "source-card");
   shell.dataset.kind = "error";
-  const note = element("p", "manage-error", problemText(status));
+  const note = element("p", "manage-error");
   note.setAttribute("role", "alert");
+  if (glyph) note.append(glyph);
+  note.append(element("span", "", problemText(status)));
   shell.append(note);
   return shell;
 }
@@ -145,6 +148,10 @@ export function openSourceSheet(
   const field = sheet.querySelector("[data-sheet-url]") as HTMLInputElement;
   const topic = sheet.querySelector("[data-sheet-topic]") as HTMLSelectElement;
   const area = sheet.querySelector("[data-sheet-preview]") as HTMLElement;
+  const alertGlyph = (): Node | null =>
+    sheet
+      .querySelector<HTMLTemplateElement>("template[data-alert-glyph]")
+      ?.content.cloneNode(true) ?? null;
   const add = sheet.querySelector("[data-sheet-add]") as HTMLButtonElement;
   topic.value = topicId;
   let loaded: { url: string; preview: SourcePreview } | null = null;
@@ -172,7 +179,7 @@ export function openSourceSheet(
         loaded = { url, preview: outcome.preview };
         show("ready", card(outcome.preview));
         add.disabled = false;
-      } else show("error", problem(outcome.status));
+      } else show("error", problem(outcome.status, alertGlyph()));
     });
   };
 
@@ -203,9 +210,15 @@ export function openSourceSheet(
     sheet.close();
   });
   sheet.querySelector("[data-sheet-close]")?.addEventListener("click", () => sheet.close());
-  // A press on the scrim lands on the dialog itself; everything else is inside its panel.
+  // A press on the scrim lands on the dialog itself; everything else is inside its panel. Only a press
+  // that also began on the scrim closes it: a drag out of a field ends there too.
+  let fromScrim = false;
+  sheet.addEventListener("pointerdown", (event) => {
+    fromScrim = event.target === sheet;
+  });
   sheet.addEventListener("click", (event) => {
-    if (event.target === sheet) sheet.close();
+    if (event.target === sheet && fromScrim) sheet.close();
+    fromScrim = false;
   });
 
   // Browser Back closes the panel and stays on the page; the panel takes one history entry.

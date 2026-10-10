@@ -52,8 +52,18 @@ test.describe("Create as the primary action", () => {
     } else {
       await expect(page.locator(".app-nav-create")).toBeHidden();
       await expect(page.getByRole("link", { name: "Create Podcast" })).toBeVisible();
-      const box = await page.locator(".create-fab").boundingBox();
-      expect(Math.round(box?.width ?? 0)).toBe(56);
+      // Extended at the top of the page, the plus and the word; folded to a 56px square while
+      // scrolling down to read (D52).
+      const fab = page.locator(".create-fab");
+      await expect(fab).toContainText("Create");
+      expect(Math.round((await fab.boundingBox())?.width ?? 0)).toBeGreaterThan(56);
+      await page.mouse.wheel(0, 600);
+      await page.waitForTimeout(150);
+      await page.mouse.wheel(0, 600);
+      await expect(fab).toHaveAttribute("data-folded", "");
+      await expect.poll(async () => Math.round((await fab.boundingBox())?.width ?? 0)).toBe(56);
+      await page.mouse.wheel(0, -400);
+      await expect(fab).not.toHaveAttribute("data-folded", "");
     }
     await expect(page.locator(".app-nav-item")).toHaveText(["Today", "Library", "Settings"]);
   });
@@ -64,6 +74,45 @@ test.describe("Create as the primary action", () => {
     await page.keyboard.press("Escape");
     await expect(sheet(page)).toBeHidden();
     await expect(trigger(page)).toBeFocused();
+  });
+
+  test("Enter in the title puts the keyboard away and sends nothing", async ({ page }) => {
+    const bodies = await mockRun(page, [{ run_id: 31, state: "running", step: null }]);
+    await openSheet(page);
+    await sheet(page).locator(".create-chip:visible", { hasText: "Trending" }).click();
+    const title = sheet(page).getByRole("textbox", { name: /^Title/ });
+    await title.fill("My week in AI");
+    await title.press("Enter");
+    await expect(title).not.toBeFocused();
+    // Long enough for a request to have gone out, had Enter submitted the form.
+    await page.waitForTimeout(500);
+    expect(bodies).toEqual([]);
+    await expect(sheet(page)).toBeVisible();
+    await expect(page.getByRole("dialog", { name: "Enter the passphrase" })).toBeHidden();
+    await expect(title).toHaveValue("My week in AI");
+  });
+
+  test("a press that starts inside the panel and ends outside it keeps the panel open", async ({
+    page,
+  }, info) => {
+    await openSheet(page);
+    const head = await sheet(page).locator(".create-sheet-head").boundingBox();
+    const chip = sheet(page).locator(".create-chip:visible").first();
+    await chip.scrollIntoViewIfNeeded();
+    const box = await chip.boundingBox();
+    if (!head || !box) throw new Error("the panel is not laid out");
+    // Pressed on a chip, released on the header: the click lands on the dialog itself.
+    await page.mouse.move(box.x + box.width / 2, box.y + box.height / 2);
+    await page.mouse.down();
+    await page.mouse.move(head.x + head.width / 3, head.y + head.height / 2, { steps: 5 });
+    await page.mouse.up();
+    await page.waitForTimeout(300);
+    await expect(sheet(page)).toBeVisible();
+    // A press on the scrim beside the side panel still closes it.
+    if (info.project.name === "desktop") {
+      await page.mouse.click(head.x / 2, head.y + 200);
+      await expect(sheet(page)).toBeHidden();
+    }
   });
 
   test("browser Back closes the sheet and stays on the page", async ({ page }) => {
@@ -145,6 +194,10 @@ test.describe("Create as the primary action", () => {
     await page.reload();
     await expect(page.locator("[data-run-card]")).toBeVisible();
     await expect(page.locator("[data-run-text]")).toHaveText("Episode ready", { timeout: 15_000 });
+    // On the Library the line offers no link to the page on screen; from Today it does.
+    await expect(page.locator("[data-run-library]")).toBeHidden();
+    await page.locator(".app-nav-item", { hasText: "Today" }).click();
+    await expect(page).toHaveURL(/\/$/);
     await expect(page.getByRole("link", { name: "Open Library" })).toHaveAttribute(
       "href",
       "/library",

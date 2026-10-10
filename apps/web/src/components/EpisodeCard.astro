@@ -31,7 +31,7 @@ const facts = episodeFacts(entry);
   data-minutes={facts.minutes}
   data-search={facts.search}
 >
-  <a class="card-link press press-subtle" href={`/e/${entry.id}`} data-astro-prefetch="hover">
+  <a class="card-link" href={`/e/${entry.id}`} data-astro-prefetch="hover">
     <Cover
       digestId={entry.id}
       size="card"

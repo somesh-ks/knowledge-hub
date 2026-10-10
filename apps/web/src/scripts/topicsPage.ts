@@ -1,24 +1,11 @@
 /**
- * The Topics & sources page's own script, kept to what has to answer at once: the score filter, the
- * sort, the weight readout and the site icons. Everything that edits (recording a change, the Add
- * source panel, the save bar) is topicsEditor.ts, loaded the first time one of those controls is
- * used, so the page's first load stays inside the budget. The page is whole static HTML without it.
+ * The Topics pages' own script (the list and each topic's page), kept to what has to answer at once:
+ * the weight readout and the site icons. Everything that edits (recording a change, the Add source
+ * panel, saving) is topicsEditor.ts, loaded the first time one of those controls is used, so a page's
+ * first load stays inside the budget. Each page is whole static HTML without it.
  */
 
 type Editor = { handle(event: Event): void };
-
-/** Re-orders each topic's sources by name or by score (best first, New last, then by name). */
-export function sortRows(list: Element, by: string): void {
-  const rows = [...list.children] as HTMLElement[];
-  const score = (row: HTMLElement): number => Number(row.dataset.score);
-  const name = (row: HTMLElement): string => row.dataset.name ?? "";
-  rows.sort((a, b) =>
-    by === "name"
-      ? name(a).localeCompare(name(b))
-      : score(b) - score(a) || name(a).localeCompare(name(b)),
-  );
-  list.append(...rows);
-}
 
 function mount(root: HTMLElement): void {
   let editor: Promise<Editor> | undefined;
@@ -53,11 +40,7 @@ function mount(root: HTMLElement): void {
       const output = target.nextElementSibling;
       if (output) output.textContent = percent;
     }
-    if (target.matches("[data-sort]")) {
-      for (const list of root.querySelectorAll("[data-sources]")) sortRows(list, target.value);
-    } else if (target.matches("[data-band-filter]")) {
-      root.dataset.band = target.value || "all";
-    } else forward(event);
+    forward(event);
   });
 
   root.addEventListener("click", (event) => {
@@ -72,10 +55,6 @@ function mount(root: HTMLElement): void {
     event.preventDefault();
     forward(event);
   });
-
-  // A filter the browser kept from an earlier visit applies from the start.
-  const bandFilter = root.querySelector<HTMLSelectElement>("select[data-band-filter]");
-  if (bandFilter) root.dataset.band = bandFilter.value || "all";
 
   root.dataset.ready = "";
 }

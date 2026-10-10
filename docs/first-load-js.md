@@ -1,6 +1,6 @@
 # First-load JavaScript
 
-Measured 2026-10-10 on `main` at `a57df71` (before any reduction), static build (`DISPATCH_STATIC_ONLY=1`). Sizes are gzipped, counted the way `apps/web/scripts/checkBundle.ts` counts them: every script, modulepreload and island module a page names, plus their static imports. Dynamic `import()` is lazy and not counted. Budget: 104 KB; heaviest page /settings/podcast at 103.9 KB.
+Measured 2026-10-10 on `main` at `a57df71` (before any reduction), static build (`DISPATCH_STATIC_ONLY=1`). Sizes are gzipped, counted the way `apps/web/scripts/checkBundle.ts` counts them: every script, modulepreload and island module a page names, plus their static imports. Dynamic `import()` is lazy and not counted. Budget then: 104 KB; heaviest page /settings/podcast at 103.9 KB. The budget is 110 KB since D53 (2026-10-10); see "Keeping it low" at the end for the current split and what could still come off.
 
 Pages: today `/`, briefing `/d/2026-10-09`, episode `/e/ep-20261009-2004`, library, create, settings, podcast `/settings/podcast`, topics `/settings/podcast/topics`.
 
@@ -130,3 +130,28 @@ Readings:
 
 1. `DISPATCH_STATIC_ONLY=1 npm run build -w @dispatch/web` prints every page's total.
 2. The chunk tables and the phone run were made with throwaway scripts: follow `entryScripts` and `staticImports` from `src/lib/bundleBudget.ts` for eager files and `import(` for lazy ones; drive Chromium through CDP (`Emulation.setCPUThrottlingRate`, `Network.emulateNetworkConditions`) and read `largest-contentful-paint`, `longtask` and `Performance.getMetrics` (`ScriptDuration`).
+
+## Keeping it low (2026-10-10, D53)
+
+Measured on the design pass branch, static build, source maps mapped back to files (gzip shared out in proportion to raw bytes inside each chunk). Heaviest page /library at 103.2 KB.
+
+| Chunk | KB gz | What is in it |
+|---|---:|---|
+| React client | 63.4 | react-dom client and the scheduler |
+| playerRuntime | 12.4 | store 2.7, reader sync 1.5, open-player controller 1.4, runtime 1.0, media session 0.7, reader math 0.7, surface view 0.6, switchable audio 0.6, timeline 0.4, modal scope 0.4, spring 0.4, the rest under 0.3 each |
+| Astro router | 5.3 | client 4.2, prefetch 1.1 |
+| PlayerRoot | 3.8 | bar 1.5, surface 1.1, page content loader 0.3 |
+| react + react-dom | 4.6 | |
+| layout script | 2.5 | navigation 0.6, device banners 0.3, app 0.3, theme colour 0.3, Create entry 0.3, service worker 0.2 |
+| SheetsRoot | 1.7 | sheets root 0.8, toaster 0.4 |
+| Icon | 1.5 | the eager player glyphs |
+| sound, theme | 2.7 | sound controller 1.4, theme runtime 1.3 |
+| Library page script | 1.5 | the Library's search, sort, filter and view |
+
+Ways to bring it down, largest first:
+
+1. React only when there is something to show: about 76 KB off a first visit with nothing playing (React 68, PlayerRoot 3.8, SheetsRoot 1.7, icons 1.5, glyph 0.9). The player runtime would start from its own page script (it is plain TypeScript and already answers the play chips through reader sync), and the React bar, the open player and the sheets would mount when a track is loaded or resumable, on the first press of Play or Create, or on idle after the first interaction. Cost: the first Play on a cold visit waits for the React chunk unless it is fetched on hover or touchstart; a medium refactor of how PlayerRoot and SheetsRoot mount (a custom client directive or a manual root). The largest saving there is, and the only one that is not a few hundred bytes.
+2. The open-player machinery on first play: about 4 KB off every page (open-player controller 1.4, surface view 0.6, spring 0.4, modal scope 0.4, gesture math 0.2, player sheet 0.2, media session 0.7). `playerSheet` is a singleton the bar and the surface read, so it needs a facade that loads the controller when the dock first shows.
+3. The service worker code after load: 0.2 KB. It already registers only after the load event.
+4. Not worth it: the Library script's search on first focus (about 1 KB, Library only), the device banners (0.3 KB, would add a layout shift when a stale banner arrives late), dropping prefetch or the router (D47).
+

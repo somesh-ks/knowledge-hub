@@ -321,12 +321,14 @@ test.describe("sections and stories", () => {
     const first = page.locator(".story").first();
     await expect(first.locator("a")).toHaveCount(1);
     const link = first.locator(".source-link");
-    // The link names the publisher; the host is only in its address and accessible name.
-    await expect(link).toHaveText("Springlet Blog");
+    // The link shows the publisher, and its name starts with what it shows (WCAG 2.5.3); the new
+    // tab is said, not shown. The host is only in its address.
+    await expect(link.locator(":scope > span").first()).toHaveText("Springlet Blog");
     await expect(link).toHaveAttribute("href", /^https:\/\/example\.com\//);
     await expect(link).toHaveAttribute("target", "_blank");
     await expect(link).toHaveAttribute("rel", "noopener noreferrer");
-    await expect(link).toHaveAccessibleName("Read at example.com, opens in a new tab");
+    await expect(link).not.toHaveAttribute("aria-label");
+    await expect(link).toHaveAccessibleName("Springlet Blog (opens in a new tab)");
     // The headline is a heading now, not a link.
     await expect(first.locator("h3")).toHaveText(FIRST_HEADLINE);
     await expect(first.locator("h3 a")).toHaveCount(0);
@@ -341,7 +343,7 @@ test.describe("sections and stories", () => {
     await expect(first.locator(".meta")).toHaveCount(0);
     await expect(first.locator("> *").first()).toHaveJSProperty("tagName", "H3");
     await expect(first).not.toContainText("Mara Lindqvist");
-    await expect(first.locator(".source-link")).toHaveText("Springlet Blog");
+    await expect(first.locator(".source-link > span").first()).toHaveText("Springlet Blog");
     await expect(first.locator(".story-why")).toHaveText(
       "Why Copy the retargeting pattern for drawers and toasts.",
     );
@@ -445,14 +447,85 @@ test.describe("section tabs", () => {
 
   test("stick under the app bar while the sections scroll", async ({ page }) => {
     await page.goto("/");
+    const barLine = () =>
+      page.locator(".app-bar").evaluate((bar) => getComputedStyle(bar, "::after").display);
+    // Over the hero, before the strip reaches the bar, the bar draws its scroll line.
+    await page.mouse.wheel(0, 60);
+    await expect.poll(barLine).toBe("block");
     await page.locator("#c-research").scrollIntoViewIfNeeded();
     await page.mouse.wheel(0, 600);
     const strip = await page.locator(".tabs").boundingBox();
     const bar = await page.locator(".app-bar").boundingBox();
-    expect(strip?.y).toBeCloseTo((bar?.y ?? 0) + (bar?.height ?? 0), 0);
+    // The strip sits a hairline up, under the bar, and takes over the bar's line while it sticks:
+    // one line, not two.
+    expect(strip?.y).toBeCloseTo((bar?.y ?? 0) + (bar?.height ?? 0) - 1, 0);
+    await expect.poll(barLine).toBe("none");
     // Edge to edge on a phone: the strip runs past the gutters.
     expect(strip?.x).toBe(0);
     expect(strip?.width).toBe(390);
+  });
+
+  test("at the end of the briefing the strip slides under the app bar, which takes its line back", async ({
+    page,
+  }) => {
+    // A phone on its side: the page goes on past the briefing for longer than the screen is tall.
+    await page.setViewportSize({ width: 844, height: 390 });
+    await page.goto("/");
+    const barLine = () =>
+      page.locator(".app-bar").evaluate((bar) => getComputedStyle(bar, "::after").display);
+    // The end of the briefing just under the bar, so the strip is half under it.
+    await page.evaluate(() => {
+      const bar = document.querySelector(".app-bar")?.getBoundingClientRect().bottom ?? 0;
+      const end = document.querySelector(".briefing")?.getBoundingClientRect().bottom ?? 0;
+      window.scrollBy(0, end - bar - 24);
+    });
+    const onTop = await page.evaluate(() => {
+      const bar = document.querySelector(".app-bar")?.getBoundingClientRect().bottom ?? 0;
+      return document.elementFromPoint(innerWidth / 2, bar - 4)?.closest(".app-bar, .tabs")
+        ?.classList[0];
+    });
+    expect(onTop).toBe("app-bar");
+    // What shows of the strip still draws the line.
+    await expect.poll(barLine).toBe("none");
+    await page.evaluate(() => window.scrollTo(0, document.documentElement.scrollHeight));
+    await expect.poll(barLine).toBe("block");
+  });
+
+  test("pressing tabs adds no history entries, so Back leaves the page", async ({ page }) => {
+    await page.goto("/library");
+    await page.goto("/");
+    const before = await page.evaluate(() => history.length);
+    await page.locator(".tab", { hasText: "Research" }).click();
+    await expect(page).toHaveURL(/#c-research$/);
+    await page.locator(".tab").first().click();
+    expect(await page.evaluate(() => history.length)).toBe(before);
+    await page.goBack();
+    await expect(page).toHaveURL(/\/library/);
+  });
+
+  test("a tab reached with the keyboard is brought fully into the strip", async ({ page }) => {
+    await page.goto("/");
+    await hydrated(page);
+    const last = page.locator(".tab").last();
+    await last.focus();
+    await expect
+      .poll(async () => {
+        const strip = await page.locator(".tabs").boundingBox();
+        const tab = await last.boundingBox();
+        return (
+          !!strip &&
+          !!tab &&
+          tab.x >= strip.x - 0.5 &&
+          tab.x + tab.width <= strip.x + strip.width + 0.5
+        );
+      })
+      .toBe(true);
+  });
+
+  test("an episode page says episode, not briefing, to assistive tech", async ({ page }) => {
+    await page.goto("/e/ep-20261007-1930");
+    await expect(page.locator(".skip-link")).toHaveText("Skip to the episode");
+    await expect(page.locator("[data-play-digest]")).toHaveAccessibleName(/^Play the episode, /);
   });
 
   test("mark the section in view and bring its tab into the strip", async ({ page }) => {
@@ -471,6 +544,22 @@ test.describe("section tabs", () => {
     await expect(current).toHaveText("Top picks");
   });
 
+  test("an instant jump to the top marks the first tab, though its section starts below mid-screen", async ({
+    page,
+  }) => {
+    // On a short phone the first section starts under the middle of the screen, so at the top no
+    // section crosses the reading band.
+    await page.setViewportSize({ width: 390, height: 600 });
+    await page.goto("/");
+    const current = page.locator('.tab[aria-current="true"]');
+    await page.evaluate(() => {
+      document.querySelector("#c-research")?.scrollIntoView({ block: "start" });
+    });
+    await expect(current).toHaveText("Research");
+    await page.evaluate(() => window.scrollTo({ top: 0, behavior: "instant" }));
+    await expect(current).toHaveText("Top picks");
+  });
+
   test("a tapped tab jumps to its section, clear of the strip, and takes the mark", async ({
     page,
   }) => {
@@ -480,10 +569,42 @@ test.describe("section tabs", () => {
     await expect(page).toHaveURL(/#c-research$/);
     await expect(tab).toHaveAttribute("aria-current", "true");
     await expect(page.locator('.tab[aria-current="true"]')).toHaveCount(1);
-    const heading = await page.locator("#c-research").boundingBox();
+    // The heading's words land clear of the strip, and the section's rule above them tucks under
+    // it, so the strip's own line is the only one.
+    const landing = await page.locator("#c-research").evaluate((heading) => {
+      const words = document.createRange();
+      words.selectNodeContents(heading);
+      return {
+        words: words.getBoundingClientRect().top,
+        rule: heading.closest(".chapter")?.getBoundingClientRect().top ?? 0,
+      };
+    });
     const strip = await page.locator(".tabs").boundingBox();
-    expect(heading?.y ?? 0).toBeGreaterThanOrEqual((strip?.y ?? 0) + (strip?.height ?? 0));
-    expect(heading?.y ?? 999).toBeLessThan(260);
+    const stripEnd = (strip?.y ?? 0) + (strip?.height ?? 0);
+    expect(landing.words).toBeGreaterThanOrEqual(stripEnd);
+    expect(landing.words).toBeLessThan(260);
+    expect(landing.rule).toBeLessThan(stripEnd);
+  });
+
+  test("a control reached by Shift+Tab is never left under the strip (WCAG 2.4.11)", async ({
+    page,
+  }) => {
+    await page.goto("/");
+    // Far down the briefing, then back up one control at a time: each one scrolls clear of the
+    // strip while it sticks.
+    for (let step = 0; step < 26; step += 1) await page.keyboard.press("Tab");
+    for (let step = 0; step < 8; step += 1) {
+      await page.keyboard.press("Shift+Tab");
+      const covered = await page.evaluate(() => {
+        const control = document.activeElement?.getBoundingClientRect();
+        const strip = document.querySelector<HTMLElement>(".tabs");
+        if (!control || !strip) return 0;
+        const box = strip.getBoundingClientRect();
+        const stuck = box.top <= Number.parseFloat(getComputedStyle(strip).top) + 0.5;
+        return stuck ? Math.max(0, box.bottom - control.top) : 0;
+      });
+      expect(covered).toBe(0);
+    }
   });
 
   test("the last tab keeps the mark even where its section cannot reach the top", async ({
@@ -497,6 +618,21 @@ test.describe("section tabs", () => {
     // Still held a moment later, after the observer has had its say.
     await page.waitForTimeout(300);
     await expect(tab).toHaveAttribute("aria-current", "true");
+  });
+
+  test("at the end of the page the last tab takes the mark, though its section cannot reach the top", async ({
+    page,
+  }) => {
+    // The weekly is the oldest briefing: nothing follows its last section, so the page ends while
+    // that section is still well below the strip.
+    await page.goto("/d/2026-10-04-weekly");
+    const current = page.locator('.tab[aria-current="true"]');
+    await page.evaluate(() => window.scrollTo(0, document.documentElement.scrollHeight));
+    await expect(current).toHaveText("Watch and listen");
+    await page.evaluate(() => {
+      document.querySelector("#c-research")?.scrollIntoView({ block: "start" });
+    });
+    await expect(current).toHaveText("Research");
   });
 
   test("follow the page again after a client-side navigation", async ({ page }) => {

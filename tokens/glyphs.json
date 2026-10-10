@@ -1,5 +1,5 @@
 {
-  "$description": "The one icon set: Phosphor, regular weight, with the fill weight where a glyph must read as solid (Phosphor Icons, MIT License). Each glyph names its Phosphor icon and whether it is the fill weight; scripts/buildGlyphs.ts compiles the paths into the page registry (apps/web/src/lib/icons.ts) and the player registries (apps/web/src/player/ui/iconPaths.tsx for what loads with every page, iconPathsLazy.tsx for everything), so the two can never drift. Phosphor has no numbered skip glyphs: replay10 and forward30 are plain circular arrows and the control sets its own numeral. Paths are fetched once with `npm run glyphs -- --fetch` and committed here; a build never touches the network.",
+  "$description": "The one icon set: Phosphor, regular weight, with the fill weight where a glyph must read as solid the bold weight for the plus, which reads thin in the regular, and the More dots drawn to the bold plus's weight (Phosphor Icons, MIT License). Each glyph names its Phosphor icon and whether it is the fill or the bold weight, or says why it is drawn here; scripts/buildGlyphs.ts compiles the paths into the page registry (apps/web/src/lib/icons.ts) and the player registries (apps/web/src/player/ui/iconPaths.tsx for what loads with every page, iconPathsLazy.tsx for everything), so the two can never drift. Phosphor has no numbered skip glyphs: replay10 and forward30 are plain circular arrows and the control sets its own numeral. Paths are fetched once with `npm run glyphs -- --fetch` and committed here; a build never touches the network.",
   "viewBox": "0 0 256 256",
   "source": "https://cdn.jsdelivr.net/npm/@phosphor-icons/core",
   "sourceVersion": "2.1.1",
@@ -116,8 +116,9 @@
     },
     "moreVert": {
       "symbol": "dots-three-vertical",
+      "drawn": "Phosphor's three dots at radius 20 (its bold weight has 16), so they carry the weight of the bold plus.",
       "targets": ["page"],
-      "d": "M140,128a12,12,0,1,1-12-12A12,12,0,0,1,140,128ZM128,72a12,12,0,1,0-12-12A12,12,0,0,0,128,72Zm0,112a12,12,0,1,0,12,12A12,12,0,0,0,128,184Z"
+      "d": "M108,60a20,20,0,1,0,40,0a20,20,0,1,0,-40,0ZM108,128a20,20,0,1,0,40,0a20,20,0,1,0,-40,0ZM108,196a20,20,0,1,0,40,0a20,20,0,1,0,-40,0Z"
     },
     "today": {
       "symbol": "calendar-check",
@@ -182,8 +183,9 @@
     },
     "plus": {
       "symbol": "plus",
+      "bold": true,
       "targets": ["page"],
-      "d": "M224,128a8,8,0,0,1-8,8H136v80a8,8,0,0,1-16,0V136H40a8,8,0,0,1,0-16h80V40a8,8,0,0,1,16,0v80h80A8,8,0,0,1,224,128Z"
+      "d": "M228,128a12,12,0,0,1-12,12H140v76a12,12,0,0,1-24,0V140H40a12,12,0,0,1,0-24h76V40a12,12,0,0,1,24,0v76h76A12,12,0,0,1,228,128Z"
     },
     "trash": {
       "symbol": "trash",

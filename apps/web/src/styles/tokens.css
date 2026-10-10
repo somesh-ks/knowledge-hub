@@ -333,7 +333,7 @@
   --scrubber-tick-dot: 0.3125rem;
   --scrubber-bubble-radius: var(--radius-sm);
   --scrubber-detent-hysteresis: 0.02;
-  --segmented-height: var(--size-touch);
+  --segmented-height: var(--size-touch-comfortable);
   --segmented-padding: var(--space-1);
   --segmented-radius: var(--radius-md);
   --segmented-segment-radius: var(--radius-sm);
@@ -402,7 +402,7 @@
     --color-on-surface: var(--color-grey-200);
     --color-on-surface-muted: var(--color-grey-450);
     --color-on-surface-subtle: var(--color-grey-500);
-    --color-on-surface-disabled: var(--color-grey-600);
+    --color-on-surface-disabled: var(--color-grey-650);
     --color-on-surface-inverse: var(--color-grey-950);
     --color-border-hairline: var(--color-grey-750);
     --color-border-control: var(--color-grey-600);
@@ -446,7 +446,7 @@
   --color-on-surface: var(--color-grey-200);
   --color-on-surface-muted: var(--color-grey-450);
   --color-on-surface-subtle: var(--color-grey-500);
-  --color-on-surface-disabled: var(--color-grey-600);
+  --color-on-surface-disabled: var(--color-grey-650);
   --color-on-surface-inverse: var(--color-grey-950);
   --color-border-hairline: var(--color-grey-750);
   --color-border-control: var(--color-grey-600);

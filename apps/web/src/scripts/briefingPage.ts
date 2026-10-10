@@ -8,8 +8,11 @@ import { installHeroMenu } from "./heroMenu";
 installHeroMenu();
 
 const COPIED_MS = 2_000;
+const reducedMotion = (): boolean => matchMedia("(prefers-reduced-motion: reduce)").matches;
 
 let observer: IntersectionObserver | null = null;
+let endObserver: IntersectionObserver | null = null;
+let stuckObserver: IntersectionObserver | null = null;
 /** A tapped tab stays marked until the reader scrolls, even where its section cannot reach the top. */
 let held = false;
 
@@ -21,40 +24,99 @@ function mark(slug: string | undefined): void {
     if (isCurrent) link.setAttribute("aria-current", "true");
     else link.removeAttribute("aria-current");
     const strip = link.closest<HTMLElement>("[data-section-tabs]");
-    if (!isCurrent || !strip) continue;
-    // Moves the strip itself. scrollIntoView would also scroll the page when the strip is off screen.
-    strip.scrollTo({
-      left: link.offsetLeft - (strip.clientWidth - link.offsetWidth) / 2,
-      behavior: matchMedia("(prefers-reduced-motion: reduce)").matches ? "auto" : "smooth",
-    });
+    if (isCurrent && strip) centreTab(strip, link);
   }
+}
+
+/** Moves the strip itself. scrollIntoView would also scroll the page when the strip is off screen. */
+function centreTab(strip: HTMLElement, tab: HTMLElement): void {
+  strip.scrollTo({
+    left: tab.offsetLeft - (strip.clientWidth - tab.offsetWidth) / 2,
+    behavior: reducedMotion() ? "auto" : "smooth",
+  });
+}
+
+/**
+ * While the strip is stuck under the app bar it draws the one line under the top chrome, and the
+ * bar's own line goes (briefing.css). Stuck, the strip sits a pixel above the bar's bottom edge; it
+ * stays above it while the end of the briefing pushes it under the bar, until it is gone. Chromium
+ * reports a strip partly past that edge as not intersecting, so the test reads its top instead.
+ */
+function watchStuck(strip: HTMLElement): void {
+  const edge = (Number.parseFloat(getComputedStyle(strip).top) || 0) + 1;
+  stuckObserver = new IntersectionObserver(
+    ([entry]) => {
+      if (!entry) return;
+      const top = entry.rootBounds?.top ?? edge;
+      strip.toggleAttribute(
+        "data-stuck",
+        entry.intersectionRatio > 0 && entry.boundingClientRect.top < top,
+      );
+    },
+    { rootMargin: `-${Math.round(edge)}px 0px 0px 0px`, threshold: [0, 1] },
+  );
+  stuckObserver.observe(strip);
 }
 
 function watchSections(): void {
   observer?.disconnect();
+  endObserver?.disconnect();
+  stuckObserver?.disconnect();
   held = false;
   const sections = [...document.querySelectorAll<HTMLElement>("[data-chapter]")];
-  if (sections.length === 0) return;
+  const first = sections[0];
+  const last = sections.at(-1);
+  if (!first || !last) return;
+  // An empty element after everything else on the page (DigestView.astro).
+  const end = document.querySelector<HTMLElement>("[data-page-end]");
   const strip = document.querySelector<HTMLElement>("[data-section-tabs]");
   // The reading line: just under the sticky strip, or near the top where the strip is not shown.
   const chrome = strip?.offsetParent
     ? (Number.parseFloat(getComputedStyle(strip).top) || 0) + strip.offsetHeight
     : 0;
+  if (strip?.offsetParent) watchStuck(strip);
   const inView = new Set<Element>();
+  /** All on screen: the first section, the end of the page, or both. */
+  const whole = new Set<Element>();
+  const follow = (): void => {
+    if (held) return;
+    // At the end of the page the last section is marked, since a short one never reaches the
+    // reading line, unless the first section is all on screen too: then the page fits the screen.
+    // Otherwise the mark goes to the topmost section crossing the band between the line and
+    // mid-screen. None means the reader is above the first or past the last: above the first (an
+    // instant jump to the top, where the first section starts below mid-screen) marks the first,
+    // and past the last keeps the mark where it was.
+    const atEnd = end !== null && whole.has(end) && !whole.has(first);
+    const current = atEnd
+      ? last
+      : (sections.find((section) => inView.has(section)) ??
+        (first.getBoundingClientRect().top > chrome ? first : undefined));
+    if (current) mark(current.dataset.chapter);
+  };
   observer = new IntersectionObserver(
     (entries) => {
       for (const entry of entries) {
         if (entry.isIntersecting) inView.add(entry.target);
         else inView.delete(entry.target);
       }
-      // The topmost section crossing the band between the line and mid-screen. None means the
-      // reader is above the first or past the last, and the mark stays where it was.
-      const top = sections.find((section) => inView.has(section));
-      if (top && !held) mark(top.dataset.chapter);
+      follow();
     },
     { rootMargin: `-${Math.round(chrome) + 24}px 0px -50% 0px` },
   );
+  // The end element has no height, so it counts as all on screen whenever it is on screen at all.
+  endObserver = new IntersectionObserver(
+    (entries) => {
+      for (const entry of entries) {
+        if (entry.intersectionRatio >= 1) whole.add(entry.target);
+        else whole.delete(entry.target);
+      }
+      follow();
+    },
+    { threshold: 1 },
+  );
   for (const section of sections) observer.observe(section);
+  endObserver.observe(first);
+  if (end) endObserver.observe(end);
 }
 
 async function share(button: HTMLElement): Promise<void> {
@@ -90,6 +152,17 @@ async function share(button: HTMLElement): Promise<void> {
   }, COPIED_MS);
 }
 
+// A tab reached with the keyboard can sit cut off at the strip's edge: bring it to the middle. A card
+// on the Other episodes shelf can sit flush with the shelf's edge, its ring cut off, which the browser
+// counts as in view: bring it in by the shelf's scroll padding.
+document.addEventListener("focusin", (event) => {
+  if (!(event.target instanceof HTMLElement)) return;
+  const strip = event.target.closest<HTMLElement>("[data-section-tabs]");
+  if (strip && event.target.matches("a.tab")) centreTab(strip, event.target);
+  else if (event.target.matches(".shelf a.card-link"))
+    event.target.scrollIntoView({ block: "nearest", inline: "nearest" });
+});
+
 document.addEventListener("click", (event) => {
   if (!(event.target instanceof Element)) return;
   const tab = event.target.closest<HTMLElement>("a[data-section]");
@@ -109,6 +182,8 @@ const release = (): void => {
 window.addEventListener("wheel", release, { passive: true });
 window.addEventListener("touchmove", release, { passive: true });
 window.addEventListener("keydown", release);
+// Back and Forward move the page to an address of their own, so the mark follows the scroll again.
+window.addEventListener("popstate", release);
 
 document.addEventListener("astro:page-load", watchSections);
 watchSections();

@@ -19,7 +19,7 @@ import { shouldToggleOnPageSpace } from "./playerKeys";
 import { playerSheet } from "./playerSheet";
 import { createPlayerStore } from "./playerStore";
 import type { PlayerStore } from "./playerTypes";
-import { getPreferences } from "./preferences";
+import { getPreferences, rememberRate } from "./preferences";
 import { createReaderSync } from "./readerSync";
 import { safeLocalStorage } from "./resume";
 import { reapplyRootState, setRootAttribute, setRootProperty } from "./rootAttributes";
@@ -67,10 +67,7 @@ export function getPlayerStore(): PlayerStore {
     createAudio: getPlayerAudio,
     storage: safeLocalStorage(),
     getPreferredRate: () => getPreferences().get().rate,
-    onRateChange: (rate) => {
-      const preferred = getPreferences();
-      if (rate === 1 || rate === 1.25 || rate === 1.5 || rate === 2) preferred.set({ rate });
-    },
+    onRateChange: (rate) => rememberRate(getPreferences(), rate),
     onPageHide,
   });
   return store;
@@ -143,11 +140,46 @@ export function startPlayerRuntime(): () => void {
       }, PREWARM_DELAY_MS);
     }
   };
+  // Browser Back (system Back on a phone) dismisses the open player and stays on the page. The open
+  // player takes one history entry, as the Create sheet does (createSheet.ts): the head script
+  // (themeInit.js) asks first on every pop, and answering "handled" keeps the router out of it.
+  let entry = false;
+  let wasOpen = false;
+  const onBack = (event: Event): void => {
+    if (!entry) return;
+    entry = false;
+    event.preventDefault();
+    removeEventListener("dispatch:back", onBack);
+    if (playerSheet.getSnapshot().open) void playerSheet.collapse();
+  };
+  // The navigation is already on its way; giving the entry back would turn it around.
+  const dropEntry = (): void => {
+    if (!entry) return;
+    entry = false;
+    removeEventListener("dispatch:back", onBack);
+  };
+  const offEntry = playerSheet.subscribe(() => {
+    const open = playerSheet.getSnapshot().open;
+    if (open === wasOpen) return;
+    wasOpen = open;
+    if (open) {
+      history.pushState({ ...history.state, playerOpen: true }, "");
+      entry = true;
+      addEventListener("dispatch:back", onBack);
+    } else if (entry) {
+      // Closed any other way: give the entry back. The pop this causes reaches onBack, which swallows it.
+      history.go(-1);
+    }
+  });
   // A navigation never happens under an open player: the page goes down in one step first.
   // Never preventDefault here; that turns the navigation into a full load and stops the audio.
-  const onBeforeNavigation = (): void => playerSheet.collapseNow();
+  const onBeforeNavigation = (): void => {
+    dropEntry();
+    playerSheet.collapseNow();
+  };
   const onAfterSwap = (): void => {
     // The safety net for a navigation that announced nothing: no modal over a new document.
+    dropEntry();
     playerSheet.collapseNow();
     reapplyRootState();
     reapplyTheme();
@@ -175,6 +207,8 @@ export function startPlayerRuntime(): () => void {
     window.removeEventListener("offline", onOffline);
     offEvent();
     offState();
+    offEntry();
+    removeEventListener("dispatch:back", onBack);
     stopTheme();
     stopSound();
     reader.destroy();

@@ -13,9 +13,9 @@ async function opened(lab: LabPage): Promise<{ header: Point; height: number }> 
   return { header: await headerSpot(lab), height: window.height };
 }
 
-// A flick here is three large steps, not six small ones. The harness asks for 8 ms between
-// touch moves and the page receives them 30 to 50 ms apart, so six steps arrive at about 0.5 px/ms,
-// which is the threshold itself. A finger flicks at 1 to 3 px/ms.
+// A flick here is three large steps 8 ms apart, about 5 px/ms; a finger flicks at 1 to 3 px/ms.
+// Each event states the time it means (lab.ts, gestureClock), so a loaded machine delivering them
+// late does not turn the flick into a slow drag.
 test.describe("opening by gesture @surface", () => {
   test("a short, slow pull up goes back down without opening", async ({ lab, finger }) => {
     await lab.open();

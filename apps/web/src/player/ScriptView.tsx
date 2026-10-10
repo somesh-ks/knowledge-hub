@@ -21,9 +21,14 @@ import { usePlayerSecond, usePlayerState } from "./hooks/usePlayer";
  */
 export default function ScriptView({ titleHidden = false }: { titleHidden?: boolean }) {
   const state = usePlayerState();
-  const second = usePlayerSecond();
+  // A render each second, and after a seek while paused. The turn itself is read from the playhead,
+  // not from the floored second, which kept the last turn marked for most of a second after a jump
+  // into the next one; the frame loop below renders again the moment the spoken turn changes.
+  usePlayerSecond();
+  const [, setTurnMoved] = useState(0);
+  const spokenTurn = useRef(-1);
   const turns = state.track?.digest.turns ?? [];
-  const current = state.hasStarted ? currentTurnIndex(turns, second) : -1;
+  const current = state.hasStarted ? currentTurnIndex(turns, getPlayerStore().getTime()) : -1;
   const rootRef = useRef<HTMLElement>(null);
   const pausedUntil = useRef(0);
   // Opening the page shows its top. Following starts when the voice moves to another turn.
@@ -70,6 +75,10 @@ export default function ScriptView({ titleHidden = false }: { titleHidden?: bool
     const light = (seconds: number): void => {
       const ms = seconds * 1000;
       const turn = getPlayerStore().getState().hasStarted ? currentTurnIndex(turns, seconds) : -1;
+      if (turn !== spokenTurn.current) {
+        spokenTurn.current = turn;
+        setTurnMoved((count) => count + 1);
+      }
       const starts = turn >= 0 ? words[turn]?.starts : null;
       const word = starts ? wordIndexAt(starts, ms) : -1;
       const next =
@@ -91,11 +100,18 @@ export default function ScriptView({ titleHidden = false }: { titleHidden?: bool
   }, [turns, words]);
 
   function reveal(index: number): void {
+    // The page holds still under a dialog (the speed panel), which would otherwise lose its button.
+    if (document.querySelector("dialog[open]")) return;
     const node = rootRef.current?.querySelector<HTMLElement>(`[data-turn="${index}"]`);
     // On a wide screen the script is its own column and the turn is centred in it. On one column
     // the page also holds the cover and the controls, so it moves only as far as the turn needs.
     const column = window.matchMedia("(min-width: 64rem)").matches;
-    node?.scrollIntoView({ block: column ? "center" : "nearest", behavior: "smooth" });
+    // Under reduced motion it jumps: a scripted glide is movement the person asked not to see.
+    const still = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+    node?.scrollIntoView({
+      block: column ? "center" : "nearest",
+      behavior: still ? "instant" : "smooth",
+    });
   }
 
   // Follows the voice, unless a person is reading elsewhere.
@@ -178,10 +194,14 @@ export default function ScriptView({ titleHidden = false }: { titleHidden?: bool
       </ol>
       {away ? (
         <button
-          className="script-back press"
+          className="script-back"
           type="button"
           onClick={() => {
             pausedUntil.current = 0;
+            // The button goes away with this press; keyboard focus moves to the turn it points at.
+            rootRef.current
+              ?.querySelector<HTMLElement>(`[data-turn="${current}"]`)
+              ?.focus({ preventScroll: true });
             setAway(false);
             if (current >= 0) reveal(current);
           }}

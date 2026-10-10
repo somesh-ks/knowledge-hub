@@ -19,6 +19,7 @@ const { sections } = Astro.props;
           <a
             class="aside-link"
             href={`#c-${section.slug}`}
+            data-astro-history="replace"
             data-section={section.slug}
             aria-current={index === 0 ? "true" : undefined}
           >

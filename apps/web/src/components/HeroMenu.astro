@@ -41,7 +41,7 @@ const { sharePath, noun, episodeId } = Astro.props;
   </button>
   <div class="hero-menu-list" id="hero-menu" popover role="menu" aria-label="More actions">
     <button
-      class="hero-menu-item press"
+      class="hero-menu-item"
       type="button"
       role="menuitem"
       data-share={sharePath}
@@ -51,7 +51,7 @@ const { sharePath, noun, episodeId } = Astro.props;
     {
       episodeId ? (
         <button
-          class="hero-menu-item press"
+          class="hero-menu-item"
           type="button"
           role="menuitem"
           data-episode-action="regenerate"
@@ -60,7 +60,7 @@ const { sharePath, noun, episodeId } = Astro.props;
         </button>
       ) : (
         <button
-          class="hero-menu-item press"
+          class="hero-menu-item"
           type="button"
           role="menuitem"
           data-open="generate"
@@ -73,7 +73,7 @@ const { sharePath, noun, episodeId } = Astro.props;
     {
       episodeId && (
         <button
-          class="hero-menu-item hero-menu-delete press"
+          class="hero-menu-item hero-menu-delete"
           type="button"
           role="menuitem"
           data-episode-action="delete"

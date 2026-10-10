@@ -13,6 +13,9 @@ interface Props {
 }
 
 const { entry, hero } = Astro.props;
+// The day and the month stay on one line: a narrow title wraps "Monday / 5 October", never
+// "Monday 5 / October".
+const title = hero.title.replace(/(\d+) /, "$1\u00a0");
 ---
 
 {/* The briefing header: the cover beside the date and the More menu, then the play chip with the
@@ -28,7 +31,7 @@ const { entry, hero } = Astro.props;
   />
   <div class="hero-text">
     <div class="hero-title-row">
-      <h1 class="page-title" id="page-title" tabindex="-1">{hero.title}</h1>
+      <h1 class="page-title" id="page-title" tabindex="-1">{title}</h1>
       <HeroMenu sharePath={`/d/${entry.id}`} noun="briefing" />
     </div>
   </div>

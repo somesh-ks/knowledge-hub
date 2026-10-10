@@ -27,7 +27,7 @@ export default function UpNext() {
       <h3 className="player-section-title" id="player-upnext-title">
         Up next
       </h3>
-      <button className="player-upnext-row press" type="button" onClick={() => playUpNext(nextId)}>
+      <button className="player-upnext-row" type="button" onClick={() => playUpNext(nextId)}>
         <span className="player-upnext-text">
           <span className="player-upnext-date">{longDateFromDigestId(nextId)}</span>
           <span className="player-upnext-hint">The previous briefing</span>

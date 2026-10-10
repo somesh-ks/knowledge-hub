@@ -47,7 +47,7 @@ const highlights = episodeHighlights(episode);
       </div>
     </div>
     {/* The same path a briefing takes: audio is made when Play is pressed, one turn at a time. */}
-    <PlayCta digestId={entry.id} mode="preparing" length={length} facts={[day]} />
+    <PlayCta digestId={entry.id} mode="preparing" length={length} facts={[day]} noun="episode" />
   </header>
 
   <EpisodeActions id={entry.id} />
@@ -63,15 +63,15 @@ const highlights = episodeHighlights(episode);
             <li class="episode-highlight">
               <h3 class="episode-highlight-title">{highlight.headline}</h3>
               {highlight.text && <p class="episode-highlight-text">{highlight.text}</p>}
+              {/* Named as a story's source link is (Item.astro): the name starts with the host shown. */}
               {highlight.host && (
                 <a
-                  class="episode-highlight-link press press-subtle"
+                  class="source-link episode-highlight-link"
                   href={highlight.url}
                   target="_blank"
                   rel="noopener noreferrer"
-                  aria-label={`${highlight.headline}, read at ${highlight.host}, opens in a new tab`}
                 >
-                  <span>{highlight.host}</span>
+                  <span>{highlight.host}</span><span class="sr-only"> (opens in a new tab)</span>
                   <Icon name="openInNew" />
                 </a>
               )}

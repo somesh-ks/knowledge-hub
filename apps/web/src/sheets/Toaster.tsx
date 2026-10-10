@@ -4,8 +4,8 @@ import { dismissToast, getToast, subscribeToast, type ToastContent } from "./toa
 
 /**
  * The toast: a top-layer popover on the inverse surface, centered above the navigation bar and the
- * docked player. Its text is announced through the polite live region by whoever shows it; the toast
- * itself never steals focus.
+ * docked player. Its role speaks its message (status, or alert for an error), so whoever shows a
+ * toast does not announce it again; the toast itself never steals focus.
  */
 export default function Toaster() {
   const toast = useSyncExternalStore(subscribeToast, getToast, () => null);
@@ -40,7 +40,7 @@ export default function Toaster() {
       <span className="toast-text">{shown?.message}</span>
       {shown?.actionLabel ? (
         <button
-          className="toast-action press"
+          className="toast-action"
           type="button"
           onClick={() => {
             dismissToast();

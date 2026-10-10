@@ -1,7 +1,7 @@
 /*
- * The Topics & sources page (pages/settings/podcast/topics.astro): each topic with its switch, its
+ * The Topics page (pages/settings/topics.astro): each topic with its switch, its
  * weight and the sources under it; the stars and the score; the filter row; and the Add source panel.
- * Tokens only. It is loaded after manage.css, whose form fields, bar of unsaved changes and dialog it
+ * Tokens only. It is loaded after manage.css, whose form fields, saving toast and dialog it
  * reuses, and after settings.css, which draws the switch and the slider.
  *
  * Rows are separated by space, never by a line; only the topics are divided. Every row is at least
@@ -10,14 +10,14 @@
 
 /* ------------------------------------------------------------------ the top of the page */
 
-/* A phone stacks: back, title, tabs, then the one primary action at full width. From 40rem the action
-   sits at the end of the title row. */
+/* A phone stacks: the title, then the one primary action at full width. From 40rem the action sits
+   at the end of the title's line, centred on it. */
 .topics {
   --source-row: var(--size-touch-comfortable);
 }
 
 .topics > .topics-add-source {
-  margin-block: 0 var(--space-6);
+  margin-block: var(--space-6);
 }
 
 @media (min-width: 40rem) {
@@ -32,122 +32,87 @@
     grid-column: 1 / -1;
   }
 
-  .topics > .manage-title {
+  .topics > .settings-head {
     grid-column: 1;
-    grid-row: 2;
-    align-self: center;
+    grid-row: 1;
   }
 
   .topics > .topics-add-source {
     grid-column: 2;
-    grid-row: 2;
+    grid-row: 1;
+    align-self: start;
     width: auto;
-    margin-block: var(--space-2) 0;
+    margin-block: calc(
+        (var(--text-display-size) * var(--text-display-leading) - var(--button-height)) /
+        2
+      )
+      var(--space-6);
     padding-inline: var(--space-6);
   }
 
-  .topics > .podcast-tabs {
-    grid-row: 3;
+  /* With Add source beside the title, nothing stands between the note and the first topic: the list
+     keeps the air the button gave it on a phone, so its first row sits as far down as on any page. */
+  .topics:not(.topic-page) > .manage-fields {
+    padding-block-start: var(--space-6);
   }
 }
 
-/* ------------------------------------------------------------------ the filter row */
+/* ------------------------------------------------------------------ the list of topics */
 
-/* The back link starts at the title's left edge; in the grid it would stretch and centre its label. */
-.topics > .manage-back {
-  justify-self: start;
+/* Each topic is a row that leads to its page, drawn like the rows of the Settings index: space
+   between them, no lines. Sources added from this page wait under Add source until the build files
+   them under their topic. */
+.topics-index > * + *::before {
+  content: none;
 }
 
-.topics-filters {
-  padding-block-end: var(--space-2);
+.topics .row-action {
+  border-radius: var(--button-radius);
 }
 
-/* The select only names a filter; these rules hide the sources a score leaves out. */
-.topics[data-band="good"] .source-row:not([data-band="good"]),
-.topics[data-band="fair"] .source-row:not([data-band="fair"]),
-.topics[data-band="poor"] .source-row:not([data-band="poor"]),
-.topics[data-band="new"] .source-row:not([data-band="new"]) {
-  display: none;
+.topics .row-action .icon {
+  margin-inline-end: calc(var(--size-icon) * -0.28);
+  color: var(--color-on-surface-subtle);
 }
 
-/* ------------------------------------------------------------------ topics */
-
-.topics-list {
-  display: grid;
-  margin: 0;
-  padding: 0;
-  list-style: none;
+.topics-added {
+  margin-block-end: var(--space-4);
 }
 
-/* Topics are set apart by space, not lines: far more air between two topics than between rows. */
+/* ------------------------------------------------------------------ a topic's page */
+
+.topic-page {
+  /* The slider shares the Settings controls' width from 40rem, so its edges line up with the switch. */
+  --settings-control-width: 18rem;
+}
+
 .topic {
-  padding-block: var(--space-6);
+  padding-block: var(--space-4) 0;
 }
 
-.topic:first-child {
-  padding-block-start: var(--space-4);
+/* Whether the topic is in the briefings and how much it counts: settings rows, separated by space. */
+.topic-controls > * + *::before {
+  content: none;
 }
 
-.topic-head {
-  display: flex;
-  align-items: center;
-  gap: var(--space-3);
-  min-height: var(--size-touch);
-}
-
-.topic-name {
-  flex: 1 1 0;
-  min-width: 0;
-  margin: 0;
-  font-family: inherit;
-  font-size: var(--font-size-body);
-  font-weight: var(--font-weight-medium);
-  line-height: var(--font-leading-label);
-  overflow-wrap: anywhere;
-}
-
-.topic-flag {
-  display: none;
-}
-
-.topic-head:has([data-remove][aria-pressed="true"]) .topic-flag {
-  display: block;
-}
-
-.topic-head:has([data-remove][aria-pressed="true"]) .topic-name {
-  text-decoration: line-through;
-}
-
-.topic-head > .icon-btn:last-child {
-  margin-inline-end: calc(var(--space-3) * -1);
-}
-
-.topic-remove[aria-pressed="true"] {
-  color: var(--color-danger);
-}
-
-.topic-weight {
-  display: flex;
-  align-items: center;
-  gap: var(--space-3);
-  min-height: var(--size-touch);
-}
-
-.topic-weight-label {
-  flex: none;
-  min-width: var(--space-16);
-  color: var(--color-on-surface-muted);
-  font-size: var(--font-size-label);
-  line-height: var(--font-leading-label);
+.topic-weight > .settings-label {
+  flex: 0 0 auto;
 }
 
 .topic-weight > .settings-range {
   flex: 1 1 auto;
 }
 
+@media (min-width: 40rem) {
+  .topic-weight > .settings-range {
+    flex: 0 1 var(--settings-control-width);
+    margin-inline-start: auto;
+  }
+}
+
 .topic-percent {
   flex: none;
-  min-width: 3ch;
+  min-width: 4ch;
   color: var(--color-on-surface-muted);
   font-size: var(--font-size-label);
   font-variant-numeric: tabular-nums;
@@ -155,8 +120,12 @@
 }
 
 /* A topic that is off keeps its slider, set where it was, and shows it as unused. */
-.topic:has(> .topic-head > .settings-switch:not(:checked)) .topic-weight > .settings-range {
+.topic-controls:has(.settings-switch:not(:checked)) .topic-weight > .settings-range {
   opacity: var(--opacity-disabled);
+}
+
+.topic-never {
+  padding-block: var(--space-2);
 }
 
 .topic-sources {
@@ -167,17 +136,65 @@
   list-style: none;
 }
 
-.topic-sources:empty,
-.topic-other:not(:has(.source-row)) {
+.topic-sources:empty {
   display: none;
 }
 
-/* A quiet text button at the end of a topic's sources; it flushes left with the names above it. */
-.topic-add-source {
+.topic-empty {
+  padding-block: var(--space-2);
+}
+
+.topic:has([data-sources] > .source-row) .topic-empty {
+  display: none;
+}
+
+/* A quiet text button under the sources: its plus centres on the icon column and its label lines up
+   with the names above it. Remove topic, further down, keeps the same columns. */
+.topic-add-source,
+.topic-remove {
+  gap: var(--space-3);
   margin-inline-start: calc(var(--space-3) * -1);
 }
 
-.topics [data-gone] {
+:is(.topic-add-source, .topic-remove) > .icon {
+  margin-inline: calc((var(--space-6) - var(--size-icon)) / 2);
+}
+
+/* Removing a custom topic: a quiet danger button at the end of its page. Pressed, it offers to keep
+   the topic until the removal is sent (with Undo in the toast too), and the rows above go quiet. */
+.topic-remove-row {
+  padding-block-start: var(--space-8);
+}
+
+.topic-remove {
+  color: var(--color-danger);
+}
+
+/* Pressed, it reads like a source's Undo: the accent, no glyph. */
+.topic-remove[data-pressed="true"] {
+  color: var(--color-accent);
+}
+
+.topic-remove[data-pressed="true"] .icon {
+  display: none;
+}
+
+.topic-remove[data-pressed="true"] .topic-remove-do,
+.topic-remove:not([data-pressed="true"]) .topic-remove-undo {
+  display: none;
+}
+
+.topic:has(.topic-remove[data-pressed="true"]) :is(.topic-controls, .topic-sources) {
+  opacity: var(--opacity-disabled);
+}
+
+/* Once the removal is in the repository, the page says so and keeps nothing else. */
+.topic[data-gone] > :not(.topic-gone),
+.topic:not([data-gone]) > .topic-gone {
+  display: none;
+}
+
+.topics li[data-gone] {
   display: none;
 }
 
@@ -252,6 +269,18 @@
   display: none;
 }
 
+/* A row just added says how its save goes under its name, on lines of its own, so neither the name
+   nor "Added. It appears after the next build." is cut short. */
+.source-text:has(> .source-note) {
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 0;
+}
+
+.source-note {
+  white-space: normal;
+}
+
 @media (min-width: 40rem) {
   .source-host {
     display: block;
@@ -262,7 +291,7 @@
   color: var(--color-on-surface-muted);
 }
 
-.source-row:has([data-remove][aria-pressed="true"]) :is(.source-name, .source-host) {
+.source-row:has([data-remove][data-pressed="true"]) :is(.source-name, .source-host) {
   text-decoration: line-through;
 }
 
@@ -281,18 +310,23 @@
   display: none;
 }
 
-.source-remove[aria-pressed="true"] {
+.source-remove[data-pressed="true"] {
   padding-inline: var(--space-3);
   border-radius: var(--button-radius);
   color: var(--color-accent);
 }
 
-.source-remove[aria-pressed="true"] .icon {
+.source-remove[data-pressed="true"] .icon {
   display: none;
 }
 
-.source-remove[aria-pressed="true"] .source-undo {
+.source-remove[data-pressed="true"] .source-undo {
   display: inline;
+}
+
+/* Pressed, it is the word Undo, and words never shrink: the press shows on the button's fill. */
+.source-remove[data-pressed="true"]:active {
+  transform: none;
 }
 
 /* A switch that turns an off source back on sits where the remove button would. */
@@ -334,7 +368,7 @@
   white-space: nowrap;
 }
 
-.source-row:has([data-remove][aria-pressed="true"]) .score {
+.source-row:has([data-remove][data-pressed="true"]) .score {
   opacity: var(--opacity-disabled);
 }
 
@@ -441,6 +475,11 @@
   align-items: center;
   gap: var(--space-3);
   min-width: 0;
+}
+
+/* The address is what the card asks you to confirm: it shows here even where rows hide the host. */
+.source-card .source-host {
+  display: block;
 }
 
 .source-card .source-icon {

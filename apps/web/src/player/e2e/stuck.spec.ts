@@ -72,19 +72,56 @@ test.describe("paths that used to leave the player stuck @surface", () => {
     await lab.goToNextPage();
     await lab.dockSettled();
     await lab.openPlayer();
+    // Back dismisses the open player and stays on the page.
     await page.goBack();
-    await expect(page).toHaveURL(new RegExp(`${lab.facts.path}$`));
+    await expect(page).toHaveURL(lab.facts.nextUrl);
     await lab.collapsed();
     // The bar shows its cover again; nothing was left hidden by the navigation.
     await expect(lab.openButton.locator(".player-cover-frame")).toBeVisible();
     await lab.dockSettled();
     await lab.openPlayer();
     await expect(lab.scrubber).toBeVisible();
+    await page.goBack();
+    await lab.collapsed();
+    // A second Back, with nothing open, leaves the page.
+    await page.goBack();
+    await expect(page).toHaveURL(new RegExp(`${lab.facts.path}$`));
+    await lab.collapsed();
     await page.goForward();
     await expect(page).toHaveURL(lab.facts.nextUrl);
     await lab.collapsed();
     await lab.dockSettled();
     await lab.openPlayer();
+  });
+
+  test("Back closes the open player and stays on the page; a second Back leaves", async ({
+    lab,
+    page,
+  }) => {
+    await lab.open();
+    await lab.play();
+    await lab.goToNextPage();
+    await lab.dockSettled();
+    await lab.openPlayer();
+    await page.goBack();
+    await lab.collapsed();
+    await expect(page).toHaveURL(lab.facts.nextUrl);
+    await page.goBack();
+    await expect(page).toHaveURL(new RegExp(`${lab.facts.path}$`));
+  });
+
+  test("a player closed any other way gives its history entry back", async ({ lab, page }) => {
+    await lab.open();
+    await lab.play();
+    await lab.goToNextPage();
+    await lab.dockSettled();
+    await lab.openPlayer();
+    await page.keyboard.press("Escape");
+    await lab.collapsed();
+    await expect(page).toHaveURL(lab.facts.nextUrl);
+    // One Back leaves: the entry the open player took was handed back on close.
+    await page.goBack();
+    await expect(page).toHaveURL(new RegExp(`${lab.facts.path}$`));
   });
 
   test("after the toast's Open action with the player open, a tap on the bar opens it again", async ({

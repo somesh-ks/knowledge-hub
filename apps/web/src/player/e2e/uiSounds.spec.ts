@@ -101,7 +101,7 @@ test.describe("interface cues by kind of action @surface", () => {
   });
 
   test("a switch is a select, and its own cue is not doubled", async ({ lab, page }) => {
-    await lab.open("/settings/podcast/topics");
+    await lab.open("/settings/topics/design_engineering_craft");
     await prime(page);
     const topic = page.getByRole("switch").first();
     await topic.click();
@@ -113,7 +113,8 @@ test.describe("interface cues by kind of action @surface", () => {
 
     await lab.open("/settings");
     await prime(page);
-    await page.getByRole("switch", { name: "Interface sounds" }).click();
+    // The section is "Interface sounds"; its switch is labelled "Sounds".
+    await page.getByRole("switch", { name: "Sounds", exact: true }).click();
     await page.waitForTimeout(300);
     // The Settings switch plays its own cue; the delegate stays out of its way.
     expect(await heard(page)).toEqual([]);
@@ -123,8 +124,9 @@ test.describe("interface cues by kind of action @surface", () => {
   test("nothing sounds once Sounds is off", async ({ lab, page }) => {
     await lab.open("/settings");
     await prime(page);
-    await page.getByRole("switch", { name: "Interface sounds" }).click();
-    await expect(page.getByRole("switch", { name: "Interface sounds" })).not.toBeChecked();
+    const sounds = page.getByRole("switch", { name: "Sounds", exact: true });
+    await sounds.click();
+    await expect(sounds).not.toBeChecked();
     await reset(page);
     await page
       .getByRole("navigation", { name: "Primary" })

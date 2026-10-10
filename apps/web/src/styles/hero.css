@@ -16,9 +16,11 @@
   padding-block: var(--page-top) var(--space-2);
 }
 
-/* Flat, like every surface here: the cover keeps its hairline outline and loses its shadow. */
+/* Flat, like every surface here: the cover keeps its hairline outline and loses its shadow. It
+   stays level with the title's first line, not centred on a tall title block. */
 .hero .cover {
   grid-area: cover;
+  align-self: start;
   width: 100%;
   box-shadow: none;
 }
@@ -28,10 +30,14 @@
   display: grid;
   gap: var(--space-2);
   min-width: 0;
+  container-type: inline-size;
 }
 
-/* The title takes what is left and wraps; the More button holds the far edge, level with the first line. */
+/* The title takes what is left and wraps; the More button holds the far edge, level with the first
+   line. The title's size is set on the row, so the button can follow it. */
 .hero-title-row {
+  --hero-title-size: var(--text-display-size);
+  --hero-title-leading: var(--text-display-leading);
   display: flex;
   align-items: flex-start;
   justify-content: space-between;
@@ -41,6 +47,29 @@
 .hero-title-row > .page-title {
   min-width: 0;
   flex: 1 1 auto;
+  /* A long word breaks inside the column instead of widening the page. */
+  overflow-wrap: anywhere;
+  hyphens: auto;
+  font-size: var(--hero-title-size);
+  line-height: var(--hero-title-leading);
+}
+
+/* Below a 360px screen the text column beside the cover is under 14rem: a long episode title runs to
+   four or five lines there, and a date such as "Wednesday 30 September", whose day and month never
+   part, no longer fits. There the title takes the section heading's size, so it is never smaller
+   than the headings under it; from 360px it keeps the display size. */
+@container (width < 14rem) {
+  .hero-title-row {
+    --hero-title-size: var(--font-size-section);
+    --hero-title-leading: var(--text-lead-leading);
+  }
+}
+
+/* The chip holds the width of its common labels ("1 min", "Playing", "1 min left"), so the facts
+   beside it stay where they are as the label changes. */
+.hero-actions > .chip {
+  min-inline-size: 8rem;
+  justify-content: center;
 }
 
 .hero-actions {
@@ -74,8 +103,13 @@
 /* The More button: an .icon-btn at the end of the title's row. */
 .hero-more {
   anchor-name: --hero-more;
-  /* The glyph, not its 44px target, lines up with the column's edge. */
+  /* The glyph, not its 44px target, lines up with the column's edge, and its middle with the
+     middle of the title's first line. */
   margin-inline-end: calc(var(--space-2) * -1);
+  margin-block-start: calc(
+    (var(--hero-title-size) * var(--hero-title-leading) - var(--size-touch)) /
+    2
+  );
 }
 
 /* Share shows a check on the button for a moment after the link is copied. */
@@ -114,7 +148,9 @@
   /* Closed, a popover is display: none; the open state alone turns it on. */
   display: none;
   opacity: 0;
-  transform: translateY(calc(var(--distance-micro) * -1));
+  /* It grows out of the corner by the More button. */
+  transform: scale(var(--scale-enter));
+  transform-origin: top right;
   transition:
     opacity var(--duration-exit) var(--ease-out),
     transform var(--duration-exit) var(--ease-out),
@@ -142,10 +178,28 @@
 @starting-style {
   .hero-menu-list:popover-open {
     opacity: 0;
-    transform: translateY(calc(var(--distance-micro) * -1));
+    transform: scale(var(--scale-enter));
   }
 }
 
+/* Reduced motion: the menu fades in and out where it stands. The durations are the state's, which
+   reduced motion does not collapse, so the fade stays. */
+@media (prefers-reduced-motion: reduce) {
+  .hero-menu-list,
+  .hero-menu-list:popover-open {
+    transform: none;
+    transition-duration: var(--duration-state);
+  }
+
+  @starting-style {
+    .hero-menu-list:popover-open {
+      transform: none;
+    }
+  }
+}
+
+/* A row of the menu. A press fills it and never scales its words. The fills are the item's own ink
+   at low strength, so they lift the row on the panel in either scheme instead of sinking it. */
 .hero-menu-item {
   display: flex;
   align-items: center;
@@ -157,16 +211,23 @@
   font-size: var(--font-size-body);
   line-height: var(--font-leading-label);
   text-align: start;
+  transition: background-color var(--duration-hover) var(--ease-hover);
 }
 
 @media (hover: hover) and (pointer: fine) {
   .hero-menu-item:hover {
-    background: var(--color-surface-sunken);
+    background: color-mix(in oklab, currentColor 8%, transparent);
   }
 }
 
 .hero-menu-item:active {
-  background: var(--color-surface-sunken);
+  background: color-mix(in oklab, currentColor 12%, transparent);
+}
+
+/* The ring is drawn inside the row, so it never meets the panel's edge. */
+.hero-menu-item:focus-visible {
+  outline-offset: calc(var(--stroke-ring) * -1);
+  box-shadow: none;
 }
 
 /* Red marks the one that destroys; the confirm still asks before anything is removed. */
