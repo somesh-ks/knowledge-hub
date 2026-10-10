@@ -24,7 +24,8 @@
   --run-room: 0px;
   /* Where the first block of every destination starts, under the app bar: Today's cover sets it. */
   --page-top: var(--space-8);
-  /* Room under the last control: the floating Create button (its size and its margin) and some air. */
+  /* Room under the last control: the floating Create button (its size and its margin) and some air.
+     Only Today and the Library have the button (D52); every other page needs only the air. */
   --page-end: var(--space-24);
   /* Everything that sticks under the top chrome sticks here: section tabs, the aside. */
   --sticky-top: calc(var(--app-bar-height) + var(--safe-top));
@@ -33,6 +34,10 @@
   /* Anchors and focus scrolling land below the sticky chrome, not under it. */
   scroll-padding-block: calc(var(--sticky-top) + var(--space-4))
     calc(var(--bottom-nav-height) + var(--space-4));
+}
+
+html:not([data-fab]) {
+  --page-end: var(--space-12);
 }
 
 html[data-mini="visible"] {

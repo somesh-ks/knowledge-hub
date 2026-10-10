@@ -636,14 +636,15 @@ html[data-mini="visible"] .toast {
 /*
  * Below 64rem the run line and, above it, the floating Create button stack over the bottom bar
  * (create-sheet.css). A toast sits 12px above the higher of the two that shows: the run line alone
- * where the button is hidden (on /create, while a sheet is open), neither while the player is open.
+ * where there is no button (every page but Today and the Library, D52) or it is hidden (a sheet is
+ * open), neither while the player is open.
  */
 @media (width < 64rem) {
   html:not([data-player="open"]) .toast {
     --toast-lift: var(--run-room);
   }
 
-  html:not([data-view="create"], [data-player="open"]):not(:has(dialog[open])) .toast {
+  html[data-fab]:not([data-player="open"]):not(:has(dialog[open])) .toast {
     --toast-lift: calc(var(--run-room) + var(--space-4) + var(--fab-size));
   }
 }

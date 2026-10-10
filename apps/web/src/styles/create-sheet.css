@@ -52,10 +52,14 @@
     var(--space-4)
   );
   z-index: var(--z-header);
-  display: grid;
-  place-items: center;
-  width: var(--fab-size);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  /* Folded it is a square of the button's size: the plus with equal padding round it. Extended, the
+     word adds its own width, and the button grows to the left from its fixed right edge. */
+  min-width: var(--fab-size);
   height: var(--fab-size);
+  padding-inline: calc((var(--fab-size) - var(--size-icon-lg)) / 2 - var(--stroke-hairline));
   border: var(--stroke-hairline) solid transparent;
   border-radius: var(--radius-lg);
   background: var(--cta-bg);
@@ -109,8 +113,34 @@ html:has(dialog[open]) .create-fab {
   }
 }
 
-html[data-view="create"] .create-fab {
-  display: none;
+/* The word folds away while scrolling down to read, and comes back at the top and on the way up. */
+.create-fab-label {
+  max-width: 6rem;
+  margin-inline: var(--space-3) var(--space-1);
+  overflow: hidden;
+  font-size: var(--font-size-label);
+  font-weight: var(--font-weight-medium);
+  line-height: var(--font-leading-label);
+  white-space: nowrap;
+  transition:
+    max-width var(--duration-state) var(--ease-out),
+    margin-inline var(--duration-state) var(--ease-out),
+    opacity var(--duration-hover) var(--ease-out);
+}
+
+.create-fab[data-folded] .create-fab-label {
+  max-width: 0;
+  margin-inline: 0;
+  opacity: 0;
+}
+
+/* Folding is a change of size, so with reduced motion the button stays extended. */
+@media (prefers-reduced-motion: reduce) {
+  .create-fab[data-folded] .create-fab-label {
+    max-width: 6rem;
+    margin-inline: var(--space-3) var(--space-1);
+    opacity: 1;
+  }
 }
 
 @media (min-width: 64rem) {

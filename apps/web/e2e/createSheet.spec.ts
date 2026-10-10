@@ -52,8 +52,18 @@ test.describe("Create as the primary action", () => {
     } else {
       await expect(page.locator(".app-nav-create")).toBeHidden();
       await expect(page.getByRole("link", { name: "Create Podcast" })).toBeVisible();
-      const box = await page.locator(".create-fab").boundingBox();
-      expect(Math.round(box?.width ?? 0)).toBe(56);
+      // Extended at the top of the page, the plus and the word; folded to a 56px square while
+      // scrolling down to read (D52).
+      const fab = page.locator(".create-fab");
+      await expect(fab).toContainText("Create");
+      expect(Math.round((await fab.boundingBox())?.width ?? 0)).toBeGreaterThan(56);
+      await page.mouse.wheel(0, 600);
+      await page.waitForTimeout(150);
+      await page.mouse.wheel(0, 600);
+      await expect(fab).toHaveAttribute("data-folded", "");
+      await expect.poll(async () => Math.round((await fab.boundingBox())?.width ?? 0)).toBe(56);
+      await page.mouse.wheel(0, -400);
+      await expect(fab).not.toHaveAttribute("data-folded", "");
     }
     await expect(page.locator(".app-nav-item")).toHaveText(["Today", "Library", "Settings"]);
   });

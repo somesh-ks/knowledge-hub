@@ -38,6 +38,11 @@ addEventListener("vite:preloadError", () => {
     )
     .finally(() => location.reload());
 });
+// The floating Create button is extended until the first scroll, so what folds it waits for one.
+addEventListener("scroll", () => void import("./fabScroll").then((fab) => fab.installFabScroll()), {
+  once: true,
+  passive: true,
+});
 // What makes a move between destinations immediate is not needed for first paint.
 (window.requestIdleCallback ?? ((run: () => void) => setTimeout(run, 200)))(() => {
   void import("./navigationBoost").then((boost) => boost.installNavigationBoost());

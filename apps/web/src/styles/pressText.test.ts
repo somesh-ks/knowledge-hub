@@ -18,12 +18,12 @@ const LABEL_CONTROLS = [
   "settings-segment",
   "segmented",
   "create-chip",
-  "podcast-tab",
   "app-nav-item",
   "app-nav-create",
   "wordmark",
   "toast-action",
   "card-link",
+  "create-fab",
 ];
 
 function filesUnder(dir: string, extensions: string[]): string[] {

@@ -64,12 +64,18 @@ const colors = readBrandColors();
 const destination =
   nav === undefined ? (view === "home" ? "today" : view === "create" ? null : view) : nav;
 const pageTitle = title ? `${title}, Singularity` : "Singularity";
+// The floating Create button belongs to the two top-level lists where making an episode is the next
+// thing to do, Today and the Library, as a primary action does on Android. Settings, a briefing or an
+// episode would only be cluttered by it; the side column carries Create on wide screens everywhere.
+const path = Astro.url.pathname.replace(/\/$/, "") || "/";
+const fab = path === "/" || path === "/library";
 ---
 
 <!doctype html>
 <html
   lang="en"
   data-view={view}
+  data-fab={fab ? "" : undefined}
   data-layout={layout}
   data-digest-id={digestId}
   data-player="closed"
@@ -102,7 +108,7 @@ const pageTitle = title ? `${title}, Singularity` : "Singularity";
     <a class="skip-link" href="#main">{skipLabel}</a>
     <SiteHeader />
     <AppNav current={destination} />
-    <CreateFab />
+    {fab && <CreateFab />}
     <RunStatus />
     <div class="banner-stack page" id="banners"><slot name="banners" /></div>
     <div class="shell page"><slot /></div>
