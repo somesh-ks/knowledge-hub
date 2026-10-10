@@ -619,6 +619,11 @@
     display var(--duration-press-in) allow-discrete;
 }
 
+/* The open player covers the navigation column too, so a toast centres on the player. */
+html[data-player="open"] .toast {
+  inset-inline-start: 0;
+}
+
 /* One step darker than the light page's accent: 5.4:1 on the light inverse surface. */
 @media (prefers-color-scheme: dark) {
   :root:not([data-theme="light"]) .toast {
