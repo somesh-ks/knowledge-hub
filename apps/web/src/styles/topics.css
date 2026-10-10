@@ -79,13 +79,12 @@
   list-style: none;
 }
 
+/* Topics are set apart by space, not lines: far more air between two topics than between rows. */
 .topic {
   padding-block: var(--space-6);
-  border-block-start: var(--stroke-hairline) solid var(--color-border-hairline);
 }
 
 .topic:first-child {
-  border-block-start: 0;
   padding-block-start: var(--space-4);
 }
 
