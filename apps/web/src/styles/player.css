@@ -647,7 +647,6 @@
   --dot: var(--scrubber-tick-dot-chapter);
 }
 
-
 /* The clock at the thumb while it is being moved. */
 .dock-seek-time {
   position: absolute;
@@ -994,7 +993,6 @@
 .scrubber-tick[data-chapter] {
   --dot: var(--scrubber-tick-dot-chapter);
 }
-
 
 /* The thumb is a zero-size anchor that script moves with --thumb-x. The visible disc is a
    pseudo-element, so its press scale never multiplies the anchor's translation (individual
