@@ -481,8 +481,8 @@ export class LabPage {
   /** How far along the bar's progress line is, 0 to 1. */
   async progressOf(): Promise<number> {
     return this.page
-      .locator(".dock-progress-fill")
-      .evaluate((fill) => Number(fill.style.getPropertyValue("--player-progress")));
+      .locator(".dock-progress")
+      .evaluate((line) => Number(line.style.getPropertyValue("--player-progress")));
   }
 }
 

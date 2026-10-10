@@ -21,7 +21,8 @@ export const PLAYER_PAGE_ID = "dispatch-player-page";
 /** Under the title when there are no stories to name: what kind of recording it is, and how long. */
 function noStoriesCaption(digest: PlayerDigestData | undefined): string {
   if (!digest) return "";
-  const kind = digest.kind === "weekly" ? "Weekly briefing" : "Briefing";
+  // An episode carries its script; a briefing does not.
+  const kind = digest.turns ? "Episode" : digest.kind === "weekly" ? "Weekly briefing" : "Briefing";
   return digest.audio ? `${kind}, ${briefingLengthLabel(digest.audio.duration_ms)}` : kind;
 }
 
@@ -142,11 +143,12 @@ export default function PlayerBar() {
   const state = usePlayerState();
   const store = getPlayerStore();
   const second = usePlayerSecond();
-  const fillRef = useRef<HTMLSpanElement>(null);
+  const lineRef = useRef<HTMLDivElement>(null);
 
-  // The playhead goes straight to a leaf element: React never renders at frame rate.
+  // The playhead goes straight to the line, whose fill and notch read it: React never renders at
+  // frame rate, and the line holds only those two.
   usePlayerFrame((time, duration) => {
-    fillRef.current?.style.setProperty(
+    lineRef.current?.style.setProperty(
       "--player-progress",
       fractionOfTime(time, duration).toFixed(5),
     );
@@ -173,6 +175,7 @@ export default function PlayerBar() {
     <section className="player-dock" aria-label="Audio player" data-player-dock>
       <div
         className="dock-progress"
+        ref={lineRef}
         aria-hidden="true"
         style={
           {
@@ -184,7 +187,7 @@ export default function PlayerBar() {
           } as React.CSSProperties
         }
       >
-        <span className="dock-progress-fill" ref={fillRef} />
+        <span className="dock-progress-fill" />
       </div>
       <DockSeek duration={state.duration} />
       <div className="dock-transport">

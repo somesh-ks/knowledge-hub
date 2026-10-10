@@ -595,13 +595,14 @@
 /*
  * The bar's scrubber: a native range laid over the progress line along the bar's top edge. The line
  * shows the position; the range takes the pointer and the keyboard, and shows its thumb when used.
- * The range is centred on the middle of the line as it is drawn while in use (twice as thick, grown
- * downward from the bar's edge), so the thumb sits on the line and not above it.
+ * The range starts at the bar's edge, so a press on the page above it never seeks; its thumb is
+ * lifted onto the middle of the line as it is drawn while in use (twice as thick, grown downward
+ * from the edge).
  */
 .dock-seek {
   position: absolute;
   inset-inline: 0;
-  inset-block-start: calc(var(--mini-player-progress-height) - var(--space-2));
+  inset-block-start: 0;
   z-index: 1;
   display: none;
   width: 100%;
@@ -628,7 +629,7 @@
 .dock-seek::-webkit-slider-thumb {
   width: var(--space-3);
   height: var(--space-3);
-  margin-block-start: calc((var(--space-4) - var(--space-3)) / 2);
+  margin-block-start: calc(var(--mini-player-progress-height) - var(--space-3) / 2);
   border: 0;
   border-radius: var(--radius-round);
   background: var(--color-accent);
@@ -643,6 +644,8 @@
   border: 0;
   border-radius: var(--radius-round);
   background: var(--color-accent);
+  /* Firefox centres the thumb in the strip; it moves up onto the line like the one above. */
+  transform: translateY(calc(var(--mini-player-progress-height) - var(--space-2)));
   opacity: 0;
   transition: opacity var(--duration-hover) var(--ease-hover);
 }
@@ -966,7 +969,20 @@
   /* Here the line is the timeline, so the unplayed part shows too, and its chapter gaps. The strong
      track, so it reads on the bar's raised colour in the dark theme as well. */
   .dock-progress {
+    container-type: inline-size;
     background: var(--color-border-control);
+  }
+
+  /* No grey is 3:1 from both the bar and the accent, so a notch in the bar's own colour marks where
+     the played part ends, as wide as the line is thick. It moves with the progress, by transform. */
+  .dock-progress::after {
+    content: "";
+    position: absolute;
+    inset-block: 0;
+    inset-inline-start: 0;
+    width: var(--mini-player-progress-height);
+    background: var(--mini-player-bg);
+    translate: calc(var(--player-progress, 0) * 100cqi) 0;
   }
 }
 
