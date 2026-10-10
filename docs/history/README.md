@@ -4,6 +4,7 @@ One note per session, newest first. Read a note only to learn why something was 
 
 | Date | Note | Summary |
 | :--- | :--- | :--- |
+| 2026-10-10 | [Design pass, two-level Settings and autosave](2026-10-10-design-pass-settings-autosave.md) | Audit of every screen, drawn select lists, Settings in two levels that save themselves, the phone Create button on Today and the Library (D51, D52) |
 | 2026-10-10 | [Podcast settings, providers, voices and the player redesign](2026-10-10-podcast-settings-and-providers.md) | One Podcast page with Daily, Weekly and Custom, Anthropic, voices, sources with scores, the player redesign draft (D49) |
 | 2026-10-09 | [Snappy navigation and model choice](2026-10-09-snappy-navigation-and-model-choice.md) | Moves answered from a saved copy and swapped at once, Model in Settings, polish pass, ambient cover light (D46 to D48) |
 | 2026-10-08 | [Session learnings](2026-10-08-session-learnings.md) | What went wrong in an 18-PR day and the rules that follow: owner working style, running subagents, engineering practice |
