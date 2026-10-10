@@ -8,14 +8,13 @@ interface Props {
 }
 
 const { source } = Astro.props;
-const letter = (source.name.match(/[\p{L}\p{N}]/u)?.[0] ?? "?").toUpperCase();
 // The filter bands: Good is 4 and up, Fair 3 to 4, Poor under 3, New has no score yet.
 const band =
   source.score === null ? "new" : source.score >= 4 ? "good" : source.score >= 3 ? "fair" : "poor";
 ---
 
-{/* One source under its topic. The icon is the site's own, drawn over a letter that stays if it
-     never loads (topicsPage.ts marks it loaded). Removing is switching it off, so a source that is
+{/* One source under its topic. The icon is the site's own and shows once it loads (topicsPage.ts
+     marks it loaded); a source without one keeps an empty slot, so every name starts at one edge. Removing is switching it off, so a source that is
      already off shows a switch instead, to turn it back on. */}
 <li
   class="source-row"
@@ -26,7 +25,6 @@ const band =
   data-off={source.enabled ? undefined : ""}
 >
   <span class="source-icon" aria-hidden="true">
-    <span class="source-letter">{letter}</span>
     {
       source.favicon_url && (
         <img

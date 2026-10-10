@@ -207,7 +207,7 @@ export function mountEditor(root: HTMLElement): Editor {
     const note = element("span", "source-note", "Adding when you save");
     label.append(element("span", "source-name", preview.name), note);
     row.append(
-      iconNode(preview.name, preview.favicon_url ?? preview.thumbnail_url),
+      iconNode(preview.favicon_url ?? preview.thumbnail_url),
       label,
       scoreNode(preview.score, preview.score_label),
       element("span", "source-slot"),

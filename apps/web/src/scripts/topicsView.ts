@@ -37,17 +37,11 @@ function element<K extends keyof HTMLElementTagNameMap>(
   return node;
 }
 
-/** The first letter or digit of a name, in capitals. */
-export function letterOf(name: string): string {
-  return (name.match(/[\p{L}\p{N}]/u)?.[0] ?? "?").toUpperCase();
-}
-
-/** A tile with the site's icon over the name's first letter; the icon shows only once it loads. */
-export function iconNode(name: string, src: string | null): HTMLElement {
+/** A slot for the site's icon; the icon shows only once it loads, and without one the slot is empty. */
+export function iconNode(src: string | null): HTMLElement {
   const tile = element("span", "source-icon");
   tile.setAttribute("aria-hidden", "true");
-  tile.append(element("span", "source-letter", letterOf(name)));
-  // Only a secure address is drawn; anything else leaves the letter.
+  // Only a secure address is drawn; anything else leaves the slot empty.
   if (src?.startsWith("https://")) {
     // Icons come through the site's own function, so the policy never allows another host.
     const image = new Image();

@@ -31,7 +31,7 @@ function mount(root: HTMLElement): void {
   const loaded = (image: HTMLImageElement): void => {
     if (image.naturalWidth > 0) image.dataset.loaded = "";
   };
-  // An icon shows once it has loaded; one that never does leaves its letter. `load` does not bubble.
+  // An icon shows once it has loaded; one that never does leaves an empty slot. `load` does not bubble.
   root.addEventListener(
     "load",
     (event) => {
