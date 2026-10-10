@@ -28,8 +28,8 @@ const SIZES: Record<Props["size"], string> = {
 <span class="cover" data-size={size} data-weekly={weekly ? "" : undefined} style={`--cover-bg:${paletteBg}`}>
   <img
     class="cover-image"
-    src={`/covers/${digestId}-512.png`}
-    srcset={`/covers/${digestId}-512.png 512w, /covers/${digestId}-1024.png 1024w`}
+    src={`/covers/${digestId}-512.webp`}
+    srcset={`/covers/${digestId}-512.webp 512w, /covers/${digestId}-1024.webp 1024w`}
     sizes={SIZES[size]}
     width="512"
     height="512"

@@ -37,15 +37,22 @@ export interface MediaSessionDeps {
   isHidden?: () => boolean;
 }
 
+/** The PNG beside a cover's WebP. */
+export function asPng(src: string): string {
+  return src.replace(/\.webp$/, ".png");
+}
+
 export function trackMetadata(track: Track): MediaMetadataInit {
   const { digest } = track;
   return {
     title: digest.title || longDateFromDigestId(digest.id),
     artist: "Singularity",
     album: monthLabelFromDate(digest.date),
+    // The lock screen gets the PNG beside each WebP cover: not every system's media controls
+    // decode WebP, and the pages never ask for these files.
     artwork: [
-      { src: digest.cover.src512, sizes: "512x512", type: "image/png" },
-      { src: digest.cover.src1024, sizes: "1024x1024", type: "image/png" },
+      { src: asPng(digest.cover.src512), sizes: "512x512", type: "image/png" },
+      { src: asPng(digest.cover.src1024), sizes: "1024x1024", type: "image/png" },
     ],
   };
 }

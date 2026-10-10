@@ -100,8 +100,8 @@ function toEntry(
     items: playerItems(items, audioMode === "ready" ? timeline : null),
     sections: playerSections(digest, audioMode === "ready" ? timeline : null),
     cover: {
-      src512: `/covers/${digest.id}-512.png`,
-      src1024: `/covers/${digest.id}-1024.png`,
+      src512: `/covers/${digest.id}-512.webp`,
+      src1024: `/covers/${digest.id}-1024.webp`,
       key: paletteAccent(digest.cover.palette).light,
     },
     prev_id: prevId,

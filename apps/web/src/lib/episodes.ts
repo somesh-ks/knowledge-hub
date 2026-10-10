@@ -115,8 +115,8 @@ function toEntry(episode: Episode): EpisodeEntry {
         ? [{ slug: EPISODE_SECTION.slug, title: EPISODE_SECTION.title, start_ms: null }]
         : [],
     cover: {
-      src512: `/covers/${episode.id}-512.png`,
-      src1024: `/covers/${episode.id}-1024.png`,
+      src512: `/covers/${episode.id}-512.webp`,
+      src1024: `/covers/${episode.id}-1024.webp`,
       key: paletteAccent(cover.palette).light,
     },
     prev_id: null,
