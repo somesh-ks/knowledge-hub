@@ -47,12 +47,14 @@ export function keywordList(text: string): string[] {
 
 type Control = HTMLInputElement;
 
-/** What a control holds now. A pressed button is a boolean, a slider a number. */
+/**
+ * What a control holds now. A pressed button is a boolean, a slider a number. A remove button keeps
+ * its state in data-pressed, not aria-pressed: its name changes with it ("Remove X", "Undo removing
+ * X"), and a toggle button's name must not.
+ */
 function held(control: Control): boolean | number {
   if (control.type === "range") return Number(control.value);
-  return control.type === "checkbox"
-    ? control.checked
-    : control.getAttribute("aria-pressed") === "true";
+  return control.type === "checkbox" ? control.checked : control.dataset.pressed === "true";
 }
 
 /** What a control held when the page was built: its markup, before anyone touched it. */
@@ -111,9 +113,7 @@ export function mountEditor(root: HTMLElement): Editor {
     },
     {
       removing() {
-        const names = removals().map((button) =>
-          (button.dataset.label ?? "").replace(/^Remove /, ""),
-        );
+        const names = removals().map((button) => button.dataset.name ?? "");
         if (names.length === 0) return null;
         return names.length === 1 ? `Removing ${names[0]}` : `Removing ${names.length} items`;
       },
@@ -136,6 +136,11 @@ export function mountEditor(root: HTMLElement): Editor {
     queued.append(row);
     changes.set(row.dataset.key, { op, el: row, now: "" });
     autosave.changed();
+    // The form closes behind it, so focus and the view go to the row that says it is being added.
+    row.tabIndex = -1;
+    row.focus({ preventScroll: true });
+    const reduce = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+    row.scrollIntoView({ block: "center", behavior: reduce ? "instant" : "smooth" });
   };
 
   const addTopic = (form: HTMLFormElement): void => {
@@ -248,7 +253,7 @@ export function mountEditor(root: HTMLElement): Editor {
     } else if (button.dataset.op) {
       const control = button as unknown as Control;
       const pressed = !held(control);
-      control.setAttribute("aria-pressed", String(pressed));
+      control.dataset.pressed = String(pressed);
       const label = pressed ? control.dataset.labelUndo : control.dataset.label;
       if (label) control.setAttribute("aria-label", label);
       update(control);

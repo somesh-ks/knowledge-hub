@@ -49,6 +49,12 @@
       var(--space-6);
     padding-inline: var(--space-6);
   }
+
+  /* With Add source beside the title, nothing stands between the note and the first topic: the list
+     keeps the air the button gave it on a phone, so its first row sits as far down as on any page. */
+  .topics:not(.topic-page) > .manage-fields {
+    padding-block-start: var(--space-6);
+  }
 }
 
 /* ------------------------------------------------------------------ the list of topics */
@@ -143,13 +149,14 @@
 }
 
 /* A quiet text button under the sources: its plus centres on the icon column and its label lines up
-   with the names above it. */
-.topic-add-source {
+   with the names above it. Remove topic, further down, keeps the same columns. */
+.topic-add-source,
+.topic-remove {
   gap: var(--space-3);
   margin-inline-start: calc(var(--space-3) * -1);
 }
 
-.topic-add-source > .icon {
+:is(.topic-add-source, .topic-remove) > .icon {
   margin-inline: calc((var(--space-6) - var(--size-icon)) / 2);
 }
 
@@ -160,25 +167,24 @@
 }
 
 .topic-remove {
-  margin-inline-start: calc(var(--space-3) * -1);
   color: var(--color-danger);
 }
 
 /* Pressed, it reads like a source's Undo: the accent, no glyph. */
-.topic-remove[aria-pressed="true"] {
+.topic-remove[data-pressed="true"] {
   color: var(--color-accent);
 }
 
-.topic-remove[aria-pressed="true"] .icon {
+.topic-remove[data-pressed="true"] .icon {
   display: none;
 }
 
-.topic-remove[aria-pressed="true"] .topic-remove-do,
-.topic-remove:not([aria-pressed="true"]) .topic-remove-undo {
+.topic-remove[data-pressed="true"] .topic-remove-do,
+.topic-remove:not([data-pressed="true"]) .topic-remove-undo {
   display: none;
 }
 
-.topic:has(.topic-remove[aria-pressed="true"]) :is(.topic-controls, .topic-sources) {
+.topic:has(.topic-remove[data-pressed="true"]) :is(.topic-controls, .topic-sources) {
   opacity: var(--opacity-disabled);
 }
 
@@ -263,6 +269,18 @@
   display: none;
 }
 
+/* A row just added says how its save goes under its name, on lines of its own, so neither the name
+   nor "Added. It appears after the next build." is cut short. */
+.source-text:has(> .source-note) {
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 0;
+}
+
+.source-note {
+  white-space: normal;
+}
+
 @media (min-width: 40rem) {
   .source-host {
     display: block;
@@ -273,7 +291,7 @@
   color: var(--color-on-surface-muted);
 }
 
-.source-row:has([data-remove][aria-pressed="true"]) :is(.source-name, .source-host) {
+.source-row:has([data-remove][data-pressed="true"]) :is(.source-name, .source-host) {
   text-decoration: line-through;
 }
 
@@ -292,18 +310,23 @@
   display: none;
 }
 
-.source-remove[aria-pressed="true"] {
+.source-remove[data-pressed="true"] {
   padding-inline: var(--space-3);
   border-radius: var(--button-radius);
   color: var(--color-accent);
 }
 
-.source-remove[aria-pressed="true"] .icon {
+.source-remove[data-pressed="true"] .icon {
   display: none;
 }
 
-.source-remove[aria-pressed="true"] .source-undo {
+.source-remove[data-pressed="true"] .source-undo {
   display: inline;
+}
+
+/* Pressed, it is the word Undo, and words never shrink: the press shows on the button's fill. */
+.source-remove[data-pressed="true"]:active {
+  transform: none;
 }
 
 /* A switch that turns an off source back on sits where the remove button would. */
@@ -345,7 +368,7 @@
   white-space: nowrap;
 }
 
-.source-row:has([data-remove][aria-pressed="true"]) .score {
+.source-row:has([data-remove][data-pressed="true"]) .score {
   opacity: var(--opacity-disabled);
 }
 

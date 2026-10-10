@@ -138,10 +138,11 @@ const editable = topic !== null && !topic.never_publish;
                 <button
                   class="btn topic-remove press press-subtle"
                   type="button"
-                  aria-pressed="false"
-                  aria-label={`Remove ${name}`}
-                  data-label={`Remove ${name}`}
-                  data-label-undo={`Keep ${name}`}
+                  data-pressed="false"
+                  aria-label={`Remove topic ${name}`}
+                  data-name={name}
+                  data-label={`Remove topic ${name}`}
+                  data-label-undo={`Keep topic ${name}`}
                   data-op={JSON.stringify({ op: "topic.remove", id: topic.id })}
                   data-remove
                 >
@@ -152,7 +153,7 @@ const editable = topic !== null && !topic.never_publish;
               </div>
             )
           }
-          <p class="manage-quiet topic-gone">Removed. The page goes after the next build.</p>
+          <p class="manage-quiet topic-gone" tabindex="-1">Removed. The page goes after the next build.</p>
         </div>
       </fieldset>
 

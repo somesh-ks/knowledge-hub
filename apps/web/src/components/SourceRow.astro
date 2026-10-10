@@ -56,10 +56,11 @@ const band =
       <button
         class="icon-btn source-remove press"
         type="button"
-        aria-pressed="false"
+        data-pressed="false"
         aria-label={`Remove ${source.name}`}
+        data-name={source.name}
         data-label={`Remove ${source.name}`}
-        data-label-undo={`Keep ${source.name}`}
+        data-label-undo={`Undo removing ${source.name}`}
         data-op={JSON.stringify({ op: "source.set", id: source.id, enabled: false })}
         data-remove
       >

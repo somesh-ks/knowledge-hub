@@ -203,7 +203,7 @@ test.describe("a topic's page", () => {
     await expect(row.getByRole("button", { name: "Remove Studio Notes" })).toBeVisible();
     // The row's own button takes it back as well.
     await row.getByRole("button", { name: "Remove Studio Notes" }).click();
-    await row.getByRole("button", { name: "Keep Studio Notes" }).click();
+    await row.getByRole("button", { name: "Undo removing Studio Notes" }).click();
     await expect(toast(page)).toBeHidden();
     await page.waitForTimeout(1500);
     expect(sent).toHaveLength(0);
@@ -231,9 +231,9 @@ test.describe("a topic's page", () => {
   test("removing a custom topic waits with Undo, then says the page goes", async ({ page }) => {
     const { sent } = await setup(page);
     await open(page, "/settings/topics/audio_interfaces");
-    await page.getByRole("button", { name: "Remove Audio interfaces" }).click();
+    await page.getByRole("button", { name: "Remove topic Audio interfaces" }).click();
     await expect(toastText(page)).toHaveText("Removing Audio interfaces");
-    await expect(page.getByRole("button", { name: "Keep Audio interfaces" })).toBeVisible();
+    await expect(page.getByRole("button", { name: "Keep topic Audio interfaces" })).toBeVisible();
     await expect(page.getByText("Removed. The page goes after the next build.")).toBeVisible(
       AFTER_UNDO,
     );
@@ -244,9 +244,7 @@ test.describe("a topic's page", () => {
   test("a built-in topic cannot be removed", async ({ page }) => {
     await setup(page);
     await open(page, CRAFT);
-    await expect(
-      page.getByRole("button", { name: /^Remove Design engineering craft/ }),
-    ).toHaveCount(0);
+    await expect(page.getByRole("button", { name: /^Remove topic/ })).toHaveCount(0);
   });
 
   test("a topic that never publishes has only its sources", async ({ page }) => {

@@ -123,6 +123,31 @@ export function pack(steps: readonly Step[], changes: ReadonlyMap<string, Pendin
 }
 
 /**
+ * Focus on a row about to be hidden moves to what takes its place: on a removed topic's page, the
+ * line that says so; otherwise the next row's control, else the one before, else the page's title.
+ */
+function rehome(gone: Element): void {
+  const page = gone.ownerDocument;
+  const focused = page?.activeElement;
+  if (!focused || !gone.contains(focused)) return;
+  const near = (from: Element | null, back: boolean): HTMLElement | null => {
+    for (let row = from; row; row = back ? row.previousElementSibling : row.nextElementSibling) {
+      const control = row.hasAttribute("data-gone")
+        ? null
+        : row.querySelector<HTMLElement>("button, input");
+      if (control) return control;
+    }
+    return null;
+  };
+  const target =
+    gone.querySelector<HTMLElement>(".topic-gone") ??
+    near(gone.nextElementSibling, false) ??
+    near(gone.previousElementSibling, true) ??
+    page.querySelector<HTMLElement>("#page-title");
+  target?.focus();
+}
+
+/**
  * Marks what a request saved. A control takes the value it was sent with as its new starting point.
  * A change made while the request was on its way is a newer entry under the same key, so it stays
  * pending and goes next.
@@ -137,9 +162,11 @@ export function settle(batch: Batch, changes: Map<string, Pending>): void {
       el.querySelector("[data-act=cancel]")?.remove();
     } else if (el.matches(".source-note")) el.textContent = ADDED;
     else {
-      if (el.matches("[data-remove]"))
-        (el.closest("li") ?? el.closest("[data-topic]"))?.setAttribute("data-gone", "");
-      else if (el.matches("[data-suggest]")) (el as HTMLButtonElement).disabled = true;
+      if (el.matches("[data-remove]")) {
+        const row = el.closest("li") ?? el.closest("[data-topic]");
+        if (row) rehome(row);
+        row?.setAttribute("data-gone", "");
+      } else if (el.matches("[data-suggest]")) (el as HTMLButtonElement).disabled = true;
       // Every control, a pressed remove button included, now starts from what was saved: read again,
       // it is no longer a change.
       el.dataset.was = now;
