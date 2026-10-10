@@ -15,11 +15,13 @@
   font-weight: var(--font-weight-medium);
 }
 
-/* The hairlines stop at the text column's edges. */
-.episode-highlights {
+/* As in a briefing, the heading belongs to the row under it: the first row gives up half its top
+   padding, so there is twice the room above the heading that there is below it. */
+.episode-highlights > :first-child {
   padding-block-start: var(--space-2);
 }
 
+/* The hairlines stop at the text column's edges. */
 .episode-highlights > * + *::before {
   inset-inline: 0;
 }
@@ -30,10 +32,13 @@
   gap: var(--space-2);
 }
 
+/* A story's title, as in a briefing. */
 .episode-highlight-title {
-  font-size: var(--font-size-body);
-  font-weight: var(--font-weight-medium);
-  line-height: var(--font-leading-label);
+  font-family: var(--text-title-family);
+  font-size: var(--text-title-size);
+  font-weight: var(--text-title-weight);
+  letter-spacing: var(--text-title-tracking);
+  line-height: var(--text-title-leading);
   overflow-wrap: anywhere;
 }
 
@@ -44,30 +49,8 @@
   line-height: var(--text-reading-leading);
 }
 
-/* The host and an arrow out: a text link with a 44px target. */
+/* The source link (primitives.css). Its 44px target hangs into the row's padding below instead of
+   adding to the row's height. */
 .episode-highlight-link {
-  display: inline-flex;
-  align-items: center;
-  gap: var(--space-2);
-  min-height: var(--size-touch);
   margin-block-end: calc((var(--size-touch) - var(--space-4)) / -2);
-  padding-inline: var(--space-3);
-  margin-inline-start: calc(var(--space-3) * -1);
-  border-radius: var(--button-radius);
-  color: var(--color-accent);
-  font-size: var(--font-size-label);
-  font-weight: var(--font-weight-medium);
-  line-height: var(--font-leading-label);
-  text-decoration: none;
-  overflow-wrap: anywhere;
-}
-
-@media (hover: hover) and (pointer: fine) {
-  .episode-highlight-link:hover {
-    background: var(--color-accent-subtle);
-  }
-}
-
-.episode-highlight-link:active {
-  background: var(--color-accent-subtle);
 }

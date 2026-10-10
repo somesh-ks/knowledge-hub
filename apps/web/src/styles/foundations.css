@@ -120,8 +120,29 @@
   }
 
   /* Controls: no gray tap flash because every one has a pressed state, no double-tap zoom,
-     no text selection while scrubbing. */
-  :where(button, [role="button"], [role="switch"], [role="slider"], summary, label) {
+     no text selection while scrubbing. Links that act as controls, with a pressed state of their
+     own, count too. */
+  :where(
+    button,
+    [role="button"],
+    [role="switch"],
+    [role="slider"],
+    summary,
+    label,
+    a:is(
+      .tab,
+      .btn,
+      .btn-primary,
+      .btn-secondary,
+      .card-link,
+      .source-link,
+      .wordmark,
+      .aside-link,
+      .app-nav-item,
+      .create-fab,
+      .row-action
+    )
+  ) {
     -webkit-tap-highlight-color: transparent;
     touch-action: manipulation;
     user-select: none;

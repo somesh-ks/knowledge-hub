@@ -57,6 +57,11 @@ describe("buildHero", () => {
     expect(hero.meta).toEqual(["4 stories"]);
   });
 
+  it("names a weekly first, as its Library card does", () => {
+    const weekly = entryFor({ id: "2026-10-04-weekly", kind: "weekly" });
+    expect(buildHero(weekly, "Sunday 4 October").meta).toEqual(["Weekly", "4 stories"]);
+  });
+
   it("labels the play chip with the estimate until the recording exists", () => {
     expect(buildHero(entryFor(), "x").length).toBe("4 min");
   });

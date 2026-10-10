@@ -335,8 +335,14 @@
   cursor: default;
 }
 
-/* Reduced motion: the bars hold three different heights, which still reads as sound. */
+/* Reduced motion: play and pause cross-fade in place, without shrinking, and the bars hold three
+   different heights, which still reads as sound. */
 @media (prefers-reduced-motion: reduce) {
+  [data-playing="false"] .swap-playing,
+  [data-playing="true"] .swap-paused {
+    transform: none;
+  }
+
   .chip-bars > i {
     animation: none;
     transform: scaleY(0.55);

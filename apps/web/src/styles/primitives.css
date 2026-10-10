@@ -144,13 +144,20 @@
   line-height: var(--font-leading-label);
   white-space: nowrap;
   text-decoration: none;
-  /* The ring sits inside the tab: the strip's edges would clip one drawn outside. */
-  outline-offset: calc((var(--stroke-ring) + var(--stroke-ring-gap)) * -1);
+  /* The ring sits inside the tab, where the strip's edges cannot clip it, and above the indicator
+     with a gap's width between them. */
+  --tab-ring-inset: calc(
+    var(--stroke-ring) +
+    var(--stroke-ring-gap) +
+    var(--tabs-indicator-height)
+  );
   transition: color var(--duration-hover) var(--ease-hover);
 }
 
+/* The radius grows by the inset, so the ring's own corners keep the button radius. */
 .tab:focus-visible {
-  border-radius: var(--button-radius);
+  outline-offset: calc(var(--tab-ring-inset) * -1);
+  border-radius: calc(var(--button-radius) + var(--tab-ring-inset));
   box-shadow: none;
 }
 
@@ -185,6 +192,18 @@
   }
 }
 
+/* A press shows on any pointer the way a hover does with a mouse: the label takes the full ink. */
+.tab:not([aria-current="true"]):active {
+  color: var(--color-on-surface);
+}
+
+/* Reduced motion: the indicator fades in at its full width instead of growing. */
+@media (prefers-reduced-motion: reduce) {
+  .tab::after {
+    transform: none;
+  }
+}
+
 @media (forced-colors: active) {
   .tab::after {
     background: Highlight;
@@ -193,22 +212,31 @@
 
 /* ------------------------------------------------------------------ source link */
 
-/* The one link out of a story: the publisher's host and an opens-elsewhere glyph. */
+/*
+ * The one link out of a story or an episode highlight: the publisher's name (or its host) and an
+ * opens-elsewhere glyph. A text button: no container until it is hovered or pressed. The padding is
+ * taken back at the start, so the words sit where they would without it and the fill reaches past
+ * them; at the end it stays, so the fill never runs past the column.
+ */
 .source-link {
   display: inline-flex;
   align-items: center;
   gap: var(--space-1);
   min-width: 0;
+  max-width: 100%;
   min-height: var(--size-touch);
+  padding-inline: var(--space-2);
+  margin-inline-start: calc(var(--space-2) * -1);
   border-radius: var(--button-radius);
   color: var(--color-accent);
   font-size: var(--font-size-label);
   font-weight: var(--font-weight-medium);
   line-height: var(--font-leading-label);
   text-decoration: none;
+  transition: background-color var(--duration-hover) var(--ease-hover);
 }
 
-/* A long host shortens with an ellipsis; the glyph always stays. */
+/* A long name shortens with an ellipsis; the glyph always stays. */
 .source-link > span {
   overflow: hidden;
   text-overflow: ellipsis;
@@ -221,9 +249,13 @@
 }
 
 @media (hover: hover) and (pointer: fine) {
-  .source-link:hover > span {
-    text-decoration: underline;
+  .source-link:hover {
+    background: var(--color-accent-subtle);
   }
+}
+
+.source-link:active {
+  background: var(--color-accent-subtle);
 }
 
 /* ------------------------------------------------------------------ the open list of a field */
