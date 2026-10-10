@@ -1,8 +1,8 @@
 /**
- * The Podcast page's script. The page is static HTML with the saved values written in, for the
- * Daily, Weekly and Custom profiles; this switches between them, loads the voices and the live
- * Nebius model list, runs the model combobox, and records the changes the controls add up to in the
- * shared bar: one schedule.set (every field of the three profiles that changed) and one writer.set
+ * The Podcast page's editor, loaded by podcastEntry.ts. The page is static HTML with the saved
+ * values written in, for the Daily, Weekly and Custom profiles; this switches between them, loads
+ * the voices and the live Nebius model list, runs the model combobox, and records the changes the
+ * controls add up to in the shared bar: one schedule.set (every field of the three profiles that changed) and one writer.set
  * (provider and model). Sending them is managePageSave.ts, loaded the first time Save is pressed,
  * the same step the Topics page uses.
  *
@@ -56,11 +56,10 @@ function element<K extends keyof HTMLElementTagNameMap>(
 }
 
 /**
- * The combobox's pure logic is loaded when the page mounts, not with the page's first script: the
- * controls stay inert (see daily.css) for that moment, and the first-load budget is kept.
+ * Mounts the editor. podcastEntry.ts loads this file and the combobox's pure logic after the page's
+ * first script, so neither counts against the first-load budget.
  */
-async function mount(root: HTMLElement): Promise<void> {
-  root.dataset.mounting = "";
+export async function mount(root: HTMLElement): Promise<void> {
   const lib = await import("../lib/combobox");
   const { CLAUDE_OPTIONS, countText, filterOptions, labelFor, moveIndex, nebiusOptions } = lib;
   const one = <T extends HTMLElement = HTMLElement>(selector: string): T =>
@@ -320,13 +319,4 @@ async function mount(root: HTMLElement): Promise<void> {
   root.dataset.ready = "";
   if (provider() === "nebius") void load();
   else root.dataset.loaded = "";
-}
-
-export function installPodcastPage(): void {
-  const sync = (): void => {
-    const root = document.querySelector<HTMLElement>("[data-manage=podcast]");
-    if (root && root.dataset.mounting === undefined) void mount(root);
-  };
-  document.addEventListener("astro:page-load", sync);
-  sync();
 }
