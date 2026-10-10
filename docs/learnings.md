@@ -2,6 +2,11 @@
 
 One line each: symptom, cause, fix. Newest first. Search before debugging.
 
+- 2026-10-10: every test server on the machine died mid-session (connection refused on 4710): a worker stopped its own server with a pattern kill on `run.mjs`. Note your server's PID when you start it and kill only that; tell workers so in their brief.
+- 2026-10-10: two `dispatch-worker` agents stopped at their 60-turn limit halfway through a 13 to 15 item brief, with no report. Give long briefs to `general-purpose` in a worktree, or split them; resume a stopped worker with SendMessage.
+- 2026-10-10: a worker's commit trailers landed on the subject line (`git commit -m` with literal \n). Ask for `git commit -F - <<'EOF'` in the brief; on cherry-pick, `git cherry-pick -n` then commit with a proper message.
+- 2026-10-10: Playwright's `addStyleTag` fails on the fixture site (its CSP has no 'unsafe-inline'); use `bypassCSP: true` on the context to try CSS in a probe.
+- 2026-10-10: the saving toast spoke each message twice: it had `role="status"` and the page also wrote the same text to a live region. One element speaks: a polite region, and a `role="alert"` region for errors; the visible toast has no role.
 - 2026-10-10: autosave re-sent a removal in a loop: after the save, the editor read the pressed remove button against a baseline that had not moved and queued the same op again. After a save, every sent control's baseline is what was sent (`settle` in managePageSave.ts), and the flush loop stops on an identical batch twice in a row. A test that counts requests after a removal caught it.
 - 2026-10-10: Agent worktree isolation branched three of four workers from the stale local `main` (a57df71, eleven commits behind the session branch). Check `git worktree list` right after launching workers; move a wrong base with `git stash`, `git merge --ff-only <branch>`, `git stash pop` (auto mode refused reset and switch).
 - 2026-10-10: two of three select families kept the native list after `appearance: base-select` was added for all of them: library.css and manage.css set `appearance: none` at the same weight and load later. A property a shared rule owns is set in that one place only (primitives.css); grep for other writers before adding it.
