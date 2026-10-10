@@ -13,15 +13,18 @@
   display: none;
 }
 
+/* Its icon and label line up with the navigation items' below it: the padding gives back the
+   hairline the border takes. A press shows in the fill (buttons.css), never by scaling the label. */
 @media (min-width: 64rem) {
   .app-nav-create {
     display: flex;
     justify-content: flex-start;
     gap: var(--space-4);
-    padding-inline: var(--space-3);
+    padding-inline: calc(var(--space-3) - var(--stroke-hairline));
     border: var(--stroke-hairline) solid transparent;
     font-size: var(--font-size-label);
     outline-offset: var(--stroke-ring-gap);
+    transition: background-color var(--duration-hover) var(--ease-hover);
   }
 
   .app-nav-create .icon {
@@ -32,8 +35,12 @@
 
 /* ------------------------------------------------------------------ the floating button */
 
-.create-fab {
+/* On the root, so the toast (sheets.css) can keep clear of the button. */
+:root {
   --fab-size: 3.5rem;
+}
+
+.create-fab {
   --color-focus-gap: var(--color-surface);
   position: fixed;
   inset-inline-end: max(var(--space-4), var(--safe-right));
@@ -55,11 +62,20 @@
   box-shadow: var(--shadow-floating);
   color: var(--cta-fg);
   text-decoration: none;
+  /* The transform is the press's (.press) as well as the slide: in fast, out softer, like every
+     pressable. This list replaces the utility's, so the press timing is spelt out here. */
   transition:
     opacity var(--duration-state) var(--ease-out),
-    transform var(--duration-state) var(--ease-out),
+    transform var(--duration-press-out) var(--ease-out),
     background-color var(--duration-hover) var(--ease-hover),
     visibility 0s;
+}
+
+/* The ring's gap stays round the button; the button's own shadow sits under it. */
+.create-fab:focus-visible {
+  box-shadow:
+    0 0 0 var(--stroke-ring-gap) var(--color-focus-gap),
+    var(--shadow-floating);
 }
 
 @media (hover: hover) and (pointer: fine) {
@@ -70,6 +86,7 @@
 
 .create-fab:active {
   background: var(--cta-bg-pressed);
+  transition-duration: var(--duration-state), var(--duration-press-in), var(--duration-hover), 0s;
 }
 
 /* Out of the way while the expanded player or a sheet owns the screen, and where it is already open. */
@@ -80,6 +97,16 @@ html:has(dialog[open]) .create-fab {
   transform: translateY(var(--space-4));
   transition-duration: var(--duration-exit), var(--duration-exit), var(--duration-hover), 0s;
   transition-delay: 0s, 0s, 0s, var(--duration-exit);
+}
+
+/* With reduced motion it only fades, out and back in; it does not move. */
+@media (prefers-reduced-motion: reduce) {
+  html[data-player="open"] .create-fab,
+  html:has(dialog[open]) .create-fab {
+    transform: none;
+    transition-duration: var(--duration-hover), 0s, var(--duration-hover), 0s;
+    transition-delay: 0s, 0s, 0s, var(--duration-hover);
+  }
 }
 
 html[data-view="create"] .create-fab {
@@ -296,11 +323,12 @@ dialog.create-sheet .create-submit > .btn-primary {
   line-height: var(--font-leading-label);
 }
 
+/* The icon stays with the first line when the message wraps. */
 .run-text {
   flex: 1 1 auto;
   min-width: 0;
   display: flex;
-  align-items: center;
+  align-items: start;
   gap: var(--space-2);
 }
 
@@ -392,7 +420,9 @@ html[data-player="open"] .run-status {
   visibility: hidden;
 }
 
-/* From 64rem: at the foot of the side column, over the column's own surface. */
+/* From 64rem: at the foot of the side column, over the column's own surface. The line starts where
+   the navigation's icons do and has the column's whole width; the link and the close button share
+   the row under it, and the bar takes that row's whole width when there is no close button. */
 @media (min-width: 64rem) {
   .run-status {
     inset-inline: 0 auto;
@@ -404,13 +434,13 @@ html[data-player="open"] .run-status {
     display: grid;
     grid-template-columns: minmax(0, 1fr) auto;
     grid-template-areas:
-      "text close"
-      "extra extra";
+      "text text"
+      "extra close";
     align-items: center;
     gap: 0 var(--space-2);
     height: auto;
     padding-block: var(--space-2) var(--space-4);
-    padding-inline: calc(var(--space-3) + var(--safe-left)) var(--space-2);
+    padding-inline: calc(var(--space-6) + var(--safe-left)) var(--space-2);
     box-shadow: none;
     border-inline-end: var(--stroke-hairline) solid var(--color-border-hairline);
   }
@@ -442,6 +472,10 @@ html[data-player="open"] .run-status {
     margin-block-start: var(--space-3);
     border-radius: var(--radius-round);
     height: var(--space-1);
+  }
+
+  .run-card:not(:has(.run-dismiss:not([hidden]))) .run-bar {
+    grid-column: 1 / -1;
   }
 }
 

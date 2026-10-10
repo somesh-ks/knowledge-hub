@@ -132,6 +132,13 @@ html[data-mini="visible"] main {
   height: var(--size-icon-lg);
   flex: none;
   color: var(--color-accent);
+  transition: scale var(--duration-press-out) var(--ease-out);
+}
+
+/* A press scales the mark, never the name beside it. */
+.wordmark:active .wordmark-mark {
+  scale: var(--scale-press);
+  transition-duration: var(--duration-press-in);
 }
 
 /* ------------------------------------------------------------------ top app bar (below 64rem) */
@@ -157,10 +164,14 @@ html[data-mini="visible"] main {
   pointer-events: none;
 }
 
-/* The hairline appears over the first 16px of scroll. Without scroll timelines there is none. */
+/* The hairline appears over the first 16px of scroll. Without scroll timelines there is none.
+   Longhands, not the shorthand: the minifier folds a shorthand and the timeline into one
+   declaration that browsers reject, and the line never showed. */
 @supports (animation-timeline: scroll()) {
   .app-bar::after {
-    animation: app-bar-line linear both;
+    animation-name: app-bar-line;
+    animation-timing-function: linear;
+    animation-fill-mode: both;
     animation-timeline: scroll(root);
     animation-range: 0 var(--space-4);
   }
@@ -240,6 +251,17 @@ html[data-mini="visible"] main {
 .app-nav-item .icon {
   width: var(--nav-item-icon);
   height: var(--nav-item-icon);
+  transition: scale var(--duration-press-out) var(--ease-out);
+}
+
+/* A press darkens the label and scales only the icon: words never change size under a finger. */
+.app-nav-item:not([aria-current="page"]):active {
+  color: var(--color-on-surface);
+}
+
+.app-nav-item:active .icon {
+  scale: var(--scale-press);
+  transition-duration: var(--duration-press-in);
 }
 
 .app-nav-item[aria-current="page"] {

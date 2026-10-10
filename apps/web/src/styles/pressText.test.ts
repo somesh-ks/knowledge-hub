@@ -10,8 +10,21 @@ import { describe, expect, it } from "vitest";
  */
 const SRC = join(dirname(fileURLToPath(import.meta.url)), "..");
 
-/** The classes of controls that carry a label on a track. */
-const LABEL_CONTROLS = ["settings-segment", "segmented", "create-chip", "podcast-tab"];
+/**
+ * The classes of controls whose face is words: a label on a track, a navigation item, the wordmark,
+ * a text action, a card with a title. A press shows on their fill, their colour or an icon.
+ */
+const LABEL_CONTROLS = [
+  "settings-segment",
+  "segmented",
+  "create-chip",
+  "podcast-tab",
+  "app-nav-item",
+  "app-nav-create",
+  "wordmark",
+  "toast-action",
+  "card-link",
+];
 
 function filesUnder(dir: string, extensions: string[]): string[] {
   return readdirSync(dir, { withFileTypes: true }).flatMap((entry) => {

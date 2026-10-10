@@ -579,10 +579,16 @@
  */
 .toast {
   --toast-dock: 0px;
+  --toast-lift: 0px;
   /* The page accent is tuned for the page, so on the inverse surface the other theme's accent is used. */
   --toast-accent: var(--color-blue-300);
   inset-block: auto
-    calc(var(--bottom-nav-height, var(--safe-bottom)) + var(--toast-dock) + var(--space-3));
+    calc(
+      var(--bottom-nav-height, var(--safe-bottom)) +
+      var(--toast-dock) +
+      var(--toast-lift) +
+      var(--space-3)
+    );
   /* Centred on the page, not on the screen: from 64rem the navigation is a column at the side. */
   inset-inline: var(--side-nav-width, 0px) 0;
   /* Closed, a popover is display: none. Setting display here would keep it in the layout and the
@@ -612,18 +618,34 @@
     display var(--duration-press-in) allow-discrete;
 }
 
+/* One step darker than the light page's accent: 5.4:1 on the light inverse surface. */
 @media (prefers-color-scheme: dark) {
   :root:not([data-theme="light"]) .toast {
-    --toast-accent: var(--color-blue-700);
+    --toast-accent: var(--color-blue-800);
   }
 }
 
 :root[data-theme="dark"] .toast {
-  --toast-accent: var(--color-blue-700);
+  --toast-accent: var(--color-blue-800);
 }
 
 html[data-mini="visible"] .toast {
   --toast-dock: var(--player-dock-height, var(--nav-bar-height));
+}
+
+/*
+ * Below 64rem the run line and, above it, the floating Create button stack over the bottom bar
+ * (create-sheet.css). A toast sits 12px above the higher of the two that shows: the run line alone
+ * where the button is hidden (on /create, while a sheet is open), neither while the player is open.
+ */
+@media (width < 64rem) {
+  html:not([data-player="open"]) .toast {
+    --toast-lift: var(--run-room);
+  }
+
+  html:not([data-view="create"], [data-player="open"]):not(:has(dialog[open])) .toast {
+    --toast-lift: calc(var(--run-room) + var(--space-4) + var(--fab-size));
+  }
 }
 
 .toast:popover-open {
@@ -640,6 +662,13 @@ html[data-mini="visible"] .toast {
   }
 }
 
+/* With no button at its end, the text has the same room on both sides. The settings toast keeps its
+   buttons in the page and hides them by its state (manage.css); while saving it shows none. */
+.toast:not(:has(button:not([hidden]))),
+.toast[data-state="saving"] {
+  padding-inline-end: var(--space-4);
+}
+
 .toast-icon {
   flex: none;
 }
@@ -653,12 +682,13 @@ html[data-mini="visible"] .toast {
   min-height: var(--size-touch);
 }
 
-/* A text action: the accent on the inverse surface, no fill. */
+/* A text action: the accent on the inverse surface, no fill until it is pointed at or pressed. */
 .toast-action {
   padding-inline: var(--space-3);
   border-radius: var(--radius-sm);
   color: var(--toast-accent);
   font-weight: var(--font-weight-medium);
+  transition: background-color var(--duration-hover) var(--ease-hover);
 }
 
 .toast-dismiss {

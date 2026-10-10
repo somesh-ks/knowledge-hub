@@ -40,7 +40,7 @@ export default function Toaster() {
       <span className="toast-text">{shown?.message}</span>
       {shown?.actionLabel ? (
         <button
-          className="toast-action press"
+          className="toast-action"
           type="button"
           onClick={() => {
             dismissToast();
