@@ -453,6 +453,13 @@
     visibility 0s linear var(--duration-sheet-out);
 }
 
+/* Both lines are cut into chapters by a mask the components compute (chapterMask.ts). */
+.dock-progress,
+.scrubber-track {
+  -webkit-mask-image: var(--chapter-mask, none);
+  mask-image: var(--chapter-mask, none);
+}
+
 .dock-progress {
   position: absolute;
   inset-inline: 0;
@@ -627,32 +634,8 @@
   opacity: 1;
 }
 
-.dock-ticks,
 .dock-seek-time {
   display: none;
-}
-
-.dock-ticks {
-  position: absolute;
-  inset-inline: 0;
-  inset-block-start: 0;
-  height: 0;
-  pointer-events: none;
-}
-
-/* One small dot where each story starts, centred on the line. A hairline ring in the surface
-   colour parts it from the line, played or not. */
-.dock-tick {
-  --dot: var(--scrubber-tick-dot);
-  position: absolute;
-  inset-block-start: calc(var(--dot) / -2);
-  inset-inline-start: var(--tick-position, 0%);
-  width: var(--dot);
-  height: var(--dot);
-  margin-inline-start: calc(var(--dot) / -2);
-  border-radius: var(--radius-round);
-  background: var(--color-on-surface-muted);
-  box-shadow: 0 0 0 var(--stroke-hairline) var(--color-surface);
 }
 
 /* The clock at the thumb while it is being moved. */
@@ -892,9 +875,13 @@
      this width, or with a finger, the page's scrubber is the only one, so the two never show
      together. */
   .dock-seek,
-  .dock-ticks,
   .dock-seek-time {
     display: block;
+  }
+
+  /* Here the line is the timeline, so the unplayed part shows too, and its chapter gaps. */
+  .dock-progress {
+    background: var(--color-track);
   }
 }
 
@@ -950,8 +937,7 @@
   user-select: none;
 }
 
-.scrubber-track,
-.scrubber-ticks {
+.scrubber-track {
   position: absolute;
   inset-inline: 0;
   inset-block-start: 50%;
@@ -976,26 +962,6 @@
   background: var(--color-accent);
   transform-origin: left;
   transform: scaleX(var(--player-progress, 0));
-}
-
-.scrubber-ticks {
-  height: 0;
-  pointer-events: none;
-}
-
-/* The same dots as the bar's. */
-.scrubber-tick {
-  --dot: var(--scrubber-tick-dot);
-  position: absolute;
-  inset-block-start: calc(var(--dot) / -2);
-  inset-inline-start: var(--tick-position, 0%);
-  width: var(--dot);
-  height: var(--dot);
-  margin-inline-start: calc(var(--dot) / -2);
-  border-radius: var(--radius-round);
-  background: var(--color-on-surface-muted);
-  box-shadow: 0 0 0 var(--stroke-hairline) var(--color-surface);
-  transition: background-color var(--duration-state) var(--ease-out);
 }
 
 /* The thumb is a zero-size anchor that script moves with --thumb-x. The visible disc is a
@@ -1726,15 +1692,7 @@ html[data-player="open"] {
     background: Highlight;
   }
 
-  /* The dots keep a system colour, or the forced background would erase them. */
-  .scrubber-tick,
-  .dock-tick {
-    background: CanvasText;
-    forced-color-adjust: none;
-  }
-
   .scrubber-thumb::before,
-  .scrubber-tick[data-played],
   .story-row[aria-current="true"] .story-row-mark {
     background: Highlight;
     forced-color-adjust: none;

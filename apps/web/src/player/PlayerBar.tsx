@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState } from "react";
+import { chapterMask } from "./core/chapterMask";
 import { formatClock } from "./core/formatTime";
 import { errorSummary, isPlayingStatus, toggleLabel } from "./core/playerCopy";
 import { getPlayerStore } from "./core/playerRuntime";
@@ -32,7 +33,6 @@ function DockSeek({ duration }: { duration: number }) {
   // The story under the thumb, so a screen reader hears where a seek would land.
   const at = itemIndexAt(timeline, value);
   const section = timeline?.sections.find((entry) => entry.slug === timeline.items[at]?.section);
-  const sectionStarts = new Set(timeline?.sections.map((entry) => entry.firstIndex));
 
   function commit(): void {
     if (drag === null) return;
@@ -42,21 +42,6 @@ function DockSeek({ duration }: { duration: number }) {
 
   return (
     <>
-      <div className="dock-ticks" aria-hidden="true">
-        {timeline?.items.map((entry) => (
-          <span
-            key={entry.id}
-            className="dock-tick"
-            data-chapter={sectionStarts.has(entry.index) ? "" : undefined}
-            data-played={entry.startSec <= value ? "" : undefined}
-            style={
-              {
-                "--tick-position": `${(fractionOfTime(entry.startSec, max) * 100).toFixed(3)}%`,
-              } as React.CSSProperties
-            }
-          />
-        ))}
-      </div>
       {drag !== null ? (
         <output
           className="dock-seek-time num"
@@ -178,7 +163,19 @@ export default function PlayerBar() {
 
   return (
     <section className="player-dock" aria-label="Audio player" data-player-dock>
-      <div className="dock-progress" aria-hidden="true">
+      <div
+        className="dock-progress"
+        aria-hidden="true"
+        style={
+          {
+            "--chapter-mask": chapterMask(
+              state.track?.timeline?.items.map((entry) =>
+                fractionOfTime(entry.startSec, state.duration),
+              ) ?? [],
+            ),
+          } as React.CSSProperties
+        }
+      >
         <span className="dock-progress-fill" ref={fillRef} />
       </div>
       <DockSeek duration={state.duration} />

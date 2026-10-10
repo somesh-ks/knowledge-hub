@@ -329,6 +329,7 @@
   --scrubber-thumb: 1rem;
   --scrubber-thumb-active-scale: 1.4;
   --scrubber-thumb-ring: 2px;
+  --scrubber-chapter-gap: 0.125rem;
   --scrubber-tick-dot: 0.3125rem;
   --scrubber-bubble-radius: var(--radius-sm);
   --scrubber-detent-hysteresis: 0.02;
