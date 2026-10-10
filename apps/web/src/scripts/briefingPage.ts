@@ -10,6 +10,7 @@ installHeroMenu();
 const COPIED_MS = 2_000;
 
 let observer: IntersectionObserver | null = null;
+let endObserver: IntersectionObserver | null = null;
 /** A tapped tab stays marked until the reader scrolls, even where its section cannot reach the top. */
 let held = false;
 
@@ -32,29 +33,57 @@ function mark(slug: string | undefined): void {
 
 function watchSections(): void {
   observer?.disconnect();
+  endObserver?.disconnect();
   held = false;
   const sections = [...document.querySelectorAll<HTMLElement>("[data-chapter]")];
-  if (sections.length === 0) return;
+  const first = sections[0];
+  const last = sections.at(-1);
+  if (!first || !last) return;
+  // An empty element after everything else on the page (DigestView.astro).
+  const end = document.querySelector<HTMLElement>("[data-page-end]");
   const strip = document.querySelector<HTMLElement>("[data-section-tabs]");
   // The reading line: just under the sticky strip, or near the top where the strip is not shown.
   const chrome = strip?.offsetParent
     ? (Number.parseFloat(getComputedStyle(strip).top) || 0) + strip.offsetHeight
     : 0;
   const inView = new Set<Element>();
+  /** All on screen: the first section, the end of the page, or both. */
+  const whole = new Set<Element>();
+  const follow = (): void => {
+    if (held) return;
+    // At the end of the page the last section is marked, since a short one never reaches the
+    // reading line, unless the first section is all on screen too: then the page fits the screen.
+    // Otherwise the mark goes to the topmost section crossing the band between the line and
+    // mid-screen. None means the reader is above the first or past the last, and the mark stays
+    // where it was.
+    const atEnd = end !== null && whole.has(end) && !whole.has(first);
+    const current = atEnd ? last : sections.find((section) => inView.has(section));
+    if (current) mark(current.dataset.chapter);
+  };
   observer = new IntersectionObserver(
     (entries) => {
       for (const entry of entries) {
         if (entry.isIntersecting) inView.add(entry.target);
         else inView.delete(entry.target);
       }
-      // The topmost section crossing the band between the line and mid-screen. None means the
-      // reader is above the first or past the last, and the mark stays where it was.
-      const top = sections.find((section) => inView.has(section));
-      if (top && !held) mark(top.dataset.chapter);
+      follow();
     },
     { rootMargin: `-${Math.round(chrome) + 24}px 0px -50% 0px` },
   );
+  // The end element has no height, so it counts as all on screen whenever it is on screen at all.
+  endObserver = new IntersectionObserver(
+    (entries) => {
+      for (const entry of entries) {
+        if (entry.intersectionRatio >= 1) whole.add(entry.target);
+        else whole.delete(entry.target);
+      }
+      follow();
+    },
+    { threshold: 1 },
+  );
   for (const section of sections) observer.observe(section);
+  endObserver.observe(first);
+  if (end) endObserver.observe(end);
 }
 
 async function share(button: HTMLElement): Promise<void> {

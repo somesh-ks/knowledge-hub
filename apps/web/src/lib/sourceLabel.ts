@@ -11,7 +11,10 @@ export function sourceHost(url: string | null | undefined): string | null {
   return host === "" ? null : host;
 }
 
-/** Accessible name for the source link. The visible text is the host alone. */
+/**
+ * Accessible name for a source link whose visible text is the host alone (the player's). It starts
+ * with that text, so a reader using voice control can say what they see.
+ */
 export function sourceLinkLabel(host: string): string {
-  return `Read at ${host}, opens in a new tab`;
+  return `${host} (opens in a new tab)`;
 }

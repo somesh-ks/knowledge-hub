@@ -63,15 +63,15 @@ const highlights = episodeHighlights(episode);
             <li class="episode-highlight">
               <h3 class="episode-highlight-title">{highlight.headline}</h3>
               {highlight.text && <p class="episode-highlight-text">{highlight.text}</p>}
+              {/* Named as a story's source link is (Item.astro): the name starts with the host shown. */}
               {highlight.host && (
                 <a
                   class="episode-highlight-link press press-subtle"
                   href={highlight.url}
                   target="_blank"
                   rel="noopener noreferrer"
-                  aria-label={`${highlight.headline}, read at ${highlight.host}, opens in a new tab`}
                 >
-                  <span>{highlight.host}</span>
+                  <span>{highlight.host}</span><span class="sr-only"> (opens in a new tab)</span>
                   <Icon name="openInNew" />
                 </a>
               )}

@@ -7,9 +7,15 @@
 
 /* ------------------------------------------------------------------ sections */
 
-/* The tabs' links land their heading clear of the sticky strip, not under it. */
+/* While the section tabs stick, focus and anchors land below them as well as below the app bar. */
+html:has(.briefing > .tabs) {
+  scroll-padding-block-start: calc(var(--sticky-top) + var(--tabs-height) + var(--space-4));
+}
+
+/* A tab's jump takes back the heading's padding above its words, less a little: the section's rule
+   tucks under the strip, so the strip's own line is the only one, and the words sit 24px below it. */
 .chapter h2 {
-  scroll-margin-block-start: var(--tabs-height);
+  scroll-margin-block-start: calc(var(--space-2) - var(--space-12));
 }
 
 /* A chapter heading is one step up from the row grammar's, and has more air above it, so each
@@ -26,10 +32,15 @@
   inset-inline: 0;
 }
 
-/* From 80rem the contents list beside the column does the tabs' job. */
+/* From 80rem the contents list beside the column does the tabs' job, and nothing sticks but the
+   top chrome. */
 @media (min-width: 80rem) {
   .briefing > .tabs {
     display: none;
+  }
+
+  html:has(.briefing > .tabs) {
+    scroll-padding-block-start: calc(var(--sticky-top) + var(--space-4));
   }
 
   .chapter h2 {

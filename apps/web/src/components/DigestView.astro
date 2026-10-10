@@ -31,6 +31,9 @@ const hasAudio = entry.audioMode === "ready";
   <DigestHero entry={entry} hero={hero} />
   <Briefing sections={sections} hasAudio={hasAudio} />
   <EarlierList entries={earlier} />
+  {/* The end of what the page shows. Once it is on screen the reader is at the end, and
+       briefingPage.ts marks the last section, which may be too short to reach the reading line. */}
+  <div data-page-end></div>
   <PlayerData data={entry.player} />
 </main>
 {/* After main in the document, as on the page: the contents column sits past the reading column. */}

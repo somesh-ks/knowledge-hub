@@ -34,7 +34,7 @@ describe("sourceHost", () => {
 });
 
 describe("sourceLinkLabel", () => {
-  it("names the destination and says it opens a new tab", () => {
-    expect(sourceLinkLabel("theverge.com")).toBe("Read at theverge.com, opens in a new tab");
+  it("starts with the host the link shows and says it opens a new tab", () => {
+    expect(sourceLinkLabel("theverge.com")).toBe("theverge.com (opens in a new tab)");
   });
 });

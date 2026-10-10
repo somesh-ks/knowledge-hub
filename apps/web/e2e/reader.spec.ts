@@ -321,12 +321,14 @@ test.describe("sections and stories", () => {
     const first = page.locator(".story").first();
     await expect(first.locator("a")).toHaveCount(1);
     const link = first.locator(".source-link");
-    // The link names the publisher; the host is only in its address and accessible name.
-    await expect(link).toHaveText("Springlet Blog");
+    // The link shows the publisher, and its name starts with what it shows (WCAG 2.5.3); the new
+    // tab is said, not shown. The host is only in its address.
+    await expect(link.locator(":scope > span").first()).toHaveText("Springlet Blog");
     await expect(link).toHaveAttribute("href", /^https:\/\/example\.com\//);
     await expect(link).toHaveAttribute("target", "_blank");
     await expect(link).toHaveAttribute("rel", "noopener noreferrer");
-    await expect(link).toHaveAccessibleName("Read at example.com, opens in a new tab");
+    await expect(link).not.toHaveAttribute("aria-label");
+    await expect(link).toHaveAccessibleName("Springlet Blog (opens in a new tab)");
     // The headline is a heading now, not a link.
     await expect(first.locator("h3")).toHaveText(FIRST_HEADLINE);
     await expect(first.locator("h3 a")).toHaveCount(0);
@@ -341,7 +343,7 @@ test.describe("sections and stories", () => {
     await expect(first.locator(".meta")).toHaveCount(0);
     await expect(first.locator("> *").first()).toHaveJSProperty("tagName", "H3");
     await expect(first).not.toContainText("Mara Lindqvist");
-    await expect(first.locator(".source-link")).toHaveText("Springlet Blog");
+    await expect(first.locator(".source-link > span").first()).toHaveText("Springlet Blog");
     await expect(first.locator(".story-why")).toHaveText(
       "Why Copy the retargeting pattern for drawers and toasts.",
     );
@@ -480,10 +482,42 @@ test.describe("section tabs", () => {
     await expect(page).toHaveURL(/#c-research$/);
     await expect(tab).toHaveAttribute("aria-current", "true");
     await expect(page.locator('.tab[aria-current="true"]')).toHaveCount(1);
-    const heading = await page.locator("#c-research").boundingBox();
+    // The heading's words land clear of the strip, and the section's rule above them tucks under
+    // it, so the strip's own line is the only one.
+    const landing = await page.locator("#c-research").evaluate((heading) => {
+      const words = document.createRange();
+      words.selectNodeContents(heading);
+      return {
+        words: words.getBoundingClientRect().top,
+        rule: heading.closest(".chapter")?.getBoundingClientRect().top ?? 0,
+      };
+    });
     const strip = await page.locator(".tabs").boundingBox();
-    expect(heading?.y ?? 0).toBeGreaterThanOrEqual((strip?.y ?? 0) + (strip?.height ?? 0));
-    expect(heading?.y ?? 999).toBeLessThan(260);
+    const stripEnd = (strip?.y ?? 0) + (strip?.height ?? 0);
+    expect(landing.words).toBeGreaterThanOrEqual(stripEnd);
+    expect(landing.words).toBeLessThan(260);
+    expect(landing.rule).toBeLessThan(stripEnd);
+  });
+
+  test("a control reached by Shift+Tab is never left under the strip (WCAG 2.4.11)", async ({
+    page,
+  }) => {
+    await page.goto("/");
+    // Far down the briefing, then back up one control at a time: each one scrolls clear of the
+    // strip while it sticks.
+    for (let step = 0; step < 26; step += 1) await page.keyboard.press("Tab");
+    for (let step = 0; step < 8; step += 1) {
+      await page.keyboard.press("Shift+Tab");
+      const covered = await page.evaluate(() => {
+        const control = document.activeElement?.getBoundingClientRect();
+        const strip = document.querySelector<HTMLElement>(".tabs");
+        if (!control || !strip) return 0;
+        const box = strip.getBoundingClientRect();
+        const stuck = box.top <= Number.parseFloat(getComputedStyle(strip).top) + 0.5;
+        return stuck ? Math.max(0, box.bottom - control.top) : 0;
+      });
+      expect(covered).toBe(0);
+    }
   });
 
   test("the last tab keeps the mark even where its section cannot reach the top", async ({
@@ -497,6 +531,21 @@ test.describe("section tabs", () => {
     // Still held a moment later, after the observer has had its say.
     await page.waitForTimeout(300);
     await expect(tab).toHaveAttribute("aria-current", "true");
+  });
+
+  test("at the end of the page the last tab takes the mark, though its section cannot reach the top", async ({
+    page,
+  }) => {
+    // The weekly is the oldest briefing: nothing follows its last section, so the page ends while
+    // that section is still well below the strip.
+    await page.goto("/d/2026-10-04-weekly");
+    const current = page.locator('.tab[aria-current="true"]');
+    await page.evaluate(() => window.scrollTo(0, document.documentElement.scrollHeight));
+    await expect(current).toHaveText("Watch and listen");
+    await page.evaluate(() => {
+      document.querySelector("#c-research")?.scrollIntoView({ block: "start" });
+    });
+    await expect(current).toHaveText("Research");
   });
 
   test("follow the page again after a client-side navigation", async ({ page }) => {
