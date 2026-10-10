@@ -59,6 +59,7 @@ D1 to D9 date from plan v2 (2026-10-05). D10 to D25 date from 2026-10-06. Reason
 | D47 | A move between pages is answered from a saved copy and swapped at once | active |
 | D48 | One shader: a light in the cover's colours behind the header, on a GPU only | active |
 | D49 | One Podcast settings page: Daily, Weekly and Custom profiles, a shared writer vendor and model, topics and sources clubbed | active |
+| D50 | The open player: a speed slider, Chapters or a Speechify-style transcript, word marks stored beside each segment | active |
 
 ---
 
@@ -475,3 +476,12 @@ D1 to D9 date from plan v2 (2026-10-05). D10 to D25 date from 2026-10-06. Reason
 - Cost: the daily Type is saved but the audio workflow does not apply it (a workflow change); a weekly run at its own hour needs a `RUN_CRON_WEEKLY` variable in `run.yml`; `/api/source-preview`, `/api/site-icon` and `/api/voices` are open like `/api/models` (SSRF-guarded, cached); the heaviest page has 0.3 KB of budget left.
 - Rejected: favicons straight from each host (needs `img-src https:`, loosening the policy; they go through `/api/site-icon`); per-profile models (the owner asked for one vendor and model in general); a quota per topic (the weight is a hint).
 - Supersedes: the Schedule and Model pages (D45, D46 placement), the separate Topics and Sources pages.
+
+## D50: The open player: a speed slider, Chapters or a Speechify-style transcript, word marks stored beside each segment
+
+- Date: 2026-10-10
+- Decision: the open player has no header (no "Now playing", no chevron); closing is a drag, the bar, Back or Escape, with a "Close the player" button that shows only on keyboard focus. The speed is a button between the skips (a pill under play on a phone, so the five transport controls keep one axis) that opens a slider from 0.5x to 2x in steps of 0.05; the store and preferences accept any step in that range. An episode with chapters shows a Chapters / Transcript switch. The transcript is plain text with a small speaker name, as in Speechify: said words in full ink, the rest muted, the spoken word on a soft fill, a tap on a word plays from it. Speechify's word marks are stored beside each segment's audio (`.marks.json`) and served by `GET /api/narrate-marks`; where a segment has none, word times are estimated from the turn's span by word length. Timeline markers are one small dot per story.
+- Why: the owner asked for each of these, and for a mobile layout that is clean and optically balanced.
+- Cost: a newly narrated segment costs 2 advanced Blob operations instead of 1 (about 48 newly narrated briefings a month on the Hobby quota); the owner accepted it. A screen-reader user on a phone has no visible close control, only the focus-revealed button.
+- Rejected: fetching marks from the Blob host in the browser (needs `connect-src` loosened); returning marks from the narration lookup (a store read per segment on every lookup); the speed beside play on a phone (pulls the row off its axis).
+

@@ -9,7 +9,7 @@ The reader is called Singularity (D30). Identifiers keep `dispatch`. Everything 
 - Engine end to end on live services: fetch (Exa, Firecrawl, feeds), judge (TypeSafe Jev), write (Nebius), validate, commit as the owner.
 - Vercel deploys the site from the Git integration. CI on Linux: typecheck, lint, tests, site build, gitleaks (with `.gitleaks.toml` allowing the invented values tests assert on). Auto-merge for owner and Dependabot PRs.
 - Reader in the visual language of Google Podcasts (D31): Today, Library, Create, Settings. Library filters are All, Daily, Weekly, Custom; Custom holds everything made on request.
-- Player as one surface from the bottom bar to a full page (D32), with seek, a clock and volume on wide screens. The whole bar opens it. The open player has one quiet row for speed (one button that steps through the speeds) and the story's source; on a wide screen with a mouse the page keeps the scrubber and the two skips and leaves previous, play and next to the bar.
+- Player as one surface from the bottom bar to a full page (D32, D50), with seek, a clock and volume on wide screens. The whole bar opens it; a drag, the bar, Back or Escape close it (no chevron; a "Close the player" button shows only on keyboard focus). The open page: cover, title, story and source; the five transport controls on one axis with a speed pill under play on a phone, and the two skips with the speed between them on a wide screen with a mouse. The speed opens a slider from 0.5x to 2x in steps of 0.05. Timeline markers are one small dot per story. An episode with chapters gets a Chapters / Transcript switch; the transcript reads like Speechify (said words in full ink, the rest muted, the spoken word on a soft fill) from Speechify's word marks, with an estimate where a segment has none.
 - Narration on Play, story by story (D33).
 - Custom episodes (D37): the first real run of `podcast.yml` succeeded on 2026-10-08 and published `ep-20261008-1155`. Discussion episodes use a second voice by default (`dominic_32`). Twelve episodes a day, two minutes apart.
 - Episode length: the writer is told the length in words and a script is held to what its stories can carry. Real dry runs on 2026-10-08 put 5 and 10 minute episodes at 83 to 90% of the length asked for (they were at 25 to 67%). `dispatch podcast --dry-run` measures one request without writing.
@@ -40,8 +40,7 @@ The reader is called Singularity (D30). Identifiers keep `dispatch`. Everything 
 
 ## Written, not merged
 
-- #47 (draft, waits for the owner's "merge"): the player redesign. The bar in YouTube Music's layout with the one timeline and a tick per story, an open page of cover, title, source link, 10 second skips and a speed menu, no flying cover, and the script with Ada and Leo for an episode. Rebased on main; its 7 old failures were stale tests (the timeline is the bar's on a wide screen with a mouse) and one real bug (opening an episode scrolled the page 388px). Whole site suite 618 passed. The bar's scrubber and the page's are never on screen together (64rem with a mouse).
-- #58 and #59 (open): the Topics & sources page (weights, source scores, Add source panel) and the Podcast page (Daily, Weekly, Custom, voices, model, tidier dropdowns). Whole stack: site suite 586 passed. #59 contains #58.
+- `claude/eager-bardeen-dfqufp-preact-prototype` (local to the 2026-10-10 cloud session, not pushed): React aliased to preact/compat in the browser only (the server still renders with React). Every page drops about 57 KB (heaviest 103.9 to 46.6). The site suite and the player specs on the Chromium site projects fail only where main fails. Waits for the owner: it adds a dependency.
 
 ## Development
 
@@ -70,17 +69,17 @@ The reader is called Singularity (D30). Identifiers keep `dispatch`. Everything 
 - GitHub fired the scheduled run 6.5 hours late on 2026-10-07 and had not fired it by midday on 2026-10-08. The gate compares dates, so a late run still lands on its day, but the time is not dependable.
 - No end-to-end test applies a real op array through `config apply`, and none runs a full pipeline with Trending feeds.
 - `doctor --online` does not check `GITHUB_DISPATCH_TOKEN`.
+- Failing on main (not from any change of 2026-10-10): `layout.spec.ts` "nothing scrolls sideways at 320px" (/library is 324px wide), and two `uiSounds.spec.ts` tests that look for an "Interface sounds" switch on the site target. The cover pull-down flick in `gestures.spec.ts` fails about half the time in the cloud container on main too.
 - The player suite on the Chromium site projects passes on main as of 2026-10-10 (the two regressions were a hero cover that started a native image drag and a modal scope that left the page behind reachable by Tab; #42). Six tests fail in WebKit on the unchanged code: a flick up and a long pull up on the bar do not open the page, three "stuck" paths (after Back, after the toast's Open action, when the lazy half cannot load), and the cover flight check. In WebKit a mouse stands in for the finger, so this may be the stand-in and not Safari; only a real iPhone settles it.
 - `src/player/dev/LabGlyph.astro` is unused. Delete it when convenient.
 - Not tested on a real iPhone.
 - Audio stored for the briefings of 6 and 7 October says "Dispatch". It lives in each briefing's front matter, so Play uses it and does not re-make it.
-- First-load JavaScript budget is 103 KB and the heaviest page is at 102.9. Anything new has to load on idle or take something out.
 
 - Owner steps: add `ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}` to every step with `NEBIUS_API_KEY` in `run.yml` and `podcast.yml`; for a weekly run at its own hour let the job's `if` accept a `RUN_CRON_WEEKLY` variable (`13 <hour> * * <day>`) that the site would set beside `RUN_CRON`. Until then the weekly follows the daily hour. The `VERCEL_TOKEN` in `.env` is probably dead (it is also the `audio.yml` secret).
 - The daily briefing's Type is saved but not applied: narration is built from the digest verbatim, so Discussion needs a podcast step in `audio.yml` (a workflow change). Length does scale the story count.
 - Unverified live: any Anthropic call, the Speechify voice list and voice samples (`media-src` may block the sample URLs), `/api/source-preview` and `/api/site-icon` on real feeds, the Nebius shortlist against the live list, the base-select dropdown picker in a screenshot.
 - `audio-speechify.test.ts` flakes under load (passes alone). `SettingsSheet.tsx` (reachable only from the dev lab) still has a Default speed.
-- Bundle: the budget stays 104 KB; the heaviest page (/settings/podcast) is 103.7.
+- Bundle: the budget is 104 KB; the heaviest page is /library at 102.7 (the Podcast editor loads after first paint since #63). React is 68 of the 101 KB every page shares; without preact the budget cannot come down much. Per-chunk tables and a throttled phone run are in [first-load-js.md](first-load-js.md).
 - A leftover folder `.claude/worktrees/agent-aa3d6c40ca7009eee` could not be deleted (something holds it); it is not a git worktree.
 
 ## Known risks
@@ -93,7 +92,7 @@ The reader is called Singularity (D30). Identifiers keep `dispatch`. Everything 
 
 ## Next
 
-1. Owner: "merge" for #47; the two workflow edits above; revoke the Vercel token pasted in chat on 2026-10-07 and replace the `.env` one; delete the empty Blob store `store_JmrDq8MB5Kwn3ejW`.
-2. Word-level highlighting in the script (store the Speechify word marks per segment and return them from the lookup); finer episode stages (the podcast command in phases, a workflow change); the daily Type through the audio workflow.
+1. Owner: decide on preact (see Written, not merged) and on the audit's judgement calls listed in #68 (source letter tiles, the filter rows on Library and Topics, the chip shape, the Podcast page's navigation, the FAB); the two workflow edits above; revoke the Vercel token pasted in chat on 2026-10-07 and replace the `.env` one; delete the empty Blob store `store_JmrDq8MB5Kwn3ejW`.
+2. Finer episode stages (the podcast command in phases, a workflow change); the daily Type through the audio workflow.
 3. One generated briefing to see Design and Trending, then tune the Trending threshold; two iPhone passes with the six WebKit failures as the checklist.
-4. Curation quality: group patch releases per repository, record only published ids in `markSeen`, calibrate the 0.4 threshold on the golden set, feed per-source pass rates into the score.
+4. Curation: calibrate the 0.4 threshold on the golden set (needs judge keys: `eval/run.ts --only judges`); apply the source pass-rate nudge in the `curate` path too. Done in #65: one release per repository, only published items marked seen, a source pass-rate nudge in the run path.

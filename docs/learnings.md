@@ -94,3 +94,9 @@ One line each: symptom, cause, fix. Newest first. Search before debugging.
 - 2026-10-08: a glyph listed only for the lazy icon set renders nothing through the eager `Icon`; `tsc` passes and only `astro check` catches it. Run `astro check` before a PR: CI does not.
 - 2026-10-08: branches that each pass alone can fail together (tab order, focus ring, touch targets, bundle size). Stack them and run the whole site suite before the PR, and measure the bundle on the stack.
 - 2026-10-08: 37 GB of a full disk was one other project's Claude temp folder under `%TEMP%\claude`; this repository with its dependencies is under 600 MB. Measure before deleting.
+- 2026-10-10: a PR stacked on a branch that is squash-merged and deleted closes and cannot be retargeted (#66). Open the follow-up against main, and expect add/add conflicts where both sides carry the same files: take the side that has both changes.
+- 2026-10-10: `biome check <dir>` on the files you touched passed while `npm run lint` failed on blank lines the formatter wanted gone in CSS. Run the root lint before pushing.
+- 2026-10-10: a glyph removed from `iconPaths.tsx` by hand fails `buildGlyphs.test.ts`: the registries are generated. Edit `tokens/glyphs.json` and run `npm run glyphs`.
+- 2026-10-10: a "played" colour on timeline dots showed as a hole on the unfilled track, because the current story counts as played. Style a marker so it reads on both the fill and the track.
+- 2026-10-10: in the cloud container Playwright 1.63 wants Chromium 1243 and only 1194 is installed. Point a config override at `/opt/pw-browsers/chromium-1194` rather than installing browsers, and use a different PORT per worktree.
+
