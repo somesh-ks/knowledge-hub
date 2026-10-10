@@ -191,8 +191,10 @@ export function createGenerateStore(options: GenerateStoreOptions): GenerateStor
           : phase === "gated"
             ? "The schedule held this run back."
             : `${failureTitle(failedAt)}.`;
-    onAnnounce?.(message);
-    if (!sheetOpen) onFinishedWhileClosed?.({ phase, digestId, runUrl });
+    // One voice per outcome: the announcer while the sheet shows the result; closed, the toast that
+    // reports it, whose role speaks it (Toaster.tsx), so the announcer stays quiet.
+    if (sheetOpen) onAnnounce?.(message);
+    else onFinishedWhileClosed?.({ phase, digestId, runUrl });
   }
 
   async function poll(): Promise<void> {
