@@ -230,7 +230,6 @@
 }
 
 .create-select > select {
-  appearance: none;
   inline-size: 100%;
   padding-inline-end: var(--space-12);
   text-overflow: ellipsis;

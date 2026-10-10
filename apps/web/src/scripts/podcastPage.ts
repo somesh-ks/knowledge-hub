@@ -24,6 +24,22 @@ export interface ModelEntry {
 
 const LIST_TIMEOUT_MS = 10_000;
 
+/** What can float over the bottom of the page: the bottom bar, the player, the run card, the Create button. */
+const FLOATING = ".app-nav, .player-dock, .run-card, .create-fab, .manage-bar";
+
+/**
+ * How far down the screen a list opening under `field` may reach: the top of the highest thing that
+ * floats over the page below the field and across its width, or the bottom of the screen.
+ */
+export function roomFloor(field: DOMRect, covers: readonly DOMRect[], viewport: number): number {
+  let floor = viewport;
+  for (const cover of covers) {
+    const across = cover.width > 0 && cover.left < field.right && cover.right > field.left;
+    if (across && cover.top > field.bottom && cover.top < floor) floor = cover.top;
+  }
+  return floor;
+}
+
 /** The edit a provider and model choice stand for. `null` on Nebius is Automatic. */
 export function modelOp(model: string | null, provider: Provider = "nebius"): ConfigOp {
   return { op: "writer.set", provider, model };
@@ -155,6 +171,7 @@ export async function mount(root: HTMLElement): Promise<void> {
     input.removeAttribute("aria-activedescendant");
     // A half-typed query is not a choice: the field goes back to the chosen model's name.
     input.value = labelFor(options, selected);
+    input.removeAttribute("placeholder");
   };
 
   const highlight = (index: number): void => {
@@ -169,8 +186,12 @@ export async function mount(root: HTMLElement): Promise<void> {
     } else input.removeAttribute("aria-activedescendant");
   };
 
-  /** Draws the options matching `query`, with the recommended ones captioned apart from the rest. */
-  const open = (query: string): void => {
+  /**
+   * Draws the options matching `query`, with the recommended ones captioned apart from the rest.
+   * `keyboard` marks a list opened or filtered from the keyboard: only then does its current row
+   * show the ring, as in a select's list.
+   */
+  const open = (query: string, keyboard: boolean): void => {
     shown = filterOptions(options, query);
     listbox.replaceChildren();
     let last = "";
@@ -195,10 +216,17 @@ export async function mount(root: HTMLElement): Promise<void> {
       listbox.append(item);
     });
     listbox.hidden = false;
-    // Opens below the field, and above it when the room under it is short and the room over it is not.
+    listbox.toggleAttribute("data-keyboard", keyboard);
+    // Opens below the field, and above it when the room under it is short and the room over it is
+    // not. Room ends where the bottom bar, the player or the Create button floats over the page, and
+    // under the sticky top chrome.
     const field = input.getBoundingClientRect();
-    const below = window.innerHeight - field.bottom - 16;
-    const above = field.top - 16;
+    const covers = [...document.querySelectorAll<HTMLElement>(FLOATING)].map((node) =>
+      node.getBoundingClientRect(),
+    );
+    const top = Number.parseFloat(getComputedStyle(document.documentElement).scrollPaddingTop);
+    const below = roomFloor(field, covers, window.innerHeight) - field.bottom - 16;
+    const above = field.top - (Number.isFinite(top) ? top : 16);
     const wants = Math.min(listbox.scrollHeight, 352);
     const flip = below < wants && above > below;
     listbox.toggleAttribute("data-above", flip);
@@ -208,6 +236,17 @@ export async function mount(root: HTMLElement): Promise<void> {
     // Typing highlights the first match; opening with the chevron starts on the chosen model.
     const start = query.trim() === "" ? shown.findIndex((o) => o.id === (selected ?? "")) : 0;
     highlight(start);
+  };
+
+  /**
+   * Opens the whole list from a press on the field or its chevron, as a select would. The chosen
+   * model's name waits in the field as its placeholder, so typing filters at once without first
+   * deleting it, and closing without a choice puts it back.
+   */
+  const browse = (): void => {
+    input.placeholder = labelFor(options, selected);
+    input.value = "";
+    open("", false);
   };
 
   const choose = (option: ModelOption): void => {
@@ -263,15 +302,31 @@ export async function mount(root: HTMLElement): Promise<void> {
     if (target.closest("[data-panel]") && target !== vendor) update();
   });
 
-  input.addEventListener("input", () => open(input.value));
+  input.addEventListener("input", () => open(input.value, true));
+  // A press opens the list; reached with Tab, the field selects its text so typing replaces it.
+  let pressed = false;
+  input.addEventListener("pointerdown", () => {
+    pressed = true;
+  });
+  input.addEventListener("focus", () => {
+    if (!pressed) input.select();
+    pressed = false;
+  });
+  input.addEventListener("click", () => {
+    if (!isOpen()) browse();
+  });
   input.addEventListener("keydown", (event) => {
     const { key } = event;
     if (key === "ArrowDown" || key === "ArrowUp") {
       event.preventDefault();
-      if (!isOpen()) open("");
-      else highlight(moveIndex(active, shown.length, key));
+      if (!isOpen()) open("", true);
+      else {
+        listbox.toggleAttribute("data-keyboard", true);
+        highlight(moveIndex(active, shown.length, key));
+      }
     } else if (isOpen() && (key === "Home" || key === "End") && event.ctrlKey) {
       event.preventDefault();
+      listbox.toggleAttribute("data-keyboard", true);
       highlight(moveIndex(active, shown.length, key));
     } else if (key === "Enter" && isOpen()) {
       event.preventDefault();
@@ -287,6 +342,8 @@ export async function mount(root: HTMLElement): Promise<void> {
   });
   // Pressing an option must not blur the field first, or the list would close under the pointer.
   listbox.addEventListener("pointerdown", (event) => event.preventDefault());
+  // The pointer takes over from the keyboard: the hover tint shows the row, the ring goes.
+  listbox.addEventListener("pointermove", () => listbox.removeAttribute("data-keyboard"));
   listbox.addEventListener("click", (event) => {
     const item = (event.target as Element).closest<HTMLElement>("[role=option]");
     const option = item ? shown[Number(item.dataset.index)] : undefined;
@@ -296,7 +353,7 @@ export async function mount(root: HTMLElement): Promise<void> {
   toggle.addEventListener("click", () => {
     input.focus();
     if (isOpen()) close();
-    else open("");
+    else browse();
   });
   typed.addEventListener("input", update);
 

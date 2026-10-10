@@ -6,7 +6,6 @@
  */
 
 .daily-panel {
-  --check-mask: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 256 256'%3E%3Cpath d='M229.66,77.66l-128,128a8,8,0,0,1-11.32,0l-56-56a8,8,0,0,1,11.32-11.32L96,188.69,218.34,66.34a8,8,0,0,1,11.32,11.32Z'/%3E%3C/svg%3E");
   /* The segmented choices share one width from 40rem, as on the Settings page. */
   --settings-control-width: 18rem;
   display: grid;
@@ -49,22 +48,39 @@
   position: relative;
 }
 
+/* Until it has focus the field reads as a select: the hand, as over the Provider select above it.
+   Focused, it takes typing, and the caret shows where. */
 .daily-combo .manage-input {
   padding-inline-end: var(--space-12);
+  cursor: pointer;
 }
 
+.daily-combo .manage-input:focus {
+  cursor: text;
+}
+
+/* The chevron sits where every select's does, 16px in from the end; the button around it keeps a
+   full-size target. */
 .daily-combo-toggle {
   position: absolute;
   inset-block: 0;
   inset-inline-end: 0;
   display: grid;
-  place-items: center;
+  place-items: center end;
   inline-size: var(--size-touch);
   padding: 0;
+  padding-inline-end: var(--space-4);
   border: 0;
   background: none;
   color: var(--color-on-surface-muted);
   cursor: pointer;
+}
+
+/* The chevron is part of the field: pointing at it lights the field's edge, as on a select. */
+@media (hover: hover) and (pointer: fine) {
+  .daily-combo .manage-select:hover > .manage-input:not(:focus-visible, [aria-invalid]) {
+    border-color: var(--color-border-control);
+  }
 }
 
 /* The panel speaks the More menu's language: the overlay surface, a hairline, the popover shadow.
@@ -90,6 +106,25 @@
   display: grid;
   gap: var(--space-1);
   --color-focus-gap: var(--color-surface-overlay);
+  /* The timing of a select's list (primitives.css): in at the enter speed, out quicker. */
+  transition:
+    opacity var(--duration-exit) var(--ease-out),
+    display var(--duration-exit) allow-discrete;
+}
+
+.daily-listbox:not([hidden]) {
+  transition-duration: var(--duration-enter);
+}
+
+@starting-style {
+  .daily-listbox:not([hidden]) {
+    opacity: 0;
+  }
+}
+
+.daily-listbox[hidden] {
+  opacity: 0;
+  pointer-events: none;
 }
 
 .daily-listbox[data-above] {
@@ -130,8 +165,9 @@
   }
 }
 
-/* The keyboard's row: a tint and the focus ring, so it never rests on colour alone. */
-.daily-option[data-active] {
+/* The keyboard's row: a tint and the focus ring, so it never rests on colour alone. A list opened
+   with the pointer shows neither until a key is pressed, as a select's list does. */
+.daily-listbox[data-keyboard] .daily-option[data-active] {
   background: var(--color-surface-sunken);
   outline: var(--stroke-ring) solid var(--color-focus-ring);
   outline-offset: calc(var(--stroke-ring) * -1);
@@ -149,6 +185,13 @@
   block-size: var(--size-icon);
   background: var(--color-accent);
   mask: var(--check-mask) center / contain no-repeat;
+}
+
+@media (forced-colors: active) {
+  .daily-option[aria-selected="true"]::after {
+    forced-color-adjust: none;
+    background: CanvasText;
+  }
 }
 
 .daily-option-hint,

@@ -169,7 +169,8 @@
   color: var(--color-on-surface);
 }
 
-.sort-field:focus-within {
+/* The ring is the keyboard's: a click opens the list, and the outline then says which one is open. */
+.sort-field:has(> select:focus-visible) {
   outline: var(--stroke-ring) solid var(--color-focus-ring);
   outline-offset: var(--stroke-ring-gap);
 }
@@ -186,7 +187,6 @@
   font: inherit;
   /* The label size is under 16px on purpose: a select does not zoom the page on iOS. */
   font-size: inherit;
-  appearance: none;
   outline: none;
   box-shadow: none;
   cursor: pointer;
