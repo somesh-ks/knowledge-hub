@@ -3,10 +3,10 @@ import { usePlayerState } from "./hooks/usePlayer";
 import Clock from "./ui/Clock";
 
 /**
- * "Contents": every story, under its section, with its length. Tapping one plays it from
+ * "Chapters": every story, under its section, with its length. Tapping one plays it from
  * its start. The story being read is marked by shape and weight as well as color.
  */
-export default function StoryList() {
+export default function StoryList({ titleHidden = false }: { titleHidden?: boolean }) {
   const state = usePlayerState();
   const timeline = state.track?.timeline;
   if (!timeline || timeline.items.length === 0) return null;
@@ -14,8 +14,8 @@ export default function StoryList() {
   const live = state.hasStarted && state.status !== "idle";
   return (
     <section className="story-list" aria-labelledby="player-stories-title">
-      <h3 className="player-section-title" id="player-stories-title">
-        Contents
+      <h3 className={titleHidden ? "sr-only" : "player-section-title"} id="player-stories-title">
+        Chapters
       </h3>
       {timeline.sections.map((section) => (
         <div key={section.slug} className="story-group">

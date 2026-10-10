@@ -1262,23 +1262,20 @@ dialog.player::backdrop {
 }
 
 .scrubber-tick {
+  --dot: var(--scrubber-tick-dot);
   position: absolute;
-  inset-block-start: calc(var(--scrubber-tick-height) / -2);
-  width: var(--scrubber-tick-width);
-  height: var(--scrubber-tick-height);
-  margin-inline-start: calc(var(--scrubber-tick-width) / -2);
-  border-radius: var(--stroke-hairline);
-  background: var(--color-track-strong);
+  inset-block-start: calc(var(--dot) / -2);
+  width: var(--dot);
+  height: var(--dot);
+  margin-inline-start: calc(var(--dot) / -2);
+  border-radius: var(--radius-round);
+  background: var(--color-on-surface-muted);
+  box-shadow: 0 0 0 var(--stroke-hairline) var(--color-surface);
   transition: background-color var(--duration-state) var(--ease-out);
 }
 
 .scrubber-tick[data-chapter] {
-  inset-block-start: calc(var(--scrubber-tick-chapter-height) / -2);
-  height: var(--scrubber-tick-chapter-height);
-}
-
-.scrubber-tick[data-played] {
-  background: var(--color-cover-accent);
+  --dot: var(--scrubber-tick-dot-chapter);
 }
 
 /* The thumb is a zero-size anchor that script moves with transform. The visible disc is a

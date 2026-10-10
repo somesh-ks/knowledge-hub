@@ -1,85 +1,74 @@
 import { type KeyboardEvent, useEffect, useId, useRef, useState } from "react";
 import { getPlayerStore } from "./core/playerRuntime";
-import { PLAYBACK_RATES } from "./core/playerTypes";
+import {
+  MAX_PLAYBACK_RATE,
+  MIN_PLAYBACK_RATE,
+  PLAYBACK_RATE_STEP,
+  toPlaybackRate,
+} from "./core/playerTypes";
 import { usePlayerState } from "./hooks/usePlayer";
-import Icon from "./ui/LazyIcon";
 
-/** The gap between the button and its menu. */
-const MENU_GAP_PX = 8;
+/** The gap between the button and its panel. */
+const PANEL_GAP_PX = 8;
+
+/** "1x", "1.25x", "0.5x": no trailing zeros. */
+export function rateLabel(rate: number): string {
+  return `${Number(rate.toFixed(2))}x`;
+}
 
 /**
- * The speed: a small button that shows it, and a menu of the four to pick from in one step (1x,
- * 1.25x, 1.5x, 2x, pitch preserved). The menu is a native popover, so it sits in the top layer,
- * closes on an outside press and on Escape, and needs no layering code. The choice is remembered
- * and shared with Settings, where the same four are laid out.
+ * The speed: a button between the two skips that shows it, and a panel with a slider from half
+ * speed to double (pitch preserved). The panel is a native popover, so it sits in the top layer
+ * and closes on an outside press; Escape closes it without closing the player behind it. The
+ * choice is remembered.
  */
 export default function SpeedControl() {
   const state = usePlayerState();
-  const menuId = useId();
+  const panelId = useId();
   const buttonRef = useRef<HTMLButtonElement>(null);
-  const menuRef = useRef<HTMLDivElement>(null);
+  const panelRef = useRef<HTMLDivElement>(null);
   const [open, setOpen] = useState(false);
 
   useEffect(() => {
-    const menu = menuRef.current;
-    if (!menu) return;
-    // Placed against the button just before it is shown: above it, ending where the button ends.
-    const place = (event: Event): void => {
-      if ((event as ToggleEvent).newState !== "open") return;
+    const panel = panelRef.current;
+    if (!panel) return;
+    // Placed against the button, centred on it: above it when there is room, else below it.
+    const place = (): void => {
       const button = buttonRef.current?.getBoundingClientRect();
       if (!button) return;
-      menu.style.setProperty("--menu-bottom", `${window.innerHeight - button.top + MENU_GAP_PX}px`);
-      menu.style.setProperty("--menu-right", `${window.innerWidth - button.right}px`);
+      const above = button.top - PANEL_GAP_PX - panel.offsetHeight;
+      const top = above >= PANEL_GAP_PX ? above : button.bottom + PANEL_GAP_PX;
+      panel.style.setProperty("--panel-top", `${top}px`);
+      panel.style.setProperty("--panel-center", `${button.left + button.width / 2}px`);
     };
     const settle = (event: Event): void => {
       const isOpen = (event as ToggleEvent).newState === "open";
       setOpen(isOpen);
-      if (isOpen) {
-        menu.querySelector<HTMLElement>('[aria-checked="true"]')?.focus();
-      }
+      if (!isOpen) return;
+      // Measured once it is laid out, so the side is chosen from its real height.
+      place();
+      panel.querySelector<HTMLElement>("input")?.focus();
     };
-    menu.addEventListener("beforetoggle", place);
-    menu.addEventListener("toggle", settle);
+    const beforeOpen = (event: Event): void => {
+      if ((event as ToggleEvent).newState === "open") place();
+    };
+    panel.addEventListener("beforetoggle", beforeOpen);
+    panel.addEventListener("toggle", settle);
     return () => {
-      menu.removeEventListener("beforetoggle", place);
-      menu.removeEventListener("toggle", settle);
+      panel.removeEventListener("beforetoggle", beforeOpen);
+      panel.removeEventListener("toggle", settle);
     };
   }, []);
 
-  function close(): void {
-    menuRef.current?.hidePopover();
+  function onKeyDown(event: KeyboardEvent<HTMLDivElement>): void {
+    if (event.key !== "Escape" && event.key !== "Tab") return;
+    // Escape belongs to the panel while it is open: the player behind it stays.
+    event.preventDefault();
+    panelRef.current?.hidePopover();
     buttonRef.current?.focus();
   }
 
-  function onKeyDown(event: KeyboardEvent<HTMLDivElement>): void {
-    const items = [...event.currentTarget.querySelectorAll<HTMLElement>('[role="menuitemradio"]')];
-    const at = items.indexOf(document.activeElement as HTMLElement);
-    let next = -1;
-    switch (event.key) {
-      case "ArrowDown":
-        next = (at + 1) % items.length;
-        break;
-      case "ArrowUp":
-        next = (at - 1 + items.length) % items.length;
-        break;
-      case "Home":
-        next = 0;
-        break;
-      case "End":
-        next = items.length - 1;
-        break;
-      case "Escape":
-      case "Tab":
-        // Escape belongs to the menu while it is open: the player behind it stays.
-        event.preventDefault();
-        close();
-        return;
-      default:
-        return;
-    }
-    event.preventDefault();
-    items[next]?.focus();
-  }
+  const fill = (state.rate - MIN_PLAYBACK_RATE) / (MAX_PLAYBACK_RATE - MIN_PLAYBACK_RATE);
 
   return (
     <div className="speed">
@@ -87,42 +76,43 @@ export default function SpeedControl() {
         ref={buttonRef}
         className="speed-btn press num"
         type="button"
-        popoverTarget={menuId}
-        aria-haspopup="menu"
+        popoverTarget={panelId}
+        aria-haspopup="dialog"
         aria-expanded={open}
-        aria-label={`Playback speed ${state.rate}x`}
+        aria-label={`Playback speed ${rateLabel(state.rate)}`}
       >
-        <Icon name="gauge" />
-        <span aria-hidden="true">{state.rate}x</span>
+        {rateLabel(state.rate)}
       </button>
       <div
-        ref={menuRef}
-        id={menuId}
-        className="speed-menu"
+        ref={panelRef}
+        id={panelId}
+        className="speed-panel"
         popover="auto"
-        role="menu"
+        role="dialog"
         aria-label="Playback speed"
         onKeyDown={onKeyDown}
       >
-        {PLAYBACK_RATES.map((rate) => (
-          <button
-            key={rate}
-            className="speed-item press num"
-            type="button"
-            role="menuitemradio"
-            aria-checked={state.rate === rate}
-            tabIndex={state.rate === rate ? 0 : -1}
-            onClick={() => {
-              getPlayerStore().setRate(rate);
-              close();
-            }}
-          >
-            <span className="speed-item-mark" aria-hidden="true">
-              {state.rate === rate ? <Icon name="check" /> : null}
-            </span>
-            {rate}x
-          </button>
-        ))}
+        <output className="speed-value num" aria-hidden="true">
+          {rateLabel(state.rate)}
+        </output>
+        <input
+          className="speed-slider"
+          type="range"
+          min={MIN_PLAYBACK_RATE}
+          max={MAX_PLAYBACK_RATE}
+          step={PLAYBACK_RATE_STEP}
+          value={state.rate}
+          aria-label="Playback speed"
+          aria-valuetext={rateLabel(state.rate)}
+          style={{ "--range-fill": `${(fill * 100).toFixed(1)}%` } as React.CSSProperties}
+          onChange={(event) =>
+            getPlayerStore().setRate(toPlaybackRate(event.currentTarget.valueAsNumber))
+          }
+        />
+        <div className="speed-scale num" aria-hidden="true">
+          <span>{rateLabel(MIN_PLAYBACK_RATE)}</span>
+          <span>{rateLabel(MAX_PLAYBACK_RATE)}</span>
+        </div>
       </div>
     </div>
   );

@@ -15,7 +15,6 @@ import {
   subscribePageContent,
 } from "./pageContentLoader";
 import SourceLink from "./SourceLink";
-import Icon from "./ui/Icon";
 import PlayerCover from "./ui/PlayerCover";
 
 const TITLE_ID = "dispatch-player-title";
@@ -158,28 +157,24 @@ export default function PlayerSurface() {
           <div className="player-page-inner">
             <div className="player-drag" data-player-drag>
               <div className="player-handle" aria-hidden="true" />
-              <div className="player-head">
-                <button
-                  className="player-collapse press"
-                  type="button"
-                  aria-label="Close the player"
-                  onClick={() => void playerSheet.collapse()}
-                >
-                  <Icon name="expandMore" className="icon-lg" />
-                </button>
-                <h2 className="player-date" id={TITLE_ID}>
-                  Now playing
-                </h2>
-              </div>
+              {/* No close glyph on screen: a drag, the bar, Back or Escape close the page. This one
+                  is for the keyboard and assistive technology, and shows only while focused. */}
+              <button
+                className="player-collapse"
+                type="button"
+                onClick={() => void playerSheet.collapse()}
+              >
+                Close the player
+              </button>
               <div className="player-cover-slot">
                 <div className="player-cover-box" data-player-cover>
                   {cover}
                 </div>
               </div>
               <div className="player-meta">
-                <p className="player-title" title={title}>
+                <h2 className="player-title" id={TITLE_ID} title={title}>
                   {title}
-                </p>
+                </h2>
                 {/* The story being read, and where it came from. Their room is kept when empty. */}
                 <p className="player-story">{item?.headline}</p>
                 <SourceLink />
