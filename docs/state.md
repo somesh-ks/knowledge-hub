@@ -2,7 +2,7 @@
 
 Last updated 2026-10-10. Rewrite this file; do not append.
 
-The reader is called Singularity (D30). Identifiers keep `dispatch`. Everything below is on `main` and deployed at news.someshks.work unless a line says otherwise. The design pass of 2026-10-10 (D51, D52, and the lines that name them) is on the branch `claude/charming-sagan-m6evyy`, pushed and not yet merged.
+The reader is called Singularity (D30). Identifiers keep `dispatch`. Everything below is on `main` and deployed at news.someshks.work unless a line says otherwise. The design pass of 2026-10-10 (D51 to D54, and the lines that name them) is on the branch `claude/charming-sagan-m6evyy`, pushed and not yet merged.
 
 ## Working in production
 
@@ -40,7 +40,7 @@ The reader is called Singularity (D30). Identifiers keep `dispatch`. Everything 
 
 ## Written, not merged
 
-- The design pass of 2026-10-10 on `claude/charming-sagan-m6evyy` (D51, D52, D53; the lines that name them). No pull request is open. The preact/compat prototype (about 57 KB off every page) was declined by the owner on 2026-10-10: React stays, and the budget is 110 KB (D53).
+- The design pass of 2026-10-10 on `claude/charming-sagan-m6evyy` (D51 to D54; the lines that name them). No pull request is open. The preact/compat prototype (about 57 KB off every page) was declined by the owner on 2026-10-10: React stays, and the budget is 110 KB (D53).
 
 ## Development
 

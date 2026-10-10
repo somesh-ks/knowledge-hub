@@ -1,6 +1,6 @@
 # 2026-10-10: Design pass, two-level Settings and autosave
 
-One session, run as a design-engineering pass over every screen: two rounds of four read-only auditors, and workers in worktrees for the fixes. Current facts are in [state.md](../state.md); the decisions are D51, D52 and D53.
+One session, run as a design-engineering pass over every screen: two rounds of four read-only auditors, and workers in worktrees for the fixes. Current facts are in [state.md](../state.md); the decisions are D51 to D54.
 
 ## What changed and why
 - Audit: four auditors (reader pages, Library and app chrome, player, Settings and Create) measured the frozen baseline in Chromium at phone and desktop sizes, light and dark, and returned 98 findings with file and line. Each finding was verified in the browser before it was handed to a worker.
