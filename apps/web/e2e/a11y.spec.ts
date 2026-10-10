@@ -69,6 +69,30 @@ test.describe("axe, banners and live states", () => {
     });
   }
 
+  test("after a move to Today the stale banner is there from the new page's first frame", async ({
+    page,
+  }) => {
+    await page.clock.setFixedTime(new Date("2026-10-18T09:00:00+02:00"));
+    await page.goto("/library");
+    await hydrated(page);
+    // Put in once the new page had drawn, the banner pushed it down by its own height.
+    const firstFrame = page.evaluate(
+      () =>
+        new Promise<boolean>((resolve) => {
+          document.addEventListener(
+            "astro:after-swap",
+            () =>
+              requestAnimationFrame(() =>
+                resolve(document.querySelector('[data-banner="stale"]') !== null),
+              ),
+            { once: true },
+          );
+        }),
+    );
+    await page.locator('a.app-nav-item[href="/"]').first().click();
+    expect(await firstFrame).toBe(true);
+  });
+
   test("a dated page never shows the stale banner", async ({ page }) => {
     await page.clock.setFixedTime(new Date("2026-10-18T09:00:00+02:00"));
     await page.goto("/d/2026-10-05");

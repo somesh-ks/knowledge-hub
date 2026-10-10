@@ -44,10 +44,15 @@ function syncStale(): void {
 }
 
 export function installDeviceBanners(): void {
-  document.addEventListener("astro:page-load", () => {
+  // A banner goes in before a page shows where it can, so it does not push the page down after it
+  // has drawn: as soon as this runs on the first load, and on a navigation right after the swap,
+  // before the new page is shown.
+  const sync = (): void => {
     syncConnection();
     syncStale();
-  });
+  };
+  sync();
+  document.addEventListener("astro:after-swap", sync);
   window.addEventListener("online", syncConnection);
   window.addEventListener("offline", syncConnection);
 }
