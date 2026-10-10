@@ -46,7 +46,7 @@ test.describe("an episode's script in the open player", () => {
       timeout: 8_000,
     });
     await lab.openPlayer();
-    const script = lab.dialog.getByRole("region", { name: "Script" });
+    const script = lab.dialog.getByRole("region", { name: "Transcript" });
     await expect(script).toBeVisible();
     // Opening shows the top of the page (the cover and the controls); the script does not scroll
     // the first turn into the middle. Smooth scrolling takes a moment, so wait it out.
@@ -57,6 +57,16 @@ test.describe("an episode's script in the open player", () => {
     // Exactly one turn is the current one, and it is the first.
     await expect(script.locator('[aria-current="true"]')).toHaveCount(1);
     await expect(script.locator('[data-turn="0"]')).toHaveAttribute("aria-current", "true");
+    // The word being said is lit, one at a time.
+    await expect(script.locator("[data-spoken]")).toHaveCount(1);
+    // The speed sits between the skips and opens a slider; an arrow moves it one step.
+    await lab.dialog.getByRole("button", { name: "Playback speed 1x" }).click();
+    const slider = page.getByRole("slider", { name: "Playback speed" });
+    await expect(slider).toBeFocused();
+    await page.keyboard.press("ArrowRight");
+    await page.keyboard.press("Escape");
+    await expect(lab.dialog.getByRole("button", { name: "Playback speed 1.05x" })).toBeVisible();
+    await expect(lab.root).toHaveAttribute("data-player", "open");
     // A tap on a later turn plays from there.
     await finger.press(script.locator('[data-turn="2"]'));
     await expect(script.locator('[data-turn="2"]')).toHaveAttribute("aria-current", "true", {

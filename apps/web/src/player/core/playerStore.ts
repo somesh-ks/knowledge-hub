@@ -18,8 +18,8 @@ import {
   type EventListener,
   type FrameListener,
   type ItemChangeCause,
+  isPlaybackRate,
   type PauseReason,
-  PLAYBACK_RATES,
   type PlayerEvent,
   type PlayerState,
   type PlayerStore,
@@ -95,10 +95,6 @@ const AUDIO_EVENTS = [
   "ratechange",
   "error",
 ] as const;
-
-function isPlaybackRate(value: number): boolean {
-  return (PLAYBACK_RATES as readonly number[]).includes(value);
-}
 
 export function createPlayerStore(options: PlayerStoreOptions): PlayerStore {
   const {

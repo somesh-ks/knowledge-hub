@@ -2,12 +2,14 @@ import { isPlayingStatus, toggleLabel } from "./core/playerCopy";
 import { getPlayerStore } from "./core/playerRuntime";
 import { SKIP_BACK_SECONDS, SKIP_FORWARD_SECONDS } from "./core/playerTypes";
 import { usePlayerState } from "./hooks/usePlayer";
+import SpeedControl from "./SpeedControl";
 import Icon from "./ui/LazyIcon";
 import PlayPauseGlyph from "./ui/PlayPauseGlyph";
 
 /**
- * Five controls in a row, one dominant: the previous story, back ten seconds, play and pause,
- * forward ten seconds, the next story. The skip glyphs are plain circular arrows; each button
+ * The transport, one control dominant: the previous story, back ten seconds, play and pause, the
+ * speed, forward ten seconds, the next story. On a wide screen with a mouse the bar has previous,
+ * play and next, so the page shows the two skips with the speed between them. The skip glyphs are plain circular arrows; each button
  * draws its own numeral in the arrow's open center, and the name stays on the button.
  */
 export default function TransportControls() {
@@ -52,6 +54,7 @@ export default function TransportControls() {
         <PlayPauseGlyph />
         <span className="spinner" aria-hidden="true" />
       </button>
+      <SpeedControl />
       <button
         className="transport-btn transport-skip press"
         type="button"

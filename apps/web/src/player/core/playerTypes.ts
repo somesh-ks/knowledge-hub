@@ -1,8 +1,27 @@
 import type { PlayerDigestData } from "../../types/contracts";
 import type { Timeline } from "./timeline";
 
+/** The common speeds, offered as presets. The slider in the player reaches any step between. */
 export const PLAYBACK_RATES = [1, 1.25, 1.5, 2] as const;
-export type PlaybackRate = (typeof PLAYBACK_RATES)[number];
+/** The speed slider's range and step: half speed to double, in twentieths. */
+export const MIN_PLAYBACK_RATE = 0.5;
+export const MAX_PLAYBACK_RATE = 2;
+export const PLAYBACK_RATE_STEP = 0.05;
+export type PlaybackRate = number;
+
+/** A speed the player accepts: inside the range and on a step, so a stored value stays tidy. */
+export function isPlaybackRate(value: unknown): value is PlaybackRate {
+  if (typeof value !== "number" || !Number.isFinite(value)) return false;
+  if (value < MIN_PLAYBACK_RATE || value > MAX_PLAYBACK_RATE) return false;
+  const steps = value / PLAYBACK_RATE_STEP;
+  return Math.abs(steps - Math.round(steps)) < 1e-6;
+}
+
+/** The nearest speed on a step, inside the range. A slider's value arrives with float noise. */
+export function toPlaybackRate(value: number): PlaybackRate {
+  const clamped = Math.min(MAX_PLAYBACK_RATE, Math.max(MIN_PLAYBACK_RATE, value));
+  return Math.round(Math.round(clamped / PLAYBACK_RATE_STEP) * PLAYBACK_RATE_STEP * 100) / 100;
+}
 
 /**
  * How far the skip controls move: ten seconds either way, to hear something again or to move on a

@@ -18,14 +18,12 @@ interface LayoutReport {
   parts: Record<string, string>;
 }
 
-/** Runs in the page: measures the five parts every size must show whole. */
+/** Runs in the page: measures the parts every size must show whole. */
 const LAYOUT_CHECK = (): LayoutReport => {
   const problems: string[] = [];
   const dialog = document.querySelector<HTMLElement>('[data-player-page][role="dialog"]');
-  const close = dialog?.querySelector<HTMLElement>('[aria-label="Close the player"]') ?? null;
-  if (!dialog || !close) return { problems: ["the player is not open"], parts: {} };
+  if (!dialog) return { problems: ["the player is not open"], parts: {} };
   const parts: Record<string, HTMLElement | null> = {
-    header: close.parentElement,
     cover: dialog.querySelector<HTMLElement>(".player-cover-frame"),
     title: dialog.querySelector<HTMLElement>(".player-title"),
     transport: dialog.querySelector<HTMLElement>(".transport"),

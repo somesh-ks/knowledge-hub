@@ -1,15 +1,23 @@
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { hostOf } from "../lib/hosts";
 import { getPlayerStore } from "./core/playerRuntime";
-import { currentTurnIndex, FOLLOW_PAUSE_MS } from "./core/scriptMath";
+import {
+  currentTurnIndex,
+  estimateWordStarts,
+  FOLLOW_PAUSE_MS,
+  splitWords,
+  turnEndMs,
+  wordIndexAt,
+} from "./core/scriptMath";
 import { usePlayerSecond, usePlayerState } from "./hooks/usePlayer";
 
 /**
- * An episode's script, in the open player: every turn in order with its speaker, the turn being
- * spoken marked and kept in view, and a tap on a turn to hear it. It follows the voice until a
- * person scrolls it, then waits a few seconds, and offers a way back.
+ * An episode's transcript, in the open player: every turn in order with its speaker, the turn being
+ * spoken marked and kept in view, and the word being said lit as it is said. A tap on a word plays
+ * from it. It follows the voice until a person scrolls it, then waits a few seconds, and offers a
+ * way back.
  */
-export default function ScriptView() {
+export default function ScriptView({ titleHidden = false }: { titleHidden?: boolean }) {
   const state = usePlayerState();
   const second = usePlayerSecond();
   const turns = state.track?.digest.turns ?? [];
@@ -19,6 +27,40 @@ export default function ScriptView() {
   // Opening the page shows its top. Following starts when the voice moves to another turn.
   const followed = useRef<number | null>(null);
   const [away, setAway] = useState(false);
+  const words = useMemo(
+    () =>
+      turns.map((turn, index) => {
+        const list = splitWords(turn.text);
+        return { list, starts: estimateWordStarts(list, turn.start_ms, turnEndMs(turns, index)) };
+      }),
+    [turns],
+  );
+
+  // The spoken word, at frame rate, without a render: one attribute moves from word to word.
+  useEffect(() => {
+    let lit: Element | null = null;
+    const light = (seconds: number): void => {
+      const ms = seconds * 1000;
+      const turn = getPlayerStore().getState().hasStarted ? currentTurnIndex(turns, seconds) : -1;
+      const starts = turn >= 0 ? words[turn]?.starts : null;
+      const word = starts ? wordIndexAt(starts, ms) : -1;
+      const next =
+        word >= 0
+          ? (rootRef.current?.querySelector(`[data-turn="${turn}"] [data-word="${word}"]`) ?? null)
+          : null;
+      if (next === lit) return;
+      lit?.removeAttribute("data-spoken");
+      next?.setAttribute("data-spoken", "");
+      lit = next;
+    };
+    const store = getPlayerStore();
+    light(store.getTime());
+    const off = store.onFrame((seconds) => light(seconds));
+    return () => {
+      off();
+      lit?.removeAttribute("data-spoken");
+    };
+  }, [turns, words]);
 
   function reveal(index: number): void {
     const node = rootRef.current?.querySelector<HTMLElement>(`[data-turn="${index}"]`);
@@ -65,8 +107,8 @@ export default function ScriptView() {
   if (turns.length === 0) return null;
   return (
     <section className="player-script" ref={rootRef} aria-labelledby="player-script-title">
-      <h3 className="player-section-title" id="player-script-title">
-        Script
+      <h3 className={titleHidden ? "sr-only" : "player-section-title"} id="player-script-title">
+        Transcript
       </h3>
       <ol className="script-turns">
         {turns.map((turn, index) => {
@@ -80,10 +122,13 @@ export default function ScriptView() {
                 data-tone={host.tone}
                 aria-current={index === current ? "true" : undefined}
                 aria-disabled={turn.start_ms === null ? "true" : undefined}
-                onClick={() => {
+                onClick={(event) => {
                   if (turn.start_ms === null) return;
                   pausedUntil.current = 0;
-                  getPlayerStore().seekTo(turn.start_ms);
+                  // A tap on a word plays from that word; anywhere else in the turn, from its start.
+                  const word = (event.target as Element).closest<HTMLElement>("[data-word]");
+                  const at = word ? words[index]?.starts?.[Number(word.dataset.word)] : undefined;
+                  getPlayerStore().seekTo(Math.round(at ?? turn.start_ms));
                 }}
               >
                 <span className="script-speaker">
@@ -92,7 +137,17 @@ export default function ScriptView() {
                   </span>
                   <span className="script-name">{host.name}</span>
                 </span>
-                <span className="script-text">{turn.text}</span>
+                <span className="script-text">
+                  {words[index]?.list.map((word, at) => (
+                    // biome-ignore lint/suspicious/noArrayIndexKey: a turn's words never reorder
+                    <span key={at}>
+                      {at > 0 ? " " : null}
+                      <span className="script-word" data-word={at}>
+                        {word}
+                      </span>
+                    </span>
+                  ))}
+                </span>
               </button>
             </li>
           );
