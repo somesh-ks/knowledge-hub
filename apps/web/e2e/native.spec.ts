@@ -8,7 +8,8 @@ import { expect, test } from "./fixtures";
 test.describe("the floating Create button", () => {
   test("shows on Today and the Library, and on no other page", async ({ page }, info) => {
     test.skip(info.project.name === "desktop", "the floating button is for phones");
-    for (const path of ["/", "/library"]) {
+    // The latest briefing at its dated address is Today: the navigation marks it so.
+    for (const path of ["/", "/library", "/d/2026-10-07"]) {
       await page.goto(path);
       await expect(page.locator(".create-fab"), path).toBeVisible();
     }
@@ -71,6 +72,21 @@ test.describe("the tab bar", () => {
       .click();
     await expect.poll(() => page.evaluate(() => window.scrollY)).toBe(0);
     expect(await page.evaluate(() => (window as unknown as { kept?: boolean }).kept)).toBe(true);
+  });
+
+  test("on the latest briefing's dated page, Today goes to its top, as on Today itself", async ({
+    page,
+  }) => {
+    await page.goto("/d/2026-10-07");
+    const today = page
+      .getByRole("navigation", { name: "Primary" })
+      .getByRole("link", { name: "Today", exact: true });
+    await expect(today).toHaveAttribute("aria-current", "page");
+    await page.evaluate(() => window.scrollTo(0, 1200));
+    await expect.poll(() => page.evaluate(() => window.scrollY)).toBeGreaterThan(600);
+    await today.click();
+    await expect.poll(() => page.evaluate(() => window.scrollY)).toBe(0);
+    await expect(page).toHaveURL(/\/d\/2026-10-07$/);
   });
 
   test("from a page below a destination, its tab still goes there", async ({ page }) => {

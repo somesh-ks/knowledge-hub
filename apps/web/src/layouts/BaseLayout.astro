@@ -65,10 +65,12 @@ const destination =
   nav === undefined ? (view === "home" ? "today" : view === "create" ? null : view) : nav;
 const pageTitle = title ? `${title}, Singularity` : "Singularity";
 // The floating Create button belongs to the two top-level lists where making an episode is the next
-// thing to do, Today and the Library, as a primary action does on Android. Settings, a briefing or an
-// episode would only be cluttered by it; the side column carries Create on wide screens everywhere.
+// thing to do, Today and the Library, as a primary action does on Android. Today includes the latest
+// briefing at its dated address (what Share sends), which the navigation marks as Today. Settings,
+// an older briefing or an episode would only be cluttered by it; the side column carries Create on
+// wide screens everywhere.
 const path = Astro.url.pathname.replace(/\/$/, "") || "/";
-const fab = path === "/" || path === "/library";
+const fab = destination === "today" || path === "/library";
 ---
 
 <!doctype html>

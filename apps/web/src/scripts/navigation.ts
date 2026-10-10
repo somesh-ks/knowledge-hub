@@ -101,13 +101,26 @@ export function installNavigation(): void {
       const link = (event.target as Element | null)?.closest<HTMLAnchorElement>(
         "a.app-nav-item[aria-current='page'], a.app-nav-create",
       );
-      if (!link || !isSamePage(new URL(link.href), new URL(location.href))) return;
+      if (!link || !(isSamePage(new URL(link.href), new URL(location.href)) || showsToday(link)))
+        return;
       event.preventDefault();
       event.stopPropagation();
       const reduce = matchMedia("(prefers-reduced-motion: reduce)").matches;
       window.scrollTo({ top: 0, behavior: reduce ? "instant" : "smooth" });
     },
     { capture: true },
+  );
+}
+
+/**
+ * True when the Today tab is pressed on the latest briefing at its dated address: the navigation
+ * marks that page as Today, and it shows what Today shows, so the press goes to its top as well.
+ */
+function showsToday(link: HTMLAnchorElement): boolean {
+  return (
+    link.matches("[aria-current='page']") &&
+    normalize(new URL(link.href).pathname) === "/" &&
+    document.querySelector("main[data-latest='true']") !== null
   );
 }
 
