@@ -178,11 +178,6 @@
   opacity: var(--opacity-disabled);
 }
 
-.topic-hint {
-  margin: 0;
-  padding-inline-start: calc(var(--space-16) + var(--space-3));
-}
-
 .topic-sources {
   display: flex;
   flex-direction: column;

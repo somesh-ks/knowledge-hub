@@ -86,7 +86,7 @@ test.describe("the Topics & sources page", () => {
     await expect(topic(page, "Design engineering craft")).toContainText("Studio Notes");
     await expect(source(page, "Model Ledger")).toContainText("Poor");
     await expect(source(page, "Launch Board")).toContainText("New");
-    await expect(page.getByText("A hint. Each briefing still follows the news.")).toHaveCount(1);
+    await expect(page.getByText("A hint. Each briefing still follows the news.")).toHaveCount(0);
     await expect(page.locator("li.topic", { hasText: "Top picks" })).toHaveCount(0);
   });
 
