@@ -32,12 +32,18 @@ html:has(.briefing > .tabs) {
   inset-inline: 0;
 }
 
-/* Stuck under the app bar, the strip takes over the bar's line: it reaches up over it by a hairline,
-   so one line shows, not two. From 64rem there is no app bar to take over from. */
+/* Stuck under the app bar, the strip draws the one line under the top chrome: while it sticks the
+   bar's own line goes (briefingPage.ts sets data-stuck), so one line shows, not two. The strip sits
+   under the bar, a hairline up, so where the end of the briefing pushes it up it slides beneath the
+   bar instead of over the wordmark. From 64rem there is no app bar. */
 @media (width < 64rem) {
   .briefing > .tabs {
     inset-block-start: calc(var(--sticky-top) - var(--stroke-hairline));
-    z-index: var(--z-header);
+    z-index: calc(var(--z-header) - 1);
+  }
+
+  html:has(.briefing > .tabs[data-stuck]) .app-bar::after {
+    display: none;
   }
 }
 

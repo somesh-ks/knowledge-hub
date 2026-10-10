@@ -447,15 +447,48 @@ test.describe("section tabs", () => {
 
   test("stick under the app bar while the sections scroll", async ({ page }) => {
     await page.goto("/");
+    const barLine = () =>
+      page.locator(".app-bar").evaluate((bar) => getComputedStyle(bar, "::after").display);
+    // Over the hero, before the strip reaches the bar, the bar draws its scroll line.
+    await page.mouse.wheel(0, 60);
+    await expect.poll(barLine).toBe("block");
     await page.locator("#c-research").scrollIntoViewIfNeeded();
     await page.mouse.wheel(0, 600);
     const strip = await page.locator(".tabs").boundingBox();
     const bar = await page.locator(".app-bar").boundingBox();
-    // The strip reaches up over the bar's hairline, so one line shows, not two.
+    // The strip sits a hairline up, under the bar, and takes over the bar's line while it sticks:
+    // one line, not two.
     expect(strip?.y).toBeCloseTo((bar?.y ?? 0) + (bar?.height ?? 0) - 1, 0);
+    await expect.poll(barLine).toBe("none");
     // Edge to edge on a phone: the strip runs past the gutters.
     expect(strip?.x).toBe(0);
     expect(strip?.width).toBe(390);
+  });
+
+  test("at the end of the briefing the strip slides under the app bar, which takes its line back", async ({
+    page,
+  }) => {
+    // A phone on its side: the page goes on past the briefing for longer than the screen is tall.
+    await page.setViewportSize({ width: 844, height: 390 });
+    await page.goto("/");
+    const barLine = () =>
+      page.locator(".app-bar").evaluate((bar) => getComputedStyle(bar, "::after").display);
+    // The end of the briefing just under the bar, so the strip is half under it.
+    await page.evaluate(() => {
+      const bar = document.querySelector(".app-bar")?.getBoundingClientRect().bottom ?? 0;
+      const end = document.querySelector(".briefing")?.getBoundingClientRect().bottom ?? 0;
+      window.scrollBy(0, end - bar - 24);
+    });
+    const onTop = await page.evaluate(() => {
+      const bar = document.querySelector(".app-bar")?.getBoundingClientRect().bottom ?? 0;
+      return document.elementFromPoint(innerWidth / 2, bar - 4)?.closest(".app-bar, .tabs")
+        ?.classList[0];
+    });
+    expect(onTop).toBe("app-bar");
+    // What shows of the strip still draws the line.
+    await expect.poll(barLine).toBe("none");
+    await page.evaluate(() => window.scrollTo(0, document.documentElement.scrollHeight));
+    await expect.poll(barLine).toBe("block");
   });
 
   test("pressing tabs adds no history entries, so Back leaves the page", async ({ page }) => {
@@ -508,6 +541,22 @@ test.describe("section tabs", () => {
     // Scrolling the strip did not move the page sideways.
     expect(await page.evaluate(() => window.scrollX)).toBe(0);
     await page.evaluate(() => window.scrollTo(0, 0));
+    await expect(current).toHaveText("Top picks");
+  });
+
+  test("an instant jump to the top marks the first tab, though its section starts below mid-screen", async ({
+    page,
+  }) => {
+    // On a short phone the first section starts under the middle of the screen, so at the top no
+    // section crosses the reading band.
+    await page.setViewportSize({ width: 390, height: 600 });
+    await page.goto("/");
+    const current = page.locator('.tab[aria-current="true"]');
+    await page.evaluate(() => {
+      document.querySelector("#c-research")?.scrollIntoView({ block: "start" });
+    });
+    await expect(current).toHaveText("Research");
+    await page.evaluate(() => window.scrollTo({ top: 0, behavior: "instant" }));
     await expect(current).toHaveText("Top picks");
   });
 

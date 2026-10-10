@@ -12,6 +12,7 @@ const reducedMotion = (): boolean => matchMedia("(prefers-reduced-motion: reduce
 
 let observer: IntersectionObserver | null = null;
 let endObserver: IntersectionObserver | null = null;
+let stuckObserver: IntersectionObserver | null = null;
 /** A tapped tab stays marked until the reader scrolls, even where its section cannot reach the top. */
 let held = false;
 
@@ -35,9 +36,32 @@ function centreTab(strip: HTMLElement, tab: HTMLElement): void {
   });
 }
 
+/**
+ * While the strip is stuck under the app bar it draws the one line under the top chrome, and the
+ * bar's own line goes (briefing.css). Stuck, the strip sits a pixel above the bar's bottom edge; it
+ * stays above it while the end of the briefing pushes it under the bar, until it is gone. Chromium
+ * reports a strip partly past that edge as not intersecting, so the test reads its top instead.
+ */
+function watchStuck(strip: HTMLElement): void {
+  const edge = (Number.parseFloat(getComputedStyle(strip).top) || 0) + 1;
+  stuckObserver = new IntersectionObserver(
+    ([entry]) => {
+      if (!entry) return;
+      const top = entry.rootBounds?.top ?? edge;
+      strip.toggleAttribute(
+        "data-stuck",
+        entry.intersectionRatio > 0 && entry.boundingClientRect.top < top,
+      );
+    },
+    { rootMargin: `-${Math.round(edge)}px 0px 0px 0px`, threshold: [0, 1] },
+  );
+  stuckObserver.observe(strip);
+}
+
 function watchSections(): void {
   observer?.disconnect();
   endObserver?.disconnect();
+  stuckObserver?.disconnect();
   held = false;
   const sections = [...document.querySelectorAll<HTMLElement>("[data-chapter]")];
   const first = sections[0];
@@ -50,6 +74,7 @@ function watchSections(): void {
   const chrome = strip?.offsetParent
     ? (Number.parseFloat(getComputedStyle(strip).top) || 0) + strip.offsetHeight
     : 0;
+  if (strip?.offsetParent) watchStuck(strip);
   const inView = new Set<Element>();
   /** All on screen: the first section, the end of the page, or both. */
   const whole = new Set<Element>();
@@ -58,10 +83,14 @@ function watchSections(): void {
     // At the end of the page the last section is marked, since a short one never reaches the
     // reading line, unless the first section is all on screen too: then the page fits the screen.
     // Otherwise the mark goes to the topmost section crossing the band between the line and
-    // mid-screen. None means the reader is above the first or past the last, and the mark stays
-    // where it was.
+    // mid-screen. None means the reader is above the first or past the last: above the first (an
+    // instant jump to the top, where the first section starts below mid-screen) marks the first,
+    // and past the last keeps the mark where it was.
     const atEnd = end !== null && whole.has(end) && !whole.has(first);
-    const current = atEnd ? last : sections.find((section) => inView.has(section));
+    const current = atEnd
+      ? last
+      : (sections.find((section) => inView.has(section)) ??
+        (first.getBoundingClientRect().top > chrome ? first : undefined));
     if (current) mark(current.dataset.chapter);
   };
   observer = new IntersectionObserver(
@@ -123,11 +152,15 @@ async function share(button: HTMLElement): Promise<void> {
   }, COPIED_MS);
 }
 
-// A tab reached with the keyboard can sit cut off at the strip's edge: bring it to the middle.
+// A tab reached with the keyboard can sit cut off at the strip's edge: bring it to the middle. A card
+// on the Other episodes shelf can sit flush with the shelf's edge, its ring cut off, which the browser
+// counts as in view: bring it in by the shelf's scroll padding.
 document.addEventListener("focusin", (event) => {
   if (!(event.target instanceof HTMLElement)) return;
   const strip = event.target.closest<HTMLElement>("[data-section-tabs]");
   if (strip && event.target.matches("a.tab")) centreTab(strip, event.target);
+  else if (event.target.matches(".shelf a.card-link"))
+    event.target.scrollIntoView({ block: "nearest", inline: "nearest" });
 });
 
 document.addEventListener("click", (event) => {
