@@ -17,6 +17,11 @@ interface Props {
 const { entry } = Astro.props;
 ---
 
-<BaseLayout title={entry.episode.title} view="library" digestId={entry.id}>
+<BaseLayout
+  title={entry.episode.title}
+  view="library"
+  digestId={entry.id}
+  skipLabel="Skip to the episode"
+>
   <EpisodeView entry={entry} />
 </BaseLayout>

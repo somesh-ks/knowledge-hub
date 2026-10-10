@@ -21,6 +21,7 @@ const { sections, hasAudio } = Astro.props;
         <a
           class="tab"
           href={`#c-${section.slug}`}
+          data-astro-history="replace"
           data-section={section.slug}
           aria-current={index === 0 ? "true" : undefined}
         >

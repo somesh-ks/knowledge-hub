@@ -451,10 +451,48 @@ test.describe("section tabs", () => {
     await page.mouse.wheel(0, 600);
     const strip = await page.locator(".tabs").boundingBox();
     const bar = await page.locator(".app-bar").boundingBox();
-    expect(strip?.y).toBeCloseTo((bar?.y ?? 0) + (bar?.height ?? 0), 0);
+    // The strip reaches up over the bar's hairline, so one line shows, not two.
+    expect(strip?.y).toBeCloseTo((bar?.y ?? 0) + (bar?.height ?? 0) - 1, 0);
     // Edge to edge on a phone: the strip runs past the gutters.
     expect(strip?.x).toBe(0);
     expect(strip?.width).toBe(390);
+  });
+
+  test("pressing tabs adds no history entries, so Back leaves the page", async ({ page }) => {
+    await page.goto("/library");
+    await page.goto("/");
+    const before = await page.evaluate(() => history.length);
+    await page.locator(".tab", { hasText: "Research" }).click();
+    await expect(page).toHaveURL(/#c-research$/);
+    await page.locator(".tab").first().click();
+    expect(await page.evaluate(() => history.length)).toBe(before);
+    await page.goBack();
+    await expect(page).toHaveURL(/\/library/);
+  });
+
+  test("a tab reached with the keyboard is brought fully into the strip", async ({ page }) => {
+    await page.goto("/");
+    await hydrated(page);
+    const last = page.locator(".tab").last();
+    await last.focus();
+    await expect
+      .poll(async () => {
+        const strip = await page.locator(".tabs").boundingBox();
+        const tab = await last.boundingBox();
+        return (
+          !!strip &&
+          !!tab &&
+          tab.x >= strip.x - 0.5 &&
+          tab.x + tab.width <= strip.x + strip.width + 0.5
+        );
+      })
+      .toBe(true);
+  });
+
+  test("an episode page says episode, not briefing, to assistive tech", async ({ page }) => {
+    await page.goto("/e/ep-20261007-1930");
+    await expect(page.locator(".skip-link")).toHaveText("Skip to the episode");
+    await expect(page.locator("[data-play-digest]")).toHaveAccessibleName(/^Play the episode, /);
   });
 
   test("mark the section in view and bring its tab into the strip", async ({ page }) => {

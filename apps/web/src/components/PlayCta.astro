@@ -1,7 +1,7 @@
 ---
 import type { AudioMode } from "../lib/digests";
 import { AUDIO_UNAVAILABLE_COPY } from "../lib/digestView";
-import { idleBriefingChip } from "../player/core/readerMath";
+import { type ChipNoun, idleBriefingChip } from "../player/core/readerMath";
 import PlayChip from "./PlayChip.astro";
 
 interface Props {
@@ -11,10 +11,12 @@ interface Props {
   length: string;
   /** What is said beside the chip, in the chip's own size: "12 stories", or "Discussion", "7 October". */
   facts?: string[];
+  /** What the chip plays, in its accessible name. */
+  noun?: ChipNoun;
 }
 
-const { digestId, mode, length, facts = [] } = Astro.props;
-const chip = idleBriefingChip(length);
+const { digestId, mode, length, facts = [], noun = "briefing" } = Astro.props;
+const chip = idleBriefingChip(length, noun);
 const unavailable = mode === "expired" ? AUDIO_UNAVAILABLE_COPY.expired : null;
 ---
 
@@ -28,6 +30,7 @@ const unavailable = mode === "expired" ? AUDIO_UNAVAILABLE_COPY.expired : null;
     aria-label={chip.name}
     aria-describedby={unavailable ? "play-hint" : undefined}
     data-play-digest={digestId}
+    data-noun={noun}
   />
   {
     facts.length > 0 && (

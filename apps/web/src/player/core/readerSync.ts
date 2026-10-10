@@ -136,12 +136,15 @@ export function createReaderSync(
     const note = document.getElementById("play-hint");
     if (note && !note.hidden) note.hidden = true;
 
-    const briefing = briefingChipView(state, store.getTime(), page);
-    // Audio is never cached, so offline a chip that would have to fetch it cannot work. One that
-    // holds loaded audio still pauses and resumes.
-    const blocked =
-      !navigator.onLine && briefing.state !== "current" && briefing.state !== "preparing";
-    for (const chip of elements.playDigest) writeChip(chip, briefing, blocked);
+    for (const chip of elements.playDigest) {
+      const noun = chip.dataset.noun === "episode" ? "episode" : "briefing";
+      const briefing = briefingChipView(state, store.getTime(), page, noun);
+      // Audio is never cached, so offline a chip that would have to fetch it cannot work. One that
+      // holds loaded audio still pauses and resumes.
+      const blocked =
+        !navigator.onLine && briefing.state !== "current" && briefing.state !== "preparing";
+      writeChip(chip, briefing, blocked);
+    }
 
     for (const chip of elements.playItem) {
       const id = resolveItemId(

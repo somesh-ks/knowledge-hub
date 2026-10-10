@@ -8,6 +8,7 @@ import { installHeroMenu } from "./heroMenu";
 installHeroMenu();
 
 const COPIED_MS = 2_000;
+const reducedMotion = (): boolean => matchMedia("(prefers-reduced-motion: reduce)").matches;
 
 let observer: IntersectionObserver | null = null;
 let endObserver: IntersectionObserver | null = null;
@@ -22,13 +23,16 @@ function mark(slug: string | undefined): void {
     if (isCurrent) link.setAttribute("aria-current", "true");
     else link.removeAttribute("aria-current");
     const strip = link.closest<HTMLElement>("[data-section-tabs]");
-    if (!isCurrent || !strip) continue;
-    // Moves the strip itself. scrollIntoView would also scroll the page when the strip is off screen.
-    strip.scrollTo({
-      left: link.offsetLeft - (strip.clientWidth - link.offsetWidth) / 2,
-      behavior: matchMedia("(prefers-reduced-motion: reduce)").matches ? "auto" : "smooth",
-    });
+    if (isCurrent && strip) centreTab(strip, link);
   }
+}
+
+/** Moves the strip itself. scrollIntoView would also scroll the page when the strip is off screen. */
+function centreTab(strip: HTMLElement, tab: HTMLElement): void {
+  strip.scrollTo({
+    left: tab.offsetLeft - (strip.clientWidth - tab.offsetWidth) / 2,
+    behavior: reducedMotion() ? "auto" : "smooth",
+  });
 }
 
 function watchSections(): void {
@@ -119,6 +123,13 @@ async function share(button: HTMLElement): Promise<void> {
   }, COPIED_MS);
 }
 
+// A tab reached with the keyboard can sit cut off at the strip's edge: bring it to the middle.
+document.addEventListener("focusin", (event) => {
+  if (!(event.target instanceof HTMLElement)) return;
+  const strip = event.target.closest<HTMLElement>("[data-section-tabs]");
+  if (strip && event.target.matches("a.tab")) centreTab(strip, event.target);
+});
+
 document.addEventListener("click", (event) => {
   if (!(event.target instanceof Element)) return;
   const tab = event.target.closest<HTMLElement>("a[data-section]");
@@ -138,6 +149,8 @@ const release = (): void => {
 window.addEventListener("wheel", release, { passive: true });
 window.addEventListener("touchmove", release, { passive: true });
 window.addEventListener("keydown", release);
+// Back and Forward move the page to an address of their own, so the mark follows the scroll again.
+window.addEventListener("popstate", release);
 
 document.addEventListener("astro:page-load", watchSections);
 watchSections();

@@ -80,9 +80,12 @@ export function storyLengthLabel(startMs: number | null, endMs: number | null): 
   return formatClock(Math.round((endMs - startMs) / 1000));
 }
 
+/** What the page's chip plays, in its accessible name: an episode page calls it an episode. */
+export type ChipNoun = "briefing" | "episode";
+
 /** The briefing's chip before anything has played. The pages render this one at build time. */
-export function idleBriefingChip(length: string): ChipView {
-  return { state: "idle", playing: false, label: length, name: `Play the briefing, ${length}` };
+export function idleBriefingChip(length: string, noun: ChipNoun = "briefing"): ChipView {
+  return { state: "idle", playing: false, label: length, name: `Play the ${noun}, ${length}` };
 }
 
 /** A story's chip before it has played. `length` is empty while the briefing has no audio. */
@@ -100,20 +103,21 @@ export function briefingChipView(
   state: PlayerState,
   timeSeconds: number,
   pageDigest: PlayerDigestData,
+  noun: ChipNoun = "briefing",
 ): ChipView {
   const pageDurationMs = pageDigest.audio?.duration_ms ?? 0;
-  const idle = idleBriefingChip(briefingLengthLabel(pageDurationMs));
+  const idle = idleBriefingChip(briefingLengthLabel(pageDurationMs), noun);
   // Another briefing is loaded: this chip starts its own from the top.
   if (state.digestId !== pageDigest.id) return idle;
 
   const total = state.duration || pageDurationMs / 1000;
   const left = `${Math.max(1, Math.ceil(Math.max(0, total - timeSeconds) / 60))} min left`;
-  const resume = { playing: false, label: left, name: `Resume the briefing, ${left}` };
+  const resume = { playing: false, label: left, name: `Resume the ${noun}, ${left}` };
   const playing: ChipView = {
     state: "current",
     playing: true,
     label: "Playing",
-    name: "Pause the briefing, playing",
+    name: `Pause the ${noun}, playing`,
   };
   switch (state.status) {
     case "idle":
@@ -127,7 +131,7 @@ export function briefingChipView(
             state: "preparing",
             playing: true,
             label: "Loading",
-            name: "Pause the briefing, loading",
+            name: `Pause the ${noun}, loading`,
           }
         : playing;
     case "paused":
@@ -137,7 +141,7 @@ export function briefingChipView(
         state: "played",
         playing: false,
         label: "Played",
-        name: "Play the briefing again, played",
+        name: `Play the ${noun} again, played`,
       };
     case "error":
       return { state: "idle", playing: false, label: "Try again", name: "Try again" };
