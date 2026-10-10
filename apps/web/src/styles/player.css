@@ -975,13 +975,14 @@
   }
 
   /* No grey is 3:1 from both the bar and the accent, so a notch in the bar's own colour marks where
-     the played part ends, as wide as the line is thick. It moves with the progress, by transform. */
+     the played part ends: three times as wide as the line is thick, so it never reads as one of the
+     chapter gaps, which are as wide as the line. It moves with the progress, by transform. */
   .dock-progress::after {
     content: "";
     position: absolute;
     inset-block: 0;
     inset-inline-start: 0;
-    width: var(--mini-player-progress-height);
+    width: calc(var(--mini-player-progress-height) * 3);
     background: var(--mini-player-bg);
     translate: calc(var(--player-progress, 0) * 100cqi) 0;
   }
