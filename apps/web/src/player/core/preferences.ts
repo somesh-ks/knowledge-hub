@@ -1,5 +1,5 @@
 import { isFiniteNumber } from "./mathUtils";
-import { PLAYBACK_RATES, type PlaybackRate } from "./playerTypes";
+import { isPlaybackRate, type PlaybackRate } from "./playerTypes";
 import { type StorageLike, safeLocalStorage } from "./resume";
 
 /**
@@ -33,10 +33,6 @@ function isTheme(value: unknown): value is ThemePreference {
   return typeof value === "string" && (THEME_PREFERENCES as readonly string[]).includes(value);
 }
 
-function isRate(value: unknown): value is PlaybackRate {
-  return isFiniteNumber(value) && (PLAYBACK_RATES as readonly number[]).includes(value);
-}
-
 /** Tolerates anything: a stale shape, hand-edited JSON, a value from a future version. */
 export function parsePreferences(raw: string | null): Preferences {
   if (!raw) return DEFAULT_PREFERENCES;
@@ -54,7 +50,7 @@ export function parsePreferences(raw: string | null): Preferences {
     volume: isFiniteNumber(record.volume)
       ? Math.min(1, Math.max(0, record.volume))
       : DEFAULT_PREFERENCES.volume,
-    rate: isRate(record.rate) ? record.rate : DEFAULT_PREFERENCES.rate,
+    rate: isPlaybackRate(record.rate) ? record.rate : DEFAULT_PREFERENCES.rate,
   };
 }
 

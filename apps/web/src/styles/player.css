@@ -271,6 +271,7 @@
 /* Starts a dismissal when the page is at the top. It takes no native pan; the controller scrolls
    the page under a finger that is not dismissing. */
 .player-drag {
+  position: relative;
   display: flex;
   flex-direction: column;
   touch-action: none;
@@ -288,38 +289,31 @@
 }
 
 @media (hover: hover) and (pointer: fine) {
-  /* A mouse closes with the chevron or Escape; there is nothing to grab. */
+  /* A mouse closes with the bar or Escape; there is nothing to grab. */
   .player-handle {
     visibility: hidden;
   }
 }
 
-.player-head {
-  display: grid;
-  grid-template-columns: var(--size-touch) minmax(0, 1fr) var(--size-touch);
-  align-items: center;
-  min-height: var(--size-touch);
-  /* The glyphs sit on the content edge; the targets extend outward. */
-  margin-inline: calc(var(--space-3) * -1);
-}
-
+/* Out of sight until the keyboard reaches it, like a skip link. */
 .player-collapse {
-  display: grid;
-  place-items: center;
-  width: var(--size-touch);
-  height: var(--size-touch);
-  border-radius: var(--radius-round);
-  color: var(--color-on-surface-muted);
+  position: absolute;
+  inset-block-start: 0;
+  inset-inline-start: 50%;
+  z-index: 1;
+  padding: var(--space-2) var(--space-4);
+  border-radius: var(--button-radius);
+  background: var(--color-surface-inverse);
+  color: var(--color-on-surface-inverse);
+  font-size: var(--font-size-label);
+  font-weight: var(--font-weight-medium);
+  white-space: nowrap;
+  translate: -50% 0;
+  clip-path: inset(50%);
 }
 
-.player-date {
-  overflow: hidden;
-  color: var(--color-on-surface-muted);
-  font-size: var(--font-size-meta);
-  font-weight: var(--font-weight-semibold);
-  text-align: center;
-  text-overflow: ellipsis;
-  white-space: nowrap;
+.player-collapse:focus-visible {
+  clip-path: none;
 }
 
 .player-cover-slot {
@@ -335,8 +329,21 @@
 /* The podcast's title, the story being read under it, and where that story came from. */
 .player-meta {
   display: grid;
+  align-content: start;
   justify-items: center;
-  gap: var(--space-2);
+  gap: var(--space-1);
+  /* Room for the title, a story of two lines and the source, kept at the bottom of the block: the
+     three sit together whatever the story's length, and nothing below moves when it changes. */
+  min-height: calc(
+    var(--text-title-size) *
+    var(--text-title-leading) +
+    var(--font-size-label) *
+    var(--font-leading-label) *
+    2 +
+    var(--size-touch) +
+    var(--space-1) *
+    2
+  );
   text-align: center;
 }
 
@@ -344,7 +351,6 @@
 .player-story {
   display: -webkit-box;
   overflow: hidden;
-  min-height: calc(var(--font-size-label) * var(--font-leading-label) * 2);
   color: var(--color-on-surface-muted);
   font-size: var(--font-size-label);
   line-height: var(--font-leading-label);
@@ -634,22 +640,23 @@
   pointer-events: none;
 }
 
+/* A dot where each story starts, centred on the line; a section's is a little larger. A hairline
+   ring in the surface colour parts it from the line, played or not. */
 .dock-tick {
+  --dot: var(--scrubber-tick-dot);
   position: absolute;
-  inset-block-start: calc(var(--scrubber-tick-height) / -2);
+  inset-block-start: calc(var(--dot) / -2);
   inset-inline-start: var(--tick-position, 0%);
-  width: var(--scrubber-tick-width);
-  height: var(--scrubber-tick-height);
-  background: var(--color-track-strong);
+  width: var(--dot);
+  height: var(--dot);
+  margin-inline-start: calc(var(--dot) / -2);
+  border-radius: var(--radius-round);
+  background: var(--color-on-surface-muted);
+  box-shadow: 0 0 0 var(--stroke-hairline) var(--color-surface);
 }
 
 .dock-tick[data-chapter] {
-  inset-block-start: calc(var(--scrubber-tick-chapter-height) / -2);
-  height: var(--scrubber-tick-chapter-height);
-}
-
-.dock-tick[data-played] {
-  background: var(--color-accent);
+  --dot: var(--scrubber-tick-dot-chapter);
 }
 
 /* The clock at the thumb while it is being moved. */
@@ -778,14 +785,6 @@
 
   .player-dock:has(.dock-seek:hover) .dock-progress {
     height: calc(var(--mini-player-progress-height) * 2);
-  }
-
-  .player-collapse:hover {
-    background: var(--color-surface-sunken);
-  }
-
-  .player-collapse:hover {
-    color: var(--color-on-surface);
   }
 }
 
@@ -988,25 +987,23 @@
   pointer-events: none;
 }
 
+/* The same dots as the bar's. */
 .scrubber-tick {
+  --dot: var(--scrubber-tick-dot);
   position: absolute;
-  inset-block-start: calc(var(--scrubber-tick-height) / -2);
+  inset-block-start: calc(var(--dot) / -2);
   inset-inline-start: var(--tick-position, 0%);
-  width: var(--scrubber-tick-width);
-  height: var(--scrubber-tick-height);
-  margin-inline-start: calc(var(--scrubber-tick-width) / -2);
-  border-radius: var(--stroke-hairline);
-  background: var(--color-track-strong);
+  width: var(--dot);
+  height: var(--dot);
+  margin-inline-start: calc(var(--dot) / -2);
+  border-radius: var(--radius-round);
+  background: var(--color-on-surface-muted);
+  box-shadow: 0 0 0 var(--stroke-hairline) var(--color-surface);
   transition: background-color var(--duration-state) var(--ease-out);
 }
 
 .scrubber-tick[data-chapter] {
-  inset-block-start: calc(var(--scrubber-tick-chapter-height) / -2);
-  height: var(--scrubber-tick-chapter-height);
-}
-
-.scrubber-tick[data-played] {
-  background: var(--color-accent);
+  --dot: var(--scrubber-tick-dot-chapter);
 }
 
 /* The thumb is a zero-size anchor that script moves with --thumb-x. The visible disc is a
@@ -1079,10 +1076,23 @@
 /* ------------------------------------------------------------------ transport */
 
 .transport {
-  display: flex;
+  display: grid;
+  grid-template-columns: repeat(5, auto);
   align-items: center;
   justify-content: space-between;
+  row-gap: 0;
   padding-block: var(--space-2) var(--space-4);
+}
+
+/* On the phone the five keep one axis, play in the middle, and the speed sits under play as a
+   quiet pill, so it reads as a control and not as a caption. */
+.transport > .speed {
+  grid-row: 2;
+  grid-column: 3;
+}
+
+.transport > .speed .speed-btn {
+  background: var(--color-surface-sunken);
 }
 
 .transport-btn {
@@ -1112,7 +1122,7 @@
   color: var(--color-on-surface-disabled);
 }
 
-/* Previous and next are the smaller targets of the five, so the speed fits at the row's end. */
+/* Previous and next are the smaller targets of the five. */
 .transport-btn:not([data-primary], .transport-skip) {
   width: var(--size-touch-comfortable);
   height: var(--size-touch-comfortable);
@@ -1149,50 +1159,49 @@
 
 /* ------------------------------------------------------------------ speed */
 
-/* The transport, with the speed at its end. */
-.transport-row {
-  display: flex;
-  align-items: center;
-  gap: var(--space-1);
+/* The speed it is at: under play on a phone, between the two skips with a mouse. One tap opens
+   the slider. */
+.speed {
+  display: grid;
+  place-items: center;
 }
 
-.transport-row > .transport {
-  flex: 1 1 auto;
-}
-
-/* The glyph and the speed it is at. One tap opens the four. */
 .speed-btn {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  gap: var(--space-1);
-  min-width: var(--size-touch);
+  display: grid;
+  place-items: center;
+  min-width: var(--size-touch-comfortable);
   min-height: var(--size-touch);
-  padding-inline: var(--space-2);
-  border-radius: var(--control-radius-sm);
+  padding-inline: var(--space-3);
+  border-radius: var(--radius-round);
   color: var(--color-on-surface-muted);
   font-size: var(--font-size-label);
-  font-weight: var(--font-weight-medium);
-}
-
-.speed-btn .ui-icon {
-  width: var(--space-4);
-  height: var(--space-4);
+  font-weight: var(--font-weight-semibold);
 }
 
 .speed-btn[aria-expanded="true"] {
   color: var(--color-on-surface);
 }
 
-/* A native popover: in the top layer, placed above the button by script just before it opens. */
-.speed-menu {
-  --menu-bottom: 0px;
-  --menu-right: 0px;
+/* A native popover: in the top layer, centred on the button by script, above it when there is room
+   and below it when not, and kept inside the screen. */
+.speed-panel {
+  --panel-top: 0px;
+  --panel-center: 50vw;
+  --panel-width: 16rem;
   position: fixed;
-  inset: auto var(--menu-right) var(--menu-bottom) auto;
-  min-width: 8rem;
+  inset: var(--panel-top) auto auto
+    clamp(
+      var(--space-3),
+      var(--panel-center) -
+      var(--panel-width) /
+      2,
+      100vw -
+      var(--panel-width) -
+      var(--space-3)
+    );
+  width: var(--panel-width);
   margin: 0;
-  padding: var(--space-1);
+  padding: var(--space-3) var(--space-4) var(--space-2);
   border: 0;
   border-radius: var(--radius-md);
   background: var(--color-surface-overlay);
@@ -1207,48 +1216,105 @@
     display var(--duration-state) allow-discrete;
 }
 
-.speed-menu:popover-open {
+.speed-panel:popover-open {
   opacity: 1;
   transform: none;
 }
 
 @starting-style {
-  .speed-menu:popover-open {
+  .speed-panel:popover-open {
     opacity: 0;
     transform: translateY(var(--space-1));
   }
 }
 
-.speed-item {
-  display: grid;
-  grid-template-columns: var(--size-icon) minmax(0, 1fr);
-  align-items: center;
-  gap: var(--space-2);
-  width: 100%;
-  min-height: var(--size-touch);
-  padding-inline: var(--space-3);
-  border-radius: var(--control-radius-sm);
-  font-size: var(--font-size-label);
-  text-align: start;
-}
-
-.speed-item[aria-checked="true"] {
-  color: var(--color-accent);
+.speed-value {
+  display: block;
+  font-size: var(--font-size-label-lg);
   font-weight: var(--font-weight-semibold);
+  text-align: center;
 }
 
-.speed-item-mark {
-  display: grid;
-  place-items: center;
+/*
+ * A native range, painted like the volume slider: WebKit fills the track with a gradient up to
+ * --range-fill, Firefox with ::-moz-range-progress. The two engines' pseudo-elements cannot share
+ * a rule.
+ */
+.speed-slider {
+  --range-fill: 0%;
+  --range-fill-color: var(--color-accent);
+  display: block;
+  width: 100%;
+  height: var(--size-touch);
+  margin: 0;
+  appearance: none;
+  background: none;
+  cursor: pointer;
+}
+
+.speed-slider::-webkit-slider-runnable-track {
+  height: var(--scrubber-track);
+  border-radius: var(--radius-round);
+  background: linear-gradient(
+    to right,
+    var(--range-fill-color) var(--range-fill),
+    var(--color-track-strong) var(--range-fill)
+  );
+}
+
+.speed-slider::-webkit-slider-thumb {
+  width: var(--scrubber-thumb);
+  height: var(--scrubber-thumb);
+  margin-block-start: calc((var(--scrubber-track) - var(--scrubber-thumb)) / 2);
+  appearance: none;
+  border-radius: var(--radius-round);
+  background: var(--range-fill-color);
+  box-shadow: 0 0 0 var(--scrubber-thumb-ring) var(--color-surface-overlay);
+  transition: scale var(--duration-press-out) var(--ease-out);
+}
+
+.speed-slider::-moz-range-track {
+  height: var(--scrubber-track);
+  border-radius: var(--radius-round);
+  background: var(--color-track-strong);
+}
+
+.speed-slider::-moz-range-progress {
+  height: var(--scrubber-track);
+  border-radius: var(--radius-round);
+  background: var(--range-fill-color);
+}
+
+.speed-slider::-moz-range-thumb {
+  width: var(--scrubber-thumb);
+  height: var(--scrubber-thumb);
+  border: 0;
+  border-radius: var(--radius-round);
+  background: var(--range-fill-color);
+  box-shadow: 0 0 0 var(--scrubber-thumb-ring) var(--color-surface-overlay);
+  transition: scale var(--duration-press-out) var(--ease-out);
+}
+
+.speed-slider:active::-webkit-slider-thumb {
+  scale: var(--scrubber-thumb-active-scale);
+  transition-duration: var(--duration-press-in);
+}
+
+.speed-slider:active::-moz-range-thumb {
+  scale: var(--scrubber-thumb-active-scale);
+  transition-duration: var(--duration-press-in);
+}
+
+.speed-scale {
+  display: flex;
+  justify-content: space-between;
+  color: var(--color-on-surface-muted);
+  font-size: var(--font-size-caption);
 }
 
 @media (hover: hover) and (pointer: fine) {
-  .speed-btn:hover,
-  .speed-item:hover {
-    background: var(--color-surface-sunken);
-  }
-
   .speed-btn:hover {
+    background: var(--color-surface-sunken);
     color: var(--color-on-surface);
   }
 }
@@ -1266,56 +1332,61 @@
   list-style: none;
 }
 
-/* The two hosts: a lead on the page, and a guest on a faint sunken surface with an inset rule. */
+/* A reading column, as in Speechify: no boxes, no badges, no rules. Each turn is a small name over
+   its text; while it plays, what has been said is in full ink, what is still to come is muted, and
+   the word being said sits on a soft fill. */
 .script-turn {
-  --host-ink: var(--color-accent);
-  --host-wash: var(--color-accent-subtle);
   display: grid;
   gap: var(--space-1);
   width: 100%;
   padding-block: var(--space-3);
-  padding-inline: var(--space-3);
-  border-radius: var(--sheet-row-radius);
   text-align: start;
 }
 
-.script-turn[data-tone="guest"] {
-  --host-ink: var(--color-warning);
-  --host-wash: var(--color-warning-subtle);
-  background: var(--color-surface-sunken);
-  box-shadow: inset var(--space-1) 0 0 var(--host-ink);
-}
-
 .script-speaker {
-  display: flex;
-  align-items: center;
-  gap: var(--space-2);
-  color: var(--host-ink);
+  color: var(--color-on-surface-muted);
   font-size: var(--font-size-meta);
   font-weight: var(--font-weight-semibold);
 }
 
-.host-badge {
-  display: grid;
-  place-items: center;
-  width: var(--space-6);
-  height: var(--space-6);
-  border-radius: var(--radius-round);
-  background: var(--host-wash);
-  color: var(--host-ink);
-  font-size: var(--font-size-caption);
-  font-weight: var(--font-weight-semibold);
-}
-
 .script-text {
-  font-size: var(--font-size-label);
-  line-height: var(--font-leading-label);
+  color: var(--color-on-surface);
+  font-size: var(--font-size-reading);
+  font-weight: var(--font-weight-medium);
+  line-height: var(--font-leading-reading);
+  transition: color var(--duration-state) var(--ease-out);
 }
 
-/* The turn being spoken: a tint and a rule on the leading edge, so it never relies on colour alone. */
-.script-turn[aria-current="true"] {
-  background: var(--host-wash);
-  box-shadow: inset var(--space-1) 0 0 var(--host-ink);
+/* While the voice is followed: turns not yet reached are muted, and in the turn being spoken every
+   word after the current one. The ones already said keep full ink. */
+.script-turns[data-following] .script-turn:not([data-said], [aria-current="true"]) .script-text,
+.script-turn[aria-current="true"] .script-text > span:has([data-spoken]) ~ span {
+  color: var(--color-on-surface-muted);
+}
+
+.script-word {
+  border-radius: var(--radius-xs);
+  box-decoration-break: clone;
+  -webkit-box-decoration-break: clone;
+  transition: background-color var(--duration-press-in) linear;
+}
+
+/* The fill grows a hair past the word on each side, so it reads as a highlight and not a box. */
+.script-word[data-spoken] {
+  background: color-mix(in oklch, var(--color-on-surface) 14%, transparent);
+  box-shadow: 0 0 0 calc(var(--space-1) / 2)
+    color-mix(in oklch, var(--color-on-surface) 14%, transparent);
+}
+
+@media (hover: hover) and (pointer: fine) {
+  .script-turn:not([aria-disabled="true"]) .script-word:hover {
+    background: var(--color-surface-sunken);
+  }
+}
+
+/* Chapters or the transcript, when an episode has both. */
+.player-views {
+  margin-block-end: var(--space-3);
 }
 
 .script-turn[aria-disabled="true"] {
@@ -1350,8 +1421,10 @@
 }
 
 @media (forced-colors: active) {
-  .script-turn[aria-current="true"] {
-    border: var(--stroke-rail) solid Highlight;
+  .script-word[data-spoken] {
+    background: Highlight;
+    color: HighlightText;
+    forced-color-adjust: none;
   }
 }
 
@@ -1596,17 +1669,20 @@
     grid-column: 1 / -1;
   }
 
-  /* One timeline: the bar's. The page keeps the cover, the title, the source and the skips. */
+  /* One timeline: the bar's. The page keeps the cover, the title, the source, the skips and the
+     speed between them. */
   .scrubber-wrap,
   .player-story {
     display: none;
   }
 
-  .transport-row {
-    display: contents;
+  /* Without the story there is nothing to keep room for. */
+  .player-meta {
+    min-height: 0;
   }
 
   .transport {
+    display: flex;
     grid-row: 1;
     grid-column: 2;
     gap: var(--space-2);
@@ -1615,13 +1691,6 @@
 
   .transport-btn:not(.transport-skip) {
     display: none;
-  }
-
-  .speed {
-    grid-row: 1;
-    grid-column: 3;
-    justify-self: end;
-    margin-inline-end: calc(var(--space-2) * -1);
   }
 }
 
@@ -1663,6 +1732,13 @@ html[data-player="open"] {
   .dock-progress-fill,
   .scrubber-fill {
     background: Highlight;
+  }
+
+  /* The dots keep a system colour, or the forced background would erase them. */
+  .scrubber-tick,
+  .dock-tick {
+    background: CanvasText;
+    forced-color-adjust: none;
   }
 
   .scrubber-thumb::before,

@@ -194,8 +194,8 @@ test.describe("when the player's lazy half cannot load @surface", () => {
     await lab.play();
     await finger.press(lab.openButton);
     await lab.expanded();
-    // The shell is there at once: the date, the cover, the title and a way out.
-    await expect(lab.closeButton).toBeVisible();
+    // The shell is there at once: the cover, the title and a way out.
+    await expect(lab.closeButton).toHaveCount(1);
     const retry = lab.dialog.getByRole("button", { name: "Try again" });
     await expect(retry).toBeVisible();
     await expect(lab.dialog.getByRole("slider")).toHaveCount(0);

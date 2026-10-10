@@ -1,8 +1,8 @@
 import { center, expect, type LabPage, line, type Point, test } from "./lab";
 
-/** A point on the page's header that is not the close button: the date. */
+/** A point on the page's header that is not a control: the title. */
 async function headerSpot(lab: LabPage): Promise<Point> {
-  return center(await lab.boxOf(lab.dialog.locator(".player-date")));
+  return center(await lab.boxOf(lab.dialog.locator(".player-title")));
 }
 
 async function opened(lab: LabPage): Promise<{ header: Point; height: number }> {
@@ -120,17 +120,6 @@ test.describe("closing by gesture @surface", () => {
     await finger.drag(line(cover, { x: cover.x, y: cover.y + 260 }, 3), 8);
     await lab.collapsed();
   });
-
-  test("a drag that starts on the close button still moves the page, and does not press it", async ({
-    lab,
-    finger,
-  }) => {
-    await opened(lab);
-    const button = center(await lab.boxOf(lab.closeButton));
-    // Slow and short: the page follows and comes back. Had the button been pressed, it would close.
-    await finger.drag(line(button, { x: button.x, y: button.y + 90 }, 8), 40);
-    await lab.expanded();
-  });
 });
 
 test.describe("scrolling inside the page @surface", () => {
@@ -196,12 +185,13 @@ test.describe("scrolling inside the page @surface", () => {
 });
 
 test.describe("closing the page @surface", () => {
-  test("closes from the button and gives the document back with the bar in place", async ({
+  test("closes from the keyboard's close button and gives the document back with the bar in place", async ({
     lab,
-    finger,
+    page,
   }) => {
     await opened(lab);
-    await finger.press(lab.closeButton);
+    await lab.closeButton.focus();
+    await page.keyboard.press("Enter");
     await lab.collapsed();
     await expect(lab.sheet).toBeHidden();
     await expect(lab.openButton.locator(".player-cover-frame")).toBeVisible();

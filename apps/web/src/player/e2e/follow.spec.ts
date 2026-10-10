@@ -11,7 +11,7 @@ test.describe("the page follows the narration", () => {
     for (let press = 0; press < 4; press += 1) {
       await page.getByRole("button", { name: "Next item" }).tap();
     }
-    await page.getByRole("button", { name: "Close the player" }).tap();
+    await page.keyboard.press("Escape");
     await expect(page.locator("html")).toHaveAttribute("data-player", "closed", { timeout: 4_000 });
     const target = page.locator('[data-item-id="e5b7a3d6f845"]');
     await expect(target).toHaveAttribute("data-state", "current");
@@ -28,7 +28,7 @@ test.describe("the page follows the narration", () => {
     await lab.open();
     await lab.play();
     await lab.openPlayer();
-    await page.getByRole("button", { name: "Close the player" }).tap();
+    await page.keyboard.press("Escape");
     await expect(page.locator("html")).toHaveAttribute("data-player", "closed", { timeout: 4_000 });
     await page.mouse.wheel(0, 5);
     await page.waitForTimeout(100);
