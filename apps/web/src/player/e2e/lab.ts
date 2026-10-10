@@ -89,6 +89,22 @@ export function line(from: Point, to: Point, count: number): Point[] {
 }
 
 /**
+ * The time each event of a gesture means, in the seconds Chromium's input commands take. The page
+ * reads speed from each event's own timeStamp, and under load the harness delivers moves 30 to 100
+ * ms apart where 8 were asked for, so without a stated time a flick arrives as a slow drag and the
+ * test measures the machine. A lift comes one step after the last move; a held one, when the test
+ * lets go, which is never earlier than now.
+ */
+function gestureClock(stepMs: number): { next(): number; lift(held: boolean): number } {
+  let at = Date.now() / 1000;
+  const next = (): number => {
+    at += stepMs / 1000;
+    return at;
+  };
+  return { next, lift: (held) => (held ? Math.max(next(), Date.now() / 1000) : next()) };
+}
+
+/**
  * A real touch gesture through Chromium's input pipeline, so pointer events, pointer capture and
  * velocity behave as they do under a finger.
  */
@@ -99,19 +115,116 @@ async function touchPath(
   hold: boolean,
 ): Promise<{ release(): Promise<void> }> {
   const client = await page.context().newCDPSession(page);
-  const release = async (): Promise<void> => {
-    await client.send("Input.dispatchTouchEvent", { type: "touchEnd", touchPoints: [] });
+  const clock = gestureClock(stepMs);
+  const lift = async (held: boolean): Promise<void> => {
+    await client.send("Input.dispatchTouchEvent", {
+      type: "touchEnd",
+      touchPoints: [],
+      timestamp: clock.lift(held),
+    });
     await client.detach();
   };
   const [first, ...rest] = path;
-  if (!first) return { release };
-  await client.send("Input.dispatchTouchEvent", { type: "touchStart", touchPoints: [first] });
+  if (!first) return { release: () => lift(true) };
+  await client.send("Input.dispatchTouchEvent", {
+    type: "touchStart",
+    touchPoints: [first],
+    timestamp: Date.now() / 1000,
+  });
   for (const point of rest) {
     await page.waitForTimeout(stepMs);
-    await client.send("Input.dispatchTouchEvent", { type: "touchMove", touchPoints: [point] });
+    await client.send("Input.dispatchTouchEvent", {
+      type: "touchMove",
+      touchPoints: [point],
+      timestamp: clock.next(),
+    });
   }
-  if (!hold) await release();
-  return { release };
+  if (!hold) await lift(false);
+  return { release: () => lift(true) };
+}
+
+/** The longest move a mouse reports in one event, in px; a mouse reports hundreds a second. */
+const MOUSE_REPORT_PX = 8;
+
+/**
+ * A mouse drag through Chromium's input pipeline, with each event's time stated as above. A mouse,
+ * unlike a finger, is not captured by what it pressed until the drag takes hold, so each step is
+ * split into the small moves a real mouse reports, at the same speed: one large jump would leave
+ * the bar before the drag could take hold.
+ */
+async function cdpMouseDrag(
+  page: Page,
+  path: Point[],
+  stepMs: number,
+  hold: boolean,
+): Promise<{ release(): Promise<void> }> {
+  const client = await page.context().newCDPSession(page);
+  const [first, ...rest] = path;
+  const fine: Array<{ point: Point; ms: number }> = [];
+  let previous = first;
+  for (const point of rest) {
+    if (!previous) break;
+    const parts = Math.max(
+      1,
+      Math.ceil(Math.hypot(point.x - previous.x, point.y - previous.y) / MOUSE_REPORT_PX),
+    );
+    for (let part = 1; part <= parts; part += 1) {
+      fine.push({
+        point: {
+          x: previous.x + ((point.x - previous.x) * part) / parts,
+          y: previous.y + ((point.y - previous.y) * part) / parts,
+        },
+        ms: stepMs / parts,
+      });
+    }
+    previous = point;
+  }
+  let at = Date.now() / 1000;
+  let last = first ?? { x: 0, y: 0 };
+  const lift = async (held: boolean): Promise<void> => {
+    at = held ? Math.max(at + stepMs / 1000, Date.now() / 1000) : at + stepMs / 1000;
+    await client.send("Input.dispatchMouseEvent", {
+      type: "mouseReleased",
+      x: last.x,
+      y: last.y,
+      button: "left",
+      buttons: 0,
+      clickCount: 1,
+      timestamp: at,
+    });
+    await client.detach();
+  };
+  if (!first) return { release: () => lift(true) };
+  await client.send("Input.dispatchMouseEvent", {
+    type: "mouseMoved",
+    x: first.x,
+    y: first.y,
+    timestamp: at,
+  });
+  await client.send("Input.dispatchMouseEvent", {
+    type: "mousePressed",
+    x: first.x,
+    y: first.y,
+    button: "left",
+    buttons: 1,
+    clickCount: 1,
+    timestamp: at,
+  });
+  for (const { point, ms } of fine) {
+    await page.waitForTimeout(ms);
+    last = point;
+    at += ms / 1000;
+    await client.send("Input.dispatchMouseEvent", {
+      type: "mouseMoved",
+      x: point.x,
+      y: point.y,
+      button: "left",
+      buttons: 1,
+      timestamp: at,
+    });
+  }
+  if (!hold) await lift(false);
+  return { release: () => lift(true) };
 }
 
 async function mouseDrag(
@@ -258,7 +371,9 @@ export const test = base.extend<
       drag: (path, stepMs, options = {}) =>
         realTouch
           ? touchPath(page, path, stepMs, options.hold ?? false)
-          : mouseDrag(page, path, stepMs, options.hold ?? false),
+          : browserName === "chromium"
+            ? cdpMouseDrag(page, path, stepMs, options.hold ?? false)
+            : mouseDrag(page, path, stepMs, options.hold ?? false),
     });
   },
   lab: async ({ page, target, finger }, use) => {
