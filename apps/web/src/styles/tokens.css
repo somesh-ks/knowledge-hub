@@ -348,8 +348,8 @@
   --switch-height: 2rem;
   --switch-padding: 0.1875rem;
   --switch-thumb: 1.625rem;
-  --switch-radius: 0.625rem;
-  --switch-thumb-radius: 0.4375rem;
+  --switch-radius: var(--radius-round);
+  --switch-thumb-radius: var(--radius-round);
   --switch-thumb-bg: var(--color-surface-raised);
   --sheet-radius: var(--radius-sheet);
   --sheet-padding: var(--space-4);

@@ -465,7 +465,6 @@
   height: calc(var(--switch-height) - var(--switch-padding) * 2);
   border-radius: var(--switch-thumb-radius);
   background: var(--switch-thumb-bg);
-  box-shadow: 0 1px 2px color-mix(in oklch, var(--color-scrim) 60%, transparent);
   transition:
     transform var(--duration-state) var(--ease-out),
     scale var(--duration-press-out) var(--ease-out),
