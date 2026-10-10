@@ -61,6 +61,7 @@ D1 to D9 date from plan v2 (2026-10-05). D10 to D25 date from 2026-10-06. Reason
 | D49 | One Podcast settings page: Daily, Weekly and Custom profiles, a shared writer vendor and model, topics and sources clubbed | page layout superseded by D51 |
 | D50 | The open player: a speed slider, Chapters or a Speechify-style transcript, word marks stored beside each segment | active |
 | D51 | Settings is two levels and saves itself; every select opens one drawn list | active |
+| D52 | On a phone the Create button floats only on Today and the Library, extended until you scroll | active |
 
 ---
 
@@ -494,4 +495,13 @@ D1 to D9 date from plan v2 (2026-10-05). D10 to D25 date from 2026-10-06. Reason
 - Cost: topics are one level deeper; a removal takes 5 s to send; there is no Discard (a change is undone by changing it back, a removal by Undo); each save is still a `config.yml` run and a commit, about a minute to show.
 - Rejected: saving on every change with no settle (a commit per step, and the server's 10 s cooldown); keeping Save for removals only (two ways of saving); a breadcrumb in small text above the title (the owner's type rule); the score filter and sort on Topics (sources are already split by topic and listed best first); a scripted select for every browser (weight on every page that has one, and `base-select` covers Chromium and Safari 27).
 - Supersedes: D49's page layout (one Podcast page with a profile switch and two tabs). Its data model (profiles, one shared writer, topics with weights and scored sources) stands.
+
+## D52: On a phone the Create button floats only on Today and the Library, extended until you scroll
+
+- Date: 2026-10-10
+- Decision: Below 64rem the floating Create button is rendered only on Today and the Library, the two lists where making an episode is the next thing to do (`BaseLayout.astro`, `data-fab` on the root). Settings, briefings, episodes, Create itself, offline and not found have none, and keep no room for it; the side column carries Create Podcast on wide screens everywhere. Where it shows, it is extended (the plus and "Create") at the top of the page and while scrolling up, and folds to the plus while scrolling down (`scripts/fabScroll.ts`, loaded on the first scroll). Pressing the tab of the page you are on scrolls it to the top instead of loading it again.
+- Why: the owner asked for Android's rule for a floating action (on the screens whose primary action it is, not on Settings) and for patterns that make the phone layout feel native. An unlabelled plus says nothing about what it makes; the extended button says it at the top and gets out of the way while reading, as Gmail's Compose does.
+- Cost: a few hundred bytes of script after the first scroll; the button changes width while scrolling (reduced motion: no width animation).
+- Rejected: hiding the bottom bar on scroll (Material's navigation bar stays, and playback controls dock on it); a haptic on press (Android only, and the app already has interface sounds); pull to refresh (it would restart a briefing mid-listen, see shell.css).
+- Supersedes: the part of the Create placement (state.md, D31 era) that put the floating button on every page.
 
