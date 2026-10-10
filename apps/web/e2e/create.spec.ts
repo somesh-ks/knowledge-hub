@@ -94,7 +94,7 @@ test.describe("the Create page", () => {
       "Voice",
       "Look back",
       "Tone",
-      "Title",
+      "Title (optional)",
     ]);
     // The five topics in the contract's order, then the owner's own in Somesh.
     await expect(page.locator(".create-chip:visible")).toHaveText([
@@ -112,11 +112,12 @@ test.describe("the Create page", () => {
       "Readout",
       "Discussion",
     ]);
-    // The helper lines are gone: nothing under Written for or Topics, and Title says Optional beside it.
+    // The helper lines are gone: nothing under Written for or Topics, and the Title label says it is
+    // optional, in one label at one size.
     await expect(
       page.locator("[data-audience-hint], [data-top-hint], #create-topics-hint"),
     ).toHaveCount(0);
-    await expect(page.locator(".create-title-row")).toHaveText("Title Optional");
+    await expect(page.getByLabel("Title (optional)")).toHaveAttribute("name", "title");
     await expect(submit(page)).toHaveText("Generate • 5 mins");
     // Sensible defaults are already chosen, and no topic is.
     await expect(page.locator('input[name="length"]:checked')).toHaveValue("5");
