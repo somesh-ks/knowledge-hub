@@ -89,7 +89,7 @@
   height: var(--chip-height);
   padding-inline: var(--space-3);
   border: var(--stroke-hairline) solid var(--color-border-hairline);
-  border-radius: var(--button-radius);
+  border-radius: var(--chip-radius);
   color: var(--color-on-surface);
   font-size: var(--font-size-label);
   font-weight: var(--font-weight-medium);
