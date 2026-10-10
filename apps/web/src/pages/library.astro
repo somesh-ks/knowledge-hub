@@ -43,18 +43,15 @@ const items = libraryItems(entries, episodes);
             </button>
             </div>
             <div class="library-bar">
-              <div class="filter-chips" role="group" aria-label="Show">
-                {LIBRARY_FILTERS.map((filter) => (
-                  <button
-                    class="filter-chip press press-subtle"
-                    type="button"
-                    aria-pressed={filter.id === "all" ? "true" : "false"}
-                    data-library-filter={filter.id}
-                  >
-                    {filter.label}
-                  </button>
-                ))}
-              </div>
+              <label class="sort-field filter-field">
+                <span class="sr-only">Show</span>
+                <select data-library-filter>
+                  {LIBRARY_FILTERS.map((filter) => (
+                    <option value={filter.id}>{filter.label}</option>
+                  ))}
+                </select>
+                <Icon name="chevronDown" />
+              </label>
               <label class="sort-field">
                 <span class="sr-only">Sort</span>
                 <select data-library-sort>

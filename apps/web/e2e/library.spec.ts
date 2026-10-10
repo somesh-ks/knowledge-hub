@@ -40,7 +40,10 @@ async function narrowedTo(page: Page, shown: number, total: number): Promise<voi
   );
 }
 
-const filter = (page: Page, name: string) => page.getByRole("button", { name, exact: true });
+const show = (page: Page) => page.getByRole("combobox", { name: "Show" });
+const filter = async (page: Page, name: string) => {
+  await show(page).selectOption({ label: name });
+};
 
 test.describe("the library", () => {
   test("shows every briefing and episode as a cover card, newest first, with no month headings", async ({
@@ -64,13 +67,12 @@ test.describe("the library", () => {
     await expect(page.locator("[data-library-status]")).toHaveText("5 results");
   });
 
-  test("offers search, the five filter chips and a sort", async ({ page }) => {
+  test("offers search, the type filter and a sort", async ({ page }) => {
     await page.goto("/library");
     await expect(page.getByRole("search", { name: "Library" })).toBeVisible();
     await expect(page.getByRole("searchbox", { name: "Search episodes" })).toBeVisible();
-    const chips = page.locator("[data-library-filter]");
-    await expect(chips).toHaveText(["All", "Daily", "Weekly", "Custom"]);
-    await expect(chips.first()).toHaveAttribute("aria-pressed", "true");
+    await expect(show(page).locator("option")).toHaveText(["All", "Daily", "Weekly", "Custom"]);
+    await expect(show(page)).toHaveValue("all");
     const sort = page.getByRole("combobox", { name: "Sort" });
     await expect(sort.locator("option")).toHaveText([
       "Newest first",
@@ -196,13 +198,13 @@ test.describe("library search", () => {
     await expect(clear).toBeHidden();
   });
 
-  test("the filter chips and the sort have a 44px target", async ({ page }) => {
+  test("the filter and the sort have a 44px target", async ({ page }) => {
     await page.goto("/library");
     await ready(page);
     const small = await page.evaluate(() => {
       const found: string[] = [];
       for (const node of document.querySelectorAll<HTMLElement>(
-        "[data-library-filter], .sort-field > select",
+        ".sort-field > select",
       )) {
         node.scrollIntoView({ block: "center", inline: "center" });
         const rect = node.getBoundingClientRect();
@@ -222,12 +224,11 @@ test.describe("library search", () => {
   test("Clear search also resets the filter", async ({ page }) => {
     await page.goto("/library");
     await ready(page);
-    await filter(page, "Weekly").click();
+    await filter(page, "Weekly");
     await page.getByRole("searchbox").fill("zzzz");
     await expect(page.getByRole("button", { name: "Clear search" })).toBeVisible();
     await page.getByRole("button", { name: "Clear search" }).click();
-    await expect(filter(page, "All")).toHaveAttribute("aria-pressed", "true");
-    await expect(filter(page, "Weekly")).toHaveAttribute("aria-pressed", "false");
+    await expect(show(page)).toHaveValue("all");
     expect(await titles(page)).toEqual(NEWEST_FIRST);
   });
 
@@ -249,32 +250,31 @@ test.describe("library search", () => {
 });
 
 test.describe("library filters and order", () => {
-  test("a filter chip keeps one kind of card and is the only one pressed", async ({ page }) => {
+  test("the type filter keeps one kind of card and shows its choice", async ({ page }) => {
     await page.goto("/library");
     await ready(page);
     const onlyPressed = async (name: string) => {
-      await expect(filter(page, name)).toHaveAttribute("aria-pressed", "true");
-      await expect(page.locator("[data-library-filter][aria-pressed='true']")).toHaveCount(1);
+      await expect(show(page)).toHaveValue(name.toLowerCase());
     };
 
-    await filter(page, "Weekly").click();
+    await filter(page, "Weekly");
     await onlyPressed("Weekly");
     expect(await titles(page)).toEqual(["Sunday 4 October"]);
     await narrowedTo(page, 1, 5);
 
-    await filter(page, "Daily").click();
+    await filter(page, "Daily");
     await onlyPressed("Daily");
     expect(await titles(page)).toEqual(["Wednesday 7 October", "Monday 5 October"]);
     await narrowedTo(page, 2, 5);
 
     // Custom is what was made on request: only that shows, and the status counts it.
-    await filter(page, "Custom").click();
+    await filter(page, "Custom");
     await onlyPressed("Custom");
     expect(await titles(page)).toEqual([DISCUSSION, HEADLINES]);
     await expect(page.locator("[data-card][data-kind='episode']:not([hidden])")).toHaveCount(2);
     await narrowedTo(page, 2, 5);
 
-    await filter(page, "All").click();
+    await filter(page, "All");
     await onlyPressed("All");
     expect(await titles(page)).toEqual(NEWEST_FIRST);
     await expect(page.locator("[data-library-status]")).toHaveText("5 results");
@@ -285,12 +285,12 @@ test.describe("library filters and order", () => {
     await ready(page);
     await page.getByRole("searchbox").fill("dither");
     expect(await titles(page)).toEqual(["Wednesday 7 October", "Sunday 4 October"]);
-    await filter(page, "Weekly").click();
+    await filter(page, "Weekly");
     expect(await titles(page)).toEqual(["Sunday 4 October"]);
-    await filter(page, "Daily").click();
+    await filter(page, "Daily");
     expect(await titles(page)).toEqual(["Wednesday 7 October"]);
     // A word only the weekly briefing has, while the filter keeps the weekly out.
-    await filter(page, "Custom").click();
+    await filter(page, "Custom");
     await page.getByRole("searchbox").fill("dither");
     await expect(page.locator("[data-card]:not([hidden])")).toHaveCount(0);
     await expect(page.locator("[data-library-status]")).toHaveText("No results");
@@ -331,10 +331,10 @@ test.describe("library filters and order", () => {
 });
 
 test.describe("library episodes", () => {
-  test("the Custom chip shows only what was made on request, newest first", async ({ page }) => {
+  test("the Custom filter shows only what was made on request, newest first", async ({ page }) => {
     await page.goto("/library");
     await ready(page);
-    await filter(page, "Custom").click();
+    await filter(page, "Custom");
     expect(await titles(page)).toEqual([DISCUSSION, HEADLINES]);
     await expect(page.locator("[data-card]:not([hidden])")).toHaveCount(2);
     await expect(page.locator("[data-card][data-kind='episode']:not([hidden])")).toHaveCount(2);
@@ -355,10 +355,10 @@ test.describe("library episodes", () => {
     for (const count of lines) expect(count).toBeLessThanOrEqual(2.1);
   });
 
-  test("the Daily chip leaves episodes and the weekly out", async ({ page }) => {
+  test("the Daily filter leaves episodes and the weekly out", async ({ page }) => {
     await page.goto("/library");
     await ready(page);
-    await filter(page, "Daily").click();
+    await filter(page, "Daily");
     expect(await titles(page)).toEqual(["Wednesday 7 October", "Monday 5 October"]);
     await expect(page.locator("[data-card][data-kind='episode']:not([hidden])")).toHaveCount(0);
     await expect(page.locator("[data-card][data-kind='weekly']:not([hidden])")).toHaveCount(0);
@@ -494,7 +494,7 @@ test.describe("library episodes", () => {
   test("reads 'results' after 'of' when one card is left", async ({ page }) => {
     await page.goto("/library");
     await ready(page);
-    await filter(page, "Weekly").click();
+    await filter(page, "Weekly");
     await expect(page.locator("[data-library-status]")).toHaveText("1 of 5 results");
   });
 });
