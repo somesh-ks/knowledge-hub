@@ -9,13 +9,11 @@ import { gzipSync } from "node:zlib";
 
 /**
  * First-load JavaScript, gzipped. It was 100 KB until the bottom bar became a full transport (seek,
- * clock, volume) and the Topics and Sources pages arrived; 63 KB of it is React itself. It went
- * from 102 to 103 KB on 2026-10-08 for the Space key, instant deletion and the Back key closing the
- * Create panel, which must be on every page: the reading pages sit at 100 to 101 KB, and only the
- * management pages under Settings, which carry their editor, reach 102.5. To 104 KB the same day
- * for interface sounds on every control, live run stages and the cover play button: reading pages
- * are at 101.5 to 102.4, and Topics and Sources at 103.5. The way back down is to load those two
- * pages' editor on first use; do that before raising this again.
+ * clock, volume) and the Topics and Sources pages arrived; 68 KB of it is React itself. Raised to
+ * 104 KB on 2026-10-08 for interface sounds, live run stages and the cover play button. On
+ * 2026-10-10 the Podcast page's editor moved after first paint (the Topics editor already was), so
+ * the heaviest page is /library at 102.7 KB. The owner declined preact/compat (about 57 KB off every
+ * page), so React stays and this budget cannot come down much; see docs/first-load-js.md.
  */
 export const FIRST_LOAD_BUDGET_BYTES = 104 * 1024;
 /** Self-hosted fonts, build plan 8.8: subset, one preloaded, 80 KB or less in total. */
