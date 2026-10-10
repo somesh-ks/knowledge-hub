@@ -38,7 +38,9 @@ export type DropReason =
   /** A candidate beyond the allowance of a custom section, or beyond the digest's hard maximum. */
   | "over_section_cap"
   /** A candidate whose section the scheduled briefing does not cover (config/schedule.json). */
-  | "excluded_section";
+  | "excluded_section"
+  /** An older GitHub release of a repository that has a newer release among the candidates. */
+  | "same_repo_release";
 
 export interface DroppedItem {
   id: string;
@@ -190,6 +192,60 @@ export function takeOwnSections(
   return { chosen, over };
 }
 
+/**
+ * The repository a GitHub release belongs to, as "owner/repo" from a github.com URL, else the
+ * source id (one GitHub source follows one repository). Null for anything that is not a release.
+ */
+export function releaseRepo(
+  item: Pick<Item, "source_type" | "canonical_url" | "source_id">,
+): string | null {
+  if (item.source_type !== "github") return null;
+  try {
+    const url = new URL(item.canonical_url);
+    const [owner, repo] = url.pathname.split("/").filter(Boolean);
+    if (url.hostname.replace(/^www\./, "") === "github.com" && owner && repo) {
+      return `${owner}/${repo}`.toLowerCase();
+    }
+  } catch {
+    // Fall through to the source id.
+  }
+  return `source:${item.source_id}`;
+}
+
+/**
+ * One release per repository: a monorepo can ship v1.2.3 and v1.2.4 in the same window, and a
+ * briefing never lists two releases of the same project. The newest wins (then the usual rank
+ * order); the rest are returned as `older`.
+ */
+export function newestReleasePerRepo(candidates: readonly Candidate[]): {
+  kept: Candidate[];
+  older: Candidate[];
+} {
+  const newest = new Map<string, Candidate>();
+  for (const candidate of candidates) {
+    const repo = releaseRepo(candidate.item);
+    if (repo === null) continue;
+    const current = newest.get(repo);
+    if (!current) {
+      newest.set(repo, candidate);
+      continue;
+    }
+    const a = publishedMs(candidate.item);
+    const b = publishedMs(current.item);
+    if (a > b || (a === b && compareCandidates(candidate, current) < 0)) {
+      newest.set(repo, candidate);
+    }
+  }
+  const kept: Candidate[] = [];
+  const older: Candidate[] = [];
+  for (const candidate of candidates) {
+    const repo = releaseRepo(candidate.item);
+    if (repo === null || newest.get(repo) === candidate) kept.push(candidate);
+    else older.push(candidate);
+  }
+  return { kept, older };
+}
+
 export type Eligibility =
   | { eligible: true; candidate: Candidate }
   | { eligible: false; reason: DropReason };
@@ -222,7 +278,8 @@ export function eligibility(
 /**
  * Pick what to publish. Order of rules:
  *  1. Drop items whose most probable option is "none" or a never-publish category.
- *  2. Drop items below the score threshold.
+ *  2. Drop items below the score threshold, and every GitHub release but the newest of its
+ *     repository.
  *  3. Split what is left into two pools: Tech releases candidates, and everything else.
  *  4. Everything else: walk by rank taking at most 3 per home section up to the cap, then let
  *     overflow fill any remaining room, so a thin section never leaves slots empty.
@@ -251,7 +308,11 @@ export function selectItems(input: SelectInput): SelectResult {
     } else dropped.push({ id: scored.item.id, reason: verdict.reason, score: scored.score });
   }
 
-  const ranked = candidates.sort(compareCandidates);
+  const releases = newestReleasePerRepo(candidates);
+  for (const candidate of releases.older) {
+    dropped.push({ id: candidate.item.id, reason: "same_repo_release", score: candidate.score });
+  }
+  const ranked = releases.kept.sort(compareCandidates);
   const main = ranked.filter((candidate) => !hasOwnSection(candidate));
   const own = ranked.filter(hasOwnSection);
 

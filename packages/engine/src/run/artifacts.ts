@@ -13,7 +13,7 @@ export const JudgedFile = z.object({
   judge: z.object({ name: z.string(), model: z.string(), questions_hash: z.string() }),
   /** One entry per judged pool item, from the cache or a fresh call. */
   entries: z.array(JudgmentEntry),
-  /** Pool items no judge could answer. They stay out of `seen` so the next run retries them. */
+  /** Pool items no judge could answer. The next run that fetches them retries the judge. */
   unjudged: z.array(z.string()),
   counts: z.object({
     pool: count,

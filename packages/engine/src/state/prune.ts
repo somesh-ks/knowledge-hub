@@ -25,7 +25,7 @@ export function pruneJudgments(judgments: JudgmentsFile, now: Date): JudgmentsFi
   return { ...judgments, entries };
 }
 
-/** Record item ids as shown or judged on `date` (YYYY-MM-DD). Existing dates are kept. */
+/** Record item ids as shown in a briefing on `date` (YYYY-MM-DD). Existing dates are kept. */
 export function markSeen(seen: SeenFile, ids: Iterable<string>, date: string): SeenFile {
   const items = { ...seen.items };
   for (const id of ids) if (!Object.hasOwn(items, id)) items[id] = date;

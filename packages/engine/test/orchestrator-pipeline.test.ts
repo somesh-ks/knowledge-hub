@@ -271,7 +271,7 @@ describe("nothing outcome", () => {
     );
   });
 
-  it("advances the fetch window and records every judged item as seen", LONG, async () => {
+  it("advances the fetch window and leaves judged items unseen", LONG, async () => {
     const feeds = quietFeeds();
     const world = makeWorld(repo.root, { now: WED, feeds });
     await runStage(world);
@@ -280,9 +280,23 @@ describe("nothing outcome", () => {
     expect(lastRun.last_fetch_at).toBe(WED.toISOString());
     expect(lastRun.last_cover).toBeUndefined();
     const seen = await readJson<SeenFile>(repo.root, "state/seen.json");
-    expect(Object.keys(seen.items)).toHaveLength(5);
+    expect(Object.keys(seen.items)).toHaveLength(0);
     const judgments = await readJson<JudgmentsFile>(repo.root, "state/judgments.json");
     expect(Object.keys(judgments.entries)).toHaveLength(5);
+  });
+
+  it("reconsiders unpublished items next run from the judgments cache", LONG, async () => {
+    const world = makeWorld(repo.root, { now: WED, feeds: quietFeeds() });
+    await runStage(world);
+    world.judge.asked.length = 0;
+    world.setNow(new Date("2026-10-09T05:13:00Z"));
+    await runStage(world);
+    expect(world.judge.asked.flat()).toEqual([]);
+    const judged = await readJson<{ counts: { cache_hits: number; fresh: number } }>(
+      repo.root,
+      ".cache/run/2026-10-09/judged.json",
+    );
+    expect(judged.counts).toMatchObject({ cache_hits: 5, fresh: 0 });
   });
 
   it("counts a quiet day toward the cadence", LONG, async () => {

@@ -1,6 +1,12 @@
 import { mkdir, readFile, rm, writeFile } from "node:fs/promises";
 import { join } from "node:path";
-import { type Item, itemId, type LastRunFile, type SeenFile } from "@dispatch/core";
+import {
+  type Item,
+  itemId,
+  type JudgmentsFile,
+  type LastRunFile,
+  type SeenFile,
+} from "@dispatch/core";
 import { afterAll, afterEach, beforeAll, beforeEach, describe, expect, it } from "vitest";
 import { run as renderCommand } from "../src/commands/render.js";
 import { run as validateCommand } from "../src/commands/validate.js";
@@ -181,7 +187,7 @@ describe("grounding and validation", () => {
     expect(result.report).toMatchObject({ outcome: "nothing", items: 0 });
     expect(await exists(repo.root, DIGEST_PATH)).toBe(false);
     const seen = await readJson<SeenFile>(repo.root, "state/seen.json");
-    expect(Object.keys(seen.items)).toHaveLength(3);
+    expect(Object.keys(seen.items)).toHaveLength(0);
   });
 
   it("leaves a selection the render and validate commands accept", LONG, async () => {
@@ -422,6 +428,10 @@ describe("items a judge could not answer", () => {
     expect(result.report).toMatchObject({ outcome: "nothing" });
     const seen = await readJson<SeenFile>(repo.root, "state/seen.json");
     expect(Object.keys(seen.items)).not.toContain(itemId("https://blog-a.example/retry-me"));
-    expect(Object.keys(seen.items)).toHaveLength(3);
+    expect(Object.keys(seen.items)).toHaveLength(0);
+    const judgments = await readJson<JudgmentsFile>(repo.root, "state/judgments.json");
+    expect(Object.values(judgments.entries).map((e) => e.item_id)).not.toContain(
+      itemId("https://blog-a.example/retry-me"),
+    );
   });
 });
