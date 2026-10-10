@@ -6,6 +6,7 @@ import {
   useEffect,
   useRef,
 } from "react";
+import { chapterMask } from "./core/chapterMask";
 import { clockParts } from "./core/formatTime";
 import { createVelocityTracker } from "./core/gestureMath";
 import { getPlayerStore } from "./core/playerRuntime";
@@ -25,7 +26,7 @@ import { cueForDetent } from "./sound/soundMap";
 import Clock from "./ui/Clock";
 
 /**
- * The scrubber: a pointer-capture slider with a tick at every item start. It is the rail turned
+ * The scrubber: a pointer-capture slider, cut into chapters at every item start as YouTube's is. It is the rail turned
  * horizontal, and the same playhead: moving one moves the other.
  *
  * - Pointer down anywhere on the 44px strip begins a scrub; the thumb jumps under the finger and
@@ -196,7 +197,9 @@ export default function Scrubber() {
 
   const section = timeline?.sections[state.sectionIndex];
   const itemCount = timeline?.items.length ?? 0;
-  const chapterStarts = new Set(timeline?.sections.map((entry) => entry.firstIndex));
+  const mask = chapterMask(
+    timeline?.items.map((entry) => fractionOfTime(entry.startSec, duration)) ?? [],
+  );
 
   return (
     <div className="scrubber-wrap">
@@ -224,23 +227,8 @@ export default function Scrubber() {
         onLostPointerCapture={finish}
         onKeyDown={onKeyDown}
       >
-        <div className="scrubber-track">
+        <div className="scrubber-track" style={{ "--chapter-mask": mask } as CSSProperties}>
           <span className="scrubber-fill" ref={fillRef} />
-        </div>
-        <div className="scrubber-ticks" aria-hidden="true">
-          {timeline?.items.map((entry) => (
-            <span
-              key={entry.id}
-              className="scrubber-tick"
-              data-chapter={chapterStarts.has(entry.index) ? "" : undefined}
-              data-played={entry.index <= state.itemIndex ? "" : undefined}
-              style={
-                {
-                  "--tick-position": `${(fractionOfTime(entry.startSec, duration) * 100).toFixed(3)}%`,
-                } as CSSProperties
-              }
-            />
-          ))}
         </div>
         <span className="scrubber-thumb" ref={thumbRef} aria-hidden="true" />
         <div className="scrubber-bubble" ref={bubbleRef} aria-hidden="true">
