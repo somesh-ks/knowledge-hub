@@ -100,6 +100,8 @@
   position: relative;
   display: grid;
   place-items: center;
+  /* It fades out while the spinner stands in for it, and back, rather than blinking. */
+  transition: opacity var(--duration-hover) var(--ease-out);
 }
 
 .glyph-swap > .ui-icon {
@@ -231,6 +233,13 @@
   :is(.player-page, .player-dock) {
   /* Promoted only while it can move, and demoted when the spring rests. */
   will-change: transform;
+}
+
+/* While it moves, a hairline along its top edge sets it off from the page behind, which is the
+   same colour. Drawn outside the box, so nothing inside shifts. */
+.player:is([data-state="dragging"], [data-state="expanding"], [data-state="collapsing"])
+.player-page {
+  box-shadow: 0 calc(var(--stroke-hairline) * -1) 0 var(--color-border-hairline);
 }
 
 .player[data-landed] .player-page {
@@ -408,6 +417,12 @@
   background: var(--color-accent);
   color: var(--color-on-accent);
   font-weight: var(--font-weight-semibold);
+  transition: background-color var(--duration-press-in) var(--ease-out);
+}
+
+/* A press darkens the fill, as on the primary buttons; the words keep their size. */
+.player-fallback-action:active {
+  background: var(--color-accent-pressed);
 }
 
 .player-cover-box .player-cover-frame {
@@ -576,11 +591,13 @@
 /*
  * The bar's scrubber: a native range laid over the progress line along the bar's top edge. The line
  * shows the position; the range takes the pointer and the keyboard, and shows its thumb when used.
+ * The range is centred on the middle of the line as it is drawn while in use (twice as thick, grown
+ * downward from the bar's edge), so the thumb sits on the line and not above it.
  */
 .dock-seek {
   position: absolute;
   inset-inline: 0;
-  inset-block-start: calc(var(--space-3) * -1);
+  inset-block-start: calc(var(--mini-player-progress-height) - var(--space-3));
   z-index: 1;
   display: none;
   width: 100%;
@@ -638,11 +655,16 @@
   display: none;
 }
 
-/* The clock at the thumb while it is being moved. */
+/* The clock at the thumb while it is being moved. Near either end it stops short of the window's
+   edge, so all of it stays on screen at 0:00 and at the end. */
 .dock-seek-time {
   position: absolute;
   inset-block-start: calc(var(--space-8) * -1);
-  inset-inline-start: calc(var(--seek-at, 0) * 100%);
+  inset-inline-start: clamp(
+    var(--space-8),
+    calc(var(--seek-at, 0) * 100%),
+    calc(100% - var(--space-8))
+  );
   padding: var(--space-1) var(--space-2);
   border-radius: var(--scrubber-bubble-radius);
   background: var(--color-surface-inverse);
@@ -654,12 +676,14 @@
   translate: -50% 0;
 }
 
+/* In use the line doubles, downward from the bar's edge. A scale, so nothing is laid out again. */
 .dock-progress {
-  transition: height var(--duration-hover) var(--ease-hover);
+  transform-origin: top;
+  transition: transform var(--duration-hover) var(--ease-hover);
 }
 
 .player-dock:has(.dock-seek:is(:focus-visible, :active)) .dock-progress {
-  height: calc(var(--mini-player-progress-height) * 2);
+  transform: scaleY(2);
 }
 
 .dock-volume {
@@ -741,19 +765,56 @@
   color: var(--color-on-surface-disabled);
 }
 
+/* A control that does nothing does not look pressable, and does not answer a press. */
+:is(.dock-btn, .transport-btn)[aria-disabled="true"] {
+  cursor: default;
+}
+
+:is(.dock-btn, .transport-btn)[aria-disabled="true"]:active {
+  transform: none;
+}
+
+/* While the audio is on its way a spinner takes the glyph's place, at the glyph's size, and the
+   two cross-fade. */
 .dock-btn .spinner,
 .transport-btn .spinner {
   position: absolute;
   display: none;
   color: var(--color-on-surface);
+  opacity: 0;
+  transition:
+    opacity var(--duration-hover) var(--ease-out),
+    display var(--duration-hover) allow-discrete;
+}
+
+.dock-btn[data-primary] .spinner {
+  width: var(--size-icon-lg);
+  height: var(--size-icon-lg);
+}
+
+.transport-btn[data-primary] .spinner {
+  width: var(--player-skip-glyph);
+  height: var(--player-skip-glyph);
 }
 
 .dock-btn[data-loading="true"] .spinner,
 .transport-btn[data-loading="true"] .spinner {
   display: block;
+  opacity: 1;
+}
+
+@starting-style {
+  .dock-btn[data-loading="true"] .spinner,
+  .transport-btn[data-loading="true"] .spinner {
+    opacity: 0;
+  }
 }
 
 @media (hover: hover) and (pointer: fine) {
+  .dock-btn:not([aria-disabled="true"]):hover {
+    background: color-mix(in oklch, var(--color-on-surface) 8%, transparent);
+  }
+
   .dock-seek:hover::-webkit-slider-thumb {
     opacity: 1;
   }
@@ -763,7 +824,7 @@
   }
 
   .player-dock:has(.dock-seek:hover) .dock-progress {
-    height: calc(var(--mini-player-progress-height) * 2);
+    transform: scaleY(2);
   }
 }
 
@@ -879,9 +940,10 @@
     display: block;
   }
 
-  /* Here the line is the timeline, so the unplayed part shows too, and its chapter gaps. */
+  /* Here the line is the timeline, so the unplayed part shows too, and its chapter gaps. The strong
+     track, so it reads on the bar's raised colour in the dark theme as well. */
   .dock-progress {
-    background: var(--color-track);
+    background: var(--color-track-strong);
   }
 }
 
@@ -987,11 +1049,14 @@
   border-radius: var(--radius-round);
   background: var(--color-accent);
   box-shadow: 0 0 0 var(--scrubber-thumb-ring) var(--color-surface);
-  transition: scale var(--duration-spring-pop) var(--ease-spring-pop);
+  /* Let go, it settles quickly and without overshoot. */
+  transition: scale var(--duration-press-out) var(--ease-out);
 }
 
+/* Taken hold of, it pops up with a little overshoot. */
 .scrubber[data-dragging] .scrubber-thumb::before {
   scale: var(--scrubber-thumb-active-scale);
+  transition: scale var(--duration-spring-pop) var(--ease-spring-pop);
 }
 
 /* The thumb ring is a box-shadow, so the focus ring sits on the whole slider instead. */
@@ -1354,13 +1419,21 @@
 
 /* A reading column, as in Speechify: no boxes, no badges, no rules. Each turn is a small name over
    its text; while it plays, what has been said is in full ink, what is still to come is muted, and
-   the word being said sits on a soft fill. */
+   the word being said sits on a soft fill. A turn is shaped and inset like a chapter row, so its
+   text starts where the chapter list's does and its focus ring has room inside the column. */
 .script-turn {
   display: grid;
   gap: var(--space-1);
   width: 100%;
   padding-block: var(--space-3);
+  padding-inline: var(--space-3);
+  border-radius: var(--sheet-row-radius);
   text-align: start;
+}
+
+/* Drawn inside the turn: the column clips anything outside it on a wide screen. */
+.script-turn:focus-visible {
+  outline-offset: calc(var(--stroke-ring) * -1);
 }
 
 .script-speaker {
@@ -1384,11 +1457,15 @@
   color: var(--color-on-surface-muted);
 }
 
+/* The fill and the hair of ring around it move together, so the highlight never shows as an empty
+   outline as it passes from word to word. */
 .script-word {
   border-radius: var(--radius-xs);
   box-decoration-break: clone;
   -webkit-box-decoration-break: clone;
-  transition: background-color var(--duration-press-in) linear;
+  transition:
+    background-color var(--duration-press-in) var(--ease-hover),
+    box-shadow var(--duration-press-in) var(--ease-hover);
 }
 
 /* The fill grows a hair past the word on each side, so it reads as a highlight and not a box. */
@@ -1398,8 +1475,9 @@
     color-mix(in oklch, var(--color-on-surface) 14%, transparent);
 }
 
+/* The spoken word keeps its own fill under the pointer. */
 @media (hover: hover) and (pointer: fine) {
-  .script-turn:not([aria-disabled="true"]) .script-word:hover {
+  .script-turn:not([aria-disabled="true"]) .script-word:not([data-spoken]):hover {
     background: var(--color-surface-sunken);
   }
 }
@@ -1426,16 +1504,37 @@
   color: var(--color-on-surface-inverse);
   font-size: var(--font-size-label);
   font-weight: var(--font-weight-semibold);
+  transition: background-color var(--duration-press-in) var(--ease-out);
+}
+
+@media (hover: hover) and (pointer: fine) {
+  .script-back:hover {
+    background: color-mix(
+      in oklch,
+      var(--color-on-surface-inverse) 10%,
+      var(--color-surface-inverse)
+    );
+  }
+}
+
+.script-back:active {
+  background: color-mix(
+    in oklch,
+    var(--color-on-surface-inverse) 16%,
+    var(--color-surface-inverse)
+  );
 }
 
 @media (min-width: 64rem) {
-  /* A column of its own that scrolls beside the cover, so the voice can be followed from the top. */
+  /* A column of its own that scrolls beside the cover, so the voice can be followed from the top.
+     It ends above the bar, so its last turn can always be scrolled into view, and at either end it
+     hands the scroll on to the page. */
   .player-script {
     position: sticky;
     inset-block-start: var(--space-2);
-    max-height: calc(100cqb - var(--space-8));
+    max-height: calc(100cqb - var(--player-dock-height) - var(--space-8));
     overflow-y: auto;
-    overscroll-behavior: contain;
+    overscroll-behavior-y: auto;
     scrollbar-width: thin;
   }
 }
@@ -1458,51 +1557,113 @@
   border: 0;
 }
 
+/* The same control as the Settings page's segmented choice (settings.css), which this stylesheet
+   cannot import: the same track, thumb, type, targets and timing. */
 .segmented {
+  --seg-n: 1;
+  --seg-i: 0;
+  position: relative;
   display: grid;
   grid-auto-flow: column;
-  grid-auto-columns: 1fr;
+  grid-auto-columns: minmax(0, 1fr);
   padding: var(--segmented-padding);
   border-radius: var(--segmented-radius);
   background: var(--color-surface-sunken);
-  --segment-selected-bg: var(--segmented-selected-bg);
-  --segment-selected-fg: var(--color-on-surface);
 }
 
 .segmented label {
   position: relative;
   display: grid;
   place-items: center;
+  min-width: 0;
+  /* With the track's padding this makes the control 44px tall, and taller if the text grows. */
   min-height: calc(var(--segmented-height) - var(--segmented-padding) * 2);
   border-radius: var(--segmented-segment-radius);
   color: var(--color-on-surface-muted);
-  font-size: var(--font-size-meta);
-  font-weight: var(--font-weight-semibold);
+  font-size: var(--font-size-label);
+  font-weight: var(--font-weight-medium);
+  line-height: var(--font-leading-label);
+  white-space: nowrap;
   -webkit-tap-highlight-color: transparent;
   touch-action: manipulation;
-  transition:
-    background-color var(--duration-hover) var(--ease-hover),
-    color var(--duration-hover) var(--ease-hover),
-    transform var(--duration-press-out) var(--ease-out);
+  transition: color var(--duration-hover) var(--ease-hover);
 }
 
+/* The radio is the target. It covers its segment and the track's padding above and below, which
+   makes the target the track's full 44px. It is invisible, so the segment draws every state. */
 .segmented input {
   position: absolute;
-  inset: 0;
+  inset-block: calc(var(--segmented-padding) * -1);
+  inset-inline: 0;
+  width: 100%;
+  height: calc(100% + var(--segmented-padding) * 2);
   margin: 0;
+  appearance: none;
   opacity: 0;
   cursor: pointer;
 }
 
-/* The selected segment is filled and ringed, so selection never depends on color alone. */
 .segmented label:has(input:checked) {
-  background: var(--segment-selected-bg);
-  color: var(--segment-selected-fg);
-  box-shadow: 0 0 0 var(--stroke-hairline)
-    color-mix(in oklch, var(--color-on-surface) 14%, transparent);
+  color: var(--color-on-surface);
 }
 
+/*
+ * One raised thumb, ringed so the choice never depends on colour alone, slides under the labels. The
+ * segments are equal columns, so its width is one column and its place a multiple of that width:
+ * --seg-n is how many segments there are and --seg-i the checked one, both read from the markup. It
+ * slides only while the control is being used, so the view a page opens on never travels in.
+ */
+.segmented:has(label:nth-of-type(2)) {
+  --seg-n: 2;
+}
+
+.segmented:has(label:nth-of-type(3)) {
+  --seg-n: 3;
+}
+
+.segmented:has(label:nth-of-type(4)) {
+  --seg-n: 4;
+}
+
+.segmented:has(label:nth-of-type(2) input:checked) {
+  --seg-i: 1;
+}
+
+.segmented:has(label:nth-of-type(3) input:checked) {
+  --seg-i: 2;
+}
+
+.segmented:has(label:nth-of-type(4) input:checked) {
+  --seg-i: 3;
+}
+
+.segmented::before {
+  content: "";
+  position: absolute;
+  inset-block: var(--segmented-padding);
+  inset-inline-start: var(--segmented-padding);
+  width: calc((100% - var(--segmented-padding) * 2) / var(--seg-n));
+  border-radius: var(--segmented-segment-radius);
+  background: var(--segmented-selected-bg);
+  box-shadow: 0 0 0 var(--stroke-hairline)
+    color-mix(in oklch, var(--color-on-surface) 14%, transparent);
+  opacity: 0;
+  pointer-events: none;
+  transform: translateX(calc(var(--seg-i) * 100%));
+}
+
+.segmented:has(input:checked)::before {
+  opacity: 1;
+}
+
+.segmented:is(:focus-within, :has(label:active))::before {
+  transition: transform var(--duration-state) var(--ease-out);
+}
+
+/* The ring belongs on the segment: an invisible input cannot show one. A press shows on the thumb
+   and the colour, never on the size of the words (pressText.test.ts). */
 .segmented label:has(input:focus-visible) {
+  z-index: 1;
   outline: var(--stroke-ring) solid var(--color-focus-ring);
   outline-offset: var(--stroke-ring-gap);
 }
@@ -1524,7 +1685,8 @@
   padding-inline: var(--space-3);
   border-radius: var(--control-radius-sm);
   color: var(--color-accent);
-  font-size: var(--font-size-meta);
+  /* The story's size, so the block under the title keeps to two type sizes. */
+  font-size: var(--font-size-label);
   font-weight: var(--font-weight-medium);
   text-decoration: none;
   transition: background-color var(--duration-hover) var(--ease-hover);
@@ -1564,6 +1726,8 @@
   padding-inline: var(--space-3);
   border-radius: var(--sheet-row-radius);
   text-align: start;
+  /* A press shows on the fill; the headline keeps its size. */
+  transition: background-color var(--duration-press-in) var(--ease-out);
 }
 
 .story-row-title {
@@ -1608,6 +1772,17 @@
   }
 }
 
+/* After the hovers, so a press shows under a mouse too. */
+.story-row:not([aria-current="true"]):active,
+.player-upnext-row:active {
+  background: color-mix(in oklch, var(--color-on-surface) 8%, transparent);
+}
+
+.story-row[aria-current="true"]:active {
+  background: color-mix(in oklch, var(--color-on-surface) 8%, var(--color-accent-subtle));
+}
+
+/* Rounder than the button inside it, which keeps the banner's padding from its edge. */
 .player-notice {
   display: grid;
   grid-template-columns: auto minmax(0, 1fr) auto;
@@ -1615,7 +1790,7 @@
   gap: var(--space-3);
   margin-block-end: var(--space-4);
   padding: var(--banner-padding);
-  border-radius: var(--banner-radius);
+  border-radius: var(--radius-lg);
   background: var(--tone-bg);
   font-size: var(--font-size-meta);
 }
@@ -1637,9 +1812,14 @@
 .player-notice-action {
   min-height: var(--size-touch);
   padding-inline: var(--space-3);
-  border-radius: var(--control-radius-sm);
+  border-radius: var(--radius-sm);
   background: color-mix(in oklch, var(--color-on-surface) 8%, transparent);
   font-weight: var(--font-weight-semibold);
+  transition: background-color var(--duration-press-in) var(--ease-out);
+}
+
+.player-notice-action:active {
+  background: color-mix(in oklch, var(--color-on-surface) 14%, transparent);
 }
 
 .player-upnext-row {
@@ -1654,6 +1834,7 @@
   border-radius: var(--sheet-row-radius);
   box-shadow: inset 0 0 0 var(--stroke-hairline) var(--color-border-hairline);
   text-align: start;
+  transition: background-color var(--duration-press-in) var(--ease-out);
 }
 
 .player-upnext-text {
@@ -1737,6 +1918,21 @@ html[data-player="open"] {
     transform: none;
   }
 
+  /* Its slide is gone with the movement tokens, so it fades in where it sits instead of appearing
+     at once, and fades out the same way. An animation and not a transition on opacity, which a
+     held pull on a phone also moves. */
+  .player[data-visible="true"] .player-dock {
+    animation: fade-in var(--duration-state) var(--ease-out);
+  }
+
+  .player[data-visible="false"] .player-dock {
+    opacity: 0;
+    translate: none;
+    transition:
+      opacity var(--duration-state) var(--ease-out),
+      visibility 0s linear var(--duration-state);
+  }
+
   .glyph-swap > .ui-icon {
     transition: opacity var(--duration-state) var(--ease-out);
   }
@@ -1747,9 +1943,14 @@ html[data-player="open"] {
     filter: none;
   }
 
-  /* The speed panel fades without growing. */
+  /* The speed panel fades without growing; the segmented thumb jumps to its segment. */
   .speed-panel {
     --panel-scale: 1;
+  }
+
+  .segmented::before,
+  .segmented:is(:focus-within, :has(label:active))::before {
+    transition: none;
   }
 }
 
@@ -1786,7 +1987,11 @@ html[data-player="open"] {
 
   /* Fills are dropped too, so each text control keeps an edge of its own. */
   .speed-btn,
-  .speed-preset {
+  .speed-preset,
+  .story-row,
+  .player-notice-action,
+  .script-back,
+  .segmented {
     border: var(--stroke-hairline) solid ButtonText;
   }
 
@@ -1798,6 +2003,11 @@ html[data-player="open"] {
   .story-row[aria-current="true"],
   .speed-preset[aria-pressed="true"] {
     border: var(--stroke-rail) solid Highlight;
+  }
+
+  /* The chosen segment carries its own border here, so the thumb is not drawn. */
+  .segmented::before {
+    display: none;
   }
 }
 

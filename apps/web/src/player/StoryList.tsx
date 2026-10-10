@@ -29,7 +29,7 @@ export default function StoryList({ titleHidden = false }: { titleHidden?: boole
                 return (
                   <li key={item.id}>
                     <button
-                      className="story-row press"
+                      className="story-row"
                       type="button"
                       aria-current={current ? "true" : undefined}
                       onClick={() => store.playItemAt(item.index)}
