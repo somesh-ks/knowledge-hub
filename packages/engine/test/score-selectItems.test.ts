@@ -8,6 +8,8 @@ import {
   DEFAULT_SCORE_THRESHOLD,
   isTech,
   medianWeight,
+  newestReleasePerRepo,
+  releaseRepo,
   SECTION_TARGET_MAX,
   selectItems,
   TECH_ALLOWANCE,
@@ -754,5 +756,77 @@ describe("scoring and selection together", () => {
     expect(result.selected.filter((s) => s.section === "top").map((s) => s.item.id)).toEqual(
       ids(craft),
     );
+  });
+});
+
+describe("one release per repository", () => {
+  const release = (repo: string, tag: string, score: number, publishedAt: string): ScoredItem =>
+    scored("design_engineering_craft", score, {
+      url: `https://github.com/${repo}/releases/tag/${tag}`,
+      canonical_url: `https://github.com/${repo}/releases/tag/${tag}`,
+      title: `${repo}: ${tag}`,
+      source_id: repo.replace("/", "-"),
+      source_type: "github",
+      published_at: publishedAt,
+    });
+  const select = (pool: ScoredItem[]) =>
+    selectItems({ scored: pool, kind: "regular", floor: 1, cap: 12 });
+
+  it("reads the repository from a github.com URL, else the source id", () => {
+    expect(releaseRepo(release("Vercel/Next.js", "v1.0.1", 0.5, "2026-10-05T00:00:00Z").item)).toBe(
+      "vercel/next.js",
+    );
+    const feed = makeItem({
+      source_type: "github",
+      source_id: "tool",
+      url: "https://example.com/x",
+    });
+    expect(releaseRepo(feed)).toBe("source:tool");
+    expect(releaseRepo(makeItem())).toBeNull();
+  });
+
+  it("keeps the newest of several patch releases, even when an older one scores higher", () => {
+    const older = release("acme/kit", "v1.2.3", 0.9, "2026-10-04T00:00:00Z");
+    const newer = release("acme/kit", "v1.2.4", 0.6, "2026-10-05T00:00:00Z");
+    const oldest = release("acme/kit", "v1.2.2", 0.8, "2026-10-03T00:00:00Z");
+    const result = select([older, newer, oldest]);
+    expect(ids(result.selected)).toEqual([newer.item.id]);
+    expect(
+      result.dropped
+        .filter((d) => d.reason === "same_repo_release")
+        .map((d) => d.id)
+        .sort(),
+    ).toEqual([older.item.id, oldest.item.id].sort());
+  });
+
+  it("leaves releases of different repositories and non-release items alone", () => {
+    const a = release("acme/kit", "v1.2.4", 0.6, "2026-10-05T00:00:00Z");
+    const b = release("acme/other", "v3.0.1", 0.6, "2026-10-05T00:00:00Z");
+    const post = scored("design_engineering_craft", 0.7);
+    const result = select([a, b, post]);
+    expect(result.selected).toHaveLength(3);
+    expect(result.dropped).toEqual([]);
+  });
+
+  it("ignores releases that never cleared the bar", () => {
+    const low = release("acme/kit", "v1.2.5", 0.1, "2026-10-06T00:00:00Z");
+    const kept = release("acme/kit", "v1.2.4", 0.6, "2026-10-05T00:00:00Z");
+    const result = select([low, kept]);
+    expect(ids(result.selected)).toEqual([kept.item.id]);
+    expect(result.dropped.map((d) => d.reason)).toEqual(["below_threshold"]);
+  });
+
+  it("breaks a tie on the publish date by rank", () => {
+    const pool = [
+      release("acme/kit", "v1.2.3", 0.5, "2026-10-05T00:00:00Z"),
+      release("acme/kit", "v1.2.4", 0.7, "2026-10-05T00:00:00Z"),
+    ];
+    const candidates = pool.map((s) => ({
+      item: s.item,
+      category: "design_engineering_craft" as const,
+      home: "craft",
+      score: s.score,
+    }));
+    expect(newestReleasePerRepo(candidates).kept.map((c) => c.score)).toEqual([0.7]);
   });
 });

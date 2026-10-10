@@ -247,7 +247,7 @@ Add a dependency only when it removes real work; the platform covers the rest (`
 | Outcome | State written |
 | --- | --- |
 | `published` | Digest, `seen.json`, `judgments.json`, a `last-run.json` record for the pass kind. Commit `chore(digest): <ids>` |
-| `nothing` | A `last-run.json` record, the fetch window advanced, judged items marked seen. Commit `chore(state): run <date> nothing cleared the bar`. The site and the status endpoint say "Nothing cleared the bar." |
+| `nothing` | A `last-run.json` record, the fetch window advanced; nothing is marked seen, so judged items stay eligible. Commit `chore(state): run <date> nothing cleared the bar`. The site and the status endpoint say "Nothing cleared the bar." |
 | `gated` | Nothing recorded, so the cadence anchor stays put |
 | `failed` | Nothing written; the window and `seen.json` are untouched. Exit code 1 |
 
@@ -263,7 +263,7 @@ Add a dependency only when it removes real work; the platform covers the rest (`
 
 | File | Holds | Pruned |
 | --- | --- | --- |
-| `seen.json` | Item id to the date it was shown or judged | 90 days |
+| `seen.json` | Item id to the date a briefing showed it | 90 days |
 | `judgments.json` | Judge answers keyed by item id, question-set hash and model, so `/learn` re-scores without new calls | 30 days |
 | `last-run.json` | One record per kind (`regular`, `weekly`, `on_demand`) with outcome and digest id; the end of the last successful fetch; the last cover | n/a |
 | `usage.json` | Speechify characters used in the current month | n/a |
