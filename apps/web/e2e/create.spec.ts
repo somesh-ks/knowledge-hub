@@ -697,25 +697,20 @@ test.describe("episodes in the Library", () => {
         .locator(".card-facts"),
     ).toHaveText("Headlines, 3 min");
 
-    await expect(page.getByRole("button", { name: "Custom" })).toHaveAttribute(
-      "aria-pressed",
-      "false",
-    );
-    await page.getByRole("button", { name: "Custom" }).click();
-    await expect(page.getByRole("button", { name: "Custom" })).toHaveAttribute(
-      "aria-pressed",
-      "true",
-    );
+    const show = page.getByRole("combobox", { name: "Show" });
+    await expect(show).toHaveValue("all");
+    await show.selectOption("custom");
+    await expect(show).toHaveValue("custom");
     await expect(page.locator("[data-card]:not([hidden])")).toHaveCount(2);
     await expect(page.locator("[data-library-status]")).toHaveText("2 of 5 results");
 
     // The other filters leave episodes out.
-    await page.getByRole("button", { name: "Daily" }).click();
+    await show.selectOption("daily");
     await expect(page.locator("[data-card]:not([hidden])")).toHaveCount(2);
     await expect(page.locator('[data-card][data-kind="episode"]:not([hidden])')).toHaveCount(0);
 
     // Search finds an episode by a story it covers.
-    await page.getByRole("button", { name: "All", exact: true }).click();
+    await show.selectOption("all");
     // Search finds an episode by its title, on one line like a story.
     await page.getByRole("searchbox").fill("interfaces and fast");
     await expect(page.locator("[data-card]:not([hidden])")).toHaveCount(1);

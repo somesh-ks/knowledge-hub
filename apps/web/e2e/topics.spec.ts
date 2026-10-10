@@ -137,13 +137,14 @@ test.describe("the Topics & sources page", () => {
   test("filters by score and sorts by name", async ({ page }) => {
     await setup(page);
     await open(page);
-    await page.getByRole("button", { name: "Poor under 3" }).click();
+    const band = page.getByRole("combobox", { name: "Show sources with score" });
+    await band.selectOption({ label: "Poor under 3" });
     await expect(source(page, "Model Ledger")).toBeVisible();
     await expect(source(page, "Studio Notes")).toBeHidden();
-    await page.getByRole("button", { name: "New" }).click();
+    await band.selectOption({ label: "New" });
     await expect(source(page, "Launch Board")).toBeVisible();
     await expect(source(page, "Model Ledger")).toBeHidden();
-    await page.getByRole("button", { name: "All" }).click();
+    await band.selectOption({ label: "All" });
     await page.getByLabel("Sort sources").selectOption("name");
     const names = await page.locator("li.source-row .source-name").allTextContents();
     expect(names.length).toBeGreaterThan(2);
