@@ -567,9 +567,14 @@ html[data-mini="visible"] .manage-bar {
   display: grid;
 }
 
+/* Every select is one height, and its line fills the box inside the border, so the text sits on the
+   same centre line as the chevron in every engine. */
 select.manage-input {
   appearance: none;
+  block-size: var(--field-height);
+  padding-block: 0;
   padding-inline-end: var(--space-12);
+  line-height: calc(var(--field-height) - var(--stroke-hairline) * 2);
   border-color: var(--color-border-hairline);
   background: none;
   cursor: pointer;
