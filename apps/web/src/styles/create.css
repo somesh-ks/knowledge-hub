@@ -222,14 +222,14 @@
 
 /* ------------------------------------------------------------------ voices */
 
-/* One select for a readout; a discussion adds a second, side by side from 40rem. */
+/* One select for a readout, as wide as the panel; a discussion adds Leo's beside it from 40rem. */
 .create-voices {
   display: grid;
   gap: var(--space-3);
 }
 
 @media (min-width: 40rem) {
-  .create-voices {
+  .create-voices:has(> [data-voice="voice_b"]:not([hidden])) {
     grid-template-columns: repeat(2, minmax(0, 1fr));
   }
 }
