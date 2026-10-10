@@ -24,6 +24,7 @@ import {
   usageMonth,
 } from "@dispatch/engine/audio";
 import { EPISODE_ID, type Episode, parseEpisodeFile } from "../lib/episodeFile";
+import type { SegmentMarks } from "../lib/segmentMarks";
 import type {
   NarrateLookupResponse,
   NarrateResponse,
@@ -60,10 +61,12 @@ import type { FetchLike } from "./github";
 import type { ApiResult } from "./http";
 import { NARRATE_DAILY_CAP } from "./limits";
 import {
+  deriveSegmentMarks,
   describeSegments,
   SEGMENT_KEY,
   segmentAudio,
   segmentHash,
+  segmentMarksPath,
   segmentPath,
 } from "./narrateSegments";
 import {
@@ -102,10 +105,11 @@ import { describeError } from "./redact";
  * out locks the store for 30 days.
  *
  *   GET                              0           anyone may call it, so it asks the store nothing
- *   POST segment, first of a digest  2 advanced  the month's charge, then the segment
+ *   POST segment, first of a digest  3 advanced  the month's charge, then the segment and its word
+ *                                                marks (2 when Speechify gave no marks)
  *                                    3 simple    the segment's head; the charge document's head and
  *                                                read
- *   POST segment, later ones         1 advanced  the segment
+ *   POST segment, later ones         2 advanced  the segment and its word marks
  *                                    2 simple    as above, but the charge document has not changed,
  *                                                so its read is a cache hit and free
  *   POST segment, already narrated   0 advanced
@@ -115,8 +119,9 @@ import { describeError } from "./redact";
  *   reaching Speechify                           month's document
  *
  * A digest of 20 segments (the intro, 18 stories, the sign-off) narrated story by story is therefore
- * 2 + 19 = 21 advanced operations.
- * narrate.test.ts counts them and fails above 22.
+ * 1 + 20 * 2 = 41 advanced operations, about 48 such digests a month.
+ * narrate.test.ts counts them and fails above 42. GET /api/narrate-marks reads the marks by their
+ * public URL: one SIMPLE operation when the CDN has not seen it, and never an advanced one.
  */
 
 export const audioKey = (id: string): string => `audio/${id}.mp3`;
@@ -1169,7 +1174,7 @@ async function synthesizeSegment(
 ): Promise<NarrateResult> {
   const { label, deps, log, secrets } = session;
 
-  // The duration comes from the stream's own done event. Word marks are not used for a segment.
+  // The duration comes from the stream's own done event. The word marks are kept beside the audio.
   const narration = await speak(session, segment.text, voice);
   if ("status" in narration) return narration;
   const characters = narration.billableCharacters;
@@ -1189,6 +1194,8 @@ async function synthesizeSegment(
     return storageFailed;
   }
 
+  await storeSegmentMarks(session, path, segment.text, narration.marks);
+
   log(
     `${label}: stored. ${characters} characters, synthesis ${narration.synthesisMs} ms, ` +
       `upload ${deps.now() - uploadStartedAt} ms, total ${elapsed(session)} ms`,
@@ -1207,6 +1214,37 @@ async function synthesizeSegment(
       },
     },
   };
+}
+
+/**
+ * Keeps a segment's word marks beside its audio, so the transcript can light the word being said.
+ * One put, once, only when there are marks, and only with time to spare. The audio is what was
+ * paid for and is already stored: a failure here is logged and the page estimates instead.
+ */
+async function storeSegmentMarks(
+  session: Session,
+  audioPath: string,
+  text: string,
+  marks: readonly SpeechMark[],
+): Promise<void> {
+  const { label, log, secrets } = session;
+  const words = deriveSegmentMarks(text, marks);
+  if (words.length === 0) return;
+  const timeoutMs = Math.min(BLOB_UPLOAD_TIMEOUT_MS, timeLeft(session));
+  if (timeoutMs < MIN_UPLOAD_MS) {
+    log(`${label}: no time left to store the word marks, the page will estimate them`);
+    return;
+  }
+  try {
+    const body: SegmentMarks = { words };
+    await session.blob.put(segmentMarksPath(audioPath), JSON.stringify(body), {
+      contentType: "application/json",
+      cacheSeconds: SEGMENT_CACHE_SECONDS,
+      timeoutMs,
+    });
+  } catch (error) {
+    log(`${label}: the word marks were not stored: ${describeError(error, secrets)}`);
+  }
 }
 
 /** POST /api/narrate. */

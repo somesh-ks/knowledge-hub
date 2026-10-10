@@ -41,6 +41,7 @@ import {
   UPLOAD_ATTEMPTS,
   UPLOAD_RETRY_DELAY_MS,
 } from "./narrate";
+import { handleNarrationMarks, MARKS_CACHE_CONTROL } from "./narrateMarks";
 import { segmentHash, segmentPath } from "./narrateSegments";
 import { usageKey } from "./narrationState";
 
@@ -1479,7 +1480,9 @@ describe("POST /api/narrate: nothing leaks", () => {
 
 describe("POST /api/narrate with a segment", () => {
   const segmentPuts = (context: Setup) =>
-    context.blob.changes().filter((change) => change.startsWith(`put audio/${ID}/seg/`));
+    context.blob
+      .changes()
+      .filter((change) => change.startsWith(`put audio/${ID}/seg/`) && change.endsWith(".mp3"));
 
   /**
    * Makes two requests truly overlap. Each is held at its look for the segment's file until both
@@ -1526,9 +1529,24 @@ describe("POST /api/narrate with a segment", () => {
     expect(context.speech.calls).toHaveLength(1);
     expect(context.speech.calls[0]?.body.input).toBe(intro.text);
 
-    // The charge first, then the file. No marker and no whole-digest files.
-    expect(context.blob.changes()).toEqual([`put ${usageKey(MONTH)}`, `put ${path}`]);
-    expect(context.blob.operations()).toEqual({ advanced: 2, simple: 2, free: 0 });
+    // The charge first, then the file and its word marks. No marker and no whole-digest files.
+    const marksPath = path.replace(/\.mp3$/, ".marks.json");
+    expect(context.blob.changes()).toEqual([
+      `put ${usageKey(MONTH)}`,
+      `put ${path}`,
+      `put ${marksPath}`,
+    ]);
+    expect(context.blob.operations()).toEqual({ advanced: 3, simple: 2, free: 0 });
+    // One mark per word, from the start of the segment's own audio.
+    const words = intro.text.split(/\s+/).filter((word) => word !== "");
+    expect(JSON.parse(context.blob.text(marksPath) ?? "{}")).toEqual({
+      words: words.map((_, word) => ({
+        word,
+        start_ms: word * MS_PER_WORD,
+        end_ms: (word + 1) * MS_PER_WORD,
+      })),
+    });
+    expect(context.blob.written(marksPath)?.contentType).toBe("application/json");
     expect(context.blob.bytes(path)).toEqual(FAKE_AUDIO);
     expect(context.blob.written(path)).toEqual({
       contentType: "audio/mpeg",
@@ -1561,8 +1579,32 @@ describe("POST /api/narrate with a segment", () => {
       context.blob.changes().filter((change) => change === `put ${usageKey(MONTH)}`),
     ).toHaveLength(1);
     expect(stateOf(context).speechify.characters).toBe(wholeChars(context.digest));
-    // One advanced operation per segment, and one for the charge.
-    expect(context.blob.operations().advanced).toBe(keys.length + 1);
+    // Two advanced operations per segment, its file and its word marks, and one for the charge.
+    expect(context.blob.operations().advanced).toBe(2 * keys.length + 1);
+  });
+
+  it("still answers with the audio when the word marks cannot be stored", async () => {
+    const context = setup();
+    const logs: string[] = [];
+    context.deps.log = (message) => logs.push(message);
+    const path = pathOf(context.digest, "intro");
+    const marksPath = path.replace(/\.mp3$/, ".marks.json");
+    context.blob.failNext("put", 1, { prefix: marksPath });
+    const narrated = segmentBody(await postSegment(context, "intro"));
+    expect(narrated.audio.url).toBe(`${FAKE_BLOB_HOST}/${path}`);
+    expect(context.blob.has(path)).toBe(true);
+    expect(context.blob.has(marksPath)).toBe(false);
+    // Tried once: marks are worth one operation, not a retry.
+    expect(context.blob.calls.filter((call) => call.pathname === marksPath)).toHaveLength(1);
+    expect(logs.some((line) => line.includes("word marks were not stored"))).toBe(true);
+  });
+
+  it("stores no word marks when Speechify gave none", async () => {
+    const context = setup({ speech: { kind: "no_marks" } });
+    expect((await postSegment(context, "intro")).status).toBe(200);
+    expect(context.blob.paths(`audio/${ID}/seg/`).some((path) => path.endsWith(".json"))).toBe(
+      false,
+    );
   });
 
   it("narrates a story with the section's bridge when it opens a later section", async () => {
@@ -1821,7 +1863,9 @@ describe("POST /api/narrate with a segment", () => {
     expect(segmentBody(a).audio.url).toBe(segmentBody(b).audio.url);
     // Neither saw the other's file, so both asked Speechify. One file is left.
     expect(context.speech.calls).toHaveLength(2);
-    expect(context.blob.paths(`audio/${ID}/seg/`)).toHaveLength(1);
+    expect(
+      context.blob.paths(`audio/${ID}/seg/`).filter((path) => path.endsWith(".mp3")),
+    ).toHaveLength(1);
     expect(stateOf(context).speechify.characters).toBe(wholeChars(context.digest));
     expect(Object.keys(stateOf(context).digests)).toEqual([ID]);
   });
@@ -1992,7 +2036,7 @@ describe("POST /api/narrate: the month's document is always read fresh", () => {
 });
 
 describe("what narrating a digest story by story costs the store", () => {
-  it("stays at or under 22 advanced operations for a 20-segment digest, lookup included", async () => {
+  it("stays at or under 42 advanced operations for a 20-segment digest, lookup included", async () => {
     const big = makeDigest({
       id: ID,
       items: Array.from({ length: 18 }, (_, index) =>
@@ -2014,9 +2058,9 @@ describe("what narrating a digest story by story costs the store", () => {
     }
 
     const cost = context.blob.operations();
-    // The month's charge, and twenty files.
-    expect(cost.advanced).toBe(21);
-    expect(cost.advanced).toBeLessThanOrEqual(22);
+    // The month's charge, and twenty files with their word marks.
+    expect(cost.advanced).toBe(41);
+    expect(cost.advanced).toBeLessThanOrEqual(42);
     // Two heads a request, and one read of the document that was not a cache hit.
     expect(cost.simple).toBe(2 * 20 + 1);
 
@@ -2027,7 +2071,7 @@ describe("what narrating a digest story by story costs the store", () => {
         expect(segmentBody(await postSegment(context, segment.key)).audio.confirmed).toBe(true);
       }
     }
-    expect(context.blob.operations().advanced).toBe(21);
+    expect(context.blob.operations().advanced).toBe(41);
     expect(context.speech.calls).toHaveLength(20);
   });
 });
@@ -2113,5 +2157,103 @@ describe("startDeadline", () => {
     deadline.cancel();
     vi.advanceTimersByTime(5000);
     expect(deadline.signal.aborted).toBe(false);
+  });
+});
+
+describe("GET /api/narrate-marks", () => {
+  /** Reads by public URL through the fake store, as the route's plain fetch reads the real one. */
+  const readerOf = (context: Setup, urls: string[] = []) => ({
+    ...context.deps,
+    fetch: async (url: string) => {
+      urls.push(url);
+      const text = await context.blob.fetchText(url);
+      return text === null ? new Response("Not found", { status: 404 }) : new Response(text);
+    },
+  });
+  const marks = (
+    context: Setup,
+    segment: string | null,
+    digest: string | null = ID,
+    params?: string[],
+    urls?: string[],
+  ) =>
+    handleNarrationMarks(
+      { digest, segment, params: params ?? ["digest", "segment"] },
+      readerOf(context, urls),
+    );
+
+  it("answers with the marks a narration stored, by their public URL, and spends nothing", async () => {
+    const context = setup();
+    await postSegment(context, "intro");
+    const before = context.blob.calls.length;
+    const urls: string[] = [];
+    const result = await marks(context, "intro", ID, undefined, urls);
+    const words = segmentOf(context.digest, "intro").text.split(/\s+/).filter(Boolean);
+    expect(result.status).toBe(200);
+    expect(result.headers).toEqual({ "Cache-Control": MARKS_CACHE_CONTROL });
+    expect(result.body).toEqual({
+      status: 200,
+      words: words.map((_, word) => ({
+        word,
+        start_ms: word * MS_PER_WORD,
+        end_ms: (word + 1) * MS_PER_WORD,
+      })),
+    });
+    // One plain read of the computed address: no head, no list, no advanced operation.
+    const path = pathOf(context.digest, "intro").replace(/\.mp3$/, ".marks.json");
+    expect(urls).toEqual([`${FAKE_BLOB_HOST}/${path}`]);
+    expect(context.blob.calls.slice(before).map((call) => call.op)).toEqual(["fetch"]);
+  });
+
+  it("is a briefly cached 404 for a segment with no marks yet, or an unknown one", async () => {
+    const context = setup();
+    for (const segment of ["intro", "zzzzzzzzzzzz"]) {
+      const result = await marks(context, segment);
+      expect(result.status).toBe(404);
+      expect(result.headers?.["Cache-Control"]).toMatch(/s-maxage=60/);
+    }
+  });
+
+  it("is a 404 when the stored file is not marks", async () => {
+    const context = setup();
+    const path = pathOf(context.digest, "intro").replace(/\.mp3$/, ".marks.json");
+    for (const text of [
+      "<html>",
+      JSON.stringify({ words: [{ word: -1, start_ms: 0, end_ms: 1 }] }),
+    ]) {
+      context.blob.seed(path, text);
+      expect((await marks(context, "intro")).status).toBe(404);
+    }
+  });
+
+  it("refuses anything but one digest and one segment key, before any read", async () => {
+    const context = setup();
+    const urls: string[] = [];
+    const cases: Array<[string | null, string | null, string[]]> = [
+      [ID, "intro", ["digest"]],
+      [ID, "intro", ["digest", "segment", "x"]],
+      [ID, "intro", ["digest", "digest"]],
+      [ID, null, ["digest", "segment"]],
+      [ID, "../intro", ["digest", "segment"]],
+      [ID, "https://evil.example/x", ["digest", "segment"]],
+      ["../../etc", "intro", ["digest", "segment"]],
+      [null, "intro", ["digest", "segment"]],
+    ];
+    for (const [digest, segment, params] of cases) {
+      expect((await marks(context, segment, digest, params, urls)).status).toBe(400);
+    }
+    expect(urls).toEqual([]);
+    expect(context.blob.calls).toEqual([]);
+  });
+
+  it("is unavailable when the store cannot be read, or its address is not known", async () => {
+    const context = setup();
+    const failing = handleNarrationMarks(
+      { digest: ID, segment: "intro", params: ["digest", "segment"] },
+      { ...context.deps, fetch: async () => new Response("", { status: 500 }) },
+    );
+    expect((await failing).status).toBe(503);
+    const unconfigured = setup({ env: { BLOB_READ_WRITE_TOKEN: undefined } });
+    expect((await marks(unconfigured, "intro")).status).toBe(503);
   });
 });
