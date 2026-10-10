@@ -640,8 +640,8 @@
   pointer-events: none;
 }
 
-/* A dot where each story starts, centred on the line; a section's is a little larger. A hairline
-   ring in the surface colour parts it from the line, played or not. */
+/* One small dot where each story starts, centred on the line. A hairline ring in the surface
+   colour parts it from the line, played or not. */
 .dock-tick {
   --dot: var(--scrubber-tick-dot);
   position: absolute;
@@ -653,10 +653,6 @@
   border-radius: var(--radius-round);
   background: var(--color-on-surface-muted);
   box-shadow: 0 0 0 var(--stroke-hairline) var(--color-surface);
-}
-
-.dock-tick[data-chapter] {
-  --dot: var(--scrubber-tick-dot-chapter);
 }
 
 /* The clock at the thumb while it is being moved. */
@@ -1000,10 +996,6 @@
   background: var(--color-on-surface-muted);
   box-shadow: 0 0 0 var(--stroke-hairline) var(--color-surface);
   transition: background-color var(--duration-state) var(--ease-out);
-}
-
-.scrubber-tick[data-chapter] {
-  --dot: var(--scrubber-tick-dot-chapter);
 }
 
 /* The thumb is a zero-size anchor that script moves with --thumb-x. The visible disc is a
