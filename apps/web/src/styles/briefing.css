@@ -41,6 +41,19 @@ html:has(.briefing > .tabs) {
   }
 }
 
+/* Between a phone and the side column the window is wider than the column, so the strip's surface
+   and line reach on to the window's edges: otherwise the bar's line shows beside the strip, a step
+   above the strip's own. */
+@media (40rem <= width < 64rem) {
+  .briefing > .tabs {
+    box-shadow: 0 0 0 100vmax var(--color-surface);
+    clip-path: inset(0 -100vmax);
+    border-block-end: var(--stroke-hairline) solid transparent;
+    border-image: linear-gradient(var(--color-border-hairline) 0 0) 0 0 1 0 / 0 0
+      var(--stroke-hairline) 0 / 0 100vmax;
+  }
+}
+
 /* From 80rem the contents list beside the column does the tabs' job, and nothing sticks but the
    top chrome. */
 @media (min-width: 80rem) {
