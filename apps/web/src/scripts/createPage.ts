@@ -100,7 +100,7 @@ export function installCreate(root: HTMLElement, onStart?: () => void): void {
   }
 
   // True while a request is out. The button is then aria-disabled, not disabled: it keeps its fill
-  // and its focus, and a press or an Enter in the title still submits, so the handlers check this.
+  // and its focus, and a press still submits, so the handlers check this.
   let sending = false;
 
   /** Marks the button as working (busy, with its spinner) or gives it back. */
@@ -145,6 +145,16 @@ export function installCreate(root: HTMLElement, onStart?: () => void): void {
   }
 
   form.addEventListener("change", sync);
+  // The title's Enter key reads "Done": it puts the keyboard away and never submits, because a run
+  // spends from the allowance. Generate is the one way to start one.
+  const title = form.elements.namedItem("title");
+  if (title instanceof HTMLInputElement) {
+    title.addEventListener("keydown", (event) => {
+      if (event.key !== "Enter" || event.isComposing) return;
+      event.preventDefault();
+      title.blur();
+    });
+  }
   form.addEventListener("submit", async (event) => {
     event.preventDefault();
     if (sending) return;

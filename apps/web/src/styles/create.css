@@ -200,14 +200,21 @@
   }
 }
 
-/* While the request is out the button keeps its fill and shows a spinner beside its words: it is
-   working, not unavailable. createPage.ts ignores a press then, so the press does not shrink it. */
+/* While the request is out the button keeps its fill and shows a spinner at its start: it is
+   working, not unavailable. createPage.ts ignores a press then, so the press does not shrink it.
+   The spinner is out of the flow, so the words stay where they were when it appears. */
+.create-view .btn-primary {
+  position: relative;
+}
+
 .create-view .btn-primary > .spinner {
   display: none;
 }
 
 .create-view .btn-primary[data-busy="true"] > .spinner {
   display: block;
+  position: absolute;
+  inset-inline-start: var(--space-4);
 }
 
 .create-submit .btn-primary[data-busy="true"] {

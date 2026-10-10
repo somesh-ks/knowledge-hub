@@ -32,6 +32,26 @@ test.describe("the floating Create button", () => {
       await expect(page.locator(".app-nav-create"), path).toBeVisible();
     }
   });
+
+  test("on the Create page, Create Podcast goes to the top and keeps what is typed", async ({
+    page,
+  }, info) => {
+    test.skip(info.project.name !== "desktop", "the side column is for wide screens");
+    await page.goto("/create");
+    await expect(page.locator("main [data-create]")).toHaveAttribute("data-ready", "");
+    const title = page.getByRole("textbox", { name: /^Title/ });
+    await title.fill("My week in AI");
+    await page.evaluate(() => {
+      (window as unknown as { kept?: boolean }).kept = true;
+      window.scrollTo(0, 400);
+    });
+    await expect.poll(() => page.evaluate(() => window.scrollY)).toBeGreaterThan(100);
+    await page.locator(".app-nav-create").click();
+    await expect.poll(() => page.evaluate(() => window.scrollY)).toBe(0);
+    await expect(page).toHaveURL(/\/create$/);
+    await expect(title).toHaveValue("My week in AI");
+    expect(await page.evaluate(() => (window as unknown as { kept?: boolean }).kept)).toBe(true);
+  });
 });
 
 test.describe("the tab bar", () => {

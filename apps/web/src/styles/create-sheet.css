@@ -242,6 +242,10 @@ dialog.create-sheet[open]::backdrop {
   padding-inline: var(--page-gutter-start) var(--page-gutter-end);
   overflow-y: auto;
   overscroll-behavior: contain;
+  /* A field that keyboard focus scrolls to stops clear of the sticky foot below (its button, its
+     padding and the safe area), ring included, instead of sliding under it. */
+  scroll-padding-block: var(--space-4)
+    calc(var(--button-height) + var(--space-12) + var(--safe-bottom));
   scrollbar-width: thin;
 }
 

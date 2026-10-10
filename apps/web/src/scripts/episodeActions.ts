@@ -58,9 +58,16 @@ function bind(kind: Kind, dialog: HTMLDialogElement, root: HTMLElement): void {
   dialog.querySelectorAll("[data-dialog-close]").forEach((button) => {
     button.addEventListener("click", () => dialog.close());
   });
-  // A press on the scrim lands on the dialog itself; everything else is inside its panel.
+  // A press on the scrim lands on the dialog itself; everything else is inside its panel. A press
+  // that starts inside and ends outside (selecting the feedback text) also clicks the dialog, so
+  // only one that began on the scrim closes it.
+  let fromScrim = false;
+  dialog.addEventListener("pointerdown", (event) => {
+    fromScrim = event.target === dialog;
+  });
   dialog.addEventListener("click", (event) => {
-    if (event.target === dialog) dialog.close();
+    if (event.target === dialog && fromScrim) dialog.close();
+    fromScrim = false;
   });
 
   if (pass) pass.value = String(store((s) => s.getItem(KEY)) ?? "");

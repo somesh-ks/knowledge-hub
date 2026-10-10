@@ -25,9 +25,16 @@ function build(): HTMLDialogElement | null {
     });
   }
   clone.querySelector("[data-create-close]")?.addEventListener("click", () => clone.close());
-  // A press on the scrim lands on the dialog itself; everything else is inside its panel.
+  // A press on the scrim lands on the dialog itself; everything else is inside its panel. A press
+  // that starts inside and ends outside (selecting the title, sliding off a chip onto the header)
+  // also clicks the dialog, so only one that began on the scrim closes it.
+  let fromScrim = false;
+  clone.addEventListener("pointerdown", (event) => {
+    fromScrim = event.target === clone;
+  });
   clone.addEventListener("click", (event) => {
-    if (event.target === clone) clone.close();
+    if (event.target === clone && fromScrim) clone.close();
+    fromScrim = false;
   });
   return clone;
 }

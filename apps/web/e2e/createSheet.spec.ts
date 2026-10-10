@@ -76,6 +76,45 @@ test.describe("Create as the primary action", () => {
     await expect(trigger(page)).toBeFocused();
   });
 
+  test("Enter in the title puts the keyboard away and sends nothing", async ({ page }) => {
+    const bodies = await mockRun(page, [{ run_id: 31, state: "running", step: null }]);
+    await openSheet(page);
+    await sheet(page).locator(".create-chip:visible", { hasText: "Trending" }).click();
+    const title = sheet(page).getByRole("textbox", { name: /^Title/ });
+    await title.fill("My week in AI");
+    await title.press("Enter");
+    await expect(title).not.toBeFocused();
+    // Long enough for a request to have gone out, had Enter submitted the form.
+    await page.waitForTimeout(500);
+    expect(bodies).toEqual([]);
+    await expect(sheet(page)).toBeVisible();
+    await expect(page.getByRole("dialog", { name: "Enter the passphrase" })).toBeHidden();
+    await expect(title).toHaveValue("My week in AI");
+  });
+
+  test("a press that starts inside the panel and ends outside it keeps the panel open", async ({
+    page,
+  }, info) => {
+    await openSheet(page);
+    const head = await sheet(page).locator(".create-sheet-head").boundingBox();
+    const chip = sheet(page).locator(".create-chip:visible").first();
+    await chip.scrollIntoViewIfNeeded();
+    const box = await chip.boundingBox();
+    if (!head || !box) throw new Error("the panel is not laid out");
+    // Pressed on a chip, released on the header: the click lands on the dialog itself.
+    await page.mouse.move(box.x + box.width / 2, box.y + box.height / 2);
+    await page.mouse.down();
+    await page.mouse.move(head.x + head.width / 3, head.y + head.height / 2, { steps: 5 });
+    await page.mouse.up();
+    await page.waitForTimeout(300);
+    await expect(sheet(page)).toBeVisible();
+    // A press on the scrim beside the side panel still closes it.
+    if (info.project.name === "desktop") {
+      await page.mouse.click(head.x / 2, head.y + 200);
+      await expect(sheet(page)).toBeHidden();
+    }
+  });
+
   test("browser Back closes the sheet and stays on the page", async ({ page }) => {
     await page.goto("/library");
     await page.locator(".app-nav-item", { hasText: "Today" }).click();
