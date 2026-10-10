@@ -773,8 +773,10 @@ test.describe("an episode page", () => {
     await expect(link).toHaveAttribute("href", "https://example.com/dispatch-fixture/f0a17c2d6b83");
     await expect(link).toHaveAttribute("target", "_blank");
     await expect(link).toHaveAttribute("rel", "noopener noreferrer");
-    // The publisher's host, and never the name of the service that found it.
-    await expect(link).toHaveText("example.com");
+    // The publisher's host, and never the name of the service that found it. The link is named by
+    // what it shows, and says it opens a new tab.
+    await expect(link.locator(":scope > span").first()).toHaveText("example.com");
+    await expect(link).toHaveAccessibleName("example.com (opens in a new tab)");
     await expect(page.locator("body")).not.toContainText("Exa discovery");
   });
 
