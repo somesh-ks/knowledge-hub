@@ -62,25 +62,7 @@
   padding-block-end: var(--space-2);
 }
 
-/* The chip is 36px plus its border; this keeps its 44px target true, as in the Library. */
-.topics-filters .filter-chip::after {
-  inset-block: calc((var(--size-touch) - var(--chip-height)) / -2 - var(--stroke-hairline));
-  inset-inline: calc(var(--stroke-hairline) * -1);
-}
-
-/* On a phone the pills wrap onto a second line instead of scrolling, so none is ever cut off. */
-@media (width < 40rem) {
-  .topics-filters .filter-chips {
-    flex-wrap: wrap;
-    margin-inline: 0;
-    padding-inline: 0;
-    overflow: visible;
-    animation: none;
-    mask-image: none;
-  }
-}
-
-/* The chips only name a filter; these rules hide the sources a score leaves out. */
+/* The select only names a filter; these rules hide the sources a score leaves out. */
 .topics[data-band="good"] .source-row:not([data-band="good"]),
 .topics[data-band="fair"] .source-row:not([data-band="fair"]),
 .topics[data-band="poor"] .source-row:not([data-band="poor"]),

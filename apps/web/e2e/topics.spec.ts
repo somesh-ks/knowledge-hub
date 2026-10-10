@@ -213,14 +213,33 @@ test.describe("the Topics & sources page", () => {
     await expect(sheet.getByLabel("Topic")).toHaveValue("audio_interfaces");
   });
 
-  test("the filter pills are never clipped on a phone", async ({ page }) => {
+  test("the score filter and the sort are never clipped on a phone", async ({ page }) => {
     await setup(page);
     await open(page);
     const width = page.viewportSize()?.width ?? 0;
     const edges = await page
-      .locator(".topics-filters .filter-chip")
-      .evaluateAll((chips) => chips.map((chip) => chip.getBoundingClientRect().right));
+      .locator(".topics-filters .sort-field")
+      .evaluateAll((fields) => fields.map((field) => field.getBoundingClientRect().right));
+    expect(edges).toHaveLength(2);
     for (const right of edges) expect(right).toBeLessThanOrEqual(width);
+  });
+
+  test("the score filter is one select that hides the other bands", async ({ page }) => {
+    await setup(page);
+    await open(page);
+    const band = page.getByRole("combobox", { name: "Show sources with score" });
+    await expect(band.locator("option")).toHaveText([
+      "All",
+      "Good 4+",
+      "Fair 3 to 4",
+      "Poor under 3",
+      "New",
+    ]);
+    await band.selectOption("good");
+    await expect(page.locator(".topics")).toHaveAttribute("data-band", "good");
+    await expect(page.locator(".source-row:not([data-band='good'])").first()).toBeHidden();
+    await band.selectOption("all");
+    await expect(page.locator(".topics")).toHaveAttribute("data-band", "all");
   });
 
   test("Add topic keeps its flow", async ({ page }) => {

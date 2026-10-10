@@ -72,20 +72,13 @@ const bands = [
         <ul class="rows manage-queued" role="list" data-queued aria-label="Waiting to be saved"></ul>
 
         <div class="topics-filters library-bar" data-needs-js>
-          <div class="filter-chips" role="group" aria-label="Show sources with score">
-            {
-              bands.map((band) => (
-                <button
-                  class="filter-chip"
-                  type="button"
-                  aria-pressed={band.id === "all" ? "true" : "false"}
-                  data-band-filter={band.id}
-                >
-                  {band.label}
-                </button>
-              ))
-            }
-          </div>
+          <label class="sort-field filter-field">
+            <span class="sr-only">Show sources with score</span>
+            <select data-band-filter>
+              {bands.map((band) => <option value={band.id}>{band.label}</option>)}
+            </select>
+            <Icon name="chevronDown" />
+          </label>
           <label class="sort-field">
             <span class="sr-only">Sort sources</span>
             <select data-sort>

@@ -55,18 +55,14 @@ function mount(root: HTMLElement): void {
     }
     if (target.matches("[data-sort]")) {
       for (const list of root.querySelectorAll("[data-sources]")) sortRows(list, target.value);
+    } else if (target.matches("[data-band-filter]")) {
+      root.dataset.band = target.value || "all";
     } else forward(event);
   });
 
   root.addEventListener("click", (event) => {
     const target = event.target as Element;
-    const chip = target.closest<HTMLElement>("[data-band-filter]");
-    if (chip) {
-      root.dataset.band = chip.dataset.bandFilter ?? "all";
-      for (const other of root.querySelectorAll<HTMLElement>("[data-band-filter]")) {
-        other.setAttribute("aria-pressed", String(other === chip));
-      }
-    } else if (target.closest("button")) forward(event);
+    if (target.closest("button")) forward(event);
   });
 
   root.addEventListener("submit", (event) => {
@@ -76,6 +72,10 @@ function mount(root: HTMLElement): void {
     event.preventDefault();
     forward(event);
   });
+
+  // A filter the browser kept from an earlier visit applies from the start.
+  const bandFilter = root.querySelector<HTMLSelectElement>("select[data-band-filter]");
+  if (bandFilter) root.dataset.band = bandFilter.value || "all";
 
   root.dataset.ready = "";
 }
