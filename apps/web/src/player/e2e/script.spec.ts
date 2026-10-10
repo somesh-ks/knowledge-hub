@@ -52,8 +52,9 @@ test.describe("an episode's script in the open player", () => {
     // the first turn into the middle. Smooth scrolling takes a moment, so wait it out.
     await page.waitForTimeout(1_500);
     expect(await lab.sheet.evaluate((element) => element.scrollTop)).toBe(0);
-    await expect(script.locator('[data-tone="lead"] .script-name').first()).toHaveText("Ada");
-    await expect(script.locator('[data-tone="guest"] .script-name').first()).toHaveText("Leo");
+    // Each turn is the speaker's name over the text: Ada first, then Leo.
+    await expect(script.locator(".script-speaker").nth(0)).toHaveText("Ada");
+    await expect(script.locator(".script-speaker").nth(1)).toHaveText("Leo");
     // Exactly one turn is the current one, and it is the first.
     await expect(script.locator('[aria-current="true"]')).toHaveCount(1);
     await expect(script.locator('[data-turn="0"]')).toHaveAttribute("aria-current", "true");

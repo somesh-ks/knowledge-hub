@@ -138,16 +138,16 @@ export default function ScriptView({ titleHidden = false }: { titleHidden?: bool
       <h3 className={titleHidden ? "sr-only" : "player-section-title"} id="player-script-title">
         Transcript
       </h3>
-      <ol className="script-turns">
+      <ol className="script-turns" data-following={current >= 0 ? "" : undefined}>
         {turns.map((turn, index) => {
           const host = hostOf(turn.speaker);
           return (
             <li key={turn.key}>
               <button
-                className="script-turn press"
+                className="script-turn"
                 type="button"
                 data-turn={index}
-                data-tone={host.tone}
+                data-said={current >= 0 && index < current ? "" : undefined}
                 aria-current={index === current ? "true" : undefined}
                 aria-disabled={turn.start_ms === null ? "true" : undefined}
                 onClick={(event) => {
@@ -159,12 +159,7 @@ export default function ScriptView({ titleHidden = false }: { titleHidden?: bool
                   getPlayerStore().seekTo(Math.round(at ?? turn.start_ms));
                 }}
               >
-                <span className="script-speaker">
-                  <span className="host-badge" aria-hidden="true">
-                    {host.initial}
-                  </span>
-                  <span className="script-name">{host.name}</span>
-                </span>
+                <span className="script-speaker">{host.name}</span>
                 <span className="script-text">
                   {words[index]?.list.map((word, at) => (
                     // biome-ignore lint/suspicious/noArrayIndexKey: a turn's words never reorder
