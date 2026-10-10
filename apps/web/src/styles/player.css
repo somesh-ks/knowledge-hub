@@ -207,8 +207,9 @@
   position: absolute;
   inset: 0;
   /* The one scroll container: header and cover scroll with everything else, so no part of the
-     page can be squeezed at any window height. */
+     page can be squeezed at any window height. Focus stops short of its edges, ring included. */
   overflow-y: auto;
+  scroll-padding-block: var(--space-4);
   overscroll-behavior: contain;
   scrollbar-width: thin;
   /* While it moves the whole page is one handle. At rest it scrolls. */
