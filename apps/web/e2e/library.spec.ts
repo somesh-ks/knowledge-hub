@@ -465,6 +465,53 @@ test.describe("library episodes", () => {
     await expect(grid).toHaveCSS("display", "grid");
   });
 
+  test("a saved list is drawn from the first frame, on a load and on a move from Today", async ({
+    page,
+  }) => {
+    await page.addInitScript(() => {
+      localStorage.setItem("dispatch:library-view", "list");
+      // Each frame that shows a card notes the view it drew the cards in.
+      const views: string[] = [];
+      (window as unknown as { __views: string[] }).__views = views;
+      const tick = () => {
+        const library = document.querySelector<HTMLElement>("[data-library]");
+        if (library?.querySelector("[data-card]")) views.push(library.dataset.view ?? "gallery");
+        if (views.length < 600) requestAnimationFrame(tick);
+      };
+      requestAnimationFrame(tick);
+    });
+    // The page's own scripts arrive late, as on a slow connection.
+    await page.route("**/_astro/*.js", async (route) => {
+      await new Promise((resolve) => setTimeout(resolve, 400));
+      await route.continue();
+    });
+    const views = () => page.evaluate(() => (window as unknown as { __views: string[] }).__views);
+    await page.goto("/library");
+    await ready(page);
+    expect((await views()).length).toBeGreaterThan(0);
+    expect(new Set(await views())).toEqual(new Set(["list"]));
+    await expect(page.getByRole("button", { name: "List view" })).toHaveAttribute(
+      "aria-pressed",
+      "true",
+    );
+
+    // A move from Today, once its scripts run, is a swap in the same document.
+    await page.goto("/");
+    await expect(page.locator("astro-island[ssr]")).toHaveCount(0);
+    await page.evaluate(() => {
+      (window as unknown as { kept?: boolean }).kept = true;
+    });
+    await page
+      .getByRole("navigation", { name: "Primary" })
+      .getByRole("link", { name: "Library" })
+      .click();
+    await expect(page).toHaveURL(/\/library$/);
+    await ready(page);
+    expect(await page.evaluate(() => (window as unknown as { kept?: boolean }).kept)).toBe(true);
+    expect((await views()).length).toBeGreaterThan(0);
+    expect(new Set(await views())).toEqual(new Set(["list"]));
+  });
+
   test("search falls back to the cards when the index cannot be fetched", async ({ page }) => {
     await page.route("**/search-index.json", (route) =>
       route.fulfill({ status: 200, body: "not an index" }),

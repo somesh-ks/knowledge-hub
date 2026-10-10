@@ -231,7 +231,8 @@
     color: var(--color-on-surface);
   }
 
-  .search-field:hover {
+  /* Not while it is focused: the focus edge stays under the pointer. */
+  .search-field:hover:not(:focus-within) {
     border-color: var(--color-border-control);
   }
 }
@@ -293,6 +294,11 @@
   box-shadow: 0 0 0 var(--stroke-hairline) currentColor;
 }
 
+/* A focused button's ring lies over its neighbour, the chosen one included. */
+.view-btn:focus-visible {
+  z-index: 2;
+}
+
 /* The focus ring keeps its gap outside that outline. */
 .view-btn[aria-pressed="true"]:focus-visible {
   box-shadow:
@@ -315,9 +321,11 @@
   display: block;
 }
 
+/* A row is its own stacking context, so its press fill can sit behind its content. */
 [data-library][data-view="list"] .card {
   --list-cover: calc(var(--size-touch) + var(--space-3));
   position: relative;
+  isolation: isolate;
 }
 
 /* The row grammar of primitives.css: a hairline between rows only, running past the gutters. A row
@@ -348,6 +356,29 @@
   margin-block-end: 0;
 }
 
+/* A hover or a press fills the whole row, past the gutters, as a row does elsewhere
+   (primitives.css), wherever on the row the pointer is. */
+[data-library][data-view="list"] .card-link::after {
+  content: "";
+  position: absolute;
+  inset-block: 0;
+  inset-inline: calc(var(--page-gutter-start) * -1) calc(var(--page-gutter-end) * -1);
+  z-index: -1;
+  background: var(--color-surface-sunken);
+  opacity: 0;
+  transition: opacity var(--duration-hover) var(--ease-hover);
+}
+
+@media (hover: hover) and (pointer: fine) {
+  [data-library][data-view="list"] .card:hover .card-link::after {
+    opacity: 1;
+  }
+}
+
+[data-library][data-view="list"] .card-link:active::after {
+  opacity: 1;
+}
+
 /* The whole title, over one line or two: no clamp. */
 [data-library][data-view="list"] .card-title {
   grid-area: 2 / 2;
@@ -373,6 +404,18 @@
 [data-library][data-view="list"] .card-meta::after {
   content: "\00b7";
   margin-inline-start: var(--space-2);
+}
+
+/* On a phone the two parts take a line each: side by side they break mid-way and leave the dot at
+   the end of a line, and rows come out at different heights. */
+@media not all and (min-width: 40rem) {
+  [data-library][data-view="list"] .card-sub {
+    flex-direction: column;
+  }
+
+  [data-library][data-view="list"] .card-meta::after {
+    content: none;
+  }
 }
 
 /* The meta line names the kind, so the facts do not say "Weekly" a second time. */

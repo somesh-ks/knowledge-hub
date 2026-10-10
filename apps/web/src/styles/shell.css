@@ -31,13 +31,27 @@
   --sticky-top: calc(var(--app-bar-height) + var(--safe-top));
   /* The text column itself: the page width less its two gutters. */
   --column-inner: calc(var(--layout-column) - var(--page-gutter) * 2);
-  /* Anchors and focus scrolling land below the sticky chrome, not under it. */
+  /* Anchors and focus scrolling land below the sticky chrome, not under it, and above everything
+     that stacks on the bottom edge: the bar, the player bar and the run indicator. */
   scroll-padding-block: calc(var(--sticky-top) + var(--space-4))
-    calc(var(--bottom-nav-height) + var(--space-4));
+    calc(var(--bottom-nav-height) + var(--dock-room) + var(--run-room) + var(--space-4));
 }
 
 html:not([data-fab]) {
   --page-end: var(--space-12);
+}
+
+/* Where the floating Create button shows, focus stops above it too. */
+@media not all and (min-width: 64rem) {
+  html[data-fab] {
+    scroll-padding-block-end: calc(
+      var(--bottom-nav-height) +
+      var(--dock-room) +
+      var(--run-room) +
+      var(--fab-size) +
+      var(--space-8)
+    );
+  }
 }
 
 html[data-mini="visible"] {

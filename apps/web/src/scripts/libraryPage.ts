@@ -150,8 +150,12 @@ function install(): void {
     apply();
     input?.focus();
   });
-  // A search field inside a form would reload the page on Enter.
-  root.querySelector("form")?.addEventListener("submit", (event) => event.preventDefault());
+  // A search field inside a form would reload the page on Enter. The keyboard's Search key also
+  // puts the keyboard away, so the results it covered are in view.
+  root.querySelector("form")?.addEventListener("submit", (event) => {
+    event.preventDefault();
+    input?.blur();
+  });
   /** Gallery or list, remembered on this device. Storage that fails leaves the gallery. */
   const viewButtons = [...root.querySelectorAll<HTMLButtonElement>("[data-library-view]")];
   function showView(view: string): void {

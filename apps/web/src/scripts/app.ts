@@ -19,6 +19,17 @@ installDeviceBanners();
 installThemeColor();
 installUiSound();
 registerServiceWorker();
+// A saved List view is on the incoming Library before it is drawn. The page's inline script
+// (libraryViewInit.js) does the same on a load; libraryPage.ts takes over once it runs.
+document.addEventListener("astro:after-swap", () => {
+  const library = document.querySelector<HTMLElement>("[data-library]:not([data-view])");
+  try {
+    if (library && localStorage.getItem("dispatch:library-view") === "list")
+      library.dataset.view = "list";
+  } catch {
+    // Storage can be blocked; the gallery shows, as it does without a saved view.
+  }
+});
 // A tab left open across a deploy asks for script files the deploy removed, and the import fails
 // (the player's controls, narration). One reload with the saved pages dropped gets the current
 // site; the flag stops a second one.

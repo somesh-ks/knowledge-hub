@@ -10,13 +10,17 @@ import { FUNCTION_MAX_DURATION_S } from "./src/server/functionLimits.mjs";
 // no longer points at the source tree, so the repository root is fixed here, where it is reliable.
 process.env.DISPATCH_REPO_ROOT ??= fileURLToPath(new URL("../../", import.meta.url));
 
-// The inline theme script must run before first paint, so it cannot be an external file. Its hash goes
-// into the Content-Security-Policy instead of allowing inline scripts in general.
-const themeInit = readFileSync(
-  new URL("./src/scripts/themeInit.js", import.meta.url),
-  "utf8",
-).trim();
-const themeInitHash = `sha256-${createHash("sha256").update(themeInit).digest("base64")}`;
+// The inline scripts must run before first paint, so they cannot be external files: the theme in the
+// head and the Library's saved view. Their hashes go into the Content-Security-Policy instead of
+// allowing inline scripts in general.
+const inlineScriptHash = (path) => {
+  const code = readFileSync(new URL(path, import.meta.url), "utf8").trim();
+  return `sha256-${createHash("sha256").update(code).digest("base64")}`;
+};
+const inlineScriptHashes = [
+  inlineScriptHash("./src/scripts/themeInit.js"),
+  inlineScriptHash("./src/scripts/libraryViewInit.js"),
+];
 
 /**
  * @dispatch/cover finds its font files relative to its own source file (import.meta.url). Bundling
@@ -115,7 +119,7 @@ export default defineConfig({
   security: {
     csp: {
       algorithm: "SHA-256",
-      scriptDirective: { resources: ["'self'"], hashes: [themeInitHash] },
+      scriptDirective: { resources: ["'self'"], hashes: inlineScriptHashes },
       // Server-rendered style attributes only carry computed custom properties (a cover's palette).
       // Attributes cannot run script, so allowing them does not widen the script policy.
       styleDirective: {
