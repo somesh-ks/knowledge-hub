@@ -232,9 +232,8 @@
   width: calc((100% - var(--segmented-padding) * 2) / var(--seg-n));
   border-radius: var(--segmented-segment-radius);
   background: var(--segmented-selected-bg);
-  box-shadow:
-    0 0 0 var(--stroke-hairline) color-mix(in oklch, var(--color-on-surface) 14%, transparent),
-    0 1px 2px color-mix(in oklch, var(--color-on-surface) 14%, transparent);
+  box-shadow: 0 0 0 var(--stroke-hairline)
+    color-mix(in oklch, var(--color-on-surface) 14%, transparent);
   opacity: 0;
   pointer-events: none;
   transform: translateX(calc(var(--seg-i) * 100%));

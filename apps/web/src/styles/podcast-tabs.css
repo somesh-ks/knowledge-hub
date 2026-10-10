@@ -34,9 +34,8 @@
 
 .podcast-tabs .podcast-tab[aria-current="page"] {
   background: var(--segmented-selected-bg);
-  box-shadow:
-    0 0 0 var(--stroke-hairline) color-mix(in oklch, var(--color-on-surface) 14%, transparent),
-    0 1px 2px color-mix(in oklch, var(--color-on-surface) 14%, transparent);
+  box-shadow: 0 0 0 var(--stroke-hairline)
+    color-mix(in oklch, var(--color-on-surface) 14%, transparent);
   color: var(--color-on-surface);
 }
 

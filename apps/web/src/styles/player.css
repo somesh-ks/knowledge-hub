@@ -1401,13 +1401,12 @@
   cursor: pointer;
 }
 
-/* The selected segment is raised and ringed, so selection never depends on color alone. */
+/* The selected segment is filled and ringed, so selection never depends on color alone. */
 .segmented label:has(input:checked) {
   background: var(--segment-selected-bg);
   color: var(--segment-selected-fg);
-  box-shadow:
-    0 0 0 var(--stroke-hairline) color-mix(in oklch, var(--color-on-surface) 14%, transparent),
-    0 1px 2px color-mix(in oklch, var(--color-on-surface) 14%, transparent);
+  box-shadow: 0 0 0 var(--stroke-hairline)
+    color-mix(in oklch, var(--color-on-surface) 14%, transparent);
 }
 
 .segmented label:has(input:focus-visible) {
