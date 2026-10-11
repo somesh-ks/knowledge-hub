@@ -57,8 +57,11 @@ import { daysBetween, stockholmDate } from "./time.js";
 export const MIN_JUDGED = 10;
 /** The fewest judged items a source that posts rarely is scored on, once its feed was read (D70). */
 export const MIN_SPARSE = 3;
-/** How long a feed's post count stands (D70): a source under the bar is refilled every 30 days. */
-export const FEED_POSTS_FRESH_DAYS = 35;
+/**
+ * How long a feed's post count stands (D70): a source under the bar is read every 30 days, so this
+ * leaves one missed read of slack before the score falls back to New.
+ */
+export const FEED_POSTS_FRESH_DAYS = 60;
 /** The most a score can be: three parts of 1. */
 export const SCORE_MAX = 3;
 export const SCORE_THRESHOLDS = { excellent: 2.7, good: 2.1, fair: 1.5 } as const;

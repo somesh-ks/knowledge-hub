@@ -287,22 +287,39 @@ describe("countSample", () => {
     expect(counts.empty).toMatchObject({ read_feed: true, feed_posts: 0 });
   });
 
-  it("counts a general feed's check once one of its stories is judged, or when it gave none", () => {
+  it("counts a general feed's check as done once tried, even when the sample was not judged", () => {
+    const sample = {
+      version: 1 as const,
+      items: [],
+      reads: [],
+      feed_posts: {},
+      general_reads: { tried: 5, empty: 0 },
+    };
+    for (const judged of [{ version: 1 as const, entries: [], unjudged: [] }, null]) {
+      const counts = countSample({ sample, judged, preferences: realPreferences() });
+      expect(counts.tried).toMatchObject({ read_feed: true });
+      expect(counts.empty).toMatchObject({ read_feed: true });
+    }
+  });
+
+  it("leaves a read undone while the judge left one of its items unanswered", () => {
+    const answered = makeItem({ source_id: "blog" });
+    const lost = makeItem({ source_id: "blog" });
     const counts = countSample({
       sample: {
         version: 1,
-        items: [],
-        reads: [],
-        feed_posts: {},
-        general_reads: { judged: 5, waiting: 5, empty: 0 },
+        items: [answered, lost],
+        reads: ["blog"],
+        feed_posts: { blog: 8 },
+        general_reads: {},
       },
-      judged: { version: 1, entries: [], unjudged: [] },
+      judged: { version: 1, entries: [makeEntry(answered)], unjudged: [lost.id] },
       preferences: realPreferences(),
-      general: { judged: { fetched: 0, judged: 2, passed: 1 } },
     });
-    expect(counts.judged).toMatchObject({ read_feed: true });
-    expect(counts.waiting).toBeUndefined();
-    expect(counts.empty).toMatchObject({ read_feed: true });
+    // The answered item counts; the read waits, so the lost one is offered on the next run.
+    expect(counts.blog).toMatchObject({ judged: 1, sampled: 1 });
+    expect(counts.blog?.read_feed).toBeUndefined();
+    expect(counts.blog?.feed_posts).toBeUndefined();
   });
 
   it("adds to a pass's counters without touching what was fetched or published", () => {

@@ -74,9 +74,9 @@ export const SampleFile = z.object({
   items: z.array(Item),
   /** Sources whose own feed the sample read this pass, whatever came of it. */
   reads: z.array(z.string()),
-  /** Posts each refilled source's feed held in its look-back: under ten, it posts rarely. */
+  /** Posts each read feed held in its look-back: under ten, the source posts rarely. */
   feed_posts: z.record(z.string(), z.number().int().nonnegative()).default({}),
-  /** Switched-off general feeds the pass read for their check, with the stories each gave. */
+  /** Switched-off general feeds the pass tried for their check, with the stories each gave. */
   general_reads: z.record(z.string(), z.number().int().nonnegative()).default({}),
 });
 export type SampleFile = z.infer<typeof SampleFile>;
@@ -290,25 +290,25 @@ export function answeredBefore(cache: JudgmentsFile, seen: SeenFile): (itemId: s
  * judged and as sampled, passed when it would have been eligible to publish on its built-in
  * categories, and asked (and flagged) like any item the judge asked the flag questions.
  *
- * A read counts as done (`read_feed`, which moves `sampled_at`, and a refill's post count) only
- * when its source got an answer, or gave nothing to judge. A source whose items the judge could
- * not answer (an outage) is read again on a later run; so is every source when the sample was not
- * judged at all. A switched-off general feed's check counts once one of its stories is judged in
- * the general counts, or when it gave no story.
+ * A read counts as done (`read_feed`, which moves `sampled_at`, with the feed's post count) when
+ * the judge answered every item it offered, or it offered none. One with an item the judge could
+ * not answer (an outage) is read again on a later run, where the answered items are known and only
+ * the rest are offered; every read is, when the sample was not judged at all. A switched-off
+ * general feed's check is done once tried: its stories are judged apart, as the ceiling allows.
  */
 export function countSample(input: {
   sample: SampleFile;
   judged: SampleJudgedFile | null;
   preferences: Preferences;
   /** The pass's general counts (countGeneral), for the general feeds' checks. */
-  general?: Readonly<Record<string, SourceCounts>>;
 }): Record<string, SourceCounts> {
   const out: Record<string, SourceCounts> = {};
-  if (input.judged === null) return out;
   const row = (id: string): SourceCounts => {
     out[id] ??= { fetched: 0, judged: 0, passed: 0, asked: 0, flagged: 0, sampled: 0 };
     return out[id];
   };
+  for (const id of Object.keys(input.sample.general_reads)) row(id).read_feed = true;
+  if (input.judged === null) return out;
   const items = new Map(input.sample.items.map((item) => [item.id, item]));
   for (const entry of input.judged.entries) {
     const item = items.get(entry.item_id);
@@ -320,16 +320,15 @@ export function countSample(input: {
     if (isFlagged(entry.flags)) counts.flagged = (counts.flagged ?? 0) + 1;
     if (eligibility(scoreItem(entry, input.preferences, item)).eligible) counts.passed += 1;
   }
-  const offered = new Set(input.sample.items.map((item) => item.source_id));
-  const done = (id: string): boolean => !offered.has(id) || (out[id]?.judged ?? 0) > 0;
+  const unanswered = new Set(input.judged.unjudged);
+  const waiting = new Set(
+    input.sample.items.filter((item) => unanswered.has(item.id)).map((item) => item.source_id),
+  );
   for (const id of input.sample.reads) {
-    if (!done(id)) continue;
+    if (waiting.has(id)) continue;
     row(id).read_feed = true;
     const posts = input.sample.feed_posts[id];
     if (posts !== undefined) row(id).feed_posts = posts;
-  }
-  for (const [id, stories] of Object.entries(input.sample.general_reads)) {
-    if (stories === 0 || (input.general?.[id]?.judged ?? 0) > 0) row(id).read_feed = true;
   }
   return out;
 }

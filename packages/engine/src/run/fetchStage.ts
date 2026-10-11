@@ -79,24 +79,25 @@ async function buildSample(
     const probes = new Set(
       readPlan.reads.filter((read) => read.reason === "probe").map((read) => read.source.id),
     );
-    const refilled = readPlan.reads.filter(
-      (read) => read.reason === "refill" && ok.has(read.source.id),
-    );
+    // Every feed read that worked records how many posts its look-back held, a weekly check as
+    // much as a refill, so the count and the date of the read move together (sourceScore).
+    const counted = readPlan.reads.filter((read) => ok.has(read.source.id));
     const reads = readPlan.reads
       .filter((read) => read.reason === "probe" || ok.has(read.source.id))
       .map((read) => read.source.id);
-    // A switched-off general feed the pass read, with how many stories it gave: its stories are
-    // judged with the general ones, and its check counts once they are (countSample). One whose
-    // topics are all off was not read.
+    // A switched-off general feed the pass tried, with how many stories it gave: the check is the
+    // read, done for the week whatever came of it (a failure shows in its health), and its stories
+    // are judged with the general ones as the ceiling allows. One whose topics are all off was
+    // not tried.
     const generalReads = Object.fromEntries(
       readPlan.probeGeneral.flatMap((source) => {
         const result = gathered.results.find((r) => r.source_id === source.id);
-        return result?.ok ? [[source.id, result.count]] : [];
+        return result ? [[source.id, result.count]] : [];
       }),
     );
-    // How many posts each refilled feed held: under ten, the source posts rarely (sourceScore).
+    // How many posts each feed held: under ten, the source posts rarely (sourceScore).
     const feedPosts = Object.fromEntries(
-      refilled.map((read) => [read.source.id, items.get(read.source.id)?.length ?? 0]),
+      counted.map((read) => [read.source.id, items.get(read.source.id)?.length ?? 0]),
     );
     return {
       file: {
