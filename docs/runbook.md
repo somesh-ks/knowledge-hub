@@ -152,7 +152,8 @@ Do this on the current iOS, once a digest with audio is live. Note the iOS versi
 
 Nothing to do on most days.
 
-- A scheduled run starts at 07:13 Stockholm time every day. A regular digest is due every second day, and a weekly digest follows on Sundays.
+- A scheduled run starts in the hour chosen in Settings, Schedule (07:00 to 07:59 Stockholm time by default): Vercel Cron calls `/api/cron/run` every hour, and in that hour it dispatches `run.yml` when the gate says something is due (D61). A regular digest is due every second day, and a weekly digest follows on Sundays. GitHub's own schedule still fires, hours late, as a fallback that ends gated once the briefing exists.
+- The trigger needs `CRON_SECRET` on Vercel: a random value of 16 or more characters in `.env` (for example `openssl rand -hex 24`), sent with `npm run secrets:push -- --only vercel`. Vercel sends it with every cron call, and the route refuses calls while it is missing. To check, open the project's Cron Jobs page in the Vercel dashboard: each call's log line says whether it dispatched.
 - The digest lands as a `chore(digest): <id>` commit, and the site updates within minutes.
 - GitHub emails you when a scheduled run fails. That is the only notification (D11).
 - Read the briefing at `news.someshks.work`, installed to the iPhone home screen.
@@ -170,7 +171,7 @@ Monthly:
 
 | Workflow | Starts when | Does |
 | --- | --- | --- |
-| `run.yml` | Daily 07:13 Stockholm, or on demand | Runs the engine stage by stage (Gate, Fetch, Judge, Write, Validate), commits the digest and state (Commit) as the owner identity, then calls `audio.yml` when a digest was published or a digest from the last 7 days still lacks audio |
+| `run.yml` | Dispatched by `/api/cron/run` in the schedule's hour, its own hourly schedule as a late fallback, or on demand | Runs the engine stage by stage (Gate, Fetch, Judge, Write, Validate), commits the digest and state (Commit) as the owner identity, then calls `audio.yml` when a digest was published or a digest from the last 7 days still lacks audio |
 | `audio.yml` | Called by `run.yml`, or on demand | Checks out `main`, runs `dispatch publish --prune 120` (Audio: narrates digests that lack audio, uploads to Blob, prunes, then commits and pushes the timeline metadata as the owner). That push triggers a second Vercel deploy |
 | `ci.yml` | A pull request, or a push to `main` | Runs typecheck, lint, tests and the build when code changed, and always runs gitleaks. It does not deploy |
 
