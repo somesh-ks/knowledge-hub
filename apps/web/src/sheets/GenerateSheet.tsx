@@ -110,7 +110,7 @@ export default function GenerateSheet({ open, onOpenChange }: GenerateSheetProps
           ) : null}
           <div className="sheet-actions">
             <button
-              className="btn-primary press press-subtle"
+              className="btn-primary"
               type="submit"
               aria-disabled={busy || undefined}
               data-busy={busy ? "true" : undefined}

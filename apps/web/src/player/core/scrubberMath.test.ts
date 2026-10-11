@@ -5,6 +5,7 @@ import {
   detentGain,
   fractionFromPointer,
   fractionOfTime,
+  onPixelGrid,
   scrubberValueText,
   scrubKeyAction,
   shouldFireDetent,
@@ -33,6 +34,13 @@ describe("pointer to time", () => {
     expect(bubbleLeft(150, 80, 300)).toBe(110);
     expect(bubbleLeft(299, 80, 300)).toBe(220);
     expect(bubbleLeft(10, 400, 300)).toBe(0);
+  });
+
+  it("puts the bubble on whole device pixels, so its digits keep one shape as it moves", () => {
+    expect(onPixelGrid(101.37, 1)).toBe(101);
+    expect(onPixelGrid(101.37, 3)).toBeCloseTo(101.3333, 4);
+    expect(onPixelGrid(101.2, 2)).toBe(101);
+    expect(onPixelGrid(12.6, 0)).toBe(13);
   });
 });
 

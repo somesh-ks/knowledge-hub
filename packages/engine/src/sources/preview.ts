@@ -1,4 +1,4 @@
-import { scoreLabel } from "@dispatch/core";
+import { combineScoreParts, type ScoreLabel, scoreLabel } from "@dispatch/core";
 import { parseHTML } from "linkedom";
 import { looksLikeFeed, type ParsedFeed, parseFeed } from "../fetch/feedParser.js";
 import {
@@ -13,17 +13,28 @@ import { AddSourceError, buildSourceFromUrl, hostLabel } from "./addSource.js";
 
 /**
  * A look at a web address before it is followed: what outlet it is, whether it has a feed, how
- * lively it is, and a quality score from 0 to 5 for a source that has no history yet.
+ * lively it is, and a score for a source that has no history yet. The score is on the same 0 to 3
+ * scale, with the same three parts of 0 to 1 and the same labels, as the score of a source with a
+ * record (sourceScore in @dispatch/core), measured from what one look can see:
+ * - Health, from the feed: a valid feed earns 0.4 and the newest post up to 0.6 (within 7 days
+ *   full, 30 days 0.7 of it, 90 days 0.3, older or undated nothing). A page with no feed earns
+ *   PAGE_ONLY_HEALTH: it can be read, but there is no feed to follow.
+ * - Quality: how often the feed posts, up to 0.8 (posts in the last 30 days: 2 to 20 is full, 1
+ *   earns 0.4 of it, 21 to 40 half, and a flood beyond that is noise and earns 0.2), and a clear
+ *   title, 0.2.
+ * - Trust: served over https, 0.6, and a site that names itself (a feed title or og:site_name, not
+ *   a name guessed from the host), 0.4. A page with no feed is capped at PAGE_ONLY_TRUST_CAP, three
+ *   fifths of the part, as such a page was capped at three fifths of the old score: nothing it
+ *   sends can be read before it is fetched. Unlike a record's trust, this one is always measured.
  *
- * The rubric (a page with no feed is capped at 3, in practice about 1.8):
- * - reachable 1.0, a valid feed 0.7, https 0.5, a clear title 0.3;
- * - freshness up to 1.3 by the newest post: within 7 days full, 30 days 0.7, 90 days 0.3;
- * - frequency up to 1.2 by posts in the last 30 days: 2 to 20 is full, 1 earns 0.4, 21 to 40
- *   half, and a flood beyond that is noise and earns 0.2.
+ * Each part is rounded to two decimals and they combine as a record's do, by the geometric mean:
+ * score = 3 × cbrt(health × quality × trust), rounded to one decimal. A page with no feed scores
+ * low but, with a title, not 0.
  */
 export const PREVIEW_TIMEOUT_MS = 6_000;
 export const PREVIEW_MAX_BYTES = 1024 * 1024;
-const PAGE_ONLY_CAP = 3;
+export const PAGE_ONLY_HEALTH = 0.3;
+export const PAGE_ONLY_TRUST_CAP = 0.6;
 const DAY_MS = 86_400_000;
 
 export type PreviewFailure = "unreachable" | "timeout";
@@ -48,9 +59,22 @@ export interface SourcePreview {
   kind: "feed" | "page";
   latest_at: string | null;
   items_30d: number | null;
+  /** 0 to 3 with one decimal. */
   score: number;
-  score_label: "Excellent" | "Good" | "Fair" | "Poor";
+  score_label: ScoreLabel;
+  /**
+   * The three parts of the score, each 0 to 1 with two decimals; the score is 3 times their
+   * geometric mean.
+   */
+  score_parts: PreviewScoreParts;
   reason: string;
+}
+
+/** A preview's three parts. Unlike a record's, its trust is always a number. */
+export interface PreviewScoreParts {
+  health: number;
+  quality: number;
+  trust: number;
 }
 
 // ------------------------------------------------------------------------------------ pure parsing
@@ -138,7 +162,10 @@ export function feedActivity(feed: ParsedFeed, now: Date): FeedActivity {
 export interface PreviewScoreInput {
   hasFeed: boolean;
   https: boolean;
+  /** The feed or the page has a title of any kind. */
   hasTitle: boolean;
+  /** The site names itself: a feed title or og:site_name, not a name guessed from the host. */
+  named: boolean;
   latestAt: string | null;
   items30d: number | null;
   now: Date;
@@ -161,23 +188,29 @@ function frequencyFactor(items: number | null): number {
   return 0.2;
 }
 
-/** The no-history rubric in the header comment. Returns a score, its label and a sentence. */
+const round2 = (n: number): number => Math.round(n * 100) / 100;
+
+/** The no-history rubric in the header comment: a 0 to 3 score, its label, parts and a sentence. */
 export function scorePreview(input: PreviewScoreInput): {
   score: number;
   label: SourcePreview["score_label"];
+  parts: PreviewScoreParts;
   reason: string;
 } {
-  let total = 1 + (input.https ? 0.5 : 0) + (input.hasTitle ? 0.3 : 0);
-  if (input.hasFeed) {
-    total +=
-      0.7 +
-      1.3 * freshnessFactor(input.latestAt, input.now) +
-      1.2 * frequencyFactor(input.items30d);
-  } else {
-    total = Math.min(PAGE_ONLY_CAP, total);
-  }
-  const score = Math.round(Math.min(5, total) * 10) / 10;
-  return { score, label: scoreLabel(score), reason: previewReason(input) };
+  // What the feed shows counts only when there is a feed.
+  const health = input.hasFeed
+    ? 0.4 + 0.6 * freshnessFactor(input.latestAt, input.now)
+    : PAGE_ONLY_HEALTH;
+  const frequency = input.hasFeed ? frequencyFactor(input.items30d) : 0;
+  const quality = 0.8 * frequency + (input.hasTitle ? 0.2 : 0);
+  const trust = (input.https ? 0.6 : 0) + (input.named ? 0.4 : 0);
+  const parts: PreviewScoreParts = {
+    health: round2(health),
+    quality: round2(quality),
+    trust: round2(input.hasFeed ? trust : Math.min(PAGE_ONLY_TRUST_CAP, trust)),
+  };
+  const score = combineScoreParts([parts.health, parts.quality, parts.trust]);
+  return { score, label: scoreLabel(score), parts, reason: previewReason(input) };
 }
 
 function previewReason(input: PreviewScoreInput): string {
@@ -318,6 +351,7 @@ export async function previewSource(url: string, deps: PreviewDeps): Promise<Sou
     hasFeed: feed !== undefined,
     https: new URL(base).protocol === "https:",
     hasTitle: Boolean(feed?.title?.trim() || meta?.siteName || meta?.title),
+    named: Boolean(feed?.title?.trim() || meta?.siteName),
     latestAt: activity?.latestAt ?? null,
     items30d: activity?.items30d ?? null,
     now,
@@ -335,6 +369,7 @@ export async function previewSource(url: string, deps: PreviewDeps): Promise<Sou
     items_30d: activity ? activity.items30d : null,
     score: rated.score,
     score_label: rated.label,
+    score_parts: rated.parts,
     reason: rated.reason,
   };
 }

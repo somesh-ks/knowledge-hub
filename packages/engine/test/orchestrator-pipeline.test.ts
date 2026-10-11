@@ -6,6 +6,7 @@ import {
   type LastRunFile,
   type SeenFile,
   type SourceHealthFile,
+  type SourceStatsFile,
 } from "@dispatch/core";
 import { afterAll, afterEach, beforeAll, beforeEach, describe, expect, it } from "vitest";
 import { git } from "./git-testRepo.js";
@@ -143,6 +144,35 @@ describe("published run", () => {
     const health = await readJson<SourceHealthFile>(repo.root, "state/source-health.json");
     expect(Object.keys(health.sources).sort()).toEqual(["blog-a", "blog-b", "blog-c"]);
   });
+
+  it(
+    "counts each source's judged items flagged as hype or sponsored, not funding",
+    LONG,
+    async () => {
+      const world = makeWorld(repo.root, { now: WED });
+      const tagged = (sourceId: string, slug: string, flags: string) => ({
+        ...feedItem({ sourceId, slug }),
+        snippet: `judge:design_engineering_craft ${flags}`,
+      });
+      world.feeds = goodFeeds(8);
+      world.feeds["blog-a"] = [
+        ...(world.feeds["blog-a"] ?? []),
+        tagged("blog-a", "hyped", "hype:0.9"),
+        tagged("blog-a", "paid", "sponsored:0.8"),
+      ];
+      world.feeds["blog-b"] = [
+        ...(world.feeds["blog-b"] ?? []),
+        tagged("blog-b", "raise", "funding:0.95"),
+        tagged("blog-b", "unsure", "hype:0.3 sponsored:0.4"),
+      ];
+      await runStaged(world);
+      const stats = await readJson<SourceStatsFile>(repo.root, "state/source-stats.json");
+      // Every judged item here was asked the flag questions: no coverage topic decides any alone.
+      expect(stats.sources["blog-a"]).toMatchObject({ judged: 5, asked: 5, flagged: 2 });
+      expect(stats.sources["blog-b"]).toMatchObject({ judged: 5, asked: 5, flagged: 0 });
+      expect(stats.sources["blog-c"]).toMatchObject({ judged: 2, asked: 2, flagged: 0 });
+    },
+  );
 
   it("commits as chore(digest), authored by the bot, and pushes", LONG, async () => {
     const world = makeWorld(repo.root, { now: WED });

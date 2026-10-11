@@ -226,7 +226,7 @@ export default function PlayerBar() {
           <Icon name="skipForward" />
         </button>
         <span className="dock-time dock-wide" aria-hidden="true">
-          <Clock seconds={Math.min(second, state.duration)} />
+          <Clock seconds={Math.min(second, state.duration)} widest={state.duration} />
           <span className="dock-time-of">/</span>
           <Clock seconds={state.duration} />
         </span>

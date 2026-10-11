@@ -40,12 +40,22 @@ export const SourcesFile = z.object({
 });
 export type SourcesFile = z.infer<typeof SourcesFile>;
 
-/** What a person changed about one source from the app. Applies to seed and added sources alike. */
+/** Longest name the app can give a source. */
+export const SOURCE_NAME_MAX = 80;
+
+/**
+ * What a person changed about one source from the app. Applies to seed and added sources alike,
+ * though the app edits an added source in place and keeps overrides for seed sources.
+ */
 export const SourceOverride = z.object({
   enabled: z.boolean().optional(),
   pinned: z.boolean().optional(),
   /** Hides a seed source. Removing an added source deletes it instead. */
   removed: z.boolean().optional(),
+  /** Replaces the source's own name. */
+  name: z.string().trim().min(1).max(SOURCE_NAME_MAX).optional(),
+  /** Replaces the topics the source feeds; an empty list means none of its own. */
+  topic_ids: z.array(IdString).optional(),
 });
 export type SourceOverride = z.infer<typeof SourceOverride>;
 

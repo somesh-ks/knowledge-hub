@@ -63,10 +63,6 @@
   }
 }
 
-.btn:active {
-  background: var(--color-accent-subtle);
-}
-
 .icon-btn:active {
   background: var(--color-surface-sunken);
 }
@@ -116,8 +112,19 @@
   background: var(--cta-bg-pressed);
 }
 
+/* A press on a worded button shows on its fill, one step past the hover's, so it reads as a press
+   with a mouse too; its words keep their size (pressText.test.ts), so none of these take .press. */
+.btn:active,
 .btn-secondary:active {
-  background: var(--color-accent-subtle);
+  background: color-mix(in oklch, var(--color-accent-subtle), var(--color-accent) 14%);
+}
+
+.btn,
+.btn-primary,
+.btn-secondary {
+  transition:
+    background-color var(--duration-hover) var(--ease-hover),
+    color var(--duration-hover) var(--ease-hover);
 }
 
 :is(.btn, .icon-btn, .btn-primary, .btn-secondary):is(:disabled, [aria-disabled="true"]) {

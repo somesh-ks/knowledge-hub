@@ -248,6 +248,17 @@ function removeTopic(
     added.push(remaining.length > 0 ? { ...rest, topic_ids: remaining } : rest);
   }
   next.sourcesUser.added = added;
+  // A seed source the owner moved into the topic loses it as well. With no topic left, its override
+  // stops naming topics, so the source returns to its own topics and category hint (an override
+  // that names topics decides the hint, sources/registry.ts).
+  for (const [id, override] of Object.entries(next.sourcesUser.overrides)) {
+    if (!override.topic_ids?.includes(op.id)) continue;
+    const { topic_ids: _own, ...rest } = override;
+    const remaining = override.topic_ids.filter((topicId) => topicId !== op.id);
+    const kept = remaining.length > 0 ? { ...rest, topic_ids: remaining } : rest;
+    if (Object.keys(kept).length > 0) next.sourcesUser.overrides[id] = kept;
+    else delete next.sourcesUser.overrides[id];
+  }
   delete next.candidates.topics[op.id];
   return { next, summary: `remove topic ${tidy(topic.name)}`, topic_id: op.id, new_topic: false };
 }
@@ -297,6 +308,51 @@ function setSource(
     op.pinned === undefined ? null : op.pinned ? "pin" : "unpin",
   ].filter((part): part is string => part !== null);
   return { next, summary: `${parts.join(" and ")} source ${tidy(source.name)}` };
+}
+
+/** "A", "A and B", "A, B and C". */
+function listInWords(names: readonly string[]): string {
+  if (names.length <= 1) return names[0] ?? "";
+  return `${names.slice(0, -1).join(", ")} and ${names[names.length - 1]}`;
+}
+
+function updateSource(
+  op: Extract<ParsedConfigOp, { op: "source.update" }>,
+  bundle: ConfigBundle,
+): OpOutcome {
+  const next = clone(bundle);
+  const topicIds = op.topic_ids === undefined ? undefined : [...new Set(op.topic_ids)];
+  const topicNames = (topicIds ?? []).map((id) => {
+    const topic = next.topics.topics.find((candidate) => candidate.id === id);
+    if (!topic) throw new ConfigOpError(`There is no topic ${id}.`);
+    return tidy(topic.name);
+  });
+  // An added source lives whole in sources.user.json and is changed there. A seed source lives in
+  // sources.json, which is regenerated from sources.md, so its change is kept as an override.
+  const added = next.sourcesUser.added.find((s) => s.id === op.id);
+  const source = added ?? next.registry.sources.find((s) => s.id === op.id);
+  if (!source) throw new ConfigOpError(`There is no source ${op.id}.`);
+  const before = source.name;
+  if (added) {
+    if (op.name !== undefined) added.name = op.name;
+    if (topicIds !== undefined) {
+      if (topicIds.length > 0) added.topic_ids = topicIds;
+      else delete added.topic_ids;
+    }
+  } else {
+    next.sourcesUser.overrides[op.id] = {
+      ...next.sourcesUser.overrides[op.id],
+      ...(op.name === undefined ? {} : { name: op.name }),
+      ...(topicIds === undefined ? {} : { topic_ids: topicIds }),
+    };
+  }
+  const where = topicNames.length > 0 ? listInWords(topicNames) : "no topic";
+  const rename = op.name === undefined ? null : `rename source ${tidy(before)} to ${tidy(op.name)}`;
+  let summary: string;
+  if (rename === null) summary = `move source ${tidy(before)} to ${where}`;
+  else if (topicIds === undefined) summary = rename;
+  else summary = `${rename} and move it to ${where}`;
+  return { next, summary };
 }
 
 function removeSource(
@@ -415,6 +471,8 @@ export async function applyConfigOp(
       return addSource(op, bundle, deps);
     case "source.set":
       return setSource(op, bundle);
+    case "source.update":
+      return updateSource(op, bundle);
     case "source.remove":
       return removeSource(op, bundle);
     case "weights.set":

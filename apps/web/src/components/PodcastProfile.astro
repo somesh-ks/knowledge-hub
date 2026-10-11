@@ -5,7 +5,7 @@ import Icon from "./Icon.astro";
 
 interface Props {
   /** The profile: its fields are named and identified by it, as the engine's schedule file names them. */
-  id: "daily" | "weekly" | "custom";
+  id: "daily" | "weekly";
   /** The saved values. A field the profile has no row for is ignored. */
   values: {
     enabled?: boolean;
@@ -48,61 +48,57 @@ const VOICES = [
       )
     }
 
-    {
-      id !== "custom" && (
-        <div class="settings-row daily-when">
-          <div class="settings-text">
-            <span class="settings-label">When</span>
-            <span class="settings-hint" id={`${id}-when-hint`}>Stockholm time</span>
-          </div>
-          <div class="daily-selects">
-            {id === "weekly" && (
-              <>
-                <label class="sr-only" for="weekly-day">Day</label>
-                <span class="manage-select">
-                  <select class="manage-input" id="weekly-day" data-f="weekly.day" autocomplete="off">
-                    {WEEKDAYS.map((name, value) => (
-                      <option value={value} selected={value === values.day}>{name}</option>
-                    ))}
-                  </select>
-                  <Icon name="chevronDown" />
-                </span>
-              </>
-            )}
-            <label class="sr-only" for={`${id}-hour`}>Time</label>
+    <div class="settings-row daily-when">
+      <div class="settings-text">
+        <span class="settings-label">When</span>
+        <span class="settings-hint" id={`${id}-when-hint`}>Stockholm time</span>
+      </div>
+      <div class="daily-selects">
+        {id === "weekly" && (
+          <>
+            <label class="sr-only" for="weekly-day">Day</label>
             <span class="manage-select">
-              <select
-                class="manage-input"
-                id={`${id}-hour`}
-                data-f={`${id}.hour`}
-                autocomplete="off"
-                aria-describedby={`${id}-when-hint`}
-              >
-                {hours.map((value) => (
-                  <option value={value} selected={value === values.hour}>{hourLabel(value)}</option>
+              <select class="manage-input" id="weekly-day" data-f="weekly.day" autocomplete="off">
+                {WEEKDAYS.map((name, value) => (
+                  <option value={value} selected={value === values.day}>{name}</option>
                 ))}
               </select>
               <Icon name="chevronDown" />
             </span>
-            {id === "daily" && (
-              <>
-                <label class="sr-only" for="daily-cadence">How often</label>
-                <span class="manage-select">
-                  <select class="manage-input" id="daily-cadence" data-f="daily.cadence" autocomplete="off">
-                    {CADENCES.map((cadence) => (
-                      <option value={cadence.days} selected={cadence.days === values.cadenceDays}>
-                        {cadence.label}
-                      </option>
-                    ))}
-                  </select>
-                  <Icon name="chevronDown" />
-                </span>
-              </>
-            )}
-          </div>
-        </div>
-      )
-    }
+          </>
+        )}
+        <label class="sr-only" for={`${id}-hour`}>Time</label>
+        <span class="manage-select">
+          <select
+            class="manage-input"
+            id={`${id}-hour`}
+            data-f={`${id}.hour`}
+            autocomplete="off"
+            aria-describedby={`${id}-when-hint`}
+          >
+            {hours.map((value) => (
+              <option value={value} selected={value === values.hour}>{hourLabel(value)}</option>
+            ))}
+          </select>
+          <Icon name="chevronDown" />
+        </span>
+        {id === "daily" && (
+          <>
+            <label class="sr-only" for="daily-cadence">How often</label>
+            <span class="manage-select">
+              <select class="manage-input" id="daily-cadence" data-f="daily.cadence" autocomplete="off">
+                {CADENCES.map((cadence) => (
+                  <option value={cadence.days} selected={cadence.days === values.cadenceDays}>
+                    {cadence.label}
+                  </option>
+                ))}
+              </select>
+              <Icon name="chevronDown" />
+            </span>
+          </>
+        )}
+      </div>
+    </div>
 
     <div class="settings-row" data-layout="choice">
       <div class="settings-text">

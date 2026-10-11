@@ -204,6 +204,106 @@ describe("state/source-stats.json counters", () => {
     expect(rolled.sources.a).toMatchObject({ fetched: 30, window_start: "2026-10-07" });
   });
 
+  it("accumulates the asked and flagged counters like the others", () => {
+    const flagCounts = {
+      a: { fetched: 10, judged: 8, passed: 4, asked: 7, flagged: 3 },
+      b: { fetched: 3, judged: 3, passed: 0, asked: 3, flagged: 0 },
+    };
+    const first = recordSourceStats({ version: 1, sources: {} }, flagCounts, [], "2026-10-07");
+    expect(first.sources.a).toMatchObject({ judged: 8, asked: 7, flagged: 3 });
+    expect(first.sources.b).toMatchObject({ judged: 3, asked: 3, flagged: 0 });
+    const second = recordSourceStats(first, flagCounts, ["a"], "2026-10-09");
+    expect(second.sources.a).toEqual({
+      fetched: 20,
+      judged: 16,
+      passed: 8,
+      published: 1,
+      asked: 14,
+      flagged: 6,
+      window_start: "2026-10-07",
+    });
+    // A pass file written before asked was counted adds nothing to either, and takes nothing away.
+    const third = recordSourceStats(second, counts, [], "2026-10-10");
+    expect(third.sources.a).toMatchObject({ judged: 24, asked: 14, flagged: 6 });
+    const onlyFlagged = recordSourceStats(
+      second,
+      { a: { fetched: 1, judged: 1, passed: 0, flagged: 1 } },
+      [],
+      "2026-10-10",
+    );
+    expect(onlyFlagged.sources.a).toMatchObject({ judged: 17, asked: 14, flagged: 6 });
+  });
+
+  it("starts asked and flagged on a record written before them, with the first pass that counts asked", () => {
+    const legacy = {
+      fetched: 41,
+      judged: 21,
+      passed: 11,
+      published: 5,
+      window_start: "2026-10-01",
+    };
+    const untouched = recordSourceStats(
+      { version: 1, sources: { a: legacy } },
+      counts,
+      ["a"],
+      "2026-10-07",
+    );
+    expect(untouched.sources.a).not.toHaveProperty("asked");
+    expect(untouched.sources.a).not.toHaveProperty("flagged");
+    const counted = recordSourceStats(
+      { version: 1, sources: { a: legacy } },
+      { a: { fetched: 4, judged: 4, passed: 2, asked: 3, flagged: 1 } },
+      [],
+      "2026-10-07",
+    );
+    expect(counted.sources.a).toMatchObject({ judged: 25, asked: 3, flagged: 1 });
+    // A flagged count written without asked restarts with it, so the share is out of the asked.
+    const restarted = recordSourceStats(
+      { version: 1, sources: { a: { ...legacy, flagged: 9 } } },
+      { a: { fetched: 4, judged: 4, passed: 2, asked: 3, flagged: 1 } },
+      [],
+      "2026-10-07",
+    );
+    expect(restarted.sources.a).toMatchObject({ asked: 3, flagged: 1 });
+  });
+
+  it("halves asked and flagged with the rest when the window rolls", () => {
+    const stat = {
+      fetched: 41,
+      judged: 21,
+      passed: 11,
+      published: 5,
+      asked: 19,
+      flagged: 7,
+      window_start: "2026-09-01",
+    };
+    expect(rollWindow(stat, "2026-09-30")).toBe(stat);
+    expect(rollWindow(stat, "2026-10-01")).toEqual({
+      fetched: 20,
+      judged: 10,
+      passed: 5,
+      published: 2,
+      asked: 9,
+      flagged: 3,
+      window_start: "2026-10-01",
+    });
+    const rolled = recordSourceStats(
+      { version: 1, sources: { a: stat } },
+      { a: { fetched: 2, judged: 2, passed: 1, asked: 2, flagged: 2 } },
+      [],
+      "2026-10-07",
+    );
+    expect(rolled.sources.a).toMatchObject({
+      judged: 12,
+      asked: 11,
+      flagged: 5,
+      window_start: "2026-10-07",
+    });
+    const { asked: _asked, flagged: _flagged, ...legacy } = stat;
+    expect(rollWindow(legacy, "2026-10-01")).not.toHaveProperty("asked");
+    expect(rollWindow(legacy, "2026-10-01")).not.toHaveProperty("flagged");
+  });
+
   it("leaves sources with no activity alone", () => {
     const stat = { fetched: 1, judged: 1, passed: 1, published: 1, window_start: "2026-01-01" };
     const next = recordSourceStats(

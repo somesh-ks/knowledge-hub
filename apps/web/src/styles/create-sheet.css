@@ -166,6 +166,9 @@ html:has(dialog[open]) .create-fab {
 /* A phone: the whole screen, sliding up. From 40rem: a panel on the right, sliding in, over a scrim. */
 dialog.create-sheet {
   --color-focus-gap: var(--sheet-bg);
+  /* Set here, not under [open]: the exit keeps its display through the close, and a column set only
+     while open would fall back to a row for the whole exit, laying the head beside the body. */
+  flex-direction: column;
   position: fixed;
   inset: 0;
   width: 100%;
@@ -191,7 +194,6 @@ dialog.create-sheet {
 
 dialog.create-sheet[open] {
   display: flex;
-  flex-direction: column;
   transition-duration:
     var(--duration-sheet-in), var(--duration-state), var(--duration-sheet-in),
     var(--duration-sheet-in);

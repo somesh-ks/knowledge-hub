@@ -174,6 +174,10 @@ async function writePass(
 
   // Per-source counters for state/source-stats.json, applied at commit. "Passed" is every judged
   // item that cleared the eligibility rules and the score bar, whether or not the cap kept it.
+  // "Asked" is every judged item the judge asked the flag questions (a topic-only item stands in
+  // with a neutral judgment and was not), and "flagged" every asked item it called hype or
+  // sponsored: together they measure the source's trust.
+  const notAsked = new Set(judged.neutral_ids ?? []);
   const notPassed = new Set(
     chosen.dropped
       .filter(
@@ -190,6 +194,9 @@ async function writePass(
       fetchedBySource: pool.fetchedBySource,
       poolSourceIds: new Map(pool.items.map((item) => [item.id, item.source_id])),
       judgedIds: scored.map((s) => s.item.id),
+      asked: new Map(
+        scored.filter((s) => !notAsked.has(s.item.id)).map((s) => [s.item.id, s.entry.flags]),
+      ),
       passedIds: new Set(scored.map((s) => s.item.id).filter((id) => !notPassed.has(id))),
     }),
   });

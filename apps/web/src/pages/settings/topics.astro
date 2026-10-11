@@ -2,9 +2,10 @@
 import Icon from "../../components/Icon.astro";
 import ManageChrome from "../../components/ManageChrome.astro";
 import SettingsHead from "../../components/SettingsHead.astro";
-import SourceSheet from "../../components/SourceSheet.astro";
+import TopicsPanel from "../../components/TopicsPanel.astro";
 import BaseLayout from "../../layouts/BaseLayout.astro";
 import { loadManage } from "../../lib/manage";
+import { freshOffers, loadSourceCatalog } from "../../lib/sourceCatalog";
 import { OTHER_ID, plural, sourcesByTopic, topicSummary } from "../../lib/topicPages";
 // The switch and the slider are the settings page's own; the form fields, the saving toast and the
 // passphrase dialog are manage.css; the rows and stars are topics.css.
@@ -12,7 +13,7 @@ import "../../styles/settings.css";
 import "../../styles/manage.css";
 import "../../styles/topics.css";
 
-const { topics, sources } = await loadManage();
+const [{ topics, sources }, catalog] = await Promise.all([loadManage(), loadSourceCatalog()]);
 // A topic that never publishes has nothing to turn on or weigh, so it comes last.
 const editable = topics.filter((topic) => !topic.never_publish);
 const fixed = topics.filter((topic) => topic.never_publish);
@@ -20,21 +21,27 @@ const groups = sourcesByTopic(topics, sources);
 const others = groups.get(OTHER_ID) ?? [];
 ---
 
-<BaseLayout title="Topics" view="settings" skipLabel="Skip to the topics">
+<BaseLayout title="Topics & Sources" view="settings" skipLabel="Skip to topics and sources">
   <main id="main" tabindex="-1">
     {/* One row per topic, each leading to its own page (topics/[id].astro) with its switch, its
-         weight and its sources. Here: adding a source, whose topic is chosen in the panel, and adding
-         a topic. topicsPage.ts loads the editor on first use; autosave.ts sends a change a moment
-         later. */}
+         weight and its sources. Here: Add, which opens one panel for a new topic (and the sources
+         that suit it) or a new source, chosen by a segmented control at its top. topicsPage.ts loads
+         the editor on first use; autosave.ts sends a change a moment later. */}
     <div
       class="manage topics"
       data-topics
       data-taken={[...topics.map((topic) => topic.id), OTHER_ID].join(" ")}
     >
-      <SettingsHead title="Topics" note="What the briefings cover, and the sources they read." />
-      <button class="btn-primary topics-add-source press press-subtle" type="button" data-add-source="" data-needs-js>
+      <SettingsHead title="Topics & Sources" note="What the briefings cover, and the sources they read." />
+      <button
+        class="btn-secondary topics-add"
+        type="button"
+        aria-label="Add a topic or a source"
+        data-add-topic
+        data-needs-js
+      >
         <Icon name="plus" />
-        <span>Add source</span>
+        <span>Add</span>
       </button>
       <noscript>
         <p class="manage-note">Changing topics and sources needs JavaScript, which is turned off in this browser.</p>
@@ -70,67 +77,13 @@ const others = groups.get(OTHER_ID) ?? [];
             )
           }
         </div>
-
-        <details class="manage-add topics-add-topic" id="add-topic" data-needs-js>
-          <summary class="btn press press-subtle">
-            <Icon name="plus" />
-            <span>Add topic</span>
-          </summary>
-          <form class="manage-form" data-add="topic" aria-label="Add a topic" novalidate>
-            <div class="manage-field">
-              <label for="topic-name">Name</label>
-              <input
-                class="manage-input"
-                id="topic-name"
-                name="name"
-                type="text"
-                required
-                maxlength="60"
-                autocomplete="off"
-                enterkeyhint="next"
-                aria-describedby="topic-name-error"
-              />
-              <p class="manage-error" id="topic-name-error" role="alert" data-error="name" hidden>
-                <Icon name="alert" /><span></span>
-              </p>
-            </div>
-            <div class="manage-field">
-              <label for="topic-description">What should count as this topic</label>
-              <textarea
-                class="manage-input"
-                id="topic-description"
-                name="description"
-                required
-                maxlength="400"
-                rows="3"
-                aria-describedby="topic-description-error"></textarea>
-              <p class="manage-error" id="topic-description-error" role="alert" data-error="description" hidden>
-                <Icon name="alert" /><span></span>
-              </p>
-            </div>
-            <div class="manage-field">
-              <label for="topic-keywords">Keywords, separated by commas (optional)</label>
-              <input
-                class="manage-input"
-                id="topic-keywords"
-                name="keywords"
-                type="text"
-                maxlength="400"
-                autocomplete="off"
-                autocapitalize="none"
-                enterkeyhint="done"
-              />
-            </div>
-            <button class="btn-primary manage-submit press press-subtle" type="submit">
-              <Icon name="plus" />
-              <span>Add topic</span>
-            </button>
-          </form>
-        </details>
       </fieldset>
 
       <ManageChrome />
-      <SourceSheet topics={editable.map((topic) => ({ id: topic.id, name: topic.name }))} />
+      <TopicsPanel
+        topics={editable.map((topic) => ({ id: topic.id, name: topic.name }))}
+        offers={freshOffers(catalog, sources)}
+      />
     </div>
   </main>
 </BaseLayout>

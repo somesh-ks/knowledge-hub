@@ -28,6 +28,12 @@ export const JudgedFile = z.object({
    * when there are no custom topics, so a run without them writes the same file as before.
    */
   topic_fits: z.record(z.string(), z.record(z.string(), z.number().min(0).max(1))).optional(),
+  /**
+   * Pool items that stand in with a neutral judgment because a coverage topic decides them alone
+   * (judge/topicOnly.ts): they were not asked the main questions, the hype and sponsored flags
+   * among them, so they do not count toward a source's trust. Absent when there are none.
+   */
+  neutral_ids: z.array(z.string()).optional(),
 });
 export type JudgedFile = z.infer<typeof JudgedFile>;
 

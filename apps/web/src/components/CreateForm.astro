@@ -22,7 +22,7 @@ import "../styles/create.css";
 
 const { sections, topics: allTopics } = await loadManage();
 const topics = createTopicOptions(sections, allTopics);
-// What the panel starts from is the Custom profile of the podcast settings: type, length and voices.
+// What the panel starts from: the custom defaults in config/schedule.json (type, length and voices).
 const { custom } = await loadScheduleView();
 const startFormat = custom.format;
 const startLength = custom.length_minutes;
@@ -192,7 +192,7 @@ const COPY = {
     {/* The words are in their own span, so the length can change them without removing the spinner
          that shows while the request is out. */}
     <div class="create-submit">
-      <button class="btn-primary press press-subtle" type="submit" data-submit>
+      <button class="btn-primary" type="submit" data-submit>
         <span class="spinner" aria-hidden="true"></span>
         <span data-submit-text>{submitLabel(startLength)}</span>
       </button>
@@ -235,7 +235,7 @@ const COPY = {
           <span>Remember on this device</span>
         </label>
         <div class="sheet-actions">
-          <button class="btn-primary press press-subtle" type="submit" data-dialog-submit>
+          <button class="btn-primary" type="submit" data-dialog-submit>
             <span class="spinner" aria-hidden="true"></span>
             Create episode
           </button>

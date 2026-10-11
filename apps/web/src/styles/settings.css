@@ -46,6 +46,16 @@
   line-height: var(--text-display-leading);
 }
 
+/* On a wide screen the trail is a pane's title, smaller than a phone's display line: the side
+   column already says where the page sits, and the display size grows with the window. The title
+   sets its own size (.page-title), so it is named here too, and both words stay one size. */
+@media (min-width: 64rem) {
+  .settings-crumbs,
+  .settings-crumbs > h1 {
+    font-size: var(--font-size-section);
+  }
+}
+
 .settings-crumbs > nav {
   display: contents;
 }

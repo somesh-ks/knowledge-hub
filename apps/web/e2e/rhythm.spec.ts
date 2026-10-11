@@ -14,7 +14,6 @@ const DESTINATIONS = ["/", "/library", "/create", "/settings"];
 const SUBPAGES = [
   "/settings/daily",
   "/settings/weekly",
-  "/settings/custom",
   "/settings/model",
   "/settings/topics",
   "/settings/topics/audio_interfaces",

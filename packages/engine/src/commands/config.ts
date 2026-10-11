@@ -38,6 +38,7 @@ Ops (see ConfigOp in @dispatch/core):
   {"op":"topic.remove","id":"..."}
   {"op":"source.add","url":"https://...","topic_ids":["..."]}
   {"op":"source.set","id":"...","enabled":false,"pinned":true}
+  {"op":"source.update","id":"...","name":"...","topic_ids":["..."]}
   {"op":"source.remove","id":"..."}
   {"op":"weights.set","weights":{"topic_id":0.8}}
   {"op":"schedule.set","hour":7,"cadence_days":2,"sections":null}

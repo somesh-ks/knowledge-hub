@@ -1,8 +1,7 @@
 import { describe, expect, it } from "vitest";
+import { idText, keywordList, problemText, slugify, webAddress } from "../lib/topicText";
 import type { ConfigOp } from "../types/contracts";
 import { buildQueue, failureText, MAX_OPS, type Pending, pack, settle } from "./managePageSave";
-import { idText, keywordList, slugify } from "./topicsEditor";
-import { problemText, webAddress } from "./topicsSheet";
 
 describe("slugify", () => {
   it("makes lowercase letters, digits and hyphens", () => {

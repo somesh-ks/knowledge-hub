@@ -1,8 +1,9 @@
 /**
- * What the editor and the Add source panel both draw: a site's icon, and a score. The markup matches
- * components/StarMeter.astro and SourceRow.astro, so topics.css styles both alike. Loaded with the
- * editor, never with the page.
+ * What the editor and the Topics & Sources panel both draw: a site's tile, and a score. The markup
+ * matches components/ScoreMeter.astro and SourceRow.astro, so topics.css styles both alike. Loaded
+ * with the editor, never with the page.
  */
+import { sourceInitial } from "../lib/sourceInitial";
 
 /** What GET /api/source-preview returns. */
 export interface SourcePreview {
@@ -15,15 +16,18 @@ export interface SourcePreview {
   kind: "feed" | "page";
   latest_at: string | null;
   items_30d: number | null;
+  /** 0 to 3, one decimal. */
   score: number;
   score_label: string;
+  /** Health, quality and trust, each 0 to 1. */
+  score_parts?: { health: number; quality: number; trust: number } | null;
   reason: string;
 }
 
-/** The filter band a score falls in: Good is 4 and up, Fair 3 to 4, Poor under 3, New has none. */
+/** The band a score out of 3 falls in: Good is 2.1 and up, Fair 1.5 to 2.1, Poor under 1.5, New has none. */
 export function bandOf(score: number | null): "good" | "fair" | "poor" | "new" {
   if (score === null) return "new";
-  return score >= 4 ? "good" : score >= 3 ? "fair" : "poor";
+  return score >= 2.1 ? "good" : score >= 1.5 ? "fair" : "poor";
 }
 
 function element<K extends keyof HTMLElementTagNameMap>(
@@ -37,10 +41,11 @@ function element<K extends keyof HTMLElementTagNameMap>(
   return node;
 }
 
-/** A slot for the site's icon; the icon shows only once it loads, and without one the slot is empty. */
-export function iconNode(src: string | null): HTMLElement {
+/** A site's tile: the name's first letter, covered by the site's icon once that loads. */
+export function iconNode(src: string | null, name: string): HTMLElement {
   const tile = element("span", "source-icon");
   tile.setAttribute("aria-hidden", "true");
+  tile.append(element("span", "source-initial", sourceInitial(name)));
   // Only a secure address is drawn; anything else leaves the slot empty.
   if (src?.startsWith("https://")) {
     // Icons come through the site's own function, so the policy never allows another host.
@@ -57,15 +62,15 @@ export function iconNode(src: string | null): HTMLElement {
   return tile;
 }
 
-/** Five stars, the number and the label; a New source is only the label. */
+/** Three pips filled to the score out of 3, the number and the label; a New source is only the label. */
 export function scoreNode(score: number | null, label: string): HTMLElement {
   const wrap = element("span", "score");
   wrap.dataset.label = label;
   if (score !== null) {
-    const stars = element("span", "stars");
-    stars.setAttribute("aria-hidden", "true");
-    stars.style.setProperty("--score", String(score));
-    wrap.append(stars, element("span", "score-num", score.toFixed(1)));
+    const pips = element("span", "pips");
+    pips.setAttribute("aria-hidden", "true");
+    pips.style.setProperty("--score", String(score));
+    wrap.append(pips, element("span", "score-num", score.toFixed(1)));
   }
   wrap.append(element("span", "score-label", label));
   return wrap;

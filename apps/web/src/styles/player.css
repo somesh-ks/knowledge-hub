@@ -137,6 +137,21 @@
   font-feature-settings: "tnum" 0;
 }
 
+/* A clock holding the width of the widest time it can show (Clock.tsx): the live time sits at its
+   end over a hidden copy, so what follows it stays put when the time gains a digit. */
+.clock-held {
+  display: inline-grid;
+  justify-items: end;
+}
+
+.clock-held > * {
+  grid-area: 1 / 1;
+}
+
+.clock-sizer {
+  visibility: hidden;
+}
+
 /* ------------------------------------------------------------------ the cover */
 
 /* Drawn twice: on the bar, and on the page, where it rises with the page. */
@@ -683,14 +698,15 @@
 }
 
 /* The clock at the thumb while it is being moved. Near either end it stops short of the window's
-   edge, so all of it stays on screen at 0:00 and at the end. */
+   edge, so all of it stays on screen at 0:00 and at the end. It moves in whole pixels: text moved by
+   a fraction of one is drawn afresh at each step, and its digits seem to shake. */
 .dock-seek-time {
   position: absolute;
   inset-block-start: calc(var(--space-8) * -1);
-  inset-inline-start: clamp(
-    var(--space-8),
-    calc(var(--seek-at, 0) * 100%),
-    calc(100% - var(--space-8))
+  inset-inline-start: round(
+    nearest,
+    clamp(var(--space-8), calc(var(--seek-at, 0) * 100%), calc(100% - var(--space-8))),
+    var(--stroke-hairline)
   );
   padding: var(--space-1) var(--space-2);
   border-radius: var(--scrubber-bubble-radius);
@@ -1135,6 +1151,23 @@
 
 .scrubber[data-dragging] .scrubber-bubble {
   opacity: 1;
+}
+
+/* Each line over a hidden copy of the widest it can get (Scrubber.tsx), so the bubble keeps one
+   width through a drag and the time stays put inside it. */
+.scrubber-bubble-time,
+.scrubber-bubble-item {
+  display: grid;
+  justify-items: center;
+}
+
+.scrubber-bubble-time > *,
+.scrubber-bubble-item > * {
+  grid-area: 1 / 1;
+}
+
+.scrubber-bubble-sizer {
+  visibility: hidden;
 }
 
 .scrubber-times {

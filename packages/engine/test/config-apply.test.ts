@@ -1,12 +1,22 @@
 import type { Preferences, Source, SourcesUserFile, TopicsFile } from "@dispatch/core";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { makeConfigCommand } from "../src/commands/config.js";
+import { prefilter } from "../src/prefilter/prefilter.js";
+import { categoryHint } from "../src/sources/hint.js";
 import { loadSources, loadUserSources, mergeUserSources } from "../src/sources/registry.js";
-import { fakeFetch, makeDeps, makeSource } from "./fetch-helpers.js";
+import { NOW as FETCH_NOW, fakeFetch, makeDeps, makeItem, makeSource } from "./fetch-helpers.js";
 import { git } from "./git-testRepo.js";
-import { type ConfigRepo, configRepo, datedEntries, rssFeed } from "./topics-helpers.js";
+import { realPreferences } from "./score-factories.js";
+import {
+  type ConfigRepo,
+  configRepo,
+  datedEntries,
+  rssFeed,
+  SEED_SOURCES,
+} from "./topics-helpers.js";
 
 const NOW = new Date("2026-10-07T06:00:00Z");
+const TECH = "consumer_tech_releases" as const;
 
 let repo: ConfigRepo;
 let out: string[];
@@ -569,6 +579,100 @@ describe("source ops", () => {
     expect((await apply({ op: "source.set", id: "ghost", enabled: true })).code).toBe(1);
   });
 
+  it("renames an added source and moves it between topics in place, built-in ones too", async () => {
+    await apply(QUANTUM);
+    await apply(
+      { op: "source.add", url: "https://new.example/", topic_ids: ["quantum_computing"] },
+      siteRoutes("new.example"),
+    );
+
+    const renamed = await apply({ op: "source.update", id: "new-example", name: " New Weekly " });
+    expect(renamed.code).toBe(0);
+    expect(renamed.report).toMatchObject({
+      op: "source.update",
+      summary: "rename source new.example to New Weekly",
+      commit_message: "chore(config): rename source new.example to New Weekly",
+      files: ["config/sources.user.json"],
+    });
+    let user = await loadUserSources(repo.root);
+    expect(user.added[0]).toMatchObject({
+      id: "new-example",
+      name: "New Weekly",
+      topic_ids: ["quantum_computing"],
+    });
+    expect(user.overrides).toEqual({});
+
+    const moved = await apply({
+      op: "source.update",
+      id: "new-example",
+      topic_ids: ["design_engineering_craft", "quantum_computing", "design_engineering_craft"],
+    });
+    expect(moved.report.summary).toBe(
+      "move source New Weekly to Design engineering craft and Quantum computing",
+    );
+    user = await loadUserSources(repo.root);
+    expect(user.added[0]?.topic_ids).toEqual(["design_engineering_craft", "quantum_computing"]);
+
+    const cleared = await apply({ op: "source.update", id: "new-example", topic_ids: [] });
+    expect(cleared.report.summary).toBe("move source New Weekly to no topic");
+    user = await loadUserSources(repo.root);
+    expect(user.added[0]).not.toHaveProperty("topic_ids");
+    expect(user.overrides).toEqual({});
+    expect(repo.dirty()).not.toContain("config/sources.json");
+  });
+
+  it("keeps a seed source's new name and topics in its override, which wins when merged", async () => {
+    const { code, report } = await apply({
+      op: "source.update",
+      id: "alpha",
+      name: "Alpha Weekly",
+      topic_ids: ["design"],
+    });
+    expect(code).toBe(0);
+    expect(report.summary).toBe("rename source Alpha to Alpha Weekly and move it to Design");
+    expect(repo.dirty()).toEqual(["config/sources.user.json"]);
+    const user = await loadUserSources(repo.root);
+    expect(user).toMatchObject({
+      added: [],
+      overrides: { alpha: { name: "Alpha Weekly", topic_ids: ["design"] } },
+    });
+    expect((await loadSources(repo.root)).sources.find((s) => s.id === "alpha")).toMatchObject({
+      name: "Alpha Weekly",
+      topic_ids: ["design"],
+    });
+
+    // A built-in topic is a topic like any other, and an empty list leaves the seed source feeding
+    // none of its own. What source.set wrote stays.
+    await apply({ op: "source.set", id: "alpha", pinned: true });
+    expect(
+      (await apply({ op: "source.update", id: "alpha", topic_ids: ["consumer_tech_releases"] }))
+        .code,
+    ).toBe(0);
+    expect((await loadUserSources(repo.root)).overrides.alpha?.topic_ids).toEqual([
+      "consumer_tech_releases",
+    ]);
+    await apply({ op: "source.update", id: "alpha", topic_ids: [] });
+    expect((await loadUserSources(repo.root)).overrides.alpha).toEqual({
+      name: "Alpha Weekly",
+      topic_ids: [],
+      pinned: true,
+    });
+    const merged = (await loadSources(repo.root)).sources.find((s) => s.id === "alpha");
+    expect(merged).toMatchObject({ name: "Alpha Weekly", pinned: true });
+    expect(merged).not.toHaveProperty("topic_ids");
+    expect(repo.dirty()).toEqual(["config/sources.user.json"]);
+  });
+
+  it("refuses an unknown source or topic, and an update that changes nothing", async () => {
+    expect((await apply({ op: "source.update", id: "ghost", name: "Ghost" })).code).toBe(1);
+    expect(repo.errors.join("\n")).toContain("There is no source ghost.");
+    expect((await apply({ op: "source.update", id: "alpha", topic_ids: ["nope"] })).code).toBe(1);
+    expect(repo.errors.join("\n")).toContain("There is no topic nope.");
+    expect((await apply({ op: "source.update", id: "alpha" })).code).toBe(1);
+    expect(repo.errors.join("\n")).toContain("set name, topic_ids or both");
+    expect(repo.dirty()).toEqual([]);
+  });
+
   it("hides a seed source and deletes an added one", async () => {
     await apply({ op: "source.remove", id: "beta" });
     expect((await loadSources(repo.root)).sources.map((s) => s.id)).toEqual(["alpha"]);
@@ -660,5 +764,156 @@ describe("the merged registry", () => {
     });
     expect(merged.sources.map((s) => s.id)).toEqual(["a", "c"]);
     expect(merged.sources[0]?.name).toBe("a");
+  });
+
+  it("lets an override's name and topics win over the source's own, and an empty list clear them", () => {
+    const base = {
+      version: 1 as const,
+      sources: [
+        source("a", { name: "A", topic_ids: ["x"] }),
+        source("b", { topic_ids: ["y"], category_hint: "developer_tool_launches" }),
+        source("c"),
+      ],
+    };
+    const merged = mergeUserSources(base, {
+      version: 1,
+      added: [source("d", { topic_ids: ["y"] })],
+      overrides: {
+        a: { name: "Renamed", topic_ids: ["z", "w"] },
+        b: { topic_ids: [] },
+        c: { enabled: false },
+        d: { name: "Dee" },
+      },
+    });
+    expect(merged.sources.map((s) => [s.id, s.name, s.topic_ids])).toEqual([
+      ["a", "Renamed", ["z", "w"]],
+      ["b", "b", undefined],
+      ["c", "c", undefined],
+      ["d", "Dee", ["y"]],
+    ]);
+    expect(merged.sources[1]).not.toHaveProperty("topic_ids");
+    expect(merged.sources[2]?.enabled).toBe(false);
+    expect(base.sources[0]).toMatchObject({ name: "A", topic_ids: ["x"] });
+  });
+
+  it("lets an override that sets the topics decide the category hint, and no other", () => {
+    const base = {
+      version: 1 as const,
+      sources: [
+        source("custom", { category_hint: TECH }),
+        source("other", { category_hint: TECH, topic_ids: ["trending"] }),
+        source("builtin", { category_hint: "developer_tool_launches" }),
+        source("app", { category_hint: TECH }),
+        source("renamed", { category_hint: TECH }),
+        source("untouched", { category_hint: TECH }),
+      ],
+    };
+    const merged = mergeUserSources(base, {
+      version: 1,
+      added: [],
+      overrides: {
+        custom: { topic_ids: ["quantum_computing"] },
+        other: { topic_ids: [] },
+        builtin: {
+          topic_ids: ["quantum_computing", "design_engineering_craft", "frontier_model_releases"],
+        },
+        app: { topic_ids: ["design"] },
+        renamed: { name: "Renamed", pinned: true },
+      },
+    });
+    const byId = Object.fromEntries(merged.sources.map((s) => [s.id, s]));
+    // The first built-in category the override names; none for custom or app topics, or for Other.
+    expect(byId.custom).not.toHaveProperty("category_hint");
+    expect(byId.other).not.toHaveProperty("category_hint");
+    expect(byId.other).not.toHaveProperty("topic_ids");
+    expect(byId.builtin?.category_hint).toBe("design_engineering_craft");
+    expect(byId.app).not.toHaveProperty("category_hint");
+    expect(byId.app?.topic_ids).toEqual(["design"]);
+    // An override that leaves the topics alone leaves the hint alone.
+    expect(byId.renamed?.category_hint).toBe(TECH);
+    expect(byId.untouched?.category_hint).toBe(TECH);
+  });
+
+  it("steers a moved source's items where it was moved, in the prefilter and dedupe", () => {
+    const base = {
+      version: 1 as const,
+      sources: [
+        source("phones", { category_hint: TECH }),
+        source("tablets", { category_hint: TECH }),
+      ],
+    };
+    const merged = mergeUserSources(base, {
+      version: 1,
+      added: [],
+      overrides: { phones: { topic_ids: [] } },
+    });
+    const launch = (sourceId: string) =>
+      makeItem({
+        url: `https://${sourceId}.example/launch`,
+        title: "Acme Phone goes on sale",
+        source_id: sourceId,
+      });
+    const run = (sources: Source[]) =>
+      prefilter({
+        items: [launch("phones"), launch("tablets")],
+        preferences: realPreferences(),
+        sources,
+        now: FETCH_NOW,
+      }).report;
+    // Before the move both outlets feed the tech beat; after it only the one still hinted does.
+    expect(run(base.sources).tech.input).toBe(2);
+    expect(run(merged.sources).tech.input).toBe(1);
+    // Dedupe reads the hint the same way, so it no longer hands the old category on.
+    const phones = merged.sources.find((s) => s.id === "phones");
+    expect(categoryHint(launch("phones"), phones)).toBeUndefined();
+  });
+});
+
+describe("source.update and the category hint", () => {
+  const hintedSeed = () =>
+    writeFileIn(
+      "config/sources.json",
+      JSON.stringify(
+        { version: 1, sources: [{ ...SEED_SOURCES[0], category_hint: TECH }, SEED_SOURCES[1]] },
+        null,
+        2,
+      ),
+    );
+  const alpha = async () => (await loadSources(repo.root)).sources.find((s) => s.id === "alpha");
+
+  it("moves a seed source's hint with its topics, and keeps sources.json as it was", async () => {
+    await hintedSeed();
+    expect((await alpha())?.category_hint).toBe(TECH);
+
+    await apply({ op: "source.update", id: "alpha", topic_ids: [] });
+    expect(await alpha()).not.toHaveProperty("category_hint");
+    await apply({ op: "source.update", id: "alpha", topic_ids: ["developer_tool_launches"] });
+    expect(await alpha()).toMatchObject({
+      category_hint: "developer_tool_launches",
+      topic_ids: ["developer_tool_launches"],
+    });
+    await apply({ op: "source.update", id: "alpha", name: "Alpha Weekly" });
+    expect((await alpha())?.category_hint).toBe("developer_tool_launches");
+    expect(repo.dirty()).toEqual(["config/sources.user.json"]);
+  });
+
+  it("takes a removed topic out of seed overrides, returning a source to its own hint", async () => {
+    await hintedSeed();
+    await apply(QUANTUM);
+    await apply({ op: "source.update", id: "alpha", topic_ids: ["quantum_computing"] });
+    await apply({
+      op: "source.update",
+      id: "beta",
+      name: "Beta Weekly",
+      topic_ids: ["quantum_computing", "design"],
+    });
+    expect(await alpha()).not.toHaveProperty("category_hint");
+
+    expect((await apply({ op: "topic.remove", id: "quantum_computing" })).code).toBe(0);
+    const user = await loadUserSources(repo.root);
+    expect(user.overrides.alpha).toBeUndefined();
+    expect(user.overrides.beta).toEqual({ name: "Beta Weekly", topic_ids: ["design"] });
+    expect(await alpha()).toMatchObject({ category_hint: TECH });
+    expect(await alpha()).not.toHaveProperty("topic_ids");
   });
 });

@@ -69,6 +69,24 @@ export function parseSourceCatalog(file: unknown): CatalogSource[] {
   return sources;
 }
 
+/** The site an address belongs to, without "www.": what an offer and a source are matched on. */
+function siteOf(address: string): string {
+  try {
+    return new URL(address).hostname.replace(/^www\./, "");
+  } catch {
+    return "";
+  }
+}
+
+/** The catalogue sources to offer: those whose site is not already one of the sources. */
+export function freshOffers(
+  catalog: readonly CatalogSource[],
+  sources: ReadonlyArray<{ host: string }>,
+): CatalogSource[] {
+  const held = new Set(sources.map((source) => source.host).filter(Boolean));
+  return catalog.filter((offer) => !held.has(siteOf(offer.feed_url)));
+}
+
 /** How often a source posts, as a short phrase for its row. */
 export function cadenceLabel(cadence: Cadence | null): string {
   switch (cadence) {

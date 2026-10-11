@@ -90,7 +90,7 @@ export default function NarrateSheet({ open, onOpenChange }: NarrateSheetProps) 
           <span>Remember on this device</span>
         </label>
         <div className="sheet-actions">
-          <button className="btn-primary press press-subtle" type="submit">
+          <button className="btn-primary" type="submit">
             Make audio and play
           </button>
         </div>

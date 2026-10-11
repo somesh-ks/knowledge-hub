@@ -47,7 +47,7 @@ const opsOf = (sent: Sent[]) =>
 const scheduleSent = (sent: Sent[]) =>
   Object.assign({}, ...opsOf(sent).filter((op) => op.op === "schedule.set"));
 
-type Leaf = "daily" | "weekly" | "custom" | "model";
+type Leaf = "daily" | "weekly" | "model";
 
 async function open(page: Page, leaf: Leaf): Promise<void> {
   await page.goto(`/settings/${leaf}`);
@@ -78,7 +78,6 @@ test.describe("the Settings index", () => {
     const rows = [
       ["Daily", "Every second day at 07:00", "/settings/daily"],
       ["Weekly", "Sundays at 07:00", "/settings/weekly"],
-      ["Custom", "What Create starts from: Readout, 5 min", "/settings/custom"],
       ["Model", "Automatic", "/settings/model"],
     ] as const;
     for (const [name, hint, href] of rows) {
@@ -86,10 +85,12 @@ test.describe("the Settings index", () => {
       await expect(row).toContainText(hint);
       await expect(row).toHaveAttribute("href", href);
     }
-    await expect(page.getByRole("link", { name: /^Topics/ })).toHaveAttribute(
+    await expect(page.getByRole("link", { name: /^Topics & Sources/ })).toHaveAttribute(
       "href",
       "/settings/topics",
     );
+    // An episode on request is set up in the Create panel, so it has no page here.
+    await expect(page.getByRole("link", { name: /^Custom/ })).toHaveCount(0);
   });
 
   test("a row leads to its page, whose title says where it sits", async ({ page }) => {
@@ -108,6 +109,8 @@ test.describe("the Settings index", () => {
       ["/settings/schedule", /\/settings\/daily$/],
       ["/settings/podcast/topics", /\/settings\/topics$/],
       ["/settings/sources", /\/settings\/topics$/],
+      // An episode on request is set up in the Create panel.
+      ["/settings/custom", /\/create$/],
     ] as const;
     for (const [old, now] of moves) {
       await page.goto(old);
@@ -153,13 +156,6 @@ test.describe("the profile pages", () => {
     await expect(page.locator("[data-next]")).toBeHidden();
     await expect(page.locator("[data-off]")).toHaveText("No weekly episode while it is off.");
     expect((await on.boundingBox())?.y).toBe(before?.y);
-  });
-
-  test("Custom says what it is for, and has no time", async ({ page }) => {
-    await open(page, "custom");
-    await expect(page.getByText("What the Create panel starts from.")).toBeVisible();
-    await expect(page.getByText("Stockholm time")).toHaveCount(0);
-    await expect(page.getByRole("radio", { name: "5 min", exact: true })).toBeChecked();
   });
 
   test("Readout has one voice select, Discussion two, filled from the voice list", async ({
@@ -249,7 +245,7 @@ test.describe("saving on its own", () => {
     await expect(toast(page)).toBeHidden();
   });
 
-  test("Weekly and Custom changes land in their own part of the schedule", async ({ page }) => {
+  test("Weekly changes land in their own part of the schedule", async ({ page }) => {
     const sent = await mockConfig(page);
     await open(page, "weekly");
     await page.locator("#weekly-day").selectOption("5");
@@ -258,21 +254,6 @@ test.describe("saving on its own", () => {
       .poll(() => scheduleSent(sent))
       .toEqual({ op: "schedule.set", weekly: { enabled: false, day: 5 } });
     await expect(toastText(page)).toHaveText(SAVED);
-
-    sent.length = 0;
-    await open(page, "custom");
-    await page.getByRole("radio", { name: "Discussion" }).check();
-    await page.locator("#custom-voice").selectOption("voice-ada");
-    await page.locator("#custom-voice_b").selectOption("voice-leo");
-    // Each request names the profile it changes; merged, they hold the three changes.
-    await expect
-      .poll(() =>
-        Object.assign(
-          {},
-          ...opsOf(sent).map((op) => (op as { custom?: Record<string, unknown> }).custom ?? {}),
-        ),
-      )
-      .toEqual({ format: "discussion", voice_id: "voice-ada", voice_id_b: "voice-leo" });
   });
 
   test("says the time could not be changed when the token may not write variables", async ({
@@ -545,7 +526,7 @@ test("read with scripts off", async ({ browser, baseURL }) => {
 
 for (const scheme of ["light", "dark"] as const) {
   test.describe(`axe, ${scheme} scheme`, () => {
-    for (const leaf of ["daily", "weekly", "custom", "model"] as const) {
+    for (const leaf of ["daily", "weekly", "model"] as const) {
       test(`the ${leaf} page has no WCAG 2.2 AA violations`, async ({ page }) => {
         await page.emulateMedia({ colorScheme: scheme });
         await open(page, leaf);

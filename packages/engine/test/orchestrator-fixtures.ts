@@ -148,7 +148,8 @@ export function goodFeeds(count: number, prefix = "good"): Record<string, Item[]
 
 /**
  * Answers from the snippet tag. Items tagged "skip" get no answer, as when a judge fails. A
- * `launch:<level>` tag sets the launch scale, which is what ranks a consumer tech item.
+ * `launch:<level>` tag sets the launch scale, which is what ranks a consumer tech item, and
+ * `hype:<p>`, `sponsored:<p>` and `funding:<p>` set those flags (0 when absent).
  */
 export class PatternJudge implements Judge {
   readonly name = "pattern";
@@ -170,12 +171,17 @@ export class PatternJudge implements Judge {
       const tag = /judge:(\S+)/.exec(item.snippet)?.[1] ?? "none";
       if (tag === "skip") continue;
       const launch = /launch:(\d)/.exec(item.snippet)?.[1];
+      const flag = (name: "hype" | "sponsored" | "funding"): number =>
+        Number(new RegExp(`${name}:([0-9.]+)`).exec(item.snippet)?.[1] ?? 0);
       answers.push({
         ...makeEntry(item, {
           category: tag === "none" ? "none" : (tag as Category),
           p: 0.95,
           depth: 0.9,
           ...(launch === undefined ? {} : { launchScale: Number(launch) / 4 }),
+          hype: flag("hype"),
+          sponsored: flag("sponsored"),
+          funding: flag("funding"),
           model: this.entryModel,
         }),
         questions_hash: this.questionsHash,

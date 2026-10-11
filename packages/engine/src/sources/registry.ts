@@ -3,6 +3,7 @@ import { join } from "node:path";
 import {
   CONFIG_FILES,
   EMPTY_SOURCES_USER,
+  isBuiltinCategory,
   type Source,
   type SourcesFile,
   SourcesFile as SourcesSchema,
@@ -127,7 +128,15 @@ export function serializeUserSources(file: SourcesUserFile): string {
 /**
  * The seed registry with the app's edits applied. Added sources join the list (a seed id always
  * wins a clash, so a hand-written line in sources.md cannot be shadowed); overrides then switch,
- * pin or hide sources by id, seed or added alike. Pure, so a run and a test see the same result.
+ * pin, hide, rename or re-topic sources by id, seed or added alike. An override's name and topics
+ * win over the source's own, and an empty topic list leaves it feeding none of its own. Pure, so a
+ * run and a test see the same result.
+ *
+ * An override that sets the topics decides the category hint as well: the first built-in category
+ * among them, or none when it names only custom topics or none at all. So a source moved in the
+ * app is steered where it was moved: the hint it came with stops deciding the prefilter's beat,
+ * the categories dedupe hands on, and whether a coverage topic decides its items alone. A source
+ * whose override leaves the topics alone keeps its own hint.
  */
 export function mergeUserSources(file: SourcesFile, user: SourcesUserFile): SourcesFile {
   const known = new Set(file.sources.map((source) => source.id));
@@ -142,11 +151,20 @@ export function mergeUserSources(file: SourcesFile, user: SourcesUserFile): Sour
     .map((source): Source => {
       const override = user.overrides[source.id];
       if (!override) return source;
-      return {
+      const next: Source = {
         ...source,
+        ...(override.name === undefined ? {} : { name: override.name }),
         ...(override.enabled === undefined ? {} : { enabled: override.enabled }),
         ...(override.pinned === undefined ? {} : { pinned: override.pinned }),
       };
+      if (override.topic_ids !== undefined) {
+        if (override.topic_ids.length > 0) next.topic_ids = [...override.topic_ids];
+        else delete next.topic_ids;
+        const hint = override.topic_ids.find(isBuiltinCategory);
+        if (hint === undefined) delete next.category_hint;
+        else next.category_hint = hint;
+      }
+      return next;
     });
   return { ...file, sources };
 }

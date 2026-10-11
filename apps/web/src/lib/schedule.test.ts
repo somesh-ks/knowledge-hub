@@ -1,12 +1,5 @@
 import { describe, expect, it } from "vitest";
-import {
-  customSummary,
-  dailySummary,
-  hourLabel,
-  nextBriefing,
-  nextWeekly,
-  weeklySummary,
-} from "./schedule";
+import { dailySummary, hourLabel, nextBriefing, nextWeekly, weeklySummary } from "./schedule";
 
 describe("hourLabel", () => {
   it("pads to two digits", () => {
@@ -25,11 +18,6 @@ describe("the Settings rows", () => {
   it("say when the weekly podcast runs, or that it is off", () => {
     expect(weeklySummary({ enabled: true, day: 0, hour: 7 })).toBe("Sundays at 07:00");
     expect(weeklySummary({ enabled: false, day: 0, hour: 7 })).toBe("Off");
-  });
-
-  it("say what Create starts from, Headlines included for an old file", () => {
-    expect(customSummary({ format: "discussion", length_minutes: 5 })).toBe("Discussion, 5 min");
-    expect(customSummary({ format: "headlines", length_minutes: 3 })).toBe("Headlines, 3 min");
   });
 });
 

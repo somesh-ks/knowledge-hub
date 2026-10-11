@@ -2,7 +2,13 @@ import { mkdir, mkdtemp, rm, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { afterEach, describe, expect, it } from "vitest";
-import { cadenceLabel, catalogLine, loadSourceCatalog, parseSourceCatalog } from "./sourceCatalog";
+import {
+  cadenceLabel,
+  catalogLine,
+  freshOffers,
+  loadSourceCatalog,
+  parseSourceCatalog,
+} from "./sourceCatalog";
 
 const entry = (overrides: Record<string, unknown> = {}) => ({
   id: "nngroup",
@@ -117,5 +123,28 @@ describe("loadSourceCatalog", () => {
     expect(found.map((source) => source.id)).toEqual(["fixture-one"]);
     // Without the switch the same root has no real catalogue.
     expect(await loadSourceCatalog({ root, env: {} })).toEqual([]);
+  });
+});
+
+describe("freshOffers", () => {
+  const offer = (id: string, feed: string) => ({
+    id,
+    name: id,
+    feed_url: feed,
+    about: "",
+    cadence: null,
+    tags: ["design"],
+  });
+
+  it("leaves out an offer whose site is already a source, www or not", () => {
+    const catalog = [
+      offer("held", "https://www.motion.example/feed.xml"),
+      offer("new", "https://type.example/rss"),
+    ];
+    expect(freshOffers(catalog, [{ host: "motion.example" }]).map((o) => o.id)).toEqual(["new"]);
+  });
+
+  it("offers everything when there are no sources yet", () => {
+    expect(freshOffers([offer("a", "https://a.example/feed")], [])).toHaveLength(1);
   });
 });

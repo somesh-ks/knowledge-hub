@@ -1,49 +1,20 @@
 /**
- * The Topics editor, loaded the first time a switch, a slider, a remove button or Add source is used
- * (topicsPage.ts forwards the event that woke it). It records each change as an op, and autosave.ts
- * sends it a moment later through managePageSave.ts. The Add source panel is topicsSheet.ts, loaded
- * when it is first opened.
+ * The Topics & Sources editor, loaded the first time a switch, a slider, a remove button, a source's
+ * row or Add is used (topicsPage.ts forwards the event that woke it). It records each change as an
+ * op, and autosave.ts sends it a moment later through managePageSave.ts. The panel that adds topics
+ * and sources and edits a source is topicsPanel.ts, loaded when it is first opened.
  *
  * The page is built with every control at its saved state, so what the editor holds is a comparison:
  * a control that differs from the state it was built (or last saved) in is a pending change.
  *
  * The pure parts are exported and tested; the rest is wiring.
  */
+import { type OfferData, slugify } from "../lib/topicText";
 import type { ConfigOp } from "../types/contracts";
 import { mountAutosave } from "./autosave";
 import type { Pending } from "./managePageSave";
-import type { Chosen } from "./topicsSheet";
+import type { Chosen, NewTopic, PanelStart, SourceEdit, SourceFacts } from "./topicsPanel";
 import { bandOf, element, iconNode, scoreNode } from "./topicsView";
-
-/** Most keywords a topic holds (MAX_KEYWORDS in core; the page script does not import core). */
-const MAX_KEYWORDS = 30;
-
-/** What a name leaves for an id: lowercase letters, digits and hyphens. Under two characters is no id. */
-export function idText(name: string): string {
-  return name
-    .toLowerCase()
-    .replace(/[^a-z0-9]+/g, "-")
-    .replace(/^-+|-+$/g, "")
-    .slice(0, 36);
-}
-
-/** A topic's id from its name: lowercase letters, digits and hyphens, unique among `taken`. */
-export function slugify(name: string, taken: readonly string[]): string {
-  const cleaned = idText(name);
-  const base = cleaned.length >= 2 ? cleaned : "topic";
-  let id = base;
-  for (let n = 2; taken.includes(id); n += 1) id = `${base}-${n}`;
-  return id;
-}
-
-/** Keywords from a comma-separated line: trimmed, no empties, no repeats, within what a topic holds. */
-export function keywordList(text: string): string[] {
-  const words = text
-    .split(",")
-    .map((word) => word.trim().slice(0, 60))
-    .filter(Boolean);
-  return [...new Set(words)].slice(0, MAX_KEYWORDS);
-}
 
 type Control = HTMLInputElement;
 
@@ -127,7 +98,7 @@ export function mountEditor(root: HTMLElement): Editor {
 
   /** A topic waiting to be saved, listed above the topics until it is. */
   const queue = (name: string, op: ConfigOp): void => {
-    const template = one<HTMLTemplateElement>("template:not(#source-sheet-template)");
+    const template = one<HTMLTemplateElement>("template:not(#topics-panel-template)");
     const row = template.content.firstElementChild?.cloneNode(true) as HTMLElement;
     added += 1;
     row.dataset.key = `new${added}`;
@@ -135,88 +106,72 @@ export function mountEditor(root: HTMLElement): Editor {
     row.querySelector("button")?.setAttribute("aria-label", `Cancel adding ${name}`);
     queued.append(row);
     changes.set(row.dataset.key, { op, el: row, now: "" });
-    autosave.changed();
-    // The form closes behind it, so focus and the view go to the row that says it is being added.
+    // The panel closes behind it, so focus and the view go to the row that says it is being added.
     row.tabIndex = -1;
     row.focus({ preventScroll: true });
     const reduce = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
     row.scrollIntoView({ block: "center", behavior: reduce ? "instant" : "smooth" });
   };
 
-  const addTopic = (form: HTMLFormElement): void => {
-    const data = new FormData(form);
-    const value = (name: string): string => String(data.get(name) ?? "").trim();
-    // The form skips the browser's own check so the message sits beside the field.
-    const bad = [
-      [
-        "name",
-        !value("name")
-          ? "Enter a name."
-          : idText(value("name")).length < 2
-            ? "Use at least two letters or numbers in the name."
-            : "",
-      ],
-      ["description", value("description") ? "" : "Say what should count as this topic."],
-    ] as const;
-    let first: HTMLElement | null = null;
-    for (const [field, message] of bad) {
-      const input = form.elements.namedItem(field) as HTMLInputElement;
-      const note = form.querySelector<HTMLElement>(`[data-error="${field}"]`);
-      if (!note) continue;
-      note.hidden = !message;
-      const line = note.querySelector("span");
-      if (line) line.textContent = message;
-      input.toggleAttribute("aria-invalid", Boolean(message));
-      if (message) first ??= input;
-    }
-    if (first) {
-      first.focus();
-      return;
-    }
+  /** A topic from the panel, with the catalogue sources ticked to go with it: one decision, sent now. */
+  const addTopic = (topic: NewTopic, offered: OfferData[]): void => {
     // A topic still waiting to be saved holds its id; one that was cancelled gives it back.
     const waiting = [...changes.values()].map(({ op }) =>
       op.op === "topic.upsert" ? (op.topic.id ?? "") : "",
     );
-    const id = slugify(value("name"), [...taken, ...waiting]);
-    queue(value("name"), {
+    const id = slugify(topic.name, [...taken, ...waiting]);
+    queue(topic.name, {
       op: "topic.upsert",
       topic: {
         id,
-        name: value("name"),
-        description: value("description"),
+        name: topic.name,
+        description: topic.description,
         weight: 0.5,
         enabled: true,
-        keywords: keywordList(value("keywords")),
+        keywords: topic.keywords,
         // A new topic gets a section of its own, titled after it.
         section_id: id,
       },
     });
-    form.reset();
-    form.closest("details")?.removeAttribute("open");
+    for (const offer of offered) {
+      addRow(
+        { name: offer.name, icon: offer.host ? `https://${offer.host}/favicon.ico` : null },
+        { op: "source.add", url: offer.feed_url, topic_ids: [id] },
+        "",
+      );
+    }
+    autosave.now();
   };
 
-  /** The row for a source just added from the panel, in its topic's list and tinted. */
-  const addSource = ({ url, topic_id, preview }: Chosen): void => {
+  /**
+   * The row for a source being added, in its topic's list and tinted. On the list page, or for a topic
+   * not built yet, it waits under the list until the build files it under its topic.
+   */
+  const addRow = (
+    shown: { name: string; icon: string | null; score?: number | null; label?: string },
+    op: ConfigOp,
+    topicId: string,
+  ): void => {
     added += 1;
     const key = `src${added}`;
     const row = element("li", "source-row is-new");
     row.dataset.key = key;
-    row.dataset.band = bandOf(preview.score);
-    row.dataset.score = String(preview.score);
-    row.dataset.name = preview.name.toLowerCase();
+    row.dataset.band = bandOf(shown.score ?? null);
+    row.dataset.score = String(shown.score ?? -1);
+    row.dataset.name = shown.name.toLowerCase();
+    const main = element("span", "source-main");
     const label = element("span", "source-text");
     const note = element("span", "source-note", "Adding");
-    label.append(element("span", "source-name", preview.name), note);
+    label.append(element("span", "source-name", shown.name), note);
+    main.append(iconNode(shown.icon, shown.name), label);
     row.append(
-      iconNode(preview.favicon_url ?? preview.thumbnail_url),
-      label,
-      scoreNode(preview.score, preview.score_label),
+      main,
+      scoreNode(shown.score ?? null, shown.label ?? "New"),
+      element("span", "source-slot"),
       element("span", "source-slot"),
     );
-    // On a topic's page the row joins its list; on the Topics list it waits under Add source until
-    // the build files it under its topic.
     const topic = [...root.querySelectorAll<HTMLElement>(".topic")].find(
-      (item) => item.dataset.id === (topic_id ?? ""),
+      (item) => item.dataset.id === topicId,
     );
     const list =
       topic?.querySelector("[data-sources]") ??
@@ -224,19 +179,77 @@ export function mountEditor(root: HTMLElement): Editor {
       one("[data-sources]");
     list.prepend(row);
     row.scrollIntoView({ block: "center" });
-    changes.set(key, {
-      op: { op: "source.add", url, ...(topic_id ? { topic_ids: [topic_id] } : {}) },
-      el: note,
-      now: "",
-    });
-    // Chosen in the panel, a source is a decision already made: it goes now, with anything waiting.
+    changes.set(key, { op, el: note, now: "" });
+  };
+
+  /** A source chosen by its address in the panel: a decision already made, so it goes now. */
+  const addSource = ({ url, topic_id, preview }: Chosen): void => {
+    addRow(
+      {
+        name: preview.name,
+        icon: preview.favicon_url ?? preview.thumbnail_url,
+        score: preview.score,
+        label: preview.score_label,
+      },
+      { op: "source.add", url, ...(topic_id ? { topic_ids: [topic_id] } : {}) },
+      topic_id,
+    );
+    autosave.now();
+  };
+
+  /**
+   * A source edited in the panel. A new name shows in its row at once; a new topic is said under its
+   * name until the build files it there. Sent now, like everything the panel decides.
+   */
+  const editSource = (edit: SourceEdit): void => {
+    const row = [...root.querySelectorAll<HTMLElement>("li.source-row")].find(
+      (item) => item.dataset.id === edit.id,
+    );
+    const button = row?.querySelector<HTMLElement>("[data-edit-source]");
+    if (!row || !button) return;
+    const facts = JSON.parse(button.dataset.editSource ?? "{}") as SourceFacts;
+    if (edit.name !== undefined) {
+      facts.name = edit.name;
+      row.dataset.name = edit.name.toLowerCase();
+      const name = row.querySelector(".source-name");
+      if (name) name.textContent = edit.name;
+      button.setAttribute("aria-label", `Edit ${edit.name}`);
+    }
+    if (edit.topic_ids !== undefined) {
+      facts.topic_id = edit.topic_ids[0] ?? "";
+      const select = document.querySelector<HTMLSelectElement>("[data-edit-topic]");
+      const chosen = [...(select?.options ?? [])].find((option) => option.value === facts.topic_id);
+      facts.topic_name = chosen?.text ?? (facts.topic_id ? facts.topic_id : "Other");
+      const text = row.querySelector(".source-text");
+      let note = row.querySelector<HTMLElement>(".source-note");
+      if (!note && text) {
+        note = element("span", "source-note");
+        text.append(note);
+      }
+      if (note) note.textContent = `Moves to ${facts.topic_name} after the next build.`;
+    }
+    button.dataset.editSource = JSON.stringify(facts);
+    // An earlier edit of this source that has not gone yet goes with this one.
+    const key = `edit:${edit.id}`;
+    const waiting = changes.get(key)?.op;
+    const op: ConfigOp = {
+      ...(waiting?.op === "source.update" ? waiting : {}),
+      op: "source.update",
+      ...edit,
+    };
+    changes.set(key, { op, el: button, now: JSON.stringify(op) });
     autosave.now();
   };
 
   const openPanel = (trigger: HTMLElement): void => {
-    const topic = trigger.dataset.addSource ?? "";
-    void import("./topicsSheet").then((module) =>
-      module.openSourceSheet(trigger, addSource, topic),
+    let start: PanelStart;
+    if ("editSource" in trigger.dataset) {
+      start = { kind: "edit", source: JSON.parse(trigger.dataset.editSource ?? "{}") };
+    } else if ("addSource" in trigger.dataset) {
+      start = { kind: "source", topicId: trigger.dataset.addSource ?? "" };
+    } else start = { kind: "topic" };
+    void import("./topicsPanel").then((module) =>
+      module.openPanel(trigger, { addTopic, addSource, editSource }, start),
     );
   };
 
@@ -245,7 +258,12 @@ export function mountEditor(root: HTMLElement): Editor {
   const press = (button: HTMLButtonElement): void => {
     const act = button.dataset.act;
     const row = button.closest<HTMLElement>("li");
-    if ("addSource" in button.dataset) openPanel(button);
+    if (
+      "addSource" in button.dataset ||
+      "addTopic" in button.dataset ||
+      "editSource" in button.dataset
+    )
+      openPanel(button);
     else if (act === "cancel" && row) {
       changes.delete(row.dataset.key ?? "");
       row.remove();
@@ -269,20 +287,11 @@ export function mountEditor(root: HTMLElement): Editor {
   return {
     handle(event) {
       const target = event.target as HTMLElement;
-      if (event.type === "submit") {
-        const form = target as HTMLFormElement;
-        if (form.dataset.add === "topic") addTopic(form);
-      } else if (event.type === "click") {
+      if (event.type === "click") {
         const button = target.closest("button");
         if (button) press(button);
       } else if (event.type === "input") {
         const control = target as Control;
-        const form = control.closest<HTMLFormElement>("form[data-add=topic]");
-        if (form && control.hasAttribute("aria-invalid")) {
-          control.removeAttribute("aria-invalid");
-          const note = form.querySelector<HTMLElement>(`[data-error="${control.name}"]`);
-          if (note) note.hidden = true;
-        }
         if (control.matches("[data-op]")) update(control);
       }
     },

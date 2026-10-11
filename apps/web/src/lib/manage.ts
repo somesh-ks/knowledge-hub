@@ -46,22 +46,36 @@ export interface ManageTopic {
 
 export interface ManageSource {
   id: string;
+  /** The owner's name for it when they renamed it, else its own. */
   name: string;
   host: string;
+  /** The source's own page, else its feed, for an Open link; null when neither is http or https. */
+  url: string | null;
   enabled: boolean;
   pinned: boolean;
-  /** The topic the source feeds: its first custom topic, else its category, else null. */
+  /**
+   * The topic the source is filed under: the first of its topics that is a known topic, custom or
+   * built-in, else its category, else null. An override that empties its topics files it under
+   * none (Other), whatever its category.
+   */
   topic_id: string | null;
+  /** Every topic it is filed under, for an edit panel, by that rule; `topic_id` is the first. */
+  topic_ids: string[];
   /** The site's own icon, https://<host>/favicon.ico; null when the address has no host. */
   favicon_url: string | null;
   /** "12 of 40 stories made a briefing", or null when there is no record yet. */
   record: string | null;
   /** True when the source has failed to load several times in a row. */
   struggling: boolean;
-  /** Quality score, 0 to 5 with one decimal; null while the source is new. */
+  /** Quality score, 0 to 3 with one decimal: health, quality and trust; null while it is new. */
   score: number | null;
   /** "Excellent", "Good", "Fair", "Poor", or "New" before there is enough history. */
   score_label: string;
+  /**
+   * The three parts of the score, each 0 to 1 with two decimals; null while the source is new.
+   * Trust is null while it is not measured: fewer than 10 items were asked the flag questions.
+   */
+  score_parts: { health: number; quality: number; trust: number | null } | null;
   /** One short sentence behind the score. */
   score_reason: string;
   /** Lowercase text the search matches. */
@@ -113,6 +127,16 @@ export function hostOf(address: string | null | undefined): string {
   }
 }
 
+/** The address itself when a page can link to it (http or https), else null. */
+export function linkOf(address: string | null | undefined): string | null {
+  if (!address) return null;
+  try {
+    return /^https?:$/.test(new URL(address).protocol) ? address : null;
+  } catch {
+    return null;
+  }
+}
+
 /** A site's icon at the conventional place, or null when the address is not a web address. */
 export function faviconOf(address: string | null | undefined): string | null {
   if (!address) return null;
@@ -129,6 +153,10 @@ export interface SourceStats {
   judged: number;
   passed: number;
   published: number;
+  /** Judged items asked the flag questions; absent from a record written before it was counted. */
+  asked?: number;
+  /** Asked items flagged as hype or sponsored. */
+  flagged?: number;
 }
 
 /**
@@ -293,11 +321,21 @@ interface RawSource {
   url: string | null;
   feed_url: string | null;
   enabled: boolean;
-  topic_id: string | null;
+  /** The topics the entry names, or null when it names none. */
+  topic_ids: string[] | null;
+  /** The built-in category it is hinted to. */
+  category: string | null;
   failures: number;
   last_ok: string | null;
   /** Discovery quality, 0 to 1. */
   quality: number | null;
+}
+
+/** The strings in a list, trimmed, or null when the value is not a list. */
+function stringList(value: unknown): string[] | null {
+  return Array.isArray(value)
+    ? value.map(asString).filter((entry): entry is string => entry !== null)
+    : null;
 }
 
 function parseSource(value: unknown): RawSource | null {
@@ -312,9 +350,8 @@ function parseSource(value: unknown): RawSource | null {
     url,
     feed_url: feed,
     enabled: asBool(value.enabled, true),
-    topic_id:
-      (Array.isArray(value.topic_ids) ? asString(value.topic_ids[0]) : null) ??
-      asString(value.category_hint),
+    topic_ids: stringList(value.topic_ids),
+    category: asString(value.category_hint),
     failures: asNumber(value.failures) ?? 0,
     last_ok: asString(value.last_ok),
     quality: isRecord(value.quality) ? asNumber(value.quality.score) : null,
@@ -330,6 +367,10 @@ interface Override {
   enabled?: boolean;
   pinned?: boolean;
   removed?: boolean;
+  /** Wins over the source's own name. */
+  name?: string;
+  /** Wins over the source's own topics; an empty list files it under none. */
+  topic_ids?: string[];
 }
 
 function parseOverrides(file: unknown): { added: RawSource[]; overrides: Map<string, Override> } {
@@ -339,14 +380,31 @@ function parseOverrides(file: unknown): { added: RawSource[]; overrides: Map<str
   if (isRecord(file) && isRecord(file.overrides)) {
     for (const [id, entry] of Object.entries(file.overrides)) {
       if (!isRecord(entry)) continue;
+      const name = asString(entry.name);
+      const topicIds = stringList(entry.topic_ids);
       overrides.set(id, {
         ...(typeof entry.enabled === "boolean" ? { enabled: entry.enabled } : {}),
         ...(typeof entry.pinned === "boolean" ? { pinned: entry.pinned } : {}),
         ...(typeof entry.removed === "boolean" ? { removed: entry.removed } : {}),
+        ...(name === null ? {} : { name }),
+        ...(topicIds === null ? {} : { topic_ids: topicIds }),
       });
     }
   }
   return { added, overrides };
+}
+
+/**
+ * The topics a source is filed under, first one first: the known ones among its topics (an
+ * override's list wins over the entry's own), else its category, else none. An override that
+ * empties the list files the source under none, so the owner's choice of Other holds even for a
+ * seed source with a category.
+ */
+function topicsOf(source: RawSource, override: Override, known: (id: string) => boolean): string[] {
+  if (override.topic_ids?.length === 0) return [];
+  const own = (override.topic_ids ?? source.topic_ids ?? []).filter(known);
+  if (own.length > 0) return [...new Set(own)];
+  return source.category === null ? [] : [source.category];
 }
 
 function parseStats(file: unknown): Map<string, SourceStats> {
@@ -354,11 +412,15 @@ function parseStats(file: unknown): Map<string, SourceStats> {
   if (!isRecord(file) || !isRecord(file.sources)) return result;
   for (const [id, entry] of Object.entries(file.sources)) {
     if (!isRecord(entry)) continue;
+    const asked = asNumber(entry.asked);
+    const flagged = asNumber(entry.flagged);
     result.set(id, {
       fetched: asNumber(entry.fetched) ?? 0,
       judged: asNumber(entry.judged) ?? 0,
       passed: asNumber(entry.passed) ?? 0,
       published: asNumber(entry.published) ?? 0,
+      ...(asked === null ? {} : { asked }),
+      ...(flagged === null ? {} : { flagged }),
     });
   }
   return result;
@@ -381,13 +443,16 @@ function parseHealth(file: unknown): Map<string, Health> {
 
 /**
  * The sources as rows: the registry plus the ones added on the site, with the owner's overrides
- * applied and removed ones left out. Pinned first, then by name.
+ * applied (a name or topics override wins over the source's own) and removed ones left out.
+ * Pinned first, then by name.
  */
 export function buildSources(input: {
   registry: unknown;
   user: unknown;
   stats: unknown;
   health: unknown;
+  /** The topics the page lists; a source's topic that is not one of them is passed over. */
+  topics?: readonly Pick<ManageTopic, "id">[];
   /** Clock for the freshness of a source's last good fetch; tests pass a fixed one. */
   now?: Date;
 }): ManageSource[] {
@@ -395,6 +460,8 @@ export function buildSources(input: {
   const { added, overrides } = parseOverrides(input.user);
   const stats = parseStats(input.stats);
   const health = parseHealth(input.health);
+  const knownTopics = input.topics ? new Set(input.topics.map((topic) => topic.id)) : null;
+  const known = (id: string): boolean => knownTopics === null || knownTopics.has(id);
   const seen = new Set<string>();
   const rows: ManageSource[] = [];
 
@@ -403,6 +470,8 @@ export function buildSources(input: {
     seen.add(source.id);
     const override = overrides.get(source.id) ?? {};
     if (override.removed) continue;
+    const name = override.name ?? source.name;
+    const topicIds = topicsOf(source, override, known);
     const host = hostOf(source.url) || hostOf(source.feed_url);
     const sourceHealth = health.get(source.id);
     const failures = Math.max(source.failures, sourceHealth?.failures ?? 0);
@@ -416,18 +485,21 @@ export function buildSources(input: {
     });
     rows.push({
       id: source.id,
-      name: source.name,
+      name,
       host,
+      url: linkOf(source.url) ?? linkOf(source.feed_url),
       enabled: override.enabled ?? source.enabled,
       pinned: override.pinned ?? false,
-      topic_id: source.topic_id,
+      topic_id: topicIds[0] ?? null,
+      topic_ids: topicIds,
       favicon_url: faviconOf(source.url ?? source.feed_url),
       record: recordInWords(sourceStats),
       struggling: failures >= STRUGGLING_FAILURES,
       score: rated.score,
       score_label: rated.label,
+      score_parts: rated.parts,
       score_reason: rated.reason,
-      search: `${source.name} ${host} ${source.id}`.toLowerCase(),
+      search: `${name} ${host} ${source.id}`.toLowerCase(),
     });
   }
   return rows.sort(
@@ -522,7 +594,7 @@ export async function loadManage(options: LoadManageOptions = {}): Promise<Manag
   const parsed = parseTopicsFile(topicsFile);
   const topics = parsed?.topics ?? fallbackTopics(preferences);
   const sections = parsed?.sections ?? fallbackSections();
-  const sources = buildSources({ registry, user, stats, health });
+  const sources = buildSources({ registry, user, stats, health, topics });
 
   const knownFeeds = [...parseSources(registry), ...parseOverrides(user).added].flatMap((source) =>
     [source.feed_url, source.url].filter((address): address is string => address !== null),

@@ -180,6 +180,55 @@ describe("parseConfigOp", () => {
     expect(parseConfigOp({ op: "source.set", id: "openai-blog", pinned: 1 })).toBeNull();
   });
 
+  it("accepts source.update with a name, topics, both, or an empty list for Other", () => {
+    const ops: ConfigOp[] = [
+      { op: "source.update", id: "openai-blog", name: "OpenAI News" },
+      { op: "source.update", id: "openai-blog", topic_ids: ["motion-craft"] },
+      { op: "source.update", id: "openai-blog", topic_ids: ["design_engineering_craft"] },
+      { op: "source.update", id: "openai-blog", name: "OpenAI", topic_ids: ["a-b", "c_d"] },
+      { op: "source.update", id: "openai-blog", topic_ids: [] },
+    ];
+    for (const op of ops) expect(parseConfigOp(op)).toEqual(op);
+  });
+
+  it("rebuilds source.update from its parts, trimming the name", () => {
+    expect(
+      parseConfigOp({
+        op: "source.update",
+        id: "openai-blog",
+        name: "  OpenAI News ",
+        enabled: false,
+        removed: true,
+      }),
+    ).toEqual({ op: "source.update", id: "openai-blog", name: "OpenAI News" });
+  });
+
+  it("refuses source.update that changes nothing or breaks a limit", () => {
+    const update = (change: Record<string, unknown>) =>
+      parseConfigOp({ op: "source.update", id: "openai-blog", ...change });
+    expect(update({})).toBeNull();
+    expect(update({ name: undefined, topic_ids: undefined })).toBeNull();
+    expect(update({ name: "n".repeat(80) })).not.toBeNull();
+    expect(update({ name: "n".repeat(81) })).toBeNull();
+    expect(update({ name: "" })).toBeNull();
+    expect(update({ name: "   " })).toBeNull();
+    expect(update({ name: "Open\nforged" })).toBeNull();
+    expect(update({ name: 7 })).toBeNull();
+    expect(update({ name: null })).toBeNull();
+    expect(update({ topic_ids: ["Motion Craft"] })).toBeNull();
+    expect(update({ topic_ids: "motion-craft" })).toBeNull();
+    expect(update({ topic_ids: null })).toBeNull();
+    expect(
+      update({ topic_ids: Array.from({ length: 12 }, (_, i) => `topic-${i}`) }),
+    ).not.toBeNull();
+    expect(update({ topic_ids: Array.from({ length: 13 }, (_, i) => `topic-${i}`) })).toBeNull();
+    // A bad name refuses the edit even when the topics are fine.
+    expect(update({ name: "", topic_ids: ["motion-craft"] })).toBeNull();
+    for (const id of ["A", "has space", "", 7, null, undefined]) {
+      expect(parseConfigOp({ op: "source.update", id, name: "Fine" })).toBeNull();
+    }
+  });
+
   it("checks every weight", () => {
     expect(parseConfigOp({ op: "weights.set", weights: {} })).toBeNull();
     expect(parseConfigOp({ op: "weights.set", weights: { "bad id": 0.5 } })).toBeNull();
@@ -477,6 +526,34 @@ describe("handleConfig", () => {
     const result = await handleConfig(input(body([upsert, add])), deps);
     expect(result.status).toBe(429);
     expect(github.requests.some((request) => request.method === "POST")).toBe(false);
+  });
+
+  it("dispatches a source.update as it was validated, alone or with another edit", async () => {
+    const { deps, github } = setup();
+    github.on(RUNS, { json: { workflow_runs: [] } });
+    github.on(DISPATCH, { json: { workflow_run_id: 12 } });
+    const update: ConfigOp = { op: "source.update", id: "openai-blog", topic_ids: [] };
+    const pin: ConfigOp = { op: "source.set", id: "openai-blog", pinned: true };
+    const result = await handleConfig(
+      input(body([{ ...update, name: " OpenAI ", extra: 1 }, pin])),
+      deps,
+    );
+    expect(result).toEqual({ status: 202, body: { status: 202, run_id: 12 } });
+    const dispatch = github.requests.find((request) => request.method === "POST");
+    const sent = (dispatch?.body as { inputs?: { op?: string } } | undefined)?.inputs?.op;
+    expect(JSON.parse(sent ?? "null")).toEqual([{ ...update, name: "OpenAI" }, pin]);
+  });
+
+  it("answers 400 for a source.update that changes nothing, before the passphrase", async () => {
+    const verify = vi.fn(async () => true);
+    const { deps, github } = setup({ verifyPassphrase: verify });
+    const result = await handleConfig(
+      input(body({ op: "source.update", id: "openai-blog" })),
+      deps,
+    );
+    expect(result.status).toBe(400);
+    expect(verify).not.toHaveBeenCalled();
+    expect(github.requests).toHaveLength(0);
   });
 
   it("dispatches only the validated edit, whatever else the caller sends", async () => {

@@ -10,6 +10,7 @@ import {
   faviconOf,
   hostOf,
   humanize,
+  linkOf,
   loadManage,
   parseTopicsFile,
   qualityInWords,
@@ -295,10 +296,62 @@ describe("buildSources", () => {
       now: new Date("2026-10-09T12:00:00Z"),
     });
     const byId = Object.fromEntries(rows.map((row) => [row.id, row]));
-    expect(byId.busy).toMatchObject({ score_label: "Excellent" });
-    expect(byId.busy?.score).toBeGreaterThanOrEqual(4.5);
-    expect(byId.busy?.score_reason).toBe("10 of 40 judged items published, no failures.");
-    expect(byId.fresh).toMatchObject({ score: null, score_label: "New" });
+    // The record predates the asked counter, so trust is not measured and the discovery score
+    // does not stand in for it: health and quality alone make the score.
+    expect(byId.busy).toMatchObject({
+      score: 3,
+      score_label: "Excellent",
+      score_parts: { health: 1, quality: 1, trust: null },
+      score_reason: "Trust is not measured yet; 10 of 40 judged items published, no failures.",
+    });
+    expect(byId.fresh).toMatchObject({ score: null, score_label: "New", score_parts: null });
+  });
+
+  it("measures trust from the asked and flagged counters when the record has them", () => {
+    const rows = buildSources({
+      registry: { sources: [{ id: "loud", name: "Loud", url: "https://loud.example/" }] },
+      user: null,
+      stats: {
+        sources: {
+          loud: { fetched: 60, judged: 40, passed: 20, published: 10, asked: 40, flagged: 10 },
+        },
+      },
+      health: { sources: { loud: { failures: 0, last_ok: "2026-10-09T06:00:00.000Z" } } },
+      now: new Date("2026-10-09T12:00:00Z"),
+    });
+    expect(rows[0]).toMatchObject({
+      score: 2.4,
+      score_label: "Good",
+      score_parts: { health: 1, quality: 1, trust: 0.5 },
+      score_reason:
+        "Trust is the weakest part: 10 of 40 checked items flagged as hype or sponsored.",
+    });
+  });
+
+  it("links to the source's own page, else its feed, and only over http or https", () => {
+    const rows = buildSources({
+      registry: {
+        sources: [
+          {
+            id: "page",
+            name: "Page",
+            url: "https://page.example/blog",
+            feed_url: "https://page.example/feed.xml",
+          },
+          { id: "feed-only", name: "Feed only", feed_url: "http://feed.example/rss" },
+          { id: "odd", name: "Odd", url: "javascript:alert(1)", feed_url: "ftp://odd.example/f" },
+        ],
+      },
+      user: null,
+      stats: null,
+      health: null,
+    });
+    const byId = Object.fromEntries(rows.map((row) => [row.id, row]));
+    expect(byId.page?.url).toBe("https://page.example/blog");
+    expect(byId["feed-only"]?.url).toBe("http://feed.example/rss");
+    expect(byId.odd?.url).toBeNull();
+    expect(linkOf("not a url")).toBeNull();
+    expect(linkOf(null)).toBeNull();
   });
 
   it("builds lowercase search text from the name, host and id", () => {
@@ -306,6 +359,120 @@ describe("buildSources", () => {
     expect(rows.find((row) => row.id === "zeta-blog")?.search).toBe(
       "zeta blog zeta.example zeta-blog",
     );
+  });
+});
+
+describe("buildSources: the topic a source is filed under", () => {
+  const topics = [{ id: "motion" }, { id: "design_engineering_craft" }, { id: "dev_tools" }];
+  const registry = {
+    sources: [
+      {
+        id: "custom",
+        name: "Custom",
+        url: "https://custom.example/",
+        topic_ids: ["motion"],
+        category_hint: "dev_tools",
+      },
+      {
+        id: "builtin",
+        name: "Built-in",
+        url: "https://builtin.example/",
+        topic_ids: ["design_engineering_craft"],
+        category_hint: "dev_tools",
+      },
+      {
+        id: "gone",
+        name: "Gone",
+        url: "https://gone.example/",
+        topic_ids: ["deleted_topic"],
+        category_hint: "dev_tools",
+      },
+      { id: "hinted", name: "Hinted", url: "https://hinted.example/", category_hint: "dev_tools" },
+      { id: "bare", name: "Bare", url: "https://bare.example/" },
+    ],
+  };
+  const rowsOf = (user: unknown) =>
+    Object.fromEntries(
+      buildSources({ registry, user, stats: null, health: null, topics }).map((row) => [
+        row.id,
+        row,
+      ]),
+    );
+
+  it("takes its first topic that is known, custom or built-in, before its category", () => {
+    const rows = rowsOf(null);
+    expect(rows.custom).toMatchObject({ topic_id: "motion", topic_ids: ["motion"] });
+    expect(rows.builtin).toMatchObject({
+      topic_id: "design_engineering_craft",
+      topic_ids: ["design_engineering_craft"],
+    });
+    expect(rows.gone).toMatchObject({ topic_id: "dev_tools", topic_ids: ["dev_tools"] });
+    expect(rows.hinted).toMatchObject({ topic_id: "dev_tools", topic_ids: ["dev_tools"] });
+    expect(rows.bare).toMatchObject({ topic_id: null, topic_ids: [] });
+  });
+
+  it("lists every known topic it feeds once, the first one first", () => {
+    const rows = Object.fromEntries(
+      buildSources({
+        registry: {
+          sources: [
+            {
+              id: "many",
+              name: "Many",
+              url: "https://many.example/",
+              topic_ids: ["deleted_topic", "motion", "design_engineering_craft", "motion"],
+            },
+          ],
+        },
+        user: null,
+        stats: null,
+        health: null,
+        topics,
+      }).map((row) => [row.id, row]),
+    );
+    expect(rows.many).toMatchObject({
+      topic_id: "motion",
+      topic_ids: ["motion", "design_engineering_craft"],
+    });
+  });
+
+  it("lets an override's name and topics win over the source's own", () => {
+    const rows = rowsOf({
+      added: [],
+      overrides: {
+        custom: { topic_ids: ["design_engineering_craft"] },
+        bare: { name: "  Bare Weekly ", topic_ids: ["motion"] },
+      },
+    });
+    expect(rows.custom).toMatchObject({
+      topic_id: "design_engineering_craft",
+      topic_ids: ["design_engineering_craft"],
+    });
+    expect(rows.bare).toMatchObject({
+      name: "Bare Weekly",
+      topic_id: "motion",
+      topic_ids: ["motion"],
+      search: "bare weekly bare.example bare",
+    });
+  });
+
+  it("files a seed source under Other when its override empties its topics, whatever its category", () => {
+    const rows = rowsOf({
+      added: [],
+      overrides: { hinted: { topic_ids: [] }, builtin: { name: "Renamed", topic_ids: [] } },
+    });
+    expect(rows.hinted).toMatchObject({ topic_id: null, topic_ids: [] });
+    expect(rows.builtin).toMatchObject({ name: "Renamed", topic_id: null, topic_ids: [] });
+    // Without an override the category still applies.
+    expect(rows.gone?.topic_id).toBe("dev_tools");
+  });
+
+  it("takes every topic id as known when no topic list is given", () => {
+    const rows = buildSources({ registry, user: null, stats: null, health: null });
+    expect(rows.find((row) => row.id === "gone")).toMatchObject({
+      topic_id: "deleted_topic",
+      topic_ids: ["deleted_topic"],
+    });
   });
 });
 
@@ -425,6 +592,49 @@ describe("loadManage", () => {
       record: "2 of 4 stories made a briefing",
     });
     expect(data.candidates[0]).toMatchObject({ domain: "new.example", quality: "Strong match" });
+  });
+
+  it("files sources against the topics it read, with the owner's overrides", async () => {
+    const root = await repo({
+      "config/topics.json": {
+        version: 1,
+        sections: [{ id: "mine", title: "Mine", order: 0 }],
+        topics: [
+          { id: "mine", name: "Mine", description: "Mine.", weight: 1, origin: "custom" },
+          { id: "design_engineering_craft", name: "Design engineering craft", weight: 0.9 },
+        ],
+      },
+      "config/sources.json": {
+        sources: [
+          { id: "one", name: "One", url: "https://one.example/", topic_ids: ["mine"] },
+          {
+            id: "two",
+            name: "Two",
+            url: "https://two.example/",
+            topic_ids: ["retired"],
+            category_hint: "design_engineering_craft",
+          },
+          {
+            id: "three",
+            name: "Three",
+            url: "https://three.example/",
+            category_hint: "design_engineering_craft",
+          },
+        ],
+      },
+      "config/sources.user.json": {
+        added: [],
+        overrides: { three: { name: "Third", topic_ids: [] } },
+      },
+    });
+    const data = await loadManage({ root, env: {} });
+    const byId = Object.fromEntries(data.sources.map((source) => [source.id, source]));
+    expect(byId.one).toMatchObject({ topic_id: "mine", url: "https://one.example/" });
+    expect(byId.two).toMatchObject({
+      topic_id: "design_engineering_craft",
+      topic_ids: ["design_engineering_craft"],
+    });
+    expect(byId.three).toMatchObject({ name: "Third", topic_id: null, topic_ids: [] });
   });
 
   it("reads the invented fixtures, and only the fixtures, when asked", async () => {

@@ -2,7 +2,7 @@
 import Icon from "../components/Icon.astro";
 import BaseLayout from "../layouts/BaseLayout.astro";
 import { loadManage } from "../lib/manage";
-import { customSummary, dailySummary, loadScheduleView, weeklySummary } from "../lib/schedule";
+import { dailySummary, loadScheduleView, weeklySummary } from "../lib/schedule";
 import { loadWriterView } from "../lib/writer";
 import { THEME_PREFERENCES, type ThemePreference } from "../player/core/preferences";
 // The build links this file before the layout's stylesheet, so its rules never rely on coming last:
@@ -21,13 +21,8 @@ const PODCAST = [
   { href: "/settings/daily", label: "Daily", hint: dailySummary(schedule) },
   { href: "/settings/weekly", label: "Weekly", hint: weeklySummary(schedule.weekly) },
   {
-    href: "/settings/custom",
-    label: "Custom",
-    hint: `What Create starts from: ${customSummary(schedule.custom)}`,
-  },
-  {
     href: "/settings/topics",
-    label: "Topics",
+    label: "Topics & Sources",
     hint: `${plural(topicCount, "topic")}, ${plural(manage.sources.length, "source")}`,
   },
   { href: "/settings/model", label: "Model", hint: writer.label },
@@ -120,7 +115,7 @@ const THEME_LABELS: Record<ThemePreference, string> = {
               <span class="settings-label">Add Singularity to your Home Screen</span>
               <span class="settings-hint">In Safari, tap Share, then Add to Home Screen.</span>
             </div>
-            <button class="btn press" type="button" data-install-dismiss>Hide this</button>
+            <button class="btn" type="button" data-install-dismiss>Hide this</button>
           </div>
         </div>
       </section>
