@@ -69,6 +69,35 @@ test.describe("axe, banners and live states", () => {
     });
   }
 
+  test("on a first load the stale banner is in place before the page is drawn", async ({
+    page,
+  }) => {
+    await page.setViewportSize({ width: 1280, height: 800 });
+    await page.clock.setFixedTime(new Date("2026-10-18T09:00:00+02:00"));
+    await page.goto("/");
+    await hydrated(page);
+    const banner = page.locator('[data-banner="stale"]');
+    await expect(banner).toHaveCount(1);
+    await expect(banner.locator(".banner-title")).toHaveText("This briefing is 11 days old");
+    // Put in by the page's module script, it arrived after the page had drawn and pushed it down
+    // (a layout shift of about 0.047 here).
+    const shift = await page.evaluate(
+      () =>
+        new Promise<number>((resolve) => {
+          let total = 0;
+          new PerformanceObserver((list) => {
+            for (const entry of list.getEntries() as (PerformanceEntry & {
+              value: number;
+              hadRecentInput: boolean;
+            })[])
+              if (!entry.hadRecentInput) total += entry.value;
+          }).observe({ type: "layout-shift", buffered: true });
+          setTimeout(() => resolve(total), 100);
+        }),
+    );
+    expect(shift).toBeLessThan(0.01);
+  });
+
   test("after a move to Today the stale banner is there from the new page's first frame", async ({
     page,
   }) => {

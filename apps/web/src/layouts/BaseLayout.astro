@@ -8,7 +8,10 @@ import CreateSheet from "../components/CreateSheet.astro";
 import RunStatus from "../components/RunStatus.astro";
 import SiteHeader from "../components/SiteHeader.astro";
 import { readBrandColors } from "../lib/brandColors";
+import { STALE_TIME_ZONE, STALE_TITLE, staleFrom } from "../lib/staleness";
 import PlayerRoot from "../player/PlayerRoot";
+// The device banners go in before first paint too, by an inline script hashed the same way.
+import bannersInit from "../scripts/bannersInit.js?raw";
 // The theme script runs inline in the head so a stored light or dark choice never flashes the other
 // theme before first paint. astro.config.mjs hashes this same file into the Content-Security-Policy.
 import themeInit from "../scripts/themeInit.js?raw";
@@ -46,6 +49,8 @@ interface Props {
   layout?: "aside" | "single";
   /** Set on digest pages so the player and CSS can tell which briefing is on screen. */
   digestId?: string;
+  /** The date of the briefing on screen when it is the latest one, the only kind that can go stale. */
+  latestDate?: string;
   skipLabel?: string;
 }
 
@@ -56,6 +61,7 @@ const {
   nav,
   layout = "single",
   digestId,
+  latestDate,
   skipLabel = "Skip to the briefing",
 } = Astro.props;
 
@@ -112,17 +118,8 @@ const fab = destination === "today" || path === "/library";
     <AppNav current={destination} />
     {fab && <CreateFab />}
     <RunStatus />
-    <div class="banner-stack page" id="banners"><slot name="banners" /></div>
-    <div class="shell page"><slot /></div>
-
-    {/* Both islands live in the layout and persist across navigation, so the audio object inside the
-         player module is never rebuilt and playback never stops while you move between pages. */}
-    <PlayerRoot client:idle transition:persist="player" />
-    <SheetsRoot client:idle transition:persist="sheets" />
-    {/* The Create page has the form in the page itself; every other page gets it as the sheet. */}
-    {view !== "create" && <CreateSheet />}
-
-    {/* Banners that depend on the device are cloned from these by app.ts, so their markup has one home. */}
+    {/* Banners that depend on the device are cloned from these, so their markup has one home: by the
+         script after the stack before first paint, and by deviceBanners.ts from then on. */}
     <template id="banner-offline">
       <Banner
         tone="warning"
@@ -139,6 +136,23 @@ const fab = destination === "today" || path === "/library";
         body="No newer briefing has been published yet."
       />
     </template>
+    <div class="banner-stack page" id="banners"><slot name="banners" /></div>
+    <script
+      is:inline
+      data-digest-date={latestDate}
+      data-stale-from={latestDate && staleFrom(latestDate)}
+      data-time-zone={STALE_TIME_ZONE}
+      data-title={STALE_TITLE}
+      set:html={bannersInit.trim()}
+    />
+    <div class="shell page"><slot /></div>
+
+    {/* Both islands live in the layout and persist across navigation, so the audio object inside the
+         player module is never rebuilt and playback never stops while you move between pages. */}
+    <PlayerRoot client:idle transition:persist="player" />
+    <SheetsRoot client:idle transition:persist="sheets" />
+    {/* The Create page has the form in the page itself; every other page gets it as the sheet. */}
+    {view !== "create" && <CreateSheet />}
 
     <script>
       import "../scripts/app";

@@ -7,8 +7,14 @@
 /** A digest is due about every second day, so more than three days old means a run was missed. */
 export const STALE_AFTER_DAYS = 3;
 
+/** The calendar a digest's date belongs to. */
+export const STALE_TIME_ZONE = "Europe/Stockholm";
+
+/** The stale banner's title; {days} is the age. */
+export const STALE_TITLE = "This briefing is {days} days old";
+
 const STOCKHOLM_DATE = new Intl.DateTimeFormat("en-CA", {
-  timeZone: "Europe/Stockholm",
+  timeZone: STALE_TIME_ZONE,
   year: "numeric",
   month: "2-digit",
   day: "2-digit",
@@ -31,6 +37,16 @@ export function staleAge(digestDate: string, today: string): number | null {
   return age > STALE_AFTER_DAYS ? age : null;
 }
 
+/**
+ * The first calendar day (YYYY-MM-DD) on which a digest of `digestDate` is stale. The build hands it
+ * to the inline script that shows the banner before first paint (bannersInit.js), so the rule stays
+ * here.
+ */
+export function staleFrom(digestDate: string): string {
+  const first = Date.parse(`${digestDate}T00:00:00Z`) + (STALE_AFTER_DAYS + 1) * 86_400_000;
+  return new Date(first).toISOString().slice(0, 10);
+}
+
 export function staleTitle(age: number): string {
-  return `This briefing is ${age} days old`;
+  return STALE_TITLE.replace("{days}", String(age));
 }

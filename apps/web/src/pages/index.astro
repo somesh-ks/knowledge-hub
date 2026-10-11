@@ -16,6 +16,7 @@ const earlier = site.entries.slice(1, 4);
   view="home"
   layout={latest ? "aside" : "single"}
   digestId={latest?.id}
+  latestDate={latest?.digest.date}
 >
   <Fragment slot="banners">
     {

@@ -117,3 +117,4 @@ One line each: symptom, cause, fix. Newest first. Search before debugging.
 
 - 2026-10-10: with a lone threshold of 1, Chromium's IntersectionObserver reports a target partly past the root edge as not intersecting, and never calls back when it then leaves. To tell a sticky element is stuck, observe with thresholds `[0, 1]` and compare `boundingClientRect.top` with `rootBounds.top`.
 - 2026-10-10: a "before" server from hours earlier still held port 4711, so a new server died with EADDRINUSE in a log nobody read and the tests ran against the old build (seven false failures). Check `lsof -iTCP -sTCP:LISTEN` or the server's log before trusting a port.
+- 2026-10-10: after a squash auto-merge, `git checkout -B <branch> origin/main` was refused by the auto mode classifier as destructive. Rename the merged local branch (`git branch -m`) and create the designated name fresh from `origin/main` instead; nothing is lost.

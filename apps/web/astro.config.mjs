@@ -11,14 +11,15 @@ import { FUNCTION_MAX_DURATION_S } from "./src/server/functionLimits.mjs";
 process.env.DISPATCH_REPO_ROOT ??= fileURLToPath(new URL("../../", import.meta.url));
 
 // The inline scripts must run before first paint, so they cannot be external files: the theme in the
-// head and the Library's saved view. Their hashes go into the Content-Security-Policy instead of
-// allowing inline scripts in general.
+// head, the device banners and the Library's saved view. Their hashes go into the
+// Content-Security-Policy instead of allowing inline scripts in general.
 const inlineScriptHash = (path) => {
   const code = readFileSync(new URL(path, import.meta.url), "utf8").trim();
   return `sha256-${createHash("sha256").update(code).digest("base64")}`;
 };
 const inlineScriptHashes = [
   inlineScriptHash("./src/scripts/themeInit.js"),
+  inlineScriptHash("./src/scripts/bannersInit.js"),
   inlineScriptHash("./src/scripts/libraryViewInit.js"),
 ];
 
