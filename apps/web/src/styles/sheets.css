@@ -580,19 +580,15 @@
  * its height yet.
  */
 .toast {
+  /* The navigation bar at the bottom, or the safe area where there is none. */
+  --toast-nav: var(--bottom-nav-height, var(--safe-bottom));
   --toast-dock: 0px;
   --toast-lift: 0px;
   /* Above the bars while Safari plays the exit outside the top layer (dialog.sheet, foundations.css). */
   z-index: var(--z-toast);
   /* The page accent is tuned for the page, so on the inverse surface the other theme's accent is used. */
   --toast-accent: var(--color-blue-300);
-  inset-block: auto
-    calc(
-      var(--bottom-nav-height, var(--safe-bottom)) +
-      var(--toast-dock) +
-      var(--toast-lift) +
-      var(--space-3)
-    );
+  inset-block: auto calc(var(--toast-nav) + var(--toast-dock) + var(--toast-lift) + var(--space-3));
   /* Centred on the page, not on the screen: from 64rem the navigation is a column at the side. */
   inset-inline: var(--side-nav-width, 0px) 0;
   /* Closed, a popover is display: none. Setting display here would keep it in the layout and the
@@ -644,12 +640,17 @@ html[data-mini="visible"] .toast {
 }
 
 /*
- * Below 64rem the run line and, above it, the floating Create button stack over the bottom bar
- * (create-sheet.css). A toast sits 12px above the higher of the two that shows: the run line alone
- * where there is no button (every page but Today and the Library, D52) or it is hidden (a sheet is
- * open), neither while the player is open.
+ * Below 64rem the open player slides the bottom bar away, and its own bar comes down onto the safe
+ * area: a toast clears only that. Otherwise the run line and, above it, the floating Create button
+ * stack over the bottom bar (create-sheet.css). A toast sits 12px above the higher of the two that
+ * shows: the run line alone where there is no button (every page but Today and the Library, D52) or
+ * it is hidden (a sheet is open), neither while the player is open.
  */
 @media (width < 64rem) {
+  html[data-player="open"] .toast {
+    --toast-nav: var(--safe-bottom);
+  }
+
   html:not([data-player="open"]) .toast {
     --toast-lift: var(--run-room);
   }
