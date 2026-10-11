@@ -84,23 +84,24 @@
   padding-block-end: var(--space-6);
 }
 
-/* The search field: one outlined box, the glyph inside it. */
+/* The search field: a filled pill with the glyph inside it, as a search bar is in every Google app.
+   The glyph and the placeholder say what it is; its ring says when it has focus. */
 .search-field {
   display: flex;
   align-items: center;
   gap: var(--space-3);
   height: var(--field-height);
   padding-inline: var(--space-4);
-  border: var(--stroke-hairline) solid var(--field-border);
-  border-radius: var(--field-radius);
+  border-radius: var(--radius-round);
+  background: var(--color-surface-sunken);
   color: var(--color-on-surface-muted);
   cursor: text;
-  transition: border-color var(--duration-hover) var(--ease-hover);
+  transition: background-color var(--duration-hover) var(--ease-hover);
 }
 
 .search-field:focus-within {
-  border-color: var(--color-accent);
-  outline: var(--stroke-hairline) solid var(--color-accent);
+  outline: var(--stroke-ring) solid var(--color-focus-ring);
+  outline-offset: var(--stroke-ring-gap);
 }
 
 .search-field > input {
@@ -141,7 +142,7 @@
   height: var(--size-touch);
   margin-block: auto;
   border: 0;
-  border-radius: max(0%, calc(var(--field-radius) - var(--stroke-hairline)));
+  border-radius: var(--radius-round);
   background: none;
   color: var(--color-on-surface-muted);
 }
@@ -231,9 +232,8 @@
     color: var(--color-on-surface);
   }
 
-  /* Not while it is focused: the focus edge stays under the pointer. */
   .search-field:hover:not(:focus-within) {
-    border-color: var(--color-on-surface);
+    background: color-mix(in oklch, var(--color-on-surface) 8%, var(--color-surface-sunken));
   }
 }
 
@@ -257,58 +257,38 @@
 
 /* ------------------------------------------------------------------ gallery and list */
 
-/* The view switch: two square buttons in one outlined group, at the far end of the bar. The chosen
-   one is filled and outlined all round, so it is told apart by more than its colour. */
+/* The view switch: two round icon buttons at the far end of the bar. The chosen one is tonal, in the
+   accent: a fill and a colour, as a chosen filter chip is. */
 .view-switch {
   display: inline-flex;
   flex: none;
-  height: var(--chip-height);
-  border: var(--stroke-hairline) solid var(--color-border-hairline);
-  border-radius: var(--button-radius);
+  gap: var(--space-1);
 }
 
-/* Each button nests inside the group's border: its corners are the group's less the hairline. */
 .view-btn {
   position: relative;
   display: grid;
   place-items: center;
   width: var(--size-touch);
-  height: 100%;
+  height: var(--size-touch);
   padding: 0;
   border: 0;
-  border-radius: calc(var(--button-radius) - var(--stroke-hairline));
+  border-radius: var(--radius-round);
   background: transparent;
   color: var(--color-on-surface-muted);
+  transition:
+    background-color var(--duration-hover) var(--ease-hover),
+    color var(--duration-hover) var(--ease-hover);
 }
 
-/* The group is 36px tall; each button's target is the full 44px. */
-.view-btn::after {
-  content: "";
-  position: absolute;
-  inset-inline: 0;
-  /* From the button's own height, whatever border the group draws around it. */
-  inset-block: calc((var(--size-touch) - 100%) / -2);
-}
-
-/* The chosen button's outline lies over the group's border, so the edge is drawn once. It sits
-   above its neighbour, whose hover fill would otherwise cover the side they share. */
 .view-btn[aria-pressed="true"] {
-  z-index: var(--z-raised);
   background: var(--color-accent-subtle);
   color: var(--color-accent);
-  box-shadow: 0 0 0 var(--stroke-hairline) currentColor;
 }
 
-/* A focused button's ring lies over its neighbour, the chosen one included. */
+/* A focused button's ring lies over its neighbour. */
 .view-btn:focus-visible {
   z-index: var(--z-overlay);
-}
-
-/* The focus ring keeps its gap outside that outline. */
-.view-btn[aria-pressed="true"]:focus-visible {
-  box-shadow:
-    0 0 0 var(--stroke-hairline) currentColor,
-    0 0 0 var(--stroke-ring-gap) var(--color-focus-gap);
 }
 
 @media (forced-colors: active) {
