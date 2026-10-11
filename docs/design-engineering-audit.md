@@ -50,4 +50,4 @@ None
 
 ## Since last audit
 
-Previous: first audit · Resolved: `LAY-scroll-edges`, `PRF-long-lists`, `LAY-radius-nesting`, `MOT-scale-icon-swap`, `PRF-layout-read-loop` · New: None · Persisting: `MOB-installed-alpha`, `TOK-dead-tokens`
+Previous: first audit · Resolved: `LAY-scroll-edges`, `PRF-long-lists`, `LAY-radius-nesting`, `MOT-scale-icon-swap`, `PRF-layout-read-loop`, `TOK-dead-tokens` · New: None · Persisting: `MOB-installed-alpha`
