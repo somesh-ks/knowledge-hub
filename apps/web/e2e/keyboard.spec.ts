@@ -40,7 +40,7 @@ test.describe("keyboard", () => {
       "a: Skip to the briefing",
       "a: Singularity, today's briefing",
       // Create is first in the side column. On a phone Today floats Play after the bar (D60).
-      ...(wide ? ["a: Create Podcast"] : []),
+      ...(wide ? ["a: New episode"] : []),
       "a: Today",
       "a: Library",
       "a: Settings",

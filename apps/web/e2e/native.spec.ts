@@ -148,7 +148,7 @@ test.describe("the floating button", () => {
     await expect(playFab(page)).toBeHidden();
   });
 
-  test("the side column keeps Create Podcast on every page, and no floating button shows", async ({
+  test("the side column keeps New episode on every page, and no floating button shows", async ({
     page,
   }, info) => {
     test.skip(info.project.name !== "desktop", "the side column is for wide screens");
@@ -159,10 +159,12 @@ test.describe("the floating button", () => {
     }
   });
 
-  test("on the Create page, Create Podcast goes to the top and keeps what is typed", async ({
+  test("on the Create page, New episode goes to the top and keeps what is typed", async ({
     page,
   }, info) => {
     test.skip(info.project.name !== "desktop", "the side column is for wide screens");
+    // Short enough that the whole form does not fit, so there is somewhere to scroll.
+    await page.setViewportSize({ width: 1280, height: 480 });
     await page.goto("/create");
     await expect(page.locator("main [data-create]")).toHaveAttribute("data-ready", "");
     const title = page.getByRole("textbox", { name: /^Title/ });

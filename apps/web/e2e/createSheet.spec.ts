@@ -49,14 +49,19 @@ test.describe("Create as the primary action", () => {
     if (wide) {
       await expect(page.locator(".create-fab")).toBeHidden();
       await expect(page.locator(".app-nav-create")).toBeVisible();
-      await expect(page.locator(".app-nav-create")).toHaveText("Create Podcast");
+      await expect(page.locator(".app-nav-create")).toHaveText("New episode");
+      // Gmail's Compose: it hugs its words, 56px tall, and does not fill the column.
+      const button = await page.locator(".app-nav-create").boundingBox();
+      const column = await page.locator(".app-nav").boundingBox();
+      expect(Math.round(button?.height ?? 0)).toBe(56);
+      expect(button?.width ?? 0).toBeLessThan((column?.width ?? 0) - 40);
     } else {
       await expect(page.locator(".app-nav-create")).toBeHidden();
-      await expect(page.getByRole("link", { name: "Create Podcast" })).toBeVisible();
+      await expect(page.getByRole("link", { name: "New episode" })).toBeVisible();
       // Extended at the top of the page, the plus and the word; folded to a 56px square while
       // scrolling down to read (D52).
       const fab = page.locator(".create-fab");
-      await expect(fab).toContainText("Create");
+      await expect(fab).toContainText("New episode");
       expect(Math.round((await fab.boundingBox())?.width ?? 0)).toBeGreaterThan(56);
       // The Library is short on a phone, so the steps are too: the first scroll loads the script
       // that folds the button and the second, with room left to scroll, folds it.
@@ -73,7 +78,7 @@ test.describe("Create as the primary action", () => {
 
   test("opens the sheet, Escape closes it and focus returns to the button", async ({ page }) => {
     await openSheet(page);
-    await expect(sheet(page).getByRole("heading", { name: "Create a podcast" })).toBeVisible();
+    await expect(sheet(page).getByRole("heading", { name: "New episode" })).toBeVisible();
     await page.keyboard.press("Escape");
     await expect(sheet(page)).toBeHidden();
     await expect(trigger(page)).toBeFocused();
@@ -82,6 +87,7 @@ test.describe("Create as the primary action", () => {
   test("Enter in the title puts the keyboard away and sends nothing", async ({ page }) => {
     const bodies = await mockRun(page, [{ run_id: 31, state: "running", step: null }]);
     await openSheet(page);
+    await sheet(page).getByText("More options").click();
     const title = sheet(page).getByRole("textbox", { name: /^Title/ });
     await title.fill("My week in AI");
     await title.press("Enter");

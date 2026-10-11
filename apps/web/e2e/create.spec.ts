@@ -52,10 +52,23 @@ async function clearTopics(page: Page): Promise<void> {
   await expect(page.locator('input[name="topic"]:checked')).toHaveCount(0);
 }
 
-/** Opens the page and waits for its script, which is what makes the form do anything. */
+/** Opens More options (Written for, voices, look back, tone, title) unless it is already open. */
+async function openMore(page: Page): Promise<void> {
+  const more = page.locator("[data-create-more]").first();
+  if (!(await more.evaluate((details) => (details as HTMLDetailsElement).open))) {
+    await more.locator("summary").click();
+  }
+  await expect(more).toHaveAttribute("open", "");
+}
+
+/**
+ * Opens the page and waits for its script, which is what makes the form do anything. More options
+ * is opened too, so every choice can be pressed; a test of the closed row opens the page itself.
+ */
 async function openCreate(page: Page): Promise<void> {
   await page.goto("/create");
   await expect(page.locator("[data-create]")).toHaveAttribute("data-ready", "");
+  await openMore(page);
 }
 
 /**
@@ -88,18 +101,17 @@ test.describe("the Create page", () => {
     await expect(page.locator("[data-run-card]")).toBeHidden();
   });
 
-  test("introduces itself in two lines and offers every choice", async ({ page }) => {
+  test("asks about topics first and offers every choice", async ({ page }) => {
     await openCreate(page);
-    await expect(page.getByRole("heading", { level: 1 })).toHaveText("Create a podcast");
-    await expect(page.locator(".create-lede")).toHaveText(
-      "Pick topics and a length. Singularity writes and reads an episode from the last few days of stories.",
-    );
+    await expect(page.getByRole("heading", { level: 1 })).toHaveText("New episode");
+    // No lede to explain the form: the form says it.
+    await expect(page.locator(".create-lede")).toHaveCount(0);
     await expect(page.getByRole("heading", { level: 2 })).toHaveText([
-      "Written for",
       "Topics",
       "Length",
       "Format",
-      "Voices",
+      "Written for",
+      "Voice",
       "Look back",
       "Tone",
       "Title (optional)",
@@ -184,14 +196,22 @@ test.describe("the Create page", () => {
     await expect(page.locator('input[name="topic"][value="top"]')).toHaveCount(0);
   });
 
-  test("choosing a mode changes the audience and replaces the selection with its preset", async ({
+  test("a new audience keeps topics picked by hand, says so, and offers its suggestion", async ({
     page,
   }) => {
     const mock = await mockPodcast(page, 202, { status: 202, run_id: 3, started_at: "x" });
     await openCreate(page);
     await expect(page.locator('input[name="audience"]:checked')).toHaveValue("custom");
+    const note = page.locator("[data-preset-note]");
+    await expect(note).toBeHidden();
     await chip(page, "Audio interfaces").click();
     await segment(page, "General").click();
+    // The hand-picked topics stay, and the line says so.
+    await expect(page.locator('input[name="topic"]:checked')).toHaveCount(4);
+    await expect(note).toBeVisible();
+    await expect(note).toContainText("Your topic picks are kept.");
+    await page.getByRole("button", { name: "Use suggested topics" }).click();
+    await expect(note).toBeHidden();
     // Every chip stays; the selection is General's preset, so the owner's own topic is unticked.
     await expect(page.locator(".filter-chip:visible")).toHaveCount(9);
     await expect(page.locator('input[name="topic"][value="audio_interfaces"]')).not.toBeChecked();
@@ -228,7 +248,7 @@ test.describe("the Create page", () => {
     await expect(ticked).toHaveText(["Design", "AI", "Technology"]);
   });
 
-  test("chips ticked by hand mix both kinds of topic, and switching the audience resets them", async ({
+  test("chips ticked by hand mix both kinds of topic, and switching the audience keeps them", async ({
     page,
   }) => {
     const mock = await mockPodcast(page, 202, { status: 202, run_id: 3, started_at: "x" });
@@ -245,9 +265,42 @@ test.describe("the Create page", () => {
       topic_ids: ["design", "ui-craft", "ai", "tech", "world", "sports"],
     });
     await segment(page, "General").click();
-    await expect(page.locator('input[name="topic"]:checked')).toHaveCount(6);
+    await expect(page.locator('input[name="topic"]:checked')).toHaveCount(5);
     await segment(page, "Somesh").click();
-    await expect(page.locator('input[name="topic"]:checked')).toHaveCount(3);
+    await expect(page.locator('input[name="topic"]:checked')).toHaveCount(5);
+    await expect(page.locator("[data-preset-note]")).toBeVisible();
+  });
+
+  test("More options is one closed row that names its choices, and opens in place", async ({
+    page,
+  }, info) => {
+    test.skip(info.project.name === "desktop", "a wide page keeps More options open");
+    await page.goto("/create");
+    await expect(page.locator("[data-create]")).toHaveAttribute("data-ready", "");
+    const more = page.locator("[data-create-more]");
+    await expect(more).not.toHaveAttribute("open", "");
+    await expect(page.locator("[data-more-values]")).toHaveText("For Somesh · A week · Neutral");
+    await expect(page.locator('input[name="tone"]').first()).toBeHidden();
+    await more.locator("summary").click();
+    await segment(page, "Dry").click();
+    await segment(page, "General").click();
+    await more.locator("summary").click();
+    await expect(page.locator("[data-more-values]")).toHaveText("For General · A week · Dry");
+  });
+
+  test("a wide page keeps More options open beside the main questions", async ({ page }, info) => {
+    test.skip(info.project.name !== "desktop", "only a wide page pins it");
+    await page.goto("/create");
+    await expect(page.locator("[data-create]")).toHaveAttribute("data-ready", "");
+    const more = page.locator("[data-create-more]");
+    await expect(more).toHaveAttribute("data-pinned", "");
+    await more.locator("summary").click();
+    await expect(more).toHaveAttribute("open", "");
+    const topics = await page.locator(".create-group-primary").boundingBox();
+    const box = await more.boundingBox();
+    expect((box?.x ?? 0) > (topics?.x ?? 0) + (topics?.width ?? 0)).toBe(true);
+    // The whole form is in view: Generate needs no scrolling.
+    await expect(submit(page)).toBeInViewport();
   });
 
   test("with the passphrase step off, Create sends straight away and mentions none", async ({
@@ -490,8 +543,11 @@ test.describe("the Create panel's voices", () => {
   }) => {
     const mock = await mockPodcast(page, 202, { status: 202, run_id: 7, started_at: "now" });
     await openCreate(page);
-    const ada = page.getByLabel("Voice", { exact: true });
-    const leo = page.getByLabel("Second voice");
+    const ada = page.locator('select[name="voice"]');
+    const leo = page.locator('select[name="voice_b"]');
+    const hint = page.locator("[data-format-hint]");
+    await expect(ada).toHaveAccessibleName("Voice");
+    await expect(hint).toHaveText("Read in one voice.");
     await expect(ada.locator("option")).toHaveText([
       "Default",
       // Each voice leads with the flag of its accent: en-US, en-US, en-GB.
@@ -503,8 +559,14 @@ test.describe("the Create panel's voices", () => {
     await expect(leo).toBeHidden();
     await segment(page, "Discussion").click();
     await expect(leo).toBeVisible();
+    // A discussion is two hosts, each with a voice, and the line under the format says so.
+    await expect(page.locator("#create-voice-label")).toHaveText("Voices");
+    await expect(ada).toHaveAccessibleName("First host's voice");
+    await expect(leo).toHaveAccessibleName("Second host's voice");
+    await expect(hint).toHaveText("Two hosts talk it through, in two voices.");
     await ada.selectOption("voice-ada");
     await leo.selectOption("voice-leo");
+    await expect(hint).toHaveText("Two hosts talk it through, voiced by Ada and Leo.");
     await openDialog(page);
     await confirm(page);
     await expect.poll(() => mock.bodies.length).toBe(1);
@@ -515,10 +577,41 @@ test.describe("the Create panel's voices", () => {
     });
   });
 
+  test("Default names the voice it stands for, in each host's place", async ({ page }) => {
+    await page.route("**/api/voices", (route) =>
+      route.fulfill({
+        json: {
+          voices: [
+            {
+              id: "voice-ada",
+              name: "Ada",
+              gender: "female",
+              language: "en-US",
+              preview_url: null,
+            },
+            { id: "voice-leo", name: "Leo", gender: "male", language: "en-US", preview_url: null },
+          ],
+          defaults: { voice: "voice-ada", voice_b: "voice-leo" },
+        },
+      }),
+    );
+    await openCreate(page);
+    const first = page.locator('select[name="voice"] option').first();
+    await expect(first).toHaveText("\u{1F1FA}\u{1F1F8} Default (Ada)");
+    await expect(page.locator("[data-format-hint]")).toHaveText("Read by Ada.");
+    await segment(page, "Discussion").click();
+    await expect(page.locator('select[name="voice_b"] option').first()).toHaveText(
+      "\u{1F1FA}\u{1F1F8} Default (Leo)",
+    );
+    await expect(page.locator("[data-format-hint]")).toHaveText(
+      "Two hosts talk it through, voiced by Ada and Leo.",
+    );
+  });
+
   test("a readout sends no second voice", async ({ page }) => {
     const mock = await mockPodcast(page, 202, { status: 202, run_id: 7, started_at: "now" });
     await openCreate(page);
-    await page.getByLabel("Voice", { exact: true }).selectOption("voice-nora");
+    await page.locator('select[name="voice"]').selectOption("voice-nora");
     await openDialog(page);
     await confirm(page);
     await expect.poll(() => mock.bodies.length).toBe(1);
@@ -683,7 +776,7 @@ test.describe("navigation with three destinations and one action", () => {
     page,
   }) => {
     await openCreate(page);
-    await expect(page.getByRole("heading", { level: 1 })).toHaveText("Create a podcast");
+    await expect(page.getByRole("heading", { level: 1 })).toHaveText("New episode");
     // The page has the form itself, so it carries no sheet to clone.
     await expect(page.locator("#create-sheet-template")).toHaveCount(0);
     await chip(page, "AI").click();
