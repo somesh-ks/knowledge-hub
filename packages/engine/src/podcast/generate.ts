@@ -1,17 +1,18 @@
 import {
   type Episode,
   episodeRelPath,
+  isGeneralTopicId,
   type PodcastRequest,
   serializeEpisodeFile,
 } from "@dispatch/core";
 import type { Logger } from "../context.js";
 import { createHttpClient, type HttpClient } from "../http.js";
-import { allocateEpisodeId, buildEpisode, writeEpisodeFile } from "./episode.js";
-import { selectGeneralStories } from "./general.js";
+import { allocateEpisodeId, buildEpisode, topicLabel, writeEpisodeFile } from "./episode.js";
+import { type GeneralSelection, selectGeneralStories } from "./general.js";
 import { planPodcast } from "./plan.js";
 import { generateScript, type ScriptResult } from "./script.js";
-import { selectStories } from "./select.js";
-import type { PodcastStory, ScriptWriter } from "./types.js";
+import { joinNames, type Selection, selectStories } from "./select.js";
+import { PodcastError, type PodcastStory, type ScriptWriter } from "./types.js";
 
 export interface GenerateInput {
   root: string;
@@ -39,7 +40,7 @@ export interface GenerateResult {
   digests: number;
   /** Chosen topics that had no story in the window; the episode is built from the others. */
   empty_topics: string[];
-  /** Feed reads of a general episode; absent for a briefing-based one. */
+  /** Feed reads when the request has general topics; absent for a briefing-only one. */
   feeds?: { ok: number; failed: number };
   script: Omit<ScriptResult, "turns">;
 }
@@ -52,33 +53,145 @@ interface Selected {
   feeds?: { ok: number; failed: number };
 }
 
-/** A general request reads news feeds; any other reads published briefings, exactly as before. */
+/**
+ * Share `max` stories between the briefing group and the general group in proportion to how many
+ * topics each has, at least one each when both have topics. Pure, so a test can pin it.
+ */
+export function storyShares(max: number, briefing: number, general: number): [number, number] {
+  if (general === 0) return [max, 0];
+  if (briefing === 0) return [0, max];
+  const first = Math.min(max - 1, Math.max(1, Math.round((max * briefing) / (briefing + general))));
+  return [first, max - first];
+}
+
+/**
+ * Merge two ranked groups into one best-first list. Each group gets its share of `max`; a group
+ * that falls short hands its unused room to the other. The groups alternate, so the strongest
+ * story of each leads and neither crowds the other out of the opening.
+ */
+export function mergeGroups<T>(
+  briefing: readonly T[],
+  general: readonly T[],
+  max: number,
+  shares: readonly [number, number],
+): T[] {
+  const [shareA, shareG] = shares;
+  let takeA = Math.min(briefing.length, shareA);
+  let takeG = Math.min(general.length, shareG);
+  const spare = max - takeA - takeG;
+  if (spare > 0) {
+    const extraA = Math.min(briefing.length - takeA, spare);
+    takeA += extraA;
+    takeG += Math.min(general.length - takeG, spare - extraA);
+  }
+  const a = briefing.slice(0, takeA);
+  const b = general.slice(0, takeG);
+  const merged: T[] = [];
+  for (let i = 0; i < Math.max(a.length, b.length); i += 1) {
+    const x = a[i];
+    const y = b[i];
+    if (x !== undefined) merged.push(x);
+    if (y !== undefined) merged.push(y);
+  }
+  return merged;
+}
+
+/**
+ * Pick the stories. A request names briefing ids (sections of published digests) and general topic
+ * ids (news feeds), under either audience. Briefing ids read the digests, general ids read the
+ * feeds, and a mixed request reads both and merges them. One group finding nothing is a warning;
+ * both finding nothing fails.
+ */
 async function select(
   input: GenerateInput,
   budget: ReturnType<typeof planPodcast>,
 ): Promise<Selected> {
-  if (input.request.audience === "general") {
-    const general = await selectGeneralStories({
+  const topicIds = input.request.topic_ids;
+  const generalIds = topicIds.filter(isGeneralTopicId);
+  const briefingIds = topicIds.filter((id) => !isGeneralTopicId(id));
+  const sub = (ids: string[], minStories?: number) => ({
+    plan: { ...budget, request: { ...input.request, topic_ids: ids } },
+    minStories,
+  });
+  const mixed = generalIds.length > 0 && briefingIds.length > 0;
+  const fromBriefings = async (): Promise<Selection> => {
+    const { plan, minStories } = sub(briefingIds, mixed ? 1 : undefined);
+    return selectStories(input.root, plan, input.now, input.log, minStories);
+  };
+  const fromFeeds = async (): Promise<GeneralSelection> => {
+    const { plan, minStories } = sub(generalIds, mixed ? 1 : undefined);
+    return selectGeneralStories({
       root: input.root,
-      plan: budget,
+      plan,
       now: input.now,
       http: input.http ?? createHttpClient(),
       log: input.log,
+      minStories,
     });
+  };
+  const feedCounts = (g: GeneralSelection) => ({ ok: g.feeds_ok, failed: g.feeds_failed });
+
+  if (!mixed) {
+    if (generalIds.length > 0) {
+      const general = await fromFeeds();
+      return {
+        stories: general.stories,
+        matched: general.matched,
+        digests: 0,
+        empty_topics: general.empty_topics,
+        feeds: feedCounts(general),
+      };
+    }
+    const selection = await fromBriefings();
     return {
-      stories: general.stories,
-      matched: general.matched,
-      digests: 0,
-      empty_topics: general.empty_topics,
-      feeds: { ok: general.feeds_ok, failed: general.feeds_failed },
+      stories: selection.stories,
+      matched: selection.matched,
+      digests: selection.digests,
+      empty_topics: selection.empty_topics,
     };
   }
-  const selection = await selectStories(input.root, budget, input.now, input.log);
+
+  // A group that finds nothing is not a failure while the other has stories.
+  const attempt = async <T>(run: () => Promise<T>, ids: string[]): Promise<T | null> => {
+    try {
+      return await run();
+    } catch (error) {
+      if (!(error instanceof PodcastError)) throw error;
+      input.log?.warn("No stories for some chosen topics", { topics: ids, reason: error.message });
+      return null;
+    }
+  };
+  const [briefing, general] = await Promise.all([
+    attempt(fromBriefings, briefingIds),
+    attempt(fromFeeds, generalIds),
+  ]);
+  if (!briefing && !general) {
+    throw new PodcastError(
+      `No stories in ${joinNames(topicIds.map(topicLabel))} in the last ${input.request.window_days} days.`,
+    );
+  }
+  const max = Math.max(2, budget.max_stories);
+  const stories = mergeGroups(
+    briefing?.stories ?? [],
+    general?.stories ?? [],
+    max,
+    storyShares(max, briefingIds.length, generalIds.length),
+  );
+  if (stories.length < 2) {
+    throw new PodcastError(
+      `Only ${stories.length} ${stories.length === 1 ? "story matches" : "stories match"} ${topicIds.join(", ")} in the last ${input.request.window_days} days; an episode needs at least 2. Try a longer window or more topics.`,
+    );
+  }
+  const empty = new Set([
+    ...(briefing ? briefing.empty_topics : briefingIds),
+    ...(general ? general.empty_topics : generalIds),
+  ]);
   return {
-    stories: selection.stories,
-    matched: selection.matched,
-    digests: selection.digests,
-    empty_topics: selection.empty_topics,
+    stories,
+    matched: (briefing?.matched ?? 0) + (general?.matched ?? 0),
+    digests: briefing?.digests ?? 0,
+    empty_topics: topicIds.filter((id) => empty.has(id)),
+    ...(general ? { feeds: feedCounts(general) } : {}),
   };
 }
 

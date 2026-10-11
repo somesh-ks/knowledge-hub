@@ -82,7 +82,6 @@ test.describe("Create as the primary action", () => {
   test("Enter in the title puts the keyboard away and sends nothing", async ({ page }) => {
     const bodies = await mockRun(page, [{ run_id: 31, state: "running", step: null }]);
     await openSheet(page);
-    await sheet(page).locator(".create-chip:visible", { hasText: "Trending" }).click();
     const title = sheet(page).getByRole("textbox", { name: /^Title/ });
     await title.fill("My week in AI");
     await title.press("Enter");
@@ -170,7 +169,6 @@ test.describe("Create as the primary action", () => {
       { run_id: 31, state: "completed", step: null, outcome: "published" },
     ]);
     await openSheet(page);
-    await sheet(page).locator(".create-chip:visible", { hasText: "Trending" }).click();
     await sheet(page).locator("[data-submit]").click();
     if (PASSPHRASE_REQUIRED) {
       const ask = page.getByRole("dialog", { name: "Enter the passphrase" });
@@ -182,7 +180,7 @@ test.describe("Create as the primary action", () => {
       passphrase: SENT,
       request: {
         audience: "custom",
-        topic_ids: ["trending"],
+        topic_ids: ["design", "ui-craft", "ai", "tech"],
         length_minutes: 5,
         format: "readout",
         window_days: 7,

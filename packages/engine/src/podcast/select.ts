@@ -86,6 +86,8 @@ export async function selectStories(
   plan: PodcastPlan,
   now: Date,
   log?: Logger,
+  /** The fewest stories that make a selection; 2 for an episode of briefing topics alone. */
+  minStories = 2,
 ): Promise<Selection> {
   const { request } = plan;
   const from = new Date(now.getTime() - request.window_days * DAY_MS);
@@ -126,11 +128,11 @@ export async function selectStories(
   if (emptyTopics.length > 0) {
     log?.warn("Some chosen topics have no stories in the window", { topics: emptyTopics });
   }
-  if (matched.length < 2) {
+  if (matched.length < minStories) {
     const advice =
       request.window_days < 30 ? "Try a longer window or more topics." : "Try more topics.";
     throw new PodcastError(
-      `Only ${matched.length} ${matched.length === 1 ? "story matches" : "stories match"} ${request.topic_ids.join(", ")} in the last ${request.window_days} days; an episode needs at least 2. ${advice}`,
+      `Only ${matched.length} ${matched.length === 1 ? "story matches" : "stories match"} ${request.topic_ids.join(", ")} in the last ${request.window_days} days; an episode needs at least ${minStories}. ${advice}`,
     );
   }
   return {

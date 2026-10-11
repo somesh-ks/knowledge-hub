@@ -1,7 +1,6 @@
 import { parse, stringify } from "yaml";
 import { z } from "zod";
 import { CoverSpec } from "./digest.js";
-import { GENERAL_TOPICS, isGeneralTopicId } from "./generalTopics.js";
 
 const isoDateTime = z.string().datetime({ offset: true });
 
@@ -55,23 +54,11 @@ export const StoredPodcastRequest = z.object({
 
 /**
  * What the listener asks for. Validated again by the engine, so a hand-edited request fails
- * clearly. A new request is a readout or a discussion; headlines is no longer offered.
+ * clearly. A new request is a readout or a discussion; headlines is no longer offered. Topics may
+ * mix briefing section ids and general topic ids under either audience.
  */
 export const PodcastRequest = StoredPodcastRequest.extend({
   format: z.enum(NEW_PODCAST_FORMATS),
-}).superRefine((request, ctx) => {
-  // A general episode is built from general news, so its topics come from the fixed general list.
-  // A custom request keeps the section and category ids of published digests, checked as before.
-  if (request.audience !== "general") return;
-  const unknown = request.topic_ids.filter((id) => !isGeneralTopicId(id));
-  if (unknown.length > 0) {
-    const allowed = GENERAL_TOPICS.map((topic) => topic.id).join(", ");
-    ctx.addIssue({
-      code: "custom",
-      path: ["topic_ids"],
-      message: `A general episode takes only ${allowed}; not ${unknown.join(", ")}`,
-    });
-  }
 });
 /** The request as the engine handles it: the stored shape, so a regenerated headlines episode still fits. */
 export type PodcastRequest = z.infer<typeof StoredPodcastRequest>;

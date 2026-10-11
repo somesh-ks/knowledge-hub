@@ -56,16 +56,15 @@ export function installCreate(root: HTMLElement, onStart?: () => void): void {
     }
   }
 
-  function sync(): void {
-    // Each mode offers its own topics: the other mode's chips are hidden and unticked, so a request
-    // only ever holds ids of the chosen mode.
-    const mode = new FormData(form).get("audience");
+  /** Switching the audience replaces the selection with that audience's preset; chips stay shown. */
+  function applyPreset(): void {
+    const audience = String(new FormData(form).get("audience"));
     for (const topic of topics) {
-      const chip = topic.closest<HTMLElement>("[data-mode]");
-      if (!chip) continue;
-      chip.hidden = chip.dataset.mode !== mode;
-      if (chip.hidden) topic.checked = false;
+      topic.checked = (topic.dataset.presets ?? "").split(" ").includes(audience);
     }
+  }
+
+  function sync(): void {
     if (topics.some((topic) => topic.checked)) say("topics");
     // A discussion has two hosts, so it takes Leo's voice as well as Ada's.
     const discussion = new FormData(form).get("format") === "discussion";
@@ -81,12 +80,20 @@ export function installCreate(root: HTMLElement, onStart?: () => void): void {
       $("[data-submit-text]").textContent = length.dataset.submitLabel;
   }
 
+  /** Each ticked chip adds its ids (Design sends two); an id never appears twice. */
+  function topicIds(): string[] {
+    const ids = topics
+      .filter((topic) => topic.checked)
+      .flatMap((topic) => (topic.dataset.ids || topic.value).split(" "));
+    return [...new Set(ids)];
+  }
+
   function request() {
     const data = new FormData(form);
     const title = String(data.get("title")).trim();
     return {
       audience: data.get("audience"),
-      topic_ids: data.getAll("topic"),
+      topic_ids: topicIds(),
       length_minutes: Number(data.get("length")),
       format: data.get("format"),
       window_days: Number(data.get("window")),
@@ -144,7 +151,10 @@ export function installCreate(root: HTMLElement, onStart?: () => void): void {
     }
   }
 
-  form.addEventListener("change", sync);
+  form.addEventListener("change", (event) => {
+    if ((event.target as HTMLInputElement | null)?.name === "audience") applyPreset();
+    sync();
+  });
   // The title's Enter key reads "Done": it puts the keyboard away and never submits, because a run
   // spends from the allowance. Generate is the one way to start one.
   const title = form.elements.namedItem("title");
@@ -160,7 +170,7 @@ export function installCreate(root: HTMLElement, onStart?: () => void): void {
     if (sending) return;
     if (!topics.some((topic) => topic.checked)) {
       say("topics", copy("topics"));
-      topics.find((topic) => !topic.closest("[hidden]"))?.focus();
+      topics[0]?.focus();
       return;
     }
     say("form");
@@ -204,6 +214,7 @@ export function installCreate(root: HTMLElement, onStart?: () => void): void {
     });
   }
 
+  applyPreset();
   sync();
   void loadVoices();
 }

@@ -1,10 +1,8 @@
 import { describe, expect, it } from "vitest";
 import {
   AUDIENCES,
-  createTopicOptions,
   DEFAULTS,
   FORMATS,
-  GENERAL_TOPICS,
   LENGTHS,
   MAX_TITLE_CHARS,
   submitLabel,
@@ -41,13 +39,6 @@ describe("the options", () => {
 });
 
 describe("topicOptions", () => {
-  const titles = [
-    { id: "design", title: "Design" },
-    { id: "ui-craft", title: "Design Engineering" },
-    { id: "ai", title: "AI Products" },
-    { id: "tech", title: "Tech Product Launches" },
-    { id: "trending", title: "Trending" },
-  ];
   const mine = (over: Record<string, unknown> = {}) => ({
     name: "Audio interfaces",
     section_id: "audio_interfaces",
@@ -57,36 +48,79 @@ describe("topicOptions", () => {
     ...over,
   });
 
-  it("always offers the five topics in the contract's order, never Top picks", () => {
-    const options = topicOptions(titles, []);
+  it("is one list in a fixed order, never Top picks or Trending", () => {
+    const options = topicOptions([], []);
     expect(options.map((option) => option.label)).toEqual([
       "Design",
-      "Design Engineering",
-      "AI Products",
-      "Tech Product Launches",
-      "Trending",
+      "AI",
+      "Technology",
+      "World",
+      "Business",
+      "Science",
+      "Culture",
+      "Sports",
     ]);
     expect(options.map((option) => option.value)).not.toContain("top");
-    expect(options.every((option) => option.mode === "custom")).toBe(true);
+    expect(options.flatMap((option) => option.ids)).not.toContain("trending");
   });
 
-  it("titles follow the file, and fall back when the file lacks a section", () => {
-    expect(topicOptions([{ id: "ai", title: "Artificial" }], [])[2]?.label).toBe("Artificial");
-    expect(topicOptions([], [])[0]?.label).toBe("Design");
+  it("expands Design to two sections and Technology to the owner's tech section", () => {
+    const ids = Object.fromEntries(topicOptions([], []).map((o) => [o.value, o.ids]));
+    expect(ids.design).toEqual(["design", "ui-craft"]);
+    expect(ids.ai).toEqual(["ai"]);
+    expect(ids.technology).toEqual(["tech"]);
+    expect(ids.world).toEqual(["world"]);
+    expect(ids.sports).toEqual(["sports"]);
   });
 
-  it("adds the owner's enabled custom topics after the five, marked custom", () => {
-    const options = topicOptions(titles, [
-      mine(),
-      mine({ name: "Off", section_id: "off", enabled: false }),
-      mine({ name: "Builtin", section_id: "x", origin: "builtin" }),
-      mine({ name: "Hidden", section_id: "y", never_publish: true }),
-      mine({ name: "Shares", section_id: "ai" }),
-      mine({ name: "Again", section_id: "audio_interfaces" }),
+  it("presets: Somesh is Design, AI, Technology; General is the news topics and Technology", () => {
+    const ticked = (audience: "custom" | "general") =>
+      topicOptions([], [mine()])
+        .filter((option) => option.presets.includes(audience))
+        .map((option) => option.label);
+    expect(ticked("custom")).toEqual(["Design", "AI", "Technology"]);
+    expect(ticked("general")).toEqual([
+      "Technology",
+      "World",
+      "Business",
+      "Science",
+      "Culture",
+      "Sports",
     ]);
-    expect(options.slice(5)).toEqual([
-      { value: "audio_interfaces", label: "Audio interfaces", mode: "custom" },
+  });
+
+  it("titles of the owner's topics follow the file; chip labels are fixed", () => {
+    const options = topicOptions([{ id: "ai", title: "Artificial" }], [mine()]);
+    expect(options[1]?.label).toBe("AI");
+    expect(options.at(-1)?.label).toBe("Audio interfaces");
+  });
+
+  it("adds the owner's enabled custom topics after the chips, in no preset", () => {
+    const options = topicOptions(
+      [],
+      [
+        mine(),
+        mine({ name: "Off", section_id: "off", enabled: false }),
+        mine({ name: "Builtin", section_id: "x", origin: "builtin" }),
+        mine({ name: "Hidden", section_id: "y", never_publish: true }),
+        mine({ name: "Shares", section_id: "ai" }),
+        mine({ name: "Folded", section_id: "ui-craft" }),
+        mine({ name: "Again", section_id: "audio_interfaces" }),
+      ],
+    );
+    expect(options.slice(8)).toEqual([
+      {
+        value: "audio_interfaces",
+        label: "Audio interfaces",
+        ids: ["audio_interfaces"],
+        presets: [],
+      },
     ]);
+  });
+
+  it("never offers one id twice", () => {
+    const all = topicOptions([], [mine()]).flatMap((option) => option.ids);
+    expect(new Set(all).size).toBe(all.length);
   });
 });
 
@@ -95,56 +129,5 @@ describe("audiences", () => {
     expect(AUDIENCES.map((audience) => audience.value)).toEqual(["general", "custom"]);
     expect(AUDIENCES.map((audience) => audience.label)).toEqual(["General", "Somesh"]);
     expect(DEFAULTS.audience).toBe("custom");
-  });
-});
-
-describe("the topics each mode offers", () => {
-  const owners = [
-    {
-      name: "Audio interfaces",
-      section_id: "audio_interfaces",
-      origin: "custom" as const,
-      enabled: true,
-      never_publish: false,
-    },
-  ];
-  const ids = (mode: string) =>
-    createTopicOptions([], owners)
-      .filter((option) => option.mode === mode)
-      .map((option) => option.value);
-
-  it("are six general topics in General mode, none of them a design topic or the owner's", () => {
-    expect(GENERAL_TOPICS.map((topic) => [topic.id, topic.title])).toEqual([
-      ["world", "World"],
-      ["business", "Business"],
-      ["technology", "Technology"],
-      ["science", "Science"],
-      ["culture", "Culture"],
-      ["sports", "Sports"],
-    ]);
-    expect(ids("general")).toEqual([
-      "world",
-      "business",
-      "technology",
-      "science",
-      "culture",
-      "sports",
-    ]);
-  });
-
-  it("are the five and the owner's own in Somesh mode mode, and no general topic", () => {
-    expect(ids("custom")).toEqual([
-      "design",
-      "ui-craft",
-      "ai",
-      "tech",
-      "trending",
-      "audio_interfaces",
-    ]);
-  });
-
-  it("never offer one id in both modes", () => {
-    const all = createTopicOptions([], owners).map((option) => option.value);
-    expect(new Set(all).size).toBe(all.length);
   });
 });

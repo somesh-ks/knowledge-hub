@@ -62,16 +62,15 @@ describe("a podcast request's topics", () => {
     }
   });
 
-  it("names the topics a general request may not use", () => {
-    const result = PodcastRequest.safeParse({
-      ...base,
-      topic_ids: ["world", "ai"],
-      audience: "general",
-    });
-    expect(result.success).toBe(false);
-    expect(JSON.stringify(result.error?.issues)).toMatch(
-      /A general episode takes only world, business, technology, science, culture, sports; not ai/,
-    );
+  it("accepts briefing ids mixed with general ids under either audience", () => {
+    for (const audience of ["general", "custom"] as const) {
+      const request = { ...base, topic_ids: ["design", "ui-craft", "tech", "world"], audience };
+      expect(PodcastRequest.safeParse(request).success).toBe(true);
+    }
+    expect(
+      PodcastRequest.safeParse({ ...base, topic_ids: ["world", "ai"], audience: "general" })
+        .success,
+    ).toBe(true);
   });
 
   it("validates a custom or untagged request as before", () => {

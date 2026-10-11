@@ -2,13 +2,13 @@
 import { OPEN_PASSPHRASE, PASSPHRASE_REQUIRED } from "../lib/access";
 import {
   AUDIENCES,
-  createTopicOptions,
   DEFAULTS,
   FORMATS,
   LENGTHS,
   MAX_TITLE_CHARS,
   submitLabel,
   TONES,
+  topicOptions,
   WINDOWS,
 } from "../lib/createForm";
 import { loadManage } from "../lib/manage";
@@ -21,7 +21,7 @@ import "../styles/settings.css";
 import "../styles/create.css";
 
 const { sections, topics: allTopics } = await loadManage();
-const topics = createTopicOptions(sections, allTopics);
+const topics = topicOptions(sections, allTopics);
 // What the panel starts from: the custom defaults in config/schedule.json (type, length and voices).
 const { custom } = await loadScheduleView();
 const startFormat = custom.format;
@@ -76,8 +76,15 @@ const COPY = {
       <fieldset class="create-chips" aria-labelledby="create-topics-label">
         {
           topics.map((topic) => (
-            <label class="create-chip" data-mode={topic.mode} hidden={topic.mode !== DEFAULTS.audience}>
-              <input type="checkbox" name="topic" value={topic.value} />
+            <label class="create-chip">
+              <input
+                type="checkbox"
+                name="topic"
+                value={topic.value}
+                data-ids={topic.ids.join(" ")}
+                data-presets={topic.presets.join(" ")}
+                checked={topic.presets.includes(DEFAULTS.audience)}
+              />
               <Icon name="check" class="create-chip-check" />
               <span>{topic.label}</span>
             </label>
