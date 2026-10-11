@@ -46,7 +46,7 @@
   /* The cover never takes more than this share of the window's height. */
   --player-cover-share: 40cqb;
   --player-skip-glyph: 2rem;
-  --player-play-glyph: 2.75rem;
+  --player-play-glyph: 2.25rem;
   --player-row-mark: var(--space-2);
 }
 
@@ -402,8 +402,13 @@
   align-content: start;
   justify-items: center;
   gap: var(--space-1);
-  /* Room for the title, a story of two lines and the source, kept at the bottom of the block: the
-     three sit together whatever the story's length, and nothing below moves when it changes. */
+  text-align: center;
+}
+
+/* Room for the title, a story of two lines and the source, kept at the bottom of the block: the
+   three sit together whatever the story's length, and nothing below moves when it changes. Only a
+   recording with a timeline of stories changes its line; any other keeps no empty room. */
+.player-meta[data-stories] {
   min-height: calc(
     var(--text-title-size) *
     var(--text-title-leading) +
@@ -414,7 +419,6 @@
     var(--space-1) *
     2
   );
-  text-align: center;
 }
 
 /* Two lines of room are kept, so a long headline changing to a short one moves nothing below. */
@@ -490,7 +494,7 @@
 .player-fallback-action {
   min-height: var(--size-touch);
   padding-inline: var(--space-6);
-  border-radius: var(--control-radius-sm);
+  border-radius: var(--button-radius);
   background: var(--color-accent);
   color: var(--color-on-accent);
   font-weight: var(--font-weight-semibold);
@@ -596,7 +600,7 @@
   /* Whatever the row's height, its controls sit in the middle of it. */
   padding-block-start: calc((var(--player-dock-row) - var(--mini-player-control-size)) / 2);
   padding-inline: max(var(--mini-player-inset), var(--safe-left))
-    max(var(--mini-player-inset), var(--safe-right));
+    calc(max(var(--mini-player-inset), var(--safe-right)) + var(--dock-gutter, 0px));
   background: var(--mini-player-bg);
   /* A hairline along the top edge, drawn outside the box so the height stays exact. */
   box-shadow: 0 calc(var(--stroke-hairline) * -1) 0 var(--color-border-hairline);
@@ -987,9 +991,30 @@
   }
 }
 
+.dock-btn {
+  transition: background-color var(--duration-press-in) var(--ease-out);
+}
+
+.dock-btn:not([aria-disabled="true"]):active {
+  background: color-mix(in oklch, var(--color-on-surface) var(--state-press), transparent);
+}
+
+/* A press anywhere else on the bar opens the player, and shows on the whole bar as it does. */
+.dock-open::after {
+  transition: background-color var(--duration-press-in) var(--ease-out);
+}
+
+.dock-open:active::after {
+  background: color-mix(in oklch, var(--color-on-surface) var(--state-press), transparent);
+}
+
 @media (hover: hover) and (pointer: fine) {
   .dock-btn:not([aria-disabled="true"]):hover {
-    background: color-mix(in oklch, var(--color-on-surface) 8%, transparent);
+    background: color-mix(in oklch, var(--color-on-surface) var(--state-hover), transparent);
+  }
+
+  .dock-btn:not([aria-disabled="true"]):hover:active {
+    background: color-mix(in oklch, var(--color-on-surface) var(--state-press), transparent);
   }
 
   .dock-seek:hover::-webkit-slider-thumb {
@@ -1050,7 +1075,7 @@
 
   .player-dock {
     padding-inline: max(var(--page-gutter), var(--safe-left))
-      max(var(--page-gutter), var(--safe-right));
+      calc(max(var(--page-gutter), var(--safe-right)) + var(--dock-gutter, 0px));
     transform: translate3d(0, calc(var(--p, 0) * var(--player-nav-travel)), 0);
     /* The hairline along the top, and the bar's own colour over the safe area it comes to rest on. */
     box-shadow:
@@ -1119,8 +1144,33 @@
     display: grid;
   }
 
+  /* On the wide bar play is the one filled control, as on the page. The phone's bar keeps a bare
+     glyph: it is a strip over the navigation, and a filled disc there would outweigh the page. */
+  .dock-btn[data-primary] {
+    background: var(--color-accent);
+    color: var(--color-on-accent);
+  }
+
+  .dock-btn[data-primary] .spinner {
+    color: var(--color-on-accent);
+  }
+
+  .dock-btn[data-primary]:active {
+    background: color-mix(in oklch, var(--color-accent), var(--color-on-accent) var(--state-press));
+  }
+
   .dock-time {
     display: inline-flex;
+  }
+}
+
+@media (hover: hover) and (pointer: fine) and (min-width: 64rem) {
+  .dock-btn[data-primary]:not([aria-disabled="true"]):hover {
+    background: color-mix(in oklch, var(--color-accent), var(--color-on-accent) var(--state-hover));
+  }
+
+  .dock-btn[data-primary]:not([aria-disabled="true"]):hover:active {
+    background: color-mix(in oklch, var(--color-accent), var(--color-on-accent) var(--state-press));
   }
 }
 
@@ -1212,11 +1262,6 @@
     min-height: 0;
     padding-block-start: var(--space-8);
     contain: size;
-  }
-
-  /* Two lists in one column: the view's height is the room the tabs leave. */
-  .player-list:has(.player-views) {
-    min-height: 0;
   }
 
   .player-list > :is(.player-script, .story-list) {
@@ -1367,7 +1412,7 @@
   grid-template-columns: repeat(5, auto);
   align-items: center;
   justify-content: space-between;
-  row-gap: 0;
+  row-gap: var(--space-3);
   padding-block: var(--space-2) var(--space-4);
 }
 
@@ -1394,11 +1439,18 @@
   height: var(--transport-glyph);
 }
 
-/* The play button is told apart by size alone: a larger glyph in the same ink. */
+/* Play is the one filled control: the accent's disc, larger than everything around it. */
 .transport-btn[data-primary] {
   --transport-glyph: var(--player-play-glyph);
   width: var(--control-size-lg);
   height: var(--control-size-lg);
+  background: var(--color-accent);
+  color: var(--color-on-accent);
+  transition: background-color var(--duration-press-in) var(--ease-out);
+}
+
+.transport-btn[data-primary] .spinner {
+  color: var(--color-on-accent);
 }
 
 .transport-btn[aria-disabled="true"] {
@@ -1439,11 +1491,25 @@
   translate: 0 calc(var(--player-skip-glyph) * 0.03);
 }
 
+/* State layers: a share of the control's own ink over its fill (none, for the quiet ones). */
 @media (hover: hover) and (pointer: fine) {
-  .transport-btn:not([aria-disabled="true"]):hover {
-    background: var(--color-surface-sunken);
+  .transport-btn:not([aria-disabled="true"], [data-primary]):hover {
+    background: color-mix(in oklch, var(--color-on-surface) var(--state-hover), transparent);
     color: var(--color-on-surface);
   }
+
+  .transport-btn[data-primary]:hover {
+    background: color-mix(in oklch, var(--color-accent), var(--color-on-accent) var(--state-hover));
+  }
+}
+
+.transport-btn:not([aria-disabled="true"], [data-primary]):active {
+  background: color-mix(in oklch, var(--color-on-surface) var(--state-press), transparent);
+  color: var(--color-on-surface);
+}
+
+.transport-btn[data-primary]:active {
+  background: color-mix(in oklch, var(--color-accent), var(--color-on-accent) var(--state-press));
 }
 
 /* ------------------------------------------------------------------ speed */
@@ -1464,9 +1530,9 @@
   min-width: calc(5ch + var(--space-3) * 2);
   min-height: var(--size-touch);
   padding-inline: var(--space-3);
-  border-radius: var(--radius-round);
-  background: var(--color-surface-sunken);
-  color: var(--color-on-surface-muted);
+  border-radius: var(--button-radius);
+  background: var(--color-surface-container);
+  color: var(--color-on-surface);
   font-size: var(--font-size-label);
   font-weight: var(--font-weight-semibold);
   transition:
@@ -1474,19 +1540,28 @@
     color var(--duration-hover) var(--ease-hover);
 }
 
+/* Open, it is the selected state: the accent's container, as a chosen chip's. */
 .speed-btn[aria-expanded="true"] {
-  color: var(--color-on-surface);
+  background: var(--color-accent-container);
+  color: var(--color-on-accent-container);
 }
 
 @media (hover: hover) and (pointer: fine) {
   .speed-btn:hover {
-    background: color-mix(in oklch, var(--color-on-surface) 8%, var(--color-surface-sunken));
-    color: var(--color-on-surface);
+    background: color-mix(
+      in oklch,
+      var(--color-surface-container),
+      var(--color-on-surface) var(--state-hover)
+    );
   }
 }
 
 .speed-btn:active {
-  background: color-mix(in oklch, var(--color-on-surface) 14%, var(--color-surface-sunken));
+  background: color-mix(
+    in oklch,
+    var(--color-surface-container),
+    var(--color-on-surface) var(--state-press)
+  );
 }
 
 /*
@@ -1651,16 +1726,17 @@
   transition-duration: var(--duration-press-in);
 }
 
-/* The common speeds under the slider, whose fine steps are hard to land on by finger: quiet text
-   buttons, the chosen one in full ink on a soft fill. */
+/* The common speeds under the slider, whose fine steps are hard to land on by finger: quiet pills,
+   the chosen one in the accent's container, as a chosen chip is. */
 .speed-presets {
   display: grid;
   grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: var(--space-1);
 }
 
 .speed-preset {
   min-height: var(--size-touch);
-  border-radius: var(--radius-sm);
+  border-radius: var(--button-radius);
   color: var(--color-on-surface-muted);
   font-size: var(--font-size-label);
   font-weight: var(--font-weight-medium);
@@ -1670,19 +1746,27 @@
 }
 
 .speed-preset[aria-pressed="true"] {
-  background: color-mix(in oklch, var(--color-on-surface) 8%, transparent);
-  box-shadow: inset 0 0 0 var(--stroke-hairline) var(--color-border-control);
-  color: var(--color-on-surface);
+  background: var(--color-accent-container);
+  color: var(--color-on-accent-container);
 }
 
 @media (hover: hover) and (pointer: fine) {
-  .speed-preset:hover {
+  .speed-preset:not([aria-pressed="true"]):hover {
+    background: color-mix(in oklch, var(--color-on-surface) var(--state-hover), transparent);
     color: var(--color-on-surface);
   }
 }
 
-.speed-preset:active {
-  background: color-mix(in oklch, var(--color-on-surface) 14%, transparent);
+.speed-preset:not([aria-pressed="true"]):active {
+  background: color-mix(in oklch, var(--color-on-surface) var(--state-press), transparent);
+}
+
+.speed-preset[aria-pressed="true"]:active {
+  background: color-mix(
+    in oklch,
+    var(--color-accent-container),
+    var(--color-on-accent-container) var(--state-press)
+  );
 }
 
 /* ------------------------------------------------------------------ the script */
@@ -1709,10 +1793,21 @@
   width: 100%;
   padding-block: var(--space-3);
   padding-inline: var(--space-3);
-  border-radius: var(--radius-md);
+  border-radius: var(--row-radius);
   text-align: start;
   /* A press or a pointer shows on the fill; the words keep their size and weight. */
   transition: background-color var(--duration-hover) var(--ease-hover);
+}
+
+/* The turn being spoken sits in the accent's container, the current state everywhere else in the
+   app (the chapter being read, the chosen chip), so it is plain at a glance in either theme. Its
+   words and its speaker take the container's own ink. */
+.script-turn[aria-current="true"] {
+  background: var(--color-accent-container);
+}
+
+.script-turn[aria-current="true"] :is(.script-text, .script-speaker) {
+  color: var(--color-on-accent-container);
 }
 
 /* Drawn inside the turn: the column clips anything outside it on a wide screen. */
@@ -1740,10 +1835,8 @@
   transition: color var(--duration-state) var(--ease-out);
 }
 
-/* While the voice is followed: turns not yet reached are muted, and in the turn being spoken every
-   word after the current one. The ones already said keep full ink. */
-.script-turns[data-following] .script-turn:not([data-said], [aria-current="true"]) .script-text,
-.script-turn[aria-current="true"] .script-text > span:has([data-spoken]) ~ span {
+/* While the voice is followed: turns not yet reached are muted. The ones already said keep full ink. */
+.script-turns[data-following] .script-turn:not([data-said], [aria-current="true"]) .script-text {
   color: var(--color-on-surface-muted);
 }
 
@@ -1758,21 +1851,30 @@
     box-shadow var(--duration-press-in) var(--ease-hover);
 }
 
-/* The fill grows a hair past the word on each side, so it reads as a highlight and not a box. */
+/* The fill grows a hair past the word on each side, so it reads as a highlight and not a box. It is
+   the container's ink, so it reads on the current turn's fill in both themes. */
 .script-word[data-spoken] {
-  background: color-mix(in oklch, var(--color-on-surface) 14%, transparent);
-  box-shadow: 0 0 0 calc(var(--space-1) / 2)
-    color-mix(in oklch, var(--color-on-surface) 14%, transparent);
+  --spoken-fill: color-mix(in oklch, var(--color-on-accent-container) 18%, transparent);
+  background: var(--spoken-fill);
+  box-shadow: 0 0 0 calc(var(--space-1) / 2) var(--spoken-fill);
 }
 
-/* The spoken word keeps its own fill under the pointer. */
+/* State layers: the turn's ink over its fill. The spoken word keeps its own fill under the pointer. */
 @media (hover: hover) and (pointer: fine) {
-  .script-turn:not([aria-disabled="true"]):hover {
-    background: var(--color-surface-sunken);
+  .script-turn:not([aria-disabled="true"], [aria-current="true"]):hover {
+    background: color-mix(in oklch, var(--color-on-surface) var(--state-hover), transparent);
+  }
+
+  .script-turn[aria-current="true"]:hover {
+    background: color-mix(
+      in oklch,
+      var(--color-accent-container),
+      var(--color-on-accent-container) var(--state-hover)
+    );
   }
 
   .script-turn:not([aria-disabled="true"]) .script-word:not([data-spoken]):hover {
-    background: color-mix(in oklch, var(--color-on-surface) 10%, transparent);
+    background: color-mix(in oklch, currentColor var(--state-press), transparent);
   }
 }
 
@@ -1780,8 +1882,16 @@
   cursor: default;
 }
 
-.script-turn:not([aria-disabled="true"]):active {
-  background: color-mix(in oklch, var(--color-on-surface) 8%, transparent);
+.script-turn:not([aria-disabled="true"], [aria-current="true"]):active {
+  background: color-mix(in oklch, var(--color-on-surface) var(--state-press), transparent);
+}
+
+.script-turn[aria-current="true"]:active {
+  background: color-mix(
+    in oklch,
+    var(--color-accent-container),
+    var(--color-on-accent-container) var(--state-press)
+  );
 }
 
 /* Chapters or the transcript, when an episode has both: tabs, past the top margin the list keeps. */
@@ -1790,9 +1900,12 @@
 }
 
 /* One column: the list is never shorter than the player, so choosing the shorter view cannot shrink
-   the page and move the switch from under the finger. */
-.player-list:has(.player-views) {
-  min-height: 100cqb;
+   the page and move the switch from under the finger. Only one column: from 64rem the list is a
+   column exactly as tall as the page, and this would push its end under the bar, past its fade. */
+@media (max-width: 63.9375rem) {
+  .player-list:has(.player-views) {
+    min-height: 100cqb;
+  }
 }
 
 .script-back {
@@ -1803,7 +1916,7 @@
   margin-inline: auto;
   min-height: var(--size-touch);
   padding-inline: var(--space-4);
-  border-radius: var(--control-radius-sm);
+  border-radius: var(--button-radius);
   background: var(--color-surface-inverse);
   color: var(--color-on-surface-inverse);
   font-size: var(--font-size-label);
@@ -1950,8 +2063,8 @@
   grid-auto-flow: column;
   grid-auto-columns: minmax(0, 1fr);
   padding: var(--segmented-padding);
-  border-radius: var(--segmented-radius);
-  background: var(--color-surface-sunken);
+  border-radius: var(--button-radius);
+  background: var(--color-surface-container);
 }
 
 .segmented label {
@@ -1961,7 +2074,7 @@
   min-width: 0;
   /* With the track's padding this makes the control 44px tall, and taller if the text grows. */
   min-height: calc(var(--segmented-height) - var(--segmented-padding) * 2);
-  border-radius: var(--segmented-segment-radius);
+  border-radius: var(--button-radius);
   color: var(--color-on-surface-muted);
   font-size: var(--font-size-label);
   font-weight: var(--font-weight-medium);
@@ -1987,7 +2100,7 @@
 }
 
 .segmented label:has(input:checked) {
-  color: var(--color-on-surface);
+  color: var(--color-on-accent-container);
 }
 
 /*
@@ -2026,9 +2139,9 @@
   inset-block: var(--segmented-padding);
   inset-inline-start: var(--segmented-padding);
   width: calc((100% - var(--segmented-padding) * 2) / var(--seg-n));
-  border-radius: var(--segmented-segment-radius);
-  background: var(--segmented-selected-bg);
-  box-shadow: 0 0 0 var(--stroke-hairline) var(--color-border-control);
+  border-radius: var(--button-radius);
+  /* Tonal, not outlined: the chosen segment is the accent's container, as a chosen chip is. */
+  background: var(--color-accent-container);
   opacity: 0;
   pointer-events: none;
   transform: translateX(calc(var(--seg-i) * 100%));
@@ -2055,17 +2168,24 @@
   outline-offset: var(--stroke-ring-gap);
 }
 
-/* A press is a state layer on the segment, as in Settings: a fill, never a scale on the words. */
+/* Hover and press are state layers on the segment: a fill, never a scale on the words. */
 .segmented label:active {
   background-image: linear-gradient(
-    color-mix(in oklch, var(--color-on-surface) 10%, transparent),
-    color-mix(in oklch, var(--color-on-surface) 10%, transparent)
+    color-mix(in oklch, currentColor var(--state-press), transparent),
+    color-mix(in oklch, currentColor var(--state-press), transparent)
   );
 }
 
 @media (hover: hover) and (pointer: fine) {
-  .segmented label:hover {
+  .segmented label:not(:has(input:checked)):hover {
     color: var(--color-on-surface);
+  }
+
+  .segmented label:hover:not(:active) {
+    background-image: linear-gradient(
+      color-mix(in oklch, currentColor var(--state-hover), transparent),
+      color-mix(in oklch, currentColor var(--state-hover), transparent)
+    );
   }
 }
 
@@ -2086,6 +2206,11 @@
   border-radius: 0;
 }
 
+/* As tabs the chosen label is the page's full ink; the bar under it carries the accent. */
+.segmented-tabs label:has(input:checked) {
+  color: var(--color-on-surface);
+}
+
 .segmented-tabs::before {
   inset-block: auto 0;
   height: calc(var(--stroke-rail) * 1.5);
@@ -2094,11 +2219,11 @@
   box-shadow: none;
 }
 
-/* A press is a state layer over the whole tab, as a tab's is elsewhere. */
+/* A tab's state layers cover the whole tab, in the page's ink. */
 .segmented-tabs label:active {
   background-image: linear-gradient(
-    color-mix(in oklch, var(--color-on-surface) 8%, transparent),
-    color-mix(in oklch, var(--color-on-surface) 8%, transparent)
+    color-mix(in oklch, var(--color-on-surface) var(--state-press), transparent),
+    color-mix(in oklch, var(--color-on-surface) var(--state-press), transparent)
   );
 }
 
@@ -2111,7 +2236,7 @@
   min-width: 0;
   min-height: var(--size-touch);
   padding-inline: var(--space-3);
-  border-radius: var(--control-radius-sm);
+  border-radius: var(--button-radius);
   color: var(--color-accent);
   /* The story's size, so the block under the title keeps to two type sizes. */
   font-size: var(--font-size-label);
@@ -2121,7 +2246,7 @@
 }
 
 .player-source-link:active {
-  background: var(--color-accent-subtle);
+  background: color-mix(in oklch, var(--color-accent) var(--state-press), transparent);
 }
 
 .player-source-link span {
@@ -2161,7 +2286,7 @@
   min-height: var(--size-touch-comfortable);
   padding-block: var(--space-2);
   padding-inline: var(--space-3);
-  border-radius: var(--sheet-row-radius);
+  border-radius: var(--row-radius);
   text-align: start;
   /* A press shows on the fill; the headline keeps its size. */
   transition: background-color var(--duration-press-in) var(--ease-out);
@@ -2188,35 +2313,72 @@
   border-radius: var(--radius-round);
 }
 
-/* The story being read: a tint and a filled mark. The title keeps its weight, because a heavier
-   one wraps differently and would move every row below it each time the story changes. */
+/* The story being read: the accent's container, its ink, and a filled mark, the current state as it
+   is everywhere in the app. The title keeps its weight, because a heavier one wraps differently and
+   would move every row below it each time the story changes. */
 .story-row[aria-current="true"] {
-  background: var(--color-accent-subtle);
+  background: var(--color-accent-container);
+  color: var(--color-on-accent-container);
+}
+
+.story-row[aria-current="true"] .story-row-time {
+  color: var(--color-on-accent-container);
 }
 
 .story-row[aria-current="true"] .story-row-mark {
-  background: var(--color-accent);
+  background: var(--color-on-accent-container);
 }
 
+/* State layers: the row's ink over its fill. */
 @media (hover: hover) and (pointer: fine) {
-  .story-row:not([aria-current="true"]):hover,
+  .story-row:not([aria-current="true"]):hover {
+    background: color-mix(in oklch, var(--color-on-surface) var(--state-hover), transparent);
+  }
+
+  .story-row[aria-current="true"]:hover {
+    background: color-mix(
+      in oklch,
+      var(--color-accent-container),
+      var(--color-on-accent-container) var(--state-hover)
+    );
+  }
+
   .player-upnext-row:hover {
-    background: var(--color-surface-sunken);
+    background: color-mix(
+      in oklch,
+      var(--color-surface-container),
+      var(--color-on-surface) var(--state-hover)
+    );
   }
 
   .player-source-link:hover {
-    background: var(--color-accent-subtle);
+    background: color-mix(in oklch, var(--color-accent) var(--state-hover), transparent);
+  }
+
+  .player-source-link:hover:active {
+    background: color-mix(in oklch, var(--color-accent) var(--state-press), transparent);
   }
 }
 
 /* After the hovers, so a press shows under a mouse too. */
-.story-row:not([aria-current="true"]):active,
-.player-upnext-row:active {
-  background: color-mix(in oklch, var(--color-on-surface) 8%, transparent);
+.story-row:not([aria-current="true"]):active {
+  background: color-mix(in oklch, var(--color-on-surface) var(--state-press), transparent);
 }
 
 .story-row[aria-current="true"]:active {
-  background: color-mix(in oklch, var(--color-on-surface) 8%, var(--color-accent-subtle));
+  background: color-mix(
+    in oklch,
+    var(--color-accent-container),
+    var(--color-on-accent-container) var(--state-press)
+  );
+}
+
+.player-upnext-row:active {
+  background: color-mix(
+    in oklch,
+    var(--color-surface-container),
+    var(--color-on-surface) var(--state-press)
+  );
 }
 
 /* Rounder than the button inside it, which keeps the banner's padding from its edge. */
@@ -2248,15 +2410,25 @@
 
 .player-notice-action {
   min-height: var(--size-touch);
-  padding-inline: var(--space-3);
-  border-radius: var(--radius-sm);
-  background: color-mix(in oklch, var(--color-on-surface) 8%, transparent);
+  padding-inline: var(--space-4);
+  border-radius: var(--button-radius);
+  background: color-mix(in oklch, var(--color-on-surface) var(--state-hover), transparent);
   font-weight: var(--font-weight-semibold);
   transition: background-color var(--duration-press-in) var(--ease-out);
 }
 
+@media (hover: hover) and (pointer: fine) {
+  .player-notice-action:hover {
+    background: color-mix(in oklch, var(--color-on-surface) var(--state-press), transparent);
+  }
+}
+
 .player-notice-action:active {
-  background: color-mix(in oklch, var(--color-on-surface) 14%, transparent);
+  background: color-mix(
+    in oklch,
+    var(--color-on-surface) calc(var(--state-press) * 1.5),
+    transparent
+  );
 }
 
 .player-upnext-row {
@@ -2267,8 +2439,9 @@
   width: 100%;
   min-height: var(--size-touch-comfortable);
   padding-block: var(--space-2);
-  padding-inline: var(--space-3);
-  border-radius: var(--radius-md);
+  padding-inline: var(--space-4) var(--space-3);
+  border-radius: var(--row-radius);
+  background: var(--color-surface-container);
   text-align: start;
   transition: background-color var(--duration-press-in) var(--ease-out);
 }
@@ -2314,7 +2487,7 @@
   }
 
   /* Without the story there is nothing to keep room for. */
-  .player-meta {
+  .player-meta[data-stories] {
     min-height: 0;
   }
 
@@ -2335,21 +2508,23 @@
 
 /* Through the root attribute the navigation code already carries from page to page. With the
    page's own containment (touch-action, overscroll-behavior) this needs no touch listener. */
+/* The scrollbar goes with the scroll, as it does under a modal dialog (foundations.css), so the open
+   player reaches the window's edge instead of leaving a strip of the page's colour beside the bar.
+   The page behind keeps the scrollbar's width as padding, so it holds still. */
 html[data-player="open"] {
   overflow: hidden;
+  scrollbar-gutter: auto;
 }
 
-/* A modal dialog drops the gutter (foundations.css) so a docked panel reaches the window's edge. The
-   speed panel is small and by its button, and the open player must not slide sideways under it. */
-html[data-player="open"]:has(.speed-panel[open]) {
-  scrollbar-gutter: stable;
+html[data-player="open"] body {
+  padding-inline-end: var(--gutter, 0px);
 }
 
-/* Any other modal dialog does take the scrollbar away, and the window's edge moves out by its width.
-   The player keeps the room it had, as the floating button and the navigation do, so what is
-   playing and the volume hold still under the scrim. */
-html:has(dialog[open]):not([data-player="open"]:has(.speed-panel[open])) .player {
-  inset-inline-end: var(--gutter, 0px);
+/* With the scrollbar gone, under the open player or any modal dialog, the bar's fill reaches the
+   window's edge and its last control keeps its place: the bar takes the scrollbar's width as padding,
+   as the floating button and the navigation do. */
+html:is([data-player="open"], :has(dialog[open])) .player-dock {
+  --dock-gutter: var(--gutter, 0px);
 }
 
 /* ------------------------------------------------------------------ preferences */
@@ -2460,6 +2635,12 @@ html:has(dialog[open]):not([data-player="open"]:has(.speed-panel[open])) .player
   .story-row[aria-current="true"],
   .speed-preset[aria-pressed="true"] {
     border: var(--stroke-rail) solid Highlight;
+  }
+
+  /* An outline, so the turn keeps its size as the voice moves from one to the next. */
+  .script-turn[aria-current="true"] {
+    outline: var(--stroke-rail) solid Highlight;
+    outline-offset: calc(var(--stroke-rail) * -1);
   }
 
   /* The chosen segment carries its own border here, so the thumb is not drawn. */

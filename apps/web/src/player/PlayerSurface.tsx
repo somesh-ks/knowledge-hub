@@ -174,7 +174,12 @@ export default function PlayerSurface() {
                   {cover}
                 </div>
               </div>
-              <div className="player-meta">
+              {/* Room for a changing story is kept only where the story changes: a recording with
+                  no timeline of stories has one fixed line, and no empty gap under it. */}
+              <div
+                className="player-meta"
+                data-stories={(timeline?.items.length ?? 0) > 0 ? "" : undefined}
+              >
                 <h2 className="player-title" id={TITLE_ID} title={title}>
                   {title}
                 </h2>

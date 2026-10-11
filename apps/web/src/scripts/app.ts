@@ -30,14 +30,15 @@ const registerWorker = (): void =>
   void import("./serviceWorker").then((worker) => worker.registerServiceWorker());
 if (document.readyState === "complete") registerWorker();
 else addEventListener("load", registerWorker, { once: true });
-// The scrollbar's width, measured while no dialog holds the page: an open dialog takes the
-// scrollbar away, and the page keeps this much room instead so it does not move (foundations.css).
-// A swap replaces the root's style, so the value goes back on after each one.
+// The scrollbar's width, measured while no dialog or open player holds the page: either takes the
+// scrollbar away, and the page keeps this much room instead so it does not move (foundations.css,
+// player.css). A swap replaces the root's style, so the value goes back on after each one.
 let gutter = "0px";
 const holdGutter = (): void => document.documentElement.style.setProperty("--gutter", gutter);
 const measureGutter = (): void => {
-  if (!document.querySelector("dialog[open]"))
-    gutter = `${Math.max(0, innerWidth - document.documentElement.offsetWidth)}px`;
+  const held =
+    document.querySelector("dialog[open]") || document.documentElement.dataset.player === "open";
+  if (!held) gutter = `${Math.max(0, innerWidth - document.documentElement.offsetWidth)}px`;
   holdGutter();
 };
 measureGutter();
