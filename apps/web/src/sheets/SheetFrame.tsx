@@ -1,8 +1,38 @@
 import { Drawer } from "@base-ui/react/drawer";
-import type { ComponentProps, ReactNode } from "react";
+import { type ComponentProps, type ReactNode, useEffect, useRef } from "react";
 import Icon from "../player/ui/LazyIcon";
 
 type InitialFocus = ComponentProps<typeof Drawer.Popup>["initialFocus"];
+
+/**
+ * Browser Back closes an open sheet and stays on the page, as it does for the Create sheet
+ * (createSheet.ts): the sheet takes one history entry while it is open. The head script
+ * (themeInit.js) asks first on every pop, and answering "handled" keeps the router out of it.
+ */
+function useBackCloses(open: boolean, close: () => void): void {
+  const closeRef = useRef(close);
+  closeRef.current = close;
+  useEffect(() => {
+    if (!open) return;
+    let entry = true;
+    let shown = true;
+    const onBack = (event: Event): void => {
+      if (!entry) return;
+      entry = false;
+      event.preventDefault();
+      removeEventListener("dispatch:back", onBack);
+      if (shown) closeRef.current();
+    };
+    history.pushState({ ...history.state, sheet: true }, "");
+    addEventListener("dispatch:back", onBack);
+    return () => {
+      shown = false;
+      // Closed any other way: give the entry back. The pop this causes reaches onBack, which
+      // swallows it.
+      if (entry) history.go(-1);
+    };
+  }, [open]);
+}
 
 interface SheetFrameProps {
   open: boolean;
@@ -30,6 +60,7 @@ export default function SheetFrame({
   initialFocus,
   children,
 }: SheetFrameProps) {
+  useBackCloses(open, () => onOpenChange(false));
   const portal = (
     <Drawer.Portal>
       <Drawer.Backdrop className="sheet-scrim" />

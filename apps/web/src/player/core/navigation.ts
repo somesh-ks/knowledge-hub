@@ -23,6 +23,8 @@ export function directionBetween(currentId: string | null, targetId: string): Na
 
 export interface NavigateOptions {
   direction?: NavigationDirection;
+  /** "replace" puts the page in the current history entry instead of a new one. */
+  history?: "push" | "replace";
 }
 
 /**
@@ -33,8 +35,12 @@ export interface NavigateOptions {
 export async function navigateTo(url: string, options: NavigateOptions = {}): Promise<void> {
   try {
     const { navigate } = await import("astro:transitions/client");
-    await navigate(url, { info: { direction: options.direction ?? "forward" } });
+    await navigate(url, {
+      history: options.history ?? "auto",
+      info: { direction: options.direction ?? "forward" },
+    });
   } catch {
-    window.location.assign(url);
+    if (options.history === "replace") window.location.replace(url);
+    else window.location.assign(url);
   }
 }
