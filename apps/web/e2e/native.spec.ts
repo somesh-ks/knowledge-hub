@@ -120,6 +120,30 @@ test.describe("the floating button", () => {
     await expect(createFab(page)).toBeVisible();
   });
 
+  test("at the end of a briefing the last line stays clear of Play", async ({ page }, info) => {
+    test.skip(info.project.name === "desktop", "the floating button is for phones");
+    for (const width of [360, 390]) {
+      await page.setViewportSize({ width, height: 800 });
+      for (const path of ["/", "/d/2026-10-07"]) {
+        await page.goto(path);
+        await page.evaluate(() =>
+          window.scrollTo({ top: document.documentElement.scrollHeight, behavior: "instant" }),
+        );
+        await expect(playFab(page)).toBeVisible();
+        // Once the page has settled at its end (the shelf may still be laying out).
+        await page.waitForTimeout(400);
+        await page.evaluate(() =>
+          window.scrollTo({ top: document.documentElement.scrollHeight, behavior: "instant" }),
+        );
+        const fab = await playFab(page).boundingBox();
+        const last = await page.locator(".earlier .card-facts").last().boundingBox();
+        expect((last?.y ?? 0) + (last?.height ?? 0), `${path} at ${width}`).toBeLessThanOrEqual(
+          fab?.y ?? 0,
+        );
+      }
+    }
+  });
+
   test("Play is extended at the top and folds while scrolling down to read", async ({
     page,
   }, info) => {

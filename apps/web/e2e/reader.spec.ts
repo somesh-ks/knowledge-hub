@@ -664,6 +664,40 @@ test.describe("section tabs", () => {
   });
 });
 
+test.describe("the section tabs with the app bar hidden", () => {
+  test("the mark follows the line under the strip, wherever the bar is", async ({ page }) => {
+    await page.setViewportSize({ width: 390, height: 844 });
+    await page.emulateMedia({ reducedMotion: "no-preference" });
+    await page.goto("/");
+    await hydrated(page);
+    const root = page.locator("html");
+    const current = page.locator('.tab[aria-current="true"]');
+    // Well above Research, then down towards it: a scroll down sends the bar away.
+    await page.evaluate(() => {
+      const top = document.querySelector("#c-research")?.getBoundingClientRect().top ?? 0;
+      window.scrollTo({ top: scrollY + top - 400, behavior: "instant" });
+    });
+    await page.mouse.wheel(0, 200);
+    await expect(root).toHaveAttribute("data-bar-hidden", "");
+    await expect
+      .poll(async () => (await page.locator(".tabs").boundingBox())?.y ?? 99)
+      .toBeLessThan(2);
+    // Research's heading 40px under the strip: the section above still crosses the reading line.
+    const placeUnderStrip = (gap: number) =>
+      page.evaluate((room) => {
+        const strip = document.querySelector(".tabs")?.getBoundingClientRect().bottom ?? 0;
+        const top = document.querySelector("#c-research")?.getBoundingClientRect().top ?? 0;
+        window.scrollBy({ top: top - strip - room, behavior: "instant" });
+      }, gap);
+    await placeUnderStrip(48);
+    await expect(root).toHaveAttribute("data-bar-hidden", "");
+    await expect(current).toHaveText("AI products");
+    // Past the line, Research takes the mark: the line is measured from where the strip is now.
+    await placeUnderStrip(4);
+    await expect(current).toHaveText("Research");
+  });
+});
+
 test.describe("earlier briefings", () => {
   test("lists the earlier briefings and a way to all of them", async ({ page }) => {
     await page.goto("/");

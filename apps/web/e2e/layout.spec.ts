@@ -240,6 +240,28 @@ test.describe("layout", () => {
     expect(Math.abs((chip?.y ?? 0) + (chip?.height ?? 0) - coverFoot)).toBeLessThan(4);
   });
 
+  test("every story chip keeps its whole 44px target, clear of the why line and the publisher", async ({
+    page,
+  }) => {
+    for (const width of [360, 390, 768, 1024]) {
+      await page.setViewportSize({ width, height: 900 });
+      await page.goto("/");
+      const misses = await page.evaluate(() => {
+        const out: string[] = [];
+        for (const chip of document.querySelectorAll<HTMLElement>(".story [data-play-item]")) {
+          chip.scrollIntoView({ block: "center" });
+          const box = chip.getBoundingClientRect();
+          for (const y of [box.top - 3, box.bottom + 3]) {
+            const hit = document.elementFromPoint(box.left + box.width / 2, y);
+            if (!hit || !chip.contains(hit)) out.push(`${chip.dataset.playItem} ${hit?.className}`);
+          }
+        }
+        return out;
+      });
+      expect(misses, `${width}`).toEqual([]);
+    }
+  });
+
   test("hairlines between stories stay inside the text column", async ({ page }) => {
     await page.setViewportSize({ width: 390, height: 844 });
     await page.goto("/");
