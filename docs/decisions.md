@@ -15,7 +15,7 @@ D1 to D9 date from plan v2 (2026-10-05). D10 to D25 date from 2026-10-06. Reason
 | D3 | Judge is TypeSafe Jev, writer is a cheap Nebius model chosen by a bake-off | active |
 | D4 | Astro with React islands, Base UI and hand-written token CSS | active |
 | D5 | One MP3 per digest with word marks, from Speechify | superseded by D33 for new narration |
-| D6 | Daily cron with a calendar-date gate, plus a Sunday weekly pass | active; the trigger is Vercel Cron since D61, the date gate stays |
+| D6 | Daily cron with a calendar-date gate, plus a Sunday weekly pass | active; the trigger is Vercel Cron since D61, the date gate stays; the weekly day has no briefing since D65 |
 | D7 | Podcast feed deferred | active |
 | D8 | "Thought of the Day" cut | active |
 | D9 | Repository `somesh-ks/knowledge-hub`, private | active |
@@ -48,11 +48,11 @@ D1 to D9 date from plan v2 (2026-10-05). D10 to D25 date from 2026-10-06. Reason
 | D36 | Topics and sources are data the owner edits from the app | active |
 | D37 | Custom podcast episodes live in `Podcasts/` and are built by a workflow | active |
 | D38 | Subagents are few, narrow, enforced and capped | active |
-| D39 | Five topics, Top picks always included, General and Customized audiences | active |
+| D39 | Five topics, Top picks always included, General and Customized audiences | active; Create's topics are one list since D67 |
 | D40 | Trending is ranked by coverage; discovery only suggests | active |
 | D41 | The passphrase step is switched off, with its code kept | active |
 | D42 | One Jev request per item, and a per-run Firecrawl ceiling | active |
-| D43 | General episodes are built from general-news feeds, ranked by coverage | active |
+| D43 | General episodes are built from general-news feeds, ranked by coverage | active; general ids mix with briefing ids since D67, and their feeds are judged sources since D66 |
 | D44 | An episode can be deleted, or regenerated with the listener's feedback | active |
 | D45 | The briefing's hour, cadence and topics are set in Settings | active; `RUN_CRON` is the fallback trigger since D61 |
 | D46 | The writer's provider and model are chosen in Settings | active |
@@ -75,6 +75,8 @@ D1 to D9 date from plan v2 (2026-10-05). D10 to D25 date from 2026-10-06. Reason
 | D63 | Daily and Weekly leave out topics, one chip per topic, stored as the topics left out | active |
 | D64 | Every topic can be renamed; what counts edits wherever the judge reads it | active |
 | D65 | The weekly podcast takes its day; the daily cadence counts from it | active |
+| D67 | Create shows one list of topic chips; the audience presets them; an episode can mix briefing and general topics | active |
+| D68 | An episode opens with a rundown, deep-dives its lead stories, gives the rest as nuggets and closes short | active |
 
 ---
 
@@ -643,3 +645,21 @@ D1 to D9 date from plan v2 (2026-10-05). D10 to D25 date from 2026-10-06. Reason
 - Why: the owner asked that a collision on the weekly day go to the weekly podcast, and chose the cadence counting from it over the briefing coming back the next day. The weekly pass fetches its own seven-day window, so it loses nothing without the day's briefing, and it no longer has the day's best stories claimed by a briefing published minutes earlier.
 - Cost: with every second day and a Sunday weekly, the week settles into Tuesday, Thursday and Saturday briefings plus the Sunday weekly. A weekly pass that fails leaves its day with nothing, and the next briefing comes the day after. A weekly pass that found nothing does not count, so the briefing comes the next day.
 - Rejected: the briefing the next day (a briefing the morning after the weekly repeats its news); a skipped briefing recorded as its own outcome in `state/last-run.json` (a state schema change for what the weekly record already says).
+
+## D67: Create shows one list of topic chips; the audience presets them; an episode can mix briefing and general topics
+
+- Date: 2026-10-11
+- Decision: The Create panel (page and sheet) shows one chip list for both audiences: Design, AI, Technology, World, Business, Science, Culture, Sports, then the owner's own topics. Design sends the briefing sections `design` and `ui-craft`, AI sends `ai`, Technology sends `tech` (the owner's own sources); the rest send their general topic ids. Written for no longer hides chips: switching it replaces the selection with that audience's preset (Somesh: Design, AI, Technology; General: World, Business, Technology, Science, Culture, Sports), and the page starts with Somesh's. The audience still sets how the script is written. The engine splits a request's ids into briefing ids (read from published digests, Top picks always included) and general ids (read from news feeds), shares the episode's story count between the two in proportion to their topics (at least one each), hands unused room to the other, and alternates them strongest first. One side finding nothing is a warning; both is an error. Core no longer refuses a general request with briefing ids. Trending and the general Technology desk are not chips; a stored `technology` reads as `tech`.
+- Why: the owner asked for Design, AI and Technology as Somesh's topics "to keep things lean", for Design, AI and Technology to be available in General mode from the sources they chose, and for the selector to change the selection while showing every chip.
+- Cost: eight chips where there were five or six. A mixed episode reads digests and feeds, and its two halves were ranked differently (judge scores, outlet coverage), so the alternation is a fair share, not one ranking.
+- Rejected: hiding the other audience's chips (the owner wants every chip visible); one chip per briefing section (Design Engineering on its own made the list longer than the owner's three).
+- Supersedes: D39's per-audience topic lists and D43's rule that a general episode takes only general ids.
+
+## D68: An episode opens with a rundown, deep-dives its lead stories, gives the rest as nuggets and closes short
+
+- Date: 2026-10-11
+- Decision: Readout and discussion scripts follow one order: a one-line hello; a rundown that names the first stories in a clause each (3 at 3 minutes, 4 at 5 and 10, 5 at 15); deep dives on the lead stories (none at 3 minutes, 1 at 5, 2 at 10 and 3 with ten or more stories, 3 at 15 and 4 with fourteen or more), each what happened, why it matters and one concrete detail; the rest as news nuggets of a sentence or two; a short close (about 120, 250, 400 and 600 characters) of one or two questions or implications drawn only from the stories, or reactions a story block itself reports, never an invented opinion; a one-line sign-off. Stories arrive ranked, so the lead stories are the strongest. The frame (hello, rundown, close, sign-off) is sized per length instead of one constant, and the writer is given word counts per part. Headlines keeps its old shape.
+- Why: the owner asked for quick teasers of what is in the episode, deep dives into the important stories, and a short thought-provoking close, "focus on the news nuggets".
+- Cost: the part sizes are estimates, not measured on real runs, and more stories fit in a length than before (a 15-minute readout carries up to 35, was 31). The close can only pass on what people are saying when a story block quotes it; nothing reads discussion from elsewhere.
+- Rejected: a close built from what people say online (no such source is read, and the writer would invent it).
+
