@@ -486,17 +486,15 @@ test.describe("editing a topic", () => {
       ]);
   });
 
-  test("a topic that ships with the app keeps its name and what counts; its keywords change", async ({
-    page,
-  }) => {
+  test("a built-in topic keeps what counts; its name and keywords change", async ({ page }) => {
     const { sent } = await setup(page);
     await open(page, "/settings/topics/product_design");
     await page.getByRole("button", { name: "Edit topic Product design" }).click();
     const sheet = page.getByRole("dialog", { name: "Edit topic" });
     const form = sheet.getByRole("form", { name: "Edit topic" });
-    await expect(form.getByText("This topic ships with the app")).toBeVisible();
-    await expect(form.getByLabel("Name")).not.toBeEditable();
+    await expect(form.getByText("judges this topic by questions of its own")).toBeVisible();
     await expect(form.getByLabel("What should count as this topic")).not.toBeEditable();
+    await form.getByLabel("Name").fill("Product craft");
     await form.getByLabel(/Keywords/).fill("ui, ux");
     await sheet.getByRole("button", { name: "Next" }).click();
     await sheet.getByRole("button", { name: "Save", exact: true }).click();
@@ -506,7 +504,7 @@ test.describe("editing a topic", () => {
       .toMatchObject([
         {
           op: "topic.upsert",
-          topic: { id: "product_design", name: "Product design", keywords: ["ui", "ux"] },
+          topic: { id: "product_design", name: "Product craft", keywords: ["ui", "ux"] },
         },
       ]);
   });

@@ -198,12 +198,12 @@ describe("topic.upsert", () => {
     expect(repo.errors.join("\n")).toContain("reserved");
   });
 
-  it("sets only weight and keywords on a built-in topic, and writes the weight to the preferences", async () => {
-    const { code } = await apply({
+  it("sets name, weight and keywords on a built-in topic, and writes the weight to the preferences", async () => {
+    const { code, report } = await apply({
       op: "topic.upsert",
       topic: {
         id: "design_engineering_craft",
-        name: "Renamed by mistake",
+        name: "UI craft",
         description: "Changed by mistake.",
         weight: 0.5,
         keywords: ["springs"],
@@ -212,10 +212,13 @@ describe("topic.upsert", () => {
       },
     });
     expect(code).toBe(0);
+    expect(report.summary).toBe("rename topic Design engineering craft to UI craft");
     const topics = await repo.readJson<TopicsFile>("config/topics.json");
     const builtin = topics.topics.find((t) => t.id === "design_engineering_craft");
     expect(builtin).toMatchObject({
-      name: "Design engineering craft",
+      name: "UI craft",
+      description:
+        "How an interface detail was built: implementation technique, craft process or a worked teardown of a polished UI.",
       weight: 0.5,
       keywords: ["springs"],
       never_publish: false,
@@ -224,6 +227,30 @@ describe("topic.upsert", () => {
     const prefs = await repo.readJson<Preferences>("config/preferences.json");
     expect(prefs.weights.design_engineering_craft).toBe(0.5);
     expect(repo.dirty().sort()).toEqual(["config/preferences.json", "config/topics.json"]);
+  });
+
+  it("rewords a topic that ships with the app and keeps its section and depth", async () => {
+    const { code, report } = await apply({
+      op: "topic.upsert",
+      topic: {
+        id: "design",
+        name: "Product design",
+        description: "Interface and product design for a designer.",
+        weight: 0.85,
+        keywords: [],
+        section_id: "ai",
+      },
+    });
+    expect(code).toBe(0);
+    expect(report.summary).toBe("update topic Product design");
+    const topics = await repo.readJson<TopicsFile>("config/topics.json");
+    expect(topics.topics.find((t) => t.id === "design")).toMatchObject({
+      name: "Product design",
+      description: "Interface and product design for a designer.",
+      section_id: "design",
+      origin: "app",
+      depth: "fit_only",
+    });
   });
 });
 
