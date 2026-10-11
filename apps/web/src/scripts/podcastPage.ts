@@ -234,7 +234,7 @@ export async function mount(root: HTMLElement): Promise<void> {
     });
   }
   const group = root.querySelector<HTMLElement>("[data-models]");
-  if (group) writer = await mountModel(root, group, update, () => autosave.now());
+  if (group) writer = await mountModel(root, group, update);
   root.dataset.ready = "";
 }
 
@@ -246,7 +246,6 @@ async function mountModel(
   root: HTMLElement,
   group: HTMLElement,
   update: (save?: boolean) => void,
-  flushNow?: () => void,
 ): Promise<() => Pending | null> {
   const lib = await import("../lib/combobox");
   const {
@@ -407,7 +406,6 @@ async function mountModel(
     close();
     update();
     writePendingChoice(provider(), selected);
-    flushNow?.();
   };
 
   /** The options for the vendor on screen. */
@@ -448,7 +446,6 @@ async function mountModel(
     refresh();
     update();
     writePendingChoice(provider(), selected);
-    flushNow?.();
   });
 
   input.addEventListener("input", () => open(input.value, true));
