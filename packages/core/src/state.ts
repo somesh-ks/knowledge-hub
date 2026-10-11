@@ -185,10 +185,10 @@ export const SourceStat = z.object({
    */
   sampled_at: ymd.optional(),
   /**
-   * How many posts the source's own feed held in its look-back when the sample last read it to
-   * fill the source up (D70). Under ten, the source posts too rarely to reach ten judged items,
-   * and its score rests on what it has. Survives the window's restart; a weekly check of a
-   * switched-off source does not set it.
+   * How many posts the source's own feed held in its look-back when the sample last read it (D70),
+   * a refill or a weekly check alike, so it moves with `sampled_at`. Under ten, the source posts
+   * too rarely to reach ten judged items, and its score rests on what it has. Survives the
+   * window's restart; a general feed's check does not set it.
    */
   feed_posts: z.number().int().nonnegative().optional(),
   /** Stockholm calendar date the current window began. */
