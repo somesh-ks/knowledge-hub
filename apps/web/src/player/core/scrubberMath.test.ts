@@ -1,11 +1,11 @@
 import { describe, expect, it } from "vitest";
 import {
   bubbleLeft,
-  onPixelGrid,
   crossedBoundary,
   detentGain,
   fractionFromPointer,
   fractionOfTime,
+  onPixelGrid,
   scrubberValueText,
   scrubKeyAction,
   shouldFireDetent,
