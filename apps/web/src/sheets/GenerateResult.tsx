@@ -110,12 +110,7 @@ export default function GenerateResult({
               Try again
             </button>
             {state.runUrl ? (
-              <a
-                className="btn"
-                href={state.runUrl}
-                target="_blank"
-                rel="noopener noreferrer"
-              >
+              <a className="btn" href={state.runUrl} target="_blank" rel="noopener noreferrer">
                 View the run
               </a>
             ) : null}
