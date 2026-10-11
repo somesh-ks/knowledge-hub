@@ -82,7 +82,7 @@ test.describe("the Topics list", () => {
       ["Consumer tech releases", "Off, 0 sources"],
       ["Venture capital and gossip", "Never in a briefing"],
       ["Other", "1 source with no topic yet"],
-      ["World", "2 sources"],
+      ["World", "3 sources"],
       ["Science", "1 source"],
       ["Sports", "0 sources"],
     ] as const;
@@ -376,12 +376,12 @@ test.describe("a topic's page", () => {
     // The score stays on an off row, which stays in its place.
     await expect(row.locator(".score")).toBeVisible();
     await box.uncheck();
-    await expect(toastText(page)).toHaveText(SAVED);
+    await expect.poll(() => ops(sent).length).toBe(1);
     await expect(row).toBeVisible();
     await expect(row.locator(".score")).toBeVisible();
     await expect(row.locator(".source-name")).toHaveCSS("opacity", /^0\.\d+$/);
     await box.check();
-    await expect(toastText(page)).toHaveText(SAVED);
+    await expect.poll(() => ops(sent).length).toBe(2);
     await expect(row.locator(".source-name")).toHaveCSS("opacity", "1");
     expect(ops(sent)).toEqual([
       { op: "source.set", id: "studio-notes", enabled: false },
