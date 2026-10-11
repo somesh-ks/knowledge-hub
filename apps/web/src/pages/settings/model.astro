@@ -63,14 +63,16 @@ const { model, provider } = await loadWriterView();
                       <Icon name="chevronDown" />
                     </button>
                   </span>
-                  <ul class="daily-listbox" id="model-listbox" role="listbox" aria-label="Models" data-list hidden></ul>
+                  <div class="daily-listbox" id="model-listbox" role="listbox" aria-label="Models" data-list hidden></div>
                 </div>
               </div>
             </div>
             <p class="sr-only" aria-live="polite" data-count></p>
 
+            {/* Without the live list the combobox still offers the top models by name; this field
+                 takes the id of any other model. */}
             <div class="manage-field" data-fallback hidden>
-              <p class="manage-quiet">The model list is not available right now.</p>
+              <p class="manage-quiet">Only the top models are listed right now. For another model, type its id.</p>
               <label for="model-typed">Model id</label>
               <input
                 class="manage-input"

@@ -1,8 +1,10 @@
 /**
- * Which of the live Nebius models the Daily podcast page recommends. A pure ranking over the ids
- * the API sends: larger chat models of the newest generations first, with the models that cannot
- * write a script (embedding, vision, guard, base, coder) left out. It imports nothing, so the page
- * script can use it without growing the first-load bundle.
+ * Which Nebius models the Model page puts first. The Top models group is a curated list checked
+ * against the live one (topModels); the ranking (shortlist) stands in when none of the curated ids
+ * is left. The ranking is pure over the ids the API sends: larger chat models of the newest
+ * generations first, with the models that cannot write a script (embedding, vision, guard, base,
+ * coder) left out. It imports nothing, so the page script can use it without growing the
+ * first-load bundle.
  */
 
 export interface RankEntry {
@@ -76,4 +78,18 @@ export function shortlist(entries: readonly RankEntry[], max = 5): string[] {
     if (picked.length === max) break;
   }
   return picked;
+}
+
+/**
+ * The ids of the Top models group, in the curated order. A live list decides which are still
+ * served: a curated id it lacks has been retired and drops out, and when none is left the
+ * shortlist stands in, so the group is never empty while Nebius lists models. Without a live list
+ * (null) nothing says an id has gone, so every curated id is offered and a pick never needs a
+ * typed id.
+ */
+export function topModels(live: readonly RankEntry[] | null, curated: readonly string[]): string[] {
+  if (live === null) return [...curated];
+  const served = new Set(live.map((entry) => entry.id));
+  const kept = curated.filter((id) => served.has(id));
+  return kept.length > 0 ? kept : shortlist(live);
 }

@@ -1,5 +1,6 @@
 import AxeBuilder from "@axe-core/playwright";
 import type { Page, Route } from "@playwright/test";
+import { NEBIUS_TOP } from "../src/lib/modelId";
 import { expect, test } from "./fixtures";
 
 const WCAG = ["wcag2a", "wcag2aa", "wcag21a", "wcag21aa", "wcag22aa"];
@@ -63,6 +64,9 @@ const toastText = (page: Page) => toast(page).locator("[data-bar-text]");
 const combo = (page: Page) => page.getByRole("combobox", { name: "Model" });
 const options = (page: Page, name?: RegExp) =>
   page.getByRole("listbox", { name: "Models" }).getByRole("option", name ? { name } : undefined);
+/** The options under one heading of the open list: "Top models" or "All models". */
+const grouped = (page: Page, name: string) =>
+  page.getByRole("listbox", { name: "Models" }).getByRole("group", { name }).getByRole("option");
 
 /** Types a query into the model field and picks the option that matches. */
 async function pick(page: Page, query: string, name: RegExp): Promise<void> {
@@ -297,15 +301,17 @@ test.describe("a refused save", () => {
 });
 
 test.describe("the Model page", () => {
-  test("lists Automatic and the live models, with Automatic chosen", async ({ page }) => {
+  test("lists Automatic, the top models the live list has, then the rest", async ({ page }) => {
     await open(page, "model");
     await expect(combo(page)).toHaveValue("Automatic");
     await expect(page.getByLabel("Provider")).toHaveValue("nebius");
     await page.getByRole("button", { name: "Show all models" }).click();
-    await expect(options(page)).toHaveCount(4);
-    await expect(options(page, /^Llama-3\.3-70B-Instruct/)).toContainText(
-      "meta-llama, 128k context",
-    );
+    // The fixture list serves two of the top models; the others are left out.
+    await expect(options(page)).toHaveCount(5);
+    await expect(grouped(page, "Top models")).toHaveText([/^GLM-5\.3/, /^Kimi K3/]);
+    await expect(grouped(page, "All models")).toHaveCount(2);
+    await expect(options(page, /^Kimi K2\.6/)).toHaveCount(0);
+    await expect(options(page, /^gpt-oss-120b/)).toContainText("openai, 128k context");
     await expect(toast(page)).toBeHidden();
   });
 
@@ -319,7 +325,7 @@ test.describe("the Model page", () => {
     }
     await combo(page).click();
     await expect(combo(page)).toHaveAttribute("aria-expanded", "true");
-    await expect(options(page)).toHaveCount(4);
+    await expect(options(page)).toHaveCount(5);
     // The chosen name waits as a placeholder, so typing filters at once.
     await expect(combo(page)).toHaveValue("");
     await expect(combo(page)).toHaveAttribute("placeholder", "Automatic");
@@ -356,32 +362,36 @@ test.describe("the Model page", () => {
       "data-keyboard",
       "",
     );
-    await combo(page).fill("llama");
+    // A top model is picked by its short name and saved by its id, as any live pick is.
+    await combo(page).fill("kimi");
     await page.keyboard.press("Enter");
-    await expect(combo(page)).toHaveValue("Llama-3.3-70B-Instruct");
+    await expect(combo(page)).toHaveValue("Kimi K3");
     await expect(combo(page)).toHaveAttribute("aria-expanded", "false");
     await expect(toastText(page)).toHaveText(SAVED);
     expect(opsOf(sent)).toContainEqual({
       op: "writer.set",
       provider: "nebius",
-      model: "meta-llama/Llama-3.3-70B-Instruct",
+      model: "moonshotai/Kimi-K3",
     });
     // Escape closes without choosing, and the field goes back to the chosen name.
     await combo(page).fill("qw");
     await expect(options(page)).toHaveCount(1);
     await page.keyboard.press("Escape");
-    await expect(combo(page)).toHaveValue("Llama-3.3-70B-Instruct");
+    await expect(combo(page)).toHaveValue("Kimi K3");
   });
 
-  test("a long list shows the recommended models first, then the rest", async ({ page }) => {
+  test("a long list shows the top models first and leaves out the retired ones", async ({
+    page,
+  }) => {
+    // Nebius's list on 2026-10-11 without three of the top models, as if they had been retired.
     const models = [
-      ["deepseek-ai/DeepSeek-V3.2", 163840],
+      ["MiniMaxAI/MiniMax-M3", 1048576],
       ["Qwen/Qwen3-235B-A22B-Instruct-2507", 262144],
-      ["moonshotai/Kimi-K2-Instruct", 131072],
+      ["Qwen/Qwen3.5-397B-A17B", 262144],
+      ["deepseek-ai/DeepSeek-V4-Pro-0813", 1002496],
+      ["nvidia/Nemotron-3-Ultra-550b-a55b", 1048576],
       ["openai/gpt-oss-120b", 131072],
-      ["zai-org/GLM-4.5", 131072],
-      ["meta-llama/Meta-Llama-3.1-8B-Instruct", 131072],
-      ["Qwen/Qwen2.5-VL-72B-Instruct", 32768],
+      ["zai-org/GLM-5.3", 1048576],
     ].map(([id, context_length]) => ({ id, context_length }));
     await page.route("**/api/models", (route) =>
       route.fulfill({
@@ -392,12 +402,22 @@ test.describe("the Model page", () => {
     );
     await open(page, "model");
     await page.getByRole("button", { name: "Show all models" }).click();
-    // Automatic, five recommended and two others, with a caption over each group.
+    // Automatic, the three top models still served, in their order, and the four others.
     await expect(options(page)).toHaveCount(8);
-    await expect(page.getByText("Recommended", { exact: true })).toBeVisible();
+    await expect(grouped(page, "Top models")).toHaveText([
+      /^GLM-5\.3/,
+      /^DeepSeek V4 Pro 0813/,
+      /^Qwen3\.5 397B/,
+    ]);
+    await expect(grouped(page, "All models")).toHaveCount(4);
+    await expect(options(page, /Kimi/)).toHaveCount(0);
+    // The headings are drawn, and each group keeps only what the query matches.
+    await expect(page.getByText("Top models", { exact: true })).toBeVisible();
     await expect(page.getByText("All models", { exact: true })).toBeVisible();
-    await combo(page).fill("llama");
-    await expect(page.locator("[data-count]")).toHaveText("1 model");
+    await combo(page).fill("qwen");
+    await expect(page.locator("[data-count]")).toHaveText("2 models");
+    await expect(grouped(page, "Top models")).toHaveText([/^Qwen3\.5 397B/]);
+    await expect(grouped(page, "All models")).toHaveText([/^Qwen3-235B/]);
   });
 
   test("Anthropic offers the two Claude models, without asking for the live list", async ({
@@ -444,7 +464,9 @@ test.describe("the Model page", () => {
     await expect(list).toBeVisible();
     const gaps = await list.evaluate((element) => {
       const panel = element.getBoundingClientRect();
-      const rows = [...element.querySelectorAll("li")].map((row) => row.getBoundingClientRect());
+      const rows = [...element.querySelectorAll("[role=option]")].map((row) =>
+        row.getBoundingClientRect(),
+      );
       const first = rows[0] as DOMRect;
       const last = rows[rows.length - 1] as DOMRect;
       const style = getComputedStyle(element);
@@ -482,17 +504,44 @@ test.describe("offline", () => {
     await expect(toastText(page)).toHaveText("The site could not be reached. Not saved yet.");
   });
 
-  test("without the model list there is Automatic and a field for a model id", async ({ page }) => {
-    await page.route("**/api/models", (route) =>
+  const unavailable = (page: Page) =>
+    page.route("**/api/models", (route) =>
       route.fulfill({
         status: 503,
         contentType: "application/json",
         body: JSON.stringify({ error: "unavailable" }),
       }),
     );
+
+  test("without the model list every top model is offered, and a pick saves itself", async ({
+    page,
+  }) => {
+    await unavailable(page);
     const sent = await mockConfig(page);
     await open(page, "model");
-    await expect(page.getByText("The model list is not available right now.")).toBeVisible();
+    await expect(
+      page.getByText("Only the top models are listed right now. For another model, type its id."),
+    ).toBeVisible();
+    await expect(combo(page)).toHaveValue("Automatic");
+    await page.getByRole("button", { name: "Show all models" }).click();
+    await expect(grouped(page, "Top models")).toHaveText(
+      NEBIUS_TOP.map((model) => new RegExp(`^${model.label.replaceAll(".", "\\.")}`)),
+    );
+    await expect(options(page)).toHaveCount(NEBIUS_TOP.length + 1);
+    await expect(page.locator("[data-count]")).toHaveText(`${NEBIUS_TOP.length + 1} models`);
+    await page.keyboard.press("Escape");
+    await pick(page, "flash", /^DeepSeek V4\.1 Flash/);
+    await expect(combo(page)).toHaveValue("DeepSeek V4.1 Flash");
+    await expect(toastText(page)).toHaveText(SAVED);
+    expect(opsOf(sent)).toEqual([
+      { op: "writer.set", provider: "nebius", model: "deepseek-ai/DeepSeek-V4.1-Flash" },
+    ]);
+  });
+
+  test("without the model list a field takes the id of any other model", async ({ page }) => {
+    await unavailable(page);
+    const sent = await mockConfig(page);
+    await open(page, "model");
     await expect(combo(page)).toHaveValue("Automatic");
 
     const typed = page.getByLabel("Model id");
@@ -542,6 +591,20 @@ for (const scheme of ["light", "dark"] as const) {
       await page.locator("#daily-hour").selectOption("9");
       await expect(toastText(page)).toHaveText(SAVED);
       await page.waitForTimeout(400);
+      expect(await violations(page)).toEqual([]);
+    });
+
+    test("none with the model list open in its groups", async ({ page }) => {
+      await page.emulateMedia({ colorScheme: scheme });
+      await open(page, "model");
+      await page.getByRole("button", { name: "Show all models" }).click();
+      const list = page.getByRole("listbox", { name: "Models" });
+      await expect(list.getByRole("group", { name: "Top models" })).toBeVisible();
+      // The list fades in, and a scan mid-fade would read its text at part opacity.
+      await list.evaluate((element) =>
+        Promise.all(element.getAnimations().map((animation) => animation.finished)),
+      );
+      await page.evaluate(() => document.fonts.ready);
       expect(await violations(page)).toEqual([]);
     });
   });

@@ -90,15 +90,17 @@ export function startServer({ root, port }) {
   const server = createServer((request, response) => {
     const { pathname } = new URL(request.url ?? "/", "http://localhost");
     if (pathname === "/api/models" && request.method === "GET") {
-      // A small fixed list, so the Model page renders in tests without a Nebius key.
+      // A small fixed list, so the Model page renders in tests without a Nebius key: models Nebius
+      // served on 2026-10-11, two of them top models, sorted by id as the route sends them.
       response.writeHead(200, { "Content-Type": "application/json" });
       response.end(
         JSON.stringify({
           provider: "nebius",
           models: [
-            { id: "deepseek-ai/DeepSeek-V3.2", context_length: 163840 },
-            { id: "meta-llama/Llama-3.3-70B-Instruct", context_length: 131072 },
             { id: "Qwen/Qwen3-235B-A22B-Instruct-2507", context_length: 262144 },
+            { id: "moonshotai/Kimi-K3", context_length: 1048576 },
+            { id: "openai/gpt-oss-120b", context_length: 131072 },
+            { id: "zai-org/GLM-5.3", context_length: 1048576 },
           ],
         }),
       );
