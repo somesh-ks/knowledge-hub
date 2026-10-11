@@ -140,6 +140,66 @@
       "never_publish": true,
       "origin": "builtin",
       "depth": 0
+    },
+    {
+      "id": "world",
+      "name": "World",
+      "description": "Major world events and politics.",
+      "weight": 1,
+      "enabled": true,
+      "keywords": [],
+      "section_id": "general",
+      "never_publish": false,
+      "origin": "general",
+      "depth": "coverage"
+    },
+    {
+      "id": "business",
+      "name": "Business",
+      "description": "Companies, markets and the economy.",
+      "weight": 1,
+      "enabled": true,
+      "keywords": [],
+      "section_id": "general",
+      "never_publish": false,
+      "origin": "general",
+      "depth": "coverage"
+    },
+    {
+      "id": "science",
+      "name": "Science",
+      "description": "Research and discoveries.",
+      "weight": 1,
+      "enabled": true,
+      "keywords": [],
+      "section_id": "general",
+      "never_publish": false,
+      "origin": "general",
+      "depth": "coverage"
+    },
+    {
+      "id": "culture",
+      "name": "Culture",
+      "description": "Film, music, books and the arts.",
+      "weight": 1,
+      "enabled": true,
+      "keywords": [],
+      "section_id": "general",
+      "never_publish": false,
+      "origin": "general",
+      "depth": "coverage"
+    },
+    {
+      "id": "sports",
+      "name": "Sports",
+      "description": "Results, transfers and major events.",
+      "weight": 1,
+      "enabled": true,
+      "keywords": [],
+      "section_id": "general",
+      "never_publish": false,
+      "origin": "general",
+      "depth": "coverage"
     }
   ]
 }

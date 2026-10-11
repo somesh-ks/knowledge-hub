@@ -341,16 +341,58 @@ button.source-main:active {
   }
 }
 
-.source-row[data-off] .source-name {
-  color: var(--color-on-surface-muted);
-}
-
-.source-row:has([data-remove][data-pressed="true"]) :is(.source-name, .source-host) {
-  text-decoration: line-through;
-}
-
-.source-remove {
+/* The checkbox at the row's end: a touch-sized target around the same box the suggestions draw, so it
+   reads as one system. Ticked means the source is read. */
+.source-check {
+  position: relative;
+  display: grid;
+  place-items: center;
+  width: var(--size-touch);
+  height: var(--size-touch);
   margin-inline-end: calc(var(--space-3) * -1);
+  border-radius: var(--radius-md);
+  cursor: pointer;
+  transition: background-color var(--duration-hover) var(--ease-hover);
+}
+
+.source-check > input {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  margin: 0;
+  appearance: none;
+  opacity: 0;
+  cursor: pointer;
+}
+
+/* The box is drawn only: the input over it takes every press. */
+.source-check .suggest-box {
+  pointer-events: none;
+}
+
+.source-check:has(input:focus-visible) {
+  outline: var(--stroke-ring) solid var(--color-focus-ring);
+  outline-offset: calc(var(--stroke-ring-gap) * -1);
+}
+
+@media (hover: hover) and (pointer: fine) {
+  .source-check:hover {
+    background: color-mix(in oklch, var(--color-on-surface) 6%, transparent);
+  }
+}
+
+.source-check:active {
+  background: color-mix(in oklch, var(--color-on-surface) 10%, transparent);
+}
+
+.source-check:has(input:checked) .suggest-box {
+  border-color: var(--color-accent);
+  background: var(--color-accent);
+}
+
+.source-check:has(input:checked) .suggest-check {
+  opacity: 1;
 }
 
 /* Keeps a row that has no button lined up with the rows that do. */
@@ -360,37 +402,9 @@ button.source-main:active {
   margin-inline-end: calc(var(--space-3) * -1);
 }
 
-.source-undo {
-  display: none;
-}
-
-/* It turns into the word Undo as the press that removes ends, so the bin's press scale does not
-   ease back over the word: words never change size. */
-.source-remove[data-pressed="true"] {
-  padding-inline: var(--space-3);
-  border-radius: var(--button-radius);
-  color: var(--color-accent);
-  transition:
-    background-color var(--duration-hover) var(--ease-hover),
-    color var(--duration-hover) var(--ease-hover);
-}
-
-.source-remove[data-pressed="true"] .icon {
-  display: none;
-}
-
-.source-remove[data-pressed="true"] .source-undo {
-  display: inline;
-}
-
-/* Pressed, it is the word Undo, and words never shrink: the press shows on the button's fill. */
-.source-remove[data-pressed="true"]:active {
-  transform: none;
-}
-
-/* A switch that turns an off source back on sits where the remove button would. */
-.source-row > .settings-switch {
-  margin-inline-end: 0;
+/* An unticked source is off: it keeps its place and its score, quieter. */
+.source-row:has(.source-check input:not(:checked)) :is(.source-name, .source-host, .score) {
+  opacity: var(--opacity-disabled);
 }
 
 /* A source just added: tinted until the page is left, and the tint settles in at first. */
@@ -425,10 +439,6 @@ button.source-main:active {
   font-size: var(--font-size-label);
   line-height: var(--font-leading-caption);
   white-space: nowrap;
-}
-
-.source-row:has([data-remove][data-pressed="true"]) .score {
-  opacity: var(--opacity-disabled);
 }
 
 /* A phone keeps the row to one line: only a word that flags a source (Poor, New) stays beside the number. */

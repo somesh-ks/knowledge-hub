@@ -1,3 +1,4 @@
+import { GENERAL_TOPICS } from "@dispatch/core";
 import type { PodcastRequest } from "../types/contracts";
 
 /**
@@ -67,39 +68,44 @@ export interface TopicOption {
  * The chips every episode can draw on, in the order the form lists them. One list for both
  * audiences: the audience only chooses which are ticked. A chip expands to its ids when the form
  * builds the request, so topic_ids stay plain section or general topic ids. Design folds Design
- * Engineering in; Technology is the owner's own tech sources, not the general feeds. Top picks is
- * not here: an episode always opens with the top picks of its window.
+ * Engineering in; Technology is the owner's own tech sources, not the general feeds. The general
+ * chips (World and the rest) are not here: topicOptions makes them from config/topics.json. Top
+ * picks is not here: an episode always opens with the top picks of its window.
  */
 const CHIPS: readonly TopicOption[] = [
   { value: "design", label: "Design", ids: ["design", "ui-craft"], presets: ["custom"] },
   { value: "ai", label: "AI", ids: ["ai"], presets: ["custom"] },
   { value: "technology", label: "Technology", ids: ["tech"], presets: ["custom", "general"] },
-  { value: "world", label: "World", ids: ["world"], presets: ["general"] },
-  { value: "business", label: "Business", ids: ["business"], presets: ["general"] },
-  { value: "science", label: "Science", ids: ["science"], presets: ["general"] },
-  { value: "culture", label: "Culture", ids: ["culture"], presets: ["general"] },
-  { value: "sports", label: "Sports", ids: ["sports"], presets: ["general"] },
 ];
 
 /** What topicOptions needs to know of a topic in config/topics.json. */
 export interface TopicInfo {
+  id: string;
   name: string;
   section_id: string;
-  origin: "builtin" | "custom";
+  origin: "builtin" | "app" | "custom" | "general";
   enabled: boolean;
   never_publish: boolean;
 }
 
 /**
- * The chips to offer: the eight above, then the owner's own topics (the custom ones that are on),
- * each by the section it publishes to and only when no chip already sends that section. Their
- * titles come from config/topics.json. Own topics are in no preset.
+ * The chips to offer: Design, AI and Technology, then the general news topics that are on (World,
+ * Business, Science, Culture, Sports, in the app's order, named as config/topics.json names them, so
+ * a rename shows and a switched-off one is left out), then the owner's own topics (the custom ones
+ * that are on), each by the section it publishes to and only when no chip already sends that
+ * section. Their titles come from config/topics.json. Own topics are in no preset.
  */
 export function topicOptions(
   sections: ReadonlyArray<{ id: string; title: string }>,
   topics: readonly TopicInfo[],
 ): TopicOption[] {
   const titles = new Map(sections.map((section) => [section.id, section.title]));
+  const general: TopicOption[] = [];
+  for (const { id } of GENERAL_TOPICS) {
+    const topic = topics.find((item) => item.origin === "general" && item.id === id);
+    if (!topic?.enabled) continue;
+    general.push({ value: id, label: topic.name, ids: [id], presets: ["general"] });
+  }
   const taken = new Set(["top", ...CHIPS.flatMap((chip) => chip.ids)]);
   const own: TopicOption[] = [];
   for (const topic of topics) {
@@ -113,5 +119,5 @@ export function topicOptions(
       presets: [],
     });
   }
-  return [...CHIPS, ...own];
+  return [...CHIPS, ...general, ...own];
 }

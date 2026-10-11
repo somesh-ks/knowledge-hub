@@ -56,6 +56,8 @@ const [{ sources }, catalog] = await Promise.all([loadManage(), loadSourceCatalo
 const name = topic?.name ?? "Other";
 const note = topic ? topic.description : "Sources that feed no topic yet.";
 const editable = topic !== null && !topic.never_publish;
+// A general news topic feeds General episodes by how many outlets carry a story, so it has no weight.
+const general = topic?.origin === "general";
 // What Edit topic hands the panel (topicsPanel.ts, TopicFacts). Every topic can change its name; a
 // built-in one keeps what counts, as fixed questions judge it.
 const facts = topic && {
@@ -85,7 +87,7 @@ const facts = topic && {
             editable && topic && (
               <div class="rows topic-controls">
                 <div class="settings-row">
-                  <label class="settings-label" for={`enabled-${topic.id}`}>In briefings</label>
+                  <label class="settings-label" for={`enabled-${topic.id}`}>{general ? "In General episodes" : "In briefings"}</label>
                   <input
                     class="settings-switch"
                     id={`enabled-${topic.id}`}
@@ -108,6 +110,7 @@ const facts = topic && {
                     data-field="topic.enabled"
                   />
                 </div>
+                {!general && (
                 <div class="settings-row topic-weight">
                   <label class="settings-label" for={`weight-${topic.id}`}>Weight</label>
                   <input
@@ -127,6 +130,7 @@ const facts = topic && {
                   />
                   <output class="topic-percent" for={`weight-${topic.id}`} data-word>{percent(topic.weight)}</output>
                 </div>
+                )}
                 <button
                   class="row-action topic-edit"
                   type="button"
@@ -144,6 +148,7 @@ const facts = topic && {
             )
           }
           {topic?.never_publish && <p class="manage-quiet topic-never">Never in a briefing.</p>}
+          {general && <p class="manage-quiet topic-never">Feeds General episodes, never the daily briefing.</p>}
 
           <h2 class="section-head">Sources</h2>
           <ul class="topic-sources" role="list" data-sources aria-label={`${name} sources`}>

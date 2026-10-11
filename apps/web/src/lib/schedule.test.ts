@@ -95,18 +95,20 @@ describe("nextBriefing", () => {
 
 describe("topicChoices", () => {
   it("offers every topic that is on and may publish, by name", () => {
-    const topic = (id: string, name: string, enabled = true, never_publish = false) => ({
-      id,
-      name,
-      enabled,
-      never_publish,
-    });
+    const topic = (
+      id: string,
+      name: string,
+      enabled = true,
+      never_publish = false,
+      origin = "builtin",
+    ) => ({ id, name, enabled, never_publish, origin });
     expect(
       topicChoices([
         topic("trending", "Trending"),
         topic("design", "design"),
         topic("off", "Off topic", false),
         topic("gossip", "Gossip", true, true),
+        topic("world", "World", true, false, "general"),
       ]),
     ).toEqual([
       { id: "design", name: "design" },

@@ -39,7 +39,23 @@ describe("the options", () => {
 });
 
 describe("topicOptions", () => {
+  const news = (id: string, name: string, enabled = true) => ({
+    id,
+    name,
+    section_id: "general",
+    origin: "general" as const,
+    enabled,
+    never_publish: false,
+  });
+  const general = [
+    news("world", "World"),
+    news("business", "Business"),
+    news("science", "Science"),
+    news("culture", "Culture"),
+    news("sports", "Sports"),
+  ];
   const mine = (over: Record<string, unknown> = {}) => ({
+    id: "audio_interfaces",
     name: "Audio interfaces",
     section_id: "audio_interfaces",
     origin: "custom" as const,
@@ -49,7 +65,7 @@ describe("topicOptions", () => {
   });
 
   it("is one list in a fixed order, never Top picks or Trending", () => {
-    const options = topicOptions([], []);
+    const options = topicOptions([], general);
     expect(options.map((option) => option.label)).toEqual([
       "Design",
       "AI",
@@ -65,7 +81,7 @@ describe("topicOptions", () => {
   });
 
   it("expands Design to two sections and Technology to the owner's tech section", () => {
-    const ids = Object.fromEntries(topicOptions([], []).map((o) => [o.value, o.ids]));
+    const ids = Object.fromEntries(topicOptions([], general).map((o) => [o.value, o.ids]));
     expect(ids.design).toEqual(["design", "ui-craft"]);
     expect(ids.ai).toEqual(["ai"]);
     expect(ids.technology).toEqual(["tech"]);
@@ -75,7 +91,7 @@ describe("topicOptions", () => {
 
   it("presets: Somesh is Design, AI, Technology; General is the news topics and Technology", () => {
     const ticked = (audience: "custom" | "general") =>
-      topicOptions([], [mine()])
+      topicOptions([], [...general, mine()])
         .filter((option) => option.presets.includes(audience))
         .map((option) => option.label);
     expect(ticked("custom")).toEqual(["Design", "AI", "Technology"]);
@@ -89,16 +105,32 @@ describe("topicOptions", () => {
     ]);
   });
 
-  it("titles of the owner's topics follow the file; chip labels are fixed", () => {
+  it("titles of the owner's topics follow the file; Design, AI and Technology are fixed", () => {
     const options = topicOptions([{ id: "ai", title: "Artificial" }], [mine()]);
     expect(options[1]?.label).toBe("AI");
     expect(options.at(-1)?.label).toBe("Audio interfaces");
+  });
+
+  it("names the general chips as the file does and leaves out one that is off", () => {
+    const options = topicOptions(
+      [],
+      [news("world", "Global"), news("business", "Business", false), news("sports", "Sport")],
+    );
+    expect(options.map((option) => option.label)).toEqual([
+      "Design",
+      "AI",
+      "Technology",
+      "Global",
+      "Sport",
+    ]);
+    expect(options.find((option) => option.value === "world")?.ids).toEqual(["world"]);
   });
 
   it("adds the owner's enabled custom topics after the chips, in no preset", () => {
     const options = topicOptions(
       [],
       [
+        ...general,
         mine(),
         mine({ name: "Off", section_id: "off", enabled: false }),
         mine({ name: "Builtin", section_id: "x", origin: "builtin" }),
@@ -119,7 +151,7 @@ describe("topicOptions", () => {
   });
 
   it("never offers one id twice", () => {
-    const all = topicOptions([], [mine()]).flatMap((option) => option.ids);
+    const all = topicOptions([], [...general, mine()]).flatMap((option) => option.ids);
     expect(new Set(all).size).toBe(all.length);
   });
 });
