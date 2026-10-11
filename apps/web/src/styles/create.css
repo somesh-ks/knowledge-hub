@@ -88,7 +88,10 @@
   align-items: center;
   gap: var(--space-1);
   height: var(--chip-height);
-  padding-inline: var(--space-3);
+  /* The check takes no room of its own, so a chip keeps one width as it ticks and its neighbours
+     never move: the words sit centred with half the check's room on each side, and slide over by
+     that half as the check appears. */
+  padding-inline: calc(var(--space-3) + var(--space-2));
   border: var(--stroke-hairline) solid var(--color-border-hairline);
   border-radius: var(--chip-radius);
   color: var(--color-on-surface);
@@ -125,10 +128,22 @@
 }
 
 .create-chip > .icon {
-  display: none;
+  position: absolute;
+  inset-block: 0;
+  inset-inline-start: var(--space-2);
   width: var(--space-4);
   height: var(--space-4);
-  margin-inline-start: calc(var(--space-1) * -1);
+  margin-block: auto;
+  opacity: 0;
+  transform: scale(0.6);
+  pointer-events: none;
+  transition:
+    opacity var(--duration-state) var(--ease-out),
+    transform var(--duration-enter) var(--ease-out);
+}
+
+.create-chip > span {
+  transition: transform var(--duration-enter) var(--ease-out);
 }
 
 .create-chip:has(input:checked) {
@@ -138,7 +153,12 @@
 }
 
 .create-chip:has(input:checked) > .icon {
-  display: block;
+  opacity: 1;
+  transform: none;
+}
+
+.create-chip:has(input:checked) > span {
+  transform: translateX(var(--space-2));
 }
 
 .create-chip:has(input:focus-visible) {
