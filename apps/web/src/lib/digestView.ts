@@ -22,6 +22,21 @@ export interface SectionView {
   clock: string | null;
 }
 
+/**
+ * Section names as the reader sees them, in sentence case like every other label. Older digests and
+ * the built-in names carry title case ("AI Products"); only those known names are mapped, so a
+ * topic's own name, which may hold a proper noun, is shown as it was written.
+ */
+const SENTENCE_CASE: Record<string, string> = {
+  "Design Engineering": "Design engineering",
+  "AI Products": "AI products",
+  "Tech Product Launches": "Tech product launches",
+};
+
+export function sectionLabel(title: string): string {
+  return SENTENCE_CASE[title] ?? title;
+}
+
 export function buildSections(entry: DigestEntry): SectionView[] {
   const hasAudio = entry.audioMode === "ready";
   const timed = new Map(entry.timeline?.items.map((item) => [item.id, item]));
@@ -43,7 +58,7 @@ export function buildSections(entry: DigestEntry): SectionView[] {
     const end = timed.get(last.item.id)?.end_ms;
     views.push({
       slug,
-      title,
+      title: sectionLabel(title),
       items,
       firstIndex: first.index,
       clock: hasAudio && start !== undefined && end !== undefined ? formatClock(end - start) : null,

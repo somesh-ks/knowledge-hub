@@ -64,7 +64,7 @@ function revealTab(
  * reports a strip partly past that edge as not intersecting, so the test reads its top instead.
  */
 function watchStuck(strip: HTMLElement): void {
-  const edge = (Number.parseFloat(getComputedStyle(strip).top) || 0) + 1;
+  const edge = stickyTop();
   stuckObserver = new IntersectionObserver(
     ([entry]) => {
       if (!entry) return;
@@ -79,11 +79,46 @@ function watchStuck(strip: HTMLElement): void {
   stuckObserver.observe(strip);
 }
 
-function watchSections(): void {
+/**
+ * Where what sticks under the top chrome sticks now, in pixels: `--sticky-top`, resolved. Below 64rem
+ * the app bar slides away on a scroll down and `--sticky-top` follows it (shell.css), and the strip's
+ * own `top` eases between the two, so reading the strip mid-move would give a value in between. A
+ * fixed probe with no transition resolves the end value at once.
+ */
+function stickyTop(): number {
+  const probe = document.createElement("div");
+  probe.style.cssText = "position:fixed;top:var(--sticky-top);height:0;visibility:hidden";
+  document.body.append(probe);
+  const top = probe.getBoundingClientRect().top;
+  probe.remove();
+  return top;
+}
+
+/**
+ * Below 64rem the floating Play button (PlayFab.astro) waits while the hero's own Play is on screen:
+ * the root carries data-hero-away once that chip has scrolled out of view (create-sheet.css).
+ */
+let heroObserver: IntersectionObserver | null = null;
+
+function watchHeroPlay(): void {
+  heroObserver?.disconnect();
+  const root = document.documentElement;
+  const actions = document.querySelector<HTMLElement>(".hero .hero-actions");
+  if (!actions) {
+    root.removeAttribute("data-hero-away");
+    return;
+  }
+  heroObserver = new IntersectionObserver(([entry]) => {
+    if (entry) root.toggleAttribute("data-hero-away", !entry.isIntersecting);
+  });
+  heroObserver.observe(actions);
+}
+
+function watchSections({ keepHeld = false } = {}): void {
   observer?.disconnect();
   endObserver?.disconnect();
   stuckObserver?.disconnect();
-  held = false;
+  if (!keepHeld) held = false;
   const sections = [...document.querySelectorAll<HTMLElement>("[data-chapter]")];
   const first = sections[0];
   const last = sections.at(-1);
@@ -92,9 +127,7 @@ function watchSections(): void {
   const end = document.querySelector<HTMLElement>("[data-page-end]");
   const strip = document.querySelector<HTMLElement>("[data-section-tabs]");
   // The reading line: just under the sticky strip, or near the top where the strip is not shown.
-  const chrome = strip?.offsetParent
-    ? (Number.parseFloat(getComputedStyle(strip).top) || 0) + strip.offsetHeight
-    : 0;
+  const chrome = strip?.offsetParent ? stickyTop() + strip.offsetHeight : 0;
   if (strip?.offsetParent) watchStuck(strip);
   const inView = new Set<Element>();
   /** All on screen: the first section, the end of the page, or both. */
@@ -208,5 +241,54 @@ window.addEventListener("keydown", release);
 // Back and Forward move the page to an address of their own, so the mark follows the scroll again.
 window.addEventListener("popstate", release);
 
-document.addEventListener("astro:page-load", watchSections);
-watchSections();
+/**
+ * From 80rem the contents list starts level with the first section's heading: its title's words on
+ * the heading's first line (aside.css reads --aside-start). Measured, since the header above the
+ * heading grows with the title and the window.
+ */
+function placeAside(): void {
+  const aside = document.querySelector<HTMLElement>(".aside");
+  const main = document.querySelector<HTMLElement>("main");
+  const heading = document.querySelector<HTMLElement>("[data-chapter] > h2");
+  const title = aside?.querySelector<HTMLElement>(".aside-title");
+  if (!aside || !main || !heading || !title || !aside.offsetParent) return;
+  const words = (node: HTMLElement): number => {
+    const look = getComputedStyle(node);
+    const leading = Number.parseFloat(look.lineHeight) - Number.parseFloat(look.fontSize);
+    return Number.parseFloat(look.paddingTop) + (Number.isNaN(leading) ? 0 : leading / 2);
+  };
+  const top =
+    heading.getBoundingClientRect().top - main.getBoundingClientRect().top + words(heading);
+  // The list's own padding and its title's half-leading sit above the title's words.
+  const offset = Number.parseFloat(getComputedStyle(aside).paddingTop) + words(title);
+  aside.style.setProperty("--aside-start", `${Math.max(Math.round(top - offset), 0)}px`);
+}
+
+/** Marks a tab strip whose tabs all fit, which then shows no edge fades (briefing.css). */
+function fitStrip(): void {
+  const strip = document.querySelector<HTMLElement>("[data-section-tabs]");
+  strip?.toggleAttribute("data-fits", strip.scrollWidth <= strip.clientWidth + 1);
+}
+
+const measure = (): void => {
+  placeAside();
+  fitStrip();
+};
+
+const watchPage = (): void => {
+  watchSections();
+  watchHeroPlay();
+  measure();
+  void document.fonts?.ready.then(measure);
+};
+
+window.addEventListener("resize", () => requestAnimationFrame(measure), { passive: true });
+
+// The app bar hiding or coming back moves the strip, and with it the reading line and the edge it
+// sticks at: measure again from where they now are. A tapped tab keeps its mark through the move.
+new MutationObserver(() => {
+  if (document.querySelector("[data-section-tabs]")) watchSections({ keepHeld: true });
+}).observe(document.documentElement, { attributes: true, attributeFilter: ["data-bar-hidden"] });
+
+document.addEventListener("astro:page-load", watchPage);
+watchPage();

@@ -60,17 +60,29 @@ const highlights = episodeHighlights(episode);
         <ul class="rows episode-highlights" role="list">
           {highlights.map((highlight) => (
             <li class="episode-highlight">
-              <h3 class="episode-highlight-title">{highlight.headline}</h3>
+              {/* As a briefing's story (Item.astro): the headline is the link to the source, and
+                  the host under the text is its quiet attribution. */}
+              <h3 class="episode-highlight-title">
+                {highlight.host ? (
+                  <a class="story-link" href={highlight.url} target="_blank" rel="noopener noreferrer">
+                    {highlight.headline}
+                    <span class="sr-only">(opens in a new tab)</span>
+                  </a>
+                ) : (
+                  highlight.headline
+                )}
+              </h3>
               {highlight.text && <p class="episode-highlight-text">{highlight.text}</p>}
-              {/* Named as a story's source link is (Item.astro): the name starts with the host shown. */}
               {highlight.host && (
                 <a
-                  class="source-link episode-highlight-link"
+                  class="source-link story-source episode-highlight-link"
                   href={highlight.url}
                   target="_blank"
                   rel="noopener noreferrer"
+                  tabindex="-1"
+                  aria-hidden="true"
                 >
-                  <span>{highlight.host}</span><span class="sr-only"> (opens in a new tab)</span>
+                  <span>{highlight.host}</span>
                   <Icon name="openInNew" />
                 </a>
               )}

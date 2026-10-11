@@ -246,7 +246,11 @@ html:has(dialog[open]) .create-fab {
 /* While the bar holds this page's audio the bar is its control. The player takes data-fab off the
    root, so the page gives back the button's room (shell.css), and the button steps aside as it does
    for the open player. It comes back once the bar holds something else. */
-html:not([data-fab]) .play-fab {
+/* It is a second face of the hero's Play, so while that is on screen it waits: two Play buttons
+   at once say the same thing twice. briefingPage.ts sets data-hero-away once the hero's Play has
+   scrolled out of view, and the button comes in; scrolling back up to it sends the button away. */
+html:not([data-fab]) .play-fab,
+html:has(.hero-actions):not([data-hero-away]) .play-fab {
   visibility: hidden;
   opacity: 0;
   transform: translateY(var(--space-4));
@@ -257,7 +261,8 @@ html:not([data-fab]) .play-fab {
 
 /* With reduced motion the exit takes no time, so it goes at once, and it comes back without moving. */
 @media (prefers-reduced-motion: reduce) {
-  html:not([data-fab]) .play-fab {
+  html:not([data-fab]) .play-fab,
+  html:has(.hero-actions):not([data-hero-away]) .play-fab {
     transform: none;
   }
 }

@@ -866,21 +866,24 @@ test.describe("an episode page", () => {
     await page.goto(EPISODE);
     const rows = page.locator(".episode-highlight");
     await expect(rows).toHaveCount(2);
-    await expect(rows.nth(0).locator(".episode-highlight-title")).toHaveText(
-      "Why a quiet interface needs one loud detail",
+    // The headline is the link to the source, named by its words, and says it opens a new tab.
+    const link = rows.nth(0).locator(".episode-highlight-title a");
+    await expect(link).toHaveAccessibleName(
+      "Why a quiet interface needs one loud detail (opens in a new tab)",
     );
     // What the hosts said about it, from the script: no speaker names.
     await expect(rows.nth(0).locator(".episode-highlight-text")).toContainText(
       "Start with emphasis.",
     );
-    const link = rows.nth(0).locator("a");
     await expect(link).toHaveAttribute("href", "https://example.com/dispatch-fixture/f0a17c2d6b83");
     await expect(link).toHaveAttribute("target", "_blank");
     await expect(link).toHaveAttribute("rel", "noopener noreferrer");
-    // The publisher's host, and never the name of the service that found it. The link is named by
-    // what it shows, and says it opens a new tab.
-    await expect(link.locator(":scope > span").first()).toHaveText("example.com");
-    await expect(link).toHaveAccessibleName("example.com (opens in a new tab)");
+    // The publisher's host as attribution, and never the name of the service that found it. It is
+    // the same destination, so only the headline is in the tab order.
+    const host = rows.nth(0).locator(".source-link");
+    await expect(host.locator(":scope > span").first()).toHaveText("example.com");
+    await expect(host).toHaveAttribute("href", "https://example.com/dispatch-fixture/f0a17c2d6b83");
+    await expect(host).toHaveAttribute("tabindex", "-1");
     await expect(page.locator("body")).not.toContainText("Exa discovery");
   });
 

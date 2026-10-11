@@ -1,7 +1,13 @@
 import { describe, expect, it } from "vitest";
 import { makeDigest, makeItem, makeTimeline } from "../testing/digestFactory";
 import { buildEntries } from "./digests";
-import { AUDIO_UNAVAILABLE_COPY, buildHero, buildSections, storyCount } from "./digestView";
+import {
+  AUDIO_UNAVAILABLE_COPY,
+  buildHero,
+  buildSections,
+  sectionLabel,
+  storyCount,
+} from "./digestView";
 
 function entryFor(overrides: Parameters<typeof makeDigest>[0] = {}, withTimeline = false) {
   const digest = makeDigest({
@@ -47,6 +53,19 @@ describe("buildSections", () => {
   it("gives each story its share of the recording", () => {
     const stories = buildSections(entryFor({}, true)).flatMap((section) => section.items);
     expect(stories.map(({ length }) => length)).toEqual(["0:03", "0:03", "0:03", "0:03"]);
+  });
+});
+
+describe("sectionLabel", () => {
+  it("shows the built-in title-case names in sentence case", () => {
+    expect(sectionLabel("Design Engineering")).toBe("Design engineering");
+    expect(sectionLabel("AI Products")).toBe("AI products");
+    expect(sectionLabel("Tech Product Launches")).toBe("Tech product launches");
+  });
+
+  it("leaves any other name as it was written, proper nouns included", () => {
+    expect(sectionLabel("Top picks")).toBe("Top picks");
+    expect(sectionLabel("Apple Vision")).toBe("Apple Vision");
   });
 });
 

@@ -70,6 +70,32 @@ html:has(.briefing > .tabs) {
   }
 }
 
+/* From 40rem the strip keeps to the text column, where a side column leaves it narrower than the
+   window: the tabs draw tighter, so every section fits as it does on a 1024px window, and the
+   labels start at the column's edge. */
+@media (40rem <= width < 80rem) {
+  .briefing > .tabs {
+    margin-inline: calc(var(--space-2) * -1);
+    padding-inline: 0;
+    scroll-padding-inline: var(--space-2);
+  }
+
+  .briefing > .tabs > .tab {
+    padding-inline: var(--space-2);
+  }
+
+  .briefing > .tabs > .tab::after {
+    inset-inline: var(--space-2);
+  }
+}
+
+/* The edge fades say "more this way", so a strip whose tabs all fit has none (briefingPage.ts
+   marks it). */
+.briefing > .tabs[data-fits] {
+  mask-image: none;
+  -webkit-mask-image: none;
+}
+
 /* From 80rem the contents list beside the column does the tabs' job, and nothing sticks but the
    top chrome. */
 @media (min-width: 80rem) {
