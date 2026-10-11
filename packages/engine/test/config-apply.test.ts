@@ -1,12 +1,22 @@
 import type { Preferences, Source, SourcesUserFile, TopicsFile } from "@dispatch/core";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { makeConfigCommand } from "../src/commands/config.js";
+import { prefilter } from "../src/prefilter/prefilter.js";
+import { categoryHint } from "../src/sources/hint.js";
 import { loadSources, loadUserSources, mergeUserSources } from "../src/sources/registry.js";
-import { fakeFetch, makeDeps, makeSource } from "./fetch-helpers.js";
+import { NOW as FETCH_NOW, fakeFetch, makeDeps, makeItem, makeSource } from "./fetch-helpers.js";
 import { git } from "./git-testRepo.js";
-import { type ConfigRepo, configRepo, datedEntries, rssFeed } from "./topics-helpers.js";
+import { realPreferences } from "./score-factories.js";
+import {
+  type ConfigRepo,
+  configRepo,
+  datedEntries,
+  rssFeed,
+  SEED_SOURCES,
+} from "./topics-helpers.js";
 
 const NOW = new Date("2026-10-07T06:00:00Z");
+const TECH = "consumer_tech_releases" as const;
 
 let repo: ConfigRepo;
 let out: string[];
@@ -782,8 +792,128 @@ describe("the merged registry", () => {
       ["d", "Dee", ["y"]],
     ]);
     expect(merged.sources[1]).not.toHaveProperty("topic_ids");
-    expect(merged.sources[1]?.category_hint).toBe("developer_tool_launches");
     expect(merged.sources[2]?.enabled).toBe(false);
     expect(base.sources[0]).toMatchObject({ name: "A", topic_ids: ["x"] });
+  });
+
+  it("lets an override that sets the topics decide the category hint, and no other", () => {
+    const base = {
+      version: 1 as const,
+      sources: [
+        source("custom", { category_hint: TECH }),
+        source("other", { category_hint: TECH, topic_ids: ["trending"] }),
+        source("builtin", { category_hint: "developer_tool_launches" }),
+        source("app", { category_hint: TECH }),
+        source("renamed", { category_hint: TECH }),
+        source("untouched", { category_hint: TECH }),
+      ],
+    };
+    const merged = mergeUserSources(base, {
+      version: 1,
+      added: [],
+      overrides: {
+        custom: { topic_ids: ["quantum_computing"] },
+        other: { topic_ids: [] },
+        builtin: {
+          topic_ids: ["quantum_computing", "design_engineering_craft", "frontier_model_releases"],
+        },
+        app: { topic_ids: ["design"] },
+        renamed: { name: "Renamed", pinned: true },
+      },
+    });
+    const byId = Object.fromEntries(merged.sources.map((s) => [s.id, s]));
+    // The first built-in category the override names; none for custom or app topics, or for Other.
+    expect(byId.custom).not.toHaveProperty("category_hint");
+    expect(byId.other).not.toHaveProperty("category_hint");
+    expect(byId.other).not.toHaveProperty("topic_ids");
+    expect(byId.builtin?.category_hint).toBe("design_engineering_craft");
+    expect(byId.app).not.toHaveProperty("category_hint");
+    expect(byId.app?.topic_ids).toEqual(["design"]);
+    // An override that leaves the topics alone leaves the hint alone.
+    expect(byId.renamed?.category_hint).toBe(TECH);
+    expect(byId.untouched?.category_hint).toBe(TECH);
+  });
+
+  it("steers a moved source's items where it was moved, in the prefilter and dedupe", () => {
+    const base = {
+      version: 1 as const,
+      sources: [
+        source("phones", { category_hint: TECH }),
+        source("tablets", { category_hint: TECH }),
+      ],
+    };
+    const merged = mergeUserSources(base, {
+      version: 1,
+      added: [],
+      overrides: { phones: { topic_ids: [] } },
+    });
+    const launch = (sourceId: string) =>
+      makeItem({
+        url: `https://${sourceId}.example/launch`,
+        title: "Acme Phone goes on sale",
+        source_id: sourceId,
+      });
+    const run = (sources: Source[]) =>
+      prefilter({
+        items: [launch("phones"), launch("tablets")],
+        preferences: realPreferences(),
+        sources,
+        now: FETCH_NOW,
+      }).report;
+    // Before the move both outlets feed the tech beat; after it only the one still hinted does.
+    expect(run(base.sources).tech.input).toBe(2);
+    expect(run(merged.sources).tech.input).toBe(1);
+    // Dedupe reads the hint the same way, so it no longer hands the old category on.
+    const phones = merged.sources.find((s) => s.id === "phones");
+    expect(categoryHint(launch("phones"), phones)).toBeUndefined();
+  });
+});
+
+describe("source.update and the category hint", () => {
+  const hintedSeed = () =>
+    writeFileIn(
+      "config/sources.json",
+      JSON.stringify(
+        { version: 1, sources: [{ ...SEED_SOURCES[0], category_hint: TECH }, SEED_SOURCES[1]] },
+        null,
+        2,
+      ),
+    );
+  const alpha = async () => (await loadSources(repo.root)).sources.find((s) => s.id === "alpha");
+
+  it("moves a seed source's hint with its topics, and keeps sources.json as it was", async () => {
+    await hintedSeed();
+    expect((await alpha())?.category_hint).toBe(TECH);
+
+    await apply({ op: "source.update", id: "alpha", topic_ids: [] });
+    expect(await alpha()).not.toHaveProperty("category_hint");
+    await apply({ op: "source.update", id: "alpha", topic_ids: ["developer_tool_launches"] });
+    expect(await alpha()).toMatchObject({
+      category_hint: "developer_tool_launches",
+      topic_ids: ["developer_tool_launches"],
+    });
+    await apply({ op: "source.update", id: "alpha", name: "Alpha Weekly" });
+    expect((await alpha())?.category_hint).toBe("developer_tool_launches");
+    expect(repo.dirty()).toEqual(["config/sources.user.json"]);
+  });
+
+  it("takes a removed topic out of seed overrides, returning a source to its own hint", async () => {
+    await hintedSeed();
+    await apply(QUANTUM);
+    await apply({ op: "source.update", id: "alpha", topic_ids: ["quantum_computing"] });
+    await apply({
+      op: "source.update",
+      id: "beta",
+      name: "Beta Weekly",
+      topic_ids: ["quantum_computing", "design"],
+    });
+    expect(await alpha()).not.toHaveProperty("category_hint");
+
+    expect((await apply({ op: "topic.remove", id: "quantum_computing" })).code).toBe(0);
+    const user = await loadUserSources(repo.root);
+    expect(user.overrides.alpha).toBeUndefined();
+    expect(user.overrides.beta).toEqual({ name: "Beta Weekly", topic_ids: ["design"] });
+    expect(await alpha()).toMatchObject({ category_hint: TECH });
+    expect(await alpha()).not.toHaveProperty("topic_ids");
   });
 });

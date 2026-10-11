@@ -248,6 +248,17 @@ function removeTopic(
     added.push(remaining.length > 0 ? { ...rest, topic_ids: remaining } : rest);
   }
   next.sourcesUser.added = added;
+  // A seed source the owner moved into the topic loses it as well. With no topic left, its override
+  // stops naming topics, so the source returns to its own topics and category hint (an override
+  // that names topics decides the hint, sources/registry.ts).
+  for (const [id, override] of Object.entries(next.sourcesUser.overrides)) {
+    if (!override.topic_ids?.includes(op.id)) continue;
+    const { topic_ids: _own, ...rest } = override;
+    const remaining = override.topic_ids.filter((topicId) => topicId !== op.id);
+    const kept = remaining.length > 0 ? { ...rest, topic_ids: remaining } : rest;
+    if (Object.keys(kept).length > 0) next.sourcesUser.overrides[id] = kept;
+    else delete next.sourcesUser.overrides[id];
+  }
   delete next.candidates.topics[op.id];
   return { next, summary: `remove topic ${tidy(topic.name)}`, topic_id: op.id, new_topic: false };
 }
