@@ -1,3 +1,5 @@
+import { rm } from "node:fs/promises";
+import { writeJson } from "../curate/output.js";
 import { poolRelPath, writePool } from "../fetch/pool.js";
 import { applySourceResults, toHealthFile } from "../state/sourceHealth.js";
 import { writeSourceHealth } from "../state/store.js";
@@ -26,6 +28,11 @@ export async function fetchStage(deps: RunDeps, plan: Plan): Promise<StageReport
       setup: deps.fetch,
     });
     await writePool(passFile(deps.root, pass.id, "pool.json"), gathered.pool);
+    // The general stories live beside the pool, never in it. A file left by an earlier attempt
+    // goes when this one read no general source.
+    const generalPath = passFile(deps.root, pass.id, "general.json");
+    if (gathered.general) await writeJson(generalPath, gathered.general);
+    else await rm(generalPath, { force: true });
 
     if (!plan.dry_run) {
       // Applied pass by pass: a source failing in both passes of one run has failed twice in a row.
@@ -62,6 +69,7 @@ export async function fetchStage(deps: RunDeps, plan: Plan): Promise<StageReport
       fetched: gathered.pool.report.fetched,
       after_dedupe: gathered.pool.report.dedupe.output,
       kept: gathered.pool.items.length,
+      ...(gathered.general ? { general_stories: gathered.general.report.stories } : {}),
       pool: poolRelPath(pass.id),
     });
   }

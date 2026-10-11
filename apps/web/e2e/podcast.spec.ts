@@ -169,9 +169,10 @@ test.describe("the profile pages", () => {
     await expect(page.getByLabel("Voice (Ada)")).toBeVisible();
     await expect(page.getByLabel("Voice (Ada)").locator("option")).toHaveText([
       "Default",
-      "Ada, female",
-      "Leo, male",
-      "Nora, female",
+      // Each voice leads with the flag of its accent: en-US, en-US, en-GB.
+      "\u{1F1FA}\u{1F1F8} Ada, female",
+      "\u{1F1FA}\u{1F1F8} Leo, male",
+      "\u{1F1EC}\u{1F1E7} Nora, female",
     ]);
     await expect(page.locator("[data-voice-row=voice_b]")).toBeHidden();
     await page.getByRole("radio", { name: "Discussion" }).check();
@@ -208,6 +209,10 @@ test.describe("the profile pages", () => {
     const boxes = page.locator(".podcast-topics input");
     const count = await chips.count();
     expect(count).toBeGreaterThan(1);
+    // A general news topic never publishes in a briefing, so it is not offered here.
+    await expect(
+      chips.filter({ hasText: /^(World|Business|Science|Culture|Sports)$/ }),
+    ).toHaveCount(0);
     for (let index = 0; index < count; index += 1) await expect(boxes.nth(index)).toBeChecked();
     // Untick all but the first: the first then cannot be unticked.
     for (let index = 1; index < count; index += 1) await chips.nth(index).click();

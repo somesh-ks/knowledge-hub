@@ -128,11 +128,11 @@ function upsertTopic(
     if (isBuiltinCategory(existing.id)) next.preferences.weights[existing.id] = input.weight;
     return { next, summary, topic_id: id, new_topic: false };
   }
-  if (existing?.origin === "app") {
-    // A topic that ships with the app keeps its section and depth. Its fit question is built from
-    // its name and description, so editing either re-judges this topic alone on the next run, and
-    // switching it off and on re-judges nothing. Its sources are shipped with it, so no discovery
-    // queries are written.
+  if (existing?.origin === "app" || existing?.origin === "general") {
+    // A topic that ships with the app (Design, Trending, and the general news topics) keeps its
+    // section and depth. Its fit question is built from its name and description, so editing either
+    // re-judges this topic alone on the next run, and switching it off and on re-judges nothing. Its
+    // sources are shipped with it, so no discovery queries are written.
     const reworded = existing.name !== input.name || existing.description !== input.description;
     const summary = reworded
       ? `update topic ${tidy(input.name)}`
@@ -144,7 +144,7 @@ function upsertTopic(
     existing.enabled = input.enabled;
     return { next, summary, topic_id: id, new_topic: false };
   }
-  if (input.origin === "builtin" || input.origin === "app") {
+  if (input.origin === "builtin" || input.origin === "app" || input.origin === "general") {
     throw new ConfigOpError("Only the shipped topics are built in; a new topic is custom.");
   }
   if (existing === undefined) {
@@ -231,7 +231,7 @@ function removeTopic(
       "Built-in topics cannot be removed. Set the weight to 0 to silence one.",
     );
   }
-  if (topic.origin === "app") {
+  if (topic.origin === "app" || topic.origin === "general") {
     throw new ConfigOpError(
       `${topic.name} ships with the app and cannot be removed. Turn it off instead.`,
     );

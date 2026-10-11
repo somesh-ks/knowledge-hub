@@ -14,6 +14,7 @@ import {
   SectionId,
   TRENDING_TOPIC_ID,
 } from "./categories.js";
+import { GENERAL_TOPICS, type GeneralTopicId, isGeneralTopicId } from "./generalTopics.js";
 import type { Preferences } from "./preferences.js";
 
 /**
@@ -29,9 +30,13 @@ export type TopicDepth = z.infer<typeof TopicDepth>;
 /**
  * "builtin" topics are the eleven judge categories. "custom" topics are the owner's. "app" topics
  * ship with the app (Design and Trending): judged by fit like a custom topic, but they can be
- * switched off and never removed, and they do not count toward MAX_CUSTOM_TOPICS.
+ * switched off and never removed, and they do not count toward MAX_CUSTOM_TOPICS. "general" topics
+ * are the general news topics (World, Business, Science, Culture, Sports; D66): fed only by their
+ * own news feeds, whose stories are judged so the feeds earn scores, and published only in
+ * episodes, never in a briefing. Like app topics they can be renamed, reworded and switched off,
+ * never removed, and do not count toward MAX_CUSTOM_TOPICS.
  */
-export const TOPIC_ORIGINS = ["builtin", "custom", "app"] as const;
+export const TOPIC_ORIGINS = ["builtin", "custom", "app", "general"] as const;
 export const TopicOrigin = z.enum(TOPIC_ORIGINS);
 export type TopicOrigin = z.infer<typeof TopicOrigin>;
 
@@ -40,9 +45,17 @@ export const RESERVED_TOPIC_IDS: readonly string[] = [
   "none",
   "top",
   "watch",
+  "technology",
   DESIGN_TOPIC_ID,
   TRENDING_TOPIC_ID,
+  ...GENERAL_TOPICS.map((topic) => topic.id),
 ];
+
+/**
+ * The section a general topic names. No digest has it: a general topic's stories go to episodes
+ * only, so the briefing's selection never places them, and topics.json lists no such section.
+ */
+export const GENERAL_SECTION_ID = "general";
 
 /** Ids of the topics that ship with the app. */
 export const APP_TOPIC_IDS: readonly string[] = [DESIGN_TOPIC_ID, TRENDING_TOPIC_ID];
@@ -106,7 +119,11 @@ export const TopicsFile = z
         ctx.addIssue({ code: "custom", path: at("id"), message: `duplicate topic id ${topic.id}` });
       }
       topicIds.add(topic.id);
-      if (!sectionIds.has(topic.section_id)) {
+      if (
+        topic.origin === "general"
+          ? topic.section_id !== GENERAL_SECTION_ID
+          : !sectionIds.has(topic.section_id)
+      ) {
         ctx.addIssue({
           code: "custom",
           path: at("section_id"),
@@ -127,6 +144,14 @@ export const TopicsFile = z
             code: "custom",
             path: at("id"),
             message: `${topic.id} is not a topic that ships with the app`,
+          });
+        }
+      } else if (topic.origin === "general") {
+        if (!isGeneralTopicId(topic.id)) {
+          ctx.addIssue({
+            code: "custom",
+            path: at("id"),
+            message: `${topic.id} is not a general news topic`,
           });
         }
       } else {
@@ -283,12 +308,50 @@ export function appTopics(): Topic[] {
   ];
 }
 
+/**
+ * What counts as each general topic. Read by the judge as the topic's fit question, so its
+ * sources earn quality scores; the wording is part of the question's hash, so edit it on purpose.
+ */
+const GENERAL_DESCRIPTIONS: Record<GeneralTopicId, string> = {
+  world:
+    "International news and world affairs: conflicts, diplomacy, elections and governments, disasters and humanitarian crises, and major events in any country.",
+  business:
+    "Business and economic news: markets, companies, earnings, deals, jobs, trade, prices, interest rates and the policies that move them.",
+  science:
+    "Science and health news: research findings, space, climate and the environment, medicine and public health, reported from a study or an expert.",
+  culture:
+    "Arts and culture news: film, television, music, books, art, games and the trends around them. Not sports results.",
+  sports:
+    "Sports news: results, tournaments, transfers, records and the stories around teams and athletes in major sports.",
+};
+
+/**
+ * The general news topics (D66). Each is fed by the news feeds tagged with its id, ranked by how
+ * many outlets carried a story, and names GENERAL_SECTION_ID, so a briefing never publishes it.
+ */
+export function generalTopics(): Topic[] {
+  return GENERAL_TOPICS.map(
+    ({ id, title }): Topic => ({
+      id,
+      name: title,
+      description: GENERAL_DESCRIPTIONS[id],
+      weight: 1,
+      enabled: true,
+      keywords: [],
+      section_id: GENERAL_SECTION_ID,
+      never_publish: false,
+      origin: "general",
+      depth: "coverage",
+    }),
+  );
+}
+
 /** What config/topics.json holds before anyone adds a topic: the built-ins and today's sections. */
 export function seedTopicsFile(weights: Readonly<Record<Category, number>>): TopicsFile {
   return {
     version: 1,
     sections: BUILTIN_SECTIONS.map((section) => ({ ...section })),
-    topics: [...builtinTopics(weights), ...appTopics()],
+    topics: [...builtinTopics(weights), ...appTopics(), ...generalTopics()],
   };
 }
 
@@ -304,7 +367,10 @@ export function resolveTopics(
 ): TopicsFile {
   const base = file ?? seedTopicsFile(preferences.weights);
   const seed = new Map(
-    [...builtinTopics(preferences.weights), ...appTopics()].map((topic) => [topic.id, topic]),
+    [...builtinTopics(preferences.weights), ...appTopics(), ...generalTopics()].map((topic) => [
+      topic.id,
+      topic,
+    ]),
   );
   const present = new Set(base.topics.map((topic) => topic.id));
   const topics = base.topics.map((topic): Topic => {
@@ -334,11 +400,19 @@ export function activeCustomTopics(file: TopicsFile): Topic[] {
 }
 
 /**
- * Topics a run judges by fit: the owner's custom topics and the app's own (Design, Trending),
- * when switched on. The built-in categories are judged by the fixed question set instead.
+ * Topics a briefing judges by fit: the owner's custom topics and the app's own (Design, Trending),
+ * when switched on. The built-in categories are judged by the fixed question set instead, and the
+ * general topics only on their own feeds' stories (activeGeneralTopics).
  */
 export function activeFitTopics(file: TopicsFile): Topic[] {
-  return file.topics.filter((topic) => topic.origin !== "builtin" && topic.enabled);
+  return file.topics.filter(
+    (topic) => topic.origin !== "builtin" && topic.origin !== "general" && topic.enabled,
+  );
+}
+
+/** The general news topics that are switched on (D66). */
+export function activeGeneralTopics(file: TopicsFile): Topic[] {
+  return file.topics.filter((topic) => topic.origin === "general" && topic.enabled);
 }
 
 /** True when the id names a topic that ships with the app and the file has it switched off. */

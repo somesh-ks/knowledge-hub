@@ -70,6 +70,20 @@ describe("sourceScore: too little history", () => {
   });
 });
 
+describe("sourceScore: a general news feed", () => {
+  it("counts stories another outlet also carried where other sources count published ones", () => {
+    const stat = { ...clean, published: 0, covered: 10 };
+    expect(sourceScore({ stat, health: fresh, now, feedsGeneral: true })).toEqual({
+      score: 3,
+      label: "Excellent",
+      parts: { health: 1, quality: 1, trust: 1 },
+      reason: "No weak part: 10 of 40 judged stories also carried by another outlet, no failures.",
+    });
+    // The same counters on a briefing source: nothing published, so quality is the pass share alone.
+    expect(sourceScore({ stat, health: fresh, now }).parts?.quality).toBe(0.3);
+  });
+});
+
 describe("sourceScore: the three parts", () => {
   it("rates a productive, reliable, clean source 3 of 3, Excellent, with no weak part", () => {
     expect(scoreOf({})).toEqual({

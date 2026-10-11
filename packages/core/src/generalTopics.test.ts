@@ -1,10 +1,6 @@
-import { dirname, join } from "node:path";
-import { fileURLToPath } from "node:url";
 import { describe, expect, it } from "vitest";
-import { GENERAL_TOPICS, loadGeneralFeeds, parseGeneralFeeds } from "./generalTopics.js";
+import { feedsGeneralOnly, GENERAL_TOPICS, normalizeTopicIds } from "./generalTopics.js";
 import { PodcastRequest } from "./podcast.js";
-
-const ROOT = join(dirname(fileURLToPath(import.meta.url)), "..", "..", "..");
 
 const base = {
   length_minutes: 5,
@@ -18,7 +14,6 @@ describe("GENERAL_TOPICS", () => {
     expect(GENERAL_TOPICS).toEqual([
       { id: "world", title: "World" },
       { id: "business", title: "Business" },
-      { id: "technology", title: "Technology" },
       { id: "science", title: "Science" },
       { id: "culture", title: "Culture" },
       { id: "sports", title: "Sports" },
@@ -26,30 +21,24 @@ describe("GENERAL_TOPICS", () => {
   });
 });
 
-describe("config/general-feeds.json", () => {
-  it("gives every topic at least two feeds and never repeats a URL", async () => {
-    const feeds = await loadGeneralFeeds(ROOT);
-    const urls: string[] = [];
-    for (const topic of GENERAL_TOPICS) {
-      const list = feeds.topics[topic.id];
-      expect(list.length, topic.id).toBeGreaterThanOrEqual(2);
-      expect(list.length, topic.id).toBeLessThanOrEqual(4);
-      expect(new Set(list.map((f) => f.id)).size, `${topic.id} outlet ids`).toBe(list.length);
-      urls.push(...list.map((f) => f.feed_url));
-    }
-    expect(new Set(urls).size).toBe(urls.length);
-    expect(urls.every((u) => u.startsWith("https://"))).toBe(true);
+describe("normalizeTopicIds", () => {
+  it("reads a stored technology as the owner's Technology, once", () => {
+    expect(normalizeTopicIds(["world", "technology", "tech", "ai"])).toEqual([
+      "world",
+      "tech",
+      "ai",
+    ]);
   });
+});
 
-  it("rejects a file that misses a topic or holds a bad URL", () => {
-    expect(() => parseGeneralFeeds({ version: 1, topics: { world: [] } })).toThrow();
-    const bad = {
-      version: 1,
-      topics: Object.fromEntries(
-        GENERAL_TOPICS.map((t) => [t.id, [{ id: "a", name: "A", feed_url: "nope" }]]),
-      ),
-    };
-    expect(() => parseGeneralFeeds(bad)).toThrow();
+describe("feedsGeneralOnly", () => {
+  it("is true only when a source has topics and every one is a general topic", () => {
+    expect(feedsGeneralOnly(["world"])).toBe(true);
+    expect(feedsGeneralOnly(["world", "sports"])).toBe(true);
+    expect(feedsGeneralOnly(["world", "trending"])).toBe(false);
+    expect(feedsGeneralOnly(["consumer_tech_releases"])).toBe(false);
+    expect(feedsGeneralOnly([])).toBe(false);
+    expect(feedsGeneralOnly(undefined)).toBe(false);
   });
 });
 
@@ -62,16 +51,15 @@ describe("a podcast request's topics", () => {
     }
   });
 
-  it("names the topics a general request may not use", () => {
-    const result = PodcastRequest.safeParse({
-      ...base,
-      topic_ids: ["world", "ai"],
-      audience: "general",
-    });
-    expect(result.success).toBe(false);
-    expect(JSON.stringify(result.error?.issues)).toMatch(
-      /A general episode takes only world, business, technology, science, culture, sports; not ai/,
-    );
+  it("accepts briefing ids mixed with general ids under either audience", () => {
+    for (const audience of ["general", "custom"] as const) {
+      const request = { ...base, topic_ids: ["design", "ui-craft", "tech", "world"], audience };
+      expect(PodcastRequest.safeParse(request).success).toBe(true);
+    }
+    expect(
+      PodcastRequest.safeParse({ ...base, topic_ids: ["world", "ai"], audience: "general" })
+        .success,
+    ).toBe(true);
   });
 
   it("validates a custom or untagged request as before", () => {

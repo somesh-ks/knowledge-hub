@@ -72,7 +72,7 @@ export interface TopicFacts {
    * or app topic, whose fit question is built from it, and not on a built-in one, judged by fixed
    * questions.
    */
-  origin: "builtin" | "app" | "custom";
+  origin: "builtin" | "app" | "custom" | "general";
 }
 
 /** A topic's details as the panel leaves them. */

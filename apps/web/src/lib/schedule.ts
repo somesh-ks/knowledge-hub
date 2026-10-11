@@ -72,24 +72,39 @@ function stockholmHour(at: Date): number {
   return Number(hour);
 }
 
+function readableDate(at: string | null | undefined): string | null {
+  if (!at) return null;
+  const date = new Date(at);
+  return Number.isNaN(date.getTime()) ? null : stockholmDate(date);
+}
+
 /**
- * "Next briefing: about Friday at 07:00", worked out when the site is built from the last regular
- * run, the cadence and the hour. It is a guess made at build time, so it says "about".
+ * "Next briefing: about Friday at 07:00", worked out when the site is built as the engine's gate
+ * decides: the cadence counts from the later of the last regular run and the last weekly podcast,
+ * and the weekly podcast's day has no briefing. It is a guess made at build time, so it says
+ * "about".
  */
 export function nextBriefing(input: {
   now: Date;
   hour: number;
   cadenceDays: number;
   lastRegularAt: string | null;
+  /** When the last weekly podcast was published. */
+  lastWeeklyAt?: string | null;
+  /** The weekly podcast's day (0 = Sunday), or null while it is off. */
+  weeklyDay?: number | null;
 }): string {
   const today = stockholmDate(input.now);
-  let date = today;
-  if (input.lastRegularAt) {
-    const last = new Date(input.lastRegularAt);
-    if (!Number.isNaN(last.getTime())) date = addDays(stockholmDate(last), input.cadenceDays);
-  }
+  const anchors = [readableDate(input.lastRegularAt), readableDate(input.lastWeeklyAt)].filter(
+    (date): date is string => date !== null,
+  );
+  const last = anchors.sort().at(-1);
+  let date = last ? addDays(last, input.cadenceDays) : today;
   if (daysBetween(today, date) < 0) date = today;
   if (date === today && stockholmHour(input.now) >= input.hour) date = addDays(today, 1);
+  if (input.weeklyDay != null && new Date(`${date}T12:00:00Z`).getUTCDay() === input.weeklyDay) {
+    date = addDays(date, 1);
+  }
   const day =
     date === today
       ? "today"
@@ -162,6 +177,7 @@ export async function loadScheduleView(
   const lastRun = LastRunFile.safeParse(lastRunFile);
   const regular = lastRun.success ? lastRun.data.regular : undefined;
   const counts = regular && (regular.outcome === "published" || regular.outcome === "nothing");
+  const weeklyRun = lastRun.success ? lastRun.data.weekly : undefined;
   return {
     hour,
     cadenceDays,
@@ -177,6 +193,8 @@ export async function loadScheduleView(
       hour,
       cadenceDays,
       lastRegularAt: counts ? regular.at : null,
+      lastWeeklyAt: weeklyRun?.outcome === "published" ? weeklyRun.at : null,
+      weeklyDay: weekly.enabled ? weekly.day : null,
     }),
     nextWeekly: nextWeekly({ now: options.now ?? new Date(), day: weekly.day, hour: weekly.hour }),
   };
@@ -189,14 +207,21 @@ export interface TopicChoice {
 }
 
 /**
- * The topics a scheduled episode can leave out, by name: every topic that is on and may publish.
- * One that is off is in no episode already, so it is not offered.
+ * The topics a scheduled episode can leave out, by name: every topic that is on and may publish. One
+ * that is off is in no episode already, so it is not offered, and a general news topic never
+ * publishes in a briefing, so it is not either.
  */
 export function topicChoices(
-  topics: readonly { id: string; name: string; enabled: boolean; never_publish: boolean }[],
+  topics: readonly {
+    id: string;
+    name: string;
+    enabled: boolean;
+    never_publish: boolean;
+    origin?: string;
+  }[],
 ): TopicChoice[] {
   return topics
-    .filter((topic) => topic.enabled && !topic.never_publish)
+    .filter((topic) => topic.enabled && !topic.never_publish && topic.origin !== "general")
     .map(({ id, name }) => ({ id, name }))
     .sort((a, b) => a.name.localeCompare(b.name, "en", { sensitivity: "base" }));
 }

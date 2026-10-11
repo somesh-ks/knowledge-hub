@@ -73,7 +73,12 @@ const { title, note, values } = PAGES[profile];
       <fieldset class="manage-fields" data-fields>
         <legend class="sr-only">{title}</legend>
         <div class="daily-panel" data-panel>
-          <PodcastProfile id={profile} values={values} topics={topics} />
+          <PodcastProfile
+            id={profile}
+            values={values}
+            topics={topics}
+            weeklyDay={schedule.weekly.enabled ? schedule.weekly.day : null}
+          />
         </div>
       </fieldset>
 

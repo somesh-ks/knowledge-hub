@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { parseVoiceDefaults, parseVoices, voiceLabel } from "./voices";
+import { parseVoiceDefaults, parseVoices, voiceFlag, voiceLabel } from "./voices";
 
 describe("parseVoices", () => {
   it("reads the API's shape and skips rows without an id or a name", () => {
@@ -34,6 +34,21 @@ describe("voiceLabel", () => {
     const base = { id: "a", name: "Ada", language: null, preview_url: null };
     expect(voiceLabel({ ...base, gender: "Female" })).toBe("Ada, female");
     expect(voiceLabel({ ...base, gender: null })).toBe("Ada");
+  });
+
+  it("leads with the flag of the voice's accent", () => {
+    const base = { id: "a", name: "Ada", gender: "Female", preview_url: null };
+    expect(voiceLabel({ ...base, language: "en-GB" })).toBe("\u{1F1EC}\u{1F1E7} Ada, female");
+    expect(voiceLabel({ ...base, language: "en" })).toBe("Ada, female");
+  });
+});
+
+describe("voiceFlag", () => {
+  it("turns a locale's region into its flag, and anything else into nothing", () => {
+    expect(voiceFlag("en-US")).toBe("\u{1F1FA}\u{1F1F8}");
+    expect(voiceFlag("en_au")).toBe("\u{1F1E6}\u{1F1FA}");
+    for (const language of [null, "", "en", "en-419", "en-Latn"])
+      expect(voiceFlag(language)).toBe("");
   });
 });
 

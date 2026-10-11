@@ -48,7 +48,7 @@
   inset: 7cqi;
   display: none;
   border: 1.5px solid color-mix(in oklch, var(--frame) 55%, transparent);
-  border-radius: max(0px, calc(var(--cover-radius, var(--cover-radius-hero)) - 7cqi));
+  border-radius: max(0%, calc(var(--cover-radius, var(--cover-radius-hero)) - 7cqi));
   pointer-events: none;
 }
 

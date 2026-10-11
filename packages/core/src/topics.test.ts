@@ -59,8 +59,11 @@ describe("config/topics.json", () => {
     JSON.parse(readFileSync(join(REPO_ROOT, "config", "topics.json"), "utf8")),
   );
 
-  it("is the built-in seed, so behaviour is unchanged until a topic is added", () => {
-    expect(file).toEqual(seedTopicsFile(preferences.weights));
+  it("resolves to every shipped topic, whatever the owner has renamed or added in the app", () => {
+    const resolved = resolveTopics(file, preferences);
+    const ids = new Set(resolved.topics.map((topic) => topic.id));
+    for (const topic of seedTopicsFile(preferences.weights).topics) expect(ids).toContain(topic.id);
+    expect(TopicsFile.safeParse(resolved).success).toBe(true);
   });
 
   it("names every category with its preference weight and today's section, then the app's topics", () => {

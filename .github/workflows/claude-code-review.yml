@@ -41,7 +41,9 @@ jobs:
           plugin_marketplaces: "https://github.com/anthropics/claude-code.git"
           plugins: "code-review@claude-code-plugins"
           prompt: "/code-review:code-review --comment ${{ github.repository }}/pull/${{ github.event.pull_request.number }}"
+          # The plugin reads the pull request with gh before it reviews; without these the run
+          # ends after a few denied calls and posts nothing, yet still reports success.
           claude_args: |
             --model claude-sonnet-5-5
-            --max-turns 10
-            --allowedTools "mcp__github_inline_comment__create_inline_comment"
+            --max-turns 40
+            --allowedTools "mcp__github_inline_comment__create_inline_comment,Bash(gh pr view:*),Bash(gh pr diff:*),Bash(gh pr list:*),Bash(gh pr comment:*),Bash(gh issue view:*),Bash(gh issue list:*),Bash(gh search:*)"

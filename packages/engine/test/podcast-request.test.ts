@@ -1,6 +1,6 @@
 import { PodcastRequest, StoredPodcastRequest } from "@dispatch/core";
 import { describe, expect, it } from "vitest";
-import { FRAME_CHARS, parseRequest, planPodcast, STORY_CHARS } from "../src/podcast/plan.js";
+import { aimedChars, parseRequest, planPodcast, structureFor } from "../src/podcast/plan.js";
 import { InvalidRequestError } from "../src/podcast/types.js";
 import { REQUEST } from "./podcast-fixtures.js";
 
@@ -76,9 +76,9 @@ describe("planPodcast", () => {
     (format) => {
       for (const minutes of [3, 5, 10, 15] as const) {
         const plan = planPodcast({ ...REQUEST, format, length_minutes: minutes });
-        const per = STORY_CHARS[format];
-        expect(plan.max_stories * per + FRAME_CHARS).toBeLessThanOrEqual(plan.budget_chars);
-        expect((plan.max_stories + 1) * per + FRAME_CHARS).toBeGreaterThan(plan.budget_chars);
+        const fits = (n: number): number => aimedChars(structureFor(minutes, n, format), format);
+        expect(fits(plan.max_stories)).toBeLessThanOrEqual(plan.budget_chars);
+        expect(fits(plan.max_stories + 1)).toBeGreaterThan(plan.budget_chars);
       }
     },
   );

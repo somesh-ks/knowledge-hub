@@ -648,7 +648,9 @@ describe("failed run", () => {
   });
 });
 
-describe("Sunday: regular and weekly passes", () => {
+// A scheduled Sunday makes the weekly pass alone (the gate tests cover it); a forced run makes both,
+// which is where the two passes share one run.
+describe("Sunday: regular and weekly passes in a forced run", () => {
   const regularYesterday = lastRunFile({
     regular: {
       at: "2026-10-09T05:13:00Z",
@@ -670,7 +672,7 @@ describe("Sunday: regular and weekly passes", () => {
   it("plans a regular pass and then a weekly pass", LONG, async () => {
     await seed(repo.root, { "state/last-run.json": regularYesterday });
     const world = makeWorld(repo.root, { now: SUN });
-    const gate = await runStage(world, { stage: "gate" });
+    const gate = await runStage(world, { stage: "gate", force: true });
     expect(gate.report).toMatchObject({
       due: true,
       passes: [
@@ -683,7 +685,7 @@ describe("Sunday: regular and weekly passes", () => {
   it("publishes both digests in one commit without repeating an item", LONG, async () => {
     await seed(repo.root, { "state/last-run.json": regularYesterday });
     const world = makeWorld(repo.root, { now: SUN, feeds: sundayFeeds() });
-    const result = await runStage(world);
+    const result = await runStage(world, { force: true });
     expect(result.report).toMatchObject({ outcome: "published", deploy: true });
     const regular = await readDigest(repo.root, "Digests/2026/10/2026-10-11.md");
     const weekly = await readDigest(repo.root, "Digests/2026/10/2026-10-11-weekly.md");
@@ -700,7 +702,7 @@ describe("Sunday: regular and weekly passes", () => {
   it("records both kinds and chains the cover", LONG, async () => {
     await seed(repo.root, { "state/last-run.json": regularYesterday });
     const world = makeWorld(repo.root, { now: SUN, feeds: sundayFeeds() });
-    await runStage(world);
+    await runStage(world, { force: true });
     const lastRun = await readJson<LastRunFile>(repo.root, "state/last-run.json");
     expect(lastRun.regular).toMatchObject({ outcome: "published", digest_id: "2026-10-11" });
     expect(lastRun.weekly).toMatchObject({ outcome: "published", digest_id: "2026-10-11-weekly" });
@@ -716,7 +718,7 @@ describe("Sunday: regular and weekly passes", () => {
   it("gives the weekly pass the seven day window and the weekly sources", LONG, async () => {
     await seed(repo.root, { "state/last-run.json": regularYesterday });
     const world = makeWorld(repo.root, { now: SUN, feeds: sundayFeeds() });
-    await runStage(world);
+    await runStage(world, { force: true });
     const weeklyCalls = world.fetchCalls.filter((c) => c.from === "2026-10-04T05:13:00.000Z");
     expect(weeklyCalls.map((c) => c.source).sort()).toEqual([
       "blog-a",
@@ -731,7 +733,7 @@ describe("Sunday: regular and weekly passes", () => {
   it("does not repeat the weekly pass on the same Sunday", LONG, async () => {
     await seed(repo.root, { "state/last-run.json": regularYesterday });
     const world = makeWorld(repo.root, { now: SUN, feeds: sundayFeeds() });
-    await runStage(world);
+    await runStage(world, { force: true });
     world.setNow(new Date("2026-10-11T10:00:00Z"));
     const again = await runStage(world, { stage: "gate", force: true });
     expect(again.report).toMatchObject({ due: true, passes: [{ kind: "regular" }] });

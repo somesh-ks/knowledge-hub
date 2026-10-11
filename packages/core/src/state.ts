@@ -165,6 +165,12 @@ export const SourceStat = z.object({
    * not counted. Counted together with `asked`.
    */
   flagged: z.number().int().nonnegative().optional(),
+  /**
+   * Judged stories of a general news feed that another outlet also carried (D66). A general topic
+   * never publishes in a briefing, so for a feed of general topics alone this stands in for
+   * `published`. Absent from other sources' records.
+   */
+  covered: z.number().int().nonnegative().optional(),
   /** Stockholm calendar date the current window began. */
   window_start: ymd,
 });

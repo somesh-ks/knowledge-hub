@@ -92,7 +92,7 @@ describe("buildRegistry from config/sources.md", () => {
 
   it("produces a registry that passes validation, with unique kebab-case ids", () => {
     expect(() => parseSources(file)).not.toThrow();
-    expect(file.sources).toHaveLength(120);
+    expect(file.sources).toHaveLength(144);
     expect(new Set(file.sources.map((s) => s.id)).size).toBe(file.sources.length);
     expect(warnings).toEqual([]);
   });
@@ -232,16 +232,21 @@ describe("buildRegistry from config/sources.md", () => {
       expect(byId.get(id)?.category_hint, id).toBe("consumer_tech_releases");
       expect(byId.get(id)?.options, id).not.toHaveProperty("pool_cap");
     }
+    // The four technology desks of the general news outlets are filed here too, switched off.
     const hinted = file.sources.filter((s) => s.category_hint === "consumer_tech_releases");
     expect(hinted.map((s) => s.id).sort()).toEqual([
       "9to5google",
       "9to5mac",
+      "abc-news-technology",
       "android-authority",
       "ars-technica",
+      "cbs-news-technology",
       "electrek",
       "engadget",
       "friday-checkout",
       "gsmarena",
+      "npr-technology",
+      "sky-news-technology",
       "the-verge",
       "toms-hardware",
     ]);

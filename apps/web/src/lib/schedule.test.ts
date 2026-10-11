@@ -77,22 +77,38 @@ describe("nextBriefing", () => {
       "Next briefing: about today at 18:00",
     );
   });
+
+  it("skips the weekly podcast's day and counts from the weekly podcast, as the gate does", () => {
+    // Last briefing Thursday 8 October: Saturday is next, unless Saturday is the weekly day.
+    const thursday = "2026-10-08T05:13:00Z";
+    expect(
+      nextBriefing({ now, hour: 7, cadenceDays: 2, lastRegularAt: thursday, weeklyDay: 6 }),
+    ).toBe("Next briefing: about Sunday at 07:00");
+    // Tuesday's briefing makes today due at 18:00, but Wednesday's weekly podcast moves it to tomorrow.
+    const after = { now, hour: 18, cadenceDays: 2, lastRegularAt: "2026-10-06T05:13:00Z" };
+    expect(nextBriefing(after)).toBe("Next briefing: about today at 18:00");
+    expect(nextBriefing({ ...after, lastWeeklyAt: "2026-10-07T16:20:00Z", weeklyDay: 3 })).toBe(
+      "Next briefing: about tomorrow at 18:00",
+    );
+  });
 });
 
 describe("topicChoices", () => {
   it("offers every topic that is on and may publish, by name", () => {
-    const topic = (id: string, name: string, enabled = true, never_publish = false) => ({
-      id,
-      name,
-      enabled,
-      never_publish,
-    });
+    const topic = (
+      id: string,
+      name: string,
+      enabled = true,
+      never_publish = false,
+      origin = "builtin",
+    ) => ({ id, name, enabled, never_publish, origin });
     expect(
       topicChoices([
         topic("trending", "Trending"),
         topic("design", "design"),
         topic("off", "Off topic", false),
         topic("gossip", "Gossip", true, true),
+        topic("world", "World", true, false, "general"),
       ]),
     ).toEqual([
       { id: "design", name: "design" },

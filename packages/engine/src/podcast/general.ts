@@ -1,16 +1,12 @@
-import {
-  type GeneralFeed,
-  type GeneralFeeds,
-  generalTopicTitle,
-  type Item,
-  loadGeneralFeeds,
-  type Source,
-} from "@dispatch/core";
+import { generalTopicTitle, type Item, type Source, type TopicsFile } from "@dispatch/core";
 import type { Logger } from "../context.js";
 import { clusterStories } from "../dedupe/storyCluster.js";
 import { entryToRaw, loadFeed } from "../fetch/feedItems.js";
 import type { HttpClient } from "../http.js";
 import { buildItems } from "../normalize/buildItem.js";
+import { outletOf } from "../run/generalNews.js";
+import { loadSources } from "../sources/registry.js";
+import { loadTopicsFile } from "../topics/store.js";
 import type { PodcastPlan } from "./plan.js";
 import { joinNames } from "./select.js";
 import { PodcastError, type PodcastStory } from "./types.js";
@@ -40,8 +36,16 @@ export interface GeneralDeps {
   now: Date;
   http: HttpClient;
   log?: Logger | undefined;
-  /** The feed list, for tests. Defaults to config/general-feeds.json. */
-  feeds?: GeneralFeeds | undefined;
+  /**
+   * The sources to read, for tests. Defaults to the registry the app edits: config/sources.json
+   * with config/sources.user.json laid over it. A source the owner switched off is not read, and
+   * one the owner added to a general topic is.
+   */
+  sources?: readonly Source[] | undefined;
+  /** The topics file, for tests. Defaults to config/topics.json; a missing file reads every topic on. */
+  topics?: TopicsFile | null | undefined;
+  /** The fewest stories that make a selection. Defaults to MIN_GENERAL_STORIES (fewer when the length is short). */
+  minStories?: number | undefined;
 }
 
 /** A story as it came out of clustering: the kept item, who covered it and under which topics. */
@@ -52,19 +56,33 @@ interface Candidate {
   coverage: number;
 }
 
-function feedSource(feed: GeneralFeed): Source {
-  return {
-    id: feed.id,
-    name: feed.name,
-    type: "rss",
-    url: feed.feed_url,
-    feed_url: feed.feed_url,
-    tier: "daily",
-    high_signal: false,
-    enabled: true,
-    failures: 0,
-    options: {},
-  };
+/**
+ * The source an item is built from. Its id is the outlet, so two feeds of one outlet (NPR's world
+ * and business desks) are one outlet when the stories are counted, and its topics are left to the
+ * caller: a story takes the topic it was read for.
+ */
+function outletSource(source: Source, feedUrl: string): Source {
+  const { topic_ids: _topics, ...rest } = source;
+  return { ...rest, id: outletOf(source), type: "rss", feed_url: feedUrl };
+}
+
+/**
+ * The sources a general topic is read from: enabled, with a feed to read, and tagged with the
+ * topic. A topic the owner switched off yields none.
+ */
+export function sourcesForTopic(
+  sources: readonly Source[],
+  topics: TopicsFile | null,
+  topicId: string,
+): Array<Source & { feed_url: string }> {
+  if (topics?.topics.find((topic) => topic.id === topicId)?.enabled === false) return [];
+  return sources.flatMap((source) =>
+    source.enabled && source.type === "rss" && source.feed_url !== null
+      ? source.topic_ids?.includes(topicId)
+        ? [{ ...source, feed_url: source.feed_url }]
+        : []
+      : [],
+  );
 }
 
 function timeOf(item: Item): number {
@@ -143,22 +161,27 @@ export async function selectGeneralStories(deps: GeneralDeps): Promise<GeneralSe
   const { plan, now, http, log } = deps;
   const { request } = plan;
   const topicIds = request.topic_ids;
-  const feeds = deps.feeds ?? (await loadGeneralFeeds(deps.root));
+  const sources = deps.sources ?? (await loadSources(deps.root)).sources;
+  const topicsFile = deps.topics === undefined ? await loadTopicsFile(deps.root) : deps.topics;
   const window = { from: new Date(now.getTime() - request.window_days * DAY_MS), to: now };
 
-  // One fetch per distinct feed URL, whatever the number of topics that list it.
   const jobs = topicIds.flatMap((topic) =>
-    (feeds.topics[topic as keyof GeneralFeeds["topics"]] ?? []).map((feed) => ({ topic, feed })),
+    sourcesForTopic(sources, topicsFile, topic).map((source) => ({ topic, source })),
   );
+  if (jobs.length === 0) {
+    throw new PodcastError(
+      `No news source is switched on for ${joinNames(topicIds.map(generalTopicTitle))}; turn one on in Topics and sources.`,
+    );
+  }
   const settled = await Promise.allSettled(
-    jobs.map(async ({ topic, feed }) => {
-      const parsed = await loadFeed(feed.feed_url, { http, now: () => now });
+    jobs.map(async ({ topic, source }) => {
+      const parsed = await loadFeed(source.feed_url, { http, now: () => now });
       const items = buildItems(parsed.entries.map(entryToRaw), {
-        source: feedSource(feed),
+        source: outletSource(source, source.feed_url),
         window,
         fetchedAt: now,
       });
-      return { topic, feed, items };
+      return { topic, source, items };
     }),
   );
 
@@ -171,7 +194,7 @@ export async function selectGeneralStories(deps: GeneralDeps): Promise<GeneralSe
     if (result.status === "rejected" || !job) {
       feedsFailed += 1;
       log?.warn("A news feed could not be read", {
-        feed: job?.feed.feed_url,
+        feed: job?.source.feed_url,
         reason: result.status === "rejected" ? String(result.reason).split("\n")[0] : "unknown",
       });
       continue;
@@ -181,7 +204,7 @@ export async function selectGeneralStories(deps: GeneralDeps): Promise<GeneralSe
       topicHasItems.add(job.topic);
       const known = byId.get(item.id);
       if (known) known.topics.add(job.topic);
-      else byId.set(item.id, { item, topics: new Set([job.topic]), outlet: job.feed.name });
+      else byId.set(item.id, { item, topics: new Set([job.topic]), outlet: job.source.name });
     }
   }
   if (feedsOk === 0) {
@@ -222,7 +245,7 @@ export async function selectGeneralStories(deps: GeneralDeps): Promise<GeneralSe
     coverage: item.signals.coverage ?? 1,
   }));
 
-  const needed = Math.min(MIN_GENERAL_STORIES, Math.max(2, plan.max_stories));
+  const needed = deps.minStories ?? Math.min(MIN_GENERAL_STORIES, Math.max(2, plan.max_stories));
   if (candidates.length < needed) {
     throw new PodcastError(
       `Only ${candidates.length} ${candidates.length === 1 ? "story" : "stories"} in the news feeds for ${joinNames(topicIds.map(generalTopicTitle))}; an episode needs at least ${needed}. Try more topics.`,

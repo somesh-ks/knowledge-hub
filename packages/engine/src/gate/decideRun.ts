@@ -62,6 +62,18 @@ function lastRegularDate(lastRun: LastRunFile): string | undefined {
   return Number.isNaN(at.getTime()) ? undefined : stockholmDate(at);
 }
 
+/**
+ * Stockholm date of the last weekly pass that published. The weekly podcast stands in for a
+ * briefing (it takes its day), so the daily cadence counts from it as from a briefing. One that
+ * found nothing gave the listener nothing, so it does not count.
+ */
+function lastWeeklyDate(lastRun: LastRunFile): string | undefined {
+  const record = lastRun.weekly;
+  if (!record || record.outcome !== "published") return undefined;
+  const at = new Date(record.at);
+  return Number.isNaN(at.getTime()) ? undefined : stockholmDate(at);
+}
+
 function weeklyAlreadyRanOn(lastRun: LastRunFile, date: string): boolean {
   const record = lastRun.weekly;
   if (!record || (record.outcome !== "published" && record.outcome !== "nothing")) return false;
@@ -72,7 +84,10 @@ function weeklyAlreadyRanOn(lastRun: LastRunFile, date: string): boolean {
  * The gate. It compares Stockholm calendar dates, never elapsed hours, so a cron delayed by
  * several hours still lands on its own date and the 23 and 25 hour days at daylight saving
  * changeovers cannot cost a cycle. The weekly pass has its own slot (day and hour, Stockholm
- * time) apart from the daily cadence, and is idempotent per date, even when forced.
+ * time) and is idempotent per date, even when forced. The two never share a day: while the weekly
+ * podcast is on, its day has no scheduled briefing, and the daily cadence counts from the later of
+ * the last briefing and the last weekly podcast, so the briefing after a weekly one keeps the
+ * cadence's spacing. A forced or on-demand run is the owner asking, and still runs.
  */
 export function decideRun({
   now,
@@ -83,8 +98,8 @@ export function decideRun({
   weekly = LEGACY_WEEKLY,
 }: DecideRunInput): RunDecision {
   const date = stockholmDate(now);
-  const inWeeklySlot =
-    weekly.enabled && weekday(date) === weekly.day && stockholmHour(now) >= weekly.hour;
+  const weeklyDay = weekly.enabled && weekday(date) === weekly.day;
+  const inWeeklySlot = weeklyDay && stockholmHour(now) >= weekly.hour;
 
   if (mode === "weekly") {
     return { due: false, runWeekly: true, reason: "weekly pass requested", date };
@@ -98,22 +113,35 @@ export function decideRun({
     return { due: true, runWeekly: weeklyDue, reason: "forced run ignores the gate", date };
   }
 
-  const last = lastRegularDate(lastRun);
+  if (weeklyDay) {
+    return {
+      due: false,
+      runWeekly: weeklyDue,
+      reason: "today is the weekly podcast's day; no briefing",
+      date,
+    };
+  }
+
+  const regular = lastRegularDate(lastRun);
+  const weeklyRan = lastWeeklyDate(lastRun);
+  const fromWeekly = weeklyRan !== undefined && (regular === undefined || weeklyRan > regular);
+  const last = fromWeekly ? weeklyRan : regular;
   if (last === undefined) {
     return { due: true, runWeekly: weeklyDue, reason: "no regular digest has run yet", date };
   }
+  const what = fromWeekly ? "last podcast was the weekly one on" : "last regular digest was";
   const elapsed = daysBetween(last, date);
   if (elapsed >= cadenceDays) {
     return {
       due: true,
       runWeekly: weeklyDue,
-      reason: `last regular digest was ${last}, ${elapsed} days ago`,
+      reason: `${what} ${last}, ${elapsed} days ago`,
       date,
     };
   }
   const reason =
     elapsed < 0
-      ? `last regular digest is dated ${last}, after today; waiting`
-      : `last regular digest was ${last}; next is due ${cadenceDays - elapsed} day(s) from now`;
+      ? `${fromWeekly ? "last weekly podcast" : "last regular digest"} is dated ${last}, after today; waiting`
+      : `${what} ${last}; next is due ${cadenceDays - elapsed} day(s) from now`;
   return { due: false, runWeekly: weeklyDue, reason, date };
 }

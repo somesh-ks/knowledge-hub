@@ -1,4 +1,4 @@
-import type { Category, Source } from "@dispatch/core";
+import { type Category, type GeneralTopicId, type Source, TECH_CATEGORY } from "@dispatch/core";
 
 /** What the importer decides about a source beyond its name and URL. Keyed by source id. */
 export interface Curation {
@@ -327,6 +327,235 @@ export const APP_TOPIC_SOURCES: readonly Draft[] = [
     "https://www.pbs.org/newshour/",
     "https://www.pbs.org/newshour/feeds/rss/headlines",
     "trending",
+  ),
+];
+
+/** A general topic's id, or the technology desk, which is filed under the owner's Tech beat. */
+type GeneralDesk = GeneralTopicId | "technology";
+
+const DESK_TITLES: Record<GeneralDesk, string> = {
+  world: "World",
+  business: "Business",
+  science: "Science",
+  culture: "Culture",
+  sports: "Sports",
+  technology: "Technology",
+};
+
+/**
+ * One category feed of a general news outlet. The id joins the outlet and the desk (`npr-world`,
+ * `npr-business`), because the same outlet feeds several topics. The page address is the desk's
+ * own page, so two desks of one outlet are not mistaken for one page; the outlet is told apart
+ * from the page's host. No pool cap: every story of a general feed is judged (D66).
+ *
+ * A story of a topic the owner switched off is never fetched. The technology desks are not a
+ * general topic: they are filed under the built-in consumer tech topic, whose home section is
+ * Tech, and start switched off so the owner can tick them on.
+ */
+const generalFeed = (
+  outlet: string,
+  outletName: string,
+  desk: GeneralDesk,
+  url: string,
+  feedUrl: string,
+): Draft => {
+  const tech = desk === "technology";
+  const draft = api({
+    id: `${outlet}-${desk}`,
+    name: `${outletName} ${DESK_TITLES[desk]}`,
+    type: "rss",
+    url,
+    feed_url: feedUrl,
+    tier: "daily",
+    high_signal: false,
+    origin: "seed",
+    topic_ids: [tech ? TECH_CATEGORY : desk],
+    ...(tech
+      ? {
+          category_hint: TECH_CATEGORY,
+          options: {
+            pool_cap: "6",
+            note: "switched off until ticked on; then it feeds the Tech section like any tech outlet",
+          },
+        }
+      : {}),
+  });
+  return tech ? { ...draft, enabled: false } : draft;
+};
+
+/**
+ * The open category feeds behind the five general news topics (D66), which a separate feed list
+ * held before they became sources. Each is judged in full on every run, so it earns a score like
+ * any source, and is read by general episodes. Feeds only, none needing a key or Firecrawl.
+ */
+export const GENERAL_TOPIC_SOURCES: readonly Draft[] = [
+  generalFeed(
+    "npr",
+    "NPR",
+    "world",
+    "https://www.npr.org/sections/world/",
+    "https://feeds.npr.org/1004/rss.xml",
+  ),
+  generalFeed(
+    "abc-news",
+    "ABC News",
+    "world",
+    "https://abcnews.com/International",
+    "https://abcnews.com/abcnews/internationalheadlines",
+  ),
+  generalFeed(
+    "al-jazeera",
+    "Al Jazeera",
+    "world",
+    "https://www.aljazeera.com/news/",
+    "https://www.aljazeera.com/xml/rss/all.xml",
+  ),
+  generalFeed(
+    "bbc",
+    "BBC",
+    "world",
+    "https://www.bbc.com/news/world",
+    "https://feeds.bbci.co.uk/news/world/rss.xml",
+  ),
+  generalFeed(
+    "npr",
+    "NPR",
+    "business",
+    "https://www.npr.org/sections/business/",
+    "https://feeds.npr.org/1006/rss.xml",
+  ),
+  generalFeed(
+    "cbs-news",
+    "CBS News",
+    "business",
+    "https://www.cbsnews.com/moneywatch/",
+    "https://www.cbsnews.com/latest/rss/moneywatch",
+  ),
+  generalFeed(
+    "abc-news",
+    "ABC News",
+    "business",
+    "https://abcnews.com/Business",
+    "https://abcnews.com/abcnews/moneyheadlines",
+  ),
+  generalFeed(
+    "sky-news",
+    "Sky News",
+    "business",
+    "https://news.sky.com/business",
+    "https://feeds.skynews.com/feeds/rss/business.xml",
+  ),
+  generalFeed(
+    "npr",
+    "NPR",
+    "science",
+    "https://www.npr.org/sections/science/",
+    "https://feeds.npr.org/1007/rss.xml",
+  ),
+  generalFeed(
+    "pbs-newshour",
+    "PBS NewsHour",
+    "science",
+    "https://www.pbs.org/newshour/science",
+    "https://www.pbs.org/newshour/feeds/rss/science",
+  ),
+  generalFeed(
+    "sciencedaily",
+    "ScienceDaily",
+    "science",
+    "https://www.sciencedaily.com",
+    "https://www.sciencedaily.com/rss/top/science.xml",
+  ),
+  generalFeed(
+    "guardian",
+    "The Guardian",
+    "science",
+    "https://www.theguardian.com/science",
+    "https://www.theguardian.com/science/rss",
+  ),
+  generalFeed(
+    "npr",
+    "NPR",
+    "culture",
+    "https://www.npr.org/sections/arts/",
+    "https://feeds.npr.org/1008/rss.xml",
+  ),
+  generalFeed(
+    "pbs-newshour",
+    "PBS NewsHour",
+    "culture",
+    "https://www.pbs.org/newshour/arts",
+    "https://www.pbs.org/newshour/feeds/rss/arts",
+  ),
+  generalFeed(
+    "abc-news",
+    "ABC News",
+    "culture",
+    "https://abcnews.com/Entertainment",
+    "https://abcnews.com/abcnews/entertainmentheadlines",
+  ),
+  generalFeed(
+    "bbc",
+    "BBC",
+    "culture",
+    "https://www.bbc.com/news/entertainment_and_arts",
+    "https://feeds.bbci.co.uk/news/entertainment_and_arts/rss.xml",
+  ),
+  generalFeed(
+    "npr",
+    "NPR",
+    "sports",
+    "https://www.npr.org/sections/sports/",
+    "https://feeds.npr.org/1055/rss.xml",
+  ),
+  generalFeed(
+    "abc-news",
+    "ABC News",
+    "sports",
+    "https://abcnews.com/Sports",
+    "https://abcnews.com/abcnews/sportsheadlines",
+  ),
+  generalFeed(
+    "espn",
+    "ESPN",
+    "sports",
+    "https://www.espn.com",
+    "https://www.espn.com/espn/rss/news",
+  ),
+  generalFeed(
+    "bbc",
+    "BBC",
+    "sports",
+    "https://www.bbc.com/sport",
+    "https://feeds.bbci.co.uk/sport/rss.xml",
+  ),
+  generalFeed(
+    "npr",
+    "NPR",
+    "technology",
+    "https://www.npr.org/sections/technology/",
+    "https://feeds.npr.org/1019/rss.xml",
+  ),
+  generalFeed(
+    "cbs-news",
+    "CBS News",
+    "technology",
+    "https://www.cbsnews.com/technology/",
+    "https://www.cbsnews.com/latest/rss/technology",
+  ),
+  generalFeed(
+    "abc-news",
+    "ABC News",
+    "technology",
+    "https://abcnews.com/Technology",
+    "https://abcnews.com/abcnews/technologyheadlines",
+  ),
+  generalFeed(
+    "sky-news",
+    "Sky News",
+    "technology",
+    "https://news.sky.com/technology",
+    "https://feeds.skynews.com/feeds/rss/technology.xml",
   ),
 ];
 

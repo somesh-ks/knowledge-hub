@@ -141,7 +141,7 @@
   height: var(--size-touch);
   margin-block: auto;
   border: 0;
-  border-radius: max(0px, calc(var(--field-radius) - var(--stroke-hairline)));
+  border-radius: max(0%, calc(var(--field-radius) - var(--stroke-hairline)));
   background: none;
   color: var(--color-on-surface-muted);
 }

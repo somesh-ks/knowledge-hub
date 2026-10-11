@@ -7,6 +7,7 @@ import {
   APP_TOPIC_SOURCES,
   CURATIONS,
   type Curation,
+  GENERAL_TOPIC_SOURCES,
   GITHUB_SEED,
   ID_OVERRIDES,
   NAME_OVERRIDES,
@@ -152,7 +153,10 @@ function youtubeSources(): Source[] {
 }
 
 function apiSources(): Source[] {
-  return [...API_SEED, ...APP_TOPIC_SOURCES].map((draft) => ({ ...draft, failures: 0 }));
+  return [...API_SEED, ...APP_TOPIC_SOURCES, ...GENERAL_TOPIC_SOURCES].map((draft) => ({
+    ...draft,
+    failures: 0,
+  }));
 }
 
 /** Years go stale: freshness comes from the fetch window, so queries must not name one. */

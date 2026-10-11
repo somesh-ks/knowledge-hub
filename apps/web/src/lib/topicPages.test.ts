@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import type { ManageSource, ManageTopic } from "./manage";
-import { byName, OTHER_ID, percent, sourcesByTopic, topicSummary } from "./topicPages";
+import { byName, generalOf, OTHER_ID, percent, sourcesByTopic, topicSummary } from "./topicPages";
 
 const topic = (over: Partial<ManageTopic> = {}): ManageTopic => ({
   id: "design",
@@ -42,7 +42,21 @@ describe("sourcesByTopic", () => {
   });
 });
 
+describe("generalOf", () => {
+  it("lists the general topics in the app's order, not by name", () => {
+    const list = ["sports", "world", "design", "business"].map((id) =>
+      topic({ id, name: id, origin: id === "design" ? "builtin" : "general" }),
+    );
+    expect(generalOf(list).map((item) => item.id)).toEqual(["world", "business", "sports"]);
+  });
+});
+
 describe("topicSummary", () => {
+  it("says a general topic's sources without a weight", () => {
+    expect(topicSummary(topic({ origin: "general" }), 2)).toBe("2 sources");
+    expect(topicSummary(topic({ origin: "general", enabled: false }), 1)).toBe("Off, 1 source");
+  });
+
   it("says the weight and the sources of a topic that is on", () => {
     expect(topicSummary(topic({ weight: 0.95 }), 1)).toBe("Weight 95%, 1 source");
   });
