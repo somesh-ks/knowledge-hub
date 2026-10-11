@@ -1,5 +1,6 @@
 import type { PodcastRequest } from "@dispatch/core";
 import { describe, expect, it } from "vitest";
+import { checkTurns } from "../src/podcast/check.js";
 import {
   planPodcast,
   reachableChars,
@@ -173,5 +174,36 @@ describe("the script time limit", () => {
       /did not return a usable script/,
     );
     expect(writer.calls).toHaveLength(1);
+  });
+});
+
+describe("the number rewrites", () => {
+  it("run side by side and keep script order", async () => {
+    const input = inputOf(3);
+    const turns: ScriptTurn[] = input.stories.map((story, i) => ({
+      speaker: "a",
+      text: `Story ${i + 1} grew by ${900 + i} users.`,
+      item_id: story.item_id,
+    }));
+    const started: string[] = [];
+    const releases: Array<() => void> = [];
+    const writer = {
+      writeScript: async () => ({}),
+      rewriteTurn: (rewrite: { text: string }) =>
+        new Promise<string | null>((resolve) => {
+          started.push(rewrite.text);
+          releases.push(() => resolve(rewrite.text.replace(/ by \d+/, "")));
+        }),
+    };
+    const pending = checkTurns({ request: input.request, turns, stories: input.stories, writer });
+    await new Promise((resolve) => setTimeout(resolve, 0));
+    // All three rewrites started before any of them answered.
+    expect(started).toHaveLength(3);
+    for (const release of [...releases].reverse()) release();
+    const result = await pending;
+    expect(result.rewritten).toBe(3);
+    expect(result.turns.map((turn) => turn.item_id)).toEqual(
+      input.stories.map((story) => story.item_id),
+    );
   });
 });
