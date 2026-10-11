@@ -77,7 +77,12 @@ const { title, note, values } = PAGES[profile];
         title={title}
         note={note}
         next
-        off={profile === "weekly" ? "No weekly episode while it is off." : undefined}
+        off={profile === "weekly" ? "No weekly episodes while this is off." : undefined}
+        runs={{
+          lastRegularAt: schedule.lastRegularAt,
+          lastWeeklyAt: schedule.lastWeeklyAt,
+          weeklyDay: schedule.weekly.enabled ? schedule.weekly.day : null,
+        }}
       />
       <noscript>
         <p class="manage-note">Changing these settings needs JavaScript, which is turned off in this browser.</p>

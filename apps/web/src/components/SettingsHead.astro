@@ -13,6 +13,9 @@ interface Props {
   /** Said in the next run's place while the profile is off, so the line, and the switch under it,
       hold still. */
   off?: string;
+  /** What the browser works the next run line out from again (lib/nextRun.ts): the last runs, and
+      the weekly episode's day while it is on. */
+  runs?: { lastRegularAt: string | null; lastWeeklyAt: string | null; weeklyDay: number | null };
 }
 
 const {
@@ -21,13 +24,19 @@ const {
   note,
   next = false,
   off,
+  runs,
 } = Astro.props;
 ---
 
 {/* Where the page sits, at the title's own size and on its line: the way up is the first word,
      muted, and names the page one level up. It stands in for a back button and puts no small text
      above the title. */}
-<header class="settings-head">
+<header
+  class="settings-head"
+  data-last-regular={runs?.lastRegularAt ?? undefined}
+  data-last-weekly={runs?.lastWeeklyAt ?? undefined}
+  data-weekly-day={runs?.weeklyDay ?? undefined}
+>
   <div class="settings-crumbs">
     <nav aria-label="Breadcrumb">
       <a class="settings-up" href={up.href}>{up.label}</a>
