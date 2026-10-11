@@ -288,6 +288,12 @@
   margin-block-start: calc(var(--space-1) / 2);
 }
 
+/* With no field to belong to (the passphrase step is off), the error stands in the form by itself and
+   keeps the air a field would have above it, instead of sitting flush against the lede. */
+.sheet-form > .sheet-field-error {
+  margin-block-start: var(--space-4);
+}
+
 /* One filled button for the action that commits (.btn-primary), text buttons for the rest (.btn). */
 .sheet-actions {
   display: grid;
