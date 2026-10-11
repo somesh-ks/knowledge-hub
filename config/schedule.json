@@ -1,5 +1,6 @@
 {
   "version": 1,
+  "timezone": "Europe/Stockholm",
   "hour": 7,
   "cadence_days": 2,
   "skip_topics": [],

@@ -433,6 +433,7 @@ function setSchedule(
   const cadence = op.cadence_days ?? current.cadence_days;
   next.schedule = {
     version: 1,
+    timezone: op.timezone ?? current.timezone ?? "Europe/Stockholm",
     hour,
     cadence_days: cadence,
     skip_topics: skip,
@@ -447,6 +448,9 @@ function setSchedule(
     next.schedule.custom.skip_topics = skippedTopics(op.custom.skip_topics, next);
   }
   const parts: string[] = [];
+  if (op.timezone !== undefined) {
+    parts.push(`set time zone to ${op.timezone}`);
+  }
   if (op.hour !== undefined || op.cadence_days !== undefined) {
     parts.push(
       `set the briefing to ${String(hour).padStart(2, "0")}:00, every ${cadence} day${cadence === 1 ? "" : "s"}`,

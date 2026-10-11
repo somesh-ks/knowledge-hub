@@ -84,6 +84,7 @@ export const DEFAULT_CUSTOM: CustomDefaults = {
 export const ScheduleFile = z
   .object({
     version: z.literal(1),
+    timezone: z.string().min(1).max(100).default("Europe/Stockholm"),
     hour: z.number().int().min(0).max(23),
     cadence_days: CadenceDays,
     skip_topics: SkipTopics.default([]),
@@ -110,6 +111,7 @@ function stripUndefined<T extends object>(value: T | undefined): Partial<T> {
 /** What a repository without config/schedule.json runs on: the original cron, every second day. */
 export const DEFAULT_SCHEDULE: ScheduleFile = {
   version: 1,
+  timezone: "Europe/Stockholm",
   hour: 7,
   cadence_days: 2,
   skip_topics: [],
@@ -123,6 +125,7 @@ export const DEFAULT_SCHEDULE: ScheduleFile = {
 
 /** The complete settings of the schedule file, without its version. */
 export const ScheduleSettings = z.object({
+  timezone: z.string().min(1).max(100),
   hour: z.number().int().min(0).max(23),
   cadence_days: CadenceDays,
   skip_topics: SkipTopics,
@@ -137,6 +140,7 @@ export type ScheduleSettings = z.infer<typeof ScheduleSettings>;
 
 /** What `schedule.set` may carry: any subset of the settings, `weekly` and `custom` field by field. */
 export const ScheduleChange = z.object({
+  timezone: ScheduleSettings.shape.timezone.optional(),
   hour: ScheduleSettings.shape.hour.optional(),
   cadence_days: CadenceDays.optional(),
   skip_topics: ScheduleSettings.shape.skip_topics.optional(),

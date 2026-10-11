@@ -708,6 +708,14 @@ describe("handleConfig", () => {
     expect(delays.length).toBeGreaterThan(0);
   });
 
+  it("answers 202 even when GitHub 204 dispatches without any run listed yet", async () => {
+    const { deps, github } = setup();
+    github.on(RUNS, { json: { workflow_runs: [] } });
+    github.on(DISPATCH, { status: 204 });
+    const result = await handleConfig(input(body(upsert)), deps);
+    expect(result).toEqual({ status: 202, body: { status: 202 } });
+  });
+
   it("answers 503 when GitHub fails, with a generic body and a log of the status only", async () => {
     const { deps, github, logs } = setup();
     github.on(RUNS, { status: 404, json: { message: "Not Found" } });

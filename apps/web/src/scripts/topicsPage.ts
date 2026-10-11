@@ -58,6 +58,30 @@ function mount(root: HTMLElement): void {
     forward(event);
   });
 
+  const suggestedSection = root.querySelector<HTMLElement>("[data-suggested-section]");
+  if (suggestedSection?.dataset.topic) {
+    const topicId = suggestedSection.dataset.topic;
+    const list = suggestedSection.querySelector<HTMLUListElement>("[data-suggested-sources]");
+    const plusTemplate = root.querySelector<HTMLTemplateElement>("#suggested-plus-template");
+    if (list && topicId) {
+      void fetch(`/api/topic-suggestions?id=${encodeURIComponent(topicId)}`)
+        .then((res) => (res.ok ? res.json() : null))
+        .then(
+          async (data: { suggestions?: import("./topicsView").SuggestedSourceData[] } | null) => {
+            if (!data?.suggestions || data.suggestions.length === 0) return;
+            const { suggestedRow } = await import("./topicsView");
+            const plusNode = plusTemplate?.content.firstElementChild;
+            list.replaceChildren(
+              ...data.suggestions.map((s) => suggestedRow(s, plusNode?.cloneNode(true) ?? null)),
+            );
+          },
+        )
+        .catch(() => {
+          // Keep quiet fallback
+        });
+    }
+  }
+
   root.dataset.ready = "";
 }
 

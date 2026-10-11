@@ -2,6 +2,8 @@
 
 One line each: symptom, cause, fix. Newest first. Search before debugging.
 
+- 2026-10-11: a raw CSS length or undefined token variable broke `styles.test.ts`: test strictly enforces design system tokens for spacing, radius and tracking. Use tokens like `--space-1`, `--chip-radius` and `--text-meta-tracking`.
+- 2026-10-11: adding `timezone` to schedule schema broke `schedule-store.test.ts`: test asserts deep equality against expected object. Add `timezone: "Europe/Stockholm"` to mock fixtures when updating core schedule defaults.
 - 2026-10-11: a resumed worker ran `git reset --hard` in the main checkout: an Agent worktree is removed when its agent stops without changes, so the resumed agent's `cd` failed and its commands ran from the repository root. Make worktrees by hand on the session branch (`git worktree add -b <name> <path> <commit>`) and have every command start with `cd <path> &&`.
 - 2026-10-11: a worktree whose `node_modules` is a symlink to the main checkout resolves `@dispatch/*` to the main checkout's packages (the workspace links are relative and Node follows the real path), so a worker's core edits were invisible to its own engine tests. Give each worktree a real `node_modules` whose entries link to the main install, with `@dispatch/*` linked to the worktree's own packages.
 - 2026-10-11: adding a flag to each voice label passed every unit test and broke two e2e specs that assert the option text. Run the e2e specs that read a label you change.

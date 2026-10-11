@@ -219,6 +219,31 @@ const facts = topic && {
               </button>
             )
           }
+
+          <section class="topic-suggested-section" data-suggested-section data-topic={topic?.id ?? group?.id ?? "other"}>
+            <div class="suggested-section-head">
+              <h2 class="section-head">Suggested sources</h2>
+              <span class="suggested-pill">Live curated</span>
+            </div>
+            <p class="manage-quiet suggested-caption">High-signal feeds filtered by TypeSafe Jev. Tap + to add to this topic.</p>
+            <ul class="topic-sources suggested-sources" role="list" data-suggested-sources aria-label={`Suggested sources for ${name}`}>
+              {Array.from({ length: 5 }).map(() => (
+                <li class="source-row suggested-skeleton" aria-hidden="true">
+                  <span class="source-main">
+                    <span class="source-icon skeleton-circle"></span>
+                    <span class="source-text">
+                      <span class="skeleton-bar" style="inline-size: 8rem;"></span>
+                      <span class="skeleton-bar" style="inline-size: 5rem;"></span>
+                    </span>
+                  </span>
+                  <span class="skeleton-bar" style="inline-size: 3rem;"></span>
+                  <span class="source-slot skeleton-circle"></span>
+                </li>
+              ))}
+            </ul>
+          </section>
+          <template id="suggested-plus-template"><Icon name="plus" /></template>
+          <template id="suggested-check-template"><Icon name="check" class="suggest-check" /></template>
           {
             topic?.origin === "custom" && (
               <div class="topic-remove-row">

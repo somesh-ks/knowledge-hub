@@ -360,7 +360,7 @@ export interface ConfigRequest {
 export type ConfigResponse =
   | {
       status: 202;
-      run_id: number;
+      run_id?: number;
       /**
        * Only for an edit that carried schedule.set: false when the site could not change the
        * briefing time (its GitHub token may lack permission to write repository variables). The

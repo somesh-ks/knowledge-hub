@@ -1,4 +1,5 @@
 ---
+import { SUPPORTED_TIMEZONES } from "@dispatch/core";
 import { FORMATS, LENGTHS } from "../lib/createForm";
 import { CADENCES, hourLabel, WEEKDAYS } from "../lib/schedule";
 import Icon from "./Icon.astro";
@@ -8,6 +9,7 @@ interface Props {
   id: "daily" | "weekly";
   /** The saved values. A field the profile has no row for is ignored. */
   values: {
+    timezone?: string;
     enabled?: boolean;
     hour?: number;
     day?: number;
@@ -19,15 +21,20 @@ interface Props {
     voiceId: string | null;
     voiceIdB: string | null;
   };
+  /** All available topics to check scope against. */
+  topics?: readonly { id: string; name: string }[];
   /** Daily only: the weekly podcast's day (0 = Sunday) while it is on, which has no briefing. */
   weeklyDay?: number | null;
 }
 
-const { id, values, weeklyDay = null } = Astro.props;
+const { id, values, topics = [], weeklyDay = null } = Astro.props;
 const weeklyDayName = weeklyDay === null ? undefined : WEEKDAYS[weeklyDay];
-// The weekly podcast takes its day, so the daily briefing says which day it gives up (D65).
 const whenHint =
-  id === "daily" && weeklyDayName ? `Stockholm time, none on ${weeklyDayName}s` : "Stockholm time";
+  id === "daily" && weeklyDayName
+    ? "Prioritizes weekly podcast on overlapping days"
+    : `${values.timezone ?? "Europe/Stockholm"} time`;
+
+const activeTopics = topics.filter((topic) => !values.skipTopics.includes(topic.id));
 
 const hours = Array.from({ length: 24 }, (_, value) => value);
 const discussion = values.format === "discussion";
@@ -63,6 +70,23 @@ const VOICES = [
         <span class="settings-hint" id={`${id}-when-hint`}>{whenHint}</span>
       </div>
       <div class="daily-selects">
+        <label class="sr-only" for={`${id}-timezone`}>Time zone</label>
+        <span class="manage-select" data-timezone-select>
+          <select
+            class="manage-input"
+            id={`${id}-timezone`}
+            data-f={`${id}.timezone`}
+            autocomplete="off"
+            aria-describedby={`${id}-when-hint`}
+          >
+            {SUPPORTED_TIMEZONES.map((tz) => (
+              <option value={tz.value} selected={tz.value === (values.timezone ?? "Europe/Stockholm")}>
+                {tz.label}
+              </option>
+            ))}
+          </select>
+          <Icon name="chevronDown" />
+        </span>
         {id === "weekly" && (
           <>
             <label class="sr-only" for="weekly-day">Day</label>
@@ -109,15 +133,32 @@ const VOICES = [
       </div>
     </div>
 
-    {/* Which topics the podcast holds is set on each topic's page, its Scope (D69), so it has one
-         home: two pages holding the same list would undo each other's changes. */}
-    <a class="row-action podcast-topics-link" href="/settings/topics">
-      <span class="settings-text">
-        <span class="settings-label">Topics</span>
-        <span class="settings-hint">Each topic's Scope says whether it is in the {id} podcast</span>
-      </span>
-      <Icon name="chevronRight" />
-    </a>
+    {/* Topics in scope displayed as chips with a configure button leading to Topics & Sources */}
+    <div class="settings-row podcast-topics-row">
+      <div class="settings-text">
+        <span class="settings-label" id={`${id}-topics-label`}>Topics</span>
+        <span class="settings-hint" id={`${id}-topics-hint`}>Configure topics and scope in Topics & Sources</span>
+      </div>
+      <div class="podcast-topics-scope">
+        <div class="podcast-chips" aria-labelledby={`${id}-topics-label`}>
+          {
+            activeTopics.length > 0 ? (
+              activeTopics.map((topic) => (
+                <span class="podcast-chip" data-topic={topic.id}>
+                  {topic.name}
+                </span>
+              ))
+            ) : (
+              <span class="manage-quiet">No topics in this scope</span>
+            )
+          }
+        </div>
+        <a class="btn-secondary podcast-configure-btn" href="/settings/topics">
+          <span>Configure</span>
+          <Icon name="chevronRight" />
+        </a>
+      </div>
+    </div>
 
     <div class="settings-row" data-layout="choice">
       <div class="settings-text">

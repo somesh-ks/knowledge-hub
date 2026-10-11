@@ -84,3 +84,59 @@ describe("parseModelList", () => {
     }
   });
 });
+
+describe("pending writer storage", () => {
+  function createMockStorage(): Storage {
+    const store = new Map<string, string>();
+    return {
+      getItem: (key: string) => store.get(key) ?? null,
+      setItem: (key: string, value: string) => store.set(key, value),
+      removeItem: (key: string) => store.delete(key),
+      clear: () => store.clear(),
+      key: (index: number) => Array.from(store.keys())[index] ?? null,
+      get length() {
+        return store.size;
+      },
+    };
+  }
+
+  it("writes, reads, and clears pending choices", async () => {
+    const { clearPendingChoice, readPendingChoice, writePendingChoice } = await import(
+      "./podcastPage"
+    );
+    const storage = createMockStorage();
+    expect(readPendingChoice(storage)).toBeNull();
+
+    writePendingChoice("nebius", "custom/model", storage);
+    const read = readPendingChoice(storage);
+    expect(read).not.toBeNull();
+    expect(read?.provider).toBe("nebius");
+    expect(read?.model).toBe("custom/model");
+
+    clearPendingChoice(storage);
+    expect(readPendingChoice(storage)).toBeNull();
+  });
+
+  it("rejects expired or malformed pending choices", async () => {
+    const { readPendingChoice } = await import("./podcastPage");
+    const storage = createMockStorage();
+    storage.setItem("dispatch:writer-pending", "not-json");
+    expect(readPendingChoice(storage)).toBeNull();
+
+    storage.setItem(
+      "dispatch:writer-pending",
+      JSON.stringify({ provider: "nebius", model: "a", timestamp: Date.now() - 30 * 60 * 1000 }),
+    );
+    expect(readPendingChoice(storage)).toBeNull();
+  });
+
+  it("writes and reads cached catalog", async () => {
+    const { readCachedCatalog, writeCachedCatalog } = await import("./podcastPage");
+    const storage = createMockStorage();
+    expect(readCachedCatalog(storage)).toBeNull();
+
+    const sample = [{ id: "meta/llama", context_length: 8192 }];
+    writeCachedCatalog(sample, storage);
+    expect(readCachedCatalog(storage)).toEqual(sample);
+  });
+});

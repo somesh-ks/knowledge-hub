@@ -3,7 +3,9 @@ import ManageChrome from "../../components/ManageChrome.astro";
 import PodcastProfile from "../../components/PodcastProfile.astro";
 import SettingsHead from "../../components/SettingsHead.astro";
 import BaseLayout from "../../layouts/BaseLayout.astro";
+import { loadManage } from "../../lib/manage";
 import { loadScheduleView } from "../../lib/schedule";
+import { topicLayout } from "../../lib/topicPages";
 import "../../styles/settings.css";
 import "../../styles/manage.css";
 import "../../styles/podcast.css";
@@ -18,13 +20,19 @@ export function getStaticPaths() {
 
 type Profile = "daily" | "weekly";
 const profile = Astro.params.profile as Profile;
-const schedule = await loadScheduleView();
+const [{ topics, sources }, schedule] = await Promise.all([loadManage(), loadScheduleView()]);
+const layout = topicLayout(topics, sources);
+const allTopics = [
+  ...layout.groups.map((group) => ({ id: group.id, name: group.name })),
+  ...[...layout.own, ...layout.general].map((topic) => ({ id: topic.id, name: topic.name })),
+];
 
 const PAGES = {
   daily: {
     title: "Daily",
     note: schedule.next,
     values: {
+      timezone: schedule.timezone,
       hour: schedule.hour,
       cadenceDays: schedule.cadenceDays,
       skipTopics: schedule.skipTopics,
@@ -38,6 +46,7 @@ const PAGES = {
     title: "Weekly",
     note: schedule.nextWeekly,
     values: {
+      timezone: schedule.timezone,
       enabled: schedule.weekly.enabled,
       hour: schedule.weekly.hour,
       day: schedule.weekly.day,
@@ -74,6 +83,7 @@ const { title, note, values } = PAGES[profile];
           <PodcastProfile
             id={profile}
             values={values}
+            topics={allTopics}
             weeklyDay={schedule.weekly.enabled ? schedule.weekly.day : null}
           />
         </div>

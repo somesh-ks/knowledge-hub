@@ -80,6 +80,7 @@ D1 to D9 date from plan v2 (2026-10-05). D10 to D25 date from 2026-10-06. Reason
 | D68 | An episode opens with a rundown, deep-dives its lead stories, gives the rest as nuggets and closes short | active |
 | D69 | Design, AI and Technology gather the judge topics; one alphabetical list where each topic sets its scope; every source filed under a topic | active |
 | D70 | A scoring sample judges a few items a run for scores alone, so every source reaches a score, switched-off ones included | active |
+| D71 | Streamlined add topic modal, live suggested sources with TypeSafe Jev scores, schedule timezone and topic scope indicator chips | active |
 
 ---
 
@@ -731,3 +732,11 @@ D1 to D9 date from plan v2 (2026-10-05). D10 to D25 date from 2026-10-06. Reason
   - A weekly recompute of every score: scores already move every run, so it would make them older without producing new ones.
   - The fallback judge for the sample, for the token budget's sake.
   - Lowering the ten-item bar for everyone: the sparse rule covers the sources that can never reach it.
+
+## D71: Streamlined add topic modal, live suggested sources with TypeSafe Jev scores, schedule timezone and topic scope indicator chips
+
+- Date: 2026-10-11
+- Decision: Add topic modal drops the keywords input and intermediate source selection step; creating a topic saves it immediately and opens its detail page. Each topic detail page features a suggested sources section with 5 curated sources scored by TypeSafe Jev. Daily and Weekly settings display read-only topic scope indicator chips with a Configure button linking to Topics & Sources. The When row includes a curated timezone selector persisted in config/schedule.json.
+- Why: Removes friction when creating topics, keeps topic pages lively with suggested sources, clarifies topic scope in podcast settings, and accommodates global user timezones.
+- Cost: Minor increase in client-side fetch requests for suggested sources.
+- Rejected: Heavy multi-step creation wizards; hardcoded UTC or local-only timezone detection without explicit user control.

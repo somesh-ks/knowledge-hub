@@ -60,6 +60,94 @@ export function parseModelList(body: unknown): ModelEntry[] | null {
   return rows;
 }
 
+export const PENDING_WRITER_KEY = "dispatch:writer-pending";
+export const NEBIUS_MODELS_CACHE_KEY = "dispatch:nebius-models";
+const PENDING_MAX_AGE_MS = 15 * 60 * 1000;
+const CATALOG_MAX_AGE_MS = 60 * 60 * 1000;
+
+export interface StoredWriterChoice {
+  provider: Provider;
+  model: string | null;
+  timestamp: number;
+}
+
+export function readPendingChoice(
+  storage: Storage | null = typeof sessionStorage !== "undefined" ? sessionStorage : null,
+): StoredWriterChoice | null {
+  try {
+    const raw = storage?.getItem(PENDING_WRITER_KEY);
+    if (!raw) return null;
+    const data = JSON.parse(raw) as Partial<StoredWriterChoice>;
+    if (
+      (data.provider === "nebius" || data.provider === "anthropic") &&
+      (typeof data.model === "string" || data.model === null) &&
+      typeof data.timestamp === "number" &&
+      Date.now() - data.timestamp < PENDING_MAX_AGE_MS
+    ) {
+      return { provider: data.provider, model: data.model, timestamp: data.timestamp };
+    }
+  } catch {
+    // storage unavailable or malformed
+  }
+  return null;
+}
+
+export function writePendingChoice(
+  provider: Provider,
+  model: string | null,
+  storage: Storage | null = typeof sessionStorage !== "undefined" ? sessionStorage : null,
+): void {
+  try {
+    storage?.setItem(
+      PENDING_WRITER_KEY,
+      JSON.stringify({ provider, model, timestamp: Date.now() }),
+    );
+  } catch {
+    // storage unavailable
+  }
+}
+
+export function clearPendingChoice(
+  storage: Storage | null = typeof sessionStorage !== "undefined" ? sessionStorage : null,
+): void {
+  try {
+    storage?.removeItem(PENDING_WRITER_KEY);
+  } catch {
+    // storage unavailable
+  }
+}
+
+export function readCachedCatalog(
+  storage: Storage | null = typeof sessionStorage !== "undefined" ? sessionStorage : null,
+): ModelEntry[] | null {
+  try {
+    const raw = storage?.getItem(NEBIUS_MODELS_CACHE_KEY);
+    if (!raw) return null;
+    const data = JSON.parse(raw) as { models?: unknown; timestamp?: unknown };
+    if (
+      Array.isArray(data.models) &&
+      typeof data.timestamp === "number" &&
+      Date.now() - data.timestamp < CATALOG_MAX_AGE_MS
+    ) {
+      return parseModelList(data);
+    }
+  } catch {
+    // storage unavailable
+  }
+  return null;
+}
+
+export function writeCachedCatalog(
+  models: ModelEntry[],
+  storage: Storage | null = typeof sessionStorage !== "undefined" ? sessionStorage : null,
+): void {
+  try {
+    storage?.setItem(NEBIUS_MODELS_CACHE_KEY, JSON.stringify({ models, timestamp: Date.now() }));
+  } catch {
+    // storage unavailable
+  }
+}
+
 function element<K extends keyof HTMLElementTagNameMap>(
   tag: K,
   className?: string,
@@ -127,7 +215,7 @@ export async function mount(root: HTMLElement): Promise<void> {
     });
   }
   const group = root.querySelector<HTMLElement>("[data-models]");
-  if (group) writer = await mountModel(root, group, update);
+  if (group) writer = await mountModel(root, group, update, () => autosave.now());
   root.dataset.ready = "";
 }
 
@@ -139,6 +227,7 @@ async function mountModel(
   root: HTMLElement,
   group: HTMLElement,
   update: (save?: boolean) => void,
+  flushNow?: () => void,
 ): Promise<() => Pending | null> {
   const lib = await import("../lib/combobox");
   const {
@@ -162,13 +251,24 @@ async function mountModel(
   const typedNote = one("[data-typed-note]");
   const savedModel = group.dataset.saved ? group.dataset.saved : null;
   const savedProvider: Provider = group.dataset.provider === "anthropic" ? "anthropic" : "nebius";
+
+  const pendingChoice = readPendingChoice();
+  if (pendingChoice) {
+    if (pendingChoice.provider === savedProvider && pendingChoice.model === savedModel) {
+      clearPendingChoice();
+    } else {
+      vendor.value = pendingChoice.provider;
+    }
+  }
+
   const provider = (): Provider => (vendor.value === "anthropic" ? "anthropic" : "nebius");
 
-  /** The live Nebius list: undefined until asked for, null when it failed. */
-  let nebius: ModelEntry[] | null | undefined;
+  /** The live Nebius list: initialized from cache if available, null when it failed. */
+  let nebius: ModelEntry[] | null | undefined = readCachedCatalog() ?? undefined;
   let options: ModelOption[] = [];
   let shown: ModelOption[] = [];
-  let selected: string | null = savedModel;
+  let selected: string | null =
+    pendingChoice && pendingChoice.provider === provider() ? pendingChoice.model : savedModel;
   let active = -1;
 
   /** The model the controls hold: a typed id when the list is unavailable, else the chosen option. */
@@ -287,6 +387,8 @@ async function mountModel(
     typed.value = "";
     close();
     update();
+    writePendingChoice(provider(), selected);
+    flushNow?.();
   };
 
   /** The options for the vendor on screen. */
@@ -305,13 +407,17 @@ async function mountModel(
     let entries: ModelEntry[] | null = null;
     try {
       const response = await fetch("/api/models", { signal: AbortSignal.timeout(LIST_TIMEOUT_MS) });
-      if (response.ok) entries = parseModelList(await response.json());
+      if (response.ok) {
+        entries = parseModelList(await response.json());
+        if (entries && entries.length > 0) writeCachedCatalog(entries);
+      }
     } catch {
       entries = null;
     }
-    nebius = entries;
-    // The owner may have moved to Anthropic while the list was loading.
-    if (provider() === "nebius") refresh();
+    if (entries !== null || nebius === undefined) {
+      nebius = entries;
+      if (provider() === "nebius") refresh();
+    }
     root.dataset.loaded = "";
   };
 
@@ -322,6 +428,8 @@ async function mountModel(
     if (provider() === "nebius" && nebius === undefined) void load().then(() => update());
     refresh();
     update();
+    writePendingChoice(provider(), selected);
+    flushNow?.();
   });
 
   input.addEventListener("input", () => open(input.value, true));

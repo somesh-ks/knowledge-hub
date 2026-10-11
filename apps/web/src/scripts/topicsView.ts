@@ -76,4 +76,46 @@ export function scoreNode(score: number | null, label: string): HTMLElement {
   return wrap;
 }
 
+export interface SuggestedSourceData {
+  id: string;
+  name: string;
+  url: string;
+  feed_url: string;
+  host: string;
+  favicon_url: string | null;
+  score: number;
+  score_label: string;
+}
+
+/** One suggested source row with a compact + button on the right */
+export function suggestedRow(
+  suggestion: SuggestedSourceData,
+  plusGlyph: Node | null,
+): HTMLLIElement {
+  const row = element("li", "source-row is-suggested");
+  row.dataset.id = suggestion.id;
+  row.dataset.band = bandOf(suggestion.score);
+  row.dataset.score = String(suggestion.score);
+  row.dataset.name = suggestion.name.toLowerCase();
+
+  const main = element("span", "source-main");
+  const text = element("span", "source-text");
+  const link = element("a", "source-name", suggestion.name) as HTMLAnchorElement;
+  link.href = suggestion.url;
+  link.target = "_blank";
+  link.rel = "noopener noreferrer";
+  link.setAttribute("aria-label", `Open ${suggestion.name} in a new tab`);
+  text.append(link, element("span", "source-host", suggestion.host));
+  main.append(iconNode(suggestion.favicon_url, suggestion.name), text);
+
+  const plusBtn = element("button", "source-plus-btn icon-btn press") as HTMLButtonElement;
+  plusBtn.type = "button";
+  plusBtn.setAttribute("aria-label", `Add ${suggestion.name}`);
+  plusBtn.dataset.suggestedAdd = JSON.stringify(suggestion);
+  if (plusGlyph) plusBtn.append(plusGlyph);
+
+  row.append(main, scoreNode(suggestion.score, suggestion.score_label), plusBtn);
+  return row;
+}
+
 export { element };

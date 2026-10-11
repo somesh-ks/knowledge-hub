@@ -129,6 +129,7 @@ export function nextWeekly(input: { now: Date; day: number; hour: number }): str
 }
 
 export interface ScheduleView {
+  timezone: string;
   hour: number;
   cadenceDays: number;
   /** Topic ids the daily briefing leaves out. */
@@ -164,6 +165,7 @@ export async function loadScheduleView(
   ]);
   const schedule = ScheduleFile.safeParse(scheduleFile);
   const {
+    timezone,
     hour,
     cadence_days: cadenceDays,
     skip_topics: skipTopics,
@@ -179,6 +181,7 @@ export async function loadScheduleView(
   const counts = regular && (regular.outcome === "published" || regular.outcome === "nothing");
   const weeklyRun = lastRun.success ? lastRun.data.weekly : undefined;
   return {
+    timezone: timezone ?? "Europe/Stockholm",
     hour,
     cadenceDays,
     skipTopics,

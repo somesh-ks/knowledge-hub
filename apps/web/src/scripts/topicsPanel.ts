@@ -283,7 +283,7 @@ export function openPanel(
   const topicValue = (): NewTopic => ({
     name: topicField("name").value.trim(),
     description: topicField("description").value.trim(),
-    keywords: keywordList(topicField("keywords").value),
+    keywords: topicField("keywords") ? keywordList(topicField("keywords").value) : [],
     scope: { daily: scoped("daily"), weekly: scoped("weekly"), custom: scoped("custom") },
   });
   const ticked = (): OfferData[] => {
@@ -294,23 +294,30 @@ export function openPanel(
   };
 
   // Editing a topic starts from what it holds. A built-in topic is judged by fixed questions, so what
-  // counts stays as it is; its name and keywords take typing like any other topic's.
+  // counts stays as it is; its name takes typing like any other topic's.
   const editedTopic = start.kind === "topic-edit" ? start.topic : null;
   if (editedTopic) {
     topicPane.setAttribute("aria-label", "Edit topic");
     one<HTMLElement>("[data-scope]").hidden = true;
     topicField("name").value = editedTopic.name;
     topicField("description").value = editedTopic.description;
-    topicField("keywords").value = editedTopic.keywords.join(", ");
+    if (topicField("keywords")) {
+      topicField("keywords").value = editedTopic.keywords.join(", ");
+    }
     if (editedTopic.origin === "builtin") {
       topicField("description").readOnly = true;
       one<HTMLElement>("[data-fixed-note]").hidden = false;
     }
-    one<HTMLElement>("[data-suggest-head]").textContent = "More sources";
-    lede.textContent =
-      "Sources that write about it and are not among its sources yet. Tick the ones to add.";
-    none.textContent =
-      "No more sources to suggest for this topic. Add one by its address on the topic's page.";
+    const suggestHead = one<HTMLElement>("[data-suggest-head]");
+    if (suggestHead) suggestHead.textContent = "More sources";
+    if (lede) {
+      lede.textContent =
+        "Sources that write about it and are not among its sources yet. Tick the ones to add.";
+    }
+    if (none) {
+      none.textContent =
+        "No more sources to suggest for this topic. Add one by its address on the topic's page.";
+    }
   }
   const topicDirty = (): boolean => editedTopic !== null && topicChanged(editedTopic, topicValue());
 
@@ -319,6 +326,7 @@ export function openPanel(
     let first: HTMLElement | null = null;
     for (const [name, message] of Object.entries(problems)) {
       const input = topicField(name);
+      if (!input) continue;
       const note = topicPane.querySelector<HTMLElement>(`[data-error="${name}"]`);
       if (!note) continue;
       note.hidden = !message;
@@ -339,8 +347,8 @@ export function openPanel(
     }
     const offered = suggestionsFor(topic, offers);
     list.replaceChildren(...offered.map((offer) => suggestion(offer, glyph("check"))));
-    none.hidden = offered.length > 0;
-    lede.hidden = offered.length === 0;
+    if (none) none.hidden = offered.length > 0;
+    if (lede) lede.hidden = offered.length === 0;
     step = "sources";
     render();
     (list.querySelector<HTMLInputElement>("input") ?? go).focus();
@@ -466,7 +474,7 @@ export function openPanel(
     sourcePane.hidden = mode !== "source";
     editPane.hidden = mode !== "edit";
     details.hidden = step !== "details";
-    sourcesStep.hidden = step !== "sources";
+    if (sourcesStep) sourcesStep.hidden = step !== "sources";
     back.hidden = !(topicLike && step === "sources");
     title.textContent = {
       topic: "Add a topic",
@@ -475,12 +483,11 @@ export function openPanel(
       edit: "Edit source",
     }[mode];
     if (mode === "topic") {
-      go.textContent = step === "details" ? "Next" : addTopicLabel(ticked().length);
+      go.textContent = "Add topic";
       go.disabled = false;
     } else if (mode === "topic-edit") {
-      go.textContent = step === "details" ? "Next" : saveTopicLabel(ticked().length);
-      // Nothing to save until a detail changed or a source was ticked.
-      go.disabled = step === "sources" && !topicDirty() && ticked().length === 0;
+      go.textContent = "Save";
+      go.disabled = !topicDirty();
     } else if (mode === "source") {
       go.textContent = "Add source";
       go.disabled = loaded === null;
@@ -501,17 +508,23 @@ export function openPanel(
 
   go.addEventListener("click", () => {
     if (mode === "topic") {
-      if (step === "details") toSources();
-      else {
-        handlers.addTopic(topicValue(), ticked());
-        panel.close();
+      const topic = topicValue();
+      const bad = flag(topicProblems(topic));
+      if (bad) {
+        bad.focus();
+        return;
       }
+      handlers.addTopic(topic, []);
+      panel.close();
     } else if (mode === "topic-edit" && editedTopic) {
-      if (step === "details") toSources();
-      else {
-        handlers.editTopic(topicDirty() ? { id: editedTopic.id, ...topicValue() } : null, ticked());
-        panel.close();
+      const topic = topicValue();
+      const bad = flag(topicProblems(topic));
+      if (bad) {
+        bad.focus();
+        return;
       }
+      handlers.editTopic(topicDirty() ? { id: editedTopic.id, ...topic } : null, []);
+      panel.close();
     } else if (mode === "source") {
       if (!loaded) return;
       handlers.addSource({ url: loaded.url, topic_id: sourceTopic.value, preview: loaded.preview });

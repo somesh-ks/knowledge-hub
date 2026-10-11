@@ -164,6 +164,7 @@ export function mountEditor(root: HTMLElement): Editor {
       );
     }
     autosave.now();
+    window.location.assign(`/settings/topics/${encodeURIComponent(id)}`);
   };
 
   /**
@@ -327,7 +328,36 @@ export function mountEditor(root: HTMLElement): Editor {
       "editTopic" in button.dataset
     )
       openPanel(button);
-    else if (act === "cancel" && row) {
+    else if ("suggestedAdd" in button.dataset) {
+      const suggestion = JSON.parse(button.dataset.suggestedAdd ?? "{}") as {
+        name: string;
+        favicon_url?: string | null;
+        score?: number | null;
+        score_label?: string;
+        feed_url?: string;
+      };
+      const topicId = root.querySelector<HTMLElement>(".topic")?.dataset.id ?? "";
+      addRow(
+        {
+          name: suggestion.name,
+          icon: suggestion.favicon_url ?? null,
+          score: suggestion.score ?? null,
+          label: suggestion.score_label ?? "Good",
+        },
+        { op: "source.add", url: suggestion.feed_url ?? "", topic_ids: topicId ? [topicId] : [] },
+        topicId,
+      );
+      autosave.now();
+      button.disabled = true;
+      button.classList.add("is-added");
+      button.setAttribute("aria-label", `Added ${suggestion.name}`);
+      const checkTemplate = document.getElementById(
+        "suggested-check-template",
+      ) as HTMLTemplateElement | null;
+      if (checkTemplate) {
+        button.replaceChildren(checkTemplate.content.cloneNode(true));
+      }
+    } else if (act === "cancel" && row) {
       changes.delete(row.dataset.key ?? "");
       row.remove();
       autosave.changed();

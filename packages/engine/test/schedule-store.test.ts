@@ -33,6 +33,7 @@ describe("loadSchedule", () => {
       voice_id_b: null,
       weekly: { ...DEFAULT_SCHEDULE.weekly, hour: 9, day: 5 },
       custom: { ...DEFAULT_SCHEDULE.custom },
+      timezone: "Europe/Stockholm",
     };
     await writeFile(join(root, "config", "schedule.json"), serializeSchedule(saved));
     expect(await loadSchedule(root)).toEqual(saved);
@@ -52,6 +53,7 @@ describe("loadSchedule", () => {
       length_minutes: 10,
       voice_id: null,
       voice_id_b: null,
+      timezone: "Europe/Stockholm",
       weekly: { ...DEFAULT_SCHEDULE.weekly, hour: 9 },
       custom: DEFAULT_SCHEDULE.custom,
     });

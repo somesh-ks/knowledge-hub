@@ -93,19 +93,6 @@ const offerData = offers.map((offer) => ({
               <Icon name="alert" /><span></span>
             </p>
           </div>
-          <div class="manage-field">
-            <label for="panel-topic-keywords">Keywords, separated by commas (optional)</label>
-            <input
-              class="manage-input"
-              id="panel-topic-keywords"
-              name="keywords"
-              type="text"
-              maxlength="400"
-              autocomplete="off"
-              autocapitalize="none"
-              enterkeyhint="next"
-            />
-          </div>
           {/* Where a new topic plays (D69); an existing topic sets it on its own page. */}
           <div class="manage-field topics-scope" data-scope>
             <span class="topics-scope-label" id="panel-topic-scope-label">Scope</span>
@@ -121,12 +108,6 @@ const offerData = offers.map((offer) => ({
             />
           </div>
         </div>
-        <fieldset class="topics-step topics-suggest" data-step="sources" hidden>
-          <legend class="topics-suggest-head" data-suggest-head>Sources to start with</legend>
-          <p class="manage-quiet" data-suggest-lede>Sources that write about it. Tick the ones to add with the topic.</p>
-          <ul class="suggest-list" role="list" data-suggest-list></ul>
-          <p class="manage-quiet" data-suggest-none hidden>No suggestions for this topic yet. Once it is saved, add sources by their address.</p>
-        </fieldset>
       </form>
 
       {/* A source by its address: looked up as you type, then filed under a topic. */}

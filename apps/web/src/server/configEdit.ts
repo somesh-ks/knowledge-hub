@@ -35,8 +35,8 @@ export const MAX_CONFIG_BODY_CHARS = 8192;
 /** Two edits closer together than this are refused, so one person cannot flood the repository. */
 export const CONFIG_COOLDOWN_MS = 10_000;
 
-const RUN_LOOKUP_ATTEMPTS = 3;
-const RUN_LOOKUP_DELAY_MS = 1500;
+const RUN_LOOKUP_ATTEMPTS = 1;
+const RUN_LOOKUP_DELAY_MS = 500;
 
 export type ConfigDeps = GenerateDeps;
 
@@ -482,12 +482,16 @@ export async function handleConfig(input: ConfigInput, deps: ConfigDeps): Promis
         after.find((run) => Date.parse(run.createdAt) >= startedAt - 5000 && run.status !== "")
           ?.id ?? null;
     }
-    if (runId === null) return unavailable;
 
     // The hour lives in a repository variable, which run.yml compares against its schedule. A
     // token without "Variables: write" is refused; the rest of the edit is already on its way.
     const hour = scheduledHour(request.op);
-    if (hour === null) return { status: 202, body: { status: 202, run_id: runId } };
+    if (hour === null) {
+      return {
+        status: 202,
+        body: { status: 202, ...(runId !== null ? { run_id: runId } : {}) },
+      };
+    }
     let timeChanged = true;
     try {
       await createVariableWriter(config, deps.fetch)(RUN_CRON_VARIABLE, `13 ${hour} * * *`);
@@ -495,7 +499,14 @@ export async function handleConfig(input: ConfigInput, deps: ConfigDeps): Promis
       timeChanged = false;
       log(`run time not changed: ${describeError(error, secretsOf(config))}`);
     }
-    return { status: 202, body: { status: 202, run_id: runId, time_changed: timeChanged } };
+    return {
+      status: 202,
+      body: {
+        status: 202,
+        ...(runId !== null ? { run_id: runId } : {}),
+        time_changed: timeChanged,
+      },
+    };
   } catch (error) {
     log(`config failed: ${describeError(error, secretsOf(config))}`);
     return unavailable;

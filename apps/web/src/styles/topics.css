@@ -939,3 +939,98 @@ a.source-name:focus-visible {
     min-inline-size: 16rem;
   }
 }
+
+/* ------------------------------------------------------------------ suggested sources */
+
+.topic-suggested-section {
+  display: flex;
+  flex-direction: column;
+  margin-block-start: var(--space-8);
+  padding-block-start: var(--space-4);
+  border-block-start: var(--stroke-hairline) solid var(--color-border-hairline);
+}
+
+.suggested-section-head {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+}
+
+.suggested-pill {
+  display: inline-flex;
+  align-items: center;
+  padding-block: var(--space-1);
+  padding-inline: var(--space-2);
+  border-radius: var(--chip-radius);
+  background: var(--color-accent-subtle);
+  color: var(--color-accent);
+  font-size: var(--font-size-meta);
+  font-weight: var(--font-weight-medium);
+  line-height: var(--font-leading-caption);
+  letter-spacing: var(--text-meta-tracking);
+  text-transform: uppercase;
+}
+
+.suggested-caption {
+  margin-block: var(--space-1) var(--space-3);
+}
+
+/* The small + button on the right side of a suggested source row */
+.source-plus-btn {
+  position: relative;
+  display: grid;
+  place-items: center;
+  width: var(--size-touch);
+  height: var(--size-touch);
+  margin-inline-end: calc(var(--space-3) * -1);
+  border: none;
+  background: none;
+  color: var(--color-on-surface-muted);
+  border-radius: var(--radius-round);
+  cursor: pointer;
+  transition:
+    color var(--duration-hover) var(--ease-hover),
+    background-color var(--duration-hover) var(--ease-hover);
+}
+
+.source-plus-btn > .icon {
+  width: var(--size-icon);
+  height: var(--size-icon);
+}
+
+@media (hover: hover) and (pointer: fine) {
+  .source-plus-btn:hover {
+    color: var(--color-accent);
+    background: var(--color-surface-sunken);
+  }
+}
+
+.source-plus-btn:active {
+  background: var(--color-surface-sunken);
+}
+
+.source-plus-btn.is-added {
+  color: var(--color-accent);
+  pointer-events: none;
+}
+
+.source-row.is-suggested {
+  grid-template-columns: minmax(0, 1fr) auto auto;
+}
+
+.suggested-skeleton {
+  pointer-events: none;
+  opacity: 0.6;
+}
+
+.suggested-skeleton .source-icon.skeleton-circle {
+  width: var(--space-6);
+  height: var(--space-6);
+  border-radius: var(--radius-sm);
+}
+
+.suggested-skeleton .source-slot.skeleton-circle {
+  width: var(--size-touch);
+  height: var(--size-touch);
+  border-radius: var(--radius-round);
+}
