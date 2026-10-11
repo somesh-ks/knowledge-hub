@@ -739,6 +739,8 @@
   width: 6rem;
   height: var(--size-touch);
   margin: 0;
+  /* Rounded like every other control, so the focus ring that follows it is too (as in Settings). */
+  border-radius: var(--button-radius);
   background: none;
   appearance: none;
   cursor: pointer;
@@ -1411,6 +1413,7 @@
   height: var(--size-touch);
   margin: 0;
   appearance: none;
+  border-radius: var(--button-radius);
   background: none;
   cursor: pointer;
 }
