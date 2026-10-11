@@ -19,7 +19,7 @@
   --ambient-b: var(--ambient-b-l);
   --ambient-c: var(--ambient-c-l);
   position: absolute;
-  z-index: -1;
+  z-index: var(--z-beneath);
   /* The header's own box, top padding included: that padding is the room above the cover. Nothing
      reaches past it, so neither the phone's app bar nor the top of the window can cut the light. */
   inset-block: 0;

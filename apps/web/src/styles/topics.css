@@ -245,7 +245,7 @@
    tile, and its words never scale on a press: pressing shows on its fill. */
 .source-edit {
   position: absolute;
-  z-index: 0;
+  z-index: var(--z-base);
   inset-block: 0;
   inset-inline: calc(var(--space-2) * -1) 0;
   border-radius: var(--radius-md);
@@ -259,19 +259,19 @@
 
 @media (hover: hover) and (pointer: fine) {
   .source-edit:hover {
-    background: color-mix(in oklch, var(--color-on-surface) 6%, transparent);
+    background: var(--color-surface-sunken);
   }
 }
 
 .source-edit:active {
-  background: color-mix(in oklch, var(--color-on-surface) 10%, transparent);
+  background: var(--color-surface-sunken);
 }
 
 /* What the row shows sits over its button and lets a press through to it, all but the name's link
    and the checkbox, which are presses of their own. */
 .source-row > :not(.source-edit) {
   position: relative;
-  z-index: 1;
+  z-index: var(--z-raised);
   pointer-events: none;
 }
 
@@ -445,12 +445,12 @@ a.source-name:focus-visible {
 
 @media (hover: hover) and (pointer: fine) {
   .source-check:hover {
-    background: color-mix(in oklch, var(--color-on-surface) 6%, transparent);
+    background: var(--color-surface-sunken);
   }
 }
 
 .source-check:active {
-  background: color-mix(in oklch, var(--color-on-surface) 10%, transparent);
+  background: var(--color-surface-sunken);
 }
 
 /* Keeps a row that has no button lined up with the rows that do. */
@@ -672,12 +672,12 @@ a.source-name:focus-visible {
 
 @media (hover: hover) and (pointer: fine) {
   .suggest-row:hover {
-    background: color-mix(in oklch, var(--color-on-surface) 6%, transparent);
+    background: var(--color-surface-sunken);
   }
 }
 
 .suggest-row:active {
-  background: color-mix(in oklch, var(--color-on-surface) 10%, transparent);
+  background: var(--color-surface-sunken);
 }
 
 .suggest-text {

@@ -16,7 +16,7 @@
    list is lifted above its later siblings, and the list above its row. */
 .multiselect:has(> [aria-expanded="true"]),
 .rows > :has(.multiselect-trigger[aria-expanded="true"]) {
-  z-index: 4;
+  z-index: var(--z-overlay);
 }
 
 .multiselect-trigger {
@@ -73,7 +73,7 @@
 
 .multiselect-list {
   position: absolute;
-  z-index: 3;
+  z-index: var(--z-raised);
   inset-inline: 0;
   inset-block-start: calc(100% + var(--space-1));
   display: grid;
