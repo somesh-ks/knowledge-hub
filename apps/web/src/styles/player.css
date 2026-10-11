@@ -36,8 +36,13 @@
   /* Two columns of this much, from 64rem. */
   --player-page-max: 68rem;
   --player-column-max: 28rem;
-  /* What is playing, in the middle of the wide bar: the cover, and a title and caption beside it. */
+  /* What is playing, in the middle of the wide bar: the cover, and a title and caption beside it. It
+     takes the room the two sides leave, and never less than this. */
   --player-dock-centre: 26rem;
+  /* What the wide bar keeps on each side of the middle: the transport and the clock at their widest
+     (an hour-long recording) on the left, the same on the right, so the middle stays centred and
+     never reaches the clock or the volume. */
+  --player-dock-side: 18rem;
   /* The cover never takes more than this share of the window's height. */
   --player-cover-share: 40cqb;
   --player-skip-glyph: 2rem;
@@ -926,9 +931,9 @@
       0 calc(var(--p, 0) * var(--safe-bottom)) 0 var(--mini-player-bg);
   }
 
+  /* Up to the transport: the title shortens only where the bar runs out of room. */
   .dock-open {
     width: 100%;
-    max-width: var(--player-column-max);
   }
 }
 
@@ -940,7 +945,13 @@
   }
 
   .player-dock {
-    grid-template-columns: minmax(0, 1fr) minmax(0, var(--player-dock-centre)) minmax(0, 1fr);
+    grid-template-columns:
+      minmax(0, 1fr)
+      minmax(
+        0,
+        max(var(--player-dock-centre), 100% - (var(--player-dock-side) + var(--space-6)) * 2)
+      )
+      minmax(0, 1fr);
     column-gap: var(--space-6);
   }
 
