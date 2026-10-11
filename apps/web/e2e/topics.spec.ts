@@ -1,5 +1,5 @@
 import AxeBuilder from "@axe-core/playwright";
-import type { Page, Route } from "@playwright/test";
+import type { Locator, Page, Route } from "@playwright/test";
 import { expect, test } from "./fixtures";
 
 const LIST = "/settings/topics";
@@ -437,6 +437,12 @@ test.describe("a refused lookup", () => {
   });
 });
 
+/** Waits out a dialog's own transitions, so a scan never reads its text halfway through the fade in. */
+const settled = (dialog: Locator) =>
+  dialog.evaluate((node) =>
+    Promise.all(node.getAnimations().map((animation) => animation.finished)),
+  );
+
 test("has no accessibility violations: the list, a topic, and the panel open", async ({ page }) => {
   await setup(page);
   const scan = async () =>
@@ -451,11 +457,14 @@ test("has no accessibility violations: the list, a topic, and the panel open", a
   const sheet = page.getByRole("dialog", { name: "Add a source" });
   await sheet.getByLabel("Site or feed address").fill("newsroom.example");
   await expect(sheet.getByText("Newsroom Example")).toBeVisible();
+  await settled(sheet);
   expect(await scan()).toEqual([]);
   await page.keyboard.press("Escape");
   await expect(sheet).toBeHidden();
   await source(page, "Studio Notes").getByRole("button", { name: "Edit Studio Notes" }).click();
-  await expect(page.getByRole("dialog", { name: "Edit source" })).toBeVisible();
+  const edit = page.getByRole("dialog", { name: "Edit source" });
+  await expect(edit).toBeVisible();
+  await settled(edit);
   expect(await scan()).toEqual([]);
   await page.keyboard.press("Escape");
   await open(page);
@@ -465,5 +474,6 @@ test("has no accessibility violations: the list, a topic, and the panel open", a
   await topic.getByLabel("What should count as this topic").fill("Animation in interfaces.");
   await topic.getByRole("button", { name: "Next" }).click();
   await expect(topic.getByRole("checkbox").first()).toBeVisible();
+  await settled(topic);
   expect(await scan()).toEqual([]);
 });
