@@ -7,9 +7,20 @@ const dateFormat = new Intl.DateTimeFormat("en-CA", {
   day: "2-digit",
 });
 
+const hourFormat = new Intl.DateTimeFormat("en-GB", {
+  timeZone: TIME_ZONE,
+  hour: "2-digit",
+  hourCycle: "h23",
+});
+
 /** Stockholm calendar date (YYYY-MM-DD) of an instant. */
 export function stockholmDate(at: Date): string {
   return dateFormat.format(at);
+}
+
+/** Whole hour of an instant in Stockholm time, 0 to 23. */
+export function stockholmHour(at: Date): number {
+  return Number(hourFormat.format(at));
 }
 
 /** Whole calendar days from `a` to `b` (both YYYY-MM-DD), positive when `b` is later. */

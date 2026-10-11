@@ -13,6 +13,7 @@ import {
   parseDigestFile,
   serializeDigestFile,
   stockholmDate,
+  stockholmHour,
   VOICE_LIMITS,
   weekday,
 } from "./index.js";
@@ -59,6 +60,11 @@ describe("time", () => {
   it("uses the Stockholm calendar date", () => {
     expect(stockholmDate(new Date("2026-10-07T22:30:00Z"))).toBe("2026-10-08");
     expect(stockholmDate(new Date("2026-10-07T05:13:00Z"))).toBe("2026-10-07");
+  });
+  it("uses the Stockholm hour on both sides of the October clock change", () => {
+    expect(stockholmHour(new Date("2026-10-11T05:30:00Z"))).toBe(7);
+    expect(stockholmHour(new Date("2026-10-26T06:30:00Z"))).toBe(7);
+    expect(stockholmHour(new Date("2026-10-07T22:30:00Z"))).toBe(0);
   });
   it("counts calendar days and weekdays", () => {
     expect(daysBetween("2026-10-05", "2026-10-07")).toBe(2);

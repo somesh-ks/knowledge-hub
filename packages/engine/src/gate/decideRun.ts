@@ -1,4 +1,10 @@
-import { daysBetween, type LastRunFile, stockholmDate, weekday } from "@dispatch/core";
+import {
+  daysBetween,
+  type LastRunFile,
+  stockholmDate,
+  stockholmHour,
+  weekday,
+} from "@dispatch/core";
 
 export const RUN_MODES = ["scheduled", "on-demand", "weekly"] as const;
 export type RunMode = (typeof RUN_MODES)[number];
@@ -42,17 +48,6 @@ export interface RunDecision {
 export const REGULAR_CADENCE_DAYS = 2;
 
 const LEGACY_WEEKLY: WeeklySlot = { enabled: true, day: 0, hour: 0 };
-
-const hourFormat = new Intl.DateTimeFormat("en-GB", {
-  timeZone: "Europe/Stockholm",
-  hour: "2-digit",
-  hourCycle: "h23",
-});
-
-/** Whole hour of an instant in Stockholm time, 0 to 23. */
-function stockholmHour(at: Date): number {
-  return Number(hourFormat.format(at));
-}
 
 /**
  * Stockholm date of the last regular run that counts toward the cadence. A run counts when it
