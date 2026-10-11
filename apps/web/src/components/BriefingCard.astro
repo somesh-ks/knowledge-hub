@@ -31,6 +31,7 @@ const facts = cardFacts(entry);
   data-minutes={facts.minutes}
   data-audio={entry.audioMode === "ready" ? "" : undefined}
   data-search={facts.search}
+  data-meta-lines={facts.metaLines}
 >
   <a class="card-link" href={`/d/${entry.id}`} data-astro-prefetch="hover">
     <Cover
@@ -39,11 +40,11 @@ const facts = cardFacts(entry);
       paletteBg={paletteAccent(digest.cover.palette).bg}
       weekly={digest.kind === "weekly"}
       priority={priority}
+      progress
     />
     <span class="card-title">{longDate(digest.date)}</span>
     <span class="card-sub">
-      <span class="card-meta">{digest.kind === "weekly" ? "Weekly briefing" : digest.kind === "on-demand" ? "Custom briefing" : "Daily briefing"}</span>
-      <span class="card-facts">{facts.kind && <span class="card-kind" data-card-kind>{`${facts.kind}, `}</span>}<span data-card-facts data-rest={facts.rest}>{facts.rest}</span></span>
+      <span class="card-facts" data-card-facts data-rest={facts.line}>{facts.line}</span>
     </span>
   </a>
   <CoverPlay digestId={entry.id} href={`/d/${entry.id}`} title={longDate(digest.date)} />

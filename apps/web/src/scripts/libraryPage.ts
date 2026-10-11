@@ -5,9 +5,10 @@
 import {
   type CardData,
   compareCards,
+  emptyCopy,
   type LibraryFilter,
   type LibrarySort,
-  matchCount,
+  matchDetail,
   matchesFilter,
   resultSummary,
   type SearchIndexEntry,
@@ -20,8 +21,6 @@ interface Card {
   id: string;
   element: HTMLElement;
   facts: HTMLElement | null;
-  /** "Weekly, " before the facts, on a weekly briefing's card only. */
-  kind: HTMLElement | null;
   data: CardData;
 }
 
@@ -38,8 +37,8 @@ function readCard(element: HTMLElement, order: number): Card {
     id,
     element,
     facts: element.querySelector<HTMLElement>("[data-card-facts]"),
-    kind: element.querySelector<HTMLElement>("[data-card-kind]"),
     data: {
+      metaLines: Number(element.dataset.metaLines ?? "0"),
       date,
       order,
       kind,
@@ -63,6 +62,9 @@ function install(): void {
   const empty = root.querySelector<HTMLElement>("[data-library-empty]");
   const clearText = root.querySelector<HTMLButtonElement>("[data-library-clear-text]");
   const filterSelect = root.querySelector<HTMLSelectElement>("[data-library-filter]");
+  const emptyMessage = root.querySelector<HTMLElement>("[data-library-empty-message]");
+  const emptyButton = root.querySelector<HTMLButtonElement>("[data-library-clear]");
+  let emptyReset: "search" | "everything" = "search";
   if (!grid) return;
   const cards = [...grid.querySelectorAll<HTMLElement>("[data-card]")].map(readCard);
 
@@ -104,31 +106,39 @@ function install(): void {
     let shown = 0;
     for (const card of cards) {
       const passes = matchesFilter(card.data, filter);
-      let matches = passes ? matchCount(card.data, query) : 0;
+      const detail = passes ? matchDetail(card.data, query) : { meta: 0, stories: 0 };
+      let matches = detail.meta + detail.stories;
       // A word that only the script or a story's text holds: the card is there, for another reason.
       const inText = passes && matches === 0 && textHasWords(fullText?.get(card.id) ?? "", query);
       if (inText) matches = 1;
       card.element.hidden = matches === 0;
       if (matches > 0) shown += 1;
       if (card.facts) {
-        // While searching, the line under a card says why it is there, and that alone.
+        // While searching, the line under a card says why it is there, when a story is why. A card
+        // found by its own date or title keeps its normal line: no story matched.
         const rest = card.facts.dataset.rest ?? "";
-        const found = searching && matches > 0;
-        const text = found
-          ? inText
-            ? "Found in the full text"
-            : matches === 1
-              ? "1 matching story"
-              : `${matches} matching stories`
-          : rest;
+        const stories = detail.stories;
+        let text = rest;
+        if (searching && matches > 0) {
+          if (inText) text = "Found in the full text";
+          else if (stories === 1) text = "1 matching story";
+          else if (stories > 1) text = `${stories} matching stories`;
+        }
         if (card.facts.textContent !== text) card.facts.textContent = text;
-        if (card.kind && card.kind.hidden !== found) card.kind.hidden = found;
       }
     }
     const ordered = [...cards].sort((a, b) => compareCards(a.data, b.data, sort));
     for (const card of ordered) grid?.append(card.element);
     if (status) status.textContent = resultSummary(shown, cards.length);
-    if (empty) empty.hidden = shown > 0;
+    if (empty) {
+      empty.hidden = shown > 0;
+      if (shown === 0) {
+        const copy = emptyCopy(query, filter);
+        emptyReset = copy.resets;
+        if (emptyMessage) emptyMessage.textContent = copy.message;
+        if (emptyButton) emptyButton.textContent = copy.action;
+      }
+    }
     requestAnimationFrame(markTruncated);
   }
 
@@ -144,9 +154,9 @@ function install(): void {
     apply();
     input?.focus();
   });
-  root.querySelector("[data-library-clear]")?.addEventListener("click", () => {
+  emptyButton?.addEventListener("click", () => {
     if (input) input.value = "";
-    if (filterSelect) filterSelect.value = "all";
+    if (filterSelect && emptyReset === "everything") filterSelect.value = "all";
     apply();
     input?.focus();
   });
@@ -184,6 +194,30 @@ function install(): void {
     });
   }
   window.addEventListener("resize", () => requestAnimationFrame(markTruncated));
+
+  /**
+   * A half-heard item shows a thin bar along its cover. The player keeps the second it reached under
+   * dispatch:resume:<id> (and forgets it once the item is finished), so the page reads that key and
+   * loads no player code. The length is the card's own minutes: close enough for a bar.
+   */
+  function showProgress(): void {
+    for (const card of cards) {
+      const bar = card.element.querySelector<HTMLElement>("[data-cover-progress]");
+      if (!bar) continue;
+      let seconds = 0;
+      try {
+        seconds = Number(localStorage.getItem(`dispatch:resume:${card.id}`));
+      } catch {
+        seconds = 0;
+      }
+      const total = card.data.minutes * 60;
+      const share = Number.isFinite(seconds) && total > 0 ? Math.min(seconds / total, 1) : 0;
+      bar.hidden = share <= 0;
+      if (share > 0) bar.style.setProperty("--progress", `${Math.round(share * 100)}%`);
+    }
+  }
+  showProgress();
+  window.addEventListener("pageshow", showProgress);
   apply();
 }
 

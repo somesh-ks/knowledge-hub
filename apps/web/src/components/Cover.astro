@@ -10,9 +10,11 @@ interface Props {
   weekly: boolean;
   /** The one cover that is the page's largest paint loads eagerly and first. */
   priority?: boolean;
+  /** A library card's cover carries a thin bar the page script fills for a half-heard item. */
+  progress?: boolean;
 }
 
-const { digestId, size, paletteBg, weekly, priority = false } = Astro.props;
+const { digestId, size, paletteBg, weekly, priority = false, progress = false } = Astro.props;
 
 // Display width of each size, so the browser picks the 512 or the 1024 image for the screen's density.
 const SIZES: Record<Props["size"], string> = {
@@ -40,6 +42,7 @@ const SIZES: Record<Props["size"], string> = {
     fetchpriority={priority ? "high" : undefined}
   />
   {weekly && <span class="cover-frame" aria-hidden="true"></span>}
+  {progress && <span class="cover-progress" data-cover-progress aria-hidden="true" hidden></span>}
   {/* The cover on an item's own page plays it in place. A list's card adds its own button beside the link. */}
   {size === "hero" && <CoverPlay digestId={digestId} pointerOnly />}
 </span>

@@ -2,7 +2,11 @@ import { describe, expect, it } from "vitest";
 import {
   type CardData,
   compareCards,
+  dateSearchLine,
+  emptyCopy,
+  factsLine,
   matchCount,
+  matchDetail,
   matchesFilter,
   normalize,
   resultSummary,
@@ -62,7 +66,7 @@ describe("matchesFilter", () => {
     expect(matchesFilter(card({ kind: "regular" }), "daily")).toBe(true);
   });
 
-  it("puts everything made on request under Custom: episodes and generated briefings", () => {
+  it("puts everything made on request under Episodes: episodes and generated briefings", () => {
     const episode = card({ kind: "episode", hasAudio: false });
     const generated = card({ kind: "on-demand" });
     for (const made of [episode, generated]) {
@@ -120,5 +124,70 @@ describe("textHasWords", () => {
 
   it("does not match an empty query: the cards' own lines answer that", () => {
     expect(textHasWords("anything", "  ")).toBe(false);
+  });
+});
+
+describe("matchDetail", () => {
+  const lines = [
+    "2026-10-07 wednesday 7 october",
+    "wednesday 7 october",
+    "daily",
+    "spring physics verge",
+  ];
+  const detail = card({ search: normalize(lines.join("\n")), metaLines: 3 });
+
+  it("tells a match on the card itself from a match on a story", () => {
+    expect(matchDetail(detail, "october")).toEqual({ meta: 2, stories: 0 });
+    expect(matchDetail(detail, "spring")).toEqual({ meta: 0, stories: 1 });
+    expect(matchDetail(detail, "nothing")).toEqual({ meta: 0, stories: 0 });
+  });
+
+  it("counts a card with no meta lines as all stories, and an empty query once", () => {
+    expect(matchDetail(card({ metaLines: undefined }), "pixel").stories).toBe(1);
+    expect(matchDetail(detail, "")).toEqual({ meta: 1, stories: 0 });
+  });
+});
+
+describe("dateSearchLine", () => {
+  it("answers 7 october, oct 7, the ISO date and the weekday", () => {
+    const line = normalize(dateSearchLine("2026-10-07", "Wednesday 7 October"));
+    const wanted = card({ search: line, metaLines: 1 });
+    for (const query of ["7 october", "oct 7", "2026-10-07", "wednesday", "WED"]) {
+      expect(matchCount(wanted, query), query).toBe(1);
+    }
+    expect(matchCount(wanted, "oct 8")).toBe(0);
+  });
+});
+
+describe("factsLine", () => {
+  it("joins the parts with one separator and skips empty ones", () => {
+    expect(factsLine(["Daily", "12 stories", "8 min"])).toBe(
+      "Daily \u00b7 12 stories \u00b7 8 min",
+    );
+    expect(factsLine(["Episode", undefined, "5 min"])).toBe("Episode \u00b7 5 min");
+  });
+});
+
+describe("emptyCopy", () => {
+  it("names the search when one was typed", () => {
+    expect(emptyCopy("zzz", "all")).toEqual({
+      message: "No results for \u201czzz\u201d",
+      action: "Clear search",
+      resets: "search",
+    });
+  });
+
+  it("names the filter too, and offers to show everything", () => {
+    expect(emptyCopy("zzz", "custom")).toMatchObject({
+      message: "No results for \u201czzz\u201d in episodes",
+      action: "Show everything",
+      resets: "everything",
+    });
+  });
+
+  it("says nothing of a kind exists when only a filter is on", () => {
+    expect(emptyCopy("  ", "weekly").message).toBe("No weekly briefings yet");
+    expect(emptyCopy("", "custom").message).toBe("No episodes yet");
+    expect(emptyCopy("", "weekly").resets).toBe("everything");
   });
 });

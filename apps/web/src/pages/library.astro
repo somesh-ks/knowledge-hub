@@ -1,6 +1,5 @@
 ---
 import BriefingCard from "../components/BriefingCard.astro";
-import EmptyState from "../components/EmptyState.astro";
 import EpisodeCard from "../components/EpisodeCard.astro";
 import Icon from "../components/Icon.astro";
 import BaseLayout from "../layouts/BaseLayout.astro";
@@ -19,7 +18,15 @@ const items = libraryItems(entries, episodes);
   <main id="main" class="library" tabindex="-1">
     {
       items.length === 0 ? (
-        <EmptyState />
+        <section class="library-none" aria-labelledby="page-title">
+          <h1 class="page-title library-title" id="page-title" tabindex="-1">
+            Library
+          </h1>
+          <p>Nothing here yet. Briefings arrive every other day, and you can make an episode any time.</p>
+          <a class="btn-primary" href="/create" data-create-open data-sound="open">
+            New episode
+          </a>
+        </section>
       ) : (
         <div data-library>
           <h1 class="page-title library-title" id="page-title" tabindex="-1">
@@ -31,11 +38,11 @@ const items = libraryItems(entries, episodes);
             <div class="search-wrap">
             <label class="search-field">
               <Icon name="search" />
-              <span class="sr-only">Search episodes</span>
+              <span class="sr-only">Search your library</span>
               <input
                 type="search"
                 name="q"
-                placeholder="Search episodes"
+                placeholder="Search your library"
                 autocomplete="off"
                 enterkeyhint="search"
                 data-library-search
@@ -90,7 +97,7 @@ const items = libraryItems(entries, episodes);
             )}
           </ul>
           <div class="library-empty" data-library-empty hidden>
-            <p>Nothing matches.</p>
+            <p data-library-empty-message>No results</p>
             <button class="btn" type="button" data-library-clear>
               Clear search
             </button>

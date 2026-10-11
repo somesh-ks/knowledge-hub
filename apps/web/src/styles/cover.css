@@ -105,7 +105,7 @@
     display: grid;
     place-items: center;
     opacity: 0;
-    background: color-mix(in oklab, var(--color-surface) 38%, transparent);
+    background: var(--color-scrim);
     pointer-events: none;
     transition: opacity var(--duration-hover) var(--ease-hover);
   }
@@ -129,7 +129,7 @@
   .card:has(.cover:hover, .cover-play:hover) > .cover-over[data-playing="true"],
   .cover:hover > .cover-over[data-playing="true"],
   .cover-over[data-playing="true"]:has(:focus-visible) {
-    background: color-mix(in oklab, var(--color-surface) 38%, transparent);
+    background: var(--color-scrim);
   }
 
   .card:has(.cover:hover, .cover-play:hover) > .cover-over[data-playing="true"] .cover-play,
@@ -196,4 +196,25 @@
     outline: var(--stroke-ring) solid Highlight;
     outline-offset: var(--stroke-ring-gap);
   }
+}
+
+/* A half-heard item: a thin bar along the cover's foot, filled to where the listener stopped. */
+.cover-progress {
+  position: absolute;
+  inset-inline: 0;
+  inset-block-end: 0;
+  height: var(--space-1);
+  background: color-mix(in oklch, var(--color-scrim), transparent 30%);
+}
+
+.cover-progress::before {
+  content: "";
+  display: block;
+  width: var(--progress, 0%);
+  height: 100%;
+  background: var(--color-on-accent);
+}
+
+.cover-progress[hidden] {
+  display: none;
 }

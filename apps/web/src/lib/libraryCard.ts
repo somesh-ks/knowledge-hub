@@ -2,49 +2,65 @@
 import type { DigestEntry } from "./digests";
 import { listenLength, storyCount } from "./digestView";
 import { type EpisodeEntry, FORMAT_LABELS } from "./episodes";
-import { type CardFacts, normalize, type SearchIndexEntry } from "./library";
+import { longDate } from "./format";
+import {
+  type CardFacts,
+  dateSearchLine,
+  factsLine,
+  normalize,
+  type SearchIndexEntry,
+} from "./library";
 
-/**
- * A briefing's facts, with the kind apart from the rest: the gallery says "Weekly" first, and the
- * list leaves it out, because its meta line already says "Weekly briefing".
- */
-export interface BriefingFacts extends CardFacts {
-  /** "Weekly" on a weekly briefing, empty on any other. */
-  kind: string;
-  /** The line after the kind: "14 stories, 8 min". */
-  rest: string;
+/** The kind a briefing's line starts with. What is made on request is an episode, as in Create. */
+export function briefingKindLabel(kind: string): string {
+  if (kind === "weekly") return "Weekly";
+  if (kind === "on-demand") return "Episode";
+  return "Daily";
 }
 
-export function cardFacts(entry: DigestEntry): BriefingFacts {
+/**
+ * What a Library card says about one briefing, in the one pattern every card follows, kind then
+ * contents then length: "Daily · 12 stories · 8 min". Search finds its date (in any form), its
+ * title and kind, then each story.
+ */
+export function cardFacts(entry: DigestEntry): CardFacts {
   const { digest } = entry;
   const length = listenLength(entry);
-  const kind = digest.kind === "weekly" ? "Weekly" : "";
-  const rest = [storyCount(digest.items.length), length].join(", ");
-  const lines = [digest.date, entry.player.title];
+  const meta = [
+    dateSearchLine(digest.date, longDate(digest.date)),
+    entry.player.title,
+    briefingKindLabel(digest.kind),
+  ];
+  const lines = [...meta];
   // One line per story, headline and publisher together, so a story counts once however it matches.
   for (const item of digest.items) lines.push(`${item.headline} ${item.source}`);
   return {
-    line: kind ? `${kind}, ${rest}` : rest,
-    kind,
-    rest,
+    line: factsLine([briefingKindLabel(digest.kind), storyCount(digest.items.length), length]),
     minutes: Number.parseInt(length, 10) || digest.listen_minutes,
     search: normalize(lines.join("\n")),
+    metaLines: meta.length,
   };
 }
 
 /**
- * What a Library card says about one episode: its format and length ("Discussion, 5 min") and what
- * search can find (its title, its format and the stories it covers).
+ * What a Library card says about one episode, in the same pattern: "Episode · Discussion · 5 min".
+ * Search finds its date (in any form), its title and format, then each story it covers.
  */
 export function episodeFacts(entry: EpisodeEntry): CardFacts {
   const { episode } = entry;
   const format = FORMAT_LABELS[episode.format];
-  const lines = [episode.date, episode.title, format];
-  for (const source of episode.sources) lines.push(source.headline, source.source);
+  const meta = [
+    dateSearchLine(episode.date, longDate(episode.date)),
+    episode.title,
+    `episode ${format}`,
+  ];
+  const lines = [...meta];
+  for (const source of episode.sources) lines.push(`${source.headline} ${source.source}`);
   return {
-    line: `${format}, ${episode.listen_minutes} min`,
+    line: factsLine(["Episode", format, `${episode.listen_minutes} min`]),
     minutes: episode.listen_minutes,
     search: normalize(lines.join("\n")),
+    metaLines: meta.length,
   };
 }
 

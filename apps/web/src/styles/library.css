@@ -37,7 +37,6 @@
   -webkit-box-orient: vertical;
   -webkit-line-clamp: 2;
   line-clamp: 2;
-  transition: color var(--duration-hover) var(--ease-hover);
 }
 
 /* The quiet line keeps its own leading, not the body's, so a line that wraps stays tight. */
@@ -53,12 +52,11 @@
   line-height: var(--font-leading-label);
 }
 
-/* The whole card answers the pointer, play button included, so moving onto the button changes
-   nothing; the scrim over the cover is cover.css's. */
-@media (hover: hover) and (pointer: fine) {
-  .card:hover .card-title {
-    color: var(--color-accent);
-  }
+/* The title keeps its colour: the card answers a pointer with the scrim and the play button over its
+   cover (cover.css), as album art does elsewhere. A keyboard's focus rings the whole card. */
+.card-link:focus-visible {
+  outline: var(--stroke-ring) solid var(--color-focus-ring);
+  outline-offset: var(--stroke-ring-gap);
 }
 
 /* ------------------------------------------------------------------ the library page */
@@ -80,8 +78,8 @@
 .library-tools {
   display: grid;
   grid-template-columns: minmax(0, 1fr);
-  gap: var(--space-3);
-  padding-block-end: var(--space-6);
+  gap: var(--space-2);
+  padding-block-end: var(--space-4);
 }
 
 /* The search field: a filled pill with the glyph inside it, as a search bar is in every Google app.
@@ -264,15 +262,16 @@
 .view-switch {
   display: inline-flex;
   flex: none;
-  gap: var(--space-1);
+  gap: var(--space-2);
 }
 
+/* As tall as the selects beside it; the 44px target is the ::after. */
 .view-btn {
   position: relative;
   display: grid;
   place-items: center;
-  width: var(--size-touch);
-  height: var(--size-touch);
+  width: var(--chip-height);
+  height: var(--chip-height);
   padding: 0;
   border: 0;
   border-radius: var(--radius-round);
@@ -288,6 +287,12 @@
   color: var(--color-on-accent-container);
 }
 
+.view-btn::after {
+  content: "";
+  position: absolute;
+  inset: calc((var(--size-touch) - var(--chip-height)) / -2);
+}
+
 /* A focused button's ring lies over its neighbour. */
 .view-btn:focus-visible {
   z-index: var(--z-overlay);
@@ -297,11 +302,6 @@
   .view-btn[aria-pressed="true"] {
     color: Highlight;
   }
-}
-
-/* The meta line (kind, date) is for the list; the gallery says only the card's facts. */
-.card-meta {
-  display: none;
 }
 
 [data-library][data-view="list"] .library-grid {
@@ -351,7 +351,8 @@
   inset-block: 0;
   inset-inline: calc(var(--page-gutter-start) * -1) calc(var(--page-gutter-end) * -1);
   z-index: var(--z-beneath);
-  background: var(--color-surface-sunken);
+  border-radius: var(--row-radius);
+  background: color-mix(in oklch, var(--color-on-surface) var(--state-hover), transparent);
   opacity: 0;
   transition: opacity var(--duration-hover) var(--ease-hover);
 }
@@ -363,6 +364,7 @@
 }
 
 [data-library][data-view="list"] .card-link:active::after {
+  background: color-mix(in oklch, var(--color-on-surface) var(--state-press), transparent);
   opacity: 1;
 }
 
@@ -374,40 +376,11 @@
   line-clamp: unset;
 }
 
+/* The same one line as the gallery says, under the title. */
 [data-library][data-view="list"] .card-sub {
   grid-area: 3 / 2;
-  display: flex;
-  flex-wrap: wrap;
-  gap: 0 var(--space-2);
   padding-block-start: var(--space-1);
   color: var(--color-on-surface-muted);
-}
-
-[data-library][data-view="list"] .card-meta {
-  display: inline;
-}
-
-/* The dot sits in the middle of the space between the two parts. */
-[data-library][data-view="list"] .card-meta::after {
-  content: "\00b7";
-  margin-inline-start: var(--space-2);
-}
-
-/* On a phone the two parts take a line each: side by side they break mid-way and leave the dot at
-   the end of a line, and rows come out at different heights. */
-@media not all and (min-width: 40rem) {
-  [data-library][data-view="list"] .card-sub {
-    flex-direction: column;
-  }
-
-  [data-library][data-view="list"] .card-meta::after {
-    content: none;
-  }
-}
-
-/* The meta line names the kind, so the facts do not say "Weekly" a second time. */
-[data-library][data-view="list"] .card-kind {
-  display: none;
 }
 
 /* The play button covers the small cover in the row, not a card's square, centred with it. */
@@ -442,6 +415,22 @@
 
 .library-empty > .btn {
   margin-inline-start: calc(var(--space-3) * -1);
+}
+
+.library-empty[hidden] {
+  display: none;
+}
+
+/* A library with nothing in it: the title stays, one sentence and the one thing to do. */
+.library-none {
+  display: grid;
+  justify-items: start;
+  gap: var(--space-4);
+  color: var(--color-on-surface-muted);
+}
+
+.library-none > p {
+  max-width: 28rem;
 }
 
 /* ------------------------------------------------------------------ the "Earlier" shelf */

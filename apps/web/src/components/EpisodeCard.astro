@@ -1,7 +1,6 @@
 ---
 import { paletteAccent } from "@dispatch/cover";
 import type { EpisodeEntry } from "../lib/episodes";
-import { longDate } from "../lib/format";
 import { EPISODE_KIND } from "../lib/library";
 import { episodeFacts } from "../lib/libraryCard";
 import Cover from "./Cover.astro";
@@ -30,6 +29,7 @@ const facts = episodeFacts(entry);
   data-stories={episode.sources.length}
   data-minutes={facts.minutes}
   data-search={facts.search}
+  data-meta-lines={facts.metaLines}
 >
   <a class="card-link" href={`/e/${entry.id}`} data-astro-prefetch="hover">
     <Cover
@@ -38,10 +38,10 @@ const facts = episodeFacts(entry);
       paletteBg={paletteAccent(entry.cover.palette).bg}
       weekly={false}
       priority={priority}
+      progress
     />
     <span class="card-title">{episode.title}</span>
     <span class="card-sub">
-      <span class="card-meta">Episode, {longDate(episode.date)}</span>
       <span class="card-facts" data-card-facts data-rest={facts.line}>{facts.line}</span>
     </span>
   </a>
