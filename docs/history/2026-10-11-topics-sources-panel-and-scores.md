@@ -21,6 +21,7 @@ One session, picking up after the design pass merged (#74 to #76). The owner cle
 - The owner asked for the player's pull to move the bottom bar with the finger, for the cover to grow from the bar into the open page on a phone, and for the open page's cover to stop painting over the bottom bar. A worker found the slide had been there all along, hidden: the player sits a layer above the navigation, so the rising page covered it. The navigation now rises above the player while it moves and drops back at rest (a stacking change, not a clip that would have to copy the slide), and the cover flight removed in #47 is back below 64rem only.
 - The owner asked whether TypeSafe Jev is used. A cheaper subagent read the code and the committed state, and the run log of 9 October settled the rest: Jev judged all 74 items and was the filter and the ranking, and its grounding check dropped 6 of 15 written stories, but neither threshold has been calibrated (state.md).
 - The owner asked to drop the banner that said how old a briefing is; it went with its module.
+- The owner asked to choose topics on Daily and Weekly and to preview voices intuitively (D62). The weekly profile gained its own topics; the sample button turned out never to have played in production, because the page's `media-src` blocks Speechify's host, so samples now come through the site, and choosing a voice plays it.
 
 ## What went wrong
 - A commit picked up a rename and two deletions staged earlier; a soft reset and four clean commits fixed it (learnings.md).

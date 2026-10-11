@@ -182,17 +182,39 @@ test.describe("the profile pages", () => {
     await expect(page.locator("[data-voice-row=voice_b]")).toBeHidden();
   });
 
-  test("a voice with a sample gets a play button, which says it is not playing", async ({
+  test("choosing a voice with a sample plays it through the site and shows its sample chip", async ({
     page,
   }) => {
     await open(page, "daily");
     const play = page.locator("[data-voice-row=voice] [data-preview]");
     await expect(play).toBeHidden();
+    // The page plays audio only from its own address, so the sample comes through /api.
+    const sample = page.waitForRequest("**/api/voice-sample?voice=voice-ada");
     await page.locator("#daily-voice").selectOption("voice-ada");
+    await sample;
     await expect(play).toBeVisible();
-    await expect(play).toHaveAttribute("aria-pressed", "false");
+    await expect(play).toContainText("Sample");
     await page.locator("#daily-voice").selectOption("voice-leo");
     await expect(play).toBeHidden();
+  });
+
+  test("Topics lists every live topic ticked, keeps one, and saves a narrower list", async ({
+    page,
+  }) => {
+    const sent = await mockConfig(page);
+    await open(page, "daily");
+    // The chip is what a person presses; its checkbox is its invisible face.
+    const chips = page.locator(".podcast-topics .create-chip");
+    const boxes = page.locator(".podcast-topics input");
+    const count = await chips.count();
+    expect(count).toBeGreaterThan(1);
+    for (let index = 0; index < count; index += 1) await expect(boxes.nth(index)).toBeChecked();
+    // Untick all but the first: the first then cannot be unticked.
+    for (let index = 1; index < count; index += 1) await chips.nth(index).click();
+    await chips.first().click();
+    await expect(boxes.first()).toBeChecked();
+    const first = await boxes.first().getAttribute("value");
+    await expect.poll(() => scheduleSent(sent).sections, { timeout: 10_000 }).toEqual([first]);
   });
 
   test("has 44px targets", async ({ page }) => {

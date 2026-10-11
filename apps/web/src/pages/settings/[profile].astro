@@ -3,7 +3,8 @@ import ManageChrome from "../../components/ManageChrome.astro";
 import PodcastProfile from "../../components/PodcastProfile.astro";
 import SettingsHead from "../../components/SettingsHead.astro";
 import BaseLayout from "../../layouts/BaseLayout.astro";
-import { loadScheduleView } from "../../lib/schedule";
+import { loadManage } from "../../lib/manage";
+import { loadScheduleView, topicChoices } from "../../lib/schedule";
 import "../../styles/settings.css";
 import "../../styles/manage.css";
 import "../../styles/podcast.css";
@@ -18,7 +19,8 @@ export function getStaticPaths() {
 
 type Profile = "daily" | "weekly";
 const profile = Astro.params.profile as Profile;
-const schedule = await loadScheduleView();
+const [schedule, manage] = await Promise.all([loadScheduleView(), loadManage()]);
+const topics = topicChoices(manage.topics, manage.sections);
 
 const PAGES = {
   daily: {
@@ -27,6 +29,7 @@ const PAGES = {
     values: {
       hour: schedule.hour,
       cadenceDays: schedule.cadenceDays,
+      sections: schedule.sections,
       format: schedule.format,
       lengthMinutes: schedule.lengthMinutes,
       voiceId: schedule.voiceId,
@@ -40,6 +43,7 @@ const PAGES = {
       enabled: schedule.weekly.enabled,
       hour: schedule.weekly.hour,
       day: schedule.weekly.day,
+      sections: schedule.weekly.sections,
       format: schedule.weekly.format,
       lengthMinutes: schedule.weekly.length_minutes,
       voiceId: schedule.weekly.voice_id,
@@ -69,7 +73,7 @@ const { title, note, values } = PAGES[profile];
       <fieldset class="manage-fields" data-fields>
         <legend class="sr-only">{title}</legend>
         <div class="daily-panel" data-panel>
-          <PodcastProfile id={profile} values={values} />
+          <PodcastProfile id={profile} values={values} topics={topics} />
         </div>
       </fieldset>
 

@@ -55,6 +55,7 @@ export function serializeSchedule(file: ScheduleFile): string {
         enabled: checked.weekly.enabled,
         day: checked.weekly.day,
         hour: checked.weekly.hour,
+        sections: checked.weekly.sections,
         format: checked.weekly.format,
         length_minutes: checked.weekly.length_minutes,
         voice_id: checked.weekly.voice_id,

@@ -32,19 +32,37 @@ export function parseVoices(body: unknown): Voice[] | null {
   return rows;
 }
 
+/** The voices Default stands for in each host's place: what the engine reads with when none is set. */
+export interface VoiceDefaults {
+  voice: string;
+  voice_b: string;
+}
+
+/** The defaults /api/voices sends beside the list, or null when they are missing. */
+export function parseVoiceDefaults(body: unknown): VoiceDefaults | null {
+  const defaults = (body as { defaults?: unknown } | null)?.defaults;
+  if (typeof defaults !== "object" || defaults === null) return null;
+  const { voice, voice_b: voiceB } = defaults as Record<string, unknown>;
+  return typeof voice === "string" && typeof voiceB === "string"
+    ? { voice, voice_b: voiceB }
+    : null;
+}
+
 /** What an option reads: "Sophia, female". */
 export function voiceLabel(voice: Voice): string {
   return voice.gender ? `${voice.name}, ${voice.gender.toLowerCase()}` : voice.name;
 }
 
 /**
- * Fills a voice select: the default first (value ""), then the voices, then the saved voice when it
- * is not among them, so a stored choice is never silently swapped for another. Keeps `chosen`.
+ * Fills a voice select: the default first (value ""), named after `fallback` when it is known, then
+ * the voices, then the saved voice when it is not among them, so a stored choice is never silently
+ * swapped for another. Keeps `chosen`.
  */
 export function fillVoiceSelect(
   select: HTMLSelectElement,
   voices: readonly Voice[],
   chosen: string,
+  fallback?: Voice,
 ): void {
   const options: HTMLOptionElement[] = [];
   const add = (value: string, text: string): void => {
@@ -53,7 +71,7 @@ export function fillVoiceSelect(
     option.textContent = text;
     options.push(option);
   };
-  add("", "Default");
+  add("", fallback ? `Default (${fallback.name})` : "Default");
   for (const voice of voices) add(voice.id, voiceLabel(voice));
   if (chosen !== "" && !voices.some((voice) => voice.id === chosen)) add(chosen, "Saved voice");
   select.replaceChildren(...options);

@@ -71,6 +71,7 @@ D1 to D9 date from plan v2 (2026-10-05). D10 to D25 date from 2026-10-06. Reason
 | D59 | On a phone, Play takes the floating button's place on an episode and an older briefing | active; Today floats Play too since D60 |
 | D60 | On a phone Create floats on the Library alone; every page with audio floats Play, Today included | active |
 | D61 | Vercel Cron starts the scheduled briefing in its hour; GitHub's schedule is the fallback | active |
+| D62 | Daily and Weekly each choose their topics; voice samples play through the site | active |
 
 ---
 
@@ -605,3 +606,11 @@ D1 to D9 date from plan v2 (2026-10-05). D10 to D25 date from 2026-10-06. Reason
 - Cost: the briefing starts anywhere in its hour (07:00 to 07:59), not at 07:13. A scheduled briefing is now a `workflow_dispatch` run, so it counts toward Generate's limits (six hours apart, three a day), which GitHub's schedule run never did; adding `run-name` to `run.yml` (a workflow change) would let the limits tell the two apart. One GitHub read every hour, two more in the slot. Vercel does not retry a call that fails to arrive; GitHub's late run covers that day. Owner step: put a random `CRON_SECRET` of 16 or more characters in `.env` and run `npm run secrets:push`; until then the route refuses calls and GitHub's late schedule still runs.
 - Rejected: accepting more hourly entries in `run.yml` (each runner it starts costs a minute, and every entry is late); a third-party cron service (one more account holding a credential); a Claude routine as the trigger (a whole session per day for one request); waiting for GitHub to fix it (six weeks without a reply).
 - Supersedes: D6's reliance on GitHub's cron for the time of day (its date gate stays), and D45's `RUN_CRON` as the trigger (it stays as the fallback).
+
+## D62: Daily and Weekly each choose their topics; voice samples play through the site
+
+- Date: 2026-10-11
+- Decision: The Daily and Weekly settings pages each have a Topics row: one chip per section with a topic that is on and may publish, by name, all ticked by default. All ticked is stored as null (every topic, including ones added later); fewer is the list of section ids; the last ticked chip cannot be unticked; Top picks is always covered. The weekly profile gains `weekly.sections` in `config/schedule.json` (null by default), validated by `schedule.set` as the daily list is, and the weekly pass is narrowed by it in every mode (it used to cover every section). Voice samples play through `GET /api/voice-sample?voice=<id>`, which fetches only a sample in the cached Speechify list, caps it at 2 MB and answers byte ranges; `/api/voices` also names the voices Default stands for. Choosing a voice plays its sample, and a Sample chip (the app's play chip) plays it again or stops it.
+- Why: the owner asked to choose topics in Daily and Weekly and to preview voices in an intuitive way. The old play button pointed at Speechify's own host, which the page's `media-src` blocks, so in production a press failed and the button hid itself.
+- Cost: one function call per sample played (cached at the CDN for a week). A topic added after a narrower list was saved is not in that list until it is ticked. A section left in the file after its topic is removed is ignored, as before.
+- Rejected: adding Speechify's host to `media-src` (the host is not documented and can change); a custom voice list with a play button per row (a native select cannot hold buttons, and the drawn list is shared by every select).

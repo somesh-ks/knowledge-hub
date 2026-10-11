@@ -181,6 +181,19 @@ function podcastParts(value: Record<string, unknown>, into: WeeklyOp | CustomOp)
   return true;
 }
 
+/** Section ids an episode covers, null for all of them, undefined when left out, false when invalid. */
+function sectionsOf(value: unknown): string[] | null | undefined | false {
+  if (value === undefined || value === null) return value;
+  if (!Array.isArray(value) || value.length === 0 || value.length > MAX_SECTIONS) return false;
+  const sections: string[] = [];
+  for (const entry of value) {
+    const section = id(entry);
+    if (section === null) return false;
+    sections.push(section);
+  }
+  return sections;
+}
+
 /** A `schedule.set` rebuilt from the fields it names: any subset, and at least one. */
 function parseScheduleSet(value: Record<string, unknown>): ConfigOp | null {
   const op: ScheduleSetOp = { op: "schedule.set" };
@@ -194,21 +207,9 @@ function parseScheduleSet(value: Record<string, unknown>): ConfigOp | null {
     if (cadence === undefined) return null;
     op.cadence_days = cadence;
   }
-  if (value.sections !== undefined) {
-    if (value.sections === null) {
-      op.sections = null;
-    } else {
-      if (!Array.isArray(value.sections)) return null;
-      if (value.sections.length === 0 || value.sections.length > MAX_SECTIONS) return null;
-      const sections: string[] = [];
-      for (const entry of value.sections) {
-        const section = id(entry);
-        if (section === null) return null;
-        sections.push(section);
-      }
-      op.sections = sections;
-    }
-  }
+  const sections = sectionsOf(value.sections);
+  if (sections === false) return null;
+  if (sections !== undefined) op.sections = sections;
   if (value.format !== undefined) {
     const format = PODCAST_FORMATS.find((entry) => entry === value.format);
     if (format === undefined) return null;
@@ -241,6 +242,9 @@ function parseScheduleSet(value: Record<string, unknown>): ConfigOp | null {
       if (hour === null) return null;
       weekly.hour = hour;
     }
+    const weeklySections = sectionsOf(value.weekly.sections);
+    if (weeklySections === false) return null;
+    if (weeklySections !== undefined) weekly.sections = weeklySections;
     if (!podcastParts(value.weekly, weekly)) return null;
     op.weekly = weekly;
   }

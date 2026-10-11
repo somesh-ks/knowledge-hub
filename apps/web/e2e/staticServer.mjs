@@ -133,6 +133,17 @@ export function startServer({ root, port }) {
       );
       return;
     }
+    if (pathname === "/api/voice-sample" && request.method === "GET") {
+      // Ada's sample is the fixture recording; the other voices have none, as in the list above.
+      const voice = new URL(request.url ?? "/", "http://localhost").searchParams.get("voice");
+      const file = voice === "voice-ada" ? resolveFile("/fixtures/audio.wav") : null;
+      if (file) send(request, response, file, 200);
+      else {
+        response.writeHead(404, { "Content-Type": "application/json" });
+        response.end(JSON.stringify({ error: "not_found" }));
+      }
+      return;
+    }
     if (pathname.startsWith("/api/")) {
       response.writeHead(501, { "Content-Type": "application/json" });
       response.end(JSON.stringify({ error: "not served by the static test server" }));

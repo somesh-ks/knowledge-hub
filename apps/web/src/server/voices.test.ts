@@ -1,11 +1,15 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import type { FetchLike } from "./github";
 import {
+  byteRange,
+  handleVoiceSample,
   handleVoices,
   parseVoices,
   resetVoicesCache,
+  SAMPLE_MAX_BYTES,
   VOICES_CACHE_CONTROL,
   VOICES_TTL_MS,
+  voiceDefaults,
 } from "./voices";
 
 // Made up, and one of the invented values .gitleaks.toml already names.
@@ -66,6 +70,7 @@ describe("handleVoices", () => {
         { id: "a", name: "Ada", gender: "female", language: "en-US", preview_url: null },
         { id: "z", name: "Zed", gender: "female", language: "en-US", preview_url: null },
       ],
+      defaults: { voice: "geffen_32", voice_b: "dominic_32" },
     });
     const [url, init] = fetch.mock.calls[1] as [string, RequestInit];
     expect(url).toContain("cursor=c2");
@@ -99,5 +104,80 @@ describe("handleVoices", () => {
     const result = await handleVoices({ env: { SPEECHIFY_API_KEY: KEY }, fetch, log });
     expect(result.status).toBe(502);
     expect(JSON.stringify(log.mock.calls)).not.toContain(KEY);
+  });
+});
+
+describe("voiceDefaults", () => {
+  it("names the voices narration reads with when none is chosen", () => {
+    expect(voiceDefaults({})).toEqual({ voice: "geffen_32", voice_b: "dominic_32" });
+    expect(voiceDefaults({ SPEECHIFY_VOICE_ID: "ada_1", SPEECHIFY_VOICE_ID_B: "leo_2" })).toEqual({
+      voice: "ada_1",
+      voice_b: "leo_2",
+    });
+    // A blank second voice means the first reads both hosts.
+    expect(voiceDefaults({ SPEECHIFY_VOICE_ID: "ada_1", SPEECHIFY_VOICE_ID_B: "" })).toEqual({
+      voice: "ada_1",
+      voice_b: "ada_1",
+    });
+  });
+});
+
+describe("handleVoiceSample", () => {
+  const list = () =>
+    json(200, {
+      voices: [
+        voice("b", "Beta", "en-GB", { preview_audio: "https://cdn.example/b.mp3" }),
+        voice("n", "Nope", "en-GB"),
+      ],
+      has_more: false,
+    });
+
+  it("serves a listed voice's sample from the site, and fetches only that address", async () => {
+    const fetch = vi
+      .fn<FetchLike>()
+      .mockResolvedValueOnce(list())
+      .mockResolvedValueOnce(
+        new Response(new Uint8Array([1, 2, 3]), { headers: { "content-type": "audio/mpeg" } }),
+      );
+    const sample = await handleVoiceSample("b", { env: { SPEECHIFY_API_KEY: KEY }, fetch });
+    expect(sample).toMatchObject({ kind: "audio", contentType: "audio/mpeg" });
+    expect(sample.kind === "audio" && sample.body.byteLength).toBe(3);
+    expect(fetch.mock.calls[1]?.[0]).toBe("https://cdn.example/b.mp3");
+  });
+
+  it("refuses a bad id, a voice without a sample and an oversized file", async () => {
+    const env = { SPEECHIFY_API_KEY: KEY };
+    expect(await handleVoiceSample("../x", { env, fetch: vi.fn<FetchLike>() })).toMatchObject({
+      kind: "error",
+      result: { status: 400 },
+    });
+    const missing = await handleVoiceSample("n", {
+      env,
+      fetch: vi.fn<FetchLike>().mockResolvedValueOnce(list()),
+    });
+    expect(missing).toMatchObject({ kind: "error", result: { status: 404 } });
+    resetVoicesCache();
+    const big = await handleVoiceSample("b", {
+      env,
+      fetch: vi
+        .fn<FetchLike>()
+        .mockResolvedValueOnce(list())
+        .mockResolvedValueOnce(
+          new Response("x", { headers: { "content-length": String(SAMPLE_MAX_BYTES + 1) } }),
+        ),
+    });
+    expect(big).toMatchObject({ kind: "error", result: { status: 502 } });
+  });
+});
+
+describe("byteRange", () => {
+  it("reads the ranges Safari asks for before it plays", () => {
+    expect(byteRange(null, 100)).toBeNull();
+    expect(byteRange("bytes=0-1", 100)).toEqual([0, 1]);
+    expect(byteRange("bytes=10-", 100)).toEqual([10, 99]);
+    expect(byteRange("bytes=-20", 100)).toEqual([80, 99]);
+    expect(byteRange("bytes=50-500", 100)).toEqual([50, 99]);
+    expect(byteRange("bytes=100-", 100)).toBe("unsatisfiable");
+    expect(byteRange("items=0-1", 100)).toBeNull();
   });
 });

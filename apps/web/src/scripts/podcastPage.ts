@@ -89,13 +89,23 @@ export async function mount(root: HTMLElement): Promise<void> {
   /** What the schedule controls hold: the page's starting point and the test for "changed". */
   const fields = (): FieldValues => {
     const out: FieldValues = {};
+    /** A profile's topic chips, which add up to one field: "*" when all are ticked, else the ids. */
+    const topics = new Map<string, { all: number; on: string[] }>();
     for (const control of controls) {
       const key = control.dataset.f ?? "";
-      if (control instanceof HTMLInputElement && control.type === "radio") {
+      if (key.endsWith(".sections") && control instanceof HTMLInputElement) {
+        const entry = topics.get(key) ?? { all: 0, on: [] };
+        entry.all += 1;
+        if (control.checked) entry.on.push(control.value);
+        topics.set(key, entry);
+      } else if (control instanceof HTMLInputElement && control.type === "radio") {
         out[key] ??= "";
         if (control.checked) out[key] = control.value;
       } else if (control instanceof HTMLInputElement) out[key] = String(control.checked);
       else out[key] = control.value;
+    }
+    for (const [key, { all, on }] of topics) {
+      out[key] = on.length === all ? "*" : on.sort().join(",");
     }
     return out;
   };

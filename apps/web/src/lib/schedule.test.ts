@@ -1,5 +1,12 @@
 import { describe, expect, it } from "vitest";
-import { dailySummary, hourLabel, nextBriefing, nextWeekly, weeklySummary } from "./schedule";
+import {
+  dailySummary,
+  hourLabel,
+  nextBriefing,
+  nextWeekly,
+  topicChoices,
+  weeklySummary,
+} from "./schedule";
 
 describe("hourLabel", () => {
   it("pads to two digits", () => {
@@ -69,5 +76,29 @@ describe("nextBriefing", () => {
     expect(nextBriefing({ now, hour: 18, cadenceDays: 2, lastRegularAt: "nope" })).toBe(
       "Next briefing: about today at 18:00",
     );
+  });
+});
+
+describe("topicChoices", () => {
+  it("offers each section with a live topic, by name, never Top picks", () => {
+    const topics = [
+      { section_id: "research", enabled: true, never_publish: false },
+      { section_id: "ai", enabled: true, never_publish: false },
+      { section_id: "ai", enabled: false, never_publish: false },
+      { section_id: "gossip", enabled: false, never_publish: false },
+      { section_id: "muted", enabled: true, never_publish: true },
+      { section_id: "top", enabled: true, never_publish: false },
+    ];
+    const sections = [
+      { id: "top", title: "Top picks" },
+      { id: "research", title: "Research" },
+      { id: "ai", title: "AI Products" },
+      { id: "gossip", title: "Gossip" },
+      { id: "muted", title: "Muted" },
+    ];
+    expect(topicChoices(topics, sections)).toEqual([
+      { id: "ai", title: "AI Products" },
+      { id: "research", title: "Research" },
+    ]);
   });
 });

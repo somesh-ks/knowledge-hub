@@ -301,6 +301,20 @@ describe("parseConfigOp: schedule.set", () => {
     expect(parseConfigOp({ ...schedule, length_minutes: 7 })).toBeNull();
   });
 
+  it("carries the weekly podcast's own topics, a list or null, and refuses a bad one", () => {
+    expect(parseConfigOp({ op: "schedule.set", weekly: { sections: ["ai", "design"] } })).toEqual({
+      op: "schedule.set",
+      weekly: { sections: ["ai", "design"] },
+    });
+    expect(parseConfigOp({ op: "schedule.set", weekly: { sections: null } })).toEqual({
+      op: "schedule.set",
+      weekly: { sections: null },
+    });
+    for (const sections of [[], "ai", ["Not An Id"]]) {
+      expect(parseConfigOp({ op: "schedule.set", weekly: { sections } })).toBeNull();
+    }
+  });
+
   it("accepts any subset of the fields and refuses an empty edit", () => {
     expect(parseConfigOp({ op: "schedule.set", hour: 9 })).toEqual({ op: "schedule.set", hour: 9 });
     expect(parseConfigOp({ op: "schedule.set", sections: null })).toEqual({
