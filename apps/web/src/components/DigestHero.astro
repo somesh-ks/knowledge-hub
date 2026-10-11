@@ -15,11 +15,11 @@ interface Props {
 const { entry, hero } = Astro.props;
 // The day and the month stay on one line: a narrow title wraps "Monday / 5 October", never
 // "Monday 5 / October".
-const title = hero.title.replace(/(\d+) /, "$1\u00a0");
+const title = hero.title.replace(/(\d+) /, "$1 ");
 ---
 
-{/* The briefing header: the cover beside the date and the More menu, then the play chip with the
-     number of stories at its side. */}
+{/* The briefing header (hero.css): the cover and the More menu, the date with its facts under it,
+     then Play. */}
 <header class="hero">
   <AmbientLight palette={entry.digest.cover.palette} />
   <Cover
@@ -30,10 +30,9 @@ const title = hero.title.replace(/(\d+) /, "$1\u00a0");
     priority
   />
   <div class="hero-text">
-    <div class="hero-title-row">
-      <h1 class="page-title" id="page-title" tabindex="-1">{title}</h1>
-      <HeroMenu sharePath={`/d/${entry.id}`} noun="briefing" />
-    </div>
+    <h1 class="page-title" id="page-title" tabindex="-1">{title}</h1>
+    <p class="meta hero-facts">{hero.meta.map((part) => <span>{part}</span>)}</p>
   </div>
-  <PlayCta digestId={entry.id} mode={entry.audioMode} length={hero.length} facts={hero.meta} />
+  <HeroMenu sharePath={`/d/${entry.id}`} noun="briefing" />
+  <PlayCta digestId={entry.id} mode={entry.audioMode} length={hero.length} />
 </header>

@@ -9,22 +9,20 @@ interface Props {
   mode: AudioMode;
   /** The chip's label before anything plays: "8 min". */
   length: string;
-  /** What is said beside the chip, in the chip's own size: "12 stories", or "Discussion", "7 October". */
-  facts?: string[];
   /** What the chip plays, in its accessible name. */
   noun?: ChipNoun;
 }
 
-const { digestId, mode, length, facts = [], noun = "briefing" } = Astro.props;
+const { digestId, mode, length, noun = "briefing" } = Astro.props;
 const chip = idleBriefingChip(length, noun);
 const unavailable = mode === "expired" ? AUDIO_UNAVAILABLE_COPY.expired : null;
 ---
 
 <div class="hero-actions">
-  {/* The player owns this chip once it hydrates (readerSync writes its state, label and name).
-       Without audio the chip still works: pressing it makes the audio first (narration on Play).
-       Only audio that has expired gets a line under it, which the floating Play button below 64rem
-       (PlayFab.astro) points to as well. */}
+  {/* The page's main action: the hero's chip is filled (hero.css). The player owns it once it
+       hydrates (readerSync writes its state, label and name). Without audio the chip still works:
+       pressing it makes the audio first (narration on Play). Only audio that has expired gets a
+       line under it, which the floating Play button below 64rem (PlayFab.astro) points to as well. */}
   <PlayChip
     label={chip.label}
     state="idle"
@@ -33,16 +31,5 @@ const unavailable = mode === "expired" ? AUDIO_UNAVAILABLE_COPY.expired : null;
     data-play-digest={digestId}
     data-noun={noun}
   />
-  {
-    facts.length > 0 && (
-      <p class="meta hero-facts">
-        {facts.map((part) => (
-          <Fragment>
-            <span>{part}</span>{" "}
-          </Fragment>
-        ))}
-      </p>
-    )
-  }
 </div>
 {unavailable && <p class="hero-hint" id="play-hint">{unavailable.label}. {unavailable.hint}</p>}

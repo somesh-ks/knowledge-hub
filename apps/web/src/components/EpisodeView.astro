@@ -1,7 +1,7 @@
 ---
 import { paletteAccent } from "@dispatch/cover";
 import { episodeHighlights } from "../lib/episodeHighlights";
-import { type EpisodeEntry, episodeLength } from "../lib/episodes";
+import { type EpisodeEntry, episodeLength, FORMAT_LABELS } from "../lib/episodes";
 import { longDate } from "../lib/format";
 import AmbientLight from "./AmbientLight.astro";
 import Cover from "./Cover.astro";
@@ -41,13 +41,12 @@ const highlights = episodeHighlights(episode);
       priority
     />
     <div class="hero-text">
-      <div class="hero-title-row">
-        <h1 class="page-title" id="page-title" tabindex="-1">{episode.title}</h1>
-        <HeroMenu sharePath={`/e/${entry.id}`} noun="episode" episodeId={entry.id} />
-      </div>
+      <h1 class="page-title" id="page-title" tabindex="-1">{episode.title}</h1>
+      <p class="meta hero-facts"><span>{FORMAT_LABELS[episode.format]}</span><span>{day}</span></p>
     </div>
+    <HeroMenu sharePath={`/e/${entry.id}`} noun="episode" episodeId={entry.id} />
     {/* The same path a briefing takes: audio is made when Play is pressed, one turn at a time. */}
-    <PlayCta digestId={entry.id} mode="preparing" length={length} facts={[day]} noun="episode" />
+    <PlayCta digestId={entry.id} mode="preparing" length={length} noun="episode" />
   </header>
 
   <EpisodeActions id={entry.id} />
