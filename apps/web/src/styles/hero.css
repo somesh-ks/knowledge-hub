@@ -65,13 +65,9 @@
   }
 }
 
-/* The chip holds the width of its common labels ("1 min", "Playing", "1 min left"), so the facts
-   beside it stay where they are as the label changes. */
-.hero-actions > .chip {
-  min-inline-size: 8rem;
-  justify-content: center;
-}
-
+/* The play chip hugs its label with the pill's own padding, its ring a hair from the start, as every
+   chip does. A width held for its longest label left a short one adrift in the middle, with wide
+   empty ends; the facts beside it now move a few pixels when the label changes. */
 .hero-actions {
   grid-area: actions;
   display: flex;
