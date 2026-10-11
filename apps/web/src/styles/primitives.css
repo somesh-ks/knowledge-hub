@@ -150,7 +150,9 @@
     black calc(100% - var(--tabs-right-mask, 32px)),
     transparent 100%
   );
-  animation: tabs-scroll-fade linear;
+  /* Longhands: the minifier folds a shorthand and the timeline into a declaration Chrome rejects. */
+  animation-name: tabs-scroll-fade;
+  animation-timing-function: linear;
   animation-timeline: scroll(self inline);
 }
 

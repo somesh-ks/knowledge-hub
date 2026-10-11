@@ -753,11 +753,12 @@
  */
 .dock-seek {
   position: absolute;
-  inset-inline: 0;
+  /* Half a thumb in from each edge, so the thumb and its ring at 0 and 100 percent are not cut. */
+  inset-inline: calc(var(--space-3) / 2);
   inset-block-start: 0;
   z-index: var(--z-raised);
   display: none;
-  width: 100%;
+  width: calc(100% - var(--space-3));
   height: var(--space-4);
   margin: 0;
   padding: 0;
@@ -1827,6 +1828,11 @@
   color: var(--color-accent);
 }
 
+/* On the accent container the name takes the container's own ink: the accent itself is 4.1:1 there. */
+.script-turn[aria-current="true"][data-tone] .script-speaker {
+  color: var(--color-on-accent-container);
+}
+
 .script-text {
   color: var(--color-on-surface);
   font-size: var(--font-size-reading);
@@ -1896,7 +1902,7 @@
 
 /* Chapters or the transcript, when an episode has both: tabs, past the top margin the list keeps. */
 .segmented-group.player-views {
-  margin-block-end: var(--space-2);
+  margin-block-end: var(--space-4);
 }
 
 /* One column: the list is never shorter than the player, so choosing the shorter view cannot shrink
@@ -1985,8 +1991,9 @@
   .list-scroll {
     flex: 1 1 auto;
     min-height: 0;
-    /* Room under the last row, so it can scroll clear of the fade. */
-    padding-block: var(--space-2) var(--space-12);
+    /* Room under the last row, so it can scroll clear of the fade. The space above the list is the
+       tabs' own margin. */
+    padding-block: 0 var(--space-12);
     overflow-y: auto;
     overscroll-behavior-y: auto;
     scrollbar-width: thin;
@@ -2006,11 +2013,13 @@
     );
   }
 
+  /* Longhands, not the shorthand: the minifier folds a shorthand and the timeline into one
+     declaration that Chrome rejects, and the fade never ran (styles.test.ts keeps it so). */
   @supports (animation-timeline: scroll()) {
     .list-scroll {
-      animation:
-        list-fade-start linear both,
-        list-fade-end linear both;
+      animation-name: list-fade-start, list-fade-end;
+      animation-timing-function: linear;
+      animation-fill-mode: both;
       animation-timeline: scroll(self block), scroll(self block);
       animation-range:
         0 40px,
@@ -2277,6 +2286,11 @@
   display: grid;
 }
 
+.story-row:focus-visible {
+  /* Drawn inside the row: the scrolling column clips a ring drawn outside it. */
+  outline-offset: calc(var(--stroke-ring) * -1);
+}
+
 .story-row {
   display: grid;
   grid-template-columns: var(--player-row-mark) minmax(0, 1fr) auto;
@@ -2440,10 +2454,15 @@
   );
 }
 
+.player-upnext {
+  margin-block-end: var(--space-6);
+}
+
 .player-upnext-row {
   display: flex;
   align-items: center;
   justify-content: space-between;
+  margin-block-start: var(--space-3);
   gap: var(--space-4);
   width: 100%;
   min-height: var(--size-touch-comfortable);
@@ -2491,7 +2510,8 @@
   /* One timeline: the bar's. The page keeps the cover, the title, the source, the skips and the
      speed between them. */
   .scrubber-wrap,
-  .player-story {
+  .player-story,
+  .player-source-link {
     display: none;
   }
 

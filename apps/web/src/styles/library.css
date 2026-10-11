@@ -496,7 +496,9 @@
     black calc(100% - var(--shelf-right-mask, 40px)),
     transparent 100%
   );
-  animation: shelf-scroll-fade linear;
+  /* Longhands: the minifier folds a shorthand and the timeline into a declaration Chrome rejects. */
+  animation-name: shelf-scroll-fade;
+  animation-timing-function: linear;
   animation-timeline: scroll(self inline);
 }
 

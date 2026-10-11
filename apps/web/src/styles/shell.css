@@ -218,6 +218,9 @@ html[data-mini="visible"] main {
   position: absolute;
   inset-block: 0;
   inset-inline-start: var(--space-1);
+  /* A 44px circle with room round it for the focus ring: stretched to the bar's height it was an oval
+     the top of the window clipped. */
+  block-size: var(--size-touch);
   margin-block: auto;
   color: var(--color-on-surface);
 }
@@ -265,6 +268,9 @@ html[data-mini="visible"] main {
   /* The player pushes the bar down as it opens. One compositor property, written per frame. */
   transform: translateY(calc(var(--player-p, 0) * 100%));
   view-transition-name: app-nav;
+  /* A pixel of the bar's own tone above it: the player bar sits on top of it at rest, and where two
+     layers meet on a fractional device pixel a row of page text showed through the seam. */
+  box-shadow: 0 calc(var(--stroke-hairline) * -1) 0 var(--color-surface-container);
 }
 
 /* While the player moves, the bar stays above it until it has slid away: the player's page rises

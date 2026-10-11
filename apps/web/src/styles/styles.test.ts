@@ -119,6 +119,21 @@ describe("component stylesheets", () => {
     }
   });
 
+  it("writes a scroll timeline with the animation longhands, never the shorthand", () => {
+    // The build's minifier folds `animation` and `animation-timeline` of one rule into a single
+    // shorthand declaration, which Chrome rejects: the fade or the line then never runs.
+    for (const file of OWN_FILES) {
+      const css = withoutComments(read(file));
+      for (const block of css.matchAll(/\{([^{}]*)\}/g)) {
+        const body = block[1] ?? "";
+        if (!/animation-timeline\s*:/.test(body)) continue;
+        expect(body, `${file}: ${body.trim().slice(0, 60)}`).not.toMatch(
+          /(?:^|[;\s])animation\s*:/,
+        );
+      }
+    }
+  });
+
   it("never uses !important or transition: all", () => {
     for (const file of OWN_FILES) {
       const css = withoutComments(read(file));
