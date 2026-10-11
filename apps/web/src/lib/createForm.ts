@@ -54,6 +54,18 @@ export function submitLabel(minutes: number): string {
   return `Generate • ${minutes} mins`;
 }
 
+/**
+ * The line under More options, naming the choices it holds: "For Somesh · A week · Neutral". The
+ * markup carries the template, so the page script fills the same words in as choices change.
+ */
+export const MORE_OPTIONS_TEMPLATE = "For {audience} · {window} · {tone}";
+
+export function moreOptionsSummary(audience: string, window: string, tone: string): string {
+  return MORE_OPTIONS_TEMPLATE.replace("{audience}", audience)
+    .replace("{window}", window)
+    .replace("{tone}", tone);
+}
+
 export interface TopicOption {
   /** The chip's key. For the owner's own topics it is the section id. */
   value: string;

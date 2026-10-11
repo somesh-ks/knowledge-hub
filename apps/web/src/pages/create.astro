@@ -3,15 +3,12 @@ import CreateForm from "../components/CreateForm.astro";
 import BaseLayout from "../layouts/BaseLayout.astro";
 ---
 
-<BaseLayout title="Create a podcast" view="create" skipLabel="Skip to the form">
+<BaseLayout title="New episode" view="create" skipLabel="Skip to the form">
   <main id="main" tabindex="-1">
     <div class="settings-view create-page">
-      <h1 id="page-title" tabindex="-1">Create a podcast</h1>
-      <p class="create-lede">
-        Pick topics and a length. Singularity writes and reads an episode from the last few days of stories.
-      </p>
+      <h1 id="page-title" tabindex="-1">New episode</h1>
       <noscript>
-        <p class="create-note">Creating an episode needs JavaScript, which is turned off in this browser.</p>
+        <p class="create-note">Making an episode needs JavaScript, which is turned off in this browser.</p>
       </noscript>
       <CreateForm />
     </div>

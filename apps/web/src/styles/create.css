@@ -1,20 +1,13 @@
 /*
- * The Create page: a form built from the settings page's grammar (groups set apart by space, the
- * segmented choice) plus the one control only it needs: topic chips. Imported by
+ * The Create form, on /create and in the Create sheet: topic chips first, then two segmented choices,
+ * then one More options row holding everything that has a default. Imported by
  * components/CreateForm.astro, after settings.css. The run is shown by the indicator (create-sheet.css).
  *
- * Type comes in two steps inside a block: a title at the body size in medium weight, and one quiet
- * line at the label size, always with air between them. Rules that adjust a shared rule are written
- * with a more specific selector, because this file is linked before the layout's stylesheet.
+ * Type comes in two steps inside a block: a label at the body size in medium weight for the main
+ * questions (the label size under More options), and one quiet line at the label size. Rules that
+ * adjust a shared rule are written with a more specific selector, because this file is linked before
+ * the layout's stylesheet.
  */
-
-.create-lede {
-  max-width: var(--layout-measure);
-  padding-block-start: var(--space-4);
-  color: var(--color-on-surface-muted);
-  font-size: var(--font-size-body);
-  line-height: var(--font-leading-body);
-}
 
 .create-note {
   padding-block-start: var(--space-4);
@@ -31,12 +24,14 @@
 
 /* No lines between groups: a group ends with more air than its heading has above its controls. */
 .create-group {
-  padding-block-end: var(--space-6);
+  padding-block-end: var(--space-4);
 }
 
-/* Inside the form a heading is a field label, not a page heading: body size, medium weight, little air. */
+/* Inside the form a heading is a field label, not a page heading: body size, medium weight, the
+   text colour (an accent label would read as a link), little air. */
 .create-view .create-group .section-head {
-  padding-block: var(--space-4) var(--space-2);
+  padding-block: var(--space-4) var(--space-3);
+  color: var(--color-on-surface);
   font-family: inherit;
   font-size: var(--font-size-body);
   font-weight: var(--font-weight-medium);
@@ -48,6 +43,10 @@
   color: var(--color-on-surface-muted);
   font-size: var(--font-size-label);
   line-height: var(--font-leading-body);
+}
+
+.create-format-hint {
+  padding-block-start: var(--space-2);
 }
 
 .create-error {
@@ -72,8 +71,186 @@
 
 /* ------------------------------------------------------------------ segmented choices */
 
+/*
+ * Tonal, as the app's other selected states are: the track is the control's container tone, the
+ * chosen segment the accent container with its own words and a check, so the choice is a fill, a
+ * colour and a mark at once. Full round, no ring. From 40rem the control hugs its options instead of
+ * stretching one word across half the panel.
+ */
 .create-view .create-choice {
   margin-block-start: 0;
+  border-radius: var(--radius-round);
+  background: var(--color-surface-container);
+}
+
+.create-view .create-choice::before {
+  border-radius: var(--radius-round);
+  background: var(--color-accent-container);
+}
+
+.create-view .create-choice .settings-segment {
+  padding-inline: var(--space-4);
+  border-radius: var(--radius-round);
+  color: var(--color-on-surface);
+}
+
+.create-view .create-choice .settings-segment:has(input:checked) {
+  color: var(--color-on-accent-container);
+}
+
+/* A press is the state layer of the words' colour, on the segment's own fill. */
+.create-view .create-choice .settings-segment:active {
+  background-image: linear-gradient(
+    color-mix(in oklch, currentColor var(--state-press), transparent),
+    color-mix(in oklch, currentColor var(--state-press), transparent)
+  );
+}
+
+@media (hover: hover) and (pointer: fine) {
+  .create-view .create-choice .settings-segment:hover {
+    background-image: linear-gradient(
+      color-mix(in oklch, currentColor var(--state-hover), transparent),
+      color-mix(in oklch, currentColor var(--state-hover), transparent)
+    );
+  }
+}
+
+@media (min-width: 40rem) {
+  .create-view .create-choice {
+    grid-auto-columns: minmax(6rem, 1fr);
+    inline-size: fit-content;
+    max-inline-size: 100%;
+  }
+}
+
+@media (forced-colors: active) {
+  .create-view .create-choice {
+    border: var(--stroke-hairline) solid CanvasText;
+  }
+
+  .create-view .create-choice .settings-segment:has(input:checked) {
+    color: Highlight;
+  }
+}
+
+/* ------------------------------------------------------------------ more options */
+
+/* One list row: the name, the choices it holds on a quiet second line, and a chevron that turns. The
+   row is the press target and wears the row's state layer. */
+.create-more {
+  margin-block: var(--space-2) var(--space-4);
+}
+
+.create-more-summary {
+  position: relative;
+  display: flex;
+  align-items: center;
+  gap: var(--space-4);
+  min-height: var(--fab-size);
+  margin-inline: calc(var(--space-3) * -1);
+  padding: var(--space-2) var(--space-3);
+  border-radius: var(--row-radius);
+  list-style: none;
+  cursor: pointer;
+  -webkit-tap-highlight-color: transparent;
+  transition: background-color var(--duration-hover) var(--ease-hover);
+}
+
+.create-more-summary::-webkit-details-marker {
+  display: none;
+}
+
+.create-more-summary:focus-visible {
+  outline-offset: calc(var(--stroke-ring) * -1);
+}
+
+@media (hover: hover) and (pointer: fine) {
+  .create-more:not([data-pinned]) > .create-more-summary:hover {
+    background: color-mix(in oklch, var(--color-on-surface) var(--state-hover), transparent);
+  }
+}
+
+.create-more:not([data-pinned]) > .create-more-summary:active {
+  background: color-mix(in oklch, var(--color-on-surface) var(--state-press), transparent);
+}
+
+.create-more-text {
+  display: grid;
+  flex: 1 1 auto;
+  gap: calc(var(--space-1) / 2);
+  min-width: 0;
+}
+
+.create-more-title {
+  font-size: var(--font-size-body);
+  font-weight: var(--font-weight-medium);
+  line-height: var(--font-leading-label);
+}
+
+.create-more-values {
+  overflow: hidden;
+  color: var(--color-on-surface-muted);
+  font-size: var(--font-size-label);
+  line-height: var(--font-leading-label);
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.create-more-chevron {
+  flex: none;
+  color: var(--color-on-surface-muted);
+  transition: rotate var(--duration-state) var(--ease-out);
+}
+
+.create-more[open] .create-more-chevron {
+  rotate: 180deg;
+}
+
+/* Open, the choices are on show: the line that repeated them steps aside. */
+.create-more[open] .create-more-values {
+  display: none;
+}
+
+/* Inside, the questions are a step quieter than the main ones above. */
+.create-view .create-more-body .create-group .section-head {
+  padding-block: var(--space-3) var(--space-2);
+  font-size: var(--font-size-label);
+}
+
+.create-more-body > .create-group:last-child {
+  padding-block-end: 0;
+}
+
+/* Open beside the main questions (a wide /create page), the row is the column's heading. */
+.create-more[data-pinned] > .create-more-summary {
+  cursor: default;
+}
+
+.create-more[data-pinned] .create-more-chevron {
+  display: none;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .create-more-chevron {
+    transition: none;
+  }
+}
+
+/* "Your topic picks are kept", and the button that swaps them for the suggestion. */
+.create-preset-note {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0 var(--space-2);
+  padding-block-start: var(--space-2);
+}
+
+.create-preset-note[hidden] {
+  display: none;
+}
+
+.create-inline-btn {
+  margin-inline-start: calc(var(--space-3) * -1);
 }
 
 /* ------------------------------------------------------------------ title and submit */
@@ -92,7 +269,7 @@
   display: grid;
   gap: var(--space-4);
   justify-items: stretch;
-  padding-block: var(--space-6) var(--space-8);
+  padding-block: var(--space-4) var(--space-8);
 }
 
 @media (min-width: 40rem) {
@@ -101,6 +278,19 @@
     min-width: 14rem;
     justify-self: start;
   }
+}
+
+/* On /create the button sticks to the foot of the window, above the bottom bar, the player bar and
+   the run line, so it is in reach without scrolling past More options. It sits on the page's own
+   surface, which also covers the gutters, so what scrolls under it is hidden, not seen through. */
+.create-page .create-submit {
+  position: sticky;
+  inset-block-end: calc(var(--bottom-nav-height) + var(--dock-room) + var(--run-room));
+  z-index: var(--z-raised);
+  padding-block: var(--space-4);
+  background: var(--color-surface);
+  box-shadow: 0 0 0 100vmax var(--color-surface);
+  clip-path: inset(0 -100vmax);
 }
 
 /* While the request is out the button keeps its fill and shows a spinner at its start: it is
@@ -132,7 +322,7 @@
 
 /* ------------------------------------------------------------------ voices */
 
-/* One select for a readout, as wide as the panel; a discussion adds Leo's beside it from 40rem. */
+/* One select for a readout; a discussion adds the second host's beside it from 40rem. */
 .create-voices {
   display: grid;
   gap: var(--space-3);
@@ -156,7 +346,8 @@
   line-height: var(--font-leading-label);
 }
 
-/* A select with its own chevron, drawn like the title field. */
+/* A tonal select with its own chevron: the container tone, no outline, the row's corners. The text
+   stays at the body size, so iOS never zooms into it. */
 .create-select {
   position: relative;
   display: grid;
@@ -164,9 +355,32 @@
 
 .create-select > select {
   inline-size: 100%;
-  padding-inline-end: var(--space-12);
+  min-height: var(--field-height);
+  padding-inline: var(--field-padding) var(--space-12);
+  border: var(--stroke-hairline) solid transparent;
+  border-radius: var(--row-radius);
+  background: var(--color-surface-container);
+  color: var(--color-on-surface);
+  font: inherit;
+  font-size: var(--font-size-body);
   text-overflow: ellipsis;
+  appearance: none;
   cursor: pointer;
+  transition: background-color var(--duration-hover) var(--ease-hover);
+}
+
+@media (hover: hover) and (pointer: fine) {
+  .create-select > select:hover {
+    background: color-mix(
+      in oklch,
+      var(--color-surface-container),
+      var(--color-on-surface) var(--state-hover)
+    );
+  }
+}
+
+.create-select > select:focus-visible {
+  outline-offset: var(--stroke-ring-gap);
 }
 
 .create-select > .icon {
@@ -178,6 +392,65 @@
   pointer-events: none;
 }
 
+@media (forced-colors: active) {
+  .create-select > select {
+    border-color: CanvasText;
+  }
+}
+
 .create-view [hidden] {
   display: none;
+}
+
+/* ------------------------------------------------------------------ a wide /create page */
+
+/* From 80rem the page takes the track the shell keeps for a contents list as well, and More options
+   stands open in it beside the main questions, so the right of the window is not left empty and
+   the whole form is in view at once. The title keeps the place it has on every other page. */
+@media (min-width: 80rem) {
+  .shell:has(.create-page) > main {
+    grid-column: 1 / -1;
+  }
+
+  .create-page [data-create-form] {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) 20rem;
+    /* Four rows for the main questions and the button, and a last one that takes up the rest of the
+       open options' height, so a tall column of options never spreads the main questions apart. */
+    grid-template-rows: repeat(4, auto) 1fr;
+    column-gap: var(--space-12);
+    align-items: start;
+  }
+
+  .create-page [data-create-form] > * {
+    grid-column: 1;
+  }
+
+  .create-page .create-more {
+    grid-column: 2;
+    grid-row: 1 / -1;
+    margin-block: 0;
+  }
+
+  .create-page .create-more-summary {
+    padding-block: var(--space-4) var(--space-3);
+    min-height: 0;
+  }
+
+  .create-page .create-more-values {
+    display: none;
+  }
+
+  /* The foot's surface spreads to the start only: to the end it would paint over the options. */
+  .create-page .create-submit {
+    clip-path: inset(0 0 0 -100vmax);
+  }
+
+  .create-page .create-more .create-choice {
+    inline-size: auto;
+  }
+
+  .create-page .create-voices:has(> [data-voice="voice_b"]:not([hidden])) {
+    grid-template-columns: minmax(0, 1fr);
+  }
 }

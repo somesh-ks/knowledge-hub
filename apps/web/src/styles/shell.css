@@ -347,8 +347,11 @@ html[data-mini="visible"] main {
   transition-duration: var(--duration-press-in);
 }
 
+/* The current destination's words are a step heavier as well as darker, so the indicator is not
+   the only thing that tells it apart. */
 .app-nav-item[aria-current="page"] {
   color: var(--color-on-surface);
+  font-weight: var(--font-weight-semibold);
 }
 
 .app-nav-item[aria-current="page"] .app-nav-indicator {
@@ -405,7 +408,9 @@ html[data-mini="visible"] main {
     height: auto;
     padding-block: max(var(--space-3), var(--safe-top)) var(--space-4);
     padding-inline: calc(var(--space-3) + var(--safe-left)) var(--space-3);
-    border-inline-end: var(--stroke-hairline) solid var(--color-border-hairline);
+    /* No divider: the column and the page share one surface, and the content starts well clear of
+       the column's items. The transparent edge is there for forced colours to draw. */
+    border-inline-end: var(--stroke-hairline) solid transparent;
     background: var(--color-surface);
     overflow-y: auto;
     overscroll-behavior: contain;
@@ -438,7 +443,7 @@ html[data-mini="visible"] main {
     display: contents;
   }
 
-  /* The fill fades in and out like Create Podcast's above it. */
+  /* The fill fades in and out like the New episode button's above it. */
   .app-nav-item {
     flex-direction: row;
     justify-content: flex-start;

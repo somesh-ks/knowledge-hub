@@ -5,6 +5,8 @@ import {
   FORMATS,
   LENGTHS,
   MAX_TITLE_CHARS,
+  MORE_OPTIONS_TEMPLATE,
+  moreOptionsSummary,
   submitLabel,
   TONES,
   topicOptions,
@@ -20,6 +22,16 @@ describe("submitLabel", () => {
 
   it("uses the pace the episode files are measured at", () => {
     expect(CHARS_PER_MINUTE).toBe(960);
+  });
+});
+
+describe("moreOptionsSummary", () => {
+  it("names the audience, the window and the tone with the app's one separator", () => {
+    expect(moreOptionsSummary("Somesh", "A week", "Neutral")).toBe("For Somesh · A week · Neutral");
+  });
+
+  it("leaves a placeholder for the page script in the template, and nothing else", () => {
+    expect(MORE_OPTIONS_TEMPLATE.match(/\{\w+\}/g)).toEqual(["{audience}", "{window}", "{tone}"]);
   });
 });
 

@@ -14,26 +14,54 @@
   display: none;
 }
 
-/* The tonal button of the column (.btn-secondary: the accent container and its words), sized and
-   shaped as the floating button is, so the one action looks the same on both layouts. Its icon and
-   label line up with the navigation items' below it. A press shows in the fill (buttons.css), never
-   by scaling the label. */
+/* The column's extended floating button, as Gmail's Compose is: it hugs its icon and words, 56px
+   tall with the floating button's 16px corners, in the accent container. Its icon lines up with the
+   navigation items' icons below it. A press shows in the fill, never by scaling the label. */
 @media (min-width: 64rem) {
   .app-nav-create {
-    display: flex;
-    justify-content: flex-start;
-    gap: var(--space-4);
+    --color-focus-gap: var(--color-surface);
+    display: inline-flex;
+    align-items: center;
+    align-self: start;
+    gap: var(--space-3);
+    width: auto;
     min-height: var(--fab-size);
-    padding-inline: var(--space-4);
+    padding-inline: var(--space-4) calc(var(--space-4) + var(--space-1));
+    border: var(--stroke-hairline) solid transparent;
     border-radius: var(--radius-lg);
+    background: var(--color-accent-container);
+    color: var(--color-on-accent-container);
     font-size: var(--font-size-label);
+    font-weight: var(--font-weight-medium);
+    line-height: var(--font-leading-label);
+    text-decoration: none;
+    white-space: nowrap;
     outline-offset: var(--stroke-ring-gap);
+    -webkit-tap-highlight-color: transparent;
     transition: background-color var(--duration-hover) var(--ease-hover);
   }
 
   .app-nav-create .icon {
-    width: var(--nav-item-icon);
-    height: var(--nav-item-icon);
+    width: var(--size-icon-lg);
+    height: var(--size-icon-lg);
+  }
+
+  @media (hover: hover) and (pointer: fine) {
+    .app-nav-create:hover {
+      background: color-mix(
+        in oklch,
+        var(--color-accent-container),
+        var(--color-on-accent-container) var(--state-hover)
+      );
+    }
+  }
+
+  .app-nav-create:active {
+    background: color-mix(
+      in oklch,
+      var(--color-accent-container),
+      var(--color-on-accent-container) var(--state-press)
+    );
   }
 }
 
@@ -238,6 +266,9 @@ html:not([data-fab]) .play-fab {
 
 /* A phone: the whole screen, sliding up. From 40rem: a panel on the right, sliding in, over a scrim. */
 dialog.create-sheet {
+  /* The page's own surface, so the form's tonal controls read exactly as they do on /create: on the
+     raised surface the dark theme's unselected chips and tracks had no fill to show. */
+  --sheet-bg: var(--color-surface);
   --color-focus-gap: var(--sheet-bg);
   /* Set here, not under [open]: the exit keeps its display through the close, and a column set only
      while open would fall back to a row for the whole exit, laying the head beside the body. */
@@ -308,17 +339,27 @@ dialog.create-sheet[open]::backdrop {
   }
 }
 
-/* One header row: the title and the close control. The form scrolls under it. */
+/* One header row, as a full-screen dialog has it: close at the start, the title beside it. No line at
+   rest; once the form has scrolled under it, the header takes the container tone (createSheet.ts
+   sets data-scrolled), so the edge shows only when there is something under it. */
 .create-sheet-head {
   display: flex;
   flex: none;
   align-items: center;
-  justify-content: space-between;
-  gap: var(--space-2);
-  min-height: var(--size-touch-comfortable);
-  padding-block: max(var(--space-2), var(--safe-top)) var(--space-2);
-  padding-inline: max(var(--space-4), var(--safe-left)) max(var(--space-2), var(--safe-right));
-  border-block-end: var(--stroke-hairline) solid var(--color-border-hairline);
+  gap: var(--space-1);
+  min-height: var(--app-bar-height);
+  padding-block: max(var(--space-1), var(--safe-top)) var(--space-1);
+  padding-inline: max(var(--space-1), var(--safe-left)) max(var(--space-4), var(--safe-right));
+  background: var(--sheet-bg);
+  transition: background-color var(--duration-state) var(--ease-out);
+}
+
+dialog.create-sheet[data-scrolled] .create-sheet-head {
+  background: var(--color-surface-container);
+}
+
+.create-sheet-head > .sheet-title {
+  min-width: 0;
 }
 
 .create-sheet-body {
@@ -350,9 +391,10 @@ dialog.create-sheet .create-submit {
   clip-path: inset(0 -100vmax);
 }
 
-/* A hairline along the top of the foot, edge to edge like the one under the header, so the fields
-   that scroll under it end at a line instead of being cut off. The sticky foot is its containing
-   block, and the clip lets it run out over the side gutters. */
+/* A hairline along the top of the foot while the form runs on under it, so what scrolls under ends
+   at an edge instead of being cut off; at the end of the form there is nothing under it, and no
+   line (createSheet.ts sets data-more while there is more below). The sticky foot is its
+   containing block, and the clip lets it run out over the side gutters. */
 dialog.create-sheet .create-submit::before {
   content: "";
   position: absolute;
@@ -360,7 +402,13 @@ dialog.create-sheet .create-submit::before {
   inset-inline: calc(var(--page-gutter-start) * -1) calc(var(--page-gutter-end) * -1);
   height: var(--stroke-hairline);
   background: var(--color-border-hairline);
+  opacity: 0;
   pointer-events: none;
+  transition: opacity var(--duration-state) var(--ease-out);
+}
+
+dialog.create-sheet[data-more] .create-submit::before {
+  opacity: 1;
 }
 
 dialog.create-sheet .create-submit > .btn-primary {
@@ -375,6 +423,8 @@ dialog.create-sheet .create-submit > .btn-primary {
   dialog.create-sheet {
     inset: 0 0 0 auto;
     width: min(28rem, calc(100% - var(--space-12)));
+    border-start-start-radius: var(--sheet-radius);
+    border-end-start-radius: var(--sheet-radius);
     box-shadow: var(--sheet-shadow);
   }
 
@@ -389,7 +439,8 @@ dialog.create-sheet .create-submit > .btn-primary {
   }
 
   .create-sheet-head {
-    padding-inline: var(--space-6) var(--space-3);
+    padding-block-start: max(var(--space-3), var(--safe-top));
+    padding-inline: var(--space-3) var(--space-6);
   }
 
   .create-sheet-body {
@@ -449,8 +500,9 @@ dialog.create-sheet .create-submit > .btn-primary {
   /* A fixed height, so a long line never grows the card into the Create button above it. */
   height: var(--run-height);
   padding-inline: max(var(--space-4), var(--safe-left)) max(var(--space-2), var(--safe-right));
-  background: var(--color-surface);
-  box-shadow: 0 calc(var(--stroke-hairline) * -1) 0 var(--color-border-hairline);
+  /* The bottom bar's own tone, so the line reads as part of the bar it sits on, with no rule
+     between them; the progress runs along its foot. */
+  background: var(--color-surface-container);
   font-size: var(--font-size-label);
   font-weight: var(--font-weight-medium);
   line-height: var(--font-leading-label);
@@ -589,8 +641,7 @@ html[data-player="open"] .run-status {
     height: auto;
     padding-block: var(--space-2) var(--space-4);
     padding-inline: calc(var(--space-6) + var(--safe-left)) var(--space-2);
-    box-shadow: none;
-    border-inline-end: var(--stroke-hairline) solid var(--color-border-hairline);
+    background: var(--color-surface);
   }
 
   .run-text {

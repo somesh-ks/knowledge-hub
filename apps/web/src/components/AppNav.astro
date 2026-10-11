@@ -39,16 +39,16 @@ const destinations: Array<{
 
 {/* One navigation, two shapes: a bottom bar below 64rem and a side column from 64rem. The player
      slides the bottom bar away as it opens; it finds it by data-bottom-nav. Create is not a
-     destination but the one action: a solid button in the column here, a floating button (see
+     destination but the one action: a tonal button that hugs its words in the column here, a floating button (see
      CreateFab.astro) below 64rem. Both are links to /create that the shell turns into the sheet. */}
 <nav class="app-nav" aria-label="Primary" data-bottom-nav>
   <a class="app-nav-brand wordmark" href="/" aria-label="Singularity, today's briefing" data-astro-prefetch="hover">
     <BrandMark />
     <span>Singularity</span>
   </a>
-  <a class="app-nav-create btn-secondary" href="/create" data-create-open data-sound="open">
+  <a class="app-nav-create" href="/create" data-create-open data-sound="open">
     <Icon name="plus" class="icon-lg" />
-    <span>Create Podcast</span>
+    <span>New episode</span>
   </a>
   <ul class="app-nav-list" role="list">
     {

@@ -40,39 +40,102 @@ export function installCreate(root: HTMLElement, onStart?: () => void): void {
   };
 
   const voiceRows = [...form.querySelectorAll<HTMLElement>("[data-voice]")];
+  const more = root.querySelector<HTMLDetailsElement>("[data-create-more]");
+  const note = root.querySelector<HTMLElement>("[data-preset-note]");
+  // The name each select's Default stands for, once /api/voices has said, and every voice's name.
+  const defaultNames: Record<string, string> = {};
+  const names = new Map<string, string>();
 
   /** The voices are fetched when the panel is first used, and fill the selects they belong to. */
   async function loadVoices(): Promise<void> {
     try {
       const lib = await import("../lib/voices");
       const response = await fetch("/api/voices", { signal: AbortSignal.timeout(10_000) });
-      const voices = response.ok ? lib.parseVoices(await response.json()) : null;
+      const body: unknown = response.ok ? await response.json() : null;
+      const voices = lib.parseVoices(body);
       if (!voices) return;
+      const defaults = lib.parseVoiceDefaults(body);
+      for (const voice of voices) names.set(voice.id, voice.name);
       for (const select of form.querySelectorAll<HTMLSelectElement>("[data-voice] select")) {
-        lib.fillVoiceSelect(select, voices, select.value);
+        // Default reads "Default (Ada)": the voice it stands for in this host's place.
+        const id = select.name === "voice_b" ? defaults?.voice_b : defaults?.voice;
+        const fallback = voices.find((voice) => voice.id === id);
+        if (fallback) defaultNames[select.name] = fallback.name;
+        lib.fillVoiceSelect(select, voices, select.value, fallback);
       }
+      sync();
     } catch {
       // The default and the saved voice stay: an episode can always be made without the list.
     }
   }
 
-  /** Switching the audience replaces the selection with that audience's preset; chips stay shown. */
+  // True once a chip has been ticked or unticked by hand since the last suggestion was applied.
+  let picked = false;
+
+  /** Ticks the chips the chosen audience suggests; chips stay shown. */
   function applyPreset(): void {
     const audience = String(new FormData(form).get("audience"));
     for (const topic of topics) {
       topic.checked = (topic.dataset.presets ?? "").split(" ").includes(audience);
     }
+    picked = false;
+    if (note) note.hidden = true;
+  }
+
+  /**
+   * A new audience brings its suggested topics only while the topics are still the last
+   * suggestion: picks made by hand are never replaced unseen. They stay, and a line says so and
+   * offers the suggestion.
+   */
+  function audienceChanged(): void {
+    if (!picked) applyPreset();
+    else if (note) note.hidden = false;
+  }
+
+  /** The voice a select stands for, by name, or "" when it is not known. */
+  function voiceName(select: HTMLSelectElement | null): string {
+    if (!select) return "";
+    return select.value === ""
+      ? (defaultNames[select.name] ?? "")
+      : (names.get(select.value) ?? "");
   }
 
   function sync(): void {
     if (topics.some((topic) => topic.checked)) say("topics");
+    const data = new FormData(form);
     // A discussion has two hosts, so it takes a second voice as well as the first.
-    const discussion = new FormData(form).get("format") === "discussion";
+    const discussion = data.get("format") === "discussion";
     for (const voice of voiceRows) {
       if (voice.dataset.voice === "voice_b") voice.hidden = !discussion;
       voice
         .querySelector<HTMLElement>("[data-voice-caption]")
         ?.toggleAttribute("hidden", !discussion);
+      const select = voice.querySelector("select");
+      const label = discussion ? select?.dataset.two : select?.dataset.one;
+      if (select && label) select.setAttribute("aria-label", label);
+    }
+    const heading = root.querySelector<HTMLElement>("[data-voice-heading]");
+    const headingText = discussion ? heading?.dataset.two : heading?.dataset.one;
+    if (heading && headingText) heading.textContent = headingText;
+    // Under the format: who will be heard, by name once the voices are known.
+    const hint = root.querySelector<HTMLElement>("[data-format-hint]");
+    if (hint) {
+      const a = voiceName(form.querySelector<HTMLSelectElement>('select[name="voice"]'));
+      const b = voiceName(form.querySelector<HTMLSelectElement>('select[name="voice_b"]'));
+      const named = discussion ? Boolean(a && b) : Boolean(a);
+      const key = (discussion ? "discussion" : "readout") + (named ? "Named" : "");
+      const text = (hint.dataset[key] ?? "").replace("{a}", a).replace("{b}", b);
+      if (hint.textContent !== text) hint.textContent = text;
+    }
+    // The More options line names what it holds.
+    const values = root.querySelector<HTMLElement>("[data-more-values]");
+    if (values?.dataset.template) {
+      const chosen = (name: string) =>
+        form.querySelector<HTMLInputElement>(`input[name="${name}"]:checked`)?.dataset.label ?? "";
+      values.textContent = values.dataset.template
+        .replace("{audience}", chosen("audience"))
+        .replace("{window}", chosen("window"))
+        .replace("{tone}", chosen("tone"));
     }
     // The button says how long the episode will run; each length carries its own label.
     const length = form.querySelector<HTMLInputElement>('input[name="length"]:checked');
@@ -152,9 +215,31 @@ export function installCreate(root: HTMLElement, onStart?: () => void): void {
   }
 
   form.addEventListener("change", (event) => {
-    if ((event.target as HTMLInputElement | null)?.name === "audience") applyPreset();
+    const name = (event.target as HTMLInputElement | null)?.name;
+    if (name === "audience") audienceChanged();
+    if (name === "topic") picked = true;
     sync();
   });
+  root.querySelector("[data-preset-apply]")?.addEventListener("click", () => {
+    applyPreset();
+    sync();
+    // The button is gone with its line: focus goes to the first topic it ticked.
+    topics.find((topic) => topic.checked)?.focus();
+  });
+  // A wide /create page keeps More options open beside the main questions (create.css lays it out);
+  // there its row is a heading, not a switch. In the sheet and on narrower pages it opens in place.
+  if (more && root.closest("main")) {
+    const wide = matchMedia("(min-width: 80rem)");
+    const pin = () => {
+      if (wide.matches) more.open = true;
+      more.toggleAttribute("data-pinned", wide.matches);
+    };
+    more.querySelector("summary")?.addEventListener("click", (event) => {
+      if (more.hasAttribute("data-pinned")) event.preventDefault();
+    });
+    wide.addEventListener("change", pin);
+    pin();
+  }
   // The title's Enter key reads "Done": it puts the keyboard away and never submits, because a run
   // spends from the allowance. Generate is the one way to start one.
   const title = form.elements.namedItem("title");

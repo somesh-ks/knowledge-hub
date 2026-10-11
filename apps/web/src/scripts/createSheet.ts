@@ -25,6 +25,22 @@ function build(): HTMLDialogElement | null {
     });
   }
   clone.querySelector("[data-create-close]")?.addEventListener("click", () => clone.close());
+  // The header takes a tone once the form has scrolled under it, and the foot shows its edge while
+  // more of the form runs on below it (create-sheet.css). The form grows as More options opens.
+  const body = clone.querySelector<HTMLElement>(".create-sheet-body");
+  if (body) {
+    const edges = () => {
+      clone.toggleAttribute("data-scrolled", body.scrollTop > 0);
+      clone.toggleAttribute(
+        "data-more",
+        body.scrollTop + body.clientHeight < body.scrollHeight - 1,
+      );
+    };
+    body.addEventListener("scroll", edges, { passive: true });
+    const sizes = new ResizeObserver(edges);
+    sizes.observe(body);
+    if (body.firstElementChild) sizes.observe(body.firstElementChild);
+  }
   // A press on the scrim lands on the dialog itself; everything else is inside its panel. A press
   // that starts inside and ends outside (selecting the title, sliding off a chip onto the header)
   // also clicks the dialog, so only one that began on the scrim closes it.
