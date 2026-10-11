@@ -492,6 +492,9 @@
       display var(--duration-sheet-out) allow-discrete;
     /* Controls inside sit on the raised surface, so the focus gap matches it. */
     --color-focus-gap: var(--color-surface-raised);
+    /* Safari has no overlay, so a closing dialog leaves the top layer at once and its exit plays in
+       the page: the z-index keeps it above the bars there. The top layer ignores it. */
+    z-index: var(--z-sheet);
   }
 
   dialog.sheet[open] {

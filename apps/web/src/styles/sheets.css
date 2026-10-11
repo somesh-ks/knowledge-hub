@@ -92,6 +92,7 @@
 
 .sheet-popup[data-swiping] {
   transition-duration: 0ms;
+  -webkit-user-select: none;
   user-select: none;
 }
 
@@ -503,6 +504,7 @@
   padding-inline: var(--space-2);
   touch-action: none;
   cursor: pointer;
+  -webkit-user-select: none;
   user-select: none;
 }
 
@@ -580,6 +582,8 @@
 .toast {
   --toast-dock: 0px;
   --toast-lift: 0px;
+  /* Above the bars while Safari plays the exit outside the top layer (dialog.sheet, foundations.css). */
+  z-index: var(--z-toast);
   /* The page accent is tuned for the page, so on the inverse surface the other theme's accent is used. */
   --toast-accent: var(--color-blue-300);
   inset-block: auto
