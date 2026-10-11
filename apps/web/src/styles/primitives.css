@@ -45,19 +45,20 @@
   inset-inline: calc(var(--space-3) * -1);
   z-index: var(--z-beneath);
   border-radius: var(--row-radius);
-  background: var(--color-on-surface);
-  opacity: 0;
-  transition: opacity var(--duration-hover) var(--ease-hover);
+  /* The layer is the fill's own alpha, never the element's opacity: that would fade the focus ring
+     drawn on this element to the same 8% and leave a keyboard user no ring to see. */
+  background: transparent;
+  transition: background-color var(--duration-hover) var(--ease-hover);
 }
 
 @media (hover: hover) and (pointer: fine) {
   .row-action:hover::after {
-    opacity: var(--state-hover);
+    background: color-mix(in oklch, var(--color-on-surface) var(--state-hover), transparent);
   }
 }
 
 .row-action:active::after {
-  opacity: var(--state-press);
+  background: color-mix(in oklch, var(--color-on-surface) var(--state-press), transparent);
 }
 
 /* The ring takes the fill's shape, clear of the text: drawn on the column's own box it would run
@@ -68,7 +69,7 @@
 }
 
 .row-action:focus-visible::after {
-  opacity: var(--state-hover);
+  background: color-mix(in oklch, var(--color-on-surface) var(--state-hover), transparent);
   outline: var(--stroke-ring) solid var(--color-focus-ring);
   outline-offset: calc(var(--stroke-ring) * -1);
 }
