@@ -74,6 +74,7 @@ D1 to D9 date from plan v2 (2026-10-05). D10 to D25 date from 2026-10-06. Reason
 | D62 | Daily and Weekly each choose their topics; voice samples play through the site | active; topics are left out per topic since D63 |
 | D63 | Daily and Weekly leave out topics, one chip per topic, stored as the topics left out | active |
 | D64 | Every topic can be renamed; what counts edits wherever the judge reads it | active |
+| D65 | The weekly podcast takes its day; the daily cadence counts from it | active |
 
 ---
 
@@ -634,3 +635,11 @@ D1 to D9 date from plan v2 (2026-10-05). D10 to D25 date from 2026-10-06. Reason
 - Cost: an app topic reworded by mistake re-judges its stories once. A built-in topic's description cannot say what the owner means by it; changing that would need its fixed questions rewritten.
 - Rejected: letting a built-in description edit (it would read as changing what counts and change nothing); keeping shipped topics read-only (the owner's whole list).
 - Supersedes: D57's read-only name and what counts on shipped topics.
+
+## D65: The weekly podcast takes its day; the daily cadence counts from it
+
+- Date: 2026-10-11
+- Decision: While the weekly podcast is on, its day (Stockholm date) has no scheduled briefing: the gate (`decideRun`) answers "today is the weekly podcast's day; no briefing" whatever the cadence says, and the weekly pass runs from its hour as before. The daily cadence counts from the later of the last regular run (published or nothing) and the last weekly pass that published, so the briefing after a weekly podcast keeps the cadence's spacing. A forced or on-demand run still makes a briefing on that day. The cron route starts nothing at the daily hour on the weekly day. The Daily page's next-briefing estimate follows the same rule, and its When hint names the day ("Stockholm time, none on Sundays").
+- Why: the owner asked that a collision on the weekly day go to the weekly podcast, and chose the cadence counting from it over the briefing coming back the next day. The weekly pass fetches its own seven-day window, so it loses nothing without the day's briefing, and it no longer has the day's best stories claimed by a briefing published minutes earlier.
+- Cost: with every second day and a Sunday weekly, the week settles into Tuesday, Thursday and Saturday briefings plus the Sunday weekly. A weekly pass that fails leaves its day with nothing, and the next briefing comes the day after. A weekly pass that found nothing does not count, so the briefing comes the next day.
+- Rejected: the briefing the next day (a briefing the morning after the weekly repeats its news); a skipped briefing recorded as its own outcome in `state/last-run.json` (a state schema change for what the weekly record already says).
