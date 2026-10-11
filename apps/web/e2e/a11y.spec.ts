@@ -43,90 +43,14 @@ test.describe("axe, explicit theme override", () => {
 });
 
 test.describe("axe, banners and live states", () => {
-  for (const scheme of ["light", "dark"] as const) {
-    test(`the stale banner has no violations and no owner-only action, ${scheme}`, async ({
-      page,
-    }) => {
-      await page.emulateMedia({ colorScheme: scheme });
-      // Eleven days after the newest fixture digest, so the home page shows the stale banner.
-      await page.clock.setFixedTime(new Date("2026-10-18T09:00:00+02:00"));
-      await page.goto("/");
-      const banner = page.locator('[data-banner="stale"]');
-      await expect(banner).toBeVisible();
-      await expect(banner.locator(".banner-title")).toHaveText("This briefing is 11 days old");
-      await expect(banner.locator(".banner-body")).toHaveText(
-        "No newer briefing has been published yet.",
-      );
-      // True for any reader: nothing here opens the owner's passphrase sheet.
-      await expect(banner.locator("button, a, [data-open]")).toHaveCount(0);
-      await expect(page.getByRole("button", { name: /Generate/ })).toHaveCount(0);
-      // The header's More menu has Regenerate, which opens the same sheet by the owner's choice; the
-      // banner and the page body offer nothing of the kind.
-      await expect(
-        page.locator("main [data-open]:not([role=menuitem]), #banners [data-open]"),
-      ).toHaveCount(0);
-      expect(await violations(page)).toEqual([]);
-    });
-  }
-
-  test("on a first load the stale banner is in place before the page is drawn", async ({
-    page,
-  }) => {
-    await page.setViewportSize({ width: 1280, height: 800 });
+  test("an old briefing shows no banner about its age", async ({ page }) => {
+    // Eleven days after the newest fixture digest. The owner took the age banner out on 2026-10-11.
     await page.clock.setFixedTime(new Date("2026-10-18T09:00:00+02:00"));
     await page.goto("/");
     await hydrated(page);
-    const banner = page.locator('[data-banner="stale"]');
-    await expect(banner).toHaveCount(1);
-    await expect(banner.locator(".banner-title")).toHaveText("This briefing is 11 days old");
-    // Put in by the page's module script, it arrived after the page had drawn and pushed it down
-    // (a layout shift of about 0.047 here).
-    const shift = await page.evaluate(
-      () =>
-        new Promise<number>((resolve) => {
-          let total = 0;
-          new PerformanceObserver((list) => {
-            for (const entry of list.getEntries() as (PerformanceEntry & {
-              value: number;
-              hadRecentInput: boolean;
-            })[])
-              if (!entry.hadRecentInput) total += entry.value;
-          }).observe({ type: "layout-shift", buffered: true });
-          setTimeout(() => resolve(total), 100);
-        }),
-    );
-    expect(shift).toBeLessThan(0.01);
-  });
-
-  test("after a move to Today the stale banner is there from the new page's first frame", async ({
-    page,
-  }) => {
-    await page.clock.setFixedTime(new Date("2026-10-18T09:00:00+02:00"));
-    await page.goto("/library");
-    await hydrated(page);
-    // Put in once the new page had drawn, the banner pushed it down by its own height.
-    const firstFrame = page.evaluate(
-      () =>
-        new Promise<boolean>((resolve) => {
-          document.addEventListener(
-            "astro:after-swap",
-            () =>
-              requestAnimationFrame(() =>
-                resolve(document.querySelector('[data-banner="stale"]') !== null),
-              ),
-            { once: true },
-          );
-        }),
-    );
-    await page.locator('a.app-nav-item[href="/"]').first().click();
-    expect(await firstFrame).toBe(true);
-  });
-
-  test("a dated page never shows the stale banner", async ({ page }) => {
-    await page.clock.setFixedTime(new Date("2026-10-18T09:00:00+02:00"));
-    await page.goto("/d/2026-10-05");
-    await expect(page.getByRole("heading", { level: 1 })).toHaveText("Monday 5 October");
-    await expect(page.locator('[data-banner="stale"]')).toHaveCount(0);
+    // Online, nothing the device or the clock decides is shown.
+    await expect(page.locator("#banners [data-banner]")).toHaveCount(0);
+    await expect(page.locator("#banners")).not.toContainText("days old");
   });
 
   test("the offline banner has no violations", async ({ page, context }) => {

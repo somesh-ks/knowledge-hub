@@ -10,7 +10,6 @@ import RunStatus from "../components/RunStatus.astro";
 import SiteHeader from "../components/SiteHeader.astro";
 import { readBrandColors } from "../lib/brandColors";
 import { fabFor } from "../lib/fab";
-import { STALE_TIME_ZONE, STALE_TITLE, staleFrom } from "../lib/staleness";
 import PlayerRoot from "../player/PlayerRoot";
 // The device banners go in before first paint too, by an inline script hashed the same way.
 import bannersInit from "../scripts/bannersInit.js?raw";
@@ -53,8 +52,6 @@ interface Props {
   digestId?: string;
   /** The page's own audio, an episode or a briefing, which the floating Play button plays. */
   audio?: PageAudio;
-  /** The date of the briefing on screen when it is the latest one, the only kind that can go stale. */
-  latestDate?: string;
   skipLabel?: string;
 }
 
@@ -66,7 +63,6 @@ const {
   layout = "single",
   digestId,
   audio,
-  latestDate,
   skipLabel = "Skip to the briefing",
 } = Astro.props;
 
@@ -128,8 +124,8 @@ const fab = fabFor({ path, playable: Boolean(audio && digestId) });
     {fab === "create" && <CreateFab />}
     {fab === "play" && digestId && audio && <PlayFab digestId={digestId} {...audio} />}
     <RunStatus />
-    {/* Banners that depend on the device are cloned from these, so their markup has one home: by the
-         script after the stack before first paint, and by deviceBanners.ts from then on. */}
+    {/* The offline banner is cloned from this, so its markup has one home: by the script after the
+         stack before first paint, and by deviceBanners.ts from then on. */}
     <template id="banner-offline">
       <Banner
         tone="warning"
@@ -138,23 +134,8 @@ const fab = fabFor({ path, playable: Boolean(audio && digestId) });
         body="Showing the last briefing you opened. Audio needs a connection."
       />
     </template>
-    <template id="banner-stale">
-      <Banner
-        tone="warning"
-        icon="clock"
-        title="This briefing is a few days old"
-        body="No newer briefing has been published yet."
-      />
-    </template>
     <div class="banner-stack page" id="banners"><slot name="banners" /></div>
-    <script
-      is:inline
-      data-digest-date={latestDate}
-      data-stale-from={latestDate && staleFrom(latestDate)}
-      data-time-zone={STALE_TIME_ZONE}
-      data-title={STALE_TITLE}
-      set:html={bannersInit.trim()}
-    />
+    <script is:inline set:html={bannersInit.trim()} />
     <div class="shell page"><slot /></div>
 
     {/* Both islands live in the layout and persist across navigation, so the audio object inside the

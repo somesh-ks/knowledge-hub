@@ -1,28 +1,24 @@
-import { staleAge, staleTitle, todayInStockholm } from "../lib/staleness";
-
 /**
- * Banners that depend on the device and the clock rather than on the build: offline, and a briefing
- * that has gone stale. Their markup is cloned from <template> elements in the layout, so it has one
- * home. Everything here is progressive: without script the page reads the same, minus the banner.
+ * The banner that depends on the device rather than on the build: offline. Its markup is cloned from
+ * a <template> in the layout, so it has one home. Everything here is progressive: without script
+ * the page reads the same, minus the banner.
  */
 
 function bannerStack(): HTMLElement | null {
   return document.getElementById("banners");
 }
 
-function show(kind: "offline" | "stale", title?: string): void {
+function show(kind: "offline"): void {
   const stack = bannerStack();
   const template = document.querySelector<HTMLTemplateElement>(`#banner-${kind}`);
   const source = template?.content.firstElementChild;
   if (!stack || !source || stack.querySelector(`[data-banner="${kind}"]`)) return;
   const banner = source.cloneNode(true) as HTMLElement;
   banner.dataset.banner = kind;
-  const heading = banner.querySelector(".banner-title");
-  if (heading && title) heading.textContent = title;
   stack.prepend(banner);
 }
 
-function hide(kind: "offline" | "stale"): void {
+function hide(kind: "offline"): void {
   bannerStack()?.querySelector(`[data-banner="${kind}"]`)?.remove();
 }
 
@@ -34,25 +30,12 @@ function syncConnection(): void {
   else hide("offline");
 }
 
-function syncStale(): void {
-  const latest = document.querySelector<HTMLElement>('main[data-latest="true"]');
-  const date = latest?.dataset.digestDate;
-  const age = date ? staleAge(date, todayInStockholm()) : null;
-  // On a first load the inline script (bannersInit.js) has already put a stale banner in; it stays.
-  if (age === null) hide("stale");
-  else show("stale", staleTitle(age));
-}
-
 export function installDeviceBanners(): void {
   // A banner goes in before the page it belongs to shows, so it never pushes the page down after it
   // has drawn: on a first load the inline script has put it in (bannersInit.js) and this only
   // checks; on a navigation this runs right after the swap, before the new page is shown.
-  const sync = (): void => {
-    syncConnection();
-    syncStale();
-  };
-  sync();
-  document.addEventListener("astro:after-swap", sync);
+  syncConnection();
+  document.addEventListener("astro:after-swap", syncConnection);
   window.addEventListener("online", syncConnection);
   window.addEventListener("offline", syncConnection);
 }
