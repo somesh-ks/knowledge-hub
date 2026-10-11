@@ -30,6 +30,27 @@ describe("PNG output", () => {
     expect(dimensions(png)).toEqual({ width: 1200, height: 630 });
   });
 
+  it("signs the large cover and leaves the signature off the small one", () => {
+    const raster = (svg: string, width: number): Buffer =>
+      Buffer.from(
+        new Resvg(svg, { fitTo: { mode: "width", value: width }, font: RESVG_FONT_OPTIONS })
+          .render()
+          .asPng(),
+      );
+    expect(renderCoverSvg(SPEC, META)).toContain(">Singularity</text>");
+    expect(renderCoverSvg(SPEC, META, { wordmark: false })).not.toContain(">Singularity</text>");
+    expect(
+      Buffer.from(renderCoverPng(SPEC, META, 512)).equals(
+        raster(renderCoverSvg(SPEC, META, { wordmark: false }), 512),
+      ),
+    ).toBe(true);
+    expect(
+      Buffer.from(renderCoverPng(SPEC, META, 1024)).equals(
+        raster(renderCoverSvg(SPEC, META), 1024),
+      ),
+    ).toBe(true);
+  });
+
   it("returns a plain Uint8Array", () => {
     expect(renderCoverPng(SPEC, META, 512)).toBeInstanceOf(Uint8Array);
   });

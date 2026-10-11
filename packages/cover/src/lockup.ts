@@ -38,10 +38,10 @@ export interface LockupLayout {
   mark: Rect;
   /** Ink box of the month alone when it moves to the top right, for a numeral that is the art. */
   month: Rect;
-  /** Standard lockup: numeral, month and wordmark. */
-  markup: (pal: Palette) => string;
+  /** Standard lockup: numeral, month and wordmark (`wordmark` false leaves the signature out). */
+  markup: (pal: Palette, wordmark?: boolean) => string;
   /** Wordmark top left and month top right, for covers whose art is the day numeral itself. */
-  topLine: (pal: Palette) => string;
+  topLine: (pal: Palette, wordmark?: boolean) => string;
 }
 
 /**
@@ -147,7 +147,7 @@ export function layoutLockup(
     date,
     mark,
     month,
-    markup: (pal) =>
+    markup: (pal, wordmark = true) =>
       numeralMarkup(
         { digits, x: numeralX, baseline: numeralBaseline, size, tracking, weight: NUMERAL_WEIGHT },
         `fill="${pal.text}"`,
@@ -160,9 +160,9 @@ export function layoutLockup(
         weight: 700,
         fill: pal.text,
       }) +
-      markMarkup(pal.text),
-    topLine: (pal) =>
-      markMarkup(pal.text) +
+      (wordmark ? markMarkup(pal.text) : ""),
+    topLine: (pal, wordmark = true) =>
+      (wordmark ? markMarkup(pal.text) : "") +
       textMarkup({
         text: monthName,
         x: w - margin,
