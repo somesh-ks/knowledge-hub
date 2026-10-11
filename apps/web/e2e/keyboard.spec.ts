@@ -39,12 +39,12 @@ test.describe("keyboard", () => {
     expect(seen).toEqual([
       "a: Skip to the briefing",
       "a: Singularity, today's briefing",
-      // Create is the one action: first in the side column, a floating button after the bar.
+      // Create is first in the side column. On a phone Today floats Play after the bar (D60).
       ...(wide ? ["a: Create Podcast"] : []),
       "a: Today",
       "a: Library",
       "a: Settings",
-      ...(wide ? [] : ["a: Create Podcast"]),
+      ...(wide ? [] : ["button: Play this briefing, 1 min"]),
       "button: More actions",
       "button: Play the briefing, 1 min",
       "button: Play from here, 0:03: Springlet 2.0 retargets springs mid-flight, so interrupted drawers keep their velocity",
@@ -124,7 +124,7 @@ test.describe("keyboard", () => {
   }) => {
     await page.goto("/");
     await hydrated(page);
-    const chip = page.locator("[data-play-digest]");
+    const chip = page.locator(".hero [data-play-digest]");
     await chip.focus();
     await page.keyboard.press("Enter");
     await expect(page.locator("html")).toHaveAttribute("data-player-state", "playing");

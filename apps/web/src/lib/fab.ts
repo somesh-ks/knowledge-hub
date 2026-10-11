@@ -5,20 +5,18 @@
 export type FabKind = "create" | "play";
 
 export interface FabPage {
-  /** The navigation marks the page as Today: Today itself, or the latest briefing at its address. */
-  today: boolean;
   /** The page's path without a trailing slash, "/" for the root. */
   path: string;
-  /** The page has audio of its own to play: an episode or a briefing. */
+  /** The page has audio of its own to play: Today, a briefing or an episode. */
   playable: boolean;
 }
 
 /**
- * Create on the two lists where making an episode is the next thing to do, Today and the Library
- * (D52). Play on an episode or an older briefing, where hearing the page is the next thing to do.
- * Settings, Create itself, offline and not found have none.
+ * Create on the Library alone, the list where making an episode is the next thing to do (D60). Play
+ * on every page with audio of its own, Today included, where hearing it is the next thing to do.
+ * Settings, Create itself, offline, not found and a Today with no briefing yet have none.
  */
-export function fabFor({ today, path, playable }: FabPage): FabKind | null {
-  if (today || path === "/library") return "create";
+export function fabFor({ path, playable }: FabPage): FabKind | null {
+  if (path === "/library") return "create";
   return playable ? "play" : null;
 }

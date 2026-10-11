@@ -76,17 +76,16 @@ const destination =
   nav === undefined ? (view === "home" ? "today" : view === "create" ? null : view) : nav;
 const pageTitle = title ? `${title}, Singularity` : "Singularity";
 // Below 64rem a floating button carries a page's one primary action, as on Android, and only where
-// that action is the next thing to do (lib/fab.ts). Create belongs to the two top-level lists where
-// making an episode is next, Today and the Library. Today includes the latest briefing at its dated
-// address (what Share sends), which the navigation marks as Today. On an episode or an older
-// briefing the next thing is to hear it, so Play takes Create's place: the hero chip scrolls away
-// with the page, and the button keeps the page's audio one press away from anywhere on it. Settings,
-// Create itself, offline and not found would only be cluttered by one; the side column carries
-// Create on wide screens everywhere. data-fab keeps room for the button while it shows. Play steps
-// aside while the bar holds the page's audio, as the bar is then its control and two controls for
-// one recording would compete: the player takes data-fab off, and the page gives the room back.
+// that action is the next thing to do (lib/fab.ts, D60). Create belongs to the Library, the list
+// where making an episode is next. On a page with audio of its own, Today, an older briefing or an
+// episode, the next thing is to hear it, so it floats Play: the hero chip scrolls away with the
+// page, and the button keeps the page's audio one press away from anywhere on it. Settings, Create
+// itself, offline and not found would only be cluttered by one; the side column carries Create on
+// wide screens everywhere. data-fab keeps room for the button while it shows. Play steps aside
+// while the bar holds the page's audio, as the bar is then its control and two controls for one
+// recording would compete: the player takes data-fab off, and the page gives the room back.
 const path = Astro.url.pathname.replace(/\/$/, "") || "/";
-const fab = fabFor({ today: destination === "today", path, playable: Boolean(audio && digestId) });
+const fab = fabFor({ path, playable: Boolean(audio && digestId) });
 ---
 
 <!doctype html>

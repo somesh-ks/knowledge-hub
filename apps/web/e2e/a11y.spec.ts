@@ -139,7 +139,7 @@ test.describe("axe, banners and live states", () => {
     const banner = page.locator('[data-banner="offline"]');
     await expect(banner).toBeVisible();
     await expect(banner.locator(".banner-body")).toContainText("Audio needs a connection.");
-    await expect(page.locator("[data-play-digest]")).toHaveAttribute("aria-disabled", "true");
+    await expect(page.locator(".hero [data-play-digest]")).toHaveAttribute("aria-disabled", "true");
     await expect(page.locator("[data-play-item]").first()).toBeHidden();
     expect(await violations(page)).toEqual([]);
     await context.setOffline(false);
@@ -166,7 +166,7 @@ test.describe("axe, banners and live states", () => {
         stories[1]?.setAttribute("data-state", "current");
         face(stories[1]?.querySelector("[data-play-item]"), "current", "Playing");
         face(stories[2]?.querySelector("[data-play-item]"), "preparing", "Loading");
-        face(document.querySelector("[data-play-digest]"), "current", "Playing");
+        face(document.querySelector(".hero [data-play-digest]"), "current", "Playing");
       });
       // Colours change over 200ms; contrast is measured on the settled page.
       await page.waitForTimeout(300);

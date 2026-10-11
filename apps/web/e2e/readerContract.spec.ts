@@ -25,7 +25,7 @@ const face = (chip: Locator) =>
 test.describe("what the player writes on a real page", () => {
   test("the briefing chip follows play, pause and resume", async ({ page }) => {
     await hydrated(page);
-    const chip = page.locator("[data-play-digest]");
+    const chip = page.locator(".hero [data-play-digest]");
     expect(await face(chip)).toEqual({
       state: "idle",
       playing: "false",
@@ -91,7 +91,7 @@ test.describe("what the player writes on a real page", () => {
     await expect(later.locator("[data-chip-label]")).toHaveText("0:03");
     await expect(stories.nth(5)).not.toHaveAttribute("data-state", /.*/);
     // The briefing's own chip tells the same story: paused, with the time that is left.
-    const briefing = page.locator("[data-play-digest]");
+    const briefing = page.locator(".hero [data-play-digest]");
     await expect(briefing).toHaveAttribute("data-state", "current");
     await expect(briefing.locator("[data-chip-label]")).toHaveText("1 min left");
   });
@@ -131,8 +131,8 @@ test.describe("what the player writes on a real page", () => {
     // the bottom navigation until the rebuilt player docks above it.
     await page.locator('a[href="/"]:visible').first().click();
     await expect(page).toHaveURL(/\/$/);
-    await expect(page.locator("[data-play-digest]")).toHaveAttribute("data-state", "current");
-    await expect(page.locator("[data-play-digest] [data-chip-label]")).toHaveText("Playing");
+    await expect(page.locator(".hero [data-play-digest]")).toHaveAttribute("data-state", "current");
+    await expect(page.locator(".hero [data-play-digest] [data-chip-label]")).toHaveText("Playing");
     await expect(page.locator('.story[data-state="current"]')).toHaveCount(1);
     await expect(page.locator('[data-play-item][data-state="current"]')).toHaveCount(1);
   });
@@ -143,7 +143,7 @@ test.describe("what the player writes on a real page", () => {
   }) => {
     await page.waitForLoadState("networkidle");
     await hydrated(page);
-    const chip = page.locator("[data-play-digest]");
+    const chip = page.locator(".hero [data-play-digest]");
     await context.setOffline(true);
     await page.evaluate(() => window.dispatchEvent(new Event("offline")));
     await expect(chip).toHaveAttribute("data-state", "unavailable");
@@ -246,7 +246,7 @@ test.describe("how the page reacts to those attributes", () => {
     });
     await expect(page.locator("[data-play-item]").first()).toBeHidden();
     await expect(page.locator(".story .source-link").first()).toBeVisible();
-    await expect(page.locator("[data-play-digest]")).toBeVisible();
+    await expect(page.locator(".hero [data-play-digest]")).toBeVisible();
   });
 
   test("an aria-disabled control swallows clicks before any other handler sees them", async ({

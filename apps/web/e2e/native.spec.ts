@@ -3,8 +3,8 @@ import { expect, hydrated, SILENT_DIGEST, test } from "./fixtures";
 
 /**
  * Behaviour that makes the phone layout feel like a native app: one floating button where its action
- * is the next thing to do (Create on Today and the Library, Play on an episode or an older briefing),
- * and the tab bar's press on the current tab.
+ * is the next thing to do (Create on the Library, Play on Today, a briefing or an episode), and the
+ * tab bar's press on the current tab.
  */
 
 /** Both floating buttons take their shape from .create-fab; Play adds .play-fab. */
@@ -51,17 +51,18 @@ async function serveNarration(page: Page): Promise<void> {
 }
 
 test.describe("the floating button", () => {
-  test("is Create on Today and the Library, Play on an episode or an older briefing, and absent elsewhere", async ({
+  test("is Create on the Library, Play on Today, a briefing or an episode, and absent elsewhere", async ({
     page,
   }, info) => {
     test.skip(info.project.name === "desktop", "the floating button is for phones");
-    // The latest briefing at its dated address is Today: the navigation marks it so.
-    for (const path of ["/", "/library", "/d/2026-10-07"]) {
-      await page.goto(path);
-      await expect(createFab(page), path).toBeVisible();
-      await expect(playFab(page), path).toHaveCount(0);
-    }
+    await page.goto("/library");
+    await expect(createFab(page)).toBeVisible();
+    await expect(playFab(page)).toHaveCount(0);
+    // Today and the latest briefing at its dated address, which the navigation marks as Today, play
+    // like any other briefing.
     for (const [path, noun] of [
+      ["/", "briefing"],
+      ["/d/2026-10-07", "briefing"],
       ["/d/2026-10-05", "briefing"],
       ["/d/2026-10-04-weekly", "briefing"],
       ["/e/ep-20261007-1930", "episode"],
