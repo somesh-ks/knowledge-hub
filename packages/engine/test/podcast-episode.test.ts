@@ -60,6 +60,21 @@ describe("the episode file", () => {
     expect(parseEpisodeFile(text.replace(/\n/g, "\r\n"))).toEqual(episode);
   });
 
+  it("keeps the hosts' names through the file format", async () => {
+    const hostNames = { a: "Zoë", b: "Owen" };
+    const episode = await buildEpisode({
+      root: ctx.root,
+      id: "ep-20261008-0913",
+      now: NOW,
+      request: { ...REQUEST, format: "discussion", host_names: hostNames },
+      stories: STORIES,
+      turns: TURNS,
+    });
+    const text = serializeEpisodeFile(episode);
+    expect(text).toContain("host_names:");
+    expect(parseEpisodeFile(text).request.host_names).toEqual(hostNames);
+  });
+
   it("reads as a script, with the sources listed after it", async () => {
     const episode = await buildEpisode({
       root: ctx.root,

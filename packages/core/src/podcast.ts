@@ -28,6 +28,11 @@ export const VoiceId = z.string().regex(VOICE_ID_PATTERN).nullable();
 /** A guard on the request's size, far above any topic list the app offers; the owner sets no limit. */
 export const PODCAST_MAX_TOPICS = 50;
 
+/** A host's spoken name: a letter, then letters, apostrophes or hyphens, 24 characters at most. */
+export const HOST_NAME_PATTERN = /^\p{L}[\p{L}'’-]{0,23}$/u;
+/** A host's name as a request carries it, trimmed first. hosts.ts only makes names that fit. */
+export const HostName = z.string().trim().regex(HOST_NAME_PATTERN);
+
 /**
  * The request as an episode file stores it: the fields, without the rules for a new request. An
  * episode made before a rule existed must keep parsing.
@@ -46,10 +51,18 @@ export const StoredPodcastRequest = z.object({
    * "custom", so a request made before the field existed reads as it always did.
    */
   audience: z.enum(PODCAST_AUDIENCES).optional(),
-  /** Speechify voice of the lead host (Ada). Absent or null means the engine's default. */
+  /** Speechify voice of the lead host, speaker "a". Absent or null means the engine's default. */
   voice_id: VoiceId.optional(),
-  /** Voice of the second host (Leo, discussion only). Absent or null means the default. */
+  /** Voice of the second host, speaker "b" (discussion only). Absent or null means the default. */
   voice_id_b: VoiceId.optional(),
+  /**
+   * The hosts' spoken names in a discussion: "a" the lead, "b" the second host. The site works them
+   * out from the voices' genders (hostNamesFor in hosts.ts) when it asks for an episode, because
+   * the engine cannot look voices up. Absent means the engine's gender-neutral pair. The engine
+   * stores the names a discussion was written with here; a readout stores none. Episodes made
+   * before the field existed have none and were written with Ada and Leo.
+   */
+  host_names: z.object({ a: HostName, b: HostName }).optional(),
 });
 
 /**

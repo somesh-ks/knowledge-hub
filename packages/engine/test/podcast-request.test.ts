@@ -1,4 +1,4 @@
-import { PodcastRequest, StoredPodcastRequest } from "@dispatch/core";
+import { PodcastCommand, PodcastRequest, StoredPodcastRequest } from "@dispatch/core";
 import { describe, expect, it } from "vitest";
 import { aimedChars, parseRequest, planPodcast, structureFor } from "../src/podcast/plan.js";
 import { InvalidRequestError } from "../src/podcast/types.js";
@@ -35,6 +35,41 @@ describe("voices and stored requests", () => {
     expect(StoredPodcastRequest.parse({ ...REQUEST, format: "headlines" }).format).toBe(
       "headlines",
     );
+  });
+});
+
+describe("host names", () => {
+  const discussion = { ...REQUEST, format: "discussion" as const };
+
+  it("accepts a pair of names, trimmed, with letters from any language", () => {
+    const parsed = PodcastRequest.parse({
+      ...discussion,
+      host_names: { a: " Nora ", b: "Mary-Jane" },
+    });
+    expect(parsed.host_names).toEqual({ a: "Nora", b: "Mary-Jane" });
+    expect(
+      PodcastRequest.parse({ ...discussion, host_names: { a: "Zoë", b: "O’Neil" } }).host_names,
+    ).toEqual({ a: "Zoë", b: "O’Neil" });
+  });
+
+  it.each([
+    ["a missing second name", { a: "Nora" }],
+    ["two words", { a: "Nora Jones", b: "Owen" }],
+    ["digits", { a: "R2D2", b: "Owen" }],
+    ["a leading hyphen", { a: "-Nora", b: "Owen" }],
+    ["25 letters", { a: "N".repeat(25), b: "Owen" }],
+    ["an empty name", { a: " ", b: "Owen" }],
+    ["a number", { a: 4, b: "Owen" }],
+    ["markup", { a: "<b>", b: "Owen" }],
+    ["a list", ["Nora", "Owen"]],
+  ])("rejects %s", (_name, hostNames) => {
+    expect(PodcastRequest.safeParse({ ...discussion, host_names: hostNames }).success).toBe(false);
+  });
+
+  it("still parses a request without names, and a create command keeps them", () => {
+    expect(StoredPodcastRequest.parse(discussion)).not.toHaveProperty("host_names");
+    const request = { ...discussion, host_names: { a: "Nora", b: "Owen" } };
+    expect(PodcastCommand.parse(request)).toEqual({ action: "create", request });
   });
 });
 

@@ -5,6 +5,7 @@
   "type": "module",
   "exports": {
     ".": "./src/index.ts",
+    "./hosts": "./src/hosts.ts",
     "./passphrase": "./src/passphrase.ts"
   },
   "dependencies": {
