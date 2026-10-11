@@ -27,18 +27,14 @@ const { model, provider } = await loadWriterView();
           <div class="daily-model">
             <div class="rows" data-models data-saved={model ?? ""} data-provider={provider}>
               <div class="settings-row">
-                <div class="settings-text">
-                  <label class="settings-label" for="daily-vendor">Provider</label>
-                </div>
-                <div class="daily-selects daily-selects-one">
-                  <span class="manage-select">
-                    <select class="manage-input" id="daily-vendor" name="vendor" autocomplete="off">
-                      <option value="anthropic" selected={provider === "anthropic"}>Anthropic</option>
-                      <option value="nebius" selected={provider === "nebius"}>Nebius</option>
-                    </select>
-                    <Icon name="chevronDown" />
-                  </span>
-                </div>
+                <label class="settings-label" for="daily-vendor">Provider</label>
+                <span class="manage-select value-select">
+                  <select class="manage-input" id="daily-vendor" name="vendor" autocomplete="off">
+                    <option value="anthropic" selected={provider === "anthropic"}>Anthropic</option>
+                    <option value="nebius" selected={provider === "nebius"}>Nebius</option>
+                  </select>
+                  <Icon name="chevronDown" />
+                </span>
               </div>
               <div class="settings-row">
                 <div class="settings-text">

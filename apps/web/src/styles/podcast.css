@@ -34,10 +34,6 @@
   .daily-selects:has(#weekly-day) {
     grid-template-columns: minmax(0, 2fr) minmax(0, 1.6fr) minmax(0, 1.4fr);
   }
-
-  .daily-panel .settings-row > .settings-choice {
-    flex-basis: calc(var(--settings-control-width) * 1.7);
-  }
 }
 
 .daily-model {
@@ -233,99 +229,120 @@
   padding-block-start: var(--space-1);
 }
 
-/* Off, the weekly podcast is one switch: its other rows wait until it is on, and the line under the
+/* Off, the weekly podcast is one switch: its other groups wait until it is on, and the line under the
    title says it is off in its next run's place, so the switch under it holds still. */
-.manage:has(#weekly-enabled:not(:checked))
-:is(.podcast-profile > .rows > :not(:first-child), [data-next]),
+.manage:has(#weekly-enabled:not(:checked)) :is(.podcast-profile > .podcast-section, [data-next]),
 .manage:not(:has(#weekly-enabled:not(:checked))) [data-off] {
   display: none;
 }
 
+/* The groups of a scheduled podcast, one under the other. Each group's name carries the space above
+   it (settings.css), so the groups are told apart by air and not by lines. */
 .podcast-profile {
   display: grid;
-  gap: var(--space-3);
 }
 
-/* A voice is a select with its sample chip after it. The chip is hidden until the voice has a sample. */
-.daily-selects.podcast-voice {
-  grid-template-columns: minmax(0, 1fr) auto;
+.podcast-enable {
+  padding-block-start: var(--space-2);
+}
+
+/* A quiet line under a group's name or its rows. */
+.podcast-hint {
+  padding-block-start: var(--space-2);
+}
+
+/* The topics are a wrapped row of filter chips, with the room a row of chips has above and below. */
+.podcast-topics {
+  padding-block: var(--space-3) var(--space-2);
+}
+
+/* A voice: its select, and after it a round button that plays the voice's sample. The button keeps its
+   room when the voice has no sample yet, so nothing moves when the list arrives. */
+.podcast-voice {
+  display: flex;
+  flex: 0 1 auto;
   align-items: center;
+  gap: var(--space-1);
+  min-width: 0;
+  max-inline-size: 70%;
 }
 
-.daily-selects.podcast-voice:not(:has([data-preview]:not([hidden]))) {
-  grid-template-columns: minmax(0, 1fr);
+.podcast-voice .value-select {
+  max-inline-size: none;
+  margin-inline-end: 0;
 }
 
-/* The sample chip shows what a press does next: play, or pause while the sample plays, when it
-   takes the filled face a playing chip has everywhere else. */
+.podcast-sample {
+  display: grid;
+  flex: none;
+  place-items: center;
+  inline-size: var(--size-touch);
+  block-size: var(--size-touch);
+  border-radius: var(--radius-round);
+  background: var(--color-accent-subtle);
+  color: var(--color-accent);
+  transition: background-color var(--duration-hover) var(--ease-hover);
+}
+
+.podcast-sample[hidden] {
+  display: grid;
+  visibility: hidden;
+}
+
+/* It shows what a press does next: play, or pause while the sample plays. */
 .podcast-sample[aria-pressed="true"] .sample-play,
 .podcast-sample:not([aria-pressed="true"]) .sample-pause {
   display: none;
 }
 
-.podcast-sample[aria-pressed="true"] {
-  border-color: transparent;
-  background: var(--chip-bg-current);
-}
-
-/* Topics: the label on its own line and the chips wrapping under it at every width, as a list of
-   names reads better across the row than squeezed beside its label. */
-.podcast-topics {
-  flex: 1 1 100%;
-}
-
-.podcast-topics-row {
-  align-items: flex-start;
-}
-
-.podcast-topics-scope {
-  display: flex;
-  flex-direction: column;
-  gap: var(--space-3);
-  align-items: flex-start;
-  flex: 1 1 auto;
-}
-
-@media (min-width: 40rem) {
-  .podcast-topics-scope {
-    flex-direction: row;
-    align-items: center;
-    justify-content: space-between;
-    flex-basis: calc(var(--settings-control-width) * 1.7);
+@media (hover: hover) and (pointer: fine) {
+  .podcast-sample:hover {
+    background: color-mix(in oklch, var(--color-accent) 16%, var(--color-accent-subtle));
   }
 }
 
-.podcast-chips {
-  display: flex;
-  flex-wrap: wrap;
-  gap: var(--space-2);
-  align-items: center;
+.podcast-sample:active {
+  background: color-mix(in oklch, var(--color-accent) 24%, var(--color-accent-subtle));
 }
 
-.podcast-chip {
-  display: inline-flex;
-  align-items: center;
+/* In a settings row the model field is the row's value too: its words at the end of the row, with no
+   outline, until it takes focus to be typed in. Then it is a field: a fill, and the text from the
+   start. */
+.settings-row:has(> .daily-combo) {
   padding-block: var(--space-1);
-  padding-inline: var(--space-3);
-  font-size: var(--font-size-label);
-  line-height: var(--font-leading-label);
+}
+
+.settings-row > .daily-combo {
+  flex: 0 1 min(22rem, 100%);
+  margin-inline-end: calc(var(--space-2) * -1);
+}
+
+.settings-row .daily-combo .manage-input {
+  border-color: transparent;
+  border-radius: var(--button-radius);
   font-weight: var(--font-weight-medium);
-  border-radius: var(--chip-radius);
-  background: var(--color-surface-sunken);
-  color: var(--color-on-surface);
-  border: var(--stroke-hairline) solid var(--color-border-hairline);
-  user-select: none;
+  text-align: end;
+  transition: background-color var(--duration-hover) var(--ease-hover);
 }
 
-.podcast-configure-btn {
-  display: inline-flex;
-  align-items: center;
-  gap: var(--space-1);
-  padding-block: var(--space-1);
-  padding-inline: var(--space-3);
-  font-size: var(--font-size-label);
-  text-decoration: none;
-  white-space: nowrap;
+.settings-row .daily-combo .manage-input:focus {
+  background: var(--color-surface-sunken);
+  text-align: start;
+}
+
+@media (hover: hover) and (pointer: fine) {
+  .settings-row .daily-combo .manage-select:hover > .manage-input:not([aria-invalid]) {
+    border-color: transparent;
+    background: var(--color-surface-sunken);
+  }
+}
+
+.settings-row .daily-combo .manage-input[data-pointer]:not([aria-expanded="true"]):focus-visible {
+  border-color: transparent;
+}
+
+.settings-row .daily-combo-toggle {
+  padding-inline-end: var(--space-2);
 }
 
 /* The filter and the typed id are drawn like the selects: an outline on the page's own surface.

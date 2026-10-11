@@ -66,7 +66,7 @@ export function installCreate(root: HTMLElement, onStart?: () => void): void {
 
   function sync(): void {
     if (topics.some((topic) => topic.checked)) say("topics");
-    // A discussion has two hosts, so it takes Leo's voice as well as Ada's.
+    // A discussion has two hosts, so it takes a second voice as well as the first.
     const discussion = new FormData(form).get("format") === "discussion";
     for (const voice of voiceRows) {
       if (voice.dataset.voice === "voice_b") voice.hidden = !discussion;

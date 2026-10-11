@@ -93,8 +93,10 @@
   --color-focus-gap: var(--color-surface);
 }
 
+/* Tonal: the accent's wash under accent words, with no outline. Quieter than the filled button and
+   still a button, which an outlined box on the page's own surface was not. */
 .btn-secondary {
-  border: var(--stroke-hairline) solid var(--color-border-hairline);
+  background: var(--color-accent-subtle);
   color: var(--color-accent);
 }
 
@@ -104,7 +106,7 @@
   }
 
   .btn-secondary:hover {
-    background: var(--color-accent-subtle);
+    background: color-mix(in oklch, var(--color-accent-subtle), var(--color-accent) 10%);
   }
 }
 
@@ -117,6 +119,13 @@
 .btn:active,
 .btn-secondary:active {
   background: color-mix(in oklch, var(--color-accent-subtle), var(--color-accent) 14%);
+}
+
+/* Fills are dropped in forced colours, so the tonal button keeps an edge of its own. */
+@media (forced-colors: active) {
+  .btn-secondary {
+    border: var(--stroke-hairline) solid ButtonText;
+  }
 }
 
 .btn,

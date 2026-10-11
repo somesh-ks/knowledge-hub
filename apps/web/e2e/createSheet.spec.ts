@@ -99,7 +99,7 @@ test.describe("Create as the primary action", () => {
   }, info) => {
     await openSheet(page);
     const head = await sheet(page).locator(".create-sheet-head").boundingBox();
-    const chip = sheet(page).locator(".create-chip:visible").first();
+    const chip = sheet(page).locator(".filter-chip:visible").first();
     await chip.scrollIntoViewIfNeeded();
     const box = await chip.boundingBox();
     if (!head || !box) throw new Error("the panel is not laid out");

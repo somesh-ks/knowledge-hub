@@ -129,7 +129,7 @@ test.describe("the profile pages", () => {
     // Nothing is saved in the fixtures, so the defaults show.
     await expect(page.locator("#daily-hour")).toHaveValue("7");
     await expect(page.locator("#daily-hour option:checked")).toHaveText("07:00");
-    await expect(page.getByText("Stockholm time")).toBeVisible();
+    await expect(page.locator("#daily-timezone")).toHaveValue("Europe/Stockholm");
     await expect(page.locator("#daily-cadence")).toHaveValue("2");
     await expect(page.getByRole("radio", { name: "Readout" })).toBeChecked();
     await expect(page.getByRole("radio", { name: "10 min", exact: true })).toBeChecked();
@@ -162,28 +162,28 @@ test.describe("the profile pages", () => {
     expect((await on.boundingBox())?.y).toBe(before?.y);
   });
 
-  test("Readout has one voice select, Discussion two, filled from the voice list", async ({
-    page,
-  }) => {
+  test("both voices are always there, filled from the voice list", async ({ page }) => {
     await open(page, "daily");
-    await expect(page.getByLabel("Voice (Ada)")).toBeVisible();
-    await expect(page.getByLabel("Voice (Ada)").locator("option")).toHaveText([
+    const first = page.getByLabel("Voice", { exact: true });
+    const second = page.getByLabel("Second voice", { exact: true });
+    await expect(first).toBeVisible();
+    await expect(first.locator("option")).toHaveText([
       "Default",
       // Each voice leads with the flag of its accent: en-US, en-US, en-GB.
       "\u{1F1FA}\u{1F1F8} Ada, female",
       "\u{1F1FA}\u{1F1F8} Leo, male",
       "\u{1F1EC}\u{1F1E7} Nora, female",
     ]);
-    await expect(page.locator("[data-voice-row=voice_b]")).toBeHidden();
+    // The second voice is for discussions, and is set whatever the type is now.
+    await expect(second).toBeVisible();
+    await expect(page.getByText("Joins in discussions")).toBeVisible();
     await page.getByRole("radio", { name: "Discussion" }).check();
-    await expect(page.getByText("Ada", { exact: true })).toBeVisible();
-    await expect(page.getByText("Leo", { exact: true })).toBeVisible();
-    await expect(page.locator("#daily-voice_b")).toBeVisible();
+    await expect(second).toBeVisible();
     await page.getByRole("radio", { name: "Readout" }).check();
-    await expect(page.locator("[data-voice-row=voice_b]")).toBeHidden();
+    await expect(second).toBeVisible();
   });
 
-  test("choosing a voice with a sample plays it through the site and shows its sample chip", async ({
+  test("choosing a voice with a sample plays it through the site and shows its play button", async ({
     page,
   }) => {
     await open(page, "daily");
@@ -194,18 +194,22 @@ test.describe("the profile pages", () => {
     await page.locator("#daily-voice").selectOption("voice-ada");
     await sample;
     await expect(play).toBeVisible();
-    await expect(play).toContainText("Sample");
+    await expect(play).toHaveAccessibleName("Play a sample of the voice");
     await page.locator("#daily-voice").selectOption("voice-leo");
     await expect(play).toBeHidden();
   });
 
-  test("Topics leads to Topics & Sources, where each topic's Scope says which podcasts hold it", async ({
+  test("the topics are chips, each one in the podcast or left out, and Topics & Sources is one tap away", async ({
     page,
   }) => {
     await open(page, "daily");
-    await expect(page.locator(".podcast-topics input")).toHaveCount(0);
-    const link = page.getByRole("link", { name: /^Topics/ });
-    await expect(link).toContainText("Each topic's Scope says whether it is in the daily podcast");
+    const chips = page.locator(".podcast-topics .filter-chip");
+    await expect(chips).toHaveText(["Design", "AI", "Technology", "Audio interfaces"]);
+    // The fixtures leave nothing out, so every topic is in.
+    for (const chip of await chips.all()) await expect(chip.locator("input")).toBeChecked();
+    // Only the owner's three and their own: general news plays in custom episodes alone.
+    await expect(page.locator(".podcast-topics").getByText("World")).toHaveCount(0);
+    const link = page.getByRole("link", { name: /^Topics & Sources/ });
     await expect(link).toHaveAttribute("href", "/settings/topics");
   });
 
@@ -272,6 +276,33 @@ test.describe("saving on its own", () => {
       .poll(() => scheduleSent(sent))
       .toEqual({ op: "schedule.set", weekly: { enabled: false, day: 5 } });
     await expect(toastText(page)).toHaveText(SAVED);
+  });
+
+  test("a topic chip puts the topics it stands for in or out of this podcast alone", async ({
+    page,
+  }) => {
+    const sent = await mockConfig(page);
+    await open(page, "daily");
+    await page.getByRole("checkbox", { name: "Audio interfaces" }).click({ force: true });
+    await expect
+      .poll(() => opsOf(sent))
+      .toContainEqual({
+        op: "topic.scope",
+        ids: ["audio_interfaces"],
+        daily: false,
+      });
+    await expect(toastText(page)).toHaveText(SAVED);
+    // The weekly podcast has its own list: this chip said nothing of it.
+    expect(opsOf(sent).some((op) => "weekly" in op)).toBe(false);
+    // Saved is the new starting point: ticking it again is a change again.
+    await page.getByRole("checkbox", { name: "Audio interfaces" }).click({ force: true });
+    await expect
+      .poll(() => opsOf(sent).at(-1))
+      .toEqual({
+        op: "topic.scope",
+        ids: ["audio_interfaces"],
+        daily: true,
+      });
   });
 
   test("says the time could not be changed when the token may not write variables", async ({

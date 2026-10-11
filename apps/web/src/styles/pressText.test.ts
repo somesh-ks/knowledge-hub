@@ -21,7 +21,7 @@ const LABEL_CONTROLS = [
   "source-main",
   "settings-segment",
   "segmented",
-  "create-chip",
+  "filter-chip",
   "chip",
   "app-nav-item",
   "app-nav-create",

@@ -28,8 +28,8 @@ const topics = topicOptions(sections, allTopics, custom.skip_topics);
 const startFormat = custom.format;
 const startLength = custom.length_minutes;
 const VOICES = [
-  { name: "voice", saved: custom.voice_id, label: "Ada" },
-  { name: "voice_b", saved: custom.voice_id_b, label: "Leo" },
+  { name: "voice", saved: custom.voice_id, label: "Voice" },
+  { name: "voice_b", saved: custom.voice_id_b, label: "Second voice" },
 ] as const;
 
 // Every sentence the form's script can show lives here, in the markup, not in the script. The
@@ -74,10 +74,10 @@ const COPY = {
 
     <section class="create-group" aria-labelledby="create-topics-label">
       <h2 class="section-head" id="create-topics-label">Topics</h2>
-      <fieldset class="create-chips" aria-labelledby="create-topics-label">
+      <fieldset class="filter-chips" aria-labelledby="create-topics-label">
         {
           topics.map((topic) => (
-            <label class="create-chip">
+            <label class="filter-chip">
               <input
                 type="checkbox"
                 name="topic"
@@ -86,7 +86,7 @@ const COPY = {
                 data-presets={topic.presets.join(" ")}
                 checked={topic.presets.includes(DEFAULTS.audience)}
               />
-              <Icon name="check" class="create-chip-check" />
+              <Icon name="check" class="filter-chip-check" />
               <span>{topic.label}</span>
             </label>
           ))
@@ -125,10 +125,10 @@ const COPY = {
       </fieldset>
     </section>
 
-    {/* Ada reads a readout alone; a discussion adds Leo. The options come from /api/voices when the
+    {/* A readout has one voice; a discussion adds a second. The options come from /api/voices when the
          panel opens, so the markup carries only the default and the saved voice. */}
     <section class="create-group" aria-labelledby="create-voice-label">
-      <h2 class="section-head" id="create-voice-label">Voice</h2>
+      <h2 class="section-head" id="create-voice-label">Voices</h2>
       <div class="create-voices">
         {
           VOICES.map((voice, index) => (
@@ -140,7 +140,7 @@ const COPY = {
                   id={`create-${voice.name}`}
                   name={voice.name}
                   data-saved={voice.saved ?? ""}
-                  aria-label={`Voice (${voice.label})`}
+                  aria-label={voice.label}
                   autocomplete="off"
                 >
                   <option value="">Default</option>

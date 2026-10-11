@@ -97,6 +97,18 @@
   outline: none;
 }
 
+/* A group's name: small and in the accent, over its rows, as a settings list names its groups. The
+   page's own title is the one large thing on it. More air above than below: it belongs to its rows. */
+:is(.settings-view, .manage) .section-head {
+  padding-block: var(--space-8) var(--space-1);
+  font-family: var(--font-ui);
+  font-size: var(--font-size-label);
+  font-weight: var(--font-weight-medium);
+  letter-spacing: var(--font-tracking-caption);
+  line-height: var(--font-leading-label);
+  color: var(--color-accent);
+}
+
 /* The first group sits closer to the page title than the groups sit to each other. */
 .settings-view > section:first-of-type .section-head {
   padding-block-start: var(--space-6);
@@ -243,7 +255,34 @@
 }
 
 .settings-segment:has(input:checked) {
-  color: var(--color-on-surface);
+  color: var(--color-accent);
+}
+
+/* The check comes in beside the words of the chosen segment. The words stay centred in their column,
+   so the check takes room only inside the segment and no neighbour moves. */
+.settings-segment > span {
+  display: inline-flex;
+  align-items: center;
+}
+
+.settings-segment > span::before {
+  content: "";
+  flex: none;
+  inline-size: 0;
+  block-size: var(--space-4);
+  background: currentColor;
+  mask: var(--check-bold-mask) center / contain no-repeat;
+  opacity: 0;
+  transition:
+    inline-size var(--duration-enter) var(--ease-out),
+    margin-inline-end var(--duration-enter) var(--ease-out),
+    opacity var(--duration-state) var(--ease-out);
+}
+
+.settings-segment:has(input:checked) > span::before {
+  inline-size: var(--space-4);
+  margin-inline-end: var(--space-1);
+  opacity: 1;
 }
 
 /*
@@ -298,9 +337,9 @@
   inset-inline-start: var(--segmented-padding);
   width: calc((100% - var(--segmented-padding) * 2) / var(--seg-n));
   border-radius: var(--segmented-segment-radius);
-  background: var(--segmented-selected-bg);
-  /* The control boundary colour, 3:1 against the track: the choice is seen, not only coloured. */
-  box-shadow: 0 0 0 var(--stroke-hairline) var(--color-border-control);
+  /* The choice is tonal, not outlined: the accent's wash, the accent's words and a check, so it is a
+     shape and a colour and never a colour alone. */
+  background: var(--color-accent-subtle);
   opacity: 0;
   pointer-events: none;
   transform: translateX(calc(var(--seg-i) * 100%));
@@ -493,7 +532,7 @@
 /* ------------------------------------------------------------------ hover and pressed */
 
 @media (hover: hover) and (pointer: fine) {
-  .settings-segment:hover {
+  .settings-segment:not(:has(input:checked)):hover {
     color: var(--color-on-surface);
   }
 
@@ -558,9 +597,10 @@
     transition-property: background-color, opacity;
   }
 
-  /* The segmented thumb jumps to the chosen segment. */
+  /* The segmented thumb jumps to the chosen segment, and its check appears in place. */
   .settings-choice::before,
-  .settings-choice:is(:focus-within, :has(.settings-segment:active))::before {
+  .settings-choice:is(:focus-within, :has(.settings-segment:active))::before,
+  .settings-segment > span::before {
     transition: none;
   }
 }
@@ -628,6 +668,75 @@
     --range-fill-color: GrayText;
     --range-track-color: GrayText;
     opacity: 1;
+  }
+}
+
+/* ------------------------------------------------------------------ a select as the row's value */
+
+/*
+ * In a settings row a select is the row's value, as a list preference reads on a phone: the words
+ * and a chevron, with no outline and no box. It is as wide as its words, sits at the end of the row,
+ * keeps a full-size target and shows its extent as a fill under a pointer and while it is open.
+ * Markup: <span class="manage-select value-select"><select class="manage-input">..</select><svg/></span>
+ */
+/* A row whose value is a select is as tall as the select's target and no taller. */
+.settings-row:has(> :is(.value-select, .podcast-voice)) {
+  padding-block: var(--space-1);
+}
+
+.settings-row .value-select {
+  flex: 0 1 auto;
+  min-width: 0;
+  max-inline-size: 70%;
+  /* The select reaches the chevron's side: the row's edge is where the chevron's ink ends. */
+  margin-inline-end: calc(var(--space-2) * -1);
+}
+
+.settings-row .value-select > select.manage-input {
+  inline-size: auto;
+  min-inline-size: 0;
+  max-inline-size: 100%;
+  justify-content: flex-end;
+  padding-inline: var(--space-3) calc(var(--space-2) + var(--size-icon) + var(--space-1));
+  border-color: transparent;
+  border-radius: var(--button-radius);
+  color: var(--color-on-surface);
+  font-weight: var(--font-weight-medium);
+  text-align: end;
+  transition: background-color var(--duration-hover) var(--ease-hover);
+}
+
+.settings-row .value-select > .icon {
+  inset-inline-end: var(--space-2);
+}
+
+.settings-row .value-select > select.manage-input:focus-visible {
+  border-color: transparent;
+}
+
+@media (hover: hover) and (pointer: fine) {
+  .settings-row .value-select > select.manage-input:hover {
+    border-color: transparent;
+    background: var(--color-surface-sunken);
+  }
+}
+
+.settings-row .value-select > select.manage-input:active {
+  background: color-mix(in oklch, var(--color-on-surface) 8%, transparent);
+}
+
+/* Open, it holds its fill and shows the ring the keyboard's focus does. */
+.settings-row .value-select > select.manage-input:open {
+  border-color: transparent;
+  background: var(--color-surface-sunken);
+}
+
+@supports (appearance: base-select) {
+  /* The list opens under the value and grows toward the start of the row, so it never runs past the
+     edge the value sits against. */
+  .settings-row .value-select > select::picker(select) {
+    position-area: block-end span-inline-start;
+    min-inline-size: max(anchor-size(self-inline), 12rem);
   }
 }
 

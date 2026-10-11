@@ -37,7 +37,7 @@ async function mockPodcast(page: Page, status: number, body: unknown): Promise<M
   return mock;
 }
 
-const chip = (page: Page, name: string) => page.locator(".create-chip:visible", { hasText: name });
+const chip = (page: Page, name: string) => page.locator(".filter-chip:visible", { hasText: name });
 const segment = (page: Page, name: string) => page.locator(".settings-segment", { hasText: name });
 const dialog = (page: Page) => page.getByRole("dialog", { name: "Enter the passphrase" });
 const submit = (page: Page) => page.locator("[data-submit]");
@@ -99,13 +99,13 @@ test.describe("the Create page", () => {
       "Topics",
       "Length",
       "Format",
-      "Voice",
+      "Voices",
       "Look back",
       "Tone",
       "Title (optional)",
     ]);
     // One list for both audiences, then the owner's own.
-    await expect(page.locator(".create-chip:visible")).toHaveText([
+    await expect(page.locator(".filter-chip:visible")).toHaveText([
       "Design",
       "AI",
       "Technology",
@@ -171,7 +171,7 @@ test.describe("the Create page", () => {
   test("has no limit on topics: every chip can be chosen", async ({ page }) => {
     await openCreate(page);
     await clearTopics(page);
-    const chips = page.locator(".create-chip:visible");
+    const chips = page.locator(".filter-chip:visible");
     const total = await chips.count();
     for (let index = 0; index < total; index += 1) await chips.nth(index).click();
     await expect(page.locator('input[name="topic"]:checked')).toHaveCount(total);
@@ -180,7 +180,7 @@ test.describe("the Create page", () => {
 
   test("Top picks is not a chip", async ({ page }) => {
     await openCreate(page);
-    await expect(page.locator(".create-chip", { hasText: "Top picks" })).toHaveCount(0);
+    await expect(page.locator(".filter-chip", { hasText: "Top picks" })).toHaveCount(0);
     await expect(page.locator('input[name="topic"][value="top"]')).toHaveCount(0);
   });
 
@@ -193,7 +193,7 @@ test.describe("the Create page", () => {
     await chip(page, "Audio interfaces").click();
     await segment(page, "General").click();
     // Every chip stays; the selection is General's preset, so the owner's own topic is unticked.
-    await expect(page.locator(".create-chip:visible")).toHaveCount(9);
+    await expect(page.locator(".filter-chip:visible")).toHaveCount(9);
     await expect(page.locator('input[name="topic"][value="audio_interfaces"]')).not.toBeChecked();
     await expect(page.locator('input[name="topic"]:checked')).toHaveCount(6);
     await page.locator("[data-submit]").click();
@@ -210,8 +210,8 @@ test.describe("the Create page", () => {
     page,
   }) => {
     await openCreate(page);
-    const ticked = page.locator(".create-chip:has(input:checked)");
-    const all = page.locator(".create-chip:visible");
+    const ticked = page.locator(".filter-chip:has(input:checked)");
+    const all = page.locator(".filter-chip:visible");
     await expect(ticked).toHaveText(["Design", "AI", "Technology"]);
     await segment(page, "General").click();
     await expect(all).toHaveCount(9);
@@ -485,13 +485,13 @@ test.describe("the Create page", () => {
 });
 
 test.describe("the Create panel's voices", () => {
-  test("a readout has one voice select, a discussion adds Leo's, and both are sent", async ({
+  test("a readout has one voice select, a discussion adds a second, and both are sent", async ({
     page,
   }) => {
     const mock = await mockPodcast(page, 202, { status: 202, run_id: 7, started_at: "now" });
     await openCreate(page);
-    const ada = page.getByLabel("Voice (Ada)");
-    const leo = page.getByLabel("Voice (Leo)");
+    const ada = page.getByLabel("Voice", { exact: true });
+    const leo = page.getByLabel("Second voice");
     await expect(ada.locator("option")).toHaveText([
       "Default",
       // Each voice leads with the flag of its accent: en-US, en-US, en-GB.
@@ -518,7 +518,7 @@ test.describe("the Create panel's voices", () => {
   test("a readout sends no second voice", async ({ page }) => {
     const mock = await mockPodcast(page, 202, { status: 202, run_id: 7, started_at: "now" });
     await openCreate(page);
-    await page.getByLabel("Voice (Ada)").selectOption("voice-nora");
+    await page.getByLabel("Voice", { exact: true }).selectOption("voice-nora");
     await openDialog(page);
     await confirm(page);
     await expect.poll(() => mock.bodies.length).toBe(1);

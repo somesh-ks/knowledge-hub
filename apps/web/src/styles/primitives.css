@@ -314,6 +314,137 @@
   color: var(--color-accent-pressed);
 }
 
+/* ------------------------------------------------------------------ filter chips */
+
+/*
+ * A chip you can tick, or one of a few you can choose between (Create's topics, a podcast's topics in
+ * Settings). Outlined and quiet until chosen; chosen, it is tonal with a check, so the choice is a
+ * shape and not only a colour. Markup: <fieldset class="filter-chips"> of
+ *   <label class="filter-chip"><input type="checkbox"><svg class="filter-chip-check"/><span>Design</span></label>
+ */
+
+.filter-chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-2);
+  min-width: 0;
+  margin: 0;
+  padding: 0;
+  border: 0;
+}
+
+.filter-chip {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-1);
+  height: var(--chip-height);
+  /* The check takes no room of its own, so a chip keeps one width as it ticks and its neighbours
+     never move: the words sit centred with half the check's room on each side, and slide over by
+     that half as the check appears. */
+  padding-inline: calc(var(--space-3) + var(--space-2));
+  border: var(--stroke-hairline) solid var(--color-border-hairline);
+  border-radius: var(--chip-radius);
+  color: var(--color-on-surface);
+  font-size: var(--font-size-label);
+  font-weight: var(--font-weight-medium);
+  line-height: var(--font-leading-label);
+  white-space: nowrap;
+  cursor: pointer;
+  transition:
+    transform var(--duration-press-out) var(--ease-out),
+    background-color var(--duration-hover) var(--ease-hover),
+    border-color var(--duration-hover) var(--ease-hover),
+    color var(--duration-hover) var(--ease-hover);
+}
+
+/* The chip is 36px tall; its target is 44px, measured from the outside of its border. */
+.filter-chip::after {
+  content: "";
+  position: absolute;
+  inset-inline: 0;
+  inset-block: calc((var(--size-touch) - var(--chip-height)) / -2 - var(--stroke-hairline));
+}
+
+/* The checkbox is the chip's whole face and invisible: the chip draws every state. */
+.filter-chip > input {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  margin: 0;
+  appearance: none;
+  opacity: 0;
+  cursor: inherit;
+}
+
+.filter-chip > .icon {
+  position: absolute;
+  inset-block: 0;
+  inset-inline-start: var(--space-2);
+  width: var(--space-4);
+  height: var(--space-4);
+  margin-block: auto;
+  opacity: 0;
+  transform: scale(0.95);
+  pointer-events: none;
+  transition:
+    opacity var(--duration-state) var(--ease-out),
+    transform var(--duration-enter) var(--ease-out);
+}
+
+.filter-chip > span {
+  transition: transform var(--duration-enter) var(--ease-out);
+}
+
+.filter-chip:has(input:checked) {
+  border-color: transparent;
+  background: var(--color-accent-subtle);
+  color: var(--color-accent);
+}
+
+.filter-chip:has(input:checked) > .icon {
+  opacity: 1;
+  transform: none;
+}
+
+.filter-chip:has(input:checked) > span {
+  transform: translateX(var(--space-2));
+}
+
+.filter-chip:has(input:focus-visible) {
+  outline: var(--stroke-ring) solid var(--color-focus-ring);
+  outline-offset: var(--stroke-ring-gap);
+}
+
+.filter-chip:has(input:disabled) {
+  opacity: var(--opacity-disabled);
+  cursor: default;
+}
+
+@media (hover: hover) and (pointer: fine) {
+  .filter-chip:not(:has(input:checked, input:disabled)):hover {
+    background: var(--color-surface-sunken);
+  }
+}
+
+/* Held down, the chip darkens at once: a layer over whatever it wears, the checked tint or the hover
+   fill, so the words never change size. It comes after the hover rule and outweighs the checked one,
+   whose background shorthand would otherwise clear it. */
+.filter-chip:not(:has(input:disabled)):active {
+  background-image: linear-gradient(
+    color-mix(in oklch, var(--color-on-surface) 10%, transparent),
+    color-mix(in oklch, var(--color-on-surface) 10%, transparent)
+  );
+}
+
+@media (forced-colors: active) {
+  .filter-chip:has(input:checked) {
+    border-color: Highlight;
+    color: Highlight;
+  }
+}
+
 /* ------------------------------------------------------------------ the open list of a field */
 
 /*

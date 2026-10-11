@@ -50,22 +50,12 @@ export function scheduleOp(was: FieldValues, now: FieldValues): ConfigOp | null 
 }
 
 /**
- * The voice rows that follow the type, and the voices. The voice list is loaded here, once the page
- * is up, and fills every voice select; a failed load leaves the default and the saved voice, which is
- * all a person needs to keep what they have.
+ * The voices. The voice list is loaded here, once the page is up, and fills every voice select; a
+ * failed load leaves the default and the saved voice, which is all a person needs to keep what they
+ * have. Both voices are always on the page: the second is for discussions, and is set whatever the
+ * type is now.
  */
 export function mountProfiles(root: HTMLElement, changed: () => void): void {
-  const syncType = (profile: HTMLElement): void => {
-    const format = profile.querySelector<HTMLInputElement>('input[data-f$=".format"]:checked');
-    const discussion = format?.value === "discussion";
-    const rows = profile.querySelectorAll<HTMLElement>("[data-voice-row]");
-    rows[1]?.toggleAttribute("hidden", !discussion);
-    rows.forEach((row) => {
-      const label = row.querySelector<HTMLElement>("[data-voice-label]");
-      const name = label?.dataset.name ?? "";
-      if (label) label.textContent = discussion ? name : `Voice (${name})`;
-    });
-  };
   let voices: Voice[] = [];
   /** The voices Default stands for, from /api/voices; null until the list is in. */
   let defaults: VoiceDefaults | null = null;
@@ -121,8 +111,6 @@ export function mountProfiles(root: HTMLElement, changed: () => void): void {
 
   root.addEventListener("change", (event) => {
     const target = event.target as HTMLElement;
-    const profile = target.closest<HTMLElement>("[data-profile]");
-    if (profile && target.matches('input[data-f$=".format"]')) syncType(profile);
     // Choosing a voice plays it, as a phone's ringtone list does, so the list can be heard one
     // voice at a time; the chip plays it again or stops it.
     if (target instanceof HTMLSelectElement && target.closest(".podcast-voice")) {

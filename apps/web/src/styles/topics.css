@@ -933,13 +933,6 @@ a.source-name:focus-visible {
   line-height: var(--font-leading-label);
 }
 
-/* On a topic's page the scope sits at its row's end from 40rem, as a select does. */
-@media (min-width: 40rem) {
-  .topic-scope .multiselect {
-    min-inline-size: 16rem;
-  }
-}
-
 /* ------------------------------------------------------------------ suggested sources */
 
 .topic-suggested-section {

@@ -188,8 +188,27 @@ export async function mount(root: HTMLElement): Promise<void> {
     return out;
   };
 
+  /** The topic chips: each puts the topics it stands for in or out of this podcast (topic.scope). */
+  const scopeBoxes = root.querySelectorAll<HTMLInputElement>("input[data-scope]");
+  for (const box of scopeBoxes) box.dataset.was = String(box.checked);
+  const scopeChanges = (): void => {
+    for (const box of scopeBoxes) {
+      const profile = box.dataset.scope === "weekly" ? "weekly" : "daily";
+      const ids = (box.dataset.scopeIds ?? "").split(" ").filter(Boolean);
+      const key = `scope:${profile}:${ids.join(",")}`;
+      if (ids.length === 0 || String(box.checked) === box.dataset.was) changes.delete(key);
+      else
+        changes.set(key, {
+          op: { op: "topic.scope", ids, [profile]: box.checked },
+          el: box,
+          now: String(box.checked),
+        });
+    }
+  };
+
   /** Records what the controls now differ by. `save` is false while a typed id is still being typed. */
   const update = (save = true): void => {
+    scopeChanges();
     const now = fields();
     const op = ops?.(JSON.parse(box.dataset.was ?? "{}") as FieldValues, now);
     if (op) changes.set("schedule", { op, el: box, now: JSON.stringify(now) });
