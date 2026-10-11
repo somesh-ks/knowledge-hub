@@ -47,10 +47,12 @@ test.describe("keyboard", () => {
       ...(wide ? [] : ["button: Play this briefing, 1 min"]),
       "button: More actions",
       "button: Play the briefing, 1 min",
+      // A story is its headline link, then its play chip; the publisher beside the chip is only
+      // attribution, out of the tab order and hidden from screen readers.
+      "a: Springlet 2.0 retargets springs mid-flight, so interrupted drawers keep their velocity (opens in a new tab)",
       "button: Play from here, 0:03: Springlet 2.0 retargets springs mid-flight, so interrupted drawers keep their velocity",
-      "a: Springlet Blog (opens in a new tab)",
+      "a: A dither shader that stays sharp at any pixel density (opens in a new tab)",
       "button: Play from here, 0:03: A dither shader that stays sharp at any pixel density",
-      "a: Fathom Notes (opens in a new tab)",
     ]);
   });
 
@@ -68,10 +70,10 @@ test.describe("keyboard", () => {
 
   test("every interactive control shows a two layer focus ring", async ({ page }) => {
     await page.goto("/");
-    // A control taken out of the tab order (the hero cover's pointer-only play button) is never
-    // reached by keyboard, so it has no ring to show.
+    // A control taken out of the tab order (the hero cover's pointer-only play button, a story's
+    // publisher link) is never reached by keyboard, so it has no ring to show.
     const controls = await page
-      .locator('a[href], button:not([disabled]):not([tabindex="-1"]), summary')
+      .locator('a[href]:not([tabindex="-1"]), button:not([disabled]):not([tabindex="-1"]), summary')
       .all();
     expect(controls.length).toBeGreaterThan(20);
     let checked = 0;
