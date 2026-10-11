@@ -262,6 +262,45 @@ describe("previewSource", () => {
     expect(error.code).toBe("timeout");
   });
 
+  it("fetches the page and the feed once each", async () => {
+    const { fake, deps } = http({
+      "https://news.example.com/": PAGE,
+      "https://news.example.com/feed.xml": rss("Example Feed", [1, 5]),
+    });
+    await previewSource("https://news.example.com/", deps);
+    expect(fake.calls).toEqual(["https://news.example.com/", "https://news.example.com/feed.xml"]);
+  });
+
+  it("fetches a feed address once, with the home page and favicon side by side", async () => {
+    let inFlight = 0;
+    let most = 0;
+    const slow = (body: string) => async (): Promise<Response> => {
+      inFlight += 1;
+      most = Math.max(most, inFlight);
+      await new Promise((resolve) => setTimeout(resolve, 5));
+      inFlight -= 1;
+      return new Response(body, { status: 200 });
+    };
+    const { fake, deps } = http({
+      "https://news.example.com/feed.xml": rss("Direct", [2]),
+      "https://news.example.com/": slow("<html><head><title>Home</title></head></html>"),
+      "https://news.example.com/favicon.ico": slow("ico"),
+    });
+    const preview = await previewSource("https://news.example.com/feed.xml", deps);
+    expect(preview.favicon_url).toBe("https://news.example.com/favicon.ico");
+    expect(fake.calls.filter((call) => call.endsWith("/feed.xml"))).toHaveLength(1);
+    expect(fake.calls.filter((call) => call === "https://news.example.com/")).toHaveLength(1);
+    expect(most).toBe(2);
+  });
+
+  it("does not wait for a failed page twice", async () => {
+    const { fake, deps } = http({ "https://news.example.com/": { status: 500 } });
+    await expect(previewSource("https://news.example.com/", deps)).rejects.toBeInstanceOf(
+      PreviewError,
+    );
+    expect(fake.calls.filter((call) => call === "https://news.example.com/")).toHaveLength(1);
+  });
+
   it("never touches the network when given a fake client", async () => {
     const { fake, deps } = http({
       "https://news.example.com/": PAGE,

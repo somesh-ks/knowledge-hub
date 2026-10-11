@@ -261,6 +261,28 @@ export function limitHttp(inner: HttpClient): HttpClient {
   };
 }
 
+/**
+ * Wraps a client so each address is fetched once: a second ask for the same address gets the
+ * first answer (or failure), even while it is still on its way. A preview and the feed discovery
+ * it runs read the same page and feed, so this halves their requests. Only addresses the inner
+ * client (and whatever guard it carries) already fetched are answered from memory.
+ */
+export function onceHttp(inner: HttpClient): HttpClient {
+  const seen = new Map<string, Promise<TextResponse>>();
+  return {
+    fetchText: (url, options) => {
+      let pending = seen.get(url);
+      if (pending === undefined) {
+        pending = inner.fetchText(url, options);
+        seen.set(url, pending);
+      }
+      return pending;
+    },
+    getJson: (url, options) => inner.getJson(url, options),
+    postJson: (url, body, options) => inner.postJson(url, body, options),
+  };
+}
+
 export interface PreviewDeps {
   http: HttpClient;
   now?: Date | undefined;
@@ -273,7 +295,7 @@ function isTimeout(error: unknown): boolean {
 
 export async function previewSource(url: string, deps: PreviewDeps): Promise<SourcePreview> {
   const now = deps.now ?? new Date();
-  const http = limitHttp(deps.http);
+  const http = onceHttp(limitHttp(deps.http));
   const discover = { http, signal: deps.signal };
 
   let page: TextResponse | undefined;
@@ -309,40 +331,34 @@ export async function previewSource(url: string, deps: PreviewDeps): Promise<Sou
   const origin = new URL(base).origin;
 
   // Page meta comes from the page; a feed address has none, so read the site's home page instead.
-  let meta: PageMeta | undefined;
-  if (page && !pageIsFeed) {
-    meta = parsePageMeta(page.text, base);
-  } else if (pageIsFeed) {
-    try {
-      const home = await http.fetchText(`${origin}/`, { signal: deps.signal });
-      meta = parsePageMeta(home.text, home.url);
-    } catch {
-      meta = undefined;
-    }
-  }
-
-  let feed: ParsedFeed | undefined;
-  if (source.feed_url) {
-    try {
-      const text =
-        pageIsFeed && page
-          ? page.text
-          : (await http.fetchText(source.feed_url, { signal: deps.signal })).text;
-      feed = parseFeed(text, source.feed_url);
-    } catch {
-      feed = undefined;
-    }
-  }
-
-  let favicon = meta?.iconUrl ?? null;
-  if (!favicon) {
-    try {
-      await http.fetchText(`${origin}/favicon.ico`, { signal: deps.signal });
-      favicon = `${origin}/favicon.ico`;
-    } catch {
-      favicon = null;
-    }
-  }
+  const pageMeta = page && !pageIsFeed ? parsePageMeta(page.text, base) : undefined;
+  const feedUrl = source.feed_url;
+  // The home page, the feed and the favicon do not wait on each other. The favicon is looked for
+  // only when the page names no icon; for a feed address, beside the home page that may name one.
+  const [homeMeta, feed, faviconFound] = await Promise.all([
+    pageIsFeed
+      ? http
+          .fetchText(`${origin}/`, { signal: deps.signal })
+          .then((home) => parsePageMeta(home.text, home.url))
+          .catch(() => undefined)
+      : Promise.resolve(undefined),
+    feedUrl
+      ? (pageIsFeed && page
+          ? Promise.resolve(page.text)
+          : http.fetchText(feedUrl, { signal: deps.signal }).then((response) => response.text)
+        )
+          .then((text): ParsedFeed | undefined => parseFeed(text, feedUrl))
+          .catch(() => undefined)
+      : Promise.resolve(undefined),
+    pageMeta?.iconUrl
+      ? Promise.resolve(false)
+      : http
+          .fetchText(`${origin}/favicon.ico`, { signal: deps.signal })
+          .then(() => true)
+          .catch(() => false),
+  ]);
+  const meta: PageMeta | undefined = pageMeta ?? homeMeta;
+  const favicon = meta?.iconUrl ?? (faviconFound ? `${origin}/favicon.ico` : null);
 
   const host = hostLabel(url);
   const name = feed?.title?.trim() || meta?.siteName || registrableName(host);
