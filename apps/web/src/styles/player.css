@@ -2292,6 +2292,15 @@
   transition: background-color var(--duration-press-in) var(--ease-out);
 }
 
+/* A story with no place in the audio yet: a plain row, with no mark to hold room for. */
+.story-row[data-static] {
+  grid-template-columns: minmax(0, 1fr) auto;
+}
+
+.story-row[data-static] .story-row-mark {
+  display: none;
+}
+
 .story-row-title {
   display: -webkit-box;
   overflow: hidden;
