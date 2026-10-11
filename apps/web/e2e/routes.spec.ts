@@ -44,7 +44,8 @@ test.describe("routes and headers", () => {
     await expect(page.getByRole("link", { name: "Back" })).toHaveAttribute("href", "/library");
     // Today has none.
     await page.goto("/");
-    await expect(page.getByRole("link", { name: "Back" })).toHaveCount(0);
+    // Exact: a headline is a link too, and one may hold the word.
+    await expect(page.getByRole("link", { name: "Back", exact: true })).toHaveCount(0);
   });
 
   test("the offline banner shows once and clears when the connection returns", async ({ page }) => {

@@ -126,7 +126,9 @@ function watchSections({ keepHeld = false } = {}): void {
   // An empty element after everything else on the page (DigestView.astro).
   const end = document.querySelector<HTMLElement>("[data-page-end]");
   const strip = document.querySelector<HTMLElement>("[data-section-tabs]");
-  // The reading line: just under the sticky strip, or near the top where the strip is not shown.
+  // The reading line: a heading's padding under the sticky strip (or the top, where the strip is
+  // not shown), which is where a jump to a section puts its heading's words. A jump made while the
+  // app bar shows can leave the heading lower once the bar slides away, still within this line.
   const chrome = strip?.offsetParent ? stickyTop() + strip.offsetHeight : 0;
   if (strip?.offsetParent) watchStuck(strip);
   const inView = new Set<Element>();
@@ -155,7 +157,7 @@ function watchSections({ keepHeld = false } = {}): void {
       }
       follow();
     },
-    { rootMargin: `-${Math.round(chrome) + 24}px 0px -50% 0px` },
+    { rootMargin: `-${Math.round(chrome) + 48}px 0px -50% 0px` },
   );
   // The end element has no height, so it counts as all on screen whenever it is on screen at all.
   endObserver = new IntersectionObserver(

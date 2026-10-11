@@ -682,14 +682,14 @@ test.describe("the section tabs with the app bar hidden", () => {
     await expect
       .poll(async () => (await page.locator(".tabs").boundingBox())?.y ?? 99)
       .toBeLessThan(2);
-    // Research's heading 40px under the strip: the section above still crosses the reading line.
+    // Research's heading well under the strip: the section above still crosses the reading line.
     const placeUnderStrip = (gap: number) =>
       page.evaluate((room) => {
         const strip = document.querySelector(".tabs")?.getBoundingClientRect().bottom ?? 0;
         const top = document.querySelector("#c-research")?.getBoundingClientRect().top ?? 0;
         window.scrollBy({ top: top - strip - room, behavior: "instant" });
       }, gap);
-    await placeUnderStrip(48);
+    await placeUnderStrip(72);
     await expect(root).toHaveAttribute("data-bar-hidden", "");
     await expect(current).toHaveText("AI products");
     // Past the line, Research takes the mark: the line is measured from where the strip is now.
@@ -718,7 +718,7 @@ test.describe("earlier briefings", () => {
     const weekly = page.locator(".earlier .card", { hasText: "Weekly" });
     await expect(weekly).toHaveCount(1);
     await expect(weekly.locator(".card-title")).toHaveText("Sunday 4 October");
-    await expect(weekly.locator(".card-facts")).toHaveText("Weekly, 14 stories, 8 min");
+    await expect(weekly.locator(".card-facts")).toHaveText("Weekly · 14 stories · 8 min");
     await expect(page.locator(".earlier .cover[data-weekly]")).toHaveCount(1);
   });
 
