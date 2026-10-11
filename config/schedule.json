@@ -1,0 +1,25 @@
+{
+  "version": 1,
+  "hour": 7,
+  "cadence_days": 2,
+  "sections": null,
+  "format": "readout",
+  "length_minutes": 10,
+  "voice_id": null,
+  "voice_id_b": null,
+  "weekly": {
+    "enabled": true,
+    "day": 0,
+    "hour": 7,
+    "format": "readout",
+    "length_minutes": 15,
+    "voice_id": null,
+    "voice_id_b": null
+  },
+  "custom": {
+    "format": "readout",
+    "length_minutes": 5,
+    "voice_id": null,
+    "voice_id_b": null
+  }
+}
