@@ -167,6 +167,8 @@ export default function PlayerBar() {
   const store = getPlayerStore();
   const second = usePlayerSecond();
   const lineRef = useRef<HTMLDivElement>(null);
+  /** What last pressed the open button: a finger, a pen or a mouse. */
+  const pressedBy = useRef("");
 
   // The playhead goes straight to the line, whose fill and notch read it: React never renders at
   // frame rate, and the line holds only those two.
@@ -266,6 +268,15 @@ export default function PlayerBar() {
         onClick={(event) =>
           playerSheet.click({ t: event.timeStamp, fromPointer: event.detail > 0 })
         }
+        onPointerDown={(event) => {
+          pressedBy.current = event.pointerType;
+        }}
+        // A tap opens the page on the finger's lift, and focus moves into it. The mouse press a
+        // browser sends after a tap would then take focus back to this button, which a wide window
+        // keeps in reach under the open page, and the next Tab would start from nothing.
+        onMouseDown={(event) => {
+          if (pressedBy.current === "touch") event.preventDefault();
+        }}
       >
         <span className="player-thumb">
           {digest ? (
