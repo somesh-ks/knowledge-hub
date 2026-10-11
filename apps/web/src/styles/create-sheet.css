@@ -334,6 +334,16 @@ dialog.create-sheet .create-submit > .btn-primary {
     transform: none;
   }
 
+  /* The panel and its scrim fade where they stand, and the panel stays in the top layer until its
+     fade is done. The sheet durations drop to nothing here, which snapped the scrim and cut the
+     closing fade short; the state's duration keeps its time (tokens.css). */
+  dialog.create-sheet,
+  dialog.create-sheet[open],
+  dialog.create-sheet::backdrop,
+  dialog.create-sheet[open]::backdrop {
+    transition-duration: var(--duration-state);
+  }
+
   @starting-style {
     dialog.create-sheet[open] {
       transform: none;
