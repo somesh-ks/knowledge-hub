@@ -220,7 +220,8 @@
   margin: 0;
   padding: var(--segmented-padding);
   border: 0;
-  border-radius: var(--segmented-radius);
+  /* A pill with pill segments, as Create's choices and the player's segmented control are. */
+  border-radius: var(--radius-round);
   background: var(--color-surface-container);
 }
 
@@ -238,8 +239,8 @@
   /* With the track's padding this makes the control 48px tall, as tall as a select, and taller if
      the text grows. */
   min-height: calc(var(--segmented-height) - var(--segmented-padding) * 2);
-  border-radius: var(--segmented-segment-radius);
-  color: var(--color-on-surface-muted);
+  border-radius: var(--radius-round);
+  color: var(--color-on-surface);
   font-size: var(--font-size-label);
   font-weight: var(--font-weight-medium);
   line-height: var(--font-leading-label);
@@ -361,7 +362,7 @@
   inset-block: var(--segmented-padding);
   inset-inline-start: var(--segmented-padding);
   width: calc((100% - var(--segmented-padding) * 2) / var(--seg-n));
-  border-radius: var(--segmented-segment-radius);
+  border-radius: var(--radius-round);
   /* The choice is tonal, not outlined: the accent container, its own words and a check, so it is a
      shape and a colour and never a colour alone. */
   background: var(--color-accent-container);
