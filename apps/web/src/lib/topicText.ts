@@ -78,6 +78,24 @@ export function addTopicLabel(sources: number): string {
   return `Add topic and ${sources} ${sources === 1 ? "source" : "sources"}`;
 }
 
+/** What the panel's main button says on an edited topic's second step. */
+export function saveTopicLabel(sources: number): string {
+  if (sources <= 0) return "Save";
+  return `Save and add ${sources} ${sources === 1 ? "source" : "sources"}`;
+}
+
+/** Whether a topic's details differ from what was saved: its name, what counts, or its keywords. */
+export function topicChanged(
+  saved: { name: string; description: string; keywords: readonly string[] },
+  now: { name: string; description: string; keywords: readonly string[] },
+): boolean {
+  return (
+    saved.name.trim() !== now.name.trim() ||
+    saved.description.trim() !== now.description.trim() ||
+    saved.keywords.join("\n") !== now.keywords.join("\n")
+  );
+}
+
 /** A catalogue source as the page hands it to the panel. */
 export interface OfferData extends Offer {
   id: string;

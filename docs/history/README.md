@@ -4,7 +4,7 @@ One note per session, newest first. Read a note only to learn why something was 
 
 | Date | Note | Summary |
 | :--- | :--- | :--- |
-| 2026-10-11 | [Topics & Sources panel, source scores out of 3, a third audit](2026-10-11-topics-sources-panel-and-scores.md) | One panel adds topics and sources and edits a source, scores out of 3 from health, quality and trust, no Custom page, readouts that hold still, a third audit (D55, D56) |
+| 2026-10-11 | [Topics & Sources panel, source scores out of 3, a third audit](2026-10-11-topics-sources-panel-and-scores.md) | One panel adds topics and sources and edits a source, scores out of 3 from health, quality and trust, no Custom page, readouts that hold still, a third audit; then topic editing and order, top Nebius models, Play on a phone (D55 to D59) |
 | 2026-10-10 | [Design pass, two-level Settings and autosave](2026-10-10-design-pass-settings-autosave.md) | Two audits of every screen, drawn select lists, Settings in two levels that save themselves, the phone Create button on Today and the Library, a 110 KB budget, 3:1 field outlines (D51 to D54) |
 | 2026-10-10 | [Podcast settings, providers, voices and the player redesign](2026-10-10-podcast-settings-and-providers.md) | One Podcast page with Daily, Weekly and Custom, Anthropic, voices, sources with scores, the player redesign draft (D49) |
 | 2026-10-09 | [Snappy navigation and model choice](2026-10-09-snappy-navigation-and-model-choice.md) | Moves answered from a saved copy and swapped at once, Model in Settings, polish pass, ambient cover light (D46 to D48) |

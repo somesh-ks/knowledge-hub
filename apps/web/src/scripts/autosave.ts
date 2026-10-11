@@ -46,18 +46,38 @@ export function mountAutosave(
   const alert = root.querySelector<HTMLElement>("[data-alert]");
   let still = 0;
   let linger = 0;
-  /** The control the owner last used, which the toast must not cover. */
-  let touched: Element | null = null;
+  const controlOf = (target: EventTarget | null): Element | null => {
+    const control = (target as Element | null)?.closest?.("input, select, textarea, button");
+    return control && root.contains(control) && !bar?.contains(control) ? control : null;
+  };
+  /**
+   * The control the owner last used, which the toast must not cover. It starts as the control that
+   * has focus: a page can mount this during that control's first event (topicsPage.ts loads its
+   * editor then), which has already passed the listeners below.
+   */
+  let touched: Element | null = controlOf(document.activeElement);
   const touch = (event: Event): void => {
-    const control = (event.target as Element).closest?.("input, select, textarea, button");
-    if (control && !bar?.contains(control)) touched = control;
+    touched = controlOf(event.target) ?? touched;
   };
   root.addEventListener("change", touch);
   root.addEventListener("click", touch);
 
+  /**
+   * A button in the toast that is about to go (the toast hides, or its state hides the button) hands
+   * focus to the control the toast is about, or to the page when that is gone, so the next Tab does
+   * not start again from the top of the document.
+   */
+  const handBack = (): void => {
+    if (!bar?.contains(document.activeElement)) return;
+    if (touched instanceof HTMLElement && touched.isConnected) touched.focus();
+    if (bar.contains(document.activeElement))
+      document.querySelector<HTMLElement>("main")?.focus({ preventScroll: true });
+  };
+
   /** The toast is a popover, so it sits above the bottom bar and the player like every toast. */
   const open = (shown: boolean): void => {
     if (!bar) return;
+    if (!shown) handBack();
     if (typeof bar.showPopover !== "function") {
       bar.hidden = !shown;
       return;
@@ -106,6 +126,8 @@ export function mountAutosave(
 
   bar?.addEventListener("click", (event) => {
     const act = (event.target as Element).closest<HTMLButtonElement>("button")?.dataset.act;
+    // Each one takes its own button away: Retry shows Saving, which has none.
+    if (act) handBack();
     if (act === "retry") now();
     else if (act === "undo") options.undo?.();
     else if (act === "dismiss") open(false);

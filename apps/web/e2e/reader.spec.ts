@@ -37,7 +37,7 @@ test.describe("the briefing header", () => {
     page,
   }) => {
     await page.goto(SILENT_DIGEST);
-    const chip = page.locator("[data-play-digest]");
+    const chip = page.locator(".hero [data-play-digest]");
     await expect(chip).toBeVisible();
     await expect(chip).toHaveAttribute("data-state", "idle");
     await expect(chip).not.toHaveAttribute("aria-disabled", "true");
@@ -97,7 +97,7 @@ test.describe("the briefing header", () => {
     await page.goto(SILENT_DIGEST);
     await hydrated(page);
     await expect.poll(() => asked.length, { timeout: 10_000 }).toBeGreaterThan(0);
-    await page.locator("[data-play-digest]").click();
+    await page.locator(".hero [data-play-digest]").click();
     await expect(page.locator("html")).toHaveAttribute("data-player-state", "playing");
     await expect.poll(() => asked.length).toBeGreaterThanOrEqual(2);
     // The intro and the first story were each asked for once, by the prewarm, not again by the press.
@@ -146,9 +146,9 @@ test.describe("the briefing header", () => {
         },
       });
     });
-    await page.locator("[data-play-digest]").click();
+    await page.locator(".hero [data-play-digest]").click();
     await expect(page.locator("html")).toHaveAttribute("data-player-state", "playing");
-    const chip = page.locator("[data-play-digest]");
+    const chip = page.locator(".hero [data-play-digest]");
     await expect(chip).toHaveAttribute("data-state", "current");
     await expect(chip.locator("[data-chip-label]")).toHaveText("Playing");
     // The story chips the page rendered hidden now have something to play.
@@ -525,7 +525,9 @@ test.describe("section tabs", () => {
   test("an episode page says episode, not briefing, to assistive tech", async ({ page }) => {
     await page.goto("/e/ep-20261007-1930");
     await expect(page.locator(".skip-link")).toHaveText("Skip to the episode");
-    await expect(page.locator("[data-play-digest]")).toHaveAccessibleName(/^Play the episode, /);
+    await expect(page.locator(".hero [data-play-digest]")).toHaveAccessibleName(
+      /^Play the episode, /,
+    );
   });
 
   test("mark the section in view and bring its tab into the strip", async ({ page }) => {

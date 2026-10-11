@@ -61,11 +61,14 @@ D1 to D9 date from plan v2 (2026-10-05). D10 to D25 date from 2026-10-06. Reason
 | D49 | One Podcast settings page: Daily, Weekly and Custom profiles, a shared writer vendor and model, topics and sources clubbed | page layout superseded by D51; the 0 to 5 score by D55 |
 | D50 | The open player: a speed slider, Chapters or a Speechify-style transcript, word marks stored beside each segment | active |
 | D51 | Settings is two levels and saves itself; every select opens one drawn list | active; the Custom page superseded by D56 |
-| D52 | On a phone the Create button floats only on Today and the Library, extended until you scroll | active |
+| D52 | On a phone the Create button floats only on Today and the Library, extended until you scroll | active; episodes and older briefings float Play since D59 |
 | D53 | First-load JavaScript budget 110 KB, kept as low as the code allows | active |
 | D54 | Form fields carry a 3:1 outline; in the player only Play is in full ink | active |
 | D55 | A source's score is out of 3: health, quality and trust, combined so a weak part cannot be bought back | active |
 | D56 | One panel adds a topic or a source and edits a source; Settings has no Custom page | active |
+| D57 | A topic's page edits its details and adds the sources that suit it; topics are listed by name | active |
+| D58 | The Model page offers six top Nebius writers by name, live list or not | active |
+| D59 | On a phone, Play takes the floating button's place on an episode and an older briefing | active |
 
 ---
 
@@ -557,3 +560,28 @@ D1 to D9 date from plan v2 (2026-10-05). D10 to D25 date from 2026-10-06. Reason
 - Cost: Create's starting type, length and voices can now be changed only in `config/schedule.json`. A rename or a move shows in its final place after the next build. The panel files a source under one topic, so moving a source that feeds several replaces them with the one chosen.
 - Rejected: separate Add topic and Add source buttons (two ways in to one job); the inline Add topic form (no room for the suggestions step); editing the address (a different address is a different source: remove it and add the new one); "Accuracy" as the name of a score part (D55).
 - Supersedes: D51's Custom page and its row; D49's Add source panel and the inline add-topic form.
+
+## D57: A topic's page edits its details and adds the sources that suit it; topics are listed by name
+
+- Date: 2026-10-11
+- Decision: A topic's page has an Edit topic row that opens the Topics & Sources panel on the topic's details, filled in. A topic the owner made can change its name, what counts and its keywords; one that ships with the app shows its name and what counts read-only and can change its keywords, since the engine keeps a shipped topic's judge question. The second step offers the catalogue sources that suit the topic and are not among its sources yet. Save sends `topic.upsert` with the new details and the switch's current state, then a `source.add` per ticked source, as one request, and the switch's own op takes the new details so a later toggle never brings back the old ones. A renamed custom topic's own section takes the new name, unless its title was set apart. The Topics list and the panel's topic choices are always by name; Other comes last, and a topic that never publishes sorts in with the rest.
+- Why: the owner asked to edit topics and their sources, and to always see the topics in alphabetical order. The add flow's two steps are reused, so there is one way of working, and an existing topic gets the same instant add of suitable sources as a new one.
+- Cost: a pure rename takes Next and then Save. The new name shows in the list after the next build.
+- Rejected: editing a shipped topic's name or what counts (it would change how the topic is judged, and the engine refuses it); suggestions shown on the topic page itself (weight on every load for a choice made rarely); keeping never-publishing topics last (the owner asked for alphabetical, always).
+
+## D58: The Model page offers six top Nebius writers by name, live list or not
+
+- Date: 2026-10-11
+- Decision: With Nebius as the provider, the Model list opens with a "Top models" group of six curated writers, best first (`NEBIUS_TOP` in `lib/modelId.ts`): GLM-5.3, Kimi K3, Kimi K2.6, DeepSeek V4 Pro 0813, DeepSeek V4.1 Flash and Qwen3.5 397B. Each is a Token Factory routing key checked on 2026-10-11, ordered by EQ-Bench's longform writing score that day. When the live list (`GET /api/models`) loads, only curated ids it serves show, so a retired one drops out, and the ranked shortlist (`modelRank.ts`) stands in if none is left; "All models" follows. Without the live list all six show, and the typed id field stays for anything else. A pick saves through `writer.set` like any other.
+- Why: the owner asked to pick top models from Nebius. Without `NEBIUS_API_KEY` on Vercel the page offered only Automatic and a typed id, so no model could be picked by name.
+- Cost: a named list goes stale, as Qwen3-32B did when it left the serverless tier on 2026-08-31; refresh it when Nebius's catalogue or the writing leaderboard moves. Kimi K3 costs about four times the others per token.
+- Rejected: Llama (no longer a public endpoint on Nebius); gpt-oss-120b (the lowest writing score of the candidates, 35.8).
+
+## D59: On a phone, Play takes the floating button's place on an episode and an older briefing
+
+- Date: 2026-10-11
+- Decision: Below 64rem an episode page and a briefing page that is not Today show a floating Play button where Today and the Library show Create (D52); other pages and wide screens show none. It reads "Play · 5 min" and is named "Play this episode, 5 min" (or "briefing"). It carries `data-play-digest`, so the player plays it exactly as it plays the hero chip: narration first when no audio exists, a spinner while it is made, disabled offline. It extends and folds with scrolling as Create does, and shares its shape (`create-fab play-fab`). Once the player holds this page's audio the bar is its control, so the button steps aside (`data-fab` leaves the root, also on the incoming page before a swap) and comes back when the player holds something else or nothing.
+- Why: the owner asked for Play instead of Create on an episode or a briefing on a phone. On a page about one piece of audio, hearing it is the next thing to do, and the hero chip scrolls away with the header.
+- Cost: 87 bytes gzipped on every page. Until one is pressed there are two play controls, the chip and the button; the button earns its place once the chip has scrolled off.
+- Rejected: a button that turns into Pause (a second pause beside the bar's); Play on Today too (Today is a list destination, where making an episode is the next thing, D52).
+- Supersedes: D52's rule that briefings and episodes have no floating button.

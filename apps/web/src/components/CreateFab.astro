@@ -2,11 +2,14 @@
 import Icon from "./Icon.astro";
 ---
 
-{/* The one primary action below 64rem, on Today and the Library (D52). Extended, the plus and the
-     word, at the top of a page and while scrolling back up; folded to the plus while scrolling down
-     to read (scripts/fabScroll.ts). A link to /create, so it works without script; the shell turns it
-     into the sheet. From 64rem the side column carries the same action, and this one is not shown.
-     It carries a word, so a press shows in its fill, never by scaling it. */}
+{/* The one primary action below 64rem, on Today and the Library (D52), where making an episode is
+     the next thing to do. On an episode or an older briefing hearing it is, so PlayFab.astro takes
+     this place with the same shape and motion, and steps aside while the bar holds that audio
+     (BaseLayout.astro has the rule). Extended, the plus and the word, at the top of a page and while
+     scrolling back up; folded to the plus while scrolling down to read (scripts/fabScroll.ts). A link
+     to /create, so it works without script; the shell turns it into the sheet. From 64rem the side
+     column carries the same action, and this one is not shown. It carries a word, so a press shows
+     in its fill, never by scaling it. */}
 <a class="create-fab" href="/create" aria-label="Create Podcast" data-create-open data-sound="open">
   <Icon name="plus" class="icon-lg" />
   <span class="create-fab-label" aria-hidden="true">Create</span>

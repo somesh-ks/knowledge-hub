@@ -1,5 +1,14 @@
 import { describe, expect, it } from "vitest";
-import { idText, keywordList, problemText, slugify, webAddress } from "../lib/topicText";
+import {
+  addTopicLabel,
+  idText,
+  keywordList,
+  problemText,
+  saveTopicLabel,
+  slugify,
+  topicChanged,
+  webAddress,
+} from "../lib/topicText";
 import type { ConfigOp } from "../types/contracts";
 import { buildQueue, failureText, MAX_OPS, type Pending, pack, settle } from "./managePageSave";
 
@@ -62,6 +71,29 @@ describe("keywordList", () => {
 
   it("holds no more than a topic can", () => {
     expect(keywordList(Array.from({ length: 50 }, (_, i) => `w${i}`).join(","))).toHaveLength(30);
+  });
+});
+
+describe("the panel's main button", () => {
+  it("says how many sources go with a new or an edited topic", () => {
+    expect(addTopicLabel(0)).toBe("Add topic");
+    expect(addTopicLabel(1)).toBe("Add topic and 1 source");
+    expect(saveTopicLabel(0)).toBe("Save");
+    expect(saveTopicLabel(3)).toBe("Save and add 3 sources");
+  });
+});
+
+describe("topicChanged", () => {
+  const saved = { name: "Audio", description: "Players and voice.", keywords: ["audio", "voice"] };
+  it("sees a new name, a new line of what counts, or other keywords", () => {
+    expect(topicChanged(saved, { ...saved, name: "Audio and voice" })).toBe(true);
+    expect(topicChanged(saved, { ...saved, description: "Sound." })).toBe(true);
+    expect(topicChanged(saved, { ...saved, keywords: ["voice", "audio"] })).toBe(true);
+  });
+  it("ignores space around the words", () => {
+    expect(
+      topicChanged(saved, { ...saved, name: " Audio ", description: "Players and voice. " }),
+    ).toBe(false);
   });
 });
 

@@ -102,6 +102,13 @@
   box-shadow: none;
 }
 
+/* A sheet on its way out shows no ring. Escape is a key, and a key makes the focused control match
+   :focus-visible, so a Close button focused by the opening press lit up for the whole exit. */
+.sheet-popup[data-ending-style] :focus-visible {
+  outline: none;
+  box-shadow: none;
+}
+
 .sheet-panel {
   max-height: calc(var(--sheet-max-height) - var(--space-4));
   /* The last control stays clear of the home indicator. */
@@ -286,6 +293,12 @@
   width: var(--space-4);
   height: var(--space-4);
   margin-block-start: calc(var(--space-1) / 2);
+}
+
+/* With no field to belong to (the passphrase step is off), the error stands in the form by itself and
+   keeps the air a field would have above it, instead of sitting flush against the lede. */
+.sheet-form > .sheet-field-error {
+  margin-block-start: var(--space-4);
 }
 
 /* One filled button for the action that commits (.btn-primary), text buttons for the rest (.btn). */
@@ -580,19 +593,15 @@
  * its height yet.
  */
 .toast {
+  /* The navigation bar at the bottom, or the safe area where there is none. */
+  --toast-nav: var(--bottom-nav-height, var(--safe-bottom));
   --toast-dock: 0px;
   --toast-lift: 0px;
   /* Above the bars while Safari plays the exit outside the top layer (dialog.sheet, foundations.css). */
   z-index: var(--z-toast);
   /* The page accent is tuned for the page, so on the inverse surface the other theme's accent is used. */
   --toast-accent: var(--color-blue-300);
-  inset-block: auto
-    calc(
-      var(--bottom-nav-height, var(--safe-bottom)) +
-      var(--toast-dock) +
-      var(--toast-lift) +
-      var(--space-3)
-    );
+  inset-block: auto calc(var(--toast-nav) + var(--toast-dock) + var(--toast-lift) + var(--space-3));
   /* Centred on the page, not on the screen: from 64rem the navigation is a column at the side. */
   inset-inline: var(--side-nav-width, 0px) 0;
   /* Closed, a popover is display: none. Setting display here would keep it in the layout and the
@@ -623,6 +632,19 @@
     display var(--duration-press-in) allow-discrete;
 }
 
+/* On a phone a toast keeps one width, the screen's less its gutters, whatever it says: sized to its
+   words, it jumped from 105 to 358px between Saving and what came of it. The words take the room,
+   so a button stays at its end. */
+@media (width < 40rem) {
+  .toast {
+    width: min(calc(100% - var(--page-gutter) * 2), var(--layout-dialog));
+  }
+
+  .toast-text {
+    flex: 1 1 auto;
+  }
+}
+
 /* The open player covers the navigation column too, so a toast centres on the player. */
 html[data-player="open"] .toast {
   inset-inline-start: 0;
@@ -644,12 +666,17 @@ html[data-mini="visible"] .toast {
 }
 
 /*
- * Below 64rem the run line and, above it, the floating Create button stack over the bottom bar
- * (create-sheet.css). A toast sits 12px above the higher of the two that shows: the run line alone
- * where there is no button (every page but Today and the Library, D52) or it is hidden (a sheet is
- * open), neither while the player is open.
+ * Below 64rem the open player slides the bottom bar away, and its own bar comes down onto the safe
+ * area: a toast clears only that. Otherwise the run line and, above it, the floating button stack
+ * over the bottom bar (create-sheet.css). A toast sits 12px above the higher of the two that shows:
+ * the run line alone where there is no button (no data-fab, BaseLayout.astro) or it is hidden (a
+ * sheet is open), neither while the player is open.
  */
 @media (width < 64rem) {
+  html[data-player="open"] .toast {
+    --toast-nav: var(--safe-bottom);
+  }
+
   html:not([data-player="open"]) .toast {
     --toast-lift: var(--run-room);
   }

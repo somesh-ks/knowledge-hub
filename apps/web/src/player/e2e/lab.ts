@@ -443,9 +443,12 @@ export class LabPage {
     return this.page.locator("html");
   }
 
-  /** The hero button, which the player drives from [data-play-digest]. */
+  /**
+   * The hero button, which the player drives from [data-play-digest]. On an older briefing or an
+   * episode the floating Play button carries it too, so the hero scopes it.
+   */
   get cta() {
-    return this.page.locator("[data-play-digest]");
+    return this.page.locator(".hero [data-play-digest]");
   }
 
   get surface() {

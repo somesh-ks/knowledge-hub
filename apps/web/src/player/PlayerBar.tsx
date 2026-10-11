@@ -6,7 +6,7 @@ import { errorSummary, isPlayingStatus, toggleLabel } from "./core/playerCopy";
 import { getPlayerStore } from "./core/playerRuntime";
 import { playerSheet } from "./core/playerSheet";
 import { briefingLengthLabel } from "./core/readerMath";
-import { fractionOfTime, scrubberValueText } from "./core/scrubberMath";
+import { dockSeekKeyValue, fractionOfTime, scrubberValueText } from "./core/scrubberMath";
 import { itemIndexAt } from "./core/timeline";
 import { applyVolume, getVolume, setVolume } from "./core/volume";
 import { usePlayerFrame, usePlayerSecond, usePlayerState } from "./hooks/usePlayer";
@@ -29,20 +29,39 @@ function noStoriesCaption(digest: PlayerDigestData | undefined): string {
 /**
  * The bar's own scrubber, along its top edge, on screens wide enough for the bar to stay put. A
  * native range input: the keyboard, a mouse and a finger all work without a line of gesture code.
+ * It holds the exact time, so its thumb sits where the line's fill and notch are; the keys still
+ * step in whole seconds, as they did when the range stepped by one.
  */
 function DockSeek({ duration }: { duration: number }) {
   const store = getPlayerStore();
   const second = usePlayerSecond();
   const state = usePlayerState();
   const [drag, setDrag] = useState<number | null>(null);
-  const max = Math.floor(duration);
-  if (max <= 0) return null;
-  const value = drag ?? Math.min(second, max);
+  const inputRef = useRef<HTMLInputElement>(null);
+  // Under a resting mouse the thumb shows, and it follows the playhead every frame, as the line
+  // does. Otherwise the value moves once a second: a slider that changed every frame while it had
+  // keyboard focus would be read out every frame.
+  usePlayerFrame((time) => {
+    const input = inputRef.current;
+    if (input?.matches(":hover:not(:focus-visible)")) input.value = String(time);
+  });
+  const whole = Math.floor(duration);
+  if (whole <= 0) return null;
+  const value = drag ?? Math.min(store.getTime(), duration);
+  // What a screen reader hears stays in whole seconds, the story under the thumb included, so it
+  // hears where a seek would land.
+  const spoken = drag ?? Math.min(second, whole);
   const timeline = state.track?.timeline ?? null;
   const itemCount = timeline?.items.length ?? 0;
-  // The story under the thumb, so a screen reader hears where a seek would land.
-  const at = itemIndexAt(timeline, value);
+  const at = itemIndexAt(timeline, spoken);
   const section = timeline?.sections.find((entry) => entry.slug === timeline.items[at]?.section);
+
+  function move(next: number): void {
+    // The audio waits while the thumb moves, and seeks once when it is let go.
+    if (drag === null) store.beginScrub();
+    store.scrubTo(next);
+    setDrag(next);
+  }
 
   function commit(): void {
     if (drag === null) return;
@@ -55,26 +74,30 @@ function DockSeek({ duration }: { duration: number }) {
       {drag !== null ? (
         <output
           className="dock-seek-time num"
-          style={{ "--seek-at": fractionOfTime(drag, max).toFixed(4) } as React.CSSProperties}
+          style={{ "--seek-at": fractionOfTime(drag, duration).toFixed(4) } as React.CSSProperties}
         >
           {formatClock(drag)}
         </output>
       ) : null}
       <input
+        ref={inputRef}
         className="dock-seek"
         type="range"
         min={0}
-        max={max}
-        step={1}
+        max={duration}
+        step="any"
         value={value}
         aria-label="Seek"
-        aria-valuetext={scrubberValueText(value, max, section?.title ?? "", at, itemCount)}
-        onChange={(event) => {
-          const next = Number(event.currentTarget.value);
-          // The audio waits while the thumb moves, and seeks once when it is let go.
-          if (drag === null) store.beginScrub();
-          store.scrubTo(next);
-          setDrag(next);
+        aria-valuetext={scrubberValueText(spoken, whole, section?.title ?? "", at, itemCount)}
+        onChange={(event) => move(Number(event.currentTarget.value))}
+        onKeyDown={(event) => {
+          // A range with no step would move a hundredth of its length per key.
+          const from = drag ?? store.getTime();
+          const next = dockSeekKeyValue(event.key, from, duration);
+          if (next === null) return;
+          event.preventDefault();
+          // As with the stepped range, a key that lands on the second it is in does nothing.
+          if (next !== Math.min(Math.floor(from), whole)) move(next);
         }}
         onPointerUp={commit}
         onPointerCancel={commit}
@@ -144,6 +167,8 @@ export default function PlayerBar() {
   const store = getPlayerStore();
   const second = usePlayerSecond();
   const lineRef = useRef<HTMLDivElement>(null);
+  /** What last pressed the open button: a finger, a pen or a mouse. */
+  const pressedBy = useRef("");
 
   // The playhead goes straight to the line, whose fill and notch read it: React never renders at
   // frame rate, and the line holds only those two.
@@ -243,6 +268,15 @@ export default function PlayerBar() {
         onClick={(event) =>
           playerSheet.click({ t: event.timeStamp, fromPointer: event.detail > 0 })
         }
+        onPointerDown={(event) => {
+          pressedBy.current = event.pointerType;
+        }}
+        // A tap opens the page on the finger's lift, and focus moves into it. The mouse press a
+        // browser sends after a tap would then take focus back to this button, which a wide window
+        // keeps in reach under the open page, and the next Tab would start from nothing.
+        onMouseDown={(event) => {
+          if (pressedBy.current === "touch") event.preventDefault();
+        }}
       >
         <span className="player-thumb">
           {digest ? (

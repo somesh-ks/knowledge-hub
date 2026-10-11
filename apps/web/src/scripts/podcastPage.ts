@@ -141,12 +141,20 @@ async function mountModel(
   update: (save?: boolean) => void,
 ): Promise<() => Pending | null> {
   const lib = await import("../lib/combobox");
-  const { CLAUDE_OPTIONS, countText, filterOptions, labelFor, moveIndex, nebiusOptions } = lib;
+  const {
+    CLAUDE_OPTIONS,
+    GROUP_NAMES,
+    countText,
+    filterOptions,
+    labelFor,
+    moveIndex,
+    nebiusOptions,
+  } = lib;
   const one = <T extends HTMLElement = HTMLElement>(selector: string): T =>
     root.querySelector(selector) as T;
   const vendor = one<HTMLSelectElement>("#daily-vendor");
   const input = one<HTMLInputElement>("#model-input");
-  const listbox = one<HTMLUListElement>("[data-list]");
+  const listbox = one("[data-list]");
   const toggle = one<HTMLButtonElement>("[data-toggle]");
   const count = one("[data-count]");
   const fallback = one("[data-fallback]");
@@ -206,33 +214,39 @@ async function mountModel(
   };
 
   /**
-   * Draws the options matching `query`, with the recommended ones captioned apart from the rest.
-   * `keyboard` marks a list opened or filtered from the keyboard: only then does its current row
-   * show the ring, as in a select's list.
+   * Draws the options matching `query`: the top models and the rest each in a group under a quiet
+   * heading. The group carries the heading's words as its name, and the heading itself is hidden
+   * from screen readers so it is not read twice. `keyboard` marks a list opened or filtered from
+   * the keyboard: only then does its current row show the ring, as in a select's list.
    */
   const open = (query: string, keyboard: boolean): void => {
     shown = filterOptions(options, query);
     listbox.replaceChildren();
+    let into = listbox;
     let last = "";
     shown.forEach((option, index) => {
-      if (option.group !== last && option.group !== "") {
-        const head = element(
-          "li",
-          "daily-head",
-          option.group === "rec" ? "Recommended" : "All models",
-        );
-        head.setAttribute("role", "presentation");
-        listbox.append(head);
+      if (option.group !== last) {
+        last = option.group;
+        into = listbox;
+        if (option.group !== "") {
+          const name = GROUP_NAMES[option.group];
+          into = element("div", "daily-group");
+          into.setAttribute("role", "group");
+          into.setAttribute("aria-label", name);
+          const head = element("div", "daily-head", name);
+          head.setAttribute("aria-hidden", "true");
+          into.append(head);
+          listbox.append(into);
+        }
       }
-      last = option.group;
-      const item = element("li", "daily-option");
+      const item = element("div", "daily-option");
       item.id = `model-option-${index}`;
       item.setAttribute("role", "option");
       item.setAttribute("aria-selected", String(option.id === (selected ?? "")));
       item.dataset.index = String(index);
       item.append(element("span", "daily-option-name", option.label));
       if (option.hint) item.append(element("span", "daily-option-hint", option.hint));
-      listbox.append(item);
+      into.append(item);
     });
     listbox.hidden = false;
     listbox.toggleAttribute("data-keyboard", keyboard);

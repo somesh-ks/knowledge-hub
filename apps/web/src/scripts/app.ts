@@ -17,6 +17,14 @@ installCreateEntry();
 installDeviceBanners();
 installThemeColor();
 installUiSound();
+// How the last action was started, so motion stays with the pointer: what a key starts happens at
+// once (settings.css, player.css, hero.css). Captured, so it is set before the key or the press acts.
+const inputBy = (by: string) => (): void => {
+  const root = document.documentElement;
+  if (root.dataset.input !== by) root.dataset.input = by;
+};
+addEventListener("keydown", inputBy("keyboard"), { capture: true, passive: true });
+addEventListener("pointerdown", inputBy("pointer"), { capture: true, passive: true });
 // The service worker registers once the page has loaded, so its code can arrive then too.
 const registerWorker = (): void =>
   void import("./serviceWorker").then((worker) => worker.registerServiceWorker());

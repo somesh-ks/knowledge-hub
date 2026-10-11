@@ -24,8 +24,8 @@
   --run-room: 0px;
   /* Where the first block of every destination starts, under the app bar: Today's cover sets it. */
   --page-top: var(--space-8);
-  /* Room under the last control: the floating Create button (its size and its margin) and some air.
-     Only Today and the Library have the button (D52); every other page needs only the air. */
+  /* Room under the last control: the floating button (its size and its margin) and some air. Only a
+     page whose button shows keeps it (data-fab, BaseLayout.astro); every other needs only the air. */
   --page-end: var(--space-24);
   /* Everything that sticks under the top chrome sticks here: section tabs, the aside. */
   --sticky-top: calc(var(--app-bar-height) + var(--safe-top));
@@ -41,8 +41,10 @@ html:not([data-fab]) {
   --page-end: var(--space-12);
 }
 
-/* Where the floating Create button shows, focus stops above it too. */
-@media not all and (min-width: 64rem) {
+/* Where the floating button covers the column, focus stops above it too. From 40rem it sits beside
+   the column, and its room would leave a phone on its side a band shorter than a card, so a focused
+   card ended partly under the bars. */
+@media not all and (min-width: 40rem) {
   html[data-fab] {
     scroll-padding-block-end: calc(
       var(--bottom-nav-height) +

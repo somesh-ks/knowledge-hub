@@ -3,7 +3,7 @@ import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
 import { parseEpisodeFile } from "./episodeFile";
-import { buildEpisodeEntries, readEpisodeFiles } from "./episodes";
+import { buildEpisodeEntries, episodeLength, readEpisodeFiles } from "./episodes";
 
 let root = "";
 
@@ -125,5 +125,11 @@ describe("buildEpisodeEntries", () => {
     expect(buildEpisodeEntries([named("no-such-palette", "orbit")])[0]?.cover.palette).not.toBe(
       "no-such-palette",
     );
+  });
+});
+
+describe("episodeLength", () => {
+  it("says how long the episode takes to hear, as its play controls do", () => {
+    expect(episodeLength({ listen_minutes: 8 })).toBe("8 min");
   });
 });

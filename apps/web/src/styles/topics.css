@@ -533,6 +533,21 @@ button.source-main:active {
   padding-block: var(--space-4);
 }
 
+/* A shipped topic's name and what counts can be read, not changed: a sunken field in quieter ink, so
+   it never looks like a field waiting for typing. */
+.topics-panel .manage-input[readonly] {
+  border-color: var(--color-border-hairline);
+  background: var(--color-surface-sunken);
+  color: var(--color-on-surface-muted);
+}
+
+/* A topic's details sit in a step of their own, out of reach of the form's gap, so the step keeps the
+   same field gap itself. Not while hidden: an author display would win over [hidden]. */
+.topics-step[data-step="details"]:not([hidden]) {
+  display: grid;
+  gap: var(--space-4);
+}
+
 /* The topic's second step: the sources that suit it, each a row to tick. */
 .topics-suggest {
   min-width: 0;

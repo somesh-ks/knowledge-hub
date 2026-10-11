@@ -36,8 +36,13 @@
   /* Two columns of this much, from 64rem. */
   --player-page-max: 68rem;
   --player-column-max: 28rem;
-  /* What is playing, in the middle of the wide bar: the cover, and a title and caption beside it. */
+  /* What is playing, in the middle of the wide bar: the cover, and a title and caption beside it. It
+     takes the room the two sides leave, and never less than this. */
   --player-dock-centre: 26rem;
+  /* What the wide bar keeps on each side of the middle: the transport and the clock at their widest
+     (an hour-long recording) on the left, the same on the right, so the middle stays centred and
+     never reaches the clock or the volume. */
+  --player-dock-side: 18rem;
   /* The cover never takes more than this share of the window's height. */
   --player-cover-share: 40cqb;
   --player-skip-glyph: 2rem;
@@ -323,8 +328,9 @@
 /* Out of sight until the keyboard reaches it, like a skip link. */
 .player-collapse {
   position: absolute;
-  /* Room for its ring above it: the phone's top padding is the safe area, which can be zero. */
-  inset-block-start: calc(var(--stroke-ring) + var(--stroke-ring-gap));
+  /* Room for its ring above it and air beyond the ring, so the ring never touches the top edge: the
+     phone's top padding is the safe area, which can be zero. */
+  inset-block-start: calc(var(--stroke-ring) + var(--stroke-ring-gap) + var(--space-1));
   inset-inline-start: 50%;
   z-index: 1;
   padding: var(--space-2) var(--space-4);
@@ -739,6 +745,8 @@
   width: 6rem;
   height: var(--size-touch);
   margin: 0;
+  /* Rounded like every other control, so the focus ring that follows it is too (as in Settings). */
+  border-radius: var(--button-radius);
   background: none;
   appearance: none;
   cursor: pointer;
@@ -924,9 +932,9 @@
       0 calc(var(--p, 0) * var(--safe-bottom)) 0 var(--mini-player-bg);
   }
 
+  /* Up to the transport: the title shortens only where the bar runs out of room. */
   .dock-open {
     width: 100%;
-    max-width: var(--player-column-max);
   }
 }
 
@@ -938,7 +946,13 @@
   }
 
   .player-dock {
-    grid-template-columns: minmax(0, 1fr) minmax(0, var(--player-dock-centre)) minmax(0, 1fr);
+    grid-template-columns:
+      minmax(0, 1fr)
+      minmax(
+        0,
+        max(var(--player-dock-centre), 100% - (var(--player-dock-side) + var(--space-6)) * 2)
+      )
+      minmax(0, 1fr);
     column-gap: var(--space-6);
   }
 
@@ -992,7 +1006,10 @@
 
   /* No grey is 3:1 from both the bar and the accent, so a notch in the bar's own colour marks where
      the played part ends: three times as wide as the line is thick, so it never reads as one of the
-     chapter gaps, which are as wide as the line. It moves with the progress, by transform. */
+     chapter gaps, which are as wide as the line. It moves with the progress, by transform, and
+     travels the line as the range's thumb travels its track (its left edge at the progress times
+     the line less its own width), so the end of the fill is always inside it and the thumb, wider
+     than both, always covers them. */
   .dock-progress::after {
     content: "";
     position: absolute;
@@ -1000,7 +1017,7 @@
     inset-inline-start: 0;
     width: calc(var(--mini-player-progress-height) * 3);
     background: var(--mini-player-bg);
-    translate: calc(var(--player-progress, 0) * 100cqi) 0;
+    translate: calc(var(--player-progress, 0) * (100cqi - 100%)) 0;
   }
 }
 
@@ -1411,6 +1428,7 @@
   height: var(--size-touch);
   margin: 0;
   appearance: none;
+  border-radius: var(--button-radius);
   background: none;
   cursor: pointer;
 }
@@ -1781,6 +1799,11 @@
   transition: transform var(--duration-state) var(--ease-out);
 }
 
+/* An arrow key moves the thumb at once: what a key starts is never animated (data-input, app.ts). */
+:root[data-input="keyboard"] .segmented::before {
+  transition: none;
+}
+
 /* The ring belongs on the segment: an invisible input cannot show one. A press shows on the thumb
    and the colour, never on the size of the words (pressText.test.ts). */
 .segmented label:has(input:focus-visible) {
@@ -2040,6 +2063,13 @@ html[data-player="open"] {
    speed panel is small and by its button, and the open player must not slide sideways under it. */
 html[data-player="open"]:has(.speed-panel[open]) {
   scrollbar-gutter: stable;
+}
+
+/* Any other modal dialog does take the scrollbar away, and the window's edge moves out by its width.
+   The player keeps the room it had, as the floating button and the navigation do, so what is
+   playing and the volume hold still under the scrim. */
+html:has(dialog[open]):not([data-player="open"]:has(.speed-panel[open])) .player {
+  inset-inline-end: var(--gutter, 0px);
 }
 
 /* ------------------------------------------------------------------ preferences */

@@ -29,6 +29,7 @@ const LABEL_CONTROLS = [
   "toast-action",
   "card-link",
   "create-fab",
+  "play-fab",
   "source-link",
   "hero-menu-item",
   "story-row",

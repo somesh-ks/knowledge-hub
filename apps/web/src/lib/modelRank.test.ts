@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { isRecommendable, shortlist } from "./modelRank";
+import { isRecommendable, shortlist, topModels } from "./modelRank";
 
 const k = 1024;
 // A list shaped like the live Nebius catalogue, after the API's own text-model filter.
@@ -68,5 +68,48 @@ describe("shortlist", () => {
     expect(shortlist([{ id: "acme/Chat-7B-Instruct", context_length: null }])).toEqual([
       "acme/Chat-7B-Instruct",
     ]);
+  });
+});
+
+describe("topModels", () => {
+  const CURATED = ["zai-org/GLM-5.3", "moonshotai/Kimi-K3", "deepseek-ai/DeepSeek-V4-Pro-0813"];
+
+  it("offers every curated id, in order, without a live list", () => {
+    expect(topModels(null, CURATED)).toEqual(CURATED);
+  });
+
+  it("keeps the curated ids the live list serves, in the curated order", () => {
+    const live = [
+      { id: "deepseek-ai/DeepSeek-V4-Pro-0813", context_length: 979 * k },
+      { id: "openai/gpt-oss-120b", context_length: 128 * k },
+      { id: "zai-org/GLM-5.3", context_length: 1024 * k },
+    ];
+    expect(topModels(live, CURATED)).toEqual([
+      "zai-org/GLM-5.3",
+      "deepseek-ai/DeepSeek-V4-Pro-0813",
+    ]);
+  });
+
+  it("matches ids exactly, so an id offered is one Nebius lists as spelled", () => {
+    const live = [
+      { id: "zai-org/glm-5.3", context_length: null },
+      { id: "moonshotai/Kimi-K3", context_length: null },
+    ];
+    expect(topModels(live, CURATED)).toEqual(["moonshotai/Kimi-K3"]);
+  });
+
+  it("falls back to the shortlist when no curated id is left", () => {
+    expect(topModels(LIVE, CURATED)).toEqual(shortlist(LIVE));
+    expect(topModels(LIVE, [])).toEqual(shortlist(LIVE));
+  });
+
+  it("is empty only when the live list is", () => {
+    expect(topModels([], CURATED)).toEqual([]);
+  });
+
+  it("hands out a copy, never the curated list itself", () => {
+    const offered = topModels(null, CURATED);
+    offered.pop();
+    expect(CURATED).toHaveLength(3);
   });
 });

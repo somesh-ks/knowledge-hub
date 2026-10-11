@@ -9,6 +9,12 @@ One session, picking up after the design pass merged (#74 to #76). The owner cle
 - Scores (D55): an engine worker built the 3-point score, the `flagged` counter and `source.update`. Its report showed that adding the parts let a clean source that never reached a briefing score 2.0 (Fair), so the parts are now combined as a geometric mean, trust counts only items that were asked the flag questions (and reads "not measured yet" under ten), and a move in the panel sets the source's category hint in a run, which a site-only move would not have done.
 - Third audit: two auditors on the merged main (phone; tablet and desktop) found 25 issues, 22 of them distinct. The worst: the Create and Regenerate panels laid out as a row for their whole exit (P1, fixed first); Back from Regenerate left the episode and lost the typed feedback; drawn lists in landscape showed three of four options with no sign of a fourth; Undo and Dismiss in the save toast dropped keyboard focus to the page; the player bar shifted when a modal opened; worded buttons still shrank their words while pressed. The exit layout and the press scaling were fixed here, and the new panel waits for its exit before it goes (the old one vanished in a frame). The owner asked to merge without waiting for the worker fixing the other 19, so they are listed as open in state.md and follow in their own change.
 
+## After #77
+- The owner asked for the rest of the audit too: a worker fixed all 20 findings on its own branch, one commit each, with before and after numbers, and the commits went onto main's head without a conflict.
+- A second list from the owner: the Add topic step's fields sat flush (they were in a step of their own, out of the form's gap); top Nebius models to pick by name (D58); editing a topic and its sources (D57); topics always in alphabetical order (D57); and Play instead of Create in the floating button on an episode or an older briefing on a phone (D59). Two workers built the Nebius list and the Play button in parallel while the topics work was done here; five of the six Nebius ids were confirmed on two independent sites.
+- The owner pointed at the play chip on an unplayed episode: it held 8rem for its longest label and centred what it held, so "5 min" sat 23px from its start and 31px from its end. It now hugs its label, as every chip does.
+- The owner asked to skip the browser suites for this round, so they did not run on the combined branch; state.md says what ran where.
+
 ## What went wrong
 - A commit picked up a rename and two deletions staged earlier; a soft reset and four clean commits fixed it (learnings.md).
 - The first score design was a sum, and it was the brief's, not the worker's; the worker's own report caught it.
@@ -19,4 +25,4 @@ One session, picking up after the design pass merged (#74 to #76). The owner cle
 ## Left open
 - Every real source reads New until it has ten judged items, so the thresholds are untested on real data (D55 says when to revisit them).
 - A rename or a move through `config.yml` has not run live.
-- The third audit's other 19 findings (state.md).
+- The browser suites on the combined branch after #77 (skipped at the owner's request).

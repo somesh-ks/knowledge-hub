@@ -1,7 +1,7 @@
 import { readFile } from "node:fs/promises";
 import { join } from "node:path";
 import { DEFAULT_WRITER, WriterFile } from "@dispatch/core";
-import { CLAUDE_MODELS, modelParts } from "./modelId";
+import { CLAUDE_MODELS, nebiusName } from "./modelId";
 import { findRepoRoot } from "./repoRoot";
 import { usesFixtures } from "./site";
 
@@ -13,10 +13,11 @@ export interface WriterView {
   provider: "nebius" | "anthropic";
   /** The model chosen in Settings, or null for the engine's own setting. */
   model: string | null;
-  /** What the Settings row says: the id's last segment, or "Automatic". */
+  /** What the Settings row says: a top model's name, the id's last segment, or "Automatic". */
   label: string;
 }
 
+/** The name the Settings row and the Model field show, the same one the model list uses. */
 export function writerLabel(
   model: string | null,
   provider: "nebius" | "anthropic" = "nebius",
@@ -25,7 +26,7 @@ export function writerLabel(
   if (provider === "anthropic") {
     return CLAUDE_MODELS.find((entry) => entry.id === model)?.label ?? model;
   }
-  return modelParts(model).name;
+  return nebiusName(model);
 }
 
 export async function loadWriterView(

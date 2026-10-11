@@ -12,6 +12,9 @@ const NEAR_LIMIT = 50;
 
 type Kind = "regenerate" | "delete";
 
+/** A confirm whose delete went through: its close leaves for the Library (openEpisodeAction). */
+const leaving = new WeakSet<HTMLDialogElement>();
+
 const store = (run: (s: Storage) => unknown) => {
   try {
     return run(localStorage);
@@ -137,8 +140,11 @@ function bind(kind: Kind, dialog: HTMLDialogElement, root: HTMLElement): void {
       // Instant: the redeploy takes minutes, so this device hides the episode meanwhile and the
       // person lands on the Library with no progress to watch.
       (await import("./deletedEpisodes")).rememberDeleted(id);
-      dialog.close();
-      void navigateTo("/library");
+      // Back may have closed the confirm while the request was out, taking its history entry.
+      if (dialog.open) {
+        leaving.add(dialog);
+        dialog.close();
+      } else void navigateTo("/library");
       return;
     }
     startRun(reply.run_id, { kind, episode: id });
@@ -163,6 +169,37 @@ export function openEpisodeAction(trigger: HTMLElement): void {
       : trigger;
     if (target?.isConnected) target.focus();
   };
-  dialog.addEventListener("close", back, { once: true });
+  // Browser Back closes the panel or the confirm and stays on the page, so typed feedback is not
+  // lost to it. The dialog takes one history entry, as the Create sheet does (createSheet.ts): the
+  // head script (themeInit.js) asks first on every pop, and answering "handled" keeps the router out.
+  let entry = true;
+  const onBack = (event: Event): void => {
+    if (!entry) return;
+    entry = false;
+    event.preventDefault();
+    removeEventListener("dispatch:back", onBack);
+    if (dialog.open) dialog.close();
+  };
+  history.pushState({ ...history.state, episodeAction: kind }, "");
+  addEventListener("dispatch:back", onBack);
+  dialog.addEventListener(
+    "close",
+    () => {
+      back();
+      if (!entry) return;
+      if (!leaving.delete(dialog)) {
+        // Closed any other way: give the entry back. The pop this causes reaches onBack, which
+        // swallows it.
+        history.go(-1);
+        return;
+      }
+      // A delete went through: the Library takes this entry's place, so no pop follows. Giving the
+      // entry back first could land after the Library's own and turn the move around.
+      entry = false;
+      removeEventListener("dispatch:back", onBack);
+      void navigateTo("/library", { history: "replace" });
+    },
+    { once: true },
+  );
   dialog.showModal();
 }

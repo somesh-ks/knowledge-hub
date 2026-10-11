@@ -144,6 +144,32 @@ describe("topic.upsert", () => {
     expect(await repo.read("config/queries.json")).toBe(before);
   });
 
+  it("renames a custom topic's own section with it, and leaves a section titled apart alone", async () => {
+    await apply(QUANTUM);
+    const renamed = {
+      op: "topic.upsert",
+      topic: { ...QUANTUM.topic, id: "quantum_computing", name: "Quantum machines" },
+    };
+    expect((await apply(renamed)).code).toBe(0);
+    let topics = await repo.readJson<TopicsFile>("config/topics.json");
+    expect(topics.topics.find((t) => t.id === "quantum_computing")?.name).toBe("Quantum machines");
+    expect(topics.sections.find((s) => s.id === "quantum_computing")?.title).toBe(
+      "Quantum machines",
+    );
+
+    // Filed in a section with a title of its own, the topic's rename leaves that title as it is.
+    const shared = { op: "topic.upsert", topic: { ...renamed.topic, section_id: "ai" } };
+    expect((await apply(shared)).code).toBe(0);
+    const aiTitle = (await repo.readJson<TopicsFile>("config/topics.json")).sections.find(
+      (s) => s.id === "ai",
+    )?.title;
+    expect(
+      (await apply({ op: "topic.upsert", topic: { ...shared.topic, name: "Qubits" } })).code,
+    ).toBe(0);
+    topics = await repo.readJson<TopicsFile>("config/topics.json");
+    expect(topics.sections.find((s) => s.id === "ai")?.title).toBe(aiTitle);
+  });
+
   it("files a topic in an existing section when asked, and refuses the engine's own sections", async () => {
     const shared = await apply({
       op: "topic.upsert",

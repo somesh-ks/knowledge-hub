@@ -1,36 +1,160 @@
-import { expect, test } from "./fixtures";
+import type { Page } from "@playwright/test";
+import { expect, hydrated, SILENT_DIGEST, test } from "./fixtures";
 
 /**
- * Behaviour that makes the phone layout feel like a native app: the floating Create button only
- * where making an episode is the next thing to do, and the tab bar's press on the current tab.
+ * Behaviour that makes the phone layout feel like a native app: one floating button where its action
+ * is the next thing to do (Create on Today and the Library, Play on an episode or an older briefing),
+ * and the tab bar's press on the current tab.
  */
 
-test.describe("the floating Create button", () => {
-  test("shows on Today and the Library, and on no other page", async ({ page }, info) => {
+/** Both floating buttons take their shape from .create-fab; Play adds .play-fab. */
+const createFab = (page: Page) => page.locator(".create-fab:not(.play-fab)");
+const playFab = (page: Page) => page.locator(".play-fab");
+
+/** Narration as the server answers it when every file already exists (reader.spec.ts). */
+async function serveNarration(page: Page): Promise<void> {
+  const ids = await page.evaluate(() => {
+    const data = JSON.parse(document.getElementById("dispatch-digest-data")?.textContent ?? "{}");
+    return (data.items as { id: string }[]).map((item) => item.id);
+  });
+  await page.route("**/api/narrate?digest=*", (route) =>
+    route.fulfill({
+      json: {
+        status: 200,
+        audio: null,
+        timeline: null,
+        ms_per_character: 62,
+        segments: ["intro", ...ids].map((key) => ({
+          key,
+          item_id: key === "intro" ? null : key,
+          characters: 300,
+          audio: { url: "/fixtures/audio.wav", duration_ms: 18_600, confirmed: false },
+        })),
+      },
+    }),
+  );
+  await page.route("**/api/narrate", (route) => {
+    if (route.request().method() !== "POST") return route.fallback();
+    const { segment } = route.request().postDataJSON() as { segment: string };
+    return route.fulfill({
+      json: {
+        status: 200,
+        segment: {
+          key: segment,
+          item_id: segment === "intro" ? null : segment,
+          characters: 300,
+          audio: { url: "/fixtures/audio.wav", duration_ms: 18_600, confirmed: true },
+        },
+      },
+    });
+  });
+}
+
+test.describe("the floating button", () => {
+  test("is Create on Today and the Library, Play on an episode or an older briefing, and absent elsewhere", async ({
+    page,
+  }, info) => {
     test.skip(info.project.name === "desktop", "the floating button is for phones");
     // The latest briefing at its dated address is Today: the navigation marks it so.
     for (const path of ["/", "/library", "/d/2026-10-07"]) {
       await page.goto(path);
-      await expect(page.locator(".create-fab"), path).toBeVisible();
+      await expect(createFab(page), path).toBeVisible();
+      await expect(playFab(page), path).toHaveCount(0);
     }
-    for (const path of [
-      "/settings",
-      "/settings/daily",
-      "/settings/topics",
-      "/d/2026-10-05",
-      "/e/ep-20261007-1930",
-      "/create",
-    ]) {
+    for (const [path, noun] of [
+      ["/d/2026-10-05", "briefing"],
+      ["/d/2026-10-04-weekly", "briefing"],
+      ["/e/ep-20261007-1930", "episode"],
+    ] as const) {
+      await page.goto(path);
+      await expect(playFab(page), path).toBeVisible();
+      // It says what it plays, with the hero chip's noun and length.
+      const length = await page.locator(".hero [data-chip-label]").textContent();
+      await expect(playFab(page), path).toHaveAccessibleName(`Play this ${noun}, ${length}`);
+      await expect(playFab(page), path).toContainText(`Play · ${length}`);
+      await expect(createFab(page), path).toHaveCount(0);
+      await expect(page.locator("html"), path).toHaveAttribute("data-fab", "");
+    }
+    for (const path of ["/settings", "/settings/daily", "/settings/topics", "/create"]) {
       await page.goto(path);
       await expect(page.locator(".create-fab"), path).toHaveCount(0);
     }
   });
 
-  test("the side column keeps Create Podcast on every page", async ({ page }, info) => {
+  test("Play is extended at the top and folds while scrolling down to read", async ({
+    page,
+  }, info) => {
+    test.skip(info.project.name === "desktop", "the floating button is for phones");
+    await page.goto(SILENT_DIGEST);
+    const play = playFab(page);
+    expect(Math.round((await play.boundingBox())?.width ?? 0)).toBeGreaterThan(56);
+    await page.mouse.wheel(0, 600);
+    await page.waitForTimeout(150);
+    await page.mouse.wheel(0, 600);
+    await expect(play).toHaveAttribute("data-folded", "");
+    await expect.poll(async () => Math.round((await play.boundingBox())?.width ?? 0)).toBe(56);
+    await page.mouse.wheel(0, -400);
+    await expect(play).not.toHaveAttribute("data-folded", "");
+  });
+
+  test("Play plays the page's audio as the hero chip does, and steps aside while the bar holds it", async ({
+    page,
+  }, info) => {
+    test.skip(info.project.name === "desktop", "the floating button is for phones");
+    await page.goto(SILENT_DIGEST);
+    await hydrated(page);
+    await serveNarration(page);
+    const root = page.locator("html");
+    await playFab(page).click();
+    await expect(root).toHaveAttribute("data-player-state", "playing");
+    await expect(page.locator(".hero [data-play-digest]")).toHaveAttribute("data-state", "current");
+    // One play control at a time: the bar is the page's control now, and the page gives back the
+    // room it kept for the button.
+    await expect(root).toHaveAttribute("data-mini", "visible");
+    await expect(root).not.toHaveAttribute("data-fab");
+    await expect(playFab(page)).toBeHidden();
+    // The player writes the chip's state on it, never the chip's words.
+    await expect(playFab(page)).toHaveAttribute("aria-label", "Play this briefing, 3 min");
+
+    // On a page whose audio the bar does not hold, Play is back, above the bar and clear of it.
+    await page.locator('a[href="/d/2026-10-04-weekly"]').first().click();
+    await expect(page).toHaveURL(/\/d\/2026-10-04-weekly$/);
+    await expect(root).toHaveAttribute("data-player-state", "playing");
+    await expect(playFab(page)).toBeVisible();
+    await page.waitForTimeout(500);
+    const fab = await playFab(page).boundingBox();
+    const controls = await page
+      .locator(".player-dock button")
+      .evaluateAll((nodes) =>
+        nodes
+          .map((node) => node.getBoundingClientRect())
+          .map((r) => ({ top: r.top, bottom: r.bottom, left: r.left, right: r.right })),
+      );
+    expect(controls.length).toBeGreaterThan(0);
+    for (const control of controls) {
+      const apart =
+        (fab?.y ?? 0) + (fab?.height ?? 0) <= control.top ||
+        (fab?.x ?? 0) + (fab?.width ?? 0) <= control.left ||
+        (fab?.x ?? 0) >= control.right ||
+        (fab?.y ?? 0) >= control.bottom;
+      expect(apart).toBe(true);
+    }
+
+    // Back on the page that is playing, the button is not there from the first frame.
+    await page.goBack();
+    await expect(page).toHaveURL(/\/d\/2026-10-05$/);
+    await expect(root).not.toHaveAttribute("data-fab");
+    await expect(playFab(page)).toBeHidden();
+  });
+
+  test("the side column keeps Create Podcast on every page, and no floating button shows", async ({
+    page,
+  }, info) => {
     test.skip(info.project.name !== "desktop", "the side column is for wide screens");
-    for (const path of ["/", "/settings/daily", "/e/ep-20261007-1930"]) {
+    for (const path of ["/", "/settings/daily", "/d/2026-10-05", "/e/ep-20261007-1930"]) {
       await page.goto(path);
       await expect(page.locator(".app-nav-create"), path).toBeVisible();
+      await expect(page.locator(".create-fab"), path).toBeHidden();
     }
   });
 

@@ -1,9 +1,10 @@
 import { mkdir, mkdtemp, rm, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
-import { ANTHROPIC_MODELS, MODEL_ID_PATTERN } from "@dispatch/core";
+import { ANTHROPIC_MODELS, ConfigOp, MODEL_ID_PATTERN } from "@dispatch/core";
 import { afterEach, describe, expect, it } from "vitest";
-import { CLAUDE_MODELS, contextLabel, isModelId, modelParts } from "./modelId";
+import { parseConfigOp } from "../server/configEdit";
+import { CLAUDE_MODELS, contextLabel, isModelId, modelParts, NEBIUS_TOP } from "./modelId";
 import { loadWriterView, writerLabel } from "./writer";
 
 describe("modelId", () => {
@@ -16,6 +17,14 @@ describe("modelId", () => {
 
   it("keeps the Claude list identical to core's", () => {
     expect(CLAUDE_MODELS).toEqual(ANTHROPIC_MODELS.map((entry) => ({ ...entry })));
+  });
+
+  it("offers only top Nebius models that writer.set accepts, on the site and in the engine", () => {
+    for (const { id } of NEBIUS_TOP) {
+      const op = { op: "writer.set", provider: "nebius", model: id };
+      expect(parseConfigOp(op), id).toEqual(op);
+      expect(ConfigOp.safeParse(op).success, id).toBe(true);
+    }
   });
 
   it("splits the vendor from the name", () => {
@@ -84,5 +93,10 @@ describe("loadWriterView", () => {
     expect(writerLabel(null)).toBe("Automatic");
     expect(writerLabel("a/b")).toBe("b");
     expect(writerLabel("claude-sonnet-5-5", "anthropic")).toBe("Claude Sonnet 5.5");
+  });
+
+  it("calls a top model by the name the model list uses", () => {
+    expect(writerLabel("moonshotai/Kimi-K3")).toBe("Kimi K3");
+    expect(writerLabel("deepseek-ai/DeepSeek-V4-Pro-0813")).toBe("DeepSeek V4 Pro 0813");
   });
 });

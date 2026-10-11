@@ -1,10 +1,11 @@
 /**
  * The Topics & Sources panel: one native modal dialog, cloned from the page's template each time it
- * opens, for three jobs. Add opens it on Topic: a new topic's details first, then the catalogue
- * sources that suit it, ticked to go with it. Its Source segment, and a topic's Add source, take an
- * address, look it up after a pause (GET /api/source-preview) and file the source under a topic. A
- * source's row opens it to edit that source: its name, its topic, where it lives and what its score
- * is made of. A modal dialog gives the scrim, the focus trap and Escape; Back closes it the way it
+ * opens, for four jobs. Add opens it on Topic: a new topic's details first, then the catalogue
+ * sources that suit it, ticked to go with it. A topic's Edit topic opens the same two steps filled
+ * in, to change its details and add more of the sources that suit it. Its Source segment, and a
+ * topic's Add source, take an address, look it up after a pause (GET /api/source-preview) and file
+ * the source under a topic. A source's row opens it to edit that source: its name, its topic, where
+ * it lives and what its score is made of. A modal dialog gives the scrim, the focus trap and Escape; Back closes it the way it
  * closes the Create panel. Loaded the first time it is opened.
  */
 import {
@@ -12,7 +13,9 @@ import {
   keywordList,
   type OfferData,
   problemText,
+  saveTopicLabel,
   suggestionsFor,
+  topicChanged,
   topicProblems,
   webAddress,
 } from "../lib/topicText";
@@ -58,14 +61,32 @@ export interface SourceFacts {
   reason: string;
 }
 
+/** What a topic's page tells the panel about it. */
+export interface TopicFacts {
+  id: string;
+  name: string;
+  description: string;
+  keywords: string[];
+  /** A topic the owner made can change everything; one that ships with the app only its keywords. */
+  custom: boolean;
+}
+
+/** A topic's details as the panel leaves them. */
+export interface TopicEdit extends NewTopic {
+  id: string;
+}
+
 export interface PanelHandlers {
   addTopic(topic: NewTopic, sources: OfferData[]): void;
+  /** `edit` is null when only sources were ticked and the details stayed as they were. */
+  editTopic(edit: TopicEdit | null, sources: OfferData[]): void;
   addSource(pick: Chosen): void;
   editSource(edit: SourceEdit): void;
 }
 
 export type PanelStart =
   | { kind: "topic" }
+  | { kind: "topic-edit"; topic: TopicFacts }
   | { kind: "source"; topicId: string }
   | { kind: "edit"; source: SourceFacts };
 
@@ -262,6 +283,27 @@ export function openPanel(
     return offers.filter((offer) => ids.has(offer.id));
   };
 
+  // Editing a topic starts from what it holds; a topic that ships with the app keeps its name and what
+  // counts, so only its keywords take typing.
+  const editedTopic = start.kind === "topic-edit" ? start.topic : null;
+  if (editedTopic) {
+    topicPane.setAttribute("aria-label", "Edit topic");
+    topicField("name").value = editedTopic.name;
+    topicField("description").value = editedTopic.description;
+    topicField("keywords").value = editedTopic.keywords.join(", ");
+    if (!editedTopic.custom) {
+      topicField("name").readOnly = true;
+      topicField("description").readOnly = true;
+      one<HTMLElement>("[data-fixed-note]").hidden = false;
+    }
+    one<HTMLElement>("[data-suggest-head]").textContent = "More sources";
+    lede.textContent =
+      "Sources that write about it and are not among its sources yet. Tick the ones to add.";
+    none.textContent =
+      "No more sources to suggest for this topic. Add one by its address on the topic's page.";
+  }
+  const topicDirty = (): boolean => editedTopic !== null && topicChanged(editedTopic, topicValue());
+
   /** Shows each field's problem beside it and returns the first field that has one. */
   const flag = (problems: Record<string, string>): HTMLElement | null => {
     let first: HTMLElement | null = null;
@@ -280,7 +322,7 @@ export function openPanel(
 
   const toSources = (): void => {
     const topic = topicValue();
-    const bad = flag(topicProblems(topic));
+    const bad = editedTopic?.custom === false ? null : flag(topicProblems(topic));
     if (bad) {
       bad.focus();
       return;
@@ -407,19 +449,28 @@ export function openPanel(
   // ---------------------------------------------------------------------------------- the frame
 
   function render(): void {
+    const topicLike = mode === "topic" || mode === "topic-edit";
     panel.dataset.mode = mode;
-    kinds.hidden = mode === "edit";
-    topicPane.hidden = mode !== "topic";
+    kinds.hidden = mode === "edit" || mode === "topic-edit";
+    topicPane.hidden = !topicLike;
     sourcePane.hidden = mode !== "source";
     editPane.hidden = mode !== "edit";
     details.hidden = step !== "details";
     sourcesStep.hidden = step !== "sources";
-    back.hidden = !(mode === "topic" && step === "sources");
-    title.textContent =
-      mode === "edit" ? "Edit source" : mode === "source" ? "Add a source" : "Add a topic";
+    back.hidden = !(topicLike && step === "sources");
+    title.textContent = {
+      topic: "Add a topic",
+      "topic-edit": "Edit topic",
+      source: "Add a source",
+      edit: "Edit source",
+    }[mode];
     if (mode === "topic") {
       go.textContent = step === "details" ? "Next" : addTopicLabel(ticked().length);
       go.disabled = false;
+    } else if (mode === "topic-edit") {
+      go.textContent = step === "details" ? "Next" : saveTopicLabel(ticked().length);
+      // Nothing to save until a detail changed or a source was ticked.
+      go.disabled = step === "sources" && !topicDirty() && ticked().length === 0;
     } else if (mode === "source") {
       go.textContent = "Add source";
       go.disabled = loaded === null;
@@ -445,6 +496,12 @@ export function openPanel(
         handlers.addTopic(topicValue(), ticked());
         panel.close();
       }
+    } else if (mode === "topic-edit" && editedTopic) {
+      if (step === "details") toSources();
+      else {
+        handlers.editTopic(topicDirty() ? { id: editedTopic.id, ...topicValue() } : null, ticked());
+        panel.close();
+      }
     } else if (mode === "source") {
       if (!loaded) return;
       handlers.addSource({ url: loaded.url, topic_id: sourceTopic.value, preview: loaded.preview });
@@ -465,7 +522,8 @@ export function openPanel(
   back.addEventListener("click", () => {
     step = "details";
     render();
-    topicField("name").focus();
+    // A shipped topic's name cannot change, so its first field to type in is its keywords.
+    topicField(editedTopic?.custom === false ? "keywords" : "name").focus();
   });
 
   // Enter moves on from a one-line field, as the button would; in the description it is a new line.
@@ -530,6 +588,6 @@ export function openPanel(
   render();
   panel.showModal();
   // Adding starts with typing, so the first field takes focus. Editing starts with reading, so the
-  // panel keeps the browser's own first focus, and a phone's keyboard does not cover the score.
-  if (mode !== "edit") firstField().focus();
+  // panel keeps the browser's own first focus, and a phone's keyboard does not cover what is there.
+  if (mode === "topic" || mode === "source") firstField().focus();
 }

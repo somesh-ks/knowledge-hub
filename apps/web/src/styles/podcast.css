@@ -108,12 +108,10 @@
   inset-block-start: calc(100% + var(--space-1));
   /* script sets --list-room to the space left on the side it opens to. */
   max-block-size: min(22rem, var(--list-room, 22rem));
-  margin: 0;
   padding: var(--space-2);
   overflow-y: auto;
   overscroll-behavior: contain;
   scrollbar-width: thin;
-  list-style: none;
   border: var(--stroke-hairline) solid var(--color-border-hairline);
   border-radius: var(--radius-md);
   background: var(--color-surface-overlay);
@@ -217,13 +215,21 @@
   color: var(--color-on-surface-muted);
 }
 
+/* A group of options under its heading keeps the list's own rhythm, so rows are spaced the same
+   inside a group and across groups. */
+.daily-group {
+  display: grid;
+  gap: var(--space-1);
+}
+
 /* A quiet heading, not a divider. */
 .daily-head {
   padding-block: var(--space-3) var(--space-1);
   padding-inline: var(--space-3);
 }
 
-.daily-head:first-child {
+/* At the top of a filtered list a heading sits as near the edge as a first row would. */
+.daily-group:first-child > .daily-head {
   padding-block-start: var(--space-1);
 }
 

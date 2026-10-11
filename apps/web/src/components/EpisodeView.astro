@@ -1,7 +1,7 @@
 ---
 import { paletteAccent } from "@dispatch/cover";
 import { episodeHighlights } from "../lib/episodeHighlights";
-import type { EpisodeEntry } from "../lib/episodes";
+import { type EpisodeEntry, episodeLength } from "../lib/episodes";
 import { longDate } from "../lib/format";
 import AmbientLight from "./AmbientLight.astro";
 import Cover from "./Cover.astro";
@@ -18,7 +18,7 @@ interface Props {
 
 const { entry } = Astro.props;
 const { episode } = entry;
-const length = `${episode.listen_minutes} min`;
+const length = episodeLength(episode);
 // "7 October": the long date without its weekday.
 const day = longDate(episode.date).split(" ").slice(1).join(" ");
 const highlights = episodeHighlights(episode);
