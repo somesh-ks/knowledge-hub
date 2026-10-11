@@ -6,6 +6,18 @@
 
 /* ------------------------------------------------------------------ the rewrite panel */
 
+/* The form fills the panel's body, so its foot (the button and the line over it) rests at the foot
+   of the panel, as the Create sheet's does, instead of floating under a short form. */
+.regen-form {
+  display: flex;
+  flex-direction: column;
+  min-height: 100%;
+}
+
+.regen-form > .create-submit {
+  margin-block-start: auto;
+}
+
 .regen-lede {
   padding-block: var(--space-4) 0;
 }
