@@ -40,7 +40,7 @@ D1 to D9 date from plan v2 (2026-10-05). D10 to D25 date from 2026-10-06. Reason
 | D28 | The audio job runs the Vercel CLI outside the checkout, and its failure is not a failed run | active |
 | D29 | Narration is hosted: a spoken version per story and a code-built host frame | active |
 | D30 | The reader is called Singularity; identifiers keep `dispatch` | active |
-| D31 | The visual language follows Google Podcasts and YouTube Music | active |
+| D31 | The visual language follows Google Podcasts and YouTube Music | active; the outlined play chip is tonal since D72 |
 | D32 | The player is one always-mounted surface, without Base UI Drawer | active |
 | D33 | Narration is made on Play, story by story | active |
 | D34 | Stories are told in four beats; the why line is no longer written | active |
@@ -63,7 +63,7 @@ D1 to D9 date from plan v2 (2026-10-05). D10 to D25 date from 2026-10-06. Reason
 | D51 | Settings is two levels and saves itself; every select opens one drawn list | active; the Custom page superseded by D56 |
 | D52 | On a phone the Create button floats only on Today and the Library, extended until you scroll | superseded by D60: Create floats on the Library alone |
 | D53 | First-load JavaScript budget 110 KB, kept as low as the code allows | active |
-| D54 | Form fields carry a 3:1 outline; in the player only Play is in full ink | active |
+| D54 | Form fields carry a 3:1 outline; in the player only Play is in full ink | active for text fields; selects, segmented controls and chips are tonal since D72 |
 | D55 | A source's score is out of 3: health, quality and trust, combined so a weak part cannot be bought back | active |
 | D56 | One panel adds a topic or a source and edits a source; Settings has no Custom page | active |
 | D57 | A topic's page edits its details and adds the sources that suit it; topics are listed by name | active; shipped topics take a new name, and app topics new wording, since D64; the judge topics show under Design, AI and Technology since D69 |
@@ -80,7 +80,11 @@ D1 to D9 date from plan v2 (2026-10-05). D10 to D25 date from 2026-10-06. Reason
 | D68 | An episode opens with a rundown, deep-dives its lead stories, gives the rest as nuggets and closes short | active |
 | D69 | Design, AI and Technology gather the judge topics; one alphabetical list where each topic sets its scope; every source filed under a topic | active |
 | D70 | A scoring sample judges a few items a run for scores alone, so every source reaches a score, switched-off ones included | active |
-| D71 | Streamlined add topic modal, live suggested sources with TypeSafe Jev scores, schedule timezone and topic scope indicator chips | active |
+| D71 | Streamlined add topic modal, live suggested sources with TypeSafe Jev scores, schedule timezone and topic scope indicator chips | active; suggested sources are built from the catalogue, with no scores, since D75, and the topic chips can be ticked since D72 |
+| D72 | The look is tonal: containers, state layers and round buttons instead of outlines and invisible hover fills | active |
+| D73 | A steadier type scale: 16px reading, 18 to 20px headlines, 14px meta, 22px regular section headings | active |
+| D74 | A discussion's hosts are named after their voices; the transcript names a speaker only where the speaker changes | active |
+| D75 | Suggested sources are chosen from the source catalogue when the page is built, with no live lookup and no scores | active |
 
 ---
 
@@ -740,3 +744,42 @@ D1 to D9 date from plan v2 (2026-10-05). D10 to D25 date from 2026-10-06. Reason
 - Why: Removes friction when creating topics, keeps topic pages lively with suggested sources, clarifies topic scope in podcast settings, and accommodates global user timezones.
 - Cost: Minor increase in client-side fetch requests for suggested sources.
 - Rejected: Heavy multi-step creation wizards; hardcoded UTC or local-only timezone detection without explicit user control.
+
+## D72: The look is tonal: containers, state layers and round buttons instead of outlines and invisible hover fills
+
+- Date: 2026-10-11
+- Decision: Controls are drawn as tonal shapes, not boxes with outlines.
+  - Colour: `surface-container` (the page's tonal fill: the search pill, the play chip, an unselected filter chip, the bottom bar), `accent-container` with `on-accent-container` (the selected or current state: a chosen chip or segment, the current destination, the loaded story, a tonal button, the floating button). Text on the accent container is never `accent` (4.0:1 in light). `accent-subtle` and `surface-sunken` stay for wells, skeletons and tracks; at about 1.03:1 on the light page they are never the only sign of a hover, a selection or a control. A test keeps the two containers 1.08:1 and 1.2:1 from the page in both themes, and the text on them at 4.5:1.
+  - State layers: a hover lays 8% and a press 12% of the control's text colour over its own fill (`--state-hover`, `--state-press`), on every button, chip, row, option and navigation item.
+  - Shape: buttons, chips and navigation items are full pills; a tappable row and a list option are 12px (`--row-radius`); the Create button and the floating button are 16px; a text field keeps `--field-radius` and its outline.
+  - Navigation: a tonal bottom bar, 4rem tall, with a pill behind the current icon; in the side column the current row and the Create button take the accent container. The hairline above the bar is gone.
+  - The play chip is a tonal pill with no ring or outline; it takes the accent container while it is the loaded story. The hero chip no longer needs the page's surface behind it, since its fill is opaque.
+- Why: the owner called the boxed look "ai slop" and asked for a real Google app. Outlines on every control read as generated; a hover or a selected tint at 1.03:1 read as no state at all (chips looked unselectable). Material's tonal containers answer both with a fill that is visible without a line.
+- Cost: a transparent 1px border stays on chips and filter chips so their size holds where forced colours draw one; the bar is 8px taller; D54's outlines remain on text fields only.
+- Rejected: keeping the hairline outlines and only strengthening them (still boxes); `accent-subtle` made stronger (it is also the hover tint of text controls, where it must stay light); a per-component hover colour (twenty fills to keep in step).
+- Supersedes: the outlined play chip of D31 and, for selects, segmented controls and chips, the outlines of D54.
+
+## D73: A steadier type scale: 16px reading, 18 to 20px headlines, 14px meta, 22px regular section headings
+
+- Date: 2026-10-11
+- Decision: Story and summary text is 16px at every width (it was 15 to 17px); a story's headline is 18px rising to 20px at 1280px (it was 16 to 17px, one pixel over its summary on a phone) with leading 1.35; the meta line is 14px, level with labels; section headings are 22px regular, so weight 500 marks headlines only; the display step is at most 32px. Reading leading is 1.55.
+- Why: the critique found headline and summary a pixel apart on a phone and the same size on desktop, three sizes between 15 and 17px and a medium weight on everything, so nothing was marked. A scale in which each step is visible removes the need for a bold inline label.
+- Cost: the 13px meta size is gone, so facts lines grow a point and wrap sooner on a 360px phone.
+- Rejected: a fluid reading size (it is the same word at two sizes); making headlines semibold (it breaks the two-weight rule).
+
+## D74: A discussion's hosts are named after their voices; the transcript names a speaker only where the speaker changes
+
+- Date: 2026-10-11
+- Decision: The two hosts of a discussion take names that fit their voices (`hostNamesFor` in `@dispatch/core/hosts`): a voice keeps its own display name when that is one given name, otherwise a name from the female, male or neutral pool for its gender, chosen by a stable hash of the voice id, and the second host moves on when the two would match. The podcast workflow has no Speechify key, so `/api/podcast` resolves them when a discussion is requested (from the cached voice list, within two seconds) and stores `host_names` with the request; the writer is told them and the transcript shows them. A readout names nobody. A discussion made before names were stored keeps Ada and Leo. The transcript has no cards or badges: a small name over a turn where the speaker changes, and only in a discussion. Both voices are always on the Daily and Weekly pages, the second labelled as the discussion's.
+- Why: the owner uses a male voice and Ada is not one; a name that disagrees with the voice breaks the illusion in the first line.
+- Cost: a discussion requested while the voice list is unreachable carries no names and is written with the generic pair; a name pool is a small list, so two voices can share a name across episodes.
+- Rejected: asking the owner to type the names (a second thing to keep in step with the voice); naming from the browser (a request could carry any text into the prompt).
+
+## D75: Suggested sources are chosen from the source catalogue when the page is built, with no live lookup and no scores
+
+- Date: 2026-10-11
+- Decision: A topic's page lists up to five sources from the catalogue that fit it, in the page itself (`SuggestedSources.astro`, `suggestSources` in `sourceCatalog.ts`). A feed must share a tag with the topic; its description and name only rank it. General topics match on their name alone. Each has a plus that adds it in the row. There is no `/api/topic-suggestions`, no skeleton, no "Live curated" mark and no score: a score the catalogue cannot have measured is not shown.
+- Why: the owner saw the "Live curated" pill and a long wait for the list; the list was fetched after the page loaded, failed silently into a skeleton and showed scores made up for sources the engine had never judged.
+- Cost: the list changes only with the catalogue and a redeploy; a source Jev has not judged shows no score until it has one.
+- Rejected: caching the live fetch (it stays an unmeasured score); a loading state with a timeout (still a wait).
+- Supersedes: the live suggested sources and their scores in D71.
