@@ -26,7 +26,7 @@ function hide(kind: "offline"): void {
 function syncConnection(): void {
   const isOffline = !navigator.onLine;
   document.documentElement.toggleAttribute("data-offline", isOffline);
-  if (isOffline) show("offline");
+  if (isOffline && document.documentElement.dataset.deviceBanner !== "off") show("offline");
   else hide("offline");
 }
 

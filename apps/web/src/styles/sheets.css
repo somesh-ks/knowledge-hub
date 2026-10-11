@@ -397,7 +397,7 @@
   align-items: start;
   gap: var(--space-3);
   padding: var(--banner-padding);
-  border-radius: var(--banner-radius);
+  border-radius: var(--radius-lg);
   background: var(--tone-bg);
   color: var(--color-on-surface);
 }
@@ -556,7 +556,7 @@
   grid-template-columns: auto 1fr;
   gap: var(--space-3);
   padding: var(--banner-padding);
-  border-radius: var(--banner-radius);
+  border-radius: var(--radius-lg);
   background: var(--color-surface-sunken);
 }
 
@@ -733,7 +733,7 @@ html[data-mini="visible"] .toast {
 /* A text action: the accent on the inverse surface, no fill until it is pointed at or pressed. */
 .toast-action {
   padding-inline: var(--space-3);
-  border-radius: var(--radius-sm);
+  border-radius: var(--radius-round);
   color: var(--toast-accent);
   font-weight: var(--font-weight-medium);
   transition: background-color var(--duration-hover) var(--ease-hover);

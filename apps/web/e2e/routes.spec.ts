@@ -19,16 +19,41 @@ test.describe("routes and headers", () => {
     const response = await page.goto("/no/such/page");
     expect(response?.status()).toBe(404);
     await expect(page.getByRole("heading", { level: 1 })).toHaveText("Page not found");
-    await expect(page.getByRole("link", { name: "Open today's briefing" })).toHaveAttribute(
-      "href",
-      "/",
-    );
+    await expect(page.getByRole("link", { name: "Go to Today" })).toHaveAttribute("href", "/");
+    // One way on: the navigation already carries the rest.
+    await expect(page.locator(".empty-actions a")).toHaveCount(1);
   });
 
-  test("the offline page explains itself", async ({ page }) => {
+  test("the not found page for a missing briefing or episode reads the same", async ({ page }) => {
+    for (const path of ["/d/1999-01-01", "/e/ep-none"]) {
+      const response = await page.goto(path);
+      expect(response?.status(), path).toBe(404);
+      await expect(page.getByRole("heading", { level: 1 })).toHaveText("Page not found");
+    }
+  });
+
+  test("an older briefing leads back to where the person came from", async ({ page, isMobile }) => {
+    test.skip(!isMobile, "The app bar, and its Back button, show below 64rem");
+    await page.goto("/library");
+    await page.locator('a[href="/d/2026-10-05"]').first().click();
+    await expect(page).toHaveURL(/\/d\/2026-10-05$/);
+    await page.getByRole("link", { name: "Back" }).click();
+    await expect(page).toHaveURL(/\/library$/);
+    // Opened cold, it falls back to the Library.
+    await page.goto("/d/2026-10-05");
+    await expect(page.getByRole("link", { name: "Back" })).toHaveAttribute("href", "/library");
+    // Today has none.
+    await page.goto("/");
+    await expect(page.getByRole("link", { name: "Back" })).toHaveCount(0);
+  });
+
+  test("the offline page says what still works and speaks once", async ({ page }) => {
     await page.goto("/offline");
     await expect(page.getByRole("heading", { level: 1 })).toHaveText("You are offline");
-    await expect(page.getByText("Open a briefing you have read before")).toBeVisible();
+    await expect(page.getByText("you have opened before still work")).toBeVisible();
+    await expect(page.getByRole("link", { name: "Try again" })).toBeVisible();
+    // The page is the message: no banner repeats it.
+    await expect(page.locator('[data-banner="offline"]')).toHaveCount(0);
   });
 
   test("latest.json lists only the whitelisted fields", async ({ request }) => {

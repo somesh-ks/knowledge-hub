@@ -429,6 +429,12 @@ test.describe("section tabs", () => {
     "The tabs show below 80rem; the contents list replaces them",
   );
 
+  // The app bar slides away on a scroll down unless motion is reduced, which moves the strip up with
+  // it. These tests measure the strip against a bar that stays put.
+  test.beforeEach(async ({ page }) => {
+    await page.emulateMedia({ reducedMotion: "reduce" });
+  });
+
   test("link to each section and start on the first", async ({ page }) => {
     await page.goto("/");
     const tabs = page.locator('nav[aria-label="Sections"] .tab');
@@ -446,6 +452,8 @@ test.describe("section tabs", () => {
   });
 
   test("stick under the app bar while the sections scroll", async ({ page }) => {
+    // The bar slides away on a scroll down unless motion is reduced; this checks it where it stays.
+    await page.emulateMedia({ reducedMotion: "reduce" });
     await page.goto("/");
     const barLine = () =>
       page.locator(".app-bar").evaluate((bar) => getComputedStyle(bar, "::after").display);
@@ -469,6 +477,7 @@ test.describe("section tabs", () => {
     page,
   }) => {
     // A phone on its side: the page goes on past the briefing for longer than the screen is tall.
+    await page.emulateMedia({ reducedMotion: "reduce" });
     await page.setViewportSize({ width: 844, height: 390 });
     await page.goto("/");
     const barLine = () =>

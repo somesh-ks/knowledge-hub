@@ -3,13 +3,25 @@ import EmptyState from "../components/EmptyState.astro";
 import BaseLayout from "../layouts/BaseLayout.astro";
 ---
 
-<BaseLayout title="Offline" view="home" nav={null} skipLabel="Skip to the content">
+<BaseLayout title="Offline" view="home" nav={null} skipLabel="Skip to the content" deviceBanner={false}>
   <main id="main" tabindex="-1">
     <EmptyState
+      icon="wifiOff"
       title="You are offline"
-      body="This page is not saved on this device yet. Open a briefing you have read before, or reconnect and try again."
-      primary={{ label: "Open today's briefing", href: "/" }}
-      secondary={{ label: "Library", href: "/library" }}
+      body="Briefings and episodes you have opened before still work. This page needs a connection."
+      primary={{ label: "Try again", href: "/", reload: true }}
+      secondary={null}
     />
   </main>
 </BaseLayout>
+
+<script>
+  // The worker serves this page for any address it cannot reach, so Try again reloads that address,
+  // not the page's own.
+  function aimRetry(): void {
+    const retry = document.querySelector<HTMLAnchorElement>(".empty-actions a[data-astro-reload]");
+    if (retry && location.pathname !== "/offline") retry.href = location.pathname + location.search;
+  }
+  aimRetry();
+  document.addEventListener("astro:page-load", aimRetry);
+</script>

@@ -205,10 +205,43 @@ html[data-mini="visible"] main {
 }
 
 .app-bar-inner {
+  position: relative;
   display: flex;
   align-items: center;
   justify-content: center;
   min-height: var(--app-bar-height);
+}
+
+/* Back, at the leading edge. It is out of the flow, so the wordmark stays centred and a page without
+   it does not shift. */
+.app-bar-back {
+  position: absolute;
+  inset-block: 0;
+  inset-inline-start: var(--space-1);
+  margin-block: auto;
+  color: var(--color-on-surface);
+}
+
+/* Reading takes the screen: scrolling down slides the bar up, leaving only the safe area, and
+   scrolling up brings it back (the script is in SiteHeader.astro). What sticks under it, the section
+   tabs and the contents, follows through --sticky-top, so nothing is left hanging below an empty
+   gap. With reduced motion the bar never moves. */
+@media (width < 64rem) and (prefers-reduced-motion: no-preference) {
+  .app-bar {
+    transition: transform var(--duration-state) var(--ease-out);
+  }
+
+  html[data-bar-hidden] .app-bar {
+    transform: translateY(calc(var(--app-bar-height) * -1));
+  }
+
+  html[data-bar-hidden] {
+    --sticky-top: var(--safe-top);
+  }
+
+  .briefing > .tabs {
+    transition: inset-block-start var(--duration-state) var(--ease-out);
+  }
 }
 
 @media (min-width: 64rem) {

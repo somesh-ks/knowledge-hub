@@ -1,15 +1,80 @@
 ---
 import BrandMark from "./BrandMark.astro";
+import Icon from "./Icon.astro";
+
+interface Props {
+  /** A page one level down leads back: to the page the person came from, else to this address. */
+  back?: { href: string; label: string };
+}
+
+const { back } = Astro.props;
 ---
 
-{/* The top app bar, shown below 64rem. The wordmark sits in the middle, which also keeps the
-     top-leading corner free: iPadOS windowed apps draw their window controls there. From 64rem the
-     side navigation carries the wordmark and this bar is not rendered at all. */}
+{/* The top app bar, shown below 64rem. The wordmark sits in the middle. A page one level down adds
+     a Back button at the leading edge, a little in from the corner that iPadOS windowed apps use for
+     their window controls. From 64rem the side navigation carries the wordmark and this bar is not
+     rendered at all. */}
 <header class="app-bar">
   <div class="app-bar-inner page">
+    {
+      back && (
+        <a class="icon-btn app-bar-back" href={back.href} aria-label={back.label} data-back>
+          <Icon name="arrowBack" />
+        </a>
+      )
+    }
     <a class="wordmark" href="/" aria-label="Singularity, today's briefing" data-astro-prefetch="hover">
       <BrandMark />
       <span>Singularity</span>
     </a>
   </div>
 </header>
+
+<script>
+  // Back goes where the person came from when that was inside the app (Astro numbers its history
+  // entries from 0 at the first page of the visit), and to the link's own address otherwise, so a
+  // shared link opened cold still leads somewhere.
+  // The bar slides away on a scroll down and returns on a scroll up. Small movements are ignored so
+  // a thumb resting on the page does not make it flutter, and the bar always shows at the top.
+  const root = document.documentElement;
+  const calm = matchMedia("(prefers-reduced-motion: reduce)");
+  let last = 0;
+  let queued = false;
+  function sync(): void {
+    queued = false;
+    const y = Math.max(0, scrollY);
+    const delta = y - last;
+    if (y < 64 || calm.matches) {
+      root.removeAttribute("data-bar-hidden");
+      last = y;
+    } else if (Math.abs(delta) > 12) {
+      const bar = document.querySelector(".app-bar");
+      const holdsFocus = bar?.contains(document.activeElement) ?? false;
+      root.toggleAttribute("data-bar-hidden", delta > 0 && !holdsFocus);
+      last = y;
+    }
+  }
+  addEventListener(
+    "scroll",
+    () => {
+      if (queued) return;
+      queued = true;
+      requestAnimationFrame(sync);
+    },
+    { passive: true },
+  );
+  document.addEventListener("astro:page-load", () => {
+    last = Math.max(0, scrollY);
+  });
+
+  document.addEventListener("click", (event) => {
+    const link = (event.target as Element | null)?.closest<HTMLAnchorElement>("a[data-back]");
+    if (!link || event.defaultPrevented || event.button !== 0) return;
+    if (event.metaKey || event.ctrlKey || event.shiftKey || event.altKey) return;
+    const index = (history.state as { index?: number } | null)?.index;
+    if (typeof index === "number" && index > 0) {
+      event.preventDefault();
+      history.back();
+    }
+  });
+</script>
