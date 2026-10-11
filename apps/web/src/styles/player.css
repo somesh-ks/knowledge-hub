@@ -328,8 +328,9 @@
 /* Out of sight until the keyboard reaches it, like a skip link. */
 .player-collapse {
   position: absolute;
-  /* Room for its ring above it: the phone's top padding is the safe area, which can be zero. */
-  inset-block-start: calc(var(--stroke-ring) + var(--stroke-ring-gap));
+  /* Room for its ring above it and air beyond the ring, so the ring never touches the top edge: the
+     phone's top padding is the safe area, which can be zero. */
+  inset-block-start: calc(var(--stroke-ring) + var(--stroke-ring-gap) + var(--space-1));
   inset-inline-start: 50%;
   z-index: 1;
   padding: var(--space-2) var(--space-4);
