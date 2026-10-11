@@ -1,12 +1,13 @@
 name: Claude Code Review
 
-# Reviews pull requests from branches in this repository. Runs when a PR is opened,
-# reopened or marked ready, and again whenever the `review` label is added.
-# Pushes do not re-trigger it, which keeps plan usage predictable.
+# Opt-in review: runs only when the `review` label is added to a pull request.
+# automerge.yml skips PRs that carry this label, so a labeled PR waits for a human
+# merge and the review lands before it. Label the PR when you open it; if ci passes
+# first, automerge may already have merged it. Remove and re-add the label to re-review.
 
 on:
   pull_request:
-    types: [opened, reopened, ready_for_review, labeled]
+    types: [labeled]
 
 concurrency:
   group: claude-review-${{ github.event.pull_request.number }}
@@ -14,13 +15,12 @@ concurrency:
 
 jobs:
   review:
-    # Same-repo PRs only (fork PRs get no secrets), no drafts, no Dependabot,
-    # and the `labeled` event only counts for the `review` label.
+    # Same-repo PRs only (fork PRs get no secrets), no drafts, no Dependabot.
     if: >-
+      github.event.label.name == 'review' &&
       github.event.pull_request.head.repo.full_name == github.repository &&
       github.event.pull_request.draft == false &&
-      github.actor != 'dependabot[bot]' &&
-      (github.event.action != 'labeled' || github.event.label.name == 'review')
+      github.actor != 'dependabot[bot]'
     runs-on: ubuntu-latest
     timeout-minutes: 15
     permissions:
