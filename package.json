@@ -15,6 +15,7 @@
     "lint": "biome check .",
     "format": "biome format --write .",
     "test": "vitest run",
+    "test:fast": "vitest run --exclude '**/git-*.test.ts'",
     "build": "npm run build -w @dispatch/web",
     "dev": "npm run dev -w @dispatch/web",
     "tokens": "tsx scripts/buildTokens.ts",
@@ -28,6 +29,8 @@
   },
   "devDependencies": {
     "@biomejs/biome": "^2.5.15",
+    "@fontsource-variable/literata": "^5.3.0",
+    "@fontsource-variable/schibsted-grotesk": "^5.3.0",
     "@types/node": "^26.6.4",
     "tsx": "^4.23.15",
     "typescript": "~6.0.3",
