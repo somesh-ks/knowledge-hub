@@ -132,11 +132,11 @@ describe("selectStories", () => {
   });
 
   it.each([
-    ["readout", 5, 10],
-    ["discussion", 5, 6],
+    ["readout", 5, 11],
+    ["discussion", 5, 7],
     ["headlines", 5, 28],
-    ["readout", 15, 31],
-    ["discussion", 15, 20],
+    ["readout", 15, 35],
+    ["discussion", 15, 23],
     ["headlines", 15, 88],
   ] as const)("trims a %s of %i minutes to %i stories", async (format, minutes, count) => {
     // Eleven digests of nine stories on eleven days: more than the biggest budget can carry.

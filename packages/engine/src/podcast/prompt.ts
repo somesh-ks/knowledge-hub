@@ -1,10 +1,14 @@
-import type { PodcastFormat, PodcastRequest } from "@dispatch/core";
+import type { PodcastRequest } from "@dispatch/core";
 import { untrustedInstruction, wrapUntrusted } from "../llm/untrusted.js";
 import {
-  perStoryChars,
+  type EpisodeStructure,
+  HELLO_CHARS,
+  partChars,
   reachableChars,
   scriptFloorChars,
   scriptTargetChars,
+  structureFor,
+  TEASER_CLAUSE_CHARS,
   WORDS_PER_SENTENCE,
   wordsFor,
 } from "./plan.js";
@@ -17,27 +21,51 @@ const TONES: Record<PodcastRequest["tone"], string> = {
   dry: "Understated and deadpan. Humor, if any, comes from restraint. Never sarcastic about the facts.",
 };
 
-const FORMATS: Record<PodcastFormat, string> = {
-  readout: [
-    'FORMAT: readout. One host, Ada, speaker "a" only.',
-    "Open with one or two sentences that say the show is Singularity and what today's episode covers.",
-    "Then tell each story in the order given, in a natural spoken voice, in one or two turns of several sentences each: what happened, the detail or number that matters, why it matters to the listener, and the catch or what to watch next, each only as far as the block supports. End a story with a short bridge into the next.",
-    "Close with one short sign-off sentence.",
-  ].join(" "),
-  discussion: [
-    'FORMAT: discussion. Two hosts: Ada, speaker "a", leads; Leo, speaker "b", reacts.',
-    'The first turn is "a" and says the show is Singularity and that she is joined by Leo. The hosts may call each other by name now and then, not in most turns. The last turn is "a" with a short sign-off.',
-    'For each story, in the order given, six to eight turns: "a" introduces it in two or three sentences, "b" reacts and asks the obvious question, "a" answers from the summary in two or three sentences, "b" puts in plain words what that means in practice, "a" adds the catch if the summary has one, and "b" closes the story with a short thought that leads on.',
-    'Turns alternate between "a" and "b" and run two to four sentences each; a one-word or one-line reaction is not a turn.',
-    'A host may say what a fact could mean for the listener, clearly as their own view ("that sounds like", "I would want to know"), never as a fact about the product, the company or anyone\'s motive. Neither host invents a fact, a number, a quote or a motive.',
-  ].join(" "),
-  headlines: [
-    'FORMAT: headlines. One host, Ada, speaker "a" only.',
-    "Open with one sentence that says the show is Singularity.",
-    "Then give each story in the order given in one or two short sentences, one turn per story.",
-    "Close with a five-word sign-off at most.",
-  ].join(" "),
-};
+/** The order of the episode, in one place for every format that has the new shape. */
+function shapeLines(structure: EpisodeStructure): string[] {
+  const { deep_dives: deep, nuggets, teased } = structure;
+  const stories =
+    deep > 0
+      ? `Stories arrive ranked, most important first. The first ${deep} ${deep === 1 ? "story is a deep dive" : "stories are deep dives"}: what happened, why it matters, and one concrete detail from the block. The other ${nuggets} ${nuggets === 1 ? "is a news nugget" : "are news nuggets"}: the news in a sentence or two, nothing more, facts only.`
+      : "Stories arrive ranked, most important first. There are no deep dives in this episode: every story is a news nugget, the news in a sentence or two, facts only.";
+  return [
+    `STRUCTURE, in this order: 1) a one-line hello that says the show is Singularity; 2) the rundown: ${teased >= 1 ? `name the first ${teased} ${teased === 1 ? "story" : "stories"} in order, one short clause each, so the listener knows what is coming` : "one line on what is coming"}; no throat-clearing and no detail yet; 3) ${deep > 0 ? "the deep dives, then the nuggets" : "the nuggets"}, in the order given; 4) a short close; 5) a one-line sign-off.`,
+    stories,
+    'THE CLOSE: one or two thought-provoking questions or implications, drawn only from the stories just told. You may also pass on what the sources themselves report people saying, but only when a story block contains a reaction or a quote. Never invent an opinion, a reaction or a "people are saying" that the story blocks do not state. Keep the close really short; do not summarise the episode again.',
+    "The hello, rundown, close and sign-off carry no item_id. Do not use digits in them.",
+  ];
+}
+
+function formatLines(input: ScriptInput): string {
+  const structure = structureFor(
+    input.request.length_minutes,
+    input.stories.length,
+    input.request.format,
+  );
+  switch (input.request.format) {
+    case "readout":
+      return [
+        'FORMAT: readout. One host, Ada, speaker "a" only.',
+        ...shapeLines(structure),
+        "Tell a deep dive in one or two turns of several sentences each, a nugget in one short turn. Do not bridge from story to story with filler; a plain change of subject is enough.",
+      ].join(" ");
+    case "discussion":
+      return [
+        'FORMAT: discussion. Two hosts: Ada, speaker "a", leads; Leo, speaker "b", reacts.',
+        'The first turn is "a": the one-line hello, saying the show is Singularity and that she is joined by Leo. The hosts may call each other by name now and then, not in most turns. The last turn is "a" with the sign-off.',
+        ...shapeLines(structure),
+        'The rundown is one or two turns, "a" and "b" splitting the clauses. A deep dive is four to six turns: "a" introduces it in two or three sentences, "b" asks the obvious question, "a" answers from the summary, "b" puts in plain words what that means in practice, and "a" adds the catch if the summary has one. A nugget is one turn from "a" or two short turns, "a" with the news and "b" with one line on what it means. The close is "b" then "a", a sentence or two each.',
+        'Turns run one to four sentences each; a one-word reaction is not a turn. A host may say what a fact could mean for the listener, clearly as their own view ("that sounds like", "I would want to know"), never as a fact about the product, the company or anyone\'s motive. Neither host invents a fact, a number, a quote or a motive.',
+      ].join(" ");
+    case "headlines":
+      return [
+        'FORMAT: headlines. One host, Ada, speaker "a" only.',
+        "Open with one sentence that says the show is Singularity.",
+        "Then give each story in the order given in one or two short sentences, one turn per story.",
+        "Close with a five-word sign-off at most.",
+      ].join(" ");
+  }
+}
 
 /**
  * Who the script is for. "custom" is the owner, a design engineer, and is today's behaviour: the
@@ -53,7 +81,7 @@ export const AUDIENCES: Record<NonNullable<PodcastRequest["audience"]>, string> 
 const RULES = [
   "The listener hears this script read aloud, so write for the ear: short sentences, contractions allowed, no markdown, no lists, no links, no stage directions, no emoji, no em dashes.",
   "Use facts from the story blocks only. Never add a claim, number, name, date, quote or link that a block does not state. If a block lacks a detail, leave it out.",
-  "Write a number only as digits and only when it appears in that story's headline or summary; a checker rejects any other number. Do not use digits in the opening or the sign-off.",
+  "Write a number only as digits and only when it appears in that story's headline or summary; a checker rejects any other number. Do not use digits in the opening, the rundown, the close or the sign-off.",
   "Say a source's name only when it helps, never read out a URL.",
   "Tone changes wording only, never the facts.",
 ].join("\n");
@@ -64,15 +92,30 @@ const RULES = [
  */
 export function lengthLines(input: ScriptInput): string[] {
   const stories = input.stories.length;
-  const reach = reachableChars(input.budget_chars, stories, input.request.format);
-  const perStory = wordsFor(perStoryChars(reach, stories));
-  const sentences = Math.max(1, Math.round(perStory / WORDS_PER_SENTENCE));
-  return [
+  const { format, length_minutes: minutes } = input.request;
+  const reach = reachableChars(input.budget_chars, stories, format, minutes);
+  const structure = structureFor(minutes, stories, format);
+  const parts = partChars(reach, stories, format, minutes);
+  const nugget = wordsFor(parts.nugget);
+  const sentences = (words: number): number => Math.max(1, Math.round(words / WORDS_PER_SENTENCE));
+  const lines = [
     `Write about ${wordsFor(scriptTargetChars(reach))} words in total, all turns together, and no more than ${wordsFor(reach)}. A script under ${wordsFor(scriptFloorChars(reach))} words is rejected as too short.`,
-    `That is about ${perStory} words on each of the ${stories} stories, after a short opening and sign-off. A spoken sentence is about ${WORDS_PER_SENTENCE} words, so give each story about ${sentences} sentences.`,
+  ];
+  if (format === "headlines") {
+    lines.push(
+      `That is about ${nugget} words on each of the ${stories} stories, after a short opening and sign-off. A spoken sentence is about ${WORDS_PER_SENTENCE} words, so give each story about ${sentences(nugget)} sentences.`,
+    );
+  } else {
+    const deep = wordsFor(parts.deep_dive);
+    lines.push(
+      `Word counts: the hello about ${wordsFor(HELLO_CHARS)} words; the rundown about ${wordsFor(TEASER_CLAUSE_CHARS)} words for each story it names, ${wordsFor(structure.teaser_chars)} in all; ${structure.deep_dives > 0 ? `each of the ${structure.deep_dives} deep dives about ${deep} words (${sentences(deep)} sentences); ` : ""}each of the ${structure.nuggets} nuggets about ${nugget} words (${sentences(nugget)} sentences at most); the close about ${wordsFor(structure.close_chars)} words; the sign-off a few words. A spoken sentence is about ${WORDS_PER_SENTENCE} words.`,
+    );
+  }
+  lines.push(
     "Reach that length with substance: say what happened, who is involved, the detail or number that matters, why it matters, and what the summary gives as the catch. Use only the facts in the story block. Never pad with filler and never repeat a fact.",
     "If the stories still would not fit, leave out the last ones; never cut a story halfway.",
-  ];
+  );
+  return lines;
 }
 
 export function scriptSystemPrompt(input: ScriptInput, boundary: string): string {
@@ -81,7 +124,7 @@ export function scriptSystemPrompt(input: ScriptInput, boundary: string): string
     request.audience === "general"
       ? "You write the script of one episode of Singularity, a news podcast for a general audience."
       : "You write the script of one episode of Singularity, a private tech and design briefing that people listen to as a podcast.",
-    FORMATS[request.format],
+    formatLines(input),
     `TONE: ${TONES[request.tone]}`,
     ...(AUDIENCES[request.audience ?? "custom"] ? [AUDIENCES[request.audience ?? "custom"]] : []),
     "RULES",
@@ -90,7 +133,7 @@ export function scriptSystemPrompt(input: ScriptInput, boundary: string): string
     ...lengthLines(input),
     "OUTPUT",
     'Answer with JSON only: {"turns":[{"speaker":"a","text":"...","item_id":"..."}]}.',
-    'Put the story\'s id, copied exactly from its block, in "item_id" on every turn about that story. Leave "item_id" out of the opening and sign-off turns.',
+    'Put the story\'s id, copied exactly from its block, in "item_id" on every turn about that story. Leave "item_id" out of the hello, rundown, close and sign-off turns.',
     untrustedInstruction(boundary),
   ].join("\n");
 }

@@ -128,13 +128,13 @@ export class FakeScriptWriter implements ScriptWriter {
 export function padFor(input: ScriptInput, duo: boolean): string {
   const turnsPerStory = duo ? 2 : 1;
   const count = Math.max(1, input.stories.length * turnsPerStory);
-  const base = 120 + input.stories.reduce((sum, s) => sum + s.headline.length * turnsPerStory, 0);
+  const base = 280 + input.stories.reduce((sum, s) => sum + s.headline.length * turnsPerStory, 0);
   const each = Math.floor((input.budget_chars * 0.9 - base) / count);
   return each > 0 ? "word ".repeat(Math.ceil(each / 5)).trim() : "";
 }
 
 /**
- * A valid script: an opening, a block per story, a sign-off. `fill` pads every story turn. A
+ * A valid script: a hello, a rundown, a block per story, a close, a sign-off. `fill` pads every story turn. A
  * discussion opens with both hosts and gives each story an a-then-b pair, so the hosts alternate
  * from the first turn to the last.
  */
@@ -146,10 +146,18 @@ export function scriptOf(input: ScriptInput, explicitFill?: string): { turns: Sc
     { speaker: "a", text: "Welcome to Singularity. Here is what moved." },
   ];
   if (duo) turns.push({ speaker: "b", text: "Glad to be here. What have we got?" });
+  if (input.request.format !== "headlines") {
+    turns.push({ speaker: "a", text: "Coming up: the lead stories, then the quick news." });
+    if (duo) turns.push({ speaker: "b", text: "Let us start with the biggest one." });
+  }
   for (const story of input.stories) {
     const id = story.item_id;
     turns.push({ speaker: "a", text: `${story.headline}. ${fill}`.trim(), item_id: id });
     if (duo) turns.push({ speaker: "b", text: `What is the catch? ${fill}`.trim(), item_id: id });
+  }
+  if (input.request.format !== "headlines") {
+    turns.push({ speaker: "a", text: "One question to carry out of this: what changes next?" });
+    if (duo) turns.push({ speaker: "b", text: "That is the one to watch." });
   }
   turns.push({ speaker: "a", text: "That is Singularity for now." });
   return { turns };
