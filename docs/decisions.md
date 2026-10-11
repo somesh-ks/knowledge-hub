@@ -75,6 +75,7 @@ D1 to D9 date from plan v2 (2026-10-05). D10 to D25 date from 2026-10-06. Reason
 | D63 | Daily and Weekly leave out topics, one chip per topic, stored as the topics left out | active |
 | D64 | Every topic can be renamed; what counts edits wherever the judge reads it | active |
 | D65 | The weekly podcast takes its day; the daily cadence counts from it | active |
+| D66 | General news topics are topics; their feeds are sources Jev judges every run, for scores and episodes only | active |
 | D67 | Create shows one list of topic chips; the audience presets them; an episode can mix briefing and general topics | active |
 | D68 | An episode opens with a rundown, deep-dives its lead stories, gives the rest as nuggets and closes short | active |
 
@@ -645,6 +646,15 @@ D1 to D9 date from plan v2 (2026-10-05). D10 to D25 date from 2026-10-06. Reason
 - Why: the owner asked that a collision on the weekly day go to the weekly podcast, and chose the cadence counting from it over the briefing coming back the next day. The weekly pass fetches its own seven-day window, so it loses nothing without the day's briefing, and it no longer has the day's best stories claimed by a briefing published minutes earlier.
 - Cost: with every second day and a Sunday weekly, the week settles into Tuesday, Thursday and Saturday briefings plus the Sunday weekly. A weekly pass that fails leaves its day with nothing, and the next briefing comes the day after. A weekly pass that found nothing does not count, so the briefing comes the next day.
 - Rejected: the briefing the next day (a briefing the morning after the weekly repeats its news); a skipped briefing recorded as its own outcome in `state/last-run.json` (a state schema change for what the weekly record already says).
+
+## D66: General news topics are topics; their feeds are sources Jev judges every run, for scores and episodes only
+
+- Date: 2026-10-11
+- Decision: World, Business, Science, Culture and Sports are topics in `config/topics.json` with origin `general`: seeded and restored like Design and Trending, named after a section no digest has (`general`), depth `coverage`; renamable, rewordable and switchable, never removed. Their 20 news feeds (from the retired `config/general-feeds.json`; ids `<outlet>-<desk>`) are ordinary sources tagged with the topic, so the app turns them on and off, adds and edits them like any other. The four Technology desks became sources under Consumer tech releases, switched off. Each run reads the general feeds of the topics that are on (never in the weekly pass), keeps their stories beside the pool (`general.json`), and has Jev judge every story in one request: the topic's fit question and the hype and sponsored flags. The stories never enter the pool, so no digest, Top pick or weekly digest can carry them; a failure judging them never stops the briefing. A safety ceiling of 600 stories a run is logged when hit. `state/source-stats.json` counts them as other sources, plus `covered` (stories another outlet also carried, by the news clustering); for a feed of general topics alone the score's quality part counts covered where others count published. General episodes read the enabled sources of the chosen topics. A stored `technology` reads as `tech`.
+- Why: the owner said the general topics and sources were not configurable, wanted everything configurable, and chose to have Jev judge every general story (over a sample of three per feed or health and coverage alone) so the feeds are scored on the same parts as their other sources.
+- Cost: not measured (the sandbox could not reach the feeds): an estimated 150 to 400 more Jev requests a run, against 165 for the whole of the 9 October run (about 2 cents), so a few cents more a run. Scores read New until a feed has ten judged stories. Al Jazeera's world feed is also Trending's, so it is fetched twice. ScienceDaily left the source catalogue, as it is now a source.
+- Rejected: sampling three stories a feed (the owner chose all); health and coverage alone (no quality or honesty); letting general stories compete for the briefing (it would change the briefing the owner tuned).
+- Supersedes: D43's fixed feed list in `config/general-feeds.json`.
 
 ## D67: Create shows one list of topic chips; the audience presets them; an episode can mix briefing and general topics
 
