@@ -12,7 +12,6 @@ import {
   TIME_ZONE,
   type WeeklySchedule,
 } from "@dispatch/core";
-import { FORMATS } from "./createForm";
 import { findRepoRoot } from "./repoRoot";
 import { usesFixtures } from "./site";
 
@@ -43,15 +42,9 @@ export const WEEKDAYS = [
   "Saturday",
 ] as const;
 
-/** A type's name: "Readout". A schedule saved before Headlines left the forms still reads as Headlines. */
-function formatLabel(format: string): string {
-  if (format === "headlines") return "Headlines";
-  return FORMATS.find((entry) => entry.value === format)?.label ?? "";
-}
-
 /**
  * What each row of the Settings index says about the page behind it, in a few words worked out when
- * the site is built: "Every second day at 07:00", "Sundays at 07:00" or "Off", "Discussion, 5 min".
+ * the site is built: "Every second day at 07:00", and "Sundays at 07:00" or "Off".
  */
 export function dailySummary(input: { hour: number; cadenceDays: number }): string {
   const cadence =
@@ -64,12 +57,6 @@ export function weeklySummary(input: { enabled: boolean; day: number; hour: numb
   const day = WEEKDAYS[input.day];
   if (!input.enabled || !day) return "Off";
   return `${day}s at ${hourLabel(input.hour)}`;
-}
-
-export function customSummary(input: { format: string; length_minutes: number }): string {
-  return [formatLabel(input.format), `${input.length_minutes} min`]
-    .filter((part) => part !== "")
-    .join(", ");
 }
 
 function addDays(date: string, days: number): string {

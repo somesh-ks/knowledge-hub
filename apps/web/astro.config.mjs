@@ -100,6 +100,8 @@ export default defineConfig({
     "/settings/podcast/topics": { status: 308, destination: "/settings/topics" },
     "/settings/sources": { status: 308, destination: "/settings/topics" },
     "/settings/schedule": { status: 308, destination: "/settings/daily" },
+    // An episode on request is set up in the Create panel, which /create shows as a page.
+    "/settings/custom": { status: 308, destination: "/create" },
   },
   build: {
     // External stylesheets: cached once, listed once for the service worker, and no inline style

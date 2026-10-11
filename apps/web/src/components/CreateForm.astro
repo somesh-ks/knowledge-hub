@@ -22,7 +22,7 @@ import "../styles/create.css";
 
 const { sections, topics: allTopics } = await loadManage();
 const topics = createTopicOptions(sections, allTopics);
-// What the panel starts from is the Custom profile of the podcast settings: type, length and voices.
+// What the panel starts from: the custom defaults in config/schedule.json (type, length and voices).
 const { custom } = await loadScheduleView();
 const startFormat = custom.format;
 const startLength = custom.length_minutes;

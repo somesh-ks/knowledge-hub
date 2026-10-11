@@ -8,16 +8,15 @@ import "../../styles/settings.css";
 import "../../styles/manage.css";
 import "../../styles/podcast.css";
 
-/** One page per kind of episode: the scheduled Daily and Weekly, and Custom, which is what Create starts from. */
+/**
+ * One page per scheduled episode: Daily and Weekly. An episode made on request is set up in the Create
+ * panel itself, so it has no page here.
+ */
 export function getStaticPaths() {
-  return [
-    { params: { profile: "daily" } },
-    { params: { profile: "weekly" } },
-    { params: { profile: "custom" } },
-  ];
+  return [{ params: { profile: "daily" } }, { params: { profile: "weekly" } }];
 }
 
-type Profile = "daily" | "weekly" | "custom";
+type Profile = "daily" | "weekly";
 const profile = Astro.params.profile as Profile;
 const schedule = await loadScheduleView();
 
@@ -47,16 +46,6 @@ const PAGES = {
       voiceIdB: schedule.weekly.voice_id_b,
     },
   },
-  custom: {
-    title: "Custom",
-    note: "What the Create panel starts from.",
-    values: {
-      format: schedule.custom.format,
-      lengthMinutes: schedule.custom.length_minutes,
-      voiceId: schedule.custom.voice_id,
-      voiceIdB: schedule.custom.voice_id_b,
-    },
-  },
 } as const;
 const { title, note, values } = PAGES[profile];
 ---
@@ -70,7 +59,7 @@ const { title, note, values } = PAGES[profile];
       <SettingsHead
         title={title}
         note={note}
-        next={profile !== "custom"}
+        next
         off={profile === "weekly" ? "No weekly episode while it is off." : undefined}
       />
       <noscript>
