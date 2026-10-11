@@ -169,9 +169,10 @@ test.describe("the profile pages", () => {
     await expect(page.getByLabel("Voice (Ada)")).toBeVisible();
     await expect(page.getByLabel("Voice (Ada)").locator("option")).toHaveText([
       "Default",
-      "Ada, female",
-      "Leo, male",
-      "Nora, female",
+      // Each voice leads with the flag of its accent: en-US, en-US, en-GB.
+      "\u{1F1FA}\u{1F1F8} Ada, female",
+      "\u{1F1FA}\u{1F1F8} Leo, male",
+      "\u{1F1EC}\u{1F1E7} Nora, female",
     ]);
     await expect(page.locator("[data-voice-row=voice_b]")).toBeHidden();
     await page.getByRole("radio", { name: "Discussion" }).check();
