@@ -1,7 +1,7 @@
 import type { PodcastFormat } from "@dispatch/core";
 import { describe, expect, it } from "vitest";
 import { numbersIn } from "../src/podcast/check.js";
-import { planPodcast, STORY_CHARS } from "../src/podcast/plan.js";
+import { planPodcast, STORY_CAPACITY_CHARS } from "../src/podcast/plan.js";
 import { generateScript, validateReply } from "../src/podcast/script.js";
 import { PodcastError, type PodcastStory, type ScriptInput } from "../src/podcast/types.js";
 import { FakeScriptWriter, itemId, REQUEST, scriptOf } from "./podcast-fixtures.js";
@@ -56,7 +56,9 @@ describe("the budget", () => {
         planPodcast(inputFor(format, minutes, 1).request).max_stories,
       );
       const fill = "x".repeat(
-        format === "discussion" ? STORY_CHARS[format] : STORY_CHARS[format] * 2,
+        format === "discussion"
+          ? STORY_CAPACITY_CHARS[format] / 2
+          : STORY_CAPACITY_CHARS[format] * 2,
       );
       const writer = new FakeScriptWriter((i) => scriptOf(i, fill));
       const generated = new Set(scriptOf(input, fill).turns.map((turn) => turn.text));
@@ -65,11 +67,14 @@ describe("the budget", () => {
       const chars = result.turns.reduce((sum, turn) => sum + turn.text.length, 0);
       expect(chars).toBeLessThanOrEqual(input.budget_chars);
       expect(result.dropped_stories).toBeGreaterThan(0);
-      for (const turn of result.turns) expect(generated.has(turn.text)).toBe(true);
+      // Neighbours of one host and one story are joined, so a turn is whole generated turns.
+      for (const turn of result.turns) {
+        expect([...generated].some((text) => turn.text.includes(text))).toBe(true);
+      }
       // What survives is a prefix of the stories, in order, followed by the sign-off.
       const ids = [...new Set(result.turns.flatMap((t) => (t.item_id ? [t.item_id] : [])))];
       expect(ids).toEqual(input.stories.slice(0, ids.length).map((s) => s.item_id));
-      expect(result.turns.at(-1)?.text).toBe("That is Singularity for now.");
+      expect(result.turns.at(-1)?.text).toMatch(/That is Singularity for now\.$/);
     },
   );
 
@@ -209,7 +214,8 @@ describe("the number check", () => {
     const writer = new FakeScriptWriter(
       (i) => {
         const good = scriptOf(i);
-        good.turns[2] = {
+        const at = good.turns.findIndex((t) => t.item_id === itemId(2));
+        good.turns[at] = {
           speaker: "a",
           text: "It cuts latency by 90 percent, which is huge.",
           item_id: itemId(2),

@@ -5,7 +5,7 @@ import { checkTurns } from "./check.js";
 import { charCount, fitToBudget, mergeNeighbours } from "./fit.js";
 import { ScriptReply } from "./nebiusScriptWriter.js";
 import {
-  perStoryChars,
+  partChars,
   reachableChars,
   scriptFloorChars,
   scriptTargetChars,
@@ -140,6 +140,7 @@ function tooShortProblem(
   turns: readonly ScriptTurn[],
   stories: readonly PodcastStory[],
   budget: number,
+  request: PodcastRequest,
 ): string {
   const used = new Map<string, number>();
   for (const turn of turns) {
@@ -149,8 +150,12 @@ function tooShortProblem(
     .sort((a, b) => (used.get(a.item_id) ?? 0) - (used.get(b.item_id) ?? 0))
     .slice(0, 3)
     .map((story) => `"${story.headline}"`);
-  const perStory = wordsFor(perStoryChars(budget, stories.length));
-  return `The script is too short by about ${wordsFor(shortByChars(turns, budget))} words: it has about ${wordsFor(charCount(turns))} and needs at least ${wordsFor(scriptFloorChars(budget))} (aim for ${wordsFor(scriptTargetChars(budget))}). Every story needs about ${perStory} words. Add depth to these stories first: ${thinnest.join("; ")}. Use only the facts in each story block; do not pad or repeat a fact.`;
+  const parts = partChars(budget, stories.length, request.format, request.length_minutes);
+  const sizes =
+    request.format === "headlines"
+      ? `Every story needs about ${wordsFor(parts.nugget)} words.`
+      : `Every deep dive needs about ${wordsFor(parts.deep_dive)} words and every nugget about ${wordsFor(parts.nugget)}.`;
+  return `The script is too short by about ${wordsFor(shortByChars(turns, budget))} words: it has about ${wordsFor(charCount(turns))} and needs at least ${wordsFor(scriptFloorChars(budget))} (aim for ${wordsFor(scriptTargetChars(budget))}). ${sizes} Add depth to these stories first: ${thinnest.join("; ")}. Use only the facts in each story block; do not pad or repeat a fact.`;
 }
 
 interface Requested {
@@ -164,7 +169,12 @@ async function requestTurns(deps: ScriptDeps): Promise<Requested> {
   let rejected: string[] = [];
   // The longest reply that was valid but short: a short true episode beats none.
   let short: ScriptTurn[] | null = null;
-  const reach = reachableChars(deps.budget_chars, deps.stories.length, deps.request.format);
+  const reach = reachableChars(
+    deps.budget_chars,
+    deps.stories.length,
+    deps.request.format,
+    deps.request.length_minutes,
+  );
   for (let attempt = 1; attempt <= ATTEMPTS; attempt++) {
     try {
       const raw = await deps.writer.writeScript(
@@ -184,7 +194,7 @@ async function requestTurns(deps: ScriptDeps): Promise<Requested> {
         }
         // Keep the longest of the short replies: a rewrite is not always longer.
         if (!short || charCount(result.turns) > charCount(short)) short = result.turns;
-        problems = [tooShortProblem(result.turns, deps.stories, reach)];
+        problems = [tooShortProblem(result.turns, deps.stories, reach, deps.request)];
       } else {
         problems = result.problems;
       }
