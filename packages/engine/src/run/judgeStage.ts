@@ -175,8 +175,17 @@ export async function judgeStage(deps: RunDeps, plan: Plan): Promise<StageReport
       outage ??= `${pass.id}: the judges answered ${file.entries.length} of ${file.counts.pool} items. That looks like an outage, not a quiet day.`;
       continue;
     }
-    // The general news stories are judged apart from the pool, for their feeds' scores only.
-    const generalReport = await judgeGeneral(deps, pass, runtime, topicsFile);
+    // The general news stories are judged apart from the pool, for their feeds' scores only, so
+    // nothing that goes wrong with them may stop the briefing.
+    let generalReport: Awaited<ReturnType<typeof judgeGeneral>> = null;
+    try {
+      generalReport = await judgeGeneral(deps, pass, runtime, topicsFile);
+    } catch (error) {
+      deps.log.warn("The general news stories could not be judged; the briefing goes on", {
+        pass: pass.id,
+        reason: error instanceof Error ? error.message.split("\n")[0] : "unknown",
+      });
+    }
     await markStage(deps.root, pass, "judge", { at: deps.now().toISOString() });
     passes.push({
       id: pass.id,

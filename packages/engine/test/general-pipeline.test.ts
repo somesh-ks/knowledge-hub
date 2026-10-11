@@ -313,6 +313,17 @@ describe("a run with general news feeds", () => {
     },
   );
 
+  it("still runs the briefing when judging the general stories breaks", LONG, async () => {
+    await seed(repo.root, { "config/sources.json": registry() });
+    const broken = generalJev().judge;
+    broken.judge = async () => {
+      throw new Error("Jev is down");
+    };
+    const world = makeWorld(repo.root, { now: WED, feeds: worldFeeds(), generalJudge: broken });
+    expect((await runStaged(world)).map((r) => r.code)).toEqual([0, 0, 0, 0, 0, 0]);
+    expect(await exists(repo.root, `${RUN}/general-judged.json`)).toBe(false);
+  });
+
   it(
     "skips the stories with a warning, and still runs, when there is no Jev client",
     LONG,
