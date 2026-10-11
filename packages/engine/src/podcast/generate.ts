@@ -11,6 +11,7 @@ import { createHttpClient, type HttpClient } from "../http.js";
 import { allocateEpisodeId, buildEpisode, topicLabel, writeEpisodeFile } from "./episode.js";
 import { type GeneralSelection, selectGeneralStories } from "./general.js";
 import { planPodcast } from "./plan.js";
+import { discussionHostNames } from "./prompt.js";
 import { generateScript, type ScriptResult } from "./script.js";
 import { joinNames, type Selection, selectStories } from "./select.js";
 import { PodcastError, type PodcastStory, type ScriptWriter } from "./types.js";
@@ -196,12 +197,28 @@ async function select(
   };
 }
 
+/**
+ * The request as the episode is written and stored. A discussion carries the names its script uses:
+ * the request's own (a regeneration keeps the stored ones), or the neutral pair when it has none, so
+ * the transcript can show who speaks. A readout or headlines has one unnamed host and carries none.
+ */
+export function withHostNames(request: PodcastRequest): PodcastRequest {
+  const { host_names: _names, ...rest } = request;
+  return request.format === "discussion"
+    ? { ...rest, host_names: discussionHostNames(request) }
+    : rest;
+}
+
 /** Plan, select, script, check and write one episode file. It does not commit. */
 export async function generateEpisode(raw: GenerateInput): Promise<GenerateResult> {
-  // A stored request may name a topic that has since been renamed: `technology` reads `tech`.
+  // A stored request may name a topic that has since been renamed: `technology` reads `tech`. The
+  // hosts' names are settled here too, so the writer and the episode file see the same ones.
   const input: GenerateInput = {
     ...raw,
-    request: { ...raw.request, topic_ids: normalizeTopicIds(raw.request.topic_ids) },
+    request: withHostNames({
+      ...raw.request,
+      topic_ids: normalizeTopicIds(raw.request.topic_ids),
+    }),
   };
   const plan = planPodcast(input.request);
   const selection = await select(input, plan);

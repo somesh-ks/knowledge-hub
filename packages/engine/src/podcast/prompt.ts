@@ -1,4 +1,4 @@
-import type { PodcastRequest } from "@dispatch/core";
+import { type HostNames, hostNamesFor, type PodcastRequest } from "@dispatch/core";
 import { untrustedInstruction, wrapUntrusted } from "../llm/untrusted.js";
 import {
   type EpisodeStructure,
@@ -36,6 +36,19 @@ function shapeLines(structure: EpisodeStructure): string[] {
   ];
 }
 
+/**
+ * The names a discussion is written with: the ones the site worked out from the voices, or the
+ * gender-neutral pair when the request carries none (an older request, or a site that could not
+ * read the voice list in time).
+ */
+export function discussionHostNames(request: PodcastRequest): HostNames {
+  return request.host_names ?? hostNamesFor(null, null);
+}
+
+/** A readout and headlines have one host, who is never named: the voice may be anyone's. */
+const SOLO_HOST =
+  'One host, speaker "a" only. The host never says a name for themselves, so write none.';
+
 function formatLines(input: ScriptInput): string {
   const structure = structureFor(
     input.request.length_minutes,
@@ -45,21 +58,23 @@ function formatLines(input: ScriptInput): string {
   switch (input.request.format) {
     case "readout":
       return [
-        'FORMAT: readout. One host, Ada, speaker "a" only.',
+        `FORMAT: readout. ${SOLO_HOST}`,
         ...shapeLines(structure),
         "Tell a deep dive in one or two turns of several sentences each, a nugget in one short turn. Do not bridge from story to story with filler; a plain change of subject is enough.",
       ].join(" ");
-    case "discussion":
+    case "discussion": {
+      const names = discussionHostNames(input.request);
       return [
-        'FORMAT: discussion. Two hosts: Ada, speaker "a", leads; Leo, speaker "b", reacts.',
-        'The first turn is "a": the one-line hello, saying the show is Singularity and that she is joined by Leo. The hosts may call each other by name now and then, not in most turns. The last turn is "a" with the sign-off.',
+        `FORMAT: discussion. Two hosts: ${names.a}, speaker "a", leads; ${names.b}, speaker "b", reacts.`,
+        `The first turn is "a": the one-line hello, saying the show is Singularity and that ${names.b} is joining. Refer to a host by name, never with a gendered pronoun. The hosts may call each other by name now and then, not in most turns. The last turn is "a" with the sign-off.`,
         ...shapeLines(structure),
         'The rundown is one or two turns, "a" and "b" splitting the clauses. A deep dive is four to six turns: "a" introduces it in two or three sentences, "b" asks the obvious question, "a" answers from the summary, "b" puts in plain words what that means in practice, and "a" adds the catch if the summary has one. A nugget is one turn from "a" or two short turns, "a" with the news and "b" with one line on what it means. The close is "b" then "a", a sentence or two each.',
         'Turns run one to four sentences each; a one-word reaction is not a turn. A host may say what a fact could mean for the listener, clearly as their own view ("that sounds like", "I would want to know"), never as a fact about the product, the company or anyone\'s motive. Neither host invents a fact, a number, a quote or a motive.',
       ].join(" ");
+    }
     case "headlines":
       return [
-        'FORMAT: headlines. One host, Ada, speaker "a" only.',
+        `FORMAT: headlines. ${SOLO_HOST}`,
         "Open with one sentence that says the show is Singularity.",
         "Then give each story in the order given in one or two short sentences, one turn per story.",
         "Close with a five-word sign-off at most.",
