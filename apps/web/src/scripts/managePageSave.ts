@@ -5,6 +5,8 @@
  * Nothing here is needed to read or edit a page, so it stays out of the first-load budget.
  */
 import { OPEN_PASSPHRASE, PASSPHRASE_REQUIRED } from "../lib/access";
+import { SAVED_KEY } from "../lib/savedKey";
+import { addSaved, parseSaved } from "../lib/savedOverlay";
 import type { ConfigOp, ConfigResponse } from "../types/contracts";
 
 const KEY = "dispatch:narrate-passphrase";
@@ -175,7 +177,38 @@ export function settle(batch: Batch, changes: Map<string, Pending>): void {
   }
 }
 
+/**
+ * Keeps a request that went through, so a settings page opened before the build shows what was
+ * saved (lib/savedOverlay.ts, scripts/savedView.ts).
+ */
+export function remember(ops: readonly ConfigOp[], now = Date.now()): void {
+  try {
+    const entries = addSaved(parseSaved(localStorage.getItem(SAVED_KEY), now), ops, now);
+    if (entries.length > 0) localStorage.setItem(SAVED_KEY, JSON.stringify(entries));
+    else localStorage.removeItem(SAVED_KEY);
+  } catch {
+    // Storage is refused: the page shows the old value until the build, as it did before.
+  }
+}
+
+/**
+ * The server takes one edit every ten seconds (CONFIG_COOLDOWN_MS in server/configEdit.ts), counted
+ * from when the last one started, and refuses the next one sooner with a 429. A little is added for
+ * the time a request takes to get there.
+ */
+export const GAP_MS = 10_000 + 250;
+
+/**
+ * How long to hold the next request, after the last one went through at `last` (0 for none). What
+ * changes meanwhile waits and goes in that one request, instead of being sent, refused and sent again.
+ */
+export function gapLeft(last: number, now: number): number {
+  return last === 0 ? 0 : Math.max(0, Math.min(GAP_MS, last + GAP_MS - now));
+}
+
 let passphrase: string | null = null;
+/** When the last request went through, by this page's clock; 0 before the first. */
+let lastSent = 0;
 /** True while a flush runs. A second call returns at once: the running one sends what is waiting. */
 let busy = false;
 
@@ -224,8 +257,9 @@ const MAX_WAITS = 6;
 
 /**
  * Sends what is pending until nothing is, then says how it went. The server allows an edit every
- * ten seconds: a 429 waits as long as it asks and then sends whatever is pending by then, so
- * changes made during the wait ride along. Asks for the passphrase once where one is required.
+ * ten seconds: a request inside that gap is held until it ends (gapLeft), without Saving, and a 429
+ * all the same waits as long as it asks; either way the changes made during the wait ride along.
+ * Asks for the passphrase once where one is required.
  */
 export async function flush(
   context: SaveContext,
@@ -260,10 +294,17 @@ export async function flush(
   let waits = 0;
   /** The last request that went through. The same edits twice in a row would be a loop, not a change. */
   let last = "";
+  /** Whether this run sent anything: a run that only waited, for changes then put back, says nothing. */
+  let sent = false;
   try {
     while (changes.size > 0) {
+      // Inside the server's gap after the last request, wait it out first, quietly: nothing is on
+      // its way yet, and whatever changes meanwhile goes in the one request sent after it.
+      const hold = gapLeft(lastSent, Date.now());
+      if (hold > 0) await new Promise((resolve) => setTimeout(resolve, hold));
       const [batch] = pack(buildQueue(changes), changes);
       if (!batch || JSON.stringify(batch.ops) === last) break;
+      sent = true;
       show(SAVING, "saving");
       const answer = await post(batch.ops, given);
       if (answer.status === 429 && waits < MAX_WAITS) {
@@ -280,6 +321,8 @@ export async function flush(
         break;
       }
       timeRefused ||= answer.timeRefused;
+      lastSent = Date.now();
+      remember(batch.ops, lastSent);
       last = JSON.stringify(batch.ops);
       settle(batch, changes);
       context.settled?.();
@@ -287,6 +330,7 @@ export async function flush(
   } finally {
     busy = false;
   }
+  if (!sent && !failure) return;
   if (failure) {
     show(failure, "error");
     // The interface sound for an outcome the screen already states (see scripts/uiSound.ts). A save

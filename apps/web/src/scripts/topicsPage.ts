@@ -5,15 +5,23 @@
  * first load stays inside the budget. Each page is whole static HTML without it.
  */
 
+import { hasSaved } from "../lib/savedKey";
 import { installMultiSelect } from "./multiSelect";
 
 type Editor = { handle(event: Event): void };
 
 function mount(root: HTMLElement): void {
   let editor: Promise<Editor> | undefined;
+  // An edit saved in the last few minutes is not in this page until the next build: the controls
+  // show it first (savedView.ts), and the editor then reads it as their starting point.
+  const saved = hasSaved()
+    ? import("./savedView").then((module) => void module.overlayTopics(root)).catch(() => {})
+    : Promise.resolve();
   /** Loads the editor once; every event after the first goes to it as well. */
   const forward = (event: Event): void => {
-    editor ??= import("./topicsEditor").then((module) => module.mountEditor(root));
+    editor ??= saved
+      .then(() => import("./topicsEditor"))
+      .then((module) => module.mountEditor(root));
     void editor.then((loaded) => loaded.handle(event));
   };
 

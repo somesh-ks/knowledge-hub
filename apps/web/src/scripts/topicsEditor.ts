@@ -106,8 +106,10 @@ export function mountEditor(root: HTMLElement): Editor {
   // ------------------------------------------------------------------------------------ adding
 
   /** A topic waiting to be saved, listed above the topics until it is. */
-  const queue = (name: string, op: ConfigOp, after?: ConfigOp[]): void => {
-    const template = one<HTMLTemplateElement>("template:not(#topics-panel-template)");
+  const queue = (name: string, op: ConfigOp, after?: ConfigOp[]): HTMLElement => {
+    const template = one<HTMLTemplateElement>(
+      "template:not(#topics-panel-template, #suggested-template)",
+    );
     const row = template.content.firstElementChild?.cloneNode(true) as HTMLElement;
     added += 1;
     row.dataset.key = `new${added}`;
@@ -125,6 +127,7 @@ export function mountEditor(root: HTMLElement): Editor {
     row.focus({ preventScroll: true });
     const reduce = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
     row.scrollIntoView({ block: "center", behavior: reduce ? "instant" : "smooth" });
+    return row;
   };
 
   /**
@@ -144,7 +147,7 @@ export function mountEditor(root: HTMLElement): Editor {
     ) as { daily?: boolean; weekly?: boolean; custom?: boolean };
     const scope: ConfigOp[] =
       Object.keys(out).length > 0 ? [{ op: "topic.scope", ids: [id], ...out }] : [];
-    queue(
+    const row = queue(
       topic.name,
       {
         op: "topic.upsert",
@@ -162,6 +165,10 @@ export function mountEditor(root: HTMLElement): Editor {
       scope,
     );
     autosave.now();
+    // Its suggested sources at once, ranked in the browser as the build ranks them for its page.
+    void import("./savedView").then((view) =>
+      view.suggestUnder(row, { id, name: topic.name, description: topic.description }),
+    );
   };
 
   /**
@@ -321,7 +328,11 @@ export function mountEditor(root: HTMLElement): Editor {
       start = { kind: "topic-edit", topic: JSON.parse(trigger.dataset.editTopic ?? "{}") };
     } else if ("addSource" in trigger.dataset) {
       start = { kind: "source", topicId: trigger.dataset.addSource ?? "" };
-    } else start = { kind: "topic" };
+    } else {
+      start = { kind: "topic" };
+      // The catalogue a new topic's suggestions come from, asked for now so it is in by Add.
+      void import("./savedView").then((view) => view.loadCatalog());
+    }
     void import("./topicsPanel").then((module) =>
       module.openPanel(trigger, { addTopic, editTopic, addSource, editSource }, start),
     );
@@ -344,6 +355,8 @@ export function mountEditor(root: HTMLElement): Editor {
       if (suggestion) addSuggested(button, suggestion);
     } else if (act === "cancel" && row) {
       changes.delete(row.dataset.key ?? "");
+      // A suggested feed added under it goes with it.
+      for (const [key, { el }] of changes) if (row.contains(el)) changes.delete(key);
       row.remove();
       autosave.changed();
     } else if (button.dataset.op) {

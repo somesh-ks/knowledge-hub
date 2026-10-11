@@ -10,6 +10,7 @@
  */
 import type { ModelOption } from "../lib/combobox";
 import { isModelId } from "../lib/modelId";
+import { hasSaved } from "../lib/savedKey";
 import type { ConfigOp } from "../types/contracts";
 import { mountAutosave } from "./autosave";
 import type { Pending } from "./managePageSave";
@@ -188,6 +189,13 @@ export async function mount(root: HTMLElement): Promise<void> {
     return out;
   };
 
+  // An edit saved in the last few minutes is not in this page until the next build: the controls
+  // show it before they are read as the starting point below, so it is not sent again.
+  if (hasSaved()) {
+    const view = await import("./savedView").catch(() => null);
+    view?.overlayPodcast(root, controls, fields());
+  }
+
   /** The topic chips: each puts the topics it stands for in or out of this podcast (topic.scope). */
   const scopeBoxes = root.querySelectorAll<HTMLInputElement>("input[data-scope]");
   for (const box of scopeBoxes) box.dataset.was = String(box.checked);
@@ -270,12 +278,16 @@ async function mountModel(
   const savedModel = group.dataset.saved ? group.dataset.saved : null;
   const savedProvider: Provider = group.dataset.provider === "anthropic" ? "anthropic" : "nebius";
 
-  const pendingChoice = readPendingChoice();
+  // The writer's own note of a choice the build has not brought yet (writePendingChoice): shown in
+  // place of the built one, and the starting point a later change is measured from.
+  let pendingChoice = readPendingChoice();
   if (pendingChoice) {
     if (pendingChoice.provider === savedProvider && pendingChoice.model === savedModel) {
       clearPendingChoice();
+      pendingChoice = null;
     } else {
       vendor.value = pendingChoice.provider;
+      void import("./savedView").then((view) => view.markSaved(root));
     }
   }
 
@@ -514,7 +526,9 @@ async function mountModel(
   typed.addEventListener("input", () => update(false));
   typed.addEventListener("change", () => update());
 
-  group.dataset.was = JSON.stringify([savedProvider, savedModel]);
+  group.dataset.was = JSON.stringify(
+    pendingChoice ? [pendingChoice.provider, pendingChoice.model] : [savedProvider, savedModel],
+  );
   refresh();
   if (provider() === "nebius") void load();
   else root.dataset.loaded = "";
