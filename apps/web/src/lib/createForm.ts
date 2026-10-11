@@ -54,37 +54,31 @@ export function submitLabel(minutes: number): string {
 }
 
 export interface TopicOption {
-  /** A section id. */
+  /** The chip's key. For the owner's own topics it is the section id. */
   value: string;
   label: string;
-  /** The mode that offers it: General shows the general topics, Somesh the rest. */
-  mode: NonNullable<PodcastRequest["audience"]>;
+  /** What the chip adds to the request: briefing section ids or general topic ids, in order. */
+  ids: readonly string[];
+  /** The audiences whose preset ticks this chip. */
+  presets: ReadonlyArray<NonNullable<PodcastRequest["audience"]>>;
 }
 
 /**
- * The topics every episode can draw on, in the order the app lists them. Top picks is not here: an
- * episode always opens with the top picks of its window, so it is never a choice. The titles are
- * only a fallback; config/topics.json names the sections and wins.
+ * The chips every episode can draw on, in the order the form lists them. One list for both
+ * audiences: the audience only chooses which are ticked. A chip expands to its ids when the form
+ * builds the request, so topic_ids stay plain section or general topic ids. Design folds Design
+ * Engineering in; Technology is the owner's own tech sources, not the general feeds. Top picks is
+ * not here: an episode always opens with the top picks of its window.
  */
-export const CREATE_SECTIONS: ReadonlyArray<{ id: string; title: string }> = [
-  { id: "design", title: "Design" },
-  { id: "ui-craft", title: "Design Engineering" },
-  { id: "ai", title: "AI Products" },
-  { id: "tech", title: "Tech Product Launches" },
-  { id: "trending", title: "Trending" },
-];
-
-/**
- * What General mode offers instead of the five above: the topics of a general news podcast. The
- * engine defines the same ids; none is a design topic or one of the owner's.
- */
-export const GENERAL_TOPICS: ReadonlyArray<{ id: string; title: string }> = [
-  { id: "world", title: "World" },
-  { id: "business", title: "Business" },
-  { id: "technology", title: "Technology" },
-  { id: "science", title: "Science" },
-  { id: "culture", title: "Culture" },
-  { id: "sports", title: "Sports" },
+const CHIPS: readonly TopicOption[] = [
+  { value: "design", label: "Design", ids: ["design", "ui-craft"], presets: ["custom"] },
+  { value: "ai", label: "AI", ids: ["ai"], presets: ["custom"] },
+  { value: "technology", label: "Technology", ids: ["tech"], presets: ["custom", "general"] },
+  { value: "world", label: "World", ids: ["world"], presets: ["general"] },
+  { value: "business", label: "Business", ids: ["business"], presets: ["general"] },
+  { value: "science", label: "Science", ids: ["science"], presets: ["general"] },
+  { value: "culture", label: "Culture", ids: ["culture"], presets: ["general"] },
+  { value: "sports", label: "Sports", ids: ["sports"], presets: ["general"] },
 ];
 
 /** What topicOptions needs to know of a topic in config/topics.json. */
@@ -97,22 +91,16 @@ export interface TopicInfo {
 }
 
 /**
- * The topics to offer: always the five above, whether or not a recent briefing has stories in them,
- * titled as config/topics.json titles their sections. After them come the owner's own topics (the
- * custom ones that are on), each by the section it publishes to and only when that section is not
- * one of the five already; the form shows these in Somesh only.
+ * The chips to offer: the eight above, then the owner's own topics (the custom ones that are on),
+ * each by the section it publishes to and only when no chip already sends that section. Their
+ * titles come from config/topics.json. Own topics are in no preset.
  */
 export function topicOptions(
   sections: ReadonlyArray<{ id: string; title: string }>,
   topics: readonly TopicInfo[],
 ): TopicOption[] {
   const titles = new Map(sections.map((section) => [section.id, section.title]));
-  const offered = CREATE_SECTIONS.map(({ id, title }) => ({
-    value: id,
-    label: titles.get(id) ?? title,
-    mode: "custom" as const,
-  }));
-  const taken = new Set(["top", ...CREATE_SECTIONS.map((section) => section.id)]);
+  const taken = new Set(["top", ...CHIPS.flatMap((chip) => chip.ids)]);
   const own: TopicOption[] = [];
   for (const topic of topics) {
     if (topic.origin !== "custom" || !topic.enabled || topic.never_publish) continue;
@@ -121,24 +109,9 @@ export function topicOptions(
     own.push({
       value: topic.section_id,
       label: titles.get(topic.section_id) ?? topic.name,
-      mode: "custom",
+      ids: [topic.section_id],
+      presets: [],
     });
   }
-  return [...offered, ...own];
-}
-
-/**
- * Every chip the form renders: the Somesh set, then the General set. The form shows the set of
- * the chosen mode and hides the other, so a request only ever holds ids of one mode.
- */
-export function createTopicOptions(
-  sections: ReadonlyArray<{ id: string; title: string }>,
-  topics: readonly TopicInfo[],
-): TopicOption[] {
-  const general = GENERAL_TOPICS.map(({ id, title }) => ({
-    value: id,
-    label: title,
-    mode: "general" as const,
-  }));
-  return [...topicOptions(sections, topics), ...general];
+  return [...CHIPS, ...own];
 }

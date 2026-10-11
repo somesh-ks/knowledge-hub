@@ -42,6 +42,8 @@ export interface GeneralDeps {
   log?: Logger | undefined;
   /** The feed list, for tests. Defaults to config/general-feeds.json. */
   feeds?: GeneralFeeds | undefined;
+  /** The fewest stories that make a selection. Defaults to MIN_GENERAL_STORIES (fewer when the length is short). */
+  minStories?: number | undefined;
 }
 
 /** A story as it came out of clustering: the kept item, who covered it and under which topics. */
@@ -222,7 +224,7 @@ export async function selectGeneralStories(deps: GeneralDeps): Promise<GeneralSe
     coverage: item.signals.coverage ?? 1,
   }));
 
-  const needed = Math.min(MIN_GENERAL_STORIES, Math.max(2, plan.max_stories));
+  const needed = deps.minStories ?? Math.min(MIN_GENERAL_STORIES, Math.max(2, plan.max_stories));
   if (candidates.length < needed) {
     throw new PodcastError(
       `Only ${candidates.length} ${candidates.length === 1 ? "story" : "stories"} in the news feeds for ${joinNames(topicIds.map(generalTopicTitle))}; an episode needs at least ${needed}. Try more topics.`,

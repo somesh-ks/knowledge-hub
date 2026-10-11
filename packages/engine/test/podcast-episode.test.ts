@@ -154,12 +154,10 @@ describe("the title", () => {
   });
 
   it("names up to two topics and counts the rest, so it reads in two short lines", () => {
-    expect(episodeTitle({ ...REQUEST, topic_ids: ["ai"] })).toBe("AI Products");
-    expect(episodeTitle({ ...REQUEST, topic_ids: ["ai", "design"] })).toBe(
-      "AI Products and Design",
-    );
+    expect(episodeTitle({ ...REQUEST, topic_ids: ["ai"] })).toBe("AI");
+    expect(episodeTitle({ ...REQUEST, topic_ids: ["ai", "design"] })).toBe("AI and Design");
     expect(episodeTitle({ ...REQUEST, topic_ids: ["ai", "design", "tech", "trending"] })).toBe(
-      "AI Products, Design and 2 more",
+      "AI, Design and 2 more",
     );
     const long = episodeTitle({
       ...REQUEST,
