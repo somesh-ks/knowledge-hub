@@ -174,7 +174,7 @@ async function share(button: HTMLElement): Promise<void> {
 }
 
 // A tab reached with the keyboard can sit cut off at the strip's edge: bring it into the strip, at
-// once, since what a key starts is never animated. A card on the Other episodes shelf can sit flush
+// once, since what a key starts is never animated. A card on the Earlier briefings shelf can sit flush
 // with the shelf's edge, its ring cut off, which the browser counts as in view: bring it in by the
 // shelf's scroll padding.
 document.addEventListener("focusin", (event) => {
