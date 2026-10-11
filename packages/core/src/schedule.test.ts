@@ -64,6 +64,7 @@ describe("ScheduleFile", () => {
       voice_id_b: null,
     });
     expect(parsed.custom).toEqual({
+      skip_topics: [],
       format: "readout",
       length_minutes: 5,
       voice_id: null,

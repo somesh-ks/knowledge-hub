@@ -251,6 +251,9 @@ function parseScheduleSet(value: Record<string, unknown>): ConfigOp | null {
   if (value.custom !== undefined) {
     if (!isRecord(value.custom)) return null;
     const custom: CustomOp = {};
+    const customSkip = skipOf(value.custom.skip_topics);
+    if (customSkip === false) return null;
+    if (customSkip !== undefined) custom.skip_topics = customSkip;
     if (!podcastParts(value.custom, custom)) return null;
     op.custom = custom;
   }
@@ -357,6 +360,18 @@ export function parseConfigOp(value: unknown): ConfigOp | null {
     }
     case "schedule.set":
       return parseScheduleSet(value);
+    case "topic.scope": {
+      const ids = skipOf(value.ids);
+      if (ids === false || ids === undefined || ids.length === 0) return null;
+      const scope: { daily?: boolean; weekly?: boolean; custom?: boolean } = {};
+      for (const key of ["daily", "weekly", "custom"] as const) {
+        const flag = value[key];
+        if (flag === undefined) continue;
+        if (typeof flag !== "boolean") return null;
+        scope[key] = flag;
+      }
+      return Object.keys(scope).length > 0 ? { op: "topic.scope", ids, ...scope } : null;
+    }
     case "writer.set": {
       if (value.provider === "anthropic") {
         if (typeof value.model !== "string" || !isAnthropicModel(value.model)) return null;

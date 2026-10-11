@@ -42,8 +42,12 @@ const WeeklyFields = z.object({
 });
 export type WeeklySchedule = z.infer<typeof WeeklyFields>;
 
-/** What the Create panel starts from. */
+/**
+ * What the Create panel starts from. `skip_topics` lists the topics out of the Custom scope (D69):
+ * the panel does not offer them.
+ */
 const CustomFields = z.object({
+  skip_topics: SkipTopics,
   format: ScheduleFormat,
   length_minutes: ScheduleLengthMinutes,
   voice_id: VoiceId,
@@ -62,6 +66,7 @@ export const DEFAULT_WEEKLY: Omit<WeeklySchedule, "hour"> = {
   voice_id_b: null,
 };
 export const DEFAULT_CUSTOM: CustomDefaults = {
+  skip_topics: [],
   format: "readout",
   length_minutes: 5,
   voice_id: null,

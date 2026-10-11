@@ -62,6 +62,7 @@ export function serializeSchedule(file: ScheduleFile): string {
         voice_id_b: checked.weekly.voice_id_b,
       },
       custom: {
+        skip_topics: checked.custom.skip_topics,
         format: checked.custom.format,
         length_minutes: checked.custom.length_minutes,
         voice_id: checked.custom.voice_id,

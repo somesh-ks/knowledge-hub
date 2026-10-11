@@ -98,6 +98,23 @@ export const ConfigOp = z.discriminatedUnion("op", [
         message: "set at least one field",
       },
     ),
+  // Where topics play (D69): each scope that is given puts the topics in (true) or takes them out
+  // (false) of the daily podcast, the weekly one or the Create panel. One of the owner's three
+  // topics sends every judge topic it gathers. It edits the lists in place, so two pages built
+  // before either change never undo each other.
+  z
+    .object({
+      op: z.literal("topic.scope"),
+      ids: z.array(IdString).min(1).max(50),
+      daily: z.boolean().optional(),
+      weekly: z.boolean().optional(),
+      custom: z.boolean().optional(),
+    })
+    .refine(
+      (value) =>
+        value.daily !== undefined || value.weekly !== undefined || value.custom !== undefined,
+      { message: "set at least one scope" },
+    ),
   z
     .object({ op: z.literal("writer.set"), ...WriterSettingsShape.shape })
     .superRefine((value, ctx) => {

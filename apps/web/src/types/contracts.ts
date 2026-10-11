@@ -324,11 +324,25 @@ export type ConfigOp =
       };
       /** What the Create panel starts from. */
       custom?: {
+        /** Topic ids the Create panel does not offer (out of the Custom scope). */
+        skip_topics?: string[];
         format?: "readout" | "discussion";
         length_minutes?: PodcastRequest["length_minutes"];
         voice_id?: string | null;
         voice_id_b?: string | null;
       };
+    }
+  | {
+      /**
+       * Where topics play (D69): each scope given puts the topics in (true) or out (false) of the
+       * daily podcast, the weekly one and the Create panel, editing the lists in place. At least one
+       * scope is required.
+       */
+      op: "topic.scope";
+      ids: string[];
+      daily?: boolean;
+      weekly?: boolean;
+      custom?: boolean;
     }
   | {
       op: "writer.set";

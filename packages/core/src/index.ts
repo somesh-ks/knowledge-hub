@@ -5,6 +5,7 @@ export * from "./digest.js";
 export * from "./digestFile.js";
 export * from "./env.js";
 export * from "./generalTopics.js";
+export * from "./topicGroups.js";
 export * from "./ids.js";
 export * from "./item.js";
 export * from "./models.js";

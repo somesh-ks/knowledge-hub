@@ -49,6 +49,9 @@ export const RESERVED_TOPIC_IDS: readonly string[] = [
   DESIGN_TOPIC_ID,
   TRENDING_TOPIC_ID,
   ...GENERAL_TOPICS.map((topic) => topic.id),
+  // The pages of the owner's three topics (topicGroups.ts) take these ids.
+  "ai",
+  "tech",
 ];
 
 /**
