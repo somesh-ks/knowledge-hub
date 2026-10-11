@@ -26,6 +26,8 @@ test.describe("layout", () => {
   test("every control answers a touch across at least 44px in both directions", async ({
     page,
   }) => {
+    // Every headline is a link now, so there are a dozen more controls to probe on a briefing.
+    test.slow();
     await page.setViewportSize({ width: 390, height: 900 });
     for (const path of ["/", "/library", SILENT_DIGEST, "/offline"]) {
       await page.goto(path);
@@ -128,6 +130,26 @@ test.describe("layout", () => {
     await expect(page.locator(".tabs")).toBeVisible();
   });
 
+  test("the contents list starts level with the first section's heading", async ({ page }) => {
+    for (const width of [1280, 1600]) {
+      await page.setViewportSize({ width, height: 900 });
+      await page.goto("/");
+      await expect(page.locator(".aside")).toHaveAttribute("style", /--aside-start/);
+      const words = (selector: string) =>
+        page
+          .locator(selector)
+          .first()
+          .evaluate((node) => {
+            const range = document.createRange();
+            range.selectNodeContents(node);
+            return range.getBoundingClientRect().top;
+          });
+      const title = await words(".aside-title");
+      const heading = await words("[data-chapter] > h2");
+      expect(Math.abs(title - heading), `${width}`).toBeLessThan(6);
+    }
+  });
+
   test("the contents list marks the section in view and stays put while the page scrolls", async ({
     page,
   }) => {
@@ -141,8 +163,9 @@ test.describe("layout", () => {
     await expect(current).toHaveText(/Research/);
     await expect(current).toHaveCount(1);
     const box = await page.locator(".aside").boundingBox();
-    // Stuck at the vertical middle of the window, whatever the scroll.
-    expect((box?.y ?? 0) + (box?.height ?? 0) / 2).toBeCloseTo(450, -1);
+    // Stuck near the top, under the same room the page keeps above its first block, whatever the
+    // scroll: it never floats in the middle of the window.
+    expect(box?.y ?? 0).toBeCloseTo(48, -1);
     await page.locator(".aside-link", { hasText: "Launches" }).click();
     await expect(page).toHaveURL(/#c-launches$/);
     await expect(current).toHaveText(/Launches/);
@@ -173,35 +196,48 @@ test.describe("layout", () => {
     }
   });
 
-  test("the header keeps the cover beside the date, down to 320px", async ({ page }) => {
+  test("on a phone the header stacks the same way for any title, down to 320px", async ({
+    page,
+  }) => {
     await page.setViewportSize({ width: 320, height: 700 });
-    await page.goto("/");
-    const cover = await page.locator(".hero .cover").boundingBox();
-    const heading = await page.locator(".hero h1").boundingBox();
-    const actions = await page.locator(".hero-actions").boundingBox();
-    expect(cover?.width).toBeCloseTo(88, 0);
-    expect(cover?.height).toBeCloseTo(88, 0);
-    expect(heading?.x ?? 0).toBeGreaterThan((cover?.x ?? 0) + (cover?.width ?? 0));
-    // On a phone the play chip and the count run under the cover, from the column's edge.
-    expect(actions?.y ?? 0).toBeGreaterThan((cover?.y ?? 0) + (cover?.height ?? 0));
-    expect(actions?.x).toBeCloseTo(cover?.x ?? -1, 0);
-    // The story count stands at the chip's side, on the same line.
-    const chip = await page.locator(".hero [data-play-digest]").boundingBox();
-    const facts = await page.locator(".hero-facts").boundingBox();
-    expect(facts?.x ?? 0).toBeGreaterThan((chip?.x ?? 0) + (chip?.width ?? 0));
-    const middle = (box: { y: number; height: number } | null) =>
-      (box?.y ?? 0) + (box?.height ?? 0) / 2;
-    expect(Math.abs(middle(facts) - middle(chip))).toBeLessThan(3);
+    for (const path of ["/", "/e/ep-20261007-1930"]) {
+      await page.goto(path);
+      const cover = await page.locator(".hero .cover").boundingBox();
+      const heading = await page.locator(".hero h1").boundingBox();
+      const facts = await page.locator(".hero-facts").boundingBox();
+      const chip = await page.locator(".hero [data-play-digest]").boundingBox();
+      const more = await page.getByRole("button", { name: "More actions" }).boundingBox();
+      expect(cover?.width, path).toBeCloseTo(88, 0);
+      // The cover with More at the far end of its row, then the title, its facts and Play, each
+      // under the one before and each from the column's edge.
+      expect(more?.y ?? 999, path).toBeLessThan((cover?.y ?? 0) + (cover?.height ?? 0) / 2);
+      const edge = await page.evaluate(
+        () => document.querySelector("main")?.getBoundingClientRect().right ?? 0,
+      );
+      expect((more?.x ?? 0) + (more?.width ?? 0), path).toBeGreaterThan(edge);
+      expect(heading?.y ?? 0, path).toBeGreaterThan((cover?.y ?? 0) + (cover?.height ?? 0));
+      expect(facts?.y ?? 0, path).toBeGreaterThanOrEqual(
+        (heading?.y ?? 0) + (heading?.height ?? 0) - 1,
+      );
+      expect(chip?.y ?? 0, path).toBeGreaterThan((facts?.y ?? 0) + (facts?.height ?? 0));
+      for (const box of [heading, facts, chip]) expect(box?.x, path).toBeCloseTo(cover?.x ?? -1, 0);
+    }
   });
 
-  test("from 40rem the play chip sits beside the cover, under the date", async ({ page }) => {
+  test("from 40rem Play sits beside the cover on its foot line, under the date", async ({
+    page,
+  }) => {
     await page.setViewportSize({ width: 820, height: 900 });
     await page.goto("/");
     const cover = await page.locator(".hero .cover").boundingBox();
-    const actions = await page.locator(".hero-actions").boundingBox();
-    expect(cover?.width).toBeCloseTo(112, 0);
-    expect(actions?.x ?? 0).toBeGreaterThan((cover?.x ?? 0) + (cover?.width ?? 0));
-    expect(actions?.y ?? 999).toBeLessThan((cover?.y ?? 0) + (cover?.height ?? 0));
+    const chip = await page.locator(".hero [data-play-digest]").boundingBox();
+    const facts = await page.locator(".hero-facts").boundingBox();
+    expect(cover?.width).toBeCloseTo(160, 0);
+    expect(chip?.x ?? 0).toBeGreaterThan((cover?.x ?? 0) + (cover?.width ?? 0));
+    expect(chip?.y ?? 0).toBeGreaterThan((facts?.y ?? 0) + (facts?.height ?? 0));
+    // Its foot within a few pixels of the cover's.
+    const coverFoot = (cover?.y ?? 0) + (cover?.height ?? 0);
+    expect(Math.abs((chip?.y ?? 0) + (chip?.height ?? 0) - coverFoot)).toBeLessThan(4);
   });
 
   test("hairlines between stories stay inside the text column", async ({ page }) => {
@@ -320,7 +356,7 @@ test.describe("layout", () => {
     expect(requests.some((url) => url.endsWith(".woff2"))).toBe(true);
   });
 
-  test("type holds to two weights, with the date regular and headlines and section headings medium", async ({
+  test("type holds to two weights, with the date and section headings regular and headlines medium", async ({
     page,
   }) => {
     await page.goto("/");
@@ -330,7 +366,7 @@ test.describe("layout", () => {
         .first()
         .evaluate((node) => getComputedStyle(node).fontWeight);
     expect(await weight("h1")).toBe("400");
-    expect(await weight("[data-chapter] h2")).toBe("500");
+    expect(await weight("[data-chapter] h2")).toBe("400");
     expect(await weight(".story h3")).toBe("500");
     expect(await weight(".story-summary")).toBe("400");
     expect(await weight(".card-title")).toBe("500");

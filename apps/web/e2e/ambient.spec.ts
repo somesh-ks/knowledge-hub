@@ -203,7 +203,8 @@ test.describe("ambient light", () => {
     expect(await draws(page)).toBe(c);
   });
 
-  // The chip's accent words fall short of 4.5:1 over a cover's light, so it must not be see-through.
+  // The chip's words fall short of 4.5:1 over a cover's light, so it must not be see-through: the
+  // header's chip is the page's filled primary action (hero.css).
   for (const scheme of ["light", "dark"] as const) {
     test(`the play chip in the header stands on its own opaque container, ${scheme}`, async ({
       page,
@@ -212,7 +213,7 @@ test.describe("ambient light", () => {
       await page.goto("/");
       const colours = await page.evaluate(() => {
         const probe = document.createElement("i");
-        probe.style.backgroundColor = "var(--chip-bg)";
+        probe.style.backgroundColor = "var(--cta-bg)";
         document.body.append(probe);
         const container = getComputedStyle(probe).backgroundColor;
         probe.remove();

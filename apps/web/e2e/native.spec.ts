@@ -11,6 +11,17 @@ import { expect, hydrated, SILENT_DIGEST, test } from "./fixtures";
 const createFab = (page: Page) => page.locator(".create-fab:not(.play-fab)");
 const playFab = (page: Page) => page.locator(".play-fab");
 
+/** Scrolls the hero's Play chip out of view, where the floating Play comes in (create-sheet.css). */
+async function pastHero(page: Page): Promise<void> {
+  await page.evaluate(() => {
+    const actions = document.querySelector(".hero-actions");
+    window.scrollTo({
+      top: (actions?.getBoundingClientRect().bottom ?? 0) + 200,
+      behavior: "instant",
+    });
+  });
+}
+
 /** Narration as the server answers it when every file already exists (reader.spec.ts). */
 async function serveNarration(page: Page): Promise<void> {
   const ids = await page.evaluate(() => {
@@ -55,6 +66,8 @@ test.describe("the floating button", () => {
     page,
   }, info) => {
     test.skip(info.project.name === "desktop", "the floating button is for phones");
+    // Short enough that even an episode's page scrolls its hero's Play out of view.
+    await page.setViewportSize({ width: 390, height: 560 });
     await page.goto("/library");
     await expect(createFab(page)).toBeVisible();
     await expect(playFab(page)).toHaveCount(0);
@@ -68,6 +81,9 @@ test.describe("the floating button", () => {
       ["/e/ep-20261007-1930", "episode"],
     ] as const) {
       await page.goto(path);
+      // While the hero's own Play is on screen the floating one waits, and comes in past it.
+      await expect(playFab(page), path).toBeHidden();
+      await pastHero(page);
       await expect(playFab(page), path).toBeVisible();
       // It says what it plays, with the hero chip's noun and length.
       const length = await page.locator(".hero [data-chip-label]").textContent();
@@ -80,6 +96,28 @@ test.describe("the floating button", () => {
       await page.goto(path);
       await expect(page.locator(".create-fab"), path).toHaveCount(0);
     }
+  });
+
+  test("Play waits while the hero's Play is on screen, and comes and goes with it", async ({
+    page,
+  }, info) => {
+    test.skip(info.project.name === "desktop", "the floating button is for phones");
+    await page.setViewportSize({ width: 390, height: 560 });
+    for (const path of ["/", "/e/ep-20261007-1930"]) {
+      await page.goto(path);
+      const root = page.locator("html");
+      await expect(playFab(page), path).toBeHidden();
+      await expect(root, path).not.toHaveAttribute("data-hero-away");
+      await pastHero(page);
+      await expect(root, path).toHaveAttribute("data-hero-away", "");
+      await expect(playFab(page), path).toBeVisible();
+      await page.evaluate(() => window.scrollTo({ top: 0, behavior: "instant" }));
+      await expect(playFab(page), path).toBeHidden();
+    }
+    // A page with no hero keeps its button: Create on the Library.
+    await page.goto("/library");
+    await expect(page.locator("html")).not.toHaveAttribute("data-hero-away");
+    await expect(createFab(page)).toBeVisible();
   });
 
   test("Play is extended at the top and folds while scrolling down to read", async ({
@@ -106,6 +144,7 @@ test.describe("the floating button", () => {
     await hydrated(page);
     await serveNarration(page);
     const root = page.locator("html");
+    await pastHero(page);
     await playFab(page).click();
     await expect(root).toHaveAttribute("data-player-state", "playing");
     await expect(page.locator(".hero [data-play-digest]")).toHaveAttribute("data-state", "current");
@@ -121,6 +160,7 @@ test.describe("the floating button", () => {
     await page.locator('a[href="/d/2026-10-04-weekly"]').first().click();
     await expect(page).toHaveURL(/\/d\/2026-10-04-weekly$/);
     await expect(root).toHaveAttribute("data-player-state", "playing");
+    await pastHero(page);
     await expect(playFab(page)).toBeVisible();
     await page.waitForTimeout(500);
     const fab = await playFab(page).boundingBox();

@@ -19,7 +19,13 @@
     align-self: start;
     display: block;
     margin-block-start: var(--aside-start, var(--page-top));
-    max-height: calc(100dvh - var(--sticky-top) - var(--page-top) - var(--dock-room) - var(--space-4));
+    max-height: calc(
+      100dvh -
+      var(--sticky-top) -
+      var(--page-top) -
+      var(--dock-room) -
+      var(--space-4)
+    );
     /* A scrolling box clips what is drawn outside it. This much padding, taken back by the margin,
        leaves room for an entry's focus ring. */
     margin-inline: calc(var(--space-1) * -1);

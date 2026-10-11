@@ -12,9 +12,8 @@ test.describe("the briefing header", () => {
     await page.goto("/");
     await expect(page.getByRole("heading", { level: 1 })).toHaveText("Wednesday 7 October");
     // The fixture recording is 36 seconds long, which a chip rounds up to a minute. The length is
-    // the chip's label alone; beside it stands how many stories there are.
-    await expect(page.locator(".hero-facts > span")).toHaveText(["12 stories"]);
-    await expect(page.locator(".hero-text .meta")).toHaveCount(0);
+    // the chip's label alone; under the date stands how many stories there are.
+    await expect(page.locator(".hero-text .hero-facts > span")).toHaveText(["12 stories"]);
     const chip = page.locator(".hero [data-play-digest]");
     await expect(chip).toHaveCount(1);
     await expect(chip).toHaveAttribute("data-play-digest", "2026-10-07");
@@ -316,22 +315,30 @@ test.describe("sections and stories", () => {
     expect(await read(page)).toEqual(rendered);
   });
 
-  test("a story has one link: its source, in a new tab", async ({ page }) => {
+  test("the headline is the story's link, in a new tab, and the publisher its attribution", async ({
+    page,
+  }) => {
     await page.goto("/");
     const first = page.locator(".story").first();
-    await expect(first.locator("a")).toHaveCount(1);
-    const link = first.locator(".source-link");
-    // The link shows the publisher, and its name starts with what it shows (WCAG 2.5.3); the new
-    // tab is said, not shown. The host is only in its address.
-    await expect(link.locator(":scope > span").first()).toHaveText("Springlet Blog");
-    await expect(link).toHaveAttribute("href", /^https:\/\/example\.com\//);
-    await expect(link).toHaveAttribute("target", "_blank");
-    await expect(link).toHaveAttribute("rel", "noopener noreferrer");
-    await expect(link).not.toHaveAttribute("aria-label");
-    await expect(link).toHaveAccessibleName("Springlet Blog (opens in a new tab)");
-    // The headline is a heading now, not a link.
-    await expect(first.locator("h3")).toHaveText(FIRST_HEADLINE);
-    await expect(first.locator("h3 a")).toHaveCount(0);
+    // One link a keyboard or a screen reader meets: the headline. Its name starts with what it
+    // shows (WCAG 2.5.3); the new tab is said, not shown.
+    const link = first.getByRole("link");
+    await expect(link).toHaveCount(1);
+    await expect(link).toHaveAccessibleName(`${FIRST_HEADLINE} (opens in a new tab)`);
+    await expect(first.locator("h3 a")).toHaveAttribute("href", /^https:\/\/example\.com\//);
+    await expect(first.locator("h3 a")).toHaveAttribute("target", "_blank");
+    await expect(first.locator("h3 a")).toHaveAttribute("rel", "noopener noreferrer");
+    // The story is named by the headline's words alone.
+    await expect(first).toHaveAccessibleName(FIRST_HEADLINE);
+    // The publisher goes to the same page: a pointer target, out of the tab order and the tree.
+    const source = first.locator(".source-link");
+    await expect(source.locator(":scope > span").first()).toHaveText("Springlet Blog");
+    await expect(source).toHaveAttribute(
+      "href",
+      (await first.locator("h3 a").getAttribute("href")) ?? "",
+    );
+    await expect(source).toHaveAttribute("tabindex", "-1");
+    await expect(source).toHaveAttribute("aria-hidden", "true");
   });
 
   test("shows the publisher on the source link, no meta line and no author, and the why line", async ({

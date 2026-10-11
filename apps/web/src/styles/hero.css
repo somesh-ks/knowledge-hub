@@ -85,12 +85,14 @@
 
 /* The layer over a filled control is its own ink: lighter on the accent, never a grey wash. */
 @media (hover: hover) and (pointer: fine) {
-  .hero-actions > .chip:not([data-state="played"], [data-state="unavailable"], [aria-disabled="true"]):hover {
+  .hero-actions
+    > .chip:not([data-state="played"], [data-state="unavailable"], [aria-disabled="true"]):hover {
     background: color-mix(in oklch, var(--cta-bg), var(--cta-fg) var(--state-hover));
   }
 }
 
-.hero-actions > .chip:not([data-state="played"], [data-state="unavailable"], [aria-disabled="true"]):active {
+.hero-actions
+  > .chip:not([data-state="played"], [data-state="unavailable"], [aria-disabled="true"]):active {
   background: color-mix(in oklch, var(--cta-bg), var(--cta-fg) var(--state-press));
   color: var(--cta-fg);
 }

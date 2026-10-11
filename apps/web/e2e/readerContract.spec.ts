@@ -59,7 +59,7 @@ test.describe("what the player writes on a real page", () => {
     const stories = page.locator(".story");
     const third = stories.nth(2);
     const chip = third.locator("[data-play-item]");
-    const headline = (await third.locator("h3").textContent()) ?? "";
+    const headline = (await third.locator("h3 span[id]").textContent()) ?? "";
 
     await chip.click();
     await expect(chip.locator("[data-chip-label]")).toHaveText("Playing");
