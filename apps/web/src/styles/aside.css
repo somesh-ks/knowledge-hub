@@ -69,8 +69,11 @@
     }
   }
 
-  /* A press goes one step deeper than a hover, on the section in view too. */
-  .aside-link:active {
+  /* A press goes one step deeper than a hover, on the section in view too. The first selector carries
+     the hover's :not(), so it weighs as much as the hover rule and, coming after it, wins while a
+     mouse is over the entry. */
+  .aside-link:not([aria-current="true"]):active,
+  .aside-link[aria-current="true"]:active {
     background: color-mix(in oklab, currentColor 12%, transparent);
   }
 
