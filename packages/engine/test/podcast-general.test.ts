@@ -1,6 +1,6 @@
 import { mkdir, readFile, writeFile } from "node:fs/promises";
 import { join } from "node:path";
-import { type GeneralFeeds, type PodcastRequest, parseEpisodeFile } from "@dispatch/core";
+import { generalTopics, type PodcastRequest, parseEpisodeFile, type Source } from "@dispatch/core";
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
 import type { HttpClient } from "../src/http.js";
 import { pickStories, selectGeneralStories, topStoryCount } from "../src/podcast/general.js";
@@ -51,24 +51,42 @@ function fakeHttp(bodies: Record<string, string>, calls: string[] = []): HttpCli
   };
 }
 
-const FEEDS: GeneralFeeds = {
-  version: 1,
-  topics: {
-    world: [
-      { id: "npr", name: "NPR", feed_url: "https://npr.test/world" },
-      { id: "bbc", name: "BBC News", feed_url: "https://bbc.test/world" },
-      { id: "abc-news", name: "ABC News", feed_url: "https://abc.test/world" },
-    ],
-    business: [
-      { id: "npr", name: "NPR", feed_url: "https://npr.test/business" },
-      { id: "cbs-news", name: "CBS News", feed_url: "https://cbs.test/business" },
-    ],
-    technology: [{ id: "npr", name: "NPR", feed_url: "https://npr.test/tech" }],
-    science: [{ id: "npr", name: "NPR", feed_url: "https://npr.test/science" }],
-    culture: [{ id: "npr", name: "NPR", feed_url: "https://npr.test/culture" }],
-    sports: [{ id: "npr", name: "NPR", feed_url: "https://npr.test/sports" }],
-  },
-};
+/** A source of the registry the episode reads: enabled, tagged with its general topic. */
+function source(id: string, name: string, topic: string, host: string, enabled = true): Source {
+  return {
+    id,
+    name,
+    type: "rss",
+    url: `https://${host}.test`,
+    feed_url: `https://${host}.test/${topic}`,
+    tier: "daily",
+    high_signal: false,
+    enabled,
+    failures: 0,
+    options: {},
+    topic_ids: [topic],
+  };
+}
+
+/** The same outlets and addresses the old feed list held, now as sources. */
+const SOURCES: Source[] = [
+  source("npr-world", "NPR", "world", "npr"),
+  source("bbc-world", "BBC News", "world", "bbc"),
+  source("abc-news-world", "ABC News", "world", "abc"),
+  source("npr-business", "NPR", "business", "npr"),
+  source("cbs-news-business", "CBS News", "business", "cbs"),
+  source("npr-science", "NPR", "science", "npr"),
+];
+
+/** Writes the sources as the repository's registry, for the tests that go through the files. */
+async function writeSources(root: string, list: readonly Source[] = SOURCES): Promise<void> {
+  await mkdir(join(root, "config"), { recursive: true });
+  await writeFile(
+    join(root, "config", "sources.json"),
+    JSON.stringify({ version: 1, sources: list }),
+    "utf8",
+  );
+}
 
 const QUAKE = "Magnitude 6.1 earthquake strikes Izmir coast in Turkey";
 const SUMMIT = "Leaders reach climate summit deal in Geneva after talks";
@@ -140,7 +158,8 @@ function deps(over: Partial<Parameters<typeof selectGeneralStories>[0]> = {}) {
     plan: planPodcast(GENERAL),
     now: NOW,
     http: fakeHttp(BODIES),
-    feeds: FEEDS,
+    sources: SOURCES,
+    topics: null,
     ...over,
   };
 }
@@ -202,6 +221,74 @@ describe("selectGeneralStories", () => {
     expect(new Set(calls).size).toBe(5);
   });
 
+  it("does not read a source the owner switched off, and says so when none is left", async () => {
+    const calls: string[] = [];
+    const off = SOURCES.map((s) => (s.id === "bbc-world" ? { ...s, enabled: false } : s));
+    const result = await selectGeneralStories(
+      deps({ sources: off, http: fakeHttp(BODIES, calls) }),
+    );
+    expect(calls).not.toContain("https://bbc.test/world");
+    expect(calls).toHaveLength(4);
+    expect(result.feeds_ok).toBe(4);
+
+    const none = SOURCES.map((s) => ({ ...s, enabled: false }));
+    await expect(selectGeneralStories(deps({ sources: none }))).rejects.toThrow(
+      /No news source is switched on for World and Business/,
+    );
+  });
+
+  it("reads the owner's changes in config/sources.user.json: a tick off, a source added", async () => {
+    await writeSources(ctx.root);
+    await writeFile(
+      join(ctx.root, "config", "sources.user.json"),
+      JSON.stringify({
+        version: 1,
+        added: [
+          {
+            ...source("lantern-world", "Lantern Post", "world", "lantern"),
+            origin: "manual",
+          },
+        ],
+        overrides: { "bbc-world": { enabled: false } },
+      }),
+      "utf8",
+    );
+    const calls: string[] = [];
+    const bodies = {
+      ...BODIES,
+      "https://lantern.test/world": rss([
+        {
+          title: "Volcano in Iceland erupts near Reykjanes town, Lantern reports",
+          link: "https://lantern.test/volcano",
+          hoursAgo: 2,
+        },
+      ]),
+    };
+    const { stories } = await selectGeneralStories({
+      ...deps({ http: fakeHttp(bodies, calls) }),
+      root: ctx.root,
+      sources: undefined,
+      topics: undefined,
+    });
+    expect(calls).toContain("https://lantern.test/world");
+    expect(calls).not.toContain("https://bbc.test/world");
+    const volcano = stories.find((s) => /Volcano/.test(s.headline));
+    expect(volcano?.source.split(", ").sort()).toEqual(["ABC News", "Lantern Post"]);
+  });
+
+  it("reads nothing for a general topic the owner switched off", async () => {
+    const topics = {
+      version: 1 as const,
+      sections: [],
+      topics: generalTopics().map((topic) => ({ ...topic, enabled: topic.id !== "business" })),
+    };
+    const calls: string[] = [];
+    const result = await selectGeneralStories(deps({ topics, http: fakeHttp(BODIES, calls) }));
+    expect(calls.every((url) => url.endsWith("/world"))).toBe(true);
+    expect(result.empty_topics).toEqual(["business"]);
+    expect(result.stories.every((s) => s.section === "world")).toBe(true);
+  });
+
   it("fails with a plain message when every feed fails, and does not read briefings", async () => {
     const attempt = selectGeneralStories(deps({ http: fakeHttp({}) }));
     await expect(attempt).rejects.toBeInstanceOf(PodcastError);
@@ -261,8 +348,7 @@ describe("pickStories", () => {
 
 describe("a general episode", () => {
   it("is written like any episode and parses with the existing parser", async () => {
-    await mkdir(join(ctx.root, "config"), { recursive: true });
-    await writeFile(join(ctx.root, "config", "general-feeds.json"), JSON.stringify(FEEDS), "utf8");
+    await writeSources(ctx.root);
     const writer = new FakeScriptWriter();
     const result = await generateEpisode({
       root: ctx.root,
@@ -286,8 +372,7 @@ describe("a general episode", () => {
   });
 
   it("fails with the plain message when no feed can be read, without calling the writer", async () => {
-    await mkdir(join(ctx.root, "config"), { recursive: true });
-    await writeFile(join(ctx.root, "config", "general-feeds.json"), JSON.stringify(FEEDS), "utf8");
+    await writeSources(ctx.root);
     const writer = new FakeScriptWriter();
     await expect(
       generateEpisode({

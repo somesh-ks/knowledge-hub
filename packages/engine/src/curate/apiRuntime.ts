@@ -7,6 +7,7 @@ import { createFirecrawlScrape } from "../extract/firecrawlScrape.js";
 import type { FirecrawlGuard } from "../fetch/firecrawlBudget.js";
 import { CombinedJudge } from "../judge/combinedJudge.js";
 import { FallbackJudge } from "../judge/fallbackJudge.js";
+import { GeneralJudge } from "../judge/generalJudge.js";
 import { JevJudge } from "../judge/jev.js";
 import { createJevClient } from "../judge/jevClient.js";
 import { NebiusJudge } from "../judge/nebiusJudge.js";
@@ -39,6 +40,11 @@ export interface ApiRuntime {
    * Null without a Jev key. Tests that inject fakes leave it out and get two separate requests.
    */
   combinedJudge?: CombinedJudge | null;
+  /**
+   * Judges the stories of the general news feeds: the topic's fit and the trust flags in one Jev
+   * request each (D66). Null without a Jev key; the stories are then skipped.
+   */
+  generalJudge?: GeneralJudge | null;
   extract: (item: Item) => Promise<ExtractedText | null>;
   /** Judge failures collected during the run, for the report. */
   judgeFailures: JudgeFailure[];
@@ -86,6 +92,7 @@ export function createApiRuntime(
   let grounder: Grounder | null = null;
   let topicJudge: TopicJudge | null = null;
   let combinedJudge: CombinedJudge | null = null;
+  let generalJudge: GeneralJudge | null = null;
   if (env.TYPESAFE_API_KEY) {
     const rawJev = createJevClient(env);
     const jevClient = spend ? meterJev(rawJev, spend.meter) : rawJev;
@@ -97,6 +104,7 @@ export function createApiRuntime(
       fallback: nebiusJudge,
     });
     topicJudge = new TopicJudge({ client: jevClient, log, onFailure, secrets });
+    generalJudge = new GeneralJudge({ client: jevClient, log, onFailure, secrets });
     judge = new FallbackJudge(
       new JevJudge({ client: jevClient, log, onFailure, secrets }),
       nebiusJudge,
@@ -118,6 +126,7 @@ export function createApiRuntime(
     grounder,
     topicJudge,
     combinedJudge,
+    generalJudge,
     extract: (item) => extractFullText(item, { scrape, log }),
     judgeFailures,
     usage: () => ({ nebiusTokens: budget.used, nebiusTokenLimit: budget.limit }),

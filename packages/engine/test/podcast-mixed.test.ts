@@ -1,6 +1,6 @@
 import { mkdir, writeFile } from "node:fs/promises";
 import { join } from "node:path";
-import type { GeneralFeeds, PodcastRequest } from "@dispatch/core";
+import type { PodcastRequest, Source } from "@dispatch/core";
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
 import type { HttpClient } from "../src/http.js";
 import { titleNames } from "../src/podcast/episode.js";
@@ -23,17 +23,19 @@ const MIXED: PodcastRequest = {
   tone: "neutral",
 };
 
-const feed = (id: string) => [{ id: "npr", name: "NPR", feed_url: `https://npr.test/${id}` }];
-const FEEDS: GeneralFeeds = {
-  version: 1,
-  topics: {
-    world: feed("world"),
-    business: feed("business"),
-    technology: feed("technology"),
-    science: feed("science"),
-    culture: feed("culture"),
-    sports: feed("sports"),
-  },
+/** The one general source the episodes read: NPR's world desk, tagged with its topic. */
+const NPR_WORLD: Source = {
+  id: "npr-world",
+  name: "NPR",
+  type: "rss",
+  url: "https://npr.test",
+  feed_url: "https://npr.test/world",
+  tier: "daily",
+  high_signal: false,
+  enabled: true,
+  failures: 0,
+  options: {},
+  topic_ids: ["world"],
 };
 
 const TITLES = [
@@ -70,7 +72,11 @@ let ctx: Awaited<ReturnType<typeof tempRoot>>;
 beforeEach(async () => {
   ctx = await tempRoot();
   await mkdir(join(ctx.root, "config"), { recursive: true });
-  await writeFile(join(ctx.root, "config", "general-feeds.json"), JSON.stringify(FEEDS), "utf8");
+  await writeFile(
+    join(ctx.root, "config", "sources.json"),
+    JSON.stringify({ version: 1, sources: [NPR_WORLD] }),
+    "utf8",
+  );
 });
 afterEach(async () => {
   await ctx.cleanup();
@@ -153,6 +159,22 @@ describe("a mixed episode", () => {
     expect(sections).toContain("Example Wire");
     expect(result.episode.request.topic_ids).toEqual(["design", "ui-craft", "world"]);
     expect(result.episode.title).toBe("Design and World");
+  });
+
+  it("reads a stored technology as the owner's Tech section", async () => {
+    await designDigest();
+    const result = await generateEpisode({
+      root: ctx.root,
+      request: { ...MIXED, topic_ids: ["design", "technology", "world", "tech"] },
+      now: NOW,
+      makeWriter: () => new FakeScriptWriter(),
+      http: http({ "https://npr.test/world": rss() }),
+      dryRun: true,
+    });
+    expect(result.episode.request.topic_ids).toEqual(["design", "tech", "world"]);
+    // The Tech section holds no story in the fixture digest; it is named, not a general feed.
+    expect(result.empty_topics).toEqual(["tech"]);
+    expect(result.feeds).toEqual({ ok: 1, failed: 0 });
   });
 
   it("works under the general audience too", async () => {

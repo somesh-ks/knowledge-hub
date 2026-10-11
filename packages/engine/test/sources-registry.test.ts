@@ -2,7 +2,7 @@ import { existsSync, readFileSync } from "node:fs";
 import { mkdtemp, readFile, rm } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
-import { type SourcesFile, SourcesFile as SourcesSchema } from "@dispatch/core";
+import { feedsGeneralOnly, type SourcesFile, SourcesFile as SourcesSchema } from "@dispatch/core";
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
 import { parseQueries } from "../src/fetch/queries.js";
 import {
@@ -201,20 +201,22 @@ describe("the committed registry", () => {
     expect(parseSources(parsed).sources.length).toBeGreaterThanOrEqual(90);
   });
 
-  it("carries the consumer tech beat: ten hinted sources, seven of them capped at six", () => {
+  it("carries the consumer tech beat: ten outlets on, the four news technology desks off, all capped at six or uncapped", () => {
     if (!existsSync(path)) return;
     const { sources } = parseSources(JSON.parse(readFileSync(path, "utf8")));
-    expect(sources).toHaveLength(120);
+    expect(sources).toHaveLength(144);
+    const desks = (s: { id: string }): boolean => s.id.endsWith("-technology");
     const tech = sources.filter((s) => s.category_hint === "consumer_tech_releases");
-    expect(tech).toHaveLength(10);
-    for (const source of tech) {
+    expect(tech).toHaveLength(14);
+    expect(tech.filter(desks).every((s) => !s.enabled && s.origin === "seed")).toBe(true);
+    for (const source of tech.filter((s) => !desks(s))) {
       expect(source.enabled, source.id).toBe(true);
       expect(source.type, source.id).toBe("rss");
       expect(source.feed_url, source.id).toMatch(/^https:\/\//);
     }
     expect(
       tech
-        .filter((s) => s.options.pool_cap === "6")
+        .filter((s) => s.options.pool_cap === "6" && !desks(s))
         .map((s) => s.id)
         .sort(),
     ).toEqual([
@@ -257,7 +259,10 @@ describe("the committed registry", () => {
   it("never fetches the same feed twice and explains every disabled source", () => {
     if (!existsSync(path)) return;
     const { sources } = parseSources(JSON.parse(readFileSync(path, "utf8")));
-    const feeds = sources.filter((s) => s.enabled && s.feed_url).map((s) => s.feed_url);
+    // A feed may serve both Trending and a general topic (Al Jazeera): the two are read apart.
+    const feeds = sources
+      .filter((s) => s.enabled && s.feed_url)
+      .map((s) => `${feedsGeneralOnly(s.topic_ids)} ${s.feed_url}`);
     expect(feeds.length).toBe(new Set(feeds).size);
     for (const source of sources.filter((s) => !s.enabled)) {
       expect(source.options.note, source.id).toBeTruthy();

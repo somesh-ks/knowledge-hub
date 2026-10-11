@@ -1,0 +1,358 @@
+import { rm } from "node:fs/promises";
+import {
+  generalTopics,
+  Item,
+  itemId,
+  resolveTopics,
+  type Source,
+  type SourceStatsFile,
+  TopicsFile,
+} from "@dispatch/core";
+import { afterAll, afterEach, beforeAll, beforeEach, describe, expect, it } from "vitest";
+import type { PoolFile } from "../src/fetch/pool.js";
+import { GeneralJudge } from "../src/judge/generalJudge.js";
+import type { JudgedFile } from "../src/run/artifacts.js";
+import { gatherPool } from "../src/run/gatherPool.js";
+import { type GeneralJudgedFile, GeneralPoolFile } from "../src/run/generalNews.js";
+import { serializeTopics } from "../src/topics/store.js";
+import {
+  buildTemplate,
+  exists,
+  goodFeeds,
+  instantiate,
+  json,
+  makeWorld,
+  readDigest,
+  readJson,
+  runStaged,
+  seed,
+  sourcesFile,
+  type TestRepo,
+  WED,
+} from "./orchestrator-fixtures.js";
+import { realPreferences } from "./score-factories.js";
+import { NO_WAIT } from "./write-fakes.js";
+
+let template: string;
+let repo: TestRepo;
+
+beforeAll(async () => {
+  template = await buildTemplate();
+}, 120_000);
+afterAll(async () => {
+  await rm(template, { recursive: true, force: true, maxRetries: 3 });
+});
+beforeEach(async () => {
+  repo = await instantiate(template);
+}, 60_000);
+afterEach(async () => {
+  await repo.cleanup();
+});
+
+const LONG = { timeout: 90_000 };
+const RUN = ".cache/run/2026-10-07";
+const DIGEST_PATH = "Digests/2026/10/2026-10-07.md";
+
+function generalSource(id: string, host: string, topic: string): Source {
+  return {
+    id,
+    name: id,
+    type: "rss",
+    url: `https://${host}.example/${topic}`,
+    feed_url: `https://${host}.example/${topic}/feed.xml`,
+    tier: "daily",
+    high_signal: false,
+    enabled: true,
+    failures: 0,
+    options: {},
+    origin: "seed",
+    topic_ids: [topic],
+  };
+}
+
+const GENERAL_SOURCES = [
+  generalSource("npr-world", "npr", "world"),
+  generalSource("bbc-world", "bbc", "world"),
+  generalSource("npr-business", "npr", "business"),
+];
+
+function registry(): string {
+  const base = sourcesFile();
+  return json({ ...base, sources: [...base.sources, ...GENERAL_SOURCES] });
+}
+
+function story(
+  sourceId: string,
+  topic: string,
+  slug: string,
+  title: string,
+  snippet = "A report.",
+  url = `https://${sourceId}.example/${slug}`,
+): Item {
+  return Item.parse({
+    id: itemId(url),
+    url,
+    canonical_url: url,
+    title,
+    source_id: sourceId,
+    source_type: "rss",
+    published_at: "2026-10-06T08:00:00Z",
+    fetched_at: "2026-10-07T05:00:00Z",
+    snippet,
+    topic_ids: [topic],
+  });
+}
+
+const QUAKE_NPR = "Magnitude 6.1 earthquake strikes Izmir coast in Turkey";
+const QUAKE_BBC = "Earthquake of magnitude 6.1 strikes Izmir coast, Turkey";
+
+/** Twelve world stories only NPR carried, with headlines that share nothing to cluster on. */
+const ALONE = Array.from({ length: 12 }, (_, n) => [
+  `solo-${n}`,
+  `Zorblax${n} delegation inspects Quillon${n} harbour`,
+]);
+
+function worldFeeds(): Record<string, Item[]> {
+  const feeds = goodFeeds(8);
+  const shared = "https://blog-a.example/shared-story";
+  feeds["blog-a"] = [
+    ...(feeds["blog-a"] ?? []),
+    // The briefing's copy of a story a general feed carries too: same address, same item id.
+    Item.parse({
+      id: itemId(shared),
+      url: shared,
+      canonical_url: shared,
+      title: "Shared design story about interface craft",
+      source_id: "blog-a",
+      source_type: "rss",
+      published_at: "2026-10-06T08:00:00Z",
+      fetched_at: "2026-10-07T05:00:00Z",
+      snippet: "judge:design_engineering_craft",
+    }),
+  ];
+  feeds["npr-world"] = [
+    story("npr-world", "world", "quake", QUAKE_NPR),
+    ...ALONE.map(([slug, title]) => story("npr-world", "world", slug as string, title as string)),
+    story("npr-world", "world", "hype", "Zorblax hype Quillon miracle claims", "hype:0.9 offtopic"),
+    story(
+      "npr-world",
+      "world",
+      "shared",
+      "Shared design story about interface craft",
+      "A report.",
+      shared,
+    ),
+  ];
+  feeds["bbc-world"] = [story("bbc-world", "world", "quake", QUAKE_BBC)];
+  feeds["npr-business"] = [
+    story("npr-business", "business", "marlow", "Retailer Marlow reports quarterly profit rise"),
+  ];
+  return feeds;
+}
+
+/** A Jev stand-in for the general stories: a fit question and the two flags, nothing else. */
+function generalJev() {
+  const asked: string[][] = [];
+  const client = {
+    async systemOne(request: { state: unknown; questions: Record<string, unknown> }) {
+      const keys = Object.keys(request.questions);
+      asked.push(keys);
+      const state = request.state as { snippet: string };
+      const hype = /hype:([0-9.]+)/.exec(state.snippet)?.[1];
+      const level = /offtopic/.test(state.snippet) ? 0 : 4;
+      return {
+        model: "jev-test",
+        answers: Object.fromEntries(
+          keys.map((key) => [
+            key,
+            key === "hype"
+              ? { type: "noul", noul: Number(hype ?? 0) }
+              : key === "sponsored"
+                ? { type: "noul", noul: 0 }
+                : { type: "score", score: level },
+          ]),
+        ),
+      };
+    },
+  };
+  return { asked, judge: new GeneralJudge({ client, now: () => WED, retry: NO_WAIT }) };
+}
+
+describe("a run with general news feeds", () => {
+  it(
+    "judges every story with the topic question and the trust flags, and publishes none of them",
+    LONG,
+    async () => {
+      await seed(repo.root, { "config/sources.json": registry() });
+      const jev = generalJev();
+      const world = makeWorld(repo.root, {
+        now: WED,
+        feeds: worldFeeds(),
+        generalJudge: jev.judge,
+      });
+
+      const results = await runStaged(world);
+      expect(results.map((r) => r.code)).toEqual([0, 0, 0, 0, 0, 0]);
+
+      // Sixteen distinct stories: the quake (two outlets, one story), twelve single-outlet ones,
+      // the hype one, the shared one and Marlow. All asked, far past the 8 a source normally gets.
+      const general = GeneralPoolFile.parse(await readJson(repo.root, `${RUN}/general.json`));
+      expect(general.items).toHaveLength(16);
+      expect(jev.asked).toHaveLength(16);
+      // Only the fit question and the two flags: no category, craft or launch question.
+      expect(jev.asked.every((keys) => keys.join() === "hype,sponsored,fit_0")).toBe(true);
+      expect(results[2]?.report).toMatchObject({
+        passes: [{ general_pool: 16, general_judged: 16, general_requests: 16 }],
+      });
+      expect(results[1]?.report).toMatchObject({ passes: [{ general_stories: 16 }] });
+
+      // The stories are not in the pool, so nothing can select them.
+      const pool = await readJson<PoolFile>(repo.root, `${RUN}/pool.json`);
+      const poolIds = new Set(pool.items.map((item) => item.id));
+      const onlyGeneral = general.items.filter((item) => item.source_id !== "blog-a");
+      const shared = general.items.find((item) => item.url.endsWith("shared-story"));
+      expect(shared).toBeDefined();
+      for (const item of general.items) {
+        // The one id both lists hold is the shared story, whose briefing copy is a blog-a item.
+        if (item.id !== shared?.id) expect(poolIds.has(item.id), item.title).toBe(false);
+      }
+      expect(onlyGeneral.length).toBeGreaterThan(0);
+      const briefingCopy = pool.items.find((item) => item.id === shared?.id);
+      expect(briefingCopy?.source_id).toBe("blog-a");
+      expect(briefingCopy?.topic_ids).toBeUndefined();
+
+      const judged = await readJson<JudgedFile>(repo.root, `${RUN}/judged.json`);
+      expect(judged.entries.every((entry) => poolIds.has(entry.item_id))).toBe(true);
+      expect(await exists(repo.root, `${RUN}/general-judged.json`)).toBe(true);
+      const digest = await readDigest(repo.root, DIGEST_PATH);
+      const published = new Set(digest.items.map((item) => item.id));
+      for (const item of general.items) {
+        if (item.id !== shared?.id) expect(published.has(item.id), item.title).toBe(false);
+      }
+      expect(digest.items.every((item) => item.section !== "general")).toBe(true);
+      const selection = await readJson<{ items: { id: string }[] }>(
+        repo.root,
+        `${RUN}/selection.json`,
+      );
+      expect(selection.items.every((item) => poolIds.has(item.id))).toBe(true);
+
+      // The feeds' counters: fetched, judged, passed, asked, flagged and covered; never published.
+      const counts = await readJson<{ sources: Record<string, Record<string, number>> }>(
+        repo.root,
+        `${RUN}/source-counts.json`,
+      );
+      expect(counts.sources["npr-world"]).toEqual({
+        fetched: 15,
+        judged: 15,
+        passed: 14,
+        asked: 15,
+        flagged: 1,
+        covered: 1,
+      });
+      expect(counts.sources["bbc-world"]).toEqual({
+        fetched: 1,
+        judged: 1,
+        passed: 1,
+        asked: 1,
+        flagged: 0,
+        covered: 1,
+      });
+      const stats = await readJson<SourceStatsFile>(repo.root, "state/source-stats.json");
+      expect(stats.sources["npr-world"]).toMatchObject({
+        fetched: 15,
+        judged: 15,
+        passed: 14,
+        asked: 15,
+        flagged: 1,
+        covered: 1,
+        published: 0,
+      });
+      expect(stats.sources["npr-business"]).toMatchObject({ judged: 1, covered: 0, published: 0 });
+      expect(stats.sources["blog-a"]).not.toHaveProperty("covered");
+
+      // The quake story was judged once, for both outlets that carried it.
+      const file = await readJson<GeneralJudgedFile>(repo.root, `${RUN}/general-judged.json`);
+      expect(file.entries).toHaveLength(16);
+      expect(file.counts).toMatchObject({ judged: 16, unjudged: 0, over_ceiling: 0 });
+    },
+  );
+
+  it(
+    "reads nothing, and judges nothing, for a general topic that is switched off",
+    LONG,
+    async () => {
+      const preferences = realPreferences();
+      const base = resolveTopics(null, preferences);
+      const topics = TopicsFile.parse({
+        ...base,
+        topics: base.topics.map((topic) =>
+          topic.id === "world" ? { ...topic, enabled: false } : topic,
+        ),
+      });
+      await seed(repo.root, {
+        "config/sources.json": registry(),
+        "config/topics.json": serializeTopics(topics),
+      });
+      const jev = generalJev();
+      const world = makeWorld(repo.root, {
+        now: WED,
+        feeds: worldFeeds(),
+        generalJudge: jev.judge,
+      });
+      expect((await runStaged(world)).map((r) => r.code)).toEqual([0, 0, 0, 0, 0, 0]);
+
+      const fetched = world.fetchCalls.map((call) => call.source);
+      expect(fetched).not.toContain("npr-world");
+      expect(fetched).not.toContain("bbc-world");
+      expect(fetched).toContain("npr-business");
+      const general = GeneralPoolFile.parse(await readJson(repo.root, `${RUN}/general.json`));
+      expect(general.items.map((item) => item.title)).toEqual([
+        "Retailer Marlow reports quarterly profit rise",
+      ]);
+      expect(generalTopics().length).toBe(5);
+    },
+  );
+
+  it(
+    "skips the stories with a warning, and still runs, when there is no Jev client",
+    LONG,
+    async () => {
+      await seed(repo.root, { "config/sources.json": registry() });
+      const world = makeWorld(repo.root, { now: WED, feeds: worldFeeds() });
+      expect((await runStaged(world)).map((r) => r.code)).toEqual([0, 0, 0, 0, 0, 0]);
+      expect(await exists(repo.root, `${RUN}/general-judged.json`)).toBe(false);
+      const stats = await readJson<SourceStatsFile>(repo.root, "state/source-stats.json");
+      // Fetched is counted, nothing was judged, so the quality part has nothing to read yet.
+      expect(stats.sources["npr-world"]).toMatchObject({ fetched: 15, judged: 0, published: 0 });
+    },
+  );
+});
+
+describe("gathering the pool", () => {
+  it(
+    "leaves the general feeds out of the weekly pass and out of the briefing's caps",
+    LONG,
+    async () => {
+      await seed(repo.root, { "config/sources.json": registry() });
+      const world = makeWorld(repo.root, { now: WED, feeds: worldFeeds() });
+      const input = {
+        root: repo.root,
+        now: WED,
+        id: "2026-10-07",
+        window: { from: new Date("2026-10-05T05:13:00Z"), to: WED },
+        setup: world.deps.fetch,
+      };
+      const regular = await gatherPool({ ...input, kind: "regular" });
+      expect(regular.general?.items).toHaveLength(16);
+      // The briefing pool never sees a general source's items, whatever the caps leave.
+      expect(regular.pool.items.some((i) => i.source_id.startsWith("npr-"))).toBe(false);
+
+      world.fetchCalls.length = 0;
+      const weekly = await gatherPool({ ...input, kind: "weekly" });
+      expect(weekly.general).toBeNull();
+      expect(world.fetchCalls.map((c) => c.source).some((id) => /^(npr|bbc)-/.test(id))).toBe(
+        false,
+      );
+    },
+  );
+});

@@ -1,8 +1,3 @@
-import { readFile } from "node:fs/promises";
-import { join } from "node:path";
-import { z } from "zod";
-import { CONFIG_FILES } from "./paths.js";
-
 /**
  * The general news topics (D43, D66), in the order the form shows them. Each is a topic of
  * config/topics.json with origin "general" (see generalTopics in topics.ts): fed by its own news
@@ -43,36 +38,11 @@ export function normalizeTopicIds(ids: readonly string[]): string[] {
   return [...new Set(ids.map((id) => LEGACY_TOPIC_ALIASES[id] ?? id))];
 }
 
-/** One open category feed of a general outlet. Feeds only: nothing here needs a key or Firecrawl. */
-export const GeneralFeed = z.object({
-  /** Lowercase letters, digits and hyphens; names the outlet and, with the topic, the feed. */
-  id: z.string().regex(/^[a-z0-9][a-z0-9-]*$/),
-  /** The outlet's name as a listener hears it and as the episode lists it. */
-  name: z.string().min(1),
-  feed_url: z.string().url(),
-});
-export type GeneralFeed = z.infer<typeof GeneralFeed>;
-
-/** Shape of config/general-feeds.json: a list of feeds for each general topic. */
-export const GeneralFeeds = z.object({
-  version: z.literal(1),
-  topics: z.object({
-    world: z.array(GeneralFeed),
-    business: z.array(GeneralFeed),
-    technology: z.array(GeneralFeed),
-    science: z.array(GeneralFeed),
-    culture: z.array(GeneralFeed),
-    sports: z.array(GeneralFeed),
-  }),
-});
-export type GeneralFeeds = z.infer<typeof GeneralFeeds>;
-
-export function parseGeneralFeeds(json: unknown): GeneralFeeds {
-  return GeneralFeeds.parse(json);
-}
-
-/** config/general-feeds.json. A missing file is an error: a general episode has nothing to read without it. */
-export async function loadGeneralFeeds(root: string): Promise<GeneralFeeds> {
-  const text = await readFile(join(root, CONFIG_FILES.generalFeeds), "utf8");
-  return parseGeneralFeeds(JSON.parse(text) as unknown);
+/**
+ * True for a source that feeds general news topics alone (D66): it has topics, and every one is a
+ * general topic. Its stories are judged for the feed's score and read by episodes, never published
+ * in a briefing, so its score reads `covered` where other sources read `published`.
+ */
+export function feedsGeneralOnly(topicIds: readonly string[] | undefined): boolean {
+  return topicIds !== undefined && topicIds.length > 0 && topicIds.every(isGeneralTopicId);
 }

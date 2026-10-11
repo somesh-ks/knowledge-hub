@@ -380,15 +380,6 @@
       "tags": ["news", "world", "wire", "headlines"]
     },
     {
-      "id": "sciencedaily",
-      "name": "ScienceDaily Top Science",
-      "url": "https://www.sciencedaily.com",
-      "feed_url": "https://www.sciencedaily.com/rss/top/science.xml",
-      "about": "Science research releases",
-      "cadence": "daily",
-      "tags": ["science", "research", "news"]
-    },
-    {
       "id": "nasa-news",
       "name": "NASA News Releases",
       "url": "https://www.nasa.gov",
