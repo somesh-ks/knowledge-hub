@@ -20,5 +20,5 @@ const { tone, icon, title, body, action } = Astro.props;
     <p class="banner-title">{title}</p>
     {body && <p class="banner-body">{body}</p>}
   </div>
-  {action && <a class="btn press press-subtle" href={action.href}>{action.label}</a>}
+  {action && <a class="btn" href={action.href}>{action.label}</a>}
 </div>

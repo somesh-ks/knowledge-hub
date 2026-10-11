@@ -15,6 +15,10 @@ const SRC = join(dirname(fileURLToPath(import.meta.url)), "..");
  * a text action, a card with a title. A press shows on their fill, their colour or an icon.
  */
 const LABEL_CONTROLS = [
+  "btn",
+  "btn-primary",
+  "btn-secondary",
+  "source-main",
   "settings-segment",
   "segmented",
   "create-chip",

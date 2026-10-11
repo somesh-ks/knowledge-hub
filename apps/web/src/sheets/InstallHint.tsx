@@ -22,7 +22,7 @@ export default function InstallHint({ onDismiss }: InstallHintProps) {
             the background.
           </p>
         </div>
-        <button className="btn press" type="button" onClick={onDismiss}>
+        <button className="btn" type="button" onClick={onDismiss}>
           Hide this
         </button>
       </div>
