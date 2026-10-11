@@ -189,8 +189,9 @@
 }
 
 /* Groups are told apart by space, not lines: more air between two groups than between two rows. */
+/* Groups are spaced by their heads' own air alone, the same 32px as on every settings page. */
 .settings-view > section + section {
-  margin-block-start: var(--space-6);
+  margin-block-start: 0;
 }
 
 /* ------------------------------------------------------------------ segmented choice */
@@ -211,7 +212,7 @@
   padding: var(--segmented-padding);
   border: 0;
   border-radius: var(--segmented-radius);
-  background: var(--color-surface-sunken);
+  background: var(--color-surface-container);
 }
 
 @media (min-width: 40rem) {
@@ -255,7 +256,22 @@
 }
 
 .settings-segment:has(input:checked) {
-  color: var(--color-accent);
+  color: var(--color-on-accent-container);
+}
+
+/* An unchosen segment answers the pointer with a state layer of its own words' colour. */
+@media (hover: hover) and (pointer: fine) {
+  .settings-segment:not(:has(input:checked, input:disabled)):hover {
+    background: color-mix(in oklch, var(--color-on-surface) var(--state-hover), transparent);
+  }
+}
+
+.settings-segment:not(:has(input:checked, input:disabled)):active {
+  background: color-mix(in oklch, var(--color-on-surface) var(--state-press), transparent);
+}
+
+.settings-segment:has(input:disabled) {
+  opacity: var(--opacity-disabled);
 }
 
 /* The check comes in beside the words of the chosen segment. The words stay centred in their column,
@@ -337,9 +353,9 @@
   inset-inline-start: var(--segmented-padding);
   width: calc((100% - var(--segmented-padding) * 2) / var(--seg-n));
   border-radius: var(--segmented-segment-radius);
-  /* The choice is tonal, not outlined: the accent's wash, the accent's words and a check, so it is a
+  /* The choice is tonal, not outlined: the accent container, its own words and a check, so it is a
      shape and a colour and never a colour alone. */
-  background: var(--color-accent-subtle);
+  background: var(--color-accent-container);
   opacity: 0;
   pointer-events: none;
   transform: translateX(calc(var(--seg-i) * 100%));
@@ -717,7 +733,7 @@
 @media (hover: hover) and (pointer: fine) {
   .settings-row .value-select > select.manage-input:hover {
     border-color: transparent;
-    background: var(--color-surface-sunken);
+    background: color-mix(in oklch, var(--color-on-surface) var(--state-hover), transparent);
   }
 }
 
@@ -728,7 +744,7 @@
 /* Open, it holds its fill and shows the ring the keyboard's focus does. */
 .settings-row .value-select > select.manage-input:open {
   border-color: transparent;
-  background: var(--color-surface-sunken);
+  background: color-mix(in oklch, var(--color-on-surface) var(--state-press), transparent);
 }
 
 @supports (appearance: base-select) {

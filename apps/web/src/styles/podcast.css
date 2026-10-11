@@ -171,14 +171,14 @@
 
 @media (hover: hover) and (pointer: fine) {
   .daily-option:hover {
-    background: var(--color-surface-sunken);
+    background: color-mix(in oklch, var(--color-on-surface) var(--state-hover), transparent);
   }
 }
 
 /* The keyboard's row: a tint and the focus ring, so it never rests on colour alone. A list opened
    with the pointer shows neither until a key is pressed, as a select's list does. */
 .daily-listbox[data-keyboard] .daily-option[data-active] {
-  background: var(--color-surface-sunken);
+  background: color-mix(in oklch, var(--color-on-surface) var(--state-hover), transparent);
   outline: var(--stroke-ring) solid var(--color-focus-ring);
   outline-offset: calc(var(--stroke-ring) * -1);
 }
@@ -279,8 +279,8 @@
   inline-size: var(--size-touch);
   block-size: var(--size-touch);
   border-radius: var(--radius-round);
-  background: var(--color-accent-subtle);
-  color: var(--color-accent);
+  background: var(--color-accent-container);
+  color: var(--color-on-accent-container);
   transition: background-color var(--duration-hover) var(--ease-hover);
 }
 
@@ -297,12 +297,20 @@
 
 @media (hover: hover) and (pointer: fine) {
   .podcast-sample:hover {
-    background: color-mix(in oklch, var(--color-accent) 16%, var(--color-accent-subtle));
+    background: color-mix(
+      in oklch,
+      var(--color-accent-container),
+      var(--color-on-accent-container) var(--state-hover)
+    );
   }
 }
 
 .podcast-sample:active {
-  background: color-mix(in oklch, var(--color-accent) 24%, var(--color-accent-subtle));
+  background: color-mix(
+    in oklch,
+    var(--color-accent-container),
+    var(--color-on-accent-container) var(--state-press)
+  );
 }
 
 /* In a settings row the model field is the row's value too: its words at the end of the row, with no
@@ -312,8 +320,11 @@
   padding-block: var(--space-1);
 }
 
+/* It shares the row with its label on a phone as well: it shrinks before it would wrap under it. */
 .settings-row > .daily-combo {
-  flex: 0 1 min(22rem, 100%);
+  flex: 1 1 0;
+  min-inline-size: 0;
+  max-inline-size: 22rem;
   margin-inline-end: calc(var(--space-2) * -1);
 }
 
@@ -326,14 +337,14 @@
 }
 
 .settings-row .daily-combo .manage-input:focus {
-  background: var(--color-surface-sunken);
+  background: var(--color-surface-container);
   text-align: start;
 }
 
 @media (hover: hover) and (pointer: fine) {
   .settings-row .daily-combo .manage-select:hover > .manage-input:not([aria-invalid]) {
     border-color: transparent;
-    background: var(--color-surface-sunken);
+    background: color-mix(in oklch, var(--color-on-surface) var(--state-hover), transparent);
   }
 }
 

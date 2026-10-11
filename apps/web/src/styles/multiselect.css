@@ -105,13 +105,13 @@
 }
 
 .settings-row .multiselect-trigger[aria-expanded="true"] {
-  background: var(--color-surface-sunken);
+  background: color-mix(in oklch, var(--color-on-surface) var(--state-press), transparent);
 }
 
 @media (hover: hover) and (pointer: fine) {
   .settings-row .multiselect-trigger:hover {
     border-color: transparent;
-    background: var(--color-surface-sunken);
+    background: color-mix(in oklch, var(--color-on-surface) var(--state-hover), transparent);
   }
 }
 
@@ -201,13 +201,17 @@
 
 @media (hover: hover) and (pointer: fine) {
   .multiselect-option:not([aria-disabled="true"]):hover {
-    background: var(--color-surface-sunken);
+    background: color-mix(in oklch, var(--color-on-surface) var(--state-hover), transparent);
   }
 }
 
 /* The keyboard's row: a tint and the focus ring, so it never rests on colour alone. */
+.multiselect-option:not([aria-disabled="true"]):active {
+  background: color-mix(in oklch, var(--color-on-surface) var(--state-press), transparent);
+}
+
 .multiselect-list[data-keyboard] .multiselect-option[data-active] {
-  background: var(--color-surface-sunken);
+  background: color-mix(in oklch, var(--color-on-surface) var(--state-hover), transparent);
   outline: var(--stroke-ring) solid var(--color-focus-ring);
   outline-offset: calc(var(--stroke-ring) * -1);
 }

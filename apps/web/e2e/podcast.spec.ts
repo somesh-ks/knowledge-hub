@@ -483,12 +483,15 @@ test.describe("the Model page", () => {
     expect(asked).toBe(0);
     await page.keyboard.press("Escape");
     await pick(page, "haiku", /^Claude Haiku 5\.5/);
+    // The provider's own save may still be showing Saved: wait for the pick's request itself.
+    await expect
+      .poll(() => opsOf(sent).at(-1))
+      .toEqual({
+        op: "writer.set",
+        provider: "anthropic",
+        model: "claude-haiku-5-5",
+      });
     await expect(toastText(page)).toHaveText(SAVED);
-    expect(opsOf(sent).at(-1)).toEqual({
-      op: "writer.set",
-      provider: "anthropic",
-      model: "claude-haiku-5-5",
-    });
   });
 
   test("going back to the saved provider before the save sends nothing", async ({ page }) => {

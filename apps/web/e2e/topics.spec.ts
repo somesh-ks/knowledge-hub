@@ -403,10 +403,12 @@ test.describe("a topic's page", () => {
     await expect.poll(() => ops(sent).length).toBe(1);
     await expect(row).toBeVisible();
     await expect(row.locator(".score")).toBeVisible();
-    await expect(row.locator(".source-name")).toHaveCSS("opacity", /^0\.\d+$/);
+    // Off is quieter, never faded: the name keeps full opacity in the regular weight.
+    await expect(row.locator(".source-name")).toHaveCSS("font-weight", "400");
+    await expect(row.locator(".source-name")).toHaveCSS("opacity", "1");
     await box.check();
     await expect.poll(() => ops(sent).length).toBe(2);
-    await expect(row.locator(".source-name")).toHaveCSS("opacity", "1");
+    await expect(row.locator(".source-name")).toHaveCSS("font-weight", "500");
     expect(ops(sent)).toEqual([
       { op: "source.set", id: "studio-notes", enabled: false },
       { op: "source.set", id: "studio-notes", enabled: true },
@@ -506,6 +508,26 @@ test.describe("a topic's page", () => {
     expect(ops(sent)).toMatchObject([
       { op: "topic.upsert", topic: { id: "world", enabled: false, section_id: "general" } },
     ]);
+  });
+
+  test("an off source stays readable, and every name is a 44px target", async ({ page }) => {
+    await setup(page);
+    for (const path of ["/settings/topics/world", "/settings/topics/other"]) {
+      await open(page, path);
+      const found = await new AxeBuilder({ page })
+        .include("[data-fields]")
+        .withRules(["color-contrast", "target-size"])
+        .analyze();
+      expect(
+        found.violations.map((v) => `${v.id}: ${v.nodes.map((n) => n.target.join(" "))}`),
+        path,
+      ).toEqual([]);
+      const heights = await page
+        .locator("a.source-name")
+        .evaluateAll((links) => links.map((link) => link.getBoundingClientRect().height));
+      expect(heights.length, path).toBeGreaterThan(0);
+      for (const height of heights) expect(height).toBeGreaterThanOrEqual(44);
+    }
   });
 
   test("Other lists the sources with no topic, and can turn one back on", async ({ page }) => {
@@ -805,6 +827,8 @@ const settled = (dialog: Locator) =>
   );
 
 test("has no accessibility violations: the list, a topic, and the panel open", async ({ page }) => {
+  // Seven full scans: on the phone's slower emulation they need more than the default 30 seconds.
+  test.setTimeout(90_000);
   await setup(page);
   const scan = async () =>
     (await new AxeBuilder({ page }).withTags(WCAG).analyze()).violations.map(
@@ -831,6 +855,8 @@ test("has no accessibility violations: the list, a topic, and the panel open", a
   await settled(edit);
   expect(await scan()).toEqual([]);
   await page.keyboard.press("Escape");
+  // Closing gives the panel's history entry back; let that land before the next page is opened.
+  await expect(edit).toBeHidden();
   await open(page, "/settings/topics/audio_interfaces");
   await page.getByRole("button", { name: "Edit topic Audio interfaces" }).click();
   const editTopic = page.getByRole("dialog", { name: "Edit topic" });
@@ -838,6 +864,7 @@ test("has no accessibility violations: the list, a topic, and the panel open", a
   await settled(editTopic);
   expect(await scan()).toEqual([]);
   await page.keyboard.press("Escape");
+  await expect(editTopic).toBeHidden();
   await open(page);
   await page.getByRole("button", { name: "Add a topic or a source" }).click();
   const topic = page.getByRole("dialog", { name: "Add a topic" });

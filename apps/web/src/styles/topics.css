@@ -260,12 +260,12 @@
 
 @media (hover: hover) and (pointer: fine) {
   .source-edit:hover {
-    background: var(--color-surface-sunken);
+    background: color-mix(in oklch, var(--color-on-surface) var(--state-hover), transparent);
   }
 }
 
 .source-edit:active {
-  background: var(--color-surface-sunken);
+  background: color-mix(in oklch, var(--color-on-surface) var(--state-press), transparent);
 }
 
 /* What the row shows sits over its button and lets a press through to it, all but the name's link
@@ -291,11 +291,21 @@
 
 /* The name is the way to the site: the row's words, underlined only under the pointer or the keys,
    so a list of links still reads as a list of names. */
-/* The link's box is the line plus a little above and below, so it is a 24px target (WCAG 2.5.8)
-   without moving the row. */
+/* The link's box reaches 44px tall around its line, so the name is a full touch target, and the
+   negative margin takes the extra back, so the row does not move. */
 a.source-name {
-  margin-block: calc(var(--space-1) * -1);
-  padding-block: var(--space-1);
+  /* A hairline more than half the difference, so rounding never leaves it a fraction short. */
+  --name-reach: calc(
+    (
+      var(--size-touch) -
+      var(--font-size-body) *
+      var(--font-leading-label) +
+      var(--stroke-hairline)
+    ) /
+    2
+  );
+  margin-block: calc(var(--name-reach) * -1);
+  padding-block: var(--name-reach);
   color: inherit;
   text-decoration: none;
   text-underline-offset: 0.2em;
@@ -336,7 +346,7 @@ a.source-name:focus-visible {
   width: 100%;
   height: 100%;
   border-radius: inherit;
-  background: var(--color-surface-sunken);
+  background: var(--color-surface-container);
   box-shadow: inset 0 0 0 var(--stroke-hairline) var(--color-border-hairline);
   color: var(--color-on-surface-muted);
   font-size: var(--font-size-meta);
@@ -351,7 +361,7 @@ a.source-name:focus-visible {
   height: 100%;
   padding: var(--space-1);
   object-fit: contain;
-  background: var(--color-surface-sunken);
+  background: var(--color-surface-container);
   opacity: 0;
 }
 
@@ -446,12 +456,12 @@ a.source-name:focus-visible {
 
 @media (hover: hover) and (pointer: fine) {
   .source-check:hover {
-    background: var(--color-surface-sunken);
+    background: color-mix(in oklch, var(--color-on-surface) var(--state-hover), transparent);
   }
 }
 
 .source-check:active {
-  background: var(--color-surface-sunken);
+  background: color-mix(in oklch, var(--color-on-surface) var(--state-press), transparent);
 }
 
 /* Keeps a row that has no button lined up with the rows that do. */
@@ -461,15 +471,22 @@ a.source-name:focus-visible {
   margin-inline-end: calc(var(--space-3) * -1);
 }
 
-/* An unticked source is off: it keeps its place and its score, quieter. */
-.source-row:has(.source-check input:not(:checked)) :is(.source-name, .source-host, .score) {
+/* An unticked source is off: it keeps its place and its score, quieter, and still readable (4.5:1):
+   the name in the muted ink at the regular weight, the score's number muted, and the decoration
+   (the tile and the pips) faded, as nothing reads it. The empty box says off in a shape. */
+.source-row:has(.source-check input:not(:checked)) :is(.source-name, .score-num) {
+  color: var(--color-on-surface-muted);
+  font-weight: var(--font-weight-regular);
+}
+
+.source-row:has(.source-check input:not(:checked)) :is(.source-icon, .pips) {
   opacity: var(--opacity-disabled);
 }
 
 /* A source just added: tinted until the page is left, and the tint settles in at first. */
 .source-row.is-new {
-  background: var(--color-accent-subtle);
-  box-shadow: 0 0 0 var(--space-2) var(--color-accent-subtle);
+  background: var(--color-accent-container);
+  box-shadow: 0 0 0 var(--space-2) var(--color-accent-container);
   animation: source-flash var(--duration-progress) var(--ease-out);
 }
 
@@ -594,6 +611,44 @@ a.source-name:focus-visible {
 .topics-pane,
 .source-form {
   padding-block: var(--space-4);
+}
+
+/* The panel's selects are tonal, as every select and chip is: the container's fill, no outline (a
+   transparent edge keeps the size, and forced colours draw it), a state layer under the pointer. The
+   text fields keep their outline: that is what says they take typing. */
+.topics-panel select.manage-input,
+.topics-panel .multiselect-trigger {
+  border-color: transparent;
+  border-radius: var(--field-radius);
+  background: var(--color-surface-container);
+  transition: background-color var(--duration-hover) var(--ease-hover);
+}
+
+@media (hover: hover) and (pointer: fine) {
+  .topics-panel select.manage-input:hover,
+  .topics-panel .multiselect-trigger:hover {
+    border-color: transparent;
+    background: color-mix(
+      in oklch,
+      var(--color-surface-container),
+      var(--color-on-surface) var(--state-hover)
+    );
+  }
+}
+
+.topics-panel select.manage-input:active,
+.topics-panel .multiselect-trigger:is(:active, [aria-expanded="true"]) {
+  border-color: transparent;
+  background: color-mix(
+    in oklch,
+    var(--color-surface-container),
+    var(--color-on-surface) var(--state-press)
+  );
+}
+
+.topics-panel select.manage-input:focus-visible,
+.topics-panel .multiselect-trigger:focus-visible {
+  border-color: transparent;
 }
 
 /* A shipped topic's name and what counts can be read, not changed: a sunken field in quieter ink, so
@@ -917,8 +972,15 @@ a.source-name:focus-visible {
   place-items: center;
   width: var(--size-touch);
   height: var(--size-touch);
+  /* Its centre lines up with the checkboxes' column in the list above. */
+  margin-inline-end: calc(var(--space-3) * -1);
   border-radius: var(--radius-round);
-  color: var(--color-accent);
+  color: var(--color-on-accent-container);
+}
+
+.source-plus-btn:focus-visible {
+  outline: var(--stroke-ring) solid var(--color-focus-ring);
+  outline-offset: calc(var(--stroke-ring) * -1);
 }
 
 .source-row.is-suggested > .source-plus-btn {
@@ -931,7 +993,7 @@ a.source-name:focus-visible {
   inset: var(--space-1);
   z-index: var(--z-beneath);
   border-radius: var(--radius-round);
-  background: var(--color-accent-subtle);
+  background: var(--color-accent-container);
   transition: background-color var(--duration-hover) var(--ease-hover);
 }
 
@@ -961,10 +1023,18 @@ a.source-name:focus-visible {
 
 @media (hover: hover) and (pointer: fine) {
   .source-plus-btn:enabled:hover::before {
-    background: color-mix(in oklch, var(--color-accent-subtle), var(--color-accent) 14%);
+    background: color-mix(
+      in oklch,
+      var(--color-accent-container),
+      var(--color-on-accent-container) var(--state-hover)
+    );
   }
 }
 
 .source-plus-btn:enabled:active::before {
-  background: color-mix(in oklch, var(--color-accent-subtle), var(--color-accent) 14%);
+  background: color-mix(
+    in oklch,
+    var(--color-accent-container),
+    var(--color-on-accent-container) var(--state-press)
+  );
 }
