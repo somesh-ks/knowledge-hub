@@ -1,5 +1,5 @@
 /**
- * A Play pressed before the player loaded. The head script (scripts/themeInit.js) keeps the pressed
+ * A Play pressed before the player loaded. The inline script (scripts/bannersInit.js) keeps the pressed
  * `[data-play-digest]` control, shows it as preparing and unlocks an audio element inside the tap;
  * once the player's own click listener is in place, the press is made again so it is not lost.
  */
@@ -9,7 +9,7 @@ export interface EarlyPlay {
   state: string | null | undefined;
   /** Played inside the tap, so a phone lets the player start it later without another tap. */
   audio: HTMLAudioElement | null;
-  /** Removes the head script's listener. */
+  /** Removes the inline script's listener. */
   stop?: () => void;
 }
 
@@ -20,7 +20,7 @@ interface EarlyScope {
 const scopeOf = (): EarlyScope =>
   typeof window === "undefined" ? {} : (window as unknown as EarlyScope);
 
-/** The audio element the head script unlocked, once. Null when nothing was pressed early. */
+/** The audio element the inline script unlocked, once. Null when nothing was pressed early. */
 export function takeEarlyAudio(scope: EarlyScope = scopeOf()): HTMLAudioElement | null {
   const early = scope.dispatchEarlyPlay;
   const audio = early?.audio ?? null;
@@ -29,7 +29,7 @@ export function takeEarlyAudio(scope: EarlyScope = scopeOf()): HTMLAudioElement 
 }
 
 /**
- * Stops the head script's listener and presses the kept control again. Call it once the player's
+ * Stops the inline script's listener and presses the kept control again. Call it once the player's
  * click listener is attached. The control is put back as it was first, so the player's own handling
  * (play, or narrate and show it preparing) starts from the page's state.
  */

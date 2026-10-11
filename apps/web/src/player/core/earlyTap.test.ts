@@ -50,7 +50,7 @@ describe("replayEarlyTap", () => {
     }
   });
 
-  it("does nothing without the head script", () => {
+  it("does nothing without the inline script", () => {
     expect(() => replayEarlyTap({})).not.toThrow();
   });
 });
