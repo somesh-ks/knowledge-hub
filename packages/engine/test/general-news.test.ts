@@ -231,6 +231,16 @@ describe("applyCeiling", () => {
       "Story number 8",
     ]);
   });
+
+  it("puts a story only a weekly check carried behind every other, however widely carried (D70)", () => {
+    const checkedOnly = (item: { title: string }) => item.title === "Story number 0";
+    const { kept } = applyCeiling(items, 3, checkedOnly);
+    expect(kept.map((i) => i.title)).toEqual([
+      "Story number 9",
+      "Story number 8",
+      "Story number 7",
+    ]);
+  });
 });
 
 // --- counters ------------------------------------------------------------------------------------

@@ -171,6 +171,19 @@ export const SourceStat = z.object({
    * `published`. Absent from other sources' records.
    */
   covered: z.number().int().nonnegative().optional(),
+  /**
+   * Judged items the scoring sample judged for the score alone (D70): left-over items the
+   * prefilter did not send, a source's recent posts from its own feed, a switched-off source's
+   * latest. Counted in `judged`, `passed`, `asked` and `flagged` too, but never publishable, so
+   * the publish share leaves them out. Absent until a source is first sampled.
+   */
+  sampled: z.number().int().nonnegative().optional(),
+  /**
+   * Stockholm date the scoring sample last read the source's own feed: a refill for a source
+   * under the bar, or the weekly check of a switched-off one (D70). It survives the window's
+   * restart.
+   */
+  sampled_at: ymd.optional(),
   /** Stockholm calendar date the current window began. */
   window_start: ymd,
 });

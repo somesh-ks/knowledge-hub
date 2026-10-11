@@ -45,6 +45,12 @@ export interface ApiRuntime {
    * request each (D66). Null without a Jev key; the stories are then skipped.
    */
   generalJudge?: GeneralJudge | null;
+  /**
+   * Judges the scoring sample (D70): Jev alone, with no Nebius fallback, so a Jev outage can never
+   * spend the writer's token budget on items judged for scores. Null without a Jev key; the sample
+   * then waits for a run that has one.
+   */
+  sampleJudge?: Judge | null;
   extract: (item: Item) => Promise<ExtractedText | null>;
   /** Judge failures collected during the run, for the report. */
   judgeFailures: JudgeFailure[];
@@ -93,6 +99,7 @@ export function createApiRuntime(
   let topicJudge: TopicJudge | null = null;
   let combinedJudge: CombinedJudge | null = null;
   let generalJudge: GeneralJudge | null = null;
+  let sampleJudge: Judge | null = null;
   if (env.TYPESAFE_API_KEY) {
     const rawJev = createJevClient(env);
     const jevClient = spend ? meterJev(rawJev, spend.meter) : rawJev;
@@ -105,11 +112,9 @@ export function createApiRuntime(
     });
     topicJudge = new TopicJudge({ client: jevClient, log, onFailure, secrets });
     generalJudge = new GeneralJudge({ client: jevClient, log, onFailure, secrets });
-    judge = new FallbackJudge(
-      new JevJudge({ client: jevClient, log, onFailure, secrets }),
-      nebiusJudge,
-      log,
-    );
+    const jevJudge = new JevJudge({ client: jevClient, log, onFailure, secrets });
+    judge = new FallbackJudge(jevJudge, nebiusJudge, log);
+    sampleJudge = jevJudge;
     grounder = new JevGrounder({ client: jevClient, log, secrets });
   } else {
     log.warn(
@@ -127,6 +132,7 @@ export function createApiRuntime(
     topicJudge,
     combinedJudge,
     generalJudge,
+    sampleJudge,
     extract: (item) => extractFullText(item, { scrape, log }),
     judgeFailures,
     usage: () => ({ nebiusTokens: budget.used, nebiusTokenLimit: budget.limit }),

@@ -18,6 +18,7 @@ import {
   runJudgmentsPath,
   runTopicJudgmentsPath,
 } from "./plan.js";
+import { readSampleFiles, type SampleJudgedFile } from "./scoreSample.js";
 import type { PassReport, RunDeps, StageReport } from "./types.js";
 
 /** At least this share of a pool going unjudged is an outage, not a quiet day. */
@@ -186,6 +187,42 @@ export async function judgeStage(deps: RunDeps, plan: Plan): Promise<StageReport
         reason: error instanceof Error ? error.message.split("\n")[0] : "unknown",
       });
     }
+    // The scoring sample (D70) is judged for its sources' scores alone, on the built-in questions,
+    // and like the general stories it may never stop the briefing.
+    let sampleReport: Record<string, number> | undefined;
+    try {
+      const { sample } = await readSampleFiles(
+        passFile(deps.root, pass.id, "sample.json"),
+        passFile(deps.root, pass.id, "sample-judged.json"),
+      );
+      const sampleJudge = runtime.sampleJudge ?? null;
+      if (sample && sample.items.length > 0 && sampleJudge === null) {
+        deps.log.warn("No Jev client: the scoring sample waits for a run that has one", {
+          pass: pass.id,
+          items: sample.items.length,
+        });
+      }
+      if (sample && sample.items.length > 0 && sampleJudge !== null) {
+        const answered = await judgeWithCache(sampleJudge, sample.items, cache);
+        cache = answered.cache;
+        const judgedSample: SampleJudgedFile = {
+          version: 1,
+          entries: answered.entries,
+          unjudged: answered.unjudged,
+        };
+        await writeJson(passFile(deps.root, pass.id, "sample-judged.json"), judgedSample);
+        sampleReport = {
+          sample_items: sample.items.length,
+          sample_fresh: answered.missCount - answered.unjudged.length,
+          sample_unjudged: answered.unjudged.length,
+        };
+      }
+    } catch (error) {
+      deps.log.warn("The scoring sample could not be judged; the briefing goes on", {
+        pass: pass.id,
+        reason: error instanceof Error ? error.message.split("\n")[0] : "unknown",
+      });
+    }
     await markStage(deps.root, pass, "judge", { at: deps.now().toISOString() });
     passes.push({
       id: pass.id,
@@ -195,6 +232,7 @@ export async function judgeStage(deps: RunDeps, plan: Plan): Promise<StageReport
       ...file.counts,
       ...topicReport,
       ...generalReport,
+      ...sampleReport,
     });
   }
   await writeJson(cachePath, cache);

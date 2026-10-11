@@ -291,6 +291,8 @@ export function makeWorld(root: string, options: WorldOptions = {}): World {
       grounder: options.grounder === undefined ? keywordGrounder : options.grounder,
       ...(options.topicJudge === undefined ? {} : { topicJudge: options.topicJudge }),
       ...(options.generalJudge === undefined ? {} : { generalJudge: options.generalJudge }),
+      // The scoring sample's Jev-only judge (D70); the test judge answers from snippet tags.
+      sampleJudge: options.judge ?? judge,
       extract: options.extract ?? (async (item) => longText(item)),
       judgeFailures: [],
       usage: () => ({ nebiusTokens: 0, nebiusTokenLimit: 400_000 }),

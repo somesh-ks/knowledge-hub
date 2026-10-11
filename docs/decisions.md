@@ -79,6 +79,7 @@ D1 to D9 date from plan v2 (2026-10-05). D10 to D25 date from 2026-10-06. Reason
 | D67 | Create shows one list of topic chips; the audience presets them; an episode can mix briefing and general topics | active |
 | D68 | An episode opens with a rundown, deep-dives its lead stories, gives the rest as nuggets and closes short | active |
 | D69 | Design, AI and Technology gather the judge topics; one alphabetical list where each topic sets its scope; every source filed under a topic | active |
+| D70 | A scoring sample judges a few items a run for scores alone, so every source reaches a score, switched-off ones included | active |
 
 ---
 
@@ -706,3 +707,26 @@ D1 to D9 date from plan v2 (2026-10-05). D10 to D25 date from 2026-10-06. Reason
   - One weight per group: it would flatten the curated differences between its judge topics.
   - Filing Exa under one topic: ten of its twelve searches have none.
   - Re-hinting the AI roundups and leaving them on: they would bring a day's hype into the pool.
+
+## D70: A scoring sample judges a few items a run for scores alone, so every source reaches a score, switched-off ones included
+
+- Date: 2026-10-11
+- Decision: Each run's first regular pass judges a sample of items for their sources' scores alone (`run/scoreSample.ts`). They are never in the pool, never published and never marked seen, so the briefing is the same as without them.
+  - Left-overs: a switched-on source under ten judged items gets up to 4 of the items the prefilter left out of this run's pool.
+  - Its own feed: such a source with a feed (RSS, Atom, GitHub releases) reads it itself at most once in 30 days. The first read looks 90 days back, so a new source has a score after its first run; later reads look 30 days back. It takes as many items as it lacks.
+  - Weekly check: a switched-off source with a feed is read once a week and gives 4 items, and the read sets its health. A switched-off general news feed is read with the pass's general feeds and judged like them; a story only it carried waits behind every other under the general ceiling.
+  - Limits: 200 items and 40 feed reads a run, the sources with the fewest judged items first; a feed failing its own fetch twice in a row is not refilled. An item already judged (in the judgment cache or seen.json) or in this run's pool is never sampled.
+  - Judge: Jev alone, with no Nebius fallback, so an outage cannot spend the writer's token budget; without a Jev key the sample waits.
+  - Counting: a sampled item counts as judged, passed (when it would clear the bar on its built-in categories), asked and flagged, and as `sampled`. The publish share is out of `judged` less `sampled`, since a sampled item could never be published. `sampled_at` records the last read of the source's own feed.
+  - A source whose feed was read and still has fewer than ten judged items posts too rarely to reach them: from 3 judged items it is scored on what it has, and the reason says so.
+- Why: the owner asked that every source, new ones included, get a score kept current on its factors. On 2026-10-11 only 10 of 149 switched-on sources had one: the prefilter sends the judge about 80 items a run, so most sources never reached ten judged items, and a switched-off source was never fetched at all.
+- Cost:
+  - At most 200 more Jev requests a run, about 2.4 cents at the 9 October rate (165 requests for about 2 cents). The backlog on 2026-10-11 was 88 feed reads and up to about 800 items, so about four runs at the ceiling, then far less.
+  - The six switched-off general feeds add their stories to the general judging once a week.
+  - The scores refresh on every run, not weekly: each run's counts land in the rolling 30-day window, and the weekly cadence applies to switched-off sources alone.
+  - A sampled item is judged on the built-in questions only, without custom topic fits.
+  - A sampled item that a later weekly pass's pool holds is judged from the cache but counted again.
+- Rejected:
+  - A weekly recompute of every score: scores already move every run, so it would make them older without producing new ones.
+  - The fallback judge for the sample, for the token budget's sake.
+  - Lowering the ten-item bar for everyone: the sparse rule covers the sources that can never reach it.

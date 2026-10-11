@@ -35,14 +35,23 @@ import type { SourceStat } from "./state.js";
  * as "covered": judged stories another outlet also carried. A story only one desk ran is the
  * news-feed version of one that never made the digest.
  *
+ * Items the scoring sample judged for the score alone (D70) count toward the pass share and trust
+ * like any judged item, but they could never be published, so the publish share is out of the
+ * items that could have been: `judged` less `sampled`. A source the prefilter never sends earns
+ * nothing there, as before, and is told apart from one that sends nothing worth passing.
+ *
  * Fewer than MIN_JUDGED judged items is too little history: the label is "New", and the score and
- * the parts are null.
+ * the parts are null. One exception: a source whose own feed the sample has read (`sampled_at`)
+ * and that still has fewer than MIN_JUDGED judged items posts too rarely to reach them; with at
+ * least MIN_SPARSE judged it is scored on what it has, and the reason says so.
  *
  * Label thresholds: Excellent 2.7 and up, Good 2.1 and up, Fair 1.5 and up, Poor below; on the
  * mean of the parts that is 0.9, 0.7 and 0.5. The reason names the weakest measured part when one
  * is below WEAK_PART, and says so when trust is not measured yet.
  */
 export const MIN_JUDGED = 10;
+/** The fewest judged items a source that posts rarely is scored on, once its feed was read (D70). */
+export const MIN_SPARSE = 3;
 /** The most a score can be: three parts of 1. */
 export const SCORE_MAX = 3;
 export const SCORE_THRESHOLDS = { excellent: 2.7, good: 2.1, fair: 1.5 } as const;
@@ -71,7 +80,15 @@ export interface SourceScoreInput {
   stat?:
     | Pick<
         SourceStat,
-        "fetched" | "judged" | "passed" | "published" | "asked" | "flagged" | "covered"
+        | "fetched"
+        | "judged"
+        | "passed"
+        | "published"
+        | "asked"
+        | "flagged"
+        | "covered"
+        | "sampled"
+        | "sampled_at"
       >
     | undefined;
   /** True for a source that feeds general news topics alone: quality counts covered stories. */
@@ -187,7 +204,10 @@ export function sourceScore(input: SourceScoreInput): SourceScoreResult {
   const failures = input.health?.failures ?? 0;
   const discovery = input.quality ? Math.round(input.quality.score * 100) / 100 : undefined;
 
-  if (!stat || judged < MIN_JUDGED) {
+  // A source whose own feed was read and that still has fewer than MIN_JUDGED judged items holds
+  // no more to judge: it posts rarely, and waiting would not change that within the window.
+  const sparse = stat?.sampled_at !== undefined && judged < MIN_JUDGED && judged >= MIN_SPARSE;
+  if (!stat || (judged < MIN_JUDGED && !sparse)) {
     const seen = plural(judged, "item", "items");
     const prior =
       discovery === undefined ? "" : `; discovery scored it ${discovery.toFixed(2)} of 1`;
@@ -205,8 +225,11 @@ export function sourceScore(input: SourceScoreInput): SourceScoreResult {
   // What a judged item led to: published in a digest, or for a general news feed, carried by
   // another outlet too.
   const used = input.feedsGeneral ? (stat.covered ?? 0) : stat.published;
+  // Sampled items could never be published, so the publish share is out of the rest (D70).
+  const sampled = input.feedsGeneral ? 0 : Math.min(judged, stat.sampled ?? 0);
+  const publishable = judged - sampled;
   const passRate = stat.passed / judged;
-  const publishRate = used / judged;
+  const publishRate = publishable > 0 ? used / publishable : 0;
   const yieldShare = 0.4 * clamp01(passRate / 0.5) + 0.6 * clamp01(publishRate / 0.25);
   const volume = clamp01(used / 4);
   const quality = 0.75 * yieldShare + 0.25 * volume;
@@ -228,19 +251,22 @@ export function sourceScore(input: SourceScoreInput): SourceScoreResult {
     health: healthClause(failures, days),
     quality: input.feedsGeneral
       ? `${used} of ${judged} judged stories also carried by another outlet`
-      : `${used} of ${judged} judged items published`,
+      : sampled > 0
+        ? `${used} of ${publishable} judged items published, ${sampled} more sampled`
+        : `${used} of ${judged} judged items published`,
     trust: `${flagged} of ${asked} checked items flagged as hype or sponsored`,
   };
   const weakest = weakestPart(parts);
-  const unmeasured = parts.trust === null ? "; trust is not measured yet" : "";
+  const rarely = sparse ? `; it posts rarely, so this rests on ${judged} judged items` : "";
+  const unmeasured = `${parts.trust === null ? "; trust is not measured yet" : ""}${rarely}`;
   let reason: string;
   if (weakest !== null) {
     const name = weakest.charAt(0).toUpperCase() + weakest.slice(1);
     reason = `${name} is the weakest part: ${clauses[weakest]}${unmeasured}.`;
   } else if (parts.trust !== null) {
-    reason = `No weak part: ${clauses.quality}, ${clauses.health}.`;
+    reason = `No weak part: ${clauses.quality}, ${clauses.health}${rarely}.`;
   } else {
-    reason = `Trust is not measured yet; ${clauses.quality}, ${clauses.health}.`;
+    reason = `Trust is not measured yet; ${clauses.quality}, ${clauses.health}${rarely}.`;
   }
   return { score, label: scoreLabel(score), parts, reason };
 }

@@ -28,6 +28,11 @@ export const GeneralPoolFile = z.object({
   items: z.array(Item),
   /** Item id to the ids of every source that carried the story, the kept item's source first. */
   carriers: z.record(z.string(), z.array(z.string())),
+  /**
+   * Switched-off feeds read only for their weekly check (D70). A story none but these carried is
+   * judged last, so a check never takes the place of a switched-on feed's story.
+   */
+  checked: z.array(z.string()).optional(),
   report: z.object({
     /** Items the general sources returned in the window. */
     fetched: count,
@@ -113,6 +118,8 @@ export function buildGeneralPool(input: {
   items: readonly Item[];
   sources: ReadonlyMap<string, Source>;
   activeTopicIds: ReadonlySet<string>;
+  /** Switched-off feeds read for their weekly check (D70). */
+  checked?: ReadonlySet<string>;
 }): GeneralPoolFile {
   const { sources, activeTopicIds } = input;
   const real = new Map<string, Item>();
@@ -178,10 +185,12 @@ export function buildGeneralPool(input: {
     const rest = [...(carriers.get(item.id) ?? [])].filter((id) => id !== item.source_id).sort();
     out[item.id] = [item.source_id, ...rest];
   }
+  const checked = [...(input.checked ?? [])].sort();
   return {
     version: 1,
     items,
     carriers: out,
+    ...(checked.length > 0 ? { checked } : {}),
     report: {
       fetched: input.items.length,
       same_url: sameUrl,
@@ -204,9 +213,13 @@ export function byCoverageThenRecency(a: Item, b: Item): number {
 export function applyCeiling(
   items: readonly Item[],
   ceiling: number,
+  /** True for a story only a weekly check carried (D70): it waits behind every other. */
+  checkedOnly: (item: Item) => boolean = () => false,
 ): { kept: Item[]; over: number } {
   if (items.length <= ceiling) return { kept: [...items], over: 0 };
-  const kept = [...items].sort(byCoverageThenRecency).slice(0, Math.max(0, ceiling));
+  const kept = [...items]
+    .sort((a, b) => Number(checkedOnly(a)) - Number(checkedOnly(b)) || byCoverageThenRecency(a, b))
+    .slice(0, Math.max(0, ceiling));
   return { kept, over: items.length - kept.length };
 }
 

@@ -80,9 +80,11 @@ export async function judgeGeneral(
     const own = topics.filter((topic) => item.topic_ids?.includes(topic.id) === true);
     if (own.length > 0) requests.push({ item, topics: own });
   }
+  const checked = new Set(pool.checked ?? []);
   const { kept, over } = applyCeiling(
     requests.map((request) => request.item),
     GENERAL_JUDGE_CEILING,
+    (item) => (pool.carriers[item.id] ?? [item.source_id]).every((id) => checked.has(id)),
   );
   const inScope = new Set(kept.map((item) => item.id));
   if (over > 0) {

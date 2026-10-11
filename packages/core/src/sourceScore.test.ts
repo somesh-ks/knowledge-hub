@@ -3,6 +3,7 @@ import {
   combineScoreParts,
   FLAGGED_SHARE_LIMIT,
   MIN_JUDGED,
+  MIN_SPARSE,
   SCORE_MAX,
   SCORE_THRESHOLDS,
   scoreLabel,
@@ -67,6 +68,38 @@ describe("sourceScore: too little history", () => {
     const result = scoreOf({ judged: MIN_JUDGED, passed: 5, published: 3, asked: MIN_JUDGED });
     expect(result.score).not.toBeNull();
     expect(result.parts).not.toBeNull();
+  });
+});
+
+describe("sourceScore: the scoring sample (D70)", () => {
+  it("leaves sampled items out of the publish share and says how many there were", () => {
+    expect(scoreOf({ judged: 60, passed: 30, asked: 60, sampled: 20 } as Partial<Stat>)).toEqual({
+      score: 3,
+      label: "Excellent",
+      parts: { health: 1, quality: 1, trust: 1 },
+      reason: "No weak part: 10 of 40 judged items published, 20 more sampled, no failures.",
+    });
+  });
+
+  it("gives a source only ever sampled nothing for publishing: quality is the pass share alone", () => {
+    const stat = { judged: 12, passed: 6, published: 0, asked: 12, sampled: 12 };
+    expect(scoreOf(stat as Partial<Stat>).parts?.quality).toBe(0.3);
+  });
+
+  it(`scores a source that posts rarely on ${MIN_SPARSE} judged items once its feed was read`, () => {
+    const sparse = { judged: 4, passed: 2, published: 0, asked: 4, sampled: 4 };
+    const read = sourceScore({
+      stat: { ...clean, ...sparse, sampled_at: "2026-10-07" },
+      health: fresh,
+      now,
+    });
+    expect(read.label).not.toBe("New");
+    expect(read.parts?.trust).toBeNull();
+    expect(read.reason).toContain("it posts rarely, so this rests on 4 judged items");
+    // Not read yet, or fewer than MIN_SPARSE judged: still New.
+    expect(sourceScore({ stat: { ...clean, ...sparse }, health: fresh, now }).label).toBe("New");
+    const two = { ...clean, ...sparse, judged: MIN_SPARSE - 1, sampled_at: "2026-10-07" };
+    expect(sourceScore({ stat: two, health: fresh, now }).label).toBe("New");
   });
 });
 

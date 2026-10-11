@@ -174,6 +174,76 @@ describe("published run", () => {
     },
   );
 
+  it(
+    "scores sources the briefing never reaches: a new feed's old posts, a switched-off feed weekly (D70)",
+    LONG,
+    async () => {
+      const base = sourcesFile().sources[0];
+      if (!base) throw new Error("no fixture source");
+      const like = (id: string, enabled: boolean) => ({
+        ...base,
+        id,
+        name: id,
+        url: `https://${id}.example/`,
+        feed_url: `https://${id}.example/feed.xml`,
+        enabled,
+        ...(enabled ? {} : { options: { note: "off for the test" } }),
+      });
+      await seed(repo.root, {
+        "config/sources.json": json({
+          version: 1,
+          sources: [...sourcesFile().sources, like("new-blog", true), like("off-blog", false)],
+        }),
+      });
+      const world = makeWorld(repo.root, { now: WED });
+      const daysBefore = (days: number) =>
+        new Date(WED.getTime() - days * 86_400_000).toISOString();
+      world.feeds = goodFeeds(8);
+      // A blog that posts rarely: nothing in the pass's window, five posts a month and more ago.
+      world.feeds["new-blog"] = Array.from({ length: 5 }, (_, i) =>
+        feedItem({ sourceId: "new-blog", slug: `old-${i}`, publishedAt: daysBefore(40 + i) }),
+      );
+      world.feeds["off-blog"] = Array.from({ length: 6 }, (_, i) =>
+        feedItem({ sourceId: "off-blog", slug: `recent-${i}`, publishedAt: daysBefore(2 + i) }),
+      );
+      // Real feeds keep only what their window asks for; the test fetcher returns everything.
+      const all = world.deps.fetch.fetchers?.rss;
+      if (!all) throw new Error("no test fetcher");
+      world.deps.fetch.fetchers = {
+        ...world.deps.fetch.fetchers,
+        rss: async (src, window, deps) =>
+          (await all(src, window, deps)).filter(
+            (item) => Date.parse(item.published_at ?? "") >= window.from.getTime(),
+          ),
+      };
+      await runStaged(world);
+
+      const stats = await readJson<SourceStatsFile>(repo.root, "state/source-stats.json");
+      expect(stats.sources["new-blog"]).toMatchObject({
+        judged: 5,
+        sampled: 5,
+        published: 0,
+        sampled_at: "2026-10-07",
+      });
+      expect(stats.sources["off-blog"]).toMatchObject({
+        judged: 4,
+        sampled: 4,
+        sampled_at: "2026-10-07",
+      });
+      const health = await readJson<SourceHealthFile>(repo.root, "state/source-health.json");
+      expect(health.sources["off-blog"]).toMatchObject({ failures: 0, last_ok: WED.toISOString() });
+      // Neither reached the briefing: the sample is judged for scores alone.
+      const digest = await readDigest(repo.root, DIGEST_PATH);
+      expect(digest.items.some((item) => /new-blog|off-blog/.test(item.url))).toBe(false);
+      const seen = await readJson<SeenFile>(repo.root, "state/seen.json");
+      const sampled = await readJson<{ items: Array<{ id: string }> }>(
+        repo.root,
+        ".cache/run/2026-10-07/sample.json",
+      );
+      for (const item of sampled.items) expect(seen.items[item.id]).toBeUndefined();
+    },
+  );
+
   it("commits as chore(digest), authored by the bot, and pushes", LONG, async () => {
     const world = makeWorld(repo.root, { now: WED });
     await runStaged(world);
@@ -914,12 +984,24 @@ describe("tech releases in a published run", () => {
       expect(reasons.filter((reason) => reason.startsWith("below_threshold"))).toHaveLength(1);
       expect(reasons.some((reason) => reason.startsWith("over_cap"))).toBe(false);
 
-      // The stored judgments carry the launch scale for the next run to reuse.
+      // The stored judgments carry the launch scale for the next run to reuse. The pool's are the
+      // eight above; the launches the tech pool's cap left out were judged for their outlets'
+      // scores alone (D70), and the digest above is the same as without them.
       const judgments = await readJson<JudgmentsFile>(repo.root, "state/judgments.json");
+      const sampled = await readJson<{ entries: Array<{ item_id: string }> }>(
+        repo.root,
+        ".cache/run/2026-10-07/sample-judged.json",
+      );
+      const sampledIds = new Set(sampled.entries.map((entry) => entry.item_id));
+      expect(sampledIds.size).toBeGreaterThan(0);
       const scales = Object.values(judgments.entries)
+        .filter((entry) => !sampledIds.has(entry.item_id))
         .map((entry) => entry.launch_scale)
         .filter((scale) => scale !== undefined);
       expect(scales.sort()).toEqual([0, 0.5, 0.5, 0.5, 0.5, 0.5, 0.5, 0.75]);
+      const stats = await readJson<SourceStatsFile>(repo.root, "state/source-stats.json");
+      const sampledTotal = Object.values(stats.sources).reduce((n, s) => n + (s.sampled ?? 0), 0);
+      expect(sampledTotal).toBe(sampledIds.size);
     },
   );
 
