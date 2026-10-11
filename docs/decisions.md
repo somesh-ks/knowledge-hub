@@ -58,12 +58,14 @@ D1 to D9 date from plan v2 (2026-10-05). D10 to D25 date from 2026-10-06. Reason
 | D46 | The writer's provider and model are chosen in Settings | active |
 | D47 | A move between pages is answered from a saved copy and swapped at once | active |
 | D48 | One shader: a light in the cover's colours behind the header, on a GPU only | active |
-| D49 | One Podcast settings page: Daily, Weekly and Custom profiles, a shared writer vendor and model, topics and sources clubbed | page layout superseded by D51 |
+| D49 | One Podcast settings page: Daily, Weekly and Custom profiles, a shared writer vendor and model, topics and sources clubbed | page layout superseded by D51; the 0 to 5 score by D55 |
 | D50 | The open player: a speed slider, Chapters or a Speechify-style transcript, word marks stored beside each segment | active |
-| D51 | Settings is two levels and saves itself; every select opens one drawn list | active |
+| D51 | Settings is two levels and saves itself; every select opens one drawn list | active; the Custom page superseded by D56 |
 | D52 | On a phone the Create button floats only on Today and the Library, extended until you scroll | active |
 | D53 | First-load JavaScript budget 110 KB, kept as low as the code allows | active |
 | D54 | Form fields carry a 3:1 outline; in the player only Play is in full ink | active |
+| D55 | A source's score is out of 3: health, quality and trust, combined so a weak part cannot be bought back | active |
+| D56 | One panel adds a topic or a source and edits a source; Settings has no Custom page | active |
 
 ---
 
@@ -526,3 +528,32 @@ D1 to D9 date from plan v2 (2026-10-05). D10 to D25 date from 2026-10-06. Reason
 - Rejected: a filled field with no outline (a second surface colour on a page that has none); full ink for all five transport controls (Play then stands out by size alone).
 - Refined 2026-10-10: in the dark theme a disabled Previous or Next was only 1.67:1 from the muted skips beside it and read as enabled, so the dark disabled ink is one step dimmer (grey-650): 2.37:1 from muted, as the light theme's pair is 2.29:1.
 
+
+## D55: A source's score is out of 3: health, quality and trust, combined so a weak part cannot be bought back
+
+- Date: 2026-10-11
+- Decision: Each source's score is 0 to 3, from three parts of 0 to 1 (`packages/core/src/sourceScore.ts`).
+  - Health: does the feed keep working? Failed fetches in a row (60%) and how recently a fetch last worked (40%).
+  - Quality: is what it sends good enough to use? Three quarters yield (the share judged that passed, against a half, and the share published, against a quarter) and one quarter volume (items published in the 30-day window, against four).
+  - Trust: the share of checked items the judge flagged as hype or sponsored, against a half: none flagged is 1, half or more is 0. Funding is a subject, not a trust problem, and is not counted. Only items that were asked the flag questions count (`asked` and `flagged` in `state/source-stats.json`, halved with the 30-day window like the other counters); under 10 of them trust is "not measured yet" and the score comes from health and quality alone.
+  - The score is three times the geometric mean of the measured parts, to one decimal: a weak part pulls it down more than a strong part lifts it, and a part at 0 makes it 0. Labels: Excellent 2.7, Good 2.1, Fair 1.5, Poor below. Under 10 judged items a source is New and has no score.
+  - A row shows three pips filled to the score, the number and the label. The edit panel shows each part as a bar with two decimals and a sentence naming the weakest part. The Add source preview scores a site on the same scale from what one visit can tell: a valid, fresh feed for health, posting frequency and a title for quality, https and a site that names itself for trust.
+- Why: the owner asked for a score out of 3 that assesses a source's health, the quality of its content, its accuracy and whatever else matters. Health and trust are hygiene; quality is the value. Added up, the parts let a clean source that never reached a briefing score 2.0 (Fair) and one with 1 of 40 items published score 2.2 (Good). The parts are complements, so they are combined as the UN's Human Development Index has combined its three since 2010, by a geometric mean. Accuracy in the strict sense (are the claims true) needs a fact check per item, which nothing in the pipeline does; the judge already flags hype and sponsorship per item, the measurable part of it, so the part is called Trust and says what it counts.
+- Cost: trust is not measured for a source's first ten checked items after the deploy, nor ever for a source that only feeds a coverage topic (its items get only the fit question). Real stats began on 2026-10-09, so every source reads New until it has 10 judged items. The thresholds are a first guess.
+- Reassess: once 20 or more sources have a score, compare the labels with the sources the owner would keep, and move the thresholds before the formula.
+- Rejected: a sum of the parts (it trades hygiene for value); the weakest part alone (a source weak in one part would score the same as one weak in all three); a fact-check pass (a model call per item for one part of a score); stars (five of them read as a score out of 5).
+- Supersedes: the 0 to 5 score of D49.
+
+## D56: One panel adds a topic or a source and edits a source; Settings has no Custom page
+
+- Date: 2026-10-11
+- Decision: Settings' Topics row and page are "Topics & Sources". The page has one outline button, Add ("Add a topic or a source"), that opens one panel (a full-screen sheet on a phone, a side panel from 40rem) with a Topic / Source segmented control under its title.
+  - Topic has two steps: the name, what should count and keywords; then up to six catalogue sources whose tags meet its words, leaving out sites already among the sources, each a row to tick. "Add topic and 2 sources" sends one request: `topic.upsert`, then a `source.add` per ticked source with the new topic's id.
+  - Source takes an address, looks it up after a 400 ms pause (at once on paste or Enter) and files it under the chosen topic. A topic's own page keeps an outline Add source button that opens the panel on Source with that topic chosen.
+  - A source's tile and name are one button that opens the panel to edit it: its name, its topic (one select; Other sends an empty list), a link to its address, and the parts of its score. A new name shows at once; a move says "Moves to X after the next build." Both go as `source.update` (id, name, topic_ids): a seed source keeps the change in its override, an added source is changed in place.
+  - Each row has an Open in a new tab button beside its score. A site with no icon shows the first letter of its name in its tile; the site's icon covers the letter once it loads.
+  - `/settings/custom` is gone and redirects to `/create`: an episode on request is set up in the Create panel, which still starts from `custom` in `config/schedule.json`.
+- Why: the owner asked to add a topic and a source in the same sidebar and sheet, separated by a segmented selector; for good sources as the next step of adding a topic, picked and added at once; to edit existing sources and open their address; for an outline Add source button; for the menu to read Topics & Sources; and said the Custom settings repeat what the Create panel already covers.
+- Cost: Create's starting type, length and voices can now be changed only in `config/schedule.json`. A rename or a move shows in its final place after the next build. The panel files a source under one topic, so moving a source that feeds several replaces them with the one chosen.
+- Rejected: separate Add topic and Add source buttons (two ways in to one job); the inline Add topic form (no room for the suggestions step); editing the address (a different address is a different source: remove it and add the new one); "Accuracy" as the name of a score part (D55).
+- Supersedes: D51's Custom page and its row; D49's Add source panel and the inline add-topic form.
