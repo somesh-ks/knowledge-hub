@@ -48,9 +48,22 @@ export function parseVoiceDefaults(body: unknown): VoiceDefaults | null {
     : null;
 }
 
-/** What an option reads: "Sophia, female". */
+/**
+ * The flag of a voice's accent, from its locale's region ("en-GB" gives the British flag), or "" when
+ * the locale names no region. Two regional indicator letters make the flag emoji; a system without
+ * flag emoji (Windows) shows the letters instead, which still name the accent.
+ */
+export function voiceFlag(language: string | null): string {
+  const region = language?.split(/[-_]/)[1]?.toUpperCase() ?? "";
+  if (!/^[A-Z]{2}$/.test(region)) return "";
+  return String.fromCodePoint(...[...region].map((letter) => 0x1f1e6 + letter.charCodeAt(0) - 65));
+}
+
+/** What an option reads: "🇺🇸 Sophia, female", the flag first so the accents line up in the list. */
 export function voiceLabel(voice: Voice): string {
-  return voice.gender ? `${voice.name}, ${voice.gender.toLowerCase()}` : voice.name;
+  const name = voice.gender ? `${voice.name}, ${voice.gender.toLowerCase()}` : voice.name;
+  const flag = voiceFlag(voice.language);
+  return flag ? `${flag} ${name}` : name;
 }
 
 /**
@@ -71,7 +84,11 @@ export function fillVoiceSelect(
     option.textContent = text;
     options.push(option);
   };
-  add("", fallback ? `Default (${fallback.name})` : "Default");
+  const fallbackFlag = fallback ? voiceFlag(fallback.language) : "";
+  add(
+    "",
+    fallback ? `${fallbackFlag ? `${fallbackFlag} ` : ""}Default (${fallback.name})` : "Default",
+  );
   for (const voice of voices) add(voice.id, voiceLabel(voice));
   if (chosen !== "" && !voices.some((voice) => voice.id === chosen)) add(chosen, "Saved voice");
   select.replaceChildren(...options);
