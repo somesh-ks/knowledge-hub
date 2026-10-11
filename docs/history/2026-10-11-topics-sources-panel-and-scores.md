@@ -36,4 +36,4 @@ One session, picking up after the design pass merged (#74 to #76). The owner cle
 - Every real source reads New until it has ten judged items, so the thresholds are untested on real data (D55 says when to revisit them).
 - A rename or a move through `config.yml` has not run live.
 - The browser suites on the combined branch after #77 (skipped at the owner's request).
-- The Vercel Cron trigger has not run in production: it waits for `CRON_SECRET`.
+- The Vercel Cron trigger has not run in production yet: `CRON_SECRET` is in place, and its first due slot is the next one after 2026-10-11's late GitHub run.
