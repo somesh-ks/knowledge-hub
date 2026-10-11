@@ -143,15 +143,22 @@ export const EMPTY_TOPIC_JUDGMENTS: TopicJudgmentsFile = { version: 1, entries: 
 
 /**
  * Counters for one source over a rolling 30-day window. `fetched` items entered a pool, `judged`
- * were answered by a judge, `passed` cleared the score bar, `published` reached a digest. When the
- * window is older than 30 days the counters are halved and the window restarts, so a source's
- * recent record outweighs its history without a per-day log.
+ * were answered by a judge, `passed` cleared the score bar, `published` reached a digest, and
+ * `flagged` were judged items the judge flagged as hype or sponsored. When the window is older
+ * than 30 days the counters are halved and the window restarts, so a source's recent record
+ * outweighs its history without a per-day log.
  */
 export const SourceStat = z.object({
   fetched: z.number().int().nonnegative(),
   judged: z.number().int().nonnegative(),
   passed: z.number().int().nonnegative(),
   published: z.number().int().nonnegative(),
+  /**
+   * Judged items flagged as hype or sponsored; funding is a subject, not a trust problem, so it is
+   * not counted. Absent from a record written before flags were counted, which the source score
+   * reads as trust not measured yet.
+   */
+  flagged: z.number().int().nonnegative().optional(),
   /** Stockholm calendar date the current window began. */
   window_start: ymd,
 });

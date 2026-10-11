@@ -295,10 +295,33 @@ describe("buildSources", () => {
       now: new Date("2026-10-09T12:00:00Z"),
     });
     const byId = Object.fromEntries(rows.map((row) => [row.id, row]));
-    expect(byId.busy).toMatchObject({ score_label: "Excellent" });
-    expect(byId.busy?.score).toBeGreaterThanOrEqual(4.5);
-    expect(byId.busy?.score_reason).toBe("10 of 40 judged items published, no failures.");
-    expect(byId.fresh).toMatchObject({ score: null, score_label: "New" });
+    // The record predates the flagged counter, so trust stands at the discovery score.
+    expect(byId.busy).toMatchObject({
+      score: 2.9,
+      score_label: "Excellent",
+      score_parts: { health: 1, quality: 1, trust: 0.9 },
+      score_reason: "Trust is not measured yet; 10 of 40 judged items published, no failures.",
+    });
+    expect(byId.fresh).toMatchObject({ score: null, score_label: "New", score_parts: null });
+  });
+
+  it("measures trust from the flagged counter when the record has one", () => {
+    const rows = buildSources({
+      registry: { sources: [{ id: "loud", name: "Loud", url: "https://loud.example/" }] },
+      user: null,
+      stats: {
+        sources: { loud: { fetched: 60, judged: 40, passed: 20, published: 10, flagged: 10 } },
+      },
+      health: { sources: { loud: { failures: 0, last_ok: "2026-10-09T06:00:00.000Z" } } },
+      now: new Date("2026-10-09T12:00:00Z"),
+    });
+    expect(rows[0]).toMatchObject({
+      score: 2.5,
+      score_label: "Good",
+      score_parts: { health: 1, quality: 1, trust: 0.5 },
+      score_reason:
+        "Trust is the weakest part: 10 of 40 judged items flagged as hype or sponsored.",
+    });
   });
 
   it("builds lowercase search text from the name, host and id", () => {

@@ -58,10 +58,12 @@ export interface ManageSource {
   record: string | null;
   /** True when the source has failed to load several times in a row. */
   struggling: boolean;
-  /** Quality score, 0 to 5 with one decimal; null while the source is new. */
+  /** Quality score, 0 to 3 with one decimal: health, quality and trust; null while it is new. */
   score: number | null;
   /** "Excellent", "Good", "Fair", "Poor", or "New" before there is enough history. */
   score_label: string;
+  /** The three parts of the score, each 0 to 1 with two decimals; null while the source is new. */
+  score_parts: { health: number; quality: number; trust: number } | null;
   /** One short sentence behind the score. */
   score_reason: string;
   /** Lowercase text the search matches. */
@@ -129,6 +131,8 @@ export interface SourceStats {
   judged: number;
   passed: number;
   published: number;
+  /** Judged items flagged as hype or sponsored; absent from a record written before it was counted. */
+  flagged?: number;
 }
 
 /**
@@ -354,11 +358,13 @@ function parseStats(file: unknown): Map<string, SourceStats> {
   if (!isRecord(file) || !isRecord(file.sources)) return result;
   for (const [id, entry] of Object.entries(file.sources)) {
     if (!isRecord(entry)) continue;
+    const flagged = asNumber(entry.flagged);
     result.set(id, {
       fetched: asNumber(entry.fetched) ?? 0,
       judged: asNumber(entry.judged) ?? 0,
       passed: asNumber(entry.passed) ?? 0,
       published: asNumber(entry.published) ?? 0,
+      ...(flagged === null ? {} : { flagged }),
     });
   }
   return result;
@@ -426,6 +432,7 @@ export function buildSources(input: {
       struggling: failures >= STRUGGLING_FAILURES,
       score: rated.score,
       score_label: rated.label,
+      score_parts: rated.parts,
       score_reason: rated.reason,
       search: `${source.name} ${host} ${source.id}`.toLowerCase(),
     });

@@ -3,6 +3,7 @@ import { parseFeed } from "../src/fetch/feedParser.js";
 import { createHttpClient } from "../src/http.js";
 import {
   feedActivity,
+  PAGE_ONLY_TRUST_CAP,
   PreviewError,
   parsePageMeta,
   previewSource,
@@ -82,54 +83,90 @@ describe("feedActivity", () => {
 });
 
 describe("scorePreview", () => {
+  const ago = (days: number): string => new Date(NOW.getTime() - days * 86_400_000).toISOString();
   const base = {
     hasFeed: true,
     https: true,
     hasTitle: true,
-    latestAt: new Date(NOW.getTime() - 2 * 86_400_000).toISOString(),
+    named: true,
+    latestAt: ago(2),
     items30d: 8,
     now: NOW,
   };
+  const page = { ...base, hasFeed: false, latestAt: null, items30d: null };
 
-  it("rates a fresh feed with steady posting Excellent", () => {
-    const result = scorePreview(base);
-    expect(result.score).toBe(5);
-    expect(result.label).toBe("Excellent");
-    expect(result.reason).toBe("Valid feed, 8 posts in the last 30 days, latest 2 days ago.");
+  it("rates a fresh feed with steady posting 3 of 3, Excellent, with every part full", () => {
+    expect(scorePreview(base)).toEqual({
+      score: 3,
+      label: "Excellent",
+      parts: { health: 1, quality: 1, trust: 1 },
+      reason: "Valid feed, 8 posts in the last 30 days, latest 2 days ago.",
+    });
   });
 
-  it("scores a flood below steady posting", () => {
+  it("reads health from the feed and how fresh its newest post is", () => {
+    const health = (latestAt: string | null) => scorePreview({ ...base, latestAt }).parts.health;
+    expect(health(ago(2))).toBe(1);
+    expect(health(ago(20))).toBe(0.82);
+    expect(health(ago(60))).toBe(0.58);
+    expect(health(ago(400))).toBe(0.4);
+    expect(health(null)).toBe(0.4);
+    expect(scorePreview(page).parts.health).toBe(0);
+  });
+
+  it("reads quality from how often it posts and whether it has a title", () => {
+    const quality = (items30d: number | null, hasTitle = true) =>
+      scorePreview({ ...base, items30d, hasTitle }).parts.quality;
+    expect(quality(8)).toBe(1);
+    expect(quality(20)).toBe(1);
+    expect(quality(1)).toBe(0.52);
+    expect(quality(30)).toBe(0.6);
+    expect(quality(90)).toBe(0.36);
+    expect(quality(0)).toBe(0.2);
+    expect(quality(8, false)).toBe(0.8);
+    // What a feed shows counts only with a feed.
+    expect(scorePreview({ ...page, items30d: 8 }).parts.quality).toBe(0.2);
+  });
+
+  it("reads trust from https and a site that names itself, capped for a page with no feed", () => {
+    const trust = (change: Partial<typeof base>) =>
+      scorePreview({ ...base, ...change }).parts.trust;
+    expect(trust({})).toBe(1);
+    expect(trust({ named: false })).toBe(0.6);
+    expect(trust({ https: false })).toBe(0.4);
+    expect(trust({ https: false, named: false })).toBe(0);
+    expect(PAGE_ONLY_TRUST_CAP).toBe(0.6);
+    expect(scorePreview(page).parts.trust).toBe(0.6);
+    expect(scorePreview({ ...page, https: false }).parts.trust).toBe(0.4);
+  });
+
+  it("scores a page without a feed Poor", () => {
+    const result = scorePreview(page);
+    expect(result).toMatchObject({
+      score: 0.8,
+      label: "Poor",
+      parts: { health: 0, quality: 0.2, trust: 0.6 },
+    });
+    expect(result.reason).toContain("No feed found");
+  });
+
+  it("scores a flood, a single post and a dormant feed below steady posting", () => {
     const flood = scorePreview({ ...base, items30d: 90 });
-    expect(flood.score).toBeLessThan(5);
+    expect(flood).toMatchObject({ score: 2.4, label: "Good" });
     expect(flood.reason).toContain("flood");
-  });
-
-  it("scores a dormant feed Poor to Fair and a single post a month lower than steady", () => {
-    const dormant = scorePreview({
-      ...base,
-      latestAt: new Date(NOW.getTime() - 400 * 86_400_000).toISOString(),
-      items30d: 0,
-    });
-    expect(dormant.score).toBeLessThan(3);
+    expect(scorePreview({ ...base, items30d: 1 })).toMatchObject({ score: 2.5, label: "Good" });
+    const dormant = scorePreview({ ...base, latestAt: ago(400), items30d: 0 });
+    expect(dormant).toMatchObject({ score: 1.6, label: "Fair" });
     expect(dormant.reason).toContain("no posts in the last 30 days");
-    expect(scorePreview({ ...base, items30d: 1 }).score).toBeLessThan(5);
   });
 
-  it("caps a page without a feed at 3", () => {
-    const page = scorePreview({
-      hasFeed: false,
-      https: true,
-      hasTitle: true,
-      latestAt: null,
-      items30d: null,
-      now: NOW,
-    });
-    expect(page.score).toBeLessThanOrEqual(3);
-    expect(page.reason).toContain("No feed found");
-  });
-
-  it("marks down plain http", () => {
-    expect(scorePreview({ ...base, https: false }).score).toBeLessThan(5);
+  it("marks down plain http, and the parts add up to the score", () => {
+    const http = scorePreview({ ...base, https: false });
+    expect(http).toMatchObject({ score: 2.4, label: "Good" });
+    for (const input of [base, page, { ...base, latestAt: ago(20), items30d: 1, named: false }]) {
+      const { score, parts } = scorePreview(input);
+      expect(score).toBe(Math.round((parts.health + parts.quality + parts.trust) * 10) / 10);
+    }
   });
 });
 
@@ -156,8 +193,10 @@ describe("previewSource", () => {
       favicon_url: "https://news.example.com/static/icon.png",
       thumbnail_url: "https://news.example.com/img/share.png",
       items_30d: 4,
+      score: 3,
+      score_label: "Excellent",
+      score_parts: { health: 1, quality: 1, trust: 1 },
     });
-    expect(preview.score).toBeGreaterThanOrEqual(4.5);
     expect(preview.latest_at).toBe(new Date(NOW.getTime() - 86_400_000).toISOString());
   });
 
@@ -181,7 +220,12 @@ describe("previewSource", () => {
     expect(preview.kind).toBe("page");
     expect(preview.feed_url).toBeNull();
     expect(preview.items_30d).toBeNull();
-    expect(preview.score).toBeLessThanOrEqual(3);
+    // A title of its own, but no feed and no name beyond the one guessed from the host.
+    expect(preview).toMatchObject({
+      score: 0.8,
+      score_label: "Poor",
+      score_parts: { health: 0, quality: 0.2, trust: 0.6 },
+    });
     expect(preview.name).toBe("Example");
   });
 

@@ -204,6 +204,81 @@ describe("state/source-stats.json counters", () => {
     expect(rolled.sources.a).toMatchObject({ fetched: 30, window_start: "2026-10-07" });
   });
 
+  it("accumulates the flagged counter like the others", () => {
+    const flaggedCounts = {
+      a: { fetched: 10, judged: 8, passed: 4, flagged: 3 },
+      b: { fetched: 3, judged: 3, passed: 0, flagged: 0 },
+    };
+    const first = recordSourceStats({ version: 1, sources: {} }, flaggedCounts, [], "2026-10-07");
+    expect(first.sources.a).toMatchObject({ judged: 8, flagged: 3 });
+    expect(first.sources.b).toMatchObject({ judged: 3, flagged: 0 });
+    const second = recordSourceStats(first, flaggedCounts, ["a"], "2026-10-09");
+    expect(second.sources.a).toEqual({
+      fetched: 20,
+      judged: 16,
+      passed: 8,
+      published: 1,
+      flagged: 6,
+      window_start: "2026-10-07",
+    });
+    // A pass file written before flags were counted adds nothing to them, and takes nothing away.
+    const third = recordSourceStats(second, counts, [], "2026-10-10");
+    expect(third.sources.a).toMatchObject({ judged: 24, flagged: 6 });
+  });
+
+  it("starts the flagged counter on a record written before it, with the first pass that counts it", () => {
+    const legacy = {
+      fetched: 41,
+      judged: 21,
+      passed: 11,
+      published: 5,
+      window_start: "2026-10-01",
+    };
+    const untouched = recordSourceStats(
+      { version: 1, sources: { a: legacy } },
+      counts,
+      ["a"],
+      "2026-10-07",
+    );
+    expect(untouched.sources.a).not.toHaveProperty("flagged");
+    const counted = recordSourceStats(
+      { version: 1, sources: { a: legacy } },
+      { a: { fetched: 4, judged: 4, passed: 2, flagged: 1 } },
+      [],
+      "2026-10-07",
+    );
+    expect(counted.sources.a).toMatchObject({ judged: 25, flagged: 1 });
+  });
+
+  it("halves the flagged counter with the rest when the window rolls", () => {
+    const stat = {
+      fetched: 41,
+      judged: 21,
+      passed: 11,
+      published: 5,
+      flagged: 7,
+      window_start: "2026-09-01",
+    };
+    expect(rollWindow(stat, "2026-09-30")).toBe(stat);
+    expect(rollWindow(stat, "2026-10-01")).toEqual({
+      fetched: 20,
+      judged: 10,
+      passed: 5,
+      published: 2,
+      flagged: 3,
+      window_start: "2026-10-01",
+    });
+    const rolled = recordSourceStats(
+      { version: 1, sources: { a: stat } },
+      { a: { fetched: 2, judged: 2, passed: 1, flagged: 2 } },
+      [],
+      "2026-10-07",
+    );
+    expect(rolled.sources.a).toMatchObject({ judged: 12, flagged: 5, window_start: "2026-10-07" });
+    const { flagged: _none, ...legacy } = stat;
+    expect(rollWindow(legacy, "2026-10-01")).not.toHaveProperty("flagged");
+  });
+
   it("leaves sources with no activity alone", () => {
     const stat = { fetched: 1, judged: 1, passed: 1, published: 1, window_start: "2026-01-01" };
     const next = recordSourceStats(
