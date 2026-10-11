@@ -114,6 +114,18 @@
  * The strip runs past the gutters so labels slide off the edge of the screen, not off a margin.
  * Markup: <nav class="tabs"><a class="tab" aria-current="true">...</a>...</nav>
  */
+@property --tabs-left-mask {
+  syntax: "<length>";
+  inherits: false;
+  initial-value: 0px;
+}
+
+@property --tabs-right-mask {
+  syntax: "<length>";
+  inherits: false;
+  initial-value: 32px;
+}
+
 .tabs {
   position: sticky;
   inset-block-start: var(--sticky-top);
@@ -128,6 +140,41 @@
   scrollbar-width: none;
   background: var(--color-surface);
   box-shadow: inset 0 calc(var(--stroke-hairline) * -1) 0 var(--color-border-hairline);
+  mask-image: linear-gradient(
+    to right,
+    transparent 0px,
+    black var(--tabs-left-mask, 0px),
+    black calc(100% - var(--tabs-right-mask, 32px)),
+    transparent 100%
+  );
+  -webkit-mask-image: linear-gradient(
+    to right,
+    transparent 0px,
+    black var(--tabs-left-mask, 0px),
+    black calc(100% - var(--tabs-right-mask, 32px)),
+    transparent 100%
+  );
+  animation: tabs-scroll-fade linear;
+  animation-timeline: scroll(self inline);
+}
+
+@keyframes tabs-scroll-fade {
+  0% {
+    --tabs-left-mask: 0px;
+    --tabs-right-mask: 32px;
+  }
+  10% {
+    --tabs-left-mask: 32px;
+    --tabs-right-mask: 32px;
+  }
+  90% {
+    --tabs-left-mask: 32px;
+    --tabs-right-mask: 32px;
+  }
+  100% {
+    --tabs-left-mask: 32px;
+    --tabs-right-mask: 0px;
+  }
 }
 
 .tabs::-webkit-scrollbar {

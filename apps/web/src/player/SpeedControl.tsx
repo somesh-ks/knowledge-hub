@@ -83,10 +83,16 @@ export default function SpeedControl() {
     const follow = (): void => {
       anchor = place(panel, buttonRef.current);
     };
+    let frameId: number | null = null;
     const dismiss = (): void => {
-      const now = buttonRef.current?.getBoundingClientRect();
-      if (!anchor || !now) return;
-      if (Math.abs(now.top - anchor.top) > 1 || Math.abs(now.left - anchor.left) > 1) panel.close();
+      if (frameId !== null) return;
+      frameId = window.requestAnimationFrame(() => {
+        frameId = null;
+        const now = buttonRef.current?.getBoundingClientRect();
+        if (!anchor || !now) return;
+        if (Math.abs(now.top - anchor.top) > 1 || Math.abs(now.left - anchor.left) > 1)
+          panel.close();
+      });
     };
     const offSheet = playerSheet.subscribe(() => {
       if (!playerSheet.getSnapshot().open) panel.close();
@@ -94,6 +100,7 @@ export default function SpeedControl() {
     window.addEventListener("resize", follow);
     document.addEventListener("scroll", dismiss, { capture: true, passive: true });
     return () => {
+      if (frameId !== null) window.cancelAnimationFrame(frameId);
       offSheet();
       window.removeEventListener("resize", follow);
       document.removeEventListener("scroll", dismiss, { capture: true });
