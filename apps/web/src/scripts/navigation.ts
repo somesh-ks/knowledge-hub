@@ -105,8 +105,11 @@ export function installNavigation(): void {
         return;
       event.preventDefault();
       event.stopPropagation();
-      const reduce = matchMedia("(prefers-reduced-motion: reduce)").matches;
-      window.scrollTo({ top: 0, behavior: reduce ? "instant" : "smooth" });
+      // A key (Enter on the tab) goes there at once: what a key starts is never animated.
+      const instant =
+        matchMedia("(prefers-reduced-motion: reduce)").matches ||
+        document.documentElement.dataset.input === "keyboard";
+      window.scrollTo({ top: 0, behavior: instant ? "instant" : "smooth" });
     },
     { capture: true },
   );

@@ -102,6 +102,13 @@
   box-shadow: none;
 }
 
+/* A sheet on its way out shows no ring. Escape is a key, and a key makes the focused control match
+   :focus-visible, so a Close button focused by the opening press lit up for the whole exit. */
+.sheet-popup[data-ending-style] :focus-visible {
+  outline: none;
+  box-shadow: none;
+}
+
 .sheet-panel {
   max-height: calc(var(--sheet-max-height) - var(--space-4));
   /* The last control stays clear of the home indicator. */

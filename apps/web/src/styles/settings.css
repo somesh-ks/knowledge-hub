@@ -314,6 +314,11 @@
   transition: transform var(--duration-state) var(--ease-out);
 }
 
+/* An arrow key moves the thumb at once: what a key starts is never animated (data-input, app.ts). */
+:root[data-input="keyboard"] .settings-choice::before {
+  transition: none;
+}
+
 /* The ring belongs on the segment: an invisible input cannot show one. */
 .settings-segment:has(input:focus-visible) {
   z-index: 1;

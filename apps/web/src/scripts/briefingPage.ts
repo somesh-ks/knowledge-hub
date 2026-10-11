@@ -173,13 +173,15 @@ async function share(button: HTMLElement): Promise<void> {
   }, COPIED_MS);
 }
 
-// A tab reached with the keyboard can sit cut off at the strip's edge: bring it into the strip. A
-// card on the Other episodes shelf can sit flush with the shelf's edge, its ring cut off, which the
-// browser counts as in view: bring it in by the shelf's scroll padding.
+// A tab reached with the keyboard can sit cut off at the strip's edge: bring it into the strip, at
+// once, since what a key starts is never animated. A card on the Other episodes shelf can sit flush
+// with the shelf's edge, its ring cut off, which the browser counts as in view: bring it in by the
+// shelf's scroll padding.
 document.addEventListener("focusin", (event) => {
   if (!(event.target instanceof HTMLElement)) return;
   const strip = event.target.closest<HTMLElement>("[data-section-tabs]");
-  if (strip && event.target.matches("a.tab")) revealTab(strip, event.target);
+  if (strip && event.target.matches("a.tab"))
+    revealTab(strip, event.target, event.target.matches(":focus-visible") ? "instant" : undefined);
   else if (event.target.matches(".shelf a.card-link"))
     event.target.scrollIntoView({ block: "nearest", inline: "nearest" });
 });

@@ -184,6 +184,12 @@
   }
 }
 
+/* Opened or closed with a key, the menu is there or gone at once: what a key starts is never
+   animated (data-input, app.ts). A press still grows it out of the corner. */
+:root[data-input="keyboard"] .hero-menu-list {
+  transition: none;
+}
+
 /* Reduced motion: the menu fades in and out where it stands. The durations are the state's, which
    reduced motion does not collapse, so the fade stays. */
 @media (prefers-reduced-motion: reduce) {
