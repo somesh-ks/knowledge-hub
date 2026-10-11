@@ -52,6 +52,7 @@ describe("ScheduleFile", () => {
       enabled: true,
       day: 0,
       hour: 9,
+      sections: null,
       format: "readout",
       length_minutes: 10,
       voice_id: null,

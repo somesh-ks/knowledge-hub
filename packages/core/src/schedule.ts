@@ -25,12 +25,16 @@ const CadenceDays = z.union([z.literal(1), z.literal(2), z.literal(3), z.literal
 export const SCHEDULE_FORMATS = ["readout", "discussion"] as const;
 const ScheduleFormat = z.enum(SCHEDULE_FORMATS);
 
-/** The weekly podcast: its own day, hour, type, length and voices, apart from the daily one. */
+/** Section ids a scheduled episode covers, or null for every enabled topic. Top picks is never listed. */
+const CoveredSections = z.array(SectionId).min(1).max(60).nullable();
+
+/** The weekly podcast: its own day, hour, topics, type, length and voices, apart from the daily one. */
 const WeeklyFields = z.object({
   enabled: z.boolean(),
   /** Day of the week in Stockholm time, 0 = Sunday. */
   day: z.number().int().min(0).max(6),
   hour: z.number().int().min(0).max(23),
+  sections: CoveredSections,
   format: ScheduleFormat,
   length_minutes: ScheduleLengthMinutes,
   voice_id: VoiceId,
@@ -51,6 +55,7 @@ export type CustomDefaults = z.infer<typeof CustomFields>;
 export const DEFAULT_WEEKLY: Omit<WeeklySchedule, "hour"> = {
   enabled: true,
   day: 0,
+  sections: null,
   format: "readout",
   length_minutes: 10,
   voice_id: null,
@@ -75,7 +80,7 @@ export const ScheduleFile = z
     version: z.literal(1),
     hour: z.number().int().min(0).max(23),
     cadence_days: CadenceDays,
-    sections: z.array(SectionId).min(1).max(60).nullable(),
+    sections: CoveredSections,
     format: PodcastFormat.default("readout"),
     length_minutes: ScheduleLengthMinutes.default(10),
     voice_id: VoiceId.default(null),
@@ -114,7 +119,7 @@ export const DEFAULT_SCHEDULE: ScheduleFile = {
 export const ScheduleSettings = z.object({
   hour: z.number().int().min(0).max(23),
   cadence_days: CadenceDays,
-  sections: z.array(SectionId).min(1).max(60).nullable(),
+  sections: CoveredSections,
   format: PodcastFormat,
   length_minutes: ScheduleLengthMinutes,
   voice_id: VoiceId,

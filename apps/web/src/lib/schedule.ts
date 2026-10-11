@@ -181,3 +181,29 @@ export async function loadScheduleView(
     nextWeekly: nextWeekly({ now: options.now ?? new Date(), day: weekly.day, hour: weekly.hour }),
   };
 }
+
+/** A topic a scheduled episode can cover, as the Daily and Weekly pages offer it. */
+export interface TopicChoice {
+  /** The section the topic's stories are filed under: what config/schedule.json lists. */
+  id: string;
+  title: string;
+}
+
+/**
+ * The topics a scheduled episode can be narrowed to, by name: every section with at least one
+ * topic that is on and may publish. Top picks is always covered, so it is not a choice.
+ */
+export function topicChoices(
+  topics: readonly { section_id: string; enabled: boolean; never_publish: boolean }[],
+  sections: readonly { id: string; title: string }[],
+): TopicChoice[] {
+  const live = new Set(
+    topics
+      .filter((topic) => topic.enabled && !topic.never_publish)
+      .map((topic) => topic.section_id),
+  );
+  return sections
+    .filter((section) => section.id !== "top" && live.has(section.id))
+    .map(({ id, title }) => ({ id, title }))
+    .sort((a, b) => a.title.localeCompare(b.title, "en", { sensitivity: "base" }));
+}

@@ -246,7 +246,7 @@
   gap: var(--space-3);
 }
 
-/* A voice is a select with a small play button after it. The button is hidden until the voice has a sample. */
+/* A voice is a select with its sample chip after it. The chip is hidden until the voice has a sample. */
 .daily-selects.podcast-voice {
   grid-template-columns: minmax(0, 1fr) auto;
   align-items: center;
@@ -256,10 +256,22 @@
   grid-template-columns: minmax(0, 1fr);
 }
 
-/* The sample button shows what a press does next: play, or pause while the sample plays. */
+/* The sample chip shows what a press does next: play, or pause while the sample plays, when it
+   takes the filled face a playing chip has everywhere else. */
 .podcast-sample[aria-pressed="true"] .sample-play,
 .podcast-sample:not([aria-pressed="true"]) .sample-pause {
   display: none;
+}
+
+.podcast-sample[aria-pressed="true"] {
+  border-color: transparent;
+  background: var(--chip-bg-current);
+}
+
+/* Topics: the label on its own line and the chips wrapping under it at every width, as a list of
+   names reads better across the row than squeezed beside its label. */
+.podcast-topics {
+  flex: 1 1 100%;
 }
 
 /* The filter and the typed id are drawn like the selects: an outline on the page's own surface.

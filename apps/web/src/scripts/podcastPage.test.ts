@@ -49,6 +49,18 @@ describe("scheduleOp", () => {
   });
 });
 
+describe("scheduleOp: topics", () => {
+  it("sends the ticked topics, null for all of them, in each profile, and never an empty list", () => {
+    const was = { "daily.sections": "*", "weekly.sections": "ai,design" };
+    expect(scheduleOp(was, { "daily.sections": "ai", "weekly.sections": "*" })).toEqual({
+      op: "schedule.set",
+      sections: ["ai"],
+      weekly: { sections: null },
+    });
+    expect(scheduleOp(was, { "daily.sections": "", "weekly.sections": "ai,design" })).toBeNull();
+  });
+});
+
 describe("modelOp", () => {
   it("builds writer.set for a model and for Automatic", () => {
     expect(modelOp("a/b")).toEqual({ op: "writer.set", provider: "nebius", model: "a/b" });

@@ -271,6 +271,7 @@ describe("schedule.set", () => {
         enabled: true,
         day: 0,
         hour: 7,
+        sections: null,
         format: "readout",
         length_minutes: 10,
         voice_id: null,
@@ -338,6 +339,28 @@ describe("schedule.set", () => {
   it("stores a list of sections without Top picks", async () => {
     await apply({ ...SET, sections: ["ai", "top", "ai"] });
     expect(await repo.readJson("config/schedule.json")).toMatchObject({ sections: ["ai"] });
+  });
+
+  it("stores the weekly podcast's own topics apart from the daily ones, and refuses an unknown one", async () => {
+    await apply({ op: "schedule.set", weekly: { sections: ["ai", "top"] } });
+    expect(await repo.readJson("config/schedule.json")).toMatchObject({
+      sections: null,
+      weekly: { sections: ["ai"] },
+    });
+    await apply({ op: "schedule.set", weekly: { day: 3 } });
+    expect(await repo.readJson("config/schedule.json")).toMatchObject({
+      weekly: { day: 3, sections: ["ai"] },
+    });
+    await apply({ op: "schedule.set", weekly: { sections: null } });
+    expect(await repo.readJson("config/schedule.json")).toMatchObject({
+      weekly: { sections: null },
+    });
+    for (const bad of [
+      { op: "schedule.set", weekly: { sections: ["nope"] } },
+      { op: "schedule.set", weekly: { sections: ["top"] } },
+    ]) {
+      expect((await apply(bad)).code, JSON.stringify(bad)).toBe(1);
+    }
   });
 
   it("refuses an unknown section, an empty list and a bad hour, and writes nothing", async () => {

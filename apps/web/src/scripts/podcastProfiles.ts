@@ -3,7 +3,7 @@
  * first load stays small.
  */
 
-import type { Voice } from "../lib/voices";
+import type { Voice, VoiceDefaults } from "../lib/voices";
 import type { ConfigOp } from "../types/contracts";
 
 const LIST_TIMEOUT_MS = 10_000;
@@ -15,8 +15,8 @@ const nullable = (value: string): string | null => (value === "" ? null : value)
 
 /**
  * The schedule edit the controls stand for: every field whose value differs from `was`, in the
- * profile it belongs to. The topics a briefing covers are not chosen here, so they are left out and
- * keep what the file holds. Null when nothing differs.
+ * profile it belongs to. Topics are "*" for every one (stored as null, so a topic added later is
+ * covered too) or the ticked section ids; none ticked is never sent. Null when nothing differs.
  */
 export function scheduleOp(was: FieldValues, now: FieldValues): ConfigOp | null {
   // The daily fields sit at the top of the op; the weekly and custom ones in their own object.
@@ -26,6 +26,11 @@ export function scheduleOp(was: FieldValues, now: FieldValues): ConfigOp | null 
   for (const [key, value] of Object.entries(now)) {
     if (was[key] === value) continue;
     const [profile = "", field = ""] = key.split(".");
+    if (field === "sections") {
+      if (value === "") continue;
+      (nested[profile] ?? top).sections = value === "*" ? null : value.split(",");
+      continue;
+    }
     const name = names[field] ?? field;
     const number = ["hour", "day", "cadence", "length"].includes(field);
     const parsed = number
@@ -63,62 +68,106 @@ export function mountProfiles(root: HTMLElement, changed: () => void): void {
     });
   };
   let voices: Voice[] = [];
+  /** The voices Default stands for, from /api/voices; null until the list is in. */
+  let defaults: VoiceDefaults | null = null;
   let audio: HTMLAudioElement | undefined;
-  /** The sample button whose voice is playing: it shows pause until the sample ends or stops. */
+  /** The sample playing now, so a second press on its chip stops it. */
+  let current = "";
+  /** The sample chip whose voice is playing: it shows pause until the sample ends or stops. */
   let playing: HTMLButtonElement | null = null;
   const mark = (button: HTMLButtonElement | null): void => {
     if (playing && playing !== button) playing.setAttribute("aria-pressed", "false");
     playing = button;
     button?.setAttribute("aria-pressed", "true");
   };
-  const previewOf = (select: HTMLSelectElement): string | null =>
-    voices.find((voice) => voice.id === select.value)?.preview_url ?? null;
+  /** The voice a select stands for: its own, or for Default the one the engine reads with. */
+  const voiceOf = (select: HTMLSelectElement): Voice | undefined => {
+    const second = (select.dataset.f ?? "").endsWith("voice_b");
+    const id = select.value || (second ? defaults?.voice_b : defaults?.voice) || "";
+    return voices.find((voice) => voice.id === id);
+  };
+  /** Samples come through the site: the page may play audio only from its own address (CSP). */
+  const sampleOf = (select: HTMLSelectElement): string | null => {
+    const voice = voiceOf(select);
+    return voice?.preview_url ? `/api/voice-sample?voice=${encodeURIComponent(voice.id)}` : null;
+  };
+  const chipOf = (select: HTMLSelectElement): HTMLButtonElement | null =>
+    select.closest(".podcast-voice")?.querySelector<HTMLButtonElement>("[data-preview]") ?? null;
   const syncPreview = (select: HTMLSelectElement): void => {
-    const button = select.closest(".podcast-voice")?.querySelector<HTMLElement>("[data-preview]");
-    if (button) button.hidden = previewOf(select) === null;
+    const chip = chipOf(select);
+    if (chip) chip.hidden = sampleOf(select) === null;
+  };
+  /** Plays a sample, or stops it when `toggle` and it is the one playing. */
+  const play = (chip: HTMLButtonElement, url: string, toggle: boolean): void => {
+    // The player is built on the first press, so the page loads no audio code up front.
+    if (!audio) {
+      audio = new Audio();
+      audio.addEventListener("pause", () => mark(null));
+      audio.addEventListener("ended", () => mark(null));
+      // A sample that cannot be played takes its chip with it, rather than failing in silence.
+      audio.addEventListener("error", () => {
+        if (playing) playing.hidden = true;
+        mark(null);
+      });
+    }
+    if (toggle && !audio.paused && current === url) {
+      audio.pause();
+      return;
+    }
+    current = url;
+    audio.src = url;
+    mark(chip);
+    void audio.play().catch(() => mark(null));
   };
 
   root.addEventListener("change", (event) => {
     const target = event.target as HTMLElement;
     const profile = target.closest<HTMLElement>("[data-profile]");
     if (profile && target.matches('input[data-f$=".format"]')) syncType(profile);
+    // Choosing a voice plays it, as a phone's ringtone list does, so the list can be heard one
+    // voice at a time; the chip plays it again or stops it.
     if (target instanceof HTMLSelectElement && target.closest(".podcast-voice")) {
-      audio?.pause();
       syncPreview(target);
+      const chip = chipOf(target);
+      const url = sampleOf(target);
+      if (chip && url) play(chip, url, false);
+      else audio?.pause();
     }
   });
+  // The last ticked topic stays ticked: with none, the episode would have only Top picks. A click
+  // has already toggled a checkbox when it is heard, and cancelling it puts the tick back before any
+  // change is fired, so nothing is recorded.
+  root.addEventListener(
+    "click",
+    (event) => {
+      const box = event.target;
+      if (!(box instanceof HTMLInputElement) || !box.matches('[data-f$=".sections"]')) return;
+      if (!box.checked && !box.closest("fieldset")?.querySelector("input:checked")) {
+        event.preventDefault();
+      }
+    },
+    true,
+  );
   root.addEventListener("click", (event) => {
-    const button = (event.target as Element).closest<HTMLButtonElement>("[data-preview]");
-    const select = button?.closest(".podcast-voice")?.querySelector("select");
-    const url = select ? previewOf(select) : null;
-    if (!button || !url) return;
-    // The player is built on the first press, so the page loads no audio code up front.
-    if (!audio) {
-      audio = new Audio();
-      audio.addEventListener("pause", () => mark(null));
-      audio.addEventListener("ended", () => mark(null));
-      // A sample that cannot be played takes its button with it, rather than failing in silence.
-      audio.addEventListener("error", () => {
-        if (playing) playing.hidden = true;
-        mark(null);
-      });
-    }
-    if (!audio.paused && audio.src === url) {
-      audio.pause();
-      return;
-    }
-    audio.src = url;
-    mark(button);
-    void audio.play().catch(() => mark(null));
+    const chip = (event.target as Element).closest<HTMLButtonElement>("[data-preview]");
+    const select = chip?.closest(".podcast-voice")?.querySelector("select");
+    const url = select ? sampleOf(select) : null;
+    if (chip && url) play(chip, url, true);
   });
 
   void (async () => {
     try {
       const lib = await import("../lib/voices");
       const response = await fetch("/api/voices", { signal: AbortSignal.timeout(LIST_TIMEOUT_MS) });
-      voices = (response.ok ? lib.parseVoices(await response.json()) : null) ?? [];
+      const body: unknown = response.ok ? await response.json() : null;
+      voices = lib.parseVoices(body) ?? [];
+      defaults = lib.parseVoiceDefaults(body);
       for (const select of root.querySelectorAll<HTMLSelectElement>(".podcast-voice select")) {
-        lib.fillVoiceSelect(select, voices, select.value);
+        const second = (select.dataset.f ?? "").endsWith("voice_b");
+        const fallback = voices.find(
+          (v) => v.id === (second ? defaults?.voice_b : defaults?.voice),
+        );
+        lib.fillVoiceSelect(select, voices, select.value, fallback);
         syncPreview(select);
       }
     } catch {

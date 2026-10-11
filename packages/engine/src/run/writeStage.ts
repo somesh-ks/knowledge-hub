@@ -46,6 +46,8 @@ interface PassContext {
   /** Sections a scheduled regular briefing covers; null for every section and for other modes. */
   sections: readonly string[] | null;
   /** Minutes the scheduled podcast runs, which sizes the regular briefing; null for other modes. */
+  /** The weekly pass's own topics, from the schedule in every mode; null covers them all. */
+  weeklySections: readonly string[] | null;
   lengthMinutes: number | null;
   /** Minutes of the weekly podcast, which sizes the weekly pass in any run mode. */
   weeklyLengthMinutes: number;
@@ -78,6 +80,7 @@ export async function writeStage(deps: RunDeps, plan: Plan): Promise<StageReport
     sourceNames: sourceNameMap(sources),
     customTopics: activeFitTopics(topics),
     sections: schedule?.sections ?? null,
+    weeklySections: fullSchedule.weekly.sections,
     lengthMinutes: schedule?.length_minutes ?? null,
     weeklyLengthMinutes: fullSchedule.weekly.length_minutes,
     sourceStats: await readSourceStats(deps.root),
@@ -125,6 +128,7 @@ async function writePass(
     sourceNames,
     customTopics,
     sections,
+    weeklySections,
     lengthMinutes,
     weeklyLengthMinutes,
     sourceStats,
@@ -167,8 +171,9 @@ async function writePass(
           ? capForLength(capFor(pass.kind), VOICE_LIMITS.items.floor, weeklyLengthMinutes)
           : capFor(pass.kind),
     weights: preferences.weights,
-    // Only the scheduled regular briefing is narrowed; the weekly pass keeps every section.
-    sections: pass.kind === "regular" ? sections : null,
+    // The scheduled regular briefing follows the daily topics and the weekly pass its own; an
+    // episode made on request covers everything it was asked for.
+    sections: pass.kind === "regular" ? sections : pass.kind === "weekly" ? weeklySections : null,
   });
   for (const d of chosen.dropped) drop(d.id, "select", `${d.reason} (score ${d.score})`);
 

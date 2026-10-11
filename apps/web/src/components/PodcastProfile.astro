@@ -1,6 +1,6 @@
 ---
 import { FORMATS, LENGTHS } from "../lib/createForm";
-import { CADENCES, hourLabel, WEEKDAYS } from "../lib/schedule";
+import { CADENCES, hourLabel, type TopicChoice, WEEKDAYS } from "../lib/schedule";
 import Icon from "./Icon.astro";
 
 interface Props {
@@ -12,14 +12,20 @@ interface Props {
     hour?: number;
     day?: number;
     cadenceDays?: number;
+    /** Section ids the episode covers, or null for every topic. */
+    sections: readonly string[] | null;
     format: string;
     lengthMinutes: number;
     voiceId: string | null;
     voiceIdB: string | null;
   };
+  /** The topics the episode can be narrowed to, by name. */
+  topics: readonly TopicChoice[];
 }
 
-const { id, values } = Astro.props;
+const { id, values, topics } = Astro.props;
+const covered = (section: string): boolean =>
+  values.sections === null || values.sections.includes(section);
 const hours = Array.from({ length: 24 }, (_, value) => value);
 const discussion = values.format === "discussion";
 // A stored Headlines schedule has no radio to show; the first change picks one of the two.
@@ -100,6 +106,36 @@ const VOICES = [
       </div>
     </div>
 
+    {/* Every topic ticked is stored as "all of them", so a topic added later is covered too. One
+         stays ticked: an episode with no topic would have only Top picks to tell. */}
+    <div class="settings-row podcast-topics-row">
+      <div class="settings-text">
+        <span class="settings-label" id={`${id}-topics-label`}>Topics</span>
+        <span class="settings-hint" id={`${id}-topics-hint`}>Top picks are always in</span>
+      </div>
+      <fieldset
+        class="create-chips podcast-topics"
+        aria-labelledby={`${id}-topics-label`}
+        aria-describedby={`${id}-topics-hint`}
+      >
+        {
+          topics.map((topic) => (
+            <label class="create-chip">
+              <input
+                type="checkbox"
+                value={topic.id}
+                data-f={`${id}.sections`}
+                checked={covered(topic.id)}
+                autocomplete="off"
+              />
+              <Icon name="check" class="create-chip-check" />
+              <span>{topic.title}</span>
+            </label>
+          ))
+        }
+      </fieldset>
+    </div>
+
     <div class="settings-row" data-layout="choice">
       <div class="settings-text">
         <span class="settings-label" id={`${id}-format-label`}>Type</span>
@@ -168,9 +204,21 @@ const VOICES = [
               </select>
               <Icon name="chevronDown" />
             </span>
-            <button class="icon-btn press podcast-sample" type="button" data-preview hidden aria-pressed="false" aria-label={`Play a sample of the ${voice.name} voice`}>
-              <Icon name="play" class="sample-play" />
-              <Icon name="pause" class="sample-pause" />
+            {/* The play chip, as every play control in the app is drawn. Choosing a voice plays its
+                 sample too, so a list can be heard one voice at a time. */}
+            <button
+              class="chip podcast-sample"
+              type="button"
+              data-preview
+              hidden
+              aria-pressed="false"
+              aria-label={`Play a sample of the ${voice.name} voice`}
+            >
+              <span class="chip-glyph" aria-hidden="true">
+                <Icon name="play" class="sample-play" />
+                <Icon name="pause" class="sample-pause" />
+              </span>
+              <span aria-hidden="true">Sample</span>
             </button>
           </div>
         </div>

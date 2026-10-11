@@ -397,24 +397,30 @@ function setWeights(
   return { next, summary: `set ${count} topic weight${count === 1 ? "" : "s"}` };
 }
 
+/** The sections an episode covers, checked against the known ones; null covers every topic. */
+function coveredSections(ids: readonly string[] | null, bundle: ConfigBundle): string[] | null {
+  if (ids === null) return null;
+  const known = new Set(["top", ...bundle.topics.sections.map((section) => section.id)]);
+  for (const id of ids) {
+    if (!known.has(id)) throw new ConfigOpError(`There is no section ${id}.`);
+  }
+  // Top picks is always covered, so it is never stored.
+  const sections = [...new Set(ids)].filter((id) => id !== "top");
+  if (sections.length === 0) throw new ConfigOpError("Pick at least one topic to cover.");
+  return sections;
+}
+
 function setSchedule(
   op: Extract<ParsedConfigOp, { op: "schedule.set" }>,
   bundle: ConfigBundle,
 ): OpOutcome {
   const next = clone(bundle);
   const current = bundle.schedule;
-  let sections = current.sections;
-  if (op.sections !== undefined) {
-    sections = null;
-    if (op.sections !== null) {
-      const known = new Set(["top", ...next.topics.sections.map((section) => section.id)]);
-      for (const id of op.sections) {
-        if (!known.has(id)) throw new ConfigOpError(`There is no section ${id}.`);
-      }
-      // Top picks is always covered, so it is never stored.
-      sections = [...new Set(op.sections)].filter((id) => id !== "top");
-      if (sections.length === 0) throw new ConfigOpError("Pick at least one topic to cover.");
-    }
+  const sections =
+    op.sections !== undefined ? coveredSections(op.sections, next) : current.sections;
+  const weekly = { ...current.weekly, ...definedOnly(op.weekly) };
+  if (op.weekly?.sections !== undefined) {
+    weekly.sections = coveredSections(op.weekly.sections, next);
   }
   const hour = op.hour ?? current.hour;
   const cadence = op.cadence_days ?? current.cadence_days;
@@ -427,7 +433,7 @@ function setSchedule(
     length_minutes: op.length_minutes ?? current.length_minutes,
     voice_id: op.voice_id !== undefined ? op.voice_id : current.voice_id,
     voice_id_b: op.voice_id_b !== undefined ? op.voice_id_b : current.voice_id_b,
-    weekly: { ...current.weekly, ...definedOnly(op.weekly) },
+    weekly,
     custom: { ...current.custom, ...definedOnly(op.custom) },
   };
   const parts: string[] = [];
