@@ -260,10 +260,9 @@
 }
 
 @media (min-width: 40rem) {
-  /* The cover grows to 10rem, room for a two-line title, its facts and Play beside it. (A token for
-     this size is requested: component.cover.size-hero-wide.) */
+  /* The cover grows to 10rem, room for a two-line title, its facts and Play beside it. */
   .hero {
-    --hero-cover: calc(var(--cover-size-hero-wide) + var(--space-12));
+    --hero-cover: var(--cover-size-hero-wide);
     grid-template-areas:
       "cover text menu"
       "cover actions actions"

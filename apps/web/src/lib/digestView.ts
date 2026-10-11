@@ -3,6 +3,9 @@ import { briefingLengthLabel, storyLengthLabel } from "../player/core/readerMath
 import { PASSPHRASE_REQUIRED } from "./access";
 import type { DigestEntry } from "./digests";
 import { formatClock, pluralize } from "./format";
+import { sectionLabel } from "./sectionLabel";
+
+export { sectionLabel };
 
 export interface ItemView {
   item: DigestItem;
@@ -20,21 +23,6 @@ export interface SectionView {
   firstIndex: number;
   /** Section length as "m:ss", or null while there is no audio to play. */
   clock: string | null;
-}
-
-/**
- * Section names as the reader sees them, in sentence case like every other label. Older digests and
- * the built-in names carry title case ("AI Products"); only those known names are mapped, so a
- * topic's own name, which may hold a proper noun, is shown as it was written.
- */
-const SENTENCE_CASE: Record<string, string> = {
-  "Design Engineering": "Design engineering",
-  "AI Products": "AI products",
-  "Tech Product Launches": "Tech product launches",
-};
-
-export function sectionLabel(title: string): string {
-  return SENTENCE_CASE[title] ?? title;
 }
 
 export function buildSections(entry: DigestEntry): SectionView[] {

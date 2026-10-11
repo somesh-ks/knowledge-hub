@@ -435,14 +435,6 @@
 
 /* ------------------------------------------------------------------ the "Earlier" shelf */
 
-/* Its rule stops at the text column, like the rules between a briefing's chapters above it. It sits a
-   hairline up, over the briefing's last pixel: where the end of the briefing pushes the section
-   strip under the app bar, the strip's line and this one then meet as one line, not two. */
-.earlier.rule-above::before {
-  inset-block-start: calc(var(--stroke-hairline) * -1);
-  inset-inline: 0;
-}
-
 /* One row of covers that scrolls sideways and runs off the edge of the screen. */
 .shelf-head {
   display: flex;

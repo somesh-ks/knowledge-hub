@@ -14,8 +14,7 @@
   padding-block: var(--row-padding-block);
 }
 
-.rows > * + *::before,
-.rule-above::before {
+.rows > * + *::before {
   content: "";
   position: absolute;
   inset-block-start: 0;
@@ -23,10 +22,6 @@
   height: var(--stroke-hairline);
   background: var(--color-border-hairline);
   pointer-events: none;
-}
-
-.rule-above {
-  position: relative;
 }
 
 /* A row that is one link or button: the whole row responds. Its fill is a rounded tile clear of the
