@@ -1,7 +1,8 @@
 /*
  * Controls: icons, the text button, the icon button, the two block buttons, the play chip and the
- * play and pause glyph swap. One accent carries every control. Hover only inside (hover: hover) and
- * (pointer: fine); press feedback comes from the .press utility in foundations.
+ * play and pause glyph swap. One accent carries every control. Hover and press are state layers
+ * (primitives.css): the control's text colour laid over its own fill. Hover only inside
+ * (hover: hover) and (pointer: fine); a press on an icon comes from the .press utility in foundations.
  */
 
 /* ------------------------------------------------------------------ icons */
@@ -54,17 +55,17 @@
 
 @media (hover: hover) and (pointer: fine) {
   .btn:hover {
-    background: var(--color-accent-subtle);
+    background: color-mix(in oklch, var(--color-accent) var(--state-hover), transparent);
   }
 
   .icon-btn:hover {
-    background: var(--color-surface-sunken);
+    background: color-mix(in oklch, var(--color-on-surface) var(--state-hover), transparent);
     color: var(--color-on-surface);
   }
 }
 
 .icon-btn:active {
-  background: var(--color-surface-sunken);
+  background: color-mix(in oklch, var(--color-on-surface) var(--state-press), transparent);
 }
 
 /* ------------------------------------------------------------------ block buttons */
@@ -93,11 +94,11 @@
   --color-focus-gap: var(--color-surface);
 }
 
-/* Tonal: the accent's wash under accent words, with no outline. Quieter than the filled button and
-   still a button, which an outlined box on the page's own surface was not. */
+/* Tonal: the accent container under its own words, with no outline. Quieter than the filled button
+   and still a button, which an outlined box on the page's own surface was not. */
 .btn-secondary {
-  background: var(--color-accent-subtle);
-  color: var(--color-accent);
+  background: var(--color-accent-container);
+  color: var(--color-on-accent-container);
 }
 
 @media (hover: hover) and (pointer: fine) {
@@ -106,7 +107,11 @@
   }
 
   .btn-secondary:hover {
-    background: color-mix(in oklch, var(--color-accent-subtle), var(--color-accent) 10%);
+    background: color-mix(
+      in oklch,
+      var(--color-accent-container),
+      var(--color-on-accent-container) var(--state-hover)
+    );
   }
 }
 
@@ -116,9 +121,16 @@
 
 /* A press on a worded button shows on its fill, one step past the hover's, so it reads as a press
    with a mouse too; its words keep their size (pressText.test.ts), so none of these take .press. */
-.btn:active,
+.btn:active {
+  background: color-mix(in oklch, var(--color-accent) var(--state-press), transparent);
+}
+
 .btn-secondary:active {
-  background: color-mix(in oklch, var(--color-accent-subtle), var(--color-accent) 14%);
+  background: color-mix(
+    in oklch,
+    var(--color-accent-container),
+    var(--color-on-accent-container) var(--state-press)
+  );
 }
 
 /* Fills are dropped in forced colours, so the tonal button keeps an edge of its own. */
@@ -141,8 +153,9 @@
   cursor: default;
 }
 
-.btn-primary:is(:disabled, [aria-disabled="true"]) {
-  background: var(--color-surface-sunken);
+.btn-primary:is(:disabled, [aria-disabled="true"]),
+.btn-secondary:is(:disabled, [aria-disabled="true"]) {
+  background: var(--color-surface-container);
 }
 
 /* ------------------------------------------------------------------ play and pause swap */
@@ -180,8 +193,8 @@
 /* ------------------------------------------------------------------ play chip */
 
 /*
- * The outlined pill that plays a briefing or one story: a ringed glyph and a short label. The one
- * pill in the system. Markup:
+ * The tonal pill that plays a briefing or one story: a play mark and a short label on the container
+ * fill, with no outline. Markup:
  *
  *   <button class="chip" data-state="idle" data-playing="false">
  *     <span class="chip-glyph"> play and pause icons, .chip-bars, a check icon, .spinner </span>
@@ -200,8 +213,10 @@
   gap: var(--chip-gap);
   min-height: var(--chip-height);
   padding-inline: var(--chip-padding-start) var(--chip-padding-end);
-  border: var(--stroke-hairline) solid var(--chip-border);
+  /* No outline: the transparent border keeps the pill's size where forced colours draw one. */
+  border: var(--stroke-hairline) solid transparent;
   border-radius: var(--chip-radius);
+  background: var(--chip-bg);
   color: var(--chip-fg);
   font-size: var(--font-size-label);
   font-weight: var(--font-weight-medium);
@@ -211,7 +226,6 @@
   transition:
     transform var(--duration-press-out) var(--ease-out),
     background-color var(--duration-hover) var(--ease-hover),
-    border-color var(--duration-hover) var(--ease-hover),
     color var(--duration-hover) var(--ease-hover);
 }
 
@@ -230,9 +244,6 @@
   width: var(--chip-glyph);
   height: var(--chip-glyph);
   flex: none;
-  border: var(--chip-ring) solid currentColor;
-  border-radius: var(--radius-round);
-  transition: border-color var(--duration-state) var(--ease-out);
 }
 
 .chip-glyph > * {
@@ -251,14 +262,14 @@
 
 @media (hover: hover) and (pointer: fine) {
   .chip:hover {
-    background: var(--chip-bg-current);
+    background: color-mix(in oklch, var(--chip-bg), var(--color-on-surface) var(--state-hover));
   }
 }
 
-/* A press is not a hover: the fill stays and the label takes the pressed accent. The words never
+/* A press is not a hover: the layer deepens and the label takes the pressed accent. The words never
    scale (pressText.test.ts). */
 .chip:active {
-  background: var(--chip-bg-current);
+  background: color-mix(in oklch, var(--chip-bg), var(--color-on-surface) var(--state-press));
   color: var(--color-accent-pressed);
 }
 
@@ -292,10 +303,29 @@
   }
 }
 
-/* Current: the loaded story or briefing. Filled with the accent container, no outline. */
+/* Current: the loaded story or briefing, in the accent container. */
 .chip[data-state="current"] {
-  border-color: transparent;
   background: var(--chip-bg-current);
+  color: var(--chip-fg-current);
+}
+
+@media (hover: hover) and (pointer: fine) {
+  .chip[data-state="current"]:hover {
+    background: color-mix(
+      in oklch,
+      var(--chip-bg-current),
+      var(--chip-fg-current) var(--state-hover)
+    );
+  }
+}
+
+.chip[data-state="current"]:active {
+  background: color-mix(
+    in oklch,
+    var(--chip-bg-current),
+    var(--chip-fg-current) var(--state-press)
+  );
+  color: var(--chip-fg-current);
 }
 
 /* Played: a check in the success colour and a quiet label. */
@@ -304,7 +334,6 @@
 }
 
 .chip[data-state="played"] .chip-glyph {
-  border-color: transparent;
   color: var(--color-success);
 }
 
@@ -314,17 +343,13 @@
 
 .chip[data-state="played"] .chip-check {
   display: block;
-  width: var(--size-icon);
-  height: var(--size-icon);
+  width: var(--chip-icon);
+  height: var(--chip-icon);
 }
 
-/* Preparing: the audio is being made. The ring becomes the spinner. */
+/* Preparing: the audio is being made. The mark becomes the spinner. */
 .chip[data-state="preparing"] {
   cursor: progress;
-}
-
-.chip[data-state="preparing"] .chip-glyph {
-  border-color: transparent;
 }
 
 .chip[data-state="preparing"] .chip-glyph > .swap {
@@ -335,11 +360,7 @@
   display: block;
 }
 
-/* While it plays, the ring gives way to three moving bars. */
-.chip[data-state="current"][data-playing="true"] .chip-glyph {
-  border-color: transparent;
-}
-
+/* While it plays, the play mark gives way to three moving bars. */
 .chip[data-state="current"][data-playing="true"] .chip-glyph > .swap {
   display: none;
 }
@@ -349,7 +370,7 @@
 }
 
 .chip:is([data-state="unavailable"], [aria-disabled="true"], :disabled) {
-  background: none;
+  background: var(--color-surface-sunken);
   color: var(--color-on-surface-disabled);
   cursor: default;
 }

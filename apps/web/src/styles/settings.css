@@ -167,7 +167,7 @@
 
 /* A row that is one button: the ring follows the row's shape, and the glyph stays quiet. */
 .settings-view .row-action {
-  border-radius: var(--button-radius);
+  border-radius: var(--row-radius);
 }
 
 .settings-view .row-action .icon {

@@ -13,6 +13,7 @@
   --color-white: oklch(100% 0 0);
   --color-grey-50: oklch(98.16% 0.0017 247.8);
   --color-grey-100: oklch(96.29% 0.0025 228.8);
+  --color-grey-150: oklch(95% 0.006 255);
   --color-grey-200: oklch(93.64% 0.0046 258.3);
   --color-grey-300: oklch(89.41% 0.0059 264.5);
   --color-grey-400: oklch(80.93% 0.0083 253.9);
@@ -36,6 +37,7 @@
   --color-blue-700: oklch(53.18% 0.1807 258.3);
   --color-blue-800: oklch(48.69% 0.1677 259.1);
   --color-blue-900: oklch(44.32% 0.1531 259.9);
+  --color-blue-925: oklch(37% 0.075 260);
   --color-blue-950: oklch(31.25% 0.0331 262.9);
   --color-green-50: oklch(96.5% 0.03 155);
   --color-green-300: oklch(78% 0.13 155);
@@ -156,6 +158,8 @@
   --distance-base: 8px;
   --distance-medium: 12px;
   --blur-enter: 3px;
+  --state-hover: 8%;
+  --state-press: 12%;
   --opacity-disabled: 0.32;
   --opacity-ambient-light: 0.6;
   --opacity-ambient-dark: 0.32;
@@ -171,6 +175,7 @@
   /* Semantic tokens, light */
   --color-surface: var(--color-grey-50);
   --color-surface-sunken: var(--color-grey-100);
+  --color-surface-container: var(--color-grey-150);
   --color-surface-raised: var(--color-white);
   --color-surface-overlay: var(--color-white);
   --color-surface-inverse: var(--color-grey-850);
@@ -187,6 +192,8 @@
   --color-accent-hover: var(--color-blue-800);
   --color-accent-pressed: var(--color-blue-900);
   --color-accent-subtle: var(--color-blue-50);
+  --color-accent-container: var(--color-blue-100);
+  --color-on-accent-container: var(--color-blue-900);
   --color-on-accent: var(--color-white);
   --color-cover-accent: var(--color-accent);
   --color-on-cover-accent: var(--color-on-accent);
@@ -296,14 +303,14 @@
   --item-play-size: 2.25rem;
   --item-play-radius: var(--radius-sm);
   --cta-height: 3.5rem;
-  --cta-radius: var(--radius-lg);
+  --cta-radius: var(--radius-round);
   --cta-bg: var(--color-accent);
   --cta-bg-hover: var(--color-accent-hover);
   --cta-bg-pressed: var(--color-accent-pressed);
   --cta-fg: var(--color-on-accent);
   --button-height: var(--size-touch-comfortable);
   --button-height-compact: var(--size-touch);
-  --button-radius: var(--radius-sm);
+  --button-radius: var(--radius-round);
   --button-padding: var(--space-4);
   --mini-player-inset: var(--space-2);
   --mini-player-radius: var(--radius-lg);
@@ -371,26 +378,31 @@
   --archive-row-padding: var(--space-2);
   --archive-row-radius: var(--radius-lg);
   --chip-height: 2.25rem;
-  --chip-padding-start: var(--space-1);
-  --chip-padding-end: var(--space-3);
+  --chip-padding-start: var(--space-3);
+  --chip-padding-end: var(--space-4);
   --chip-gap: var(--space-2);
-  --chip-glyph: 1.75rem;
+  --chip-glyph: 1.25rem;
   --chip-ring: 1.5px;
-  --chip-icon: 0.875rem;
+  --chip-icon: 1.125rem;
   --chip-radius: var(--radius-round);
-  --chip-border: var(--color-border-hairline);
+  --chip-bg: var(--color-surface-container);
   --chip-fg: var(--color-accent);
-  --chip-bg-current: var(--color-accent-subtle);
+  --chip-bg-current: var(--color-accent-container);
+  --chip-fg-current: var(--color-on-accent-container);
   --app-bar-height: 3.5rem;
-  --nav-bar-height: 3.5rem;
+  --nav-bar-height: 4rem;
+  --nav-indicator-width: 4rem;
+  --nav-indicator-height: 2rem;
   --nav-side-width: 13rem;
   --nav-item-icon: var(--size-icon-lg);
   --nav-side-item-height: var(--size-touch-comfortable);
-  --nav-side-item-bg: var(--color-accent-subtle);
+  --nav-side-item-bg: var(--color-accent-container);
+  --nav-side-item-fg: var(--color-on-accent-container);
   --tabs-height: var(--size-touch-comfortable);
   --tabs-indicator-height: 3px;
   --tabs-indicator-radius: 3px;
   --row-padding-block: var(--space-4);
+  --row-radius: var(--radius-md);
 
   color-scheme: light;
 }
@@ -399,6 +411,7 @@
   :root:not([data-theme="light"]) {
     --color-surface: var(--color-grey-950);
     --color-surface-sunken: var(--color-grey-900);
+    --color-surface-container: var(--color-grey-850);
     --color-surface-raised: var(--color-grey-850);
     --color-surface-overlay: var(--color-grey-800);
     --color-surface-inverse: var(--color-grey-200);
@@ -415,6 +428,8 @@
     --color-accent-hover: var(--color-blue-200);
     --color-accent-pressed: var(--color-blue-400);
     --color-accent-subtle: var(--color-blue-950);
+    --color-accent-container: var(--color-blue-925);
+    --color-on-accent-container: var(--color-blue-100);
     --color-on-accent: var(--color-grey-950);
     --color-cover-accent: var(--color-accent);
     --color-on-cover-accent: var(--color-on-accent);
@@ -443,6 +458,7 @@
 :root[data-theme="dark"] {
   --color-surface: var(--color-grey-950);
   --color-surface-sunken: var(--color-grey-900);
+  --color-surface-container: var(--color-grey-850);
   --color-surface-raised: var(--color-grey-850);
   --color-surface-overlay: var(--color-grey-800);
   --color-surface-inverse: var(--color-grey-200);
@@ -459,6 +475,8 @@
   --color-accent-hover: var(--color-blue-200);
   --color-accent-pressed: var(--color-blue-400);
   --color-accent-subtle: var(--color-blue-950);
+  --color-accent-container: var(--color-blue-925);
+  --color-on-accent-container: var(--color-blue-100);
   --color-on-accent: var(--color-grey-950);
   --color-cover-accent: var(--color-accent);
   --color-on-cover-accent: var(--color-on-accent);

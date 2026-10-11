@@ -205,21 +205,21 @@ test.describe("ambient light", () => {
 
   // The chip's accent words fall short of 4.5:1 over a cover's light, so it must not be see-through.
   for (const scheme of ["light", "dark"] as const) {
-    test(`the play chip in the header stands on the page's own surface, ${scheme}`, async ({
+    test(`the play chip in the header stands on its own opaque container, ${scheme}`, async ({
       page,
     }) => {
       await page.emulateMedia({ colorScheme: scheme });
       await page.goto("/");
       const colours = await page.evaluate(() => {
         const probe = document.createElement("i");
-        probe.style.backgroundColor = "var(--color-surface)";
+        probe.style.backgroundColor = "var(--chip-bg)";
         document.body.append(probe);
-        const surface = getComputedStyle(probe).backgroundColor;
+        const container = getComputedStyle(probe).backgroundColor;
         probe.remove();
         const chip = document.querySelector(".hero .chip");
-        return { surface, chip: chip ? getComputedStyle(chip).backgroundColor : null };
+        return { container, chip: chip ? getComputedStyle(chip).backgroundColor : null };
       });
-      expect(colours.chip).toBe(colours.surface);
+      expect(colours.chip).toBe(colours.container);
       expect(colours.chip).not.toBe("rgba(0, 0, 0, 0)");
     });
   }

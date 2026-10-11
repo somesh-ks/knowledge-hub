@@ -120,7 +120,13 @@ describe("token structure", () => {
 });
 
 describe("color contrast", () => {
-  const surfaces = ["surface", "surface-sunken", "surface-raised", "surface-overlay"];
+  const surfaces = [
+    "surface",
+    "surface-sunken",
+    "surface-container",
+    "surface-raised",
+    "surface-overlay",
+  ];
 
   it.each(MODES)("text roles reach 4.5:1 on every surface (%s)", (mode) => {
     for (const foreground of ["on-surface", "on-surface-muted", "on-surface-subtle", "accent"]) {
@@ -139,6 +145,25 @@ describe("color contrast", () => {
     for (const foreground of ["on-surface", "accent"]) {
       const ratio = contrastRatio(colorOf(`semantic.color.${foreground}`, mode), tint);
       expect(ratio, `${foreground} on accent-subtle (${mode})`).toBeGreaterThanOrEqual(4.5);
+    }
+  });
+
+  it.each(MODES)("text on the accent container reaches 4.5:1 (%s)", (mode) => {
+    const container = colorOf("semantic.color.accent-container", mode);
+    for (const foreground of ["on-accent-container", "on-surface", "on-surface-muted"]) {
+      const ratio = contrastRatio(colorOf(`semantic.color.${foreground}`, mode), container);
+      expect(ratio, `${foreground} on accent-container (${mode})`).toBeGreaterThanOrEqual(4.5);
+    }
+  });
+
+  it.each(MODES)("tonal containers read against the page without an outline (%s)", (mode) => {
+    const page = colorOf("semantic.color.surface", mode);
+    for (const [container, least] of [
+      ["surface-container", 1.08],
+      ["accent-container", 1.2],
+    ] as const) {
+      const ratio = contrastRatio(colorOf(`semantic.color.${container}`, mode), page);
+      expect(ratio, `${container} on the page (${mode})`).toBeGreaterThanOrEqual(least);
     }
   });
 
@@ -214,7 +239,13 @@ describe("color contrast", () => {
 
   it("keeps the neutrals neutral: no surface or text role carries visible chroma", () => {
     for (const mode of MODES) {
-      for (const role of ["surface", "surface-sunken", "on-surface", "on-surface-muted"]) {
+      for (const role of [
+        "surface",
+        "surface-sunken",
+        "surface-container",
+        "on-surface",
+        "on-surface-muted",
+      ]) {
         const chroma = parseOklch(String(resolveLiteral(doc, `semantic.color.${role}`, mode))).c;
         expect(chroma, `${role} (${mode})`).toBeLessThanOrEqual(0.015);
       }

@@ -93,7 +93,7 @@
   height: var(--field-height);
   padding-inline: var(--space-4);
   border-radius: var(--radius-round);
-  background: var(--color-surface-sunken);
+  background: var(--color-surface-container);
   color: var(--color-on-surface-muted);
   cursor: text;
   transition: background-color var(--duration-hover) var(--ease-hover);
@@ -182,8 +182,9 @@
   align-items: center;
   flex: none;
   height: var(--chip-height);
-  border: var(--stroke-hairline) solid var(--color-border-hairline);
+  border: var(--stroke-hairline) solid transparent;
   border-radius: var(--button-radius);
+  background: var(--color-surface-container);
   font-size: var(--font-size-label);
   font-weight: var(--font-weight-medium);
   line-height: var(--font-leading-label);
@@ -223,17 +224,18 @@
 
 /* Every control in the bar fills the same way under the pointer. */
 @media (hover: hover) and (pointer: fine) {
-  .sort-field:hover {
-    background: var(--color-surface-sunken);
+  .sort-field:hover,
+  .search-field:hover:not(:focus-within) {
+    background: color-mix(
+      in oklch,
+      var(--color-surface-container),
+      var(--color-on-surface) var(--state-hover)
+    );
   }
 
   .view-btn[aria-pressed="false"]:hover {
-    background: var(--color-surface-sunken);
+    background: color-mix(in oklch, var(--color-on-surface) var(--state-hover), transparent);
     color: var(--color-on-surface);
-  }
-
-  .search-field:hover:not(:focus-within) {
-    background: color-mix(in oklch, var(--color-on-surface) 8%, var(--color-surface-sunken));
   }
 }
 
@@ -282,8 +284,8 @@
 }
 
 .view-btn[aria-pressed="true"] {
-  background: var(--color-accent-subtle);
-  color: var(--color-accent);
+  background: var(--color-accent-container);
+  color: var(--color-on-accent-container);
 }
 
 /* A focused button's ring lies over its neighbour. */

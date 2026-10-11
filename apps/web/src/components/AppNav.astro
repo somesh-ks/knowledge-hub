@@ -46,7 +46,7 @@ const destinations: Array<{
     <BrandMark />
     <span>Singularity</span>
   </a>
-  <a class="app-nav-create btn-primary" href="/create" data-create-open data-sound="open">
+  <a class="app-nav-create btn-secondary" href="/create" data-create-open data-sound="open">
     <Icon name="plus" class="icon-lg" />
     <span>Create Podcast</span>
   </a>
@@ -62,9 +62,12 @@ const destinations: Array<{
               aria-current={isCurrent ? "page" : undefined}
               data-astro-prefetch="hover"
             >
-              {/* Both drawings are in the page, so the item can light up on the press, before its page arrives. */}
-              <Icon name={destination.icon} class="icon-lg app-nav-icon-rest" />
-              <Icon name={destination.iconCurrent} class="icon-lg app-nav-icon-current" />
+              {/* Both drawings are in the page, so the item can light up on the press, before its page arrives.
+                   The indicator is the pill behind the icon in the bottom bar; the side column draws the row itself. */}
+              <span class="app-nav-indicator">
+                <Icon name={destination.icon} class="icon-lg app-nav-icon-rest" />
+                <Icon name={destination.iconCurrent} class="icon-lg app-nav-icon-current" />
+              </span>
               <span>{destination.label}</span>
             </a>
           </li>

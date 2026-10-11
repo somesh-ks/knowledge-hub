@@ -68,7 +68,7 @@
 }
 
 .topics .row-action {
-  border-radius: var(--button-radius);
+  border-radius: var(--row-radius);
 }
 
 .topics .row-action .icon {

@@ -49,20 +49,20 @@
   inset-block: var(--space-1);
   inset-inline: calc(var(--space-3) * -1);
   z-index: var(--z-beneath);
-  border-radius: var(--button-radius);
-  background: var(--color-surface-sunken);
+  border-radius: var(--row-radius);
+  background: var(--color-on-surface);
   opacity: 0;
   transition: opacity var(--duration-hover) var(--ease-hover);
 }
 
 @media (hover: hover) and (pointer: fine) {
   .row-action:hover::after {
-    opacity: 1;
+    opacity: var(--state-hover);
   }
 }
 
 .row-action:active::after {
-  opacity: 1;
+  opacity: var(--state-press);
 }
 
 /* The ring takes the fill's shape, clear of the text: drawn on the column's own box it would run
@@ -73,7 +73,7 @@
 }
 
 .row-action:focus-visible::after {
-  opacity: 1;
+  opacity: var(--state-hover);
   outline: var(--stroke-ring) solid var(--color-focus-ring);
   outline-offset: calc(var(--stroke-ring) * -1);
 }
@@ -207,7 +207,7 @@
 /* The radius grows by the inset, so the ring's own corners keep the button radius. */
 .tab:focus-visible {
   outline-offset: calc(var(--tab-ring-inset) * -1);
-  border-radius: calc(var(--button-radius) + var(--tab-ring-inset));
+  border-radius: calc(var(--row-radius) + var(--tab-ring-inset));
   box-shadow: none;
 }
 
@@ -304,13 +304,13 @@
 
 @media (hover: hover) and (pointer: fine) {
   .source-link:hover {
-    background: var(--color-accent-subtle);
+    background: color-mix(in oklch, var(--color-accent) var(--state-hover), transparent);
   }
 }
 
-/* A press is not a hover: the fill stays and the words take the pressed accent. */
+/* A press is not a hover: the layer deepens and the words take the pressed accent. */
 .source-link:active {
-  background: var(--color-accent-subtle);
+  background: color-mix(in oklch, var(--color-accent) var(--state-press), transparent);
   color: var(--color-accent-pressed);
 }
 
@@ -318,8 +318,8 @@
 
 /*
  * A chip you can tick, or one of a few you can choose between (Create's topics, a podcast's topics in
- * Settings). Outlined and quiet until chosen; chosen, it is tonal with a check, so the choice is a
- * shape and not only a colour. Markup: <fieldset class="filter-chips"> of
+ * Settings). Tonal and quiet until chosen; chosen, it takes the accent container and a check, so the
+ * choice is a shape and not only a colour. Markup: <fieldset class="filter-chips"> of
  *   <label class="filter-chip"><input type="checkbox"><svg class="filter-chip-check"/><span>Design</span></label>
  */
 
@@ -343,8 +343,10 @@
      never move: the words sit centred with half the check's room on each side, and slide over by
      that half as the check appears. */
   padding-inline: calc(var(--space-3) + var(--space-2));
-  border: var(--stroke-hairline) solid var(--color-border-hairline);
+  /* No outline: the transparent border keeps the size where forced colours draw one. */
+  border: var(--stroke-hairline) solid transparent;
   border-radius: var(--chip-radius);
+  background: var(--color-surface-container);
   color: var(--color-on-surface);
   font-size: var(--font-size-label);
   font-weight: var(--font-weight-medium);
@@ -354,7 +356,6 @@
   transition:
     transform var(--duration-press-out) var(--ease-out),
     background-color var(--duration-hover) var(--ease-hover),
-    border-color var(--duration-hover) var(--ease-hover),
     color var(--duration-hover) var(--ease-hover);
 }
 
@@ -398,9 +399,8 @@
 }
 
 .filter-chip:has(input:checked) {
-  border-color: transparent;
-  background: var(--color-accent-subtle);
-  color: var(--color-accent);
+  background: var(--color-accent-container);
+  color: var(--color-on-accent-container);
 }
 
 .filter-chip:has(input:checked) > .icon {
@@ -424,17 +424,29 @@
 
 @media (hover: hover) and (pointer: fine) {
   .filter-chip:not(:has(input:checked, input:disabled)):hover {
-    background: var(--color-surface-sunken);
+    background: color-mix(
+      in oklch,
+      var(--color-surface-container),
+      var(--color-on-surface) var(--state-hover)
+    );
+  }
+
+  .filter-chip:has(input:checked):not(:has(input:disabled)):hover {
+    background: color-mix(
+      in oklch,
+      var(--color-accent-container),
+      var(--color-on-accent-container) var(--state-hover)
+    );
   }
 }
 
-/* Held down, the chip darkens at once: a layer over whatever it wears, the checked tint or the hover
-   fill, so the words never change size. It comes after the hover rule and outweighs the checked one,
+/* Held down, the chip darkens at once: a layer over whatever it wears, the container or the checked
+   tint, so the words never change size. It comes after the hover rules and outweighs the checked one,
    whose background shorthand would otherwise clear it. */
 .filter-chip:not(:has(input:disabled)):active {
   background-image: linear-gradient(
-    color-mix(in oklch, var(--color-on-surface) 10%, transparent),
-    color-mix(in oklch, var(--color-on-surface) 10%, transparent)
+    color-mix(in oklch, var(--color-on-surface) var(--state-press), transparent),
+    color-mix(in oklch, var(--color-on-surface) var(--state-press), transparent)
   );
 }
 
@@ -549,7 +561,7 @@
     min-block-size: var(--size-touch);
     padding-block: var(--space-2);
     padding-inline: var(--space-3);
-    border-radius: var(--button-radius);
+    border-radius: var(--row-radius);
     font-size: var(--font-size-body);
     font-weight: var(--font-weight-medium);
     line-height: var(--font-leading-label);
@@ -576,14 +588,14 @@
   }
 
   :is(.manage-select, .sort-field, .create-select) > select option:focus-visible {
-    background: var(--color-surface-sunken);
+    background: color-mix(in oklch, var(--color-on-surface) var(--state-hover), transparent);
     outline: var(--stroke-ring) solid var(--color-focus-ring);
     outline-offset: calc(var(--stroke-ring) * -1);
   }
 
   @media (hover: hover) and (pointer: fine) {
     :is(.manage-select, .sort-field, .create-select) > select option:hover {
-      background: var(--color-surface-sunken);
+      background: color-mix(in oklch, var(--color-on-surface) var(--state-hover), transparent);
     }
   }
 
