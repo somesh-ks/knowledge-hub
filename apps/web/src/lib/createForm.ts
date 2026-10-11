@@ -23,8 +23,8 @@ export const FORMATS: ReadonlyArray<{ value: PodcastRequest["format"]; label: st
 
 export const WINDOWS: ReadonlyArray<{ value: PodcastRequest["window_days"]; label: string }> = [
   { value: 2, label: "2 days" },
-  { value: 7, label: "A week" },
-  { value: 30, label: "A month" },
+  { value: 7, label: "7 days" },
+  { value: 30, label: "30 days" },
 ];
 
 export const TONES: ReadonlyArray<{ value: PodcastRequest["tone"]; label: string }> = [
@@ -55,7 +55,7 @@ export function submitLabel(minutes: number): string {
 }
 
 /**
- * The line under More options, naming the choices it holds: "For Somesh · A week · Neutral". The
+ * The line under More options, naming the choices it holds: "For Somesh · 7 days · Neutral". The
  * markup carries the template, so the page script fills the same words in as choices change.
  */
 export const MORE_OPTIONS_TEMPLATE = "For {audience} · {window} · {tone}";

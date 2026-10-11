@@ -184,13 +184,19 @@ export function installCreate(root: HTMLElement, onStart?: () => void): void {
   // and its focus, and a press still submits, so the handlers check this.
   let sending = false;
 
-  /** Marks the button as working (busy, with its spinner) or gives it back. */
+  /**
+   * Marks the button as working (busy, with its spinner beside "Starting…") or gives it back, with
+   * the words the length gives it.
+   */
   function busy(button: HTMLButtonElement, on: boolean): void {
     sending = on;
     for (const name of ["aria-disabled", "aria-busy", "data-busy"]) {
       if (on) button.setAttribute(name, "true");
       else button.removeAttribute(name);
     }
+    const words = button.querySelector("[data-submit-text]");
+    if (words && on) words.textContent = copy("starting");
+    else if (words) sync();
   }
 
   /**

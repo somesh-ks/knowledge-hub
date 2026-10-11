@@ -27,7 +27,7 @@ describe("submitLabel", () => {
 
 describe("moreOptionsSummary", () => {
   it("names the audience, the window and the tone with the app's one separator", () => {
-    expect(moreOptionsSummary("Somesh", "A week", "Neutral")).toBe("For Somesh · A week · Neutral");
+    expect(moreOptionsSummary("Somesh", "7 days", "Neutral")).toBe("For Somesh · 7 days · Neutral");
   });
 
   it("leaves a placeholder for the page script in the template, and nothing else", () => {
@@ -43,6 +43,10 @@ describe("the options", () => {
     expect(TONES.map((option) => option.value)).toEqual(["neutral", "energetic", "dry"]);
     expect(LENGTHS.some((option) => option.value === DEFAULTS.length)).toBe(true);
     expect(WINDOWS.some((option) => option.value === DEFAULTS.window)).toBe(true);
+  });
+
+  it("name each look-back window by its count of days, so they read as one scale", () => {
+    expect(WINDOWS.map((option) => option.label)).toEqual(["2 days", "7 days", "30 days"]);
   });
 
   it("keep the limits the server enforces", () => {

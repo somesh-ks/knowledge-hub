@@ -68,8 +68,10 @@ const COPY = {
       }
     : {}),
   "400": "That request did not go through. Reload the page and try again.",
-  cooldown: "Episodes need a short rest between them. Try again in",
-  daily_cap: "The limit for today is reached. Try again in",
+  cooldown: "You can make another episode in",
+  daily_cap: "That's today's limit. Try again in",
+  // Shown on the button while the request is out, in place of its words.
+  starting: "Starting…",
   "503": "Episodes are not available right now. Try again in a few minutes.",
   network: "The request did not go through. Check your connection, then try again.",
 } as const;
