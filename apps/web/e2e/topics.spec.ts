@@ -257,7 +257,9 @@ test.describe("a topic's page", () => {
     await expect(sheet.getByRole("radiogroup", { name: "What to add" })).toBeHidden();
     const name = sheet.getByRole("textbox", { name: "Name" });
     await expect(name).toHaveValue("Studio Notes");
-    await expect(name).toBeFocused();
+    // Editing starts with reading: focus stays in the panel, off the field, so no keyboard comes up.
+    await expect(name).not.toBeFocused();
+    expect(await sheet.evaluate((panel) => panel.contains(document.activeElement))).toBe(true);
     await expect(sheet.getByRole("combobox", { name: "Topic" })).toHaveValue(
       "design_engineering_craft",
     );

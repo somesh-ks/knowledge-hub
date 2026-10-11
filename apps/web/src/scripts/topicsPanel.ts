@@ -529,5 +529,7 @@ export function openPanel(
   }
   render();
   panel.showModal();
-  firstField().focus();
+  // Adding starts with typing, so the first field takes focus. Editing starts with reading, so the
+  // panel keeps the browser's own first focus, and a phone's keyboard does not cover the score.
+  if (mode !== "edit") firstField().focus();
 }

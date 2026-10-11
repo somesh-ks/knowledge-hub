@@ -642,7 +642,6 @@ button.source-main:active {
 .edit-address {
   display: grid;
   gap: var(--space-1);
-  margin-block: var(--space-4);
 }
 
 .edit-address-label,
