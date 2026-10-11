@@ -64,7 +64,9 @@ async function open(page: Page, path = LIST): Promise<void> {
   await expect(page.locator("[data-topics]")).toHaveAttribute("data-ready", "");
 }
 
-const source = (page: Page, name: string) => page.locator("li.source-row", { hasText: name });
+/** A source of the topic, not one of the feeds suggested for it. */
+const source = (page: Page, name: string) =>
+  page.locator("li.source-row:not(.is-suggested)", { hasText: name });
 const toast = (page: Page) => page.locator("[data-bar]");
 const toastText = (page: Page) => toast(page).locator("[data-bar-text]");
 const ops = (sent: Sent[]) => sent.flatMap((item) => [item.op].flat());
@@ -518,19 +520,173 @@ test.describe("a topic's page", () => {
     expect(ops(sent)).toEqual([{ op: "source.set", id: "quiet-motion", enabled: true }]);
   });
 
-  test("no row is a dead zone: sources are at least 44px tall and touch", async ({ page }) => {
+  test("no row is a dead zone: sources, and the suggestions under them, are 44px tall and touch", async ({
+    page,
+  }) => {
     await setup(page);
     await open(page, CRAFT);
-    const boxes = await page.locator("li.source-row").evaluateAll((rows) =>
-      rows.map((row) => {
-        const rect = row.getBoundingClientRect();
-        return { top: rect.top, bottom: rect.bottom };
-      }),
+    for (const list of ["[data-sources]", "[data-suggested-sources]"]) {
+      const boxes = await page.locator(`${list} li.source-row`).evaluateAll((rows) =>
+        rows.map((row) => {
+          const rect = row.getBoundingClientRect();
+          return { top: rect.top, bottom: rect.bottom };
+        }),
+      );
+      expect(boxes.length, list).toBeGreaterThan(1);
+      for (const [index, box] of boxes.entries()) {
+        expect(box.bottom - box.top).toBeGreaterThanOrEqual(44);
+        const next = boxes[index + 1];
+        if (next) expect(Math.abs(next.top - box.bottom)).toBeLessThanOrEqual(1);
+      }
+    }
+  });
+});
+
+// The catalogue's feeds that fit a topic are in the page when it is built: no request, no waiting.
+test.describe("a topic's suggested sources", () => {
+  const DESIGN = "/settings/topics/design";
+  const region = (page: Page) => page.getByRole("region", { name: "Suggested sources" });
+  const names = (page: Page) => region(page).locator(".source-name");
+  const suggestion = (page: Page, name: string) =>
+    page.locator("[data-suggested-sources] li.source-row", { hasText: name });
+  /** Where every row of both lists is on the page, to see that nothing moves. */
+  const places = (page: Page) =>
+    page
+      .locator("[data-sources] li.source-row, [data-suggested-sources] li.source-row")
+      .evaluateAll((rows) =>
+        rows.map((row) => Math.round(row.getBoundingClientRect().top + scrollY)),
+      );
+
+  test("are the catalogue's feeds that fit the topic, with no score, no pill and nothing waiting", async ({
+    page,
+  }) => {
+    await setup(page);
+    await open(page, DESIGN);
+    await expect(
+      region(page).getByRole("heading", { level: 2, name: "Suggested sources" }),
+    ).toBeVisible();
+    await expect(
+      region(page).getByText("Feeds that fit this topic. Add one to start reading it."),
+    ).toBeVisible();
+    // The five that fit Design and the topics it gathers best, best first. Type and Grid is a sixth,
+    // and Model Ledger, which the owner reads already, is not offered.
+    await expect(names(page)).toHaveText([
+      "Pixel Ledger",
+      "Motion Weekly",
+      "Craft Bench",
+      "Agent Patterns",
+      "Interface Notes",
+    ]);
+    // Nothing that claims a score or a filter, and nothing that stands in for a request.
+    await expect(
+      region(page).locator(".score, .pips, input, [class*='skeleton'], [class*='pill']"),
+    ).toHaveCount(0);
+    await expect(region(page).getByText(/Jev|Live curated|filtered/)).toHaveCount(0);
+    await expect(
+      page.locator("[data-suggested-sources] [aria-hidden='true'].source-row"),
+    ).toHaveCount(0);
+  });
+
+  test("a row has the site's tile, its name as a link, the site, what it covers and how often it posts", async ({
+    page,
+  }) => {
+    await setup(page);
+    await open(page, DESIGN);
+    const row = suggestion(page, "Pixel Ledger");
+    await expect(row.locator(".source-initial")).toHaveText("P");
+    const link = row.getByRole("link", { name: "Pixel Ledger" });
+    await expect(link).toHaveAttribute("href", "https://pixel-ledger.example/");
+    await expect(link).toHaveAttribute("target", "_blank");
+    await expect(link).toHaveAttribute("rel", /noopener/);
+    await expect(row.locator(".source-host")).toHaveText("pixel-ledger.example");
+    await expect(row.locator(".source-line")).toHaveText(
+      "Visual design critique and case studies \u00b7 Posts daily",
     );
-    for (const [index, box] of boxes.entries()) {
-      expect(box.bottom - box.top).toBeGreaterThanOrEqual(44);
-      const next = boxes[index + 1];
-      if (next) expect(Math.abs(next.top - box.bottom)).toBeLessThanOrEqual(1);
+    // The button is a 44px target.
+    const add = row.getByRole("button", { name: "Add Pixel Ledger" });
+    const box = await add.boundingBox();
+    expect(box?.width).toBeGreaterThanOrEqual(44);
+    expect(box?.height).toBeGreaterThanOrEqual(44);
+  });
+
+  test("+ adds the feed under the topic in one request, and the row says so without anything moving", async ({
+    page,
+  }) => {
+    const { sent } = await setup(page);
+    await open(page, DESIGN);
+    const before = await places(page);
+    const row = suggestion(page, "Motion Weekly");
+    await row.getByRole("button", { name: "Add Motion Weekly" }).click();
+    // The same button, done: a check, no longer pressable, named for what it did.
+    const done = row.getByRole("button", { name: "Added Motion Weekly" });
+    await expect(done).toBeDisabled();
+    await expect(done).toHaveClass(/is-added/);
+    await expect(toastText(page)).toHaveText(SAVED);
+    await expect(row).toContainText(ADDED);
+    expect(ops(sent)).toEqual([
+      {
+        op: "source.add",
+        url: "https://motion-weekly.example/rss.xml",
+        topic_ids: ["design_engineering_craft"],
+      },
+    ]);
+    // Every row is where it was: nothing was put above the suggestions, and the page went nowhere.
+    expect(await places(page)).toEqual(before);
+    await expect(page.locator("[data-sources] li.source-row")).toHaveCount(2);
+  });
+
+  test("a general topic is offered feeds by its name, and + files the feed under it", async ({
+    page,
+  }) => {
+    const { sent } = await setup(page);
+    await open(page, "/settings/topics/world");
+    await expect(names(page)).toHaveText(["Headline Desk"]);
+    await suggestion(page, "Headline Desk")
+      .getByRole("button", { name: "Add Headline Desk" })
+      .click();
+    await expect
+      .poll(() => ops(sent))
+      .toEqual([
+        { op: "source.add", url: "https://headline-desk.example/rss", topic_ids: ["world"] },
+      ]);
+  });
+
+  test("the owner's own topic is offered feeds by its name, what counts and its keywords", async ({
+    page,
+  }) => {
+    await setup(page);
+    await open(page, "/settings/topics/audio_interfaces");
+    // What counts says "interface", which four feeds are tagged with; none is tagged audio or voice.
+    await expect(names(page)).toHaveText([
+      "Interface Notes",
+      "Motion Weekly",
+      "Craft Bench",
+      "Agent Patterns",
+    ]);
+  });
+
+  test("a feed that is among the sources already is not offered", async ({ page }) => {
+    await setup(page);
+    await open(page, "/settings/topics/ai");
+    // Model Ledger fits AI best, and is one of its sources.
+    await expect(names(page)).toHaveText(["Agent Patterns"]);
+    await expect(source(page, "Model Ledger")).toHaveCount(1);
+  });
+
+  test("a page has no such section when nothing fits: Other, Sports and Culture", async ({
+    page,
+  }) => {
+    await setup(page);
+    for (const path of [
+      "/settings/topics/other",
+      "/settings/topics/sports",
+      "/settings/topics/culture",
+    ]) {
+      await open(page, path);
+      await expect(page.getByRole("heading", { name: "Suggested sources" }), path).toHaveCount(0);
+      await expect(page.locator("[data-suggested-sources], [class*='skeleton']"), path).toHaveCount(
+        0,
+      );
     }
   });
 });
