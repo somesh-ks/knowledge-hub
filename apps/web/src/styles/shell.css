@@ -10,7 +10,7 @@
  * - --bottom-nav-height on :root is the full height of the bottom bar, safe area included, and 0px
  *   where there is no bottom bar. The player docks at that height.
  * - The player writes --player-p (0 collapsed, 1 expanded) on [data-bottom-nav] while it moves, and
- *   the bar slides out of the way by that share of its own height.
+ *   the bar slides out of the way by that share of its own height, above the player until it is gone.
  * - The player publishes --player-dock-height on :root; main keeps that much room at its end.
  */
 
@@ -232,6 +232,18 @@ html[data-mini="visible"] main {
   /* The player pushes the bar down as it opens. One compositor property, written per frame. */
   transform: translateY(calc(var(--player-p, 0) * 100%));
   view-transition-name: app-nav;
+}
+
+/* While the player moves, the bar stays above it until it has slid away: the player's page rises
+   from behind the player bar across the whole screen, and covered this bar from the first frame of
+   a pull. A stacking change keyed on the attribute that shows the page, not a clip on the page that
+   mirrors this bar's travel, so it holds for a drag, a spring and the reduced-motion fade alike,
+   whatever either side's geometry becomes. At rest the bar goes back under the player. */
+@media not all and (min-width: 64rem) {
+  :root:has([data-player-surface]:not([data-state="collapsed"], [data-state="expanded"])) .app-nav {
+    z-index: calc(var(--z-mini) + 1);
+    will-change: transform;
+  }
 }
 
 .app-nav-brand {
