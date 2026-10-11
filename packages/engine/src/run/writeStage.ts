@@ -6,7 +6,13 @@ import {
   VOICE_LIMITS,
 } from "@dispatch/core";
 import type { ApiRuntime } from "../curate/apiRuntime.js";
-import { loadPool, loadPreferences, loadSources, sourceNameMap } from "../curate/inputs.js";
+import {
+  loadPool,
+  loadPreferences,
+  loadSources,
+  readJsonIfExists,
+  sourceNameMap,
+} from "../curate/inputs.js";
 import { writeJson } from "../curate/output.js";
 import type { DropStage, Selection, WrittenFile } from "../curate/selectionFile.js";
 import type { ExtractedText } from "../extract/extractText.js";
@@ -27,6 +33,14 @@ import { type WrittenText, writtenText } from "../write/text.js";
 import type { SourceMaterial } from "../write/types.js";
 import { JudgedFile, type MaterialsFile, readArtifact } from "./artifacts.js";
 import { StageFailure } from "./errors.js";
+import {
+  activeGeneralFrom,
+  countGeneral,
+  type GeneralCounts,
+  GeneralJudgedFile,
+  GeneralPoolFile,
+  mergeGeneralCounts,
+} from "./generalNews.js";
 import { mostlyFailed } from "./judgeStage.js";
 import { markStage, type Plan, type PlanPass, passFile, requireStage } from "./plan.js";
 import { capForLength } from "./scheduleSize.js";
@@ -54,6 +68,8 @@ interface PassContext {
   weeklyLengthMinutes: number;
   /** 30-day per-source counters, for the small score adjustment from each source's pass rate. */
   sourceStats: SourceStatsFile;
+  /** The general news topics that are switched on, for the pass level of their feeds' counters. */
+  generalTopics: ReturnType<typeof activeGeneralFrom>;
 }
 
 /**
@@ -85,6 +101,7 @@ export async function writeStage(deps: RunDeps, plan: Plan): Promise<StageReport
     lengthMinutes: schedule?.length_minutes ?? null,
     weeklyLengthMinutes: fullSchedule.weekly.length_minutes,
     sourceStats: await readSourceStats(deps.root),
+    generalTopics: activeGeneralFrom(topics),
   };
 
   const claimed = new Set<string>();
@@ -195,17 +212,23 @@ async function writePass(
       )
       .map((d) => d.id),
   );
+  // The general news stories were judged apart from the pool (judgeGeneral): their feeds' counters
+  // join here, with `covered` standing where a briefing's `published` stands for other sources.
+  const general = await readGeneralCounts(file, context.generalTopics);
   await writeJson(file("source-counts.json"), {
     version: 1,
-    sources: countSources({
-      fetchedBySource: pool.fetchedBySource,
-      poolSourceIds: new Map(pool.items.map((item) => [item.id, item.source_id])),
-      judgedIds: scored.map((s) => s.item.id),
-      asked: new Map(
-        scored.filter((s) => !notAsked.has(s.item.id)).map((s) => [s.item.id, s.entry.flags]),
-      ),
-      passedIds: new Set(scored.map((s) => s.item.id).filter((id) => !notPassed.has(id))),
-    }),
+    sources: mergeGeneralCounts(
+      countSources({
+        fetchedBySource: pool.fetchedBySource,
+        poolSourceIds: new Map(pool.items.map((item) => [item.id, item.source_id])),
+        judgedIds: scored.map((s) => s.item.id),
+        asked: new Map(
+          scored.filter((s) => !notAsked.has(s.item.id)).map((s) => [s.item.id, s.entry.flags]),
+        ),
+        passedIds: new Set(scored.map((s) => s.item.id).filter((id) => !notPassed.has(id))),
+      }),
+      general,
+    ),
   });
 
   /** Persist the pass's outputs and the stage marker. `survivors` empty means "nothing". */
@@ -326,6 +349,28 @@ async function writePass(
     entries,
     survivors.map((sel) => materials.get(sel.item.id) as SourceMaterial),
   );
+}
+
+/**
+ * Counters for the general stories a pass judged, or none when it read no general feed or the
+ * judge stage skipped them. A missing or unreadable file only means no counters.
+ */
+async function readGeneralCounts(
+  file: (name: string) => string,
+  topics: PassContext["generalTopics"],
+): Promise<GeneralCounts> {
+  try {
+    const pool = GeneralPoolFile.safeParse(
+      await readJsonIfExists(file("general.json"), "general.json"),
+    );
+    const judged = GeneralJudgedFile.safeParse(
+      await readJsonIfExists(file("general-judged.json"), "general-judged.json"),
+    );
+    if (!pool.success || !judged.success) return {};
+    return countGeneral({ pool: pool.data, judged: judged.data, topics });
+  } catch {
+    return {};
+  }
 }
 
 async function extractSafely(runtime: ApiRuntime, item: Item): Promise<ExtractedText | null> {

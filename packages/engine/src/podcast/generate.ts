@@ -2,6 +2,7 @@ import {
   type Episode,
   episodeRelPath,
   isGeneralTopicId,
+  normalizeTopicIds,
   type PodcastRequest,
   serializeEpisodeFile,
 } from "@dispatch/core";
@@ -196,7 +197,12 @@ async function select(
 }
 
 /** Plan, select, script, check and write one episode file. It does not commit. */
-export async function generateEpisode(input: GenerateInput): Promise<GenerateResult> {
+export async function generateEpisode(raw: GenerateInput): Promise<GenerateResult> {
+  // A stored request may name a topic that has since been renamed: `technology` reads `tech`.
+  const input: GenerateInput = {
+    ...raw,
+    request: { ...raw.request, topic_ids: normalizeTopicIds(raw.request.topic_ids) },
+  };
   const plan = planPodcast(input.request);
   const selection = await select(input, plan);
   input.log?.info("Selected stories", {

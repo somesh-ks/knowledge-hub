@@ -174,15 +174,22 @@ describe("dispatch podcast --dry-run", () => {
   it("runs the general pipeline from feeds without writing anything", async () => {
     await put(
       root,
-      "config/general-feeds.json",
+      "config/sources.json",
       JSON.stringify({
         version: 1,
-        topics: Object.fromEntries(
-          ["world", "business", "technology", "science", "culture", "sports"].map((t) => [
-            t,
-            [{ id: "npr", name: "NPR", feed_url: `https://npr.test/${t}` }],
-          ]),
-        ),
+        sources: ["world", "business"].map((t) => ({
+          id: `npr-${t}`,
+          name: "NPR",
+          type: "rss",
+          url: "https://npr.test",
+          feed_url: `https://npr.test/${t}`,
+          tier: "daily",
+          high_signal: false,
+          enabled: true,
+          failures: 0,
+          options: {},
+          topic_ids: [t],
+        })),
       }),
     );
     await commitAll(root, "chore: feeds");

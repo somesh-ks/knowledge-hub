@@ -18,6 +18,11 @@ export interface SourceCounts {
   asked?: number;
   /** Asked items the judge flagged as hype or sponsored. */
   flagged?: number;
+  /**
+   * Judged stories of a general news feed that another outlet also carried (D66). Only a feed of
+   * general topics counts it; it stands where `published` stands for other sources.
+   */
+  covered?: number;
 }
 
 const ZERO: Omit<SourceStat, "window_start"> = { fetched: 0, judged: 0, passed: 0, published: 0 };
@@ -36,6 +41,7 @@ export function rollWindow(stat: SourceStat, today: string): SourceStat {
     published: Math.floor(stat.published / 2),
     ...(stat.asked === undefined ? {} : { asked: Math.floor(stat.asked / 2) }),
     ...(stat.flagged === undefined ? {} : { flagged: Math.floor(stat.flagged / 2) }),
+    ...(stat.covered === undefined ? {} : { covered: Math.floor(stat.covered / 2) }),
     window_start: today,
   };
 }
@@ -69,6 +75,8 @@ export function recordSourceStats(
       asked = (before.asked ?? 0) + add.asked;
       flagged = (counting ? (before.flagged ?? 0) : 0) + (add.flagged ?? 0);
     }
+    const covered =
+      add?.covered === undefined ? before.covered : (before.covered ?? 0) + add.covered;
     sources[id] = {
       fetched: before.fetched + (add?.fetched ?? 0),
       judged: before.judged + (add?.judged ?? 0),
@@ -76,6 +84,7 @@ export function recordSourceStats(
       published: before.published + (published.get(id) ?? 0),
       ...(asked === undefined ? {} : { asked }),
       ...(flagged === undefined ? {} : { flagged }),
+      ...(covered === undefined ? {} : { covered }),
       window_start: before.window_start,
     };
   }

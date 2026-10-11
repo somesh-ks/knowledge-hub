@@ -223,6 +223,8 @@ export interface WorldOptions {
   extract?: ApiRuntime["extract"];
   /** Judges custom topics. Omitted means none, as when there is no Jev key. */
   topicJudge?: ApiRuntime["topicJudge"];
+  /** Judges the general news stories. Omitted means none, as when there is no Jev key. */
+  generalJudge?: ApiRuntime["generalJudge"];
 }
 
 /**
@@ -288,6 +290,7 @@ export function makeWorld(root: string, options: WorldOptions = {}): World {
       writer,
       grounder: options.grounder === undefined ? keywordGrounder : options.grounder,
       ...(options.topicJudge === undefined ? {} : { topicJudge: options.topicJudge }),
+      ...(options.generalJudge === undefined ? {} : { generalJudge: options.generalJudge }),
       extract: options.extract ?? (async (item) => longText(item)),
       judgeFailures: [],
       usage: () => ({ nebiusTokens: 0, nebiusTokenLimit: 400_000 }),

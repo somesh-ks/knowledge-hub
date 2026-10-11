@@ -9,6 +9,7 @@ import { readTopicJudgments } from "../state/store.js";
 import { loadTopicsFile } from "../topics/store.js";
 import { type JudgedFile, withRunJudgments, withRunTopicJudgments } from "./artifacts.js";
 import { StageFailure } from "./errors.js";
+import { judgeGeneral } from "./judgeGeneral.js";
 import {
   markStage,
   type Plan,
@@ -174,6 +175,8 @@ export async function judgeStage(deps: RunDeps, plan: Plan): Promise<StageReport
       outage ??= `${pass.id}: the judges answered ${file.entries.length} of ${file.counts.pool} items. That looks like an outage, not a quiet day.`;
       continue;
     }
+    // The general news stories are judged apart from the pool, for their feeds' scores only.
+    const generalReport = await judgeGeneral(deps, pass, runtime, topicsFile);
     await markStage(deps.root, pass, "judge", { at: deps.now().toISOString() });
     passes.push({
       id: pass.id,
@@ -182,6 +185,7 @@ export async function judgeStage(deps: RunDeps, plan: Plan): Promise<StageReport
       model: file.judge.model,
       ...file.counts,
       ...topicReport,
+      ...generalReport,
     });
   }
   await writeJson(cachePath, cache);
