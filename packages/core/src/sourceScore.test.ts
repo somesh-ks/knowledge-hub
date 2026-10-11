@@ -81,24 +81,29 @@ describe("sourceScore: the scoring sample (D70)", () => {
     });
   });
 
-  it("gives a source only ever sampled nothing for publishing: quality is the pass share alone", () => {
+  it("scores a source with nothing that could have been published on its pass share alone", () => {
+    // A switched-off source, all sampled: no publish share or volume to hold it down.
     const stat = { judged: 12, passed: 6, published: 0, asked: 12, sampled: 12 };
-    expect(scoreOf(stat as Partial<Stat>).parts?.quality).toBe(0.3);
+    const result = scoreOf(stat as Partial<Stat>);
+    expect(result.parts?.quality).toBe(1);
+    expect(result.score).toBe(3);
+    const weak = scoreOf({ ...stat, passed: 3 } as Partial<Stat>);
+    expect(weak.parts?.quality).toBe(0.5);
+    expect(weak.reason).toBe("Quality is the weakest part: 3 of 12 sampled items cleared the bar.");
   });
 
-  it(`scores a source that posts rarely on ${MIN_SPARSE} judged items once its feed was read`, () => {
+  it(`scores a source whose feed held under ${MIN_JUDGED} posts on ${MIN_SPARSE} judged items`, () => {
     const sparse = { judged: 4, passed: 2, published: 0, asked: 4, sampled: 4 };
-    const read = sourceScore({
-      stat: { ...clean, ...sparse, sampled_at: "2026-10-07" },
-      health: fresh,
-      now,
-    });
+    const read = sourceScore({ stat: { ...clean, ...sparse, feed_posts: 4 }, health: fresh, now });
     expect(read.label).not.toBe("New");
     expect(read.parts?.trust).toBeNull();
     expect(read.reason).toContain("it posts rarely, so this rests on 4 judged items");
-    // Not read yet, or fewer than MIN_SPARSE judged: still New.
+    // Never read to fill it up (a weekly check, say), or a busy feed whose window halved: New.
     expect(sourceScore({ stat: { ...clean, ...sparse }, health: fresh, now }).label).toBe("New");
-    const two = { ...clean, ...sparse, judged: MIN_SPARSE - 1, sampled_at: "2026-10-07" };
+    const busy = { ...clean, ...sparse, judged: 7, feed_posts: 15 };
+    expect(sourceScore({ stat: busy, health: fresh, now }).label).toBe("New");
+    // Fewer than MIN_SPARSE judged: New however rarely it posts.
+    const two = { ...clean, ...sparse, judged: MIN_SPARSE - 1, feed_posts: 2 };
     expect(sourceScore({ stat: two, health: fresh, now }).label).toBe("New");
   });
 });

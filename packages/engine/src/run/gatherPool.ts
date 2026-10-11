@@ -82,7 +82,10 @@ export async function gatherPool(input: GatherInput): Promise<GatherResult> {
   const probed = new Set((input.probeGeneral ?? []).map((source) => source.id));
   const runnable = sources.sources
     // A switched-off general feed due its check runs as if on, for this pass's general stories only.
-    .map((source) => (probed.has(source.id) ? { ...source, enabled: true } : source))
+    // A weekly-tier one is read in this regular pass too.
+    .map((source) =>
+      probed.has(source.id) ? { ...source, enabled: true, tier: "daily" as const } : source,
+    )
     .filter((source) => {
       if (!feedsGeneralOnly(source.topic_ids)) return true;
       if (input.kind === "weekly") return false;

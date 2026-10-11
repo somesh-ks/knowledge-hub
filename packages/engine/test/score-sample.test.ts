@@ -218,7 +218,12 @@ describe("countSample", () => {
     const weak = makeItem({ source_id: "blog" });
     const hyped = makeItem({ source_id: "blog" });
     const counts = countSample({
-      sample: { version: 1, items: [good, weak, hyped], reads: ["blog", "quiet"] },
+      sample: {
+        version: 1,
+        items: [good, weak, hyped],
+        reads: ["blog", "quiet"],
+        feed_posts: { blog: 3, quiet: 0 },
+      },
       judged: {
         version: 1,
         entries: [
@@ -246,6 +251,20 @@ describe("countSample", () => {
     expect(counts.blog?.passed).toBe(2);
     // A read that found nothing still moves the source's sampled_at.
     expect(counts.quiet).toMatchObject({ judged: 0, read_feed: true });
+  });
+
+  it("counts nothing, reads included, when the sample was not judged", () => {
+    const counts = countSample({
+      sample: {
+        version: 1,
+        items: [makeItem({ source_id: "blog" })],
+        reads: ["blog"],
+        feed_posts: {},
+      },
+      judged: null,
+      preferences: realPreferences(),
+    });
+    expect(counts).toEqual({});
   });
 
   it("adds to a pass's counters without touching what was fetched or published", () => {
@@ -336,6 +355,29 @@ describe("recordSourceStats with a sample", () => {
       sampled_at: "2026-10-07",
       window_start: "2026-10-07",
     });
+  });
+
+  it("keeps the feed's post count from its last refill, and replaces it on the next", () => {
+    let file = recordSourceStats(
+      { version: 1, sources: {} },
+      { blog: { fetched: 0, judged: 3, passed: 1, sampled: 3, read_feed: true, feed_posts: 3 } },
+      [],
+      "2026-10-07",
+    );
+    file = recordSourceStats(
+      file,
+      { blog: { fetched: 2, judged: 0, passed: 0 } },
+      [],
+      "2026-10-09",
+    );
+    expect(file.sources.blog?.feed_posts).toBe(3);
+    file = recordSourceStats(
+      file,
+      { blog: { fetched: 0, judged: 1, passed: 0, sampled: 1, read_feed: true, feed_posts: 12 } },
+      [],
+      "2026-11-09",
+    );
+    expect(file.sources.blog).toMatchObject({ feed_posts: 12, sampled_at: "2026-11-09" });
   });
 
   it("halves sampled with the rest when the window restarts, and keeps sampled_at", () => {

@@ -33,6 +33,12 @@ export const GeneralPoolFile = z.object({
    * judged last, so a check never takes the place of a switched-on feed's story.
    */
   checked: z.array(z.string()).optional(),
+  /**
+   * A story's count of every outlet that carried it, where a weekly check's outlet made it differ
+   * from `signals.coverage`, which counts switched-on outlets alone (D70). A checked feed's own
+   * score reads this one; every switched-on feed's reads the signal, as before the checks.
+   */
+  coverage_all: z.record(z.string(), count).optional(),
   report: z.object({
     /** Items the general sources returned in the window. */
     fetched: count,
@@ -170,9 +176,23 @@ export function buildGeneralPool(input: {
     outlets,
   });
 
+  // A weekly check's outlet never raises a switched-on feed's coverage (D70): the signal counts
+  // switched-on outlets, and the full count is kept apart for the checked feeds' own scores. A
+  // story only checks carried keeps its full count; it is judged after every other anyway.
+  const checked = input.checked ?? new Set<string>();
+  const outletOfId = (id: string): string => {
+    const source = sources.get(id);
+    return source ? outletOf(source) : id;
+  };
+  const coverageAll: Record<string, number> = {};
   const items = clustered.items.map((item): Item => {
     const original = real.get(item.id) ?? item;
-    const coverage = item.signals.coverage ?? 1;
+    const all = item.signals.coverage ?? 1;
+    const on = new Set(
+      [...(carriers.get(item.id) ?? [])].filter((id) => !checked.has(id)).map(outletOfId),
+    );
+    const coverage = checked.size === 0 || on.size === 0 ? all : on.size;
+    if (coverage !== all) coverageAll[item.id] = all;
     const { coverage: _own, ...signals } = original.signals;
     return {
       ...original,
@@ -185,12 +205,13 @@ export function buildGeneralPool(input: {
     const rest = [...(carriers.get(item.id) ?? [])].filter((id) => id !== item.source_id).sort();
     out[item.id] = [item.source_id, ...rest];
   }
-  const checked = [...(input.checked ?? [])].sort();
+  const checkedIds = [...checked].sort();
   return {
     version: 1,
     items,
     carriers: out,
-    ...(checked.length > 0 ? { checked } : {}),
+    ...(checkedIds.length > 0 ? { checked: checkedIds } : {}),
+    ...(Object.keys(coverageAll).length > 0 ? { coverage_all: coverageAll } : {}),
     report: {
       fetched: input.items.length,
       same_url: sameUrl,
@@ -254,6 +275,7 @@ export function countGeneral(input: {
   };
   const items = new Map(input.pool.items.map((item) => [item.id, item]));
   const weights = new Map(input.topics.map((topic) => [topic.id, topic]));
+  const checked = new Set(input.pool.checked ?? []);
   for (const entry of input.judged.entries) {
     const item = items.get(entry.item_id);
     if (!item) continue;
@@ -261,12 +283,14 @@ export function countGeneral(input: {
       const topic = weights.get(topicId);
       return topic !== undefined && fitPasses(topic, value);
     });
-    const covered = (item.signals.coverage ?? 1) >= 2;
+    const coverage = item.signals.coverage ?? 1;
+    const all = input.pool.coverage_all?.[item.id] ?? coverage;
     for (const sourceId of input.pool.carriers[item.id] ?? [item.source_id]) {
       const counts = row(sourceId);
       counts.judged += 1;
       if (passed) counts.passed += 1;
-      if (covered) counts.covered += 1;
+      // A checked feed counts every outlet; a switched-on one only switched-on outlets (D70).
+      if ((checked.has(sourceId) ? all : coverage) >= 2) counts.covered += 1;
       if (entry.flags) {
         counts.asked += 1;
         if (isFlagged(entry.flags)) counts.flagged += 1;

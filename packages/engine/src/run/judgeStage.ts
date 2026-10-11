@@ -196,13 +196,14 @@ export async function judgeStage(deps: RunDeps, plan: Plan): Promise<StageReport
         passFile(deps.root, pass.id, "sample-judged.json"),
       );
       const sampleJudge = runtime.sampleJudge ?? null;
-      if (sample && sample.items.length > 0 && sampleJudge === null) {
+      if (sample && sampleJudge === null) {
         deps.log.warn("No Jev client: the scoring sample waits for a run that has one", {
           pass: pass.id,
           items: sample.items.length,
         });
       }
-      if (sample && sample.items.length > 0 && sampleJudge !== null) {
+      // Written even with no items, so the feed reads that found none still count as done.
+      if (sample && sampleJudge !== null) {
         const answered = await judgeWithCache(sampleJudge, sample.items, cache);
         cache = answered.cache;
         const judgedSample: SampleJudgedFile = {

@@ -74,6 +74,8 @@ export const SampleFile = z.object({
   items: z.array(Item),
   /** Sources whose own feed the sample read this pass, whatever came of it. */
   reads: z.array(z.string()),
+  /** Posts each refilled source's feed held in its look-back: under ten, it posts rarely. */
+  feed_posts: z.record(z.string(), z.number().int().nonnegative()).default({}),
 });
 export type SampleFile = z.infer<typeof SampleFile>;
 
@@ -177,12 +179,22 @@ export async function readFeeds(
   const results = await mapConcurrent(reads, READ_CONCURRENCY, async (read) => {
     const started = Date.now();
     const fetcher = deps.fetchers?.[read.source.type] ?? FETCHERS[read.source.type];
+    let timer: ReturnType<typeof setTimeout> | undefined;
     try {
-      const got = await fetcher(
-        read.source,
-        { from: read.from, to: deps.now },
-        { http: deps.http, now: () => deps.now, signal: AbortSignal.timeout(READ_TIMEOUT_MS) },
-      );
+      // The signal stops a well-behaved fetcher; the race stops one that ignores it.
+      const got = await Promise.race([
+        fetcher(
+          read.source,
+          { from: read.from, to: deps.now },
+          { http: deps.http, now: () => deps.now, signal: AbortSignal.timeout(READ_TIMEOUT_MS) },
+        ),
+        new Promise<never>((_, reject) => {
+          timer = setTimeout(
+            () => reject(new Error(`timed out after ${READ_TIMEOUT_MS} ms`)),
+            READ_TIMEOUT_MS + 1_000,
+          );
+        }),
+      ]);
       items.set(read.source.id, got);
       return { source_id: read.source.id, ok: true, count: got.length, ms: Date.now() - started };
     } catch (error) {
@@ -194,6 +206,8 @@ export async function readFeeds(
         ms: Date.now() - started,
         error: message.replace(/\s+/g, " ").slice(0, 200),
       };
+    } finally {
+      clearTimeout(timer);
     }
   });
   return { items, results };
@@ -273,7 +287,9 @@ export function answeredBefore(cache: JudgmentsFile, seen: SeenFile): (itemId: s
  * Per-source counters of a judged sample, to add to the pass's counters. A sampled item counts as
  * judged and as sampled, passed when it would have been eligible to publish on its built-in
  * categories, and asked (and flagged) like any item the judge asked the flag questions. A source
- * whose feed was read gets `read_feed`, so its `sampled_at` moves even when the read found nothing.
+ * whose feed was read gets `read_feed`, so its `sampled_at` moves even when the read found
+ * nothing, and a refilled one its feed's post count. Nothing counts when the sample was not
+ * judged (no Jev key, an outage): the reads are then tried again on a later run.
  */
 export function countSample(input: {
   sample: SampleFile;
@@ -281,12 +297,13 @@ export function countSample(input: {
   preferences: Preferences;
 }): Record<string, SourceCounts> {
   const out: Record<string, SourceCounts> = {};
+  if (input.judged === null) return out;
   const row = (id: string): SourceCounts => {
     out[id] ??= { fetched: 0, judged: 0, passed: 0, asked: 0, flagged: 0, sampled: 0 };
     return out[id];
   };
   const items = new Map(input.sample.items.map((item) => [item.id, item]));
-  for (const entry of input.judged?.entries ?? []) {
+  for (const entry of input.judged.entries) {
     const item = items.get(entry.item_id);
     if (!item) continue;
     const counts = row(item.source_id);
@@ -297,6 +314,7 @@ export function countSample(input: {
     if (eligibility(scoreItem(entry, input.preferences, item)).eligible) counts.passed += 1;
   }
   for (const id of input.sample.reads) row(id).read_feed = true;
+  for (const [id, posts] of Object.entries(input.sample.feed_posts)) row(id).feed_posts = posts;
   return out;
 }
 
@@ -316,6 +334,7 @@ export function mergeSampleCounts(
       flagged: (before.flagged ?? 0) + (add.flagged ?? 0),
       sampled: (before.sampled ?? 0) + (add.sampled ?? 0),
       ...(add.read_feed || before.read_feed ? { read_feed: true } : {}),
+      ...(add.feed_posts === undefined ? {} : { feed_posts: add.feed_posts }),
     };
   }
   return out;

@@ -17,6 +17,8 @@ const Counts = z.object({
   sampled: count.optional(),
   /** The scoring sample read the source's own feed (D70). */
   read_feed: z.boolean().optional(),
+  /** Posts that feed held when it was read to fill the source up (D70). */
+  feed_posts: count.optional(),
 });
 
 /** `.cache/run/<id>/source-counts.json`: per-source counters for one pass, applied at commit. */
@@ -50,9 +52,17 @@ export function countSources(input: {
   judgedIds: readonly string[];
   asked: ReadonlyMap<string, Pick<JudgmentEntry["flags"], "hype" | "sponsored">>;
   passedIds: ReadonlySet<string>;
-}): Record<string, Required<Omit<SourceCounts, "covered" | "sampled" | "read_feed">>> {
-  const out: Record<string, Required<Omit<SourceCounts, "covered" | "sampled" | "read_feed">>> = {};
-  const row = (id: string): Required<Omit<SourceCounts, "covered" | "sampled" | "read_feed">> => {
+}): Record<
+  string,
+  Required<Omit<SourceCounts, "covered" | "sampled" | "read_feed" | "feed_posts">>
+> {
+  const out: Record<
+    string,
+    Required<Omit<SourceCounts, "covered" | "sampled" | "read_feed" | "feed_posts">>
+  > = {};
+  const row = (
+    id: string,
+  ): Required<Omit<SourceCounts, "covered" | "sampled" | "read_feed" | "feed_posts">> => {
     out[id] ??= { fetched: 0, judged: 0, passed: 0, asked: 0, flagged: 0 };
     return out[id];
   };

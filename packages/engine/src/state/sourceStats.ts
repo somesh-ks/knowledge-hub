@@ -31,6 +31,8 @@ export interface SourceCounts {
   sampled?: number;
   /** True when the scoring sample read the source's own feed in this pass (D70). */
   read_feed?: boolean;
+  /** Posts the source's own feed held when the sample read it to fill it up (D70). */
+  feed_posts?: number;
 }
 
 const ZERO: Omit<SourceStat, "window_start"> = { fetched: 0, judged: 0, passed: 0, published: 0 };
@@ -52,6 +54,7 @@ export function rollWindow(stat: SourceStat, today: string): SourceStat {
     ...(stat.covered === undefined ? {} : { covered: Math.floor(stat.covered / 2) }),
     ...(stat.sampled === undefined ? {} : { sampled: Math.floor(stat.sampled / 2) }),
     ...(stat.sampled_at === undefined ? {} : { sampled_at: stat.sampled_at }),
+    ...(stat.feed_posts === undefined ? {} : { feed_posts: stat.feed_posts }),
     window_start: today,
   };
 }
@@ -90,6 +93,7 @@ export function recordSourceStats(
     const sampled =
       add?.sampled === undefined ? before.sampled : (before.sampled ?? 0) + add.sampled;
     const sampledAt = add?.read_feed ? today : before.sampled_at;
+    const feedPosts = add?.feed_posts ?? before.feed_posts;
     sources[id] = {
       fetched: before.fetched + (add?.fetched ?? 0),
       judged: before.judged + (add?.judged ?? 0),
@@ -100,6 +104,7 @@ export function recordSourceStats(
       ...(covered === undefined ? {} : { covered }),
       ...(sampled === undefined ? {} : { sampled }),
       ...(sampledAt === undefined ? {} : { sampled_at: sampledAt }),
+      ...(feedPosts === undefined ? {} : { feed_posts: feedPosts }),
       window_start: before.window_start,
     };
   }

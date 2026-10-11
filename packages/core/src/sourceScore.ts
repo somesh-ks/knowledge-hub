@@ -37,13 +37,15 @@ import type { SourceStat } from "./state.js";
  *
  * Items the scoring sample judged for the score alone (D70) count toward the pass share and trust
  * like any judged item, but they could never be published, so the publish share is out of the
- * items that could have been: `judged` less `sampled`. A source the prefilter never sends earns
- * nothing there, as before, and is told apart from one that sends nothing worth passing.
+ * items that could have been: `judged` less `sampled`. A source with none that could have been,
+ * a switched-off one or one the prefilter has not sent yet, has no publish share and no volume to
+ * read: its quality is the pass share alone, so a switched-off source can show it has earned a
+ * place.
  *
  * Fewer than MIN_JUDGED judged items is too little history: the label is "New", and the score and
- * the parts are null. One exception: a source whose own feed the sample has read (`sampled_at`)
- * and that still has fewer than MIN_JUDGED judged items posts too rarely to reach them; with at
- * least MIN_SPARSE judged it is scored on what it has, and the reason says so.
+ * the parts are null. One exception: a source whose own feed held fewer than MIN_JUDGED posts when
+ * the sample last read it (`feed_posts`) posts too rarely to reach them; with at least MIN_SPARSE
+ * judged it is scored on what it has, and the reason says so.
  *
  * Label thresholds: Excellent 2.7 and up, Good 2.1 and up, Fair 1.5 and up, Poor below; on the
  * mean of the parts that is 0.9, 0.7 and 0.5. The reason names the weakest measured part when one
@@ -88,7 +90,7 @@ export interface SourceScoreInput {
         | "flagged"
         | "covered"
         | "sampled"
-        | "sampled_at"
+        | "feed_posts"
       >
     | undefined;
   /** True for a source that feeds general news topics alone: quality counts covered stories. */
@@ -204,9 +206,11 @@ export function sourceScore(input: SourceScoreInput): SourceScoreResult {
   const failures = input.health?.failures ?? 0;
   const discovery = input.quality ? Math.round(input.quality.score * 100) / 100 : undefined;
 
-  // A source whose own feed was read and that still has fewer than MIN_JUDGED judged items holds
-  // no more to judge: it posts rarely, and waiting would not change that within the window.
-  const sparse = stat?.sampled_at !== undefined && judged < MIN_JUDGED && judged >= MIN_SPARSE;
+  // A source whose own feed held fewer than MIN_JUDGED posts when last read posts rarely: waiting
+  // would not bring it to MIN_JUDGED judged items within the window.
+  const posts = stat?.feed_posts;
+  const sparse =
+    posts !== undefined && posts < MIN_JUDGED && judged < MIN_JUDGED && judged >= MIN_SPARSE;
   if (!stat || (judged < MIN_JUDGED && !sparse)) {
     const seen = plural(judged, "item", "items");
     const prior =
@@ -229,10 +233,14 @@ export function sourceScore(input: SourceScoreInput): SourceScoreResult {
   const sampled = input.feedsGeneral ? 0 : Math.min(judged, stat.sampled ?? 0);
   const publishable = judged - sampled;
   const passRate = stat.passed / judged;
-  const publishRate = publishable > 0 ? used / publishable : 0;
-  const yieldShare = 0.4 * clamp01(passRate / 0.5) + 0.6 * clamp01(publishRate / 0.25);
-  const volume = clamp01(used / 4);
-  const quality = 0.75 * yieldShare + 0.25 * volume;
+  const passShare = clamp01(passRate / 0.5);
+  // Nothing that could have been published: no publish share and no volume to read, only the pass
+  // share (D70).
+  const quality =
+    publishable > 0
+      ? 0.75 * (0.4 * passShare + 0.6 * clamp01(used / publishable / 0.25)) +
+        0.25 * clamp01(used / 4)
+      : passShare;
 
   const asked = stat.asked ?? 0;
   const flagged = stat.flagged ?? 0;
@@ -251,9 +259,11 @@ export function sourceScore(input: SourceScoreInput): SourceScoreResult {
     health: healthClause(failures, days),
     quality: input.feedsGeneral
       ? `${used} of ${judged} judged stories also carried by another outlet`
-      : sampled > 0
-        ? `${used} of ${publishable} judged items published, ${sampled} more sampled`
-        : `${used} of ${judged} judged items published`,
+      : publishable === 0
+        ? `${stat.passed} of ${judged} sampled items cleared the bar`
+        : sampled > 0
+          ? `${used} of ${publishable} judged items published, ${sampled} more sampled`
+          : `${used} of ${judged} judged items published`,
     trust: `${flagged} of ${asked} checked items flagged as hype or sponsored`,
   };
   const weakest = weakestPart(parts);

@@ -164,8 +164,8 @@ export interface SourceStats {
   covered?: number;
   /** Judged items the scoring sample judged for the score alone (D70). */
   sampled?: number;
-  /** The date the scoring sample last read the source's own feed (D70). */
-  sampled_at?: string;
+  /** Posts the source's own feed held when the scoring sample last read it (D70). */
+  feed_posts?: number;
 }
 
 /**
@@ -453,7 +453,7 @@ function parseStats(file: unknown): Map<string, SourceStats> {
     const flagged = asNumber(entry.flagged);
     const covered = asNumber(entry.covered);
     const sampled = asNumber(entry.sampled);
-    const sampledAt = typeof entry.sampled_at === "string" ? entry.sampled_at : null;
+    const feedPosts = asNumber(entry.feed_posts);
     result.set(id, {
       fetched: asNumber(entry.fetched) ?? 0,
       judged: asNumber(entry.judged) ?? 0,
@@ -463,7 +463,7 @@ function parseStats(file: unknown): Map<string, SourceStats> {
       ...(flagged === null ? {} : { flagged }),
       ...(covered === null ? {} : { covered }),
       ...(sampled === null ? {} : { sampled }),
-      ...(sampledAt === null ? {} : { sampled_at: sampledAt }),
+      ...(feedPosts === null ? {} : { feed_posts: feedPosts }),
     });
   }
   return result;

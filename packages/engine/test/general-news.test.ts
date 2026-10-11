@@ -193,6 +193,36 @@ describe("buildGeneralPool", () => {
     expect(GeneralPoolFile.safeParse(pool).success).toBe(true);
   });
 
+  it("never lets a weekly check's outlet raise a switched-on feed's coverage (D70)", () => {
+    const pool = buildGeneralPool({
+      items: [
+        feedItem("npr-world", "quake", QUAKE),
+        feedItem("bbc-world", "quake", "Earthquake of magnitude 6.1 strikes Izmir coast, Turkey"),
+      ],
+      sources: SOURCES,
+      activeTopicIds: active,
+      checked: new Set(["bbc-world"]),
+    });
+    const story = pool.items[0];
+    if (!story) throw new Error("no story");
+    // The signal counts switched-on outlets (npr alone); the full count is kept for the check.
+    expect(story.signals.coverage).toBeUndefined();
+    expect(pool.coverage_all).toEqual({ [story.id]: 2 });
+    expect(pool.checked).toEqual(["bbc-world"]);
+    const judged: GeneralJudgedFile = {
+      version: 1,
+      judge: { model: "jev-test", questions_hash: GENERAL_QUESTIONS_HASH },
+      entries: [
+        { item_id: story.id, flags: { hype: 0, sponsored: 0 }, fits: { world: 1 }, hashes: {} },
+      ],
+      unjudged: [],
+      counts: { pool: 1, over_ceiling: 0, reused: 0, requests: 1, judged: 1, unjudged: 0 },
+    };
+    const counts = countGeneral({ pool, judged, topics: [{ id: "world", weight: 1 }] });
+    expect(counts["npr-world"]).toMatchObject({ judged: 1, covered: 0 });
+    expect(counts["bbc-world"]).toMatchObject({ judged: 1, covered: 1 });
+  });
+
   it("drops a story whose topics are all switched off and trims the others", () => {
     const pool = buildGeneralPool({
       items: [

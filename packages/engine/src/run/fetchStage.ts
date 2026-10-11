@@ -1,5 +1,5 @@
 import { rm } from "node:fs/promises";
-import { stockholmDate } from "@dispatch/core";
+import { type SourceStatsFile, stockholmDate } from "@dispatch/core";
 import { loadJudgments } from "../curate/inputs.js";
 import { writeJson } from "../curate/output.js";
 import { poolRelPath, writePool } from "../fetch/pool.js";
@@ -21,8 +21,13 @@ import {
 } from "./scoreSample.js";
 import type { PassReport, RunDeps, StageReport } from "./types.js";
 
+interface SamplePlan {
+  readPlan: ReadPlan;
+  stats: SourceStatsFile;
+}
+
 /** The read plan of the run's scoring sample (D70), or null when it cannot be made. */
-async function planSample(deps: RunDeps, now: Date): Promise<ReadPlan | null> {
+async function planSample(deps: RunDeps, now: Date): Promise<SamplePlan | null> {
   try {
     const [registry, stats, health] = await Promise.all([
       loadSources(deps.root),
@@ -30,7 +35,7 @@ async function planSample(deps: RunDeps, now: Date): Promise<ReadPlan | null> {
       readSourceHealth(deps.root),
     ]);
     const sources = overlayHealth(registry, health).sources;
-    return planReads({ sources, stats, today: stockholmDate(now), now });
+    return { readPlan: planReads({ sources, stats, today: stockholmDate(now), now }), stats };
   } catch (error) {
     deps.log.warn("The scoring sample could not be planned; scores wait for the next run", {
       reason: error instanceof Error ? error.message.split("\n")[0] : "unknown",
@@ -47,21 +52,17 @@ async function planSample(deps: RunDeps, now: Date): Promise<ReadPlan | null> {
 async function buildSample(
   deps: RunDeps,
   pass: PlanPass,
-  readPlan: ReadPlan,
+  planned: SamplePlan,
   gathered: GatherResult,
-  now: Date,
+  reading: ReturnType<typeof readFeeds>,
 ): Promise<{ file: SampleFile; probeResults: SourceResult[]; reads: number } | null> {
+  const { readPlan, stats } = planned;
   try {
-    const [stats, seen, cache] = await Promise.all([
-      readSourceStats(deps.root),
+    const [seen, cache, { items, results }] = await Promise.all([
       readSeen(deps.root),
       loadJudgments(deps.root).then((base) => withRunJudgments(base, runJudgmentsPath(deps.root))),
+      reading,
     ]);
-    const { items, results } = await readFeeds(readPlan.reads, {
-      http: deps.fetch.http,
-      now,
-      fetchers: deps.fetch.fetchers,
-    });
     const answered = answeredBefore(cache, seen);
     const pooled = new Set(gathered.pool.items.map((item) => item.id));
     const picked = pickSample({
@@ -78,6 +79,9 @@ async function buildSample(
     const probes = new Set(
       readPlan.reads.filter((read) => read.reason === "probe").map((read) => read.source.id),
     );
+    const refilled = readPlan.reads.filter(
+      (read) => read.reason === "refill" && ok.has(read.source.id),
+    );
     const reads = [
       ...readPlan.reads
         .filter((read) => read.reason === "probe" || ok.has(read.source.id))
@@ -88,8 +92,12 @@ async function buildSample(
         .map((source) => source.id)
         .filter((id) => gathered.results.some((result) => result.source_id === id)),
     ];
+    // How many posts each refilled feed held: under ten, the source posts rarely (sourceScore).
+    const feedPosts = Object.fromEntries(
+      refilled.map((read) => [read.source.id, items.get(read.source.id)?.length ?? 0]),
+    );
     return {
-      file: { version: 1, items: picked, reads },
+      file: { version: 1, items: picked, reads, feed_posts: feedPosts },
       probeResults: results.filter((result) => probes.has(result.source_id)),
       reads: readPlan.reads.length,
     };
@@ -113,10 +121,20 @@ export async function fetchStage(deps: RunDeps, plan: Plan): Promise<StageReport
   const passes: PassReport[] = [];
   // The scoring sample (D70) rides on the run's first regular pass, once a run.
   const samplePass = plan.passes.find((pass) => pass.kind === "regular");
-  const readPlan = samplePass ? await planSample(deps, deps.now()) : null;
+  const planned = samplePass ? await planSample(deps, deps.now()) : null;
   for (const pass of plan.passes) {
     const now = deps.now();
-    const sampling = pass === samplePass && readPlan !== null;
+    const sampling = pass === samplePass && planned !== null;
+    // The sample's own feed reads need nothing from the pool, so they run beside the pass's fetch.
+    // readFeeds never rejects: each read's failure is its result.
+    const reading =
+      sampling && planned
+        ? readFeeds(planned.readPlan.reads, {
+            http: deps.fetch.http,
+            now,
+            fetchers: deps.fetch.fetchers,
+          })
+        : null;
     const gathered = await gatherPool({
       root: deps.root,
       now,
@@ -124,7 +142,7 @@ export async function fetchStage(deps: RunDeps, plan: Plan): Promise<StageReport
       kind: pass.kind,
       window: { from: new Date(pass.window.from), to: new Date(pass.window.to) },
       setup: deps.fetch,
-      ...(sampling ? { probeGeneral: readPlan.probeGeneral } : {}),
+      ...(sampling && planned ? { probeGeneral: planned.readPlan.probeGeneral } : {}),
     });
     await writePool(passFile(deps.root, pass.id, "pool.json"), gathered.pool);
     // The general stories live beside the pool, never in it. A file left by an earlier attempt
@@ -134,9 +152,12 @@ export async function fetchStage(deps: RunDeps, plan: Plan): Promise<StageReport
     else await rm(generalPath, { force: true });
 
     const samplePath = passFile(deps.root, pass.id, "sample.json");
-    const sample = sampling ? await buildSample(deps, pass, readPlan, gathered, now) : null;
+    const sample =
+      planned && reading ? await buildSample(deps, pass, planned, gathered, reading) : null;
     if (sample) await writeJson(samplePath, sample.file);
     else await rm(samplePath, { force: true });
+    // Answers an earlier attempt judged belong to its sample, never this one.
+    await rm(passFile(deps.root, pass.id, "sample-judged.json"), { force: true });
 
     if (!plan.dry_run) {
       // Applied pass by pass: a source failing in both passes of one run has failed twice in a row.
