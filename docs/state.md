@@ -2,7 +2,7 @@
 
 Last updated 2026-10-11. Rewrite this file; do not append.
 
-The reader is called Singularity (D30). Identifiers keep `dispatch`. Everything below is on `main` and deployed at news.someshks.work unless a line says otherwise. The design pass of 2026-10-10 (D51 to D54) merged in #74 to #76. The Topics & Sources panel and source scores out of 3 (D55, D56) merged in #77. The third audit's other fixes, topic editing and order (D57), the top Nebius models (D58) and the Play button on phones (D59) merged in #80.
+The reader is called Singularity (D30). Identifiers keep `dispatch`. Everything below is on `main` and deployed at news.someshks.work unless a line says otherwise. The design pass of 2026-10-10 (D51 to D54) merged in #74 to #76. The Topics & Sources panel and source scores out of 3 (D55, D56) merged in #77. The third audit's other fixes, topic editing and order (D57), the top Nebius models (D58) and the Play button on phones (D59) merged in #80. The design-engineering audit pass ([design-engineering-audit.md](design-engineering-audit.md)) added scroll edge fade masks on tabs and shelf, content-visibility for off-screen cards, concentric radii for cover frame and search clear, rAF-batched scroll measurements in SpeedControl, and 0.95 scale tuning.
 
 ## Working in production
 

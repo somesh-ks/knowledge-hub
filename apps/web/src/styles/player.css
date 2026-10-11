@@ -162,7 +162,7 @@
 [data-playing="false"] .glyph-playing,
 [data-playing="true"] .glyph-paused {
   opacity: 0;
-  transform: scale(0.7);
+  transform: scale(0.95);
   filter: blur(var(--blur-enter));
 }
 

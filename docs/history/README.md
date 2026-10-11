@@ -4,6 +4,7 @@ One note per session, newest first. Read a note only to learn why something was 
 
 | Date | Note | Summary |
 | :--- | :--- | :--- |
+| 2026-10-11 | [Design-engineering audit and craft polish](2026-10-11-design-engineering-audit.md) | Audit across all ten craft areas using sk-design-engineering: scroll edge fade masks on tabs and shelf, content-visibility for off-screen cards, concentric radii for cover frame and search clear, rAF-batched scroll measurements in SpeedControl, and 0.95 scale tuning |
 | 2026-10-11 | [Topics & Sources panel, source scores out of 3, a third audit](2026-10-11-topics-sources-panel-and-scores.md) | One panel adds topics and sources and edits a source, scores out of 3 from health, quality and trust, no Custom page, readouts that hold still, a third audit; then topic editing and order, top Nebius models, Play on a phone; then Create on the Library alone, a Vercel Cron trigger for GitHub's late schedule, and the player's pull moving the bottom bar (D55 to D61) |
 | 2026-10-10 | [Design pass, two-level Settings and autosave](2026-10-10-design-pass-settings-autosave.md) | Two audits of every screen, drawn select lists, Settings in two levels that save themselves, the phone Create button on Today and the Library, a 110 KB budget, 3:1 field outlines (D51 to D54) |
 | 2026-10-10 | [Podcast settings, providers, voices and the player redesign](2026-10-10-podcast-settings-and-providers.md) | One Podcast page with Daily, Weekly and Custom, Anthropic, voices, sources with scores, the player redesign draft (D49) |
