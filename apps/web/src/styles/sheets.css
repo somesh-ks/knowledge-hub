@@ -632,6 +632,19 @@
     display var(--duration-press-in) allow-discrete;
 }
 
+/* On a phone a toast keeps one width, the screen's less its gutters, whatever it says: sized to its
+   words, it jumped from 105 to 358px between Saving and what came of it. The words take the room,
+   so a button stays at its end. */
+@media (width < 40rem) {
+  .toast {
+    width: min(calc(100% - var(--page-gutter) * 2), var(--layout-dialog));
+  }
+
+  .toast-text {
+    flex: 1 1 auto;
+  }
+}
+
 /* The open player covers the navigation column too, so a toast centres on the player. */
 html[data-player="open"] .toast {
   inset-inline-start: 0;
