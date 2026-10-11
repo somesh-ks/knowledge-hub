@@ -198,7 +198,7 @@ test.describe("the profile pages", () => {
     await expect(play).toBeHidden();
   });
 
-  test("Topics lists every live topic ticked, keeps one, and saves a narrower list", async ({
+  test("Topics lists every live topic ticked, keeps one, and saves the ones left out", async ({
     page,
   }) => {
     const sent = await mockConfig(page);
@@ -213,8 +213,12 @@ test.describe("the profile pages", () => {
     for (let index = 1; index < count; index += 1) await chips.nth(index).click();
     await chips.first().click();
     await expect(boxes.first()).toBeChecked();
-    const first = await boxes.first().getAttribute("value");
-    await expect.poll(() => scheduleSent(sent).sections, { timeout: 10_000 }).toEqual([first]);
+    const values = await boxes.evaluateAll((nodes) =>
+      nodes.map((node) => (node as HTMLInputElement).value),
+    );
+    await expect
+      .poll(() => scheduleSent(sent).skip_topics, { timeout: 10_000 })
+      .toEqual(values.slice(1).sort());
   });
 
   test("has 44px targets", async ({ page }) => {

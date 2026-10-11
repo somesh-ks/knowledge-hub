@@ -251,7 +251,7 @@ describe("weights.set", () => {
 });
 
 describe("schedule.set", () => {
-  const SET = { op: "schedule.set", hour: 9, cadence_days: 3, sections: null };
+  const SET = { op: "schedule.set", hour: 9, cadence_days: 3 };
 
   it("writes config/schedule.json and nothing else", async () => {
     const { code, report } = await apply(SET);
@@ -262,7 +262,7 @@ describe("schedule.set", () => {
       version: 1,
       hour: 9,
       cadence_days: 3,
-      sections: null,
+      skip_topics: [],
       format: "readout",
       length_minutes: 10,
       voice_id: null,
@@ -271,7 +271,7 @@ describe("schedule.set", () => {
         enabled: true,
         day: 0,
         hour: 7,
-        sections: null,
+        skip_topics: [],
         format: "readout",
         length_minutes: 10,
         voice_id: null,
@@ -336,38 +336,25 @@ describe("schedule.set", () => {
     expect(repo.dirty()).toEqual([]);
   });
 
-  it("stores a list of sections without Top picks", async () => {
-    await apply({ ...SET, sections: ["ai", "top", "ai"] });
-    expect(await repo.readJson("config/schedule.json")).toMatchObject({ sections: ["ai"] });
-  });
-
-  it("stores the weekly podcast's own topics apart from the daily ones, and refuses an unknown one", async () => {
-    await apply({ op: "schedule.set", weekly: { sections: ["ai", "top"] } });
+  it("stores the topics each podcast leaves out, each once", async () => {
+    await apply({ ...SET, skip_topics: ["trending", "trending"] });
+    await apply({ op: "schedule.set", weekly: { skip_topics: ["design_engineering_craft"] } });
     expect(await repo.readJson("config/schedule.json")).toMatchObject({
-      sections: null,
-      weekly: { sections: ["ai"] },
+      skip_topics: ["trending"],
+      weekly: { skip_topics: ["design_engineering_craft"] },
     });
     await apply({ op: "schedule.set", weekly: { day: 3 } });
     expect(await repo.readJson("config/schedule.json")).toMatchObject({
-      weekly: { day: 3, sections: ["ai"] },
+      weekly: { day: 3, skip_topics: ["design_engineering_craft"] },
     });
-    await apply({ op: "schedule.set", weekly: { sections: null } });
-    expect(await repo.readJson("config/schedule.json")).toMatchObject({
-      weekly: { sections: null },
-    });
-    for (const bad of [
-      { op: "schedule.set", weekly: { sections: ["nope"] } },
-      { op: "schedule.set", weekly: { sections: ["top"] } },
-    ]) {
-      expect((await apply(bad)).code, JSON.stringify(bad)).toBe(1);
-    }
+    await apply({ op: "schedule.set", skip_topics: [] });
+    expect(await repo.readJson("config/schedule.json")).toMatchObject({ skip_topics: [] });
   });
 
-  it("refuses an unknown section, an empty list and a bad hour, and writes nothing", async () => {
+  it("refuses an unknown topic and a bad hour, and writes nothing", async () => {
     for (const bad of [
-      { ...SET, sections: ["nope"] },
-      { ...SET, sections: ["top"] },
-      { ...SET, sections: [] },
+      { ...SET, skip_topics: ["nope"] },
+      { op: "schedule.set", weekly: { skip_topics: ["nope"] } },
       { ...SET, hour: 24 },
       { ...SET, cadence_days: 4 },
     ]) {
@@ -377,16 +364,18 @@ describe("schedule.set", () => {
     expect(repo.dirty()).toEqual([]);
   });
 
-  it("accepts a section a topic created earlier in the same batch", async () => {
+  it("accepts a topic created earlier in the same batch, and forgets it when it is removed", async () => {
     const { run } = command();
     const code = await run(
-      ["apply", "--op", JSON.stringify([QUANTUM, { ...SET, sections: ["quantum_computing"] }])],
+      ["apply", "--op", JSON.stringify([QUANTUM, { ...SET, skip_topics: ["quantum_computing"] }])],
       repo.context(),
     );
     expect(code).toBe(0);
     expect(await repo.readJson("config/schedule.json")).toMatchObject({
-      sections: ["quantum_computing"],
+      skip_topics: ["quantum_computing"],
     });
+    await apply({ op: "topic.remove", id: "quantum_computing" });
+    expect(await repo.readJson("config/schedule.json")).toMatchObject({ skip_topics: [] });
   });
 });
 
@@ -459,7 +448,6 @@ describe("writer.set", () => {
       op: "schedule.set",
       hour: 9,
       cadence_days: 3,
-      sections: null,
     });
     expect(code).toBe(0);
     // The schedule is saved, and the broken file is left for the next pick of a model to replace.

@@ -220,7 +220,7 @@ describe("gate: the Sunday weekly pass", () => {
         version: 1,
         hour: 7,
         cadence_days: 2,
-        sections: null,
+        skip_topics: [],
         weekly: { day: 3, hour: 18 },
       }),
     );
@@ -242,7 +242,7 @@ describe("gate: the Sunday weekly pass", () => {
         version: 1,
         hour: 7,
         cadence_days: 2,
-        sections: null,
+        skip_topics: [],
         weekly: { enabled: false },
       }),
     );

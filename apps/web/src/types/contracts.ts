@@ -300,8 +300,8 @@ export type ConfigOp =
       hour?: number;
       /** Days between briefings: 1, 2, 3 or 7. */
       cadence_days?: 1 | 2 | 3 | 7;
-      /** Section ids a scheduled briefing covers, or null for every enabled topic. */
-      sections?: string[] | null;
+      /** Topic ids the daily briefing leaves out. */
+      skip_topics?: string[];
       /** Podcast type of the daily briefing. */
       format?: PodcastRequest["format"];
       /** Minutes the daily podcast runs. */
@@ -315,8 +315,8 @@ export type ConfigOp =
         /** Day of the week in Stockholm time, 0 = Sunday. */
         day?: number;
         hour?: number;
-        /** Section ids the weekly podcast covers, or null for every topic. */
-        sections?: string[] | null;
+        /** Topic ids the weekly podcast leaves out. */
+        skip_topics?: string[];
         format?: "readout" | "discussion";
         length_minutes?: PodcastRequest["length_minutes"];
         voice_id?: string | null;

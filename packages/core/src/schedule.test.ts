@@ -1,20 +1,25 @@
 import { describe, expect, it } from "vitest";
-import {
-  ConfigOp,
-  DEFAULT_SCHEDULE,
-  ScheduleChange,
-  ScheduleFile,
-  scheduleCovers,
-  scheduleCron,
-} from "./index.js";
+import { ConfigOp, DEFAULT_SCHEDULE, ScheduleChange, ScheduleFile, scheduleCron } from "./index.js";
 
 describe("ScheduleFile", () => {
-  it("accepts the defaults and a chosen list of sections", () => {
+  it("accepts the defaults and a list of topics left out", () => {
     expect(ScheduleFile.parse(DEFAULT_SCHEDULE)).toEqual(DEFAULT_SCHEDULE);
-    expect(
-      ScheduleFile.safeParse({ version: 1, hour: 23, cadence_days: 7, sections: ["ai", "tech"] })
-        .success,
-    ).toBe(true);
+    const parsed = ScheduleFile.parse({
+      version: 1,
+      hour: 23,
+      cadence_days: 7,
+      skip_topics: ["trending"],
+      weekly: { skip_topics: ["design"] },
+    });
+    expect(parsed.skip_topics).toEqual(["trending"]);
+    expect(parsed.weekly.skip_topics).toEqual(["design"]);
+  });
+
+  it("reads a file from before topics could be left out as leaving none out", () => {
+    const parsed = ScheduleFile.parse({ version: 1, hour: 7, cadence_days: 2, sections: null });
+    expect(parsed.skip_topics).toEqual([]);
+    expect(parsed.weekly.skip_topics).toEqual([]);
+    expect("sections" in parsed).toBe(false);
   });
 
   it("rejects an hour outside 0 to 23 and a cadence outside 1, 2, 3 and 7", () => {
@@ -29,14 +34,14 @@ describe("ScheduleFile", () => {
   });
 
   it("keeps the schedule.set change free of a version and every field optional", () => {
-    expect(ScheduleChange.safeParse({ hour: 9, cadence_days: 1, sections: null }).success).toBe(
+    expect(ScheduleChange.safeParse({ hour: 9, cadence_days: 1, skip_topics: [] }).success).toBe(
       true,
     );
     expect(ScheduleChange.safeParse({}).success).toBe(true);
   });
 
   it("fills a readout of 10 minutes into a file written before format and length existed", () => {
-    const old = { version: 1, hour: 9, cadence_days: 3, sections: null };
+    const old = { version: 1, hour: 9, cadence_days: 3 };
     expect(ScheduleFile.parse(old)).toMatchObject({
       ...old,
       format: "readout",
@@ -52,7 +57,7 @@ describe("ScheduleFile", () => {
       enabled: true,
       day: 0,
       hour: 9,
-      sections: null,
+      skip_topics: [],
       format: "readout",
       length_minutes: 10,
       voice_id: null,
@@ -120,25 +125,12 @@ describe("ScheduleFile", () => {
   });
 
   it("lets the schedule.set op leave format and length out", () => {
-    const set = { op: "schedule.set", hour: 9, cadence_days: 1, sections: null };
+    const set = { op: "schedule.set", hour: 9, cadence_days: 1, skip_topics: [] };
     expect(ConfigOp.safeParse(set).success).toBe(true);
     expect(ConfigOp.safeParse({ ...set, format: "headlines", length_minutes: 5 }).success).toBe(
       true,
     );
     expect(ConfigOp.safeParse({ ...set, length_minutes: 4 }).success).toBe(false);
-  });
-});
-
-describe("scheduleCovers", () => {
-  it("covers everything when sections is null", () => {
-    expect(scheduleCovers({ sections: null }, "ai")).toBe(true);
-  });
-
-  it("covers only the listed sections and always Top picks", () => {
-    const schedule = { sections: ["ai"] };
-    expect(scheduleCovers(schedule, "ai")).toBe(true);
-    expect(scheduleCovers(schedule, "top")).toBe(true);
-    expect(scheduleCovers(schedule, "tech")).toBe(false);
   });
 });
 
@@ -151,10 +143,11 @@ describe("scheduleCron", () => {
 
 describe("schedule.set op", () => {
   it("parses and refuses an hour or cadence out of range", () => {
-    const ok = { op: "schedule.set", hour: 9, cadence_days: 3, sections: ["ai"] };
+    const ok = { op: "schedule.set", hour: 9, cadence_days: 3, skip_topics: ["trending"] };
     expect(ConfigOp.safeParse(ok).success).toBe(true);
     expect(ConfigOp.safeParse({ ...ok, hour: 24 }).success).toBe(false);
     expect(ConfigOp.safeParse({ ...ok, cadence_days: 4 }).success).toBe(false);
-    expect(ConfigOp.safeParse({ ...ok, sections: undefined }).success).toBe(true);
+    expect(ConfigOp.safeParse({ ...ok, skip_topics: undefined }).success).toBe(true);
+    expect(ConfigOp.safeParse({ ...ok, skip_topics: ["Not An Id"] }).success).toBe(false);
   });
 });

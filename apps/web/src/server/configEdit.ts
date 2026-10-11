@@ -64,7 +64,7 @@ const MAX_KEYWORD = 40;
 const MAX_URL = 2048;
 const MAX_TOPIC_IDS = 12;
 const MAX_WEIGHTS = 100;
-const MAX_SECTIONS = 60;
+const MAX_SKIPPED_TOPICS = 200;
 const CADENCES = [1, 2, 3, 7] as const;
 type PodcastLength = PodcastRequest["length_minutes"];
 /** A new topic and the sources chosen for it: one topic, up to six sources, and room to spare. */
@@ -181,17 +181,17 @@ function podcastParts(value: Record<string, unknown>, into: WeeklyOp | CustomOp)
   return true;
 }
 
-/** Section ids an episode covers, null for all of them, undefined when left out, false when invalid. */
-function sectionsOf(value: unknown): string[] | null | undefined | false {
-  if (value === undefined || value === null) return value;
-  if (!Array.isArray(value) || value.length === 0 || value.length > MAX_SECTIONS) return false;
-  const sections: string[] = [];
+/** Topic ids an episode leaves out, undefined when the field is absent, false when it is invalid. */
+function skipOf(value: unknown): string[] | undefined | false {
+  if (value === undefined) return undefined;
+  if (!Array.isArray(value) || value.length > MAX_SKIPPED_TOPICS) return false;
+  const topics: string[] = [];
   for (const entry of value) {
-    const section = id(entry);
-    if (section === null) return false;
-    sections.push(section);
+    const topic = id(entry);
+    if (topic === null) return false;
+    topics.push(topic);
   }
-  return sections;
+  return topics;
 }
 
 /** A `schedule.set` rebuilt from the fields it names: any subset, and at least one. */
@@ -207,9 +207,9 @@ function parseScheduleSet(value: Record<string, unknown>): ConfigOp | null {
     if (cadence === undefined) return null;
     op.cadence_days = cadence;
   }
-  const sections = sectionsOf(value.sections);
-  if (sections === false) return null;
-  if (sections !== undefined) op.sections = sections;
+  const skip = skipOf(value.skip_topics);
+  if (skip === false) return null;
+  if (skip !== undefined) op.skip_topics = skip;
   if (value.format !== undefined) {
     const format = PODCAST_FORMATS.find((entry) => entry === value.format);
     if (format === undefined) return null;
@@ -242,9 +242,9 @@ function parseScheduleSet(value: Record<string, unknown>): ConfigOp | null {
       if (hour === null) return null;
       weekly.hour = hour;
     }
-    const weeklySections = sectionsOf(value.weekly.sections);
-    if (weeklySections === false) return null;
-    if (weeklySections !== undefined) weekly.sections = weeklySections;
+    const weeklySkip = skipOf(value.weekly.skip_topics);
+    if (weeklySkip === false) return null;
+    if (weeklySkip !== undefined) weekly.skip_topics = weeklySkip;
     if (!podcastParts(value.weekly, weekly)) return null;
     op.weekly = weekly;
   }

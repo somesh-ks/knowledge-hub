@@ -22,6 +22,7 @@ One session, picking up after the design pass merged (#74 to #76). The owner cle
 - The owner asked whether TypeSafe Jev is used. A cheaper subagent read the code and the committed state, and the run log of 9 October settled the rest: Jev judged all 74 items and was the filter and the ranking, and its grounding check dropped 6 of 15 written stories, but neither threshold has been calibrated (state.md).
 - The owner asked to drop the banner that said how old a briefing is; it went with its module.
 - The owner asked to choose topics on Daily and Weekly and to preview voices intuitively (D62). The weekly profile gained its own topics; the sample button turned out never to have played in production, because the page's `media-src` blocks Speechify's host, so samples now come through the site, and choosing a voice plays it.
+- The owner asked how to add or remove a topic from the two podcasts, and whether each topic should have a scope dropdown (Daily, Weekly, Custom, All). D62's chips turned out to be sections (five topics under "Design Engineering"), so they became one chip per topic, stored as the topics left out so a new topic is in both by default (D63). A dropdown was rejected: Custom is chosen per episode, and "none" is the topic's own switch.
 
 ## What went wrong
 - A commit picked up a rename and two deletions staged earlier; a soft reset and four clean commits fixed it (learnings.md).

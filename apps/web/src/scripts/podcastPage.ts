@@ -89,24 +89,21 @@ export async function mount(root: HTMLElement): Promise<void> {
   /** What the schedule controls hold: the page's starting point and the test for "changed". */
   const fields = (): FieldValues => {
     const out: FieldValues = {};
-    /** A profile's topic chips, which add up to one field: "*" when all are ticked, else the ids. */
-    const topics = new Map<string, { all: number; on: string[] }>();
+    /** A profile's topic chips, which add up to one field: the unticked ids, the topics left out. */
+    const skipped = new Map<string, string[]>();
     for (const control of controls) {
       const key = control.dataset.f ?? "";
-      if (key.endsWith(".sections") && control instanceof HTMLInputElement) {
-        const entry = topics.get(key) ?? { all: 0, on: [] };
-        entry.all += 1;
-        if (control.checked) entry.on.push(control.value);
-        topics.set(key, entry);
+      if (key.endsWith(".skip") && control instanceof HTMLInputElement) {
+        const off = skipped.get(key) ?? [];
+        if (!control.checked) off.push(control.value);
+        skipped.set(key, off);
       } else if (control instanceof HTMLInputElement && control.type === "radio") {
         out[key] ??= "";
         if (control.checked) out[key] = control.value;
       } else if (control instanceof HTMLInputElement) out[key] = String(control.checked);
       else out[key] = control.value;
     }
-    for (const [key, { all, on }] of topics) {
-      out[key] = on.length === all ? "*" : on.sort().join(",");
-    }
+    for (const [key, off] of skipped) out[key] = off.sort().join(",");
     return out;
   };
 

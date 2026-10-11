@@ -12,20 +12,19 @@ interface Props {
     hour?: number;
     day?: number;
     cadenceDays?: number;
-    /** Section ids the episode covers, or null for every topic. */
-    sections: readonly string[] | null;
+    /** Topic ids the episode leaves out. */
+    skipTopics: readonly string[];
     format: string;
     lengthMinutes: number;
     voiceId: string | null;
     voiceIdB: string | null;
   };
-  /** The topics the episode can be narrowed to, by name. */
+  /** The topics the episode can leave out, by name. */
   topics: readonly TopicChoice[];
 }
 
 const { id, values, topics } = Astro.props;
-const covered = (section: string): boolean =>
-  values.sections === null || values.sections.includes(section);
+
 const hours = Array.from({ length: 24 }, (_, value) => value);
 const discussion = values.format === "discussion";
 // A stored Headlines schedule has no radio to show; the first change picks one of the two.
@@ -106,12 +105,12 @@ const VOICES = [
       </div>
     </div>
 
-    {/* Every topic ticked is stored as "all of them", so a topic added later is covered too. One
-         stays ticked: an episode with no topic would have only Top picks to tell. */}
+    {/* What is stored is the topics left out, so a topic added later is in every episode until it
+         is unticked here. One stays ticked: an episode needs something to tell. */}
     <div class="settings-row podcast-topics-row">
       <div class="settings-text">
         <span class="settings-label" id={`${id}-topics-label`}>Topics</span>
-        <span class="settings-hint" id={`${id}-topics-hint`}>Top picks are always in</span>
+        <span class="settings-hint" id={`${id}-topics-hint`}>Untick a topic to leave it out</span>
       </div>
       <fieldset
         class="create-chips podcast-topics"
@@ -124,12 +123,12 @@ const VOICES = [
               <input
                 type="checkbox"
                 value={topic.id}
-                data-f={`${id}.sections`}
-                checked={covered(topic.id)}
+                data-f={`${id}.skip`}
+                checked={!values.skipTopics.includes(topic.id)}
                 autocomplete="off"
               />
               <Icon name="check" class="create-chip-check" />
-              <span>{topic.title}</span>
+              <span>{topic.name}</span>
             </label>
           ))
         }

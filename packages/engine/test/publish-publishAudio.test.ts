@@ -175,7 +175,7 @@ describe("publishAudio: one digest", () => {
         version: 1,
         hour: 7,
         cadence_days: 2,
-        sections: null,
+        skip_topics: [],
         voice_id: "daily_v",
         weekly: { voice_id: "weekly_v" },
       }),

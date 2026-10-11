@@ -80,25 +80,23 @@ describe("nextBriefing", () => {
 });
 
 describe("topicChoices", () => {
-  it("offers each section with a live topic, by name, never Top picks", () => {
-    const topics = [
-      { section_id: "research", enabled: true, never_publish: false },
-      { section_id: "ai", enabled: true, never_publish: false },
-      { section_id: "ai", enabled: false, never_publish: false },
-      { section_id: "gossip", enabled: false, never_publish: false },
-      { section_id: "muted", enabled: true, never_publish: true },
-      { section_id: "top", enabled: true, never_publish: false },
-    ];
-    const sections = [
-      { id: "top", title: "Top picks" },
-      { id: "research", title: "Research" },
-      { id: "ai", title: "AI Products" },
-      { id: "gossip", title: "Gossip" },
-      { id: "muted", title: "Muted" },
-    ];
-    expect(topicChoices(topics, sections)).toEqual([
-      { id: "ai", title: "AI Products" },
-      { id: "research", title: "Research" },
+  it("offers every topic that is on and may publish, by name", () => {
+    const topic = (id: string, name: string, enabled = true, never_publish = false) => ({
+      id,
+      name,
+      enabled,
+      never_publish,
+    });
+    expect(
+      topicChoices([
+        topic("trending", "Trending"),
+        topic("design", "design"),
+        topic("off", "Off topic", false),
+        topic("gossip", "Gossip", true, true),
+      ]),
+    ).toEqual([
+      { id: "design", name: "design" },
+      { id: "trending", name: "Trending" },
     ]);
   });
 });
