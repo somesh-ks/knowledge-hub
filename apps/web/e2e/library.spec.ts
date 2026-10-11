@@ -473,11 +473,12 @@ test.describe("library episodes", () => {
       const reach = await button.evaluate((node) => {
         const rect = node.getBoundingClientRect();
         const y = rect.top + rect.height / 2;
-        const hits = (x: number) => {
-          const hit = document.elementFromPoint(x, y);
+        const x = rect.left + rect.width / 2;
+        const hits = (px: number, py: number) => {
+          const hit = document.elementFromPoint(px, py);
           return hit !== null && node.contains(hit);
         };
-        return hits(rect.left - 3) && hits(rect.right + 3);
+        return hits(x, y - 21) && hits(x, y + 21);
       });
       expect(reach).toBe(true);
     }
@@ -486,9 +487,9 @@ test.describe("library episodes", () => {
     await expect(gallery).toHaveAttribute("aria-pressed", "false");
     await expect(page.locator("[data-library]")).toHaveAttribute("data-view", "list");
     await expect(grid).toHaveCSS("display", "block");
-    // Rows: each card is as wide as the column, with the kind in its meta line.
+    // Rows: each card is as wide as the column, with the same one facts line as the gallery.
     const first = page.locator("[data-card]:not([hidden])").first();
-    await expect(first.locator(".card-meta")).toBeVisible();
+    await expect(first.locator(".card-facts")).toBeVisible();
     // Search, filters and sort still work in the list.
     await page.getByRole("searchbox").fill("quiet interfaces");
     expect(await titles(page)).toEqual([DISCUSSION]);
