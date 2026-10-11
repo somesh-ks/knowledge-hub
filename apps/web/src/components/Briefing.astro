@@ -31,8 +31,8 @@ const { sections, hasAudio } = Astro.props;
     }
   </nav>
   {
-    sections.map((section, index) => (
-      <Chapter section={section} isFirst={index === 0}>
+    sections.map((section) => (
+      <Chapter section={section}>
         {section.items.map(({ item, index: itemIndex, length }) => (
           <Item item={item} index={itemIndex} length={length} hasAudio={hasAudio} />
         ))}

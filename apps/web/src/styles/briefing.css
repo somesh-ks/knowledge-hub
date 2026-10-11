@@ -12,24 +12,34 @@ html:has(.briefing > .tabs) {
   scroll-padding-block-start: calc(var(--sticky-top) + var(--tabs-height) + var(--space-4));
 }
 
-/* A tab's jump takes back the heading's padding above its words, less a little: the section's rule
-   tucks under the strip, so the strip's own line is the only one, and the words sit 24px below it. */
+/* A tab's jump takes back most of the heading's padding above its words, so the words sit 24px
+   below the strip whichever section it lands on. */
 .chapter h2 {
   scroll-margin-block-start: calc(var(--space-2) - var(--space-12));
 }
 
-/* A chapter heading is one step up from the row grammar's, and has more air above it, so each
-   chapter reads as a group of its own. */
+/* A chapter heading (the heading role: regular weight, a step above the headlines) with a wide band
+   of air above it. The air alone marks a new section: there is no rule as well, so the hairlines on
+   the page are the ones between stories. */
 .chapter > .section-head {
   padding-block-start: var(--space-12);
-  font-size: var(--font-size-section);
-  font-weight: var(--font-weight-medium);
 }
 
-/* The hairlines between chapters and between stories start and end at the text column's edges. */
-.chapter.rule-above::before,
+/* The hairlines between stories start and end at the text column's edges. */
 .chapter .rows > * + *::before {
   inset-inline: 0;
+}
+
+/* Under the section tabs the first heading names the tab marked just above it, so it does not need
+   the band of air that sets a section apart from the one before: the strip does that. */
+@media (width < 80rem) {
+  .briefing > .tabs + .chapter > .section-head {
+    padding-block-start: var(--space-6);
+  }
+
+  .briefing > .tabs + .chapter h2 {
+    scroll-margin-block-start: calc(var(--space-2) - var(--space-6));
+  }
 }
 
 /* Stuck under the app bar, the strip draws the one line under the top chrome: while it sticks the
@@ -98,6 +108,27 @@ html:has(.briefing > .tabs) {
   transition: color var(--duration-state) var(--ease-hover);
 }
 
+/* The headline as the link to the story: it keeps the heading's ink, and an underline under the
+   pointer says it can be followed. */
+.story-link {
+  color: inherit;
+  text-decoration: none;
+  text-decoration-thickness: var(--stroke-hairline);
+  text-underline-offset: 0.18em;
+  border-radius: var(--radius-xs);
+}
+
+@media (hover: hover) and (pointer: fine) {
+  .story-link:hover {
+    color: var(--color-accent);
+    text-decoration-line: underline;
+  }
+}
+
+.story-link:active {
+  color: var(--color-accent-pressed);
+}
+
 /* The story being read aloud: its headline takes the accent. Its chip says so in words. */
 .story[data-state="current"] .story-title {
   color: var(--color-accent);
@@ -113,26 +144,26 @@ html:has(.briefing > .tabs) {
   line-height: var(--text-reading-leading);
 }
 
-/* Older briefings carry a separate line on why the story matters. */
+/* Older briefings carry a separate line on why the story matters: a quiet note under the summary,
+   a size down and muted. Its label is set apart by ink alone, at the note's own weight, so the
+   note never outweighs the summary above it. */
 .story-why {
   max-width: var(--layout-measure);
-  margin-block-start: var(--space-3);
+  margin-block-start: var(--space-2);
   color: var(--color-on-surface-muted);
-  /* The same size as the summary above it: a second, quieter paragraph, not a footnote. */
-  font-size: var(--text-reading-size);
-  line-height: var(--text-reading-leading);
+  font-size: var(--font-size-label);
+  line-height: var(--font-leading-body);
 }
 
 .story-why-label {
   color: var(--color-on-surface);
-  font-weight: var(--font-weight-medium);
 }
 
-/* Play, then the way out to the source. A long host shortens; the chip never does. */
+/* Play, then the publisher. A long name shortens; the chip never does. The chip hugs its label. */
 .story-actions {
   display: flex;
   align-items: center;
-  gap: var(--space-4);
+  gap: var(--space-3);
   min-width: 0;
   min-height: var(--size-touch);
   margin-block-start: var(--space-2);
@@ -140,15 +171,47 @@ html:has(.briefing > .tabs) {
 
 .story-actions > .chip {
   flex: none;
-  /* Holds the common labels ("0:24", "Playing", "1 min left"), so the source link beside it stays put. */
-  min-inline-size: 6.5rem;
-  justify-content: center;
+}
+
+/* The publisher is attribution, not a second call to act: muted words at the label size, so the
+   chip is the one accent in a story. Its hover layer is the muted ink's, like any quiet control. */
+.story-source {
+  color: var(--color-on-surface-muted);
+  font-weight: var(--font-weight-regular);
+}
+
+@media (hover: hover) and (pointer: fine) {
+  .story-source:hover {
+    background: color-mix(in oklch, var(--color-on-surface) var(--state-hover), transparent);
+    color: var(--color-on-surface);
+  }
+}
+
+.story-source:active {
+  background: color-mix(in oklch, var(--color-on-surface) var(--state-press), transparent);
+  color: var(--color-on-surface);
+}
+
+/* With the chip hidden (no audio, or offline) the publisher is the row's only content: the row
+   keeps its 44px target but sits closer under the text. */
+.story-actions:not(:has(> .chip:not([hidden]))) {
+  margin-block-start: var(--space-1);
 }
 
 /* Audio needs a connection, so while offline the story chips step out of the way. The briefing's
    own chip stays, disabled, under the banner that says why. */
 html[data-offline] .story-actions > .chip {
   display: none;
+}
+
+/* ------------------------------------------------------------------ earlier briefings */
+
+/* The shelf's heading is a section heading like the chapters above it: the heading role's weight,
+   so medium stays the mark of a headline. */
+.earlier .shelf-head > h2 {
+  font-size: var(--text-heading-size);
+  font-weight: var(--text-heading-weight);
+  letter-spacing: var(--text-heading-tracking);
 }
 
 @media (forced-colors: active) {
