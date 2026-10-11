@@ -382,3 +382,13 @@ describe("suggestSources", () => {
     expect(suggestSources(catalog, [{ host: "a.example" }], { name: "Design" })).toEqual([]);
   });
 });
+
+describe("one ranking for the build and the browser", () => {
+  it("is the same function, from a module the browser can load", async () => {
+    const browser = await import("./sourceCatalogMatch");
+    expect(browser.suggestSources).toBe(suggestSources);
+    const { readFile } = await import("node:fs/promises");
+    const text = await readFile(new URL("./sourceCatalogMatch.ts", import.meta.url), "utf8");
+    expect(text).not.toMatch(/from "node:/);
+  });
+});

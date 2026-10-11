@@ -207,10 +207,13 @@ test.describe("the Topics list", () => {
     await expect(sheet).toBeHidden();
     // The site is static: the topic's page exists after the next build, so the list keeps it.
     await expect(page).toHaveURL(LIST);
-    const queued = page.locator("[data-queued] li");
+    const queued = page.locator("[data-queued] > li");
     await expect(queued).toContainText("Motion design");
     await expect(queued).toContainText(ADDED);
-    await expect(queued.getByRole("button")).toHaveCount(0);
+    await expect(queued.locator("[data-act=cancel]")).toHaveCount(0);
+    // Its suggested sources show at once, ranked in the browser as its page will rank them.
+    const suggested = queued.getByRole("list", { name: "Suggested sources for Motion design" });
+    await expect(suggested.getByRole("button", { name: "Add Motion Weekly" })).toBeVisible();
     expect(sent).toHaveLength(1);
     expect(ops(sent)).toEqual([
       {
@@ -226,6 +229,47 @@ test.describe("the Topics list", () => {
         },
       },
     ]);
+  });
+
+  test("a new topic's suggested source adds under it, and both stay listed on a reload before the build", async ({
+    page,
+  }) => {
+    const { sent } = await setup(page);
+    await open(page);
+    await page.getByRole("button", { name: "Add a topic or a source" }).click();
+    const form = page
+      .getByRole("dialog", { name: "Add a topic" })
+      .getByRole("form", { name: "Add a topic" });
+    const sheet = page.getByRole("dialog", { name: "Add a topic" });
+    await form.getByLabel("Name").fill("Motion design");
+    await form
+      .getByLabel("What should count as this topic")
+      .fill("Animation and motion in interfaces.");
+    await sheet.getByRole("button", { name: "Add topic", exact: true }).click();
+    const queued = page.locator("[data-queued] > li");
+    await expect(queued).toContainText(ADDED);
+    await queued.getByRole("button", { name: "Add Motion Weekly" }).click();
+    await expect(queued.getByRole("button", { name: "Added Motion Weekly" })).toBeDisabled();
+    await expect
+      .poll(() => ops(sent), { timeout: 15_000 })
+      .toContainEqual({
+        op: "source.add",
+        url: "https://motion-weekly.example/rss.xml",
+        topic_ids: ["motion-design"],
+      });
+    await expect(toastText(page)).toHaveText(SAVED);
+    const before = sent.length;
+
+    await page.reload();
+    await open(page);
+    await expect(page.locator("[data-saved-note]")).toHaveText(
+      "Saved. It takes effect after the next update, about a minute.",
+    );
+    await expect(queued).toContainText("Motion design");
+    await expect(queued).toContainText(ADDED);
+    await expect(queued.getByRole("button", { name: "Added Motion Weekly" })).toBeDisabled();
+    await page.waitForTimeout(1500);
+    expect(sent.length).toBe(before);
   });
 
   test("a refused detail keeps what was typed and sends nothing", async ({ page }) => {
@@ -407,7 +451,8 @@ test.describe("a topic's page", () => {
     await expect(row.locator(".source-name")).toHaveCSS("font-weight", "400");
     await expect(row.locator(".source-name")).toHaveCSS("opacity", "1");
     await box.check();
-    await expect.poll(() => ops(sent).length).toBe(2);
+    // The second edit waits out the server's ten seconds between edits before it is sent.
+    await expect.poll(() => ops(sent).length, { timeout: 15_000 }).toBe(2);
     await expect(row.locator(".source-name")).toHaveCSS("font-weight", "500");
     expect(ops(sent)).toEqual([
       { op: "source.set", id: "studio-notes", enabled: false },

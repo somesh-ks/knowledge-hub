@@ -251,7 +251,10 @@ test.describe("saving on its own", () => {
     // Saved is the new starting point: putting the time back is a change again.
     const before = sent.length;
     await page.locator("#daily-hour").selectOption("7");
-    await expect.poll(() => sent.length).toBe(before + 1);
+    // Held until the server's ten seconds between edits are up, without a Saving in the meantime.
+    await page.waitForTimeout(3000);
+    expect(sent.length).toBe(before);
+    await expect.poll(() => sent.length, { timeout: 15_000 }).toBe(before + 1);
     expect(sent.at(-1)?.op).toEqual({ op: "schedule.set", hour: 7 });
   });
 
@@ -297,7 +300,7 @@ test.describe("saving on its own", () => {
     // Saved is the new starting point: ticking it again is a change again.
     await page.getByRole("checkbox", { name: "Audio interfaces" }).click({ force: true });
     await expect
-      .poll(() => opsOf(sent).at(-1))
+      .poll(() => opsOf(sent).at(-1), { timeout: 15_000 })
       .toEqual({
         op: "topic.scope",
         ids: ["audio_interfaces"],
@@ -316,6 +319,72 @@ test.describe("saving on its own", () => {
     await expect(toastText(page)).toHaveText(
       "Saved, except the time: the site's GitHub token needs permission to write repository variables.",
     );
+  });
+});
+
+test.describe("saved, before the build", () => {
+  const NOTE = "Saved. It takes effect after the next update, about a minute.";
+  const KEY = "dispatch:saved-edits";
+  const note = (page: Page) => page.locator("[data-saved-note]");
+
+  test("a page opened again before the build shows what was saved, says so, and sends nothing", async ({
+    page,
+  }) => {
+    const sent = await mockConfig(page);
+    await open(page, "daily");
+    const built = await page.locator("#daily-hour").inputValue();
+    await expect(note(page)).toHaveCount(0);
+    await page.locator("#daily-hour").selectOption("9");
+    await page.getByRole("checkbox", { name: "Audio interfaces" }).click({ force: true });
+    await expect(toastText(page)).toHaveText(SAVED);
+    const before = sent.length;
+
+    await page.reload();
+    await open(page, "daily");
+    expect(built).not.toBe("9");
+    await expect(page.locator("#daily-hour")).toHaveValue("9");
+    await expect(page.getByRole("checkbox", { name: "Audio interfaces" })).not.toBeChecked();
+    await expect(note(page)).toHaveText(NOTE);
+    // The saved values are the page's starting point: nothing goes again on its own.
+    await page.waitForTimeout(2000);
+    expect(sent.length).toBe(before);
+    // The Weekly page was not changed and says nothing.
+    await open(page, "weekly");
+    await expect(note(page)).toHaveCount(0);
+  });
+
+  test("shows nothing once the build has the saved value, or once the edit is too old", async ({
+    page,
+  }) => {
+    await mockConfig(page);
+    await open(page, "daily");
+    const built = await page.locator("#daily-hour").inputValue();
+    // The build has landed: the page is built with what was saved.
+    await page.evaluate(
+      ([key, hour]) =>
+        localStorage.setItem(
+          key,
+          JSON.stringify([{ at: Date.now(), ops: [{ op: "schedule.set", hour: Number(hour) }] }]),
+        ),
+      [KEY, built],
+    );
+    await page.reload();
+    await open(page, "daily");
+    await expect(note(page)).toHaveCount(0);
+    // Saved four minutes ago: long enough for any build, so the page is believed.
+    await page.evaluate(
+      (key) =>
+        localStorage.setItem(
+          key,
+          JSON.stringify([{ at: Date.now() - 4 * 60_000, ops: [{ op: "schedule.set", hour: 3 }] }]),
+        ),
+      KEY,
+    );
+    await page.reload();
+    await open(page, "daily");
+    await expect(page.locator("#daily-hour")).toHaveValue(built);
+    await expect(note(page)).toHaveCount(0);
+    expect(await page.evaluate((key) => localStorage.getItem(key), KEY)).toBeNull();
   });
 });
 
