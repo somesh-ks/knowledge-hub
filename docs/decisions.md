@@ -71,7 +71,8 @@ D1 to D9 date from plan v2 (2026-10-05). D10 to D25 date from 2026-10-06. Reason
 | D59 | On a phone, Play takes the floating button's place on an episode and an older briefing | active; Today floats Play too since D60 |
 | D60 | On a phone Create floats on the Library alone; every page with audio floats Play, Today included | active |
 | D61 | Vercel Cron starts the scheduled briefing in its hour; GitHub's schedule is the fallback | active |
-| D62 | Daily and Weekly each choose their topics; voice samples play through the site | active |
+| D62 | Daily and Weekly each choose their topics; voice samples play through the site | active; topics are left out per topic since D63 |
+| D63 | Daily and Weekly leave out topics, one chip per topic, stored as the topics left out | active |
 
 ---
 
@@ -614,3 +615,12 @@ D1 to D9 date from plan v2 (2026-10-05). D10 to D25 date from 2026-10-06. Reason
 - Why: the owner asked to choose topics in Daily and Weekly and to preview voices in an intuitive way. The old play button pointed at Speechify's own host, which the page's `media-src` blocks, so in production a press failed and the button hid itself.
 - Cost: one function call per sample played (cached at the CDN for a week). A topic added after a narrower list was saved is not in that list until it is ticked. A section left in the file after its topic is removed is ignored, as before.
 - Rejected: adding Speechify's host to `media-src` (the host is not documented and can change); a custom voice list with a play button per row (a native select cannot hold buttons, and the drawn list is shared by every select).
+
+## D63: Daily and Weekly leave out topics, one chip per topic, stored as the topics left out
+
+- Date: 2026-10-11
+- Decision: The Topics row on Daily and Weekly has one chip per topic (every topic that is on and may publish, by name), not per section. `config/schedule.json` stores `skip_topics` at the top for the daily briefing and in `weekly` for the weekly one: the topics left out, empty by default. `sections` and `weekly.sections` are gone; an older file's `sections` (always null in use) is dropped on read. Selection drops a story whose winning topic is left out, so it reaches Top picks neither. Removing a topic takes it out of both lists. The last ticked chip cannot be unticked. Custom has no setting: the Create panel picks topics per episode.
+- Why: the owner asked how to add or remove a topic from the daily and weekly podcasts, and wanted the simplest intuitive answer. D62's chips were sections, so "Design Engineering" stood for five topics and none could be left out alone. Storing what is left out, not what is in, means a topic added later is in both podcasts without anyone remembering to tick it.
+- Cost: the chips can run to a dozen names. A story that fits two topics follows its winning one.
+- Rejected: a scope dropdown per topic (Daily, Weekly, Custom, All): Custom is chosen per episode and "none" repeats the topic's own switch, so two booleans hidden in a menu; switches on each topic page as well (two places for one setting); keeping sections (coarser than the topics the owner names).
+- Supersedes: D62's section-based Topics row and `weekly.sections`, and D45's `sections`.
