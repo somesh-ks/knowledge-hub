@@ -30,6 +30,12 @@ One session, picking up after the design pass merged (#74 to #76). The owner cle
 - The lead wrote the shared contract first (general topics as origin `general`, the `technology` alias, config ops, the coverage-based quality rule) and four workers built on it: the episode structure (D68), the one chip list and mixed episodes (D67), the general feeds as judged sources (D66) and the settings pages with source checkboxes. The lead did the voice flags and the weekly day (D65).
 - Firecrawl filling a gap in Design, AI or Technology for an episode is not built: `podcast.yml` would need the Firecrawl key, a workflow change the owner merges by hand, so it waits for its own PR.
 
+## After #88
+- The owner pointed out that the topics list still held every judge topic: they had asked for Design, AI and Technology to keep it lean. The three now gather the judge topics (D69), and the list is one alphabetical run of those, the owner's own topics and the five general topics. Mid-turn they asked for no separation in the list, scope (Daily, Weekly, Custom) inside each topic and when one is made, a multi-select for it, source names as links in place of the open icon, and a better checkbox.
+- Scope is its own op, `topic.scope`, because a whole-schedule save from an old page could bring back a topic another page had left out; it edits the three skip lists in place. Two bugs showed in screenshots, not tests: the open list sat under the next row (each row is a stacking context), and ticking saved nothing (the editor listens for `input`).
+- Filing the sources: Other held fifteen. Each went to the topic its content fits, except Exa discovery, whose searches carry their own topics. The daily AI roundups were filed under AI but switched off: the hype hint had muted them (about one story judged in two days), and the AI hint would have let a day's hype into the pool. Twenty-one new sources went where topics were thin, each checked live through Firecrawl, since the sandbox cannot reach news hosts. All 21 answered; CBS Science was dropped for posting one story in two and a half weeks, and three addresses had moved.
+- The audit of the whole chat (the owner's last ask) found one regression of this round's own making: the group pages had lost the Weight row the judge topics had, against "everything should be configurable". Design and AI now show a slider per judge topic, and Technology a plain Weight row. The dead chip code left in Daily and Weekly went too. Everything else the owner asked across the session was built or answered, except what Left open lists.
+
 ## What went wrong
 - A commit picked up a rename and two deletions staged earlier; a soft reset and four clean commits fixed it (learnings.md).
 - The first score design was a sum, and it was the brief's, not the worker's; the worker's own report caught it.
@@ -43,6 +49,9 @@ One session, picking up after the design pass merged (#74 to #76). The owner cle
 - Two workers' Agent worktrees started from main, and when a worker stopped without changes its worktree was removed; resumed, it ran `git reset --hard` in the main checkout (nothing was lost). The lead then made worktrees by hand, each with its own `node_modules` links so `@dispatch/*` resolved to the worktree (learnings.md).
 - The voice flags broke two e2e specs that read the option text; the lead had run only unit tests on that change.
 - Both later workers hit the 60-turn limit with their work uncommitted; told to commit first, they finished.
+- D69's first cut left the judge topics' weights with no control; the chat audit found it, not a test.
+- The phone weight rows rendered their sliders at zero width past the edge (a `nowrap` row); only the phone e2e project caught it, after the desktop run passed.
+- A pipe hid a failing exit code once and a commit went in with a failing test; it was amended before the push (learnings.md).
 
 ## Left open
 - Every real source reads New until it has ten judged items, so the thresholds are untested on real data (D55 says when to revisit them).
@@ -51,3 +60,5 @@ One session, picking up after the design pass merged (#74 to #76). The owner cle
 - The Vercel Cron trigger has not run in production yet: `CRON_SECRET` is in place, and its first due slot is the next one after 2026-10-11's late GitHub run.
 - Live: judging the general feeds in a real run (cost estimated, not measured), a mixed episode and the new script structure.
 - Firecrawl gap filling for Design, AI and Technology (needs the key in `podcast.yml`).
+- General topics in Daily or Weekly (the scope menu offers Custom only); renaming a group or editing what it counts.
+- A real Claude Code review: #88's run was skipped because the PR changed the review workflow itself.
