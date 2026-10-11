@@ -1,7 +1,12 @@
 import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
 import { describe, expect, it } from "vitest";
-import { GENERAL_TOPICS, loadGeneralFeeds, parseGeneralFeeds } from "./generalTopics.js";
+import {
+  GENERAL_TOPICS,
+  loadGeneralFeeds,
+  normalizeTopicIds,
+  parseGeneralFeeds,
+} from "./generalTopics.js";
 import { PodcastRequest } from "./podcast.js";
 
 const ROOT = join(dirname(fileURLToPath(import.meta.url)), "..", "..", "..");
@@ -18,10 +23,19 @@ describe("GENERAL_TOPICS", () => {
     expect(GENERAL_TOPICS).toEqual([
       { id: "world", title: "World" },
       { id: "business", title: "Business" },
-      { id: "technology", title: "Technology" },
       { id: "science", title: "Science" },
       { id: "culture", title: "Culture" },
       { id: "sports", title: "Sports" },
+    ]);
+  });
+});
+
+describe("normalizeTopicIds", () => {
+  it("reads a stored technology as the owner's Technology, once", () => {
+    expect(normalizeTopicIds(["world", "technology", "tech", "ai"])).toEqual([
+      "world",
+      "tech",
+      "ai",
     ]);
   });
 });

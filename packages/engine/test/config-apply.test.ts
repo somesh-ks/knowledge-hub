@@ -254,6 +254,36 @@ describe("topic.upsert", () => {
   });
 });
 
+describe("topic.upsert on a general news topic", () => {
+  it("rewords and switches off World, which stays general and cannot be removed", async () => {
+    const { code, report } = await apply({
+      op: "topic.upsert",
+      topic: {
+        id: "world",
+        name: "World news",
+        description: "International news.",
+        weight: 1,
+        keywords: [],
+        enabled: false,
+      },
+    });
+    expect(code).toBe(0);
+    expect(report.summary).toBe("update topic World news");
+    const topics = await repo.readJson<TopicsFile>("config/topics.json");
+    expect(topics.topics.find((t) => t.id === "world")).toMatchObject({
+      name: "World news",
+      description: "International news.",
+      enabled: false,
+      origin: "general",
+      section_id: "general",
+      depth: "coverage",
+    });
+    const removed = await apply({ op: "topic.remove", id: "world" });
+    expect(removed.code).toBe(1);
+    expect(repo.errors.join("\n")).toContain("cannot be removed");
+  });
+});
+
 describe("weights.set", () => {
   it("sets built-in weights in the preferences and custom weights in the topics", async () => {
     await apply(QUANTUM);
