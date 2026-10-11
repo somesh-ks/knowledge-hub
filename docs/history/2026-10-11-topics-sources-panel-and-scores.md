@@ -25,6 +25,11 @@ One session, picking up after the design pass merged (#74 to #76). The owner cle
 - The owner asked how to add or remove a topic from the two podcasts, and whether each topic should have a scope dropdown (Daily, Weekly, Custom, All). D62's chips turned out to be sections (five topics under "Design Engineering"), so they became one chip per topic, stored as the topics left out so a new topic is in both by default (D63). A dropdown was rejected: Custom is chosen per episode, and "none" is the topic's own switch.
 - The owner reported three things: Edit topic would not take text, a chip shook its row as its check appeared, and settings rows should hover as rounded tiles like the model list's options, fixed in the component. Every topic the owner has ships with the app, so D57 had locked all their names; D64 unlocks names everywhere and what counts wherever the judge reads it. The chip grew by its check's width when ticked; it now keeps one width and slides its words by half the check. The row fill (`.row-action`) ran edge to edge as a band and is now a rounded tile.
 
+## After #86
+- The owner asked for flags beside the voices, Design, AI and Technology as Somesh's topics, configurable general topics and sources with a checkbox and a score per source, and (mid-turn) for the weekly podcast to win a day it shares with the briefing. Two rounds of questions settled it: one chip list with the audience as a preset, Design, AI and Technology drawn from the owner's sources in either mode, general feeds scored on the same parts, Jev judging every general story (the owner chose it over a sample), the daily cadence counting from the weekly, Trending dropped, and a new episode shape (rundown, deep dives, nuggets, short close).
+- The lead wrote the shared contract first (general topics as origin `general`, the `technology` alias, config ops, the coverage-based quality rule) and four workers built on it: the episode structure (D68), the one chip list and mixed episodes (D67), the general feeds as judged sources (D66) and the settings pages with source checkboxes. The lead did the voice flags and the weekly day (D65).
+- Firecrawl filling a gap in Design, AI or Technology for an episode is not built: `podcast.yml` would need the Firecrawl key, a workflow change the owner merges by hand, so it waits for its own PR.
+
 ## What went wrong
 - A commit picked up a rename and two deletions staged earlier; a soft reset and four clean commits fixed it (learnings.md).
 - The first score design was a sum, and it was the brief's, not the worker's; the worker's own report caught it.
@@ -35,8 +40,14 @@ One session, picking up after the design pass merged (#74 to #76). The owner cle
 - D59 kept Create on Today on D52's reasoning, a narrower reading of the owner's ask ("a podcast page or details page") than they meant; the correction cost a round.
 - The missed morning run looked like a broken schedule. It was GitHub's delay, which state.md had recorded once (6.5 hours late on 7 October) as unreliable timing and nobody acted on.
 
+- Two workers' Agent worktrees started from main, and when a worker stopped without changes its worktree was removed; resumed, it ran `git reset --hard` in the main checkout (nothing was lost). The lead then made worktrees by hand, each with its own `node_modules` links so `@dispatch/*` resolved to the worktree (learnings.md).
+- The voice flags broke two e2e specs that read the option text; the lead had run only unit tests on that change.
+- Both later workers hit the 60-turn limit with their work uncommitted; told to commit first, they finished.
+
 ## Left open
 - Every real source reads New until it has ten judged items, so the thresholds are untested on real data (D55 says when to revisit them).
 - A rename or a move through `config.yml` has not run live.
 - The browser suites on the combined branch after #77 (skipped at the owner's request).
 - The Vercel Cron trigger has not run in production yet: `CRON_SECRET` is in place, and its first due slot is the next one after 2026-10-11's late GitHub run.
+- Live: judging the general feeds in a real run (cost estimated, not measured), a mixed episode and the new script structure.
+- Firecrawl gap filling for Design, AI and Technology (needs the key in `podcast.yml`).

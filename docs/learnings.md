@@ -2,6 +2,10 @@
 
 One line each: symptom, cause, fix. Newest first. Search before debugging.
 
+- 2026-10-11: a resumed worker ran `git reset --hard` in the main checkout: an Agent worktree is removed when its agent stops without changes, so the resumed agent's `cd` failed and its commands ran from the repository root. Make worktrees by hand on the session branch (`git worktree add -b <name> <path> <commit>`) and have every command start with `cd <path> &&`.
+- 2026-10-11: a worktree whose `node_modules` is a symlink to the main checkout resolves `@dispatch/*` to the main checkout's packages (the workspace links are relative and Node follows the real path), so a worker's core edits were invisible to its own engine tests. Give each worktree a real `node_modules` whose entries link to the main install, with `@dispatch/*` linked to the worktree's own packages.
+- 2026-10-11: adding a flag to each voice label passed every unit test and broke two e2e specs that assert the option text. Run the e2e specs that read a label you change.
+- 2026-10-11: `topics.test.ts` pinned the live `config/topics.json` to the shipped seed, so the first rename in the app (allowed since D64) would have failed CI on the next PR. It now checks that the file resolves and holds every shipped topic.
 - 2026-10-10: the player's flick tests failed about half the time: the page reads speed from each event's timeStamp, and under load the harness delivered moves 30 to 100 ms apart where 8 were asked for. Give each CDP touch or mouse event a `timestamp` (lab.ts, gestureClock); then they pass every repeat.
 - 2026-10-10: a desktop flick test failed every time once its events were timestamped: a mouse, unlike a touch, is not captured by what it pressed, so a 40px jump left the bar before the drag could take hold. Send a mouse drag as the small moves a real mouse reports.
 - 2026-10-10: a player fix for track contrast read right in the diff and failed in the browser (played and unplayed 1.46:1 apart); the worker had marked it unverified. Send a read-only verifier to measure every fix a worker marks unverified before calling an area done.
