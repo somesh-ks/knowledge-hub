@@ -8,9 +8,20 @@ import { briefingLengthLabel } from "./readerMath";
  */
 export function recordingCaption(digest: PlayerDigestData | undefined): string {
   if (!digest) return "";
+  const kind = recordingKind(digest);
+  return digest.audio ? `${kind} \u00b7 ${briefingLengthLabel(digest.audio.duration_ms)}` : kind;
+}
+
+/**
+ * The word the Library puts first on its card for the same recording: Daily or Weekly for a
+ * briefing, Discussion for an episode with two voices, Episode otherwise (what is made on request).
+ */
+function recordingKind(digest: PlayerDigestData): string {
   // An episode carries its script; a briefing does not.
-  const kind = digest.turns ? "Episode" : digest.kind === "weekly" ? "Weekly briefing" : "Briefing";
-  return digest.audio ? `${kind}, ${briefingLengthLabel(digest.audio.duration_ms)}` : kind;
+  if (digest.turns)
+    return digest.turns.some((turn) => turn.speaker === "b") ? "Discussion" : "Episode";
+  if (digest.kind === "weekly") return "Weekly";
+  return digest.kind === "on-demand" ? "Episode" : "Daily";
 }
 
 /** One short line for the mini player, where the full message would not fit. */
