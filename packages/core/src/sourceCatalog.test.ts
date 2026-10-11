@@ -17,8 +17,9 @@ const key = (url: string): string => {
 describe("config/source-catalog.json", () => {
   const catalog = parseSourceCatalog(read("config/source-catalog.json"));
 
-  it("holds about forty feeds with unique ids", () => {
-    expect(catalog.sources.length).toBeGreaterThanOrEqual(35);
+  // About thirty since D69 moved eleven of its feeds into the registry.
+  it("holds about thirty feeds with unique ids", () => {
+    expect(catalog.sources.length).toBeGreaterThanOrEqual(30);
     expect(new Set(catalog.sources.map((s) => s.id)).size).toBe(catalog.sources.length);
     expect(catalog.sources.every((s) => s.feed_url.startsWith("http"))).toBe(true);
   });

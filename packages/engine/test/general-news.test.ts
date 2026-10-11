@@ -51,10 +51,11 @@ describe("the general news sources", () => {
   const general = GENERAL_TOPIC_SOURCES.filter((s) => s.enabled);
   const tech = GENERAL_TOPIC_SOURCES.filter((s) => !s.enabled);
 
-  it("gives every general topic at least two enabled rss feeds, tagged with the topic alone", () => {
+  it("gives every general topic at least five enabled rss feeds, tagged with the topic alone", () => {
     for (const { id } of GENERAL_TOPICS) {
       const feeds = general.filter((s) => s.topic_ids?.[0] === id);
-      expect(feeds.length, id).toBeGreaterThanOrEqual(2);
+      // A general episode ranks a story by how many outlets carried it (D69).
+      expect(feeds.length, id).toBeGreaterThanOrEqual(5);
       for (const feed of feeds) {
         expect(feed).toMatchObject({
           type: "rss",
@@ -69,7 +70,7 @@ describe("the general news sources", () => {
         expect(feed.feed_url).toMatch(/^https:\/\//);
       }
     }
-    expect(general).toHaveLength(20);
+    expect(general).toHaveLength(30);
   });
 
   it("files the four technology feeds under the built-in topic of the Tech section, switched off", () => {

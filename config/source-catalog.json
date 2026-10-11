@@ -74,60 +74,6 @@
       "tags": ["design", "ux", "product", "research"]
     },
     {
-      "id": "bram-us",
-      "name": "Bram.us",
-      "url": "https://www.bram.us",
-      "feed_url": "https://www.bram.us/feed/",
-      "about": "CSS, JavaScript and browser feature write-ups",
-      "cadence": "several a week",
-      "tags": ["css", "javascript", "browser", "frontend", "web", "animation"]
-    },
-    {
-      "id": "piccalilli",
-      "name": "Piccalilli",
-      "url": "https://piccalil.li",
-      "feed_url": "https://piccalil.li/feed.xml",
-      "about": "Front-end craft, CSS and accessibility essays",
-      "cadence": "weekly",
-      "tags": ["css", "frontend", "accessibility", "web", "craft"]
-    },
-    {
-      "id": "ahmad-shadeed",
-      "name": "Ahmad Shadeed",
-      "url": "https://ishadeed.com",
-      "feed_url": "https://ishadeed.com/feed.xml",
-      "about": "Deep CSS layout and component essays",
-      "cadence": "monthly",
-      "tags": ["css", "layout", "frontend", "components"]
-    },
-    {
-      "id": "brad-frost",
-      "name": "Brad Frost",
-      "url": "https://bradfrost.com",
-      "feed_url": "https://bradfrost.com/feed/",
-      "about": "Design systems and component architecture notes",
-      "cadence": "weekly",
-      "tags": ["design", "systems", "components", "frontend"]
-    },
-    {
-      "id": "dave-rupert",
-      "name": "Dave Rupert",
-      "url": "https://daverupert.com",
-      "feed_url": "https://daverupert.com/atom.xml",
-      "about": "Web craft, CSS and personal dev notes",
-      "cadence": "several a week",
-      "tags": ["web", "css", "frontend", "craft"]
-    },
-    {
-      "id": "adactio",
-      "name": "Adactio",
-      "url": "https://adactio.com",
-      "feed_url": "https://adactio.com/rss",
-      "about": "Web standards, design and craft essays",
-      "cadence": "several a week",
-      "tags": ["web", "standards", "design", "frontend"]
-    },
-    {
       "id": "swift-by-sundell",
       "name": "Swift by Sundell",
       "url": "https://www.swiftbysundell.com",
@@ -146,15 +92,6 @@
       "tags": ["apple", "ios", "developer", "sdk"]
     },
     {
-      "id": "webkit",
-      "name": "WebKit",
-      "url": "https://webkit.org",
-      "feed_url": "https://webkit.org/feed/",
-      "about": "Safari engine features and release notes",
-      "cadence": "several a week",
-      "tags": ["webkit", "safari", "browser", "web", "css"]
-    },
-    {
       "id": "openai-news",
       "name": "OpenAI News",
       "url": "https://openai.com/news/",
@@ -171,33 +108,6 @@
       "about": "Gemini and DeepMind model and product posts",
       "cadence": "weekly",
       "tags": ["ai", "models", "gemini", "research", "deepmind"]
-    },
-    {
-      "id": "google-ai-blog",
-      "name": "Google AI Blog",
-      "url": "https://blog.google/technology/ai/",
-      "feed_url": "https://blog.google/technology/ai/rss/",
-      "about": "Consumer Google AI feature launches",
-      "cadence": "several a week",
-      "tags": ["ai", "google", "gemini", "products"]
-    },
-    {
-      "id": "latent-space",
-      "name": "Latent Space",
-      "url": "https://www.latent.space",
-      "feed_url": "https://www.latent.space/feed",
-      "about": "AI engineering essays, podcasts and model digests",
-      "cadence": "several a week",
-      "tags": ["ai", "engineering", "llm", "agents", "models"]
-    },
-    {
-      "id": "the-decoder",
-      "name": "The Decoder",
-      "url": "https://the-decoder.com",
-      "feed_url": "https://the-decoder.com/feed/",
-      "about": "Short AI model and product news items",
-      "cadence": "daily",
-      "tags": ["ai", "models", "products", "news"]
     },
     {
       "id": "techcrunch-ai",
@@ -351,15 +261,6 @@
       "about": "Startups and tech business",
       "cadence": "daily",
       "tags": ["tech", "startups", "business", "news"]
-    },
-    {
-      "id": "techmeme",
-      "name": "Techmeme",
-      "url": "https://www.techmeme.com",
-      "feed_url": "https://www.techmeme.com/feed.xml",
-      "about": "Ranked tech headlines",
-      "cadence": "daily",
-      "tags": ["tech", "news", "headlines"]
     },
     {
       "id": "axios",

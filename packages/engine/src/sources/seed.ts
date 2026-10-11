@@ -200,6 +200,7 @@ export const API_SEED: readonly Draft[] = [
     feed_url: "https://lobste.rs/hottest.json",
     tier: "daily",
     high_signal: false,
+    category_hint: "developer_tool_launches",
   }),
   api({
     id: "exa-discovery",
@@ -213,13 +214,7 @@ export const API_SEED: readonly Draft[] = [
   }),
 ];
 
-const feed = (
-  id: string,
-  name: string,
-  url: string,
-  feedUrl: string,
-  topicId: "design" | "trending",
-): Draft =>
+const feed = (id: string, name: string, url: string, feedUrl: string, topicId: "design"): Draft =>
   api({
     id,
     name,
@@ -234,14 +229,42 @@ const feed = (
   });
 
 /**
- * Feeds that ship with the app for its two own topics (D39, D40). Feeds only, each checked on
- * 2026-10-08, none of them needing Firecrawl. A source tagged for a topic is judged for that topic
- * and, for Trending, kept out of every other section: general news enters Trending alone.
+ * An outlet's top stories, which fed Trending (D40) until Trending was switched off (D69). Filed
+ * under World, read like a general feed (no pool cap, every story judged). Where the outlet already
+ * has a World desk among the general feeds, the top stories would add its home news and copies of
+ * that desk, so the feed starts off and the owner can tick it on.
+ */
+const topStories = (
+  id: string,
+  name: string,
+  url: string,
+  feedUrl: string,
+  enabled: boolean,
+): Draft => ({
+  ...api({
+    id,
+    name,
+    type: "rss",
+    url,
+    feed_url: feedUrl,
+    tier: "daily",
+    high_signal: false,
+    origin: "seed",
+    topic_ids: ["world"],
+    ...(enabled
+      ? {}
+      : { options: { note: "the outlet's top stories; its World desk already feeds World" } }),
+  }),
+  enabled,
+});
+
+/**
+ * Feeds that ship with the app for Design (D39) and the old Trending outlets (D40, D69). Feeds
+ * only, each checked on 2026-10-08, none of them needing Firecrawl. A source tagged for a topic is
+ * judged for that topic.
  *
  * Design takes five feeds chosen for UI, UX and product design, leaving out the architecture,
- * furniture and concept-render feeds. Trending takes seven general news outlets; the story is
- * only as strong as the number of different outlets that carry it, so they are different outlets
- * rather than several desks of one.
+ * furniture and concept-render feeds. The seven outlets that made Trending now feed World.
  */
 export const APP_TOPIC_SOURCES: readonly Draft[] = [
   feed(
@@ -279,54 +302,54 @@ export const APP_TOPIC_SOURCES: readonly Draft[] = [
     "https://www.creativeboom.com/feed/",
     "design",
   ),
-  feed(
+  topStories(
     "npr-news",
     "NPR News",
     "https://www.npr.org",
     "https://feeds.npr.org/1001/rss.xml",
-    "trending",
+    false,
   ),
-  feed(
+  topStories(
     "cbs-news",
     "CBS News",
     "https://www.cbsnews.com",
     "https://www.cbsnews.com/latest/rss/main",
-    "trending",
+    false,
   ),
-  feed(
+  topStories(
     "abc-news",
     "ABC News",
     "https://abcnews.com",
     "https://abcnews.com/abcnews/topstories",
-    "trending",
+    false,
   ),
-  feed(
+  topStories(
     "al-jazeera",
     "Al Jazeera",
     "https://www.aljazeera.com",
     "https://www.aljazeera.com/xml/rss/all.xml",
-    "trending",
+    false,
   ),
-  feed(
+  topStories(
     "france-24",
     "France 24",
     "https://www.france24.com",
     "https://www.france24.com/en/rss",
-    "trending",
+    true,
   ),
-  feed(
+  topStories(
     "sky-news",
     "Sky News",
     "https://news.sky.com",
     "https://feeds.skynews.com/feeds/rss/home.xml",
-    "trending",
+    false,
   ),
-  feed(
+  topStories(
     "pbs-newshour",
     "PBS NewsHour",
     "https://www.pbs.org/newshour/",
     "https://www.pbs.org/newshour/feeds/rss/headlines",
-    "trending",
+    false,
   ),
 ];
 
@@ -386,7 +409,9 @@ const generalFeed = (
 /**
  * The open category feeds behind the five general news topics (D66), which a separate feed list
  * held before they became sources. Each is judged in full on every run, so it earns a score like
- * any source, and is read by general episodes. Feeds only, none needing a key or Firecrawl.
+ * any source, and is read by general episodes. Feeds only, none needing a key or Firecrawl. D69
+ * added desks from outlets already here (CBS, Sky, PBS, BBC) and The Guardian, so each topic
+ * has five or more outlets: a general episode ranks a story by how many outlets carried it.
  */
 export const GENERAL_TOPIC_SOURCES: readonly Draft[] = [
   generalFeed(
@@ -418,6 +443,34 @@ export const GENERAL_TOPIC_SOURCES: readonly Draft[] = [
     "https://feeds.bbci.co.uk/news/world/rss.xml",
   ),
   generalFeed(
+    "cbs-news",
+    "CBS News",
+    "world",
+    "https://www.cbsnews.com/world/",
+    "https://www.cbsnews.com/latest/rss/world",
+  ),
+  generalFeed(
+    "sky-news",
+    "Sky News",
+    "world",
+    "https://news.sky.com/world",
+    "https://feeds.skynews.com/feeds/rss/world.xml",
+  ),
+  generalFeed(
+    "pbs-newshour",
+    "PBS NewsHour",
+    "world",
+    "https://www.pbs.org/newshour/world",
+    "https://www.pbs.org/newshour/feeds/rss/world",
+  ),
+  generalFeed(
+    "guardian",
+    "The Guardian",
+    "world",
+    "https://www.theguardian.com/world",
+    "https://www.theguardian.com/world/rss",
+  ),
+  generalFeed(
     "npr",
     "NPR",
     "business",
@@ -444,6 +497,20 @@ export const GENERAL_TOPIC_SOURCES: readonly Draft[] = [
     "business",
     "https://news.sky.com/business",
     "https://feeds.skynews.com/feeds/rss/business.xml",
+  ),
+  generalFeed(
+    "bbc",
+    "BBC",
+    "business",
+    "https://www.bbc.com/news/business",
+    "https://feeds.bbci.co.uk/news/business/rss.xml",
+  ),
+  generalFeed(
+    "guardian",
+    "The Guardian",
+    "business",
+    "https://www.theguardian.com/business",
+    "https://www.theguardian.com/business/rss",
   ),
   generalFeed(
     "npr",
@@ -474,6 +541,13 @@ export const GENERAL_TOPIC_SOURCES: readonly Draft[] = [
     "https://www.theguardian.com/science/rss",
   ),
   generalFeed(
+    "bbc",
+    "BBC",
+    "science",
+    "https://www.bbc.com/news/science_and_environment",
+    "https://feeds.bbci.co.uk/news/science_and_environment/rss.xml",
+  ),
+  generalFeed(
     "npr",
     "NPR",
     "culture",
@@ -502,6 +576,20 @@ export const GENERAL_TOPIC_SOURCES: readonly Draft[] = [
     "https://feeds.bbci.co.uk/news/entertainment_and_arts/rss.xml",
   ),
   generalFeed(
+    "guardian",
+    "The Guardian",
+    "culture",
+    "https://www.theguardian.com/culture",
+    "https://www.theguardian.com/culture/rss",
+  ),
+  generalFeed(
+    "cbs-news",
+    "CBS News",
+    "culture",
+    "https://www.cbsnews.com/entertainment/",
+    "https://www.cbsnews.com/latest/rss/entertainment",
+  ),
+  generalFeed(
     "npr",
     "NPR",
     "sports",
@@ -528,6 +616,13 @@ export const GENERAL_TOPIC_SOURCES: readonly Draft[] = [
     "sports",
     "https://www.bbc.com/sport",
     "https://feeds.bbci.co.uk/sport/rss.xml",
+  ),
+  generalFeed(
+    "guardian",
+    "The Guardian",
+    "sports",
+    "https://www.theguardian.com/sport",
+    "https://www.theguardian.com/sport/rss",
   ),
   generalFeed(
     "npr",
@@ -592,6 +687,17 @@ const techOutlet = (feed: string): Curation => ({
   options: { pool_cap: "6" },
 });
 
+/**
+ * A daily AI roundup. Filed under AI (D69) but off until the owner ticks it on: they were muted by
+ * the hype hint before, and switched on with the AI hint they would bring a day's hype into the
+ * pool. The score shows whether one has earned a place.
+ */
+const hypeRoundup: Curation = {
+  category_hint: FRONTIER,
+  enabled: false,
+  options: { note: "a daily AI roundup, much of it hype; off until ticked on" },
+};
+
 /** Source-by-source decisions, keyed by id. Anything not listed gets the importer's defaults. */
 export const CURATIONS: Readonly<Record<string, Curation>> = {
   // Labs and engineering blogs
@@ -612,7 +718,7 @@ export const CURATIONS: Readonly<Record<string, Curation>> = {
   // AI newsletters
   "import-ai": { high_signal: true, category_hint: FRONTIER },
   "the-batch": { category_hint: FRONTIER },
-  "the-rundown-ai": { category_hint: "generic_ai_hype_listicles" },
+  "the-rundown-ai": hypeRoundup,
   "tldr-ai": { category_hint: FRONTIER, feed_hint: "https://tldr.tech/api/rss/ai" },
   "ahead-of-ai": { category_hint: FRONTIER },
   "last-week-in-ai": {
@@ -622,8 +728,8 @@ export const CURATIONS: Readonly<Record<string, Curation>> = {
   },
   "the-algorithm": { category_hint: FRONTIER },
   "one-useful-thing": { category_hint: AIUX },
-  "superhuman-ai": { category_hint: "generic_ai_hype_listicles" },
-  "the-neuron": { category_hint: "generic_ai_hype_listicles" },
+  "superhuman-ai": hypeRoundup,
+  "the-neuron": hypeRoundup,
   "simon-willison": {
     high_signal: true,
     category_hint: AIUX,
@@ -631,6 +737,12 @@ export const CURATIONS: Readonly<Record<string, Curation>> = {
   },
   "aux-first": { category_hint: AIUX },
   "beyond-the-screen": { category_hint: AIUX },
+  "latent-space": { category_hint: FRONTIER, pinned_feed_url: "https://www.latent.space/feed" },
+  "the-decoder": { category_hint: FRONTIER, pinned_feed_url: "https://the-decoder.com/feed/" },
+  "google-ai-blog": {
+    category_hint: FRONTIER,
+    pinned_feed_url: "https://blog.google/innovation-and-ai/technology/ai/rss/",
+  },
   // Individual craft blogs
   "rauno-freiberg": { high_signal: true, category_hint: IND },
   "emil-kowalski": { high_signal: true, category_hint: CSS },
@@ -655,6 +767,25 @@ export const CURATIONS: Readonly<Record<string, Curation>> = {
   "darkroom-engineering": { high_signal: true, category_hint: CSS },
   codrops: { category_hint: CSS },
   "css-tricks": { category_hint: CSS },
+  "bram-us": { category_hint: CSS, pinned_feed_url: "https://www.bram.us/feed/" },
+  piccalilli: {
+    high_signal: true,
+    category_hint: IND,
+    pinned_feed_url: "https://piccalil.li/feed.xml",
+  },
+  "ahmad-shadeed": {
+    high_signal: true,
+    category_hint: CSS,
+    pinned_feed_url: "https://ishadeed.com/feed.xml",
+  },
+  "brad-frost": {
+    high_signal: true,
+    category_hint: UI,
+    pinned_feed_url: "https://bradfrost.com/feed/feed.xml",
+  },
+  "dave-rupert": { category_hint: IND, pinned_feed_url: "https://daverupert.com/atom.xml" },
+  adactio: { category_hint: TASTE, pinned_feed_url: "https://adactio.com/rss/" },
+  webkit: { category_hint: CSS, pinned_feed_url: "https://webkit.org/feed/" },
   // Design engineering newsletters
   // Friday Checkout is a weekly consumer tech roundup, not a design newsletter.
   "friday-checkout": { category_hint: TECH },
@@ -702,9 +833,16 @@ export const CURATIONS: Readonly<Record<string, Curation>> = {
   "storybook-blog": { category_hint: UI },
   "tailwind-css-blog": { category_hint: DEV },
   "material-design-blog": { category_hint: IND },
-  // Aggregators and journalism
-  "brutalist-report": { options: { kind: "newsletter-link" } },
-  techcrunch: { category_hint: "venture_capital_and_gossip" },
+  // Aggregators and journalism. Brutalist Report and TechCrunch feed Technology (D69); the judge
+  // still files a funding story under the never-publish topic, whatever the hint.
+  "brutalist-report": {
+    category_hint: TECH,
+    options: { kind: "newsletter-link", pool_cap: "6" },
+  },
+  techcrunch: { category_hint: TECH, options: { pool_cap: "6" } },
+  techmeme: techOutlet("https://www.techmeme.com/feed.xml"),
+  // Off: an account-only feed (import.ts). Filed with the developer news it would bring.
+  "daily-dev": { category_hint: DEV },
   "the-verge": { category_hint: TECH },
   "ars-technica": { category_hint: TECH },
   // Consumer tech outlets

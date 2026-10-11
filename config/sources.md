@@ -44,6 +44,9 @@
 | Simon Willison's Weblog | https://simonwillison.net | Daily | LLM tooling, prompt engineering, practical AI dev |
 | AUX First (Agentic AI) | https://auxfirst.com/newsletter.html | Weekly | Agentic UX (AUX), trust architecture, agent-first API design |
 | Beyond the Screen | https://beyond.fionaburns.co/ | Weekly | Designing for both humans and AI agents |
+| Latent Space | https://www.latent.space | Several/week | AI engineering essays, podcasts and model digests |
+| The Decoder | https://the-decoder.com | Daily | Short AI model and product news |
+| Google AI Blog | https://blog.google/technology/ai/ | Several/week | Consumer Google AI feature launches |
 
 ---
 
@@ -66,6 +69,13 @@
 | darkroom.engineering | https://darkroom.engineering | Lenis scroll library, studio-grade WebGL craft |
 | Codrops | https://tympanus.net/codrops/ | Experimental UI demos, CSS/JS tutorials |
 | CSS-Tricks | https://css-tricks.com | CSS techniques, guides, almanac |
+| Bram.us | https://www.bram.us | CSS, JavaScript and browser feature write-ups |
+| Piccalilli | https://piccalil.li | Front-end craft, CSS and accessibility essays |
+| Ahmad Shadeed | https://ishadeed.com | Deep CSS layout and component essays |
+| Brad Frost | https://bradfrost.com | Design systems and component architecture |
+| Dave Rupert | https://daverupert.com | Web craft, CSS and personal dev notes |
+| Adactio (Jeremy Keith) | https://adactio.com | Web standards, design and craft essays |
+| WebKit | https://webkit.org | Safari engine features and release notes |
 
 ### Design Engineering Newsletters
 | Source | URL | Cadence | Focus |
@@ -142,6 +152,7 @@
 | Lobste.rs | https://lobste.rs | Real-time | Invite-only; systems, security, code-heavy |
 | Product Hunt | https://www.producthunt.com | Daily | Product launches (filter for dev/design tools) |
 | daily.dev | https://daily.dev | Daily | Personalized developer news feed |
+| Techmeme | https://www.techmeme.com | Real-time | Ranked tech headlines: one launch carried by many outlets rises |
 
 
 ### Tech Journalism (Free & Open Access)
