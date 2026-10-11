@@ -390,10 +390,17 @@ export interface PodcastRequest {
   length_minutes: 3 | 5 | 10 | 15;
   /** New requests take "readout" or "discussion"; a stored episode may still say "headlines". */
   format: "readout" | "discussion" | "headlines";
-  /** Speechify voice id of the lead host (Ada); absent means the engine's default. */
+  /** Speechify voice id of the lead host, speaker "a"; absent means the engine's default. */
   voice_id?: string | null;
-  /** Voice id of the second host (Leo, discussion only); absent means the default. */
+  /** Voice id of the second host, speaker "b" (discussion only); absent means the default. */
   voice_id_b?: string | null;
+  /**
+   * The hosts' spoken names in a discussion, "a" the lead and "b" the second host. Only the server
+   * sets them, from the voices' genders (hostNamesFor in core); a name a browser sends is dropped.
+   * An episode stores the names it was written with. A discussion stored without them predates the
+   * field and was written with Ada and Leo; a readout names no host.
+   */
+  host_names?: { a: string; b: string };
   /** How many days of stories to draw on. */
   window_days: 2 | 7 | 30;
   tone: "neutral" | "energetic" | "dry";

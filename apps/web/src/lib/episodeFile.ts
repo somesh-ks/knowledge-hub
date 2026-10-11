@@ -1,4 +1,4 @@
-import { stockholmDate } from "@dispatch/core";
+import { HOST_NAME_PATTERN, stockholmDate } from "@dispatch/core";
 import { parse } from "yaml";
 import type { PodcastRequest } from "../types/contracts";
 
@@ -86,6 +86,17 @@ function voice(value: unknown): string | null {
   return id !== null && VOICE_ID.test(id) ? id : null;
 }
 
+/**
+ * The names a discussion was written with, as the engine stores them. Null when the file has none
+ * (a discussion made before names were stored was written with Ada and Leo) or either is not a name.
+ */
+function hostNames(value: unknown): PodcastRequest["host_names"] | null {
+  if (!isRecord(value)) return null;
+  const a = text(value.a);
+  const b = text(value.b);
+  return a && b && HOST_NAME_PATTERN.test(a) && HOST_NAME_PATTERN.test(b) ? { a, b } : null;
+}
+
 function readRequest(value: unknown, format: PodcastRequest["format"]): PodcastRequest {
   const raw = isRecord(value) ? value : {};
   const topics = Array.isArray(raw.topic_ids)
@@ -94,6 +105,7 @@ function readRequest(value: unknown, format: PodcastRequest["format"]): PodcastR
   const title = text(raw.title);
   const voiceId = voice(raw.voice_id);
   const voiceIdB = voice(raw.voice_id_b);
+  const names = hostNames(raw.host_names);
   return {
     topic_ids: topics,
     length_minutes: oneOf(raw.length_minutes, LENGTHS, 5),
@@ -103,6 +115,7 @@ function readRequest(value: unknown, format: PodcastRequest["format"]): PodcastR
     ...(title ? { title } : {}),
     ...(voiceId ? { voice_id: voiceId } : {}),
     ...(voiceIdB ? { voice_id_b: voiceIdB } : {}),
+    ...(names ? { host_names: names } : {}),
   };
 }
 
