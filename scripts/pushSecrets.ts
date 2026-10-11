@@ -1,6 +1,6 @@
 // Sends values from the gitignored .env to GitHub Actions and Vercel without printing them.
 // Usage: npm run secrets:push [-- --dry-run] [-- --only github|vercel]
-import { execFileSync } from "node:child_process";
+import { execFileSync, execSync } from "node:child_process";
 import { existsSync, readFileSync } from "node:fs";
 import { join, resolve } from "node:path";
 
@@ -103,6 +103,9 @@ function reasonOf(error: unknown, values: Record<string, string>): string {
   return (line ?? "no message").slice(0, 200);
 }
 
+/** What may reach a shell unquoted: names, flags and an owner/repo. A value never does; it goes on stdin. */
+const SHELL_SAFE = /^[\w./-]+$/;
+
 function run(
   file: string,
   args: string[],
@@ -111,13 +114,24 @@ function run(
   cwd?: string,
 ): void {
   // The value only travels on stdin. Output is discarded so it can never be echoed.
-  execFileSync(file, args, {
+  const options = {
     input,
     env,
     cwd,
-    stdio: ["pipe", "ignore", "pipe"],
-    shell: process.platform === "win32",
-  });
+    stdio: ["pipe", "ignore", "pipe"] as ["pipe", "ignore", "pipe"],
+  };
+  if (process.platform !== "win32") {
+    execFileSync(file, args, options);
+    return;
+  }
+  // Windows reaches gh and npx through the shell. Node deprecates handing an argument list to a
+  // shell, which joins it unquoted (DEP0190), so the line is joined here, from parts that need no
+  // quoting.
+  const parts = [file, ...args];
+  if (!parts.every((part) => SHELL_SAFE.test(part))) {
+    throw new Error("an argument would need quoting in the shell");
+  }
+  execSync(parts.join(" "), options);
 }
 
 /** The directory `vercel link` was run in: the repository root or apps/web. */
