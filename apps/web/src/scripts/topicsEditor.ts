@@ -1,15 +1,16 @@
 /**
  * The Topics & Sources editor, loaded the first time a switch, a slider, a remove button, a source's
- * row, Edit topic or Add is used (topicsPage.ts forwards the event that woke it). It records each
- * change as an op, and autosave.ts sends it a moment later through managePageSave.ts. The panel that
- * adds and edits topics and sources is topicsPanel.ts, loaded when it is first opened.
+ * row, a suggestion's +, Edit topic or Add is used (topicsPage.ts forwards the event that woke it).
+ * It records each change as an op, and autosave.ts sends it a moment later through
+ * managePageSave.ts. The panel that adds and edits topics and sources is topicsPanel.ts, loaded when
+ * it is first opened.
  *
  * The page is built with every control at its saved state, so what the editor holds is a comparison:
  * a control that differs from the state it was built (or last saved) in is a pending change.
  *
  * The pure parts are exported and tested; the rest is wiring.
  */
-import { type OfferData, slugify } from "../lib/topicText";
+import { type OfferData, parseSuggestedAdd, type SuggestedAdd, slugify } from "../lib/topicText";
 import type { ConfigOp } from "../types/contracts";
 import { mountAutosave } from "./autosave";
 import type { Pending } from "./managePageSave";
@@ -205,6 +206,28 @@ export function mountEditor(root: HTMLElement): Editor {
     changes.set(key, { op, el: note, now: "" });
   };
 
+  /**
+   * A suggestion added from its row. The row says it is being added in the line that said what the
+   * source covers, and then that it is, once the edit is saved (settle, in managePageSave.ts); its
+   * button shows a check where the plus was. Nothing is put in the list above or scrolled to, so the
+   * page stays as it was and the next suggestion is where the last one left it.
+   */
+  const addSuggested = (button: HTMLButtonElement, suggestion: SuggestedAdd): void => {
+    const { name, feed_url, topic_id } = suggestion;
+    added += 1;
+    const note = element("span", "source-note", "Adding");
+    button.closest("li")?.querySelector(".source-line")?.replaceChildren(note);
+    changes.set(`src${added}`, {
+      op: { op: "source.add", url: feed_url, ...(topic_id ? { topic_ids: [topic_id] } : {}) },
+      el: note,
+      now: "",
+    });
+    autosave.now();
+    button.disabled = true;
+    button.classList.add("is-added");
+    button.setAttribute("aria-label", `Added ${name}`);
+  };
+
   /** A source chosen by its address in the panel: a decision already made, so it goes now. */
   const addSource = ({ url, topic_id, preview }: Chosen): void => {
     addRow(
@@ -329,34 +352,8 @@ export function mountEditor(root: HTMLElement): Editor {
     )
       openPanel(button);
     else if ("suggestedAdd" in button.dataset) {
-      const suggestion = JSON.parse(button.dataset.suggestedAdd ?? "{}") as {
-        name: string;
-        favicon_url?: string | null;
-        score?: number | null;
-        score_label?: string;
-        feed_url?: string;
-      };
-      const topicId = root.querySelector<HTMLElement>(".topic")?.dataset.id ?? "";
-      addRow(
-        {
-          name: suggestion.name,
-          icon: suggestion.favicon_url ?? null,
-          score: suggestion.score ?? null,
-          label: suggestion.score_label ?? "Good",
-        },
-        { op: "source.add", url: suggestion.feed_url ?? "", topic_ids: topicId ? [topicId] : [] },
-        topicId,
-      );
-      autosave.now();
-      button.disabled = true;
-      button.classList.add("is-added");
-      button.setAttribute("aria-label", `Added ${suggestion.name}`);
-      const checkTemplate = document.getElementById(
-        "suggested-check-template",
-      ) as HTMLTemplateElement | null;
-      if (checkTemplate) {
-        button.replaceChildren(checkTemplate.content.cloneNode(true));
-      }
+      const suggestion = parseSuggestedAdd(button.dataset.suggestedAdd);
+      if (suggestion) addSuggested(button, suggestion);
     } else if (act === "cancel" && row) {
       changes.delete(row.dataset.key ?? "");
       row.remove();

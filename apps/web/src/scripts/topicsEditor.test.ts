@@ -3,6 +3,7 @@ import {
   addTopicLabel,
   idText,
   keywordList,
+  parseSuggestedAdd,
   problemText,
   saveTopicLabel,
   slugify,
@@ -94,6 +95,52 @@ describe("topicChanged", () => {
     expect(
       topicChanged(saved, { ...saved, name: " Audio ", description: "Players and voice. " }),
     ).toBe(false);
+  });
+});
+
+describe("parseSuggestedAdd", () => {
+  const carried = {
+    name: "Dezeen",
+    feed_url: "https://www.dezeen.com/feed/",
+    favicon_url: "https://www.dezeen.com/favicon.ico",
+    topic_id: "design",
+  };
+  const parse = (value: unknown) => parseSuggestedAdd(JSON.stringify(value));
+
+  it("reads what a + button carries: the feed to add, the name, the icon and the topic", () => {
+    expect(parse(carried)).toEqual(carried);
+  });
+
+  it("keeps no icon that is not https, and files under no topic when none is given", () => {
+    expect(parse({ ...carried, favicon_url: "http://www.dezeen.com/favicon.ico" })).toMatchObject({
+      favicon_url: null,
+    });
+    expect(parse({ ...carried, favicon_url: null, topic_id: undefined })).toMatchObject({
+      favicon_url: null,
+      topic_id: "",
+    });
+  });
+
+  it("reads nothing else: a suggestion has no score, and one that arrives with it is dropped", () => {
+    const found = parse({ ...carried, score: 2.9, score_label: "Good" });
+    expect(found).toEqual(carried);
+  });
+
+  it("is null for a button with nothing to add, and never throws", () => {
+    for (const bad of [
+      undefined,
+      "",
+      "{not json",
+      "null",
+      "[]",
+      JSON.stringify({ ...carried, feed_url: "" }),
+      JSON.stringify({ ...carried, feed_url: "javascript:alert(1)" }),
+      JSON.stringify({ ...carried, feed_url: 7 }),
+      JSON.stringify({ ...carried, name: " " }),
+      JSON.stringify({ feed_url: carried.feed_url }),
+    ]) {
+      expect(parseSuggestedAdd(bad), String(bad)).toBeNull();
+    }
   });
 });
 

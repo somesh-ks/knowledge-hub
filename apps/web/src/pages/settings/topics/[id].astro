@@ -4,13 +4,20 @@ import ManageChrome from "../../../components/ManageChrome.astro";
 import MultiSelect from "../../../components/MultiSelect.astro";
 import SettingsHead from "../../../components/SettingsHead.astro";
 import SourceRow from "../../../components/SourceRow.astro";
+import SuggestedSources from "../../../components/SuggestedSources.astro";
 import TopicsPanel from "../../../components/TopicsPanel.astro";
 import WeightRow from "../../../components/WeightRow.astro";
 import BaseLayout from "../../../layouts/BaseLayout.astro";
 import { loadManage, type ManageSource, type ManageTopic } from "../../../lib/manage";
 import { loadScheduleView } from "../../../lib/schedule";
-import { freshOffers, loadSourceCatalog } from "../../../lib/sourceCatalog";
-import { type GroupPage, OTHER_ID, topicChoicesOf, topicLayout } from "../../../lib/topicPages";
+import { freshOffers, loadSourceCatalog, suggestSources } from "../../../lib/sourceCatalog";
+import {
+  type GroupPage,
+  OTHER_ID,
+  suggestionWords,
+  topicChoicesOf,
+  topicLayout,
+} from "../../../lib/topicPages";
 import "../../../styles/settings.css";
 import "../../../styles/manage.css";
 import "../../../styles/topics.css";
@@ -60,6 +67,10 @@ const note =
 // A source on a group's page shows the group as its topic, so its edit panel moves it only when
 // another topic is chosen.
 const shown = group ? { id: group.home, name: group.name } : undefined;
+// The catalogue's feeds that fit the topic and are not among the sources: all known at build time, so
+// they are in the page and need no request. Where nothing fits, the page has no such section.
+const words = suggestionWords({ group, topic });
+const suggested = words ? suggestSources(catalog, sources, words) : [];
 // Where the topic plays (D69): one of the owner's three sets it for every judge topic it gathers.
 const schedule = await loadScheduleView();
 const scopeIds = group ? group.members.map((member) => member.id) : topic ? [topic.id] : [];
@@ -220,30 +231,7 @@ const facts = topic && {
             )
           }
 
-          <section class="topic-suggested-section" data-suggested-section data-topic={topic?.id ?? group?.id ?? "other"}>
-            <div class="suggested-section-head">
-              <h2 class="section-head">Suggested sources</h2>
-              <span class="suggested-pill">Live curated</span>
-            </div>
-            <p class="manage-quiet suggested-caption">High-signal feeds filtered by TypeSafe Jev. Tap + to add to this topic.</p>
-            <ul class="topic-sources suggested-sources" role="list" data-suggested-sources aria-label={`Suggested sources for ${name}`}>
-              {Array.from({ length: 5 }).map(() => (
-                <li class="source-row suggested-skeleton" aria-hidden="true">
-                  <span class="source-main">
-                    <span class="source-icon skeleton-circle"></span>
-                    <span class="source-text">
-                      <span class="skeleton-bar" style="inline-size: 8rem;"></span>
-                      <span class="skeleton-bar" style="inline-size: 5rem;"></span>
-                    </span>
-                  </span>
-                  <span class="skeleton-bar" style="inline-size: 3rem;"></span>
-                  <span class="source-slot skeleton-circle"></span>
-                </li>
-              ))}
-            </ul>
-          </section>
-          <template id="suggested-plus-template"><Icon name="plus" /></template>
-          <template id="suggested-check-template"><Icon name="check" class="suggest-check" /></template>
+          <SuggestedSources offers={suggested} name={name} topicId={group?.home ?? topic?.id ?? ""} />
           {
             topic?.origin === "custom" && (
               <div class="topic-remove-row">

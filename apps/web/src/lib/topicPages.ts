@@ -1,5 +1,6 @@
 import { GENERAL_TOPICS, TOPIC_GROUPS, topicGroupOf } from "@dispatch/core";
 import type { ManageSource, ManageTopic } from "./manage";
+import type { TopicWords } from "./sourceCatalog";
 
 /**
  * What the Topics pages are built from: each topic's sources, best first, a stored weight at the
@@ -145,4 +146,32 @@ export function topicChoicesOf(layout: TopicLayout): { id: string; name: string 
     ...layout.own.map(({ id, name }) => ({ id, name })),
     ...layout.general.map(({ id, name }) => ({ id, name })),
   ].sort(byName);
+}
+
+/**
+ * What a page's sources are suggested by (suggestSources): the words its topic goes by. One of the
+ * owner's three is its name and the names and keywords of the judge's topics it gathers. A general
+ * topic is its name and keywords alone: its description is the judge's fit question, written for a
+ * model and not as words to look for. The owner's own topic is its name, description and keywords.
+ * Other has no subject, so nothing is suggested for it.
+ */
+export function suggestionWords(page: {
+  group: GroupPage | null;
+  topic: ManageTopic | null;
+}): TopicWords | null {
+  const { group, topic } = page;
+  if (group) {
+    return {
+      id: group.id,
+      name: group.name,
+      keywords: group.members.flatMap((member) => [member.name, ...member.keywords]),
+    };
+  }
+  if (!topic) return null;
+  return {
+    id: topic.id,
+    name: topic.name,
+    keywords: topic.keywords,
+    ...(topic.origin === "general" ? {} : { description: topic.description }),
+  };
 }

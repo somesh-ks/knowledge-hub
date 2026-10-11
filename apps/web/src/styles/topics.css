@@ -1,7 +1,8 @@
 /*
  * The Topics & Sources pages (pages/settings/topics.astro and topics/[id].astro): each topic with its
- * switch, its weight and the sources under it; a source's row and its score out of 3; and the panel
- * that adds a topic or a source and edits a source (TopicsPanel.astro).
+ * switch, its weight and the sources under it; a source's row and its score out of 3; the sources the
+ * catalogue suggests for a topic; and the panel that adds a topic or a source and edits a source
+ * (TopicsPanel.astro).
  * Tokens only. It is loaded after manage.css, whose form fields, saving toast and dialog it
  * reuses, and after settings.css, which draws the switch and the slider.
  *
@@ -935,95 +936,118 @@ a.source-name:focus-visible {
 
 /* ------------------------------------------------------------------ suggested sources */
 
-.topic-suggested-section {
-  display: flex;
-  flex-direction: column;
-  margin-block-start: var(--space-8);
-  padding-block-start: var(--space-4);
-  border-block-start: var(--stroke-hairline) solid var(--color-border-hairline);
+/* A suggestion is a source's row with a quiet line on what it covers in place of the score, and a
+   button in place of the checkbox. The row keeps a source's height, tile and type, and the section's
+   heading and list keep the page's own spacing. */
+.source-row.is-suggested {
+  grid-template-columns: minmax(0, 1fr) auto;
 }
 
-.suggested-section-head {
-  display: flex;
-  align-items: center;
-  gap: var(--space-2);
+/* The tile keeps its size however long the line beside it is. */
+.is-suggested .source-icon {
+  flex: none;
 }
 
-.suggested-pill {
-  display: inline-flex;
-  align-items: center;
-  padding-block: var(--space-1);
-  padding-inline: var(--space-2);
-  border-radius: var(--chip-radius);
-  background: var(--color-accent-subtle);
-  color: var(--color-accent);
-  font-size: var(--font-size-meta);
-  font-weight: var(--font-weight-medium);
+/* The name and the site on a line, what it covers under them. On a phone the site is left out, as in
+   a source's row, and the line takes the width. */
+.is-suggested .source-text {
+  flex: 1 1 0;
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr);
+  align-items: baseline;
+  row-gap: 0;
+  column-gap: var(--space-3);
+}
+
+/* What it covers, then how often it posts, on one line. The cadence goes to a second line that is not
+   drawn when there is no room for both, so the cover is cut short only when it is longer than the line.
+   A screen reader still reads both. */
+.source-line {
+  grid-column: 1 / -1;
+  display: flex;
+  flex-wrap: wrap;
+  column-gap: var(--space-1);
+  min-width: 0;
+  max-height: calc(var(--font-size-label) * var(--font-leading-caption));
+  overflow: hidden;
+  color: var(--color-on-surface-muted);
+  font-size: var(--font-size-label);
   line-height: var(--font-leading-caption);
-  letter-spacing: var(--text-meta-tracking);
-  text-transform: uppercase;
+  white-space: nowrap;
 }
 
-.suggested-caption {
-  margin-block: var(--space-1) var(--space-3);
+.source-about {
+  min-width: 0;
+  max-width: 100%;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 
-/* The small + button on the right side of a suggested source row */
+/* Pressed, the line says the source is being added, and then that it is: on the one line, as it was. */
+.source-line > .source-note {
+  white-space: nowrap;
+}
+
+/* Add: a round tonal button. The touch target is the whole 44px; the disc drawn in it is a little
+   smaller, so a column of them reads as a list and not as a column of discs. Pressed, the disc fills
+   with the accent and a check takes the plus's place; both glyphs share the one slot, so nothing
+   moves. The rest of a row lets a press through to its edit button; a suggestion has none, so this
+   button answers for itself. */
 .source-plus-btn {
   position: relative;
+  isolation: isolate;
   display: grid;
   place-items: center;
   width: var(--size-touch);
   height: var(--size-touch);
-  margin-inline-end: calc(var(--space-3) * -1);
-  border: none;
-  background: none;
-  color: var(--color-on-surface-muted);
   border-radius: var(--radius-round);
-  cursor: pointer;
-  transition:
-    color var(--duration-hover) var(--ease-hover),
-    background-color var(--duration-hover) var(--ease-hover);
+  color: var(--color-accent);
 }
 
-.source-plus-btn > .icon {
-  width: var(--size-icon);
-  height: var(--size-icon);
+.source-row.is-suggested > .source-plus-btn {
+  pointer-events: auto;
 }
 
-@media (hover: hover) and (pointer: fine) {
-  .source-plus-btn:hover {
-    color: var(--color-accent);
-    background: var(--color-surface-sunken);
-  }
+.source-plus-btn::before {
+  content: "";
+  position: absolute;
+  inset: var(--space-1);
+  z-index: var(--z-beneath);
+  border-radius: var(--radius-round);
+  background: var(--color-accent-subtle);
+  transition: background-color var(--duration-hover) var(--ease-hover);
 }
 
-.source-plus-btn:active {
-  background: var(--color-surface-sunken);
+.source-plus-btn > .suggested-plus,
+.source-plus-btn > .suggested-check {
+  grid-area: 1 / 1;
+  transition: opacity var(--duration-state) var(--ease-out);
+}
+
+.source-plus-btn > .suggested-check,
+.source-plus-btn.is-added > .suggested-plus {
+  opacity: 0;
+}
+
+.source-plus-btn.is-added > .suggested-check {
+  opacity: 1;
 }
 
 .source-plus-btn.is-added {
-  color: var(--color-accent);
-  pointer-events: none;
+  color: var(--color-on-accent);
+  cursor: default;
 }
 
-.source-row.is-suggested {
-  grid-template-columns: minmax(0, 1fr) auto auto;
+.source-plus-btn.is-added::before {
+  background: var(--color-accent);
 }
 
-.suggested-skeleton {
-  pointer-events: none;
-  opacity: 0.6;
+@media (hover: hover) and (pointer: fine) {
+  .source-plus-btn:enabled:hover::before {
+    background: color-mix(in oklch, var(--color-accent-subtle), var(--color-accent) 14%);
+  }
 }
 
-.suggested-skeleton .source-icon.skeleton-circle {
-  width: var(--space-6);
-  height: var(--space-6);
-  border-radius: var(--radius-sm);
-}
-
-.suggested-skeleton .source-slot.skeleton-circle {
-  width: var(--size-touch);
-  height: var(--size-touch);
-  border-radius: var(--radius-round);
+.source-plus-btn:enabled:active::before {
+  background: color-mix(in oklch, var(--color-accent-subtle), var(--color-accent) 14%);
 }

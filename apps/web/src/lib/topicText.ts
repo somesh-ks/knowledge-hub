@@ -1,8 +1,8 @@
 /**
  * The pure parts of the Topics & Sources editing: ids and keywords from what a person types, web
- * addresses, the words for a refused lookup, the panel's button, and which catalogue sources suit a
- * new topic. Free of DOM and of imports beyond sourceMatch.ts, so the page scripts bundle it and the
- * tests read it directly.
+ * addresses, the words for a refused lookup, the panel's button, which catalogue sources suit a new
+ * topic, and what a suggested source's + button carries. Free of DOM and of imports beyond
+ * sourceMatch.ts, so the page scripts bundle it and the tests read it directly.
  */
 import { matchOffers, type Offer } from "./sourceMatch";
 
@@ -118,4 +118,43 @@ export function suggestionsFor(
     { name: topic.name, description: `${topic.description} ${topic.keywords.join(" ")}` },
     offers,
   );
+}
+
+/**
+ * A suggested source as its + button carries it (data-suggested-add): what pressing it adds, and the
+ * topic it is filed under. The page builds the attribute (components/SuggestedSources.astro) and
+ * topicsEditor.ts reads it, so the two share this shape.
+ */
+export interface SuggestedAdd {
+  name: string;
+  /** The feed the add operation sends. */
+  feed_url: string;
+  /** The site's icon, for the row that waits to be saved; null when there is none to draw. */
+  favicon_url: string | null;
+  /** The topic the source is filed under, or "" for none. */
+  topic_id: string;
+}
+
+/**
+ * The suggestion a + button carries, or null when it carries nothing that could be added. The page
+ * builds the attribute, but a press must never throw on one that is missing or has been changed.
+ */
+export function parseSuggestedAdd(json: string | undefined): SuggestedAdd | null {
+  let value: unknown;
+  try {
+    value = JSON.parse(json ?? "");
+  } catch {
+    return null;
+  }
+  if (typeof value !== "object" || value === null) return null;
+  const { name, feed_url, favicon_url, topic_id } = value as Record<string, unknown>;
+  const feed = typeof feed_url === "string" ? webAddress(feed_url) : null;
+  if (typeof name !== "string" || name.trim() === "" || feed === null) return null;
+  return {
+    name: name.trim(),
+    feed_url: feed,
+    favicon_url:
+      typeof favicon_url === "string" && favicon_url.startsWith("https://") ? favicon_url : null,
+    topic_id: typeof topic_id === "string" ? topic_id : "",
+  };
 }
