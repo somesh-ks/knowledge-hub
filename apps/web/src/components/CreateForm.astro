@@ -46,7 +46,7 @@ const VOICES = [
     hostLabel: "Second host's voice",
   },
 ] as const;
-const labelOf = <T,>(list: ReadonlyArray<{ value: T; label: string }>, value: T) =>
+const labelOf = <T>(list: ReadonlyArray<{ value: T; label: string }>, value: T) =>
   list.find((item) => item.value === value)?.label ?? "";
 // The More options line before the script runs: the same words the script writes (createPage.ts).
 const moreSummary = moreOptionsSummary(
