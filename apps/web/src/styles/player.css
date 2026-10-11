@@ -2331,7 +2331,7 @@
 
 /* State layers: the row's ink over its fill. */
 @media (hover: hover) and (pointer: fine) {
-  .story-row:not([aria-current="true"]):hover {
+  .story-row:not([aria-current="true"], [data-static]):hover {
     background: color-mix(in oklch, var(--color-on-surface) var(--state-hover), transparent);
   }
 
@@ -2361,7 +2361,7 @@
 }
 
 /* After the hovers, so a press shows under a mouse too. */
-.story-row:not([aria-current="true"]):active {
+.story-row:not([aria-current="true"], [data-static]):active {
   background: color-mix(in oklch, var(--color-on-surface) var(--state-press), transparent);
 }
 
