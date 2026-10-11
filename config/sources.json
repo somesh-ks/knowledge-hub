@@ -219,10 +219,12 @@
       "feed_url": "https://www.therundown.ai/feed",
       "tier": "daily",
       "high_signal": false,
-      "category_hint": "generic_ai_hype_listicles",
-      "enabled": true,
+      "category_hint": "frontier_model_releases",
+      "enabled": false,
       "failures": 0,
-      "options": {}
+      "options": {
+        "note": "a daily AI roundup, much of it hype; off until ticked on"
+      }
     },
     {
       "id": "tldr-ai",
@@ -299,10 +301,12 @@
       "feed_url": null,
       "tier": "daily",
       "high_signal": false,
-      "category_hint": "generic_ai_hype_listicles",
-      "enabled": true,
+      "category_hint": "frontier_model_releases",
+      "enabled": false,
       "failures": 0,
-      "options": {}
+      "options": {
+        "note": "a daily AI roundup, much of it hype; off until ticked on"
+      }
     },
     {
       "id": "the-neuron",
@@ -312,10 +316,12 @@
       "feed_url": "https://rss.beehiiv.com/feeds/N4eCstxvgX.xml",
       "tier": "daily",
       "high_signal": false,
-      "category_hint": "generic_ai_hype_listicles",
-      "enabled": true,
+      "category_hint": "frontier_model_releases",
+      "enabled": false,
       "failures": 0,
-      "options": {}
+      "options": {
+        "note": "a daily AI roundup, much of it hype; off until ticked on"
+      }
     },
     {
       "id": "simon-willison",
@@ -352,6 +358,45 @@
       "tier": "daily",
       "high_signal": false,
       "category_hint": "ai_ux_interaction_patterns",
+      "enabled": true,
+      "failures": 0,
+      "options": {}
+    },
+    {
+      "id": "latent-space",
+      "name": "Latent Space",
+      "type": "rss",
+      "url": "https://www.latent.space",
+      "feed_url": "https://www.latent.space/feed",
+      "tier": "daily",
+      "high_signal": false,
+      "category_hint": "frontier_model_releases",
+      "enabled": true,
+      "failures": 0,
+      "options": {}
+    },
+    {
+      "id": "the-decoder",
+      "name": "The Decoder",
+      "type": "rss",
+      "url": "https://the-decoder.com",
+      "feed_url": "https://the-decoder.com/feed/",
+      "tier": "daily",
+      "high_signal": false,
+      "category_hint": "frontier_model_releases",
+      "enabled": true,
+      "failures": 0,
+      "options": {}
+    },
+    {
+      "id": "google-ai-blog",
+      "name": "Google AI Blog",
+      "type": "rss",
+      "url": "https://blog.google/technology/ai/",
+      "feed_url": "https://blog.google/innovation-and-ai/technology/ai/rss/",
+      "tier": "daily",
+      "high_signal": false,
+      "category_hint": "frontier_model_releases",
       "enabled": true,
       "failures": 0,
       "options": {}
@@ -535,6 +580,97 @@
       "type": "rss",
       "url": "https://css-tricks.com",
       "feed_url": "https://css-tricks.com/feed/",
+      "tier": "daily",
+      "high_signal": false,
+      "category_hint": "css_canvas_motion_techniques",
+      "enabled": true,
+      "failures": 0,
+      "options": {}
+    },
+    {
+      "id": "bram-us",
+      "name": "Bram.us",
+      "type": "rss",
+      "url": "https://www.bram.us",
+      "feed_url": "https://www.bram.us/feed/",
+      "tier": "daily",
+      "high_signal": false,
+      "category_hint": "css_canvas_motion_techniques",
+      "enabled": true,
+      "failures": 0,
+      "options": {}
+    },
+    {
+      "id": "piccalilli",
+      "name": "Piccalilli",
+      "type": "rss",
+      "url": "https://piccalil.li",
+      "feed_url": "https://piccalil.li/feed.xml",
+      "tier": "daily",
+      "high_signal": true,
+      "category_hint": "design_engineering_craft",
+      "enabled": true,
+      "failures": 0,
+      "options": {}
+    },
+    {
+      "id": "ahmad-shadeed",
+      "name": "Ahmad Shadeed",
+      "type": "rss",
+      "url": "https://ishadeed.com",
+      "feed_url": "https://ishadeed.com/feed.xml",
+      "tier": "daily",
+      "high_signal": true,
+      "category_hint": "css_canvas_motion_techniques",
+      "enabled": true,
+      "failures": 0,
+      "options": {}
+    },
+    {
+      "id": "brad-frost",
+      "name": "Brad Frost",
+      "type": "rss",
+      "url": "https://bradfrost.com",
+      "feed_url": "https://bradfrost.com/feed/feed.xml",
+      "tier": "daily",
+      "high_signal": true,
+      "category_hint": "ui_component_primitives",
+      "enabled": true,
+      "failures": 0,
+      "options": {}
+    },
+    {
+      "id": "dave-rupert",
+      "name": "Dave Rupert",
+      "type": "rss",
+      "url": "https://daverupert.com",
+      "feed_url": "https://daverupert.com/atom.xml",
+      "tier": "daily",
+      "high_signal": false,
+      "category_hint": "design_engineering_craft",
+      "enabled": true,
+      "failures": 0,
+      "options": {}
+    },
+    {
+      "id": "adactio",
+      "name": "Adactio",
+      "type": "rss",
+      "url": "https://adactio.com",
+      "feed_url": "https://adactio.com/rss/",
+      "tier": "daily",
+      "high_signal": false,
+      "category_hint": "taste_and_design_philosophy",
+      "enabled": true,
+      "failures": 0,
+      "options": {}
+    },
+    {
+      "id": "webkit",
+      "name": "WebKit",
+      "type": "rss",
+      "url": "https://webkit.org",
+      "feed_url": "https://webkit.org/feed/",
       "tier": "daily",
       "high_signal": false,
       "category_hint": "css_canvas_motion_techniques",
@@ -923,10 +1059,12 @@
       "feed_url": null,
       "tier": "daily",
       "high_signal": false,
+      "category_hint": "consumer_tech_releases",
       "enabled": true,
       "failures": 0,
       "options": {
-        "kind": "newsletter-link"
+        "kind": "newsletter-link",
+        "pool_cap": "6"
       }
     },
     {
@@ -937,10 +1075,26 @@
       "feed_url": null,
       "tier": "daily",
       "high_signal": false,
+      "category_hint": "developer_tool_launches",
       "enabled": false,
       "failures": 0,
       "options": {
         "note": "personalized feed behind an account; not automatable"
+      }
+    },
+    {
+      "id": "techmeme",
+      "name": "Techmeme",
+      "type": "rss",
+      "url": "https://www.techmeme.com",
+      "feed_url": "https://www.techmeme.com/feed.xml",
+      "tier": "daily",
+      "high_signal": false,
+      "category_hint": "consumer_tech_releases",
+      "enabled": true,
+      "failures": 0,
+      "options": {
+        "pool_cap": "6"
       }
     },
     {
@@ -977,10 +1131,12 @@
       "feed_url": "https://techcrunch.com/feed/",
       "tier": "daily",
       "high_signal": false,
-      "category_hint": "venture_capital_and_gossip",
+      "category_hint": "consumer_tech_releases",
       "enabled": true,
       "failures": 0,
-      "options": {}
+      "options": {
+        "pool_cap": "6"
+      }
     },
     {
       "id": "9to5google",
@@ -1473,6 +1629,7 @@
       "feed_url": "https://lobste.rs/hottest.json",
       "tier": "daily",
       "high_signal": false,
+      "category_hint": "developer_tool_launches",
       "enabled": true,
       "failures": 0,
       "options": {}
@@ -1580,13 +1737,13 @@
       "feed_url": "https://feeds.npr.org/1001/rss.xml",
       "tier": "daily",
       "high_signal": false,
-      "enabled": true,
+      "enabled": false,
       "failures": 0,
       "options": {
-        "pool_cap": "6"
+        "note": "the outlet's top stories; its World desk already feeds World"
       },
       "origin": "seed",
-      "topic_ids": ["trending"]
+      "topic_ids": ["world"]
     },
     {
       "id": "cbs-news",
@@ -1596,13 +1753,13 @@
       "feed_url": "https://www.cbsnews.com/latest/rss/main",
       "tier": "daily",
       "high_signal": false,
-      "enabled": true,
+      "enabled": false,
       "failures": 0,
       "options": {
-        "pool_cap": "6"
+        "note": "the outlet's top stories; its World desk already feeds World"
       },
       "origin": "seed",
-      "topic_ids": ["trending"]
+      "topic_ids": ["world"]
     },
     {
       "id": "abc-news",
@@ -1612,13 +1769,13 @@
       "feed_url": "https://abcnews.com/abcnews/topstories",
       "tier": "daily",
       "high_signal": false,
-      "enabled": true,
+      "enabled": false,
       "failures": 0,
       "options": {
-        "pool_cap": "6"
+        "note": "the outlet's top stories; its World desk already feeds World"
       },
       "origin": "seed",
-      "topic_ids": ["trending"]
+      "topic_ids": ["world"]
     },
     {
       "id": "al-jazeera",
@@ -1628,13 +1785,13 @@
       "feed_url": "https://www.aljazeera.com/xml/rss/all.xml",
       "tier": "daily",
       "high_signal": false,
-      "enabled": true,
+      "enabled": false,
       "failures": 0,
       "options": {
-        "pool_cap": "6"
+        "note": "the outlet's top stories; its World desk already feeds World"
       },
       "origin": "seed",
-      "topic_ids": ["trending"]
+      "topic_ids": ["world"]
     },
     {
       "id": "france-24",
@@ -1646,11 +1803,9 @@
       "high_signal": false,
       "enabled": true,
       "failures": 0,
-      "options": {
-        "pool_cap": "6"
-      },
+      "options": {},
       "origin": "seed",
-      "topic_ids": ["trending"]
+      "topic_ids": ["world"]
     },
     {
       "id": "sky-news",
@@ -1660,13 +1815,13 @@
       "feed_url": "https://feeds.skynews.com/feeds/rss/home.xml",
       "tier": "daily",
       "high_signal": false,
-      "enabled": true,
+      "enabled": false,
       "failures": 0,
       "options": {
-        "pool_cap": "6"
+        "note": "the outlet's top stories; its World desk already feeds World"
       },
       "origin": "seed",
-      "topic_ids": ["trending"]
+      "topic_ids": ["world"]
     },
     {
       "id": "pbs-newshour",
@@ -1676,13 +1831,13 @@
       "feed_url": "https://www.pbs.org/newshour/feeds/rss/headlines",
       "tier": "daily",
       "high_signal": false,
-      "enabled": true,
+      "enabled": false,
       "failures": 0,
       "options": {
-        "pool_cap": "6"
+        "note": "the outlet's top stories; its World desk already feeds World"
       },
       "origin": "seed",
-      "topic_ids": ["trending"]
+      "topic_ids": ["world"]
     },
     {
       "id": "npr-world",
@@ -1732,6 +1887,62 @@
       "type": "rss",
       "url": "https://www.bbc.com/news/world",
       "feed_url": "https://feeds.bbci.co.uk/news/world/rss.xml",
+      "tier": "daily",
+      "high_signal": false,
+      "enabled": true,
+      "failures": 0,
+      "options": {},
+      "origin": "seed",
+      "topic_ids": ["world"]
+    },
+    {
+      "id": "cbs-news-world",
+      "name": "CBS News World",
+      "type": "rss",
+      "url": "https://www.cbsnews.com/world/",
+      "feed_url": "https://www.cbsnews.com/latest/rss/world",
+      "tier": "daily",
+      "high_signal": false,
+      "enabled": true,
+      "failures": 0,
+      "options": {},
+      "origin": "seed",
+      "topic_ids": ["world"]
+    },
+    {
+      "id": "sky-news-world",
+      "name": "Sky News World",
+      "type": "rss",
+      "url": "https://news.sky.com/world",
+      "feed_url": "https://feeds.skynews.com/feeds/rss/world.xml",
+      "tier": "daily",
+      "high_signal": false,
+      "enabled": true,
+      "failures": 0,
+      "options": {},
+      "origin": "seed",
+      "topic_ids": ["world"]
+    },
+    {
+      "id": "pbs-newshour-world",
+      "name": "PBS NewsHour World",
+      "type": "rss",
+      "url": "https://www.pbs.org/newshour/world",
+      "feed_url": "https://www.pbs.org/newshour/feeds/rss/world",
+      "tier": "daily",
+      "high_signal": false,
+      "enabled": true,
+      "failures": 0,
+      "options": {},
+      "origin": "seed",
+      "topic_ids": ["world"]
+    },
+    {
+      "id": "guardian-world",
+      "name": "The Guardian World",
+      "type": "rss",
+      "url": "https://www.theguardian.com/world",
+      "feed_url": "https://www.theguardian.com/world/rss",
       "tier": "daily",
       "high_signal": false,
       "enabled": true,
@@ -1797,6 +2008,34 @@
       "topic_ids": ["business"]
     },
     {
+      "id": "bbc-business",
+      "name": "BBC Business",
+      "type": "rss",
+      "url": "https://www.bbc.com/news/business",
+      "feed_url": "https://feeds.bbci.co.uk/news/business/rss.xml",
+      "tier": "daily",
+      "high_signal": false,
+      "enabled": true,
+      "failures": 0,
+      "options": {},
+      "origin": "seed",
+      "topic_ids": ["business"]
+    },
+    {
+      "id": "guardian-business",
+      "name": "The Guardian Business",
+      "type": "rss",
+      "url": "https://www.theguardian.com/business",
+      "feed_url": "https://www.theguardian.com/business/rss",
+      "tier": "daily",
+      "high_signal": false,
+      "enabled": true,
+      "failures": 0,
+      "options": {},
+      "origin": "seed",
+      "topic_ids": ["business"]
+    },
+    {
       "id": "npr-science",
       "name": "NPR Science",
       "type": "rss",
@@ -1844,6 +2083,20 @@
       "type": "rss",
       "url": "https://www.theguardian.com/science",
       "feed_url": "https://www.theguardian.com/science/rss",
+      "tier": "daily",
+      "high_signal": false,
+      "enabled": true,
+      "failures": 0,
+      "options": {},
+      "origin": "seed",
+      "topic_ids": ["science"]
+    },
+    {
+      "id": "bbc-science",
+      "name": "BBC Science",
+      "type": "rss",
+      "url": "https://www.bbc.com/news/science_and_environment",
+      "feed_url": "https://feeds.bbci.co.uk/news/science_and_environment/rss.xml",
       "tier": "daily",
       "high_signal": false,
       "enabled": true,
@@ -1909,6 +2162,34 @@
       "topic_ids": ["culture"]
     },
     {
+      "id": "guardian-culture",
+      "name": "The Guardian Culture",
+      "type": "rss",
+      "url": "https://www.theguardian.com/culture",
+      "feed_url": "https://www.theguardian.com/culture/rss",
+      "tier": "daily",
+      "high_signal": false,
+      "enabled": true,
+      "failures": 0,
+      "options": {},
+      "origin": "seed",
+      "topic_ids": ["culture"]
+    },
+    {
+      "id": "cbs-news-culture",
+      "name": "CBS News Culture",
+      "type": "rss",
+      "url": "https://www.cbsnews.com/entertainment/",
+      "feed_url": "https://www.cbsnews.com/latest/rss/entertainment",
+      "tier": "daily",
+      "high_signal": false,
+      "enabled": true,
+      "failures": 0,
+      "options": {},
+      "origin": "seed",
+      "topic_ids": ["culture"]
+    },
+    {
       "id": "npr-sports",
       "name": "NPR Sports",
       "type": "rss",
@@ -1956,6 +2237,20 @@
       "type": "rss",
       "url": "https://www.bbc.com/sport",
       "feed_url": "https://feeds.bbci.co.uk/sport/rss.xml",
+      "tier": "daily",
+      "high_signal": false,
+      "enabled": true,
+      "failures": 0,
+      "options": {},
+      "origin": "seed",
+      "topic_ids": ["sports"]
+    },
+    {
+      "id": "guardian-sports",
+      "name": "The Guardian Sports",
+      "type": "rss",
+      "url": "https://www.theguardian.com/sport",
+      "feed_url": "https://www.theguardian.com/sport/rss",
       "tier": "daily",
       "high_signal": false,
       "enabled": true,

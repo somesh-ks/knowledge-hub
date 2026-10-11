@@ -18,5 +18,6 @@ export * from "./sourceScore.js";
 export * from "./sources.js";
 export * from "./state.js";
 export * from "./time.js";
+export * from "./topicGroups.js";
 export * from "./topics.js";
 export * from "./writer.js";

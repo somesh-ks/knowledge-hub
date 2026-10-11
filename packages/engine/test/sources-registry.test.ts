@@ -201,16 +201,18 @@ describe("the committed registry", () => {
     expect(parseSources(parsed).sources.length).toBeGreaterThanOrEqual(90);
   });
 
-  it("carries the consumer tech beat: ten outlets on, the four news technology desks off, all capped at six or uncapped", () => {
+  it("carries the consumer tech beat: thirteen outlets on, the four news technology desks off, all capped at six or uncapped", () => {
     if (!existsSync(path)) return;
     const { sources } = parseSources(JSON.parse(readFileSync(path, "utf8")));
-    expect(sources).toHaveLength(144);
+    expect(sources).toHaveLength(165);
     const desks = (s: { id: string }): boolean => s.id.endsWith("-technology");
     const tech = sources.filter((s) => s.category_hint === "consumer_tech_releases");
-    expect(tech).toHaveLength(14);
+    expect(tech).toHaveLength(17);
     expect(tech.filter(desks).every((s) => !s.enabled && s.origin === "seed")).toBe(true);
     for (const source of tech.filter((s) => !desks(s))) {
       expect(source.enabled, source.id).toBe(true);
+      // Brutalist Report is a page of headlines that Firecrawl reads; the rest are feeds.
+      if (source.id === "brutalist-report") continue;
       expect(source.type, source.id).toBe("rss");
       expect(source.feed_url, source.id).toMatch(/^https:\/\//);
     }
@@ -223,9 +225,12 @@ describe("the committed registry", () => {
       "9to5google",
       "9to5mac",
       "android-authority",
+      "brutalist-report",
       "electrek",
       "engadget",
       "gsmarena",
+      "techcrunch",
+      "techmeme",
       "toms-hardware",
     ]);
     // No resolved source carries leftovers that discovery already used up.
@@ -256,10 +261,24 @@ describe("the committed registry", () => {
     for (const { query } of queries) expect(query).not.toMatch(/\b20\d{2}\b/);
   });
 
+  it("files every source under a topic (D69), except the Exa searches, which carry their own", () => {
+    if (!existsSync(path)) return;
+    const { sources } = parseSources(JSON.parse(readFileSync(path, "utf8")));
+    const neverPublish = new Set(["venture_capital_and_gossip", "generic_ai_hype_listicles"]);
+    const unfiled = sources.filter(
+      (s) => s.category_hint === undefined && (s.topic_ids ?? []).length === 0,
+    );
+    expect(unfiled.map((s) => s.id)).toEqual(["exa-discovery"]);
+    for (const source of sources) {
+      expect(neverPublish.has(source.category_hint ?? ""), source.id).toBe(false);
+      expect(source.topic_ids ?? [], source.id).not.toContain("trending");
+    }
+  });
+
   it("never fetches the same feed twice and explains every disabled source", () => {
     if (!existsSync(path)) return;
     const { sources } = parseSources(JSON.parse(readFileSync(path, "utf8")));
-    // A feed may serve both Trending and a general topic (Al Jazeera): the two are read apart.
+    // Al Jazeera's top stories and its World desk share one feed; the top-stories source is off.
     const feeds = sources
       .filter((s) => s.enabled && s.feed_url)
       .map((s) => `${feedsGeneralOnly(s.topic_ids)} ${s.feed_url}`);

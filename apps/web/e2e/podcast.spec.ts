@@ -199,31 +199,14 @@ test.describe("the profile pages", () => {
     await expect(play).toBeHidden();
   });
 
-  test("Topics lists every live topic ticked, keeps one, and saves the ones left out", async ({
+  test("Topics leads to Topics & Sources, where each topic's Scope says which podcasts hold it", async ({
     page,
   }) => {
-    const sent = await mockConfig(page);
     await open(page, "daily");
-    // The chip is what a person presses; its checkbox is its invisible face.
-    const chips = page.locator(".podcast-topics .create-chip");
-    const boxes = page.locator(".podcast-topics input");
-    const count = await chips.count();
-    expect(count).toBeGreaterThan(1);
-    // A general news topic never publishes in a briefing, so it is not offered here.
-    await expect(
-      chips.filter({ hasText: /^(World|Business|Science|Culture|Sports)$/ }),
-    ).toHaveCount(0);
-    for (let index = 0; index < count; index += 1) await expect(boxes.nth(index)).toBeChecked();
-    // Untick all but the first: the first then cannot be unticked.
-    for (let index = 1; index < count; index += 1) await chips.nth(index).click();
-    await chips.first().click();
-    await expect(boxes.first()).toBeChecked();
-    const values = await boxes.evaluateAll((nodes) =>
-      nodes.map((node) => (node as HTMLInputElement).value),
-    );
-    await expect
-      .poll(() => scheduleSent(sent).skip_topics, { timeout: 10_000 })
-      .toEqual(values.slice(1).sort());
+    await expect(page.locator(".podcast-topics input")).toHaveCount(0);
+    const link = page.getByRole("link", { name: /^Topics/ });
+    await expect(link).toContainText("Each topic's Scope says whether it is in the daily podcast");
+    await expect(link).toHaveAttribute("href", "/settings/topics");
   });
 
   test("has 44px targets", async ({ page }) => {

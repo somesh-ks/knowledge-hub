@@ -15,8 +15,8 @@ const nullable = (value: string): string | null => (value === "" ? null : value)
 
 /**
  * The schedule edit the controls stand for: every field whose value differs from `was`, in the
- * profile it belongs to. Topics are the ids left out, comma-separated, empty for none. Null when
- * nothing differs.
+ * profile it belongs to. Null when nothing differs. Which topics a profile plays is each topic's
+ * Scope (topic.scope, D69), never this op, so a stale page cannot bring a topic back.
  */
 export function scheduleOp(was: FieldValues, now: FieldValues): ConfigOp | null {
   // The daily fields sit at the top of the op; the weekly and custom ones in their own object.
@@ -26,10 +26,6 @@ export function scheduleOp(was: FieldValues, now: FieldValues): ConfigOp | null 
   for (const [key, value] of Object.entries(now)) {
     if (was[key] === value) continue;
     const [profile = "", field = ""] = key.split(".");
-    if (field === "skip") {
-      (nested[profile] ?? top).skip_topics = value === "" ? [] : value.split(",");
-      continue;
-    }
     const name = names[field] ?? field;
     const number = ["hour", "day", "cadence", "length"].includes(field);
     const parsed = number
@@ -133,20 +129,6 @@ export function mountProfiles(root: HTMLElement, changed: () => void): void {
       else audio?.pause();
     }
   });
-  // The last ticked topic stays ticked: with none, the episode would have only Top picks. A click
-  // has already toggled a checkbox when it is heard, and cancelling it puts the tick back before any
-  // change is fired, so nothing is recorded.
-  root.addEventListener(
-    "click",
-    (event) => {
-      const box = event.target;
-      if (!(box instanceof HTMLInputElement) || !box.matches('[data-f$=".skip"]')) return;
-      if (!box.checked && !box.closest("fieldset")?.querySelector("input:checked")) {
-        event.preventDefault();
-      }
-    },
-    true,
-  );
   root.addEventListener("click", (event) => {
     const chip = (event.target as Element).closest<HTMLButtonElement>("[data-preview]");
     const select = chip?.closest(".podcast-voice")?.querySelector("select");

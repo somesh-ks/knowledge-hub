@@ -162,6 +162,10 @@ export interface SourceStats {
   flagged?: number;
   /** Judged stories another outlet also carried; a general news feed's quality counts these. */
   covered?: number;
+  /** Judged items the scoring sample judged for the score alone (D70). */
+  sampled?: number;
+  /** Posts the source's own feed held when the scoring sample last read it (D70). */
+  feed_posts?: number;
 }
 
 /**
@@ -448,6 +452,8 @@ function parseStats(file: unknown): Map<string, SourceStats> {
     const asked = asNumber(entry.asked);
     const flagged = asNumber(entry.flagged);
     const covered = asNumber(entry.covered);
+    const sampled = asNumber(entry.sampled);
+    const feedPosts = asNumber(entry.feed_posts);
     result.set(id, {
       fetched: asNumber(entry.fetched) ?? 0,
       judged: asNumber(entry.judged) ?? 0,
@@ -456,6 +462,8 @@ function parseStats(file: unknown): Map<string, SourceStats> {
       ...(asked === null ? {} : { asked }),
       ...(flagged === null ? {} : { flagged }),
       ...(covered === null ? {} : { covered }),
+      ...(sampled === null ? {} : { sampled }),
+      ...(feedPosts === null ? {} : { feed_posts: feedPosts }),
     });
   }
   return result;

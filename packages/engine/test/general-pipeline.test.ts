@@ -358,6 +358,23 @@ describe("gathering the pool", () => {
       // The briefing pool never sees a general source's items, whatever the caps leave.
       expect(regular.pool.items.some((i) => i.source_id.startsWith("npr-"))).toBe(false);
 
+      // A switched-off general feed is read only when the scoring sample asks for its weekly check
+      // (D70), and its stories join the general stories, never the pool.
+      const off = { ...(GENERAL_SOURCES[0] as Source), id: "world-top", enabled: false };
+      world.feeds["world-top"] = [story("world-top", "world", "top-1", "A top story abroad")];
+      await seed(repo.root, {
+        "config/sources.json": json({
+          ...sourcesFile(),
+          sources: [...sourcesFile().sources, ...GENERAL_SOURCES, off],
+        }),
+      });
+      const unchecked = await gatherPool({ ...input, kind: "regular" });
+      expect(unchecked.general?.items.some((i) => i.source_id === "world-top")).toBe(false);
+      const checked = await gatherPool({ ...input, kind: "regular", probeGeneral: [off] });
+      expect(checked.general?.items.some((i) => i.source_id === "world-top")).toBe(true);
+      expect(checked.pool.items.some((i) => i.source_id === "world-top")).toBe(false);
+      expect(checked.results.find((r) => r.source_id === "world-top")?.ok).toBe(true);
+
       world.fetchCalls.length = 0;
       const weekly = await gatherPool({ ...input, kind: "weekly" });
       expect(weekly.general).toBeNull();

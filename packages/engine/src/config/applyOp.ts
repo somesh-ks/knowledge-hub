@@ -243,6 +243,7 @@ function removeTopic(
     ...next.schedule,
     skip_topics: unskip(next.schedule.skip_topics),
     weekly: { ...next.schedule.weekly, skip_topics: unskip(next.schedule.weekly.skip_topics) },
+    custom: { ...next.schedule.custom, skip_topics: unskip(next.schedule.custom.skip_topics) },
   };
   // A section a custom topic created goes with its last topic; a built-in section never goes.
   const stillUsed = next.topics.topics.some((t) => t.section_id === topic.section_id);
@@ -442,6 +443,9 @@ function setSchedule(
     weekly,
     custom: { ...current.custom, ...definedOnly(op.custom) },
   };
+  if (op.custom?.skip_topics !== undefined) {
+    next.schedule.custom.skip_topics = skippedTopics(op.custom.skip_topics, next);
+  }
   const parts: string[] = [];
   if (op.hour !== undefined || op.cadence_days !== undefined) {
     parts.push(
@@ -452,6 +456,33 @@ function setSchedule(
   if (op.custom) parts.push("set the Create defaults");
   if (parts.length === 0) parts.push("set the daily podcast");
   return { next, summary: parts.join("; ") };
+}
+
+/**
+ * Put topics in or out of the daily podcast, the weekly one and the Create panel (D69). It edits
+ * the three skip lists in place rather than replacing them, so a topic page built before another
+ * page's change never undoes it.
+ */
+function setScope(
+  op: Extract<ParsedConfigOp, { op: "topic.scope" }>,
+  bundle: ConfigBundle,
+): OpOutcome {
+  const next = clone(bundle);
+  const ids = skippedTopics(op.ids, next);
+  const scoped = (list: readonly string[], inScope: boolean | undefined): string[] => {
+    if (inScope === undefined) return [...list];
+    if (inScope) return list.filter((id) => !ids.includes(id));
+    return [...new Set([...list, ...ids])];
+  };
+  const current = next.schedule;
+  next.schedule = {
+    ...current,
+    skip_topics: scoped(current.skip_topics, op.daily),
+    weekly: { ...current.weekly, skip_topics: scoped(current.weekly.skip_topics, op.weekly) },
+    custom: { ...current.custom, skip_topics: scoped(current.custom.skip_topics, op.custom) },
+  };
+  const first = next.topics.topics.find((topic) => topic.id === ids[0]);
+  return { next, summary: `set where ${tidy(first?.name ?? ids[0] ?? "a topic")} plays` };
 }
 
 function definedOnly<T extends object>(value: T | undefined): Partial<T> {
@@ -500,6 +531,8 @@ export async function applyConfigOp(
       return setWeights(op, bundle);
     case "schedule.set":
       return setSchedule(op, bundle);
+    case "topic.scope":
+      return setScope(op, bundle);
     case "writer.set":
       return setWriter(op, bundle);
     default: {

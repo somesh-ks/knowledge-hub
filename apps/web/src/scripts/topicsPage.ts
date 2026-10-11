@@ -5,6 +5,8 @@
  * first load stays inside the budget. Each page is whole static HTML without it.
  */
 
+import { installMultiSelect } from "./multiSelect";
+
 type Editor = { handle(event: Event): void };
 
 function mount(root: HTMLElement): void {
@@ -60,6 +62,7 @@ function mount(root: HTMLElement): void {
 }
 
 export function installTopicsPage(): void {
+  installMultiSelect();
   const sync = (): void => {
     const root = document.querySelector<HTMLElement>("[data-topics]");
     if (root && root.dataset.ready === undefined) mount(root);

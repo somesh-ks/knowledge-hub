@@ -1,4 +1,4 @@
-import { GENERAL_TOPICS } from "@dispatch/core";
+import { GENERAL_TOPICS, topicGroupOf } from "@dispatch/core";
 import type { PodcastRequest } from "../types/contracts";
 
 /**
@@ -72,10 +72,22 @@ export interface TopicOption {
  * chips (World and the rest) are not here: topicOptions makes them from config/topics.json. Top
  * picks is not here: an episode always opens with the top picks of its window.
  */
-const CHIPS: readonly TopicOption[] = [
-  { value: "design", label: "Design", ids: ["design", "ui-craft"], presets: ["custom"] },
-  { value: "ai", label: "AI", ids: ["ai"], presets: ["custom"] },
-  { value: "technology", label: "Technology", ids: ["tech"], presets: ["custom", "general"] },
+const CHIPS: readonly (TopicOption & { group: string })[] = [
+  {
+    value: "design",
+    label: "Design",
+    ids: ["design", "ui-craft"],
+    presets: ["custom"],
+    group: "design",
+  },
+  { value: "ai", label: "AI", ids: ["ai"], presets: ["custom"], group: "ai" },
+  {
+    value: "technology",
+    label: "Technology",
+    ids: ["tech"],
+    presets: ["custom", "general"],
+    group: "tech",
+  },
 ];
 
 /** What topicOptions needs to know of a topic in config/topics.json. */
@@ -98,8 +110,16 @@ export interface TopicInfo {
 export function topicOptions(
   sections: ReadonlyArray<{ id: string; title: string }>,
   topics: readonly TopicInfo[],
+  /** Topic ids out of the Custom scope (config/schedule.json custom.skip_topics, D69). */
+  skipped: readonly string[] = [],
 ): TopicOption[] {
   const titles = new Map(sections.map((section) => [section.id, section.title]));
+  // A group's chip leaves the panel once every topic it gathers is out of the Custom scope.
+  const out = new Set(skipped);
+  const chips = CHIPS.filter((chip) => {
+    const members = topics.filter((topic) => topicGroupOf(topic)?.id === chip.group);
+    return members.length === 0 || !members.every((topic) => out.has(topic.id));
+  }).map(({ group: _group, ...chip }) => chip);
   const general: TopicOption[] = [];
   for (const { id } of GENERAL_TOPICS) {
     const topic = topics.find((item) => item.origin === "general" && item.id === id);
@@ -110,6 +130,7 @@ export function topicOptions(
   const own: TopicOption[] = [];
   for (const topic of topics) {
     if (topic.origin !== "custom" || !topic.enabled || topic.never_publish) continue;
+    if (out.has(topic.id)) continue;
     if (taken.has(topic.section_id)) continue;
     taken.add(topic.section_id);
     own.push({
@@ -119,5 +140,5 @@ export function topicOptions(
       presets: [],
     });
   }
-  return [...CHIPS, ...general, ...own];
+  return [...chips, ...general, ...own];
 }

@@ -1,4 +1,10 @@
-import { type DigestKind, feedsGeneralOnly, type SourcesFile } from "@dispatch/core";
+import {
+  type DigestKind,
+  feedsGeneralOnly,
+  type Item,
+  type Source,
+  type SourcesFile,
+} from "@dispatch/core";
 import { loadPreferences } from "../curate/inputs.js";
 import { dedupe } from "../dedupe/dedupe.js";
 import { fetchAll, selectSources } from "../fetch/fetchAll.js";
@@ -25,6 +31,12 @@ export interface GatherInput {
   kind: DigestKind;
   window: { from: Date; to: Date };
   setup: FetchSetup;
+  /**
+   * Switched-off general news feeds due their weekly check (D70): read with the pass's general
+   * feeds, so their stories are judged for their scores like the others, and kept out of
+   * everything else as every general story is.
+   */
+  probeGeneral?: readonly Source[];
 }
 
 export interface GatherResult {
@@ -37,6 +49,11 @@ export interface GatherResult {
    * their feeds' scores and read by episodes (D66). Null when no general source was read.
    */
   general: GeneralPoolFile | null;
+  /**
+   * Items fetched in the window that the prefilter left out of the pool, after dedupe: what the
+   * scoring sample may judge for the score alone (D70).
+   */
+  leftovers: Item[];
 }
 
 /**
@@ -62,13 +79,22 @@ export async function gatherPool(input: GatherInput): Promise<GatherResult> {
 
   const activeGeneral = new Set(activeGeneralFrom(await loadTopicsFile(root)).map((t) => t.id));
   const generalSourceIds = new Set<string>();
-  const runnable = sources.sources.filter((source) => {
-    if (!feedsGeneralOnly(source.topic_ids)) return true;
-    if (input.kind === "weekly") return false;
-    if (!source.topic_ids?.some((id) => activeGeneral.has(id))) return false;
-    generalSourceIds.add(source.id);
-    return true;
-  });
+  const probed = new Set((input.probeGeneral ?? []).map((source) => source.id));
+  const runnable = sources.sources
+    // General feeds are read in regular passes only, whatever their tier. A switched-off one due
+    // its check runs as if on, for this pass's general stories only.
+    .map((source) =>
+      feedsGeneralOnly(source.topic_ids)
+        ? { ...source, tier: "daily" as const, enabled: source.enabled || probed.has(source.id) }
+        : source,
+    )
+    .filter((source) => {
+      if (!feedsGeneralOnly(source.topic_ids)) return true;
+      if (input.kind === "weekly") return false;
+      if (!source.topic_ids?.some((id) => activeGeneral.has(id))) return false;
+      generalSourceIds.add(source.id);
+      return true;
+    });
 
   // Over the listing ceiling, the Firecrawl sources fetched longest ago run and the rest wait for
   // the next run, so the skipped set rotates. Pages this run already holds cost nothing.
@@ -108,10 +134,13 @@ export async function gatherPool(input: GatherInput): Promise<GatherResult> {
           items: fetchedItems.filter((item) => generalSourceIds.has(item.source_id)),
           sources: new Map(sources.sources.map((source) => [source.id, source])),
           activeTopicIds: activeGeneral,
+          checked: probed,
         })
       : null;
   const deduped = dedupe({ items, sources: sources.sources, seen });
   const filtered = prefilter({ items: deduped.items, preferences, sources: sources.sources, now });
+  const kept = new Set(filtered.items.map((item) => item.id));
+  const leftovers = deduped.items.filter((item) => !kept.has(item.id));
 
   const pool: PoolFile = {
     version: 1,
@@ -123,5 +152,5 @@ export async function gatherPool(input: GatherInput): Promise<GatherResult> {
     report: { fetched: items.length, dedupe: deduped.report, prefilter: filtered.report },
     items: filtered.items,
   };
-  return { pool, results, sources, general };
+  return { pool, results, sources, general, leftovers };
 }

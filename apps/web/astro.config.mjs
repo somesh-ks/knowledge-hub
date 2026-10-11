@@ -102,6 +102,27 @@ export default defineConfig({
     "/settings/schedule": { status: 308, destination: "/settings/daily" },
     // An episode on request is set up in the Create panel, which /create shows as a page.
     "/settings/custom": { status: 308, destination: "/create" },
+    // The judge's finer topics have no page of their own since D69: each goes to the one of the
+    // owner's three topics that gathers it, and the ones no topic lists go to Other.
+    ...Object.fromEntries(
+      [
+        ["design_engineering_craft", "design"],
+        ["hci_empirical_research", "design"],
+        ["ui_component_primitives", "design"],
+        ["css_canvas_motion_techniques", "design"],
+        ["developer_tool_launches", "design"],
+        ["taste_and_design_philosophy", "design"],
+        ["ai_ux_interaction_patterns", "ai"],
+        ["frontier_model_releases", "ai"],
+        ["consumer_tech_releases", "tech"],
+        ["venture_capital_and_gossip", "other"],
+        ["generic_ai_hype_listicles", "other"],
+        ["trending", "other"],
+      ].map(([from, to]) => [
+        `/settings/topics/${from}`,
+        { status: 308, destination: `/settings/topics/${to}` },
+      ]),
+    ),
   },
   build: {
     // External stylesheets: cached once, listed once for the service worker, and no inline style

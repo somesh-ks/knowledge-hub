@@ -49,7 +49,7 @@ D1 to D9 date from plan v2 (2026-10-05). D10 to D25 date from 2026-10-06. Reason
 | D37 | Custom podcast episodes live in `Podcasts/` and are built by a workflow | active |
 | D38 | Subagents are few, narrow, enforced and capped | active |
 | D39 | Five topics, Top picks always included, General and Customized audiences | active; Create's topics are one list since D67 |
-| D40 | Trending is ranked by coverage; discovery only suggests | active |
+| D40 | Trending is ranked by coverage; discovery only suggests | active for discovery; Trending is off and its outlets feed World since D69 |
 | D41 | The passphrase step is switched off, with its code kept | active |
 | D42 | One Jev request per item, and a per-run Firecrawl ceiling | active |
 | D43 | General episodes are built from general-news feeds, ranked by coverage | active; general ids mix with briefing ids since D67, and their feeds are judged sources since D66 |
@@ -66,18 +66,20 @@ D1 to D9 date from plan v2 (2026-10-05). D10 to D25 date from 2026-10-06. Reason
 | D54 | Form fields carry a 3:1 outline; in the player only Play is in full ink | active |
 | D55 | A source's score is out of 3: health, quality and trust, combined so a weak part cannot be bought back | active |
 | D56 | One panel adds a topic or a source and edits a source; Settings has no Custom page | active |
-| D57 | A topic's page edits its details and adds the sources that suit it; topics are listed by name | active; shipped topics take a new name, and app topics new wording, since D64 |
+| D57 | A topic's page edits its details and adds the sources that suit it; topics are listed by name | active; shipped topics take a new name, and app topics new wording, since D64; the judge topics show under Design, AI and Technology since D69 |
 | D58 | The Model page offers six top Nebius writers by name, live list or not | active |
 | D59 | On a phone, Play takes the floating button's place on an episode and an older briefing | active; Today floats Play too since D60 |
 | D60 | On a phone Create floats on the Library alone; every page with audio floats Play, Today included | active |
 | D61 | Vercel Cron starts the scheduled briefing in its hour; GitHub's schedule is the fallback | active |
-| D62 | Daily and Weekly each choose their topics; voice samples play through the site | active; topics are left out per topic since D63 |
-| D63 | Daily and Weekly leave out topics, one chip per topic, stored as the topics left out | active |
+| D62 | Daily and Weekly each choose their topics; voice samples play through the site | active; each topic's Scope sets them since D69 |
+| D63 | Daily and Weekly leave out topics, one chip per topic, stored as the topics left out | superseded by D69: the storage stays, the chips moved to each topic's Scope |
 | D64 | Every topic can be renamed; what counts edits wherever the judge reads it | active |
 | D65 | The weekly podcast takes its day; the daily cadence counts from it | active |
 | D66 | General news topics are topics; their feeds are sources Jev judges every run, for scores and episodes only | active |
 | D67 | Create shows one list of topic chips; the audience presets them; an episode can mix briefing and general topics | active |
 | D68 | An episode opens with a rundown, deep-dives its lead stories, gives the rest as nuggets and closes short | active |
+| D69 | Design, AI and Technology gather the judge topics; one alphabetical list where each topic sets its scope; every source filed under a topic | active |
+| D70 | A scoring sample judges a few items a run for scores alone, so every source reaches a score, switched-off ones included | active |
 
 ---
 
@@ -673,3 +675,59 @@ D1 to D9 date from plan v2 (2026-10-05). D10 to D25 date from 2026-10-06. Reason
 - Cost: the part sizes are estimates, not measured on real runs, and more stories fit in a length than before (a 15-minute readout carries up to 35, was 31). The close can only pass on what people are saying when a story block quotes it; nothing reads discussion from elsewhere.
 - Rejected: a close built from what people say online (no such source is read, and the writer would invent it).
 
+## D69: Design, AI and Technology gather the judge topics; one alphabetical list where each topic sets its scope; every source filed under a topic
+
+- Date: 2026-10-11
+- Decision: Topics & Sources is one alphabetical list: the owner's three topics, each of the owner's own topics, and the five general topics, with Other last. Design gathers the judge topics of the `design` and `ui-craft` sections, AI those of `ai`, Technology those of `tech` (`core/topicGroups.ts`). A judge topic keeps its question and weight but has no page of its own. A group's page lists their sources and a weight slider for each judge topic (Technology, which gathers one, shows a plain Weight row), and Add source files a new source under the group's home topic.
+  - Scope: each topic page has a Scope multi-select (Daily, Weekly, Custom), and Add topic sets it in the same request. Scope is a `topic.scope` op that edits the skip lists in place (`skip_topics`, `weekly.skip_topics`, new `custom.skip_topics`), so a stale page cannot bring back a topic another page left out. Create hides the chip of a topic left out of Custom. A general topic plays in custom episodes only: Custom is its on switch, and Daily and Weekly are disabled. Daily and Weekly link to Topics & Sources instead of listing chips. Trending is off, and the old category pages redirect to the topic that took them.
+  - Rows: a source's name links to its site in a new tab, and the open icon is gone. The checkbox is a new primitive (`.suggest-box`).
+  - Filing: every source sits under a topic except Exa discovery, whose searches carry their own.
+    - Lobsters and daily.dev go with developer tool launches.
+    - Brutalist Report and TechCrunch go with Technology, capped at six candidates each.
+    - The three daily AI roundups move under AI, switched off.
+    - The seven Trending outlets go under World. France 24 is on. The other top-stories feeds are off where the outlet has a World desk, since they would mostly repeat it.
+  - New sources: 21, each feed fetched live through Firecrawl on 2026-10-11.
+    - General desks from CBS, Sky, PBS, BBC and The Guardian, so each general topic has five or more outlets.
+    - Techmeme for Technology.
+    - Latent Space, The Decoder and Google AI for AI.
+    - Bram.us, Piccalilli, Ahmad Shadeed, Brad Frost, Dave Rupert, Adactio and WebKit for Design.
+    - The eleven of these that came from the catalogue left it, which now holds 32 entries.
+- Why: the owner asked for the following.
+  - Design, AI and Technology as their topics, "to keep things lean".
+  - One list with no separation.
+  - Scope set inside a topic and when one is created, as a multi-select.
+  - Names as links and a better checkbox.
+  - To "fill up the existing sources and new sources into the current topic cluster".
+- Cost:
+  - A group cannot be renamed, and what it counts cannot be edited, since each judge topic keeps its fixed question.
+  - General topics cannot play in Daily or Weekly yet.
+  - The new general desks add about ten feeds that Jev judges every run, within `GENERAL_JUDGE_CEILING`.
+  - Import keeps an existing source's on/off flag and options, so the off flags and the removed pool caps were written into `config/sources.json` after the import.
+- Rejected:
+  - One weight per group: it would flatten the curated differences between its judge topics.
+  - Filing Exa under one topic: ten of its twelve searches have none.
+  - Re-hinting the AI roundups and leaving them on: they would bring a day's hype into the pool.
+
+## D70: A scoring sample judges a few items a run for scores alone, so every source reaches a score, switched-off ones included
+
+- Date: 2026-10-11
+- Decision: Each run's first regular pass judges a sample of items for their sources' scores alone (`run/scoreSample.ts`). They are never in the pool, never published and never marked seen, so the briefing is the same as without them.
+  - Left-overs: a switched-on source under ten judged items gets up to 4 of the items the prefilter left out of this run's pool.
+  - Its own feed: such a source with a feed (RSS, Atom, GitHub releases) reads it itself at most once in 30 days. The first read looks 90 days back, so a new source has a score after its first run; later reads look 30 days back. It takes as many items as it lacks.
+  - Weekly check: a switched-off source with a feed is read once a week and gives 4 items, and the read sets its health. A switched-off general news feed is read with the pass's general feeds and judged like them. A story only it carried waits behind every other under the general ceiling, and its outlet never raises a switched-on feed's coverage (`coverage_all` keeps the full count for the checked feed's own score).
+  - The reads run beside the pass's own fetch, each with a hard timeout. A read counts as done when the judge answered every item it offered (an unanswered one is offered again next run); a switched-off general feed's check is done once tried. Without a Jev key the sample is not planned at all.
+  - Limits: 200 items and 40 feed reads a run, the sources with the fewest judged items first; a feed failing its own fetch twice in a row is not refilled. An item already judged (in the judgment cache or seen.json) or in this run's pool is never sampled.
+  - Judge: Jev alone, with no Nebius fallback, so an outage cannot spend the writer's token budget; without a Jev key the sample waits.
+  - Counting: a sampled item counts as judged, passed (when it would clear the bar on its built-in categories), asked and flagged, and as `sampled`. The publish share is out of `judged` less `sampled`, since a sampled item could never be published. Quality is read on what could have been published and blended with the pass share alone by its share of the judged items: a source with no sampled items scores as before, one with nothing that could have been published (switched off, or not yet sent by the prefilter) on its pass share alone, so a weekly check can show it has earned a place, with no cliff in between. `sampled_at` records the last read of the source's own feed.
+  - A source whose feed held fewer than ten posts when the sample last read it to fill it up (`feed_posts`, set by every read that worked and standing for 60 days, one missed monthly read of slack) posts too rarely to reach ten judged items: from 3 judged items it is scored on what it has, and the reason says so.
+- Why: the owner asked that every source, new ones included, get a score kept current on its factors. On 2026-10-11 only 10 of 149 switched-on sources had one: the prefilter sends the judge about 80 items a run, so most sources never reached ten judged items, and a switched-off source was never fetched at all.
+- Cost:
+  - At most 200 more Jev requests a run, about 2.4 cents at the 9 October rate (165 requests for about 2 cents). The backlog on 2026-10-11 was 88 feed reads and up to about 800 items, so about four runs at the ceiling, then far less.
+  - The six switched-off general feeds add their stories to the general judging once a week.
+  - The scores refresh on every run, not weekly: each run's counts land in the rolling 30-day window, and the weekly cadence applies to switched-off sources alone.
+  - A sampled item is judged on the built-in questions only, without custom topic fits.
+  - A sampled item that a later weekly pass's pool holds is judged from the cache but counted again. It is rare, and a fix would need a mark on every cached judgment.
+- Rejected:
+  - A weekly recompute of every score: scores already move every run, so it would make them older without producing new ones.
+  - The fallback judge for the sample, for the token budget's sake.
+  - Lowering the ten-item bar for everyone: the sparse rule covers the sources that can never reach it.

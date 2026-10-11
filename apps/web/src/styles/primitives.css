@@ -327,6 +327,8 @@
 :root {
   --check-mask: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 256 256'%3E%3Cpath d='M229.66,77.66l-128,128a8,8,0,0,1-11.32,0l-56-56a8,8,0,0,1,11.32-11.32L96,188.69,218.34,66.34a8,8,0,0,1,11.32,11.32Z'/%3E%3C/svg%3E");
   --pick-list-height: 22rem;
+  /* The check a ticked checkbox draws: the same mark at the bold weight, which holds at 12px. */
+  --check-bold-mask: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 256 256'%3E%3Cpath d='M232.49,80.49l-128,128a12,12,0,0,1-17,0l-56-56a12,12,0,1,1,17-17L96,183,215.51,63.51a12,12,0,0,1,17,17Z'/%3E%3C/svg%3E");
 }
 
 /* No browser arrow anywhere: each select draws its own chevron. This is the one place a select's
@@ -474,5 +476,88 @@
       forced-color-adjust: none;
       background: CanvasText;
     }
+  }
+}
+
+/* ------------------------------------------------------------------ checkbox */
+
+/*
+ * The app's checkbox, drawn: an 18px box with a 2px outline and a small radius, filled with the
+ * accent and a bold check when ticked, as Material's are. The real input is invisible over a
+ * touch-sized target and this draws every state, so a source row, a suggestion and an option of the
+ * scope list all tick the same way. Markup: <input type="checkbox"> then <span class="suggest-box">
+ * inside one label, or an element with aria-selected around one. The check scales in from 60%, never
+ * from nothing, and fades out quicker than it comes.
+ */
+.suggest-box {
+  position: relative;
+  display: block;
+  flex: none;
+  inline-size: 1.125rem;
+  block-size: 1.125rem;
+  border: var(--stroke-rail) solid var(--color-border-control);
+  border-radius: var(--radius-xs);
+  transition:
+    background-color var(--duration-press-in) var(--ease-out),
+    border-color var(--duration-press-in) var(--ease-out);
+}
+
+/* An older markup drew the check as an icon inside; the mask below draws it now. */
+.suggest-box > .icon {
+  display: none;
+}
+
+.suggest-box::after {
+  content: "";
+  position: absolute;
+  inset: calc(var(--stroke-rail) * -1);
+  background: var(--color-on-accent);
+  mask: var(--check-bold-mask) center / 75% no-repeat;
+  opacity: 0;
+  scale: 0.6;
+  transition:
+    opacity var(--duration-press-in) var(--ease-out),
+    scale var(--duration-press-out) var(--ease-out);
+}
+
+:is(
+  input:checked ~ .suggest-box,
+  label:has(input:checked) .suggest-box,
+  [aria-selected="true"] .suggest-box
+) {
+  border-color: var(--color-accent);
+  background: var(--color-accent);
+}
+
+:is(
+  input:checked ~ .suggest-box,
+  label:has(input:checked) .suggest-box,
+  [aria-selected="true"] .suggest-box
+)::after {
+  opacity: 1;
+  scale: 1;
+}
+
+:is(input:disabled ~ .suggest-box, [aria-disabled="true"] .suggest-box) {
+  opacity: var(--opacity-disabled);
+}
+
+@media (forced-colors: active) {
+  .suggest-box {
+    border-color: CanvasText;
+  }
+
+  :is(
+    input:checked ~ .suggest-box,
+    label:has(input:checked) .suggest-box,
+    [aria-selected="true"] .suggest-box
+  ) {
+    border-color: Highlight;
+    background: Highlight;
+  }
+
+  .suggest-box::after {
+    forced-color-adjust: none;
+    background: HighlightText;
   }
 }

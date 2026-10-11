@@ -105,7 +105,7 @@ export function mountEditor(root: HTMLElement): Editor {
   // ------------------------------------------------------------------------------------ adding
 
   /** A topic waiting to be saved, listed above the topics until it is. */
-  const queue = (name: string, op: ConfigOp): void => {
+  const queue = (name: string, op: ConfigOp, after?: ConfigOp[]): void => {
     const template = one<HTMLTemplateElement>("template:not(#topics-panel-template)");
     const row = template.content.firstElementChild?.cloneNode(true) as HTMLElement;
     added += 1;
@@ -113,7 +113,12 @@ export function mountEditor(root: HTMLElement): Editor {
     (row.querySelector("[data-q-name]") as HTMLElement).textContent = name;
     row.querySelector("button")?.setAttribute("aria-label", `Cancel adding ${name}`);
     queued.append(row);
-    changes.set(row.dataset.key, { op, el: row, now: "" });
+    changes.set(row.dataset.key, {
+      op,
+      el: row,
+      now: "",
+      ...(after?.length ? { with: after } : {}),
+    });
     // The panel closes behind it, so focus and the view go to the row that says it is being added.
     row.tabIndex = -1;
     row.focus({ preventScroll: true });
@@ -128,19 +133,29 @@ export function mountEditor(root: HTMLElement): Editor {
       op.op === "topic.upsert" ? (op.topic.id ?? "") : "",
     );
     const id = slugify(topic.name, [...taken, ...waiting]);
-    queue(topic.name, {
-      op: "topic.upsert",
-      topic: {
-        id,
-        name: topic.name,
-        description: topic.description,
-        weight: 0.5,
-        enabled: true,
-        keywords: topic.keywords,
-        // A new topic gets a section of its own, titled after it.
-        section_id: id,
+    // The podcasts it is left out of, sent with it so the topic exists when they are applied.
+    const out = Object.fromEntries(
+      Object.entries(topic.scope ?? {}).filter(([, inScope]) => !inScope),
+    ) as { daily?: boolean; weekly?: boolean; custom?: boolean };
+    const scope: ConfigOp[] =
+      Object.keys(out).length > 0 ? [{ op: "topic.scope", ids: [id], ...out }] : [];
+    queue(
+      topic.name,
+      {
+        op: "topic.upsert",
+        topic: {
+          id,
+          name: topic.name,
+          description: topic.description,
+          weight: 0.5,
+          enabled: true,
+          keywords: topic.keywords,
+          // A new topic gets a section of its own, titled after it.
+          section_id: id,
+        },
       },
-    });
+      scope,
+    );
     for (const offer of offered) {
       addRow(
         { name: offer.name, icon: offer.host ? `https://${offer.host}/favicon.ico` : null },
@@ -175,7 +190,6 @@ export function mountEditor(root: HTMLElement): Editor {
     row.append(
       main,
       scoreNode(shown.score ?? null, shown.label ?? "New"),
-      element("span", "source-slot"),
       element("span", "source-slot"),
     );
     const topic = [...root.querySelectorAll<HTMLElement>(".topic")].find(

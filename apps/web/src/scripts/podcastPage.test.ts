@@ -49,17 +49,6 @@ describe("scheduleOp", () => {
   });
 });
 
-describe("scheduleOp: topics", () => {
-  it("sends the topics each profile leaves out, and an empty list to bring them all back", () => {
-    const was = { "daily.skip": "", "weekly.skip": "design" };
-    expect(scheduleOp(was, { "daily.skip": "gossip,trending", "weekly.skip": "" })).toEqual({
-      op: "schedule.set",
-      skip_topics: ["gossip", "trending"],
-      weekly: { skip_topics: [] },
-    });
-  });
-});
-
 describe("modelOp", () => {
   it("builds writer.set for a model and for Automatic", () => {
     expect(modelOp("a/b")).toEqual({ op: "writer.set", provider: "nebius", model: "a/b" });

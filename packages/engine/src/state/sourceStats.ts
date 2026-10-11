@@ -23,6 +23,16 @@ export interface SourceCounts {
    * general topics counts it; it stands where `published` stands for other sources.
    */
   covered?: number;
+  /**
+   * Judged items the scoring sample judged for the score alone (D70). They are in `judged`,
+   * `passed`, `asked` and `flagged` already; this says how many, so the publish share can leave
+   * them out.
+   */
+  sampled?: number;
+  /** True when the scoring sample read the source's own feed in this pass (D70). */
+  read_feed?: boolean;
+  /** Posts the source's own feed held when the sample read it to fill it up (D70). */
+  feed_posts?: number;
 }
 
 const ZERO: Omit<SourceStat, "window_start"> = { fetched: 0, judged: 0, passed: 0, published: 0 };
@@ -42,6 +52,9 @@ export function rollWindow(stat: SourceStat, today: string): SourceStat {
     ...(stat.asked === undefined ? {} : { asked: Math.floor(stat.asked / 2) }),
     ...(stat.flagged === undefined ? {} : { flagged: Math.floor(stat.flagged / 2) }),
     ...(stat.covered === undefined ? {} : { covered: Math.floor(stat.covered / 2) }),
+    ...(stat.sampled === undefined ? {} : { sampled: Math.floor(stat.sampled / 2) }),
+    ...(stat.sampled_at === undefined ? {} : { sampled_at: stat.sampled_at }),
+    ...(stat.feed_posts === undefined ? {} : { feed_posts: stat.feed_posts }),
     window_start: today,
   };
 }
@@ -77,6 +90,10 @@ export function recordSourceStats(
     }
     const covered =
       add?.covered === undefined ? before.covered : (before.covered ?? 0) + add.covered;
+    const sampled =
+      add?.sampled === undefined ? before.sampled : (before.sampled ?? 0) + add.sampled;
+    const sampledAt = add?.read_feed ? today : before.sampled_at;
+    const feedPosts = add?.feed_posts ?? before.feed_posts;
     sources[id] = {
       fetched: before.fetched + (add?.fetched ?? 0),
       judged: before.judged + (add?.judged ?? 0),
@@ -85,6 +102,9 @@ export function recordSourceStats(
       ...(asked === undefined ? {} : { asked }),
       ...(flagged === undefined ? {} : { flagged }),
       ...(covered === undefined ? {} : { covered }),
+      ...(sampled === undefined ? {} : { sampled }),
+      ...(sampledAt === undefined ? {} : { sampled_at: sampledAt }),
+      ...(feedPosts === undefined ? {} : { feed_posts: feedPosts }),
       window_start: before.window_start,
     };
   }

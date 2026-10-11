@@ -13,6 +13,12 @@ const Counts = z.object({
   flagged: count.optional(),
   /** Only a general news feed has it (D66). */
   covered: count.optional(),
+  /** Items judged for the score alone (D70). */
+  sampled: count.optional(),
+  /** The scoring sample read the source's own feed (D70). */
+  read_feed: z.boolean().optional(),
+  /** Posts that feed held when it was read to fill the source up (D70). */
+  feed_posts: count.optional(),
 });
 
 /** `.cache/run/<id>/source-counts.json`: per-source counters for one pass, applied at commit. */
@@ -21,6 +27,11 @@ export const SourceCountsFile = z.object({
   sources: z.record(z.string(), Counts),
 });
 export type SourceCountsFile = z.infer<typeof SourceCountsFile>;
+
+/** What a briefing pass counts for a source; the general and sample counters join later. */
+type BriefingCounts = Required<
+  Omit<SourceCounts, "covered" | "sampled" | "read_feed" | "feed_posts">
+>;
 
 /** A judge's flag at or above these odds counts: the judge thinks it more likely than not. */
 export const FLAG_ODDS = 0.5;
@@ -46,9 +57,9 @@ export function countSources(input: {
   judgedIds: readonly string[];
   asked: ReadonlyMap<string, Pick<JudgmentEntry["flags"], "hype" | "sponsored">>;
   passedIds: ReadonlySet<string>;
-}): Record<string, Required<Omit<SourceCounts, "covered">>> {
-  const out: Record<string, Required<Omit<SourceCounts, "covered">>> = {};
-  const row = (id: string): Required<Omit<SourceCounts, "covered">> => {
+}): Record<string, BriefingCounts> {
+  const out: Record<string, BriefingCounts> = {};
+  const row = (id: string): BriefingCounts => {
     out[id] ??= { fetched: 0, judged: 0, passed: 0, asked: 0, flagged: 0 };
     return out[id];
   };

@@ -1,16 +1,20 @@
 ---
 import type { ManageSource } from "../lib/manage";
 import { sourceInitial } from "../lib/sourceInitial";
-import Icon from "./Icon.astro";
 import ScoreMeter from "./ScoreMeter.astro";
 
 interface Props {
   source: ManageSource;
   /** The name of the topic the source is filed under; empty for Other. */
   topicName?: string;
+  /**
+   * The topic the edit panel shows as the source's own, when the page stands for several (one of
+   * the owner's three topics): the group's home, so choosing the same group moves nothing.
+   */
+  shownTopic?: { id: string; name: string } | undefined;
 }
 
-const { source, topicName = "" } = Astro.props;
+const { source, topicName = "", shownTopic } = Astro.props;
 // The bands of a score out of 3: Good is 2.1 and up, Fair 1.5 to 2.1, Poor under 1.5, New has none.
 const band =
   source.score === null
@@ -24,8 +28,8 @@ const band =
 const facts = {
   id: source.id,
   name: source.name,
-  topic_id: source.topic_id ?? "",
-  topic_name: topicName,
+  topic_id: shownTopic?.id ?? source.topic_id ?? "",
+  topic_name: shownTopic?.name ?? topicName,
   url: source.url,
   host: source.host,
   score: source.score,
@@ -35,12 +39,12 @@ const facts = {
 };
 ---
 
-{/* One source under its topic. Its name and tile are one button that opens the source to edit, and
-     the open button beside its score goes to the site in a new tab. The tile shows the name's first
-     letter, and the site's own icon covers it once it loads (topicsPage.ts marks it loaded), so a
-     site without an icon still has a face and every name starts at one edge. The checkbox at the
-     end says whether the source is read: unticking switches it off, ticking switches it back on, and
-     an off row stays where it is with its score, quieter. */}
+{/* One source under its topic. The row opens the source to edit: one button behind everything,
+     the row's own size, so no part of it is a dead zone. Over it sit the tile, the name, the score
+     and the checkbox; the name is a link to the site, in a new tab, and the checkbox says whether the
+     source is read. Everything else lets a press through to the button. The tile shows the name's
+     first letter, and the site's own icon covers it once it loads (topicsPage.ts marks it loaded),
+     so a site without an icon still has a face. An off row keeps its place and its score, quieter. */}
 <li
   class="source-row"
   data-id={source.id}
@@ -49,11 +53,12 @@ const facts = {
   data-name={source.name.toLowerCase()}
 >
   <button
-    class="source-main"
+    class="source-edit"
     type="button"
     aria-label={`Edit ${source.name}`}
     data-edit-source={JSON.stringify(facts)}
-  >
+  ></button>
+  <span class="source-main">
     <span class="source-icon" aria-hidden="true">
       <span class="source-initial">{sourceInitial(source.name)}</span>
       {
@@ -72,26 +77,26 @@ const facts = {
       }
     </span>
     <span class="source-text">
-      <span class="source-name" id={`source-${source.id}`}>{source.name}</span>
+      {
+        source.url ? (
+          <a
+            class="source-name"
+            id={`source-${source.id}`}
+            href={source.url}
+            target="_blank"
+            rel="noopener noreferrer"
+            aria-describedby="source-new-tab"
+          >
+            {source.name}
+          </a>
+        ) : (
+          <span class="source-name" id={`source-${source.id}`}>{source.name}</span>
+        )
+      }
       <span class="source-host">{source.host}</span>
     </span>
-  </button>
+  </span>
   <ScoreMeter score={source.score} label={source.score_label} />
-  {
-    source.url ? (
-      <a
-        class="icon-btn source-open press"
-        href={source.url}
-        target="_blank"
-        rel="noopener noreferrer"
-        aria-label={`Open ${source.name} in a new tab`}
-      >
-        <Icon name="openInNew" />
-      </a>
-    ) : (
-      <span class="source-slot" />
-    )
-  }
   <label class="source-check">
     <input
       type="checkbox"
@@ -101,6 +106,6 @@ const facts = {
       data-op={JSON.stringify({ op: "source.set", id: source.id, enabled: source.enabled })}
       data-field="enabled"
     />
-    <span class="suggest-box" aria-hidden="true"><Icon name="check" class="suggest-check" /></span>
+    <span class="suggest-box" aria-hidden="true"></span>
   </label>
 </li>

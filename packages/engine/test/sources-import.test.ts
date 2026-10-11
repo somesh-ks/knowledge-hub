@@ -92,7 +92,7 @@ describe("buildRegistry from config/sources.md", () => {
 
   it("produces a registry that passes validation, with unique kebab-case ids", () => {
     expect(() => parseSources(file)).not.toThrow();
-    expect(file.sources).toHaveLength(144);
+    expect(file.sources).toHaveLength(165);
     expect(new Set(file.sources.map((s) => s.id)).size).toBe(file.sources.length);
     expect(warnings).toEqual([]);
   });
@@ -198,7 +198,7 @@ describe("buildRegistry from config/sources.md", () => {
     expect(byId.get("arxiv-cs-hc")?.category_hint).toBe("hci_empirical_research");
     expect(byId.get("openai-blog")?.category_hint).toBe("frontier_model_releases");
     expect(byId.get("radix-ui")?.category_hint).toBe("ui_component_primitives");
-    expect(byId.get("techcrunch")?.category_hint).toBe("venture_capital_and_gossip");
+    expect(byId.get("techcrunch")?.category_hint).toBe("consumer_tech_releases");
   });
 
   it("adds the seven consumer tech outlets as feeds, hinted, six candidates each", () => {
@@ -240,6 +240,7 @@ describe("buildRegistry from config/sources.md", () => {
       "abc-news-technology",
       "android-authority",
       "ars-technica",
+      "brutalist-report",
       "cbs-news-technology",
       "electrek",
       "engadget",
@@ -247,6 +248,8 @@ describe("buildRegistry from config/sources.md", () => {
       "gsmarena",
       "npr-technology",
       "sky-news-technology",
+      "techcrunch",
+      "techmeme",
       "the-verge",
       "toms-hardware",
     ]);

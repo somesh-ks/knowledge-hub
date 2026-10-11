@@ -197,7 +197,7 @@
       "name": "Trending",
       "description": "A news story that several major outlets are covering at once, in any field: politics, economy, science, health, technology, world events. Not sports results, celebrity gossip, obituaries of no wider interest, local crime, opinion columns or product reviews.",
       "weight": 1,
-      "enabled": true,
+      "enabled": false,
       "keywords": [],
       "section_id": "trending",
       "never_publish": false,

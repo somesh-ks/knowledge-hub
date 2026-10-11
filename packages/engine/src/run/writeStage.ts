@@ -44,6 +44,7 @@ import {
 import { mostlyFailed } from "./judgeStage.js";
 import { markStage, type Plan, type PlanPass, passFile, requireStage } from "./plan.js";
 import { capForLength } from "./scheduleSize.js";
+import { countSample, mergeSampleCounts, readSampleFiles } from "./scoreSample.js";
 import { countSources } from "./sourceCounts.js";
 import type { PassReport, RunDeps, StageReport } from "./types.js";
 
@@ -215,19 +216,27 @@ async function writePass(
   // The general news stories were judged apart from the pool (judgeGeneral): their feeds' counters
   // join here, with `covered` standing where a briefing's `published` stands for other sources.
   const general = await readGeneralCounts(file, context.generalTopics);
+  // Items judged for the score alone (D70) count for their sources too, marked as sampled.
+  const sampleFiles = await readSampleFiles(file("sample.json"), file("sample-judged.json"));
+  const sample = sampleFiles.sample
+    ? countSample({ sample: sampleFiles.sample, judged: sampleFiles.judged, preferences })
+    : {};
   await writeJson(file("source-counts.json"), {
     version: 1,
-    sources: mergeGeneralCounts(
-      countSources({
-        fetchedBySource: pool.fetchedBySource,
-        poolSourceIds: new Map(pool.items.map((item) => [item.id, item.source_id])),
-        judgedIds: scored.map((s) => s.item.id),
-        asked: new Map(
-          scored.filter((s) => !notAsked.has(s.item.id)).map((s) => [s.item.id, s.entry.flags]),
-        ),
-        passedIds: new Set(scored.map((s) => s.item.id).filter((id) => !notPassed.has(id))),
-      }),
-      general,
+    sources: mergeSampleCounts(
+      mergeGeneralCounts(
+        countSources({
+          fetchedBySource: pool.fetchedBySource,
+          poolSourceIds: new Map(pool.items.map((item) => [item.id, item.source_id])),
+          judgedIds: scored.map((s) => s.item.id),
+          asked: new Map(
+            scored.filter((s) => !notAsked.has(s.item.id)).map((s) => [s.item.id, s.entry.flags]),
+          ),
+          passedIds: new Set(scored.map((s) => s.item.id).filter((id) => !notPassed.has(id))),
+        }),
+        general,
+      ),
+      sample,
     ),
   });
 

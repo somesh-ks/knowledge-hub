@@ -51,10 +51,11 @@ describe("the general news sources", () => {
   const general = GENERAL_TOPIC_SOURCES.filter((s) => s.enabled);
   const tech = GENERAL_TOPIC_SOURCES.filter((s) => !s.enabled);
 
-  it("gives every general topic at least two enabled rss feeds, tagged with the topic alone", () => {
+  it("gives every general topic at least five enabled rss feeds, tagged with the topic alone", () => {
     for (const { id } of GENERAL_TOPICS) {
       const feeds = general.filter((s) => s.topic_ids?.[0] === id);
-      expect(feeds.length, id).toBeGreaterThanOrEqual(2);
+      // A general episode ranks a story by how many outlets carried it (D69).
+      expect(feeds.length, id).toBeGreaterThanOrEqual(5);
       for (const feed of feeds) {
         expect(feed).toMatchObject({
           type: "rss",
@@ -69,7 +70,7 @@ describe("the general news sources", () => {
         expect(feed.feed_url).toMatch(/^https:\/\//);
       }
     }
-    expect(general).toHaveLength(20);
+    expect(general).toHaveLength(30);
   });
 
   it("files the four technology feeds under the built-in topic of the Tech section, switched off", () => {
@@ -192,6 +193,36 @@ describe("buildGeneralPool", () => {
     expect(GeneralPoolFile.safeParse(pool).success).toBe(true);
   });
 
+  it("never lets a weekly check's outlet raise a switched-on feed's coverage (D70)", () => {
+    const pool = buildGeneralPool({
+      items: [
+        feedItem("npr-world", "quake", QUAKE),
+        feedItem("bbc-world", "quake", "Earthquake of magnitude 6.1 strikes Izmir coast, Turkey"),
+      ],
+      sources: SOURCES,
+      activeTopicIds: active,
+      checked: new Set(["bbc-world"]),
+    });
+    const story = pool.items[0];
+    if (!story) throw new Error("no story");
+    // The signal counts switched-on outlets (npr alone); the full count is kept for the check.
+    expect(story.signals.coverage).toBeUndefined();
+    expect(pool.coverage_all).toEqual({ [story.id]: 2 });
+    expect(pool.checked).toEqual(["bbc-world"]);
+    const judged: GeneralJudgedFile = {
+      version: 1,
+      judge: { model: "jev-test", questions_hash: GENERAL_QUESTIONS_HASH },
+      entries: [
+        { item_id: story.id, flags: { hype: 0, sponsored: 0 }, fits: { world: 1 }, hashes: {} },
+      ],
+      unjudged: [],
+      counts: { pool: 1, over_ceiling: 0, reused: 0, requests: 1, judged: 1, unjudged: 0 },
+    };
+    const counts = countGeneral({ pool, judged, topics: [{ id: "world", weight: 1 }] });
+    expect(counts["npr-world"]).toMatchObject({ judged: 1, covered: 0 });
+    expect(counts["bbc-world"]).toMatchObject({ judged: 1, covered: 1 });
+  });
+
   it("drops a story whose topics are all switched off and trims the others", () => {
     const pool = buildGeneralPool({
       items: [
@@ -228,6 +259,16 @@ describe("applyCeiling", () => {
       "Story number 0",
       "Story number 9",
       "Story number 8",
+    ]);
+  });
+
+  it("puts a story only a weekly check carried behind every other, however widely carried (D70)", () => {
+    const checkedOnly = (item: { title: string }) => item.title === "Story number 0";
+    const { kept } = applyCeiling(items, 3, checkedOnly);
+    expect(kept.map((i) => i.title)).toEqual([
+      "Story number 9",
+      "Story number 8",
+      "Story number 7",
     ]);
   });
 });
