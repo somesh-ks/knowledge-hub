@@ -83,6 +83,48 @@ export function scrubKeyAction(
 }
 
 /**
+ * Where a key takes the bar's seek, which holds the exact time: in whole seconds, as the range did
+ * when it stepped by one. An arrow moves one second from the whole second the playhead is in, a page
+ * key a tenth of the length (a second at least), rounded to a whole second; Home and End go to 0
+ * and to the last whole second. Null for a key the seek does not own.
+ */
+export function dockSeekKeyValue(
+  key: string,
+  timeSeconds: number,
+  durationSeconds: number,
+): number | null {
+  const last = Math.max(0, Math.floor(durationSeconds));
+  const now = clamp(Math.floor(timeSeconds), 0, last);
+  const page = Math.max(last / 10, 1);
+  let next: number;
+  switch (key) {
+    case "ArrowRight":
+    case "ArrowUp":
+      next = now + 1;
+      break;
+    case "ArrowLeft":
+    case "ArrowDown":
+      next = now - 1;
+      break;
+    case "PageUp":
+      next = now + page;
+      break;
+    case "PageDown":
+      next = now - page;
+      break;
+    case "Home":
+      next = 0;
+      break;
+    case "End":
+      next = last;
+      break;
+    default:
+      return null;
+  }
+  return Math.round(clamp(next, 0, last));
+}
+
+/**
  * The start time of the boundary a scrub just crossed, or null when it stayed inside one item.
  * The boundary is the start of the later of the two items, whichever way the thumb moved.
  */

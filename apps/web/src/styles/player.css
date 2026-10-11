@@ -994,7 +994,10 @@
 
   /* No grey is 3:1 from both the bar and the accent, so a notch in the bar's own colour marks where
      the played part ends: three times as wide as the line is thick, so it never reads as one of the
-     chapter gaps, which are as wide as the line. It moves with the progress, by transform. */
+     chapter gaps, which are as wide as the line. It moves with the progress, by transform, and
+     travels the line as the range's thumb travels its track (its left edge at the progress times
+     the line less its own width), so the end of the fill is always inside it and the thumb, wider
+     than both, always covers them. */
   .dock-progress::after {
     content: "";
     position: absolute;
@@ -1002,7 +1005,7 @@
     inset-inline-start: 0;
     width: calc(var(--mini-player-progress-height) * 3);
     background: var(--mini-player-bg);
-    translate: calc(var(--player-progress, 0) * 100cqi) 0;
+    translate: calc(var(--player-progress, 0) * (100cqi - 100%)) 0;
   }
 }
 

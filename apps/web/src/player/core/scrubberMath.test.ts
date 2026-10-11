@@ -3,6 +3,7 @@ import {
   bubbleLeft,
   crossedBoundary,
   detentGain,
+  dockSeekKeyValue,
   fractionFromPointer,
   fractionOfTime,
   onPixelGrid,
@@ -67,6 +68,30 @@ describe("keyboard", () => {
     expect(scrubKeyAction(" ", false, 0, 120)).toBeNull();
     expect(scrubKeyAction("k", false, 0, 120)).toBeNull();
     expect(scrubKeyAction("Tab", false, 0, 120)).toBeNull();
+  });
+});
+
+describe("the bar's seek keys", () => {
+  it("steps a whole second from the second the playhead is in, as a one-second range did", () => {
+    expect(dockSeekKeyValue("ArrowRight", 26.93, 36.05)).toBe(27);
+    expect(dockSeekKeyValue("ArrowUp", 26.93, 36.05)).toBe(27);
+    expect(dockSeekKeyValue("ArrowLeft", 26.93, 36.05)).toBe(25);
+    expect(dockSeekKeyValue("ArrowDown", 0.4, 36.05)).toBe(0);
+    expect(dockSeekKeyValue("ArrowRight", 36.02, 36.05)).toBe(36);
+  });
+
+  it("moves a tenth of the length with the page keys, rounded to a whole second", () => {
+    expect(dockSeekKeyValue("PageUp", 27, 36.05)).toBe(31);
+    expect(dockSeekKeyValue("PageDown", 31, 36.05)).toBe(27);
+    expect(dockSeekKeyValue("PageUp", 3, 8.5)).toBe(4);
+    expect(dockSeekKeyValue("PageDown", 30, 600)).toBe(0);
+  });
+
+  it("goes to the start and to the last whole second, and leaves other keys alone", () => {
+    expect(dockSeekKeyValue("Home", 20, 36.05)).toBe(0);
+    expect(dockSeekKeyValue("End", 20, 36.05)).toBe(36);
+    expect(dockSeekKeyValue("Tab", 20, 36.05)).toBeNull();
+    expect(dockSeekKeyValue(" ", 20, 36.05)).toBeNull();
   });
 });
 
