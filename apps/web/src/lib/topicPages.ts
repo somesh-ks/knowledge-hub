@@ -86,7 +86,7 @@ export interface GroupPage {
   members: ManageTopic[];
 }
 
-/** The Topics & Sources pages and where every source shows (D69). */
+/** The Topics and sources pages and where every source shows (D69). */
 export interface TopicLayout {
   /** Design, AI and Technology, in that order, each with at least one member. */
   groups: GroupPage[];

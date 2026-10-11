@@ -5,6 +5,7 @@ import {
   problemText,
   slugify,
   topicChanged,
+  topicProblems,
   webAddress,
 } from "../lib/topicText";
 import type { ConfigOp } from "../types/contracts";
@@ -136,6 +137,9 @@ describe("failureText", () => {
     expect(failureText(503)).toBe("Saving is not available right now. Not saved yet.");
     expect(failureText(0)).toBe("The site could not be reached. Not saved yet.");
     expect(failureText(400)).toBe("That change was not accepted. Not saved yet.");
+    // A status with no reason of its own is a failure, not an unreachable site.
+    expect(failureText(500)).toBe("Saving failed.");
+    expect(failureText(501)).toBe("Saving failed.");
   });
 
   it("never asks for the passphrase back in a message that is not about it", () => {
@@ -305,5 +309,23 @@ describe("buildQueue", () => {
 
   it("is empty when nothing changed", () => {
     expect(buildQueue(new Map())).toEqual([]);
+  });
+});
+
+describe("topicProblems", () => {
+  const taken = ["Design", "World"];
+  it("refuses a name a topic already has, whatever its case", () => {
+    expect(topicProblems({ name: "design", description: "x" }, taken).name).toBe(
+      "You already have a topic called Design.",
+    );
+    expect(topicProblems({ name: " WORLD ", description: "x" }, taken).name).toBe(
+      "You already have a topic called World.",
+    );
+  });
+  it("takes a new name", () => {
+    expect(topicProblems({ name: "Typography", description: "x" }, taken)).toEqual({
+      name: "",
+      description: "",
+    });
   });
 });

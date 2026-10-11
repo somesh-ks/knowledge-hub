@@ -10,7 +10,7 @@ interface Props {
 const { topics } = Astro.props;
 ---
 
-{/* The Topics & Sources panel, kept inert in a template until scripts/topicsPanel.ts clones it: Add
+{/* The Topics and sources panel, kept inert in a template until scripts/topicsPanel.ts clones it: Add
      opens it on Topic, a topic's Add source opens it on Source with that topic chosen, a topic's Edit
      topic opens it on that topic's details, and a source's row opens it to edit that source. It wears the Create sheet's looks (create-sheet.css) and is not
      that sheet: regen-sheet keeps createSheet.ts from taking it for the Create panel. A full-screen
@@ -77,7 +77,7 @@ const { topics } = Astro.props;
           </div>
           {/* Where a new topic plays (D69); an existing topic sets it on its own page. */}
           <div class="manage-field topics-scope" data-scope>
-            <span class="topics-scope-label" id="panel-topic-scope-label">Scope</span>
+            <span class="topics-scope-label" id="panel-topic-scope-label">Podcasts</span>
             <MultiSelect
               id="panel-topic-scope"
               labelledby="panel-topic-scope-label"
@@ -85,7 +85,7 @@ const { topics } = Astro.props;
               options={[
                 { value: "daily", label: "Daily", checked: true, name: "scope" },
                 { value: "weekly", label: "Weekly", checked: true, name: "scope" },
-                { value: "custom", label: "Custom", checked: true, name: "scope" },
+                { value: "custom", label: "New episodes", checked: true, name: "scope" },
               ]}
             />
           </div>

@@ -26,11 +26,19 @@ const PODCAST = [
   { href: "/settings/weekly", label: "Weekly", hint: weeklySummary(schedule.weekly) },
   {
     href: "/settings/topics",
-    label: "Topics & Sources",
+    label: "Topics and sources",
     hint: `${plural(topicCount, "topic")}, ${plural(manage.sources.length, "source")}`,
   },
   { href: "/settings/model", label: "Model", hint: writer.label },
 ];
+
+// The version is the day this build was made, which is what changes when the site does.
+const version = new Intl.DateTimeFormat("en-GB", {
+  timeZone: "Europe/Stockholm",
+  day: "numeric",
+  month: "long",
+  year: "numeric",
+}).format(new Date());
 
 const THEME_LABELS: Record<ThemePreference, string> = {
   system: "System",
@@ -69,10 +77,10 @@ const THEME_LABELS: Record<ThemePreference, string> = {
       </section>
 
       <section>
-        <h2 class="section-head">Interface sounds</h2>
+        <h2 class="section-head">Sound</h2>
         <div class="rows">
           <div class="settings-row">
-            <label class="settings-label" for="settings-sounds">Sounds</label>
+            <label class="settings-label" for="settings-sounds">Interface sounds</label>
             <input class="settings-switch" id="settings-sounds" name="sounds" type="checkbox" role="switch" />
           </div>
           <div class="settings-row">
@@ -105,9 +113,15 @@ const THEME_LABELS: Record<ThemePreference, string> = {
 
       <section>
         <h2 class="section-head">About</h2>
-        <p class="settings-about">
-          Singularity is a hobby project by Somesh Kesarla Suresh. It picks stories from chosen news outlets and topics and turns them into a podcast, on its own.
-        </p>
+        <div class="rows">
+          <div class="settings-row">
+            <span class="settings-label">Made by Somesh Kesarla Suresh</span>
+          </div>
+          <div class="settings-row">
+            <span class="settings-label">Version</span>
+            <span class="settings-hint">{version}</span>
+          </div>
+        </div>
       </section>
 
       {/* Only Safari on iOS can do this, and only when the app is not already on the Home Screen, so

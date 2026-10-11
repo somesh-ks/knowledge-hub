@@ -1,5 +1,5 @@
 /**
- * What the editor and the Topics & Sources panel both draw: a site's tile, and a score. The markup
+ * What the editor and the Topics and sources panel both draw: a site's tile, and a score. The markup
  * matches components/ScoreMeter.astro and SourceRow.astro, so topics.css styles both alike. Loaded
  * with the editor, never with the page.
  */

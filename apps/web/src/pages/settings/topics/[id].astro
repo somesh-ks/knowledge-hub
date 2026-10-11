@@ -58,12 +58,14 @@ interface Props {
 }
 
 const { group, topic, list, choices, taken } = Astro.props;
+// The names a new topic may not take again (topicProblems): every topic a person sees.
+const names = choices.map((choice) => choice.name);
 const [{ sources }, catalog] = await Promise.all([loadManage(), loadSourceCatalog()]);
 const name = group?.name ?? topic?.name ?? "Other";
 const note =
   group?.note ??
   topic?.description ??
-  "Sources outside the topics: no topic, or one the app does not list.";
+  "Sources not filed under a topic.";
 // A source on a group's page shows the group as its topic, so its edit panel moves it only when
 // another topic is chosen.
 const shown = group ? { id: group.home, name: group.name } : undefined;
@@ -77,7 +79,7 @@ const scopeIds = group ? group.members.map((member) => member.id) : topic ? [top
 const SCOPES = [
   { key: "daily", label: "Daily", skipped: schedule.skipTopics },
   { key: "weekly", label: "Weekly", skipped: schedule.weekly.skip_topics },
-  { key: "custom", label: "Custom", skipped: schedule.custom.skip_topics },
+  { key: "custom", label: "New episodes", skipped: schedule.custom.skip_topics },
 ] as const;
 const inScope = (key: (typeof SCOPES)[number]["key"]): boolean => {
   const skipped = SCOPES.find((scope) => scope.key === key)?.skipped ?? [];
@@ -116,6 +118,9 @@ const upsert =
 const editable = topic !== null && !topic.never_publish;
 // A general news topic feeds General episodes by how many outlets carry a story, so it has no weight.
 const general = topic?.origin === "general";
+// What its on switch says it does (topicsPage.ts says it again when it is turned).
+const ON_HINT = "Used in new episodes";
+const OFF_HINT = "Off. Its sources are not read";
 // What Edit topic hands the panel (topicsPanel.ts, TopicFacts). Every topic can change its name; a
 // built-in one keeps what counts, as fixed questions judge it.
 const facts = topic && {
@@ -132,8 +137,8 @@ const facts = topic && {
     {/* A topic's page: whether it is in the briefings, how much it counts, and its sources. The
          controls carry the edit they stand for (data-op); topicsEditor.ts records a change and
          autosave.ts sends it a moment later. */}
-    <div class="manage topics topic-page" data-topics data-taken={[...taken, OTHER_ID].join(" ")}>
-      <SettingsHead title={name} up={{ href: "/settings/topics", label: "Topics & Sources" }} note={note} />
+    <div class="manage topics topic-page" data-topics data-taken={[...taken, OTHER_ID].join(" ")} data-names={JSON.stringify(names)}>
+      <SettingsHead title={name} up={{ href: "/settings/topics", label: "Topics and sources" }} note={note} />
       <noscript>
         <p class="manage-note">Changing topics and sources needs JavaScript, which is turned off in this browser.</p>
       </noscript>
@@ -144,33 +149,48 @@ const facts = topic && {
           {
             (group || (editable && topic)) && (
               <div class="rows topic-controls">
-                {/* Where the topic plays (D69). A general news topic is in no briefing yet, so only
-                     Custom applies, and it is the topic's on switch: off, its feeds are not read. */}
-                <div class="settings-row topic-scope">
-                  <div class="settings-text">
-                    <span class="settings-label" id="scope-label">Scope</span>
-                    {general && <span class="settings-hint" id="scope-hint">General news is in custom episodes only</span>}
+                {/* Where the topic plays (D69). A general news topic is in no scheduled podcast yet,
+                     so it has only its on switch: off, its sources are not read at all. */}
+                {general && topic ? (
+                  <div class="settings-row topic-on">
+                    <div class="settings-text">
+                      <label class="settings-label" for="topic-on">Read {name}'s sources</label>
+                      <span class="settings-hint" id="topic-on-hint" data-topic-on-hint>
+                        {topic.enabled ? ON_HINT : OFF_HINT}
+                      </span>
+                    </div>
+                    <input
+                      class="settings-switch"
+                      id="topic-on"
+                      type="checkbox"
+                      role="switch"
+                      aria-describedby="topic-on-hint"
+                      autocomplete="off"
+                      checked={topic.enabled}
+                      data-op={upsert}
+                      data-field="topic.enabled"
+                      data-topic-on
+                    />
                   </div>
-                  <MultiSelect
-                    id="scope"
-                    labelledby="scope-label"
-                    describedby={general ? "scope-hint" : undefined}
-                    empty="In no podcast"
-                    options={SCOPES.map((scope) => {
-                      const onSwitch = general && scope.key === "custom";
-                      const unavailable = general && scope.key !== "custom";
-                      return {
+                ) : (
+                  <div class="settings-row topic-scope">
+                    <div class="settings-text">
+                      <span class="settings-label" id="scope-label">Podcasts</span>
+                    </div>
+                    <MultiSelect
+                      id="scope"
+                      labelledby="scope-label"
+                      empty="In no podcast"
+                      options={SCOPES.map((scope) => ({
                         value: scope.key,
                         label: scope.label,
-                        checked: onSwitch ? Boolean(topic?.enabled) : !unavailable && inScope(scope.key),
-                        disabled: unavailable,
-                        hint: unavailable ? "Not for general news yet" : undefined,
-                        op: unavailable ? undefined : onSwitch ? (upsert ?? undefined) : JSON.stringify({ op: "topic.scope", ids: scopeIds }),
-                        field: unavailable ? undefined : onSwitch ? "topic.enabled" : scope.key,
-                      };
-                    })}
-                  />
-                </div>
+                        checked: inScope(scope.key),
+                        op: JSON.stringify({ op: "topic.scope", ids: scopeIds }),
+                        field: scope.key,
+                      }))}
+                    />
+                  </div>
+                )}
                 {/* The owner's own topic keeps its on switch out of sight: Edit topic sends the topic
                      with it, and scope does the switching a person sees. */}
                 {topic && !general && (
@@ -214,6 +234,11 @@ const facts = topic && {
             {list.map((source) => <SourceRow source={source} topicName={topic?.name ?? ""} shownTopic={shown} />)}
           </ul>
           <p class="manage-quiet topic-empty">No sources yet.</p>
+          {general && topic && (
+            <p class="manage-quiet topic-unread" data-topic-unread hidden={topic.enabled}>
+              Not read while {name} is off.
+            </p>
+          )}
           {/* What a source's name says once it is read out: it is a link that leaves the app. */}
           <span id="source-new-tab" hidden>Opens the site in a new tab</span>
           {
@@ -253,7 +278,7 @@ const facts = topic && {
               </div>
             )
           }
-          <p class="manage-quiet topic-gone" tabindex="-1">Removed. The page goes after the next build.</p>
+          <p class="manage-quiet topic-gone" tabindex="-1">Removed.</p>
         </div>
       </fieldset>
 

@@ -249,7 +249,7 @@ function editSource(
       note = element("span", "source-note");
       row.querySelector(".source-text")?.append(note);
     }
-    note.textContent = `Moves to ${facts.topic_name} after the next build.`;
+    note.textContent = `Moves to ${facts.topic_name} in about a minute.`;
     shown = true;
   }
   button.dataset.editSource = JSON.stringify(facts);
@@ -283,7 +283,6 @@ function addTopics(root: HTMLElement, topics: Map<string, Upsert>, feeds: Set<st
     if (name) name.textContent = topic.name;
     const note = row.querySelector(".manage-quiet");
     if (note) note.textContent = ADDED;
-    row.querySelector("[data-act=cancel]")?.remove();
     queued.append(row);
     void suggestUnder(row, topic, feeds);
     shown = true;

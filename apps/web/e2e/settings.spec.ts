@@ -36,7 +36,7 @@ async function islandsReady(page: Page): Promise<void> {
 }
 
 const theme = (page: Page) => page.getByRole("radiogroup", { name: "Theme" });
-const sounds = (page: Page) => page.getByRole("switch", { name: "Sounds", exact: true });
+const sounds = (page: Page) => page.getByRole("switch", { name: "Interface sounds", exact: true });
 const volume = (page: Page) => page.getByRole("slider", { name: "Volume" });
 const settingsLink = (page: Page) =>
   page.getByRole("navigation", { name: "Primary" }).getByRole("link", { name: "Settings" });
@@ -168,7 +168,7 @@ test.describe("settings page", () => {
   test("has no speed setting: the player keeps the last speed chosen in it", async ({ page }) => {
     await openSettings(page);
     await expect(page.getByRole("radiogroup", { name: "Default speed" })).toHaveCount(0);
-    await expect(page.getByRole("heading", { level: 2, name: "Interface sounds" })).toBeVisible();
+    await expect(page.getByRole("heading", { level: 2, name: "Sound" })).toBeVisible();
     await expect(page.getByRole("heading", { level: 2, name: "Playback" })).toHaveCount(0);
   });
 
