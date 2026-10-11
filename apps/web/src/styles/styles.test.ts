@@ -159,6 +159,14 @@ describe("component stylesheets", () => {
     }
   });
 
+  it("takes layer elevation from tokens, never a raw integer z-index", () => {
+    const rawZIndex = /^\s*z-index\s*:\s*-?\d+\s*;/m;
+    for (const file of OWN_FILES) {
+      const match = rawZIndex.exec(withoutComments(read(file)));
+      expect(match?.[0], `${file} has a raw integer z-index`).toBeUndefined();
+    }
+  });
+
   // Import order is not enough: the build splits stylesheets into chunks and reorders them, and a
   // page's own stylesheet comes after the layout's. The rule carries an id's weight instead, and
   // e2e/hidden.spec.ts checks the result on every built page.

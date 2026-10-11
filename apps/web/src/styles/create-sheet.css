@@ -332,7 +332,7 @@ dialog.create-sheet[open]::backdrop {
 dialog.create-sheet .create-submit {
   position: sticky;
   inset-block-end: 0;
-  z-index: 1;
+  z-index: var(--z-raised);
   padding-block: var(--space-4) max(var(--space-4), var(--safe-bottom));
   background: var(--sheet-bg);
   box-shadow: 0 0 0 100vmax var(--sheet-bg);

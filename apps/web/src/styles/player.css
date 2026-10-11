@@ -244,7 +244,7 @@
 .player-stage {
   position: absolute;
   inset: 0;
-  z-index: 0;
+  z-index: var(--z-base);
   /* Clipped without becoming a scroll container, so focus can never scroll the page off its place. */
   overflow: clip;
 }
@@ -370,7 +370,7 @@
      phone's top padding is the safe area, which can be zero. */
   inset-block-start: calc(var(--stroke-ring) + var(--stroke-ring-gap) + var(--space-1));
   inset-inline-start: 50%;
-  z-index: 1;
+  z-index: var(--z-raised);
   padding: var(--space-2) var(--space-4);
   border-radius: var(--button-radius);
   background: var(--color-surface-inverse);
@@ -484,6 +484,12 @@
   transition: background-color var(--duration-press-in) var(--ease-out);
 }
 
+@media (hover: hover) and (pointer: fine) {
+  .player-fallback-action:hover {
+    background: var(--color-accent-hover);
+  }
+}
+
 /* A press darkens the fill, as on the primary buttons; the words keep their size. */
 .player-fallback-action:active {
   background: var(--color-accent-pressed);
@@ -516,7 +522,7 @@
     top: 0;
     left: 0;
     /* Over the bar it leaves, which fades out under it on a phone. */
-    z-index: 2;
+    z-index: var(--z-overlay);
     display: block;
     width: var(--art-size);
     visibility: hidden;
@@ -568,7 +574,7 @@
   position: absolute;
   inset-inline: 0;
   inset-block-end: var(--bottom-nav-height, 0px);
-  z-index: 1;
+  z-index: var(--z-raised);
   display: grid;
   grid-template-columns: minmax(0, 1fr) auto;
   column-gap: var(--space-2);
@@ -651,7 +657,7 @@
 .dock-transport,
 .dock-tools {
   position: relative;
-  z-index: 1;
+  z-index: var(--z-raised);
   pointer-events: none;
 }
 
@@ -732,7 +738,7 @@
   position: absolute;
   inset-inline: 0;
   inset-block-start: 0;
-  z-index: 1;
+  z-index: var(--z-raised);
   display: none;
   width: 100%;
   height: var(--space-4);
@@ -1931,7 +1937,7 @@
 /* The ring belongs on the segment: an invisible input cannot show one. A press shows on the thumb
    and the colour, never on the size of the words (pressText.test.ts). */
 .segmented label:has(input:focus-visible) {
-  z-index: 1;
+  z-index: var(--z-raised);
   outline: var(--stroke-ring) solid var(--color-focus-ring);
   outline-offset: var(--stroke-ring-gap);
 }

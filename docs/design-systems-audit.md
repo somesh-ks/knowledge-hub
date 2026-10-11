@@ -24,7 +24,7 @@ The design system demonstrates exceptional rigor: 0% raw color function escapes 
 | **MOT Motion** | A | 0 | 1 | 0 | Physically grounded curves; duration collapsing under reduced-motion suppresses opacity cross-fades |
 | **COL Color & Theme** | S | 0 | 0 | 0 | Pure OKLCH light-dark token pairs; 0 raw color function leaks across component CSS |
 | **TYP Typography** | S | 0 | 0 | 0 | Fluid Google Sans Flex clamp scales; 100% tokenized type scale in component styles |
-| **LAY Layers & Stacks** | B | 0 | 1 | 1 | 53% layer token coverage; local stacking contexts use raw integers (-1, 1, 2) |
+| **LAY Layers & Stacks** | S | 0 | 0 | 0 | 100% layer token coverage; 0 raw integer z-indices across all stylesheets; automated invariant test in styles.test.ts |
 
 ---
 
@@ -92,7 +92,7 @@ Scanned 304 markup and style files across `apps/web/src`.
 | **radius** | 29 | 128 | 18 | `var(--radius-round)` (33), `var(--button-radius)` (19), `var(--radius-md)` (11) | 98% |
 | **shadow** | 24 | 63 | 16 | `none` (21), `var(--shadow-popover)` (5), `var(--sheet-shadow)` (4) | 100% |
 | **color-literal** | 5 | 11 | 6 | `#000000` (canvas/test), `oklch(...)` (canvas tint math only) | 86% |
-| **layer (z-index)** | 6 | 32 | 12 | `var(--z-header)` (5), `var(--z-sheet)` (5), `1` (7), `2` (2), `-1` (3) | 53% |
+| **layer (z-index)** | 8 | 32 | 12 | `var(--z-header)` (5), `var(--z-sheet)` (5), `var(--z-raised)` (10), `var(--z-beneath)` (3), `var(--z-overlay)` (3), `var(--z-base)` (1) | 100% |
 
 ---
 
@@ -109,8 +109,8 @@ Formula: `Value = R + V + K`, `Priority = Value / C` (one decimal).
 | **DD-001** | Dead `--row-gap: var(--space-2)` compiled in tokens | Implementation | R1 V1 K1 C1 = 3.0 | Global `tokens.css` | Design Systems | Resolved | Immediate |
 | **DD-002** | Missing `aria-label="Cancel"` on queue item cancel button | Accessibility | R1 V2 K3 C1 = 6.0 | Settings, Topics | Design Systems | Resolved | Immediate |
 | **DD-003** | Reduced-motion collapses duration tokens to 0.01ms, suppressing opacity fades | Interaction / Motion | R3 V3 K2 C1 = 8.0 | Player, Sheets, Dialogs | Design Systems | Open | Sprint 1 |
-| **DD-004** | Layer token coverage at 53%; local stacking contexts use raw integers (-1, 1, 2) | Implementation | R2 V2 K1 C1 = 5.0 | Player, Library, Settings | Engineering | Open | Sprint 1 |
-| **DD-005** | Custom row hover states (`source-main`) duplicate `.row-action` primitive | Visual / Reuse | R2 V2 K1 C1 = 5.0 | Settings › Topics | UI Craft | Open | Sprint 2 |
+| **DD-004** | Layer token coverage at 53%; local stacking contexts use raw integers (-1, 1, 2) | Implementation | R2 V2 K1 C1 = 5.0 | Player, Library, Settings | Engineering | Resolved | Sprint 1 |
+| **DD-005** | Custom row hover states (`source-main`) duplicate `.row-action` primitive | Visual / Reuse | R2 V2 K1 C1 = 5.0 | Settings › Topics | UI Craft | Resolved | Sprint 2 |
 | **DD-006** | Apple touch icon RGBA container (Resvg default) flags `hasAlpha: true` | Visual / Mobile | R1 V2 K1 C2 = 2.0 | Home Screen bookmark | Web Mobile | Open | Backlog |
 
 ---
@@ -124,17 +124,22 @@ Formula: `Value = R + V + K`, `Priority = Value / C` (one decimal).
 2. **Accessibility Fix (`DD-002`)**:
    - Added `aria-label="Cancel"` to queue cancel button in [`apps/web/src/components/ManageChrome.astro:L21`](file:///c:/Users/soke/Desktop/Agents/2.%20Hobbies/1.%20Projects/2.%20News%20outlet/apps/web/src/components/ManageChrome.astro#L21).
 
+3. **Semantic Layer Tokens (`DD-004`)**:
+   - Added semantic layer tokens under `primitive.z` in [`tokens/tokens.json`](file:///c:/Users/soke/Desktop/Agents/2.%20Hobbies/1.%20Projects/2.%20News%20outlet/tokens/tokens.json): `--z-beneath: -1`, `--z-base: 0`, `--z-raised: 1`, `--z-overlay: 2`.
+   - Recompiled `tokens.css` via `scripts/buildTokens.ts`.
+   - Replaced all 16 raw integer `z-index` occurrences across `player.css`, `library.css`, `podcast.css`, `settings.css`, `primitives.css`, `ambient.css`, and `create-sheet.css`.
+   - Added architectural invariant test in `apps/web/src/styles/styles.test.ts` to prevent raw integer `z-index` regressions. Layer token coverage is now 100%.
+
+4. **Button State Rationalization (`DD-005`)**:
+   - Rationalized `source-main` in [`apps/web/src/styles/topics.css`](file:///c:/Users/soke/Desktop/Agents/2.%20Hobbies/1.%20Projects/2.%20News%20outlet/apps/web/src/styles/topics.css) from ad-hoc `color-mix` fills to canonical `var(--color-surface-sunken)` matching `.row-action`.
+   - Added missing fine-pointer hover state for `.player-fallback-action` in [`apps/web/src/styles/player.css`](file:///c:/Users/soke/Desktop/Agents/2.%20Hobbies/1.%20Projects/2.%20News%20outlet/apps/web/src/styles/player.css) using `var(--color-accent-hover)`.
+
 ---
 
 ## 7. Next Roadmap Items (Sprint 1)
 
 1. **Motion Token Decoupling (`DD-003`)**:
-   - In `tokens.json`, keep movement duration tokens (`--duration-sheet-in`, `--duration-enter`, etc.) intact under `prefers-reduced-motion: reduce`.
+   - In `tokens.json`, keep movement duration tokens intact under `prefers-reduced-motion: reduce`.
    - Remap travel distance and scale tokens (`--translate-enter: 0px`, `--scale-enter: 1`, `--scale-press: 1`) so sheets and overlays cross-fade without physical flight.
-2. **Semantic Layer Tokens (`DD-004`)**:
-   - Define semantic layer tokens in `tokens.json`:
-     - `--z-beneath: -1` (underlay, ambient canvas)
-     - `--z-base: 0` (standard layout plane)
-     - `--z-raised: 1` (badge, overlay play button, cover label)
-     - `--z-sticky: 2` (fixed action rows)
-   - Replace 15 raw integer occurrences in `player.css`, `library.css`, and `podcast.css`.
+2. **Touch Icon Alpha Container (`DD-006`)**:
+   - Resvg default container configuration review for `apple-touch-icon.png`.

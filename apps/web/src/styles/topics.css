@@ -234,12 +234,12 @@
 
 @media (hover: hover) and (pointer: fine) {
   button.source-main:hover {
-    background: color-mix(in oklch, var(--color-on-surface) 6%, transparent);
+    background: var(--color-surface-sunken);
   }
 }
 
 button.source-main:active {
-  background: color-mix(in oklch, var(--color-on-surface) 10%, transparent);
+  background: var(--color-surface-sunken);
 }
 
 /* The open button's glyph is a shade quieter than the remove beside it: going to the site is an
