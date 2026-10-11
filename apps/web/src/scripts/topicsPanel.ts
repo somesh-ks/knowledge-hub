@@ -27,6 +27,8 @@ export interface NewTopic {
   name: string;
   description: string;
   keywords: string[];
+  /** Where a new topic plays (D69); an edited topic keeps what its page set. */
+  scope?: { daily: boolean; weekly: boolean; custom: boolean };
 }
 
 export interface Chosen {
@@ -275,10 +277,14 @@ export function openPanel(
   const offers = readOffers();
   const topicField = (name: string): HTMLInputElement | HTMLTextAreaElement =>
     topicPane.elements.namedItem(name) as HTMLInputElement | HTMLTextAreaElement;
+  const scoped = (key: string): boolean =>
+    topicPane.querySelector<HTMLInputElement>(`input[name="scope"][value="${key}"]`)?.checked ??
+    true;
   const topicValue = (): NewTopic => ({
     name: topicField("name").value.trim(),
     description: topicField("description").value.trim(),
     keywords: keywordList(topicField("keywords").value),
+    scope: { daily: scoped("daily"), weekly: scoped("weekly"), custom: scoped("custom") },
   });
   const ticked = (): OfferData[] => {
     const ids = new Set(
@@ -292,6 +298,7 @@ export function openPanel(
   const editedTopic = start.kind === "topic-edit" ? start.topic : null;
   if (editedTopic) {
     topicPane.setAttribute("aria-label", "Edit topic");
+    one<HTMLElement>("[data-scope]").hidden = true;
     topicField("name").value = editedTopic.name;
     topicField("description").value = editedTopic.description;
     topicField("keywords").value = editedTopic.keywords.join(", ");

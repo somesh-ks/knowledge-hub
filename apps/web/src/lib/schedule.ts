@@ -199,29 +199,3 @@ export async function loadScheduleView(
     nextWeekly: nextWeekly({ now: options.now ?? new Date(), day: weekly.day, hour: weekly.hour }),
   };
 }
-
-/** A topic a scheduled episode can leave out, as the Daily and Weekly pages offer it. */
-export interface TopicChoice {
-  id: string;
-  name: string;
-}
-
-/**
- * The topics a scheduled episode can leave out, by name: every topic that is on and may publish. One
- * that is off is in no episode already, so it is not offered, and a general news topic never
- * publishes in a briefing, so it is not either.
- */
-export function topicChoices(
-  topics: readonly {
-    id: string;
-    name: string;
-    enabled: boolean;
-    never_publish: boolean;
-    origin?: string;
-  }[],
-): TopicChoice[] {
-  return topics
-    .filter((topic) => topic.enabled && !topic.never_publish && topic.origin !== "general")
-    .map(({ id, name }) => ({ id, name }))
-    .sort((a, b) => a.name.localeCompare(b.name, "en", { sensitivity: "base" }));
-}

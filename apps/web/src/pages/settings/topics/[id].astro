@@ -1,60 +1,99 @@
 ---
 import Icon from "../../../components/Icon.astro";
 import ManageChrome from "../../../components/ManageChrome.astro";
+import MultiSelect from "../../../components/MultiSelect.astro";
 import SettingsHead from "../../../components/SettingsHead.astro";
 import SourceRow from "../../../components/SourceRow.astro";
 import TopicsPanel from "../../../components/TopicsPanel.astro";
 import BaseLayout from "../../../layouts/BaseLayout.astro";
 import { loadManage, type ManageSource, type ManageTopic } from "../../../lib/manage";
+import { loadScheduleView } from "../../../lib/schedule";
 import { freshOffers, loadSourceCatalog } from "../../../lib/sourceCatalog";
 import {
-  byName,
+  type GroupPage,
   OTHER_ID,
   percent,
   snap,
-  sourcesByTopic,
+  topicChoicesOf,
+  topicLayout,
   WEIGHT_STEP,
 } from "../../../lib/topicPages";
 import "../../../styles/settings.css";
 import "../../../styles/manage.css";
 import "../../../styles/topics.css";
 
-/** One page per topic, and one for the sources that feed no topic yet. */
+/**
+ * One page for each of the owner's three topics (Design, AI, Technology), each of their own topics
+ * apart from those, each general news topic, and Other (D69). The judge's finer topics have no page:
+ * their sources show on their group's.
+ */
 export async function getStaticPaths() {
   const { topics, sources } = await loadManage();
-  const groups = sourcesByTopic(topics, sources);
-  const choices = [...topics]
-    .sort(byName)
-    .filter((topic) => !topic.never_publish)
-    .map((topic) => ({ id: topic.id, name: topic.name }));
+  const layout = topicLayout(topics, sources);
+  const choices = topicChoicesOf(layout);
+  const taken = [...topics.map((t) => t.id), ...layout.groups.map((group) => group.id)];
+  const list = (id: string) => layout.sources.get(id) ?? [];
   return [
-    ...topics.map((topic) => ({
+    ...layout.groups.map((group) => ({
+      params: { id: group.id },
+      props: { group, topic: null, list: list(group.id), choices, taken },
+    })),
+    ...[...layout.own, ...layout.general].map((topic) => ({
       params: { id: topic.id },
-      props: { topic, list: groups.get(topic.id) ?? [], choices, taken: topics.map((t) => t.id) },
+      props: { group: null, topic, list: list(topic.id), choices, taken },
     })),
     {
       params: { id: OTHER_ID },
-      props: {
-        topic: null,
-        list: groups.get(OTHER_ID) ?? [],
-        choices,
-        taken: topics.map((t) => t.id),
-      },
+      props: { group: null, topic: null, list: list(OTHER_ID), choices, taken },
     },
   ];
 }
 
 interface Props {
+  group: GroupPage | null;
   topic: ManageTopic | null;
   list: ManageSource[];
   choices: { id: string; name: string }[];
   taken: string[];
 }
 
-const { topic, list, choices, taken } = Astro.props;
+const { group, topic, list, choices, taken } = Astro.props;
 const [{ sources }, catalog] = await Promise.all([loadManage(), loadSourceCatalog()]);
-const name = topic?.name ?? "Other";
-const note = topic ? topic.description : "Sources that feed no topic yet.";
+const name = group?.name ?? topic?.name ?? "Other";
+const note =
+  group?.note ??
+  topic?.description ??
+  "Sources outside the topics: no topic, or one the app does not list.";
+// A source on a group's page shows the group as its topic, so its edit panel moves it only when
+// another topic is chosen.
+const shown = group ? { id: group.home, name: group.name } : undefined;
+// Where the topic plays (D69): one of the owner's three sets it for every judge topic it gathers.
+const schedule = await loadScheduleView();
+const scopeIds = group ? group.members.map((member) => member.id) : topic ? [topic.id] : [];
+const SCOPES = [
+  { key: "daily", label: "Daily", skipped: schedule.skipTopics },
+  { key: "weekly", label: "Weekly", skipped: schedule.weekly.skip_topics },
+  { key: "custom", label: "Custom", skipped: schedule.custom.skip_topics },
+] as const;
+const inScope = (key: (typeof SCOPES)[number]["key"]): boolean => {
+  const skipped = SCOPES.find((scope) => scope.key === key)?.skipped ?? [];
+  return !scopeIds.every((id) => skipped.includes(id));
+};
+// The topic as Edit topic and the on switch send it.
+const upsert =
+  topic &&
+  JSON.stringify({
+    op: "topic.upsert",
+    topic: {
+      id: topic.id,
+      name: topic.name,
+      description: topic.description,
+      weight: topic.weight,
+      enabled: topic.enabled,
+      keywords: topic.keywords,
+      section_id: topic.section_id,
+    },
+  });
 const editable = topic !== null && !topic.never_publish;
 // A general news topic feeds General episodes by how many outlets carry a story, so it has no weight.
 const general = topic?.origin === "general";
@@ -84,33 +123,41 @@ const facts = topic && {
         <legend class="sr-only">{name}</legend>
         <div class="topic" data-id={topic?.id ?? ""} data-topic>
           {
-            editable && topic && (
+            (group || (editable && topic)) && (
               <div class="rows topic-controls">
-                <div class="settings-row">
-                  <label class="settings-label" for={`enabled-${topic.id}`}>{general ? "In General episodes" : "In briefings"}</label>
-                  <input
-                    class="settings-switch"
-                    id={`enabled-${topic.id}`}
-                    type="checkbox"
-                    role="switch"
-                    autocomplete="off"
-                    checked={topic.enabled}
-                    data-op={JSON.stringify({
-                      op: "topic.upsert",
-                      topic: {
-                        id: topic.id,
-                        name: topic.name,
-                        description: topic.description,
-                        weight: topic.weight,
-                        enabled: topic.enabled,
-                        keywords: topic.keywords,
-                        section_id: topic.section_id,
-                      },
+                {/* Where the topic plays (D69). A general news topic is in no briefing yet, so only
+                     Custom applies, and it is the topic's on switch: off, its feeds are not read. */}
+                <div class="settings-row topic-scope" data-layout="choice">
+                  <div class="settings-text">
+                    <span class="settings-label" id="scope-label">Scope</span>
+                    <span class="settings-hint" id="scope-hint">{general ? "General news is in custom episodes only" : "The podcasts this topic is in"}</span>
+                  </div>
+                  <MultiSelect
+                    id="scope"
+                    labelledby="scope-label"
+                    describedby="scope-hint"
+                    empty="In no podcast"
+                    options={SCOPES.map((scope) => {
+                      const onSwitch = general && scope.key === "custom";
+                      const unavailable = general && scope.key !== "custom";
+                      return {
+                        value: scope.key,
+                        label: scope.label,
+                        checked: onSwitch ? Boolean(topic?.enabled) : !unavailable && inScope(scope.key),
+                        disabled: unavailable,
+                        hint: unavailable ? "Not for general news yet" : undefined,
+                        op: unavailable ? undefined : onSwitch ? (upsert ?? undefined) : JSON.stringify({ op: "topic.scope", ids: scopeIds }),
+                        field: unavailable ? undefined : onSwitch ? "topic.enabled" : scope.key,
+                      };
                     })}
-                    data-field="topic.enabled"
                   />
                 </div>
-                {!general && (
+                {/* The owner's own topic keeps its on switch out of sight: Edit topic sends the topic
+                     with it, and scope does the switching a person sees. */}
+                {topic && !general && (
+                  <input type="checkbox" hidden autocomplete="off" checked={topic.enabled} data-op={upsert} data-field="topic.enabled" />
+                )}
+                {topic && !general && (
                 <div class="settings-row topic-weight">
                   <label class="settings-label" for={`weight-${topic.id}`}>Weight</label>
                   <input
@@ -131,6 +178,7 @@ const facts = topic && {
                   <output class="topic-percent" for={`weight-${topic.id}`} data-word>{percent(topic.weight)}</output>
                 </div>
                 )}
+                {topic && (
                 <button
                   class="row-action topic-edit"
                   type="button"
@@ -140,28 +188,30 @@ const facts = topic && {
                 >
                   <span class="settings-text">
                     <span class="settings-label">Edit topic</span>
-                    <span class="settings-hint">{facts?.origin === "builtin" ? "Name, keywords and more sources" : "Name, what counts, keywords and more sources"}</span>
+                    <span class="settings-hint">Name, what counts, keywords and more sources</span>
                   </span>
                   <Icon name="chevronRight" />
                 </button>
+                )}
               </div>
             )
           }
           {topic?.never_publish && <p class="manage-quiet topic-never">Never in a briefing.</p>}
-          {general && <p class="manage-quiet topic-never">Feeds General episodes, never the daily briefing.</p>}
 
           <h2 class="section-head">Sources</h2>
           <ul class="topic-sources" role="list" data-sources aria-label={`${name} sources`}>
-            {list.map((source) => <SourceRow source={source} topicName={topic?.name ?? ""} />)}
+            {list.map((source) => <SourceRow source={source} topicName={topic?.name ?? ""} shownTopic={shown} />)}
           </ul>
           <p class="manage-quiet topic-empty">No sources yet.</p>
+          {/* What a source's name says once it is read out: it is a link that leaves the app. */}
+          <span id="source-new-tab" hidden>Opens the site in a new tab</span>
           {
             (topic === null || editable) && (
               <button
                 class="btn-secondary topic-add-source"
                 type="button"
                 aria-label={`Add source to ${name}`}
-                data-add-source={topic?.id ?? ""}
+                data-add-source={group?.home ?? topic?.id ?? ""}
                 data-needs-js
               >
                 <Icon name="plus" />

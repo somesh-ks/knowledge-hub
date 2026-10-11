@@ -1,4 +1,4 @@
-import { GENERAL_TOPICS } from "@dispatch/core";
+import { GENERAL_TOPICS, TOPIC_GROUPS, topicGroupOf } from "@dispatch/core";
 import type { ManageSource, ManageTopic } from "./manage";
 
 /**
@@ -72,4 +72,77 @@ export function topicSummary(topic: ManageTopic, sourceCount: number): string {
   const sources = plural(sourceCount, "source");
   if (topic.origin === "general") return topic.enabled ? sources : `Off, ${sources}`;
   return topic.enabled ? `Weight ${percent(topic.weight)}, ${sources}` : `Off, ${sources}`;
+}
+
+/** One of the owner's three topics (core TOPIC_GROUPS) as its page shows it. */
+export interface GroupPage {
+  id: string;
+  name: string;
+  note: string;
+  /** Where a source added from the page is filed: the group's home topic, or its first member. */
+  home: string;
+  /** The judge's topics it gathers. */
+  members: ManageTopic[];
+}
+
+/** The Topics & Sources pages and where every source shows (D69). */
+export interface TopicLayout {
+  /** Design, AI and Technology, in that order, each with at least one member. */
+  groups: GroupPage[];
+  /** The owner's own topics that publish to a section of their own, by name. */
+  own: ManageTopic[];
+  /** The general news topics, in the app's order. */
+  general: ManageTopic[];
+  /** Each page's sources, best first; OTHER_ID holds the ones no page shows. */
+  sources: Map<string, ManageSource[]>;
+}
+
+/**
+ * Lay the topics out as a person sees them: three topics of the owner's (the judge's finer topics
+ * gathered by section), the owner's own topics apart from those, the general news topics, and
+ * Other for every source the pages do not show: no topic, a topic that never publishes, or one the
+ * app no longer lists (Trending).
+ */
+export function topicLayout(
+  topics: readonly ManageTopic[],
+  sources: readonly ManageSource[],
+): TopicLayout {
+  const pageOf = new Map<string, string>();
+  const groups: GroupPage[] = [];
+  for (const group of TOPIC_GROUPS) {
+    const members = topics.filter((topic) => topicGroupOf(topic)?.id === group.id);
+    if (members.length === 0) continue;
+    for (const member of members) pageOf.set(member.id, group.id);
+    const home = members.some((topic) => topic.id === group.home) ? group.home : members[0]?.id;
+    groups.push({
+      id: group.id,
+      name: group.name,
+      note: group.note,
+      home: home ?? group.home,
+      members,
+    });
+  }
+  const own = topics
+    .filter((topic) => topic.origin === "custom" && !topic.never_publish && !pageOf.has(topic.id))
+    .sort(byName);
+  const general = generalOf(topics);
+  for (const topic of [...own, ...general]) pageOf.set(topic.id, topic.id);
+
+  const pages = new Map<string, ManageSource[]>([[OTHER_ID, []]]);
+  for (const id of new Set(pageOf.values())) pages.set(id, []);
+  for (const source of sources) {
+    const page = (source.topic_id && pageOf.get(source.topic_id)) || OTHER_ID;
+    pages.get(page)?.push(source);
+  }
+  for (const list of pages.values()) list.sort(byScore);
+  return { groups, own, general, sources: pages };
+}
+
+/** The topics a source can be filed under, by name, as the panel offers them. */
+export function topicChoicesOf(layout: TopicLayout): { id: string; name: string }[] {
+  return [
+    ...layout.groups.map((group) => ({ id: group.home, name: group.name })),
+    ...layout.own.map(({ id, name }) => ({ id, name })),
+    ...layout.general.map(({ id, name }) => ({ id, name })),
+  ].sort(byName);
 }

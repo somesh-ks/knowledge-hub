@@ -2,6 +2,7 @@
 import type { CatalogSource } from "../lib/sourceCatalog";
 import { catalogLine } from "../lib/sourceCatalog";
 import Icon from "./Icon.astro";
+import MultiSelect from "./MultiSelect.astro";
 
 interface Props {
   /** The topics a source can be filed under, in the order the page lists them. */
@@ -103,6 +104,20 @@ const offerData = offers.map((offer) => ({
               autocomplete="off"
               autocapitalize="none"
               enterkeyhint="next"
+            />
+          </div>
+          {/* Where a new topic plays (D69); an existing topic sets it on its own page. */}
+          <div class="manage-field topics-scope" data-scope>
+            <span class="topics-scope-label" id="panel-topic-scope-label">Scope</span>
+            <MultiSelect
+              id="panel-topic-scope"
+              labelledby="panel-topic-scope-label"
+              empty="In no podcast"
+              options={[
+                { value: "daily", label: "Daily", checked: true, name: "scope" },
+                { value: "weekly", label: "Weekly", checked: true, name: "scope" },
+                { value: "custom", label: "Custom", checked: true, name: "scope" },
+              ]}
             />
           </div>
         </div>

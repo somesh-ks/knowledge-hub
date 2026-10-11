@@ -207,45 +207,89 @@
 /* ------------------------------------------------------------------ a source */
 
 .source-row {
+  position: relative;
+  isolation: isolate;
   display: grid;
-  grid-template-columns: minmax(0, 1fr) auto auto auto;
+  grid-template-columns: minmax(0, 1fr) auto auto;
   align-items: center;
-  column-gap: var(--space-1);
+  column-gap: var(--space-2);
   min-height: var(--source-row);
   border-radius: var(--radius-md);
 }
 
-/* The tile and the name: one button that opens the source to edit, as tall as its row. It reaches a
-   little past the row's start so its state layer has room around the tile, and its words never scale
-   on a press: pressing shows on its fill. */
+/* The row's own button, behind everything: a press anywhere but the name and the checkbox opens the
+   source to edit. It reaches a little past the row's start, so its state layer has room around the
+   tile, and its words never scale on a press: pressing shows on its fill. */
+.source-edit {
+  position: absolute;
+  z-index: 0;
+  inset-block: 0;
+  inset-inline: calc(var(--space-2) * -1) 0;
+  border-radius: var(--radius-md);
+  transition: background-color var(--duration-hover) var(--ease-hover);
+}
+
+.source-edit:focus-visible {
+  outline: var(--stroke-ring) solid var(--color-focus-ring);
+  outline-offset: calc(var(--stroke-ring) * -1);
+}
+
+@media (hover: hover) and (pointer: fine) {
+  .source-edit:hover {
+    background: color-mix(in oklch, var(--color-on-surface) 6%, transparent);
+  }
+}
+
+.source-edit:active {
+  background: color-mix(in oklch, var(--color-on-surface) 10%, transparent);
+}
+
+/* What the row shows sits over its button and lets a press through to it, all but the name's link
+   and the checkbox, which are presses of their own. */
+.source-row > :not(.source-edit) {
+  position: relative;
+  z-index: 1;
+  pointer-events: none;
+}
+
+.source-row :is(a.source-name, .source-check) {
+  pointer-events: auto;
+}
+
+/* The tile and the name. */
 .source-main {
   display: flex;
   align-items: center;
   gap: var(--space-3);
   min-width: 0;
   min-height: var(--source-row);
-  margin-inline-start: calc(var(--space-2) * -1);
-  padding-inline: var(--space-2);
-  border-radius: var(--radius-md);
+}
+
+/* The name is the way to the site: the row's words, underlined only under the pointer or the keys,
+   so a list of links still reads as a list of names. */
+/* The link's box is the line plus a little above and below, so it is a 24px target (WCAG 2.5.8)
+   without moving the row. */
+a.source-name {
+  margin-block: calc(var(--space-1) * -1);
+  padding-block: var(--space-1);
   color: inherit;
-  text-align: start;
-  transition: background-color var(--duration-hover) var(--ease-hover);
+  text-decoration: none;
+  text-underline-offset: 0.2em;
+  text-decoration-thickness: var(--stroke-hairline);
+  border-radius: var(--radius-xs);
 }
 
 @media (hover: hover) and (pointer: fine) {
-  button.source-main:hover {
-    background: color-mix(in oklch, var(--color-on-surface) 6%, transparent);
+  a.source-name:hover {
+    color: var(--color-accent);
+    text-decoration-line: underline;
   }
 }
 
-button.source-main:active {
-  background: color-mix(in oklch, var(--color-on-surface) 10%, transparent);
-}
-
-/* The open button's glyph is a shade quieter than the remove beside it: going to the site is an
-   aside, not the row's job. */
-.source-open {
-  color: var(--color-on-surface-muted);
+a.source-name:focus-visible {
+  outline: var(--stroke-ring) solid var(--color-focus-ring);
+  outline-offset: var(--stroke-ring-gap);
+  text-decoration-line: underline;
 }
 
 /* The site's tile: the name's first letter, and the site's icon over it once that has loaded. A
@@ -341,8 +385,8 @@ button.source-main:active {
   }
 }
 
-/* The checkbox at the row's end: a touch-sized target around the same box the suggestions draw, so it
-   reads as one system. Ticked means the source is read. */
+/* The checkbox at the row's end: a touch-sized round target around the app's checkbox (primitives.css),
+   so it reads as one system with the suggestions and the scope list. Ticked means the source is read. */
 .source-check {
   position: relative;
   display: grid;
@@ -350,7 +394,7 @@ button.source-main:active {
   width: var(--size-touch);
   height: var(--size-touch);
   margin-inline-end: calc(var(--space-3) * -1);
-  border-radius: var(--radius-md);
+  border-radius: var(--radius-round);
   cursor: pointer;
   transition: background-color var(--duration-hover) var(--ease-hover);
 }
@@ -371,9 +415,9 @@ button.source-main:active {
   pointer-events: none;
 }
 
-.source-check:has(input:focus-visible) {
+.source-check:has(input:focus-visible) .suggest-box {
   outline: var(--stroke-ring) solid var(--color-focus-ring);
-  outline-offset: calc(var(--stroke-ring-gap) * -1);
+  outline-offset: var(--stroke-ring-gap);
 }
 
 @media (hover: hover) and (pointer: fine) {
@@ -384,15 +428,6 @@ button.source-main:active {
 
 .source-check:active {
   background: color-mix(in oklch, var(--color-on-surface) 10%, transparent);
-}
-
-.source-check:has(input:checked) .suggest-box {
-  border-color: var(--color-accent);
-  background: var(--color-accent);
-}
-
-.source-check:has(input:checked) .suggest-check {
-  opacity: 1;
 }
 
 /* Keeps a row that has no button lined up with the rows that do. */
@@ -635,34 +670,6 @@ button.source-main:active {
 
 /* The box: a control's outline when empty, the accent with a check when ticked, so the state is a
    shape as well as a colour. */
-.suggest-box {
-  display: grid;
-  place-items: center;
-  width: var(--size-icon);
-  height: var(--size-icon);
-  border: var(--stroke-hairline) solid var(--color-border-control);
-  border-radius: var(--radius-sm);
-  color: var(--color-on-accent);
-  transition:
-    background-color var(--duration-press-in) var(--ease-out),
-    border-color var(--duration-press-in) var(--ease-out);
-}
-
-.suggest-box .suggest-check {
-  width: var(--space-4);
-  height: var(--space-4);
-  opacity: 0;
-}
-
-.suggest-row:has(input:checked) .suggest-box {
-  border-color: var(--color-accent);
-  background: var(--color-accent);
-}
-
-.suggest-row:has(input:checked) .suggest-check {
-  opacity: 1;
-}
-
 /* Editing a source: where it lives, as a link out, and what its score is made of. */
 .edit-address {
   display: grid;
@@ -891,5 +898,21 @@ button.source-main:active {
   .skeleton-bar,
   .skeleton-circle {
     animation: none;
+  }
+}
+
+/* ------------------------------------------------------------------ scope (D69) */
+
+/* A new topic's scope in the Add panel: a field like the others, its label worn as theirs. */
+.topics-scope-label {
+  font-size: var(--font-size-body);
+  font-weight: var(--font-weight-medium);
+  line-height: var(--font-leading-label);
+}
+
+/* On a topic's page the scope sits at its row's end from 40rem, as a select does. */
+@media (min-width: 40rem) {
+  .topic-scope .multiselect {
+    min-inline-size: 16rem;
   }
 }

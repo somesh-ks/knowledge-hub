@@ -1,0 +1,182 @@
+/*
+ * A field that opens a list of choices to tick (MultiSelect.astro, multiSelect.ts). The field wears
+ * a select's looks (manage.css): the outline at 3:1, the body size, the chevron at its end. The list
+ * speaks every drawn list's language (primitives.css, the model list): the overlay surface, a
+ * hairline, the popover shadow, 44px rows, in at the enter speed and out quicker. Each row ticks
+ * with the app's checkbox.
+ */
+.multiselect {
+  position: relative;
+  display: grid;
+  min-inline-size: min(100%, 16rem);
+}
+
+/* An open list rises over what follows its row. Each settings row and each source row is a stacking
+   context of its own (primitives.css .rows, topics.css .source-row), so the row that holds the open
+   list is lifted above its later siblings, and the list above its row. */
+.multiselect:has(> [aria-expanded="true"]),
+.rows > :has(.multiselect-trigger[aria-expanded="true"]) {
+  z-index: 4;
+}
+
+.multiselect-trigger {
+  display: flex;
+  align-items: center;
+  inline-size: 100%;
+  block-size: var(--field-height);
+  padding-inline: var(--field-padding) var(--space-12);
+  border: var(--stroke-hairline) solid var(--field-border);
+  border-radius: var(--field-radius);
+  background: none;
+  color: var(--color-on-surface);
+  font-size: var(--font-size-body);
+  line-height: var(--font-leading-label);
+  text-align: start;
+  cursor: pointer;
+  transition: border-color var(--duration-hover) var(--ease-hover);
+}
+
+.multiselect-value {
+  min-inline-size: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.multiselect-trigger > .icon {
+  position: absolute;
+  inset-block: 0;
+  inset-inline-end: var(--space-4);
+  margin-block: auto;
+  color: var(--color-on-surface-muted);
+  pointer-events: none;
+  transition: rotate var(--duration-enter) var(--ease-out);
+}
+
+.multiselect-trigger[aria-expanded="true"] > .icon {
+  rotate: 180deg;
+}
+
+.multiselect-trigger:is(:focus-visible, [aria-expanded="true"]) {
+  border-color: var(--color-accent);
+}
+
+@media (hover: hover) and (pointer: fine) {
+  .multiselect-trigger:hover {
+    border-color: var(--color-on-surface);
+  }
+
+  .multiselect-trigger:hover:is(:focus-visible, [aria-expanded="true"]) {
+    border-color: var(--color-accent);
+  }
+}
+
+.multiselect-list {
+  position: absolute;
+  z-index: 3;
+  inset-inline: 0;
+  inset-block-start: calc(100% + var(--space-1));
+  display: grid;
+  gap: var(--space-1);
+  padding: var(--space-2);
+  border: var(--stroke-hairline) solid var(--color-border-hairline);
+  border-radius: var(--radius-md);
+  background: var(--color-surface-overlay);
+  box-shadow: var(--shadow-popover);
+  color: var(--color-on-surface);
+  --color-focus-gap: var(--color-surface-overlay);
+  transform-origin: top center;
+  transition:
+    opacity var(--duration-exit) var(--ease-out),
+    scale var(--duration-exit) var(--ease-out),
+    display var(--duration-exit) allow-discrete;
+}
+
+.multiselect-list[data-above] {
+  inset-block: auto calc(100% + var(--space-1));
+  transform-origin: bottom center;
+}
+
+.multiselect-list:not([hidden]) {
+  transition-duration: var(--duration-enter);
+}
+
+@starting-style {
+  .multiselect-list:not([hidden]) {
+    opacity: 0;
+    scale: 0.97;
+  }
+}
+
+.multiselect-list[hidden] {
+  display: none;
+  opacity: 0;
+  scale: 0.97;
+}
+
+.multiselect-list:focus-visible {
+  outline: none;
+  box-shadow: var(--shadow-popover);
+}
+
+.multiselect-option {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr);
+  align-items: center;
+  column-gap: var(--space-3);
+  min-block-size: var(--size-touch);
+  padding-block: var(--space-2);
+  padding-inline: var(--space-3);
+  border-radius: var(--button-radius);
+  cursor: pointer;
+  user-select: none;
+}
+
+.multiselect-text {
+  display: grid;
+  gap: var(--space-1);
+  min-inline-size: 0;
+}
+
+.multiselect-label {
+  font-size: var(--font-size-body);
+  font-weight: var(--font-weight-medium);
+  line-height: var(--font-leading-label);
+}
+
+.multiselect-hint {
+  color: var(--color-on-surface-muted);
+  font-size: var(--font-size-label);
+  line-height: var(--font-leading-caption);
+}
+
+@media (hover: hover) and (pointer: fine) {
+  .multiselect-option:not([aria-disabled="true"]):hover {
+    background: var(--color-surface-sunken);
+  }
+}
+
+/* The keyboard's row: a tint and the focus ring, so it never rests on colour alone. */
+.multiselect-list[data-keyboard] .multiselect-option[data-active] {
+  background: var(--color-surface-sunken);
+  outline: var(--stroke-ring) solid var(--color-focus-ring);
+  outline-offset: calc(var(--stroke-ring) * -1);
+}
+
+.multiselect-option[aria-disabled="true"] {
+  cursor: default;
+}
+
+.multiselect-option[aria-disabled="true"] .multiselect-label {
+  color: var(--color-on-surface-muted);
+}
+
+@media (forced-colors: active) {
+  .multiselect-trigger {
+    border-color: ButtonBorder;
+  }
+
+  .multiselect-list {
+    border-color: CanvasText;
+  }
+}

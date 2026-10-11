@@ -3,8 +3,7 @@ import ManageChrome from "../../components/ManageChrome.astro";
 import PodcastProfile from "../../components/PodcastProfile.astro";
 import SettingsHead from "../../components/SettingsHead.astro";
 import BaseLayout from "../../layouts/BaseLayout.astro";
-import { loadManage } from "../../lib/manage";
-import { loadScheduleView, topicChoices } from "../../lib/schedule";
+import { loadScheduleView } from "../../lib/schedule";
 import "../../styles/settings.css";
 import "../../styles/manage.css";
 import "../../styles/podcast.css";
@@ -19,8 +18,7 @@ export function getStaticPaths() {
 
 type Profile = "daily" | "weekly";
 const profile = Astro.params.profile as Profile;
-const [schedule, manage] = await Promise.all([loadScheduleView(), loadManage()]);
-const topics = topicChoices(manage.topics);
+const schedule = await loadScheduleView();
 
 const PAGES = {
   daily: {
@@ -76,7 +74,6 @@ const { title, note, values } = PAGES[profile];
           <PodcastProfile
             id={profile}
             values={values}
-            topics={topics}
             weeklyDay={schedule.weekly.enabled ? schedule.weekly.day : null}
           />
         </div>

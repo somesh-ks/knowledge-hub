@@ -8,10 +8,10 @@ import { loadManage } from "../../lib/manage";
 import { freshOffers, loadSourceCatalog } from "../../lib/sourceCatalog";
 import {
   byName,
-  generalOf,
   OTHER_ID,
   plural,
-  sourcesByTopic,
+  topicChoicesOf,
+  topicLayout,
   topicSummary,
 } from "../../lib/topicPages";
 // The switch and the slider are the settings page's own; the form fields, the saving toast and the
@@ -21,14 +21,26 @@ import "../../styles/manage.css";
 import "../../styles/topics.css";
 
 const [{ topics, sources }, catalog] = await Promise.all([loadManage(), loadSourceCatalog()]);
-// Always by name, so a topic is where a reader looks for it; Other, which is no topic, comes last.
-const briefing = topics.filter((topic) => topic.origin !== "general").sort(byName);
-// The general news topics feed General episodes only, so they are their own group, in the app's order.
-const general = generalOf(topics);
-// A source can be filed under any topic but one that never publishes; a general topic is a home too.
-const choices = [...briefing, ...general].filter((topic) => !topic.never_publish);
-const groups = sourcesByTopic(topics, sources);
-const others = groups.get(OTHER_ID) ?? [];
+// Every topic in one list, by name (D69): Design, AI and Technology (the judge's finer topics live
+// inside them and are not listed), the general news topics and any of the owner's own. Other,
+// which is no topic, comes last. Each topic's page sets where it plays.
+const layout = topicLayout(topics, sources);
+const { groups } = layout;
+const count = (id: string): number => layout.sources.get(id)?.length ?? 0;
+const rows = [
+  ...groups.map((group) => ({
+    id: group.id,
+    name: group.name,
+    hint: plural(count(group.id), "source"),
+  })),
+  ...[...layout.own, ...layout.general].map((topic) => ({
+    id: topic.id,
+    name: topic.name,
+    hint: topicSummary(topic, count(topic.id)),
+  })),
+].sort(byName);
+const others = layout.sources.get(OTHER_ID) ?? [];
+const choices = topicChoicesOf(layout);
 ---
 
 <BaseLayout title="Topics & Sources" view="settings" skipLabel="Skip to topics and sources">
@@ -40,7 +52,7 @@ const others = groups.get(OTHER_ID) ?? [];
     <div
       class="manage topics"
       data-topics
-      data-taken={[...topics.map((topic) => topic.id), OTHER_ID].join(" ")}
+      data-taken={[...topics.map((topic) => topic.id), ...groups.map((group) => group.id), OTHER_ID].join(" ")}
     >
       <SettingsHead title="Topics & Sources" note="What the briefings cover, and the sources they read." />
       <button
@@ -65,11 +77,11 @@ const others = groups.get(OTHER_ID) ?? [];
 
         <div class="rows topics-index">
           {
-            briefing.map((topic) => (
-              <a class="row-action" href={`/settings/topics/${topic.id}`}>
+            rows.map((row) => (
+              <a class="row-action" href={`/settings/topics/${row.id}`}>
                 <span class="settings-text">
-                  <span class="settings-label">{topic.name}</span>
-                  <span class="settings-hint">{topicSummary(topic, groups.get(topic.id)?.length ?? 0)}</span>
+                  <span class="settings-label">{row.name}</span>
+                  <span class="settings-hint">{row.hint}</span>
                 </span>
                 <Icon name="chevronRight" />
               </a>
@@ -80,7 +92,7 @@ const others = groups.get(OTHER_ID) ?? [];
               <a class="row-action" href={`/settings/topics/${OTHER_ID}`}>
                 <span class="settings-text">
                   <span class="settings-label">Other</span>
-                  <span class="settings-hint">{plural(others.length, "source")} with no topic yet</span>
+                  <span class="settings-hint">{plural(others.length, "source")} outside the topics above</span>
                 </span>
                 <Icon name="chevronRight" />
               </a>
@@ -88,30 +100,11 @@ const others = groups.get(OTHER_ID) ?? [];
           }
         </div>
 
-        {
-          general.length > 0 && (
-            <section class="topics-general" aria-labelledby="topics-general-head">
-              <h2 class="section-head" id="topics-general-head">General news</h2>
-              <p class="manage-quiet topics-general-note">For General episodes, never the daily briefing.</p>
-              <div class="rows topics-index">
-                {general.map((topic) => (
-                  <a class="row-action" href={`/settings/topics/${topic.id}`}>
-                    <span class="settings-text">
-                      <span class="settings-label">{topic.name}</span>
-                      <span class="settings-hint">{topicSummary(topic, groups.get(topic.id)?.length ?? 0)}</span>
-                    </span>
-                    <Icon name="chevronRight" />
-                  </a>
-                ))}
-              </div>
-            </section>
-          )
-        }
       </fieldset>
 
       <ManageChrome />
       <TopicsPanel
-        topics={choices.map((topic) => ({ id: topic.id, name: topic.name }))}
+        topics={choices}
         offers={freshOffers(catalog, sources)}
       />
     </div>

@@ -1,0 +1,99 @@
+---
+import { joinLabels } from "../lib/multiSelect";
+import Icon from "./Icon.astro";
+import "../styles/multiselect.css";
+
+/** One choice of the list. */
+export interface MultiSelectOption {
+  value: string;
+  label: string;
+  checked: boolean;
+  /** Shown but not choosable, with `hint` saying why. */
+  disabled?: boolean;
+  hint?: string;
+  /** The edit the choice stands for, as the topics editor reads it (data-op and data-field). */
+  op?: string | undefined;
+  field?: string | undefined;
+  /** The form name of its checkbox, for a form that reads the choices itself. */
+  name?: string | undefined;
+}
+
+interface Props {
+  /** Prefix of the ids inside. */
+  id: string;
+  /** The id of what names the list. */
+  labelledby: string;
+  describedby?: string;
+  options: MultiSelectOption[];
+  /** What the field says with nothing chosen. */
+  empty: string;
+}
+
+const { id, labelledby, describedby, options, empty } = Astro.props;
+const summary =
+  joinLabels(options.filter((option) => option.checked).map((option) => option.label)) || empty;
+---
+
+{/* A field that opens a list of choices, any number of which can be ticked (multiSelect.ts drives
+     it). The list is a listbox of options, each drawn with the app's checkbox; under it, one real
+     checkbox per choice holds the state, so a form or the topics editor reads and saves it as it
+     would any checkbox. */}
+<div class="multiselect" data-multiselect data-empty={empty}>
+  <button
+    type="button"
+    class="multiselect-trigger"
+    id={`${id}-trigger`}
+    aria-haspopup="listbox"
+    aria-expanded="false"
+    aria-controls={`${id}-list`}
+    aria-labelledby={`${labelledby} ${id}-trigger`}
+    aria-describedby={describedby}
+  >
+    <span class="multiselect-value" data-multiselect-value>{summary}</span>
+    <Icon name="chevronDown" />
+  </button>
+  <div
+    class="multiselect-list"
+    id={`${id}-list`}
+    role="listbox"
+    aria-multiselectable="true"
+    aria-labelledby={labelledby}
+    tabindex="-1"
+    hidden
+  >
+    {
+      options.map((option, index) => (
+        <div
+          class="multiselect-option"
+          role="option"
+          id={`${id}-option-${index}`}
+          data-value={option.value}
+          aria-selected={option.checked ? "true" : "false"}
+          aria-disabled={option.disabled ? "true" : undefined}
+        >
+          <span class="suggest-box" aria-hidden="true" />
+          <span class="multiselect-text">
+            <span class="multiselect-label">{option.label}</span>
+            {option.hint && <span class="multiselect-hint">{option.hint}</span>}
+          </span>
+        </div>
+      ))
+    }
+  </div>
+  {
+    options.map((option) => (
+      <input
+        type="checkbox"
+        hidden
+        autocomplete="off"
+        name={option.name}
+        value={option.value}
+        checked={option.checked}
+        disabled={option.disabled}
+        data-op={option.op}
+        data-field={option.field}
+        data-multiselect-input={option.value}
+      />
+    ))
+  }
+</div>

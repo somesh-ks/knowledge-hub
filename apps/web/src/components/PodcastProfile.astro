@@ -1,6 +1,6 @@
 ---
 import { FORMATS, LENGTHS } from "../lib/createForm";
-import { CADENCES, hourLabel, type TopicChoice, WEEKDAYS } from "../lib/schedule";
+import { CADENCES, hourLabel, WEEKDAYS } from "../lib/schedule";
 import Icon from "./Icon.astro";
 
 interface Props {
@@ -19,13 +19,11 @@ interface Props {
     voiceId: string | null;
     voiceIdB: string | null;
   };
-  /** The topics the episode can leave out, by name. */
-  topics: readonly TopicChoice[];
   /** Daily only: the weekly podcast's day (0 = Sunday) while it is on, which has no briefing. */
   weeklyDay?: number | null;
 }
 
-const { id, values, topics, weeklyDay = null } = Astro.props;
+const { id, values, weeklyDay = null } = Astro.props;
 const weeklyDayName = weeklyDay === null ? undefined : WEEKDAYS[weeklyDay];
 // The weekly podcast takes its day, so the daily briefing says which day it gives up (D65).
 const whenHint =
@@ -111,35 +109,15 @@ const VOICES = [
       </div>
     </div>
 
-    {/* What is stored is the topics left out, so a topic added later is in every episode until it
-         is unticked here. One stays ticked: an episode needs something to tell. */}
-    <div class="settings-row podcast-topics-row">
-      <div class="settings-text">
-        <span class="settings-label" id={`${id}-topics-label`}>Topics</span>
-        <span class="settings-hint" id={`${id}-topics-hint`}>Untick a topic to leave it out</span>
-      </div>
-      <fieldset
-        class="create-chips podcast-topics"
-        aria-labelledby={`${id}-topics-label`}
-        aria-describedby={`${id}-topics-hint`}
-      >
-        {
-          topics.map((topic) => (
-            <label class="create-chip">
-              <input
-                type="checkbox"
-                value={topic.id}
-                data-f={`${id}.skip`}
-                checked={!values.skipTopics.includes(topic.id)}
-                autocomplete="off"
-              />
-              <Icon name="check" class="create-chip-check" />
-              <span>{topic.name}</span>
-            </label>
-          ))
-        }
-      </fieldset>
-    </div>
+    {/* Which topics the podcast holds is set on each topic's page, its Scope (D69), so it has one
+         home: two pages holding the same list would undo each other's changes. */}
+    <a class="row-action podcast-topics-link" href="/settings/topics">
+      <span class="settings-text">
+        <span class="settings-label">Topics</span>
+        <span class="settings-hint">Each topic's Scope says whether it is in the {id} podcast</span>
+      </span>
+      <Icon name="chevronRight" />
+    </a>
 
     <div class="settings-row" data-layout="choice">
       <div class="settings-text">

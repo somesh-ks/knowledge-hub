@@ -3,6 +3,7 @@ import Icon from "../components/Icon.astro";
 import BaseLayout from "../layouts/BaseLayout.astro";
 import { loadManage } from "../lib/manage";
 import { dailySummary, loadScheduleView, weeklySummary } from "../lib/schedule";
+import { topicLayout } from "../lib/topicPages";
 import { loadWriterView } from "../lib/writer";
 import { THEME_PREFERENCES, type ThemePreference } from "../player/core/preferences";
 // The build links this file before the layout's stylesheet, so its rules never rely on coming last:
@@ -14,7 +15,10 @@ const [schedule, writer, manage] = await Promise.all([
   loadWriterView(),
   loadManage(),
 ]);
-const topicCount = manage.topics.filter((topic) => !topic.never_publish).length;
+// The topics a person sees (D69): the owner's three, any of their own apart from those, and the
+// general news topics; the judge's finer topics are inside the three.
+const layout = topicLayout(manage.topics, manage.sources);
+const topicCount = layout.groups.length + layout.own.length + layout.general.length;
 const plural = (count: number, word: string): string => `${count} ${word}${count === 1 ? "" : "s"}`;
 // Each row leads to the one page that sets it, and says its current state in a few words.
 const PODCAST = [

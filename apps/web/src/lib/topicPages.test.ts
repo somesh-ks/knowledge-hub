@@ -1,6 +1,15 @@
 import { describe, expect, it } from "vitest";
 import type { ManageSource, ManageTopic } from "./manage";
-import { byName, generalOf, OTHER_ID, percent, sourcesByTopic, topicSummary } from "./topicPages";
+import {
+  byName,
+  generalOf,
+  OTHER_ID,
+  percent,
+  sourcesByTopic,
+  topicChoicesOf,
+  topicLayout,
+  topicSummary,
+} from "./topicPages";
 
 const topic = (over: Partial<ManageTopic> = {}): ManageTopic => ({
   id: "design",
@@ -81,5 +90,49 @@ describe("byName", () => {
         .sort(byName)
         .map((t) => t.name),
     ).toEqual(["audio books", "Audio interfaces", "Design engineering craft", "venture capital"]);
+  });
+});
+
+describe("topicLayout", () => {
+  const topics = [
+    topic({ id: "craft", name: "Craft", section_id: "ui-craft" }),
+    topic({ id: "design", name: "Design", section_id: "design", origin: "app" }),
+    topic({ id: "frontier_model_releases", name: "Models", section_id: "ai" }),
+    topic({ id: "trending", name: "Trending", section_id: "trending", origin: "app" }),
+    topic({ id: "gossip", name: "Gossip", section_id: "top", never_publish: true }),
+    topic({ id: "synths", name: "Synths", section_id: "synths", origin: "custom" }),
+    topic({ id: "world", name: "World", section_id: "general", origin: "general" }),
+  ];
+  const sources = [
+    source("a", "craft", 2.5),
+    source("b", "design", 2.9),
+    source("c", "frontier_model_releases", null),
+    source("d", "trending", 1),
+    source("e", "gossip", 1),
+    source("f", null, null),
+    source("g", "synths", 2),
+    source("h", "world", 2),
+  ];
+
+  it("shows three topics of the owner's, their own apart, the general news, and Other for the rest", () => {
+    const layout = topicLayout(topics, sources);
+    expect(
+      layout.groups.map((group) => [group.id, group.home, group.members.map((m) => m.id)]),
+    ).toEqual([
+      ["design", "design", ["craft", "design"]],
+      ["ai", "frontier_model_releases", ["frontier_model_releases"]],
+    ]);
+    expect(layout.own.map((t) => t.id)).toEqual(["synths"]);
+    expect(layout.general.map((t) => t.id)).toEqual(["world"]);
+    const ids = (page: string) => layout.sources.get(page)?.map((s) => s.id);
+    expect(ids("design")).toEqual(["b", "a"]);
+    expect(ids("ai")).toEqual(["c"]);
+    expect(ids(OTHER_ID)).toEqual(["d", "e", "f"]);
+    expect(topicChoicesOf(layout)).toEqual([
+      { id: "frontier_model_releases", name: "AI" },
+      { id: "design", name: "Design" },
+      { id: "synths", name: "Synths" },
+      { id: "world", name: "World" },
+    ]);
   });
 });
