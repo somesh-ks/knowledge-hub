@@ -1180,6 +1180,9 @@ async function synthesizeSegment(
   const characters = narration.billableCharacters;
 
   const uploadStartedAt = deps.now();
+  // The word marks go up beside the audio, not after it: the listener waits for both. Their put
+  // never throws and has its own bound, so it cannot delay or fail the audio that was paid for.
+  const marksStored = storeSegmentMarks(session, path, segment.text, narration.marks);
   let url: string;
   try {
     url = await putWithRetry(session, path, narration.audio, {
@@ -1191,10 +1194,11 @@ async function synthesizeSegment(
       `${label}: upload failed for good, ${characters} synthesized characters are lost: ` +
         describeError(error, secrets),
     );
+    await marksStored;
     return storageFailed;
   }
 
-  await storeSegmentMarks(session, path, segment.text, narration.marks);
+  await marksStored;
 
   log(
     `${label}: stored. ${characters} characters, synthesis ${narration.synthesisMs} ms, ` +
