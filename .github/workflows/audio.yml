@@ -33,8 +33,10 @@ jobs:
           node-version-file: .nvmrc
           cache: npm
 
+      # Only the engine's packages: the site's (Astro, React, Playwright) are not needed to run it, and
+      # leaving them out takes the install from about 10 seconds to about 4.
       - name: Install
-        run: npm ci --ignore-scripts
+        run: npm ci --ignore-scripts --workspace=packages/engine --include-workspace-root
 
       # Audio failures leave audio null and never block the text digest.
       - name: Audio
@@ -50,22 +52,27 @@ jobs:
           DISPATCH_GIT_NAME: ${{ vars.DISPATCH_GIT_NAME }}
           DISPATCH_GIT_EMAIL: ${{ vars.DISPATCH_GIT_EMAIL }}
         run: |
-          # Vercel Blob hides its long-lived token and issues short-lived OIDC credentials instead.
-          # Pull them with the Vercel token; the engine reads VERCEL_OIDC_TOKEN and BLOB_STORE_ID.
-          # The CLI edits .gitignore and writes .vercel and .env.local, which the publish write guard
-          # refuses, so it runs in a scratch directory outside the checkout.
-          mkdir -p "$RUNNER_TEMP/vercel"
-          (
-            cd "$RUNNER_TEMP/vercel"
-            npx vercel link --yes --project knowledge-hub --scope somesh-ks-projects
-            npx vercel env pull "$RUNNER_TEMP/audio.env" --environment=production --yes
-          )
-          # Take only the two Blob credentials. Sourcing the whole file would let any pulled variable
-          # override a GitHub secret and would mangle values that contain a dollar sign. Hidden
-          # secrets come back as the text [SENSITIVE], which the engine ignores.
-          pulled() { grep -m1 "^$1=" "$RUNNER_TEMP/audio.env" | cut -d= -f2- | sed -e 's/^"//' -e 's/"$//'; }
-          VERCEL_OIDC_TOKEN=$(pulled VERCEL_OIDC_TOKEN) || { echo "::error::VERCEL_OIDC_TOKEN missing from the pulled env"; exit 1; }
-          echo "::add-mask::$VERCEL_OIDC_TOKEN"
-          BLOB_STORE_ID=$(pulled BLOB_STORE_ID) || { echo "::error::BLOB_STORE_ID missing from the pulled env"; exit 1; }
-          export VERCEL_OIDC_TOKEN BLOB_STORE_ID
+          # With the long-lived Blob token the engine needs nothing from Vercel: the pull below (which
+          # also needs a working VERCEL_TOKEN, and failed with "User not found" while that secret was
+          # dead, leaving every briefing without stored audio) is skipped, saving its 10 to 20 seconds.
+          if [ -z "${BLOB_READ_WRITE_TOKEN:-}" ]; then
+            # Vercel Blob hides its long-lived token and issues short-lived OIDC credentials instead.
+            # Pull them with the Vercel token; the engine reads VERCEL_OIDC_TOKEN and BLOB_STORE_ID.
+            # The CLI edits .gitignore and writes .vercel and .env.local, which the publish write guard
+            # refuses, so it runs in a scratch directory outside the checkout.
+            mkdir -p "$RUNNER_TEMP/vercel"
+            (
+              cd "$RUNNER_TEMP/vercel"
+              npx vercel link --yes --project knowledge-hub --scope somesh-ks-projects
+              npx vercel env pull "$RUNNER_TEMP/audio.env" --environment=production --yes
+            )
+            # Take only the two Blob credentials. Sourcing the whole file would let any pulled variable
+            # override a GitHub secret and would mangle values that contain a dollar sign. Hidden
+            # secrets come back as the text [SENSITIVE], which the engine ignores.
+            pulled() { grep -m1 "^$1=" "$RUNNER_TEMP/audio.env" | cut -d= -f2- | sed -e 's/^"//' -e 's/"$//'; }
+            VERCEL_OIDC_TOKEN=$(pulled VERCEL_OIDC_TOKEN) || { echo "::error::VERCEL_OIDC_TOKEN missing from the pulled env"; exit 1; }
+            echo "::add-mask::$VERCEL_OIDC_TOKEN"
+            BLOB_STORE_ID=$(pulled BLOB_STORE_ID) || { echo "::error::BLOB_STORE_ID missing from the pulled env"; exit 1; }
+            export VERCEL_OIDC_TOKEN BLOB_STORE_ID
+          fi
           npm run --silent dispatch -- publish --prune 120
