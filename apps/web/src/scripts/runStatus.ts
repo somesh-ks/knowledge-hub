@@ -5,11 +5,18 @@
  * the stage (n of m, lib/runStages.ts); the bar sits at the start of that stage and creeps toward,
  * never to, the next one on a slow CSS transition, so it never stands still and never goes back.
  * After the workflow has published, the last stage waits for the new page. Every sentence is in the element (`data-<state>`, or `data-<kind>-<state>` for a rewrite or a removal), and this
- * file imports nothing.
+ * file imports nothing up front; the episode prewarm is loaded only once a new episode is live.
  */
 const KEY = "dispatch:run";
 const POLL_MS = 4000;
 const MAX_POLLS = 300;
+/**
+ * The last stage asks this often for the redeployed site: the deploy takes about 35 s, and every
+ * second between it landing and the line noticing is a second the listener waits for nothing.
+ */
+export const SITE_POLL_MS = 2500;
+/** Ten minutes of asking, as before, at the faster pace. */
+const SITE_POLLS = 240;
 
 type Phase = "queued" | "running" | "updating" | "done" | "started" | "failed";
 /** What the run does to an episode that exists. Absent means a new episode. */
@@ -143,10 +150,10 @@ function set(run: Stored): void {
 async function waitForSite(run: Stored): Promise<void> {
   if (following === run.id) return;
   following = run.id;
-  for (let turn = 0; turn < 60 && following === run.id; turn += 1) {
-    const res = await fetch(`/latest.json?t=${Date.now()}`, { cache: "no-store" }).catch(
-      () => null,
-    );
+  for (let turn = 0; turn < SITE_POLLS && following === run.id; turn += 1) {
+    // No query string: no-store already skips the browser's cache, and the service worker keeps
+    // one copy of /latest.json to tell a new briefing by. A copy per poll would push out real pages.
+    const res = await fetch("/latest.json", { cache: "no-store" }).catch(() => null);
     const body = res?.ok ? await res.json().catch(() => null) : null;
     if (following !== run.id) return;
     if (body?.episode_at && Date.parse(body.episode_at) >= (run.t0 ?? 0) - 60_000) {
@@ -158,9 +165,16 @@ async function waitForSite(run: Stored): Promise<void> {
           document.querySelector<HTMLElement>("[data-run-status]")?.dataset.open ?? "";
       }
       set({ ...run, phase: "done" });
+      // The new episode's first turns are made now, so the first Play finds files. Best effort.
+      if (body.episode_id) {
+        const episode = String(body.episode_id);
+        void import("../narration/prewarmEpisode")
+          .then((prewarm) => prewarm.prewarmEpisode(episode))
+          .catch(() => undefined);
+      }
       return;
     }
-    await new Promise((resolve) => setTimeout(resolve, 10_000));
+    await new Promise((resolve) => setTimeout(resolve, SITE_POLL_MS));
   }
   if (following === run.id) {
     following = 0;
