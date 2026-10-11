@@ -13,8 +13,24 @@ const FINISHED_TAIL_SECONDS = 3;
 /** Positions under this are not worth restoring: the listener barely started. */
 const MIN_RESTORE_SECONDS = 2;
 
+/**
+ * Set once an item has been heard to the end, and cleared when a new position is saved. The Library
+ * reads it (scripts/libraryPage.ts) to say "Played" without loading any player code.
+ */
+export const PLAYED_KEY_PREFIX = "dispatch:played:";
+
 export function resumeKey(digestId: string): string {
   return `${RESUME_KEY_PREFIX}${digestId}`;
+}
+
+export function playedKey(digestId: string): string {
+  return `${PLAYED_KEY_PREFIX}${digestId}`;
+}
+
+/** Heard to the end: the position is forgotten and the item is marked played. */
+function markPlayed(storage: StorageLike, digestId: string): void {
+  storage.removeItem(resumeKey(digestId));
+  storage.setItem(playedKey(digestId), "1");
 }
 
 /** Storage is best effort: every access is guarded because private modes and quotas throw. */
@@ -46,17 +62,23 @@ export function saveResumePosition(
   if (!storage) return;
   try {
     const finished = durationSeconds > 0 && seconds >= durationSeconds - FINISHED_TAIL_SECONDS;
-    if (seconds < MIN_RESTORE_SECONDS || finished) storage.removeItem(resumeKey(digestId));
-    else storage.setItem(resumeKey(digestId), String(Math.floor(seconds)));
+    if (finished) markPlayed(storage, digestId);
+    else if (seconds < MIN_RESTORE_SECONDS) storage.removeItem(resumeKey(digestId));
+    else {
+      // Listening again: a position of its own replaces "Played".
+      storage.setItem(resumeKey(digestId), String(Math.floor(seconds)));
+      storage.removeItem(playedKey(digestId));
+    }
   } catch {
     // Best effort.
   }
 }
 
+/** The item ended: nothing to resume, and it counts as played. */
 export function clearResumePosition(storage: StorageLike | null, digestId: string): void {
   if (!storage) return;
   try {
-    storage.removeItem(resumeKey(digestId));
+    markPlayed(storage, digestId);
   } catch {
     // Best effort.
   }

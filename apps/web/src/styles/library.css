@@ -18,13 +18,59 @@
   width: 100%;
   margin-block-end: var(--space-2);
   box-shadow: none;
+  transition: scale var(--duration-press-out) var(--ease-out);
+}
+
+/* A press lays the press layer over the art and settles the cover a little: art may scale. The
+   title and facts are words and never do. */
+.card-link .cover::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background: color-mix(in oklch, var(--color-on-surface) var(--state-press), transparent);
+  opacity: 0;
+  pointer-events: none;
   transition: opacity var(--duration-press-out) var(--ease-out);
 }
 
-/* A press dims the cover. The card is never scaled: its title and facts are words. */
 .card-link:active .cover {
-  opacity: 0.88;
+  scale: var(--scale-press);
   transition-duration: var(--duration-press-in);
+}
+
+.card-link:active .cover::after {
+  opacity: 1;
+  transition-duration: var(--duration-press-in);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .card-link:active .cover {
+    scale: 1;
+  }
+}
+
+/* A half-heard item: a bar under the art on its own track, in the accent, so it reads the same on
+   every cover and in both themes. It sits in the cover's bottom margin. */
+.card-progress {
+  display: block;
+  height: var(--space-1);
+  margin-block: calc(var(--space-2) * -1) var(--space-1);
+  overflow: hidden;
+  border-radius: var(--radius-round);
+  background: var(--rail-track);
+}
+
+.card-progress::before {
+  content: "";
+  display: block;
+  width: var(--progress, 0%);
+  height: 100%;
+  border-radius: inherit;
+  background: var(--color-accent);
+}
+
+.card-progress[hidden] {
+  display: none;
 }
 
 .card-title {
@@ -41,9 +87,50 @@
 
 /* The quiet line keeps its own leading, not the body's, so a line that wraps stays tight. */
 .card-sub {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0 var(--space-2);
+  min-width: 0;
   font-size: var(--font-size-label);
   line-height: var(--font-leading-label);
   text-wrap: pretty;
+}
+
+/* Heard to the end: a check and one quiet word beside the facts. */
+.card-played {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-1);
+  color: var(--color-on-surface-muted);
+}
+
+.card-played > .icon {
+  width: var(--font-size-body);
+  height: var(--font-size-body);
+}
+
+.card-played[hidden] {
+  display: none;
+}
+
+/* While searching, a card found by a story names it: the headline on one line, then how many more. */
+.card-facts[data-match] {
+  display: flex;
+  gap: var(--space-1);
+  min-width: 0;
+  max-width: 100%;
+}
+
+.card-match {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.card-match-more {
+  flex: none;
 }
 
 .card-facts {
@@ -119,8 +206,8 @@
   opacity: 1;
 }
 
-/* The clear button is for touch, where there is no native one to rely on; the script shows it only
-   while the field has text. Its 44px box sits over the field's right end. */
+/* The clear button, for every pointer: the native one is hidden, as it differs in every browser.
+   The script shows it only while the field has text. Its 44px box sits over the field's right end. */
 .search-wrap {
   position: relative;
 }
@@ -145,17 +232,13 @@
   color: var(--color-on-surface-muted);
 }
 
-@media (pointer: fine) {
-  .search-clear {
-    display: none;
-  }
+.search-clear[hidden] {
+  display: none;
 }
 
 /* While the button shows, the text stops where it starts instead of running under it. */
-@media not all and (pointer: fine) {
-  .search-wrap:has(.search-clear:not([hidden])) .search-field {
-    padding-inline-end: var(--size-touch);
-  }
+.search-wrap:has(.search-clear:not([hidden])) .search-field {
+  padding-inline-end: var(--size-touch);
 }
 
 .library-bar {
@@ -189,6 +272,12 @@
   white-space: nowrap;
   color: var(--color-on-surface);
   transition: background-color var(--duration-hover) var(--ease-hover);
+}
+
+/* A filter or an order that is not the default is on, so it looks chosen, as a chosen chip does. */
+.sort-field[data-active] {
+  background: var(--color-accent-container);
+  color: var(--color-on-accent-container);
 }
 
 /* The ring is the keyboard's: a click opens the list, and the outline then says which one is open. */
@@ -228,6 +317,19 @@
       in oklch,
       var(--color-surface-container),
       var(--color-on-surface) var(--state-hover)
+    );
+  }
+
+  .search-clear:hover {
+    background: color-mix(in oklch, var(--color-on-surface) var(--state-hover), transparent);
+    color: var(--color-on-surface);
+  }
+
+  .sort-field[data-active]:hover {
+    background: color-mix(
+      in oklch,
+      var(--color-accent-container),
+      var(--color-on-accent-container) var(--state-hover)
     );
   }
 
@@ -308,11 +410,13 @@
   display: block;
 }
 
-/* A row is its own stacking context, so its press fill can sit behind its content. */
+/* A row is its own stacking context, so its press fill can sit behind its content. Its hover and
+   press tile runs past the row into the gutters, so a row is never clipped (content-visibility). */
 [data-library][data-view="list"] .card {
   --list-cover: calc(var(--size-touch) + var(--space-3));
   position: relative;
   isolation: isolate;
+  content-visibility: visible;
 }
 
 /* The row grammar of primitives.css: a hairline between rows only, running past the gutters. A row
@@ -341,6 +445,14 @@
   grid-row: 1 / -1;
   width: var(--list-cover);
   margin-block-end: 0;
+}
+
+/* In a row, the bar goes under the facts line. */
+[data-library][data-view="list"] .card-progress {
+  grid-area: 4 / 2;
+  align-self: start;
+  width: min(100%, 10rem);
+  margin-block: var(--space-2) 0;
 }
 
 /* A hover or a press fills the whole row, past the gutters, as a row does elsewhere
@@ -426,11 +538,22 @@
   display: grid;
   justify-items: start;
   gap: var(--space-4);
+}
+
+/* Only the sentence is quiet: the title stays the page's title. */
+.library-none > p {
+  max-width: 28rem;
   color: var(--color-on-surface-muted);
 }
 
-.library-none > p {
-  max-width: 28rem;
+/* The one thing to do is a button its own size, not a bar across the page. */
+.library-none > .btn-primary {
+  width: auto;
+}
+
+/* The page's own button is the one way to make an episode here: no floating copy of it below. */
+html:has(.library-none) .create-fab {
+  display: none;
 }
 
 /* ------------------------------------------------------------------ the "Earlier" shelf */
@@ -537,4 +660,11 @@
   .shelf > .card {
     width: 10.5rem;
   }
+}
+
+/* content-visibility clips painting to the card, and a focused card's ring lies outside it. A
+   focused card is on screen, so nothing is saved by skipping it. */
+.library-grid > .card:focus-within,
+.shelf > .card:focus-within {
+  content-visibility: visible;
 }

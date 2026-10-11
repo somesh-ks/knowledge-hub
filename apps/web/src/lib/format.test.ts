@@ -1,5 +1,13 @@
 import { describe, expect, it } from "vitest";
-import { formatClock, monthKeyOf, monthName, pluralize, sinceLabel, yearOf } from "./format";
+import {
+  formatClock,
+  longDateTitle,
+  monthKeyOf,
+  monthName,
+  pluralize,
+  sinceLabel,
+  yearOf,
+} from "./format";
 
 describe("formatClock", () => {
   it("writes minutes and zero-padded seconds", () => {
@@ -60,5 +68,11 @@ describe("archive dates", () => {
   it("writes the month name in English", () => {
     expect(monthName("2026-10")).toBe("October");
     expect(monthName("2026-01")).toBe("January");
+  });
+});
+
+describe("longDateTitle", () => {
+  it("keeps the day with its month: a non-breaking space joins them", () => {
+    expect(longDateTitle("2026-10-07")).toBe("Wednesday 7\u00a0October");
   });
 });

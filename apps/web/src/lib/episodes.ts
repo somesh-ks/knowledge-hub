@@ -15,7 +15,8 @@ import { isWebUrl } from "./safeUrl";
 export const FORMAT_LABELS = {
   readout: "Readout",
   discussion: "Discussion",
-  headlines: "Headlines",
+  // Create no longer offers headlines; a stored one reads as what it is, a readout.
+  headlines: "Readout",
 } as const;
 
 /** "8 min": how long an episode takes to hear, which its page's play controls say before it plays. */

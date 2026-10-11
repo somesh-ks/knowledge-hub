@@ -1,9 +1,10 @@
 ---
 import { paletteAccent } from "@dispatch/cover";
 import type { DigestEntry } from "../lib/digests";
-import { longDate } from "../lib/format";
+import { longDate, longDateTitle } from "../lib/format";
 import { cardFacts } from "../lib/libraryCard";
 import Cover from "./Cover.astro";
+import Icon from "./Icon.astro";
 import CoverPlay from "./CoverPlay.astro";
 
 interface Props {
@@ -40,11 +41,13 @@ const facts = cardFacts(entry);
       paletteBg={paletteAccent(digest.cover.palette).bg}
       weekly={digest.kind === "weekly"}
       priority={priority}
-      progress
     />
-    <span class="card-title">{longDate(digest.date)}</span>
+    {/* A half-heard item: a bar under the art, on its own track, so it reads on any cover. */}
+    <span class="card-progress" data-cover-progress aria-hidden="true" hidden></span>
+    <span class="card-title">{longDateTitle(digest.date)}</span>
     <span class="card-sub">
       <span class="card-facts" data-card-facts data-rest={facts.line}>{facts.line}</span>
+      <span class="card-played" data-card-played hidden><Icon name="check" />Played</span>
     </span>
   </a>
   <CoverPlay digestId={entry.id} href={`/d/${entry.id}`} title={longDate(digest.date)} />

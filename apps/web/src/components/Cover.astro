@@ -10,11 +10,24 @@ interface Props {
   weekly: boolean;
   /** The one cover that is the page's largest paint loads eagerly and first. */
   priority?: boolean;
-  /** A library card's cover carries a thin bar the page script fills for a half-heard item. */
-  progress?: boolean;
 }
 
-const { digestId, size, paletteBg, weekly, priority = false, progress = false } = Astro.props;
+const { digestId, size, paletteBg, weekly, priority = false } = Astro.props;
+
+/**
+ * A pale ground needs a hairline to hold its edge on the light page; a deep one has its own edge, and
+ * on the dark page every cover does. Relative luminance of the palette's ground, from its hex.
+ */
+function isPale(hex: string): boolean {
+  const match = /^#?([0-9a-f]{6})$/i.exec(hex.trim());
+  if (!match?.[1]) return false;
+  const value = Number.parseInt(match[1], 16);
+  const channel = (shift: number) => {
+    const c = ((value >> shift) & 255) / 255;
+    return c <= 0.04045 ? c / 12.92 : ((c + 0.055) / 1.055) ** 2.4;
+  };
+  return 0.2126 * channel(16) + 0.7152 * channel(8) + 0.0722 * channel(0) > 0.6;
+}
 
 // Display width of each size, so the browser picks the 512 or the 1024 image for the screen's density.
 const SIZES: Record<Props["size"], string> = {
@@ -27,7 +40,13 @@ const SIZES: Record<Props["size"], string> = {
 };
 ---
 
-<span class="cover" data-size={size} data-weekly={weekly ? "" : undefined} style={`--cover-bg:${paletteBg}`}>
+<span
+  class="cover"
+  data-size={size}
+  data-weekly={weekly ? "" : undefined}
+  data-pale={isPale(paletteBg) ? "" : undefined}
+  style={`--cover-bg:${paletteBg}`}
+>
   <img
     class="cover-image"
     src={`/covers/${digestId}-512.webp`}
@@ -42,7 +61,6 @@ const SIZES: Record<Props["size"], string> = {
     fetchpriority={priority ? "high" : undefined}
   />
   {weekly && <span class="cover-frame" aria-hidden="true"></span>}
-  {progress && <span class="cover-progress" data-cover-progress aria-hidden="true" hidden></span>}
   {/* The cover on an item's own page plays it in place. A list's card adds its own button beside the link. */}
   {size === "hero" && <CoverPlay digestId={digestId} pointerOnly />}
 </span>

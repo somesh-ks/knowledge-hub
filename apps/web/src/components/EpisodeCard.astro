@@ -4,6 +4,7 @@ import type { EpisodeEntry } from "../lib/episodes";
 import { EPISODE_KIND } from "../lib/library";
 import { episodeFacts } from "../lib/libraryCard";
 import Cover from "./Cover.astro";
+import Icon from "./Icon.astro";
 import CoverPlay from "./CoverPlay.astro";
 
 interface Props {
@@ -38,11 +39,13 @@ const facts = episodeFacts(entry);
       paletteBg={paletteAccent(entry.cover.palette).bg}
       weekly={false}
       priority={priority}
-      progress
     />
+    {/* A half-heard item: a bar under the art, on its own track, so it reads on any cover. */}
+    <span class="card-progress" data-cover-progress aria-hidden="true" hidden></span>
     <span class="card-title">{episode.title}</span>
     <span class="card-sub">
       <span class="card-facts" data-card-facts data-rest={facts.line}>{facts.line}</span>
+      <span class="card-played" data-card-played hidden><Icon name="check" />Played</span>
     </span>
   </a>
   <CoverPlay digestId={entry.id} href={`/e/${entry.id}`} title={episode.title} />

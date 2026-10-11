@@ -1,5 +1,14 @@
 import { daysBetween, longDate, stockholmDate } from "@dispatch/core";
 
+/**
+ * The long date as a title on screen: "Wednesday 7 October" with a non-breaking space between the
+ * day and the month, so a title that wraps never leaves "7" on one line and "October" on the next.
+ * Text that leaves the page (a share, the media session, the document title) keeps `longDate`.
+ */
+export function longDateTitle(date: string): string {
+  return longDate(date).replace(/(\d) /, "$1\u00a0");
+}
+
 /** "m:ss" for a duration in milliseconds. Rounds to whole seconds, never shows a negative. */
 export function formatClock(milliseconds: number): string {
   const total = Math.max(0, Math.round(milliseconds / 1000));
@@ -11,6 +20,8 @@ export function formatClock(milliseconds: number): string {
 export function pluralize(count: number, singular: string, plural = `${singular}s`): string {
   return `${count} ${count === 1 ? singular : plural}`;
 }
+
+export { longDate };
 
 /** First word of the long date, "Wednesday". */
 function weekdayName(date: string): string {
@@ -44,5 +55,3 @@ const monthFormat = new Intl.DateTimeFormat("en-GB", { timeZone: "UTC", month: "
 export function monthName(monthKey: string): string {
   return monthFormat.format(new Date(`${monthKey}-15T12:00:00Z`));
 }
-
-export { longDate };
