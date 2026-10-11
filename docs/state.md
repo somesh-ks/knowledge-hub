@@ -2,7 +2,7 @@
 
 Last updated 2026-10-11. Rewrite this file; do not append.
 
-The reader is called Singularity (D30). Identifiers keep `dispatch`. Everything below is on `main` and deployed at news.someshks.work unless a line says otherwise. The design pass of 2026-10-10 (D51 to D54) merged in #74 to #76. The Topics & Sources panel and source scores out of 3 (D55, D56) merged in the PR after #76, with two fixes from a third audit; that audit's other findings are listed below as open.
+The reader is called Singularity (D30). Identifiers keep `dispatch`. Everything below is on `main` and deployed at news.someshks.work unless a line says otherwise. The design pass of 2026-10-10 (D51 to D54) merged in #74 to #76. The Topics & Sources panel and source scores out of 3 (D55, D56) merged in #77, with two fixes from a third audit; that audit's other findings are listed below as open.
 
 ## Working in production
 
