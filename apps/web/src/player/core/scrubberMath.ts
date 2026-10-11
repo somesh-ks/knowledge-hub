@@ -26,6 +26,16 @@ export function fractionOfTime(timeSeconds: number, durationSeconds: number): nu
   return clamp(timeSeconds / durationSeconds, 0, 1);
 }
 
+/**
+ * A position on the device's pixel grid. Text moved by a fraction of a pixel is drawn afresh at a new
+ * offset each frame, so the digits of a moving readout seem to shake; on whole device pixels they
+ * keep one shape and only move.
+ */
+export function onPixelGrid(px: number, devicePixelRatio: number): number {
+  const ratio = devicePixelRatio > 0 ? devicePixelRatio : 1;
+  return Math.round(px * ratio) / ratio;
+}
+
 /** Left edge of the bubble: centered on the thumb, clamped to stay inside the track. */
 export function bubbleLeft(thumbX: number, bubbleWidth: number, trackWidth: number): number {
   const half = bubbleWidth / 2;

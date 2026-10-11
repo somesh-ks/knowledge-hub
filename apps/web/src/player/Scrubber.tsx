@@ -7,13 +7,14 @@ import {
   useRef,
 } from "react";
 import { chapterMask } from "./core/chapterMask";
-import { clockParts } from "./core/formatTime";
+import { clockParts, clockSizerParts } from "./core/formatTime";
 import { createVelocityTracker } from "./core/gestureMath";
 import { getPlayerStore } from "./core/playerRuntime";
 import {
   bubbleLeft,
   crossedBoundary,
   fractionOfTime,
+  onPixelGrid,
   scrubberValueText,
   scrubKeyAction,
   shouldFireDetent,
@@ -84,7 +85,10 @@ export default function Scrubber() {
         bubbleItemRef.current.textContent = itemPositionLabel(timeline, store.itemAt(time));
       }
       const left = bubbleLeft(fraction * widthRef.current, bubble.offsetWidth, widthRef.current);
-      bubble.style.setProperty("--bubble-x", `${left.toFixed(1)}px`);
+      bubble.style.setProperty(
+        "--bubble-x",
+        `${onPixelGrid(left, window.devicePixelRatio).toFixed(3)}px`,
+      );
     },
     [store, timeline],
   );
@@ -197,6 +201,7 @@ export default function Scrubber() {
 
   const section = timeline?.sections[state.sectionIndex];
   const itemCount = timeline?.items.length ?? 0;
+  const widest = clockSizerParts(duration);
   const mask = chapterMask(
     timeline?.items.map((entry) => fractionOfTime(entry.startSec, duration)) ?? [],
   );
@@ -231,14 +236,26 @@ export default function Scrubber() {
           <span className="scrubber-fill" ref={fillRef} />
         </div>
         <span className="scrubber-thumb" ref={thumbRef} aria-hidden="true" />
+        {/* Each line sits over a hidden copy of the widest it can get, so the bubble keeps one
+            width for the whole drag and its digits do not jostle. */}
         <div className="scrubber-bubble" ref={bubbleRef} aria-hidden="true">
           <span className="num scrubber-bubble-time">
-            <span ref={bubbleMinutesRef}>0</span>
-            <span className="player-colon">:</span>
-            <span ref={bubbleSecondsRef}>00</span>
+            <span>
+              <span ref={bubbleMinutesRef}>0</span>
+              <span className="player-colon">:</span>
+              <span ref={bubbleSecondsRef}>00</span>
+            </span>
+            <span className="scrubber-bubble-sizer">
+              {widest.before}
+              <span className="player-colon">:</span>
+              {widest.after}
+            </span>
           </span>
-          <span className="scrubber-bubble-item" ref={bubbleItemRef}>
-            {itemPositionLabel(timeline, state.itemIndex)}
+          <span className="num scrubber-bubble-item">
+            <span ref={bubbleItemRef}>{itemPositionLabel(timeline, state.itemIndex)}</span>
+            <span className="scrubber-bubble-sizer">
+              {itemPositionLabel(timeline, Math.max(0, itemCount - 1))}
+            </span>
           </span>
         </div>
       </div>

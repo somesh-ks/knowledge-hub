@@ -40,6 +40,15 @@ export function clockParts(totalSeconds: number): { before: string; after: strin
   return { before: text.slice(0, cut), after: text.slice(cut + 1) };
 }
 
+/**
+ * The widest a clock up to `totalSeconds` gets, as zeros: "00:00" for a 12 minute track. Figures are
+ * tabular, so zeros are as wide as any digits, and a hidden copy holds a live clock's width still.
+ */
+export function clockSizerParts(totalSeconds: number): { before: string; after: string } {
+  const { before, after } = clockParts(totalSeconds);
+  return { before: before.replace(/\d/g, "0"), after: after.replace(/\d/g, "0") };
+}
+
 export function formatRemaining(elapsedSeconds: number, durationSeconds: number): string {
   return `-${formatClock(Math.max(0, durationSeconds - elapsedSeconds))}`;
 }

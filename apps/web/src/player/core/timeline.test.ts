@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
 import {
   clockParts,
+  clockSizerParts,
   formatClock,
   formatRemaining,
   longDateFromDigestId,
@@ -122,6 +123,12 @@ describe("time formatting", () => {
   it("splits a clock around its last colon for the fixed-width colon box", () => {
     expect(clockParts(86)).toEqual({ before: "1", after: "26" });
     expect(clockParts(3725)).toEqual({ before: "1:02", after: "05" });
+  });
+
+  it("sizes a clock by the widest time it can show, as zeros", () => {
+    expect(clockSizerParts(754)).toEqual({ before: "00", after: "00" });
+    expect(clockSizerParts(86)).toEqual({ before: "0", after: "00" });
+    expect(clockSizerParts(3725)).toEqual({ before: "0:00", after: "00" });
   });
 
   it("shows the remaining time with a minus", () => {
