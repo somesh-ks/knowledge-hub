@@ -1,21 +1,45 @@
 ---
 import type { ManageSource } from "../lib/manage";
+import { sourceInitial } from "../lib/sourceInitial";
 import Icon from "./Icon.astro";
-import StarMeter from "./StarMeter.astro";
+import ScoreMeter from "./ScoreMeter.astro";
 
 interface Props {
   source: ManageSource;
+  /** The name of the topic the source is filed under; empty for Other. */
+  topicName?: string;
 }
 
-const { source } = Astro.props;
-// The filter bands: Good is 4 and up, Fair 3 to 4, Poor under 3, New has no score yet.
+const { source, topicName = "" } = Astro.props;
+// The bands of a score out of 3: Good is 2.1 and up, Fair 1.5 to 2.1, Poor under 1.5, New has none.
 const band =
-  source.score === null ? "new" : source.score >= 4 ? "good" : source.score >= 3 ? "fair" : "poor";
+  source.score === null
+    ? "new"
+    : source.score >= 2.1
+      ? "good"
+      : source.score >= 1.5
+        ? "fair"
+        : "poor";
+// What the edit panel shows about the source (topicsPanel.ts, SourceFacts).
+const facts = {
+  id: source.id,
+  name: source.name,
+  topic_id: source.topic_id ?? "",
+  topic_name: topicName,
+  url: source.url,
+  host: source.host,
+  score: source.score,
+  label: source.score_label,
+  parts: source.score_parts,
+  reason: source.score_reason,
+};
 ---
 
-{/* One source under its topic. The icon is the site's own and shows once it loads (topicsPage.ts
-     marks it loaded); a source without one keeps an empty slot, so every name starts at one edge. Removing is switching it off, so a source that is
-     already off shows a switch instead, to turn it back on. */}
+{/* One source under its topic. Its name and tile are one button that opens the source to edit, and
+     the open button beside its score goes to the site in a new tab. The tile shows the name's first
+     letter, and the site's own icon covers it once it loads (topicsPage.ts marks it loaded), so a
+     site without an icon still has a face and every name starts at one edge. Removing is switching it
+     off, so a source that is already off shows a switch instead, to turn it back on. */}
 <li
   class="source-row"
   data-id={source.id}
@@ -24,31 +48,54 @@ const band =
   data-name={source.name.toLowerCase()}
   data-off={source.enabled ? undefined : ""}
 >
-  <span class="source-icon" aria-hidden="true">
-    {
-      source.favicon_url && (
-        <img
-          src={`/api/site-icon?url=${encodeURIComponent(source.favicon_url)}`}
-          alt=""
-          width="20"
-          height="20"
-          loading="lazy"
-          decoding="async"
-          referrerpolicy="no-referrer"
-          data-favicon
-        />
-      )
-    }
-  </span>
-  <span class="source-text">
-    <span class="source-name" id={`source-${source.id}`}>{source.name}</span>
-    <span class="source-host">{source.host}</span>
-  </span>
+  <button
+    class="source-main"
+    type="button"
+    aria-label={`Edit ${source.name}`}
+    data-edit-source={JSON.stringify(facts)}
+  >
+    <span class="source-icon" aria-hidden="true">
+      <span class="source-initial">{sourceInitial(source.name)}</span>
+      {
+        source.favicon_url && (
+          <img
+            src={`/api/site-icon?url=${encodeURIComponent(source.favicon_url)}`}
+            alt=""
+            width="20"
+            height="20"
+            loading="lazy"
+            decoding="async"
+            referrerpolicy="no-referrer"
+            data-favicon
+          />
+        )
+      }
+    </span>
+    <span class="source-text">
+      <span class="source-name" id={`source-${source.id}`}>{source.name}</span>
+      <span class="source-host">{source.host}</span>
+    </span>
+  </button>
   {
     source.enabled ? (
-      <StarMeter score={source.score} label={source.score_label} />
+      <ScoreMeter score={source.score} label={source.score_label} />
     ) : (
       <span class="score"><span class="score-label">Off</span></span>
+    )
+  }
+  {
+    source.url ? (
+      <a
+        class="icon-btn source-open press"
+        href={source.url}
+        target="_blank"
+        rel="noopener noreferrer"
+        aria-label={`Open ${source.name} in a new tab`}
+      >
+        <Icon name="openInNew" />
+      </a>
+    ) : (
+      <span class="source-slot" />
     )
   }
   {

@@ -1,0 +1,18 @@
+---
+interface Props {
+  /** 0 to 3, one decimal. Null while a source is new: no pips, no number. */
+  score: number | null;
+  /** "Excellent", "Good", "Fair", "Poor" or "New". */
+  label: string;
+}
+
+const { score, label } = Astro.props;
+---
+
+{/* A source's score out of 3: three pips filled to it, the number, and the label. The pips are
+     decoration; the number and the label say the same thing in words, so colour is never alone. */}
+<span class="score" data-label={label}>
+  {score !== null && <span class="pips" aria-hidden="true" style={`--score: ${score}`} />}
+  {score !== null && <span class="score-num">{score.toFixed(1)}</span>}
+  <span class="score-label">{label}</span>
+</span>

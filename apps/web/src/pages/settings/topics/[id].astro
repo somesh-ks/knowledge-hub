@@ -3,9 +3,10 @@ import Icon from "../../../components/Icon.astro";
 import ManageChrome from "../../../components/ManageChrome.astro";
 import SettingsHead from "../../../components/SettingsHead.astro";
 import SourceRow from "../../../components/SourceRow.astro";
-import SourceSheet from "../../../components/SourceSheet.astro";
+import TopicsPanel from "../../../components/TopicsPanel.astro";
 import BaseLayout from "../../../layouts/BaseLayout.astro";
 import { loadManage, type ManageSource, type ManageTopic } from "../../../lib/manage";
+import { freshOffers, loadSourceCatalog } from "../../../lib/sourceCatalog";
 import { OTHER_ID, percent, snap, sourcesByTopic, WEIGHT_STEP } from "../../../lib/topicPages";
 import "../../../styles/settings.css";
 import "../../../styles/manage.css";
@@ -43,6 +44,7 @@ interface Props {
 }
 
 const { topic, list, choices, taken } = Astro.props;
+const [{ sources }, catalog] = await Promise.all([loadManage(), loadSourceCatalog()]);
 const name = topic?.name ?? "Other";
 const note = topic ? topic.description : "Sources that feed no topic yet.";
 const editable = topic !== null && !topic.never_publish;
@@ -54,7 +56,7 @@ const editable = topic !== null && !topic.never_publish;
          controls carry the edit they stand for (data-op); topicsEditor.ts records a change and
          autosave.ts sends it a moment later. */}
     <div class="manage topics topic-page" data-topics data-taken={[...taken, OTHER_ID].join(" ")}>
-      <SettingsHead title={name} up={{ href: "/settings/topics", label: "Topics" }} note={note} />
+      <SettingsHead title={name} up={{ href: "/settings/topics", label: "Topics & Sources" }} note={note} />
       <noscript>
         <p class="manage-note">Changing topics and sources needs JavaScript, which is turned off in this browser.</p>
       </noscript>
@@ -115,13 +117,13 @@ const editable = topic !== null && !topic.never_publish;
 
           <h2 class="section-head">Sources</h2>
           <ul class="topic-sources" role="list" data-sources aria-label={`${name} sources`}>
-            {list.map((source) => <SourceRow source={source} />)}
+            {list.map((source) => <SourceRow source={source} topicName={topic?.name ?? ""} />)}
           </ul>
           <p class="manage-quiet topic-empty">No sources yet.</p>
           {
             (topic === null || editable) && (
               <button
-                class="btn topic-add-source press press-subtle"
+                class="btn-secondary topic-add-source"
                 type="button"
                 aria-label={`Add source to ${name}`}
                 data-add-source={topic?.id ?? ""}
@@ -136,7 +138,7 @@ const editable = topic !== null && !topic.never_publish;
             topic?.origin === "custom" && (
               <div class="topic-remove-row">
                 <button
-                  class="btn topic-remove press press-subtle"
+                  class="btn topic-remove"
                   type="button"
                   data-pressed="false"
                   aria-label={`Remove topic ${name}`}
@@ -158,7 +160,7 @@ const editable = topic !== null && !topic.never_publish;
       </fieldset>
 
       <ManageChrome />
-      <SourceSheet topics={choices} />
+      <TopicsPanel topics={choices} offers={freshOffers(catalog, sources)} />
     </div>
   </main>
 </BaseLayout>

@@ -1,6 +1,7 @@
 /*
- * The Topics page (pages/settings/topics.astro): each topic with its switch, its
- * weight and the sources under it; the stars and the score; the filter row; and the Add source panel.
+ * The Topics & Sources pages (pages/settings/topics.astro and topics/[id].astro): each topic with its
+ * switch, its weight and the sources under it; a source's row and its score out of 3; and the panel
+ * that adds a topic or a source and edits a source (TopicsPanel.astro).
  * Tokens only. It is loaded after manage.css, whose form fields, saving toast and dialog it
  * reuses, and after settings.css, which draws the switch and the slider.
  *
@@ -10,13 +11,13 @@
 
 /* ------------------------------------------------------------------ the top of the page */
 
-/* A phone stacks: the title, then the one primary action at full width. From 40rem the action sits
-   at the end of the title's line, centred on it. */
+/* A phone stacks: the title, then Add, an outline button, at full width. From 40rem it sits at the
+   end of the title's line, centred on it. */
 .topics {
   --source-row: var(--size-touch-comfortable);
 }
 
-.topics > .topics-add-source {
+.topics > .topics-add {
   margin-block: var(--space-6);
 }
 
@@ -37,7 +38,7 @@
     grid-row: 1;
   }
 
-  .topics > .topics-add-source {
+  .topics > .topics-add {
     grid-column: 2;
     grid-row: 1;
     align-self: start;
@@ -50,7 +51,7 @@
     padding-inline: var(--space-6);
   }
 
-  /* With Add source beside the title, nothing stands between the note and the first topic: the list
+  /* With Add beside the title, nothing stands between the note and the first topic: the list
      keeps the air the button gave it on a phone, so its first row sits as far down as on any page. */
   .topics:not(.topic-page) > .manage-fields {
     padding-block-start: var(--space-6);
@@ -148,15 +149,20 @@
   display: none;
 }
 
-/* A quiet text button under the sources: its plus centres on the icon column and its label lines up
-   with the names above it. Remove topic, further down, keeps the same columns. */
-.topic-add-source,
+/* Add source under the sources: an outline button as wide as its words. */
+.topic-add-source {
+  width: auto;
+  margin-block-start: var(--space-4);
+}
+
+/* Remove topic, at the end of the page: a quiet text button whose glyph centres on the icon column
+   and whose label lines up with the names above it. */
 .topic-remove {
   gap: var(--space-3);
   margin-inline-start: calc(var(--space-3) * -1);
 }
 
-:is(.topic-add-source, .topic-remove) > .icon {
+.topic-remove > .icon {
   margin-inline: calc((var(--space-6) - var(--size-icon)) / 2);
 }
 
@@ -202,16 +208,48 @@
 
 .source-row {
   display: grid;
-  grid-template-columns: auto minmax(0, 1fr) auto auto;
+  grid-template-columns: minmax(0, 1fr) auto auto auto;
   align-items: center;
-  column-gap: var(--space-3);
+  column-gap: var(--space-1);
   min-height: var(--source-row);
   border-radius: var(--radius-md);
 }
 
-/* The site's icon. It is hidden until it has loaded, so a source without one shows nothing: the
-   empty slot stays in a row, so every name in a list starts at the same edge. A transparent icon is
-   drawn over a sunken surface of its own. */
+/* The tile and the name: one button that opens the source to edit, as tall as its row. It reaches a
+   little past the row's start so its state layer has room around the tile, and its words never scale
+   on a press: pressing shows on its fill. */
+.source-main {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+  min-width: 0;
+  min-height: var(--source-row);
+  margin-inline-start: calc(var(--space-2) * -1);
+  padding-inline: var(--space-2);
+  border-radius: var(--radius-md);
+  color: inherit;
+  text-align: start;
+  transition: background-color var(--duration-hover) var(--ease-hover);
+}
+
+@media (hover: hover) and (pointer: fine) {
+  button.source-main:hover {
+    background: color-mix(in oklch, var(--color-on-surface) 6%, transparent);
+  }
+}
+
+button.source-main:active {
+  background: color-mix(in oklch, var(--color-on-surface) 10%, transparent);
+}
+
+/* The open button's glyph is a shade quieter than the remove beside it: going to the site is an
+   aside, not the row's job. */
+.source-open {
+  color: var(--color-on-surface-muted);
+}
+
+/* The site's tile: the name's first letter, and the site's icon over it once that has loaded. A
+   transparent icon is drawn over a sunken surface of its own. */
 .source-icon {
   position: relative;
   display: grid;
@@ -220,6 +258,22 @@
   height: var(--space-6);
   overflow: hidden;
   border-radius: var(--radius-sm);
+}
+
+/* The name's first letter, under the site's icon: what shows while the icon loads, and for good
+   when the site has none. A hairline keeps the tile's edge in sight on the page's own colour. */
+.source-initial {
+  display: grid;
+  place-items: center;
+  width: 100%;
+  height: 100%;
+  border-radius: inherit;
+  background: var(--color-surface-sunken);
+  box-shadow: inset 0 0 0 var(--stroke-hairline) var(--color-border-hairline);
+  color: var(--color-on-surface-muted);
+  font-size: var(--font-size-meta);
+  font-weight: var(--font-weight-semibold);
+  line-height: 1;
 }
 
 .source-icon > img {
@@ -310,10 +364,15 @@
   display: none;
 }
 
+/* It turns into the word Undo as the press that removes ends, so the bin's press scale does not
+   ease back over the word: words never change size. */
 .source-remove[data-pressed="true"] {
   padding-inline: var(--space-3);
   border-radius: var(--button-radius);
   color: var(--color-accent);
+  transition:
+    background-color var(--duration-hover) var(--ease-hover),
+    color var(--duration-hover) var(--ease-hover);
 }
 
 .source-remove[data-pressed="true"] .icon {
@@ -385,26 +444,27 @@
   font-weight: var(--font-weight-medium);
 }
 
-/* Five stars: a mask of one star repeated, behind a fill that stops at the score. */
-.stars {
-  --star: 0.875rem;
+/* Three pips: a mask of one rounded bar and its gap, repeated, behind a fill that stops at the
+   score out of 3. */
+.pips {
+  --pip: 0.75rem;
   flex: none;
-  width: calc(var(--star) * 5);
-  height: var(--star);
+  width: calc(var(--pip) * 3);
+  height: calc(var(--pip) / 2);
   background: linear-gradient(
     90deg,
-    var(--star-on) calc(var(--score, 0) * 20%),
-    var(--star-off) calc(var(--score, 0) * 20%)
+    var(--star-on) calc(var(--score, 0) / 3 * 100%),
+    var(--star-off) calc(var(--score, 0) / 3 * 100%)
   );
   -webkit-mask:
-    url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'%3E%3Cpath d='M12 17.27 18.18 21l-1.64-7.03L22 9.24l-7.19-.61L12 2 9.19 8.63 2 9.24l5.46 4.73L5.82 21z'/%3E%3C/svg%3E")
-    0 0 / var(--star) var(--star) repeat-x;
+    url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 12'%3E%3Crect width='20' height='12' rx='6'/%3E%3C/svg%3E")
+    0 0 / var(--pip) calc(var(--pip) / 2) repeat-x;
   mask:
-    url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'%3E%3Cpath d='M12 17.27 18.18 21l-1.64-7.03L22 9.24l-7.19-.61L12 2 9.19 8.63 2 9.24l5.46 4.73L5.82 21z'/%3E%3C/svg%3E")
-    0 0 / var(--star) var(--star) repeat-x;
+    url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 12'%3E%3Crect width='20' height='12' rx='6'/%3E%3C/svg%3E")
+    0 0 / var(--pip) calc(var(--pip) / 2) repeat-x;
 }
 
-/* Poor is told apart by its word, and by the stars' colour: never by colour alone. */
+/* Poor is told apart by its word, and by the pips' colour: never by colour alone. */
 .score[data-label="Poor"] {
   --star-on: var(--color-danger);
 }
@@ -415,7 +475,7 @@
 }
 
 @media (forced-colors: active) {
-  .stars {
+  .pips {
     forced-color-adjust: none;
     --star-on: Highlight;
     --star-off: GrayText;
@@ -427,21 +487,27 @@
   }
 }
 
-/* ------------------------------------------------------------------ adding a topic */
+/* ------------------------------------------------------------------ the Topics & Sources panel */
 
-.topics-add-topic {
-  margin-block-start: var(--space-2);
-}
-
-/* ------------------------------------------------------------------ the Add source panel */
-
-/* The foot of the panel stays at the bottom of the sheet; the form scrolls above it. */
+/* The foot of the panel stays at the bottom of the sheet; the form scrolls above it. On the topic's
+   second step Back sits before the main button, as wide as its word. */
 .source-sheet-foot {
+  display: flex;
   flex: none;
+  gap: var(--space-3);
   padding-block: var(--space-4) max(var(--space-4), var(--safe-bottom));
   padding-inline: max(var(--space-4), var(--safe-left)) max(var(--space-4), var(--safe-right));
   border-block-start: var(--stroke-hairline) solid var(--color-border-hairline);
   background: var(--sheet-bg);
+}
+
+.source-sheet-foot > .btn {
+  flex: none;
+  width: auto;
+}
+
+.source-sheet-foot > .btn-primary {
+  flex: 1 1 auto;
 }
 
 @media (min-width: 40rem) {
@@ -451,8 +517,220 @@
   }
 }
 
+/* Topic or Source, under the title: the segmented control of Settings, across the panel. */
+.topics-panel-kind {
+  margin-block-start: var(--space-4);
+}
+
+@media (min-width: 40rem) {
+  .topics-panel-kind {
+    flex: none;
+  }
+}
+
+.topics-pane,
 .source-form {
   padding-block: var(--space-4);
+}
+
+/* The topic's second step: the sources that suit it, each a row to tick. */
+.topics-suggest {
+  min-width: 0;
+  margin: 0;
+  padding: 0;
+  border: 0;
+}
+
+.topics-suggest-head {
+  padding: 0;
+  font-size: var(--font-size-body);
+  font-weight: var(--font-weight-medium);
+  line-height: var(--font-leading-label);
+}
+
+.suggest-list {
+  display: flex;
+  flex-direction: column;
+  margin: var(--space-3) 0 0;
+  padding: 0;
+  list-style: none;
+}
+
+/* The whole row is the checkbox's target; the box itself is drawn at the row's end. */
+.suggest-row {
+  position: relative;
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr) auto;
+  align-items: center;
+  column-gap: var(--space-3);
+  min-height: var(--size-touch-comfortable);
+  margin-inline: calc(var(--space-2) * -1);
+  padding: var(--space-2);
+  border-radius: var(--radius-md);
+  cursor: pointer;
+  transition: background-color var(--duration-hover) var(--ease-hover);
+}
+
+.suggest-row > input {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  margin: 0;
+  appearance: none;
+  opacity: 0;
+  cursor: pointer;
+}
+
+.suggest-row:has(input:focus-visible) {
+  outline: var(--stroke-ring) solid var(--color-focus-ring);
+  outline-offset: calc(var(--stroke-ring-gap) * -1);
+}
+
+@media (hover: hover) and (pointer: fine) {
+  .suggest-row:hover {
+    background: color-mix(in oklch, var(--color-on-surface) 6%, transparent);
+  }
+}
+
+.suggest-row:active {
+  background: color-mix(in oklch, var(--color-on-surface) 10%, transparent);
+}
+
+.suggest-text {
+  display: grid;
+  min-width: 0;
+}
+
+.suggest-line {
+  color: var(--color-on-surface-muted);
+  font-size: var(--font-size-label);
+  line-height: var(--font-leading-caption);
+}
+
+/* The box: a control's outline when empty, the accent with a check when ticked, so the state is a
+   shape as well as a colour. */
+.suggest-box {
+  display: grid;
+  place-items: center;
+  width: var(--size-icon);
+  height: var(--size-icon);
+  border: var(--stroke-hairline) solid var(--color-border-control);
+  border-radius: var(--radius-sm);
+  color: var(--color-on-accent);
+  transition:
+    background-color var(--duration-press-in) var(--ease-out),
+    border-color var(--duration-press-in) var(--ease-out);
+}
+
+.suggest-box .suggest-check {
+  width: var(--space-4);
+  height: var(--space-4);
+  opacity: 0;
+}
+
+.suggest-row:has(input:checked) .suggest-box {
+  border-color: var(--color-accent);
+  background: var(--color-accent);
+}
+
+.suggest-row:has(input:checked) .suggest-check {
+  opacity: 1;
+}
+
+/* Editing a source: where it lives, as a link out, and what its score is made of. */
+.edit-address {
+  display: grid;
+  gap: var(--space-1);
+  margin-block: var(--space-4);
+}
+
+.edit-address-label,
+.score-breakdown-head {
+  color: var(--color-on-surface-muted);
+  font-size: var(--font-size-label);
+  font-weight: var(--font-weight-medium);
+  line-height: var(--font-leading-caption);
+}
+
+.edit-address-link {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-2);
+  justify-self: start;
+  min-height: var(--size-touch);
+  color: var(--color-accent);
+  overflow-wrap: anywhere;
+}
+
+/* Two classes, so it outranks the base .icon size wherever the build puts this file. */
+.edit-address-link > .edit-address-icon {
+  flex: none;
+  width: var(--space-4);
+  height: var(--space-4);
+}
+
+.score-breakdown {
+  display: grid;
+  gap: var(--space-2);
+  padding: var(--space-4);
+  border: var(--stroke-hairline) solid var(--color-border-hairline);
+  border-radius: var(--radius-lg);
+}
+
+.score-breakdown-total {
+  margin: 0;
+  font-size: var(--font-size-body);
+  font-weight: var(--font-weight-medium);
+}
+
+.score-parts {
+  display: grid;
+  gap: var(--space-2);
+  margin: 0;
+  font-size: var(--font-size-label);
+}
+
+.score-parts > div {
+  display: grid;
+  grid-template-columns: 6rem minmax(0, 1fr);
+  align-items: center;
+}
+
+.score-parts dd {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  margin: 0;
+}
+
+/* One part, 0 to 1, as a bar that fills to it. */
+.part-meter {
+  flex: 1 1 auto;
+  max-width: 8rem;
+  height: var(--space-1);
+  border-radius: var(--radius-round);
+  background: linear-gradient(
+    90deg,
+    var(--color-accent) calc(var(--part, 0) * 100%),
+    var(--color-track-strong) calc(var(--part, 0) * 100%)
+  );
+}
+
+.part-num {
+  min-width: 3ch;
+  font-variant-numeric: tabular-nums;
+  text-align: end;
+}
+
+/* A part not measured yet says so in words, with no bar that could read as empty. */
+.score-parts [data-unmeasured] .part-meter {
+  display: none;
+}
+
+.score-parts [data-unmeasured] .part-num {
+  color: var(--color-on-surface-muted);
+  text-align: start;
 }
 
 .source-preview[data-state="idle"] {
@@ -489,9 +767,9 @@
   border-radius: var(--radius-md);
 }
 
-/* In the sheet's card the name stands alone when there is no icon: no empty square beside it. */
-.source-card .source-icon:not(:has(img[data-loaded])) {
-  display: none;
+/* The card's tile is larger, and so is its letter. */
+.source-card .source-initial {
+  font-size: var(--font-size-section);
 }
 
 .source-card-title {
