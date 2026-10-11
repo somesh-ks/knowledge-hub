@@ -97,8 +97,10 @@
   content: none;
 }
 
-.topic-weight > .settings-label {
-  flex: 0 0 auto;
+/* A weight: its name with the percentage under it, then the slider, which ends at the column every
+   control in Settings ends at. */
+.topic-weight {
+  flex-wrap: nowrap;
 }
 
 .topic-weight > .settings-range {
@@ -112,16 +114,17 @@
   }
 }
 
-/* A group's weights: one row per judge topic it gathers. On a phone the name takes its own line
-   and the slider the line below, so a long name never squeezes the slider. */
+/* A group's weights: one row per judge topic it gathers, each as tall as a value row. On a phone the
+   name and its percentage take a line and the slider the line below, close under them, so a long
+   name never squeezes the slider. */
 .topic-weights .topic-weight {
   flex-wrap: wrap;
   row-gap: 0;
+  padding-block: var(--space-2);
 }
 
-.topic-weights .topic-weight > .settings-label {
+.topic-weights .topic-weight > .settings-text {
   flex-basis: 100%;
-  padding-block-start: var(--space-2);
 }
 
 @media (min-width: 40rem) {
@@ -129,19 +132,13 @@
     flex-wrap: nowrap;
   }
 
-  .topic-weights .topic-weight > .settings-label {
-    flex-basis: auto;
-    padding-block-start: 0;
+  .topic-weights .topic-weight > .settings-text {
+    flex-basis: 0;
   }
 }
 
 .topic-percent {
-  flex: none;
-  min-width: 4ch;
-  color: var(--color-on-surface-muted);
-  font-size: var(--font-size-label);
   font-variant-numeric: tabular-nums;
-  text-align: end;
 }
 
 /* A topic that is off keeps its slider, set where it was, and shows it as unused. */
@@ -234,14 +231,14 @@
   position: relative;
   isolation: isolate;
   display: grid;
-  grid-template-columns: minmax(0, 1fr) auto auto;
+  grid-template-columns: minmax(0, 1fr) auto;
   align-items: center;
   column-gap: var(--space-2);
   min-height: var(--source-row);
   border-radius: var(--radius-md);
 }
 
-/* The row's own button, behind everything: a press anywhere but the name and the checkbox opens the
+/* The row's own button, behind everything: a press anywhere but the checkbox opens the
    source to edit. It reaches a little past the row's start, so its state layer has room around the
    tile, and its words never scale on a press: pressing shows on its fill. */
 .source-edit {
@@ -268,15 +265,15 @@
   background: color-mix(in oklch, var(--color-on-surface) var(--state-press), transparent);
 }
 
-/* What the row shows sits over its button and lets a press through to it, all but the name's link
-   and the checkbox, which are presses of their own. */
+/* What the row shows sits over its button and lets a press through to it, all but the checkbox,
+   which is a press of its own. */
 .source-row > :not(.source-edit) {
   position: relative;
   z-index: var(--z-raised);
   pointer-events: none;
 }
 
-.source-row :is(a.source-name, .source-check) {
+.source-row .source-check {
   pointer-events: auto;
 }
 
@@ -289,47 +286,12 @@
   min-height: var(--source-row);
 }
 
-/* The name is the way to the site: the row's words, underlined only under the pointer or the keys,
-   so a list of links still reads as a list of names. */
-/* The link's box reaches 44px tall around its line, so the name is a full touch target, and the
-   negative margin takes the extra back, so the row does not move. */
-a.source-name {
-  /* A hairline more than half the difference, so rounding never leaves it a fraction short. */
-  --name-reach: calc(
-    (
-      var(--size-touch) -
-      var(--font-size-body) *
-      var(--font-leading-label) +
-      var(--stroke-hairline)
-    ) /
-    2
-  );
-  margin-block: calc(var(--name-reach) * -1);
-  padding-block: var(--name-reach);
-  color: inherit;
-  text-decoration: none;
-  text-underline-offset: 0.2em;
-  text-decoration-thickness: var(--stroke-hairline);
-  border-radius: var(--radius-xs);
-}
-
-@media (hover: hover) and (pointer: fine) {
-  a.source-name:hover {
-    color: var(--color-accent);
-    text-decoration-line: underline;
-  }
-}
-
-a.source-name:focus-visible {
-  outline: var(--stroke-ring) solid var(--color-focus-ring);
-  outline-offset: var(--stroke-ring-gap);
-  text-decoration-line: underline;
-}
-
 /* The site's tile: the name's first letter, and the site's icon over it once that has loaded. A
-   transparent icon is drawn over a sunken surface of its own. */
+   transparent icon is drawn over a sunken surface of its own. It keeps its size however long the
+   name beside it is. */
 .source-icon {
   position: relative;
+  flex: none;
   display: grid;
   place-items: center;
   width: var(--space-6);
@@ -369,11 +331,31 @@ a.source-name:focus-visible {
   opacity: 1;
 }
 
+/* The name, and under it the site and the score's word: "studio-notes.example · Excellent". */
 .source-text {
   display: flex;
-  align-items: baseline;
-  gap: var(--space-3);
+  flex-direction: column;
   min-width: 0;
+}
+
+.source-meta {
+  display: flex;
+  align-items: baseline;
+  min-width: 0;
+  color: var(--color-on-surface-muted);
+  font-size: var(--font-size-label);
+  line-height: var(--font-leading-caption);
+  white-space: nowrap;
+}
+
+.source-meta > .source-host {
+  display: block;
+  flex: 0 1 auto;
+}
+
+.source-meta > .source-host:not(:empty) + .score::before {
+  content: "\00b7" / "";
+  margin-inline: var(--space-1);
 }
 
 .source-name {
@@ -402,13 +384,7 @@ a.source-name:focus-visible {
 }
 
 /* A row just added says how its save goes under its name, on lines of its own, so neither the name
-   nor "Added. It appears after the next build." is cut short. */
-.source-text:has(> .source-note) {
-  flex-direction: column;
-  align-items: flex-start;
-  gap: 0;
-}
-
+   nor the note is cut short. */
 .source-note {
   white-space: normal;
 }
@@ -472,14 +448,14 @@ a.source-name:focus-visible {
 }
 
 /* An unticked source is off: it keeps its place and its score, quieter, and still readable (4.5:1):
-   the name in the muted ink at the regular weight, the score's number muted, and the decoration
-   (the tile and the pips) faded, as nothing reads it. The empty box says off in a shape. */
-.source-row:has(.source-check input:not(:checked)) :is(.source-name, .score-num) {
+   the name in the muted ink at the regular weight, and the tile faded, as nothing reads it. The
+   empty box says off in a shape. */
+.source-row:has(.source-check input:not(:checked)) .source-name {
   color: var(--color-on-surface-muted);
   font-weight: var(--font-weight-regular);
 }
 
-.source-row:has(.source-check input:not(:checked)) :is(.source-icon, .pips) {
+.source-row:has(.source-check input:not(:checked)) .source-icon {
   opacity: var(--opacity-disabled);
 }
 
@@ -505,70 +481,23 @@ a.source-name:focus-visible {
 
 /* ------------------------------------------------------------------ the score */
 
+/* One word in the muted ink: Excellent, Good, Fair, Poor, or "Not scored yet" for a new source. */
 .score {
-  --star-on: var(--color-accent);
-  --star-off: var(--color-track-strong);
-  display: inline-flex;
-  align-items: center;
-  gap: var(--space-2);
+  flex: none;
   color: var(--color-on-surface-muted);
   font-size: var(--font-size-label);
   line-height: var(--font-leading-caption);
   white-space: nowrap;
 }
 
-/* A phone keeps the row to one line: only a word that flags a source (Poor, New) stays beside the number. */
-@media (width < 40rem) {
-  .source-row .score:not([data-label="Poor"], [data-label="New"]) .score-label {
-    display: none;
-  }
-}
-
-.score-num {
-  color: var(--color-on-surface);
-  font-variant-numeric: tabular-nums;
-  font-weight: var(--font-weight-medium);
-}
-
-/* Three pips: a mask of one rounded bar and its gap, repeated, behind a fill that stops at the
-   score out of 3. */
-.pips {
-  --pip: 0.75rem;
-  flex: none;
-  width: calc(var(--pip) * 3);
-  height: calc(var(--pip) / 2);
-  background: linear-gradient(
-    90deg,
-    var(--star-on) calc(var(--score, 0) / 3 * 100%),
-    var(--star-off) calc(var(--score, 0) / 3 * 100%)
-  );
-  -webkit-mask:
-    url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 12'%3E%3Crect width='20' height='12' rx='6'/%3E%3C/svg%3E")
-    0 0 / var(--pip) calc(var(--pip) / 2) repeat-x;
-  mask:
-    url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 12'%3E%3Crect width='20' height='12' rx='6'/%3E%3C/svg%3E")
-    0 0 / var(--pip) calc(var(--pip) / 2) repeat-x;
-}
-
-/* Poor is told apart by its word, and by the pips' colour: never by colour alone. */
+/* Poor is told apart by its word and its weight as well as its colour. */
 .score[data-label="Poor"] {
-  --star-on: var(--color-danger);
-}
-
-.score[data-label="Poor"] .score-label {
   color: var(--color-danger);
   font-weight: var(--font-weight-medium);
 }
 
 @media (forced-colors: active) {
-  .pips {
-    forced-color-adjust: none;
-    --star-on: Highlight;
-    --star-off: GrayText;
-  }
-
-  .score[data-label="Poor"] .score-label {
-    border: var(--stroke-hairline) solid CanvasText;
+  .score[data-label="Poor"] {
     color: CanvasText;
   }
 }
@@ -672,12 +601,13 @@ a.source-name:focus-visible {
   gap: var(--space-1);
 }
 
+/* Their labels wear the fields' labels above them (manage.css .manage-field > label). */
 .edit-address-label,
 .score-breakdown-head {
-  color: var(--color-on-surface-muted);
-  font-size: var(--font-size-label);
+  margin: 0;
+  font-size: var(--font-size-body);
   font-weight: var(--font-weight-medium);
-  line-height: var(--font-leading-caption);
+  line-height: var(--font-leading-label);
 }
 
 .edit-address-link {
@@ -701,8 +631,8 @@ a.source-name:focus-visible {
   display: grid;
   gap: var(--space-2);
   padding: var(--space-4);
-  border: var(--stroke-hairline) solid var(--color-border-hairline);
   border-radius: var(--radius-lg);
+  background: var(--color-surface-container);
 }
 
 .score-breakdown-total {
@@ -764,15 +694,16 @@ a.source-name:focus-visible {
   display: none;
 }
 
-/* The card, the skeleton and the message share one height, so the panel does not move as they swap. */
+/* The card and the skeleton share one height, so the panel does not move as they swap: a tonal
+   surface, as the score breakdown is. A lookup that fails says so under the address field. */
 .source-card {
   display: grid;
   grid-template-rows: auto auto 1fr;
   gap: var(--space-4);
   min-height: 14rem;
   padding: var(--space-4);
-  border: var(--stroke-hairline) solid var(--color-border-hairline);
   border-radius: var(--radius-lg);
+  background: var(--color-surface-container);
 }
 
 .source-card-head {
@@ -850,17 +781,6 @@ a.source-name:focus-visible {
   margin: 0;
   color: var(--color-on-surface);
   overflow-wrap: anywhere;
-}
-
-/* An address or an error that has no card: one sentence in the card's frame. */
-.source-card[data-kind="error"] {
-  grid-template-rows: auto;
-  align-content: start;
-  color: var(--color-danger);
-}
-
-.source-card[data-kind="error"] .manage-error {
-  font-size: var(--font-size-label);
 }
 
 .skeleton-bar {
@@ -972,8 +892,9 @@ a.source-name:focus-visible {
   place-items: center;
   width: var(--size-touch);
   height: var(--size-touch);
-  /* Its centre lines up with the checkboxes' column in the list above. */
-  margin-inline-end: calc(var(--space-3) * -1);
+  /* The disc's edge meets the checkboxes' edge in the list above; the 44px target reaches into the
+     gutter by the disc's inset. */
+  margin-inline-end: calc(var(--space-1) * -1);
   border-radius: var(--radius-round);
   color: var(--color-on-accent-container);
 }

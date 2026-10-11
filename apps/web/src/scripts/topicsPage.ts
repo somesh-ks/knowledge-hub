@@ -47,7 +47,7 @@ function mount(root: HTMLElement): void {
       const percent = `${Math.round(Number(target.value) * 100)}%`;
       target.style.setProperty("--range-fill", `${Number(target.value) * 100}%`);
       target.setAttribute("aria-valuetext", percent);
-      const output = target.nextElementSibling;
+      const output = target.closest(".topic-weight")?.querySelector("[data-word]");
       if (output) output.textContent = percent;
     }
     forward(event);

@@ -481,10 +481,6 @@ html:has(.manage-bar:popover-open) {
   content: none;
 }
 
-.manage .rows > * + * {
-  margin-block-start: var(--space-1);
-}
-
 .manage-row .manage-text {
   grid-template-columns: minmax(0, 1fr);
 }

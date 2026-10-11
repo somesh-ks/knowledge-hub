@@ -23,7 +23,7 @@ import type {
   TopicEdit,
   TopicFacts,
 } from "./topicsPanel";
-import { bandOf, element, iconNode, scoreNode } from "./topicsView";
+import { bandOf, element, iconNode } from "./topicsView";
 
 type Control = HTMLInputElement;
 
@@ -192,11 +192,8 @@ export function mountEditor(root: HTMLElement): Editor {
     const note = element("span", "source-note", "Adding");
     label.append(element("span", "source-name", shown.name), note);
     main.append(iconNode(shown.icon, shown.name), label);
-    row.append(
-      main,
-      scoreNode(shown.score ?? null, shown.label ?? "New"),
-      element("span", "source-slot"),
-    );
+    // Its second line says how the save goes; the score joins it once the build lists the source.
+    row.append(main, element("span", "source-slot"));
     const topic = [...root.querySelectorAll<HTMLElement>(".topic")].find(
       (item) => item.dataset.id === topicId,
     );

@@ -200,7 +200,7 @@ const facts = topic && {
             weightRows.length > 1 && (
               <section class="topic-weights" aria-labelledby="weights-head">
                 <h2 class="section-head" id="weights-head">Weights</h2>
-                <p class="manage-quiet">How much each part of {name} counts when a briefing is chosen.</p>
+                <p class="manage-quiet">How much each part of {name} counts when stories are picked.</p>
                 <div class="rows topic-controls">
                   {weightRows.map((row) => <WeightRow {...row} />)}
                 </div>
@@ -214,8 +214,6 @@ const facts = topic && {
             {list.map((source) => <SourceRow source={source} topicName={topic?.name ?? ""} shownTopic={shown} />)}
           </ul>
           <p class="manage-quiet topic-empty">No sources yet.</p>
-          {/* What a source's name says once it is read out: it is a link that leaves the app. */}
-          <span id="source-new-tab" hidden>Opens the site in a new tab</span>
           {
             (topic === null || editable) && (
               <button
