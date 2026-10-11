@@ -41,8 +41,10 @@ html:not([data-fab]) {
   --page-end: var(--space-12);
 }
 
-/* Where the floating Create button shows, focus stops above it too. */
-@media not all and (min-width: 64rem) {
+/* Where the floating Create button covers the column, focus stops above it too. From 40rem it sits
+   beside the column, and its room would leave a phone on its side a band shorter than a card, so a
+   focused card ended partly under the bars. */
+@media not all and (min-width: 40rem) {
   html[data-fab] {
     scroll-padding-block-end: calc(
       var(--bottom-nav-height) +
