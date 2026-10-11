@@ -20,8 +20,19 @@ export function installCreateEntry(): void {
         event.shiftKey ||
         event.altKey
       );
-      // Without the template (the Create page itself) the link does what a link does.
-      if (!trigger || !plain || !document.getElementById("create-sheet-template")) return;
+      if (!trigger || !plain) return;
+      // On the Create page itself there is no sheet: the form is the page. New episode then takes
+      // the person to the form's first control (navigation.ts brings the page to its top), so the
+      // press is never a link to the page already on screen that does nothing.
+      if (!document.getElementById("create-sheet-template")) {
+        const first = document.querySelector<HTMLElement>(
+          "main [data-create-form] :is(input, select, textarea, button)",
+        );
+        if (!first) return;
+        event.preventDefault();
+        first.focus({ preventScroll: true });
+        return;
+      }
       event.preventDefault();
       void open(trigger);
       // Captured, so it runs before the router's own click handler, which skips a prevented click.

@@ -105,6 +105,49 @@ test.describe("keyboard", () => {
     expect(checked).toBeGreaterThan(20);
   });
 
+  test("a side column item's ring has the pill's round ends", async ({ page }) => {
+    await page.goto("/library");
+    const item = page.locator(".app-nav-item", { hasText: "Settings" });
+    await item.focus();
+    await page.keyboard.press("Shift+Tab");
+    await page.keyboard.press("Tab");
+    await expect(item).toBeFocused();
+    const ring = await item.evaluate((node) => {
+      const style = getComputedStyle(node);
+      return {
+        radius: Number.parseFloat(style.borderTopLeftRadius),
+        height: node.getBoundingClientRect().height,
+        line: style.outlineStyle,
+      };
+    });
+    expect(ring.line).toBe("solid");
+    expect(ring.radius).toBeGreaterThanOrEqual(ring.height / 2);
+  });
+
+  test("the bottom bar rings the 64x32 indicator, not the whole cell", async ({ page }) => {
+    await page.setViewportSize({ width: 820, height: 1180 });
+    await page.goto("/library");
+    const item = page.locator(".app-nav-item", { hasText: "Settings" });
+    await item.focus();
+    await page.keyboard.press("Shift+Tab");
+    await page.keyboard.press("Tab");
+    await expect(item).toBeFocused();
+    const ring = await item.evaluate((node) => {
+      const pill = node.querySelector(".app-nav-indicator") as HTMLElement;
+      const box = pill.getBoundingClientRect();
+      return {
+        item: getComputedStyle(node).outlineStyle,
+        pill: getComputedStyle(pill).outlineStyle,
+        width: getComputedStyle(pill).outlineWidth,
+        size: [Math.round(box.width), Math.round(box.height)],
+      };
+    });
+    expect(ring.item).toBe("none");
+    expect(ring.pill).toBe("solid");
+    expect(ring.width).toBe("2px");
+    expect(ring.size).toEqual([64, 32]);
+  });
+
   test("a focus ring in the contents list is not clipped by the list's own edge", async ({
     page,
   }) => {

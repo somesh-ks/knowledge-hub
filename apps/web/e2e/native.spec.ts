@@ -223,7 +223,7 @@ test.describe("the floating button", () => {
     }
   });
 
-  test("on the Create page, New episode goes to the top and keeps what is typed", async ({
+  test("on the Create page, New episode goes to the top, focuses the form and keeps what is typed", async ({
     page,
   }, info) => {
     test.skip(info.project.name !== "desktop", "the side column is for wide screens");
@@ -241,6 +241,8 @@ test.describe("the floating button", () => {
     await page.locator(".app-nav-create").click();
     await expect.poll(() => page.evaluate(() => window.scrollY)).toBe(0);
     await expect(page).toHaveURL(/\/create$/);
+    // Not a link to the page on screen that does nothing: it takes you to the form's first control.
+    await expect(page.locator('main input[name="topic"]').first()).toBeFocused();
     await expect(title).toHaveValue("My week in AI");
     expect(await page.evaluate(() => (window as unknown as { kept?: boolean }).kept)).toBe(true);
   });
