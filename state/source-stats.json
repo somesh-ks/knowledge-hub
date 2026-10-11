@@ -2,791 +2,1053 @@
   "version": 1,
   "sources": {
     "9to5google": {
-      "fetched": 21,
-      "judged": 1,
-      "passed": 1,
-      "published": 0,
-      "window_start": "2026-10-09"
-    },
-    "9to5mac": {
-      "fetched": 48,
+      "asked": 2,
+      "fetched": 119,
+      "flagged": 0,
       "judged": 3,
       "passed": 2,
       "published": 0,
       "window_start": "2026-10-09"
     },
-    "abc-news": {
-      "fetched": 25,
-      "judged": 2,
-      "passed": 1,
+    "9to5mac": {
+      "asked": 7,
+      "fetched": 171,
+      "flagged": 2,
+      "judged": 10,
+      "passed": 6,
       "published": 0,
       "window_start": "2026-10-09"
     },
-    "adam-wathan": {
+    "abc-news": {
+      "asked": 0,
+      "fetched": 65,
+      "flagged": 0,
+      "judged": 7,
+      "passed": 2,
+      "published": 1,
+      "window_start": "2026-10-09"
+    },
+    "acm-pacmhci": {
+      "asked": 0,
       "fetched": 0,
+      "flagged": 0,
+      "judged": 0,
+      "passed": 0,
+      "published": 0,
+      "window_start": "2026-10-11"
+    },
+    "acm-tochi": {
+      "asked": 0,
+      "fetched": 1,
+      "flagged": 0,
+      "judged": 0,
+      "passed": 0,
+      "published": 0,
+      "window_start": "2026-10-11"
+    },
+    "adam-wathan": {
+      "asked": 0,
+      "fetched": 0,
+      "flagged": 0,
       "judged": 0,
       "passed": 0,
       "published": 0,
       "window_start": "2026-10-09"
     },
-    "al-jazeera": {
-      "fetched": 25,
-      "judged": 3,
-      "passed": 1,
+    "ahead-of-ai": {
+      "asked": 0,
+      "fetched": 0,
+      "flagged": 0,
+      "judged": 0,
+      "passed": 0,
       "published": 0,
+      "window_start": "2026-10-11"
+    },
+    "al-jazeera": {
+      "asked": 0,
+      "fetched": 75,
+      "flagged": 0,
+      "judged": 8,
+      "passed": 4,
+      "published": 1,
       "window_start": "2026-10-09"
     },
     "android-authority": {
-      "fetched": 80,
-      "judged": 5,
+      "asked": 12,
+      "fetched": 195,
+      "flagged": 8,
+      "judged": 17,
       "passed": 3,
       "published": 1,
       "window_start": "2026-10-09"
     },
     "andy-bell": {
+      "asked": 0,
       "fetched": 0,
+      "flagged": 0,
       "judged": 0,
       "passed": 0,
       "published": 0,
       "window_start": "2026-10-09"
     },
     "anthropic-blog": {
-      "fetched": 1,
+      "asked": 0,
+      "fetched": 3,
+      "flagged": 0,
       "judged": 0,
       "passed": 0,
       "published": 0,
       "window_start": "2026-10-09"
     },
     "ark-ui": {
-      "fetched": 0,
+      "asked": 0,
+      "fetched": 8,
+      "flagged": 0,
       "judged": 0,
       "passed": 0,
       "published": 0,
       "window_start": "2026-10-09"
     },
     "ars-technica": {
-      "fetched": 20,
-      "judged": 2,
+      "asked": 2,
+      "fetched": 53,
+      "flagged": 0,
+      "judged": 4,
       "passed": 1,
       "published": 0,
       "window_start": "2026-10-09"
     },
     "arxiv-cs-hc": {
-      "fetched": 29,
-      "judged": 1,
-      "passed": 1,
-      "published": 0,
+      "asked": 1,
+      "fetched": 129,
+      "flagged": 0,
+      "judged": 2,
+      "passed": 2,
+      "published": 1,
       "window_start": "2026-10-09"
     },
     "assistant-ui": {
-      "fetched": 0,
-      "judged": 0,
-      "passed": 0,
-      "published": 0,
+      "asked": 7,
+      "fetched": 20,
+      "flagged": 0,
+      "judged": 7,
+      "passed": 7,
+      "published": 1,
       "window_start": "2026-10-09"
     },
     "astro": {
-      "fetched": 9,
+      "asked": 0,
+      "fetched": 19,
+      "flagged": 0,
       "judged": 0,
       "passed": 0,
       "published": 0,
       "window_start": "2026-10-09"
     },
     "astro-blog": {
+      "asked": 0,
       "fetched": 0,
+      "flagged": 0,
       "judged": 0,
       "passed": 0,
       "published": 0,
       "window_start": "2026-10-09"
     },
     "aux-first": {
+      "asked": 0,
       "fetched": 0,
+      "flagged": 0,
       "judged": 0,
       "passed": 0,
       "published": 0,
       "window_start": "2026-10-09"
     },
     "base-ui": {
-      "fetched": 1,
+      "asked": 0,
+      "fetched": 2,
+      "flagged": 0,
       "judged": 1,
       "passed": 1,
       "published": 0,
       "window_start": "2026-10-09"
     },
     "better-stack-blog": {
-      "fetched": 1,
+      "asked": 0,
+      "fetched": 3,
+      "flagged": 0,
       "judged": 0,
       "passed": 0,
       "published": 0,
       "window_start": "2026-10-09"
     },
     "beyond-the-screen": {
-      "fetched": 1,
+      "asked": 0,
+      "fetched": 3,
+      "flagged": 0,
       "judged": 0,
       "passed": 0,
       "published": 0,
       "window_start": "2026-10-09"
     },
     "brutalist-report": {
-      "fetched": 3,
+      "asked": 0,
+      "fetched": 9,
+      "flagged": 0,
       "judged": 0,
       "passed": 0,
       "published": 0,
       "window_start": "2026-10-09"
     },
     "bun-blog": {
-      "fetched": 0,
+      "asked": 0,
+      "fetched": 2,
+      "flagged": 0,
       "judged": 0,
       "passed": 0,
       "published": 0,
       "window_start": "2026-10-09"
     },
     "bytes": {
-      "fetched": 3,
+      "asked": 0,
+      "fetched": 9,
+      "flagged": 0,
       "judged": 0,
       "passed": 0,
       "published": 0,
       "window_start": "2026-10-09"
     },
     "cbs-news": {
-      "fetched": 30,
-      "judged": 4,
-      "passed": 1,
-      "published": 0,
+      "asked": 0,
+      "fetched": 89,
+      "flagged": 0,
+      "judged": 13,
+      "passed": 6,
+      "published": 1,
       "window_start": "2026-10-09"
     },
     "cloudflare-blog": {
-      "fetched": 2,
+      "asked": 0,
+      "fetched": 13,
+      "flagged": 0,
       "judged": 0,
       "passed": 0,
       "published": 0,
       "window_start": "2026-10-09"
     },
     "codrops": {
-      "fetched": 3,
+      "asked": 0,
+      "fetched": 9,
+      "flagged": 0,
       "judged": 0,
       "passed": 0,
       "published": 0,
       "window_start": "2026-10-09"
     },
     "cohere-blog": {
-      "fetched": 3,
+      "asked": 0,
+      "fetched": 9,
+      "flagged": 0,
       "judged": 0,
       "passed": 0,
       "published": 0,
       "window_start": "2026-10-09"
     },
     "console-dev": {
-      "fetched": 7,
+      "asked": 0,
+      "fetched": 14,
+      "flagged": 0,
       "judged": 0,
       "passed": 0,
       "published": 0,
       "window_start": "2026-10-09"
     },
     "creative-bloq": {
-      "fetched": 25,
-      "judged": 6,
-      "passed": 0,
+      "asked": 11,
+      "fetched": 64,
+      "flagged": 6,
+      "judged": 17,
+      "passed": 1,
       "published": 0,
       "window_start": "2026-10-09"
     },
     "creative-boom": {
-      "fetched": 5,
-      "judged": 5,
-      "passed": 0,
-      "published": 0,
+      "asked": 5,
+      "fetched": 20,
+      "flagged": 1,
+      "judged": 10,
+      "passed": 2,
+      "published": 1,
       "window_start": "2026-10-09"
     },
     "css-tricks": {
+      "asked": 0,
       "fetched": 0,
+      "flagged": 0,
       "judged": 0,
       "passed": 0,
       "published": 0,
       "window_start": "2026-10-09"
     },
     "css-weekly": {
+      "asked": 0,
       "fetched": 0,
+      "flagged": 0,
       "judged": 0,
       "passed": 0,
       "published": 0,
       "window_start": "2026-10-09"
     },
     "dan-abramov": {
+      "asked": 0,
       "fetched": 0,
+      "flagged": 0,
       "judged": 0,
       "passed": 0,
       "published": 0,
       "window_start": "2026-10-09"
     },
     "darkroom-engineering": {
-      "fetched": 1,
+      "asked": 0,
+      "fetched": 3,
+      "flagged": 0,
       "judged": 0,
       "passed": 0,
       "published": 0,
       "window_start": "2026-10-09"
     },
     "deepmind-blog": {
-      "fetched": 0,
+      "asked": 0,
+      "fetched": 1,
+      "flagged": 0,
       "judged": 0,
       "passed": 0,
       "published": 0,
       "window_start": "2026-10-09"
     },
     "deno-blog": {
-      "fetched": 0,
+      "asked": 0,
+      "fetched": 2,
+      "flagged": 0,
       "judged": 0,
       "passed": 0,
       "published": 0,
       "window_start": "2026-10-09"
     },
     "design-observer": {
-      "fetched": 2,
-      "judged": 2,
+      "asked": 6,
+      "fetched": 10,
+      "flagged": 0,
+      "judged": 8,
       "passed": 0,
       "published": 0,
       "window_start": "2026-10-09"
     },
     "electrek": {
-      "fetched": 29,
+      "asked": 0,
+      "fetched": 117,
+      "flagged": 0,
       "judged": 0,
       "passed": 0,
       "published": 0,
       "window_start": "2026-10-09"
     },
     "emil-kowalski": {
-      "fetched": 3,
+      "asked": 0,
+      "fetched": 9,
+      "flagged": 0,
       "judged": 0,
       "passed": 0,
       "published": 0,
       "window_start": "2026-10-09"
     },
     "engadget": {
-      "fetched": 20,
-      "judged": 3,
-      "passed": 1,
+      "asked": 1,
+      "fetched": 60,
+      "flagged": 0,
+      "judged": 4,
+      "passed": 2,
       "published": 0,
       "window_start": "2026-10-09"
     },
     "exa-discovery": {
-      "fetched": 78,
-      "judged": 5,
-      "passed": 5,
-      "published": 2,
+      "asked": 14,
+      "fetched": 277,
+      "flagged": 0,
+      "judged": 19,
+      "passed": 18,
+      "published": 6,
       "window_start": "2026-10-09"
     },
     "figma-release-notes": {
-      "fetched": 0,
+      "asked": 0,
+      "fetched": 2,
+      "flagged": 0,
       "judged": 0,
       "passed": 0,
       "published": 0,
       "window_start": "2026-10-09"
     },
     "fireship": {
-      "fetched": 1,
+      "asked": 0,
+      "fetched": 3,
+      "flagged": 0,
       "judged": 0,
       "passed": 0,
       "published": 0,
       "window_start": "2026-10-09"
     },
     "france-24": {
-      "fetched": 24,
+      "asked": 0,
+      "fetched": 72,
+      "flagged": 0,
       "judged": 1,
       "passed": 1,
       "published": 0,
       "window_start": "2026-10-09"
     },
     "friday-checkout": {
-      "fetched": 0,
+      "asked": 0,
+      "fetched": 2,
+      "flagged": 0,
       "judged": 0,
       "passed": 0,
       "published": 0,
       "window_start": "2026-10-09"
     },
     "frontend-focus": {
-      "fetched": 0,
+      "asked": 0,
+      "fetched": 1,
+      "flagged": 0,
       "judged": 0,
       "passed": 0,
       "published": 0,
       "window_start": "2026-10-09"
     },
     "github-engineering": {
-      "fetched": 2,
+      "asked": 0,
+      "fetched": 8,
+      "flagged": 0,
       "judged": 0,
       "passed": 0,
       "published": 0,
       "window_start": "2026-10-09"
     },
     "gsmarena": {
-      "fetched": 20,
-      "judged": 1,
-      "passed": 1,
-      "published": 0,
+      "asked": 4,
+      "fetched": 60,
+      "flagged": 2,
+      "judged": 5,
+      "passed": 3,
+      "published": 1,
       "window_start": "2026-10-09"
     },
     "headless-ui": {
+      "asked": 0,
       "fetched": 0,
+      "flagged": 0,
       "judged": 0,
       "passed": 0,
       "published": 0,
       "window_start": "2026-10-09"
     },
     "heydesigner": {
-      "fetched": 1,
+      "asked": 0,
+      "fetched": 7,
+      "flagged": 0,
       "judged": 0,
       "passed": 0,
       "published": 0,
       "window_start": "2026-10-09"
     },
     "hn-show": {
-      "fetched": 12,
-      "judged": 4,
-      "passed": 0,
-      "published": 0,
+      "asked": 9,
+      "fetched": 50,
+      "flagged": 2,
+      "judged": 13,
+      "passed": 6,
+      "published": 2,
       "window_start": "2026-10-09"
     },
     "hugging-face-blog": {
-      "fetched": 4,
+      "asked": 0,
+      "fetched": 10,
+      "flagged": 0,
       "judged": 0,
       "passed": 0,
       "published": 0,
       "window_start": "2026-10-09"
     },
     "hyperplexed": {
+      "asked": 0,
       "fetched": 0,
+      "flagged": 0,
       "judged": 0,
       "passed": 0,
       "published": 0,
       "window_start": "2026-10-09"
     },
     "import-ai": {
+      "asked": 0,
       "fetched": 0,
+      "flagged": 0,
       "judged": 0,
       "passed": 0,
       "published": 0,
       "window_start": "2026-10-09"
     },
     "javascript-weekly": {
-      "fetched": 0,
+      "asked": 0,
+      "fetched": 1,
+      "flagged": 0,
       "judged": 0,
       "passed": 0,
       "published": 0,
       "window_start": "2026-10-09"
     },
     "jhey-tompkins": {
-      "fetched": 1,
+      "asked": 0,
+      "fetched": 3,
+      "flagged": 0,
       "judged": 0,
       "passed": 0,
       "published": 0,
       "window_start": "2026-10-09"
     },
     "josh-w-comeau": {
+      "asked": 0,
       "fetched": 0,
+      "flagged": 0,
       "judged": 0,
       "passed": 0,
       "published": 0,
       "window_start": "2026-10-09"
     },
     "kent-c-dodds": {
+      "asked": 0,
       "fetched": 0,
+      "flagged": 0,
       "judged": 0,
       "passed": 0,
       "published": 0,
       "window_start": "2026-10-09"
     },
     "kevin-powell": {
-      "fetched": 1,
+      "asked": 0,
+      "fetched": 2,
+      "flagged": 0,
       "judged": 0,
       "passed": 0,
       "published": 0,
       "window_start": "2026-10-09"
     },
     "last-week-in-ai": {
-      "fetched": 1,
+      "asked": 0,
+      "fetched": 2,
+      "flagged": 0,
       "judged": 0,
       "passed": 0,
       "published": 0,
       "window_start": "2026-10-09"
     },
     "lee-robinson": {
-      "fetched": 3,
+      "asked": 0,
+      "fetched": 9,
+      "flagged": 0,
       "judged": 0,
       "passed": 0,
       "published": 0,
       "window_start": "2026-10-09"
     },
     "lenis": {
+      "asked": 0,
       "fetched": 0,
+      "flagged": 0,
       "judged": 0,
       "passed": 0,
       "published": 0,
       "window_start": "2026-10-09"
     },
     "linear-blog": {
+      "asked": 0,
       "fetched": 0,
+      "flagged": 0,
       "judged": 0,
       "passed": 0,
       "published": 0,
       "window_start": "2026-10-09"
     },
     "lobsters": {
-      "fetched": 25,
+      "asked": 0,
+      "fetched": 74,
+      "flagged": 0,
       "judged": 0,
       "passed": 0,
       "published": 0,
       "window_start": "2026-10-09"
     },
     "material-design-blog": {
-      "fetched": 1,
+      "asked": 0,
+      "fetched": 3,
+      "flagged": 0,
       "judged": 0,
       "passed": 0,
       "published": 0,
       "window_start": "2026-10-09"
     },
     "melt-ui": {
+      "asked": 0,
       "fetched": 0,
+      "flagged": 0,
       "judged": 0,
       "passed": 0,
       "published": 0,
       "window_start": "2026-10-09"
     },
     "meta-ai-blog": {
+      "asked": 0,
       "fetched": 0,
+      "flagged": 0,
       "judged": 0,
       "passed": 0,
       "published": 0,
       "window_start": "2026-10-09"
     },
     "mistral-blog": {
-      "fetched": 0,
+      "asked": 0,
+      "fetched": 1,
+      "flagged": 0,
       "judged": 0,
       "passed": 0,
       "published": 0,
       "window_start": "2026-10-09"
     },
     "motion": {
-      "fetched": 0,
-      "judged": 0,
-      "passed": 0,
+      "asked": 2,
+      "fetched": 2,
+      "flagged": 0,
+      "judged": 2,
+      "passed": 2,
       "published": 0,
       "window_start": "2026-10-09"
     },
     "nextjs-blog": {
-      "fetched": 1,
+      "asked": 0,
+      "fetched": 3,
+      "flagged": 0,
       "judged": 0,
       "passed": 0,
       "published": 0,
       "window_start": "2026-10-09"
     },
     "nielsen-norman-group": {
-      "fetched": 0,
-      "judged": 0,
-      "passed": 0,
-      "published": 0,
+      "asked": 3,
+      "fetched": 4,
+      "flagged": 0,
+      "judged": 3,
+      "passed": 1,
+      "published": 1,
       "window_start": "2026-10-09"
     },
     "node-weekly": {
-      "fetched": 1,
+      "asked": 0,
+      "fetched": 2,
+      "flagged": 0,
       "judged": 0,
       "passed": 0,
       "published": 0,
       "window_start": "2026-10-09"
     },
     "npr-news": {
-      "fetched": 10,
+      "asked": 0,
+      "fetched": 30,
+      "flagged": 0,
       "judged": 0,
       "passed": 0,
       "published": 0,
       "window_start": "2026-10-09"
     },
     "nuxt-blog": {
-      "fetched": 0,
+      "asked": 0,
+      "fetched": 1,
+      "flagged": 0,
       "judged": 0,
       "passed": 0,
       "published": 0,
       "window_start": "2026-10-09"
     },
     "one-useful-thing": {
+      "asked": 0,
       "fetched": 0,
+      "flagged": 0,
       "judged": 0,
       "passed": 0,
       "published": 0,
       "window_start": "2026-10-09"
     },
     "openai-blog": {
-      "fetched": 6,
-      "judged": 6,
-      "passed": 1,
+      "asked": 6,
+      "fetched": 21,
+      "flagged": 2,
+      "judged": 12,
+      "passed": 2,
       "published": 0,
       "window_start": "2026-10-09"
     },
     "paco-coursey": {
+      "asked": 0,
       "fetched": 0,
+      "flagged": 0,
       "judged": 0,
       "passed": 0,
       "published": 0,
       "window_start": "2026-10-09"
     },
     "pbs-newshour": {
-      "fetched": 20,
+      "asked": 0,
+      "fetched": 60,
+      "flagged": 0,
       "judged": 0,
       "passed": 0,
       "published": 0,
       "window_start": "2026-10-09"
     },
     "product-hunt": {
-      "fetched": 27,
-      "judged": 0,
+      "asked": 2,
+      "fetched": 82,
+      "flagged": 2,
+      "judged": 2,
       "passed": 0,
       "published": 0,
       "window_start": "2026-10-09"
     },
     "radix-ui": {
+      "asked": 0,
       "fetched": 0,
+      "flagged": 0,
       "judged": 0,
       "passed": 0,
       "published": 0,
       "window_start": "2026-10-09"
     },
     "rauno-freiberg": {
-      "fetched": 1,
+      "asked": 0,
+      "fetched": 3,
+      "flagged": 0,
       "judged": 0,
       "passed": 0,
       "published": 0,
       "window_start": "2026-10-09"
     },
     "react-aria": {
-      "fetched": 10,
+      "asked": 0,
+      "fetched": 27,
+      "flagged": 0,
       "judged": 0,
       "passed": 0,
       "published": 0,
       "window_start": "2026-10-09"
     },
     "react-status": {
-      "fetched": 0,
+      "asked": 0,
+      "fetched": 1,
+      "flagged": 0,
       "judged": 0,
       "passed": 0,
       "published": 0,
       "window_start": "2026-10-09"
     },
     "remix-blog": {
+      "asked": 0,
       "fetched": 0,
+      "flagged": 0,
       "judged": 0,
       "passed": 0,
       "published": 0,
       "window_start": "2026-10-09"
     },
     "shadcn-changelog": {
+      "asked": 0,
       "fetched": 0,
+      "flagged": 0,
       "judged": 0,
       "passed": 0,
       "published": 0,
       "window_start": "2026-10-09"
     },
     "shadcn-ui": {
-      "fetched": 0,
+      "asked": 0,
+      "fetched": 6,
+      "flagged": 0,
       "judged": 0,
       "passed": 0,
       "published": 0,
       "window_start": "2026-10-09"
     },
     "sidebar-io": {
-      "fetched": 10,
+      "asked": 0,
+      "fetched": 30,
+      "flagged": 0,
       "judged": 0,
       "passed": 0,
       "published": 0,
       "window_start": "2026-10-09"
     },
     "simon-willison": {
-      "fetched": 6,
-      "judged": 6,
-      "passed": 2,
-      "published": 2,
+      "asked": 13,
+      "fetched": 37,
+      "flagged": 0,
+      "judged": 19,
+      "passed": 6,
+      "published": 4,
       "window_start": "2026-10-09"
     },
     "sky-news": {
-      "fetched": 7,
+      "asked": 0,
+      "fetched": 21,
+      "flagged": 0,
       "judged": 0,
       "passed": 0,
       "published": 0,
       "window_start": "2026-10-09"
     },
     "smashing-magazine": {
-      "fetched": 0,
+      "asked": 0,
+      "fetched": 1,
+      "flagged": 0,
       "judged": 0,
       "passed": 0,
       "published": 0,
       "window_start": "2026-10-09"
     },
     "sonner": {
+      "asked": 0,
       "fetched": 0,
+      "flagged": 0,
       "judged": 0,
       "passed": 0,
       "published": 0,
       "window_start": "2026-10-09"
     },
     "stability-ai-blog": {
+      "asked": 0,
       "fetched": 0,
+      "flagged": 0,
       "judged": 0,
       "passed": 0,
       "published": 0,
       "window_start": "2026-10-09"
     },
     "storybook-blog": {
+      "asked": 0,
       "fetched": 0,
+      "flagged": 0,
       "judged": 0,
       "passed": 0,
       "published": 0,
       "window_start": "2026-10-09"
     },
+    "stripe-engineering": {
+      "asked": 0,
+      "fetched": 0,
+      "flagged": 0,
+      "judged": 0,
+      "passed": 0,
+      "published": 0,
+      "window_start": "2026-10-11"
+    },
     "superhuman-ai": {
+      "asked": 0,
       "fetched": 3,
+      "flagged": 0,
       "judged": 0,
       "passed": 0,
       "published": 0,
       "window_start": "2026-10-09"
     },
     "svelte-blog": {
+      "asked": 0,
       "fetched": 0,
+      "flagged": 0,
       "judged": 0,
       "passed": 0,
       "published": 0,
       "window_start": "2026-10-09"
     },
     "tailwind-css-blog": {
+      "asked": 0,
       "fetched": 0,
+      "flagged": 0,
       "judged": 0,
       "passed": 0,
       "published": 0,
       "window_start": "2026-10-09"
     },
     "techcrunch": {
-      "fetched": 20,
-      "judged": 0,
+      "asked": 2,
+      "fetched": 60,
+      "flagged": 0,
+      "judged": 2,
       "passed": 0,
       "published": 0,
       "window_start": "2026-10-09"
     },
     "the-algorithm": {
-      "fetched": 4,
+      "asked": 0,
+      "fetched": 12,
+      "flagged": 0,
       "judged": 0,
       "passed": 0,
       "published": 0,
       "window_start": "2026-10-09"
     },
     "the-batch": {
+      "asked": 0,
       "fetched": 0,
+      "flagged": 0,
       "judged": 0,
       "passed": 0,
       "published": 0,
       "window_start": "2026-10-09"
     },
     "the-neuron": {
-      "fetched": 3,
+      "asked": 0,
+      "fetched": 10,
+      "flagged": 0,
       "judged": 1,
       "passed": 0,
       "published": 0,
       "window_start": "2026-10-09"
     },
     "the-rundown-ai": {
-      "fetched": 1,
+      "asked": 0,
+      "fetched": 11,
+      "flagged": 0,
       "judged": 0,
       "passed": 0,
       "published": 0,
       "window_start": "2026-10-09"
     },
     "the-verge": {
-      "fetched": 10,
-      "judged": 0,
+      "asked": 1,
+      "fetched": 30,
+      "flagged": 0,
+      "judged": 1,
       "passed": 0,
       "published": 0,
       "window_start": "2026-10-09"
     },
     "theo-t3gg": {
-      "fetched": 2,
+      "asked": 0,
+      "fetched": 8,
+      "flagged": 0,
       "judged": 0,
       "passed": 0,
       "published": 0,
       "window_start": "2026-10-09"
     },
     "this-week-in-react": {
+      "asked": 0,
       "fetched": 0,
+      "flagged": 0,
       "judged": 0,
       "passed": 0,
       "published": 0,
       "window_start": "2026-10-09"
     },
     "tldr": {
-      "fetched": 2,
+      "asked": 0,
+      "fetched": 7,
+      "flagged": 0,
       "judged": 0,
       "passed": 0,
       "published": 0,
       "window_start": "2026-10-09"
     },
     "tldr-ai": {
-      "fetched": 1,
+      "asked": 0,
+      "fetched": 6,
+      "flagged": 0,
       "judged": 0,
       "passed": 0,
       "published": 0,
       "window_start": "2026-10-09"
     },
     "toms-hardware": {
-      "fetched": 50,
-      "judged": 5,
+      "asked": 6,
+      "fetched": 121,
+      "flagged": 0,
+      "judged": 11,
       "passed": 3,
       "published": 2,
       "window_start": "2026-10-09"
     },
     "toools-newsletter": {
-      "fetched": 0,
+      "asked": 0,
+      "fetched": 2,
+      "flagged": 0,
       "judged": 0,
       "passed": 0,
       "published": 0,
       "window_start": "2026-10-09"
     },
     "typescript-weekly": {
+      "asked": 0,
       "fetched": 0,
+      "flagged": 0,
       "judged": 0,
       "passed": 0,
       "published": 0,
       "window_start": "2026-10-09"
     },
     "ui-things": {
-      "fetched": 1,
+      "asked": 0,
+      "fetched": 2,
+      "flagged": 0,
       "judged": 1,
       "passed": 0,
       "published": 0,
       "window_start": "2026-10-09"
     },
     "ux-collective": {
-      "fetched": 8,
-      "judged": 6,
-      "passed": 4,
-      "published": 2,
+      "asked": 4,
+      "fetched": 19,
+      "flagged": 0,
+      "judged": 10,
+      "passed": 8,
+      "published": 4,
       "window_start": "2026-10-09"
     },
     "vaul": {
+      "asked": 0,
       "fetched": 0,
+      "flagged": 0,
       "judged": 0,
       "passed": 0,
       "published": 0,
       "window_start": "2026-10-09"
     },
     "vercel-blog": {
-      "fetched": 6,
+      "asked": 0,
+      "fetched": 29,
+      "flagged": 0,
       "judged": 0,
       "passed": 0,
       "published": 0,
       "window_start": "2026-10-09"
     },
     "vite-blog": {
+      "asked": 0,
       "fetched": 0,
+      "flagged": 0,
       "judged": 0,
       "passed": 0,
       "published": 0,
       "window_start": "2026-10-09"
     },
     "xai-blog": {
-      "fetched": 0,
+      "asked": 0,
+      "fetched": 2,
+      "flagged": 0,
       "judged": 0,
       "passed": 0,
       "published": 0,
