@@ -47,6 +47,39 @@ test.describe("routes and headers", () => {
     await expect(page.getByRole("link", { name: "Back" })).toHaveCount(0);
   });
 
+  test("the offline banner shows once and clears when the connection returns", async ({ page }) => {
+    await page.goto("/");
+    // The browser's own signal, set by hand: no request fails, so nothing else is blamed.
+    const setOnline = (online: boolean) =>
+      page.evaluate((value) => {
+        Object.defineProperty(navigator, "onLine", { value, configurable: true });
+        window.dispatchEvent(new Event(value ? "online" : "offline"));
+      }, online);
+    await setOnline(false);
+    await expect(page.locator('[data-banner="offline"]')).toHaveCount(1);
+    await setOnline(false);
+    await expect(page.locator('[data-banner="offline"]')).toHaveCount(1);
+    await setOnline(true);
+    await expect(page.locator('[data-banner="offline"]')).toHaveCount(0);
+    await expect(page.locator("html")).not.toHaveAttribute("data-offline", "");
+  });
+
+  test("the app bar goes inert while slid away and returns on a scroll up", async ({
+    page,
+    isMobile,
+  }) => {
+    test.skip(!isMobile, "The app bar shows below 64rem");
+    await page.emulateMedia({ reducedMotion: "no-preference" });
+    await page.goto("/d/2026-10-05");
+    const bar = page.locator(".app-bar");
+    await page.mouse.wheel(0, 900);
+    await expect(page.locator("html")).toHaveAttribute("data-bar-hidden", "");
+    await expect(bar).toHaveJSProperty("inert", true);
+    await page.mouse.wheel(0, -200);
+    await expect(page.locator("html")).not.toHaveAttribute("data-bar-hidden", "");
+    await expect(bar).toHaveJSProperty("inert", false);
+  });
+
   test("the offline page says what still works and speaks once", async ({ page }) => {
     await page.goto("/offline");
     await expect(page.getByRole("heading", { level: 1 })).toHaveText("You are offline");

@@ -31,26 +31,30 @@ const { back } = Astro.props;
 </header>
 
 <script>
-  // Back goes where the person came from when that was inside the app (Astro numbers its history
-  // entries from 0 at the first page of the visit), and to the link's own address otherwise, so a
-  // shared link opened cold still leads somewhere.
   // The bar slides away on a scroll down and returns on a scroll up. Small movements are ignored so
-  // a thumb resting on the page does not make it flutter, and the bar always shows at the top.
+  // a thumb resting on the page does not make it flutter, and the bar always shows at the top. While
+  // it is away it is inert, so Tab and a screen reader never land on a control that cannot be seen;
+  // scrolling back up (which focusing something above brings about) returns it.
   const root = document.documentElement;
   const calm = matchMedia("(prefers-reduced-motion: reduce)");
   let last = 0;
   let queued = false;
+  function setHidden(hidden: boolean): void {
+    root.toggleAttribute("data-bar-hidden", hidden);
+    const bar = document.querySelector<HTMLElement>(".app-bar");
+    if (bar) bar.inert = hidden;
+  }
   function sync(): void {
     queued = false;
     const y = Math.max(0, scrollY);
     const delta = y - last;
     if (y < 64 || calm.matches) {
-      root.removeAttribute("data-bar-hidden");
+      setHidden(false);
       last = y;
     } else if (Math.abs(delta) > 12) {
       const bar = document.querySelector(".app-bar");
       const holdsFocus = bar?.contains(document.activeElement) ?? false;
-      root.toggleAttribute("data-bar-hidden", delta > 0 && !holdsFocus);
+      setHidden(delta > 0 && !holdsFocus);
       last = y;
     }
   }
@@ -67,6 +71,9 @@ const { back } = Astro.props;
     last = Math.max(0, scrollY);
   });
 
+  // Back goes where the person came from when that was inside the app (Astro numbers its history
+  // entries from 0 at the first page of the visit), and to the link's own address otherwise, so a
+  // shared link opened cold still leads somewhere.
   document.addEventListener("click", (event) => {
     const link = (event.target as Element | null)?.closest<HTMLAnchorElement>("a[data-back]");
     if (!link || event.defaultPrevented || event.button !== 0) return;
