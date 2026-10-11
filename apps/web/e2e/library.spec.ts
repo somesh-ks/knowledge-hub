@@ -13,9 +13,9 @@ const NEWEST_FIRST = [
 ];
 /** What each card says under its title, in the same order. */
 const REST_FACTS = [
-  "Episode · Discussion · 5 min",
+  "Discussion · 5 min",
   "Daily · 12 stories · 1 min",
-  "Episode · Headlines · 3 min",
+  "Headlines · 3 min",
   "Daily · 8 stories · 3 min",
   "Weekly · 14 stories · 8 min",
 ];
@@ -363,8 +363,8 @@ test.describe("library episodes", () => {
     await expect(page.locator("[data-card]:not([hidden])")).toHaveCount(2);
     await expect(page.locator("[data-card][data-kind='episode']:not([hidden])")).toHaveCount(2);
     await expect(page.locator("[data-card]:not([hidden]) .card-facts")).toHaveText([
-      "Episode · Discussion · 5 min",
-      "Episode · Headlines · 3 min",
+      "Discussion · 5 min",
+      "Headlines · 3 min",
     ]);
     // A long title is cut at two lines, so one card never stands taller than its neighbours by much.
     const lines = await page

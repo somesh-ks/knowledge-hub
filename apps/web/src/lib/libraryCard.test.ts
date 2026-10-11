@@ -69,13 +69,13 @@ describe("episodeFacts", () => {
   it("names the format and the length on the quiet line", () => {
     const [entry] = episodes(episodeText("ep-20261007-1930", "2026-10-07T17:30:00Z"));
     expect(entry && episodeFacts(entry)).toMatchObject({
-      line: "Episode \u00b7 Discussion \u00b7 5 min",
+      line: "Discussion \u00b7 5 min",
       minutes: 5,
     });
     const [headlines] = episodes(
       episodeText("ep-20261007-1930", "2026-10-07T17:30:00Z", "headlines"),
     );
-    expect(headlines && episodeFacts(headlines).line).toBe("Episode \u00b7 Headlines \u00b7 5 min");
+    expect(headlines && episodeFacts(headlines).line).toBe("Headlines \u00b7 5 min");
   });
 
   it("finds an episode by its date in any form, not as a matching story", () => {

@@ -43,8 +43,10 @@ export function cardFacts(entry: DigestEntry): CardFacts {
 }
 
 /**
- * What a Library card says about one episode, in the same pattern: "Episode · Discussion · 5 min".
- * Search finds its date (in any form), its title and format, then each story it covers.
+ * What a Library card says about one episode, in the same pattern: "Discussion · 5 min". Its format
+ * says it is an episode, as a briefing's kind says it is one, and the line stays short enough for the
+ * narrowest card to hold it on one line. Search finds its date (in any form), its title and format,
+ * then each story it covers.
  */
 export function episodeFacts(entry: EpisodeEntry): CardFacts {
   const { episode } = entry;
@@ -57,7 +59,7 @@ export function episodeFacts(entry: EpisodeEntry): CardFacts {
   const lines = [...meta];
   for (const source of episode.sources) lines.push(`${source.headline} ${source.source}`);
   return {
-    line: factsLine(["Episode", format, `${episode.listen_minutes} min`]),
+    line: factsLine([format, `${episode.listen_minutes} min`]),
     minutes: episode.listen_minutes,
     search: normalize(lines.join("\n")),
     metaLines: meta.length,
