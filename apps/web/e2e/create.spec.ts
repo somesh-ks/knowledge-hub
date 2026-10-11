@@ -231,6 +231,8 @@ test.describe("the Create page", () => {
       await page.setViewportSize({ width, height: 800 });
       await openCreate(page);
       await segment(page, "15 min").click();
+      // The check grows in beside the words; measure once it has.
+      await page.waitForTimeout(500);
       const fit = await page
         .locator(".settings-segment:has(input[name='length']:checked)")
         .evaluate((label) => {
@@ -240,6 +242,8 @@ test.describe("the Create page", () => {
         });
       expect(fit.left).toBeGreaterThanOrEqual(6);
       expect(fit.right).toBeGreaterThanOrEqual(6);
+      // Centred: the check does not push the words against one edge.
+      expect(Math.abs(fit.left - fit.right)).toBeLessThan(4);
       expect(await page.evaluate(() => document.documentElement.scrollWidth)).toBeLessThanOrEqual(
         width,
       );
