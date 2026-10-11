@@ -19,7 +19,7 @@ interface Props extends PageAudio {
 const { digestId, noun, length, expired = false } = Astro.props;
 ---
 
-{/* Play in the floating button's place on an episode or an older briefing, below 64rem (BaseLayout).
+{/* Play in the floating button's place on Today, a briefing or an episode, below 64rem (BaseLayout).
      It takes the floating button's shape, place, motion and fold from .create-fab. It is a second
      face of the hero chip, not a second player: data-play-digest gives it to the player's delegated
      listener, so a press plays, or first makes, the page's audio exactly as the chip does, and the

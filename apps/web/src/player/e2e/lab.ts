@@ -62,6 +62,13 @@ export interface Point {
   y: number;
 }
 
+/** A pointer that a drag left down. */
+export interface HeldPointer {
+  /** Travels on along `path`, at the drag's own speed, and stays down. */
+  move(path: Point[]): Promise<void>;
+  release(): Promise<void>;
+}
+
 /** One pointer, driven the way the device would: a finger where there is touch, a mouse otherwise. */
 export interface Finger {
   readonly touch: boolean;
@@ -73,11 +80,7 @@ export interface Finger {
    * Presses at the first point and travels the rest. `stepMs` sets the speed: a flick is a few
    * milliseconds per step, a slow drag tens. With `hold` the pointer stays down until `release`.
    */
-  drag(
-    path: Point[],
-    stepMs: number,
-    options?: { hold?: boolean },
-  ): Promise<{ release(): Promise<void> }>;
+  drag(path: Point[], stepMs: number, options?: { hold?: boolean }): Promise<HeldPointer>;
 }
 
 /** Points along a straight line, `count` of them, ending exactly on `to`. */
@@ -113,7 +116,7 @@ async function touchPath(
   path: Point[],
   stepMs: number,
   hold: boolean,
-): Promise<{ release(): Promise<void> }> {
+): Promise<HeldPointer> {
   const client = await page.context().newCDPSession(page);
   const clock = gestureClock(stepMs);
   const lift = async (held: boolean): Promise<void> => {
@@ -124,23 +127,26 @@ async function touchPath(
     });
     await client.detach();
   };
+  const move = async (points: Point[]): Promise<void> => {
+    for (const point of points) {
+      await page.waitForTimeout(stepMs);
+      await client.send("Input.dispatchTouchEvent", {
+        type: "touchMove",
+        touchPoints: [point],
+        timestamp: clock.next(),
+      });
+    }
+  };
   const [first, ...rest] = path;
-  if (!first) return { release: () => lift(true) };
+  if (!first) return { move: async () => undefined, release: () => lift(true) };
   await client.send("Input.dispatchTouchEvent", {
     type: "touchStart",
     touchPoints: [first],
     timestamp: Date.now() / 1000,
   });
-  for (const point of rest) {
-    await page.waitForTimeout(stepMs);
-    await client.send("Input.dispatchTouchEvent", {
-      type: "touchMove",
-      touchPoints: [point],
-      timestamp: clock.next(),
-    });
-  }
+  await move(rest);
   if (!hold) await lift(false);
-  return { release: () => lift(true) };
+  return { move, release: () => lift(true) };
 }
 
 /** The longest move a mouse reports in one event, in px; a mouse reports hundreds a second. */
@@ -157,28 +163,31 @@ async function cdpMouseDrag(
   path: Point[],
   stepMs: number,
   hold: boolean,
-): Promise<{ release(): Promise<void> }> {
+): Promise<HeldPointer> {
   const client = await page.context().newCDPSession(page);
   const [first, ...rest] = path;
-  const fine: Array<{ point: Point; ms: number }> = [];
-  let previous = first;
-  for (const point of rest) {
-    if (!previous) break;
-    const parts = Math.max(
-      1,
-      Math.ceil(Math.hypot(point.x - previous.x, point.y - previous.y) / MOUSE_REPORT_PX),
-    );
-    for (let part = 1; part <= parts; part += 1) {
-      fine.push({
-        point: {
-          x: previous.x + ((point.x - previous.x) * part) / parts,
-          y: previous.y + ((point.y - previous.y) * part) / parts,
-        },
-        ms: stepMs / parts,
-      });
+  /** Each step after `from`, as the small moves a real mouse reports, at the same speed. */
+  const split = (from: Point, points: Point[]): Array<{ point: Point; ms: number }> => {
+    const fine: Array<{ point: Point; ms: number }> = [];
+    let previous = from;
+    for (const point of points) {
+      const parts = Math.max(
+        1,
+        Math.ceil(Math.hypot(point.x - previous.x, point.y - previous.y) / MOUSE_REPORT_PX),
+      );
+      for (let part = 1; part <= parts; part += 1) {
+        fine.push({
+          point: {
+            x: previous.x + ((point.x - previous.x) * part) / parts,
+            y: previous.y + ((point.y - previous.y) * part) / parts,
+          },
+          ms: stepMs / parts,
+        });
+      }
+      previous = point;
     }
-    previous = point;
-  }
+    return fine;
+  };
   let at = Date.now() / 1000;
   let last = first ?? { x: 0, y: 0 };
   const lift = async (held: boolean): Promise<void> => {
@@ -194,7 +203,22 @@ async function cdpMouseDrag(
     });
     await client.detach();
   };
-  if (!first) return { release: () => lift(true) };
+  const move = async (points: Point[]): Promise<void> => {
+    for (const { point, ms } of split(last, points)) {
+      await page.waitForTimeout(ms);
+      last = point;
+      at += ms / 1000;
+      await client.send("Input.dispatchMouseEvent", {
+        type: "mouseMoved",
+        x: point.x,
+        y: point.y,
+        button: "left",
+        buttons: 1,
+        timestamp: at,
+      });
+    }
+  };
+  if (!first) return { move: async () => undefined, release: () => lift(true) };
   await client.send("Input.dispatchMouseEvent", {
     type: "mouseMoved",
     x: first.x,
@@ -210,21 +234,9 @@ async function cdpMouseDrag(
     clickCount: 1,
     timestamp: at,
   });
-  for (const { point, ms } of fine) {
-    await page.waitForTimeout(ms);
-    last = point;
-    at += ms / 1000;
-    await client.send("Input.dispatchMouseEvent", {
-      type: "mouseMoved",
-      x: point.x,
-      y: point.y,
-      button: "left",
-      buttons: 1,
-      timestamp: at,
-    });
-  }
+  await move(rest);
   if (!hold) await lift(false);
-  return { release: () => lift(true) };
+  return { move, release: () => lift(true) };
 }
 
 async function mouseDrag(
@@ -232,18 +244,21 @@ async function mouseDrag(
   path: Point[],
   stepMs: number,
   hold: boolean,
-): Promise<{ release(): Promise<void> }> {
+): Promise<HeldPointer> {
   const release = (): Promise<void> => page.mouse.up();
+  const move = async (points: Point[]): Promise<void> => {
+    for (const point of points) {
+      await page.waitForTimeout(stepMs);
+      await page.mouse.move(point.x, point.y);
+    }
+  };
   const [first, ...rest] = path;
-  if (!first) return { release: async () => undefined };
+  if (!first) return { move, release: async () => undefined };
   await page.mouse.move(first.x, first.y);
   await page.mouse.down();
-  for (const point of rest) {
-    await page.waitForTimeout(stepMs);
-    await page.mouse.move(point.x, point.y);
-  }
+  await move(rest);
   if (!hold) await release();
-  return { release };
+  return { move, release };
 }
 
 /** What a body child must be for the open player to leave it alone. Mirrors core/modalScope.ts. */
@@ -414,7 +429,32 @@ export interface SurfaceGeometry {
   surface: Box;
   sheet: Box;
   dock: Box;
+  /** Where the cover rests on the bar and on the page. */
+  thumb: Box;
+  slot: Box;
+  /** The flying cover, as drawn, and its transform. */
+  art: Box;
+  artTransform: { x: number; y: number; scale: number };
+  /** The flight as script wrote it: --art-from-x and the rest, in px and as a bare scale. */
+  morph: Record<string, number>;
   window: { width: number; height: number };
+}
+
+/** Which covers a person can see right now: the bar's, the page's, the one in flight. */
+export function visibleCovers(page: Page): Promise<string[]> {
+  return page.evaluate(() =>
+    [...document.querySelectorAll("[data-player-surface] .player-cover-frame")]
+      .filter((element) =>
+        element.checkVisibility({ visibilityProperty: true, opacityProperty: true }),
+      )
+      .map((element) =>
+        element.closest("[data-player-art]")
+          ? "flight"
+          : element.closest("[data-player-thumb]")
+            ? "bar"
+            : "page",
+      ),
+  );
 }
 
 export function center(box: Box): Point {
@@ -575,13 +615,24 @@ export class LabPage {
       };
       if (!surface) throw new Error("no player surface");
       const sheet = find("[data-player-page]");
+      const art = find("[data-player-art]");
+      const matrix = new DOMMatrix(getComputedStyle(art).transform);
       const p = Number.parseFloat(getComputedStyle(sheet).getPropertyValue("--p"));
+      const morph: Record<string, number> = {};
+      for (const name of ["from-x", "from-y", "to-x", "to-y", "size", "scale"]) {
+        morph[name] = Number.parseFloat(art.style.getPropertyValue(`--art-${name}`));
+      }
       return {
         state: surface.dataset.state ?? "",
         p: Number.isFinite(p) ? p : 0,
         surface: box(surface),
         sheet: box(sheet),
         dock: box(find("[data-player-dock]")),
+        thumb: box(find("[data-player-thumb]")),
+        slot: box(find("[data-player-cover]")),
+        art: box(art),
+        artTransform: { x: matrix.m41, y: matrix.m42, scale: matrix.a },
+        morph,
         window: { width: window.innerWidth, height: window.innerHeight },
       };
     });

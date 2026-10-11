@@ -8,7 +8,7 @@ const SENT = PASSPHRASE_REQUIRED ? "correct horse battery staple" : "open";
 const trigger = (page: Page) => page.locator("[data-create-open]:visible").first();
 const sheet = (page: Page) => page.locator("dialog.create-sheet");
 
-async function openSheet(page: Page, path = "/"): Promise<void> {
+async function openSheet(page: Page, path = "/library"): Promise<void> {
   await page.goto(path);
   await page.evaluate(() => document.fonts.ready);
   await trigger(page).click();
@@ -43,7 +43,8 @@ test.describe("Create as the primary action", () => {
   test("the button or the floating button exists at this width, and the nav lists three", async ({
     page,
   }, info) => {
-    await page.goto("/");
+    // Below 64rem Create floats on the Library alone (D60).
+    await page.goto("/library");
     const wide = info.project.name === "desktop";
     if (wide) {
       await expect(page.locator(".create-fab")).toBeHidden();
@@ -57,9 +58,11 @@ test.describe("Create as the primary action", () => {
       const fab = page.locator(".create-fab");
       await expect(fab).toContainText("Create");
       expect(Math.round((await fab.boundingBox())?.width ?? 0)).toBeGreaterThan(56);
-      await page.mouse.wheel(0, 600);
+      // The Library is short on a phone, so the steps are too: the first scroll loads the script
+      // that folds the button and the second, with room left to scroll, folds it.
+      await page.mouse.wheel(0, 120);
       await page.waitForTimeout(150);
-      await page.mouse.wheel(0, 600);
+      await page.mouse.wheel(0, 160);
       await expect(fab).toHaveAttribute("data-folded", "");
       await expect.poll(async () => Math.round((await fab.boundingBox())?.width ?? 0)).toBe(56);
       await page.mouse.wheel(0, -400);
@@ -116,15 +119,15 @@ test.describe("Create as the primary action", () => {
   });
 
   test("browser Back closes the sheet and stays on the page", async ({ page }) => {
-    await page.goto("/library");
-    await page.locator(".app-nav-item", { hasText: "Today" }).click();
-    await expect(page).toHaveURL(/\/$/);
+    await page.goto("/");
+    await page.locator(".app-nav-item", { hasText: "Library" }).click();
+    await expect(page).toHaveURL(/\/library$/);
     await expect(page.locator("astro-island[ssr]")).toHaveCount(0);
     await trigger(page).click();
     await expect(sheet(page)).toBeVisible();
     await page.goBack();
     await expect(sheet(page)).toBeHidden();
-    await expect(page).toHaveURL(/\/$/);
+    await expect(page).toHaveURL(/\/library$/);
     await expect(trigger(page)).toBeFocused();
   });
 
@@ -133,7 +136,11 @@ test.describe("Create as the primary action", () => {
     await page.goto("/");
     // Until the player has hydrated, a press on the play chip is lost.
     await hydrated(page);
-    await page.locator("[data-play-digest]").click();
+    await page.locator(".hero [data-play-digest]").click();
+    await expect(page.locator("html")).toHaveAttribute("data-mini", "visible");
+    // Create floats on the Library, where the bar keeps playing.
+    await page.locator(".app-nav-item", { hasText: "Library" }).click();
+    await expect(page).toHaveURL(/\/library$/);
     await expect(page.locator("html")).toHaveAttribute("data-mini", "visible");
     await page.waitForTimeout(500);
     const fab = await page.locator(".create-fab").boundingBox();
@@ -188,20 +195,20 @@ test.describe("Create as the primary action", () => {
     await expect(status).toContainText(/Waiting to start|Writing your episode/);
 
     // A client-side navigation keeps it, and a reload picks the run up again.
-    await page.locator(".app-nav-item", { hasText: "Library" }).click();
-    await expect(page).toHaveURL(/\/library$/);
+    await page.locator(".app-nav-item", { hasText: "Today" }).click();
+    await expect(page).toHaveURL(/\/$/);
     await expect(page.locator("[data-run-card]")).toBeVisible();
     await page.reload();
     await expect(page.locator("[data-run-card]")).toBeVisible();
     await expect(page.locator("[data-run-text]")).toHaveText("Episode ready", { timeout: 15_000 });
-    // On the Library the line offers no link to the page on screen; from Today it does.
-    await expect(page.locator("[data-run-library]")).toBeHidden();
-    await page.locator(".app-nav-item", { hasText: "Today" }).click();
-    await expect(page).toHaveURL(/\/$/);
+    // From Today the line offers a link to the Library; on the Library, the page on screen, none.
     await expect(page.getByRole("link", { name: "Open Library" })).toHaveAttribute(
       "href",
       "/library",
     );
+    await page.locator(".app-nav-item", { hasText: "Library" }).click();
+    await expect(page).toHaveURL(/\/library$/);
+    await expect(page.locator("[data-run-library]")).toBeHidden();
   });
 
   for (const scheme of ["light", "dark"] as const) {

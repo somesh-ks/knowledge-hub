@@ -1,4 +1,5 @@
 import { describe, expect, it } from "vitest";
+import type { CoverMorph } from "./coverMorph";
 import {
   createSurfaceController,
   type GestureZone,
@@ -19,6 +20,8 @@ class FakeView implements SurfaceView {
   readonly rests: string[] = [];
   readonly log: string[] = [];
   readonly captured = new Set<number>();
+  /** Every flight written, in order: one per departure from rest. */
+  readonly morphs: Array<CoverMorph | null> = [];
   escape: (() => void) | null = null;
 
   isPresent(): boolean {
@@ -27,7 +30,14 @@ class FakeView implements SurfaceView {
 
   measure() {
     this.measures += 1;
-    return { distance: DISTANCE };
+    return {
+      distance: DISTANCE,
+      morph: { fromX: 8, fromY: 792, toX: 32, toY: 150 - this.scroll, size: 352, scale: 0.125 },
+    };
+  }
+
+  setMorph(morph: CoverMorph | null): void {
+    this.morphs.push(morph);
   }
 
   render(p: number): void {
@@ -261,6 +271,36 @@ describe("expanding and collapsing", () => {
     settle();
     void surface.collapse();
     expect(view.measures).toBe(2);
+  });
+
+  it("writes the cover's flight once per departure from rest, from what it measured", () => {
+    const { surface, view, run, settle } = setup();
+    surface.expand();
+    expect(view.morphs).toHaveLength(1);
+    expect(view.morphs[0]).toMatchObject({ fromY: 792, toY: 150 });
+    // Turned round mid-flight, the cover keeps the flight it has: no second measure, no jump.
+    run(60);
+    void surface.collapse();
+    surface.expand();
+    expect(view.morphs).toHaveLength(1);
+    settle();
+    // Closed from a scrolled page, the flight leaves from where the page shows its cover.
+    view.scroll = 120;
+    void surface.collapse();
+    expect(view.morphs).toHaveLength(2);
+    expect(view.morphs[1]).toMatchObject({ fromY: 792, toY: 30 });
+  });
+
+  it("measures the flight before a drag moves anything, and draws its first frame from it", () => {
+    const { surface, view } = setup();
+    clock += 10_000;
+    const t = clock;
+    surface.pointerDown(at("dock", 780, t));
+    surface.pointerMove(at("dock", 760, t + 16));
+    expect(view.morphs).toHaveLength(1);
+    expect(view.rendered).toHaveLength(1);
+    // The drag took hold at the slop's edge: its first frame is the finger's own travel past it.
+    expect(view.rendered[0]).toBeCloseTo(8 / DISTANCE, 10);
   });
 
   it("does nothing when the surface is not in the document", async () => {

@@ -15,7 +15,7 @@ test.describe("the briefing header", () => {
     // the chip's label alone; beside it stands how many stories there are.
     await expect(page.locator(".hero-facts > span")).toHaveText(["12 stories"]);
     await expect(page.locator(".hero-text .meta")).toHaveCount(0);
-    const chip = page.locator("[data-play-digest]");
+    const chip = page.locator(".hero [data-play-digest]");
     await expect(chip).toHaveCount(1);
     await expect(chip).toHaveAttribute("data-play-digest", "2026-10-07");
     await expect(chip.locator("[data-chip-label]")).toHaveText("1 min");

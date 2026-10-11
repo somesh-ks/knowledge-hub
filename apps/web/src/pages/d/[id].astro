@@ -34,7 +34,6 @@ const { entry, earlier, isLatest } = Astro.props;
     length: listenLength(entry),
     expired: entry.audioMode === "expired",
   }}
-  latestDate={isLatest ? entry.digest.date : undefined}
 >
   <DigestView entry={entry} earlier={earlier} isLatest={isLatest} />
 </BaseLayout>

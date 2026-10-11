@@ -15,6 +15,13 @@ One session, picking up after the design pass merged (#74 to #76). The owner cle
 - The owner pointed at the play chip on an unplayed episode: it held 8rem for its longest label and centred what it held, so "5 min" sat 23px from its start and 31px from its end. It now hugs its label, as every chip does.
 - The owner asked to skip the browser suites for this round, so they did not run on the combined branch; state.md says what ran where.
 
+## After #80
+- The owner reported that neither the daily briefing nor the weekly pass had arrived by Sunday morning. The run history showed every one of `run.yml`'s 24 hourly entries firing, but hours late: the 07:13 Stockholm entry ran between 13:11 and 14:02 on each of 7 to 10 October, before the hourly entries existed too, and on 10 October the gate skipped correctly (every second day). A GitHub community thread reports the same delay for many repositories since 2026-08-26, with no fix; an outside trigger calling `workflow_dispatch` is the one thing that worked there. So Vercel Cron, which the site already runs on, calls a new route every hour, and the route starts the run in the schedule's own hour when the engine's gate says something is due (D61). It needs `CRON_SECRET` on Vercel before it does anything.
+- The owner corrected the floating button: on a phone Create belongs to the Library alone, and Play to every page with audio, Today included (D60). D59 had kept Create on Today on D52's reasoning.
+- The owner asked for the player's pull to move the bottom bar with the finger, for the cover to grow from the bar into the open page on a phone, and for the open page's cover to stop painting over the bottom bar. A worker found the slide had been there all along, hidden: the player sits a layer above the navigation, so the rising page covered it. The navigation now rises above the player while it moves and drops back at rest (a stacking change, not a clip that would have to copy the slide), and the cover flight removed in #47 is back below 64rem only.
+- The owner asked whether TypeSafe Jev is used. A cheaper subagent read the code and the committed state, and the run log of 9 October settled the rest: Jev judged all 74 items and was the filter and the ranking, and its grounding check dropped 6 of 15 written stories, but neither threshold has been calibrated (state.md).
+- The owner asked to drop the banner that said how old a briefing is; it went with its module.
+
 ## What went wrong
 - A commit picked up a rename and two deletions staged earlier; a soft reset and four clean commits fixed it (learnings.md).
 - The first score design was a sum, and it was the brief's, not the worker's; the worker's own report caught it.
@@ -22,7 +29,11 @@ One session, picking up after the design pass merged (#74 to #76). The owner cle
 - Opening a source to edit focused its Name field, which would raise a phone's keyboard over the score; caught in the same screenshot review.
 - One axe scan flaked by reading the panel mid-fade.
 
+- D59 kept Create on Today on D52's reasoning, a narrower reading of the owner's ask ("a podcast page or details page") than they meant; the correction cost a round.
+- The missed morning run looked like a broken schedule. It was GitHub's delay, which state.md had recorded once (6.5 hours late on 7 October) as unreliable timing and nobody acted on.
+
 ## Left open
 - Every real source reads New until it has ten judged items, so the thresholds are untested on real data (D55 says when to revisit them).
 - A rename or a move through `config.yml` has not run live.
 - The browser suites on the combined branch after #77 (skipped at the owner's request).
+- The Vercel Cron trigger has not run in production: it waits for `CRON_SECRET`.

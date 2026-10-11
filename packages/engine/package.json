@@ -6,6 +6,7 @@
   "exports": {
     ".": "./src/index.ts",
     "./audio": "./src/audio/index.ts",
+    "./gate": "./src/gate/decideRun.ts",
     "./source-preview": "./src/sources/preview.ts"
   },
   "bin": {

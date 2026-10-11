@@ -36,7 +36,8 @@ const GITHUB_VARIABLES = [
 /**
  * Environment variables for the site's server routes on Vercel: the Generate button's three, then
  * what /api/narrate needs to narrate a digest on Play. The Blob token is sent only when .env holds
- * one; a store connected through OIDC needs none (D26).
+ * one; a store connected through OIDC needs none (D26). CRON_SECRET is what Vercel Cron sends to
+ * /api/cron/run, which refuses every call without it (D61).
  */
 const VERCEL_ENV = [
   "GITHUB_DISPATCH_TOKEN",
@@ -47,6 +48,7 @@ const VERCEL_ENV = [
   "SPEECHIFY_MONTHLY_CHARS",
   "BLOB_READ_WRITE_TOKEN",
   "NEBIUS_API_KEY",
+  "CRON_SECRET",
 ];
 
 /** What `vercel env pull` writes in place of a hidden value. Sending it on would overwrite the real one. */

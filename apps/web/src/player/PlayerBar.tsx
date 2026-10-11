@@ -158,9 +158,10 @@ function DockVolume() {
 /**
  * The dock: the bar at the bottom of the screen, and the collapsed end of the player surface. A
  * tap or a pull up anywhere on it that is not another control grows it into the page (the open
- * button's target is stretched over the whole bar in CSS). On a wide screen it stays put and keeps
- * working while the page is open above it, laid out as YouTube Music's is: the transport and the
- * clock on the left, what is playing in the middle, volume on the right.
+ * button's target is stretched over the whole bar in CSS); below 64rem its cover is where the
+ * flying cover leaves from. On a wide screen it stays put and keeps working while the page is open
+ * above it, laid out as YouTube Music's is: the transport and the clock on the left, what is
+ * playing in the middle, volume on the right.
  */
 export default function PlayerBar() {
   const state = usePlayerState();
@@ -278,7 +279,7 @@ export default function PlayerBar() {
           if (pressedBy.current === "touch") event.preventDefault();
         }}
       >
-        <span className="player-thumb">
+        <span className="player-thumb" data-player-thumb>
           {digest ? (
             <PlayerCover cover={digest.cover} weekly={digest.kind === "weekly"} size="thumb" />
           ) : null}

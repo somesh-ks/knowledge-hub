@@ -1,6 +1,6 @@
 /**
- * The floating button, as Android draws a screen's primary action: Create on Today and the Library,
- * Play on an episode or an older briefing, both .create-fab. Extended (the glyph and the word) at
+ * The floating button, as Android draws a screen's primary action: Create on the Library, Play on
+ * Today, a briefing or an episode, both .create-fab. Extended (the glyph and the word) at
  * the top of a page and while scrolling back up, folded to the glyph while scrolling down to read.
  * app.ts loads this on the first scroll, so the first load does not carry it. The button is looked
  * up on every frame because a move between pages replaces it.

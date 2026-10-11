@@ -68,6 +68,43 @@
   initial-value: 0;
 }
 
+/* The cover's flight, measured once per motion (coverMorph.ts). */
+@property --art-from-x {
+  syntax: "<length>";
+  inherits: false;
+  initial-value: 0px;
+}
+
+@property --art-from-y {
+  syntax: "<length>";
+  inherits: false;
+  initial-value: 0px;
+}
+
+@property --art-to-x {
+  syntax: "<length>";
+  inherits: false;
+  initial-value: 0px;
+}
+
+@property --art-to-y {
+  syntax: "<length>";
+  inherits: false;
+  initial-value: 0px;
+}
+
+@property --art-size {
+  syntax: "<length>";
+  inherits: false;
+  initial-value: 0px;
+}
+
+@property --art-scale {
+  syntax: "<number>";
+  inherits: false;
+  initial-value: 1;
+}
+
 @property --thumb-x {
   syntax: "<length>";
   inherits: false;
@@ -159,7 +196,8 @@
 
 /* ------------------------------------------------------------------ the cover */
 
-/* Drawn twice: on the bar, and on the page, where it rises with the page. */
+/* Drawn three times: on the bar, on the page, and in flight between the two (below 64rem; see "the
+   flying cover"). */
 .player-cover-frame {
   --cover-fill: var(--cover-key, var(--color-surface-sunken));
   position: relative;
@@ -246,12 +284,12 @@
   visibility: hidden;
 }
 
-.player[data-state="expanded"] :is(.player-page, .player-dock) {
+.player[data-state="expanded"] :is(.player-page, .player-dock, .player-art) {
   --p: 1;
 }
 
 .player:is([data-state="dragging"], [data-state="expanding"], [data-state="collapsing"])
-  :is(.player-page, .player-dock) {
+  :is(.player-page, .player-dock, .player-art) {
   /* Promoted only while it can move, and demoted when the spring rests. */
   will-change: transform;
 }
@@ -453,6 +491,75 @@
 
 .player-cover-box .player-cover-frame {
   box-shadow: var(--cover-shadow);
+}
+
+/* ------------------------------------------------------------------ the flying cover */
+
+/* Below 64rem, with motion allowed, the bar's thumbnail flies into the page's cover as the page
+   rises and back as it falls, on the same p as the page, so it follows a finger and turns with it.
+   Elsewhere it has no box: the surface measures nothing for it, and the bar and the page keep their
+   own covers. */
+.player-art {
+  display: none;
+}
+
+@media (max-width: 63.9375rem) and (prefers-reduced-motion: no-preference) {
+  /* One box at the page cover's size, placed and scaled by its transform alone between two ends
+     measured as the page leaves rest: the bar's thumbnail at p = 0, the page's cover at p = 1. It
+     is only ever scaled down from the large image, so it stays sharp, and its size never changes
+     while it moves. */
+  .player-art {
+    /* Both unregistered, so the cover and its shadow inside can read them: --p does not inherit. */
+    --art-p: var(--p);
+    --art-scale-now: calc(var(--art-scale) + (1 - var(--art-scale)) * var(--p));
+    position: absolute;
+    top: 0;
+    left: 0;
+    /* Over the bar it leaves, which fades out under it on a phone. */
+    z-index: 2;
+    display: block;
+    width: var(--art-size);
+    visibility: hidden;
+    pointer-events: none;
+    transform-origin: 0 0;
+    transform: translate3d(
+        calc(var(--art-from-x) + (var(--art-to-x) - var(--art-from-x)) * var(--p)),
+        calc(var(--art-from-y) + (var(--art-to-y) - var(--art-from-y)) * var(--p)),
+        0
+      )
+      scale(var(--art-scale-now));
+  }
+
+  /* A scale shrinks the corners with everything else, so the clip's radius grows as the scale
+     falls and the corners read the same on the bar, in flight and on the page. A clip and not a
+     border radius, so only the clip changes from frame to frame. */
+  .player-art .player-cover-frame {
+    clip-path: inset(0 round calc(var(--radius-sm) / var(--art-scale-now)));
+  }
+
+  /* The shadow the page's cover casts, fading in as the cover lifts off the bar, which casts none.
+     A shadow cannot take the clip's corners, so it keeps corners that shrink with the scale; faded
+     with the same p, it is all but invisible while they are small, and exact on the page. */
+  .player-art::before {
+    content: "";
+    position: absolute;
+    inset: 0;
+    border-radius: var(--radius-sm);
+    box-shadow: var(--cover-shadow);
+    opacity: var(--art-p);
+  }
+
+  /* One cover at a time. At rest it is the bar's or the page's; in between it is the one in flight,
+     and the two at the ends are identical to it at the moment they swap. */
+  .player:is([data-state="dragging"], [data-state="expanding"], [data-state="collapsing"])
+  .player-art {
+    visibility: visible;
+  }
+
+  .player:not([data-state="collapsed"]) .player-thumb .player-cover-frame,
+  .player:not([data-state="expanded"]) .player-cover-box .player-cover-frame {
+    visibility: hidden;
+  }
 }
 
 /* ------------------------------------------------------------------ the dock */
@@ -935,6 +1042,23 @@
   /* Up to the transport: the title shortens only where the bar runs out of room. */
   .dock-open {
     width: 100%;
+  }
+}
+
+/* Here the bar stays while its cover is away on the page, so its text closes the gap the cover left
+   and opens it again as the cover comes home. */
+@media (min-width: 40rem) and (max-width: 63.9375rem) and (prefers-reduced-motion: no-preference) {
+  .player-dock {
+    /* The same number under a name the bar's own children can read: --p does not inherit. */
+    --dock-p: var(--p);
+  }
+
+  .dock-text {
+    transform: translate3d(
+      calc(var(--dock-p, 0) * -1 * (var(--mini-player-cover-size) + var(--space-3))),
+      0,
+      0
+    );
   }
 }
 

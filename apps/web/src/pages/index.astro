@@ -3,6 +3,7 @@ import Banner from "../components/Banner.astro";
 import DigestView from "../components/DigestView.astro";
 import EmptyState from "../components/EmptyState.astro";
 import BaseLayout from "../layouts/BaseLayout.astro";
+import { listenLength } from "../lib/digestView";
 import { longDate } from "../lib/format";
 import { getSite } from "../lib/site";
 
@@ -16,7 +17,11 @@ const earlier = site.entries.slice(1, 4);
   view="home"
   layout={latest ? "aside" : "single"}
   digestId={latest?.id}
-  latestDate={latest?.digest.date}
+  audio={latest && {
+    noun: "briefing",
+    length: listenLength(latest),
+    expired: latest.audioMode === "expired",
+  }}
 >
   <Fragment slot="banners">
     {

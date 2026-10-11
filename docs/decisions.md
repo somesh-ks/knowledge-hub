@@ -15,7 +15,7 @@ D1 to D9 date from plan v2 (2026-10-05). D10 to D25 date from 2026-10-06. Reason
 | D3 | Judge is TypeSafe Jev, writer is a cheap Nebius model chosen by a bake-off | active |
 | D4 | Astro with React islands, Base UI and hand-written token CSS | active |
 | D5 | One MP3 per digest with word marks, from Speechify | superseded by D33 for new narration |
-| D6 | Daily cron with a calendar-date gate, plus a Sunday weekly pass | active |
+| D6 | Daily cron with a calendar-date gate, plus a Sunday weekly pass | active; the trigger is Vercel Cron since D61, the date gate stays |
 | D7 | Podcast feed deferred | active |
 | D8 | "Thought of the Day" cut | active |
 | D9 | Repository `somesh-ks/knowledge-hub`, private | active |
@@ -54,21 +54,23 @@ D1 to D9 date from plan v2 (2026-10-05). D10 to D25 date from 2026-10-06. Reason
 | D42 | One Jev request per item, and a per-run Firecrawl ceiling | active |
 | D43 | General episodes are built from general-news feeds, ranked by coverage | active |
 | D44 | An episode can be deleted, or regenerated with the listener's feedback | active |
-| D45 | The briefing's hour, cadence and topics are set in Settings | active |
+| D45 | The briefing's hour, cadence and topics are set in Settings | active; `RUN_CRON` is the fallback trigger since D61 |
 | D46 | The writer's provider and model are chosen in Settings | active |
 | D47 | A move between pages is answered from a saved copy and swapped at once | active |
 | D48 | One shader: a light in the cover's colours behind the header, on a GPU only | active |
 | D49 | One Podcast settings page: Daily, Weekly and Custom profiles, a shared writer vendor and model, topics and sources clubbed | page layout superseded by D51; the 0 to 5 score by D55 |
 | D50 | The open player: a speed slider, Chapters or a Speechify-style transcript, word marks stored beside each segment | active |
 | D51 | Settings is two levels and saves itself; every select opens one drawn list | active; the Custom page superseded by D56 |
-| D52 | On a phone the Create button floats only on Today and the Library, extended until you scroll | active; episodes and older briefings float Play since D59 |
+| D52 | On a phone the Create button floats only on Today and the Library, extended until you scroll | superseded by D60: Create floats on the Library alone |
 | D53 | First-load JavaScript budget 110 KB, kept as low as the code allows | active |
 | D54 | Form fields carry a 3:1 outline; in the player only Play is in full ink | active |
 | D55 | A source's score is out of 3: health, quality and trust, combined so a weak part cannot be bought back | active |
 | D56 | One panel adds a topic or a source and edits a source; Settings has no Custom page | active |
 | D57 | A topic's page edits its details and adds the sources that suit it; topics are listed by name | active |
 | D58 | The Model page offers six top Nebius writers by name, live list or not | active |
-| D59 | On a phone, Play takes the floating button's place on an episode and an older briefing | active |
+| D59 | On a phone, Play takes the floating button's place on an episode and an older briefing | active; Today floats Play too since D60 |
+| D60 | On a phone Create floats on the Library alone; every page with audio floats Play, Today included | active |
+| D61 | Vercel Cron starts the scheduled briefing in its hour; GitHub's schedule is the fallback | active |
 
 ---
 
@@ -585,3 +587,21 @@ D1 to D9 date from plan v2 (2026-10-05). D10 to D25 date from 2026-10-06. Reason
 - Cost: 87 bytes gzipped on every page. Until one is pressed there are two play controls, the chip and the button; the button earns its place once the chip has scrolled off.
 - Rejected: a button that turns into Pause (a second pause beside the bar's); Play on Today too (Today is a list destination, where making an episode is the next thing, D52).
 - Supersedes: D52's rule that briefings and episodes have no floating button.
+
+## D60: On a phone Create floats on the Library alone; every page with audio floats Play, Today included
+
+- Date: 2026-10-11
+- Decision: Below 64rem the floating button is Create on the Library and nowhere else. Today, the latest briefing at its dated address, older briefings and episodes float Play (D59's button, named "Play this briefing, 1 min" or "episode"). A Today with no briefing yet, Settings, Create, offline and not found float nothing. From 64rem the side column carries Create on every page and no floating button shows, as before. Today passes its briefing's audio to the layout, so its button reads the same length as the hero chip.
+- Why: the owner: "The only area you can have the create button is the library page, but this logic does not apply to desktop viewport because the create button is always available on the navigation bar", and Play rather than Create on a podcast's page. Today is the latest briefing, a page about one recording, so hearing it is the next thing to do there as well.
+- Cost: on a phone, Create is two presses from Today (Library, then Create), and a Today with no briefing offers no way to make one but the Library's. Today has two play controls until the chip scrolls away, so the site specs scope the chip to `.hero`.
+- Rejected: Create on Today (D52 called it a list destination; the owner overruled that).
+- Supersedes: D52's Create on Today, and D59's rejection of Play on Today.
+
+## D61: Vercel Cron starts the scheduled briefing in its hour; GitHub's schedule is the fallback
+
+- Date: 2026-10-11
+- Decision: `apps/web/vercel.json` holds 24 daily crons, `0 H * * *` for every UTC hour, all calling `GET /api/cron/run`. The route needs `Authorization: Bearer <CRON_SECRET>` and refuses every call while the variable is unset or shorter than 16 characters. It reads `config/schedule.json` on main; in the schedule's own hour, Stockholm time (the daily hour, or the weekly slot's hour on its day), it runs the engine's gate (`decideRun`, now exported as `@dispatch/engine/gate`) on `state/last-run.json`, and when a briefing or the weekly pass is due it dispatches `run.yml` with `mode: scheduled`. `run.yml` keeps its hourly entries and `RUN_CRON`: GitHub's late run is the fallback, and the gate ends it gated once the briefing exists.
+- Why: GitHub has started scheduled runs 4 to 7 hours late, and dropped some, since 2026-08-26, for many repositories and with no fix (github.com/orgs/community/discussions/207346). Here the 07:13 Stockholm entry ran between 13:11 and 14:02 on each of 7 to 10 October, before and after the hourly entries existed. In that thread, moving the minute, recreating the workflow or using a new repository did not help; an outside trigger calling `workflow_dispatch` did. Vercel's Hobby plan allows 100 crons a project, each once a day and landing anywhere in its hour, so 24 cover every hour, and the route follows the hour chosen in Settings without a redeploy.
+- Cost: the briefing starts anywhere in its hour (07:00 to 07:59), not at 07:13. A scheduled briefing is now a `workflow_dispatch` run, so it counts toward Generate's limits (six hours apart, three a day), which GitHub's schedule run never did; adding `run-name` to `run.yml` (a workflow change) would let the limits tell the two apart. One GitHub read every hour, two more in the slot. Vercel does not retry a call that fails to arrive; GitHub's late run covers that day. Owner step: put a random `CRON_SECRET` of 16 or more characters in `.env` and run `npm run secrets:push`; until then the route refuses calls and GitHub's late schedule still runs.
+- Rejected: accepting more hourly entries in `run.yml` (each runner it starts costs a minute, and every entry is late); a third-party cron service (one more account holding a credential); a Claude routine as the trigger (a whole session per day for one request); waiting for GitHub to fix it (six weeks without a reply).
+- Supersedes: D6's reliance on GitHub's cron for the time of day (its date gate stays), and D45's `RUN_CRON` as the trigger (it stays as the fallback).

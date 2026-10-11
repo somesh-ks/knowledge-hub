@@ -12,7 +12,8 @@ interface PlayerCoverProps {
 /**
  * The cover as the player shows it: a decorative image (the title sits beside it) on a box in the
  * palette's key color, so there is no empty flash while the PNG decodes. The player draws it three
- * times (on the bar, on the page, in flight) and its stylesheet shows exactly one of them.
+ * times (on the bar, on the page, in flight). Below 64rem, where motion is allowed, its stylesheet
+ * shows exactly one of them at a time; elsewhere the bar and the page each keep their own.
  */
 export default function PlayerCover({ cover, weekly, size }: PlayerCoverProps) {
   const style = { "--cover-key": cover.key } as CSSProperties;

@@ -54,7 +54,7 @@ test.describe("layout", () => {
     await page.setViewportSize({ width: 1280, height: 900 });
     await page.goto("/");
     await hydrated(page);
-    await page.locator("[data-play-digest]").click();
+    await page.locator(".hero [data-play-digest]").click();
     await expect(page.locator("html")).toHaveAttribute("data-player-state", "playing");
     const controls = page.locator(".player-dock button, .player-dock .dock-volume-level");
     // Open, previous, play, next, mute, and the volume range.
@@ -186,7 +186,7 @@ test.describe("layout", () => {
     expect(actions?.y ?? 0).toBeGreaterThan((cover?.y ?? 0) + (cover?.height ?? 0));
     expect(actions?.x).toBeCloseTo(cover?.x ?? -1, 0);
     // The story count stands at the chip's side, on the same line.
-    const chip = await page.locator("[data-play-digest]").boundingBox();
+    const chip = await page.locator(".hero [data-play-digest]").boundingBox();
     const facts = await page.locator(".hero-facts").boundingBox();
     expect(facts?.x ?? 0).toBeGreaterThan((chip?.x ?? 0) + (chip?.width ?? 0));
     const middle = (box: { y: number; height: number } | null) =>
