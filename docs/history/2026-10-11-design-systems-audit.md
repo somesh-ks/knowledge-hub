@@ -9,4 +9,7 @@ Comprehensive design systems audit conducted with the sk-design-systems plugin (
 - Button and row state consolidation (DD-005): mapped `source-main` row hover and active states to canonical `var(--color-surface-sunken)`, and added fine-pointer hover styling to `.player-fallback-action` with `var(--color-accent-hover)`.
 - Variant census: inventoried all 36 button class signatures across 31 files, establishing the canonical primitive mapping (`.btn`, `.icon-btn`, `.btn-primary`, `.btn-secondary`).
 - Reduced motion analysis: documented the duration vs travel token architecture gap where collapsing duration tokens to 0.01ms suppresses opacity cross-fades under `prefers-reduced-motion: reduce`.
+- Dead code removal: deleted unused `src/player/dev/LabGlyph.astro`.
+- Package hygiene: removed unreferenced `@fontsource-variable/literata` and `@fontsource-variable/schibsted-grotesk` from `apps/web` runtime dependencies and declared them in root `devDependencies` for prototype compilation.
+- Developer workflow: added `npm run test:fast` to run all unit test suites while excluding the 9-minute Windows git child-process suite (`git-*.test.ts`).
 
