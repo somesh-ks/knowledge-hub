@@ -120,7 +120,7 @@ test.describe("what the player writes on a real page", () => {
     // A briefing without audio keeps the state its page rendered, whatever is playing.
     await page.getByRole("link", { name: /Monday 5 October/ }).click();
     await expect(page).toHaveURL(/\/d\/2026-10-05$/);
-    const silent = page.locator("[data-play-digest]");
+    const silent = page.locator(".hero [data-play-digest]");
     await expect(silent).toHaveAttribute("data-state", "idle");
     await expect(page.locator("[data-play-item]").first()).toBeHidden();
     await expect(page.locator(".story[data-state]")).toHaveCount(0);
@@ -254,14 +254,14 @@ test.describe("how the page reacts to those attributes", () => {
   }) => {
     await page.goto(SILENT_DIGEST);
     await page.evaluate(() => {
-      document.querySelector("[data-play-digest]")?.setAttribute("aria-disabled", "true");
+      document.querySelector(".hero [data-play-digest]")?.setAttribute("aria-disabled", "true");
       (window as unknown as { __clicks: number }).__clicks = 0;
       document.addEventListener("click", () => {
         (window as unknown as { __clicks: number }).__clicks += 1;
       });
     });
     // Playwright will not click a disabled control, which is the point; force it as a finger would.
-    await page.locator("[data-play-digest]").click({ force: true });
+    await page.locator(".hero [data-play-digest]").click({ force: true });
     expect(await page.evaluate(() => (window as unknown as { __clicks: number }).__clicks)).toBe(0);
   });
 });

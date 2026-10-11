@@ -745,7 +745,7 @@ test.describe("an episode page", () => {
       "srcset",
       new RegExp(EPISODE_ID),
     );
-    await expect(page.locator("[data-play-digest]")).toHaveAttribute(
+    await expect(page.locator(".hero [data-play-digest]")).toHaveAttribute(
       "data-play-digest",
       EPISODE_ID,
     );

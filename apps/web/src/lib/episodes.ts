@@ -18,6 +18,11 @@ export const FORMAT_LABELS = {
   headlines: "Headlines",
 } as const;
 
+/** "8 min": how long an episode takes to hear, which its page's play controls say before it plays. */
+export function episodeLength(episode: Pick<Episode, "listen_minutes">): string {
+  return `${episode.listen_minutes} min`;
+}
+
 export interface EpisodeEntry {
   id: string;
   episode: Episode;

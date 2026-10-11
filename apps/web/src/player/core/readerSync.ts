@@ -5,14 +5,18 @@
  * The contract with the markup:
  *   [data-item-id]       one per story, matching the audio timeline. Receives data-state: "played"
  *                        or "current"; absent means upcoming.
- *   [data-play-digest]   the briefing's play chip.
+ *   [data-play-digest]   the briefing's play chip, and the floating Play button (.play-fab) that
+ *                        stands for it below 64rem.
  *   [data-play-item]     a story's play chip. It names its story by index, by id, or by sitting
  *                        inside the story.
  *   On every chip        data-state (idle, current, played, or preparing while audio buffers),
  *                        data-playing, the visible text in [data-chip-label], and aria-label.
+ *                        A control with no chip label keeps the words its page gave it.
  *                        Offline, with nothing loaded, the briefing's chip is data-state
  *                        "unavailable" and aria-disabled.
  *   [data-play-chapter]  a control that plays a section from its first story.
+ *   .play-fab            while the bar holds the audio it plays, data-fab comes off the root: the
+ *                        button steps aside and the page gives back the room it kept for it.
  *
  * A briefing without audio is left exactly as the page rendered it: its chips keep their own
  * unavailable or hidden state until the page's data carries audio.
@@ -23,6 +27,7 @@
 import { playPageChapter, togglePageDigest, togglePageItem } from "./pageActions";
 import type { PlayerStore } from "./playerTypes";
 import {
+  barHolds,
   briefingChipView,
   type ChipView,
   type ItemVisualState,
@@ -62,13 +67,18 @@ function setDataset(element: HTMLElement, key: string, value: string): void {
   if (element.dataset[key] !== value) element.dataset[key] = value;
 }
 
-/** Writes a chip's face. `blocked` is a chip that cannot do its job right now. */
+/**
+ * Writes a chip's face. `blocked` is a chip that cannot do its job right now. The text and the name
+ * go together: a control with no chip label (the floating Play button) keeps its own words.
+ */
 function writeChip(chip: HTMLElement, view: ChipView, blocked = false): void {
   setDataset(chip, "state", blocked ? "unavailable" : view.state);
   setDataset(chip, "playing", String(view.playing));
   const label = chip.querySelector("[data-chip-label]");
-  if (label && label.textContent !== view.label) label.textContent = view.label;
-  if (chip.getAttribute("aria-label") !== view.name) chip.setAttribute("aria-label", view.name);
+  if (label) {
+    if (label.textContent !== view.label) label.textContent = view.label;
+    if (chip.getAttribute("aria-label") !== view.name) chip.setAttribute("aria-label", view.name);
+  }
   if (blocked) chip.setAttribute("aria-disabled", "true");
   else chip.removeAttribute("aria-disabled");
 }
@@ -98,8 +108,26 @@ export function createReaderSync(
 
   /* ------------------------------------------------------------------ writing */
 
+  /**
+   * One play control at a time: while the bar holds the audio the floating Play button plays, the
+   * bar is its control, so data-fab (the room kept for the button) comes off the root and the
+   * button steps aside. Written on an incoming page before the swap too, so going back to the page
+   * that is playing never shows the button for a frame.
+   */
+  function markFab(doc: Document): void {
+    const fab = doc.querySelector<HTMLElement>(".play-fab");
+    if (!fab) return;
+    const held = barHolds(store.getState(), fab.dataset.playDigest);
+    doc.documentElement.toggleAttribute("data-fab", !held);
+  }
+
+  function onBeforeSwap(event: { newDocument: Document }): void {
+    markFab(event.newDocument);
+  }
+
   function writeCoarse(): void {
     pendingWrite = 0;
+    markFab(document);
     const state = store.getState();
     const page = store.getPageDigest();
     const live = isLive();
@@ -297,6 +325,7 @@ export function createReaderSync(
   window.addEventListener("online", scheduleWrite);
   window.addEventListener("offline", scheduleWrite);
   document.addEventListener("click", onClick);
+  document.addEventListener("astro:before-swap", onBeforeSwap);
 
   // Whole seconds and seeks: the minutes left on a paused briefing change with the playhead.
   const offSecond = store.onSecond(scheduleWrite);
@@ -324,6 +353,7 @@ export function createReaderSync(
       window.removeEventListener("online", scheduleWrite);
       window.removeEventListener("offline", scheduleWrite);
       document.removeEventListener("click", onClick);
+      document.removeEventListener("astro:before-swap", onBeforeSwap);
     },
   };
 }

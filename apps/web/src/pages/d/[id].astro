@@ -3,6 +3,7 @@ import type { GetStaticPaths } from "astro";
 import DigestView from "../../components/DigestView.astro";
 import BaseLayout from "../../layouts/BaseLayout.astro";
 import type { DigestEntry } from "../../lib/digests";
+import { listenLength } from "../../lib/digestView";
 import { getSite } from "../../lib/site";
 
 export const getStaticPaths = (async () => {
@@ -28,6 +29,11 @@ const { entry, earlier, isLatest } = Astro.props;
   nav={isLatest ? "today" : "library"}
   layout="aside"
   digestId={entry.id}
+  audio={{
+    noun: "briefing",
+    length: listenLength(entry),
+    expired: entry.audioMode === "expired",
+  }}
   latestDate={isLatest ? entry.digest.date : undefined}
 >
   <DigestView entry={entry} earlier={earlier} isLatest={isLatest} />

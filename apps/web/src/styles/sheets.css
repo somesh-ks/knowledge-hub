@@ -667,10 +667,10 @@ html[data-mini="visible"] .toast {
 
 /*
  * Below 64rem the open player slides the bottom bar away, and its own bar comes down onto the safe
- * area: a toast clears only that. Otherwise the run line and, above it, the floating Create button
- * stack over the bottom bar (create-sheet.css). A toast sits 12px above the higher of the two that
- * shows: the run line alone where there is no button (every page but Today and the Library, D52) or
- * it is hidden (a sheet is open), neither while the player is open.
+ * area: a toast clears only that. Otherwise the run line and, above it, the floating button stack
+ * over the bottom bar (create-sheet.css). A toast sits 12px above the higher of the two that shows:
+ * the run line alone where there is no button (no data-fab, BaseLayout.astro) or it is hidden (a
+ * sheet is open), neither while the player is open.
  */
 @media (width < 64rem) {
   html[data-player="open"] .toast {

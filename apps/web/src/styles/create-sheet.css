@@ -1,6 +1,7 @@
 /*
- * Create as the one primary action: the button in the side column, the floating button below 64rem,
- * the sheet the form opens in, and the run indicator that replaces a full-page progress view.
+ * Create as the one primary action: the button in the side column, the floating button below 64rem
+ * (Play in its place on an episode or an older briefing), the sheet the form opens in, and the run
+ * indicator that replaces a full-page progress view.
  * Tokens only. The stylesheet is global because every page carries the buttons and the indicator.
  *
  * Contract with the shell (shell.css): --bottom-nav-height, --dock-room (the player bar, while it
@@ -158,6 +159,67 @@ html:has(dialog[open]) .create-fab {
 @media (min-width: 64rem) {
   .create-fab {
     display: none;
+  }
+}
+
+/* ------------------------------------------------------------------ the floating button as Play */
+
+/* On an episode or an older briefing the floating button is Play (PlayFab.astro), with the shape,
+   place, motion and fold above. Its glyph slot holds the play mark and the spinner the hero chip
+   shows while narration makes the first file. */
+.play-fab-glyph {
+  display: grid;
+  place-items: center;
+}
+
+.play-fab-glyph > * {
+  grid-area: 1 / 1;
+}
+
+/* Optical center: a play triangle's mass sits left of its box. */
+.play-fab-glyph > .icon {
+  translate: 0.0625rem 0;
+}
+
+.play-fab-glyph > .spinner {
+  display: none;
+}
+
+.play-fab[data-state="preparing"] {
+  cursor: progress;
+}
+
+.play-fab[data-state="preparing"] .play-fab-glyph > .icon {
+  visibility: hidden;
+}
+
+.play-fab[data-state="preparing"] .play-fab-glyph > .spinner {
+  display: block;
+}
+
+/* Offline, with nothing loaded, the player disables it as it does the chip (readerSync.ts). */
+.play-fab[aria-disabled="true"] {
+  background: var(--color-surface-sunken);
+  color: var(--color-on-surface-disabled);
+  cursor: default;
+}
+
+/* While the bar holds this page's audio the bar is its control. The player takes data-fab off the
+   root, so the page gives back the button's room (shell.css), and the button steps aside as it does
+   for the open player. It comes back once the bar holds something else. */
+html:not([data-fab]) .play-fab {
+  visibility: hidden;
+  opacity: 0;
+  transform: translateY(var(--space-4));
+  transition-duration:
+    var(--duration-exit), var(--duration-exit), var(--duration-hover), 0s, var(--duration-enter);
+  transition-delay: 0s, 0s, 0s, var(--duration-exit), 0s;
+}
+
+/* With reduced motion the exit takes no time, so it goes at once, and it comes back without moving. */
+@media (prefers-reduced-motion: reduce) {
+  html:not([data-fab]) .play-fab {
+    transform: none;
   }
 }
 

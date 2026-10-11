@@ -83,6 +83,18 @@ export function storyLengthLabel(startMs: number | null, endMs: number | null): 
 /** What the page's chip plays, in its accessible name: an episode page calls it an episode. */
 export type ChipNoun = "briefing" | "episode";
 
+/**
+ * The bar holds the audio of the page `digestId` names: something has played this session, so the
+ * bar shows, and what it holds is that page's. The bar is then the page's play control, and the
+ * floating Play button steps aside.
+ */
+export function barHolds(
+  state: Pick<PlayerState, "hasStarted" | "digestId">,
+  digestId: string | undefined,
+): boolean {
+  return state.hasStarted && state.digestId === digestId;
+}
+
 /** The briefing's chip before anything has played. The pages render this one at build time. */
 export function idleBriefingChip(length: string, noun: ChipNoun = "briefing"): ChipView {
   return { state: "idle", playing: false, label: length, name: `Play the ${noun}, ${length}` };

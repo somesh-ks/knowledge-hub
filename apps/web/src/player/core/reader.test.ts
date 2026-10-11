@@ -3,6 +3,7 @@ import { digestUrl, directionBetween } from "./navigation";
 import { playPageChapter, togglePageDigest, togglePageItem } from "./pageActions";
 import { classifyKeyTarget, type KeyLike, shouldToggleOnKey } from "./playerKeys";
 import {
+  barHolds,
   briefingChipView,
   briefingLengthLabel,
   idleBriefingChip,
@@ -163,6 +164,27 @@ describe("the briefing chip", () => {
         expect(view.name).toMatch(/^(Play|Pause|Resume|Try again)/);
       }
     }
+  });
+});
+
+describe("the floating Play button", () => {
+  it("steps aside only while the bar holds the page's audio", () => {
+    expect(barHolds({ hasStarted: true, digestId: "2026-10-05" }, "2026-10-05")).toBe(true);
+    // Another recording is in the bar: Play stays, and a press loads the page's own.
+    expect(barHolds({ hasStarted: true, digestId: "2026-10-07" }, "2026-10-05")).toBe(false);
+    // Loaded for the page but never played: there is no bar to stand for it yet.
+    expect(barHolds({ hasStarted: false, digestId: "2026-10-05" }, "2026-10-05")).toBe(false);
+    expect(barHolds({ hasStarted: false, digestId: null }, undefined)).toBe(false);
+  });
+
+  it("is held from the press that plays the page, as the bar appears", () => {
+    const harness = createHarness();
+    const page = makeDigest();
+    harness.store.setPageDigest(page);
+    harness.audio.loadMetadata(120);
+    expect(barHolds(harness.store.getState(), page.id)).toBe(false);
+    togglePageDigest(harness.store);
+    expect(barHolds(harness.store.getState(), page.id)).toBe(true);
   });
 });
 
