@@ -57,6 +57,7 @@ const invalid: ConfigResult = { status: 400, body: { status: 400, error: "invali
 
 const ID = /^[a-z0-9_-]{2,40}$/;
 const MAX_NAME = 60;
+const MAX_SOURCE_NAME = 80;
 const MAX_DESCRIPTION = 400;
 const MAX_KEYWORDS = 12;
 const MAX_KEYWORD = 40;
@@ -315,6 +316,22 @@ export function parseConfigOp(value: unknown): ConfigOp | null {
         id: source,
         ...(enabled === undefined ? {} : { enabled }),
         ...(pinned === undefined ? {} : { pinned }),
+      };
+    }
+    case "source.update": {
+      const source = id(value.id);
+      if (source === null) return null;
+      const name = value.name === undefined ? undefined : text(value.name, MAX_SOURCE_NAME);
+      const ids = value.topic_ids === undefined ? undefined : topicIds(value.topic_ids);
+      if (name === null || ids === null) return null;
+      // An edit that changes nothing is a mistake, not a request. An empty topic list is a change:
+      // it files the source under Other.
+      if (name === undefined && ids === undefined) return null;
+      return {
+        op: "source.update",
+        id: source,
+        ...(name === undefined ? {} : { name }),
+        ...(ids === undefined ? {} : { topic_ids: ids }),
       };
     }
     case "source.remove": {

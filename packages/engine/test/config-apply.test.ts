@@ -569,6 +569,100 @@ describe("source ops", () => {
     expect((await apply({ op: "source.set", id: "ghost", enabled: true })).code).toBe(1);
   });
 
+  it("renames an added source and moves it between topics in place, built-in ones too", async () => {
+    await apply(QUANTUM);
+    await apply(
+      { op: "source.add", url: "https://new.example/", topic_ids: ["quantum_computing"] },
+      siteRoutes("new.example"),
+    );
+
+    const renamed = await apply({ op: "source.update", id: "new-example", name: " New Weekly " });
+    expect(renamed.code).toBe(0);
+    expect(renamed.report).toMatchObject({
+      op: "source.update",
+      summary: "rename source new.example to New Weekly",
+      commit_message: "chore(config): rename source new.example to New Weekly",
+      files: ["config/sources.user.json"],
+    });
+    let user = await loadUserSources(repo.root);
+    expect(user.added[0]).toMatchObject({
+      id: "new-example",
+      name: "New Weekly",
+      topic_ids: ["quantum_computing"],
+    });
+    expect(user.overrides).toEqual({});
+
+    const moved = await apply({
+      op: "source.update",
+      id: "new-example",
+      topic_ids: ["design_engineering_craft", "quantum_computing", "design_engineering_craft"],
+    });
+    expect(moved.report.summary).toBe(
+      "move source New Weekly to Design engineering craft and Quantum computing",
+    );
+    user = await loadUserSources(repo.root);
+    expect(user.added[0]?.topic_ids).toEqual(["design_engineering_craft", "quantum_computing"]);
+
+    const cleared = await apply({ op: "source.update", id: "new-example", topic_ids: [] });
+    expect(cleared.report.summary).toBe("move source New Weekly to no topic");
+    user = await loadUserSources(repo.root);
+    expect(user.added[0]).not.toHaveProperty("topic_ids");
+    expect(user.overrides).toEqual({});
+    expect(repo.dirty()).not.toContain("config/sources.json");
+  });
+
+  it("keeps a seed source's new name and topics in its override, which wins when merged", async () => {
+    const { code, report } = await apply({
+      op: "source.update",
+      id: "alpha",
+      name: "Alpha Weekly",
+      topic_ids: ["design"],
+    });
+    expect(code).toBe(0);
+    expect(report.summary).toBe("rename source Alpha to Alpha Weekly and move it to Design");
+    expect(repo.dirty()).toEqual(["config/sources.user.json"]);
+    const user = await loadUserSources(repo.root);
+    expect(user).toMatchObject({
+      added: [],
+      overrides: { alpha: { name: "Alpha Weekly", topic_ids: ["design"] } },
+    });
+    expect((await loadSources(repo.root)).sources.find((s) => s.id === "alpha")).toMatchObject({
+      name: "Alpha Weekly",
+      topic_ids: ["design"],
+    });
+
+    // A built-in topic is a topic like any other, and an empty list leaves the seed source feeding
+    // none of its own. What source.set wrote stays.
+    await apply({ op: "source.set", id: "alpha", pinned: true });
+    expect(
+      (await apply({ op: "source.update", id: "alpha", topic_ids: ["consumer_tech_releases"] }))
+        .code,
+    ).toBe(0);
+    expect((await loadUserSources(repo.root)).overrides.alpha?.topic_ids).toEqual([
+      "consumer_tech_releases",
+    ]);
+    await apply({ op: "source.update", id: "alpha", topic_ids: [] });
+    expect((await loadUserSources(repo.root)).overrides.alpha).toEqual({
+      name: "Alpha Weekly",
+      topic_ids: [],
+      pinned: true,
+    });
+    const merged = (await loadSources(repo.root)).sources.find((s) => s.id === "alpha");
+    expect(merged).toMatchObject({ name: "Alpha Weekly", pinned: true });
+    expect(merged).not.toHaveProperty("topic_ids");
+    expect(repo.dirty()).toEqual(["config/sources.user.json"]);
+  });
+
+  it("refuses an unknown source or topic, and an update that changes nothing", async () => {
+    expect((await apply({ op: "source.update", id: "ghost", name: "Ghost" })).code).toBe(1);
+    expect(repo.errors.join("\n")).toContain("There is no source ghost.");
+    expect((await apply({ op: "source.update", id: "alpha", topic_ids: ["nope"] })).code).toBe(1);
+    expect(repo.errors.join("\n")).toContain("There is no topic nope.");
+    expect((await apply({ op: "source.update", id: "alpha" })).code).toBe(1);
+    expect(repo.errors.join("\n")).toContain("set name, topic_ids or both");
+    expect(repo.dirty()).toEqual([]);
+  });
+
   it("hides a seed source and deletes an added one", async () => {
     await apply({ op: "source.remove", id: "beta" });
     expect((await loadSources(repo.root)).sources.map((s) => s.id)).toEqual(["alpha"]);
@@ -660,5 +754,36 @@ describe("the merged registry", () => {
     });
     expect(merged.sources.map((s) => s.id)).toEqual(["a", "c"]);
     expect(merged.sources[0]?.name).toBe("a");
+  });
+
+  it("lets an override's name and topics win over the source's own, and an empty list clear them", () => {
+    const base = {
+      version: 1 as const,
+      sources: [
+        source("a", { name: "A", topic_ids: ["x"] }),
+        source("b", { topic_ids: ["y"], category_hint: "developer_tool_launches" }),
+        source("c"),
+      ],
+    };
+    const merged = mergeUserSources(base, {
+      version: 1,
+      added: [source("d", { topic_ids: ["y"] })],
+      overrides: {
+        a: { name: "Renamed", topic_ids: ["z", "w"] },
+        b: { topic_ids: [] },
+        c: { enabled: false },
+        d: { name: "Dee" },
+      },
+    });
+    expect(merged.sources.map((s) => [s.id, s.name, s.topic_ids])).toEqual([
+      ["a", "Renamed", ["z", "w"]],
+      ["b", "b", undefined],
+      ["c", "c", undefined],
+      ["d", "Dee", ["y"]],
+    ]);
+    expect(merged.sources[1]).not.toHaveProperty("topic_ids");
+    expect(merged.sources[1]?.category_hint).toBe("developer_tool_launches");
+    expect(merged.sources[2]?.enabled).toBe(false);
+    expect(base.sources[0]).toMatchObject({ name: "A", topic_ids: ["x"] });
   });
 });

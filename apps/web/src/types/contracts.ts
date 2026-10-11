@@ -280,6 +280,17 @@ export type ConfigOp =
   | { op: "topic.remove"; id: string }
   | { op: "source.add"; url: string; topic_ids?: string[] }
   | { op: "source.set"; id: string; enabled?: boolean; pinned?: boolean }
+  | {
+      op: "source.update";
+      id: string;
+      /** A new name, 1 to 80 characters once trimmed. */
+      name?: string;
+      /**
+       * Every topic the source feeds, custom or built-in, up to 12; an empty list files it under
+       * Other. At least one of `name` and `topic_ids` is required.
+       */
+      topic_ids?: string[];
+    }
   | { op: "source.remove"; id: string }
   | { op: "weights.set"; weights: Record<string, number> }
   | {

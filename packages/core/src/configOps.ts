@@ -1,6 +1,7 @@
 import { z } from "zod";
 import { IdString, SectionId } from "./categories.js";
 import { ScheduleChange } from "./schedule.js";
+import { SOURCE_NAME_MAX } from "./sources.js";
 import { MAX_KEYWORDS, TOPIC_DEPTHS, TOPIC_ORIGINS } from "./topics.js";
 import { WriterSettingsShape, writerModelProblem } from "./writer.js";
 
@@ -38,6 +39,10 @@ export type TopicInput = z.input<typeof TopicInput>;
  * - topic.remove: delete a custom topic and the discovery queries written for it.
  * - source.add: add a source by URL; its feed is discovered when the op runs.
  * - source.set: switch a source on or off, or pin it. Works on seed and added sources.
+ * - source.update: rename a source (1 to 80 characters, trimmed), set the topics it feeds, or both.
+ *   An added source is changed in place; a seed source keeps the change in its override, which
+ *   wins over the seed's own name and topics. An empty topic list leaves it feeding none of its
+ *   own. Unknown source or topic ids are refused.
  * - source.remove: delete an added source, or hide a seed source.
  * - weights.set: set weights by topic id. Built-in weights are written to config/preferences.json.
  * - schedule.set: set any of the daily hour (Stockholm), cadence, sections, podcast type, length
@@ -67,6 +72,16 @@ export const ConfigOp = z.discriminatedUnion("op", [
     })
     .refine((value) => value.enabled !== undefined || value.pinned !== undefined, {
       message: "set enabled, pinned or both",
+    }),
+  z
+    .object({
+      op: z.literal("source.update"),
+      id: z.string().min(1),
+      name: z.string().trim().min(1).max(SOURCE_NAME_MAX).optional(),
+      topic_ids: z.array(IdString).max(MAX_KEYWORDS).optional(),
+    })
+    .refine((value) => value.name !== undefined || value.topic_ids !== undefined, {
+      message: "set name, topic_ids or both",
     }),
   z.object({ op: z.literal("source.remove"), id: z.string().min(1) }),
   z.object({
