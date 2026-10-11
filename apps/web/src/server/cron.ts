@@ -113,8 +113,8 @@ export async function handleCron(
       cadenceDays: schedule.cadence_days,
       weekly: schedule.weekly,
     });
-    // The weekly slot's own hour starts only the weekly pass; a briefing due that day waits for its
-    // own hour, unless the weekly pass takes it along.
+    // The weekly slot's own hour starts only the weekly pass. Its day has no briefing at all (the
+    // gate gives the day to the weekly podcast), so the daily hour that day starts nothing.
     if (slot === "weekly" && !decision.runWeekly) {
       return { status: 200, body: { dispatched: false, reason: "the weekly pass has run today" } };
     }

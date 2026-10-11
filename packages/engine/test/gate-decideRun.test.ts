@@ -14,6 +14,8 @@ const lastWith = (regular?: RunRecord, weekly?: RunRecord): LastRunFile => ({
 });
 const scheduled = (now: string, last: LastRunFile, force = false) =>
   decideRun({ now: new Date(now), mode: "scheduled", lastRun: last, force });
+/** No weekly podcast, so a Sunday is a day like any other: for the tests of the cadence alone. */
+const NO_WEEKLY = { enabled: false, day: 0, hour: 0 };
 
 describe("decideRun: cadence_days from the schedule", () => {
   const last = lastWith(record("2026-10-01T05:13:00Z"));
@@ -24,6 +26,7 @@ describe("decideRun: cadence_days from the schedule", () => {
       lastRun: last,
       force: false,
       cadenceDays,
+      weekly: NO_WEEKLY,
     });
 
   it.each([
@@ -88,7 +91,9 @@ describe("decideRun: cadence by Stockholm calendar date", () => {
     const last = lastWith(record("2026-10-05T05:13:00Z"));
     for (let delay = 0; delay <= 10; delay++) {
       const now = new Date(Date.parse("2026-10-07T05:13:00Z") + delay * 3_600_000);
-      expect(decideRun({ now, mode: "scheduled", lastRun: last, force: false }).due).toBe(true);
+      expect(
+        decideRun({ now, mode: "scheduled", lastRun: last, force: false, weekly: NO_WEEKLY }).due,
+      ).toBe(true);
     }
   });
 
@@ -107,14 +112,18 @@ describe("decideRun: daylight saving changeovers", () => {
     const last = lastWith(record("2026-03-27T06:13:00Z"));
     const now = new Date("2026-03-29T05:13:00Z");
     expect(now.getTime() - Date.parse("2026-03-27T06:13:00Z")).toBe(47 * 3_600_000);
-    expect(decideRun({ now, mode: "scheduled", lastRun: last, force: false }).due).toBe(true);
+    expect(
+      decideRun({ now, mode: "scheduled", lastRun: last, force: false, weekly: NO_WEEKLY }).due,
+    ).toBe(true);
   });
 
   it("is due on 25 October 2026 two days after the 23rd although 49 hours passed (fall back)", () => {
     const last = lastWith(record("2026-10-23T05:13:00Z"));
     const now = new Date("2026-10-25T06:13:00Z");
     expect(now.getTime() - Date.parse("2026-10-23T05:13:00Z")).toBe(49 * 3_600_000);
-    expect(decideRun({ now, mode: "scheduled", lastRun: last, force: false }).due).toBe(true);
+    expect(
+      decideRun({ now, mode: "scheduled", lastRun: last, force: false, weekly: NO_WEEKLY }).due,
+    ).toBe(true);
   });
 
   it("is not due on the changeover day itself when the last digest was the day before", () => {
@@ -130,7 +139,13 @@ describe("decideRun: daylight saving changeovers", () => {
     const last = lastWith(record("2026-10-23T05:13:00Z"));
     for (let delay = 0; delay <= 8; delay++) {
       const now = new Date(Date.parse("2026-10-25T06:13:00Z") + delay * 3_600_000);
-      const decision = decideRun({ now, mode: "scheduled", lastRun: last, force: false });
+      const decision = decideRun({
+        now,
+        mode: "scheduled",
+        lastRun: last,
+        force: false,
+        weekly: NO_WEEKLY,
+      });
       expect(decision.date).toBe("2026-10-25");
       expect(decision.due).toBe(true);
     }
@@ -140,9 +155,9 @@ describe("decideRun: daylight saving changeovers", () => {
 describe("decideRun: weekly pass on Sundays", () => {
   const sunday = "2026-10-11T05:13:00Z";
 
-  it("runs the weekly pass after a due regular digest on a Sunday", () => {
+  it("runs the weekly pass on a Sunday, and a briefing due that day waits", () => {
     const decision = scheduled(sunday, lastWith(record("2026-10-09T05:13:00Z")));
-    expect(decision).toMatchObject({ due: true, runWeekly: true, date: "2026-10-11" });
+    expect(decision).toMatchObject({ due: false, runWeekly: true, date: "2026-10-11" });
   });
 
   it("runs the weekly pass on a Sunday even when no regular digest is due", () => {
@@ -175,6 +190,81 @@ describe("decideRun: weekly pass on Sundays", () => {
   it("retries the weekly pass after a failed one", () => {
     const failed = lastWith(undefined, record("2026-10-11T05:20:00Z", "failed"));
     expect(scheduled("2026-10-11T12:00:00Z", failed).runWeekly).toBe(true);
+  });
+});
+
+describe("decideRun: the weekly podcast takes its day", () => {
+  const slot = { enabled: true, day: 0, hour: 18 };
+  const at = (now: string, last: LastRunFile, weekly = slot, cadenceDays = 2) =>
+    decideRun({
+      now: new Date(now),
+      mode: "scheduled",
+      lastRun: last,
+      force: false,
+      cadenceDays,
+      weekly,
+    });
+  // Friday 9 October briefing; Sunday 11 October is the weekly day.
+  const friday = record("2026-10-09T05:13:00Z");
+
+  it("makes no briefing on the weekly day, before or after the weekly hour", () => {
+    expect(at("2026-10-11T05:13:00Z", lastWith(friday))).toMatchObject({
+      due: false,
+      runWeekly: false,
+      reason: "today is the weekly podcast's day; no briefing",
+    });
+    expect(at("2026-10-11T16:10:00Z", lastWith(friday))).toMatchObject({
+      due: false,
+      runWeekly: true,
+    });
+  });
+
+  it("counts the cadence from the weekly podcast, so the next briefing keeps its spacing", () => {
+    const weekly = lastWith(friday, record("2026-10-11T16:20:00Z"));
+    expect(at("2026-10-12T05:13:00Z", weekly)).toMatchObject({
+      due: false,
+      reason: "last podcast was the weekly one on 2026-10-11; next is due 1 day(s) from now",
+    });
+    expect(at("2026-10-13T05:13:00Z", weekly)).toMatchObject({
+      due: true,
+      reason: "last podcast was the weekly one on 2026-10-11, 2 days ago",
+    });
+  });
+
+  it("counts a weekly podcast only when it published", () => {
+    const empty = lastWith(friday, record("2026-10-11T16:20:00Z", "nothing"));
+    expect(at("2026-10-12T05:13:00Z", empty).due).toBe(true);
+  });
+
+  it("counts from the later of the two, so an older weekly changes nothing", () => {
+    const later = lastWith(record("2026-10-13T05:13:00Z"), record("2026-10-11T16:20:00Z"));
+    expect(at("2026-10-14T05:13:00Z", later).due).toBe(false);
+    expect(at("2026-10-15T05:13:00Z", later).due).toBe(true);
+  });
+
+  it("leaves Sunday to the briefing while the weekly podcast is off", () => {
+    expect(at("2026-10-11T05:13:00Z", lastWith(friday), { ...slot, enabled: false }).due).toBe(
+      true,
+    );
+  });
+
+  it("still runs a briefing the owner asks for", () => {
+    const forced = decideRun({
+      now: new Date("2026-10-11T05:13:00Z"),
+      mode: "scheduled",
+      lastRun: lastWith(friday),
+      force: true,
+      weekly: slot,
+    });
+    expect(forced.due).toBe(true);
+    const onDemand = decideRun({
+      now: new Date("2026-10-11T05:13:00Z"),
+      mode: "on-demand",
+      lastRun: lastWith(friday),
+      force: false,
+      weekly: slot,
+    });
+    expect(onDemand.due).toBe(true);
   });
 });
 

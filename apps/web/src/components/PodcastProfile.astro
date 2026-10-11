@@ -21,9 +21,15 @@ interface Props {
   };
   /** The topics the episode can leave out, by name. */
   topics: readonly TopicChoice[];
+  /** Daily only: the weekly podcast's day (0 = Sunday) while it is on, which has no briefing. */
+  weeklyDay?: number | null;
 }
 
-const { id, values, topics } = Astro.props;
+const { id, values, topics, weeklyDay = null } = Astro.props;
+const weeklyDayName = weeklyDay === null ? undefined : WEEKDAYS[weeklyDay];
+// The weekly podcast takes its day, so the daily briefing says which day it gives up (D65).
+const whenHint =
+  id === "daily" && weeklyDayName ? `Stockholm time, none on ${weeklyDayName}s` : "Stockholm time";
 
 const hours = Array.from({ length: 24 }, (_, value) => value);
 const discussion = values.format === "discussion";
@@ -56,7 +62,7 @@ const VOICES = [
     <div class="settings-row daily-when">
       <div class="settings-text">
         <span class="settings-label">When</span>
-        <span class="settings-hint" id={`${id}-when-hint`}>Stockholm time</span>
+        <span class="settings-hint" id={`${id}-when-hint`}>{whenHint}</span>
       </div>
       <div class="daily-selects">
         {id === "weekly" && (

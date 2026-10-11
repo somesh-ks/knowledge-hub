@@ -177,9 +177,15 @@ describe("gate: on-demand and weekly modes", () => {
 });
 
 describe("gate: the Sunday weekly pass", () => {
-  it("follows the regular pass when both are due", async () => {
+  it("takes the Sunday alone: a briefing due that day waits", async () => {
     await lastRun({ regular: record("2026-10-09T05:13:00Z") });
     const report = await gate(SUN);
+    expect(report.passes).toMatchObject([{ id: "2026-10-11-weekly", kind: "weekly" }]);
+  });
+
+  it("follows the regular pass in a forced run", async () => {
+    await lastRun({ regular: record("2026-10-09T05:13:00Z") });
+    const report = await gate(SUN, { force: true });
     expect(report.passes).toMatchObject([
       { id: "2026-10-11", kind: "regular" },
       { id: "2026-10-11-weekly", kind: "weekly" },
@@ -198,7 +204,7 @@ describe("gate: the Sunday weekly pass", () => {
       regular: record("2026-10-09T05:13:00Z"),
       weekly: record("2026-10-11T04:00:00Z"),
     });
-    expect((await gate(SUN)).passes.map((pass) => pass.kind)).toEqual(["regular"]);
+    expect((await gate(SUN)).passes).toEqual([]);
   });
 
   it("is never added on other days", async () => {
@@ -210,7 +216,7 @@ describe("gate: the Sunday weekly pass", () => {
     // The clocks went back at 01:00 UTC on Sunday 25 October 2026.
     // 07:13 in Stockholm is 06:13Z after the clocks went back.
     const report = await gate(new Date("2026-10-25T06:13:00Z"));
-    expect(report.passes.map((pass) => pass.id)).toEqual(["2026-10-25", "2026-10-25-weekly"]);
+    expect(report.passes.map((pass) => pass.id)).toEqual(["2026-10-25-weekly"]);
   });
 
   it("follows the weekly day and hour in config/schedule.json", async () => {
@@ -280,12 +286,12 @@ describe("gate: fetch windows", () => {
       last_fetch_at: "2026-10-10T05:13:00Z",
     });
     const report = await gate(SUN);
-    expect(report.passes[1]?.window.from).toBe("2026-10-04T05:13:00.000Z");
+    expect(report.passes[0]?.window.from).toBe("2026-10-04T05:13:00.000Z");
   });
 
   it("starts every pass at --since when given", async () => {
     await lastRun({ regular: record("2026-10-09T05:13:00Z") });
-    const report = await gate(SUN, { since: "2026-10-01" });
+    const report = await gate(SUN, { since: "2026-10-01", force: true });
     expect(report.passes.map((pass) => pass.window.from)).toEqual([
       "2026-10-01T00:00:00.000Z",
       "2026-10-01T00:00:00.000Z",
