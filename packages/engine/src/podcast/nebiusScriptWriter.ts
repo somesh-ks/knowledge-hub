@@ -67,6 +67,7 @@ export class NebiusScriptWriter implements ScriptWriter {
       temperature: SCRIPT_TEMPERATURE,
       maxTokens,
       label: "podcast_script",
+      ...(input.deadline_at === undefined ? {} : { deadlineAt: input.deadline_at }),
     });
     return value;
   }

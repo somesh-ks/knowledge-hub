@@ -15,6 +15,30 @@ export function isModelNotFound(error: unknown): boolean {
 }
 
 /**
+ * Why a model failed, safe to log: the HTTP status, the error class and a short kind. Never the
+ * provider's message or headers, which can echo part of a credential.
+ */
+export function failureReason(error: unknown): {
+  status: number | null;
+  error_class: string;
+  kind: string;
+} {
+  const status = errorStatus(error) ?? null;
+  const errorClass = error instanceof Error ? error.name : typeof error;
+  let kind = "other";
+  if (isModelNotFound(error)) kind = "model_not_found";
+  else if (status === 401 || status === 403) kind = "authentication";
+  else if (status === 429) kind = "rate_limited";
+  else if (status !== null && status >= 500) kind = "server_error";
+  else if (status !== null && status >= 400) kind = "rejected_request";
+  else if (/timeout/i.test(errorClass)) kind = "timeout";
+  else if (/connection/i.test(errorClass)) kind = "connection";
+  else if (errorClass === "LlmOutputError") kind = "invalid_reply";
+  else if (errorClass === "DeadlineExceededError") kind = "out_of_time";
+  return { status, error_class: errorClass, kind };
+}
+
+/**
  * Uses the first model until it fails, then moves down the list for the rest of the run. A model
  * is skipped when it reports model-not-found; the first one, when `firstIsTentative` (a model the
  * owner picked in Settings), is also skipped on any other error, so a pick that misbehaves never
@@ -48,9 +72,10 @@ export function withModelChain(
           if (!canSkip(index, error)) throw error;
           const next = clients[index + 1] as LlmClient;
           if (active === index) {
-            log?.warn("A model failed; switching to the next one", {
+            log?.warn("A model failed; switching to the next one for the rest of the run", {
               from: used.model,
               to: next.model,
+              ...failureReason(error),
             });
             active = index + 1;
           }

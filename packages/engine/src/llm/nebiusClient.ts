@@ -1,7 +1,7 @@
 import { zodResponseFormat } from "openai/helpers/zod";
 import { z } from "zod";
 import type { Logger } from "../context.js";
-import { errorStatus, LlmOutputError } from "./errors.js";
+import { DeadlineExceededError, errorStatus, LlmOutputError } from "./errors.js";
 import { parseModelJson } from "./parseModelJson.js";
 import { type RetryOptions, withRetry } from "./retry.js";
 import { DEFAULT_THINKING_OFF, type ThinkingOff, thinkingParams } from "./thinking.js";
@@ -10,7 +10,15 @@ import type { ChatMessage, JsonRequest, JsonResult, LlmClient, LlmUsage } from "
 
 /** The slice of an OpenAI-compatible chat API the client uses. The real adapter is in openAiChatApi.ts. */
 export interface ChatApi {
-  createChatCompletion(body: Record<string, unknown>): Promise<ChatApiResponse>;
+  createChatCompletion(
+    body: Record<string, unknown>,
+    options?: ChatCallOptions,
+  ): Promise<ChatApiResponse>;
+}
+
+export interface ChatCallOptions {
+  /** The longest this one request may take before it is abandoned as a timeout. */
+  timeoutMs?: number;
 }
 
 export interface ChatApiResponse {
@@ -34,10 +42,31 @@ export interface NebiusLlmOptions {
   responseMode?: ResponseMode;
   retry?: Partial<RetryOptions>;
   log?: Logger;
+  /** The timeout of one request for a reply of up to `maxTokens`; defaults to requestTimeoutMs. */
+  timeoutFor?: (maxTokens: number) => number;
+  /** The clock for timeouts and deadlines; tests replace it. */
+  now?: () => number;
 }
 
 const DEFAULT_TEMPERATURE = 0.2;
 const DEFAULT_MAX_TOKENS = 1_500;
+
+/** A reply of up to DEFAULT_MAX_TOKENS gets this long, as every request did before. */
+const BASE_TIMEOUT_MS = 60_000;
+/** Each token asked for beyond DEFAULT_MAX_TOKENS adds this long (about 40 tokens a second). */
+const TIMEOUT_MS_PER_TOKEN = 25;
+const MAX_TIMEOUT_MS = 240_000;
+/**
+ * Retries of one request start only within this many timeouts of its first attempt, so a request
+ * that keeps timing out ends instead of being tried five times over.
+ */
+const RETRY_WINDOW_TIMEOUTS = 2;
+
+/** The timeout of one request: longer for a long reply, such as a 10 or 15 minute script. */
+export function requestTimeoutMs(maxTokens: number): number {
+  const extra = Math.max(0, maxTokens - DEFAULT_MAX_TOKENS) * TIMEOUT_MS_PER_TOKEN;
+  return Math.min(MAX_TIMEOUT_MS, BASE_TIMEOUT_MS + extra);
+}
 /** One corrective retry after a reply fails validation, as the plan specifies. */
 const VALIDATION_RETRIES = 1;
 
@@ -87,6 +116,13 @@ export function createNebiusLlm(options: NebiusLlmOptions): LlmClient {
     messages: readonly ChatMessage[],
   ): Promise<{ content: string; usage: LlmUsage }> {
     const maxTokens = request.maxTokens ?? DEFAULT_MAX_TOKENS;
+    const now = options.now ?? Date.now;
+    const timeoutMs = (options.timeoutFor ?? requestTimeoutMs)(maxTokens);
+    // Retries end within a few timeouts, and never after the caller's own deadline.
+    const deadlineAt = Math.min(
+      request.deadlineAt ?? Number.POSITIVE_INFINITY,
+      now() + RETRY_WINDOW_TIMEOUTS * timeoutMs,
+    );
     // Each fallback below flips its own state once, so this loop runs at most three times.
     for (;;) {
       options.budget.check(estimateTokensForChars(totalChars(messages)) + maxTokens);
@@ -102,15 +138,28 @@ export function createNebiusLlm(options: NebiusLlmOptions): LlmClient {
         ...thinkingParams(thinkingOff),
       };
       try {
-        const response = await withRetry(() => options.api.createChatCompletion(body), {
-          ...options.retry,
-          onRetry: (info) => {
-            options.log?.warn(`${request.label}: retrying after a transient error`, {
-              attempt: info.attempt,
-              delayMs: info.delayMs,
+        const response = await withRetry(
+          () => {
+            const left = deadlineAt - now();
+            if (left <= 0) {
+              throw new DeadlineExceededError(`${request.label}: out of time before the request`);
+            }
+            return options.api.createChatCompletion(body, {
+              timeoutMs: Math.min(timeoutMs, left),
             });
           },
-        });
+          {
+            ...options.retry,
+            deadlineAt,
+            now,
+            onRetry: (info) => {
+              options.log?.warn(`${request.label}: retrying after a transient error`, {
+                attempt: info.attempt,
+                delayMs: info.delayMs,
+              });
+            },
+          },
+        );
         const message = response.choices[0]?.message;
         if (message?.refusal) throw new LlmOutputError("The model refused the request.");
         const content = message?.content ?? "";

@@ -148,22 +148,29 @@ export function scriptSystemPrompt(input: ScriptInput, boundary: string): string
     ...lengthLines(input),
     "OUTPUT",
     'Answer with JSON only: {"turns":[{"speaker":"a","text":"...","item_id":"..."}]}.',
-    'Put the story\'s id, copied exactly from its block, in "item_id" on every turn about that story. Leave "item_id" out of the hello, rundown, close and sign-off turns.',
+    'Put the story\'s id, copied exactly from the "item_id:" line above its block, in "item_id" on every turn about that story. Leave "item_id" out of the hello, rundown, close and sign-off turns.',
     untrustedInstruction(boundary),
   ].join("\n");
 }
 
+/**
+ * One story: its id on a line of its own, then the story text between the markers. The id stays
+ * out of the marker, so a model copying the id has no marker text next to it to copy as well.
+ */
 function storyBlock(story: PodcastStory, boundary: string): string {
-  return wrapUntrusted(
-    [
-      `Headline: ${story.headline}`,
-      `Source: ${story.source}`,
-      `Topic: ${story.section}`,
-      `Summary: ${story.summary}`,
-    ].join("\n"),
-    boundary,
-    story.item_id,
-  );
+  return [
+    `item_id: ${story.item_id}`,
+    wrapUntrusted(
+      [
+        `Headline: ${story.headline}`,
+        `Source: ${story.source}`,
+        `Topic: ${story.section}`,
+        `Summary: ${story.summary}`,
+      ].join("\n"),
+      boundary,
+      "story",
+    ),
+  ].join("\n");
 }
 
 export function scriptUserMessage(

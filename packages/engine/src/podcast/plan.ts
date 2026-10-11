@@ -159,10 +159,19 @@ export function reachableChars(
   return Math.min(budget, structure.frame_chars + capacity);
 }
 
-/** The writer is asked to land at or above this share of the budget (a range, not a ceiling). */
-export const SCRIPT_TARGET_SHARE = 0.9;
+/**
+ * The writer is asked to land at about this share of the budget. Models deliver about 88 to 97
+ * percent of the length they are asked for, so asking for 95 percent lands a typical reply above
+ * the floor and still under the budget, where fitToBudget would drop the last stories.
+ */
+export const SCRIPT_TARGET_SHARE = 0.95;
 /** A reply under this share of the budget is sent back once or twice, then kept if still short. */
 export const SCRIPT_FLOOR_SHARE = 0.8;
+/**
+ * A reply this close under the floor (a share of the floor) is kept instead of rewritten whole:
+ * a rewrite costs 25 to 36 seconds and is not reliably longer.
+ */
+export const SCRIPT_FLOOR_GRACE = 0.05;
 
 /** Characters the writer is asked to reach at least, and the floor below which a reply is sent back. */
 export function scriptTargetChars(budget: number): number {
@@ -170,6 +179,10 @@ export function scriptTargetChars(budget: number): number {
 }
 export function scriptFloorChars(budget: number): number {
   return Math.floor(budget * SCRIPT_FLOOR_SHARE);
+}
+/** The shortest reply that is kept without a retry: the floor less its grace. */
+export function scriptAcceptChars(budget: number): number {
+  return Math.floor(scriptFloorChars(budget) * (1 - SCRIPT_FLOOR_GRACE));
 }
 
 /** Characters a deep dive and a nugget should carry once the frame is taken out of `budget`. */

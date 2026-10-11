@@ -65,7 +65,7 @@ describe("the length asked of the writer", () => {
       const stories = input.stories.length;
       const reach = reachableChars(budget, stories, format, minutes);
       const prompt = scriptSystemPrompt(input, "BOUNDARY");
-      expect(scriptTargetChars(budget)).toBe(Math.floor(budget * 0.9));
+      expect(scriptTargetChars(budget)).toBe(Math.floor(budget * 0.95));
       expect(scriptFloorChars(budget)).toBe(Math.floor(budget * 0.8));
       // The plan gives a format as many stories as its length carries, so the whole length is in reach.
       expect(reach).toBe(budget);

@@ -1,6 +1,11 @@
 import { type Env, requireKey } from "@dispatch/core";
 import type { Logger } from "../context.js";
-import { type ChatApi, type ChatApiResponse, createNebiusLlm } from "./nebiusClient.js";
+import {
+  type ChatApi,
+  type ChatApiResponse,
+  createNebiusLlm,
+  requestTimeoutMs,
+} from "./nebiusClient.js";
 import type { TokenBudget } from "./tokenBudget.js";
 import type { LlmClient } from "./types.js";
 
@@ -51,7 +56,7 @@ export interface AnthropicChatApiOptions {
 export function createAnthropicChatApi(options: AnthropicChatApiOptions): ChatApi {
   const doFetch = options.fetch ?? fetch;
   return {
-    async createChatCompletion(body): Promise<ChatApiResponse> {
+    async createChatCompletion(body, callOptions): Promise<ChatApiResponse> {
       const all = (body.messages as Array<{ role: string; content: string }>) ?? [];
       const system = all
         .filter((message) => message.role === "system")
@@ -77,7 +82,7 @@ export function createAnthropicChatApi(options: AnthropicChatApiOptions): ChatAp
             "content-type": "application/json",
           },
           body: JSON.stringify(payload),
-          signal: AbortSignal.timeout(REQUEST_TIMEOUT_MS),
+          signal: AbortSignal.timeout(callOptions?.timeoutMs ?? REQUEST_TIMEOUT_MS),
         });
       } catch (error) {
         const timedOut = error instanceof Error && error.name === "TimeoutError";
@@ -138,6 +143,8 @@ export function createAnthropicLlm(options: AnthropicLlmOptions): LlmClient {
     budget: options.budget,
     log: options.log,
     responseMode: "json_object",
+    // The Messages API keeps its longer floor; a long script still gets the longer timeout.
+    timeoutFor: (maxTokens) => Math.max(REQUEST_TIMEOUT_MS, requestTimeoutMs(maxTokens)),
     thinkingOff: { kind: "omit" },
   });
 }

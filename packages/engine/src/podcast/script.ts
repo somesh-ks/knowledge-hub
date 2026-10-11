@@ -7,6 +7,7 @@ import { ScriptReply } from "./nebiusScriptWriter.js";
 import {
   partChars,
   reachableChars,
+  scriptAcceptChars,
   scriptFloorChars,
   scriptTargetChars,
   wordsFor,
@@ -15,6 +16,12 @@ import { PodcastError, type PodcastStory, type ScriptTurn, type ScriptWriter } f
 
 /** Attempts at a valid reply: the first call and two retries that name what was wrong. */
 const ATTEMPTS = 3;
+
+/**
+ * No new script attempt starts after this long, and every writer call (its own retries included)
+ * ends by then, so a stalled provider cannot use up the 15 minute job.
+ */
+export const SCRIPT_TIME_LIMIT_MS = 8 * 60_000;
 
 /** Said when the opening turn was dropped by the checks, so the show is always named. */
 const FALLBACK_OPENING = "This is Singularity.";
@@ -27,6 +34,8 @@ export interface ScriptDeps {
   /** The listener's changes to a previous version; reaches the writer as delimited text. */
   feedback?: string | undefined;
   log?: Logger;
+  /** The clock for the time limit; tests replace it. */
+  now?: () => number;
 }
 
 export interface ScriptResult {
@@ -117,10 +126,14 @@ export function validateReply(
 const ID_PREFIX_MATCH = 8;
 
 /**
- * The one known id a mistyped id can only mean: the same leading characters, and no other known id
- * shares them. Anything less certain is returned as given, and reported.
+ * The one known id a mistyped id can only mean: the one known id it contains (a model sometimes
+ * copies the marker around the id as well), or the same leading characters when no other known
+ * id shares them. Anything less certain is returned as given, and reported.
  */
 export function closestId(given: string, known: ReadonlySet<string>): string {
+  const inside = [...known].filter((id) => id.length > 0 && given.includes(id));
+  if (inside.length === 1 && inside[0] !== undefined) return inside[0];
+  if (inside.length > 1) return given;
   if (given.length < ID_PREFIX_MATCH) return given;
   const head = given.slice(0, ID_PREFIX_MATCH);
   const matches = [...known].filter((id) => id.startsWith(head));
@@ -169,13 +182,24 @@ async function requestTurns(deps: ScriptDeps): Promise<Requested> {
   let rejected: string[] = [];
   // The longest reply that was valid but short: a short true episode beats none.
   let short: ScriptTurn[] | null = null;
+  let calls = 0;
   const reach = reachableChars(
     deps.budget_chars,
     deps.stories.length,
     deps.request.format,
     deps.request.length_minutes,
   );
+  const now = deps.now ?? Date.now;
+  const deadline = now() + SCRIPT_TIME_LIMIT_MS;
   for (let attempt = 1; attempt <= ATTEMPTS; attempt++) {
+    if (attempt > 1 && now() >= deadline) {
+      deps.log?.warn("The script ran out of time for another attempt", {
+        attempts: calls,
+        limit_ms: SCRIPT_TIME_LIMIT_MS,
+      });
+      break;
+    }
+    calls = attempt;
     try {
       const raw = await deps.writer.writeScript(
         {
@@ -183,17 +207,28 @@ async function requestTurns(deps: ScriptDeps): Promise<Requested> {
           stories: deps.stories,
           budget_chars: deps.budget_chars,
           ...(deps.feedback ? { feedback: deps.feedback } : {}),
+          deadline_at: deadline,
         },
         problems,
       );
       const result = validateReply(raw, deps.request, deps.stories);
       if (result.ok) {
         // Held to what the stories can carry, not to a length they cannot fill.
-        if (shortByChars(result.turns, reach) === 0) {
+        const chars = charCount(result.turns);
+        if (chars >= scriptAcceptChars(reach)) {
+          const shortBy = shortByChars(result.turns, reach);
+          if (shortBy > 0) {
+            deps.log?.info("Kept a script a little under the floor instead of rewriting it", {
+              attempt,
+              chars,
+              floor_chars: scriptFloorChars(reach),
+              short_by_chars: shortBy,
+            });
+          }
           return { turns: result.turns, calls: attempt, rejected };
         }
         // Keep the longest of the short replies: a rewrite is not always longer.
-        if (!short || charCount(result.turns) > charCount(short)) short = result.turns;
+        if (!short || chars > charCount(short)) short = result.turns;
         problems = [tooShortProblem(result.turns, deps.stories, reach, deps.request)];
       } else {
         problems = result.problems;
@@ -205,7 +240,7 @@ async function requestTurns(deps: ScriptDeps): Promise<Requested> {
     rejected = problems;
     deps.log?.warn("The script reply was not usable", { attempt, problems });
   }
-  if (short) return { turns: short, calls: ATTEMPTS, rejected };
+  if (short) return { turns: short, calls, rejected };
   throw new PodcastError(`The writer did not return a usable script. ${problems.join(" ")}`);
 }
 
