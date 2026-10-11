@@ -1,3 +1,4 @@
+import type { Voice } from "../lib/voices";
 import { startRun } from "./runStatus";
 
 /**
@@ -42,25 +43,32 @@ export function installCreate(root: HTMLElement, onStart?: () => void): void {
   const voiceRows = [...form.querySelectorAll<HTMLElement>("[data-voice]")];
   const more = root.querySelector<HTMLDetailsElement>("[data-create-more]");
   const note = root.querySelector<HTMLElement>("[data-preset-note]");
-  // The name each select's Default stands for, once /api/voices has said, and every voice's name.
-  const defaultNames: Record<string, string> = {};
-  const names = new Map<string, string>();
+  // The voice each select's Default stands for, once /api/voices has said, and every voice by id.
+  const defaultVoices: Record<string, Voice> = {};
+  const known = new Map<string, Voice>();
+  // The hosts' names are worked out as the engine works them out, from the voices (hosts.ts in core),
+  // so the line under the format says the names the episode will use. Loaded with the voice list.
+  let hostNames: typeof import("@dispatch/core/hosts").hostNamesFor | null = null;
 
   /** The voices are fetched when the panel is first used, and fill the selects they belong to. */
   async function loadVoices(): Promise<void> {
     try {
-      const lib = await import("../lib/voices");
+      const [lib, hosts] = await Promise.all([
+        import("../lib/voices"),
+        import("@dispatch/core/hosts"),
+      ]);
+      hostNames = hosts.hostNamesFor;
       const response = await fetch("/api/voices", { signal: AbortSignal.timeout(10_000) });
       const body: unknown = response.ok ? await response.json() : null;
       const voices = lib.parseVoices(body);
       if (!voices) return;
       const defaults = lib.parseVoiceDefaults(body);
-      for (const voice of voices) names.set(voice.id, voice.name);
+      for (const voice of voices) known.set(voice.id, voice);
       for (const select of form.querySelectorAll<HTMLSelectElement>("[data-voice] select")) {
         // Default reads "Default (Ada)": the voice it stands for in this host's place.
         const id = select.name === "voice_b" ? defaults?.voice_b : defaults?.voice;
         const fallback = voices.find((voice) => voice.id === id);
-        if (fallback) defaultNames[select.name] = fallback.name;
+        if (fallback) defaultVoices[select.name] = fallback;
         lib.fillVoiceSelect(select, voices, select.value, fallback);
       }
       sync();
@@ -92,12 +100,10 @@ export function installCreate(root: HTMLElement, onStart?: () => void): void {
     else if (note) note.hidden = false;
   }
 
-  /** The voice a select stands for, by name, or "" when it is not known. */
-  function voiceName(select: HTMLSelectElement | null): string {
-    if (!select) return "";
-    return select.value === ""
-      ? (defaultNames[select.name] ?? "")
-      : (names.get(select.value) ?? "");
+  /** The voice a select stands for, or null when the list has not said what it is. */
+  function voiceOf(select: HTMLSelectElement | null): Voice | null {
+    if (!select) return null;
+    return (select.value === "" ? defaultVoices[select.name] : known.get(select.value)) ?? null;
   }
 
   function sync(): void {
@@ -120,9 +126,14 @@ export function installCreate(root: HTMLElement, onStart?: () => void): void {
     // Under the format: who will be heard, by name once the voices are known.
     const hint = root.querySelector<HTMLElement>("[data-format-hint]");
     if (hint) {
-      const a = voiceName(form.querySelector<HTMLSelectElement>('select[name="voice"]'));
-      const b = voiceName(form.querySelector<HTMLSelectElement>('select[name="voice_b"]'));
-      const named = discussion ? Boolean(a && b) : Boolean(a);
+      const first = voiceOf(form.querySelector<HTMLSelectElement>('select[name="voice"]'));
+      const second = voiceOf(form.querySelector<HTMLSelectElement>('select[name="voice_b"]'));
+      const named = discussion ? Boolean(first && second && hostNames) : Boolean(first);
+      // A readout is read by the voice, under its own name; a discussion's two hosts take the names
+      // the episode will be written with.
+      const hosts = discussion && hostNames ? hostNames(first, second) : null;
+      const a = hosts ? hosts.a : (first?.name ?? "");
+      const b = hosts ? hosts.b : (second?.name ?? "");
       const key = (discussion ? "discussion" : "readout") + (named ? "Named" : "");
       const text = (hint.dataset[key] ?? "").replace("{a}", a).replace("{b}", b);
       if (hint.textContent !== text) hint.textContent = text;

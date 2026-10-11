@@ -795,12 +795,12 @@ test.describe("episodes in the Library", () => {
       hasText: "Quiet interfaces and fast latency",
     });
     await expect(episode.locator(".card-title")).toHaveText("Quiet interfaces and fast latency");
-    await expect(episode.locator(".card-facts")).toHaveText("Discussion, 5 min");
+    await expect(episode.locator(".card-facts")).toHaveText("Discussion \u00b7 5 min");
     await expect(
       page
         .locator('[data-card][data-kind="episode"]', { hasText: "AI headlines" })
         .locator(".card-facts"),
-    ).toHaveText("Headlines, 3 min");
+    ).toHaveText("Headlines \u00b7 3 min");
 
     const show = page.getByRole("combobox", { name: "Show" });
     await expect(show).toHaveValue("all");
