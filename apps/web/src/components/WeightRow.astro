@@ -1,0 +1,34 @@
+---
+import { percent, snap, WEIGHT_STEP } from "../lib/topicPages";
+
+interface Props {
+  /** The topic the slider weighs: `weights.set` keys its value by this id. */
+  id: string;
+  label: string;
+  weight: number;
+}
+
+const { id, label, weight } = Astro.props;
+---
+
+{/* How much one topic counts, in five steps. The readout sits right after the slider, where
+     topicsPage.ts updates it as the thumb moves; every slider on a page goes in one weights.set. */}
+<div class="settings-row topic-weight">
+  <label class="settings-label" for={`weight-${id}`}>{label}</label>
+  <input
+    class="settings-range"
+    id={`weight-${id}`}
+    type="range"
+    min="0"
+    max="1"
+    step={WEIGHT_STEP}
+    value={snap(weight).toFixed(2)}
+    autocomplete="off"
+    aria-valuetext={percent(weight)}
+    style={`--range-fill: ${snap(weight) * 100}%`}
+    data-op={JSON.stringify({ op: "weights.set", weights: {} })}
+    data-field={`weights.${id}`}
+    data-weight
+  />
+  <output class="topic-percent" for={`weight-${id}`} data-word>{percent(weight)}</output>
+</div>

@@ -5,19 +5,12 @@ import MultiSelect from "../../../components/MultiSelect.astro";
 import SettingsHead from "../../../components/SettingsHead.astro";
 import SourceRow from "../../../components/SourceRow.astro";
 import TopicsPanel from "../../../components/TopicsPanel.astro";
+import WeightRow from "../../../components/WeightRow.astro";
 import BaseLayout from "../../../layouts/BaseLayout.astro";
 import { loadManage, type ManageSource, type ManageTopic } from "../../../lib/manage";
 import { loadScheduleView } from "../../../lib/schedule";
 import { freshOffers, loadSourceCatalog } from "../../../lib/sourceCatalog";
-import {
-  type GroupPage,
-  OTHER_ID,
-  percent,
-  snap,
-  topicChoicesOf,
-  topicLayout,
-  WEIGHT_STEP,
-} from "../../../lib/topicPages";
+import { type GroupPage, OTHER_ID, topicChoicesOf, topicLayout } from "../../../lib/topicPages";
 import "../../../styles/settings.css";
 import "../../../styles/manage.css";
 import "../../../styles/topics.css";
@@ -79,6 +72,21 @@ const inScope = (key: (typeof SCOPES)[number]["key"]): boolean => {
   const skipped = SCOPES.find((scope) => scope.key === key)?.skipped ?? [];
   return !scopeIds.every((id) => skipped.includes(id));
 };
+// How much each judge topic a group gathers counts (D69), by name. A group of one shows a plain
+// Weight row, as a topic of the owner's does; the member that shares the group's name reads as
+// the group in general, so Design's own row is not "Design" under Design.
+const weightRows = (group?.members ?? [])
+  .map((member) => ({
+    id: member.id,
+    label:
+      group && group.members.length === 1
+        ? "Weight"
+        : member.name === group?.name
+          ? `${member.name} in general`
+          : member.name,
+    weight: member.weight,
+  }))
+  .sort((a, b) => a.label.localeCompare(b.label));
 // The topic as Edit topic and the on switch send it.
 const upsert =
   topic &&
@@ -157,27 +165,8 @@ const facts = topic && {
                 {topic && !general && (
                   <input type="checkbox" hidden autocomplete="off" checked={topic.enabled} data-op={upsert} data-field="topic.enabled" />
                 )}
-                {topic && !general && (
-                <div class="settings-row topic-weight">
-                  <label class="settings-label" for={`weight-${topic.id}`}>Weight</label>
-                  <input
-                    class="settings-range"
-                    id={`weight-${topic.id}`}
-                    type="range"
-                    min="0"
-                    max="1"
-                    step={WEIGHT_STEP}
-                    value={snap(topic.weight).toFixed(2)}
-                    autocomplete="off"
-                    aria-valuetext={percent(topic.weight)}
-                    style={`--range-fill: ${snap(topic.weight) * 100}%`}
-                    data-op={JSON.stringify({ op: "weights.set", weights: {} })}
-                    data-field={`weights.${topic.id}`}
-                    data-weight
-                  />
-                  <output class="topic-percent" for={`weight-${topic.id}`} data-word>{percent(topic.weight)}</output>
-                </div>
-                )}
+                {topic && !general && <WeightRow id={topic.id} label="Weight" weight={topic.weight} />}
+                {weightRows.length === 1 && weightRows.map((row) => <WeightRow {...row} />)}
                 {topic && (
                 <button
                   class="row-action topic-edit"
@@ -194,6 +183,17 @@ const facts = topic && {
                 </button>
                 )}
               </div>
+            )
+          }
+          {
+            weightRows.length > 1 && (
+              <section class="topic-weights" aria-labelledby="weights-head">
+                <h2 class="section-head" id="weights-head">Weights</h2>
+                <p class="manage-quiet">How much each part of {name} counts when a briefing is chosen.</p>
+                <div class="rows topic-controls">
+                  {weightRows.map((row) => <WeightRow {...row} />)}
+                </div>
+              </section>
             )
           }
           {topic?.never_publish && <p class="manage-quiet topic-never">Never in a briefing.</p>}

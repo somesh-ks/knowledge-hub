@@ -89,21 +89,14 @@ export async function mount(root: HTMLElement): Promise<void> {
   /** What the schedule controls hold: the page's starting point and the test for "changed". */
   const fields = (): FieldValues => {
     const out: FieldValues = {};
-    /** A profile's topic chips, which add up to one field: the unticked ids, the topics left out. */
-    const skipped = new Map<string, string[]>();
     for (const control of controls) {
       const key = control.dataset.f ?? "";
-      if (key.endsWith(".skip") && control instanceof HTMLInputElement) {
-        const off = skipped.get(key) ?? [];
-        if (!control.checked) off.push(control.value);
-        skipped.set(key, off);
-      } else if (control instanceof HTMLInputElement && control.type === "radio") {
+      if (control instanceof HTMLInputElement && control.type === "radio") {
         out[key] ??= "";
         if (control.checked) out[key] = control.value;
       } else if (control instanceof HTMLInputElement) out[key] = String(control.checked);
       else out[key] = control.value;
     }
-    for (const [key, off] of skipped) out[key] = off.sort().join(",");
     return out;
   };
 

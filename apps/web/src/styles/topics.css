@@ -111,6 +111,29 @@
   }
 }
 
+/* A group's weights: one row per judge topic it gathers. On a phone the name takes its own line
+   and the slider the line below, so a long name never squeezes the slider. */
+.topic-weights .topic-weight {
+  flex-wrap: wrap;
+  row-gap: 0;
+}
+
+.topic-weights .topic-weight > .settings-label {
+  flex-basis: 100%;
+  padding-block-start: var(--space-2);
+}
+
+@media (min-width: 40rem) {
+  .topic-weights .topic-weight {
+    flex-wrap: nowrap;
+  }
+
+  .topic-weights .topic-weight > .settings-label {
+    flex-basis: auto;
+    padding-block-start: 0;
+  }
+}
+
 .topic-percent {
   flex: none;
   min-width: 4ch;

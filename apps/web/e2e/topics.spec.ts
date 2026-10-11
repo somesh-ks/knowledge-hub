@@ -277,6 +277,24 @@ test.describe("a topic's page", () => {
     expect(ops(sent)).toEqual([{ op: "weights.set", weights: { audio_interfaces: 0.6 } }]);
   });
 
+  test("Design weighs each topic it gathers by name; a group of one has a plain Weight row", async ({
+    page,
+  }) => {
+    const { sent } = await setup(page);
+    await open(page, CRAFT);
+    const weights = page.getByRole("region", { name: "Weights" });
+    await expect(weights.getByRole("slider")).toHaveCount(2);
+    await expect(weights.getByRole("slider").first()).toHaveAccessibleName(
+      "Design engineering craft",
+    );
+    await weights.getByRole("slider", { name: "Product design" }).fill("0.5");
+    await expect(toastText(page)).toHaveText(SAVED);
+    expect(ops(sent)).toEqual([{ op: "weights.set", weights: { product_design: 0.5 } }]);
+    await open(page, "/settings/topics/ai");
+    await expect(page.getByRole("region", { name: "Weights" })).toHaveCount(0);
+    await expect(page.getByRole("slider", { name: "Weight", exact: true })).toHaveCount(1);
+  });
+
   test("Scope is a list to tick: unticking Daily leaves every topic Design gathers out of it", async ({
     page,
   }) => {
