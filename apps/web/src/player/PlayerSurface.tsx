@@ -1,5 +1,6 @@
 import { type PointerEvent, useEffect, useSyncExternalStore } from "react";
 import { longDateFromDigestId } from "./core/formatTime";
+import { recordingCaption } from "./core/playerCopy";
 import { classifyKeyTarget, shouldToggleOnKey } from "./core/playerKeys";
 import { getPlayerStore } from "./core/playerRuntime";
 import { playerSheet } from "./core/playerSheet";
@@ -177,8 +178,9 @@ export default function PlayerSurface() {
                 <h2 className="player-title" id={TITLE_ID} title={title}>
                   {title}
                 </h2>
-                {/* The story being read, and where it came from. Their room is kept when empty. */}
-                <p className="player-story">{item?.headline}</p>
+                {/* The story being read, and where it came from. Until the first story starts the line
+                    says what the recording is, so the room kept for it is never an empty gap. */}
+                <p className="player-story">{item?.headline ?? recordingCaption(digest)}</p>
                 <SourceLink />
               </div>
             </div>

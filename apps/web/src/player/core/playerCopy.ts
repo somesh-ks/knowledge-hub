@@ -1,4 +1,17 @@
+import type { PlayerDigestData } from "../../types/contracts";
 import type { PlayerErrorKind, PlayerState } from "./playerTypes";
+import { briefingLengthLabel } from "./readerMath";
+
+/**
+ * What a recording is, and how long, for the line under its title when no story is being read: the
+ * bar's caption, and the page's until the first story starts.
+ */
+export function recordingCaption(digest: PlayerDigestData | undefined): string {
+  if (!digest) return "";
+  // An episode carries its script; a briefing does not.
+  const kind = digest.turns ? "Episode" : digest.kind === "weekly" ? "Weekly briefing" : "Briefing";
+  return digest.audio ? `${kind}, ${briefingLengthLabel(digest.audio.duration_ms)}` : kind;
+}
 
 /** One short line for the mini player, where the full message would not fit. */
 export function errorSummary(kind: PlayerErrorKind): string {

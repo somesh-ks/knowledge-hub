@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useRef, useState } from "react";
-import { hostOf } from "../lib/hosts";
+import { hostOf, readHostNames, transcriptNames } from "../lib/hosts";
 import type { SegmentWordMark } from "../lib/segmentMarks";
 import { getPlayerStore } from "./core/playerRuntime";
 import {
@@ -35,6 +35,12 @@ export default function ScriptView({ titleHidden = false }: { titleHidden?: bool
   const followed = useRef<number | null>(null);
   const [away, setAway] = useState(false);
   const digestId = state.track?.digest.id;
+  // Nobody is named in an episode with one voice; a discussion names each host after their voice.
+  const storedHosts = state.track?.digest.hosts;
+  const names = useMemo(
+    () => transcriptNames(turns, readHostNames(storedHosts)),
+    [turns, storedHosts],
+  );
   // Speechify's word marks, by segment key, for the turns that have been near the voice.
   const [marks, setMarks] = useState<Record<string, SegmentWordMark[]>>({});
   const words = useMemo(
@@ -154,50 +160,49 @@ export default function ScriptView({ titleHidden = false }: { titleHidden?: bool
       <h3 className={titleHidden ? "sr-only" : "player-section-title"} id="player-script-title">
         Transcript
       </h3>
-      <ol className="script-turns" data-following={current >= 0 ? "" : undefined}>
-        {turns.map((turn, index) => {
-          const host = hostOf(turn.speaker);
-          return (
-            <li key={turn.key}>
-              <button
-                className="script-turn"
-                type="button"
-                data-turn={index}
-                data-tone={host.tone}
-                data-said={current >= 0 && index < current ? "" : undefined}
-                aria-current={index === current ? "true" : undefined}
-                aria-disabled={turn.start_ms === null ? "true" : undefined}
-                onClick={(event) => {
-                  if (turn.start_ms === null) return;
-                  pausedUntil.current = 0;
-                  // A tap on a word plays from that word; anywhere else in the turn, from its start.
-                  const word = (event.target as Element).closest<HTMLElement>("[data-word]");
-                  const at = word ? words[index]?.starts?.[Number(word.dataset.word)] : undefined;
-                  getPlayerStore().seekTo(Math.round(at ?? turn.start_ms));
-                }}
-              >
-                <span className="script-speaker">
-                  <span className="host-badge" aria-hidden="true">
-                    {host.initial}
-                  </span>
-                  <span className="script-name">{host.name}</span>
-                </span>
-                <span className="script-text">
-                  {words[index]?.list.map((word, at) => (
-                    // biome-ignore lint/suspicious/noArrayIndexKey: a turn's words never reorder
-                    <span key={at}>
-                      {at > 0 ? " " : null}
-                      <span className="script-word" data-word={at}>
-                        {word}
+      <div className="list-scroll">
+        <ol className="script-turns" data-following={current >= 0 ? "" : undefined}>
+          {turns.map((turn, index) => {
+            const host = hostOf(turn.speaker, names);
+            // A name goes where the speaker changes: a second turn from the same voice just continues.
+            const named = host.name !== null && turns[index - 1]?.speaker !== turn.speaker;
+            return (
+              <li key={turn.key}>
+                <button
+                  className="script-turn"
+                  type="button"
+                  data-turn={index}
+                  data-tone={host.tone}
+                  data-said={current >= 0 && index < current ? "" : undefined}
+                  aria-current={index === current ? "true" : undefined}
+                  aria-disabled={turn.start_ms === null ? "true" : undefined}
+                  onClick={(event) => {
+                    if (turn.start_ms === null) return;
+                    pausedUntil.current = 0;
+                    // A tap on a word plays from that word; anywhere else in the turn, from its start.
+                    const word = (event.target as Element).closest<HTMLElement>("[data-word]");
+                    const at = word ? words[index]?.starts?.[Number(word.dataset.word)] : undefined;
+                    getPlayerStore().seekTo(Math.round(at ?? turn.start_ms));
+                  }}
+                >
+                  {named ? <span className="script-speaker">{host.name}</span> : null}
+                  <span className="script-text">
+                    {words[index]?.list.map((word, at) => (
+                      // biome-ignore lint/suspicious/noArrayIndexKey: a turn's words never reorder
+                      <span key={at}>
+                        {at > 0 ? " " : null}
+                        <span className="script-word" data-word={at}>
+                          {word}
+                        </span>
                       </span>
-                    </span>
-                  ))}
-                </span>
-              </button>
-            </li>
-          );
-        })}
-      </ol>
+                    ))}
+                  </span>
+                </button>
+              </li>
+            );
+          })}
+        </ol>
+      </div>
       {away ? (
         <button
           className="script-back"

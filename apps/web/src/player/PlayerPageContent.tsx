@@ -45,6 +45,7 @@ export default function PlayerPageContent() {
             className="player-views"
             legend="Show"
             legendHidden
+            variant="tabs"
             options={LIST_VIEWS}
             value={view}
             onChange={setView}

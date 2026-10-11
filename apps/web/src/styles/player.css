@@ -450,10 +450,23 @@
 }
 
 .player-list {
-  padding-block-start: var(--space-4);
+  padding-block-start: var(--space-6);
 }
 
-.player-section-title,
+/* The name of a list that has no switch beside it ("Chapters", "Up next"): the height of a tab with
+   the tab row's hairline under it, so a recording with one list and one with two read alike. */
+.player-section-title {
+  display: flex;
+  align-items: center;
+  min-height: var(--tabs-height);
+  margin: 0;
+  padding-inline: var(--space-3);
+  box-shadow: inset 0 calc(var(--stroke-hairline) * -1) 0 var(--color-border-hairline);
+  color: var(--color-on-surface);
+  font-size: var(--font-size-label);
+  font-weight: var(--font-weight-medium);
+}
+
 .segmented-legend {
   display: block;
   margin-block: var(--space-4) var(--space-2);
@@ -1152,12 +1165,14 @@
 }
 
 @media (min-width: 64rem) {
-  /* Two columns: the cover, the story being read and its controls; and the briefing's list. */
+  /* Two columns: the cover, the story being read and its controls, kept together as one group in the
+     middle of the window's height; and the list of what is in the recording, which scrolls on its
+     own. The spare rows above and below the group take whatever height is left over, so the cover
+     and its controls never drift apart in a tall window. */
   .player-page-inner {
     display: grid;
     grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
-    grid-template-rows: auto auto;
-    align-content: center;
+    grid-template-rows: minmax(0, 1fr) auto auto minmax(0, 1fr);
     column-gap: var(--space-12);
     max-width: var(--player-page-max);
     padding-inline: var(--space-12);
@@ -1174,11 +1189,8 @@
   }
 
   .player-drag {
-    grid-row: 1;
-    display: flex;
-    flex-direction: column;
+    grid-row: 2;
     align-items: center;
-    justify-content: center;
   }
 
   .player-body {
@@ -1187,19 +1199,31 @@
 
   .player-controls,
   .player-fallback {
-    grid-row: 2;
+    grid-row: 3;
   }
 
+  /* The list takes the column's whole height and adds none to the rows (size containment), so a long
+     transcript cannot push the cover and the controls apart. Its list scrolls inside it. */
   .player-list {
     grid-column: 2;
-    grid-row: 1 / span 2;
-    padding-block-start: 0;
+    grid-row: 1 / -1;
     display: flex;
     flex-direction: column;
-    align-self: center;
-    max-height: calc(100cqb - var(--player-dock-height) - var(--space-8));
-    overflow-y: auto;
-    scrollbar-width: thin;
+    min-height: 0;
+    padding-block-start: var(--space-8);
+    contain: size;
+  }
+
+  /* Two lists in one column: the view's height is the room the tabs leave. */
+  .player-list:has(.player-views) {
+    min-height: 0;
+  }
+
+  .player-list > :is(.player-script, .story-list) {
+    display: flex;
+    flex: 1 1 auto;
+    flex-direction: column;
+    min-height: 0;
   }
 }
 
@@ -1663,47 +1687,32 @@
 
 /* ------------------------------------------------------------------ the script */
 
+/* A reading column, as in Speechify: no boxes, no badges, no rules. A turn is its text, with the
+   speaker's name small above it where the speaker changes (a discussion only). While it plays, what
+   has been said is in full ink, what is still to come is muted, and the word being said sits on a
+   soft fill. A turn is shaped and inset like a chapter row, so its text starts where the chapter
+   list's does and its focus ring has room inside the column. */
 .player-script {
   position: relative;
 }
 
 .script-turns {
   display: grid;
-  gap: var(--space-3);
   margin: 0;
   padding: 0;
   list-style: none;
 }
 
-/* The two hosts: a lead with accent tone and a guest with warning tone. Distinct cards with badges. */
 .script-turn {
-  --host-ink: var(--color-accent);
-  --host-wash: var(--color-accent-subtle);
   display: grid;
-  gap: var(--space-2);
+  gap: var(--space-1);
   width: 100%;
   padding-block: var(--space-3);
   padding-inline: var(--space-3);
-  border-radius: var(--sheet-row-radius);
-  background: var(--color-surface);
-  border: var(--stroke-hairline) solid var(--color-border-hairline);
+  border-radius: var(--radius-md);
   text-align: start;
-  transition:
-    background-color var(--duration-state) var(--ease-out),
-    border-color var(--duration-state) var(--ease-out),
-    box-shadow var(--duration-state) var(--ease-out);
-}
-
-.script-turn[data-tone="lead"] {
-  --host-ink: var(--color-accent);
-  --host-wash: var(--color-accent-subtle);
-}
-
-.script-turn[data-tone="guest"] {
-  --host-ink: var(--color-warning);
-  --host-wash: var(--color-warning-subtle);
-  background: var(--color-surface-sunken);
-  box-shadow: inset var(--space-1) 0 0 var(--host-ink);
+  /* A press or a pointer shows on the fill; the words keep their size and weight. */
+  transition: background-color var(--duration-hover) var(--ease-hover);
 }
 
 /* Drawn inside the turn: the column clips anything outside it on a wide screen. */
@@ -1712,31 +1721,15 @@
 }
 
 .script-speaker {
-  display: flex;
-  align-items: center;
-  gap: var(--space-2);
-  color: var(--host-ink);
+  color: var(--color-on-surface-muted);
   font-size: var(--font-size-meta);
   font-weight: var(--font-weight-semibold);
+  letter-spacing: var(--font-tracking-caption);
 }
 
-.host-badge {
-  display: grid;
-  place-items: center;
-  width: var(--space-6);
-  height: var(--space-6);
-  border-radius: var(--radius-round);
-  background: var(--host-wash);
-  color: var(--host-ink);
-  font-size: var(--font-size-caption);
-  font-weight: var(--font-weight-bold);
-  line-height: 1;
-}
-
-.script-name {
-  color: var(--host-ink);
-  font-size: var(--font-size-meta);
-  font-weight: var(--font-weight-semibold);
+/* The lead is in the accent and the guest in quiet ink: told apart by the name, never by colour alone. */
+.script-turn[data-tone="lead"] .script-speaker {
+  color: var(--color-accent);
 }
 
 .script-text {
@@ -1745,13 +1738,6 @@
   font-weight: var(--font-weight-medium);
   line-height: var(--font-leading-reading);
   transition: color var(--duration-state) var(--ease-out);
-}
-
-/* The turn being spoken: a tint and an accent rule on the leading edge. */
-.script-turn[aria-current="true"] {
-  background: var(--host-wash);
-  border-color: var(--host-ink);
-  box-shadow: inset var(--space-1) 0 0 var(--host-ink);
 }
 
 /* While the voice is followed: turns not yet reached are muted, and in the turn being spoken every
@@ -1781,25 +1767,13 @@
 
 /* The spoken word keeps its own fill under the pointer. */
 @media (hover: hover) and (pointer: fine) {
-  .script-turn:not([aria-disabled="true"], [aria-current="true"]):hover {
-    background: color-mix(in oklch, var(--host-wash) 50%, var(--color-surface));
-    border-color: color-mix(in oklch, var(--host-ink) 30%, var(--color-border-hairline));
+  .script-turn:not([aria-disabled="true"]):hover {
+    background: var(--color-surface-sunken);
   }
 
   .script-turn:not([aria-disabled="true"]) .script-word:not([data-spoken]):hover {
-    background: var(--color-surface-sunken);
+    background: color-mix(in oklch, var(--color-on-surface) 10%, transparent);
   }
-}
-
-/* Chapters or the transcript, when an episode has both. Past .segmented-group's own margin. */
-.segmented-group.player-views {
-  margin-block-end: var(--space-3);
-}
-
-/* One column: the list is never shorter than the player, so choosing the shorter view cannot shrink
-   the page and move the switch from under the finger. */
-.player-list:has(.player-views) {
-  min-height: 100cqb;
 }
 
 .script-turn[aria-disabled="true"] {
@@ -1807,7 +1781,18 @@
 }
 
 .script-turn:not([aria-disabled="true"]):active {
-  background: color-mix(in oklch, var(--host-wash) 75%, var(--color-surface));
+  background: color-mix(in oklch, var(--color-on-surface) 8%, transparent);
+}
+
+/* Chapters or the transcript, when an episode has both: tabs, past the top margin the list keeps. */
+.segmented-group.player-views {
+  margin-block-end: var(--space-2);
+}
+
+/* One column: the list is never shorter than the player, so choosing the shorter view cannot shrink
+   the page and move the switch from under the finger. */
+.player-list:has(.player-views) {
+  min-height: 100cqb;
 }
 
 .script-back {
@@ -1844,39 +1829,100 @@
   );
 }
 
+/* ------------------------------------------------------------------ a list that scrolls on its own */
+
+/*
+ * From 64rem the list is a column of its own beside the cover, and what is in it scrolls inside the
+ * column, under the tabs. It ends in a fade instead of a cut, and begins with one once it has moved:
+ * each edge fades over 40px, and only while there is more beyond it. The fade is driven by the
+ * scroll position, so it is exact at any length; where that is not supported the bottom edge fades
+ * always, which the room kept under the last turn makes harmless.
+ */
+@property --list-fade-start {
+  syntax: "<length>";
+  inherits: false;
+  initial-value: 0px;
+}
+
+@property --list-fade-end {
+  syntax: "<length>";
+  inherits: false;
+  initial-value: 0px;
+}
+
+@keyframes list-fade-start {
+  from {
+    --list-fade-start: 0px;
+  }
+  to {
+    --list-fade-start: 40px;
+  }
+}
+
+@keyframes list-fade-end {
+  from {
+    --list-fade-end: 40px;
+  }
+  to {
+    --list-fade-end: 0px;
+  }
+}
+
 @media (min-width: 64rem) {
-  /* A column of its own that scrolls beside the cover, so the voice can be followed from the top.
-     The whole column ends above the bar, switch included, so the transcript's last turn can always
-     be scrolled into view, and at either end it hands the scroll on to the page. */
-  .player-list:has(.player-script) {
-    display: flex;
-    flex-direction: column;
-    align-self: center;
-    position: sticky;
-    inset-block-start: var(--space-2);
-    max-height: calc(100cqb - var(--player-dock-height) - var(--space-8));
-  }
-
-  .player-list:has(.player-views) {
-    min-height: 0;
-  }
-
-  .player-script {
-    position: static;
+  .list-scroll {
     flex: 1 1 auto;
     min-height: 0;
-    max-height: none;
+    /* Room under the last row, so it can scroll clear of the fade. */
+    padding-block: var(--space-2) var(--space-12);
     overflow-y: auto;
     overscroll-behavior-y: auto;
     scrollbar-width: thin;
+    -webkit-mask-image: linear-gradient(
+      to bottom,
+      transparent 0,
+      black var(--list-fade-start),
+      black calc(100% - var(--list-fade-end)),
+      transparent 100%
+    );
+    mask-image: linear-gradient(
+      to bottom,
+      transparent 0,
+      black var(--list-fade-start),
+      black calc(100% - var(--list-fade-end)),
+      transparent 100%
+    );
+  }
+
+  @supports (animation-timeline: scroll()) {
+    .list-scroll {
+      animation:
+        list-fade-start linear both,
+        list-fade-end linear both;
+      animation-timeline: scroll(self block), scroll(self block);
+      animation-range:
+        0 40px,
+        calc(100% - 40px) 100%;
+    }
+  }
+
+  @supports not (animation-timeline: scroll()) {
+    .list-scroll {
+      --list-fade-end: 40px;
+    }
+  }
+
+  /* Over the list, not in it: inside the scroller the fade would take the button with it. */
+  .player-script > .script-back {
+    position: absolute;
+    inset-block-start: auto;
+    inset-block-end: var(--space-4);
+    inset-inline: 0;
+    width: fit-content;
+    margin-block: 0;
   }
 }
 
 @media (forced-colors: active) {
-  .script-turn[aria-current="true"] {
-    border: var(--stroke-rail) solid Highlight;
-  }
-
   .script-word[data-spoken] {
     background: Highlight;
     color: HighlightText;
@@ -2023,6 +2069,39 @@
   }
 }
 
+/*
+ * The same radios as tabs (Chapters, Transcript): text on the page with a hairline under the row,
+ * and a bar under the chosen one that slides between them as the thumb does. No track, no raised
+ * segment, no ring around the choice; the chosen label is in full ink and the bar is the accent.
+ */
+.segmented.segmented-tabs {
+  --segmented-padding: 0px;
+  border-radius: 0;
+  background: none;
+  box-shadow: inset 0 calc(var(--stroke-hairline) * -1) 0 var(--color-border-hairline);
+}
+
+.segmented-tabs label {
+  min-height: var(--tabs-height);
+  border-radius: 0;
+}
+
+.segmented-tabs::before {
+  inset-block: auto 0;
+  height: calc(var(--stroke-rail) * 1.5);
+  border-radius: var(--radius-xs) var(--radius-xs) 0 0;
+  background: var(--color-accent);
+  box-shadow: none;
+}
+
+/* A press is a state layer over the whole tab, as a tab's is elsewhere. */
+.segmented-tabs label:active {
+  background-image: linear-gradient(
+    color-mix(in oklch, var(--color-on-surface) 8%, transparent),
+    color-mix(in oklch, var(--color-on-surface) 8%, transparent)
+  );
+}
+
 /* ------------------------------------------------------------------ source, stories, notice, up next */
 
 .player-source-link {
@@ -2057,22 +2136,20 @@
 }
 
 .story-group {
-  margin-block-end: var(--space-3);
+  margin-block-end: var(--space-2);
 }
 
+/* A section's name: quiet text in sentence case over its rows, as a list's heading is elsewhere. */
 .story-group-title {
-  padding-block: var(--space-2) var(--space-1);
+  padding-block: var(--space-4) var(--space-1);
   padding-inline: var(--space-3);
   color: var(--color-on-surface-muted);
-  font-size: var(--font-size-caption);
-  font-weight: var(--font-weight-semibold);
-  letter-spacing: var(--font-tracking-caption);
-  text-transform: uppercase;
+  font-size: var(--font-size-meta);
+  font-weight: var(--font-weight-medium);
 }
 
 .story-rows {
   display: grid;
-  gap: var(--space-1);
 }
 
 .story-row {
@@ -2191,8 +2268,7 @@
   min-height: var(--size-touch-comfortable);
   padding-block: var(--space-2);
   padding-inline: var(--space-3);
-  border-radius: var(--sheet-row-radius);
-  box-shadow: inset 0 0 0 var(--stroke-hairline) var(--color-border-hairline);
+  border-radius: var(--radius-md);
   text-align: start;
   transition: background-color var(--duration-press-in) var(--ease-out);
 }

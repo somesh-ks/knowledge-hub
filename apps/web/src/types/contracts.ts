@@ -59,6 +59,8 @@ export interface PlayerDigestData {
   sections: PlayerSection[];
   /** An episode's script. Briefings have none. */
   turns?: PlayerTurn[];
+  /** What the two voices of a discussion are called, when the episode stored the names. */
+  hosts?: { a: string; b: string } | null;
   cover: {
     src512: string;
     src1024: string;
