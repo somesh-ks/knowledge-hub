@@ -54,12 +54,12 @@ const offerData = offers.map((offer) => ({
       </fieldset>
 
       {/* A topic: what it is, then the sources that could feed it. Adding starts it empty; editing
-           starts it filled, and a topic that ships with the app keeps its name and what counts. */}
+           starts it filled, and a built-in topic keeps what counts, as fixed questions judge it. */}
       <form class="manage-form topics-pane" data-pane="topic" aria-label="Add a topic" novalidate>
         <div class="topics-step" data-step="details">
           <p class="manage-quiet" data-fixed-note hidden>
-            This topic ships with the app, so its name and what counts stay as they are, and it is judged
-            as it always was. Its keywords can change.
+            The app judges this topic by questions of its own, so what counts stays as it is. Its name
+            and keywords can change.
           </p>
           <div class="manage-field">
             <label for="panel-topic-name">Name</label>

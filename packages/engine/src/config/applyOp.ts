@@ -115,31 +115,34 @@ function upsertTopic(
   const existing = next.topics.topics.find((topic) => topic.id === id);
 
   if (existing?.origin === "builtin") {
-    // A built-in topic keeps its judge question, section and flags. Its weight lives in the
-    // preferences, where `dispatch learn` also writes it, and its keywords are free to edit.
+    // A built-in topic keeps its description, section and flags, as fixed questions judge it. Its
+    // weight lives in the preferences, where `dispatch learn` also writes it; its name, which the
+    // judge never reads, and its keywords are free to edit.
+    const renamed = existing.name !== input.name;
+    const summary = renamed
+      ? `rename topic ${tidy(existing.name)} to ${tidy(input.name)}`
+      : `set weight of ${tidy(existing.name)}`;
+    existing.name = input.name;
     existing.weight = input.weight;
     existing.keywords = input.keywords;
     if (isBuiltinCategory(existing.id)) next.preferences.weights[existing.id] = input.weight;
-    return {
-      next,
-      summary: `set weight of ${tidy(existing.name)}`,
-      topic_id: id,
-      new_topic: false,
-    };
+    return { next, summary, topic_id: id, new_topic: false };
   }
   if (existing?.origin === "app") {
-    // A topic that ships with the app keeps its judge question, section and depth, so switching it
-    // off and on never re-judges anything. The owner can change its weight and keywords, and
-    // switch it off. Its sources are shipped with it, so no discovery queries are written.
+    // A topic that ships with the app keeps its section and depth. Its fit question is built from
+    // its name and description, so editing either re-judges this topic alone on the next run, and
+    // switching it off and on re-judges nothing. Its sources are shipped with it, so no discovery
+    // queries are written.
+    const reworded = existing.name !== input.name || existing.description !== input.description;
+    const summary = reworded
+      ? `update topic ${tidy(input.name)}`
+      : `${input.enabled ? "turn on" : "turn off"} ${tidy(existing.name)}`;
+    existing.name = input.name;
+    existing.description = input.description;
     existing.weight = input.weight;
     existing.keywords = [...new Set(input.keywords)];
     existing.enabled = input.enabled;
-    return {
-      next,
-      summary: `${input.enabled ? "turn on" : "turn off"} ${tidy(existing.name)}`,
-      topic_id: id,
-      new_topic: false,
-    };
+    return { next, summary, topic_id: id, new_topic: false };
   }
   if (input.origin === "builtin" || input.origin === "app") {
     throw new ConfigOpError("Only the shipped topics are built in; a new topic is custom.");

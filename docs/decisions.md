@@ -66,13 +66,14 @@ D1 to D9 date from plan v2 (2026-10-05). D10 to D25 date from 2026-10-06. Reason
 | D54 | Form fields carry a 3:1 outline; in the player only Play is in full ink | active |
 | D55 | A source's score is out of 3: health, quality and trust, combined so a weak part cannot be bought back | active |
 | D56 | One panel adds a topic or a source and edits a source; Settings has no Custom page | active |
-| D57 | A topic's page edits its details and adds the sources that suit it; topics are listed by name | active |
+| D57 | A topic's page edits its details and adds the sources that suit it; topics are listed by name | active; shipped topics take a new name, and app topics new wording, since D64 |
 | D58 | The Model page offers six top Nebius writers by name, live list or not | active |
 | D59 | On a phone, Play takes the floating button's place on an episode and an older briefing | active; Today floats Play too since D60 |
 | D60 | On a phone Create floats on the Library alone; every page with audio floats Play, Today included | active |
 | D61 | Vercel Cron starts the scheduled briefing in its hour; GitHub's schedule is the fallback | active |
 | D62 | Daily and Weekly each choose their topics; voice samples play through the site | active; topics are left out per topic since D63 |
 | D63 | Daily and Weekly leave out topics, one chip per topic, stored as the topics left out | active |
+| D64 | Every topic can be renamed; what counts edits wherever the judge reads it | active |
 
 ---
 
@@ -624,3 +625,12 @@ D1 to D9 date from plan v2 (2026-10-05). D10 to D25 date from 2026-10-06. Reason
 - Cost: the chips can run to a dozen names. A story that fits two topics follows its winning one.
 - Rejected: a scope dropdown per topic (Daily, Weekly, Custom, All): Custom is chosen per episode and "none" repeats the topic's own switch, so two booleans hidden in a menu; switches on each topic page as well (two places for one setting); keeping sections (coarser than the topics the owner names).
 - Supersedes: D62's section-based Topics row and `weekly.sections`, and D45's `sections`.
+
+## D64: Every topic can be renamed; what counts edits wherever the judge reads it
+
+- Date: 2026-10-11
+- Decision: Edit topic takes a new name on every topic. What counts (the description) edits on a custom topic and on the two that ship with the app (Design, Trending), whose fit question is built from name and description; on a built-in category it stays read-only, with a note that the app judges it by questions of its own. `topic.upsert` sets name, weight and keywords on a built-in topic and name, description, weight, keywords and the switch on an app topic; sections, depth and flags stay the code's. Rewording an app topic re-judges that topic alone on the next run (its question's hash changes); a built-in topic's name is never read by the judge.
+- Why: the owner reported that Edit topic would not let them edit text. Every topic they have ships with the app (11 built-in, Design and Trending), so D57 left them only keywords. D57's reason, keeping the judge question, holds for a built-in category's description and for nothing else.
+- Cost: an app topic reworded by mistake re-judges its stories once. A built-in topic's description cannot say what the owner means by it; changing that would need its fixed questions rewritten.
+- Rejected: letting a built-in description edit (it would read as changing what counts and change nothing); keeping shipped topics read-only (the owner's whole list).
+- Supersedes: D57's read-only name and what counts on shipped topics.

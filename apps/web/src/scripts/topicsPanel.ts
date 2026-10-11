@@ -67,8 +67,12 @@ export interface TopicFacts {
   name: string;
   description: string;
   keywords: string[];
-  /** A topic the owner made can change everything; one that ships with the app only its keywords. */
-  custom: boolean;
+  /**
+   * Where the topic comes from. Its name and keywords always change; what counts changes on a custom
+   * or app topic, whose fit question is built from it, and not on a built-in one, judged by fixed
+   * questions.
+   */
+  origin: "builtin" | "app" | "custom";
 }
 
 /** A topic's details as the panel leaves them. */
@@ -283,16 +287,15 @@ export function openPanel(
     return offers.filter((offer) => ids.has(offer.id));
   };
 
-  // Editing a topic starts from what it holds; a topic that ships with the app keeps its name and what
-  // counts, so only its keywords take typing.
+  // Editing a topic starts from what it holds. A built-in topic is judged by fixed questions, so what
+  // counts stays as it is; its name and keywords take typing like any other topic's.
   const editedTopic = start.kind === "topic-edit" ? start.topic : null;
   if (editedTopic) {
     topicPane.setAttribute("aria-label", "Edit topic");
     topicField("name").value = editedTopic.name;
     topicField("description").value = editedTopic.description;
     topicField("keywords").value = editedTopic.keywords.join(", ");
-    if (!editedTopic.custom) {
-      topicField("name").readOnly = true;
+    if (editedTopic.origin === "builtin") {
       topicField("description").readOnly = true;
       one<HTMLElement>("[data-fixed-note]").hidden = false;
     }
@@ -322,7 +325,7 @@ export function openPanel(
 
   const toSources = (): void => {
     const topic = topicValue();
-    const bad = editedTopic?.custom === false ? null : flag(topicProblems(topic));
+    const bad = flag(topicProblems(topic));
     if (bad) {
       bad.focus();
       return;
@@ -522,8 +525,7 @@ export function openPanel(
   back.addEventListener("click", () => {
     step = "details";
     render();
-    // A shipped topic's name cannot change, so its first field to type in is its keywords.
-    topicField(editedTopic?.custom === false ? "keywords" : "name").focus();
+    topicField("name").focus();
   });
 
   // Enter moves on from a one-line field, as the button would; in the description it is a new line.

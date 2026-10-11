@@ -56,15 +56,14 @@ const [{ sources }, catalog] = await Promise.all([loadManage(), loadSourceCatalo
 const name = topic?.name ?? "Other";
 const note = topic ? topic.description : "Sources that feed no topic yet.";
 const editable = topic !== null && !topic.never_publish;
-// What Edit topic hands the panel (topicsPanel.ts, TopicFacts). A topic the owner made can change its
-// name and what counts; one that ships with the app keeps both, so its judging stays the same.
-const custom = topic?.origin === "custom";
+// What Edit topic hands the panel (topicsPanel.ts, TopicFacts). Every topic can change its name; a
+// built-in one keeps what counts, as fixed questions judge it.
 const facts = topic && {
   id: topic.id,
   name: topic.name,
   description: topic.description,
   keywords: topic.keywords,
-  custom,
+  origin: topic.origin,
 };
 ---
 
@@ -137,7 +136,7 @@ const facts = topic && {
                 >
                   <span class="settings-text">
                     <span class="settings-label">Edit topic</span>
-                    <span class="settings-hint">{custom ? "Name, what counts, keywords and more sources" : "Keywords and more sources"}</span>
+                    <span class="settings-hint">{facts?.origin === "builtin" ? "Name, keywords and more sources" : "Name, what counts, keywords and more sources"}</span>
                   </span>
                   <Icon name="chevronRight" />
                 </button>

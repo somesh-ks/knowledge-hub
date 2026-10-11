@@ -29,7 +29,9 @@
   position: relative;
 }
 
-/* A row that is one link or button: the whole row responds, and the fill runs past the gutters too. */
+/* A row that is one link or button: the whole row responds. Its fill is a rounded tile clear of the
+   hairlines and reaching a little past the words, as a menu's options are, so a hovered row reads as
+   one thing to press rather than a band across the page. */
 .row-action {
   display: flex;
   align-items: center;
@@ -44,9 +46,10 @@
 .row-action::after {
   content: "";
   position: absolute;
-  inset-block: 0;
-  inset-inline: calc(var(--page-gutter-start) * -1) calc(var(--page-gutter-end) * -1);
+  inset-block: var(--space-1);
+  inset-inline: calc(var(--space-3) * -1);
   z-index: -1;
+  border-radius: var(--button-radius);
   background: var(--color-surface-sunken);
   opacity: 0;
   transition: opacity var(--duration-hover) var(--ease-hover);
@@ -62,8 +65,8 @@
   opacity: 1;
 }
 
-/* The ring takes the fill's shape, past the gutters and clear of the text: drawn on the column's own
-   box it would run through the first letters and the chevron. */
+/* The ring takes the fill's shape, clear of the text: drawn on the column's own box it would run
+   through the first letters and the chevron. */
 .row-action:focus-visible {
   outline: none;
   box-shadow: none;
