@@ -104,6 +104,21 @@ describe("buildEpisodeEntries", () => {
     ]);
   });
 
+  it("hands the player the hosts' names when the file stored them, and none when it did not", () => {
+    const named = parseEpisodeFile(
+      text("ep-20261010-1000", "2026-10-10T08:00:00Z", [
+        "  - { idx: 1, speaker: b, text: Hi., item_id: s1 }",
+        "request:",
+        "  format: discussion",
+        "  topic_ids: [design]",
+        "  host_names: { a: Maya, b: Theo }",
+      ]),
+    );
+    expect(buildEpisodeEntries([named])[0]?.player.hosts).toEqual({ a: "Maya", b: "Theo" });
+    // Made before names were stored: the player falls back to the pair its script was written with.
+    expect(buildEpisodeEntries(episodes)[0]?.player.hosts).toBeNull();
+  });
+
   it("picks a cover from the id when the file names none, the same one every time", () => {
     const first = buildEpisodeEntries(episodes)[0]?.cover;
     expect(first).toEqual(buildEpisodeEntries(episodes)[0]?.cover);

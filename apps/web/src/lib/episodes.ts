@@ -115,6 +115,9 @@ function toEntry(episode: Episode): EpisodeEntry {
       start_ms: null,
       end_ms: null,
     })),
+    // What the two voices of a discussion are called. A discussion made before names were stored has
+    // none here, and the transcript uses the pair its script was written with (lib/hosts.ts).
+    hosts: episode.request.host_names ?? null,
     sections:
       items.length > 0
         ? [{ slug: EPISODE_SECTION.slug, title: EPISODE_SECTION.title, start_ms: null }]
