@@ -2042,6 +2042,13 @@ html[data-player="open"]:has(.speed-panel[open]) {
   scrollbar-gutter: stable;
 }
 
+/* Any other modal dialog does take the scrollbar away, and the window's edge moves out by its width.
+   The player keeps the room it had, as the floating button and the navigation do, so what is
+   playing and the volume hold still under the scrim. */
+html:has(dialog[open]):not([data-player="open"]:has(.speed-panel[open])) .player {
+  inset-inline-end: var(--gutter, 0px);
+}
+
 /* ------------------------------------------------------------------ preferences */
 
 @media (prefers-reduced-motion: reduce) {
