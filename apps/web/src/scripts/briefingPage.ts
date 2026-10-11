@@ -24,16 +24,37 @@ function mark(slug: string | undefined): void {
     if (isCurrent) link.setAttribute("aria-current", "true");
     else link.removeAttribute("aria-current");
     const strip = link.closest<HTMLElement>("[data-section-tabs]");
-    if (isCurrent && strip) centreTab(strip, link);
+    if (isCurrent && strip) revealTab(strip, link);
   }
 }
 
-/** Moves the strip itself. scrollIntoView would also scroll the page when the strip is off screen. */
-function centreTab(strip: HTMLElement, tab: HTMLElement): void {
-  strip.scrollTo({
-    left: tab.offsetLeft - (strip.clientWidth - tab.offsetWidth) / 2,
-    behavior: reducedMotion() ? "auto" : "smooth",
-  });
+/**
+ * Scrolls the strip only when a tab is cut off at one of its edges, and then by the least amount
+ * that shows the whole tab and the strip's padding beside it, which puts its label back on the
+ * page's gutter. Cut off means its label and underline, inside its padding, or its focus ring,
+ * drawn inside the tab nearer its edges (primitives.css), do not all show: where every label fits
+ * the strip never moves. Moves the strip itself: scrollIntoView would also scroll the page when
+ * the strip is off screen.
+ */
+function revealTab(
+  strip: HTMLElement,
+  tab: HTMLElement,
+  behavior: ScrollBehavior = reducedMotion() ? "auto" : "smooth",
+): void {
+  const view = strip.getBoundingClientRect();
+  const box = tab.getBoundingClientRect();
+  const end = view.left + strip.clientWidth;
+  const look = getComputedStyle(tab);
+  const inset =
+    (tab.matches(":focus-visible")
+      ? -Number.parseFloat(look.outlineOffset) - Number.parseFloat(look.outlineWidth)
+      : Number.parseFloat(look.paddingInlineStart)) || 0;
+  // Half a pixel either way is rounding, not a tab that is cut off.
+  if (box.left + inset >= view.left - 0.5 && box.right - inset <= end + 0.5) return;
+  const room = getComputedStyle(strip);
+  const before = box.left - Number.parseFloat(room.paddingInlineStart) - view.left;
+  const after = box.right + Number.parseFloat(room.paddingInlineEnd) - end;
+  strip.scrollBy({ left: before < 0 ? before : Math.max(after, 0), behavior });
 }
 
 /**
@@ -152,13 +173,13 @@ async function share(button: HTMLElement): Promise<void> {
   }, COPIED_MS);
 }
 
-// A tab reached with the keyboard can sit cut off at the strip's edge: bring it to the middle. A card
-// on the Other episodes shelf can sit flush with the shelf's edge, its ring cut off, which the browser
-// counts as in view: bring it in by the shelf's scroll padding.
+// A tab reached with the keyboard can sit cut off at the strip's edge: bring it into the strip. A
+// card on the Other episodes shelf can sit flush with the shelf's edge, its ring cut off, which the
+// browser counts as in view: bring it in by the shelf's scroll padding.
 document.addEventListener("focusin", (event) => {
   if (!(event.target instanceof HTMLElement)) return;
   const strip = event.target.closest<HTMLElement>("[data-section-tabs]");
-  if (strip && event.target.matches("a.tab")) centreTab(strip, event.target);
+  if (strip && event.target.matches("a.tab")) revealTab(strip, event.target);
   else if (event.target.matches(".shelf a.card-link"))
     event.target.scrollIntoView({ block: "nearest", inline: "nearest" });
 });
