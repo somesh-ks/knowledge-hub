@@ -39,6 +39,11 @@
 
 dialog.confirm-dialog {
   --color-focus-gap: var(--sheet-bg);
+  /* Placed and stacked by itself, not by the modal state: Safari ends that as the exit begins, and
+     the fade plays outside the top layer (dialog.sheet, foundations.css). */
+  position: fixed;
+  inset: 0;
+  z-index: var(--z-sheet);
   width: min(24rem, calc(100% - var(--space-8)));
   margin: auto;
   padding: var(--space-6);

@@ -133,6 +133,8 @@
  */
 .hero-menu-list {
   position: fixed;
+  /* Above the bars while Safari plays the exit outside the top layer (dialog.sheet, foundations.css). */
+  z-index: var(--z-sheet);
   inset: auto;
   inset-block-start: var(--menu-top, 0);
   inset-inline-end: var(--menu-right, 0);

@@ -1338,6 +1338,15 @@
   }
 }
 
+/* Without overlay (Safari) a closing panel leaves the top layer at once, and the moving player page
+   becomes what it is placed against, so its fade would jump by the page's scroll. It closes at once
+   there instead. */
+@supports not (overlay: auto) {
+  .speed-panel:not([open]) {
+    transition: none;
+  }
+}
+
 /* No dim: the panel is small and sits by its button, and the player stays in view around it. */
 .speed-panel::backdrop {
   background: transparent;
