@@ -92,18 +92,38 @@ describe("sourceScore: the scoring sample (D70)", () => {
     expect(weak.reason).toBe("Quality is the weakest part: 3 of 12 sampled items cleared the bar.");
   });
 
+  it("moves smoothly when one item could have been published: no cliff at the first", () => {
+    const stat = { judged: 13, passed: 6, published: 0, asked: 13, sampled: 12 };
+    // Pass share 6 of 13 against a half: 0.92. One in thirteen weighs the pooled reading (0.28,
+    // nothing published), the rest the pass share alone: 0.87, where the old rule gave 0.28.
+    expect(scoreOf(stat as Partial<Stat>).parts?.quality).toBe(0.87);
+  });
+
   it(`scores a source whose feed held under ${MIN_JUDGED} posts on ${MIN_SPARSE} judged items`, () => {
     const sparse = { judged: 4, passed: 2, published: 0, asked: 4, sampled: 4 };
-    const read = sourceScore({ stat: { ...clean, ...sparse, feed_posts: 4 }, health: fresh, now });
+    const read = sourceScore({
+      stat: { ...clean, ...sparse, feed_posts: 4, sampled_at: "2026-10-07" },
+      health: fresh,
+      now,
+    });
     expect(read.label).not.toBe("New");
     expect(read.parts?.trust).toBeNull();
     expect(read.reason).toContain("it posts rarely, so this rests on 4 judged items");
     // Never read to fill it up (a weekly check, say), or a busy feed whose window halved: New.
     expect(sourceScore({ stat: { ...clean, ...sparse }, health: fresh, now }).label).toBe("New");
-    const busy = { ...clean, ...sparse, judged: 7, feed_posts: 15 };
+    const busy = { ...clean, ...sparse, judged: 7, feed_posts: 15, sampled_at: "2026-10-07" };
     expect(sourceScore({ stat: busy, health: fresh, now }).label).toBe("New");
+    // A count from a read more than FEED_POSTS_FRESH_DAYS ago no longer stands.
+    const stale = { ...clean, ...sparse, feed_posts: 4, sampled_at: "2026-08-01" };
+    expect(sourceScore({ stat: stale, health: fresh, now }).label).toBe("New");
     // Fewer than MIN_SPARSE judged: New however rarely it posts.
-    const two = { ...clean, ...sparse, judged: MIN_SPARSE - 1, feed_posts: 2 };
+    const two = {
+      ...clean,
+      ...sparse,
+      judged: MIN_SPARSE - 1,
+      feed_posts: 2,
+      sampled_at: "2026-10-07",
+    };
     expect(sourceScore({ stat: two, health: fresh, now }).label).toBe("New");
   });
 });

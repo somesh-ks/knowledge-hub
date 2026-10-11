@@ -134,10 +134,11 @@ export function buildGeneralPool(input: {
   const topics = new Map<string, Set<string>>();
   let sameUrl = 0;
 
-  const outletFor = (item: Item): string => {
-    const source = sources.get(item.source_id);
-    return source ? outletOf(source) : item.source_id;
+  const outletOfId = (id: string): string => {
+    const source = sources.get(id);
+    return source ? outletOf(source) : id;
   };
+  const outletFor = (item: Item): string => outletOfId(item.source_id);
   const ordered = [...input.items].sort(
     (a, b) => a.source_id.localeCompare(b.source_id) || a.id.localeCompare(b.id),
   );
@@ -180,10 +181,6 @@ export function buildGeneralPool(input: {
   // switched-on outlets, and the full count is kept apart for the checked feeds' own scores. A
   // story only checks carried keeps its full count; it is judged after every other anyway.
   const checked = input.checked ?? new Set<string>();
-  const outletOfId = (id: string): string => {
-    const source = sources.get(id);
-    return source ? outletOf(source) : id;
-  };
   const coverageAll: Record<string, number> = {};
   const items = clustered.items.map((item): Item => {
     const original = real.get(item.id) ?? item;

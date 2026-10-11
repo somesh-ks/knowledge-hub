@@ -82,22 +82,30 @@ async function buildSample(
     const refilled = readPlan.reads.filter(
       (read) => read.reason === "refill" && ok.has(read.source.id),
     );
-    const reads = [
-      ...readPlan.reads
-        .filter((read) => read.reason === "probe" || ok.has(read.source.id))
-        .map((read) => read.source.id),
-      // A switched-off general feed counts as checked only if the pass read it: one whose topics
-      // are all off was left out.
-      ...readPlan.probeGeneral
-        .map((source) => source.id)
-        .filter((id) => gathered.results.some((result) => result.source_id === id)),
-    ];
+    const reads = readPlan.reads
+      .filter((read) => read.reason === "probe" || ok.has(read.source.id))
+      .map((read) => read.source.id);
+    // A switched-off general feed the pass read, with how many stories it gave: its stories are
+    // judged with the general ones, and its check counts once they are (countSample). One whose
+    // topics are all off was not read.
+    const generalReads = Object.fromEntries(
+      readPlan.probeGeneral.flatMap((source) => {
+        const result = gathered.results.find((r) => r.source_id === source.id);
+        return result?.ok ? [[source.id, result.count]] : [];
+      }),
+    );
     // How many posts each refilled feed held: under ten, the source posts rarely (sourceScore).
     const feedPosts = Object.fromEntries(
       refilled.map((read) => [read.source.id, items.get(read.source.id)?.length ?? 0]),
     );
     return {
-      file: { version: 1, items: picked, reads, feed_posts: feedPosts },
+      file: {
+        version: 1,
+        items: picked,
+        reads,
+        feed_posts: feedPosts,
+        general_reads: generalReads,
+      },
       probeResults: results.filter((result) => probes.has(result.source_id)),
       reads: readPlan.reads.length,
     };
@@ -119,8 +127,12 @@ async function buildSample(
  */
 export async function fetchStage(deps: RunDeps, plan: Plan): Promise<StageReport> {
   const passes: PassReport[] = [];
-  // The scoring sample (D70) rides on the run's first regular pass, once a run.
-  const samplePass = plan.passes.find((pass) => pass.kind === "regular");
+  // The scoring sample (D70) rides on the run's first regular pass, once a run, when Jev can judge
+  // it.
+  const samplePass =
+    deps.fetch.sampleJudge === false
+      ? undefined
+      : plan.passes.find((pass) => pass.kind === "regular");
   const planned = samplePass ? await planSample(deps, deps.now()) : null;
   for (const pass of plan.passes) {
     const now = deps.now();

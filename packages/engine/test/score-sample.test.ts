@@ -223,6 +223,7 @@ describe("countSample", () => {
         items: [good, weak, hyped],
         reads: ["blog", "quiet"],
         feed_posts: { blog: 3, quiet: 0 },
+        general_reads: {},
       },
       judged: {
         version: 1,
@@ -260,11 +261,48 @@ describe("countSample", () => {
         items: [makeItem({ source_id: "blog" })],
         reads: ["blog"],
         feed_posts: {},
+        general_reads: {},
       },
       judged: null,
       preferences: realPreferences(),
     });
     expect(counts).toEqual({});
+  });
+
+  it("leaves a read undone when the judge answered none of its items (an outage)", () => {
+    const item = makeItem({ source_id: "blog" });
+    const counts = countSample({
+      sample: {
+        version: 1,
+        items: [item],
+        reads: ["blog", "empty"],
+        feed_posts: { blog: 6, empty: 0 },
+        general_reads: {},
+      },
+      judged: { version: 1, entries: [], unjudged: [item.id] },
+      preferences: realPreferences(),
+    });
+    // The blog is read again next run; the feed that gave nothing has nothing to wait for.
+    expect(counts.blog).toBeUndefined();
+    expect(counts.empty).toMatchObject({ read_feed: true, feed_posts: 0 });
+  });
+
+  it("counts a general feed's check once one of its stories is judged, or when it gave none", () => {
+    const counts = countSample({
+      sample: {
+        version: 1,
+        items: [],
+        reads: [],
+        feed_posts: {},
+        general_reads: { judged: 5, waiting: 5, empty: 0 },
+      },
+      judged: { version: 1, entries: [], unjudged: [] },
+      preferences: realPreferences(),
+      general: { judged: { fetched: 0, judged: 2, passed: 1 } },
+    });
+    expect(counts.judged).toMatchObject({ read_feed: true });
+    expect(counts.waiting).toBeUndefined();
+    expect(counts.empty).toMatchObject({ read_feed: true });
   });
 
   it("adds to a pass's counters without touching what was fetched or published", () => {

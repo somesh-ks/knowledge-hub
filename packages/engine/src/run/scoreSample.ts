@@ -76,6 +76,8 @@ export const SampleFile = z.object({
   reads: z.array(z.string()),
   /** Posts each refilled source's feed held in its look-back: under ten, it posts rarely. */
   feed_posts: z.record(z.string(), z.number().int().nonnegative()).default({}),
+  /** Switched-off general feeds the pass read for their check, with the stories each gave. */
+  general_reads: z.record(z.string(), z.number().int().nonnegative()).default({}),
 });
 export type SampleFile = z.infer<typeof SampleFile>;
 
@@ -286,15 +288,20 @@ export function answeredBefore(cache: JudgmentsFile, seen: SeenFile): (itemId: s
 /**
  * Per-source counters of a judged sample, to add to the pass's counters. A sampled item counts as
  * judged and as sampled, passed when it would have been eligible to publish on its built-in
- * categories, and asked (and flagged) like any item the judge asked the flag questions. A source
- * whose feed was read gets `read_feed`, so its `sampled_at` moves even when the read found
- * nothing, and a refilled one its feed's post count. Nothing counts when the sample was not
- * judged (no Jev key, an outage): the reads are then tried again on a later run.
+ * categories, and asked (and flagged) like any item the judge asked the flag questions.
+ *
+ * A read counts as done (`read_feed`, which moves `sampled_at`, and a refill's post count) only
+ * when its source got an answer, or gave nothing to judge. A source whose items the judge could
+ * not answer (an outage) is read again on a later run; so is every source when the sample was not
+ * judged at all. A switched-off general feed's check counts once one of its stories is judged in
+ * the general counts, or when it gave no story.
  */
 export function countSample(input: {
   sample: SampleFile;
   judged: SampleJudgedFile | null;
   preferences: Preferences;
+  /** The pass's general counts (countGeneral), for the general feeds' checks. */
+  general?: Readonly<Record<string, SourceCounts>>;
 }): Record<string, SourceCounts> {
   const out: Record<string, SourceCounts> = {};
   if (input.judged === null) return out;
@@ -313,8 +320,17 @@ export function countSample(input: {
     if (isFlagged(entry.flags)) counts.flagged = (counts.flagged ?? 0) + 1;
     if (eligibility(scoreItem(entry, input.preferences, item)).eligible) counts.passed += 1;
   }
-  for (const id of input.sample.reads) row(id).read_feed = true;
-  for (const [id, posts] of Object.entries(input.sample.feed_posts)) row(id).feed_posts = posts;
+  const offered = new Set(input.sample.items.map((item) => item.source_id));
+  const done = (id: string): boolean => !offered.has(id) || (out[id]?.judged ?? 0) > 0;
+  for (const id of input.sample.reads) {
+    if (!done(id)) continue;
+    row(id).read_feed = true;
+    const posts = input.sample.feed_posts[id];
+    if (posts !== undefined) row(id).feed_posts = posts;
+  }
+  for (const [id, stories] of Object.entries(input.sample.general_reads)) {
+    if (stories === 0 || (input.general?.[id]?.judged ?? 0) > 0) row(id).read_feed = true;
+  }
   return out;
 }
 

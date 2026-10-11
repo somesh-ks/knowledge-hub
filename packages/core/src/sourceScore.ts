@@ -1,4 +1,5 @@
 import type { SourceStat } from "./state.js";
+import { daysBetween, stockholmDate } from "./time.js";
 
 /**
  * Quality score of an existing source, 0 to 3 with one decimal, from three named parts of 0 to 1.
@@ -36,16 +37,18 @@ import type { SourceStat } from "./state.js";
  * news-feed version of one that never made the digest.
  *
  * Items the scoring sample judged for the score alone (D70) count toward the pass share and trust
- * like any judged item, but they could never be published, so the publish share is out of the
- * items that could have been: `judged` less `sampled`. A source with none that could have been,
- * a switched-off one or one the prefilter has not sent yet, has no publish share and no volume to
- * read: its quality is the pass share alone, so a switched-off source can show it has earned a
- * place.
+ * like any judged item, but they could never be published. The quality above is read on the items
+ * that could have been (`judged` less `sampled`), and blended with the pass share alone by their
+ * share of the judged items: a source with no sampled items scores as before, one with nothing
+ * that could have been published (switched off, or not yet sent by the prefilter) on its pass
+ * share alone, so a switched-off source can show it has earned a place, and one in between moves
+ * smoothly from one to the other.
  *
  * Fewer than MIN_JUDGED judged items is too little history: the label is "New", and the score and
  * the parts are null. One exception: a source whose own feed held fewer than MIN_JUDGED posts when
- * the sample last read it (`feed_posts`) posts too rarely to reach them; with at least MIN_SPARSE
- * judged it is scored on what it has, and the reason says so.
+ * the sample last read it (`feed_posts`), within FEED_POSTS_FRESH_DAYS, posts too rarely to reach
+ * them; with at least MIN_SPARSE judged it is scored on what it has, and the reason says so. An
+ * older count no longer stands: the source has stopped needing refills.
  *
  * Label thresholds: Excellent 2.7 and up, Good 2.1 and up, Fair 1.5 and up, Poor below; on the
  * mean of the parts that is 0.9, 0.7 and 0.5. The reason names the weakest measured part when one
@@ -54,6 +57,8 @@ import type { SourceStat } from "./state.js";
 export const MIN_JUDGED = 10;
 /** The fewest judged items a source that posts rarely is scored on, once its feed was read (D70). */
 export const MIN_SPARSE = 3;
+/** How long a feed's post count stands (D70): a source under the bar is refilled every 30 days. */
+export const FEED_POSTS_FRESH_DAYS = 35;
 /** The most a score can be: three parts of 1. */
 export const SCORE_MAX = 3;
 export const SCORE_THRESHOLDS = { excellent: 2.7, good: 2.1, fair: 1.5 } as const;
@@ -90,6 +95,7 @@ export interface SourceScoreInput {
         | "flagged"
         | "covered"
         | "sampled"
+        | "sampled_at"
         | "feed_posts"
       >
     | undefined;
@@ -209,8 +215,15 @@ export function sourceScore(input: SourceScoreInput): SourceScoreResult {
   // A source whose own feed held fewer than MIN_JUDGED posts when last read posts rarely: waiting
   // would not bring it to MIN_JUDGED judged items within the window.
   const posts = stat?.feed_posts;
+  const readAt = stat?.sampled_at;
+  const fresh =
+    readAt !== undefined && daysBetween(readAt, stockholmDate(now)) <= FEED_POSTS_FRESH_DAYS;
   const sparse =
-    posts !== undefined && posts < MIN_JUDGED && judged < MIN_JUDGED && judged >= MIN_SPARSE;
+    fresh &&
+    posts !== undefined &&
+    posts < MIN_JUDGED &&
+    judged < MIN_JUDGED &&
+    judged >= MIN_SPARSE;
   if (!stat || (judged < MIN_JUDGED && !sparse)) {
     const seen = plural(judged, "item", "items");
     const prior =
@@ -234,13 +247,15 @@ export function sourceScore(input: SourceScoreInput): SourceScoreResult {
   const publishable = judged - sampled;
   const passRate = stat.passed / judged;
   const passShare = clamp01(passRate / 0.5);
-  // Nothing that could have been published: no publish share and no volume to read, only the pass
-  // share (D70).
-  const quality =
+  // Read on what could have been published, blended with the pass share alone by its share of the
+  // judged items (D70).
+  const pooled =
     publishable > 0
       ? 0.75 * (0.4 * passShare + 0.6 * clamp01(used / publishable / 0.25)) +
         0.25 * clamp01(used / 4)
-      : passShare;
+      : 0;
+  const weight = publishable / judged;
+  const quality = weight * pooled + (1 - weight) * passShare;
 
   const asked = stat.asked ?? 0;
   const flagged = stat.flagged ?? 0;

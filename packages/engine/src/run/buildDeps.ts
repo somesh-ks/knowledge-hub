@@ -28,6 +28,7 @@ export function buildDeps(ctx: CommandContext): RunDeps {
       exaKey: ctx.env.EXA_API_KEY,
       firecrawlKey: ctx.env.FIRECRAWL_API_KEY,
       firecrawlGuard: spend.guard,
+      sampleJudge: Boolean(ctx.env.TYPESAFE_API_KEY),
     },
     spend,
     runtime: () => {

@@ -62,6 +62,11 @@ export interface FetchSetup {
   firecrawlKey?: string | undefined;
   /** Counts and limits Firecrawl requests for the run. Without it there is no ceiling (tests). */
   firecrawlGuard?: FirecrawlGuard | undefined;
+  /**
+   * False when there is no Jev key to judge the scoring sample (D70): its feed reads would be
+   * thrown away, so the sample is not planned. Tests leave it out and get a sample.
+   */
+  sampleJudge?: boolean;
   /** Replace fetchers by source type, for tests. */
   fetchers?: Partial<Record<SourceType, SourceFetcher>>;
   /** Skips rate-limit waits in tests. */

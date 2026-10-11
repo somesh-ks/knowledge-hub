@@ -244,6 +244,15 @@ describe("published run", () => {
     },
   );
 
+  it("plans no scoring sample without a Jev key to judge it (D70)", LONG, async () => {
+    const world = makeWorld(repo.root, { now: WED });
+    world.deps.fetch.sampleJudge = false;
+    await runStaged(world);
+    expect(await exists(repo.root, ".cache/run/2026-10-07/sample.json")).toBe(false);
+    const stats = await readJson<SourceStatsFile>(repo.root, "state/source-stats.json");
+    expect(Object.values(stats.sources).some((s) => s.sampled !== undefined)).toBe(false);
+  });
+
   it("commits as chore(digest), authored by the bot, and pushes", LONG, async () => {
     const world = makeWorld(repo.root, { now: WED });
     await runStaged(world);
