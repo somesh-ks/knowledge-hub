@@ -149,12 +149,12 @@ const facts = topic && {
                 <div class="settings-row topic-scope">
                   <div class="settings-text">
                     <span class="settings-label" id="scope-label">Scope</span>
-                    <span class="settings-hint" id="scope-hint">{general ? "General news is in custom episodes only" : "The podcasts this topic is in"}</span>
+                    {general && <span class="settings-hint" id="scope-hint">General news is in custom episodes only</span>}
                   </div>
                   <MultiSelect
                     id="scope"
                     labelledby="scope-label"
-                    describedby="scope-hint"
+                    describedby={general ? "scope-hint" : undefined}
                     empty="In no podcast"
                     options={SCOPES.map((scope) => {
                       const onSwitch = general && scope.key === "custom";

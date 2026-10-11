@@ -33,12 +33,10 @@
 /* ------------------------------------------------------------------ a settings page's title */
 
 /* Settings > Daily. The way up is the first word, muted, at the title's size and on its line, so a
-   page needs no back button above its title. A long name wraps under the trail. */
+   page needs no back button above its title. The trail is one line of text, so a long name wraps
+   word by word after it (Settings > Topics & / Sources) and never leaves the way up alone on a line. */
 .settings-crumbs {
-  display: flex;
-  flex-wrap: wrap;
-  align-items: center;
-  column-gap: var(--space-1);
+  display: block;
   font-family: var(--text-display-family);
   font-size: var(--text-display-size);
   font-weight: var(--text-display-weight);
@@ -58,6 +56,15 @@
 
 .settings-crumbs > nav {
   display: contents;
+}
+
+.settings-head .settings-crumbs > h1 {
+  display: inline;
+}
+
+/* The reset draws an svg as a block; in the trail it is a glyph in the line. */
+.settings-head .settings-crumbs > svg {
+  display: inline-block;
 }
 
 .settings-up {
@@ -80,6 +87,8 @@
 .settings-crumbs > .settings-crumb-gap {
   inline-size: 0.75em;
   block-size: 0.75em;
+  margin-inline: var(--space-1);
+  vertical-align: -0.05em;
   color: var(--color-on-surface-subtle);
 }
 

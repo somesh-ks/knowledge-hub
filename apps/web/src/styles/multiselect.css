@@ -89,7 +89,7 @@
   inline-size: auto;
   max-inline-size: 100%;
   justify-content: flex-end;
-  padding-inline: var(--space-3) calc(var(--space-2) + var(--size-icon) + var(--space-1));
+  padding-inline: var(--space-3) calc(var(--space-2) + var(--size-icon) + var(--space-2));
   border-color: transparent;
   border-radius: var(--button-radius);
   font-weight: var(--font-weight-medium);
