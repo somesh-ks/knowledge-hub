@@ -5,7 +5,6 @@ import SettingsHead from "../../components/SettingsHead.astro";
 import TopicsPanel from "../../components/TopicsPanel.astro";
 import BaseLayout from "../../layouts/BaseLayout.astro";
 import { loadManage } from "../../lib/manage";
-import { freshOffers, loadSourceCatalog } from "../../lib/sourceCatalog";
 import {
   byName,
   OTHER_ID,
@@ -20,7 +19,7 @@ import "../../styles/settings.css";
 import "../../styles/manage.css";
 import "../../styles/topics.css";
 
-const [{ topics, sources }, catalog] = await Promise.all([loadManage(), loadSourceCatalog()]);
+const { topics, sources } = await loadManage();
 // Every topic in one list, by name (D69): Design, AI and Technology (the judge's finer topics live
 // inside them and are not listed), the general news topics and any of the owner's own. Other,
 // which is no topic, comes last. Each topic's page sets where it plays.
@@ -46,8 +45,8 @@ const choices = topicChoicesOf(layout);
 <BaseLayout title="Topics & Sources" view="settings" skipLabel="Skip to topics and sources">
   <main id="main" tabindex="-1">
     {/* One row per topic, each leading to its own page (topics/[id].astro) with its switch, its
-         weight and its sources. Here: Add, which opens one panel for a new topic (and the sources
-         that suit it) or a new source, chosen by a segmented control at its top. topicsPage.ts loads
+         weight and its sources. Here: Add, which opens one panel for a new topic or a new source,
+         chosen by a segmented control at its top. topicsPage.ts loads
          the editor on first use; autosave.ts sends a change a moment later. */}
     <div
       class="manage topics"
@@ -103,10 +102,7 @@ const choices = topicChoicesOf(layout);
       </fieldset>
 
       <ManageChrome />
-      <TopicsPanel
-        topics={choices}
-        offers={freshOffers(catalog, sources)}
-      />
+      <TopicsPanel topics={choices} />
     </div>
   </main>
 </BaseLayout>

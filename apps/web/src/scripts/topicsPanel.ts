@@ -1,24 +1,14 @@
 /**
  * The Topics & Sources panel: one native modal dialog, cloned from the page's template each time it
- * opens, for four jobs. Add opens it on Topic: a new topic's details first, then the catalogue
- * sources that suit it, ticked to go with it. A topic's Edit topic opens the same two steps filled
- * in, to change its details and add more of the sources that suit it. Its Source segment, and a
- * topic's Add source, take an address, look it up after a pause (GET /api/source-preview) and file
- * the source under a topic. A source's row opens it to edit that source: its name, its topic, where
- * it lives and what its score is made of. A modal dialog gives the scrim, the focus trap and Escape; Back closes it the way it
- * closes the Create panel. Loaded the first time it is opened.
+ * opens, for four jobs. Add opens it on Topic: a new topic's name, what counts and where it plays,
+ * added in one press (D71); its sources are suggested on its page. A topic's Edit topic opens the
+ * same details filled in. Its Source segment, and a topic's Add source, take an address, look it up
+ * after a pause (GET /api/source-preview) and file the source under a topic. A source's row opens
+ * it to edit that source: its name, its topic, where it lives and what its score is made of. A
+ * modal dialog gives the scrim, the focus trap and Escape; browser Back closes it the way it closes
+ * the Create panel. Loaded the first time it is opened.
  */
-import {
-  addTopicLabel,
-  keywordList,
-  type OfferData,
-  problemText,
-  saveTopicLabel,
-  suggestionsFor,
-  topicChanged,
-  topicProblems,
-  webAddress,
-} from "../lib/topicText";
+import { problemText, topicChanged, topicProblems, webAddress } from "../lib/topicText";
 import { element, iconNode, type SourcePreview, scoreNode } from "./topicsView";
 
 export const PREVIEW_DELAY_MS = 400;
@@ -26,6 +16,7 @@ export const PREVIEW_DELAY_MS = 400;
 export interface NewTopic {
   name: string;
   description: string;
+  /** A new topic starts with none; an edited one keeps its own, which the panel does not show. */
   keywords: string[];
   /** Where a new topic plays (D69); an edited topic keeps what its page set. */
   scope?: { daily: boolean; weekly: boolean; custom: boolean };
@@ -83,9 +74,8 @@ export interface TopicEdit extends NewTopic {
 }
 
 export interface PanelHandlers {
-  addTopic(topic: NewTopic, sources: OfferData[]): void;
-  /** `edit` is null when only sources were ticked and the details stayed as they were. */
-  editTopic(edit: TopicEdit | null, sources: OfferData[]): void;
+  addTopic(topic: NewTopic): void;
+  editTopic(edit: TopicEdit): void;
   addSource(pick: Chosen): void;
   editSource(edit: SourceEdit): void;
 }
@@ -204,39 +194,6 @@ function problem(status: number, glyph: Node | null): HTMLElement {
   return shell;
 }
 
-/** The catalogue sources the page wrote out for the topic step; none when the data is missing or bad. */
-function readOffers(): OfferData[] {
-  try {
-    const data: unknown = JSON.parse(document.getElementById("topics-offers")?.textContent ?? "[]");
-    return Array.isArray(data) ? (data as OfferData[]) : [];
-  } catch {
-    return [];
-  }
-}
-
-/** A suggestion: a tile, the name, what it covers, and a box to tick. The whole row is the target. */
-function suggestion(offer: OfferData, check: Node | null): HTMLLIElement {
-  const item = element("li", "");
-  const row = element("label", "suggest-row");
-  const box = element("input", "");
-  box.type = "checkbox";
-  box.value = offer.id;
-  const text = element("span", "suggest-text");
-  text.append(element("span", "source-name", offer.name));
-  if (offer.line) text.append(element("span", "suggest-line", offer.line));
-  const mark = element("span", "suggest-box");
-  mark.setAttribute("aria-hidden", "true");
-  if (check) mark.append(check);
-  row.append(
-    box,
-    iconNode(offer.host ? `https://${offer.host}/favicon.ico` : null, offer.name),
-    text,
-    mark,
-  );
-  item.append(row);
-  return item;
-}
-
 /** Opens the panel where `start` says. The handler for what it makes runs before the panel closes. */
 export function openPanel(
   trigger: HTMLElement | null,
@@ -261,62 +218,35 @@ export function openPanel(
   const topicPane = one<HTMLFormElement>('[data-pane="topic"]');
   const sourcePane = one<HTMLElement>('[data-pane="source"]');
   const editPane = one<HTMLElement>('[data-pane="edit"]');
-  const details = one<HTMLElement>('[data-step="details"]');
-  const sourcesStep = one<HTMLElement>('[data-step="sources"]');
-  const list = one<HTMLUListElement>("[data-suggest-list]");
-  const none = one<HTMLElement>("[data-suggest-none]");
-  const lede = one<HTMLElement>("[data-suggest-lede]");
   const go = one<HTMLButtonElement>("[data-panel-go]");
-  const back = one<HTMLButtonElement>("[data-panel-back]");
 
   let mode: PanelStart["kind"] = start.kind;
-  let step: "details" | "sources" = "details";
 
   // ---------------------------------------------------------------------------------- a topic
 
-  const offers = readOffers();
   const topicField = (name: string): HTMLInputElement | HTMLTextAreaElement =>
     topicPane.elements.namedItem(name) as HTMLInputElement | HTMLTextAreaElement;
   const scoped = (key: string): boolean =>
     topicPane.querySelector<HTMLInputElement>(`input[name="scope"][value="${key}"]`)?.checked ??
     true;
+  // Editing a topic starts from what it holds. A built-in topic is judged by fixed questions, so what
+  // counts stays as it is; its name takes typing like any other topic's. Its keywords have no field
+  // (D71) and go back as they were, so a save never empties them.
+  const editedTopic = start.kind === "topic-edit" ? start.topic : null;
   const topicValue = (): NewTopic => ({
     name: topicField("name").value.trim(),
     description: topicField("description").value.trim(),
-    keywords: topicField("keywords") ? keywordList(topicField("keywords").value) : [],
+    keywords: editedTopic ? [...editedTopic.keywords] : [],
     scope: { daily: scoped("daily"), weekly: scoped("weekly"), custom: scoped("custom") },
   });
-  const ticked = (): OfferData[] => {
-    const ids = new Set(
-      [...list.querySelectorAll<HTMLInputElement>("input:checked")].map((box) => box.value),
-    );
-    return offers.filter((offer) => ids.has(offer.id));
-  };
-
-  // Editing a topic starts from what it holds. A built-in topic is judged by fixed questions, so what
-  // counts stays as it is; its name takes typing like any other topic's.
-  const editedTopic = start.kind === "topic-edit" ? start.topic : null;
   if (editedTopic) {
     topicPane.setAttribute("aria-label", "Edit topic");
     one<HTMLElement>("[data-scope]").hidden = true;
     topicField("name").value = editedTopic.name;
     topicField("description").value = editedTopic.description;
-    if (topicField("keywords")) {
-      topicField("keywords").value = editedTopic.keywords.join(", ");
-    }
     if (editedTopic.origin === "builtin") {
       topicField("description").readOnly = true;
       one<HTMLElement>("[data-fixed-note]").hidden = false;
-    }
-    const suggestHead = one<HTMLElement>("[data-suggest-head]");
-    if (suggestHead) suggestHead.textContent = "More sources";
-    if (lede) {
-      lede.textContent =
-        "Sources that write about it and are not among its sources yet. Tick the ones to add.";
-    }
-    if (none) {
-      none.textContent =
-        "No more sources to suggest for this topic. Add one by its address on the topic's page.";
     }
   }
   const topicDirty = (): boolean => editedTopic !== null && topicChanged(editedTopic, topicValue());
@@ -338,22 +268,6 @@ export function openPanel(
     return first;
   };
 
-  const toSources = (): void => {
-    const topic = topicValue();
-    const bad = flag(topicProblems(topic));
-    if (bad) {
-      bad.focus();
-      return;
-    }
-    const offered = suggestionsFor(topic, offers);
-    list.replaceChildren(...offered.map((offer) => suggestion(offer, glyph("check"))));
-    if (none) none.hidden = offered.length > 0;
-    if (lede) lede.hidden = offered.length === 0;
-    step = "sources";
-    render();
-    (list.querySelector<HTMLInputElement>("input") ?? go).focus();
-  };
-
   topicPane.addEventListener("input", (event) => {
     const control = event.target as HTMLInputElement;
     if (control.hasAttribute("aria-invalid")) {
@@ -361,8 +275,8 @@ export function openPanel(
       const note = topicPane.querySelector<HTMLElement>(`[data-error="${control.name}"]`);
       if (note) note.hidden = true;
     }
+    render();
   });
-  list.addEventListener("change", render);
 
   // ---------------------------------------------------------------------------------- a source
 
@@ -473,9 +387,6 @@ export function openPanel(
     topicPane.hidden = !topicLike;
     sourcePane.hidden = mode !== "source";
     editPane.hidden = mode !== "edit";
-    details.hidden = step !== "details";
-    if (sourcesStep) sourcesStep.hidden = step !== "sources";
-    back.hidden = !(topicLike && step === "sources");
     title.textContent = {
       topic: "Add a topic",
       "topic-edit": "Edit topic",
@@ -514,7 +425,7 @@ export function openPanel(
         bad.focus();
         return;
       }
-      handlers.addTopic(topic, []);
+      handlers.addTopic(topic);
       panel.close();
     } else if (mode === "topic-edit" && editedTopic) {
       const topic = topicValue();
@@ -523,7 +434,7 @@ export function openPanel(
         bad.focus();
         return;
       }
-      handlers.editTopic(topicDirty() ? { id: editedTopic.id, ...topic } : null, []);
+      if (topicDirty()) handlers.editTopic({ id: editedTopic.id, ...topic });
       panel.close();
     } else if (mode === "source") {
       if (!loaded) return;
@@ -540,12 +451,6 @@ export function openPanel(
       if (edit) handlers.editSource(edit);
       panel.close();
     }
-  });
-
-  back.addEventListener("click", () => {
-    step = "details";
-    render();
-    topicField("name").focus();
   });
 
   // Enter moves on from a one-line field, as the button would; in the description it is a new line.

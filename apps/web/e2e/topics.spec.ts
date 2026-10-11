@@ -183,7 +183,7 @@ test.describe("the Topics list", () => {
     ]);
   });
 
-  test("a new topic is offered the catalogue's sources that suit it, and the ticked ones go with it", async ({
+  test("a new topic is added in one press and waits in the list, saved, until the build gives it a page", async ({
     page,
   }) => {
     const { sent } = await setup(page);
@@ -191,61 +191,59 @@ test.describe("the Topics list", () => {
     await page.getByRole("button", { name: "Add a topic or a source" }).click();
     const sheet = page.getByRole("dialog", { name: "Add a topic" });
     const form = sheet.getByRole("form", { name: "Add a topic" });
-    // Next refuses details that are missing, beside the field.
-    await sheet.getByRole("button", { name: "Next" }).click();
+    // Its name, what counts and where it plays (D71): no keywords and no sources step.
+    await expect(form.getByLabel(/Keywords/)).toHaveCount(0);
+    await expect(sheet.getByRole("button", { name: "Next" })).toHaveCount(0);
+    const add = sheet.getByRole("button", { name: "Add topic", exact: true });
+    // Add refuses details that are missing, beside the field.
+    await add.click();
     await expect(form.getByText("Enter a name.")).toBeVisible();
+    await expect(form.getByLabel("Name")).toBeFocused();
     await form.getByLabel("Name").fill("Motion design");
     await form
       .getByLabel("What should count as this topic")
       .fill("Animation and motion in interfaces.");
-    await form.getByLabel(/Keywords/).fill("transitions");
-    await sheet.getByRole("button", { name: "Next" }).click();
-    const offers = sheet
-      .getByRole("group", { name: "Sources to start with" })
-      .getByRole("checkbox");
-    await expect(offers).toHaveCount(6);
-    await expect(sheet.locator(".suggest-row").first()).toContainText("Motion Weekly");
-    await expect(sheet.getByRole("button", { name: "Add topic", exact: true })).toBeVisible();
-    await sheet.getByRole("checkbox", { name: /Motion Weekly/ }).check();
-    await sheet.getByRole("checkbox", { name: /Craft Bench/ }).check();
-    await sheet.getByRole("button", { name: "Add topic and 2 sources" }).click();
+    await add.click();
     await expect(sheet).toBeHidden();
+    // The site is static: the topic's page exists after the next build, so the list keeps it.
+    await expect(page).toHaveURL(LIST);
     const queued = page.locator("[data-queued] li");
     await expect(queued).toContainText("Motion design");
     await expect(queued).toContainText(ADDED);
     await expect(queued.getByRole("button")).toHaveCount(0);
-    await expect(page.locator("[data-added] li.source-row")).toHaveCount(2);
-    // The topic and its sources travel together, the topic first.
     expect(sent).toHaveLength(1);
-    expect(ops(sent)).toMatchObject([
-      { op: "topic.upsert", topic: { id: "motion-design", keywords: ["transitions"] } },
+    expect(ops(sent)).toEqual([
       {
-        op: "source.add",
-        url: "https://motion-weekly.example/rss.xml",
-        topic_ids: ["motion-design"],
-      },
-      {
-        op: "source.add",
-        url: "https://craft-bench.example/feed.xml",
-        topic_ids: ["motion-design"],
+        op: "topic.upsert",
+        topic: {
+          id: "motion-design",
+          name: "Motion design",
+          description: "Animation and motion in interfaces.",
+          weight: 0.5,
+          enabled: true,
+          keywords: [],
+          section_id: "motion-design",
+        },
       },
     ]);
   });
 
-  test("Back on the sources step returns to the topic's details as they were typed", async ({
-    page,
-  }) => {
-    await setup(page);
+  test("a refused detail keeps what was typed and sends nothing", async ({ page }) => {
+    const { sent } = await setup(page);
     await open(page);
     await page.getByRole("button", { name: "Add a topic or a source" }).click();
     const sheet = page.getByRole("dialog", { name: "Add a topic" });
     const form = sheet.getByRole("form", { name: "Add a topic" });
     await form.getByLabel("Name").fill("Motion design");
-    await form.getByLabel("What should count as this topic").fill("Animation in interfaces.");
-    await sheet.getByRole("button", { name: "Next" }).click();
-    await sheet.getByRole("button", { name: "Back" }).click();
+    await sheet.getByRole("button", { name: "Add topic", exact: true }).click();
+    await expect(form.getByText("Say what should count as this topic.")).toBeVisible();
+    await expect(form.getByLabel("What should count as this topic")).toBeFocused();
     await expect(form.getByLabel("Name")).toHaveValue("Motion design");
-    await expect(form.getByLabel("Name")).toBeFocused();
+    // Typing clears the note.
+    await form.getByLabel("What should count as this topic").fill("Animation.");
+    await expect(form.getByText("Say what should count as this topic.")).toBeHidden();
+    await expect(sheet).toBeVisible();
+    expect(sent).toHaveLength(0);
   });
 
   test("a topic cannot take the address of the Other page", async ({ page }) => {
@@ -256,7 +254,6 @@ test.describe("the Topics list", () => {
     const form = sheet.getByRole("form", { name: "Add a topic" });
     await form.getByLabel("Name").fill("Other");
     await form.getByLabel("What should count as this topic").fill("Anything else.");
-    await sheet.getByRole("button", { name: "Next" }).click();
     await sheet.getByRole("button", { name: "Add topic", exact: true }).click();
     await expect.poll(() => sent.length).toBe(1);
     expect(ops(sent)).toMatchObject([{ op: "topic.upsert", topic: { id: "other-2" } }]);
@@ -693,7 +690,7 @@ test.describe("a topic's suggested sources", () => {
 
 // The browser logs the refused lookup itself; the panel answers it in words.
 test.describe("editing a topic", () => {
-  test("a topic of the owner's renames, and ticked sources join it, in one request", async ({
+  test("a topic of the owner's renames in one request, and keeps its keywords", async ({
     page,
   }) => {
     const { sent } = await setup(page);
@@ -705,16 +702,12 @@ test.describe("editing a topic", () => {
     const name = form.getByLabel("Name");
     await expect(name).toHaveValue("Audio interfaces");
     await expect(name).not.toBeFocused();
-    await expect(form.getByLabel(/Keywords/)).toHaveValue("audio, voice, player");
+    // Keywords have no field (D71); the topic keeps the ones it has.
+    await expect(form.getByLabel(/Keywords/)).toHaveCount(0);
     await name.fill("Audio and voice");
-    await sheet.getByRole("button", { name: "Next" }).click();
-    const more = sheet.getByRole("group", { name: "More sources" });
-    await expect(more.getByRole("checkbox").first()).toBeVisible();
-    await sheet.getByRole("checkbox", { name: /Interface Notes/ }).check();
-    await sheet.getByRole("button", { name: "Save and add 1 source" }).click();
+    await sheet.getByRole("button", { name: "Save", exact: true }).click();
     await expect(sheet).toBeHidden();
     await expect(page.getByRole("heading", { level: 1 })).toHaveText("Audio and voice");
-    await expect(source(page, "Interface Notes")).toContainText(ADDED);
     await expect
       .poll(() => ops(sent))
       .toMatchObject([
@@ -729,12 +722,8 @@ test.describe("editing a topic", () => {
             weight: 0.75,
           },
         },
-        {
-          op: "source.add",
-          url: "https://interface-notes.example/feed.xml",
-          topic_ids: ["audio_interfaces"],
-        },
       ]);
+    expect(ops(sent)).toHaveLength(1);
   });
 
   test("a new topic sets its scope as it is added, in the same request", async ({ page }) => {
@@ -749,8 +738,7 @@ test.describe("editing a topic", () => {
     await expect(sheet.getByRole("button", { name: /^Scope/ })).toHaveText("Daily and Custom");
     await page.keyboard.press("Escape");
     await expect(sheet).toBeVisible();
-    await sheet.getByRole("button", { name: "Next" }).click();
-    await sheet.getByRole("button", { name: /^Add topic/ }).click();
+    await sheet.getByRole("button", { name: "Add topic", exact: true }).click();
     await expect
       .poll(() => ops(sent))
       .toMatchObject([
@@ -759,17 +747,20 @@ test.describe("editing a topic", () => {
       ]);
   });
 
-  test("Save waits until a detail changed or a source is ticked", async ({ page }) => {
+  test("Save waits until a detail changed, and putting it back waits again", async ({ page }) => {
     const { sent } = await setup(page);
     await open(page, "/settings/topics/audio_interfaces");
     await page.getByRole("button", { name: "Edit topic Audio interfaces" }).click();
     const sheet = page.getByRole("dialog", { name: "Edit topic" });
-    await sheet.getByRole("button", { name: "Next" }).click();
-    await expect(sheet.getByRole("button", { name: "Save", exact: true })).toBeDisabled();
-    await sheet.getByRole("checkbox").first().check();
-    await expect(sheet.getByRole("button", { name: "Save and add 1 source" })).toBeEnabled();
-    await sheet.getByRole("button", { name: "Back" }).click();
-    await expect(sheet.getByRole("form", { name: "Edit topic" }).getByLabel("Name")).toBeFocused();
+    const name = sheet.getByRole("form", { name: "Edit topic" }).getByLabel("Name");
+    const save = sheet.getByRole("button", { name: "Save", exact: true });
+    await expect(save).toBeDisabled();
+    await name.fill("Audio and voice");
+    await expect(save).toBeEnabled();
+    await name.fill("Audio interfaces");
+    await expect(save).toBeDisabled();
+    await page.keyboard.press("Escape");
+    await expect(sheet).toBeHidden();
     expect(sent).toHaveLength(0);
   });
 });
@@ -851,9 +842,9 @@ test("has no accessibility violations: the list, a topic, and the panel open", a
   await page.getByRole("button", { name: "Add a topic or a source" }).click();
   const topic = page.getByRole("dialog", { name: "Add a topic" });
   await topic.getByRole("form", { name: "Add a topic" }).getByLabel("Name").fill("Motion design");
-  await topic.getByLabel("What should count as this topic").fill("Animation in interfaces.");
-  await topic.getByRole("button", { name: "Next" }).click();
-  await expect(topic.getByRole("checkbox").first()).toBeVisible();
+  // The panel as a refused detail leaves it: the note beside the field, with its alert glyph.
+  await topic.getByRole("button", { name: "Add topic", exact: true }).click();
+  await expect(topic.getByText("Say what should count as this topic.")).toBeVisible();
   await settled(topic);
   expect(await scan()).toEqual([]);
 });

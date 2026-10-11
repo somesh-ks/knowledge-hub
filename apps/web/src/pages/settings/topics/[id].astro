@@ -10,7 +10,7 @@ import WeightRow from "../../../components/WeightRow.astro";
 import BaseLayout from "../../../layouts/BaseLayout.astro";
 import { loadManage, type ManageSource, type ManageTopic } from "../../../lib/manage";
 import { loadScheduleView } from "../../../lib/schedule";
-import { freshOffers, loadSourceCatalog, suggestSources } from "../../../lib/sourceCatalog";
+import { loadSourceCatalog, suggestSources } from "../../../lib/sourceCatalog";
 import {
   type GroupPage,
   OTHER_ID,
@@ -188,7 +188,7 @@ const facts = topic && {
                 >
                   <span class="settings-text">
                     <span class="settings-label">Edit topic</span>
-                    <span class="settings-hint">Name, what counts, keywords and more sources</span>
+                    <span class="settings-hint">Its name and what counts</span>
                   </span>
                   <Icon name="chevronRight" />
                 </button>
@@ -258,7 +258,7 @@ const facts = topic && {
       </fieldset>
 
       <ManageChrome />
-      <TopicsPanel topics={choices} offers={freshOffers(catalog, sources)} />
+      <TopicsPanel topics={choices} />
     </div>
   </main>
 </BaseLayout>

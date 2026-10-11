@@ -1,11 +1,8 @@
 import { describe, expect, it } from "vitest";
 import {
-  addTopicLabel,
   idText,
-  keywordList,
   parseSuggestedAdd,
   problemText,
-  saveTopicLabel,
   slugify,
   topicChanged,
   webAddress,
@@ -61,26 +58,6 @@ describe("webAddress", () => {
     for (const bad of ["", "   ", "ftp://example.com", "javascript:alert(1)", "localhost", "a b"]) {
       expect(webAddress(bad), bad).toBeNull();
     }
-  });
-});
-
-describe("keywordList", () => {
-  it("splits on commas, trims, and drops empties and repeats", () => {
-    expect(keywordList(" motion, , type ,motion")).toEqual(["motion", "type"]);
-    expect(keywordList("")).toEqual([]);
-  });
-
-  it("holds no more than a topic can", () => {
-    expect(keywordList(Array.from({ length: 50 }, (_, i) => `w${i}`).join(","))).toHaveLength(30);
-  });
-});
-
-describe("the panel's main button", () => {
-  it("says how many sources go with a new or an edited topic", () => {
-    expect(addTopicLabel(0)).toBe("Add topic");
-    expect(addTopicLabel(1)).toBe("Add topic and 1 source");
-    expect(saveTopicLabel(0)).toBe("Save");
-    expect(saveTopicLabel(3)).toBe("Save and add 3 sources");
   });
 });
 

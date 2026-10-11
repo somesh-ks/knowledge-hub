@@ -10,7 +10,7 @@
  *
  * The pure parts are exported and tested; the rest is wiring.
  */
-import { type OfferData, parseSuggestedAdd, type SuggestedAdd, slugify } from "../lib/topicText";
+import { parseSuggestedAdd, type SuggestedAdd, slugify } from "../lib/topicText";
 import type { ConfigOp } from "../types/contracts";
 import { mountAutosave } from "./autosave";
 import type { Pending } from "./managePageSave";
@@ -127,8 +127,12 @@ export function mountEditor(root: HTMLElement): Editor {
     row.scrollIntoView({ block: "center", behavior: reduce ? "instant" : "smooth" });
   };
 
-  /** A topic from the panel, with the catalogue sources ticked to go with it: one decision, sent now. */
-  const addTopic = (topic: NewTopic, offered: OfferData[]): void => {
+  /**
+   * A topic from the panel: a decision already made, so it is sent now. It waits in the list, saved,
+   * until the build gives it a page: the site is static, so a page for it does not exist before
+   * then, and leaving this one would drop the request on its way (and any passphrase it asks for).
+   */
+  const addTopic = (topic: NewTopic): void => {
     // A topic still waiting to be saved holds its id; one that was cancelled gives it back.
     const waiting = [...changes.values()].map(({ op }) =>
       op.op === "topic.upsert" ? (op.topic.id ?? "") : "",
@@ -157,15 +161,7 @@ export function mountEditor(root: HTMLElement): Editor {
       },
       scope,
     );
-    for (const offer of offered) {
-      addRow(
-        { name: offer.name, icon: offer.host ? `https://${offer.host}/favicon.ico` : null },
-        { op: "source.add", url: offer.feed_url, topic_ids: [id] },
-        "",
-      );
-    }
     autosave.now();
-    window.location.assign(`/settings/topics/${encodeURIComponent(id)}`);
   };
 
   /**
@@ -288,40 +284,32 @@ export function mountEditor(root: HTMLElement): Editor {
   };
 
   /**
-   * A topic's details from the panel, and the catalogue sources ticked to go with it, sent now. The
-   * edit is the topic's switch op with the new details and the switch's current state, and the switch
-   * keeps the new details, so turning the topic off later never puts the old ones back.
+   * A topic's details from the panel, sent now. The edit is the topic's switch op with the new
+   * details and the switch's current state, and the switch keeps the new details, so turning the
+   * topic off later never puts the old ones back.
    */
-  const editTopic = (edit: TopicEdit | null, offered: OfferData[]): void => {
+  const editTopic = (edit: TopicEdit): void => {
     const trigger = root.querySelector<HTMLElement>("[data-edit-topic]");
     const facts = JSON.parse(trigger?.dataset.editTopic ?? "{}") as TopicFacts;
     const toggle = root.querySelector<Control>('[data-field="topic.enabled"]');
-    if (edit && trigger && toggle) {
-      type Upsert = Extract<ConfigOp, { op: "topic.upsert" }>;
-      const built = JSON.parse(toggle.dataset.op ?? "{}") as Upsert;
-      const topic = {
-        ...built.topic,
-        name: edit.name,
-        description: edit.description,
-        keywords: edit.keywords,
-      };
-      toggle.dataset.op = JSON.stringify({ ...built, topic });
-      const op: Upsert = { op: "topic.upsert", topic: { ...topic, enabled: toggle.checked } };
-      changes.set(`topic-edit:${edit.id}`, { op, el: trigger, now: JSON.stringify(op) });
-      // The page says the new name and what counts at once; the rest follows the next build.
-      trigger.dataset.editTopic = JSON.stringify({ ...facts, ...edit });
-      const title = document.getElementById("page-title");
-      if (title) title.textContent = edit.name;
-      const note = root.querySelector(".settings-note");
-      if (note) note.textContent = edit.description;
-    }
-    for (const offer of offered) {
-      addRow(
-        { name: offer.name, icon: offer.host ? `https://${offer.host}/favicon.ico` : null },
-        { op: "source.add", url: offer.feed_url, topic_ids: [facts.id] },
-        facts.id,
-      );
-    }
+    if (!trigger || !toggle) return;
+    type Upsert = Extract<ConfigOp, { op: "topic.upsert" }>;
+    const built = JSON.parse(toggle.dataset.op ?? "{}") as Upsert;
+    const topic = {
+      ...built.topic,
+      name: edit.name,
+      description: edit.description,
+      keywords: edit.keywords,
+    };
+    toggle.dataset.op = JSON.stringify({ ...built, topic });
+    const op: Upsert = { op: "topic.upsert", topic: { ...topic, enabled: toggle.checked } };
+    changes.set(`topic-edit:${edit.id}`, { op, el: trigger, now: JSON.stringify(op) });
+    // The page says the new name and what counts at once; the rest follows the next build.
+    trigger.dataset.editTopic = JSON.stringify({ ...facts, ...edit });
+    const title = document.getElementById("page-title");
+    if (title) title.textContent = edit.name;
+    const note = root.querySelector(".settings-note");
+    if (note) note.textContent = edit.description;
     autosave.now();
   };
 

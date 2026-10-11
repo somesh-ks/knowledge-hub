@@ -1,32 +1,13 @@
 ---
-import type { CatalogSource } from "../lib/sourceCatalog";
-import { catalogLine } from "../lib/sourceCatalog";
 import Icon from "./Icon.astro";
 import MultiSelect from "./MultiSelect.astro";
 
 interface Props {
   /** The topics a source can be filed under, in the order the page lists them. */
   topics: { id: string; name: string }[];
-  /** Catalogue sources a new topic can start with; ones already among the sources are left out. */
-  offers: CatalogSource[];
 }
 
-const { topics, offers } = Astro.props;
-const hostOf = (url: string): string => {
-  try {
-    return new URL(url).hostname.replace(/^www\./, "");
-  } catch {
-    return "";
-  }
-};
-const offerData = offers.map((offer) => ({
-  id: offer.id,
-  name: offer.name,
-  feed_url: offer.feed_url,
-  host: hostOf(offer.feed_url),
-  line: catalogLine(offer),
-  tags: offer.tags,
-}));
+const { topics } = Astro.props;
 ---
 
 {/* The Topics & Sources panel, kept inert in a template until scripts/topicsPanel.ts clones it: Add
@@ -54,13 +35,14 @@ const offerData = offers.map((offer) => ({
         </label>
       </fieldset>
 
-      {/* A topic: what it is, then the sources that could feed it. Adding starts it empty; editing
-           starts it filled, and a built-in topic keeps what counts, as fixed questions judge it. */}
+      {/* A topic: its name, what counts and where it plays (D71); its page then suggests sources.
+           Adding starts it empty; editing starts it filled, and a built-in topic keeps what counts,
+           as fixed questions judge it. */}
       <form class="manage-form topics-pane" data-pane="topic" aria-label="Add a topic" novalidate>
-        <div class="topics-step" data-step="details">
+        <div class="topics-step">
           <p class="manage-quiet" data-fixed-note hidden>
             The app judges this topic by questions of its own, so what counts stays as it is. Its name
-            and keywords can change.
+            can change.
           </p>
           <div class="manage-field">
             <label for="panel-topic-name">Name</label>
@@ -198,13 +180,9 @@ const offerData = offers.map((offer) => ({
         </section>
       </div>
       <template data-alert-glyph><Icon name="alert" /></template>
-      <template data-check-glyph><Icon name="check" class="suggest-check" /></template>
     </div>
     <div class="source-sheet-foot topics-panel-foot">
-      <button class="btn" type="button" data-panel-back hidden>Back</button>
-      <button class="btn-primary" type="button" data-panel-go>Next</button>
+      <button class="btn-primary" type="button" data-panel-go>Add topic</button>
     </div>
   </dialog>
 </template>
-{/* The offers as data for the topic step: a data block, never run, so the policy has nothing to allow. */}
-<script is:inline type="application/json" id="topics-offers" set:html={JSON.stringify(offerData).replace(/</g, "\\u003c")} />
