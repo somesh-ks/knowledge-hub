@@ -163,6 +163,7 @@ export default function ScriptView({ titleHidden = false }: { titleHidden?: bool
                 className="script-turn"
                 type="button"
                 data-turn={index}
+                data-tone={host.tone}
                 data-said={current >= 0 && index < current ? "" : undefined}
                 aria-current={index === current ? "true" : undefined}
                 aria-disabled={turn.start_ms === null ? "true" : undefined}
@@ -175,7 +176,12 @@ export default function ScriptView({ titleHidden = false }: { titleHidden?: bool
                   getPlayerStore().seekTo(Math.round(at ?? turn.start_ms));
                 }}
               >
-                <span className="script-speaker">{host.name}</span>
+                <span className="script-speaker">
+                  <span className="host-badge" aria-hidden="true">
+                    {host.initial}
+                  </span>
+                  <span className="script-name">{host.name}</span>
+                </span>
                 <span className="script-text">
                   {words[index]?.list.map((word, at) => (
                     // biome-ignore lint/suspicious/noArrayIndexKey: a turn's words never reorder

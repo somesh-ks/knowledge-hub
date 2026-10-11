@@ -1156,11 +1156,12 @@
   .player-page-inner {
     display: grid;
     grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
-    grid-template-rows: auto 1fr;
-    align-content: start;
+    grid-template-rows: auto auto;
+    align-content: center;
     column-gap: var(--space-12);
     max-width: var(--player-page-max);
     padding-inline: var(--space-12);
+    min-height: calc(100cqb - var(--player-dock-height));
   }
 
   .player-drag,
@@ -1174,6 +1175,10 @@
 
   .player-drag {
     grid-row: 1;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
   }
 
   .player-body {
@@ -1188,7 +1193,13 @@
   .player-list {
     grid-column: 2;
     grid-row: 1 / span 2;
-    padding-block-start: var(--space-6);
+    padding-block-start: 0;
+    display: flex;
+    flex-direction: column;
+    align-self: center;
+    max-height: calc(100cqb - var(--player-dock-height) - var(--space-8));
+    overflow-y: auto;
+    scrollbar-width: thin;
   }
 }
 
@@ -1658,23 +1669,41 @@
 
 .script-turns {
   display: grid;
+  gap: var(--space-3);
   margin: 0;
   padding: 0;
   list-style: none;
 }
 
-/* A reading column, as in Speechify: no boxes, no badges, no rules. Each turn is a small name over
-   its text; while it plays, what has been said is in full ink, what is still to come is muted, and
-   the word being said sits on a soft fill. A turn is shaped and inset like a chapter row, so its
-   text starts where the chapter list's does and its focus ring has room inside the column. */
+/* The two hosts: a lead with accent tone and a guest with warning tone. Distinct cards with badges. */
 .script-turn {
+  --host-ink: var(--color-accent);
+  --host-wash: var(--color-accent-subtle);
   display: grid;
-  gap: var(--space-1);
+  gap: var(--space-2);
   width: 100%;
   padding-block: var(--space-3);
   padding-inline: var(--space-3);
   border-radius: var(--sheet-row-radius);
+  background: var(--color-surface);
+  border: var(--stroke-hairline) solid var(--color-border-hairline);
   text-align: start;
+  transition:
+    background-color var(--duration-state) var(--ease-out),
+    border-color var(--duration-state) var(--ease-out),
+    box-shadow var(--duration-state) var(--ease-out);
+}
+
+.script-turn[data-tone="lead"] {
+  --host-ink: var(--color-accent);
+  --host-wash: var(--color-accent-subtle);
+}
+
+.script-turn[data-tone="guest"] {
+  --host-ink: var(--color-warning);
+  --host-wash: var(--color-warning-subtle);
+  background: var(--color-surface-sunken);
+  box-shadow: inset var(--space-1) 0 0 var(--host-ink);
 }
 
 /* Drawn inside the turn: the column clips anything outside it on a wide screen. */
@@ -1683,7 +1712,29 @@
 }
 
 .script-speaker {
-  color: var(--color-on-surface-muted);
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  color: var(--host-ink);
+  font-size: var(--font-size-meta);
+  font-weight: var(--font-weight-semibold);
+}
+
+.host-badge {
+  display: grid;
+  place-items: center;
+  width: var(--space-6);
+  height: var(--space-6);
+  border-radius: var(--radius-round);
+  background: var(--host-wash);
+  color: var(--host-ink);
+  font-size: var(--font-size-caption);
+  font-weight: var(--font-weight-bold);
+  line-height: 1;
+}
+
+.script-name {
+  color: var(--host-ink);
   font-size: var(--font-size-meta);
   font-weight: var(--font-weight-semibold);
 }
@@ -1694,6 +1745,13 @@
   font-weight: var(--font-weight-medium);
   line-height: var(--font-leading-reading);
   transition: color var(--duration-state) var(--ease-out);
+}
+
+/* The turn being spoken: a tint and an accent rule on the leading edge. */
+.script-turn[aria-current="true"] {
+  background: var(--host-wash);
+  border-color: var(--host-ink);
+  box-shadow: inset var(--space-1) 0 0 var(--host-ink);
 }
 
 /* While the voice is followed: turns not yet reached are muted, and in the turn being spoken every
@@ -1723,6 +1781,11 @@
 
 /* The spoken word keeps its own fill under the pointer. */
 @media (hover: hover) and (pointer: fine) {
+  .script-turn:not([aria-disabled="true"], [aria-current="true"]):hover {
+    background: color-mix(in oklch, var(--host-wash) 50%, var(--color-surface));
+    border-color: color-mix(in oklch, var(--host-ink) 30%, var(--color-border-hairline));
+  }
+
   .script-turn:not([aria-disabled="true"]) .script-word:not([data-spoken]):hover {
     background: var(--color-surface-sunken);
   }
@@ -1744,7 +1807,7 @@
 }
 
 .script-turn:not([aria-disabled="true"]):active {
-  background: color-mix(in oklch, var(--color-on-surface) 8%, transparent);
+  background: color-mix(in oklch, var(--host-wash) 75%, var(--color-surface));
 }
 
 .script-back {
@@ -1788,7 +1851,7 @@
   .player-list:has(.player-script) {
     display: flex;
     flex-direction: column;
-    align-self: start;
+    align-self: center;
     position: sticky;
     inset-block-start: var(--space-2);
     max-height: calc(100cqb - var(--player-dock-height) - var(--space-8));
@@ -1810,6 +1873,10 @@
 }
 
 @media (forced-colors: active) {
+  .script-turn[aria-current="true"] {
+    border: var(--stroke-rail) solid Highlight;
+  }
+
   .script-word[data-spoken] {
     background: Highlight;
     color: HighlightText;
@@ -1989,16 +2056,23 @@
   height: var(--space-4);
 }
 
+.story-group {
+  margin-block-end: var(--space-3);
+}
+
 .story-group-title {
-  padding-block: var(--space-3) var(--space-1);
+  padding-block: var(--space-2) var(--space-1);
   padding-inline: var(--space-3);
   color: var(--color-on-surface-muted);
   font-size: var(--font-size-caption);
   font-weight: var(--font-weight-semibold);
+  letter-spacing: var(--font-tracking-caption);
+  text-transform: uppercase;
 }
 
 .story-rows {
   display: grid;
+  gap: var(--space-1);
 }
 
 .story-row {
@@ -2146,8 +2220,8 @@
   .player-controls {
     display: grid;
     grid-template-columns: minmax(0, 1fr) auto minmax(0, 1fr);
-    /* The column is as tall as the list beside it; its rows stay together at the top. */
-    align-content: start;
+    /* The unit stays centered vertically and horizontally in its column. */
+    align-content: center;
     row-gap: var(--space-2);
     align-items: center;
   }

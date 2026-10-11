@@ -24,7 +24,8 @@ const LIST_VIEWS = [
 export default function PlayerPageContent() {
   const track = usePlayerState().track;
   const hasScript = (track?.digest.turns?.length ?? 0) > 0;
-  const hasChapters = (track?.timeline?.items.length ?? 0) > 0;
+  const hasChapters =
+    (track?.timeline?.items.length ?? 0) > 0 || (track?.digest.items.length ?? 0) > 0;
   // An episode opens on its transcript; a briefing has only chapters.
   const [view, setView] = useState<ListView>("transcript");
   const both = hasScript && hasChapters;
