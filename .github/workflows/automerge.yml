@@ -50,6 +50,10 @@ jobs:
             echo "Not merging #$PR: it is $state (draft: $draft)."
             exit 0
           fi
+          if gh pr view "$PR" -R "$REPO" --json labels -q '.labels[].name' | grep -qx 'review'; then
+            echo "Not merging #$PR: it carries the review label, so a human merges it after the Claude review."
+            exit 0
+          fi
           if [ "$head" != "$HEAD_SHA" ]; then
             echo "Not merging #$PR: ci passed on $HEAD_SHA but the head is now $head."
             exit 0
