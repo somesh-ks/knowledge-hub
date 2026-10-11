@@ -1,7 +1,7 @@
 import { mkdir, mkdtemp, rm, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
-import { CATEGORIES } from "@dispatch/core";
+import { CATEGORIES, GENERAL_TOPICS } from "@dispatch/core";
 import { afterEach, describe, expect, it } from "vitest";
 import {
   buildCandidates,
@@ -18,6 +18,7 @@ import {
   stepToWeight,
   WEIGHT_STEPS,
   weightToStep,
+  withGeneralTopics,
 } from "./manage";
 
 describe("weight steps", () => {
@@ -187,10 +188,69 @@ describe("parseTopicsFile", () => {
     });
   });
 
+  it("keeps the app and general origins", () => {
+    const parsed = parseTopicsFile({
+      topics: [
+        { id: "design", name: "Design", origin: "app" },
+        { id: "world", name: "World", origin: "general" },
+      ],
+    });
+    expect(parsed?.topics.map((topic) => topic.origin)).toEqual(["app", "general"]);
+  });
+
   it("returns null when the file is not usable, so the fallback applies", () => {
     expect(parseTopicsFile(null)).toBeNull();
     expect(parseTopicsFile({ topics: "no" })).toBeNull();
     expect(parseTopicsFile({ topics: [{ id: "x" }] })).toBeNull();
+  });
+});
+
+describe("withGeneralTopics", () => {
+  it("adds the general topics a file lacks and keeps one it has, renamed", () => {
+    const topics = withGeneralTopics([
+      {
+        id: "world",
+        name: "Global",
+        description: "",
+        weight: 1,
+        step: 4,
+        enabled: false,
+        keywords: [],
+        section_id: "general",
+        never_publish: false,
+        origin: "general",
+      },
+    ]);
+    expect(topics.map((topic) => topic.id)).toEqual([
+      "world",
+      "business",
+      "science",
+      "culture",
+      "sports",
+    ]);
+    expect(topics[0]).toMatchObject({ name: "Global", enabled: false });
+    expect(topics[1]).toMatchObject({ name: "Business", origin: "general", enabled: true });
+  });
+});
+
+describe("buildSources: a general news feed", () => {
+  it("is scored on stories another outlet carried", () => {
+    const run = (topic: string) =>
+      buildSources({
+        registry: {
+          sources: [{ id: "wire", name: "Wire", url: "https://wire.example/", topic_ids: [topic] }],
+        },
+        user: null,
+        stats: {
+          sources: { wire: { fetched: 40, judged: 30, passed: 10, published: 0, covered: 20 } },
+        },
+        health: null,
+        now: new Date("2026-10-01T00:00:00Z"),
+      })[0];
+    const news = run("world");
+    const briefing = run("motion");
+    expect(news?.score).not.toBeNull();
+    expect(news?.score).toBeGreaterThan(briefing?.score ?? 0);
   });
 });
 
@@ -552,7 +612,7 @@ describe("loadManage", () => {
       "config/sources.json": { sources: [{ id: "one", name: "One", url: "https://one.example/" }] },
     });
     const data = await loadManage({ root, env: {} });
-    expect(data.topics).toHaveLength(CATEGORIES.length);
+    expect(data.topics).toHaveLength(CATEGORIES.length + GENERAL_TOPICS.length);
     expect(data.topics[0]).toMatchObject({ id: "design_engineering_craft", step: 1 });
     expect(data.sections.length).toBeGreaterThan(0);
     expect(data.sources.map((source) => source.id)).toEqual(["one"]);
@@ -566,7 +626,7 @@ describe("loadManage", () => {
       "state/source-stats.json": "[[",
     });
     const data = await loadManage({ root, env: {} });
-    expect(data.topics).toHaveLength(CATEGORIES.length);
+    expect(data.topics).toHaveLength(CATEGORIES.length + GENERAL_TOPICS.length);
     expect(data.sources).toEqual([]);
   });
 
@@ -586,7 +646,10 @@ describe("loadManage", () => {
       },
     });
     const data = await loadManage({ root, env: {} });
-    expect(data.topics.map((topic) => topic.id)).toEqual(["mine"]);
+    expect(data.topics.map((topic) => topic.id)).toEqual([
+      "mine",
+      ...GENERAL_TOPICS.map((topic) => topic.id),
+    ]);
     expect(data.sources[0]).toMatchObject({
       pinned: true,
       record: "2 of 4 stories made a briefing",

@@ -208,6 +208,10 @@ test.describe("the profile pages", () => {
     const boxes = page.locator(".podcast-topics input");
     const count = await chips.count();
     expect(count).toBeGreaterThan(1);
+    // A general news topic never publishes in a briefing, so it is not offered here.
+    await expect(
+      chips.filter({ hasText: /^(World|Business|Science|Culture|Sports)$/ }),
+    ).toHaveCount(0);
     for (let index = 0; index < count; index += 1) await expect(boxes.nth(index)).toBeChecked();
     // Untick all but the first: the first then cannot be unticked.
     for (let index = 1; index < count; index += 1) await chips.nth(index).click();

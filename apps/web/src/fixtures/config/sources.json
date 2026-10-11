@@ -76,6 +76,81 @@
       "enabled": true,
       "failures": 0,
       "options": {}
+    },
+    {
+      "id": "meridian-wire",
+      "name": "Meridian Wire",
+      "type": "rss",
+      "url": "https://meridian-wire.example/",
+      "feed_url": "https://meridian-wire.example/feed.xml",
+      "tier": "daily",
+      "high_signal": false,
+      "topic_ids": [
+        "world"
+      ],
+      "enabled": true,
+      "failures": 0,
+      "options": {}
+    },
+    {
+      "id": "harbor-post",
+      "name": "Harbor Post",
+      "type": "rss",
+      "url": "https://harbor-post.example/",
+      "feed_url": "https://harbor-post.example/feed.xml",
+      "tier": "daily",
+      "high_signal": false,
+      "topic_ids": [
+        "world"
+      ],
+      "enabled": true,
+      "failures": 0,
+      "options": {}
+    },
+    {
+      "id": "quiet-gazette",
+      "name": "Quiet Gazette",
+      "type": "rss",
+      "url": "https://quiet-gazette.example/",
+      "feed_url": "https://quiet-gazette.example/feed.xml",
+      "tier": "daily",
+      "high_signal": false,
+      "topic_ids": [
+        "world"
+      ],
+      "enabled": false,
+      "failures": 0,
+      "options": {}
+    },
+    {
+      "id": "ledger-daily",
+      "name": "Ledger Daily",
+      "type": "rss",
+      "url": "https://ledger-daily.example/",
+      "feed_url": "https://ledger-daily.example/feed.xml",
+      "tier": "daily",
+      "high_signal": false,
+      "topic_ids": [
+        "business"
+      ],
+      "enabled": true,
+      "failures": 0,
+      "options": {}
+    },
+    {
+      "id": "lab-notes-weekly",
+      "name": "Lab Notes Weekly",
+      "type": "rss",
+      "url": "https://lab-notes.example/",
+      "feed_url": "https://lab-notes.example/feed.xml",
+      "tier": "daily",
+      "high_signal": false,
+      "topic_ids": [
+        "science"
+      ],
+      "enabled": true,
+      "failures": 0,
+      "options": {}
     }
   ]
 }

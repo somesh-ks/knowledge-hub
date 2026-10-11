@@ -6,7 +6,14 @@ import TopicsPanel from "../../components/TopicsPanel.astro";
 import BaseLayout from "../../layouts/BaseLayout.astro";
 import { loadManage } from "../../lib/manage";
 import { freshOffers, loadSourceCatalog } from "../../lib/sourceCatalog";
-import { byName, OTHER_ID, plural, sourcesByTopic, topicSummary } from "../../lib/topicPages";
+import {
+  byName,
+  generalOf,
+  OTHER_ID,
+  plural,
+  sourcesByTopic,
+  topicSummary,
+} from "../../lib/topicPages";
 // The switch and the slider are the settings page's own; the form fields, the saving toast and the
 // passphrase dialog are manage.css; the rows and stars are topics.css.
 import "../../styles/settings.css";
@@ -15,9 +22,11 @@ import "../../styles/topics.css";
 
 const [{ topics, sources }, catalog] = await Promise.all([loadManage(), loadSourceCatalog()]);
 // Always by name, so a topic is where a reader looks for it; Other, which is no topic, comes last.
-const ordered = [...topics].sort(byName);
-// A source can be filed under any topic but one that never publishes.
-const choices = ordered.filter((topic) => !topic.never_publish);
+const briefing = topics.filter((topic) => topic.origin !== "general").sort(byName);
+// The general news topics feed General episodes only, so they are their own group, in the app's order.
+const general = generalOf(topics);
+// A source can be filed under any topic but one that never publishes; a general topic is a home too.
+const choices = [...briefing, ...general].filter((topic) => !topic.never_publish);
 const groups = sourcesByTopic(topics, sources);
 const others = groups.get(OTHER_ID) ?? [];
 ---
@@ -56,7 +65,7 @@ const others = groups.get(OTHER_ID) ?? [];
 
         <div class="rows topics-index">
           {
-            ordered.map((topic) => (
+            briefing.map((topic) => (
               <a class="row-action" href={`/settings/topics/${topic.id}`}>
                 <span class="settings-text">
                   <span class="settings-label">{topic.name}</span>
@@ -78,6 +87,26 @@ const others = groups.get(OTHER_ID) ?? [];
             )
           }
         </div>
+
+        {
+          general.length > 0 && (
+            <section class="topics-general" aria-labelledby="topics-general-head">
+              <h2 class="section-head" id="topics-general-head">General news</h2>
+              <p class="manage-quiet topics-general-note">For General episodes, never the daily briefing.</p>
+              <div class="rows topics-index">
+                {general.map((topic) => (
+                  <a class="row-action" href={`/settings/topics/${topic.id}`}>
+                    <span class="settings-text">
+                      <span class="settings-label">{topic.name}</span>
+                      <span class="settings-hint">{topicSummary(topic, groups.get(topic.id)?.length ?? 0)}</span>
+                    </span>
+                    <Icon name="chevronRight" />
+                  </a>
+                ))}
+              </div>
+            </section>
+          )
+        }
       </fieldset>
 
       <ManageChrome />

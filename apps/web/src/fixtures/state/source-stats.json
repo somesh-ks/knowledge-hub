@@ -21,6 +21,30 @@
       "passed": 6,
       "published": 1,
       "window_start": "2026-09-08T00:00:00.000Z"
+    },
+    "meridian-wire": {
+      "fetched": 40,
+      "judged": 30,
+      "passed": 10,
+      "published": 0,
+      "covered": 14,
+      "window_start": "2026-09-08T00:00:00.000Z"
+    },
+    "harbor-post": {
+      "fetched": 25,
+      "judged": 20,
+      "passed": 4,
+      "published": 0,
+      "covered": 3,
+      "window_start": "2026-09-08T00:00:00.000Z"
+    },
+    "ledger-daily": {
+      "fetched": 30,
+      "judged": 24,
+      "passed": 8,
+      "published": 0,
+      "covered": 9,
+      "window_start": "2026-09-08T00:00:00.000Z"
     }
   }
 }

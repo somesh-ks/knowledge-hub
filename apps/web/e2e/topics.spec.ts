@@ -82,6 +82,9 @@ test.describe("the Topics list", () => {
       ["Consumer tech releases", "Off, 0 sources"],
       ["Venture capital and gossip", "Never in a briefing"],
       ["Other", "1 source with no topic yet"],
+      ["World", "3 sources"],
+      ["Science", "1 source"],
+      ["Sports", "0 sources"],
     ] as const;
     for (const [name, hint] of rows) {
       await expect(page.getByRole("link", { name: new RegExp(`^${name}`) })).toContainText(hint);
@@ -91,7 +94,7 @@ test.describe("the Topics list", () => {
     await expect(page.getByText("Top picks")).toHaveCount(0);
   });
 
-  test("lists the topics by name, Other last, and the panel offers them in the same order", async ({
+  test("lists the topics by name, then the general news topics, and the panel offers them in the same order", async ({
     page,
   }) => {
     await setup(page);
@@ -106,7 +109,13 @@ test.describe("the Topics list", () => {
       "Trending",
       "Venture capital and gossip",
       "Other",
+      "World",
+      "Business",
+      "Science",
+      "Culture",
+      "Sports",
     ]);
+    await expect(page.getByRole("heading", { level: 2, name: "General news" })).toBeVisible();
     await page.getByRole("button", { name: "Add a topic or a source" }).click();
     const sheet = page.getByRole("dialog", { name: "Add a topic" });
     await sheet.getByRole("radio", { name: "Source" }).check();
@@ -122,6 +131,11 @@ test.describe("the Topics list", () => {
       "Frontier model releases",
       "Product design",
       "Trending",
+      "World",
+      "Business",
+      "Science",
+      "Culture",
+      "Sports",
       "Other",
     ]);
   });
@@ -351,24 +365,38 @@ test.describe("a topic's page", () => {
     } else await expect(score.locator(".score-label")).toHaveText("New");
   });
 
-  test("removing a source waits with Undo, and Undo takes it back", async ({ page }) => {
+  test("every source has a checkbox: unticking turns it off and ticking turns it back on", async ({
+    page,
+  }) => {
     const { sent } = await setup(page);
     await open(page, CRAFT);
     const row = source(page, "Studio Notes");
-    await row.getByRole("button", { name: "Remove Studio Notes" }).click();
-    await expect(toastText(page)).toHaveText("Removing Studio Notes");
-    await toast(page).getByRole("button", { name: "Undo" }).click();
-    await expect(toast(page)).toBeHidden();
-    await expect(row.getByRole("button", { name: "Remove Studio Notes" })).toBeVisible();
-    // The row's own button takes it back as well.
-    await row.getByRole("button", { name: "Remove Studio Notes" }).click();
-    await row.getByRole("button", { name: "Undo removing Studio Notes" }).click();
-    await expect(toast(page)).toBeHidden();
-    await page.waitForTimeout(1500);
+    const box = row.getByRole("checkbox", { name: "Read Studio Notes" });
+    await expect(box).toBeChecked();
+    // The score stays on an off row, which stays in its place.
+    await expect(row.locator(".score")).toBeVisible();
+    await box.uncheck();
+    await expect.poll(() => ops(sent).length).toBe(1);
+    await expect(row).toBeVisible();
+    await expect(row.locator(".score")).toBeVisible();
+    await expect(row.locator(".source-name")).toHaveCSS("opacity", /^0\.\d+$/);
+    await box.check();
+    await expect.poll(() => ops(sent).length).toBe(2);
+    await expect(row.locator(".source-name")).toHaveCSS("opacity", "1");
+    expect(ops(sent)).toEqual([
+      { op: "source.set", id: "studio-notes", enabled: false },
+      { op: "source.set", id: "studio-notes", enabled: true },
+    ]);
+  });
+
+  test("a change put back before it is sent sends nothing", async ({ page }) => {
+    const { sent } = await setup(page);
+    await open(page, CRAFT);
+    const box = source(page, "Studio Notes").getByRole("checkbox", { name: "Read Studio Notes" });
+    await box.uncheck();
+    await box.check();
+    await page.waitForTimeout(1800);
     expect(sent).toHaveLength(0);
-    await row.getByRole("button", { name: "Remove Studio Notes" }).click();
-    await expect(row).toBeHidden(AFTER_UNDO);
-    expect(ops(sent)).toEqual([{ op: "source.set", id: "studio-notes", enabled: false }]);
   });
 
   test("its Add source button opens the panel with the topic chosen", async ({ page }) => {
@@ -414,11 +442,38 @@ test.describe("a topic's page", () => {
     await expect(page.getByRole("button", { name: /^Add source/ })).toHaveCount(0);
   });
 
+  test("a general topic: switch, edit, sources with scores, no weight and no remove", async ({
+    page,
+  }) => {
+    const { sent } = await setup(page);
+    await open(page, "/settings/topics/world");
+    await expect(page.getByRole("heading", { level: 1, name: "World" })).toBeVisible();
+    await expect(page.getByText("Feeds General episodes, never the daily briefing.")).toBeVisible();
+    await expect(page.locator("[data-weight]")).toHaveCount(0);
+    await expect(page.getByRole("button", { name: /^Remove topic/ })).toHaveCount(0);
+    await expect(page.getByRole("button", { name: "Add source to World" })).toBeVisible();
+    await expect(source(page, "Meridian Wire").locator(".score-num")).toBeVisible();
+    await expect(source(page, "Quiet Gazette").locator(".score")).toBeVisible();
+    await expect(
+      source(page, "Quiet Gazette").getByRole("checkbox", { name: "Read Quiet Gazette" }),
+    ).not.toBeChecked();
+    // What counts is editable, as for Design and Trending.
+    await page.getByRole("button", { name: "Edit topic World" }).click();
+    const sheet = page.getByRole("dialog", { name: "Edit topic" });
+    await expect(sheet.getByLabel("What should count as this topic")).toBeEditable();
+    await sheet.getByRole("button", { name: "Close" }).click();
+    await page.getByRole("switch", { name: "In General episodes" }).click();
+    await expect(toastText(page)).toHaveText(SAVED);
+    expect(ops(sent)).toMatchObject([
+      { op: "topic.upsert", topic: { id: "world", enabled: false, section_id: "general" } },
+    ]);
+  });
+
   test("Other lists the sources with no topic, and can turn one back on", async ({ page }) => {
     const { sent } = await setup(page);
     await open(page, "/settings/topics/other");
     await expect(page.getByRole("heading", { level: 1, name: "Other" })).toBeVisible();
-    await page.getByRole("switch", { name: "Turn on Quiet Motion" }).click();
+    await page.getByRole("checkbox", { name: "Read Quiet Motion" }).check();
     await expect(toastText(page)).toHaveText(SAVED);
     expect(ops(sent)).toEqual([{ op: "source.set", id: "quiet-motion", enabled: true }]);
   });

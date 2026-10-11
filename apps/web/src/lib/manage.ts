@@ -2,7 +2,9 @@ import { readFile } from "node:fs/promises";
 import { join } from "node:path";
 import {
   CATEGORIES,
+  generalTopics,
   homeSection,
+  isGeneralTopicId,
   NEVER_PUBLISH,
   SECTION_TITLES,
   SECTIONS,
@@ -21,7 +23,8 @@ import { usesFixtures } from "./site";
 
 // ------------------------------------------------------------------------------------------ types
 
-export type TopicOrigin = "builtin" | "custom";
+/** Built-in, app (Design, Trending), the owner's own, or a general news topic (World and the like). */
+export type TopicOrigin = "builtin" | "app" | "custom" | "general";
 
 export interface ManageSection {
   id: string;
@@ -157,6 +160,8 @@ export interface SourceStats {
   asked?: number;
   /** Asked items flagged as hype or sponsored. */
   flagged?: number;
+  /** Judged stories another outlet also carried; a general news feed's quality counts these. */
+  covered?: number;
 }
 
 /**
@@ -265,6 +270,31 @@ export function fallbackTopics(preferences: unknown): ManageTopic[] {
   });
 }
 
+/**
+ * The topics with every general news topic present: a config/topics.json the engine has not yet
+ * resolved lacks them, and they are valid homes for a source and a switch to turn on or off.
+ */
+export function withGeneralTopics(topics: readonly ManageTopic[]): ManageTopic[] {
+  const have = new Set(topics.map((topic) => topic.id));
+  const missing = generalTopics()
+    .filter((topic) => !have.has(topic.id))
+    .map(
+      (topic): ManageTopic => ({
+        id: topic.id,
+        name: topic.name,
+        description: topic.description,
+        weight: topic.weight,
+        step: weightToStep(topic.weight),
+        enabled: topic.enabled,
+        keywords: [...topic.keywords],
+        section_id: topic.section_id,
+        never_publish: false,
+        origin: "general",
+      }),
+    );
+  return [...topics, ...missing];
+}
+
 export function fallbackSections(): ManageSection[] {
   return SECTIONS.map((id, order) => ({ id, title: SECTION_TITLES[id], order }));
 }
@@ -288,7 +318,10 @@ function parseTopic(value: unknown): ManageTopic | null {
     keywords,
     section_id: asString(value.section_id) ?? "top",
     never_publish: asBool(value.never_publish, false),
-    origin: value.origin === "custom" ? "custom" : "builtin",
+    origin:
+      value.origin === "custom" || value.origin === "app" || value.origin === "general"
+        ? value.origin
+        : "builtin",
   };
 }
 
@@ -414,6 +447,7 @@ function parseStats(file: unknown): Map<string, SourceStats> {
     if (!isRecord(entry)) continue;
     const asked = asNumber(entry.asked);
     const flagged = asNumber(entry.flagged);
+    const covered = asNumber(entry.covered);
     result.set(id, {
       fetched: asNumber(entry.fetched) ?? 0,
       judged: asNumber(entry.judged) ?? 0,
@@ -421,6 +455,7 @@ function parseStats(file: unknown): Map<string, SourceStats> {
       published: asNumber(entry.published) ?? 0,
       ...(asked === null ? {} : { asked }),
       ...(flagged === null ? {} : { flagged }),
+      ...(covered === null ? {} : { covered }),
     });
   }
   return result;
@@ -479,6 +514,8 @@ export function buildSources(input: {
     const lastOk = sourceHealth?.last_ok ?? source.last_ok ?? undefined;
     const rated = sourceScore({
       stat: sourceStats,
+      // A general news feed earns its quality from stories another outlet also carried.
+      feedsGeneral: topicIds.length > 0 && topicIds.every(isGeneralTopicId),
       health: { failures, last_ok: lastOk },
       quality: source.quality === null ? undefined : { score: source.quality },
       now,
@@ -592,7 +629,7 @@ export async function loadManage(options: LoadManageOptions = {}): Promise<Manag
   ]);
 
   const parsed = parseTopicsFile(topicsFile);
-  const topics = parsed?.topics ?? fallbackTopics(preferences);
+  const topics = withGeneralTopics(parsed?.topics ?? fallbackTopics(preferences));
   const sections = parsed?.sections ?? fallbackSections();
   const sources = buildSources({ registry, user, stats, health, topics });
 

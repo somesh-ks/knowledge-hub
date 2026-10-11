@@ -1,3 +1,4 @@
+import { GENERAL_TOPICS } from "@dispatch/core";
 import type { ManageSource, ManageTopic } from "./manage";
 
 /**
@@ -52,9 +53,23 @@ export function plural(count: number, word: string): string {
   return `${count} ${word}${count === 1 ? "" : "s"}`;
 }
 
-/** What a topic's row says: "Weight 95%, 1 source", "Off, 2 sources" or "Never in a briefing". */
+/** The general news topics in the order the app lists them (GENERAL_TOPICS), not by name. */
+export function generalOf(topics: readonly ManageTopic[]): ManageTopic[] {
+  const order = GENERAL_TOPICS.map((topic) => topic.id as string);
+  const rank = (id: string): number => order.indexOf(id);
+  return topics
+    .filter((topic) => topic.origin === "general")
+    .sort((a, b) => rank(a.id) - rank(b.id));
+}
+
+/**
+ * What a topic's row says: "Weight 95%, 1 source", "Off, 2 sources" or "Never in a briefing". A
+ * general topic has no weight (it ranks by how many outlets carry a story): "2 sources" or "Off, 2
+ * sources".
+ */
 export function topicSummary(topic: ManageTopic, sourceCount: number): string {
   if (topic.never_publish) return "Never in a briefing";
   const sources = plural(sourceCount, "source");
+  if (topic.origin === "general") return topic.enabled ? sources : `Off, ${sources}`;
   return topic.enabled ? `Weight ${percent(topic.weight)}, ${sources}` : `Off, ${sources}`;
 }

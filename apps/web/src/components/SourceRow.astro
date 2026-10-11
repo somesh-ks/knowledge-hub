@@ -38,15 +38,15 @@ const facts = {
 {/* One source under its topic. Its name and tile are one button that opens the source to edit, and
      the open button beside its score goes to the site in a new tab. The tile shows the name's first
      letter, and the site's own icon covers it once it loads (topicsPage.ts marks it loaded), so a
-     site without an icon still has a face and every name starts at one edge. Removing is switching it
-     off, so a source that is already off shows a switch instead, to turn it back on. */}
+     site without an icon still has a face and every name starts at one edge. The checkbox at the
+     end says whether the source is read: unticking switches it off, ticking switches it back on, and
+     an off row stays where it is with its score, quieter. */}
 <li
   class="source-row"
   data-id={source.id}
   data-band={band}
   data-score={source.score ?? -1}
   data-name={source.name.toLowerCase()}
-  data-off={source.enabled ? undefined : ""}
 >
   <button
     class="source-main"
@@ -76,13 +76,7 @@ const facts = {
       <span class="source-host">{source.host}</span>
     </span>
   </button>
-  {
-    source.enabled ? (
-      <ScoreMeter score={source.score} label={source.score_label} />
-    ) : (
-      <span class="score"><span class="score-label">Off</span></span>
-    )
-  }
+  <ScoreMeter score={source.score} label={source.score_label} />
   {
     source.url ? (
       <a
@@ -98,32 +92,15 @@ const facts = {
       <span class="source-slot" />
     )
   }
-  {
-    source.enabled ? (
-      <button
-        class="icon-btn source-remove press"
-        type="button"
-        data-pressed="false"
-        aria-label={`Remove ${source.name}`}
-        data-name={source.name}
-        data-label={`Remove ${source.name}`}
-        data-label-undo={`Undo removing ${source.name}`}
-        data-op={JSON.stringify({ op: "source.set", id: source.id, enabled: false })}
-        data-remove
-      >
-        <Icon name="trash" />
-        <span class="source-undo">Undo</span>
-      </button>
-    ) : (
-      <input
-        class="settings-switch"
-        type="checkbox"
-        role="switch"
-        autocomplete="off"
-        aria-label={`Turn on ${source.name}`}
-        data-op={JSON.stringify({ op: "source.set", id: source.id, enabled: true })}
-        data-field="enabled"
-      />
-    )
-  }
+  <label class="source-check">
+    <input
+      type="checkbox"
+      autocomplete="off"
+      checked={source.enabled}
+      aria-label={`Read ${source.name}`}
+      data-op={JSON.stringify({ op: "source.set", id: source.id, enabled: source.enabled })}
+      data-field="enabled"
+    />
+    <span class="suggest-box" aria-hidden="true"><Icon name="check" class="suggest-check" /></span>
+  </label>
 </li>
