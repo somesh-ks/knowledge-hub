@@ -31,6 +31,10 @@ import type { SourceStat } from "./state.js";
  * source that sends nothing worth publishing is Poor. While trust is not measured, the score is
  * 3 × sqrt(health × quality).
  *
+ * A news feed of general topics alone (D66) never reaches a briefing, so for it "published" reads
+ * as "covered": judged stories another outlet also carried. A story only one desk ran is the
+ * news-feed version of one that never made the digest.
+ *
  * Fewer than MIN_JUDGED judged items is too little history: the label is "New", and the score and
  * the parts are null.
  *
@@ -65,8 +69,13 @@ export interface SourceScoreParts {
 
 export interface SourceScoreInput {
   stat?:
-    | Pick<SourceStat, "fetched" | "judged" | "passed" | "published" | "asked" | "flagged">
+    | Pick<
+        SourceStat,
+        "fetched" | "judged" | "passed" | "published" | "asked" | "flagged" | "covered"
+      >
     | undefined;
+  /** True for a source that feeds general news topics alone: quality counts covered stories. */
+  feedsGeneral?: boolean | undefined;
   health?: { failures: number; last_ok?: string | undefined } | undefined;
   /** Discovery quality, 0 to 1. Named in the reason while the source is new, and nowhere else. */
   quality?: { score: number } | undefined;
@@ -193,10 +202,13 @@ export function sourceScore(input: SourceScoreInput): SourceScoreResult {
   const days = daysSinceOk(input.health?.last_ok, now);
   const health = 0.6 * failuresFactor(failures) + 0.4 * recencyFactor(days);
 
+  // What a judged item led to: published in a digest, or for a general news feed, carried by
+  // another outlet too.
+  const used = input.feedsGeneral ? (stat.covered ?? 0) : stat.published;
   const passRate = stat.passed / judged;
-  const publishRate = stat.published / judged;
+  const publishRate = used / judged;
   const yieldShare = 0.4 * clamp01(passRate / 0.5) + 0.6 * clamp01(publishRate / 0.25);
-  const volume = clamp01(stat.published / 4);
+  const volume = clamp01(used / 4);
   const quality = 0.75 * yieldShare + 0.25 * volume;
 
   const asked = stat.asked ?? 0;
@@ -214,7 +226,9 @@ export function sourceScore(input: SourceScoreInput): SourceScoreResult {
 
   const clauses: Record<PartName, string> = {
     health: healthClause(failures, days),
-    quality: `${stat.published} of ${judged} judged items published`,
+    quality: input.feedsGeneral
+      ? `${used} of ${judged} judged stories also carried by another outlet`
+      : `${used} of ${judged} judged items published`,
     trust: `${flagged} of ${asked} checked items flagged as hype or sponsored`,
   };
   const weakest = weakestPart(parts);
