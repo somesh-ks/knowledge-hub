@@ -158,12 +158,21 @@ function upsertTopic(
   if (RESERVED_SECTIONS.includes(sectionId)) {
     throw new ConfigOpError(`${sectionId} is filled by the engine; pick another section.`);
   }
-  if (!next.topics.sections.some((section) => section.id === sectionId)) {
+  const section = next.topics.sections.find((candidate) => candidate.id === sectionId);
+  if (section === undefined) {
     next.topics.sections.push({
       id: sectionId,
       title: input.section_title ?? input.name,
       order: nextSectionOrder(next.topics),
     });
+  } else if (
+    existing !== undefined &&
+    existing.name !== input.name &&
+    section.title === existing.name
+  ) {
+    // A renamed topic's own section is titled after it, so the briefing's heading follows the new
+    // name. A section titled apart from the topic, or shared with others, keeps its title.
+    section.title = input.section_title ?? input.name;
   }
 
   const topic: Topic = {

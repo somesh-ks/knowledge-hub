@@ -6,7 +6,7 @@ import TopicsPanel from "../../components/TopicsPanel.astro";
 import BaseLayout from "../../layouts/BaseLayout.astro";
 import { loadManage } from "../../lib/manage";
 import { freshOffers, loadSourceCatalog } from "../../lib/sourceCatalog";
-import { OTHER_ID, plural, sourcesByTopic, topicSummary } from "../../lib/topicPages";
+import { byName, OTHER_ID, plural, sourcesByTopic, topicSummary } from "../../lib/topicPages";
 // The switch and the slider are the settings page's own; the form fields, the saving toast and the
 // passphrase dialog are manage.css; the rows and stars are topics.css.
 import "../../styles/settings.css";
@@ -14,9 +14,10 @@ import "../../styles/manage.css";
 import "../../styles/topics.css";
 
 const [{ topics, sources }, catalog] = await Promise.all([loadManage(), loadSourceCatalog()]);
-// A topic that never publishes has nothing to turn on or weigh, so it comes last.
-const editable = topics.filter((topic) => !topic.never_publish);
-const fixed = topics.filter((topic) => topic.never_publish);
+// Always by name, so a topic is where a reader looks for it; Other, which is no topic, comes last.
+const ordered = [...topics].sort(byName);
+// A source can be filed under any topic but one that never publishes.
+const choices = ordered.filter((topic) => !topic.never_publish);
 const groups = sourcesByTopic(topics, sources);
 const others = groups.get(OTHER_ID) ?? [];
 ---
@@ -55,7 +56,7 @@ const others = groups.get(OTHER_ID) ?? [];
 
         <div class="rows topics-index">
           {
-            [...editable, ...fixed].map((topic) => (
+            ordered.map((topic) => (
               <a class="row-action" href={`/settings/topics/${topic.id}`}>
                 <span class="settings-text">
                   <span class="settings-label">{topic.name}</span>
@@ -81,7 +82,7 @@ const others = groups.get(OTHER_ID) ?? [];
 
       <ManageChrome />
       <TopicsPanel
-        topics={editable.map((topic) => ({ id: topic.id, name: topic.name }))}
+        topics={choices.map((topic) => ({ id: topic.id, name: topic.name }))}
         offers={freshOffers(catalog, sources)}
       />
     </div>

@@ -19,6 +19,14 @@ export function percent(weight: number): string {
   return `${Math.round(snap(weight) * 100)}%`;
 }
 
+/** By name, as a person reads a list: letters before case, so "audio" and "Audio" sit together. */
+export function byName(a: { name: string }, b: { name: string }): number {
+  return (
+    a.name.localeCompare(b.name, "en", { sensitivity: "base" }) ||
+    a.name.localeCompare(b.name, "en")
+  );
+}
+
 /** Best first: a score before none, then the name. */
 export function byScore(a: ManageSource, b: ManageSource): number {
   return (b.score ?? -1) - (a.score ?? -1) || a.name.localeCompare(b.name, "en");

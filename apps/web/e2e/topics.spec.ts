@@ -91,6 +91,41 @@ test.describe("the Topics list", () => {
     await expect(page.getByText("Top picks")).toHaveCount(0);
   });
 
+  test("lists the topics by name, Other last, and the panel offers them in the same order", async ({
+    page,
+  }) => {
+    await setup(page);
+    await open(page);
+    const names = await page.locator(".topics-index .settings-label").allTextContents();
+    expect(names).toEqual([
+      "Audio interfaces",
+      "Consumer tech releases",
+      "Design engineering craft",
+      "Frontier model releases",
+      "Product design",
+      "Trending",
+      "Venture capital and gossip",
+      "Other",
+    ]);
+    await page.getByRole("button", { name: "Add a topic or a source" }).click();
+    const sheet = page.getByRole("dialog", { name: "Add a topic" });
+    await sheet.getByRole("radio", { name: "Source" }).check();
+    const options = await page
+      .getByRole("dialog", { name: "Add a source" })
+      .getByRole("combobox", { name: "Topic" })
+      .locator("option")
+      .allTextContents();
+    expect(options).toEqual([
+      "Audio interfaces",
+      "Consumer tech releases",
+      "Design engineering craft",
+      "Frontier model releases",
+      "Product design",
+      "Trending",
+      "Other",
+    ]);
+  });
+
   test("a row leads to the topic's page, whose title leads back", async ({ page }) => {
     await setup(page);
     await open(page);
@@ -406,6 +441,91 @@ test.describe("a topic's page", () => {
 });
 
 // The browser logs the refused lookup itself; the panel answers it in words.
+test.describe("editing a topic", () => {
+  test("a topic of the owner's renames, and ticked sources join it, in one request", async ({
+    page,
+  }) => {
+    const { sent } = await setup(page);
+    await open(page, "/settings/topics/audio_interfaces");
+    await page.getByRole("button", { name: "Edit topic Audio interfaces" }).click();
+    const sheet = page.getByRole("dialog", { name: "Edit topic" });
+    const form = sheet.getByRole("form", { name: "Edit topic" });
+    await expect(sheet.getByRole("radiogroup", { name: "What to add" })).toBeHidden();
+    const name = form.getByLabel("Name");
+    await expect(name).toHaveValue("Audio interfaces");
+    await expect(name).not.toBeFocused();
+    await expect(form.getByLabel(/Keywords/)).toHaveValue("audio, voice, player");
+    await name.fill("Audio and voice");
+    await sheet.getByRole("button", { name: "Next" }).click();
+    const more = sheet.getByRole("group", { name: "More sources" });
+    await expect(more.getByRole("checkbox").first()).toBeVisible();
+    await sheet.getByRole("checkbox", { name: /Interface Notes/ }).check();
+    await sheet.getByRole("button", { name: "Save and add 1 source" }).click();
+    await expect(sheet).toBeHidden();
+    await expect(page.getByRole("heading", { level: 1 })).toHaveText("Audio and voice");
+    await expect(source(page, "Interface Notes")).toContainText(ADDED);
+    await expect
+      .poll(() => ops(sent))
+      .toMatchObject([
+        {
+          op: "topic.upsert",
+          topic: {
+            id: "audio_interfaces",
+            name: "Audio and voice",
+            description: "Interface work on players, voice and sound.",
+            keywords: ["audio", "voice", "player"],
+            enabled: true,
+            weight: 0.75,
+          },
+        },
+        {
+          op: "source.add",
+          url: "https://interface-notes.example/feed.xml",
+          topic_ids: ["audio_interfaces"],
+        },
+      ]);
+  });
+
+  test("a topic that ships with the app keeps its name and what counts; its keywords change", async ({
+    page,
+  }) => {
+    const { sent } = await setup(page);
+    await open(page, "/settings/topics/product_design");
+    await page.getByRole("button", { name: "Edit topic Product design" }).click();
+    const sheet = page.getByRole("dialog", { name: "Edit topic" });
+    const form = sheet.getByRole("form", { name: "Edit topic" });
+    await expect(form.getByText("This topic ships with the app")).toBeVisible();
+    await expect(form.getByLabel("Name")).not.toBeEditable();
+    await expect(form.getByLabel("What should count as this topic")).not.toBeEditable();
+    await form.getByLabel(/Keywords/).fill("ui, ux");
+    await sheet.getByRole("button", { name: "Next" }).click();
+    await sheet.getByRole("button", { name: "Save", exact: true }).click();
+    await expect(sheet).toBeHidden();
+    await expect
+      .poll(() => ops(sent))
+      .toMatchObject([
+        {
+          op: "topic.upsert",
+          topic: { id: "product_design", name: "Product design", keywords: ["ui", "ux"] },
+        },
+      ]);
+  });
+
+  test("Save waits until a detail changed or a source is ticked", async ({ page }) => {
+    const { sent } = await setup(page);
+    await open(page, "/settings/topics/audio_interfaces");
+    await page.getByRole("button", { name: "Edit topic Audio interfaces" }).click();
+    const sheet = page.getByRole("dialog", { name: "Edit topic" });
+    await sheet.getByRole("button", { name: "Next" }).click();
+    await expect(sheet.getByRole("button", { name: "Save", exact: true })).toBeDisabled();
+    await sheet.getByRole("checkbox").first().check();
+    await expect(sheet.getByRole("button", { name: "Save and add 1 source" })).toBeEnabled();
+    await sheet.getByRole("button", { name: "Back" }).click();
+    await expect(sheet.getByRole("form", { name: "Edit topic" }).getByLabel("Name")).toBeFocused();
+    expect(sent).toHaveLength(0);
+  });
+});
+
 test.describe("a refused lookup", () => {
   test.use({ allowNetworkErrors: true });
   test("a source whose site has no icon shows its first letter instead", async ({ page }) => {
@@ -467,6 +587,13 @@ test("has no accessibility violations: the list, a topic, and the panel open", a
   const edit = page.getByRole("dialog", { name: "Edit source" });
   await expect(edit).toBeVisible();
   await settled(edit);
+  expect(await scan()).toEqual([]);
+  await page.keyboard.press("Escape");
+  await open(page, "/settings/topics/audio_interfaces");
+  await page.getByRole("button", { name: "Edit topic Audio interfaces" }).click();
+  const editTopic = page.getByRole("dialog", { name: "Edit topic" });
+  await expect(editTopic).toBeVisible();
+  await settled(editTopic);
   expect(await scan()).toEqual([]);
   await page.keyboard.press("Escape");
   await open(page);

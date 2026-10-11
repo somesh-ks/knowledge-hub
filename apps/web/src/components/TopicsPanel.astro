@@ -29,8 +29,8 @@ const offerData = offers.map((offer) => ({
 ---
 
 {/* The Topics & Sources panel, kept inert in a template until scripts/topicsPanel.ts clones it: Add
-     opens it on Topic, a topic's Add source opens it on Source with that topic chosen, and a source's
-     row opens it to edit that source. It wears the Create sheet's looks (create-sheet.css) and is not
+     opens it on Topic, a topic's Add source opens it on Source with that topic chosen, a topic's Edit
+     topic opens it on that topic's details, and a source's row opens it to edit that source. It wears the Create sheet's looks (create-sheet.css) and is not
      that sheet: regen-sheet keeps createSheet.ts from taking it for the Create panel. A full-screen
      sheet on a phone and a side panel from 40rem. */}
 <template id="topics-panel-template">
@@ -53,9 +53,14 @@ const offerData = offers.map((offer) => ({
         </label>
       </fieldset>
 
-      {/* A topic: what it is, then the sources that could feed it from the start. */}
+      {/* A topic: what it is, then the sources that could feed it. Adding starts it empty; editing
+           starts it filled, and a topic that ships with the app keeps its name and what counts. */}
       <form class="manage-form topics-pane" data-pane="topic" aria-label="Add a topic" novalidate>
         <div class="topics-step" data-step="details">
+          <p class="manage-quiet" data-fixed-note hidden>
+            This topic ships with the app, so its name and what counts stay as they are, and it is judged
+            as it always was. Its keywords can change.
+          </p>
           <div class="manage-field">
             <label for="panel-topic-name">Name</label>
             <input

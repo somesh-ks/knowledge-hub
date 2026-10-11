@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import type { ManageSource, ManageTopic } from "./manage";
-import { OTHER_ID, percent, sourcesByTopic, topicSummary } from "./topicPages";
+import { byName, OTHER_ID, percent, sourcesByTopic, topicSummary } from "./topicPages";
 
 const topic = (over: Partial<ManageTopic> = {}): ManageTopic => ({
   id: "design",
@@ -50,5 +50,22 @@ describe("topicSummary", () => {
   it("says Off for a topic that is off, and Never for one that never publishes", () => {
     expect(topicSummary(topic({ enabled: false }), 2)).toBe("Off, 2 sources");
     expect(topicSummary(topic({ never_publish: true }), 0)).toBe("Never in a briefing");
+  });
+});
+
+describe("byName", () => {
+  it("orders topics as a person reads a list, whatever their case", () => {
+    const names = [
+      "venture capital",
+      "Audio interfaces",
+      "Design engineering craft",
+      "audio books",
+    ];
+    expect(
+      [...names]
+        .map((name) => ({ name }))
+        .sort(byName)
+        .map((t) => t.name),
+    ).toEqual(["audio books", "Audio interfaces", "Design engineering craft", "venture capital"]);
   });
 });

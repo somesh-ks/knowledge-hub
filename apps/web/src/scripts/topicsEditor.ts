@@ -1,8 +1,8 @@
 /**
  * The Topics & Sources editor, loaded the first time a switch, a slider, a remove button, a source's
- * row or Add is used (topicsPage.ts forwards the event that woke it). It records each change as an
- * op, and autosave.ts sends it a moment later through managePageSave.ts. The panel that adds topics
- * and sources and edits a source is topicsPanel.ts, loaded when it is first opened.
+ * row, Edit topic or Add is used (topicsPage.ts forwards the event that woke it). It records each
+ * change as an op, and autosave.ts sends it a moment later through managePageSave.ts. The panel that
+ * adds and edits topics and sources is topicsPanel.ts, loaded when it is first opened.
  *
  * The page is built with every control at its saved state, so what the editor holds is a comparison:
  * a control that differs from the state it was built (or last saved) in is a pending change.
@@ -13,7 +13,15 @@ import { type OfferData, slugify } from "../lib/topicText";
 import type { ConfigOp } from "../types/contracts";
 import { mountAutosave } from "./autosave";
 import type { Pending } from "./managePageSave";
-import type { Chosen, NewTopic, PanelStart, SourceEdit, SourceFacts } from "./topicsPanel";
+import type {
+  Chosen,
+  NewTopic,
+  PanelStart,
+  SourceEdit,
+  SourceFacts,
+  TopicEdit,
+  TopicFacts,
+} from "./topicsPanel";
 import { bandOf, element, iconNode, scoreNode } from "./topicsView";
 
 type Control = HTMLInputElement;
@@ -241,15 +249,55 @@ export function mountEditor(root: HTMLElement): Editor {
     autosave.now();
   };
 
+  /**
+   * A topic's details from the panel, and the catalogue sources ticked to go with it, sent now. The
+   * edit is the topic's switch op with the new details and the switch's current state, and the switch
+   * keeps the new details, so turning the topic off later never puts the old ones back.
+   */
+  const editTopic = (edit: TopicEdit | null, offered: OfferData[]): void => {
+    const trigger = root.querySelector<HTMLElement>("[data-edit-topic]");
+    const facts = JSON.parse(trigger?.dataset.editTopic ?? "{}") as TopicFacts;
+    const toggle = root.querySelector<Control>('[data-field="topic.enabled"]');
+    if (edit && trigger && toggle) {
+      type Upsert = Extract<ConfigOp, { op: "topic.upsert" }>;
+      const built = JSON.parse(toggle.dataset.op ?? "{}") as Upsert;
+      const topic = {
+        ...built.topic,
+        name: edit.name,
+        description: edit.description,
+        keywords: edit.keywords,
+      };
+      toggle.dataset.op = JSON.stringify({ ...built, topic });
+      const op: Upsert = { op: "topic.upsert", topic: { ...topic, enabled: toggle.checked } };
+      changes.set(`topic-edit:${edit.id}`, { op, el: trigger, now: JSON.stringify(op) });
+      // The page says the new name and what counts at once; the rest follows the next build.
+      trigger.dataset.editTopic = JSON.stringify({ ...facts, ...edit });
+      const title = document.getElementById("page-title");
+      if (title) title.textContent = edit.name;
+      const note = root.querySelector(".settings-note");
+      if (note) note.textContent = edit.description;
+    }
+    for (const offer of offered) {
+      addRow(
+        { name: offer.name, icon: offer.host ? `https://${offer.host}/favicon.ico` : null },
+        { op: "source.add", url: offer.feed_url, topic_ids: [facts.id] },
+        facts.id,
+      );
+    }
+    autosave.now();
+  };
+
   const openPanel = (trigger: HTMLElement): void => {
     let start: PanelStart;
     if ("editSource" in trigger.dataset) {
       start = { kind: "edit", source: JSON.parse(trigger.dataset.editSource ?? "{}") };
+    } else if ("editTopic" in trigger.dataset) {
+      start = { kind: "topic-edit", topic: JSON.parse(trigger.dataset.editTopic ?? "{}") };
     } else if ("addSource" in trigger.dataset) {
       start = { kind: "source", topicId: trigger.dataset.addSource ?? "" };
     } else start = { kind: "topic" };
     void import("./topicsPanel").then((module) =>
-      module.openPanel(trigger, { addTopic, addSource, editSource }, start),
+      module.openPanel(trigger, { addTopic, editTopic, addSource, editSource }, start),
     );
   };
 
@@ -261,7 +309,8 @@ export function mountEditor(root: HTMLElement): Editor {
     if (
       "addSource" in button.dataset ||
       "addTopic" in button.dataset ||
-      "editSource" in button.dataset
+      "editSource" in button.dataset ||
+      "editTopic" in button.dataset
     )
       openPanel(button);
     else if (act === "cancel" && row) {
