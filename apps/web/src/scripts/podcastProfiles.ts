@@ -15,8 +15,8 @@ const nullable = (value: string): string | null => (value === "" ? null : value)
 
 /**
  * The schedule edit the controls stand for: every field whose value differs from `was`, in the
- * profile it belongs to. Topics are "*" for every one (stored as null, so a topic added later is
- * covered too) or the ticked section ids; none ticked is never sent. Null when nothing differs.
+ * profile it belongs to. Topics are the ids left out, comma-separated, empty for none. Null when
+ * nothing differs.
  */
 export function scheduleOp(was: FieldValues, now: FieldValues): ConfigOp | null {
   // The daily fields sit at the top of the op; the weekly and custom ones in their own object.
@@ -26,9 +26,8 @@ export function scheduleOp(was: FieldValues, now: FieldValues): ConfigOp | null 
   for (const [key, value] of Object.entries(now)) {
     if (was[key] === value) continue;
     const [profile = "", field = ""] = key.split(".");
-    if (field === "sections") {
-      if (value === "") continue;
-      (nested[profile] ?? top).sections = value === "*" ? null : value.split(",");
+    if (field === "skip") {
+      (nested[profile] ?? top).skip_topics = value === "" ? [] : value.split(",");
       continue;
     }
     const name = names[field] ?? field;
@@ -141,7 +140,7 @@ export function mountProfiles(root: HTMLElement, changed: () => void): void {
     "click",
     (event) => {
       const box = event.target;
-      if (!(box instanceof HTMLInputElement) || !box.matches('[data-f$=".sections"]')) return;
+      if (!(box instanceof HTMLInputElement) || !box.matches('[data-f$=".skip"]')) return;
       if (!box.checked && !box.closest("fieldset")?.querySelector("input:checked")) {
         event.preventDefault();
       }

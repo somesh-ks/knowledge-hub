@@ -116,8 +116,8 @@ export function nextWeekly(input: { now: Date; day: number; hour: number }): str
 export interface ScheduleView {
   hour: number;
   cadenceDays: number;
-  /** Section ids covered, or null for every one. The Daily podcast page sends them back as saved. */
-  sections: string[] | null;
+  /** Topic ids the daily briefing leaves out. */
+  skipTopics: string[];
   format: PodcastFormat;
   lengthMinutes: number;
   /** Speechify voice ids of the daily podcast; null is the engine's default. */
@@ -151,7 +151,7 @@ export async function loadScheduleView(
   const {
     hour,
     cadence_days: cadenceDays,
-    sections,
+    skip_topics: skipTopics,
     format,
     length_minutes: lengthMinutes,
     voice_id: voiceId,
@@ -165,7 +165,7 @@ export async function loadScheduleView(
   return {
     hour,
     cadenceDays,
-    sections,
+    skipTopics,
     format,
     lengthMinutes,
     voiceId,
@@ -182,28 +182,21 @@ export async function loadScheduleView(
   };
 }
 
-/** A topic a scheduled episode can cover, as the Daily and Weekly pages offer it. */
+/** A topic a scheduled episode can leave out, as the Daily and Weekly pages offer it. */
 export interface TopicChoice {
-  /** The section the topic's stories are filed under: what config/schedule.json lists. */
   id: string;
-  title: string;
+  name: string;
 }
 
 /**
- * The topics a scheduled episode can be narrowed to, by name: every section with at least one
- * topic that is on and may publish. Top picks is always covered, so it is not a choice.
+ * The topics a scheduled episode can leave out, by name: every topic that is on and may publish.
+ * One that is off is in no episode already, so it is not offered.
  */
 export function topicChoices(
-  topics: readonly { section_id: string; enabled: boolean; never_publish: boolean }[],
-  sections: readonly { id: string; title: string }[],
+  topics: readonly { id: string; name: string; enabled: boolean; never_publish: boolean }[],
 ): TopicChoice[] {
-  const live = new Set(
-    topics
-      .filter((topic) => topic.enabled && !topic.never_publish)
-      .map((topic) => topic.section_id),
-  );
-  return sections
-    .filter((section) => section.id !== "top" && live.has(section.id))
-    .map(({ id, title }) => ({ id, title }))
-    .sort((a, b) => a.title.localeCompare(b.title, "en", { sensitivity: "base" }));
+  return topics
+    .filter((topic) => topic.enabled && !topic.never_publish)
+    .map(({ id, name }) => ({ id, name }))
+    .sort((a, b) => a.name.localeCompare(b.name, "en", { sensitivity: "base" }));
 }

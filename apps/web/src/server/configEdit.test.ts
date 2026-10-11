@@ -286,11 +286,19 @@ describe("parseConfigOp: writer.set", () => {
 });
 
 describe("parseConfigOp: schedule.set", () => {
-  const schedule: ConfigOp = { op: "schedule.set", hour: 9, cadence_days: 3, sections: ["ai"] };
+  const schedule: ConfigOp = {
+    op: "schedule.set",
+    hour: 9,
+    cadence_days: 3,
+    skip_topics: ["trending"],
+  };
 
-  it("accepts a list of sections or null, and rebuilds the edit from its parts", () => {
+  it("accepts the topics left out, an empty list too, and rebuilds the edit from its parts", () => {
     expect(parseConfigOp(schedule)).toEqual(schedule);
-    expect(parseConfigOp({ ...schedule, sections: null })).toEqual({ ...schedule, sections: null });
+    expect(parseConfigOp({ ...schedule, skip_topics: [] })).toEqual({
+      ...schedule,
+      skip_topics: [],
+    });
     expect(parseConfigOp({ ...schedule, extra: 1 })).toEqual(schedule);
   });
 
@@ -301,25 +309,21 @@ describe("parseConfigOp: schedule.set", () => {
     expect(parseConfigOp({ ...schedule, length_minutes: 7 })).toBeNull();
   });
 
-  it("carries the weekly podcast's own topics, a list or null, and refuses a bad one", () => {
-    expect(parseConfigOp({ op: "schedule.set", weekly: { sections: ["ai", "design"] } })).toEqual({
+  it("carries the topics the weekly podcast leaves out, and refuses a bad list", () => {
+    expect(parseConfigOp({ op: "schedule.set", weekly: { skip_topics: ["design"] } })).toEqual({
       op: "schedule.set",
-      weekly: { sections: ["ai", "design"] },
+      weekly: { skip_topics: ["design"] },
     });
-    expect(parseConfigOp({ op: "schedule.set", weekly: { sections: null } })).toEqual({
-      op: "schedule.set",
-      weekly: { sections: null },
-    });
-    for (const sections of [[], "ai", ["Not An Id"]]) {
-      expect(parseConfigOp({ op: "schedule.set", weekly: { sections } })).toBeNull();
+    for (const skip_topics of [null, "design", ["Not An Id"]]) {
+      expect(parseConfigOp({ op: "schedule.set", weekly: { skip_topics } })).toBeNull();
     }
   });
 
   it("accepts any subset of the fields and refuses an empty edit", () => {
     expect(parseConfigOp({ op: "schedule.set", hour: 9 })).toEqual({ op: "schedule.set", hour: 9 });
-    expect(parseConfigOp({ op: "schedule.set", sections: null })).toEqual({
+    expect(parseConfigOp({ op: "schedule.set", skip_topics: [] })).toEqual({
       op: "schedule.set",
-      sections: null,
+      skip_topics: [],
     });
     expect(parseConfigOp({ op: "schedule.set", extra: 1 })).toBeNull();
     expect(parseConfigOp({ op: "schedule.set" })).toBeNull();
@@ -373,10 +377,10 @@ describe("parseConfigOp: schedule.set", () => {
       { ...schedule, hour: 7.5 },
       { ...schedule, hour: "7" },
       { ...schedule, cadence_days: 4 },
-      { ...schedule, sections: [] },
-      { ...schedule, sections: ["Bad Id"] },
-      { ...schedule, sections: "ai" },
-      { ...schedule, sections: Array(61).fill("ai") },
+      { ...schedule, skip_topics: null },
+      { ...schedule, skip_topics: ["Bad Id"] },
+      { ...schedule, skip_topics: "trending" },
+      { ...schedule, skip_topics: Array(201).fill("trending") },
     ]) {
       expect(parseConfigOp(bad), JSON.stringify(bad)).toBeNull();
     }
@@ -590,7 +594,7 @@ describe("handleConfig", () => {
   });
 
   describe("schedule.set", () => {
-    const schedule: ConfigOp = { op: "schedule.set", hour: 9, cadence_days: 2, sections: null };
+    const schedule: ConfigOp = { op: "schedule.set", hour: 9, cadence_days: 2 };
     const VARIABLE = "PATCH /actions/variables/RUN_CRON";
     const CREATE = "POST /actions/variables";
     const variableCalls = (github: ReturnType<typeof setup>["github"]) =>

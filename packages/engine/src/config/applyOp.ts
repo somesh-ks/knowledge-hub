@@ -234,6 +234,13 @@ function removeTopic(
     );
   }
   next.topics.topics = next.topics.topics.filter((candidate) => candidate.id !== op.id);
+  // A removed topic leaves no trace in the episodes that left it out.
+  const unskip = (ids: readonly string[]): string[] => ids.filter((id) => id !== op.id);
+  next.schedule = {
+    ...next.schedule,
+    skip_topics: unskip(next.schedule.skip_topics),
+    weekly: { ...next.schedule.weekly, skip_topics: unskip(next.schedule.weekly.skip_topics) },
+  };
   // A section a custom topic created goes with its last topic; a built-in section never goes.
   const stillUsed = next.topics.topics.some((t) => t.section_id === topic.section_id);
   if (!stillUsed && !isBuiltinSection(topic.section_id)) {
@@ -397,17 +404,13 @@ function setWeights(
   return { next, summary: `set ${count} topic weight${count === 1 ? "" : "s"}` };
 }
 
-/** The sections an episode covers, checked against the known ones; null covers every topic. */
-function coveredSections(ids: readonly string[] | null, bundle: ConfigBundle): string[] | null {
-  if (ids === null) return null;
-  const known = new Set(["top", ...bundle.topics.sections.map((section) => section.id)]);
+/** The topics an episode leaves out, checked against the known ones, each once. */
+function skippedTopics(ids: readonly string[], bundle: ConfigBundle): string[] {
+  const known = new Set(bundle.topics.topics.map((topic) => topic.id));
   for (const id of ids) {
-    if (!known.has(id)) throw new ConfigOpError(`There is no section ${id}.`);
+    if (!known.has(id)) throw new ConfigOpError(`There is no topic ${id}.`);
   }
-  // Top picks is always covered, so it is never stored.
-  const sections = [...new Set(ids)].filter((id) => id !== "top");
-  if (sections.length === 0) throw new ConfigOpError("Pick at least one topic to cover.");
-  return sections;
+  return [...new Set(ids)];
 }
 
 function setSchedule(
@@ -416,11 +419,11 @@ function setSchedule(
 ): OpOutcome {
   const next = clone(bundle);
   const current = bundle.schedule;
-  const sections =
-    op.sections !== undefined ? coveredSections(op.sections, next) : current.sections;
+  const skip =
+    op.skip_topics !== undefined ? skippedTopics(op.skip_topics, next) : current.skip_topics;
   const weekly = { ...current.weekly, ...definedOnly(op.weekly) };
-  if (op.weekly?.sections !== undefined) {
-    weekly.sections = coveredSections(op.weekly.sections, next);
+  if (op.weekly?.skip_topics !== undefined) {
+    weekly.skip_topics = skippedTopics(op.weekly.skip_topics, next);
   }
   const hour = op.hour ?? current.hour;
   const cadence = op.cadence_days ?? current.cadence_days;
@@ -428,7 +431,7 @@ function setSchedule(
     version: 1,
     hour,
     cadence_days: cadence,
-    sections,
+    skip_topics: skip,
     format: op.format ?? current.format,
     length_minutes: op.length_minutes ?? current.length_minutes,
     voice_id: op.voice_id !== undefined ? op.voice_id : current.voice_id,

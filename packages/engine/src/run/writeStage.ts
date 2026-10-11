@@ -44,10 +44,11 @@ interface PassContext {
   /** Enabled custom topics, scored against the fits the judge stage recorded. */
   customTopics: ReturnType<typeof activeFitTopics>;
   /** Sections a scheduled regular briefing covers; null for every section and for other modes. */
-  sections: readonly string[] | null;
+  /** Topics the scheduled daily briefing leaves out. */
+  skipTopics: readonly string[];
   /** Minutes the scheduled podcast runs, which sizes the regular briefing; null for other modes. */
-  /** The weekly pass's own topics, from the schedule in every mode; null covers them all. */
-  weeklySections: readonly string[] | null;
+  /** Topics the weekly pass leaves out, from the schedule in every mode. */
+  weeklySkipTopics: readonly string[];
   lengthMinutes: number | null;
   /** Minutes of the weekly podcast, which sizes the weekly pass in any run mode. */
   weeklyLengthMinutes: number;
@@ -79,8 +80,8 @@ export async function writeStage(deps: RunDeps, plan: Plan): Promise<StageReport
     preferences,
     sourceNames: sourceNameMap(sources),
     customTopics: activeFitTopics(topics),
-    sections: schedule?.sections ?? null,
-    weeklySections: fullSchedule.weekly.sections,
+    skipTopics: schedule?.skip_topics ?? [],
+    weeklySkipTopics: fullSchedule.weekly.skip_topics,
     lengthMinutes: schedule?.length_minutes ?? null,
     weeklyLengthMinutes: fullSchedule.weekly.length_minutes,
     sourceStats: await readSourceStats(deps.root),
@@ -127,8 +128,8 @@ async function writePass(
     preferences,
     sourceNames,
     customTopics,
-    sections,
-    weeklySections,
+    skipTopics,
+    weeklySkipTopics,
     lengthMinutes,
     weeklyLengthMinutes,
     sourceStats,
@@ -171,9 +172,10 @@ async function writePass(
           ? capForLength(capFor(pass.kind), VOICE_LIMITS.items.floor, weeklyLengthMinutes)
           : capFor(pass.kind),
     weights: preferences.weights,
-    // The scheduled regular briefing follows the daily topics and the weekly pass its own; an
-    // episode made on request covers everything it was asked for.
-    sections: pass.kind === "regular" ? sections : pass.kind === "weekly" ? weeklySections : null,
+    // The scheduled regular briefing leaves out the daily podcast's skipped topics and the weekly
+    // pass its own; an episode made on request covers everything it was asked for.
+    skipTopics:
+      pass.kind === "regular" ? skipTopics : pass.kind === "weekly" ? weeklySkipTopics : [],
   });
   for (const d of chosen.dropped) drop(d.id, "select", `${d.reason} (score ${d.score})`);
 

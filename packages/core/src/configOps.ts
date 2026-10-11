@@ -45,10 +45,10 @@ export type TopicInput = z.input<typeof TopicInput>;
  *   own. Unknown source or topic ids are refused.
  * - source.remove: delete an added source, or hide a seed source.
  * - weights.set: set weights by topic id. Built-in weights are written to config/preferences.json.
- * - schedule.set: set any of the daily hour (Stockholm), cadence, sections, podcast type, length
- *   and voices, the weekly podcast (`weekly`: on/off, day, hour, topics, type, length, voices) and the
- *   Create panel defaults (`custom`), in config/schedule.json, in one write. Fields left out keep
- *   what the file holds. Unknown section ids are refused.
+ * - schedule.set: set any of the daily hour (Stockholm), cadence, topics left out (`skip_topics`),
+ *   podcast type, length and voices, the weekly podcast (`weekly`: on/off, day, hour, topics left
+ *   out, type, length, voices) and the Create panel defaults (`custom`), in config/schedule.json, in
+ *   one write. Fields left out keep what the file holds. Unknown topic ids are refused.
  * - writer.set: set the writer's provider and model in config/writer.json. A null model means
  *   the engine's own DISPATCH_MODEL.
  */

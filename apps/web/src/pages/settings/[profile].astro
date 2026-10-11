@@ -20,7 +20,7 @@ export function getStaticPaths() {
 type Profile = "daily" | "weekly";
 const profile = Astro.params.profile as Profile;
 const [schedule, manage] = await Promise.all([loadScheduleView(), loadManage()]);
-const topics = topicChoices(manage.topics, manage.sections);
+const topics = topicChoices(manage.topics);
 
 const PAGES = {
   daily: {
@@ -29,7 +29,7 @@ const PAGES = {
     values: {
       hour: schedule.hour,
       cadenceDays: schedule.cadenceDays,
-      sections: schedule.sections,
+      skipTopics: schedule.skipTopics,
       format: schedule.format,
       lengthMinutes: schedule.lengthMinutes,
       voiceId: schedule.voiceId,
@@ -43,7 +43,7 @@ const PAGES = {
       enabled: schedule.weekly.enabled,
       hour: schedule.weekly.hour,
       day: schedule.weekly.day,
-      sections: schedule.weekly.sections,
+      skipTopics: schedule.weekly.skip_topics,
       format: schedule.weekly.format,
       lengthMinutes: schedule.weekly.length_minutes,
       voiceId: schedule.weekly.voice_id,

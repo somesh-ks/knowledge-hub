@@ -50,50 +50,47 @@ describe("sections from the schedule", () => {
   const homeOf = (result: ReturnType<typeof selectItems>, id: string) =>
     result.selected.find((s) => s.item.id === id)?.home;
 
-  it("covers every section when none are given", () => {
+  it("covers every topic when none is left out", () => {
     const items = pool();
-    for (const sections of [undefined, null]) {
-      const result = selectItems({ scored: items, kind: "regular", floor: 1, cap: 12, sections });
+    for (const skipTopics of [undefined, []]) {
+      const result = selectItems({ scored: items, kind: "regular", floor: 1, cap: 12, skipTopics });
       expect(result.selected).toHaveLength(4);
     }
   });
 
-  it("drops stories outside the chosen sections and records why", () => {
+  it("drops the stories of a topic left out and records why", () => {
     const items = pool();
     const result = selectItems({
       scored: items,
       kind: "regular",
       floor: 1,
       cap: 12,
-      sections: ["ai"],
+      skipTopics: ["design_engineering_craft", "hci_empirical_research", "consumer_tech_releases"],
     });
     expect(result.selected.map((s) => s.item.id)).toEqual([items[1]?.item.id]);
     expect(homeOf(result, items[1]?.item.id as string)).toBe("ai");
-    expect(result.dropped.filter((d) => d.reason === "excluded_section")).toHaveLength(3);
+    expect(result.dropped.filter((d) => d.reason === "skipped_topic")).toHaveLength(3);
   });
 
-  it("still builds Top picks from the covered sections", () => {
+  it("keeps a topic left out away from Top picks too", () => {
     const items = pool();
     const result = selectItems({
       scored: items,
       kind: "regular",
       floor: 1,
       cap: 12,
-      sections: ["ui-craft", "design"],
+      skipTopics: ["design_engineering_craft"],
     });
-    expect(result.selected.map((s) => s.section)).toEqual(["top", "top"]);
-    expect(result.selected.map((s) => s.item.id).sort()).toEqual(
-      [items[0]?.item.id, items[2]?.item.id].sort(),
-    );
+    expect(result.selected.map((s) => s.item.id)).not.toContain(items[0]?.item.id);
   });
 
-  it("returns nothing when the chosen sections have too few stories", () => {
+  it("returns nothing when what is left has too few stories", () => {
     const result = selectItems({
       scored: pool(),
       kind: "regular",
       floor: 3,
       cap: 12,
-      sections: ["tech"],
+      skipTopics: ["design_engineering_craft", "frontier_model_releases", "hci_empirical_research"],
     });
     expect(result.outcome).toBe("nothing");
   });

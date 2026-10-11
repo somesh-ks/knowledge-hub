@@ -50,14 +50,13 @@ describe("scheduleOp", () => {
 });
 
 describe("scheduleOp: topics", () => {
-  it("sends the ticked topics, null for all of them, in each profile, and never an empty list", () => {
-    const was = { "daily.sections": "*", "weekly.sections": "ai,design" };
-    expect(scheduleOp(was, { "daily.sections": "ai", "weekly.sections": "*" })).toEqual({
+  it("sends the topics each profile leaves out, and an empty list to bring them all back", () => {
+    const was = { "daily.skip": "", "weekly.skip": "design" };
+    expect(scheduleOp(was, { "daily.skip": "gossip,trending", "weekly.skip": "" })).toEqual({
       op: "schedule.set",
-      sections: ["ai"],
-      weekly: { sections: null },
+      skip_topics: ["gossip", "trending"],
+      weekly: { skip_topics: [] },
     });
-    expect(scheduleOp(was, { "daily.sections": "", "weekly.sections": "ai,design" })).toBeNull();
   });
 });
 

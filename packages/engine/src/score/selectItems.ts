@@ -9,7 +9,6 @@ import {
   isBuiltinSection,
   NEVER_PUBLISH,
   SECTIONS,
-  scheduleCovers,
   TECH_SECTION,
   VOICE_LIMITS,
 } from "@dispatch/core";
@@ -38,7 +37,7 @@ export type DropReason =
   /** A candidate beyond the allowance of a custom section, or beyond the digest's hard maximum. */
   | "over_section_cap"
   /** A candidate whose section the scheduled briefing does not cover (config/schedule.json). */
-  | "excluded_section"
+  | "skipped_topic"
   /** An older GitHub release of a repository that has a newer release among the candidates. */
   | "same_repo_release";
 
@@ -65,10 +64,10 @@ export interface SelectInput {
   weights?: Record<Category, number>;
   threshold?: number;
   /**
-   * Section ids this briefing covers, from config/schedule.json. Absent or null covers every
-   * section. Top picks is drawn from what is covered, so it needs no entry.
+   * Topic ids this briefing leaves out, from config/schedule.json: a story whose winning topic is
+   * one of them is dropped before anything is picked, so it reaches Top picks neither.
    */
-  sections?: readonly string[] | null;
+  skipTopics?: readonly string[];
 }
 
 export interface SelectResult {
@@ -300,8 +299,8 @@ export function selectItems(input: SelectInput): SelectResult {
   for (const scored of input.scored) {
     const verdict = eligibility(scored, threshold);
     if (verdict.eligible) {
-      if (!scheduleCovers({ sections: input.sections ?? null }, verdict.candidate.home)) {
-        dropped.push({ id: scored.item.id, reason: "excluded_section", score: scored.score });
+      if (input.skipTopics?.includes(verdict.candidate.category)) {
+        dropped.push({ id: scored.item.id, reason: "skipped_topic", score: scored.score });
       } else {
         candidates.push(verdict.candidate);
       }
