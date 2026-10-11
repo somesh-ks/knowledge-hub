@@ -167,9 +167,10 @@ describe("published run", () => {
       ];
       await runStaged(world);
       const stats = await readJson<SourceStatsFile>(repo.root, "state/source-stats.json");
-      expect(stats.sources["blog-a"]).toMatchObject({ judged: 5, flagged: 2 });
-      expect(stats.sources["blog-b"]).toMatchObject({ judged: 5, flagged: 0 });
-      expect(stats.sources["blog-c"]).toMatchObject({ judged: 2, flagged: 0 });
+      // Every judged item here was asked the flag questions: no coverage topic decides any alone.
+      expect(stats.sources["blog-a"]).toMatchObject({ judged: 5, asked: 5, flagged: 2 });
+      expect(stats.sources["blog-b"]).toMatchObject({ judged: 5, asked: 5, flagged: 0 });
+      expect(stats.sources["blog-c"]).toMatchObject({ judged: 2, asked: 2, flagged: 0 });
     },
   );
 

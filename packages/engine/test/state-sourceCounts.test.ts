@@ -27,41 +27,41 @@ describe("countSources", () => {
     ["i5", "b"],
   ]);
 
-  it("counts what each source's judged items were flagged for", () => {
+  it("counts each source's judged items that were asked the flags, and what they were flagged for", () => {
     const counts = countSources({
       fetchedBySource: { a: 9, b: 4, c: 2 },
       poolSourceIds,
       judgedIds: ["i1", "i2", "i3", "i4", "i5"],
-      flags: new Map([
+      // i5 is topic-only: judged with a neutral stand-in, never asked the flag questions.
+      asked: new Map([
         ["i1", flags(0.9, 0.1)],
         ["i2", flags(0.1, 0.7)],
         ["i3", flags(0.1, 0.1, 0.95)],
         ["i4", flags(0.2, 0.3, 0.9)],
-        ["i5", flags(0, 0)],
       ]),
       passedIds: new Set(["i3", "i5"]),
     });
     expect(counts).toEqual({
-      a: { fetched: 9, judged: 3, passed: 1, flagged: 2 },
-      b: { fetched: 4, judged: 2, passed: 1, flagged: 0 },
-      c: { fetched: 2, judged: 0, passed: 0, flagged: 0 },
+      a: { fetched: 9, judged: 3, passed: 1, asked: 3, flagged: 2 },
+      b: { fetched: 4, judged: 2, passed: 1, asked: 1, flagged: 0 },
+      c: { fetched: 2, judged: 0, passed: 0, asked: 0, flagged: 0 },
     });
   });
 
-  it("counts flags only on judged items, and none for a judged item without flags", () => {
+  it("counts asked and flagged only on judged items", () => {
     const counts = countSources({
       fetchedBySource: undefined,
       poolSourceIds,
       judgedIds: ["i1", "i4"],
-      flags: new Map([
+      asked: new Map([
         ["i2", flags(0.9, 0.9)],
         ["i3", flags(0.9, 0.9)],
         ["i5", flags(0.9, 0.9)],
       ]),
       passedIds: new Set(),
     });
-    expect(counts.a).toEqual({ fetched: 3, judged: 1, passed: 0, flagged: 0 });
-    expect(counts.b).toEqual({ fetched: 2, judged: 1, passed: 0, flagged: 0 });
+    expect(counts.a).toEqual({ fetched: 3, judged: 1, passed: 0, asked: 0, flagged: 0 });
+    expect(counts.b).toEqual({ fetched: 2, judged: 1, passed: 0, asked: 0, flagged: 0 });
   });
 });
 
@@ -80,13 +80,13 @@ describe("readSourceCounts", () => {
     return path;
   }
 
-  it("reads the flagged counter, and a pass file written before it was counted", async () => {
+  it("reads the asked and flagged counters, and a pass file written before them", async () => {
     const current = await file({
       version: 1,
-      sources: { a: { fetched: 3, judged: 2, passed: 1, flagged: 1 } },
+      sources: { a: { fetched: 3, judged: 2, passed: 1, asked: 2, flagged: 1 } },
     });
     expect(await readSourceCounts(current)).toEqual({
-      a: { fetched: 3, judged: 2, passed: 1, flagged: 1 },
+      a: { fetched: 3, judged: 2, passed: 1, asked: 2, flagged: 1 },
     });
     await rm(dir, { recursive: true, force: true });
     const older = await file({ version: 1, sources: { a: { fetched: 3, judged: 2, passed: 1 } } });

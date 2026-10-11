@@ -175,6 +175,35 @@ describe("a run with a custom topic", () => {
     },
   );
 
+  it(
+    "counts items a coverage topic decides alone as judged but not asked, so trust leaves them out",
+    LONG,
+    async () => {
+      const preferences = realPreferences();
+      const coverage: Topic = { ...quantum, depth: "coverage" };
+      await seed(repo.root, { "config/topics.json": topicsText(preferences, coverage) });
+      const feeds = goodFeeds(8);
+      // Tagged for the topic and with no category hint: the topic decides them alone.
+      const tagged = qubitItems(4).map((item) => ({ ...item, topic_ids: [coverage.id] }));
+      feeds["blog-a"] = [...(feeds["blog-a"] ?? []), ...tagged];
+      const world = makeWorld(repo.root, { now: WED, feeds, topicJudge: qubitJev().judge });
+      expect((await runStaged(world)).map((r) => r.code)).toEqual([0, 0, 0, 0, 0, 0]);
+
+      const judged = await readJson<JudgedFile>(repo.root, ".cache/run/2026-10-07/judged.json");
+      const fromA = new Set((feeds["blog-a"] ?? []).map((item) => item.id));
+      const neutral = judged.neutral_ids ?? [];
+      expect(neutral.length).toBeGreaterThan(0);
+      expect(neutral.every((id) => tagged.some((item) => item.id === id))).toBe(true);
+      const judgedA = judged.entries.filter((entry) => fromA.has(entry.item_id)).length;
+      const stats = await readJson<SourceStatsFile>(repo.root, "state/source-stats.json");
+      expect(stats.sources["blog-a"]).toMatchObject({
+        judged: judgedA,
+        asked: judgedA - neutral.length,
+        flagged: 0,
+      });
+    },
+  );
+
   it("publishes none of it, and asks nothing, when the topic is switched off", LONG, async () => {
     const preferences = realPreferences();
     await seed(repo.root, {

@@ -1,4 +1,4 @@
-import { type ScoreLabel, type SourceScoreParts, scoreLabel } from "@dispatch/core";
+import { combineScoreParts, type ScoreLabel, scoreLabel } from "@dispatch/core";
 import { parseHTML } from "linkedom";
 import { looksLikeFeed, type ParsedFeed, parseFeed } from "../fetch/feedParser.js";
 import {
@@ -18,19 +18,22 @@ import { AddSourceError, buildSourceFromUrl, hostLabel } from "./addSource.js";
  * record (sourceScore in @dispatch/core), measured from what one look can see:
  * - Health, from the feed: a valid feed earns 0.4 and the newest post up to 0.6 (within 7 days
  *   full, 30 days 0.7 of it, 90 days 0.3, older or undated nothing). A page with no feed earns
- *   nothing here: there is nothing to show it keeps publishing.
+ *   PAGE_ONLY_HEALTH: it can be read, but there is no feed to follow.
  * - Quality: how often the feed posts, up to 0.8 (posts in the last 30 days: 2 to 20 is full, 1
  *   earns 0.4 of it, 21 to 40 half, and a flood beyond that is noise and earns 0.2), and a clear
  *   title, 0.2.
  * - Trust: served over https, 0.6, and a site that names itself (a feed title or og:site_name, not
  *   a name guessed from the host), 0.4. A page with no feed is capped at PAGE_ONLY_TRUST_CAP, three
  *   fifths of the part, as such a page was capped at three fifths of the old score: nothing it
- *   sends can be read before it is fetched.
+ *   sends can be read before it is fetched. Unlike a record's trust, this one is always measured.
  *
- * Each part is rounded to two decimals and the score is their sum rounded to one.
+ * Each part is rounded to two decimals and they combine as a record's do, by the geometric mean:
+ * score = 3 × cbrt(health × quality × trust), rounded to one decimal. A page with no feed scores
+ * low but, with a title, not 0.
  */
 export const PREVIEW_TIMEOUT_MS = 6_000;
 export const PREVIEW_MAX_BYTES = 1024 * 1024;
+export const PAGE_ONLY_HEALTH = 0.3;
 export const PAGE_ONLY_TRUST_CAP = 0.6;
 const DAY_MS = 86_400_000;
 
@@ -59,9 +62,19 @@ export interface SourcePreview {
   /** 0 to 3 with one decimal. */
   score: number;
   score_label: ScoreLabel;
-  /** The three parts of the score, each 0 to 1 with two decimals; they add up to the score. */
-  score_parts: SourceScoreParts;
+  /**
+   * The three parts of the score, each 0 to 1 with two decimals; the score is 3 times their
+   * geometric mean.
+   */
+  score_parts: PreviewScoreParts;
   reason: string;
+}
+
+/** A preview's three parts. Unlike a record's, its trust is always a number. */
+export interface PreviewScoreParts {
+  health: number;
+  quality: number;
+  trust: number;
 }
 
 // ------------------------------------------------------------------------------------ pure parsing
@@ -177,24 +190,26 @@ function frequencyFactor(items: number | null): number {
 
 const round2 = (n: number): number => Math.round(n * 100) / 100;
 
-/** The no-history rubric in the header comment: a 0 to 3 score, its label, its parts and a sentence. */
+/** The no-history rubric in the header comment: a 0 to 3 score, its label, parts and a sentence. */
 export function scorePreview(input: PreviewScoreInput): {
   score: number;
   label: SourcePreview["score_label"];
-  parts: SourceScoreParts;
+  parts: PreviewScoreParts;
   reason: string;
 } {
   // What the feed shows counts only when there is a feed.
-  const health = input.hasFeed ? 0.4 + 0.6 * freshnessFactor(input.latestAt, input.now) : 0;
+  const health = input.hasFeed
+    ? 0.4 + 0.6 * freshnessFactor(input.latestAt, input.now)
+    : PAGE_ONLY_HEALTH;
   const frequency = input.hasFeed ? frequencyFactor(input.items30d) : 0;
   const quality = 0.8 * frequency + (input.hasTitle ? 0.2 : 0);
   const trust = (input.https ? 0.6 : 0) + (input.named ? 0.4 : 0);
-  const parts: SourceScoreParts = {
+  const parts: PreviewScoreParts = {
     health: round2(health),
     quality: round2(quality),
     trust: round2(input.hasFeed ? trust : Math.min(PAGE_ONLY_TRUST_CAP, trust)),
   };
-  const score = Math.round((parts.health + parts.quality + parts.trust) * 10) / 10;
+  const score = combineScoreParts([parts.health, parts.quality, parts.trust]);
   return { score, label: scoreLabel(score), parts, reason: previewReason(input) };
 }
 

@@ -108,6 +108,7 @@ export async function judgeStage(deps: RunDeps, plan: Plan): Promise<StageReport
 
     const byId = new Map<string, JudgmentEntry>();
     for (const entry of [...judged.entries, ...combined.entries]) byId.set(entry.item_id, entry);
+    const neutralIds: string[] = [];
     for (const item of pool.items) {
       // Only a story the topic actually scored stands in; one it could not reach is retried next run.
       const fit = topics?.fits[item.id];
@@ -123,6 +124,7 @@ export async function judgeStage(deps: RunDeps, plan: Plan): Promise<StageReport
             now,
           }),
         );
+        neutralIds.push(item.id);
       }
     }
     const entries = pool.items.flatMap((item) => byId.get(item.id) ?? []);
@@ -152,6 +154,8 @@ export async function judgeStage(deps: RunDeps, plan: Plan): Promise<StageReport
         fallback,
       },
     };
+    // Only items a judge actually asked count toward a source's trust (run/sourceCounts.ts).
+    if (neutralIds.length > 0) file.neutral_ids = neutralIds;
     let topicReport: Record<string, number> | undefined;
     if (topics !== null) {
       file.topic_fits = topics.fits;

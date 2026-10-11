@@ -59,7 +59,7 @@ export interface ManageSource {
    * none (Other), whatever its category.
    */
   topic_id: string | null;
-  /** Every topic it is filed under, for an edit panel, by the same rule; `topic_id` is the first. */
+  /** Every topic it is filed under, for an edit panel, by that rule; `topic_id` is the first. */
   topic_ids: string[];
   /** The site's own icon, https://<host>/favicon.ico; null when the address has no host. */
   favicon_url: string | null;
@@ -71,8 +71,11 @@ export interface ManageSource {
   score: number | null;
   /** "Excellent", "Good", "Fair", "Poor", or "New" before there is enough history. */
   score_label: string;
-  /** The three parts of the score, each 0 to 1 with two decimals; null while the source is new. */
-  score_parts: { health: number; quality: number; trust: number } | null;
+  /**
+   * The three parts of the score, each 0 to 1 with two decimals; null while the source is new.
+   * Trust is null while it is not measured: fewer than 10 items were asked the flag questions.
+   */
+  score_parts: { health: number; quality: number; trust: number | null } | null;
   /** One short sentence behind the score. */
   score_reason: string;
   /** Lowercase text the search matches. */
@@ -150,7 +153,9 @@ export interface SourceStats {
   judged: number;
   passed: number;
   published: number;
-  /** Judged items flagged as hype or sponsored; absent from a record written before it was counted. */
+  /** Judged items asked the flag questions; absent from a record written before it was counted. */
+  asked?: number;
+  /** Asked items flagged as hype or sponsored. */
   flagged?: number;
 }
 
@@ -407,12 +412,14 @@ function parseStats(file: unknown): Map<string, SourceStats> {
   if (!isRecord(file) || !isRecord(file.sources)) return result;
   for (const [id, entry] of Object.entries(file.sources)) {
     if (!isRecord(entry)) continue;
+    const asked = asNumber(entry.asked);
     const flagged = asNumber(entry.flagged);
     result.set(id, {
       fetched: asNumber(entry.fetched) ?? 0,
       judged: asNumber(entry.judged) ?? 0,
       passed: asNumber(entry.passed) ?? 0,
       published: asNumber(entry.published) ?? 0,
+      ...(asked === null ? {} : { asked }),
       ...(flagged === null ? {} : { flagged }),
     });
   }

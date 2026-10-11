@@ -4,11 +4,12 @@ import { readJsonIfExists } from "../curate/inputs.js";
 import type { SourceCounts } from "../state/sourceStats.js";
 
 const count = z.number().int().nonnegative();
-/** `flagged` is optional so a pass file written before flags were counted still reads. */
+/** `asked` and `flagged` are optional: a pass file written before they were counted still reads. */
 const Counts = z.object({
   fetched: count,
   judged: count,
   passed: count,
+  asked: count.optional(),
   flagged: count.optional(),
 });
 
@@ -32,20 +33,21 @@ export function isFlagged(flags: Pick<JudgmentEntry["flags"], "hype" | "sponsore
 
 /**
  * Per-source counts of one pass: what each source fetched, what a judge answered, what of that the
- * judge flagged as hype or sponsored, and what cleared the bar. `fetchedBySource` comes from the
- * pool's fetch report and falls back to the items that reached the pool when the report is missing.
- * `flags` holds each judged item's flags; an item without an entry is not flagged.
+ * judge asked the flag questions and flagged as hype or sponsored, and what cleared the bar.
+ * `fetchedBySource` comes from the pool's fetch report and falls back to the items that reached the
+ * pool when the report is missing. `asked` holds the flags of each judged item that was asked them;
+ * a judged item without an entry, such as a topic-only one, was not asked.
  */
 export function countSources(input: {
   fetchedBySource: Readonly<Record<string, number>> | undefined;
   poolSourceIds: ReadonlyMap<string, string>;
   judgedIds: readonly string[];
-  flags: ReadonlyMap<string, Pick<JudgmentEntry["flags"], "hype" | "sponsored">>;
+  asked: ReadonlyMap<string, Pick<JudgmentEntry["flags"], "hype" | "sponsored">>;
   passedIds: ReadonlySet<string>;
 }): Record<string, Required<SourceCounts>> {
   const out: Record<string, Required<SourceCounts>> = {};
   const row = (id: string): Required<SourceCounts> => {
-    out[id] ??= { fetched: 0, judged: 0, passed: 0, flagged: 0 };
+    out[id] ??= { fetched: 0, judged: 0, passed: 0, asked: 0, flagged: 0 };
     return out[id];
   };
   if (input.fetchedBySource) {
@@ -58,8 +60,10 @@ export function countSources(input: {
     if (sourceId === undefined) continue;
     const counts = row(sourceId);
     counts.judged += 1;
-    const flags = input.flags.get(itemId);
-    if (flags !== undefined && isFlagged(flags)) counts.flagged += 1;
+    const flags = input.asked.get(itemId);
+    if (flags === undefined) continue;
+    counts.asked += 1;
+    if (isFlagged(flags)) counts.flagged += 1;
   }
   for (const itemId of input.passedIds) {
     const sourceId = input.poolSourceIds.get(itemId);

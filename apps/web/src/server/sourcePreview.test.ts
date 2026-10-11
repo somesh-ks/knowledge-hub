@@ -26,7 +26,7 @@ const PREVIEW: SourcePreview = {
   kind: "feed",
   latest_at: null,
   items_30d: 3,
-  score: 2.5,
+  score: 2.4,
   score_label: "Good",
   score_parts: { health: 0.55, quality: 0.95, trust: 1 },
   reason: "Valid feed.",

@@ -3,6 +3,7 @@ import { parseFeed } from "../src/fetch/feedParser.js";
 import { createHttpClient } from "../src/http.js";
 import {
   feedActivity,
+  PAGE_ONLY_HEALTH,
   PAGE_ONLY_TRUST_CAP,
   PreviewError,
   parsePageMeta,
@@ -111,7 +112,9 @@ describe("scorePreview", () => {
     expect(health(ago(60))).toBe(0.58);
     expect(health(ago(400))).toBe(0.4);
     expect(health(null)).toBe(0.4);
-    expect(scorePreview(page).parts.health).toBe(0);
+    // A page can be read, but there is no feed to follow.
+    expect(PAGE_ONLY_HEALTH).toBe(0.3);
+    expect(scorePreview(page).parts.health).toBe(0.3);
   });
 
   it("reads quality from how often it posts and whether it has a title", () => {
@@ -140,32 +143,34 @@ describe("scorePreview", () => {
     expect(scorePreview({ ...page, https: false }).parts.trust).toBe(0.4);
   });
 
-  it("scores a page without a feed Poor", () => {
+  it("scores a page without a feed low, but not 0", () => {
     const result = scorePreview(page);
     expect(result).toMatchObject({
-      score: 0.8,
+      score: 1,
       label: "Poor",
-      parts: { health: 0, quality: 0.2, trust: 0.6 },
+      parts: { health: 0.3, quality: 0.2, trust: 0.6 },
     });
     expect(result.reason).toContain("No feed found");
   });
 
   it("scores a flood, a single post and a dormant feed below steady posting", () => {
     const flood = scorePreview({ ...base, items30d: 90 });
-    expect(flood).toMatchObject({ score: 2.4, label: "Good" });
+    expect(flood).toMatchObject({ score: 2.1, label: "Good" });
     expect(flood.reason).toContain("flood");
-    expect(scorePreview({ ...base, items30d: 1 })).toMatchObject({ score: 2.5, label: "Good" });
+    expect(scorePreview({ ...base, items30d: 1 })).toMatchObject({ score: 2.4, label: "Good" });
     const dormant = scorePreview({ ...base, latestAt: ago(400), items30d: 0 });
-    expect(dormant).toMatchObject({ score: 1.6, label: "Fair" });
+    expect(dormant).toMatchObject({ score: 1.3, label: "Poor" });
     expect(dormant.reason).toContain("no posts in the last 30 days");
   });
 
-  it("marks down plain http, and the parts add up to the score", () => {
+  it("marks down plain http, and scores 3 times the geometric mean of the parts", () => {
     const http = scorePreview({ ...base, https: false });
-    expect(http).toMatchObject({ score: 2.4, label: "Good" });
+    expect(http).toMatchObject({ score: 2.2, label: "Good" });
     for (const input of [base, page, { ...base, latestAt: ago(20), items30d: 1, named: false }]) {
       const { score, parts } = scorePreview(input);
-      expect(score).toBe(Math.round((parts.health + parts.quality + parts.trust) * 10) / 10);
+      expect(score).toBe(
+        Math.round(3 * Math.cbrt(parts.health * parts.quality * parts.trust) * 10) / 10,
+      );
     }
   });
 });
@@ -222,9 +227,9 @@ describe("previewSource", () => {
     expect(preview.items_30d).toBeNull();
     // A title of its own, but no feed and no name beyond the one guessed from the host.
     expect(preview).toMatchObject({
-      score: 0.8,
+      score: 1,
       score_label: "Poor",
-      score_parts: { health: 0, quality: 0.2, trust: 0.6 },
+      score_parts: { health: 0.3, quality: 0.2, trust: 0.6 },
     });
     expect(preview.name).toBe("Example");
   });
