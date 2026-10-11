@@ -307,8 +307,14 @@
 
   :is(.manage-select, .sort-field, .create-select) > select::picker(select) {
     box-sizing: border-box;
-    /* Half the screen less a field: the side the list opens to always has that much room. */
-    max-block-size: min(var(--pick-list-height), 50dvh - var(--space-12));
+    /* All the room on the side it opens to (100% is the area it is placed in, less its margins), and
+       never less than half the screen less a field: one side always has that much, so a list that
+       needs it and does not find it below flips above. Half the screen alone showed three rows of
+       four in a phone on its side, and nothing said a fourth was there. */
+    max-block-size: min(
+      var(--pick-list-height),
+      max(50dvh - var(--space-12), 100% - var(--space-1) * 2)
+    );
     /* Below the field whenever it fits, as the model list opens; the browser's default would pick
        the roomier side and cover the controls above. */
     position-try-order: normal;
