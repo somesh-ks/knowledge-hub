@@ -272,25 +272,43 @@
   margin-inline-end: 0;
 }
 
-/* Voice rows keep the rhythm of the page's two-line rows. On a phone the label and its hint take the
-   row's width and the voice goes under them at the end, so the hint never wraps word by word. */
-.settings-row[data-voice-row]:has(> .podcast-voice) {
-  padding-block: var(--space-3);
-}
-
+/* On a phone a voice row is two lines, as the index's rows are: the label, then the voice under it,
+   starting where the label starts (the select's own padding is pulled back), and the play button
+   trailing, centred on both lines. */
 @media (width < 40rem) {
   .settings-row[data-voice-row] {
-    flex-wrap: wrap;
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) auto;
+    grid-template-areas:
+      "label play"
+      "value play";
+    align-items: center;
     row-gap: 0;
+    padding-block: var(--space-2);
   }
 
-  .settings-row[data-voice-row] > .settings-text {
-    flex-basis: 100%;
+  .settings-row[data-voice-row] > .settings-label {
+    grid-area: label;
   }
 
   .settings-row[data-voice-row] > .podcast-voice {
-    max-inline-size: none;
-    margin-inline-start: auto;
+    display: contents;
+  }
+
+  .settings-row[data-voice-row] .value-select {
+    grid-area: value;
+    justify-self: start;
+    max-inline-size: 100%;
+    margin-inline: calc(var(--space-3) * -1) 0;
+  }
+
+  .settings-row[data-voice-row] .value-select > select.manage-input {
+    justify-content: flex-start;
+    text-align: start;
+  }
+
+  .settings-row[data-voice-row] .podcast-sample {
+    grid-area: play;
   }
 }
 
@@ -306,9 +324,10 @@
   transition: background-color var(--duration-hover) var(--ease-hover);
 }
 
-.podcast-sample[hidden] {
-  display: grid;
+/* A voice with no sample: no button to see or press, but its room is kept. */
+.podcast-sample[data-silent] {
   visibility: hidden;
+  pointer-events: none;
 }
 
 /* It shows what a press does next: play, or pause while the sample plays. */

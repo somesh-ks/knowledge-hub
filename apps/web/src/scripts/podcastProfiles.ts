@@ -80,7 +80,8 @@ export function mountProfiles(root: HTMLElement, changed: () => void): void {
     select.closest(".podcast-voice")?.querySelector<HTMLButtonElement>("[data-preview]") ?? null;
   const syncPreview = (select: HTMLSelectElement): void => {
     const chip = chipOf(select);
-    if (chip) chip.hidden = sampleOf(select) === null;
+    // Not `hidden`: the utilities' [hidden] rule would take its room, and the select would jump.
+    chip?.toggleAttribute("data-silent", sampleOf(select) === null);
   };
   /** Plays a sample, or stops it when `toggle` and it is the one playing. */
   const play = (chip: HTMLButtonElement, url: string, toggle: boolean): void => {
@@ -91,7 +92,7 @@ export function mountProfiles(root: HTMLElement, changed: () => void): void {
       audio.addEventListener("ended", () => mark(null));
       // A sample that cannot be played takes its chip with it, rather than failing in silence.
       audio.addEventListener("error", () => {
-        if (playing) playing.hidden = true;
+        playing?.setAttribute("data-silent", "");
         mark(null);
       });
     }

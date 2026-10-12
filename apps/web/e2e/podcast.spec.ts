@@ -227,7 +227,7 @@ test.describe("the profile pages", () => {
   test("both voices are always there, filled from the voice list", async ({ page }) => {
     await open(page, "daily");
     const first = page.getByLabel("Voice", { exact: true });
-    const second = page.getByLabel("Second voice", { exact: true });
+    const second = page.getByLabel("Discussion voice", { exact: true });
     await expect(first).toBeVisible();
     await expect(first.locator("option")).toHaveText([
       "Default",
@@ -238,7 +238,8 @@ test.describe("the profile pages", () => {
     ]);
     // The second voice is for discussions, and is set whatever the type is now.
     await expect(second).toBeVisible();
-    await expect(page.getByText("Joins in discussions")).toBeVisible();
+    // The labels say what each voice is; no hint repeats it.
+    await expect(page.getByText("Joins in discussions")).toHaveCount(0);
     await page.getByRole("radio", { name: "Discussion" }).check();
     await expect(second).toBeVisible();
     await page.getByRole("radio", { name: "Readout" }).check();
@@ -249,10 +250,19 @@ test.describe("the profile pages", () => {
     page,
   }) => {
     await open(page, "daily");
+    // From 40rem the values end at one edge; on a phone each starts under its label.
+    const phone = (page.viewportSize()?.width ?? 0) < 640;
     const right = async (id: string) => {
       const box = await page.locator(id).boundingBox();
-      return (box?.x ?? 0) + (box?.width ?? 0);
+      return (box?.x ?? 0) + (phone ? 0 : (box?.width ?? 0));
     };
+    expect(await right("#daily-voice")).toBeCloseTo(await right("#daily-voice_b"), 0);
+    // A voice with a sample beside one without: the play buttons keep their room either way, so
+    // the selects still share an edge and the one changed does not jump.
+    const before = await right("#daily-voice_b");
+    await page.locator("#daily-voice_b").selectOption("voice-ada");
+    await expect(page.locator("[data-voice-row=voice_b] [data-preview]")).toBeVisible();
+    expect(await right("#daily-voice_b")).toBeCloseTo(before, 0);
     expect(await right("#daily-voice")).toBeCloseTo(await right("#daily-voice_b"), 0);
     // The setting is called Format here, as on the Create page.
     await expect(page.getByRole("radiogroup", { name: "Format" })).toBeVisible();
