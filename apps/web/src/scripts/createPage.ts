@@ -1,5 +1,6 @@
 import type { Voice } from "../lib/voices";
 import { startRun } from "./runStatus";
+import { mountSamples } from "./voiceSamples";
 
 /**
  * The Create form: the button's length, the passphrase dialog (while the form has
@@ -8,6 +9,10 @@ import { startRun } from "./runStatus";
  * the run to the status indicator (runStatus.ts), which follows it, and calls `onStart`.
  */
 const KEY = "dispatch:narrate-passphrase";
+
+/** Said in a voice list that could not be filled: the voice service did not answer, or has no voices. */
+const VOICES_UNAVAILABLE =
+  "The voice list is not available right now. Default and your saved voice stay.";
 
 export function installCreate(root: HTMLElement, onStart?: () => void): void {
   if (root.dataset.ready !== undefined) return;
@@ -50,18 +55,29 @@ export function installCreate(root: HTMLElement, onStart?: () => void): void {
   // so the line under the format says the names the episode will use. Loaded with the voice list.
   let hostNames: typeof import("@dispatch/core/hosts").hostNamesFor | null = null;
 
+  /** Why a voice list is short, said in its open list. */
+  const noteVoices = (text: string): void => {
+    for (const select of form.querySelectorAll<HTMLSelectElement>("[data-voice] select")) {
+      if (text) select.dataset.note = text;
+      else delete select.dataset.note;
+    }
+  };
+
   /** The voices are fetched when the panel is first used, and fill the selects they belong to. */
   async function loadVoices(): Promise<void> {
     try {
-      const [lib, hosts] = await Promise.all([
-        import("../lib/voices"),
-        import("@dispatch/core/hosts"),
-      ]);
-      hostNames = hosts.hostNamesFor;
+      // The hosts' names are a nicety: a voice list is still filled when their code cannot load.
+      const hosts = await import("@dispatch/core/hosts").catch(() => null);
+      hostNames = hosts?.hostNamesFor ?? null;
+      const lib = await import("../lib/voices");
       const response = await fetch("/api/voices", { signal: AbortSignal.timeout(10_000) });
       const body: unknown = response.ok ? await response.json() : null;
       const voices = lib.parseVoices(body);
-      if (!voices) return;
+      if (!voices) {
+        noteVoices(VOICES_UNAVAILABLE);
+        return;
+      }
+      noteVoices(voices.length === 0 ? VOICES_UNAVAILABLE : "");
       const defaults = lib.parseVoiceDefaults(body);
       for (const voice of voices) known.set(voice.id, voice);
       for (const select of form.querySelectorAll<HTMLSelectElement>("[data-voice] select")) {
@@ -70,10 +86,12 @@ export function installCreate(root: HTMLElement, onStart?: () => void): void {
         const fallback = voices.find((voice) => voice.id === id);
         if (fallback) defaultVoices[select.name] = fallback;
         lib.fillVoiceSelect(select, voices, select.value, fallback);
+        syncSample(select);
       }
       sync();
     } catch {
       // The default and the saved voice stay: an episode can always be made without the list.
+      noteVoices(VOICES_UNAVAILABLE);
     }
   }
 
@@ -165,6 +183,12 @@ export function installCreate(root: HTMLElement, onStart?: () => void): void {
   // host has hands this host's old voice over instead of leaving one voice for two named hosts.
   const lastVoice: Record<string, string | null> = {};
   const voiceSelects = [...form.querySelectorAll<HTMLSelectElement>("[data-voice] select")];
+  // The button beside each voice plays its sample; choosing a voice plays it too.
+  const syncSample = mountSamples(
+    form,
+    ".create-voice-field",
+    (select) => voiceOf(select) ?? undefined,
+  );
 
   function rememberVoices(): void {
     for (const select of voiceSelects) lastVoice[select.name] = voiceOf(select)?.id ?? null;
@@ -181,6 +205,8 @@ export function installCreate(root: HTMLElement, onStart?: () => void): void {
     // Only a voice the list offers can be handed over.
     if (![...other.options].some((option) => option.value === before)) return;
     other.value = before;
+    other.dispatchEvent(new Event("picker:sync"));
+    syncSample(other);
   }
 
   function sync(): void {
@@ -234,7 +260,6 @@ export function installCreate(root: HTMLElement, onStart?: () => void): void {
       const chosen = (name: string) =>
         form.querySelector<HTMLInputElement>(`input[name="${name}"]:checked`)?.dataset.label ?? "";
       values.textContent = values.dataset.template
-        .replace("{audience}", chosen("audience"))
         .replace("{window}", chosen("window"))
         .replace("{tone}", chosen("tone"));
     }
@@ -522,6 +547,8 @@ export function installCreate(root: HTMLElement, onStart?: () => void): void {
         select.add(new Option(value, value));
       }
       select.value = value;
+      select.dispatchEvent(new Event("picker:sync"));
+      syncSample(select);
     }
     const title = form.elements.namedItem("title");
     if (title instanceof HTMLInputElement) {
@@ -537,6 +564,8 @@ export function installCreate(root: HTMLElement, onStart?: () => void): void {
   sync();
   if (running()) say("form", busyLine());
   void loadVoices();
+  // The voices are chosen from a list with a search field.
+  void import("./picker").then((module) => module.mountPickers(form));
 }
 
 /** True while a run is queued, running or adding its episode to the Library (runStatus.ts). */

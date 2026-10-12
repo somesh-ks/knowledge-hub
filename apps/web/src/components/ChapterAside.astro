@@ -11,22 +11,24 @@ const { sections } = Astro.props;
 {/* Shown from 80rem, where it replaces the section tabs. Every entry is a link to its section, with
      or without audio: this list is for moving around the page, and the chips are for playing. */}
 <nav class="aside" aria-labelledby="aside-title">
-  <h2 class="aside-title" id="aside-title">Contents</h2>
-  <ul role="list">
-    {
-      sections.map((section, index) => (
-        <li>
-          <a
-            class="aside-link"
-            href={`#c-${section.slug}`}
-            data-astro-history="replace"
-            data-section={section.slug}
-            aria-current={index === 0 ? "true" : undefined}
-          >
-            <span>{section.title}</span>
-          </a>
-        </li>
-      ))
-    }
-  </ul>
+  <div class="aside-rail">
+    <h2 class="aside-title" id="aside-title">Contents</h2>
+    <ul role="list">
+      {
+        sections.map((section, index) => (
+          <li>
+            <a
+              class="aside-link"
+              href={`#c-${section.slug}`}
+              data-astro-history="replace"
+              data-section={section.slug}
+              aria-current={index === 0 ? "true" : undefined}
+            >
+              <span>{section.title}</span>
+            </a>
+          </li>
+        ))
+      }
+    </ul>
+  </div>
 </nav>

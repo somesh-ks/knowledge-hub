@@ -221,6 +221,22 @@ describe("gates", () => {
     expect(engine.activeVoices()).toBe(0);
   });
 
+  it("plays the cue that woke a suspended context once the resume lands, unless it went stale", async () => {
+    const { engine, context, state } = harness();
+    engine.unlock();
+    context.state = "suspended";
+    expect(engine.play("itemNext")).toBe(false);
+    await Promise.resolve();
+    expect(engine.activeVoices()).toBe(1);
+
+    state.clock += 1_000;
+    context.state = "suspended";
+    expect(engine.play("itemPrev")).toBe(false);
+    state.clock += 400;
+    await Promise.resolve();
+    expect(engine.activeVoices()).toBe(1);
+  });
+
   it("rate limits a repeat of the same sound but not a different one", () => {
     const { engine, state } = harness();
     engine.unlock();

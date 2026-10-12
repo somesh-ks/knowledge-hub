@@ -2,6 +2,7 @@ import type { Page, Route } from "@playwright/test";
 import { NEBIUS_TOP } from "../src/lib/modelId";
 import { GAP_MS } from "../src/scripts/managePageSave";
 import { expect, expectNoViolationsInEitherScheme, seedStorage, test } from "./fixtures";
+import { choose, pickerList } from "./picker";
 
 interface Sent {
   passphrase: string;
@@ -43,7 +44,11 @@ async function open(page: Page, leaf: Leaf): Promise<void> {
   await expect(root).toHaveAttribute("data-ready", "");
   // The model page loads the live list, and a profile page its voices, after the page is up.
   if (leaf === "model") await expect(root).toHaveAttribute("data-loaded", "");
-  else await expect(root).toHaveAttribute("data-voices", "");
+  else {
+    await expect(root).toHaveAttribute("data-voices", "");
+    // The time zone and the voices are lists with a search box once their script has run.
+    await expect(root).toHaveAttribute("data-pickers", "");
+  }
 }
 
 const toast = (page: Page) => page.locator("[data-bar]");
@@ -116,7 +121,9 @@ test.describe("the profile pages", () => {
     // Nothing is saved in the fixtures, so the defaults show.
     await expect(page.locator("#daily-hour")).toHaveValue("7");
     await expect(page.locator("#daily-hour option:checked")).toHaveText("07:00");
-    await expect(page.locator("#daily-timezone")).toHaveValue("Europe/Stockholm");
+    // The time zone is a list with a search box; it names the zone and how far it is from Greenwich.
+    await expect(page.locator("#daily-timezone")).toHaveText(/^Stockholm \(GMT\+[12]\)$/);
+    await expect(page.locator("#daily-timezone-native")).toHaveValue("Europe/Stockholm");
     await expect(page.locator("#daily-cadence")).toHaveValue("2");
     await expect(page.getByRole("radio", { name: "10 min", exact: true })).toBeChecked();
     // Format and the Discussion voice are the profile's own, saved whatever the format is now.
@@ -185,15 +192,20 @@ test.describe("the profile pages", () => {
       episode.getByLabel("Voice", { exact: true }),
       episode.getByLabel("Discussion voice", { exact: true }),
     ];
-    for (const select of voices) {
-      await expect(select).toBeVisible();
-      await expect(select.locator("option")).toHaveText([
+    for (const field of voices) {
+      await expect(field).toBeVisible();
+      await field.click();
+      await expect(pickerList(page).getByRole("option")).toHaveText([
         "Default",
         // Each voice leads with the flag of its accent: en-US, en-US, en-GB.
         "\u{1F1FA}\u{1F1F8} Ada, female",
         "\u{1F1FA}\u{1F1F8} Leo, male",
         "\u{1F1EC}\u{1F1E7} Nora, female",
       ]);
+      // The search narrows the list by name, and by accent in words.
+      await pickerList(page).getByRole("combobox").fill("british");
+      await expect(pickerList(page).getByRole("option")).toHaveText([/Nora, female/]);
+      await page.keyboard.press("Escape");
     }
     await expect(page.locator(".podcast-voice select")).toHaveCount(2);
   });
@@ -209,12 +221,12 @@ test.describe("the profile pages", () => {
     await expect(second).toBeDisabled();
     // The page plays audio only from its own address, so the sample comes through /api.
     const sample = page.waitForRequest("**/api/voice-sample?voice=voice-ada");
-    await page.locator("#daily-voice_b").selectOption("voice-ada");
+    await choose(page, page.locator("#daily-voice_b"), /Ada, female/);
     await sample;
     await expect(second).toBeEnabled();
     await expect(second).toHaveAccessibleName("Play a sample of the discussion voice");
     await expect(first).toBeDisabled();
-    await page.locator("#daily-voice").selectOption("voice-leo");
+    await choose(page, page.locator("#daily-voice"), /Leo, male/);
     await expect(first).toBeDisabled();
     await expect(first).toHaveAccessibleName("No sample for the voice");
     await expect(second).toBeEnabled();
@@ -233,7 +245,7 @@ test.describe("the profile pages", () => {
     await mockConfig(page);
     await open(page, "daily");
     const sample = page.waitForRequest("**/api/voice-sample?voice=voice-ada");
-    await page.locator("#daily-voice").selectOption("voice-ada");
+    await choose(page, page.locator("#daily-voice"), /Ada, female/);
     await sample;
     await expect(toastText(page)).toHaveText(SAVED);
     const before = await page.evaluate(() => (window as unknown as { pauses: number }).pauses);
@@ -253,11 +265,26 @@ test.describe("the profile pages", () => {
   }) => {
     await open(page, "daily");
     const chips = page.locator(".podcast-topics .filter-chip");
-    await expect(chips).toHaveText(["Design", "AI", "Technology", "Audio interfaces"]);
-    // The fixtures leave nothing out, so every topic is in.
-    for (const chip of await chips.all()) await expect(chip.locator("input")).toBeChecked();
-    // Only the owner's three and their own: general news plays in custom episodes alone.
-    await expect(page.locator(".podcast-topics").getByText("World")).toHaveCount(0);
+    // Every topic is shown. The owner's three and their own can be put in or out; the general news
+    // topics are listed too, but play in episodes made on request alone, so they cannot be ticked.
+    await expect(chips).toHaveText([
+      "Design",
+      "AI",
+      "Technology",
+      "Audio interfaces",
+      "World",
+      "Business",
+      "Science",
+      "Culture",
+      "Sports",
+    ]);
+    // The fixtures leave nothing out, so every topic that can be in is in.
+    for (const chip of (await chips.all()).slice(0, 4)) {
+      await expect(chip.locator("input")).toBeChecked();
+    }
+    for (const chip of (await chips.all()).slice(4))
+      await expect(chip.locator("input")).toBeDisabled();
+    await expect(page.getByText("are for episodes you make, not for Daily yet.")).toBeVisible();
     const link = page.getByRole("link", { name: /^Topics and sources/ });
     await expect(link).toHaveAttribute("href", "/settings/topics");
     // A link row is as tall as the value rows, and its chevron ends at the row's edge.
@@ -285,7 +312,7 @@ test.describe("saving on its own", () => {
     await page.locator("#daily-cadence").selectOption("1");
     await page.getByRole("radio", { name: "15 min" }).check();
     await page.getByRole("radio", { name: "Discussion" }).check();
-    await page.locator("#daily-voice_b").selectOption("voice-leo");
+    await choose(page, page.locator("#daily-voice_b"), /Leo, male/);
     await expect
       .poll(() => scheduleSent(sent))
       .toEqual({
@@ -434,7 +461,7 @@ test.describe("saved, before the build", () => {
     await page.clock.install();
     const sent = await mockConfig(page);
     await open(page, "weekly");
-    await page.locator("#weekly-timezone").selectOption("America/New_York");
+    await choose(page, page.locator("#weekly-timezone"), /^New York/);
     await page.clock.runFor(GAP_MS);
     await expect
       .poll(() => scheduleSent(sent))
@@ -442,9 +469,9 @@ test.describe("saved, before the build", () => {
 
     await page.reload();
     await open(page, "weekly");
-    await expect(page.locator("#weekly-timezone")).toHaveValue("America/New_York");
+    await expect(page.locator("#weekly-timezone-native")).toHaveValue("America/New_York");
     await open(page, "daily");
-    await expect(page.locator("#daily-timezone")).toHaveValue("America/New_York");
+    await expect(page.locator("#daily-timezone")).toHaveText(/^New York \(GMT-[45]\)$/);
   });
 
   test("the index, the Topics list and Daily say what was saved on the other pages", async ({
@@ -621,7 +648,7 @@ test.describe("the Model page", () => {
     await expect(grouped(page, "Top models")).toHaveText([/^GLM-5\.3/, /^Kimi K3/]);
     await expect(grouped(page, "All models")).toHaveCount(2);
     await expect(options(page, /^Kimi K2\.6/)).toHaveCount(0);
-    await expect(options(page, /^gpt-oss-120b/)).toContainText("openai, 128k context");
+    await expect(options(page, /^gpt-oss-120b/)).toContainText("128k context");
     await expect(toast(page)).toBeHidden();
   });
 
@@ -775,16 +802,15 @@ test.describe("offline", () => {
     await unavailable(page);
     const sent = await mockConfig(page);
     await open(page, "model");
-    await expect(
-      page.getByText("Only the top models are listed right now. For another model, type its id."),
-    ).toBeVisible();
     await expect(combo(page)).toHaveValue("Default");
     await page.getByRole("button", { name: "Show all models" }).click();
     await expect(grouped(page, "Top models")).toHaveText(
       NEBIUS_TOP.map((model) => new RegExp(`^${model.label.replaceAll(".", "\\.")}`)),
     );
     await expect(options(page)).toHaveCount(NEBIUS_TOP.length + 1);
-    await expect(page.locator("[data-count]")).toHaveText(`${NEBIUS_TOP.length + 1} models`);
+    await expect(page.locator("[data-count]")).toHaveText(
+      `${NEBIUS_TOP.length + 1} models. Only the top models are listed right now.`,
+    );
     await page.keyboard.press("Escape");
     await pick(page, "flash", /^DeepSeek V4\.1 Flash/);
     await expect(combo(page)).toHaveValue("DeepSeek V4.1 Flash");
@@ -792,30 +818,6 @@ test.describe("offline", () => {
     expect(opsOf(sent)).toEqual([
       { op: "writer.set", provider: "nebius", model: "deepseek-ai/DeepSeek-V4.1-Flash" },
     ]);
-  });
-
-  test("without the model list a field takes the id of any other model", async ({ page }) => {
-    await page.clock.install();
-    await unavailable(page);
-    const sent = await mockConfig(page);
-    await open(page, "model");
-    await expect(combo(page)).toHaveValue("Default");
-
-    const typed = page.getByLabel("Model id");
-    await typed.fill("not valid!");
-    await expect(typed).toHaveAttribute("aria-invalid", "");
-    // A typed id is saved once it is finished, not letter by letter.
-    await typed.fill("acme/Fast-1:beta");
-    await page.clock.runFor(2000);
-    expect(sent).toHaveLength(0);
-    await typed.press("Enter");
-    await typed.blur();
-    await expect(toastText(page)).toHaveText(SAVED);
-    expect(sent[0]?.op).toEqual({
-      op: "writer.set",
-      provider: "nebius",
-      model: "acme/Fast-1:beta",
-    });
   });
 });
 

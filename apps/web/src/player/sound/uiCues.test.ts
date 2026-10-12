@@ -6,7 +6,6 @@ const control = (over: Partial<ControlInfo>): ControlInfo => ({
   role: null,
   inputType: null,
   dataSound: null,
-  internalLink: false,
   on: null,
   expanded: null,
   playsItem: false,
@@ -17,19 +16,15 @@ const control = (over: Partial<ControlInfo>): ControlInfo => ({
 
 describe("kindFor", () => {
   it("makes moving between destinations a navigate", () => {
-    expect(kindFor(control({ tag: "a", internalLink: true }))).toBe("navigate");
+    expect(kindFor(control({ tag: "a" }))).toBe("navigate");
     expect(kindFor(control({ role: "tab" }))).toBe("navigate");
     expect(kindFor(control({ playsItem: true }))).toBe("navigate");
   });
 
-  it("stays silent for links that leave the site", () => {
-    expect(kindFor(control({ tag: "a", internalLink: false }))).toBe("none");
-  });
-
-  it("makes chips, switches, checkboxes, radios, menu picks and the sort a select", () => {
+  it("makes chips, switches, checkboxes, radios, options and the sort a select", () => {
     expect(kindFor(control({ on: true }))).toBe("select");
     expect(kindFor(control({ role: "switch", on: false }))).toBe("select");
-    expect(kindFor(control({ role: "menuitem" }))).toBe("select");
+    expect(kindFor(control({ role: "option" }))).toBe("select");
     expect(kindFor(control({ tag: "input", inputType: "checkbox" }))).toBe("select");
     expect(kindFor(control({ tag: "input", inputType: "radio" }))).toBe("select");
     expect(kindFor(control({ tag: "select" }))).toBe("select");
@@ -41,16 +36,23 @@ describe("kindFor", () => {
     expect(kindFor(control({ closesDialog: true }))).toBe("close");
   });
 
-  it("leaves a plain button silent, so Save and Delete answer with their outcome", () => {
-    expect(kindFor(control({}))).toBe("none");
+  it("gives an action button, a menu action and a skip a tap, so no button is mute", () => {
+    expect(kindFor(control({}))).toBe("tap");
+    expect(kindFor(control({ role: "menuitem" }))).toBe("tap");
+    expect(kindFor(control({ tag: "input", inputType: "submit" }))).toBe("tap");
+  });
+
+  it("keeps a text field and a slider silent", () => {
     expect(kindFor(control({ tag: "input", inputType: "text" }))).toBe("none");
+    expect(kindFor(control({ tag: "input", inputType: "range" }))).toBe("none");
   });
 
   it("lets data-sound override the role, and none opt out", () => {
-    expect(kindFor(control({ tag: "a", internalLink: true, dataSound: "none" }))).toBe("none");
+    expect(kindFor(control({ tag: "a", dataSound: "none" }))).toBe("none");
+    expect(kindFor(control({ dataSound: "none" }))).toBe("none");
     expect(kindFor(control({ dataSound: "open" }))).toBe("open");
     expect(kindFor(control({ role: "switch", dataSound: "navigate" }))).toBe("navigate");
-    expect(kindFor(control({ dataSound: "loud" }))).toBe("none");
+    expect(kindFor(control({ dataSound: "loud" }))).toBe("tap");
   });
 
   it("never sounds for a disabled control", () => {

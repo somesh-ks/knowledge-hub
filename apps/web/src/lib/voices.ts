@@ -67,6 +67,22 @@ export function voiceLabel(voice: Voice): string {
 }
 
 /**
+ * What a voice's search also reads beyond its label: the accent in words and its locale, so
+ * "british" and "en-GB" both find the British voices. Empty when the locale is unknown.
+ */
+export function voiceKeywords(voice: Voice): string {
+  const code = voice.language ?? "";
+  if (code === "") return "";
+  let words = "";
+  try {
+    words = new Intl.DisplayNames(["en"], { type: "language" }).of(code) ?? "";
+  } catch {
+    // A locale code Intl cannot name: the code alone is searched.
+  }
+  return [words, code].filter((part) => part !== "").join(" ");
+}
+
+/**
  * Fills a voice select: the default first (value ""), named after `fallback` when it is known, then
  * the voices, then the saved voice when it is not among them, so a stored choice is never silently
  * swapped for another. Keeps `chosen`.
@@ -78,10 +94,11 @@ export function fillVoiceSelect(
   fallback?: Voice,
 ): void {
   const options: HTMLOptionElement[] = [];
-  const add = (value: string, text: string): void => {
+  const add = (value: string, text: string, keywords = ""): void => {
     const option = document.createElement("option");
     option.value = value;
     option.textContent = text;
+    if (keywords !== "") option.dataset.keywords = keywords;
     options.push(option);
   };
   const fallbackFlag = fallback ? voiceFlag(fallback.language) : "";
@@ -89,8 +106,10 @@ export function fillVoiceSelect(
     "",
     fallback ? `${fallbackFlag ? `${fallbackFlag} ` : ""}Default (${fallback.name})` : "Default",
   );
-  for (const voice of voices) add(voice.id, voiceLabel(voice));
+  for (const voice of voices) add(voice.id, voiceLabel(voice), voiceKeywords(voice));
   if (chosen !== "" && !voices.some((voice) => voice.id === chosen)) add(chosen, "Saved voice");
   select.replaceChildren(...options);
   select.value = chosen;
+  // A search list drawn over this select reads its options again.
+  select.dispatchEvent(new Event("picker:sync"));
 }

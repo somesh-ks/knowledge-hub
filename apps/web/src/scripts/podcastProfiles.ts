@@ -5,8 +5,13 @@
 
 import type { Voice, VoiceDefaults } from "../lib/voices";
 import type { ConfigOp } from "../types/contracts";
+import { mountSamples } from "./voiceSamples";
 
 const LIST_TIMEOUT_MS = 10_000;
+
+/** Said in a voice list that could not be filled: the voice service did not answer, or has no voices. */
+const VOICES_UNAVAILABLE =
+  "The voice list is not available right now. Default and your saved voice stay.";
 
 /** What the schedule controls hold, by field: "daily.hour", "weekly.day", "weekly.voice_b". */
 export type FieldValues = Record<string, string>;
@@ -53,122 +58,62 @@ export function scheduleOp(was: FieldValues, now: FieldValues): ConfigOp | null 
 /**
  * The voices. The voice list is loaded here, once the page is up, and fills every voice select; a
  * failed load leaves the default and the saved voice, which is all a person needs to keep what they
- * have. Both voices are always on the page: the second is for discussions, and is set whatever the
- * format is now.
+ * have, and the open list says why it is short. Both voices are always on the page: the second is
+ * for discussions, and is set whatever the format is now. The time zones' offsets are worked out
+ * again here, because the page was built at another time of year.
  */
 export function mountProfiles(root: HTMLElement, changed: () => void): void {
   let voices: Voice[] = [];
   /** The voices Default stands for, from /api/voices; null until the list is in. */
   let defaults: VoiceDefaults | null = null;
-  let audio: HTMLAudioElement | undefined;
-  /** The sample playing now, so a second press on its chip stops it. */
-  let current = "";
-  /** The sample chip whose voice is playing: it shows pause until the sample ends or stops. */
-  let playing: HTMLButtonElement | null = null;
-  const mark = (button: HTMLButtonElement | null): void => {
-    if (playing && playing !== button) playing.setAttribute("aria-pressed", "false");
-    playing = button;
-    button?.setAttribute("aria-pressed", "true");
-  };
   /** The voice a select stands for: its own, or for Default the one the engine reads with. */
   const voiceOf = (select: HTMLSelectElement): Voice | undefined => {
     const second = (select.dataset.f ?? "").endsWith("voice_b");
     const id = select.value || (second ? defaults?.voice_b : defaults?.voice) || "";
     return voices.find((voice) => voice.id === id);
   };
-  /** Samples come through the site: the page may play audio only from its own address (CSP). */
-  const sampleOf = (select: HTMLSelectElement): string | null => {
-    const voice = voiceOf(select);
-    return voice?.preview_url ? `/api/voice-sample?voice=${encodeURIComponent(voice.id)}` : null;
-  };
-  const chipOf = (select: HTMLSelectElement): HTMLButtonElement | null =>
-    select.closest(".podcast-voice")?.querySelector<HTMLButtonElement>("[data-preview]") ?? null;
-  /** The button of a voice row: pressable while its voice has a sample, dimmed and saying so when not. */
-  const syncPreview = (select: HTMLSelectElement): void => {
-    const chip = chipOf(select);
-    if (!chip) return;
-    const name = chip.dataset.sampleName ?? "voice";
-    const has = sampleOf(select) !== null;
-    chip.disabled = !has;
-    chip.setAttribute(
-      "aria-label",
-      has ? `Play a sample of the ${name}` : `No sample for the ${name}`,
-    );
-  };
-  /** Plays a sample, or stops it when `toggle` and it is the one playing. */
-  const play = (chip: HTMLButtonElement, url: string, toggle: boolean): void => {
-    // The player is built on the first press, so the page loads no audio code up front.
-    if (!audio) {
-      audio = new Audio();
-      audio.addEventListener("pause", () => mark(null));
-      audio.addEventListener("ended", () => mark(null));
-      // A sample that cannot be played dims its chip and says so, rather than failing in silence.
-      audio.addEventListener("error", () => {
-        if (playing) {
-          playing.disabled = true;
-          playing.setAttribute("aria-label", "The sample could not be played");
-        }
-        mark(null);
-      });
-    }
-    if (toggle && !audio.paused && current === url) {
-      audio.pause();
-      return;
-    }
-    current = url;
-    audio.src = url;
-    mark(chip);
-    void audio.play().catch(() => mark(null));
-  };
+  const syncSample = mountSamples(root, ".podcast-voice", voiceOf);
 
-  root.addEventListener("change", (event) => {
-    const target = event.target as HTMLElement;
-    // Choosing a voice plays it, as a phone's ringtone list does, so the list can be heard one
-    // voice at a time; the chip plays it again or stops it.
-    if (target instanceof HTMLSelectElement && target.closest(".podcast-voice")) {
-      syncPreview(target);
-      const chip = chipOf(target);
-      const url = sampleOf(target);
-      if (chip && url) play(chip, url, false);
-      else audio?.pause();
+  void import("@dispatch/core/time").then(({ zoneLabel }) => {
+    const now = new Date();
+    for (const select of root.querySelectorAll<HTMLSelectElement>(
+      'select[data-picker="time zone"]',
+    )) {
+      for (const option of select.options) {
+        const place = option.dataset.place;
+        if (place) option.textContent = zoneLabel({ value: option.value, label: place }, now);
+      }
+      select.dispatchEvent(new Event("picker:sync"));
     }
-  });
-  // A sample stops when the page is left, by a link in the app (the page swaps in place, so the
-  // audio would play on over the next one) or by closing or leaving the tab.
-  const stop = (): void => audio?.pause();
-  const leave = (): void => {
-    stop();
-    removeEventListener("pagehide", stop);
-  };
-  document.addEventListener("astro:before-swap", leave, { once: true });
-  addEventListener("pagehide", stop);
-  root.addEventListener("click", (event) => {
-    const chip = (event.target as Element).closest<HTMLButtonElement>("[data-preview]");
-    const select = chip?.closest(".podcast-voice")?.querySelector("select");
-    const url = select ? sampleOf(select) : null;
-    if (chip && url) play(chip, url, true);
   });
 
   void (async () => {
+    // What the list says when it is short: no list at all, or a list with nobody in it.
+    let note = "";
+    const selects = root.querySelectorAll<HTMLSelectElement>(".podcast-voice select");
     try {
       const lib = await import("../lib/voices");
       const response = await fetch("/api/voices", { signal: AbortSignal.timeout(LIST_TIMEOUT_MS) });
       const body: unknown = response.ok ? await response.json() : null;
       voices = lib.parseVoices(body) ?? [];
       defaults = lib.parseVoiceDefaults(body);
-      for (const select of root.querySelectorAll<HTMLSelectElement>(".podcast-voice select")) {
+      note = voices.length === 0 ? VOICES_UNAVAILABLE : "";
+      for (const select of selects) {
         const second = (select.dataset.f ?? "").endsWith("voice_b");
         const fallback = voices.find(
-          (v) => v.id === (second ? defaults?.voice_b : defaults?.voice),
+          (voice) => voice.id === (second ? defaults?.voice_b : defaults?.voice),
         );
         lib.fillVoiceSelect(select, voices, select.value, fallback);
-        syncPreview(select);
+        syncSample(select);
       }
     } catch {
       voices = [];
-      for (const select of root.querySelectorAll<HTMLSelectElement>(".podcast-voice select")) {
-        syncPreview(select);
-      }
+      note = VOICES_UNAVAILABLE;
+      for (const select of selects) syncSample(select);
+    }
+    for (const select of selects) {
+      if (note) select.dataset.note = note;
+      else delete select.dataset.note;
     }
     root.dataset.voices = "";
     changed();

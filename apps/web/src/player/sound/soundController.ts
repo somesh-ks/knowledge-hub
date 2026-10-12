@@ -12,9 +12,17 @@ let engine: SoundEngine | null = null;
 let loading: Promise<void> | null = null;
 /** When a cue was last chosen by any path, so the delegated click cue never doubles one. */
 let lastCueAt = Number.NEGATIVE_INFINITY;
+/** The name of the cue at `lastCueAt`, so a close that follows an open is told from its echo. */
+let lastCueName = "";
 let removeUnlock: (() => void) | null = null;
 /** Bumped by every teardown, so a load that was still in flight can tell it is no longer wanted. */
 let generation = 0;
+/** The wiring of the running sound, so a cue asked for before the engine exists can start the load. */
+let wired: SoundWiring | null = null;
+/** The latest interface cue asked for while the engine was still loading, played once it is ready. */
+let pending: { cue: Cue; at: number } | null = null;
+/** A cue that waited longer than this for the engine is stale: it would sound unrelated to its tap. */
+const PENDING_CUE_MS = 1_500;
 
 export interface SoundWiring {
   store: PlayerStore;
@@ -33,6 +41,14 @@ function loadEngine({ store, preferences }: SoundWiring): Promise<void> {
         isNarrationPlaying: () => store.isNarrating(),
       });
       removeUnlock = installGestureUnlock(engine);
+      // The tap that started this load came before the listeners above existed: unlock for it now
+      // (its gesture is still fresh) and play the cue it asked for, instead of dropping the first tap.
+      const waiting = pending;
+      pending = null;
+      if (waiting && performance.now() - waiting.at < PENDING_CUE_MS) {
+        engine.unlock();
+        playCue(engine, waiting.cue);
+      }
     })
     .catch(() => {
       loading = null;
@@ -43,10 +59,15 @@ function loadEngine({ store, preferences }: SoundWiring): Promise<void> {
 /** Starts the lazy load and routes player events to sounds. Returns a teardown. */
 export function startSound(wiring: SoundWiring): () => void {
   const offEvent = wiring.store.onEvent((event) => {
+    // Marked only when it sounded: a cue the engine refused (narration, Sounds off) must not
+    // hold back the delegated tick of the same press.
     const cue = cueForPlayerEvent(event);
-    if (cue) lastCueAt = performance.now();
-    playCue(engine, cue);
+    if (playCue(engine, cue)) {
+      lastCueAt = performance.now();
+      lastCueName = cue?.name ?? "";
+    }
   });
+  wired = wiring;
 
   let idleHandle: number | null = null;
   const onFirstGesture = (): void => {
@@ -78,6 +99,8 @@ export function startSound(wiring: SoundWiring): () => void {
       else clearTimeout(idleHandle);
     }
     generation += 1;
+    wired = null;
+    pending = null;
     removeUnlock?.();
     removeUnlock = null;
     engine?.dispose();
@@ -88,11 +111,27 @@ export function startSound(wiring: SoundWiring): () => void {
 
 /** For the interface: sheets, switches, Generate, scrub detents. Silent until the engine is ready. */
 export function playUiCue(cue: Cue | null): boolean {
-  if (cue) lastCueAt = performance.now();
-  return playCue(engine, cue);
+  if (!cue) return false;
+  if (!engine && wired) {
+    // Not loaded yet (the first tap of a page): kept, and the load started if it has not been.
+    pending = { cue, at: performance.now() };
+    lastCueAt = pending.at;
+    lastCueName = cue.name;
+    void loadEngine(wired);
+    return false;
+  }
+  const played = playCue(engine, cue);
+  if (played) {
+    lastCueAt = performance.now();
+    lastCueName = cue.name;
+  }
+  return played;
 }
 
-/** True when some other path chose a cue at or after `since` (a `performance.now()` stamp). */
-export function cuePlayedSince(since: number): boolean {
-  return lastCueAt >= since;
+/**
+ * True when some other path chose a cue at or after `since` (a `performance.now()` stamp). A cue
+ * named `except` does not count: a menu that closes right after it opened is a new cue, not an echo.
+ */
+export function cuePlayedSince(since: number, except?: string): boolean {
+  return lastCueAt >= since && lastCueName !== except;
 }

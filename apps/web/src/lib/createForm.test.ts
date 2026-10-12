@@ -18,17 +18,13 @@ describe("submitLabel", () => {
 });
 
 describe("moreOptionsSummary", () => {
-  it("names the audience, the window and the tone, each with its noun, with the one separator", () => {
-    expect(moreOptionsSummary("Somesh", "7 days", "Neutral")).toBe(
-      "For Somesh · Last 7 days · Neutral tone",
-    );
-    expect(moreOptionsSummary("General", "2 days", "Dry")).toBe(
-      "For General · Last 2 days · Dry tone",
-    );
+  it("names the window and the tone, each with its noun, with the one separator", () => {
+    expect(moreOptionsSummary("7 days", "Neutral")).toBe("Last 7 days · Neutral tone");
+    expect(moreOptionsSummary("2 days", "Energetic")).toBe("Last 2 days · Energetic tone");
   });
 
   it("leaves a placeholder for the page script in the template, and nothing else", () => {
-    expect(MORE_OPTIONS_TEMPLATE.match(/\{\w+\}/g)).toEqual(["{audience}", "{window}", "{tone}"]);
+    expect(MORE_OPTIONS_TEMPLATE.match(/\{\w+\}/g)).toEqual(["{window}", "{tone}"]);
   });
 });
 

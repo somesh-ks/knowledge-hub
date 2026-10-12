@@ -9,7 +9,7 @@ const front = [
   "  length_minutes: 5",
   "  format: discussion",
   "  window_days: 7",
-  "  tone: dry",
+  "  tone: energetic",
   "generated_at: 2026-10-07T17:30:00.000Z",
   "listen_minutes: 5",
   "format: discussion",
@@ -62,7 +62,12 @@ describe("parseEpisodeFile", () => {
       listen_minutes: 5,
       format: "discussion",
       char_count: 24,
-      request: { topic_ids: ["ai", "research"], length_minutes: 5, window_days: 7, tone: "dry" },
+      request: {
+        topic_ids: ["ai", "research"],
+        length_minutes: 5,
+        window_days: 7,
+        tone: "energetic",
+      },
       cover: { palette: "ultramarine", template: "orbit", seed: 7 },
     });
     expect(episode.turns.map((turn) => [turn.idx, turn.speaker, turn.item_id])).toEqual([
@@ -120,8 +125,9 @@ describe("parseEpisodeFile", () => {
 
   it("keeps the hosts' names a discussion was written with, and only real names", () => {
     const named = (names: string) =>
-      parseEpisodeFile(file(front.replace("  tone: dry", `  tone: dry\n  host_names: ${names}`)))
-        .request.host_names;
+      parseEpisodeFile(
+        file(front.replace("  tone: energetic", `  tone: energetic\n  host_names: ${names}`)),
+      ).request.host_names;
     expect(parseEpisodeFile(file()).request).not.toHaveProperty("host_names");
     expect(named("{ a: Zoë, b: O’Neil }")).toEqual({ a: "Zoë", b: "O’Neil" });
     for (const bad of ["{ a: Nora }", "{ a: Nora Jones, b: Owen }", "{ a: 4, b: Owen }", "Nora"]) {

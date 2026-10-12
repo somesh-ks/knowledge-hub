@@ -18,7 +18,13 @@ export function installUiSound(): void {
       return null;
     }
   };
-  const route = (event: Event) => void load().then((module) => module?.onUiEvent(event));
-  addEventListener("pointerdown", () => void load(), { once: true, passive: true });
-  for (const type of ["click", "change", "dispatch:sound"]) document.addEventListener(type, route);
+  // Heard in the capture phase, so a handler that stops the click (the tab bar's scroll to top)
+  // cannot hide it, and one task later, so the page's own handlers have settled the control first.
+  const route = (event: Event) =>
+    setTimeout(() => void load().then((module) => module?.onUiEvent(event)));
+  // Any first gesture, a key or a focus included, starts the fetch, so the first press is heard.
+  for (const type of ["pointerdown", "keydown", "focusin"])
+    addEventListener(type, () => void load(), { once: true, passive: true });
+  for (const type of ["click", "change", "dispatch:sound"])
+    document.addEventListener(type, route, true);
 }

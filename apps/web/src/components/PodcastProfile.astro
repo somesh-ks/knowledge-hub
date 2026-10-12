@@ -1,9 +1,10 @@
 ---
-import { SUPPORTED_TIMEZONES } from "@dispatch/core";
+import { SUPPORTED_TIMEZONES, zoneLabel } from "@dispatch/core";
 import { FORMATS, LENGTHS } from "../lib/createForm";
 import { CADENCES, hourLabel, WEEKDAYS } from "../lib/schedule";
 import { weeklyNote } from "../lib/settingsSummary";
 import Icon from "./Icon.astro";
+import "../styles/picker.css";
 
 interface Props {
   /** The profile: its fields are named and identified by it, as the engine's schedule file names them. */
@@ -24,10 +25,11 @@ interface Props {
     voiceIdB: string | null;
   };
   /**
-   * The topics a person can put in or out of this podcast: Design, AI and Technology, and their own.
-   * `ids` are the topics each one stands for, which is what the schedule's skip list holds.
+   * Every topic. A person can put Design, AI and Technology, and their own, in or out of this
+   * podcast; `ids` are the topics each one stands for, which is what the schedule's skip list holds.
+   * A `locked` one (a general news topic) is shown but is in no scheduled podcast yet.
    */
-  topics?: readonly { id: string; name: string; ids: readonly string[] }[];
+  topics?: readonly { id: string; name: string; ids: readonly string[]; locked?: boolean }[];
   /** Daily only: the weekly podcast, whose day (0 = Sunday) has no daily episode while it is on. */
   weekly?: { enabled: boolean; day: number };
 }
@@ -38,9 +40,19 @@ const label = id === "daily" ? "Daily" : "Weekly";
 const sundayNote = weekly ? weeklyNote(weekly) : null;
 
 const hours = Array.from({ length: 24 }, (_, value) => value);
+// The offset a zone has today. The page is built once, so the script works it out again in the
+// browser (scripts/picker.ts reads the options as they are), and a change of clocks since the build
+// shows at once.
+const builtAt = new Date();
+const zones = SUPPORTED_TIMEZONES.map((zone) => ({
+  value: zone.value,
+  label: zoneLabel(zone, builtAt),
+}));
 // A topic is in the podcast unless every topic it stands for is on the skip list.
 const inScope = (ids: readonly string[]): boolean =>
   !ids.every((topic) => values.skipTopics.includes(topic));
+const choosable = topics.filter((topic) => !topic.locked);
+const locked = topics.filter((topic) => topic.locked);
 
 // Format and the Discussion voice are the profile's own and are saved with it. A briefing is still
 // narrated from its digest in one voice (scheduledVoice in server/narrate.ts), so they take effect
@@ -79,9 +91,22 @@ const VOICES = [
       <div class="settings-row">
         <label class="settings-label" for={`${id}-timezone`}>Time zone</label>
         <span class="manage-select value-select">
-          <select class="manage-input" id={`${id}-timezone`} data-f={`${id}.timezone`} autocomplete="off">
-            {SUPPORTED_TIMEZONES.map((zone) => (
-              <option value={zone.value} selected={zone.value === values.timezone}>{zone.label}</option>
+          <select
+            class="manage-input"
+            id={`${id}-timezone`}
+            data-f={`${id}.timezone`}
+            data-picker="time zone"
+            autocomplete="off"
+          >
+            {zones.map((zone, index) => (
+              <option
+                value={zone.value}
+                data-place={SUPPORTED_TIMEZONES[index]?.label}
+                data-keywords={zone.value.replaceAll("_", " ")}
+                selected={zone.value === values.timezone}
+              >
+                {zone.label}
+              </option>
             ))}
           </select>
           <Icon name="chevronDown" />
@@ -156,19 +181,27 @@ const VOICES = [
     {
       topics.length > 0 ? (
         <fieldset class="filter-chips podcast-topics" aria-labelledby={`${id}-topics-head`} data-scope-chips>
-          {topics.map((topic) => (
-            <label class="filter-chip">
-              <input
-                type="checkbox"
-                data-scope={id}
-                data-scope-ids={topic.ids.join(" ")}
-                checked={inScope(topic.ids)}
-                autocomplete="off"
-              />
-              <Icon name="check" class="filter-chip-check" />
-              <span>{topic.name}</span>
-            </label>
-          ))}
+          {topics.map((topic) =>
+            topic.locked ? (
+              <label class="filter-chip" data-locked>
+                <input type="checkbox" disabled autocomplete="off" aria-describedby={`${id}-locked-note`} />
+                <Icon name="check" class="filter-chip-check" />
+                <span>{topic.name}</span>
+              </label>
+            ) : (
+              <label class="filter-chip">
+                <input
+                  type="checkbox"
+                  data-scope={id}
+                  data-scope-ids={topic.ids.join(" ")}
+                  checked={inScope(topic.ids)}
+                  autocomplete="off"
+                />
+                <Icon name="check" class="filter-chip-check" />
+                <span>{topic.name}</span>
+              </label>
+            ),
+          )}
         </fieldset>
       ) : (
         <p class="manage-quiet">No topics yet.</p>
@@ -176,8 +209,15 @@ const VOICES = [
     }
     {
       topics.length > 0 && (
-        <p class="settings-hint podcast-hint" data-no-topics hidden={topics.some((topic) => inScope(topic.ids))}>
+        <p class="settings-hint podcast-hint" data-no-topics hidden={choosable.length === 0 || choosable.some((topic) => inScope(topic.ids))}>
           No topics chosen, so {label} episodes have nothing to cover.
+        </p>
+      )
+    }
+    {
+      locked.length > 0 && (
+        <p class="settings-hint podcast-hint" id={`${id}-locked-note`}>
+          {locked.map((topic) => topic.name).join(", ")} are for episodes you make, not for {label} yet.
         </p>
       )
     }
@@ -249,6 +289,7 @@ const VOICES = [
                   id={`${id}-${voice.key}`}
                   data-f={`${id}.${voice.key}`}
                   data-saved={voice.saved ?? ""}
+                  data-picker="voice"
                   autocomplete="off"
                 >
                   <option value="">Default</option>

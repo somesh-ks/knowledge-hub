@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import { hostOf, needsVoiceList, readHostNames, readVoiceIds, transcriptNames } from "../lib/hosts";
 import type { SegmentWordMark } from "../lib/segmentMarks";
+import type { PlayerTurn } from "../types/contracts";
 import { loadVoiceCatalogue, type VoiceCatalogue } from "./core/hostVoices";
 import { getPlayerStore } from "./core/playerRuntime";
 import {
@@ -31,7 +32,14 @@ function oneColumnFollows(root: HTMLElement | null): boolean {
   return root.getBoundingClientRect().top < window.innerHeight / 2;
 }
 
-export default function ScriptView({ titleHidden = false }: { titleHidden?: boolean }) {
+export default function ScriptView({
+  turns,
+  titleHidden = false,
+}: {
+  /** The turns to read: an episode's script, or a briefing's stories (core/storyTurns.ts). */
+  turns: readonly PlayerTurn[];
+  titleHidden?: boolean;
+}) {
   const state = usePlayerState();
   // A render each second, and after a seek while paused. The turn itself is read from the playhead,
   // not from the floored second, which kept the last turn marked for most of a second after a jump
@@ -39,7 +47,6 @@ export default function ScriptView({ titleHidden = false }: { titleHidden?: bool
   usePlayerSecond();
   const [, setTurnMoved] = useState(0);
   const spokenTurn = useRef(-1);
-  const turns = state.track?.digest.turns ?? [];
   const current =
     state.hasStarted && !state.error ? currentTurnIndex(turns, getPlayerStore().getTime()) : -1;
   // After a failure nothing is being read: no turn is current and no word is lit.
@@ -274,7 +281,11 @@ export default function ScriptView({ titleHidden = false }: { titleHidden?: bool
                     getPlayerStore().seekTo(Math.round(at ?? turn.start_ms));
                   }}
                 >
-                  {named ? <span className="script-speaker">{host.name}</span> : null}
+                  {turn.title ? (
+                    <span className="script-speaker script-story">{turn.title}</span>
+                  ) : named ? (
+                    <span className="script-speaker">{host.name}</span>
+                  ) : null}
                   <span className="script-text">
                     {words[index]?.list.map((word, at) => (
                       // biome-ignore lint/suspicious/noArrayIndexKey: a turn's words never reorder

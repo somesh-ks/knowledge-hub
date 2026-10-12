@@ -585,7 +585,8 @@ export async function flush(
   if (failure) {
     show(failure, "error");
     // The interface sound for an outcome the screen already states (see scripts/uiSound.ts). A save
-    // that went through makes none: it happens on its own after every change.
+    // that went through makes none: it happens on its own after every change, and the change itself
+    // already made its tick.
     globalThis.document?.dispatchEvent(new CustomEvent("dispatch:sound", { detail: "failure" }));
   } else show(timeRefused ? TIME_REFUSED : SAVED, "done");
 }

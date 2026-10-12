@@ -3,7 +3,7 @@
  * applies, and the key that moves the highlight. No DOM, so it is unit tested and the page script
  * stays small.
  */
-import { CLAUDE_MODELS, contextLabel, modelParts, NEBIUS_TOP, nebiusName } from "./modelId";
+import { CLAUDE_MODELS, contextLabel, NEBIUS_TOP, nebiusName } from "./modelId";
 import { topModels } from "./modelRank";
 
 export interface ModelOption {
@@ -61,11 +61,10 @@ export function nebiusOptions(
   const top = topModels(live, TOP_IDS);
   const make = (id: string, group: ModelOption["group"]): ModelOption => {
     const entry = listed.get(id);
-    // The line under the name: the vendor, then the context window, or a flag when the live list
-    // does not have the model. Without a live list there is nothing to say past the vendor.
-    const detail =
+    // The line under the name: the context window, or a flag when the live list does not have the
+    // model. A model is known by its name; its id and the vendor's prefix in it are never shown.
+    const hint =
       live === null ? "" : entry ? contextLabel(entry.context_length) : "Not in the live list";
-    const hint = [modelParts(id).vendor, detail].filter((part) => part !== "").join(", ");
     return { id, label: nebiusName(id), hint, group };
   };
   const options: ModelOption[] = [AUTOMATIC];

@@ -108,7 +108,7 @@ selection-schema.json, then validates the agent-selection.json a Claude Code ses
 
 The request is JSON: { topic_ids: string[1..50], length_minutes: 3|5|10|15,
 format: "readout"|"discussion", window_days: 2|7|30,
-tone: "neutral"|"energetic"|"dry", voice_id?: string|null, voice_id_b?: string|null,
+tone: "neutral"|"energetic", voice_id?: string|null, voice_id_b?: string|null,
 host_names?: { a: string, b: string }, title?: string }. voice_id is the lead host's Speechify
 voice and voice_id_b the second host's (discussion only); null or absent means the default.
 host_names are the two hosts' names in a discussion, which the site picks from the voices'

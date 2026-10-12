@@ -20,6 +20,7 @@ import Icon from "./Icon.astro";
 // build links them before the layout's own stylesheets, so their rules never rely on coming last:
 // where one adjusts a shared rule, it does so with a more specific selector.
 import "../styles/settings.css";
+import "../styles/picker.css";
 import "../styles/create.css";
 
 const { sections, topics: allTopics } = await loadManage();
@@ -52,10 +53,8 @@ const VOICES = [
 function labelOf<T>(list: ReadonlyArray<{ value: T; label: string }>, value: T): string {
   return list.find((item) => item.value === value)?.label ?? "";
 }
-const audiencePhrase = AUDIENCES.find((item) => item.value === DEFAULTS.audience)?.phrase ?? "";
 // The More options line before the script runs: the same words the script writes (createPage.ts).
 const moreSummary = moreOptionsSummary(
-  audiencePhrase,
   labelOf(WINDOWS, DEFAULTS.window),
   labelOf(TONES, DEFAULTS.tone),
 );
@@ -88,9 +87,40 @@ const COPY = {
   data-open-passphrase={PASSPHRASE_REQUIRED ? undefined : OPEN_PASSPHRASE}
 >
   <form data-create-form novalidate>
-    {/* What the episode is about comes first and is the one question without an answer. Length and
-         format follow; everything else has a default and waits under More options, whose line says
-         what those defaults are. */}
+    {/* Who the script is written for comes first and needs no heading: two words say it. The group
+         is named for assistive technology. Switching it brings its suggested topics only while the
+         topics are still the last suggestion; the chips may be out of view, so the line under it says
+         what changed and offers Undo. Picks made by hand stay, and the line says so and offers the
+         swap. The status region is always there, so a line that appears in it is announced. */}
+    <section class="create-group create-group-audience" aria-label="Written for">
+      <fieldset class="settings-choice create-choice" role="radiogroup" aria-label="Written for">
+        {
+          AUDIENCES.map((audience) => (
+            <label class="settings-segment">
+              <input type="radio" name="audience" value={audience.value} data-label={audience.phrase} checked={audience.value === DEFAULTS.audience} />
+              <span>{audience.label}</span>
+            </label>
+          ))
+        }
+      </fieldset>
+      <div role="status" data-preset-status>
+        <p
+          class="create-hint create-preset-note"
+          data-preset-note
+          data-kept="Your topic picks are kept"
+          data-applied="Topics set for {audience}"
+          hidden
+        >
+          <span data-preset-text>Your topic picks are kept</span>
+          <button class="btn create-inline-btn" type="button" data-preset-apply>Use suggested topics</button>
+          <button class="btn create-inline-btn" type="button" data-preset-undo hidden>Undo</button>
+        </p>
+      </div>
+    </section>
+
+    {/* What the episode is about is the one question without an answer. Length, format and the
+         voices follow; the rest has a default and waits under More options, whose line says what
+         those defaults are. */}
     <section class="create-group create-group-primary" aria-labelledby="create-topics-label">
       <h2 class="section-head" id="create-topics-label">Topics</h2>
       <fieldset class="filter-chips" aria-labelledby="create-topics-label">
@@ -154,6 +184,54 @@ const COPY = {
       ></p>
     </section>
 
+    {/* A readout has one voice; a discussion has two hosts, each with a voice. The options come from
+         /api/voices when the form is first used, so the markup carries only the default and the
+         saved voice. Each voice can be heard before the episode is made. */}
+    <section class="create-group" aria-labelledby="create-voice-label">
+      <h2 class="section-head" id="create-voice-label" data-voice-heading data-one="Voice" data-two="Voices">{startFormat === "discussion" ? "Voices" : "Voice"}</h2>
+      <div class="create-voices">
+        {
+          VOICES.map((voice, index) => (
+            <div class="create-voice" data-voice={voice.name} hidden={index === 1 && startFormat !== "discussion"}>
+              <label class="create-voice-name" for={`create-${voice.name}`} data-voice-caption data-host={voice.index} data-unnamed={voice.caption} data-named="{name}'s voice" hidden={startFormat !== "discussion"}>{voice.caption}</label>
+              <div class="create-voice-field">
+                <span class="create-select">
+                  <select
+                    id={`create-${voice.name}`}
+                    name={voice.name}
+                    data-saved={voice.saved ?? ""}
+                    data-one={voice.label}
+                    data-two={voice.hostLabel}
+                    data-two-named="{name}'s voice"
+                    data-picker="voice"
+                    aria-label={startFormat === "discussion" ? voice.hostLabel : voice.label}
+                    autocomplete="off"
+                  >
+                    <option value="">Default</option>
+                    {voice.saved && <option value={voice.saved} selected>Saved voice</option>}
+                  </select>
+                  <Icon name="chevronDown" />
+                </span>
+                {/* As on Daily and Weekly: dimmed while the voice has no sample, never absent. */}
+                <button
+                  class="podcast-sample"
+                  type="button"
+                  data-preview
+                  data-sample-name={voice.index === "b" ? "second host's voice" : "voice"}
+                  disabled
+                  aria-pressed="false"
+                  aria-label={`Play a sample of the ${voice.index === "b" ? "second host's voice" : "voice"}`}
+                >
+                  <Icon name="play" class="sample-play" />
+                  <Icon name="pause" class="sample-pause" />
+                </button>
+              </div>
+            </div>
+          ))
+        }
+      </div>
+    </section>
+
     {/* Everything with a sensible default, in place: one row that names the current choices and
          opens to show them. On a wide /create page it stays open beside the main questions. */}
     <details class="create-more" data-create-more>
@@ -165,69 +243,6 @@ const COPY = {
         <Icon name="chevronDown" class="create-more-chevron" />
       </summary>
       <div class="create-more-body">
-        <section class="create-group" aria-labelledby="create-audience-label">
-          <h2 class="section-head" id="create-audience-label">Written for</h2>
-          <fieldset class="settings-choice create-choice" role="radiogroup" aria-labelledby="create-audience-label">
-            {
-              AUDIENCES.map((audience) => (
-                <label class="settings-segment">
-                  <input type="radio" name="audience" value={audience.value} data-label={audience.phrase} checked={audience.value === DEFAULTS.audience} />
-                  <span>{audience.label}</span>
-                </label>
-              ))
-            }
-          </fieldset>
-          {/* Switching the audience brings its suggested topics only while the topics are still the
-               last suggestion; the chips may be out of view, so this line says what changed and
-               offers Undo. Picks made by hand stay, and the line says so and offers the swap. The
-               status region is always there, so a line that appears in it is announced. */}
-          <div role="status" data-preset-status>
-            <p
-              class="create-hint create-preset-note"
-              data-preset-note
-              data-kept="Your topic picks are kept"
-              data-applied="Topics set for {audience}"
-              hidden
-            >
-              <span data-preset-text>Your topic picks are kept</span>
-              <button class="btn create-inline-btn" type="button" data-preset-apply>Use suggested topics</button>
-              <button class="btn create-inline-btn" type="button" data-preset-undo hidden>Undo</button>
-            </p>
-          </div>
-        </section>
-
-        {/* A readout has one voice; a discussion has two hosts, each with a voice. The options come
-             from /api/voices when the form is first used, so the markup carries only the default and
-             the saved voice. */}
-        <section class="create-group" aria-labelledby="create-voice-label">
-          <h2 class="section-head" id="create-voice-label" data-voice-heading data-one="Voice" data-two="Voices">{startFormat === "discussion" ? "Voices" : "Voice"}</h2>
-          <div class="create-voices">
-            {
-              VOICES.map((voice, index) => (
-                <div class="create-voice" data-voice={voice.name} hidden={index === 1 && startFormat !== "discussion"}>
-                  <label class="create-voice-name" for={`create-${voice.name}`} data-voice-caption data-host={voice.index} data-unnamed={voice.caption} data-named="{name}'s voice" hidden={startFormat !== "discussion"}>{voice.caption}</label>
-                  <span class="create-select">
-                    <select
-                      id={`create-${voice.name}`}
-                      name={voice.name}
-                      data-saved={voice.saved ?? ""}
-                      data-one={voice.label}
-                      data-two={voice.hostLabel}
-                      data-two-named="{name}'s voice"
-                      aria-label={startFormat === "discussion" ? voice.hostLabel : voice.label}
-                      autocomplete="off"
-                    >
-                      <option value="">Default</option>
-                      {voice.saved && <option value={voice.saved} selected>Saved voice</option>}
-                    </select>
-                    <Icon name="chevronDown" />
-                  </span>
-                </div>
-              ))
-            }
-          </div>
-        </section>
-
         <section class="create-group" aria-labelledby="create-window-label">
           <h2 class="section-head" id="create-window-label">Look back</h2>
           <fieldset class="settings-choice create-choice" role="radiogroup" aria-labelledby="create-window-label">

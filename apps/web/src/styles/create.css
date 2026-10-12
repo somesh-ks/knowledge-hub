@@ -24,7 +24,13 @@
 
 /* No lines between groups: a group ends with more air than its heading has above its controls. */
 .create-group {
-  padding-block-end: var(--space-4);
+  padding-block-end: var(--space-6);
+}
+
+/* Who it is written for has no heading: its two words are the question, so it sits as near the
+   panel's title as a first heading would, and the next group's heading gives the air below it. */
+.create-group-audience {
+  padding-block: var(--space-2) var(--space-2);
 }
 
 /* Inside the form a heading is a field label, not a page heading: body size, medium weight, the
@@ -425,16 +431,22 @@
 
 /* ------------------------------------------------------------------ voices */
 
-/* One select for a readout; a discussion adds the second host's beside it from 40rem. */
+/* One voice for a readout; a discussion adds the second host's under it. Each is a select and the
+   round button that plays its sample, so a voice can be heard before the episode is made. */
 .create-voices {
   display: grid;
-  gap: var(--space-3);
+  gap: var(--space-4);
 }
 
-@media (min-width: 40rem) {
-  .create-voices:has(> [data-voice="voice_b"]:not([hidden])) {
-    grid-template-columns: repeat(2, minmax(0, 1fr));
-  }
+.create-voice-field {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+}
+
+.create-voice-field > .create-select {
+  flex: 1 1 auto;
+  min-width: 0;
 }
 
 .create-voice {
@@ -530,9 +542,9 @@
   .create-page [data-create-form] {
     display: grid;
     grid-template-columns: minmax(0, 1fr) 20rem;
-    /* Four rows for the main questions and the button, and a last one that takes up the rest of the
+    /* Six rows for the main questions and the button, and a last one that takes up the rest of the
        open options' height, so a tall column of options never spreads the main questions apart. */
-    grid-template-rows: repeat(4, auto) 1fr;
+    grid-template-rows: repeat(6, auto) 1fr;
     column-gap: var(--space-12);
     align-items: start;
   }
@@ -585,9 +597,5 @@
   .create-page .create-more-body .create-group .section-head {
     padding-block: var(--space-4) var(--space-3);
     font-size: var(--font-size-body);
-  }
-
-  .create-page .create-voices:has(> [data-voice="voice_b"]:not([hidden])) {
-    grid-template-columns: minmax(0, 1fr);
   }
 }

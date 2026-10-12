@@ -30,7 +30,6 @@ export const WINDOWS: ReadonlyArray<{ value: PodcastRequest["window_days"]; labe
 export const TONES: ReadonlyArray<{ value: PodcastRequest["tone"]; label: string }> = [
   { value: "neutral", label: "Neutral" },
   { value: "energetic", label: "Energetic" },
-  { value: "dry", label: "Dry" },
 ];
 
 /**
@@ -60,16 +59,14 @@ export function submitLabel(minutes: number): string {
 }
 
 /**
- * The line under More options, naming the choices it holds, each with its noun: "For Somesh · Last 7
- * days · Neutral tone". The markup carries the template, so the page script fills the same words in
- * as choices change. The audience goes in by its phrase, the look back and the tone by their labels.
+ * The line under More options, naming the choices it holds, each with its noun: "Last 7 days ·
+ * Neutral tone". The markup carries the template, so the page script fills the same words in as
+ * choices change. The look back and the tone go in by their labels.
  */
-export const MORE_OPTIONS_TEMPLATE = "For {audience} · Last {window} · {tone} tone";
+export const MORE_OPTIONS_TEMPLATE = "Last {window} · {tone} tone";
 
-export function moreOptionsSummary(audience: string, window: string, tone: string): string {
-  return MORE_OPTIONS_TEMPLATE.replace("{audience}", audience)
-    .replace("{window}", window)
-    .replace("{tone}", tone);
+export function moreOptionsSummary(window: string, tone: string): string {
+  return MORE_OPTIONS_TEMPLATE.replace("{window}", window).replace("{tone}", tone);
 }
 
 export interface TopicOption {

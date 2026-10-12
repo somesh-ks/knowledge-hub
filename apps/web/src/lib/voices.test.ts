@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { parseVoiceDefaults, parseVoices, voiceFlag, voiceLabel } from "./voices";
+import { parseVoiceDefaults, parseVoices, voiceFlag, voiceKeywords, voiceLabel } from "./voices";
 
 describe("parseVoices", () => {
   it("reads the API's shape and skips rows without an id or a name", () => {
@@ -40,6 +40,15 @@ describe("voiceLabel", () => {
     const base = { id: "a", name: "Ada", gender: "Female", preview_url: null };
     expect(voiceLabel({ ...base, language: "en-GB" })).toBe("\u{1F1EC}\u{1F1E7} Ada, female");
     expect(voiceLabel({ ...base, language: "en" })).toBe("Ada, female");
+  });
+});
+
+describe("voiceKeywords", () => {
+  // The picker's search must find a voice by its accent as a person says it, not by its code.
+  it("names the accent in words beside its locale, and nothing for an unknown one", () => {
+    const voice = { id: "a", name: "Archie", gender: "male", language: "en-GB", preview_url: null };
+    expect(voiceKeywords(voice)).toBe("British English en-GB");
+    expect(voiceKeywords({ ...voice, language: null })).toBe("");
   });
 });
 

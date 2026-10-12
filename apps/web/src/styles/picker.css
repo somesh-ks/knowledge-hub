@@ -1,0 +1,374 @@
+/*
+ * A select with a search box (scripts/picker.ts): a button that wears the select's looks in its
+ * place, and a list under a search field. The select stays in the page, hidden, and holds the value.
+ * Also the round button that plays a voice's sample, which the voice rows of Settings and the Create
+ * form share. Imported by components/PodcastProfile.astro and CreateForm.astro.
+ */
+
+/* The select is still in the page for the form and for a script that reads it, but it is not drawn
+   and cannot be reached: the button is the control. */
+.picker-native {
+  display: none;
+}
+
+.picker-trigger {
+  display: flex;
+  align-items: center;
+  min-inline-size: 0;
+  block-size: var(--field-height);
+  border: var(--stroke-hairline) solid transparent;
+  background: none;
+  color: var(--color-on-surface);
+  font: inherit;
+  font-size: var(--font-size-body);
+  text-align: start;
+  cursor: pointer;
+  transition: background-color var(--duration-hover) var(--ease-hover);
+}
+
+.picker-value {
+  min-inline-size: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+/* The chevron is the holder's own, drawn over the button's end and turned while the list is open. */
+.picker > .icon {
+  transition: rotate var(--duration-enter) var(--ease-out);
+}
+
+.picker:has(> .picker-trigger[aria-expanded="true"]) > .icon {
+  rotate: 180deg;
+}
+
+/* In a settings row the button is the row's value, as the select it replaces: its words and a
+   chevron, no box, at the end of the row, with a fill under a pointer and while open. */
+.settings-row .value-select > .picker-trigger {
+  inline-size: auto;
+  max-inline-size: 100%;
+  justify-content: flex-end;
+  padding-inline: var(--space-3) calc(var(--space-2) + var(--size-icon) + var(--space-1));
+  border-radius: var(--button-radius);
+  font-weight: var(--font-weight-medium);
+  text-align: end;
+}
+
+@media (hover: hover) and (pointer: fine) {
+  .settings-row .value-select > .picker-trigger:hover {
+    background: color-mix(in oklch, var(--color-on-surface) var(--state-hover), transparent);
+  }
+}
+
+.settings-row .value-select > .picker-trigger:active,
+.settings-row .value-select > .picker-trigger[aria-expanded="true"] {
+  background: color-mix(in oklch, var(--color-on-surface) var(--state-press), transparent);
+}
+
+/* In the Create form it is a tonal field, as the select it replaces: the container tone, the row's
+   corners, the text at the body size so iOS never zooms into it. */
+.create-select > .picker-trigger {
+  inline-size: 100%;
+  min-block-size: var(--field-height);
+  padding-inline: var(--field-padding) var(--space-12);
+  border-radius: var(--row-radius);
+  background: var(--color-surface-container);
+}
+
+@media (hover: hover) and (pointer: fine) {
+  .create-select > .picker-trigger:hover {
+    background: color-mix(
+      in oklch,
+      var(--color-surface-container),
+      var(--color-on-surface) var(--state-hover)
+    );
+  }
+}
+
+.create-select > .picker-trigger:active,
+.create-select > .picker-trigger[aria-expanded="true"] {
+  background: color-mix(
+    in oklch,
+    var(--color-surface-container),
+    var(--color-on-surface) var(--state-press)
+  );
+}
+
+@media (forced-colors: active) {
+  .create-select > .picker-trigger {
+    border-color: CanvasText;
+  }
+
+  /* The value in a settings row and the search pill are drawn by their fills, which forced colours
+     drops: each takes an edge, so the control and its extent are still seen. */
+  .settings-row .value-select > .picker-trigger {
+    border-color: ButtonBorder;
+  }
+
+  .picker-search {
+    border: var(--stroke-hairline) solid ButtonBorder;
+  }
+}
+
+/* ------------------------------------------------------------------ the list */
+
+/* A popover, so it sits over the page and over a dialog, closes on Escape or a press outside, and is
+   never clipped. The script sets its place; it shows once placed. Its surface and shadow are the
+   drawn lists' (primitives.css, the model list). */
+.picker-pop {
+  --color-focus-gap: var(--color-surface-overlay);
+  position: fixed;
+  inset: auto;
+  display: flex;
+  flex-direction: column;
+  margin: 0;
+  padding: 0;
+  overflow: hidden;
+  border: var(--stroke-hairline) solid var(--color-border-hairline);
+  border-radius: var(--radius-md);
+  background: var(--color-surface-overlay);
+  box-shadow: var(--shadow-popover);
+  color: var(--color-on-surface);
+  opacity: 0;
+  scale: 0.97;
+  transform-origin: top center;
+  transition:
+    opacity var(--duration-exit) var(--ease-out),
+    scale var(--duration-exit) var(--ease-out),
+    overlay var(--duration-exit) allow-discrete,
+    display var(--duration-exit) allow-discrete;
+}
+
+.picker-pop:not(:popover-open) {
+  display: none;
+}
+
+.picker-pop[data-side="above"] {
+  transform-origin: bottom center;
+}
+
+.picker-pop:popover-open {
+  opacity: 1;
+  scale: 1;
+  transition-duration: var(--duration-enter);
+}
+
+.picker-pop:popover-open:not([data-placed]) {
+  visibility: hidden;
+}
+
+@starting-style {
+  .picker-pop:popover-open {
+    opacity: 0;
+    scale: 0.97;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .picker-pop {
+    scale: 1;
+    transition-property: opacity, display;
+  }
+}
+
+/* The search is a pill with its glyph inside, as the Library's is, on the list's own surface. */
+.picker-search {
+  display: flex;
+  flex: none;
+  align-items: center;
+  gap: var(--space-3);
+  margin: var(--space-2);
+  padding-inline: var(--space-4);
+  block-size: var(--field-height);
+  border-radius: var(--radius-round);
+  background: var(--color-surface-container);
+  color: var(--color-on-surface-muted);
+  cursor: text;
+}
+
+.picker-search:focus-within {
+  background: color-mix(
+    in oklch,
+    var(--color-surface-container),
+    var(--color-on-surface) var(--state-hover)
+  );
+}
+
+:root[data-input="keyboard"] .picker-search:focus-within {
+  outline: var(--stroke-ring) solid var(--color-focus-ring);
+  outline-offset: var(--stroke-ring-gap);
+}
+
+.picker-glass {
+  flex: none;
+  inline-size: var(--size-icon);
+  block-size: var(--size-icon);
+  background: currentColor;
+  mask:
+    url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 256 256'%3E%3Cpath d='M229.66,218.34l-50.07-50.06a88.11,88.11,0,1,0-11.31,11.31l50.06,50.07a8,8,0,0,0,11.32-11.32ZM40,112a72,72,0,1,1,72,72A72.08,72.08,0,0,1,40,112Z'/%3E%3C/svg%3E")
+    center / contain no-repeat;
+}
+
+.picker-input {
+  flex: 1;
+  min-inline-size: 0;
+  block-size: 100%;
+  padding: 0;
+  border: 0;
+  background: none;
+  color: var(--color-on-surface);
+  font: inherit;
+  font-size: var(--font-size-body);
+  outline: none;
+  box-shadow: none;
+}
+
+.picker-input::placeholder {
+  color: var(--color-on-surface-muted);
+  opacity: 1;
+}
+
+.picker-input::-webkit-search-cancel-button {
+  appearance: none;
+  display: none;
+}
+
+/* Why the list is short: the voices could not be loaded. */
+.picker-note {
+  flex: none;
+  margin: 0;
+  padding: var(--space-1) var(--space-4) var(--space-2);
+  color: var(--color-on-surface-muted);
+  font-size: var(--font-size-label);
+  line-height: var(--font-leading-caption);
+}
+
+.picker-list {
+  display: grid;
+  flex: 1 1 auto;
+  align-content: start;
+  gap: var(--space-1);
+  min-block-size: 0;
+  padding: var(--space-1) var(--space-2) var(--space-2);
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  scrollbar-width: thin;
+}
+
+.picker-option {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) var(--size-icon);
+  align-items: center;
+  column-gap: var(--space-3);
+  min-block-size: var(--size-touch);
+  padding-block: var(--space-2);
+  padding-inline: var(--space-3);
+  border-radius: var(--row-radius);
+  cursor: pointer;
+  user-select: none;
+}
+
+.picker-option-name {
+  min-inline-size: 0;
+  font-size: var(--font-size-body);
+  font-weight: var(--font-weight-medium);
+  line-height: var(--font-leading-label);
+  overflow-wrap: anywhere;
+}
+
+@media (hover: hover) and (pointer: fine) {
+  .picker-option:hover {
+    background: color-mix(in oklch, var(--color-on-surface) var(--state-hover), transparent);
+  }
+}
+
+.picker-option:active {
+  background: color-mix(in oklch, var(--color-on-surface) var(--state-press), transparent);
+}
+
+/* The keyboard's row: a tint and the focus ring, so it never rests on colour alone. A list opened
+   with the pointer shows neither until a key is pressed, as a select's list does. */
+.picker-list[data-keyboard] .picker-option[data-active] {
+  background: color-mix(in oklch, var(--color-on-surface) var(--state-hover), transparent);
+  outline: var(--stroke-ring) solid var(--color-focus-ring);
+  outline-offset: calc(var(--stroke-ring) * -1);
+}
+
+/* The chosen row: accent text and a check at its end. */
+.picker-option[aria-selected="true"] .picker-option-name {
+  color: var(--color-accent);
+}
+
+.picker-option[aria-selected="true"]::after {
+  content: "";
+  grid-column: 2;
+  inline-size: var(--size-icon);
+  block-size: var(--size-icon);
+  background: var(--color-accent);
+  mask: var(--check-mask) center / contain no-repeat;
+}
+
+.picker-empty {
+  margin: 0;
+  padding: var(--space-3);
+  color: var(--color-on-surface-muted);
+  font-size: var(--font-size-body);
+}
+
+@media (forced-colors: active) {
+  .picker-pop {
+    border-color: CanvasText;
+  }
+
+  .picker-option[aria-selected="true"]::after {
+    forced-color-adjust: none;
+    background: CanvasText;
+  }
+}
+
+/* ------------------------------------------------------------------ a voice's sample */
+
+/* A round button that plays the voice's sample. It keeps its room when the voice has no sample yet,
+   so nothing moves when the list arrives. */
+.podcast-sample {
+  display: grid;
+  flex: none;
+  place-items: center;
+  inline-size: var(--size-touch);
+  block-size: var(--size-touch);
+  border-radius: var(--radius-round);
+  background: var(--color-accent-container);
+  color: var(--color-on-accent-container);
+  transition: background-color var(--duration-hover) var(--ease-hover);
+}
+
+/* A voice with no sample, or a list not in yet: the button stays in its place, dimmed, not pressable. */
+.podcast-sample:disabled {
+  background: var(--color-surface-container);
+  color: var(--color-on-surface-disabled);
+  cursor: default;
+}
+
+/* It shows what a press does next: play, or pause while the sample plays. */
+.podcast-sample[aria-pressed="true"] .sample-play,
+.podcast-sample:not([aria-pressed="true"]) .sample-pause {
+  display: none;
+}
+
+@media (hover: hover) and (pointer: fine) {
+  .podcast-sample:not(:disabled):hover {
+    background: color-mix(
+      in oklch,
+      var(--color-accent-container),
+      var(--color-on-accent-container) var(--state-hover)
+    );
+  }
+}
+
+.podcast-sample:not(:disabled):active {
+  background: color-mix(
+    in oklch,
+    var(--color-accent-container),
+    var(--color-on-accent-container) var(--state-press)
+  );
+}

@@ -293,29 +293,6 @@ window.addEventListener("keydown", release);
 // Back and Forward move the page to an address of their own, so the mark follows the scroll again.
 window.addEventListener("popstate", release);
 
-/**
- * From 80rem the contents list starts level with the first section's heading: its title's words on
- * the heading's first line (aside.css reads --aside-start). Measured, since the header above the
- * heading grows with the title and the window.
- */
-function placeAside(): void {
-  const aside = document.querySelector<HTMLElement>(".aside");
-  const main = document.querySelector<HTMLElement>("main");
-  const heading = document.querySelector<HTMLElement>("[data-chapter] > h2");
-  const title = aside?.querySelector<HTMLElement>(".aside-title");
-  if (!aside || !main || !heading || !title || !aside.offsetParent) return;
-  const words = (node: HTMLElement): number => {
-    const look = getComputedStyle(node);
-    const leading = Number.parseFloat(look.lineHeight) - Number.parseFloat(look.fontSize);
-    return Number.parseFloat(look.paddingTop) + (Number.isNaN(leading) ? 0 : leading / 2);
-  };
-  const top =
-    heading.getBoundingClientRect().top - main.getBoundingClientRect().top + words(heading);
-  // The list's own padding and its title's half-leading sit above the title's words.
-  const offset = Number.parseFloat(getComputedStyle(aside).paddingTop) + words(title);
-  aside.style.setProperty("--aside-start", `${Math.max(Math.round(top - offset), 0)}px`);
-}
-
 /** Marks a tab strip whose tabs all fit, which then shows no edge fades (briefing.css). */
 function fitStrip(): void {
   const strip = document.querySelector<HTMLElement>("[data-section-tabs]");
@@ -323,7 +300,6 @@ function fitStrip(): void {
 }
 
 const measure = (): void => {
-  placeAside();
   fitStrip();
 };
 

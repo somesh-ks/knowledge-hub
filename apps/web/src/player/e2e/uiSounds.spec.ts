@@ -93,6 +93,28 @@ test.describe("interface cues by kind of action", () => {
     });
   }
 
+  // Escape and a press outside close a menu with no control to press; the cue must still sound.
+  test("a menu opens with a cue, and Escape closes it with one", async ({ player, page }) => {
+    await player.open("/");
+    await prime(page);
+    const more = page.getByRole("button", { name: "More actions" });
+    await more.click();
+    await expect.poll(() => heard(page)).toEqual(["sheetOpen"]);
+    await page.keyboard.press("Escape");
+    await expect.poll(() => heard(page)).toEqual(["sheetOpen", "sheetClose"]);
+  });
+
+  test("an action button taps once, and a menu action too", async ({ player, page }) => {
+    await player.open("/");
+    await prime(page);
+    await page.getByRole("button", { name: "More actions" }).click();
+    await expect.poll(() => heard(page)).toEqual(["sheetOpen"]);
+    // The menu action is a plain button: a soft tap, never a select.
+    await page.getByRole("menuitem", { name: "Share" }).click();
+    await expect.poll(() => heard(page)).toHaveLength(2);
+    expect((await heard(page))[1]).toBe("scrubDetent");
+  });
+
   test("the Settings switch plays its own cue, not doubled; once off nothing sounds", async ({
     player,
     page,

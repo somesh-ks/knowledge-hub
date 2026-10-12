@@ -1,6 +1,7 @@
 import type { Page, Route } from "@playwright/test";
 import { OPEN_PASSPHRASE } from "../src/lib/access";
 import { expect, expectNoViolationsInEitherScheme, seedStorage, test } from "./fixtures";
+import { choose, pickerList } from "./picker";
 
 const EPISODE = "/e/ep-20261007-1930";
 const EPISODE_ID = "ep-20261007-1930";
@@ -34,7 +35,7 @@ async function clearTopics(page: Page): Promise<void> {
   await expect(page.locator('input[name="topic"]:checked')).toHaveCount(0);
 }
 
-/** Opens More options (Written for, voices, look back, tone, title) unless it is already open. */
+/** Opens More options (look back, tone, title) unless it is already open. */
 async function openMore(page: Page): Promise<void> {
   const more = page.locator("[data-create-more]").first();
   if (!(await more.evaluate((details) => (details as HTMLDetailsElement).open))) {
@@ -50,6 +51,8 @@ async function openMore(page: Page): Promise<void> {
 async function openCreate(page: Page): Promise<void> {
   await page.goto("/create");
   await expect(page.locator("[data-create]")).toHaveAttribute("data-ready", "");
+  // The voices are lists with a search box once their script has run.
+  await expect(page.locator("[data-create-form]")).toHaveAttribute("data-pickers", "");
   await openMore(page);
 }
 
@@ -254,17 +257,17 @@ test.describe("the Create page", () => {
     await expect(page.locator("[data-create]")).toHaveAttribute("data-ready", "");
     const more = page.locator("[data-create-more]");
     await expect(more).not.toHaveAttribute("open", "");
-    await expect(page.locator("[data-more-values]")).toHaveText(
-      "For Somesh · Last 7 days · Neutral tone",
-    );
+    await expect(page.locator("[data-more-values]")).toHaveText("Last 7 days · Neutral tone");
     await expect(page.locator('input[name="tone"]').first()).toBeHidden();
+    // Who it is written for is the first question, with no heading, and not under More options.
+    await expect(segment(page, "General")).toBeVisible();
+    await expect(page.getByRole("radiogroup", { name: "Written for" })).toBeVisible();
     await more.locator("summary").click();
-    await segment(page, "Dry").click();
-    await segment(page, "General").click();
+    await segment(page, "Energetic").click();
     await more.locator("summary").click();
-    await expect(page.locator("[data-more-values]")).toHaveText(
-      "For General · Last 7 days · Dry tone",
-    );
+    await expect(page.locator("[data-more-values]")).toHaveText("Last 7 days · Energetic tone");
+    // The three tones that were offered are two: Dry is gone.
+    await expect(segment(page, "Dry")).toHaveCount(0);
   });
 
   test("a wide page keeps More options open beside the main questions", {
@@ -289,12 +292,15 @@ test.describe("the Create page", () => {
     // The pinned row is the column's heading, not a disclosure that does nothing.
     await expect(summary).toHaveAttribute("tabindex", "-1");
     await expect(page.getByRole("heading", { name: "More options", level: 2 })).toBeVisible();
-    // Format's chosen segment, then Tab: Generate, then the first choice under Written for.
+    // Format's chosen segment, then Tab: the voice, then Generate, then the first choice under More
+    // options (the look back).
     await page.locator('input[name="format"]:checked').focus();
+    await page.keyboard.press("Tab");
+    await expect(page.locator("#create-voice")).toBeFocused();
     await page.keyboard.press("Tab");
     await expect(submit(page)).toBeFocused();
     await page.keyboard.press("Tab");
-    await expect(page.locator('input[name="audience"]:checked')).toBeFocused();
+    await expect(page.locator('input[name="window"]:checked')).toBeFocused();
     // Narrow again, the row is a switch in the Tab order, before Generate.
     await page.setViewportSize({ width: 900, height: 800 });
     await expect(summary).not.toHaveAttribute("tabindex", "-1");
@@ -352,7 +358,7 @@ test.describe("the Create page", () => {
     await segment(page, "10 min").click();
     await segment(page, "Discussion").click();
     await segment(page, "30 days").click();
-    await segment(page, "Dry").click();
+    await segment(page, "Energetic").click();
     await page.getByLabel("Title").fill("  My week in AI  ");
     await page.locator("[data-submit]").click();
 
@@ -366,7 +372,7 @@ test.describe("the Create page", () => {
         length_minutes: 10,
         format: "discussion",
         window_days: 30,
-        tone: "dry",
+        tone: "energetic",
         voice_id: null,
         voice_id_b: null,
         title: "My week in AI",
@@ -625,29 +631,40 @@ test.describe("the Create panel's voices", () => {
   }) => {
     const mock = await mockPodcast(page, 202, { status: 202, run_id: 7, started_at: "now" });
     await openCreate(page);
-    const ada = page.locator('select[name="voice"]');
-    const leo = page.locator('select[name="voice_b"]');
+    const ada = page.locator("#create-voice");
+    const leo = page.locator("#create-voice_b");
     const hint = page.locator("[data-format-hint]");
-    await expect(ada).toHaveAccessibleName("Voice");
+    await expect(ada).toHaveAccessibleName(/^Voice: /);
     // Nothing under the format until the voices can name who will be heard.
     await expect(hint).toBeHidden();
-    await expect(ada.locator("option")).toHaveText(["Default", /Ada/, /Leo/, /Nora/]);
+    // The voices are chosen from a list with a search box, and each can be heard from its button.
+    await ada.click();
+    await expect(pickerList(page).getByRole("option")).toHaveText([
+      "Default",
+      /Ada/,
+      /Leo/,
+      /Nora/,
+    ]);
+    await pickerList(page).getByRole("combobox").fill("nora");
+    await expect(pickerList(page).getByRole("option")).toHaveText([/Nora/]);
+    await page.keyboard.press("Escape");
+    await expect(page.locator("[data-voice=voice] [data-preview]")).toBeDisabled();
     await expect(ada).toBeVisible();
     await expect(leo).toBeHidden();
     await segment(page, "Discussion").click();
     await expect(leo).toBeVisible();
     // A discussion is two hosts, each with a voice, and the line under the format says so.
     await expect(page.locator("#create-voice-label")).toHaveText("Voices");
-    await expect(ada).toHaveAccessibleName("First host's voice");
-    await expect(leo).toHaveAccessibleName("Second host's voice");
+    await expect(ada).toHaveAccessibleName(/^First host's voice: /);
+    await expect(leo).toHaveAccessibleName(/^Second host's voice: /);
     await expect(hint).toBeHidden();
-    await ada.selectOption("voice-ada");
-    await leo.selectOption("voice-leo");
+    await choose(page, ada, /Ada, female/);
+    await choose(page, leo, /Leo, male/);
     await expect(hint).toHaveText("Ada and Leo");
     // The voices are labelled with the hosts' names (D76), in their captions and their names.
     await expect(page.locator("[data-voice-caption]")).toHaveText(["Ada's voice", "Leo's voice"]);
-    await expect(ada).toHaveAccessibleName("Ada's voice");
-    await expect(leo).toHaveAccessibleName("Leo's voice");
+    await expect(ada).toHaveAccessibleName(/^Ada's voice: /);
+    await expect(leo).toHaveAccessibleName(/^Leo's voice: /);
     await submit(page).click();
     await expect.poll(() => mock.bodies.length).toBe(1);
     expect(mock.bodies[0]?.request).toMatchObject({
@@ -719,15 +736,17 @@ test.describe("the Create panel's voices", () => {
     const second = page.locator('select[name="voice_b"]');
     await expect(page.locator("[data-format-hint]")).toHaveText("Ada and Leo");
     // The lead takes Leo, whom the second host's Default stands for: the second host gets Ada.
-    await first.selectOption("voice-leo");
+    await choose(page, page.locator("#create-voice"), /Leo, male/);
     await expect(second).toHaveValue("voice-ada");
+    // The button of the second host says so too: the list's words follow the page's value.
+    await expect(page.locator("#create-voice_b")).toContainText("Ada");
     await expect(page.locator("[data-voice-caption]")).toHaveText(["Leo's voice", "Ada's voice"]);
     await expect(page.locator("[data-format-hint]")).toHaveText("Leo and Ada");
     // The second host takes the lead's voice: they swap back.
-    await second.selectOption("voice-leo");
+    await choose(page, page.locator("#create-voice_b"), /Leo, male/);
     await expect(first).toHaveValue("voice-ada");
     // A third voice is nobody's: nothing else moves.
-    await second.selectOption("voice-nora");
+    await choose(page, page.locator("#create-voice_b"), /Nora, female/);
     await expect(first).toHaveValue("voice-ada");
     await expect(page.locator("[data-voice-caption]")).toHaveText(["Ada's voice", "Nora's voice"]);
   });
@@ -735,7 +754,7 @@ test.describe("the Create panel's voices", () => {
   test("a readout sends no second voice", async ({ page }) => {
     const mock = await mockPodcast(page, 202, { status: 202, run_id: 7, started_at: "now" });
     await openCreate(page);
-    await page.locator('select[name="voice"]').selectOption("voice-nora");
+    await choose(page, page.locator("#create-voice"), /Nora, female/);
     await submit(page).click();
     await expect.poll(() => mock.bodies.length).toBe(1);
     const request = mock.bodies[0]?.request as Record<string, unknown>;

@@ -34,7 +34,7 @@ const LENGTHS: readonly number[] = [3, 5, 10, 15];
 const FORMATS: readonly string[] = ["readout", "discussion"];
 const VOICE_ID = /^[A-Za-z0-9_-]{1,64}$/;
 const WINDOWS: readonly number[] = [2, 7, 30];
-const TONES: readonly string[] = ["neutral", "energetic", "dry"];
+const TONES: readonly string[] = ["neutral", "energetic"];
 const AUDIENCES: readonly string[] = ["general", "custom"];
 /** A section id: a built-in one or one that came with a topic the owner added. */
 const SECTION_ID = /^[a-z0-9][a-z0-9_-]{0,63}$/;

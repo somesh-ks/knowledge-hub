@@ -8,17 +8,25 @@
  * - select: chips, switches, checkboxes, radios, menu choices and the sort order are a soft tick,
  *   brighter for on than for off.
  * - open and close: a menu, a sheet or a dialog is a soft pair, the close lower than the open.
+ * - tap: any other action button (Save, Delete, Skip, a toast's action) is a softer tick than
+ *   navigate; its outcome, when the screen states one, adds success or failure on top.
  * - transport, success and failure keep the cues they already had (player events, Generate).
  *
- * Nothing sounds for hover, focus, scroll, typing or scrubbing. A plain button has no default
- * cue: Save, Delete and the like are answered by their outcome, not by the press.
+ * Nothing sounds for hover, focus, scroll, typing or scrubbing. `data-sound="none"` opts a control out.
  */
 import type { SoundName } from "@dispatch/sound";
 import type { Cue } from "./soundMap";
 
-export type SoundKind = "navigate" | "select" | "open" | "close" | "none";
+export type SoundKind = "navigate" | "select" | "open" | "close" | "tap" | "none";
 
-export const SOUND_KINDS: readonly SoundKind[] = ["navigate", "select", "open", "close", "none"];
+export const SOUND_KINDS: readonly SoundKind[] = [
+  "navigate",
+  "select",
+  "open",
+  "close",
+  "tap",
+  "none",
+];
 
 /** A plain description of the control that was activated; the DOM reader fills it in. */
 export interface ControlInfo {
@@ -27,8 +35,6 @@ export interface ControlInfo {
   inputType: string | null;
   /** The explicit `data-sound` value, when there is one. */
   dataSound: string | null;
-  /** An anchor's destination is on this site and opens in this tab. */
-  internalLink: boolean;
   /** The state after the click: `aria-checked`, `aria-pressed`, `aria-selected` or `checked`. */
   on: boolean | null;
   /** `aria-expanded` after the click, or the opposite of a popover's state before it. */
@@ -44,11 +50,12 @@ const SELECT_ROLES = new Set([
   "switch",
   "checkbox",
   "radio",
-  "menuitem",
   "menuitemcheckbox",
   "menuitemradio",
   "option",
 ]);
+
+const BUTTON_INPUTS = new Set(["button", "submit", "reset", "image"]);
 
 export function isSoundKind(value: string | null): value is SoundKind {
   return value !== null && (SOUND_KINDS as readonly string[]).includes(value);
@@ -59,7 +66,7 @@ export function kindFor(info: ControlInfo): SoundKind {
   if (info.disabled) return "none";
   if (isSoundKind(info.dataSound)) return info.dataSound;
   if (info.role === "tab" || info.playsItem) return "navigate";
-  if (info.tag === "a" || info.role === "link") return info.internalLink ? "navigate" : "none";
+  if (info.tag === "a" || info.role === "link") return "navigate";
   if (info.expanded !== null) return info.expanded ? "open" : "close";
   if (info.closesDialog) return "close";
   if (info.role && SELECT_ROLES.has(info.role)) return "select";
@@ -69,16 +76,24 @@ export function kindFor(info: ControlInfo): SoundKind {
   }
   // A button that holds a state (a filter chip, a pin) is a toggle.
   if (info.on !== null) return "select";
+  // Any other press is an action: a text field, a slider or a bare container stays silent.
+  if (info.tag === "button" || info.role === "button" || info.role === "menuitem") return "tap";
+  if (info.tag === "input" && BUTTON_INPUTS.has(info.inputType ?? "")) return "tap";
   return "none";
 }
 
 /** The one tick for moving somewhere: the scrub tick at a fixed, mid-ladder pitch, a touch softer. */
 const NAVIGATE_CUE: Cue = { name: "scrubDetent", options: { position: 0.4, gain: 0.8 } };
 
+/** An action button: the same tick again, higher and softer, so it never reads as a destination. */
+const TAP_CUE: Cue = { name: "scrubDetent", options: { position: 0.7, gain: 0.55 } };
+
 export function cueForKind(kind: SoundKind, on: boolean | null = true): Cue | null {
   switch (kind) {
     case "navigate":
       return NAVIGATE_CUE;
+    case "tap":
+      return TAP_CUE;
     case "select":
       return { name: (on === false ? "toggleOff" : "toggleOn") satisfies SoundName };
     case "open":

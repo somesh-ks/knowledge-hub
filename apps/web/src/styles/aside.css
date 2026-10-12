@@ -9,26 +9,26 @@
 }
 
 @media (min-width: 80rem) {
-  /* Level with the first section's heading (briefingPage.ts measures it into --aside-start; before
-     that, level with the cover's top), then stuck that far under the top chrome while the page
-     scrolls, so it lines up with the reading column instead of floating in the window. A list taller
-     than the room left scrolls inside itself, so every entry stays reachable. */
+  /* The list is always on the middle line of the window, between the top chrome and the player bar.
+     The nav is the whole height of the page's column; the rail in it is as tall as the room the
+     window has and sticks under the top chrome from the first screen, whatever the page's length,
+     and the list is centred in the rail. So where to go next is always in the same place while the
+     page scrolls. A list taller than the room scrolls inside the rail ("safe" keeps its top reachable),
+     so every entry stays reachable. */
   .aside {
-    position: sticky;
-    inset-block-start: calc(var(--sticky-top) + var(--page-top));
-    align-self: start;
     display: block;
-    margin-block-start: var(--aside-start, var(--page-top));
-    max-height: calc(
-      100dvh -
-      var(--sticky-top) -
-      var(--page-top) -
-      var(--dock-room) -
-      var(--space-4)
-    );
-    /* A scrolling box clips what is drawn outside it. This much padding, taken back by the margin,
-       leaves room for an entry's focus ring. */
+    align-self: stretch;
+    /* A scrolling box clips what is drawn outside it. This much padding on the rail, taken back by the
+       margin, leaves room for an entry's focus ring. */
     margin-inline: calc(var(--space-1) * -1);
+  }
+
+  .aside-rail {
+    position: sticky;
+    inset-block-start: var(--sticky-top);
+    display: grid;
+    align-content: safe center;
+    block-size: calc(100dvh - var(--sticky-top) - var(--dock-room));
     padding: var(--space-1);
     overflow-y: auto;
     overscroll-behavior: contain;

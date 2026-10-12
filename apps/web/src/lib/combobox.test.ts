@@ -49,22 +49,23 @@ describe("nebiusOptions with the live list", () => {
     }
   });
 
-  it("names a top model by its short name, any other by its last segment", () => {
+  // The vendor's prefix is part of the model's id, and the id is never shown.
+  it("names a top model by its short name, any other by its last segment, and shows no id", () => {
     const options = nebiusOptions(LIVE, null);
     expect(options.find((o) => o.id === "moonshotai/Kimi-K3")).toMatchObject({
       label: "Kimi K3",
-      hint: "moonshotai, 1024k context",
+      hint: "1024k context",
     });
     expect(options.find((o) => o.id === "openai/gpt-oss-120b")).toMatchObject({
       label: "gpt-oss-120b",
-      hint: "openai, 128k context",
+      hint: "128k context",
     });
   });
 
   it("adds a saved model the list no longer has first among the rest, and says so", () => {
     const options = nebiusOptions(LIVE, "old/Gone-7B");
     expect(rows(options)[3]).toEqual(["old/Gone-7B", "rest"]);
-    expect(options[3]?.hint).toBe("old, Not in the live list");
+    expect(options[3]?.hint).toBe("Not in the live list");
   });
 
   it("flags a saved top model that has been retired, under its short name", () => {
@@ -73,7 +74,7 @@ describe("nebiusOptions with the live list", () => {
     );
     expect(gone).toMatchObject({
       label: "Kimi K2.6",
-      hint: "moonshotai, Not in the live list",
+      hint: "Not in the live list",
       group: "rest",
     });
   });
@@ -94,11 +95,11 @@ describe("nebiusOptions with the live list", () => {
 });
 
 describe("nebiusOptions without the live list", () => {
-  it("offers Automatic and every top model by name, with its vendor", () => {
+  it("offers Automatic and every top model by name alone", () => {
     const options = nebiusOptions(null, null);
     expect(rows(options)).toEqual([["", ""], ...TOP_IDS.map((id) => [id, "top"])]);
     expect(options.slice(1).map((o) => o.label)).toEqual(NEBIUS_TOP.map((m) => m.label));
-    expect(options.find((o) => o.id === "zai-org/GLM-5.3")?.hint).toBe("zai-org");
+    expect(options.find((o) => o.id === "zai-org/GLM-5.3")?.hint).toBe("");
   });
 
   it("keeps a saved model that is not a top model, right under Automatic", () => {
@@ -108,7 +109,7 @@ describe("nebiusOptions without the live list", () => {
       ["acme/Fast-1", ""],
       [TOP_IDS[0], "top"],
     ]);
-    expect(options[1]).toMatchObject({ label: "Fast-1", hint: "acme" });
+    expect(options[1]).toMatchObject({ label: "Fast-1", hint: "" });
   });
 
   it("does not repeat a saved top model", () => {

@@ -5,6 +5,7 @@ import type { DigestSource } from "./digestFiles";
 import { longDate } from "./format";
 import { isWebUrl } from "./safeUrl";
 import { sectionLabel } from "./sectionLabel";
+import { storyText } from "./storyText";
 
 /**
  * ready: the player can run. preparing: the text is out and narration is still being generated.
@@ -62,6 +63,7 @@ function playerItems(items: DigestItem[], timeline: AudioTimeline | null): Playe
     section: item.section,
     source: item.source,
     url: isWebUrl(item.url) ? item.url : null,
+    text: storyText(item),
     start_ms: timed.get(item.id)?.start_ms ?? null,
     end_ms: timed.get(item.id)?.end_ms ?? null,
   }));

@@ -1,5 +1,6 @@
-import { useEffect, useState } from "react";
+import { useMemo, useState } from "react";
 import { getPlayerStore } from "./core/playerRuntime";
+import { storyTurns } from "./core/storyTurns";
 import { usePlayerState } from "./hooks/usePlayer";
 import PlayerNotice from "./PlayerNotice";
 import ScriptView from "./ScriptView";
@@ -18,22 +19,23 @@ const LIST_VIEWS = [
 
 /**
  * The player page's lazy half. Two groups, so a wide screen can set them side by side: the
- * controls that belong with the cover, and the list of what is in the briefing: its chapters, or
- * an episode's transcript, with a switch between them when there are both.
+ * controls that belong with the cover, and the list of what is in the recording. Stories and
+ * Transcript are always the two views of it: an episode's transcript is its script, a briefing's is
+ * what the host says of each story.
  */
 export default function PlayerPageContent() {
   const track = usePlayerState().track;
-  const hasScript = (track?.digest.turns?.length ?? 0) > 0;
-  const hasChapters =
-    (track?.timeline?.items.length ?? 0) > 0 || (track?.digest.items.length ?? 0) > 0;
-  // An episode opens on its transcript; a briefing has only chapters.
-  const [view, setView] = useState<ListView>("transcript");
-  // Every episode opens on its transcript: a choice made on one does not carry to the next.
-  const digestId = track?.digest.id;
-  // biome-ignore lint/correctness/useExhaustiveDependencies: it runs when the recording changes
-  useEffect(() => setView("transcript"), [digestId]);
-  const both = hasScript && hasChapters;
-  const showScript = hasScript && (!both || view === "transcript");
+  const digest = track?.digest;
+  const turns = useMemo(() => digest?.turns ?? storyTurns(digest?.items ?? []), [digest]);
+  const hasScript = turns.length > 0;
+  const hasChapters = (track?.timeline?.items.length ?? 0) > 0 || (digest?.items.length ?? 0) > 0;
+  // An episode opens on its transcript, a briefing on its stories. A choice belongs to the recording
+  // it was made on, so the next one opens on its own first view, with no frame of the wrong one.
+  const first: ListView = digest?.turns ? "transcript" : "chapters";
+  const [choice, setChoice] = useState<{ id: string | undefined; view: ListView } | null>(null);
+  const view = choice && choice.id === digest?.id ? choice.view : first;
+  const tabs = hasScript || hasChapters;
+  const showScript = view === "transcript";
   return (
     <>
       <div className="player-controls">
@@ -45,7 +47,7 @@ export default function PlayerPageContent() {
       </div>
       <div className="player-list">
         <UpNext />
-        {both ? (
+        {tabs ? (
           <SegmentedControl
             className="player-views"
             legend="Show"
@@ -53,10 +55,20 @@ export default function PlayerPageContent() {
             variant="tabs"
             options={LIST_VIEWS}
             value={view}
-            onChange={setView}
+            onChange={(next) => setChoice({ id: digest?.id, view: next })}
           />
         ) : null}
-        {showScript ? <ScriptView titleHidden={both} /> : <StoryList titleHidden={both} />}
+        {showScript ? (
+          hasScript ? (
+            <ScriptView turns={turns} titleHidden />
+          ) : (
+            <p className="player-empty">There is no transcript for this recording.</p>
+          )
+        ) : hasChapters ? (
+          <StoryList titleHidden />
+        ) : (
+          <p className="player-empty">There are no stories in this recording.</p>
+        )}
       </div>
     </>
   );

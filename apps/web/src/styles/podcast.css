@@ -256,6 +256,17 @@
   padding-block: var(--space-3) var(--space-2);
 }
 
+/* A general news topic is shown but is in no scheduled podcast yet: its name stays legible, in the
+   muted ink with a dashed edge and no fill, so it does not look like a chip that is switched off
+   and can be pressed, and the dimming of a disabled chip (32%) does not take the name away. */
+.podcast-topics .filter-chip[data-locked] {
+  border: var(--stroke-hairline) dashed var(--color-border-control);
+  background: transparent;
+  color: var(--color-on-surface-muted);
+  opacity: 1;
+  cursor: default;
+}
+
 /* A voice: its select, and after it a round button that plays the voice's sample. The button keeps its
    room when the voice has no sample yet, so nothing moves when the list arrives. */
 .podcast-voice {
@@ -304,7 +315,7 @@
     margin-inline: calc(var(--space-2) * -1) 0;
   }
 
-  .settings-row[data-voice-row] .value-select > select.manage-input {
+  .settings-row[data-voice-row] .value-select > :is(select.manage-input, .picker-trigger) {
     justify-content: flex-start;
     padding-inline-start: var(--space-2);
     text-align: start;
@@ -313,49 +324,6 @@
   .settings-row[data-voice-row] .podcast-sample {
     grid-area: play;
   }
-}
-
-.podcast-sample {
-  display: grid;
-  flex: none;
-  place-items: center;
-  inline-size: var(--size-touch);
-  block-size: var(--size-touch);
-  border-radius: var(--radius-round);
-  background: var(--color-accent-container);
-  color: var(--color-on-accent-container);
-  transition: background-color var(--duration-hover) var(--ease-hover);
-}
-
-/* A voice with no sample, or a list not in yet: the button stays in its place, dimmed, not pressable. */
-.podcast-sample:disabled {
-  background: var(--color-surface-container);
-  color: var(--color-on-surface-disabled);
-  cursor: default;
-}
-
-/* It shows what a press does next: play, or pause while the sample plays. */
-.podcast-sample[aria-pressed="true"] .sample-play,
-.podcast-sample:not([aria-pressed="true"]) .sample-pause {
-  display: none;
-}
-
-@media (hover: hover) and (pointer: fine) {
-  .podcast-sample:not(:disabled):hover {
-    background: color-mix(
-      in oklch,
-      var(--color-accent-container),
-      var(--color-on-accent-container) var(--state-hover)
-    );
-  }
-}
-
-.podcast-sample:not(:disabled):active {
-  background: color-mix(
-    in oklch,
-    var(--color-accent-container),
-    var(--color-on-accent-container) var(--state-press)
-  );
 }
 
 /* In a settings row the model field is the row's value too: its words at the end of the row, with no
@@ -369,7 +337,7 @@
    label keeps the room its word needs, so the model's name has the rest of the row: a name cut in two
    halves of a row says a different model ("Claude Sonnet 5."). */
 .settings-row:has(> .daily-combo) > .settings-text {
-  flex: 0 0 auto;
+  flex: 1 0 auto;
 }
 
 .settings-row > .daily-combo {
@@ -390,6 +358,13 @@
 @media (min-width: 40rem) {
   .settings-row > .daily-combo:focus-within {
     flex-basis: 22rem;
+  }
+
+  /* The list is as wide as a long model's name wants, 22rem at least, and ends where the field does, so
+     it grows toward the start of the row as a select's list does. */
+  .settings-row > .daily-combo .daily-listbox {
+    inset-inline: auto 0;
+    inline-size: max(100%, 22rem);
   }
 }
 

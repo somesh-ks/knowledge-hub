@@ -52,7 +52,16 @@ function bringIntoView(slot: Element): void {
  * stays, so a second Enter is not lost to the page.
  */
 function keepFocus(): void {
-  document.querySelector<HTMLElement>("[data-player-page] .transport [data-primary]")?.focus();
+  // The page's disc, or the bar's where the page has none (a wide screen with a mouse).
+  const discs = document.querySelectorAll<HTMLElement>(
+    "[data-player-page] .transport [data-primary], [data-player-dock] [data-primary]",
+  );
+  for (const disc of discs) {
+    if (disc.checkVisibility()) {
+      disc.focus();
+      return;
+    }
+  }
 }
 
 /**

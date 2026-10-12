@@ -22,8 +22,9 @@ type Profile = "daily" | "weekly";
 const profile = Astro.params.profile as Profile;
 const [{ topics, sources }, schedule] = await Promise.all([loadManage(), loadScheduleView()]);
 const layout = topicLayout(topics, sources);
-// What can be put in or out of a scheduled podcast: the owner's three topics and their own. General
-// news topics play in custom episodes only (D69), so they have no chip here.
+// Every topic is shown. What can be put in or out of a scheduled podcast is the owner's three and
+// their own; the general news topics play in episodes made on request only (D69), so their chips are
+// shown but locked.
 const scopeTopics = [
   ...layout.groups.map((group) => ({
     id: group.id,
@@ -31,6 +32,12 @@ const scopeTopics = [
     ids: group.members.map((member) => member.id),
   })),
   ...layout.own.map((topic) => ({ id: topic.id, name: topic.name, ids: [topic.id] })),
+  ...layout.general.map((topic) => ({
+    id: topic.id,
+    name: topic.name,
+    ids: [topic.id],
+    locked: true,
+  })),
 ];
 
 const PAGES = {

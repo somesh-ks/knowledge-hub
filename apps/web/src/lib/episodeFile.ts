@@ -56,7 +56,7 @@ const FENCE = "---";
 const LENGTHS = [3, 5, 10, 15] as const;
 const FORMATS = ["readout", "discussion", "headlines"] as const;
 const WINDOWS = [2, 7, 30] as const;
-const TONES = ["neutral", "energetic", "dry"] as const;
+const TONES = ["neutral", "energetic"] as const;
 /** Narration pace, in characters a minute. The estimate on the Create page uses the same figure. */
 export const CHARS_PER_MINUTE = 960;
 

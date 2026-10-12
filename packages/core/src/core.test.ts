@@ -7,10 +7,12 @@ import {
   Digest as DigestSchema,
   daysBetween,
   digestRelPath,
+  gmtOffset,
   homeSection,
   itemId,
   longDate,
   parseDigestFile,
+  SUPPORTED_TIMEZONES,
   serializeDigestFile,
   stockholmDate,
   stockholmHour,
@@ -18,6 +20,7 @@ import {
   weekday,
   zonedDate,
   zonedHour,
+  zoneLabel,
 } from "./index.js";
 
 /** Repository root, found from this file so the test never depends on the working directory. */
@@ -99,6 +102,27 @@ describe("time", () => {
   ])("counts the date and hour in %s", (_name, at, zone, date, hour) => {
     expect(zonedDate(new Date(at), zone)).toBe(date);
     expect(zonedHour(new Date(at), zone)).toBe(hour);
+  });
+  // The picker names a zone by its offset, and the offset moves with daylight saving.
+  it.each([
+    ["Stockholm in winter", "Europe/Stockholm", "2026-01-15T12:00:00Z", "GMT+1"],
+    ["Stockholm in summer", "Europe/Stockholm", "2026-07-15T12:00:00Z", "GMT+2"],
+    ["New York in summer", "America/New_York", "2026-07-15T12:00:00Z", "GMT-4"],
+    ["India's half hour", "Asia/Kolkata", "2026-07-15T12:00:00Z", "GMT+5:30"],
+    ["UTC", "UTC", "2026-07-15T12:00:00Z", "GMT+0"],
+    ["a name Intl does not know", "Mars/Olympus", "2026-07-15T12:00:00Z", "GMT+0"],
+  ])("names the offset of %s", (_name, zone, at, offset) => {
+    expect(gmtOffset(zone, new Date(at))).toBe(offset);
+  });
+  it("reads a zone as its place and offset, and lists every zone once", () => {
+    expect(
+      zoneLabel(
+        { value: "Europe/Stockholm", label: "Stockholm" },
+        new Date("2026-07-15T12:00:00Z"),
+      ),
+    ).toBe("Stockholm (GMT+2)");
+    const values = SUPPORTED_TIMEZONES.map((option) => option.value);
+    expect(new Set(values).size).toBe(values.length);
   });
   it("counts calendar days and weekdays", () => {
     expect(daysBetween("2026-10-05", "2026-10-07")).toBe(2);

@@ -18,7 +18,6 @@ const TONES: Record<PodcastRequest["tone"], string> = {
   neutral: "Plain and even, like a good radio news reader. No excitement, no irony.",
   energetic:
     "Upbeat and quick, with a little more emphasis and momentum. Still no hype words and no exclamation marks in a row.",
-  dry: "Understated and deadpan. Humor, if any, comes from restraint. Never sarcastic about the facts.",
 };
 
 /** The order of the episode, in one place for every format that has the new shape. */

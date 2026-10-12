@@ -129,7 +129,7 @@ describe("dispatch podcast delete and regenerate", () => {
       "--no-push",
     ];
     await run(seed(REQUEST, NOW));
-    await run(seed({ ...REQUEST, tone: "dry" }, new Date(NOW.getTime() + 60_000)));
+    await run(seed({ ...REQUEST, tone: "energetic" }, new Date(NOW.getTime() + 60_000)));
   });
   afterEach(async () => {
     await pair.cleanup();

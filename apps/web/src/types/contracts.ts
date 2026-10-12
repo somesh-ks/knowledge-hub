@@ -16,6 +16,8 @@ export interface PlayerItem {
    * link. Optional because a page cached before this field existed does not carry it.
    */
   url?: string | null;
+  /** The story as the host says it, for the transcript of a briefing. Episodes carry a script instead. */
+  text?: string;
   /** Start and end inside the MP3, or null while the digest has no audio. */
   start_ms: number | null;
   end_ms: number | null;
@@ -31,6 +33,8 @@ export interface PlayerTurn {
   text: string;
   /** The story this turn is about, or null for a greeting, a link between stories or a sign-off. */
   item_id?: string | null;
+  /** A name for the turn in the transcript, in place of a speaker's: a briefing's story headline. */
+  title?: string;
   /** Start and end inside the narration, or null before it has been laid out. */
   start_ms: number | null;
   end_ms: number | null;
@@ -411,7 +415,7 @@ export interface PodcastRequest {
   host_names?: { a: string; b: string };
   /** How many days of stories to draw on. */
   window_days: 2 | 7 | 30;
-  tone: "neutral" | "energetic" | "dry";
+  tone: "neutral" | "energetic";
   title?: string;
 }
 

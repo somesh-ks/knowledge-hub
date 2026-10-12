@@ -143,8 +143,25 @@
   line-height: var(--font-leading-label);
 }
 
-/* The title keeps its colour: the card answers a pointer with the scrim and the play button over its
-   cover (cover.css), as album art does elsewhere. A keyboard's focus rings the whole card. */
+/* Two targets, told apart under a pointer: the art answers with the scrim and the play button over
+   it (cover.css) and plays; the title answers with the accent and opens the page. The title's box
+   hugs its words, so only the words light up, not the empty row beside them. A keyboard's focus rings
+   the whole card. */
+.card-title {
+  justify-self: start;
+  max-inline-size: 100%;
+}
+
+/* The colour eases in under the pointer and snaps back when it leaves: a transition on the title at
+   rest would also ease the words through a change of theme. Not behind a modal dialog: the page is
+   out of reach there, and the accent over the scrim is not legible. */
+@media (hover: hover) and (pointer: fine) {
+  :root:not(:has(dialog[open])) .card-title:hover {
+    color: var(--color-accent);
+    transition: color var(--duration-hover) var(--ease-hover);
+  }
+}
+
 .card-link:focus-visible {
   outline: var(--stroke-ring) solid var(--color-focus-ring);
   outline-offset: var(--stroke-ring-gap);

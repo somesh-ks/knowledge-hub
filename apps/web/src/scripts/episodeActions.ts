@@ -205,6 +205,7 @@ export function openEpisodeAction(trigger: HTMLElement): void {
       // A delete went through: the Library takes this entry's place, so no pop follows. Giving the
       // entry back first could land after the Library's own and turn the move around.
       entry = false;
+      document.dispatchEvent(new CustomEvent("dispatch:sound", { detail: "success" }));
       removeEventListener("dispatch:back", onBack);
       void navigateTo(libraryAddress(), { history: "replace" });
     },

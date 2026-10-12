@@ -1228,11 +1228,12 @@
   }
 }
 
-/* Wherever the bar stays under the open page, the page keeps its own transport, so the bar shows only
-   what is playing: nothing said twice, and one filled play control. Hidden in place, so the middle
-   group holds still. With a mouse from 64rem the bar keeps its clock beside its seek line: the page
-   has no timeline there. */
-@media (min-width: 40rem) {
+/* Under the open page the bar stays, and with a mouse on a wide screen it keeps its whole transport:
+   previous, play, next and the clock are where they were, and the page adds only the skips and the
+   speed (below). Elsewhere, where the bar stays under the open page, the page keeps its own transport,
+   so the bar shows only what is playing: nothing said twice, and one filled play control. Hidden in
+   place, so the middle group holds still. */
+@media (min-width: 40rem) and (not ((min-width: 64rem) and (hover: hover) and (pointer: fine))) {
   /* With its buttons gone the transport keeps their height, so the clock it centres stays level with
      the cover and the open group, as it is while the page is closed. */
   .player[data-open="true"] .dock-transport {
@@ -1272,12 +1273,6 @@
 
   .player[data-open="true"] .dock-volume {
     display: none;
-  }
-}
-
-@media (min-width: 64rem) and (hover: hover) and (pointer: fine) {
-  .player[data-open="true"] .dock-time {
-    visibility: visible;
   }
 }
 
@@ -1964,6 +1959,15 @@
   color: var(--color-on-accent-container);
 }
 
+/* A briefing's story is named by its headline, in full ink at the body size, over what the host says
+   of it: a heading for the turn, not a speaker's name. On the current turn the container's own ink
+   (above) still wins. */
+.script-turn[data-tone] .script-story {
+  color: var(--color-on-surface);
+  font-size: var(--font-size-body);
+  line-height: var(--font-leading-label);
+}
+
 .script-text {
   color: var(--color-on-surface);
   font-size: var(--font-size-reading);
@@ -2031,7 +2035,14 @@
   );
 }
 
-/* Chapters or the transcript, when an episode has both: tabs, past the top margin the list keeps. */
+/* Said where a view has nothing to show, so a tab is never an empty page. */
+.player-empty {
+  padding-block: var(--space-6);
+  color: var(--color-on-surface-muted);
+  font-size: var(--font-size-body);
+}
+
+/* Stories and the transcript: always the two tabs of the list, past the top margin the list keeps. */
 .segmented-group.player-views {
   margin-block-end: var(--space-4);
 }
@@ -2630,9 +2641,9 @@
 
 /* After the rules it changes, so it wins at equal weight. */
 @media (min-width: 64rem) and (hover: hover) and (pointer: fine) {
-  /* The bar stays under the page here, with previous, play, next, the clock and the volume. The
-     page does not say them twice: it keeps the scrubber and what the bar has not, the two skips
-     and the speed. */
+  /* The bar stays under the page here, with previous, play, next, the clock and the volume, as it
+     does when the page is closed. The page does not say them twice: it keeps what the bar has not,
+     the two skips and the speed between them. */
   .player-controls {
     display: grid;
     grid-template-columns: minmax(0, 1fr) auto minmax(0, 1fr);
@@ -2642,8 +2653,8 @@
     align-items: center;
   }
 
-  .player-controls {
-    padding-block-start: var(--space-6);
+  .player-controls > .player-notice {
+    grid-column: 1 / -1;
   }
 
   /* One timeline: the bar's. The page keeps the cover, the title, the source, the skips and the
@@ -2654,8 +2665,8 @@
     display: none;
   }
 
-  /* The title and its source sit nearer the cover than the transport, so they read as the cover's
-     caption and not as the transport's label. */
+  /* The title and its source sit nearer the cover than the skips, so they read as the cover's
+     caption and not as the controls' label. */
   .player-cover-slot {
     padding-block-end: var(--space-4);
   }
@@ -2666,51 +2677,20 @@
     min-height: 0;
   }
 
-  /* Under the cover, the whole transport: previous, back ten, play, forward ten, next, then the
-     speed. While the page is open the bar keeps only its clock and seek line, so this is the one
-     play control, as in YouTube Music's full view, and it sits by the art. */
-  /* Play stays on the cover's centre line: the steps sit either side of it and the speed hangs off
-     the right in a column that the empty one on the left balances. Children in order: previous,
-     back, play, forward, next, speed (last, so Tab follows what the eye sees). */
+  /* Back ten, the speed, forward ten: the speed is the middle of the three, as a dial between two
+     steps. TransportControls puts it between them in the document here, so Tab follows what the eye
+     sees. */
   .transport {
-    display: grid;
+    display: flex;
     grid-row: 1;
-    grid-column: 1 / -1;
-    grid-template-columns: minmax(0, 1fr) repeat(5, auto) minmax(0, 1fr);
+    grid-column: 2;
     align-items: center;
-    column-gap: var(--space-3);
+    gap: var(--space-4);
     padding-block: 0;
   }
 
-  .transport > :nth-child(1) {
-    grid-row: 1;
-    grid-column: 2;
-  }
-
-  .transport > :nth-child(2) {
-    grid-row: 1;
-    grid-column: 3;
-  }
-
-  .transport > :nth-child(3) {
-    grid-row: 1;
-    grid-column: 4;
-  }
-
-  .transport > :nth-child(4) {
-    grid-row: 1;
-    grid-column: 5;
-  }
-
-  .transport > :nth-child(5) {
-    grid-row: 1;
-    grid-column: 6;
-  }
-
-  .transport > .speed {
-    grid-row: 1;
-    grid-column: 7;
-    justify-self: start;
+  .transport-btn:not(.transport-skip) {
+    display: none;
   }
 }
 

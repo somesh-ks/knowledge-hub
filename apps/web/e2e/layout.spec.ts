@@ -157,10 +157,19 @@ test.describe("layout", () => {
     });
     await expect(current).toHaveText(/Research/);
     await expect(current).toHaveCount(1);
-    const box = await page.locator(".aside").boundingBox();
-    // Stuck near the top, under the same room the page keeps above its first block, whatever the
-    // scroll: it never floats in the middle of the window.
-    expect(box?.y ?? 0).toBeCloseTo(48, -1);
+    // On the window's middle line, between the top chrome and the bottom of the window, whatever the
+    // scroll: where to go next is always in the same place.
+    const middle = () =>
+      page.evaluate(() => {
+        const top = document.querySelector(".aside-title")?.getBoundingClientRect().top ?? 0;
+        const bottom = document.querySelector(".aside ul")?.getBoundingClientRect().bottom ?? 0;
+        return (top + bottom) / 2;
+      });
+    expect(Math.abs((await middle()) - 450)).toBeLessThan(40);
+    await page.evaluate(() => {
+      document.querySelector("#c-launches")?.scrollIntoView({ block: "start" });
+    });
+    expect(Math.abs((await middle()) - 450)).toBeLessThan(40);
     await page.locator(".aside-link", { hasText: "Launches" }).click();
     await expect(page).toHaveURL(/#c-launches$/);
     await expect(current).toHaveText(/Launches/);

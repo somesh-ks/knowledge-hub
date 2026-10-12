@@ -6,8 +6,9 @@
  * - Nothing plays while the document is hidden, the engine is disabled, or the volume is zero.
  * - The engine never touches the narration audio element or its audio session. It only asks the
  *   app whether narration is playing, then skips or ducks per recipe.
- * - A suspended or interrupted context is resumed for next time and the call is dropped. Scheduling
- *   into a suspended context would replay the sound late, as a burst, when it resumes.
+ * - A suspended or interrupted context is resumed and the call is dropped, but the latest one is
+ *   kept for 300 ms and played once the resume lands. Scheduling into a suspended context would
+ *   replay every sound late, as a burst, when it resumes.
  * - At most four voices at once. The oldest voice is faded out in 12 ms to make room.
  * - On iOS, Web Audio follows the silent switch and is treated as ambient audio, so a silenced
  *   phone plays no UI sound. That is the intended behavior.
@@ -66,6 +67,9 @@ interface Graph {
   noise: AudioBuffer;
 }
 
+/** How long a cue dropped by a suspended context waits for the resume before it is stale. */
+const QUEUED_CUE_MS = 300;
+
 /** Layer start offsets into the shared noise buffer, so two noise layers never share samples. */
 const noiseOffsetSeconds = (layerIndex: number): number => (layerIndex * 0.137) % 0.5;
 
@@ -96,6 +100,7 @@ export function createSoundEngine(options: SoundEngineOptions): SoundEngine {
   let graph: Graph | null = null;
   let disposed = false;
   let voices: Voice[] = [];
+  let queued: { name: SoundName; options: PlayOptions; at: number } | null = null;
   const lastPlayedAt = new Map<SoundName, number>();
 
   function buildGraph(ctx: AudioContext): Graph {
@@ -239,6 +244,13 @@ export function createSoundEngine(options: SoundEngineOptions): SoundEngine {
     };
   }
 
+  function replay(): void {
+    const cue = queued;
+    queued = null;
+    if (!cue || disposed || context?.state !== "running") return;
+    if (now() - cue.at < QUEUED_CUE_MS) play(cue.name, cue.options);
+  }
+
   function play(name: SoundName, playOptions: PlayOptions = {}): boolean {
     if (disposed || !isEnabled() || isHidden()) return false;
     const recipe = RECIPES[name];
@@ -254,7 +266,13 @@ export function createSoundEngine(options: SoundEngineOptions): SoundEngine {
     const ctx = context;
     if (!ctx || !graph) return false;
     if (ctx.state !== "running") {
-      void ctx.resume().catch(() => undefined);
+      // The latest dropped cue is kept for a moment and played once the resume lands, so the first
+      // cue after a suspend is heard; one that waits longer than that is stale and is let go.
+      queued = { name, options: playOptions, at: now() };
+      void ctx
+        .resume()
+        .then(replay)
+        .catch(() => undefined);
       return false;
     }
 

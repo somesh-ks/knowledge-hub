@@ -12,6 +12,7 @@ import type { ModelOption } from "../lib/combobox";
 import { isModelId } from "../lib/modelId";
 import { nextRunLine } from "../lib/nextRun";
 import { clearPendingChoice, readPendingChoice } from "../lib/pendingWriter";
+import { FLOATING, roomFloor } from "../lib/roomFloor";
 import { hasSaved } from "../lib/savedKey";
 import { heldWriter } from "../lib/savedOverlay";
 import type { Provider } from "../lib/settingsSummary";
@@ -27,6 +28,7 @@ export {
   type StoredWriterChoice,
   writePendingChoice,
 } from "../lib/pendingWriter";
+export { roomFloor } from "../lib/roomFloor";
 export type { Provider } from "../lib/settingsSummary";
 
 export interface ModelEntry {
@@ -35,22 +37,6 @@ export interface ModelEntry {
 }
 
 const LIST_TIMEOUT_MS = 10_000;
-
-/** What can float over the bottom of the page: the bottom bar, the player, the run card, the Create button. */
-const FLOATING = ".app-nav, .player-dock, .run-card, .create-fab, .manage-bar";
-
-/**
- * How far down the screen a list opening under `field` may reach: the top of the highest thing that
- * floats over the page below the field and across its width, or the bottom of the screen.
- */
-export function roomFloor(field: DOMRect, covers: readonly DOMRect[], viewport: number): number {
-  let floor = viewport;
-  for (const cover of covers) {
-    const across = cover.width > 0 && cover.left < field.right && cover.right > field.left;
-    if (across && cover.top > field.bottom && cover.top < floor) floor = cover.top;
-  }
-  return floor;
-}
 
 /** The edit a provider and model choice stand for. `null` on Nebius is Automatic. */
 export function modelOp(model: string | null, provider: Provider = "nebius"): ConfigOp {
@@ -235,6 +221,8 @@ export async function mount(root: HTMLElement): Promise<void> {
       ops = module.scheduleOp;
       module.mountProfiles(root, () => update(false));
     });
+    // The time zone and the voices are chosen from a list with a search field.
+    void import("./picker").then((module) => module.mountPickers(root));
   }
   const group = root.querySelector<HTMLElement>("[data-models]");
   if (group) writer = await mountModel(root, group, update, saved);
@@ -269,9 +257,6 @@ async function mountModel(
   const listbox = one("[data-list]");
   const toggle = one<HTMLButtonElement>("[data-toggle]");
   const count = one("[data-count]");
-  const fallback = one("[data-fallback]");
-  const typed = one<HTMLInputElement>("#model-typed");
-  const typedNote = one("[data-typed-note]");
   const savedModel = group.dataset.saved ? group.dataset.saved : null;
   const savedProvider: Provider = group.dataset.provider === "anthropic" ? "anthropic" : "nebius";
 
@@ -300,22 +285,10 @@ async function mountModel(
     pendingChoice && pendingChoice.provider === provider() ? pendingChoice.model : savedModel;
   let active = -1;
 
-  /** The model the controls hold: a typed id when the list is unavailable, else the chosen option. */
-  const choice = (): { model: string | null; valid: boolean } => {
-    if (provider() === "nebius" && nebius === null && typed.value.trim() !== "") {
-      const value = typed.value.trim();
-      return { model: value, valid: isModelId(value) };
-    }
-    return { model: selected, valid: true };
-  };
-
   const pending = (): Pending | null => {
-    const { model, valid } = choice();
-    typed.toggleAttribute("aria-invalid", !valid);
-    typedNote.hidden = valid;
-    const now = JSON.stringify([provider(), model]);
-    if (!valid || now === group.dataset.was) return null;
-    return { op: modelOp(model, provider()), el: group, now };
+    const now = JSON.stringify([provider(), selected]);
+    if (now === group.dataset.was) return null;
+    return { op: modelOp(selected, provider()), el: group, now };
   };
 
   const isOpen = (): boolean => !listbox.hidden;
@@ -395,7 +368,11 @@ async function mountModel(
     listbox.toggleAttribute("data-above", flip);
     listbox.style.setProperty("--list-room", `${Math.max(flip ? above : below, 176)}px`);
     input.setAttribute("aria-expanded", "true");
-    count.textContent = countText(shown.length);
+    // Without the live list only the top models are offered, which the list says to a screen reader.
+    count.textContent =
+      provider() === "nebius" && nebius === null
+        ? `${countText(shown.length)}. Only the top models are listed right now.`
+        : countText(shown.length);
     // Typing highlights the first match; opening with the chevron starts on the chosen model.
     const start = query.trim() === "" ? shown.findIndex((o) => o.id === (selected ?? "")) : 0;
     highlight(start);
@@ -414,7 +391,6 @@ async function mountModel(
 
   const choose = (option: ModelOption): void => {
     selected = option.id === "" ? null : option.id;
-    typed.value = "";
     close();
     update();
   };
@@ -425,7 +401,6 @@ async function mountModel(
       provider() === "anthropic"
         ? [...CLAUDE_OPTIONS]
         : nebiusOptions(nebius ?? null, savedFor("nebius"));
-    fallback.hidden = !(provider() === "nebius" && nebius === null);
     if (!isOpen()) input.value = labelFor(options, selected);
   };
   const savedFor = (which: Provider): string | null =>
@@ -452,7 +427,6 @@ async function mountModel(
   vendor.addEventListener("change", () => {
     // Each vendor starts on its first model: Automatic on Nebius, Claude Sonnet on Anthropic.
     selected = provider() === "anthropic" ? (CLAUDE_OPTIONS[0]?.id ?? null) : null;
-    typed.value = "";
     if (provider() === "nebius" && nebius === undefined) void load().then(() => update());
     refresh();
     update();
@@ -520,9 +494,6 @@ async function mountModel(
     if (isOpen()) close();
     else browse();
   });
-  // A typed id is saved once it is finished (Enter or leaving the field), not letter by letter.
-  typed.addEventListener("input", () => update(false));
-  typed.addEventListener("change", () => update());
 
   group.dataset.was = JSON.stringify(
     pendingChoice ? [pendingChoice.provider, pendingChoice.model] : [savedProvider, savedModel],

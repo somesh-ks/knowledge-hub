@@ -7,27 +7,98 @@ export interface TimezoneOption {
   label: string;
 }
 
-/** The zones the schedule can count in (D71). */
+/**
+ * The zones the schedule can count in (D71, D101), west to east by their standard time. Every
+ * offset is a whole hour except India's: a half-hour zone starts a run up to 30 minutes early (see
+ * state.md), so no new one is added.
+ */
 export const SUPPORTED_TIMEZONES: readonly TimezoneOption[] = [
-  { value: "Europe/Stockholm", label: "Stockholm" },
-  { value: "Europe/London", label: "London" },
-  { value: "Europe/Berlin", label: "Berlin" },
-  { value: "Europe/Paris", label: "Paris" },
-  { value: "America/New_York", label: "New York" },
-  { value: "America/Chicago", label: "Chicago" },
-  { value: "America/Denver", label: "Denver" },
+  { value: "Pacific/Honolulu", label: "Honolulu" },
+  { value: "America/Anchorage", label: "Anchorage" },
   { value: "America/Los_Angeles", label: "Los Angeles" },
-  { value: "Asia/Tokyo", label: "Tokyo" },
-  { value: "Asia/Singapore", label: "Singapore" },
+  { value: "America/Vancouver", label: "Vancouver" },
+  { value: "America/Denver", label: "Denver" },
+  { value: "America/Phoenix", label: "Phoenix" },
+  { value: "America/Chicago", label: "Chicago" },
+  { value: "America/Mexico_City", label: "Mexico City" },
+  { value: "America/New_York", label: "New York" },
+  { value: "America/Toronto", label: "Toronto" },
+  { value: "America/Bogota", label: "Bogotá" },
+  { value: "America/Lima", label: "Lima" },
+  { value: "America/Sao_Paulo", label: "São Paulo" },
+  { value: "America/Argentina/Buenos_Aires", label: "Buenos Aires" },
+  { value: "Atlantic/Reykjavik", label: "Reykjavik" },
+  { value: "UTC", label: "UTC" },
+  { value: "Europe/London", label: "London" },
+  { value: "Europe/Dublin", label: "Dublin" },
+  { value: "Europe/Lisbon", label: "Lisbon" },
+  { value: "Europe/Amsterdam", label: "Amsterdam" },
+  { value: "Europe/Berlin", label: "Berlin" },
+  { value: "Europe/Madrid", label: "Madrid" },
+  { value: "Europe/Paris", label: "Paris" },
+  { value: "Europe/Rome", label: "Rome" },
+  { value: "Europe/Stockholm", label: "Stockholm" },
+  { value: "Europe/Vienna", label: "Vienna" },
+  { value: "Europe/Warsaw", label: "Warsaw" },
+  { value: "Europe/Zurich", label: "Zurich" },
+  { value: "Africa/Lagos", label: "Lagos" },
+  { value: "Europe/Athens", label: "Athens" },
+  { value: "Europe/Helsinki", label: "Helsinki" },
+  { value: "Europe/Kyiv", label: "Kyiv" },
+  { value: "Africa/Cairo", label: "Cairo" },
+  { value: "Africa/Johannesburg", label: "Johannesburg" },
+  { value: "Asia/Jerusalem", label: "Jerusalem" },
+  { value: "Europe/Istanbul", label: "Istanbul" },
+  { value: "Europe/Moscow", label: "Moscow" },
+  { value: "Asia/Riyadh", label: "Riyadh" },
+  { value: "Africa/Nairobi", label: "Nairobi" },
   { value: "Asia/Dubai", label: "Dubai" },
+  { value: "Asia/Karachi", label: "Karachi" },
   { value: "Asia/Kolkata", label: "India" },
+  { value: "Asia/Dhaka", label: "Dhaka" },
+  { value: "Asia/Bangkok", label: "Bangkok" },
+  { value: "Asia/Jakarta", label: "Jakarta" },
+  { value: "Asia/Singapore", label: "Singapore" },
+  { value: "Asia/Hong_Kong", label: "Hong Kong" },
+  { value: "Asia/Shanghai", label: "Shanghai" },
+  { value: "Asia/Manila", label: "Manila" },
+  { value: "Australia/Perth", label: "Perth" },
+  { value: "Asia/Tokyo", label: "Tokyo" },
+  { value: "Asia/Seoul", label: "Seoul" },
+  { value: "Australia/Brisbane", label: "Brisbane" },
   { value: "Australia/Sydney", label: "Sydney" },
   { value: "Pacific/Auckland", label: "Auckland" },
-  { value: "UTC", label: "UTC" },
 ];
 
 export function isSupportedTimeZone(zone: string): boolean {
   return SUPPORTED_TIMEZONES.some((option) => option.value === zone);
+}
+
+/**
+ * How far a zone is from Greenwich at an instant, daylight saving included: "GMT+2", "GMT-5",
+ * "GMT+5:30". Greenwich itself is "GMT+0". A zone Intl does not know reads "GMT+0" rather than
+ * throwing: the label is only a hint beside the zone's name.
+ */
+export function gmtOffset(zone: string, at: Date = new Date()): string {
+  let text = "GMT";
+  try {
+    text =
+      new Intl.DateTimeFormat("en-US", { timeZone: zone, timeZoneName: "longOffset" })
+        .formatToParts(at)
+        .find((part) => part.type === "timeZoneName")?.value ?? "GMT";
+  } catch {
+    // An unknown zone name: the label stays at Greenwich.
+  }
+  const match = /^GMT(?:([+\u2212-])(\d{1,2})(?::(\d{2}))?)?$/.exec(text);
+  if (!match || match[1] === undefined) return "GMT+0";
+  const sign = match[1] === "+" ? "+" : "-";
+  const minutes = match[3] && match[3] !== "00" ? `:${match[3]}` : "";
+  return `GMT${sign}${Number(match[2])}${minutes}`;
+}
+
+/** The text a zone is picked by: its place name and its offset, "Stockholm (GMT+2)". */
+export function zoneLabel(option: TimezoneOption, at: Date = new Date()): string {
+  return `${option.label} (${gmtOffset(option.value, at)})`;
 }
 
 /**

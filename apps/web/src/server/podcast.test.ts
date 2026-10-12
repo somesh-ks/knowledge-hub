@@ -37,7 +37,7 @@ const REQUEST: PodcastRequest = {
   length_minutes: 5,
   format: "discussion",
   window_days: 7,
-  tone: "dry",
+  tone: "energetic",
   title: "My week in AI",
 };
 

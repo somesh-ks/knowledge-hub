@@ -17,7 +17,7 @@ export const PODCAST_FORMATS = ["readout", "discussion", "headlines"] as const;
 /** The formats a new request may ask for; a stored episode may still say "headlines". */
 export const NEW_PODCAST_FORMATS = ["readout", "discussion"] as const;
 export const PODCAST_WINDOWS = [2, 7, 30] as const;
-export const PODCAST_TONES = ["neutral", "energetic", "dry"] as const;
+export const PODCAST_TONES = ["neutral", "energetic"] as const;
 export const PODCAST_AUDIENCES = ["general", "custom"] as const;
 
 /** A Speechify voice id: the engine's own rule for a voice (see apps/web/src/server/config.ts). */

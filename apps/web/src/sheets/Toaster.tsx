@@ -17,6 +17,17 @@ export default function Toaster() {
     if (toast) setShown(toast);
   }, [toast]);
 
+  // A toast that states an outcome sounds it (scripts/uiSound.ts); a plain message stays quiet.
+  const id = toast?.id;
+  const kind = toast?.kind;
+  // biome-ignore lint/correctness/useExhaustiveDependencies: the id re-sounds an identical message
+  useEffect(() => {
+    if (!kind) return;
+    document.dispatchEvent(
+      new CustomEvent("dispatch:sound", { detail: kind === "error" ? "failure" : "success" }),
+    );
+  }, [id, kind]);
+
   useEffect(() => {
     const element = ref.current;
     // Safari before 17 has no Popover API, and asking it about :popover-open throws. There the
