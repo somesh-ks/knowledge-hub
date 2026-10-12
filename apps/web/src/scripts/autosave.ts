@@ -140,7 +140,13 @@ export function mountAutosave(
     if (state === "done") linger = window.setTimeout(() => open(false), SAVED_MS);
   };
 
-  const context: SaveContext = { changes, show, dialog: root.querySelector("dialog"), settled };
+  const context: SaveContext = {
+    changes,
+    show,
+    dialog: root.querySelector("dialog"),
+    settled,
+    here,
+  };
 
   const now = (): void => {
     window.clearTimeout(still);
@@ -149,6 +155,7 @@ export function mountAutosave(
     void import("./managePageSave")
       .then((module) => {
         saver = module;
+        module.adopt(context);
         return module.flush(context);
       })
       .catch(() => {
@@ -166,6 +173,8 @@ export function mountAutosave(
     void import("./managePageSave")
       .then((module) => {
         saver ??= module;
+        // A left page's run that failed before this page was ready: its changes wait here.
+        module.adopt(context);
       })
       .catch(() => {});
   };
@@ -205,6 +214,13 @@ export function mountAutosave(
   window.addEventListener("pagehide", leave, { signal: off.signal });
   document.addEventListener("astro:before-preparation", leave, { signal: off.signal });
   document.addEventListener("astro:after-swap", () => off.abort(), { signal: off.signal });
+  // A page left in the server's gap whose run then failed: this page takes its changes, says so in
+  // its toast with Retry, and sends them with Retry or its next change (adopt).
+  document.addEventListener(
+    "dispatch:held",
+    () => void import("./managePageSave").then((module) => module.adopt(context)),
+    { signal: off.signal },
+  );
 
   return {
     changed() {

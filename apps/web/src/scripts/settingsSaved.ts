@@ -4,7 +4,7 @@
  * lib/settingsSummary.ts words it as the build does). Loaded by settingsPage.ts only when something
  * saved is kept, so the index's first load never carries it.
  */
-import type { StoredWriterChoice } from "../lib/pendingWriter";
+import { readPendingChoice, type StoredWriterChoice } from "../lib/pendingWriter";
 import {
   type FieldValues,
   readCounts,
@@ -15,6 +15,45 @@ import {
 } from "../lib/savedOverlay";
 import { dailySummary, modelSummary, topicsSummary, weeklySummary } from "../lib/settingsSummary";
 import type { ConfigOp } from "../types/contracts";
+import { dropUnclaimed, HELD_EVENT, type Held } from "./managePageSave";
+import { readSaved } from "./savedView";
+
+/** Said on the index when a change held by a page left for it could not be saved. */
+export const LOST_NOTE = "Your last change was not saved.";
+
+/** The rows with what was saved since the build, and following a left page's run still on its way. */
+export function showSaved(root: HTMLElement): void {
+  overlayIndex(root, readSaved(), readPendingChoice());
+  followHeld(root);
+}
+
+/**
+ * The index open while a left page's run ends: the rows say what is saved now. Nothing here can take
+ * a change that failed (the index has no toast), so it is dropped, and the page says so.
+ */
+function followHeld(root: HTMLElement): void {
+  const off = new AbortController();
+  document.addEventListener(
+    HELD_EVENT,
+    (event) => {
+      if (!root.isConnected) return off.abort();
+      if (!(event as CustomEvent<Held>).detail.ok) {
+        dropUnclaimed();
+        if (!root.querySelector("[data-lost]")) {
+          const note = document.createElement("p");
+          note.className = "settings-note";
+          note.dataset.lost = "";
+          note.setAttribute("role", "alert");
+          note.textContent = LOST_NOTE;
+          root.querySelector("#page-title")?.after(note);
+        }
+      }
+      overlayIndex(root, readSaved(), readPendingChoice());
+    },
+    { signal: off.signal },
+  );
+  document.addEventListener("astro:after-swap", () => off.abort(), { signal: off.signal });
+}
 
 const row = (root: ParentNode, name: string): HTMLElement | null =>
   root.querySelector<HTMLElement>(`[data-summary="${name}"]`);
@@ -80,6 +119,12 @@ export function overlayIndex(
   }
 
   const model = row(root, "model");
-  if (model && pending) shown = say(model, modelSummary(pending.provider, pending.model)) || shown;
+  // With no choice waiting (one that was never saved is dropped), the row says what it was built with.
+  const built = model?.dataset;
+  const choice: Pick<StoredWriterChoice, "provider" | "model"> = pending ?? {
+    provider: built?.provider === "anthropic" ? "anthropic" : "nebius",
+    model: built?.model || null,
+  };
+  if (model) shown = say(model, modelSummary(choice.provider, choice.model)) || shown;
   return shown;
 }

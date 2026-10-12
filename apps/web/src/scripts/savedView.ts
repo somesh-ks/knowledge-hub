@@ -34,7 +34,14 @@ import {
 } from "../lib/sourceCatalogMatch";
 import { parseSuggestedAdd, type SuggestedAdd } from "../lib/topicText";
 import type { ConfigOp } from "../types/contracts";
-import { ADDED_SOURCE, ADDED_TOPIC, SAVED } from "./managePageSave";
+import {
+  ADDED_SOURCE,
+  ADDED_TOPIC,
+  HELD_EVENT,
+  type Held,
+  type Pending,
+  SAVED,
+} from "./managePageSave";
 import { element, iconNode } from "./topicsView";
 
 /** The row a topic waits in until the build (ManageChrome.astro), among the page's templates. */
@@ -60,8 +67,14 @@ export function readSaved(now = Date.now()): ConfigOp[] {
 /** What the line says while an edit shown is still on its way (left in the server's gap). */
 export const SAVING_NOTE = "Saving. Live in about a minute.";
 
+/**
+ * What the line says once the run that held an edit shown here failed: the page took the edit as its
+ * own (adopt, in managePageSave.ts), so the toast's Retry or the next change sends it.
+ */
+export const NOT_SAVED_NOTE = "Not saved yet. It goes with your next change.";
+
 /** Whether an edit shown is still on its way. */
-function readPending(now = Date.now()): boolean {
+export function readPending(now = Date.now()): boolean {
   try {
     return anyPending(parseSaved(localStorage.getItem(SAVED_KEY), now), now);
   } catch {
@@ -73,9 +86,65 @@ function readPending(now = Date.now()): boolean {
 export function markSaved(root: HTMLElement): void {
   const head = root.querySelector(".settings-head");
   if (!head || head.querySelector("[data-saved-note]")) return;
-  const note = element("p", "manage-quiet", readPending() ? SAVING_NOTE : SAVED_NOTE);
+  const pending = readPending();
+  const note = element("p", "manage-quiet", pending ? SAVING_NOTE : SAVED_NOTE);
   note.dataset.savedNote = "";
   head.append(note);
+  if (pending) followHeld(root, note);
+}
+
+/**
+ * The line said Saving for edits a left page's run still held: it follows that run to its end. Saved
+ * when everything went; when it failed, the page holds those edits as its own (autosave.ts takes
+ * them), and the line and any row that said Added say they are not saved yet, until a request
+ * carries them.
+ */
+export function followHeld(root: HTMLElement, note: HTMLElement): void {
+  const off = new AbortController();
+  const lost = new Set<Pending>();
+  const say = (): void => {
+    note.textContent = lost.size > 0 ? NOT_SAVED_NOTE : readPending() ? SAVING_NOTE : SAVED_NOTE;
+  };
+  document.addEventListener(
+    HELD_EVENT,
+    (event) => {
+      if (!root.isConnected) return off.abort();
+      for (const pending of (event as CustomEvent<Held>).detail.lost) {
+        const lines = addedLines(root, pending.op);
+        const mark = (saved: boolean): void => {
+          for (const [line, done] of lines) line.textContent = saved ? done : TOPIC_NOT_ADDED;
+          if (saved) lost.delete(pending);
+          else lost.add(pending);
+          say();
+        };
+        pending.fail = () => mark(false);
+        pending.done = () => mark(true);
+        mark(false);
+      }
+      say();
+    },
+    { signal: off.signal },
+  );
+  document.addEventListener("astro:after-swap", () => off.abort(), { signal: off.signal });
+}
+
+/** What a row that waits for a refused add says (TOPIC_NOT_ADDED in topicsEditor.ts). */
+const TOPIC_NOT_ADDED = "Not added yet. It goes with your next change.";
+
+/** The lines on this page that say an edit was added: a queued topic's, a suggested source's. */
+function addedLines(root: HTMLElement, op: ConfigOp): [Element, string][] {
+  const lines: [Element, string][] = [];
+  if (op.op === "topic.upsert") {
+    const note = root.querySelector(`[data-topic-id="${op.topic.id}"] .manage-quiet`);
+    if (note) lines.push([note, ADDED_TOPIC]);
+  } else if (op.op === "source.add") {
+    for (const button of root.querySelectorAll<HTMLButtonElement>("button[data-suggested-add]")) {
+      const note = button.closest("li")?.querySelector(".source-note");
+      if (note && parseSuggestedAdd(button.dataset.suggestedAdd)?.feed_url === op.url)
+        lines.push([note, ADDED_SOURCE]);
+    }
+  }
+  return lines;
 }
 
 // ------------------------------------------------------------------------------------- podcast pages
