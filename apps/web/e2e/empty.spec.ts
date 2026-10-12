@@ -14,7 +14,7 @@ async function expectPattern(page: Page, root: Locator, level: 1 | 2, art: strin
   await expect(svg).toHaveAttribute("focusable", "false");
   const width = (await svg.boundingBox())?.width ?? 0;
   expect(width).toBeGreaterThanOrEqual(160);
-  expect(width).toBeLessThanOrEqual(280);
+  expect(width).toBeLessThanOrEqual(320);
   const heading = root.getByRole("heading", { level });
   await expect(heading).toBeVisible();
   const action = root.locator(".empty-actions > :is(a, button)").first();

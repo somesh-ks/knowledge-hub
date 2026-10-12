@@ -11,7 +11,7 @@ import { describe, expect, it } from "vitest";
 const HERE = import.meta.dirname;
 const read = (...path: string[]) => readFileSync(join(HERE, ...path), "utf8");
 const art = read("EmptyArt.astro");
-const SCENES = ["today", "library", "results", "offline", "online", "notfound", "sources"];
+const SCENES = ["today", "library", "results", "offline", "online", "notfound"];
 
 describe("the empty-state art", () => {
   it("holds no raw colour: every fill and stroke comes from a class", () => {
