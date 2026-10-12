@@ -224,6 +224,8 @@ export function startPlayerRuntime(): () => void {
   // inert: only then does the player say it.
   const onOnline = (): void => {
     if (playerIsOpen()) announce("You are back online.");
+    // A failure the lost connection caused happened while the listener was playing: play on.
+    if (playerStore.getState().error?.kind === "network") playerStore.retry();
   };
   const onOffline = (): void => {
     if (playerIsOpen()) announce("You are offline.");
