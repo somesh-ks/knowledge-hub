@@ -82,6 +82,17 @@ describe("which stories were heard", () => {
     tracker.moved(1, "auto");
     expect([...tracker.heard]).toEqual([0]);
   });
+
+  it("a finished recording replayed after a reload drops its marks when it starts, and keeps story 1", () => {
+    const tracker = createHeardTracker();
+    // Loaded at story 1 (which starts at 0:00), remembered as heard to the end.
+    tracker.reset(0, [0, 1, 2], true);
+    tracker.started();
+    expect(tracker.heard.size).toBe(0);
+    // Playing on out of story 1 marks it: the first move after the replay keeps it.
+    tracker.moved(1, "auto");
+    expect([...tracker.heard]).toEqual([0]);
+  });
 });
 
 describe("reader markup contract", () => {

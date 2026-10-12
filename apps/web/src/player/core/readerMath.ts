@@ -42,7 +42,12 @@ export interface HeardTracker {
    * hearing; `finished` when it was last heard to the end, so the next move starts afresh.
    */
   reset(index: number, seed?: Iterable<number>, finished?: boolean): void;
-  /** The playhead moved into story `to`. */
+  /**
+   * Playing starts. A recording last heard to the end starts afresh here, so its old marks do not
+   * stay through the rundown of a replay after a reload.
+   */
+  started(): void;
+  /** The playhead moved into story `to`; playing on out of a story marks it, after a replay too. */
   moved(to: number, cause: ItemChangeCause): void;
   /** The recording ended in the story the playhead was in. */
   ended(): void;
@@ -60,13 +65,13 @@ export function createHeardTracker(): HeardTracker {
       at = index;
       finished = done;
     },
+    started() {
+      if (finished) heard.clear();
+      finished = false;
+    },
     moved(to, cause) {
-      if (finished) {
-        heard.clear();
-        finished = false;
-      } else if (cause === "auto" && at >= 0) {
-        heard.add(at);
-      }
+      this.started();
+      if (cause === "auto" && at >= 0) heard.add(at);
       at = to;
     },
     ended() {

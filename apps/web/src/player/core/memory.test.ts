@@ -87,8 +87,9 @@ describe("the stories heard, remembered beside the position", () => {
 
     tracker.reset(0, [0, 2], true);
     expect([...tracker.heard]).toEqual([0, 2]);
+    // The old marks go, and the story the replay just played on out of is kept (it was lost).
     tracker.moved(1, "auto");
-    expect(tracker.heard.size).toBe(0);
+    expect([...tracker.heard]).toEqual([0]);
   });
 });
 
