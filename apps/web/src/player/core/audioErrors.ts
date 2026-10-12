@@ -22,7 +22,8 @@ export function describeMediaError(
   if (!isOnline) {
     return {
       kind: "network",
-      message: "You are offline. Reconnect, then try playing again.",
+      // The player tries again by itself when the connection comes back (playerRuntime.ts).
+      message: "You are offline. Reconnect to play on.",
     };
   }
   switch (code) {
@@ -65,8 +66,9 @@ export function describePlayRejection(
       message: "Playback was blocked by the browser. Press play to start.",
     };
   }
-  if (name === "NotSupportedError") {
-    return describeMediaError(MEDIA_ERR_SRC_NOT_SUPPORTED, isOnline, noun);
-  }
-  return describeMediaError(undefined, isOnline, noun);
+  return describeMediaError(
+    name === "NotSupportedError" ? MEDIA_ERR_SRC_NOT_SUPPORTED : undefined,
+    isOnline,
+    noun,
+  );
 }

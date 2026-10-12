@@ -203,13 +203,15 @@ export function failureCopy(reason: NarrationFailure, noun: NarrationNoun): stri
   }
 }
 
-/** Refusals no retry can change; the segment queue remembers them too. */
+/**
+ * Refusals no retry can change; the segment queue remembers them too. A 503 `unavailable` is a
+ * passing failure as often as not, so it offers Try again.
+ */
 const STANDING_REASONS: ReadonlySet<NarrationFailure> = new Set([
   "daily_cap",
   "monthly_budget",
   "not_narratable",
   "digest_not_found",
-  "unavailable",
 ]);
 
 /** The short line for the mini player, from the reason rather than the kind of error. */
@@ -228,6 +230,9 @@ function failureSummary(reason: NarrationFailure): string | undefined {
       return "Narration is not available";
     case "offline":
       return "You are offline";
+    case "failed":
+      // The notice's own words, shortened: one failure is not told two ways.
+      return "Audio could not be made";
     default:
       return undefined;
   }
@@ -239,7 +244,12 @@ export function describeNarrationFailure(
   noun: NarrationNoun,
 ): { message: string; summary?: string; standing: boolean } | null {
   // The notice has its own Try again where a retry helps, so the words are not repeated there.
-  const message = reason === "failed" ? "The audio could not be made." : failureCopy(reason, noun);
+  const message =
+    reason === "failed"
+      ? "The audio could not be made."
+      : reason === "unavailable"
+        ? "Narration is not available right now."
+        : failureCopy(reason, noun);
   if (!message) return null;
   return { message, summary: failureSummary(reason), standing: STANDING_REASONS.has(reason) };
 }

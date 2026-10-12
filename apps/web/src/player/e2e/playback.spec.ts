@@ -1,4 +1,24 @@
+import type { Page } from "@playwright/test";
 import { expect, test } from "./lab";
+
+/** Where a story ends in the page's recording, in seconds, from the page's own digest data. */
+function storyEnd(page: Page, index: number): Promise<number> {
+  return page.evaluate((at) => {
+    const data = JSON.parse(document.getElementById("dispatch-digest-data")?.textContent ?? "{}");
+    return (data.items[at]?.end_ms ?? 0) / 1000;
+  }, index);
+}
+
+/**
+ * A story is marked played only when it was heard (D92): playing goes on out of it into the next.
+ * The playhead is put just before the story's end and left to play on.
+ */
+async function playOnOutOf(page: Page, index: number): Promise<void> {
+  const end = await storyEnd(page, index);
+  await page.evaluate((seconds) => {
+    window.__audios[0].currentTime = seconds;
+  }, end - 0.6);
+}
 
 test.describe("playback in a real browser", () => {
   test("keeps the audio object out of the DOM and attaches the source before the first tap", async ({
@@ -64,10 +84,17 @@ test.describe("playback in a real browser", () => {
     await expect(second).not.toHaveAttribute("data-state", /.*/);
     await expect(second.locator("[data-play-item]")).toHaveAttribute("data-state", "idle");
     await expect(second.locator("[data-chip-label]")).toHaveText("0:15");
-    // The bar moves to the next story: the one before is played, the one now reading takes over.
+    // Next moves the mark to the next story, and marks nothing as played: it was skipped, not heard.
     await page.getByRole("button", { name: "Next story" }).tap();
     await expect(second).toHaveAttribute("data-state", "current");
     await expect(second.locator("[data-chip-label]")).toHaveText("Playing");
+    await expect(first).not.toHaveAttribute("data-state", /.*/);
+    await expect(firstChip).toHaveAttribute("data-state", "idle");
+    // Back on the first story, playing on out of it into the second marks it heard.
+    await firstChip.tap();
+    await expect(first).toHaveAttribute("data-state", "current");
+    await playOnOutOf(page, 0);
+    await expect(second).toHaveAttribute("data-state", "current");
     await expect(first).toHaveAttribute("data-state", "played");
     await expect(firstChip).toHaveAttribute("data-state", "played");
     await expect(firstChip.locator("[data-chip-label]")).toHaveText("Played");
@@ -95,7 +122,9 @@ test.describe("playback in a real browser", () => {
     await lab.dock.getByRole("button", { name: "Pause", exact: true }).click();
     await expect(chip.locator("[data-chip-label]")).toHaveText("Paused");
     seen.paused = await measure();
-    await page.getByRole("button", { name: "Next story" }).click();
+    // Played is earned by hearing the story out: from just before its end, play on into the next.
+    await playOnOutOf(page, 0);
+    await lab.dock.getByRole("button", { name: "Play", exact: true }).click();
     await expect(chip.locator("[data-chip-label]")).toHaveText("Played");
     seen.played = await measure();
     const sources = new Set(Object.values(seen).map((s) => s.source));
@@ -118,9 +147,10 @@ test.describe("playback in a real browser", () => {
       "data-state",
       "current",
     );
-    await expect(page.locator('[data-item-id="a1f3c9d2b401"]')).toHaveAttribute(
+    // A jump marks nothing: the stories before it were not heard.
+    await expect(page.locator('[data-item-id="a1f3c9d2b401"]')).not.toHaveAttribute(
       "data-state",
-      "played",
+      /.*/,
     );
     await expect(third).toHaveAttribute("data-playing", "true");
     await expect(third.locator("[data-chip-label]")).toHaveText("Playing");
@@ -154,9 +184,9 @@ test.describe("playback in a real browser", () => {
       "data-state",
       "current",
     );
-    await expect(page.locator('[data-item-id="a1f3c9d2b401"]')).toHaveAttribute(
+    await expect(page.locator('[data-item-id="a1f3c9d2b401"]')).not.toHaveAttribute(
       "data-state",
-      "played",
+      /.*/,
     );
   });
 
@@ -172,9 +202,10 @@ test.describe("playback in a real browser", () => {
     await expect.poll(async () => (await audio.read())?.currentTime ?? 0).toBeGreaterThan(44);
     await expect(fourth).toHaveAttribute("data-state", "current");
     await expect(fourth.locator("[data-chip-label]")).toHaveText("Playing");
-    await expect(page.locator('[data-item-id="c3f5e1b4d623"]')).toHaveAttribute(
+    // The story that was skipped over is not marked as heard.
+    await expect(page.locator('[data-item-id="c3f5e1b4d623"]')).not.toHaveAttribute(
       "data-state",
-      "played",
+      /.*/,
     );
     await expect(page.locator("html")).toHaveAttribute("data-player-state", "playing");
   });
@@ -294,7 +325,10 @@ test.describe("playback in a real browser", () => {
     await expect(lab.cta.locator("[data-chip-label]")).toHaveText(/^[12] min left$/);
     await expect(lab.cta).toHaveAccessibleName(/^Resume the briefing, [12] min left$/);
     await lab.cta.tap();
-    await expect.poll(async () => (await audio.read())?.currentTime ?? 0).toBeGreaterThan(29);
+    // It plays on from the kept place: from the top it could not pass it within the poll's 8 s.
+    await expect
+      .poll(async () => (await audio.read())?.currentTime ?? 0)
+      .toBeGreaterThan(Number(saved));
   });
 
   test("sets the lock-screen metadata from the digest", async ({ lab, page }) => {

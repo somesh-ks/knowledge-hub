@@ -20,6 +20,7 @@ import {
   type ItemChangeCause,
   isPlaybackRate,
   type PauseReason,
+  type PlayerError,
   type PlayerEvent,
   type PlayerState,
   type PlayerStore,
@@ -240,6 +241,12 @@ export function createPlayerStore(options: PlayerStoreOptions): PlayerStore {
     saveTimer = null;
   }
 
+  function stopTimers(): void {
+    stopFrameLoop();
+    stopSaveTimer();
+    stopBufferTimer();
+  }
+
   function stopBufferTimer(): void {
     if (bufferTimer !== null) clearTimeout(bufferTimer);
     bufferTimer = null;
@@ -307,9 +314,7 @@ export function createPlayerStore(options: PlayerStoreOptions): PlayerStore {
 
   function onEnded(): void {
     if (!track) return;
-    stopFrameLoop();
-    stopSaveTimer();
-    stopBufferTimer();
+    stopTimers();
     wantsPlay = false;
     time = durationNow();
     clearResumePosition(storage, track.digest.id);
@@ -397,11 +402,14 @@ export function createPlayerStore(options: PlayerStoreOptions): PlayerStore {
       if (narrated.summary) error.summary = narrated.summary;
       if (narrated.standing) error.kind = "refused";
     }
-    stopFrameLoop();
-    stopSaveTimer();
-    stopBufferTimer();
+    fail(error);
+  }
+
+  /** Playback stopped short: the listener is told why, once. A blocked start is only paused. */
+  function fail(error: PlayerError): void {
+    stopTimers();
     wantsPlay = false;
-    commit({ status: "error", buffering: false, error });
+    commit({ status: error.kind === "blocked" ? "paused" : "error", buffering: false, error });
     emit({ type: "error", error });
   }
 
@@ -466,9 +474,7 @@ export function createPlayerStore(options: PlayerStoreOptions): PlayerStore {
     }
 
     if (track) saveResume();
-    stopFrameLoop();
-    stopSaveTimer();
-    stopBufferTimer();
+    stopTimers();
     wantsPlay = false;
     wasPlayingBeforeScrub = false;
 
@@ -547,10 +553,7 @@ export function createPlayerStore(options: PlayerStoreOptions): PlayerStore {
       const error = describePlayRejection(rejection, isOnline(), audioNoun());
       // The element's own error event may have reported this failure already: once is enough.
       if (!error || state.status === "error") return;
-      stopBufferTimer();
-      wantsPlay = false;
-      commit({ status: error.kind === "blocked" ? "paused" : "error", buffering: false, error });
-      emit({ type: "error", error });
+      fail(error);
     });
     armBufferingTimer();
   }
@@ -578,9 +581,7 @@ export function createPlayerStore(options: PlayerStoreOptions): PlayerStore {
     wantsPlay = false;
     // A scrub that was going to resume playback must not undo this pause when it ends.
     wasPlayingBeforeScrub = false;
-    stopFrameLoop();
-    stopSaveTimer();
-    stopBufferTimer();
+    stopTimers();
     readAudioTime();
     expectPause();
     audio.pause();
@@ -660,16 +661,25 @@ export function createPlayerStore(options: PlayerStoreOptions): PlayerStore {
     if (index >= 0) playItemAt(index);
   }
 
+  /**
+   * A story step. From the end or a failure nothing is playing, so the step plays the story it lands
+   * on, as a tap on its row does (a failure is cleared by that play's retry); otherwise it only moves.
+   */
+  function step(move: () => boolean): boolean {
+    const stopped = state.status === "ended" || state.status === "error";
+    const moved = move();
+    if (moved && stopped) play("item");
+    return moved;
+  }
+
   function next(source: "ui" | "keyboard" = "ui"): boolean {
-    return skipToItem(state.itemIndex + 1, source === "keyboard" ? "keyboard" : "skip-next");
+    return step(() =>
+      skipToItem(state.itemIndex + 1, source === "keyboard" ? "keyboard" : "skip-next"),
+    );
   }
 
   function previous(source: "ui" | "keyboard" = "ui"): boolean {
-    // From the end there is nothing playing: going back plays the story it lands on.
-    const fromEnd = state.status === "ended";
-    const moved = stepBack(source);
-    if (moved && fromEnd) play("item");
-    return moved;
+    return step(() => stepBack(source));
   }
 
   function stepBack(source: "ui" | "keyboard"): boolean {
@@ -739,9 +749,7 @@ export function createPlayerStore(options: PlayerStoreOptions): PlayerStore {
       Promise.resolve(audio.play()).catch((rejection: unknown) => {
         const error = describePlayRejection(rejection, isOnline(), audioNoun());
         if (!error || state.status === "error") return;
-        wantsPlay = false;
-        commit({ status: error.kind === "blocked" ? "paused" : "error", error });
-        emit({ type: "error", error });
+        fail(error);
       });
     }
   }
@@ -752,9 +760,7 @@ export function createPlayerStore(options: PlayerStoreOptions): PlayerStore {
 
   function dispose(): void {
     disposed = true;
-    stopFrameLoop();
-    stopSaveTimer();
-    stopBufferTimer();
+    stopTimers();
     if (audio) {
       for (const [type, handler] of audioHandlers) audio.removeEventListener(type, handler);
       audioHandlers.clear();

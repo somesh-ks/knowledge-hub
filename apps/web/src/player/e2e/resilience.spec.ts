@@ -84,7 +84,9 @@ test.describe("when playback does not go to plan", () => {
     await expect(notice.getByRole("button")).toHaveCount(0);
     const disc = lab.dialog.getByRole("button", { name: "Try again" });
     await expect(disc).toHaveCount(1);
-    await expect(disc.locator(".glyph-swap")).toHaveCount(0);
+    // One glyph, the arrow, where play and pause would otherwise swap.
+    await expect(disc.locator(".glyph-paused, .glyph-playing")).toHaveCount(0);
+    await expect(disc.locator(".ui-icon")).toHaveCount(1);
     await expect(lab.dialog.locator(".player-story, .player-source-link")).toHaveCount(0);
     // The file comes back; the disc tries again.
     await page.unroute("**/lab-narration.mp3*");

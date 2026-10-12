@@ -638,6 +638,35 @@ describe("errors", () => {
     ).toBe(false);
   });
 
+  it("a story step out of a failure plays the story it lands on, as a row tap does", () => {
+    const harness = createHarness();
+    startPlaying(harness);
+    harness.audio.error = { code: MEDIA_ERR_NETWORK };
+    harness.audio.emit("error");
+    const calls = harness.audio.playCalls;
+    expect(harness.store.next()).toBe(true);
+    expect(harness.store.getState().error).toBeNull();
+    expect(harness.store.getState().itemIndex).toBe(1);
+    expect(harness.audio.playCalls).toBe(calls + 1);
+    expect(["playing", "loading"]).toContain(harness.store.getState().status);
+  });
+
+  it("a story step in a standing refusal moves, plays nothing and says why again", () => {
+    const harness = createHarness();
+    startPlaying(harness);
+    harness.audio.error = {
+      code: MEDIA_ERR_NETWORK,
+      narrated: { message: "Daily narration limit reached.", standing: true },
+    };
+    harness.audio.emit("error");
+    const calls = harness.audio.playCalls;
+    harness.events.length = 0;
+    expect(harness.store.next()).toBe(true);
+    expect(harness.audio.playCalls).toBe(calls);
+    expect(harness.store.getState().status).toBe("error");
+    expect(harness.events.some((event) => event.type === "error")).toBe(true);
+  });
+
   it("says the audio is unavailable when the source cannot be used", () => {
     const harness = createHarness();
     startPlaying(harness);

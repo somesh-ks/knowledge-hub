@@ -51,6 +51,12 @@ const { title } = Astro.props;
         };
         apply();
         document.addEventListener("astro:after-swap", apply);
+        // As on the site (themeInit.js): Back is offered to the player before the router, so the
+        // entry the open player gives back on a close is not a navigation.
+        addEventListener("popstate", (event) => {
+          if (!dispatchEvent(new Event("dispatch:back", { cancelable: true })))
+            event.stopImmediatePropagation();
+        });
       })();
     </script>
   </head>

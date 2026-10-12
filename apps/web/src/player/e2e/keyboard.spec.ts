@@ -119,6 +119,21 @@ test.describe("keyboard operation of the player", () => {
     expect(await page.evaluate(() => window.scrollY)).toBe(scrolled);
   });
 
+  test("Space plays and pauses on the wide bar's seek, as on the page's scrubber @surface", async ({
+    lab,
+    page,
+  }, info) => {
+    test.skip(info.project.name !== "site-desktop", "the bar's seek shows with a mouse from 64rem");
+    await lab.open();
+    await lab.play();
+    await lab.dockSettled();
+    await lab.dock.getByRole("slider", { name: "Seek" }).focus();
+    await page.keyboard.press("Space");
+    await expect(page.locator("html")).toHaveAttribute("data-player-state", "paused");
+    await page.keyboard.press("Space");
+    await expect(page.locator("html")).toHaveAttribute("data-player-state", "playing");
+  });
+
   test("Space leaves typing, controls, held keys, modifiers and other dialogs alone @surface", async ({
     lab,
     page,

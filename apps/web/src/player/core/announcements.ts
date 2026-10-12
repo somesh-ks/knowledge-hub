@@ -27,24 +27,21 @@ export function announcementForEvent(
     case "didPause":
       return event.reason === "user" ? "Paused." : null;
     case "itemChanged": {
-      const chosen =
-        event.cause === "skip-next" || event.cause === "skip-previous" || event.cause === "select";
-      if (!chosen) return null;
+      // Chosen by the listener: Next, Previous ("skip-next", "skip-previous") or a story ("select").
+      if (!/skip|select/.test(event.cause)) return null;
       if (event.index < 0) return "Back to the start.";
       const item = track?.timeline?.items[event.index];
       if (!item) return null;
       return `${itemPositionLabel(track?.timeline ?? null, event.index)}: ${item.headline}`;
     }
-    // The slider's value text and the pressed preset already say the speed.
-    case "rateChanged":
-      return null;
     case "ended":
       return track?.digest.turns ? "Episode finished." : "Briefing finished.";
     case "interrupted":
       return context.open ? null : "Paused by another app.";
     case "error":
       return context.open || context.started === false ? null : event.error.message;
-    case "loaded":
+    default:
+      // A rate change (the slider's value text and the pressed preset already say it), a load.
       return null;
   }
 }

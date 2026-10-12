@@ -257,8 +257,13 @@ export function briefingChipView(
         label: "Played",
         name: `Play the ${noun} again, played`,
       };
-    case "error":
-      return { state: "error", playing: false, label: "Try again", name: "Try again" };
+    case "error": {
+      // A refusal that stands is not mended by trying again: the play face, with the bar's reason.
+      const reason = state.error?.kind === "refused" && state.error.summary;
+      return reason
+        ? idleBriefingChip(reason, noun)
+        : { state: "error", playing: false, label: "Try again", name: "Try again" };
+    }
   }
 }
 

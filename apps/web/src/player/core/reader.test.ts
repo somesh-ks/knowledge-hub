@@ -218,6 +218,20 @@ describe("the briefing chip", () => {
       label: "Try again",
       name: "Try again",
     });
+    // A refusal that stands offers no Try again: the play face, and the reason the bar gives.
+    const refused = stateFor("error", {
+      error: {
+        kind: "refused",
+        message: "Daily narration limit reached.",
+        summary: "Daily limit reached",
+      },
+    });
+    expect(briefingChipView(refused, 86, makeDigest())).toEqual({
+      state: "idle",
+      playing: false,
+      label: "Daily limit reached",
+      name: "Play the briefing, Daily limit reached",
+    });
   });
 
   it("shows the playing face for the first 300 ms of buffering, then that it is loading", () => {

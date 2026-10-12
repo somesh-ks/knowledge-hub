@@ -117,8 +117,9 @@ export default function ScriptView({ titleHidden = false }: { titleHidden?: bool
     let lit: Element | null = null;
     const light = (seconds: number): void => {
       const ms = seconds * 1000;
-      const live = getPlayerStore().getState();
-      const turn = live.hasStarted && !live.error ? currentTurnIndex(turns, seconds) : -1;
+      // After a failure no word is lit: the effect runs again when `failed` changes, and clears it.
+      const turn =
+        getPlayerStore().getState().hasStarted && !failed ? currentTurnIndex(turns, seconds) : -1;
       if (turn !== spokenTurn.current) {
         spokenTurn.current = turn;
         setTurnMoved((count) => count + 1);

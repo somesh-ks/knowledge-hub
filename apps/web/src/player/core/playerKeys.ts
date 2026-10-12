@@ -35,29 +35,17 @@ export function shouldToggleOnKey(event: KeyLike, target: KeyTarget): boolean {
 }
 
 /** Roles whose own job for Space (press, toggle, pick, drag) the page-wide shortcut must not take. */
-const SPACE_ROLES = [
-  "button",
-  "checkbox",
-  "radio",
-  "switch",
-  "slider",
-  "tab",
-  "menuitem",
-  "menuitemcheckbox",
-  "menuitemradio",
-  "option",
-  "link",
-  "combobox",
-  "textbox",
-  "searchbox",
-  "spinbutton",
-  "listbox",
-  "treeitem",
-];
+const SPACE_ROLES =
+  "button checkbox radio switch slider tab menuitem menuitemcheckbox menuitemradio option link combobox textbox searchbox spinbutton listbox treeitem".split(
+    " ",
+  );
 
-/** Everything Space already does: type, press, pick, open. */
+/**
+ * Everything Space already does: type, press, pick, open. A native range (the bar's seek) has no
+ * job for Space, so there it plays and pauses, as on the page's own scrubber.
+ */
 export const SPACE_OWNERS = [
-  "input",
+  "input:not([type='range'])",
   "textarea",
   "select",
   "button",

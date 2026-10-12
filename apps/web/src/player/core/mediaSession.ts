@@ -6,6 +6,7 @@
  * visible (build-plan 8.4). Position state is kept in sync so the lock-screen scrubber works.
  */
 import { longDateFromDigestId, monthLabelFromDate } from "./formatTime";
+import { isPlayingStatus } from "./playerCopy";
 import {
   type PlayerStore,
   SKIP_BACK_SECONDS,
@@ -108,7 +109,6 @@ export function attachMediaSession(store: PlayerStore, deps: MediaSessionDeps = 
   }
 
   function syncMetadata(track: Track | null): void {
-    if (!session) return;
     if (!track || !createMetadata) {
       session.metadata = null;
       return;
@@ -121,7 +121,6 @@ export function attachMediaSession(store: PlayerStore, deps: MediaSessionDeps = 
   }
 
   function syncPosition(): void {
-    if (!session) return;
     const state = store.getState();
     if (!state.track?.digest.audio || state.duration <= 0) {
       try {
@@ -143,24 +142,18 @@ export function attachMediaSession(store: PlayerStore, deps: MediaSessionDeps = 
     }
   }
 
-  function syncPlaybackState(): void {
-    if (!session) return;
-    const { status } = store.getState();
-    session.playbackState =
-      status === "playing" || status === "loading"
-        ? "playing"
-        : status === "idle"
-          ? "none"
-          : "paused";
-  }
-
   function onState(): void {
     const state = store.getState();
     if (state.digestId !== lastDigestId) {
       lastDigestId = state.digestId;
       syncMetadata(state.track);
     }
-    syncPlaybackState();
+    const { status } = state;
+    session.playbackState = isPlayingStatus(status)
+      ? "playing"
+      : status === "idle"
+        ? "none"
+        : "paused";
     syncPosition();
   }
 
@@ -168,24 +161,17 @@ export function attachMediaSession(store: PlayerStore, deps: MediaSessionDeps = 
   const offState = store.subscribe(onState);
   // Once a second is enough for a lock-screen scrubber, and every seek lands here too.
   const offSecond = store.onSecond(syncPosition);
-  const offVisibility = deps.onVisibilityChange
-    ? deps.onVisibilityChange(() => {
-        if (!(deps.isHidden?.() ?? false)) {
-          registerHandlers();
-          syncPosition();
-        }
-      })
-    : (() => {
-        if (typeof document === "undefined") return () => undefined;
-        const listener = (): void => {
-          if (!document.hidden) {
-            registerHandlers();
-            syncPosition();
-          }
-        };
-        document.addEventListener("visibilitychange", listener);
-        return () => document.removeEventListener("visibilitychange", listener);
-      })();
+  // Visible again: iOS may have dropped the handlers.
+  const onVisible = (): void => {
+    if (deps.onVisibilityChange ? deps.isHidden?.() : document.hidden) return;
+    registerHandlers();
+    syncPosition();
+  };
+  let offVisibility = deps.onVisibilityChange?.(onVisible);
+  if (!offVisibility) {
+    document.addEventListener("visibilitychange", onVisible);
+    offVisibility = () => document.removeEventListener("visibilitychange", onVisible);
+  }
   onState();
 
   return () => {
