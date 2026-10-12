@@ -77,7 +77,7 @@ export function resolveChapterFirstItemId(
  * the visible text, so a voice command that reads the chip finds it.
  */
 export interface ChipView {
-  state: "idle" | "current" | "played" | "preparing";
+  state: "idle" | "current" | "played" | "preparing" | "error";
   playing: boolean;
   label: string;
   name: string;
@@ -181,7 +181,7 @@ export function briefingChipView(
         name: `Play the ${noun} again, played`,
       };
     case "error":
-      return { state: "idle", playing: false, label: "Try again", name: "Try again" };
+      return { state: "error", playing: false, label: "Try again", name: "Try again" };
   }
 }
 

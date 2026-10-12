@@ -261,7 +261,7 @@
 }
 
 /* Every mark but the one the state calls for is hidden. Play and pause are the default pair. */
-.chip-glyph > :is(.chip-bars, .chip-check, .spinner) {
+.chip-glyph > :is(.chip-bars, .chip-check, .chip-refresh, .spinner) {
   display: none;
 }
 
@@ -347,6 +347,17 @@
 }
 
 .chip[data-state="played"] .chip-check {
+  display: block;
+  width: var(--chip-icon);
+  height: var(--chip-icon);
+}
+
+/* Error: the audio failed. The mark is the refresh glyph, as on the bar's disc, not a play triangle. */
+.chip[data-state="error"] .chip-glyph > .swap {
+  display: none;
+}
+
+.chip[data-state="error"] .chip-refresh {
   display: block;
   width: var(--chip-icon);
   height: var(--chip-icon);
