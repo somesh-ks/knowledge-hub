@@ -117,7 +117,7 @@ export function readRemembered(
   const seconds = readResumePosition(storage, digestId, durationSeconds);
   const played = read(storage, playedKey(digestId)) !== null;
   const heard = seconds > 0 || played ? read(storage, HEARD_KEY_PREFIX + digestId) : null;
-  return { seconds, played, heard: heard?.split(" ").filter(Boolean) ?? [] };
+  return { seconds, played, heard: heard ? heard.split(" ") : [] };
 }
 
 export function saveHeard(storage: StorageLike | null, digestId: string, ids: string[]): void {

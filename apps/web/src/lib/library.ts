@@ -46,9 +46,7 @@ export interface CardData {
   /** The card's place in the page's own order, newest first. Tells apart two cards of one day. */
   order: number;
   kind: string;
-  stories: number;
   minutes: number;
-  hasAudio: boolean;
   /**
    * Normalized text (see `normalize`), a line each: the date, the title and the kind come first (see
    * `metaLines`), then one line per story (headline and publisher).

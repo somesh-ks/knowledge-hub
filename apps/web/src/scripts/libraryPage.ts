@@ -40,7 +40,6 @@ function readCard(element: HTMLElement, order: number): Card {
     id = "",
     date = "",
     kind = "",
-    stories = "0",
     minutes = "0",
     search = "",
   } = element.dataset;
@@ -53,9 +52,7 @@ function readCard(element: HTMLElement, order: number): Card {
       date,
       order,
       kind,
-      stories: Number(stories),
       minutes: Number(minutes),
-      hasAudio: element.dataset.audio !== undefined,
       search: normalize(search),
     },
   };
