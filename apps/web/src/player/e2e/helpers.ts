@@ -38,6 +38,71 @@ export async function fulfillNarration(route: Route): Promise<void> {
   await route.fulfill({ response: await route.fetch({ url, headers: {} }) });
 }
 
+/**
+ * A briefing with no audio yet: the server lists its segments with no files, and makes each one
+ * when asked, after `delayMs`. Returns the keys that were asked for, in order.
+ */
+export async function serveNarration(
+  page: Page,
+  delayMs: number,
+  /** The page whose stories are narrated, when it is not the one open. */
+  from?: string,
+): Promise<string[]> {
+  const ids = await page.evaluate(async (path) => {
+    const html = path
+      ? new DOMParser().parseFromString(await (await fetch(path)).text(), "text/html")
+      : document;
+    const data = JSON.parse(html.getElementById("dispatch-digest-data")?.textContent ?? "{}");
+    return (data.items as { id: string }[]).map((item) => item.id);
+  }, from);
+  const keys = ["intro", ...ids];
+  const made: string[] = [];
+  const finished = new Set<string>();
+  await page.route("**/api/narrate?digest=*", (route) =>
+    route.fulfill({
+      json: {
+        status: 200,
+        audio: null,
+        timeline: null,
+        ms_per_character: 62,
+        segments: keys.map((key) => ({
+          key,
+          item_id: key === "intro" ? null : key,
+          characters: 300,
+          // The address the file will have once made, as the real server answers: a guess.
+          audio: { url: `/narrated/${key}.mp3`, duration_ms: 18_600, confirmed: false },
+        })),
+      },
+    }),
+  );
+  // The file is not there until it has been made, as on the blob store.
+  await page.route("**/narrated/*.mp3", (route) => {
+    const key = new URL(route.request().url()).pathname.split("/").pop()?.replace(".mp3", "") ?? "";
+    return made.includes(key) && finished.has(key)
+      ? fulfillNarration(route)
+      : route.fulfill({ status: 404, body: "" });
+  });
+  await page.route("**/api/narrate", async (route) => {
+    if (route.request().method() !== "POST") return route.fallback();
+    const { segment } = route.request().postDataJSON() as { segment: string };
+    made.push(segment);
+    await new Promise((resolve) => setTimeout(resolve, delayMs));
+    finished.add(segment);
+    return route.fulfill({
+      json: {
+        status: 200,
+        segment: {
+          key: segment,
+          item_id: segment === "intro" ? null : segment,
+          characters: 300,
+          audio: { url: `/narrated/${segment}.mp3`, duration_ms: 17_000, confirmed: true },
+        },
+      },
+    });
+  });
+  return made;
+}
+
 declare global {
   interface Window {
     __audios: HTMLAudioElement[];
