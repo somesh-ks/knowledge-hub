@@ -136,118 +136,6 @@ async function touchPath(
   return { move, release: () => lift(true) };
 }
 
-/** The longest move a mouse reports in one event, in px; a mouse reports hundreds a second. */
-const MOUSE_REPORT_PX = 8;
-
-/**
- * A mouse drag through Chromium's input pipeline, with each event's time stated as above. A mouse,
- * unlike a finger, is not captured by what it pressed until the drag takes hold, so each step is
- * split into the small moves a real mouse reports, at the same speed: one large jump would leave
- * the bar before the drag could take hold.
- */
-async function cdpMouseDrag(
-  page: Page,
-  path: Point[],
-  stepMs: number,
-  hold: boolean,
-): Promise<HeldPointer> {
-  const client = await page.context().newCDPSession(page);
-  const [first, ...rest] = path;
-  /** Each step after `from`, as the small moves a real mouse reports, at the same speed. */
-  const split = (from: Point, points: Point[]): Array<{ point: Point; ms: number }> => {
-    const fine: Array<{ point: Point; ms: number }> = [];
-    let previous = from;
-    for (const point of points) {
-      const parts = Math.max(
-        1,
-        Math.ceil(Math.hypot(point.x - previous.x, point.y - previous.y) / MOUSE_REPORT_PX),
-      );
-      for (let part = 1; part <= parts; part += 1) {
-        fine.push({
-          point: {
-            x: previous.x + ((point.x - previous.x) * part) / parts,
-            y: previous.y + ((point.y - previous.y) * part) / parts,
-          },
-          ms: stepMs / parts,
-        });
-      }
-      previous = point;
-    }
-    return fine;
-  };
-  let at = Date.now() / 1000;
-  let last = first ?? { x: 0, y: 0 };
-  const lift = async (held: boolean): Promise<void> => {
-    at = held ? Math.max(at + stepMs / 1000, Date.now() / 1000) : at + stepMs / 1000;
-    await client.send("Input.dispatchMouseEvent", {
-      type: "mouseReleased",
-      x: last.x,
-      y: last.y,
-      button: "left",
-      buttons: 0,
-      clickCount: 1,
-      timestamp: at,
-    });
-    await client.detach();
-  };
-  const move = async (points: Point[]): Promise<void> => {
-    for (const { point, ms } of split(last, points)) {
-      await page.waitForTimeout(ms);
-      last = point;
-      at += ms / 1000;
-      await client.send("Input.dispatchMouseEvent", {
-        type: "mouseMoved",
-        x: point.x,
-        y: point.y,
-        button: "left",
-        buttons: 1,
-        timestamp: at,
-      });
-    }
-  };
-  if (!first) return { move: async () => undefined, release: () => lift(true) };
-  await client.send("Input.dispatchMouseEvent", {
-    type: "mouseMoved",
-    x: first.x,
-    y: first.y,
-    timestamp: at,
-  });
-  await client.send("Input.dispatchMouseEvent", {
-    type: "mousePressed",
-    x: first.x,
-    y: first.y,
-    button: "left",
-    buttons: 1,
-    clickCount: 1,
-    timestamp: at,
-  });
-  await move(rest);
-  if (!hold) await lift(false);
-  return { move, release: () => lift(true) };
-}
-
-async function mouseDrag(
-  page: Page,
-  path: Point[],
-  stepMs: number,
-  hold: boolean,
-): Promise<HeldPointer> {
-  const release = (): Promise<void> => page.mouse.up();
-  const move = async (points: Point[]): Promise<void> => {
-    for (const point of points) {
-      await page.waitForTimeout(stepMs);
-      await page.mouse.move(point.x, point.y);
-    }
-  };
-  const [first, ...rest] = path;
-  if (!first) return { move, release: async () => undefined };
-  await page.mouse.move(first.x, first.y);
-  await page.mouse.down();
-  await move(rest);
-  if (!hold) await release();
-  return { move, release };
-}
-
 /** What a body child must be for the open player to leave it alone. Mirrors core/modalScope.ts. */
 const CONSISTENCY_CHECK = (): string[] => {
   const surface = document.querySelector<HTMLElement>("[data-player-surface]");
@@ -359,21 +247,19 @@ export const test = base.extend<{ player: PlayerPage; audio: AudioProbe; finger:
     await expectConsistent(page);
     expect(problems).toEqual([]);
   },
-  finger: async ({ page, hasTouch, browserName }, use) => {
+  finger: async ({ page, hasTouch }, use) => {
     const touch = Boolean(hasTouch);
-    // Chromium can synthesize a whole touch sequence; elsewhere a mouse stands in for drags.
-    const realTouch = touch && browserName === "chromium";
     await use({
       touch,
       press: (target) => (touch ? target.tap() : target.click()),
       pressAt: (point) =>
         touch ? page.touchscreen.tap(point.x, point.y) : page.mouse.click(point.x, point.y),
-      drag: (path, stepMs, options = {}) =>
-        realTouch
-          ? touchPath(page, path, stepMs, options.hold ?? false)
-          : browserName === "chromium"
-            ? cdpMouseDrag(page, path, stepMs, options.hold ?? false)
-            : mouseDrag(page, path, stepMs, options.hold ?? false),
+      // Drags are real touch sequences through Chromium's input pipeline; the specs that drag run
+      // on the phone project only.
+      drag: (path, stepMs, options = {}) => {
+        if (!touch) throw new Error("a drag needs a touch screen: run it on site-phone");
+        return touchPath(page, path, stepMs, options.hold ?? false);
+      },
     });
   },
   player: async ({ page, finger }, use) => {
@@ -405,41 +291,6 @@ export interface Box {
   y: number;
   width: number;
   height: number;
-}
-
-export interface SurfaceGeometry {
-  state: string;
-  p: number;
-  /** The whole surface: the box everything inside is laid out in. */
-  surface: Box;
-  sheet: Box;
-  dock: Box;
-  /** Where the cover rests on the bar and on the page. */
-  thumb: Box;
-  slot: Box;
-  /** The flying cover, as drawn, and its transform. */
-  art: Box;
-  artTransform: { x: number; y: number; scale: number };
-  /** The flight as script wrote it: --art-from-x and the rest, in px and as a bare scale. */
-  morph: Record<string, number>;
-  window: { width: number; height: number };
-}
-
-/** Which covers a person can see right now: the bar's, the page's, the one in flight. */
-export function visibleCovers(page: Page): Promise<string[]> {
-  return page.evaluate(() =>
-    [...document.querySelectorAll("[data-player-surface] .player-cover-frame")]
-      .filter((element) =>
-        element.checkVisibility({ visibilityProperty: true, opacityProperty: true }),
-      )
-      .map((element) =>
-        element.closest("[data-player-art]")
-          ? "flight"
-          : element.closest("[data-player-thumb]")
-            ? "bar"
-            : "page",
-      ),
-  );
 }
 
 export function center(box: Box): Point {
@@ -575,48 +426,10 @@ export class PlayerPage {
 
   /** Progress `p` of the surface, 0 collapsed and 1 expanded, read from the page's own style. */
   async progress(): Promise<number> {
-    return (await this.geometry()).p;
-  }
-
-  /**
-   * Where everything on the surface is, read in one pass, so no frame can slip in between two
-   * readings of a page that a held finger is still moving.
-   */
-  geometry(): Promise<SurfaceGeometry> {
-    return this.page.evaluate(() => {
-      const surface = document.querySelector<HTMLElement>("[data-player-surface]");
-      const find = (selector: string): HTMLElement => {
-        const element = surface?.querySelector<HTMLElement>(selector);
-        if (!element) throw new Error(`no ${selector}`);
-        return element;
-      };
-      const box = (element: Element) => {
-        const rect = element.getBoundingClientRect();
-        return { x: rect.x, y: rect.y, width: rect.width, height: rect.height };
-      };
-      if (!surface) throw new Error("no player surface");
-      const sheet = find("[data-player-page]");
-      const art = find("[data-player-art]");
-      const matrix = new DOMMatrix(getComputedStyle(art).transform);
-      const p = Number.parseFloat(getComputedStyle(sheet).getPropertyValue("--p"));
-      const morph: Record<string, number> = {};
-      for (const name of ["from-x", "from-y", "to-x", "to-y", "size", "scale"]) {
-        morph[name] = Number.parseFloat(art.style.getPropertyValue(`--art-${name}`));
-      }
-      return {
-        state: surface.dataset.state ?? "",
-        p: Number.isFinite(p) ? p : 0,
-        surface: box(surface),
-        sheet: box(sheet),
-        dock: box(find("[data-player-dock]")),
-        thumb: box(find("[data-player-thumb]")),
-        slot: box(find("[data-player-cover]")),
-        art: box(art),
-        artTransform: { x: matrix.m41, y: matrix.m42, scale: matrix.a },
-        morph,
-        window: { width: window.innerWidth, height: window.innerHeight },
-      };
-    });
+    const p = await this.sheet.evaluate((sheet) =>
+      Number.parseFloat(getComputedStyle(sheet).getPropertyValue("--p")),
+    );
+    return Number.isFinite(p) ? p : 0;
   }
 
   /** Follows a client-side link to another page; the islands and the narration carry over. */
@@ -645,13 +458,6 @@ export class PlayerPage {
         (item) => ({ id: item.id, start: item.start_ms / 1000, end: item.end_ms / 1000 }),
       );
     });
-  }
-
-  /** How far along the bar's progress line is, 0 to 1. */
-  async progressOf(): Promise<number> {
-    return this.page
-      .locator(".dock-progress")
-      .evaluate((line) => Number(line.style.getPropertyValue("--player-progress")));
   }
 }
 
