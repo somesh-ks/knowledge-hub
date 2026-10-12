@@ -1,3 +1,4 @@
+import { useLayoutEffect } from "react";
 import { createPortal } from "react-dom";
 import { INTERRUPTED_LINE, noticeAction } from "./core/playerCopy";
 import { getPlayerStore } from "./core/playerRuntime";
@@ -22,6 +23,30 @@ function keyOf(error: object): number {
   return key;
 }
 
+/** A press on the page's Play disc in a failure waits for its answer: the next notice it brings. */
+let answerPending = false;
+
+/**
+ * Called by the page's Play disc when it is pressed in a failure. Its answer (the same reason again,
+ * or the failure a retry ran into) is drawn under the title, which a listener who scrolled down to
+ * the transport can no longer see, so that answer is brought into view.
+ */
+export function awaitNoticeAnswer(): void {
+  answerPending = true;
+}
+
+/**
+ * Scrolls the page just far enough to show the notice's line, and only when that line is above the
+ * page's view. A failure that arrives with no press scrolls nothing: the alert is announced, and the
+ * disc already offers Try again.
+ */
+function bringIntoView(slot: Element): void {
+  const page = slot.closest("[data-player-page]");
+  if (!page || slot.getBoundingClientRect().top >= page.getBoundingClientRect().top) return;
+  const still = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+  slot.scrollIntoView({ block: "nearest", behavior: still ? "auto" : "smooth" });
+}
+
 /**
  * The action leaves with the notice while a retry loads: focus moves to the Play disc first, which
  * stays, so a second Enter is not lost to the page.
@@ -42,12 +67,23 @@ function keepFocus(): void {
  */
 export default function PlayerNotice({ onRetry }: PlayerNoticeProps) {
   const state = usePlayerState();
+  const errorKey = state.error ? keyOf(state.error) : null;
+  useLayoutEffect(() => {
+    // Sound is the answer to a press that worked: nothing is left to show.
+    if (state.status === "playing") answerPending = false;
+  }, [state.status]);
+  useLayoutEffect(() => {
+    if (errorKey === null || !answerPending) return;
+    answerPending = false;
+    const slot = document.querySelector("[data-player-page] [data-notice-slot]");
+    if (slot) bringIntoView(slot);
+  }, [errorKey]);
   let notice: React.ReactNode = null;
   if (state.error) {
     // A missing file is not fixed by trying again; the Play disc still offers it, once.
     const action = noticeAction(state.error.kind);
     notice = (
-      <div className="player-notice" data-tone="danger" role="alert" key={keyOf(state.error)}>
+      <div className="player-notice" data-tone="danger" role="alert" key={errorKey}>
         <Icon name="alert" />
         <p>{state.error.message}</p>
         {action ? (

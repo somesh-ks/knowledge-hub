@@ -3,6 +3,7 @@ import { getPlayerStore } from "./core/playerRuntime";
 import { SKIP_BACK_SECONDS, SKIP_FORWARD_SECONDS } from "./core/playerTypes";
 import { usePlayerState } from "./hooks/usePlayer";
 import { useStoryStep } from "./hooks/useStoryStep";
+import { awaitNoticeAnswer } from "./PlayerNotice";
 import SpeedControl from "./SpeedControl";
 import Icon from "./ui/LazyIcon";
 import PlayPauseGlyph from "./ui/PlayPauseGlyph";
@@ -50,7 +51,10 @@ export default function TransportControls() {
         data-loading={String(state.buffering)}
         aria-label={toggleLabel(state)}
         aria-busy={state.buffering || undefined}
-        onClick={() => store.toggle()}
+        onClick={() => {
+          if (state.status === "error") awaitNoticeAnswer();
+          store.toggle();
+        }}
       >
         <PlayPauseGlyph status={state.status} error={state.error} />
         <span className="spinner" aria-hidden="true" />
