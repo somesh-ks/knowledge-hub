@@ -67,9 +67,12 @@ describe("Space anywhere on the page", () => {
 
   it("names every element and role that owns Space", () => {
     const parts = SPACE_OWNERS.split(", ");
-    for (const tag of ["input", "textarea", "select", "button", "a", "summary"]) {
+    for (const tag of ["textarea", "select", "button", "a", "summary"]) {
       expect(parts).toContain(tag);
     }
+    // Every input but a native range: Space has no job on the bar's seek, so it plays and pauses.
+    expect(parts).toContain("input:not([type='range'])");
+    expect(parts).not.toContain("input");
     for (const role of [
       "button",
       "checkbox",
