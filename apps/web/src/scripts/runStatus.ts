@@ -61,6 +61,8 @@ const staged = (body: { stage?: number; stages?: number; label?: string }) => ({
 });
 
 const FINISHED: Phase[] = ["done", "started", "failed"];
+/** A finished rewrite's line is news for minutes: on a page that opens later it has gone stale. */
+const STALE_REWRITE_MS = 10 * 60_000;
 /** Phases of a run that is still going: Create waits for it (createPage.ts). */
 export const GOING = ["queued", "running", "updating"];
 const PASSPHRASE_KEY = "dispatch:narrate-passphrase";
@@ -163,6 +165,7 @@ function show(run: Stored | null): void {
     run = null;
   }
   const finished = run ? FINISHED.includes(run.phase) : false;
+  const announce = root.querySelector("[data-run-announce]");
   card.hidden = !run;
   if (run) {
     card.dataset.state = run.phase;
@@ -181,9 +184,11 @@ function show(run: Stored | null): void {
             : (root.dataset[key] ?? root.dataset[run.phase]);
     if (text && text.textContent !== (line ?? "")) text.textContent = line ?? "";
     // The status region hears the line alone, and only when it changes.
-    const announce = root.querySelector("[data-run-announce]");
     if (announce && announce.textContent !== (line ?? "")) announce.textContent = line ?? "";
     fill(card, run);
+  } else if (announce) {
+    // The card is gone and so is what it said: browse mode must not read a finished run's last line.
+    announce.textContent = "";
   }
   const library = card.querySelector<HTMLAnchorElement>("[data-run-library]");
   if (library) {
@@ -344,9 +349,25 @@ export function startRun(id: number, about?: { kind: Kind; episode: string }, re
   void follow(run, false);
 }
 
+/** An episode was removed: a finished line about it (a rewrite, a failure) has nothing left to say. */
+export function forgetRunAbout(episode: string): void {
+  const run = read();
+  if (run?.episode !== episode || !FINISHED.includes(run.phase)) return;
+  write(null);
+  show(null);
+}
+
 /** After a reload or a navigation: shows the stored run again and, if it is still going, follows it. */
 export function resumeRun(): void {
-  const run = read();
+  let run = read();
+  if (
+    run?.kind === "regenerate" &&
+    run.phase === "done" &&
+    Date.now() - (run.t0 ?? 0) > STALE_REWRITE_MS
+  ) {
+    write(null);
+    run = null;
+  }
   show(run);
   if (run?.phase === "updating") void waitForSite(run);
   else if (run && !FINISHED.includes(run.phase)) void follow(run, true);

@@ -29,8 +29,8 @@ type Control = HTMLInputElement;
 
 /** What a suggested source's row says when its request was refused or did not go. */
 const NOT_ADDED = "Not added. Try again.";
-/** And a topic's row, which has no plus to press: the toast's Retry is the way. */
-const TOPIC_NOT_ADDED = "Not added yet. Press Retry.";
+/** And a topic's row, which has no plus to press: the toast's Retry may be dismissed, the next change still sends it. */
+const TOPIC_NOT_ADDED = "Not added yet. It goes with your next change.";
 
 /**
  * What a control holds now. A pressed button is a boolean, a slider a number. A remove button keeps

@@ -3,7 +3,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 const prewarmEpisode = vi.fn(async (_id: string) => undefined);
 vi.mock("../narration/prewarmEpisode", () => ({ prewarmEpisode }));
 
-const { fill, focusCreate, resumeRun, SITE_POLL_MS } = await import("./runStatus");
+const { fill, focusCreate, forgetRunAbout, resumeRun, SITE_POLL_MS } = await import("./runStatus");
 
 describe("the progress bar", () => {
   it("starts a new run (a Try again) from empty, and never goes back within one run", () => {
@@ -132,5 +132,62 @@ describe("focus after the card is gone", () => {
     expect(main.focus).toHaveBeenCalledWith({ preventScroll: true });
     expect(main.attrs.get("tabindex")).toBe("-1");
     vi.unstubAllGlobals();
+  });
+});
+
+describe("a finished line that has gone stale", () => {
+  const done = (episode: string, ageMs: number, kind: "regenerate" | "delete" = "regenerate") => ({
+    id: 77,
+    phase: "done",
+    kind,
+    episode,
+    t0: Date.now() - ageMs,
+  });
+  const stored = (page: ReturnType<typeof stubPage>) =>
+    JSON.parse(page.store.get("dispatch:run") ?? "null");
+
+  it("goes with the episode it was about, once that episode is removed", () => {
+    const page = stubPage(77, "ep-1");
+    page.store.set("dispatch:run", JSON.stringify(done("ep-1", 5_000)));
+    forgetRunAbout("ep-2");
+    expect(stored(page)?.episode).toBe("ep-1");
+    forgetRunAbout("ep-1");
+    expect(stored(page)).toBeNull();
+  });
+
+  it("stays while the run is still going, since the episode's actions are off until it ends", () => {
+    const page = stubPage(77, "ep-1");
+    page.store.set(
+      "dispatch:run",
+      JSON.stringify({
+        id: 77,
+        phase: "running",
+        kind: "regenerate",
+        episode: "ep-1",
+        t0: Date.now(),
+      }),
+    );
+    forgetRunAbout("ep-1");
+    expect(stored(page)?.phase).toBe("running");
+  });
+
+  it("is not shown by a page that opens ten minutes after a rewrite finished", () => {
+    const page = stubPage(77, "ep-1");
+    page.store.set("dispatch:run", JSON.stringify(done("ep-1", 5 * 60_000)));
+    resumeRun();
+    expect(stored(page)?.phase).toBe("done");
+    page.store.set("dispatch:run", JSON.stringify(done("ep-1", 11 * 60_000)));
+    resumeRun();
+    expect(stored(page)).toBeNull();
+  });
+
+  it("keeps a finished new episode's line however old: it still offers the episode", () => {
+    const page = stubPage(77, "ep-1");
+    page.store.set(
+      "dispatch:run",
+      JSON.stringify({ id: 77, phase: "done", href: "/e/ep-1", t0: Date.now() - 60 * 60_000 }),
+    );
+    resumeRun();
+    expect(stored(page)?.phase).toBe("done");
   });
 });

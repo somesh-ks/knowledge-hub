@@ -22,7 +22,7 @@ import {
   savedTopics,
   sourceCounts,
 } from "../lib/savedOverlay";
-import { plural, sourcesSummary, weeklyNote } from "../lib/settingsSummary";
+import { sourcesSummary, weeklyNote } from "../lib/settingsSummary";
 import {
   type CatalogSource,
   cadenceLabel,

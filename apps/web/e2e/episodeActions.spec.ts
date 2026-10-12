@@ -287,6 +287,51 @@ test.describe("regenerate and delete an episode", () => {
       .toBe(true);
   });
 
+  test("Back after Delete stays in the Library as it was left", async ({ page }) => {
+    await mock(page, [{ run_id: 77, state: "queued", step: null }]);
+    await page.goto("/library?show=custom&sort=oldest");
+    await expect(page.locator("[data-library]")).toHaveAttribute("data-ready", "");
+    await page.locator(`[data-card] a[href="/e/${ID}"]`).click();
+    await expect(page).toHaveURL(new RegExp(`/e/${ID}$`));
+    await hydrated(page);
+    await choose(page, "Delete");
+    await fillPassphrase(confirm(page));
+    await confirm(page).getByRole("button", { name: "Delete", exact: true }).click();
+    await expect(page).toHaveURL(/\/library\?show=custom&sort=oldest$/, { timeout: 5_000 });
+    // The entry behind it is the deleted episode's page, which sends the person to the Library they
+    // left, with its filter and order, not to a bare one.
+    await page.goBack();
+    await expect(page).toHaveURL(/\/library\?show=custom&sort=oldest$/, { timeout: 5_000 });
+    await expect(card(page)).toHaveCount(0);
+  });
+
+  test("a rewrite's line goes when the episode is deleted, and does not read out afterwards", async ({
+    page,
+  }) => {
+    await mock(page, [
+      { run_id: 77, state: "running", step: null },
+      { run_id: 77, state: "completed", step: null, outcome: "published" },
+    ]);
+    await open(page);
+    await choose(page, "Regenerate");
+    await panel(page).getByLabel("What should change?").fill("Shorter intro");
+    await fillPassphrase(panel(page));
+    await panel(page).getByRole("button", { name: "Regenerate episode" }).click();
+    await expect(indicator(page)).toHaveText("Rewritten. Live in about a minute.", {
+      timeout: 15_000,
+    });
+    await expect(page.locator("[data-run-announce]")).toHaveText(
+      "Rewritten. Live in about a minute.",
+    );
+    await choose(page, "Delete");
+    await fillPassphrase(confirm(page));
+    await confirm(page).getByRole("button", { name: "Delete", exact: true }).click();
+    await expect(page).toHaveURL(/\/library$/, { timeout: 5_000 });
+    // The episode is gone, so is what the line said about it, to the eye and to a screen reader.
+    await expect(page.locator("[data-run-card]")).toBeHidden();
+    await expect(page.locator("[data-run-announce]")).toHaveText("");
+  });
+
   test.describe("a refusal", () => {
     // The browser logs the 429 it was served on purpose.
     test.use({ allowNetworkErrors: true });
@@ -303,7 +348,9 @@ test.describe("regenerate and delete an episode", () => {
       await choose(page, "Delete");
       await fillPassphrase(confirm(page));
       await confirm(page).getByRole("button", { name: "Delete", exact: true }).click();
-      await expect(confirm(page).getByRole("alert")).toContainText("Try again in 2 minutes.");
+      await expect(confirm(page).getByRole("alert")).toContainText(
+        "You can do that again in 2 minutes.",
+      );
       await expect(page).toHaveURL(new RegExp(`/e/${ID}$`));
       await page.goto("/library");
       await expect(card(page)).toHaveCount(1);
@@ -322,7 +369,9 @@ test.describe("regenerate and delete an episode", () => {
       await fillPassphrase(panel(page));
       await panel(page).getByLabel("What should change?").fill("More depth");
       await panel(page).getByRole("button", { name: "Regenerate episode" }).click();
-      await expect(panel(page).getByRole("alert")).toContainText("Try again in 2 minutes.");
+      await expect(panel(page).getByRole("alert")).toContainText(
+        "You can do that again in 2 minutes.",
+      );
       await expect(panel(page)).toBeVisible();
     });
   });

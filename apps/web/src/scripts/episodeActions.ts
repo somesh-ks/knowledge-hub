@@ -1,17 +1,6 @@
 import { navigateTo } from "../player/core/navigation";
-
-/** The Library as it was left, with its search, filter and order, or the plain Library. */
-function libraryAddress(): string {
-  try {
-    const kept = sessionStorage.getItem("dispatch:library-url");
-    if (kept?.startsWith("/library")) return kept;
-  } catch {
-    // Storage can be blocked.
-  }
-  return "/library";
-}
-
-import { startRun } from "./runStatus";
+import { libraryAddress } from "./libraryAddress";
+import { forgetRunAbout, startRun } from "./runStatus";
 
 /**
  * Regenerate and Delete on an episode page. Loaded on the first pick of either menu item, never with
@@ -152,6 +141,8 @@ function bind(kind: Kind, dialog: HTMLDialogElement, root: HTMLElement): void {
       // Instant: the redeploy takes minutes, so this device hides the episode meanwhile and the
       // person lands on the Library with no progress to watch.
       (await import("./deletedEpisodes")).rememberDeleted(id);
+      // A rewrite's line about this episode ("Live in about a minute") would outlive it.
+      forgetRunAbout(id);
       // Back may have closed the confirm while the request was out, taking its history entry.
       if (dialog.open) {
         leaving.add(dialog);

@@ -5,6 +5,7 @@ import {
   parseDeleted,
   pruneDeleted,
 } from "../lib/deletedEpisodes";
+import { libraryAddress } from "./libraryAddress";
 
 /**
  * Hides episodes this device has deleted until the redeploy catches up (lib/deletedEpisodes.ts
@@ -57,10 +58,10 @@ function hideIn(doc: Document): void {
   if (doc === document && removed > 0) document.dispatchEvent(new Event("dispatch:library-pruned"));
 }
 
-/** A page for a deleted episode has nothing to show: go to the Library. */
+/** A page for a deleted episode has nothing to show: go to the Library as it was left. */
 function leaveIfDeleted(): void {
   const id = ID_FROM_HREF.exec(location.pathname)?.[1];
-  if (id && load().some((entry) => entry.id === id)) location.replace("/library");
+  if (id && load().some((entry) => entry.id === id)) location.replace(libraryAddress());
 }
 
 let installed = false;
