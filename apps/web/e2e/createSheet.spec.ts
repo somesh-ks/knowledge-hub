@@ -1,9 +1,7 @@
 import AxeBuilder from "@axe-core/playwright";
 import type { Page } from "@playwright/test";
+import { OPEN_PASSPHRASE } from "../src/lib/access";
 import { expect, hydrated, test } from "./fixtures";
-import { PASSPHRASE_REQUIRED } from "./passphrase";
-
-const SENT = PASSPHRASE_REQUIRED ? "correct horse battery staple" : "open";
 
 const trigger = (page: Page) => page.locator("[data-create-open]:visible").first();
 const sheet = (page: Page) => page.locator("dialog.create-sheet");
@@ -218,14 +216,9 @@ test.describe("Create as the primary action", () => {
     ]);
     await openSheet(page);
     await sheet(page).locator("[data-submit]").click();
-    if (PASSPHRASE_REQUIRED) {
-      const ask = page.getByRole("dialog", { name: "Enter the passphrase" });
-      await ask.getByLabel("Passphrase").fill(SENT);
-      await ask.getByRole("button", { name: "Create episode" }).click();
-    }
     await expect.poll(() => bodies.length).toBe(1);
     expect(bodies[0]).toEqual({
-      passphrase: SENT,
+      passphrase: OPEN_PASSPHRASE,
       request: {
         audience: "custom",
         topic_ids: ["design", "ui-craft", "ai", "tech"],
@@ -286,11 +279,6 @@ test.describe("Try again on a failed run", () => {
     await sheet(page).locator(".filter-chip", { hasText: "Design" }).click();
     await expect(chosen("Design")).not.toBeChecked();
     await sheet(page).locator("[data-submit]").click();
-    if (PASSPHRASE_REQUIRED) {
-      const ask = page.getByRole("dialog", { name: "Enter the passphrase" });
-      await ask.getByLabel("Passphrase").fill(SENT);
-      await ask.getByRole("button", { name: "Create episode" }).click();
-    }
     await expect(sheet(page)).toBeHidden();
     await expect(page.locator("[data-run-text]")).toHaveText("Couldn't make the episode", {
       timeout: 15_000,

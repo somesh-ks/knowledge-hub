@@ -1,13 +1,9 @@
 import AxeBuilder from "@axe-core/playwright";
 import type { Page, Route } from "@playwright/test";
+import { OPEN_PASSPHRASE } from "../src/lib/access";
 import { expect, test } from "./fixtures";
-import { PASSPHRASE_OFF, PASSPHRASE_ON, PASSPHRASE_REQUIRED } from "./passphrase";
 
 const WCAG = ["wcag2a", "wcag2aa", "wcag21a", "wcag21aa", "wcag22aa"];
-const PASSPHRASE = "correct horse battery staple";
-/** What the page sends as the passphrase: what was typed, or the fixed value while none is asked. */
-const SENT = PASSPHRASE_REQUIRED ? PASSPHRASE : "open";
-const STORAGE_KEY = "dispatch:narrate-passphrase";
 const EPISODE = "/e/ep-20261007-1930";
 const EPISODE_ID = "ep-20261007-1930";
 
@@ -39,7 +35,6 @@ async function mockPodcast(page: Page, status: number, body: unknown): Promise<M
 
 const chip = (page: Page, name: string) => page.locator(".filter-chip:visible", { hasText: name });
 const segment = (page: Page, name: string) => page.locator(".settings-segment", { hasText: name });
-const dialog = (page: Page) => page.getByRole("dialog", { name: "Enter the passphrase" });
 const submit = (page: Page) => page.locator("[data-submit]");
 
 /** Unticks every chip, for a test that starts from no topic. */
@@ -69,22 +64,6 @@ async function openCreate(page: Page): Promise<void> {
   await page.goto("/create");
   await expect(page.locator("[data-create]")).toHaveAttribute("data-ready", "");
   await openMore(page);
-}
-
-/**
- * Presses Create with the Somesh preset ticked (Design, AI, Technology). While a passphrase is asked for, that opens its dialog;
- * while it is not, the request is already on its way.
- */
-async function openDialog(page: Page): Promise<void> {
-  await page.locator("[data-submit]").click();
-  if (PASSPHRASE_REQUIRED) await expect(dialog(page)).toBeVisible();
-}
-
-/** Answers the passphrase dialog. With the step off there is none to answer. */
-async function confirm(page: Page): Promise<void> {
-  if (!PASSPHRASE_REQUIRED) return;
-  await dialog(page).getByLabel("Passphrase").fill(PASSPHRASE);
-  await dialog(page).getByRole("button", { name: "Create episode" }).click();
 }
 
 // The service worker answers /latest.json itself, which a route handler cannot see.
@@ -173,7 +152,6 @@ test.describe("the Create page", () => {
   test("while the request is out the button says Starting…, with its spinner beside the words", async ({
     page,
   }) => {
-    test.skip(PASSPHRASE_REQUIRED, PASSPHRASE_ON);
     let release: () => void = () => {};
     const held = new Promise<void>((resolve) => {
       release = resolve;
@@ -272,7 +250,7 @@ test.describe("the Create page", () => {
     });
   }
 
-  test("needs at least one topic before it asks for the passphrase", async ({ page }) => {
+  test("needs at least one topic before it sends", async ({ page }) => {
     await openCreate(page);
     await clearTopics(page);
     const error = page.locator('[data-error="topics"]');
@@ -280,7 +258,6 @@ test.describe("the Create page", () => {
     await page.locator("[data-submit]").click();
     await expect(error).toBeVisible();
     await expect(error).toHaveText("Pick at least one topic.");
-    await expect(dialog(page)).toBeHidden();
     // Focus goes to the first topic, where the fix is.
     await expect(page.locator('input[name="topic"]').first()).toBeFocused();
     // Choosing one clears the message.
@@ -325,7 +302,6 @@ test.describe("the Create page", () => {
     await expect(page.locator('input[name="topic"][value="audio_interfaces"]')).not.toBeChecked();
     await expect(page.locator('input[name="topic"]:checked')).toHaveCount(6);
     await page.locator("[data-submit]").click();
-    await confirm(page);
     await expect.poll(() => mock.bodies.length).toBe(1);
     expect(mock.bodies[0]?.request).toMatchObject({
       audience: "general",
@@ -371,7 +347,6 @@ test.describe("the Create page", () => {
     await expect(note).toBeHidden();
     await expect(ticked).toHaveText(["Design", "AI", "Technology"]);
     await page.locator("[data-submit]").click();
-    await confirm(page);
     await expect.poll(() => mock.bodies.length).toBe(1);
     expect(mock.bodies[0]?.request).toMatchObject({
       topic_ids: ["design", "ui-craft", "ai", "tech"],
@@ -440,7 +415,6 @@ test.describe("the Create page", () => {
     await chip(page, "Sports").click();
     await expect(page.locator('input[name="topic"]:checked')).toHaveCount(5);
     await page.locator("[data-submit]").click();
-    await confirm(page);
     await expect.poll(() => mock.bodies.length).toBe(1);
     // Design sends two sections; the audience still says how the script is written.
     expect(mock.bodies[0]?.request).toMatchObject({
@@ -557,7 +531,6 @@ test.describe("the Create page", () => {
   test("with the passphrase step off, Create sends straight away and mentions none", async ({
     page,
   }) => {
-    test.skip(PASSPHRASE_REQUIRED, PASSPHRASE_ON);
     // The clock is held, so the page never gets as far as asking after the run.
     await page.clock.install();
     const mock = await mockPodcast(page, 202, { status: 202, run_id: 5, started_at: "x" });
@@ -565,34 +538,9 @@ test.describe("the Create page", () => {
     await expect(page.getByText(/passphrase/i)).toHaveCount(0);
     await page.locator("[data-submit]").click();
     await expect.poll(() => mock.bodies.length).toBe(1);
-    expect(mock.bodies[0]?.passphrase).toBe("open");
+    expect(mock.bodies[0]?.passphrase).toBe(OPEN_PASSPHRASE);
     await expect(page.locator("[data-run-card]")).toBeVisible();
     await expect(page.getByRole("dialog")).toHaveCount(0);
-  });
-
-  test("asks for the passphrase in a dialog that can be cancelled", async ({ page }) => {
-    test.skip(!PASSPHRASE_REQUIRED, PASSPHRASE_OFF);
-    await openCreate(page);
-    await openDialog(page);
-    await expect(dialog(page).getByLabel("Passphrase")).toBeFocused();
-    await expect(dialog(page).getByLabel("Remember on this device")).not.toBeChecked();
-    await dialog(page).getByRole("button", { name: "Close" }).click();
-    await expect(dialog(page)).toBeHidden();
-    // Escape closes it too.
-    await page.locator("[data-submit]").click();
-    await expect(dialog(page)).toBeVisible();
-    await page.keyboard.press("Escape");
-    await expect(dialog(page)).toBeHidden();
-  });
-
-  test("will not send an empty passphrase", async ({ page }) => {
-    test.skip(!PASSPHRASE_REQUIRED, PASSPHRASE_OFF);
-    const mock = await mockPodcast(page, 202, { status: 202, run_id: 1, started_at: "x" });
-    await openCreate(page);
-    await openDialog(page);
-    await dialog(page).getByRole("button", { name: "Create episode" }).click();
-    await expect(dialog(page).getByRole("alert")).toHaveText("Enter the passphrase to continue.");
-    expect(mock.bodies).toHaveLength(0);
   });
 
   test("sends the choices and the passphrase, then follows the run to the end", async ({
@@ -631,12 +579,10 @@ test.describe("the Create page", () => {
     await page.getByLabel("Title").fill("  My week in AI  ");
     await page.locator("[data-submit]").click();
 
-    await confirm(page);
-
     // The request is exactly what was chosen, and the passphrase rides beside it.
     await expect.poll(() => mock.bodies.length).toBe(1);
     expect(mock.bodies[0]).toEqual({
-      passphrase: SENT,
+      passphrase: OPEN_PASSPHRASE,
       request: {
         audience: "custom",
         topic_ids: ["ai", "tech", "world"],
@@ -714,8 +660,7 @@ test.describe("the Create page", () => {
       });
     });
     await openCreate(page);
-    await openDialog(page);
-    await confirm(page);
+    await submit(page).click();
     const text = page.locator("[data-run-text]");
     const card = page.locator("[data-run-card]");
     await expect(text).toHaveText("Episode queued");
@@ -758,8 +703,7 @@ test.describe("the Create page", () => {
       }),
     );
     await openCreate(page);
-    await openDialog(page);
-    await confirm(page);
+    await submit(page).click();
     await page.clock.runFor(4000);
     await expect(page.locator("[data-run-text]")).toHaveText("Stopped while making the episode");
   });
@@ -775,8 +719,7 @@ test.describe("the Create page", () => {
       }),
     );
     await openCreate(page);
-    await openDialog(page);
-    await confirm(page);
+    await submit(page).click();
     await expect(page.locator("[data-run-card]")).toBeVisible();
     await page.clock.runFor(4000);
     await expect(page.locator("[data-run-text]")).toHaveText("Couldn't make the episode");
@@ -802,8 +745,7 @@ test.describe("the Create page", () => {
     });
     await openCreate(page);
     await segment(page, "10 min").click();
-    await openDialog(page);
-    await confirm(page);
+    await submit(page).click();
     await expect.poll(() => mock.bodies.length).toBe(1);
     await page.clock.runFor(4000);
     const text = page.locator("[data-run-text]");
@@ -837,14 +779,12 @@ test.describe("the Create page", () => {
       }),
     );
     await openCreate(page);
-    await openDialog(page);
-    await confirm(page);
+    await submit(page).click();
     await expect.poll(() => mock.bodies.length).toBe(1);
     await expect(page.locator("[data-run-card]")).toBeVisible();
     await submit(page).click();
     const busy = "An episode is still being made. You can start another when it's ready.";
     await expect(page.locator('[data-error="form"]')).toHaveText(busy);
-    await expect(dialog(page)).toHaveCount(0);
     expect(mock.bodies).toHaveLength(1);
     // New episode says it too, to a screen reader, rather than opening a form that cannot send.
     await expect(page.locator("[data-create-open]").first()).toHaveAccessibleDescription(busy);
@@ -881,8 +821,7 @@ test.describe("the Create page", () => {
       }),
     );
     await openCreate(page);
-    await openDialog(page);
-    await confirm(page);
+    await submit(page).click();
     await page.clock.runFor(4000);
     await expect(async () => {
       await page.clock.runFor(3000);
@@ -950,8 +889,7 @@ test.describe("the Create panel's voices", () => {
     await expect(page.locator("[data-voice-caption]")).toHaveText(["Ada's voice", "Leo's voice"]);
     await expect(ada).toHaveAccessibleName("Ada's voice");
     await expect(leo).toHaveAccessibleName("Leo's voice");
-    await openDialog(page);
-    await confirm(page);
+    await submit(page).click();
     await expect.poll(() => mock.bodies.length).toBe(1);
     expect(mock.bodies[0]?.request).toMatchObject({
       format: "discussion",
@@ -1039,8 +977,7 @@ test.describe("the Create panel's voices", () => {
     const mock = await mockPodcast(page, 202, { status: 202, run_id: 7, started_at: "now" });
     await openCreate(page);
     await page.locator('select[name="voice"]').selectOption("voice-nora");
-    await openDialog(page);
-    await confirm(page);
+    await submit(page).click();
     await expect.poll(() => mock.bodies.length).toBe(1);
     const request = mock.bodies[0]?.request as Record<string, unknown>;
     expect(request.voice_id).toBe("voice-nora");
@@ -1055,8 +992,7 @@ test.describe("the Create page when the server says no", () => {
   test("leaves the title out when it is empty, and sends no title key", async ({ page }) => {
     const mock = await mockPodcast(page, 400, { status: 400, error: "invalid_request" });
     await openCreate(page);
-    await openDialog(page);
-    await confirm(page);
+    await submit(page).click();
     await expect.poll(() => mock.bodies.length).toBe(1);
     expect(mock.bodies[0]?.request).toEqual({
       audience: "custom",
@@ -1067,22 +1003,6 @@ test.describe("the Create page when the server says no", () => {
       tone: "neutral",
       voice_id: null,
     });
-  });
-
-  test("says a wrong passphrase in words and keeps the dialog open", async ({ page }) => {
-    test.skip(!PASSPHRASE_REQUIRED, PASSPHRASE_OFF);
-    await mockPodcast(page, 401, { status: 401, error: "wrong_passphrase" });
-    await openCreate(page);
-    await openDialog(page);
-    await dialog(page).getByLabel("Passphrase").fill("not it");
-    await dialog(page).getByRole("button", { name: "Create episode" }).click();
-    await expect(dialog(page).getByRole("alert")).toHaveText(
-      "That passphrase does not match. Check it and try again.",
-    );
-    await expect(dialog(page)).toBeVisible();
-    await expect(page.locator("[data-run-card]")).toBeHidden();
-    // The wrong one is not kept.
-    expect(await page.evaluate((key) => localStorage.getItem(key), STORAGE_KEY)).toBeNull();
   });
 
   test("names each refusal in words, on the page, and closes the dialog", async ({ page }) => {
@@ -1113,8 +1033,6 @@ test.describe("the Create page when the server says no", () => {
       await page.unroute("**/api/podcast");
       await mockPodcast(page, status, body);
       await page.locator("[data-submit]").click();
-      await confirm(page);
-      await expect(dialog(page)).toBeHidden();
       await expect(page.locator('[data-error="form"]')).toHaveText(words);
       await expect(page.locator("[data-create-form]")).toBeVisible();
       await expect(page.locator("[data-run-card]")).toBeHidden();
@@ -1142,8 +1060,7 @@ test.describe("the Create page when the server says no", () => {
       }),
     );
     await openCreate(page);
-    await openDialog(page);
-    await confirm(page);
+    await submit(page).click();
     await page.clock.runFor(4000);
     const text = page.locator("[data-run-text]");
     await expect(text).toHaveText("Stopped while making the episode");
@@ -1157,41 +1074,10 @@ test.describe("the Create page when the server says no", () => {
   test("says so when the request cannot be sent", async ({ page }) => {
     await page.route("**/api/podcast", (route) => route.abort("failed"));
     await openCreate(page);
-    await openDialog(page);
-    await confirm(page);
+    await submit(page).click();
     await expect(page.locator('[data-error="form"]')).toHaveText(
       "The request did not go through. Check your connection, then try again.",
     );
-  });
-
-  test("keeps the passphrase on this device only when asked, and offers it next time", async ({
-    page,
-  }) => {
-    test.skip(!PASSPHRASE_REQUIRED, PASSPHRASE_OFF);
-    await mockPodcast(page, 202, { status: 202, run_id: 7, started_at: "2026-10-07T12:00:00Z" });
-    await page.route("**/api/status?**", (route) =>
-      route.fulfill({ status: 404, contentType: "application/json", body: "{}" }),
-    );
-    await openCreate(page);
-    await openDialog(page);
-    await dialog(page).getByLabel("Passphrase").fill(PASSPHRASE);
-    await dialog(page).getByLabel("Remember on this device").check();
-    await dialog(page).getByRole("button", { name: "Create episode" }).click();
-    await expect(page.locator("[data-run-card]")).toBeVisible();
-    expect(await page.evaluate((key) => localStorage.getItem(key), STORAGE_KEY)).toBe(PASSPHRASE);
-
-    // A page that cannot follow the run still says the episode was started.
-    await expect(page.locator("[data-run-text]")).toHaveText(
-      "Still being made. It will appear in your Library.",
-      {
-        timeout: 15_000,
-      },
-    );
-
-    await page.reload();
-    await openDialog(page);
-    await expect(dialog(page).getByLabel("Passphrase")).toHaveValue(PASSPHRASE);
-    await expect(dialog(page).getByLabel("Remember on this device")).toBeChecked();
   });
 });
 
@@ -1422,27 +1308,6 @@ test.describe("axe, the Create page and episodes", () => {
       await page.emulateMedia({ colorScheme: scheme });
       await page.goto("/library");
       await page.evaluate(() => document.fonts.ready);
-      expect(await violations(page)).toEqual([]);
-    });
-  }
-});
-
-test.describe("axe, the passphrase dialog", () => {
-  test.skip(!PASSPHRASE_REQUIRED, PASSPHRASE_OFF);
-
-  // The dialog shows a 401, which the browser logs as a failed load.
-  test.use({ allowNetworkErrors: true });
-
-  for (const scheme of ["light", "dark"] as const) {
-    test(`the passphrase dialog, with its error, has none, ${scheme}`, async ({ page }) => {
-      await page.emulateMedia({ colorScheme: scheme });
-      await mockPodcast(page, 401, { status: 401, error: "wrong_passphrase" });
-      await openCreate(page);
-      await openDialog(page);
-      await dialog(page).getByLabel("Passphrase").fill("nope");
-      await dialog(page).getByRole("button", { name: "Create episode" }).click();
-      await expect(dialog(page).getByRole("alert")).toBeVisible();
-      await page.waitForTimeout(400);
       expect(await violations(page)).toEqual([]);
     });
   }

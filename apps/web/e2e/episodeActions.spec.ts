@@ -1,10 +1,9 @@
 import AxeBuilder from "@axe-core/playwright";
 import type { Page } from "@playwright/test";
+import { OPEN_PASSPHRASE } from "../src/lib/access";
 import { expect, hydrated, test } from "./fixtures";
-import { PASSPHRASE_REQUIRED } from "./passphrase";
 
 const ID = "ep-20261007-1930";
-const SENT = PASSPHRASE_REQUIRED ? "correct horse battery staple" : "open";
 
 const more = (page: Page) => page.getByRole("button", { name: "More actions" });
 const menu = (page: Page) => page.getByRole("menu", { name: "More actions" });
@@ -48,10 +47,6 @@ async function mock(page: Page, states: unknown[]): Promise<Array<Record<string,
     });
   });
   return bodies;
-}
-
-async function fillPassphrase(dialog: ReturnType<typeof panel>): Promise<void> {
-  if (PASSPHRASE_REQUIRED) await dialog.getByLabel("Passphrase").fill(SENT);
 }
 
 test.describe("regenerate and delete an episode", () => {
@@ -140,12 +135,11 @@ test.describe("regenerate and delete an episode", () => {
       panel(page).getByRole("heading", { name: "Regenerate this episode" }),
     ).toBeVisible();
     await panel(page).getByLabel("What should change?").fill("  Shorter intro, more on design  ");
-    await fillPassphrase(panel(page));
     await panel(page).getByRole("button", { name: "Regenerate episode" }).click();
 
     await expect.poll(() => bodies.length).toBe(1);
     expect(bodies[0]).toEqual({
-      passphrase: SENT,
+      passphrase: OPEN_PASSPHRASE,
       action: "regenerate",
       id: ID,
       feedback: "Shorter intro, more on design",
@@ -194,7 +188,6 @@ test.describe("regenerate and delete an episode", () => {
     const bodies = await mock(page, [{ run_id: 77, state: "queued", step: null }]);
     await open(page);
     await choose(page, "Regenerate");
-    await fillPassphrase(panel(page));
     await panel(page).getByLabel("What should change?").fill("   ");
     await panel(page).getByRole("button", { name: "Regenerate episode" }).click();
     await expect(panel(page).getByRole("alert")).toHaveText("Describe what should change.");
@@ -240,11 +233,10 @@ test.describe("regenerate and delete an episode", () => {
     const bodies = await mock(page, [{ run_id: 77, state: "queued", step: null }]);
     await open(page);
     await choose(page, "Delete");
-    await fillPassphrase(confirm(page));
     await confirm(page).getByRole("button", { name: "Delete", exact: true }).click();
 
     await expect.poll(() => bodies.length).toBe(1);
-    expect(bodies[0]).toEqual({ passphrase: SENT, action: "delete", id: ID });
+    expect(bodies[0]).toEqual({ passphrase: OPEN_PASSPHRASE, action: "delete", id: ID });
     await expect(page).toHaveURL(/\/library$/, { timeout: 5_000 });
     // No progress to watch, and the card is gone while the site still has it.
     await expect(indicator(page)).toBeHidden();
@@ -270,7 +262,6 @@ test.describe("regenerate and delete an episode", () => {
     await expect(page).toHaveURL(new RegExp(`/e/${ID}$`));
     await hydrated(page);
     await choose(page, "Delete");
-    await fillPassphrase(confirm(page));
     await confirm(page).getByRole("button", { name: "Delete", exact: true }).click();
     await expect.poll(() => bodies.length).toBe(1);
     await expect(page).toHaveURL(/\/library\?show=custom&sort=oldest$/, { timeout: 5_000 });
@@ -295,7 +286,6 @@ test.describe("regenerate and delete an episode", () => {
     await expect(page).toHaveURL(new RegExp(`/e/${ID}$`));
     await hydrated(page);
     await choose(page, "Delete");
-    await fillPassphrase(confirm(page));
     await confirm(page).getByRole("button", { name: "Delete", exact: true }).click();
     await expect(page).toHaveURL(/\/library\?show=custom&sort=oldest$/, { timeout: 5_000 });
     // The entry behind it is the deleted episode's page, which sends the person to the Library they
@@ -315,7 +305,6 @@ test.describe("regenerate and delete an episode", () => {
     await open(page);
     await choose(page, "Regenerate");
     await panel(page).getByLabel("What should change?").fill("Shorter intro");
-    await fillPassphrase(panel(page));
     await panel(page).getByRole("button", { name: "Regenerate episode" }).click();
     await expect(indicator(page)).toHaveText("Rewritten. Live in about a minute.", {
       timeout: 15_000,
@@ -324,7 +313,6 @@ test.describe("regenerate and delete an episode", () => {
       "Rewritten. Live in about a minute.",
     );
     await choose(page, "Delete");
-    await fillPassphrase(confirm(page));
     await confirm(page).getByRole("button", { name: "Delete", exact: true }).click();
     await expect(page).toHaveURL(/\/library$/, { timeout: 5_000 });
     // The episode is gone, so is what the line said about it, to the eye and to a screen reader.
@@ -346,7 +334,6 @@ test.describe("regenerate and delete an episode", () => {
       );
       await open(page);
       await choose(page, "Delete");
-      await fillPassphrase(confirm(page));
       await confirm(page).getByRole("button", { name: "Delete", exact: true }).click();
       await expect(confirm(page).getByRole("alert")).toContainText(
         "You can do that again in 2 minutes.",
@@ -366,7 +353,6 @@ test.describe("regenerate and delete an episode", () => {
       );
       await open(page);
       await choose(page, "Regenerate");
-      await fillPassphrase(panel(page));
       await panel(page).getByLabel("What should change?").fill("More depth");
       await panel(page).getByRole("button", { name: "Regenerate episode" }).click();
       await expect(panel(page).getByRole("alert")).toContainText(

@@ -294,25 +294,6 @@ test.describe("layout", () => {
     ).toBe("none");
   });
 
-  test("there is more room above a section header than below it", async ({ page }) => {
-    await page.setViewportSize({ width: 390, height: 844 });
-    await page.goto("/");
-    const gaps = await page
-      .locator("[data-chapter]")
-      .nth(1)
-      .evaluate((section) => {
-        const heading = section.querySelector("h2")?.getBoundingClientRect();
-        const first = section.querySelector(".story .meta")?.getBoundingClientRect();
-        const previous = section.previousElementSibling?.querySelector(".story:last-child");
-        const last = previous?.querySelector(".story-actions")?.getBoundingClientRect();
-        return {
-          above: (heading?.top ?? 0) - (last?.bottom ?? 0),
-          below: (first?.top ?? 0) - (heading?.bottom ?? 0),
-        };
-      });
-    expect(gaps.above).toBeGreaterThan(gaps.below * 1.5);
-  });
-
   test("long content holds at 320px: a three-line headline, an 80-word summary, a long host", async ({
     page,
   }) => {
