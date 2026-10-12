@@ -245,9 +245,9 @@ export function createNarrationController(deps: ControllerDeps): NarrationContro
           if (!needed || starting || activeId !== digest.id) return;
           if (reason === "passphrase_required" || reason === "wrong_passphrase") {
             void reauthorize(digest.id, queue, reason === "wrong_passphrase");
-          } else {
-            say(reason);
           }
+          // Any other refusal mid-briefing is told once, by the player: the file's wait ends in an
+          // error whose words describeFailure gives (see playlists below), so no toast repeats it.
         },
       });
       return {
@@ -323,7 +323,15 @@ export function createNarrationController(deps: ControllerDeps): NarrationContro
       }
 
       sessions.set(digest.id, { queue, narrated });
-      playlists.set(narrationSource(digest.id), queue);
+      playlists.set(narrationSource(digest.id), {
+        get segments() {
+          return queue.segments;
+        },
+        ensure: (index) => queue.ensure(index),
+        prepare: (index) => queue.prepare(index),
+        describeFailure: (error) =>
+          error instanceof NarrationError ? failureCopy(error.reason, noun) : null,
+      });
       installAdapter();
       rememberNarrated(narrated);
       activate(digest.id);

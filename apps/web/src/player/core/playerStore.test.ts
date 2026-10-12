@@ -556,6 +556,14 @@ describe("errors", () => {
     expect(state.error?.message).toMatch(/connection/);
   });
 
+  it("shows the reason a playlist gave for a file it could not make, as the one message", () => {
+    const harness = createHarness();
+    startPlaying(harness);
+    harness.audio.error = { code: MEDIA_ERR_NETWORK, message: "Daily narration limit reached." };
+    harness.audio.emit("error");
+    expect(harness.store.getState().error?.message).toBe("Daily narration limit reached.");
+  });
+
   it("says the audio is unavailable when the source cannot be used", () => {
     const harness = createHarness();
     startPlaying(harness);

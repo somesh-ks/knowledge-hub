@@ -255,6 +255,8 @@ describe("failureCopy", () => {
       expect(message, reason).not.toMatch(/[\u2014\u2013!]/);
       // It never explains the interface ("the text is still here to read").
       expect(message, reason).not.toMatch(/still here/);
+      // Where a failure stops playback the disc says Try again, so no copy sends the listener to Play.
+      expect(message, reason).not.toMatch(/press play/i);
     }
   });
 

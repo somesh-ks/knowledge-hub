@@ -15,7 +15,7 @@ export class FakeAudio implements AudioLike {
   paused = true;
   ended = false;
   readyState = 0;
-  error: { code: number } | null = null;
+  error: { code: number; message?: string } | null = null;
   playbackRate = 1;
   defaultPlaybackRate = 1;
   preservesPitch = false;

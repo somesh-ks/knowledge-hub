@@ -193,12 +193,12 @@ export function failureCopy(reason: NarrationFailure, noun: NarrationNoun): stri
     case "digest_not_found":
       return `This ${noun} is not ready for narration yet. Reload the page, then try again.`;
     case "segment_not_found":
-      return "This page is out of date. Reload it, then press play again.";
+      return "This page is out of date. Reload it, then try again.";
     case "unavailable":
       return "Narration is not available right now. Try again later.";
     case "offline":
-      return "You are offline. Reconnect, then press play again.";
+      return "You are offline. Reconnect, then try again.";
     case "failed":
-      return "The audio could not be made. Press play to try again.";
+      return "The audio could not be made. Try again.";
   }
 }

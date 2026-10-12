@@ -385,6 +385,8 @@ export function createPlayerStore(options: PlayerStoreOptions): PlayerStore {
     if (!audio) return;
     const error = describeMediaError(audio.error?.code, isOnline(), audioNoun());
     if (!error) return;
+    // A file the narration could not make says why; offline, the connection is the reason.
+    if (audio.error?.message && isOnline()) error.message = audio.error.message;
     stopFrameLoop();
     stopSaveTimer();
     stopBufferTimer();
