@@ -1,6 +1,6 @@
 import { longDateFromDigestId } from "./core/formatTime";
 import { digestUrl, navigateTo } from "./core/navigation";
-import { getPlayerStore } from "./core/playerRuntime";
+import { playBriefingOnArrival } from "./core/playerRuntime";
 import { playerSheet } from "./core/playerSheet";
 import { usePlayerState } from "./hooks/usePlayer";
 import Icon from "./ui/LazyIcon";
@@ -16,8 +16,9 @@ export default function UpNext() {
 
   function playUpNext(id: string): void {
     // The new page's data arrives after the navigation; the store plays it then, on the same
-    // audio element, which the browser already trusts to play.
-    getPlayerStore().playWhenPageLoads(id);
+    // audio element, which the browser already trusts to play. A briefing with no finished audio
+    // is narrated there, as a cover press does.
+    playBriefingOnArrival(id);
     // The page goes down first, so the new briefing arrives under the bar and not behind a modal.
     void playerSheet.collapse().then(() => navigateTo(digestUrl(id), { direction: "back" }));
   }

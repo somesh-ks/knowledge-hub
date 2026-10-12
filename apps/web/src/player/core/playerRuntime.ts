@@ -28,7 +28,7 @@ import { playerSheet } from "./playerSheet";
 import { createPlayerStore } from "./playerStore";
 import type { PlayerStore } from "./playerTypes";
 import { getPreferences, rememberRate } from "./preferences";
-import { createReaderSync } from "./readerSync";
+import { createReaderSync, type ReaderSync } from "./readerSync";
 import { safeLocalStorage } from "./resume";
 import { reapplyRootState, setRootAttribute, setRootProperty } from "./rootAttributes";
 import { reapplyTheme, startThemeSync } from "./themeRuntime";
@@ -78,6 +78,17 @@ export function playPageStory(digestId: string, itemId: string): void {
   const page = getPlayerStore().getPageDigest();
   if (!page || page.id !== digestId || page.audio) return;
   narrateFromTap(itemId);
+}
+
+let activeReader: ReaderSync | null = null;
+
+/**
+ * Plays a briefing the listener is being taken to (Up next): the same road as a cover press, so one
+ * with no finished audio is narrated once its page has loaded.
+ */
+export function playBriefingOnArrival(digestId: string): void {
+  activeReader?.expectPage(digestId);
+  getPlayerStore().playWhenPageLoads(digestId);
 }
 
 export function getPlayerStore(): PlayerStore {
@@ -135,6 +146,7 @@ export function startPlayerRuntime(): () => void {
 
   const detachMediaSession = attachMediaSession(playerStore);
   const reader = createReaderSync(playerStore, narrateFromTap);
+  activeReader = reader;
   const stopSound = startSound({ store: playerStore, preferences });
 
   const stopTheme = startThemeSync();
@@ -240,6 +252,7 @@ export function startPlayerRuntime(): () => void {
     removeEventListener("dispatch:back", onBack);
     stopTheme();
     stopSound();
+    if (activeReader === reader) activeReader = null;
     reader.destroy();
     detachMediaSession();
   };
