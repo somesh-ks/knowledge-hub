@@ -616,6 +616,9 @@
   inset-block-end: var(--bottom-nav-height, 0px);
   z-index: var(--z-raised);
   display: grid;
+  /* Tab follows the bar as drawn: what is playing, then its controls on a phone; the transport
+     first from 64rem, where it sits on the left. The markup has one order for both. */
+  reading-flow: grid-rows;
   grid-template-columns: minmax(0, 1fr) auto;
   column-gap: var(--space-2);
   align-items: start;
