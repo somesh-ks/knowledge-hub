@@ -10,9 +10,11 @@ import PlayCta from "./PlayCta.astro";
 interface Props {
   entry: DigestEntry;
   hero: HeroView;
+  /** The latest briefing offers New briefing in its menu; an older one only Share. */
+  isLatest: boolean;
 }
 
-const { entry, hero } = Astro.props;
+const { entry, hero, isLatest } = Astro.props;
 // The day and the month stay on one line: a narrow title wraps "Monday / 5 October", never
 // "Monday 5 / October".
 const title = hero.title.replace(/(\d+) /, "$1 ");
@@ -33,6 +35,10 @@ const title = hero.title.replace(/(\d+) /, "$1 ");
     <h1 class="page-title" id="page-title" tabindex="-1">{title}</h1>
     <p class="meta hero-facts">{hero.meta.map((part) => <span>{part}</span>)}</p>
   </div>
-  <HeroMenu sharePath={`/d/${entry.id}`} noun="briefing" />
+  <HeroMenu
+    sharePath={`/d/${entry.id}`}
+    noun="briefing"
+    newBriefingSince={isLatest ? entry.digest.window.to : undefined}
+  />
   <PlayCta digestId={entry.id} mode={entry.audioMode} length={hero.length} />
 </header>

@@ -205,12 +205,14 @@ test.describe("sharing", () => {
     await page.goto(SILENT_DIGEST);
     // By its hook: its name changes while the copy is confirmed.
     const more = page.locator("[data-hero-more]");
+    // An older briefing has nothing to offer but Share, so its button shares at once.
+    await expect(more).toHaveAccessibleName("Share this briefing");
+    await expect(page.locator(".hero-menu-list")).toHaveCount(0);
     await expect(async () => {
       await more.click();
-      await page.getByRole("menuitem", { name: "Share" }).click();
       await expect(more).toHaveAttribute("data-copied", "", { timeout: 500 });
     }).toPass();
-    // The menu closes on the pick, so the button says it was copied, and it is spoken.
+    // The button says it was copied, and it is spoken.
     await expect(more).toHaveAccessibleName("Link copied");
     await expect(page.locator("[data-share-status]")).toHaveText("Link copied");
     await expect(more.locator(".more-done")).toBeVisible();
@@ -220,11 +222,33 @@ test.describe("sharing", () => {
     );
     expect(copied[0]).toMatch(/\/d\/2026-10-05$/);
     // Two seconds later the button is itself again.
-    await expect(more).toHaveAccessibleName("More actions", { timeout: 4_000 });
+    await expect(more).toHaveAccessibleName("Share this briefing", { timeout: 4_000 });
     await expect(more).not.toHaveAttribute("data-copied", /.*/);
     await expect(page.locator("[data-share-status]")).toHaveText("");
   });
+
+  test("the latest briefing offers New briefing, which says since when it covers", async ({
+    page,
+  }) => {
+    for (const path of ["/", "/d/2026-10-07"]) {
+      await page.goto(path);
+      await hydrated(page);
+      await page.getByRole("button", { name: "More actions" }).click();
+      const items = page.locator(".hero-menu-list [role=menuitem]");
+      await expect(items).toHaveText(["Share", "New briefing"]);
+    }
+    await openNewBriefing(page);
+  });
 });
+
+async function openNewBriefing(page: import("@playwright/test").Page): Promise<void> {
+  await page.getByRole("menuitem", { name: "New briefing" }).click();
+  const dialog = page.getByRole("dialog", { name: "New briefing" });
+  await expect(dialog).toBeVisible();
+  await expect(dialog.locator(".sheet-lede")).toHaveText(
+    /^Covers everything since [^.]+\. Takes a few minutes\.$/,
+  );
+}
 
 test.describe("sections and stories", () => {
   test("groups stories into sections in the fixed order", async ({ page }) => {

@@ -435,12 +435,13 @@ test.describe("layout", () => {
     // The player clears story states as it hydrates; write ours after it has.
     await hydrated(page);
     await page.evaluate(() => new Promise((resolve) => requestAnimationFrame(() => resolve(null))));
-    const story = page.locator(".story").nth(1);
-    const before = await story.locator("h3").evaluate((node) => getComputedStyle(node).color);
-    await story.evaluate((node) => node.setAttribute("data-state", "current"));
+    // The current story is marked by its chip (the headline keeps its ink in every mode).
+    const chip = page.locator(".story").nth(1).locator("[data-play-item]");
+    const edge = () => chip.evaluate((node) => getComputedStyle(node).borderTopColor);
+    const before = await edge();
+    await chip.evaluate((node) => node.setAttribute("data-state", "current"));
     await page.waitForTimeout(250);
-    const after = await story.locator("h3").evaluate((node) => getComputedStyle(node).color);
-    expect(after).not.toBe(before);
+    expect(await edge()).not.toBe(before);
     // The section in view keeps an edge where its fill is dropped.
     const outline = await page
       .locator('.aside-link[aria-current="true"]')
