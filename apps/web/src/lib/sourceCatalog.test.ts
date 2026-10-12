@@ -6,7 +6,6 @@ import {
   type CatalogSource,
   cadenceLabel,
   catalogHost,
-  catalogLine,
   catalogWords,
   freshOffers,
   loadSourceCatalog,
@@ -82,7 +81,6 @@ describe("parseSourceCatalog", () => {
       sources: [entry({ cadence: "hourly", about: undefined })],
     });
     expect(source).toMatchObject({ cadence: null, about: "" });
-    expect(catalogLine(source as NonNullable<typeof source>)).toBe("");
   });
 });
 
@@ -100,20 +98,13 @@ describe("catalogHost", () => {
   });
 });
 
-describe("cadenceLabel and catalogLine", () => {
-  it("name each cadence in a phrase", () => {
+describe("cadenceLabel", () => {
+  it("names each cadence in a phrase", () => {
     expect(cadenceLabel("daily")).toBe("Posts daily");
     expect(cadenceLabel("several a week")).toBe("Posts several times a week");
     expect(cadenceLabel("weekly")).toBe("Posts weekly");
     expect(cadenceLabel("monthly")).toBe("Posts monthly");
     expect(cadenceLabel(null)).toBe("");
-  });
-
-  it("put what the source covers before how often it posts", () => {
-    expect(catalogLine({ about: "UX research", cadence: "weekly" })).toBe(
-      "UX research · Posts weekly",
-    );
-    expect(catalogLine({ about: "UX research", cadence: null })).toBe("UX research");
   });
 });
 

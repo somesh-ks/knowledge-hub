@@ -106,11 +106,6 @@ export function cadenceLabel(cadence: Cadence | null): string {
   }
 }
 
-/** The line under a source's name: what it covers, then how often it posts. */
-export function catalogLine(source: Pick<CatalogSource, "about" | "cadence">): string {
-  return [source.about, cadenceLabel(source.cadence)].filter(Boolean).join(" · ");
-}
-
 /** The site a catalogue source lives on, as its row names it: its own page's host, else its feed's. */
 export function catalogHost(source: Pick<CatalogSource, "url" | "feed_url">): string {
   return siteOf(source.url ?? source.feed_url);
