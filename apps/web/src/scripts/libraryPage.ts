@@ -26,13 +26,10 @@ import {
 const VIEW_KEY = "dispatch:library-view";
 /** The Library's address with its search, filter and order, kept for the visit (episodeActions.ts reads it). */
 const LIBRARY_URL_KEY = "dispatch:library-url";
-/** Written by the player (player/core/resume.ts) when an item is heard to the end. */
-const PLAYED_KEY_PREFIX = "dispatch:played:";
 
 interface Card {
   id: string;
   element: HTMLElement;
-  facts: HTMLElement | null;
   /** The card's search text as written, a line each: a matching story is named from it. */
   lines: string[];
   data: CardData;
@@ -50,7 +47,6 @@ function readCard(element: HTMLElement, order: number): Card {
   return {
     id,
     element,
-    facts: element.querySelector<HTMLElement>("[data-card-facts]"),
     lines: search.split("\n"),
     data: {
       metaLines: Number(element.dataset.metaLines ?? "0"),
@@ -316,49 +312,8 @@ function install(): void {
   }
   window.addEventListener("resize", () => requestAnimationFrame(markTruncated));
 
-  /**
-   * A half-heard item shows a thin bar under its cover, and a finished one says "Played". The player
-   * keeps the second it reached under dispatch:resume:<id>, and once the item is finished forgets it
-   * and writes dispatch:played:<id> instead, so the page reads those keys and loads no player code.
-   * The length is the card's own minutes: close enough for a bar.
-   */
-  function showProgress(): void {
-    for (const card of cards) {
-      const bar = card.element.querySelector<HTMLElement>("[data-cover-progress]");
-      let seconds = 0;
-      let played = false;
-      try {
-        seconds = Number(localStorage.getItem(`dispatch:resume:${card.id}`));
-        played = localStorage.getItem(`${PLAYED_KEY_PREFIX}${card.id}`) !== null;
-      } catch {
-        seconds = 0;
-      }
-      const total = card.data.minutes * 60;
-      const share = Number.isFinite(seconds) && total > 0 ? Math.min(seconds / total, 1) : 0;
-      // Heard to the end: "Played" takes the length's place in the facts line, so it never wraps
-      // onto a line of its own and the kind or format stays. Half-heard, the bar says it.
-      if (card.facts) {
-        const finished = played && share <= 0;
-        const length = card.facts.querySelector<HTMLElement>("[data-card-length]");
-        if (length && finished !== card.facts.hasAttribute("data-played")) {
-          length.dataset.minutes ??= length.textContent ?? "";
-          card.facts.toggleAttribute("data-played", finished);
-          length.textContent = finished
-            ? (card.facts.dataset.playedLabel ?? "Played")
-            : length.dataset.minutes;
-        }
-      }
-      if (!bar) continue;
-      bar.hidden = share <= 0;
-      if (share > 0) bar.style.setProperty("--progress", `${Math.round(share * 100)}%`);
-    }
-  }
   // Episodes this device deleted may be taken out of the page after this script has counted it.
   document.addEventListener("dispatch:library-pruned", apply);
-  showProgress();
-  window.addEventListener("pageshow", showProgress);
-  // The player saves where it is every few seconds and when it ends: the cards follow it.
-  window.addEventListener("dispatch:resume", () => requestAnimationFrame(showProgress));
   apply();
 }
 

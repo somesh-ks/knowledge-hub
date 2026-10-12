@@ -10,22 +10,27 @@
  *   [data-play-item]     a story's play chip. It names its story by index, by id, or by sitting
  *                        inside the story.
  *   On every chip        data-state (idle, current, played, or preparing while audio buffers),
- *                        data-playing, the visible text in [data-chip-label], and aria-label.
- *                        A control with no chip label keeps the words its page gave it.
+ *                        data-playing, the visible text in [data-chip-label] (the floating
+ *                        button's in [data-fab-label], with its verb), and aria-label.
  *                        Offline, with nothing loaded, the briefing's chip is data-state
  *                        "unavailable" and aria-disabled.
+ *                        A chip of a page without audio carries data-minutes, its page's estimate.
  *   [data-play-chapter]  a control that plays a section from its first story.
  *   .play-fab            while the bar holds the audio it plays, data-fab comes off the root: the
  *                        button steps aside and the page gives back the room it kept for it.
  *
- * A briefing without audio is left as the page rendered it: its chips keep their own unavailable or
- * hidden state until the page's data carries audio, except that offline they are unavailable too:
- * its narration is made on Play, from the network.
+ * A briefing without audio says what the device remembers of it, as its card does; its story chips
+ * stay hidden until the page's data carries audio, and offline its chip is unavailable: its
+ * narration is made on Play, from the network.
+ *
+ * What the device remembers (resume.ts) also marks the stories heard, from any session, and the
+ * cards on every page (cardProgress.ts).
  *
  * Writes go through one animation-frame writer.
  */
 
 import type { PlayerDigestData } from "../../types/contracts";
+import { showCardProgress } from "./cardProgress";
 import { playPageChapter, togglePageDigest, togglePageItem } from "./pageActions";
 import type { PlayerStore } from "./playerTypes";
 import {
@@ -33,15 +38,16 @@ import {
   briefingChipView,
   type ChipView,
   createHeardTracker,
+  fabLabel,
   type ItemVisualState,
   itemVisualState,
-  type Remembered,
+  rememberedChip,
   resolveChapterFirstItemId,
   resolveItemId,
   storyChipView,
   storyLengthLabel,
 } from "./readerMath";
-import { playedKey, readResumePosition } from "./resume";
+import { type Remembered, readRemembered, safeLocalStorage, saveHeard } from "./resume";
 import { findItemIndexById } from "./timeline";
 
 /** Auto-follow stays out of the way for this long after the reader scrolls. */
@@ -76,14 +82,15 @@ function setDataset(element: HTMLElement, key: string, value: string): void {
 
 /**
  * Writes a chip's face. `blocked` is a chip that cannot do its job right now. The text and the name
- * go together: a control with no chip label (the floating Play button) keeps its own words.
+ * go together: the floating Play button says the chip's words after its verb.
  */
 function writeChip(chip: HTMLElement, view: ChipView, blocked = false): void {
   setDataset(chip, "state", blocked ? "unavailable" : view.state);
   setDataset(chip, "playing", String(view.playing));
-  const label = chip.querySelector("[data-chip-label]");
+  const label = chip.querySelector<HTMLElement>("[data-chip-label], [data-fab-label]");
   if (label) {
-    if (label.textContent !== view.label) label.textContent = view.label;
+    const text = label.dataset.fabLabel === undefined ? view.label : fabLabel(view);
+    if (label.textContent !== text) label.textContent = text;
     if (chip.getAttribute("aria-label") !== view.name) chip.setAttribute("aria-label", view.name);
   }
   if (blocked) chip.setAttribute("aria-disabled", "true");
@@ -137,49 +144,19 @@ export function createReaderSync(
 
   /** Where this briefing was left and whether it was heard to the end, from the device's storage. */
   function rememberedFor(page: PlayerDigestData): Remembered {
-    let storage: Storage | null = null;
-    try {
-      storage = window.localStorage;
-    } catch {
-      return { seconds: 0, played: false };
-    }
-    const seconds = readResumePosition(storage, page.id, (page.audio?.duration_ms ?? 0) / 1000);
-    let played = false;
-    try {
-      played = storage.getItem(playedKey(page.id)) !== null;
-    } catch {
-      played = false;
-    }
-    return { seconds, played };
+    return readRemembered(safeLocalStorage(), page.id, (page.audio?.duration_ms ?? 0) / 1000);
   }
 
-  /** What a chip of a page without audio showed before the device went offline. */
-  const restful = new WeakMap<
-    HTMLElement,
-    { state: string | undefined; disabled: string | null }
-  >();
-
-  /** Narration is made on Play from the network: offline the chip cannot work, and says so. */
-  function writeOffline(chips: readonly HTMLElement[]): void {
-    const offline = !navigator.onLine;
-    for (const chip of chips) {
-      const rest = restful.get(chip);
-      if (offline) {
-        if (!rest) {
-          restful.set(chip, {
-            state: chip.dataset.state,
-            disabled: chip.getAttribute("aria-disabled"),
-          });
-        }
-        setDataset(chip, "state", "unavailable");
-        chip.setAttribute("aria-disabled", "true");
-      } else if (rest) {
-        restful.delete(chip);
-        if (rest.state === undefined) delete chip.dataset.state;
-        else setDataset(chip, "state", rest.state);
-        if (rest.disabled === null) chip.removeAttribute("aria-disabled");
-        else chip.setAttribute("aria-disabled", rest.disabled);
-      }
+  /** The stories heard of the recording the player holds go beside its position (resume.ts). */
+  function keepHeard(): void {
+    const track = store.getState().track;
+    const items = track?.timeline?.items ?? [];
+    if (track) {
+      saveHeard(
+        safeLocalStorage(),
+        track.digest.id,
+        [...tracker.heard].flatMap((index) => items[index]?.id ?? []),
+      );
     }
   }
 
@@ -193,9 +170,21 @@ export function createReaderSync(
     const ended = state.status === "ended";
     const playing = state.status === "playing" || state.status === "loading";
 
+    // Not in the ear: the stories the device remembers hearing, from this session or another.
+    const heard = live || !page ? [] : rememberedFor(page).heard;
     const visualOf = (id: string): ItemVisualState => {
-      const index = live ? findItemIndexById(timeline, id) : -1;
-      return index < 0 ? "" : itemVisualState(index, live, state.itemIndex, ended, tracker.heard);
+      if (!live) return heard.includes(id) ? "played" : "";
+      const index = findItemIndexById(timeline, id);
+      return index < 0
+        ? ""
+        : itemVisualState(
+            index,
+            live,
+            state.itemIndex,
+            ended,
+            tracker.heard,
+            state.status === "error",
+          );
     };
 
     for (const [id, element] of elements.items) {
@@ -214,33 +203,40 @@ export function createReaderSync(
       if (button.getAttribute("aria-label") !== name) button.setAttribute("aria-label", name);
     }
 
-    // A briefing without audio keeps the state its page rendered, offline apart.
-    if (!page?.audio) {
-      writeOffline(elements.playDigest);
-      return;
-    }
+    if (!page) return;
+    const { audio } = page;
     // Audio that arrived after the page was built (narrated on Play): the story chips the page
     // rendered hidden now have something to play, and the note about making audio is done.
-    for (const chip of elements.playItem) if (chip.hidden) chip.hidden = false;
-    const note = document.getElementById("play-hint");
-    if (note && !note.hidden) note.hidden = true;
+    if (audio) {
+      for (const chip of elements.playItem) if (chip.hidden) chip.hidden = false;
+      const note = document.getElementById("play-hint");
+      if (note && !note.hidden) note.hidden = true;
+    }
 
     for (const chip of elements.playDigest) {
       const noun = chip.dataset.noun === "episode" ? "episode" : "briefing";
-      const briefing = briefingChipView(
-        state,
-        store.getTime(),
-        page,
-        noun,
-        // What the Library's card says of it: only needed while the chip is not the player's own.
-        state.digestId !== page.id || state.status === "idle" ? rememberedFor(page) : undefined,
+      // Without audio, while narration makes the first file, the chip is narration's.
+      if (!audio && chip.hasAttribute("aria-busy")) continue;
+      const view = audio
+        ? briefingChipView(
+            state,
+            store.getTime(),
+            page,
+            noun,
+            // What the Library's card says of it: only needed while the chip is not the player's own.
+            state.digestId !== page.id || state.status === "idle" ? rememberedFor(page) : undefined,
+          )
+        : // What the device remembers, against the page's estimate (the minutes its card says).
+          rememberedChip(rememberedFor(page), Number(chip.dataset.minutes) * 60, noun);
+      // Audio is never cached and narration is made from the network, so offline a chip that would
+      // have to fetch it cannot work. One that holds loaded audio still pauses and resumes.
+      writeChip(
+        chip,
+        view,
+        !navigator.onLine && view.state !== "current" && view.state !== "preparing",
       );
-      // Audio is never cached, so offline a chip that would have to fetch it cannot work. One that
-      // holds loaded audio still pauses and resumes.
-      const blocked =
-        !navigator.onLine && briefing.state !== "current" && briefing.state !== "preparing";
-      writeChip(chip, briefing, blocked);
     }
+    if (!audio) return;
 
     for (const chip of elements.playItem) {
       const id = resolveItemId(
@@ -266,6 +262,11 @@ export function createReaderSync(
   function scheduleWrite(): void {
     if (pendingWrite) return;
     pendingWrite = requestAnimationFrame(writeCoarse);
+  }
+
+  function onMemory(): void {
+    scheduleWrite();
+    showCardProgress();
   }
 
   /* ------------------------------------------------------------------ following */
@@ -391,6 +392,7 @@ export function createReaderSync(
   function refresh(): void {
     elements = collect();
     writeCoarse();
+    showCardProgress();
     // A cover pressed in a list brought the listener here: a page with no audio yet is narrated now.
     const page = store.getPageDigest();
     if (pendingNarrate !== null && page?.id === pendingNarrate) {
@@ -404,21 +406,36 @@ export function createReaderSync(
   window.addEventListener("keydown", onKeyDown);
   window.addEventListener("online", scheduleWrite);
   window.addEventListener("offline", scheduleWrite);
+  // Back from the cache, or the player saved where it is: the chips and the cards follow.
+  window.addEventListener("pageshow", onMemory);
+  window.addEventListener("dispatch:resume", onMemory);
   document.addEventListener("click", onClick);
   document.addEventListener("astro:before-swap", onBeforeSwap);
 
   const offEvent = store.onEvent((event) => {
+    const state = store.getState();
     if (event.type === "loaded") {
-      followFrom = store.getState().itemIndex;
-      tracker.reset(followFrom);
+      followFrom = state.itemIndex;
+      // Heard before, in this session or another: the stories still read Played. One heard to the
+      // end starts afresh on its next move, as it would have in the session it ended in.
+      const track = state.track;
+      const remembered = track && rememberedFor(track.digest);
+      tracker.reset(
+        followFrom,
+        remembered?.heard
+          .map((id) => findItemIndexById(track?.timeline ?? null, id))
+          .filter((index) => index >= 0),
+        remembered?.played && remembered.seconds <= 0,
+      );
     } else if (event.type === "ended") {
       tracker.ended();
     } else if (event.type === "itemChanged") {
       const from = followFrom;
       followFrom = event.index;
       tracker.moved(event.index, event.cause);
-      if (store.getState().status !== "idle") followCurrent(from, event.cause === "auto");
-    }
+      if (state.status !== "idle") followCurrent(from, event.cause === "auto");
+    } else return;
+    keepHeard();
   });
 
   // Whole seconds and seeks: the minutes left on a paused briefing change with the playhead.
@@ -449,6 +466,8 @@ export function createReaderSync(
       window.removeEventListener("keydown", onKeyDown);
       window.removeEventListener("online", scheduleWrite);
       window.removeEventListener("offline", scheduleWrite);
+      window.removeEventListener("pageshow", onMemory);
+      window.removeEventListener("dispatch:resume", onMemory);
       document.removeEventListener("click", onClick);
       document.removeEventListener("astro:before-swap", onBeforeSwap);
     },

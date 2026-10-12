@@ -14,12 +14,12 @@ const FINISHED_TAIL_SECONDS = 3;
 const MIN_RESTORE_SECONDS = 2;
 
 /**
- * Set once an item has been heard to the end, and cleared when a new position is saved. The Library
- * reads it (scripts/libraryPage.ts) to say "Played" without loading any player code.
+ * Set once an item has been heard to the end, and cleared when a new position is saved. Every card
+ * reads it (cardProgress.ts) to say "Played".
  */
 export const PLAYED_KEY_PREFIX = "dispatch:played:";
 
-/** Tells the page that what the device remembers of a recording changed (the Library's cards read it). */
+/** Tells the page that what the device remembers of a recording changed (the cards read it). */
 function announce(digestId: string): void {
   if (typeof window === "undefined" || typeof CustomEvent === "undefined") return;
   window.dispatchEvent(new CustomEvent("dispatch:resume", { detail: digestId }));
@@ -41,23 +41,26 @@ function markPlayed(storage: StorageLike, digestId: string): void {
 }
 
 /** Storage is best effort: every access is guarded because private modes and quotas throw. */
+function read(storage: StorageLike | null, key: string): string | null {
+  try {
+    return storage?.getItem(key) ?? null;
+  } catch {
+    return null;
+  }
+}
+
 export function readResumePosition(
   storage: StorageLike | null,
   digestId: string,
   durationSeconds: number,
 ): number {
-  if (!storage) return 0;
-  try {
-    const raw = storage.getItem(resumeKey(digestId));
-    if (raw === null) return 0;
-    const seconds = Number(raw);
-    if (!isFiniteNumber(seconds) || seconds < MIN_RESTORE_SECONDS) return 0;
-    // A saved position at the very end would resume into silence. Start over instead.
-    if (durationSeconds > 0 && seconds >= durationSeconds - FINISHED_TAIL_SECONDS) return 0;
-    return durationSeconds > 0 ? Math.min(seconds, durationSeconds) : seconds;
-  } catch {
-    return 0;
-  }
+  const raw = read(storage, resumeKey(digestId));
+  if (raw === null) return 0;
+  const seconds = Number(raw);
+  if (!isFiniteNumber(seconds) || seconds < MIN_RESTORE_SECONDS) return 0;
+  // A saved position at the very end would resume into silence. Start over instead.
+  if (durationSeconds > 0 && seconds >= durationSeconds - FINISHED_TAIL_SECONDS) return 0;
+  return durationSeconds > 0 ? Math.min(seconds, durationSeconds) : seconds;
 }
 
 export function saveResumePosition(
@@ -80,6 +83,47 @@ export function saveResumePosition(
       storage.removeItem(playedKey(digestId));
       announce(digestId);
     }
+  } catch {
+    // Best effort.
+  }
+}
+
+/**
+ * The stories heard, by item id, beside the position: an item id outlives a rewrite of the
+ * recording, where an index would mark another story. Space-separated (ids hold no spaces).
+ */
+export const HEARD_KEY_PREFIX = "dispatch:heard:";
+
+/**
+ * What the device remembers of a recording: where it was left, whether it was heard to the end,
+ * and which stories were heard.
+ */
+export interface Remembered {
+  seconds: number;
+  played: boolean;
+  heard: string[];
+}
+
+/**
+ * The one reader of a recording's memory, for its page's chips, the player and every card. Without
+ * a duration (a card, a briefing narrated on Play) the position is taken as stored. The stories
+ * heard count only beside a position or the end: without either, the recording restarted.
+ */
+export function readRemembered(
+  storage: StorageLike | null,
+  digestId: string,
+  durationSeconds = 0,
+): Remembered {
+  const seconds = readResumePosition(storage, digestId, durationSeconds);
+  const played = read(storage, playedKey(digestId)) !== null;
+  const heard = seconds > 0 || played ? read(storage, HEARD_KEY_PREFIX + digestId) : null;
+  return { seconds, played, heard: heard?.split(" ").filter(Boolean) ?? [] };
+}
+
+export function saveHeard(storage: StorageLike | null, digestId: string, ids: string[]): void {
+  try {
+    if (ids.length > 0) storage?.setItem(HEARD_KEY_PREFIX + digestId, ids.join(" "));
+    else storage?.removeItem(HEARD_KEY_PREFIX + digestId);
   } catch {
     // Best effort.
   }
