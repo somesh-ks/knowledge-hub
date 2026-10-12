@@ -5,7 +5,7 @@ import Clock from "./ui/Clock";
 
 /**
  * "Chapters": every story, under its section, with its length. Tapping one plays it from
- * its start. The story being read is marked by shape and weight as well as color. An episode whose
+ * its start. The story being read sits on the accent container. An episode whose
  * narration is not laid out yet places its stories by its script, and a tap starts it there.
  * Stories with no place at all are listed as plain rows: there is nothing a tap could play from.
  */
@@ -49,7 +49,6 @@ export default function StoryList({ titleHidden = false }: { titleHidden?: boole
                     return (
                       <li key={item.id}>
                         <span className="story-row" data-static="">
-                          <span className="story-row-mark" aria-hidden="true" />
                           <span className="story-row-title">{item.headline}</span>
                           {time}
                         </span>
@@ -67,7 +66,6 @@ export default function StoryList({ titleHidden = false }: { titleHidden?: boole
                           else if (digest) playPageStory(digest.id, item.id);
                         }}
                       >
-                        <span className="story-row-mark" aria-hidden="true" />
                         <span className="story-row-title">{item.headline}</span>
                         {time}
                       </button>
