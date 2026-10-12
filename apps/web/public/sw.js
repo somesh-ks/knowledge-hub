@@ -14,7 +14,7 @@
  *     Safari playback, so audio, ranged requests and cross-origin requests all pass straight through.
  *   - Bump VERSION when this file's logic changes; activation removes caches from older versions.
  */
-const VERSION = "v6";
+const VERSION = "v7";
 const SHELL_CACHE = `dispatch-shell-${VERSION}`;
 const PAGES_CACHE = `dispatch-pages-${VERSION}`;
 const MEDIA_CACHE = `dispatch-media-${VERSION}`;
@@ -170,9 +170,13 @@ async function stamped(response, time) {
 
 async function store(cacheName, request, response, limit) {
   if (!response.ok || response.type === "opaque") return;
+  // Cloned before any wait. A script answered from the network is already being read by the page when
+  // the cache opens, and a body in use cannot be cloned: nothing fetched at run time was ever saved,
+  // so a lazy chunk the page had not been warmed for was missing offline.
+  const kept = response.clone();
   const cache = await caches.open(cacheName);
   // Pages carry the time they were saved, so a move inside the app can tell a recent copy from an old one.
-  const copy = cacheName === PAGES_CACHE ? await stamped(response, Date.now()) : response.clone();
+  const copy = cacheName === PAGES_CACHE ? await stamped(kept, Date.now()) : kept;
   await cache.put(request, copy);
   if (limit) await trim(cacheName, limit);
 }
@@ -205,7 +209,9 @@ async function warmAssets(response) {
   if (!(response.headers.get("content-type") || "").includes("text/html")) return;
   const cache = await caches.open(SHELL_CACHE);
   const assets = referencedAssets(await response.text(), self.location.origin);
-  await precacheAssets(cache, [...assets], self.location.origin, 2);
+  // As deep as the install goes: an editor behind two lazy imports is on the page, and a file missed
+  // here fails offline. Files already saved are skipped, so a page after the first costs little.
+  await precacheAssets(cache, [...assets], self.location.origin, 6);
 }
 
 function staleWhileRevalidate(event, cacheName, limit) {

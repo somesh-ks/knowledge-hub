@@ -34,7 +34,7 @@ test.describe("service worker", () => {
       }
       return { names, urls };
     });
-    expect(cached.names).toContain("dispatch-shell-v6");
+    expect(cached.names).toContain("dispatch-shell-v7");
     expect(cached.urls).toContain("/offline");
     expect(cached.urls).toContain("/");
     expect(cached.urls.some((url) => url.startsWith("/_astro/") && url.endsWith(".css"))).toBe(
@@ -42,6 +42,53 @@ test.describe("service worker", () => {
     );
     expect(cached.urls.some((url) => url.endsWith(".woff2"))).toBe(true);
     expect(cached.urls.some((url) => url.startsWith("/_astro/") && url.endsWith(".js"))).toBe(true);
+  });
+
+  test("saves a file the page fetches at run time, so it is there offline later", async ({
+    page,
+  }) => {
+    await page.goto("/");
+    await page.evaluate(() => navigator.serviceWorker.ready);
+    await page.reload();
+    expect(await page.evaluate(() => navigator.serviceWorker.controller !== null)).toBe(true);
+    // A lazy chunk no page was warmed for is fetched by the page itself: a stylesheet under a query
+    // string stands in for it, since each address is its own entry.
+    const url = await page.evaluate(async () => {
+      const sheet = [...document.querySelectorAll<HTMLLinkElement>('link[rel="stylesheet"]')]
+        .map((link) => new URL(link.href))
+        .find((address) => address.pathname.startsWith("/_astro/"));
+      if (!sheet) throw new Error("no stylesheet to stand in");
+      const address = `${sheet.pathname}?run-time=${Date.now()}`;
+      const response = await fetch(address);
+      await response.arrayBuffer();
+      return address;
+    });
+    await expect
+      .poll(() =>
+        page.evaluate(async (address) => (await caches.match(address)) !== undefined, url),
+      )
+      .toBe(true);
+  });
+
+  test("keeps every script a settings page loads, so its editor works in a later session offline", async ({
+    page,
+  }) => {
+    await page.goto("/");
+    await page.evaluate(() => navigator.serviceWorker.ready);
+    await page.goto("/settings/daily");
+    await page.waitForLoadState("networkidle");
+    const missing = () =>
+      page.evaluate(async () => {
+        const loaded = performance
+          .getEntriesByType("resource")
+          .map((entry) => new URL(entry.name).pathname)
+          .filter((path) => path.startsWith("/_astro/") && path.endsWith(".js"));
+        const absent: string[] = [];
+        for (const path of loaded) if (!(await caches.match(path))) absent.push(path);
+        return { count: loaded.length, absent };
+      });
+    await expect.poll(async () => (await missing()).absent).toEqual([]);
+    expect((await missing()).count).toBeGreaterThan(10);
   });
 
   test("never caches audio, even when the page streams it", async ({ page }) => {
