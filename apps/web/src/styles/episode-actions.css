@@ -19,7 +19,7 @@
 }
 
 .regen-lede {
-  padding-block: var(--space-4) 0;
+  padding-block: var(--space-4) var(--space-6);
 }
 
 .sheet-input.regen-feedback {

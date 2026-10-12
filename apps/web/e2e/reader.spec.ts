@@ -753,6 +753,64 @@ test.describe("the section tabs with the app bar hidden", () => {
   });
 });
 
+test.describe("a tab's jump with the app bar", () => {
+  /** Where the heading's words stand under the strip's bottom edge, in pixels. */
+  const wordsUnderStrip = (page: Page, id: string) =>
+    page.locator(id).evaluate((heading) => {
+      const words = document.createRange();
+      words.selectNodeContents(heading);
+      const strip = document.querySelector(".tabs")?.getBoundingClientRect().bottom ?? 0;
+      return words.getBoundingClientRect().top - strip;
+    });
+  const stripRests = (page: Page) =>
+    expect.poll(async () => (await page.locator(".tabs").boundingBox())?.y ?? 99).toBeLessThan(2);
+
+  test("down: the bar goes first, so the heading lands by the strip where it ends", async ({
+    page,
+  }) => {
+    await page.emulateMedia({ reducedMotion: "no-preference" });
+    for (const width of [390, 360]) {
+      await page.setViewportSize({ width, height: 844 });
+      await page.goto("/");
+      await hydrated(page);
+      const root = page.locator("html");
+      await expect(root).not.toHaveAttribute("data-bar-hidden", "");
+      await page.locator(".tab", { hasText: "Research" }).click();
+      await expect(root).toHaveAttribute("data-bar-hidden", "");
+      await stripRests(page);
+      // Held a moment: nothing moves the strip once the heading has landed.
+      await page.waitForTimeout(700);
+      await stripRests(page);
+      expect(Math.abs((await wordsUnderStrip(page, "#c-research")) - 24)).toBeLessThan(4);
+    }
+  });
+
+  test("up: the bar stays away, and the heading stays clear of the strip", async ({ page }) => {
+    await page.emulateMedia({ reducedMotion: "no-preference" });
+    await page.setViewportSize({ width: 390, height: 844 });
+    await page.goto("/");
+    await hydrated(page);
+    const root = page.locator("html");
+    await page.evaluate(() => {
+      const top = document.querySelector("#c-launches")?.getBoundingClientRect().top ?? 0;
+      window.scrollTo({ top: scrollY + top - 400, behavior: "instant" });
+    });
+    await page.mouse.wheel(0, 200);
+    await expect(root).toHaveAttribute("data-bar-hidden", "");
+    await stripRests(page);
+    // A click from the page itself: Playwright's own would first scroll the stuck strip to where it
+    // sits in the flow, moving the page it is about to measure.
+    await page
+      .locator(".tab", { hasText: "Research" })
+      .evaluate((tab) => (tab as HTMLElement).click());
+    await expect(page.locator('.tab[aria-current="true"]')).toHaveText("Research");
+    await page.waitForTimeout(700);
+    await expect(root).toHaveAttribute("data-bar-hidden", "");
+    await stripRests(page);
+    expect(Math.abs((await wordsUnderStrip(page, "#c-research")) - 24)).toBeLessThan(4);
+  });
+});
+
 test.describe("earlier briefings", () => {
   test("lists the earlier briefings and a way to all of them", async ({ page }) => {
     await page.goto("/");

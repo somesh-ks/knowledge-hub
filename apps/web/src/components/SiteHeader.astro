@@ -48,6 +48,7 @@ const { back } = Astro.props;
   }
   function sync(): void {
     queued = false;
+    if (jumping) return;
     const y = Math.max(0, scrollY);
     const delta = y - last;
     if (y < 64 || calm.matches) {
@@ -60,6 +61,37 @@ const { back } = Astro.props;
       last = y;
     }
   }
+  // A tab's jump to a section (briefingPage.ts announces it before the browser makes it) lands the
+  // heading below the sticky chrome as it stands at that moment. A jump down is about to send the bar
+  // away, so the bar goes first. Either way it keeps its state until the scroll ends: a bar that moved
+  // afterwards would move the strip over the heading just placed beneath it.
+  const JUMP_MS = 600;
+  let jumping = false;
+  let jumpFrom = 0;
+  let wasHidden = false;
+  let jumpTimer = 0;
+  function endJump(): void {
+    if (!jumping) return;
+    jumping = false;
+    clearTimeout(jumpTimer);
+    removeEventListener("scrollend", endJump);
+    const y = Math.max(0, scrollY);
+    // A jump that went nowhere, the page unable to scroll further, leaves the bar as it was.
+    if (Math.abs(y - jumpFrom) <= 12) setHidden(wasHidden);
+    else if (y < 64) setHidden(false);
+    last = y;
+  }
+  document.addEventListener("dispatch:jump", (event) => {
+    if (calm.matches) return;
+    endJump();
+    jumping = true;
+    jumpFrom = Math.max(0, scrollY);
+    wasHidden = root.hasAttribute("data-bar-hidden");
+    if ((event as CustomEvent<{ down: boolean }>).detail.down) setHidden(true);
+    addEventListener("scrollend", endJump, { once: true });
+    // scrollend is missing from older engines and never fires for a jump that did not move.
+    jumpTimer = window.setTimeout(endJump, JUMP_MS);
+  });
   addEventListener(
     "scroll",
     () => {

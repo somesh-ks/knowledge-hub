@@ -120,18 +120,28 @@
 
 .empty-actions > .btn-secondary {
   inline-size: auto;
+  /* The pair is one size: the text button beside it is the label size. */
+  font-size: var(--font-size-label);
 }
 
-/* Offline, New episode cannot start (deviceBanners.ts marks it aria-disabled): it shows as disabled
-   and takes no state layer. */
+/* Offline, New episode cannot start (deviceBanners.ts marks it aria-disabled): it shows as the
+   app's disabled button does, the container tone with disabled ink (its strong fill with faded
+   words was 1.04:1 to 1.16:1), and takes no state layer. */
 [data-create-open][aria-disabled="true"] {
+  background: var(--color-surface-container);
   color: var(--color-on-surface-disabled);
   cursor: default;
   pointer-events: auto;
 }
 
-[data-create-open][aria-disabled="true"] > * {
-  opacity: var(--opacity-disabled);
+[data-create-open][aria-disabled="true"]:active {
+  background: var(--color-surface-container);
+}
+
+@media (hover: hover) and (pointer: fine) {
+  [data-create-open][aria-disabled="true"]:hover {
+    background: var(--color-surface-container);
+  }
 }
 
 /* Offline there is nothing to play, so the floating Play button goes, as the story chips do. */

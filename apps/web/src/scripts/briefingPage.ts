@@ -223,6 +223,25 @@ document.addEventListener("focusin", (event) => {
     event.target.scrollIntoView({ block: "nearest", inline: "nearest" });
 });
 
+// A tab's jump lands its heading below the sticky chrome as it stands when the browser jumps, and a
+// jump down sends the app bar away, which pulls the strip up after the heading has landed: the heading
+// would end a bar's height too low. So the header hears of the jump first and holds the bar as the
+// jump will leave it (SiteHeader.astro). Capture phase: Astro's router starts the jump in the bubble
+// phase, ahead of any listener below it.
+document.addEventListener(
+  "click",
+  (event) => {
+    if (!(event.target instanceof Element) || event.button !== 0) return;
+    if (event.metaKey || event.ctrlKey || event.shiftKey || event.altKey) return;
+    const tab = event.target.closest<HTMLElement>("a[data-section]");
+    const heading = tab && document.getElementById(`c-${tab.dataset.section}`);
+    if (!heading) return;
+    const down = heading.getBoundingClientRect().top > stickyTop();
+    document.dispatchEvent(new CustomEvent("dispatch:jump", { detail: { down } }));
+  },
+  { capture: true },
+);
+
 document.addEventListener("click", (event) => {
   if (!(event.target instanceof Element)) return;
   const tab = event.target.closest<HTMLElement>("a[data-section]");

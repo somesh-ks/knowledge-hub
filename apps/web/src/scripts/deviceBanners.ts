@@ -24,10 +24,12 @@ function hide(kind: "offline"): void {
 
 /**
  * New episode needs the network from its first step, so offline every Create control is disabled
- * (aria-disabled, so it stays focusable and says why it does nothing) and opens no sheet.
+ * (aria-disabled, so it stays focusable and says why it does nothing) and opens no sheet. So is
+ * every other action that starts a run: a new briefing, and an episode's Regenerate and Delete.
  */
 function syncCreate(isOffline: boolean): void {
-  for (const create of document.querySelectorAll<HTMLElement>("[data-create-open]")) {
+  const starters = "[data-create-open], [data-open='generate'], [data-episode-action]";
+  for (const create of document.querySelectorAll<HTMLElement>(starters)) {
     if (isOffline) create.setAttribute("aria-disabled", "true");
     else create.removeAttribute("aria-disabled");
   }

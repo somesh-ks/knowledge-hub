@@ -6,11 +6,18 @@
  */
 export function installUiSound(): void {
   let loaded: Promise<typeof import("../player/sound/uiClicks")> | undefined;
-  const load = () => {
-    loaded ??= import("../player/sound/uiClicks");
-    return loaded;
+  // The cues are a nicety: where the module cannot be fetched (offline, a dropped connection) the
+  // gesture goes without its sound, and the next one tries again.
+  const load = async () => {
+    try {
+      loaded ??= import("../player/sound/uiClicks");
+      return await loaded;
+    } catch {
+      loaded = undefined;
+      return null;
+    }
   };
-  const route = (event: Event) => void load().then((module) => module.onUiEvent(event));
-  addEventListener("pointerdown", load, { once: true, passive: true });
+  const route = (event: Event) => void load().then((module) => module?.onUiEvent(event));
+  addEventListener("pointerdown", () => void load(), { once: true, passive: true });
   for (const type of ["click", "change", "dispatch:sound"]) document.addEventListener(type, route);
 }

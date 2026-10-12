@@ -33,6 +33,7 @@ import BaseLayout from "../layouts/BaseLayout.astro";
     const icon = document.querySelector<SVGElement>("#main .empty-icon");
     if (icon) icon.style.display = "none";
     if (title) title.textContent = "You are back online";
+    document.title = "Back online, Singularity";
     if (body) body.textContent = "Reload to open the page you asked for.";
     if (retry) retry.textContent = "Reload";
   }

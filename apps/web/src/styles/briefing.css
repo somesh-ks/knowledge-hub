@@ -171,9 +171,17 @@ html:has(.briefing > .tabs-bar) {
 }
 
 /* A hyphenated word in a headline stays whole: balanced wrapping would break it at the hyphen
-   ("mid- / range"). Item.astro and EpisodeView.astro mark them. */
+   ("mid- / range"). Item.astro and EpisodeView.astro mark them. An inline-block is one atom to the
+   line breaker, so balance still counts the words around it; `nowrap` threw the balance off. */
 :is(.story-title, .episode-highlight-title) .no-break {
-  white-space: nowrap;
+  display: inline-block;
+}
+
+/* An inline-block does not take the link's underline from its parent. */
+@media (hover: hover) and (pointer: fine) {
+  .story-link:hover .no-break {
+    text-decoration: inherit;
+  }
 }
 
 .story-link:active {
