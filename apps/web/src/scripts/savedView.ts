@@ -360,7 +360,7 @@ function showAdded(button: HTMLButtonElement, offer: Pick<SuggestedAdd, "name">)
   button.setAttribute("aria-label", `Added ${offer.name}`);
   button
     .closest("li")
-    ?.querySelector(".source-line")
+    ?.querySelector(".source-meta")
     ?.replaceChildren(element("span", "source-note", ADDED));
 }
 
@@ -447,12 +447,12 @@ export async function suggestUnder(
     line.querySelector(".source-icon")?.replaceWith(iconNode(icon, offer.name));
     (line.querySelector(".source-name") as HTMLElement).textContent = offer.name;
     (line.querySelector(".source-host") as HTMLElement).textContent = catalogHost(offer);
-    const about = line.querySelector(".source-line") as HTMLElement;
     const cadence = cadenceLabel(offer.cadence);
-    if (offer.about) about.append(element("span", "source-about", offer.about));
     if (cadence)
-      about.append(element("span", "source-cadence", offer.about ? `· ${cadence}` : cadence));
-    if (!offer.about && !cadence) about.remove();
+      line.querySelector(".source-meta")?.append(element("span", "source-cadence", cadence));
+    const about = line.querySelector(".source-line") as HTMLElement;
+    if (offer.about) about.append(element("span", "source-about", offer.about));
+    else about.remove();
     const button = line.querySelector("button") as HTMLButtonElement;
     const adding: SuggestedAdd = {
       name: offer.name,

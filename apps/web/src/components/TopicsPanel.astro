@@ -196,7 +196,6 @@ const { topics } = Astro.props;
 <template id="suggested-template">
   <section class="queued-suggested">
     <h2 class="section-head">Suggested sources</h2>
-    <p class="manage-quiet">Feeds that fit this topic. Add one to start reading it.</p>
     <ul class="topic-sources" role="list" data-suggested-sources></ul>
   </section>
   <li class="source-row is-suggested">
@@ -204,7 +203,7 @@ const { topics } = Astro.props;
       <span class="source-icon"></span>
       <span class="source-text">
         <span class="source-name"></span>
-        <span class="source-host"></span>
+        <span class="source-meta"><span class="source-host"></span></span>
         <span class="source-line"></span>
       </span>
     </span>

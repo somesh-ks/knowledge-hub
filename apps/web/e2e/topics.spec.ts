@@ -468,7 +468,7 @@ test.describe("a topic's page", () => {
     await box.check();
     // The second edit waits out the server's ten seconds between edits before it is sent.
     await expect.poll(() => ops(sent).length, { timeout: 15_000 }).toBe(2);
-    await expect(row.locator(".source-name")).toHaveCSS("font-weight", "500");
+    await expect(row.locator(".source-name")).toHaveCSS("font-weight", "400");
     expect(ops(sent)).toEqual([
       { op: "source.set", id: "studio-notes", enabled: false },
       { op: "source.set", id: "studio-notes", enabled: true },
@@ -570,9 +570,11 @@ test.describe("a topic's page", () => {
     await open(page, "/settings/topics/design");
     await page.getByRole("button", { name: /^Podcasts/ }).click();
     const list = page.getByRole("listbox");
+    await list.evaluate((node) =>
+      Promise.all(node.getAnimations().map((animation) => animation.finished)),
+    );
     const box = await list.boundingBox();
     // Never narrower than 14rem, so the options never wrap word by word.
-    // (A fraction under while the list's opening scale settles.)
     expect(box?.width ?? 0).toBeGreaterThanOrEqual(223.5);
     // Every option, hint included, fits inside the list without breaking word by word.
     for (const label of await list.locator(".multiselect-text").all()) {
@@ -682,9 +684,8 @@ test.describe("a topic's suggested sources", () => {
     await expect(
       region(page).getByRole("heading", { level: 2, name: "Suggested sources" }),
     ).toBeVisible();
-    await expect(
-      region(page).getByText("Feeds that fit this topic. Add one to start reading it."),
-    ).toBeVisible();
+    // No line explains the list: the heading says it.
+    await expect(region(page).locator(".manage-quiet")).toHaveCount(0);
     // The five that fit Design and the topics it gathers best, best first. Type and Grid is a sixth,
     // and Model Ledger, which the owner reads already, is not offered.
     await expect(names(page)).toHaveText([
@@ -714,9 +715,22 @@ test.describe("a topic's suggested sources", () => {
     await expect(row.locator(".source-name")).toHaveText("Pixel Ledger");
     await expect(row.getByRole("link")).toHaveCount(0);
     await expect(row.locator(".source-host")).toHaveText("pixel-ledger.example");
-    await expect(row.locator(".source-line")).toHaveText(
-      "Visual design critique and case studies \u00b7 Posts daily",
+    // Drawn as a source is: the site and how often it posts on line 2, what it covers on line 3.
+    await expect(row.locator(".source-meta .source-host")).toHaveText("pixel-ledger.example");
+    await expect(row.locator(".source-meta .source-cadence")).toHaveText("Posts daily");
+    await expect(row.locator(".source-about")).toHaveText(
+      "Visual design critique and case studies",
     );
+    await expect(row.locator(".source-name")).toHaveCSS("font-weight", "400");
+    const height = (await row.boundingBox())?.height ?? 0;
+    expect(height).toBeGreaterThanOrEqual(71.5);
+    const own = (await source(page, "Studio Notes").boundingBox())?.height ?? 0;
+    expect(own).toBeGreaterThanOrEqual(71.5);
+    // The plus is a plain icon button: no disc behind it.
+    const disc = await row
+      .getByRole("button", { name: "Add Pixel Ledger" })
+      .evaluate((node) => getComputedStyle(node, "::before").backgroundColor);
+    expect(disc).toBe("rgba(0, 0, 0, 0)");
     // The button is a 44px target.
     const add = row.getByRole("button", { name: "Add Pixel Ledger" });
     const box = await add.boundingBox();
