@@ -680,6 +680,9 @@ test.describe("a change made offline", () => {
     const sender = page.waitForResponse((response) => /managePageSave/.test(response.url()));
     await open(page, "daily");
     await sender;
+    // Other idle fetches (the sheets) may still be on their way; going offline under them is a page
+    // error of the test's making, not of the page's.
+    await page.waitForLoadState("networkidle");
     await context.setOffline(true);
     online = false;
     await page.locator("#daily-hour").selectOption("9");
