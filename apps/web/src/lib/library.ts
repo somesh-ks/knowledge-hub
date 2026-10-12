@@ -16,6 +16,18 @@ export const LIBRARY_FILTERS: ReadonlyArray<{ id: LibraryFilter; label: string }
   { id: "custom", label: "Episodes" },
 ];
 
+/**
+ * The filter the chips choose. They are single-select: ticking one unticks the others, and none
+ * ticked shows everything. `changed` is the chip just pressed; the rest are the chips still ticked.
+ */
+export function chipFilter(
+  ticked: readonly string[],
+  changed?: { value: string; checked: boolean },
+): LibraryFilter {
+  const pick = changed?.checked ? changed.value : ticked.find((value) => value !== changed?.value);
+  return LIBRARY_FILTERS.find((filter) => filter.id === pick && filter.id !== "all")?.id ?? "all";
+}
+
 /** The `kind` of a briefing made on request, with the Generate button, instead of on schedule. */
 const ON_DEMAND_KIND = "on-demand";
 
