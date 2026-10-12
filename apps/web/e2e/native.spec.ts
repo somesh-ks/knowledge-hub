@@ -223,7 +223,7 @@ test.describe("the floating button", () => {
     }
   });
 
-  test("on the Create page, New episode goes to the top, focuses the form and keeps what is typed", async ({
+  test("on the Create page, New episode is the current place: it goes to the top and keeps what is typed", async ({
     page,
   }, info) => {
     test.skip(info.project.name !== "desktop", "the side column is for wide screens");
@@ -238,11 +238,14 @@ test.describe("the floating button", () => {
       window.scrollTo(0, 400);
     });
     await expect.poll(() => page.evaluate(() => window.scrollY)).toBeGreaterThan(100);
-    await page.locator(".app-nav-create").click();
+    const button = page.locator(".app-nav-create");
+    // Marked as the place you are on, as the current tab is, so the press is not a silent no-op.
+    await expect(button).toHaveAttribute("aria-current", "page");
+    await button.click();
     await expect.poll(() => page.evaluate(() => window.scrollY)).toBe(0);
     await expect(page).toHaveURL(/\/create$/);
-    // Not a link to the page on screen that does nothing: it takes you to the form's first control.
-    await expect(page.locator('main input[name="topic"]').first()).toBeFocused();
+    // No silent focus move into the form: the focus stays on the button that was pressed.
+    await expect(button).toBeFocused();
     await expect(title).toHaveValue("My week in AI");
     expect(await page.evaluate(() => (window as unknown as { kept?: boolean }).kept)).toBe(true);
   });

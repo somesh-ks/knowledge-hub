@@ -101,21 +101,27 @@ test.describe("the Create page", () => {
     await expect(page.locator("[data-run-card]")).toBeHidden();
   });
 
-  test("asks about topics first and offers every choice", async ({ page }) => {
+  test("asks about topics first and offers every choice", async ({ page }, info) => {
     await openCreate(page);
     await expect(page.getByRole("heading", { level: 1 })).toHaveText("New episode");
     // No lede to explain the form: the form says it.
     await expect(page.locator(".create-lede")).toHaveCount(0);
-    await expect(page.getByRole("heading", { level: 2 })).toHaveText([
-      "Topics",
-      "Length",
-      "Format",
-      "Written for",
-      "Voice",
-      "Look back",
-      "Tone",
-      "Title (optional)",
-    ]);
+    await expect(page.getByRole("heading", { level: 2 })).toHaveText(
+      [
+        "Topics",
+        "Length",
+        "Format",
+        // A wide page pins More options open as its column's heading.
+        ...(info.project.name === "desktop" ? ["More options"] : []),
+        "Written for",
+        "Voice",
+        "Look back",
+        "Tone",
+        "Title (optional)",
+        // The words on show: a pinned row hides the line that repeats its values.
+      ],
+      { useInnerText: true },
+    );
     // One list for both audiences, then the owner's own.
     await expect(page.locator(".filter-chip:visible")).toHaveText([
       "Design",
@@ -447,6 +453,32 @@ test.describe("the Create page", () => {
     expect((box?.x ?? 0) > (topics?.x ?? 0) + (topics?.width ?? 0)).toBe(true);
     // The whole form is in view: Generate needs no scrolling.
     await expect(submit(page)).toBeInViewport();
+  });
+
+  test("a wide page's Tab goes down the main questions to Generate, then the options", async ({
+    page,
+  }, info) => {
+    test.skip(info.project.name !== "desktop", "only a wide page has two columns");
+    await page.goto("/create");
+    await expect(page.locator("[data-create]")).toHaveAttribute("data-ready", "");
+    const summary = page.locator("[data-create-more] > summary");
+    // The pinned row is the column's heading, not a disclosure that does nothing.
+    await expect(summary).toHaveAttribute("tabindex", "-1");
+    await expect(page.getByRole("heading", { name: "More options", level: 2 })).toBeVisible();
+    // Format's chosen segment, then Tab: Generate, then the first choice under Written for.
+    await page.locator('input[name="format"]:checked').focus();
+    await page.keyboard.press("Tab");
+    await expect(submit(page)).toBeFocused();
+    await page.keyboard.press("Tab");
+    await expect(page.locator('input[name="audience"]:checked')).toBeFocused();
+    // Narrow again, the row is a switch in the Tab order, before Generate.
+    await page.setViewportSize({ width: 900, height: 800 });
+    await expect(summary).not.toHaveAttribute("tabindex", "-1");
+    const order = await page.evaluate(() => {
+      const more = document.querySelector("[data-create-more]");
+      return more?.nextElementSibling?.classList.contains("create-submit");
+    });
+    expect(order).toBe(true);
   });
 
   test("with the passphrase step off, Create sends straight away and mentions none", async ({
