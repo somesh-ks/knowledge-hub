@@ -18,7 +18,7 @@ export const SAVED = "Saved. Live in about a minute.";
 export const TIME_REFUSED = "Saved, except the time, which could not be changed.";
 
 /** What a topic or a source added on the page says once it is in the repository. */
-export const ADDED_SOURCE = "Added. Its posts are read after the next update.";
+export const ADDED_SOURCE = "Added. Read from the next update.";
 /** A topic added on the list: it is listed already; its page is what the build brings. */
 export const ADDED_TOPIC = "Added. Its page opens in about a minute.";
 
@@ -351,6 +351,11 @@ export async function flush(
   let last = "";
   /** Whether this run sent anything: a run that only waited, for changes then put back, says nothing. */
   let sent = false;
+  /**
+   * Whether everything this run sent was a suggested source added with its plus: that row says
+   * "Adding" and then "Added" itself, so the toast saying it too would be the same news twice.
+   */
+  let rowSays = true;
   try {
     while (changes.size > 0) {
       // Inside the server's gap after the last request, wait it out first, quietly: nothing is on
@@ -360,7 +365,8 @@ export async function flush(
       const [batch] = pack(buildQueue(changes), changes);
       if (!batch || JSON.stringify(batch.ops) === last) break;
       sent = true;
-      show(SAVING, "saving");
+      rowSays &&= batch.sent.every(([, pending]) => pending.el.matches(".source-note"));
+      if (!rowSays) show(SAVING, "saving");
       const answer = await post(batch.ops, given);
       if (answer.status === 429 && waits < MAX_WAITS) {
         waits += 1;
@@ -397,7 +403,7 @@ export async function flush(
     queued.clear();
     for (const other of next) void flush(other, given);
   }
-  if (!sent && !failure) return;
+  if ((!sent || rowSays) && !failure) return;
   if (failure) {
     show(failure, "error");
     // The interface sound for an outcome the screen already states (see scripts/uiSound.ts). A save

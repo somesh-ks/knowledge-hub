@@ -890,9 +890,19 @@
   text-overflow: ellipsis;
 }
 
-/* Pressed, the site's line says the source is being added, and then that it is. */
+/* Pressed, the site's line says the source is being added, and then that it is, in full: a
+   narrow row wraps it rather than cut it off. */
 .source-meta > .source-note {
-  white-space: nowrap;
+  min-width: 0;
+  white-space: normal;
+}
+
+/* From 40rem a suggestion is three lines (name, site and cadence, what it covers): it takes a
+   three-line row's height, so its lines have the air the Sources rows above have. */
+@media (min-width: 40rem) {
+  .source-row.is-suggested:has(.source-line) {
+    min-height: calc(var(--space-12) + var(--space-8) + var(--space-2));
+  }
 }
 
 /* Add: a plain icon button, the muted plus with a state layer under the pointer, so a column of them

@@ -10,7 +10,7 @@ const PIXEL = Buffer.from(
   "base64",
 );
 const SAVED = "Saved. Live in about a minute.";
-const ADDED = "Added. Its posts are read after the next update.";
+const ADDED = "Added. Read from the next update.";
 const ADDED_TOPIC = "Added. Its page opens in about a minute.";
 
 interface Sent {
@@ -796,8 +796,17 @@ test.describe("a topic's suggested sources", () => {
     const done = row.getByRole("button", { name: "Added Motion Weekly" });
     await expect(done).toBeDisabled();
     await expect(done).toHaveClass(/is-added/);
-    await expect(toastText(page)).toHaveText(SAVED);
     await expect(row).toContainText(ADDED);
+    // The row says it, so the toast does not say it again; and the note is whole, never cut off.
+    await expect(toast(page)).toBeHidden();
+    const note = row.locator(".source-note");
+    expect(await note.evaluate((el) => el.scrollWidth <= el.clientWidth + 1)).toBe(true);
+    // From 40rem a three-line suggestion takes a three-line row's 88px.
+    if ((page.viewportSize()?.width ?? 0) >= 640) {
+      const other = suggestion(page, "Motion Weekly").locator("xpath=following-sibling::li[1]");
+      if ((await other.count()) > 0 && (await other.locator(".source-line").count()) > 0)
+        expect((await other.boundingBox())?.height ?? 0).toBeGreaterThanOrEqual(88);
+    }
     expect(ops(sent)).toEqual([
       {
         op: "source.add",
@@ -911,6 +920,8 @@ test.describe("editing a topic", () => {
     const sheet = page.getByRole("dialog", { name: "Add a topic" });
     await sheet.getByRole("form", { name: "Add a topic" }).getByLabel("Name").fill("Spatial audio");
     await sheet.getByLabel("What should count as this topic").fill("Spatial audio in apps.");
+    // Every podcast ticked reads as it does on every topic page.
+    await expect(sheet.getByRole("button", { name: /^Podcasts/ })).toHaveText("All podcasts");
     await sheet.getByRole("button", { name: /^Podcasts/ }).click();
     await sheet.getByRole("option", { name: "Weekly" }).click();
     await expect(sheet.getByRole("button", { name: /^Podcasts/ })).toHaveText("Daily and Episodes");
