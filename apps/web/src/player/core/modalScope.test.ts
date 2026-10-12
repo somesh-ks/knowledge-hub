@@ -22,6 +22,10 @@ class FakeElement implements ScopeElement {
     this.children.push(...children);
   }
 
+  getAttribute(name: string): string | null {
+    return this.attributes.get(name) ?? null;
+  }
+
   hasAttribute(name: string): boolean {
     return this.attributes.has(name);
   }
@@ -176,17 +180,21 @@ describe("entering the modal scope", () => {
     const { scope, surface, page, openSheet } = makePage();
     scope.enter({ surface, page }, () => undefined);
     expect(openSheet.hasAttribute(INERT_MARKER)).toBe(false);
-    scope.leave({ page, focusTo: null });
+    scope.leave({ surface, page, focusTo: null });
     // Someone else's inert survives the scope.
     expect(openSheet.hasAttribute("inert")).toBe(true);
   });
 
-  it("turns the page into a modal dialog, takes it out of inert and focuses it", () => {
+  it("turns the surface (page and bar) into a modal dialog, takes the page out of inert and focuses it", () => {
     const { scope, surface, page, doc } = makePage();
+    page.setAttribute("aria-labelledby", "player-title");
     scope.enter({ surface, page }, () => undefined);
     expect(page.hasAttribute("inert")).toBe(false);
-    expect(page.attributes.get("role")).toBe("dialog");
-    expect(page.attributes.get("aria-modal")).toBe("true");
+    // The bar is inside the dialog, so a screen reader that honours aria-modal still reaches it.
+    expect(surface.attributes.get("role")).toBe("dialog");
+    expect(surface.attributes.get("aria-modal")).toBe("true");
+    expect(surface.attributes.get("aria-labelledby")).toBe("player-title");
+    expect(page.hasAttribute("role")).toBe(false);
     expect(doc.activeElement).toBe(page);
   });
 
@@ -210,7 +218,7 @@ describe("Escape", () => {
     doc.press("Escape");
     doc.press("Enter");
     expect(escapes).toBe(1);
-    scope.leave({ page, focusTo: null });
+    scope.leave({ surface, page, focusTo: null });
     doc.press("Escape");
     expect(escapes).toBe(1);
     expect(doc.listeners.size).toBe(0);
@@ -237,12 +245,13 @@ describe("leaving the modal scope", () => {
   it("gives every marked element back and removes the dialog role", () => {
     const { scope, surface, page, opener, doc, header, main } = makePage();
     scope.enter({ surface, page }, () => undefined);
-    scope.leave({ page, focusTo: opener });
+    scope.leave({ surface, page, focusTo: opener });
     expect(doc.querySelectorAll(`[${INERT_MARKER}]`)).toHaveLength(0);
     expect(header.hasAttribute("inert")).toBe(false);
     expect(main.hasAttribute("inert")).toBe(false);
-    expect(page.hasAttribute("role")).toBe(false);
-    expect(page.hasAttribute("aria-modal")).toBe(false);
+    expect(surface.hasAttribute("role")).toBe(false);
+    expect(surface.hasAttribute("aria-modal")).toBe(false);
+    expect(surface.hasAttribute("aria-labelledby")).toBe(false);
     expect(scope.isEntered()).toBe(false);
   });
 
@@ -253,7 +262,7 @@ describe("leaving the modal scope", () => {
     const stale = new FakeElement("div", { inert: "", [INERT_MARKER]: "" });
     doc.body.children.length = 0;
     doc.body.children.push(stale);
-    scope.leave({ page, focusTo: null });
+    scope.leave({ surface, page, focusTo: null });
     expect(stale.hasAttribute("inert")).toBe(false);
     expect(stale.hasAttribute(INERT_MARKER)).toBe(false);
   });
@@ -261,7 +270,7 @@ describe("leaving the modal scope", () => {
   it("returns focus to the bar when focus was inside the page", () => {
     const { scope, surface, page, opener, doc } = makePage();
     scope.enter({ surface, page }, () => undefined);
-    scope.leave({ page, focusTo: opener });
+    scope.leave({ surface, page, focusTo: opener });
     expect(doc.activeElement).toBe(opener);
     expect(opener.focusCalls).toBe(1);
   });
@@ -272,16 +281,16 @@ describe("leaving the modal scope", () => {
     const toastButton = sheetsIsland.children[0];
     if (!toastButton) throw new Error("no toast");
     doc.setActive(toastButton);
-    scope.leave({ page, focusTo: opener });
+    scope.leave({ surface, page, focusTo: opener });
     expect(doc.activeElement).toBe(toastButton);
     expect(opener.focusCalls).toBe(0);
   });
 
   it("is safe when nothing was entered, and still sweeps a stale mark", () => {
-    const { scope, page, opener, doc, header } = makePage();
+    const { scope, surface, page, opener, doc, header } = makePage();
     header.setAttribute("inert", "");
     header.setAttribute(INERT_MARKER, "");
-    scope.leave({ page, focusTo: opener });
+    scope.leave({ surface, page, focusTo: opener });
     expect(header.hasAttribute("inert")).toBe(false);
     expect(opener.focusCalls).toBe(0);
     expect(doc.listeners.size).toBe(0);

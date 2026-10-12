@@ -21,7 +21,9 @@ interface LayoutReport {
 /** Runs in the page: measures the parts every size must show whole. */
 const LAYOUT_CHECK = (): LayoutReport => {
   const problems: string[] = [];
-  const dialog = document.querySelector<HTMLElement>('[data-player-page][role="dialog"]');
+  const dialog = document.querySelector<HTMLElement>(
+    '[data-player-surface][role="dialog"] [data-player-page]',
+  );
   if (!dialog) return { problems: ["the player is not open"], parts: {} };
   const parts: Record<string, HTMLElement | null> = {
     cover: dialog.querySelector<HTMLElement>(".player-cover-frame"),

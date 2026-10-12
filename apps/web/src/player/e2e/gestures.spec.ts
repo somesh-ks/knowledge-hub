@@ -236,4 +236,28 @@ test.describe("closing the page @surface", () => {
     // The timeline is the page's, or on a wide screen with a mouse the bar's.
     expect([...seen].some((where) => /^player: (Playback position|Seek)/.test(where))).toBe(true);
   });
+
+  test("the dialog holds page and bar, and one control closes it @surface", async ({
+    lab,
+    page,
+  }) => {
+    await opened(lab);
+    const dialog = page.getByRole("dialog");
+    await expect(dialog).toHaveCount(1);
+    await expect(dialog).toHaveAttribute("aria-modal", "true");
+    // The bar is inside the dialog, so a screen reader that honours aria-modal reaches its controls.
+    await expect(dialog.locator("[data-player-page]")).toHaveCount(1);
+    await expect(dialog.locator("[data-player-dock]")).toHaveCount(1);
+    const mouseWide = await page.evaluate(
+      () => matchMedia("(min-width: 64rem) and (hover: hover) and (pointer: fine)").matches,
+    );
+    // With a mouse on a wide screen the bar's chevron is the one close; the focus-only pill is not
+    // there to be said twice.
+    if (mouseWide) {
+      await expect(dialog.getByRole("button", { name: "Close the player" })).toHaveCount(1);
+    }
+    await page.keyboard.press("Escape");
+    await lab.collapsed();
+    await expect(page.getByRole("dialog")).toHaveCount(0);
+  });
 });
