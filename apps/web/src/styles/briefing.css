@@ -150,6 +150,19 @@ html:has(.briefing > .tabs-bar) {
   border-radius: var(--radius-xs);
 }
 
+/* The ring goes round the headline, not the link: on an inline link each line box draws its own,
+   and with the hit padding the second line's gap band strikes through the first line. */
+.story-link:focus-visible {
+  outline: none;
+  box-shadow: none;
+}
+
+.story-title:has(> .story-link:focus-visible) {
+  outline: var(--stroke-ring) solid var(--color-focus-ring);
+  outline-offset: var(--space-1);
+  border-radius: var(--radius-sm);
+}
+
 @media (hover: hover) and (pointer: fine) {
   .story-link:hover {
     color: var(--color-accent);

@@ -43,6 +43,13 @@
   overflow-wrap: anywhere;
 }
 
+/* The ring goes round the headline, as on a briefing's story (briefing.css). */
+.episode-highlight-title:has(> .story-link:focus-visible) {
+  outline: var(--stroke-ring) solid var(--color-focus-ring);
+  outline-offset: var(--space-1);
+  border-radius: var(--radius-sm);
+}
+
 .episode-highlight-text {
   max-width: var(--layout-measure);
   font-family: var(--text-reading-family);
