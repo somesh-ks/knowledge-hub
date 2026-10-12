@@ -104,8 +104,13 @@ test.describe("player geometry @surface", () => {
     await lab.openPlayer();
     const toggle = page.locator(".player-dock .dock-toggle");
     await expect(toggle).toBeVisible();
-    await finger.press(toggle);
+    // Open, the chevron closes the page, so it points up.
+    await expect(toggle.locator("svg")).toHaveCSS("rotate", "180deg");
+    await toggle.focus();
+    await page.keyboard.press("Enter");
     await lab.collapsed();
+    // The chevron hid with the page: focus is on the bar's open control, not lost to the body.
+    await expect(lab.openButton).toBeFocused();
   });
 
   test("with a mouse the clock sits by the seek line while the page is open, and the middle holds still @surface", async ({

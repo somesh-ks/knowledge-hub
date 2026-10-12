@@ -1214,6 +1214,15 @@
   }
 }
 
+/* The bar's open and close button, at every width: its chevron points where the page will go. */
+.dock-toggle svg {
+  transition: rotate var(--duration-state) var(--ease-out);
+}
+
+.dock-toggle[data-open] svg {
+  rotate: 180deg;
+}
+
 /* A mouse at tablet width has no handle and no tools column: the chevron alone, where the transport
    was, closes the open page. */
 @media (min-width: 40rem) and (max-width: 63.9375rem) and (hover: hover) and (pointer: fine) {
@@ -2661,15 +2670,6 @@
     grid-row: 1;
     grid-column: 7;
     justify-self: start;
-  }
-
-  /* The wide bar's open and close button: its chevron points where the page will go. */
-  .dock-toggle svg {
-    transition: rotate var(--duration-state) var(--ease-out);
-  }
-
-  .dock-toggle[data-open] svg {
-    rotate: 180deg;
   }
 }
 
