@@ -15,7 +15,7 @@ const NEWEST_FIRST = [
 const REST_FACTS = [
   "Discussion · 5 min",
   "Daily · 12 stories · 1 min",
-  "Headlines · 3 min",
+  "Readout · 3 min",
   "Daily · 8 stories · 3 min",
   "Weekly · 14 stories · 8 min",
 ];
@@ -27,7 +27,9 @@ async function ready(page: Page): Promise<void> {
 
 /** The titles of the cards on show, in the order they sit in the page. */
 async function titles(page: Page): Promise<string[]> {
-  return page.locator("[data-card]:not([hidden]) .card-title").allTextContents();
+  // A date title joins its day and month with a non-breaking space; compare it as plain words.
+  const texts = await page.locator("[data-card]:not([hidden]) .card-title").allTextContents();
+  return texts.map((text) => text.replace(/\u00a0/g, " "));
 }
 
 /**
@@ -129,8 +131,9 @@ test.describe("library search", () => {
     await page.getByRole("searchbox").fill("forty minute");
     expect(await titles(page)).toEqual(["Monday 5 October"]);
     // While searching, the line under a card says why it is there.
+    // While searching, the line under a card names the story that matched.
     await expect(page.locator("[data-card]:not([hidden]) .card-facts")).toHaveText(
-      "1 matching story",
+      "A forty minute conversation on taste in small teams",
     );
     await narrowedTo(page, 1, 5);
   });
@@ -176,18 +179,13 @@ test.describe("library search", () => {
     await expect(page.locator("[data-library-status]")).toHaveText("5 results");
   });
 
-  test("a clear button shows on touch only while the field has text, and returns focus to it", async ({
+  test("a clear button shows for every pointer while the field has text, and returns focus to it", async ({
     page,
-  }, info) => {
+  }) => {
     await page.goto("/library");
     await ready(page);
     const clear = page.getByRole("button", { name: "Clear text" });
     const input = page.getByRole("searchbox");
-    if (info.project.name === "desktop") {
-      await input.fill("gridwork");
-      await expect(clear).toBeHidden();
-      return;
-    }
     await expect(clear).toBeHidden();
     await input.fill("gridwork");
     await expect(clear).toBeVisible();
@@ -221,7 +219,7 @@ test.describe("library search", () => {
     expect(small).toEqual([]);
   });
 
-  test("with a filter on, the empty state names both, and Show everything resets both", async ({
+  test("with a filter on, the empty state names both, and Show all resets both", async ({
     page,
   }) => {
     await page.goto("/library");
@@ -229,9 +227,9 @@ test.describe("library search", () => {
     await filter(page, "Weekly");
     await page.getByRole("searchbox").fill("zzzz");
     await expect(page.locator("[data-library-empty]")).toContainText(
-      "No results for \u201czzzz\u201d in weekly",
+      "No results for \u201czzzz\u201d in weekly briefings",
     );
-    await page.getByRole("button", { name: "Show everything" }).click();
+    await page.getByRole("button", { name: "Show all" }).click();
     await expect(show(page)).toHaveValue("all");
     await expect(page.getByRole("searchbox")).toHaveValue("");
     expect(await titles(page)).toEqual(NEWEST_FIRST);
@@ -263,11 +261,121 @@ test.describe("library search", () => {
     const input = page.getByRole("searchbox");
     await input.fill("dither");
     await input.press("Enter");
-    await expect(page).toHaveURL(/\/library$/);
+    // The query is in the address (replaceState), but the document is the same one.
+    await expect(page).toHaveURL(/\/library\?q=dither$/);
     expect(await page.evaluate(() => (window as unknown as { __kept?: string }).__kept)).toBe(
       "same document",
     );
     expect(await titles(page)).toEqual(["Wednesday 7 October", "Sunday 4 October"]);
+  });
+});
+
+test.describe("library fixes", () => {
+  test("a focused card is painted whole, so its ring shows", async ({ page }) => {
+    await page.goto("/library");
+    await ready(page);
+    await page.locator(".view-btn[data-library-view='list']").focus();
+    await page.keyboard.press("Tab");
+    const link = page.locator("[data-card] .card-link").first();
+    await expect(link).toBeFocused();
+    const style = await link.evaluate((node) => {
+      const card = node.closest("[data-card]") as HTMLElement;
+      return {
+        visibility: getComputedStyle(card).contentVisibility,
+        outline: getComputedStyle(node).outlineStyle,
+      };
+    });
+    expect(style).toEqual({ visibility: "visible", outline: "solid" });
+  });
+
+  test("a list row is never clipped, so its hover tile shows whole", async ({ page }) => {
+    await page.addInitScript(() => localStorage.setItem("dispatch:library-view", "list"));
+    await page.goto("/library");
+    await ready(page);
+    const visibility = await page
+      .locator("[data-card]")
+      .first()
+      .evaluate((node) => getComputedStyle(node).contentVisibility);
+    expect(visibility).toBe("visible");
+  });
+
+  test("an episode deleted on this device stays gone after a new order", async ({ page }) => {
+    await page.addInitScript(() =>
+      localStorage.setItem(
+        "dispatch:deleted-episodes",
+        JSON.stringify([{ id: "ep-20261006-0900", at: Date.now() }]),
+      ),
+    );
+    await page.goto("/library");
+    await ready(page);
+    await expect(page.locator("[data-card]")).toHaveCount(4);
+    await page.getByRole("combobox", { name: "Sort" }).selectOption("oldest");
+    await expect(page.locator("[data-card]")).toHaveCount(4);
+    expect(await titles(page)).not.toContain(HEADLINES);
+    await expect(page.locator("[data-library-status]")).toHaveText("4 results");
+    await filter(page, "Episodes");
+    expect(await titles(page)).toEqual([DISCUSSION]);
+  });
+
+  test("keeps the search, the filter and the order in the address, and restores them", async ({
+    page,
+  }) => {
+    await page.goto("/library");
+    await ready(page);
+    await filter(page, "Daily");
+    await page.getByRole("combobox", { name: "Sort" }).selectOption("oldest");
+    await page.getByRole("searchbox").fill("gridwork");
+    await expect(page).toHaveURL(/\/library\?/);
+    const url = new URL(page.url());
+    expect(Object.fromEntries(url.searchParams)).toEqual({
+      q: "gridwork",
+      show: "daily",
+      sort: "oldest",
+    });
+    await page.goto(url.pathname + url.search);
+    await ready(page);
+    await expect(page.getByRole("searchbox")).toHaveValue("gridwork");
+    await expect(show(page)).toHaveValue("daily");
+    expect(await titles(page)).toEqual(["Monday 5 October"]);
+  });
+
+  test("a filter or an order that is not the default looks chosen", async ({ page }) => {
+    await page.goto("/library");
+    await ready(page);
+    const field = page.locator(".filter-field");
+    const fill = () => field.evaluate((node) => getComputedStyle(node).backgroundColor);
+    const before = await fill();
+    await expect(field).not.toHaveAttribute("data-active", "");
+    await filter(page, "Weekly");
+    await expect(field).toHaveAttribute("data-active", "");
+    expect(await fill()).not.toBe(before);
+    await filter(page, "All");
+    await expect(field).not.toHaveAttribute("data-active", "");
+  });
+
+  test("a finished item says Played, and a half-heard one shows its bar", async ({ page }) => {
+    await page.addInitScript(() => {
+      localStorage.setItem("dispatch:played:2026-10-07", "1");
+      localStorage.setItem("dispatch:resume:2026-10-05", "60");
+    });
+    await page.goto("/library");
+    await ready(page);
+    const played = page.locator("[data-card][data-id='2026-10-07'] [data-card-played]");
+    await expect(played).toBeVisible();
+    await expect(played).toHaveText("Played");
+    await expect(page.locator("[data-card-played]:visible")).toHaveCount(1);
+    await expect(
+      page.locator("[data-card][data-id='2026-10-05'] [data-cover-progress]"),
+    ).toBeVisible();
+  });
+
+  test("a date with a day under ten finds only that day", async ({ page }) => {
+    await page.goto("/library");
+    await ready(page);
+    await page.getByRole("searchbox").fill("6 oct");
+    expect(await titles(page)).toEqual([HEADLINES]);
+    await page.getByRole("searchbox").fill("2 oct");
+    await expect(page.locator("[data-card]:not([hidden])")).toHaveCount(0);
   });
 });
 
@@ -364,7 +472,7 @@ test.describe("library episodes", () => {
     await expect(page.locator("[data-card][data-kind='episode']:not([hidden])")).toHaveCount(2);
     await expect(page.locator("[data-card]:not([hidden]) .card-facts")).toHaveText([
       "Discussion · 5 min",
-      "Headlines · 3 min",
+      "Readout · 3 min",
     ]);
     // A long title is cut at two lines, so one card never stands taller than its neighbours by much.
     const lines = await page
@@ -435,7 +543,7 @@ test.describe("library episodes", () => {
     await input.fill("fraction cost");
     await expect.poll(() => titles(page)).toEqual([HEADLINES]);
     await expect(page.locator("[data-card]:not([hidden]) .card-facts")).toHaveText([
-      "Found in the full text",
+      "Mentioned in a story",
     ]);
     // Every word has to be there, so one that is not takes the card away again.
     await input.fill("fraction zebra");

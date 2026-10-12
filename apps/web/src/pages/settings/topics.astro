@@ -46,7 +46,7 @@ const others = layout.sources.get(OTHER_ID) ?? [];
 const choices = topicChoicesOf(layout);
 ---
 
-<BaseLayout title="Topics & Sources" view="settings" skipLabel="Skip to topics and sources">
+<BaseLayout title="Topics and sources" view="settings" skipLabel="Skip to topics and sources">
   <main id="main" tabindex="-1">
     {/* One row per topic, each leading to its own page (topics/[id].astro) with its switch, its
          weight and its sources. Here: Add, which opens one panel for a new topic or a new source,
@@ -56,8 +56,9 @@ const choices = topicChoicesOf(layout);
       class="manage topics"
       data-topics
       data-taken={[...topics.map((topic) => topic.id), ...groups.map((group) => group.id), OTHER_ID].join(" ")}
+      data-names={JSON.stringify(choices.map((choice) => choice.name))}
     >
-      <SettingsHead title="Topics & Sources" note="What the briefings cover, and the sources they read." />
+      <SettingsHead title="Topics and sources" note="What the episodes cover, and the sources they read." />
       <button
         class="btn-secondary topics-add"
         type="button"
@@ -95,7 +96,7 @@ const choices = topicChoicesOf(layout);
               <a class="row-action" href={`/settings/topics/${OTHER_ID}`}>
                 <span class="settings-text">
                   <span class="settings-label">Other</span>
-                  <span class="settings-hint">{plural(others.length, "source")} outside the topics above</span>
+                  <span class="settings-hint">{plural(others.length, "source")}</span>
                 </span>
                 <Icon name="chevronRight" />
               </a>

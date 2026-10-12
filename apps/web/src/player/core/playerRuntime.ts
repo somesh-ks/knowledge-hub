@@ -8,11 +8,13 @@
  */
 
 import { narratedOrPage } from "../../narration/narrationRegistry";
+import { pageNeedsPrewarm, whenIdle } from "../../narration/prewarmPage";
 import { createSwitchableAudio, type SwitchableAudio } from "../../narration/switchableAudio";
 import { startSound } from "../sound/soundController";
 import { announcementForEvent } from "./announcements";
 import { announce } from "./announcerDom";
 import { readDigestData } from "./digestData";
+import { replayEarlyTap, takeEarlyAudio } from "./earlyTap";
 import { recordInstallVisit } from "./installHint";
 import { attachMediaSession } from "./mediaSession";
 import { shouldToggleOnPageSpace } from "./playerKeys";
@@ -24,8 +26,6 @@ import { createReaderSync } from "./readerSync";
 import { safeLocalStorage } from "./resume";
 import { reapplyRootState, setRootAttribute, setRootProperty } from "./rootAttributes";
 import { reapplyTheme, startThemeSync } from "./themeRuntime";
-
-const PREWARM_DELAY_MS = 1_500;
 
 let store: PlayerStore | null = null;
 
@@ -49,7 +49,8 @@ let playerAudio: SwitchableAudio | null = null;
  * never placed in the DOM, so a router that swaps the page cannot take it down with the markup.
  */
 export function getPlayerAudio(): SwitchableAudio {
-  playerAudio ??= createSwitchableAudio(new Audio());
+  // The element a Play pressed before the player loaded has already unlocked, when there is one.
+  playerAudio ??= createSwitchableAudio(takeEarlyAudio() ?? new Audio());
   return playerAudio;
 }
 
@@ -131,13 +132,14 @@ export function startPlayerRuntime(): () => void {
   const onPageLoad = (): void => {
     readPage(playerStore);
     reader.refresh();
-    if (navigator.onLine && !playerStore.getPageDigest()?.audio) {
-      // A moment after the page settles, so it never competes with the first load.
-      setTimeout(() => {
+    // Only a briefing or an episode without audio, at the next idle moment rather than after a
+    // fixed wait: the first Play after a page opens finds its first file sooner.
+    if (pageNeedsPrewarm(playerStore.getPageDigest(), navigator.onLine)) {
+      whenIdle(() => {
         import("../../narration/narrationRuntime")
           .then((narration) => narration.prewarmPage())
           .catch(() => undefined);
-      }, PREWARM_DELAY_MS);
+      });
     }
   };
   // Browser Back (system Back on a phone) dismisses the open player and stays on the page. The open
@@ -197,6 +199,8 @@ export function startPlayerRuntime(): () => void {
   window.addEventListener("offline", onOffline);
   // The island usually hydrates after the first astro:page-load has already fired.
   onPageLoad();
+  // A Play pressed while the player was loading is pressed again, now that it has a listener.
+  replayEarlyTap();
 
   return () => {
     document.removeEventListener("astro:page-load", onPageLoad);

@@ -1,5 +1,5 @@
 /**
- * The pure parts of the Topics & Sources editing: ids from what a person types, web addresses, the
+ * The pure parts of the Topics and sources editing: ids from what a person types, web addresses, the
  * words for a refused lookup, whether a topic's details changed, and what a suggested source's +
  * button carries. Free of DOM and of imports, so the page scripts bundle it and the tests read it
  * directly.
@@ -43,18 +43,27 @@ export function problemText(status: number): string {
   return "The lookup could not be reached. Check your connection and try again.";
 }
 
-/** Why a new topic's details are refused, by field; an empty string is a field that is fine. */
-export function topicProblems(input: { name: string; description: string }): {
+/**
+ * Why a new topic's details are refused, by field; an empty string is a field that is fine. `taken`
+ * is the names of the topics there already, which a new name may not repeat, whatever its case.
+ */
+export function topicProblems(
+  input: { name: string; description: string },
+  taken: readonly string[] = [],
+): {
   name: string;
   description: string;
 } {
   const name = input.name.trim();
+  const same = taken.find((other) => other.trim().toLowerCase() === name.toLowerCase());
   return {
     name: !name
       ? "Enter a name."
       : idText(name).length < 2
         ? "Use at least two letters or numbers in the name."
-        : "",
+        : same
+          ? `You already have a topic called ${same.trim()}.`
+          : "",
     description: input.description.trim() ? "" : "Say what should count as this topic.",
   };
 }

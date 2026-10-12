@@ -34,7 +34,7 @@ test.describe("service worker", () => {
       }
       return { names, urls };
     });
-    expect(cached.names).toContain("dispatch-shell-v5");
+    expect(cached.names).toContain("dispatch-shell-v6");
     expect(cached.urls).toContain("/offline");
     expect(cached.urls).toContain("/");
     expect(cached.urls.some((url) => url.startsWith("/_astro/") && url.endsWith(".css"))).toBe(

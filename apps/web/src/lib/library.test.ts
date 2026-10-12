@@ -10,6 +10,7 @@ import {
   matchesFilter,
   normalize,
   resultSummary,
+  storyHeadline,
   textHasWords,
 } from "./library";
 
@@ -125,6 +126,13 @@ describe("textHasWords", () => {
   it("does not match an empty query: the cards' own lines answer that", () => {
     expect(textHasWords("anything", "  ")).toBe(false);
   });
+
+  it("matches a number only as a whole word", () => {
+    expect(textHasWords("released in 2026 for 6 teams", "6")).toBe(true);
+    expect(textHasWords("released in 2026", "6")).toBe(false);
+    expect(textHasWords("released in 2026", "202")).toBe(false);
+    expect(textHasWords("released in 2026", "2026")).toBe(true);
+  });
 });
 
 describe("matchDetail", () => {
@@ -138,7 +146,7 @@ describe("matchDetail", () => {
 
   it("tells a match on the card itself from a match on a story", () => {
     expect(matchDetail(detail, "october")).toEqual({ meta: 2, stories: 0 });
-    expect(matchDetail(detail, "spring")).toEqual({ meta: 0, stories: 1 });
+    expect(matchDetail(detail, "spring")).toEqual({ meta: 0, stories: 1, first: 3 });
     expect(matchDetail(detail, "nothing")).toEqual({ meta: 0, stories: 0 });
   });
 
@@ -156,6 +164,36 @@ describe("dateSearchLine", () => {
       expect(matchCount(wanted, query), query).toBe(1);
     }
     expect(matchCount(wanted, "oct 8")).toBe(0);
+  });
+
+  it("finds a day by its number alone, not by a digit of the year", () => {
+    const cards = ["2026-10-04", "2026-10-05", "2026-10-06", "2026-10-07"].map((date, order) => {
+      const long = new Intl.DateTimeFormat("en-GB", {
+        timeZone: "UTC",
+        weekday: "long",
+        day: "numeric",
+        month: "long",
+      })
+        .format(new Date(`${date}T12:00:00Z`))
+        .replace(",", "")
+        .replace(/(\d) /, "$1\u00a0");
+      return card({ date, order, search: normalize(dateSearchLine(date, long)), metaLines: 1 });
+    });
+    const kept = (query: string) =>
+      cards.filter((one) => matchCount(one, query) > 0).map((one) => one.date);
+    expect(kept("6 oct")).toEqual(["2026-10-06"]);
+    expect(kept("6 october")).toEqual(["2026-10-06"]);
+    expect(kept("oct 6")).toEqual(["2026-10-06"]);
+    expect(kept("2 oct")).toEqual([]);
+    expect(kept("1 oct")).toEqual([]);
+    expect(kept("2026")).toHaveLength(4);
+  });
+});
+
+describe("storyHeadline", () => {
+  it("is the part of a story's line before its publisher", () => {
+    expect(storyHeadline("A new model ships\tThe Verge")).toBe("A new model ships");
+    expect(storyHeadline("No publisher")).toBe("No publisher");
   });
 });
 
@@ -180,7 +218,7 @@ describe("emptyCopy", () => {
   it("names the filter too, and offers to show everything", () => {
     expect(emptyCopy("zzz", "custom")).toMatchObject({
       message: "No results for \u201czzz\u201d in episodes",
-      action: "Show everything",
+      action: "Show all",
       resets: "everything",
     });
   });
@@ -189,5 +227,15 @@ describe("emptyCopy", () => {
     expect(emptyCopy("  ", "weekly").message).toBe("No weekly briefings yet");
     expect(emptyCopy("", "custom").message).toBe("No episodes yet");
     expect(emptyCopy("", "weekly").resets).toBe("everything");
+    expect(emptyCopy("", "weekly").action).toBe("Show all");
+  });
+
+  it("names the kind in full: daily briefings, not daily", () => {
+    expect(emptyCopy("zzz", "daily").message).toBe(
+      "No results for \u201czzz\u201d in daily briefings",
+    );
+    expect(emptyCopy("zzz", "weekly").message).toBe(
+      "No results for \u201czzz\u201d in weekly briefings",
+    );
   });
 });

@@ -10,6 +10,20 @@ import { installMultiSelect } from "./multiSelect";
 
 type Editor = { handle(event: Event): void };
 
+/**
+ * A general topic's on switch says what it does at once: its hint, and the line over its sources
+ * that says they are not read while it is off.
+ */
+function showTopicOn(root: HTMLElement): void {
+  const on = root.querySelector<HTMLInputElement>("[data-topic-on]");
+  if (!on) return;
+  const hint = root.querySelector("[data-topic-on-hint]");
+  if (hint)
+    hint.textContent = on.checked ? "Used in new episodes" : "Off. Its sources are not read";
+  const unread = root.querySelector<HTMLElement>("[data-topic-unread]");
+  if (unread) unread.hidden = on.checked;
+}
+
 function mount(root: HTMLElement): void {
   let editor: Promise<Editor> | undefined;
   // An edit saved in the last few minutes is not in this page until the next build: the controls
@@ -17,6 +31,7 @@ function mount(root: HTMLElement): void {
   const saved = hasSaved()
     ? import("./savedView").then((module) => void module.overlayTopics(root)).catch(() => {})
     : Promise.resolve();
+  void saved.then(() => showTopicOn(root));
   /** Loads the editor once; every event after the first goes to it as well. */
   const forward = (event: Event): void => {
     editor ??= saved
@@ -50,6 +65,7 @@ function mount(root: HTMLElement): void {
       const output = target.closest(".topic-weight")?.querySelector("[data-word]");
       if (output) output.textContent = percent;
     }
+    if (target.matches("[data-topic-on]")) showTopicOn(root);
     forward(event);
   });
 

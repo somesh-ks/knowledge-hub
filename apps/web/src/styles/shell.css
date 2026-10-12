@@ -315,9 +315,17 @@ html[data-mini="visible"] main {
   outline-offset: calc((var(--stroke-ring) + var(--stroke-ring-gap)) * -1);
 }
 
+/* The ring follows the shape that marks the item: the 64x32 pill behind the icon, not the whole
+   cell, which is a fifth of the bar's width on a tablet. Its gap is the bar's own tone. */
 .app-nav-item:focus-visible {
+  outline: none;
   box-shadow: none;
-  border-radius: var(--row-radius);
+}
+
+.app-nav-item:focus-visible .app-nav-indicator {
+  outline: var(--stroke-ring) solid var(--color-focus-ring);
+  outline-offset: var(--stroke-ring-gap);
+  box-shadow: 0 0 0 var(--stroke-ring-gap) var(--color-surface-container);
 }
 
 /* The pill behind the icon: bare at rest, the accent container for the current destination, a state
@@ -466,7 +474,10 @@ html[data-mini="visible"] main {
       color var(--duration-hover) var(--ease-hover);
   }
 
+  /* Here the row is the pill, so the ring is the row's, with the pill's round ends. */
   .app-nav-item:focus-visible {
+    outline: var(--stroke-ring) solid var(--color-focus-ring);
+    border-radius: var(--button-radius);
     box-shadow: 0 0 0 var(--stroke-ring-gap) var(--color-focus-gap);
   }
 

@@ -3,7 +3,7 @@ import { makeDigest } from "../testing/digestFactory";
 import { buildEntries } from "./digests";
 import { parseEpisodeFile } from "./episodeFile";
 import { buildEpisodeEntries } from "./episodes";
-import { matchDetail } from "./library";
+import { matchDetail, normalize } from "./library";
 import { cardFacts, episodeFacts, libraryItems, searchIndex } from "./libraryCard";
 
 const episodeText = (id: string, at: string, format = "discussion") =>
@@ -41,7 +41,8 @@ describe("cardFacts", () => {
       minutes: 4,
     });
     expect(facts("regular")?.line).toBe("Daily \u00b7 4 stories \u00b7 4 min");
-    expect(facts("on-demand")?.line).toBe("Episode \u00b7 4 stories \u00b7 4 min");
+    // Under Episodes, a briefing made on request follows an episode's pattern: format, then length.
+    expect(facts("on-demand")?.line).toBe("Briefing \u00b7 4 min");
   });
 
   it("finds a briefing by its date in any form", () => {
@@ -55,7 +56,7 @@ describe("cardFacts", () => {
       stories: 4,
       minutes: 4,
       hasAudio: false,
-      search: facts?.search ?? "",
+      search: normalize(facts?.search ?? ""),
       metaLines: facts?.metaLines,
     };
     for (const query of ["7 october", "oct 7", "2026-10-07", "wednesday"]) {
@@ -75,7 +76,8 @@ describe("episodeFacts", () => {
     const [headlines] = episodes(
       episodeText("ep-20261007-1930", "2026-10-07T17:30:00Z", "headlines"),
     );
-    expect(headlines && episodeFacts(headlines).line).toBe("Headlines \u00b7 5 min");
+    // Create no longer offers headlines: a stored one reads as a readout.
+    expect(headlines && episodeFacts(headlines).line).toBe("Readout \u00b7 5 min");
   });
 
   it("finds an episode by its date in any form, not as a matching story", () => {
@@ -88,7 +90,7 @@ describe("episodeFacts", () => {
       stories: 1,
       minutes: 5,
       hasAudio: false,
-      search: facts?.search ?? "",
+      search: normalize(facts?.search ?? ""),
       metaLines: facts?.metaLines,
     };
     for (const query of ["7 october", "oct 7", "2026-10-07", "wednesday", "discussion"]) {
@@ -96,12 +98,18 @@ describe("episodeFacts", () => {
       expect(detail.meta, query).toBeGreaterThan(0);
       expect(detail.stories, query).toBe(0);
     }
-    expect(matchDetail(card, "verge")).toEqual({ meta: 0, stories: 1 });
+    expect(matchDetail(card, "verge")).toEqual({ meta: 0, stories: 1, first: 3 });
+  });
+
+  it("keeps each story's headline as written, apart from its publisher", () => {
+    const [entry] = episodes(episodeText("ep-20261007-1930", "2026-10-07T17:30:00Z"));
+    const lines = (entry ? episodeFacts(entry).search : "").split("\n");
+    expect(lines.at(-1)).toBe("A new model ships\tThe Verge");
   });
 
   it("lets search find the title, the format, a headline and a publisher", () => {
     const [entry] = episodes(episodeText("ep-20261007-1930", "2026-10-07T17:30:00Z"));
-    const search = entry ? episodeFacts(entry).search : "";
+    const search = normalize(entry ? episodeFacts(entry).search : "");
     for (const word of ["the week in ai", "discussion", "a new model ships", "the verge"]) {
       expect(search).toContain(word);
     }

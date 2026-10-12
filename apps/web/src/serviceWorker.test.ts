@@ -401,6 +401,27 @@ describe("service worker: a move inside the app", () => {
     expect(await briefing.response?.text()).toBe("/d/2026-10-07 v1");
   });
 
+  it("saves /latest.json once under its bare path, whatever the query string", async () => {
+    let version = 1;
+    const worker = load((url) =>
+      new URL(url).pathname === "/latest.json"
+        ? new Response(`{"id":${version}}`)
+        : new Response(`${new URL(url).pathname} v${version}`),
+    );
+    await worker.dispatchFetch(request("/latest.json?t=1"));
+    await worker.dispatchFetch(request("/", { mode: "navigate" }));
+    worker.clock.now += 5 * SECOND;
+    for (let poll = 2; poll < 6; poll += 1) {
+      await worker.dispatchFetch(request(`/latest.json?t=${poll}`));
+    }
+    const latest = worker.caches.stored().filter((url) => url.includes("/latest.json"));
+    expect(latest).toEqual([`${ORIGIN}/latest.json`]);
+    // A new briefing under yet another query string still expires the saved home page.
+    version = 2;
+    await worker.dispatchFetch(request("/latest.json?t=9"));
+    expect(await (await worker.dispatchFetch(request("/"))).response?.text()).toBe("/ v2");
+  });
+
   it("keeps an expired page for when the network is down", async () => {
     let online = true;
     let version = 1;
@@ -488,7 +509,7 @@ describe("service worker: install and update", () => {
     expect(names).not.toContain("dispatch-shell-v0");
     expect(names).not.toContain("dispatch-pages-v0");
     expect(names).toContain("someone-elses-cache");
-    expect(names).toContain("dispatch-shell-v5");
+    expect(names).toContain("dispatch-shell-v6");
     expect(worker.claim).toHaveBeenCalled();
   });
 

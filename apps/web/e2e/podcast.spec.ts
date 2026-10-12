@@ -89,7 +89,7 @@ test.describe("the Settings index", () => {
       await expect(row).toContainText(hint);
       await expect(row).toHaveAttribute("href", href);
     }
-    await expect(page.getByRole("link", { name: /^Topics & Sources/ })).toHaveAttribute(
+    await expect(page.getByRole("link", { name: /^Topics and sources/ })).toHaveAttribute(
       "href",
       "/settings/topics",
     );
@@ -124,7 +124,7 @@ test.describe("the Settings index", () => {
 });
 
 test.describe("the profile pages", () => {
-  test("Daily shows its saved values, and the next briefing under the title", async ({ page }) => {
+  test("Daily shows its saved values, and the next episode under the title", async ({ page }) => {
     await open(page, "daily");
     // Nothing is saved in the fixtures, so the defaults show.
     await expect(page.locator("#daily-hour")).toHaveValue("7");
@@ -134,7 +134,7 @@ test.describe("the profile pages", () => {
     await expect(page.getByRole("radio", { name: "Readout" })).toBeChecked();
     await expect(page.getByRole("radio", { name: "10 min", exact: true })).toBeChecked();
     await expect(page.locator("[data-next]")).toHaveText(
-      /^Next briefing: about (today|tomorrow|[A-Z][a-z]+day) at 07:00$/,
+      /^Next episode: about (today|tomorrow|[A-Z][a-z]+day) at 07:00$/,
     );
     // Headlines is no longer offered, and there is no switch between profiles.
     await expect(page.getByRole("radio", { name: "Headlines" })).toHaveCount(0);
@@ -149,7 +149,7 @@ test.describe("the profile pages", () => {
     await expect(page.locator("#weekly-day")).toHaveValue("0");
     await expect(page.locator("#weekly-hour")).toHaveValue("7");
     await expect(page.locator("[data-next]")).toHaveText(
-      /^Next weekly: about (today|tomorrow|Sunday) at 07:00$/,
+      /^Next episode: about (today|tomorrow|Sunday) at 07:00$/,
     );
     await expect(page.locator("[data-off]")).toBeHidden();
     const before = await on.boundingBox();
@@ -158,8 +158,35 @@ test.describe("the profile pages", () => {
     await expect(page.getByRole("radio", { name: "Readout" })).toBeHidden();
     // The line under the title says it is off in the next run's place, so the switch holds still.
     await expect(page.locator("[data-next]")).toBeHidden();
-    await expect(page.locator("[data-off]")).toHaveText("No weekly episode while it is off.");
+    await expect(page.locator("[data-off]")).toHaveText("No weekly episodes while this is off.");
     expect((await on.boundingBox())?.y).toBe(before?.y);
+  });
+
+  test("the next episode line follows a changed time and day", async ({ page }) => {
+    await mockConfig(page);
+    await open(page, "daily");
+    await page.locator("#daily-hour").selectOption("9");
+    await expect(page.locator("[data-next]")).toHaveText(
+      /^Next episode: about (today|tomorrow|[A-Z][a-z]+day) at 09:00$/,
+    );
+    await open(page, "weekly");
+    await page.locator("#weekly-day").selectOption("1");
+    await page.locator("#weekly-hour").selectOption("8");
+    await expect(page.locator("[data-next]")).toHaveText(
+      /^Next episode: about (today|tomorrow|Monday) at 08:00$/,
+    );
+  });
+
+  test("unticking every topic says the episode has nothing to cover", async ({ page }) => {
+    await mockConfig(page);
+    await open(page, "daily");
+    const hint = page.getByText("No topics chosen, so Daily episodes have nothing to cover.");
+    await expect(hint).toBeHidden();
+    const chips = page.locator("input[data-scope]");
+    for (let i = 0; i < (await chips.count()); i += 1) await chips.nth(i).uncheck({ force: true });
+    await expect(hint).toBeVisible();
+    await chips.first().check({ force: true });
+    await expect(hint).toBeHidden();
   });
 
   test("both voices are always there, filled from the voice list", async ({ page }) => {
@@ -212,7 +239,35 @@ test.describe("the profile pages", () => {
     await expect(play).toBeHidden();
   });
 
-  test("the topics are chips, each one in the podcast or left out, and Topics & Sources is one tap away", async ({
+  test("a playing sample stops when the page is left", async ({ page }) => {
+    await page.addInitScript(() => {
+      const w = window as unknown as { pauses: number };
+      w.pauses = 0;
+      const pause = HTMLMediaElement.prototype.pause;
+      HTMLMediaElement.prototype.pause = function (this: HTMLMediaElement) {
+        w.pauses += 1;
+        return pause.call(this);
+      };
+    });
+    await mockConfig(page);
+    await open(page, "daily");
+    const sample = page.waitForRequest("**/api/voice-sample?voice=voice-ada");
+    await page.locator("#daily-voice").selectOption("voice-ada");
+    await sample;
+    await expect(toastText(page)).toHaveText(SAVED);
+    const before = await page.evaluate(() => (window as unknown as { pauses: number }).pauses);
+    await page.locator(".settings-up").click();
+    await expect(page).toHaveURL(/\/settings$/);
+    await expect(page.locator("[data-settings]")).toHaveAttribute("data-ready", "true");
+    // The app swaps the page in place, so the window, and the sample, live on: it must be paused.
+    await expect
+      .poll(() =>
+        page.evaluate(() => (window as unknown as { pauses?: number }).pauses ?? 0).catch(() => 0),
+      )
+      .toBeGreaterThan(before);
+  });
+
+  test("the topics are chips, each one in the podcast or left out, and Topics and sources is one tap away", async ({
     page,
   }) => {
     await open(page, "daily");
@@ -222,7 +277,7 @@ test.describe("the profile pages", () => {
     for (const chip of await chips.all()) await expect(chip.locator("input")).toBeChecked();
     // Only the owner's three and their own: general news plays in custom episodes alone.
     await expect(page.locator(".podcast-topics").getByText("World")).toHaveCount(0);
-    const link = page.getByRole("link", { name: /^Topics & Sources/ });
+    const link = page.getByRole("link", { name: /^Topics and sources/ });
     await expect(link).toHaveAttribute("href", "/settings/topics");
   });
 
@@ -329,9 +384,7 @@ test.describe("saving on its own", () => {
     ]);
     await open(page, "daily");
     await page.locator("#daily-hour").selectOption("9");
-    await expect(toastText(page)).toHaveText(
-      "Saved, except the time: the site's GitHub token needs permission to write repository variables.",
-    );
+    await expect(toastText(page)).toHaveText("Saved, except the time, which could not be changed.");
   });
 });
 

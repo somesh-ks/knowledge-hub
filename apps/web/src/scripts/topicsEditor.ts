@@ -1,5 +1,5 @@
 /**
- * The Topics & Sources editor, loaded the first time a switch, a slider, a remove button, a source's
+ * The Topics and sources editor, loaded the first time a switch, a slider, a remove button, a source's
  * row, a suggestion's +, Edit topic or Add is used (topicsPage.ts forwards the event that woke it).
  * It records each change as an op, and autosave.ts sends it a moment later through
  * managePageSave.ts. The panel that adds and edits topics and sources is topicsPanel.ts, loaded when
@@ -114,7 +114,6 @@ export function mountEditor(root: HTMLElement): Editor {
     added += 1;
     row.dataset.key = `new${added}`;
     (row.querySelector("[data-q-name]") as HTMLElement).textContent = name;
-    row.querySelector("button")?.setAttribute("aria-label", `Cancel adding ${name}`);
     queued.append(row);
     changes.set(row.dataset.key, {
       op,
@@ -136,7 +135,7 @@ export function mountEditor(root: HTMLElement): Editor {
    * then, and leaving this one would drop the request on its way (and any passphrase it asks for).
    */
   const addTopic = (topic: NewTopic): void => {
-    // A topic still waiting to be saved holds its id; one that was cancelled gives it back.
+    // A topic still waiting to be saved holds its id.
     const waiting = [...changes.values()].map(({ op }) =>
       op.op === "topic.upsert" ? (op.topic.id ?? "") : "",
     );
@@ -272,7 +271,7 @@ export function mountEditor(root: HTMLElement): Editor {
         note = element("span", "source-note");
         text.append(note);
       }
-      if (note) note.textContent = `Moves to ${facts.topic_name} after the next build.`;
+      if (note) note.textContent = `Moves to ${facts.topic_name} in about a minute.`;
     }
     button.dataset.editSource = JSON.stringify(facts);
     // An earlier edit of this source that has not gone yet goes with this one.
@@ -338,8 +337,6 @@ export function mountEditor(root: HTMLElement): Editor {
   // -------------------------------------------------------------------------------- the events
 
   const press = (button: HTMLButtonElement): void => {
-    const act = button.dataset.act;
-    const row = button.closest<HTMLElement>("li");
     if (
       "addSource" in button.dataset ||
       "addTopic" in button.dataset ||
@@ -350,12 +347,6 @@ export function mountEditor(root: HTMLElement): Editor {
     else if ("suggestedAdd" in button.dataset) {
       const suggestion = parseSuggestedAdd(button.dataset.suggestedAdd);
       if (suggestion) addSuggested(button, suggestion);
-    } else if (act === "cancel" && row) {
-      changes.delete(row.dataset.key ?? "");
-      // A suggested feed added under it goes with it.
-      for (const [key, { el }] of changes) if (row.contains(el)) changes.delete(key);
-      row.remove();
-      autosave.changed();
     } else if (button.dataset.op) {
       const control = button as unknown as Control;
       const pressed = !held(control);

@@ -121,6 +121,15 @@ export function mountProfiles(root: HTMLElement, changed: () => void): void {
       else audio?.pause();
     }
   });
+  // A sample stops when the page is left, by a link in the app (the page swaps in place, so the
+  // audio would play on over the next one) or by closing or leaving the tab.
+  const stop = (): void => audio?.pause();
+  const leave = (): void => {
+    stop();
+    removeEventListener("pagehide", stop);
+  };
+  document.addEventListener("astro:before-swap", leave, { once: true });
+  addEventListener("pagehide", stop);
   root.addEventListener("click", (event) => {
     const chip = (event.target as Element).closest<HTMLButtonElement>("[data-preview]");
     const select = chip?.closest(".podcast-voice")?.querySelector("select");

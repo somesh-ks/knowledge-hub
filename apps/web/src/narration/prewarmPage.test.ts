@@ -1,5 +1,34 @@
-import { describe, expect, it } from "vitest";
-import { claimPrewarm, prewarmAllowed } from "./prewarmPage";
+import { describe, expect, it, vi } from "vitest";
+import { claimPrewarm, pageNeedsPrewarm, prewarmAllowed, whenIdle } from "./prewarmPage";
+
+describe("pageNeedsPrewarm", () => {
+  it("is only for a page with a briefing or an episode and no audio, online", () => {
+    expect(pageNeedsPrewarm({ audio: null }, true)).toBe(true);
+    // A page without a briefing (the Library, Settings) loads no narration code.
+    expect(pageNeedsPrewarm(null, true)).toBe(false);
+    expect(pageNeedsPrewarm({ audio: { url: "/a.mp3" } }, true)).toBe(false);
+    expect(pageNeedsPrewarm({ audio: null }, false)).toBe(false);
+  });
+});
+
+describe("whenIdle", () => {
+  it("waits for the browser's idle moment, with a bound, instead of a fixed delay", () => {
+    const work = vi.fn();
+    const requestIdleCallback = vi.fn((run: () => void) => run());
+    const setTimeout = vi.fn();
+    whenIdle(work, { requestIdleCallback, setTimeout });
+    expect(requestIdleCallback).toHaveBeenCalledWith(work, { timeout: 3_000 });
+    expect(setTimeout).not.toHaveBeenCalled();
+    expect(work).toHaveBeenCalledOnce();
+  });
+
+  it("runs on the next turn where there is no idle callback", () => {
+    const setTimeout = vi.fn();
+    const work = vi.fn();
+    whenIdle(work, { setTimeout });
+    expect(setTimeout).toHaveBeenCalledWith(work, 0);
+  });
+});
 
 function memory(): Pick<Storage, "getItem" | "setItem"> {
   const data = new Map<string, string>();

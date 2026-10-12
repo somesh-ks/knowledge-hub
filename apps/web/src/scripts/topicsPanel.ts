@@ -1,5 +1,5 @@
 /**
- * The Topics & Sources panel: one native modal dialog, cloned from the page's template each time it
+ * The Topics and sources panel: one native modal dialog, cloned from the page's template each time it
  * opens, for four jobs. Add opens it on Topic: a new topic's name, what counts and where it plays,
  * added in one press (D71); its sources are suggested on its page. A topic's Edit topic opens the
  * same details filled in. Its Source segment, and a topic's Add source, take an address, look it up
@@ -214,6 +214,25 @@ export function openPanel(
   // counts stays as it is; its name takes typing like any other topic's. Its keywords have no field
   // (D71) and go back as they were, so a save never empties them.
   const editedTopic = start.kind === "topic-edit" ? start.topic : null;
+  /**
+   * The names a topic may not take: every topic listed (the page's data-names) and every one added
+   * on the page since, apart from the topic being edited, which may keep its own.
+   */
+  const takenNames = (): string[] => {
+    let listed: unknown = [];
+    try {
+      listed = JSON.parse(trigger?.closest<HTMLElement>("[data-topics]")?.dataset.names ?? "[]");
+    } catch {
+      listed = [];
+    }
+    const added = [...document.querySelectorAll("[data-queued] [data-q-name]")].map(
+      (node) => node.textContent ?? "",
+    );
+    const own = editedTopic?.name.trim().toLowerCase();
+    return [...(Array.isArray(listed) ? listed : []), ...added].filter(
+      (name): name is string => typeof name === "string" && name.trim().toLowerCase() !== own,
+    );
+  };
   const topicValue = (): NewTopic => ({
     name: topicField("name").value.trim(),
     description: topicField("description").value.trim(),
@@ -414,7 +433,7 @@ export function openPanel(
   go.addEventListener("click", () => {
     if (mode === "topic") {
       const topic = topicValue();
-      const bad = flag(topicProblems(topic));
+      const bad = flag(topicProblems(topic, takenNames()));
       if (bad) {
         bad.focus();
         return;
@@ -423,7 +442,7 @@ export function openPanel(
       panel.close();
     } else if (mode === "topic-edit" && editedTopic) {
       const topic = topicValue();
-      const bad = flag(topicProblems(topic));
+      const bad = flag(topicProblems(topic, takenNames()));
       if (bad) {
         bad.focus();
         return;

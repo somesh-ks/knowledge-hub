@@ -39,8 +39,8 @@ export interface CardData {
   minutes: number;
   hasAudio: boolean;
   /**
-   * Lower-case text, a line each: the date, the title and the kind come first (see `metaLines`),
-   * then one line per story (headline and publisher).
+   * Normalized text (see `normalize`), a line each: the date, the title and the kind come first (see
+   * `metaLines`), then one line per story (headline and publisher).
    */
   search: string;
   /** How many of the first lines of `search` are about the card itself, not one of its stories. */
@@ -51,9 +51,21 @@ export interface CardFacts {
   /** The line under the title: "Daily · 12 stories · 8 min", "Discussion · 5 min". */
   line: string;
   minutes: number;
+  /**
+   * The lines `CardData.search` is made of, as written: the page normalizes them, and names a
+   * matching story by its headline (the part before `STORY_SOURCE_SEPARATOR`) as it was written.
+   */
   search: string;
   /** How many of the first lines of `search` are about the card itself (see `CardData`). */
   metaLines: number;
+}
+
+/** What parts a story's headline from its publisher on its line of search text. */
+export const STORY_SOURCE_SEPARATOR = "\t";
+
+/** A story's headline, from its line of search text. */
+export function storyHeadline(line: string): string {
+  return line.split(STORY_SOURCE_SEPARATOR)[0] ?? "";
 }
 
 /** What separates the parts of the line under a title. One separator, everywhere. */
@@ -96,24 +108,50 @@ export function matchCount(card: CardData, query: string): number {
  * `stories`, the lines of its stories. Only stories are worth reporting as "matching stories"; a card
  * that matched on its own date or title keeps its normal facts line. An empty query matches once, as meta.
  */
-export function matchDetail(card: CardData, query: string): { meta: number; stories: number } {
-  const words = normalize(query).split(/\s+/).filter(Boolean);
+export function matchDetail(
+  card: CardData,
+  query: string,
+): { meta: number; stories: number; first?: number } {
+  const words = queryWords(query);
   if (words.length === 0) return { meta: 1, stories: 0 };
   const firstStory = card.metaLines ?? 0;
   let meta = 0;
   let stories = 0;
+  let first: number | undefined;
   card.search.split("\n").forEach((line, index) => {
-    if (!words.every((word) => line.includes(word))) return;
+    if (!lineHasWords(line, words)) return;
     if (index < firstStory) meta += 1;
-    else stories += 1;
+    else {
+      stories += 1;
+      // The first story that matched, by its line in `search`, so the card can name it.
+      first ??= index;
+    }
   });
-  return { meta, stories };
+  return first === undefined ? { meta, stories } : { meta, stories, first };
+}
+
+function queryWords(query: string): string[] {
+  return normalize(query).split(/\s+/).filter(Boolean);
+}
+
+/**
+ * True when a line holds every word. A number is a whole token, never part of one: "6" finds
+ * "6 october" but not "2026", so a day of the month does not match every card's year.
+ */
+function lineHasWords(line: string, words: readonly string[]): boolean {
+  let tokens: string[] | null = null;
+  return words.every((word) => {
+    if (!/^\d+$/.test(word)) return line.includes(word);
+    tokens ??= line.split(/[^\p{L}\p{N}]+/u);
+    return tokens.includes(word);
+  });
 }
 
 /** The search text for a day, so "7 october", "oct 7", "2026-10-07" and "wednesday" all find it. */
 export function dateSearchLine(isoDate: string, longDate: string): string {
   const [, , day = ""] = isoDate.split("-");
-  const monthName = longDate.split(" ")[2] ?? "";
+  // Split on any space: the day and the month are joined by a non-breaking one.
+  const monthName = longDate.split(/\s+/)[2] ?? "";
   return `${isoDate} ${longDate} ${monthName.slice(0, 3)} ${Number(day)}`;
 }
 
@@ -139,15 +177,14 @@ export function emptyCopy(query: string, filter: LibraryFilter): EmptyCopy {
     if (filter === "all") {
       return { message: `No results for “${text}”`, action: "Clear search", resets: "search" };
     }
-    const label = LIBRARY_FILTERS.find((entry) => entry.id === filter)?.label ?? "";
     return {
-      message: `No results for “${text}” in ${label.toLowerCase()}`,
-      action: "Show everything",
+      message: `No results for “${text}” in ${FILTER_NOUNS[filter]}`,
+      action: "Show all",
       resets: "everything",
     };
   }
   const noun = filter === "all" ? "briefings or episodes" : FILTER_NOUNS[filter];
-  return { message: `No ${noun} yet`, action: "Show everything", resets: "everything" };
+  return { message: `No ${noun} yet`, action: "Show all", resets: "everything" };
 }
 
 /**
@@ -156,9 +193,9 @@ export function emptyCopy(query: string, filter: LibraryFilter): EmptyCopy {
  * way). An empty query matches nothing: the cards' own lines answer that.
  */
 export function textHasWords(text: string, query: string): boolean {
-  const words = normalize(query).split(/\s+/).filter(Boolean);
+  const words = queryWords(query);
   if (words.length === 0) return false;
-  return text.split("\n").some((line) => words.every((word) => line.includes(word)));
+  return text.split("\n").some((line) => lineHasWords(line, words));
 }
 
 /** One entry of /search-index.json: what a card's full text holds, normalized. */

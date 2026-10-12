@@ -70,9 +70,10 @@ const {
 } = Astro.props;
 
 const colors = readBrandColors();
-// Create is the primary action, not a destination, so its page marks none in the navigation.
+// Create is the primary action, not a destination. Its page sits under the Library, where episodes
+// are kept and where its Back leads, so the Library is the current tab there.
 const destination =
-  nav === undefined ? (view === "home" ? "today" : view === "create" ? null : view) : nav;
+  nav === undefined ? (view === "home" ? "today" : view === "create" ? "library" : view) : nav;
 const pageTitle = title ? `${title}, Singularity` : "Singularity";
 // Below 64rem a floating button carries a page's one primary action, as on Android, and only where
 // that action is the next thing to do (lib/fab.ts, D60). Create belongs to the Library, the list
@@ -85,13 +86,14 @@ const pageTitle = title ? `${title}, Singularity` : "Singularity";
 // recording would compete: the player takes data-fab off, and the page gives the room back.
 const path = Astro.url.pathname.replace(/\/$/, "") || "/";
 const fab = fabFor({ path, playable: Boolean(audio && digestId) });
-// A page one level down (a briefing or an episode, a Settings sub-page) leads back in the app bar:
-// to where the person came from when that was in the app, else to its list.
-const back = /^\/(d|e)\//.test(path)
-  ? { href: "/library", label: "Back" }
-  : /^\/settings\/./.test(path)
-    ? { href: path.replace(/\/[^/]+$/, ""), label: "Back" }
-    : undefined;
+// A page one level down (a briefing or an episode, a Settings sub-page, the Create page) leads back
+// in the app bar: to where the person came from when that was in the app, else to its list.
+const back =
+  /^\/(d|e)\//.test(path) || path === "/create"
+    ? { href: "/library", label: "Back" }
+    : /^\/settings\/./.test(path)
+      ? { href: path.replace(/\/[^/]+$/, ""), label: "Back" }
+      : undefined;
 ---
 
 <!doctype html>

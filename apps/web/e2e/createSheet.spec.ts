@@ -84,6 +84,48 @@ test.describe("Create as the primary action", () => {
     await expect(trigger(page)).toBeFocused();
   });
 
+  test("the button sits at the foot of the sheet even when the form is short", async ({ page }) => {
+    await openSheet(page);
+    await expect(sheet(page).locator("[data-create-more]")).not.toHaveAttribute("open", "");
+    // Measured once the sheet has slid in and laid out.
+    await expect
+      .poll(() =>
+        sheet(page).evaluate((dialog) => {
+          const foot = dialog.querySelector(".create-submit") as HTMLElement;
+          return Math.round(
+            dialog.getBoundingClientRect().bottom - foot.getBoundingClientRect().bottom,
+          );
+        }),
+      )
+      .toBe(0);
+  });
+
+  test("Close is at the start of the full-screen sheet and at the end of the side sheet", async ({
+    page,
+  }, info) => {
+    await openSheet(page);
+    const close = await sheet(page).locator("[data-create-close]").boundingBox();
+    const title = await sheet(page).locator(".sheet-title").boundingBox();
+    if (!close || !title) throw new Error("the header is not laid out");
+    if (info.project.name === "desktop") expect(close.x).toBeGreaterThan(title.x + title.width);
+    else expect(close.x + close.width).toBeLessThanOrEqual(title.x);
+  });
+
+  test("in the side sheet every control ends at the same right edge", async ({ page }, info) => {
+    test.skip(info.project.name !== "desktop", "the side sheet is for wide screens");
+    await openSheet(page, "/");
+    await sheet(page).getByText("More options").click();
+    const rights = await sheet(page)
+      .locator(".create-choice, .create-select > select, .create-title")
+      .evaluateAll((nodes) =>
+        nodes
+          .filter((node) => (node as HTMLElement).offsetParent !== null)
+          .map((node) => Math.round(node.getBoundingClientRect().right)),
+      );
+    expect(rights.length).toBeGreaterThanOrEqual(6);
+    expect(new Set(rights).size).toBe(1);
+  });
+
   test("Enter in the title puts the keyboard away and sends nothing", async ({ page }) => {
     const bodies = await mockRun(page, [{ run_id: 31, state: "running", step: null }]);
     await openSheet(page);

@@ -1173,7 +1173,7 @@ describe("POST /api/narrate: time limits, counted from the start of the request"
     const context = setup();
     // 2.4 seconds are left for uploads when Speechify answers, and every upload fails.
     slowSpeech(context, LIMIT_MS - RESPONSE_MARGIN_MS - 2400);
-    context.blob.failNext("put", 10, { prefix: `audio/${ID}/seg/` });
+    context.blob.failNext("put", 10, { prefix: pathOf(context.digest, "intro") });
     const result = await postSegment(context, "intro");
 
     expect(result).toEqual({ status: 502, body: { status: 502, error: "storage_failed" } });
@@ -1187,14 +1187,15 @@ describe("POST /api/narrate: time limits, counted from the start of the request"
     const context = setup();
     // 900 ms are left. A 500 ms pause would leave too little for another attempt.
     slowSpeech(context, LIMIT_MS - RESPONSE_MARGIN_MS - 900);
-    context.blob.failNext("put", 10, { prefix: `audio/${ID}/seg/` });
+    // The audio file's own path: its word marks go up beside it and are not what is tested here.
+    context.blob.failNext("put", 10, { prefix: pathOf(context.digest, "intro") });
     const result = await postSegment(context, "intro");
 
     expect(result).toEqual({ status: 502, body: { status: 502, error: "storage_failed" } });
     // One shortened pause of 400 ms, a second attempt with what was left, then no third.
     expect(context.delays).toEqual([400]);
     expect(
-      context.blob.calls.filter((call) => call.op === "put" && call.pathname.includes("/seg/")),
+      context.blob.calls.filter((call) => call.op === "put" && call.pathname.endsWith(".mp3")),
     ).toHaveLength(2);
     expect(context.elapsed()).toBeLessThanOrEqual(LIMIT_MS - RESPONSE_MARGIN_MS);
   });
@@ -1529,13 +1530,13 @@ describe("POST /api/narrate with a segment", () => {
     expect(context.speech.calls).toHaveLength(1);
     expect(context.speech.calls[0]?.body.input).toBe(intro.text);
 
-    // The charge first, then the file and its word marks. No marker and no whole-digest files.
+    // The charge first, then the file and its word marks, side by side. No marker and no
+    // whole-digest files.
     const marksPath = path.replace(/\.mp3$/, ".marks.json");
-    expect(context.blob.changes()).toEqual([
-      `put ${usageKey(MONTH)}`,
-      `put ${path}`,
-      `put ${marksPath}`,
-    ]);
+    expect(context.blob.changes()[0]).toBe(`put ${usageKey(MONTH)}`);
+    expect([...context.blob.changes()].sort()).toEqual(
+      [`put ${usageKey(MONTH)}`, `put ${path}`, `put ${marksPath}`].sort(),
+    );
     expect(context.blob.operations()).toEqual({ advanced: 3, simple: 2, free: 0 });
     // One mark per word, from the start of the segment's own audio.
     const words = intro.text.split(/\s+/).filter((word) => word !== "");
@@ -1597,6 +1598,29 @@ describe("POST /api/narrate with a segment", () => {
     // Tried once: marks are worth one operation, not a retry.
     expect(context.blob.calls.filter((call) => call.pathname === marksPath)).toHaveLength(1);
     expect(logs.some((line) => line.includes("word marks were not stored"))).toBe(true);
+  });
+
+  it("puts the word marks up beside the audio, not after it", async () => {
+    const context = setup();
+    const path = pathOf(context.digest, "intro");
+    const marksPath = path.replace(/\.mp3$/, ".marks.json");
+    const started: string[] = [];
+    let release = (): void => undefined;
+    const held = new Promise<void>((resolve) => {
+      release = resolve;
+    });
+    const put = context.blob.put.bind(context.blob);
+    context.blob.put = async (pathname, body, options) => {
+      started.push(pathname);
+      if (pathname === path) await held;
+      return put(pathname, body, options);
+    };
+    const answer = postSegment(context, "intro");
+    // Both puts are on their way while the audio's has not finished.
+    await vi.waitFor(() => expect(started).toEqual(expect.arrayContaining([path, marksPath])));
+    release();
+    expect((await answer).status).toBe(200);
+    expect(context.blob.has(marksPath)).toBe(true);
   });
 
   it("stores no word marks when Speechify gave none", async () => {
@@ -1927,14 +1951,14 @@ describe("POST /api/narrate with a segment", () => {
 
   it("retries the upload inside the function, and gives up with 502", async () => {
     const retried = setup();
-    retried.blob.failNext("put", 2, { prefix: `audio/${ID}/seg/` });
+    retried.blob.failNext("put", 2, { prefix: pathOf(retried.digest, "intro") });
     expect((await postSegment(retried, "intro")).status).toBe(200);
     expect(retried.delays).toEqual([UPLOAD_RETRY_DELAY_MS, UPLOAD_RETRY_DELAY_MS * 2]);
     expect(retried.speech.calls).toHaveLength(1);
 
     const failed = setup();
     failed.blob.failNext("put", UPLOAD_ATTEMPTS, {
-      prefix: `audio/${ID}/seg/`,
+      prefix: pathOf(failed.digest, "intro"),
       error: new Error(`${UPSTREAM}: store rejected ${BLOB_TOKEN}`),
     });
     const result = await postSegment(failed, "intro");

@@ -164,6 +164,92 @@ test.describe("the Create page", () => {
     await expect(submit(page)).toHaveText("Generate • 3 mins");
   });
 
+  test("while the request is out the button says Starting…, with its spinner beside the words", async ({
+    page,
+  }) => {
+    test.skip(PASSPHRASE_REQUIRED, PASSPHRASE_ON);
+    let release: () => void = () => {};
+    const held = new Promise<void>((resolve) => {
+      release = resolve;
+    });
+    await page.route("**/api/podcast", async (route) => {
+      await held;
+      // Accepted without a run to follow: the form says it did not start, with no failed request.
+      await route.fulfill({
+        status: 202,
+        contentType: "application/json",
+        body: JSON.stringify({ status: 202 }),
+      });
+    });
+    await openCreate(page);
+    await submit(page).click();
+    const words = page.locator("[data-submit-text]");
+    await expect(words).toHaveText("Starting…");
+    await expect(submit(page)).toHaveAttribute("aria-busy", "true");
+    const spinner = await submit(page).locator(".spinner").boundingBox();
+    const text = await words.boundingBox();
+    const button = await submit(page).boundingBox();
+    if (!spinner || !text || !button) throw new Error("the button is not laid out");
+    // In the row with the words, just before them, not pinned to the button's edge.
+    expect(spinner.x + spinner.width).toBeLessThanOrEqual(text.x);
+    expect(text.x - (spinner.x + spinner.width)).toBeLessThanOrEqual(12);
+    expect(Math.abs(spinner.y + spinner.height / 2 - (text.y + text.height / 2))).toBeLessThan(3);
+    // The pair sits in the middle of the button.
+    const left = spinner.x - button.x;
+    const right = button.x + button.width - (text.x + text.width);
+    expect(Math.abs(left - right)).toBeLessThan(6);
+    release();
+    await expect(page.locator('[data-error="form"]')).toBeVisible();
+    await expect(words).toHaveText("Generate • 5 mins");
+    await expect(submit(page).locator(".spinner")).toBeHidden();
+  });
+
+  test("the sticky foot shows a hairline while the form runs on under it, and none at the end", async ({
+    page,
+  }, info) => {
+    test.skip(
+      info.project.name === "desktop",
+      "the whole form fits beside the options on a wide page",
+    );
+    await openCreate(page);
+    const line = () =>
+      page
+        .locator(".create-page .create-submit")
+        .evaluate((node) => Number(getComputedStyle(node, "::before").opacity));
+    await page.evaluate(() => window.scrollTo(0, 0));
+    expect(await page.evaluate(() => document.documentElement.scrollHeight > innerHeight)).toBe(
+      true,
+    );
+    await expect.poll(line).toBe(1);
+    await page.evaluate(() => window.scrollTo(0, document.documentElement.scrollHeight));
+    await expect.poll(line).toBe(0);
+  });
+
+  for (const width of [320, 360, 390]) {
+    test(`the chosen length fits inside its segment at ${width}px`, async ({ page }, info) => {
+      test.skip(info.project.name === "desktop", "a phone width");
+      await page.setViewportSize({ width, height: 800 });
+      await openCreate(page);
+      await segment(page, "15 min").click();
+      // The check grows in beside the words; measure once it has.
+      await page.waitForTimeout(500);
+      const fit = await page
+        .locator(".settings-segment:has(input[name='length']:checked)")
+        .evaluate((label) => {
+          const box = label.getBoundingClientRect();
+          const words = (label.querySelector("span") as HTMLElement).getBoundingClientRect();
+          return { left: words.left - box.left, right: box.right - words.right };
+        });
+      expect(fit.left).toBeGreaterThanOrEqual(6);
+      expect(fit.right).toBeGreaterThanOrEqual(6);
+      // Centred: the check does not push the words against one edge.
+      expect(Math.abs(fit.left - fit.right)).toBeLessThan(4);
+      expect(await page.evaluate(() => document.documentElement.scrollWidth)).toBeLessThanOrEqual(
+        width,
+      );
+    });
+  }
+
   test("needs at least one topic before it asks for the passphrase", async ({ page }) => {
     await openCreate(page);
     await clearTopics(page);
@@ -279,13 +365,13 @@ test.describe("the Create page", () => {
     await expect(page.locator("[data-create]")).toHaveAttribute("data-ready", "");
     const more = page.locator("[data-create-more]");
     await expect(more).not.toHaveAttribute("open", "");
-    await expect(page.locator("[data-more-values]")).toHaveText("For Somesh · A week · Neutral");
+    await expect(page.locator("[data-more-values]")).toHaveText("For Somesh · 7 days · Neutral");
     await expect(page.locator('input[name="tone"]').first()).toBeHidden();
     await more.locator("summary").click();
     await segment(page, "Dry").click();
     await segment(page, "General").click();
     await more.locator("summary").click();
-    await expect(page.locator("[data-more-values]")).toHaveText("For General · A week · Dry");
+    await expect(page.locator("[data-more-values]")).toHaveText("For General · 7 days · Dry");
   });
 
   test("a wide page keeps More options open beside the main questions", async ({ page }, info) => {
@@ -375,7 +461,7 @@ test.describe("the Create page", () => {
     await chip(page, "World").click();
     await segment(page, "10 min").click();
     await segment(page, "Discussion").click();
-    await segment(page, "A month").click();
+    await segment(page, "30 days").click();
     await segment(page, "Dry").click();
     await page.getByLabel("Title").fill("  My week in AI  ");
     await page.locator("[data-submit]").click();
@@ -663,12 +749,12 @@ test.describe("the Create page when the server says no", () => {
       [
         429,
         { status: 429, error: "cooldown", retry_after_s: 100 },
-        "Episodes need a short rest between them. Try again in 2 minutes.",
+        "You can make another episode in 2 minutes.",
       ],
       [
         429,
         { status: 429, error: "daily_cap", retry_after_s: 3 * 3600 },
-        "The limit for today is reached. Try again in 3 hours.",
+        "That's today's limit. Try again in 3 hours.",
       ],
       [
         503,
@@ -733,7 +819,7 @@ test.describe("the Create page when the server says no", () => {
 });
 
 test.describe("navigation with three destinations and one action", () => {
-  test("fits at 320px, every item a full target, and marks none as current on Create", async ({
+  test("fits at 320px, every item a full target, and marks the Library as current on Create", async ({
     page,
   }) => {
     await page.setViewportSize({ width: 320, height: 640 });
@@ -766,10 +852,21 @@ test.describe("navigation with three destinations and one action", () => {
     for (let index = 1; index < boxes.length; index += 1) {
       expect(boxes[index]?.left ?? 0).toBeGreaterThanOrEqual((boxes[index - 1]?.right ?? 0) - 0.5);
     }
-    await expect(page.locator('.app-nav-item[aria-current="page"]')).toHaveCount(0);
+    // Create sits under the Library, where episodes are kept.
+    await expect(page.locator('.app-nav-item[aria-current="page"]')).toHaveText("Library");
     expect(await page.evaluate(() => document.documentElement.scrollWidth)).toBeLessThanOrEqual(
       320,
     );
+  });
+
+  test("below 64rem the Create page leads back to the Library", async ({ page }, info) => {
+    test.skip(info.project.name === "desktop", "the app bar is for narrower screens");
+    await page.goto("/create");
+    const back = page.locator(".app-bar-back");
+    await expect(back).toBeVisible();
+    await expect(back).toHaveAttribute("href", "/library");
+    await back.click();
+    await expect(page).toHaveURL(/\/library$/);
   });
 
   test("the deep link /create is the page, with the form in it and the Create button beside the list", async ({
@@ -800,7 +897,7 @@ test.describe("episodes in the Library", () => {
       page
         .locator('[data-card][data-kind="episode"]', { hasText: "AI headlines" })
         .locator(".card-facts"),
-    ).toHaveText("Headlines \u00b7 3 min");
+    ).toHaveText("Readout \u00b7 3 min");
 
     const show = page.getByRole("combobox", { name: "Show" });
     await expect(show).toHaveValue("all");

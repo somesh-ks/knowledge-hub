@@ -9,13 +9,22 @@ import {
   factsLine,
   normalize,
   type SearchIndexEntry,
+  STORY_SOURCE_SEPARATOR,
 } from "./library";
 
-/** The kind a briefing's line starts with. What is made on request is an episode, as in Create. */
+/**
+ * The kind a briefing's line starts with. One made on request sits under Episodes, so its line
+ * follows an episode's pattern, its format then its length: "Briefing · 4 min".
+ */
 export function briefingKindLabel(kind: string): string {
   if (kind === "weekly") return "Weekly";
-  if (kind === "on-demand") return "Episode";
+  if (kind === "on-demand") return "Briefing";
   return "Daily";
+}
+
+/** A story's line in a card's search text: the headline, then its publisher, kept apart. */
+function storyLine(headline: string, source: string): string {
+  return `${headline.replace(/\s+/g, " ")}${STORY_SOURCE_SEPARATOR}${source.replace(/\s+/g, " ")}`;
 }
 
 /**
@@ -33,11 +42,12 @@ export function cardFacts(entry: DigestEntry): CardFacts {
   ];
   const lines = [...meta];
   // One line per story, headline and publisher together, so a story counts once however it matches.
-  for (const item of digest.items) lines.push(`${item.headline} ${item.source}`);
+  for (const item of digest.items) lines.push(storyLine(item.headline, item.source));
+  const stories = digest.kind === "on-demand" ? undefined : storyCount(digest.items.length);
   return {
-    line: factsLine([briefingKindLabel(digest.kind), storyCount(digest.items.length), length]),
+    line: factsLine([briefingKindLabel(digest.kind), stories, length]),
     minutes: Number.parseInt(length, 10) || digest.listen_minutes,
-    search: normalize(lines.join("\n")),
+    search: lines.join("\n"),
     metaLines: meta.length,
   };
 }
@@ -57,11 +67,11 @@ export function episodeFacts(entry: EpisodeEntry): CardFacts {
     `episode ${format}`,
   ];
   const lines = [...meta];
-  for (const source of episode.sources) lines.push(`${source.headline} ${source.source}`);
+  for (const source of episode.sources) lines.push(storyLine(source.headline, source.source));
   return {
     line: factsLine([format, `${episode.listen_minutes} min`]),
     minutes: episode.listen_minutes,
-    search: normalize(lines.join("\n")),
+    search: lines.join("\n"),
     metaLines: meta.length,
   };
 }

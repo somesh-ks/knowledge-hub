@@ -15,22 +15,27 @@ export const SAVING = "Saving";
 export const SAVED = "Saved. Live in about a minute.";
 
 /** Shown when the edit went through but the site could not change the briefing time. */
-export const TIME_REFUSED =
-  "Saved, except the time: the site's GitHub token needs permission to write repository variables.";
+export const TIME_REFUSED = "Saved, except the time, which could not be changed.";
 
 /** What a topic or a source added on the page says once it is in the repository. */
-export const ADDED = "Added. It appears after the next build.";
+export const ADDED = "Added. It shows here in about a minute.";
 
 const REASONS: Record<number, string> = {
+  0: "The site could not be reached.",
   400: "That change was not accepted.",
   401: PASSPHRASE_REQUIRED ? "That passphrase is not right." : "Saving was refused.",
   429: "There were too many edits in a row.",
   503: "Saving is not available right now.",
 };
 
-/** What a refusal means. The change is still on the page, and Retry sends it again. */
+/**
+ * What a refusal means. The change is still on the page, and Retry sends it again. A status with no
+ * reason of its own (a 500, say) is a plain failure: only status 0, no answer at all, is the site
+ * not being reached.
+ */
 export function failureText(status: number): string {
-  return `${REASONS[status] ?? "The site could not be reached."} Not saved yet.`;
+  const reason = REASONS[status];
+  return reason ? `${reason} Not saved yet.` : "Saving failed.";
 }
 
 /** The most edits one request may carry (MAX_OPS in server/configEdit.ts). */
@@ -161,7 +166,6 @@ export function settle(batch: Batch, changes: Map<string, Pending>): void {
       // A topic added on the page: it stays listed, saved, until the build shows it in place.
       const note = el.querySelector(".manage-quiet");
       if (note) note.textContent = ADDED;
-      el.querySelector("[data-act=cancel]")?.remove();
     } else if (el.matches(".source-note")) el.textContent = ADDED;
     else {
       if (el.matches("[data-remove]")) {

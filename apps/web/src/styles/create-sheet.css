@@ -384,6 +384,24 @@ dialog.create-sheet[data-scrolled] .create-sheet-head {
   scrollbar-width: thin;
 }
 
+/* The form fills the sheet's height, so a short form (More options closed) keeps its button at the
+   foot of the sheet, not floating under the last question. */
+.create-sheet-body {
+  display: flex;
+  flex-direction: column;
+}
+
+.create-sheet-body > .create-view,
+.create-sheet-body [data-create-form] {
+  display: flex;
+  flex: 1 0 auto;
+  flex-direction: column;
+}
+
+dialog.create-sheet .create-submit {
+  margin-block-start: auto;
+}
+
 /* The button stays reachable: the foot of the form sticks to the foot of the sheet, on the sheet's
    own surface, which also covers the side gutters where scrolled content would otherwise show. */
 dialog.create-sheet .create-submit {
@@ -443,13 +461,24 @@ dialog.create-sheet .create-submit > .btn-primary {
     }
   }
 
+  /* A side sheet: the title at the start, lined up with the form below it, and Close at the end. */
   .create-sheet-head {
     padding-block-start: max(var(--space-3), var(--safe-top));
-    padding-inline: var(--space-3) var(--space-6);
+    padding-inline: var(--space-6) var(--space-3);
+  }
+
+  .create-sheet-head > [data-create-close] {
+    order: 1;
+    margin-inline-start: auto;
   }
 
   .create-sheet-body {
     --sheet-gutter: var(--space-6);
+  }
+
+  /* Every control runs to the panel's one right edge, as Voice and Title do. */
+  dialog.create-sheet .create-view .create-choice {
+    inline-size: auto;
   }
 
   dialog.create-sheet .create-submit {
