@@ -335,3 +335,21 @@ describe("chipFilter", () => {
     expect(chipFilter(["monthly"])).toBe("all");
   });
 });
+
+describe("quotedQuery", async () => {
+  const { emptyCopy, quotedQuery } = await import("./library");
+
+  it("cuts a long query to 24 characters with an ellipsis, inside balanced quotes", () => {
+    const link = "https://example.com/a/very/long/pasted/link/that/runs/on/and/on?with=query";
+    const quoted = quotedQuery(link);
+    expect(Array.from(quoted)).toHaveLength(24);
+    expect(quoted.endsWith("…")).toBe(true);
+    expect(link.startsWith(quoted.slice(0, -1))).toBe(true);
+    expect(emptyCopy(link, "all").message).toBe(`No results for “${quoted}”`);
+  });
+
+  it("leaves a short query whole, and never splits a character", () => {
+    expect(quotedQuery("  springs  ")).toBe("springs");
+    expect(quotedQuery("🎧".repeat(40))).toBe(`${"🎧".repeat(23)}…`);
+  });
+});

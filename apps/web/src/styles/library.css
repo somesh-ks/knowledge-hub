@@ -593,23 +593,35 @@
   padding-block: var(--space-4) var(--space-8);
 }
 
-/* A title is the query as typed: a pasted link may run long, so it wraps anywhere and stops at three lines. */
+/* A title quotes the query cut short (quotedQuery), which may still wrap: two lines at most, so Clear
+   search stays above the navigation on a short phone. */
 .library-empty .empty-title {
   display: -webkit-box;
   -webkit-box-orient: vertical;
-  -webkit-line-clamp: 3;
+  -webkit-line-clamp: 2;
   overflow: hidden;
 }
 
-/* Nothing found: the floating New episode would lie over the title and the button on a small screen, and
-   a short one has no room for the whole scene. */
-html:has([data-library-empty]:not([hidden])) .create-fab {
+/* No results for a search: the floating New episode would lie over the title and the button on a small
+   screen, and a short one has no room for the whole scene. A filter with no match keeps it: "No
+   episodes yet" is where making one belongs. */
+html:has([data-library-empty]:not([hidden])):has([data-library-search]:not(:placeholder-shown))
+.create-fab {
   display: none;
 }
 
 @media (max-height: 44rem) {
+  .library-empty {
+    padding-block-start: 0;
+  }
+
   .library-empty .empty-art {
     inline-size: 7.5rem;
+  }
+
+  /* A two-line title still leaves Clear search clear of the navigation, with air under it. */
+  .library-empty .empty-title {
+    margin-block-start: var(--space-4);
   }
 }
 
@@ -623,6 +635,11 @@ html:has([data-library-empty]:not([hidden])) .create-fab {
    below. */
 html:has(.library-none) .create-fab {
   display: none;
+}
+
+/* Nor the room kept for it at the page's foot: only the air of a page without the button. */
+html:has(.library-none) {
+  --page-end: var(--space-12);
 }
 
 /* ------------------------------------------------------------------ the "Earlier" shelf */
