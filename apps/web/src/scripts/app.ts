@@ -80,6 +80,25 @@ addEventListener("vite:preloadError", () => {
     )
     .finally(() => location.reload());
 });
+// A cover that cannot be fetched (offline, one scrolled to for the first time) shows its palette, not the
+// browser's broken-image glyph. An image error does not bubble, so this listens on the way down, and
+// covers that failed before this script ran are swept up once.
+const hideBroken = (): void => {
+  for (const image of document.querySelectorAll<HTMLImageElement>(".cover-image")) {
+    if (image.complete && image.naturalWidth === 0) image.hidden = true;
+  }
+};
+document.addEventListener(
+  "error",
+  (event) => {
+    if ((event.target as Element).classList?.contains("cover-image")) {
+      (event.target as HTMLImageElement).hidden = true;
+    }
+  },
+  true,
+);
+document.addEventListener("astro:page-load", hideBroken);
+hideBroken();
 // The floating Create button is extended until the first scroll, so what folds it waits for one.
 addEventListener("scroll", () => void import("./fabScroll").then((fab) => fab.installFabScroll()), {
   once: true,
