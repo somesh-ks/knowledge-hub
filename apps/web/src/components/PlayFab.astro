@@ -1,5 +1,5 @@
 ---
-import type { ChipNoun } from "../player/core/readerMath";
+import { type ChipNoun, fabLabel, idleBriefingChip } from "../player/core/readerMath";
 import Icon from "./Icon.astro";
 
 /** The page's own audio, which the floating Play button plays: what the hero chip calls it. */
@@ -17,26 +17,30 @@ interface Props extends PageAudio {
 }
 
 const { digestId, noun, length, expired = false } = Astro.props;
+const chip = idleBriefingChip(length, noun);
 ---
 
 {/* Play in the floating button's place on Today, a briefing or an episode, below 64rem (BaseLayout).
      It takes the floating button's shape, place, motion and fold from .create-fab. It is a second
      face of the hero chip, not a second player: data-play-digest gives it to the player's delegated
      listener, so a press plays, or first makes, the page's audio exactly as the chip does, and the
-     player writes its state (preparing while narration makes the first file, disabled offline). It
-     keeps its own words, as it has no chip label. Expired audio gets the chip's hint. While the bar
-     holds this page's audio the bar is its control, and it steps aside (readerSync.ts). */}
+     player writes its state (preparing while narration makes the first file, disabled offline) and
+     the chip's words after its verb ("Resume · 1 min left", "Played"). Expired audio gets the
+     chip's hint. While the bar holds this page's audio the bar is its control, and it steps aside
+     (readerSync.ts). */}
 <button
   class="create-fab play-fab"
   type="button"
-  aria-label={`Play this ${noun}, ${length}`}
+  aria-label={chip.name}
   aria-describedby={expired ? "play-hint" : undefined}
   data-play-digest={digestId}
+  data-noun={noun}
+  data-minutes={Number.parseInt(length, 10)}
   data-state="idle"
 >
   <span class="play-fab-glyph" aria-hidden="true">
     <Icon name="play" class="icon-lg" />
     <span class="spinner"></span>
   </span>
-  <span class="create-fab-label" aria-hidden="true">Play · {length}</span>
+  <span class="create-fab-label" aria-hidden="true" data-fab-label>{fabLabel(chip)}</span>
 </button>
