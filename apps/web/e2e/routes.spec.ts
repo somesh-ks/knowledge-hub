@@ -97,8 +97,13 @@ test.describe("routes and headers", () => {
     await page.goto("/offline");
     // Online, the page never claims to be offline: it says the connection is back.
     await expect(page.getByRole("heading", { level: 1 })).toHaveText("You are back online");
-    // The wifi-off glyph goes with the offline state.
-    await expect(page.locator("#main .empty-icon")).toBeHidden();
+    // The wifi-off glyph goes with the offline state: the connected one stands in, so the page is
+    // never without an icon.
+    const icon = page.locator("#main .empty-icon");
+    await expect(icon).toBeVisible();
+    const online = await page.locator("#main").getAttribute("data-online-icon");
+    expect(online).toBeTruthy();
+    await expect(icon.locator("path")).toHaveAttribute("d", online ?? "");
     await expect(page.getByRole("link", { name: "Reload" })).toBeVisible();
     await expect(page.getByRole("link", { name: "Open Library" })).toHaveAttribute(
       "href",
