@@ -339,9 +339,12 @@
   opacity: 1;
 }
 
-/* Four segments leave no room for the check beside the words ("10 min" met its thumb's edges): the
-   thumb and its ink mark the choice alone. */
-.settings-choice:has(.settings-segment:nth-of-type(4)) .settings-segment > span::before {
+/* Four segments in a settings row leave no room for the check beside the words ("10 min" met its
+   thumb's edges): the thumb and its ink mark the choice alone. New episode's full-width controls
+   keep the check (create.css drops it below 22.5rem only). */
+.settings-choice:not(.create-choice):has(.settings-segment:nth-of-type(4))
+  .settings-segment
+  > span::before {
   display: none;
 }
 

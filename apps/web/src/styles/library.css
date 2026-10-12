@@ -182,8 +182,8 @@
 }
 
 /* The search field: a filled pill with the glyph inside it, as a search bar is in every Google app.
-   The glyph and the placeholder say what it is. Focus lifts its fill to the raised surface; the
-   ring is the keyboard's only (data-input, app.ts), so a tap or a click never draws it. */
+   The glyph and the placeholder say what it is. Focus lifts it (fill and shadow); the ring is the
+   keyboard's only (data-input, app.ts), so a tap, a click or typing never draws it. */
 .search-field {
   display: flex;
   align-items: center;
@@ -197,8 +197,11 @@
   transition: background-color var(--duration-hover) var(--ease-hover);
 }
 
+/* Focus lifts the pill: the overlay surface and one step of shadow, since the surface alone is
+   1.05:1 from the page in light and the same grey as the pill in dark. */
 .search-field:focus-within {
-  background: var(--color-surface-raised);
+  background: var(--color-surface-overlay);
+  box-shadow: var(--shadow-raised);
 }
 
 :root[data-input="keyboard"] .search-field:focus-within {
@@ -266,6 +269,7 @@
      screens the row wraps rather than run off the page. The padding is room for the focus ring and
      the selects' taller targets. */
   flex-wrap: wrap;
+  row-gap: var(--space-3);
   padding-block: var(--space-1);
 }
 
@@ -296,9 +300,20 @@
   }
 }
 
-/* Where there is room, the order sits at the far end of the row. */
-.library-bar .sort-field {
+/* On a phone the order starts its row and only the view switch sits at the far end, as in a
+   Google library; from 40rem everything is on one row with the order next to the switch. */
+.library-bar .view-switch {
   margin-inline-start: auto;
+}
+
+@media (min-width: 40rem) {
+  .library-bar .sort-field {
+    margin-inline-start: auto;
+  }
+
+  .library-bar .view-switch {
+    margin-inline-start: 0;
+  }
 }
 
 .sort-field {
@@ -602,9 +617,17 @@
   width: auto;
 }
 
-/* The page's own button is the one way to make an episode here: no floating copy of it below. */
+/* The page's own button is the one way to make an episode here: no floating copy of it below. From
+   64rem the side column holds the same button, so the page does not show a second one in another
+   style. */
 html:has(.library-none) .create-fab {
   display: none;
+}
+
+@media (min-width: 64rem) {
+  .library-none > .btn-primary {
+    display: none;
+  }
 }
 
 /* ------------------------------------------------------------------ the "Earlier" shelf */

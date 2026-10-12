@@ -111,11 +111,16 @@ export function installCreate(root: HTMLElement, onStart?: () => void): void {
     else scrollBy({ top: by });
   }
 
+  /** Whether the audience's suggestion ticks this topic. */
+  function suggests(topic: HTMLInputElement, audience: string): boolean {
+    return (topic.dataset.presets ?? "").split(" ").includes(audience);
+  }
+
   /** Ticks the chips the chosen audience suggests; chips stay shown. */
   function applyPreset(): void {
     const audience = String(new FormData(form).get("audience"));
     for (const topic of topics) {
-      topic.checked = (topic.dataset.presets ?? "").split(" ").includes(audience);
+      topic.checked = suggests(topic, audience);
     }
     picked = false;
     showNote(null);
@@ -127,6 +132,14 @@ export function installCreate(root: HTMLElement, onStart?: () => void): void {
    * hand are never replaced unseen: they stay, and a line says so and offers the suggestion.
    */
   function audienceChanged(): void {
+    const audience = String(new FormData(form).get("audience"));
+    // The ticks already are this audience's suggestion (after an Undo, or picks that happen to match):
+    // there is nothing to replace and nothing to offer, so no line and no button that does nothing.
+    if (topics.every((topic) => topic.checked === suggests(topic, audience))) {
+      picked = false;
+      showNote(null);
+      return;
+    }
     if (picked) {
       showNote("kept");
       return;
@@ -146,6 +159,28 @@ export function installCreate(root: HTMLElement, onStart?: () => void): void {
   function voiceOf(select: HTMLSelectElement | null): Voice | null {
     if (!select) return null;
     return (select.value === "" ? defaultVoices[select.name] : known.get(select.value)) ?? null;
+  }
+
+  // The voice each voice select stood for after the last sync, so that choosing the voice the other
+  // host has hands this host's old voice over instead of leaving one voice for two named hosts.
+  const lastVoice: Record<string, string | null> = {};
+  const voiceSelects = [...form.querySelectorAll<HTMLSelectElement>("[data-voice] select")];
+
+  function rememberVoices(): void {
+    for (const select of voiceSelects) lastVoice[select.name] = voiceOf(select)?.id ?? null;
+  }
+
+  /** A discussion's two hosts never share a voice: taking the other host's voice swaps them. */
+  function keepHostsApart(changed: HTMLSelectElement): void {
+    const other = voiceSelects.find((select) => select !== changed);
+    const mine = voiceOf(changed);
+    const theirs = voiceOf(other ?? null);
+    const before = lastVoice[changed.name];
+    if (!other || !mine || !theirs || mine.id !== theirs.id || !before || before === mine.id)
+      return;
+    // Only a voice the list offers can be handed over.
+    if (![...other.options].some((option) => option.value === before)) return;
+    other.value = before;
   }
 
   function sync(): void {
@@ -207,6 +242,7 @@ export function installCreate(root: HTMLElement, onStart?: () => void): void {
     const length = form.querySelector<HTMLInputElement>('input[name="length"]:checked');
     if (length?.dataset.submitLabel)
       $("[data-submit-text]").textContent = length.dataset.submitLabel;
+    rememberVoices();
   }
 
   /** Each ticked chip adds its ids (Design sends two); an id never appears twice. */
@@ -293,6 +329,11 @@ export function installCreate(root: HTMLElement, onStart?: () => void): void {
 
   form.addEventListener("change", (event) => {
     const name = (event.target as HTMLInputElement | null)?.name;
+    if (
+      (name === "voice" || name === "voice_b") &&
+      new FormData(form).get("format") === "discussion"
+    )
+      keepHostsApart(event.target as HTMLSelectElement);
     if (name === "audience") audienceChanged();
     if (name === "topic") {
       picked = true;

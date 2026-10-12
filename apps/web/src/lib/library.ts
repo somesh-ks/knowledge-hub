@@ -203,9 +203,12 @@ export function matchExcerpt(text: string, query: string, lead = 16): ExcerptPar
   }
   const first = hit.indexOf(true);
   let start = 0;
-  if (first > lead) {
+  // A match near the end has little after it, so more of what comes before it is shown: the two
+  // lines a card allows hold about 44 characters.
+  const back = Math.max(lead, 44 - (chars.length - first));
+  if (first > back) {
     // Cut at the first space in the lead, so no word is shown in part.
-    const space = chars.findIndex((char, index) => index >= first - lead && /\s/.test(char));
+    const space = chars.findIndex((char, index) => index >= first - back && /\s/.test(char));
     start = space !== -1 && space < first ? space + 1 : first;
   }
   const parts: ExcerptPart[] = start > 0 ? [{ text: "…", hit: false }] : [];

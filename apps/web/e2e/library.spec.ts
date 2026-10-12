@@ -204,6 +204,13 @@ test.describe("library search", () => {
     const pressed = await look();
     expect(pressed.outline).toBe("none");
     expect(pressed.fill).not.toBe(rest.fill);
+    // Focus is also a lift: one step of shadow, since the fill alone is 1.05:1 from the light page.
+    expect(await pill.evaluate((node) => getComputedStyle(node).boxShadow)).not.toBe("none");
+    // Typing in a field reached by a tap is not keyboard navigation: no ring after letters.
+    await page.keyboard.type("lat");
+    expect(await page.evaluate(() => document.documentElement.dataset.input)).toBe("pointer");
+    expect((await look()).outline).toBe("none");
+    await page.getByRole("searchbox").fill("");
     // A key: the keyboard's ring.
     await page.getByRole("searchbox").blur();
     await page.keyboard.press("Shift+Tab");
@@ -493,6 +500,24 @@ test.describe("library fixes", () => {
     );
     expect(new Set(gaps.map((card) => card.gap)).size, JSON.stringify(gaps)).toBe(1);
     expect(new Set(gaps.map((card) => card.facts)).size, JSON.stringify(gaps)).toBe(1);
+  });
+
+  test("a finished episode keeps its format and only the length gives way to Played", async ({
+    page,
+  }) => {
+    await page.addInitScript(() => {
+      localStorage.setItem("dispatch:played:ep-20261007-1930", "1");
+    });
+    await page.goto("/library");
+    await ready(page);
+    const facts = page.locator("[data-card][data-id='ep-20261007-1930'] .card-facts");
+    await expect(facts).toHaveText("Discussion · Played");
+    // Heard again from the start: the mark goes and the length comes back, with the format.
+    await page.evaluate(() => {
+      localStorage.removeItem("dispatch:played:ep-20261007-1930");
+      window.dispatchEvent(new Event("pageshow"));
+    });
+    await expect(facts).toHaveText("Discussion · 5 min");
   });
 
   test("a date with a day under ten finds only that day", async ({ page }) => {

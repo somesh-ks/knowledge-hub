@@ -253,6 +253,15 @@ describe("matchExcerpt", () => {
     );
   });
 
+  it("shows more before a find near the end, since little follows it", () => {
+    const text =
+      "Springlet 2.0 retargets springs mid-flight, so interrupted drawers keep their velocity";
+    const shown = show(matchExcerpt(text, "velocity"));
+    expect(shown.endsWith("[velocity]")).toBe(true);
+    // Two lines hold about 44 characters; "…keep their velocity" (20) wasted most of them.
+    expect(shown.length).toBeGreaterThanOrEqual(40);
+  });
+
   it("keeps the start when the find is near it, and marks every word of the query", () => {
     expect(show(matchExcerpt("Measuring tap latency on phones", "tap phones"))).toBe(
       "Measuring [tap] latency on [phones]",

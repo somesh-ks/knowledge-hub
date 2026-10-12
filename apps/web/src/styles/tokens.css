@@ -75,6 +75,10 @@
     0px 16px 32px -8px oklch(24% 0.06 254 / 0.18);
   --shadow-popover-dark: 0px 0px 0px 1px oklch(100% 0 0 / 0.08),
     0px 8px 24px -4px oklch(4% 0.02 250 / 0.6);
+  --shadow-raised-light: 0px 1px 2px 0px oklch(20% 0.03 250 / 0.14),
+    0px 1px 3px 1px oklch(20% 0.03 250 / 0.10);
+  --shadow-raised-dark: 0px 1px 2px 0px oklch(4% 0.02 250 / 0.5),
+    0px 1px 3px 1px oklch(4% 0.02 250 / 0.3);
   --space-1: 0.25rem;
   --space-2: 0.5rem;
   --space-3: 0.75rem;
@@ -215,6 +219,7 @@
   --shadow-floating: var(--shadow-floating-light);
   --shadow-sheet: var(--shadow-sheet-light);
   --shadow-popover: var(--shadow-popover-light);
+  --shadow-raised: var(--shadow-raised-light);
   --layout-gutter: var(--space-4);
   --layout-gutter-wide: var(--space-6);
   --layout-column: 40rem;
@@ -453,6 +458,7 @@
     --shadow-floating: var(--shadow-floating-dark);
     --shadow-sheet: var(--shadow-sheet-dark);
     --shadow-popover: var(--shadow-popover-dark);
+    --shadow-raised: var(--shadow-raised-dark);
     --segmented-selected-bg: var(--color-surface-overlay);
     --switch-thumb-bg: var(--color-on-surface);
     color-scheme: dark;
@@ -502,6 +508,7 @@
   --shadow-floating: var(--shadow-floating-dark);
   --shadow-sheet: var(--shadow-sheet-dark);
   --shadow-popover: var(--shadow-popover-dark);
+  --shadow-raised: var(--shadow-raised-dark);
   --segmented-selected-bg: var(--color-surface-overlay);
   --switch-thumb-bg: var(--color-on-surface);
   color-scheme: dark;

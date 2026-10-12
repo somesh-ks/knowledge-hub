@@ -460,6 +460,18 @@
   outline-offset: var(--stroke-ring-gap);
 }
 
+/* A press that opens the list keeps the field's fill and takes the press layer, as the Library's
+   sort does: the ring and the accent edge are the keyboard's (primitives.css draws both). */
+:root:not([data-input="keyboard"]) .create-select > select:open {
+  border-color: transparent;
+  outline: none;
+  background: color-mix(
+    in oklch,
+    var(--color-surface-container),
+    var(--color-on-surface) var(--state-press)
+  );
+}
+
 .create-select > .icon {
   position: absolute;
   inset-block: 0;
@@ -516,6 +528,13 @@
 
   .create-page .create-more-values {
     display: none;
+  }
+
+  /* The pinned heading labels the second column; it is not a question to answer, so it is as quiet
+     as a briefing's "Contents". */
+  .create-page .create-more-title {
+    color: var(--color-on-surface-muted);
+    font-size: var(--font-size-meta);
   }
 
   /* The button sits right under Format here, always in view: the foot does not stick, and has no

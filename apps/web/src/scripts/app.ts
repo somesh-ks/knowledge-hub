@@ -23,7 +23,24 @@ const inputBy = (by: string) => (): void => {
   const root = document.documentElement;
   if (root.dataset.input !== by) root.dataset.input = by;
 };
-addEventListener("keydown", inputBy("keyboard"), { capture: true, passive: true });
+// Typing into a text field is not keyboard navigation: a letter in the search pill must not turn the
+// keyboard's ring on for a field that was reached with a tap. Tab and Escape still do.
+const typesIntoField = (event: KeyboardEvent): boolean =>
+  event.key !== "Tab" &&
+  event.key !== "Escape" &&
+  event.target instanceof HTMLElement &&
+  (event.target.isContentEditable ||
+    event.target.matches(
+      'textarea, input:not([type="checkbox"], [type="radio"], [type="range"], [type="button"], [type="submit"], [type="reset"], [type="file"], [type="color"])',
+    ));
+const keyboardInput = inputBy("keyboard");
+addEventListener(
+  "keydown",
+  (event) => {
+    if (!typesIntoField(event)) keyboardInput();
+  },
+  { capture: true, passive: true },
+);
 addEventListener("pointerdown", inputBy("pointer"), { capture: true, passive: true });
 // The service worker registers once the page has loaded, so its code can arrive then too.
 const registerWorker = (): void =>

@@ -365,9 +365,10 @@ test.describe("the Create page", () => {
     await expect(ticked).toHaveText(["Design", "AI", "Technology"]);
     // Focus stays where the choice was made, not on the page.
     await expect(page.locator('input[name="audience"]:checked')).toBeFocused();
-    // The restored ticks are the person's own now: another switch keeps them and says so.
+    // The restored ticks are Somesh's own suggestion: switching to Somesh has nothing to replace and
+    // nothing to offer, so no line and no button that does nothing.
     await segment(page, "Somesh").click();
-    await expect(note).toContainText("Your topic picks are kept.");
+    await expect(note).toBeHidden();
     await expect(ticked).toHaveText(["Design", "AI", "Technology"]);
     await page.locator("[data-submit]").click();
     await confirm(page);
@@ -375,6 +376,29 @@ test.describe("the Create page", () => {
     expect(mock.bodies[0]?.request).toMatchObject({
       topic_ids: ["design", "ui-craft", "ai", "tech"],
     });
+  });
+
+  test("picks that differ from the next audience's suggestion are kept, and the line says so", async ({
+    page,
+  }) => {
+    await openCreate(page);
+    const ticked = page.locator(".filter-chip:has(input:checked)");
+    const note = page.locator("[data-preset-note]");
+    await chip(page, "World").click();
+    await segment(page, "General").click();
+    await expect(note).toContainText("Your topic picks are kept.");
+    await expect(ticked).toHaveText(["Design", "AI", "Technology", "World"]);
+    // The button does something: it brings the suggestion in, and the line goes with it.
+    await page.getByRole("button", { name: "Use suggested topics" }).click();
+    await expect(note).toBeHidden();
+    await expect(ticked).toHaveText([
+      "Technology",
+      "World",
+      "Business",
+      "Science",
+      "Culture",
+      "Sports",
+    ]);
   });
 
   test("a tick by hand after a suggestion takes its Undo away", async ({ page }) => {
@@ -943,6 +967,52 @@ test.describe("the Create panel's voices", () => {
       "\u{1F1FA}\u{1F1F8} Default (Leo)",
     );
     await expect(page.locator("[data-format-hint]")).toHaveText("Ada and Leo");
+  });
+
+  test("a discussion's two hosts never share a voice: taking the other's hands this one over", async ({
+    page,
+  }) => {
+    await page.route("**/api/voices", (route) =>
+      route.fulfill({
+        json: {
+          voices: [
+            {
+              id: "voice-ada",
+              name: "Ada",
+              gender: "female",
+              language: "en-US",
+              preview_url: null,
+            },
+            { id: "voice-leo", name: "Leo", gender: "male", language: "en-US", preview_url: null },
+            {
+              id: "voice-nora",
+              name: "Nora",
+              gender: "female",
+              language: "en-GB",
+              preview_url: null,
+            },
+          ],
+          defaults: { voice: "voice-ada", voice_b: "voice-leo" },
+        },
+      }),
+    );
+    await openCreate(page);
+    await segment(page, "Discussion").click();
+    const first = page.locator('select[name="voice"]');
+    const second = page.locator('select[name="voice_b"]');
+    await expect(page.locator("[data-format-hint]")).toHaveText("Ada and Leo");
+    // The lead takes Leo, whom the second host's Default stands for: the second host gets Ada.
+    await first.selectOption("voice-leo");
+    await expect(second).toHaveValue("voice-ada");
+    await expect(page.locator("[data-voice-caption]")).toHaveText(["Leo's voice", "Ada's voice"]);
+    await expect(page.locator("[data-format-hint]")).toHaveText("Leo and Ada");
+    // The second host takes the lead's voice: they swap back.
+    await second.selectOption("voice-leo");
+    await expect(first).toHaveValue("voice-ada");
+    // A third voice is nobody's: nothing else moves.
+    await second.selectOption("voice-nora");
+    await expect(first).toHaveValue("voice-ada");
+    await expect(page.locator("[data-voice-caption]")).toHaveText(["Ada's voice", "Nora's voice"]);
   });
 
   test("a readout sends no second voice", async ({ page }) => {

@@ -7,7 +7,6 @@ import {
   chipFilter,
   compareCards,
   emptyCopy,
-  FACT_SEPARATOR,
   LIBRARY_FILTERS,
   LIBRARY_SORTS,
   type LibraryFilter,
@@ -326,22 +325,16 @@ function install(): void {
       const total = card.data.minutes * 60;
       const share = Number.isFinite(seconds) && total > 0 ? Math.min(seconds / total, 1) : 0;
       // Heard to the end: "Played" takes the length's place in the facts line, so it never wraps
-      // onto a line of its own. Half-heard, the bar says it.
+      // onto a line of its own and the kind or format stays. Half-heard, the bar says it.
       if (card.facts) {
-        const rest = card.facts.dataset.rest ?? "";
         const finished = played && share <= 0;
-        if (finished !== card.facts.hasAttribute("data-played")) {
+        const length = card.facts.querySelector<HTMLElement>("[data-card-length]");
+        if (length && finished !== card.facts.hasAttribute("data-played")) {
+          length.dataset.minutes ??= length.textContent ?? "";
           card.facts.toggleAttribute("data-played", finished);
-          // Only the last part changes, so the count keeps its own span (library.css hides it
-          // on a narrow card).
-          const parts = rest.split(FACT_SEPARATOR);
-          const last = card.facts.lastChild;
-          const words = finished ? (card.facts.dataset.playedLabel ?? "Played") : parts.at(-1);
-          if (last?.nodeType === Node.TEXT_NODE && parts.length > 1) {
-            last.textContent = `${FACT_SEPARATOR}${words}`;
-          } else {
-            card.facts.textContent = [...parts.slice(0, -1), words].join(FACT_SEPARATOR);
-          }
+          length.textContent = finished
+            ? (card.facts.dataset.playedLabel ?? "Played")
+            : length.dataset.minutes;
         }
       }
       if (!bar) continue;
