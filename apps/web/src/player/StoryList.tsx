@@ -31,7 +31,12 @@ export default function StoryList({ titleHidden = false }: { titleHidden?: boole
   const grouped = shown.length > 1;
   return (
     <section className="story-list" ref={rootRef} aria-labelledby="player-stories-title">
-      <h3 className={titleHidden ? "sr-only" : "player-section-title"} id="player-stories-title">
+      {/* Section headings already name the rows when there are several: the list's own title is
+          then for screen readers only. */}
+      <h3
+        className={titleHidden || grouped ? "sr-only" : "player-section-title"}
+        id="player-stories-title"
+      >
         Stories
       </h3>
       <div className="list-scroll">
