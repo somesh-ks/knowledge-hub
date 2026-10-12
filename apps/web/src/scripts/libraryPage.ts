@@ -36,13 +36,7 @@ interface Card {
 }
 
 function readCard(element: HTMLElement, order: number): Card {
-  const {
-    id = "",
-    date = "",
-    kind = "",
-    minutes = "0",
-    search = "",
-  } = element.dataset;
+  const { id = "", date = "", kind = "", minutes = "0", search = "" } = element.dataset;
   return {
     id,
     element,
