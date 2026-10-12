@@ -9,11 +9,17 @@
   padding-block-end: var(--space-8);
 }
 
-/* A section heading one step up from the row grammar's, so it reads as a heading. */
+/* A section heading as in a briefing (the heading role, regular weight: D73), with the band of air
+   that sets a section apart. */
 .episode-block .section-head {
   padding-block-start: var(--space-12);
-  font-size: var(--font-size-section);
-  font-weight: var(--font-weight-medium);
+}
+
+/* The Regenerate panel's field label (EpisodeActions.astro) starts at the field's edge. */
+.regen-form .regen-label {
+  display: block;
+  padding-inline: 0;
+  margin-block-end: var(--space-2);
 }
 
 /* As in a briefing, the heading belongs to the row under it: the first row gives up half its top
@@ -41,6 +47,13 @@
   letter-spacing: var(--text-title-tracking);
   line-height: var(--text-title-leading);
   overflow-wrap: anywhere;
+}
+
+/* The ring goes round the headline, as on a briefing's story (briefing.css). */
+.episode-highlight-title:has(> .story-link:focus-visible) {
+  outline: var(--stroke-ring) solid var(--color-focus-ring);
+  outline-offset: var(--space-1);
+  border-radius: var(--radius-sm);
 }
 
 .episode-highlight-text {

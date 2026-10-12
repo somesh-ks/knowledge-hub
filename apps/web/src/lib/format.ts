@@ -55,3 +55,32 @@ const monthFormat = new Intl.DateTimeFormat("en-GB", { timeZone: "UTC", month: "
 export function monthName(monthKey: string): string {
   return monthFormat.format(new Date(`${monthKey}-15T12:00:00Z`));
 }
+
+/** A piece of a headline, and whether it must stay on one line. */
+export interface HeadlinePart {
+  text: string;
+  nowrap: boolean;
+}
+
+/** A hyphenated word short enough to keep whole on the narrowest line. */
+const HYPHENATED = /[^\s-]+(?:-[^\s-]+)+/g;
+const NOWRAP_MAX = 24;
+
+/**
+ * A headline split so its hyphenated words ("mid-range", "high-speed") can be kept whole: balanced
+ * wrapping otherwise breaks at the hyphen ("mid- / range"). Plain text parts, so the page escapes
+ * them as it does any text; only words up to 24 characters are held, so nothing overflows a phone.
+ */
+export function headlineParts(text: string): HeadlinePart[] {
+  const parts: HeadlinePart[] = [];
+  let at = 0;
+  for (const match of text.matchAll(HYPHENATED)) {
+    const start = match.index ?? 0;
+    if (match[0].length > NOWRAP_MAX) continue;
+    if (start > at) parts.push({ text: text.slice(at, start), nowrap: false });
+    parts.push({ text: match[0], nowrap: true });
+    at = start + match[0].length;
+  }
+  if (at < text.length) parts.push({ text: text.slice(at), nowrap: false });
+  return parts;
+}

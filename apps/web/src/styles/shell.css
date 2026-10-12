@@ -242,7 +242,7 @@ html[data-mini="visible"] main {
     --sticky-top: var(--safe-top);
   }
 
-  .briefing > .tabs {
+  .briefing > .tabs-bar {
     transition: inset-block-start var(--duration-state) var(--ease-out);
   }
 }

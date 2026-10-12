@@ -2,7 +2,7 @@
 import { paletteAccent } from "@dispatch/cover";
 import { episodeHighlights } from "../lib/episodeHighlights";
 import { type EpisodeEntry, episodeLength, FORMAT_LABELS } from "../lib/episodes";
-import { longDate } from "../lib/format";
+import { headlineParts, longDate } from "../lib/format";
 import AmbientLight from "./AmbientLight.astro";
 import Cover from "./Cover.astro";
 import EpisodeActions from "./EpisodeActions.astro";
@@ -14,14 +14,16 @@ import "../styles/episode.css";
 
 interface Props {
   entry: EpisodeEntry;
+  /** Briefing summaries by item id: a story an episode shares with a briefing is summed up so. */
+  summaries?: ReadonlyMap<string, string>;
 }
 
-const { entry } = Astro.props;
+const { entry, summaries } = Astro.props;
 const { episode } = entry;
 const length = episodeLength(episode);
 // "7 October": the long date without its weekday.
 const day = longDate(episode.date).split(" ").slice(1).join(" ");
-const highlights = episodeHighlights(episode);
+const highlights = episodeHighlights(episode, summaries);
 ---
 
 <main
@@ -61,15 +63,19 @@ const highlights = episodeHighlights(episode);
           {highlights.map((highlight) => (
             <li class="episode-highlight">
               {/* As a briefing's story (Item.astro): the headline is the link to the source, and
-                  the host under the text is its quiet attribution. */}
+                  the publisher under the text is its quiet attribution. */}
               <h3 class="episode-highlight-title">
                 {highlight.host ? (
                   <a class="story-link" href={highlight.url} target="_blank" rel="noopener noreferrer">
-                    {highlight.headline}
+                    {headlineParts(highlight.headline).map((part) =>
+                      part.nowrap ? <span class="no-break">{part.text}</span> : part.text,
+                    )}
                     <span class="sr-only">(opens in a new tab)</span>
                   </a>
                 ) : (
-                  highlight.headline
+                  headlineParts(highlight.headline).map((part) =>
+                    part.nowrap ? <span class="no-break">{part.text}</span> : part.text,
+                  )
                 )}
               </h3>
               {highlight.text && <p class="episode-highlight-text">{highlight.text}</p>}
@@ -82,7 +88,7 @@ const highlights = episodeHighlights(episode);
                   tabindex="-1"
                   aria-hidden="true"
                 >
-                  <span>{highlight.host}</span>
+                  <span>{highlight.publisher}</span>
                   <Icon name="openInNew" />
                 </a>
               )}

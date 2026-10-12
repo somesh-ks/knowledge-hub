@@ -9,16 +9,23 @@ interface Props {
   noun: "briefing" | "episode";
   /** Set on an episode page: Regenerate and Delete then act on this episode. */
   episodeId?: string;
+  /**
+   * Set on the latest briefing: when its window closed, which is where a new briefing starts. The
+   * menu then offers New briefing. An older briefing has only Share, so it gets a Share button.
+   */
+  newBriefingSince?: string;
 }
 
-const { sharePath, noun, episodeId } = Astro.props;
+const { sharePath, noun, episodeId, newBriefingSince } = Astro.props;
+const shareOnly = !episodeId && !newBriefingSince;
 ---
 
-{/* One More button beside the title and the small menu it opens: Share, Regenerate and, on an
-     episode, Delete. The menu is a native popover, so light dismiss and Escape are the browser's;
+{/* One More button beside the title and the small menu it opens: Share, then New briefing on the
+     latest briefing, or Regenerate and Delete on an episode. An older briefing has nothing but
+     Share, so it shows a Share button in the same place instead of a menu of one. The menu is a native popover, so light dismiss and Escape are the browser's;
      scripts/heroMenu.ts adds the arrow keys and focus. Share shares the dated address, so a link
-     sent from today's page still opens this briefing next week. On a briefing Regenerate opens the
-     Generate sheet (the sheets island answers any click inside [data-open]); on an episode it opens
+     sent from today's page still opens this briefing next week. New briefing opens the Generate
+     sheet (the sheets island answers any click inside [data-open]); on an episode it opens
      the rewrite panel (scripts/episodeActionsEntry.ts), and both items there wait, with a reason,
      while a run for this episode is going. */}
 <div
@@ -28,61 +35,79 @@ const { sharePath, noun, episodeId } = Astro.props;
   data-episode={episodeId}
   data-open-passphrase={episodeId && !PASSPHRASE_REQUIRED ? OPEN_PASSPHRASE : undefined}
 >
-  <button
-    class="icon-btn hero-more press"
-    type="button"
-    aria-label="More actions"
-    aria-haspopup="menu"
-    popovertarget="hero-menu"
-    data-hero-more
-  >
-    <Icon name="moreVert" class="more-icon" />
-    <Icon name="check" class="more-done" />
-  </button>
-  <div class="hero-menu-list" id="hero-menu" popover role="menu" aria-label="More actions">
-    <button
-      class="hero-menu-item"
-      type="button"
-      role="menuitem"
-      data-share={sharePath}
-    >
-      Share
-    </button>
-    {
-      episodeId ? (
+  {
+    shareOnly ? (
+      <button
+        class="icon-btn hero-more press"
+        type="button"
+        aria-label={`Share this ${noun}`}
+        data-share={sharePath}
+        data-hero-more
+      >
+        <Icon name="share" class="more-icon" />
+        <Icon name="check" class="more-done" />
+      </button>
+    ) : (
+      <>
         <button
-          class="hero-menu-item"
+          class="icon-btn hero-more press"
           type="button"
-          role="menuitem"
-          data-episode-action="regenerate"
+          aria-label="More actions"
+          aria-haspopup="menu"
+          popovertarget="hero-menu"
+          data-hero-more
         >
-          Regenerate
+          <Icon name="moreVert" class="more-icon" />
+          <Icon name="check" class="more-done" />
         </button>
-      ) : (
-        <button
-          class="hero-menu-item"
-          type="button"
-          role="menuitem"
-          data-open="generate"
-          aria-haspopup="dialog"
-        >
-          Regenerate
-        </button>
-      )
-    }
-    {
-      episodeId && (
-        <button
-          class="hero-menu-item hero-menu-delete"
-          type="button"
-          role="menuitem"
-          data-episode-action="delete"
-        >
-          Delete
-        </button>
-      )
-    }
-  </div>
+        <div class="hero-menu-list" id="hero-menu" popover role="menu" aria-label="More actions">
+          <button
+            class="hero-menu-item"
+            type="button"
+            role="menuitem"
+            data-share={sharePath}
+          >
+            Share
+          </button>
+          {
+            episodeId ? (
+              <button
+                class="hero-menu-item"
+                type="button"
+                role="menuitem"
+                data-episode-action="regenerate"
+              >
+                Regenerate
+              </button>
+            ) : (
+              <button
+                class="hero-menu-item"
+                type="button"
+                role="menuitem"
+                data-open="generate"
+                data-generate-since={newBriefingSince}
+                aria-haspopup="dialog"
+              >
+                New briefing
+              </button>
+            )
+          }
+          {
+            episodeId && (
+              <button
+                class="hero-menu-item hero-menu-delete"
+                type="button"
+                role="menuitem"
+                data-episode-action="delete"
+              >
+                Delete
+              </button>
+            )
+          }
+        </div>
+      </>
+    )
+  }
   <span class="sr-only" role="status" data-share-status></span>
   {
     episodeId && (

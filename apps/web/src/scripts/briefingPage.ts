@@ -63,20 +63,20 @@ function revealTab(
  * stays above it while the end of the briefing pushes it under the bar, until it is gone. Chromium
  * reports a strip partly past that edge as not intersecting, so the test reads its top instead.
  */
-function watchStuck(strip: HTMLElement): void {
+function watchStuck(bar: HTMLElement): void {
   const edge = stickyTop();
   stuckObserver = new IntersectionObserver(
     ([entry]) => {
       if (!entry) return;
       const top = entry.rootBounds?.top ?? edge;
-      strip.toggleAttribute(
+      bar.toggleAttribute(
         "data-stuck",
         entry.intersectionRatio > 0 && entry.boundingClientRect.top < top,
       );
     },
     { rootMargin: `-${Math.round(edge)}px 0px 0px 0px`, threshold: [0, 1] },
   );
-  stuckObserver.observe(strip);
+  stuckObserver.observe(bar);
 }
 
 /**
@@ -130,7 +130,9 @@ function watchSections({ keepHeld = false } = {}): void {
   // not shown), which is where a jump to a section puts its heading's words. A jump made while the
   // app bar shows can leave the heading lower once the bar slides away, still within this line.
   const chrome = strip?.offsetParent ? stickyTop() + strip.offsetHeight : 0;
-  if (strip?.offsetParent) watchStuck(strip);
+  // The bar around the strip is what sticks (Briefing.astro).
+  const bar = strip?.closest<HTMLElement>("[data-tabs-bar]") ?? strip;
+  if (bar?.offsetParent) watchStuck(bar);
   const inView = new Set<Element>();
   /** All on screen: the first section, the end of the page, or both. */
   const whole = new Set<Element>();

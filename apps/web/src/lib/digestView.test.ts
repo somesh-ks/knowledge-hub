@@ -101,10 +101,7 @@ describe("audio copy", () => {
   it("only audio that has expired gets a line, in plain words", () => {
     expect(Object.keys(AUDIO_UNAVAILABLE_COPY)).toEqual(["expired"]);
     const { expired } = AUDIO_UNAVAILABLE_COPY;
-    expect(expired.label).toBe("The audio has expired");
-    expect(expired.hint).toMatch(/^Press play/);
-    // Voice rule: plain sentences, no dashes (the dash characters are built, not typed, here).
-    const dashes = [0x2013, 0x2014].map((code) => String.fromCharCode(code));
-    for (const dash of dashes) expect(expired.hint).not.toContain(dash);
+    // One sentence: it does not explain a control that is not labelled Play.
+    expect(expired).toEqual({ label: "The audio has expired." });
   });
 });

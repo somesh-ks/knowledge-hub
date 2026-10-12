@@ -26,7 +26,7 @@ async function scriptStatus(page: Page, bodies: Json[]): Promise<{ calls: () => 
 
 async function openGenerate(page: Page) {
   await page.locator('[data-open-sheet="generate"]').tap();
-  const dialog = page.getByRole("dialog", { name: "Generate a new briefing" });
+  const dialog = page.getByRole("dialog", { name: "New briefing" });
   await expect(dialog).toBeVisible();
   return dialog;
 }
@@ -48,7 +48,7 @@ test.describe("with a mouse", () => {
     await dialog.getByRole("button", { name: "Close settings" }).click();
     await expect(dialog).toBeHidden();
     await page.locator('[data-open-sheet="generate"]').click();
-    const generate = page.getByRole("dialog", { name: "Generate a new briefing" });
+    const generate = page.getByRole("dialog", { name: "New briefing" });
     await generate.getByRole("button", { name: "Generate briefing" }).click();
     await expect(generate.getByRole("alert")).toBeVisible();
   });
@@ -96,7 +96,7 @@ test.describe("the Generate sheet", () => {
     await lab.open();
     await page.locator('[data-open-sheet="generate"]').focus();
     await page.keyboard.press("Enter");
-    const dialog = page.getByRole("dialog", { name: "Generate a new briefing" });
+    const dialog = page.getByRole("dialog", { name: "New briefing" });
     await expect(dialog).toBeVisible();
     await expect(dialog.getByLabel("Passphrase")).toBeFocused();
     await expect(dialog.getByLabel("Passphrase")).toHaveAttribute("type", "password");

@@ -1257,17 +1257,18 @@ test.describe("an episode page", () => {
     await expect(link).toHaveAccessibleName(
       "Why a quiet interface needs one loud detail (opens in a new tab)",
     );
-    // What the hosts said about it, from the script: no speaker names.
-    await expect(rows.nth(0).locator(".episode-highlight-text")).toContainText(
-      "Start with emphasis.",
+    // A story that is in a briefing reads as it does there: the briefing's summary, not the
+    // hosts' segues ("Start with emphasis.").
+    await expect(rows.nth(0).locator(".episode-highlight-text")).toHaveText(
+      /^An essay on spending visual emphasis in one place/,
     );
     await expect(link).toHaveAttribute("href", "https://example.com/dispatch-fixture/f0a17c2d6b83");
     await expect(link).toHaveAttribute("target", "_blank");
     await expect(link).toHaveAttribute("rel", "noopener noreferrer");
-    // The publisher's host as attribution, and never the name of the service that found it. It is
-    // the same destination, so only the headline is in the tab order.
+    // The publisher as attribution, as in a briefing, and never the name of the service that
+    // found it. It is the same destination, so only the headline is in the tab order.
     const host = rows.nth(0).locator(".source-link");
-    await expect(host.locator(":scope > span").first()).toHaveText("example.com");
+    await expect(host.locator(":scope > span").first()).toHaveText("Margin Notes");
     await expect(host).toHaveAttribute("href", "https://example.com/dispatch-fixture/f0a17c2d6b83");
     await expect(host).toHaveAttribute("tabindex", "-1");
     await expect(page.locator("body")).not.toContainText("Exa discovery");

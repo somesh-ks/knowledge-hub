@@ -8,7 +8,7 @@
 /* ------------------------------------------------------------------ sections */
 
 /* While the section tabs stick, focus and anchors land below them as well as below the app bar. */
-html:has(.briefing > .tabs) {
+html:has(.briefing > .tabs-bar) {
   scroll-padding-block-start: calc(var(--sticky-top) + var(--tabs-height) + var(--space-4));
 }
 
@@ -33,11 +33,11 @@ html:has(.briefing > .tabs) {
 /* Under the section tabs the first heading names the tab marked just above it, so it does not need
    the band of air that sets a section apart from the one before: the strip does that. */
 @media (width < 80rem) {
-  .briefing > .tabs + .chapter > .section-head {
+  .briefing > .tabs-bar + .chapter > .section-head {
     padding-block-start: var(--space-6);
   }
 
-  .briefing > .tabs + .chapter h2 {
+  .briefing > .tabs-bar + .chapter h2 {
     scroll-margin-block-start: calc(var(--space-2) - var(--space-6));
   }
 }
@@ -47,12 +47,12 @@ html:has(.briefing > .tabs) {
    under the bar, a hairline up, so where the end of the briefing pushes it up it slides beneath the
    bar instead of over the wordmark. From 64rem there is no app bar. */
 @media (width < 64rem) {
-  .briefing > .tabs {
+  .briefing > .tabs-bar {
     inset-block-start: calc(var(--sticky-top) - var(--stroke-hairline));
     z-index: calc(var(--z-header) - 1);
   }
 
-  html:has(.briefing > .tabs[data-stuck]) .app-bar::after {
+  html:has(.briefing > .tabs-bar[data-stuck]) .app-bar::after {
     display: none;
   }
 }
@@ -61,7 +61,7 @@ html:has(.briefing > .tabs) {
    and line reach on to the window's edges: otherwise the bar's line shows beside the strip, a step
    above the strip's own. */
 @media (40rem <= width < 64rem) {
-  .briefing > .tabs {
+  .briefing > .tabs-bar {
     box-shadow: 0 0 0 100vmax var(--color-surface);
     clip-path: inset(0 -100vmax);
     border-block-end: var(--stroke-hairline) solid transparent;
@@ -74,24 +74,27 @@ html:has(.briefing > .tabs) {
    window: the tabs draw tighter, so every section fits as it does on a 1024px window, and the
    labels start at the column's edge. */
 @media (40rem <= width < 80rem) {
-  .briefing > .tabs {
+  .briefing > .tabs-bar {
     margin-inline: calc(var(--space-2) * -1);
+  }
+
+  .briefing .tabs {
     padding-inline: 0;
     scroll-padding-inline: var(--space-2);
   }
 
-  .briefing > .tabs > .tab {
+  .briefing .tabs > .tab {
     padding-inline: var(--space-2);
   }
 
-  .briefing > .tabs > .tab::after {
+  .briefing .tabs > .tab::after {
     inset-inline: var(--space-2);
   }
 }
 
 /* The edge fades say "more this way", so a strip whose tabs all fit has none (briefingPage.ts
    marks it). */
-.briefing > .tabs[data-fits] {
+.briefing .tabs[data-fits] {
   mask-image: none;
   -webkit-mask-image: none;
 }
@@ -99,11 +102,11 @@ html:has(.briefing > .tabs) {
 /* From 80rem the contents list beside the column does the tabs' job, and nothing sticks but the
    top chrome. */
 @media (min-width: 80rem) {
-  .briefing > .tabs {
+  .briefing > .tabs-bar {
     display: none;
   }
 
-  html:has(.briefing > .tabs) {
+  html:has(.briefing > .tabs-bar) {
     scroll-padding-block-start: calc(var(--sticky-top) + var(--space-4));
   }
 
@@ -147,6 +150,19 @@ html:has(.briefing > .tabs) {
   border-radius: var(--radius-xs);
 }
 
+/* The ring goes round the headline, not the link: on an inline link each line box draws its own,
+   and with the hit padding the second line's gap band strikes through the first line. */
+.story-link:focus-visible {
+  outline: none;
+  box-shadow: none;
+}
+
+.story-title:has(> .story-link:focus-visible) {
+  outline: var(--stroke-ring) solid var(--color-focus-ring);
+  outline-offset: var(--space-1);
+  border-radius: var(--radius-sm);
+}
+
 @media (hover: hover) and (pointer: fine) {
   .story-link:hover {
     color: var(--color-accent);
@@ -154,14 +170,18 @@ html:has(.briefing > .tabs) {
   }
 }
 
+/* A hyphenated word in a headline stays whole: balanced wrapping would break it at the hyphen
+   ("mid- / range"). Item.astro and EpisodeView.astro mark them. */
+:is(.story-title, .episode-highlight-title) .no-break {
+  white-space: nowrap;
+}
+
 .story-link:active {
   color: var(--color-accent-pressed);
 }
 
-/* The story being read aloud: its headline takes the accent. Its chip says so in words. */
-.story[data-state="current"] .story-title {
-  color: var(--color-accent);
-}
+/* The story being read aloud keeps its headline's ink: the accent is the link's hover colour, and
+   the story's chip already says it is playing, in words and with its bars. */
 
 .story-summary {
   max-width: var(--layout-measure);
@@ -241,10 +261,4 @@ html[data-offline] .story-actions > .chip {
   font-size: var(--text-heading-size);
   font-weight: var(--text-heading-weight);
   letter-spacing: var(--text-heading-tracking);
-}
-
-@media (forced-colors: active) {
-  .story[data-state="current"] .story-title {
-    color: Highlight;
-  }
 }
