@@ -153,7 +153,14 @@ test.describe("an episode's rundown and the controls under the transcript", () =
       .getByRole("button", { name: "Pause", exact: true })
       .filter({ visible: true });
     await expect(pauses).toHaveCount(1);
-    if ((page.viewportSize()?.width ?? 0) >= 1024) {
+    if (finger.touch) {
+      // A wide touch screen: the bar under the open page does not repeat its transport either.
+      await page.setViewportSize({ width: 1180, height: 820 });
+      await expect(pauses).toHaveCount(1);
+      await expect(
+        page.getByRole("button", { name: "Next story" }).filter({ visible: true }),
+      ).toHaveCount(1);
+    } else {
       // Between 40 and 64rem the bar stays under the page too, with a mouse as with a finger.
       await page.setViewportSize({ width: 820, height: 1000 });
       await expect(pauses).toHaveCount(1);
