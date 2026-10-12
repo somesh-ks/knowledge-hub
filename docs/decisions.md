@@ -94,6 +94,7 @@ D1 to D9 date from plan v2 (2026-10-05). D10 to D25 date from 2026-10-06. Reason
 | D82 | Play keeps an early tap, a new episode is pre-narrated, the deploy is noticed in 2.5 s | active |
 | D83 | Settings shows a source's score as one word, a source's name opens its editor, and the Model default is called Default | active; amends D55's pips and D69's name links |
 | D84 | A failed run keeps its request and offers Try again; a finished run clears itself; one run at a time | active |
+| D85 | The player's chapters are timed and play their story, a discussion without stored names is named from its voices, and one length rule runs through the app | active; amends D74 for episodes made before names were stored |
 
 ---
 
@@ -866,3 +867,16 @@ D1 to D9 date from plan v2 (2026-10-05). D10 to D25 date from 2026-10-06. Reason
 - Why: a failed run said "later" and left nothing to press, "Episode ready" stayed on every page until dismissed, and a second request could start while the first ran.
 - Cost: the request is kept in the browser (session storage) until the run ends; New episode still opens its sheet while a run is going, and says why only to a screen reader; a regenerate's fallback reopens its panel on that episode's own page only.
 - Rejected: retrying by itself (a failure that repeats would spend the day's limit); blocking the sheet while a run is going (the owner may want to read the form).
+
+## D85: The player's chapters are timed and play their story, a discussion without stored names is named from its voices, and one length rule runs through the app
+
+- Date: 2026-10-12
+- Decision:
+  - An episode's Chapters tab lists its stories timed from its turns (`turnStorySpans`); a chapter is a button that starts that story, and previous and next step between story starts ("Previous story", "Next story"), narrated or not. A chapter with no place in the audio is a plain row. The lone section heading above an episode's chapters is gone.
+  - A discussion made before names were stored is named in the transcript only when its script says Ada and Leo itself. Otherwise no name shows until `/api/voices` has loaded (once per page, `player/core/hostVoices.ts`), then `hostNamesFor` names the hosts from the episode's own voice ids, or the defaults; if the list cannot be fetched the pair is the neutral Alex and Sam. A stored name always wins.
+  - One length rule: the chip, the floating Play, the bar and the page caption round the time and the length the same way, and use the real duration once the recording's is known (130 s reads "2 min" and "2 min left").
+  - On a wide screen with a mouse, Play sits between the two skips under the art, and the bar has a visible open and close button (a chevron). The timeline shows the time under the pointer on hover. The cover's slot grows from 100rem.
+- Why: the owner said Ada does not work with a male voice, and the one real discussion (ep-20261008-1155) still said Ada and Leo although its script never does; its chapters tab was empty, the same recording said "2 min" in one place and "1 min left" in another, and the way to close the player was hidden until a key was pressed.
+- Cost: a legacy discussion's transcript shows no names for the moment the voice list takes; the format labels moved to `lib/formatLabels.ts` so the browser does not import `node:fs` through `episodes.ts`; the bar's close button duplicates the keyboard-only "Close the player" pill's name.
+- Rejected: keeping Ada and Leo for anything made before D74 (the case the owner reported); naming from the browser's own guess (a request or a stored script could carry any text into the page).
+- Amends: D74, for episodes made before names were stored.
