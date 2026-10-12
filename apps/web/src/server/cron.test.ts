@@ -1,7 +1,7 @@
 import { DEFAULT_SCHEDULE } from "@dispatch/core";
 import { describe, expect, it } from "vitest";
 import { createFakeGitHub, REPO } from "../testing/fakeGitHub";
-import { handleCron, MIN_CRON_SECRET_CHARS, slotAt } from "./cron";
+import { fallbackCronHour, handleCron, MIN_CRON_SECRET_CHARS, slotAt } from "./cron";
 
 const TOKEN = "github_pat_secret_value_123456";
 const SECRET = "cron-secret-of-enough-length";
@@ -62,6 +62,67 @@ describe("which of the schedule's hours this is", () => {
     expect(slotAt(schedule, new Date("2026-10-12T16:10:00Z"))).toBeNull();
     const off = { ...schedule, weekly: { ...schedule.weekly, enabled: false } };
     expect(slotAt(off, new Date("2026-10-11T16:10:00Z"))).toBeNull();
+  });
+});
+
+// The route counted in Stockholm whatever zone was chosen, so New York at 07:00 ran at 07:00 in Stockholm (D89).
+describe("the schedule's hours in its own time zone", () => {
+  const zoned = (timezone: string, weeklyHour = 7) => ({
+    ...DEFAULT_SCHEDULE,
+    timezone,
+    weekly: { ...DEFAULT_SCHEDULE.weekly, hour: weeklyHour },
+  });
+
+  it("reads the daily hour and the weekly slot on New York's clock", () => {
+    const newYork = zoned("America/New_York", 18);
+    expect(slotAt(newYork, new Date("2026-10-11T11:10:00Z"))).toBe("daily");
+    // 07:30 in Stockholm is 01:30 in New York.
+    expect(slotAt(newYork, SUNDAY_0730)).toBeNull();
+    // 18:10 on Sunday in New York is already Monday in Stockholm.
+    expect(slotAt(newYork, new Date("2026-10-11T22:10:00Z"))).toBe("weekly");
+  });
+
+  it.each([
+    ["the UTC hour that ends inside 07:00 to 08:00 in India", "2026-10-12T01:10:00Z", "daily"],
+    ["the UTC hour that starts inside it", "2026-10-12T02:50:00Z", "daily"],
+    ["the hour before", "2026-10-12T00:50:00Z", null],
+    ["the hour after", "2026-10-12T03:10:00Z", null],
+  ])("counts a call in %s", (_name, at, slot) => {
+    expect(slotAt(zoned("Asia/Kolkata"), new Date(at))).toBe(slot);
+  });
+});
+
+// RUN_CRON is in Stockholm time; a New York 07:00 written as 07 ran six hours early.
+describe("the fallback cron's Stockholm hour", () => {
+  it.each([
+    ["Stockholm", 7, "Europe/Stockholm", "2026-10-12T12:00:00Z", 7],
+    ["New York in summer time", 7, "America/New_York", "2026-10-12T12:00:00Z", 13],
+    [
+      "New York after Europe's change, before America's",
+      7,
+      "America/New_York",
+      "2026-10-28T12:00:00Z",
+      12,
+    ],
+    ["New York in winter time", 7, "America/New_York", "2026-11-05T12:00:00Z", 13],
+    [
+      "New York after America's March change, before Europe's",
+      7,
+      "America/New_York",
+      "2026-03-15T12:00:00Z",
+      12,
+    ],
+    [
+      "India, whose 07:13 Stockholm misses the half hour",
+      7,
+      "Asia/Kolkata",
+      "2026-10-12T12:00:00Z",
+      4,
+    ],
+    ["Auckland, a day ahead", 7, "Pacific/Auckland", "2026-10-12T12:00:00Z", 20],
+    ["UTC", 7, "UTC", "2026-12-01T12:00:00Z", 8],
+  ])("is right for %s", (_name, hour, zone, now, expected) => {
+    expect(fallbackCronHour(hour, zone, new Date(now))).toBe(expected);
   });
 });
 

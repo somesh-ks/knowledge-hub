@@ -328,6 +328,16 @@ describe("parseConfigOp: schedule.set", () => {
     expect(parseConfigOp({ op: "schedule.set" })).toBeNull();
   });
 
+  it("carries a listed time zone and refuses any other", () => {
+    expect(parseConfigOp({ op: "schedule.set", timezone: "Asia/Kolkata" })).toEqual({
+      op: "schedule.set",
+      timezone: "Asia/Kolkata",
+    });
+    for (const timezone of ["Mars/Olympus", "", 7, null]) {
+      expect(parseConfigOp({ op: "schedule.set", timezone }), String(timezone)).toBeNull();
+    }
+  });
+
   it("carries voices, the weekly podcast and the Create defaults, rebuilt from their parts", () => {
     const full: ConfigOp = {
       op: "schedule.set",
@@ -641,6 +651,31 @@ describe("handleConfig", () => {
       });
       expect(logs.join(" ")).toContain("403");
       expect(JSON.stringify([result, logs])).not.toContain(TOKEN);
+    });
+
+    // RUN_CRON is Stockholm time: a New York 09:00 written as 09 would run six hours early.
+    it.each([
+      ["a new hour in the stored zone", { op: "schedule.set", hour: 9 }, "13 15 * * *"],
+      [
+        "a new zone at the stored hour",
+        { op: "schedule.set", timezone: "Asia/Tokyo" },
+        "13 0 * * *",
+      ],
+    ])("sets RUN_CRON to the Stockholm hour for %s", async (_name, op, value) => {
+      const { deps, github } = setup();
+      github.on(RUNS, { json: { workflow_runs: [] } });
+      github.on(DISPATCH, { json: { workflow_run_id: 31 } });
+      github.on(VARIABLE, { status: 204 });
+      github.on("GET /contents/config/schedule.json", {
+        text: JSON.stringify({
+          version: 1,
+          timezone: "America/New_York",
+          hour: 7,
+          cadence_days: 2,
+        }),
+      });
+      await handleConfig(input(body(op)), deps);
+      expect(variableCalls(github)[0]?.body).toEqual({ name: "RUN_CRON", value });
     });
 
     it("leaves the variable alone for an edit without a schedule", async () => {
