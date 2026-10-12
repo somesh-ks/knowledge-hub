@@ -53,15 +53,17 @@ const items = libraryItems(entries, episodes);
             </button>
             </div>
             <div class="library-bar">
-              <label class="sort-field filter-field">
-                <span class="sr-only">Show</span>
-                <select data-library-filter>
-                  {LIBRARY_FILTERS.map((filter) => (
-                    <option value={filter.id}>{filter.label}</option>
-                  ))}
-                </select>
-                <Icon name="chevronDown" />
-              </label>
+              {/* What to show: one kind at a time, or everything while none is ticked. Each chip is
+                   a checkbox (Tab and Space); the script unticks the others. */}
+              <fieldset class="filter-chips library-filters" aria-label="Show" data-library-filters>
+                {LIBRARY_FILTERS.filter((filter) => filter.id !== "all").map((filter) => (
+                  <label class="filter-chip">
+                    <input type="checkbox" name="show" value={filter.id} data-library-filter />
+                    <Icon name="check" class="filter-chip-check" />
+                    <span>{filter.label}</span>
+                  </label>
+                ))}
+              </fieldset>
               <label class="sort-field">
                 <span class="sr-only">Sort</span>
                 <select data-library-sort>
