@@ -77,6 +77,18 @@ describe("a guessed address", () => {
     queue.warm(2);
     expect(sent).toEqual(["a"]);
   });
+
+  it("asks again after a 503: the server sends `unavailable` for passing failures", async () => {
+    const { queue, sent, answer, ok } = setup();
+    const first = queue.ensure(1).catch(reasonOf);
+    await answer("a", { ok: false, reason: "unavailable" });
+    expect(await first).toBe("unavailable");
+    // The listener presses Try again once the server is back: the request goes out.
+    const again = queue.ensure(1);
+    expect(sent).toEqual(["a", "a"]);
+    await ok("a");
+    await expect(again).resolves.toBe("https://blob.test/a.mp3");
+  });
 });
 
 describe("createSegmentQueue", () => {

@@ -280,4 +280,20 @@ describe("describeNarrationFailure", () => {
     expect(describeNarrationFailure("daily_cap", "briefing")?.standing).toBe(true);
     expect(describeNarrationFailure("failed", "briefing")?.standing).toBe(false);
   });
+
+  it("says a failed file one way, in the notice and on the bar", async () => {
+    const { describeNarrationFailure } = await import("./narrationApi");
+    expect(describeNarrationFailure("failed", "briefing")?.summary).toBe(
+      "Audio could not be made",
+    );
+  });
+
+  it("treats the server's 503 as passing: Try again, not a refusal that stands", async () => {
+    const { describeNarrationFailure } = await import("./narrationApi");
+    expect(describeNarrationFailure("unavailable", "briefing")).toEqual({
+      message: "Narration is not available right now.",
+      summary: "Narration is not available",
+      standing: false,
+    });
+  });
 });

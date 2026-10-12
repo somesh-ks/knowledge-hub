@@ -35,7 +35,11 @@ export class NarrationError extends Error {
   }
 }
 
-/** Refusals that stand until something outside the queue changes. */
+/**
+ * Refusals that stand until something outside the queue changes. `unavailable` is not one: the
+ * server sends it for passing failures too (a store it cannot reach, a time budget spent), so a
+ * later request is still sent.
+ */
 const STANDING: ReadonlySet<NarrationFailure> = new Set([
   "passphrase_required",
   "wrong_passphrase",
@@ -43,7 +47,6 @@ const STANDING: ReadonlySet<NarrationFailure> = new Set([
   "monthly_budget",
   "not_narratable",
   "digest_not_found",
-  "unavailable",
 ]);
 
 export type NarrateResult = { ok: true; url: string } | { ok: false; reason: NarrationFailure };
