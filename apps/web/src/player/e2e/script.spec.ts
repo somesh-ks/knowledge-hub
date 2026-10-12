@@ -101,4 +101,59 @@ test.describe("an episode's script in the open player", () => {
       timeout: 8_000,
     });
   });
+
+  test("the transcript is one Tab stop that the arrow keys move through, and Tab follows the transport's order @surface", async ({
+    lab,
+    finger,
+    page,
+  }) => {
+    await lab.open(EPISODE);
+    const keys = await mockNarration(page);
+    expect(keys.length).toBeGreaterThan(2);
+    await finger.press(lab.cta);
+    await expect(page.locator("html")).toHaveAttribute("data-player-state", "playing", {
+      timeout: 8_000,
+    });
+    await lab.openPlayer();
+    await lab.dialog.getByRole("button", { name: "Pause" }).click();
+    const script = lab.dialog.getByRole("region", { name: "Transcript" });
+    const turns = script.locator(".script-turn");
+    await expect(turns.first()).toBeVisible();
+    // One stop for the whole list: the turn being spoken.
+    await expect(script.locator('.script-turn[tabindex="0"]')).toHaveCount(1);
+    await expect(script.locator('[data-turn="0"]')).toHaveAttribute("tabindex", "0");
+    await expect(turns.nth(1)).toHaveAttribute("tabindex", "-1");
+    // Tab from Play reaches what the eye sees next: Forward ten, then (where shown) Next, then the
+    // speed, which is last in the transport whatever its place in the grid.
+    const play = lab.dialog.getByRole("button", { name: "Play", exact: true });
+    await play.focus();
+    const order: string[] = [];
+    for (let press = 0; press < 3; press += 1) {
+      await page.keyboard.press("Tab");
+      order.push(
+        await page.evaluate(() => document.activeElement?.getAttribute("aria-label") ?? ""),
+      );
+    }
+    expect(order[0]).toBe("Forward 10 seconds");
+    expect(order.indexOf("Playback speed 1x")).toBeGreaterThan(0);
+    // The arrows, Home and End move inside the list; Tab leaves it in one press.
+    await script.locator('[data-turn="0"]').focus();
+    await page.keyboard.press("ArrowDown");
+    await expect(script.locator('[data-turn="1"]')).toBeFocused();
+    await expect(script.locator('[data-turn="1"]')).toHaveAttribute("tabindex", "0");
+    await expect(script.locator('[data-turn="0"]')).toHaveAttribute("tabindex", "-1");
+    await page.keyboard.press("End");
+    await expect(script.locator(`[data-turn="${keys.length - 1}"]`)).toBeFocused();
+    await page.keyboard.press("Home");
+    await expect(script.locator('[data-turn="0"]')).toBeFocused();
+    await page.keyboard.press("ArrowDown");
+    await page.keyboard.press("ArrowDown");
+    // Enter plays the focused turn.
+    await page.keyboard.press("Enter");
+    await expect(script.locator('[data-turn="2"]')).toHaveAttribute("aria-current", "true", {
+      timeout: 8_000,
+    });
+    await page.keyboard.press("Tab");
+    expect(await page.evaluate(() => document.activeElement?.closest(".script-turns"))).toBeNull();
+  });
 });

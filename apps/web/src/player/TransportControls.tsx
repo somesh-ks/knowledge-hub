@@ -55,7 +55,6 @@ export default function TransportControls() {
         <PlayPauseGlyph />
         <span className="spinner" aria-hidden="true" />
       </button>
-      <SpeedControl />
       <button
         className="transport-btn transport-skip press"
         type="button"
@@ -76,6 +75,9 @@ export default function TransportControls() {
       >
         <Icon name="skipForward" />
       </button>
+      {/* Last in the DOM so Tab reaches it after Next; the grid places it under Play on a phone
+          and after Forward ten on a wide screen. */}
+      <SpeedControl />
     </div>
   );
 }

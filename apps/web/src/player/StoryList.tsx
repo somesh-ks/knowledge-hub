@@ -1,6 +1,8 @@
+import { useRef } from "react";
 import { getPlayerStore, playPageStory } from "./core/playerRuntime";
 import { storyEntries } from "./core/storyEntries";
 import { usePlayerState } from "./hooks/usePlayer";
+import { useRovingFocus } from "./hooks/useRovingFocus";
 import Clock from "./ui/Clock";
 
 /**
@@ -15,6 +17,10 @@ export default function StoryList({ titleHidden = false }: { titleHidden?: boole
   const digest = state.track?.digest;
 
   const { timed, items, sections } = storyEntries(timeline, digest);
+  const rootRef = useRef<HTMLElement>(null);
+  // Every row across the sections is one Tab stop (the story being read, or the one focused last);
+  // the arrow keys, Home and End move between rows, and Enter plays the focused one.
+  useRovingFocus(rootRef, "button.story-row", items.length > 0);
   if (items.length === 0) return null;
 
   const store = getPlayerStore();
@@ -24,7 +30,7 @@ export default function StoryList({ titleHidden = false }: { titleHidden?: boole
   // One section needs no heading of its own: the list's name already says what it is.
   const grouped = shown.length > 1;
   return (
-    <section className="story-list" aria-labelledby="player-stories-title">
+    <section className="story-list" ref={rootRef} aria-labelledby="player-stories-title">
       <h3 className={titleHidden ? "sr-only" : "player-section-title"} id="player-stories-title">
         Chapters
       </h3>

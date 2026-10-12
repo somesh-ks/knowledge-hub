@@ -2524,7 +2524,7 @@
      as in YouTube Music's full view, so the one control that matters sits by the art. */
   /* Play stays on the cover's centre line: the skips sit either side of it and the speed hangs off
      the right in a column that the empty one on the left balances. Children in order: previous,
-     back, play, speed, forward, next. */
+     back, play, forward, next, speed (last, so Tab follows what the eye sees). */
   .transport {
     display: grid;
     grid-row: 1;
@@ -2549,12 +2549,12 @@
     grid-column: 3;
   }
 
-  .transport > :nth-child(5) {
+  .transport > :nth-child(4) {
     grid-row: 1;
     grid-column: 4;
   }
 
-  .transport > :nth-child(4) {
+  .transport > .speed {
     grid-row: 1;
     grid-column: 5;
     justify-self: start;
