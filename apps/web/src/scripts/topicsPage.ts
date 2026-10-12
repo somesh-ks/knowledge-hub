@@ -1,25 +1,15 @@
 /**
  * The Topics pages' own script (the list and each topic's page), kept to what has to answer at once:
- * the weight readout and the site icons. Everything that edits (recording a change, the Add source
- * panel, saving) is topicsEditor.ts, loaded the first time one of those controls is used, so a page's
- * first load stays inside the budget. Each page is whole static HTML without it.
+ * the weight readout, the More menu and the site icons. Everything that edits (recording a change,
+ * the Add source panel, saving) is topicsEditor.ts, loaded the first time one of those controls is
+ * used, so a page's first load stays inside the budget. Each page is whole static HTML without it.
  */
 
 import { hasSaved } from "../lib/savedKey";
+import { installHeroMenu } from "./heroMenu";
 import { installMultiSelect } from "./multiSelect";
 
 type Editor = { handle(event: Event): void };
-
-/**
- * A general topic's on switch says what it does at once, in its hint; its sources take the off look
- * while it is off (topics.css).
- */
-function showTopicOn(root: HTMLElement): void {
-  const on = root.querySelector<HTMLInputElement>("[data-topic-on]");
-  if (!on) return;
-  const hint = root.querySelector("[data-topic-on-hint]");
-  if (hint) hint.textContent = on.checked ? "Used in episodes" : "Off. Its sources are not read.";
-}
 
 function mount(root: HTMLElement): void {
   let editor: Promise<Editor> | undefined;
@@ -34,7 +24,6 @@ function mount(root: HTMLElement): void {
         })
         .catch(() => {})
     : Promise.resolve();
-  void saved.then(() => showTopicOn(root));
   /** Loads the editor once. */
   const load = (): Promise<Editor> =>
     (editor ??= saved
@@ -68,7 +57,6 @@ function mount(root: HTMLElement): void {
       const output = target.closest(".topic-weight")?.querySelector("[data-word]");
       if (output) output.textContent = percent;
     }
-    if (target.matches("[data-topic-on]")) showTopicOn(root);
     forward(event);
   });
 
@@ -90,6 +78,8 @@ function mount(root: HTMLElement): void {
 
 export function installTopicsPage(): void {
   installMultiSelect();
+  // The topic card's More menu is the briefing page's popover menu.
+  installHeroMenu();
   const sync = (): void => {
     const root = document.querySelector<HTMLElement>("[data-topics]");
     if (root && root.dataset.ready === undefined) mount(root);

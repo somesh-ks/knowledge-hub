@@ -311,25 +311,25 @@ export function mountEditor(root: HTMLElement): Editor {
   };
 
   /**
-   * A topic's details from the panel, sent now. The edit is the topic's switch op with the new
-   * details and the switch's current state, and the switch keeps the new details, so turning the
-   * topic off later never puts the old ones back.
+   * A topic's details from the panel, sent now. The edit is the topic as the page was built (the
+   * trigger's data-topic-base) with the new details; the trigger keeps them, so a second edit starts
+   * from the first. A topic is always on, so it is sent as on.
    */
   const editTopic = (edit: TopicEdit): void => {
     const trigger = root.querySelector<HTMLElement>("[data-edit-topic]");
-    const facts = JSON.parse(trigger?.dataset.editTopic ?? "{}") as TopicFacts;
-    const toggle = root.querySelector<Control>('[data-field="topic.enabled"]');
-    if (!trigger || !toggle) return;
+    if (!trigger) return;
+    const facts = JSON.parse(trigger.dataset.editTopic ?? "{}") as TopicFacts;
     type Upsert = Extract<ConfigOp, { op: "topic.upsert" }>;
-    const built = JSON.parse(toggle.dataset.op ?? "{}") as Upsert;
+    const built = JSON.parse(trigger.dataset.topicBase ?? "{}") as Upsert;
     const topic = {
       ...built.topic,
       name: edit.name,
       description: edit.description,
       keywords: edit.keywords,
+      enabled: true,
     };
-    toggle.dataset.op = JSON.stringify({ ...built, topic });
-    const op: Upsert = { op: "topic.upsert", topic: { ...topic, enabled: toggle.checked } };
+    trigger.dataset.topicBase = JSON.stringify({ ...built, topic });
+    const op: Upsert = { op: "topic.upsert", topic };
     changes.set(`topic-edit:${edit.id}`, { op, el: trigger, now: JSON.stringify(op) });
     // The page says the new name and what counts at once; the rest follows the next build.
     trigger.dataset.editTopic = JSON.stringify({ ...facts, ...edit });
@@ -353,8 +353,13 @@ export function mountEditor(root: HTMLElement): Editor {
       // The catalogue a new topic's suggestions come from, asked for now so it is in by Add.
       void import("./savedView").then((view) => view.loadCatalog());
     }
+    // A menu item is gone once the menu closes: focus goes back to the menu's More button.
+    const back =
+      trigger
+        .closest<HTMLElement>(".topic-card-menu")
+        ?.querySelector<HTMLElement>("[data-hero-more]") ?? trigger;
     void import("./topicsPanel").then((module) =>
-      module.openPanel(trigger, { addTopic, editTopic, addSource, editSource }, start),
+      module.openPanel(back, { addTopic, editTopic, addSource, editSource }, start),
     );
   };
 

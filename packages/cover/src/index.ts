@@ -7,4 +7,5 @@ export { getPalette, PALETTE_IDS, paletteAccent } from "./palettes.js";
 export { pickCover } from "./pick.js";
 export { renderCoverPng, renderCoverSvg, renderSocialPng, renderSocialSvg } from "./render.js";
 export { TEMPLATES } from "./templates/index.js";
+export { topicArt, topicInitial } from "./topicArt.js";
 export type { CoverMeta, CoverSpec, PickInput } from "./types.js";
