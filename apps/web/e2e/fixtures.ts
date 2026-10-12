@@ -83,6 +83,24 @@ export const ROUTES = [
   { name: "not found", path: "/does-not-exist" },
 ] as const;
 
+/**
+ * Seeds storage before the first page of the test loads, and only then: a page saves its own state
+ * as it unloads, so storage written from a page and then reloaded can be overwritten by that page.
+ * Values are written as given; `Date.now()` in a value is the test's own clock (page.clock).
+ */
+export async function seedStorage(
+  page: Page,
+  seed: { local?: Record<string, string>; session?: Record<string, string> },
+): Promise<void> {
+  await page.addInitScript((data) => {
+    if (sessionStorage.getItem("e2e:seeded")) return;
+    sessionStorage.setItem("e2e:seeded", "1");
+    for (const [key, value] of Object.entries(data.local ?? {})) localStorage.setItem(key, value);
+    for (const [key, value] of Object.entries(data.session ?? {}))
+      sessionStorage.setItem(key, value);
+  }, seed);
+}
+
 /** The fixture digest with an audio timeline. */
 export const AUDIO_DIGEST = "/d/2026-10-07";
 

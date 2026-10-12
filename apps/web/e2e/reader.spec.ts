@@ -1,7 +1,7 @@
 import type { Page } from "@playwright/test";
 import type { PlayerDigestData } from "../src/types/contracts";
 import { toRgba } from "./colors";
-import { expect, hydrated, SILENT_DIGEST, test } from "./fixtures";
+import { expect, hydrated, SILENT_DIGEST, seedStorage, test } from "./fixtures";
 
 const FIRST_HEADLINE =
   "Springlet 2.0 retargets springs mid-flight, so interrupted drawers keep their velocity";
@@ -384,9 +384,8 @@ test.describe("sections and stories", () => {
   test("Today's briefing chip says what the Library's card says: time left, or Played", async ({
     page,
   }) => {
+    await seedStorage(page, { local: { "dispatch:resume:2026-10-07": "20" } });
     await page.goto("/");
-    await page.evaluate(() => localStorage.setItem("dispatch:resume:2026-10-07", "20"));
-    await page.reload();
     await hydrated(page);
     const chip = page.locator(".hero [data-play-digest]");
     await expect(chip.locator("[data-chip-label]")).toHaveText("1 min left");
@@ -664,6 +663,9 @@ test.describe("section tabs", () => {
     await page.goto("/library");
     await page.getByRole("link", { name: /Wednesday 7 October/ }).click();
     await expect(page).toHaveURL(/\/d\/2026-10-07$/);
+    // The tabs set themselves up again after the swap: scroll only once they mark the first.
+    await hydrated(page);
+    await expect(page.locator('.tab[aria-current="true"]')).toHaveText("Top picks");
     await page.evaluate(() => {
       document.querySelector("#c-research")?.scrollIntoView({ block: "start" });
     });

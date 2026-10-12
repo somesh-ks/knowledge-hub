@@ -1,5 +1,5 @@
 import type { Page } from "@playwright/test";
-import { expect, hydrated, test } from "./fixtures";
+import { expect, hydrated, seedStorage, test } from "./fixtures";
 
 const DISCUSSION = "Quiet interfaces and fast latency";
 const HEADLINES = "AI headlines";
@@ -262,7 +262,7 @@ test.describe("a cover that cannot be fetched", () => {
     await expect(covers.first()).toBeAttached();
     // Every one that failed is hidden, so the cover's own colour shows.
     await expect
-      .poll(async () => covers.evaluateAll((all) => all.filter((each) => !each.hidden).length))
+      .poll(async () => covers.evaluateAll((all) => all.filter((each) => !(each as HTMLElement).hidden).length))
       .toBe(0);
   });
 });
@@ -589,10 +589,8 @@ test.describe("library episodes", () => {
   test("in a list a match line adds no room above the title, and a bar stays on its cover", async ({
     page,
   }) => {
+    await seedStorage(page, { local: { "dispatch:resume:ep-20261007-1930": "100" } });
     await page.goto("/library");
-    await ready(page);
-    await page.evaluate(() => localStorage.setItem("dispatch:resume:ep-20261007-1930", "100"));
-    await page.reload();
     await ready(page);
     await page.getByRole("button", { name: "List view" }).click();
     await page.getByRole("searchbox").fill("latency");

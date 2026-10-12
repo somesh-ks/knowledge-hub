@@ -1,6 +1,6 @@
 import type { Page, Route } from "@playwright/test";
 import { OPEN_PASSPHRASE } from "../src/lib/access";
-import { expect, expectNoViolationsInEitherScheme, test } from "./fixtures";
+import { expect, expectNoViolationsInEitherScheme, seedStorage, test } from "./fixtures";
 
 const EPISODE = "/e/ep-20261007-1930";
 const EPISODE_ID = "ep-20261007-1930";
@@ -460,48 +460,40 @@ test.describe("the Create page", () => {
     await expect(page.locator("[data-run-library]")).toHaveText("Open episode");
   });
 
-  test("a failed run names the stage it stopped in", async ({ page }) => {
-    await page.clock.install();
-    await mockPodcast(page, 202, { status: 202, run_id: 8, started_at: "2026-10-07T12:00:00Z" });
-    await page.route("**/api/status?**", (route) =>
-      route.fulfill({
-        status: 200,
-        contentType: "application/json",
-        body: JSON.stringify({
-          run_id: 8,
-          state: "completed",
-          step: null,
-          stage: 1,
-          stages: 3,
-          label: "Making the episode",
-          outcome: "failed",
-          run_url: "https://example.com/run",
+  // A failed run's line: the stage it stopped in when the status names one, and a plain failure
+  // otherwise, never read as a started episode.
+  const failures = [
+    {
+      status: { stage: 1, stages: 3, label: "Making the episode" },
+      words: "Stopped while making the episode",
+    },
+    { status: {}, words: "Couldn't make the episode" },
+  ];
+  for (const { status, words } of failures) {
+    test(`a failed run says "${words}"`, async ({ page }) => {
+      await page.clock.install();
+      await mockPodcast(page, 202, { status: 202, run_id: 8, started_at: "2026-10-07T12:00:00Z" });
+      await page.route("**/api/status?**", (route) =>
+        route.fulfill({
+          status: 200,
+          contentType: "application/json",
+          body: JSON.stringify({
+            run_id: 8,
+            state: "completed",
+            step: null,
+            outcome: "failed",
+            ...status,
+          }),
         }),
-      }),
-    );
-    await openCreate(page);
-    await submit(page).click();
-    await page.clock.runFor(4000);
-    await expect(page.locator("[data-run-text]")).toHaveText("Stopped while making the episode");
-  });
-
-  test("tells a failed run apart from a started one", async ({ page }) => {
-    await page.clock.install();
-    await mockPodcast(page, 202, { status: 202, run_id: 9, started_at: "2026-10-07T12:00:00Z" });
-    await page.route("**/api/status?**", (route) =>
-      route.fulfill({
-        status: 200,
-        contentType: "application/json",
-        body: JSON.stringify({ run_id: 9, state: "completed", step: null, outcome: "failed" }),
-      }),
-    );
-    await openCreate(page);
-    await submit(page).click();
-    await expect(page.locator("[data-run-card]")).toBeVisible();
-    await page.clock.runFor(4000);
-    await expect(page.locator("[data-run-text]")).toHaveText("Couldn't make the episode");
-    await expect(page.getByRole("link", { name: "Open Library" })).toBeHidden();
-  });
+      );
+      await openCreate(page);
+      await submit(page).click();
+      await expect(page.locator("[data-run-card]")).toBeVisible();
+      await page.clock.runFor(4000);
+      await expect(page.locator("[data-run-text]")).toHaveText(words);
+      await expect(page.getByRole("link", { name: "Open Library" })).toBeHidden();
+    });
+  }
 
   test("a failed run offers Try again, which sends the same request and follows the new run", async ({
     page,
@@ -613,16 +605,12 @@ test.describe("the Create page", () => {
   });
 
   test("a finished run whose episode is on screen goes away by itself", async ({ page }) => {
+    await seedStorage(page, {
+      session: {
+        "dispatch:run": JSON.stringify({ id: 26, phase: "done", t0: Date.now(), href: EPISODE }),
+      },
+    });
     await page.goto("/library");
-    await page.evaluate(
-      (href) =>
-        sessionStorage.setItem(
-          "dispatch:run",
-          JSON.stringify({ id: 26, phase: "done", t0: Date.now(), href }),
-        ),
-      EPISODE,
-    );
-    await page.reload();
     await expect(page.locator("[data-run-text]")).toHaveText("Episode ready");
     await expect(page.locator("html")).toHaveAttribute("data-run", "done");
     await page.goto(EPISODE);
@@ -776,8 +764,8 @@ test.describe("the Create page when the server says no", () => {
     });
   });
 
-  test("names each refusal in words, on the page, and closes the dialog", async ({ page }) => {
-    const cases: Array<[number, unknown, string]> = [
+  test("names each refusal in words, on the page", async ({ page }) => {
+    const cases: Array<[number | "abort", unknown, string]> = [
       [
         429,
         { status: 429, error: "cooldown", retry_after_s: 100 },
@@ -798,11 +786,13 @@ test.describe("the Create page when the server says no", () => {
         { status: 400, error: "invalid_request" },
         "That request did not go through. Reload the page and try again.",
       ],
+      ["abort", null, "The request did not go through. Check your connection, then try again."],
     ];
     await openCreate(page);
     for (const [status, body, words] of cases) {
       await page.unroute("**/api/podcast");
-      await mockPodcast(page, status, body);
+      if (status === "abort") await page.route("**/api/podcast", (route) => route.abort("failed"));
+      else await mockPodcast(page, status, body);
       await page.locator("[data-submit]").click();
       await expect(page.locator('[data-error="form"]')).toHaveText(words);
       await expect(page.locator("[data-create-form]")).toBeVisible();
@@ -840,15 +830,6 @@ test.describe("the Create page when the server says no", () => {
     await page.getByRole("button", { name: "Try again" }).click();
     await expect(text).toHaveText("You can make another episode in 7 minutes.");
     await expect(page.getByRole("button", { name: "Try again" })).toBeVisible();
-  });
-
-  test("says so when the request cannot be sent", async ({ page }) => {
-    await page.route("**/api/podcast", (route) => route.abort("failed"));
-    await openCreate(page);
-    await submit(page).click();
-    await expect(page.locator('[data-error="form"]')).toHaveText(
-      "The request did not go through. Check your connection, then try again.",
-    );
   });
 });
 

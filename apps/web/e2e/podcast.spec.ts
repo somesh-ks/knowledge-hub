@@ -1,7 +1,7 @@
 import type { Page, Route } from "@playwright/test";
 import { NEBIUS_TOP } from "../src/lib/modelId";
 import { GAP_MS } from "../src/scripts/managePageSave";
-import { expect, expectNoViolationsInEitherScheme, test } from "./fixtures";
+import { expect, expectNoViolationsInEitherScheme, seedStorage, test } from "./fixtures";
 
 interface Sent {
   passphrase: string;
@@ -437,27 +437,23 @@ test.describe("saved, before the build", () => {
   }) => {
     await page.clock.install();
     const sent = await mockConfig(page);
-    await page.goto("/settings");
     const ops = [
       { op: "schedule.set", hour: 9, weekly: { day: 1 } },
       { op: "topic.remove", id: "audio_interfaces" },
       { op: "source.add", url: "https://pixel.example/feed.xml", topic_ids: ["product_design"] },
     ];
-    await page.evaluate(
-      ([key, list]) => {
-        localStorage.setItem(key as string, JSON.stringify([{ at: Date.now(), ops: list }]));
-        sessionStorage.setItem(
-          "dispatch:writer-pending",
-          JSON.stringify({
-            provider: "anthropic",
-            model: "claude-haiku-5-5",
-            timestamp: Date.now(),
-          }),
-        );
+    const now = Date.now();
+    await seedStorage(page, {
+      local: { [KEY]: JSON.stringify([{ at: now, ops }]) },
+      session: {
+        "dispatch:writer-pending": JSON.stringify({
+          provider: "anthropic",
+          model: "claude-haiku-5-5",
+          timestamp: now,
+        }),
       },
-      [KEY, ops] as const,
-    );
-    await page.reload();
+    });
+    await page.goto("/settings");
     const hint = (name: string) =>
       page.getByRole("link", { name: new RegExp(`^${name}`) }).locator("[data-hint]");
     await expect(hint("Daily")).toHaveText("Every second day at 09:00");
@@ -491,7 +487,7 @@ test.describe("saved, before the build", () => {
     await page.evaluate(
       ([key, hour]) =>
         localStorage.setItem(
-          key,
+          key as string,
           JSON.stringify([{ at: Date.now(), ops: [{ op: "schedule.set", hour: Number(hour) }] }]),
         ),
       [KEY, built],
