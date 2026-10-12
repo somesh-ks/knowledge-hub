@@ -42,7 +42,9 @@ const { back } = Astro.props;
   function setHidden(hidden: boolean): void {
     root.toggleAttribute("data-bar-hidden", hidden);
     const bar = document.querySelector<HTMLElement>(".app-bar");
-    if (bar) bar.inert = hidden;
+    // The open player makes the bar inert for its own reason (modalScope marks it); a scroll under
+    // the player must not hand it back.
+    if (bar && !bar.hasAttribute("data-player-inert")) bar.inert = hidden;
   }
   function sync(): void {
     queued = false;
