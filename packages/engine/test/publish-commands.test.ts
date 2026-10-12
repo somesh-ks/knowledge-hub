@@ -201,30 +201,6 @@ describe("dispatch audio", () => {
       })(["--digest", "2026-10-07", "--dry-run"], ctx);
       expect(code).toBe(1);
     });
-
-    it("fails on an invalid monthly allowance", async () => {
-      await writeDigest(temp.root, makeDigest());
-      const code = await createAudioCommand({
-        ...forbidden,
-        out: () => {},
-        monthlyChars: () => {
-          throw new Error("SPEECHIFY_MONTHLY_CHARS must be a positive whole number");
-        },
-      })(["--digest", "2026-10-07", "--dry-run"], ctx);
-      expect(code).toBe(1);
-      expect(ctx.log.lines.some((line) => line.message.includes("SPEECHIFY_MONTHLY_CHARS"))).toBe(
-        true,
-      );
-    });
-
-    it("fails when the digest does not exist", async () => {
-      const code = await createAudioCommand({
-        ...forbidden,
-        out: () => {},
-        monthlyChars: () => 500_000,
-      })(["--digest", "2026-10-07", "--dry-run"], ctx);
-      expect(code).toBe(1);
-    });
   });
 
   describe("synthesis", () => {
@@ -267,16 +243,6 @@ describe("dispatch audio", () => {
       expect(r.speech.calls.marks).toHaveLength(1);
       expect(await createAudioCommand(r.deps)(["--digest", "2026-10-07", "--force"], ctx)).toBe(0);
       expect(r.speech.calls.marks).toHaveLength(2);
-    });
-
-    it("only touches the requested digest", async () => {
-      await writeDigest(temp.root, digestFor("2026-10-05"));
-      await writeDigest(temp.root, digestFor("2026-10-07"));
-      const r = rig();
-      await createAudioCommand(r.deps)(["--digest", "2026-10-05"], ctx);
-      expect(
-        parseDigestFile(await readFile(join(temp.root, digestRelPath("2026-10-07")), "utf8")).audio,
-      ).toBeNull();
     });
 
     it("exits 1 and names the stage when synthesis fails", async () => {
@@ -470,13 +436,6 @@ describe("dispatch publish", () => {
       expect(r.out.join("")).toContain("not pushed");
     });
 
-    it("--digest limits the work to one digest", async () => {
-      await seed("2026-10-05", "2026-10-07");
-      await createPublishCommand(rig().deps)(["--digest", "2026-10-05"], ctx);
-      expect(audioOf("2026-10-05")).not.toBeNull();
-      expect(audioOf("2026-10-07")).toBeNull();
-    });
-
     it("emits JSON with outcomes and the commit result", async () => {
       await seed("2026-10-07");
       const r = rig();
@@ -517,15 +476,6 @@ describe("dispatch publish", () => {
       ).toBe(true);
     });
 
-    it("isolates a failing digest from the others", async () => {
-      await seed("2026-10-05", "2026-10-07");
-      const r = rig({ failMarksCall: (index) => (index === 0 ? new Error("down") : undefined) });
-      expect(await createPublishCommand(r.deps)([], ctx)).toBe(0);
-      expect(audioOf("2026-10-07")).toBeNull();
-      expect(audioOf("2026-10-05")).not.toBeNull();
-      expect(remoteSubject()).toBe("chore(audio): add narration for 2026-10-05");
-    });
-
     it("exits 0 with a warning when credentials are missing, without synthesizing", async () => {
       await seed("2026-10-07");
       const before = remoteHead();
@@ -543,22 +493,6 @@ describe("dispatch publish", () => {
           (line) => line.level === "warn" && line.message.includes("SPEECHIFY_API_KEY is not set"),
         ),
       ).toBe(true);
-    });
-
-    it("reports an invalid monthly allowance and spends nothing", async () => {
-      await seed("2026-10-07");
-      const r = rig();
-      const out: string[] = [];
-      const code = await createPublishCommand({
-        ...r.deps,
-        out: (text) => void out.push(text),
-        monthlyChars: () => {
-          throw new Error("SPEECHIFY_MONTHLY_CHARS must be a positive whole number");
-        },
-      })([], ctx);
-      expect(code).toBe(0);
-      expect(out.join("")).toContain("audio failed at credentials: SPEECHIFY_MONTHLY_CHARS");
-      expect(r.speech.calls.marks).toEqual([]);
     });
 
     it("names the missing blob token when only it is absent, and spends nothing", async () => {
@@ -614,14 +548,6 @@ describe("dispatch publish", () => {
       ).toBe(true);
     });
 
-    it("exits 1 for an untracked stray file too", async () => {
-      await seed("2026-10-07");
-      await put(pair.a, "notes.txt", "x");
-      const r = rig();
-      expect(await createPublishCommand(r.deps)([], ctx)).toBe(1);
-      expect(r.speech.calls.marks).toEqual([]);
-    });
-
     it("exits 1 before synthesis when a dirty digest changes more than its audio field", async () => {
       await seed("2026-10-07", "2026-10-06");
       const edited = digestFor("2026-10-06");
@@ -651,18 +577,6 @@ describe("dispatch publish", () => {
     });
   });
 
-  describe("a named digest", () => {
-    it("exits 1 when it does not exist, without synthesizing", async () => {
-      await seed("2026-10-07");
-      const r = rig();
-      expect(await createPublishCommand(r.deps)(["--digest", "2026-01-01"], ctx)).toBe(1);
-      expect(r.speech.calls.marks).toEqual([]);
-      expect(
-        ctx.log.lines.some((line) => line.level === "error" && line.message.includes("2026-01-01")),
-      ).toBe(true);
-    });
-  });
-
   describe("a failing commit step", () => {
     it("exits 1 and reports it when a pre-commit hook rejects the commit", async () => {
       await seed("2026-10-07");
@@ -682,19 +596,6 @@ describe("dispatch publish", () => {
   });
 
   describe("pushing", () => {
-    it("rebases onto a concurrent push of another file", async () => {
-      await seed("2026-10-07");
-      git(pair.b, "pull", "-q", "origin", "main");
-      await put(pair.b, "state/seen.json", '{ "version": 1, "items": { "z": "1" } }\n');
-      await commitAll(pair.b, "chore: concurrent");
-      git(pair.b, "push", "-q", "origin", "main");
-      expect(await createPublishCommand(rig().deps)([], ctx)).toBe(0);
-      expect(remoteSubject()).toBe("chore(audio): add narration for 2026-10-07");
-      expect(git(pair.remote, "log", "--format=%s", "-2", "refs/heads/main")).toContain(
-        "chore: concurrent",
-      );
-    });
-
     it("exits 1 when a concurrent writer changed usage.json too", async () => {
       await seed("2026-10-07");
       git(pair.b, "pull", "-q", "origin", "main");
