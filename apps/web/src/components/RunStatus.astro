@@ -17,7 +17,9 @@ const lines = {
   // A rewrite or a removal of an episode that exists: data-<kind>-<state>.
   "data-regenerate-queued": "Rewrite queued",
   "data-regenerate-running": "Rewriting your episode",
-  "data-regenerate-done": "Episode ready",
+  // The workflow has published; the site is redeployed about a minute later, so the page still shows
+  // the old version until then.
+  "data-regenerate-done": "Rewritten. Live in about a minute.",
   "data-regenerate-started": "Still being rewritten. The new version will replace it.",
   "data-regenerate-failed": "Couldn't rewrite the episode",
   "data-delete-queued": "Removal queued",

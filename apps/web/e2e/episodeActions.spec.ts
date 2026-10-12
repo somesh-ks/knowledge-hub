@@ -161,7 +161,9 @@ test.describe("regenerate and delete an episode", () => {
       menu(page).getByRole("menuitem", { name: "Regenerate" }),
     ).toHaveAccessibleDescription("Unavailable while this episode is being updated.");
     await page.keyboard.press("Escape");
-    await expect(indicator(page)).toHaveText("Episode ready", { timeout: 15_000 });
+    await expect(indicator(page)).toHaveText("Rewritten. Live in about a minute.", {
+      timeout: 15_000,
+    });
     await expect(regenerate(page)).not.toHaveAttribute("aria-disabled", "true");
   });
 

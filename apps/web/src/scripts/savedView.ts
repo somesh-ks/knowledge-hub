@@ -286,7 +286,8 @@ function recount(
       never: row.dataset.never !== undefined,
     });
     const hint = row.querySelector("[data-hint]");
-    if (!hint || hint.textContent === text) continue;
+    // The built line may carry the template's own spaces: a line that reads the same is no change.
+    if (!hint || hint.textContent?.trim() === text) continue;
     hint.textContent = text;
     shown = true;
   }
