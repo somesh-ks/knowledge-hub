@@ -79,6 +79,25 @@ export function installCreate(root: HTMLElement, onStart?: () => void): void {
 
   // True once a chip has been ticked or unticked by hand since the last suggestion was applied.
   let picked = false;
+  // The ticks a suggestion replaced, while its line offers Undo.
+  let undoTicks: boolean[] | null = null;
+
+  /**
+   * The line under Written for: what a suggestion did ("Topics set for anyone", with Undo), that
+   * the picks made by hand were kept (with the suggestion), or nothing.
+   */
+  function showNote(mode: "applied" | "kept" | null): void {
+    if (!note) return;
+    if (mode !== "applied") undoTicks = null;
+    note.hidden = mode === null;
+    if (mode === null) return;
+    const audience =
+      form.querySelector<HTMLInputElement>('input[name="audience"]:checked')?.dataset.label ?? "";
+    const text = note.querySelector("[data-preset-text]");
+    if (text) text.textContent = (note.dataset[mode] ?? "").replace("{audience}", audience);
+    note.querySelector("[data-preset-apply]")?.toggleAttribute("hidden", mode !== "kept");
+    note.querySelector("[data-preset-undo]")?.toggleAttribute("hidden", mode !== "applied");
+  }
 
   /** Ticks the chips the chosen audience suggests; chips stay shown. */
   function applyPreset(): void {
@@ -87,17 +106,25 @@ export function installCreate(root: HTMLElement, onStart?: () => void): void {
       topic.checked = (topic.dataset.presets ?? "").split(" ").includes(audience);
     }
     picked = false;
-    if (note) note.hidden = true;
+    showNote(null);
   }
 
   /**
    * A new audience brings its suggested topics only while the topics are still the last
-   * suggestion: picks made by hand are never replaced unseen. They stay, and a line says so and
-   * offers the suggestion.
+   * suggestion, and says so with a way back, since the chips may be out of view. Picks made by
+   * hand are never replaced unseen: they stay, and a line says so and offers the suggestion.
    */
   function audienceChanged(): void {
-    if (!picked) applyPreset();
-    else if (note) note.hidden = false;
+    if (picked) {
+      showNote("kept");
+      return;
+    }
+    const before = topics.map((topic) => topic.checked);
+    applyPreset();
+    if (topics.some((topic, index) => topic.checked !== before[index])) {
+      showNote("applied");
+      undoTicks = before;
+    }
   }
 
   /** The voice a select stands for, or null when the list has not said what it is. */
@@ -239,7 +266,24 @@ export function installCreate(root: HTMLElement, onStart?: () => void): void {
   form.addEventListener("change", (event) => {
     const name = (event.target as HTMLInputElement | null)?.name;
     if (name === "audience") audienceChanged();
-    if (name === "topic") picked = true;
+    if (name === "topic") {
+      picked = true;
+      // A tick by hand after a suggestion: there is nothing left to undo.
+      if (undoTicks) showNote(null);
+    }
+    sync();
+  });
+  root.querySelector("[data-preset-undo]")?.addEventListener("click", () => {
+    const before = undoTicks;
+    if (!before) return;
+    topics.forEach((topic, index) => {
+      topic.checked = before[index] ?? topic.checked;
+    });
+    // The ticks are the person's again; a new audience must not replace them unseen. The button
+    // goes with its line, so the focus goes back to the audience it came from.
+    picked = true;
+    form.querySelector<HTMLInputElement>('input[name="audience"]:checked')?.focus();
+    showNote(null);
     sync();
   });
   root.querySelector("[data-preset-apply]")?.addEventListener("click", () => {
@@ -374,7 +418,7 @@ export function installCreate(root: HTMLElement, onStart?: () => void): void {
     }
     // These are the person's own picks: a new audience must not replace them unseen.
     picked = true;
-    if (note) note.hidden = true;
+    showNote(null);
     sync();
   });
 

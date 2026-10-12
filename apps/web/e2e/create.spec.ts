@@ -291,14 +291,14 @@ test.describe("the Create page", () => {
     const note = page.locator("[data-preset-note]");
     await expect(note).toBeHidden();
     await chip(page, "Audio interfaces").click();
-    await segment(page, "General").click();
+    await segment(page, "Anyone").click();
     // The hand-picked topics stay, and the line says so.
     await expect(page.locator('input[name="topic"]:checked')).toHaveCount(4);
     await expect(note).toBeVisible();
     await expect(note).toContainText("Your topic picks are kept.");
     await page.getByRole("button", { name: "Use suggested topics" }).click();
     await expect(note).toBeHidden();
-    // Every chip stays; the selection is General's preset, so the owner's own topic is unticked.
+    // Every chip stays; the selection is Anyone's preset, so the owner's own topic is unticked.
     await expect(page.locator(".filter-chip:visible")).toHaveCount(9);
     await expect(page.locator('input[name="topic"][value="audio_interfaces"]')).not.toBeChecked();
     await expect(page.locator('input[name="topic"]:checked')).toHaveCount(6);
@@ -312,14 +312,54 @@ test.describe("the Create page", () => {
     expect(JSON.stringify(mock.bodies[0])).not.toContain('"top"');
   });
 
-  test("the presets: Somesh ticks Design, AI, Technology; General ticks the six news topics", async ({
+  test("a suggestion that replaces untouched topics says so, and Undo brings the ticks back", async ({
+    page,
+  }) => {
+    const mock = await mockPodcast(page, 202, { status: 202, run_id: 3, started_at: "x" });
+    await openCreate(page);
+    const ticked = page.locator(".filter-chip:has(input:checked)");
+    const note = page.locator("[data-preset-note]");
+    await expect(note).toBeHidden();
+    await segment(page, "Anyone").click();
+    // The chips may be far above in a phone's sheet: the line where the choice was made says what
+    // changed, in a status region, with the way back.
+    await expect(note).toBeVisible();
+    await expect(note).toContainText("Topics set for anyone");
+    await expect(page.locator("[data-preset-status]")).toHaveAttribute("role", "status");
+    await expect(page.getByRole("button", { name: "Use suggested topics" })).toBeHidden();
+    await page.getByRole("button", { name: "Undo" }).click();
+    await expect(note).toBeHidden();
+    await expect(ticked).toHaveText(["Design", "AI", "Technology"]);
+    // Focus stays where the choice was made, not on the page.
+    await expect(page.locator('input[name="audience"]:checked')).toBeFocused();
+    // The restored ticks are the person's own now: another switch keeps them and says so.
+    await segment(page, "Somesh").click();
+    await expect(note).toContainText("Your topic picks are kept.");
+    await expect(ticked).toHaveText(["Design", "AI", "Technology"]);
+    await page.locator("[data-submit]").click();
+    await confirm(page);
+    await expect.poll(() => mock.bodies.length).toBe(1);
+    expect(mock.bodies[0]?.request).toMatchObject({
+      topic_ids: ["design", "ui-craft", "ai", "tech"],
+    });
+  });
+
+  test("a tick by hand after a suggestion takes its Undo away", async ({ page }) => {
+    await openCreate(page);
+    await segment(page, "Anyone").click();
+    await expect(page.getByRole("button", { name: "Undo" })).toBeVisible();
+    await chip(page, "Design").click();
+    await expect(page.locator("[data-preset-note]")).toBeHidden();
+  });
+
+  test("the presets: Somesh ticks Design, AI, Technology; Anyone ticks the six news topics", async ({
     page,
   }) => {
     await openCreate(page);
     const ticked = page.locator(".filter-chip:has(input:checked)");
     const all = page.locator(".filter-chip:visible");
     await expect(ticked).toHaveText(["Design", "AI", "Technology"]);
-    await segment(page, "General").click();
+    await segment(page, "Anyone").click();
     await expect(all).toHaveCount(9);
     await expect(ticked).toHaveText([
       "Technology",
@@ -350,7 +390,7 @@ test.describe("the Create page", () => {
       audience: "custom",
       topic_ids: ["design", "ui-craft", "ai", "tech", "world", "sports"],
     });
-    await segment(page, "General").click();
+    await segment(page, "Anyone").click();
     await expect(page.locator('input[name="topic"]:checked')).toHaveCount(5);
     await segment(page, "Somesh").click();
     await expect(page.locator('input[name="topic"]:checked')).toHaveCount(5);
@@ -365,13 +405,17 @@ test.describe("the Create page", () => {
     await expect(page.locator("[data-create]")).toHaveAttribute("data-ready", "");
     const more = page.locator("[data-create-more]");
     await expect(more).not.toHaveAttribute("open", "");
-    await expect(page.locator("[data-more-values]")).toHaveText("For Somesh · 7 days · Neutral");
+    await expect(page.locator("[data-more-values]")).toHaveText(
+      "For Somesh · Last 7 days · Neutral tone",
+    );
     await expect(page.locator('input[name="tone"]').first()).toBeHidden();
     await more.locator("summary").click();
     await segment(page, "Dry").click();
-    await segment(page, "General").click();
+    await segment(page, "Anyone").click();
     await more.locator("summary").click();
-    await expect(page.locator("[data-more-values]")).toHaveText("For General · 7 days · Dry");
+    await expect(page.locator("[data-more-values]")).toHaveText(
+      "For anyone · Last 7 days · Dry tone",
+    );
   });
 
   test("a wide page keeps More options open beside the main questions", async ({ page }, info) => {

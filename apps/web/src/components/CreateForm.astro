@@ -50,9 +50,10 @@ const VOICES = [
 function labelOf<T>(list: ReadonlyArray<{ value: T; label: string }>, value: T): string {
   return list.find((item) => item.value === value)?.label ?? "";
 }
+const audiencePhrase = AUDIENCES.find((item) => item.value === DEFAULTS.audience)?.phrase ?? "";
 // The More options line before the script runs: the same words the script writes (createPage.ts).
 const moreSummary = moreOptionsSummary(
-  labelOf(AUDIENCES, DEFAULTS.audience),
+  audiencePhrase,
   labelOf(WINDOWS, DEFAULTS.window),
   labelOf(TONES, DEFAULTS.tone),
 );
@@ -169,18 +170,29 @@ const COPY = {
             {
               AUDIENCES.map((audience) => (
                 <label class="settings-segment">
-                  <input type="radio" name="audience" value={audience.value} data-label={audience.label} checked={audience.value === DEFAULTS.audience} />
+                  <input type="radio" name="audience" value={audience.value} data-label={audience.phrase} checked={audience.value === DEFAULTS.audience} />
                   <span>{audience.label}</span>
                 </label>
               ))
             }
           </fieldset>
           {/* Switching the audience brings its suggested topics only while the topics are still the
-               last suggestion. Picks made by hand stay, and this line says so and offers the swap. */}
-          <p class="create-hint create-preset-note" data-preset-note hidden>
-            <span>Your topic picks are kept.</span>
-            <button class="btn create-inline-btn" type="button" data-preset-apply>Use suggested topics</button>
-          </p>
+               last suggestion; the chips may be out of view, so this line says what changed and
+               offers Undo. Picks made by hand stay, and the line says so and offers the swap. The
+               status region is always there, so a line that appears in it is announced. */}
+          <div role="status" data-preset-status>
+            <p
+              class="create-hint create-preset-note"
+              data-preset-note
+              data-kept="Your topic picks are kept."
+              data-applied="Topics set for {audience}"
+              hidden
+            >
+              <span data-preset-text>Your topic picks are kept.</span>
+              <button class="btn create-inline-btn" type="button" data-preset-apply>Use suggested topics</button>
+              <button class="btn create-inline-btn" type="button" data-preset-undo hidden>Undo</button>
+            </p>
+          </div>
         </section>
 
         {/* A readout has one voice; a discussion has two hosts, each with a voice. The options come
