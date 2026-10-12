@@ -463,7 +463,7 @@
   max-width: 100%;
   overflow: hidden;
   white-space: normal;
-  text-wrap: balance;
+  text-wrap: pretty;
   -webkit-box-orient: vertical;
   -webkit-line-clamp: 2;
   font-family: var(--text-title-family);
