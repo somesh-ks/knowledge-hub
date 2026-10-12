@@ -110,8 +110,6 @@ test.describe("closing the page", () => {
     page,
     hasTouch,
   }) => {
-    // With a mouse, at tablet width: the bar's chevron is the way to close the open page.
-    if (!hasTouch) await page.setViewportSize({ width: 820, height: 1000 });
     await opened(player);
     await player.closeButton.focus();
     await page.keyboard.press("Enter");

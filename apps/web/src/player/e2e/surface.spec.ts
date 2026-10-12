@@ -29,9 +29,10 @@ test("one surface: the page waits collapsed and out of reach, then opens as one 
     () => matchMedia("(min-width: 64rem) and (hover: hover) and (pointer: fine)").matches,
   );
   if (!mouseWide) return;
-  // With a mouse on a wide screen the bar's chevron is the one close, and the bar keeps its whole
-  // transport under the open page: Pause is on screen once, in the bar, and the page holds only what
-  // the bar has not, the skips with the speed between them. Its open button closes the page it opened.
+  // With a mouse on a wide screen the bar keeps its whole transport under the open page: Pause is on
+  // screen once, in the bar, and the page holds only what the bar has not, the skips with the speed
+  // between them. The keyboard's Close button is the one close control, and the bar's open button
+  // closes the page it opened.
   await expect(dialog.getByRole("button", { name: "Close the player" })).toHaveCount(1);
   await expect(player.dock.getByRole("button", { name: "Pause", exact: true })).toBeVisible();
   const page_ = dialog.locator("[data-player-page]");

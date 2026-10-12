@@ -411,7 +411,7 @@ export class PlayerPage {
   }
 
   get closeButton() {
-    // The focus-only pill, or on a wide screen with a mouse (where it is not shown) the bar's chevron.
+    // The focus-only pill: no close glyph shows at any width.
     return this.page.getByRole("button", { name: "Close the player" }).first();
   }
 
