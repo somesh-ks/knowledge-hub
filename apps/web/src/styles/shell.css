@@ -361,11 +361,10 @@ html[data-mini="visible"] main {
   transition-duration: var(--duration-press-in);
 }
 
-/* The current destination's words are a step heavier as well as darker, so the indicator is not
-   the only thing that tells it apart. */
+/* The current destination's words take the full ink, so the indicator and the filled icon are not
+   the only things that tell it apart. The weight stays: the app keeps two weights. */
 .app-nav-item[aria-current="page"] {
   color: var(--color-on-surface);
-  font-weight: var(--font-weight-semibold);
 }
 
 .app-nav-item[aria-current="page"] .app-nav-indicator {
