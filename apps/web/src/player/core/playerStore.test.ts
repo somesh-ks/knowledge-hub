@@ -614,7 +614,7 @@ describe("errors", () => {
     expect(error?.message).toBe("Audio is not available for this briefing.");
   });
 
-  it("says a standing refusal again on play, without a retry", () => {
+  it("in a standing refusal, a play tries the element again: a story whose file is made plays", () => {
     const harness = createHarness();
     startPlaying(harness);
     harness.audio.error = {
@@ -622,20 +622,12 @@ describe("errors", () => {
       narrated: { message: "Daily narration limit reached.", standing: true },
     };
     harness.audio.emit("error");
-    harness.events.length = 0;
-    const before = harness.events.filter((event) => event.type === "error").length;
+    const calls = harness.audio.playCalls;
+    // The narration's queue answers a made file at once and refuses a new one without a request,
+    // so the element is the one to ask: it plays, or reports the same reason again.
     harness.store.play();
-    expect(harness.store.getState().status).toBe("error");
-    expect(harness.events.filter((event) => event.type === "error")).toHaveLength(before + 1);
-    expect(
-      harness.events.some(
-        (event) =>
-          event.type === "willPlay" &&
-          event.reason === "user" &&
-          harness.events.indexOf(event) > 0 &&
-          false,
-      ),
-    ).toBe(false);
+    expect(harness.audio.playCalls).toBe(calls + 1);
+    expect(harness.store.getState().error).toBeNull();
   });
 
   it("a story step out of a failure plays the story it lands on, as a row tap does", () => {
@@ -651,7 +643,7 @@ describe("errors", () => {
     expect(["playing", "loading"]).toContain(harness.store.getState().status);
   });
 
-  it("a story step in a standing refusal moves, plays nothing and says why again", () => {
+  it("a story step in a standing refusal plays the story it lands on", () => {
     const harness = createHarness();
     startPlaying(harness);
     harness.audio.error = {
@@ -660,11 +652,8 @@ describe("errors", () => {
     };
     harness.audio.emit("error");
     const calls = harness.audio.playCalls;
-    harness.events.length = 0;
-    expect(harness.store.next()).toBe(true);
-    expect(harness.audio.playCalls).toBe(calls);
-    expect(harness.store.getState().status).toBe("error");
-    expect(harness.events.some((event) => event.type === "error")).toBe(true);
+    expect(harness.store.previous()).toBe(true);
+    expect(harness.audio.playCalls).toBe(calls + 1);
   });
 
   it("says the audio is unavailable when the source cannot be used", () => {

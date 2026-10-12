@@ -220,6 +220,31 @@ test.describe("a recording that fails @surface", () => {
     }
   });
 
+  test("in a standing refusal a story whose file is made still plays", async ({ lab, page }) => {
+    await lab.open("/d/2026-10-05");
+    const first = await page.evaluate(
+      () =>
+        JSON.parse(document.getElementById("dispatch-digest-data")?.textContent ?? "{}").items[0]
+          .id,
+    );
+    await serve(page, (key) =>
+      key === "intro" || key === first
+        ? { file: true }
+        : { refusal: "monthly_budget", status: 402 },
+    );
+    await lab.play();
+    await lab.openPlayer();
+    const next = lab.dialog.locator(".transport [aria-label='Next story']");
+    await next.click();
+    await expect(lab.root).toHaveAttribute("data-player-state", "playing");
+    await next.click();
+    await expect(lab.root).toHaveAttribute("data-player-state", "error", { timeout: 10_000 });
+    // Back to story 1, whose file was made: it plays, and the reason goes.
+    await lab.dialog.locator(".transport [aria-label='Previous story']").click();
+    await expect(lab.root).toHaveAttribute("data-player-state", "playing", { timeout: 10_000 });
+    await expect(lab.dialog.getByRole("alert")).toHaveCount(0);
+  });
+
   test("a server's failure never starts by itself when the connection blips", async ({
     lab,
     page,
