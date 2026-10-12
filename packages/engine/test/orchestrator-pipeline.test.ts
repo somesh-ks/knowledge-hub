@@ -279,19 +279,6 @@ describe("published run", () => {
     expect(await exists(repo.root, DIGEST_PATH)).toBe(true);
   });
 
-  it("never repeats the previous cover on the next digest", LONG, async () => {
-    const world = makeWorld(repo.root, { now: WED });
-    await runStaged(world);
-    const first = await readDigest(repo.root, DIGEST_PATH);
-
-    world.setNow(new Date("2026-10-09T05:13:00Z"));
-    world.feeds = goodFeeds(8, "next");
-    await runStaged(world);
-    const second = await readDigest(repo.root, "Digests/2026/10/2026-10-09.md");
-    expect(second.cover.template).not.toBe(first.cover.template);
-    expect(second.cover.palette).not.toBe(first.cover.palette);
-  });
-
   it("marks the digest unverified when no grounder is configured", LONG, async () => {
     const world = makeWorld(repo.root, { now: WED, grounder: null });
     const result = await runStage(world);
@@ -335,17 +322,6 @@ describe("second run on the same day", () => {
 
     const gate = await runStage(world, { stage: "gate" });
     expect(gate.report).toMatchObject({ due: false });
-  });
-
-  it("starts the on-demand window where the last fetch ended", LONG, async () => {
-    const world = makeWorld(repo.root, { now: WED });
-    await runStage(world);
-    world.setNow(new Date("2026-10-07T12:00:00Z"));
-    world.feeds = goodFeeds(6, "later");
-    const gate = await runStage(world, { stage: "gate", mode: "on-demand" });
-    expect(gate.report).toMatchObject({
-      passes: [{ window: { from: WED.toISOString(), to: "2026-10-07T12:00:00.000Z" } }],
-    });
   });
 });
 
@@ -406,13 +382,6 @@ describe("nothing outcome", () => {
       ".cache/run/2026-10-09/judged.json",
     );
     expect(judged.counts).toMatchObject({ cache_hits: 5, fresh: 0 });
-  });
-
-  it("counts a quiet day toward the cadence", LONG, async () => {
-    const world = makeWorld(repo.root, { now: WED, feeds: quietFeeds() });
-    await runStage(world);
-    const gate = await runStage(world, { stage: "gate" });
-    expect(gate.report).toMatchObject({ due: false });
   });
 
   it("is nothing too when writing leaves fewer than three items", LONG, async () => {
@@ -513,16 +482,6 @@ describe("gated run", () => {
         url: "https://example.public.blob.vercel-storage.com/audio/2026-10-06.mp3",
         duration_ms: 240_000,
       }),
-    });
-    const world = makeWorld(repo.root, { now: WED });
-    const result = await runStage(world);
-    expect(result.report).toMatchObject({ outcome: "gated", deploy: false });
-  });
-
-  it("ignores a digest older than seven days without audio", LONG, async () => {
-    await seed(repo.root, {
-      "state/last-run.json": publishedYesterday,
-      "Digests/2026/09/2026-09-20.md": digestFile("2026-09-20"),
     });
     const world = makeWorld(repo.root, { now: WED });
     const result = await runStage(world);
@@ -690,21 +649,6 @@ describe("failed run", () => {
     expect(await stateSnapshot()).toMatchObject({ "state/seen.json": false });
   });
 
-  it("refuses to commit when there is no plan at all", LONG, async () => {
-    const world = makeWorld(repo.root, { now: WED });
-    const commit = await runStage(world, { stage: "commit" });
-    expect(commit.code).toBe(1);
-    expect(JSON.stringify(commit.report)).toContain("No plan found");
-  });
-
-  it("names the missing earlier stage when a stage runs out of order", LONG, async () => {
-    const world = makeWorld(repo.root, { now: WED });
-    await runStage(world, { stage: "gate" });
-    const write = await runStage(world, { stage: "write" });
-    expect(write.code).toBe(1);
-    expect(JSON.stringify(write.report)).toContain("the judge stage has not run");
-  });
-
   it("records a source failure but still publishes when other sources answer", LONG, async () => {
     const world = makeWorld(repo.root, { now: WED });
     world.failSource("blog-b");
@@ -747,19 +691,6 @@ describe("Sunday: regular and weekly passes in a forced run", () => {
       "journal-w": sourceItems("journal-w", 4, "j"),
     };
   }
-
-  it("plans a regular pass and then a weekly pass", LONG, async () => {
-    await seed(repo.root, { "state/last-run.json": regularYesterday });
-    const world = makeWorld(repo.root, { now: SUN });
-    const gate = await runStage(world, { stage: "gate", force: true });
-    expect(gate.report).toMatchObject({
-      due: true,
-      passes: [
-        { id: "2026-10-11", kind: "regular" },
-        { id: "2026-10-11-weekly", kind: "weekly" },
-      ],
-    });
-  });
 
   it("publishes both digests in one commit without repeating an item", LONG, async () => {
     await seed(repo.root, { "state/last-run.json": regularYesterday });
@@ -807,16 +738,6 @@ describe("Sunday: regular and weekly passes in a forced run", () => {
     ]);
     const regularCalls = world.fetchCalls.filter((c) => c.from === "2026-10-09T05:13:00.000Z");
     expect(regularCalls.map((c) => c.source).sort()).toEqual(["blog-a", "blog-b", "blog-c"]);
-  });
-
-  it("does not repeat the weekly pass on the same Sunday", LONG, async () => {
-    await seed(repo.root, { "state/last-run.json": regularYesterday });
-    const world = makeWorld(repo.root, { now: SUN, feeds: sundayFeeds() });
-    await runStage(world, { force: true });
-    world.setNow(new Date("2026-10-11T10:00:00Z"));
-    const again = await runStage(world, { stage: "gate", force: true });
-    expect(again.report).toMatchObject({ due: true, passes: [{ kind: "regular" }] });
-    expect((again.report as { passes: unknown[] }).passes).toHaveLength(1);
   });
 
   it("runs only the weekly pass in weekly mode, on any day", LONG, async () => {

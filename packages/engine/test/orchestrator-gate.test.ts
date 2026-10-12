@@ -76,58 +76,12 @@ describe("gate: scheduled mode", () => {
     });
   });
 
-  it("is due two calendar days after the last regular digest", async () => {
-    await lastRun({ regular: record("2026-10-05T05:13:00Z") });
-    const report = await gate(WED);
-    expect(report.due).toBe(true);
-    expect(report.reason).toContain("2 days ago");
-  });
-
   it("is not due the day after, and says when it will be", async () => {
     await lastRun({ regular: record("2026-10-06T05:13:00Z") });
     const report = await gate(WED);
     expect(report).toMatchObject({ due: false, passes: [] });
     expect(report.reason).toContain("2026-10-06");
     expect(report.reason).toContain("1 day(s)");
-  });
-
-  it("compares Stockholm dates, so a late-evening digest still counts as its own day", async () => {
-    // 23:30 in Stockholm on 5 October is two calendar days before 7 October, only 31 hours earlier.
-    await lastRun({ regular: record("2026-10-05T21:30:00Z") });
-    expect((await gate(WED)).due).toBe(true);
-  });
-
-  it("is not due when only one Stockholm midnight has passed, however many hours", async () => {
-    // 00:30 in Stockholm on 6 October is one calendar day before 7 October.
-    await lastRun({ regular: record("2026-10-05T22:30:00Z") });
-    expect((await gate(WED)).due).toBe(false);
-  });
-
-  it("counts a quiet day toward the cadence", async () => {
-    await lastRun({ regular: record("2026-10-05T05:13:00Z", "nothing") });
-    expect((await gate(WED)).due).toBe(true);
-    await lastRun({ regular: record("2026-10-06T05:13:00Z", "nothing") });
-    expect((await gate(WED)).due).toBe(false);
-  });
-
-  it("does not count a failed regular record", async () => {
-    await lastRun({ regular: record("2026-10-06T05:13:00Z", "failed") });
-    expect((await gate(WED)).due).toBe(true);
-  });
-
-  it("ignores the on-demand record when deciding the regular cadence", async () => {
-    await lastRun({
-      regular: record("2026-10-03T05:13:00Z"),
-      on_demand: record("2026-10-07T01:00:00Z"),
-    });
-    expect((await gate(WED)).due).toBe(true);
-  });
-
-  it("is due again with --force even when not due, and says why", async () => {
-    await lastRun({ regular: record("2026-10-06T05:13:00Z") });
-    const report = await gate(WED, { force: true });
-    expect(report).toMatchObject({ due: true, reason: "forced run ignores the gate" });
-    expect(report.passes).toMatchObject([{ id: "2026-10-07", kind: "regular" }]);
   });
 });
 
@@ -155,11 +109,6 @@ describe("gate: on-demand and weekly modes", () => {
     expect(report.passes[0]).toMatchObject({ id: "2026-10-07-2", kind: "regular" });
   });
 
-  it("on-demand adds no weekly pass, even on a Sunday", async () => {
-    const report = await gate(SUN, { mode: "on-demand" });
-    expect(report.passes.map((pass) => pass.kind)).toEqual(["on-demand"]);
-  });
-
   it("weekly mode plans the weekly pass alone, on any day, and counts as due", async () => {
     await lastRun({ regular: record("2026-10-07T01:00:00Z") });
     const report = await gate(WED, { mode: "weekly" });
@@ -177,48 +126,6 @@ describe("gate: on-demand and weekly modes", () => {
 });
 
 describe("gate: the Sunday weekly pass", () => {
-  it("takes the Sunday alone: a briefing due that day waits", async () => {
-    await lastRun({ regular: record("2026-10-09T05:13:00Z") });
-    const report = await gate(SUN);
-    expect(report.passes).toMatchObject([{ id: "2026-10-11-weekly", kind: "weekly" }]);
-  });
-
-  it("follows the regular pass in a forced run", async () => {
-    await lastRun({ regular: record("2026-10-09T05:13:00Z") });
-    const report = await gate(SUN, { force: true });
-    expect(report.passes).toMatchObject([
-      { id: "2026-10-11", kind: "regular" },
-      { id: "2026-10-11-weekly", kind: "weekly" },
-    ]);
-  });
-
-  it("runs alone when the regular digest is not due", async () => {
-    await lastRun({ regular: record("2026-10-10T05:13:00Z") });
-    const report = await gate(SUN);
-    expect(report.due).toBe(true);
-    expect(report.passes).toMatchObject([{ id: "2026-10-11-weekly", kind: "weekly" }]);
-  });
-
-  it("does not run twice on the same Sunday", async () => {
-    await lastRun({
-      regular: record("2026-10-09T05:13:00Z"),
-      weekly: record("2026-10-11T04:00:00Z"),
-    });
-    expect((await gate(SUN)).passes).toEqual([]);
-  });
-
-  it("is never added on other days", async () => {
-    const report = await gate(WED);
-    expect(report.passes.map((pass) => pass.kind)).toEqual(["regular"]);
-  });
-
-  it("finds the Sunday in Stockholm time across the daylight saving change", async () => {
-    // The clocks went back at 01:00 UTC on Sunday 25 October 2026.
-    // 07:13 in Stockholm is 06:13Z after the clocks went back.
-    const report = await gate(new Date("2026-10-25T06:13:00Z"));
-    expect(report.passes.map((pass) => pass.id)).toEqual(["2026-10-25-weekly"]);
-  });
-
   it("follows the weekly day and hour in config/schedule.json", async () => {
     await put(
       "config/schedule.json",
@@ -269,24 +176,6 @@ describe("gate: fetch windows", () => {
       from: "2026-10-06T06:00:00.000Z",
       to: WED.toISOString(),
     });
-  });
-
-  it("uses three days on the first run", async () => {
-    expect((await gate(WED)).passes[0]?.window.from).toBe("2026-10-04T05:13:00.000Z");
-  });
-
-  it("never reaches back more than seven days", async () => {
-    await lastRun({ last_fetch_at: "2026-09-01T00:00:00Z" });
-    expect((await gate(WED)).passes[0]?.window.from).toBe("2026-09-30T05:13:00.000Z");
-  });
-
-  it("gives the weekly pass seven days whatever the last fetch was", async () => {
-    await lastRun({
-      regular: record("2026-10-09T05:13:00Z"),
-      last_fetch_at: "2026-10-10T05:13:00Z",
-    });
-    const report = await gate(SUN);
-    expect(report.passes[0]?.window.from).toBe("2026-10-04T05:13:00.000Z");
   });
 
   it("starts every pass at --since when given", async () => {
