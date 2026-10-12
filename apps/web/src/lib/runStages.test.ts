@@ -2,6 +2,7 @@ import { describe, expect, it } from "vitest";
 import { GENERATE_STEPS } from "../types/contracts";
 import {
   BRIEFING_STAGES,
+  BRIEFING_UPDATING_LABEL,
   briefingStage,
   EPISODE_STAGES,
   episodeStage,
@@ -24,8 +25,12 @@ describe("briefingStage", () => {
   });
 
   it("leaves the redeploy for the page to show", () => {
-    expect(BRIEFING_STAGES.at(-1)).toBe(UPDATING_LABEL);
-    expect(updatingStage("briefing")).toEqual({ stage: 6, stages: 7, label: UPDATING_LABEL });
+    expect(BRIEFING_STAGES.at(-1)).toBe(BRIEFING_UPDATING_LABEL);
+    expect(updatingStage("briefing")).toEqual({
+      stage: 6,
+      stages: 7,
+      label: BRIEFING_UPDATING_LABEL,
+    });
   });
 });
 
@@ -51,5 +56,7 @@ describe("episodeStage", () => {
   it("counts the redeploy as the last of three stages", () => {
     expect(EPISODE_STAGES).toHaveLength(3);
     expect(updatingStage("episode")).toEqual({ stage: 2, stages: 3, label: UPDATING_LABEL });
+    // A new episode lands in the Library, and the line says so in those words.
+    expect(UPDATING_LABEL).toBe("Adding it to your Library");
   });
 });

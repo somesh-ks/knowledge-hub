@@ -5,27 +5,38 @@ import Icon from "./Icon.astro";
 // Every line the indicator shows. scripts/runStatus.ts reads them from the element's data
 // attributes, so the script carries no copy.
 const lines = {
-  "data-queued": "Waiting to start",
+  "data-queued": "Episode queued",
   "data-running": "Writing your episode",
   "data-done": "Episode ready",
-  "data-started": "Episode started",
-  "data-failed": "The episode could not be written. Try again later.",
+  "data-started": "Still being made. It will appear in your Library.",
+  "data-failed": "Couldn't make the episode",
   // The stage names come from the status route (lib/runStages.ts); these are the sentences around them.
-  "data-failed-stage": "Stopped while {label}. Try again later.",
+  "data-failed-stage": "Stopped while {label}",
   "data-updating": UPDATING_LABEL,
   "data-open": "Open episode",
   // A rewrite or a removal of an episode that exists: data-<kind>-<state>.
-  "data-regenerate-queued": "Waiting to start",
+  "data-regenerate-queued": "Rewrite queued",
   "data-regenerate-running": "Rewriting your episode",
   "data-regenerate-done": "Episode ready",
-  "data-regenerate-started": "Rewrite started",
-  "data-regenerate-failed": "The episode could not be rewritten. Try again later.",
-  "data-delete-queued": "Waiting to start",
+  "data-regenerate-started": "Still being rewritten. The new version will replace it.",
+  "data-regenerate-failed": "Couldn't rewrite the episode",
+  "data-delete-queued": "Removal queued",
   "data-delete-running": "Removing the episode",
   "data-delete-done": "Episode removed",
-  "data-delete-started": "Removal started",
-  "data-delete-failed": "The episode could not be removed. Try again later.",
+  "data-delete-started": "Still being removed. It will leave your Library.",
+  "data-delete-failed": "Couldn't remove the episode",
+  // Try again: on the button while the request is out, and what a refusal of it says instead of the
+  // failure ({wait} is the server's own wait).
+  "data-starting": "Starting…",
+  "data-retry-cooldown": "You can make another episode in {wait}.",
+  "data-retry-daily_cap": "That's today's limit. Try again in {wait}.",
+  "data-retry-503": "Episodes are not available right now. Try again in a few minutes.",
+  "data-retry-400": "That request did not go through. Reload the page and try again.",
+  "data-retry-network": "The request did not go through. Check your connection, then try again.",
+  // The Create form and the New episode buttons say this while a run is still going (createPage.ts).
+  "data-busy-create": "An episode is still being made. You can start another when it's ready.",
 };
+---
 ---
 
 {/* The progress of a Create run, out of the way: at the foot of the side column from 64rem, above the
@@ -39,6 +50,7 @@ const lines = {
       <span class="run-message" data-run-text></span>
     </p>
     <a class="run-link" href="/library" data-run-library hidden>Open Library</a>
+    <button class="btn run-retry" type="button" data-run-retry hidden>Try again</button>
     <button class="icon-btn run-dismiss press" type="button" data-run-dismiss aria-label="Dismiss" hidden>
       <Icon name="close" class="icon-lg" />
     </button>

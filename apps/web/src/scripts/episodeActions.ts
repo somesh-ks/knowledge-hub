@@ -147,7 +147,13 @@ function bind(kind: Kind, dialog: HTMLDialogElement, root: HTMLElement): void {
       } else void navigateTo("/library");
       return;
     }
-    startRun(reply.run_id, { kind, episode: id });
+    // The request goes with the run, so a failure can send it again (Try again).
+    const { passphrase: _sent, ...again } = body;
+    startRun(
+      reply.run_id,
+      { kind, episode: id },
+      { body: again, ...(pass ? {} : { open: passphrase }) },
+    );
     form.reset();
     if (count) count.hidden = true;
     dialog.close();

@@ -607,7 +607,8 @@ dialog.create-sheet .create-submit > .btn-primary {
   text-decoration: underline;
 }
 
-.run-dismiss {
+.run-dismiss,
+.run-retry {
   flex: none;
 }
 
@@ -696,6 +697,14 @@ html[data-player="open"] .run-status {
   .run-link {
     grid-area: extra;
     justify-self: start;
+  }
+
+  /* Try again shares the link's place (they never show together); its words line up with the
+     message above, its state layer reaching out into the column's margin. */
+  .run-retry {
+    grid-area: extra;
+    justify-self: start;
+    margin-inline-start: calc(-1 * var(--space-3));
   }
 
   .run-bar {

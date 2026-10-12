@@ -4,8 +4,14 @@
  * the run id is kept in sessionStorage, so a reload picks the run up again. The status route names
  * the stage (n of m, lib/runStages.ts); the bar sits at the start of that stage and creeps toward,
  * never to, the next one on a slow CSS transition, so it never stands still and never goes back.
- * After the workflow has published, the last stage waits for the new page. Every sentence is in the element (`data-<state>`, or `data-<kind>-<state>` for a rewrite or a removal), and this
- * file imports nothing up front; the episode prewarm is loaded only once a new episode is live.
+ * After the workflow has published, the last stage waits for the new page. Every sentence is in the
+ * element (`data-<state>`, or `data-<kind>-<state>` for a rewrite or a removal), and this file imports
+ * nothing up front; the episode prewarm is loaded only once a new episode is live.
+ *
+ * A run keeps the request that started it, so a failed one offers Try again: the same request goes
+ * out again and the new run is followed. When it cannot be sent from here (no passphrase to send,
+ * or a refused one), the form is opened again, filled in with it. A finished run goes away once its
+ * episode has been opened.
  */
 const KEY = "dispatch:run";
 const POLL_MS = 4000;
@@ -21,6 +27,12 @@ const SITE_POLLS = 240;
 type Phase = "queued" | "running" | "updating" | "done" | "started" | "failed";
 /** What the run does to an episode that exists. Absent means a new episode. */
 type Kind = "regenerate" | "delete";
+/** What it takes to send a run's request again: the body without the passphrase. */
+export interface Retry {
+  body: Record<string, unknown>;
+  /** The passphrase the page sends while none is asked for (lib/access.ts); it is not a secret. */
+  open?: string;
+}
 interface Stored {
   id: number;
   phase: Phase;
@@ -33,6 +45,12 @@ interface Stored {
   label?: string;
   /** When the run was started, so the new page can be told from the old ones. */
   t0?: number;
+  /** The request that started the run, for Try again. */
+  retry?: Retry;
+  /** Where the new episode is, once the site lists it. */
+  href?: string;
+  /** Said instead of the failure after a Try again was refused (a cooldown names its wait). */
+  note?: string;
 }
 
 /** The stage fields of a status answer, kept with the run. */
@@ -43,7 +61,12 @@ const staged = (body: { stage?: number; stages?: number; label?: string }) => ({
 });
 
 const FINISHED: Phase[] = ["done", "started", "failed"];
+/** Phases of a run that is still going: Create waits for it (createPage.ts). */
+export const GOING = ["queued", "running", "updating"];
+const PASSPHRASE_KEY = "dispatch:narrate-passphrase";
 let following = 0;
+/** True while a Try again request is out. */
+let retrying = false;
 
 function read(): Stored | null {
   try {
@@ -67,13 +90,43 @@ function dismiss(): void {
   following = 0;
   write(null);
   show(null);
-  // The button that was pressed is gone with the card: hand focus to the Create button in view.
+  focusCreate();
+}
+
+/** The button that was pressed is gone with the card: focus goes to the Create button in view. */
+function focusCreate(): void {
   for (const create of document.querySelectorAll<HTMLElement>("[data-create-open]")) {
     if (create.getClientRects().length) {
       create.focus();
       return;
     }
   }
+}
+
+/** True when `href` is the page on screen. */
+function samePage(href: string): boolean {
+  const path = new URL(href, location.href).pathname.replace(/\/$/, "");
+  return path === location.pathname.replace(/\/$/, "");
+}
+
+/** The passphrase a Try again sends: the open one, or the one remembered on this device. */
+function passphraseFor(run: Stored): string | null {
+  if (run.retry?.open !== undefined) return run.retry.open;
+  try {
+    return localStorage.getItem(PASSPHRASE_KEY);
+  } catch {
+    return null;
+  }
+}
+
+/**
+ * Whether Try again can do something: send the request, or open its form again. A new episode's form
+ * opens anywhere; a rewrite's panel only on its own episode's page.
+ */
+function canRetry(run: Stored): boolean {
+  if (!run.retry) return false;
+  if (passphraseFor(run) !== null || run.kind !== "regenerate") return true;
+  return samePage(`/e/${run.episode}`);
 }
 
 function show(run: Stored | null): void {
@@ -83,8 +136,24 @@ function show(run: Stored | null): void {
   if (!root.hasAttribute("data-bound")) {
     root.setAttribute("data-bound", "");
     root.addEventListener("click", (event) => {
-      if ((event.target as Element).closest("[data-run-dismiss]")) dismiss();
+      const target = event.target as Element;
+      if (target.closest("[data-run-dismiss]")) dismiss();
+      if (target.closest("[data-run-retry]")) void retry();
+      // The episode, or the Library, is being opened: the line has said what it had to. It goes
+      // after the press has been handled, so the link still leads where it points.
+      if (target.closest("[data-run-library]")) {
+        write(null);
+        setTimeout(() => {
+          if (!read()) show(null);
+        });
+      }
     });
+  }
+  // The new episode is the page on screen: it has been found, so the line goes and gives back the
+  // room it kept.
+  if (run?.phase === "done" && run.href && samePage(run.href)) {
+    write(null);
+    run = null;
   }
   const finished = run ? FINISHED.includes(run.phase) : false;
   card.hidden = !run;
@@ -96,26 +165,43 @@ function show(run: Stored | null): void {
     // A new episode says its stage. Only a change is written, so a screen reader hears each stage once.
     const named = !run.kind && run.label && run.phase !== "queued";
     const line =
-      named && run.phase === "failed"
-        ? (root.dataset.failedStage ?? "").replace("{label}", run.label?.toLowerCase() ?? "")
-        : named && run.phase !== "done" && run.phase !== "started"
-          ? run.label
-          : (root.dataset[key] ?? root.dataset[run.phase]);
+      run.phase === "failed" && run.note
+        ? run.note
+        : named && run.phase === "failed"
+          ? (root.dataset.failedStage ?? "").replace("{label}", run.label?.toLowerCase() ?? "")
+          : named && run.phase !== "done" && run.phase !== "started"
+            ? run.label
+            : (root.dataset[key] ?? root.dataset[run.phase]);
     if (text && text.textContent !== (line ?? "")) text.textContent = line ?? "";
     fill(card, run);
   }
   const library = card.querySelector<HTMLAnchorElement>("[data-run-library]");
   if (library) {
+    // A new episode's link leads to it once the site lists it; anything else leads to the Library.
+    const href = run?.href ?? "/library";
+    if (library.getAttribute("href") !== href) library.setAttribute("href", href);
+    library.dataset.library ??= library.textContent ?? "";
+    const words = run?.href ? root.dataset.open : library.dataset.library;
+    if (words && library.textContent !== words) library.textContent = words;
     // A link to the page on screen would only load it again, so the line offers none there.
-    const onScreen = library.pathname.replace(/\/$/, "") === location.pathname.replace(/\/$/, "");
     library.hidden =
-      (run?.phase !== "done" && run?.phase !== "started") || run?.kind === "delete" || onScreen;
+      (run?.phase !== "done" && run?.phase !== "started") ||
+      run?.kind === "delete" ||
+      samePage(href);
   }
+  const again = card.querySelector<HTMLButtonElement>("[data-run-retry]");
+  if (again) again.hidden = !(run?.phase === "failed" && canRetry(run));
   const close = card.querySelector<HTMLElement>("[data-run-dismiss]");
   if (close) close.hidden = !finished;
   // The page reserves room for the indicator while it is up, the way it does for the player bar.
   if (run) document.documentElement.dataset.run = run.phase;
   else delete document.documentElement.dataset.run;
+  // New episode says why it cannot start another while this one is going.
+  const going = run ? GOING.includes(run.phase) : false;
+  for (const create of document.querySelectorAll<HTMLElement>("[data-create-open]")) {
+    if (going) create.setAttribute("aria-description", root.dataset.busyCreate ?? "");
+    else create.removeAttribute("aria-description");
+  }
   // The episode page listens, so it can disable its actions while its own episode is being changed.
   document.dispatchEvent(new Event("dispatch:run"));
 }
@@ -158,13 +244,7 @@ async function waitForSite(run: Stored): Promise<void> {
     if (following !== run.id) return;
     if (body?.episode_at && Date.parse(body.episode_at) >= (run.t0 ?? 0) - 60_000) {
       following = 0;
-      const link = document.querySelector<HTMLAnchorElement>("[data-run-library]");
-      if (link && body.episode_id) {
-        link.href = `/e/${body.episode_id}`;
-        link.textContent =
-          document.querySelector<HTMLElement>("[data-run-status]")?.dataset.open ?? "";
-      }
-      set({ ...run, phase: "done" });
+      set({ ...run, phase: "done", ...(body.episode_id ? { href: `/e/${body.episode_id}` } : {}) });
       // The new episode's first turns are made now, so the first Play finds files. Best effort.
       if (body.episode_id) {
         const episode = String(body.episode_id);
@@ -227,9 +307,18 @@ async function follow(run: Stored, now: boolean): Promise<void> {
   }
 }
 
-/** Starts showing and following a run that has just been accepted. */
-export function startRun(id: number, about?: { kind: Kind; episode: string }): void {
-  const run: Stored = { id, phase: "queued", t0: Date.now(), ...about };
+/**
+ * Starts showing and following a run that has just been accepted. `retry` is the request that
+ * started it, so a failure can offer Try again.
+ */
+export function startRun(id: number, about?: { kind: Kind; episode: string }, retry?: Retry): void {
+  const run: Stored = {
+    id,
+    phase: "queued",
+    t0: Date.now(),
+    ...about,
+    ...(retry ? { retry } : {}),
+  };
   following = 0;
   set(run);
   void follow(run, false);
@@ -241,4 +330,89 @@ export function resumeRun(): void {
   show(run);
   if (run?.phase === "updating") void waitForSite(run);
   else if (run && !FINISHED.includes(run.phase)) void follow(run, true);
+}
+
+/** "2 minutes", "3 hours": the server's wait, as the Create form says it. */
+function waitFor(seconds: number): string {
+  const m = Math.max(1, Math.ceil(seconds / 60));
+  const h = Math.round(m / 60);
+  return m < 60 ? `${m} minute${m === 1 ? "" : "s"}` : `${h} hour${h === 1 ? "" : "s"}`;
+}
+
+/** The line a refused Try again shows, from the element's data-retry-<reason> sentences. */
+function refusal(root: HTMLElement, res: Response | null, reply: Record<string, unknown>): string {
+  const line = (reason: string) => root.getAttribute(`data-retry-${reason}`) ?? "";
+  if (!res) return line("network");
+  if (res.status === 429) {
+    return line(String(reply.error)).replace("{wait}", waitFor(Number(reply.retry_after_s) || 60));
+  }
+  return line(res.status === 400 ? "400" : "503");
+}
+
+/**
+ * Try again: the failed run's request goes out again and the new run is followed. A refusal says
+ * why in the line, in the form's words; a cooldown names its own wait. With no passphrase to send,
+ * or a refused one, the form opens again, filled in.
+ */
+async function retry(): Promise<void> {
+  const run = read();
+  const root = document.querySelector<HTMLElement>("[data-run-status]");
+  const button = root?.querySelector<HTMLButtonElement>("[data-run-retry]");
+  if (!run?.retry || !root || !button || retrying) return;
+  const passphrase = passphraseFor(run);
+  if (passphrase === null) {
+    reopen(run);
+    return;
+  }
+  retrying = true;
+  const words = button.textContent;
+  button.setAttribute("aria-disabled", "true");
+  button.textContent = root.dataset.starting ?? "";
+  const res = await fetch("/api/podcast", {
+    method: "POST",
+    headers: { "content-type": "application/json" },
+    body: JSON.stringify({ passphrase, ...run.retry.body }),
+  }).catch(() => null);
+  const reply = (await res?.json().catch(() => null)) ?? {};
+  retrying = false;
+  button.removeAttribute("aria-disabled");
+  button.textContent = words;
+  if (res?.status === 202 && reply.run_id) {
+    const about = run.kind && run.episode ? { kind: run.kind, episode: run.episode } : undefined;
+    startRun(reply.run_id, about, run.retry);
+    focusCreate();
+    return;
+  }
+  if (res?.status === 401) {
+    reopen(run);
+    return;
+  }
+  set({ ...run, note: refusal(root, res, reply) || undefined });
+}
+
+/** Opens the run's form again, filled in with its request: the Create sheet, or a rewrite's panel. */
+function reopen(run: Stored): void {
+  const body = run.retry?.body ?? {};
+  if (run.kind === "regenerate") {
+    const trigger = document.querySelector<HTMLElement>('[data-episode-action="regenerate"]');
+    if (!trigger) return;
+    void import("./episodeActions").then((actions) => {
+      actions.openEpisodeAction(trigger);
+      const feedback = document.querySelector<HTMLTextAreaElement>(
+        'dialog.regen-sheet [name="feedback"]',
+      );
+      if (feedback && typeof body.feedback === "string") feedback.value = body.feedback;
+    });
+    return;
+  }
+  const trigger = [...document.querySelectorAll<HTMLElement>("[data-create-open]")].find(
+    (create) => create.getClientRects().length,
+  );
+  void Promise.all([import("./createSheet"), import("./createPage")]).then(([sheet, page]) => {
+    sheet.openCreateSheet(trigger ?? null);
+    const form =
+      document.querySelector<HTMLElement>("dialog.create-sheet:not(.regen-sheet) [data-create]") ??
+      document.querySelector<HTMLElement>("main [data-create]");
+    if (form) page.fillCreate(form, body.request);
+  });
 }

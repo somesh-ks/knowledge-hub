@@ -127,7 +127,7 @@ test.describe("regenerate and delete an episode", () => {
       feedback: "Shorter intro, more on design",
     });
     await expect(panel(page)).toBeHidden();
-    await expect(indicator(page)).toHaveText(/Waiting to start|Rewriting your episode/);
+    await expect(indicator(page)).toHaveText(/Rewrite queued|Rewriting your episode/);
     await expect(indicator(page)).toHaveText("Rewriting your episode", { timeout: 10_000 });
     // Both actions wait for the run, and say why.
     await expect(regenerate(page)).toHaveAttribute("aria-disabled", "true");

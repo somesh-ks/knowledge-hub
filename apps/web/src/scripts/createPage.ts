@@ -205,11 +205,12 @@ export function installCreate(root: HTMLElement, onStart?: () => void): void {
    */
   async function post(passphrase: string, button: HTMLButtonElement): Promise<"wrong" | "done"> {
     busy(button, true);
+    const sent = request();
     try {
       const res = await fetch("/api/podcast", {
         method: "POST",
         headers: { "content-type": "application/json" },
-        body: JSON.stringify({ passphrase, request: request() }),
+        body: JSON.stringify({ passphrase, request: sent }),
       }).catch(() => null);
       const body = (await res?.json().catch(() => null)) ?? {};
       if (res?.status === 401) return "wrong";
@@ -223,7 +224,11 @@ export function installCreate(root: HTMLElement, onStart?: () => void): void {
         );
         return "done";
       }
-      startRun(body.run_id);
+      // The request goes with the run, so a failure can send it again (Try again).
+      startRun(body.run_id, undefined, {
+        body: { request: sent },
+        ...(open !== undefined ? { open } : {}),
+      });
       onStart?.();
       return "done";
     } finally {
@@ -270,6 +275,11 @@ export function installCreate(root: HTMLElement, onStart?: () => void): void {
   form.addEventListener("submit", async (event) => {
     event.preventDefault();
     if (sending) return;
+    // One run at a time: a second would be refused by the cooldown, and the indicator follows one.
+    if (running()) {
+      say("form", busyLine());
+      return;
+    }
     if (!topics.some((topic) => topic.checked)) {
       say("topics", copy("topics"));
       topics[0]?.focus();
@@ -316,9 +326,80 @@ export function installCreate(root: HTMLElement, onStart?: () => void): void {
     });
   }
 
+  // While a run is going the form says so from the start, and the line goes once the run is over.
+  const reflectRun = () => {
+    if (!root.isConnected) {
+      document.removeEventListener("dispatch:run", reflectRun);
+      return;
+    }
+    const line = root.querySelector<HTMLElement>('[data-error="form"]');
+    const showing = line && !line.hidden && line.lastElementChild?.textContent === busyLine();
+    if (!running() && showing) say("form");
+  };
+  document.addEventListener("dispatch:run", reflectRun);
+
+  /** Puts a request back into the form: Try again opens it this way when it cannot send itself. */
+  fillers.set(root, (sent) => {
+    for (const [name, value] of [
+      ["audience", sent.audience],
+      ["length", sent.length_minutes],
+      ["format", sent.format],
+      ["window", sent.window_days],
+      ["tone", sent.tone],
+    ] as const) {
+      const input = form.querySelector<HTMLInputElement>(
+        `input[name="${name}"][value="${CSS.escape(String(value))}"]`,
+      );
+      if (input) input.checked = true;
+    }
+    const ids = new Set(Array.isArray(sent.topic_ids) ? sent.topic_ids.map(String) : []);
+    for (const topic of topics) {
+      topic.checked = (topic.dataset.ids || topic.value).split(" ").every((id) => ids.has(id));
+    }
+    for (const [name, value] of [
+      ["voice", sent.voice_id],
+      ["voice_b", sent.voice_id_b],
+    ] as const) {
+      const select = form.querySelector<HTMLSelectElement>(`select[name="${name}"]`);
+      if (!select || typeof value !== "string") continue;
+      // The voice list may not be in yet: the voice is kept as an option of its own until it is.
+      if (![...select.options].some((option) => option.value === value)) {
+        select.add(new Option(value, value));
+      }
+      select.value = value;
+    }
+    const title = form.elements.namedItem("title");
+    if (title instanceof HTMLInputElement) {
+      title.value = typeof sent.title === "string" ? sent.title : "";
+    }
+    // These are the person's own picks: a new audience must not replace them unseen.
+    picked = true;
+    if (note) note.hidden = true;
+    sync();
+  });
+
   applyPreset();
   sync();
+  if (running()) say("form", busyLine());
   void loadVoices();
+}
+
+/** True while a run is queued, running or adding its episode to the Library (runStatus.ts). */
+function running(): boolean {
+  return ["queued", "running", "updating"].includes(document.documentElement.dataset.run ?? "");
+}
+
+/** The form's line while a run is going; the indicator's markup holds it (RunStatus.astro). */
+function busyLine(): string {
+  return document.querySelector<HTMLElement>("[data-run-status]")?.dataset.busyCreate ?? "";
+}
+
+type Request = Record<string, unknown>;
+const fillers = new WeakMap<HTMLElement, (sent: Request) => void>();
+
+/** Fills an installed form with a request it sent before. */
+export function fillCreate(root: HTMLElement, sent: unknown): void {
+  if (sent && typeof sent === "object") fillers.get(root)?.(sent as Request);
 }
 
 // On /create the page loads this file and the form is in the page. Elsewhere the sheet calls

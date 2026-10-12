@@ -490,10 +490,10 @@ test.describe("the Create page", () => {
     const text = page.locator("[data-run-text]");
     await expect(card).toBeVisible();
     await expect(page.locator("[data-create-form]")).toBeVisible();
-    await expect(text).toHaveText("Waiting to start");
+    await expect(text).toHaveText("Episode queued");
 
     await page.clock.runFor(4000);
-    await expect(text).toHaveText("Waiting to start");
+    await expect(text).toHaveText("Episode queued");
     await page.clock.runFor(4000);
     await expect(text).toHaveText("Writing your episode");
     await page.clock.runFor(4000);
@@ -521,7 +521,7 @@ test.describe("the Create page", () => {
         step: null,
         stage: 2,
         stages: 3,
-        label: "Updating the site",
+        label: "Adding it to your Library",
         outcome: "published",
       },
     ];
@@ -553,7 +553,7 @@ test.describe("the Create page", () => {
     await confirm(page);
     const text = page.locator("[data-run-text]");
     const card = page.locator("[data-run-card]");
-    await expect(text).toHaveText("Waiting to start");
+    await expect(text).toHaveText("Episode queued");
     await page.clock.runFor(4000);
     await expect(text).toHaveText("Getting ready");
     await page.clock.runFor(4000);
@@ -563,7 +563,7 @@ test.describe("the Create page", () => {
     expect(await share()).toBeGreaterThanOrEqual(1 / 3);
     expect(await share()).toBeLessThan(2 / 3);
     await page.clock.runFor(4000);
-    await expect(text).toHaveText("Updating the site");
+    await expect(text).toHaveText("Adding it to your Library");
     live = true;
     await expect(async () => {
       await page.clock.runFor(10_000);
@@ -596,9 +596,7 @@ test.describe("the Create page", () => {
     await openDialog(page);
     await confirm(page);
     await page.clock.runFor(4000);
-    await expect(page.locator("[data-run-text]")).toHaveText(
-      "Stopped while making the episode. Try again later.",
-    );
+    await expect(page.locator("[data-run-text]")).toHaveText("Stopped while making the episode");
   });
 
   test("tells a failed run apart from a started one", async ({ page }) => {
@@ -616,10 +614,172 @@ test.describe("the Create page", () => {
     await confirm(page);
     await expect(page.locator("[data-run-card]")).toBeVisible();
     await page.clock.runFor(4000);
-    await expect(page.locator("[data-run-text]")).toHaveText(
-      "The episode could not be written. Try again later.",
-    );
+    await expect(page.locator("[data-run-text]")).toHaveText("Couldn't make the episode");
     await expect(page.getByRole("link", { name: "Open Library" })).toBeHidden();
+  });
+
+  test("a failed run offers Try again, which sends the same request and follows the new run", async ({
+    page,
+  }) => {
+    await page.clock.install();
+    const mock = await mockPodcast(page, 202, { status: 202, run_id: 21, started_at: "x" });
+    await page.route("**/api/status?**", (route) => {
+      const run = Number(new URL(route.request().url()).searchParams.get("run"));
+      const body =
+        run === 21
+          ? { run_id: 21, state: "completed", step: null, outcome: "failed" }
+          : { run_id: run, state: "queued", step: null };
+      return route.fulfill({
+        status: 200,
+        contentType: "application/json",
+        body: JSON.stringify(body),
+      });
+    });
+    await openCreate(page);
+    await segment(page, "10 min").click();
+    await openDialog(page);
+    await confirm(page);
+    await expect.poll(() => mock.bodies.length).toBe(1);
+    await page.clock.runFor(4000);
+    const text = page.locator("[data-run-text]");
+    await expect(text).toHaveText("Couldn't make the episode");
+    const again = page.getByRole("button", { name: "Try again" });
+    await expect(again).toBeVisible();
+    // The second run gets an id of its own.
+    await page.unroute("**/api/podcast");
+    const second = await mockPodcast(page, 202, { status: 202, run_id: 22, started_at: "y" });
+    await again.click();
+    await expect.poll(() => second.bodies.length).toBe(1);
+    expect(second.bodies[0]).toEqual(mock.bodies[0]);
+    expect(second.bodies[0]?.request).toMatchObject({ length_minutes: 10 });
+    await expect(text).toHaveText("Episode queued");
+    await expect(again).toBeHidden();
+    // It survives a reload: the stored run still holds the request.
+    const stored = await page.evaluate(() =>
+      JSON.parse(sessionStorage.getItem("dispatch:run") ?? "{}"),
+    );
+    expect(stored).toMatchObject({ id: 22, retry: { body: { request: mock.bodies[0]?.request } } });
+  });
+
+  test("a Try again refused by the cooldown says how long to wait, in the line", async ({
+    page,
+  }) => {
+    await page.clock.install();
+    await mockPodcast(page, 202, { status: 202, run_id: 23, started_at: "x" });
+    await page.route("**/api/status?**", (route) =>
+      route.fulfill({
+        status: 200,
+        contentType: "application/json",
+        body: JSON.stringify({
+          run_id: 23,
+          state: "completed",
+          step: null,
+          stage: 1,
+          stages: 3,
+          label: "Making the episode",
+          outcome: "failed",
+        }),
+      }),
+    );
+    await openCreate(page);
+    await openDialog(page);
+    await confirm(page);
+    await page.clock.runFor(4000);
+    const text = page.locator("[data-run-text]");
+    await expect(text).toHaveText("Stopped while making the episode");
+    await page.unroute("**/api/podcast");
+    await mockPodcast(page, 429, { status: 429, error: "cooldown", retry_after_s: 400 });
+    await page.getByRole("button", { name: "Try again" }).click();
+    await expect(text).toHaveText("You can make another episode in 7 minutes.");
+    await expect(page.getByRole("button", { name: "Try again" })).toBeVisible();
+  });
+
+  test("while a run is going, Create says so and sends no second request", async ({ page }) => {
+    await page.clock.install();
+    const mock = await mockPodcast(page, 202, { status: 202, run_id: 24, started_at: "x" });
+    await page.route("**/api/status?**", (route) =>
+      route.fulfill({
+        status: 200,
+        contentType: "application/json",
+        body: JSON.stringify({ run_id: 24, state: "running", step: null }),
+      }),
+    );
+    await openCreate(page);
+    await openDialog(page);
+    await confirm(page);
+    await expect.poll(() => mock.bodies.length).toBe(1);
+    await expect(page.locator("[data-run-card]")).toBeVisible();
+    await submit(page).click();
+    const busy = "An episode is still being made. You can start another when it's ready.";
+    await expect(page.locator('[data-error="form"]')).toHaveText(busy);
+    await expect(dialog(page)).toHaveCount(0);
+    expect(mock.bodies).toHaveLength(1);
+    // New episode says it too, to a screen reader, rather than opening a form that cannot send.
+    await expect(page.locator("[data-create-open]").first()).toHaveAccessibleDescription(busy);
+  });
+
+  test("Episode ready goes once the episode is opened, and gives the room back", async ({
+    page,
+  }) => {
+    await page.clock.install();
+    await mockPodcast(page, 202, { status: 202, run_id: 25, started_at: "x" });
+    await page.route("**/api/status?**", (route) =>
+      route.fulfill({
+        status: 200,
+        contentType: "application/json",
+        body: JSON.stringify({
+          run_id: 25,
+          state: "completed",
+          step: null,
+          stage: 2,
+          stages: 3,
+          label: "Adding it to your Library",
+          outcome: "published",
+        }),
+      }),
+    );
+    await page.route(/latest.json/, (route) =>
+      route.fulfill({
+        status: 200,
+        contentType: "application/json",
+        body: JSON.stringify({
+          episode_at: new Date(Date.now() + 3_600_000).toISOString(),
+          episode_id: EPISODE_ID,
+        }),
+      }),
+    );
+    await openCreate(page);
+    await openDialog(page);
+    await confirm(page);
+    await page.clock.runFor(4000);
+    await expect(async () => {
+      await page.clock.runFor(3000);
+      await expect(page.locator("[data-run-text]")).toHaveText("Episode ready", { timeout: 500 });
+    }).toPass();
+    await expect(page.locator("html")).toHaveAttribute("data-run", "done");
+    await page.getByRole("link", { name: "Open episode" }).click();
+    await expect(page).toHaveURL(new RegExp(`${EPISODE}$`));
+    await expect(page.locator("[data-run-card]")).toBeHidden();
+    await expect(page.locator("html")).not.toHaveAttribute("data-run", /.*/);
+    expect(await page.evaluate(() => sessionStorage.getItem("dispatch:run"))).toBeNull();
+  });
+
+  test("a finished run whose episode is on screen goes away by itself", async ({ page }) => {
+    await page.goto("/library");
+    await page.evaluate(
+      (href) =>
+        sessionStorage.setItem(
+          "dispatch:run",
+          JSON.stringify({ id: 26, phase: "done", t0: Date.now(), href }),
+        ),
+      EPISODE,
+    );
+    await page.reload();
+    await expect(page.locator("[data-run-text]")).toHaveText("Episode ready");
+    await expect(page.locator("html")).toHaveAttribute("data-run", "done");
+    await page.goto(EPISODE);
+    await expect(page.locator("[data-run-card]")).toBeHidden();
+    await expect(page.locator("html")).not.toHaveAttribute("data-run", /.*/);
   });
 });
 
@@ -807,9 +967,12 @@ test.describe("the Create page when the server says no", () => {
     expect(await page.evaluate((key) => localStorage.getItem(key), STORAGE_KEY)).toBe(PASSPHRASE);
 
     // A page that cannot follow the run still says the episode was started.
-    await expect(page.locator("[data-run-text]")).toHaveText("Episode started", {
-      timeout: 15_000,
-    });
+    await expect(page.locator("[data-run-text]")).toHaveText(
+      "Still being made. It will appear in your Library.",
+      {
+        timeout: 15_000,
+      },
+    );
 
     await page.reload();
     await openDialog(page);

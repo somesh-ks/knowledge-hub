@@ -238,7 +238,7 @@ test.describe("Create as the primary action", () => {
     });
     await expect(sheet(page)).toBeHidden();
     const status = page.getByRole("status").filter({ has: page.locator("[data-run-card]") });
-    await expect(status).toContainText(/Waiting to start|Writing your episode/);
+    await expect(status).toContainText(/Episode queued|Writing your episode/);
 
     // A client-side navigation keeps it, and a reload picks the run up again.
     await page.locator(".app-nav-item", { hasText: "Today" }).click();
@@ -268,4 +268,42 @@ test.describe("Create as the primary action", () => {
       expect(results.violations.map((v) => v.id)).toEqual([]);
     });
   }
+});
+
+test.describe("Try again on a failed run", () => {
+  // The refused request is logged by the browser as a failed load; here it is the point.
+  test.use({ allowNetworkErrors: true });
+
+  test("a Try again that cannot be sent opens the sheet again, filled in with the request", async ({
+    page,
+  }) => {
+    await mockRun(page, [{ run_id: 31, state: "completed", step: null, outcome: "failed" }]);
+    await openSheet(page);
+    const chosen = (name: string) =>
+      sheet(page).locator(".filter-chip", { hasText: name }).locator("input");
+    await sheet(page).locator(".settings-segment", { hasText: "10 min" }).click();
+    await sheet(page).locator(".filter-chip", { hasText: "Design" }).click();
+    await expect(chosen("Design")).not.toBeChecked();
+    await sheet(page).locator("[data-submit]").click();
+    if (PASSPHRASE_REQUIRED) {
+      const ask = page.getByRole("dialog", { name: "Enter the passphrase" });
+      await ask.getByLabel("Passphrase").fill(SENT);
+      await ask.getByRole("button", { name: "Create episode" }).click();
+    }
+    await expect(sheet(page)).toBeHidden();
+    await expect(page.locator("[data-run-text]")).toHaveText("Couldn't make the episode", {
+      timeout: 15_000,
+    });
+    // The passphrase is refused this time: the request cannot go from the line, so the form it
+    // came from opens again with every choice in it.
+    await page.unroute("**/api/podcast");
+    await page.route("**/api/podcast", (route) =>
+      route.fulfill({ status: 401, contentType: "application/json", body: "{}" }),
+    );
+    await page.getByRole("button", { name: "Try again" }).click();
+    await expect(sheet(page)).toBeVisible();
+    await expect(sheet(page).locator('input[name="length"][value="10"]')).toBeChecked();
+    await expect(chosen("Design")).not.toBeChecked();
+    await expect(chosen("Technology")).toBeChecked();
+  });
 });

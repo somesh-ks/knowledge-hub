@@ -243,7 +243,7 @@ describe("handleStatus for an episode run", () => {
       step: null,
       stage: 2,
       stages: 3,
-      label: "Updating the site",
+      label: "Adding it to your Library",
       outcome: "published",
     });
     expect(github.requests.some((request) => request.path.includes("/contents/"))).toBe(false);
