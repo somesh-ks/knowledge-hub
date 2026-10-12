@@ -1,3 +1,4 @@
+import AxeBuilder from "@axe-core/playwright";
 import { test as base, expect, type Locator, type Page } from "@playwright/test";
 
 /**
@@ -118,4 +119,45 @@ export async function targetSize(control: Locator): Promise<{ width: number; hei
     };
     return { width: reach(-1, 0) + reach(1, 0) + 1, height: reach(0, -1) + reach(0, 1) + 1 };
   });
+}
+
+const WCAG = ["wcag2a", "wcag2aa", "wcag21a", "wcag21aa", "wcag22aa"];
+
+/** Axe's WCAG 2.2 AA violations on the page as it is now, one line each. */
+export async function violations(page: Page): Promise<string[]> {
+  const results = await new AxeBuilder({ page }).withTags(WCAG).analyze();
+  return results.violations.map(
+    (violation) =>
+      `${violation.id} (${violation.impact}): ${violation.nodes
+        .slice(0, 3)
+        .map((node) => node.target.join(" "))
+        .join(", ")}`,
+  );
+}
+
+/**
+ * Scans the page as it stands in the light scheme, then in the dark one, so one set-up covers both.
+ * Colours change over a transition, so each scan waits for the finite animations to end first.
+ */
+export async function expectNoViolationsInEitherScheme(page: Page): Promise<void> {
+  for (const scheme of ["light", "dark"] as const) {
+    await page.emulateMedia({ colorScheme: scheme });
+    await page.evaluate(async () => {
+      await document.fonts.ready;
+      await new Promise((resolve) => requestAnimationFrame(() => requestAnimationFrame(resolve)));
+      const finite = document
+        .getAnimations()
+        .filter(
+          (animation) =>
+            animation.playState === "running" &&
+            animation.effect?.getComputedTiming().endTime !== Infinity,
+        );
+      // A second at most: an animation that never ends is not waited for.
+      await Promise.race([
+        Promise.all(finite.map((animation) => animation.finished.catch(() => undefined))),
+        new Promise((resolve) => setTimeout(resolve, 1000)),
+      ]);
+    });
+    expect(await violations(page), `${scheme} scheme`).toEqual([]);
+  }
 }

@@ -1,24 +1,11 @@
-import AxeBuilder from "@axe-core/playwright";
 import type { Page } from "@playwright/test";
-import { expect, test } from "./fixtures";
+import { expect, expectNoViolationsInEitherScheme, test, violations } from "./fixtures";
 
-const WCAG = ["wcag2a", "wcag2aa", "wcag21a", "wcag21aa", "wcag22aa"];
 const PREFERENCES_KEY = "dispatch:preferences";
 
 /** Safari on an iPhone: the one browser the Home Screen hint is written for. */
 const IOS_SAFARI =
   "Mozilla/5.0 (iPhone; CPU iPhone OS 18_0 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/18.0 Mobile/15E148 Safari/604.1";
-
-async function violations(page: Page): Promise<string[]> {
-  const results = await new AxeBuilder({ page }).withTags(WCAG).analyze();
-  return results.violations.map(
-    (violation) =>
-      `${violation.id} (${violation.impact}): ${violation.nodes
-        .slice(0, 3)
-        .map((node) => node.target.join(" "))
-        .join(", ")}`,
-  );
-}
 
 function stored(page: Page): Promise<Record<string, unknown>> {
   return page.evaluate((key) => JSON.parse(localStorage.getItem(key) ?? "{}"), PREFERENCES_KEY);
@@ -28,11 +15,6 @@ function stored(page: Page): Promise<Record<string, unknown>> {
 async function openSettings(page: Page): Promise<void> {
   await page.goto("/settings");
   await expect(page.locator("[data-settings]")).toHaveAttribute("data-ready", "true");
-}
-
-/** Both islands have hydrated, so a [data-open] click reaches the sheets. */
-async function islandsReady(page: Page): Promise<void> {
-  await expect(page.locator("astro-island[ssr]")).toHaveCount(0);
 }
 
 const theme = (page: Page) => page.getByRole("radiogroup", { name: "Theme" });
@@ -315,37 +297,29 @@ test.describe("settings page, Home Screen hint", () => {
   });
 });
 
-for (const scheme of ["light", "dark"] as const) {
-  test.describe(`settings page, axe, ${scheme} scheme`, () => {
-    test("the page has no WCAG 2.2 AA violations", async ({ page }) => {
-      await page.emulateMedia({ colorScheme: scheme });
-      await openSettings(page);
-      await page.evaluate(() => document.fonts.ready);
-      expect(await violations(page)).toEqual([]);
-    });
-
-    test("the page with sounds off has no violations", async ({ page }) => {
-      await page.emulateMedia({ colorScheme: scheme, reducedMotion: "reduce" });
-      await openSettings(page);
-      await expect(volume(page)).toBeDisabled();
-      expect(await violations(page)).toEqual([]);
-    });
+test.describe("settings page, axe", () => {
+  test("the page, then with sounds off, has no WCAG 2.2 AA violations", async ({ page }) => {
+    await openSettings(page);
+    await expectNoViolationsInEitherScheme(page);
+    await page.emulateMedia({ reducedMotion: "reduce" });
+    await openSettings(page);
+    await expect(volume(page)).toBeDisabled();
+    await expectNoViolationsInEitherScheme(page);
   });
-}
 
-test.describe("settings page, explicit theme against the system", () => {
-  for (const choice of ["light", "dark"] as const) {
-    test(`has no violations with ${choice} chosen`, async ({ page }) => {
+  test("has no violations with each theme chosen against the system", async ({ page }) => {
+    for (const choice of ["light", "dark"] as const) {
       await page.emulateMedia({ colorScheme: choice === "light" ? "dark" : "light" });
-      await page.addInitScript(([key, value]) => localStorage.setItem(key, value), [
+      await openSettings(page);
+      await page.evaluate(([key, value]) => localStorage.setItem(key, value), [
         PREFERENCES_KEY,
         JSON.stringify({ theme: choice }),
       ] as const);
       await openSettings(page);
       await expect(page.locator("html")).toHaveAttribute("data-theme", choice);
-      expect(await violations(page)).toEqual([]);
-    });
-  }
+      expect(await violations(page), `${choice} chosen`).toEqual([]);
+    }
+  });
 });
 
 test("the index rows share one rhythm, the title is a sub-page title size, and Volume quiets with Sounds", async ({

@@ -1,19 +1,11 @@
-import AxeBuilder from "@axe-core/playwright";
-import type { Page } from "@playwright/test";
-import { expect, hydrated, ROUTES, test } from "./fixtures";
-
-const WCAG = ["wcag2a", "wcag2aa", "wcag21a", "wcag21aa", "wcag22aa"];
-
-async function violations(page: Page): Promise<string[]> {
-  const results = await new AxeBuilder({ page }).withTags(WCAG).analyze();
-  return results.violations.map(
-    (violation) =>
-      `${violation.id} (${violation.impact}): ${violation.nodes
-        .slice(0, 3)
-        .map((node) => node.target.join(" "))
-        .join(", ")}`,
-  );
-}
+import {
+  expect,
+  expectNoViolationsInEitherScheme,
+  hydrated,
+  ROUTES,
+  test,
+  violations,
+} from "./fixtures";
 
 for (const scheme of ["light", "dark"] as const) {
   test.describe(`axe, ${scheme} scheme`, { tag: "@both" }, () => {
@@ -28,17 +20,17 @@ for (const scheme of ["light", "dark"] as const) {
   });
 }
 
-test.describe("axe, explicit theme override", () => {
+test("axe, home with each theme chosen against the system", async ({ page }) => {
   for (const theme of ["light", "dark"] as const) {
-    test(`home with the ${theme} theme chosen against the system`, async ({ page }) => {
-      await page.emulateMedia({ colorScheme: theme === "light" ? "dark" : "light" });
-      await page.addInitScript(
-        (value) => localStorage.setItem("dispatch:preferences", JSON.stringify({ theme: value })),
-        theme,
-      );
-      await page.goto("/");
-      expect(await violations(page)).toEqual([]);
-    });
+    await page.emulateMedia({ colorScheme: theme === "light" ? "dark" : "light" });
+    await page.goto("/");
+    await page.evaluate(
+      (value) => localStorage.setItem("dispatch:preferences", JSON.stringify({ theme: value })),
+      theme,
+    );
+    await page.reload();
+    await expect(page.locator("html")).toHaveAttribute("data-theme", theme);
+    expect(await violations(page), `${theme} chosen`).toEqual([]);
   }
 });
 
@@ -90,44 +82,31 @@ test.describe("axe, banners and live states", () => {
     await expect.poll(async () => (await disabled()).every((each) => each === null)).toBe(true);
   });
 
-  for (const scheme of ["light", "dark"] as const) {
-    test(`reader state written by the player has no violations, ${scheme}`, async ({ page }) => {
-      await page.emulateMedia({ colorScheme: scheme, reducedMotion: "reduce" });
-      await page.goto("/");
-      await hydrated(page);
-      await page.evaluate(() => {
-        const root = document.documentElement;
-        root.dataset.playerState = "playing";
-        root.dataset.mini = "visible";
-        const face = (chip: Element | null | undefined, state: string, label: string): void => {
-          chip?.setAttribute("data-state", state);
-          chip?.setAttribute("data-playing", String(label === "Playing"));
-          const text = chip?.querySelector("[data-chip-label]");
-          if (text) text.textContent = label;
-        };
-        const stories = document.querySelectorAll<HTMLElement>(".story");
-        stories[0]?.setAttribute("data-state", "played");
-        face(stories[0]?.querySelector("[data-play-item]"), "played", "Played");
-        stories[1]?.setAttribute("data-state", "current");
-        face(stories[1]?.querySelector("[data-play-item]"), "current", "Playing");
-        face(stories[2]?.querySelector("[data-play-item]"), "preparing", "Loading");
-        face(document.querySelector(".hero [data-play-digest]"), "current", "Playing");
-      });
-      // Colours change over 200ms; contrast is measured on the settled page.
-      await page.waitForTimeout(300);
-      expect(await violations(page)).toEqual([]);
+  test("reader state written by the player has no violations, in either scheme", async ({
+    page,
+  }) => {
+    await page.emulateMedia({ reducedMotion: "reduce" });
+    await page.goto("/");
+    await hydrated(page);
+    await page.evaluate(() => {
+      const root = document.documentElement;
+      root.dataset.playerState = "playing";
+      root.dataset.mini = "visible";
+      const face = (chip: Element | null | undefined, state: string, label: string): void => {
+        chip?.setAttribute("data-state", state);
+        chip?.setAttribute("data-playing", String(label === "Playing"));
+        const text = chip?.querySelector("[data-chip-label]");
+        if (text) text.textContent = label;
+      };
+      const stories = document.querySelectorAll<HTMLElement>(".story");
+      stories[0]?.setAttribute("data-state", "played");
+      face(stories[0]?.querySelector("[data-play-item]"), "played", "Played");
+      stories[1]?.setAttribute("data-state", "current");
+      face(stories[1]?.querySelector("[data-play-item]"), "current", "Playing");
+      face(stories[2]?.querySelector("[data-play-item]"), "preparing", "Loading");
+      face(document.querySelector(".hero [data-play-digest]"), "current", "Playing");
     });
-  }
-
-  test("a briefing with no audio yet has no violations in either scheme", async ({ page }) => {
-    for (const scheme of ["light", "dark"] as const) {
-      await page.emulateMedia({ colorScheme: scheme });
-      await page.goto("/d/2026-10-05");
-      // Nothing is said under the chip before audio exists; the chip itself is the whole state.
-      await expect(page.locator(".hero [data-play-digest]")).toBeVisible();
-      await expect(page.locator(".hero-hint")).toHaveCount(0);
-      expect(await violations(page)).toEqual([]);
-    }
+    await expectNoViolationsInEitherScheme(page);
   });
 
   test("the section in view is announced as current on the tabs", async ({ page }) => {

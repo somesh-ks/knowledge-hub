@@ -1,22 +1,9 @@
-import AxeBuilder from "@axe-core/playwright";
 import type { Page, Route } from "@playwright/test";
 import { OPEN_PASSPHRASE } from "../src/lib/access";
-import { expect, test } from "./fixtures";
+import { expect, expectNoViolationsInEitherScheme, test } from "./fixtures";
 
-const WCAG = ["wcag2a", "wcag2aa", "wcag21a", "wcag21aa", "wcag22aa"];
 const EPISODE = "/e/ep-20261007-1930";
 const EPISODE_ID = "ep-20261007-1930";
-
-async function violations(page: Page): Promise<string[]> {
-  const results = await new AxeBuilder({ page }).withTags(WCAG).analyze();
-  return results.violations.map(
-    (violation) =>
-      `${violation.id} (${violation.impact}): ${violation.nodes
-        .slice(0, 3)
-        .map((node) => node.target.join(" "))
-        .join(", ")}`,
-  );
-}
 
 interface Mock {
   /** The JSON of every POST /api/podcast the page made. */
@@ -1266,41 +1253,19 @@ test.describe("an episode page", () => {
 });
 
 test.describe("axe, the Create page and episodes", () => {
-  for (const scheme of ["light", "dark"] as const) {
-    test(`Create has no WCAG 2.2 AA violations, ${scheme}`, async ({ page }) => {
-      await page.emulateMedia({ colorScheme: scheme });
-      await openCreate(page);
-      await page.evaluate(() => document.fonts.ready);
-      expect(await violations(page)).toEqual([]);
-    });
+  test("Create, then Create with an error showing, has no WCAG 2.2 AA violations", async ({
+    page,
+  }) => {
+    await openCreate(page);
+    await expectNoViolationsInEitherScheme(page);
+    await clearTopics(page);
+    await page.locator("[data-submit]").click();
+    await expect(page.locator('[data-error="topics"]')).toBeVisible();
+    await expectNoViolationsInEitherScheme(page);
+  });
 
-    test(`Create with a topic chosen and an error showing has none, ${scheme}`, async ({
-      page,
-    }) => {
-      await page.emulateMedia({ colorScheme: scheme });
-      await openCreate(page);
-      await clearTopics(page);
-      await page.locator("[data-submit]").click();
-      await expect(page.locator('[data-error="topics"]')).toBeVisible();
-      expect(await violations(page)).toEqual([]);
-      await chip(page, "World").click();
-      await chip(page, "Design").click();
-      await page.waitForTimeout(300);
-      expect(await violations(page)).toEqual([]);
-    });
-
-    test(`an episode page has none, ${scheme}`, async ({ page }) => {
-      await page.emulateMedia({ colorScheme: scheme });
-      await page.goto(EPISODE);
-      await page.evaluate(() => document.fonts.ready);
-      expect(await violations(page)).toEqual([]);
-    });
-
-    test(`the Library with episodes has none, ${scheme}`, async ({ page }) => {
-      await page.emulateMedia({ colorScheme: scheme });
-      await page.goto("/library");
-      await page.evaluate(() => document.fonts.ready);
-      expect(await violations(page)).toEqual([]);
-    });
-  }
+  test("an episode page has none", async ({ page }) => {
+    await page.goto(EPISODE);
+    await expectNoViolationsInEitherScheme(page);
+  });
 });

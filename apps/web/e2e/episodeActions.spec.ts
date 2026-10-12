@@ -1,7 +1,6 @@
-import AxeBuilder from "@axe-core/playwright";
 import type { Page } from "@playwright/test";
 import { OPEN_PASSPHRASE } from "../src/lib/access";
-import { expect, hydrated, test } from "./fixtures";
+import { expect, expectNoViolationsInEitherScheme, hydrated, test } from "./fixtures";
 
 const ID = "ep-20261007-1930";
 
@@ -362,41 +361,21 @@ test.describe("regenerate and delete an episode", () => {
     });
   });
 
-  for (const scheme of ["light", "dark"] as const) {
-    test(`axe finds nothing with the menu open, ${scheme}`, async ({ page }) => {
-      await page.emulateMedia({ colorScheme: scheme });
-      await open(page);
-      await more(page).click();
-      await expect(menu(page)).toBeVisible();
-      await page.waitForTimeout(500);
-      const results = await new AxeBuilder({ page })
-        .withTags(["wcag2a", "wcag2aa", "wcag21a", "wcag21aa", "wcag22aa"])
-        .analyze();
-      expect(results.violations.map((v) => v.id)).toEqual([]);
-    });
-
-    test(`axe finds nothing with the panel open, ${scheme}`, async ({ page }) => {
-      await page.emulateMedia({ colorScheme: scheme });
-      await open(page);
-      await choose(page, "Regenerate");
-      await expect(panel(page)).toBeVisible();
-      await page.waitForTimeout(500);
-      const results = await new AxeBuilder({ page })
-        .withTags(["wcag2a", "wcag2aa", "wcag21a", "wcag21aa", "wcag22aa"])
-        .analyze();
-      expect(results.violations.map((v) => v.id)).toEqual([]);
-    });
-
-    test(`axe finds nothing with the confirm open, ${scheme}`, async ({ page }) => {
-      await page.emulateMedia({ colorScheme: scheme });
-      await open(page);
-      await choose(page, "Delete");
-      await expect(confirm(page)).toBeVisible();
-      await page.waitForTimeout(500);
-      const results = await new AxeBuilder({ page })
-        .withTags(["wcag2a", "wcag2aa", "wcag21a", "wcag21aa", "wcag22aa"])
-        .analyze();
-      expect(results.violations.map((v) => v.id)).toEqual([]);
-    });
-  }
+  test("axe finds nothing with the menu, the panel or the confirm open", async ({ page }) => {
+    // Six scans on one page load.
+    test.setTimeout(60_000);
+    await open(page);
+    await more(page).click();
+    await expect(menu(page)).toBeVisible();
+    await expectNoViolationsInEitherScheme(page);
+    await page.keyboard.press("Escape");
+    await choose(page, "Regenerate");
+    await expect(panel(page)).toBeVisible();
+    await expectNoViolationsInEitherScheme(page);
+    await page.keyboard.press("Escape");
+    await expect(panel(page)).toBeHidden();
+    await choose(page, "Delete");
+    await expect(confirm(page)).toBeVisible();
+    await expectNoViolationsInEitherScheme(page);
+  });
 });

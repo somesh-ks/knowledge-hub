@@ -1,7 +1,6 @@
-import AxeBuilder from "@axe-core/playwright";
 import type { Page } from "@playwright/test";
 import { OPEN_PASSPHRASE } from "../src/lib/access";
-import { expect, hydrated, test } from "./fixtures";
+import { expect, expectNoViolationsInEitherScheme, hydrated, test } from "./fixtures";
 
 const trigger = (page: Page) => page.locator("[data-create-open]:visible").first();
 const sheet = (page: Page) => page.locator("dialog.create-sheet");
@@ -210,17 +209,10 @@ test.describe("Create as the primary action", () => {
     await expect(page.locator("[data-run-library]")).toBeHidden();
   });
 
-  for (const scheme of ["light", "dark"] as const) {
-    test(`axe finds nothing with the sheet open, ${scheme}`, async ({ page }) => {
-      await page.emulateMedia({ colorScheme: scheme });
-      await openSheet(page);
-      await page.waitForTimeout(500);
-      const results = await new AxeBuilder({ page })
-        .withTags(["wcag2a", "wcag2aa", "wcag21a", "wcag21aa", "wcag22aa"])
-        .analyze();
-      expect(results.violations.map((v) => v.id)).toEqual([]);
-    });
-  }
+  test("axe finds nothing with the sheet open", async ({ page }) => {
+    await openSheet(page);
+    await expectNoViolationsInEitherScheme(page);
+  });
 });
 
 test.describe("Try again on a failed run", () => {

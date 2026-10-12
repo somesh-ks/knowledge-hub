@@ -1,21 +1,7 @@
-import AxeBuilder from "@axe-core/playwright";
 import type { Page, Route } from "@playwright/test";
 import { NEBIUS_TOP } from "../src/lib/modelId";
 import { GAP_MS } from "../src/scripts/managePageSave";
-import { expect, test } from "./fixtures";
-
-const WCAG = ["wcag2a", "wcag2aa", "wcag21a", "wcag21aa", "wcag22aa"];
-
-async function violations(page: Page): Promise<string[]> {
-  const results = await new AxeBuilder({ page }).withTags(WCAG).analyze();
-  return results.violations.map(
-    (violation) =>
-      `${violation.id} (${violation.impact}): ${violation.nodes
-        .slice(0, 3)
-        .map((node) => node.target.join(" "))
-        .join(", ")}`,
-  );
-}
+import { expect, expectNoViolationsInEitherScheme, test } from "./fixtures";
 
 interface Sent {
   passphrase: string;
@@ -988,39 +974,29 @@ test("read with scripts off", async ({ browser, baseURL }) => {
   await context.close();
 });
 
-for (const scheme of ["light", "dark"] as const) {
-  test.describe(`axe, ${scheme} scheme`, () => {
+test.describe("axe", () => {
+  test("the daily, weekly and model pages have no WCAG 2.2 AA violations", async ({ page }) => {
+    // Six scans on one page load.
+    test.setTimeout(60_000);
     for (const leaf of ["daily", "weekly", "model"] as const) {
-      test(`the ${leaf} page has no WCAG 2.2 AA violations`, async ({ page }) => {
-        await page.emulateMedia({ colorScheme: scheme });
-        await open(page, leaf);
-        await page.evaluate(() => document.fonts.ready);
-        expect(await violations(page)).toEqual([]);
-      });
+      await open(page, leaf);
+      await expectNoViolationsInEitherScheme(page);
     }
-
-    test("none with the saving toast up", async ({ page }) => {
-      await mockConfig(page);
-      await page.emulateMedia({ colorScheme: scheme });
-      await open(page, "daily");
-      await page.locator("#daily-hour").selectOption("9");
-      await expect(toastText(page)).toHaveText(SAVED);
-      await page.waitForTimeout(400);
-      expect(await violations(page)).toEqual([]);
-    });
-
-    test("none with the model list open in its groups", async ({ page }) => {
-      await page.emulateMedia({ colorScheme: scheme });
-      await open(page, "model");
-      await page.getByRole("button", { name: "Show all models" }).click();
-      const list = page.getByRole("listbox", { name: "Models" });
-      await expect(list.getByRole("group", { name: "Top models" })).toBeVisible();
-      // The list fades in, and a scan mid-fade would read its text at part opacity.
-      await list.evaluate((element) =>
-        Promise.all(element.getAnimations().map((animation) => animation.finished)),
-      );
-      await page.evaluate(() => document.fonts.ready);
-      expect(await violations(page)).toEqual([]);
-    });
   });
-}
+
+  test("none with the saving toast up", async ({ page }) => {
+    await mockConfig(page);
+    await open(page, "daily");
+    await page.locator("#daily-hour").selectOption("9");
+    await expect(toastText(page)).toHaveText(SAVED);
+    await expectNoViolationsInEitherScheme(page);
+  });
+
+  test("none with the model list open in its groups", async ({ page }) => {
+    await open(page, "model");
+    await page.getByRole("button", { name: "Show all models" }).click();
+    const list = page.getByRole("listbox", { name: "Models" });
+    await expect(list.getByRole("group", { name: "Top models" })).toBeVisible();
+    await expectNoViolationsInEitherScheme(page);
+  });
+});
