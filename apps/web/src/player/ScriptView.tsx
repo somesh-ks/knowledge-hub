@@ -45,7 +45,10 @@ export default function ScriptView({ titleHidden = false }: { titleHidden?: bool
   const pausedUntil = useRef(0);
   // Opening the page shows its top. Following starts when the voice moves to another turn.
   const followed = useRef<number | null>(null);
-  const [away, setAway] = useState(false);
+  // A turn changed while the listener was reading elsewhere; "away" adds that the turn is out of view.
+  const [held, setAway] = useState(false);
+  const [turnInView, setTurnInView] = useState(true);
+  const away = held && !turnInView;
   const digestId = state.track?.digest.id;
   // Nobody is named in an episode with one voice; a discussion names each host after their voice.
   // One made before names were stored is named from its voices, once the voice list is here.
@@ -136,6 +139,25 @@ export default function ScriptView({ titleHidden = false }: { titleHidden?: bool
     };
   }, [turns, words]);
 
+  // Whether the turn being spoken is on screen: the pill that leads back to it is for when it is not.
+  useEffect(() => {
+    const node =
+      current >= 0 ? rootRef.current?.querySelector<HTMLElement>(`[data-turn="${current}"]`) : null;
+    if (!node || typeof IntersectionObserver === "undefined") {
+      setTurnInView(true);
+      return;
+    }
+    const observer = new IntersectionObserver(
+      (entries) => {
+        const last = entries[entries.length - 1];
+        if (last) setTurnInView(last.isIntersecting);
+      },
+      { threshold: 0.5 },
+    );
+    observer.observe(node);
+    return () => observer.disconnect();
+  }, [current]);
+
   function reveal(index: number): void {
     // The page holds still under a dialog (the speed panel), which would otherwise lose its button.
     if (document.querySelector("dialog[open]")) return;
@@ -145,10 +167,19 @@ export default function ScriptView({ titleHidden = false }: { titleHidden?: bool
     const column = window.matchMedia("(min-width: 64rem)").matches;
     // Under reduced motion it jumps: a scripted glide is movement the person asked not to see.
     const still = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
-    node?.scrollIntoView({
-      block: column ? "center" : "nearest",
-      behavior: still ? "instant" : "smooth",
-    });
+    const behavior = still ? "instant" : "smooth";
+    const list = rootRef.current?.querySelector<HTMLElement>(".list-scroll");
+    if (column && node && list) {
+      // Only the list moves: scrollIntoView would scroll the page too, where the left column
+      // is taller than a short window (a tablet held sideways).
+      const top =
+        list.scrollTop +
+        (node.getBoundingClientRect().top - list.getBoundingClientRect().top) -
+        (list.clientHeight - node.offsetHeight) / 2;
+      list.scrollTo({ top, behavior });
+      return;
+    }
+    node?.scrollIntoView({ block: "nearest", behavior });
   }
 
   // Follows the voice, unless a person is reading elsewhere.
