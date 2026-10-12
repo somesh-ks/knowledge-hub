@@ -508,6 +508,7 @@ test.describe("a topic's page", () => {
     page,
   }) => {
     const { sent } = await setup(page);
+    await page.goto("/settings");
     await open(page, "/settings/topics/audio_interfaces");
     await page.getByRole("button", { name: "Remove topic Audio interfaces" }).click();
     await expect(toastText(page)).toHaveText("Removing Audio interfaces");
@@ -515,6 +516,12 @@ test.describe("a topic's page", () => {
     await expect(page).toHaveURL(/\/settings\/topics$/, AFTER_UNDO);
     await expect(page.locator('a[href="/settings/topics/audio_interfaces"]')).toBeHidden();
     expect(ops(sent)).toEqual([{ op: "topic.remove", id: "audio_interfaces" }]);
+    // The list took the removed page's place: Back goes on to where the person came from.
+    await page.goBack();
+    await expect(page).toHaveURL(/\/settings$/);
+    // Opened again before the build, the removed topic's page gives way to the list.
+    await page.goto("/settings/topics/audio_interfaces");
+    await expect(page).toHaveURL(/\/settings\/topics$/);
   });
 
   test("a built-in topic cannot be removed", async ({ page }) => {

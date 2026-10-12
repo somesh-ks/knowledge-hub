@@ -6,7 +6,7 @@
  */
 import { OPEN_PASSPHRASE, PASSPHRASE_REQUIRED } from "../lib/access";
 import { SAVED_KEY } from "../lib/savedKey";
-import { addSaved, parseSaved } from "../lib/savedOverlay";
+import { addSaved, parseSaved, withPending } from "../lib/savedOverlay";
 import type { ConfigOp, ConfigResponse } from "../types/contracts";
 
 const KEY = "dispatch:narrate-passphrase";
@@ -62,6 +62,11 @@ export interface SaveContext {
   dialog: HTMLDialogElement | null;
   /** After a request went through: read the controls again against their new starting point. */
   settled?(): void;
+  /**
+   * The page was left (a same-document swap) with changes still waiting: they go all the same, and
+   * until they do the next page shows them from storage, marked pending (keepWaiting).
+   */
+  left?: boolean;
 }
 
 interface Step {
@@ -175,9 +180,11 @@ export function settle(batch: Batch, changes: Map<string, Pending>): void {
         if (row) rehome(row);
         row?.setAttribute("data-gone", "");
         // A topic's own page has nothing left to show once the topic is gone: back to the list,
-        // which leaves its row out (savedView.ts), rather than an empty page with only Back.
-        if (pending.op.op === "topic.remove" && !el.closest("li"))
-          globalThis.location?.assign("/settings/topics");
+        // which leaves its row out (savedView.ts), rather than an empty page with only Back. It takes
+        // the dead page's place in history, so Back from the list does not return to it; a page
+        // already left stays left.
+        if (pending.op.op === "topic.remove" && !el.closest("li") && el.isConnected)
+          globalThis.location?.replace("/settings/topics");
       } else if (el.matches("[data-suggest]")) (el as HTMLButtonElement).disabled = true;
       // Every control, a pressed remove button included, now starts from what was saved: read again,
       // it is no longer a change.
@@ -191,9 +198,14 @@ export function settle(batch: Batch, changes: Map<string, Pending>): void {
  * Keeps a request that went through, so a settings page opened before the build shows what was
  * saved (lib/savedOverlay.ts, scripts/savedView.ts).
  */
-export function remember(ops: readonly ConfigOp[], now = Date.now()): void {
+export function remember(
+  ops: readonly ConfigOp[],
+  now = Date.now(),
+  waiting: readonly ConfigOp[] = [],
+): void {
   try {
-    const entries = addSaved(parseSaved(localStorage.getItem(SAVED_KEY), now), ops, now);
+    const saved = addSaved(parseSaved(localStorage.getItem(SAVED_KEY), now), ops, now);
+    const entries = waiting.length > 0 ? withPending(saved, waiting, now) : saved;
     if (entries.length > 0) localStorage.setItem(SAVED_KEY, JSON.stringify(entries));
     else localStorage.removeItem(SAVED_KEY);
   } catch {
@@ -216,11 +228,29 @@ export function gapLeft(last: number, now: number): number {
   return last === 0 ? 0 : Math.max(0, Math.min(GAP_MS, last + GAP_MS - now));
 }
 
+/** Every edit still waiting in `changes`, in the order it will go. */
+function waitingOps(changes: ReadonlyMap<string, Pending>): ConfigOp[] {
+  return pack(buildQueue(changes), changes).flatMap((batch) => batch.ops);
+}
+
+/**
+ * The page is being left with changes still waiting (the run holding them out of the server's gap
+ * survives a same-document swap): keep them, marked pending, so the page opened next shows them
+ * rather than the old values, until the request that carries them goes or fails.
+ */
+export function keepWaiting(context: SaveContext, now = Date.now()): void {
+  if (context.changes.size === 0) return;
+  context.left = true;
+  remember([], now, waitingOps(context.changes));
+}
+
 let passphrase: string | null = null;
 /** When the last request went through, by this page's clock; 0 before the first. */
 let lastSent = 0;
 /** True while a flush runs. A second call returns at once: the running one sends what is waiting. */
 let busy = false;
+/** Another page's changes that came while a run was busy: sent once it is done. */
+const queued = new Set<SaveContext>();
 
 /** Where the passphrase is kept between visits. Passing null forgets it. */
 function memory(value?: string | null): string | null {
@@ -275,8 +305,23 @@ export async function flush(
   context: SaveContext,
   given = PASSPHRASE_REQUIRED ? (passphrase ?? memory()) : OPEN_PASSPHRASE,
 ): Promise<void> {
-  const { changes, show, dialog } = context;
-  if (busy || changes.size === 0) return;
+  const { changes, dialog } = context;
+  if (changes.size === 0) return;
+  if (busy) {
+    queued.add(context);
+    return;
+  }
+  /**
+   * The toast and the page's own reading run here, and neither may ever stop a request: the page
+   * they belong to may have been swapped away while the run waited out the gap.
+   */
+  const show = (message: string, state: SaveState): void => {
+    try {
+      context.show(message, state);
+    } catch {
+      // The page is gone; what was waiting is still sent.
+    }
+  };
   if (!given) {
     if (!dialog) return;
     const field = dialog.querySelector<HTMLInputElement>("[data-passphrase]") as HTMLInputElement;
@@ -332,19 +377,31 @@ export async function flush(
       }
       timeRefused ||= answer.timeRefused;
       lastSent = Date.now();
-      remember(batch.ops, lastSent);
       last = JSON.stringify(batch.ops);
-      settle(batch, changes);
-      context.settled?.();
+      try {
+        settle(batch, changes);
+      } finally {
+        remember(batch.ops, lastSent, context.left ? waitingOps(changes) : []);
+      }
+      try {
+        context.settled?.();
+      } catch {
+        // The page is gone: nothing left to read again.
+      }
     }
   } finally {
     busy = false;
+    // A page left with edits marked pending, whose run then failed: they were not saved after all.
+    if (failure && context.left) remember([]);
+    const next = [...queued].filter((other) => other !== context);
+    queued.clear();
+    for (const other of next) void flush(other, given);
   }
   if (!sent && !failure) return;
   if (failure) {
     show(failure, "error");
     // The interface sound for an outcome the screen already states (see scripts/uiSound.ts). A save
     // that went through makes none: it happens on its own after every change.
-    document.dispatchEvent(new CustomEvent("dispatch:sound", { detail: "failure" }));
+    globalThis.document?.dispatchEvent(new CustomEvent("dispatch:sound", { detail: "failure" }));
   } else show(timeRefused ? TIME_REFUSED : SAVED, "done");
 }

@@ -2,6 +2,8 @@ import { describe, expect, it } from "vitest";
 import type { ConfigOp } from "../types/contracts";
 import {
   addSaved,
+  anyPending,
+  PENDING_TTL_MS,
   parseSaved,
   SAVED_TTL_MS,
   savedControl,
@@ -12,6 +14,7 @@ import {
   savedTopicCount,
   savedTopics,
   sourceCounts,
+  withPending,
 } from "./savedOverlay";
 
 const T0 = 1_760_000_000_000;
@@ -36,6 +39,22 @@ describe("keeping what was saved", () => {
     // Adding drops what is too old to show, so storage does not grow.
     const later = addSaved(entries, [{ op: "schedule.set", hour: 8 }], T0 + SAVED_TTL_MS + 1);
     expect(later).toHaveLength(1);
+  });
+
+  it("keeps edits still on their way, marked pending, until a request that went through replaces them", () => {
+    const sent = addSaved([], [{ op: "schedule.set", hour: 7 }], T0);
+    const left = withPending(sent, [{ op: "schedule.set", hour: 9 }], T0 + 1000);
+    const read = parseSaved(JSON.stringify(left), T0 + 2000);
+    expect(anyPending(read, T0 + 2000)).toBe(true);
+    expect(savedOps(read, T0 + 2000)).toEqual([
+      { op: "schedule.set", hour: 7 },
+      { op: "schedule.set", hour: 9 },
+    ]);
+    const done = addSaved(read, [{ op: "schedule.set", hour: 9 }], T0 + 5000);
+    expect(anyPending(done, T0 + 5000)).toBe(false);
+    expect(savedOps(done, T0 + 5000)).toHaveLength(2);
+    // A pending edit whose request never went (the tab closed) is not shown for long.
+    expect(parseSaved(JSON.stringify(left), T0 + 1000 + PENDING_TTL_MS)).toHaveLength(1);
   });
 
   it("leaves the writer to its own note", () => {

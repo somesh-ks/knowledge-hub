@@ -385,6 +385,38 @@ test.describe("saving on its own", () => {
     expect(sent.at(-1)?.op).toEqual({ op: "schedule.set", hour: 7 });
   });
 
+  for (const way of ["the app bar", "browser Back"] as const) {
+    test(`a second change inside the server's gap still goes when the page is left by ${way}`, async ({
+      page,
+    }) => {
+      test.setTimeout(60_000);
+      const sent = await mockConfig(page);
+      await page.goto("/settings");
+      await page.getByRole("link", { name: /^Daily/ }).click();
+      await expect(page.locator("[data-manage]")).toHaveAttribute("data-ready", "");
+      await page.locator("#daily-hour").selectOption("9");
+      await expect(toastText(page)).toHaveText(SAVED);
+      await page.locator("#daily-cadence").selectOption("1");
+      // Saved never stays up over a change not sent yet.
+      await expect(toastText(page)).toHaveText("Saving");
+      expect(sent).toHaveLength(1);
+      if (way === "browser Back") await page.goBack();
+      else await page.locator(".settings-up:visible, .app-bar-back:visible").first().click();
+      await expect(page).toHaveURL(/\/settings$/);
+      // Until it goes, the index shows the change as it will be.
+      await expect(page.getByRole("link", { name: /^Daily/ })).toContainText("Every day at 09:00");
+      await expect
+        .poll(() => scheduleSent(sent), { timeout: 20_000 })
+        .toEqual({ op: "schedule.set", hour: 9, cadence_days: 1 });
+      expect(sent).toHaveLength(2);
+      await page.getByRole("link", { name: /^Daily/ }).click();
+      await expect(page.locator("[data-manage]")).toHaveAttribute("data-ready", "");
+      await expect(page.locator("#daily-hour")).toHaveValue("9");
+      await expect(page.locator("#daily-cadence")).toHaveValue("1");
+      await expect(page.locator("[data-saved-note]")).toHaveText(SAVED);
+    });
+  }
+
   test("a change put back before it is sent sends nothing", async ({ page }) => {
     const sent = await mockConfig(page);
     await open(page, "daily");

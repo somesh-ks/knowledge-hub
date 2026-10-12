@@ -10,6 +10,7 @@
 import { chosenSummary } from "../lib/multiSelect";
 import { SAVED_KEY } from "../lib/savedKey";
 import {
+  anyPending,
   type FieldValues,
   parseSaved,
   type SourceSpot,
@@ -56,11 +57,23 @@ export function readSaved(now = Date.now()): ConfigOp[] {
   }
 }
 
+/** What the line says while an edit shown is still on its way (left in the server's gap). */
+export const SAVING_NOTE = "Saving. Live in about a minute.";
+
+/** Whether an edit shown is still on its way. */
+function readPending(now = Date.now()): boolean {
+  try {
+    return anyPending(parseSaved(localStorage.getItem(SAVED_KEY), now), now);
+  } catch {
+    return false;
+  }
+}
+
 /** The one quiet line under the page's title, once. */
 export function markSaved(root: HTMLElement): void {
   const head = root.querySelector(".settings-head");
   if (!head || head.querySelector("[data-saved-note]")) return;
-  const note = element("p", "manage-quiet", SAVED_NOTE);
+  const note = element("p", "manage-quiet", readPending() ? SAVING_NOTE : SAVED_NOTE);
   note.dataset.savedNote = "";
   head.append(note);
 }
@@ -209,7 +222,11 @@ export function overlayTopics(root: HTMLElement, ops = readSaved()): boolean {
   for (const id of saved.removedTopics) {
     const topic = byId(root, "[data-topic]", id);
     const row = root.querySelector<HTMLElement>(`a.row-action[href="/settings/topics/${id}"]`);
-    if (topic) topic.setAttribute("data-gone", "");
+    if (topic) {
+      // A removed topic's own page has nothing to show: the list takes its place, in history too.
+      topic.setAttribute("data-gone", "");
+      globalThis.location?.replace("/settings/topics");
+    }
     if (row) row.hidden = true;
     shown ||= Boolean(topic || row);
   }
