@@ -13,6 +13,12 @@ import { createSwitchableAudio, type SwitchableAudio } from "../../narration/swi
 import { startSound } from "../sound/soundController";
 import { announcementForEvent } from "./announcements";
 import { announce } from "./announcerDom";
+
+/** The open player covers the page (html[data-player="open"]), so the page's own notices are inert. */
+function playerIsOpen(): boolean {
+  return document.documentElement.getAttribute("data-player") === "open";
+}
+
 import { readDigestData } from "./digestData";
 import { replayEarlyTap, takeEarlyAudio } from "./earlyTap";
 import { recordInstallVisit } from "./installHint";
@@ -136,7 +142,9 @@ export function startPlayerRuntime(): () => void {
   syncRootState(playerStore);
   const offState = playerStore.subscribe(() => syncRootState(playerStore));
   const offEvent = playerStore.onEvent((event) => {
-    const message = announcementForEvent(event, playerStore.getState().track);
+    const message = announcementForEvent(event, playerStore.getState().track, {
+      open: playerIsOpen(),
+    });
     if (message) announce(message);
   });
 
@@ -199,8 +207,14 @@ export function startPlayerRuntime(): () => void {
     playerSheet.sync();
   };
   const onSpace = toggleOnSpace(playerStore);
-  const onOnline = (): void => announce("You are back online.");
-  const onOffline = (): void => announce("You are offline.");
+  // The page's banner (role status) speaks the connection, except while the open player makes it
+  // inert: only then does the player say it.
+  const onOnline = (): void => {
+    if (playerIsOpen()) announce("You are back online.");
+  };
+  const onOffline = (): void => {
+    if (playerIsOpen()) announce("You are offline.");
+  };
 
   document.addEventListener("astro:page-load", onPageLoad);
   document.addEventListener("astro:before-preparation", onBeforeNavigation);
