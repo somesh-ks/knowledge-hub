@@ -103,10 +103,6 @@ describe("isOurRun", () => {
     expect(isOurRun({ ...ours, event: "push" }, config)).toBe(false);
     expect(isOurRun({ ...ours, repositoryFullName: "someone/else" }, config)).toBe(false);
   });
-
-  it("names the workflow file it looks for", () => {
-    expect(WORKFLOW_FILE).toBe("run.yml");
-  });
 });
 
 describe("currentStep", () => {

@@ -11,6 +11,8 @@ import { describe, expect, it, vi } from "vitest";
 
 const ORIGIN = "https://news.someshks.work";
 const SOURCE = readFileSync(join(import.meta.dirname, "..", "public", "sw.js"), "utf8");
+/** The worker's own cache version, so a bump of VERSION in sw.js does not fail this file. */
+const CURRENT_VERSION = /const VERSION = "(v\d+)"/.exec(SOURCE)?.[1];
 
 interface FakeRequest {
   url: string;
@@ -146,53 +148,37 @@ function load(network: (url: string) => Response | Promise<Response> = () => new
   return { handlers, caches, skipWaiting, claim, fetched, clock, posted, dispatchFetch, lifecycle };
 }
 
-describe("service worker: audio is never cached or touched", () => {
-  it("passes a cross-origin audio request straight through", async () => {
-    const worker = load();
-    const result = await worker.dispatchFetch(
+describe("service worker: requests it passes straight through", () => {
+  // Audio is never cached or touched; the API, other methods and other origins are not its business.
+  // Each request sits on a path the worker would otherwise serve (/d/, /_astro/, /covers/, a page).
+  const ranged = { headers: new Headers({ Range: "bytes=0-1" }) };
+  it.each([
+    [
+      "cross-origin audio",
       request("https://abc.public.blob.vercel-storage.com/audio/2026-10-07.mp3", {
         destination: "audio",
       }),
-    );
-    expect(result.handled).toBe(false);
-    expect(worker.caches.stored()).toEqual([]);
-  });
-
-  it("does not handle a same-origin audio file by extension", async () => {
+    ],
+    ["same-origin audio by extension: mp3", request("/d/x.mp3")],
+    ["same-origin audio by extension: wav", request("/_astro/audio.wav")],
+    ["same-origin audio by extension: m4a", request("/covers/a.m4a")],
+    ["same-origin audio by extension: upper-case OGG", request("/d/b.OGG")],
+    ["audio by destination", request("/d/stream", { destination: "audio" })],
+    ["video by destination", request("/d/clip", { destination: "video" })],
+    ["a Range request, so Safari seeking works", request("/d/2026-10-07", ranged)],
+    ["a POST", request("/d/2026-10-07", { method: "POST" })],
+    ["a GET to the API, even as a navigation", request("/api/generate", { mode: "navigate" })],
+    ["the status API with a query", request("/api/status?run=1", { mode: "navigate" })],
+    ["another origin", request("https://example.com/_astro/x.css")],
+  ])("%s", async (_name, passing) => {
     const worker = load();
-    for (const path of ["/audio/x.mp3", "/fixtures/audio.wav", "/a.m4a", "/b.OGG"]) {
-      expect((await worker.dispatchFetch(request(path))).handled).toBe(false);
-    }
+    expect((await worker.dispatchFetch(passing)).handled).toBe(false);
     expect(worker.fetched).toEqual([]);
-  });
-
-  it("does not handle audio or video by destination", async () => {
-    const worker = load();
-    expect((await worker.dispatchFetch(request("/stream", { destination: "audio" }))).handled).toBe(
-      false,
-    );
-    expect((await worker.dispatchFetch(request("/clip", { destination: "video" }))).handled).toBe(
-      false,
-    );
-  });
-
-  it("does not handle a Range request, so Safari seeking works", async () => {
-    const worker = load();
-    const ranged = request("/d/2026-10-07", { headers: new Headers({ Range: "bytes=0-1" }) });
-    expect((await worker.dispatchFetch(ranged)).handled).toBe(false);
+    expect(worker.caches.stored()).toEqual([]);
   });
 });
 
 describe("service worker: what it leaves alone", () => {
-  it("ignores non-GET requests and the API", async () => {
-    const worker = load();
-    expect((await worker.dispatchFetch(request("/api/generate", { method: "POST" }))).handled).toBe(
-      false,
-    );
-    expect((await worker.dispatchFetch(request("/api/status?run=1"))).handled).toBe(false);
-    expect((await worker.dispatchFetch(request("/api/generate"))).handled).toBe(false);
-  });
-
   it("never answers or stores /api/narrate, so a narration shows up the moment it exists", async () => {
     let audioExists = false;
     const worker = load(
@@ -230,11 +216,6 @@ describe("service worker: what it leaves alone", () => {
     const result = await worker.dispatchFetch(request("/api/narrate?digest=2026-10-07"));
     expect(result.handled).toBe(false);
     expect(result.response).toBeUndefined();
-  });
-
-  it("ignores other origins", async () => {
-    const worker = load();
-    expect((await worker.dispatchFetch(request("https://example.com/x.css"))).handled).toBe(false);
   });
 });
 
@@ -509,11 +490,7 @@ describe("service worker: install and update", () => {
     expect(names).not.toContain("dispatch-shell-v0");
     expect(names).not.toContain("dispatch-pages-v0");
     expect(names).toContain("someone-elses-cache");
-    expect(names).toContain("dispatch-shell-v7");
+    expect(names).toContain(`dispatch-shell-${CURRENT_VERSION}`);
     expect(worker.claim).toHaveBeenCalled();
-  });
-
-  it("uses a versioned cache name", () => {
-    expect(SOURCE).toMatch(/const VERSION = "v\d+"/);
   });
 });

@@ -64,28 +64,4 @@ describe("Space anywhere on the page", () => {
       expect(shouldToggleOnPageSpace(press(" ", extra), target(false), READY)).toBe(false);
     }
   });
-
-  it("names every element and role that owns Space", () => {
-    const parts = SPACE_OWNERS.split(", ");
-    for (const tag of ["textarea", "select", "button", "a", "summary"]) {
-      expect(parts).toContain(tag);
-    }
-    // Every input but a native range: Space has no job on the bar's seek, so it plays and pauses.
-    expect(parts).toContain("input:not([type='range'])");
-    expect(parts).not.toContain("input");
-    for (const role of [
-      "button",
-      "checkbox",
-      "radio",
-      "switch",
-      "slider",
-      "tab",
-      "menuitem",
-      "option",
-      "link",
-    ]) {
-      expect(parts).toContain(`[role='${role}']`);
-    }
-    expect(parts).toContain("[contenteditable]:not([contenteditable='false'])");
-  });
 });

@@ -1,5 +1,6 @@
-import { hashPassphrase, verifyPassphrase } from "@dispatch/core/passphrase";
+import { verifyPassphrase } from "@dispatch/core/passphrase";
 import { beforeAll, describe, expect, it, vi } from "vitest";
+import { cheapPassphraseHash } from "../testing/cheapPassphraseHash";
 import { createFakeGitHub, REPO, runJson } from "../testing/fakeGitHub";
 import {
   type GenerateDeps,
@@ -17,8 +18,8 @@ const hoursAgo = (hours: number) => new Date(NOW - hours * 3600 * 1000).toISOStr
 
 let passphraseHash = "";
 
-beforeAll(async () => {
-  passphraseHash = await hashPassphrase("correct horse battery staple");
+beforeAll(() => {
+  passphraseHash = cheapPassphraseHash("correct horse battery staple");
 });
 
 function setup(overrides: Partial<GenerateDeps> = {}) {

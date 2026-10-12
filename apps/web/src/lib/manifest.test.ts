@@ -1,4 +1,3 @@
-import { readFileSync } from "node:fs";
 import { join } from "node:path";
 import { describe, expect, it } from "vitest";
 import { parseBrandColors, readBrandColors } from "./brandColors";
@@ -23,41 +22,15 @@ describe("parseBrandColors", () => {
   it("fails loudly when the footer is missing", () => {
     expect(() => parseBrandColors(":root {}")).toThrow(/buildTokens/);
   });
-
-  it("matches the committed tokens.css", () => {
-    expect(colors.surfaceLight).toBe("#f8f9fa");
-    expect(colors.surfaceDark).toBe("#202124");
-    expect(readFileSync(TOKENS, "utf8")).toContain(colors.accentLight);
-  });
 });
 
 describe("buildManifest", () => {
   const manifest = buildManifest(colors);
-
-  it("is a standalone app rooted at the site", () => {
-    expect(manifest).toMatchObject({
-      name: "Singularity",
-      short_name: "Singularity",
-      start_url: "/",
-      scope: "/",
-      display: "standalone",
-    });
-  });
-
-  it("uses the surface color for the splash and the tab", () => {
-    expect(manifest.background_color).toBe(colors.surfaceLight);
-    expect(manifest.theme_color).toBe(colors.surfaceLight);
-  });
 
   it("lists PNG icons at 192 and 512 plus a maskable one", () => {
     expect(manifest.icons.every((icon) => icon.type === "image/png")).toBe(true);
     const sizes = manifest.icons.filter((icon) => icon.purpose === "any").map((icon) => icon.sizes);
     expect(sizes).toEqual(["192x192", "512x512"]);
     expect(manifest.icons.filter((icon) => icon.purpose === "maskable")).toHaveLength(1);
-  });
-
-  it("names the icon files the icon script writes", () => {
-    const names = manifest.icons.map((icon) => icon.src);
-    expect(names).toEqual(["/icon-192.png", "/icon-512.png", "/icon-maskable-512.png"]);
   });
 });

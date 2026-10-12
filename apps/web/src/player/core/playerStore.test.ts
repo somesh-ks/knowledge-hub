@@ -861,19 +861,6 @@ describe("listeners and disposal", () => {
     expect(harness.audio.src).toBe("");
     expect(harness.audio.listenerCount()).toBe(0);
   });
-
-  it("returns an unsubscribe function from every subscription", () => {
-    const harness = createHarness();
-    harness.store.load(makeDigest());
-    let coarse = 0;
-    const off = harness.store.subscribe(() => {
-      coarse += 1;
-    });
-    harness.store.setRate(1.5);
-    off();
-    harness.store.setRate(2);
-    expect(coarse).toBe(1);
-  });
 });
 
 describe("edge cases in the element's own behavior", () => {

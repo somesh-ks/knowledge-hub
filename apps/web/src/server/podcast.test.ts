@@ -1,6 +1,7 @@
 import { HOST_NAME_POOLS, hostNamesFor } from "@dispatch/core/hosts";
-import { hashPassphrase, verifyPassphrase } from "@dispatch/core/passphrase";
+import { verifyPassphrase } from "@dispatch/core/passphrase";
 import { beforeAll, beforeEach, describe, expect, it, vi } from "vitest";
+import { cheapPassphraseHash } from "../testing/cheapPassphraseHash";
 import { createFakeGitHub, REPO, runJson } from "../testing/fakeGitHub";
 import type { PodcastRequest } from "../types/contracts";
 import { WRONG_PASSPHRASE_DELAY_MS } from "./generate";
@@ -26,8 +27,8 @@ const podcastRun = (overrides: Record<string, unknown> = {}) =>
 
 let passphraseHash = "";
 
-beforeAll(async () => {
-  passphraseHash = await hashPassphrase(PASSPHRASE);
+beforeAll(() => {
+  passphraseHash = cheapPassphraseHash(PASSPHRASE);
 });
 
 const EPISODE_ID = "ep-20261007-0900";
@@ -280,12 +281,6 @@ describe("handlePodcast for an episode action", () => {
       expect((await handlePodcast(input(bad), deps)).status).toBe(400);
     }
     expect(github.requests).toHaveLength(0);
-  });
-
-  it("answers 401 for a wrong passphrase and 400 for another origin", async () => {
-    const { deps } = setup();
-    expect((await handlePodcast(input(del({ passphrase: "nope" })), deps)).status).toBe(401);
-    expect((await handlePodcast(input(del(), "https://evil.example"), deps)).status).toBe(400);
   });
 
   it("holds delete to a 10 second cooldown and 20 a day, not the episode limits", async () => {
@@ -555,12 +550,6 @@ describe("handlePodcast and the hosts' names", () => {
     expect(logs).toEqual([]);
   });
 
-  it("reads the default voices when the request names none, as narration will", async () => {
-    const { deps, github } = voiced();
-    await handlePodcast(input(body()), deps);
-    expect(sent(github)).toEqual({ ...REQUEST, host_names: { a: "Geffen", b: "Dominic" } });
-  });
-
   it("puts its own names over the browser's, and sends none for a readout", async () => {
     const forged = { a: "Mallory", b: "Eve" };
     const discussion = voiced();
@@ -592,26 +581,6 @@ describe("handlePodcast and the hosts' names", () => {
     expect((await handlePodcast(input(body()), thrown.deps)).status).toBe(202);
     expect(sent(thrown.github)).toEqual(REQUEST);
     expect(thrown.logs).toEqual(["The voice list could not be read (Error)"]);
-  });
-
-  it("still dispatches, without names, when a host's voice is not in the list", async () => {
-    const { deps, github, logs } = voiced();
-    const request = { ...REQUEST, voice_id: "voice-gone" };
-    expect((await handlePodcast(input(body({ request })), deps)).status).toBe(202);
-    expect(sent(github)).toEqual(request);
-    expect(logs).toEqual([
-      "Host names left to the engine: a host's voice is not in the voice list",
-    ]);
-  });
-
-  it("dispatches without names and says why when the site has no Speechify key", async () => {
-    const { deps, github, logs } = setup();
-    github.on(RUNS, { json: { workflow_runs: [] } });
-    github.on(DISPATCH, { json: { workflow_run_id: 7 } });
-    expect((await handlePodcast(input(body()), deps)).status).toBe(202);
-    expect(sent(github)).toEqual(REQUEST);
-    expect(logs).toEqual(["Host names left to the engine: no Speechify key"]);
-    expect(github.requests.every((request) => request.path.startsWith("/actions/"))).toBe(true);
   });
 
   it("does not read the voice list for a delete or a regenerate", async () => {

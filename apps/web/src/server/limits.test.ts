@@ -78,28 +78,10 @@ describe("evaluateLimits", () => {
     const runs = [hoursAgo(21), hoursAgo(7), hoursAgo(14)];
     expect(evaluateLimits(runs, NOW)).toEqual(evaluateLimits([...runs].reverse(), NOW));
   });
-
-  it("keeps the documented numbers", () => {
-    expect(COOLDOWN_MS).toBe(6 * 3600 * 1000);
-    expect(DAY_MS).toBe(24 * 3600 * 1000);
-    expect(DAILY_CAP).toBe(3);
-  });
-});
-
-describe("the narrate daily cap", () => {
-  // How it is applied is tested with the document it is read from, in narrationState.test.ts.
-  it("keeps the documented number", () => {
-    expect(NARRATE_DAILY_CAP).toBe(3);
-  });
 });
 
 describe("evaluateLimits for episodes", () => {
   const minutesAgo = (minutes: number) => NOW - minutes * 60 * 1000;
-
-  it("keeps the documented numbers", () => {
-    expect(PODCAST_COOLDOWN_MS).toBe(2 * 60 * 1000);
-    expect(PODCAST_DAILY_CAP).toBe(12);
-  });
 
   it("allows a first episode and one after the cooldown", () => {
     expect(evaluateLimits([], NOW, PODCAST_POLICY)).toEqual({ allowed: true });

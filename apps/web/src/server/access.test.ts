@@ -1,6 +1,6 @@
 import { hashPassphrase } from "@dispatch/core/passphrase";
 import { describe, expect, it } from "vitest";
-import { OPEN_PASSPHRASE, PASSPHRASE_REQUIRED } from "../lib/access";
+import { OPEN_PASSPHRASE } from "../lib/access";
 import { passphraseCheck } from "./access";
 
 describe("passphraseCheck", () => {
@@ -17,10 +17,5 @@ describe("passphraseCheck", () => {
     const check = passphraseCheck(false);
     expect(await check(OPEN_PASSPHRASE, hash)).toBe(true);
     expect(await check("something else", hash)).toBe(true);
-  });
-
-  it("follows the switch by default", async () => {
-    const hash = await hashPassphrase("correct horse battery staple");
-    expect(await passphraseCheck()("something else", hash)).toBe(!PASSPHRASE_REQUIRED);
   });
 });

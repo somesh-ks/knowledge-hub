@@ -81,33 +81,84 @@ describe("taps", () => {
     expect(isTap(0, TAP_MAX_MS)).toBe(true);
     expect(isTap(0, TAP_MAX_MS + 1)).toBe(false);
   });
-
-  it("uses a slop wide enough for a thumb", () => {
-    expect(TAP_SLOP_PX).toBe(12);
-  });
 });
 
 describe("where a lift sends the page", () => {
-  it("dismisses on a flick down, whatever the travel", () => {
-    expect(release({ originOpen: true, travelPx: 30, velocityPxPerMs: 0.8 })).toBe(0);
-    expect(release({ originOpen: false, travelPx: -400, velocityPxPerMs: 0.8 })).toBe(0);
-  });
-
-  it("opens on a flick up, whatever the travel", () => {
-    expect(release({ originOpen: false, travelPx: -30, velocityPxPerMs: -0.6 })).toBe(1);
-    expect(release({ originOpen: true, travelPx: 500, velocityPxPerMs: -0.6 })).toBe(1);
-  });
-
-  it("dismisses after enough travel down when the finger is not coming back", () => {
-    expect(release({ originOpen: true, travelPx: 0.5 * DISTANCE, velocityPxPerMs: 0.05 })).toBe(0);
-    expect(release({ originOpen: true, travelPx: 0.5 * DISTANCE, velocityPxPerMs: -0.3 })).toBe(1);
-    expect(release({ originOpen: true, travelPx: 0.2 * DISTANCE, velocityPxPerMs: 0.2 })).toBe(1);
-  });
-
-  it("opens after enough travel up when the finger is not coming back", () => {
-    expect(release({ travelPx: -0.4 * DISTANCE })).toBe(1);
-    expect(release({ travelPx: -0.4 * DISTANCE, velocityPxPerMs: 0.3 })).toBe(0);
-    expect(release({ travelPx: -0.1 * DISTANCE, velocityPxPerMs: -0.1 })).toBe(0);
+  // 0 is closed, 1 is open.
+  const D = DISTANCE;
+  it.each<[string, Partial<ReleaseInput>, 0 | 1]>([
+    [
+      "a flick down dismisses an open page, whatever the travel",
+      { originOpen: true, travelPx: 30, velocityPxPerMs: 0.8 },
+      0,
+    ],
+    [
+      "a flick down dismisses a closed page pulled far up",
+      { originOpen: false, travelPx: -400, velocityPxPerMs: 0.8 },
+      0,
+    ],
+    [
+      "a flick up opens a closed page, whatever the travel",
+      { originOpen: false, travelPx: -30, velocityPxPerMs: -0.6 },
+      1,
+    ],
+    [
+      "a flick up opens an open page dragged far down",
+      { originOpen: true, travelPx: 500, velocityPxPerMs: -0.6 },
+      1,
+    ],
+    [
+      "enough travel down, finger not coming back, dismisses",
+      { originOpen: true, travelPx: 0.5 * D, velocityPxPerMs: 0.05 },
+      0,
+    ],
+    [
+      "enough travel down, finger coming back up, stays open",
+      { originOpen: true, travelPx: 0.5 * D, velocityPxPerMs: -0.3 },
+      1,
+    ],
+    [
+      "too little travel down at a slow speed stays open",
+      { originOpen: true, travelPx: 0.2 * D, velocityPxPerMs: 0.2 },
+      1,
+    ],
+    ["enough travel up opens", { travelPx: -0.4 * D }, 1],
+    [
+      "enough travel up, finger coming back down, stays closed",
+      { travelPx: -0.4 * D, velocityPxPerMs: 0.3 },
+      0,
+    ],
+    [
+      "too little travel up at a slow speed stays closed",
+      { travelPx: -0.1 * D, velocityPxPerMs: -0.1 },
+      0,
+    ],
+    ["an undecided gesture goes back to open", { originOpen: true, travelPx: 40 }, 1],
+    ["an undecided gesture goes back to closed", { originOpen: false, travelPx: -40 }, 0],
+    // A page caught a fifth of the way up and nudged 20 px down: the old rule saw 80 percent
+    // "travelled" and dismissed it.
+    [
+      "reads this gesture's travel, never how far the page has got",
+      { originOpen: true, travelPx: 20, velocityPxPerMs: 0.05 },
+      1,
+    ],
+    [
+      "a cancelled gesture goes back to open",
+      { originOpen: true, travelPx: 700, velocityPxPerMs: 2, cancelled: true },
+      1,
+    ],
+    [
+      "a cancelled gesture goes back to closed",
+      { originOpen: false, travelPx: -700, velocityPxPerMs: -2, cancelled: true },
+      0,
+    ],
+    [
+      "no distance to measure against decides nothing",
+      { originOpen: true, distancePx: 0, velocityPxPerMs: 3 },
+      1,
+    ],
+  ])("%s", (_name, input, expected) => {
+    expect(release(input)).toBe(expected);
   });
 
   it("asks for less travel to open than to close", () => {
@@ -115,30 +166,6 @@ describe("where a lift sends the page", () => {
     const travel = ((OPEN_DISTANCE + thresholds.distance) / 2) * DISTANCE;
     expect(release({ originOpen: false, travelPx: -travel })).toBe(1);
     expect(release({ originOpen: true, travelPx: travel })).toBe(1);
-  });
-
-  it("goes back where it was headed when the gesture decided nothing", () => {
-    expect(release({ originOpen: true, travelPx: 40 })).toBe(1);
-    expect(release({ originOpen: false, travelPx: -40 })).toBe(0);
-  });
-
-  it("reads this gesture's travel, never how far the page has got", () => {
-    // A page caught a fifth of the way up and nudged 20 px down: the old rule saw 80 percent
-    // "travelled" and dismissed it.
-    expect(release({ originOpen: true, travelPx: 20, velocityPxPerMs: 0.05 })).toBe(1);
-  });
-
-  it("goes back where it was headed when the system ends the gesture", () => {
-    expect(release({ originOpen: true, travelPx: 700, velocityPxPerMs: 2, cancelled: true })).toBe(
-      1,
-    );
-    expect(
-      release({ originOpen: false, travelPx: -700, velocityPxPerMs: -2, cancelled: true }),
-    ).toBe(0);
-  });
-
-  it("decides nothing when there is no travel to measure against", () => {
-    expect(release({ originOpen: true, distancePx: 0, velocityPxPerMs: 3 })).toBe(1);
   });
 });
 

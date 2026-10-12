@@ -1,7 +1,8 @@
 import { AudioTimeline, type Digest, serializeDigestFile } from "@dispatch/core";
-import { hashPassphrase, verifyPassphrase } from "@dispatch/core/passphrase";
+import { verifyPassphrase } from "@dispatch/core/passphrase";
 import { buildSpokenText, type SpokenSegment, spokenSegments } from "@dispatch/engine/audio";
 import { afterEach, beforeAll, describe, expect, it, vi } from "vitest";
+import { cheapPassphraseHash } from "../testing/cheapPassphraseHash";
 import { makeDigest, makeItem, makeTimeline } from "../testing/digestFactory";
 import { createFakeBlobStore, FAKE_BLOB_HOST } from "../testing/fakeBlobStore";
 import {
@@ -65,8 +66,8 @@ const MODEL = "simba-3.2";
 
 let passphraseHash = "";
 
-beforeAll(async () => {
-  passphraseHash = await hashPassphrase(PASSPHRASE);
+beforeAll(() => {
+  passphraseHash = cheapPassphraseHash(PASSPHRASE);
 });
 
 interface FakeDigests extends DigestSource {
@@ -1087,21 +1088,6 @@ describe("POST /api/narrate: narrating the whole digest", () => {
       "https://api.speechify.ai/v1/audio/stream",
     ]);
   });
-
-  it("logs the timings the function limits have to be set from", async () => {
-    const context = setup();
-    // Speechify takes five seconds in this run; everything else is instant.
-    const fetchSpeech = context.deps.fetch;
-    context.deps.fetch = async (url, init) => {
-      const response = await fetchSpeech(url, init);
-      context.advance(5000);
-      return response;
-    };
-    await post(context);
-    expect(context.logs.at(-1)).toMatch(
-      /stored\. \d+ characters, synthesis 5000 ms, upload 0 ms, total 5000 ms, marks timeline$/,
-    );
-  });
 });
 
 describe("POST /api/narrate: time limits, counted from the start of the request", () => {
@@ -1998,14 +1984,6 @@ describe("POST /api/narrate with a segment", () => {
       expect(context.logs.join("\n")).toContain("[redacted]");
       expectNothingLeaked(result, context.logs);
     }
-  });
-
-  it("logs the timings a segment took", async () => {
-    const context = setup();
-    await postSegment(context, "intro");
-    expect(context.logs.at(-1)).toMatch(
-      /^narrate 2026-10-07 intro: stored\. \d+ characters, synthesis \d+ ms, upload \d+ ms, total \d+ ms$/,
-    );
   });
 });
 

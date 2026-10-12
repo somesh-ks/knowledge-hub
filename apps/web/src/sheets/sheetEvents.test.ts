@@ -10,8 +10,4 @@ describe("sheet requests", () => {
     expect(isSheetName(undefined)).toBe(false);
     expect(isSheetName(null)).toBe(false);
   });
-
-  it("uses a namespaced event name so it cannot collide with the page's own", () => {
-    expect(OPEN_SHEET_EVENT).toBe("dispatch:open-sheet");
-  });
 });

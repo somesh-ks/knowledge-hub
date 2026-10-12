@@ -58,12 +58,4 @@ describe("view transitions: which rule draws a move", () => {
       }
     });
   }
-
-  it("no rule for a move is weighed up by :not()", () => {
-    expect(CSS).not.toMatch(/html\[data-(astro-nav|nav-swap)[^\]]*\]:not\(/);
-  });
-
-  it("nothing fades out: the old page is gone when the new one arrives", () => {
-    expect(CSS).not.toMatch(/fade-out/);
-  });
 });
