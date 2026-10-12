@@ -732,12 +732,14 @@ html:has(.library-none) .create-fab {
   width: 9rem;
   scroll-snap-align: start;
   content-visibility: auto;
-  contain-intrinsic-size: auto 180px;
+  /* About a card's height, so the page does not grow when the shelf first paints. */
+  contain-intrinsic-size: auto 12.5rem;
 }
 
 @media (min-width: 40rem) {
   .shelf > .card {
     width: 10.5rem;
+    contain-intrinsic-size: auto 14rem;
   }
 }
 

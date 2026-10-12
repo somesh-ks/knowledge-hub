@@ -165,6 +165,29 @@ test.describe("regenerate and delete an episode", () => {
     await expect(regenerate(page)).not.toHaveAttribute("aria-disabled", "true");
   });
 
+  test("an episode reached while offline has both items disabled, with the reason, until the connection is back", async ({
+    page,
+  }) => {
+    // A page opened with the device already offline: the page's own scripts decide, not a change.
+    await page.addInitScript(() => {
+      Object.defineProperty(navigator, "onLine", { configurable: true, get: () => false });
+    });
+    await open(page);
+    for (const item of [regenerate(page), remove(page)]) {
+      await expect(item).toHaveAttribute("aria-disabled", "true");
+      await expect(item).toHaveAttribute("aria-describedby", "offline-reason");
+    }
+    await expect(page.locator("#offline-reason")).toContainText("need a connection");
+    await page.evaluate(() => {
+      Object.defineProperty(navigator, "onLine", { configurable: true, get: () => true });
+      window.dispatchEvent(new Event("online"));
+    });
+    for (const item of [regenerate(page), remove(page)]) {
+      await expect(item).not.toHaveAttribute("aria-disabled", "true");
+      await expect(item).not.toHaveAttribute("aria-describedby", /.+/);
+    }
+  });
+
   test("empty feedback is refused inline and nothing is sent", async ({ page }) => {
     const bodies = await mock(page, [{ run_id: 77, state: "queued", step: null }]);
     await open(page);

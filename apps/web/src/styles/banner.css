@@ -107,6 +107,7 @@
 .empty > p {
   max-width: 36ch;
   color: var(--color-on-surface-muted);
+  text-wrap: balance;
 }
 
 /* One button that fits its words, then an optional text button beside it. */

@@ -1,10 +1,13 @@
 /**
  * What an episode page knows about Regenerate and Delete without loading them: a pick in the More
  * menu (scripts/heroMenu.ts closes it first) loads the panel on demand. Both items are disabled,
- * with a reason, while a run for this episode goes. The disabled state is aria-disabled, so they
- * stay focusable and the reason can be read; the shell's disabled guard swallows their clicks.
+ * with a reason, while a run for this episode goes and while the device is offline (both start work
+ * that needs the network). The disabled state is aria-disabled, so they stay focusable and the
+ * reason can be read; the shell's disabled guard swallows their clicks.
  */
 const BUSY_ID = "episode-actions-busy";
+/** The offline banner's line (BaseLayout.astro). */
+const OFFLINE_ID = "offline-reason";
 
 function sync(): void {
   const root = document.querySelector<HTMLElement>("[data-episode-actions]");
@@ -18,10 +21,11 @@ function sync(): void {
   } catch {
     // Storage can be blocked; nothing is then known to be running.
   }
+  const offline = !navigator.onLine;
   for (const button of root.querySelectorAll("[data-episode-action]")) {
-    if (busy) {
+    if (busy || offline) {
       button.setAttribute("aria-disabled", "true");
-      button.setAttribute("aria-describedby", BUSY_ID);
+      button.setAttribute("aria-describedby", busy ? BUSY_ID : OFFLINE_ID);
     } else {
       button.removeAttribute("aria-disabled");
       button.removeAttribute("aria-describedby");
@@ -43,5 +47,7 @@ export function installEpisodeActions(): void {
   });
   document.addEventListener("dispatch:run", sync);
   document.addEventListener("astro:page-load", sync);
+  window.addEventListener("online", sync);
+  window.addEventListener("offline", sync);
   sync();
 }

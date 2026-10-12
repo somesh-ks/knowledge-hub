@@ -7,18 +7,20 @@ interface Props {
   icon: IconName;
   title: string;
   body?: string;
+  /** An id for the body line, so a control the banner explains can point at it (aria-describedby). */
+  bodyId?: string;
   /** One way on, as a text button. A link, so it works for any reader and without script. */
   action?: { label: string; href: string };
 }
 
-const { tone, icon, title, body, action } = Astro.props;
+const { tone, icon, title, body, bodyId, action } = Astro.props;
 ---
 
 <div class="banner" data-tone={tone} role={tone === "danger" ? "alert" : "status"}>
   <Icon name={icon} />
   <div class="banner-text">
     <p class="banner-title">{title}</p>
-    {body && <p class="banner-body">{body}</p>}
+    {body && <p class="banner-body" id={bodyId}>{body}</p>}
   </div>
   {action && <a class="btn" href={action.href}>{action.label}</a>}
 </div>

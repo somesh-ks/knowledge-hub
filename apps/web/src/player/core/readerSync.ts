@@ -18,8 +18,9 @@
  *   .play-fab            while the bar holds the audio it plays, data-fab comes off the root: the
  *                        button steps aside and the page gives back the room it kept for it.
  *
- * A briefing without audio is left exactly as the page rendered it: its chips keep their own
- * unavailable or hidden state until the page's data carries audio.
+ * A briefing without audio is left as the page rendered it: its chips keep their own unavailable or
+ * hidden state until the page's data carries audio, except that offline they are unavailable too:
+ * its narration is made on Play, from the network.
  *
  * Writes go through one animation-frame writer.
  */
@@ -34,6 +35,7 @@ import {
   itemVisualState,
   resolveChapterFirstItemId,
   resolveItemId,
+  runStartAfter,
   storyChipView,
   storyLengthLabel,
 } from "./readerMath";
@@ -95,6 +97,10 @@ export function createReaderSync(
   let wasScrubbing = false;
   /** The id of a briefing a cover sent the listener to, until its page has loaded. */
   let pendingNarrate: string | null = null;
+  /** Where the stories heard in this run of listening begin; the ones stepped over are not played. */
+  let runStart = 0;
+  /** The story the playhead was in at the last move, to tell a step from a jump over stories. */
+  let runIndex = 0;
 
   function emptyElements(): Elements {
     return { items: new Map(), playDigest: [], playItem: [], coverPlay: [] };
@@ -125,6 +131,36 @@ export function createReaderSync(
     markFab(event.newDocument);
   }
 
+  /** What a chip of a page without audio showed before the device went offline. */
+  const restful = new WeakMap<
+    HTMLElement,
+    { state: string | undefined; disabled: string | null }
+  >();
+
+  /** Narration is made on Play from the network: offline the chip cannot work, and says so. */
+  function writeOffline(chips: readonly HTMLElement[]): void {
+    const offline = !navigator.onLine;
+    for (const chip of chips) {
+      const rest = restful.get(chip);
+      if (offline) {
+        if (!rest) {
+          restful.set(chip, {
+            state: chip.dataset.state,
+            disabled: chip.getAttribute("aria-disabled"),
+          });
+        }
+        setDataset(chip, "state", "unavailable");
+        chip.setAttribute("aria-disabled", "true");
+      } else if (rest) {
+        restful.delete(chip);
+        if (rest.state === undefined) delete chip.dataset.state;
+        else setDataset(chip, "state", rest.state);
+        if (rest.disabled === null) chip.removeAttribute("aria-disabled");
+        else chip.setAttribute("aria-disabled", rest.disabled);
+      }
+    }
+  }
+
   function writeCoarse(): void {
     pendingWrite = 0;
     markFab(document);
@@ -137,7 +173,7 @@ export function createReaderSync(
 
     const visualOf = (id: string): ItemVisualState => {
       const index = live ? findItemIndexById(timeline, id) : -1;
-      return index < 0 ? "" : itemVisualState(index, live, state.itemIndex, ended);
+      return index < 0 ? "" : itemVisualState(index, live, state.itemIndex, ended, runStart);
     };
 
     for (const [id, element] of elements.items) {
@@ -156,8 +192,11 @@ export function createReaderSync(
       if (button.getAttribute("aria-label") !== name) button.setAttribute("aria-label", name);
     }
 
-    // A briefing without audio keeps the state its page rendered.
-    if (!page?.audio) return;
+    // A briefing without audio keeps the state its page rendered, offline apart.
+    if (!page?.audio) {
+      writeOffline(elements.playDigest);
+      return;
+    }
     // Audio that arrived after the page was built (narrated on Play): the story chips the page
     // rendered hidden now have something to play, and the note about making audio is done.
     for (const chip of elements.playItem) if (chip.hidden) chip.hidden = false;
@@ -327,6 +366,16 @@ export function createReaderSync(
   document.addEventListener("click", onClick);
   document.addEventListener("astro:before-swap", onBeforeSwap);
 
+  const offEvent = store.onEvent((event) => {
+    if (event.type === "loaded") {
+      runStart = 0;
+      runIndex = Math.max(0, store.getState().itemIndex);
+    } else if (event.type === "itemChanged") {
+      runStart = runStartAfter(runStart, runIndex, event.index);
+      runIndex = Math.max(0, event.index);
+    }
+  });
+
   // Whole seconds and seeks: the minutes left on a paused briefing change with the playhead.
   const offSecond = store.onSecond(scheduleWrite);
   const offState = store.subscribe((state) => {
@@ -345,6 +394,7 @@ export function createReaderSync(
     resumeFollow,
     destroy() {
       offSecond();
+      offEvent();
       offState();
       if (pendingWrite) cancelAnimationFrame(pendingWrite);
       window.removeEventListener("wheel", markUserScroll);

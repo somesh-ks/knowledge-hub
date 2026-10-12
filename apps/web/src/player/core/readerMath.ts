@@ -9,17 +9,31 @@ import type { PlayerState } from "./playerTypes";
 
 export type ItemVisualState = "played" | "current" | "";
 
-/** `data-state` for an item, given the live item index. Absent means upcoming. */
+/**
+ * `data-state` for an item, given the live item index. Absent means upcoming. A story is played when
+ * the playhead has passed it in this run of listening: the ones before `runStart` were stepped over.
+ */
 export function itemVisualState(
   index: number,
   live: boolean,
   currentIndex: number,
   ended: boolean,
+  runStart = 0,
 ): ItemVisualState {
   if (!live) return "";
-  if (ended) return "played";
-  if (index < currentIndex) return "played";
+  if (ended || index < currentIndex) return index >= runStart ? "played" : "";
   return index === currentIndex ? "current" : "";
+}
+
+/**
+ * Where the stories heard in this run begin after the playhead moved from story `from` to story
+ * `to`. A move that steps over whole stories (a tap on Play from here, a scrub or a seek past one)
+ * starts a new run there: what it stepped over was not heard. A step to the next story keeps the run,
+ * and a move back pulls its start back with it.
+ */
+export function runStartAfter(runStart: number, from: number, to: number): number {
+  if (to > from + 1) return to;
+  return Math.min(runStart, Math.max(0, to));
 }
 
 /**

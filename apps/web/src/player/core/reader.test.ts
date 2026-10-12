@@ -11,6 +11,7 @@ import {
   itemVisualState,
   resolveChapterFirstItemId,
   resolveItemId,
+  runStartAfter,
   storyChipView,
   storyLengthLabel,
 } from "./readerMath";
@@ -23,6 +24,29 @@ describe("where the playhead is, per story", () => {
     expect(itemVisualState(3, true, 2, false)).toBe("");
     expect(itemVisualState(3, true, 2, true)).toBe("played");
     expect(itemVisualState(0, false, 0, false)).toBe("");
+    // The stories before the run's start were stepped over, not heard.
+    expect(itemVisualState(0, true, 3, false, 2)).toBe("");
+    expect(itemVisualState(2, true, 3, false, 2)).toBe("played");
+    expect(itemVisualState(1, true, 3, true, 2)).toBe("");
+    expect(itemVisualState(3, true, 3, true, 2)).toBe("played");
+  });
+});
+
+describe("which stories were heard in a run of listening", () => {
+  it("starts a new run where a move steps over whole stories", () => {
+    // Play from here on story 3, from the top: stories 1 and 2 were never heard.
+    expect(runStartAfter(0, 0, 2)).toBe(2);
+    // A scrub or a seek that lands three stories on.
+    expect(runStartAfter(1, 1, 4)).toBe(4);
+  });
+
+  it("keeps the run for a step to the next story, and pulls it back for a move back", () => {
+    expect(runStartAfter(2, 2, 3)).toBe(2);
+    expect(runStartAfter(2, 3, 3)).toBe(2);
+    expect(runStartAfter(2, 5, 0)).toBe(0);
+    expect(runStartAfter(2, 5, 3)).toBe(2);
+    // The rundown before story 1 is not a story: the first story starts the run at 0.
+    expect(runStartAfter(0, 0, 0)).toBe(0);
   });
 });
 

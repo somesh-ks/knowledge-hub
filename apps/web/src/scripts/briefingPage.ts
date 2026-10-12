@@ -15,6 +15,16 @@ let endObserver: IntersectionObserver | null = null;
 let stuckObserver: IntersectionObserver | null = null;
 /** A tapped tab stays marked until the reader scrolls, even where its section cannot reach the top. */
 let held = false;
+/**
+ * Where the page stood once the tapped tab's jump had landed. Any later scroll away from it hands the
+ * mark back: the scrollbar, a find, and the player following its story scroll without a wheel or a
+ * touch.
+ */
+let heldAt: number | null = null;
+/** More than this is a scroll of someone's making, not the page settling. */
+const HELD_SLACK = 8;
+/** Marks the section in view, once a held mark has been handed back (set by watchSections). */
+let refollow: (() => void) | null = null;
 
 function mark(slug: string | undefined): void {
   if (!slug) return;
@@ -151,6 +161,7 @@ function watchSections({ keepHeld = false } = {}): void {
         (first.getBoundingClientRect().top > chrome ? first : undefined));
     if (current) mark(current.dataset.chapter);
   };
+  refollow = follow;
   observer = new IntersectionObserver(
     (entries) => {
       for (const entry of entries) {
@@ -247,6 +258,13 @@ document.addEventListener("click", (event) => {
   const tab = event.target.closest<HTMLElement>("a[data-section]");
   if (tab) {
     held = true;
+    heldAt = null;
+    // The jump is instant: two frames on, the page is where it will stay.
+    requestAnimationFrame(() =>
+      requestAnimationFrame(() => {
+        if (held) heldAt = scrollY;
+      }),
+    );
     mark(tab.dataset.section);
     return;
   }
@@ -257,7 +275,18 @@ document.addEventListener("click", (event) => {
 
 const release = (): void => {
   held = false;
+  heldAt = null;
 };
+window.addEventListener(
+  "scroll",
+  () => {
+    if (!held || heldAt === null || Math.abs(scrollY - heldAt) <= HELD_SLACK) return;
+    release();
+    // The sections in view were tracked all along; only the mark was kept back.
+    refollow?.();
+  },
+  { passive: true },
+);
 window.addEventListener("wheel", release, { passive: true });
 window.addEventListener("touchmove", release, { passive: true });
 window.addEventListener("keydown", release);

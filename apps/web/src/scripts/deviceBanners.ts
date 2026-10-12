@@ -22,16 +22,27 @@ function hide(kind: "offline"): void {
   bannerStack()?.querySelector(`[data-banner="${kind}"]`)?.remove();
 }
 
+/** The banner's own line says why (BaseLayout.astro); a disabled control points at it. */
+const OFFLINE_REASON = "offline-reason";
+
 /**
  * New episode needs the network from its first step, so offline every Create control is disabled
  * (aria-disabled, so it stays focusable and says why it does nothing) and opens no sheet. So is
- * every other action that starts a run: a new briefing, and an episode's Regenerate and Delete.
+ * the other action that starts a run from a page, a new briefing; an episode's Regenerate and Delete
+ * follow the connection themselves (episodeActionsEntry.ts), since they also wait on a run.
  */
 function syncCreate(isOffline: boolean): void {
-  const starters = "[data-create-open], [data-open='generate'], [data-episode-action]";
+  const starters = "[data-create-open], [data-open='generate']";
   for (const create of document.querySelectorAll<HTMLElement>(starters)) {
-    if (isOffline) create.setAttribute("aria-disabled", "true");
-    else create.removeAttribute("aria-disabled");
+    if (isOffline) {
+      create.setAttribute("aria-disabled", "true");
+      create.setAttribute("aria-describedby", OFFLINE_REASON);
+    } else {
+      create.removeAttribute("aria-disabled");
+      if (create.getAttribute("aria-describedby") === OFFLINE_REASON) {
+        create.removeAttribute("aria-describedby");
+      }
+    }
   }
 }
 

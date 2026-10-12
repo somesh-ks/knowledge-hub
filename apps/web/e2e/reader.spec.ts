@@ -381,6 +381,43 @@ test.describe("sections and stories", () => {
     );
   });
 
+  test("a briefing narrated on Play has its Play unavailable offline, and back when online", async ({
+    page,
+    context,
+  }) => {
+    await page.goto(SILENT_DIGEST);
+    // The page's idle request for its narration is made before the network goes away.
+    await page.waitForLoadState("networkidle");
+    await hydrated(page);
+    const chip = page.locator(".hero [data-play-digest]");
+    const before = await chip.getAttribute("data-state");
+    expect(before).not.toBe("unavailable");
+    await expect(chip).not.toHaveAttribute("aria-disabled", "true");
+    await context.setOffline(true);
+    await page.evaluate(() => window.dispatchEvent(new Event("offline")));
+    await expect(chip).toHaveAttribute("aria-disabled", "true");
+    await expect(chip).toHaveAttribute("data-state", "unavailable");
+    await context.setOffline(false);
+    await page.evaluate(() => window.dispatchEvent(new Event("online")));
+    await expect(chip).not.toHaveAttribute("aria-disabled", "true");
+    await expect(chip).toHaveAttribute("data-state", before ?? "");
+  });
+
+  test("a story played from here does not mark the stories it stepped over as played", async ({
+    page,
+  }) => {
+    await page.goto("/");
+    await hydrated(page);
+    const chip = (index: number) => page.locator(".story").nth(index).locator("[data-play-item]");
+    await chip(2).click();
+    await expect(chip(2)).not.toHaveAttribute("data-state", "idle");
+    // Nothing was heard of the first two: they stay as they were, with their lengths.
+    for (const index of [0, 1]) {
+      await expect(chip(index)).toHaveAttribute("data-state", "idle");
+      await expect(chip(index).locator("[data-chip-label]")).toHaveText(/^\d+:\d\d$/);
+    }
+  });
+
   test("keeps story chips in the page, hidden, while a briefing has no audio", async ({ page }) => {
     await page.goto(SILENT_DIGEST);
     await expect(page.locator(".story")).toHaveCount(8);
@@ -750,6 +787,53 @@ test.describe("the section tabs with the app bar hidden", () => {
     // Past the line, Research takes the mark: the line is measured from where the strip is now.
     await placeUnderStrip(4);
     await expect(current).toHaveText("Research");
+  });
+});
+
+test.describe("a tapped tab's mark", () => {
+  test("goes back to following the page when anything but a wheel scrolls it", async ({ page }) => {
+    await page.setViewportSize({ width: 390, height: 844 });
+    await page.goto("/");
+    await hydrated(page);
+    const current = page.locator('.tab[aria-current="true"]');
+    await page.locator(".tab", { hasText: "Research" }).click();
+    await expect(current).toHaveText("Research");
+    await page.waitForTimeout(300);
+    // A scrollbar drag, a find, the player following its story: a scroll with no wheel or key.
+    await page.evaluate(() => {
+      document
+        .querySelector("#c-launches")
+        ?.scrollIntoView({ block: "start", behavior: "instant" });
+    });
+    await expect(current).toHaveText("Launches");
+  });
+
+  test("stays on the tapped tab while the page only settles", async ({ page }) => {
+    await page.setViewportSize({ width: 390, height: 844 });
+    await page.goto("/");
+    await hydrated(page);
+    const tab = page.locator(".tab", { hasText: "Watch and listen" });
+    await tab.click();
+    await page.waitForTimeout(600);
+    await expect(tab).toHaveAttribute("aria-current", "true");
+  });
+});
+
+test.describe("a headline under the pointer", () => {
+  test("is underlined whole, a hyphenated word included", async ({ page }, info) => {
+    test.skip(info.project.name !== "desktop", "a hover needs a pointer");
+    await page.goto("/");
+    await hydrated(page);
+    const link = page.locator(".story-link", { has: page.locator(".no-break") }).first();
+    await link.hover();
+    const lines = await link.evaluate((node) =>
+      [...node.querySelectorAll(".no-break")].map((word) => {
+        const css = getComputedStyle(word);
+        return css.textDecorationLine;
+      }),
+    );
+    expect(lines.length).toBeGreaterThan(0);
+    for (const line of lines) expect(line).toBe("underline");
   });
 });
 

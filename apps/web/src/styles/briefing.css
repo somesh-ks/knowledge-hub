@@ -177,10 +177,13 @@ html:has(.briefing > .tabs-bar) {
   display: inline-block;
 }
 
-/* An inline-block does not take the link's underline from its parent. */
+/* An inline-block takes no underline from the link around it, and the text between them has none to
+   pass on, so under the pointer it draws the link's own. */
 @media (hover: hover) and (pointer: fine) {
   .story-link:hover .no-break {
-    text-decoration: inherit;
+    text-decoration-line: underline;
+    text-decoration-thickness: var(--stroke-hairline);
+    text-underline-offset: 0.18em;
   }
 }
 
