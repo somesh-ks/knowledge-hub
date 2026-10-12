@@ -2,10 +2,8 @@ import { serializeDigestFile } from "@dispatch/core";
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
 import {
   ALLOWLISTS,
-  assertPathsAllowed,
   findDigestContentViolations,
   findViolations,
-  GuardViolationError,
   isPathAllowed,
   parsePorcelain,
   readChangedPaths,
@@ -180,11 +178,10 @@ describe("parsePorcelain", () => {
   });
 });
 
-describe("findViolations and assertPathsAllowed", () => {
+describe("findViolations", () => {
   it("finds nothing when every path is allowed", () => {
     const changed = parsePorcelain(" M state/usage.json\0?? Digests/2026/10/x.md\0");
     expect(findViolations(changed, ALLOWLISTS.run)).toEqual([]);
-    expect(() => assertPathsAllowed(changed, ALLOWLISTS.run)).not.toThrow();
   });
 
   it("lists each path outside the allowlist once", () => {
@@ -208,23 +205,11 @@ describe("findViolations and assertPathsAllowed", () => {
     expect(findViolations(["state/seen.json", ".env"], ALLOWLISTS.run)).toEqual([".env"]);
   });
 
-  it("throws a GuardViolationError that names the offending paths", () => {
-    const changed = parsePorcelain(" M .env\0 M state/seen.json\0");
-    try {
-      assertPathsAllowed(changed, ALLOWLISTS.run);
-      expect.unreachable("should have thrown");
-    } catch (error) {
-      expect(error).toBeInstanceOf(GuardViolationError);
-      expect((error as GuardViolationError).offending).toEqual([".env"]);
-      expect((error as GuardViolationError).message).toContain(".env");
-    }
-  });
-
   it("applies each command's own list", () => {
     const changed = parsePorcelain(" M state/seen.json\0");
-    expect(() => assertPathsAllowed(changed, ALLOWLISTS.run)).not.toThrow();
-    expect(() => assertPathsAllowed(changed, ALLOWLISTS.publish)).toThrow(GuardViolationError);
-    expect(() => assertPathsAllowed(changed, ALLOWLISTS.learn)).toThrow(GuardViolationError);
+    expect(findViolations(changed, ALLOWLISTS.run)).toEqual([]);
+    expect(findViolations(changed, ALLOWLISTS.publish)).toEqual(["state/seen.json"]);
+    expect(findViolations(changed, ALLOWLISTS.learn)).toEqual(["state/seen.json"]);
   });
 });
 

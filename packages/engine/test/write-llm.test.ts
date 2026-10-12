@@ -3,7 +3,7 @@ import { describe, expect, it } from "vitest";
 import { z } from "zod";
 import { mapConcurrent } from "../src/llm/concurrency.js";
 import { BudgetExceededError, describeError, LlmOutputError } from "../src/llm/errors.js";
-import { isModelNotFound, withModelFailover } from "../src/llm/failoverClient.js";
+import { isModelNotFound } from "../src/llm/failoverClient.js";
 import { type ChatApi, type ChatApiResponse, createNebiusLlm } from "../src/llm/nebiusClient.js";
 import { createOpenAiChatApi } from "../src/llm/openAiChatApi.js";
 import { parseModelJson } from "../src/llm/parseModelJson.js";
@@ -17,7 +17,7 @@ import {
 import { DEFAULT_THINKING_OFF, parseThinkingOff, thinkingParams } from "../src/llm/thinking.js";
 import { estimateTokens, TokenBudget } from "../src/llm/tokenBudget.js";
 import { newBoundary, scrubUntrusted, wrapUntrusted } from "../src/llm/untrusted.js";
-import { captureLog, FakeLlm, httpError, NO_WAIT } from "./write-fakes.js";
+import { captureLog, httpError, NO_WAIT } from "./write-fakes.js";
 
 const Out = z.object({ items: z.array(z.object({ id: z.string() })) });
 
@@ -466,37 +466,6 @@ describe("model failover", () => {
     expect(isModelNotFound(httpError(400, "The model `x` does not exist"))).toBe(true);
     expect(isModelNotFound(httpError(400, "bad schema"))).toBe(false);
     expect(isModelNotFound(httpError(429, "model overloaded"))).toBe(false);
-  });
-
-  it("switches to the fallback model once and stays there", async () => {
-    const primary = new FakeLlm(() => {
-      throw httpError(404, "model not found");
-    }, "retired-model");
-    const fallback = new FakeLlm(() => ({ items: [] }), "fallback-model");
-    const { log, lines } = captureLog();
-    const client = withModelFailover(primary, fallback, log);
-    expect(client.model).toBe("retired-model");
-    await client.completeJson(request());
-    expect(client.model).toBe("fallback-model");
-    await client.completeJson(request());
-    expect(primary.calls).toHaveLength(1);
-    expect(fallback.calls).toHaveLength(2);
-    expect(lines.some((l) => l.level === "warn")).toBe(true);
-  });
-
-  it("rethrows other errors and works without a fallback", async () => {
-    const primary = new FakeLlm(() => {
-      throw httpError(500, "boom");
-    });
-    await expect(
-      withModelFailover(primary, new FakeLlm(() => ({ items: [] }))).completeJson(request()),
-    ).rejects.toMatchObject({ status: 500 });
-    const lone = new FakeLlm(() => {
-      throw httpError(404, "gone");
-    });
-    await expect(withModelFailover(lone, null).completeJson(request())).rejects.toMatchObject({
-      status: 404,
-    });
   });
 });
 

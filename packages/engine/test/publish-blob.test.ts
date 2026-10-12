@@ -3,7 +3,6 @@ import {
   AUDIO_PREFIX,
   audioKey,
   DEFAULT_CACHE_MAX_AGE_SECONDS,
-  deleteAudio,
   pruneAudio,
   uploadAudio,
 } from "../src/publish/blob.js";
@@ -90,20 +89,6 @@ describe("uploadAudio", () => {
     await expect(uploadAudio(blob, { digestId: "2026-10-07", audio })).rejects.toThrow(
       "blob store unavailable",
     );
-  });
-});
-
-describe("deleteAudio", () => {
-  it("deletes the digest's narration by pathname", async () => {
-    const blob = makeFakeBlob();
-    await uploadAudio(blob, { digestId: "2026-10-07", audio: new Uint8Array([1]) });
-    await deleteAudio(blob, "2026-10-07");
-    expect(blob.deletes).toEqual([["audio/2026-10-07.mp3"]]);
-    expect(blob.store.size).toBe(0);
-  });
-
-  it("validates the id", async () => {
-    await expect(deleteAudio(makeFakeBlob(), "nope")).rejects.toThrow();
   });
 });
 

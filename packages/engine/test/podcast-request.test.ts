@@ -1,7 +1,6 @@
 import { PodcastCommand, PodcastRequest, StoredPodcastRequest } from "@dispatch/core";
 import { describe, expect, it } from "vitest";
-import { aimedChars, parseRequest, planPodcast, structureFor } from "../src/podcast/plan.js";
-import { InvalidRequestError } from "../src/podcast/types.js";
+import { aimedChars, planPodcast, structureFor } from "../src/podcast/plan.js";
 import { REQUEST } from "./podcast-fixtures.js";
 
 describe("PodcastRequest", () => {
@@ -70,24 +69,6 @@ describe("host names", () => {
     expect(StoredPodcastRequest.parse(discussion)).not.toHaveProperty("host_names");
     const request = { ...discussion, host_names: { a: "Nora", b: "Owen" } };
     expect(PodcastCommand.parse(request)).toEqual({ action: "create", request });
-  });
-});
-
-describe("parseRequest", () => {
-  it("returns the request for valid JSON", () => {
-    expect(parseRequest(JSON.stringify(REQUEST))).toEqual(REQUEST);
-  });
-
-  it("refuses text that is not JSON", () => {
-    expect(() => parseRequest("{nope")).toThrow(InvalidRequestError);
-    expect(() => parseRequest("{nope")).toThrow(/not valid JSON/);
-  });
-
-  it("names the field that is wrong", () => {
-    expect(() => parseRequest(JSON.stringify({ ...REQUEST, length_minutes: 4 }))).toThrow(
-      /length_minutes/,
-    );
-    expect(() => parseRequest(JSON.stringify({ ...REQUEST, topic_ids: [] }))).toThrow(/topic_ids/);
   });
 });
 

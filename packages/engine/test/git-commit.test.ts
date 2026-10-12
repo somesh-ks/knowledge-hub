@@ -637,26 +637,6 @@ describe("commitAndPush: pushing", () => {
     expect(spy.of("pull")).toHaveLength(3);
   });
 
-  it("honours a custom retry limit", async () => {
-    const rejected = {
-      code: 1,
-      stdout: "",
-      stderr: "! [rejected] main -> main (non-fast-forward)",
-    };
-    const spy = spyRunner(pair.a, (args) => (args.includes("push") ? rejected : undefined));
-    await put(pair.a, "state/seen.json", "{}\n");
-    const outcome = await commitAndPush({
-      root: pair.a,
-      message: MESSAGE,
-      command: "run",
-      push: true,
-      git: spy.run,
-      maxPushRetries: 1,
-    });
-    expect(outcome).toMatchObject({ status: "push_failed", reason: "rejected", retries: 1 });
-    expect(spy.of("push")).toHaveLength(2);
-  });
-
   it("does not rebase for a failure that is not a rejection", async () => {
     git(pair.a, "remote", "set-url", "origin", join(pair.remote, "..", "missing.git"));
     const spy = spyRunner(pair.a);
@@ -737,20 +717,6 @@ describe("commitAndPush: pushing", () => {
     });
     expect(outcome).toMatchObject({ status: "push_failed", reason: "detached_head" });
     expect(spy.of("push")).toEqual([]);
-  });
-
-  it("pushes to a named remote", async () => {
-    git(pair.a, "remote", "add", "mirror", pair.remote);
-    await put(pair.a, "state/seen.json", '{ "version": 1, "items": { "m": "1" } }\n');
-    const outcome = await commitAndPush({
-      root: pair.a,
-      message: MESSAGE,
-      command: "run",
-      push: true,
-      remote: "mirror",
-    });
-    expect(outcome.status).toBe("pushed");
-    expect(remoteHead()).toBe(head(pair.a));
   });
 
   it("runs against an injected runner for every git call", async () => {

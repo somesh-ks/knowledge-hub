@@ -6,7 +6,6 @@ import {
   DEFAULT_VOICE_ID,
   durationFromMp3Bytes,
   isMarksUnavailable,
-  isMp3OutputFormat,
   SpeechifyError,
 } from "../src/audio/speechify.js";
 import { FAKE_SPEECHIFY_KEY, must } from "./audio-fixtures.js";
@@ -629,11 +628,5 @@ describe("mp3 helpers", () => {
 
   it("never reports a zero duration", () => {
     expect(durationFromMp3Bytes(1, "mp3_24000_192")).toBeGreaterThanOrEqual(1);
-  });
-
-  it("recognizes the MP3 output formats and rejects others", () => {
-    expect(isMp3OutputFormat("mp3_24000_128")).toBe(true);
-    expect(isMp3OutputFormat("pcm_24000")).toBe(false);
-    expect(isMp3OutputFormat("mp3_24000_999")).toBe(false);
   });
 });

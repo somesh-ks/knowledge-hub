@@ -2,9 +2,8 @@ import {
   PODCAST_CHARS_PER_MINUTE,
   PODCAST_MAX_CHARS,
   type PodcastFormat,
-  PodcastRequest,
+  type PodcastRequest,
 } from "@dispatch/core";
-import { InvalidRequestError } from "./types.js";
 
 type PodcastLength = PodcastRequest["length_minutes"];
 
@@ -117,11 +116,6 @@ export function structureFor(
   };
 }
 
-/** Room for the hello, the rundown, the close and the sign-off; grows with the length and the story count. */
-export function frameChars(minutes: PodcastLength, stories: number, format: PodcastFormat): number {
-  return structureFor(minutes, stories, format).frame_chars;
-}
-
 /** What the stories of this structure cost at the aimed-at sizes, frame included. */
 export function aimedChars(structure: EpisodeStructure, format: PodcastFormat): number {
   return (
@@ -213,24 +207,6 @@ export interface PodcastPlan {
   budget_chars: number;
   /** Most stories the budget can carry in this format. */
   max_stories: number;
-}
-
-/** Parse the request JSON from the command line. The message names every field that is wrong. */
-export function parseRequest(raw: string): PodcastRequest {
-  let json: unknown;
-  try {
-    json = JSON.parse(raw);
-  } catch {
-    throw new InvalidRequestError("The request is not valid JSON.");
-  }
-  const parsed = PodcastRequest.safeParse(json);
-  if (!parsed.success) {
-    const problems = parsed.error.issues
-      .slice(0, 6)
-      .map((issue) => `${issue.path.join(".") || "(request)"}: ${issue.message}`);
-    throw new InvalidRequestError(`The request is invalid. ${problems.join("; ")}`);
-  }
-  return parsed.data;
 }
 
 export function planPodcast(request: PodcastRequest): PodcastPlan {

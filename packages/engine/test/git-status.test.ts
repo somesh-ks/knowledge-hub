@@ -1,8 +1,6 @@
 import { rm } from "node:fs/promises";
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
-import type { GhRunner } from "../src/git/status.js";
-import { hasRunInProgress, isBehindRemote, isTreeClean } from "../src/git/status.js";
-import { must } from "./audio-fixtures.js";
+import { isBehindRemote, isTreeClean } from "../src/git/status.js";
 import type { RepoPair } from "./git-testRepo.js";
 import { commitAll, createRepoPair, git, put, spyRunner } from "./git-testRepo.js";
 
@@ -121,91 +119,5 @@ describe("isBehindRemote", () => {
   it("throws when the remote cannot be reached, since staleness must not read as up to date", async () => {
     git(pair.a, "remote", "set-url", "origin", `${pair.remote}-gone`);
     await expect(isBehindRemote(pair.a)).rejects.toThrow(/fetch failed/);
-  });
-});
-
-describe("hasRunInProgress", () => {
-  const answer =
-    (...statuses: string[]): GhRunner =>
-    async () => ({
-      code: 0,
-      stdout: JSON.stringify(statuses.map((status) => ({ status }))),
-      stderr: "",
-    });
-
-  it("is true while a run is in progress", async () => {
-    expect(await hasRunInProgress(answer("completed", "in_progress"))).toBe(true);
-  });
-
-  it.each(["queued", "waiting", "pending", "requested"])(
-    "is true for a %s run, which will start soon",
-    async (status) => {
-      expect(await hasRunInProgress(answer(status))).toBe(true);
-    },
-  );
-
-  it("is false when every run has completed", async () => {
-    expect(await hasRunInProgress(answer("completed", "completed"))).toBe(false);
-  });
-
-  it("is false when there are no runs", async () => {
-    expect(await hasRunInProgress(answer())).toBe(false);
-  });
-
-  it("is false for empty output", async () => {
-    expect(await hasRunInProgress(async () => ({ code: 0, stdout: "", stderr: "" }))).toBe(false);
-  });
-
-  it("asks gh for the run workflow's runs as JSON", async () => {
-    const seen: (readonly string[])[] = [];
-    await hasRunInProgress(async (args) => {
-      seen.push(args);
-      return { code: 0, stdout: "[]", stderr: "" };
-    });
-    expect(must(seen[0])).toEqual([
-      "run",
-      "list",
-      "--workflow",
-      "run.yml",
-      "--limit",
-      "20",
-      "--json",
-      "status",
-    ]);
-  });
-
-  it("passes a custom workflow and repository through", async () => {
-    const seen: (readonly string[])[] = [];
-    await hasRunInProgress(
-      async (args) => {
-        seen.push(args);
-        return { code: 0, stdout: "[]", stderr: "" };
-      },
-      { workflow: "other.yml", repo: "owner/name" },
-    );
-    expect(must(seen[0])).toEqual([
-      "run",
-      "list",
-      "--workflow",
-      "other.yml",
-      "--limit",
-      "20",
-      "--json",
-      "status",
-      "--repo",
-      "owner/name",
-    ]);
-  });
-
-  it("throws when gh fails, so an unknown answer is never read as idle", async () => {
-    await expect(
-      hasRunInProgress(async () => ({ code: 4, stdout: "", stderr: "gh: not logged in" })),
-    ).rejects.toThrow(/gh run list failed \(exit 4\): gh: not logged in/);
-  });
-
-  it("throws on output that is not a run list", async () => {
-    await expect(
-      hasRunInProgress(async () => ({ code: 0, stdout: '{"oops":true}', stderr: "" })),
-    ).rejects.toThrow();
   });
 });

@@ -176,15 +176,6 @@ export function findViolations(
   return [...offending];
 }
 
-/** Throw a GuardViolationError listing every path outside the allowlist. */
-export function assertPathsAllowed(
-  changed: readonly (ChangedPath | string)[],
-  allowlist: readonly string[],
-): void {
-  const offending = findViolations(changed, allowlist);
-  if (offending.length > 0) throw new GuardViolationError(offending, allowlist);
-}
-
 function isMarkdownDigest(path: string): boolean {
   return path.startsWith("Digests/") && path.endsWith(".md");
 }

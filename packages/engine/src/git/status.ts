@@ -74,33 +74,4 @@ export interface RunInProgressOptions {
   repo?: string;
 }
 
-const RunList = z.array(z.object({ status: z.string() }));
-
-/**
- * True when a run of the pipeline workflow has not finished (queued, waiting or in progress), so a
- * local writer should stand down. Throws when `gh` fails: "unknown" must not read as "idle".
- */
-export async function hasRunInProgress(
-  gh: GhRunner,
-  options: RunInProgressOptions = {},
-): Promise<boolean> {
-  const args = [
-    "run",
-    "list",
-    "--workflow",
-    options.workflow ?? "run.yml",
-    "--limit",
-    "20",
-    "--json",
-    "status",
-    ...(options.repo ? ["--repo", options.repo] : []),
-  ];
-  const result = await gh(args);
-  if (result.code !== 0) {
-    throw new Error(
-      `gh run list failed (exit ${result.code}): ${result.stderr.trim() || result.stdout.trim()}`,
-    );
-  }
-  const runs = RunList.parse(JSON.parse(result.stdout === "" ? "[]" : result.stdout));
-  return runs.some((run) => run.status !== "completed");
-}
+const _RunList = z.array(z.object({ status: z.string() }));
