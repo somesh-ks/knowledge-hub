@@ -26,6 +26,11 @@ export function scheduleOp(was: FieldValues, now: FieldValues): ConfigOp | null 
   for (const [key, value] of Object.entries(now)) {
     if (was[key] === value) continue;
     const [profile = "", field = ""] = key.split(".");
+    // The time zone is one setting of the schedule, whichever profile shows it.
+    if (field === "timezone") {
+      top.timezone = value;
+      continue;
+    }
     const name = names[field] ?? field;
     const number = ["hour", "day", "cadence", "length"].includes(field);
     const parsed = number

@@ -116,12 +116,7 @@ test.describe("the profile pages", () => {
     // Nothing is saved in the fixtures, so the defaults show.
     await expect(page.locator("#daily-hour")).toHaveValue("7");
     await expect(page.locator("#daily-hour option:checked")).toHaveText("07:00");
-    // Every schedule counts in Stockholm time, so the Time row says so and no zone can be chosen.
-    await expect(page.getByLabel("Time", { exact: true })).toHaveAccessibleDescription(
-      "Stockholm time",
-    );
-    await expect(page.getByText("Time zone")).toHaveCount(0);
-    await expect(page.locator("[data-f$='.timezone']")).toHaveCount(0);
+    await expect(page.locator("#daily-timezone")).toHaveValue("Europe/Stockholm");
     await expect(page.locator("#daily-cadence")).toHaveValue("2");
     await expect(page.getByRole("radio", { name: "10 min", exact: true })).toBeChecked();
     // A briefing is read from its digest in one voice: no Format and no second voice to choose.
@@ -430,6 +425,26 @@ test.describe("saved, before the build", () => {
     // The Weekly page was not changed and says nothing.
     await open(page, "weekly");
     await expect(note(page)).toHaveCount(0);
+  });
+
+  // The zone was saved and nothing read it (D89); filed under weekly, the server dropped it.
+  test("a time zone chosen on Weekly is sent as the schedule's zone and shows on both pages after a reload", async ({
+    page,
+  }) => {
+    await page.clock.install();
+    const sent = await mockConfig(page);
+    await open(page, "weekly");
+    await page.locator("#weekly-timezone").selectOption("America/New_York");
+    await page.clock.runFor(GAP_MS);
+    await expect
+      .poll(() => scheduleSent(sent))
+      .toEqual({ op: "schedule.set", timezone: "America/New_York" });
+
+    await page.reload();
+    await open(page, "weekly");
+    await expect(page.locator("#weekly-timezone")).toHaveValue("America/New_York");
+    await open(page, "daily");
+    await expect(page.locator("#daily-timezone")).toHaveValue("America/New_York");
   });
 
   test("the index, the Topics list and Daily say what was saved on the other pages", async ({

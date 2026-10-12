@@ -38,6 +38,7 @@ const PAGES = {
     title: "Daily",
     note: schedule.next,
     values: {
+      timezone: schedule.timezone,
       hour: schedule.hour,
       cadenceDays: schedule.cadenceDays,
       skipTopics: schedule.skipTopics,
@@ -49,6 +50,7 @@ const PAGES = {
     title: "Weekly",
     note: schedule.nextWeekly,
     values: {
+      timezone: schedule.timezone,
       enabled: schedule.weekly.enabled,
       hour: schedule.weekly.hour,
       day: schedule.weekly.day,
