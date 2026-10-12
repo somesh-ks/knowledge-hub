@@ -563,14 +563,16 @@ test.describe("a topic's page", () => {
     ]);
   });
 
-  test("the open Scope list is as wide as its options, and its value never widens the page", async ({
+  test("the open Podcasts list is as wide as its options, and its value never widens the page", async ({
     page,
   }) => {
     await setup(page);
-    await open(page, "/settings/topics/world");
-    await page.getByRole("button", { name: /^Scope/ }).click();
+    await open(page, "/settings/topics/design");
+    await page.getByRole("button", { name: /^Podcasts/ }).click();
     const list = page.getByRole("listbox");
     const box = await list.boundingBox();
+    // Never narrower than 14rem, so the options never wrap word by word.
+    expect(box?.width ?? 0).toBeGreaterThanOrEqual(224);
     // Every option, hint included, fits inside the list without breaking word by word.
     for (const label of await list.locator(".multiselect-text").all()) {
       const inner = await label.boundingBox();
