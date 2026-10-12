@@ -280,8 +280,44 @@
   font-weight: var(--font-weight-regular);
 }
 
-.create-title {
+/* The Title is a filled field, as the tonal form around it is: the container tone, round top corners,
+   and a bottom line at 3:1 (D54) that turns into a 2px accent line on focus. Scoped to Create; the
+   other sheets keep the outlined field. */
+.create-view .sheet-input.create-title {
   width: 100%;
+  border: 0;
+  border-block-end: var(--stroke-hairline) solid var(--color-border-control);
+  border-radius: var(--row-radius) var(--row-radius) var(--radius-xs) var(--radius-xs);
+  background: var(--color-surface-container);
+  transition:
+    background-color var(--duration-hover) var(--ease-hover),
+    box-shadow var(--duration-hover) var(--ease-hover);
+}
+
+@media (hover: hover) and (pointer: fine) {
+  .create-view .sheet-input.create-title:hover {
+    background: color-mix(
+      in oklch,
+      var(--color-surface-container),
+      var(--color-on-surface) var(--state-hover)
+    );
+  }
+}
+
+.create-view .sheet-input.create-title:focus,
+.create-view .sheet-input.create-title:focus-visible {
+  outline: none;
+  box-shadow: inset 0 calc(var(--stroke-ring) * -1) 0 var(--color-accent);
+}
+
+@media (forced-colors: active) {
+  .create-view .sheet-input.create-title {
+    border: var(--stroke-hairline) solid CanvasText;
+  }
+
+  .create-view .sheet-input.create-title:focus-visible {
+    outline: var(--stroke-ring) solid Highlight;
+  }
 }
 
 .create-submit {

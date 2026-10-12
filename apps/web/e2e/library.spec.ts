@@ -122,6 +122,27 @@ test.describe("the library", () => {
   });
 });
 
+for (const width of [360, 390]) {
+  test(`the shelf on Today keeps each card's facts on one line at ${width}px`, async ({
+    page,
+  }, info) => {
+    test.skip(info.project.name === "desktop", "a phone width");
+    await page.setViewportSize({ width, height: 800 });
+    await page.goto("/");
+    const lines = await page.locator(".shelf .card-facts").evaluateAll((nodes) =>
+      nodes.map((node) => ({
+        text: node.textContent,
+        lines: Math.round(
+          node.getBoundingClientRect().height /
+            Number.parseFloat(getComputedStyle(node).lineHeight),
+        ),
+      })),
+    );
+    expect(lines.length).toBeGreaterThan(0);
+    for (const line of lines) expect(line.lines, line.text ?? "").toBe(1);
+  });
+}
+
 test.describe("library search", () => {
   test("a tap or click on the search pill changes its fill; only a key draws the ring", async ({
     page,
@@ -398,13 +419,29 @@ test.describe("library fixes", () => {
     });
     await page.goto("/library");
     await ready(page);
-    const played = page.locator("[data-card][data-id='2026-10-07'] [data-card-played]");
-    await expect(played).toBeVisible();
-    await expect(played).toHaveText("Played");
-    await expect(page.locator("[data-card-played]:visible")).toHaveCount(1);
+    // Played takes the length's place in the facts line, so it never wraps onto its own line.
+    const played = page.locator("[data-card][data-id='2026-10-07'] .card-facts");
+    await expect(played).toHaveText(/ · Played$/);
+    await expect(played).not.toContainText("min");
+    await expect(page.locator(".card-facts[data-played]")).toHaveCount(1);
     await expect(
       page.locator("[data-card][data-id='2026-10-05'] [data-cover-progress]"),
     ).toBeVisible();
+    // Neither state changes the card's height: the bar lies over the cover, and every card's title
+    // starts the same distance under its cover and its facts stay one line.
+    const gaps = await page.locator("[data-card]:not([hidden])").evaluateAll((cards) =>
+      cards.map((card) => {
+        const cover = card.querySelector(".cover")?.getBoundingClientRect();
+        const title = card.querySelector(".card-title")?.getBoundingClientRect();
+        const facts = card.querySelector(".card-facts")?.getBoundingClientRect();
+        return {
+          gap: Math.round((title?.top ?? 0) - (cover?.bottom ?? 0)),
+          facts: Math.round(facts?.height ?? 0),
+        };
+      }),
+    );
+    expect(new Set(gaps.map((card) => card.gap)).size, JSON.stringify(gaps)).toBe(1);
+    expect(new Set(gaps.map((card) => card.facts)).size, JSON.stringify(gaps)).toBe(1);
   });
 
   test("a date with a day under ten finds only that day", async ({ page }) => {

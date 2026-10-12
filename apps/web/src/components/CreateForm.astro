@@ -37,6 +37,7 @@ const VOICES = [
     label: "Voice",
     caption: "First host",
     hostLabel: "First host's voice",
+    index: "a",
   },
   {
     name: "voice_b",
@@ -44,6 +45,7 @@ const VOICES = [
     label: "Second host's voice",
     caption: "Second host",
     hostLabel: "Second host's voice",
+    index: "b",
   },
 ] as const;
 // A declaration, not a generic arrow: the Astro compiler reads `<T>(` as a tag.
@@ -146,11 +148,10 @@ const COPY = {
         class="create-hint create-format-hint"
         id="create-format-hint"
         data-format-hint
-        data-readout="Read in one voice."
-        data-readout-named="Read by {a}."
-        data-discussion="Two hosts talk it through, in two voices."
-        data-discussion-named="Two hosts talk it through, voiced by {a} and {b}."
-      >{startFormat === "discussion" ? "Two hosts talk it through, in two voices." : "Read in one voice."}</p>
+        data-readout-named="Read by {a}"
+        data-discussion-named="{a} and {b}"
+        hidden
+      ></p>
     </section>
 
     {/* Everything with a sensible default, in place: one row that names the current choices and
@@ -204,7 +205,7 @@ const COPY = {
             {
               VOICES.map((voice, index) => (
                 <div class="create-voice" data-voice={voice.name} hidden={index === 1 && startFormat !== "discussion"}>
-                  <label class="create-voice-name" for={`create-${voice.name}`} data-voice-caption hidden={startFormat !== "discussion"}>{voice.caption}</label>
+                  <label class="create-voice-name" for={`create-${voice.name}`} data-voice-caption data-host={voice.index} data-unnamed={voice.caption} data-named="{name}'s voice" hidden={startFormat !== "discussion"}>{voice.caption}</label>
                   <span class="create-select">
                     <select
                       id={`create-${voice.name}`}
@@ -212,6 +213,7 @@ const COPY = {
                       data-saved={voice.saved ?? ""}
                       data-one={voice.label}
                       data-two={voice.hostLabel}
+                      data-two-named="{name}'s voice"
                       aria-label={startFormat === "discussion" ? voice.hostLabel : voice.label}
                       autocomplete="off"
                     >

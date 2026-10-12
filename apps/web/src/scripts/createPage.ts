@@ -138,32 +138,45 @@ export function installCreate(root: HTMLElement, onStart?: () => void): void {
     const data = new FormData(form);
     // A discussion has two hosts, so it takes a second voice as well as the first.
     const discussion = data.get("format") === "discussion";
+    // The voices, and the hosts' names once the voices are known (D76): a discussion's captions
+    // and labels say "Ada's voice", "Leo's voice"; before that, "First host", "Second host".
+    const first = voiceOf(form.querySelector<HTMLSelectElement>('select[name="voice"]'));
+    const second = voiceOf(form.querySelector<HTMLSelectElement>('select[name="voice_b"]'));
+    const hosts = discussion && hostNames && first && second ? hostNames(first, second) : null;
     for (const voice of voiceRows) {
       if (voice.dataset.voice === "voice_b") voice.hidden = !discussion;
-      voice
-        .querySelector<HTMLElement>("[data-voice-caption]")
-        ?.toggleAttribute("hidden", !discussion);
+      const caption = voice.querySelector<HTMLElement>("[data-voice-caption]");
+      const name = hosts ? (caption?.dataset.host === "b" ? hosts.b : hosts.a) : "";
+      if (caption) {
+        caption.toggleAttribute("hidden", !discussion);
+        const words = name
+          ? (caption.dataset.named ?? "").replace("{name}", name)
+          : (caption.dataset.unnamed ?? "");
+        if (caption.textContent !== words) caption.textContent = words;
+      }
       const select = voice.querySelector("select");
-      const label = discussion ? select?.dataset.two : select?.dataset.one;
+      const label = !discussion
+        ? select?.dataset.one
+        : name
+          ? select?.dataset.twoNamed?.replace("{name}", name)
+          : select?.dataset.two;
       if (select && label) select.setAttribute("aria-label", label);
     }
     const heading = root.querySelector<HTMLElement>("[data-voice-heading]");
     const headingText = discussion ? heading?.dataset.two : heading?.dataset.one;
     if (heading && headingText) heading.textContent = headingText;
-    // Under the format: who will be heard, by name once the voices are known.
+    // Under the format: who will be heard, by name, once the voices are known; nothing before
+    // that (the format's own name says the rest). A readout is read by the voice under its own
+    // name; a discussion's two hosts take the names the episode will be written with.
     const hint = root.querySelector<HTMLElement>("[data-format-hint]");
     if (hint) {
-      const first = voiceOf(form.querySelector<HTMLSelectElement>('select[name="voice"]'));
-      const second = voiceOf(form.querySelector<HTMLSelectElement>('select[name="voice_b"]'));
-      const named = discussion ? Boolean(first && second && hostNames) : Boolean(first);
-      // A readout is read by the voice, under its own name; a discussion's two hosts take the names
-      // the episode will be written with.
-      const hosts = discussion && hostNames ? hostNames(first, second) : null;
+      const named = discussion ? hosts !== null : Boolean(first);
       const a = hosts ? hosts.a : (first?.name ?? "");
-      const b = hosts ? hosts.b : (second?.name ?? "");
-      const key = (discussion ? "discussion" : "readout") + (named ? "Named" : "");
-      const text = (hint.dataset[key] ?? "").replace("{a}", a).replace("{b}", b);
+      const b = hosts ? hosts.b : "";
+      const key = discussion ? "discussionNamed" : "readoutNamed";
+      const text = named ? (hint.dataset[key] ?? "").replace("{a}", a).replace("{b}", b) : "";
       if (hint.textContent !== text) hint.textContent = text;
+      hint.hidden = !named;
     }
     // The More options line names what it holds.
     const values = root.querySelector<HTMLElement>("[data-more-values]");

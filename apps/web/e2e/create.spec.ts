@@ -852,7 +852,8 @@ test.describe("the Create panel's voices", () => {
     const leo = page.locator('select[name="voice_b"]');
     const hint = page.locator("[data-format-hint]");
     await expect(ada).toHaveAccessibleName("Voice");
-    await expect(hint).toHaveText("Read in one voice.");
+    // Nothing under the format until the voices can name who will be heard.
+    await expect(hint).toBeHidden();
     await expect(ada.locator("option")).toHaveText([
       "Default",
       // Each voice leads with the flag of its accent: en-US, en-US, en-GB.
@@ -868,10 +869,14 @@ test.describe("the Create panel's voices", () => {
     await expect(page.locator("#create-voice-label")).toHaveText("Voices");
     await expect(ada).toHaveAccessibleName("First host's voice");
     await expect(leo).toHaveAccessibleName("Second host's voice");
-    await expect(hint).toHaveText("Two hosts talk it through, in two voices.");
+    await expect(hint).toBeHidden();
     await ada.selectOption("voice-ada");
     await leo.selectOption("voice-leo");
-    await expect(hint).toHaveText("Two hosts talk it through, voiced by Ada and Leo.");
+    await expect(hint).toHaveText("Ada and Leo");
+    // The voices are labelled with the hosts' names (D76), in their captions and their names.
+    await expect(page.locator("[data-voice-caption]")).toHaveText(["Ada's voice", "Leo's voice"]);
+    await expect(ada).toHaveAccessibleName("Ada's voice");
+    await expect(leo).toHaveAccessibleName("Leo's voice");
     await openDialog(page);
     await confirm(page);
     await expect.poll(() => mock.bodies.length).toBe(1);
@@ -903,14 +908,12 @@ test.describe("the Create panel's voices", () => {
     await openCreate(page);
     const first = page.locator('select[name="voice"] option').first();
     await expect(first).toHaveText("\u{1F1FA}\u{1F1F8} Default (Ada)");
-    await expect(page.locator("[data-format-hint]")).toHaveText("Read by Ada.");
+    await expect(page.locator("[data-format-hint]")).toHaveText("Read by Ada");
     await segment(page, "Discussion").click();
     await expect(page.locator('select[name="voice_b"] option').first()).toHaveText(
       "\u{1F1FA}\u{1F1F8} Default (Leo)",
     );
-    await expect(page.locator("[data-format-hint]")).toHaveText(
-      "Two hosts talk it through, voiced by Ada and Leo.",
-    );
+    await expect(page.locator("[data-format-hint]")).toHaveText("Ada and Leo");
   });
 
   test("a readout sends no second voice", async ({ page }) => {

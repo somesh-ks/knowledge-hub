@@ -6,6 +6,7 @@ import {
   type CardData,
   compareCards,
   emptyCopy,
+  FACT_SEPARATOR,
   LIBRARY_FILTERS,
   LIBRARY_SORTS,
   type LibraryFilter,
@@ -307,7 +308,6 @@ function install(): void {
   function showProgress(): void {
     for (const card of cards) {
       const bar = card.element.querySelector<HTMLElement>("[data-cover-progress]");
-      const playedMark = card.element.querySelector<HTMLElement>("[data-card-played]");
       let seconds = 0;
       let played = false;
       try {
@@ -318,7 +318,21 @@ function install(): void {
       }
       const total = card.data.minutes * 60;
       const share = Number.isFinite(seconds) && total > 0 ? Math.min(seconds / total, 1) : 0;
-      if (playedMark) playedMark.hidden = !played || share > 0;
+      // Heard to the end: "Played" takes the length's place in the facts line, so it never wraps
+      // onto a line of its own. Half-heard, the bar says it.
+      if (card.facts) {
+        const rest = card.facts.dataset.rest ?? "";
+        const finished = played && share <= 0;
+        if (finished !== card.facts.hasAttribute("data-played")) {
+          card.facts.toggleAttribute("data-played", finished);
+          const parts = rest.split(FACT_SEPARATOR);
+          card.facts.textContent = finished
+            ? [...parts.slice(0, -1), card.facts.dataset.playedLabel ?? "Played"].join(
+                FACT_SEPARATOR,
+              )
+            : rest;
+        }
+      }
       if (!bar) continue;
       bar.hidden = share <= 0;
       if (share > 0) bar.style.setProperty("--progress", `${Math.round(share * 100)}%`);
