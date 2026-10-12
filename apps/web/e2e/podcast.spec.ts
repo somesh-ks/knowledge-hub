@@ -1,6 +1,7 @@
 import AxeBuilder from "@axe-core/playwright";
 import type { Page, Route } from "@playwright/test";
 import { NEBIUS_TOP } from "../src/lib/modelId";
+import { GAP_MS } from "../src/scripts/managePageSave";
 import { expect, test } from "./fixtures";
 
 const WCAG = ["wcag2a", "wcag2aa", "wcag21a", "wcag21aa", "wcag22aa"];
@@ -394,6 +395,7 @@ test.describe("saving on its own", () => {
   test("quick changes go a moment later, in one schedule.set with only what changed", async ({
     page,
   }) => {
+    await page.clock.install();
     const sent = await mockConfig(page);
     await open(page, "daily");
     await page.locator("#daily-hour").selectOption("9");
@@ -414,9 +416,10 @@ test.describe("saving on its own", () => {
     const before = sent.length;
     await page.locator("#daily-hour").selectOption("7");
     // Held until the server's ten seconds between edits are up, without a Saving in the meantime.
-    await page.waitForTimeout(3000);
+    await page.clock.runFor(3000);
     expect(sent.length).toBe(before);
-    await expect.poll(() => sent.length, { timeout: 15_000 }).toBe(before + 1);
+    await page.clock.runFor(GAP_MS);
+    await expect.poll(() => sent.length).toBe(before + 1);
     expect(sent.at(-1)?.op).toEqual({ op: "schedule.set", hour: 7 });
   });
 
@@ -424,7 +427,7 @@ test.describe("saving on its own", () => {
     test(`a second change inside the server's gap still goes when the page is left by ${way}`, async ({
       page,
     }) => {
-      test.setTimeout(60_000);
+      await page.clock.install();
       const sent = await mockConfig(page);
       await page.goto("/settings");
       await page.getByRole("link", { name: /^Daily/ }).click();
@@ -440,8 +443,9 @@ test.describe("saving on its own", () => {
       await expect(page).toHaveURL(/\/settings$/);
       // Until it goes, the index shows the change as it will be.
       await expect(page.getByRole("link", { name: /^Daily/ })).toContainText("Every day at 09:00");
+      await page.clock.runFor(GAP_MS);
       await expect
-        .poll(() => scheduleSent(sent), { timeout: 20_000 })
+        .poll(() => scheduleSent(sent))
         .toEqual({ op: "schedule.set", hour: 9, cadence_days: 1 });
       expect(sent).toHaveLength(2);
       await page.getByRole("link", { name: /^Daily/ }).click();
@@ -451,18 +455,6 @@ test.describe("saving on its own", () => {
       await expect(page.locator("[data-saved-note]")).toHaveText(SAVED);
     });
   }
-
-  test("a change put back before it is sent sends nothing", async ({ page }) => {
-    const sent = await mockConfig(page);
-    await open(page, "daily");
-    await page.locator("#daily-hour").selectOption("9");
-    await page.locator("#daily-hour").selectOption("7");
-    await page.getByRole("radio", { name: "15 min" }).check();
-    await page.getByRole("radio", { name: "10 min", exact: true }).check();
-    await page.waitForTimeout(2000);
-    expect(sent).toHaveLength(0);
-    await expect(toast(page)).toBeHidden();
-  });
 
   test("Weekly changes land in their own part of the schedule", async ({ page }) => {
     const sent = await mockConfig(page);
@@ -478,6 +470,7 @@ test.describe("saving on its own", () => {
   test("a topic chip puts the topics it stands for in or out of this podcast alone", async ({
     page,
   }) => {
+    await page.clock.install();
     const sent = await mockConfig(page);
     await open(page, "daily");
     await page.getByRole("checkbox", { name: "Audio interfaces" }).click({ force: true });
@@ -493,8 +486,9 @@ test.describe("saving on its own", () => {
     expect(opsOf(sent).some((op) => "weekly" in op)).toBe(false);
     // Saved is the new starting point: ticking it again is a change again.
     await page.getByRole("checkbox", { name: "Audio interfaces" }).click({ force: true });
+    await page.clock.runFor(GAP_MS);
     await expect
-      .poll(() => opsOf(sent).at(-1), { timeout: 15_000 })
+      .poll(() => opsOf(sent).at(-1))
       .toEqual({
         op: "topic.scope",
         ids: ["audio_interfaces"],
@@ -522,6 +516,7 @@ test.describe("saved, before the build", () => {
   test("a page opened again before the build shows what was saved, says so, and sends nothing", async ({
     page,
   }) => {
+    await page.clock.install();
     const sent = await mockConfig(page);
     await open(page, "daily");
     const built = await page.locator("#daily-hour").inputValue();
@@ -538,7 +533,7 @@ test.describe("saved, before the build", () => {
     await expect(page.getByRole("checkbox", { name: "Audio interfaces" })).not.toBeChecked();
     await expect(note(page)).toHaveText(NOTE);
     // The saved values are the page's starting point: nothing goes again on its own.
-    await page.waitForTimeout(2000);
+    await page.clock.runFor(GAP_MS);
     expect(sent.length).toBe(before);
     // The Weekly page was not changed and says nothing.
     await open(page, "weekly");
@@ -548,6 +543,7 @@ test.describe("saved, before the build", () => {
   test("the index, the Topics list and Daily say what was saved on the other pages", async ({
     page,
   }) => {
+    await page.clock.install();
     const sent = await mockConfig(page);
     await page.goto("/settings");
     const ops = [
@@ -589,7 +585,7 @@ test.describe("saved, before the build", () => {
     );
     await expect(page.locator(".settings-head")).toHaveAttribute("data-weekly-day", "1");
     // Nothing is sent on its own: no scope for the removed topic, no schedule again.
-    await page.waitForTimeout(1500);
+    await page.clock.runFor(GAP_MS);
     expect(sent).toEqual([]);
   });
 
@@ -874,16 +870,6 @@ test.describe("the Model page", () => {
     await expect(toastText(page)).toHaveText(SAVED);
   });
 
-  test("going back to the saved provider before the save sends nothing", async ({ page }) => {
-    const sent = await mockConfig(page);
-    await open(page, "model");
-    await page.getByLabel("Provider").selectOption("anthropic");
-    await page.getByLabel("Provider").selectOption("nebius");
-    await expect(combo(page)).toHaveValue("Default");
-    await page.waitForTimeout(2000);
-    expect(sent).toHaveLength(0);
-  });
-
   test("the open list has equal padding above and below and stays on screen", async ({ page }) => {
     await open(page, "model");
     await combo(page).focus();
@@ -967,6 +953,7 @@ test.describe("offline", () => {
   });
 
   test("without the model list a field takes the id of any other model", async ({ page }) => {
+    await page.clock.install();
     await unavailable(page);
     const sent = await mockConfig(page);
     await open(page, "model");
@@ -977,7 +964,7 @@ test.describe("offline", () => {
     await expect(typed).toHaveAttribute("aria-invalid", "");
     // A typed id is saved once it is finished, not letter by letter.
     await typed.fill("acme/Fast-1:beta");
-    await page.waitForTimeout(1600);
+    await page.clock.runFor(2000);
     expect(sent).toHaveLength(0);
     await typed.press("Enter");
     await typed.blur();

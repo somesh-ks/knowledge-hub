@@ -1,4 +1,5 @@
 import type { Page, Route } from "@playwright/test";
+import { GAP_MS } from "../src/scripts/managePageSave";
 import { expect, test } from "./fixtures";
 
 /**
@@ -56,7 +57,6 @@ async function openDaily(page: Page): Promise<void> {
 }
 
 test.describe("a change held in the server's gap when its page is left", () => {
-  test.setTimeout(60_000);
   // The held request is refused or cut on purpose, which the browser logs.
   test.use({ allowNetworkErrors: true });
 
@@ -64,13 +64,15 @@ test.describe("a change held in the server's gap when its page is left", () => {
     test(`Daily says it was not saved when the held request ${lost === 500 ? "is refused" : "loses the connection"}, and Retry sends it once`, async ({
       page,
     }) => {
+      await page.clock.install();
       const sent = await mockConfig(page, [202, lost]);
       await holdDailyLength(page);
       await openDaily(page);
       await expect(page.getByRole("radio", { name: "3 min" })).toBeChecked();
       await expect(note(page)).toHaveText(SAVING_NOTE);
       // The held request is answered: the page says so at once, in the toast and to a screen reader.
-      await expect.poll(() => sent.length, { timeout: 15_000 }).toBe(2);
+      await page.clock.runFor(GAP_MS);
+      await expect.poll(() => sent.length).toBe(2);
       await expect(note(page)).toHaveText(NOT_SAVED_NOTE);
       const failure =
         lost === 500 ? "Saving failed." : "The site could not be reached. Not saved yet.";
@@ -79,11 +81,12 @@ test.describe("a change held in the server's gap when its page is left", () => {
       expect(await pendingStored(page)).toBe(false);
       // Retry sends the held change, once, and the page says it is saved.
       await page.locator("[data-bar] [data-act=retry]").click();
-      await expect.poll(() => sent.length, { timeout: 15_000 }).toBe(3);
+      await page.clock.runFor(GAP_MS);
+      await expect.poll(() => sent.length).toBe(3);
       expect(ops(sent).at(-1)).toEqual({ op: "schedule.set", length_minutes: 3 });
       await expect(toastText(page)).toHaveText(SAVED);
       await expect(note(page)).toHaveText(SAVED);
-      await page.waitForTimeout(1500);
+      await page.clock.runFor(GAP_MS);
       expect(sent).toHaveLength(3);
       // A reload agrees: both changes are saved.
       await page.reload();
@@ -94,10 +97,12 @@ test.describe("a change held in the server's gap when its page is left", () => {
   }
 
   test("a refused held change is not shown as saved after a reload", async ({ page }) => {
+    await page.clock.install();
     const sent = await mockConfig(page, [202, 500]);
     await holdDailyLength(page);
     await openDaily(page);
-    await expect.poll(() => sent.length, { timeout: 15_000 }).toBe(2);
+    await page.clock.runFor(GAP_MS);
+    await expect.poll(() => sent.length).toBe(2);
     await expect(note(page)).not.toHaveText(SAVING_NOTE);
     await page.reload();
     await expect(page.locator("[data-manage]")).toHaveAttribute("data-voices", "");
@@ -106,11 +111,13 @@ test.describe("a change held in the server's gap when its page is left", () => {
   });
 
   test("Daily says Saved without a reload when the held request goes through", async ({ page }) => {
+    await page.clock.install();
     const sent = await mockConfig(page, []);
     await holdDailyLength(page);
     await openDaily(page);
     await expect(note(page)).toHaveText(SAVING_NOTE);
-    await expect.poll(() => sent.length, { timeout: 15_000 }).toBe(2);
+    await page.clock.runFor(GAP_MS);
+    await expect.poll(() => sent.length).toBe(2);
     await expect(note(page)).toHaveText(SAVED);
     await expect(page.getByRole("radio", { name: "3 min" })).toBeChecked();
     expect(await pendingStored(page)).toBe(false);
@@ -119,6 +126,7 @@ test.describe("a change held in the server's gap when its page is left", () => {
   test("the Settings index row goes back, and says so, when the held change fails", async ({
     page,
   }) => {
+    await page.clock.install();
     const sent = await mockConfig(page, [202, 500]);
     await page.goto("/settings");
     await openDaily(page);
@@ -129,7 +137,8 @@ test.describe("a change held in the server's gap when its page is left", () => {
     await page.goBack();
     const row = page.getByRole("link", { name: /^Daily/ });
     await expect(row).toContainText("Every day at 09:00");
-    await expect.poll(() => sent.length, { timeout: 15_000 }).toBe(2);
+    await page.clock.runFor(GAP_MS);
+    await expect.poll(() => sent.length).toBe(2);
     await expect(row).not.toContainText("Every day");
     await expect(row).toContainText("09:00");
     await expect(page.getByRole("alert").filter({ hasText: "not saved" })).toHaveText(
@@ -141,6 +150,7 @@ test.describe("a change held in the server's gap when its page is left", () => {
   });
 
   test("a topic's page says it was not saved, and Retry sends it once", async ({ page }) => {
+    await page.clock.install();
     const sent = await mockConfig(page, [202, 500]);
     await page.goto("/settings/topics");
     await page.locator('a.row-action[href="/settings/topics/design"]').click();
@@ -156,14 +166,16 @@ test.describe("a change held in the server's gap when its page is left", () => {
     await expect(page).toHaveURL(/\/design$/);
     await expect(page.getByRole("checkbox", { name: "Read Type and Grid" })).not.toBeChecked();
     await expect(note(page)).toHaveText(SAVING_NOTE);
-    await expect.poll(() => sent.length, { timeout: 15_000 }).toBe(2);
+    await page.clock.runFor(GAP_MS);
+    await expect.poll(() => sent.length).toBe(2);
     await expect(note(page)).toHaveText(NOT_SAVED_NOTE);
     await expect(toastText(page)).toHaveText("Saving failed.");
     await page.locator("[data-bar] [data-act=retry]").click();
-    await expect.poll(() => sent.length, { timeout: 15_000 }).toBe(3);
+    await page.clock.runFor(GAP_MS);
+    await expect.poll(() => sent.length).toBe(3);
     expect(ops(sent).at(-1)).toEqual({ op: "source.set", id: "type-and-grid", enabled: false });
     await expect(note(page)).toHaveText(SAVED);
-    await page.waitForTimeout(1500);
+    await page.clock.runFor(GAP_MS);
     expect(sent).toHaveLength(3);
   });
 });

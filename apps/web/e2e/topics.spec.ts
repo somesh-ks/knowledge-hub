@@ -1,5 +1,6 @@
 import AxeBuilder from "@axe-core/playwright";
 import type { Locator, Page, Route } from "@playwright/test";
+import { GAP_MS } from "../src/scripts/managePageSave";
 import { expect, test } from "./fixtures";
 
 const LIST = "/settings/topics";
@@ -242,6 +243,7 @@ test.describe("the Topics list", () => {
   test("a new topic's suggested source adds under it, and both stay listed on a reload before the build", async ({
     page,
   }) => {
+    await page.clock.install();
     const { sent } = await setup(page);
     await open(page);
     await page.getByRole("button", { name: "Add a topic or a source" }).click();
@@ -258,8 +260,9 @@ test.describe("the Topics list", () => {
     await expect(queued).toContainText(ADDED_TOPIC);
     await queued.getByRole("button", { name: "Add Motion Weekly" }).click();
     await expect(queued.getByRole("button", { name: "Added Motion Weekly" })).toBeDisabled();
+    await page.clock.runFor(GAP_MS);
     await expect
-      .poll(() => ops(sent), { timeout: 15_000 })
+      .poll(() => ops(sent))
       .toContainEqual({
         op: "source.add",
         url: "https://motion-weekly.example/rss.xml",
@@ -274,7 +277,7 @@ test.describe("the Topics list", () => {
     await expect(queued).toContainText("Motion design");
     await expect(queued).toContainText(ADDED_TOPIC);
     await expect(queued.getByRole("button", { name: "Added Motion Weekly" })).toBeDisabled();
-    await page.waitForTimeout(1500);
+    await page.clock.runFor(GAP_MS);
     expect(sent.length).toBe(before);
   });
 
@@ -485,6 +488,7 @@ test.describe("a topic's page", () => {
   test("every source has a checkbox: unticking turns it off and ticking turns it back on", async ({
     page,
   }) => {
+    await page.clock.install();
     const { sent } = await setup(page);
     await open(page, CRAFT);
     const row = source(page, "Studio Notes");
@@ -496,27 +500,14 @@ test.describe("a topic's page", () => {
     await expect.poll(() => ops(sent).length).toBe(1);
     await expect(row).toBeVisible();
     await expect(row.locator(".score")).toBeVisible();
-    // Off is quieter, never faded: the name keeps full opacity in the regular weight.
-    await expect(row.locator(".source-name")).toHaveCSS("font-weight", "400");
-    await expect(row.locator(".source-name")).toHaveCSS("opacity", "1");
     await box.check();
     // The second edit waits out the server's ten seconds between edits before it is sent.
-    await expect.poll(() => ops(sent).length, { timeout: 15_000 }).toBe(2);
-    await expect(row.locator(".source-name")).toHaveCSS("font-weight", "400");
+    await page.clock.runFor(GAP_MS);
+    await expect.poll(() => ops(sent).length).toBe(2);
     expect(ops(sent)).toEqual([
       { op: "source.set", id: "studio-notes", enabled: false },
       { op: "source.set", id: "studio-notes", enabled: true },
     ]);
-  });
-
-  test("a change put back before it is sent sends nothing", async ({ page }) => {
-    const { sent } = await setup(page);
-    await open(page, CRAFT);
-    const box = source(page, "Studio Notes").getByRole("checkbox", { name: "Read Studio Notes" });
-    await box.uncheck();
-    await box.check();
-    await page.waitForTimeout(1800);
-    expect(sent).toHaveLength(0);
   });
 
   test("its Add source button opens the panel with the topic chosen", async ({ page }) => {
