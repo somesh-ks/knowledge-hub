@@ -85,12 +85,3 @@ export function withModelChain(
     },
   };
 }
-
-/** Two models: the primary until it reports model-not-found, then the fallback. */
-export function withModelFailover(
-  primary: LlmClient,
-  fallback: LlmClient | null,
-  log?: Logger,
-): LlmClient {
-  return withModelChain(fallback ? [primary, fallback] : [primary], log);
-}

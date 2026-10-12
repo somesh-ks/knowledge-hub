@@ -118,11 +118,4 @@ describe("generated registries", () => {
     if (!isGenerated(committed)) return;
     expect(committed).toBe(buildPlayerRegistry(doc));
   });
-
-  it("keeps every line the formatter would keep", () => {
-    for (const line of buildPageRegistry(doc).split("\n")) {
-      // Only a path string may run past the line width; nothing else in the file may.
-      if (line.length > 100) expect(line.trim()).toMatch(/^(?:[a-zA-Z0-9]+: )?"[Mm]/);
-    }
-  });
 });

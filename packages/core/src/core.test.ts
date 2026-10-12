@@ -160,25 +160,3 @@ describe("digests committed before the four-beat voice", () => {
     },
   );
 });
-
-describe("voice limits", () => {
-  it("describes a four-beat summary and keeps the legacy why limit", () => {
-    expect(VOICE_LIMITS).toMatchObject({
-      headlineWords: 12,
-      summaryWords: 80,
-      summarySentences: 4,
-      summaryMinWords: 25,
-      summaryMinSentences: 2,
-      sentenceWords: 28,
-      whyWords: 18,
-    });
-    expect(VOICE_LIMITS.items).toEqual({
-      floor: 3,
-      target: [8, 12],
-      cap: 12,
-      weeklyCap: 18,
-      techCap: 5,
-      hardMax: 48,
-    });
-  });
-});

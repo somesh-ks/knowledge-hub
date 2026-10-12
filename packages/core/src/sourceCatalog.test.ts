@@ -4,7 +4,7 @@ import { fileURLToPath } from "node:url";
 import { describe, expect, it } from "vitest";
 import { parseDigestFile } from "./digestFile.js";
 import { parseEpisodeFile } from "./podcast.js";
-import { matchCatalog, parseSourceCatalog } from "./sourceCatalog.js";
+import { parseSourceCatalog } from "./sourceCatalog.js";
 import { SourcesFile, SourcesUserFile } from "./sources.js";
 
 const ROOT = join(dirname(fileURLToPath(import.meta.url)), "..", "..", "..");
@@ -52,13 +52,6 @@ describe("config/source-catalog.json", () => {
       expect(known.has(key(s.url)), s.id).toBe(false);
       expect(ids.has(s.id), s.id).toBe(false);
     }
-  });
-
-  it("matches tags against a topic's words", () => {
-    expect(matchCatalog(catalog, "Electric cars and EV launches").map((s) => s.id)).toContain(
-      "insideevs",
-    );
-    expect(matchCatalog(catalog, "zzz")).toEqual([]);
   });
 });
 

@@ -152,8 +152,3 @@ export const ScheduleChange = z.object({
   custom: CustomFields.partial().optional(),
 });
 export type ScheduleChange = z.infer<typeof ScheduleChange>;
-
-/** The cron expression the schedule's hour stands for, as the run workflow compares it. */
-export function scheduleCron(hour: number): string {
-  return `13 ${hour} * * *`;
-}

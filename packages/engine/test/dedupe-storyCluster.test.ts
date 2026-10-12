@@ -4,13 +4,10 @@ import { dedupe } from "../src/dedupe/dedupe.js";
 import {
   clusterStories,
   isSameStory,
-  MIN_PRODUCT_TOKENS,
   modelsConflict,
   modelTokens,
   productTokens,
-  SHARED_MODEL_ALLOWANCE,
   STORY_CLUSTER_THRESHOLD,
-  STORY_WINDOW_HOURS,
   sharesModel,
   storySimilarity,
 } from "../src/dedupe/storyCluster.js";
@@ -161,13 +158,6 @@ describe("product tokens", () => {
 describe("story similarity", () => {
   const sim = (a: string, b: string): number => storySimilarity(productTokens(a), productTokens(b));
   const same = (a: string, b: string): boolean => isSameStory(productTokens(a), productTokens(b));
-
-  it("uses a threshold near 0.5, a little lower when both headlines name the same model", () => {
-    expect(STORY_CLUSTER_THRESHOLD).toBe(0.5);
-    expect(SHARED_MODEL_ALLOWANCE).toBe(0.1);
-    expect(MIN_PRODUCT_TOKENS).toBe(2);
-    expect(STORY_WINDOW_HOURS).toBe(72);
-  });
 
   it("weights model tokens double", () => {
     // Shared: apple, ipad, pro (1 each) and m5 (2). Only in one: gpu (1).

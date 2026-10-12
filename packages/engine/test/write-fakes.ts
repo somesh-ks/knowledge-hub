@@ -4,7 +4,7 @@ import type { Logger } from "../src/context.js";
 import type { JsonRequest, JsonResult, LlmClient } from "../src/llm/types.js";
 import { createLinter, type Linter } from "../src/voice/lint.js";
 import { parseVoice, type VoiceConfig } from "../src/voice/voice.js";
-import { REPO_ROOT } from "./score-factories.js";
+import { FIXTURE_CONFIG } from "./score-factories.js";
 
 export type FakeHandler = (
   request: JsonRequest<unknown>,
@@ -82,7 +82,7 @@ export const NO_WAIT = { sleep: async () => {}, random: () => 0 };
 
 /** The real config/voice.md, parsed once. */
 export function testVoice(): VoiceConfig {
-  return parseVoice(readFileSync(join(REPO_ROOT, "config", "voice.md"), "utf8"));
+  return parseVoice(readFileSync(join(FIXTURE_CONFIG, "voice.md"), "utf8"));
 }
 
 export function testLinter(): Linter {

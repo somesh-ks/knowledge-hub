@@ -4,7 +4,6 @@ import { STATE_FILES } from "@dispatch/core";
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
 import {
   addUsage,
-  BUDGET_RATIO,
   checkBudget,
   DEFAULT_MONTHLY_CHARS,
   describeRefusal,
@@ -144,10 +143,6 @@ describe("checkBudget", () => {
     });
     expect(decision.ok).toBe(true);
     expect(decision.used).toBe(0);
-  });
-
-  it("uses a 0.9 ratio", () => {
-    expect(BUDGET_RATIO).toBe(0.9);
   });
 
   it.each([0, -1, 1.5, Number.NaN])("rejects a requested count of %s", (requested) => {

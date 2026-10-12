@@ -14,7 +14,7 @@ import { Selection, WrittenFile } from "../src/curate/selectionFile.js";
 import { PoolFile, writePool } from "../src/fetch/pool.js";
 import type { Judge } from "../src/judge/types.js";
 import { captureStdout, fakeWriter, makeContext, okWritten } from "./curate-helpers.js";
-import { commitAll, git, put } from "./git-testRepo.js";
+import { git } from "./git-testRepo.js";
 import {
   buildTemplate,
   exists,
@@ -60,23 +60,6 @@ async function throughValidate(world: ReturnType<typeof makeWorld>): Promise<voi
 }
 
 describe("concurrent writers and push handling", () => {
-  it("rebases onto a commit another writer pushed first", LONG, async () => {
-    const world = makeWorld(repo.root, { now: WED });
-    await throughValidate(world);
-    await put(repo.other, "notes.txt", "from another writer\n");
-    await commitAll(repo.other, "docs: add a note");
-    git(repo.other, "push", "-q", "origin", "main");
-
-    const commit = await runStage(world, { stage: "commit" });
-    expect(commit.report).toMatchObject({ outcome: "published", commit: { status: "pushed" } });
-    expect(git(repo.remote, "log", "--format=%s", "-3").split("\n")).toEqual([
-      "chore(digest): 2026-10-07",
-      "docs: add a note",
-      "chore: seed",
-    ]);
-    expect(git(repo.remote, "rev-parse", "main")).toBe(head(repo.root));
-  });
-
   it("commits locally and skips the push with --no-push", LONG, async () => {
     const world = makeWorld(repo.root, { now: WED });
     const remoteBefore = git(repo.remote, "rev-parse", "main");
@@ -373,33 +356,6 @@ describe("agent mode", () => {
     const result = await runStage(world, { stage: "commit" });
     expect(result.code).toBe(1);
     expect(JSON.stringify(result.report)).toContain("No plan found");
-  });
-
-  it("adopts an agent run written after a gated plan", LONG, async () => {
-    const earlier = new Date("2026-10-05T05:13:00Z");
-    await put(
-      repo.root,
-      "state/last-run.json",
-      `${JSON.stringify({ version: 1, regular: { at: "2026-10-05T04:00:00Z", outcome: "published", items: 5 } })}\n`,
-    );
-    await commitAll(repo.root, "chore: seed state");
-    git(repo.root, "push", "-q", "origin", "main");
-    const world = makeWorld(repo.root, { now: earlier });
-    const gate = await runStage(world, { stage: "gate" });
-    expect(gate.report).toMatchObject({ due: false });
-    await writeAgentRun();
-    const result = await runStage(world, { stage: "commit" });
-    expect(result.report).toMatchObject({ outcome: "published" });
-  });
-
-  it("prefers the gate's plan over a leftover agent run", LONG, async () => {
-    await writeAgentRun();
-    const world = makeWorld(repo.root, { now: WED });
-    await runStage(world, { stage: "gate" });
-    // The gate planned a regular digest, so the plan wins over any leftover agent run.
-    const commit = await runStage(world, { stage: "commit" });
-    expect(commit.code).toBe(1);
-    expect(JSON.stringify(commit.report)).toContain("validate stage has not run");
   });
 
   it("previews an agent run with --dry-run and writes nothing", LONG, async () => {

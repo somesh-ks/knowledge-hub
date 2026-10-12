@@ -143,25 +143,3 @@ export function mixOklch(from: Oklch, to: Oklch, t: number): Oklch {
 export function mixHex(from: string, to: string, t: number): string {
   return oklchToHex(mixOklch(hexToOklch(from), hexToOklch(to), t));
 }
-
-/** Per-channel multiply in sRGB, the flat stand-in for a multiply blend overlap. */
-export function multiplyHex(a: string, b: string): string {
-  const [ar, ag, ab] = hexToRgb(a);
-  const [br, bg, bb] = hexToRgb(b);
-  return rgbToHex([
-    Math.round((ar * br) / 255),
-    Math.round((ag * bg) / 255),
-    Math.round((ab * bb) / 255),
-  ]);
-}
-
-/** Per-channel screen in sRGB, used for overlaps on dark palettes. */
-export function screenHex(a: string, b: string): string {
-  const [ar, ag, ab] = hexToRgb(a);
-  const [br, bg, bb] = hexToRgb(b);
-  return rgbToHex([
-    255 - Math.round(((255 - ar) * (255 - br)) / 255),
-    255 - Math.round(((255 - ag) * (255 - bg)) / 255),
-    255 - Math.round(((255 - ab) * (255 - bb)) / 255),
-  ]);
-}

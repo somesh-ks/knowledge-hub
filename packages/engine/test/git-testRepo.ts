@@ -1,5 +1,6 @@
 import { execFileSync } from "node:child_process";
-import { mkdir, mkdtemp, rm, writeFile } from "node:fs/promises";
+import { rmSync } from "node:fs";
+import { cp, mkdir, mkdtemp, rm, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { dirname, join } from "node:path";
 import { serializeDigestFile } from "@dispatch/core";
@@ -53,9 +54,50 @@ export interface RepoPair {
   cleanup(): Promise<void>;
 }
 
-/** A bare remote with the same seed commit pushed to `main` and two clones of it. */
-export async function createRepoPair(options: { seedDigest?: boolean } = {}): Promise<RepoPair> {
+// Building a pair runs about eight git processes; each worker builds one template per kind and
+// copies it per test, which gives every test the same fresh, independent pair for a file copy.
+const templates = new Map<string, Promise<string>>();
+const templateDirs: string[] = [];
+process.once("exit", () => {
+  for (const dir of templateDirs) rmSync(dir, { recursive: true, force: true });
+});
+
+/** Build a template once per worker and key, then hand out copies of it. */
+export async function templatePair(key: string, build: () => Promise<string>): Promise<RepoPair> {
+  let template = templates.get(key);
+  if (!template) {
+    template = build().then((dir) => {
+      templateDirs.push(dir);
+      return dir;
+    });
+    templates.set(key, template);
+  }
+  return copyPair(await template);
+}
+
+/** Copy a pair's directory and point both clones at the copied remote. */
+async function copyPair(template: string): Promise<RepoPair> {
   const base = await mkdtemp(join(tmpdir(), "dispatch-git-"));
+  await cp(template, base, { recursive: true });
+  const remote = join(base, "remote.git");
+  const a = join(base, "a");
+  const b = join(base, "b");
+  git(a, "remote", "set-url", "origin", remote);
+  git(b, "remote", "set-url", "origin", remote);
+  return { remote, a, b, cleanup: () => rm(base, { recursive: true, force: true }) };
+}
+
+/** A bare remote with the same seed commit pushed to `main` and two clones of it. */
+export function createRepoPair(options: { seedDigest?: boolean } = {}): Promise<RepoPair> {
+  const seedDigest = options.seedDigest !== false;
+  return templatePair(`pair:${seedDigest}`, async () => {
+    const pair = await buildRepoPair(seedDigest);
+    return dirname(pair.remote);
+  });
+}
+
+async function buildRepoPair(seedDigest: boolean): Promise<RepoPair> {
+  const base = await mkdtemp(join(tmpdir(), "dispatch-git-tpl-"));
   const remote = join(base, "remote.git");
   const a = join(base, "a");
   const b = join(base, "b");
@@ -64,7 +106,7 @@ export async function createRepoPair(options: { seedDigest?: boolean } = {}): Pr
   // in one clone and make unrelated commits look like conflicts.
   git(base, "clone", "-q", "-c", "core.autocrlf=false", remote, a);
   git(a, "checkout", "-q", "-b", "main");
-  if (options.seedDigest !== false) {
+  if (seedDigest) {
     await put(a, SEED_DIGEST_PATH, serializeDigestFile(digestFor(SEED_DIGEST_ID)));
   }
   await put(

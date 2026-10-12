@@ -94,18 +94,3 @@ export function valueNoise(x: number, y: number, seed: number): number {
   const d = lattice(x0 + 1, y0 + 1, seed);
   return a + (b - a) * fx + (c - a) * fy + (a - b - c + d) * fx * fy;
 }
-
-/** Fractal value noise in [0, 1]: octaves of halving amplitude and doubling frequency. */
-export function fbm(x: number, y: number, seed: number, octaves = 3): number {
-  let sum = 0;
-  let amplitude = 1;
-  let total = 0;
-  let frequency = 1;
-  for (let i = 0; i < octaves; i += 1) {
-    sum += valueNoise(x * frequency, y * frequency, seed + i * 101) * amplitude;
-    total += amplitude;
-    amplitude *= 0.5;
-    frequency *= 2;
-  }
-  return sum / total;
-}

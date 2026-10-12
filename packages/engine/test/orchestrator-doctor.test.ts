@@ -1,6 +1,6 @@
 import { cp, mkdir, mkdtemp, rm, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
-import { dirname, join } from "node:path";
+import { basename, dirname, join } from "node:path";
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
 import { makeDoctorCommand } from "../src/commands/doctor.js";
 import type { GitResult, GitRunner } from "../src/git/runGit.js";
@@ -9,7 +9,7 @@ import { similarModels } from "../src/ops/doctor.js";
 import type { BlobClient } from "../src/publish/blob.js";
 import { captureStdout, makeContext } from "./curate-helpers.js";
 import { json, sourcesFile } from "./orchestrator-fixtures.js";
-import { REPO_ROOT } from "./score-factories.js";
+import { FIXTURE_CONFIG } from "./score-factories.js";
 
 const SECRETS = {
   TYPESAFE_API_KEY: "ts-secret-111111111111",
@@ -30,7 +30,7 @@ beforeEach(async () => {
   root = await mkdtemp(join(tmpdir(), "dispatch-doctor-"));
   for (const file of ["config/preferences.json", "config/voice.md"]) {
     await mkdir(dirname(join(root, file)), { recursive: true });
-    await cp(join(REPO_ROOT, file), join(root, file));
+    await cp(join(FIXTURE_CONFIG, basename(file)), join(root, file));
   }
   await writeFile(join(root, "config/sources.json"), json(sourcesFile()), "utf8");
   await writeFile(

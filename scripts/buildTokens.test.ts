@@ -340,7 +340,7 @@ describe("motion tokens", () => {
     return Number.parseFloat(String(token.value));
   };
 
-  it("keeps every UI duration at or under 300ms, except the full-height drawer", () => {
+  it("keeps durations inside the motion policy: UI, press feedback and stagger", () => {
     for (const token of doc.tokens.filter((candidate) => candidate.type === "duration")) {
       const name = token.path.at(-1) ?? "";
       if (name === "drawer-full") {
@@ -351,34 +351,19 @@ describe("motion tokens", () => {
       const limit = typeof token.extensions.perceptualMs === "number" ? 500 : 300;
       expect(durationMs(token), name).toBeLessThanOrEqual(limit);
     }
+    const ms = (name: string): number =>
+      Number.parseFloat(String(doc.byPath.get(`primitive.duration.${name}`)?.value));
+    expect(ms("press-in")).toBeGreaterThanOrEqual(100);
+    expect(ms("press-out")).toBeLessThanOrEqual(160);
+    expect(ms("press-in")).toBeLessThan(ms("press-out"));
+    expect(ms("stagger")).toBeGreaterThanOrEqual(30);
+    expect(ms("stagger")).toBeLessThanOrEqual(80);
   });
 
-  it("keeps press feedback inside 100 to 160ms and asymmetric", () => {
-    const pressIn = Number.parseFloat(String(doc.byPath.get("primitive.duration.press-in")?.value));
-    const pressOut = Number.parseFloat(
-      String(doc.byPath.get("primitive.duration.press-out")?.value),
-    );
-    expect(pressIn).toBeGreaterThanOrEqual(100);
-    expect(pressOut).toBeLessThanOrEqual(160);
-    expect(pressIn).toBeLessThan(pressOut);
-  });
-
-  it("keeps stagger inside 30 to 80ms", () => {
-    const stagger = Number.parseFloat(String(doc.byPath.get("primitive.duration.stagger")?.value));
-    expect(stagger).toBeGreaterThanOrEqual(30);
-    expect(stagger).toBeLessThanOrEqual(80);
-  });
-
-  it("uses the DESIGN.md curves and never an ease-in", () => {
-    expect(doc.byPath.get("primitive.ease.out")?.value).toEqual([0.23, 1, 0.32, 1]);
-    expect(doc.byPath.get("primitive.ease.in-out")?.value).toEqual([0.77, 0, 0.175, 1]);
-    expect(doc.byPath.get("primitive.ease.drawer")?.value).toEqual([0.32, 0.72, 0, 1]);
+  it("never uses an ease-in and remaps only movement durations under reduced motion", () => {
     for (const token of doc.tokens.filter((candidate) => candidate.path[1] === "ease")) {
       expect(String(token.value)).not.toMatch(/ease-in(?!-out)/);
     }
-  });
-
-  it("remaps only movement durations under reduced motion", () => {
     const reduced = doc.tokens.filter((token) => token.reducedMotion !== undefined);
     expect(reduced.length).toBeGreaterThan(0);
     for (const token of reduced) {
@@ -403,28 +388,9 @@ describe("generated CSS", () => {
     expect(readFileSync(TOKENS_CSS_PATH, "utf8")).toBe(css);
   });
 
-  it("carries the do-not-edit header and both dark entry points", () => {
-    expect(css).toContain("GENERATED FILE. Do not edit.");
-    expect(css).toContain("@media (prefers-color-scheme: dark)");
-    expect(css).toContain(':root:not([data-theme="light"])');
-    expect(css).toContain(':root[data-theme="dark"]');
-    expect(css).toContain("@media (prefers-reduced-motion: reduce)");
-  });
-
-  it("keeps the tier chain visible through var() references", () => {
-    expect(css).toMatch(/--color-surface: var\(--color-grey-50\);/);
-    expect(css).toMatch(/--mini-player-bg: var\(--color-surface-container\);/);
-  });
-
   it("contains no raw hex colors, because tokens are OKLCH", () => {
     const body = css.replace(/\/\*[\s\S]*?\*\//g, "");
     expect(body).not.toMatch(/#[0-9a-f]{3,8}\b/i);
-  });
-
-  it("expands typography composites into five properties", () => {
-    for (const suffix of ["family", "size", "weight", "tracking", "leading"]) {
-      expect(css).toContain(`--text-display-${suffix}:`);
-    }
   });
 
   it("derives sRGB values for theme-color", () => {

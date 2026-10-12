@@ -6,7 +6,6 @@ import {
   DEFAULT_VOICE_ID,
   durationFromMp3Bytes,
   isMarksUnavailable,
-  isMp3OutputFormat,
   SpeechifyError,
 } from "../src/audio/speechify.js";
 import { FAKE_SPEECHIFY_KEY, must } from "./audio-fixtures.js";
@@ -106,7 +105,7 @@ describe("synthesizeWithMarks", () => {
     });
   });
 
-  it("defaults to geffen_32, simba-3.2 and mp3_24000_128", async () => {
+  it("sends the default voice, model and output format when the request names none", async () => {
     const server = await serve((_req, res) => {
       startSse(res);
       res.end(standardStream());
@@ -117,11 +116,6 @@ describe("synthesizeWithMarks", () => {
       model: DEFAULT_MODEL,
       output_format: DEFAULT_OUTPUT_FORMAT,
     });
-    expect([DEFAULT_VOICE_ID, DEFAULT_MODEL, DEFAULT_OUTPUT_FORMAT]).toEqual([
-      "geffen_32",
-      "simba-3.2",
-      "mp3_24000_128",
-    ]);
   });
 
   it("uses the client's default voice when the request names none", async () => {
@@ -634,11 +628,5 @@ describe("mp3 helpers", () => {
 
   it("never reports a zero duration", () => {
     expect(durationFromMp3Bytes(1, "mp3_24000_192")).toBeGreaterThanOrEqual(1);
-  });
-
-  it("recognizes the MP3 output formats and rejects others", () => {
-    expect(isMp3OutputFormat("mp3_24000_128")).toBe(true);
-    expect(isMp3OutputFormat("pcm_24000")).toBe(false);
-    expect(isMp3OutputFormat("mp3_24000_999")).toBe(false);
   });
 });

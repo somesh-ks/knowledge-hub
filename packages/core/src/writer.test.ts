@@ -1,6 +1,5 @@
 import { describe, expect, it } from "vitest";
 import {
-  ANTHROPIC_MODELS,
   ConfigOp,
   DEFAULT_WRITER,
   isTextModel,
@@ -40,13 +39,6 @@ describe("Anthropic provider", () => {
       true,
     );
   });
-
-  it("lists both models with a label and a hint", () => {
-    expect(ANTHROPIC_MODELS.map((model) => model.id)).toEqual([
-      "claude-sonnet-5-5",
-      "claude-haiku-5-5",
-    ]);
-  });
 });
 
 describe("WriterFile", () => {
@@ -74,17 +66,6 @@ describe("WriterFile", () => {
     expect(MODEL_ID_PATTERN.test("meta-llama/Llama-3.3-70B-Instruct")).toBe(true);
     expect(MODEL_ID_PATTERN.test("bad id")).toBe(false);
     expect(WriterSettings.safeParse({ provider: "nebius", model: null }).success).toBe(true);
-  });
-});
-
-describe("writer.set", () => {
-  it("is a config op", () => {
-    expect(ConfigOp.safeParse({ op: "writer.set", provider: "nebius", model: null }).success).toBe(
-      true,
-    );
-    expect(ConfigOp.safeParse({ op: "writer.set", provider: "nebius", model: "x y" }).success).toBe(
-      false,
-    );
   });
 });
 

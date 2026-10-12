@@ -121,10 +121,6 @@ export async function uploadAudio(client: BlobClient, input: UploadAudioInput): 
   return result.url;
 }
 
-export async function deleteAudio(client: BlobClient, digestId: string): Promise<void> {
-  await client.del([audioKey(digestId)]);
-}
-
 export interface PruneResult {
   deleted: string[];
   kept: number;

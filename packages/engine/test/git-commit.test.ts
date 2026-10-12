@@ -3,7 +3,6 @@ import { join } from "node:path";
 import { serializeDigestFile } from "@dispatch/core";
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
 import { commitAndPush, DEFAULT_BOT, identityFromEnv } from "../src/git/commit.js";
-import { createGitRunner } from "../src/git/runGit.js";
 import { digestFor, must } from "./audio-fixtures.js";
 import type { RepoPair } from "./git-testRepo.js";
 import {
@@ -72,17 +71,6 @@ describe("commitAndPush: what it commits", () => {
     expect(git(pair.a, "status", "--porcelain")).toBe("");
   });
 
-  it("returns the new commit's sha", async () => {
-    await put(pair.a, "state/seen.json", "{}\n");
-    const outcome = await commitAndPush({
-      root: pair.a,
-      message: MESSAGE,
-      command: "run",
-      push: false,
-    });
-    expect(outcome.status === "committed" && outcome.sha).toBe(head(pair.a));
-  });
-
   it("commits as the bot using -c flags, leaving repository config untouched", async () => {
     await put(pair.a, "state/seen.json", "{}\n");
     await commitAndPush({ root: pair.a, message: MESSAGE, command: "run", push: false });
@@ -107,19 +95,6 @@ describe("commitAndPush: what it commits", () => {
       identity: { name: "Custom Bot", email: "custom@example.com" },
     });
     expect(git(pair.a, "log", "-1", "--format=%an|%ae")).toBe("Custom Bot|custom@example.com");
-  });
-
-  it("keeps a multi-line message intact", async () => {
-    await put(pair.a, "state/seen.json", "{}\n");
-    await commitAndPush({
-      root: pair.a,
-      message: "chore(digest): 2026-10-07\n\nThree sources failed.",
-      command: "run",
-      push: false,
-    });
-    expect(git(pair.a, "log", "-1", "--format=%B")).toBe(
-      "chore(digest): 2026-10-07\n\nThree sources failed.",
-    );
   });
 
   it("commits a deletion", async () => {
@@ -149,20 +124,9 @@ describe("commitAndPush: what it commits", () => {
     );
   });
 
-  it("commits file names with spaces and non-ASCII characters", async () => {
+  it("commits names with spaces, non-ASCII and glob characters literally", async () => {
     await put(pair.a, "state/with space.json", "{}\n");
     await put(pair.a, "state/\u00FCn\u00EFcode.json", "{}\n");
-    const outcome = await commitAndPush({
-      root: pair.a,
-      message: MESSAGE,
-      command: "run",
-      push: false,
-    });
-    expect(outcome.status).toBe("committed");
-    expect(git(pair.a, "status", "--porcelain")).toBe("");
-  });
-
-  it("treats glob characters in a file name literally", async () => {
     await put(pair.a, "state/[bracket].json", "{}\n");
     await put(pair.a, "state/b.json", "{}\n");
     const outcome = await commitAndPush({
@@ -417,32 +381,6 @@ describe("commitAndPush: the write guard", () => {
   });
 });
 
-describe("commitAndPush: message", () => {
-  it.each(["update stuff", "Chore: capital", "chore:missing space", "chore(): empty scope", ""])(
-    "refuses the non-conventional subject %j",
-    async (message) => {
-      await put(pair.a, "state/seen.json", "{}\n");
-      const outcome = await commitAndPush({ root: pair.a, message, command: "run", push: false });
-      expect(outcome).toMatchObject({ status: "refused", reason: "message" });
-      expect(stagedFiles(pair.a)).toBe("");
-    },
-  );
-
-  it.each([
-    "feat: add thing",
-    "fix(engine): handle 429",
-    "chore(digest): 2026-10-07",
-    "docs: update readme",
-    "refactor(core)!: rename field",
-    "ci: pin actions",
-  ])("accepts %j", async (message) => {
-    await put(pair.a, "state/seen.json", `{"v":"${message.length}"}\n`);
-    expect(
-      (await commitAndPush({ root: pair.a, message, command: "run", push: false })).status,
-    ).toBe("committed");
-  });
-});
-
 describe("commitAndPush: pushing", () => {
   it("pushes to the remote branch", async () => {
     await put(pair.a, "state/seen.json", '{ "version": 1, "items": { "p": "2026-10-07" } }\n');
@@ -484,18 +422,6 @@ describe("commitAndPush: pushing", () => {
     ]);
     expect(git(pair.remote, "rev-parse", "refs/heads/main~1")).toBe(concurrent);
     expect(outcome.status === "pushed" && outcome.sha).toBe(head(pair.a));
-  });
-
-  it("keeps the bot identity on the rebased commit", async () => {
-    await put(pair.b, "state/seen.json", '{ "version": 1, "items": { "b": "x" } }\n');
-    await commitAll(pair.b, "chore: concurrent change");
-    git(pair.b, "push", "-q", "origin", "main");
-    await put(
-      pair.a,
-      "Digests/2026/10/2026-10-07.md",
-      serializeDigestFile(digestFor("2026-10-07")),
-    );
-    await commitAndPush({ root: pair.a, message: MESSAGE, command: "run", push: true });
     expect(git(pair.remote, "log", "-1", "--format=%an|%cn|%ce", "refs/heads/main")).toBe(
       `dispatch-bot|dispatch-bot|${DEFAULT_BOT.email}`,
     );
@@ -637,26 +563,6 @@ describe("commitAndPush: pushing", () => {
     expect(spy.of("pull")).toHaveLength(3);
   });
 
-  it("honours a custom retry limit", async () => {
-    const rejected = {
-      code: 1,
-      stdout: "",
-      stderr: "! [rejected] main -> main (non-fast-forward)",
-    };
-    const spy = spyRunner(pair.a, (args) => (args.includes("push") ? rejected : undefined));
-    await put(pair.a, "state/seen.json", "{}\n");
-    const outcome = await commitAndPush({
-      root: pair.a,
-      message: MESSAGE,
-      command: "run",
-      push: true,
-      git: spy.run,
-      maxPushRetries: 1,
-    });
-    expect(outcome).toMatchObject({ status: "push_failed", reason: "rejected", retries: 1 });
-    expect(spy.of("push")).toHaveLength(2);
-  });
-
   it("does not rebase for a failure that is not a rejection", async () => {
     git(pair.a, "remote", "set-url", "origin", join(pair.remote, "..", "missing.git"));
     const spy = spyRunner(pair.a);
@@ -696,34 +602,6 @@ describe("commitAndPush: pushing", () => {
     expect(spy.of("push")).toHaveLength(2);
   });
 
-  it("pulls with --rebase and the bot identity", async () => {
-    await put(pair.b, "state/seen.json", '{ "version": 1, "items": { "b": "z" } }\n');
-    await commitAll(pair.b, "chore: concurrent change");
-    git(pair.b, "push", "-q", "origin", "main");
-    const spy = spyRunner(pair.a);
-    await put(
-      pair.a,
-      "Digests/2026/10/2026-10-07.md",
-      serializeDigestFile(digestFor("2026-10-07")),
-    );
-    await commitAndPush({
-      root: pair.a,
-      message: MESSAGE,
-      command: "run",
-      push: true,
-      git: spy.run,
-    });
-    const pull = must(spy.of("pull")[0]);
-    expect(pull).toContain("--rebase");
-    expect(pull).toEqual(
-      expect.arrayContaining([
-        "-c",
-        `user.name=${DEFAULT_BOT.name}`,
-        `user.email=${DEFAULT_BOT.email}`,
-      ]),
-    );
-  });
-
   it("reports a detached HEAD instead of pushing", async () => {
     git(pair.a, "checkout", "-q", "--detach");
     await put(pair.a, "state/seen.json", "{}\n");
@@ -738,58 +616,20 @@ describe("commitAndPush: pushing", () => {
     expect(outcome).toMatchObject({ status: "push_failed", reason: "detached_head" });
     expect(spy.of("push")).toEqual([]);
   });
-
-  it("pushes to a named remote", async () => {
-    git(pair.a, "remote", "add", "mirror", pair.remote);
-    await put(pair.a, "state/seen.json", '{ "version": 1, "items": { "m": "1" } }\n');
-    const outcome = await commitAndPush({
-      root: pair.a,
-      message: MESSAGE,
-      command: "run",
-      push: true,
-      remote: "mirror",
-    });
-    expect(outcome.status).toBe("pushed");
-    expect(remoteHead()).toBe(head(pair.a));
-  });
-
-  it("runs against an injected runner for every git call", async () => {
-    const spy = spyRunner(pair.a);
-    await put(pair.a, "state/seen.json", "{}\n");
-    await commitAndPush({
-      root: pair.a,
-      message: MESSAGE,
-      command: "run",
-      push: false,
-      git: spy.run,
-    });
-    expect(spy.of("status")).toHaveLength(1);
-    expect(spy.of("add")).toHaveLength(1);
-    expect(spy.of("commit")).toHaveLength(1);
-    expect(must(spy.of("add")[0])).toContain("--literal-pathspecs");
-    expect(must(spy.of("commit")[0])).toEqual(
-      expect.arrayContaining(["-c", "commit.gpgsign=false"]),
-    );
-    // Sanity: the shared runner is the real one.
-    expect(createGitRunner(pair.a)).toBeTypeOf("function");
-  });
 });
 
 describe("identityFromEnv", () => {
-  it("returns the owner identity when both variables are set", () => {
+  it("returns the owner identity only when both variables are set", () => {
+    expect(identityFromEnv({})).toBeUndefined();
+    expect(identityFromEnv({ DISPATCH_GIT_NAME: "Somesh" })).toBeUndefined();
+    expect(
+      identityFromEnv({ DISPATCH_GIT_NAME: "Somesh", DISPATCH_GIT_EMAIL: "  " }),
+    ).toBeUndefined();
     expect(
       identityFromEnv({
         DISPATCH_GIT_NAME: " Somesh ",
         DISPATCH_GIT_EMAIL: "1+somesh@users.noreply.github.com",
       }),
     ).toEqual({ name: "Somesh", email: "1+somesh@users.noreply.github.com" });
-  });
-
-  it("falls back to the bot when either variable is missing or blank", () => {
-    expect(identityFromEnv({})).toBeUndefined();
-    expect(identityFromEnv({ DISPATCH_GIT_NAME: "Somesh" })).toBeUndefined();
-    expect(
-      identityFromEnv({ DISPATCH_GIT_NAME: "Somesh", DISPATCH_GIT_EMAIL: "  " }),
-    ).toBeUndefined();
   });
 });

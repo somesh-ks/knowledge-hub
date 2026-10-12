@@ -429,64 +429,54 @@ describe("toSpeech", () => {
     expect(toSpeech(input)).toBe(expected);
   });
 
-  it("strips markdown and URLs but keeps link labels", () => {
-    expect(toSpeech("# Title\n- a **bold** [link](https://x.example/p) and `code`")).toBe(
+  it.each([
+    [
+      "markdown, keeping link labels",
+      "# Title\n- a **bold** [link](https://x.example/p) and `code`",
       "Title a bold link and code",
-    );
-    expect(toSpeech("Visit www.example.com now")).toBe("Visit now");
-    expect(toSpeech("Read ![diagram](https://x.example/d.png) first")).toBe("Read diagram first");
-  });
-
-  it("removes emoji and variation selectors", () => {
-    expect(toSpeech("Shipped \u{1F680} today \u2764\uFE0F")).toBe("Shipped today");
-  });
-
-  it("turns dashes into a comma pause and arrows into 'to'", () => {
-    expect(toSpeech("Fast \u2014 and light")).toBe("Fast, and light");
-    expect(toSpeech("A \u2013 B")).toBe("A, B");
-    expect(toSpeech("input -> output")).toBe("input to output");
-    expect(toSpeech("input \u2192 output")).toBe("input to output");
-  });
-
-  it("reads an en dash between numbers as a range, not a pause", () => {
-    expect(toSpeech("$5\u201310M in 2020\u20132024")).toBe("$5 to 10M in 2020 to 2024");
-    expect(toSpeech("10M \u2013 $20M")).toBe("10M to $20M");
-    expect(toSpeech("5 \u2013 10 items")).toBe("5 to 10 items");
-  });
-
-  it("drops a dash that follows a full stop instead of leaving '.,'", () => {
-    expect(toSpeech("It shipped. \u2014 Next up")).toBe("It shipped. Next up");
-    expect(toSpeech("Really? \u2013 Yes")).toBe("Really? Yes");
-  });
-
-  it("decodes the HTML entities a feed may leave in a field", () => {
-    expect(toSpeech("a &lt; b &amp;&amp; c &gt; d")).toBe("a less than b and and c greater than d");
-    expect(toSpeech("one&nbsp;two")).toBe("one two");
-  });
-
-  it("keeps a leading comparison instead of treating it as a quote marker", () => {
-    expect(toSpeech("> $1B raised")).toBe("greater than $1B raised");
-  });
-
-  it("removes a URL without swallowing the parenthesis that closes it", () => {
-    expect(toSpeech("(see https://x.example/a) sharply")).toBe("(see) sharply");
-    expect(toSpeech("Docs at https://x.example/a, then more")).toBe("Docs at, then more");
-  });
-
-  it("folds astral letters to ASCII and drops other astral symbols", () => {
-    expect(toSpeech("\u{1D54F} launches Grok")).toBe("X launches Grok");
-    expect(toSpeech("\u{1D7D9}\u{1D7DA} items")).toBe("12 items");
-    expect(toSpeech("a \u{1F3A8} b")).toBe("a b");
+    ],
+    ["a bare URL", "Visit www.example.com now", "Visit now"],
+    [
+      "an image, keeping its label",
+      "Read ![diagram](https://x.example/d.png) first",
+      "Read diagram first",
+    ],
+    ["text that is only a URL", "https://example.com/only", ""],
+    ["a URL before a closing parenthesis", "(see https://x.example/a) sharply", "(see) sharply"],
+    ["a URL before a comma", "Docs at https://x.example/a, then more", "Docs at, then more"],
+    ["emoji and variation selectors", "Shipped \u{1F680} today \u2764\uFE0F", "Shipped today"],
+    ["an em dash as a pause", "Fast \u2014 and light", "Fast, and light"],
+    ["a spaced en dash as a pause", "A \u2013 B", "A, B"],
+    ["an ASCII arrow", "input -> output", "input to output"],
+    ["a Unicode arrow", "input \u2192 output", "input to output"],
+    [
+      "en dash ranges between numbers",
+      "$5\u201310M in 2020\u20132024",
+      "$5 to 10M in 2020 to 2024",
+    ],
+    ["a spaced en dash range", "10M \u2013 $20M", "10M to $20M"],
+    ["a spaced en dash between plain numbers", "5 \u2013 10 items", "5 to 10 items"],
+    ["a dash after a full stop", "It shipped. \u2014 Next up", "It shipped. Next up"],
+    ["a dash after a question mark", "Really? \u2013 Yes", "Really? Yes"],
+    ["HTML entities", "a &lt; b &amp;&amp; c &gt; d", "a less than b and and c greater than d"],
+    ["a non-breaking space entity", "one&nbsp;two", "one two"],
+    ["a leading comparison, not a quote marker", "> $1B raised", "greater than $1B raised"],
+    ["an astral letter", "\u{1D54F} launches Grok", "X launches Grok"],
+    ["astral digits", "\u{1D7D9}\u{1D7DA} items", "12 items"],
+    ["an astral symbol", "a \u{1F3A8} b", "a b"],
+    [
+      "extra whitespace and space before punctuation",
+      "  one   two \n three  ,  four ",
+      "one two three, four",
+    ],
+  ])("rewrites %s", (_name, input, expected) => {
+    expect(toSpeech(input)).toBe(expected);
   });
 
   it("spells angle brackets so the API never sees markup", () => {
     const out = toSpeech("List<string> and a < b");
     expect(out).not.toMatch(/[<>]/);
     expect(out).toContain("less than");
-  });
-
-  it("collapses whitespace and tidies spacing before punctuation", () => {
-    expect(toSpeech("  one   two \n three  ,  four ")).toBe("one two three, four");
   });
 
   it("never changes digits or the words around the rewrites", () => {
@@ -506,10 +496,6 @@ describe("toSpeech", () => {
       "Plain sentence with nothing to change.",
     ];
     for (const sample of samples) expect(toSpeech(toSpeech(sample))).toBe(toSpeech(sample));
-  });
-
-  it("returns an empty string for text that is only a URL", () => {
-    expect(toSpeech("https://example.com/only")).toBe("");
   });
 });
 

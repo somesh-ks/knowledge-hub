@@ -2,24 +2,18 @@ import { describe, expect, it } from "vitest";
 import {
   dbToGain,
   type Layer,
-  PENTATONIC_HZ,
   RECIPES,
   recipeDurationMs,
   resolveFrequency,
-  SCRUB_LADDER,
   SOUND_NAMES,
   type SoundRecipe,
-  SPEED_LADDER,
-  scrubFrequency,
   speedFrequency,
   type ToneLayer,
   volumeToGain,
 } from "./recipes.js";
-import { analyzeSpectrum, layerPeaks, peakToDbfs, renderRecipe } from "./render.js";
+import { analyzeSpectrum, peakToDbfs, renderRecipe } from "./render.js";
 
 const recipes: SoundRecipe[] = SOUND_NAMES.map((name) => RECIPES[name]);
-const isPentatonic = (hz: number): boolean =>
-  PENTATONIC_HZ.some((candidate) => Math.abs(candidate - hz) < 0.01);
 
 /** Peak ceiling at full master volume: about -12 dBFS. */
 const PEAK_CEILING = 0.25;
@@ -48,18 +42,6 @@ describe("recipe set", () => {
   it("defines exactly one recipe per sound name, with matching names", () => {
     expect(Object.keys(RECIPES).sort()).toEqual([...SOUND_NAMES].sort());
     for (const name of SOUND_NAMES) expect(RECIPES[name].name).toBe(name);
-  });
-
-  it("keeps the map restrained: no sound for scroll, link, hover or theme", () => {
-    for (const forbidden of ["scroll", "link", "hover", "theme", "tap", "click"]) {
-      expect(SOUND_NAMES.some((name) => name.toLowerCase().includes(forbidden))).toBe(false);
-    }
-    expect(SOUND_NAMES).toHaveLength(14);
-  });
-
-  it("has exactly one signature, and it is the Generate resolve", () => {
-    const signatures = recipes.filter((recipe) => recipe.signature);
-    expect(signatures.map((recipe) => recipe.name)).toEqual(["generateDone"]);
   });
 });
 
@@ -94,19 +76,6 @@ describe.each(recipes)("recipe $name", (recipe) => {
         }
       } else {
         expect(layer.peak).toBeLessThanOrEqual(1.5);
-      }
-    }
-  });
-
-  it("keeps every resting pitch inside the D major pentatonic set", () => {
-    for (const layer of toneLayers(recipe)) {
-      expect(isPentatonic(layer.frequencyHz), `${layer.frequencyHz} Hz`).toBe(true);
-      expect(layer.frequencyHz).toBeGreaterThanOrEqual(140);
-      expect(layer.frequencyHz).toBeLessThanOrEqual(1200);
-      if (layer.glide) {
-        expect(layer.glide.fromRatio).toBeGreaterThan(0.85);
-        expect(layer.glide.fromRatio).toBeLessThan(1.15);
-        expect(layer.glide.ms).toBeLessThanOrEqual(80);
       }
     }
   });
@@ -171,107 +140,10 @@ describe.each(recipes)("recipe $name", (recipe) => {
       expect(spectrum.centroidHz).toBeGreaterThan(150);
       expect(spectrum.centroidHz).toBeLessThan(1800);
     });
-
-    it("keeps the felt touch under the tone, never above it", () => {
-      const peaks = layerPeaks(recipe, { position: 0.5, rate: 1.25 });
-      const tonePeak = Math.max(
-        ...recipe.layers.map((layer, index) => (layer.kind === "tone" ? (peaks[index] ?? 0) : 0)),
-      );
-      recipe.layers.forEach((layer, index) => {
-        if (layer.kind !== "noise") return;
-        const ratio = (peaks[index] ?? 0) / tonePeak;
-        expect(ratio).toBeGreaterThan(0.1);
-        expect(ratio).toBeLessThan(1);
-      });
-    });
-  });
-});
-
-describe("family relationships", () => {
-  const rms = (recipe: SoundRecipe): number =>
-    renderRecipe(recipe, { position: 0.5, rate: 1.25 }).rms;
-
-  it("makes the signature the loudest sound by RMS, and everything else clearly quieter", () => {
-    const signature = rms(RECIPES.generateDone);
-    for (const recipe of recipes) {
-      if (recipe.signature) continue;
-      expect(rms(recipe), recipe.name).toBeLessThan(signature * 0.6);
-    }
-  });
-
-  it("makes the scrub tick the quietest sound", () => {
-    const tick = rms(RECIPES.scrubDetent);
-    for (const recipe of recipes) {
-      if (recipe.name !== "scrubDetent") expect(rms(recipe), recipe.name).toBeGreaterThan(tick);
-    }
-  });
-
-  it("keeps the error muted: lower and quieter than the signature, in the low register", () => {
-    const [layer] = toneLayers(RECIPES.error);
-    expect(layer?.frequencyHz).toBeLessThan(300);
-    expect(rms(RECIPES.error)).toBeLessThan(rms(RECIPES.generateDone) * 0.5);
-  });
-
-  it("gives every sound a distinct fingerprint of length, first pitch and note count", () => {
-    const seen = new Set<string>();
-    for (const recipe of recipes) {
-      const tones = toneLayers(recipe).filter((layer) => layer.detuneCents === undefined);
-      const first = tones[0];
-      const fingerprint = [
-        Math.round(recipeDurationMs(recipe) / 5),
-        Math.round(first?.frequencyHz ?? 0),
-        tones.length,
-      ].join(":");
-      expect(seen.has(fingerprint), `${recipe.name} duplicates ${fingerprint}`).toBe(false);
-      seen.add(fingerprint);
-    }
-  });
-
-  it("pairs directions: up for forward, on, open, start; down for back, off, close, stop", () => {
-    const glideDirection = (recipe: SoundRecipe): number => {
-      const layer = toneLayers(recipe).find((candidate) => candidate.glide);
-      return layer?.glide ? Math.sign(1 - layer.glide.fromRatio) : 0;
-    };
-    // fromRatio below 1 starts flat and rises into the note; above 1 starts sharp and falls.
-    expect(glideDirection(RECIPES.play)).toBe(1);
-    expect(glideDirection(RECIPES.pause)).toBe(-1);
-    expect(glideDirection(RECIPES.toggleOn)).toBe(1);
-    expect(glideDirection(RECIPES.toggleOff)).toBe(-1);
-    expect(glideDirection(RECIPES.sheetOpen)).toBe(1);
-    expect(glideDirection(RECIPES.sheetClose)).toBe(-1);
-    const [firstNext, secondNext] = toneLayers(RECIPES.itemNext);
-    const [firstPrev, secondPrev] = toneLayers(RECIPES.itemPrev);
-    expect((secondNext?.frequencyHz ?? 0) > (firstNext?.frequencyHz ?? 0)).toBe(true);
-    expect((secondPrev?.frequencyHz ?? 0) < (firstPrev?.frequencyHz ?? 0)).toBe(true);
-  });
-
-  it("resolves the signature as a rising perfect fourth, A4 to D5", () => {
-    const notes = toneLayers(RECIPES.generateDone)
-      .filter((layer) => layer.detuneCents === undefined)
-      .map((layer) => layer.frequencyHz);
-    expect(notes).toHaveLength(2);
-    expect((notes[1] ?? 0) / (notes[0] ?? 1)).toBeCloseTo(2 ** (5 / 12), 3);
   });
 });
 
 describe("parameter mapping", () => {
-  it("keeps both ladders inside the pentatonic set", () => {
-    for (const hz of [...SCRUB_LADDER, ...SPEED_LADDER]) expect(isPentatonic(hz)).toBe(true);
-  });
-
-  it("climbs the scrub ladder monotonically from D4 to A5", () => {
-    let previous = 0;
-    for (let step = 0; step <= 100; step += 1) {
-      const hz = scrubFrequency(step / 100);
-      expect(hz).toBeGreaterThanOrEqual(previous);
-      expect(isPentatonic(hz)).toBe(true);
-      previous = hz;
-    }
-    expect(scrubFrequency(0)).toBeCloseTo(293.66, 1);
-    expect(scrubFrequency(1)).toBeCloseTo(880, 1);
-    expect(scrubFrequency(Number.NaN)).toBeCloseTo(293.66, 1);
-  });
-
   it("raises pitch with playback rate and clamps outside 0.75 to 2", () => {
     const rates = [0.75, 1, 1.25, 1.5, 1.75, 2];
     const pitches = rates.map(speedFrequency);

@@ -48,8 +48,6 @@ export interface CommitAndPushInput {
   command: GitCommand;
   push: boolean;
   identity?: BotIdentity;
-  remote?: string;
-  maxPushRetries?: number;
   /** Injected for tests; defaults to real git in `root`. */
   git?: GitRunner;
 }
@@ -139,8 +137,8 @@ export async function commitAndPush(input: CommitAndPushInput): Promise<CommitOu
   return pushWithRebase({
     run,
     identity,
-    remote: input.remote ?? "origin",
-    maxRetries: input.maxPushRetries ?? DEFAULT_PUSH_RETRIES,
+    remote: "origin",
+    maxRetries: DEFAULT_PUSH_RETRIES,
     sha,
     paths,
   });

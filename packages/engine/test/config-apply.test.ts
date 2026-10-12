@@ -189,15 +189,6 @@ describe("topic.upsert", () => {
     }
   });
 
-  it("refuses a name that is a built-in id", async () => {
-    const refused = await apply({
-      op: "topic.upsert",
-      topic: { name: "None", description: "Nothing at all." },
-    });
-    expect(refused.code).toBe(1);
-    expect(repo.errors.join("\n")).toContain("reserved");
-  });
-
   it("sets name, weight and keywords on a built-in topic, and writes the weight to the preferences", async () => {
     const { code, report } = await apply({
       op: "topic.upsert",
@@ -299,12 +290,6 @@ describe("weights.set", () => {
     expect(topics.topics.find((t) => t.id === "quantum_computing")?.weight).toBe(0.3);
     expect(topics.topics.find((t) => t.id === "taste_and_design_philosophy")?.weight).toBe(0.4);
   });
-
-  it("refuses an unknown topic and writes nothing", async () => {
-    const { code } = await apply({ op: "weights.set", weights: { nope: 0.4 } });
-    expect(code).toBe(1);
-    expect(repo.dirty()).toEqual([]);
-  });
 });
 
 describe("topic.scope", () => {
@@ -329,12 +314,6 @@ describe("topic.scope", () => {
     expect(await lists()).toEqual([[...craft, "frontier_model_releases"], [], craft]);
     result = await apply({ op: "topic.scope", ids: craft, daily: true, weekly: false });
     expect(await lists()).toEqual([["frontier_model_releases"], craft, craft]);
-  });
-
-  it("refuses an unknown topic and writes nothing", async () => {
-    const { code } = await apply({ op: "topic.scope", ids: ["nope"], daily: false });
-    expect(code).toBe(1);
-    expect(repo.dirty()).toEqual([]);
   });
 });
 
@@ -398,17 +377,6 @@ describe("schedule.set", () => {
     });
   });
 
-  it("refuses a bad voice id or weekly day and writes nothing", async () => {
-    for (const bad of [
-      { op: "schedule.set", voice_id: "not a voice" },
-      { op: "schedule.set", weekly: { day: 7 } },
-      { op: "schedule.set", custom: { format: "headlines" } },
-    ]) {
-      expect((await apply(bad)).code, JSON.stringify(bad)).toBe(1);
-    }
-    expect(repo.dirty()).toEqual([]);
-  });
-
   it("saves the podcast format and length, and keeps them when a later edit leaves them out", async () => {
     await apply({ ...SET, format: "headlines", length_minutes: 5 });
     expect(await repo.readJson("config/schedule.json")).toMatchObject({
@@ -443,19 +411,6 @@ describe("schedule.set", () => {
     });
     await apply({ op: "schedule.set", skip_topics: [] });
     expect(await repo.readJson("config/schedule.json")).toMatchObject({ skip_topics: [] });
-  });
-
-  it("refuses an unknown topic and a bad hour, and writes nothing", async () => {
-    for (const bad of [
-      { ...SET, skip_topics: ["nope"] },
-      { op: "schedule.set", weekly: { skip_topics: ["nope"] } },
-      { ...SET, hour: 24 },
-      { ...SET, cadence_days: 4 },
-    ]) {
-      const { code } = await apply(bad);
-      expect(code, JSON.stringify(bad)).toBe(1);
-    }
-    expect(repo.dirty()).toEqual([]);
   });
 
   it("accepts a topic created earlier in the same batch, and forgets it when it is removed", async () => {
@@ -500,18 +455,6 @@ describe("writer.set", () => {
     const { report } = await apply({ ...SET, model: null });
     expect(report.summary).toBe("set the writer to automatic");
     expect(await repo.readJson("config/writer.json")).toMatchObject({ model: null });
-  });
-
-  it("refuses an odd id and an unknown provider, and writes nothing", async () => {
-    for (const bad of [
-      { ...SET, model: "has space" },
-      { ...SET, model: "" },
-      { ...SET, provider: "other" },
-    ]) {
-      const { code } = await apply(bad);
-      expect(code, JSON.stringify(bad)).toBe(1);
-    }
-    expect(repo.dirty()).toEqual([]);
   });
 
   it("writes an Anthropic pick and refuses a Claude id on Nebius or a free one on Anthropic", async () => {
@@ -603,11 +546,6 @@ describe("topic.remove", () => {
       "state/source-candidates.json",
     );
     expect(Object.keys(candidates.topics)).toEqual(["other"]);
-  });
-
-  it("refuses a built-in topic and an unknown one", async () => {
-    expect((await apply({ op: "topic.remove", id: "design_engineering_craft" })).code).toBe(1);
-    expect((await apply({ op: "topic.remove", id: "missing" })).code).toBe(1);
   });
 });
 
@@ -815,6 +753,45 @@ describe("source ops", () => {
     const user = await loadUserSources(repo.root);
     expect(user.added).toEqual([]);
     expect(user.overrides["new-example"]).toBeUndefined();
+  });
+});
+
+// Every refused op exits 1 and leaves the tree as it was; one row per op and reason.
+describe("refused ops write nothing", () => {
+  const SCHEDULE = { op: "schedule.set", hour: 9, cadence_days: 3 };
+  const WRITER = {
+    op: "writer.set",
+    provider: "nebius",
+    model: "meta-llama/Llama-3.3-70B-Instruct",
+  };
+  it.each([
+    [
+      "topic.upsert with a built-in id as its name",
+      { op: "topic.upsert", topic: { name: "None", description: "Nothing at all." } },
+    ],
+    ["weights.set for an unknown topic", { op: "weights.set", weights: { nope: 0.4 } }],
+    ["topic.scope for an unknown topic", { op: "topic.scope", ids: ["nope"], daily: false }],
+    ["schedule.set with a bad voice id", { op: "schedule.set", voice_id: "not a voice" }],
+    ["schedule.set with a bad weekly day", { op: "schedule.set", weekly: { day: 7 } }],
+    [
+      "schedule.set with an incomplete custom default",
+      { op: "schedule.set", custom: { format: "headlines" } },
+    ],
+    ["schedule.set skipping an unknown topic", { ...SCHEDULE, skip_topics: ["nope"] }],
+    [
+      "schedule.set with a weekly skip of an unknown topic",
+      { op: "schedule.set", weekly: { skip_topics: ["nope"] } },
+    ],
+    ["schedule.set with hour 24", { ...SCHEDULE, hour: 24 }],
+    ["schedule.set with a cadence of 4", { ...SCHEDULE, cadence_days: 4 }],
+    ["writer.set with a spaced model id", { ...WRITER, model: "has space" }],
+    ["writer.set with an empty model id", { ...WRITER, model: "" }],
+    ["writer.set with an unknown provider", { ...WRITER, provider: "other" }],
+    ["topic.remove of a built-in topic", { op: "topic.remove", id: "design_engineering_craft" }],
+    ["topic.remove of an unknown topic", { op: "topic.remove", id: "missing" }],
+  ])("refuses %s", async (_name, op) => {
+    expect((await apply(op)).code).toBe(1);
+    expect(repo.dirty()).toEqual([]);
   });
 });
 

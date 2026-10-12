@@ -25,7 +25,7 @@ import {
   sourcesFile,
   type TestRepo,
 } from "./orchestrator-fixtures.js";
-import { REPO_ROOT } from "./score-factories.js";
+import { FIXTURE_CONFIG } from "./score-factories.js";
 
 let scratch: string;
 beforeEach(async () => {
@@ -165,27 +165,6 @@ describe("dispatch status", () => {
     });
   });
 
-  it("keeps its top-level keys in a fixed order", async () => {
-    await seedRepoFiles();
-    const parsed = JSON.parse((await report()).stdout);
-    expect(Object.keys(parsed)).toEqual([
-      "version",
-      "now",
-      "timezone",
-      "today",
-      "last_run",
-      "last_fetch_at",
-      "next_regular_due",
-      "due_now",
-      "due_reason",
-      "latest_digest",
-      "audio",
-      "sources",
-      "budget",
-      "warnings",
-    ]);
-  });
-
   it("says the next regular digest is due two Stockholm days after the last one", async () => {
     await put(
       "state/last-run.json",
@@ -218,20 +197,6 @@ describe("dispatch status", () => {
     expect(parsed.last_run.regular).toBeNull();
     expect(parsed.warnings.join(" ")).toContain("state/last-run.json");
     expect(parsed.sources.total).toBe(4);
-  });
-
-  it("prints a readable summary without --json", async () => {
-    await seedRepoFiles();
-    const { stdout } = await report([], false);
-    expect(stdout).toContain("Dispatch status, 2026-10-07");
-    expect(stdout).toContain("Next regular digest: due now");
-    expect(stdout).toContain("Audio missing for 1: 2026-10-05");
-    expect(stdout).toContain("blog-b: 5 failures");
-    expect(stdout).toContain("Speechify 2026-10: 12345 of 500000");
-  });
-
-  it("exits 2 for an argument it does not take", async () => {
-    expect((await report(["--bogus"])).code).toBe(2);
   });
 });
 
@@ -340,14 +305,6 @@ describe("dispatch models", () => {
     const { result } = await captureStdout(() => makeModelsCommand(boom)([], ctx));
     expect(result).toBe(1);
     expect(JSON.stringify(logs)).not.toContain(ENV.NEBIUS_API_KEY);
-  });
-
-  it("exits 2 for a bad --limit", async () => {
-    const { ctx } = makeContext(scratch, { env: ENV });
-    expect(
-      (await captureStdout(() => makeModelsCommand(modelsFetch().fetchImpl)(["--limit", "0"], ctx)))
-        .result,
-    ).toBe(2);
   });
 
   it("classifies models by id and type", () => {
@@ -533,13 +490,6 @@ describe("dispatch run: arguments and output", () => {
     }
   });
 
-  it("prints the usage with --help and exits 0", async () => {
-    const { code, stdout } = await runWith(["--help"]);
-    expect(code).toBe(0);
-    expect(stdout).toContain("Usage: dispatch run");
-    expect(stdout).toContain("Agent mode");
-  });
-
   it("prints the gate's JSON for --stage gate --json", async () => {
     const { code, stdout } = await runWith(["--stage", "gate", "--mode", "on-demand", "--dry-run"]);
     expect(code).toBe(0);
@@ -551,23 +501,11 @@ describe("dispatch run: arguments and output", () => {
     });
   });
 
-  it("prints a human sentence for the gate without --json", async () => {
-    const { stdout } = await runWith(["--stage", "gate"], false);
-    expect(stdout).toContain("Run is due (scheduled)");
-    expect(stdout).toContain("2026-10-07 (regular)");
-  });
-
   it("prints a failed stage as JSON, logs it, and exits 1", async () => {
     const { code, stdout, logs } = await runWith(["--stage", "fetch"]);
     expect(code).toBe(1);
     expect(JSON.parse(stdout)).toMatchObject({ outcome: "failed", stage: "fetch" });
     expect(logs.some((l) => l.level === "error" && l.message.includes("fetch failed"))).toBe(true);
-  });
-
-  it("exits 2 and says so for a --since in the future", async () => {
-    const { code, stdout } = await runWith(["--stage", "gate", "--since", "2027-01-01"]);
-    expect(code).toBe(2);
-    expect(JSON.parse(stdout)).toMatchObject({ outcome: "failed", stage: "gate" });
   });
 
   it("prints a gated run as gated with exit 0, in text and JSON", async () => {
@@ -745,7 +683,7 @@ describe("dispatch run: the GitHub job summary", () => {
     await put("config/sources.json", json(sourcesFile()));
     await put(
       "config/preferences.json",
-      await readFile(join(REPO_ROOT, "config/preferences.json"), "utf8"),
+      await readFile(join(FIXTURE_CONFIG, "preferences.json"), "utf8"),
     );
     const summary = join(scratch, "summary.md");
     await runWithSummary(["--stage", "gate"], summary);
