@@ -93,14 +93,21 @@ function dismiss(): void {
   focusCreate();
 }
 
-/** The button that was pressed is gone with the card: focus goes to the Create button in view. */
-function focusCreate(): void {
+/**
+ * The button that was pressed is gone with the card: focus goes to the Create button in view, or,
+ * on a page that shows none, to the page's main region, so it never drops to the body.
+ */
+export function focusCreate(): void {
   for (const create of document.querySelectorAll<HTMLElement>("[data-create-open]")) {
     if (create.getClientRects().length) {
       create.focus();
       return;
     }
   }
+  const main = document.querySelector<HTMLElement>("main");
+  if (!main) return;
+  if (!main.hasAttribute("tabindex")) main.setAttribute("tabindex", "-1");
+  main.focus({ preventScroll: true });
 }
 
 /** True when `href` is the page on screen. */
