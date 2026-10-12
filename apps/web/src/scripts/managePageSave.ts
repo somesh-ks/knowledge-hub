@@ -5,7 +5,7 @@
  * Nothing here is needed to read or edit a page, so it stays out of the first-load budget.
  */
 import { OPEN_PASSPHRASE, PASSPHRASE_REQUIRED } from "../lib/access";
-import { clearPendingChoice, readPendingChoice } from "../lib/pendingWriter";
+import { clearPendingChoice, readPendingChoice, writePendingChoice } from "../lib/pendingWriter";
 import { SAVED_KEY } from "../lib/savedKey";
 import { addSaved, parseSaved, withPending } from "../lib/savedOverlay";
 import type { ConfigOp, ConfigResponse } from "../types/contracts";
@@ -217,7 +217,8 @@ function heldOps(): ConfigOp[] {
 
 /**
  * Keeps a request that went through, so a settings page opened before the build shows what was
- * saved (lib/savedOverlay.ts, scripts/savedView.ts), and what the left pages' runs still hold.
+ * saved (lib/savedOverlay.ts, scripts/savedView.ts), and what the left pages' runs still hold. A
+ * writer choice among it goes to its own note (lib/pendingWriter.ts).
  */
 export function remember(
   ops: readonly ConfigOp[],
@@ -232,6 +233,9 @@ export function remember(
   } catch {
     // Storage is refused: the page shows the old value until the build, as it did before.
   }
+  // The writer's own note is written only here, once its choice went through: a refused one is
+  // never shown as saved.
+  for (const op of ops) if (op.op === "writer.set") writePendingChoice(op.provider, op.model);
 }
 
 /**

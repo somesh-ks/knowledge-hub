@@ -464,3 +464,33 @@ describe("remember", () => {
     expect(() => remember([{ op: "schedule.set", hour: 7 }])).not.toThrow();
   });
 });
+
+describe("the writer's note of a saved choice", () => {
+  afterEach(() => {
+    vi.useRealTimers();
+    vi.unstubAllGlobals();
+  });
+
+  it("is written once the choice went through, never for a refused one", async () => {
+    // Far past any request an earlier test made: no wait out of the server's gap.
+    vi.useFakeTimers();
+    vi.setSystemTime(Date.now() + 1000 * 3_600_000);
+    vi.stubGlobal("localStorage", memoryStorage());
+    vi.stubGlobal("sessionStorage", memoryStorage());
+    const answer = (status: number) =>
+      vi.fn(async () => new Response(JSON.stringify({ status }), { status }));
+    const changes = new Map([
+      ["writer", change({ op: "writer.set", provider: "anthropic", model: "claude-x" })],
+    ]);
+    const context: SaveContext = { changes, dialog: null, show: () => {} };
+    vi.stubGlobal("fetch", answer(500));
+    await flush(context, "open");
+    expect(sessionStorage.getItem(PENDING_WRITER_KEY)).toBeNull();
+    vi.stubGlobal("fetch", answer(202));
+    await flush(context, "open");
+    expect(JSON.parse(sessionStorage.getItem(PENDING_WRITER_KEY) ?? "{}")).toMatchObject({
+      provider: "anthropic",
+      model: "claude-x",
+    });
+  });
+});

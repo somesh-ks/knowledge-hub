@@ -11,8 +11,9 @@
 import type { ModelOption } from "../lib/combobox";
 import { isModelId } from "../lib/modelId";
 import { nextRunLine } from "../lib/nextRun";
-import { clearPendingChoice, readPendingChoice, writePendingChoice } from "../lib/pendingWriter";
+import { clearPendingChoice, readPendingChoice } from "../lib/pendingWriter";
 import { hasSaved } from "../lib/savedKey";
+import { heldWriter } from "../lib/savedOverlay";
 import type { Provider } from "../lib/settingsSummary";
 import type { ConfigOp } from "../types/contracts";
 import { mountAutosave } from "./autosave";
@@ -147,9 +148,11 @@ export async function mount(root: HTMLElement): Promise<void> {
 
   // An edit saved in the last few minutes is not in this page until the next build: the controls
   // show it before they are read as the starting point below, so it is not sent again.
+  let saved: ConfigOp[] = [];
   if (hasSaved()) {
     const view = await import("./savedView").catch(() => null);
-    view?.overlayPodcast(root, controls, fields());
+    saved = view?.readSaved() ?? [];
+    view?.overlayPodcast(root, controls, fields(), saved);
   }
 
   /** The topic chips: each puts the topics it stands for in or out of this podcast (topic.scope). */
@@ -234,7 +237,7 @@ export async function mount(root: HTMLElement): Promise<void> {
     });
   }
   const group = root.querySelector<HTMLElement>("[data-models]");
-  if (group) writer = await mountModel(root, group, update);
+  if (group) writer = await mountModel(root, group, update, saved);
   root.dataset.ready = "";
 }
 
@@ -246,6 +249,7 @@ async function mountModel(
   root: HTMLElement,
   group: HTMLElement,
   update: (save?: boolean) => void,
+  saved: readonly ConfigOp[],
 ): Promise<() => Pending | null> {
   const lib = await import("../lib/combobox");
   const {
@@ -271,12 +275,14 @@ async function mountModel(
   const savedModel = group.dataset.saved ? group.dataset.saved : null;
   const savedProvider: Provider = group.dataset.provider === "anthropic" ? "anthropic" : "nebius";
 
-  // The writer's own note of a choice the build has not brought yet (writePendingChoice): shown in
-  // place of the built one, and the starting point a later change is measured from.
-  let pendingChoice = readPendingChoice();
+  // A choice the build has not brought yet: one still on its way from a page left in the server's
+  // gap, else the writer's note of one saved (written once its request went through, managePageSave).
+  // Shown in place of the built one, and the starting point a later change is measured from.
+  const held = heldWriter(saved);
+  let pendingChoice = held ?? readPendingChoice();
   if (pendingChoice) {
     if (pendingChoice.provider === savedProvider && pendingChoice.model === savedModel) {
-      clearPendingChoice();
+      if (!held) clearPendingChoice();
       pendingChoice = null;
     } else {
       vendor.value = pendingChoice.provider;
@@ -411,7 +417,6 @@ async function mountModel(
     typed.value = "";
     close();
     update();
-    writePendingChoice(provider(), selected);
   };
 
   /** The options for the vendor on screen. */
@@ -451,7 +456,6 @@ async function mountModel(
     if (provider() === "nebius" && nebius === undefined) void load().then(() => update());
     refresh();
     update();
-    writePendingChoice(provider(), selected);
   });
 
   input.addEventListener("input", () => open(input.value, true));
