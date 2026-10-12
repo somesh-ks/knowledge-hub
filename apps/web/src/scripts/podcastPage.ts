@@ -252,6 +252,7 @@ async function mountModel(
     CLAUDE_OPTIONS,
     GROUP_NAMES,
     countText,
+    noMatchText,
     filterOptions,
     labelFor,
     moveIndex,
@@ -370,6 +371,7 @@ async function mountModel(
       if (option.hint) item.append(element("span", "daily-option-hint", option.hint));
       into.append(item);
     });
+    if (shown.length === 0) listbox.append(element("div", "daily-empty", noMatchText(query)));
     listbox.hidden = false;
     listbox.toggleAttribute("data-keyboard", keyboard);
     // Opens below the field, and above it when the room under it is short and the room over it is

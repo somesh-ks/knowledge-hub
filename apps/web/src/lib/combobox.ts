@@ -26,9 +26,16 @@ export interface LiveModel {
 export const AUTOMATIC: ModelOption = {
   id: "",
   label: "Default",
-  hint: "The model the engine runs by default",
+  // Which model Default stands for is the engine's to say, and the page does not know it: no hint
+  // rather than one that only repeats the label.
+  hint: "",
   group: "",
 };
+
+/** Said in the list when a filter matches nothing, so it never opens as a blank box. */
+export function noMatchText(query: string): string {
+  return `No model called \u201c${query.trim()}\u201d`;
+}
 
 /** The two Claude models, in the order they are offered. */
 export const CLAUDE_OPTIONS: readonly ModelOption[] = CLAUDE_MODELS.map((model) => ({

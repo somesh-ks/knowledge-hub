@@ -588,6 +588,21 @@ test.describe("a refused save", () => {
 });
 
 test.describe("the Model page", () => {
+  test("a filter that matches nothing says so; open, the field has no ring; a phone's list is the row's width", async ({
+    page,
+  }) => {
+    await open(page, "model");
+    await page.getByRole("button", { name: "Show all models" }).click();
+    const list = page.getByRole("listbox", { name: "Models" });
+    await expect(list).toBeVisible();
+    await expect(combo(page)).toHaveCSS("outline-style", "none");
+    const width = page.viewportSize()?.width ?? 0;
+    if (width < 640) expect((await list.boundingBox())?.width ?? 0).toBeGreaterThan(width - 48);
+    await combo(page).fill("zqx");
+    await expect(list.locator(".daily-empty")).toHaveText("No model called “zqx”");
+    expect((await list.boundingBox())?.height ?? 0).toBeGreaterThan(32);
+  });
+
   test("lists Automatic, the top models the live list has, then the rest", async ({ page }) => {
     await open(page, "model");
     await expect(combo(page)).toHaveValue("Default");

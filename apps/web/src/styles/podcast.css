@@ -413,6 +413,29 @@
   padding-inline-end: var(--space-2);
 }
 
+/* Open, the field shows its fill and no ring, as an open select does; the list's current row carries
+   the keyboard's ring. */
+.settings-row .daily-combo .manage-input[aria-expanded="true"] {
+  outline: none;
+  border-color: transparent;
+}
+
+/* A filter that matches nothing says so in the list's own type. */
+.daily-empty {
+  padding: var(--space-2) var(--space-3);
+  color: var(--color-on-surface-muted);
+  font-size: var(--font-size-body);
+}
+
+/* On a phone the list takes the row's width, from the gutter to the gutter, so a model's name and
+   its line read on one line each and more of the list shows. */
+@media (width < 40rem) {
+  .settings-row > .daily-combo .daily-listbox {
+    inset-inline: auto 0;
+    inline-size: calc(100vw - var(--layout-gutter) * 2);
+  }
+}
+
 /* The filter and the typed id are drawn like the selects: an outline on the page's own surface.
    Focus and a refused id keep their colours. */
 .daily-panel input.manage-input {
