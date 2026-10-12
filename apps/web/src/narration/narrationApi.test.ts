@@ -283,9 +283,7 @@ describe("describeNarrationFailure", () => {
 
   it("says a failed file one way, in the notice and on the bar", async () => {
     const { describeNarrationFailure } = await import("./narrationApi");
-    expect(describeNarrationFailure("failed", "briefing")?.summary).toBe(
-      "Audio could not be made",
-    );
+    expect(describeNarrationFailure("failed", "briefing")?.summary).toBe("Audio could not be made");
   });
 
   it("treats the server's 503 as passing: Try again, not a refusal that stands", async () => {
