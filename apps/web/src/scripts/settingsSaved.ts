@@ -77,9 +77,11 @@ export function overlayIndex(
   const baked: FieldValues = {
     "daily.hour": daily?.dataset.hour ?? "",
     "daily.cadence": daily?.dataset.cadence ?? "",
+    "daily.timezone": daily?.dataset.timezone ?? "",
     "weekly.enabled": weekly?.dataset.enabled ?? "",
     "weekly.day": weekly?.dataset.day ?? "",
     "weekly.hour": weekly?.dataset.hour ?? "",
+    "weekly.timezone": weekly?.dataset.timezone ?? "",
   };
   const now = { ...baked, ...savedFields(baked, ops) };
   let shown = false;
@@ -90,6 +92,7 @@ export function overlayIndex(
         dailySummary({
           hour: Number(now["daily.hour"]),
           cadenceDays: Number(now["daily.cadence"]),
+          timezone: now["daily.timezone"],
         }),
       ) || shown;
   if (weekly)
@@ -100,6 +103,7 @@ export function overlayIndex(
           enabled: now["weekly.enabled"] === "true",
           day: Number(now["weekly.day"]),
           hour: Number(now["weekly.hour"]),
+          timezone: now["weekly.timezone"],
         }),
       ) || shown;
 

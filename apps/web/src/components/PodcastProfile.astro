@@ -1,4 +1,5 @@
 ---
+import { SUPPORTED_TIMEZONES } from "@dispatch/core";
 import { FORMATS, LENGTHS } from "../lib/createForm";
 import { CADENCES, hourLabel, WEEKDAYS } from "../lib/schedule";
 import { weeklyNote } from "../lib/settingsSummary";
@@ -9,6 +10,8 @@ interface Props {
   id: "daily" | "weekly";
   /** The saved values. A field the profile has no row for is ignored. */
   values: {
+    /** The schedule's time zone, one setting both profiles show. */
+    timezone: string;
     enabled?: boolean;
     hour?: number;
     day?: number;
@@ -72,6 +75,18 @@ const VOICES = [
   <section class="podcast-section" aria-labelledby={`${id}-schedule-head`}>
     <h2 class="section-head" id={`${id}-schedule-head`}>Schedule</h2>
     <div class="rows">
+      {/* One setting for both podcasts: the cron route, the gate and the next line count on its clock. */}
+      <div class="settings-row">
+        <label class="settings-label" for={`${id}-timezone`}>Time zone</label>
+        <span class="manage-select value-select">
+          <select class="manage-input" id={`${id}-timezone`} data-f={`${id}.timezone`} autocomplete="off">
+            {SUPPORTED_TIMEZONES.map((zone) => (
+              <option value={zone.value} selected={zone.value === values.timezone}>{zone.label}</option>
+            ))}
+          </select>
+          <Icon name="chevronDown" />
+        </span>
+      </div>
       {
         id === "weekly" && (
           <div class="settings-row">
@@ -88,19 +103,9 @@ const VOICES = [
         )
       }
       <div class="settings-row">
-        <div class="settings-text">
-          <label class="settings-label" for={`${id}-hour`}>Time</label>
-          {/* Every schedule counts in Stockholm time: the cron route, the gate and the next line. */}
-          <span class="settings-hint" id={`${id}-hour-zone`}>Stockholm time</span>
-        </div>
+        <label class="settings-label" for={`${id}-hour`}>Time</label>
         <span class="manage-select value-select">
-          <select
-            class="manage-input"
-            id={`${id}-hour`}
-            data-f={`${id}.hour`}
-            aria-describedby={`${id}-hour-zone`}
-            autocomplete="off"
-          >
+          <select class="manage-input" id={`${id}-hour`} data-f={`${id}.hour`} autocomplete="off">
             {hours.map((value) => (
               <option value={value} selected={value === values.hour}>{hourLabel(value)}</option>
             ))}

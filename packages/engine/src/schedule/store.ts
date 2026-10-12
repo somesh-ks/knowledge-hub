@@ -1,6 +1,6 @@
 import { readFile } from "node:fs/promises";
 import { join } from "node:path";
-import { CONFIG_FILES, DEFAULT_SCHEDULE, ScheduleFile } from "@dispatch/core";
+import { CONFIG_FILES, DEFAULT_SCHEDULE, ScheduleFile, scheduleZone } from "@dispatch/core";
 
 export class ScheduleError extends Error {
   constructor(problems: string[]) {
@@ -38,12 +38,25 @@ export async function loadSchedule(root: string): Promise<ScheduleFile> {
   return (await loadScheduleFile(root)) ?? DEFAULT_SCHEDULE;
 }
 
+/**
+ * The time zone the schedule counts in, for a command that dates a digest outside the gate.
+ * Stockholm when the file is missing, does not parse or names a zone outside the list.
+ */
+export async function loadScheduleZone(root: string): Promise<string> {
+  try {
+    return scheduleZone((await loadScheduleFile(root))?.timezone);
+  } catch {
+    return scheduleZone(undefined);
+  }
+}
+
 /** Stable text for the file: fields in schema order, two-space indent, trailing newline. */
 export function serializeSchedule(file: ScheduleFile): string {
   const checked = ScheduleFile.parse(file);
   return `${JSON.stringify(
     {
       version: checked.version,
+      timezone: checked.timezone,
       hour: checked.hour,
       cadence_days: checked.cadence_days,
       skip_topics: checked.skip_topics,

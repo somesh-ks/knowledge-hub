@@ -38,17 +38,23 @@ const PODCAST = [
     href: "/settings/daily",
     label: "Daily",
     hint: dailySummary(schedule),
-    data: { summary: "daily", hour: schedule.hour, cadence: schedule.cadenceDays },
+    data: {
+      summary: "daily",
+      hour: schedule.hour,
+      cadence: schedule.cadenceDays,
+      timezone: schedule.timezone,
+    },
   },
   {
     href: "/settings/weekly",
     label: "Weekly",
-    hint: weeklySummary(schedule.weekly),
+    hint: weeklySummary({ ...schedule.weekly, timezone: schedule.timezone }),
     data: {
       summary: "weekly",
       enabled: String(schedule.weekly.enabled),
       day: schedule.weekly.day,
       hour: schedule.weekly.hour,
+      timezone: schedule.timezone,
     },
   },
   {

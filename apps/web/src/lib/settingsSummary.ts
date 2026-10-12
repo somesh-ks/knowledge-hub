@@ -4,6 +4,7 @@
  * DOM-free imports (as nextRun.ts), so the build writes each line into the page and the browser
  * works the same line out again from an edit saved since the build (scripts/settingsSaved.ts).
  */
+import { SUPPORTED_TIMEZONES, scheduleZone, TIME_ZONE } from "@dispatch/core/time";
 import { CLAUDE_MODELS, nebiusName } from "./modelId";
 import { hourLabel, WEEKDAYS } from "./nextRun";
 
@@ -20,19 +21,35 @@ export function plural(count: number, word: string): string {
   return `${count} ${word}${count === 1 ? "" : "s"}`;
 }
 
-/** "Every second day at 07:00". */
-export function dailySummary(input: { hour: number; cadenceDays: number }): string {
+/** " (New York)" after a time in a zone other than Stockholm, the one the owner lives in. */
+function zoneNote(timezone: string | undefined): string {
+  const zone = scheduleZone(timezone);
+  if (zone === TIME_ZONE) return "";
+  return ` (${SUPPORTED_TIMEZONES.find((option) => option.value === zone)?.label ?? zone})`;
+}
+
+/** "Every second day at 07:00", "Every second day at 09:00 (New York)". */
+export function dailySummary(input: {
+  hour: number;
+  cadenceDays: number;
+  timezone?: string;
+}): string {
   const cadence =
     CADENCES.find((entry) => entry.days === input.cadenceDays)?.label ??
     `Every ${input.cadenceDays} days`;
-  return `${cadence} at ${hourLabel(input.hour)}`;
+  return `${cadence} at ${hourLabel(input.hour)}${zoneNote(input.timezone)}`;
 }
 
-/** "Sundays at 07:00", or "Off". */
-export function weeklySummary(input: { enabled: boolean; day: number; hour: number }): string {
+/** "Sundays at 07:00", "Sundays at 07:00 (Tokyo)", or "Off". */
+export function weeklySummary(input: {
+  enabled: boolean;
+  day: number;
+  hour: number;
+  timezone?: string;
+}): string {
   const day = WEEKDAYS[input.day];
   if (!input.enabled || !day) return "Off";
-  return `${day}s at ${hourLabel(input.hour)}`;
+  return `${day}s at ${hourLabel(input.hour)}${zoneNote(input.timezone)}`;
 }
 
 /**

@@ -1,11 +1,16 @@
 import {
+  DEFAULT_SCHEDULE,
   isAnthropicModel,
+  isSupportedTimeZone,
   MODEL_ID_PATTERN,
   PODCAST_FORMATS,
   SCHEDULE_LENGTHS,
+  ScheduleFile,
+  scheduleZone,
 } from "@dispatch/core";
 import type { ConfigOp, ConfigResponse, PodcastRequest } from "../types/contracts";
 import { readServerConfig, secretsOf } from "./config";
+import { fallbackCronHour } from "./cron";
 import {
   type GenerateDeps,
   isSameOrigin,
@@ -14,6 +19,7 @@ import {
 } from "./generate";
 import {
   CONFIG_WORKFLOW_FILE,
+  createGitHubClient,
   createVariableWriter,
   createWorkflowDispatcher,
   RUN_CRON_VARIABLE,
@@ -197,6 +203,10 @@ function skipOf(value: unknown): string[] | undefined | false {
 /** A `schedule.set` rebuilt from the fields it names: any subset, and at least one. */
 function parseScheduleSet(value: Record<string, unknown>): ConfigOp | null {
   const op: ScheduleSetOp = { op: "schedule.set" };
+  if (value.timezone !== undefined) {
+    if (typeof value.timezone !== "string" || !isSupportedTimeZone(value.timezone)) return null;
+    op.timezone = value.timezone;
+  }
   if (value.hour !== undefined) {
     const hour = hourOf(value.hour);
     if (hour === null) return null;
@@ -392,12 +402,17 @@ export function parseConfigOp(value: unknown): ConfigOp | null {
  * The daily hour of the last schedule.set that names one, or null when none does. The last one wins,
  * as it does when the engine applies them in order.
  */
-function scheduledHour(op: ConfigOp | ConfigOp[]): number | null {
-  let hour: number | null = null;
+function scheduledTime(
+  op: ConfigOp | ConfigOp[],
+): { hour: number | undefined; timezone: string | undefined } | null {
+  let hour: number | undefined;
+  let timezone: string | undefined;
   for (const entry of Array.isArray(op) ? op : [op]) {
-    if (entry.op === "schedule.set" && entry.hour !== undefined) hour = entry.hour;
+    if (entry.op !== "schedule.set") continue;
+    if (entry.hour !== undefined) hour = entry.hour;
+    if (entry.timezone !== undefined) timezone = entry.timezone;
   }
-  return hour;
+  return hour === undefined && timezone === undefined ? null : { hour, timezone };
 }
 
 /**
@@ -485,8 +500,8 @@ export async function handleConfig(input: ConfigInput, deps: ConfigDeps): Promis
 
     // The hour lives in a repository variable, which run.yml compares against its schedule. A
     // token without "Variables: write" is refused; the rest of the edit is already on its way.
-    const hour = scheduledHour(request.op);
-    if (hour === null) {
+    const time = scheduledTime(request.op);
+    if (time === null) {
       return {
         status: 202,
         body: { status: 202, ...(runId !== null ? { run_id: runId } : {}) },
@@ -494,7 +509,22 @@ export async function handleConfig(input: ConfigInput, deps: ConfigDeps): Promis
     }
     let timeChanged = true;
     try {
-      await createVariableWriter(config, deps.fetch)(RUN_CRON_VARIABLE, `13 ${hour} * * *`);
+      // The edit names the hour, the zone or both; the other comes from the schedule on main. The
+      // variable is in Stockholm time (run.yml's entries are), so the hour is moved there as of now.
+      let hour = time.hour;
+      let timezone = time.timezone;
+      if (hour === undefined || timezone === undefined) {
+        const text = await createGitHubClient(config, deps.fetch).readFile(
+          "config/schedule.json",
+          "main",
+        );
+        const stored =
+          text === null ? DEFAULT_SCHEDULE : ScheduleFile.parse(JSON.parse(text) as unknown);
+        hour ??= stored.hour;
+        timezone ??= stored.timezone;
+      }
+      const runHour = fallbackCronHour(hour, scheduleZone(timezone), new Date(deps.now()));
+      await createVariableWriter(config, deps.fetch)(RUN_CRON_VARIABLE, `13 ${runHour} * * *`);
     } catch (error) {
       timeChanged = false;
       log(`run time not changed: ${describeError(error, secretsOf(config))}`);

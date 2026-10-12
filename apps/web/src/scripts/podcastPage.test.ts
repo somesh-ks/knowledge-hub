@@ -38,6 +38,15 @@ describe("scheduleOp", () => {
     });
   });
 
+  // Filed under `weekly`, the Weekly page's zone was dropped by the server as an unknown field.
+  it("sends the time zone at the top of the op from either profile", () => {
+    const zone = { "weekly.timezone": "Europe/Stockholm" };
+    expect(scheduleOp(zone, { "weekly.timezone": "Asia/Tokyo" })).toEqual({
+      op: "schedule.set",
+      timezone: "Asia/Tokyo",
+    });
+  });
+
   it("turns the default voice back into null and the cadence into days", () => {
     expect(
       scheduleOp(

@@ -4,9 +4,11 @@ import {
   EMPTY_LAST_RUN,
   LastRunFile,
   ScheduleFile,
-  stockholmDate,
+  scheduleZone,
   stockholmHour,
   weekday,
+  zonedDate,
+  zonedHour,
 } from "@dispatch/core";
 import { decideRun } from "@dispatch/engine/gate";
 import { readServerConfig, type ServerEnv, secretsOf } from "./config";
@@ -19,7 +21,7 @@ import { describeError } from "./redact";
  * GitHub has started this repository's scheduled runs hours late (the 07:13 entry ran between 13:11
  * and 14:02), so Vercel Cron calls this route once in every UTC hour (vercel.json; on the Hobby plan
  * a call lands anywhere in its hour). Each call reads config/schedule.json on main. In the
- * schedule's own hour, Stockholm time, which is the daily hour or the weekly slot's hour on its day,
+ * schedule's own hour, in its time zone, which is the daily hour or the weekly slot's hour on its day,
  * it asks the engine's gate, with state/last-run.json, whether anything is due, and only then
  * dispatches run.yml as a scheduled run. The workflow's gate decides again, so a second call in the
  * same hour, or GitHub's own late run, ends gated. A call Vercel never makes is left to that late
@@ -41,13 +43,46 @@ export interface CronDeps {
 /** Vercel asks for at least 16 characters; anything shorter is treated as not configured. */
 export const MIN_CRON_SECRET_CHARS = 16;
 
-/** Which of the schedule's hours this is, Stockholm time: the daily one first, then the weekly one. */
+const HOUR_MS = 3_600_000;
+
+/**
+ * Which of the schedule's hours this is, on the schedule's clock: the daily one first, then the
+ * weekly one. Vercel calls once in each UTC hour, anywhere in it, so the call counts when its UTC
+ * hour overlaps the schedule's hour. In a whole-hour zone that is the hour itself; in a half-hour
+ * zone (India) both UTC hours that overlap it count, so no call can miss it, and the gate keeps the
+ * second from running again.
+ */
 export function slotAt(schedule: ScheduleFile, now: Date): "daily" | "weekly" | null {
-  const hour = stockholmHour(now);
-  if (hour === schedule.hour) return "daily";
+  const zone = scheduleZone(schedule.timezone);
+  const start = Math.floor(now.getTime() / HOUR_MS) * HOUR_MS;
+  const ends = [new Date(start), new Date(start + HOUR_MS - 1)];
+  if (ends.some((at) => zonedHour(at, zone) === schedule.hour)) return "daily";
   const { weekly } = schedule;
-  const weeklyDay = weekday(stockholmDate(now)) === weekly.day;
-  return weekly.enabled && weeklyDay && weekly.hour === hour ? "weekly" : null;
+  const inWeekly = (at: Date) =>
+    weekday(zonedDate(at, zone)) === weekly.day && zonedHour(at, zone) === weekly.hour;
+  return weekly.enabled && ends.some(inWeekly) ? "weekly" : null;
+}
+
+/** The minute of the hour run.yml's fallback entries fire at (`13 <hour> * * *`). */
+const FALLBACK_MINUTE = 13;
+
+/**
+ * The Stockholm hour for RUN_CRON, run.yml's fallback: the hour whose 13th minute, Stockholm time,
+ * falls inside `hour` in `zone` today (New York 07:00 is 13:00 in Stockholm for most of the year,
+ * 12:00 in the weeks the two clock changes do not coincide). The workflow's schedule entries are
+ * in Stockholm time, so this is exact only until either zone changes its clock; the cron route
+ * above reads the zone itself and is exact all year.
+ */
+export function fallbackCronHour(hour: number, zone: string, now: Date): number {
+  const date = zonedDate(now, zone);
+  // Every listed zone is a whole or half hour from UTC, so stepping UTC hours at minute 13 visits
+  // each local hour once; start well before the local midnight and stop two days on.
+  const start = Date.parse(`${date}T00:${FALLBACK_MINUTE}:00Z`) - 15 * HOUR_MS;
+  for (let step = 0; step < 72; step += 1) {
+    const at = new Date(start + step * HOUR_MS);
+    if (zonedDate(at, zone) >= date && zonedHour(at, zone) === hour) return stockholmHour(at);
+  }
+  return hour;
 }
 
 /** Compares digests, so the time taken says nothing about the secret, even its length. */
@@ -112,6 +147,7 @@ export async function handleCron(
       force: false,
       cadenceDays: schedule.cadence_days,
       weekly: schedule.weekly,
+      zone: scheduleZone(schedule.timezone),
     });
     // The weekly slot's own hour starts only the weekly pass. Its day has no briefing at all (the
     // gate gives the day to the weekly podcast), so the daily hour that day starts nothing.

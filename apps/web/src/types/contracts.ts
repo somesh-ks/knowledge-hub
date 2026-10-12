@@ -304,7 +304,9 @@ export type ConfigOp =
   | {
       op: "schedule.set";
       /** Any subset of these; a field left out keeps what the file holds. At least one is required. */
-      /** Whole hour of Stockholm time, 0 to 23. */
+      /** IANA name of the schedule's clock, one of SUPPORTED_TIMEZONES. */
+      timezone?: string;
+      /** Whole hour in the schedule's time zone, 0 to 23. */
       hour?: number;
       /** Days between briefings: 1, 2, 3 or 7. */
       cadence_days?: 1 | 2 | 3 | 7;

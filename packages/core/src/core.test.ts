@@ -16,6 +16,8 @@ import {
   stockholmHour,
   VOICE_LIMITS,
   weekday,
+  zonedDate,
+  zonedHour,
 } from "./index.js";
 
 /** Repository root, found from this file so the test never depends on the working directory. */
@@ -65,6 +67,38 @@ describe("time", () => {
     expect(stockholmHour(new Date("2026-10-11T05:30:00Z"))).toBe(7);
     expect(stockholmHour(new Date("2026-10-26T06:30:00Z"))).toBe(7);
     expect(stockholmHour(new Date("2026-10-07T22:30:00Z"))).toBe(0);
+  });
+  // A schedule counted in Stockholm while the owner picked another zone ran at the wrong hour (D89).
+  it.each([
+    ["Stockholm, the default", "2026-10-07T22:30:00Z", undefined, "2026-10-08", 0],
+    ["New York in summer time", "2026-10-12T11:00:00Z", "America/New_York", "2026-10-12", 7],
+    [
+      "New York after the November change",
+      "2026-11-02T12:00:00Z",
+      "America/New_York",
+      "2026-11-02",
+      7,
+    ],
+    [
+      "New York after the March change",
+      "2026-03-09T11:00:00Z",
+      "America/New_York",
+      "2026-03-09",
+      7,
+    ],
+    [
+      "New York still on the day before",
+      "2026-10-12T02:00:00Z",
+      "America/New_York",
+      "2026-10-11",
+      22,
+    ],
+    ["India's half hour", "2026-10-12T02:00:00Z", "Asia/Kolkata", "2026-10-12", 7],
+    ["Auckland across the date line", "2026-10-11T20:00:00Z", "Pacific/Auckland", "2026-10-12", 9],
+    ["UTC", "2026-10-11T23:30:00Z", "UTC", "2026-10-11", 23],
+  ])("counts the date and hour in %s", (_name, at, zone, date, hour) => {
+    expect(zonedDate(new Date(at), zone)).toBe(date);
+    expect(zonedHour(new Date(at), zone)).toBe(hour);
   });
   it("counts calendar days and weekdays", () => {
     expect(daysBetween("2026-10-05", "2026-10-07")).toBe(2);

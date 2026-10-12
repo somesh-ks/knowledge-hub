@@ -6,8 +6,9 @@ import {
   type LastRunFile,
   parseDigestFile,
   type RunRecord,
+  scheduleZone,
   stockholmDate,
-  TIME_ZONE,
+  zonedDate,
 } from "@dispatch/core";
 import { BUDGET_RATIO, loadUsage } from "../audio/budget.js";
 import { decideRun } from "../gate/decideRun.js";
@@ -93,11 +94,11 @@ function addDays(date: string, days: number): string {
   return new Date(Date.parse(`${date}T00:00:00Z`) + days * 86_400_000).toISOString().slice(0, 10);
 }
 
-/** Stockholm date of the last regular run that counts toward the cadence, as the gate sees it. */
-function lastRegularDate(lastRun: LastRunFile): string | undefined {
+/** Date, in `zone`, of the last regular run that counts toward the cadence, as the gate sees it. */
+function lastRegularDate(lastRun: LastRunFile, zone: string): string | undefined {
   const record = lastRun.regular;
   if (!record || (record.outcome !== "published" && record.outcome !== "nothing")) return undefined;
-  return stockholmDate(new Date(record.at));
+  return zonedDate(new Date(record.at), zone);
 }
 
 const LATEST_CANDIDATES = 5;
@@ -145,8 +146,10 @@ export async function collectStatus(
   const lastRun = await guard<LastRunFile>("state/last-run.json", { version: 1 }, () =>
     readLastRun(root),
   );
-  const today = stockholmDate(now);
   const schedule = await guard("config/schedule.json", DEFAULT_SCHEDULE, () => loadSchedule(root));
+  // The schedule's dates are on its own clock; the speech budget's month stays on Stockholm's.
+  const zone = scheduleZone(schedule.timezone);
+  const today = zonedDate(now, zone);
   const decision = decideRun({
     now,
     mode: "scheduled",
@@ -154,8 +157,9 @@ export async function collectStatus(
     force: false,
     cadenceDays: schedule.cadence_days,
     weekly: schedule.weekly,
+    zone,
   });
-  const last = lastRegularDate(lastRun);
+  const last = lastRegularDate(lastRun, zone);
 
   const registry = await guard("config/sources.json", null, () => loadSources(root));
   const health = await guard("state/source-health.json", { version: 1 as const, sources: {} }, () =>
@@ -174,7 +178,7 @@ export async function collectStatus(
   return {
     version: 1,
     now: now.toISOString(),
-    timezone: TIME_ZONE,
+    timezone: zone,
     today,
     last_run: {
       regular: summarize(lastRun.regular),
