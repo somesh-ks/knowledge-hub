@@ -1,6 +1,12 @@
 import { describe, expect, it } from "vitest";
 import type { PlayerDigestData } from "../../types/contracts";
-import { recordingCaption, toggleLabel, transportGlyph } from "./playerCopy";
+import {
+  errorSummary,
+  noticeAction,
+  recordingCaption,
+  toggleLabel,
+  transportGlyph,
+} from "./playerCopy";
 
 const base = {
   id: "d",
@@ -51,6 +57,21 @@ describe("recordingCaption", () => {
   it("is only the kind before there is audio, and nothing without a recording", () => {
     expect(recordingCaption({ ...base, audio: null })).toBe("Daily");
     expect(recordingCaption(undefined)).toBe("");
+  });
+});
+
+describe("a standing refusal", () => {
+  const refused = { kind: "refused", message: "Daily narration limit reached." } as const;
+  it("offers no Try again, in the notice or on the disc", () => {
+    expect(noticeAction("refused")).toBeNull();
+    expect(toggleLabel({ status: "error", error: refused })).toBe("Play");
+    expect(transportGlyph("error", refused)).toBe("play");
+  });
+  it("gives the bar a line from the reason", () => {
+    expect(errorSummary({ ...refused, summary: "Daily limit reached" })).toBe(
+      "Daily limit reached",
+    );
+    expect(errorSummary({ kind: "network" })).toBe("Audio did not load");
   });
 });
 

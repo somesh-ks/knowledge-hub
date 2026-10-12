@@ -8,8 +8,14 @@ import Icon from "./Icon";
  * incoming one arrives, keyed on the nearest ancestor's `data-playing`, so a button needs no state
  * of its own. Refresh (error) and replay (ended) stand alone in the same slot.
  */
-export default function PlayPauseGlyph({ status }: { status: PlayerState["status"] }) {
-  const glyph = transportGlyph(status);
+export default function PlayPauseGlyph({
+  status,
+  error,
+}: {
+  status: PlayerState["status"];
+  error?: PlayerState["error"];
+}) {
+  const glyph = transportGlyph(status, error);
   if (glyph === "refresh" || glyph === "replay") {
     return (
       <span className="glyph-swap">

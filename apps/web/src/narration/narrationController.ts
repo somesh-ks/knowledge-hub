@@ -10,6 +10,7 @@ import type { PlayerStore } from "../player/core/playerTypes";
 import type { NarrationTimeline, PlayerDigestData } from "../types/contracts";
 import {
   type ApiDeps,
+  describeNarrationFailure,
   failureCopy,
   lookupNarration,
   type NarrationNoun,
@@ -330,7 +331,7 @@ export function createNarrationController(deps: ControllerDeps): NarrationContro
         ensure: (index) => queue.ensure(index),
         prepare: (index) => queue.prepare(index),
         describeFailure: (error) =>
-          error instanceof NarrationError ? failureCopy(error.reason, noun) : null,
+          error instanceof NarrationError ? describeNarrationFailure(error.reason, noun) : null,
       });
       installAdapter();
       rememberNarrated(narrated);

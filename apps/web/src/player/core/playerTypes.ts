@@ -32,12 +32,21 @@ export const SKIP_FORWARD_SECONDS = 10;
 
 export type PlayerStatus = "idle" | "loading" | "playing" | "paused" | "ended" | "error";
 
-export type PlayerErrorKind = "network" | "decode" | "unavailable" | "blocked" | "unknown";
+/** `refused` is a narration refusal that a retry cannot change (a daily cap, a monthly budget). */
+export type PlayerErrorKind =
+  | "network"
+  | "decode"
+  | "unavailable"
+  | "blocked"
+  | "refused"
+  | "unknown";
 
 export interface PlayerError {
   kind: PlayerErrorKind;
   /** Plain language: what happened and what to do. */
   message: string;
+  /** The mini player's line where the kind's own would be too general; the narration's reason. */
+  summary?: string;
 }
 
 /** A digest that is loaded into the audio element, with its derived timeline. */
@@ -110,7 +119,13 @@ export interface AudioLike {
   readonly ended: boolean;
   readonly readyState: number;
   /** `message` is the reason a playlist gave for a file it could not make, in the listener's words. */
-  readonly error: { code: number; message?: string } | null;
+  readonly error: {
+    code: number;
+    /** The browser's own debug text on a real failure: never shown. */
+    message?: string;
+    /** Words the narration adapter made for a failure it caused. */
+    narrated?: { message: string; summary?: string; standing?: boolean };
+  } | null;
   playbackRate: number;
   defaultPlaybackRate: number;
   preservesPitch: boolean;

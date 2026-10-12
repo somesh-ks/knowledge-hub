@@ -202,3 +202,43 @@ export function failureCopy(reason: NarrationFailure, noun: NarrationNoun): stri
       return "The audio could not be made. Try again.";
   }
 }
+
+/** Refusals no retry can change; the segment queue remembers them too. */
+const STANDING_REASONS: ReadonlySet<NarrationFailure> = new Set([
+  "daily_cap",
+  "monthly_budget",
+  "not_narratable",
+  "digest_not_found",
+  "unavailable",
+]);
+
+/** The short line for the mini player, from the reason rather than the kind of error. */
+function failureSummary(reason: NarrationFailure): string | undefined {
+  switch (reason) {
+    case "daily_cap":
+      return "Daily limit reached";
+    case "monthly_budget":
+      return "Monthly allowance used up";
+    case "not_narratable":
+      return "Cannot be read aloud";
+    case "digest_not_found":
+    case "segment_not_found":
+      return "Not ready for narration";
+    case "unavailable":
+      return "Narration is not available";
+    case "offline":
+      return "You are offline";
+    default:
+      return undefined;
+  }
+}
+
+/** What the player shows for a file the narration could not make; null where the interface asks. */
+export function describeNarrationFailure(
+  reason: NarrationFailure,
+  noun: NarrationNoun,
+): { message: string; summary?: string; standing: boolean } | null {
+  const message = failureCopy(reason, noun);
+  if (!message) return null;
+  return { message, summary: failureSummary(reason), standing: STANDING_REASONS.has(reason) };
+}

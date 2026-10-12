@@ -1,6 +1,6 @@
 import { FORMAT_LABELS } from "../../lib/formatLabels";
 import type { PlayerDigestData } from "../../types/contracts";
-import type { PlayerErrorKind, PlayerState } from "./playerTypes";
+import type { PlayerError, PlayerErrorKind, PlayerState } from "./playerTypes";
 import { briefingLengthLabel } from "./readerMath";
 
 /**
@@ -34,8 +34,9 @@ export function recordingKind(digest: PlayerDigestData): string {
 }
 
 /** One short line for the mini player, where the full message would not fit. */
-export function errorSummary(kind: PlayerErrorKind): string {
-  switch (kind) {
+export function errorSummary(error: Pick<PlayerError, "kind" | "summary">): string {
+  if (error.summary) return error.summary;
+  switch (error.kind) {
     case "network":
       return "Audio did not load";
     case "decode":
@@ -44,6 +45,8 @@ export function errorSummary(kind: PlayerErrorKind): string {
       return "Audio is not available";
     case "blocked":
       return "Playback was blocked";
+    case "refused":
+      return "Narration is not available";
     case "unknown":
       return "Audio could not play";
   }
@@ -71,7 +74,9 @@ export function noticeAction(kind: PlayerErrorKind): string | null {
   }
 }
 
-export function toggleLabel(state: Pick<PlayerState, "status">): string {
+export function toggleLabel(
+  state: Pick<PlayerState, "status"> & { error?: PlayerState["error"] },
+): string {
   switch (state.status) {
     case "playing":
     case "loading":
@@ -79,7 +84,8 @@ export function toggleLabel(state: Pick<PlayerState, "status">): string {
     case "ended":
       return "Play again";
     case "error":
-      return "Try again";
+      // A standing refusal is not mended by trying again.
+      return state.error?.kind === "refused" ? "Play" : "Try again";
     case "idle":
     case "paused":
       return "Play";
@@ -93,10 +99,13 @@ export type TransportGlyph = "play" | "pause" | "refresh" | "replay";
  * never disagrees with the button's name (toggleLabel): refresh to try again after a failure,
  * replay at the end of a recording, pause while playing, play otherwise.
  */
-export function transportGlyph(status: PlayerState["status"]): TransportGlyph {
+export function transportGlyph(
+  status: PlayerState["status"],
+  error?: PlayerState["error"],
+): TransportGlyph {
   switch (status) {
     case "error":
-      return "refresh";
+      return error?.kind === "refused" ? "play" : "refresh";
     case "ended":
       return "replay";
     case "playing":

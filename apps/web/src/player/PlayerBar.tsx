@@ -213,7 +213,7 @@ export default function PlayerBar() {
     item && section && itemCount > 1
       ? storyCaption(timeline ?? null, state.itemIndex, storySectionName(digest, section))
       : recordingCaption(digest, state.duration);
-  if (state.error) caption = errorSummary(state.error.kind);
+  if (state.error) caption = errorSummary(state.error);
   else if (state.interrupted) caption = INTERRUPTED_LINE;
 
   // The bar shows once something has played, so what it holds is laid out: the timeline steps.
@@ -280,7 +280,7 @@ export default function PlayerBar() {
           aria-busy={state.buffering || undefined}
           onClick={() => store.toggle()}
         >
-          <PlayPauseGlyph status={state.status} />
+          <PlayPauseGlyph status={state.status} error={state.error} />
           <span className="spinner" aria-hidden="true" />
         </button>
         <button
