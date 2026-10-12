@@ -26,11 +26,11 @@ describe("the empty-state art", () => {
     expect(art.match(/<svg/g)).toHaveLength(1);
   });
 
-  it("draws every scene it names, each in under 3 KB", () => {
+  it("draws every scene it names, each in about 1.2 KB or less", () => {
     for (const scene of SCENES) expect(art, scene).toContain(`"${scene}"`);
     const blocks = art.split(/\n {2}\{\n/).slice(1);
-    expect(blocks.length).toBeGreaterThanOrEqual(6);
-    for (const block of blocks) expect(block.length).toBeLessThan(3072);
+    expect(blocks.length).toBeGreaterThanOrEqual(5);
+    for (const block of blocks) expect(block.length).toBeLessThanOrEqual(1229);
   });
 
   it("names only classes that empty.css colours", () => {
