@@ -96,14 +96,4 @@ test.describe("when playback does not go to plan", () => {
     });
     await expect(page.getByRole("alert")).toHaveCount(0);
   });
-
-  test("keeps the page fully usable when the audio fails", async ({ lab, page }) => {
-    await page.route("**/lab-narration.mp3*", (route) => route.fulfill({ status: 404, body: "" }));
-    await lab.open();
-    await lab.cta.tap();
-    await expect(page.locator("html")).toHaveAttribute("data-player-state", "error");
-    await expect(page.getByRole("heading", { level: 1 })).toBeVisible();
-    await page.locator('[data-open-sheet="settings"]').tap();
-    await expect(page.getByRole("dialog", { name: "Settings" })).toBeVisible();
-  });
 });

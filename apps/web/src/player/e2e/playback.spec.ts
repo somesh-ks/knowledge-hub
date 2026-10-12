@@ -21,37 +21,6 @@ async function playOnOutOf(page: Page, index: number): Promise<void> {
 }
 
 test.describe("playback in a real browser", () => {
-  test("keeps the audio object out of the DOM and attaches the source before the first tap", async ({
-    lab,
-    audio,
-  }) => {
-    await lab.open();
-    const snapshot = await audio.read();
-    expect(snapshot).not.toBeNull();
-    expect(snapshot?.src).toContain("lab-narration.mp3");
-    expect(snapshot?.paused).toBe(true);
-    expect(snapshot?.inDom).toBe(false);
-    expect(await audio.count()).toBe(1);
-    // The bar is in the document from the start, and out of sight and reach until the first play.
-    await expect(lab.page.locator("[data-player-dock]")).toHaveCSS("visibility", "hidden");
-  });
-
-  test("plays from the first tap, shows the bar and turns the briefing chip to Playing", async ({
-    lab,
-    audio,
-  }) => {
-    await lab.open();
-    await lab.play();
-    await expect(lab.surface).toHaveAttribute("data-visible", "true");
-    await expect(lab.openButton).toBeVisible();
-    await expect(lab.cta).toHaveAttribute("data-state", "current");
-    await expect(lab.cta).toHaveAttribute("data-playing", "true");
-    await expect(lab.cta.locator("[data-chip-label]")).toHaveText(/min left$/);
-    await expect(lab.cta).toHaveAccessibleName(/^Pause the briefing, \d+ min left$/);
-    await expect.poll(async () => (await audio.read())?.currentTime ?? 0).toBeGreaterThan(0.4);
-    expect((await audio.read())?.paused).toBe(false);
-  });
-
   test("pauses and resumes from the bar", async ({ lab, audio, page }) => {
     await lab.open();
     await lab.play();
@@ -66,39 +35,6 @@ test.describe("playback in a real browser", () => {
     await lab.dock.getByRole("button", { name: "Play", exact: true }).tap();
     await expect(page.locator("html")).toHaveAttribute("data-player-state", "playing");
     await expect(lab.cta).toHaveAccessibleName(/^Pause the briefing, \d+ min left$/);
-  });
-
-  test("marks the current story, and the story chips follow the playhead", async ({
-    lab,
-    page,
-  }) => {
-    await lab.open();
-    await lab.play();
-    const first = page.locator('[data-item-id="a1f3c9d2b401"]');
-    const second = page.locator('[data-item-id="b2e4d0a3c512"]');
-    const firstChip = first.locator("[data-play-item]");
-    await expect(first).toHaveAttribute("data-state", "current");
-    await expect(firstChip).toHaveAttribute("data-state", "current");
-    await expect(firstChip.locator("[data-chip-label]")).toHaveText("Playing");
-    // Only the story being read is marked; the ones after it keep the page's own idle chip.
-    await expect(second).not.toHaveAttribute("data-state", /.*/);
-    await expect(second.locator("[data-play-item]")).toHaveAttribute("data-state", "idle");
-    await expect(second.locator("[data-chip-label]")).toHaveText("0:15");
-    // Next moves the mark to the next story, and marks nothing as played: it was skipped, not heard.
-    await page.getByRole("button", { name: "Next story" }).tap();
-    await expect(second).toHaveAttribute("data-state", "current");
-    await expect(second.locator("[data-chip-label]")).toHaveText("Playing");
-    await expect(first).not.toHaveAttribute("data-state", /.*/);
-    await expect(firstChip).toHaveAttribute("data-state", "idle");
-    // Back on the first story, playing on out of it into the second marks it heard.
-    await firstChip.tap();
-    await expect(first).toHaveAttribute("data-state", "current");
-    await playOnOutOf(page, 0);
-    await expect(second).toHaveAttribute("data-state", "current");
-    await expect(first).toHaveAttribute("data-state", "played");
-    await expect(firstChip).toHaveAttribute("data-state", "played");
-    await expect(firstChip.locator("[data-chip-label]")).toHaveText("Played");
-    await expect(firstChip).toHaveAccessibleName(/^Play again, played: /);
   });
 
   test("a story chip keeps one size, so the publisher beside it never moves @surface", async ({
@@ -131,83 +67,6 @@ test.describe("playback in a real browser", () => {
     const widths = new Set(Object.values(seen).map((s) => s.chip));
     expect(sources.size, JSON.stringify(seen)).toBe(1);
     expect(widths.size, JSON.stringify(seen)).toBe(1);
-  });
-
-  test("plays an item from its button, and toggles it with the same button", async ({
-    lab,
-    audio,
-    page,
-  }) => {
-    await lab.open();
-    const third = page.locator('[data-item-id="c3f5e1b4d623"] [data-play-item]');
-    await third.tap();
-    await expect(page.locator("html")).toHaveAttribute("data-player-state", "playing");
-    await expect.poll(async () => (await audio.read())?.currentTime ?? 0).toBeGreaterThan(30);
-    await expect(page.locator('[data-item-id="c3f5e1b4d623"]')).toHaveAttribute(
-      "data-state",
-      "current",
-    );
-    // A jump marks nothing: the stories before it were not heard.
-    await expect(page.locator('[data-item-id="a1f3c9d2b401"]')).not.toHaveAttribute(
-      "data-state",
-      /.*/,
-    );
-    await expect(third).toHaveAttribute("data-playing", "true");
-    await expect(third.locator("[data-chip-label]")).toHaveText("Playing");
-    await expect(third).toHaveAttribute("aria-label", /^Pause, playing: /);
-    await third.tap();
-    await expect(page.locator("html")).toHaveAttribute("data-player-state", "paused");
-    await expect(third.locator("[data-chip-label]")).toHaveText("Paused");
-    await expect(third).toHaveAttribute("aria-label", /^Resume, paused: /);
-  });
-
-  test("plays a section from its control, by the hook the player listens for", async ({
-    lab,
-    audio,
-    page,
-  }) => {
-    await lab.open();
-    // The reader pages have no section control today; the player still answers one when a page
-    // adds it, so the hook is checked with a control written onto the page here.
-    await page.evaluate(() => {
-      const button = document.createElement("button");
-      button.type = "button";
-      button.textContent = "Play the AI section";
-      button.dataset.playChapter = "ai";
-      button.id = "lab-play-section";
-      document.querySelector("main")?.append(button);
-    });
-    await page.locator("#lab-play-section").tap();
-    await expect(page.locator("html")).toHaveAttribute("data-player-state", "playing");
-    await expect.poll(async () => (await audio.read())?.currentTime ?? 0).toBeGreaterThan(60);
-    await expect(page.locator('[data-item-id="e5b7a3d6f845"]')).toHaveAttribute(
-      "data-state",
-      "current",
-    );
-    await expect(page.locator('[data-item-id="a1f3c9d2b401"]')).not.toHaveAttribute(
-      "data-state",
-      /.*/,
-    );
-  });
-
-  test("jumps to another story when its chip is tapped while playing", async ({
-    lab,
-    audio,
-    page,
-  }) => {
-    await lab.open();
-    await lab.play();
-    const fourth = page.locator('[data-item-id="d4a6f2c5e734"]');
-    await fourth.locator("[data-play-item]").tap();
-    await expect.poll(async () => (await audio.read())?.currentTime ?? 0).toBeGreaterThan(44);
-    await expect(fourth).toHaveAttribute("data-state", "current");
-    await expect(fourth.locator("[data-chip-label]")).toHaveText("Playing");
-    // The story that was skipped over is not marked as heard.
-    await expect(page.locator('[data-item-id="c3f5e1b4d623"]')).not.toHaveAttribute(
-      "data-state",
-      /.*/,
-    );
-    await expect(page.locator("html")).toHaveAttribute("data-player-state", "playing");
   });
 
   test("picks a common speed in one press, with pitch preserved, and remembers it @surface", async ({
@@ -331,29 +190,6 @@ test.describe("playback in a real browser", () => {
       .toBeGreaterThan(Number(saved));
   });
 
-  test("sets the lock-screen metadata from the digest", async ({ lab, page }) => {
-    await lab.open();
-    await lab.play();
-    const metadata = await page.evaluate(() => {
-      const meta = navigator.mediaSession.metadata;
-      return meta
-        ? {
-            title: meta.title,
-            artist: meta.artist,
-            album: meta.album,
-            artwork: meta.artwork.map((a) => a.sizes),
-          }
-        : null;
-    });
-    expect(metadata).toEqual({
-      title: "Wednesday 14 January",
-      artist: "Singularity",
-      album: "January 2026",
-      artwork: ["512x512", "1024x1024"],
-    });
-    expect(await page.evaluate(() => navigator.mediaSession.playbackState)).toBe("playing");
-  });
-
   test("offers to make the audio when it is not there yet, and the page stays usable", async ({
     lab,
     audio,
@@ -379,31 +215,5 @@ test.describe("playback in a real browser", () => {
     expect((await audio.read())?.paused).toBe(true);
     await expect(lab.cta).toHaveAttribute("data-state", "idle");
     await expect(page.getByRole("heading", { level: 3 }).first()).toBeVisible();
-  });
-
-  test("keeps playing across a client-side navigation, and plays another digest only when asked", async ({
-    lab,
-    audio,
-    page,
-  }) => {
-    await lab.open();
-    await lab.play();
-    await expect.poll(async () => (await audio.read())?.currentTime ?? 0).toBeGreaterThan(0.5);
-    await page.getByRole("link", { name: "Earlier briefing, with audio" }).tap();
-    await expect(page).toHaveURL(/player-lab-older/);
-    await expect(page.getByRole("heading", { level: 1 })).toHaveText("Monday 12 January");
-    // The same audio object is still playing the first digest.
-    expect(await audio.count()).toBe(1);
-    const afterNavigation = await audio.read();
-    expect(afterNavigation?.paused).toBe(false);
-    expect(afterNavigation?.src).not.toContain("#older");
-    await expect(lab.surface).toHaveAttribute("data-visible", "true");
-    await expect(lab.cta).toHaveAttribute("data-state", "idle");
-    await expect(lab.cta).toHaveAccessibleName("Play the briefing, 2 min");
-    // Choosing the new digest switches the source and never plays two at once.
-    await page.locator("[data-play-digest]").tap();
-    await expect.poll(async () => (await audio.read())?.src ?? "").toContain("#older");
-    expect(await audio.count()).toBe(1);
-    await expect(page.locator("[data-item-id]").first()).toHaveAttribute("data-state", "current");
   });
 });

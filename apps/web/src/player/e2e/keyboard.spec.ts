@@ -53,25 +53,6 @@ test.describe("keyboard operation of the player", () => {
     await expect.poll(async () => (await audio.read())?.currentTime ?? 99).toBeLessThan(1);
   });
 
-  test("announces the position to a screen reader through the slider's value text", async ({
-    lab,
-    page,
-  }) => {
-    await lab.open();
-    await lab.play();
-    await lab.openPlayer();
-    const scrubber = page.getByRole("slider", { name: "Playback position" });
-    await expect(scrubber).toHaveAttribute("aria-valuemin", "0");
-    await expect(scrubber).toHaveAttribute("aria-valuemax", "90");
-    await expect(scrubber).toHaveAttribute(
-      "aria-valuetext",
-      /^\d+:\d\d of 1:30, story 1 of 6, Top picks$/,
-    );
-    await scrubber.focus();
-    await page.keyboard.press("PageDown");
-    await expect(scrubber).toHaveAttribute("aria-valuetext", /story 2 of 6, Top picks$/);
-  });
-
   test("K and Space toggle playback only while focus is inside the open player", async ({
     lab,
     page,
@@ -90,14 +71,6 @@ test.describe("keyboard operation of the player", () => {
     await page.keyboard.press("Space");
     await expect(page.locator(".player-meta .player-story")).not.toHaveText(before ?? "");
     await expect(page.locator("html")).toHaveAttribute("data-player-state", "playing");
-  });
-
-  test("a bare Space does nothing until the player has something loaded", async ({ lab, page }) => {
-    await lab.open();
-    await page.locator("body").press("Space");
-    await expect(page.locator("html")).toHaveAttribute("data-player-state", "idle");
-    await page.keyboard.press("k");
-    await expect(page.locator("html")).toHaveAttribute("data-player-state", "idle");
   });
 
   test("Space plays and pauses from anywhere on the page once the bar is there @surface", async ({

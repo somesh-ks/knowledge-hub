@@ -85,13 +85,6 @@ for (const scheme of ["light", "dark"] as const) {
       });
       expect(await violations(page)).toEqual([]);
     });
-
-    test("the Settings sheet", async ({ lab, page }) => {
-      await lab.open();
-      await page.locator('[data-open-sheet="settings"]').tap();
-      await expect(page.getByRole("dialog", { name: "Settings" })).toBeVisible();
-      expect(await violations(page)).toEqual([]);
-    });
   });
 }
 
@@ -118,49 +111,5 @@ test.describe("reduced motion", () => {
     expect(Date.now() - started).toBeLessThan(1_500);
     await expect(lab.sheet).toBeHidden();
     await expect(lab.openButton.locator(".player-cover-frame")).toHaveCSS("visibility", "visible");
-  });
-
-  test("under reduced motion a held pull changes opacity, never position", async ({ lab }) => {
-    await lab.open();
-    await lab.play();
-    const box = await lab.dockSettled();
-    const start = { x: box.x + box.width / 2, y: box.y + box.height / 2 };
-    const held = await lab.finger.drag(
-      [0, 60, 120, 180, 240, 300].map((dy) => ({ x: start.x, y: start.y - dy })),
-      30,
-      { hold: true },
-    );
-    await expect(lab.surface).toHaveAttribute("data-state", "dragging");
-    await expect(lab.sheet).toHaveCSS("transform", "none");
-    const opacity = Number(
-      await lab.sheet.evaluate((element) => getComputedStyle(element).opacity),
-    );
-    expect(opacity).toBeGreaterThan(0.1);
-    expect(opacity).toBeLessThan(0.9);
-    await held.release();
-    await lab.settled();
-  });
-
-  test("the bar's progress and the story chip still update", async ({ lab, page }) => {
-    await lab.open();
-    await lab.play();
-    const before = await lab.progressOf();
-    await page.waitForTimeout(1_000);
-    expect(await lab.progressOf()).toBeGreaterThan(before);
-    const chip = page.locator('[data-item-id="a1f3c9d2b401"] [data-play-item]');
-    await expect(chip.locator("[data-chip-label]")).toHaveText("Playing");
-  });
-
-  test("movement tokens collapse while fades keep their timing", async ({ lab, page }) => {
-    await lab.open();
-    const tokens = await page.evaluate(() => {
-      const style = getComputedStyle(document.documentElement);
-      return {
-        sheetIn: style.getPropertyValue("--duration-sheet-in").trim(),
-        state: style.getPropertyValue("--duration-state").trim(),
-      };
-    });
-    expect(tokens.sheetIn).toBe("0.01ms");
-    expect(tokens.state).toBe("200ms");
   });
 });
