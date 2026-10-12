@@ -38,6 +38,8 @@ import { buildTimeline, findItemIndexById, itemIndexAt, sectionIndexOfItem } fro
 /** A buffering spinner that appears instantly flashes on every fast load, so it waits. */
 export const BUFFERING_DELAY_MS = 300;
 export const RESUME_SAVE_INTERVAL_MS = 5000;
+/** A shorter file is not a recording: the silence the first tap loads to unlock the element is 0.05 s. */
+const MIN_RECORDING_SECONDS = 1;
 /** Past this many seconds into an item, "previous" restarts it, like every audio player. */
 export const PREVIOUS_RESTART_SECONDS = 3;
 /**
@@ -337,7 +339,9 @@ export function createPlayerStore(options: PlayerStoreOptions): PlayerStore {
   function onLoadedMetadata(): void {
     if (!audio) return;
     const duration = audio.duration;
-    if (isFiniteNumber(duration) && duration > 0) {
+    // Under a second is the unlock primer's silence (0.05 s), which a tap loads so the phone lets the
+    // element start later. It is no recording: its length must not become the track's.
+    if (isFiniteNumber(duration) && duration >= MIN_RECORDING_SECONDS) {
       if (pendingStart !== null) {
         const start = clamp(pendingStart, 0, duration);
         pendingStart = null;

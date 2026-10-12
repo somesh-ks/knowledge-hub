@@ -68,7 +68,10 @@ export function saveResumePosition(
 ): void {
   if (!storage) return;
   try {
-    const finished = durationSeconds > 0 && seconds >= durationSeconds - FINISHED_TAIL_SECONDS;
+    // A duration inside the tail is no recording's: it is the unlock primer's silence (0.05 s), whose
+    // position 0 would otherwise read as the end.
+    const finished =
+      durationSeconds > FINISHED_TAIL_SECONDS && seconds >= durationSeconds - FINISHED_TAIL_SECONDS;
     if (finished) markPlayed(storage, digestId);
     else if (seconds < MIN_RESTORE_SECONDS) storage.removeItem(resumeKey(digestId));
     else {

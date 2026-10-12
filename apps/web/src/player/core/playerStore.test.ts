@@ -1,7 +1,7 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { MEDIA_ERR_NETWORK, MEDIA_ERR_SRC_NOT_SUPPORTED } from "./audioErrors";
 import { BUFFERING_DELAY_MS, RESUME_SAVE_INTERVAL_MS } from "./playerStore";
-import { resumeKey } from "./resume";
+import { playedKey, resumeKey } from "./resume";
 import { createHarness, makeDigest, makeDigestWithoutAudio } from "./testing";
 
 beforeEach(() => {
@@ -218,6 +218,21 @@ describe("seeking and items", () => {
     expect(harness.audio.currentTime).toBe(0);
     harness.audio.loadMetadata(120);
     expect(harness.audio.currentTime).toBe(70);
+  });
+
+  it("does not take the unlock primer's silence for the recording, so nothing is stored as played", () => {
+    const harness = createHarness();
+    const digest = makeDigest();
+    harness.store.load(digest);
+    // A tap loaded 0.05 s of silence so the phone would let the element start later.
+    harness.audio.loadMetadata(0.05);
+    expect(harness.store.getState().duration).toBe(120);
+    // The page's own digest arrives with other audio: the track reloads and saves where it was.
+    harness.store.setPageDigest({
+      ...digest,
+      audio: { url: "/audio/other.mp3", duration_ms: 120_000 },
+    });
+    expect(harness.storage.getItem(playedKey(digest.id))).toBeNull();
   });
 
   it("clamps seeks to the digest", () => {

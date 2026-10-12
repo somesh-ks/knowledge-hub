@@ -38,6 +38,16 @@ describe("played", () => {
     expect(storage.getItem(playedKey("2026-10-07"))).not.toBeNull();
   });
 
+  it("never reads the unlock primer's silence as the end of a recording", () => {
+    const storage = memory();
+    // A tap loads 0.05 s of silence so the phone lets the element start later; its position 0 is not
+    // the end of that file, nor of the episode that is about to be narrated.
+    saveResumePosition(storage, "ep-1", 0, 0.05);
+    saveResumePosition(storage, "ep-1", 0, 3);
+    expect(storage.getItem(playedKey("ep-1"))).toBeNull();
+    expect(storage.getItem(resumeKey("ep-1"))).toBeNull();
+  });
+
   it("marks an item played when it ends", () => {
     const storage = memory();
     storage.setItem(resumeKey("ep-1"), "40");
