@@ -14,7 +14,6 @@ import { dockSeekKeyValue, fractionOfTime, scrubberValueText } from "./core/scru
 import { itemIndexAt, storyCaption, storySectionName } from "./core/timeline";
 import { applyVolume, getVolume, setVolume } from "./core/volume";
 import { usePlayerFrame, usePlayerSecond, usePlayerState } from "./hooks/usePlayer";
-import { useStoryStep } from "./hooks/useStoryStep";
 import Clock from "./ui/Clock";
 import Icon from "./ui/Icon";
 import PlayerCover from "./ui/PlayerCover";
@@ -217,7 +216,23 @@ export default function PlayerBar() {
   else if (state.interrupted) caption = INTERRUPTED_LINE;
 
   // The bar shows once something has played, so what it holds is laid out: the timeline steps.
-  const step = useStoryStep();
+  // In the rundown before story 1, Previous goes to 0:00 and has nowhere further to go from there.
+  const atStart = useSyncExternalStore(
+    store.onSecond,
+    () => store.getTime() <= 0,
+    () => true,
+  );
+  const isLastItem = itemCount === 0 || state.itemIndex >= itemCount - 1;
+  const step = {
+    previousDisabled: itemCount === 0 || (state.itemIndex < 0 && atStart),
+    nextDisabled: isLastItem,
+    previous: () => {
+      store.previous();
+    },
+    next: () => {
+      if (!isLastItem) store.next();
+    },
+  };
   const open = useSyncExternalStore(
     playerSheet.subscribe,
     () => playerSheet.getSnapshot().open,
