@@ -230,7 +230,9 @@ export function sourceScore(input: SourceScoreInput): SourceScoreResult {
   if (!stat || (judged < MIN_JUDGED && !sparse)) {
     const seen = plural(judged, "item", "items");
     const prior =
-      discovery === undefined ? "" : `; it scored ${Math.round(discovery * 100)} of 100 when it was found`;
+      discovery === undefined
+        ? ""
+        : `; it scored ${Math.round(discovery * 100)} of 100 when it was found`;
     return {
       score: null,
       label: "New",
