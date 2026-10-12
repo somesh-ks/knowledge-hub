@@ -1,4 +1,5 @@
 ---
+import { getSite } from "../lib/site";
 import BrandMark from "./BrandMark.astro";
 import Icon from "./Icon.astro";
 
@@ -8,6 +9,9 @@ interface Props {
 }
 
 const { back } = Astro.props;
+// The wordmark goes to Today: it names the briefing only when there is one.
+const homeLabel =
+  (await getSite()).entries.length > 0 ? "Singularity, today's briefing" : "Singularity, Today";
 ---
 
 {/* The top app bar, shown below 64rem. The wordmark sits in the middle. A page one level down adds
@@ -23,7 +27,7 @@ const { back } = Astro.props;
         </a>
       )
     }
-    <a class="wordmark" href="/" aria-label="Singularity, today's briefing" data-astro-prefetch="hover">
+    <a class="wordmark" href="/" aria-label={homeLabel} data-astro-prefetch="hover">
       <BrandMark />
       <span>Singularity</span>
     </a>
