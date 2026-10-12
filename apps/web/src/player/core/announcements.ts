@@ -28,6 +28,7 @@ export function announcementForEvent(
       const chosen =
         event.cause === "skip-next" || event.cause === "skip-previous" || event.cause === "select";
       if (!chosen) return null;
+      if (event.index < 0) return "Back to the start.";
       const item = track?.timeline?.items[event.index];
       if (!item) return null;
       return `${itemPositionLabel(track?.timeline ?? null, event.index)}: ${item.headline}`;

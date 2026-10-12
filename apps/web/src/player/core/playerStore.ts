@@ -645,11 +645,22 @@ export function createPlayerStore(options: PlayerStoreOptions): PlayerStore {
   }
 
   function previous(source: "ui" | "keyboard" = "ui"): boolean {
-    const current = track?.timeline?.items[state.itemIndex];
-    if (!current) return false;
-    const restart = time - current.startSec > PREVIOUS_RESTART_SECONDS || state.itemIndex === 0;
-    const target = restart ? state.itemIndex : state.itemIndex - 1;
-    return skipToItem(target, source === "keyboard" ? "keyboard" : "skip-previous");
+    const items = track?.timeline?.items;
+    const first = items?.[0];
+    if (!items || !first) return false;
+    const cause = source === "keyboard" ? "keyboard" : "skip-previous";
+    // Before the first story (an episode's rundown) Previous goes back to the very start.
+    const toLeadIn = (): boolean => {
+      if (time <= 0) return false;
+      if (!seekInternal(0, cause)) emit({ type: "itemChanged", index: -1, cause });
+      return true;
+    };
+    const current = items[state.itemIndex];
+    if (!current) return state.itemIndex < 0 ? toLeadIn() : false;
+    const restart = time - current.startSec > PREVIOUS_RESTART_SECONDS;
+    if (restart) return skipToItem(state.itemIndex, cause);
+    if (state.itemIndex > 0) return skipToItem(state.itemIndex - 1, cause);
+    return first.startSec > 0 ? toLeadIn() : skipToItem(0, cause);
   }
 
   function skip(deltaSeconds: number): void {

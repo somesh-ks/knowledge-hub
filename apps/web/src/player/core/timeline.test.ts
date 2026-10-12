@@ -91,6 +91,20 @@ describe("item lookup", () => {
     expect(itemIndexAt(null, 40)).toBe(0);
   });
 
+  it("puts a lead-in before the first story in no story at all", () => {
+    const led = buildTimeline(
+      makeDigest({
+        items: makeDigest().items.map((entry, index) =>
+          index === 0 ? { ...entry, start_ms: 18_600 } : entry,
+        ),
+      }),
+    );
+    expect(itemIndexAt(led, 0)).toBe(-1);
+    expect(itemIndexAt(led, 18.5)).toBe(-1);
+    expect(itemIndexAt(led, 18.6)).toBe(0);
+    expect(itemPositionLabel(led, -1)).toBe("");
+  });
+
   it("maps an item to its section", () => {
     expect(sectionIndexOfItem(timeline, 0)).toBe(0);
     expect(sectionIndexOfItem(timeline, 3)).toBe(2);

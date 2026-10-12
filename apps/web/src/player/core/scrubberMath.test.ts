@@ -129,5 +129,7 @@ describe("aria", () => {
     // An episode's stories have no section worth naming.
     expect(scrubberValueText(86, 211, "", 0, 6)).toBe("1:26 of 3:31, story 1 of 6");
     expect(scrubberValueText(86, 211, "", 0, 0)).toBe("1:26 of 3:31");
+    // The rundown before story 1 is no story.
+    expect(scrubberValueText(5, 211, "", -1, 6)).toBe("0:05 of 3:31");
   });
 });

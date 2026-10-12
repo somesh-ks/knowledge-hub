@@ -14,6 +14,7 @@ import { dockSeekKeyValue, fractionOfTime, scrubberValueText } from "./core/scru
 import { itemIndexAt, storyCaption, storySectionName } from "./core/timeline";
 import { applyVolume, getVolume, setVolume } from "./core/volume";
 import { usePlayerFrame, usePlayerSecond, usePlayerState } from "./hooks/usePlayer";
+import { useStoryStep } from "./hooks/useStoryStep";
 import Clock from "./ui/Clock";
 import Icon from "./ui/Icon";
 import PlayerCover from "./ui/PlayerCover";
@@ -204,15 +205,17 @@ export default function PlayerBar() {
   const playing = isPlayingStatus(state.status);
   const headline = item?.headline ?? digest?.title ?? "";
 
+  // A story's place is told while one is being read. The rundown before story 1 is none, and
+  // "Story 1 of 1" says nothing: the line then says what the recording is.
   let caption =
-    section && itemCount > 0
+    item && section && itemCount > 1
       ? storyCaption(timeline ?? null, state.itemIndex, storySectionName(digest, section))
       : recordingCaption(digest, state.duration);
   if (state.error) caption = errorSummary(state.error.kind);
   else if (state.interrupted) caption = INTERRUPTED_LINE;
 
   // The bar shows once something has played, so what it holds is laid out: the timeline steps.
-  const isLastItem = itemCount === 0 || state.itemIndex >= itemCount - 1;
+  const step = useStoryStep();
   const open = useSyncExternalStore(
     playerSheet.subscribe,
     () => playerSheet.getSnapshot().open,
@@ -244,8 +247,8 @@ export default function PlayerBar() {
           className="dock-btn dock-wide press"
           type="button"
           aria-label="Previous story"
-          aria-disabled={itemCount === 0 || undefined}
-          onClick={() => store.previous()}
+          aria-disabled={step.previousDisabled || undefined}
+          onClick={step.previous}
         >
           <Icon name="skipBack" />
         </button>
@@ -266,10 +269,8 @@ export default function PlayerBar() {
           className="dock-btn press"
           type="button"
           aria-label="Next story"
-          aria-disabled={isLastItem || undefined}
-          onClick={() => {
-            if (!isLastItem) store.next();
-          }}
+          aria-disabled={step.nextDisabled || undefined}
+          onClick={step.next}
         >
           <Icon name="skipForward" />
         </button>
