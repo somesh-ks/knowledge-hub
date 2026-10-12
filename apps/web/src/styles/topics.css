@@ -105,6 +105,75 @@
   padding-block: var(--space-4) 0;
 }
 
+/* The summary card: a tonal surface with no outline. On a phone the picture and the More button
+   share a row and the title and note run under them; from 40rem the picture is at the start, the
+   text beside it and the button at the end. */
+.topic-card {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  grid-template-areas:
+    "art menu"
+    "text text";
+  align-items: start;
+  gap: var(--space-4);
+  padding: var(--space-4);
+  border-radius: var(--radius-xl);
+  background: var(--color-surface-container);
+}
+
+.topic-card-art {
+  grid-area: art;
+  width: var(--cover-size-hero);
+  height: var(--cover-size-hero);
+  overflow: hidden;
+  border-radius: var(--radius-lg);
+  font-family: var(--text-display-family);
+}
+
+.topic-card-art > svg {
+  display: block;
+  width: 100%;
+  height: 100%;
+}
+
+.topic-card-text {
+  grid-area: text;
+  min-width: 0;
+}
+
+.topic-card-menu {
+  grid-area: menu;
+}
+
+/* The glyph, not the 44px target, sits at the card's corner padding. */
+.topic-more {
+  anchor-name: --hero-more;
+  margin: calc(var(--space-2) * -1) calc(var(--space-2) * -1) 0 0;
+}
+
+.topic-card + .topic-controls {
+  margin-block-start: var(--space-4);
+}
+
+@media (min-width: 40rem) {
+  .topic-card {
+    grid-template-columns: auto minmax(0, 1fr) auto;
+    grid-template-areas: "art text menu";
+    align-items: center;
+    column-gap: var(--space-6);
+    padding: var(--space-6);
+  }
+
+  .topic-card-art {
+    width: var(--cover-size-hero-wide);
+    height: var(--cover-size-hero-wide);
+  }
+
+  .topic-card-menu {
+    align-self: start;
+  }
+}
+
 /* Whether the topic is in the briefings and how much it counts: settings rows, separated by space. */
 .topic-controls > * + *::before {
   content: none;
@@ -154,11 +223,6 @@
   font-variant-numeric: tabular-nums;
 }
 
-/* A topic that is off keeps its slider, set where it was, and shows it as unused. */
-.topic-controls:has(.settings-switch:not(:checked)) .topic-weight > .settings-range {
-  opacity: var(--opacity-disabled);
-}
-
 .topic-never {
   padding-block: var(--space-2);
 }
@@ -179,55 +243,58 @@
   display: none;
 }
 
-/* With no sources, Add source is the empty state's own button, centred under it. */
-.topic:not(:has([data-sources] > .source-row)) .topic-add-source {
-  margin-inline: auto;
-  margin-block-start: 0;
+/* The Sources head: the heading at the start and Add source, an outline button, at the end. The
+   heading's own padding moves to the row so the two centre on one line. */
+.topic .topic-sources-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-4);
+  padding-block: var(--space-8) var(--space-1);
 }
 
-/* Add source under the sources: an outline button as wide as its words. */
-.topic-add-source {
+/* Air between the two lists: the suggestions' heading has its own space above it, and this adds
+   to it. */
+.topic .topic-suggested {
+  margin-block-start: var(--space-8);
+}
+
+.topic .topic-sources-head > .section-head {
+  padding-block: 0;
+}
+
+/* Outline, not tonal: the page's own surface inside a control-weight border, as wide as its words. */
+.topic .topic-add-source {
+  flex: none;
   width: auto;
-  margin-block-start: var(--space-4);
+  border: var(--stroke-hairline) solid var(--color-border-control);
+  background: transparent;
+  color: var(--color-on-surface);
 }
 
-/* Remove topic, at the end of the page: a quiet text button whose glyph centres on the icon column
-   and whose label lines up with the names above it. */
-.topic-remove {
-  gap: var(--space-3);
-  margin-inline-start: calc(var(--space-3) * -1);
+@media (hover: hover) and (pointer: fine) {
+  .topic .topic-add-source:hover {
+    background: color-mix(in oklch, var(--color-on-surface) var(--state-hover), transparent);
+  }
 }
 
-.topic-remove > .icon {
-  margin-inline: calc((var(--space-6) - var(--size-icon)) / 2);
+.topic .topic-add-source:active {
+  background: color-mix(in oklch, var(--color-on-surface) var(--state-press), transparent);
 }
 
-/* Removing a custom topic: a quiet danger button at the end of its page. Pressed, it offers to keep
-   the topic until the removal is sent (with Undo in the toast too), and the rows above go quiet. */
-.topic-remove-row {
-  padding-block-start: var(--space-8);
-}
-
-.topic-remove {
-  color: var(--color-danger);
-}
-
-/* Pressed, it reads like a source's Undo: the accent, no glyph. */
-.topic-remove[data-pressed="true"] {
+/* Delete, in the card's menu, for a topic of the owner's own: red marks the one that destroys (the
+   menu item's own style). Pressed, the item reads Keep topic until the removal is sent (with Undo in
+   the toast too), and everything under the card goes quiet. */
+.topic-delete[data-pressed="true"] {
   color: var(--color-accent);
 }
 
-.topic-remove[data-pressed="true"] .icon {
+.topic-delete[data-pressed="true"] .topic-delete-do,
+.topic-delete:not([data-pressed="true"]) .topic-delete-undo {
   display: none;
 }
 
-.topic-remove[data-pressed="true"] .topic-remove-do,
-.topic-remove:not([data-pressed="true"]) .topic-remove-undo {
-  display: none;
-}
-
-/* Everything above the button goes quiet and takes no presses: heads, rows, Add source, suggestions. */
-.topic:has(.topic-remove[data-pressed="true"]) > :not(.topic-remove-row, .topic-gone) {
+.topic:has(.topic-delete[data-pressed="true"]) > :not(.topic-card, .topic-gone) {
   opacity: var(--opacity-disabled);
   pointer-events: none;
 }
@@ -368,6 +435,34 @@
 .source-meta > .source-host {
   display: block;
   flex: 0 1 auto;
+}
+
+/* A source's address, host and path, cut with an ellipsis (its row's title holds all of it), and
+   under it the facts: stories in briefings and the score out of 3 with its word. The facts wrap
+   to a second line on a narrow row rather than cut. */
+.source-url {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.source-row:has(.source-facts) {
+  padding-block: var(--space-2);
+}
+
+.source-facts {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  column-gap: var(--space-3);
+  min-width: 0;
+  color: var(--color-on-surface-muted);
+  font-size: var(--font-size-label);
+  line-height: var(--font-leading-caption);
+}
+
+.score-number {
+  font-variant-numeric: tabular-nums;
 }
 
 .source-meta > .source-host:not(:empty) + .score::before {
@@ -845,18 +940,6 @@
   font-size: var(--font-size-body);
   font-weight: var(--font-weight-medium);
   line-height: var(--font-leading-label);
-}
-
-/* A general topic switched off reads none of its sources: its list says so by its look, whatever
-   each source's own box holds. The rows still work (a box ticked now holds when the topic is turned
-   on), so they stay legible: the names go quiet and the tiles fade, and nothing drops below the
-   text contrast. */
-.topic:has(#topic-on:not(:checked)) .topic-sources .source-name {
-  color: var(--color-on-surface-muted);
-}
-
-.topic:has(#topic-on:not(:checked)) .topic-sources .source-icon {
-  opacity: var(--opacity-disabled);
 }
 
 /* ------------------------------------------------------------------ suggested sources */

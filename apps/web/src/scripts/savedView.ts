@@ -385,14 +385,12 @@ function renameTopic(root: HTMLElement, id: string, topic: Upsert): boolean {
   if (title) title.textContent = name;
   const note = root.querySelector(".settings-note");
   if (note) note.textContent = description;
-  // Turning the topic off later sends it with these details, not the ones it was built with.
-  for (const toggle of root.querySelectorAll<HTMLInputElement>('[data-field="topic.enabled"]')) {
-    const built = JSON.parse(toggle.dataset.op ?? "{}");
-    toggle.dataset.op = JSON.stringify({
-      ...built,
-      topic: { ...built.topic, name, description, keywords },
-    });
-  }
+  // A later edit sends the topic with these details, not the ones it was built with.
+  const base = JSON.parse(trigger.dataset.topicBase ?? "{}");
+  trigger.dataset.topicBase = JSON.stringify({
+    ...base,
+    topic: { ...base.topic, name, description, keywords },
+  });
   return true;
 }
 

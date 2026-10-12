@@ -2,12 +2,26 @@
 interface Props {
   /** "Excellent", "Good", "Fair", "Poor" or "New". */
   label: string;
+  /** The score out of 3, when the row shows it as a number beside its word. */
+  score?: number | null;
 }
 
-const { label } = Astro.props;
+const { label, score = null } = Astro.props;
 ---
 
-{/* A source's score as one word, on the line under its name (scoreNode in topicsView.ts draws the
-     same). A new source says it is not scored yet; Poor is told apart by its weight as well as its
-     colour, so colour is never alone. */}
-<span class="score" data-label={label}>{label === "New" ? "Not scored yet" : label}</span>
+{/* A source's score on the line under its name: the number out of 3 and its word (scoreNode in
+     topicsView.ts draws the word alone, for the edit panel). A new source says it is not scored
+     yet; Poor is told apart by its weight as well as its colour, so colour is never alone. */}
+<span class="score" data-label={label}>
+  {
+    label === "New" ? (
+      "Not scored yet"
+    ) : score === null ? (
+      label
+    ) : (
+      <>
+        <span class="score-number">{score.toFixed(1)} of 3</span> {label}
+      </>
+    )
+  }
+</span>
