@@ -111,4 +111,25 @@ test.describe("an episode's rundown and the controls under the transcript", () =
     await page.waitForTimeout(800);
     expect((await lab.boxOf(next)).y).toBeCloseTo(before.y, 0);
   });
+
+  test("the open page and the bar under it show one play control @surface", async ({
+    lab,
+    finger,
+    page,
+  }) => {
+    await startEpisode(lab, finger, page);
+    const pauses = page
+      .locator("[data-player-surface]")
+      .getByRole("button", { name: "Pause", exact: true })
+      .filter({ visible: true });
+    await expect(pauses).toHaveCount(1);
+    if ((page.viewportSize()?.width ?? 0) >= 1024) {
+      // Between 40 and 64rem the bar stays under the page too, with a mouse as with a finger.
+      await page.setViewportSize({ width: 820, height: 1000 });
+      await expect(pauses).toHaveCount(1);
+      await expect(
+        page.getByRole("button", { name: "Next story" }).filter({ visible: true }),
+      ).toHaveCount(1);
+    }
+  });
 });
