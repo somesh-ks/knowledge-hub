@@ -95,6 +95,9 @@ D1 to D9 date from plan v2 (2026-10-05). D10 to D25 date from 2026-10-06. Reason
 | D83 | Settings shows a source's score as one word, a source's name opens its editor, and the Model default is called Default | active; amends D55's pips and D69's name links |
 | D84 | A failed run keeps its request and offers Try again; a finished run clears itself; one run at a time | active |
 | D85 | The player's chapters are timed and play their story, a discussion without stored names is named from its voices, and one length rule runs through the app | active; amends D74 for episodes made before names were stored |
+| D86 | An action has its own tone, the player bar is one tonal block with the navigation, and reading text keeps a 34rem measure | active; extends D72 |
+| D87 | New episode says when a choice changed the topics and offers Undo; the Library searches with an excerpt around the match | active; amends D76 and D78 |
+| D88 | On a reading page the section strip is opaque, a focused headline is ringed as one block, the playing hero Play is tonal, and an older briefing offers Share only | active; amends D77 |
 
 ---
 
@@ -880,3 +883,41 @@ D1 to D9 date from plan v2 (2026-10-05). D10 to D25 date from 2026-10-06. Reason
 - Cost: a legacy discussion's transcript shows no names for the moment the voice list takes; the format labels moved to `lib/formatLabels.ts` so the browser does not import `node:fs` through `episodes.ts`; the bar's close button duplicates the keyboard-only "Close the player" pill's name.
 - Rejected: keeping Ada and Leo for anything made before D74 (the case the owner reported); naming from the browser's own guess (a request or a stored script could carry any text into the page).
 - Amends: D74, for episodes made before names were stored.
+
+## D86: An action has its own tone, the player bar is one tonal block with the navigation, and reading text keeps a 34rem measure
+
+- Date: 2026-10-12
+- Decision: `accent-container-high` (blue 200 in light, blue 800 in dark, with `on-accent-container-high`) is the tone of an action that is not a place: the New episode button in the side column and the floating New episode button. `accent-container` stays for what is chosen or current (a chip, a segment, the current destination), so on a phone the button, the Gallery toggle and the current tab no longer share one fill, and on desktop the button is no longer the colour of the Library row 68px below it. A test keeps its text at 4.5:1 and the tone 0.2 further from the page than the selected one. The player's mini bar and desktop dock use `surface-container`, as the navigation does, so the two read as one tonal block in both themes (the bar was the overlay surface, raised, with the navigation sunk under it and a hairline between them). The reading measure is `34rem`: the old `68ch` resolved to about 702px here, wider than the 592px column, so it capped nothing and summary lines ran to 85 characters. In the side column the brand mark, the New episode icon and the navigation icons start at 28px and their labels at 68px.
+- Why: the third critic round found one blue meaning three things, a bar that was raised above the page over a navigation that was sunk, and lines too long to read.
+- Cost: the New episode button is the loudest tonal shape on a page; the 34rem measure leaves 64px of the reading column empty on desktop.
+- Rejected: a filled New episode button (it would compete with the page's one filled action, Play); a hairline between the bar and the navigation (D72 took it off the navigation).
+- Amends: D72, for the New episode button and the player bar.
+
+## D87: New episode says when a choice changed the topics and offers Undo; the Library searches with an excerpt around the match
+
+- Date: 2026-10-12
+- Decision:
+  - Choosing Written for, when the topics have not been touched, swaps the ticked topics for that audience's set. The page now says so under Written for ("Topics set for General", a status region) with an Undo that restores the previous ticks; ticking a topic by hand removes the Undo. The audience keeps the owner's names, General and Somesh.
+  - The line above Generate is drawn only while the bar is really stuck to the bottom (`data-stuck`), and from 80rem the bar is not sticky and has no line. On a wide page More options follows Generate in the source, so Tab goes down the columns, its pinned row is a heading and not a Tab stop, and the side New episode button on `/create` is the current place (`aria-current="page"`, nothing to press).
+  - The Title is a filled field (the tonal container with a 3:1 line under it); every other text field keeps D54's outline. A discussion's voices are labelled with the hosts' names ("Ada's voice").
+  - A Library search shows the match under the card's facts, cut to start just before the hit, with the query's words at weight 500, up to two lines, ending "and 1 more"; the kind and length stay visible. "Most stories" is gone from the sort, because an episode's card never shows a story count. "Played" takes the length's place in the facts line, and a half-heard bar sits over the cover's bottom edge, so a card's height does not depend on its state. Today's Earlier briefings shelf leaves out the story count so its line never wraps. One page-title size from 64rem (22px) on the Library, Settings and New episode; Today's date stays the display size.
+  - The search pill and an open filter or sort list change fill on a press and draw the ring only for the keyboard.
+- Why: the critic measured a preset swapping six topics out of sight in the phone sheet (the chips 309px above the screen) and then sending them; a line drawn over nothing on a short page; a Tab order that jumped across the wide form; a search that showed 24 characters of a headline cut before the word searched for.
+- Cost: the preset line is one more thing in More options; the Library's story count shows only on the card, not in a search.
+- Rejected: moving Written for above the topics (it asks the question in the wrong order for the person who wants Design, AI and Technology); renaming General to Anyone (the owner named it, and it matches the general topics it selects).
+- Amends: D76 (the form) and D78 (search).
+
+## D88: On a reading page the section strip is opaque, a focused headline is ringed as one block, the playing hero Play is tonal, and an older briefing offers Share only
+
+- Date: 2026-10-12
+- Decision:
+  - The section strip under the hero is a non-scrolling sticky bar that carries the surface and the hairline; only the scroller inside it is masked, so text scrolling under a stuck strip no longer shows through at its edges.
+  - A keyboard ring on a two-line headline is drawn round the heading, not on each line box of the inline link (the second line's gap band struck through the first).
+  - While a page plays, the hero Play steps down to the tonal container, shows a pause glyph and the time left ("1 min left"), and the cover's pause disc waits for a pointer or focus; the current story's headline keeps its ink (the accent is the link hover colour). Only story chips show bars.
+  - The latest briefing's menu offers "New briefing" (its sheet says since when it covers, from `sinceLabel`); an older briefing offers Share alone, because the old Regenerate opened a sheet that makes a new current briefing from any page. An episode keeps Regenerate with feedback.
+  - The floating Play follows the shell in the page, so it no longer flashes in beside the hero's Play on load. The latest briefing at its dated address marks Today, so the app bar offers no Back there.
+  - An episode's highlights use a briefing's summary when the story is in one; otherwise one turn about the story, without lead-ins, opening segues, the host's questions and sentences that repeat the headline, credited to the stored publisher (the host for an aggregator). A hyphenated word in a balanced headline stays whole ("mid-range"). The Why label reads "Why:", Highlights is regular weight like every section heading, and the expired-audio line is one sentence.
+- Why: the third critic round measured each; on the real discussion most highlights were the other host's question.
+- Cost: a readout story that is in no briefing and whose only turn restates its headline shows no highlight text; an older briefing cannot be regenerated from its own page.
+- Rejected: a drawn ring on the link's own box (it breaks across lines); keeping the hero Play filled while playing (three filled controls on a desktop page).
+- Amends: D77.
