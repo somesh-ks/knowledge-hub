@@ -1,13 +1,13 @@
 import { describe, expect, it } from "vitest";
 import {
   formatClock,
+  headlineParts,
   longDateTitle,
   monthKeyOf,
   monthName,
   pluralize,
   sinceLabel,
   yearOf,
-  headlineParts,
 } from "./format";
 
 describe("formatClock", () => {
