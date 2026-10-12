@@ -101,21 +101,27 @@ test.describe("the Create page", () => {
     await expect(page.locator("[data-run-card]")).toBeHidden();
   });
 
-  test("asks about topics first and offers every choice", async ({ page }) => {
+  test("asks about topics first and offers every choice", async ({ page }, info) => {
     await openCreate(page);
     await expect(page.getByRole("heading", { level: 1 })).toHaveText("New episode");
     // No lede to explain the form: the form says it.
     await expect(page.locator(".create-lede")).toHaveCount(0);
-    await expect(page.getByRole("heading", { level: 2 })).toHaveText([
-      "Topics",
-      "Length",
-      "Format",
-      "Written for",
-      "Voice",
-      "Look back",
-      "Tone",
-      "Title (optional)",
-    ]);
+    await expect(page.getByRole("heading", { level: 2 })).toHaveText(
+      [
+        "Topics",
+        "Length",
+        "Format",
+        // A wide page pins More options open as its column's heading.
+        ...(info.project.name === "desktop" ? ["More options"] : []),
+        "Written for",
+        "Voice",
+        "Look back",
+        "Tone",
+        "Title (optional)",
+        // The words on show: a pinned row hides the line that repeats its values.
+      ],
+      { useInnerText: true },
+    );
     // One list for both audiences, then the owner's own.
     await expect(page.locator(".filter-chip:visible")).toHaveText([
       "Design",
@@ -204,25 +210,41 @@ test.describe("the Create page", () => {
     await expect(submit(page).locator(".spinner")).toBeHidden();
   });
 
-  test("the sticky foot shows a hairline while the form runs on under it, and none at the end", async ({
+  test("the sticky foot shows a hairline only while the form runs on under it", async ({
     page,
   }, info) => {
     test.skip(
       info.project.name === "desktop",
       "the whole form fits beside the options on a wide page",
     );
-    await openCreate(page);
-    const line = () =>
-      page
-        .locator(".create-page .create-submit")
-        .evaluate((node) => Number(getComputedStyle(node, "::before").opacity));
-    await page.evaluate(() => window.scrollTo(0, 0));
-    expect(await page.evaluate(() => document.documentElement.scrollHeight > innerHeight)).toBe(
-      true,
-    );
-    await expect.poll(line).toBe(1);
+    const foot = page.locator(".create-page .create-submit");
+    const line = () => foot.evaluate((node) => Number(getComputedStyle(node, "::before").opacity));
+    // At rest the closed form ends above the foot's edge: the page may scroll a little (its own
+    // bottom padding), but nothing runs under the button, so there is no line at any scroll.
+    await page.goto("/create");
+    await expect(page.locator("[data-create]")).toHaveAttribute("data-ready", "");
+    await expect(foot).not.toHaveAttribute("data-stuck", "");
+    await expect.poll(line).toBe(0);
     await page.evaluate(() => window.scrollTo(0, document.documentElement.scrollHeight));
     await expect.poll(line).toBe(0);
+    // Open, the options run on under the stuck foot: the line shows, and goes at the end.
+    await openMore(page);
+    await page.evaluate(() => window.scrollTo(0, 0));
+    await expect(foot).toHaveAttribute("data-stuck", "");
+    await expect.poll(line).toBe(1);
+    await page.evaluate(() => window.scrollTo(0, document.documentElement.scrollHeight));
+    await expect(foot).not.toHaveAttribute("data-stuck", "");
+    await expect.poll(line).toBe(0);
+  });
+
+  test("a wide page does not stick the foot or draw its line", async ({ page }, info) => {
+    test.skip(info.project.name !== "desktop", "only a wide page lays the form out in columns");
+    await page.setViewportSize({ width: 1280, height: 600 });
+    await openCreate(page);
+    const foot = page.locator(".create-page .create-submit");
+    expect(await foot.evaluate((node) => getComputedStyle(node).position)).toBe("static");
+    expect(await foot.evaluate((node) => getComputedStyle(node, "::before").content)).toBe("none");
+    await expect(foot).not.toHaveAttribute("data-stuck", "");
   });
 
   for (const width of [320, 360, 390]) {
@@ -291,14 +313,14 @@ test.describe("the Create page", () => {
     const note = page.locator("[data-preset-note]");
     await expect(note).toBeHidden();
     await chip(page, "Audio interfaces").click();
-    await segment(page, "General").click();
+    await segment(page, "Anyone").click();
     // The hand-picked topics stay, and the line says so.
     await expect(page.locator('input[name="topic"]:checked')).toHaveCount(4);
     await expect(note).toBeVisible();
     await expect(note).toContainText("Your topic picks are kept.");
     await page.getByRole("button", { name: "Use suggested topics" }).click();
     await expect(note).toBeHidden();
-    // Every chip stays; the selection is General's preset, so the owner's own topic is unticked.
+    // Every chip stays; the selection is Anyone's preset, so the owner's own topic is unticked.
     await expect(page.locator(".filter-chip:visible")).toHaveCount(9);
     await expect(page.locator('input[name="topic"][value="audio_interfaces"]')).not.toBeChecked();
     await expect(page.locator('input[name="topic"]:checked')).toHaveCount(6);
@@ -312,14 +334,65 @@ test.describe("the Create page", () => {
     expect(JSON.stringify(mock.bodies[0])).not.toContain('"top"');
   });
 
-  test("the presets: Somesh ticks Design, AI, Technology; General ticks the six news topics", async ({
+  test("a suggestion that replaces untouched topics says so, and Undo brings the ticks back", async ({
+    page,
+  }) => {
+    const mock = await mockPodcast(page, 202, { status: 202, run_id: 3, started_at: "x" });
+    await openCreate(page);
+    const ticked = page.locator(".filter-chip:has(input:checked)");
+    const note = page.locator("[data-preset-note]");
+    await expect(note).toBeHidden();
+    await segment(page, "Anyone").click();
+    // The chips may be far above in a phone's sheet: the line where the choice was made says what
+    // changed, in a status region, with the way back.
+    await expect(note).toBeVisible();
+    await expect(note).toContainText("Topics set for anyone");
+    // Not hidden under the stuck foot with Generate.
+    await expect(page.getByRole("button", { name: "Undo" })).toBeInViewport();
+    await expect
+      .poll(() =>
+        page.evaluate(() => {
+          const line = document.querySelector("[data-preset-note]")?.getBoundingClientRect();
+          const foot = document.querySelector("main .create-submit")?.getBoundingClientRect();
+          return !line || !foot || line.bottom <= foot.top + 1;
+        }),
+      )
+      .toBe(true);
+    await expect(page.locator("[data-preset-status]")).toHaveAttribute("role", "status");
+    await expect(page.getByRole("button", { name: "Use suggested topics" })).toBeHidden();
+    await page.getByRole("button", { name: "Undo" }).click();
+    await expect(note).toBeHidden();
+    await expect(ticked).toHaveText(["Design", "AI", "Technology"]);
+    // Focus stays where the choice was made, not on the page.
+    await expect(page.locator('input[name="audience"]:checked')).toBeFocused();
+    // The restored ticks are the person's own now: another switch keeps them and says so.
+    await segment(page, "Somesh").click();
+    await expect(note).toContainText("Your topic picks are kept.");
+    await expect(ticked).toHaveText(["Design", "AI", "Technology"]);
+    await page.locator("[data-submit]").click();
+    await confirm(page);
+    await expect.poll(() => mock.bodies.length).toBe(1);
+    expect(mock.bodies[0]?.request).toMatchObject({
+      topic_ids: ["design", "ui-craft", "ai", "tech"],
+    });
+  });
+
+  test("a tick by hand after a suggestion takes its Undo away", async ({ page }) => {
+    await openCreate(page);
+    await segment(page, "Anyone").click();
+    await expect(page.getByRole("button", { name: "Undo" })).toBeVisible();
+    await chip(page, "Design").click();
+    await expect(page.locator("[data-preset-note]")).toBeHidden();
+  });
+
+  test("the presets: Somesh ticks Design, AI, Technology; Anyone ticks the six news topics", async ({
     page,
   }) => {
     await openCreate(page);
     const ticked = page.locator(".filter-chip:has(input:checked)");
     const all = page.locator(".filter-chip:visible");
     await expect(ticked).toHaveText(["Design", "AI", "Technology"]);
-    await segment(page, "General").click();
+    await segment(page, "Anyone").click();
     await expect(all).toHaveCount(9);
     await expect(ticked).toHaveText([
       "Technology",
@@ -350,7 +423,7 @@ test.describe("the Create page", () => {
       audience: "custom",
       topic_ids: ["design", "ui-craft", "ai", "tech", "world", "sports"],
     });
-    await segment(page, "General").click();
+    await segment(page, "Anyone").click();
     await expect(page.locator('input[name="topic"]:checked')).toHaveCount(5);
     await segment(page, "Somesh").click();
     await expect(page.locator('input[name="topic"]:checked')).toHaveCount(5);
@@ -365,13 +438,17 @@ test.describe("the Create page", () => {
     await expect(page.locator("[data-create]")).toHaveAttribute("data-ready", "");
     const more = page.locator("[data-create-more]");
     await expect(more).not.toHaveAttribute("open", "");
-    await expect(page.locator("[data-more-values]")).toHaveText("For Somesh · 7 days · Neutral");
+    await expect(page.locator("[data-more-values]")).toHaveText(
+      "For Somesh · Last 7 days · Neutral tone",
+    );
     await expect(page.locator('input[name="tone"]').first()).toBeHidden();
     await more.locator("summary").click();
     await segment(page, "Dry").click();
-    await segment(page, "General").click();
+    await segment(page, "Anyone").click();
     await more.locator("summary").click();
-    await expect(page.locator("[data-more-values]")).toHaveText("For General · 7 days · Dry");
+    await expect(page.locator("[data-more-values]")).toHaveText(
+      "For anyone · Last 7 days · Dry tone",
+    );
   });
 
   test("a wide page keeps More options open beside the main questions", async ({ page }, info) => {
@@ -387,6 +464,50 @@ test.describe("the Create page", () => {
     expect((box?.x ?? 0) > (topics?.x ?? 0) + (topics?.width ?? 0)).toBe(true);
     // The whole form is in view: Generate needs no scrolling.
     await expect(submit(page)).toBeInViewport();
+  });
+
+  test("a wide page's two columns share one label size and hug their controls", async ({
+    page,
+  }, info) => {
+    test.skip(info.project.name !== "desktop", "only a wide page has two columns");
+    await openCreate(page);
+    const sizes = await page
+      .locator(".create-group .section-head")
+      .evaluateAll((heads) => [...new Set(heads.map((head) => getComputedStyle(head).fontSize))]);
+    expect(sizes).toHaveLength(1);
+    // The options column's controls hug their options as the main column's do, instead of
+    // stretching across the column.
+    const hug = await page.locator('fieldset:has(input[name="audience"])').evaluate((node) => {
+      const column = node.closest("[data-create-more]")?.getBoundingClientRect().width ?? 0;
+      return { control: node.getBoundingClientRect().width, column };
+    });
+    expect(hug.control).toBeLessThan(hug.column - 40);
+  });
+
+  test("a wide page's Tab goes down the main questions to Generate, then the options", async ({
+    page,
+  }, info) => {
+    test.skip(info.project.name !== "desktop", "only a wide page has two columns");
+    await page.goto("/create");
+    await expect(page.locator("[data-create]")).toHaveAttribute("data-ready", "");
+    const summary = page.locator("[data-create-more] > summary");
+    // The pinned row is the column's heading, not a disclosure that does nothing.
+    await expect(summary).toHaveAttribute("tabindex", "-1");
+    await expect(page.getByRole("heading", { name: "More options", level: 2 })).toBeVisible();
+    // Format's chosen segment, then Tab: Generate, then the first choice under Written for.
+    await page.locator('input[name="format"]:checked').focus();
+    await page.keyboard.press("Tab");
+    await expect(submit(page)).toBeFocused();
+    await page.keyboard.press("Tab");
+    await expect(page.locator('input[name="audience"]:checked')).toBeFocused();
+    // Narrow again, the row is a switch in the Tab order, before Generate.
+    await page.setViewportSize({ width: 900, height: 800 });
+    await expect(summary).not.toHaveAttribute("tabindex", "-1");
+    const order = await page.evaluate(() => {
+      const more = document.querySelector("[data-create-more]");
+      return more?.nextElementSibling?.classList.contains("create-submit");
+    });
+    expect(order).toBe(true);
   });
 
   test("with the passphrase step off, Create sends straight away and mentions none", async ({
@@ -760,7 +881,8 @@ test.describe("the Create panel's voices", () => {
     const leo = page.locator('select[name="voice_b"]');
     const hint = page.locator("[data-format-hint]");
     await expect(ada).toHaveAccessibleName("Voice");
-    await expect(hint).toHaveText("Read in one voice.");
+    // Nothing under the format until the voices can name who will be heard.
+    await expect(hint).toBeHidden();
     await expect(ada.locator("option")).toHaveText([
       "Default",
       // Each voice leads with the flag of its accent: en-US, en-US, en-GB.
@@ -776,10 +898,14 @@ test.describe("the Create panel's voices", () => {
     await expect(page.locator("#create-voice-label")).toHaveText("Voices");
     await expect(ada).toHaveAccessibleName("First host's voice");
     await expect(leo).toHaveAccessibleName("Second host's voice");
-    await expect(hint).toHaveText("Two hosts talk it through, in two voices.");
+    await expect(hint).toBeHidden();
     await ada.selectOption("voice-ada");
     await leo.selectOption("voice-leo");
-    await expect(hint).toHaveText("Two hosts talk it through, voiced by Ada and Leo.");
+    await expect(hint).toHaveText("Ada and Leo");
+    // The voices are labelled with the hosts' names (D76), in their captions and their names.
+    await expect(page.locator("[data-voice-caption]")).toHaveText(["Ada's voice", "Leo's voice"]);
+    await expect(ada).toHaveAccessibleName("Ada's voice");
+    await expect(leo).toHaveAccessibleName("Leo's voice");
     await openDialog(page);
     await confirm(page);
     await expect.poll(() => mock.bodies.length).toBe(1);
@@ -811,14 +937,12 @@ test.describe("the Create panel's voices", () => {
     await openCreate(page);
     const first = page.locator('select[name="voice"] option').first();
     await expect(first).toHaveText("\u{1F1FA}\u{1F1F8} Default (Ada)");
-    await expect(page.locator("[data-format-hint]")).toHaveText("Read by Ada.");
+    await expect(page.locator("[data-format-hint]")).toHaveText("Read by Ada");
     await segment(page, "Discussion").click();
     await expect(page.locator('select[name="voice_b"] option').first()).toHaveText(
       "\u{1F1FA}\u{1F1F8} Default (Leo)",
     );
-    await expect(page.locator("[data-format-hint]")).toHaveText(
-      "Two hosts talk it through, voiced by Ada and Leo.",
-    );
+    await expect(page.locator("[data-format-hint]")).toHaveText("Ada and Leo");
   });
 
   test("a readout sends no second voice", async ({ page }) => {

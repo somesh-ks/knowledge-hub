@@ -280,8 +280,44 @@
   font-weight: var(--font-weight-regular);
 }
 
-.create-title {
+/* The Title is a filled field, as the tonal form around it is: the container tone, round top corners,
+   and a bottom line at 3:1 (D54) that turns into a 2px accent line on focus. Scoped to Create; the
+   other sheets keep the outlined field. */
+.create-view .sheet-input.create-title {
   width: 100%;
+  border: 0;
+  border-block-end: var(--stroke-hairline) solid var(--color-border-control);
+  border-radius: var(--row-radius) var(--row-radius) var(--radius-xs) var(--radius-xs);
+  background: var(--color-surface-container);
+  transition:
+    background-color var(--duration-hover) var(--ease-hover),
+    box-shadow var(--duration-hover) var(--ease-hover);
+}
+
+@media (hover: hover) and (pointer: fine) {
+  .create-view .sheet-input.create-title:hover {
+    background: color-mix(
+      in oklch,
+      var(--color-surface-container),
+      var(--color-on-surface) var(--state-hover)
+    );
+  }
+}
+
+.create-view .sheet-input.create-title:focus,
+.create-view .sheet-input.create-title:focus-visible {
+  outline: none;
+  box-shadow: inset 0 calc(var(--stroke-ring) * -1) 0 var(--color-accent);
+}
+
+@media (forced-colors: active) {
+  .create-view .sheet-input.create-title {
+    border: var(--stroke-hairline) solid CanvasText;
+  }
+
+  .create-view .sheet-input.create-title:focus-visible {
+    outline: var(--stroke-ring) solid Highlight;
+  }
 }
 
 .create-submit {
@@ -313,10 +349,9 @@
 }
 
 /* A hairline along the top of the foot, as the sheet's foot has, so the form that scrolls under it
-   ends at an edge instead of being cut through. It fades out over the last 16px of the page, where
-   nothing is left under it, by the root's scroll (as the app bar's line fades in). A page too short
-   to scroll has no timeline, and no line; without scroll timelines the line always shows. It runs
-   out over the page's gutters (no further: a wider box would widen the page). */
+   ends at an edge instead of being cut through. It shows only while the foot is stuck, with the form
+   running on under it: createPage.ts sets data-stuck. At rest, with nothing under the foot, there is
+   no line. It runs out over the page's gutters (no further: a wider box would widen the page). */
 .create-page .create-submit::before {
   content: "";
   position: absolute;
@@ -324,27 +359,18 @@
   inset-inline: calc(var(--page-gutter-start) * -1) calc(var(--page-gutter-end) * -1);
   height: var(--stroke-hairline);
   background: var(--color-border-hairline);
+  opacity: 0;
   pointer-events: none;
+  transition: opacity var(--duration-hover) var(--ease-hover);
 }
 
-@supports (animation-timeline: scroll()) {
+.create-page .create-submit[data-stuck]::before {
+  opacity: 1;
+}
+
+@media (prefers-reduced-motion: reduce) {
   .create-page .create-submit::before {
-    opacity: 0;
-    animation-name: create-foot-line;
-    animation-timing-function: linear;
-    animation-fill-mode: both;
-    animation-timeline: scroll(root);
-    animation-range: calc(100% - var(--space-4)) 100%;
-  }
-}
-
-@keyframes create-foot-line {
-  from {
-    opacity: 1;
-  }
-
-  to {
-    opacity: 0;
+    transition: none;
   }
 }
 
@@ -492,13 +518,27 @@
     display: none;
   }
 
-  /* The foot's surface spreads to the start only: to the end it would paint over the options. */
+  /* The button sits right under Format here, always in view: the foot does not stick, and has no
+     surface or line of its own. */
   .create-page .create-submit {
-    clip-path: inset(0 0 0 -100vmax);
+    position: static;
+    background: none;
+    box-shadow: none;
+    clip-path: none;
   }
 
+  .create-page .create-submit::before {
+    content: none;
+  }
+
+  /* One rule for both columns: a segmented control hugs its options, and a question's label is the
+     body size, so the two columns read as one form. */
   .create-page .create-more .create-choice {
-    inline-size: auto;
+    inline-size: fit-content;
+  }
+
+  .create-page .create-more-body .create-group .section-head {
+    font-size: var(--font-size-body);
   }
 
   .create-page .create-voices:has(> [data-voice="voice_b"]:not([hidden])) {

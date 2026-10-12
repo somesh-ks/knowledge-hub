@@ -80,8 +80,8 @@ test.describe("the library", () => {
       "Newest first",
       "Oldest first",
       "Longest first",
-      "Most stories",
     ]);
+    // No "Most stories": an episode's card never shows a count, so that order would look arbitrary.
     await expect(sort).toHaveValue("newest");
   });
 
@@ -122,7 +122,52 @@ test.describe("the library", () => {
   });
 });
 
+for (const width of [360, 390]) {
+  test(`the shelf on Today keeps each card's facts on one line at ${width}px`, async ({
+    page,
+  }, info) => {
+    test.skip(info.project.name === "desktop", "a phone width");
+    await page.setViewportSize({ width, height: 800 });
+    await page.goto("/");
+    const lines = await page.locator(".shelf .card-facts").evaluateAll((nodes) =>
+      nodes.map((node) => ({
+        text: node.textContent,
+        lines: Math.round(
+          node.getBoundingClientRect().height /
+            Number.parseFloat(getComputedStyle(node).lineHeight),
+        ),
+      })),
+    );
+    expect(lines.length).toBeGreaterThan(0);
+    for (const line of lines) expect(line.lines, line.text ?? "").toBe(1);
+  });
+}
+
 test.describe("library search", () => {
+  test("a tap or click on the search pill changes its fill; only a key draws the ring", async ({
+    page,
+  }) => {
+    await page.goto("/library");
+    await ready(page);
+    const pill = page.locator(".search-field");
+    const look = () =>
+      pill.evaluate((node) => {
+        const css = getComputedStyle(node);
+        return { outline: css.outlineStyle, fill: css.backgroundColor };
+      });
+    const rest = await look();
+    await page.getByRole("searchbox").click();
+    const pressed = await look();
+    expect(pressed.outline).toBe("none");
+    expect(pressed.fill).not.toBe(rest.fill);
+    // A key: the keyboard's ring.
+    await page.getByRole("searchbox").blur();
+    await page.keyboard.press("Shift+Tab");
+    await page.keyboard.press("Tab");
+    await expect(page.getByRole("searchbox")).toBeFocused();
+    expect((await look()).outline).toBe("solid");
+  });
+
   test("keeps the briefings with a matching story and says why they are there", async ({
     page,
   }) => {
@@ -130,12 +175,25 @@ test.describe("library search", () => {
     await ready(page);
     await page.getByRole("searchbox").fill("forty minute");
     expect(await titles(page)).toEqual(["Monday 5 October"]);
-    // While searching, the line under a card says why it is there.
-    // While searching, the line under a card names the story that matched.
-    await expect(page.locator("[data-card]:not([hidden]) .card-facts")).toHaveText(
-      "A forty minute conversation on taste in small teams",
-    );
+    // While searching, a line under the card names the story that matched, the query's words
+    // marked, and the card's own facts (kind, length) stay.
+    const match = page.locator("[data-card]:not([hidden]) .card-match");
+    await expect(match).toHaveText("A forty minute conversation on taste in small teams");
+    await expect(match.locator("b")).toHaveText(["forty", "minute"]);
+    await expect(page.locator("[data-card]:not([hidden]) .card-facts")).toHaveText(/^Daily · /);
+    // The marked words are medium weight with no fill.
+    const style = await match
+      .locator("b")
+      .first()
+      .evaluate((node) => {
+        const css = getComputedStyle(node);
+        return { weight: css.fontWeight, fill: css.backgroundColor };
+      });
+    expect(style).toEqual({ weight: "500", fill: "rgba(0, 0, 0, 0)" });
     await narrowedTo(page, 1, 5);
+    // Clearing the search takes the line away.
+    await page.getByRole("searchbox").fill("");
+    await expect(page.locator(".card-match")).toHaveCount(0);
   });
 
   test("matches publishers and ignores case and accents", async ({ page }) => {
@@ -244,11 +302,12 @@ test.describe("library search", () => {
     for (const query of ["7 october", "oct 7", "2026-10-07", "wednesday"]) {
       await input.fill(query);
       expect(await titles(page), query).toEqual([DISCUSSION, "Wednesday 7 October"]);
-      // The date is why they are there, not a story: the normal line stays.
+      // The date is why they are there, not a story: the normal line stays, and no match line.
       await expect(page.locator("[data-card]:not([hidden]) .card-facts")).toHaveText([
         REST_FACTS[0] ?? "",
         REST_FACTS[1] ?? "",
       ]);
+      await expect(page.locator("[data-card]:not([hidden]) .card-match")).toHaveCount(0);
     }
   });
 
@@ -360,13 +419,29 @@ test.describe("library fixes", () => {
     });
     await page.goto("/library");
     await ready(page);
-    const played = page.locator("[data-card][data-id='2026-10-07'] [data-card-played]");
-    await expect(played).toBeVisible();
-    await expect(played).toHaveText("Played");
-    await expect(page.locator("[data-card-played]:visible")).toHaveCount(1);
+    // Played takes the length's place in the facts line, so it never wraps onto its own line.
+    const played = page.locator("[data-card][data-id='2026-10-07'] .card-facts");
+    await expect(played).toHaveText(/ · Played$/);
+    await expect(played).not.toContainText("min");
+    await expect(page.locator(".card-facts[data-played]")).toHaveCount(1);
     await expect(
       page.locator("[data-card][data-id='2026-10-05'] [data-cover-progress]"),
     ).toBeVisible();
+    // Neither state changes the card's height: the bar lies over the cover, and every card's title
+    // starts the same distance under its cover and its facts stay one line.
+    const gaps = await page.locator("[data-card]:not([hidden])").evaluateAll((cards) =>
+      cards.map((card) => {
+        const cover = card.querySelector(".cover")?.getBoundingClientRect();
+        const title = card.querySelector(".card-title")?.getBoundingClientRect();
+        const facts = card.querySelector(".card-facts")?.getBoundingClientRect();
+        return {
+          gap: Math.round((title?.top ?? 0) - (cover?.bottom ?? 0)),
+          facts: Math.round(facts?.height ?? 0),
+        };
+      }),
+    );
+    expect(new Set(gaps.map((card) => card.gap)).size, JSON.stringify(gaps)).toBe(1);
+    expect(new Set(gaps.map((card) => card.facts)).size, JSON.stringify(gaps)).toBe(1);
   });
 
   test("a date with a day under ten finds only that day", async ({ page }) => {
@@ -446,15 +521,10 @@ test.describe("library filters and order", () => {
       "Monday 5 October",
       "Wednesday 7 October",
     ]);
-    // The most stories first: 14, 12, 8, 2, then 1 (an episode's stories are the ones it covers).
-    await sort.selectOption("stories");
-    expect(await titles(page)).toEqual([
-      "Sunday 4 October",
-      "Wednesday 7 October",
-      "Monday 5 October",
-      DISCUSSION,
-      HEADLINES,
-    ]);
+    // An address from before keeps working: an order the page no longer offers is the default.
+    await page.goto("/library?sort=stories");
+    await expect(sort).toHaveValue("newest");
+    await expect(page).not.toHaveURL(/sort=/);
     await sort.selectOption("newest");
     expect(await titles(page)).toEqual(NEWEST_FIRST);
   });
@@ -542,7 +612,7 @@ test.describe("library episodes", () => {
     // "fraction" is said in a script and written nowhere on a card.
     await input.fill("fraction cost");
     await expect.poll(() => titles(page)).toEqual([HEADLINES]);
-    await expect(page.locator("[data-card]:not([hidden]) .card-facts")).toHaveText([
+    await expect(page.locator("[data-card]:not([hidden]) .card-match")).toHaveText([
       "Mentioned in a story",
     ]);
     // Every word has to be there, so one that is not takes the card away again.

@@ -7,7 +7,7 @@
  */
 
 export type LibraryFilter = "all" | "daily" | "weekly" | "custom";
-export type LibrarySort = "newest" | "oldest" | "longest" | "stories";
+export type LibrarySort = "newest" | "oldest" | "longest";
 
 export const LIBRARY_FILTERS: ReadonlyArray<{ id: LibraryFilter; label: string }> = [
   { id: "all", label: "All" },
@@ -23,7 +23,6 @@ export const LIBRARY_SORTS: ReadonlyArray<{ id: LibrarySort; label: string }> = 
   { id: "newest", label: "Newest first" },
   { id: "oldest", label: "Oldest first" },
   { id: "longest", label: "Longest first" },
-  { id: "stories", label: "Most stories" },
 ];
 
 /** The `kind` a podcast episode's card carries, beside the kinds of briefing. */
@@ -147,6 +146,71 @@ function lineHasWords(line: string, words: readonly string[]): boolean {
   });
 }
 
+/** One run of a matched line: the words a query found are `hit`, the rest are not. */
+export interface ExcerptPart {
+  text: string;
+  hit: boolean;
+}
+
+/** One character folded as `normalize` folds text: lower case, accents off. */
+function fold(char: string): string {
+  return char
+    .normalize("NFD")
+    .replace(/\p{Diacritic}/gu, "")
+    .toLowerCase();
+}
+
+/**
+ * A matched headline as a card shows it: from a little before the first word the query found, so
+ * that word is in view on a narrow card ("…tap latency on a mid-range phone"), with every found word
+ * marked. `lead` is how many characters may come before the first find before the start is cut, at
+ * a space, behind an ellipsis.
+ */
+export function matchExcerpt(text: string, query: string, lead = 16): ExcerptPart[] {
+  const words = queryWords(query);
+  const chars = [...text];
+  // The folded text, and for each of its characters the original character it came from.
+  let folded = "";
+  const from: number[] = [];
+  chars.forEach((char, index) => {
+    const part = fold(char);
+    folded += part;
+    for (let step = 0; step < part.length; step += 1) from.push(index);
+  });
+  const hit = new Array<boolean>(chars.length).fill(false);
+  const wordChar = /[\p{L}\p{N}]/u;
+  for (const word of words) {
+    const number = /^\d+$/.test(word);
+    for (let at = folded.indexOf(word); at !== -1; at = folded.indexOf(word, at + 1)) {
+      // A number is a whole token, as in search: "6" is not marked inside "2026".
+      const before = folded[at - 1] ?? " ";
+      const after = folded[at + word.length] ?? " ";
+      if (number && (wordChar.test(before) || wordChar.test(after))) continue;
+      for (let index = at; index < at + word.length; index += 1) hit[from[index] ?? 0] = true;
+    }
+  }
+  const first = hit.indexOf(true);
+  let start = 0;
+  if (first > lead) {
+    // Cut at the first space in the lead, so no word is shown in part.
+    const space = chars.findIndex((char, index) => index >= first - lead && /\s/.test(char));
+    start = space !== -1 && space < first ? space + 1 : first;
+  }
+  const parts: ExcerptPart[] = start > 0 ? [{ text: "…", hit: false }] : [];
+  for (let index = start; index < chars.length; index += 1) {
+    const last = parts[parts.length - 1];
+    const on = hit[index] ?? false;
+    if (last && last.hit === on) last.text += chars[index];
+    else parts.push({ text: chars[index] ?? "", hit: on });
+  }
+  return parts;
+}
+
+/** After a matching story's headline: "and 2 more", the other stories that matched. */
+export function moreMatches(more: number): string {
+  return more > 0 ? `and ${more} more` : "";
+}
+
 /** The search text for a day, so "7 october", "oct 7", "2026-10-07" and "wednesday" all find it. */
 export function dateSearchLine(isoDate: string, longDate: string): string {
   const [, , day = ""] = isoDate.split("-");
@@ -209,7 +273,6 @@ export function compareCards(a: CardData, b: CardData, sort: LibrarySort): numbe
   const newest = b.date.localeCompare(a.date) || a.order - b.order;
   if (sort === "oldest") return -newest;
   if (sort === "longest") return b.minutes - a.minutes || newest;
-  if (sort === "stories") return b.stories - a.stories || newest;
   return newest;
 }
 

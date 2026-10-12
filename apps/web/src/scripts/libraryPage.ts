@@ -6,12 +6,15 @@ import {
   type CardData,
   compareCards,
   emptyCopy,
+  FACT_SEPARATOR,
   LIBRARY_FILTERS,
   LIBRARY_SORTS,
   type LibraryFilter,
   type LibrarySort,
   matchDetail,
+  matchExcerpt,
   matchesFilter,
+  moreMatches,
   normalize,
   resultSummary,
   type SearchIndexEntry,
@@ -115,29 +118,42 @@ function install(): void {
   }
 
   /**
-   * The line under a card: its own facts, or while searching why it is there. A matching story is
-   * named by its headline, cut to one line, with how many more matched after it.
+   * While searching, a line under a card's facts says why it is there: the matching story's
+   * headline from a little before the find, the query's words in medium weight, and how many more
+   * stories matched; or that a story's text mentions it. The facts (kind, length) stay in view.
+   * Without a reason, the line goes.
    */
-  function writeFacts(facts: HTMLElement, text: string, headline?: string, more = 0): void {
-    const key = headline === undefined ? text : `${headline}\n${more}`;
-    if (facts.dataset.shown === key) return;
-    facts.dataset.shown = key;
+  function writeMatch(card: Card, query: string, headline?: string, more = 0): void {
+    const anchor = card.element.querySelector<HTMLElement>(".card-sub");
+    let line = card.element.querySelector<HTMLElement>("[data-card-match]");
+    const key = headline === undefined ? "" : `${query}\n${headline}\n${more}`;
+    if ((line?.dataset.shown ?? "") === key) return;
     if (headline === undefined) {
-      delete facts.dataset.match;
-      facts.textContent = text;
+      line?.remove();
       return;
     }
-    facts.dataset.match = "";
-    const name = document.createElement("span");
-    name.className = "card-match";
-    name.textContent = headline;
-    facts.replaceChildren(name);
-    if (more > 0) {
-      const rest = document.createElement("span");
-      rest.className = "card-match-more";
-      rest.textContent = `+${more}`;
-      rest.title = `${more} more matching ${more === 1 ? "story" : "stories"}`;
-      facts.append(rest);
+    if (!line) {
+      line = document.createElement("span");
+      line.className = "card-match";
+      line.dataset.cardMatch = "";
+      anchor?.after(line);
+    }
+    line.dataset.shown = key;
+    const parts = query === "" ? [{ text: headline, hit: false }] : matchExcerpt(headline, query);
+    line.replaceChildren(
+      ...parts.map((part) => {
+        if (!part.hit) return document.createTextNode(part.text);
+        const word = document.createElement("b");
+        word.textContent = part.text;
+        return word;
+      }),
+    );
+    const rest = moreMatches(more);
+    if (rest) {
+      const tail = document.createElement("span");
+      tail.className = "card-match-more";
+      tail.textContent = ` ${rest}`;
+      line.append(tail);
     }
   }
 
@@ -176,15 +192,13 @@ function install(): void {
       if (inText) matches = 1;
       card.element.hidden = matches === 0;
       if (matches > 0) shown += 1;
-      if (!card.facts) continue;
-      // While searching, the line under a card says why it is there, when a story is why. A card
-      // found by its own date or title keeps its normal line: no story matched.
-      const rest = card.facts.dataset.rest ?? "";
-      if (searching && inText) writeFacts(card.facts, "Mentioned in a story");
+      // While searching, a line says why a card is there, when a story is why. A card found by its
+      // own date or title needs none: no story matched.
+      if (searching && inText) writeMatch(card, "", "Mentioned in a story");
       else if (searching && matches > 0 && detail.stories > 0 && "first" in detail) {
         const headline = storyHeadline(card.lines[detail.first ?? 0] ?? "");
-        writeFacts(card.facts, rest, headline, detail.stories - 1);
-      } else writeFacts(card.facts, rest);
+        writeMatch(card, query, headline, detail.stories - 1);
+      } else writeMatch(card, query);
     }
     const ordered = [...live].sort((a, b) => compareCards(a.data, b.data, sort));
     for (const card of ordered) grid?.append(card.element);
@@ -294,7 +308,6 @@ function install(): void {
   function showProgress(): void {
     for (const card of cards) {
       const bar = card.element.querySelector<HTMLElement>("[data-cover-progress]");
-      const playedMark = card.element.querySelector<HTMLElement>("[data-card-played]");
       let seconds = 0;
       let played = false;
       try {
@@ -305,7 +318,21 @@ function install(): void {
       }
       const total = card.data.minutes * 60;
       const share = Number.isFinite(seconds) && total > 0 ? Math.min(seconds / total, 1) : 0;
-      if (playedMark) playedMark.hidden = !played || share > 0;
+      // Heard to the end: "Played" takes the length's place in the facts line, so it never wraps
+      // onto a line of its own. Half-heard, the bar says it.
+      if (card.facts) {
+        const rest = card.facts.dataset.rest ?? "";
+        const finished = played && share <= 0;
+        if (finished !== card.facts.hasAttribute("data-played")) {
+          card.facts.toggleAttribute("data-played", finished);
+          const parts = rest.split(FACT_SEPARATOR);
+          card.facts.textContent = finished
+            ? [...parts.slice(0, -1), card.facts.dataset.playedLabel ?? "Played"].join(
+                FACT_SEPARATOR,
+              )
+            : rest;
+        }
+      }
       if (!bar) continue;
       bar.hidden = share <= 0;
       if (share > 0) bar.style.setProperty("--progress", `${Math.round(share * 100)}%`);

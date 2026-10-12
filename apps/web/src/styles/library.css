@@ -49,12 +49,21 @@
   }
 }
 
-/* A half-heard item: a bar under the art on its own track, in the accent, so it reads the same on
-   every cover and in both themes. It sits in the cover's bottom margin. */
+/* A half-heard item: a bar on its own track along the bottom of the art, inset from its corners, in
+   the accent, so it reads the same on every cover and in both themes. It lies over the cover in the
+   cover's own grid cell, so it costs no height: the card's title stays level with its neighbours'. */
+.card-link .cover {
+  grid-area: 1 / 1;
+}
+
 .card-progress {
+  position: relative;
+  z-index: var(--z-raised);
   display: block;
+  grid-area: 1 / 1;
+  align-self: end;
   height: var(--space-1);
-  margin-block: calc(var(--space-2) * -1) var(--space-1);
+  margin: 0 var(--space-2) calc(var(--space-2) * 2);
   overflow: hidden;
   border-radius: var(--radius-round);
   background: var(--rail-track);
@@ -97,40 +106,29 @@
   text-wrap: pretty;
 }
 
-/* Heard to the end: a check and one quiet word beside the facts. */
-.card-played {
-  display: inline-flex;
-  align-items: center;
-  gap: var(--space-1);
-  color: var(--color-on-surface-muted);
-}
-
-.card-played > .icon {
-  width: var(--font-size-body);
-  height: var(--font-size-body);
-}
-
-.card-played[hidden] {
-  display: none;
-}
-
-/* While searching, a card found by a story names it: the headline on one line, then how many more. */
-.card-facts[data-match] {
-  display: flex;
-  gap: var(--space-1);
-  min-width: 0;
-  max-width: 100%;
-}
-
+/* While searching, a card found by a story names it under its facts: the headline from a little
+   before the find, up to two lines, the query's words in medium weight in the text colour, with no
+   fill, then how many more stories matched. */
 .card-match {
-  min-width: 0;
+  display: -webkit-box;
   overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
+  color: var(--color-on-surface-muted);
+  font-size: var(--font-size-label);
+  line-height: var(--font-leading-label);
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 2;
+  line-clamp: 2;
 }
 
-.card-match-more {
-  flex: none;
+.card-match > b {
+  color: var(--color-on-surface);
+  font-weight: var(--font-weight-medium);
+}
+
+/* On Today's narrow shelf a briefing's line leaves out its story count, so "Weekly · 8 min" fits on
+   one line and never breaks after a separator. */
+.shelf .card-count {
+  display: none;
 }
 
 .card-facts {
@@ -161,6 +159,14 @@
   padding-block: 0 var(--space-4);
 }
 
+/* From 64rem a destination's title is the section size, as Settings and New episode are: Today's
+   date is the one display line. */
+@media (min-width: 64rem) {
+  main.library .library-title {
+    font-size: var(--font-size-section);
+  }
+}
+
 /* One column as wide as the page and no wider: the search field's own width must not widen it. */
 .library-tools {
   display: grid;
@@ -170,7 +176,8 @@
 }
 
 /* The search field: a filled pill with the glyph inside it, as a search bar is in every Google app.
-   The glyph and the placeholder say what it is; its ring says when it has focus. */
+   The glyph and the placeholder say what it is. Focus lifts its fill to the raised surface; the
+   ring is the keyboard's only (data-input, app.ts), so a tap or a click never draws it. */
 .search-field {
   display: flex;
   align-items: center;
@@ -185,6 +192,10 @@
 }
 
 .search-field:focus-within {
+  background: var(--color-surface-raised);
+}
+
+:root[data-input="keyboard"] .search-field:focus-within {
   outline: var(--stroke-ring) solid var(--color-focus-ring);
   outline-offset: var(--stroke-ring-gap);
 }
@@ -280,10 +291,21 @@
   color: var(--color-on-accent-container);
 }
 
-/* The ring is the keyboard's: a click opens the list, and the outline then says which one is open. */
-.sort-field:has(> select:focus-visible) {
+/* The ring is the keyboard's. A press that opens the list keeps the chip's own fill and state
+   layer: no ring and no accent edge (the shared open rule in primitives.css draws both). */
+:root[data-input="keyboard"] .sort-field:has(> select:focus-visible) {
   outline: var(--stroke-ring) solid var(--color-focus-ring);
   outline-offset: var(--stroke-ring-gap);
+}
+
+:root:not([data-input="keyboard"]) .library-bar .sort-field:has(> select:open) {
+  border-color: transparent;
+  outline: none;
+  background: color-mix(
+    in oklch,
+    var(--color-surface-container),
+    var(--color-on-surface) var(--state-press)
+  );
 }
 
 /* The select is 44px tall and the box around it 36px: negative margins let it reach past the border
@@ -419,18 +441,6 @@
   content-visibility: visible;
 }
 
-/* The row grammar of primitives.css: a hairline between rows only, running past the gutters. A row
-   that search or the filter hides does not count, so the first row on show never has one. */
-[data-library][data-view="list"] .card:not([hidden]) ~ .card::before {
-  content: "";
-  position: absolute;
-  inset-block-start: 0;
-  inset-inline: calc(var(--page-gutter-start) * -1) calc(var(--page-gutter-end) * -1);
-  height: var(--stroke-hairline);
-  background: var(--color-border-hairline);
-  pointer-events: none;
-}
-
 /* Title and meta are one block beside the cover, the same gap between them on every row. Spare
    height goes above and below the block, never into it. */
 [data-library][data-view="list"] .card-link {
@@ -442,17 +452,18 @@
 }
 
 [data-library][data-view="list"] .card-link .cover {
-  grid-row: 1 / -1;
   width: var(--list-cover);
   margin-block-end: 0;
 }
 
-/* In a row, the bar goes under the facts line. */
+/* In a row, the bar lies along the bottom of the small cover. */
+[data-library][data-view="list"] .card-link .cover {
+  grid-area: 1 / 1 / -1 / 2;
+}
+
 [data-library][data-view="list"] .card-progress {
-  grid-area: 4 / 2;
-  align-self: start;
-  width: min(100%, 10rem);
-  margin-block: var(--space-2) 0;
+  grid-area: 1 / 1 / -1 / 2;
+  margin: 0 var(--space-1) var(--space-1);
 }
 
 /* A hover or a press fills the whole row, past the gutters, as a row does elsewhere
@@ -460,7 +471,7 @@
 [data-library][data-view="list"] .card-link::after {
   content: "";
   position: absolute;
-  inset-block: 0;
+  inset-block: var(--space-1);
   inset-inline: calc(var(--page-gutter-start) * -1) calc(var(--page-gutter-end) * -1);
   z-index: var(--z-beneath);
   border-radius: var(--row-radius);
@@ -486,6 +497,13 @@
   display: block;
   -webkit-line-clamp: unset;
   line-clamp: unset;
+}
+
+/* While searching, the match line sits under the facts, in the row's last track. */
+[data-library][data-view="list"] .card-match {
+  grid-area: 4 / 2;
+  align-self: start;
+  padding-block-start: var(--space-1);
 }
 
 /* The same one line as the gallery says, under the title. */
