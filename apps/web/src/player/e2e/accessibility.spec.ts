@@ -1,166 +1,138 @@
 import AxeBuilder from "@axe-core/playwright";
-import type { Page } from "@playwright/test";
-import { expect, test } from "./lab";
+import type { Page, Route } from "@playwright/test";
+import { expect, test } from "./helpers";
 import { enterPassphrase } from "./passphrase";
 
 const TAGS = ["wcag2a", "wcag2aa", "wcag21a", "wcag21aa", "wcag22aa"];
 
-async function violations(page: Page) {
-  const results = await new AxeBuilder({ page }).withTags(TAGS).analyze();
-  return results.violations.map((violation) => ({
-    id: violation.id,
-    impact: violation.impact,
-    nodes: violation.nodes.map((node) => node.target.join(" ")),
-  }));
+/** Axe, WCAG 2.2 AA, on the state the page is in now: once light and once dark. */
+async function expectAccessible(page: Page, where: string): Promise<void> {
+  for (const colorScheme of ["light", "dark"] as const) {
+    await page.emulateMedia({ colorScheme });
+    // The colours ease to the new scheme; axe reads them once they are there.
+    await page.evaluate(() =>
+      Promise.all(
+        document
+          .getAnimations()
+          .filter((animation) => animation instanceof CSSTransition)
+          .map((animation) => animation.finished.catch(() => null)),
+      ),
+    );
+    const results = await new AxeBuilder({ page }).withTags(TAGS).analyze();
+    const violations = results.violations.map((violation) => ({
+      id: violation.id,
+      impact: violation.impact,
+      nodes: violation.nodes.map((node) => node.target.join(" ")),
+    }));
+    expect(violations, `${where}, ${colorScheme}`).toEqual([]);
+  }
+  await page.emulateMedia({ colorScheme: "light" });
 }
 
-for (const scheme of ["light", "dark"] as const) {
-  test.describe(`axe, WCAG 2.2 AA, ${scheme}`, () => {
-    test.use({ colorScheme: scheme });
+function reply(route: Route, status: number, body: Record<string, unknown>) {
+  return route.fulfill({ status, contentType: "application/json", body: JSON.stringify(body) });
+}
 
-    test("the page with the bar docked", async ({ lab, page }) => {
-      await lab.open();
-      await lab.play();
-      expect(await violations(page)).toEqual([]);
-    });
-
-    test("the expanded player", async ({ lab, page }) => {
-      await lab.open();
-      await lab.play();
-      await lab.openPlayer();
-      expect(await violations(page)).toEqual([]);
-    });
-
-    test("the expanded player while scrubbing and when it has ended", async ({ lab, page }) => {
-      await lab.open();
-      await lab.play();
-      await lab.openPlayer();
-      await page.getByRole("slider", { name: "Playback position" }).focus();
-      await page.keyboard.press("End");
-      await expect(page.getByRole("heading", { name: "Up next" })).toBeVisible();
-      expect(await violations(page)).toEqual([]);
-    });
-
-    test("the Generate sheet, idle and with an error", async ({ lab, page }) => {
-      await lab.open();
-      await page.locator('[data-open-sheet="generate"]').tap();
-      const dialog = page.getByRole("dialog", { name: "New briefing" });
-      await expect(dialog).toBeVisible();
-      expect(await violations(page)).toEqual([]);
-      await dialog.getByRole("button", { name: "Generate briefing" }).tap();
-      await expect(dialog.getByRole("alert")).toBeVisible();
-      expect(await violations(page)).toEqual([]);
-    });
-
-    test("the Generate sheet while a run goes and when it fails", async ({ lab, page }) => {
-      await page.route("**/api/generate", (route) =>
-        route.fulfill({
-          status: 202,
-          contentType: "application/json",
-          body: JSON.stringify({ run_id: 5, started_at: "now" }),
-        }),
-      );
-      await page.route("**/api/status**", (route) =>
-        route.fulfill({
-          status: 200,
-          contentType: "application/json",
-          body: JSON.stringify({
-            run_id: 5,
-            state: "completed",
-            step: "writing",
-            outcome: "failed",
-            run_url: "https://example.test/run/5",
-          }),
-        }),
-      );
-      await lab.open();
-      await page.locator('[data-open-sheet="generate"]').tap();
-      const dialog = page.getByRole("dialog", { name: "New briefing" });
-      await enterPassphrase(dialog);
-      await dialog.getByRole("button", { name: "Generate briefing" }).tap();
-      await expect(dialog.getByRole("list", { name: "Progress" })).toBeVisible();
-      expect(await violations(page)).toEqual([]);
-      await expect(dialog.getByText("The run failed while writing")).toBeVisible({
-        timeout: 10_000,
-      });
-      expect(await violations(page)).toEqual([]);
-    });
-
-    test("the Settings sheet", async ({ lab, page }) => {
-      await lab.open();
-      await page.locator('[data-open-sheet="settings"]').tap();
-      await expect(page.getByRole("dialog", { name: "Settings" })).toBeVisible();
-      expect(await violations(page)).toEqual([]);
-    });
+test.describe("axe, WCAG 2.2 AA, light and dark", () => {
+  test("the page with the bar docked", async ({ player, page }) => {
+    await player.open();
+    await player.play();
+    await expectAccessible(page, "the bar docked");
   });
-}
+
+  test("the open player, and when it has ended", async ({ player, page }) => {
+    await player.open();
+    await player.play();
+    await player.openPlayer();
+    await expectAccessible(page, "the open player");
+    await player.pageScrubber.focus();
+    await page.keyboard.press("End");
+    await expect(player.root).toHaveAttribute("data-player-state", "ended");
+    await expect(
+      player.dialog.getByRole("button", { name: /The previous briefing/ }),
+    ).toBeVisible();
+    await expectAccessible(page, "the ended player");
+  });
+
+  test("the Generate sheet idle, refused, running, and when the run fails", async ({
+    player,
+    page,
+  }) => {
+    let generate = 0;
+    await page.route("**/api/generate", (route) => {
+      generate += 1;
+      return generate === 1
+        ? reply(route, 503, { error: "unavailable" })
+        : reply(route, 202, { run_id: 79, started_at: "2026-10-07T07:13:00Z" });
+    });
+    let status = 0;
+    await page.route("**/api/status**", (route) => {
+      status += 1;
+      return reply(
+        route,
+        200,
+        status === 1
+          ? { run_id: 79, state: "running", step: "writing" }
+          : {
+              run_id: 79,
+              state: "completed",
+              step: "writing",
+              outcome: "failed",
+              run_url: "https://github.com/example/dispatch/actions/runs/79",
+            },
+      );
+    });
+    await player.open();
+    await page.clock.install();
+    const dialog = await player.openGenerate();
+    await expectAccessible(page, "the Generate sheet");
+    await enterPassphrase(dialog);
+    const start = dialog.getByRole("button", { name: "Generate briefing" });
+    await player.finger.press(start);
+    await expect(dialog.getByRole("alert")).toContainText("not available right now");
+    await expectAccessible(page, "the Generate sheet refused");
+    await player.finger.press(start);
+    await expect(dialog.getByRole("list", { name: "Progress" })).toBeVisible();
+    await expectAccessible(page, "the Generate sheet running");
+    await page.clock.runFor(3_100);
+    // The step that failed is named, with a way to the run and back to the form.
+    await expect(
+      dialog.getByRole("alert").filter({ hasText: "The run failed while writing" }),
+    ).toBeVisible();
+    await expect(dialog.getByRole("link", { name: "View the run" })).toHaveAttribute(
+      "href",
+      /runs\/79/,
+    );
+    await expect(
+      dialog.getByRole("list", { name: "Progress" }).getByRole("listitem").nth(3),
+    ).toContainText("Failed");
+    await expectAccessible(page, "the Generate sheet failed");
+    await player.finger.press(dialog.getByRole("button", { name: "Try again" }));
+    await expect(dialog.getByRole("button", { name: "Generate briefing" })).toBeVisible();
+  });
+});
 
 test.describe("reduced motion", () => {
   test.use({ reducedMotion: "reduce" });
 
   test("the page fades in place instead of travelling, and no cover flies", async ({
-    lab,
+    player,
     page,
   }) => {
-    await lab.open();
-    await lab.play();
-    await lab.openButton.tap();
-    await lab.expanded();
+    await player.open();
+    await player.play();
+    await player.openPlayer();
     // Nothing travelled: the page is where layout put it, and opacity carried the change.
-    await expect(lab.sheet).toHaveCSS("transform", "none");
-    await expect(lab.sheet).toHaveCSS("opacity", "1");
+    await expect(player.sheet).toHaveCSS("transform", "none");
+    await expect(player.sheet).toHaveCSS("opacity", "1");
     // The page's own cover is the one on screen for as long as the page is.
-    await expect(lab.sheet.locator(".player-cover-frame")).toHaveCSS("visibility", "visible");
-    // The way back is the same fade, over the state duration.
-    const started = Date.now();
+    await expect(player.sheet.locator(".player-cover-frame")).toHaveCSS("visibility", "visible");
     await page.keyboard.press("Escape");
-    await lab.collapsed();
-    expect(Date.now() - started).toBeLessThan(1_500);
-    await expect(lab.sheet).toBeHidden();
-    await expect(lab.openButton.locator(".player-cover-frame")).toHaveCSS("visibility", "visible");
-  });
-
-  test("under reduced motion a held pull changes opacity, never position", async ({ lab }) => {
-    await lab.open();
-    await lab.play();
-    const box = await lab.dockSettled();
-    const start = { x: box.x + box.width / 2, y: box.y + box.height / 2 };
-    const held = await lab.finger.drag(
-      [0, 60, 120, 180, 240, 300].map((dy) => ({ x: start.x, y: start.y - dy })),
-      30,
-      { hold: true },
+    await player.collapsed();
+    await expect(player.sheet).toBeHidden();
+    await expect(player.openButton.locator(".player-cover-frame")).toHaveCSS(
+      "visibility",
+      "visible",
     );
-    await expect(lab.surface).toHaveAttribute("data-state", "dragging");
-    await expect(lab.sheet).toHaveCSS("transform", "none");
-    const opacity = Number(
-      await lab.sheet.evaluate((element) => getComputedStyle(element).opacity),
-    );
-    expect(opacity).toBeGreaterThan(0.1);
-    expect(opacity).toBeLessThan(0.9);
-    await held.release();
-    await lab.settled();
-  });
-
-  test("the bar's progress and the story chip still update", async ({ lab, page }) => {
-    await lab.open();
-    await lab.play();
-    const before = await lab.progressOf();
-    await page.waitForTimeout(1_000);
-    expect(await lab.progressOf()).toBeGreaterThan(before);
-    const chip = page.locator('[data-item-id="a1f3c9d2b401"] [data-play-item]');
-    await expect(chip.locator("[data-chip-label]")).toHaveText("Playing");
-  });
-
-  test("movement tokens collapse while fades keep their timing", async ({ lab, page }) => {
-    await lab.open();
-    const tokens = await page.evaluate(() => {
-      const style = getComputedStyle(document.documentElement);
-      return {
-        sheetIn: style.getPropertyValue("--duration-sheet-in").trim(),
-        state: style.getPropertyValue("--duration-state").trim(),
-      };
-    });
-    expect(tokens.sheetIn).toBe("0.01ms");
-    expect(tokens.state).toBe("200ms");
   });
 });

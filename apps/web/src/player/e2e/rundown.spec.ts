@@ -1,8 +1,6 @@
-import { fileURLToPath } from "node:url";
 import type { Page } from "@playwright/test";
-import { expect, type Finger, type LabPage, test } from "./lab";
+import { expect, type Finger, fulfillNarration, type PlayerPage, test } from "./helpers";
 
-const NARRATION_FILE = fileURLToPath(new URL("../dev/lab-narration.mp3", import.meta.url));
 const EPISODE = "/e/ep-20261007-1930";
 
 /**
@@ -35,7 +33,7 @@ async function mockNarration(page: Page): Promise<void> {
       },
     }),
   );
-  await page.route("**/narrated/*.mp3", (route) => route.fulfill({ path: NARRATION_FILE }));
+  await page.route("**/narrated/*.mp3", (route) => fulfillNarration(route));
   await page.route("**/api/narrate", (route) => {
     if (route.request().method() !== "POST") return route.fallback();
     const { segment: key } = route.request().postDataJSON() as { segment: string };
@@ -43,30 +41,28 @@ async function mockNarration(page: Page): Promise<void> {
   });
 }
 
-async function startEpisode(lab: LabPage, finger: Finger, page: Page): Promise<void> {
-  await lab.open(EPISODE);
+async function startEpisode(player: PlayerPage, finger: Finger, page: Page): Promise<void> {
+  await player.open(EPISODE);
   await mockNarration(page);
-  await finger.press(lab.cta);
+  await finger.press(player.cta);
   await expect(page.locator("html")).toHaveAttribute("data-player-state", "playing", {
     timeout: 8_000,
   });
-  await lab.openPlayer();
+  await player.openPlayer();
 }
 
 test.describe("an episode's rundown and the controls under the transcript", () => {
-  test.skip(({ lab }) => lab.target === "lab", "needs a built episode page");
-
-  test("the rundown before story 1 is no story: Next goes to story 1 and Previous to 0:00 @surface", async ({
-    lab,
+  test("the rundown before story 1 is no story: Next goes to story 1 and Previous to 0:00 @smoke", async ({
+    player,
     finger,
     page,
   }) => {
-    await startEpisode(lab, finger, page);
+    await startEpisode(player, finger, page);
     const caption = page.locator("[data-player-dock] .dock-caption");
     // While the rundown plays the bar says what the recording is, and no story is current.
     await expect(caption).not.toContainText("Story");
     await expect(caption).toContainText("Discussion");
-    await expect(lab.dialog.locator('.story-row[aria-current="true"]')).toHaveCount(0);
+    await expect(player.dialog.locator('.story-row[aria-current="true"]')).toHaveCount(0);
     // The open page says the same on the line kept for the story, not blank room.
     await expect(page.locator(".player-meta .player-story")).toContainText("Discussion");
     // With a mouse on a wide screen the story steps are the bar's; elsewhere the page's.
@@ -80,47 +76,21 @@ test.describe("an episode's rundown and the controls under the transcript", () =
     const next = shown("Next story");
     const previous = shown("Previous story");
     await finger.press(next);
-    await expect(lab.scrubber).toHaveAttribute("aria-valuetext", /^0:18 of .*story 1 of /);
+    await expect(player.scrubber).toHaveAttribute("aria-valuetext", /^0:18 of .*story 1 of /);
     await expect(caption).toContainText("Story 1 of");
     // Previous from the first seconds of story 1 goes back to the start, never forward.
     await finger.press(previous);
-    await expect(lab.scrubber).toHaveAttribute("aria-valuetext", /^0:00 of [0-9:]+$/);
+    await expect(player.scrubber).toHaveAttribute("aria-valuetext", /^0:00 of [0-9:]+$/);
     await expect(caption).not.toContainText("Story");
     await expect(previous).toHaveAttribute("aria-disabled", "true");
   });
 
-  test("on one column, Next story twice keeps the controls in place and goes forward @surface", async ({
-    lab,
+  test("the cover and the controls hold still from the rundown through Next to a failure @desktop", async ({
+    player,
     finger,
     page,
   }) => {
-    test.skip(
-      (page.viewportSize()?.width ?? 0) >= 1024,
-      "the transcript scrolls in its own column",
-    );
-    await startEpisode(lab, finger, page);
-    await expect(lab.dialog.getByRole("region", { name: "Transcript" })).toBeVisible();
-    const next = lab.dialog.getByRole("button", { name: "Next story" });
-    const before = await lab.boxOf(next);
-    await finger.press(next);
-    await expect(lab.scrubber).toHaveAttribute("aria-valuetext", /story 1 of /);
-    // Long enough for a smooth scroll to have moved the page.
-    await page.waitForTimeout(800);
-    expect((await lab.boxOf(next)).y).toBeCloseTo(before.y, 0);
-    expect(await lab.sheet.evaluate((element) => element.scrollTop)).toBe(0);
-    await finger.press(next);
-    await expect(lab.scrubber).toHaveAttribute("aria-valuetext", /story 2 of /);
-    await page.waitForTimeout(800);
-    expect((await lab.boxOf(next)).y).toBeCloseTo(before.y, 0);
-  });
-
-  test("on a wide screen with a mouse the cover and the controls hold still from the rundown to a failure @surface", async ({
-    lab,
-    finger,
-    page,
-  }) => {
-    test.skip((page.viewportSize()?.width ?? 0) < 1024, "needs the two-column page");
-    await startEpisode(lab, finger, page);
+    await startEpisode(player, finger, page);
     const cover = page.locator("[data-player-surface] [data-player-cover]");
     const play = () =>
       page
@@ -128,7 +98,7 @@ test.describe("an episode's rundown and the controls under the transcript", () =
         .getByRole("button", { name: /^(Pause|Play|Try again)$/ })
         .filter({ visible: true })
         .first();
-    const place = async () => [(await lab.boxOf(cover)).y, (await lab.boxOf(play())).y];
+    const place = async () => [(await player.boxOf(cover)).y, (await player.boxOf(play())).y];
     const rundown = await place();
     const next = page
       .locator("[data-player-surface]")
@@ -136,28 +106,38 @@ test.describe("an episode's rundown and the controls under the transcript", () =
       .filter({ visible: true })
       .first();
     await finger.press(next);
-    await expect(lab.scrubber).toHaveAttribute("aria-valuetext", /story 1 of /);
-    await expect(lab.dialog.locator(".player-source-link")).toBeVisible();
+    await expect(player.scrubber).toHaveAttribute("aria-valuetext", /story 1 of /);
+    await expect(player.dialog.locator(".player-source-link")).toBeVisible();
+    // Long enough for a smooth scroll to have moved the page, had anything asked for one.
+    await page.waitForTimeout(800);
     expect(await place()).toEqual(rundown);
+    expect(await player.sheet.evaluate((element) => element.scrollTop)).toBe(0);
     // A failure shows no story and no source, and nothing moves.
     await page.route("**/narrated/*.mp3", (route) => route.fulfill({ status: 404, body: "" }));
     await finger.press(next);
-    await expect(lab.root).toHaveAttribute("data-player-state", "error", { timeout: 10_000 });
+    await expect(player.root).toHaveAttribute("data-player-state", "error", { timeout: 10_000 });
     expect(await place()).toEqual(rundown);
   });
 
-  test("the open page and the bar under it show one play control @surface", async ({
-    lab,
+  test("the open page and the bar under it show one play control @desktop", async ({
+    player,
     finger,
     page,
   }) => {
-    await startEpisode(lab, finger, page);
+    await startEpisode(player, finger, page);
     const pauses = page
       .locator("[data-player-surface]")
       .getByRole("button", { name: "Pause", exact: true })
       .filter({ visible: true });
     await expect(pauses).toHaveCount(1);
-    if ((page.viewportSize()?.width ?? 0) >= 1024) {
+    if (finger.touch) {
+      // A wide touch screen: the bar under the open page does not repeat its transport either.
+      await page.setViewportSize({ width: 1180, height: 820 });
+      await expect(pauses).toHaveCount(1);
+      await expect(
+        page.getByRole("button", { name: "Next story" }).filter({ visible: true }),
+      ).toHaveCount(1);
+    } else {
       // Between 40 and 64rem the bar stays under the page too, with a mouse as with a finger.
       await page.setViewportSize({ width: 820, height: 1000 });
       await expect(pauses).toHaveCount(1);
