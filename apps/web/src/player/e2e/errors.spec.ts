@@ -4,7 +4,7 @@ import { expect, test } from "./lab";
 
 const NARRATION_FILE = fileURLToPath(new URL("../dev/lab-narration.mp3", import.meta.url));
 
-type Answer = { file: boolean } | { refusal: string };
+type Answer = { file: boolean } | { refusal: string; status?: number };
 
 /**
  * A briefing whose segments are listed with no files. `answer` says how each segment is met: a made
@@ -44,7 +44,9 @@ async function serve(page: Page, answer: (key: string) => Answer): Promise<void>
     if (route.request().method() !== "POST") return route.fallback();
     const { segment: key } = route.request().postDataJSON() as { segment: string };
     const met = answer(key);
-    if ("refusal" in met) return route.fulfill({ status: 429, json: { error: met.refusal } });
+    if ("refusal" in met) {
+      return route.fulfill({ status: met.status ?? 429, json: { error: met.refusal } });
+    }
     return route.fulfill({ json: { status: 200, segment: segment(key, true) } });
   });
 }
@@ -84,5 +86,71 @@ test.describe("a recording that fails @surface", () => {
     await expect(notice.getByRole("button")).toHaveCount(0);
     await expect(lab.dialog.getByRole("button", { name: "Try again" })).toHaveCount(0);
     await expect(page.locator(".dock-caption")).toHaveText("Daily limit reached");
+  });
+
+  test("a standing refusal keeps Play on the hero chip, and a press on the open page says why again", async ({
+    lab,
+    page,
+  }) => {
+    await lab.open("/d/2026-10-05");
+    await serve(page, (key) => (key === "intro" ? { file: true } : { refusal: "daily_cap" }));
+    await lab.play();
+    await lab.openPlayer();
+    await lab.dialog.getByRole("button", { name: "Next story" }).first().click();
+    await expect(lab.root).toHaveAttribute("data-player-state", "error", { timeout: 10_000 });
+    // The chip under the page says what the disc and the bar say: Play, with the reason.
+    await expect(lab.cta).toHaveAttribute("data-state", "idle");
+    await expect(lab.cta.locator("[data-chip-label]")).toHaveText("Daily limit reached");
+    await expect(lab.cta).toHaveAttribute("aria-label", "Play the briefing, Daily limit reached");
+    // A press on Play sends nothing; the reason's alert is put in again, so it is said again.
+    const notice = lab.dialog.getByRole("alert");
+    await notice.evaluate((element) => {
+      element.setAttribute("data-seen", "");
+    });
+    await lab.dialog.locator(".transport [data-primary]").click();
+    await expect(notice).toContainText("Daily narration limit reached");
+    await expect(notice).not.toHaveAttribute("data-seen", "");
+  });
+
+  test("a 503 mid-recording passes: Try again sends the request once the server is back", async ({
+    lab,
+    page,
+  }) => {
+    await lab.open("/d/2026-10-05");
+    let down = true;
+    let asked = 0;
+    await serve(page, (key) => {
+      if (key === "intro") return { file: true };
+      asked += 1;
+      return down ? { refusal: "unavailable", status: 503 } : { file: true };
+    });
+    await lab.play();
+    await lab.openPlayer();
+    await lab.dialog.getByRole("button", { name: "Next story" }).first().click();
+    await expect(lab.root).toHaveAttribute("data-player-state", "error", { timeout: 10_000 });
+    const notice = lab.dialog.getByRole("alert");
+    await expect(notice).toContainText("Narration is not available right now.");
+    down = false;
+    const before = asked;
+    await notice.getByRole("button", { name: "Try again" }).click();
+    await expect(lab.root).toHaveAttribute("data-player-state", "playing", { timeout: 10_000 });
+    expect(asked).toBeGreaterThan(before);
+  });
+
+  test("in a short wide window a failure's reason is clear of the bar", async ({
+    lab,
+    page,
+  }, info) => {
+    test.skip(info.project.name !== "site-desktop", "a mouse at 1280x600");
+    await page.setViewportSize({ width: 1280, height: 600 });
+    await lab.open("/d/2026-10-05");
+    await serve(page, (key) => (key === "intro" ? { file: true } : { refusal: "monthly_budget" }));
+    await lab.play();
+    await lab.openPlayer();
+    await lab.dialog.getByRole("button", { name: "Next story" }).first().click();
+    await expect(lab.root).toHaveAttribute("data-player-state", "error", { timeout: 10_000 });
+    const notice = await lab.boxOf(lab.dialog.getByRole("alert"));
+    const bar = await lab.boxOf(page.locator("[data-player-dock]"));
+    expect(notice.y + notice.height).toBeLessThanOrEqual(bar.y + 1);
   });
 });
