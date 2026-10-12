@@ -273,7 +273,7 @@
 }
 
 /* On a phone a voice row is two lines, as the index's rows are: the label, then the voice under it,
-   starting where the label starts (the select's own padding is pulled back), and the play button
+   starting where the label starts, and the play button
    trailing, centred on both lines. */
 @media (width < 40rem) {
   .settings-row[data-voice-row] {
@@ -299,11 +299,14 @@
     grid-area: value;
     justify-self: start;
     max-inline-size: 100%;
-    margin-inline: calc(var(--space-3) * -1) 0;
+    /* The box bleeds as far as the trailing values do (8px), so its press fill, ring and list
+       keep clear of the screen's edge; its own start padding puts the words under the label. */
+    margin-inline: calc(var(--space-2) * -1) 0;
   }
 
   .settings-row[data-voice-row] .value-select > select.manage-input {
     justify-content: flex-start;
+    padding-inline-start: var(--space-2);
     text-align: start;
   }
 

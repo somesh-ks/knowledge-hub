@@ -77,11 +77,9 @@ describe("savedFields", () => {
     "daily.cadence": "2",
     "daily.length": "5",
     "daily.voice": "",
-    "daily.voice_b": "",
-    "daily.format": "readout",
   };
 
-  it("lays each schedule edit over what the page was built with", () => {
+  it("lays each schedule edit over what the page was built with, and skips fields with no control", () => {
     const ops: ConfigOp[] = [
       { op: "schedule.set", hour: 7, cadence_days: 3, voice_id: "ava", format: "discussion" },
     ];
@@ -89,7 +87,6 @@ describe("savedFields", () => {
       "daily.hour": "7",
       "daily.cadence": "3",
       "daily.voice": "ava",
-      "daily.format": "discussion",
     });
   });
 

@@ -1,5 +1,5 @@
 ---
-import { FORMATS, LENGTHS } from "../lib/createForm";
+import { LENGTHS } from "../lib/createForm";
 import { CADENCES, hourLabel, WEEKDAYS } from "../lib/schedule";
 import { weeklyNote } from "../lib/settingsSummary";
 import Icon from "./Icon.astro";
@@ -15,10 +15,8 @@ interface Props {
     cadenceDays?: number;
     /** Topic ids the episode leaves out. */
     skipTopics: readonly string[];
-    format: string;
     lengthMinutes: number;
     voiceId: string | null;
-    voiceIdB: string | null;
   };
   /**
    * The topics a person can put in or out of this podcast: Design, AI and Technology, and their own.
@@ -39,11 +37,9 @@ const hours = Array.from({ length: 24 }, (_, value) => value);
 const inScope = (ids: readonly string[]): boolean =>
   !ids.every((topic) => values.skipTopics.includes(topic));
 
-// A stored Headlines schedule has no radio to show; the first change picks one of the two.
-const VOICES = [
-  { key: "voice", saved: values.voiceId, name: "Voice" },
-  { key: "voice_b", saved: values.voiceIdB, name: "Discussion voice" },
-] as const;
+// A briefing is narrated from its digest in one voice (scheduledVoice in server/narrate.ts), so the
+// page offers Length and that voice; the stored format and second voice stay as they are.
+const savedVoice = values.voiceId;
 ---
 
 <div class="podcast-profile" data-profile={id}>
@@ -186,29 +182,6 @@ const VOICES = [
     <div class="rows">
       <div class="settings-row" data-layout="choice">
         <div class="settings-text">
-          <span class="settings-label" id={`${id}-format-label`}>Format</span>
-        </div>
-        <fieldset class="settings-choice" role="radiogroup" aria-labelledby={`${id}-format-label`}>
-          {
-            FORMATS.map((entry) => (
-              <label class="settings-segment">
-                <input
-                  type="radio"
-                  name={`${id}-format`}
-                  value={entry.value}
-                  data-f={`${id}.format`}
-                  checked={entry.value === values.format}
-                  autocomplete="off"
-                />
-                <span>{entry.label}</span>
-              </label>
-            ))
-          }
-        </fieldset>
-      </div>
-
-      <div class="settings-row" data-layout="choice">
-        <div class="settings-text">
           <span class="settings-label" id={`${id}-length-label`}>Length</span>
         </div>
         <fieldset class="settings-choice" role="radiogroup" aria-labelledby={`${id}-length-label`}>
@@ -229,49 +202,40 @@ const VOICES = [
           }
         </fieldset>
       </div>
-    </div>
-  </section>
 
-  <section class="podcast-section" aria-labelledby={`${id}-voices-head`}>
-    <h2 class="section-head" id={`${id}-voices-head`}>Voices</h2>
-    <div class="rows">
-      {
-        VOICES.map((voice) => (
-          <div class="settings-row" data-voice-row={voice.key}>
-            <label class="settings-label" for={`${id}-${voice.key}`}>{voice.name}</label>
-            <div class="podcast-voice">
-              <span class="manage-select value-select">
-                <select
-                  class="manage-input"
-                  id={`${id}-${voice.key}`}
-                  data-f={`${id}.${voice.key}`}
-                  data-saved={voice.saved ?? ""}
-                  autocomplete="off"
-                >
-                  <option value="">Default</option>
-                  {voice.saved && <option value={voice.saved} selected>Saved voice</option>}
-                </select>
-                <Icon name="chevronDown" />
-              </span>
-              {/* A round play button, as every play control in the app is drawn. Choosing a voice plays
-                   its sample too, so a list can be heard one voice at a time. While the voice has no
-                   sample it is silent (data-silent): unseen, but in its place, so the select never
-                   moves when the list arrives or the voice changes. */}
-              <button
-                class="podcast-sample"
-                type="button"
-                data-preview
-                data-silent
-                aria-pressed="false"
-                aria-label={`Play a sample of the ${voice.name.toLowerCase()}`}
-              >
-                <Icon name="play" class="sample-play" />
-                <Icon name="pause" class="sample-pause" />
-              </button>
-            </div>
-          </div>
-        ))
-      }
+      <div class="settings-row" data-voice-row="voice">
+        <label class="settings-label" for={`${id}-voice`}>Voice</label>
+        <div class="podcast-voice">
+          <span class="manage-select value-select">
+            <select
+              class="manage-input"
+              id={`${id}-voice`}
+              data-f={`${id}.voice`}
+              data-saved={savedVoice ?? ""}
+              autocomplete="off"
+            >
+              <option value="">Default</option>
+              {savedVoice && <option value={savedVoice} selected>Saved voice</option>}
+            </select>
+            <Icon name="chevronDown" />
+          </span>
+          {/* A round play button, as every play control in the app is drawn. Choosing a voice plays
+               its sample too, so a list can be heard one voice at a time. While the voice has no
+               sample it is silent (data-silent): unseen, but in its place, so the select never
+               moves when the list arrives or the voice changes. */}
+          <button
+            class="podcast-sample"
+            type="button"
+            data-preview
+            data-silent
+            aria-pressed="false"
+            aria-label="Play a sample of the voice"
+          >
+            <Icon name="play" class="sample-play" />
+            <Icon name="pause" class="sample-pause" />
+          </button>
+        </div>
+      </div>
     </div>
   </section>
 </div>

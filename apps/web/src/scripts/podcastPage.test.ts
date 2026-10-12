@@ -5,12 +5,11 @@ import { scheduleOp } from "./podcastProfiles";
 describe("scheduleOp", () => {
   const was = {
     "daily.hour": "7",
-    "daily.format": "readout",
     "daily.voice": "",
     "weekly.enabled": "true",
     "weekly.day": "0",
     "weekly.length": "10",
-    "custom.voice_b": "",
+    "weekly.voice": "",
   };
 
   it("is null while nothing differs", () => {
@@ -24,14 +23,13 @@ describe("scheduleOp", () => {
       "daily.voice": "v1",
       "weekly.enabled": "false",
       "weekly.day": "5",
-      "custom.voice_b": "v2",
+      "weekly.voice": "v2",
     };
     expect(scheduleOp(was, now)).toEqual({
       op: "schedule.set",
       hour: 9,
       voice_id: "v1",
-      weekly: { enabled: false, day: 5 },
-      custom: { voice_id_b: "v2" },
+      weekly: { enabled: false, day: 5, voice_id: "v2" },
     });
   });
 

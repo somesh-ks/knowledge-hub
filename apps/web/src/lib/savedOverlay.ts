@@ -109,7 +109,6 @@ const CONTROL_NAMES: Record<string, string> = {
   cadence_days: "cadence",
   length_minutes: "length",
   voice_id: "voice",
-  voice_id_b: "voice_b",
 };
 
 /** A value as a control holds it: null is Default, the empty choice. Lists are not controls. */
