@@ -114,6 +114,38 @@ test.describe("an episode's rundown and the controls under the transcript", () =
     expect((await lab.boxOf(next)).y).toBeCloseTo(before.y, 0);
   });
 
+  test("on a wide screen with a mouse the cover and the controls hold still from the rundown to a failure @surface", async ({
+    lab,
+    finger,
+    page,
+  }) => {
+    test.skip((page.viewportSize()?.width ?? 0) < 1024, "needs the two-column page");
+    await startEpisode(lab, finger, page);
+    const cover = page.locator("[data-player-surface] [data-player-cover]");
+    const play = () =>
+      page
+        .locator("[data-player-surface]")
+        .getByRole("button", { name: /^(Pause|Play|Try again)$/ })
+        .filter({ visible: true })
+        .first();
+    const place = async () => [(await lab.boxOf(cover)).y, (await lab.boxOf(play())).y];
+    const rundown = await place();
+    const next = page
+      .locator("[data-player-surface]")
+      .getByRole("button", { name: "Next story", exact: true })
+      .filter({ visible: true })
+      .first();
+    await finger.press(next);
+    await expect(lab.scrubber).toHaveAttribute("aria-valuetext", /story 1 of /);
+    await expect(lab.dialog.locator(".player-source-link")).toBeVisible();
+    expect(await place()).toEqual(rundown);
+    // A failure shows no story and no source, and nothing moves.
+    await page.route("**/narrated/*.mp3", (route) => route.fulfill({ status: 404, body: "" }));
+    await finger.press(next);
+    await expect(lab.root).toHaveAttribute("data-player-state", "error", { timeout: 10_000 });
+    expect(await place()).toEqual(rundown);
+  });
+
   test("the open page and the bar under it show one play control @surface", async ({
     lab,
     finger,
