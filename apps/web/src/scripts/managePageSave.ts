@@ -5,6 +5,7 @@
  * Nothing here is needed to read or edit a page, so it stays out of the first-load budget.
  */
 import { OPEN_PASSPHRASE, PASSPHRASE_REQUIRED } from "../lib/access";
+import { clearPendingChoice, readPendingChoice } from "../lib/pendingWriter";
 import { SAVED_KEY } from "../lib/savedKey";
 import { addSaved, parseSaved, withPending } from "../lib/savedOverlay";
 import type { ConfigOp, ConfigResponse } from "../types/contracts";
@@ -73,6 +74,8 @@ export interface SaveContext {
    * until they do the next page shows them from storage, marked pending (keepWaiting).
    */
   left?: boolean;
+  /** Whether its page is still on screen: a tab hidden and shown again was not left after all. */
+  here?(): boolean;
 }
 
 interface Step {
@@ -202,13 +205,24 @@ export function settle(batch: Batch, changes: Map<string, Pending>): void {
 }
 
 /**
+ * Pages left with changes still waiting, whose runs have not ended: what they hold is shown to the
+ * page opened next, marked pending, until each run ends (keepWaiting, flush).
+ */
+const leftRuns = new Set<SaveContext>();
+
+/** Every edit the left pages' runs still hold, oldest page first. */
+function heldOps(): ConfigOp[] {
+  return [...leftRuns].flatMap((context) => waitingOps(context.changes));
+}
+
+/**
  * Keeps a request that went through, so a settings page opened before the build shows what was
- * saved (lib/savedOverlay.ts, scripts/savedView.ts).
+ * saved (lib/savedOverlay.ts, scripts/savedView.ts), and what the left pages' runs still hold.
  */
 export function remember(
   ops: readonly ConfigOp[],
   now = Date.now(),
-  waiting: readonly ConfigOp[] = [],
+  waiting: readonly ConfigOp[] = heldOps(),
 ): void {
   try {
     const saved = addSaved(parseSaved(localStorage.getItem(SAVED_KEY), now), ops, now);
@@ -251,8 +265,98 @@ function waitingOps(changes: ReadonlyMap<string, Pending>): ConfigOp[] {
 export function keepWaiting(context: SaveContext, now = Date.now()): void {
   if (context.changes.size === 0) return;
   context.left = true;
-  remember([], now, waitingOps(context.changes));
+  leftRuns.add(context);
+  remember([], now);
 }
+
+/** What the page open now hears when a left page's run ends (HELD_EVENT, on the document). */
+export interface Held {
+  /** Everything the run held went through. */
+  ok: boolean;
+  /** What the refusal was ("" when ok), as the toast says it. */
+  failure: string;
+  /** The changes it could not save. The page open now takes them as its own (adopt). */
+  lost: Pending[];
+  /** A page took them: its toast says so, with Retry. */
+  claimed: boolean;
+}
+
+/** Told on the document when a left page's run ends (savedView.ts, settingsSaved.ts, autosave.ts). */
+export const HELD_EVENT = "dispatch:held";
+
+/** Lost changes no page has taken yet: they wait for the page open now, until it is left. */
+let unclaimed: { held: Held[]; entries: [string, Pending][] } | null = null;
+let heldCount = 0;
+
+/**
+ * The page open now takes the changes a left page's run could not save: they wait in its own
+ * changes, refused, ahead of its own (they are older), so its toast says what went wrong with Retry,
+ * and Retry or its next change sends them. A page that is itself being left takes nothing.
+ */
+export function adopt(into: SaveContext): void {
+  if (!unclaimed || into.left) return;
+  const { held, entries } = unclaimed;
+  unclaimed = null;
+  for (const each of held) each.claimed = true;
+  const own = [...into.changes];
+  into.changes.clear();
+  for (const [key, pending] of [...entries, ...own]) into.changes.set(key, pending);
+  try {
+    into.show(held[held.length - 1]?.failure ?? "", "error");
+  } catch {
+    // The page is gone after all: its next change would still have sent them.
+  }
+}
+
+/**
+ * A left page's run has ended. Nothing it held is on its way any more, so the next page shows none
+ * of it as pending; what it could not save waits for the page open now to take it (adopt), and that
+ * page hears how the run went.
+ */
+function endLeft(context: SaveContext, failure: string): void {
+  if (!leftRuns.delete(context)) return;
+  remember([]);
+  // Hidden, not left (the tab was switched away and back): its own toast says how it went, and a
+  // refused change stays on it for Retry.
+  if (context.here?.()) {
+    context.left = false;
+    return;
+  }
+  const entries = failure
+    ? [...context.changes].map(([key, pending]): [string, Pending] => {
+        pending.failed = true;
+        heldCount += 1;
+        return [`held${heldCount}:${key}`, pending];
+      })
+    : [];
+  context.changes.clear();
+  const held: Held = {
+    ok: !failure,
+    failure,
+    lost: entries.map(([, pending]) => pending),
+    claimed: false,
+  };
+  if (entries.length > 0)
+    unclaimed = {
+      held: [...(unclaimed?.held ?? []), held],
+      entries: [...(unclaimed?.entries ?? []), ...entries],
+    };
+  globalThis.document?.dispatchEvent(new CustomEvent(HELD_EVENT, { detail: held }));
+}
+
+/**
+ * Leaving the page open now drops what no page took: it was never saved, and the page opened next is
+ * built without it. A writer choice among it is no longer shown as saved either.
+ */
+export function dropUnclaimed(): void {
+  const lost = unclaimed?.entries ?? [];
+  unclaimed = null;
+  const choice = readPendingChoice();
+  for (const [, { op }] of lost)
+    if (op.op === "writer.set" && choice?.provider === op.provider && choice.model === op.model)
+      clearPendingChoice();
+}
+globalThis.document?.addEventListener("astro:after-swap", dropUnclaimed);
 
 let passphrase: string | null = null;
 /** When the last request went through, by this page's clock; 0 before the first. */
@@ -404,7 +508,7 @@ export async function flush(
       try {
         settle(batch, changes);
       } finally {
-        remember(batch.ops, lastSent, context.left ? waitingOps(changes) : []);
+        remember(batch.ops, lastSent);
       }
       try {
         context.settled?.();
@@ -414,8 +518,9 @@ export async function flush(
     }
   } finally {
     busy = false;
-    // A page left with edits marked pending, whose run then failed: they were not saved after all.
-    if (failure && context.left) remember([]);
+    // A page left with edits marked pending: the page open now hears how they went and takes what
+    // failed, before another page's queued changes go (with them, when that page took them).
+    endLeft(context, failure);
     const next = [...queued].filter((other) => other !== context);
     queued.clear();
     for (const other of next) void flush(other, given);

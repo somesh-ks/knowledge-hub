@@ -6,7 +6,7 @@
  * The pure parts (parsing a control's value, what the controls should show, the order of the sound
  * cue and the preference) are exported and tested; the rest is wiring.
  */
-import { hasPendingChoice, readPendingChoice } from "../lib/pendingWriter";
+import { hasPendingChoice } from "../lib/pendingWriter";
 import { hasSaved } from "../lib/savedKey";
 import {
   dismissInstallHint,
@@ -116,9 +116,7 @@ function mountSettings(root: HTMLElement): () => void {
   // An edit saved in the last few minutes is not in this page until the next build: the rows' lines
   // say it, so Back from a page never lands on a summary that contradicts it.
   if (hasSaved() || hasPendingChoice()) {
-    void Promise.all([import("./savedView"), import("./settingsSaved")])
-      .then(([view, index]) => index.overlayIndex(root, view.readSaved(), readPendingChoice()))
-      .catch(() => {});
+    void import("./settingsSaved").then((index) => index.showSaved(root)).catch(() => {});
   }
 
   const render = (): void => {

@@ -76,15 +76,17 @@ export function addSaved(
   return own.length > 0 ? [...kept, { at: now, ops: own }] : kept;
 }
 
-/** The entries with the edits still waiting, `ops`, as the one pending entry, added last. */
+/**
+ * The entries with the edits still waiting, `ops`, as the one pending entry, added last. A writer
+ * edit counts here: the Model page shows its choice from its own note, and says Saving while it waits.
+ */
 export function withPending(
   entries: readonly SavedEntry[],
   ops: readonly ConfigOp[],
   now: number,
 ): SavedEntry[] {
   const kept = entries.filter((entry) => !entry.pending && fresh(entry.at, now));
-  const own = ops.filter((op) => op.op !== "writer.set");
-  return own.length > 0 ? [...kept, { at: now, ops: own, pending: true }] : kept;
+  return ops.length > 0 ? [...kept, { at: now, ops: [...ops], pending: true }] : kept;
 }
 
 /** Whether any edit shown is still on its way, so the page says Saving rather than Saved. */

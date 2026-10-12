@@ -25,17 +25,23 @@ function mount(root: HTMLElement): void {
   let editor: Promise<Editor> | undefined;
   // An edit saved in the last few minutes is not in this page until the next build: the controls
   // show it first (savedView.ts), and the editor then reads it as their starting point.
+  // An edit a left page's run still holds loads the editor at once: it takes the edit if that run fails.
   const saved = hasSaved()
-    ? import("./savedView").then((module) => void module.overlayTopics(root)).catch(() => {})
+    ? import("./savedView")
+        .then((module) => {
+          module.overlayTopics(root);
+          if (module.readPending()) void load();
+        })
+        .catch(() => {})
     : Promise.resolve();
   void saved.then(() => showTopicOn(root));
-  /** Loads the editor once; every event after the first goes to it as well. */
-  const forward = (event: Event): void => {
-    editor ??= saved
+  /** Loads the editor once. */
+  const load = (): Promise<Editor> =>
+    (editor ??= saved
       .then(() => import("./topicsEditor"))
-      .then((module) => module.mountEditor(root));
-    void editor.then((loaded) => loaded.handle(event));
-  };
+      .then((module) => module.mountEditor(root)));
+  /** Every event goes to the editor, the first one loading it. */
+  const forward = (event: Event): void => void load().then((loaded) => loaded.handle(event));
 
   const loaded = (image: HTMLImageElement): void => {
     if (image.naturalWidth > 0) image.dataset.loaded = "";
