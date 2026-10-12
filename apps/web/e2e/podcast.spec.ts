@@ -134,7 +134,7 @@ test.describe("the profile pages", () => {
     await expect(page.getByRole("radio", { name: "Readout" })).toBeChecked();
     await expect(page.getByRole("radio", { name: "10 min", exact: true })).toBeChecked();
     await expect(page.locator("[data-next]")).toHaveText(
-      /^Next episode: about (today|tomorrow|[A-Z][a-z]+day) at 07:00$/,
+      /^Next episode: (today|tomorrow|[A-Z][a-z]+day) at about 07:00$/,
     );
     // Headlines is no longer offered, and there is no switch between profiles.
     await expect(page.getByRole("radio", { name: "Headlines" })).toHaveCount(0);
@@ -149,7 +149,7 @@ test.describe("the profile pages", () => {
     await expect(page.locator("#weekly-day")).toHaveValue("0");
     await expect(page.locator("#weekly-hour")).toHaveValue("7");
     await expect(page.locator("[data-next]")).toHaveText(
-      /^Next episode: about (today|tomorrow|Sunday) at 07:00$/,
+      /^Next episode: (today|tomorrow|Sunday) at about 07:00$/,
     );
     await expect(page.locator("[data-off]")).toBeHidden();
     const before = await on.boundingBox();
@@ -167,13 +167,13 @@ test.describe("the profile pages", () => {
     await open(page, "daily");
     await page.locator("#daily-hour").selectOption("9");
     await expect(page.locator("[data-next]")).toHaveText(
-      /^Next episode: about (today|tomorrow|[A-Z][a-z]+day) at 09:00$/,
+      /^Next episode: (today|tomorrow|[A-Z][a-z]+day) at about 09:00$/,
     );
     await open(page, "weekly");
     await page.locator("#weekly-day").selectOption("1");
     await page.locator("#weekly-hour").selectOption("8");
     await expect(page.locator("[data-next]")).toHaveText(
-      /^Next episode: about (today|tomorrow|Monday) at 08:00$/,
+      /^Next episode: (today|tomorrow|Monday) at about 08:00$/,
     );
   });
 

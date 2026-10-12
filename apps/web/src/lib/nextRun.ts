@@ -1,5 +1,5 @@
 /**
- * When the next scheduled episode is due, in words: "Next episode: about Friday at 07:00". It has no
+ * When the next scheduled episode is due, in words: "Next episode: Friday at about 07:00". It has no
  * imports and touches no DOM, so the build writes the line into the page and the browser rewrites it
  * from the fields on screen with the real current time (podcastPage.ts). The engine's gate counts in
  * Stockholm time, and so does this.
@@ -63,13 +63,13 @@ function readableDate(at: string | null | undefined): string | null {
 }
 
 function line(day: string, hour: number): string {
-  return `Next episode: about ${day} at ${hourLabel(hour)}`;
+  return `Next episode: ${day} at about ${hourLabel(hour)}`;
 }
 
 /**
  * The next daily episode, as the engine's gate decides: the cadence counts from the later of the
  * last regular run and the last weekly episode, and the weekly episode's day has no daily one. It is
- * a guess, so it says "about".
+ * a guess about the hour (a scheduled run can start late), so the hour says "about".
  */
 export function nextBriefing(input: {
   now: Date;
