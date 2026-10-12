@@ -150,14 +150,14 @@ export function createReaderSync(
   /** The stories heard of the recording the player holds go beside its position (resume.ts). */
   function keepHeard(): void {
     const track = store.getState().track;
-    const items = track?.timeline?.items ?? [];
-    if (track) {
-      saveHeard(
-        safeLocalStorage(),
-        track.digest.id,
-        [...tracker.heard].flatMap((index) => items[index]?.id ?? []),
-      );
-    }
+    const items = track?.timeline?.items;
+    // No timeline (a briefing with no audio) means no stories to name: what is stored stays.
+    if (!track || !items) return;
+    saveHeard(
+      safeLocalStorage(),
+      track.digest.id,
+      [...tracker.heard].flatMap((index) => items[index]?.id ?? []),
+    );
   }
 
   function writeCoarse(): void {
@@ -419,13 +419,16 @@ export function createReaderSync(
       // Heard before, in this session or another: the stories still read Played. One heard to the
       // end starts afresh on its next move, as it would have in the session it ended in.
       const track = state.track;
-      const remembered = track && rememberedFor(track.digest);
+      // A briefing with no audio has no timeline to read its stories from: what the device remembers
+      // of it stays as it is (its page shows that from storage) and nothing is written back.
+      if (!track?.timeline) return;
+      const remembered = rememberedFor(track.digest);
       tracker.reset(
         followFrom,
-        remembered?.heard
-          .map((id) => findItemIndexById(track?.timeline ?? null, id))
+        remembered.heard
+          .map((id) => findItemIndexById(track.timeline, id))
           .filter((index) => index >= 0),
-        remembered?.played && remembered.seconds <= 0,
+        remembered.played && remembered.seconds <= 0,
       );
     } else if (event.type === "ended") {
       tracker.ended();

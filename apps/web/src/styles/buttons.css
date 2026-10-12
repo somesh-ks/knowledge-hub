@@ -133,8 +133,9 @@
   );
 }
 
-/* Fills are dropped in forced colours, so the tonal button keeps an edge of its own. */
+/* Fills are dropped in forced colours, so the filled and the tonal button keep an edge of their own. */
 @media (forced-colors: active) {
+  .btn-primary,
   .btn-secondary {
     border: var(--stroke-hairline) solid ButtonText;
   }

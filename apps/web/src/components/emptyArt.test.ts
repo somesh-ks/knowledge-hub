@@ -18,11 +18,13 @@ describe("the empty-state art", () => {
     expect(art).not.toMatch(/#[0-9a-fA-F]{3,8}\b|\brgba?\(|\bhsla?\(|style=|\bfill="|\bstroke="/);
   });
 
-  it("is one decorative svg, hidden from assistive technology, on the kit's canvas", () => {
+  it("is one decorative svg, hidden from assistive technology, on the kit's scale", () => {
     const svg = art.slice(art.indexOf("<svg"), art.indexOf(">", art.indexOf("<svg")));
     expect(svg).toContain('aria-hidden="true"');
     expect(svg).toContain('focusable="false"');
-    expect(svg).toContain('viewBox="0 0 240 180"');
+    // One scale (240 units across), each scene's box cropped to its drawing.
+    expect(svg).toContain("viewBox={VIEW[art]}");
+    expect(art).toMatch(/const VIEW: Record<ArtName, string> = \{[^}]*"0 \d+ 240 \d+"/);
     expect(art.match(/<svg/g)).toHaveLength(1);
   });
 
@@ -50,7 +52,7 @@ describe("the empty state", () => {
   it("with no props is Today with nothing yet: its scene, the page's h1 and two ways on", () => {
     expect(state).toContain('art = "today"');
     expect(state).toContain('title = "No briefings yet"');
-    expect(state).toContain('body = "The first one arrives within two days."');
+    expect(state).toContain('body = "The first one arrives with your next scheduled briefing."');
     expect(state).toContain('primary = { label: "Check again", href: "/", reload: true }');
     expect(state).toContain('secondary = { label: "Settings", href: "/settings" }');
     expect(state).toContain('level === 1 ? "h1" : "h2"');

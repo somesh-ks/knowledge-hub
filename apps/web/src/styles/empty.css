@@ -14,7 +14,7 @@
    leaves under the app bar, with more room below than above: the block sits a little over the
    middle, not in the top third with a bare half under it. */
 main > .empty {
-  min-block-size: calc(100svh - 9rem);
+  min-block-size: calc(100svh - 10.5rem);
   align-content: center;
   padding-block: var(--space-4) var(--space-16);
 }
@@ -26,6 +26,7 @@ main > .empty {
 
 .empty .empty-title {
   margin-block-start: var(--space-6);
+  overflow-wrap: anywhere;
   font-family: var(--text-heading-family);
   font-size: var(--font-size-section);
   font-weight: var(--font-weight-regular);
@@ -36,6 +37,7 @@ main > .empty {
 }
 
 .empty-body {
+  overflow-wrap: anywhere;
   max-width: 36ch;
   margin-block-start: var(--space-2);
   color: var(--color-on-surface-muted);
@@ -92,7 +94,7 @@ main > .empty {
   --art-ink: color-mix(
     in oklch,
     var(--color-accent-container),
-    var(--color-on-accent-container) 30%
+    var(--color-on-accent-container) 42%
   );
   --art-pop: var(--color-accent);
   --art-on-pop: var(--color-on-accent);
@@ -101,7 +103,6 @@ main > .empty {
   display: block;
   inline-size: min(100%, 15rem);
   block-size: auto;
-  aspect-ratio: 4 / 3;
 }
 
 /* The canvas keeps a margin round each scene, so the box is wider than the drawing: 20rem draws a
@@ -146,10 +147,18 @@ main > .empty {
   stroke-dasharray: 9 9;
 }
 
-.art-on-pop {
-  fill: var(--art-on-pop);
-  stroke: var(--art-on-pop);
-  stroke-width: 4;
+/* The deeper tone draws the mark on a plane: a play triangle, a plus. A filled disc in the accent would
+   be the shape of the page's own button, and the art would outshine the one action. */
+.art-ink-fill {
+  fill: var(--art-ink);
+  stroke: var(--art-ink);
+  stroke-width: 8;
+}
+
+.art-ink-line {
+  fill: none;
+  stroke: var(--art-ink);
+  stroke-width: 9;
 }
 
 .art-on-pop-line {

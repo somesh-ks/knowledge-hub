@@ -10,7 +10,7 @@ import BaseLayout from "../layouts/BaseLayout.astro";
       art={["offline", "online"]}
       state="offline"
       title="You are offline"
-      body="This page needs a connection. Briefings and episodes you have opened still work."
+      body="This page needs a connection. Briefings and episodes you have opened can still be read."
       primary={{ label: "Try again", href: "/", reload: true }}
       secondary={{ label: "Open Library", href: "/library" }}
     />
@@ -26,8 +26,7 @@ import BaseLayout from "../layouts/BaseLayout.astro";
   }
 
   /** The page never says offline once the connection is back: it says so, and offers a reload. */
-  function sayOnline(): void {
-    if (!navigator.onLine) return;
+  function showOnline(): void {
     const section = document.querySelector<HTMLElement>("#main .empty");
     const title = document.querySelector<HTMLElement>("#main .empty-title");
     const body = document.querySelector<HTMLElement>("#main .empty-body");
@@ -38,6 +37,15 @@ import BaseLayout from "../layouts/BaseLayout.astro";
     document.title = "Back online, Singularity";
     if (body) body.textContent = "Reload to open the page you asked for.";
     if (retry) retry.textContent = "Reload";
+  }
+
+  function sayOnline(): void {
+    if (!navigator.onLine) return;
+    // Standing in for another address means a request just failed, and the browser's word that it is
+    // online (a weak signal, a captive portal, the site down) is not proof: ask the site itself. Any
+    // answer will do, a refusal included; only a failed request means it cannot be reached.
+    if (location.pathname === "/offline") showOnline();
+    else fetch("/api/status", { cache: "no-store" }).then(showOnline, () => undefined);
   }
 
   function onPage(): void {

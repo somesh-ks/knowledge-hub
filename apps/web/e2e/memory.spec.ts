@@ -109,6 +109,30 @@ test("a briefing without audio says where it was left, as its cards do", async (
   await expect(shelf.locator("[data-cover-progress]")).toBeVisible();
 });
 
+test("a briefing without audio keeps the stories heard when its page opens", async ({ page }) => {
+  await page.goto(SILENT_DIGEST);
+  await hydrated(page);
+  const first = await page.locator("[data-item-id]").first().getAttribute("data-item-id");
+  expect(first).toBeTruthy();
+  // Seeded away from the page: a page saves its own position when it goes.
+  await page.goto("/library");
+  await page.evaluate((id) => {
+    localStorage.setItem("dispatch:resume:2026-10-05", "20");
+    localStorage.setItem("dispatch:heard:2026-10-05", id ?? "");
+  }, first);
+
+  // Opened, and reloaded: the player loads the page's digest, which has no timeline, and that must
+  // not read as "nothing was heard" and take the key away.
+  for (const open of [() => page.goto(SILENT_DIGEST), () => page.reload()]) {
+    await open();
+    await hydrated(page);
+    await expect(page.locator("[data-item-id]").first()).toHaveAttribute("data-state", "played");
+    expect(await page.evaluate(() => localStorage.getItem("dispatch:heard:2026-10-05"))).toBe(
+      first,
+    );
+  }
+});
+
 test("a briefing without audio heard to the end says Played everywhere", async ({ page }) => {
   await page.goto("/library");
   await page.evaluate(() => localStorage.setItem("dispatch:played:2026-10-05", "1"));

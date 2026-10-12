@@ -237,7 +237,7 @@ const facts = topic && {
             <p class="empty-title">No sources yet</p>
             <p class="empty-body">
               {topic === null || editable
-                ? "Add a site or a feed, and its stories can reach your briefings."
+                ? `Add a site or a feed, and its stories can reach your ${general ? "episodes" : "briefings"}.`
                 : "Sources filed under this topic are listed here."}
             </p>
           </div>

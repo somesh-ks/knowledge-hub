@@ -1,7 +1,7 @@
 ---
 /**
  * The spot art of the app's empty states: one focal object per scene, from two to four flat shapes
- * on one 240 by 180 canvas. The hero is the accent container, its detail one supporting tone and
+ * on one scale (240 units across). The hero is the accent container, its detail one supporting tone and
  * the one pop the accent. Colours come from classes that empty.css maps to tokens, never from
  * attributes, so both themes follow. Decorative: the title and the button carry the meaning.
  */
@@ -14,13 +14,23 @@ interface Props {
 }
 
 const { art, size = "regular" } = Astro.props;
+
+/** One scale for every scene (240 units across); each box is cropped to its drawing. */
+const VIEW: Record<ArtName, string> = {
+  today: "0 26 240 128",
+  library: "0 28 240 124",
+  results: "0 22 240 146",
+  offline: "0 20 240 143",
+  online: "0 20 240 143",
+  notfound: "0 20 240 142",
+};
 ---
 
 <svg
   class="empty-art"
   data-art={art}
   data-size={size}
-  viewBox="0 0 240 180"
+  viewBox={VIEW[art]}
   aria-hidden="true"
   focusable="false"
 >
@@ -28,8 +38,7 @@ const { art, size = "regular" } = Astro.props;
     art === "today" && (
       <>
         <rect class="art-hero" x="60" y="30" width="120" height="120" rx="24" />
-        <circle class="art-pop" cx="120" cy="90" r="30" />
-        <path class="art-on-pop" d="M112 76l22 14-22 14z" />
+        <path class="art-ink-fill" d="M106 66l36 24-36 24z" />
       </>
     )
   }
@@ -37,8 +46,7 @@ const { art, size = "regular" } = Astro.props;
     art === "library" && (
       <>
         <rect class="art-slot" x="62" y="32" width="116" height="116" rx="24" />
-        <circle class="art-pop" cx="120" cy="90" r="26" />
-        <path class="art-on-pop-line" d="M120 78v24M108 90h24" />
+        <path class="art-ink-line" d="M120 72v36M102 90h36" />
       </>
     )
   }

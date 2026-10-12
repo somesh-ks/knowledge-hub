@@ -590,7 +590,27 @@
 /* No results: the empty state's pattern under the toolbar. Its line names the way out that fits:
    other words while there is a query, the rest of the library while only a filter is on. */
 .library-empty {
-  padding-block: var(--space-6) var(--space-8);
+  padding-block: var(--space-4) var(--space-8);
+}
+
+/* A title is the query as typed: a pasted link may run long, so it wraps anywhere and stops at three lines. */
+.library-empty .empty-title {
+  display: -webkit-box;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 3;
+  overflow: hidden;
+}
+
+/* Nothing found: the floating New episode would lie over the title and the button on a small screen, and
+   a short one has no room for the whole scene. */
+html:has([data-library-empty]:not([hidden])) .create-fab {
+  display: none;
+}
+
+@media (max-height: 44rem) {
+  .library-empty .empty-art {
+    inline-size: 7.5rem;
+  }
 }
 
 [data-library]:has([data-library-search]:placeholder-shown) .library-empty-search,

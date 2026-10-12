@@ -78,6 +78,32 @@ test.describe("empty states", () => {
     await expect(root.getByRole("link", { name: "Reload" })).toBeVisible();
   });
 
+  test.describe("a stand-in that cannot reach the site", () => {
+    // The page asks the site itself, and the browser logs the request that fails.
+    test.use({ allowNetworkErrors: true });
+
+    test("a page standing in for an address that cannot be fetched does not say back online", async ({
+      page,
+      context,
+    }) => {
+      // The browser says it is online, as with a weak signal or a captive portal, but nothing answers.
+      await page.addInitScript(() => {
+        Object.defineProperty(navigator, "onLine", { configurable: true, get: () => true });
+      });
+      await page.goto("/");
+      await page.evaluate(() => navigator.serviceWorker.ready);
+      await page.reload();
+      await context.setOffline(true);
+      await page.goto("/d/2026-10-05");
+      const root = page.locator("#main .empty");
+      await expect(root.getByRole("heading", { level: 1 })).toHaveText("You are offline");
+      await page.waitForTimeout(1_000);
+      await expect(root.getByRole("heading", { level: 1 })).toHaveText("You are offline");
+      await expect(root).toHaveAttribute("data-state", "offline");
+      await expect(root.getByRole("link", { name: "Try again" })).toBeVisible();
+    });
+  });
+
   test("a search with no results shows its scene, and Clear search hides it", async ({ page }) => {
     await page.goto("/library");
     const empty = page.locator("[data-library-empty]");
