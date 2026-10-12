@@ -317,7 +317,7 @@ test.describe("the Create page", () => {
     // The hand-picked topics stay, and the line says so.
     await expect(page.locator('input[name="topic"]:checked')).toHaveCount(4);
     await expect(note).toBeVisible();
-    await expect(note).toContainText("Your topic picks are kept.");
+    await expect(note).toContainText("Your topic picks are kept");
     await page.getByRole("button", { name: "Use suggested topics" }).click();
     await expect(note).toBeHidden();
     // Every chip stays; the selection is General's preset, so the owner's own topic is unticked.
@@ -386,7 +386,7 @@ test.describe("the Create page", () => {
     const note = page.locator("[data-preset-note]");
     await chip(page, "World").click();
     await segment(page, "General").click();
-    await expect(note).toContainText("Your topic picks are kept.");
+    await expect(note).toContainText("Your topic picks are kept");
     await expect(ticked).toHaveText(["Design", "AI", "Technology", "World"]);
     // The button does something: it brings the suggestion in, and the line goes with it.
     await page.getByRole("button", { name: "Use suggested topics" }).click();
@@ -506,6 +506,26 @@ test.describe("the Create page", () => {
       return { control: node.getBoundingClientRect().width, column };
     });
     expect(hug.control).toBeLessThan(hug.column - 40);
+  });
+
+  test("a segmented control keeps its width as the choice moves, and only the words slide", async ({
+    page,
+  }, info) => {
+    test.skip(info.project.name !== "desktop", "a phone stretches its controls");
+    await openCreate(page);
+    const read = () =>
+      page.evaluate(() => {
+        const group = document.querySelector('fieldset:has(input[name="format"])');
+        const segments = [...(group?.querySelectorAll(".settings-segment") ?? [])];
+        return {
+          width: Math.round(group?.getBoundingClientRect().width ?? 0),
+          pills: segments.map((each) => Math.round(each.getBoundingClientRect().width)),
+        };
+      });
+    const before = await read();
+    await page.getByText("Discussion", { exact: true }).first().click();
+    await page.waitForTimeout(500);
+    expect(await read()).toEqual(before);
   });
 
   test("a wide page's Tab goes down the main questions to Generate, then the options", async ({

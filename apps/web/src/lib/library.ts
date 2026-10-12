@@ -145,14 +145,34 @@ function queryWords(query: string): string[] {
   return normalize(query).split(/\s+/).filter(Boolean);
 }
 
+const WORD_CHAR = /[\p{L}\p{N}]/u;
+
 /**
- * True when a line holds every word. A number is a whole token, never part of one: "6" finds
+ * True when `word` stands at `at` where a word of the text begins: nothing before it, or something
+ * that is not a letter or a digit. "ai" begins "AI headlines", never "detail" or "Hairline".
+ */
+function beginsWord(text: string, at: number, word: string): boolean {
+  if (!WORD_CHAR.test(word.charAt(0)) || at === 0) return true;
+  return !WORD_CHAR.test(text.charAt(at - 1));
+}
+
+/** The line has `word` at the start of one of its words: "lat" finds "latency", "tency" does not. */
+function hasWordStart(line: string, word: string): boolean {
+  for (let at = line.indexOf(word); at !== -1; at = line.indexOf(word, at + 1)) {
+    if (beginsWord(line, at, word)) return true;
+  }
+  return false;
+}
+
+/**
+ * True when a line holds every word, each at the start of a word of the line, so a short query does
+ * not match letters in the middle of others. A number is a whole token, never part of one: "6" finds
  * "6 october" but not "2026", so a day of the month does not match every card's year.
  */
 function lineHasWords(line: string, words: readonly string[]): boolean {
   let tokens: string[] | null = null;
   return words.every((word) => {
-    if (!/^\d+$/.test(word)) return line.includes(word);
+    if (!/^\d+$/.test(word)) return hasWordStart(line, word);
     tokens ??= line.split(/[^\p{L}\p{N}]+/u);
     return tokens.includes(word);
   });
@@ -190,14 +210,13 @@ export function matchExcerpt(text: string, query: string, lead = 16): ExcerptPar
     for (let step = 0; step < part.length; step += 1) from.push(index);
   });
   const hit = new Array<boolean>(chars.length).fill(false);
-  const wordChar = /[\p{L}\p{N}]/u;
   for (const word of words) {
     const number = /^\d+$/.test(word);
     for (let at = folded.indexOf(word); at !== -1; at = folded.indexOf(word, at + 1)) {
-      // A number is a whole token, as in search: "6" is not marked inside "2026".
-      const before = folded[at - 1] ?? " ";
-      const after = folded[at + word.length] ?? " ";
-      if (number && (wordChar.test(before) || wordChar.test(after))) continue;
+      // Marked where search finds: at the start of a word, and a number only as a whole token, so
+      // "6" is not marked inside "2026" nor "ai" inside "detail".
+      if (!beginsWord(folded, at, word)) continue;
+      if (number && WORD_CHAR.test(folded.charAt(at + word.length))) continue;
       for (let index = at; index < at + word.length; index += 1) hit[from[index] ?? 0] = true;
     }
   }

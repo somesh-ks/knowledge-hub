@@ -61,6 +61,27 @@ describe("matchCount", () => {
   it("folds accents", () => {
     expect(matchCount(card({ search: normalize("Café culture") }), "cafe")).toBe(1);
   });
+
+  it("finds a word where one of the card's words starts, never inside one", () => {
+    const lines = [
+      "Wednesday 7 October",
+      "AI headlines",
+      "More detail on Hairline 0.9",
+      "OpenAI ships",
+    ];
+    const found = card({ search: normalize(lines.join("\n")), metaLines: 1 });
+    // "detail", "Hairline" and "OpenAI" hold "ai" inside a word: only the story that starts with it counts.
+    expect(matchDetail(found, "ai")).toEqual({ meta: 0, stories: 1, first: 1 });
+    expect(matchCount(card({ search: normalize("A closer detail") }), "ai")).toBe(0);
+    // The rest of a word may be left off ("lat" finds "latency"), the start of it may not.
+    expect(matchCount(card({ search: normalize("Tap latency") }), "lat")).toBe(1);
+    expect(matchCount(card({ search: normalize("Tap latency") }), "tency")).toBe(0);
+    // A word with punctuation in it begins where its first letter does.
+    const query = card({ search: normalize("Adds container-query tokens") });
+    expect(matchCount(query, "container-query")).toBe(1);
+    expect(matchCount(query, "query")).toBe(1);
+    expect(matchCount(query, "tainer")).toBe(0);
+  });
 });
 
 describe("matchesFilter", () => {
@@ -276,6 +297,14 @@ describe("matchExcerpt", () => {
 
   it("marks a number only as a whole token", () => {
     expect(show(matchExcerpt("6 ideas for 2026", "6"))).toBe("[6] ideas for 2026");
+  });
+
+  it("marks a word only where a word of the text starts", () => {
+    expect(show(matchExcerpt("AI headlines add detail", "ai"))).toBe("[AI] headlines add detail");
+    expect(show(matchExcerpt("Hairline 0.9 adds container-query", "ai"))).toBe(
+      "Hairline 0.9 adds container-query",
+    );
+    expect(show(matchExcerpt("Measuring latency", "lat"))).toBe("Measuring [lat]ency");
   });
 
   it("marks nothing for an empty query", () => {

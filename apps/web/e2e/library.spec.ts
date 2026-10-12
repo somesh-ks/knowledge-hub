@@ -257,6 +257,21 @@ test.describe("library search", () => {
     expect(await titles(page)).toEqual([DISCUSSION, "Monday 5 October", "Sunday 4 October"]);
   });
 
+  test("a short query finds the start of words, never letters inside them", async ({ page }) => {
+    await page.goto("/library");
+    await ready(page);
+    // "ai" is a topic of the app: it begins "AI headlines" and sits inside "detail" and "Hairline".
+    await page.getByRole("searchbox").fill("ai");
+    expect(await titles(page)).toEqual(["AI headlines"]);
+    await narrowedTo(page, 1, 5);
+    // The rest of a word may be left off.
+    await page.getByRole("searchbox").fill("laten");
+    expect(await titles(page)).toContain(DISCUSSION);
+    for (const mark of await page.locator(".card-match b").allTextContents()) {
+      expect(mark.toLowerCase()).toBe("laten");
+    }
+  });
+
   test("a query with several briefings keeps them in the chosen order", async ({ page }) => {
     await page.goto("/library");
     await ready(page);
@@ -719,8 +734,9 @@ test.describe("library episodes", () => {
     // "fraction" is said in a script and written nowhere on a card.
     await input.fill("fraction cost");
     await expect.poll(() => titles(page)).toEqual([HEADLINES]);
+    // The text that matched is an episode's script, so the line says the episode, not a story.
     await expect(page.locator("[data-card]:not([hidden]) .card-match")).toHaveText([
-      "Mentioned in a story",
+      "Mentioned in the episode",
     ]);
     // Every word has to be there, so one that is not takes the card away again.
     await input.fill("fraction zebra");
@@ -784,6 +800,36 @@ test.describe("library episodes", () => {
     await expect(page.locator("[data-library]")).toHaveAttribute("data-view", "list");
     await page.getByRole("button", { name: "Gallery view" }).click();
     await expect(grid).toHaveCSS("display", "grid");
+  });
+
+  test("in a list a match line adds no room above the title, and a bar stays on its cover", async ({
+    page,
+  }) => {
+    await page.goto("/library");
+    await ready(page);
+    await page.evaluate(() => localStorage.setItem("dispatch:resume:ep-20261007-1930", "100"));
+    await page.reload();
+    await ready(page);
+    await page.getByRole("button", { name: "List view" }).click();
+    await page.getByRole("searchbox").fill("latency");
+    await expect(page.locator("[data-card]:not([hidden]) .card-match").first()).toBeVisible();
+    const rows = await page.locator("[data-card]:not([hidden])").evaluateAll((cards) =>
+      cards.map((card) => {
+        const link = card.querySelector(".card-link")?.getBoundingClientRect();
+        const title = card.querySelector(".card-title")?.getBoundingClientRect();
+        const cover = card.querySelector(".cover")?.getBoundingClientRect();
+        const bar = card.querySelector<HTMLElement>(".card-progress");
+        const box = bar && !bar.hidden ? bar.getBoundingClientRect() : null;
+        return {
+          above: Math.round((title?.top ?? 0) - (link?.top ?? 0)),
+          barOnCover: box && cover ? box.bottom <= cover.bottom + 1 && box.top >= cover.top : null,
+        };
+      }),
+    );
+    // The row's padding is all there is above a title, with a match line or without one.
+    for (const row of rows) expect(row.above).toBeLessThanOrEqual(14);
+    expect(rows.some((row) => row.barOnCover === true)).toBe(true);
+    expect(rows.every((row) => row.barOnCover !== false)).toBe(true);
   });
 
   test("a saved list is drawn from the first frame, on a load and on a move from Today", async ({

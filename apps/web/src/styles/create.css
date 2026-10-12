@@ -140,6 +140,32 @@
     inline-size: fit-content;
     max-inline-size: 100%;
   }
+
+  /* The check takes no room of its own, so the control keeps one width as the choice moves: it sits
+     outside its words, and the chosen words slide over by half of its room, as a filter chip's do. */
+  .create-view .create-choice .settings-segment > span {
+    position: relative;
+    transition: transform var(--duration-enter) var(--ease-out);
+  }
+
+  .create-view .create-choice .settings-segment > span::before {
+    position: absolute;
+    inset-block: 0;
+    inset-inline-end: calc(100% + var(--space-1));
+    margin-block: auto;
+    margin-inline-end: 0;
+    inline-size: var(--space-4);
+  }
+
+  .create-view .create-choice .settings-segment:has(input:checked) > span {
+    transform: translateX(calc((var(--space-4) + var(--space-1)) / 2));
+  }
+}
+
+@media (min-width: 40rem) and (prefers-reduced-motion: reduce) {
+  .create-view .create-choice .settings-segment > span {
+    transition: none;
+  }
 }
 
 @media (forced-colors: active) {
@@ -557,6 +583,7 @@
   }
 
   .create-page .create-more-body .create-group .section-head {
+    padding-block: var(--space-4) var(--space-3);
     font-size: var(--font-size-body);
   }
 

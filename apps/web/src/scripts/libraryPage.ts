@@ -6,6 +6,7 @@ import {
   type CardData,
   chipFilter,
   compareCards,
+  EPISODE_KIND,
   emptyCopy,
   LIBRARY_FILTERS,
   LIBRARY_SORTS,
@@ -193,8 +194,10 @@ function install(): void {
       if (matches > 0) shown += 1;
       // While searching, a line says why a card is there, when a story is why. A card found by its
       // own date or title needs none: no story matched.
-      if (searching && inText) writeMatch(card, "", "Mentioned in a story");
-      else if (searching && matches > 0 && detail.stories > 0 && "first" in detail) {
+      if (searching && inText) {
+        const said = card.data.kind === EPISODE_KIND ? "the episode" : "a story";
+        writeMatch(card, "", `Mentioned in ${said}`);
+      } else if (searching && matches > 0 && detail.stories > 0 && "first" in detail) {
         const headline = storyHeadline(card.lines[detail.first ?? 0] ?? "");
         writeMatch(card, query, headline, detail.stories - 1);
       } else writeMatch(card, query);

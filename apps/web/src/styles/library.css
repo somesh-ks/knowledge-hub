@@ -493,7 +493,7 @@
    height goes above and below the block, never into it. */
 [data-library][data-view="list"] .card-link {
   grid-template-columns: var(--list-cover) 1fr;
-  grid-template-rows: 1fr auto auto 1fr;
+  grid-template-rows: 1fr auto auto auto 1fr;
   gap: 0 var(--space-4);
   align-items: center;
   padding-block: var(--space-3);
@@ -509,9 +509,13 @@
   grid-area: 1 / 1 / -1 / 2;
 }
 
+/* The cover is centred in a row that a match line can make taller than it, so the bar is centred
+   with it and then moved down to the cover's foot, never to the row's. */
 [data-library][data-view="list"] .card-progress {
   grid-area: 1 / 1 / -1 / 2;
-  margin: 0 var(--space-1) var(--space-1);
+  align-self: center;
+  margin: 0 var(--space-2);
+  translate: 0 calc((var(--list-cover) - var(--space-1)) / 2);
 }
 
 /* A hover or a press fills the whole row, past the gutters, as a row does elsewhere
@@ -547,7 +551,8 @@
   line-clamp: unset;
 }
 
-/* While searching, the match line sits under the facts, in the row's last track. */
+/* While searching, the match line sits under the facts, in a track of its own: the spare height stays
+   above and below the block, so a row with a match is not taller above its title. */
 [data-library][data-view="list"] .card-match {
   grid-area: 4 / 2;
   align-self: start;
