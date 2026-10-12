@@ -11,6 +11,8 @@ interface Props {
 }
 
 const { current } = Astro.props;
+// On the Create page the New episode button is the place you are on, not an action to take.
+const onCreate = Astro.url.pathname.replace(/\/$/, "") === "/create";
 
 const destinations: Array<{
   id: Destination;
@@ -46,7 +48,7 @@ const destinations: Array<{
     <BrandMark />
     <span>Singularity</span>
   </a>
-  <a class="app-nav-create" href="/create" data-create-open data-sound="open">
+  <a class="app-nav-create" href="/create" data-create-open data-sound="open" aria-current={onCreate ? "page" : undefined}>
     <Icon name="plus" class="icon-lg" />
     <span>New episode</span>
   </a>

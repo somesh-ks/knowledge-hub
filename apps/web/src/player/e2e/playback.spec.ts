@@ -26,8 +26,8 @@ test.describe("playback in a real browser", () => {
     await expect(lab.openButton).toBeVisible();
     await expect(lab.cta).toHaveAttribute("data-state", "current");
     await expect(lab.cta).toHaveAttribute("data-playing", "true");
-    await expect(lab.cta.locator("[data-chip-label]")).toHaveText("Playing");
-    await expect(lab.cta).toHaveAccessibleName("Pause the briefing, playing");
+    await expect(lab.cta.locator("[data-chip-label]")).toHaveText(/min left$/);
+    await expect(lab.cta).toHaveAccessibleName(/^Pause the briefing, \d+ min left$/);
     await expect.poll(async () => (await audio.read())?.currentTime ?? 0).toBeGreaterThan(0.4);
     expect((await audio.read())?.paused).toBe(false);
   });
@@ -45,7 +45,7 @@ test.describe("playback in a real browser", () => {
     await expect(lab.cta).toHaveAccessibleName(/^Resume the briefing, \d+ min left$/);
     await lab.dock.getByRole("button", { name: "Play", exact: true }).tap();
     await expect(page.locator("html")).toHaveAttribute("data-player-state", "playing");
-    await expect(lab.cta.locator("[data-chip-label]")).toHaveText("Playing");
+    await expect(lab.cta).toHaveAccessibleName(/^Pause the briefing, \d+ min left$/);
   });
 
   test("marks the current story, and the story chips follow the playhead", async ({

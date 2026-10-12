@@ -26,8 +26,13 @@ describe("submitLabel", () => {
 });
 
 describe("moreOptionsSummary", () => {
-  it("names the audience, the window and the tone with the app's one separator", () => {
-    expect(moreOptionsSummary("Somesh", "7 days", "Neutral")).toBe("For Somesh · 7 days · Neutral");
+  it("names the audience, the window and the tone, each with its noun, with the one separator", () => {
+    expect(moreOptionsSummary("Somesh", "7 days", "Neutral")).toBe(
+      "For Somesh · Last 7 days · Neutral tone",
+    );
+    expect(moreOptionsSummary("General", "2 days", "Dry")).toBe(
+      "For General · Last 2 days · Dry tone",
+    );
   });
 
   it("leaves a placeholder for the page script in the template, and nothing else", () => {
@@ -176,6 +181,8 @@ describe("audiences", () => {
   it("are General and Somesh, Somesh by default", () => {
     expect(AUDIENCES.map((audience) => audience.value)).toEqual(["general", "custom"]);
     expect(AUDIENCES.map((audience) => audience.label)).toEqual(["General", "Somesh"]);
+    // In a sentence: "For General", "Topics set for Somesh".
+    expect(AUDIENCES.map((audience) => audience.phrase)).toEqual(["General", "Somesh"]);
     expect(DEFAULTS.audience).toBe("custom");
   });
 });

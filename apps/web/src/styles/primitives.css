@@ -108,7 +108,7 @@
 /*
  * Sticky under the app bar, scrollable sideways, with an accent underline on the section in view.
  * The strip runs past the gutters so labels slide off the edge of the screen, not off a margin.
- * Markup: <nav class="tabs"><a class="tab" aria-current="true">...</a>...</nav>
+ * Markup: <div class="tabs-bar"><nav class="tabs"><a class="tab" aria-current="true">...</a></nav></div>
  */
 @property --tabs-left-mask {
   syntax: "<length>";
@@ -122,20 +122,26 @@
   initial-value: 32px;
 }
 
-.tabs {
+/* The bar sticks and carries the surface and the line under it; the strip inside it scrolls and
+   fades its ends. A mask on the bar itself would fade its surface and line too, and what scrolls
+   under a stuck strip would show through at its edges. */
+.tabs-bar {
   position: sticky;
   inset-block-start: var(--sticky-top);
   z-index: calc(var(--z-header) - 1);
-  display: flex;
   margin-inline: calc(var(--page-gutter-start) * -1) calc(var(--page-gutter-end) * -1);
+  background: var(--color-surface);
+  box-shadow: inset 0 calc(var(--stroke-hairline) * -1) 0 var(--color-border-hairline);
+}
+
+.tabs {
+  display: flex;
   padding-inline: calc(var(--page-gutter-start) - var(--space-3))
     calc(var(--page-gutter-end) - var(--space-3));
   overflow-x: auto;
   overscroll-behavior-x: contain;
   scroll-padding-inline: var(--page-gutter-start);
   scrollbar-width: none;
-  background: var(--color-surface);
-  box-shadow: inset 0 calc(var(--stroke-hairline) * -1) 0 var(--color-border-hairline);
   mask-image: linear-gradient(
     to right,
     transparent 0px,

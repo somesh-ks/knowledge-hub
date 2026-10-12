@@ -112,11 +112,12 @@ describe("the briefing chip", () => {
   });
 
   it("follows playback: playing, paused, played, try again", () => {
+    // Playing, the briefing's chip is a pause button with the time left, not a second "Playing".
     expect(briefingChipView(stateFor("playing"), 86, makeDigest())).toEqual({
       state: "current",
       playing: true,
-      label: "Playing",
-      name: "Pause the briefing, playing",
+      label: "1 min left",
+      name: "Pause the briefing, 1 min left",
     });
     expect(briefingChipView(stateFor("paused"), 30, makeDigest())).toEqual({
       state: "current",
@@ -138,9 +139,9 @@ describe("the briefing chip", () => {
     });
   });
 
-  it("says Playing for the first 300 ms of buffering, then that it is loading", () => {
+  it("shows the playing face for the first 300 ms of buffering, then that it is loading", () => {
     const early = briefingChipView(stateFor("loading", { buffering: false }), 0, makeDigest());
-    expect(early).toMatchObject({ state: "current", label: "Playing", playing: true });
+    expect(early).toMatchObject({ state: "current", label: "2 min left", playing: true });
     const late = briefingChipView(stateFor("loading", { buffering: true }), 0, makeDigest());
     expect(late).toEqual({
       state: "preparing",
@@ -157,7 +158,7 @@ describe("the briefing chip", () => {
     );
     expect(names).toEqual([
       "Resume the episode, 2 min left",
-      "Pause the episode, playing",
+      "Pause the episode, 2 min left",
       "Resume the episode, 2 min left",
       "Play the episode again, played",
     ]);

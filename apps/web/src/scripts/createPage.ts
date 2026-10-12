@@ -79,6 +79,37 @@ export function installCreate(root: HTMLElement, onStart?: () => void): void {
 
   // True once a chip has been ticked or unticked by hand since the last suggestion was applied.
   let picked = false;
+  // The ticks a suggestion replaced, while its line offers Undo.
+  let undoTicks: boolean[] | null = null;
+
+  /**
+   * The line under Written for: what a suggestion did ("Topics set for General", with Undo), that
+   * the picks made by hand were kept (with the suggestion), or nothing.
+   */
+  function showNote(mode: "applied" | "kept" | null): void {
+    if (!note) return;
+    if (mode !== "applied") undoTicks = null;
+    note.hidden = mode === null;
+    if (mode === null) return;
+    const audience =
+      form.querySelector<HTMLInputElement>('input[name="audience"]:checked')?.dataset.label ?? "";
+    const text = note.querySelector("[data-preset-text]");
+    if (text) text.textContent = (note.dataset[mode] ?? "").replace("{audience}", audience);
+    note.querySelector("[data-preset-apply]")?.toggleAttribute("hidden", mode !== "kept");
+    note.querySelector("[data-preset-undo]")?.toggleAttribute("hidden", mode !== "applied");
+  }
+
+  /** Scrolls the form, in the page or in the sheet, until the line is above the foot. */
+  function revealNote(): void {
+    const foot = root.querySelector<HTMLElement>(".create-submit");
+    if (!note || !foot) return;
+    const over = note.getBoundingClientRect().bottom - foot.getBoundingClientRect().top;
+    if (over <= 0 || getComputedStyle(foot).position !== "sticky") return;
+    const scroller = root.closest<HTMLElement>(".create-sheet-body");
+    const by = over + note.offsetHeight;
+    if (scroller) scroller.scrollBy({ top: by });
+    else scrollBy({ top: by });
+  }
 
   /** Ticks the chips the chosen audience suggests; chips stay shown. */
   function applyPreset(): void {
@@ -87,17 +118,28 @@ export function installCreate(root: HTMLElement, onStart?: () => void): void {
       topic.checked = (topic.dataset.presets ?? "").split(" ").includes(audience);
     }
     picked = false;
-    if (note) note.hidden = true;
+    showNote(null);
   }
 
   /**
    * A new audience brings its suggested topics only while the topics are still the last
-   * suggestion: picks made by hand are never replaced unseen. They stay, and a line says so and
-   * offers the suggestion.
+   * suggestion, and says so with a way back, since the chips may be out of view. Picks made by
+   * hand are never replaced unseen: they stay, and a line says so and offers the suggestion.
    */
   function audienceChanged(): void {
-    if (!picked) applyPreset();
-    else if (note) note.hidden = false;
+    if (picked) {
+      showNote("kept");
+      return;
+    }
+    const before = topics.map((topic) => topic.checked);
+    applyPreset();
+    if (topics.some((topic, index) => topic.checked !== before[index])) {
+      showNote("applied");
+      undoTicks = before;
+      // In view, so what changed and the way back are seen where the choice was made: clear of the
+      // foot with Generate, which stays stuck over the form below it.
+      revealNote();
+    }
   }
 
   /** The voice a select stands for, or null when the list has not said what it is. */
@@ -111,32 +153,45 @@ export function installCreate(root: HTMLElement, onStart?: () => void): void {
     const data = new FormData(form);
     // A discussion has two hosts, so it takes a second voice as well as the first.
     const discussion = data.get("format") === "discussion";
+    // The voices, and the hosts' names once the voices are known (D76): a discussion's captions
+    // and labels say "Ada's voice", "Leo's voice"; before that, "First host", "Second host".
+    const first = voiceOf(form.querySelector<HTMLSelectElement>('select[name="voice"]'));
+    const second = voiceOf(form.querySelector<HTMLSelectElement>('select[name="voice_b"]'));
+    const hosts = discussion && hostNames && first && second ? hostNames(first, second) : null;
     for (const voice of voiceRows) {
       if (voice.dataset.voice === "voice_b") voice.hidden = !discussion;
-      voice
-        .querySelector<HTMLElement>("[data-voice-caption]")
-        ?.toggleAttribute("hidden", !discussion);
+      const caption = voice.querySelector<HTMLElement>("[data-voice-caption]");
+      const name = hosts ? (caption?.dataset.host === "b" ? hosts.b : hosts.a) : "";
+      if (caption) {
+        caption.toggleAttribute("hidden", !discussion);
+        const words = name
+          ? (caption.dataset.named ?? "").replace("{name}", name)
+          : (caption.dataset.unnamed ?? "");
+        if (caption.textContent !== words) caption.textContent = words;
+      }
       const select = voice.querySelector("select");
-      const label = discussion ? select?.dataset.two : select?.dataset.one;
+      const label = !discussion
+        ? select?.dataset.one
+        : name
+          ? select?.dataset.twoNamed?.replace("{name}", name)
+          : select?.dataset.two;
       if (select && label) select.setAttribute("aria-label", label);
     }
     const heading = root.querySelector<HTMLElement>("[data-voice-heading]");
     const headingText = discussion ? heading?.dataset.two : heading?.dataset.one;
     if (heading && headingText) heading.textContent = headingText;
-    // Under the format: who will be heard, by name once the voices are known.
+    // Under the format: who will be heard, by name, once the voices are known; nothing before
+    // that (the format's own name says the rest). A readout is read by the voice under its own
+    // name; a discussion's two hosts take the names the episode will be written with.
     const hint = root.querySelector<HTMLElement>("[data-format-hint]");
     if (hint) {
-      const first = voiceOf(form.querySelector<HTMLSelectElement>('select[name="voice"]'));
-      const second = voiceOf(form.querySelector<HTMLSelectElement>('select[name="voice_b"]'));
-      const named = discussion ? Boolean(first && second && hostNames) : Boolean(first);
-      // A readout is read by the voice, under its own name; a discussion's two hosts take the names
-      // the episode will be written with.
-      const hosts = discussion && hostNames ? hostNames(first, second) : null;
+      const named = discussion ? hosts !== null : Boolean(first);
       const a = hosts ? hosts.a : (first?.name ?? "");
-      const b = hosts ? hosts.b : (second?.name ?? "");
-      const key = (discussion ? "discussion" : "readout") + (named ? "Named" : "");
-      const text = (hint.dataset[key] ?? "").replace("{a}", a).replace("{b}", b);
+      const b = hosts ? hosts.b : "";
+      const key = discussion ? "discussionNamed" : "readoutNamed";
+      const text = named ? (hint.dataset[key] ?? "").replace("{a}", a).replace("{b}", b) : "";
       if (hint.textContent !== text) hint.textContent = text;
+      hint.hidden = !named;
     }
     // The More options line names what it holds.
     const values = root.querySelector<HTMLElement>("[data-more-values]");
@@ -239,7 +294,24 @@ export function installCreate(root: HTMLElement, onStart?: () => void): void {
   form.addEventListener("change", (event) => {
     const name = (event.target as HTMLInputElement | null)?.name;
     if (name === "audience") audienceChanged();
-    if (name === "topic") picked = true;
+    if (name === "topic") {
+      picked = true;
+      // A tick by hand after a suggestion: there is nothing left to undo.
+      if (undoTicks) showNote(null);
+    }
+    sync();
+  });
+  root.querySelector("[data-preset-undo]")?.addEventListener("click", () => {
+    const before = undoTicks;
+    if (!before) return;
+    topics.forEach((topic, index) => {
+      topic.checked = before[index] ?? topic.checked;
+    });
+    // The ticks are the person's again; a new audience must not replace them unseen. The button
+    // goes with its line, so the focus goes back to the audience it came from.
+    picked = true;
+    form.querySelector<HTMLInputElement>('input[name="audience"]:checked')?.focus();
+    showNote(null);
     sync();
   });
   root.querySelector("[data-preset-apply]")?.addEventListener("click", () => {
@@ -252,15 +324,57 @@ export function installCreate(root: HTMLElement, onStart?: () => void): void {
   // there its row is a heading, not a switch. In the sheet and on narrower pages it opens in place.
   if (more && root.closest("main")) {
     const wide = matchMedia("(min-width: 80rem)");
+    const summary = more.querySelector("summary");
+    const submitRow = form.querySelector(".create-submit");
     const pin = () => {
-      if (wide.matches) more.open = true;
-      more.toggleAttribute("data-pinned", wide.matches);
+      const on = wide.matches;
+      if (on) more.open = true;
+      more.toggleAttribute("data-pinned", on);
+      // The options stand in their own column, after the main questions and Generate: in the
+      // source as well, so Tab goes down the first column before it moves to the second.
+      if (on && submitRow && submitRow.nextElementSibling !== more) {
+        submitRow.after(more);
+      } else if (!on && submitRow && more.nextElementSibling !== submitRow) {
+        submitRow.before(more);
+      }
+      // Pinned, its row is the column's heading, not a switch that does nothing: out of the Tab
+      // order and named as a heading.
+      if (!summary) return;
+      for (const [name, value] of [
+        ["tabindex", "-1"],
+        ["role", "heading"],
+        ["aria-level", "2"],
+      ]) {
+        if (on) summary.setAttribute(name, value);
+        else summary.removeAttribute(name);
+      }
     };
     more.querySelector("summary")?.addEventListener("click", (event) => {
       if (more.hasAttribute("data-pinned")) event.preventDefault();
     });
     wide.addEventListener("change", pin);
     pin();
+  }
+  // On /create the foot with Generate sticks to the bottom of the window, and wears its top line
+  // only while it is stuck there with the form running on under it (create.css). It is stuck when
+  // the place it would have in the page, the form's end, lies below the edge it sticks to.
+  const foot = root.querySelector<HTMLElement>(".create-submit");
+  if (foot && root.closest("main")) {
+    const stuck = () => {
+      if (!root.isConnected) {
+        removeEventListener("scroll", stuck);
+        removeEventListener("resize", stuck);
+        return;
+      }
+      const style = getComputedStyle(foot);
+      const edge = innerHeight - Number.parseFloat(style.insetBlockEnd);
+      const on = style.position === "sticky" && form.getBoundingClientRect().bottom > edge + 1;
+      if (on !== foot.hasAttribute("data-stuck")) foot.toggleAttribute("data-stuck", on);
+    };
+    addEventListener("scroll", stuck, { passive: true });
+    addEventListener("resize", stuck, { passive: true });
+    new ResizeObserver(stuck).observe(form);
+    stuck();
   }
   // The title's Enter key reads "Done": it puts the keyboard away and never submits, because a run
   // spends from the allowance. Generate is the one way to start one.
@@ -374,7 +488,7 @@ export function installCreate(root: HTMLElement, onStart?: () => void): void {
     }
     // These are the person's own picks: a new audience must not replace them unseen.
     picked = true;
-    if (note) note.hidden = true;
+    showNote(null);
     sync();
   });
 

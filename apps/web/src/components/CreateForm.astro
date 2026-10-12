@@ -37,6 +37,7 @@ const VOICES = [
     label: "Voice",
     caption: "First host",
     hostLabel: "First host's voice",
+    index: "a",
   },
   {
     name: "voice_b",
@@ -44,15 +45,17 @@ const VOICES = [
     label: "Second host's voice",
     caption: "Second host",
     hostLabel: "Second host's voice",
+    index: "b",
   },
 ] as const;
 // A declaration, not a generic arrow: the Astro compiler reads `<T>(` as a tag.
 function labelOf<T>(list: ReadonlyArray<{ value: T; label: string }>, value: T): string {
   return list.find((item) => item.value === value)?.label ?? "";
 }
+const audiencePhrase = AUDIENCES.find((item) => item.value === DEFAULTS.audience)?.phrase ?? "";
 // The More options line before the script runs: the same words the script writes (createPage.ts).
 const moreSummary = moreOptionsSummary(
-  labelOf(AUDIENCES, DEFAULTS.audience),
+  audiencePhrase,
   labelOf(WINDOWS, DEFAULTS.window),
   labelOf(TONES, DEFAULTS.tone),
 );
@@ -145,11 +148,10 @@ const COPY = {
         class="create-hint create-format-hint"
         id="create-format-hint"
         data-format-hint
-        data-readout="Read in one voice."
-        data-readout-named="Read by {a}."
-        data-discussion="Two hosts talk it through, in two voices."
-        data-discussion-named="Two hosts talk it through, voiced by {a} and {b}."
-      >{startFormat === "discussion" ? "Two hosts talk it through, in two voices." : "Read in one voice."}</p>
+        data-readout-named="Read by {a}"
+        data-discussion-named="{a} and {b}"
+        hidden
+      ></p>
     </section>
 
     {/* Everything with a sensible default, in place: one row that names the current choices and
@@ -169,18 +171,29 @@ const COPY = {
             {
               AUDIENCES.map((audience) => (
                 <label class="settings-segment">
-                  <input type="radio" name="audience" value={audience.value} data-label={audience.label} checked={audience.value === DEFAULTS.audience} />
+                  <input type="radio" name="audience" value={audience.value} data-label={audience.phrase} checked={audience.value === DEFAULTS.audience} />
                   <span>{audience.label}</span>
                 </label>
               ))
             }
           </fieldset>
           {/* Switching the audience brings its suggested topics only while the topics are still the
-               last suggestion. Picks made by hand stay, and this line says so and offers the swap. */}
-          <p class="create-hint create-preset-note" data-preset-note hidden>
-            <span>Your topic picks are kept.</span>
-            <button class="btn create-inline-btn" type="button" data-preset-apply>Use suggested topics</button>
-          </p>
+               last suggestion; the chips may be out of view, so this line says what changed and
+               offers Undo. Picks made by hand stay, and the line says so and offers the swap. The
+               status region is always there, so a line that appears in it is announced. */}
+          <div role="status" data-preset-status>
+            <p
+              class="create-hint create-preset-note"
+              data-preset-note
+              data-kept="Your topic picks are kept."
+              data-applied="Topics set for {audience}"
+              hidden
+            >
+              <span data-preset-text>Your topic picks are kept.</span>
+              <button class="btn create-inline-btn" type="button" data-preset-apply>Use suggested topics</button>
+              <button class="btn create-inline-btn" type="button" data-preset-undo hidden>Undo</button>
+            </p>
+          </div>
         </section>
 
         {/* A readout has one voice; a discussion has two hosts, each with a voice. The options come
@@ -192,7 +205,7 @@ const COPY = {
             {
               VOICES.map((voice, index) => (
                 <div class="create-voice" data-voice={voice.name} hidden={index === 1 && startFormat !== "discussion"}>
-                  <label class="create-voice-name" for={`create-${voice.name}`} data-voice-caption hidden={startFormat !== "discussion"}>{voice.caption}</label>
+                  <label class="create-voice-name" for={`create-${voice.name}`} data-voice-caption data-host={voice.index} data-unnamed={voice.caption} data-named="{name}'s voice" hidden={startFormat !== "discussion"}>{voice.caption}</label>
                   <span class="create-select">
                     <select
                       id={`create-${voice.name}`}
@@ -200,6 +213,7 @@ const COPY = {
                       data-saved={voice.saved ?? ""}
                       data-one={voice.label}
                       data-two={voice.hostLabel}
+                      data-two-named="{name}'s voice"
                       aria-label={startFormat === "discussion" ? voice.hostLabel : voice.label}
                       autocomplete="off"
                     >

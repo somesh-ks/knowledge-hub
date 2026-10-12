@@ -148,6 +148,12 @@
     background: var(--color-scrim);
   }
 
+  /* On the hero the Play beside the cover already says it is playing: the cover's pause comes back
+     only when the cover is pointed at or reached. */
+  .hero .cover:not(:hover) > .cover-over[data-playing="true"]:not(:has(:focus-visible)) {
+    opacity: 0;
+  }
+
   .card:hover > .cover-over[data-playing="true"] .cover-play,
   .cover:hover > .cover-over[data-playing="true"] .cover-play,
   .cover-over[data-playing="true"]:has(:focus-visible) .cover-play {

@@ -112,9 +112,9 @@ export function idleStoryChip(length: string, headline: string): ChipView {
 }
 
 /**
- * The briefing's chip for a player state. While the first 300 ms of buffering run it already says
- * "Playing": the listener asked for playback, and a label that changes twice inside a few frames
- * reads as a flicker.
+ * The briefing's chip for a player state. While the first 300 ms of buffering run it already shows
+ * the playing face: the listener asked for playback, and a label that changes twice inside a few
+ * frames reads as a flicker.
  */
 export function briefingChipView(
   state: PlayerState,
@@ -134,11 +134,13 @@ export function briefingChipView(
   // The same rounding as the length, so 2:10 is "2 min" long with "2 min left" at its start.
   const left = `${wholeMinutes(Math.max(0, total - timeSeconds) * 1000)} min left`;
   const resume = { playing: false, label: left, name: `Resume the ${noun}, ${left}` };
+  // Playing, the chip is the pause button and says what is left, as a podcast app's does; the
+  // moving bars belong to the story chips (hero.css shows the pause glyph here).
   const playing: ChipView = {
     state: "current",
     playing: true,
-    label: "Playing",
-    name: `Pause the ${noun}, playing`,
+    label: left,
+    name: `Pause the ${noun}, ${left}`,
   };
   switch (state.status) {
     case "idle":

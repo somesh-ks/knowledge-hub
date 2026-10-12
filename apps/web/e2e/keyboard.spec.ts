@@ -83,9 +83,13 @@ test.describe("keyboard", () => {
       await page.keyboard.press("Shift+Tab");
       await page.keyboard.press("Tab");
       const ring = await control.evaluate((node) => {
-        const style = getComputedStyle(node);
+        // A headline link draws its ring round the whole headline, clear of its words, so the
+        // page's own surface is the gap (briefing.css).
+        const headline = node.matches(".story-link") ? node.parentElement : null;
+        const style = getComputedStyle(headline ?? node);
         return {
           focusVisible: node.matches(":focus-visible"),
+          headline: headline !== null,
           width: style.outlineWidth,
           lineStyle: style.outlineStyle,
           offset: style.outlineOffset,
@@ -98,11 +102,45 @@ test.describe("keyboard", () => {
       ).toBe(true);
       expect(ring.width).toBe("2px");
       expect(ring.lineStyle).toBe("solid");
-      expect(ring.offset).toBe("2px");
-      expect(ring.gap).not.toBe("none");
+      if (ring.headline) {
+        expect(ring.offset).toBe("4px");
+      } else {
+        expect(ring.offset).toBe("2px");
+        expect(ring.gap).not.toBe("none");
+      }
       checked += 1;
     }
     expect(checked).toBeGreaterThan(20);
+  });
+
+  test("a two-line headline is ringed as one block, never struck through", async ({ page }) => {
+    for (const path of ["/", "/e/ep-20261007-1930"]) {
+      await page.goto(path);
+      // The first headline that runs to two lines at this width.
+      await page.evaluate(() => {
+        const links = [...document.querySelectorAll(".story-link")];
+        links.find((node) => node.getClientRects().length > 1)?.setAttribute("data-two-lines", "");
+      });
+      const link = page.locator(".story-link[data-two-lines]");
+      await link.focus();
+      await page.keyboard.press("Shift+Tab");
+      await page.keyboard.press("Tab");
+      await expect(link).toBeFocused();
+      const look = await link.evaluate((node) => {
+        const own = getComputedStyle(node);
+        const heading = node.parentElement as HTMLElement;
+        return {
+          lines: node.getClientRects().length,
+          linkOutline: own.outlineStyle,
+          linkGap: own.boxShadow,
+          headingOutline: getComputedStyle(heading).outlineStyle,
+        };
+      });
+      expect(look.lines, path).toBeGreaterThan(1);
+      expect(look.linkOutline, path).toBe("none");
+      expect(look.linkGap, path).toBe("none");
+      expect(look.headingOutline, path).toBe("solid");
+    }
   });
 
   test("a side column item's ring has the pill's round ends", async ({ page }) => {

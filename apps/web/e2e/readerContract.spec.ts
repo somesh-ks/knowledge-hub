@@ -1,5 +1,5 @@
 import type { Locator } from "@playwright/test";
-import { ACCENT_LIGHT, computedColor, expectColor, INK_LIGHT } from "./colors";
+import { computedColor, expectColor, INK_LIGHT, toRgb } from "./colors";
 import { expect, hydrated, SILENT_DIGEST, test } from "./fixtures";
 
 /**
@@ -37,8 +37,9 @@ test.describe("what the player writes on a real page", () => {
     await expect(page.locator("html")).toHaveAttribute("data-player-state", "playing");
     await expect(chip).toHaveAttribute("data-state", "current");
     await expect(chip).toHaveAttribute("data-playing", "true");
-    await expect(chip.locator("[data-chip-label]")).toHaveText("Playing");
-    await expect(chip).toHaveAccessibleName("Pause the briefing, playing");
+    // Playing, the briefing's chip is the pause button with the time left (D77).
+    await expect(chip.locator("[data-chip-label]")).toHaveText("1 min left");
+    await expect(chip).toHaveAccessibleName("Pause the briefing, 1 min left");
 
     await chip.click();
     await expect(page.locator("html")).toHaveAttribute("data-player-state", "paused");
@@ -49,7 +50,32 @@ test.describe("what the player writes on a real page", () => {
 
     await chip.click();
     await expect(page.locator("html")).toHaveAttribute("data-player-state", "playing");
-    await expect(chip.locator("[data-chip-label]")).toHaveText("Playing");
+    await expect(chip).toHaveAccessibleName("Pause the briefing, 1 min left");
+  });
+
+  test("playing, the hero's Play steps down to the tonal container and shows the pause glyph", async ({
+    page,
+  }) => {
+    await hydrated(page);
+    const chip = page.locator(".hero [data-play-digest]");
+    const filled = await computedColor(chip, "backgroundColor");
+    await chip.click();
+    await expect(chip).toHaveAttribute("data-playing", "true");
+    // Off the chip, so no hover layer, and past the fill's transition.
+    await page.mouse.move(0, 0);
+    await page.waitForTimeout(300);
+    const tonal = await page.evaluate(() =>
+      getComputedStyle(document.documentElement).getPropertyValue("--color-accent-container"),
+    );
+    expect(await toRgb(page, await computedColor(chip, "backgroundColor"))).toEqual(
+      await toRgb(page, tonal),
+    );
+    expect(await toRgb(page, filled)).not.toEqual(await toRgb(page, tonal));
+    await expect(chip.locator(".chip-bars")).toBeHidden();
+    await expect(chip.locator(".swap-playing")).toBeVisible();
+    // A story chip keeps its moving bars.
+    await page.locator(".story").nth(1).locator("[data-play-item]").click();
+    await expect(page.locator(".story").nth(1).locator(".chip-bars")).toBeVisible();
   });
 
   test("a story chip plays from its story and marks what came before as played", async ({
@@ -96,7 +122,9 @@ test.describe("what the player writes on a real page", () => {
     await expect(briefing.locator("[data-chip-label]")).toHaveText("1 min left");
   });
 
-  test("the story being read takes the accent on its headline", async ({ page }) => {
+  test("the story being read keeps its headline's ink: the accent is the link's hover", async ({
+    page,
+  }) => {
     await hydrated(page);
     const story = page.locator(".story").nth(1);
     const chip = story.locator("[data-play-item]");
@@ -107,7 +135,7 @@ test.describe("what the player writes on a real page", () => {
     await expect(story).toHaveAttribute("data-state", "current");
     // The colour changes over 200ms.
     await page.waitForTimeout(300);
-    await expectColor(page, await computedColor(story.locator("h3"), "color"), ACCENT_LIGHT);
+    await expectColor(page, await computedColor(story.locator("h3"), "color"), INK_LIGHT);
     const other = page.locator(".story").nth(4).locator("h3");
     await expectColor(page, await computedColor(other, "color"), INK_LIGHT);
   });
@@ -132,7 +160,9 @@ test.describe("what the player writes on a real page", () => {
     await page.locator('a[href="/"]:visible').first().click();
     await expect(page).toHaveURL(/\/$/);
     await expect(page.locator(".hero [data-play-digest]")).toHaveAttribute("data-state", "current");
-    await expect(page.locator(".hero [data-play-digest] [data-chip-label]")).toHaveText("Playing");
+    await expect(page.locator(".hero [data-play-digest] [data-chip-label]")).toHaveText(
+      /min left$/,
+    );
     await expect(page.locator('.story[data-state="current"]')).toHaveCount(1);
     await expect(page.locator('[data-play-item][data-state="current"]')).toHaveCount(1);
   });
@@ -166,13 +196,11 @@ test.describe("how the page reacts to those attributes", () => {
     await page.evaluate(() => new Promise((resolve) => requestAnimationFrame(() => resolve(null))));
   });
 
-  test("a current story's headline takes the accent and the others keep full ink", async ({
-    page,
-  }) => {
+  test("a current story keeps its headline's ink, as the others do", async ({ page }) => {
     const story = page.locator(".story").nth(1);
     await story.evaluate((element) => element.setAttribute("data-state", "current"));
     await page.waitForTimeout(250);
-    await expectColor(page, await computedColor(story.locator("h3"), "color"), ACCENT_LIGHT);
+    await expectColor(page, await computedColor(story.locator("h3"), "color"), INK_LIGHT);
     const other = page.locator(".story").nth(2);
     await expectColor(page, await computedColor(other.locator("h3"), "color"), INK_LIGHT);
     // A summary never steps back: every story stays readable while one is playing.

@@ -1,13 +1,16 @@
 import { describe, expect, it } from "vitest";
 import {
   type CardData,
+  chipFilter,
   compareCards,
   dateSearchLine,
   emptyCopy,
   factsLine,
   matchCount,
   matchDetail,
+  matchExcerpt,
   matchesFilter,
+  moreMatches,
   normalize,
   resultSummary,
   storyHeadline,
@@ -97,9 +100,8 @@ describe("compareCards", () => {
     expect([later, earlier].sort((a, b) => compareCards(a, b, "oldest"))).toEqual([earlier, later]);
   });
 
-  it("sorts by length and by story count, newest first on a tie", () => {
+  it("sorts by length, newest first on a tie", () => {
     expect([newer, older].sort((a, b) => compareCards(a, b, "longest"))).toEqual([older, newer]);
-    expect([older, newer].sort((a, b) => compareCards(a, b, "stories"))).toEqual([newer, older]);
     const twin = card({ date: "2026-10-06", minutes: 8 });
     expect([twin, newer].sort((a, b) => compareCards(a, b, "longest"))).toEqual([newer, twin]);
   });
@@ -237,5 +239,63 @@ describe("emptyCopy", () => {
     expect(emptyCopy("zzz", "weekly").message).toBe(
       "No results for \u201czzz\u201d in weekly briefings",
     );
+  });
+});
+
+describe("matchExcerpt", () => {
+  const show = (parts: ReturnType<typeof matchExcerpt>) =>
+    parts.map((part) => (part.hit ? `[${part.text}]` : part.text)).join("");
+
+  it("starts a little before the first find, at a space, so the found word is in view", () => {
+    const text = "Spring-based motion lowers measured tap latency on a mid-range phone";
+    expect(show(matchExcerpt(text, "latency"))).toBe(
+      "…measured tap [latency] on a mid-range phone",
+    );
+  });
+
+  it("keeps the start when the find is near it, and marks every word of the query", () => {
+    expect(show(matchExcerpt("Measuring tap latency on phones", "tap phones"))).toBe(
+      "Measuring [tap] latency on [phones]",
+    );
+  });
+
+  it("finds words whatever their case or accents, and keeps the text as written", () => {
+    expect(show(matchExcerpt("A Café for Small Teams", "cafe small"))).toBe(
+      "A [Café] for [Small] Teams",
+    );
+  });
+
+  it("marks a number only as a whole token", () => {
+    expect(show(matchExcerpt("6 ideas for 2026", "6"))).toBe("[6] ideas for 2026");
+  });
+
+  it("marks nothing for an empty query", () => {
+    expect(matchExcerpt("Anything at all", "")).toEqual([{ text: "Anything at all", hit: false }]);
+  });
+});
+
+describe("moreMatches", () => {
+  it("says how many other stories matched in words, and nothing for none", () => {
+    expect(moreMatches(1)).toBe("and 1 more");
+    expect(moreMatches(3)).toBe("and 3 more");
+    expect(moreMatches(0)).toBe("");
+  });
+});
+
+describe("chipFilter", () => {
+  it("is the chip just ticked, whatever else was ticked", () => {
+    expect(chipFilter(["weekly", "daily"], { value: "daily", checked: true })).toBe("daily");
+    expect(chipFilter(["custom"], { value: "custom", checked: true })).toBe("custom");
+  });
+
+  it("shows everything once the ticked chip is unticked", () => {
+    expect(chipFilter([], { value: "weekly", checked: false })).toBe("all");
+  });
+
+  it("reads a page's ticks without a press, and refuses a value it does not offer", () => {
+    expect(chipFilter(["weekly"])).toBe("weekly");
+    expect(chipFilter([])).toBe("all");
+    expect(chipFilter(["all"])).toBe("all");
+    expect(chipFilter(["monthly"])).toBe("all");
   });
 });

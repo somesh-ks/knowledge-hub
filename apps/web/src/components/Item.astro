@@ -1,5 +1,7 @@
 ---
 import type { DigestItem } from "@dispatch/core";
+import { publisherOf } from "../lib/episodeHighlights";
+import { headlineParts } from "../lib/format";
 import { sourceHost } from "../lib/sourceLabel";
 import { idleStoryChip } from "../player/core/readerMath";
 import Icon from "./Icon.astro";
@@ -16,14 +18,13 @@ interface Props {
 
 const { item, index, length, hasAudio } = Astro.props;
 const titleId = `t-${item.id}`;
+// Hyphenated words stay whole when the balanced headline wraps (briefing.css).
+const words = headlineParts(item.headline);
 const chip = idleStoryChip(length, item.headline);
 // Null for anything that is not an http or https address: such a story gets no link at all.
 const host = sourceHost(item.url);
-// The link names the publisher. An aggregator's name ("Exa discovery") says nothing, so the host
-// stands in for it.
-const publisher = /discovery|hacker news|lobsters|product hunt/i.test(item.source)
-  ? host
-  : item.source;
+// The link names the publisher, or the host for an aggregator (episodeHighlights.ts).
+const publisher = publisherOf(item.source, host);
 ---
 
 <article
@@ -40,16 +41,17 @@ const publisher = /discovery|hacker news|lobsters|product hunt/i.test(item.sourc
     {
       host ? (
         <a class="story-link" href={item.url} target="_blank" rel="noopener noreferrer">
-          <span id={`${titleId}-text`}>{item.headline}</span>
+          {/* One line: a break inside the span would read as a space before the words. */}
+          <span id={`${titleId}-text`}>{words.map((part) => (part.nowrap ? <span class="no-break">{part.text}</span> : part.text))}</span>
           <span class="sr-only">(opens in a new tab)</span>
         </a>
       ) : (
-        item.headline
+        words.map((part) => (part.nowrap ? <span class="no-break">{part.text}</span> : part.text))
       )
     }
   </h3>
   <p class="story-summary">{item.summary}</p>
-  {item.why && <p class="story-why"><span class="story-why-label">Why</span>{" "}{item.why}</p>}
+  {item.why && <p class="story-why"><span class="story-why-label">Why:</span>{" "}{item.why}</p>}
   <div class="story-actions">
     {/* Always in the page. Hidden while the briefing has no audio timeline, so audio that arrives
          later only has to reveal it. */}

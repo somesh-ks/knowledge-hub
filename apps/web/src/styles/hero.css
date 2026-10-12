@@ -70,15 +70,14 @@
 
 /*
  * The hero's chip is the page's primary button: filled with the accent, a size up from a story's
- * chip, so it is the strongest thing in the header and plainly not a tag. The chip's own states
- * (buttons.css) read these properties, so current keeps the fill while this page's audio is loaded,
- * and played, preparing and unavailable keep their meaning.
+ * chip, so it is the strongest thing in the header and plainly not a tag. Once this page's audio is
+ * loaded it steps down to the accent container (the chip's current state, buttons.css), so the
+ * player's own Pause is the one filled control on screen; played, preparing and unavailable keep
+ * their meaning.
  */
 .hero-actions > .chip {
   --chip-bg: var(--cta-bg);
   --chip-fg: var(--cta-fg);
-  --chip-bg-current: var(--cta-bg);
-  --chip-fg-current: var(--cta-fg);
   min-height: calc(var(--size-touch) - var(--space-1));
   padding-inline: var(--space-4) var(--space-6);
 }
@@ -86,15 +85,35 @@
 /* The layer over a filled control is its own ink: lighter on the accent, never a grey wash. */
 @media (hover: hover) and (pointer: fine) {
   .hero-actions
-    > .chip:not([data-state="played"], [data-state="unavailable"], [aria-disabled="true"]):hover {
+    > .chip:not(
+      [data-state="played"],
+      [data-state="current"],
+      [data-state="unavailable"],
+      [aria-disabled="true"]
+    ):hover {
     background: color-mix(in oklch, var(--cta-bg), var(--cta-fg) var(--state-hover));
   }
 }
 
 .hero-actions
-  > .chip:not([data-state="played"], [data-state="unavailable"], [aria-disabled="true"]):active {
+  > .chip:not(
+    [data-state="played"],
+    [data-state="current"],
+    [data-state="unavailable"],
+    [aria-disabled="true"]
+  ):active {
   background: color-mix(in oklch, var(--cta-bg), var(--cta-fg) var(--state-press));
   color: var(--cta-fg);
+}
+
+/* Playing, the hero's chip is the pause button: the pause glyph, not the moving bars a story's chip
+   shows, so the page has one "this is playing" mark per story and one way to pause. */
+.hero-actions > .chip[data-state="current"][data-playing="true"] .chip-glyph > .swap {
+  display: grid;
+}
+
+.hero-actions > .chip[data-state="current"][data-playing="true"] .chip-bars {
+  display: none;
 }
 
 /* Heard to the end: the fill steps down to the tonal container, with the check, until it plays again. */
