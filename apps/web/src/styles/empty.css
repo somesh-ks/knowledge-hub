@@ -1,0 +1,205 @@
+/* ------------------------------------------------------------------ nothing to show */
+
+/* No briefings yet, an empty library, no results, offline, not found: a spot illustration, a title,
+   one line on what happens next and one way on, centred in the content column. Material's rhythm:
+   24px from the art to the title, 8px to the line, 24px to the button. */
+.empty {
+  display: grid;
+  justify-items: center;
+  padding-block: calc(var(--page-top) + var(--space-8)) var(--space-8);
+  text-align: center;
+}
+
+/* A page whose only content this is (Today, not found, offline) centres it in the height a screen
+   leaves under the app bar, with more room below than above: the block sits a little over the
+   middle, not in the top third with a bare half under it. */
+main > .empty {
+  min-block-size: calc(100svh - 9rem);
+  align-content: center;
+  padding-block: var(--space-4) var(--space-16);
+}
+
+/* The Library's empty state sits under its own title, which keeps the page top. */
+.library-none > .empty {
+  padding-block-start: var(--space-8);
+}
+
+.empty .empty-title {
+  margin-block-start: var(--space-6);
+  font-family: var(--text-heading-family);
+  font-size: var(--font-size-section);
+  font-weight: var(--font-weight-regular);
+  letter-spacing: normal;
+  line-height: var(--text-heading-leading);
+  color: var(--color-on-surface);
+  text-wrap: balance;
+}
+
+.empty-body {
+  max-width: 36ch;
+  margin-block-start: var(--space-2);
+  color: var(--color-on-surface-muted);
+  text-wrap: balance;
+}
+
+/* One button that fits its words, then an optional text button beside it. */
+.empty-actions {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  align-items: center;
+  gap: var(--space-2);
+  margin-block-start: var(--space-6);
+}
+
+.empty-actions > .btn-primary,
+.empty-actions > .btn-secondary {
+  width: auto;
+}
+
+/* Inside a settings section: smaller art and the section's own type, the same order. */
+.empty[data-compact] {
+  padding-block: var(--space-4) var(--space-6);
+}
+
+.empty[data-compact] .empty-title {
+  margin-block-start: var(--space-4);
+  font-size: var(--font-size-body);
+  font-weight: var(--font-weight-medium);
+  line-height: var(--font-leading-body);
+}
+
+.empty[data-compact] .empty-body {
+  font-size: var(--font-size-meta);
+}
+
+.empty[data-compact] .empty-actions {
+  margin-block-start: var(--space-4);
+}
+
+/* A section that holds two scenes (offline and back online) shows the one its state names. */
+.empty[data-state="offline"] > .empty-art[data-art="online"],
+.empty[data-state="online"] > .empty-art[data-art="offline"] {
+  display: none;
+}
+
+/* ------------------------------------------------------------------ the art */
+
+/* Three tones from the theme's own roles, so light and dark follow without a second set of values:
+   the hero is the accent container, its detail a deeper step of it, the one pop the accent. */
+.empty-art {
+  --art-hero: var(--color-accent-container);
+  --art-ink: color-mix(
+    in oklch,
+    var(--color-accent-container),
+    var(--color-on-accent-container) 30%
+  );
+  --art-pop: var(--color-accent);
+  --art-on-pop: var(--color-on-accent);
+  --art-knock: var(--color-surface);
+
+  display: block;
+  inline-size: min(100%, 15rem);
+  block-size: auto;
+  aspect-ratio: 4 / 3;
+}
+
+/* The canvas keeps a margin round each scene, so the box is wider than the drawing: 20rem draws a
+   scene about 250px across beside a 22px title. */
+@media (min-width: 64rem) {
+  .empty-art {
+    inline-size: 20rem;
+  }
+}
+
+.empty-art[data-size="compact"] {
+  inline-size: 7.5rem;
+}
+
+.empty-art path {
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+
+.art-hero {
+  fill: var(--art-hero);
+}
+
+.art-hero-ink {
+  fill: var(--art-ink);
+}
+
+.art-pop {
+  fill: var(--art-pop);
+}
+
+.art-knock,
+.art-lens {
+  fill: var(--art-knock);
+}
+
+/* A place for something not here yet: the hero plane with a dashed edge. */
+.art-slot {
+  fill: var(--art-hero);
+  stroke: var(--art-ink);
+  stroke-width: 3;
+  stroke-dasharray: 9 9;
+}
+
+.art-on-pop {
+  fill: var(--art-on-pop);
+  stroke: var(--art-on-pop);
+  stroke-width: 4;
+}
+
+.art-on-pop-line {
+  fill: none;
+  stroke: var(--art-on-pop);
+  stroke-width: 5;
+}
+
+.art-handle {
+  fill: none;
+  stroke: var(--art-pop);
+  stroke-width: 14;
+}
+
+/* The signal: two arcs and a dot, one stroke. Online in the accent; offline in the deeper tone of
+   the badge, cut by the slash. */
+.art-glyph,
+.art-glyph-off {
+  fill: none;
+  stroke-width: 12;
+}
+
+.art-glyph {
+  stroke: var(--art-pop);
+}
+
+.art-glyph-off {
+  stroke: var(--art-ink);
+}
+
+/* The slash cuts a small gap in the arcs under it, in the badge's own tone. */
+.art-slash-knock {
+  fill: none;
+  stroke: var(--art-hero);
+  stroke-width: 18;
+}
+
+.art-slash {
+  fill: none;
+  stroke: var(--art-pop);
+  stroke-width: 8;
+}
+
+/* Decorative, and system colours would turn the planes into one blob: forced colours drops it. */
+@media (forced-colors: active) {
+  .empty-art {
+    display: none;
+  }
+
+  .empty .empty-title {
+    margin-block-start: 0;
+  }
+}

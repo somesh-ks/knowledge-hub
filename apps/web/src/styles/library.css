@@ -587,52 +587,22 @@
   }
 }
 
-/* Where the first row would start: the toolbar's own padding is the space above it. */
+/* No results: the empty state's pattern under the toolbar. Its line names the way out that fits:
+   other words while there is a query, the rest of the library while only a filter is on. */
 .library-empty {
-  display: grid;
-  justify-items: start;
-  gap: var(--space-2);
-  padding-block: 0 var(--space-8);
-  color: var(--color-on-surface-muted);
+  padding-block: var(--space-6) var(--space-8);
 }
 
-.library-empty > .btn {
-  margin-inline-start: calc(var(--space-3) * -1);
-}
-
-.library-empty[hidden] {
+[data-library]:has([data-library-search]:placeholder-shown) .library-empty-search,
+[data-library]:not(:has([data-library-search]:placeholder-shown)) .library-empty-filter {
   display: none;
 }
 
-/* A library with nothing in it: the title stays, one sentence and the one thing to do. */
-.library-none {
-  display: grid;
-  justify-items: start;
-  gap: var(--space-4);
-}
-
-/* Only the sentence is quiet: the title stays the page's title. */
-.library-none > p {
-  max-width: 28rem;
-  color: var(--color-on-surface-muted);
-}
-
-/* The one thing to do is a button its own size, not a bar across the page. */
-.library-none > .btn-primary {
-  width: auto;
-}
-
-/* The page's own button is the one way to make an episode here: no floating copy of it below. From
-   64rem the side column holds the same button, so the page does not show a second one in another
-   style. */
+/* A library with nothing in it: the title stays at the page top, and the empty state is centred
+   under it. The page's own button is the one way to make an episode here: no floating copy of it
+   below. */
 html:has(.library-none) .create-fab {
   display: none;
-}
-
-@media (min-width: 64rem) {
-  .library-none > .btn-primary {
-    display: none;
-  }
 }
 
 /* ------------------------------------------------------------------ the "Earlier" shelf */

@@ -1,15 +1,16 @@
 ---
 import EmptyState from "../components/EmptyState.astro";
 import BaseLayout from "../layouts/BaseLayout.astro";
-import { ICON_PATHS } from "../lib/icons";
 ---
 
 <BaseLayout title="Offline" view="home" nav={null} skipLabel="Skip to the content" deviceBanner={false}>
-  <main id="main" tabindex="-1" data-online-icon={ICON_PATHS.wifi}>
+  <main id="main" tabindex="-1">
+    {/* Both scenes are in the page; data-state on the section shows the one that is true. */}
     <EmptyState
-      icon="wifiOff"
+      art={["offline", "online"]}
+      state="offline"
       title="You are offline"
-      body="Briefings and episodes you have opened before still work. This page needs a connection."
+      body="This page needs a connection. Briefings and episodes you have opened still work."
       primary={{ label: "Try again", href: "/", reload: true }}
       secondary={{ label: "Open Library", href: "/library" }}
     />
@@ -27,14 +28,12 @@ import { ICON_PATHS } from "../lib/icons";
   /** The page never says offline once the connection is back: it says so, and offers a reload. */
   function sayOnline(): void {
     if (!navigator.onLine) return;
-    const title = document.querySelector<HTMLElement>("#main h1");
-    const body = document.querySelector<HTMLElement>("#main .page-title + p, #main h1 ~ p");
+    const section = document.querySelector<HTMLElement>("#main .empty");
+    const title = document.querySelector<HTMLElement>("#main .empty-title");
+    const body = document.querySelector<HTMLElement>("#main .empty-body");
     const retry = document.querySelector<HTMLAnchorElement>(".empty-actions a[data-astro-reload]");
-    // The wifi-off glyph would contradict the title: the connected one takes its place, so no state
-    // is left without an icon.
-    const icon = document.querySelector<SVGElement>("#main .empty-icon");
-    const online = document.querySelector<HTMLElement>("#main")?.dataset.onlineIcon;
-    if (online) icon?.querySelector("path")?.setAttribute("d", online);
+    // The scene follows the words: the connected badge with its check takes the place of the cut one.
+    if (section) section.dataset.state = "online";
     if (title) title.textContent = "You are back online";
     document.title = "Back online, Singularity";
     if (body) body.textContent = "Reload to open the page you asked for.";

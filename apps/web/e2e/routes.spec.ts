@@ -22,7 +22,9 @@ test.describe("routes and headers", () => {
     await expect(page.getByRole("link", { name: "Go to Today" })).toHaveAttribute("href", "/");
     // One way on: the navigation already carries the rest. The body does not repeat the button.
     await expect(page.locator(".empty-actions a")).toHaveCount(1);
-    await expect(page.locator("#main .empty p")).toHaveText("Check the address.");
+    await expect(page.locator("#main .empty-body")).toHaveText(
+      "Check the address, or start again from Today.",
+    );
     // From 80rem the empty state centres in the pane, not in the reading track beside an empty aside.
     const size = page.viewportSize();
     if (size && size.width >= 1280) {
@@ -97,13 +99,10 @@ test.describe("routes and headers", () => {
     await page.goto("/offline");
     // Online, the page never claims to be offline: it says the connection is back.
     await expect(page.getByRole("heading", { level: 1 })).toHaveText("You are back online");
-    // The wifi-off glyph goes with the offline state: the connected one stands in, so the page is
-    // never without an icon.
-    const icon = page.locator("#main .empty-icon");
-    await expect(icon).toBeVisible();
-    const online = await page.locator("#main").getAttribute("data-online-icon");
-    expect(online).toBeTruthy();
-    await expect(icon.locator("path")).toHaveAttribute("d", online ?? "");
+    // The cut-signal scene goes with the offline state: the connected one with its check stands in.
+    await expect(page.locator("#main .empty")).toHaveAttribute("data-state", "online");
+    await expect(page.locator('#main .empty-art[data-art="online"]')).toBeVisible();
+    await expect(page.locator('#main .empty-art[data-art="offline"]')).toBeHidden();
     await expect(page.getByRole("link", { name: "Reload" })).toBeVisible();
     await expect(page.getByRole("link", { name: "Open Library" })).toHaveAttribute(
       "href",
