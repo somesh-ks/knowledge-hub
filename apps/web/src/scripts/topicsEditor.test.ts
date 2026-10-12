@@ -223,18 +223,26 @@ describe("settle", () => {
     expect(changes.size).toBe(0);
   });
 
-  it("leaves a removed topic's page for the Topics list once the removal is saved", () => {
-    const assign = vi.fn();
-    vi.stubGlobal("location", { assign });
+  it("replaces a removed topic's page with the Topics list once the removal is saved", () => {
+    const replace = vi.fn();
+    vi.stubGlobal("location", { replace });
     const topic = { setAttribute: () => undefined };
-    const el = {
-      matches: (selector: string) => selector === "[data-remove]",
-      closest: (selector: string) => (selector === "li" ? null : topic),
-      dataset: {} as Record<string, string>,
-    } as unknown as HTMLElement;
-    const sent: Pending = { op: { op: "topic.remove", id: "knit" }, el, now: "true" };
+    const page = (isConnected: boolean) =>
+      ({
+        matches: (selector: string) => selector === "[data-remove]",
+        closest: (selector: string) => (selector === "li" ? null : topic),
+        dataset: {} as Record<string, string>,
+        isConnected,
+      }) as unknown as HTMLElement;
+    const sent: Pending = { op: { op: "topic.remove", id: "knit" }, el: page(true), now: "true" };
     settle({ ops: [sent.op], sent: [["a", sent]] }, new Map([["a", sent]]));
-    expect(assign).toHaveBeenCalledWith("/settings/topics");
+    // Replaced, not pushed: Back from the list never returns to the dead page.
+    expect(replace).toHaveBeenCalledWith("/settings/topics");
+    // A page already left (the removal went after a swap) stays left.
+    replace.mockClear();
+    const left: Pending = { ...sent, el: page(false) };
+    settle({ ops: [left.op], sent: [["b", left]] }, new Map([["b", left]]));
+    expect(replace).not.toHaveBeenCalled();
     vi.unstubAllGlobals();
   });
 
