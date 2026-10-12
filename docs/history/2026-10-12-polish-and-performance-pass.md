@@ -6,7 +6,7 @@ The owner said the boxes looked like "ai slop", asked for the player's transcrip
 
 - One design layer first (D72, D73): tonal containers, state layers, pill buttons, a type scale. Everything else was built on it, so the pages could be polished in parallel without drifting apart.
 - Workers in isolated git worktrees, one area each (Library, Today and episodes, Create, the player, Settings and Topics, the shell and its empty states, suggested sources, host names, three performance sets). Their commits were cherry-picked into the session branch, each time followed by typecheck, lint, the unit suites and the specs the change touched.
-- Two critic rounds (Opus, read-only, on screenshots of every screen at phone and desktop width in both themes) found about 100 problems, ranked P1 to P3; each round was fixed by workers before the next. An automated audit (axe, tap targets, overflow) ran beside them. A third round ran last on the merged result.
+- Five critic rounds (Opus, read-only, on screenshots of every screen at phone and desktop width in both themes, then driven live on the fixture build) found about 200 problems, ranked P1 to P3; each round was fixed by workers (or by the lead, for small ones) before the next, and a later round first checked that the earlier fixes held. An automated audit (axe, tap targets, overflow) ran beside them. The rounds found fewer P1s each time: round four had three (a lost second edit inside the server's gap, a page that scrolled away from a tap, a rundown counted as a story), round five five (a form pushed off a phone by a feed address, an episode's actions live offline, the Library's search matching letters inside words, an Up next that played nothing, and an open page that scrolled itself at every turn).
 
 ## What the critics found, and why it mattered
 
@@ -16,6 +16,7 @@ The owner said the boxes looked like "ai slop", asked for the player's transcrip
 - A scroll fade that never ran in Chrome (the minifier folded the timeline into the animation shorthand) and a keyboard focus ring that vanished under an opacity-based hover layer: both fixed, the first with a test (learnings, 2026-10-11).
 - Settings read as a form, not a list; a source's score was drawn three ways at once; a new topic opened a page a static site could not yet have (D79).
 - Legacy discussions still named Ada and Leo although the voices said otherwise; new ones take names from the voices (D74).
+- Round four and five, by area. Settings: a second edit made inside the server's ten second gap was lost on Back while the page said Saved, and Format on Daily was a choice the product ignored (D91); a feed address widened the Add source form past a phone; a model's name was cut to a different model's. Player: Next scrolled a phone page by 601px, so a second tap seeked backwards; the rundown counted as story 1; two Pause discs under the open page; a Try again button that drew a play triangle (D92). Reading: a tab's jump landed 56px low because the bar hid after the heading was placed; hyphenated words made headlines lopsided; offline switched off one run starter and left three; stories stepped over with Play from here were marked played (D93). Library and Create: "ai" found every card; a match line added 20 to 40px above a list title; a segmented control grew as its check came in.
 
 ## Performance: where the time went
 
