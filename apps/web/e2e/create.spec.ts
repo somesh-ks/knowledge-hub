@@ -897,7 +897,7 @@ test.describe("episodes in the Library", () => {
       page
         .locator('[data-card][data-kind="episode"]', { hasText: "AI headlines" })
         .locator(".card-facts"),
-    ).toHaveText("Headlines \u00b7 3 min");
+    ).toHaveText("Readout \u00b7 3 min");
 
     const show = page.getByRole("combobox", { name: "Show" });
     await expect(show).toHaveValue("all");
