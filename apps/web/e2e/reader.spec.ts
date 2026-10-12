@@ -149,7 +149,7 @@ test.describe("the briefing header", () => {
     await expect(page.locator("html")).toHaveAttribute("data-player-state", "playing");
     const chip = page.locator(".hero [data-play-digest]");
     await expect(chip).toHaveAttribute("data-state", "current");
-    await expect(chip.locator("[data-chip-label]")).toHaveText("Playing");
+    await expect(chip.locator("[data-chip-label]")).toHaveText(/min left$/);
     // The story chips the page rendered hidden now have something to play.
     await expect(page.locator("[data-play-item]").first()).toBeVisible();
     await expect(page.locator(".hero-hint")).toBeHidden();

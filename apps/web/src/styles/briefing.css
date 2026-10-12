@@ -174,10 +174,8 @@ html:has(.briefing > .tabs-bar) {
   color: var(--color-accent-pressed);
 }
 
-/* The story being read aloud: its headline takes the accent. Its chip says so in words. */
-.story[data-state="current"] .story-title {
-  color: var(--color-accent);
-}
+/* The story being read aloud keeps its headline's ink: the accent is the link's hover colour, and
+   the story's chip already says it is playing, in words and with its bars. */
 
 .story-summary {
   max-width: var(--layout-measure);
@@ -257,10 +255,4 @@ html[data-offline] .story-actions > .chip {
   font-size: var(--text-heading-size);
   font-weight: var(--text-heading-weight);
   letter-spacing: var(--text-heading-tracking);
-}
-
-@media (forced-colors: active) {
-  .story[data-state="current"] .story-title {
-    color: Highlight;
-  }
 }

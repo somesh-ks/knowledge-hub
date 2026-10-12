@@ -20,8 +20,8 @@ test.describe("when playback does not go to plan", () => {
     await expect(page.locator("html")).toHaveAttribute("data-player-state", "loading");
     // Inside the first 300 ms the chip already reads as playing and shows no spinner.
     await expect(lab.cta).toHaveAttribute("data-state", "current");
-    await expect(lab.cta.locator("[data-chip-label]")).toHaveText("Playing");
-    await expect(lab.cta).toHaveAccessibleName("Pause the briefing, playing");
+    await expect(lab.cta.locator("[data-chip-label]")).toHaveText(/min left$/);
+    await expect(lab.cta).toHaveAccessibleName(/^Pause the briefing, \d+ min left$/);
     await expect(lab.cta).toHaveAttribute("data-state", "preparing", { timeout: 3_000 });
     await expect(lab.cta.locator("[data-chip-label]")).toHaveText("Loading");
     await expect(lab.cta).toHaveAccessibleName("Pause the briefing, loading");
@@ -31,7 +31,7 @@ test.describe("when playback does not go to plan", () => {
       timeout: 10_000,
     });
     await expect(lab.cta).toHaveAttribute("data-state", "current");
-    await expect(lab.cta.locator("[data-chip-label]")).toHaveText("Playing");
+    await expect(lab.cta).toHaveAccessibleName(/^Pause the briefing, \d+ min left$/);
   });
 
   test("remembers a pause the system caused and offers resume instead of playing again", async ({
