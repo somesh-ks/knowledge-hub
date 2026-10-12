@@ -29,7 +29,11 @@ const PODCAST = [
     label: "Topics & Sources",
     hint: `${plural(topicCount, "topic")}, ${plural(manage.sources.length, "source")}`,
   },
-  { href: "/settings/model", label: "Model", hint: writer.label },
+  {
+    href: "/settings/model",
+    label: "Model",
+    hint: `${writer.provider === "anthropic" ? "Anthropic" : "Nebius"}, ${writer.label}`,
+  },
 ];
 
 const THEME_LABELS: Record<ThemePreference, string> = {

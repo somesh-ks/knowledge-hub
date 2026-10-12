@@ -62,13 +62,17 @@ describe("generalOf", () => {
 });
 
 describe("topicSummary", () => {
-  it("says a general topic's sources without a weight", () => {
+  it("says a topic's sources, never its weight", () => {
     expect(topicSummary(topic({ origin: "general" }), 2)).toBe("2 sources");
     expect(topicSummary(topic({ origin: "general", enabled: false }), 1)).toBe("Off, 1 source");
+    expect(topicSummary(topic({ weight: 0.95 }), 1)).toBe("1 source");
   });
 
-  it("says the weight and the sources of a topic that is on", () => {
-    expect(topicSummary(topic({ weight: 0.95 }), 1)).toBe("Weight 95%, 1 source");
+  it("counts the sources that are read, and says when there are none", () => {
+    expect(topicSummary(topic({ origin: "general" }), 3, 2)).toBe("2 of 3 sources on");
+    expect(topicSummary(topic({}), 0)).toBe("No sources yet");
+    expect(topicSummary(null, 4, 4)).toBe("4 sources");
+    expect(topicSummary(null, 1, 0)).toBe("0 of 1 source on");
   });
 
   it("says Off for a topic that is off, and Never for one that never publishes", () => {

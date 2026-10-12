@@ -82,12 +82,12 @@ test.describe("the Topics list", () => {
     const rows = [
       ["Design", "2 sources"],
       ["AI", "1 source"],
-      ["Technology", "0 sources"],
-      ["Audio interfaces", "Weight 75%, 1 source"],
+      ["Technology", "No sources yet"],
+      ["Audio interfaces", "1 source"],
       ["Other", "2 sources outside the topics above"],
-      ["World", "3 sources"],
+      ["World", "2 of 3 sources on"],
       ["Science", "1 source"],
-      ["Sports", "0 sources"],
+      ["Sports", "No sources yet"],
     ] as const;
     for (const [name, hint] of rows) {
       await expect(page.getByRole("link", { name: new RegExp(`^${name}`) })).toContainText(hint);

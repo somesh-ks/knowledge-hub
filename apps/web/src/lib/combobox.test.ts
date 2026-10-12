@@ -40,7 +40,7 @@ describe("nebiusOptions with the live list", () => {
       ["Qwen/Qwen3-235B-A22B-Instruct-2507", "rest"],
       ["openai/gpt-oss-120b", "rest"],
     ]);
-    expect(nebiusOptions(LIVE, null)[0]).toMatchObject({ label: "Automatic" });
+    expect(nebiusOptions(LIVE, null)[0]).toMatchObject({ label: "Default" });
   });
 
   it("leaves out a top model the live list no longer serves", () => {
@@ -178,7 +178,7 @@ describe("moveIndex", () => {
 describe("labelFor and countText", () => {
   it("labels a chosen model", () => {
     expect(labelFor(CLAUDE_OPTIONS, "claude-haiku-5-5")).toBe("Claude Haiku 5.5");
-    expect(labelFor(nebiusOptions(LIVE, null), null)).toBe("Automatic");
+    expect(labelFor(nebiusOptions(LIVE, null), null)).toBe("Default");
     expect(labelFor(nebiusOptions(LIVE, null), "moonshotai/Kimi-K3")).toBe("Kimi K3");
     expect(labelFor([], "a/b")).toBe("b");
     expect(labelFor([], "zai-org/GLM-5.3")).toBe("GLM-5.3");

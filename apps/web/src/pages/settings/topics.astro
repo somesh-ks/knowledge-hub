@@ -25,17 +25,21 @@ const { topics, sources } = await loadManage();
 // which is no topic, comes last. Each topic's page sets where it plays.
 const layout = topicLayout(topics, sources);
 const { groups } = layout;
-const count = (id: string): number => layout.sources.get(id)?.length ?? 0;
+// How many sources a topic has, and how many of them are read.
+const counts = (id: string): [number, number] => {
+  const list = layout.sources.get(id) ?? [];
+  return [list.length, list.filter((source) => source.enabled).length];
+};
 const rows = [
   ...groups.map((group) => ({
     id: group.id,
     name: group.name,
-    hint: plural(count(group.id), "source"),
+    hint: topicSummary(null, ...counts(group.id)),
   })),
   ...[...layout.own, ...layout.general].map((topic) => ({
     id: topic.id,
     name: topic.name,
-    hint: topicSummary(topic, count(topic.id)),
+    hint: topicSummary(topic, ...counts(topic.id)),
   })),
 ].sort(byName);
 const others = layout.sources.get(OTHER_ID) ?? [];

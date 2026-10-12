@@ -12,14 +12,16 @@
 
 /* ------------------------------------------------------------------ the top of the page */
 
-/* A phone stacks: the title, then Add, an outline button, at full width. From 40rem it sits at the
-   end of the title's line, centred on it. */
+/* A phone stacks: the title, then Add, a tonal button as wide as its words at the start. From 40rem
+   it sits at the end of the title's line, centred on it. */
 .topics {
   --source-row: var(--size-touch-comfortable);
 }
 
 .topics > .topics-add {
+  width: fit-content;
   margin-block: var(--space-6);
+  padding-inline: var(--space-6);
 }
 
 @media (min-width: 40rem) {
@@ -56,6 +58,15 @@
      keeps the air the button gave it on a phone, so its first row sits as far down as on any page. */
   .topics:not(.topic-page) > .manage-fields {
     padding-block-start: var(--space-6);
+  }
+}
+
+/* From 64rem the title is the section size (settings.css), so Add centres on that line. */
+@media (min-width: 64rem) {
+  .topics > .topics-add {
+    margin-block-start: calc(
+      (var(--font-size-section) * var(--text-display-leading) - var(--button-height)) / 2
+    );
   }
 }
 
@@ -211,8 +222,10 @@
   display: none;
 }
 
-.topic:has(.topic-remove[data-pressed="true"]) :is(.topic-controls, .topic-sources) {
+/* Everything above the button goes quiet and takes no presses: heads, rows, Add source, suggestions. */
+.topic:has(.topic-remove[data-pressed="true"]) > :not(.topic-remove-row, .topic-gone) {
   opacity: var(--opacity-disabled);
+  pointer-events: none;
 }
 
 /* Once the removal is in the repository, the page says so and keeps nothing else. */

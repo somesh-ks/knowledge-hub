@@ -13,7 +13,7 @@ export interface WriterView {
   provider: "nebius" | "anthropic";
   /** The model chosen in Settings, or null for the engine's own setting. */
   model: string | null;
-  /** What the Settings row says: a top model's name, the id's last segment, or "Automatic". */
+  /** What the Settings row says: a top model's name, the id's last segment, or "Default". */
   label: string;
 }
 
@@ -22,7 +22,7 @@ export function writerLabel(
   model: string | null,
   provider: "nebius" | "anthropic" = "nebius",
 ): string {
-  if (model === null) return "Automatic";
+  if (model === null) return "Default";
   if (provider === "anthropic") {
     return CLAUDE_MODELS.find((entry) => entry.id === model)?.label ?? model;
   }

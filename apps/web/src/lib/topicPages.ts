@@ -64,15 +64,20 @@ export function generalOf(topics: readonly ManageTopic[]): ManageTopic[] {
 }
 
 /**
- * What a topic's row says: "Weight 95%, 1 source", "Off, 2 sources" or "Never in a briefing". A
- * general topic has no weight (it ranks by how many outlets carry a story): "2 sources" or "Off, 2
- * sources".
+ * What a topic's row says about its sources, counting the ones that are read: "3 sources" when all
+ * are on, "2 of 3 sources on" when some are off, "No sources yet" with none; "Off, ..." for a topic
+ * that is off and "Never in a briefing" for one that never publishes. One of the owner's three
+ * topics (a group, no topic of its own) passes null. The weight is on the topic's page, not here.
  */
-export function topicSummary(topic: ManageTopic, sourceCount: number): string {
-  if (topic.never_publish) return "Never in a briefing";
-  const sources = plural(sourceCount, "source");
-  if (topic.origin === "general") return topic.enabled ? sources : `Off, ${sources}`;
-  return topic.enabled ? `Weight ${percent(topic.weight)}, ${sources}` : `Off, ${sources}`;
+export function topicSummary(topic: ManageTopic | null, total: number, on = total): string {
+  if (topic?.never_publish) return "Never in a briefing";
+  const sources =
+    total === 0
+      ? "No sources yet"
+      : on === total
+        ? plural(total, "source")
+        : `${on} of ${plural(total, "source")} on`;
+  return topic && !topic.enabled ? `Off, ${sources}` : sources;
 }
 
 /** One of the owner's three topics (core TOPIC_GROUPS) as its page shows it. */
