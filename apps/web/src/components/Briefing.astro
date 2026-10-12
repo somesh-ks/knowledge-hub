@@ -13,23 +13,26 @@ const { sections, hasAudio } = Astro.props;
 
 {/* The tabs live inside this wrapper so they stay stuck for the sections and let go after the last
      one. Server-rendered and complete without script: the tabs are plain links to the sections, and
-     briefingPage.ts only moves the mark to the section in view. */}
+     briefingPage.ts only moves the mark to the section in view. The bar sticks and draws the
+     surface; the strip inside it scrolls and fades its ends (primitives.css). */}
 <div class="briefing" id="briefing">
-  <nav class="tabs" aria-label="Sections" data-section-tabs>
-    {
-      sections.map((section, index) => (
-        <a
-          class="tab"
-          href={`#c-${section.slug}`}
-          data-astro-history="replace"
-          data-section={section.slug}
-          aria-current={index === 0 ? "true" : undefined}
-        >
-          {section.title}
-        </a>
-      ))
-    }
-  </nav>
+  <div class="tabs-bar" data-tabs-bar>
+    <nav class="tabs" aria-label="Sections" data-section-tabs>
+      {
+        sections.map((section, index) => (
+          <a
+            class="tab"
+            href={`#c-${section.slug}`}
+            data-astro-history="replace"
+            data-section={section.slug}
+            aria-current={index === 0 ? "true" : undefined}
+          >
+            {section.title}
+          </a>
+        ))
+      }
+    </nav>
+  </div>
   {
     sections.map((section) => (
       <Chapter section={section}>

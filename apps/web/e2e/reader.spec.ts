@@ -480,6 +480,36 @@ test.describe("section tabs", () => {
     expect(strip?.width).toBe(390);
   });
 
+  test("a stuck strip is opaque to its edges: only the scroller inside the bar is masked", async ({
+    page,
+  }) => {
+    await page.goto("/");
+    await page.locator("#c-research").scrollIntoViewIfNeeded();
+    await page.mouse.wheel(0, 600);
+    await expect(page.locator("[data-tabs-bar]")).toHaveAttribute("data-stuck", "");
+    const look = await page.locator(".tabs").evaluate((strip) => {
+      // Whatever sticks is what has to hide the text scrolling under it.
+      let sticky: HTMLElement | null = strip;
+      while (sticky && getComputedStyle(sticky).position !== "sticky")
+        sticky = sticky.parentElement;
+      const style = sticky ? getComputedStyle(sticky) : null;
+      const box = sticky?.getBoundingClientRect();
+      const inner = strip.getBoundingClientRect();
+      return {
+        mask: style?.maskImage,
+        background: style?.backgroundColor,
+        hairline: style?.boxShadow,
+        covers: box ? box.left <= inner.left && box.right >= inner.right : false,
+        stripMasked: getComputedStyle(strip).maskImage.includes("gradient"),
+      };
+    });
+    expect(look.mask).toBe("none");
+    expect(look.background).not.toMatch(/transparent|rgba\(0, 0, 0, 0\)/);
+    expect(look.hairline).toContain("inset");
+    expect(look.covers).toBe(true);
+    expect(look.stripMasked).toBe(true);
+  });
+
   test("at the end of the briefing the strip slides under the app bar, which takes its line back", async ({
     page,
   }) => {
