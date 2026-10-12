@@ -73,15 +73,22 @@ const { back } = Astro.props;
 
   // Back goes where the person came from when that was inside the app (Astro numbers its history
   // entries from 0 at the first page of the visit), and to the link's own address otherwise, so a
-  // shared link opened cold still leads somewhere.
-  document.addEventListener("click", (event) => {
-    const link = (event.target as Element | null)?.closest<HTMLAnchorElement>("a[data-back]");
-    if (!link || event.defaultPrevented || event.button !== 0) return;
-    if (event.metaKey || event.ctrlKey || event.shiftKey || event.altKey) return;
-    const index = (history.state as { index?: number } | null)?.index;
-    if (typeof index === "number" && index > 0) {
-      event.preventDefault();
-      history.back();
-    }
-  });
+  // shared link opened cold still leads somewhere. It listens in the capture phase: Astro's router
+  // handles a link click first in the bubble phase and calls preventDefault, which would leave Back
+  // following its static address and dropping the earlier page's sort or filter.
+  document.addEventListener(
+    "click",
+    (event) => {
+      const link = (event.target as Element | null)?.closest<HTMLAnchorElement>("a[data-back]");
+      if (!link || event.button !== 0) return;
+      if (event.metaKey || event.ctrlKey || event.shiftKey || event.altKey) return;
+      const index = (history.state as { index?: number } | null)?.index;
+      if (typeof index === "number" && index > 0) {
+        event.preventDefault();
+        event.stopPropagation();
+        history.back();
+      }
+    },
+    { capture: true },
+  );
 </script>
