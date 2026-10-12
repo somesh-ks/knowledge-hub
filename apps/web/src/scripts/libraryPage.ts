@@ -4,6 +4,7 @@
  */
 import {
   type CardData,
+  chipFilter,
   compareCards,
   emptyCopy,
   FACT_SEPARATOR,
@@ -81,7 +82,7 @@ function install(): void {
   const status = root.querySelector<HTMLElement>("[data-library-status]");
   const empty = root.querySelector<HTMLElement>("[data-library-empty]");
   const clearText = root.querySelector<HTMLButtonElement>("[data-library-clear-text]");
-  const filterSelect = root.querySelector<HTMLSelectElement>("[data-library-filter]");
+  const chips = [...root.querySelectorAll<HTMLInputElement>("[data-library-filter]")];
   const emptyMessage = root.querySelector<HTMLElement>("[data-library-empty-message]");
   const emptyButton = root.querySelector<HTMLButtonElement>("[data-library-clear]");
   let emptyReset: "search" | "everything" = "search";
@@ -175,9 +176,8 @@ function install(): void {
     const searching = query.trim() !== "";
     if (clearText) clearText.hidden = query === "";
     const sort = (select?.value ?? "newest") as LibrarySort;
-    const filter = (filterSelect?.value || "all") as LibraryFilter;
-    // A narrowed list says so on its controls, as a chosen chip does.
-    filterSelect?.closest(".sort-field")?.toggleAttribute("data-active", filter !== "all");
+    const filter = chipFilter(chips.filter((chip) => chip.checked).map((chip) => chip.value));
+    // A narrowed order says so on its control, as a chosen chip does.
     select?.closest(".sort-field")?.toggleAttribute("data-active", sort !== "newest");
     // Only the cards still in the page: one this device deleted (deletedEpisodes.ts) may have been
     // taken out after this script read the list, and must not come back with a new order.
@@ -222,7 +222,7 @@ function install(): void {
   const startFilter = allowed(params.get("show"), LIBRARY_FILTERS);
   const startSort = allowed(params.get("sort"), LIBRARY_SORTS);
   if (input && startQuery) input.value = startQuery;
-  if (filterSelect && startFilter) filterSelect.value = startFilter;
+  for (const chip of chips) chip.checked = chip.value === startFilter;
   if (select && startSort) select.value = startSort;
   if (startQuery) loadFullText();
 
@@ -245,7 +245,14 @@ function install(): void {
     apply();
   });
   select?.addEventListener("change", apply);
-  filterSelect?.addEventListener("change", apply);
+  // Single-select: the chip just ticked is the filter, so the others untick.
+  for (const chip of chips) {
+    chip.addEventListener("change", () => {
+      const chosen = chipFilter([], { value: chip.value, checked: chip.checked });
+      for (const other of chips) other.checked = other.value === chosen;
+      apply();
+    });
+  }
   clearText?.addEventListener("click", () => {
     if (input) input.value = "";
     apply();
@@ -254,7 +261,7 @@ function install(): void {
   });
   emptyButton?.addEventListener("click", () => {
     if (input) input.value = "";
-    if (filterSelect && emptyReset === "everything") filterSelect.value = "all";
+    if (emptyReset === "everything") for (const chip of chips) chip.checked = false;
     apply();
     // The button hides with the empty state, so the focus moves on: to the field from a keyboard or
     // a mouse, and to the first card from a touch, where the field would raise the keyboard.
@@ -325,12 +332,16 @@ function install(): void {
         const finished = played && share <= 0;
         if (finished !== card.facts.hasAttribute("data-played")) {
           card.facts.toggleAttribute("data-played", finished);
+          // Only the last part changes, so the count keeps its own span (library.css hides it
+          // on a narrow card).
           const parts = rest.split(FACT_SEPARATOR);
-          card.facts.textContent = finished
-            ? [...parts.slice(0, -1), card.facts.dataset.playedLabel ?? "Played"].join(
-                FACT_SEPARATOR,
-              )
-            : rest;
+          const last = card.facts.lastChild;
+          const words = finished ? (card.facts.dataset.playedLabel ?? "Played") : parts.at(-1);
+          if (last?.nodeType === Node.TEXT_NODE && parts.length > 1) {
+            last.textContent = `${FACT_SEPARATOR}${words}`;
+          } else {
+            card.facts.textContent = [...parts.slice(0, -1), words].join(FACT_SEPARATOR);
+          }
         }
       }
       if (!bar) continue;

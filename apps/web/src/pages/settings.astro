@@ -2,7 +2,8 @@
 import Icon from "../components/Icon.astro";
 import BaseLayout from "../layouts/BaseLayout.astro";
 import { loadManage } from "../lib/manage";
-import { dailySummary, loadScheduleView, weeklySummary } from "../lib/schedule";
+import { loadScheduleView } from "../lib/schedule";
+import { dailySummary, modelSummary, topicsSummary, weeklySummary } from "../lib/settingsSummary";
 import { topicLayout } from "../lib/topicPages";
 import { loadWriterView } from "../lib/writer";
 import { THEME_PREFERENCES, type ThemePreference } from "../player/core/preferences";
@@ -18,21 +19,47 @@ const [schedule, writer, manage] = await Promise.all([
 // The topics a person sees (D69): the owner's three, any of their own apart from those, and the
 // general news topics; the judge's finer topics are inside the three.
 const layout = topicLayout(manage.topics, manage.sources);
-const topicCount = layout.groups.length + layout.own.length + layout.general.length;
-const plural = (count: number, word: string): string => `${count} ${word}${count === 1 ? "" : "s"}`;
-// Each row leads to the one page that sets it, and says its current state in a few words.
+const shownTopics = [...layout.groups, ...layout.own, ...layout.general].map((topic) => topic.id);
+const sourcesOn = manage.sources.filter((source) => source.enabled).length;
+// Each row leads to the one page that sets it, and says its current state in a few words. What the
+// words are worked out from rides along as data, so an edit saved since the build can be shown in
+// them (scripts/settingsSaved.ts, loaded only when one is kept).
 const PODCAST = [
-  { href: "/settings/daily", label: "Daily", hint: dailySummary(schedule) },
-  { href: "/settings/weekly", label: "Weekly", hint: weeklySummary(schedule.weekly) },
+  {
+    href: "/settings/daily",
+    label: "Daily",
+    hint: dailySummary(schedule),
+    data: { summary: "daily", hour: schedule.hour, cadence: schedule.cadenceDays },
+  },
+  {
+    href: "/settings/weekly",
+    label: "Weekly",
+    hint: weeklySummary(schedule.weekly),
+    data: {
+      summary: "weekly",
+      enabled: String(schedule.weekly.enabled),
+      day: schedule.weekly.day,
+      hour: schedule.weekly.hour,
+    },
+  },
   {
     href: "/settings/topics",
     label: "Topics and sources",
-    hint: `${plural(topicCount, "topic")}, ${plural(manage.sources.length, "source")}`,
+    hint: topicsSummary(shownTopics.length, manage.sources.length, sourcesOn),
+    data: {
+      summary: "topics",
+      shown: shownTopics.join(" "),
+      taken: manage.topics.map((topic) => topic.id).join(" "),
+      sources: JSON.stringify(
+        Object.fromEntries(manage.sources.map((source) => [source.id, source.enabled])),
+      ),
+    },
   },
   {
     href: "/settings/model",
     label: "Model",
-    hint: `${writer.provider === "anthropic" ? "Anthropic" : "Nebius"}, ${writer.label}`,
+    hint: modelSummary(writer.provider, writer.model),
+    data: { summary: "model", provider: writer.provider, model: writer.model ?? "" },
   },
 ];
 
@@ -68,10 +95,14 @@ const THEME_LABELS: Record<ThemePreference, string> = {
         <div class="rows">
           {
             PODCAST.map((row) => (
-              <a class="row-action" href={row.href}>
+              <a
+                class="row-action"
+                href={row.href}
+                {...Object.fromEntries(Object.entries(row.data).map(([key, value]) => [`data-${key}`, value]))}
+              >
                 <span class="settings-text">
                   <span class="settings-label">{row.label}</span>
-                  <span class="settings-hint">{row.hint}</span>
+                  <span class="settings-hint" data-hint>{row.hint}</span>
                 </span>
                 <Icon name="chevronRight" />
               </a>

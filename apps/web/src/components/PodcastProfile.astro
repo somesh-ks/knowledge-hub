@@ -1,7 +1,7 @@
 ---
-import { SUPPORTED_TIMEZONES } from "@dispatch/core";
 import { FORMATS, LENGTHS } from "../lib/createForm";
 import { CADENCES, hourLabel, WEEKDAYS } from "../lib/schedule";
+import { weeklyNote } from "../lib/settingsSummary";
 import Icon from "./Icon.astro";
 
 interface Props {
@@ -9,7 +9,6 @@ interface Props {
   id: "daily" | "weekly";
   /** The saved values. A field the profile has no row for is ignored. */
   values: {
-    timezone?: string;
     enabled?: boolean;
     hour?: number;
     day?: number;
@@ -26,13 +25,14 @@ interface Props {
    * `ids` are the topics each one stands for, which is what the schedule's skip list holds.
    */
   topics?: readonly { id: string; name: string; ids: readonly string[] }[];
-  /** Daily only: the weekly podcast's day (0 = Sunday) while it is on, which has no briefing. */
-  weeklyDay?: number | null;
+  /** Daily only: the weekly podcast, whose day (0 = Sunday) has no daily episode while it is on. */
+  weekly?: { enabled: boolean; day: number };
 }
 
-const { id, values, topics = [], weeklyDay = null } = Astro.props;
+const { id, values, topics = [], weekly } = Astro.props;
 const label = id === "daily" ? "Daily" : "Weekly";
-const weeklyDayName = weeklyDay === null ? undefined : WEEKDAYS[weeklyDay];
+// Worked out again in the browser from the data on it when a weekly edit is saved (savedView.ts).
+const sundayNote = weekly ? weeklyNote(weekly) : null;
 
 const hours = Array.from({ length: 24 }, (_, value) => value);
 // A topic is in the podcast unless every topic it stands for is on the skip list.
@@ -41,13 +41,8 @@ const inScope = (ids: readonly string[]): boolean =>
 
 // A stored Headlines schedule has no radio to show; the first change picks one of the two.
 const VOICES = [
-  {
-    key: "voice",
-    saved: values.voiceId,
-    name: "Voice",
-    hint: "Reads the episode, or leads a discussion",
-  },
-  { key: "voice_b", saved: values.voiceIdB, name: "Second voice", hint: "Joins in discussions" },
+  { key: "voice", saved: values.voiceId, name: "Voice" },
+  { key: "voice_b", saved: values.voiceIdB, name: "Discussion voice" },
 ] as const;
 ---
 
@@ -74,19 +69,6 @@ const VOICES = [
   <section class="podcast-section" aria-labelledby={`${id}-schedule-head`}>
     <h2 class="section-head" id={`${id}-schedule-head`}>Schedule</h2>
     <div class="rows">
-      <div class="settings-row">
-        <label class="settings-label" for={`${id}-timezone`}>Time zone</label>
-        <span class="manage-select value-select" data-timezone-select>
-          <select class="manage-input" id={`${id}-timezone`} data-f={`${id}.timezone`} autocomplete="off">
-            {SUPPORTED_TIMEZONES.map((tz) => (
-              <option value={tz.value} selected={tz.value === (values.timezone ?? "Europe/Stockholm")}>
-                {tz.label}
-              </option>
-            ))}
-          </select>
-          <Icon name="chevronDown" />
-        </span>
-      </div>
       {
         id === "weekly" && (
           <div class="settings-row">
@@ -103,9 +85,19 @@ const VOICES = [
         )
       }
       <div class="settings-row">
-        <label class="settings-label" for={`${id}-hour`}>Time</label>
+        <div class="settings-text">
+          <label class="settings-label" for={`${id}-hour`}>Time</label>
+          {/* Every schedule counts in Stockholm time: the cron route, the gate and the next line. */}
+          <span class="settings-hint" id={`${id}-hour-zone`}>Stockholm time</span>
+        </div>
         <span class="manage-select value-select">
-          <select class="manage-input" id={`${id}-hour`} data-f={`${id}.hour`} autocomplete="off">
+          <select
+            class="manage-input"
+            id={`${id}-hour`}
+            data-f={`${id}.hour`}
+            aria-describedby={`${id}-hour-zone`}
+            autocomplete="off"
+          >
             {hours.map((value) => (
               <option value={value} selected={value === values.hour}>{hourLabel(value)}</option>
             ))}
@@ -116,9 +108,27 @@ const VOICES = [
       {
         id === "daily" && (
           <div class="settings-row">
-            <label class="settings-label" for="daily-cadence">Repeat</label>
+            <div class="settings-text">
+              <label class="settings-label" for="daily-cadence">Repeat</label>
+              <span
+                class="settings-hint"
+                id="daily-cadence-note"
+                data-weekly-note
+                data-weekly-enabled={String(weekly?.enabled ?? false)}
+                data-weekly-day={weekly?.day ?? 0}
+                hidden={!sundayNote}
+              >
+                {sundayNote}
+              </span>
+            </div>
             <span class="manage-select value-select">
-              <select class="manage-input" id="daily-cadence" data-f="daily.cadence" autocomplete="off">
+              <select
+                class="manage-input"
+                id="daily-cadence"
+                data-f="daily.cadence"
+                aria-describedby="daily-cadence-note"
+                autocomplete="off"
+              >
                 {CADENCES.map((cadence) => (
                   <option value={cadence.days} selected={cadence.days === values.cadenceDays}>
                     {cadence.label}
@@ -131,19 +141,13 @@ const VOICES = [
         )
       }
     </div>
-    {
-      id === "daily" && weeklyDayName && (
-        <p class="settings-hint podcast-hint">On {weeklyDayName}s the weekly episode replaces this one.</p>
-      )
-    }
   </section>
 
   <section class="podcast-section" aria-labelledby={`${id}-topics-head`}>
     <h2 class="section-head" id={`${id}-topics-head`}>Topics</h2>
-    <p class="settings-hint podcast-hint" id={`${id}-topics-hint`}>Choose what {label} episodes cover.</p>
     {
       topics.length > 0 ? (
-        <fieldset class="filter-chips podcast-topics" aria-labelledby={`${id}-topics-head`} aria-describedby={`${id}-topics-hint`} data-scope-chips>
+        <fieldset class="filter-chips podcast-topics" aria-labelledby={`${id}-topics-head`} data-scope-chips>
           {topics.map((topic) => (
             <label class="filter-chip">
               <input
@@ -171,10 +175,7 @@ const VOICES = [
     }
     <div class="rows">
       <a class="row-action" href="/settings/topics">
-        <span class="settings-text">
-          <span class="settings-label">Topics and sources</span>
-          <span class="settings-hint">Add topics and choose their sources</span>
-        </span>
+        <span class="settings-label">Topics and sources</span>
         <Icon name="chevronRight" />
       </a>
     </div>
@@ -237,10 +238,7 @@ const VOICES = [
       {
         VOICES.map((voice) => (
           <div class="settings-row" data-voice-row={voice.key}>
-            <div class="settings-text">
-              <label class="settings-label" for={`${id}-${voice.key}`}>{voice.name}</label>
-              <span class="settings-hint">{voice.hint}</span>
-            </div>
+            <label class="settings-label" for={`${id}-${voice.key}`}>{voice.name}</label>
             <div class="podcast-voice">
               <span class="manage-select value-select">
                 <select
@@ -256,13 +254,14 @@ const VOICES = [
                 <Icon name="chevronDown" />
               </span>
               {/* A round play button, as every play control in the app is drawn. Choosing a voice plays
-                   its sample too, so a list can be heard one voice at a time. It keeps its room while
-                   the voice has no sample, so the select never moves when the list arrives. */}
+                   its sample too, so a list can be heard one voice at a time. While the voice has no
+                   sample it is silent (data-silent): unseen, but in its place, so the select never
+                   moves when the list arrives or the voice changes. */}
               <button
                 class="podcast-sample"
                 type="button"
                 data-preview
-                hidden
+                data-silent
                 aria-pressed="false"
                 aria-label={`Play a sample of the ${voice.name.toLowerCase()}`}
               >

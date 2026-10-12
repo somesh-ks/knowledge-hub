@@ -102,9 +102,39 @@ test.describe("the Settings index", () => {
     await page.getByRole("link", { name: /^Daily/ }).click();
     await expect(page.getByRole("heading", { level: 1, name: "Daily" })).toBeVisible();
     await expect(page).toHaveTitle("Daily, Singularity");
-    const crumb = page.getByRole("navigation", { name: "Breadcrumb" }).getByRole("link");
+    const crumb = page.locator(".settings-up");
     await expect(crumb).toHaveText("Settings");
     await expect(crumb).toHaveAttribute("href", "/settings");
+  });
+
+  test("below 64rem the title stands alone on one line; from 64rem the trail leads up", async ({
+    page,
+  }) => {
+    const pages = [
+      "/settings/daily",
+      "/settings/weekly",
+      "/settings/model",
+      "/settings/topics",
+      "/settings/topics/design",
+      "/settings/topics/tech",
+      "/settings/topics/business",
+      "/settings/topics/audio_interfaces",
+    ];
+    for (const width of [360, 1280]) {
+      await page.setViewportSize({ width, height: 800 });
+      for (const path of pages) {
+        await page.goto(path);
+        const crumbs = page.locator(".settings-crumbs");
+        const lines = await crumbs.evaluate(
+          (node) =>
+            node.getBoundingClientRect().height /
+            Number.parseFloat(getComputedStyle(node).lineHeight),
+        );
+        expect(lines, `${path} at ${width}`).toBeLessThan(1.5);
+        if (width < 1024) await expect(page.locator(".settings-up")).toBeHidden();
+        else await expect(page.locator(".settings-up")).toBeVisible();
+      }
+    }
   });
 
   test("the addresses of the old pages still land somewhere sensible", async ({ page }) => {
@@ -129,7 +159,12 @@ test.describe("the profile pages", () => {
     // Nothing is saved in the fixtures, so the defaults show.
     await expect(page.locator("#daily-hour")).toHaveValue("7");
     await expect(page.locator("#daily-hour option:checked")).toHaveText("07:00");
-    await expect(page.locator("#daily-timezone")).toHaveValue("Europe/Stockholm");
+    // Every schedule counts in Stockholm time, so the Time row says so and no zone can be chosen.
+    await expect(page.getByLabel("Time", { exact: true })).toHaveAccessibleDescription(
+      "Stockholm time",
+    );
+    await expect(page.getByText("Time zone")).toHaveCount(0);
+    await expect(page.locator("[data-f$='.timezone']")).toHaveCount(0);
     await expect(page.locator("#daily-cadence")).toHaveValue("2");
     await expect(page.getByRole("radio", { name: "Readout" })).toBeChecked();
     await expect(page.getByRole("radio", { name: "10 min", exact: true })).toBeChecked();
@@ -192,7 +227,7 @@ test.describe("the profile pages", () => {
   test("both voices are always there, filled from the voice list", async ({ page }) => {
     await open(page, "daily");
     const first = page.getByLabel("Voice", { exact: true });
-    const second = page.getByLabel("Second voice", { exact: true });
+    const second = page.getByLabel("Discussion voice", { exact: true });
     await expect(first).toBeVisible();
     await expect(first.locator("option")).toHaveText([
       "Default",
@@ -203,21 +238,45 @@ test.describe("the profile pages", () => {
     ]);
     // The second voice is for discussions, and is set whatever the type is now.
     await expect(second).toBeVisible();
-    await expect(page.getByText("Joins in discussions")).toBeVisible();
+    // The labels say what each voice is; no hint repeats it.
+    await expect(page.getByText("Joins in discussions")).toHaveCount(0);
     await page.getByRole("radio", { name: "Discussion" }).check();
     await expect(second).toBeVisible();
     await page.getByRole("radio", { name: "Readout" }).check();
     await expect(second).toBeVisible();
   });
 
+  test("from 40rem every row of Daily is one height, and the Sunday note is Repeat's own line", async ({
+    page,
+  }) => {
+    await open(page, "daily");
+    await expect(page.locator("#daily-cadence")).toHaveAccessibleDescription(
+      "On Sundays the weekly episode replaces this one.",
+    );
+    if ((page.viewportSize()?.width ?? 0) < 640) return;
+    const heights = await page
+      .locator(".podcast-profile .rows > .settings-row")
+      .evaluateAll((rows) => rows.map((row) => Math.round(row.getBoundingClientRect().height)));
+    expect(Math.max(...heights) - Math.min(...heights), heights.join(" ")).toBeLessThanOrEqual(2);
+  });
+
   test("the two voice selects end at one edge whether or not a sample button shows", async ({
     page,
   }) => {
     await open(page, "daily");
+    // From 40rem the values end at one edge; on a phone each starts under its label.
+    const phone = (page.viewportSize()?.width ?? 0) < 640;
     const right = async (id: string) => {
       const box = await page.locator(id).boundingBox();
-      return (box?.x ?? 0) + (box?.width ?? 0);
+      return (box?.x ?? 0) + (phone ? 0 : (box?.width ?? 0));
     };
+    expect(await right("#daily-voice")).toBeCloseTo(await right("#daily-voice_b"), 0);
+    // A voice with a sample beside one without: the play buttons keep their room either way, so
+    // the selects still share an edge and the one changed does not jump.
+    const before = await right("#daily-voice_b");
+    await page.locator("#daily-voice_b").selectOption("voice-ada");
+    await expect(page.locator("[data-voice-row=voice_b] [data-preview]")).toBeVisible();
+    expect(await right("#daily-voice_b")).toBeCloseTo(before, 0);
     expect(await right("#daily-voice")).toBeCloseTo(await right("#daily-voice_b"), 0);
     // The setting is called Format here, as on the Create page.
     await expect(page.getByRole("radiogroup", { name: "Format" })).toBeVisible();
@@ -256,7 +315,7 @@ test.describe("the profile pages", () => {
     await sample;
     await expect(toastText(page)).toHaveText(SAVED);
     const before = await page.evaluate(() => (window as unknown as { pauses: number }).pauses);
-    await page.locator(".settings-up").click();
+    await page.locator(".settings-up:visible, .app-bar-back:visible").first().click();
     await expect(page).toHaveURL(/\/settings$/);
     await expect(page.locator("[data-settings]")).toHaveAttribute("data-ready", "true");
     // The app swaps the page in place, so the window, and the sample, live on: it must be paused.
@@ -389,7 +448,7 @@ test.describe("saving on its own", () => {
 });
 
 test.describe("saved, before the build", () => {
-  const NOTE = "Saved. It takes effect after the next update, about a minute.";
+  const NOTE = SAVED;
   const KEY = "dispatch:saved-edits";
   const note = (page: Page) => page.locator("[data-saved-note]");
 
@@ -417,6 +476,54 @@ test.describe("saved, before the build", () => {
     // The Weekly page was not changed and says nothing.
     await open(page, "weekly");
     await expect(note(page)).toHaveCount(0);
+  });
+
+  test("the index, the Topics list and Daily say what was saved on the other pages", async ({
+    page,
+  }) => {
+    const sent = await mockConfig(page);
+    await page.goto("/settings");
+    const ops = [
+      { op: "schedule.set", hour: 9, weekly: { day: 1 } },
+      { op: "topic.remove", id: "audio_interfaces" },
+      { op: "source.add", url: "https://pixel.example/feed.xml", topic_ids: ["product_design"] },
+    ];
+    await page.evaluate(
+      ([key, list]) => {
+        localStorage.setItem(key as string, JSON.stringify([{ at: Date.now(), ops: list }]));
+        sessionStorage.setItem(
+          "dispatch:writer-pending",
+          JSON.stringify({
+            provider: "anthropic",
+            model: "claude-haiku-5-5",
+            timestamp: Date.now(),
+          }),
+        );
+      },
+      [KEY, ops] as const,
+    );
+    await page.reload();
+    const hint = (name: string) =>
+      page.getByRole("link", { name: new RegExp(`^${name}`) }).locator("[data-hint]");
+    await expect(hint("Daily")).toHaveText("Every second day at 09:00");
+    await expect(hint("Weekly")).toHaveText("Mondays at 07:00");
+    await expect(hint("Topics and sources")).toHaveText("8 topics · 10 of 12 sources on");
+    await expect(hint("Model")).toHaveText("Anthropic, Claude Haiku 5.5");
+
+    await page.goto("/settings/topics");
+    await expect(page.locator('a[data-page="design"] [data-hint]')).toHaveText("3 sources");
+    await expect(page.locator('a[data-page="audio_interfaces"]')).toBeHidden();
+
+    await open(page, "daily");
+    // The removed topic has no chip, and the Repeat note follows the weekly podcast to Monday.
+    await expect(page.getByRole("checkbox", { name: "Audio interfaces" })).toBeHidden();
+    await expect(page.locator("[data-weekly-note]")).toHaveText(
+      "On Mondays the weekly episode replaces this one.",
+    );
+    await expect(page.locator(".settings-head")).toHaveAttribute("data-weekly-day", "1");
+    // Nothing is sent on its own: no scope for the removed topic, no schedule again.
+    await page.waitForTimeout(1500);
+    expect(sent).toEqual([]);
   });
 
   test("shows nothing once the build has the saved value, or once the edit is too old", async ({
@@ -481,6 +588,21 @@ test.describe("a refused save", () => {
 });
 
 test.describe("the Model page", () => {
+  test("a filter that matches nothing says so; open, the field has no ring; a phone's list is the row's width", async ({
+    page,
+  }) => {
+    await open(page, "model");
+    await page.getByRole("button", { name: "Show all models" }).click();
+    const list = page.getByRole("listbox", { name: "Models" });
+    await expect(list).toBeVisible();
+    await expect(combo(page)).toHaveCSS("outline-style", "none");
+    const width = page.viewportSize()?.width ?? 0;
+    if (width < 640) expect((await list.boundingBox())?.width ?? 0).toBeGreaterThan(width - 48);
+    await combo(page).fill("zqx");
+    await expect(list.locator(".daily-empty")).toHaveText("No model called “zqx”");
+    expect((await list.boundingBox())?.height ?? 0).toBeGreaterThan(32);
+  });
+
   test("lists Automatic, the top models the live list has, then the rest", async ({ page }) => {
     await open(page, "model");
     await expect(combo(page)).toHaveValue("Default");

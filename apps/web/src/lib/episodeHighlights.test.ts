@@ -159,4 +159,39 @@ describe("highlights from a real script", () => {
   it("keeps a lone short sentence that is not a segue", () => {
     expect(spokenSummary("It ships today.", "Something else entirely")).toBe("It ships today.");
   });
+
+  it("does not take a host's question for the highlight: the answer is", () => {
+    // The real discussion (ep-20261008-1155) opens most stories with the other host asking.
+    expect(
+      spokenSummary("What does that enable?", "Amazon Style Dictionary integrates with Tailwind"),
+    ).toBe("");
+    expect(
+      spokenSummary(
+        "Why does that matter? Tokens compile once and ship to every platform.",
+        "Amazon Style Dictionary integrates with Tailwind",
+      ),
+    ).toBe("Tokens compile once and ship to every platform.");
+    const episode = {
+      sources: [
+        {
+          item_id: "a",
+          headline: "Amazon Style Dictionary integrates with Tailwind",
+          url: "https://example.com/a",
+          source: "Exa discovery",
+        },
+      ],
+      turns: [
+        { idx: 0, speaker: "b" as const, text: "What does that enable?", item_id: "a" },
+        {
+          idx: 1,
+          speaker: "a" as const,
+          text: "Tokens compile once and ship to every platform.",
+          item_id: "a",
+        },
+      ],
+    };
+    expect(episodeHighlights(episode)[0]?.text).toBe(
+      "Tokens compile once and ship to every platform.",
+    );
+  });
 });

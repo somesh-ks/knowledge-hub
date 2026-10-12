@@ -14,8 +14,9 @@
 
 /* A phone stacks: the title, then Add, a tonal button as wide as its words at the start. From 40rem
    it sits at the end of the title's line, centred on it. */
+/* A source is a two-line list item (name, then site and score), M3's 72px. */
 .topics {
-  --source-row: var(--size-touch-comfortable);
+  --source-row: 4.5rem;
 }
 
 .topics > .topics-add {
@@ -376,7 +377,7 @@
   min-width: 0;
   overflow: hidden;
   font-size: var(--font-size-body);
-  font-weight: var(--font-weight-medium);
+  font-weight: var(--font-weight-regular);
   line-height: var(--font-leading-label);
   text-overflow: ellipsis;
   white-space: nowrap;
@@ -540,15 +541,11 @@
   }
 }
 
-/* Topic or Source, under the title: the segmented control of Settings, across the panel. */
+/* Topic or Source, under the title: the segmented control of Settings, across the panel. It never
+   grows along the sheet's column, at any width (it swelled to a 350px oval on phones). */
 .topics-panel-kind {
+  flex: none;
   margin-block-start: var(--space-4);
-}
-
-@media (min-width: 40rem) {
-  .topics-panel-kind {
-    flex: none;
-  }
 }
 
 .topics-pane,
@@ -797,6 +794,12 @@
   overflow-wrap: anywhere;
 }
 
+.source-facts dd.source-facts-url {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
 .skeleton-bar {
   display: block;
   height: var(--space-4);
@@ -854,32 +857,30 @@
   flex: none;
 }
 
-/* The name and the site on a line, what it covers under them. On a phone the site is left out, as in
-   a source's row, and the line takes the width. */
+/* Drawn as a source is: the name, then "site · Posts weekly" where a source has "site · Excellent".
+   From 40rem what it covers is a third line. */
 .is-suggested .source-text {
   flex: 1 1 0;
-  display: grid;
-  grid-template-columns: auto minmax(0, 1fr);
-  align-items: baseline;
-  row-gap: 0;
-  column-gap: var(--space-3);
 }
 
-/* What it covers, then how often it posts, on one line. The cadence goes to a second line that is not
-   drawn when there is no room for both, so the cover is cut short only when it is longer than the line.
-   A screen reader still reads both. */
+.source-meta > .source-host:not(:empty) + .source-cadence::before {
+  content: "\00b7" / "";
+  margin-inline: var(--space-1);
+}
+
 .source-line {
-  grid-column: 1 / -1;
-  display: flex;
-  flex-wrap: wrap;
-  column-gap: var(--space-1);
+  display: none;
   min-width: 0;
-  max-height: calc(var(--font-size-label) * var(--font-leading-caption));
-  overflow: hidden;
   color: var(--color-on-surface-muted);
   font-size: var(--font-size-label);
   line-height: var(--font-leading-caption);
   white-space: nowrap;
+}
+
+@media (min-width: 40rem) {
+  .source-line {
+    display: flex;
+  }
 }
 
 .source-about {
@@ -889,16 +890,14 @@
   text-overflow: ellipsis;
 }
 
-/* Pressed, the line says the source is being added, and then that it is: on the one line, as it was. */
-.source-line > .source-note {
+/* Pressed, the site's line says the source is being added, and then that it is. */
+.source-meta > .source-note {
   white-space: nowrap;
 }
 
-/* Add: a round tonal button. The touch target is the whole 44px; the disc drawn in it is a little
-   smaller, so a column of them reads as a list and not as a column of discs. Pressed, the disc fills
-   with the accent and a check takes the plus's place; both glyphs share the one slot, so nothing
-   moves. The rest of a row lets a press through to its edit button; a suggestion has none, so this
-   button answers for itself. */
+/* Add: a plain icon button, the muted plus with a state layer under the pointer, so a column of them
+   is not a column of discs. Pressed, an accent check takes the plus's place in the same slot, so
+   nothing moves. The rest of a suggestion's row does nothing: only the button answers. */
 .source-plus-btn {
   position: relative;
   isolation: isolate;
@@ -910,7 +909,7 @@
      gutter by the disc's inset. */
   margin-inline-end: calc(var(--space-1) * -1);
   border-radius: var(--radius-round);
-  color: var(--color-on-accent-container);
+  color: var(--color-on-surface-muted);
 }
 
 .source-plus-btn:focus-visible {
@@ -928,7 +927,7 @@
   inset: var(--space-1);
   z-index: var(--z-beneath);
   border-radius: var(--radius-round);
-  background: var(--color-accent-container);
+  background: transparent;
   transition: background-color var(--duration-hover) var(--ease-hover);
 }
 
@@ -948,28 +947,16 @@
 }
 
 .source-plus-btn.is-added {
-  color: var(--color-on-accent);
+  color: var(--color-accent);
   cursor: default;
-}
-
-.source-plus-btn.is-added::before {
-  background: var(--color-accent);
 }
 
 @media (hover: hover) and (pointer: fine) {
   .source-plus-btn:enabled:hover::before {
-    background: color-mix(
-      in oklch,
-      var(--color-accent-container),
-      var(--color-on-accent-container) var(--state-hover)
-    );
+    background: color-mix(in oklch, var(--color-on-surface) var(--state-hover), transparent);
   }
 }
 
 .source-plus-btn:enabled:active::before {
-  background: color-mix(
-    in oklch,
-    var(--color-accent-container),
-    var(--color-on-accent-container) var(--state-press)
-  );
+  background: color-mix(in oklch, var(--color-on-surface) var(--state-press), transparent);
 }

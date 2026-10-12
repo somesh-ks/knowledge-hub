@@ -73,6 +73,15 @@
   display: inline-block;
 }
 
+/* Below 64rem the app bar has a back arrow, so the way up would be a second one: the page's name
+   stands alone, on one line, at the same place on every sub-page. */
+@media (width < 64rem) {
+  .settings-head .settings-crumbs > nav,
+  .settings-head .settings-crumbs > .settings-crumb-gap {
+    display: none;
+  }
+}
+
 .settings-up {
   position: relative;
   border-radius: var(--radius-sm);
@@ -244,6 +253,12 @@
   }
 }
 
+/* In a sheet the body is a column: a segmented control there keeps its own height, never the
+   column's spare room. */
+.create-sheet-body > .settings-choice {
+  flex: none;
+}
+
 .settings-segment {
   position: relative;
   display: grid;
@@ -322,6 +337,12 @@
   inline-size: var(--space-4);
   margin-inline-end: var(--space-1);
   opacity: 1;
+}
+
+/* Four segments leave no room for the check beside the words ("10 min" met its thumb's edges): the
+   thumb and its ink mark the choice alone. */
+.settings-choice:has(.settings-segment:nth-of-type(4)) .settings-segment > span::before {
+  display: none;
 }
 
 /*

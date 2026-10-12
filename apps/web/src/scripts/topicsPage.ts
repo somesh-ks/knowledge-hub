@@ -18,8 +18,7 @@ function showTopicOn(root: HTMLElement): void {
   const on = root.querySelector<HTMLInputElement>("[data-topic-on]");
   if (!on) return;
   const hint = root.querySelector("[data-topic-on-hint]");
-  if (hint)
-    hint.textContent = on.checked ? "Used in new episodes" : "Off. Its sources are not read";
+  if (hint) hint.textContent = on.checked ? "Used in episodes" : "Off. Its sources are not read";
   const unread = root.querySelector<HTMLElement>("[data-topic-unread]");
   if (unread) unread.hidden = on.checked;
 }

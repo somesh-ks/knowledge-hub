@@ -5,8 +5,9 @@ import { sourceHost } from "./sourceLabel";
  * The highlights of an episode: one entry per story it covers, in the order the hosts reach them,
  * each with a few plain sentences and the link. A story that is in a briefing gets that briefing's
  * summary. Otherwise the sentences come from the script: the first turn about the story that says
- * something beyond its headline, without the hosts' segues ("Start with emphasis.", "Next, ...")
- * and without a sentence that only repeats the headline, trimmed at a sentence end.
+ * something beyond its headline, without the hosts' segues ("Start with emphasis.", "Next, ..."),
+ * their questions ("What does that enable?") and any sentence that only repeats the headline,
+ * trimmed at a sentence end.
  */
 
 export interface Highlight {
@@ -74,6 +75,8 @@ export function spokenSummary(text: string, headline: string): string {
     })
     .filter((sentence, index) => {
       if (!sentence) return false;
+      // A host's question ("What does that enable?") says nothing yet: the answer is the highlight.
+      if (/\?["')\]]*$/.test(sentence)) return false;
       // A segue that opens the turn: "Start with emphasis.", "Now latency."
       if (index === 0 && words(sentence).length <= 3 && sentences.length > 1) return false;
       return !repeatsHeadline(sentence, heading);

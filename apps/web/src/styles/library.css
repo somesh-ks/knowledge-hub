@@ -125,10 +125,16 @@
   font-weight: var(--font-weight-medium);
 }
 
-/* On Today's narrow shelf a briefing's line leaves out its story count, so "Weekly · 8 min" fits on
-   one line and never breaks after a separator. */
-.shelf .card-count {
-  display: none;
+/* A card narrower than its whole line (Today's shelf, a 360px phone's gallery) leaves out the story
+   count, so "Weekly · 8 min" fits on one line and never breaks after a separator. */
+.card {
+  container-type: inline-size;
+}
+
+@container (max-width: 10.5rem) {
+  .card-count {
+    display: none;
+  }
 }
 
 .card-facts {
@@ -263,8 +269,35 @@
   padding-block: var(--space-1);
 }
 
+/* The kind chips: one row that scrolls sideways when it does not fit, with room inside it for the
+   focus ring and the 44px targets. On a phone they take the bar's first row, and the order and the
+   view switch the second. */
+.library-filters {
+  flex: 1 1 100%;
+  flex-wrap: nowrap;
+  margin: calc(var(--space-1) * -1);
+  padding: var(--space-1);
+  overflow-x: auto;
+  overscroll-behavior-x: contain;
+  scrollbar-width: none;
+}
+
+.library-filters::-webkit-scrollbar {
+  display: none;
+}
+
+.library-filters > .filter-chip {
+  flex: none;
+}
+
+@media (min-width: 40rem) {
+  .library-filters {
+    flex: 0 1 auto;
+  }
+}
+
 /* Where there is room, the order sits at the far end of the row. */
-.sort-field:not(.filter-field) {
+.library-bar .sort-field {
   margin-inline-start: auto;
 }
 

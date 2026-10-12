@@ -1186,20 +1186,23 @@ test.describe("episodes in the Library", () => {
         .locator(".card-facts"),
     ).toHaveText("Readout \u00b7 3 min");
 
-    const show = page.getByRole("combobox", { name: "Show" });
-    await expect(show).toHaveValue("all");
-    await show.selectOption("custom");
-    await expect(show).toHaveValue("custom");
+    const show = page.getByRole("group", { name: "Show" });
+    await expect(show.locator("input:checked")).toHaveCount(0);
+    await show.locator(".filter-chip", { hasText: "Episodes" }).click();
+    await expect(show.getByRole("checkbox", { name: "Episodes" })).toBeChecked();
     await expect(page.locator("[data-card]:not([hidden])")).toHaveCount(2);
     await expect(page.locator("[data-library-status]")).toHaveText("2 of 5 results");
 
     // The other filters leave episodes out.
-    await show.selectOption("daily");
+    await show.locator(".filter-chip", { hasText: "Daily" }).click();
+    await expect(show.getByRole("checkbox", { name: "Episodes" })).not.toBeChecked();
     await expect(page.locator("[data-card]:not([hidden])")).toHaveCount(2);
     await expect(page.locator('[data-card][data-kind="episode"]:not([hidden])')).toHaveCount(0);
 
     // Search finds an episode by a story it covers.
-    await show.selectOption("all");
+    // Pressing the ticked chip again shows everything.
+    await show.locator(".filter-chip", { hasText: "Daily" }).click();
+    await expect(show.locator("input:checked")).toHaveCount(0);
     // Search finds an episode by its title, on one line like a story.
     await page.getByRole("searchbox").fill("interfaces and fast");
     await expect(page.locator("[data-card]:not([hidden])")).toHaveCount(1);

@@ -35,7 +35,6 @@ const adding = (offer: CatalogSource): string =>
   offers.length > 0 && (
     <section aria-labelledby="suggested-head">
       <h2 class="section-head" id="suggested-head">Suggested sources</h2>
-      <p class="manage-quiet">Feeds that fit this topic. Add one to start reading it.</p>
       <ul class="topic-sources" role="list" data-suggested-sources aria-label={`Suggested sources for ${name}`}>
         {offers.map((offer) => {
           const icon = faviconOf(offer.url ?? offer.feed_url);
@@ -62,15 +61,15 @@ const adding = (offer: CatalogSource): string =>
                 </span>
                 <span class="source-text">
                   <span class="source-name">{offer.name}</span>
-                  <span class="source-host">{catalogHost(offer)}</span>
-                  {
-                    (offer.about || cadence) && (
-                      <span class="source-line">
-                        {offer.about && <span class="source-about">{offer.about}</span>}
-                        {cadence && <span class="source-cadence">{offer.about ? `\u00b7 ${cadence}` : cadence}</span>}
-                      </span>
-                    )
-                  }
+                  <span class="source-meta">
+                    <span class="source-host">{catalogHost(offer)}</span>
+                    {cadence && <span class="source-cadence">{cadence}</span>}
+                  </span>
+                  {offer.about && (
+                    <span class="source-line">
+                      <span class="source-about">{offer.about}</span>
+                    </span>
+                  )}
                 </span>
               </span>
               <button

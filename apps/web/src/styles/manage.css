@@ -109,9 +109,12 @@
   transition: border-color var(--duration-hover) var(--ease-hover);
 }
 
+/* It grows with what is typed, so it needs no grip to drag. */
 textarea.manage-input {
+  min-block-size: 6rem;
   padding-block: var(--space-3);
-  resize: vertical;
+  field-sizing: content;
+  resize: none;
 }
 
 .manage-input::placeholder {

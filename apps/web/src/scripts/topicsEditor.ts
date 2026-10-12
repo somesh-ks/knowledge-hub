@@ -206,8 +206,7 @@ export function mountEditor(root: HTMLElement): Editor {
   };
 
   /**
-   * A suggestion added from its row. The row says it is being added in the line that said what the
-   * source covers, and then that it is, once the edit is saved (settle, in managePageSave.ts); its
+   * A suggestion added from its row. The row says it is being added in the line that named its site, and then that it is, once the edit is saved (settle, in managePageSave.ts); its
    * button shows a check where the plus was. Nothing is put in the list above or scrolled to, so the
    * page stays as it was and the next suggestion is where the last one left it.
    */
@@ -215,7 +214,7 @@ export function mountEditor(root: HTMLElement): Editor {
     const { name, feed_url, topic_id } = suggestion;
     added += 1;
     const note = element("span", "source-note", "Adding");
-    button.closest("li")?.querySelector(".source-line")?.replaceChildren(note);
+    button.closest("li")?.querySelector(".source-meta")?.replaceChildren(note);
     changes.set(`src${added}`, {
       op: { op: "source.add", url: feed_url, ...(topic_id ? { topic_ids: [topic_id] } : {}) },
       el: note,

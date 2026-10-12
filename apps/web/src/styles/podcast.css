@@ -272,25 +272,43 @@
   margin-inline-end: 0;
 }
 
-/* Voice rows keep the rhythm of the page's two-line rows. On a phone the label and its hint take the
-   row's width and the voice goes under them at the end, so the hint never wraps word by word. */
-.settings-row[data-voice-row]:has(> .podcast-voice) {
-  padding-block: var(--space-3);
-}
-
+/* On a phone a voice row is two lines, as the index's rows are: the label, then the voice under it,
+   starting where the label starts (the select's own padding is pulled back), and the play button
+   trailing, centred on both lines. */
 @media (width < 40rem) {
   .settings-row[data-voice-row] {
-    flex-wrap: wrap;
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) auto;
+    grid-template-areas:
+      "label play"
+      "value play";
+    align-items: center;
     row-gap: 0;
+    padding-block: var(--space-2);
   }
 
-  .settings-row[data-voice-row] > .settings-text {
-    flex-basis: 100%;
+  .settings-row[data-voice-row] > .settings-label {
+    grid-area: label;
   }
 
   .settings-row[data-voice-row] > .podcast-voice {
-    max-inline-size: none;
-    margin-inline-start: auto;
+    display: contents;
+  }
+
+  .settings-row[data-voice-row] .value-select {
+    grid-area: value;
+    justify-self: start;
+    max-inline-size: 100%;
+    margin-inline: calc(var(--space-3) * -1) 0;
+  }
+
+  .settings-row[data-voice-row] .value-select > select.manage-input {
+    justify-content: flex-start;
+    text-align: start;
+  }
+
+  .settings-row[data-voice-row] .podcast-sample {
+    grid-area: play;
   }
 }
 
@@ -306,9 +324,10 @@
   transition: background-color var(--duration-hover) var(--ease-hover);
 }
 
-.podcast-sample[hidden] {
-  display: grid;
+/* A voice with no sample: no button to see or press, but its room is kept. */
+.podcast-sample[data-silent] {
   visibility: hidden;
+  pointer-events: none;
 }
 
 /* It shows what a press does next: play, or pause while the sample plays. */
@@ -394,6 +413,29 @@
   padding-inline-end: var(--space-2);
 }
 
+/* Open, the field shows its fill and no ring, as an open select does; the list's current row carries
+   the keyboard's ring. */
+.settings-row .daily-combo .manage-input[aria-expanded="true"] {
+  outline: none;
+  border-color: transparent;
+}
+
+/* A filter that matches nothing says so in the list's own type. */
+.daily-empty {
+  padding: var(--space-2) var(--space-3);
+  color: var(--color-on-surface-muted);
+  font-size: var(--font-size-body);
+}
+
+/* On a phone the list takes the row's width, from the gutter to the gutter, so a model's name and
+   its line read on one line each and more of the list shows. */
+@media (width < 40rem) {
+  .settings-row > .daily-combo .daily-listbox {
+    inset-inline: auto 0;
+    inline-size: calc(100vw - var(--layout-gutter) * 2);
+  }
+}
+
 /* The filter and the typed id are drawn like the selects: an outline on the page's own surface.
    Focus and a refused id keep their colours. */
 .daily-panel input.manage-input {
@@ -412,6 +454,14 @@
 .daily-panel .manage-input[aria-invalid]:focus-visible {
   outline: var(--stroke-ring) solid var(--color-focus-ring);
   outline-offset: var(--stroke-ring-gap);
+}
+
+/* From 40rem one list keeps one row height: a segmented row (Format, Length) takes a select row's
+   padding, so its 48px control sits in a 56px row as the selects do. */
+@media (min-width: 40rem) {
+  .podcast-profile .rows > .settings-row[data-layout="choice"] {
+    padding-block: var(--space-1);
+  }
 }
 
 /* Until the script has mounted, the controls keep their places and take no input. */

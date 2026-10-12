@@ -76,7 +76,8 @@ const scopeIds = group ? group.members.map((member) => member.id) : topic ? [top
 const SCOPES = [
   { key: "daily", label: "Daily", skipped: schedule.skipTopics },
   { key: "weekly", label: "Weekly", skipped: schedule.weekly.skip_topics },
-  { key: "custom", label: "New episodes", skipped: schedule.custom.skip_topics },
+  // Episodes made on request, by the name the Library's filter gives them.
+  { key: "custom", label: "Episodes", skipped: schedule.custom.skip_topics },
 ] as const;
 const inScope = (key: (typeof SCOPES)[number]["key"]): boolean => {
   const skipped = SCOPES.find((scope) => scope.key === key)?.skipped ?? [];
@@ -116,7 +117,7 @@ const editable = topic !== null && !topic.never_publish;
 // A general news topic feeds General episodes by how many outlets carry a story, so it has no weight.
 const general = topic?.origin === "general";
 // What its on switch says it does (topicsPage.ts says it again when it is turned).
-const ON_HINT = "Used in new episodes";
+const ON_HINT = "Used in episodes";
 const OFF_HINT = "Off. Its sources are not read";
 // What Edit topic hands the panel (topicsPanel.ts, TopicFacts). Every topic can change its name; a
 // built-in one keeps what counts, as fixed questions judge it.
@@ -151,7 +152,7 @@ const facts = topic && {
                 {general && topic ? (
                   <div class="settings-row topic-on">
                     <div class="settings-text">
-                      <label class="settings-label" for="topic-on">Read {name}'s sources</label>
+                      <label class="settings-label" for="topic-on">Use {name}</label>
                       <span class="settings-hint" id="topic-on-hint" data-topic-on-hint>
                         {topic.enabled ? ON_HINT : OFF_HINT}
                       </span>
@@ -178,6 +179,7 @@ const facts = topic && {
                       id="scope"
                       labelledby="scope-label"
                       empty="In no podcast"
+                      all="All podcasts"
                       options={SCOPES.map((scope) => ({
                         value: scope.key,
                         label: scope.label,
@@ -203,10 +205,7 @@ const facts = topic && {
                   data-edit-topic={JSON.stringify(facts)}
                   data-needs-js
                 >
-                  <span class="settings-text">
-                    <span class="settings-label">Edit topic</span>
-                    <span class="settings-hint">Its name and what counts</span>
-                  </span>
+                  <span class="settings-label">Edit topic</span>
                   <Icon name="chevronRight" />
                 </button>
                 )}

@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
 import {
   type CardData,
+  chipFilter,
   compareCards,
   dateSearchLine,
   emptyCopy,
@@ -278,5 +279,23 @@ describe("moreMatches", () => {
     expect(moreMatches(1)).toBe("and 1 more");
     expect(moreMatches(3)).toBe("and 3 more");
     expect(moreMatches(0)).toBe("");
+  });
+});
+
+describe("chipFilter", () => {
+  it("is the chip just ticked, whatever else was ticked", () => {
+    expect(chipFilter(["weekly", "daily"], { value: "daily", checked: true })).toBe("daily");
+    expect(chipFilter(["custom"], { value: "custom", checked: true })).toBe("custom");
+  });
+
+  it("shows everything once the ticked chip is unticked", () => {
+    expect(chipFilter([], { value: "weekly", checked: false })).toBe("all");
+  });
+
+  it("reads a page's ticks without a press, and refuses a value it does not offer", () => {
+    expect(chipFilter(["weekly"])).toBe("weekly");
+    expect(chipFilter([])).toBe("all");
+    expect(chipFilter(["all"])).toBe("all");
+    expect(chipFilter(["monthly"])).toBe("all");
   });
 });

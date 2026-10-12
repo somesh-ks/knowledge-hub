@@ -10,7 +10,8 @@ const PIXEL = Buffer.from(
   "base64",
 );
 const SAVED = "Saved. Live in about a minute.";
-const ADDED = "Added. It shows here in about a minute.";
+const ADDED = "Added. Its posts are read after the next update.";
+const ADDED_TOPIC = "Added. Its page opens in about a minute.";
 
 interface Sent {
   passphrase: string;
@@ -143,7 +144,7 @@ test.describe("the Topics list", () => {
     await open(page);
     await page.getByRole("link", { name: /^Design/ }).click();
     await expect(page.getByRole("heading", { level: 1, name: "Design" })).toBeVisible();
-    const crumb = page.getByRole("navigation", { name: "Breadcrumb" }).getByRole("link");
+    const crumb = page.locator(".settings-up");
     await expect(crumb).toHaveText("Topics and sources");
     await expect(crumb).toHaveAttribute("href", LIST);
     await expect(source(page, "Studio Notes")).toBeVisible();
@@ -215,7 +216,7 @@ test.describe("the Topics list", () => {
     await expect(queued).toContainText("Motion design");
     // It is sent at once, so there is no Cancel that would only pretend to drop it.
     await expect(queued.locator("[data-act=cancel]")).toHaveCount(0);
-    await expect(queued).toContainText(ADDED);
+    await expect(queued).toContainText(ADDED_TOPIC);
     await expect(queued.locator("[data-act=cancel]")).toHaveCount(0);
     // Its suggested sources show at once, ranked in the browser as its page will rank them.
     const suggested = queued.getByRole("list", { name: "Suggested sources for Motion design" });
@@ -253,7 +254,7 @@ test.describe("the Topics list", () => {
       .fill("Animation and motion in interfaces.");
     await sheet.getByRole("button", { name: "Add topic", exact: true }).click();
     const queued = page.locator("[data-queued] > li");
-    await expect(queued).toContainText(ADDED);
+    await expect(queued).toContainText(ADDED_TOPIC);
     await queued.getByRole("button", { name: "Add Motion Weekly" }).click();
     await expect(queued.getByRole("button", { name: "Added Motion Weekly" })).toBeDisabled();
     await expect
@@ -268,11 +269,9 @@ test.describe("the Topics list", () => {
 
     await page.reload();
     await open(page);
-    await expect(page.locator("[data-saved-note]")).toHaveText(
-      "Saved. It takes effect after the next update, about a minute.",
-    );
+    await expect(page.locator("[data-saved-note]")).toHaveText(SAVED);
     await expect(queued).toContainText("Motion design");
-    await expect(queued).toContainText(ADDED);
+    await expect(queued).toContainText(ADDED_TOPIC);
     await expect(queued.getByRole("button", { name: "Added Motion Weekly" })).toBeDisabled();
     await page.waitForTimeout(1500);
     expect(sent.length).toBe(before);
@@ -350,12 +349,12 @@ test.describe("a topic's page", () => {
     const { sent } = await setup(page);
     await open(page, CRAFT);
     const field = page.getByRole("button", { name: /^Podcasts/ });
-    await expect(field).toHaveText("Daily, Weekly and New episodes");
+    await expect(field).toHaveText("All podcasts");
     await field.click();
     const list = page.getByRole("listbox", { name: "Podcasts" });
     await expect(list).toBeVisible();
     await list.getByRole("option", { name: "Daily" }).click();
-    await expect(field).toHaveText("Weekly and New episodes");
+    await expect(field).toHaveText("Weekly and Episodes");
     await page.keyboard.press("Escape");
     await expect(list).toBeHidden();
     await expect(field).toBeFocused();
@@ -468,7 +467,7 @@ test.describe("a topic's page", () => {
     await box.check();
     // The second edit waits out the server's ten seconds between edits before it is sent.
     await expect.poll(() => ops(sent).length, { timeout: 15_000 }).toBe(2);
-    await expect(row.locator(".source-name")).toHaveCSS("font-weight", "500");
+    await expect(row.locator(".source-name")).toHaveCSS("font-weight", "400");
     expect(ops(sent)).toEqual([
       { op: "source.set", id: "studio-notes", enabled: false },
       { op: "source.set", id: "studio-notes", enabled: true },
@@ -491,7 +490,11 @@ test.describe("a topic's page", () => {
     await page.getByRole("button", { name: "Add source to Audio interfaces" }).click();
     const sheet = page.getByRole("dialog", { name: "Add a source" });
     await expect(sheet.getByRole("combobox", { name: "Topic" })).toHaveValue("audio_interfaces");
+    // It adds a source to this topic: no switch to a new topic.
+    await expect(sheet.getByRole("radio", { name: "Topic" })).toBeHidden();
     await sheet.getByLabel("Site or feed address").fill("newsroom.example");
+    // The feed address ends in an ellipsis rather than breaking mid-word.
+    await expect(sheet.locator(".source-facts-url")).toHaveCSS("white-space", "nowrap");
     await sheet.getByRole("button", { name: "Add source", exact: true }).click();
     const row = page.locator("[data-sources] li.source-row.is-new");
     await expect(row).toContainText("Newsroom Example");
@@ -501,14 +504,16 @@ test.describe("a topic's page", () => {
     ]);
   });
 
-  test("removing a custom topic waits with Undo, then says the page goes", async ({ page }) => {
+  test("removing a custom topic waits with Undo, then goes back to the list without it", async ({
+    page,
+  }) => {
     const { sent } = await setup(page);
     await open(page, "/settings/topics/audio_interfaces");
     await page.getByRole("button", { name: "Remove topic Audio interfaces" }).click();
     await expect(toastText(page)).toHaveText("Removing Audio interfaces");
     await expect(page.getByRole("button", { name: "Keep topic Audio interfaces" })).toBeVisible();
-    await expect(page.getByText("Removed.", { exact: true })).toBeVisible(AFTER_UNDO);
-    await expect(page.getByRole("button", { name: /^Podcasts/ })).toBeHidden();
+    await expect(page).toHaveURL(/\/settings\/topics$/, AFTER_UNDO);
+    await expect(page.locator('a[href="/settings/topics/audio_interfaces"]')).toBeHidden();
     expect(ops(sent)).toEqual([{ op: "topic.remove", id: "audio_interfaces" }]);
   });
 
@@ -550,9 +555,9 @@ test.describe("a topic's page", () => {
     await sheet.getByRole("button", { name: "Close" }).click();
     // No list of podcasts it can never join: one switch, named for what it does.
     await expect(page.getByRole("button", { name: /^Podcasts/ })).toHaveCount(0);
-    const on = page.getByRole("switch", { name: "Read World's sources" });
+    const on = page.getByRole("switch", { name: "Use World" });
     await expect(on).toBeChecked();
-    await expect(on).toHaveAccessibleDescription("Used in new episodes");
+    await expect(on).toHaveAccessibleDescription("Used in episodes");
     await expect(page.getByText("Not read while World is off.")).toBeHidden();
     await on.uncheck();
     await expect(on).toHaveAccessibleDescription("Off. Its sources are not read");
@@ -570,9 +575,12 @@ test.describe("a topic's page", () => {
     await open(page, "/settings/topics/design");
     await page.getByRole("button", { name: /^Podcasts/ }).click();
     const list = page.getByRole("listbox");
+    await list.evaluate((node) =>
+      Promise.all(node.getAnimations().map((animation) => animation.finished)),
+    );
     const box = await list.boundingBox();
     // Never narrower than 14rem, so the options never wrap word by word.
-    expect(box?.width ?? 0).toBeGreaterThanOrEqual(224);
+    expect(box?.width ?? 0).toBeGreaterThanOrEqual(223.5);
     // Every option, hint included, fits inside the list without breaking word by word.
     for (const label of await list.locator(".multiselect-text").all()) {
       const inner = await label.boundingBox();
@@ -586,6 +594,10 @@ test.describe("a topic's page", () => {
     expect(await page.evaluate(() => document.documentElement.scrollWidth)).toBeLessThanOrEqual(
       360,
     );
+    // The value is read whole at 360: none of it is cut off.
+    const value = page.locator("[data-multiselect-value]");
+    await expect(value).toHaveText("All podcasts");
+    expect(await value.evaluate((node) => node.scrollWidth <= node.clientWidth)).toBe(true);
   });
 
   test("Suggested + discs end where the checkboxes above them end", async ({ page }) => {
@@ -677,9 +689,8 @@ test.describe("a topic's suggested sources", () => {
     await expect(
       region(page).getByRole("heading", { level: 2, name: "Suggested sources" }),
     ).toBeVisible();
-    await expect(
-      region(page).getByText("Feeds that fit this topic. Add one to start reading it."),
-    ).toBeVisible();
+    // No line explains the list: the heading says it.
+    await expect(region(page).locator(".manage-quiet")).toHaveCount(0);
     // The five that fit Design and the topics it gathers best, best first. Type and Grid is a sixth,
     // and Model Ledger, which the owner reads already, is not offered.
     await expect(names(page)).toHaveText([
@@ -709,9 +720,22 @@ test.describe("a topic's suggested sources", () => {
     await expect(row.locator(".source-name")).toHaveText("Pixel Ledger");
     await expect(row.getByRole("link")).toHaveCount(0);
     await expect(row.locator(".source-host")).toHaveText("pixel-ledger.example");
-    await expect(row.locator(".source-line")).toHaveText(
-      "Visual design critique and case studies \u00b7 Posts daily",
+    // Drawn as a source is: the site and how often it posts on line 2, what it covers on line 3.
+    await expect(row.locator(".source-meta .source-host")).toHaveText("pixel-ledger.example");
+    await expect(row.locator(".source-meta .source-cadence")).toHaveText("Posts daily");
+    await expect(row.locator(".source-about")).toHaveText(
+      "Visual design critique and case studies",
     );
+    await expect(row.locator(".source-name")).toHaveCSS("font-weight", "400");
+    const height = (await row.boundingBox())?.height ?? 0;
+    expect(height).toBeGreaterThanOrEqual(71.5);
+    const own = (await source(page, "Studio Notes").boundingBox())?.height ?? 0;
+    expect(own).toBeGreaterThanOrEqual(71.5);
+    // The plus is a plain icon button: no disc behind it.
+    const disc = await row
+      .getByRole("button", { name: "Add Pixel Ledger" })
+      .evaluate((node) => getComputedStyle(node, "::before").backgroundColor);
+    expect(disc).toBe("rgba(0, 0, 0, 0)");
     // The button is a 44px target.
     const add = row.getByRole("button", { name: "Add Pixel Ledger" });
     const box = await add.boundingBox();
@@ -848,9 +872,7 @@ test.describe("editing a topic", () => {
     await sheet.getByLabel("What should count as this topic").fill("Spatial audio in apps.");
     await sheet.getByRole("button", { name: /^Podcasts/ }).click();
     await sheet.getByRole("option", { name: "Weekly" }).click();
-    await expect(sheet.getByRole("button", { name: /^Podcasts/ })).toHaveText(
-      "Daily and New episodes",
-    );
+    await expect(sheet.getByRole("button", { name: /^Podcasts/ })).toHaveText("Daily and Episodes");
     await page.keyboard.press("Escape");
     await expect(sheet).toBeVisible();
     await sheet.getByRole("button", { name: "Add topic", exact: true }).click();
@@ -913,6 +935,62 @@ test.describe("a refused lookup", () => {
     await expect(sheet.getByRole("button", { name: "Add source", exact: true })).toBeDisabled();
     await page.keyboard.press("Escape");
     await expect(sheet).toBeHidden();
+  });
+});
+
+test.describe("the Add panel on a 390px phone", () => {
+  test.use({ viewport: { width: 390, height: 844 }, allowNetworkErrors: true });
+
+  const kindHeight = (page: Page) =>
+    page.locator(".topics-panel-kind").evaluate((node) => {
+      const probe = document.createElement("div");
+      probe.style.blockSize = "var(--segmented-height)";
+      document.body.append(probe);
+      const want = probe.getBoundingClientRect().height;
+      probe.remove();
+      return { got: node.getBoundingClientRect().height, want };
+    });
+  const fieldTop = (page: Page) =>
+    page
+      .getByLabel("Site or feed address")
+      .evaluate((node) => Math.round(node.getBoundingClientRect().top));
+
+  test("the Topic | Source switch is one segmented height, and the address never moves", async ({
+    page,
+  }) => {
+    await setup(page);
+    let fail = false;
+    await page.route("**/api/source-preview**", (route) =>
+      fail
+        ? route.fulfill({
+            status: 422,
+            contentType: "application/json",
+            body: JSON.stringify({ error: "unreachable", message: "x" }),
+          })
+        : route.fulfill({
+            status: 200,
+            contentType: "application/json",
+            body: JSON.stringify(PREVIEW),
+          }),
+    );
+    await open(page);
+    await page.getByRole("button", { name: "Add a topic or a source" }).click();
+    const topic = await kindHeight(page);
+    expect(topic.got).toBeCloseTo(topic.want, 0);
+    await page.getByRole("radio", { name: "Source" }).check();
+    const sheet = page.getByRole("dialog", { name: "Add a source" });
+    await expect(sheet).toBeVisible();
+    const source = await kindHeight(page);
+    expect(source.got).toBeCloseTo(source.want, 0);
+    const before = await fieldTop(page);
+    await sheet.getByLabel("Site or feed address").fill("newsroom.example");
+    await expect(sheet.getByText("Newsroom Example")).toBeVisible();
+    expect(await fieldTop(page)).toBe(before);
+    fail = true;
+    await sheet.getByLabel("Site or feed address").fill("nothing.example");
+    await expect(sheet.locator("#panel-source-url-error")).toContainText("could not be read");
+    expect(await fieldTop(page)).toBe(before);
+    expect((await kindHeight(page)).got).toBeCloseTo(source.want, 0);
   });
 });
 
