@@ -29,6 +29,9 @@ import BaseLayout from "../layouts/BaseLayout.astro";
     const title = document.querySelector<HTMLElement>("#main h1");
     const body = document.querySelector<HTMLElement>("#main .page-title + p, #main h1 ~ p");
     const retry = document.querySelector<HTMLAnchorElement>(".empty-actions a[data-astro-reload]");
+    // The wifi-off glyph would contradict the title: it goes with the offline state.
+    const icon = document.querySelector<SVGElement>("#main .empty-icon");
+    if (icon) icon.style.display = "none";
     if (title) title.textContent = "You are back online";
     if (body) body.textContent = "Reload to open the page you asked for.";
     if (retry) retry.textContent = "Reload";

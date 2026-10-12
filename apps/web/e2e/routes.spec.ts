@@ -20,8 +20,18 @@ test.describe("routes and headers", () => {
     expect(response?.status()).toBe(404);
     await expect(page.getByRole("heading", { level: 1 })).toHaveText("Page not found");
     await expect(page.getByRole("link", { name: "Go to Today" })).toHaveAttribute("href", "/");
-    // One way on: the navigation already carries the rest.
+    // One way on: the navigation already carries the rest. The body does not repeat the button.
     await expect(page.locator(".empty-actions a")).toHaveCount(1);
+    await expect(page.locator("#main .empty p")).toHaveText("Check the address.");
+    // From 80rem the empty state centres in the pane, not in the reading track beside an empty aside.
+    const size = page.viewportSize();
+    if (size && size.width >= 1280) {
+      const main = await page.locator("#main").boundingBox();
+      const pane = await page.locator(".shell").boundingBox();
+      const middle = (box: { x: number; width: number } | null) =>
+        box ? box.x + box.width / 2 : 0;
+      expect(Math.abs(middle(main) - middle(pane))).toBeLessThan(2);
+    }
   });
 
   test("the not found page for a missing briefing or episode reads the same", async ({ page }) => {
@@ -29,6 +39,8 @@ test.describe("routes and headers", () => {
       const response = await page.goto(path);
       expect(response?.status(), path).toBe(404);
       await expect(page.getByRole("heading", { level: 1 })).toHaveText("Page not found");
+      // Nothing names a briefing for a missing episode.
+      await expect(page.locator("#main")).not.toContainText("briefing");
     }
   });
 
@@ -85,6 +97,8 @@ test.describe("routes and headers", () => {
     await page.goto("/offline");
     // Online, the page never claims to be offline: it says the connection is back.
     await expect(page.getByRole("heading", { level: 1 })).toHaveText("You are back online");
+    // The wifi-off glyph goes with the offline state.
+    await expect(page.locator("#main .empty-icon")).toBeHidden();
     await expect(page.getByRole("link", { name: "Reload" })).toBeVisible();
     await expect(page.getByRole("link", { name: "Open Library" })).toHaveAttribute(
       "href",

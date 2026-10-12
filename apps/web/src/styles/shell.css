@@ -553,6 +553,11 @@ html[data-mini="visible"] main {
     grid-row: 1;
   }
 
+  /* An empty state (offline, not found) has no contents list beside it: it centres in the pane. */
+  .shell > main:has(> .empty) {
+    grid-column: 1 / -1;
+  }
+
   .shell > .aside {
     grid-column: 2;
     grid-row: 1;
