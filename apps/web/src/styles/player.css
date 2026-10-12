@@ -428,32 +428,33 @@
   text-align: center;
 }
 
-/* Room for the title, a story of two lines and the source, kept at the bottom of the block: the
-   three sit together whatever the story's length, and nothing below moves when it changes. Only a
-   recording with a timeline of stories changes its line; any other keeps no empty room. */
+/* Room for the title, a story of one line and the source: the space above the scrubber is the same
+   for every story, and nothing below moves when it changes or before story 1, when no story line
+   shows. Only a recording with a timeline of stories changes its line; any other keeps no empty
+   room, and neither does a failure, which shows no story. */
 .player-meta[data-stories] {
   min-height: calc(
     var(--text-title-size) *
     var(--text-title-leading) +
     var(--font-size-label) *
-    var(--font-leading-label) *
-    2 +
+    var(--font-leading-label) +
     var(--size-touch) +
     var(--space-1) *
     2
   );
 }
 
-/* Two lines of room are kept, so a long headline changing to a short one moves nothing below. */
+/* One line: the full headline is in the Stories list and on the bar. */
 .player-story {
   display: -webkit-box;
+  max-width: 100%;
   overflow: hidden;
   color: var(--color-on-surface-muted);
   font-size: var(--font-size-label);
   line-height: var(--font-leading-label);
   text-wrap: balance;
   -webkit-box-orient: vertical;
-  -webkit-line-clamp: 2;
+  -webkit-line-clamp: 1;
 }
 
 /* Two lines, so a long title reads in full on the page instead of one ellipsised line. */
@@ -1195,11 +1196,19 @@
   }
 }
 
-/* With a finger the open page keeps its own touch-sized transport and clock, so the bar under it
-   shows only what is playing: nothing said twice. Hidden in place, so the middle group holds still. */
-@media (min-width: 64rem) and (pointer: coarse) {
+/* Wherever the bar stays under the open page, the page keeps its own transport, so the bar shows only
+   what is playing: nothing said twice, and one filled play control. Hidden in place, so the middle
+   group holds still. With a mouse from 64rem the bar keeps its clock beside its seek line: the page
+   has no timeline there. */
+@media (min-width: 40rem) {
   .player[data-open="true"] .dock-transport {
     visibility: hidden;
+  }
+}
+
+@media (min-width: 64rem) and (hover: hover) and (pointer: fine) {
+  .player[data-open="true"] .dock-time {
+    visibility: visible;
   }
 }
 
@@ -1430,6 +1439,10 @@
 .scrubber-bubble-item {
   display: grid;
   justify-items: center;
+}
+
+.scrubber-bubble-item[data-empty] {
+  display: none;
 }
 
 .scrubber-bubble-time > *,
@@ -2568,43 +2581,50 @@
     min-height: 0;
   }
 
-  /* Under the cover: back ten, play, forward ten, then the speed. Play is here as well as on the bar,
-     as in YouTube Music's full view, so the one control that matters sits by the art. */
-  /* Play stays on the cover's centre line: the skips sit either side of it and the speed hangs off
+  /* Under the cover, the whole transport: previous, back ten, play, forward ten, next, then the
+     speed. While the page is open the bar keeps only its clock and seek line, so this is the one
+     play control, as in YouTube Music's full view, and it sits by the art. */
+  /* Play stays on the cover's centre line: the steps sit either side of it and the speed hangs off
      the right in a column that the empty one on the left balances. Children in order: previous,
      back, play, forward, next, speed (last, so Tab follows what the eye sees). */
   .transport {
     display: grid;
     grid-row: 1;
     grid-column: 1 / -1;
-    grid-template-columns: minmax(0, 1fr) auto auto auto minmax(0, 1fr);
+    grid-template-columns: minmax(0, 1fr) repeat(5, auto) minmax(0, 1fr);
     align-items: center;
-    column-gap: var(--space-4);
+    column-gap: var(--space-3);
     padding-block: 0;
   }
 
-  .transport-btn:not(.transport-skip, [data-primary]) {
-    display: none;
-  }
-
-  .transport > :nth-child(2) {
+  .transport > :nth-child(1) {
     grid-row: 1;
     grid-column: 2;
   }
 
-  .transport > :nth-child(3) {
+  .transport > :nth-child(2) {
     grid-row: 1;
     grid-column: 3;
   }
 
-  .transport > :nth-child(4) {
+  .transport > :nth-child(3) {
     grid-row: 1;
     grid-column: 4;
   }
 
-  .transport > .speed {
+  .transport > :nth-child(4) {
     grid-row: 1;
     grid-column: 5;
+  }
+
+  .transport > :nth-child(5) {
+    grid-row: 1;
+    grid-column: 6;
+  }
+
+  .transport > .speed {
+    grid-row: 1;
+    grid-column: 7;
     justify-self: start;
   }
 

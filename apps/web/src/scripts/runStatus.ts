@@ -173,6 +173,9 @@ function show(run: Stored | null): void {
             ? run.label
             : (root.dataset[key] ?? root.dataset[run.phase]);
     if (text && text.textContent !== (line ?? "")) text.textContent = line ?? "";
+    // The status region hears the line alone, and only when it changes.
+    const announce = root.querySelector("[data-run-announce]");
+    if (announce && announce.textContent !== (line ?? "")) announce.textContent = line ?? "";
     fill(card, run);
   }
   const library = card.querySelector<HTMLAnchorElement>("[data-run-library]");
@@ -208,7 +211,7 @@ function show(run: Stored | null): void {
 
 /** The bar: at the start of the stage at once, then slowly toward its end, and never back. */
 let creep = 0;
-function fill(card: HTMLElement, run: Stored): void {
+export function fill(card: HTMLElement, run: Stored): void {
   // A rewrite or a removal has no last stage of its own: the page has nothing to wait for.
   const total = (run.stages ?? 3) - (run.kind ? 1 : 0);
   const stage = Math.min(run.stage ?? 0, total - 1);
@@ -216,6 +219,15 @@ function fill(card: HTMLElement, run: Stored): void {
   if (card.dataset.fill === key) return;
   card.dataset.fill = key;
   clearTimeout(creep);
+  // A new run (a Try again) starts from nothing: the failed run's fill is not its progress. The bar
+  // never goes back within one run only.
+  if (card.dataset.run !== String(run.id)) {
+    card.dataset.run = String(run.id);
+    card.style.setProperty("--run-to", "0");
+    card.style.setProperty("--run-span", "0s");
+    // The empty bar is drawn before the new stage's fill starts from it.
+    card.getBoundingClientRect();
+  }
   const at = (to: number, seconds: number) => {
     const now = Number(card.style.getPropertyValue("--run-to")) || 0;
     card.style.setProperty("--run-to", String(Math.max(now, to)));

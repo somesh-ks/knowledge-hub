@@ -51,7 +51,9 @@ function DockSeek({ duration }: { duration: number }) {
   const spoken = drag ?? Math.min(second, whole);
   const timeline = state.track?.timeline ?? null;
   const itemCount = timeline?.items.length ?? 0;
-  const at = itemIndexAt(timeline, spoken);
+  // The story from the exact playhead: a story starting at 0:18.6 is the one heard at 0:18.6, which
+  // the floored second would put in the rundown before it.
+  const at = itemIndexAt(timeline, value);
   const section = timeline?.sections.find((entry) => entry.slug === timeline.items[at]?.section);
 
   function move(next: number): void {
@@ -204,15 +206,33 @@ export default function PlayerBar() {
   const playing = isPlayingStatus(state.status);
   const headline = item?.headline ?? digest?.title ?? "";
 
+  // A story's place is told while one is being read. The rundown before story 1 is none, and
+  // "Story 1 of 1" says nothing: the line then says what the recording is.
   let caption =
-    section && itemCount > 0
+    item && section && itemCount > 1
       ? storyCaption(timeline ?? null, state.itemIndex, storySectionName(digest, section))
       : recordingCaption(digest, state.duration);
   if (state.error) caption = errorSummary(state.error.kind);
   else if (state.interrupted) caption = INTERRUPTED_LINE;
 
   // The bar shows once something has played, so what it holds is laid out: the timeline steps.
+  // In the rundown before story 1, Previous goes to 0:00 and has nowhere further to go from there.
+  const atStart = useSyncExternalStore(
+    store.onSecond,
+    () => store.getTime() <= 0,
+    () => true,
+  );
   const isLastItem = itemCount === 0 || state.itemIndex >= itemCount - 1;
+  const step = {
+    previousDisabled: itemCount === 0 || (state.itemIndex < 0 && atStart),
+    nextDisabled: isLastItem,
+    previous: () => {
+      store.previous();
+    },
+    next: () => {
+      if (!isLastItem) store.next();
+    },
+  };
   const open = useSyncExternalStore(
     playerSheet.subscribe,
     () => playerSheet.getSnapshot().open,
@@ -244,8 +264,8 @@ export default function PlayerBar() {
           className="dock-btn dock-wide press"
           type="button"
           aria-label="Previous story"
-          aria-disabled={itemCount === 0 || undefined}
-          onClick={() => store.previous()}
+          aria-disabled={step.previousDisabled || undefined}
+          onClick={step.previous}
         >
           <Icon name="skipBack" />
         </button>
@@ -266,10 +286,8 @@ export default function PlayerBar() {
           className="dock-btn press"
           type="button"
           aria-label="Next story"
-          aria-disabled={isLastItem || undefined}
-          onClick={() => {
-            if (!isLastItem) store.next();
-          }}
+          aria-disabled={step.nextDisabled || undefined}
+          onClick={step.next}
         >
           <Icon name="skipForward" />
         </button>

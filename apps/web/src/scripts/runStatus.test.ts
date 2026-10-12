@@ -3,7 +3,30 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 const prewarmEpisode = vi.fn(async (_id: string) => undefined);
 vi.mock("../narration/prewarmEpisode", () => ({ prewarmEpisode }));
 
-const { resumeRun, SITE_POLL_MS } = await import("./runStatus");
+const { fill, resumeRun, SITE_POLL_MS } = await import("./runStatus");
+
+describe("the progress bar", () => {
+  it("starts a new run (a Try again) from empty, and never goes back within one run", () => {
+    vi.stubGlobal("matchMedia", () => ({ matches: true }));
+    const style = new Map<string, string>();
+    const card = {
+      dataset: {} as Record<string, string>,
+      style: {
+        getPropertyValue: (name: string) => style.get(name) ?? "",
+        setProperty: (name: string, value: string) => style.set(name, value),
+      },
+      getBoundingClientRect: () => ({}),
+    } as unknown as HTMLElement;
+    fill(card, { id: 7, phase: "failed", stage: 2, stages: 4 });
+    expect(Number(style.get("--run-to"))).toBeCloseTo(2 / 4);
+    fill(card, { id: 7, phase: "running", stage: 1, stages: 4 });
+    expect(Number(style.get("--run-to"))).toBeCloseTo(2 / 4);
+    // Try again: run 8 is queued, with none of run 7's progress.
+    fill(card, { id: 8, phase: "queued", stage: 0, stages: 4 });
+    expect(Number(style.get("--run-to"))).toBe(0);
+    vi.unstubAllGlobals();
+  });
+});
 
 const OLD = { episode_at: "2020-01-01T00:00:00Z", episode_id: "old" };
 

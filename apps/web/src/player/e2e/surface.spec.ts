@@ -461,11 +461,13 @@ test.describe("one surface @surface", () => {
     expect(Math.abs(now.sheet.width - now.surface.width)).toBeLessThanOrEqual(1);
     expect(Math.abs(now.sheet.y + now.sheet.height - now.dock.y)).toBeLessThanOrEqual(1);
     expect(Math.abs(now.dock.y + now.dock.height - now.window.height)).toBeLessThanOrEqual(1);
-    // The bar is not behind the modal: its own play button still answers.
-    await finger.press(lab.dock.getByRole("button", { name: "Pause" }));
+    // The bar is not behind the modal, but it does not say the page's transport twice: its play
+    // button steps aside while the page above holds the one play control.
+    await expect(lab.dock.getByRole("button", { name: "Pause" })).toBeHidden();
+    await finger.press(
+      lab.dialog.getByRole("button", { name: "Pause", exact: true }).filter({ visible: true }),
+    );
     await expect(lab.root).toHaveAttribute("data-player-state", "paused");
-    await finger.press(lab.dock.getByRole("button", { name: "Play", exact: true }));
-    await expect(lab.root).toHaveAttribute("data-player-state", "playing");
     await lab.expanded();
     // And its open button closes the page it opened.
     await finger.press(lab.openButton);

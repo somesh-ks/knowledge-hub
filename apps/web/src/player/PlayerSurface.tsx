@@ -175,22 +175,27 @@ export default function PlayerSurface() {
                 </div>
               </div>
               {/* Room for a changing story is kept only where the story changes: a recording with
-                  no timeline of stories has one fixed line, and no empty gap under it. */}
+                  no timeline of stories has one fixed line, and no empty gap under it. After a
+                  failure nothing is being read, and no room is kept for it. */}
               <div
                 className="player-meta"
-                data-stories={(timeline?.items.length ?? 0) > 0 ? "" : undefined}
+                data-stories={
+                  (timeline?.items.length ?? 0) > 0 && state.status !== "error" ? "" : undefined
+                }
               >
                 <h2 className="player-title" id={TITLE_ID} title={title}>
                   {title}
                 </h2>
-                {/* The story being read, and where it came from. Until the first story starts the line
-                    says what the recording is, so the room kept for it is never an empty gap. */}
-                {/* After a failure nothing is being read: no story line and no source to follow. */}
+                {/* The story being read, and where it came from. A recording without stories says
+                    what it is. In an episode's rundown, before story 1, no story is being read: the
+                    room stays, so nothing moves when story 1 starts. */}
                 {state.status === "error" ? null : (
                   <>
-                    <p className="player-story">
-                      {item?.headline ?? recordingCaption(digest, state.duration)}
-                    </p>
+                    {item || !timeline?.items.length ? (
+                      <p className="player-story">
+                        {item?.headline ?? recordingCaption(digest, state.duration)}
+                      </p>
+                    ) : null}
                     <SourceLink />
                   </>
                 )}

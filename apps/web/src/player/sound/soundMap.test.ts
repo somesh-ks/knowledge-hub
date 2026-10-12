@@ -139,6 +139,10 @@ describe("announcements", () => {
     expect(
       announcementForEvent({ type: "itemChanged", index: 1, cause: "keyboard" }, track),
     ).toBeNull();
+    // Previous from an episode's rundown goes to its start, which is no story.
+    expect(
+      announcementForEvent({ type: "itemChanged", index: -1, cause: "skip-previous" }, track),
+    ).toBe("Back to the start.");
   });
 
   it("announces speed, the end and errors in plain words", () => {

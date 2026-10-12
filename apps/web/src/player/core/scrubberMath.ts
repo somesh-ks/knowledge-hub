@@ -169,7 +169,8 @@ export function scrubberValueText(
   itemCount: number,
 ): string {
   const base = `${formatClock(timeSeconds)} of ${formatClock(durationSeconds)}`;
-  if (itemCount === 0) return base;
+  // Before the first story (an episode's rundown) there is no story to name.
+  if (itemCount === 0 || itemIndex < 0 || itemIndex >= itemCount) return base;
   const story = `story ${itemIndex + 1} of ${itemCount}`;
   return sectionTitle ? `${base}, ${story}, ${sectionTitle}` : `${base}, ${story}`;
 }

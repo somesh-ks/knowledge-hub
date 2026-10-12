@@ -266,6 +266,31 @@ describe("seeking and items", () => {
     expect(harness.store.getTime()).toBe(0);
   });
 
+  it("treats a lead-in before the first story as no story: Next goes to story 1, Previous to 0:00", () => {
+    const harness = createHarness();
+    const led = makeDigest({
+      items: makeDigest().items.map((entry, index) =>
+        index === 0 ? { ...entry, start_ms: 18_600 } : entry,
+      ),
+    });
+    startPlaying(harness, led);
+    harness.store.seekTo(5_000);
+    expect(harness.store.getState().itemIndex).toBe(-1);
+    expect(harness.store.next()).toBe(true);
+    expect(harness.store.getTime()).toBe(18.6);
+    expect(harness.store.getState().itemIndex).toBe(0);
+    harness.store.seekTo(5_000);
+    expect(harness.store.previous()).toBe(true);
+    expect(harness.store.getTime()).toBe(0);
+    expect(harness.store.getState().itemIndex).toBe(-1);
+    // At 0:00 there is nothing further back.
+    expect(harness.store.previous()).toBe(false);
+    // Previous from the first seconds of story 1 goes back to the rundown's start.
+    harness.store.seekTo(19_000);
+    harness.store.previous();
+    expect(harness.store.getTime()).toBe(0);
+  });
+
   it("emits itemChanged for a skip even when the previous press only restarts the item", () => {
     const harness = createHarness();
     startPlaying(harness);

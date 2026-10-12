@@ -123,7 +123,7 @@ export function storyEntries(
 /**
  * The story to go to from `seconds` by Previous (-1) or Next (+1), among stories placed by an
  * estimate: Previous goes to the start of the story being heard, Next to the one after it. Null
- * when there is none that way.
+ * when there is none that way: before the first story (the rundown) Previous has no story behind it.
  */
 export function steppedStory(
   entries: readonly StoryEntry[],
@@ -135,6 +135,6 @@ export function steppedStory(
   for (const [index, entry] of placed.entries()) {
     if ((entry.startSec ?? 0) <= seconds) at = index;
   }
-  const target = direction === 1 ? at + 1 : Math.max(0, at);
+  const target = direction === 1 ? at + 1 : at;
   return placed[target] ?? null;
 }

@@ -103,7 +103,8 @@ describe("steppedStory", () => {
     expect(steppedStory(entries, 3, 1)?.id).toBe("b");
     expect(steppedStory(entries, 8, 1)).toBeNull();
     expect(steppedStory(entries, 8, -1)?.id).toBe("b");
-    expect(steppedStory(entries, 0, -1)?.id).toBe("a");
+    // In the rundown before story a, Previous has no story behind it (it never goes forward).
+    expect(steppedStory(entries, 0, -1)).toBeNull();
   });
 
   it("has nowhere to go without placed stories", () => {
