@@ -22,9 +22,7 @@ function card(overrides: Partial<CardData> = {}): CardData {
     date: "2026-10-07",
     order: 0,
     kind: "regular",
-    stories: 12,
     minutes: 8,
-    hasAudio: true,
     search: normalize(
       ["2026-10-07", "Wednesday 7 October", "Pixel 11 gets a brighter screen The Verge"].join("\n"),
     ),
@@ -92,7 +90,7 @@ describe("matchesFilter", () => {
   });
 
   it("puts everything made on request under Episodes: episodes and generated briefings", () => {
-    const episode = card({ kind: "episode", hasAudio: false });
+    const episode = card({ kind: "episode" });
     const generated = card({ kind: "on-demand" });
     for (const made of [episode, generated]) {
       expect(matchesFilter(made, "custom")).toBe(true);
@@ -106,8 +104,8 @@ describe("matchesFilter", () => {
 });
 
 describe("compareCards", () => {
-  const older = card({ date: "2026-10-05", minutes: 12, stories: 8 });
-  const newer = card({ date: "2026-10-07", minutes: 8, stories: 12 });
+  const older = card({ date: "2026-10-05", minutes: 12 });
+  const newer = card({ date: "2026-10-07", minutes: 8 });
 
   it("sorts by date both ways", () => {
     expect([older, newer].sort((a, b) => compareCards(a, b, "newest"))).toEqual([newer, older]);

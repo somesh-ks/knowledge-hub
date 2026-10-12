@@ -6,12 +6,14 @@
 import type { PlayerDigestData } from "../../types/contracts";
 import { formatClock } from "./formatTime";
 import type { ItemChangeCause, PlayerState } from "./playerTypes";
+import type { Remembered } from "./resume";
 
 export type ItemVisualState = "played" | "current" | "";
 
 /**
  * `data-state` for an item, given the live item index. Absent means upcoming. A story is played when
- * it was heard (see `createHeardTracker`), and current while the playhead is in it.
+ * it was heard (see `createHeardTracker`), and current while the playhead is in it, unless playing
+ * failed: then nothing is current, as the hero and the bar say Try again.
  */
 export function itemVisualState(
   index: number,
@@ -19,9 +21,10 @@ export function itemVisualState(
   currentIndex: number,
   ended: boolean,
   heard: ReadonlySet<number>,
+  failed = false,
 ): ItemVisualState {
   if (!live) return "";
-  if (index === currentIndex) return ended ? "played" : "current";
+  if (index === currentIndex && !failed) return ended ? "played" : "current";
   return heard.has(index) ? "played" : "";
 }
 
@@ -33,8 +36,11 @@ export function itemVisualState(
  */
 export interface HeardTracker {
   readonly heard: ReadonlySet<number>;
-  /** A recording was loaded, the playhead at story `index`. */
-  reset(index: number): void;
+  /**
+   * A recording was loaded, the playhead at story `index`, with the stories the device remembers
+   * hearing; `finished` when it was last heard to the end, so the next move starts afresh.
+   */
+  reset(index: number, seed?: Iterable<number>, finished?: boolean): void;
   /** The playhead moved into story `to`. */
   moved(to: number, cause: ItemChangeCause): void;
   /** The recording ended in the story the playhead was in. */
@@ -47,10 +53,11 @@ export function createHeardTracker(): HeardTracker {
   let finished = false;
   return {
     heard,
-    reset(index) {
+    reset(index, seed = [], done = false) {
       heard.clear();
+      for (const value of seed) heard.add(value);
       at = index;
-      finished = false;
+      finished = done;
     },
     moved(to, cause) {
       if (finished) {
@@ -151,17 +158,12 @@ export function idleBriefingChip(length: string, noun: ChipNoun = "briefing"): C
   return { state: "idle", playing: false, label: length, name: `Play the ${noun}, ${length}` };
 }
 
-/** What the device remembers of a briefing: where it was left, and whether it was heard to the end. */
-export interface Remembered {
-  seconds: number;
-  played: boolean;
-}
-
 /**
  * The chip of a briefing the player is not holding: it offers what the Library's card says of it, the
- * time left where it was left, or Played, and otherwise its length.
+ * time left where it was left, or Played, and otherwise its length. A briefing without audio counts
+ * its length from the page's estimate, the minutes its card says.
  */
-function rememberedChip(
+export function rememberedChip(
   remembered: Remembered | undefined,
   totalSeconds: number,
   noun: ChipNoun,
@@ -179,6 +181,16 @@ function rememberedChip(
     };
   }
   return idleBriefingChip(briefingLengthLabel(totalSeconds * 1000), noun);
+}
+
+/**
+ * The floating Play button's words, from the chip's: the verb of its name before a length or a time
+ * left ("Resume · 1 min left"), a state alone ("Played").
+ */
+export function fabLabel(view: ChipView): string {
+  return view.state === "idle" || view.state === "current"
+    ? `${view.name.split(" ", 1)[0]} · ${view.label}`
+    : view.label;
 }
 
 /** A story's chip before it has played. `length` is empty while the briefing has no audio. */

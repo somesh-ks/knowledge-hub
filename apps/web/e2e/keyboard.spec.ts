@@ -44,7 +44,7 @@ test.describe("keyboard", () => {
       "a: Today",
       "a: Library",
       "a: Settings",
-      ...(wide ? [] : ["button: Play this briefing, 1 min"]),
+      ...(wide ? [] : ["button: Play the briefing, 1 min"]),
       "button: More actions",
       "button: Play the briefing, 1 min",
       // A story is its headline link, then its play chip; the publisher beside the chip is only

@@ -22,7 +22,9 @@ const unavailable = mode === "expired" ? AUDIO_UNAVAILABLE_COPY.expired : null;
   {/* The page's main action: the hero's chip is filled (hero.css). The player owns it once it
        hydrates (readerSync writes its state, label and name). Without audio the chip still works:
        pressing it makes the audio first (narration on Play). Only audio that has expired gets a
-       line under it, which the floating Play button below 64rem (PlayFab.astro) points to as well. */}
+       line under it, which the floating Play button below 64rem (PlayFab.astro) points to as well.
+       data-minutes is the length as a number, from which a page without audio counts the time left
+       where the device left it, as its card does. */}
   <PlayChip
     label={chip.label}
     state="idle"
@@ -30,6 +32,7 @@ const unavailable = mode === "expired" ? AUDIO_UNAVAILABLE_COPY.expired : null;
     aria-describedby={unavailable ? "play-hint" : undefined}
     data-play-digest={digestId}
     data-noun={noun}
+    data-minutes={Number.parseInt(length, 10)}
   />
 </div>
 {unavailable && <p class="hero-hint" id="play-hint">{unavailable.label}</p>}

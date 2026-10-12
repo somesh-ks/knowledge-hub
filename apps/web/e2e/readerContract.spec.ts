@@ -289,6 +289,8 @@ test.describe("how the page reacts to those attributes", () => {
     page,
   }) => {
     await page.goto(SILENT_DIGEST);
+    // Once the player has written the chip's face, which it now does on a page without audio too.
+    await hydrated(page);
     await page.evaluate(() => {
       document.querySelector(".hero [data-play-digest]")?.setAttribute("aria-disabled", "true");
       (window as unknown as { __clicks: number }).__clicks = 0;

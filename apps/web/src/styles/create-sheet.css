@@ -211,6 +211,17 @@ html:has(dialog[open]) .create-fab {
   }
 }
 
+/* Play says the hero chip's words, and "Resume · 12 min left" is wider than "New episode". */
+.play-fab .create-fab-label {
+  max-width: 10rem;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .play-fab[data-folded] .create-fab-label {
+    max-width: 10rem;
+  }
+}
+
 @media (min-width: 64rem) {
   .create-fab {
     display: none;
