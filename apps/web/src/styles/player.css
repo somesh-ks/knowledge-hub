@@ -803,6 +803,9 @@
  */
 .dock-seek {
   position: absolute;
+  /* Drawn along the bar's top edge and first in the markup: the first Tab stop, ahead of the rows
+     that the bar's reading flow orders. */
+  reading-order: -1;
   /* Half a thumb in from each edge, so the thumb and its ring at 0 and 100 percent are not cut. */
   inset-inline: calc(var(--space-3) / 2);
   inset-block-start: 0;

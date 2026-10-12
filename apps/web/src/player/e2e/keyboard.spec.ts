@@ -132,6 +132,9 @@ test.describe("keyboard operation of the player", () => {
     await expect(page.locator("html")).toHaveAttribute("data-player-state", "paused");
     await page.keyboard.press("Space");
     await expect(page.locator("html")).toHaveAttribute("data-player-state", "playing");
+    // The seek, drawn along the bar's top edge, is the bar's first Tab stop: Previous follows it.
+    await page.keyboard.press("Tab");
+    await expect(lab.dock.getByRole("button", { name: "Previous story" })).toBeFocused();
   });
 
   test("Space leaves typing, controls, held keys, modifiers and other dialogs alone @surface", async ({
