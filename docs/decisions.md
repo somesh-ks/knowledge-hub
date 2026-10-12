@@ -837,7 +837,7 @@ D1 to D9 date from plan v2 (2026-10-05). D10 to D25 date from 2026-10-06. Reason
 - Date: 2026-10-12
 - Decision: `run.yml`, `podcast.yml`, `config.yml` and `audio.yml` install with `npm ci --ignore-scripts --workspace=packages/engine --include-workspace-root` (118 packages, not 445). `audio.yml` skips `vercel link` and `vercel env pull` when `BLOB_READ_WRITE_TOKEN` is set, since the engine ignores the pulled pair then. Changes under `.github/workflows` need a manual merge by the owner.
 - Why: the install was 10.4 s against 4.3 s on a warm cache, paid on every episode, every settings save and every briefing; `audio.yml` has failed at `vercel link` ("User not found") while `VERCEL_TOKEN` was dead, so the latest briefings had no stored audio and their first Play synthesised (3 to 6 s).
-- Cost: the audio job still pulls when no Blob token secret exists, so the owner must add `BLOB_READ_WRITE_TOKEN` as a GitHub secret or replace `VERCEL_TOKEN`.
+- Cost: the audio job still pulls when no Blob token secret exists. Vercel shows a store's long-lived token once and then hides it (D26), so the usual fix is the owner replacing `VERCEL_TOKEN`; `BLOB_READ_WRITE_TOKEN` as a GitHub secret works if they still have it.
 - Rejected: caching `node_modules` (a saving nobody measured, beside an install that now takes 4 seconds); one concurrency group for `config.yml` of its own (it shares `dispatch` with `run.yml` on purpose, so two commits never push at once).
 
 ## D82: Play keeps an early tap, a new episode is pre-narrated, the deploy is noticed in 2.5 s
