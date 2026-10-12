@@ -80,7 +80,7 @@ D1 to D9 date from plan v2 (2026-10-05). D10 to D25 date from 2026-10-06. Reason
 | D68 | An episode opens with a rundown, deep-dives its lead stories, gives the rest as nuggets and closes short | active |
 | D69 | Design, AI and Technology gather the judge topics; one alphabetical list where each topic sets its scope; every source filed under a topic | active |
 | D70 | A scoring sample judges a few items a run for scores alone, so every source reaches a score, switched-off ones included | active |
-| D71 | Streamlined add topic modal, live suggested sources with TypeSafe Jev scores, schedule timezone and topic scope indicator chips | active; suggested sources are built from the catalogue, with no scores, since D75; a new topic stays on its list and does not open its page since D79 |
+| D71 | Streamlined add topic modal, live suggested sources with TypeSafe Jev scores, schedule timezone and topic scope indicator chips | active; suggested sources are built from the catalogue, with no scores, since D75; a new topic stays on its list and does not open its page since D79; its time zone selector is withdrawn since D89 |
 | D72 | The look is tonal: containers, state layers and round buttons instead of outlines and invisible hover fills | active |
 | D73 | A steadier type scale: 16px reading, 18 to 20px headlines, 14px meta, 22px regular section headings | active |
 | D74 | A discussion's hosts are named after their voices; the transcript names a speaker only where the speaker changes | active |
@@ -98,6 +98,7 @@ D1 to D9 date from plan v2 (2026-10-05). D10 to D25 date from 2026-10-06. Reason
 | D86 | An action has its own tone, the player bar is one tonal block with the navigation, and reading text keeps a 34rem measure | active; extends D72 |
 | D87 | New episode says when a choice changed the topics and offers Undo; the Library searches with an excerpt around the match | active; amends D76 and D78 |
 | D88 | On a reading page the section strip is opaque, a focused headline is ringed as one block, the playing hero Play is tonal, and an older briefing offers Share only | active; amends D77 |
+| D89 | The time zone selector is withdrawn until the engine counts in a chosen zone; Settings summaries follow what was saved; episodes on request are Episodes | active; amends D71 and D79 |
 
 ---
 
@@ -922,3 +923,18 @@ D1 to D9 date from plan v2 (2026-10-05). D10 to D25 date from 2026-10-06. Reason
 - Cost: a readout story that is in no briefing and whose only turn restates its headline shows no highlight text; an older briefing cannot be regenerated from its own page.
 - Rejected: a drawn ring on the link's own box (it breaks across lines); keeping the hero Play filled while playing (three filled controls on a desktop page).
 - Amends: D77.
+
+## D89: The time zone selector is withdrawn until the engine counts in a chosen zone; Settings summaries follow what was saved; episodes on request are Episodes
+
+- Date: 2026-10-12
+- Decision:
+  - The Time zone row is gone from Daily and Weekly, and Time says "Stockholm time". The selector of D71 saved a value that nothing read: the cron route (`slotAt`), the gate (`decideRun`), the Next episode line (`nextRun.ts`), the status report and `run.yml`'s fallback entries all count in Stockholm time, so "New York" with 07:00 still ran at 07:00 in Stockholm, and its labels were wrong for half the year. `config/schedule.json` keeps its `timezone` field and the engine is unchanged. To bring the selector back the engine must count dates and hours in the chosen zone in `stockholmDate` and `stockholmHour` (core), the gate, the cron route and the workflow's schedule; that is a separate change with its own tests.
+  - After a save, the index summaries ("Every second day at 09:00", "Nebius, Kimi K3"), the Topics list counts, the Daily and Weekly topic chips (a removed topic's chip is hidden) and the Sunday note follow what was saved for three minutes, as the pages do (D79). The code is lazy: `scripts/settingsSaved.ts` loads only when a saved edit or a pending model exists, and the summary functions live in `lib/settingsSummary.ts`, which the build and the browser share.
+  - Episodes made on request are "Episodes" everywhere in Settings (the Library's filter calls them that); a topic that is in all three podcasts reads "All podcasts"; an off topic reads "Off"; the index counts the sources that are on ("9 topics · 9 of 11 sources on"). A general topic's switch reads "Use World".
+  - Below 64rem a sub-page's title stands alone (the app bar's arrow leads up); from 64rem the full trail stays. Removing a topic goes back to the Topics list once the removal is saved.
+  - Sources and suggestions are one row, 72px with the host on the second line and regular-weight names; the plus is a plain icon button. The second voice is "Discussion voice" and the hints under the voices are gone; a voice without a sample keeps its slot, and on a phone the value takes the second line.
+  - The Add panel's Topic | Source switch keeps one height at every width (it grew to 349 to 497px on phones); Add source on a topic page has no Topic switch. The Model list says "No model called ..." when a filter matches nothing, and its default is called Default with no hint.
+- Why: the third critic round found a setting that did nothing, summaries that contradicted the pages Back lands on after a save (the "settings revert" the owner reported, on the index), and five spellings of one noun.
+- Cost: a source cannot be removed from the app (it is switched off with its checkbox, D69); a wrong feed stays as an unticked row. Left for later: a "Use x" option on the Model page, a message after removing a topic, main-switch styling for the on and off switches, and one field style inside each panel form.
+- Rejected: honouring the zone only in the Next episode line (it would promise what the engine does not do); a disabled row with a note (a control that explains itself is the thing the owner called slop).
+- Amends: D71 (the selector) and D79 (the overlay reaches the index and the lists).
