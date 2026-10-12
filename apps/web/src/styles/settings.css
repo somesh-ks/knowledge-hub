@@ -13,7 +13,7 @@
 
 .settings-view {
   /* The segmented choices and the slider share one width from 40rem, so their edges line up. */
-  --settings-control-width: 18rem;
+  --settings-control-width: 22rem;
   padding-block: var(--page-top) var(--space-8);
 }
 
@@ -337,15 +337,6 @@
   inline-size: var(--space-4);
   margin-inline-end: var(--space-1);
   opacity: 1;
-}
-
-/* Four segments in a settings row leave no room for the check beside the words ("10 min" met its
-   thumb's edges): the thumb and its ink mark the choice alone. New episode's full-width controls
-   keep the check (create.css drops it below 22.5rem only). */
-.settings-choice:not(.create-choice):has(.settings-segment:nth-of-type(4))
-  .settings-segment
-  > span::before {
-  display: none;
 }
 
 /*

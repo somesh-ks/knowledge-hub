@@ -98,7 +98,7 @@
 
 .topic-page {
   /* The slider shares the Settings controls' width from 40rem, so its edges line up with the switch. */
-  --settings-control-width: 18rem;
+  --settings-control-width: 22rem;
 }
 
 .topic {

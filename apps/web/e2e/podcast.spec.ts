@@ -270,6 +270,28 @@ test.describe("the profile pages", () => {
     expect(Math.max(...heights) - Math.min(...heights), heights.join(" ")).toBeLessThanOrEqual(2);
   });
 
+  test("Length shows its choice with a check, and the check fits, at every width", async ({
+    page,
+  }) => {
+    for (const width of [360, 390, 1280]) {
+      await page.setViewportSize({ width, height: 800 });
+      await open(page, "daily");
+      const segment = page.locator(".settings-segment:has(input[name='daily-length']:checked)");
+      const fit = await segment.evaluate((label) => {
+        const words = label.querySelector("span") as HTMLElement;
+        const check = getComputedStyle(words, "::before");
+        const box = label.getBoundingClientRect();
+        const text = words.getBoundingClientRect();
+        return {
+          shown: check.display !== "none" && check.opacity === "1",
+          inside: text.left >= box.left - 0.5 && text.right <= box.right + 0.5,
+          clipped: words.scrollWidth > words.clientWidth + 1,
+        };
+      });
+      expect(fit, `at ${width}`).toEqual({ shown: true, inside: true, clipped: false });
+    }
+  });
+
   test("the voice select holds still whether or not a sample button shows", async ({ page }) => {
     await mockConfig(page);
     await open(page, "daily");

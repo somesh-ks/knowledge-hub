@@ -7,7 +7,7 @@
 
 .daily-panel {
   /* The segmented choices share one width from 40rem, as on the Settings page. */
-  --settings-control-width: 18rem;
+  --settings-control-width: 22rem;
   display: grid;
   gap: var(--space-6);
   padding-block: var(--space-4) 0;
