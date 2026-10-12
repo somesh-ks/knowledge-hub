@@ -82,12 +82,12 @@ test.describe("the Topics list", () => {
     const rows = [
       ["Design", "2 sources"],
       ["AI", "1 source"],
-      ["Technology", "0 sources"],
-      ["Audio interfaces", "Weight 75%, 1 source"],
+      ["Technology", "No sources yet"],
+      ["Audio interfaces", "1 source"],
       ["Other", "2 sources"],
-      ["World", "3 sources"],
+      ["World", "2 of 3 sources on"],
       ["Science", "1 source"],
-      ["Sports", "0 sources"],
+      ["Sports", "No sources yet"],
     ] as const;
     for (const [name, hint] of rows) {
       await expect(page.getByRole("link", { name: new RegExp(`^${name}`) })).toContainText(hint);
@@ -409,32 +409,43 @@ test.describe("a topic's page", () => {
       .toEqual([{ op: "source.update", id: "studio-notes", topic_ids: [] }]);
   });
 
-  test("a source's name is a link to its site in a new tab; the rest of its row edits it", async ({
+  test("a source's name is plain words; its row edits it, and the panel links to the site", async ({
     page,
   }) => {
     await setup(page);
     await open(page, CRAFT);
-    const link = source(page, "Studio Notes").getByRole("link", { name: "Studio Notes" });
+    await expect(source(page, "Studio Notes").getByRole("link")).toHaveCount(0);
+    // A press on the name or the score goes through to the edit button behind the row.
+    await source(page, "Studio Notes").locator(".source-name").click({ force: true });
+    const panel = page.getByRole("dialog", { name: "Edit source" });
+    await expect(panel).toBeVisible();
+    const link = panel.getByRole("link", { name: "Open Studio Notes in a new tab" });
     await expect(link).toHaveAttribute("href", "https://www.studio-notes.example/");
     await expect(link).toHaveAttribute("target", "_blank");
-    await expect(link).toHaveAttribute("rel", /noopener/);
-    await expect(source(page, "Studio Notes").getByRole("link")).toHaveCount(1);
-    // The score lets a press through to the edit button behind the row.
-    await source(page, "Studio Notes").locator(".score").click({ force: true });
-    await expect(page.getByRole("dialog", { name: "Edit source" })).toBeVisible();
+    // Close comes first in the header, as in the Create sheet.
+    const close = await panel.getByRole("button", { name: "Close" }).boundingBox();
+    const title = await panel.getByRole("heading", { level: 2 }).boundingBox();
+    expect(close && title && close.x < title.x).toBe(true);
   });
 
-  test("a source's score is out of 3, drawn as three pips beside the number", async ({ page }) => {
+  test("a source's score is one word on the line under its name, after the site", async ({
+    page,
+  }) => {
     await setup(page);
     await open(page, CRAFT);
-    const score = source(page, "Studio Notes").locator(".score");
-    const num = score.locator(".score-num");
-    if ((await num.count()) > 0) {
-      const value = Number(await num.textContent());
-      expect(value).toBeGreaterThanOrEqual(0);
-      expect(value).toBeLessThanOrEqual(3);
-      await expect(score.locator(".pips")).toBeVisible();
-    } else await expect(score.locator(".score-label")).toHaveText("New");
+    const row = source(page, "Studio Notes");
+    await expect(row.locator(".source-meta")).toHaveText(/studio-notes\.example\s*Excellent/);
+    await expect(row.locator(".pips, .score-num")).toHaveCount(0);
+    await expect(source(page, "Type and Grid").locator(".score")).toHaveText("Not scored yet");
+    const name = await row.locator(".source-name").boundingBox();
+    const score = await row.locator(".score").boundingBox();
+    expect(name && score && score.y >= name.y + name.height - 1).toBe(true);
+    // The site tile keeps its 24px however long the name beside it is.
+    await row.locator(".source-name").evaluate((node) => {
+      node.textContent = "A very long source name that would squeeze anything beside it".repeat(3);
+    });
+    const tile = page.locator('li.source-row[data-id="studio-notes"] .source-icon');
+    expect((await tile.boundingBox())?.width).toBeCloseTo(24, 0);
   });
 
   test("every source has a checkbox: unticking turns it off and ticking turns it back on", async ({
@@ -527,7 +538,7 @@ test.describe("a topic's page", () => {
     await expect(page.locator("[data-weight]")).toHaveCount(0);
     await expect(page.getByRole("button", { name: /^Remove topic/ })).toHaveCount(0);
     await expect(page.getByRole("button", { name: "Add source to World" })).toBeVisible();
-    await expect(source(page, "Meridian Wire").locator(".score-num")).toBeVisible();
+    await expect(source(page, "Meridian Wire").locator(".score")).toBeVisible();
     await expect(source(page, "Quiet Gazette").locator(".score")).toBeVisible();
     await expect(
       source(page, "Quiet Gazette").getByRole("checkbox", { name: "Read Quiet Gazette" }),
@@ -552,6 +563,46 @@ test.describe("a topic's page", () => {
     ]);
   });
 
+  test("the open Podcasts list is as wide as its options, and its value never widens the page", async ({
+    page,
+  }) => {
+    await setup(page);
+    await open(page, "/settings/topics/design");
+    await page.getByRole("button", { name: /^Podcasts/ }).click();
+    const list = page.getByRole("listbox");
+    const box = await list.boundingBox();
+    // Never narrower than 14rem, so the options never wrap word by word.
+    expect(box?.width ?? 0).toBeGreaterThanOrEqual(224);
+    // Every option, hint included, fits inside the list without breaking word by word.
+    for (const label of await list.locator(".multiselect-text").all()) {
+      const inner = await label.boundingBox();
+      expect(inner && box && inner.x + inner.width <= box.x + box.width).toBe(true);
+    }
+    for (const hint of await list.locator(".multiselect-hint").all()) {
+      expect((await hint.boundingBox())?.height ?? 0).toBeLessThan(40);
+    }
+    await page.setViewportSize({ width: 360, height: 740 });
+    await open(page, "/settings/topics/design");
+    expect(await page.evaluate(() => document.documentElement.scrollWidth)).toBeLessThanOrEqual(
+      360,
+    );
+  });
+
+  test("Suggested + discs end where the checkboxes above them end", async ({ page }) => {
+    await setup(page);
+    await open(page, CRAFT);
+    const box = await source(page, "Studio Notes").locator(".suggest-box").boundingBox();
+    const disc = await page
+      .locator(".source-plus-btn")
+      .first()
+      .evaluate((node) => {
+        const rect = node.getBoundingClientRect();
+        const inset = Number.parseFloat(getComputedStyle(node, "::before").insetInlineEnd);
+        return rect.right - inset;
+      });
+    expect(box && Math.abs(box.x + box.width - disc)).toBeLessThanOrEqual(3);
+  });
+
   test("an off source stays readable, and every name is a 44px target", async ({ page }) => {
     await setup(page);
     for (const path of ["/settings/topics/world", "/settings/topics/other"]) {
@@ -565,8 +616,8 @@ test.describe("a topic's page", () => {
         path,
       ).toEqual([]);
       const heights = await page
-        .locator("a.source-name")
-        .evaluateAll((links) => links.map((link) => link.getBoundingClientRect().height));
+        .locator("li.source-row .source-edit")
+        .evaluateAll((rows) => rows.map((row) => row.getBoundingClientRect().height));
       expect(heights.length, path).toBeGreaterThan(0);
       for (const height of heights) expect(height).toBeGreaterThanOrEqual(44);
     }
@@ -648,17 +699,15 @@ test.describe("a topic's suggested sources", () => {
     ).toHaveCount(0);
   });
 
-  test("a row has the site's tile, its name as a link, the site, what it covers and how often it posts", async ({
+  test("a row has the site's tile, its name in plain words, the site, what it covers and how often it posts", async ({
     page,
   }) => {
     await setup(page);
     await open(page, DESIGN);
     const row = suggestion(page, "Pixel Ledger");
     await expect(row.locator(".source-initial")).toHaveText("P");
-    const link = row.getByRole("link", { name: "Pixel Ledger" });
-    await expect(link).toHaveAttribute("href", "https://pixel-ledger.example/");
-    await expect(link).toHaveAttribute("target", "_blank");
-    await expect(link).toHaveAttribute("rel", /noopener/);
+    await expect(row.locator(".source-name")).toHaveText("Pixel Ledger");
+    await expect(row.getByRole("link")).toHaveCount(0);
     await expect(row.locator(".source-host")).toHaveText("pixel-ledger.example");
     await expect(row.locator(".source-line")).toHaveText(
       "Visual design critique and case studies \u00b7 Posts daily",
@@ -857,7 +906,10 @@ test.describe("a refused lookup", () => {
     await page.getByRole("radio", { name: "Source" }).check();
     const sheet = page.getByRole("dialog", { name: "Add a source" });
     await sheet.getByLabel("Site or feed address").fill("nothing.example");
-    await expect(sheet.getByRole("alert")).toContainText("could not be read");
+    await expect(sheet.locator("#panel-source-url-error")).toContainText("could not be read");
+    await expect(sheet.getByLabel("Site or feed address")).toHaveAttribute("aria-invalid", "");
+    // No empty card stands in for the message.
+    await expect(sheet.locator(".source-card")).toHaveCount(0);
     await expect(sheet.getByRole("button", { name: "Add source", exact: true })).toBeDisabled();
     await page.keyboard.press("Escape");
     await expect(sheet).toBeHidden();

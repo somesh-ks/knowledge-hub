@@ -25,8 +25,8 @@ export interface LiveModel {
 
 export const AUTOMATIC: ModelOption = {
   id: "",
-  label: "Automatic",
-  hint: "The engine's own setting",
+  label: "Default",
+  hint: "The model the engine runs by default",
   group: "",
 };
 

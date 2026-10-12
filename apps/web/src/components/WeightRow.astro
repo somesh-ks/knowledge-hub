@@ -11,10 +11,14 @@ interface Props {
 const { id, label, weight } = Astro.props;
 ---
 
-{/* How much one topic counts, in five steps. The readout sits right after the slider, where
-     topicsPage.ts updates it as the thumb moves; every slider on a page goes in one weights.set. */}
+{/* How much one topic counts, in five steps. The readout sits under the label, where topicsPage.ts
+     updates it as the thumb moves, so the slider ends where every control ends; every slider on a
+     page goes in one weights.set. */}
 <div class="settings-row topic-weight">
-  <label class="settings-label" for={`weight-${id}`}>{label}</label>
+  <div class="settings-text">
+    <label class="settings-label" for={`weight-${id}`}>{label}</label>
+    <output class="settings-hint topic-percent" for={`weight-${id}`} data-word>{percent(weight)}</output>
+  </div>
   <input
     class="settings-range"
     id={`weight-${id}`}
@@ -30,5 +34,4 @@ const { id, label, weight } = Astro.props;
     data-field={`weights.${id}`}
     data-weight
   />
-  <output class="topic-percent" for={`weight-${id}`} data-word>{percent(weight)}</output>
 </div>

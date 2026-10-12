@@ -16,7 +16,7 @@ const { model, provider } = await loadWriterView();
     {/* The writer: a vendor, then a model from that vendor's list. scripts/podcastPage.ts runs the
          combobox and records a change; autosave.ts sends it a moment later. */}
     <div class="manage" data-manage="podcast">
-      <SettingsHead title="Model" note="Writes the script of every episode." />
+      <SettingsHead title="Model" />
       <noscript>
         <p class="manage-note">Changing the model needs JavaScript, which is turned off in this browser.</p>
       </noscript>

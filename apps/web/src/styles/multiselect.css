@@ -78,6 +78,10 @@
   flex: 0 1 auto;
   min-inline-size: 0;
   max-inline-size: 70%;
+  /* The column may shrink below the words, so a long value ellipsizes instead of pushing the page
+     sideways at 360px. */
+  grid-template-columns: minmax(0, 1fr);
+  justify-items: end;
   margin-inline-end: calc(var(--space-2) * -1);
 }
 
@@ -89,7 +93,7 @@
   inline-size: auto;
   max-inline-size: 100%;
   justify-content: flex-end;
-  padding-inline: var(--space-3) calc(var(--space-2) + var(--size-icon) + var(--space-2));
+  padding-inline: var(--space-3) calc(var(--space-2) + var(--size-icon) + var(--space-1));
   border-color: transparent;
   border-radius: var(--button-radius);
   font-weight: var(--font-weight-medium);
@@ -115,9 +119,13 @@
   }
 }
 
+/* The list is as wide as its longest option, never narrower than the field or 14rem, and never wider
+   than the screen allows, so no label spills out and no hint breaks into single words. */
 .settings-row .multiselect-list {
   inset-inline: auto 0;
-  min-inline-size: min(16rem, 100%);
+  inline-size: max-content;
+  min-inline-size: max(100%, 14rem);
+  max-inline-size: min(20rem, calc(100vw - var(--space-8)));
 }
 
 .multiselect-list {

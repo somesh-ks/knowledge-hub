@@ -45,7 +45,7 @@ const VOICES = [
     key: "voice",
     saved: values.voiceId,
     name: "Voice",
-    hint: "Reads readouts and leads discussions",
+    hint: "Reads the episode, or leads a discussion",
   },
   { key: "voice_b", saved: values.voiceIdB, name: "Second voice", hint: "Joins in discussions" },
 ] as const;
@@ -185,7 +185,7 @@ const VOICES = [
     <div class="rows">
       <div class="settings-row" data-layout="choice">
         <div class="settings-text">
-          <span class="settings-label" id={`${id}-format-label`}>Type</span>
+          <span class="settings-label" id={`${id}-format-label`}>Format</span>
         </div>
         <fieldset class="settings-choice" role="radiogroup" aria-labelledby={`${id}-format-label`}>
           {

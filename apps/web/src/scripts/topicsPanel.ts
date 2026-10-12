@@ -145,10 +145,7 @@ function card(preview: SourcePreview): HTMLElement {
   head.append(iconNode(preview.thumbnail_url ?? preview.favicon_url, preview.name), title);
 
   const score = element("div", "source-card-score");
-  score.append(
-    scoreNode(preview.score, preview.score_label),
-    element("p", "source-card-reason", preview.reason),
-  );
+  score.append(scoreNode(preview.score_label), element("p", "source-card-reason", preview.reason));
 
   const facts = element("dl", "source-facts");
   facts.append(
@@ -182,18 +179,6 @@ function skeleton(): HTMLElement {
   return shell;
 }
 
-/** Why the address gave nothing, with the alert glyph every error in Settings has, so colour is not alone. */
-function problem(status: number, glyph: Node | null): HTMLElement {
-  const shell = element("div", "source-card");
-  shell.dataset.kind = "error";
-  const note = element("p", "manage-error");
-  note.setAttribute("role", "alert");
-  if (glyph) note.append(glyph);
-  note.append(element("span", "", problemText(status)));
-  shell.append(note);
-  return shell;
-}
-
 /** Opens the panel where `start` says. The handler for what it makes runs before the panel closes. */
 export function openPanel(
   trigger: HTMLElement | null,
@@ -209,10 +194,6 @@ export function openPanel(
   document.body.append(panel);
 
   const one = <T extends Element>(selector: string): T => panel.querySelector(selector) as T;
-  const glyph = (name: string): Node | null =>
-    panel
-      .querySelector<HTMLTemplateElement>(`template[data-${name}-glyph]`)
-      ?.content.cloneNode(true) ?? null;
   const title = one<HTMLElement>("[data-panel-title]");
   const kinds = one<HTMLFieldSetElement>("[data-panel-kind]");
   const topicPane = one<HTMLFormElement>('[data-pane="topic"]');
@@ -307,15 +288,24 @@ export function openPanel(
   let seq = 0;
   if (start.kind === "source") sourceTopic.value = start.topicId;
 
+  const addressError = one<HTMLElement>('[data-error="url"]');
   const show = (state: string, node?: HTMLElement): void => {
     area.dataset.state = state;
     area.replaceChildren(...(node ? [node] : []));
+  };
+  /** Why the address gave nothing, under the field as every field's error is, and the field marked. */
+  const problem = (message: string): void => {
+    addressError.hidden = !message;
+    const line = addressError.querySelector("span");
+    if (line) line.textContent = message;
+    address.toggleAttribute("aria-invalid", Boolean(message));
   };
 
   const ask = (): void => {
     const url = webAddress(address.value);
     const turn = ++seq;
     loaded = null;
+    problem("");
     render();
     if (!url) {
       show("idle");
@@ -327,7 +317,10 @@ export function openPanel(
       if ("preview" in outcome) {
         loaded = { url, preview: outcome.preview };
         show("ready", card(outcome.preview));
-      } else show("error", problem(outcome.status, glyph("alert")));
+      } else {
+        show("idle");
+        problem(problemText(outcome.status));
+      }
       render();
     });
   };
@@ -336,6 +329,7 @@ export function openPanel(
     clearTimeout(timer);
     seq += 1;
     loaded = null;
+    problem("");
     render();
     timer = window.setTimeout(ask, PREVIEW_DELAY_MS);
   });

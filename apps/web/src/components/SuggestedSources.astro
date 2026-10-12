@@ -61,21 +61,7 @@ const adding = (offer: CatalogSource): string =>
                   }
                 </span>
                 <span class="source-text">
-                  {
-                    offer.url ? (
-                      <a
-                        class="source-name"
-                        href={offer.url}
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        aria-describedby="source-new-tab"
-                      >
-                        {offer.name}
-                      </a>
-                    ) : (
-                      <span class="source-name">{offer.name}</span>
-                    )
-                  }
+                  <span class="source-name">{offer.name}</span>
                   <span class="source-host">{catalogHost(offer)}</span>
                   {
                     (offer.about || cadence) && (

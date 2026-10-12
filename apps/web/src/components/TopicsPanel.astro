@@ -18,10 +18,10 @@ const { topics } = Astro.props;
 <template id="topics-panel-template">
   <dialog class="create-sheet regen-sheet topics-panel" aria-labelledby="topics-panel-title" data-mode="topic">
     <div class="create-sheet-head">
-      <h2 class="sheet-title" id="topics-panel-title" data-panel-title>Add a topic</h2>
       <button class="icon-btn press" type="button" data-panel-close aria-label="Close">
         <Icon name="close" class="icon-lg" />
       </button>
+      <h2 class="sheet-title" id="topics-panel-title" data-panel-title>Add a topic</h2>
     </div>
     <div class="create-sheet-body">
       <fieldset class="settings-choice topics-panel-kind" role="radiogroup" aria-label="What to add" data-panel-kind>
@@ -107,8 +107,12 @@ const { topics } = Astro.props;
             autocapitalize="none"
             spellcheck="false"
             placeholder="example.com"
+            aria-describedby="panel-source-url-error"
             data-source-url
           />
+          <p class="manage-error" id="panel-source-url-error" role="alert" data-error="url" hidden>
+            <Icon name="alert" /><span></span>
+          </p>
         </div>
         <div class="manage-field">
           <label for="panel-source-topic">Topic</label>
@@ -179,7 +183,6 @@ const { topics } = Astro.props;
           <p class="source-card-reason" data-edit-reason></p>
         </section>
       </div>
-      <template data-alert-glyph><Icon name="alert" /></template>
     </div>
     <div class="source-sheet-foot topics-panel-foot">
       <button class="btn-primary" type="button" data-panel-go>Add topic</button>
@@ -200,7 +203,7 @@ const { topics } = Astro.props;
     <span class="source-main">
       <span class="source-icon"></span>
       <span class="source-text">
-        <a class="source-name" target="_blank" rel="noopener noreferrer"></a>
+        <span class="source-name"></span>
         <span class="source-host"></span>
         <span class="source-line"></span>
       </span>

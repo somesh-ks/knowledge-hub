@@ -82,7 +82,7 @@ test.describe("the Settings index", () => {
     const rows = [
       ["Daily", "Every second day at 07:00", "/settings/daily"],
       ["Weekly", "Sundays at 07:00", "/settings/weekly"],
-      ["Model", "Automatic", "/settings/model"],
+      ["Model", "Nebius, Default", "/settings/model"],
     ] as const;
     for (const [name, hint, href] of rows) {
       const row = page.getByRole("link", { name: new RegExp(`^${name}`) });
@@ -208,6 +208,19 @@ test.describe("the profile pages", () => {
     await expect(second).toBeVisible();
     await page.getByRole("radio", { name: "Readout" }).check();
     await expect(second).toBeVisible();
+  });
+
+  test("the two voice selects end at one edge whether or not a sample button shows", async ({
+    page,
+  }) => {
+    await open(page, "daily");
+    const right = async (id: string) => {
+      const box = await page.locator(id).boundingBox();
+      return (box?.x ?? 0) + (box?.width ?? 0);
+    };
+    expect(await right("#daily-voice")).toBeCloseTo(await right("#daily-voice_b"), 0);
+    // The setting is called Format here, as on the Create page.
+    await expect(page.getByRole("radiogroup", { name: "Format" })).toBeVisible();
   });
 
   test("choosing a voice with a sample plays it through the site and shows its play button", async ({
@@ -470,7 +483,7 @@ test.describe("a refused save", () => {
 test.describe("the Model page", () => {
   test("lists Automatic, the top models the live list has, then the rest", async ({ page }) => {
     await open(page, "model");
-    await expect(combo(page)).toHaveValue("Automatic");
+    await expect(combo(page)).toHaveValue("Default");
     await expect(page.getByLabel("Provider")).toHaveValue("nebius");
     await page.getByRole("button", { name: "Show all models" }).click();
     // The fixture list serves two of the top models; the others are left out.
@@ -495,7 +508,7 @@ test.describe("the Model page", () => {
     await expect(options(page)).toHaveCount(5);
     // The chosen name waits as a placeholder, so typing filters at once.
     await expect(combo(page)).toHaveValue("");
-    await expect(combo(page)).toHaveAttribute("placeholder", "Automatic");
+    await expect(combo(page)).toHaveAttribute("placeholder", "Default");
     if (!isMobile) await expect(combo(page)).toHaveCSS("cursor", "text");
     // A list opened with the pointer marks no row until a key is pressed.
     await expect(page.getByRole("listbox", { name: "Models" })).not.toHaveAttribute(
@@ -505,7 +518,7 @@ test.describe("the Model page", () => {
     await page.keyboard.type("qwen");
     await expect(options(page)).toHaveCount(1);
     await page.keyboard.press("Escape");
-    await expect(combo(page)).toHaveValue("Automatic");
+    await expect(combo(page)).toHaveValue("Default");
   });
 
   test("typing filters the list and announces the count", async ({ page }) => {
@@ -621,7 +634,7 @@ test.describe("the Model page", () => {
     await open(page, "model");
     await page.getByLabel("Provider").selectOption("anthropic");
     await page.getByLabel("Provider").selectOption("nebius");
-    await expect(combo(page)).toHaveValue("Automatic");
+    await expect(combo(page)).toHaveValue("Default");
     await page.waitForTimeout(2000);
     expect(sent).toHaveLength(0);
   });
@@ -692,7 +705,7 @@ test.describe("offline", () => {
     await expect(
       page.getByText("Only the top models are listed right now. For another model, type its id."),
     ).toBeVisible();
-    await expect(combo(page)).toHaveValue("Automatic");
+    await expect(combo(page)).toHaveValue("Default");
     await page.getByRole("button", { name: "Show all models" }).click();
     await expect(grouped(page, "Top models")).toHaveText(
       NEBIUS_TOP.map((model) => new RegExp(`^${model.label.replaceAll(".", "\\.")}`)),
@@ -712,7 +725,7 @@ test.describe("offline", () => {
     await unavailable(page);
     const sent = await mockConfig(page);
     await open(page, "model");
-    await expect(combo(page)).toHaveValue("Automatic");
+    await expect(combo(page)).toHaveValue("Default");
 
     const typed = page.getByLabel("Model id");
     await typed.fill("not valid!");

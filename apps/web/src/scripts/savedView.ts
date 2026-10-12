@@ -348,14 +348,7 @@ export async function suggestUnder(
     const site = offer.url ?? offer.feed_url;
     const icon = /^https?:/.test(site) ? `https://${new URL(site).hostname}/favicon.ico` : null;
     line.querySelector(".source-icon")?.replaceWith(iconNode(icon, offer.name));
-    const name = line.querySelector(".source-name") as HTMLAnchorElement;
-    name.textContent = offer.name;
-    if (offer.url) {
-      name.href = offer.url;
-      // What a screen reader adds to a link that leaves the app, where the page has the words.
-      if (document.getElementById("source-new-tab"))
-        name.setAttribute("aria-describedby", "source-new-tab");
-    } else name.replaceWith(element("span", "source-name", offer.name));
+    (line.querySelector(".source-name") as HTMLElement).textContent = offer.name;
     (line.querySelector(".source-host") as HTMLElement).textContent = catalogHost(offer);
     const about = line.querySelector(".source-line") as HTMLElement;
     const cadence = cadenceLabel(offer.cadence);

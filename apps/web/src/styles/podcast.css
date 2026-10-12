@@ -272,6 +272,28 @@
   margin-inline-end: 0;
 }
 
+/* Voice rows keep the rhythm of the page's two-line rows. On a phone the label and its hint take the
+   row's width and the voice goes under them at the end, so the hint never wraps word by word. */
+.settings-row[data-voice-row]:has(> .podcast-voice) {
+  padding-block: var(--space-3);
+}
+
+@media (width < 40rem) {
+  .settings-row[data-voice-row] {
+    flex-wrap: wrap;
+    row-gap: 0;
+  }
+
+  .settings-row[data-voice-row] > .settings-text {
+    flex-basis: 100%;
+  }
+
+  .settings-row[data-voice-row] > .podcast-voice {
+    max-inline-size: none;
+    margin-inline-start: auto;
+  }
+}
+
 .podcast-sample {
   display: grid;
   flex: none;
@@ -322,13 +344,29 @@
 
 /* It shares the row with its label on a phone as well: it shrinks before it would wrap under it. */
 .settings-row > .daily-combo {
-  flex: 1 1 0;
+  flex: 0 1 12rem;
   min-inline-size: 0;
-  max-inline-size: 22rem;
   margin-inline-end: calc(var(--space-2) * -1);
 }
 
+/* Typing in it, it grows to a field's width. A phone gives it the row's room from the start, so a tap
+   never lands on a field that moves under it. */
+@media (width < 40rem) {
+  .settings-row > .daily-combo {
+    flex: 1 1 0;
+    max-inline-size: 22rem;
+  }
+}
+
+@media (min-width: 40rem) {
+  .settings-row > .daily-combo:focus-within {
+    flex-basis: 22rem;
+  }
+}
+
+/* Its words end where a select's do: the same room for the chevron (settings.css .value-select). */
 .settings-row .daily-combo .manage-input {
+  padding-inline-end: calc(var(--space-2) + var(--size-icon) + var(--space-1));
   border-color: transparent;
   border-radius: var(--button-radius);
   font-weight: var(--font-weight-medium);
@@ -382,6 +420,6 @@
 }
 
 /* [hidden] closes the stylesheet: the rules above set display on elements the script hides. */
-.daily-panel [hidden] {
+.daily-panel [hidden]:not(.podcast-sample) {
   display: none;
 }

@@ -49,9 +49,15 @@
    sets its own size (.page-title), so it is named here too, and both words stay one size. */
 @media (min-width: 64rem) {
   .settings-crumbs,
-  .settings-crumbs > h1 {
+  .settings-crumbs > h1,
+  .settings-view > h1 {
     font-size: var(--font-size-section);
   }
+}
+
+/* With Sounds off, Volume is unused: its label goes quiet with its slider. */
+.settings-row:has(.settings-range:disabled) > .settings-label {
+  color: var(--color-on-surface-muted);
 }
 
 .settings-crumbs > nav {
@@ -135,6 +141,13 @@
   min-height: var(--size-touch-comfortable);
 }
 
+/* On the index a control row is as tall as a two-line link row (74px), whatever its control:
+   the switch, the slider and the segments all sit in one rhythm. */
+.settings-view .rows > .settings-row {
+  min-height: calc(var(--space-12) + var(--space-6) + var(--space-1));
+  padding-block: var(--space-3);
+}
+
 .settings-text {
   display: grid;
   flex: 1 1 0;
@@ -179,7 +192,7 @@
   border-radius: var(--row-radius);
 }
 
-.settings-view .row-action .icon {
+:is(.settings-view, .manage) .row-action .icon {
   /* The glyph sits inside its box; this pulls its right edge out to the switch's and the segments'. */
   margin-inline-end: calc(var(--size-icon) * -0.28);
   color: var(--color-on-surface-subtle);
@@ -220,7 +233,8 @@
   margin: 0;
   padding: var(--segmented-padding);
   border: 0;
-  border-radius: var(--segmented-radius);
+  /* A pill with pill segments, as Create's choices and the player's segmented control are. */
+  border-radius: var(--radius-round);
   background: var(--color-surface-container);
 }
 
@@ -238,8 +252,8 @@
   /* With the track's padding this makes the control 48px tall, as tall as a select, and taller if
      the text grows. */
   min-height: calc(var(--segmented-height) - var(--segmented-padding) * 2);
-  border-radius: var(--segmented-segment-radius);
-  color: var(--color-on-surface-muted);
+  border-radius: var(--radius-round);
+  color: var(--color-on-surface);
   font-size: var(--font-size-label);
   font-weight: var(--font-weight-medium);
   line-height: var(--font-leading-label);
@@ -361,7 +375,7 @@
   inset-block: var(--segmented-padding);
   inset-inline-start: var(--segmented-padding);
   width: calc((100% - var(--segmented-padding) * 2) / var(--seg-n));
-  border-radius: var(--segmented-segment-radius);
+  border-radius: var(--radius-round);
   /* The choice is tonal, not outlined: the accent container, its own words and a check, so it is a
      shape and a colour and never a colour alone. */
   background: var(--color-accent-container);
@@ -750,10 +764,20 @@
   background: color-mix(in oklch, var(--color-on-surface) 8%, transparent);
 }
 
-/* Open, it holds its fill and shows the ring the keyboard's focus does. */
+/* Open, it holds its fill and flips its chevron, as the multi-select does, with no ring. */
 .settings-row .value-select > select.manage-input:open {
   border-color: transparent;
+  outline: none;
+  box-shadow: none;
   background: color-mix(in oklch, var(--color-on-surface) var(--state-press), transparent);
+}
+
+.settings-row .value-select > .icon {
+  transition: rotate var(--duration-enter) var(--ease-out);
+}
+
+.settings-row .value-select:has(> select:open) > .icon {
+  rotate: 180deg;
 }
 
 @supports (appearance: base-select) {

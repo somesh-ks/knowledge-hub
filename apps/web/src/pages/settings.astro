@@ -29,7 +29,11 @@ const PODCAST = [
     label: "Topics and sources",
     hint: `${plural(topicCount, "topic")}, ${plural(manage.sources.length, "source")}`,
   },
-  { href: "/settings/model", label: "Model", hint: writer.label },
+  {
+    href: "/settings/model",
+    label: "Model",
+    hint: `${writer.provider === "anthropic" ? "Anthropic" : "Nebius"}, ${writer.label}`,
+  },
 ];
 
 // The version is the day this build was made, which is what changes when the site does.

@@ -62,17 +62,10 @@ export function iconNode(src: string | null, name: string): HTMLElement {
   return tile;
 }
 
-/** Three pips filled to the score out of 3, the number and the label; a New source is only the label. */
-export function scoreNode(score: number | null, label: string): HTMLElement {
-  const wrap = element("span", "score");
+/** A score as one word, as ScoreMeter.astro draws it: a New source says it is not scored yet. */
+export function scoreNode(label: string): HTMLElement {
+  const wrap = element("span", "score", label === "New" ? "Not scored yet" : label);
   wrap.dataset.label = label;
-  if (score !== null) {
-    const pips = element("span", "pips");
-    pips.setAttribute("aria-hidden", "true");
-    pips.style.setProperty("--score", String(score));
-    wrap.append(pips, element("span", "score-num", score.toFixed(1)));
-  }
-  wrap.append(element("span", "score-label", label));
   return wrap;
 }
 

@@ -67,7 +67,7 @@ describe("loadWriterView", () => {
     expect(await loadWriterView({ root, env: {} })).toEqual({
       provider: "nebius",
       model: null,
-      label: "Automatic",
+      label: "Default",
     });
   });
 
@@ -90,7 +90,7 @@ describe("loadWriterView", () => {
   });
 
   it("labels", () => {
-    expect(writerLabel(null)).toBe("Automatic");
+    expect(writerLabel(null)).toBe("Default");
     expect(writerLabel("a/b")).toBe("b");
     expect(writerLabel("claude-sonnet-5-5", "anthropic")).toBe("Claude Sonnet 5.5");
   });
