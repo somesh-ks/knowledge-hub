@@ -11,7 +11,7 @@
  * announcement layers never have to infer intent from state diffs.
  */
 import type { PlayerDigestData } from "../../types/contracts";
-import { describeMediaError, describePlayRejection } from "./audioErrors";
+import { type AudioNoun, describeMediaError, describePlayRejection } from "./audioErrors";
 import { clamp, isFiniteNumber } from "./mathUtils";
 import {
   type AudioLike,
@@ -20,6 +20,7 @@ import {
   type ItemChangeCause,
   isPlaybackRate,
   type PauseReason,
+  type PlayerError,
   type PlayerEvent,
   type PlayerState,
   type PlayerStore,
@@ -38,6 +39,8 @@ import { buildTimeline, findItemIndexById, itemIndexAt, sectionIndexOfItem } fro
 /** A buffering spinner that appears instantly flashes on every fast load, so it waits. */
 export const BUFFERING_DELAY_MS = 300;
 export const RESUME_SAVE_INTERVAL_MS = 5000;
+/** A shorter file is not a recording: the silence the first tap loads to unlock the element is 0.05 s. */
+const MIN_RECORDING_SECONDS = 1;
 /** Past this many seconds into an item, "previous" restarts it, like every audio player. */
 export const PREVIOUS_RESTART_SECONDS = 3;
 /**
@@ -238,6 +241,12 @@ export function createPlayerStore(options: PlayerStoreOptions): PlayerStore {
     saveTimer = null;
   }
 
+  function stopTimers(): void {
+    stopFrameLoop();
+    stopSaveTimer();
+    stopBufferTimer();
+  }
+
   function stopBufferTimer(): void {
     if (bufferTimer !== null) clearTimeout(bufferTimer);
     bufferTimer = null;
@@ -305,9 +314,7 @@ export function createPlayerStore(options: PlayerStoreOptions): PlayerStore {
 
   function onEnded(): void {
     if (!track) return;
-    stopFrameLoop();
-    stopSaveTimer();
-    stopBufferTimer();
+    stopTimers();
     wantsPlay = false;
     time = durationNow();
     clearResumePosition(storage, track.digest.id);
@@ -337,7 +344,9 @@ export function createPlayerStore(options: PlayerStoreOptions): PlayerStore {
   function onLoadedMetadata(): void {
     if (!audio) return;
     const duration = audio.duration;
-    if (isFiniteNumber(duration) && duration > 0) {
+    // Under a second is the unlock primer's silence (0.05 s), which a tap loads so the phone lets the
+    // element start later. It is no recording: its length must not become the track's.
+    if (isFiniteNumber(duration) && duration >= MIN_RECORDING_SECONDS) {
       if (pendingStart !== null) {
         const start = clamp(pendingStart, 0, duration);
         pendingStart = null;
@@ -376,15 +385,38 @@ export function createPlayerStore(options: PlayerStoreOptions): PlayerStore {
     if (audio && audio.playbackRate !== rate) applyRate();
   }
 
+  /** What the error copy calls the recording: an episode carries its script. */
+  function audioNoun(): AudioNoun {
+    return track?.digest.turns ? "episode" : "briefing";
+  }
+
   function onError(): void {
     if (!audio) return;
-    const error = describeMediaError(audio.error?.code, isOnline());
+    const error = describeMediaError(audio.error?.code, isOnline(), audioNoun());
     if (!error) return;
-    stopFrameLoop();
-    stopSaveTimer();
-    stopBufferTimer();
+    // A file the narration could not make says why; offline, the connection is the reason. The
+    // browser's own MediaError.message is debug text and is never used.
+    const narrated = audio.error?.narrated;
+    if (narrated && isOnline()) {
+      error.message = narrated.message;
+      if (narrated.summary) error.summary = narrated.summary;
+      if (narrated.standing) error.kind = "refused";
+    }
+    // The playhead is where the element failed, not where the last frame left it: a story whose
+    // file could not be made fails at its start, while the last frame is still in the tail of the
+    // story before. A retry from that tail would play it again before it was refused again.
+    if (state.status === "playing" || state.status === "loading") {
+      readAudioTime();
+      publishTime("auto", true);
+    }
+    fail(error);
+  }
+
+  /** Playback stopped short: the listener is told why, once. A blocked start is only paused. */
+  function fail(error: PlayerError): void {
+    stopTimers();
     wantsPlay = false;
-    commit({ status: "error", buffering: false, error });
+    commit({ status: error.kind === "blocked" ? "paused" : "error", buffering: false, error });
     emit({ type: "error", error });
   }
 
@@ -449,9 +481,7 @@ export function createPlayerStore(options: PlayerStoreOptions): PlayerStore {
     }
 
     if (track) saveResume();
-    stopFrameLoop();
-    stopSaveTimer();
-    stopBufferTimer();
+    stopTimers();
     wantsPlay = false;
     wasPlayingBeforeScrub = false;
 
@@ -527,12 +557,10 @@ export function createPlayerStore(options: PlayerStoreOptions): PlayerStore {
     emit({ type: "willPlay", reason });
     commit({ status: "loading", hasStarted: true, interrupted: false, error: null });
     Promise.resolve(element.play()).catch((rejection: unknown) => {
-      const error = describePlayRejection(rejection, isOnline());
-      if (!error) return;
-      stopBufferTimer();
-      wantsPlay = false;
-      commit({ status: error.kind === "blocked" ? "paused" : "error", buffering: false, error });
-      emit({ type: "error", error });
+      const error = describePlayRejection(rejection, isOnline(), audioNoun());
+      // The element's own error event may have reported this failure already: once is enough.
+      if (!error || state.status === "error") return;
+      fail(error);
     });
     armBufferingTimer();
   }
@@ -541,7 +569,16 @@ export function createPlayerStore(options: PlayerStoreOptions): PlayerStore {
     if (disposed || !hasAudio()) return;
     if (state.status === "playing" || state.status === "loading") return;
     if (state.status === "error") {
-      retry();
+      // Offline the browser already knows the file cannot be fetched: the reason is told again,
+      // with nothing loaded and no Pause shown on the way.
+      if (state.error?.kind === "offline" && !isOnline()) {
+        fail({ ...state.error });
+        return;
+      }
+      // Every failure is tried again from where the playhead is. In a refusal that stands, a story
+      // whose file is made plays; one that needs a new file is refused again at once by the
+      // narration's queue, which sends nothing, and the same reason is told again.
+      retryAs(reason);
       return;
     }
     startPlayback(reason);
@@ -553,9 +590,7 @@ export function createPlayerStore(options: PlayerStoreOptions): PlayerStore {
     wantsPlay = false;
     // A scrub that was going to resume playback must not undo this pause when it ends.
     wasPlayingBeforeScrub = false;
-    stopFrameLoop();
-    stopSaveTimer();
-    stopBufferTimer();
+    stopTimers();
     readAudioTime();
     expectPause();
     audio.pause();
@@ -571,7 +606,8 @@ export function createPlayerStore(options: PlayerStoreOptions): PlayerStore {
     else play("user");
   }
 
-  function retry(): void {
+  /** A retry is announced as what asked for it: a step or a row says its story, not "Playing.". */
+  function retryAs(reason: PlayReason): void {
     if (!track?.digest.audio) return;
     const url = track.digest.audio.url;
     // A failed element keeps its error until the source is set again.
@@ -579,7 +615,11 @@ export function createPlayerStore(options: PlayerStoreOptions): PlayerStore {
     pendingStart = time > 0 ? time : null;
     commit({ status: "idle", error: null });
     attachSource(url);
-    startPlayback("user");
+    startPlayback(reason);
+  }
+
+  function retry(): void {
+    retryAs("user");
   }
 
   function seekInternal(seconds: number, cause: ItemChangeCause): boolean {
@@ -635,16 +675,44 @@ export function createPlayerStore(options: PlayerStoreOptions): PlayerStore {
     if (index >= 0) playItemAt(index);
   }
 
+  /**
+   * A story step. From the end or a failure nothing is playing, so the step plays the story it lands
+   * on, as a tap on its row does (a failure is cleared by that play's retry); otherwise it only moves.
+   */
+  function step(move: () => boolean): boolean {
+    const stopped = state.status === "ended" || state.status === "error";
+    const moved = move();
+    if (moved && stopped) play("item");
+    return moved;
+  }
+
   function next(source: "ui" | "keyboard" = "ui"): boolean {
-    return skipToItem(state.itemIndex + 1, source === "keyboard" ? "keyboard" : "skip-next");
+    return step(() =>
+      skipToItem(state.itemIndex + 1, source === "keyboard" ? "keyboard" : "skip-next"),
+    );
   }
 
   function previous(source: "ui" | "keyboard" = "ui"): boolean {
-    const current = track?.timeline?.items[state.itemIndex];
-    if (!current) return false;
-    const restart = time - current.startSec > PREVIOUS_RESTART_SECONDS || state.itemIndex === 0;
-    const target = restart ? state.itemIndex : state.itemIndex - 1;
-    return skipToItem(target, source === "keyboard" ? "keyboard" : "skip-previous");
+    return step(() => stepBack(source));
+  }
+
+  function stepBack(source: "ui" | "keyboard"): boolean {
+    const items = track?.timeline?.items;
+    const first = items?.[0];
+    if (!items || !first) return false;
+    const cause = source === "keyboard" ? "keyboard" : "skip-previous";
+    // Before the first story (an episode's rundown) Previous goes back to the very start.
+    const toLeadIn = (): boolean => {
+      if (time <= 0) return false;
+      if (!seekInternal(0, cause)) emit({ type: "itemChanged", index: -1, cause });
+      return true;
+    };
+    const current = items[state.itemIndex];
+    if (!current) return state.itemIndex < 0 ? toLeadIn() : false;
+    const restart = time - current.startSec > PREVIOUS_RESTART_SECONDS;
+    if (restart) return skipToItem(state.itemIndex, cause);
+    if (state.itemIndex > 0) return skipToItem(state.itemIndex - 1, cause);
+    return first.startSec > 0 ? toLeadIn() : skipToItem(0, cause);
   }
 
   function skip(deltaSeconds: number): void {
@@ -693,11 +761,9 @@ export function createPlayerStore(options: PlayerStoreOptions): PlayerStore {
       // playing event restarts the frame loop; a seek that needs data raises waiting.
       wantsPlay = true;
       Promise.resolve(audio.play()).catch((rejection: unknown) => {
-        const error = describePlayRejection(rejection, isOnline());
-        if (!error) return;
-        wantsPlay = false;
-        commit({ status: error.kind === "blocked" ? "paused" : "error", error });
-        emit({ type: "error", error });
+        const error = describePlayRejection(rejection, isOnline(), audioNoun());
+        if (!error || state.status === "error") return;
+        fail(error);
       });
     }
   }
@@ -708,9 +774,7 @@ export function createPlayerStore(options: PlayerStoreOptions): PlayerStore {
 
   function dispose(): void {
     disposed = true;
-    stopFrameLoop();
-    stopSaveTimer();
-    stopBufferTimer();
+    stopTimers();
     if (audio) {
       for (const [type, handler] of audioHandlers) audio.removeEventListener(type, handler);
       audioHandlers.clear();

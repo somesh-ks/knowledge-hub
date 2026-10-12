@@ -1,5 +1,14 @@
 import { describe, expect, it } from "vitest";
-import { formatClock, monthKeyOf, monthName, pluralize, sinceLabel, yearOf } from "./format";
+import {
+  formatClock,
+  headlineParts,
+  longDateTitle,
+  monthKeyOf,
+  monthName,
+  pluralize,
+  sinceLabel,
+  yearOf,
+} from "./format";
 
 describe("formatClock", () => {
   it("writes minutes and zero-padded seconds", () => {
@@ -60,5 +69,37 @@ describe("archive dates", () => {
   it("writes the month name in English", () => {
     expect(monthName("2026-10")).toBe("October");
     expect(monthName("2026-01")).toBe("January");
+  });
+});
+
+describe("longDateTitle", () => {
+  it("keeps the day with its month: a non-breaking space joins them", () => {
+    expect(longDateTitle("2026-10-07")).toBe("Wednesday 7\u00a0October");
+  });
+});
+
+describe("headlineParts", () => {
+  it("holds hyphenated words whole and leaves the rest as plain text", () => {
+    expect(
+      headlineParts("Measuring tap latency on a mid-range phone with a high-speed camera"),
+    ).toEqual([
+      { text: "Measuring tap latency on a ", nowrap: false },
+      { text: "mid-range", nowrap: true },
+      { text: " phone with a ", nowrap: false },
+      { text: "high-speed", nowrap: true },
+      { text: " camera", nowrap: false },
+    ]);
+  });
+
+  it("keeps markup as text, for the page to escape", () => {
+    const parts = headlineParts("<b>x</b> and <i>y-z</i>");
+    expect(parts.map((part) => part.text).join("")).toBe("<b>x</b> and <i>y-z</i>");
+    expect(parts.every((part) => typeof part.text === "string")).toBe(true);
+  });
+
+  it("leaves a headline without hyphens, and an overlong hyphenated run, as one part", () => {
+    expect(headlineParts("Plain words")).toEqual([{ text: "Plain words", nowrap: false }]);
+    const long = "a-very-long-hyphenated-identifier-that-would-overflow";
+    expect(headlineParts(long)).toEqual([{ text: long, nowrap: false }]);
   });
 });

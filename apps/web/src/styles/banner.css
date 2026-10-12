@@ -8,7 +8,7 @@
   align-items: flex-start;
   gap: var(--space-3);
   padding: var(--banner-padding);
-  border-radius: var(--banner-radius);
+  border-radius: var(--radius-lg);
   background: var(--tone-bg);
 }
 
@@ -75,35 +75,28 @@
   }
 }
 
-/* ------------------------------------------------------------------ nothing to list */
-
-/* No briefings yet, offline, not found: a heading, one sentence and two ways on, set on the column
-   like any other page, and starting where every other page starts. */
-.empty {
-  display: grid;
-  gap: var(--space-2);
-  padding-block: var(--page-top) var(--space-8);
+/* Offline, New episode cannot start (deviceBanners.ts marks it aria-disabled): it shows as the
+   app's disabled button does, the container tone with disabled ink (its strong fill with faded
+   words was 1.04:1 to 1.16:1), and takes no state layer. */
+[data-create-open][aria-disabled="true"] {
+  background: var(--color-surface-container);
+  color: var(--color-on-surface-disabled);
+  cursor: default;
+  pointer-events: auto;
 }
 
-/* The Library's main already starts at the page top. */
-.library > .empty {
-  padding-block-start: 0;
+[data-create-open][aria-disabled="true"]:active {
+  background: var(--color-surface-container);
 }
 
-.empty > p {
-  max-width: 48ch;
-  color: var(--color-on-surface-muted);
-}
-
-/* Stacked on a phone, side by side from 40rem. */
-.empty-actions {
-  display: grid;
-  gap: var(--space-3);
-  margin-block-start: var(--space-4);
-}
-
-@media (min-width: 40rem) {
-  .empty-actions {
-    grid-template-columns: repeat(2, minmax(0, 14rem));
+@media (hover: hover) and (pointer: fine) {
+  [data-create-open][aria-disabled="true"]:hover {
+    background: var(--color-surface-container);
   }
+}
+
+/* Offline there is nothing to play, so the floating Play button goes, as the story chips do. */
+html[data-offline] .play-fab {
+  visibility: hidden;
+  opacity: 0;
 }

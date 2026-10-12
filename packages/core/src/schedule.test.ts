@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { ConfigOp, DEFAULT_SCHEDULE, ScheduleChange, ScheduleFile, scheduleCron } from "./index.js";
+import { ConfigOp, DEFAULT_SCHEDULE, ScheduleChange, ScheduleFile } from "./index.js";
 
 describe("ScheduleFile", () => {
   it("accepts the defaults and a list of topics left out", () => {
@@ -132,13 +132,6 @@ describe("ScheduleFile", () => {
       true,
     );
     expect(ConfigOp.safeParse({ ...set, length_minutes: 4 }).success).toBe(false);
-  });
-});
-
-describe("scheduleCron", () => {
-  it("is the cron the workflow compares against", () => {
-    expect(scheduleCron(7)).toBe("13 7 * * *");
-    expect(scheduleCron(23)).toBe("13 23 * * *");
   });
 });
 

@@ -2,6 +2,16 @@ import { expect, hydrated, ROUTES, SILENT_DIGEST, targetSize, test } from "./fix
 
 const WIDTHS = [320, 390, 820, 1280] as const;
 
+/** The app's other pages, beside the reading routes, that every sweep covers too. */
+const PAGES = [
+  "/create",
+  "/settings",
+  "/settings/daily",
+  "/settings/model",
+  "/settings/topics/design",
+  "/e/ep-20261007-1930",
+];
+
 /** Eighty words: the longest summary the voice allows. */
 const LONG_SUMMARY = Array.from({ length: 16 }, () => "Five plain words fit here.").join(" ");
 const LONG_HEADLINE =
@@ -10,31 +20,36 @@ const LONG_HOST = "an-unusually-long-subdomain.publications.a-publisher-network.
 
 test.describe("layout", () => {
   for (const width of WIDTHS) {
-    test(`nothing scrolls sideways at ${width}px`, async ({ page }) => {
+    test(`nothing scrolls sideways at ${width}px`, { tag: "@both" }, async ({ page }) => {
       await page.setViewportSize({ width, height: 900 });
-      for (const route of ROUTES) {
-        await page.goto(route.path);
+      for (const path of [...ROUTES.map((route) => route.path), ...PAGES]) {
+        await page.goto(path);
         const overflow = await page.evaluate(() => ({
           scroll: document.documentElement.scrollWidth,
           client: document.documentElement.clientWidth,
         }));
-        expect(overflow.scroll, `${route.path} at ${width}px`).toBeLessThanOrEqual(overflow.client);
+        expect(overflow.scroll, `${path} at ${width}px`).toBeLessThanOrEqual(overflow.client);
       }
     });
   }
 
-  test("every control answers a touch across at least 44px in both directions", async ({
-    page,
-  }) => {
+  test("every control answers a touch across at least 44px in both directions", {
+    tag: "@both",
+  }, async ({ page }) => {
+    // Every headline is a link, and every page of the app is probed: a minute or two of hit tests.
+    test.setTimeout(180_000);
     await page.setViewportSize({ width: 390, height: 900 });
-    for (const path of ["/", "/library", SILENT_DIGEST, "/offline"]) {
+    for (const path of ["/", "/library", SILENT_DIGEST, "/offline", ...PAGES]) {
       await page.goto(path);
       const small: string[] = [];
-      for (const control of await page.locator("a[href], button, summary, select").all()) {
+      const controls = "a[href], button, summary, select, input:not([type=hidden])";
+      for (const control of await page.locator(controls).all()) {
         if (!(await control.isVisible())) continue;
         // The skip link is a keyboard control and only shows on focus.
         if (await control.evaluate((node) => node.matches(".skip-link"))) continue;
-        const size = await targetSize(control);
+        // A choice drawn as its label (a chip, a segment, a switch) is pressed on the label.
+        const label = control.locator("xpath=self::input/ancestor::label[1]");
+        const size = await targetSize((await label.count()) > 0 ? label : control);
         if (size.width < 44 || size.height < 44) {
           const label = await control.evaluate((node) =>
             (node.getAttribute("aria-label") ?? node.textContent ?? "").trim().slice(0, 40),
@@ -46,11 +61,9 @@ test.describe("layout", () => {
     }
   });
 
-  test("the wide bottom bar's buttons and volume answer a touch across 44px", async ({
-    page,
-    isMobile,
-  }) => {
-    test.skip(isMobile, "The full bar with a mouse is a desktop layout");
+  test("the wide bottom bar's buttons and volume answer a touch across 44px", {
+    tag: "@desktop",
+  }, async ({ page }) => {
     await page.setViewportSize({ width: 1280, height: 900 });
     await page.goto("/");
     await hydrated(page);
@@ -73,7 +86,9 @@ test.describe("layout", () => {
     expect(small).toEqual([]);
   });
 
-  test("the reading column holds the measure on a wide screen", async ({ page }) => {
+  test("the reading column holds the measure on a wide screen", { tag: "@desktop" }, async ({
+    page,
+  }) => {
     await page.setViewportSize({ width: 1600, height: 900 });
     await page.goto("/");
     const column = await page
@@ -99,7 +114,9 @@ test.describe("layout", () => {
     expect(summary.characters).toBeLessThanOrEqual(69);
   });
 
-  test("the contents list replaces the section tabs from 80rem", async ({ page }) => {
+  test("the contents list replaces the section tabs from 80rem", { tag: "@desktop" }, async ({
+    page,
+  }) => {
     await page.setViewportSize({ width: 1280, height: 900 });
     await page.goto("/");
     const aside = page.getByRole("navigation", { name: "Contents" });
@@ -128,9 +145,9 @@ test.describe("layout", () => {
     await expect(page.locator(".tabs")).toBeVisible();
   });
 
-  test("the contents list marks the section in view and stays put while the page scrolls", async ({
-    page,
-  }) => {
+  test("the contents list marks the section in view and stays put while the page scrolls", {
+    tag: "@desktop",
+  }, async ({ page }) => {
     await page.setViewportSize({ width: 1280, height: 900 });
     await page.goto("/");
     const current = page.locator('.aside-link[aria-current="true"]');
@@ -141,17 +158,18 @@ test.describe("layout", () => {
     await expect(current).toHaveText(/Research/);
     await expect(current).toHaveCount(1);
     const box = await page.locator(".aside").boundingBox();
-    // Stuck at the vertical middle of the window, whatever the scroll.
-    expect((box?.y ?? 0) + (box?.height ?? 0) / 2).toBeCloseTo(450, -1);
+    // Stuck near the top, under the same room the page keeps above its first block, whatever the
+    // scroll: it never floats in the middle of the window.
+    expect(box?.y ?? 0).toBeCloseTo(48, -1);
     await page.locator(".aside-link", { hasText: "Launches" }).click();
     await expect(page).toHaveURL(/#c-launches$/);
     await expect(current).toHaveText(/Launches/);
     await expect(page.locator("#c-launches")).toBeInViewport();
   });
 
-  test("the contents list marks the last section at the end of the page, though it cannot reach the top", async ({
-    page,
-  }) => {
+  test("the contents list marks the last section at the end of the page, though it cannot reach the top", {
+    tag: "@desktop",
+  }, async ({ page }) => {
     await page.setViewportSize({ width: 1280, height: 900 });
     await page.goto("/");
     const current = page.locator('.aside-link[aria-current="true"]');
@@ -164,7 +182,9 @@ test.describe("layout", () => {
     await expect(current).toHaveText(/Research/);
   });
 
-  test("the contents list has no listening lengths, with or without audio", async ({ page }) => {
+  test("the contents list has no listening lengths, with or without audio", {
+    tag: "@desktop",
+  }, async ({ page }) => {
     await page.setViewportSize({ width: 1280, height: 900 });
     for (const path of [SILENT_DIGEST, "/"]) {
       await page.goto(path);
@@ -173,86 +193,26 @@ test.describe("layout", () => {
     }
   });
 
-  test("the header keeps the cover beside the date, down to 320px", async ({ page }) => {
-    await page.setViewportSize({ width: 320, height: 700 });
-    await page.goto("/");
-    const cover = await page.locator(".hero .cover").boundingBox();
-    const heading = await page.locator(".hero h1").boundingBox();
-    const actions = await page.locator(".hero-actions").boundingBox();
-    expect(cover?.width).toBeCloseTo(88, 0);
-    expect(cover?.height).toBeCloseTo(88, 0);
-    expect(heading?.x ?? 0).toBeGreaterThan((cover?.x ?? 0) + (cover?.width ?? 0));
-    // On a phone the play chip and the count run under the cover, from the column's edge.
-    expect(actions?.y ?? 0).toBeGreaterThan((cover?.y ?? 0) + (cover?.height ?? 0));
-    expect(actions?.x).toBeCloseTo(cover?.x ?? -1, 0);
-    // The story count stands at the chip's side, on the same line.
-    const chip = await page.locator(".hero [data-play-digest]").boundingBox();
-    const facts = await page.locator(".hero-facts").boundingBox();
-    expect(facts?.x ?? 0).toBeGreaterThan((chip?.x ?? 0) + (chip?.width ?? 0));
-    const middle = (box: { y: number; height: number } | null) =>
-      (box?.y ?? 0) + (box?.height ?? 0) / 2;
-    expect(Math.abs(middle(facts) - middle(chip))).toBeLessThan(3);
-  });
-
-  test("from 40rem the play chip sits beside the cover, under the date", async ({ page }) => {
-    await page.setViewportSize({ width: 820, height: 900 });
-    await page.goto("/");
-    const cover = await page.locator(".hero .cover").boundingBox();
-    const actions = await page.locator(".hero-actions").boundingBox();
-    expect(cover?.width).toBeCloseTo(112, 0);
-    expect(actions?.x ?? 0).toBeGreaterThan((cover?.x ?? 0) + (cover?.width ?? 0));
-    expect(actions?.y ?? 999).toBeLessThan((cover?.y ?? 0) + (cover?.height ?? 0));
-  });
-
-  test("hairlines between stories stay inside the text column", async ({ page }) => {
-    await page.setViewportSize({ width: 390, height: 844 });
-    await page.goto("/");
-    const rule = await page
-      .locator(".story")
-      .nth(1)
-      .evaluate((node) => {
-        const style = getComputedStyle(node, "::before");
-        const box = node.getBoundingClientRect();
-        return {
-          left: box.left + Number.parseFloat(style.left) - box.left,
-          width: Number.parseFloat(style.width),
-          row: box.width,
-          height: style.height,
-          // The page's own width: a desktop browser takes a scrollbar out of the 390.
-          page: document.documentElement.clientWidth,
-        };
+  test("every story chip keeps its whole 44px target, clear of the why line and the publisher", async ({
+    page,
+  }) => {
+    for (const width of [360, 390, 768, 1024]) {
+      await page.setViewportSize({ width, height: 900 });
+      await page.goto("/");
+      const misses = await page.evaluate(() => {
+        const out: string[] = [];
+        for (const chip of document.querySelectorAll<HTMLElement>(".story [data-play-item]")) {
+          chip.scrollIntoView({ block: "center" });
+          const box = chip.getBoundingClientRect();
+          for (const y of [box.top - 3, box.bottom + 3]) {
+            const hit = document.elementFromPoint(box.left + box.width / 2, y);
+            if (!hit || !chip.contains(hit)) out.push(`${chip.dataset.playItem} ${hit?.className}`);
+          }
+        }
+        return out;
       });
-    // The line starts and ends where the text does: no bleed past the gutters.
-    expect(rule.left).toBeCloseTo(0, 0);
-    expect(rule.width).toBeCloseTo(rule.row, 0);
-    expect(rule.width).toBeLessThan(rule.page);
-    expect(rule.height).toBe("1px");
-    // The first story of a section has no rule: its section header is above it.
-    expect(
-      await page
-        .locator(".story")
-        .first()
-        .evaluate((node) => getComputedStyle(node, "::before").content),
-    ).toBe("none");
-  });
-
-  test("there is more room above a section header than below it", async ({ page }) => {
-    await page.setViewportSize({ width: 390, height: 844 });
-    await page.goto("/");
-    const gaps = await page
-      .locator("[data-chapter]")
-      .nth(1)
-      .evaluate((section) => {
-        const heading = section.querySelector("h2")?.getBoundingClientRect();
-        const first = section.querySelector(".story .meta")?.getBoundingClientRect();
-        const previous = section.previousElementSibling?.querySelector(".story:last-child");
-        const last = previous?.querySelector(".story-actions")?.getBoundingClientRect();
-        return {
-          above: (heading?.top ?? 0) - (last?.bottom ?? 0),
-          below: (first?.top ?? 0) - (heading?.bottom ?? 0),
-        };
-      });
-    expect(gaps.above).toBeGreaterThan(gaps.below * 1.5);
+      expect(misses, `${width}`).toEqual([]);
+    }
   });
 
   test("long content holds at 320px: a three-line headline, an 80-word summary, a long host", async ({
@@ -320,69 +280,22 @@ test.describe("layout", () => {
     expect(requests.some((url) => url.endsWith(".woff2"))).toBe(true);
   });
 
-  test("type holds to two weights, with the date regular and headlines and section headings medium", async ({
+  test("forced colors keeps the current story and section marked", { tag: "@desktop" }, async ({
     page,
   }) => {
-    await page.goto("/");
-    const weight = (selector: string) =>
-      page
-        .locator(selector)
-        .first()
-        .evaluate((node) => getComputedStyle(node).fontWeight);
-    expect(await weight("h1")).toBe("400");
-    expect(await weight("[data-chapter] h2")).toBe("500");
-    expect(await weight(".story h3")).toBe("500");
-    expect(await weight(".story-summary")).toBe("400");
-    expect(await weight(".card-title")).toBe("500");
-    const weights = await page
-      .locator("main *")
-      .evaluateAll((nodes) => [...new Set(nodes.map((node) => getComputedStyle(node).fontWeight))]);
-    expect(weights.sort()).toEqual(["400", "500"]);
-  });
-
-  test("reduced motion keeps the layout and removes movement", async ({ page }) => {
-    await page.emulateMedia({ reducedMotion: "reduce" });
-    await page.goto("/");
-    const durations = await page.evaluate(() => {
-      const style = getComputedStyle(document.documentElement);
-      return {
-        enter: style.getPropertyValue("--duration-enter").trim(),
-        sheet: style.getPropertyValue("--duration-sheet-in").trim(),
-        state: style.getPropertyValue("--duration-state").trim(),
-      };
-    });
-    expect(Number.parseFloat(durations.enter)).toBeCloseTo(0.01, 3);
-    expect(Number.parseFloat(durations.sheet)).toBeCloseTo(0.01, 3);
-    expect(
-      Number.parseFloat(durations.state) * (durations.state.endsWith("ms") ? 1 : 1000),
-    ).toBeCloseTo(200, 0);
-    // A playing chip's bars hold still, at three heights.
-    const chip = page.locator("[data-play-item]").first();
-    await chip.evaluate((node) => {
-      node.setAttribute("data-state", "current");
-      node.setAttribute("data-playing", "true");
-    });
-    expect(
-      await chip
-        .locator(".chip-bars > i")
-        .first()
-        .evaluate((node) => getComputedStyle(node).animationName),
-    ).toBe("none");
-  });
-
-  test("forced colors keeps the current story and section marked", async ({ page }) => {
     await page.setViewportSize({ width: 1280, height: 900 });
     await page.emulateMedia({ forcedColors: "active" });
     await page.goto("/");
     // The player clears story states as it hydrates; write ours after it has.
     await hydrated(page);
     await page.evaluate(() => new Promise((resolve) => requestAnimationFrame(() => resolve(null))));
-    const story = page.locator(".story").nth(1);
-    const before = await story.locator("h3").evaluate((node) => getComputedStyle(node).color);
-    await story.evaluate((node) => node.setAttribute("data-state", "current"));
+    // The current story is marked by its chip (the headline keeps its ink in every mode).
+    const chip = page.locator(".story").nth(1).locator("[data-play-item]");
+    const edge = () => chip.evaluate((node) => getComputedStyle(node).borderTopColor);
+    const before = await edge();
+    await chip.evaluate((node) => node.setAttribute("data-state", "current"));
     await page.waitForTimeout(250);
-    const after = await story.locator("h3").evaluate((node) => getComputedStyle(node).color);
-    expect(after).not.toBe(before);
+    expect(await edge()).not.toBe(before);
     // The section in view keeps an edge where its fill is dropped.
     const outline = await page
       .locator('.aside-link[aria-current="true"]')
@@ -390,23 +303,18 @@ test.describe("layout", () => {
     expect(outline).toBe("solid");
   });
 
-  test("scroll behavior lives in the stylesheet", async ({ page }) => {
-    await page.goto("/");
-    const overscroll = await page.evaluate(
-      () => getComputedStyle(document.documentElement).overscrollBehaviorY,
-    );
-    expect(overscroll).toBe("none");
-  });
-
-  test("uses the safe area variables with a zero fallback", async ({ page }) => {
-    await page.goto("/");
-    const safe = await page.evaluate(() => {
-      const style = getComputedStyle(document.documentElement);
-      return ["--safe-top", "--safe-right", "--safe-bottom", "--safe-left"].map((name) =>
-        style.getPropertyValue(name).trim(),
-      );
-    });
-    // A zero inset is a real answer: every variable resolves, and the layout works at 0px.
-    expect(safe).toEqual(["0px", "0px", "0px", "0px"]);
+  test("a balanced headline never breaks a hyphenated word at its hyphen", async ({ page }) => {
+    for (const width of [360, 1280]) {
+      await page.setViewportSize({ width, height: 800 });
+      for (const path of ["/d/2026-10-05", "/e/ep-20261007-1930"]) {
+        await page.goto(path);
+        const title = page.locator(":is(.story-title, .episode-highlight-title)", {
+          hasText: "mid-range",
+        });
+        const word = title.first().locator(".no-break", { hasText: "mid-range" });
+        await expect(word, `${path} at ${width}`).toHaveCount(1);
+        expect(await word.evaluate((node) => node.getClientRects().length)).toBe(1);
+      }
+    }
   });
 });

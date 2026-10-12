@@ -6,29 +6,42 @@ import { itemPositionLabel } from "./timeline";
  * plan). Automatic advance, keyboard seeks and scrubbing announce nothing here: the narrator is
  * already speaking, and the scrubber's aria-valuetext carries position for keyboard users.
  */
-export function announcementForEvent(event: PlayerEvent, track: Track | null): string | null {
+export interface AnnouncementContext {
+  /**
+   * The open player is on screen. Its notice (role alert or status) then speaks errors and
+   * interruptions itself, so the live region says nothing to avoid saying it twice.
+   */
+  open: boolean;
+  /** Playback has been asked for. Before that a failure (a file found missing) is not the listener's news. */
+  started?: boolean;
+}
+
+export function announcementForEvent(
+  event: PlayerEvent,
+  track: Track | null,
+  context: AnnouncementContext = { open: false },
+): string | null {
   switch (event.type) {
     case "willPlay":
       return event.reason === "user" ? "Playing." : null;
     case "didPause":
       return event.reason === "user" ? "Paused." : null;
     case "itemChanged": {
-      const chosen =
-        event.cause === "skip-next" || event.cause === "skip-previous" || event.cause === "select";
-      if (!chosen) return null;
+      // Chosen by the listener: Next, Previous ("skip-next", "skip-previous") or a story ("select").
+      if (!/skip|select/.test(event.cause)) return null;
+      if (event.index < 0) return "Back to the start.";
       const item = track?.timeline?.items[event.index];
       if (!item) return null;
       return `${itemPositionLabel(track?.timeline ?? null, event.index)}: ${item.headline}`;
     }
-    case "rateChanged":
-      return `Speed ${event.rate}x.`;
     case "ended":
-      return "Briefing finished.";
+      return track?.digest.turns ? "Episode finished." : "Briefing finished.";
     case "interrupted":
-      return "Playback was interrupted. Press play to resume.";
+      return context.open ? null : "Paused by another app.";
     case "error":
-      return event.error.message;
-    case "loaded":
+      return context.open || context.started === false ? null : event.error.message;
+    default:
+      // A rate change (the slider's value text and the pressed preset already say it), a load.
       return null;
   }
 }

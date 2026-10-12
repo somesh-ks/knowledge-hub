@@ -23,10 +23,6 @@ export const MP3_OUTPUT_FORMATS = [
 ] as const;
 export type Mp3OutputFormat = (typeof MP3_OUTPUT_FORMATS)[number];
 
-export function isMp3OutputFormat(value: string): value is Mp3OutputFormat {
-  return (MP3_OUTPUT_FORMATS as readonly string[]).includes(value);
-}
-
 /** One word-level speech mark. Times are absolute milliseconds from the start of the audio. */
 export const SpeechMark = z.object({
   type: z.string().optional(),

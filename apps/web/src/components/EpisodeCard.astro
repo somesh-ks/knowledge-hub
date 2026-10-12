@@ -1,8 +1,7 @@
 ---
 import { paletteAccent } from "@dispatch/cover";
 import type { EpisodeEntry } from "../lib/episodes";
-import { longDate } from "../lib/format";
-import { EPISODE_KIND } from "../lib/library";
+import { EPISODE_KIND, FACT_SEPARATOR } from "../lib/library";
 import { episodeFacts } from "../lib/libraryCard";
 import Cover from "./Cover.astro";
 import CoverPlay from "./CoverPlay.astro";
@@ -16,6 +15,8 @@ interface Props {
 const { entry, priority = false } = Astro.props;
 const { episode } = entry;
 const facts = episodeFacts(entry);
+// Format, length: the length is its own span, so "Played" can take its place and the format stays.
+const [format, length] = facts.line.split(FACT_SEPARATOR);
 ---
 
 {/* One episode as album art, like a briefing's card: the cover, its title and one quiet line that
@@ -30,6 +31,7 @@ const facts = episodeFacts(entry);
   data-stories={episode.sources.length}
   data-minutes={facts.minutes}
   data-search={facts.search}
+  data-meta-lines={facts.metaLines}
 >
   <a class="card-link" href={`/e/${entry.id}`} data-astro-prefetch="hover">
     <Cover
@@ -39,10 +41,11 @@ const facts = episodeFacts(entry);
       weekly={false}
       priority={priority}
     />
+    {/* A half-heard item: a bar along the bottom of the art, on its own track, so it reads on any cover. */}
+    <span class="card-progress" data-cover-progress aria-hidden="true" hidden></span>
     <span class="card-title">{episode.title}</span>
     <span class="card-sub">
-      <span class="card-meta">Episode, {longDate(episode.date)}</span>
-      <span class="card-facts" data-card-facts data-rest={facts.line}>{facts.line}</span>
+      <span class="card-facts" data-card-facts data-rest={facts.line}>{length === undefined ? facts.line : <Fragment>{format}{FACT_SEPARATOR}<span data-card-length>{length}</span></Fragment>}</span>
     </span>
   </a>
   <CoverPlay digestId={entry.id} href={`/e/${entry.id}`} title={episode.title} />

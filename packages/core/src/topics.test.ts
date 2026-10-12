@@ -28,7 +28,10 @@ import {
 const REPO_ROOT = join(dirname(fileURLToPath(import.meta.url)), "..", "..", "..");
 
 const preferences = Preferences.parse(
-  JSON.parse(readFileSync(join(REPO_ROOT, "config", "preferences.json"), "utf8")),
+  // A frozen copy, so a weight saved in Settings does not move these expectations.
+  JSON.parse(
+    readFileSync(join(REPO_ROOT, "packages/engine/test/fixtures/config/preferences.json"), "utf8"),
+  ),
 );
 
 function customTopics(): TopicsFile {

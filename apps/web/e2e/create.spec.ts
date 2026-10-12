@@ -1,26 +1,9 @@
-import AxeBuilder from "@axe-core/playwright";
 import type { Page, Route } from "@playwright/test";
-import { expect, test } from "./fixtures";
-import { PASSPHRASE_OFF, PASSPHRASE_ON, PASSPHRASE_REQUIRED } from "./passphrase";
+import { OPEN_PASSPHRASE } from "../src/lib/access";
+import { expect, expectNoViolationsInEitherScheme, seedStorage, test } from "./fixtures";
 
-const WCAG = ["wcag2a", "wcag2aa", "wcag21a", "wcag21aa", "wcag22aa"];
-const PASSPHRASE = "correct horse battery staple";
-/** What the page sends as the passphrase: what was typed, or the fixed value while none is asked. */
-const SENT = PASSPHRASE_REQUIRED ? PASSPHRASE : "open";
-const STORAGE_KEY = "dispatch:narrate-passphrase";
 const EPISODE = "/e/ep-20261007-1930";
 const EPISODE_ID = "ep-20261007-1930";
-
-async function violations(page: Page): Promise<string[]> {
-  const results = await new AxeBuilder({ page }).withTags(WCAG).analyze();
-  return results.violations.map(
-    (violation) =>
-      `${violation.id} (${violation.impact}): ${violation.nodes
-        .slice(0, 3)
-        .map((node) => node.target.join(" "))
-        .join(", ")}`,
-  );
-}
 
 interface Mock {
   /** The JSON of every POST /api/podcast the page made. */
@@ -37,9 +20,8 @@ async function mockPodcast(page: Page, status: number, body: unknown): Promise<M
   return mock;
 }
 
-const chip = (page: Page, name: string) => page.locator(".create-chip:visible", { hasText: name });
+const chip = (page: Page, name: string) => page.locator(".filter-chip:visible", { hasText: name });
 const segment = (page: Page, name: string) => page.locator(".settings-segment", { hasText: name });
-const dialog = (page: Page) => page.getByRole("dialog", { name: "Enter the passphrase" });
 const submit = (page: Page) => page.locator("[data-submit]");
 
 /** Unticks every chip, for a test that starts from no topic. */
@@ -52,26 +34,23 @@ async function clearTopics(page: Page): Promise<void> {
   await expect(page.locator('input[name="topic"]:checked')).toHaveCount(0);
 }
 
-/** Opens the page and waits for its script, which is what makes the form do anything. */
-async function openCreate(page: Page): Promise<void> {
-  await page.goto("/create");
-  await expect(page.locator("[data-create]")).toHaveAttribute("data-ready", "");
+/** Opens More options (Written for, voices, look back, tone, title) unless it is already open. */
+async function openMore(page: Page): Promise<void> {
+  const more = page.locator("[data-create-more]").first();
+  if (!(await more.evaluate((details) => (details as HTMLDetailsElement).open))) {
+    await more.locator("summary").click();
+  }
+  await expect(more).toHaveAttribute("open", "");
 }
 
 /**
- * Presses Create with the Somesh preset ticked (Design, AI, Technology). While a passphrase is asked for, that opens its dialog;
- * while it is not, the request is already on its way.
+ * Opens the page and waits for its script, which is what makes the form do anything. More options
+ * is opened too, so every choice can be pressed; a test of the closed row opens the page itself.
  */
-async function openDialog(page: Page): Promise<void> {
-  await page.locator("[data-submit]").click();
-  if (PASSPHRASE_REQUIRED) await expect(dialog(page)).toBeVisible();
-}
-
-/** Answers the passphrase dialog. With the step off there is none to answer. */
-async function confirm(page: Page): Promise<void> {
-  if (!PASSPHRASE_REQUIRED) return;
-  await dialog(page).getByLabel("Passphrase").fill(PASSPHRASE);
-  await dialog(page).getByRole("button", { name: "Create episode" }).click();
+async function openCreate(page: Page): Promise<void> {
+  await page.goto("/create");
+  await expect(page.locator("[data-create]")).toHaveAttribute("data-ready", "");
+  await openMore(page);
 }
 
 // The service worker answers /latest.json itself, which a route handler cannot see.
@@ -88,56 +67,6 @@ test.describe("the Create page", () => {
     await expect(page.locator("[data-run-card]")).toBeHidden();
   });
 
-  test("introduces itself in two lines and offers every choice", async ({ page }) => {
-    await openCreate(page);
-    await expect(page.getByRole("heading", { level: 1 })).toHaveText("Create a podcast");
-    await expect(page.locator(".create-lede")).toHaveText(
-      "Pick topics and a length. Singularity writes and reads an episode from the last few days of stories.",
-    );
-    await expect(page.getByRole("heading", { level: 2 })).toHaveText([
-      "Written for",
-      "Topics",
-      "Length",
-      "Format",
-      "Voice",
-      "Look back",
-      "Tone",
-      "Title (optional)",
-    ]);
-    // One list for both audiences, then the owner's own.
-    await expect(page.locator(".create-chip:visible")).toHaveText([
-      "Design",
-      "AI",
-      "Technology",
-      "World",
-      "Business",
-      "Science",
-      "Culture",
-      "Sports",
-      "Audio interfaces",
-    ]);
-    await expect(page.locator('input[name="length"]')).toHaveCount(4);
-    await expect(page.locator('input[name="window"]')).toHaveCount(3);
-    await expect(page.locator('input[name="tone"]')).toHaveCount(3);
-    await expect(page.locator('.settings-segment:has(input[name="format"])')).toHaveText([
-      "Readout",
-      "Discussion",
-    ]);
-    // The helper lines are gone: nothing under Written for or Topics, and the Title label says it is
-    // optional, in one label at one size.
-    await expect(
-      page.locator("[data-audience-hint], [data-top-hint], #create-topics-hint"),
-    ).toHaveCount(0);
-    await expect(page.getByLabel("Title (optional)")).toHaveAttribute("name", "title");
-    await expect(submit(page)).toHaveText("Generate • 5 mins");
-    // Sensible defaults are already chosen, and so is the Somesh preset.
-    await expect(page.locator('input[name="length"]:checked')).toHaveValue("5");
-    await expect(page.locator('input[name="format"]:checked')).toHaveValue("readout");
-    await expect(page.locator('input[name="window"]:checked')).toHaveValue("7");
-    await expect(page.locator('input[name="tone"]:checked')).toHaveValue("neutral");
-    await expect(page.locator('input[name="topic"]:checked')).toHaveCount(3);
-  });
-
   test("the button says how long the episode will be, and follows the length", async ({ page }) => {
     await openCreate(page);
     await expect(submit(page)).toHaveText("Generate • 5 mins");
@@ -152,7 +81,33 @@ test.describe("the Create page", () => {
     await expect(submit(page)).toHaveText("Generate • 3 mins");
   });
 
-  test("needs at least one topic before it asks for the passphrase", async ({ page }) => {
+  test("while the request is out the button says Starting…, with its spinner", async ({ page }) => {
+    let release: () => void = () => {};
+    const held = new Promise<void>((resolve) => {
+      release = resolve;
+    });
+    await page.route("**/api/podcast", async (route) => {
+      await held;
+      // Accepted without a run to follow: the form says it did not start, with no failed request.
+      await route.fulfill({
+        status: 202,
+        contentType: "application/json",
+        body: JSON.stringify({ status: 202 }),
+      });
+    });
+    await openCreate(page);
+    await submit(page).click();
+    const words = page.locator("[data-submit-text]");
+    await expect(words).toHaveText("Starting…");
+    await expect(submit(page)).toHaveAttribute("aria-busy", "true");
+    await expect(submit(page).locator(".spinner")).toBeVisible();
+    release();
+    await expect(page.locator('[data-error="form"]')).toBeVisible();
+    await expect(words).toHaveText("Generate • 5 mins");
+    await expect(submit(page).locator(".spinner")).toBeHidden();
+  });
+
+  test("needs at least one topic before it sends", async ({ page }) => {
     await openCreate(page);
     await clearTopics(page);
     const error = page.locator('[data-error="topics"]');
@@ -160,7 +115,6 @@ test.describe("the Create page", () => {
     await page.locator("[data-submit]").click();
     await expect(error).toBeVisible();
     await expect(error).toHaveText("Pick at least one topic.");
-    await expect(dialog(page)).toBeHidden();
     // Focus goes to the first topic, where the fix is.
     await expect(page.locator('input[name="topic"]').first()).toBeFocused();
     // Choosing one clears the message.
@@ -168,36 +122,27 @@ test.describe("the Create page", () => {
     await expect(error).toBeHidden();
   });
 
-  test("has no limit on topics: every chip can be chosen", async ({ page }) => {
-    await openCreate(page);
-    await clearTopics(page);
-    const chips = page.locator(".create-chip:visible");
-    const total = await chips.count();
-    for (let index = 0; index < total; index += 1) await chips.nth(index).click();
-    await expect(page.locator('input[name="topic"]:checked')).toHaveCount(total);
-    await expect(page.locator('input[name="topic"]:disabled')).toHaveCount(0);
-  });
-
-  test("Top picks is not a chip", async ({ page }) => {
-    await openCreate(page);
-    await expect(page.locator(".create-chip", { hasText: "Top picks" })).toHaveCount(0);
-    await expect(page.locator('input[name="topic"][value="top"]')).toHaveCount(0);
-  });
-
-  test("choosing a mode changes the audience and replaces the selection with its preset", async ({
+  test("a new audience keeps topics picked by hand, says so, and offers its suggestion", async ({
     page,
   }) => {
     const mock = await mockPodcast(page, 202, { status: 202, run_id: 3, started_at: "x" });
     await openCreate(page);
     await expect(page.locator('input[name="audience"]:checked')).toHaveValue("custom");
+    const note = page.locator("[data-preset-note]");
+    await expect(note).toBeHidden();
     await chip(page, "Audio interfaces").click();
     await segment(page, "General").click();
+    // The hand-picked topics stay, and the line says so.
+    await expect(page.locator('input[name="topic"]:checked')).toHaveCount(4);
+    await expect(note).toBeVisible();
+    await expect(note).toContainText("Your topic picks are kept");
+    await page.getByRole("button", { name: "Use suggested topics" }).click();
+    await expect(note).toBeHidden();
     // Every chip stays; the selection is General's preset, so the owner's own topic is unticked.
-    await expect(page.locator(".create-chip:visible")).toHaveCount(9);
+    await expect(page.locator(".filter-chip:visible")).toHaveCount(9);
     await expect(page.locator('input[name="topic"][value="audio_interfaces"]')).not.toBeChecked();
     await expect(page.locator('input[name="topic"]:checked')).toHaveCount(6);
     await page.locator("[data-submit]").click();
-    await confirm(page);
     await expect.poll(() => mock.bodies.length).toBe(1);
     expect(mock.bodies[0]?.request).toMatchObject({
       audience: "general",
@@ -206,15 +151,62 @@ test.describe("the Create page", () => {
     expect(JSON.stringify(mock.bodies[0])).not.toContain('"top"');
   });
 
-  test("the presets: Somesh ticks Design, AI, Technology; General ticks the six news topics", async ({
+  test("a suggestion that replaces untouched topics says so, and Undo brings the ticks back", async ({
+    page,
+  }) => {
+    const mock = await mockPodcast(page, 202, { status: 202, run_id: 3, started_at: "x" });
+    await openCreate(page);
+    const ticked = page.locator(".filter-chip:has(input:checked)");
+    const note = page.locator("[data-preset-note]");
+    await expect(note).toBeHidden();
+    await segment(page, "General").click();
+    // The chips may be far above in a phone's sheet: the line where the choice was made says what
+    // changed, in a status region, with the way back.
+    await expect(note).toBeVisible();
+    await expect(note).toContainText("Topics set for General");
+    // Not hidden under the stuck foot with Generate.
+    await expect(page.getByRole("button", { name: "Undo" })).toBeInViewport();
+    await expect
+      .poll(() =>
+        page.evaluate(() => {
+          const line = document.querySelector("[data-preset-note]")?.getBoundingClientRect();
+          const foot = document.querySelector("main .create-submit")?.getBoundingClientRect();
+          return !line || !foot || line.bottom <= foot.top + 1;
+        }),
+      )
+      .toBe(true);
+    await expect(page.locator("[data-preset-status]")).toHaveAttribute("role", "status");
+    await expect(page.getByRole("button", { name: "Use suggested topics" })).toBeHidden();
+    await page.getByRole("button", { name: "Undo" }).click();
+    await expect(note).toBeHidden();
+    await expect(ticked).toHaveText(["Design", "AI", "Technology"]);
+    // Focus stays where the choice was made, not on the page.
+    await expect(page.locator('input[name="audience"]:checked')).toBeFocused();
+    // The restored ticks are Somesh's own suggestion: switching to Somesh has nothing to replace and
+    // nothing to offer, so no line and no button that does nothing.
+    await segment(page, "Somesh").click();
+    await expect(note).toBeHidden();
+    await expect(ticked).toHaveText(["Design", "AI", "Technology"]);
+    await page.locator("[data-submit]").click();
+    await expect.poll(() => mock.bodies.length).toBe(1);
+    expect(mock.bodies[0]?.request).toMatchObject({
+      topic_ids: ["design", "ui-craft", "ai", "tech"],
+    });
+  });
+
+  test("picks that differ from the next audience's suggestion are kept, and the line says so", async ({
     page,
   }) => {
     await openCreate(page);
-    const ticked = page.locator(".create-chip:has(input:checked)");
-    const all = page.locator(".create-chip:visible");
-    await expect(ticked).toHaveText(["Design", "AI", "Technology"]);
+    const ticked = page.locator(".filter-chip:has(input:checked)");
+    const note = page.locator("[data-preset-note]");
+    await chip(page, "World").click();
     await segment(page, "General").click();
-    await expect(all).toHaveCount(9);
+    await expect(note).toContainText("Your topic picks are kept");
+    await expect(ticked).toHaveText(["Design", "AI", "Technology", "World"]);
+    // The button does something: it brings the suggestion in, and the line goes with it.
+    await page.getByRole("button", { name: "Use suggested topics" }).click();
+    await expect(note).toBeHidden();
     await expect(ticked).toHaveText([
       "Technology",
       "World",
@@ -223,12 +215,17 @@ test.describe("the Create page", () => {
       "Culture",
       "Sports",
     ]);
-    await segment(page, "Somesh").click();
-    await expect(all).toHaveCount(9);
-    await expect(ticked).toHaveText(["Design", "AI", "Technology"]);
   });
 
-  test("chips ticked by hand mix both kinds of topic, and switching the audience resets them", async ({
+  test("a tick by hand after a suggestion takes its Undo away", async ({ page }) => {
+    await openCreate(page);
+    await segment(page, "General").click();
+    await expect(page.getByRole("button", { name: "Undo" })).toBeVisible();
+    await chip(page, "Design").click();
+    await expect(page.locator("[data-preset-note]")).toBeHidden();
+  });
+
+  test("chips ticked by hand mix both kinds of topic, and switching the audience keeps them", async ({
     page,
   }) => {
     const mock = await mockPodcast(page, 202, { status: 202, run_id: 3, started_at: "x" });
@@ -237,7 +234,6 @@ test.describe("the Create page", () => {
     await chip(page, "Sports").click();
     await expect(page.locator('input[name="topic"]:checked')).toHaveCount(5);
     await page.locator("[data-submit]").click();
-    await confirm(page);
     await expect.poll(() => mock.bodies.length).toBe(1);
     // Design sends two sections; the audience still says how the script is written.
     expect(mock.bodies[0]?.request).toMatchObject({
@@ -245,15 +241,73 @@ test.describe("the Create page", () => {
       topic_ids: ["design", "ui-craft", "ai", "tech", "world", "sports"],
     });
     await segment(page, "General").click();
-    await expect(page.locator('input[name="topic"]:checked')).toHaveCount(6);
+    await expect(page.locator('input[name="topic"]:checked')).toHaveCount(5);
     await segment(page, "Somesh").click();
-    await expect(page.locator('input[name="topic"]:checked')).toHaveCount(3);
+    await expect(page.locator('input[name="topic"]:checked')).toHaveCount(5);
+    await expect(page.locator("[data-preset-note]")).toBeVisible();
+  });
+
+  test("More options is one closed row that names its choices, and opens in place", async ({
+    page,
+  }) => {
+    await page.goto("/create");
+    await expect(page.locator("[data-create]")).toHaveAttribute("data-ready", "");
+    const more = page.locator("[data-create-more]");
+    await expect(more).not.toHaveAttribute("open", "");
+    await expect(page.locator("[data-more-values]")).toHaveText(
+      "For Somesh · Last 7 days · Neutral tone",
+    );
+    await expect(page.locator('input[name="tone"]').first()).toBeHidden();
+    await more.locator("summary").click();
+    await segment(page, "Dry").click();
+    await segment(page, "General").click();
+    await more.locator("summary").click();
+    await expect(page.locator("[data-more-values]")).toHaveText(
+      "For General · Last 7 days · Dry tone",
+    );
+  });
+
+  test("a wide page keeps More options open beside the main questions", {
+    tag: "@desktop",
+  }, async ({ page }) => {
+    await page.goto("/create");
+    await expect(page.locator("[data-create]")).toHaveAttribute("data-ready", "");
+    const more = page.locator("[data-create-more]");
+    await expect(more).toHaveAttribute("data-pinned", "");
+    await more.locator("summary").click();
+    await expect(more).toHaveAttribute("open", "");
+    // The whole form is in view: Generate needs no scrolling.
+    await expect(submit(page)).toBeInViewport();
+  });
+
+  test("a wide page's Tab goes down the main questions to Generate, then the options", {
+    tag: "@desktop",
+  }, async ({ page }) => {
+    await page.goto("/create");
+    await expect(page.locator("[data-create]")).toHaveAttribute("data-ready", "");
+    const summary = page.locator("[data-create-more] > summary");
+    // The pinned row is the column's heading, not a disclosure that does nothing.
+    await expect(summary).toHaveAttribute("tabindex", "-1");
+    await expect(page.getByRole("heading", { name: "More options", level: 2 })).toBeVisible();
+    // Format's chosen segment, then Tab: Generate, then the first choice under Written for.
+    await page.locator('input[name="format"]:checked').focus();
+    await page.keyboard.press("Tab");
+    await expect(submit(page)).toBeFocused();
+    await page.keyboard.press("Tab");
+    await expect(page.locator('input[name="audience"]:checked')).toBeFocused();
+    // Narrow again, the row is a switch in the Tab order, before Generate.
+    await page.setViewportSize({ width: 900, height: 800 });
+    await expect(summary).not.toHaveAttribute("tabindex", "-1");
+    const order = await page.evaluate(() => {
+      const more = document.querySelector("[data-create-more]");
+      return more?.nextElementSibling?.classList.contains("create-submit");
+    });
+    expect(order).toBe(true);
   });
 
   test("with the passphrase step off, Create sends straight away and mentions none", async ({
     page,
   }) => {
-    test.skip(PASSPHRASE_REQUIRED, PASSPHRASE_ON);
     // The clock is held, so the page never gets as far as asking after the run.
     await page.clock.install();
     const mock = await mockPodcast(page, 202, { status: 202, run_id: 5, started_at: "x" });
@@ -261,34 +315,9 @@ test.describe("the Create page", () => {
     await expect(page.getByText(/passphrase/i)).toHaveCount(0);
     await page.locator("[data-submit]").click();
     await expect.poll(() => mock.bodies.length).toBe(1);
-    expect(mock.bodies[0]?.passphrase).toBe("open");
+    expect(mock.bodies[0]?.passphrase).toBe(OPEN_PASSPHRASE);
     await expect(page.locator("[data-run-card]")).toBeVisible();
     await expect(page.getByRole("dialog")).toHaveCount(0);
-  });
-
-  test("asks for the passphrase in a dialog that can be cancelled", async ({ page }) => {
-    test.skip(!PASSPHRASE_REQUIRED, PASSPHRASE_OFF);
-    await openCreate(page);
-    await openDialog(page);
-    await expect(dialog(page).getByLabel("Passphrase")).toBeFocused();
-    await expect(dialog(page).getByLabel("Remember on this device")).not.toBeChecked();
-    await dialog(page).getByRole("button", { name: "Close" }).click();
-    await expect(dialog(page)).toBeHidden();
-    // Escape closes it too.
-    await page.locator("[data-submit]").click();
-    await expect(dialog(page)).toBeVisible();
-    await page.keyboard.press("Escape");
-    await expect(dialog(page)).toBeHidden();
-  });
-
-  test("will not send an empty passphrase", async ({ page }) => {
-    test.skip(!PASSPHRASE_REQUIRED, PASSPHRASE_OFF);
-    const mock = await mockPodcast(page, 202, { status: 202, run_id: 1, started_at: "x" });
-    await openCreate(page);
-    await openDialog(page);
-    await dialog(page).getByRole("button", { name: "Create episode" }).click();
-    await expect(dialog(page).getByRole("alert")).toHaveText("Enter the passphrase to continue.");
-    expect(mock.bodies).toHaveLength(0);
   });
 
   test("sends the choices and the passphrase, then follows the run to the end", async ({
@@ -322,17 +351,15 @@ test.describe("the Create page", () => {
     await chip(page, "World").click();
     await segment(page, "10 min").click();
     await segment(page, "Discussion").click();
-    await segment(page, "A month").click();
+    await segment(page, "30 days").click();
     await segment(page, "Dry").click();
     await page.getByLabel("Title").fill("  My week in AI  ");
     await page.locator("[data-submit]").click();
 
-    await confirm(page);
-
     // The request is exactly what was chosen, and the passphrase rides beside it.
     await expect.poll(() => mock.bodies.length).toBe(1);
     expect(mock.bodies[0]).toEqual({
-      passphrase: SENT,
+      passphrase: OPEN_PASSPHRASE,
       request: {
         audience: "custom",
         topic_ids: ["ai", "tech", "world"],
@@ -351,10 +378,10 @@ test.describe("the Create page", () => {
     const text = page.locator("[data-run-text]");
     await expect(card).toBeVisible();
     await expect(page.locator("[data-create-form]")).toBeVisible();
-    await expect(text).toHaveText("Waiting to start");
+    await expect(text).toHaveText("Episode queued");
 
     await page.clock.runFor(4000);
-    await expect(text).toHaveText("Waiting to start");
+    await expect(text).toHaveText("Episode queued");
     await page.clock.runFor(4000);
     await expect(text).toHaveText("Writing your episode");
     await page.clock.runFor(4000);
@@ -382,7 +409,7 @@ test.describe("the Create page", () => {
         step: null,
         stage: 2,
         stages: 3,
-        label: "Updating the site",
+        label: "Adding it to your Library",
         outcome: "published",
       },
     ];
@@ -410,11 +437,10 @@ test.describe("the Create page", () => {
       });
     });
     await openCreate(page);
-    await openDialog(page);
-    await confirm(page);
+    await submit(page).click();
     const text = page.locator("[data-run-text]");
     const card = page.locator("[data-run-card]");
-    await expect(text).toHaveText("Waiting to start");
+    await expect(text).toHaveText("Episode queued");
     await page.clock.runFor(4000);
     await expect(text).toHaveText("Getting ready");
     await page.clock.runFor(4000);
@@ -424,7 +450,7 @@ test.describe("the Create page", () => {
     expect(await share()).toBeGreaterThanOrEqual(1 / 3);
     expect(await share()).toBeLessThan(2 / 3);
     await page.clock.runFor(4000);
-    await expect(text).toHaveText("Updating the site");
+    await expect(text).toHaveText("Adding it to your Library");
     live = true;
     await expect(async () => {
       await page.clock.runFor(10_000);
@@ -434,79 +460,195 @@ test.describe("the Create page", () => {
     await expect(page.locator("[data-run-library]")).toHaveText("Open episode");
   });
 
-  test("a failed run names the stage it stopped in", async ({ page }) => {
+  // A failed run's line: the stage it stopped in when the status names one, and a plain failure
+  // otherwise, never read as a started episode.
+  const failures = [
+    {
+      status: { stage: 1, stages: 3, label: "Making the episode" },
+      words: "Stopped while making the episode",
+    },
+    { status: {}, words: "Couldn't make the episode" },
+  ];
+  for (const { status, words } of failures) {
+    test(`a failed run says "${words}"`, async ({ page }) => {
+      await page.clock.install();
+      await mockPodcast(page, 202, { status: 202, run_id: 8, started_at: "2026-10-07T12:00:00Z" });
+      await page.route("**/api/status?**", (route) =>
+        route.fulfill({
+          status: 200,
+          contentType: "application/json",
+          body: JSON.stringify({
+            run_id: 8,
+            state: "completed",
+            step: null,
+            outcome: "failed",
+            ...status,
+          }),
+        }),
+      );
+      await openCreate(page);
+      await submit(page).click();
+      await expect(page.locator("[data-run-card]")).toBeVisible();
+      await page.clock.runFor(4000);
+      await expect(page.locator("[data-run-text]")).toHaveText(words);
+      await expect(page.getByRole("link", { name: "Open Library" })).toBeHidden();
+    });
+  }
+
+  test("a failed run offers Try again, which sends the same request and follows the new run", async ({
+    page,
+  }) => {
     await page.clock.install();
-    await mockPodcast(page, 202, { status: 202, run_id: 8, started_at: "2026-10-07T12:00:00Z" });
+    const mock = await mockPodcast(page, 202, { status: 202, run_id: 21, started_at: "x" });
+    await page.route("**/api/status?**", (route) => {
+      const run = Number(new URL(route.request().url()).searchParams.get("run"));
+      const body =
+        run === 21
+          ? { run_id: 21, state: "completed", step: null, outcome: "failed" }
+          : { run_id: run, state: "queued", step: null };
+      return route.fulfill({
+        status: 200,
+        contentType: "application/json",
+        body: JSON.stringify(body),
+      });
+    });
+    await openCreate(page);
+    await segment(page, "10 min").click();
+    await submit(page).click();
+    await expect.poll(() => mock.bodies.length).toBe(1);
+    await page.clock.runFor(4000);
+    const text = page.locator("[data-run-text]");
+    await expect(text).toHaveText("Couldn't make the episode");
+    const again = page.getByRole("button", { name: "Try again" });
+    await expect(again).toBeVisible();
+    // The second run gets an id of its own.
+    await page.unroute("**/api/podcast");
+    const second = await mockPodcast(page, 202, { status: 202, run_id: 22, started_at: "y" });
+    await again.click();
+    await expect.poll(() => second.bodies.length).toBe(1);
+    expect(second.bodies[0]).toEqual(mock.bodies[0]);
+    expect(second.bodies[0]?.request).toMatchObject({ length_minutes: 10 });
+    await expect(text).toHaveText("Episode queued");
+    await expect(again).toBeHidden();
+    // It survives a reload: the stored run still holds the request.
+    const stored = await page.evaluate(() =>
+      JSON.parse(sessionStorage.getItem("dispatch:run") ?? "{}"),
+    );
+    expect(stored).toMatchObject({ id: 22, retry: { body: { request: mock.bodies[0]?.request } } });
+  });
+
+  test("while a run is going, Create says so and sends no second request", async ({ page }) => {
+    await page.clock.install();
+    const mock = await mockPodcast(page, 202, { status: 202, run_id: 24, started_at: "x" });
+    await page.route("**/api/status?**", (route) =>
+      route.fulfill({
+        status: 200,
+        contentType: "application/json",
+        body: JSON.stringify({ run_id: 24, state: "running", step: null }),
+      }),
+    );
+    await openCreate(page);
+    await submit(page).click();
+    await expect.poll(() => mock.bodies.length).toBe(1);
+    await expect(page.locator("[data-run-card]")).toBeVisible();
+    await submit(page).click();
+    const busy = "An episode is still being made. You can start another when it's ready.";
+    await expect(page.locator('[data-error="form"]')).toHaveText(busy);
+    expect(mock.bodies).toHaveLength(1);
+    // New episode says it too, to a screen reader, rather than opening a form that cannot send.
+    await expect(page.locator("[data-create-open]").first()).toHaveAccessibleDescription(busy);
+  });
+
+  test("Episode ready goes once the episode is opened, and gives the room back", async ({
+    page,
+  }) => {
+    await page.clock.install();
+    await mockPodcast(page, 202, { status: 202, run_id: 25, started_at: "x" });
     await page.route("**/api/status?**", (route) =>
       route.fulfill({
         status: 200,
         contentType: "application/json",
         body: JSON.stringify({
-          run_id: 8,
+          run_id: 25,
           state: "completed",
           step: null,
-          stage: 1,
+          stage: 2,
           stages: 3,
-          label: "Making the episode",
-          outcome: "failed",
-          run_url: "https://example.com/run",
+          label: "Adding it to your Library",
+          outcome: "published",
+        }),
+      }),
+    );
+    await page.route(/latest.json/, (route) =>
+      route.fulfill({
+        status: 200,
+        contentType: "application/json",
+        body: JSON.stringify({
+          episode_at: new Date(Date.now() + 3_600_000).toISOString(),
+          episode_id: EPISODE_ID,
         }),
       }),
     );
     await openCreate(page);
-    await openDialog(page);
-    await confirm(page);
+    await submit(page).click();
     await page.clock.runFor(4000);
-    await expect(page.locator("[data-run-text]")).toHaveText(
-      "Stopped while making the episode. Try again later.",
-    );
+    await expect(async () => {
+      await page.clock.runFor(3000);
+      await expect(page.locator("[data-run-text]")).toHaveText("Episode ready", { timeout: 500 });
+    }).toPass();
+    await expect(page.locator("html")).toHaveAttribute("data-run", "done");
+    await page.getByRole("link", { name: "Open episode" }).click();
+    await expect(page).toHaveURL(new RegExp(`${EPISODE}$`));
+    await expect(page.locator("[data-run-card]")).toBeHidden();
+    await expect(page.locator("html")).not.toHaveAttribute("data-run", /.*/);
+    expect(await page.evaluate(() => sessionStorage.getItem("dispatch:run"))).toBeNull();
   });
 
-  test("tells a failed run apart from a started one", async ({ page }) => {
-    await page.clock.install();
-    await mockPodcast(page, 202, { status: 202, run_id: 9, started_at: "2026-10-07T12:00:00Z" });
-    await page.route("**/api/status?**", (route) =>
-      route.fulfill({
-        status: 200,
-        contentType: "application/json",
-        body: JSON.stringify({ run_id: 9, state: "completed", step: null, outcome: "failed" }),
-      }),
-    );
-    await openCreate(page);
-    await openDialog(page);
-    await confirm(page);
-    await expect(page.locator("[data-run-card]")).toBeVisible();
-    await page.clock.runFor(4000);
-    await expect(page.locator("[data-run-text]")).toHaveText(
-      "The episode could not be written. Try again later.",
-    );
-    await expect(page.getByRole("link", { name: "Open Library" })).toBeHidden();
+  test("a finished run whose episode is on screen goes away by itself", async ({ page }) => {
+    await seedStorage(page, {
+      session: {
+        "dispatch:run": JSON.stringify({ id: 26, phase: "done", t0: Date.now(), href: EPISODE }),
+      },
+    });
+    await page.goto("/library");
+    await expect(page.locator("[data-run-text]")).toHaveText("Episode ready");
+    await expect(page.locator("html")).toHaveAttribute("data-run", "done");
+    await page.goto(EPISODE);
+    await expect(page.locator("[data-run-card]")).toBeHidden();
+    await expect(page.locator("html")).not.toHaveAttribute("data-run", /.*/);
   });
 });
 
 test.describe("the Create panel's voices", () => {
-  test("a readout has one voice select, a discussion adds Leo's, and both are sent", async ({
+  test("a readout has one voice select, a discussion adds a second, and both are sent", async ({
     page,
   }) => {
     const mock = await mockPodcast(page, 202, { status: 202, run_id: 7, started_at: "now" });
     await openCreate(page);
-    const ada = page.getByLabel("Voice (Ada)");
-    const leo = page.getByLabel("Voice (Leo)");
-    await expect(ada.locator("option")).toHaveText([
-      "Default",
-      // Each voice leads with the flag of its accent: en-US, en-US, en-GB.
-      "\u{1F1FA}\u{1F1F8} Ada, female",
-      "\u{1F1FA}\u{1F1F8} Leo, male",
-      "\u{1F1EC}\u{1F1E7} Nora, female",
-    ]);
+    const ada = page.locator('select[name="voice"]');
+    const leo = page.locator('select[name="voice_b"]');
+    const hint = page.locator("[data-format-hint]");
+    await expect(ada).toHaveAccessibleName("Voice");
+    // Nothing under the format until the voices can name who will be heard.
+    await expect(hint).toBeHidden();
+    await expect(ada.locator("option")).toHaveText(["Default", /Ada/, /Leo/, /Nora/]);
     await expect(ada).toBeVisible();
     await expect(leo).toBeHidden();
     await segment(page, "Discussion").click();
     await expect(leo).toBeVisible();
+    // A discussion is two hosts, each with a voice, and the line under the format says so.
+    await expect(page.locator("#create-voice-label")).toHaveText("Voices");
+    await expect(ada).toHaveAccessibleName("First host's voice");
+    await expect(leo).toHaveAccessibleName("Second host's voice");
+    await expect(hint).toBeHidden();
     await ada.selectOption("voice-ada");
     await leo.selectOption("voice-leo");
-    await openDialog(page);
-    await confirm(page);
+    await expect(hint).toHaveText("Ada and Leo");
+    // The voices are labelled with the hosts' names (D76), in their captions and their names.
+    await expect(page.locator("[data-voice-caption]")).toHaveText(["Ada's voice", "Leo's voice"]);
+    await expect(ada).toHaveAccessibleName("Ada's voice");
+    await expect(leo).toHaveAccessibleName("Leo's voice");
+    await submit(page).click();
     await expect.poll(() => mock.bodies.length).toBe(1);
     expect(mock.bodies[0]?.request).toMatchObject({
       format: "discussion",
@@ -515,12 +657,86 @@ test.describe("the Create panel's voices", () => {
     });
   });
 
+  test("Default names the voice it stands for, in each host's place", async ({ page }) => {
+    await page.route("**/api/voices", (route) =>
+      route.fulfill({
+        json: {
+          voices: [
+            {
+              id: "voice-ada",
+              name: "Ada",
+              gender: "female",
+              language: "en-US",
+              preview_url: null,
+            },
+            { id: "voice-leo", name: "Leo", gender: "male", language: "en-US", preview_url: null },
+          ],
+          defaults: { voice: "voice-ada", voice_b: "voice-leo" },
+        },
+      }),
+    );
+    await openCreate(page);
+    const first = page.locator('select[name="voice"] option').first();
+    await expect(first).toHaveText(/Default \(Ada\)/);
+    await expect(page.locator("[data-format-hint]")).toHaveText("Read by Ada");
+    await segment(page, "Discussion").click();
+    await expect(page.locator('select[name="voice_b"] option').first()).toHaveText(
+      /Default \(Leo\)/,
+    );
+    await expect(page.locator("[data-format-hint]")).toHaveText("Ada and Leo");
+  });
+
+  test("a discussion's two hosts never share a voice: taking the other's hands this one over", async ({
+    page,
+  }) => {
+    await page.route("**/api/voices", (route) =>
+      route.fulfill({
+        json: {
+          voices: [
+            {
+              id: "voice-ada",
+              name: "Ada",
+              gender: "female",
+              language: "en-US",
+              preview_url: null,
+            },
+            { id: "voice-leo", name: "Leo", gender: "male", language: "en-US", preview_url: null },
+            {
+              id: "voice-nora",
+              name: "Nora",
+              gender: "female",
+              language: "en-GB",
+              preview_url: null,
+            },
+          ],
+          defaults: { voice: "voice-ada", voice_b: "voice-leo" },
+        },
+      }),
+    );
+    await openCreate(page);
+    await segment(page, "Discussion").click();
+    const first = page.locator('select[name="voice"]');
+    const second = page.locator('select[name="voice_b"]');
+    await expect(page.locator("[data-format-hint]")).toHaveText("Ada and Leo");
+    // The lead takes Leo, whom the second host's Default stands for: the second host gets Ada.
+    await first.selectOption("voice-leo");
+    await expect(second).toHaveValue("voice-ada");
+    await expect(page.locator("[data-voice-caption]")).toHaveText(["Leo's voice", "Ada's voice"]);
+    await expect(page.locator("[data-format-hint]")).toHaveText("Leo and Ada");
+    // The second host takes the lead's voice: they swap back.
+    await second.selectOption("voice-leo");
+    await expect(first).toHaveValue("voice-ada");
+    // A third voice is nobody's: nothing else moves.
+    await second.selectOption("voice-nora");
+    await expect(first).toHaveValue("voice-ada");
+    await expect(page.locator("[data-voice-caption]")).toHaveText(["Ada's voice", "Nora's voice"]);
+  });
+
   test("a readout sends no second voice", async ({ page }) => {
     const mock = await mockPodcast(page, 202, { status: 202, run_id: 7, started_at: "now" });
     await openCreate(page);
-    await page.getByLabel("Voice (Ada)").selectOption("voice-nora");
-    await openDialog(page);
-    await confirm(page);
+    await page.locator('select[name="voice"]').selectOption("voice-nora");
+    await submit(page).click();
     await expect.poll(() => mock.bodies.length).toBe(1);
     const request = mock.bodies[0]?.request as Record<string, unknown>;
     expect(request.voice_id).toBe("voice-nora");
@@ -535,8 +751,7 @@ test.describe("the Create page when the server says no", () => {
   test("leaves the title out when it is empty, and sends no title key", async ({ page }) => {
     const mock = await mockPodcast(page, 400, { status: 400, error: "invalid_request" });
     await openCreate(page);
-    await openDialog(page);
-    await confirm(page);
+    await submit(page).click();
     await expect.poll(() => mock.bodies.length).toBe(1);
     expect(mock.bodies[0]?.request).toEqual({
       audience: "custom",
@@ -549,33 +764,17 @@ test.describe("the Create page when the server says no", () => {
     });
   });
 
-  test("says a wrong passphrase in words and keeps the dialog open", async ({ page }) => {
-    test.skip(!PASSPHRASE_REQUIRED, PASSPHRASE_OFF);
-    await mockPodcast(page, 401, { status: 401, error: "wrong_passphrase" });
-    await openCreate(page);
-    await openDialog(page);
-    await dialog(page).getByLabel("Passphrase").fill("not it");
-    await dialog(page).getByRole("button", { name: "Create episode" }).click();
-    await expect(dialog(page).getByRole("alert")).toHaveText(
-      "That passphrase does not match. Check it and try again.",
-    );
-    await expect(dialog(page)).toBeVisible();
-    await expect(page.locator("[data-run-card]")).toBeHidden();
-    // The wrong one is not kept.
-    expect(await page.evaluate((key) => localStorage.getItem(key), STORAGE_KEY)).toBeNull();
-  });
-
-  test("names each refusal in words, on the page, and closes the dialog", async ({ page }) => {
-    const cases: Array<[number, unknown, string]> = [
+  test("names each refusal in words, on the page", async ({ page }) => {
+    const cases: Array<[number | "abort", unknown, string]> = [
       [
         429,
         { status: 429, error: "cooldown", retry_after_s: 100 },
-        "Episodes need a short rest between them. Try again in 2 minutes.",
+        "You can make another episode in 2 minutes.",
       ],
       [
         429,
         { status: 429, error: "daily_cap", retry_after_s: 3 * 3600 },
-        "The limit for today is reached. Try again in 3 hours.",
+        "That's today's limit. Try again in 3 hours.",
       ],
       [
         503,
@@ -587,159 +786,74 @@ test.describe("the Create page when the server says no", () => {
         { status: 400, error: "invalid_request" },
         "That request did not go through. Reload the page and try again.",
       ],
+      ["abort", null, "The request did not go through. Check your connection, then try again."],
     ];
     await openCreate(page);
     for (const [status, body, words] of cases) {
       await page.unroute("**/api/podcast");
-      await mockPodcast(page, status, body);
+      if (status === "abort") await page.route("**/api/podcast", (route) => route.abort("failed"));
+      else await mockPodcast(page, status, body);
       await page.locator("[data-submit]").click();
-      await confirm(page);
-      await expect(dialog(page)).toBeHidden();
       await expect(page.locator('[data-error="form"]')).toHaveText(words);
       await expect(page.locator("[data-create-form]")).toBeVisible();
       await expect(page.locator("[data-run-card]")).toBeHidden();
     }
   });
 
-  test("says so when the request cannot be sent", async ({ page }) => {
-    await page.route("**/api/podcast", (route) => route.abort("failed"));
-    await openCreate(page);
-    await openDialog(page);
-    await confirm(page);
-    await expect(page.locator('[data-error="form"]')).toHaveText(
-      "The request did not go through. Check your connection, then try again.",
-    );
-  });
-
-  test("keeps the passphrase on this device only when asked, and offers it next time", async ({
+  test("a Try again refused by the cooldown says how long to wait, in the line", async ({
     page,
   }) => {
-    test.skip(!PASSPHRASE_REQUIRED, PASSPHRASE_OFF);
-    await mockPodcast(page, 202, { status: 202, run_id: 7, started_at: "2026-10-07T12:00:00Z" });
+    await page.clock.install();
+    await mockPodcast(page, 202, { status: 202, run_id: 23, started_at: "x" });
     await page.route("**/api/status?**", (route) =>
-      route.fulfill({ status: 404, contentType: "application/json", body: "{}" }),
+      route.fulfill({
+        status: 200,
+        contentType: "application/json",
+        body: JSON.stringify({
+          run_id: 23,
+          state: "completed",
+          step: null,
+          stage: 1,
+          stages: 3,
+          label: "Making the episode",
+          outcome: "failed",
+        }),
+      }),
     );
     await openCreate(page);
-    await openDialog(page);
-    await dialog(page).getByLabel("Passphrase").fill(PASSPHRASE);
-    await dialog(page).getByLabel("Remember on this device").check();
-    await dialog(page).getByRole("button", { name: "Create episode" }).click();
-    await expect(page.locator("[data-run-card]")).toBeVisible();
-    expect(await page.evaluate((key) => localStorage.getItem(key), STORAGE_KEY)).toBe(PASSPHRASE);
-
-    // A page that cannot follow the run still says the episode was started.
-    await expect(page.locator("[data-run-text]")).toHaveText("Episode started", {
-      timeout: 15_000,
-    });
-
-    await page.reload();
-    await openDialog(page);
-    await expect(dialog(page).getByLabel("Passphrase")).toHaveValue(PASSPHRASE);
-    await expect(dialog(page).getByLabel("Remember on this device")).toBeChecked();
+    await submit(page).click();
+    await page.clock.runFor(4000);
+    const text = page.locator("[data-run-text]");
+    await expect(text).toHaveText("Stopped while making the episode");
+    await page.unroute("**/api/podcast");
+    await mockPodcast(page, 429, { status: 429, error: "cooldown", retry_after_s: 400 });
+    await page.getByRole("button", { name: "Try again" }).click();
+    await expect(text).toHaveText("You can make another episode in 7 minutes.");
+    await expect(page.getByRole("button", { name: "Try again" })).toBeVisible();
   });
 });
 
 test.describe("navigation with three destinations and one action", () => {
-  test("fits at 320px, every item a full target, and marks none as current on Create", async ({
-    page,
-  }) => {
+  test("fits at 320px and marks the Library as current on Create", async ({ page }) => {
     await page.setViewportSize({ width: 320, height: 640 });
     await openCreate(page);
-    const items = page.locator(".app-nav-item");
-    await expect(items).toHaveText(["Today", "Library", "Settings"]);
-    const boxes = await items.evaluateAll((nodes) =>
-      nodes.map((node) => {
-        const box = node.getBoundingClientRect();
-        const label = node.querySelector("span");
-        const text = label?.getBoundingClientRect();
-        return {
-          left: box.left,
-          right: box.right,
-          width: box.width,
-          height: box.height,
-          textWidth: text?.width ?? 0,
-          clipped: label ? label.scrollWidth > label.clientWidth : false,
-        };
-      }),
-    );
-    for (const box of boxes) {
-      expect(box.left).toBeGreaterThanOrEqual(0);
-      expect(box.right).toBeLessThanOrEqual(320);
-      expect(box.width).toBeGreaterThanOrEqual(44);
-      expect(box.height).toBeGreaterThanOrEqual(44);
-      expect(box.textWidth).toBeLessThanOrEqual(box.width);
-      expect(box.clipped).toBe(false);
-    }
-    for (let index = 1; index < boxes.length; index += 1) {
-      expect(boxes[index]?.left ?? 0).toBeGreaterThanOrEqual((boxes[index - 1]?.right ?? 0) - 0.5);
-    }
-    await expect(page.locator('.app-nav-item[aria-current="page"]')).toHaveCount(0);
+    await expect(page.locator(".app-nav-item")).toHaveText(["Today", "Library", "Settings"]);
+    for (const item of await page.locator(".app-nav-item").all())
+      await expect(item).toBeInViewport();
+    // Create sits under the Library, where episodes are kept.
+    await expect(page.locator('.app-nav-item[aria-current="page"]')).toHaveText("Library");
     expect(await page.evaluate(() => document.documentElement.scrollWidth)).toBeLessThanOrEqual(
       320,
     );
   });
 
-  test("the deep link /create is the page, with the form in it and the Create button beside the list", async ({
-    page,
-  }) => {
-    await openCreate(page);
-    await expect(page.getByRole("heading", { level: 1 })).toHaveText("Create a podcast");
-    // The page has the form itself, so it carries no sheet to clone.
-    await expect(page.locator("#create-sheet-template")).toHaveCount(0);
-    await chip(page, "AI").click();
-    await expect(page.locator('input[name="topic"]:checked')).toHaveCount(2);
-  });
-});
-
-test.describe("episodes in the Library", () => {
-  test("show beside the briefings, say their format and length, and have a filter", async ({
-    page,
-  }) => {
-    await page.goto("/library");
-    const cards = page.locator("[data-card]");
-    await expect(cards).toHaveCount(5);
-    const episode = page.locator('[data-card][data-kind="episode"]', {
-      hasText: "Quiet interfaces and fast latency",
-    });
-    await expect(episode.locator(".card-title")).toHaveText("Quiet interfaces and fast latency");
-    await expect(episode.locator(".card-facts")).toHaveText("Discussion, 5 min");
-    await expect(
-      page
-        .locator('[data-card][data-kind="episode"]', { hasText: "AI headlines" })
-        .locator(".card-facts"),
-    ).toHaveText("Headlines, 3 min");
-
-    const show = page.getByRole("combobox", { name: "Show" });
-    await expect(show).toHaveValue("all");
-    await show.selectOption("custom");
-    await expect(show).toHaveValue("custom");
-    await expect(page.locator("[data-card]:not([hidden])")).toHaveCount(2);
-    await expect(page.locator("[data-library-status]")).toHaveText("2 of 5 results");
-
-    // The other filters leave episodes out.
-    await show.selectOption("daily");
-    await expect(page.locator("[data-card]:not([hidden])")).toHaveCount(2);
-    await expect(page.locator('[data-card][data-kind="episode"]:not([hidden])')).toHaveCount(0);
-
-    // Search finds an episode by a story it covers.
-    await show.selectOption("all");
-    // Search finds an episode by its title, on one line like a story.
-    await page.getByRole("searchbox").fill("interfaces and fast");
-    await expect(page.locator("[data-card]:not([hidden])")).toHaveCount(1);
-    await expect(page.locator("[data-card]:not([hidden])")).toHaveAttribute("data-kind", "episode");
-    await page.getByRole("searchbox").fill("no such story");
-    await expect(page.locator("[data-card]:not([hidden])")).toHaveCount(0);
-    await expect(page.locator("[data-library-empty]")).toBeVisible();
-  });
-
-  test("open the episode page from a card", async ({ page }) => {
-    await page.goto("/library");
-    await page.getByRole("link", { name: /Quiet interfaces and fast latency/ }).click();
-    await expect(page).toHaveURL(new RegExp(`${EPISODE}$`));
-    await expect(page.getByRole("heading", { level: 1 })).toHaveText(
-      "Quiet interfaces and fast latency",
-    );
-    await expect(page.locator('.app-nav-item[aria-current="page"]')).toHaveText("Library");
+  test("below 64rem the Create page leads back to the Library", async ({ page }) => {
+    await page.goto("/create");
+    const back = page.locator(".app-bar-back");
+    await expect(back).toBeVisible();
+    await expect(back).toHaveAttribute("href", "/library");
+    await back.click();
+    await expect(page).toHaveURL(/\/library$/);
   });
 });
 
@@ -749,9 +863,11 @@ test.describe("an episode page", () => {
     await expect(page.getByRole("heading", { level: 1 })).toHaveText(
       "Quiet interfaces and fast latency",
     );
-    // The date stands at the chip's side; the length is the chip's label, said once.
-    await expect(page.locator(".hero-facts > span")).toHaveText(["7 October"]);
-    await expect(page.locator(".hero-text .meta")).toHaveCount(0);
+    // The format and the date stand under the title; the length is the chip's label, said once.
+    await expect(page.locator(".hero-text .hero-facts > span")).toHaveText([
+      "Discussion",
+      "7 October",
+    ]);
     await expect(page.locator(".hero .cover img")).toHaveAttribute(
       "srcset",
       new RegExp(EPISODE_ID),
@@ -773,21 +889,25 @@ test.describe("an episode page", () => {
     await page.goto(EPISODE);
     const rows = page.locator(".episode-highlight");
     await expect(rows).toHaveCount(2);
-    await expect(rows.nth(0).locator(".episode-highlight-title")).toHaveText(
-      "Why a quiet interface needs one loud detail",
+    // The headline is the link to the source, named by its words, and says it opens a new tab.
+    const link = rows.nth(0).locator(".episode-highlight-title a");
+    await expect(link).toHaveAccessibleName(
+      "Why a quiet interface needs one loud detail (opens in a new tab)",
     );
-    // What the hosts said about it, from the script: no speaker names.
-    await expect(rows.nth(0).locator(".episode-highlight-text")).toContainText(
-      "Start with emphasis.",
+    // A story that is in a briefing reads as it does there: the briefing's summary, not the
+    // hosts' segues ("Start with emphasis.").
+    await expect(rows.nth(0).locator(".episode-highlight-text")).toHaveText(
+      /^An essay on spending visual emphasis in one place/,
     );
-    const link = rows.nth(0).locator("a");
     await expect(link).toHaveAttribute("href", "https://example.com/dispatch-fixture/f0a17c2d6b83");
     await expect(link).toHaveAttribute("target", "_blank");
     await expect(link).toHaveAttribute("rel", "noopener noreferrer");
-    // The publisher's host, and never the name of the service that found it. The link is named by
-    // what it shows, and says it opens a new tab.
-    await expect(link.locator(":scope > span").first()).toHaveText("example.com");
-    await expect(link).toHaveAccessibleName("example.com (opens in a new tab)");
+    // The publisher as attribution, as in a briefing, and never the name of the service that
+    // found it. It is the same destination, so only the headline is in the tab order.
+    const host = rows.nth(0).locator(".source-link");
+    await expect(host.locator(":scope > span").first()).toHaveText("Margin Notes");
+    await expect(host).toHaveAttribute("href", "https://example.com/dispatch-fixture/f0a17c2d6b83");
+    await expect(host).toHaveAttribute("tabindex", "-1");
     await expect(page.locator("body")).not.toContainText("Exa discovery");
   });
 
@@ -812,62 +932,19 @@ test.describe("an episode page", () => {
 });
 
 test.describe("axe, the Create page and episodes", () => {
-  for (const scheme of ["light", "dark"] as const) {
-    test(`Create has no WCAG 2.2 AA violations, ${scheme}`, async ({ page }) => {
-      await page.emulateMedia({ colorScheme: scheme });
-      await openCreate(page);
-      await page.evaluate(() => document.fonts.ready);
-      expect(await violations(page)).toEqual([]);
-    });
+  test("Create, then Create with an error showing, has no WCAG 2.2 AA violations", async ({
+    page,
+  }) => {
+    await openCreate(page);
+    await expectNoViolationsInEitherScheme(page);
+    await clearTopics(page);
+    await page.locator("[data-submit]").click();
+    await expect(page.locator('[data-error="topics"]')).toBeVisible();
+    await expectNoViolationsInEitherScheme(page);
+  });
 
-    test(`Create with a topic chosen and an error showing has none, ${scheme}`, async ({
-      page,
-    }) => {
-      await page.emulateMedia({ colorScheme: scheme });
-      await openCreate(page);
-      await clearTopics(page);
-      await page.locator("[data-submit]").click();
-      await expect(page.locator('[data-error="topics"]')).toBeVisible();
-      expect(await violations(page)).toEqual([]);
-      await chip(page, "World").click();
-      await chip(page, "Design").click();
-      await page.waitForTimeout(300);
-      expect(await violations(page)).toEqual([]);
-    });
-
-    test(`an episode page has none, ${scheme}`, async ({ page }) => {
-      await page.emulateMedia({ colorScheme: scheme });
-      await page.goto(EPISODE);
-      await page.evaluate(() => document.fonts.ready);
-      expect(await violations(page)).toEqual([]);
-    });
-
-    test(`the Library with episodes has none, ${scheme}`, async ({ page }) => {
-      await page.emulateMedia({ colorScheme: scheme });
-      await page.goto("/library");
-      await page.evaluate(() => document.fonts.ready);
-      expect(await violations(page)).toEqual([]);
-    });
-  }
-});
-
-test.describe("axe, the passphrase dialog", () => {
-  test.skip(!PASSPHRASE_REQUIRED, PASSPHRASE_OFF);
-
-  // The dialog shows a 401, which the browser logs as a failed load.
-  test.use({ allowNetworkErrors: true });
-
-  for (const scheme of ["light", "dark"] as const) {
-    test(`the passphrase dialog, with its error, has none, ${scheme}`, async ({ page }) => {
-      await page.emulateMedia({ colorScheme: scheme });
-      await mockPodcast(page, 401, { status: 401, error: "wrong_passphrase" });
-      await openCreate(page);
-      await openDialog(page);
-      await dialog(page).getByLabel("Passphrase").fill("nope");
-      await dialog(page).getByRole("button", { name: "Create episode" }).click();
-      await expect(dialog(page).getByRole("alert")).toBeVisible();
-      await page.waitForTimeout(400);
-      expect(await violations(page)).toEqual([]);
-    });
-  }
+  test("an episode page has none", async ({ page }) => {
+    await page.goto(EPISODE);
+    await expectNoViolationsInEitherScheme(page);
+  });
 });

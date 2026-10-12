@@ -5,10 +5,8 @@ import {
   hexToOklch,
   hexToRgb,
   mixHex,
-  multiplyHex,
   oklchToHex,
   parseOklch,
-  screenHex,
 } from "./color.js";
 
 describe("parseOklch", () => {
@@ -80,10 +78,5 @@ describe("blends", () => {
   it("mixes in OKLab, so the midpoint of black and white is the perceptual middle", () => {
     const mid = hexToOklch(mixHex("#000000", "#ffffff", 0.5));
     expect(mid.l).toBeCloseTo(0.5, 1);
-  });
-
-  it("multiplies darker and screens lighter", () => {
-    expect(multiplyHex("#808080", "#808080")).toBe("#404040");
-    expect(screenHex("#808080", "#808080")).toBe("#c0c0c0");
   });
 });

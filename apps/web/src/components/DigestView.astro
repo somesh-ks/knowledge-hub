@@ -28,7 +28,7 @@ const hasAudio = entry.audioMode === "ready";
   data-digest-date={entry.digest.date}
   data-latest={isLatest ? "true" : "false"}
 >
-  <DigestHero entry={entry} hero={hero} />
+  <DigestHero entry={entry} hero={hero} isLatest={isLatest} />
   <Briefing sections={sections} hasAudio={hasAudio} />
   <EarlierList entries={earlier} />
   {/* The end of what the page shows. Once it is on screen the reader is at the end, and

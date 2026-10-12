@@ -41,8 +41,6 @@ export interface PublishAudioDeps {
   model?: string;
   outputFormat?: Mp3OutputFormat;
   cacheControlMaxAge?: number;
-  /** Upload attempts before giving up; a paid narration should survive one blip. */
-  uploadAttempts?: number;
   sleep?: (ms: number) => Promise<void>;
 }
 
@@ -219,7 +217,8 @@ async function uploadWithRetry(
   digestId: string,
   audio: Uint8Array,
 ): Promise<string> {
-  const attempts = Math.max(1, deps.uploadAttempts ?? 3);
+  // Upload attempts before giving up; a paid narration should survive one blip.
+  const attempts = 3;
   const sleep =
     deps.sleep ?? ((ms: number) => new Promise<void>((resolve) => setTimeout(resolve, ms)));
   for (let attempt = 1; ; attempt++) {

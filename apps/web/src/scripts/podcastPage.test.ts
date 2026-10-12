@@ -5,12 +5,13 @@ import { scheduleOp } from "./podcastProfiles";
 describe("scheduleOp", () => {
   const was = {
     "daily.hour": "7",
-    "daily.format": "readout",
     "daily.voice": "",
+    "daily.format": "readout",
     "weekly.enabled": "true",
     "weekly.day": "0",
     "weekly.length": "10",
-    "custom.voice_b": "",
+    "weekly.voice": "",
+    "weekly.voice_b": "",
   };
 
   it("is null while nothing differs", () => {
@@ -22,16 +23,27 @@ describe("scheduleOp", () => {
       ...was,
       "daily.hour": "9",
       "daily.voice": "v1",
+      "daily.format": "discussion",
       "weekly.enabled": "false",
       "weekly.day": "5",
-      "custom.voice_b": "v2",
+      "weekly.voice": "v2",
+      "weekly.voice_b": "v3",
     };
     expect(scheduleOp(was, now)).toEqual({
       op: "schedule.set",
       hour: 9,
       voice_id: "v1",
-      weekly: { enabled: false, day: 5 },
-      custom: { voice_id_b: "v2" },
+      format: "discussion",
+      weekly: { enabled: false, day: 5, voice_id: "v2", voice_id_b: "v3" },
+    });
+  });
+
+  // Filed under `weekly`, the Weekly page's zone was dropped by the server as an unknown field.
+  it("sends the time zone at the top of the op from either profile", () => {
+    const zone = { "weekly.timezone": "Europe/Stockholm" };
+    expect(scheduleOp(zone, { "weekly.timezone": "Asia/Tokyo" })).toEqual({
+      op: "schedule.set",
+      timezone: "Asia/Tokyo",
     });
   });
 

@@ -14,8 +14,7 @@
   padding-block: var(--row-padding-block);
 }
 
-.rows > * + *::before,
-.rule-above::before {
+.rows > * + *::before {
   content: "";
   position: absolute;
   inset-block-start: 0;
@@ -23,10 +22,6 @@
   height: var(--stroke-hairline);
   background: var(--color-border-hairline);
   pointer-events: none;
-}
-
-.rule-above {
-  position: relative;
 }
 
 /* A row that is one link or button: the whole row responds. Its fill is a rounded tile clear of the
@@ -49,20 +44,21 @@
   inset-block: var(--space-1);
   inset-inline: calc(var(--space-3) * -1);
   z-index: var(--z-beneath);
-  border-radius: var(--button-radius);
-  background: var(--color-surface-sunken);
-  opacity: 0;
-  transition: opacity var(--duration-hover) var(--ease-hover);
+  border-radius: var(--row-radius);
+  /* The layer is the fill's own alpha, never the element's opacity: that would fade the focus ring
+     drawn on this element to the same 8% and leave a keyboard user no ring to see. */
+  background: transparent;
+  transition: background-color var(--duration-hover) var(--ease-hover);
 }
 
 @media (hover: hover) and (pointer: fine) {
   .row-action:hover::after {
-    opacity: 1;
+    background: color-mix(in oklch, var(--color-on-surface) var(--state-hover), transparent);
   }
 }
 
 .row-action:active::after {
-  opacity: 1;
+  background: color-mix(in oklch, var(--color-on-surface) var(--state-press), transparent);
 }
 
 /* The ring takes the fill's shape, clear of the text: drawn on the column's own box it would run
@@ -73,7 +69,7 @@
 }
 
 .row-action:focus-visible::after {
-  opacity: 1;
+  background: color-mix(in oklch, var(--color-on-surface) var(--state-hover), transparent);
   outline: var(--stroke-ring) solid var(--color-focus-ring);
   outline-offset: calc(var(--stroke-ring) * -1);
 }
@@ -112,7 +108,7 @@
 /*
  * Sticky under the app bar, scrollable sideways, with an accent underline on the section in view.
  * The strip runs past the gutters so labels slide off the edge of the screen, not off a margin.
- * Markup: <nav class="tabs"><a class="tab" aria-current="true">...</a>...</nav>
+ * Markup: <div class="tabs-bar"><nav class="tabs"><a class="tab" aria-current="true">...</a></nav></div>
  */
 @property --tabs-left-mask {
   syntax: "<length>";
@@ -126,20 +122,26 @@
   initial-value: 32px;
 }
 
-.tabs {
+/* The bar sticks and carries the surface and the line under it; the strip inside it scrolls and
+   fades its ends. A mask on the bar itself would fade its surface and line too, and what scrolls
+   under a stuck strip would show through at its edges. */
+.tabs-bar {
   position: sticky;
   inset-block-start: var(--sticky-top);
   z-index: calc(var(--z-header) - 1);
-  display: flex;
   margin-inline: calc(var(--page-gutter-start) * -1) calc(var(--page-gutter-end) * -1);
+  background: var(--color-surface);
+  box-shadow: inset 0 calc(var(--stroke-hairline) * -1) 0 var(--color-border-hairline);
+}
+
+.tabs {
+  display: flex;
   padding-inline: calc(var(--page-gutter-start) - var(--space-3))
     calc(var(--page-gutter-end) - var(--space-3));
   overflow-x: auto;
   overscroll-behavior-x: contain;
   scroll-padding-inline: var(--page-gutter-start);
   scrollbar-width: none;
-  background: var(--color-surface);
-  box-shadow: inset 0 calc(var(--stroke-hairline) * -1) 0 var(--color-border-hairline);
   mask-image: linear-gradient(
     to right,
     transparent 0px,
@@ -154,7 +156,9 @@
     black calc(100% - var(--tabs-right-mask, 32px)),
     transparent 100%
   );
-  animation: tabs-scroll-fade linear;
+  /* Longhands: the minifier folds a shorthand and the timeline into a declaration Chrome rejects. */
+  animation-name: tabs-scroll-fade;
+  animation-timing-function: linear;
   animation-timeline: scroll(self inline);
 }
 
@@ -207,7 +211,7 @@
 /* The radius grows by the inset, so the ring's own corners keep the button radius. */
 .tab:focus-visible {
   outline-offset: calc(var(--tab-ring-inset) * -1);
-  border-radius: calc(var(--button-radius) + var(--tab-ring-inset));
+  border-radius: calc(var(--row-radius) + var(--tab-ring-inset));
   box-shadow: none;
 }
 
@@ -304,14 +308,157 @@
 
 @media (hover: hover) and (pointer: fine) {
   .source-link:hover {
-    background: var(--color-accent-subtle);
+    background: color-mix(in oklch, var(--color-accent) var(--state-hover), transparent);
   }
 }
 
-/* A press is not a hover: the fill stays and the words take the pressed accent. */
+/* A press is not a hover: the layer deepens and the words take the pressed accent. */
 .source-link:active {
-  background: var(--color-accent-subtle);
+  background: color-mix(in oklch, var(--color-accent) var(--state-press), transparent);
   color: var(--color-accent-pressed);
+}
+
+/* ------------------------------------------------------------------ filter chips */
+
+/*
+ * A chip you can tick, or one of a few you can choose between (Create's topics, a podcast's topics in
+ * Settings). Tonal and quiet until chosen; chosen, it takes the accent container and a check, so the
+ * choice is a shape and not only a colour. Markup: <fieldset class="filter-chips"> of
+ *   <label class="filter-chip"><input type="checkbox"><svg class="filter-chip-check"/><span>Design</span></label>
+ */
+
+.filter-chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-2);
+  min-width: 0;
+  margin: 0;
+  padding: 0;
+  border: 0;
+}
+
+.filter-chip {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-1);
+  height: var(--chip-height);
+  /* The check takes no room of its own, so a chip keeps one width as it ticks and its neighbours
+     never move: the words sit centred with half the check's room on each side, and slide over by
+     that half as the check appears. */
+  padding-inline: calc(var(--space-3) + var(--space-2));
+  /* No outline: the transparent border keeps the size where forced colours draw one. */
+  border: var(--stroke-hairline) solid transparent;
+  border-radius: var(--chip-radius);
+  background: var(--color-surface-container);
+  color: var(--color-on-surface);
+  font-size: var(--font-size-label);
+  font-weight: var(--font-weight-medium);
+  line-height: var(--font-leading-label);
+  white-space: nowrap;
+  cursor: pointer;
+  transition:
+    transform var(--duration-press-out) var(--ease-out),
+    background-color var(--duration-hover) var(--ease-hover),
+    color var(--duration-hover) var(--ease-hover);
+}
+
+/* The chip is 36px tall; its target is 44px, measured from the outside of its border. */
+.filter-chip::after {
+  content: "";
+  position: absolute;
+  inset-inline: 0;
+  inset-block: calc((var(--size-touch) - var(--chip-height)) / -2 - var(--stroke-hairline));
+}
+
+/* The checkbox is the chip's whole face and invisible: the chip draws every state. */
+.filter-chip > input {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  margin: 0;
+  appearance: none;
+  opacity: 0;
+  cursor: inherit;
+}
+
+.filter-chip > .icon {
+  position: absolute;
+  inset-block: 0;
+  inset-inline-start: var(--space-2);
+  width: var(--space-4);
+  height: var(--space-4);
+  margin-block: auto;
+  opacity: 0;
+  transform: scale(0.95);
+  pointer-events: none;
+  transition:
+    opacity var(--duration-state) var(--ease-out),
+    transform var(--duration-enter) var(--ease-out);
+}
+
+.filter-chip > span {
+  transition: transform var(--duration-enter) var(--ease-out);
+}
+
+.filter-chip:has(input:checked) {
+  background: var(--color-accent-container);
+  color: var(--color-on-accent-container);
+}
+
+.filter-chip:has(input:checked) > .icon {
+  opacity: 1;
+  transform: none;
+}
+
+.filter-chip:has(input:checked) > span {
+  transform: translateX(var(--space-2));
+}
+
+.filter-chip:has(input:focus-visible) {
+  outline: var(--stroke-ring) solid var(--color-focus-ring);
+  outline-offset: var(--stroke-ring-gap);
+}
+
+.filter-chip:has(input:disabled) {
+  opacity: var(--opacity-disabled);
+  cursor: default;
+}
+
+@media (hover: hover) and (pointer: fine) {
+  .filter-chip:not(:has(input:checked, input:disabled)):hover {
+    background: color-mix(
+      in oklch,
+      var(--color-surface-container),
+      var(--color-on-surface) var(--state-hover)
+    );
+  }
+
+  .filter-chip:has(input:checked):not(:has(input:disabled)):hover {
+    background: color-mix(
+      in oklch,
+      var(--color-accent-container),
+      var(--color-on-accent-container) var(--state-hover)
+    );
+  }
+}
+
+/* Held down, the chip darkens at once: a layer over whatever it wears, the container or the checked
+   tint, so the words never change size. It comes after the hover rules and outweighs the checked one,
+   whose background shorthand would otherwise clear it. */
+.filter-chip:not(:has(input:disabled)):active {
+  background-image: linear-gradient(
+    color-mix(in oklch, var(--color-on-surface) var(--state-press), transparent),
+    color-mix(in oklch, var(--color-on-surface) var(--state-press), transparent)
+  );
+}
+
+@media (forced-colors: active) {
+  .filter-chip:has(input:checked) {
+    border-color: Highlight;
+    color: Highlight;
+  }
 }
 
 /* ------------------------------------------------------------------ the open list of a field */
@@ -418,7 +565,7 @@
     min-block-size: var(--size-touch);
     padding-block: var(--space-2);
     padding-inline: var(--space-3);
-    border-radius: var(--button-radius);
+    border-radius: var(--row-radius);
     font-size: var(--font-size-body);
     font-weight: var(--font-weight-medium);
     line-height: var(--font-leading-label);
@@ -445,14 +592,14 @@
   }
 
   :is(.manage-select, .sort-field, .create-select) > select option:focus-visible {
-    background: var(--color-surface-sunken);
+    background: color-mix(in oklch, var(--color-on-surface) var(--state-hover), transparent);
     outline: var(--stroke-ring) solid var(--color-focus-ring);
     outline-offset: calc(var(--stroke-ring) * -1);
   }
 
   @media (hover: hover) and (pointer: fine) {
     :is(.manage-select, .sort-field, .create-select) > select option:hover {
-      background: var(--color-surface-sunken);
+      background: color-mix(in oklch, var(--color-on-surface) var(--state-hover), transparent);
     }
   }
 

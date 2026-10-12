@@ -1,6 +1,7 @@
 import { Field } from "@base-ui/react/field";
 import { type FormEvent, useEffect, useRef } from "react";
 import { OPEN_PASSPHRASE, PASSPHRASE_REQUIRED } from "../lib/access";
+import { newBriefingLede } from "../lib/newBriefing";
 import Icon from "../player/ui/LazyIcon";
 import GenerateResult from "./GenerateResult";
 import GenerateSteps from "./GenerateSteps";
@@ -14,7 +15,7 @@ interface GenerateSheetProps {
 }
 
 /**
- * Generate a new briefing: a passphrase while one is asked for (lib/access.ts), a run that takes a
+ * A new briefing: a passphrase while one is asked for (lib/access.ts), a run that takes a
  * few minutes, and an honest outcome. The
  * run lives in a module-level store, so closing the sheet does not stop it and reopening finds it.
  */
@@ -60,7 +61,7 @@ export default function GenerateSheet({ open, onOpenChange }: GenerateSheetProps
     <SheetFrame
       open={open}
       onOpenChange={onOpenChange}
-      title="Generate a new briefing"
+      title="New briefing"
       closeLabel="Close"
       keyboardAware
       // A keyboard or a mouse lands in the field. A touch lands on the sheet, so the keyboard does
@@ -69,8 +70,12 @@ export default function GenerateSheet({ open, onOpenChange }: GenerateSheetProps
     >
       {finished || state.lostContact ? null : (
         <p className="sheet-lede">
-          Covers everything since Monday. It takes a few minutes, and you can close this sheet while
-          it runs.
+          {newBriefingLede(
+            typeof document === "undefined"
+              ? undefined
+              : document.querySelector<HTMLElement>("[data-generate-since]")?.dataset.generateSince,
+            new Date(),
+          )}
         </p>
       )}
 

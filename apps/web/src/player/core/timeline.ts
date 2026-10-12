@@ -81,10 +81,14 @@ export function buildTimeline(digest: PlayerDigestData): Timeline | null {
   return { durationSec, items, sections: closed };
 }
 
-/** Index of the last item that starts at or before `seconds`. The first item covers any lead-in. */
+/**
+ * Index of the last item that starts at or before `seconds`, or -1 in any lead-in before the first
+ * story (an episode's rundown), which belongs to no story.
+ */
 export function itemIndexAt(timeline: Timeline | null, seconds: number): number {
   const items = timeline?.items;
   if (!items || items.length === 0) return 0;
+  if (seconds < (items[0]?.startSec ?? 0)) return -1;
   let low = 0;
   let high = items.length - 1;
   while (low < high) {
@@ -116,5 +120,27 @@ export function findItemIndexById(timeline: Timeline | null, id: string): number
 /** Item numbering is for people: "Item 5 of 12". */
 export function itemPositionLabel(timeline: Timeline | null, index: number): string {
   const total = timeline?.items.length ?? 0;
-  return total === 0 ? "" : `Item ${index + 1} of ${total}`;
+  return total === 0 || index < 0 || index >= total ? "" : `Story ${index + 1} of ${total}`;
+}
+
+/**
+ * The section a story's position is told with: a briefing's own section ("Design engineering"),
+ * and none for an episode, whose one section is a placeholder that says nothing.
+ */
+export function storySectionName(
+  digest: Pick<PlayerDigestData, "kind" | "turns"> | undefined,
+  section: Pick<TimelineSection, "title"> | undefined,
+): string {
+  if (!digest || !section || digest.kind === "on-demand" || digest.turns) return "";
+  return section.title;
+}
+
+/** The bar's caption for a story: "Story 6 of 12 · Design engineering", or "Story 1 of 6". */
+export function storyCaption(
+  timeline: Timeline | null,
+  index: number,
+  sectionName: string,
+): string {
+  const position = itemPositionLabel(timeline, index);
+  return sectionName ? `${position} · ${sectionName}` : position;
 }

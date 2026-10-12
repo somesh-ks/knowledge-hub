@@ -5,7 +5,6 @@ import SettingsHead from "../../components/SettingsHead.astro";
 import TopicsPanel from "../../components/TopicsPanel.astro";
 import BaseLayout from "../../layouts/BaseLayout.astro";
 import { loadManage } from "../../lib/manage";
-import { freshOffers, loadSourceCatalog } from "../../lib/sourceCatalog";
 import {
   byName,
   OTHER_ID,
@@ -20,41 +19,59 @@ import "../../styles/settings.css";
 import "../../styles/manage.css";
 import "../../styles/topics.css";
 
-const [{ topics, sources }, catalog] = await Promise.all([loadManage(), loadSourceCatalog()]);
+const { topics, sources } = await loadManage();
 // Every topic in one list, by name (D69): Design, AI and Technology (the judge's finer topics live
 // inside them and are not listed), the general news topics and any of the owner's own. Other,
 // which is no topic, comes last. Each topic's page sets where it plays.
 const layout = topicLayout(topics, sources);
 const { groups } = layout;
-const count = (id: string): number => layout.sources.get(id)?.length ?? 0;
+// How many sources a topic has, and how many of them are read.
+const counts = (id: string): [number, number] => {
+  const list = layout.sources.get(id) ?? [];
+  return [list.length, list.filter((source) => source.enabled).length];
+};
 const rows = [
   ...groups.map((group) => ({
     id: group.id,
     name: group.name,
-    hint: plural(count(group.id), "source"),
+    hint: topicSummary(null, ...counts(group.id)),
+    members: group.members.map((member) => member.id),
+    enabled: undefined,
+    never: undefined,
   })),
   ...[...layout.own, ...layout.general].map((topic) => ({
     id: topic.id,
     name: topic.name,
-    hint: topicSummary(topic, count(topic.id)),
+    hint: topicSummary(topic, ...counts(topic.id)),
+    members: [topic.id],
+    enabled: String(topic.enabled),
+    never: topic.never_publish ? "" : undefined,
   })),
 ].sort(byName);
+// Where every source shows and whether it is read, so a source switched off, moved, removed or
+// added since the build is counted in the rows' lines (savedView.ts recounts them).
+const spots = Object.fromEntries(
+  [...layout.sources].flatMap(([page, list]) =>
+    list.map((source) => [source.id, { page, on: source.enabled }]),
+  ),
+);
 const others = layout.sources.get(OTHER_ID) ?? [];
 const choices = topicChoicesOf(layout);
 ---
 
-<BaseLayout title="Topics & Sources" view="settings" skipLabel="Skip to topics and sources">
+<BaseLayout title="Topics and sources" view="settings" skipLabel="Skip to topics and sources">
   <main id="main" tabindex="-1">
     {/* One row per topic, each leading to its own page (topics/[id].astro) with its switch, its
-         weight and its sources. Here: Add, which opens one panel for a new topic (and the sources
-         that suit it) or a new source, chosen by a segmented control at its top. topicsPage.ts loads
+         weight and its sources. Here: Add, which opens one panel for a new topic or a new source,
+         chosen by a segmented control at its top. topicsPage.ts loads
          the editor on first use; autosave.ts sends a change a moment later. */}
     <div
       class="manage topics"
       data-topics
       data-taken={[...topics.map((topic) => topic.id), ...groups.map((group) => group.id), OTHER_ID].join(" ")}
+      data-names={JSON.stringify(choices.map((choice) => choice.name))}
     >
-      <SettingsHead title="Topics & Sources" note="What the briefings cover, and the sources they read." />
+      <SettingsHead title="Topics and sources" />
       <button
         class="btn-secondary topics-add"
         type="button"
@@ -75,13 +92,20 @@ const choices = topicChoicesOf(layout);
         <ul class="topic-sources topics-added" role="list" data-sources data-added aria-label="Sources being added"></ul>
         <ul class="rows manage-queued" role="list" data-queued aria-label="Topics being added"></ul>
 
-        <div class="rows topics-index">
+        <div class="rows topics-index" data-spots={JSON.stringify(spots)}>
           {
             rows.map((row) => (
-              <a class="row-action" href={`/settings/topics/${row.id}`}>
+              <a
+                class="row-action"
+                href={`/settings/topics/${row.id}`}
+                data-page={row.id}
+                data-members={row.members.join(" ")}
+                data-enabled={row.enabled}
+                data-never={row.never}
+              >
                 <span class="settings-text">
                   <span class="settings-label">{row.name}</span>
-                  <span class="settings-hint">{row.hint}</span>
+                  <span class="settings-hint" data-hint>{row.hint}</span>
                 </span>
                 <Icon name="chevronRight" />
               </a>
@@ -89,10 +113,12 @@ const choices = topicChoicesOf(layout);
           }
           {
             others.length > 0 && (
-              <a class="row-action" href={`/settings/topics/${OTHER_ID}`}>
+              <a class="row-action" href={`/settings/topics/${OTHER_ID}`} data-page={OTHER_ID}>
                 <span class="settings-text">
                   <span class="settings-label">Other</span>
-                  <span class="settings-hint">{plural(others.length, "source")} outside the topics above</span>
+                  <span class="settings-hint" data-hint>
+                    {topicSummary(null, others.length, others.filter((source) => source.enabled).length)}
+                  </span>
                 </span>
                 <Icon name="chevronRight" />
               </a>
@@ -103,10 +129,7 @@ const choices = topicChoicesOf(layout);
       </fieldset>
 
       <ManageChrome />
-      <TopicsPanel
-        topics={choices}
-        offers={freshOffers(catalog, sources)}
-      />
+      <TopicsPanel topics={choices} />
     </div>
   </main>
 </BaseLayout>

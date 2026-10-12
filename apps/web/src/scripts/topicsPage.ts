@@ -5,17 +5,43 @@
  * first load stays inside the budget. Each page is whole static HTML without it.
  */
 
+import { hasSaved } from "../lib/savedKey";
 import { installMultiSelect } from "./multiSelect";
 
 type Editor = { handle(event: Event): void };
 
+/**
+ * A general topic's on switch says what it does at once, in its hint; its sources take the off look
+ * while it is off (topics.css).
+ */
+function showTopicOn(root: HTMLElement): void {
+  const on = root.querySelector<HTMLInputElement>("[data-topic-on]");
+  if (!on) return;
+  const hint = root.querySelector("[data-topic-on-hint]");
+  if (hint) hint.textContent = on.checked ? "Used in episodes" : "Off. Its sources are not read.";
+}
+
 function mount(root: HTMLElement): void {
   let editor: Promise<Editor> | undefined;
-  /** Loads the editor once; every event after the first goes to it as well. */
-  const forward = (event: Event): void => {
-    editor ??= import("./topicsEditor").then((module) => module.mountEditor(root));
-    void editor.then((loaded) => loaded.handle(event));
-  };
+  // An edit saved in the last few minutes is not in this page until the next build: the controls
+  // show it first (savedView.ts), and the editor then reads it as their starting point.
+  // An edit a left page's run still holds loads the editor at once: it takes the edit if that run fails.
+  const saved = hasSaved()
+    ? import("./savedView")
+        .then((module) => {
+          module.overlayTopics(root);
+          if (module.readPending()) void load();
+        })
+        .catch(() => {})
+    : Promise.resolve();
+  void saved.then(() => showTopicOn(root));
+  /** Loads the editor once. */
+  const load = (): Promise<Editor> =>
+    (editor ??= saved
+      .then(() => import("./topicsEditor"))
+      .then((module) => module.mountEditor(root)));
+  /** Every event goes to the editor, the first one loading it. */
+  const forward = (event: Event): void => void load().then((loaded) => loaded.handle(event));
 
   const loaded = (image: HTMLImageElement): void => {
     if (image.naturalWidth > 0) image.dataset.loaded = "";
@@ -39,9 +65,10 @@ function mount(root: HTMLElement): void {
       const percent = `${Math.round(Number(target.value) * 100)}%`;
       target.style.setProperty("--range-fill", `${Number(target.value) * 100}%`);
       target.setAttribute("aria-valuetext", percent);
-      const output = target.nextElementSibling;
+      const output = target.closest(".topic-weight")?.querySelector("[data-word]");
       if (output) output.textContent = percent;
     }
+    if (target.matches("[data-topic-on]")) showTopicOn(root);
     forward(event);
   });
 
@@ -57,30 +84,6 @@ function mount(root: HTMLElement): void {
     event.preventDefault();
     forward(event);
   });
-
-  const suggestedSection = root.querySelector<HTMLElement>("[data-suggested-section]");
-  if (suggestedSection?.dataset.topic) {
-    const topicId = suggestedSection.dataset.topic;
-    const list = suggestedSection.querySelector<HTMLUListElement>("[data-suggested-sources]");
-    const plusTemplate = root.querySelector<HTMLTemplateElement>("#suggested-plus-template");
-    if (list && topicId) {
-      void fetch(`/api/topic-suggestions?id=${encodeURIComponent(topicId)}`)
-        .then((res) => (res.ok ? res.json() : null))
-        .then(
-          async (data: { suggestions?: import("./topicsView").SuggestedSourceData[] } | null) => {
-            if (!data?.suggestions || data.suggestions.length === 0) return;
-            const { suggestedRow } = await import("./topicsView");
-            const plusNode = plusTemplate?.content.firstElementChild;
-            list.replaceChildren(
-              ...data.suggestions.map((s) => suggestedRow(s, plusNode?.cloneNode(true) ?? null)),
-            );
-          },
-        )
-        .catch(() => {
-          // Keep quiet fallback
-        });
-    }
-  }
 
   root.dataset.ready = "";
 }

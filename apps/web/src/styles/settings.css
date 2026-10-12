@@ -13,7 +13,7 @@
 
 .settings-view {
   /* The segmented choices and the slider share one width from 40rem, so their edges line up. */
-  --settings-control-width: 18rem;
+  --settings-control-width: 22rem;
   padding-block: var(--page-top) var(--space-8);
 }
 
@@ -33,12 +33,10 @@
 /* ------------------------------------------------------------------ a settings page's title */
 
 /* Settings > Daily. The way up is the first word, muted, at the title's size and on its line, so a
-   page needs no back button above its title. A long name wraps under the trail. */
+   page needs no back button above its title. The trail is one line of text, so a long name wraps
+   word by word after it (Settings > Topics & / Sources) and never leaves the way up alone on a line. */
 .settings-crumbs {
-  display: flex;
-  flex-wrap: wrap;
-  align-items: center;
-  column-gap: var(--space-1);
+  display: block;
   font-family: var(--text-display-family);
   font-size: var(--text-display-size);
   font-weight: var(--text-display-weight);
@@ -51,13 +49,37 @@
    sets its own size (.page-title), so it is named here too, and both words stay one size. */
 @media (min-width: 64rem) {
   .settings-crumbs,
-  .settings-crumbs > h1 {
+  .settings-crumbs > h1,
+  .settings-view > h1 {
     font-size: var(--font-size-section);
   }
 }
 
+/* With Sounds off, Volume is unused: its label goes quiet with its slider. */
+.settings-row:has(.settings-range:disabled) > .settings-label {
+  color: var(--color-on-surface-muted);
+}
+
 .settings-crumbs > nav {
   display: contents;
+}
+
+.settings-head .settings-crumbs > h1 {
+  display: inline;
+}
+
+/* The reset draws an svg as a block; in the trail it is a glyph in the line. */
+.settings-head .settings-crumbs > svg {
+  display: inline-block;
+}
+
+/* Below 64rem the app bar has a back arrow, so the way up would be a second one: the page's name
+   stands alone, on one line, at the same place on every sub-page. */
+@media (width < 64rem) {
+  .settings-head .settings-crumbs > nav,
+  .settings-head .settings-crumbs > .settings-crumb-gap {
+    display: none;
+  }
 }
 
 .settings-up {
@@ -80,6 +102,8 @@
 .settings-crumbs > .settings-crumb-gap {
   inline-size: 0.75em;
   block-size: 0.75em;
+  margin-inline: var(--space-1);
+  vertical-align: -0.05em;
   color: var(--color-on-surface-subtle);
 }
 
@@ -97,6 +121,18 @@
   outline: none;
 }
 
+/* A group's name: small and in the accent, over its rows, as a settings list names its groups. The
+   page's own title is the one large thing on it. More air above than below: it belongs to its rows. */
+:is(.settings-view, .manage) .section-head {
+  padding-block: var(--space-8) var(--space-1);
+  font-family: var(--font-ui);
+  font-size: var(--font-size-label);
+  font-weight: var(--font-weight-medium);
+  letter-spacing: var(--font-tracking-caption);
+  line-height: var(--font-leading-label);
+  color: var(--color-accent);
+}
+
 /* The first group sits closer to the page title than the groups sit to each other. */
 .settings-view > section:first-of-type .section-head {
   padding-block-start: var(--space-6);
@@ -112,6 +148,13 @@
   align-items: center;
   gap: var(--space-3) var(--space-4);
   min-height: var(--size-touch-comfortable);
+}
+
+/* On the index a control row is as tall as a two-line link row (74px), whatever its control:
+   the switch, the slider and the segments all sit in one rhythm. */
+.settings-view .rows > .settings-row {
+  min-height: calc(var(--space-12) + var(--space-6) + var(--space-1));
+  padding-block: var(--space-3);
 }
 
 .settings-text {
@@ -155,10 +198,16 @@
 
 /* A row that is one button: the ring follows the row's shape, and the glyph stays quiet. */
 .settings-view .row-action {
-  border-radius: var(--button-radius);
+  border-radius: var(--row-radius);
 }
 
-.settings-view .row-action .icon {
+/* A link row among value rows is as tall as they are (a select row's padding round the target). */
+:is(.settings-view, .manage) .rows > .row-action:not(:has(.settings-hint)) {
+  min-height: calc(var(--size-touch-comfortable) + var(--space-1) * 2);
+  padding-block: var(--space-1);
+}
+
+:is(.settings-view, .manage) .row-action .icon {
   /* The glyph sits inside its box; this pulls its right edge out to the switch's and the segments'. */
   margin-inline-end: calc(var(--size-icon) * -0.28);
   color: var(--color-on-surface-subtle);
@@ -177,8 +226,9 @@
 }
 
 /* Groups are told apart by space, not lines: more air between two groups than between two rows. */
+/* Groups are spaced by their heads' own air alone, the same 32px as on every settings page. */
 .settings-view > section + section {
-  margin-block-start: var(--space-6);
+  margin-block-start: 0;
 }
 
 /* ------------------------------------------------------------------ segmented choice */
@@ -198,14 +248,21 @@
   margin: 0;
   padding: var(--segmented-padding);
   border: 0;
-  border-radius: var(--segmented-radius);
-  background: var(--color-surface-sunken);
+  /* A pill with pill segments, as Create's choices and the player's segmented control are. */
+  border-radius: var(--radius-round);
+  background: var(--color-surface-container);
 }
 
 @media (min-width: 40rem) {
   .settings-choice {
     flex: 0 0 var(--settings-control-width);
   }
+}
+
+/* In a sheet the body is a column: a segmented control there keeps its own height, never the
+   column's spare room. */
+.create-sheet-body > .settings-choice {
+  flex: none;
 }
 
 .settings-segment {
@@ -216,8 +273,8 @@
   /* With the track's padding this makes the control 48px tall, as tall as a select, and taller if
      the text grows. */
   min-height: calc(var(--segmented-height) - var(--segmented-padding) * 2);
-  border-radius: var(--segmented-segment-radius);
-  color: var(--color-on-surface-muted);
+  border-radius: var(--radius-round);
+  color: var(--color-on-surface);
   font-size: var(--font-size-label);
   font-weight: var(--font-weight-medium);
   line-height: var(--font-leading-label);
@@ -243,7 +300,49 @@
 }
 
 .settings-segment:has(input:checked) {
-  color: var(--color-on-surface);
+  color: var(--color-on-accent-container);
+}
+
+/* An unchosen segment answers the pointer with a state layer of its own words' colour. */
+@media (hover: hover) and (pointer: fine) {
+  .settings-segment:not(:has(input:checked, input:disabled)):hover {
+    background: color-mix(in oklch, var(--color-on-surface) var(--state-hover), transparent);
+  }
+}
+
+.settings-segment:not(:has(input:checked, input:disabled)):active {
+  background: color-mix(in oklch, var(--color-on-surface) var(--state-press), transparent);
+}
+
+.settings-segment:has(input:disabled) {
+  opacity: var(--opacity-disabled);
+}
+
+/* The check comes in beside the words of the chosen segment. The words stay centred in their column,
+   so the check takes room only inside the segment and no neighbour moves. */
+.settings-segment > span {
+  display: inline-flex;
+  align-items: center;
+}
+
+.settings-segment > span::before {
+  content: "";
+  flex: none;
+  inline-size: 0;
+  block-size: var(--space-4);
+  background: currentColor;
+  mask: var(--check-bold-mask) center / contain no-repeat;
+  opacity: 0;
+  transition:
+    inline-size var(--duration-enter) var(--ease-out),
+    margin-inline-end var(--duration-enter) var(--ease-out),
+    opacity var(--duration-state) var(--ease-out);
+}
+
+.settings-segment:has(input:checked) > span::before {
+  inline-size: var(--space-4);
+  margin-inline-end: var(--space-1);
+  opacity: 1;
 }
 
 /*
@@ -297,10 +396,10 @@
   inset-block: var(--segmented-padding);
   inset-inline-start: var(--segmented-padding);
   width: calc((100% - var(--segmented-padding) * 2) / var(--seg-n));
-  border-radius: var(--segmented-segment-radius);
-  background: var(--segmented-selected-bg);
-  /* The control boundary colour, 3:1 against the track: the choice is seen, not only coloured. */
-  box-shadow: 0 0 0 var(--stroke-hairline) var(--color-border-control);
+  border-radius: var(--radius-round);
+  /* The choice is tonal, not outlined: the accent container, its own words and a check, so it is a
+     shape and a colour and never a colour alone. */
+  background: var(--color-accent-container);
   opacity: 0;
   pointer-events: none;
   transform: translateX(calc(var(--seg-i) * 100%));
@@ -493,7 +592,7 @@
 /* ------------------------------------------------------------------ hover and pressed */
 
 @media (hover: hover) and (pointer: fine) {
-  .settings-segment:hover {
+  .settings-segment:not(:has(input:checked)):hover {
     color: var(--color-on-surface);
   }
 
@@ -558,9 +657,10 @@
     transition-property: background-color, opacity;
   }
 
-  /* The segmented thumb jumps to the chosen segment. */
+  /* The segmented thumb jumps to the chosen segment, and its check appears in place. */
   .settings-choice::before,
-  .settings-choice:is(:focus-within, :has(.settings-segment:active))::before {
+  .settings-choice:is(:focus-within, :has(.settings-segment:active))::before,
+  .settings-segment > span::before {
     transition: none;
   }
 }
@@ -628,6 +728,85 @@
     --range-fill-color: GrayText;
     --range-track-color: GrayText;
     opacity: 1;
+  }
+}
+
+/* ------------------------------------------------------------------ a select as the row's value */
+
+/*
+ * In a settings row a select is the row's value, as a list preference reads on a phone: the words
+ * and a chevron, with no outline and no box. It is as wide as its words, sits at the end of the row,
+ * keeps a full-size target and shows its extent as a fill under a pointer and while it is open.
+ * Markup: <span class="manage-select value-select"><select class="manage-input">..</select><svg/></span>
+ */
+/* A row whose value is a select is as tall as the select's target and no taller. */
+.settings-row:has(> :is(.value-select, .podcast-voice)) {
+  padding-block: var(--space-1);
+}
+
+.settings-row .value-select {
+  flex: 0 1 auto;
+  min-width: 0;
+  max-inline-size: 70%;
+  /* The select reaches the chevron's side: the row's edge is where the chevron's ink ends. */
+  margin-inline-end: calc(var(--space-2) * -1);
+}
+
+.settings-row .value-select > select.manage-input {
+  inline-size: auto;
+  min-inline-size: 0;
+  max-inline-size: 100%;
+  justify-content: flex-end;
+  padding-inline: var(--space-3) calc(var(--space-2) + var(--size-icon) + var(--space-1));
+  border-color: transparent;
+  border-radius: var(--button-radius);
+  color: var(--color-on-surface);
+  font-weight: var(--font-weight-medium);
+  text-align: end;
+  transition: background-color var(--duration-hover) var(--ease-hover);
+}
+
+.settings-row .value-select > .icon {
+  inset-inline-end: var(--space-2);
+}
+
+.settings-row .value-select > select.manage-input:focus-visible {
+  border-color: transparent;
+}
+
+@media (hover: hover) and (pointer: fine) {
+  .settings-row .value-select > select.manage-input:hover {
+    border-color: transparent;
+    background: color-mix(in oklch, var(--color-on-surface) var(--state-hover), transparent);
+  }
+}
+
+.settings-row .value-select > select.manage-input:active {
+  background: color-mix(in oklch, var(--color-on-surface) 8%, transparent);
+}
+
+/* Open, it holds its fill and flips its chevron, as the multi-select does, with no ring. */
+.settings-row .value-select > select.manage-input:open {
+  border-color: transparent;
+  outline: none;
+  box-shadow: none;
+  background: color-mix(in oklch, var(--color-on-surface) var(--state-press), transparent);
+}
+
+.settings-row .value-select > .icon {
+  transition: rotate var(--duration-enter) var(--ease-out);
+}
+
+.settings-row .value-select:has(> select:open) > .icon {
+  rotate: 180deg;
+}
+
+@supports (appearance: base-select) {
+  /* The list opens under the value and grows toward the start of the row, so it never runs past the
+     edge the value sits against. */
+  .settings-row .value-select > select::picker(select) {
+    position-area: block-end span-inline-start;
+    min-inline-size: max(anchor-size(self-inline), 12rem);
   }
 }
 

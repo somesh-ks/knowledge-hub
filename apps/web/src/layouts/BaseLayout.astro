@@ -26,6 +26,7 @@ import "../styles/primitives.css";
 import "../styles/cover.css";
 import "../styles/reader.css";
 import "../styles/banner.css";
+import "../styles/empty.css";
 import "../styles/hero.css";
 import "../styles/briefing.css";
 import "../styles/library.css";
@@ -53,6 +54,8 @@ interface Props {
   /** The page's own audio, an episode or a briefing, which the floating Play button plays. */
   audio?: PageAudio;
   skipLabel?: string;
+  /** false on the offline page, which says it itself: no banner repeats it above. */
+  deviceBanner?: boolean;
 }
 
 const {
@@ -64,12 +67,14 @@ const {
   digestId,
   audio,
   skipLabel = "Skip to the briefing",
+  deviceBanner = true,
 } = Astro.props;
 
 const colors = readBrandColors();
-// Create is the primary action, not a destination, so its page marks none in the navigation.
+// Create is the primary action, not a destination. Its page sits under the Library, where episodes
+// are kept and where its Back leads, so the Library is the current tab there.
 const destination =
-  nav === undefined ? (view === "home" ? "today" : view === "create" ? null : view) : nav;
+  nav === undefined ? (view === "home" ? "today" : view === "create" ? "library" : view) : nav;
 const pageTitle = title ? `${title}, Singularity` : "Singularity";
 // Below 64rem a floating button carries a page's one primary action, as on Android, and only where
 // that action is the next thing to do (lib/fab.ts, D60). Create belongs to the Library, the list
@@ -82,6 +87,17 @@ const pageTitle = title ? `${title}, Singularity` : "Singularity";
 // recording would compete: the player takes data-fab off, and the page gives the room back.
 const path = Astro.url.pathname.replace(/\/$/, "") || "/";
 const fab = fabFor({ path, playable: Boolean(audio && digestId) });
+// A page one level down (a briefing or an episode, a Settings sub-page, the Create page) leads back
+// in the app bar: to where the person came from when that was in the app, else to its list.
+// The latest briefing at its dated address is Today, a top-level destination: no Back there.
+const back =
+  destination === "today"
+    ? undefined
+    : /^\/(d|e)\//.test(path) || path === "/create"
+      ? { href: "/library", label: "Back" }
+      : /^\/settings\/./.test(path)
+        ? { href: path.replace(/\/[^/]+$/, ""), label: "Back" }
+        : undefined;
 ---
 
 <!doctype html>
@@ -91,6 +107,7 @@ const fab = fabFor({ path, playable: Boolean(audio && digestId) });
   data-fab={fab ? "" : undefined}
   data-layout={layout}
   data-digest-id={digestId}
+  data-device-banner={deviceBanner ? undefined : "off"}
   data-player="closed"
   data-mini="hidden"
   data-player-state="idle"
@@ -119,10 +136,9 @@ const fab = fabFor({ path, playable: Boolean(audio && digestId) });
   </head>
   <body>
     <a class="skip-link" href="#main">{skipLabel}</a>
-    <SiteHeader />
+    <SiteHeader back={back} />
     <AppNav current={destination} />
     {fab === "create" && <CreateFab />}
-    {fab === "play" && digestId && audio && <PlayFab digestId={digestId} {...audio} />}
     <RunStatus />
     {/* The offline banner is cloned from this, so its markup has one home: by the script after the
          stack before first paint, and by deviceBanners.ts from then on. */}
@@ -131,12 +147,16 @@ const fab = fabFor({ path, playable: Boolean(audio && digestId) });
         tone="warning"
         icon="wifiOff"
         title="You are offline"
-        body="Showing the last briefing you opened. Audio needs a connection."
+        body="Audio and new episodes need a connection."
+        bodyId="offline-reason"
       />
     </template>
     <div class="banner-stack page" id="banners"><slot name="banners" /></div>
     <script is:inline set:html={bannersInit.trim()} />
     <div class="shell page"><slot /></div>
+    {/* After the shell, so the hero's Play it waits for (create-sheet.css) is already in the page
+         when the button is first styled: before it, the button showed for a frame on load. */}
+    {fab === "play" && digestId && audio && <PlayFab digestId={digestId} {...audio} />}
 
     {/* Both islands live in the layout and persist across navigation, so the audio object inside the
          player module is never rebuilt and playback never stops while you move between pages. */}

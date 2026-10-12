@@ -1,4 +1,4 @@
-import { expect, test } from "./lab";
+import { expect, test } from "./helpers";
 
 /**
  * The expanded player at sizes people really get: a small phone with Safari's toolbars showing, a
@@ -6,11 +6,12 @@ import { expect, test } from "./lab";
  * everything must be reachable.
  */
 const SIZES = [
-  { width: 375, height: 553 },
-  { width: 390, height: 664 },
-  { width: 844, height: 390 },
-  { width: 1280, height: 620 },
-  { width: 1280, height: 800 },
+  { width: 375, height: 553, tag: "" },
+  { width: 390, height: 664, tag: "" },
+  { width: 844, height: 390, tag: "" },
+  // A laptop window, with a mouse: these run on the desktop project only.
+  { width: 1280, height: 620, tag: " @wide" },
+  { width: 1280, height: 800, tag: " @wide" },
 ] as const;
 
 interface LayoutReport {
@@ -21,7 +22,9 @@ interface LayoutReport {
 /** Runs in the page: measures the parts every size must show whole. */
 const LAYOUT_CHECK = (): LayoutReport => {
   const problems: string[] = [];
-  const dialog = document.querySelector<HTMLElement>('[data-player-page][role="dialog"]');
+  const dialog = document.querySelector<HTMLElement>(
+    '[data-player-surface][role="dialog"] [data-player-page]',
+  );
   if (!dialog) return { problems: ["the player is not open"], parts: {} };
   const parts: Record<string, HTMLElement | null> = {
     cover: dialog.querySelector<HTMLElement>(".player-cover-frame"),
@@ -100,30 +103,43 @@ const LAYOUT_CHECK = (): LayoutReport => {
   return { problems, parts: summary };
 };
 
-test.describe("layout at real window sizes @surface", () => {
+test.describe("layout at real window sizes", () => {
   for (const size of SIZES) {
-    test(`at ${size.width}x${size.height} nothing overlaps and everything can be reached`, async ({
-      lab,
+    test(`at ${size.width}x${size.height} nothing overlaps and everything can be reached${size.tag}`, async ({
+      player,
       page,
     }) => {
-      await page.setViewportSize(size);
-      await lab.open();
-      await lab.play();
-      await lab.openPlayer();
-      await expect(lab.scrubber).toBeVisible();
+      await page.setViewportSize({ width: size.width, height: size.height });
+      await player.open();
+      await player.play();
+      await player.openPlayer();
+      await expect(player.scrubber).toBeVisible();
       // One timeline, never two: the bar's, or the page's where the bar has none.
       await expect(page.getByRole("slider", { name: /^(Playback position|Seek)$/ })).toHaveCount(1);
+      if (size.width >= 1024) {
+        // Two columns fit the window at rest: nothing on the open page scrolls.
+        await expect
+          .poll(() =>
+            page.evaluate(() => {
+              const sheet = document.querySelector<HTMLElement>("[data-player-page]");
+              return sheet ? sheet.scrollHeight - sheet.clientHeight : -1;
+            }),
+          )
+          .toBeLessThanOrEqual(1);
+      }
       const report = await page.evaluate(LAYOUT_CHECK);
       expect(report.problems, JSON.stringify(report.parts)).toEqual([]);
       // The last control and the last row of the list can both be reached.
-      const last = lab.dialog.getByRole("button").last();
+      const last = player.dialog.getByRole("button").last();
       await last.scrollIntoViewIfNeeded();
       // Not 1: a minimal scroll lands on a whole pixel while the row sits on a fraction of one, so
       // a quarter of a pixel of a fully reachable row can fall outside the clip.
       await expect(last).toBeInViewport({ ratio: 0.99 });
       // And it stays there: the list must not shift when the story being read changes.
       const before = await last.boundingBox();
-      await page.waitForTimeout(7_000);
+      const story = page.locator("[data-item-id][data-state='current']");
+      const reading = await story.getAttribute("data-item-id");
+      await expect(story).not.toHaveAttribute("data-item-id", reading ?? "");
       const after = await last.boundingBox();
       // A fraction of a pixel is the scroll settling; a re-wrapped title moved rows by six.
       expect(Math.abs((after?.y ?? 0) - (before?.y ?? 0))).toBeLessThanOrEqual(1);

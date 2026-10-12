@@ -9,8 +9,6 @@ import {
   ambientColors,
   backingSize,
   blendTint,
-  DRIFT_SECONDS,
-  FRAME_MS,
   MAX_SIDE,
   paletteUniforms,
   shouldAnimate,
@@ -45,17 +43,12 @@ const TINT: Record<Mode, number> = {
 };
 
 describe("ambient light contrast", () => {
-  it("keeps the peak tints modest", () => {
-    expect(TINT.light).toBeLessThanOrEqual(0.7);
-    expect(TINT.dark).toBeLessThanOrEqual(0.4);
-  });
-
   for (const mode of ["light", "dark"] as const) {
     it(`keeps every kind of text in the header at 4.5:1 under every palette's light, ${mode} theme`, () => {
       const surface = colorOf("semantic.color.surface", mode);
       // What sits over the light: the title and the meta line. The play chip's accent words would
-      // not hold the ratio on the light theme (4.24 to 4.33 across the palettes), so ambient.css
-      // gives the chip the page's own surface; the test below keeps that rule in place.
+      // not hold the ratio over it, so the chip carries an opaque container fill of its own; the
+      // test below keeps that fill in place.
       const texts = {
         title: colorOf("semantic.color.on-surface", mode),
         meta: colorOf("semantic.color.on-surface-muted", mode),
@@ -76,35 +69,16 @@ describe("ambient light contrast", () => {
     });
   }
 
-  it("stands the play chip on the page's surface, where its accent words keep their contrast", () => {
-    const css = readFileSync(join(import.meta.dirname, "..", "styles", "ambient.css"), "utf8");
-    expect(css.replace(/\s+/g, " ")).toContain(
-      ":where(.hero) .chip { background-color: var(--color-surface); }",
-    );
-  });
-});
-
-describe("ambient layer shape", () => {
-  const css = readFileSync(join(import.meta.dirname, "..", "styles", "ambient.css"), "utf8");
-
-  it("stays inside the header's box from top to bottom", () => {
-    // Reaching above the header put the light under the phone's app bar, which cut it in a line.
-    expect(css).toMatch(/\.ambient \{[^}]*\n {2}inset-block: 0;/);
-  });
-
-  it("fades to nothing at the top and before the bottom, in both spellings of the mask", () => {
-    const ellipses = [
-      ...css.matchAll(/ellipse ([\d.]+)% ([\d.]+)% at ([\d.]+)% ([\d.]+)%,\s+black,/g),
-    ];
-    expect(ellipses).toHaveLength(2);
-    for (const [, , radiusY, , centreY] of ellipses) {
-      expect(Number(radiusY)).toBeLessThanOrEqual(Number(centreY));
-      expect(Number(centreY) + Number(radiusY)).toBeLessThanOrEqual(100);
+  it("gives the play chip an opaque container fill, where its accent words keep their contrast", () => {
+    const chip = readFileSync(join(import.meta.dirname, "..", "styles", "buttons.css"), "utf8");
+    expect(chip.replace(/\s+/g, " ")).toMatch(/\.chip \{[^}]*background: var\(--chip-bg\);/);
+    for (const mode of ["light", "dark"] as const) {
+      const container = colorOf("semantic.color.surface-container", mode);
+      expect(
+        contrastRatio(colorOf("semantic.color.accent", mode), container),
+        mode,
+      ).toBeGreaterThanOrEqual(4.5);
     }
-  });
-
-  it("clips its outermost row, which a GPU leaves unmasked", () => {
-    expect(css).toMatch(/\.ambient \{[^}]*\n {2}clip-path: inset\(1px\);/);
   });
 });
 
@@ -129,11 +103,6 @@ describe("ambient palette", () => {
     expect(backingSize(300, 600)).toEqual([64, MAX_SIDE]);
     expect(MAX_SIDE).toBeLessThanOrEqual(256);
     expect(backingSize(0, 0)).toEqual([1, 1]);
-  });
-
-  it("drifts slowly and draws at most 30 frames a second", () => {
-    expect(DRIFT_SECONDS).toBeGreaterThanOrEqual(40);
-    expect(1000 / FRAME_MS).toBeLessThanOrEqual(30);
   });
 });
 

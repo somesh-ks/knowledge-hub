@@ -16,7 +16,7 @@ const { model, provider } = await loadWriterView();
     {/* The writer: a vendor, then a model from that vendor's list. scripts/podcastPage.ts runs the
          combobox and records a change; autosave.ts sends it a moment later. */}
     <div class="manage" data-manage="podcast">
-      <SettingsHead title="Model" note="Writes the script of every episode." />
+      <SettingsHead title="Model" />
       <noscript>
         <p class="manage-note">Changing the model needs JavaScript, which is turned off in this browser.</p>
       </noscript>
@@ -27,18 +27,14 @@ const { model, provider } = await loadWriterView();
           <div class="daily-model">
             <div class="rows" data-models data-saved={model ?? ""} data-provider={provider}>
               <div class="settings-row">
-                <div class="settings-text">
-                  <label class="settings-label" for="daily-vendor">Provider</label>
-                </div>
-                <div class="daily-selects daily-selects-one">
-                  <span class="manage-select">
-                    <select class="manage-input" id="daily-vendor" name="vendor" autocomplete="off">
-                      <option value="anthropic" selected={provider === "anthropic"}>Anthropic</option>
-                      <option value="nebius" selected={provider === "nebius"}>Nebius</option>
-                    </select>
-                    <Icon name="chevronDown" />
-                  </span>
-                </div>
+                <label class="settings-label" for="daily-vendor">Provider</label>
+                <span class="manage-select value-select">
+                  <select class="manage-input" id="daily-vendor" name="vendor" autocomplete="off">
+                    <option value="anthropic" selected={provider === "anthropic"}>Anthropic</option>
+                    <option value="nebius" selected={provider === "nebius"}>Nebius</option>
+                  </select>
+                  <Icon name="chevronDown" />
+                </span>
               </div>
               <div class="settings-row">
                 <div class="settings-text">

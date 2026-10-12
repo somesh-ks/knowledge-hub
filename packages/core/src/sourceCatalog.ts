@@ -70,22 +70,3 @@ export async function loadSourceCatalog(root: string): Promise<SourceCatalog> {
   }
   return parseSourceCatalog(JSON.parse(text) as unknown);
 }
-
-/**
- * Entries whose tags appear among the words of a topic's name and description, best match first
- * (most tags matched, then catalogue order), at most `limit`. Pure, so the app and a test see the
- * same list.
- */
-export function matchCatalog(catalog: SourceCatalog, text: string, limit = 6): CatalogSource[] {
-  const words = new Set(text.toLowerCase().match(/[a-z0-9]+/g) ?? []);
-  return catalog.sources
-    .map((source, index) => ({
-      source,
-      index,
-      hits: source.tags.filter((tag) => tag.split("-").every((part) => words.has(part))).length,
-    }))
-    .filter((entry) => entry.hits > 0)
-    .sort((a, b) => b.hits - a.hits || a.index - b.index)
-    .slice(0, limit)
-    .map((entry) => entry.source);
-}

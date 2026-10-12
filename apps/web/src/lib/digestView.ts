@@ -1,8 +1,10 @@
 import { type DigestItem, digestSections } from "@dispatch/core";
 import { briefingLengthLabel, storyLengthLabel } from "../player/core/readerMath";
-import { PASSPHRASE_REQUIRED } from "./access";
 import type { DigestEntry } from "./digests";
 import { formatClock, pluralize } from "./format";
+import { sectionLabel } from "./sectionLabel";
+
+export { sectionLabel };
 
 export interface ItemView {
   item: DigestItem;
@@ -43,7 +45,7 @@ export function buildSections(entry: DigestEntry): SectionView[] {
     const end = timed.get(last.item.id)?.end_ms;
     views.push({
       slug,
-      title,
+      title: sectionLabel(title),
       items,
       firstIndex: first.index,
       clock: hasAudio && start !== undefined && end !== undefined ? formatClock(end - start) : null,
@@ -94,10 +96,6 @@ export function storyCount(count: number): string {
  * the chip makes it on press. Only audio that was there and is gone is worth a line.
  */
 export const AUDIO_UNAVAILABLE_COPY = {
-  expired: {
-    label: "The audio has expired",
-    hint: PASSPHRASE_REQUIRED
-      ? "Press play to make it again. It takes a few seconds and needs the passphrase."
-      : "Press play to make it again. It takes a few seconds.",
-  },
+  // Said once, plainly: the chip's preparing state shows that pressing it makes the audio again.
+  expired: { label: "The audio has expired." },
 } as const;

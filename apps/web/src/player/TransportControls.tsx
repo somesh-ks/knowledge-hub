@@ -2,6 +2,8 @@ import { isPlayingStatus, toggleLabel } from "./core/playerCopy";
 import { getPlayerStore } from "./core/playerRuntime";
 import { SKIP_BACK_SECONDS, SKIP_FORWARD_SECONDS } from "./core/playerTypes";
 import { usePlayerState } from "./hooks/usePlayer";
+import { useStoryStep } from "./hooks/useStoryStep";
+import { awaitNoticeAnswer } from "./PlayerNotice";
 import SpeedControl from "./SpeedControl";
 import Icon from "./ui/LazyIcon";
 import PlayPauseGlyph from "./ui/PlayPauseGlyph";
@@ -16,8 +18,7 @@ import PlayPauseGlyph from "./ui/PlayPauseGlyph";
 export default function TransportControls() {
   const state = usePlayerState();
   const store = getPlayerStore();
-  const itemCount = state.track?.timeline?.items.length ?? 0;
-  const atLastItem = itemCount === 0 || state.itemIndex >= itemCount - 1;
+  const step = useStoryStep();
   const playing = isPlayingStatus(state.status);
 
   return (
@@ -25,9 +26,9 @@ export default function TransportControls() {
       <button
         className="transport-btn press"
         type="button"
-        aria-label="Previous item"
-        aria-disabled={itemCount === 0 || undefined}
-        onClick={() => store.previous()}
+        aria-label="Previous story"
+        aria-disabled={step.previousDisabled || undefined}
+        onClick={step.previous}
       >
         <Icon name="skipBack" />
       </button>
@@ -50,12 +51,14 @@ export default function TransportControls() {
         data-loading={String(state.buffering)}
         aria-label={toggleLabel(state)}
         aria-busy={state.buffering || undefined}
-        onClick={() => store.toggle()}
+        onClick={() => {
+          if (state.status === "error") awaitNoticeAnswer();
+          store.toggle();
+        }}
       >
-        <PlayPauseGlyph />
+        <PlayPauseGlyph status={state.status} error={state.error} />
         <span className="spinner" aria-hidden="true" />
       </button>
-      <SpeedControl />
       <button
         className="transport-btn transport-skip press"
         type="button"
@@ -70,14 +73,15 @@ export default function TransportControls() {
       <button
         className="transport-btn press"
         type="button"
-        aria-label="Next item"
-        aria-disabled={atLastItem || undefined}
-        onClick={() => {
-          if (!atLastItem) store.next();
-        }}
+        aria-label="Next story"
+        aria-disabled={step.nextDisabled || undefined}
+        onClick={step.next}
       >
         <Icon name="skipForward" />
       </button>
+      {/* Last in the DOM so Tab reaches it after Next; the grid places it under Play on a phone
+          and after Forward ten on a wide screen. */}
+      <SpeedControl />
     </div>
   );
 }

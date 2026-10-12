@@ -10,12 +10,24 @@
  */
 import type { ModelOption } from "../lib/combobox";
 import { isModelId } from "../lib/modelId";
+import { nextRunLine } from "../lib/nextRun";
+import { clearPendingChoice, readPendingChoice } from "../lib/pendingWriter";
+import { hasSaved } from "../lib/savedKey";
+import { heldWriter } from "../lib/savedOverlay";
+import type { Provider } from "../lib/settingsSummary";
 import type { ConfigOp } from "../types/contracts";
 import { mountAutosave } from "./autosave";
 import type { Pending } from "./managePageSave";
 import type { FieldValues, scheduleOp as ScheduleOp } from "./podcastProfiles";
 
-export type Provider = "nebius" | "anthropic";
+export {
+  clearPendingChoice,
+  PENDING_WRITER_KEY,
+  readPendingChoice,
+  type StoredWriterChoice,
+  writePendingChoice,
+} from "../lib/pendingWriter";
+export type { Provider } from "../lib/settingsSummary";
 
 export interface ModelEntry {
   id: string;
@@ -60,62 +72,8 @@ export function parseModelList(body: unknown): ModelEntry[] | null {
   return rows;
 }
 
-export const PENDING_WRITER_KEY = "dispatch:writer-pending";
 export const NEBIUS_MODELS_CACHE_KEY = "dispatch:nebius-models";
-const PENDING_MAX_AGE_MS = 15 * 60 * 1000;
 const CATALOG_MAX_AGE_MS = 60 * 60 * 1000;
-
-export interface StoredWriterChoice {
-  provider: Provider;
-  model: string | null;
-  timestamp: number;
-}
-
-export function readPendingChoice(
-  storage: Storage | null = typeof sessionStorage !== "undefined" ? sessionStorage : null,
-): StoredWriterChoice | null {
-  try {
-    const raw = storage?.getItem(PENDING_WRITER_KEY);
-    if (!raw) return null;
-    const data = JSON.parse(raw) as Partial<StoredWriterChoice>;
-    if (
-      (data.provider === "nebius" || data.provider === "anthropic") &&
-      (typeof data.model === "string" || data.model === null) &&
-      typeof data.timestamp === "number" &&
-      Date.now() - data.timestamp < PENDING_MAX_AGE_MS
-    ) {
-      return { provider: data.provider, model: data.model, timestamp: data.timestamp };
-    }
-  } catch {
-    // storage unavailable or malformed
-  }
-  return null;
-}
-
-export function writePendingChoice(
-  provider: Provider,
-  model: string | null,
-  storage: Storage | null = typeof sessionStorage !== "undefined" ? sessionStorage : null,
-): void {
-  try {
-    storage?.setItem(
-      PENDING_WRITER_KEY,
-      JSON.stringify({ provider, model, timestamp: Date.now() }),
-    );
-  } catch {
-    // storage unavailable
-  }
-}
-
-export function clearPendingChoice(
-  storage: Storage | null = typeof sessionStorage !== "undefined" ? sessionStorage : null,
-): void {
-  try {
-    storage?.removeItem(PENDING_WRITER_KEY);
-  } catch {
-    // storage unavailable
-  }
-}
 
 export function readCachedCatalog(
   storage: Storage | null = typeof sessionStorage !== "undefined" ? sessionStorage : null,
@@ -188,9 +146,71 @@ export async function mount(root: HTMLElement): Promise<void> {
     return out;
   };
 
+  // An edit saved in the last few minutes is not in this page until the next build: the controls
+  // show it before they are read as the starting point below, so it is not sent again.
+  let saved: ConfigOp[] = [];
+  if (hasSaved()) {
+    const view = await import("./savedView").catch(() => null);
+    saved = view?.readSaved() ?? [];
+    view?.overlayPodcast(root, controls, fields(), saved);
+  }
+
+  /** The topic chips: each puts the topics it stands for in or out of this podcast (topic.scope). */
+  // A chip of a topic removed since the build is gone (savedView.ts): it neither counts nor sends.
+  const scopeBoxes = [...root.querySelectorAll<HTMLInputElement>("input[data-scope]")].filter(
+    (box) => box.dataset.gone === undefined,
+  );
+  for (const box of scopeBoxes) box.dataset.was = String(box.checked);
+  const scopeChanges = (): void => {
+    for (const box of scopeBoxes) {
+      const profile = box.dataset.scope === "weekly" ? "weekly" : "daily";
+      const ids = (box.dataset.scopeIds ?? "").split(" ").filter(Boolean);
+      const key = `scope:${profile}:${ids.join(",")}`;
+      if (ids.length === 0 || String(box.checked) === box.dataset.was) changes.delete(key);
+      else
+        changes.set(key, {
+          op: { op: "topic.scope", ids, [profile]: box.checked },
+          el: box,
+          now: String(box.checked),
+        });
+    }
+  };
+
+  /**
+   * The line under the title, worked out again from the fields on screen and the time it is now: the
+   * built line is a guess from the day the site was built, and from the values saved then.
+   */
+  const head = root.querySelector<HTMLElement>(".settings-head");
+  const nextLine = root.querySelector<HTMLElement>("[data-next]");
+  const profileId = root.querySelector<HTMLElement>("[data-profile]")?.dataset.profile;
+  const showNext = (values: FieldValues): void => {
+    if (!head || !nextLine || (profileId !== "daily" && profileId !== "weekly")) return;
+    const day = head.dataset.weeklyDay;
+    const text = nextRunLine(
+      profileId,
+      values,
+      {
+        lastRegularAt: head.dataset.lastRegular ?? null,
+        lastWeeklyAt: head.dataset.lastWeekly ?? null,
+        weeklyDay: day === undefined || day === "" ? null : Number(day),
+      },
+      new Date(),
+    );
+    if (text) nextLine.textContent = text;
+  };
+
+  /** Topic chips all off: the episode has nothing to cover, which the hint under them says. */
+  const noTopics = root.querySelector<HTMLElement>("[data-no-topics]");
+  const showNoTopics = (): void => {
+    if (noTopics) noTopics.hidden = scopeBoxes.some((box) => box.checked);
+  };
+
   /** Records what the controls now differ by. `save` is false while a typed id is still being typed. */
   const update = (save = true): void => {
+    scopeChanges();
+    showNoTopics();
     const now = fields();
+    showNext(now);
     const op = ops?.(JSON.parse(box.dataset.was ?? "{}") as FieldValues, now);
     if (op) changes.set("schedule", { op, el: box, now: JSON.stringify(now) });
     else changes.delete("schedule");
@@ -208,6 +228,8 @@ export async function mount(root: HTMLElement): Promise<void> {
   });
 
   box.dataset.was = JSON.stringify(fields());
+  showNext(fields());
+  showNoTopics();
   if (root.querySelector("[data-profile]")) {
     void import("./podcastProfiles").then((module) => {
       ops = module.scheduleOp;
@@ -215,7 +237,7 @@ export async function mount(root: HTMLElement): Promise<void> {
     });
   }
   const group = root.querySelector<HTMLElement>("[data-models]");
-  if (group) writer = await mountModel(root, group, update, () => autosave.now());
+  if (group) writer = await mountModel(root, group, update, saved);
   root.dataset.ready = "";
 }
 
@@ -227,13 +249,14 @@ async function mountModel(
   root: HTMLElement,
   group: HTMLElement,
   update: (save?: boolean) => void,
-  flushNow?: () => void,
+  saved: readonly ConfigOp[],
 ): Promise<() => Pending | null> {
   const lib = await import("../lib/combobox");
   const {
     CLAUDE_OPTIONS,
     GROUP_NAMES,
     countText,
+    noMatchText,
     filterOptions,
     labelFor,
     moveIndex,
@@ -252,12 +275,18 @@ async function mountModel(
   const savedModel = group.dataset.saved ? group.dataset.saved : null;
   const savedProvider: Provider = group.dataset.provider === "anthropic" ? "anthropic" : "nebius";
 
-  const pendingChoice = readPendingChoice();
+  // A choice the build has not brought yet: one still on its way from a page left in the server's
+  // gap, else the writer's note of one saved (written once its request went through, managePageSave).
+  // Shown in place of the built one, and the starting point a later change is measured from.
+  const held = heldWriter(saved);
+  let pendingChoice = held ?? readPendingChoice();
   if (pendingChoice) {
     if (pendingChoice.provider === savedProvider && pendingChoice.model === savedModel) {
-      clearPendingChoice();
+      if (!held) clearPendingChoice();
+      pendingChoice = null;
     } else {
       vendor.value = pendingChoice.provider;
+      void import("./savedView").then((view) => view.markSaved(root));
     }
   }
 
@@ -348,6 +377,7 @@ async function mountModel(
       if (option.hint) item.append(element("span", "daily-option-hint", option.hint));
       into.append(item);
     });
+    if (shown.length === 0) listbox.append(element("div", "daily-empty", noMatchText(query)));
     listbox.hidden = false;
     listbox.toggleAttribute("data-keyboard", keyboard);
     // Opens below the field, and above it when the room under it is short and the room over it is
@@ -387,8 +417,6 @@ async function mountModel(
     typed.value = "";
     close();
     update();
-    writePendingChoice(provider(), selected);
-    flushNow?.();
   };
 
   /** The options for the vendor on screen. */
@@ -428,8 +456,6 @@ async function mountModel(
     if (provider() === "nebius" && nebius === undefined) void load().then(() => update());
     refresh();
     update();
-    writePendingChoice(provider(), selected);
-    flushNow?.();
   });
 
   input.addEventListener("input", () => open(input.value, true));
@@ -498,7 +524,9 @@ async function mountModel(
   typed.addEventListener("input", () => update(false));
   typed.addEventListener("change", () => update());
 
-  group.dataset.was = JSON.stringify([savedProvider, savedModel]);
+  group.dataset.was = JSON.stringify(
+    pendingChoice ? [pendingChoice.provider, pendingChoice.model] : [savedProvider, savedModel],
+  );
   refresh();
   if (provider() === "nebius") void load();
   else root.dataset.loaded = "";

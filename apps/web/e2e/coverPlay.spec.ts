@@ -6,17 +6,15 @@ import { expect, hydrated, test } from "./fixtures";
  */
 
 test.describe("the play button over a cover", () => {
-  test("is not there on a touch screen, where a card only opens", async ({ page }, info) => {
-    test.skip(info.project.name !== "phone", "touch only");
+  test("is not there on a touch screen, where a card only opens", async ({ page }) => {
     await page.goto("/library");
     await hydrated(page);
     await expect(page.locator("[data-cover-play]").first()).toBeHidden();
   });
 
-  test("a card's button appears on hover and plays that briefing on its page", async ({
-    page,
-  }, info) => {
-    test.skip(info.project.name !== "desktop", "needs a mouse");
+  test("a card's button appears on hover and plays that briefing on its page", {
+    tag: "@desktop",
+  }, async ({ page }) => {
     await page.goto("/library");
     await hydrated(page);
     const card = page.locator("[data-card]", { has: page.locator('a[href="/d/2026-10-07"]') });
@@ -29,10 +27,9 @@ test.describe("the play button over a cover", () => {
     await expect(page.locator("html")).toHaveAttribute("data-player-state", "playing");
   });
 
-  test("the hero's button plays in place, shows pause while it plays, and pauses", async ({
-    page,
-  }, info) => {
-    test.skip(info.project.name !== "desktop", "needs a mouse");
+  test("the hero's button plays in place, shows pause while it plays, and pauses", {
+    tag: "@desktop",
+  }, async ({ page }) => {
     await page.goto("/d/2026-10-07");
     await hydrated(page);
     // For a pointer only: the play chip beside it is the named, focusable control.
@@ -48,8 +45,7 @@ test.describe("the play button over a cover", () => {
     await expect(page.locator(".hero .cover-over")).toHaveAttribute("data-playing", "false");
   });
 
-  test("shows on keyboard focus, and Space plays", async ({ page }, info) => {
-    test.skip(info.project.name !== "desktop", "needs a mouse");
+  test("shows on keyboard focus, and Space plays", { tag: "@desktop" }, async ({ page }) => {
     await page.goto("/library");
     await hydrated(page);
     const card = page.locator("[data-card]", { has: page.locator('a[href="/d/2026-10-07"]') });

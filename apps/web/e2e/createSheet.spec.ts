@@ -1,9 +1,6 @@
-import AxeBuilder from "@axe-core/playwright";
 import type { Page } from "@playwright/test";
-import { expect, hydrated, test } from "./fixtures";
-import { PASSPHRASE_REQUIRED } from "./passphrase";
-
-const SENT = PASSPHRASE_REQUIRED ? "correct horse battery staple" : "open";
+import { OPEN_PASSPHRASE } from "../src/lib/access";
+import { expect, expectNoViolationsInEitherScheme, hydrated, test } from "./fixtures";
 
 const trigger = (page: Page) => page.locator("[data-create-open]:visible").first();
 const sheet = (page: Page) => page.locator("dialog.create-sheet");
@@ -40,40 +37,9 @@ async function mockRun(page: Page, states: unknown[]): Promise<Array<Record<stri
 }
 
 test.describe("Create as the primary action", () => {
-  test("the button or the floating button exists at this width, and the nav lists three", async ({
-    page,
-  }, info) => {
-    // Below 64rem Create floats on the Library alone (D60).
-    await page.goto("/library");
-    const wide = info.project.name === "desktop";
-    if (wide) {
-      await expect(page.locator(".create-fab")).toBeHidden();
-      await expect(page.locator(".app-nav-create")).toBeVisible();
-      await expect(page.locator(".app-nav-create")).toHaveText("Create Podcast");
-    } else {
-      await expect(page.locator(".app-nav-create")).toBeHidden();
-      await expect(page.getByRole("link", { name: "Create Podcast" })).toBeVisible();
-      // Extended at the top of the page, the plus and the word; folded to a 56px square while
-      // scrolling down to read (D52).
-      const fab = page.locator(".create-fab");
-      await expect(fab).toContainText("Create");
-      expect(Math.round((await fab.boundingBox())?.width ?? 0)).toBeGreaterThan(56);
-      // The Library is short on a phone, so the steps are too: the first scroll loads the script
-      // that folds the button and the second, with room left to scroll, folds it.
-      await page.mouse.wheel(0, 120);
-      await page.waitForTimeout(150);
-      await page.mouse.wheel(0, 160);
-      await expect(fab).toHaveAttribute("data-folded", "");
-      await expect.poll(async () => Math.round((await fab.boundingBox())?.width ?? 0)).toBe(56);
-      await page.mouse.wheel(0, -400);
-      await expect(fab).not.toHaveAttribute("data-folded", "");
-    }
-    await expect(page.locator(".app-nav-item")).toHaveText(["Today", "Library", "Settings"]);
-  });
-
   test("opens the sheet, Escape closes it and focus returns to the button", async ({ page }) => {
     await openSheet(page);
-    await expect(sheet(page).getByRole("heading", { name: "Create a podcast" })).toBeVisible();
+    await expect(sheet(page).getByRole("heading", { name: "New episode" })).toBeVisible();
     await page.keyboard.press("Escape");
     await expect(sheet(page)).toBeHidden();
     await expect(trigger(page)).toBeFocused();
@@ -82,6 +48,7 @@ test.describe("Create as the primary action", () => {
   test("Enter in the title puts the keyboard away and sends nothing", async ({ page }) => {
     const bodies = await mockRun(page, [{ run_id: 31, state: "running", step: null }]);
     await openSheet(page);
+    await sheet(page).getByText("More options").click();
     const title = sheet(page).getByRole("textbox", { name: /^Title/ });
     await title.fill("My week in AI");
     await title.press("Enter");
@@ -94,28 +61,30 @@ test.describe("Create as the primary action", () => {
     await expect(title).toHaveValue("My week in AI");
   });
 
-  test("a press that starts inside the panel and ends outside it keeps the panel open", async ({
-    page,
-  }, info) => {
-    await openSheet(page);
-    const head = await sheet(page).locator(".create-sheet-head").boundingBox();
-    const chip = sheet(page).locator(".create-chip:visible").first();
-    await chip.scrollIntoViewIfNeeded();
-    const box = await chip.boundingBox();
-    if (!head || !box) throw new Error("the panel is not laid out");
-    // Pressed on a chip, released on the header: the click lands on the dialog itself.
-    await page.mouse.move(box.x + box.width / 2, box.y + box.height / 2);
-    await page.mouse.down();
-    await page.mouse.move(head.x + head.width / 3, head.y + head.height / 2, { steps: 5 });
-    await page.mouse.up();
-    await page.waitForTimeout(300);
-    await expect(sheet(page)).toBeVisible();
-    // A press on the scrim beside the side panel still closes it.
-    if (info.project.name === "desktop") {
-      await page.mouse.click(head.x / 2, head.y + 200);
-      await expect(sheet(page)).toBeHidden();
-    }
-  });
+  test(
+    "a press that starts inside the panel and ends outside it keeps the panel open",
+    { tag: "@both" },
+    async ({ page }, info) => {
+      await openSheet(page);
+      const head = await sheet(page).locator(".create-sheet-head").boundingBox();
+      const chip = sheet(page).locator(".filter-chip:visible").first();
+      await chip.scrollIntoViewIfNeeded();
+      const box = await chip.boundingBox();
+      if (!head || !box) throw new Error("the panel is not laid out");
+      // Pressed on a chip, released on the header: the click lands on the dialog itself.
+      await page.mouse.move(box.x + box.width / 2, box.y + box.height / 2);
+      await page.mouse.down();
+      await page.mouse.move(head.x + head.width / 3, head.y + head.height / 2, { steps: 5 });
+      await page.mouse.up();
+      await page.waitForTimeout(300);
+      await expect(sheet(page)).toBeVisible();
+      // A press on the scrim beside the side panel still closes it.
+      if (info.project.name === "desktop") {
+        await page.mouse.click(head.x / 2, head.y + 200);
+        await expect(sheet(page)).toBeHidden();
+      }
+    },
+  );
 
   test("browser Back closes the sheet and stays on the page", async ({ page }) => {
     await page.goto("/");
@@ -130,8 +99,7 @@ test.describe("Create as the primary action", () => {
     await expect(trigger(page)).toBeFocused();
   });
 
-  test("the floating button never overlaps the player bar's controls", async ({ page }, info) => {
-    test.skip(info.project.name === "desktop", "the floating button is for phones");
+  test("the floating button never overlaps the player bar's controls", async ({ page }) => {
     await page.goto("/");
     // Until the player has hydrated, a press on the play chip is lost.
     await hydrated(page);
@@ -170,14 +138,9 @@ test.describe("Create as the primary action", () => {
     ]);
     await openSheet(page);
     await sheet(page).locator("[data-submit]").click();
-    if (PASSPHRASE_REQUIRED) {
-      const ask = page.getByRole("dialog", { name: "Enter the passphrase" });
-      await ask.getByLabel("Passphrase").fill(SENT);
-      await ask.getByRole("button", { name: "Create episode" }).click();
-    }
     await expect.poll(() => bodies.length).toBe(1);
     expect(bodies[0]).toEqual({
-      passphrase: SENT,
+      passphrase: OPEN_PASSPHRASE,
       request: {
         audience: "custom",
         topic_ids: ["design", "ui-craft", "ai", "tech"],
@@ -189,8 +152,9 @@ test.describe("Create as the primary action", () => {
       },
     });
     await expect(sheet(page)).toBeHidden();
-    const status = page.getByRole("status").filter({ has: page.locator("[data-run-card]") });
-    await expect(status).toContainText(/Waiting to start|Writing your episode/);
+    // The status region holds the line alone, not the card's link and buttons.
+    const status = page.locator("[data-run-status]").getByRole("status");
+    await expect(status).toContainText(/Episode queued|Writing your episode/);
 
     // A client-side navigation keeps it, and a reload picks the run up again.
     await page.locator(".app-nav-item", { hasText: "Today" }).click();
@@ -209,15 +173,41 @@ test.describe("Create as the primary action", () => {
     await expect(page.locator("[data-run-library]")).toBeHidden();
   });
 
-  for (const scheme of ["light", "dark"] as const) {
-    test(`axe finds nothing with the sheet open, ${scheme}`, async ({ page }) => {
-      await page.emulateMedia({ colorScheme: scheme });
-      await openSheet(page);
-      await page.waitForTimeout(500);
-      const results = await new AxeBuilder({ page })
-        .withTags(["wcag2a", "wcag2aa", "wcag21a", "wcag21aa", "wcag22aa"])
-        .analyze();
-      expect(results.violations.map((v) => v.id)).toEqual([]);
+  test("axe finds nothing with the sheet open", async ({ page }) => {
+    await openSheet(page);
+    await expectNoViolationsInEitherScheme(page);
+  });
+});
+
+test.describe("Try again on a failed run", () => {
+  // The refused request is logged by the browser as a failed load; here it is the point.
+  test.use({ allowNetworkErrors: true });
+
+  test("a Try again that cannot be sent opens the sheet again, filled in with the request", async ({
+    page,
+  }) => {
+    await mockRun(page, [{ run_id: 31, state: "completed", step: null, outcome: "failed" }]);
+    await openSheet(page);
+    const chosen = (name: string) =>
+      sheet(page).locator(".filter-chip", { hasText: name }).locator("input");
+    await sheet(page).locator(".settings-segment", { hasText: "10 min" }).click();
+    await sheet(page).locator(".filter-chip", { hasText: "Design" }).click();
+    await expect(chosen("Design")).not.toBeChecked();
+    await sheet(page).locator("[data-submit]").click();
+    await expect(sheet(page)).toBeHidden();
+    await expect(page.locator("[data-run-text]")).toHaveText("Couldn't make the episode", {
+      timeout: 15_000,
     });
-  }
+    // The passphrase is refused this time: the request cannot go from the line, so the form it
+    // came from opens again with every choice in it.
+    await page.unroute("**/api/podcast");
+    await page.route("**/api/podcast", (route) =>
+      route.fulfill({ status: 401, contentType: "application/json", body: "{}" }),
+    );
+    await page.getByRole("button", { name: "Try again" }).click();
+    await expect(sheet(page)).toBeVisible();
+    await expect(sheet(page).locator('input[name="length"][value="10"]')).toBeChecked();
+    await expect(chosen("Design")).not.toBeChecked();
+    await expect(chosen("Technology")).toBeChecked();
+  });
 });

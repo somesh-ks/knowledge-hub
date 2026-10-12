@@ -17,6 +17,14 @@ export class BudgetExceededError extends Error {
   }
 }
 
+/** A call's time ran out before it could be sent or retried. Never retried. */
+export class DeadlineExceededError extends Error {
+  constructor(message: string) {
+    super(message);
+    this.name = "DeadlineExceededError";
+  }
+}
+
 /** The model answered, but not in the shape we asked for, even after one corrective retry. */
 export class LlmOutputError extends Error {
   constructor(message: string) {

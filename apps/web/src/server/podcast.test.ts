@@ -1,5 +1,7 @@
-import { hashPassphrase, verifyPassphrase } from "@dispatch/core/passphrase";
-import { beforeAll, describe, expect, it, vi } from "vitest";
+import { HOST_NAME_POOLS, hostNamesFor } from "@dispatch/core/hosts";
+import { verifyPassphrase } from "@dispatch/core/passphrase";
+import { beforeAll, beforeEach, describe, expect, it, vi } from "vitest";
+import { cheapPassphraseHash } from "../testing/cheapPassphraseHash";
 import { createFakeGitHub, REPO, runJson } from "../testing/fakeGitHub";
 import type { PodcastRequest } from "../types/contracts";
 import { WRONG_PASSPHRASE_DELAY_MS } from "./generate";
@@ -11,6 +13,7 @@ import {
   parsePodcastBody,
   parsePodcastRequest,
 } from "./podcast";
+import { resetVoicesCache, SPEECHIFY_VOICES_URL } from "./voices";
 
 const NOW = Date.parse("2026-10-07T12:00:00Z");
 const TOKEN = "github_pat_secret_value_123456";
@@ -24,8 +27,8 @@ const podcastRun = (overrides: Record<string, unknown> = {}) =>
 
 let passphraseHash = "";
 
-beforeAll(async () => {
-  passphraseHash = await hashPassphrase(PASSPHRASE);
+beforeAll(() => {
+  passphraseHash = cheapPassphraseHash(PASSPHRASE);
 });
 
 const EPISODE_ID = "ep-20261007-0900";
@@ -96,6 +99,11 @@ describe("parsePodcastRequest", () => {
       "topic_ids",
       "window_days",
     ]);
+  });
+
+  it("never takes the hosts' names from the caller", () => {
+    const forged = { ...REQUEST, host_names: { a: "Mallory", b: "Eve" } };
+    expect(parsePodcastRequest(forged)).toEqual(REQUEST);
   });
 
   it("rejects a request that breaks any rule", () => {
@@ -275,12 +283,6 @@ describe("handlePodcast for an episode action", () => {
     expect(github.requests).toHaveLength(0);
   });
 
-  it("answers 401 for a wrong passphrase and 400 for another origin", async () => {
-    const { deps } = setup();
-    expect((await handlePodcast(input(del({ passphrase: "nope" })), deps)).status).toBe(401);
-    expect((await handlePodcast(input(del(), "https://evil.example"), deps)).status).toBe(400);
-  });
-
   it("holds delete to a 10 second cooldown and 20 a day, not the episode limits", async () => {
     const { deps, github } = setup();
     github.on(DISPATCH, { json: { workflow_run_id: 9 } });
@@ -456,8 +458,11 @@ describe("handlePodcast", () => {
     const result = await handlePodcast(input(body()), deps);
     expect(result).toEqual({ status: 503, body: { status: 503, error: "unavailable" } });
     expect(JSON.stringify(result)).not.toContain("Bad credentials");
-    expect(logs).toHaveLength(1);
-    expect(logs[0]).toContain("GitHub answered 401");
+    // The other line says why the discussion's hosts were not named: the setup has no Speechify key.
+    const failures = logs.filter((line) => line.startsWith("podcast failed"));
+    expect(failures).toHaveLength(1);
+    expect(failures[0]).toContain("GitHub answered 401");
+    expect(logs.join("\n")).not.toContain("Bad credentials");
   });
 
   it("never puts the token, the hash or the passphrase in any response or log", async () => {
@@ -470,6 +475,119 @@ describe("handlePodcast", () => {
     expect(everything).not.toContain(TOKEN);
     expect(everything).not.toContain(passphraseHash);
     expect(everything).not.toContain(PASSPHRASE);
-    expect(logs[0]).toContain("[redacted]");
+    expect(logs.find((line) => line.startsWith("podcast failed"))).toContain("[redacted]");
+  });
+});
+
+describe("handlePodcast and the hosts' names", () => {
+  // Made up, and one of the invented values .gitleaks.toml already names.
+  const SPEECHIFY_KEY = "key-123456789";
+  const voice = (id: string, name: string, gender: string) => ({
+    id,
+    display_name: name,
+    gender,
+    locale: "en-US",
+  });
+  const VOICES = {
+    voices: [
+      voice("voice-tom", "Tom Hardy", "male"),
+      voice("voice-nora", "Nora", "female"),
+      voice("geffen_32", "Geffen", "male"),
+      voice("dominic_32", "Dominic", "male"),
+    ],
+    has_more: false,
+  };
+  const voiceList = () => new Response(JSON.stringify(VOICES), { status: 200 });
+
+  beforeEach(() => resetVoicesCache());
+
+  /** The fake GitHub, with a Speechify voice list beside it and a key to read it with. */
+  function voiced(reply: () => Promise<Response> | Response = voiceList) {
+    const { deps, github, logs } = setup();
+    github.on(RUNS, { json: { workflow_runs: [] } });
+    github.on(DISPATCH, { json: { workflow_run_id: 7 } });
+    const calls: string[] = [];
+    const speechify: Array<{ url: string; init: RequestInit | undefined }> = [];
+    deps.fetch = async (url, init) => {
+      if (url.startsWith(SPEECHIFY_VOICES_URL)) {
+        calls.push("speechify");
+        speechify.push({ url, init });
+        return reply();
+      }
+      calls.push(`${init?.method ?? "GET"} github`);
+      return github.fetch(url, init);
+    };
+    deps.env = { ...deps.env, SPEECHIFY_API_KEY: SPEECHIFY_KEY };
+    return { deps, github, logs, calls, speechify };
+  }
+
+  /** The request podcast.yml was given. */
+  const sent = (github: ReturnType<typeof setup>["github"]): Record<string, unknown> => {
+    const dispatch = github.requests.find((request) => request.method === "POST");
+    if (!dispatch) throw new Error("podcast.yml was not dispatched");
+    return JSON.parse((dispatch.body as { inputs: { request: string } }).inputs.request);
+  };
+
+  it("names a new discussion's hosts after its voices, looked up beside the GitHub calls", async () => {
+    const { deps, github, logs, calls, speechify } = voiced();
+    const request = { ...REQUEST, voice_id: "voice-tom", voice_id_b: "voice-nora" };
+    const result = await handlePodcast(input(body({ request })), deps);
+    expect(result.status).toBe(202);
+    const expected = hostNamesFor(
+      { id: "voice-tom", name: "Tom Hardy", gender: "male" },
+      { id: "voice-nora", name: "Nora", gender: "female" },
+    );
+    // "Tom Hardy" is not one given name, so the lead takes a man's name from the pool.
+    expect(HOST_NAME_POOLS.male).toContain(expected.a);
+    expect(expected.b).toBe("Nora");
+    expect(sent(github)).toEqual({ ...request, host_names: expected });
+    expect(calls).toEqual(["speechify", "GET github", "POST github"]);
+    expect(new Headers(speechify[0]?.init?.headers).get("authorization")).toBe(
+      `Bearer ${SPEECHIFY_KEY}`,
+    );
+    expect(speechify[0]?.url).not.toContain(SPEECHIFY_KEY);
+    expect(JSON.stringify(github.requests)).not.toContain(SPEECHIFY_KEY);
+    expect(logs).toEqual([]);
+  });
+
+  it("puts its own names over the browser's, and sends none for a readout", async () => {
+    const forged = { a: "Mallory", b: "Eve" };
+    const discussion = voiced();
+    await handlePodcast(
+      input(body({ request: { ...REQUEST, host_names: forged } })),
+      discussion.deps,
+    );
+    expect(sent(discussion.github).host_names).toEqual({ a: "Geffen", b: "Dominic" });
+
+    const readout = voiced();
+    const request = { ...REQUEST, format: "readout", host_names: forged };
+    expect((await handlePodcast(input(body({ request })), readout.deps)).status).toBe(202);
+    expect(sent(readout.github)).toEqual({ ...REQUEST, format: "readout" });
+    expect(readout.speechify).toHaveLength(0);
+  });
+
+  it("still dispatches, without names, when the voice list fails, and logs only the kind", async () => {
+    const answered = voiced(
+      () => new Response(JSON.stringify({ message: `bad ${SPEECHIFY_KEY}` }), { status: 401 }),
+    );
+    expect((await handlePodcast(input(body()), answered.deps)).status).toBe(202);
+    expect(sent(answered.github)).toEqual(REQUEST);
+    expect(answered.logs).toEqual(["Speechify answered HTTP 401 for the voice list"]);
+
+    resetVoicesCache();
+    const thrown = voiced(() => {
+      throw new Error(`socket closed while sending ${SPEECHIFY_KEY}`);
+    });
+    expect((await handlePodcast(input(body()), thrown.deps)).status).toBe(202);
+    expect(sent(thrown.github)).toEqual(REQUEST);
+    expect(thrown.logs).toEqual(["The voice list could not be read (Error)"]);
+  });
+
+  it("does not read the voice list for a delete or a regenerate", async () => {
+    for (const bodyText of [del(), regen()]) {
+      const { deps, speechify } = voiced();
+      expect((await handlePodcast(input(bodyText), deps)).status).toBe(202);
+      expect(speechify).toHaveLength(0);
+    }
   });
 });

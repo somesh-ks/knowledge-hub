@@ -18,10 +18,12 @@ export function createOpenAiChatApi(env: Env): ChatApi {
     timeout: REQUEST_TIMEOUT_MS,
   });
   return {
-    async createChatCompletion(body) {
+    async createChatCompletion(body, options) {
       // The body is built by nebiusClient and includes provider fields the SDK types do not list.
+      // nebiusClient sizes the timeout from the reply asked for; the default covers other callers.
       return client.chat.completions.create(
         body as unknown as ChatCompletionCreateParamsNonStreaming,
+        { timeout: options?.timeoutMs ?? REQUEST_TIMEOUT_MS },
       );
     },
   };

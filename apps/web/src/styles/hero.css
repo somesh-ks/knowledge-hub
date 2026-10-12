@@ -1,23 +1,30 @@
 /*
- * The briefing and episode header: the cover beside the title, with the More button at the far end
- * of the title's row, then the play chip with a few facts at its side. On a phone the actions run
- * under the cover; from 40rem they sit beside it, under the title.
+ * The briefing and episode header. One layout for any title, so a long episode title and a short
+ * date sit the same way:
+ * - a phone: the cover with the More button at the far end of its row, then the title across the
+ *   column, its facts under it, and Play;
+ * - from 40rem: a larger cover with the title, its facts and the More button beside it, and Play on
+ *   the cover's foot line (or under the text, where a long title runs past the cover).
+ * Every left edge is the column's or the text column's, never a few pixels off either.
  */
 
 .hero {
+  --hero-title-size: var(--text-display-size);
+  --hero-title-leading: var(--text-display-leading);
+  --hero-cover: var(--cover-size-hero);
   display: grid;
-  grid-template-columns: var(--cover-size-hero) minmax(0, 1fr);
+  grid-template-columns: var(--hero-cover) minmax(0, 1fr) auto;
   grid-template-areas:
-    "cover text"
-    "actions actions"
-    "hint hint";
-  align-items: center;
+    "cover . menu"
+    "text text text"
+    "actions actions actions"
+    "hint hint hint";
+  align-items: start;
   column-gap: var(--space-4);
-  padding-block: var(--page-top) var(--space-2);
+  padding-block: var(--page-top) var(--space-4);
 }
 
-/* Flat, like every surface here: the cover keeps its hairline outline and loses its shadow. It
-   stays level with the title's first line, not centred on a tall title block. */
+/* Flat, like every surface here: the cover keeps its hairline outline and loses its shadow. */
 .hero .cover {
   grid-area: cover;
   align-self: start;
@@ -25,70 +32,100 @@
   box-shadow: none;
 }
 
+/* The title, then one line of facts under it at the meta size. */
 .hero-text {
   grid-area: text;
   display: grid;
-  gap: var(--space-2);
+  gap: var(--space-1);
   min-width: 0;
-  container-type: inline-size;
+  margin-block-start: var(--space-4);
 }
 
-/* The title takes what is left and wraps; the More button holds the far edge, level with the first
-   line. The title's size is set on the row, so the button can follow it. */
-.hero-title-row {
-  --hero-title-size: var(--text-display-size);
-  --hero-title-leading: var(--text-display-leading);
-  display: flex;
-  align-items: flex-start;
-  justify-content: space-between;
-  gap: var(--space-2);
-}
-
-.hero-title-row > .page-title {
+.hero-text > .page-title {
   min-width: 0;
-  flex: 1 1 auto;
   /* A long word breaks inside the column instead of widening the page. */
   overflow-wrap: anywhere;
   hyphens: auto;
   font-size: var(--hero-title-size);
   line-height: var(--hero-title-leading);
+  text-wrap: balance;
 }
 
-/* Below a 360px screen the text column beside the cover is under 14rem: a long episode title runs to
-   four or five lines there, and a date such as "Wednesday 30 September", whose day and month never
-   part, no longer fits. There the title takes the section heading's size, so it is never smaller
-   than the headings under it; from 360px it keeps the display size. */
-@container (width < 14rem) {
-  .hero-title-row {
-    --hero-title-size: var(--font-size-section);
-    --hero-title-leading: var(--text-lead-leading);
-  }
+.hero-facts {
+  font-size: var(--text-meta-size);
 }
 
-/* The play chip hugs its label with the pill's own padding, its ring a hair from the start, as every
-   chip does. A width held for its longest label left a short one adrift in the middle, with wide
-   empty ends; the facts beside it now move a few pixels when the label changes. */
+.hero > .hero-menu {
+  grid-area: menu;
+}
+
+/* Play, the page's main action. */
 .hero-actions {
   grid-area: actions;
   display: flex;
   align-items: center;
-  gap: var(--space-4);
   min-height: var(--size-touch);
   margin-block-start: var(--space-4);
 }
 
-/* What is said beside the chip, in the chip's own size and line height so the two share a middle. */
-.hero-facts {
-  align-self: center;
-  font-size: var(--font-size-label);
-  line-height: var(--font-leading-label);
+/*
+ * The hero's chip is the page's primary button: filled with the accent, a size up from a story's
+ * chip, so it is the strongest thing in the header and plainly not a tag. Once this page's audio is
+ * loaded it steps down to the accent container (the chip's current state, buttons.css), so the
+ * player's own Pause is the one filled control on screen; played, preparing and unavailable keep
+ * their meaning.
+ */
+.hero-actions > .chip {
+  --chip-bg: var(--cta-bg);
+  --chip-fg: var(--cta-fg);
+  min-height: calc(var(--size-touch) - var(--space-1));
+  padding-inline: var(--space-4) var(--space-6);
+}
+
+/* The layer over a filled control is its own ink: lighter on the accent, never a grey wash. */
+@media (hover: hover) and (pointer: fine) {
+  .hero-actions
+    > .chip:not(
+      [data-state="played"],
+      [data-state="current"],
+      [data-state="unavailable"],
+      [aria-disabled="true"]
+    ):hover {
+    background: color-mix(in oklch, var(--cta-bg), var(--cta-fg) var(--state-hover));
+  }
+}
+
+.hero-actions
+  > .chip:not(
+    [data-state="played"],
+    [data-state="current"],
+    [data-state="unavailable"],
+    [aria-disabled="true"]
+  ):active {
+  background: color-mix(in oklch, var(--cta-bg), var(--cta-fg) var(--state-press));
+  color: var(--cta-fg);
+}
+
+/* Playing, the hero's chip is the pause button: the pause glyph, not the moving bars a story's chip
+   shows, so the page has one "this is playing" mark per story and one way to pause. */
+.hero-actions > .chip[data-state="current"][data-playing="true"] .chip-glyph > .swap {
+  display: grid;
+}
+
+.hero-actions > .chip[data-state="current"][data-playing="true"] .chip-bars {
+  display: none;
+}
+
+/* Heard to the end: the fill steps down to the tonal container, with the check, until it plays again. */
+.hero-actions > .chip[data-state="played"] {
+  background: var(--color-surface-container);
 }
 
 /* Why the chip above cannot play. One or two short sentences, never a paragraph. */
 .hero-hint {
   grid-area: hint;
   max-width: var(--layout-measure);
-  padding-block-end: var(--space-2);
+  padding-block: var(--space-2);
   color: var(--color-on-surface-muted);
   font-size: var(--font-size-label);
   line-height: var(--font-leading-body);
@@ -96,16 +133,13 @@
 
 /* ------------------------------------------------------------------ the More menu */
 
-/* The More button: an .icon-btn at the end of the title's row. */
+/* The More button: an .icon-btn at the end of the header's first row. Its glyph, not its 44px
+   target, lines up with the column's edge; on a phone the glyph's top is level with the cover's
+   top, and from 40rem its middle with the middle of the title's first line. */
 .hero-more {
   anchor-name: --hero-more;
-  /* The glyph, not its 44px target, lines up with the column's edge, and its middle with the
-     middle of the title's first line. */
   margin-inline-end: calc(var(--space-2) * -1);
-  margin-block-start: calc(
-    (var(--hero-title-size) * var(--hero-title-leading) - var(--size-touch)) /
-    2
-  );
+  margin-block-start: calc((var(--size-icon) - var(--size-touch)) / 2);
 }
 
 /* Share shows a check on the button for a moment after the link is copied. */
@@ -245,20 +279,32 @@
 }
 
 @media (min-width: 40rem) {
+  /* The cover grows to 10rem, room for a two-line title, its facts and Play beside it. */
   .hero {
-    grid-template-columns: var(--cover-size-hero-wide) minmax(0, 1fr);
+    --hero-cover: var(--cover-size-hero-wide);
     grid-template-areas:
-      "cover text"
-      "cover actions"
-      "cover hint";
-    /* The text ends at the cover's foot when it is short, and grows past it when it is not. */
-    grid-template-rows: auto auto 1fr;
-    align-items: start;
+      "cover text menu"
+      "cover actions actions"
+      "cover hint hint";
+    /* Play sits on the cover's foot line when the text is short, and flows under it when not. */
+    grid-template-rows: auto 1fr auto;
     column-gap: var(--space-6);
   }
 
+  .hero-text {
+    margin-block-start: 0;
+  }
+
+  .hero-more {
+    margin-block-start: calc(
+      (var(--hero-title-size) * var(--hero-title-leading) - var(--size-touch)) /
+      2
+    );
+  }
+
   .hero-actions {
-    margin-block-start: var(--space-2);
+    align-self: end;
+    margin-block-start: var(--space-4);
   }
 }
 

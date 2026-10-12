@@ -1,5 +1,7 @@
 ---
 import type { DigestItem } from "@dispatch/core";
+import { publisherOf } from "../lib/episodeHighlights";
+import { headlineParts } from "../lib/format";
 import { sourceHost } from "../lib/sourceLabel";
 import { idleStoryChip } from "../player/core/readerMath";
 import Icon from "./Icon.astro";
@@ -16,31 +18,58 @@ interface Props {
 
 const { item, index, length, hasAudio } = Astro.props;
 const titleId = `t-${item.id}`;
+// Hyphenated words stay whole when the balanced headline wraps (briefing.css).
+const words = headlineParts(item.headline);
 const chip = idleStoryChip(length, item.headline);
 // Null for anything that is not an http or https address: such a story gets no link at all.
 const host = sourceHost(item.url);
-// The link names the publisher. An aggregator's name ("Exa discovery") says nothing, so the host
-// stands in for it.
-const publisher = /discovery|hacker news|lobsters|product hunt/i.test(item.source)
-  ? host
-  : item.source;
+// The link names the publisher, or the host for an aggregator (episodeHighlights.ts).
+const publisher = publisherOf(item.source, host);
 ---
 
-<article class="story" data-item-id={item.id} data-index={index} aria-labelledby={titleId}>
-  <h3 class="story-title" id={titleId}>{item.headline}</h3>
+<article
+  class="story"
+  data-item-id={item.id}
+  data-index={index}
+  aria-labelledby={host ? `${titleId}-text` : titleId}
+>
+  {/* The headline is the way to the story, as in any news list: a link to the source in a new tab.
+       Its name starts with the words it shows, so a reader using voice control can say them; the
+       new tab is said, not shown. The story is named by the headline's words alone. A story whose
+       address must not become a link keeps a plain headline. */}
+  <h3 class="story-title" id={titleId}>
+    {
+      host ? (
+        <a class="story-link" href={item.url} target="_blank" rel="noopener noreferrer">
+          {/* One line: a break inside the span would read as a space before the words. */}
+          <span id={`${titleId}-text`}>{words.map((part) => (part.nowrap ? <span class="no-break">{part.text}</span> : part.text))}</span>
+          <span class="sr-only">(opens in a new tab)</span>
+        </a>
+      ) : (
+        words.map((part) => (part.nowrap ? <span class="no-break">{part.text}</span> : part.text))
+      )
+    }
+  </h3>
   <p class="story-summary">{item.summary}</p>
-  {item.why && <p class="story-why"><span class="story-why-label">Why</span>{" "}{item.why}</p>}
+  {item.why && <p class="story-why"><span class="story-why-label">Why:</span>{" "}{item.why}</p>}
   <div class="story-actions">
     {/* Always in the page. Hidden while the briefing has no audio timeline, so audio that arrives
          later only has to reveal it. */}
     <PlayChip label={chip.label} aria-label={chip.name} data-play-item={index} hidden={!hasAudio} />
-    {/* The link's name starts with the words it shows, so a reader using voice control can say
-         them; the new tab is said, not shown. The two spans are blocks inside the link, so the
-         browser reads a space between them: the note goes in brackets, not after a comma. */}
+    {/* The publisher, as attribution: a quiet link to the page the headline opens. It is a second
+         way to one place, so it stays out of the tab order and the accessibility tree, and the
+         headline is the link a keyboard or a screen reader meets. */}
     {
       host && (
-        <a class="source-link" href={item.url} target="_blank" rel="noopener noreferrer">
-          <span>{publisher}</span><span class="sr-only"> (opens in a new tab)</span>
+        <a
+          class="source-link story-source"
+          href={item.url}
+          target="_blank"
+          rel="noopener noreferrer"
+          tabindex="-1"
+          aria-hidden="true"
+        >
+          <span>{publisher}</span>
           <Icon name="openInNew" />
         </a>
       )

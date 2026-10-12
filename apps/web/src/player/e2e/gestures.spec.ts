@@ -1,222 +1,147 @@
-import { center, expect, type LabPage, line, type Point, test } from "./lab";
+import { center, expect, line, type PlayerPage, type Point, test } from "./helpers";
 
 /** A point on the page's header that is not a control: the title. */
-async function headerSpot(lab: LabPage): Promise<Point> {
-  return center(await lab.boxOf(lab.dialog.locator(".player-title")));
+async function headerSpot(player: PlayerPage): Promise<Point> {
+  return center(await player.boxOf(player.dialog.locator(".player-title")));
 }
 
-async function opened(lab: LabPage): Promise<{ header: Point; height: number }> {
-  await lab.open();
-  await lab.play();
-  await lab.openPlayer();
-  const { window } = await lab.geometry();
-  return { header: await headerSpot(lab), height: window.height };
+async function opened(player: PlayerPage): Promise<Point> {
+  await player.open();
+  await player.play();
+  await player.openPlayer();
+  return headerSpot(player);
 }
 
-// A flick here is three large steps 8 ms apart, about 5 px/ms; a finger flicks at 1 to 3 px/ms.
-// Each event states the time it means (lab.ts, gestureClock), so a loaded machine delivering them
-// late does not turn the flick into a slow drag.
-test.describe("opening by gesture @surface", () => {
-  test("a short, slow pull up goes back down without opening", async ({ lab, finger }) => {
-    await lab.open();
-    await lab.play();
-    const start = center(await lab.dockSettled());
-    await finger.drag(line(start, { x: start.x, y: start.y - 60 }, 6), 60);
-    await lab.collapsed();
-    await expect(lab.sheet).toBeHidden();
-    // Not a commit: the page behind was never taken away.
-    await expect(lab.root).toHaveAttribute("data-player", "closed");
-  });
+const coverSpot = async (player: PlayerPage): Promise<Point> =>
+  center(await player.boxOf(player.dialog.locator("[data-player-cover]")));
 
+// The drags are real touch sequences, so they run on the phone project only. Release decides, and
+// its thresholds are gestureMath.test.ts's. A flick here is three large steps 8 ms apart, about
+// 5 px/ms; each event states the time it means (helpers.ts, gestureClock), so a loaded machine
+// delivering them late does not turn the flick into a slow drag.
+test.describe("opening by gesture", () => {
   test("a flick up opens the page even when the finger travelled little", async ({
-    lab,
+    player,
     finger,
   }) => {
-    await lab.open();
-    await lab.play();
-    const start = center(await lab.dockSettled());
+    await player.open();
+    await player.play();
+    const start = center(await player.dockSettled());
     await finger.drag(line(start, { x: start.x, y: start.y - 120 }, 3), 8);
-    await lab.expanded();
-    expect(await lab.progress()).toBeCloseTo(1, 2);
+    await player.expanded();
+    expect(await player.progress()).toBeCloseTo(1, 2);
   });
 
   test("a long pull up opens on release, and nothing behind is inert until then", async ({
-    lab,
+    player,
     page,
     finger,
   }) => {
-    await lab.open();
-    await lab.play();
-    const start = center(await lab.dockSettled());
-    const { window } = await lab.geometry();
-    const held = await finger.drag(
-      line(start, { x: start.x, y: start.y - window.height * 0.5 }, 14),
-      30,
-      { hold: true },
-    );
-    await expect(lab.surface).toHaveAttribute("data-state", "dragging");
+    await player.open();
+    await player.play();
+    const start = center(await player.dockSettled());
+    const height = page.viewportSize()?.height ?? 0;
+    const held = await finger.drag(line(start, { x: start.x, y: start.y - height * 0.5 }, 14), 30, {
+      hold: true,
+    });
+    await expect(player.surface).toHaveAttribute("data-state", "dragging");
     // Following a finger is not a decision.
-    await expect(lab.root).toHaveAttribute("data-player", "closed");
+    await expect(player.root).toHaveAttribute("data-player", "closed");
     expect(await page.locator("[data-player-inert]").count()).toBe(0);
     await held.release();
-    await lab.expanded();
+    await player.expanded();
   });
 });
 
-test.describe("closing by gesture @surface", () => {
-  test("a flick down on the header dismisses the page along its spring", async ({
-    lab,
-    finger,
-  }) => {
-    const { header } = await opened(lab);
-    await finger.drag(line(header, { x: header.x, y: header.y + 230 }, 3), 8);
-    await lab.collapsed();
-    await expect(lab.sheet).toBeHidden();
-    await expect(lab.openButton).toBeVisible();
-  });
-
-  test("a slow, short drag down snaps back open, because release decides", async ({
-    lab,
-    finger,
-  }) => {
-    const { header } = await opened(lab);
-    await finger.drag(line(header, { x: header.x, y: header.y + 110 }, 8), 50);
-    await lab.expanded();
-    expect(await lab.progress()).toBeCloseTo(1, 2);
-  });
-
-  test("a long, slow drag down past the threshold dismisses on release", async ({
-    lab,
-    finger,
-  }) => {
-    const { header, height } = await opened(lab);
-    await finger.drag(line(header, { x: header.x, y: header.y + height * 0.55 }, 10), 60);
-    await lab.collapsed();
-  });
-
-  test("never dismisses mid-drag: the page follows the pointer and waits for the lift", async ({
-    lab,
-    finger,
-  }) => {
-    const { header, height } = await opened(lab);
-    const held = await finger.drag(
-      line(header, { x: header.x, y: header.y + height * 0.7 }, 12),
-      30,
-      { hold: true },
-    );
-    await expect(lab.surface).toHaveAttribute("data-state", "dragging");
-    await expect(lab.root).toHaveAttribute("data-player", "open");
-    await expect.poll(() => lab.progress()).toBeLessThan(0.45);
-    await held.release();
-    await lab.collapsed();
-  });
-
-  test("a pull down on the cover dismisses too: the whole top of the page is the handle", async ({
-    lab,
-    finger,
-  }) => {
-    await opened(lab);
-    const cover = center(await lab.boxOf(lab.dialog.locator("[data-player-cover]")));
-    await finger.drag(line(cover, { x: cover.x, y: cover.y + 260 }, 3), 8);
-    await lab.collapsed();
-  });
+test("a flick down on the header or a pull down on the cover dismisses the page", async ({
+  player,
+  finger,
+}) => {
+  const header = await opened(player);
+  await finger.drag(line(header, { x: header.x, y: header.y + 230 }, 3), 8);
+  await player.collapsed();
+  await expect(player.sheet).toBeHidden();
+  await expect(player.openButton).toBeVisible();
+  // The whole top of the page is the handle, the cover with it.
+  await player.dockSettled();
+  await player.openPlayer();
+  const cover = await coverSpot(player);
+  await finger.drag(line(cover, { x: cover.x, y: cover.y + 260 }, 3), 8);
+  await player.collapsed();
 });
 
-test.describe("scrolling inside the page @surface", () => {
-  test("scrolling the list never drags the page", async ({ lab, page, finger, browserName }) => {
-    test.skip(
-      browserName === "webkit",
-      "Playwright's mobile WebKit rejects mouse.wheel and has no touch scroll to stand in for it",
-    );
-    await opened(lab);
-    const row = lab.dialog.getByRole("list").last().getByRole("button").last();
-    await row.scrollIntoViewIfNeeded();
-    const spot = center(await lab.boxOf(row));
-    if (finger.touch && browserName === "chromium") {
-      await finger.drag(line(spot, { x: spot.x, y: spot.y + 140 }, 6), 8);
-    } else {
-      await page.mouse.move(spot.x, spot.y);
-      await page.mouse.wheel(0, -300);
-    }
-    await page.waitForTimeout(300);
-    await lab.expanded();
-    expect(await lab.progress()).toBeCloseTo(1, 2);
+test("inside the page a pull scrolls before it drags: the list, and the top of a scrolled page", async ({
+  player,
+  page,
+  finger,
+}) => {
+  await page.setViewportSize({ width: 375, height: 553 });
+  await opened(player);
+  // A pull down on the list scrolls it and never drags the page.
+  const row = player.dialog.getByRole("list").last().getByRole("button").last();
+  await row.scrollIntoViewIfNeeded();
+  const spot = center(await player.boxOf(row));
+  await finger.drag(line(spot, { x: spot.x, y: spot.y + 140 }, 6), 8);
+  await player.expanded();
+  expect(await player.progress()).toBeCloseTo(1, 2);
+  // On a scrolled page a pull down on the top scrolls back instead of dismissing.
+  await player.sheet.evaluate((element) => {
+    element.scrollTop = 60;
   });
-
-  test("on a scrolled page a pull down on the top scrolls back instead of dismissing", async ({
-    lab,
-    page,
-    finger,
-    browserName,
-  }) => {
-    test.skip(!finger.touch || browserName !== "chromium", "needs a real touch sequence");
-    await page.setViewportSize({ width: 375, height: 553 });
-    await opened(lab);
-    await lab.sheet.evaluate((element) => {
-      element.scrollTop = 60;
-    });
-    const cover = center(await lab.boxOf(lab.dialog.locator("[data-player-cover]")));
-    await finger.drag(line(cover, { x: cover.x, y: cover.y + 50 }, 8), 30);
-    await page.waitForTimeout(500);
-    await lab.expanded();
-    expect(await lab.sheet.evaluate((element) => element.scrollTop)).toBeLessThan(40);
-    // From the top the same pull, carried on, is a dismissal again.
-    await lab.sheet.evaluate((element) => {
-      element.scrollTop = 0;
-    });
-    await finger.drag(line(cover, { x: cover.x, y: cover.y + 260 }, 6), 8);
-    await lab.collapsed();
+  const cover = await coverSpot(player);
+  await finger.drag(line(cover, { x: cover.x, y: cover.y + 50 }, 8), 30);
+  await expect.poll(() => player.sheet.evaluate((element) => element.scrollTop)).toBeLessThan(40);
+  await player.expanded();
+  // A pull up on the top scrolls the page.
+  await player.sheet.evaluate((element) => {
+    element.scrollTop = 0;
   });
-
-  test("a pull up on the top of the page scrolls it", async ({
-    lab,
-    page,
-    finger,
-    browserName,
-  }) => {
-    test.skip(!finger.touch || browserName !== "chromium", "needs a real touch sequence");
-    await page.setViewportSize({ width: 375, height: 553 });
-    await opened(lab);
-    const cover = center(await lab.boxOf(lab.dialog.locator("[data-player-cover]")));
-    await finger.drag(line(cover, { x: cover.x, y: cover.y - 120 }, 8), 30);
-    await expect.poll(() => lab.sheet.evaluate((element) => element.scrollTop)).toBeGreaterThan(60);
-    await lab.expanded();
-  });
+  const top = await coverSpot(player);
+  await finger.drag(line(top, { x: top.x, y: top.y - 120 }, 8), 30);
+  await expect
+    .poll(() => player.sheet.evaluate((element) => element.scrollTop))
+    .toBeGreaterThan(60);
+  await player.expanded();
 });
 
-test.describe("closing the page @surface", () => {
-  test("closes from the keyboard's close button and gives the document back with the bar in place", async ({
-    lab,
+test.describe("closing the page", () => {
+  test("closes from the keyboard's close button and gives the document back with the bar in place @desktop", async ({
+    player,
     page,
+    hasTouch,
   }) => {
-    await opened(lab);
-    await lab.closeButton.focus();
+    // With a mouse, at tablet width: the bar's chevron is the way to close the open page.
+    if (!hasTouch) await page.setViewportSize({ width: 820, height: 1000 });
+    await opened(player);
+    await player.closeButton.focus();
     await page.keyboard.press("Enter");
-    await lab.collapsed();
-    await expect(lab.sheet).toBeHidden();
-    await expect(lab.openButton.locator(".player-cover-frame")).toBeVisible();
+    await player.collapsed();
+    await expect(player.sheet).toBeHidden();
+    await expect(player.openButton.locator(".player-cover-frame")).toBeVisible();
+    // The close control hid with the page; focus is on the bar's open control, not lost to the body.
+    if (!hasTouch) await expect(player.openButton).toBeFocused();
   });
 
-  test("closes with Escape and returns focus to the control that opened it", async ({
-    lab,
+  test("closes with Escape and returns focus to the control that opened it @desktop", async ({
+    player,
     page,
   }) => {
-    await lab.open();
-    await lab.play();
-    await lab.openButton.focus();
+    await player.open();
+    await player.play();
+    await player.openButton.focus();
     await page.keyboard.press("Enter");
-    await lab.expanded();
+    await player.expanded();
     // Focus went into the page when it opened.
     expect(
       await page.evaluate(() => document.activeElement?.hasAttribute("data-player-page") ?? false),
     ).toBe(true);
     await page.keyboard.press("Escape");
-    await lab.collapsed();
-    await expect(lab.openButton).toBeFocused();
+    await player.collapsed();
+    await expect(player.openButton).toBeFocused();
   });
 
-  test("Tab never reaches anything behind the open page", async ({ lab, page }) => {
-    await opened(lab);
+  test("Tab never reaches anything behind the open page @desktop", async ({ player, page }) => {
+    await opened(player);
     const seen = new Set<string>();
     for (let press = 0; press < 24; press += 1) {
       await page.keyboard.press("Tab");

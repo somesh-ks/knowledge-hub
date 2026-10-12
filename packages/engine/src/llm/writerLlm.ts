@@ -4,6 +4,7 @@ import { loadWriterChoice } from "../writer/store.js";
 import { createAnthropicLlm } from "./anthropicClient.js";
 import { withModelChain } from "./failoverClient.js";
 import { type ChatApi, createNebiusLlm } from "./nebiusClient.js";
+import type { RetryOptions } from "./retry.js";
 import type { TokenBudget } from "./tokenBudget.js";
 import type { LlmClient } from "./types.js";
 
@@ -17,6 +18,8 @@ export interface WriterLlmOptions {
   onAnthropicRequest?: () => void;
   /** Replaces the global fetch for Anthropic calls; tests only. */
   anthropicFetch?: typeof fetch;
+  /** Overrides the Nebius retry policy (its backoff waits); tests only. */
+  retry?: Partial<RetryOptions>;
 }
 
 /**
@@ -33,7 +36,9 @@ export function createWriterLlm(options: WriterLlmOptions): LlmClient {
   const chosen = anthropicModel === null ? (choice?.model ?? null) : null;
   const models = resolveWriterModels(chosen, env);
   if (models.length === 0 && anthropicModel === null) requireKey(env, "DISPATCH_MODEL");
-  const clients = models.map((model) => createNebiusLlm({ api, model, budget, log }));
+  const clients = models.map((model) =>
+    createNebiusLlm({ api, model, budget, log, retry: options.retry }),
+  );
   if (anthropicModel !== null) {
     clients.unshift(
       createAnthropicLlm({

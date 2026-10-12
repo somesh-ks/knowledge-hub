@@ -41,6 +41,8 @@ export interface ScriptInput {
   budget_chars: number;
   /** What the listener asked to change in the previous version; typed by the owner, so untrusted. */
   feedback?: string | undefined;
+  /** Epoch milliseconds by which the call, retries included, must end. */
+  deadline_at?: number | undefined;
 }
 
 export interface TurnRewrite {

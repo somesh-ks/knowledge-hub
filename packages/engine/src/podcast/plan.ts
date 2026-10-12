@@ -2,9 +2,8 @@ import {
   PODCAST_CHARS_PER_MINUTE,
   PODCAST_MAX_CHARS,
   type PodcastFormat,
-  PodcastRequest,
+  type PodcastRequest,
 } from "@dispatch/core";
-import { InvalidRequestError } from "./types.js";
 
 type PodcastLength = PodcastRequest["length_minutes"];
 
@@ -117,11 +116,6 @@ export function structureFor(
   };
 }
 
-/** Room for the hello, the rundown, the close and the sign-off; grows with the length and the story count. */
-export function frameChars(minutes: PodcastLength, stories: number, format: PodcastFormat): number {
-  return structureFor(minutes, stories, format).frame_chars;
-}
-
 /** What the stories of this structure cost at the aimed-at sizes, frame included. */
 export function aimedChars(structure: EpisodeStructure, format: PodcastFormat): number {
   return (
@@ -159,10 +153,19 @@ export function reachableChars(
   return Math.min(budget, structure.frame_chars + capacity);
 }
 
-/** The writer is asked to land at or above this share of the budget (a range, not a ceiling). */
-export const SCRIPT_TARGET_SHARE = 0.9;
+/**
+ * The writer is asked to land at about this share of the budget. Models deliver about 88 to 97
+ * percent of the length they are asked for, so asking for 95 percent lands a typical reply above
+ * the floor and still under the budget, where fitToBudget would drop the last stories.
+ */
+export const SCRIPT_TARGET_SHARE = 0.95;
 /** A reply under this share of the budget is sent back once or twice, then kept if still short. */
 export const SCRIPT_FLOOR_SHARE = 0.8;
+/**
+ * A reply this close under the floor (a share of the floor) is kept instead of rewritten whole:
+ * a rewrite costs 25 to 36 seconds and is not reliably longer.
+ */
+export const SCRIPT_FLOOR_GRACE = 0.05;
 
 /** Characters the writer is asked to reach at least, and the floor below which a reply is sent back. */
 export function scriptTargetChars(budget: number): number {
@@ -170,6 +173,10 @@ export function scriptTargetChars(budget: number): number {
 }
 export function scriptFloorChars(budget: number): number {
   return Math.floor(budget * SCRIPT_FLOOR_SHARE);
+}
+/** The shortest reply that is kept without a retry: the floor less its grace. */
+export function scriptAcceptChars(budget: number): number {
+  return Math.floor(scriptFloorChars(budget) * (1 - SCRIPT_FLOOR_GRACE));
 }
 
 /** Characters a deep dive and a nugget should carry once the frame is taken out of `budget`. */
@@ -200,24 +207,6 @@ export interface PodcastPlan {
   budget_chars: number;
   /** Most stories the budget can carry in this format. */
   max_stories: number;
-}
-
-/** Parse the request JSON from the command line. The message names every field that is wrong. */
-export function parseRequest(raw: string): PodcastRequest {
-  let json: unknown;
-  try {
-    json = JSON.parse(raw);
-  } catch {
-    throw new InvalidRequestError("The request is not valid JSON.");
-  }
-  const parsed = PodcastRequest.safeParse(json);
-  if (!parsed.success) {
-    const problems = parsed.error.issues
-      .slice(0, 6)
-      .map((issue) => `${issue.path.join(".") || "(request)"}: ${issue.message}`);
-    throw new InvalidRequestError(`The request is invalid. ${problems.join("; ")}`);
-  }
-  return parsed.data;
 }
 
 export function planPodcast(request: PodcastRequest): PodcastPlan {

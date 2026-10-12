@@ -18,7 +18,7 @@ allowed-tools:
 Follows "Keeping the record" in `AGENTS.md`. Each fact lives in one place; link to it from the others. No em dashes. Make surgical edits.
 
 1. List from this conversation: what changed, what failed, what was decided, what was not verified. Use `git diff --stat` and `git log` to confirm.
-2. `docs/state.md`: rewrite the affected lines so it describes now. Never append a log.
+2. `docs/state.md`: rewrite the affected lines so it describes now. Never append a log. If tests were added or removed, update their counts and run times there.
 3. `docs/decisions.md`: only if direction changed. Grep the Index for the last D-number, add the next entry and an Index row (status `active`). Mark any decision it replaces.
 4. `docs/learnings.md`: one line per failure or gotcha. Grep first; skip duplicates.
 5. `docs/history/`: one note named `YYYY-MM-DD-<topic>.md`, only the why behind the change. Match the format in `docs/history/README.md`.

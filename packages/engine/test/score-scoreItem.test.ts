@@ -280,10 +280,6 @@ describe("scoreItem for consumer tech", () => {
     return scoreItem(entry, prefs, item);
   };
 
-  it("ships with a weight of 0.8 for the category", () => {
-    expect(prefs.weights.consumer_tech_releases).toBe(0.8);
-  });
-
   it.each([
     [0, 0, 0.28],
     [1, 0.25, 0.5075],

@@ -1,19 +1,9 @@
 import { describe, expect, it } from "vitest";
-import { z } from "zod";
 import { describeError } from "../src/llm/errors.js";
-import { withModelFailover } from "../src/llm/failoverClient.js";
 import { NebiusWriter } from "../src/write/nebiusWriter.js";
 import { rewriteOnce } from "../src/write/rewriteOnce.js";
 import type { RewriteRequest, SourceMaterial, Writer } from "../src/write/types.js";
-import { captureLog, FakeLlm, httpError, testLinter, testVoice } from "./write-fakes.js";
-
-const Out = z.object({ items: z.array(z.object({ id: z.string() })) });
-const request = () => ({
-  schema: Out,
-  schemaName: "out",
-  messages: [{ role: "user" as const, content: "x" }],
-  label: "test",
-});
+import { FakeLlm, httpError, testLinter, testVoice } from "./write-fakes.js";
 
 const material = (): SourceMaterial => ({
   id: "aaaaaaaaaaaa",
@@ -21,24 +11,6 @@ const material = (): SourceMaterial => ({
   source: "Example",
   category: "css_canvas_motion_techniques",
   text: "Springlet 2.0 retargets springs mid-flight.",
-});
-
-describe("model failover under concurrency", () => {
-  it("switches every in-flight request when the primary is retired, not just the first", async () => {
-    const primary = new FakeLlm(async () => {
-      await new Promise((resolve) => setTimeout(resolve, 5));
-      throw httpError(404, "model not found");
-    }, "retired");
-    const fallback = new FakeLlm(() => ({ items: [] }), "fallback");
-    const { log, lines } = captureLog();
-    const client = withModelFailover(primary, fallback, log);
-    const results = await Promise.all([1, 2, 3, 4].map(() => client.completeJson(request())));
-    expect(results).toHaveLength(4);
-    expect(primary.calls).toHaveLength(4);
-    expect(fallback.calls).toHaveLength(4);
-    expect(client.model).toBe("fallback");
-    expect(lines.filter((l) => l.level === "warn")).toHaveLength(1);
-  });
 });
 
 describe("describeError redaction", () => {

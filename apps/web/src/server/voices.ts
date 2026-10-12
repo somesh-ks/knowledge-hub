@@ -1,3 +1,4 @@
+import { type HostNames, hostNamesFor } from "@dispatch/core/hosts";
 import { DEFAULT_VOICE_ID } from "@dispatch/engine/audio";
 import { readVoiceId, readVoiceIdB, withSecondVoice } from "./config";
 import type { FetchLike } from "./github";
@@ -117,41 +118,40 @@ export function parseVoices(body: unknown): VoiceOption[] {
   return out;
 }
 
-export async function handleVoices(deps: VoicesDeps): Promise<ApiResult<VoicesBody>> {
+/** The voice list, or why there is none: no key is set, or Speechify could not be read. */
+export type VoiceCatalogue =
+  | { kind: "voices"; voices: VoiceOption[] }
+  | { kind: "no_key" }
+  | { kind: "failed" };
+
+/**
+ * The English voices the key can use, from the hour-long cache or paged from Speechify. The voice
+ * list, the samples and a new episode's host names all read it here. `signal` cuts a caller's wait
+ * short; each page also has its own limit. Only the kind of a failure is logged: an upstream message
+ * could carry the request details.
+ */
+export async function readVoiceCatalogue(
+  deps: VoicesDeps,
+  signal?: AbortSignal,
+): Promise<VoiceCatalogue> {
   const key = deps.env.SPEECHIFY_API_KEY?.trim();
-  const defaults = voiceDefaults(deps.env);
-  if (!key) {
-    return {
-      status: 200,
-      headers: { "Cache-Control": "no-store" },
-      body: { voices: [], defaults },
-    };
-  }
+  if (!key) return { kind: "no_key" };
   const now = (deps.now ?? Date.now)();
-  if (cache && now - cache.at < VOICES_TTL_MS) {
-    return {
-      status: 200,
-      headers: { "Cache-Control": VOICES_CACHE_CONTROL },
-      body: { voices: cache.voices, defaults },
-    };
-  }
+  if (cache && now - cache.at < VOICES_TTL_MS) return { kind: "voices", voices: cache.voices };
   try {
     const byId = new Map<string, VoiceOption>();
     let cursor: string | undefined;
     for (let page = 0; page < VOICES_MAX_PAGES; page++) {
       const query = new URLSearchParams({ limit: "200", model: VOICES_MODEL, locale: "en" });
       if (cursor) query.set("cursor", cursor);
+      const pageLimit = AbortSignal.timeout(VOICES_TIMEOUT_MS);
       const response = await deps.fetch(`${SPEECHIFY_VOICES_URL}?${query}`, {
         headers: { authorization: `Bearer ${key}` },
-        signal: AbortSignal.timeout(VOICES_TIMEOUT_MS),
+        signal: signal ? AbortSignal.any([pageLimit, signal]) : pageLimit,
       });
       if (!response.ok) {
         deps.log?.(`Speechify answered HTTP ${response.status} for the voice list`);
-        return {
-          status: 502,
-          headers: { "Cache-Control": "no-store" },
-          body: { error: "unavailable" },
-        };
+        return { kind: "failed" };
       }
       const body: unknown = await response.json();
       for (const voice of parseVoices(body)) byId.set(voice.id, voice);
@@ -166,21 +166,89 @@ export async function handleVoices(deps: VoicesDeps): Promise<ApiResult<VoicesBo
       (a, b) => a.name.localeCompare(b.name, "en") || (a.id < b.id ? -1 : 1),
     );
     cache = { at: now, voices };
-    return {
-      status: 200,
-      headers: { "Cache-Control": VOICES_CACHE_CONTROL },
-      body: { voices, defaults },
-    };
+    return { kind: "voices", voices };
   } catch (error) {
-    // Only the kind of failure is logged: an upstream message could carry the request details.
     deps.log?.(
       `The voice list could not be read (${error instanceof Error ? error.name : "error"})`,
     );
-    return {
-      status: 502,
-      headers: { "Cache-Control": "no-store" },
-      body: { error: "unavailable" },
-    };
+    return { kind: "failed" };
+  }
+}
+
+export async function handleVoices(deps: VoicesDeps): Promise<ApiResult<VoicesBody>> {
+  const defaults = voiceDefaults(deps.env);
+  const catalogue = await readVoiceCatalogue(deps);
+  switch (catalogue.kind) {
+    case "no_key":
+      return {
+        status: 200,
+        headers: { "Cache-Control": "no-store" },
+        body: { voices: [], defaults },
+      };
+    case "failed":
+      return {
+        status: 502,
+        headers: { "Cache-Control": "no-store" },
+        body: { error: "unavailable" },
+      };
+    case "voices":
+      return {
+        status: 200,
+        headers: { "Cache-Control": VOICES_CACHE_CONTROL },
+        body: { voices: catalogue.voices, defaults },
+      };
+  }
+}
+
+/**
+ * The voices that will read a request's two hosts, worked out as narration does (hostVoices in
+ * narrate.ts): the request's own, else the configured defaults. A blank second voice in the
+ * environment means the first voice reads both hosts, whichever voice that is.
+ */
+export function hostVoiceIds(
+  request: { voice_id?: string | null; voice_id_b?: string | null },
+  env: VoicesEnv,
+): { a: string; b: string } {
+  const a = request.voice_id ?? voiceDefaults(env).voice;
+  return { a, b: request.voice_id_b ?? readVoiceIdB(withSecondVoice(env)) ?? a };
+}
+
+/**
+ * How long a new discussion waits for its hosts' names before it goes without them. The lookup
+ * starts beside the GitHub calls, so a cached list adds no wait and a slow Speechify at most this.
+ */
+export const HOST_NAMES_TIMEOUT_MS = 2000;
+
+/**
+ * The hosts' names for a new discussion, from the genders of the voices that will read it
+ * (hostNamesFor in core). Undefined when they cannot be worked out in time: no key, a list that
+ * failed or was slow, or a voice it does not hold. The engine then uses its gender-neutral pair, so
+ * this never fails a request and never throws. Only the kind of a failure is logged.
+ */
+export async function resolveHostNames(
+  request: { voice_id?: string | null; voice_id_b?: string | null },
+  deps: VoicesDeps,
+  signal: AbortSignal = AbortSignal.timeout(HOST_NAMES_TIMEOUT_MS),
+): Promise<HostNames | undefined> {
+  try {
+    const catalogue = await readVoiceCatalogue(deps, signal);
+    if (catalogue.kind === "no_key") {
+      deps.log?.("Host names left to the engine: no Speechify key");
+      return undefined;
+    }
+    // readVoiceCatalogue has already logged why the list could not be read.
+    if (catalogue.kind === "failed") return undefined;
+    const ids = hostVoiceIds(request, deps.env);
+    const voiceA = catalogue.voices.find((voice) => voice.id === ids.a);
+    const voiceB = catalogue.voices.find((voice) => voice.id === ids.b);
+    if (!voiceA || !voiceB) {
+      deps.log?.("Host names left to the engine: a host's voice is not in the voice list");
+      return undefined;
+    }
+    return hostNamesFor(voiceA, voiceB);
+  } catch (error) {
+    deps.log?.(`Host names left to the engine (${error instanceof Error ? error.name : "error"})`);
+    return undefined;
   }
 }
 

@@ -1,4 +1,6 @@
 ---
+import EmptyArt, { type ArtName } from "./EmptyArt.astro";
+
 interface Action {
   label: string;
   href: string;
@@ -7,30 +9,58 @@ interface Action {
 }
 
 interface Props {
+  /** The scene. Several draw each one, and `state` picks the one that shows (the offline page). */
+  art?: ArtName | ArtName[];
+  /** Which of several scenes shows: the section's data-state, which empty.css reads. */
+  state?: string;
   title?: string;
   body?: string;
+  /** 1 on a page whose only content this is (the title is the page's); 2 under a page's own title. */
+  level?: 1 | 2;
+  /** The settings size: smaller art and type, the same order. */
+  compact?: boolean;
   primary?: Action;
-  secondary?: Action;
+  /** A second way on, as a text button. null for none. */
+  secondary?: Action | null;
 }
 
 // With no props this is the page for a site that has no briefings yet. It offers what any reader
 // can do: look again, or open settings. Generating a briefing is an owner tool and lives there.
 const {
+  art = "today",
+  state,
   title = "No briefings yet",
-  body = "The first one arrives within two days.",
+  body = "The first one arrives with your next scheduled briefing.",
+  level = 1,
+  compact = false,
   primary = { label: "Check again", href: "/", reload: true },
   secondary = { label: "Settings", href: "/settings" },
 } = Astro.props;
+const scenes = Array.isArray(art) ? art : [art];
+const Heading = level === 1 ? "h1" : "h2";
+const headingId = level === 1 ? "page-title" : "empty-title";
 ---
 
-{/* A page with nothing to list: a heading, one sentence and two ways on. */}
-<section class="empty" aria-labelledby="page-title">
-  <h1 class="page-title" id="page-title" tabindex="-1">{title}</h1>
-  <p>{body}</p>
+{/* Nothing to show: a spot illustration, a title, one line on what happens next and one way on. */}
+<section
+  class="empty"
+  aria-labelledby={headingId}
+  data-state={state}
+  data-compact={compact ? "" : undefined}
+>
+  {scenes.map((scene) => <EmptyArt art={scene} size={compact ? "compact" : "regular"} />)}
+  <Heading
+    class:list={["empty-title", { "page-title": level === 1 }]}
+    id={headingId}
+    tabindex={level === 1 ? "-1" : undefined}
+  >
+    {title}
+  </Heading>
+  <p class="empty-body">{body}</p>
   <div class="empty-actions">
     <a class="btn-primary" href={primary.href} data-astro-reload={primary.reload}>
       {primary.label}
     </a>
-    <a class="btn-secondary" href={secondary.href}>{secondary.label}</a>
+    {secondary && <a class="btn" href={secondary.href}>{secondary.label}</a>}
   </div>
 </section>

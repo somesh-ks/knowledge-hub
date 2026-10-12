@@ -3,21 +3,16 @@ import type { SectionView } from "../lib/digestView";
 
 interface Props {
   section: SectionView;
-  /** Every section but the first is ruled off from the one above it. */
-  isFirst: boolean;
 }
 
-const { section, isFirst } = Astro.props;
+const { section } = Astro.props;
 const headingId = `c-${section.slug}`;
 ---
 
 {/* One section: a header, then its stories as rows. The tabs and the contents list link to the
-     heading by its id, and the scroll-spy watches the section by data-chapter. */}
-<section
-  class:list={["chapter", { "rule-above": !isFirst }]}
-  data-chapter={section.slug}
-  aria-labelledby={headingId}
->
+     heading by its id, and the scroll-spy watches the section by data-chapter. The band of air above
+     the header sets it apart from the section before; there is no rule as well (briefing.css). */}
+<section class="chapter" data-chapter={section.slug} aria-labelledby={headingId}>
   <h2 class="section-head" id={headingId}>{section.title}</h2>
   <div class="rows">
     <slot />

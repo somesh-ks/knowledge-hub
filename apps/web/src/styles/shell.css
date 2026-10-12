@@ -205,10 +205,46 @@ html[data-mini="visible"] main {
 }
 
 .app-bar-inner {
+  position: relative;
   display: flex;
   align-items: center;
   justify-content: center;
   min-height: var(--app-bar-height);
+}
+
+/* Back, at the leading edge. It is out of the flow, so the wordmark stays centred and a page without
+   it does not shift. */
+.app-bar-back {
+  position: absolute;
+  inset-block: 0;
+  inset-inline-start: var(--space-1);
+  /* A 44px circle with room round it for the focus ring: stretched to the bar's height it was an oval
+     the top of the window clipped. */
+  block-size: var(--size-touch);
+  margin-block: auto;
+  color: var(--color-on-surface);
+}
+
+/* Reading takes the screen: scrolling down slides the bar up, leaving only the safe area, and
+   scrolling up brings it back (the script is in SiteHeader.astro). What sticks under it, the section
+   tabs and the contents, follows through --sticky-top, so nothing is left hanging below an empty
+   gap. With reduced motion the bar never moves. */
+@media (width < 64rem) and (prefers-reduced-motion: no-preference) {
+  .app-bar {
+    transition: transform var(--duration-state) var(--ease-out);
+  }
+
+  html[data-bar-hidden] .app-bar {
+    transform: translateY(calc(var(--app-bar-height) * -1));
+  }
+
+  html[data-bar-hidden] {
+    --sticky-top: var(--safe-top);
+  }
+
+  .briefing > .tabs-bar {
+    transition: inset-block-start var(--duration-state) var(--ease-out);
+  }
 }
 
 @media (min-width: 64rem) {
@@ -227,11 +263,14 @@ html[data-mini="visible"] main {
   height: var(--bottom-nav-height);
   padding-block-end: var(--safe-bottom);
   padding-inline: var(--safe-left) var(--safe-right);
-  border-block-start: var(--stroke-hairline) solid var(--color-border-hairline);
-  background: var(--color-surface);
+  /* A tonal bar: it reads against the page by its fill, so it needs no line. */
+  background: var(--color-surface-container);
   /* The player pushes the bar down as it opens. One compositor property, written per frame. */
   transform: translateY(calc(var(--player-p, 0) * 100%));
   view-transition-name: app-nav;
+  /* A pixel of the bar's own tone above it: the player bar sits on top of it at rest, and where two
+     layers meet on a fractional device pixel a row of page text showed through the seam. */
+  box-shadow: 0 calc(var(--stroke-hairline) * -1) 0 var(--color-surface-container);
 }
 
 /* While the player moves, the bar stays above it until it has slid away: the player's page rises
@@ -264,7 +303,7 @@ html[data-mini="visible"] main {
   flex-direction: column;
   align-items: center;
   justify-content: center;
-  gap: calc(var(--space-1) / 2);
+  gap: var(--space-1);
   height: 100%;
   color: var(--color-on-surface-muted);
   font-size: var(--font-size-caption);
@@ -276,9 +315,34 @@ html[data-mini="visible"] main {
   outline-offset: calc((var(--stroke-ring) + var(--stroke-ring-gap)) * -1);
 }
 
+/* The ring follows the shape that marks the item: the 64x32 pill behind the icon, not the whole
+   cell, which is a fifth of the bar's width on a tablet. Its gap is the bar's own tone. */
 .app-nav-item:focus-visible {
+  outline: none;
   box-shadow: none;
-  border-radius: var(--button-radius);
+}
+
+.app-nav-item:focus-visible .app-nav-indicator {
+  outline: var(--stroke-ring) solid var(--color-focus-ring);
+  outline-offset: var(--stroke-ring-gap);
+  box-shadow: 0 0 0 var(--stroke-ring-gap) var(--color-surface-container);
+}
+
+/* The pill behind the icon: bare at rest, the accent container for the current destination, a state
+   layer under a pointer. */
+.app-nav-indicator {
+  display: grid;
+  place-items: center;
+  width: var(--nav-indicator-width);
+  height: var(--nav-indicator-height);
+  border-radius: var(--radius-round);
+  transition:
+    background-color var(--duration-hover) var(--ease-hover),
+    color var(--duration-hover) var(--ease-hover);
+}
+
+.app-nav-indicator > .icon {
+  grid-area: 1 / 1;
 }
 
 .app-nav-item .icon {
@@ -297,8 +361,15 @@ html[data-mini="visible"] main {
   transition-duration: var(--duration-press-in);
 }
 
+/* The current destination's words take the full ink, so the indicator and the filled icon are not
+   the only things that tell it apart. The weight stays: the app keeps two weights. */
 .app-nav-item[aria-current="page"] {
-  color: var(--color-accent);
+  color: var(--color-on-surface);
+}
+
+.app-nav-item[aria-current="page"] .app-nav-indicator {
+  background: var(--nav-side-item-bg);
+  color: var(--nav-side-item-fg);
 }
 
 /* An item carries its outlined and its filled icon; which one shows follows aria-current alone. */
@@ -311,6 +382,22 @@ html[data-mini="visible"] main {
   .app-nav-item:not([aria-current="page"]):hover {
     color: var(--color-on-surface);
   }
+
+  .app-nav-item:not([aria-current="page"]):hover .app-nav-indicator {
+    background: color-mix(in oklch, var(--color-on-surface) var(--state-hover), transparent);
+  }
+
+  .app-nav-item[aria-current="page"]:hover .app-nav-indicator {
+    background: color-mix(
+      in oklch,
+      var(--nav-side-item-bg),
+      var(--nav-side-item-fg) var(--state-hover)
+    );
+  }
+}
+
+.app-nav-item:not([aria-current="page"]):active .app-nav-indicator {
+  background: color-mix(in oklch, var(--color-on-surface) var(--state-press), transparent);
 }
 
 /* An open dialog takes the scrollbar away and the window's edge moves out by its width
@@ -334,8 +421,10 @@ html[data-mini="visible"] main {
     height: auto;
     padding-block: max(var(--space-3), var(--safe-top)) var(--space-4);
     padding-inline: calc(var(--space-3) + var(--safe-left)) var(--space-3);
-    border-block-start: 0;
-    border-inline-end: var(--stroke-hairline) solid var(--color-border-hairline);
+    /* No divider: the column and the page share one surface, and the content starts well clear of
+       the column's items. The transparent edge is there for forced colours to draw. */
+    border-inline-end: var(--stroke-hairline) solid transparent;
+    background: var(--color-surface);
     overflow-y: auto;
     overscroll-behavior: contain;
     /* The player spans the bottom here and rises over the column; the column itself stays put. */
@@ -346,7 +435,7 @@ html[data-mini="visible"] main {
     display: inline-flex;
     align-self: start;
     /* The top-leading corner stays free of controls inside windowed iPadOS apps. */
-    margin-inline-start: max(var(--space-3), var(--window-controls-inset));
+    margin-inline-start: max(var(--space-4), var(--window-controls-inset));
     padding-inline-end: var(--space-2);
     /* Air under the wordmark, so the brand and the menus read as two groups. */
     margin-block-end: var(--space-6);
@@ -362,13 +451,18 @@ html[data-mini="visible"] main {
     margin-inline: 0;
   }
 
-  /* The fill fades in and out like Create Podcast's above it. */
+  /* The row is the pill here, so the icon's own pill steps aside. */
+  .app-nav-indicator {
+    display: contents;
+  }
+
+  /* The fill fades in and out like the New episode button's above it. */
   .app-nav-item {
     flex-direction: row;
     justify-content: flex-start;
     gap: var(--space-4);
     height: var(--nav-side-item-height);
-    padding-inline: var(--space-3);
+    padding-inline: var(--space-4);
     border-radius: var(--button-radius);
     color: var(--color-on-surface);
     font-size: var(--font-size-label);
@@ -379,28 +473,35 @@ html[data-mini="visible"] main {
       color var(--duration-hover) var(--ease-hover);
   }
 
+  /* Here the row is the pill, so the ring is the row's, with the pill's round ends. */
   .app-nav-item:focus-visible {
+    outline: var(--stroke-ring) solid var(--color-focus-ring);
+    border-radius: var(--button-radius);
     box-shadow: 0 0 0 var(--stroke-ring-gap) var(--color-focus-gap);
   }
 
   .app-nav-item[aria-current="page"] {
     background: var(--nav-side-item-bg);
-    color: var(--color-accent);
+    color: var(--nav-side-item-fg);
   }
 
   @media (hover: hover) and (pointer: fine) {
     .app-nav-item:not([aria-current="page"]):hover {
-      background: var(--color-surface-sunken);
+      background: color-mix(in oklch, var(--color-on-surface) var(--state-hover), transparent);
+    }
+
+    .app-nav-item[aria-current="page"]:hover {
+      background: color-mix(
+        in oklch,
+        var(--nav-side-item-bg),
+        var(--nav-side-item-fg) var(--state-hover)
+      );
     }
   }
 
-  /* A press darkens the hover fill at once with a layer over it, so it reads apart from a hover. */
+  /* A press goes one step deeper than a hover. */
   .app-nav-item:not([aria-current="page"]):active {
-    background: linear-gradient(
-        color-mix(in oklch, var(--color-on-surface) 8%, transparent),
-        color-mix(in oklch, var(--color-on-surface) 8%, transparent)
-      )
-      var(--color-surface-sunken);
+    background: color-mix(in oklch, var(--color-on-surface) var(--state-press), transparent);
   }
 }
 
@@ -427,6 +528,19 @@ html[data-mini="visible"] main {
   padding-block-start: var(--space-2);
 }
 
+/* From 64rem there is no app bar above the stack, so a banner would sit a step from the window top,
+   above the brand row. It takes the line every page's first block starts on, and the shell below it
+   starts a smaller step under it instead of doubling the gap. */
+@media (min-width: 64rem) {
+  .banner-stack:not(:empty) {
+    padding-block-start: var(--page-top);
+  }
+
+  .banner-stack:not(:empty) ~ .shell {
+    --page-top: var(--space-8);
+  }
+}
+
 .shell {
   display: block;
 }
@@ -449,6 +563,11 @@ html[data-mini="visible"] main {
   .shell > main {
     grid-column: 1;
     grid-row: 1;
+  }
+
+  /* An empty state (offline, not found) has no contents list beside it: it centres in the pane. */
+  .shell > main:has(> .empty) {
+    grid-column: 1 / -1;
   }
 
   .shell > .aside {

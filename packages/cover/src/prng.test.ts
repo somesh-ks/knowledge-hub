@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { fbm, hash32, mulberry32, valueNoise } from "./prng.js";
+import { hash32, mulberry32, valueNoise } from "./prng.js";
 
 describe("mulberry32", () => {
   it("produces the same stream for the same seed", () => {
@@ -68,7 +68,6 @@ describe("noise", () => {
       const v = valueNoise(i * 0.37, i * 0.11, 5);
       expect(v).toBeGreaterThanOrEqual(0);
       expect(v).toBeLessThanOrEqual(1);
-      expect(fbm(i * 0.2, i * 0.3, 9, 4)).toBe(fbm(i * 0.2, i * 0.3, 9, 4));
     }
   });
 

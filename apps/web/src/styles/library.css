@@ -18,13 +18,68 @@
   width: 100%;
   margin-block-end: var(--space-2);
   box-shadow: none;
+  transition: scale var(--duration-press-out) var(--ease-out);
+}
+
+/* A press lays the press layer over the art and settles the cover a little: art may scale. The
+   title and facts are words and never do. */
+.card-link .cover::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background: color-mix(in oklch, var(--color-on-surface) var(--state-press), transparent);
+  opacity: 0;
+  pointer-events: none;
   transition: opacity var(--duration-press-out) var(--ease-out);
 }
 
-/* A press dims the cover. The card is never scaled: its title and facts are words. */
 .card-link:active .cover {
-  opacity: 0.88;
+  scale: var(--scale-press);
   transition-duration: var(--duration-press-in);
+}
+
+.card-link:active .cover::after {
+  opacity: 1;
+  transition-duration: var(--duration-press-in);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .card-link:active .cover {
+    scale: 1;
+  }
+}
+
+/* A half-heard item: a bar on its own track along the bottom of the art, inset from its corners, in
+   the accent, so it reads the same on every cover and in both themes. It lies over the cover in the
+   cover's own grid cell, so it costs no height: the card's title stays level with its neighbours'. */
+.card-link .cover {
+  grid-area: 1 / 1;
+}
+
+.card-progress {
+  position: relative;
+  z-index: var(--z-raised);
+  display: block;
+  grid-area: 1 / 1;
+  align-self: end;
+  height: var(--space-1);
+  margin: 0 var(--space-2) calc(var(--space-2) * 2);
+  overflow: hidden;
+  border-radius: var(--radius-round);
+  background: var(--rail-track);
+}
+
+.card-progress::before {
+  content: "";
+  display: block;
+  width: var(--progress, 0%);
+  height: 100%;
+  border-radius: inherit;
+  background: var(--color-accent);
+}
+
+.card-progress[hidden] {
+  display: none;
 }
 
 .card-title {
@@ -37,14 +92,49 @@
   -webkit-box-orient: vertical;
   -webkit-line-clamp: 2;
   line-clamp: 2;
-  transition: color var(--duration-hover) var(--ease-hover);
 }
 
 /* The quiet line keeps its own leading, not the body's, so a line that wraps stays tight. */
 .card-sub {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0 var(--space-2);
+  min-width: 0;
   font-size: var(--font-size-label);
   line-height: var(--font-leading-label);
   text-wrap: pretty;
+}
+
+/* While searching, a card found by a story names it under its facts: the headline from a little
+   before the find, up to two lines, the query's words in medium weight in the text colour, with no
+   fill, then how many more stories matched. */
+.card-match {
+  display: -webkit-box;
+  overflow: hidden;
+  color: var(--color-on-surface-muted);
+  font-size: var(--font-size-label);
+  line-height: var(--font-leading-label);
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 2;
+  line-clamp: 2;
+}
+
+.card-match > b {
+  color: var(--color-on-surface);
+  font-weight: var(--font-weight-medium);
+}
+
+/* A card narrower than its whole line (Today's shelf, a 360px phone's gallery) leaves out the story
+   count, so "Weekly · 8 min" fits on one line and never breaks after a separator. */
+.card {
+  container-type: inline-size;
+}
+
+@container (max-width: 10.5rem) {
+  .card-count {
+    display: none;
+  }
 }
 
 .card-facts {
@@ -53,12 +143,11 @@
   line-height: var(--font-leading-label);
 }
 
-/* The whole card answers the pointer, play button included, so moving onto the button changes
-   nothing; the scrim over the cover is cover.css's. */
-@media (hover: hover) and (pointer: fine) {
-  .card:hover .card-title {
-    color: var(--color-accent);
-  }
+/* The title keeps its colour: the card answers a pointer with the scrim and the play button over its
+   cover (cover.css), as album art does elsewhere. A keyboard's focus rings the whole card. */
+.card-link:focus-visible {
+  outline: var(--stroke-ring) solid var(--color-focus-ring);
+  outline-offset: var(--stroke-ring-gap);
 }
 
 /* ------------------------------------------------------------------ the library page */
@@ -76,31 +165,48 @@
   padding-block: 0 var(--space-4);
 }
 
+/* From 64rem a destination's title is the section size, as Settings and New episode are: Today's
+   date is the one display line. */
+@media (min-width: 64rem) {
+  main.library .library-title {
+    font-size: var(--font-size-section);
+  }
+}
+
 /* One column as wide as the page and no wider: the search field's own width must not widen it. */
 .library-tools {
   display: grid;
   grid-template-columns: minmax(0, 1fr);
-  gap: var(--space-3);
-  padding-block-end: var(--space-6);
+  gap: var(--space-2);
+  padding-block-end: var(--space-4);
 }
 
-/* The search field: one outlined box, the glyph inside it. */
+/* The search field: a filled pill with the glyph inside it, as a search bar is in every Google app.
+   The glyph and the placeholder say what it is. Focus lifts it (fill and shadow); the ring is the
+   keyboard's only (data-input, app.ts), so a tap, a click or typing never draws it. */
 .search-field {
   display: flex;
   align-items: center;
   gap: var(--space-3);
   height: var(--field-height);
   padding-inline: var(--space-4);
-  border: var(--stroke-hairline) solid var(--field-border);
-  border-radius: var(--field-radius);
+  border-radius: var(--radius-round);
+  background: var(--color-surface-container);
   color: var(--color-on-surface-muted);
   cursor: text;
-  transition: border-color var(--duration-hover) var(--ease-hover);
+  transition: background-color var(--duration-hover) var(--ease-hover);
 }
 
+/* Focus lifts the pill: the overlay surface and one step of shadow, since the surface alone is
+   1.05:1 from the page in light and the same grey as the pill in dark. */
 .search-field:focus-within {
-  border-color: var(--color-accent);
-  outline: var(--stroke-hairline) solid var(--color-accent);
+  background: var(--color-surface-overlay);
+  box-shadow: var(--shadow-raised);
+}
+
+:root[data-input="keyboard"] .search-field:focus-within {
+  outline: var(--stroke-ring) solid var(--color-focus-ring);
+  outline-offset: var(--stroke-ring-gap);
 }
 
 .search-field > input {
@@ -120,8 +226,8 @@
   opacity: 1;
 }
 
-/* The clear button is for touch, where there is no native one to rely on; the script shows it only
-   while the field has text. Its 44px box sits over the field's right end. */
+/* The clear button, for every pointer: the native one is hidden, as it differs in every browser.
+   The script shows it only while the field has text. Its 44px box sits over the field's right end. */
 .search-wrap {
   position: relative;
 }
@@ -141,22 +247,18 @@
   height: var(--size-touch);
   margin-block: auto;
   border: 0;
-  border-radius: max(0%, calc(var(--field-radius) - var(--stroke-hairline)));
+  border-radius: var(--radius-round);
   background: none;
   color: var(--color-on-surface-muted);
 }
 
-@media (pointer: fine) {
-  .search-clear {
-    display: none;
-  }
+.search-clear[hidden] {
+  display: none;
 }
 
 /* While the button shows, the text stops where it starts instead of running under it. */
-@media not all and (pointer: fine) {
-  .search-wrap:has(.search-clear:not([hidden])) .search-field {
-    padding-inline-end: var(--size-touch);
-  }
+.search-wrap:has(.search-clear:not([hidden])) .search-field {
+  padding-inline-end: var(--size-touch);
 }
 
 .library-bar {
@@ -167,12 +269,51 @@
      screens the row wraps rather than run off the page. The padding is room for the focus ring and
      the selects' taller targets. */
   flex-wrap: wrap;
+  row-gap: var(--space-3);
   padding-block: var(--space-1);
 }
 
-/* Where there is room, the order sits at the far end of the row. */
-.sort-field:not(.filter-field) {
+/* The kind chips: one row that scrolls sideways when it does not fit, with room inside it for the
+   focus ring and the 44px targets. On a phone they take the bar's first row, and the order and the
+   view switch the second. */
+.library-filters {
+  flex: 1 1 100%;
+  flex-wrap: nowrap;
+  margin: calc(var(--space-1) * -1);
+  padding: var(--space-1);
+  overflow-x: auto;
+  overscroll-behavior-x: contain;
+  scrollbar-width: none;
+}
+
+.library-filters::-webkit-scrollbar {
+  display: none;
+}
+
+.library-filters > .filter-chip {
+  flex: none;
+}
+
+@media (min-width: 40rem) {
+  .library-filters {
+    flex: 0 1 auto;
+  }
+}
+
+/* On a phone the order starts its row and only the view switch sits at the far end, as in a
+   Google library; from 40rem everything is on one row with the order next to the switch. */
+.library-bar .view-switch {
   margin-inline-start: auto;
+}
+
+@media (min-width: 40rem) {
+  .library-bar .sort-field {
+    margin-inline-start: auto;
+  }
+
+  .library-bar .view-switch {
+    margin-inline-start: 0;
+  }
 }
 
 .sort-field {
@@ -181,8 +322,9 @@
   align-items: center;
   flex: none;
   height: var(--chip-height);
-  border: var(--stroke-hairline) solid var(--color-border-hairline);
+  border: var(--stroke-hairline) solid transparent;
   border-radius: var(--button-radius);
+  background: var(--color-surface-container);
   font-size: var(--font-size-label);
   font-weight: var(--font-weight-medium);
   line-height: var(--font-leading-label);
@@ -191,10 +333,27 @@
   transition: background-color var(--duration-hover) var(--ease-hover);
 }
 
-/* The ring is the keyboard's: a click opens the list, and the outline then says which one is open. */
-.sort-field:has(> select:focus-visible) {
+/* A filter or an order that is not the default is on, so it looks chosen, as a chosen chip does. */
+.sort-field[data-active] {
+  background: var(--color-accent-container);
+  color: var(--color-on-accent-container);
+}
+
+/* The ring is the keyboard's. A press that opens the list keeps the chip's own fill and state
+   layer: no ring and no accent edge (the shared open rule in primitives.css draws both). */
+:root[data-input="keyboard"] .sort-field:has(> select:focus-visible) {
   outline: var(--stroke-ring) solid var(--color-focus-ring);
   outline-offset: var(--stroke-ring-gap);
+}
+
+:root:not([data-input="keyboard"]) .library-bar .sort-field:has(> select:open) {
+  border-color: transparent;
+  outline: none;
+  background: color-mix(
+    in oklch,
+    var(--color-surface-container),
+    var(--color-on-surface) var(--state-press)
+  );
 }
 
 /* The select is 44px tall and the box around it 36px: negative margins let it reach past the border
@@ -222,18 +381,31 @@
 
 /* Every control in the bar fills the same way under the pointer. */
 @media (hover: hover) and (pointer: fine) {
-  .sort-field:hover {
-    background: var(--color-surface-sunken);
+  .sort-field:hover,
+  .search-field:hover:not(:focus-within) {
+    background: color-mix(
+      in oklch,
+      var(--color-surface-container),
+      var(--color-on-surface) var(--state-hover)
+    );
   }
 
-  .view-btn[aria-pressed="false"]:hover {
-    background: var(--color-surface-sunken);
+  .search-clear:hover {
+    background: color-mix(in oklch, var(--color-on-surface) var(--state-hover), transparent);
     color: var(--color-on-surface);
   }
 
-  /* Not while it is focused: the focus edge stays under the pointer. */
-  .search-field:hover:not(:focus-within) {
-    border-color: var(--color-on-surface);
+  .sort-field[data-active]:hover {
+    background: color-mix(
+      in oklch,
+      var(--color-accent-container),
+      var(--color-on-accent-container) var(--state-hover)
+    );
+  }
+
+  .view-btn[aria-pressed="false"]:hover {
+    background: color-mix(in oklch, var(--color-on-surface) var(--state-hover), transparent);
+    color: var(--color-on-surface);
   }
 }
 
@@ -257,58 +429,45 @@
 
 /* ------------------------------------------------------------------ gallery and list */
 
-/* The view switch: two square buttons in one outlined group, at the far end of the bar. The chosen
-   one is filled and outlined all round, so it is told apart by more than its colour. */
+/* The view switch: two round icon buttons at the far end of the bar. The chosen one is tonal, in the
+   accent: a fill and a colour, as a chosen filter chip is. */
 .view-switch {
   display: inline-flex;
   flex: none;
-  height: var(--chip-height);
-  border: var(--stroke-hairline) solid var(--color-border-hairline);
-  border-radius: var(--button-radius);
+  gap: var(--space-2);
 }
 
-/* Each button nests inside the group's border: its corners are the group's less the hairline. */
+/* As tall as the selects beside it; the 44px target is the ::after. */
 .view-btn {
   position: relative;
   display: grid;
   place-items: center;
-  width: var(--size-touch);
-  height: 100%;
+  width: var(--chip-height);
+  height: var(--chip-height);
   padding: 0;
   border: 0;
-  border-radius: calc(var(--button-radius) - var(--stroke-hairline));
+  border-radius: var(--radius-round);
   background: transparent;
   color: var(--color-on-surface-muted);
+  transition:
+    background-color var(--duration-hover) var(--ease-hover),
+    color var(--duration-hover) var(--ease-hover);
 }
 
-/* The group is 36px tall; each button's target is the full 44px. */
+.view-btn[aria-pressed="true"] {
+  background: var(--color-accent-container);
+  color: var(--color-on-accent-container);
+}
+
 .view-btn::after {
   content: "";
   position: absolute;
-  inset-inline: 0;
-  /* From the button's own height, whatever border the group draws around it. */
-  inset-block: calc((var(--size-touch) - 100%) / -2);
+  inset: calc((var(--size-touch) - var(--chip-height)) / -2);
 }
 
-/* The chosen button's outline lies over the group's border, so the edge is drawn once. It sits
-   above its neighbour, whose hover fill would otherwise cover the side they share. */
-.view-btn[aria-pressed="true"] {
-  z-index: var(--z-raised);
-  background: var(--color-accent-subtle);
-  color: var(--color-accent);
-  box-shadow: 0 0 0 var(--stroke-hairline) currentColor;
-}
-
-/* A focused button's ring lies over its neighbour, the chosen one included. */
+/* A focused button's ring lies over its neighbour. */
 .view-btn:focus-visible {
   z-index: var(--z-overlay);
-}
-
-/* The focus ring keeps its gap outside that outline. */
-.view-btn[aria-pressed="true"]:focus-visible {
-  box-shadow:
-    0 0 0 var(--stroke-hairline) currentColor,
-    0 0 0 var(--stroke-ring-gap) var(--color-focus-gap);
 }
 
 @media (forced-colors: active) {
@@ -317,48 +476,46 @@
   }
 }
 
-/* The meta line (kind, date) is for the list; the gallery says only the card's facts. */
-.card-meta {
-  display: none;
-}
-
 [data-library][data-view="list"] .library-grid {
   display: block;
 }
 
-/* A row is its own stacking context, so its press fill can sit behind its content. */
+/* A row is its own stacking context, so its press fill can sit behind its content. Its hover and
+   press tile runs past the row into the gutters, so a row is never clipped (content-visibility). */
 [data-library][data-view="list"] .card {
   --list-cover: calc(var(--size-touch) + var(--space-3));
   position: relative;
   isolation: isolate;
-}
-
-/* The row grammar of primitives.css: a hairline between rows only, running past the gutters. A row
-   that search or the filter hides does not count, so the first row on show never has one. */
-[data-library][data-view="list"] .card:not([hidden]) ~ .card::before {
-  content: "";
-  position: absolute;
-  inset-block-start: 0;
-  inset-inline: calc(var(--page-gutter-start) * -1) calc(var(--page-gutter-end) * -1);
-  height: var(--stroke-hairline);
-  background: var(--color-border-hairline);
-  pointer-events: none;
+  content-visibility: visible;
 }
 
 /* Title and meta are one block beside the cover, the same gap between them on every row. Spare
    height goes above and below the block, never into it. */
 [data-library][data-view="list"] .card-link {
   grid-template-columns: var(--list-cover) 1fr;
-  grid-template-rows: 1fr auto auto 1fr;
+  grid-template-rows: 1fr auto auto auto 1fr;
   gap: 0 var(--space-4);
   align-items: center;
   padding-block: var(--space-3);
 }
 
 [data-library][data-view="list"] .card-link .cover {
-  grid-row: 1 / -1;
   width: var(--list-cover);
   margin-block-end: 0;
+}
+
+/* In a row, the bar lies along the bottom of the small cover. */
+[data-library][data-view="list"] .card-link .cover {
+  grid-area: 1 / 1 / -1 / 2;
+}
+
+/* The cover is centred in a row that a match line can make taller than it, so the bar is centred
+   with it and then moved down to the cover's foot, never to the row's. */
+[data-library][data-view="list"] .card-progress {
+  grid-area: 1 / 1 / -1 / 2;
+  align-self: center;
+  margin: 0 var(--space-2);
+  translate: 0 calc((var(--list-cover) - var(--space-1)) / 2);
 }
 
 /* A hover or a press fills the whole row, past the gutters, as a row does elsewhere
@@ -366,10 +523,11 @@
 [data-library][data-view="list"] .card-link::after {
   content: "";
   position: absolute;
-  inset-block: 0;
+  inset-block: var(--space-1);
   inset-inline: calc(var(--page-gutter-start) * -1) calc(var(--page-gutter-end) * -1);
   z-index: var(--z-beneath);
-  background: var(--color-surface-sunken);
+  border-radius: var(--row-radius);
+  background: color-mix(in oklch, var(--color-on-surface) var(--state-hover), transparent);
   opacity: 0;
   transition: opacity var(--duration-hover) var(--ease-hover);
 }
@@ -381,6 +539,7 @@
 }
 
 [data-library][data-view="list"] .card-link:active::after {
+  background: color-mix(in oklch, var(--color-on-surface) var(--state-press), transparent);
   opacity: 1;
 }
 
@@ -392,40 +551,19 @@
   line-clamp: unset;
 }
 
+/* While searching, the match line sits under the facts, in a track of its own: the spare height stays
+   above and below the block, so a row with a match is not taller above its title. */
+[data-library][data-view="list"] .card-match {
+  grid-area: 4 / 2;
+  align-self: start;
+  padding-block-start: var(--space-1);
+}
+
+/* The same one line as the gallery says, under the title. */
 [data-library][data-view="list"] .card-sub {
   grid-area: 3 / 2;
-  display: flex;
-  flex-wrap: wrap;
-  gap: 0 var(--space-2);
   padding-block-start: var(--space-1);
   color: var(--color-on-surface-muted);
-}
-
-[data-library][data-view="list"] .card-meta {
-  display: inline;
-}
-
-/* The dot sits in the middle of the space between the two parts. */
-[data-library][data-view="list"] .card-meta::after {
-  content: "\00b7";
-  margin-inline-start: var(--space-2);
-}
-
-/* On a phone the two parts take a line each: side by side they break mid-way and leave the dot at
-   the end of a line, and rows come out at different heights. */
-@media not all and (min-width: 40rem) {
-  [data-library][data-view="list"] .card-sub {
-    flex-direction: column;
-  }
-
-  [data-library][data-view="list"] .card-meta::after {
-    content: none;
-  }
-}
-
-/* The meta line names the kind, so the facts do not say "Weekly" a second time. */
-[data-library][data-view="list"] .card-kind {
-  display: none;
 }
 
 /* The play button covers the small cover in the row, not a card's square, centred with it. */
@@ -449,28 +587,62 @@
   }
 }
 
-/* Where the first row would start: the toolbar's own padding is the space above it. */
+/* No results: the empty state's pattern under the toolbar. Its line names the way out that fits:
+   other words while there is a query, the rest of the library while only a filter is on. */
 .library-empty {
-  display: grid;
-  justify-items: start;
-  gap: var(--space-2);
-  padding-block: 0 var(--space-8);
-  color: var(--color-on-surface-muted);
+  padding-block: var(--space-4) var(--space-8);
 }
 
-.library-empty > .btn {
-  margin-inline-start: calc(var(--space-3) * -1);
+/* A title quotes the query cut short (quotedQuery), which may still wrap: two lines at most, so Clear
+   search stays above the navigation on a short phone. */
+.library-empty .empty-title {
+  display: -webkit-box;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 2;
+  overflow: hidden;
+}
+
+/* No results for a search: the floating New episode would lie over the title and the button on a small
+   screen, and a short one has no room for the whole scene. A filter with no match keeps it: "No
+   episodes yet" is where making one belongs. */
+html:has([data-library-empty]:not([hidden])):has([data-library-search]:not(:placeholder-shown))
+.create-fab {
+  display: none;
+}
+
+@media (max-height: 44rem) {
+  .library-empty {
+    padding-block-start: 0;
+  }
+
+  .library-empty .empty-art {
+    inline-size: 7.5rem;
+  }
+
+  /* A two-line title still leaves Clear search clear of the navigation, with air under it. */
+  .library-empty .empty-title {
+    margin-block-start: var(--space-4);
+  }
+}
+
+[data-library]:has([data-library-search]:placeholder-shown) .library-empty-search,
+[data-library]:not(:has([data-library-search]:placeholder-shown)) .library-empty-filter {
+  display: none;
+}
+
+/* A library with nothing in it: the title stays at the page top, and the empty state is centred
+   under it. The page's own button is the one way to make an episode here: no floating copy of it
+   below. */
+html:has(.library-none) .create-fab {
+  display: none;
+}
+
+/* Nor the room kept for it at the page's foot: only the air of a page without the button. */
+html:has(.library-none) {
+  --page-end: var(--space-12);
 }
 
 /* ------------------------------------------------------------------ the "Earlier" shelf */
-
-/* Its rule stops at the text column, like the rules between a briefing's chapters above it. It sits a
-   hairline up, over the briefing's last pixel: where the end of the briefing pushes the section
-   strip under the app bar, the strip's line and this one then meet as one line, not two. */
-.earlier.rule-above::before {
-  inset-block-start: calc(var(--stroke-hairline) * -1);
-  inset-inline: 0;
-}
 
 /* One row of covers that scrolls sideways and runs off the edge of the screen. */
 .shelf-head {
@@ -533,7 +705,9 @@
     black calc(100% - var(--shelf-right-mask, 40px)),
     transparent 100%
   );
-  animation: shelf-scroll-fade linear;
+  /* Longhands: the minifier folds a shorthand and the timeline into a declaration Chrome rejects. */
+  animation-name: shelf-scroll-fade;
+  animation-timing-function: linear;
   animation-timeline: scroll(self inline);
 }
 
@@ -565,11 +739,20 @@
   width: 9rem;
   scroll-snap-align: start;
   content-visibility: auto;
-  contain-intrinsic-size: auto 180px;
+  /* About a card's height, so the page does not grow when the shelf first paints. */
+  contain-intrinsic-size: auto 12.5rem;
 }
 
 @media (min-width: 40rem) {
   .shelf > .card {
     width: 10.5rem;
+    contain-intrinsic-size: auto 14rem;
   }
+}
+
+/* content-visibility clips painting to the card, and a focused card's ring lies outside it. A
+   focused card is on screen, so nothing is saved by skipping it. */
+.library-grid > .card:focus-within,
+.shelf > .card:focus-within {
+  content-visibility: visible;
 }

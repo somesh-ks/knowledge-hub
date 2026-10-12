@@ -1,8 +1,8 @@
-import { hashPassphrase, verifyPassphrase } from "@dispatch/core/passphrase";
+import { verifyPassphrase } from "@dispatch/core/passphrase";
 import { beforeAll, describe, expect, it, vi } from "vitest";
+import { cheapPassphraseHash } from "../testing/cheapPassphraseHash";
 import { createFakeGitHub, REPO, runJson } from "../testing/fakeGitHub";
 import type { ConfigOp } from "../types/contracts";
-import { readServerConfig } from "./config";
 import {
   CONFIG_COOLDOWN_MS,
   type ConfigDeps,
@@ -14,7 +14,6 @@ import {
   parseConfigRequest,
 } from "./configEdit";
 import { WRONG_PASSPHRASE_DELAY_MS } from "./generate";
-import { createWorkflowDispatcher } from "./github";
 
 const NOW = Date.parse("2026-10-07T12:00:00Z");
 const TOKEN = "github_pat_secret_value_123456";
@@ -26,8 +25,8 @@ const secondsAgo = (seconds: number) => new Date(NOW - seconds * 1000).toISOStri
 
 let passphraseHash = "";
 
-beforeAll(async () => {
-  passphraseHash = await hashPassphrase(PASSPHRASE);
+beforeAll(() => {
+  passphraseHash = cheapPassphraseHash(PASSPHRASE);
 });
 
 function setup(overrides: Partial<ConfigDeps> = {}) {
@@ -327,6 +326,16 @@ describe("parseConfigOp: schedule.set", () => {
     });
     expect(parseConfigOp({ op: "schedule.set", extra: 1 })).toBeNull();
     expect(parseConfigOp({ op: "schedule.set" })).toBeNull();
+  });
+
+  it("carries a listed time zone and refuses any other", () => {
+    expect(parseConfigOp({ op: "schedule.set", timezone: "Asia/Kolkata" })).toEqual({
+      op: "schedule.set",
+      timezone: "Asia/Kolkata",
+    });
+    for (const timezone of ["Mars/Olympus", "", 7, null]) {
+      expect(parseConfigOp({ op: "schedule.set", timezone }), String(timezone)).toBeNull();
+    }
   });
 
   it("carries voices, the weekly podcast and the Create defaults, rebuilt from their parts", () => {
@@ -644,6 +653,31 @@ describe("handleConfig", () => {
       expect(JSON.stringify([result, logs])).not.toContain(TOKEN);
     });
 
+    // RUN_CRON is Stockholm time: a New York 09:00 written as 09 would run six hours early.
+    it.each([
+      ["a new hour in the stored zone", { op: "schedule.set", hour: 9 }, "13 15 * * *"],
+      [
+        "a new zone at the stored hour",
+        { op: "schedule.set", timezone: "Asia/Tokyo" },
+        "13 0 * * *",
+      ],
+    ])("sets RUN_CRON to the Stockholm hour for %s", async (_name, op, value) => {
+      const { deps, github } = setup();
+      github.on(RUNS, { json: { workflow_runs: [] } });
+      github.on(DISPATCH, { json: { workflow_run_id: 31 } });
+      github.on(VARIABLE, { status: 204 });
+      github.on("GET /contents/config/schedule.json", {
+        text: JSON.stringify({
+          version: 1,
+          timezone: "America/New_York",
+          hour: 7,
+          cadence_days: 2,
+        }),
+      });
+      await handleConfig(input(body(op)), deps);
+      expect(variableCalls(github)[0]?.body).toEqual({ name: "RUN_CRON", value });
+    });
+
     it("leaves the variable alone for an edit without a schedule", async () => {
       const { deps, github } = setup();
       github.on(RUNS, { json: { workflow_runs: [] } });
@@ -742,58 +776,5 @@ describe("handleConfig", () => {
     const { deps } = setup();
     const result = await handleConfig(input(body(upsert, "my private guess")), deps);
     expect(JSON.stringify(result)).not.toContain("my private guess");
-  });
-});
-
-describe("createWorkflowDispatcher", () => {
-  const parsed = readServerConfig({
-    GITHUB_DISPATCH_TOKEN: TOKEN,
-    GITHUB_REPOSITORY: REPO,
-    GENERATE_PASSPHRASE_HASH: "scrypt$1$1$1$c2FsdA==$aGFzaA==",
-  });
-  if (!parsed) throw new Error("test config");
-
-  it("lists workflow_dispatch runs of the named file on main and keeps only the fields it uses", async () => {
-    const github = createFakeGitHub();
-    github.on(RUNS, {
-      json: {
-        workflow_runs: [runJson({ id: 5, head_commit: { message: "secret" } }), { id: "x" }],
-      },
-    });
-    const runs = await createWorkflowDispatcher(
-      parsed,
-      github.fetch,
-      "config.yml",
-    ).listDispatchRuns();
-    expect(runs.map((run) => run.id)).toEqual([5]);
-    expect(github.requests[0]?.path).toContain("event=workflow_dispatch");
-    expect(github.requests[0]?.path).toContain("branch=main");
-    expect(github.requests[0]?.headers.authorization).toBe(`Bearer ${TOKEN}`);
-    expect(JSON.stringify(runs)).not.toContain("secret");
-  });
-
-  it("dispatches the named file on main and returns the run id, or null on 204", async () => {
-    const github = createFakeGitHub();
-    const dispatcher = createWorkflowDispatcher(parsed, github.fetch, "config.yml");
-    github.on(DISPATCH, { json: { workflow_run_id: 31 } });
-    expect(await dispatcher.dispatch({ op: "{}" })).toBe(31);
-    github.on(DISPATCH, { status: 204 });
-    expect(await dispatcher.dispatch({ op: "{}" })).toBeNull();
-    expect(github.requests[0]?.body).toEqual({
-      ref: "main",
-      inputs: { op: "{}" },
-      return_run_details: true,
-    });
-  });
-
-  it("fails with the status only when GitHub refuses", async () => {
-    const github = createFakeGitHub();
-    github.on(DISPATCH, {
-      status: 422,
-      json: { message: "Workflow does not have workflow_dispatch" },
-    });
-    await expect(
-      createWorkflowDispatcher(parsed, github.fetch, "config.yml").dispatch({ op: "{}" }),
-    ).rejects.toThrow("GitHub answered 422");
   });
 });

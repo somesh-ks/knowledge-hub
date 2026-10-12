@@ -118,6 +118,17 @@ describe("parseEpisodeFile", () => {
     expect(episode.listen_minutes).toBe(2);
   });
 
+  it("keeps the hosts' names a discussion was written with, and only real names", () => {
+    const named = (names: string) =>
+      parseEpisodeFile(file(front.replace("  tone: dry", `  tone: dry\n  host_names: ${names}`)))
+        .request.host_names;
+    expect(parseEpisodeFile(file()).request).not.toHaveProperty("host_names");
+    expect(named("{ a: Zoë, b: O’Neil }")).toEqual({ a: "Zoë", b: "O’Neil" });
+    for (const bad of ["{ a: Nora }", "{ a: Nora Jones, b: Owen }", "{ a: 4, b: Owen }", "Nora"]) {
+      expect(named(bad), bad).toBeUndefined();
+    }
+  });
+
   it("falls back to the requested title, and keeps a repeated index once", () => {
     const episode = parseEpisodeFile(
       file(

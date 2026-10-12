@@ -71,6 +71,71 @@
   }
 }
 
+/* In a settings row the field is the row's value, as a select is there (settings.css): words and a
+   chevron with no outline, as wide as its words, at the end of the row. Its list opens under it and
+   grows toward the start of the row. */
+.settings-row .multiselect {
+  flex: 0 1 auto;
+  min-inline-size: 0;
+  max-inline-size: 70%;
+  /* The column may shrink below the words, so a long value ellipsizes instead of pushing the page
+     sideways at 360px. */
+  grid-template-columns: minmax(0, 1fr);
+  justify-items: end;
+  margin-inline-end: calc(var(--space-2) * -1);
+}
+
+.settings-row:has(> .multiselect) {
+  padding-block: var(--space-1);
+}
+
+/* On a phone a long value takes a second line rather than losing its end. */
+@media (width < 40rem) {
+  .settings-row .multiselect-value {
+    white-space: normal;
+    text-wrap: balance;
+  }
+}
+
+.settings-row .multiselect-trigger {
+  inline-size: auto;
+  max-inline-size: 100%;
+  justify-content: flex-end;
+  padding-inline: var(--space-3) calc(var(--space-2) + var(--size-icon) + var(--space-1));
+  border-color: transparent;
+  border-radius: var(--button-radius);
+  font-weight: var(--font-weight-medium);
+  text-align: end;
+}
+
+.settings-row .multiselect-trigger > .icon {
+  inset-inline-end: var(--space-2);
+}
+
+.settings-row .multiselect-trigger:is(:focus-visible, [aria-expanded="true"]) {
+  border-color: transparent;
+}
+
+.settings-row .multiselect-trigger[aria-expanded="true"] {
+  background: color-mix(in oklch, var(--color-on-surface) var(--state-press), transparent);
+}
+
+@media (hover: hover) and (pointer: fine) {
+  .settings-row .multiselect-trigger:hover {
+    border-color: transparent;
+    background: color-mix(in oklch, var(--color-on-surface) var(--state-hover), transparent);
+  }
+}
+
+/* The list is as wide as its longest option, never narrower than the field or 14rem, and never wider
+   than the screen allows, so no label spills out and no hint breaks into single words. */
+.settings-row .multiselect-list {
+  inset-inline: auto 0;
+  inline-size: max-content;
+  min-inline-size: max(100%, 14rem);
+  max-inline-size: min(20rem, calc(100vw - var(--space-8)));
+}
+
 .multiselect-list {
   position: absolute;
   z-index: var(--z-raised);
@@ -127,7 +192,7 @@
   min-block-size: var(--size-touch);
   padding-block: var(--space-2);
   padding-inline: var(--space-3);
-  border-radius: var(--button-radius);
+  border-radius: var(--row-radius);
   cursor: pointer;
   user-select: none;
 }
@@ -152,13 +217,17 @@
 
 @media (hover: hover) and (pointer: fine) {
   .multiselect-option:not([aria-disabled="true"]):hover {
-    background: var(--color-surface-sunken);
+    background: color-mix(in oklch, var(--color-on-surface) var(--state-hover), transparent);
   }
 }
 
 /* The keyboard's row: a tint and the focus ring, so it never rests on colour alone. */
+.multiselect-option:not([aria-disabled="true"]):active {
+  background: color-mix(in oklch, var(--color-on-surface) var(--state-press), transparent);
+}
+
 .multiselect-list[data-keyboard] .multiselect-option[data-active] {
-  background: var(--color-surface-sunken);
+  background: color-mix(in oklch, var(--color-on-surface) var(--state-hover), transparent);
   outline: var(--stroke-ring) solid var(--color-focus-ring);
   outline-offset: calc(var(--stroke-ring) * -1);
 }

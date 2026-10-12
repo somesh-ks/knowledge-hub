@@ -23,6 +23,8 @@ export interface JsonRequest<T> {
   maxTokens?: number;
   /** Short name of the call, used in logs. */
   label: string;
+  /** Epoch milliseconds by which the call, retries included, must end. */
+  deadlineAt?: number;
 }
 
 export interface JsonResult<T> {

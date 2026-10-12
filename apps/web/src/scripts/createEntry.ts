@@ -20,8 +20,19 @@ export function installCreateEntry(): void {
         event.shiftKey ||
         event.altKey
       );
-      // Without the template (the Create page itself) the link does what a link does.
-      if (!trigger || !plain || !document.getElementById("create-sheet-template")) return;
+      if (!trigger) return;
+      // Offline, New episode is disabled (deviceBanners.ts): no sheet and no page that cannot load.
+      if (trigger.getAttribute("aria-disabled") === "true") {
+        event.preventDefault();
+        event.stopPropagation();
+        return;
+      }
+      if (!plain) return;
+      // On the Create page itself there is no sheet: the form is the page, and the side column's
+      // New episode is marked as the place you are on (AppNav.astro). A press there acts as a
+      // press on the current tab does: navigation.ts brings the page to its top, and the focus
+      // stays on the button.
+      if (!document.getElementById("create-sheet-template")) return;
       event.preventDefault();
       void open(trigger);
       // Captured, so it runs before the router's own click handler, which skips a prevented click.

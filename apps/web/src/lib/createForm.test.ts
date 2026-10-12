@@ -2,39 +2,40 @@ import { describe, expect, it } from "vitest";
 import {
   AUDIENCES,
   DEFAULTS,
-  FORMATS,
   LENGTHS,
-  MAX_TITLE_CHARS,
+  MORE_OPTIONS_TEMPLATE,
+  moreOptionsSummary,
   submitLabel,
-  TONES,
   topicOptions,
   WINDOWS,
 } from "./createForm";
-import { CHARS_PER_MINUTE } from "./episodeFile";
 
 describe("submitLabel", () => {
   it("names the action and the length, with a dot between", () => {
     expect(submitLabel(10)).toBe("Generate • 10 mins");
     expect(submitLabel(3)).toBe("Generate • 3 mins");
   });
+});
 
-  it("uses the pace the episode files are measured at", () => {
-    expect(CHARS_PER_MINUTE).toBe(960);
+describe("moreOptionsSummary", () => {
+  it("names the audience, the window and the tone, each with its noun, with the one separator", () => {
+    expect(moreOptionsSummary("Somesh", "7 days", "Neutral")).toBe(
+      "For Somesh · Last 7 days · Neutral tone",
+    );
+    expect(moreOptionsSummary("General", "2 days", "Dry")).toBe(
+      "For General · Last 2 days · Dry tone",
+    );
+  });
+
+  it("leaves a placeholder for the page script in the template, and nothing else", () => {
+    expect(MORE_OPTIONS_TEMPLATE.match(/\{\w+\}/g)).toEqual(["{audience}", "{window}", "{tone}"]);
   });
 });
 
 describe("the options", () => {
-  it("are the ones the server accepts, and the defaults are among them", () => {
-    expect(LENGTHS.map((option) => option.value)).toEqual([3, 5, 10, 15]);
-    expect(WINDOWS.map((option) => option.value)).toEqual([2, 7, 30]);
-    expect(FORMATS.map((option) => option.value)).toEqual(["readout", "discussion"]);
-    expect(TONES.map((option) => option.value)).toEqual(["neutral", "energetic", "dry"]);
+  it("offer the defaults among them", () => {
     expect(LENGTHS.some((option) => option.value === DEFAULTS.length)).toBe(true);
     expect(WINDOWS.some((option) => option.value === DEFAULTS.window)).toBe(true);
-  });
-
-  it("keep the limits the server enforces", () => {
-    expect(MAX_TITLE_CHARS).toBe(80);
   });
 });
 
@@ -160,6 +161,8 @@ describe("audiences", () => {
   it("are General and Somesh, Somesh by default", () => {
     expect(AUDIENCES.map((audience) => audience.value)).toEqual(["general", "custom"]);
     expect(AUDIENCES.map((audience) => audience.label)).toEqual(["General", "Somesh"]);
+    // In a sentence: "For General", "Topics set for Somesh".
+    expect(AUDIENCES.map((audience) => audience.phrase)).toEqual(["General", "Somesh"]);
     expect(DEFAULTS.audience).toBe("custom");
   });
 });

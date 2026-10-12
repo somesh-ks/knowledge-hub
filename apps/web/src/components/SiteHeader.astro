@@ -1,15 +1,132 @@
 ---
+import { getSite } from "../lib/site";
 import BrandMark from "./BrandMark.astro";
+import Icon from "./Icon.astro";
+
+interface Props {
+  /** A page one level down leads back: to the page the person came from, else to this address. */
+  back?: { href: string; label: string };
+}
+
+const { back } = Astro.props;
+// The wordmark goes to Today: it names the briefing only when there is one.
+const homeLabel =
+  (await getSite()).entries.length > 0 ? "Singularity, today's briefing" : "Singularity, Today";
 ---
 
-{/* The top app bar, shown below 64rem. The wordmark sits in the middle, which also keeps the
-     top-leading corner free: iPadOS windowed apps draw their window controls there. From 64rem the
-     side navigation carries the wordmark and this bar is not rendered at all. */}
+{/* The top app bar, shown below 64rem. The wordmark sits in the middle. A page one level down adds
+     a Back button at the leading edge, a little in from the corner that iPadOS windowed apps use for
+     their window controls. From 64rem the side navigation carries the wordmark and this bar is not
+     rendered at all. */}
 <header class="app-bar">
   <div class="app-bar-inner page">
-    <a class="wordmark" href="/" aria-label="Singularity, today's briefing" data-astro-prefetch="hover">
+    {
+      back && (
+        <a class="icon-btn app-bar-back" href={back.href} aria-label={back.label} data-back>
+          <Icon name="arrowBack" />
+        </a>
+      )
+    }
+    <a class="wordmark" href="/" aria-label={homeLabel} data-astro-prefetch="hover">
       <BrandMark />
       <span>Singularity</span>
     </a>
   </div>
 </header>
+
+<script>
+  // The bar slides away on a scroll down and returns on a scroll up. Small movements are ignored so
+  // a thumb resting on the page does not make it flutter, and the bar always shows at the top. While
+  // it is away it is inert, so Tab and a screen reader never land on a control that cannot be seen;
+  // scrolling back up (which focusing something above brings about) returns it.
+  const root = document.documentElement;
+  const calm = matchMedia("(prefers-reduced-motion: reduce)");
+  let last = 0;
+  let queued = false;
+  function setHidden(hidden: boolean): void {
+    root.toggleAttribute("data-bar-hidden", hidden);
+    const bar = document.querySelector<HTMLElement>(".app-bar");
+    // The open player makes the bar inert for its own reason (modalScope marks it); a scroll under
+    // the player must not hand it back.
+    if (bar && !bar.hasAttribute("data-player-inert")) bar.inert = hidden;
+  }
+  function sync(): void {
+    queued = false;
+    if (jumping) return;
+    const y = Math.max(0, scrollY);
+    const delta = y - last;
+    if (y < 64 || calm.matches) {
+      setHidden(false);
+      last = y;
+    } else if (Math.abs(delta) > 12) {
+      const bar = document.querySelector(".app-bar");
+      const holdsFocus = bar?.contains(document.activeElement) ?? false;
+      setHidden(delta > 0 && !holdsFocus);
+      last = y;
+    }
+  }
+  // A tab's jump to a section (briefingPage.ts announces it before the browser makes it) lands the
+  // heading below the sticky chrome as it stands at that moment. A jump down is about to send the bar
+  // away, so the bar goes first. Either way it keeps its state until the scroll ends: a bar that moved
+  // afterwards would move the strip over the heading just placed beneath it.
+  const JUMP_MS = 600;
+  let jumping = false;
+  let jumpFrom = 0;
+  let wasHidden = false;
+  let jumpTimer = 0;
+  function endJump(): void {
+    if (!jumping) return;
+    jumping = false;
+    clearTimeout(jumpTimer);
+    removeEventListener("scrollend", endJump);
+    const y = Math.max(0, scrollY);
+    // A jump that went nowhere, the page unable to scroll further, leaves the bar as it was.
+    if (Math.abs(y - jumpFrom) <= 12) setHidden(wasHidden);
+    else if (y < 64) setHidden(false);
+    last = y;
+  }
+  document.addEventListener("dispatch:jump", (event) => {
+    if (calm.matches) return;
+    endJump();
+    jumping = true;
+    jumpFrom = Math.max(0, scrollY);
+    wasHidden = root.hasAttribute("data-bar-hidden");
+    if ((event as CustomEvent<{ down: boolean }>).detail.down) setHidden(true);
+    addEventListener("scrollend", endJump, { once: true });
+    // scrollend is missing from older engines and never fires for a jump that did not move.
+    jumpTimer = window.setTimeout(endJump, JUMP_MS);
+  });
+  addEventListener(
+    "scroll",
+    () => {
+      if (queued) return;
+      queued = true;
+      requestAnimationFrame(sync);
+    },
+    { passive: true },
+  );
+  document.addEventListener("astro:page-load", () => {
+    last = Math.max(0, scrollY);
+  });
+
+  // Back goes where the person came from when that was inside the app (Astro numbers its history
+  // entries from 0 at the first page of the visit), and to the link's own address otherwise, so a
+  // shared link opened cold still leads somewhere. It listens in the capture phase: Astro's router
+  // handles a link click first in the bubble phase and calls preventDefault, which would leave Back
+  // following its static address and dropping the earlier page's sort or filter.
+  document.addEventListener(
+    "click",
+    (event) => {
+      const link = (event.target as Element | null)?.closest<HTMLAnchorElement>("a[data-back]");
+      if (!link || event.button !== 0) return;
+      if (event.metaKey || event.ctrlKey || event.shiftKey || event.altKey) return;
+      const index = (history.state as { index?: number } | null)?.index;
+      if (typeof index === "number" && index > 0) {
+        event.preventDefault();
+        event.stopPropagation();
+        history.back();
+      }
+    },
+    { capture: true },
+  );
+</script>

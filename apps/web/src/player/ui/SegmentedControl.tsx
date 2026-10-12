@@ -13,13 +13,16 @@ interface SegmentedControlProps<Value extends string> {
   onChange: (value: Value) => void;
   /** Hides the legend visually when the surrounding heading already names the group. */
   legendHidden?: boolean;
+  /** "tabs" draws the same radios as text with an underline under the chosen one, not a raised thumb. */
+  variant?: "segmented" | "tabs";
   className?: string;
 }
 
 /**
  * Native radios inside labels: arrow keys, form state and the accessible group come free. A raised,
- * ringed thumb slides to the selected segment, so selection never depends on color alone. Up to four
- * segments: the thumb's place is worked out in player.css.
+ * ringed thumb slides to the selected segment, so selection never depends on color alone; as tabs, an
+ * underline slides under the chosen label and the chosen label is in full ink. Up to four segments:
+ * the thumb's place is worked out in player.css.
  */
 export default function SegmentedControl<Value extends string>({
   legend,
@@ -27,13 +30,14 @@ export default function SegmentedControl<Value extends string>({
   value,
   onChange,
   legendHidden = false,
+  variant = "segmented",
   className,
 }: SegmentedControlProps<Value>) {
   const name = useId();
   return (
     <fieldset className={["segmented-group", className ?? ""].filter(Boolean).join(" ")}>
       <legend className={legendHidden ? "sr-only" : "segmented-legend"}>{legend}</legend>
-      <div className="segmented">
+      <div className={variant === "tabs" ? "segmented segmented-tabs" : "segmented"}>
         {options.map((option) => (
           <label key={option.value}>
             <input

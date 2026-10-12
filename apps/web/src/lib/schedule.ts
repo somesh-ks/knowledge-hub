@@ -3,132 +3,27 @@ import { join } from "node:path";
 import {
   type CustomDefaults,
   DEFAULT_SCHEDULE,
-  daysBetween,
   LastRunFile,
   type PodcastFormat,
   ScheduleFile,
   STATE_FILES,
-  stockholmDate,
-  TIME_ZONE,
+  scheduleZone,
   type WeeklySchedule,
 } from "@dispatch/core";
+import { nextBriefing, nextWeekly } from "./nextRun";
 import { findRepoRoot } from "./repoRoot";
 import { usesFixtures } from "./site";
+
+export { hourLabel, nextBriefing, nextWeekly, WEEKDAYS } from "./nextRun";
+export { CADENCES, dailySummary, weeklySummary } from "./settingsSummary";
 
 /**
  * What the Schedule page shows, read from the repository at build time. A missing or invalid
  * config/schedule.json means the defaults, which is what the engine runs on too.
  */
 
-export const CADENCES = [
-  { days: 1, label: "Every day" },
-  { days: 2, label: "Every second day" },
-  { days: 3, label: "Every third day" },
-  { days: 7, label: "Once a week" },
-] as const;
-
-/** "07:00" for hour 7. */
-export function hourLabel(hour: number): string {
-  return `${String(hour).padStart(2, "0")}:00`;
-}
-
-export const WEEKDAYS = [
-  "Sunday",
-  "Monday",
-  "Tuesday",
-  "Wednesday",
-  "Thursday",
-  "Friday",
-  "Saturday",
-] as const;
-
-/**
- * What each row of the Settings index says about the page behind it, in a few words worked out when
- * the site is built: "Every second day at 07:00", and "Sundays at 07:00" or "Off".
- */
-export function dailySummary(input: { hour: number; cadenceDays: number }): string {
-  const cadence =
-    CADENCES.find((entry) => entry.days === input.cadenceDays)?.label ??
-    `Every ${input.cadenceDays} days`;
-  return `${cadence} at ${hourLabel(input.hour)}`;
-}
-
-export function weeklySummary(input: { enabled: boolean; day: number; hour: number }): string {
-  const day = WEEKDAYS[input.day];
-  if (!input.enabled || !day) return "Off";
-  return `${day}s at ${hourLabel(input.hour)}`;
-}
-
-function addDays(date: string, days: number): string {
-  return new Date(Date.parse(`${date}T00:00:00Z`) + days * 86_400_000).toISOString().slice(0, 10);
-}
-
-function stockholmHour(at: Date): number {
-  const hour = new Intl.DateTimeFormat("en-GB", {
-    timeZone: TIME_ZONE,
-    hour: "2-digit",
-    hourCycle: "h23",
-  }).format(at);
-  return Number(hour);
-}
-
-function readableDate(at: string | null | undefined): string | null {
-  if (!at) return null;
-  const date = new Date(at);
-  return Number.isNaN(date.getTime()) ? null : stockholmDate(date);
-}
-
-/**
- * "Next briefing: about Friday at 07:00", worked out when the site is built as the engine's gate
- * decides: the cadence counts from the later of the last regular run and the last weekly podcast,
- * and the weekly podcast's day has no briefing. It is a guess made at build time, so it says
- * "about".
- */
-export function nextBriefing(input: {
-  now: Date;
-  hour: number;
-  cadenceDays: number;
-  lastRegularAt: string | null;
-  /** When the last weekly podcast was published. */
-  lastWeeklyAt?: string | null;
-  /** The weekly podcast's day (0 = Sunday), or null while it is off. */
-  weeklyDay?: number | null;
-}): string {
-  const today = stockholmDate(input.now);
-  const anchors = [readableDate(input.lastRegularAt), readableDate(input.lastWeeklyAt)].filter(
-    (date): date is string => date !== null,
-  );
-  const last = anchors.sort().at(-1);
-  let date = last ? addDays(last, input.cadenceDays) : today;
-  if (daysBetween(today, date) < 0) date = today;
-  if (date === today && stockholmHour(input.now) >= input.hour) date = addDays(today, 1);
-  if (input.weeklyDay != null && new Date(`${date}T12:00:00Z`).getUTCDay() === input.weeklyDay) {
-    date = addDays(date, 1);
-  }
-  const day =
-    date === today
-      ? "today"
-      : date === addDays(today, 1)
-        ? "tomorrow"
-        : new Intl.DateTimeFormat("en-GB", { timeZone: "UTC", weekday: "long" }).format(
-            new Date(`${date}T12:00:00Z`),
-          );
-  return `Next briefing: about ${day} at ${hourLabel(input.hour)}`;
-}
-
-/**
- * "Next weekly: about Sunday at 07:00", worked out at build time from the day and the hour.
- */
-export function nextWeekly(input: { now: Date; day: number; hour: number }): string {
-  const today = stockholmDate(input.now);
-  const todayDay = new Date(`${today}T12:00:00Z`).getUTCDay();
-  let ahead = (input.day - todayDay + 7) % 7;
-  if (ahead === 0 && stockholmHour(input.now) >= input.hour) ahead = 7;
-  const day = ahead === 0 ? "today" : ahead === 1 ? "tomorrow" : (WEEKDAYS[input.day] ?? "");
-  return `Next weekly: about ${day} at ${hourLabel(input.hour)}`;
-}
-
 export interface ScheduleView {
+  /** The schedule's clock: its stored zone, or Stockholm when that is not one of the list. */
   timezone: string;
   hour: number;
   cadenceDays: number;
@@ -143,6 +38,9 @@ export interface ScheduleView {
   custom: CustomDefaults;
   next: string;
   nextWeekly: string;
+  /** The runs the next daily episode counts from, for the page to work the line out again. */
+  lastRegularAt: string | null;
+  lastWeeklyAt: string | null;
 }
 
 async function readJson(file: string): Promise<unknown> {
@@ -165,7 +63,7 @@ export async function loadScheduleView(
   ]);
   const schedule = ScheduleFile.safeParse(scheduleFile);
   const {
-    timezone,
+    timezone: storedZone,
     hour,
     cadence_days: cadenceDays,
     skip_topics: skipTopics,
@@ -180,8 +78,11 @@ export async function loadScheduleView(
   const regular = lastRun.success ? lastRun.data.regular : undefined;
   const counts = regular && (regular.outcome === "published" || regular.outcome === "nothing");
   const weeklyRun = lastRun.success ? lastRun.data.weekly : undefined;
+  const lastRegularAt = counts ? regular.at : null;
+  const lastWeeklyAt = weeklyRun?.outcome === "published" ? weeklyRun.at : null;
+  const timezone = scheduleZone(storedZone);
   return {
-    timezone: timezone ?? "Europe/Stockholm",
+    timezone,
     hour,
     cadenceDays,
     skipTopics,
@@ -195,10 +96,18 @@ export async function loadScheduleView(
       now: options.now ?? new Date(),
       hour,
       cadenceDays,
-      lastRegularAt: counts ? regular.at : null,
-      lastWeeklyAt: weeklyRun?.outcome === "published" ? weeklyRun.at : null,
+      lastRegularAt,
+      lastWeeklyAt,
       weeklyDay: weekly.enabled ? weekly.day : null,
+      zone: timezone,
     }),
-    nextWeekly: nextWeekly({ now: options.now ?? new Date(), day: weekly.day, hour: weekly.hour }),
+    nextWeekly: nextWeekly({
+      now: options.now ?? new Date(),
+      day: weekly.day,
+      hour: weekly.hour,
+      zone: timezone,
+    }),
+    lastRegularAt,
+    lastWeeklyAt,
   };
 }

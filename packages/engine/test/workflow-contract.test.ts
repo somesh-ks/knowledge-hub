@@ -1,0 +1,78 @@
+import { readdirSync, readFileSync } from "node:fs";
+import { mkdtemp, rm } from "node:fs/promises";
+import { tmpdir } from "node:os";
+import { join } from "node:path";
+import { afterEach, beforeEach, describe, expect, it } from "vitest";
+import { runCli } from "../src/cli.js";
+import { REPO_ROOT } from "./score-factories.js";
+
+// No test runs a scheduled workflow, so a renamed command or flag would first fail in production.
+// This reads every `dispatch -- <args>` call in .github/workflows and runs its literal arguments
+// through the CLI in an empty folder with no keys: any exit is fine except 2, the usage error that a
+// missing command or an unknown flag produces. Shell variables get a plausible value each.
+const PLACEHOLDERS: Record<string, string[]> = {
+  '"${args[@]}"': [
+    "--mode",
+    "on-demand",
+    "--json",
+    "--force",
+    "--since",
+    "2026-10-01",
+    "--dry-run",
+  ],
+  '"$OP"': ['{"op":"weights.set","weights":{"design_engineering_craft":0.9}}'],
+  '"$TOPIC_ID"': ["design_engineering_craft"],
+  '"$message"': ["chore(config): set a weight"],
+  '"$REQUEST"': [
+    '{"topic_ids":["design_engineering_craft"],"length_minutes":5,"format":"readout","window_days":2,"tone":"neutral"}',
+  ],
+};
+
+function tokens(line: string): string[] {
+  const out: string[] = [];
+  for (const raw of line.match(/"[^"]*"|\S+/g) ?? []) {
+    const placeholder = PLACEHOLDERS[raw];
+    if (placeholder) out.push(...placeholder);
+    else if (raw.includes("$")) throw new Error(`no placeholder for ${raw} in: ${line}`);
+    else out.push(raw.replace(/^"(.*)"$/, "$1"));
+  }
+  return out;
+}
+
+const dir = join(REPO_ROOT, ".github", "workflows");
+const calls = readdirSync(dir)
+  .filter((name) => name.endsWith(".yml"))
+  .flatMap((name) =>
+    readFileSync(join(dir, name), "utf8")
+      .split("\n")
+      .map((line) => /dispatch -- ([^|]+)/.exec(line)?.[1]?.trim())
+      .filter((args): args is string => args !== undefined)
+      .map((args) => [`${name}: ${args}`, args] as const),
+  );
+
+let root: string;
+beforeEach(async () => {
+  root = await mkdtemp(join(tmpdir(), "dispatch-contract-"));
+});
+afterEach(async () => {
+  await rm(root, { recursive: true, force: true });
+});
+
+describe("workflow calls", () => {
+  it("finds the calls the workflows make", () => {
+    expect(calls.length).toBeGreaterThan(5);
+  });
+
+  it.each(calls)("%s still parses", async (_name, args) => {
+    let err = "";
+    const code = await runCli([...tokens(args), "--root", root], {
+      cwd: root,
+      env: {},
+      stdout: () => {},
+      stderr: (text) => {
+        err += text;
+      },
+    });
+    expect(code, err).not.toBe(2);
+  });
+});

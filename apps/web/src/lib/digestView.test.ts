@@ -1,7 +1,13 @@
 import { describe, expect, it } from "vitest";
 import { makeDigest, makeItem, makeTimeline } from "../testing/digestFactory";
 import { buildEntries } from "./digests";
-import { AUDIO_UNAVAILABLE_COPY, buildHero, buildSections, storyCount } from "./digestView";
+import {
+  AUDIO_UNAVAILABLE_COPY,
+  buildHero,
+  buildSections,
+  sectionLabel,
+  storyCount,
+} from "./digestView";
 
 function entryFor(overrides: Parameters<typeof makeDigest>[0] = {}, withTimeline = false) {
   const digest = makeDigest({
@@ -50,6 +56,19 @@ describe("buildSections", () => {
   });
 });
 
+describe("sectionLabel", () => {
+  it("shows the built-in title-case names in sentence case", () => {
+    expect(sectionLabel("Design Engineering")).toBe("Design engineering");
+    expect(sectionLabel("AI Products")).toBe("AI products");
+    expect(sectionLabel("Tech Product Launches")).toBe("Tech product launches");
+  });
+
+  it("leaves any other name as it was written, proper nouns included", () => {
+    expect(sectionLabel("Top picks")).toBe("Top picks");
+    expect(sectionLabel("Apple Vision")).toBe("Apple Vision");
+  });
+});
+
 describe("buildHero", () => {
   it("writes the line beside the chip: the story count only", () => {
     const hero = buildHero(entryFor(), "Wednesday 7 October");
@@ -82,10 +101,7 @@ describe("audio copy", () => {
   it("only audio that has expired gets a line, in plain words", () => {
     expect(Object.keys(AUDIO_UNAVAILABLE_COPY)).toEqual(["expired"]);
     const { expired } = AUDIO_UNAVAILABLE_COPY;
-    expect(expired.label).toBe("The audio has expired");
-    expect(expired.hint).toMatch(/^Press play/);
-    // Voice rule: plain sentences, no dashes (the dash characters are built, not typed, here).
-    const dashes = [0x2013, 0x2014].map((code) => String.fromCharCode(code));
-    for (const dash of dashes) expect(expired.hint).not.toContain(dash);
+    // One sentence: it does not explain a control that is not labelled Play.
+    expect(expired).toEqual({ label: "The audio has expired." });
   });
 });

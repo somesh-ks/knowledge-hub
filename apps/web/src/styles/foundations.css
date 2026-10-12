@@ -380,7 +380,11 @@
 
   @media (hover: hover) and (pointer: fine) {
     .hover-fill:hover {
-      background-color: var(--color-surface-sunken);
+      background-color: color-mix(
+        in oklch,
+        var(--color-on-surface) var(--state-hover),
+        transparent
+      );
     }
   }
 

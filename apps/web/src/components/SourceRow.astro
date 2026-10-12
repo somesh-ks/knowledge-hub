@@ -40,9 +40,9 @@ const facts = {
 ---
 
 {/* One source under its topic. The row opens the source to edit: one button behind everything,
-     the row's own size, so no part of it is a dead zone. Over it sit the tile, the name, the score
-     and the checkbox; the name is a link to the site, in a new tab, and the checkbox says whether the
-     source is read. Everything else lets a press through to the button. The tile shows the name's
+     the row's own size, so no part of it is a dead zone. Over it sit the tile, the name, a line with
+     the site and the score's word, and the checkbox, which says whether the source is read. The name is
+     plain words: the edit panel links to the site. Everything else lets a press through to the button. The tile shows the name's
      first letter, and the site's own icon covers it once it loads (topicsPage.ts marks it loaded),
      so a site without an icon still has a face. An off row keeps its place and its score, quieter. */}
 <li
@@ -77,26 +77,13 @@ const facts = {
       }
     </span>
     <span class="source-text">
-      {
-        source.url ? (
-          <a
-            class="source-name"
-            id={`source-${source.id}`}
-            href={source.url}
-            target="_blank"
-            rel="noopener noreferrer"
-            aria-describedby="source-new-tab"
-          >
-            {source.name}
-          </a>
-        ) : (
-          <span class="source-name" id={`source-${source.id}`}>{source.name}</span>
-        )
-      }
-      <span class="source-host">{source.host}</span>
+      <span class="source-name" id={`source-${source.id}`}>{source.name}</span>
+      <span class="source-meta">
+        <span class="source-host">{source.host}</span>
+        <ScoreMeter label={source.score_label} />
+      </span>
     </span>
   </span>
-  <ScoreMeter score={source.score} label={source.score_label} />
   <label class="source-check">
     <input
       type="checkbox"

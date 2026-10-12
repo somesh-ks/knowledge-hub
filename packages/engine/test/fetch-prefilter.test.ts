@@ -2,13 +2,15 @@ import { readFileSync } from "node:fs";
 import { type Preferences, Preferences as PreferencesSchema } from "@dispatch/core";
 import { describe, expect, it } from "vitest";
 import { authorMatches, containsPhrase, keywordRegExp } from "../src/prefilter/phrase.js";
-import { DEFAULT_CAP, prefilter, TECH_CAP } from "../src/prefilter/prefilter.js";
+import { prefilter } from "../src/prefilter/prefilter.js";
 import { releaseWeight } from "../src/prefilter/releaseWeight.js";
 import { makeItem, makeSource, NOW } from "./fetch-helpers.js";
 
 const preferences: Preferences = {
   ...PreferencesSchema.parse(
-    JSON.parse(readFileSync(new URL("../../../config/preferences.json", import.meta.url), "utf8")),
+    JSON.parse(
+      readFileSync(new URL("./fixtures/config/preferences.json", import.meta.url), "utf8"),
+    ),
   ),
 };
 
@@ -299,11 +301,6 @@ describe("prefilter: the consumer tech pool", () => {
   };
   const craft = (i: number) =>
     makeItem({ url: `https://craft.example/${i}`, title: `Shader piece ${i}`, source_id: `c${i}` });
-
-  it("has its own cap of 20 beside the main cap of 60", () => {
-    expect(TECH_CAP).toBe(20);
-    expect(DEFAULT_CAP).toBe(60);
-  });
 
   it("lets a tech-hinted source through the relevance test that the same headline fails elsewhere", () => {
     const fromOutlet = launch("outlet-0");

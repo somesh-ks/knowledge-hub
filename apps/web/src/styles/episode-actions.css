@@ -19,7 +19,7 @@
 }
 
 .regen-lede {
-  padding-block: var(--space-4) 0;
+  padding-block: var(--space-4) var(--space-6);
 }
 
 .sheet-input.regen-feedback {
@@ -30,7 +30,11 @@
   padding-block: var(--space-3);
   font-family: inherit;
   line-height: var(--font-leading-body);
-  resize: vertical;
+  /* It grows with its words where the browser can (field-sizing); a corner grip would sit on the
+     rounded corner. */
+  max-height: calc(var(--field-height) * 6);
+  field-sizing: content;
+  resize: none;
 }
 
 /* Shown only near the limit, a quiet line under the field with air above it. */

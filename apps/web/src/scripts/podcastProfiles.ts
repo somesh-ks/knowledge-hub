@@ -8,7 +8,7 @@ import type { ConfigOp } from "../types/contracts";
 
 const LIST_TIMEOUT_MS = 10_000;
 
-/** What the schedule controls hold, by field: "daily.hour", "weekly.day", "custom.voice_b". */
+/** What the schedule controls hold, by field: "daily.hour", "weekly.day", "weekly.voice_b". */
 export type FieldValues = Record<string, string>;
 
 const nullable = (value: string): string | null => (value === "" ? null : value);
@@ -26,7 +26,8 @@ export function scheduleOp(was: FieldValues, now: FieldValues): ConfigOp | null 
   for (const [key, value] of Object.entries(now)) {
     if (was[key] === value) continue;
     const [profile = "", field = ""] = key.split(".");
-    if (field === "timezone" || key === "timezone") {
+    // The time zone is one setting of the schedule, whichever profile shows it.
+    if (field === "timezone") {
       top.timezone = value;
       continue;
     }
@@ -50,22 +51,12 @@ export function scheduleOp(was: FieldValues, now: FieldValues): ConfigOp | null 
 }
 
 /**
- * The voice rows that follow the type, and the voices. The voice list is loaded here, once the page
- * is up, and fills every voice select; a failed load leaves the default and the saved voice, which is
- * all a person needs to keep what they have.
+ * The voices. The voice list is loaded here, once the page is up, and fills every voice select; a
+ * failed load leaves the default and the saved voice, which is all a person needs to keep what they
+ * have. Both voices are always on the page: the second is for discussions, and is set whatever the
+ * format is now.
  */
 export function mountProfiles(root: HTMLElement, changed: () => void): void {
-  const syncType = (profile: HTMLElement): void => {
-    const format = profile.querySelector<HTMLInputElement>('input[data-f$=".format"]:checked');
-    const discussion = format?.value === "discussion";
-    const rows = profile.querySelectorAll<HTMLElement>("[data-voice-row]");
-    rows[1]?.toggleAttribute("hidden", !discussion);
-    rows.forEach((row) => {
-      const label = row.querySelector<HTMLElement>("[data-voice-label]");
-      const name = label?.dataset.name ?? "";
-      if (label) label.textContent = discussion ? name : `Voice (${name})`;
-    });
-  };
   let voices: Voice[] = [];
   /** The voices Default stands for, from /api/voices; null until the list is in. */
   let defaults: VoiceDefaults | null = null;
@@ -92,9 +83,17 @@ export function mountProfiles(root: HTMLElement, changed: () => void): void {
   };
   const chipOf = (select: HTMLSelectElement): HTMLButtonElement | null =>
     select.closest(".podcast-voice")?.querySelector<HTMLButtonElement>("[data-preview]") ?? null;
+  /** The button of a voice row: pressable while its voice has a sample, dimmed and saying so when not. */
   const syncPreview = (select: HTMLSelectElement): void => {
     const chip = chipOf(select);
-    if (chip) chip.hidden = sampleOf(select) === null;
+    if (!chip) return;
+    const name = chip.dataset.sampleName ?? "voice";
+    const has = sampleOf(select) !== null;
+    chip.disabled = !has;
+    chip.setAttribute(
+      "aria-label",
+      has ? `Play a sample of the ${name}` : `No sample for the ${name}`,
+    );
   };
   /** Plays a sample, or stops it when `toggle` and it is the one playing. */
   const play = (chip: HTMLButtonElement, url: string, toggle: boolean): void => {
@@ -103,9 +102,12 @@ export function mountProfiles(root: HTMLElement, changed: () => void): void {
       audio = new Audio();
       audio.addEventListener("pause", () => mark(null));
       audio.addEventListener("ended", () => mark(null));
-      // A sample that cannot be played takes its chip with it, rather than failing in silence.
+      // A sample that cannot be played dims its chip and says so, rather than failing in silence.
       audio.addEventListener("error", () => {
-        if (playing) playing.hidden = true;
+        if (playing) {
+          playing.disabled = true;
+          playing.setAttribute("aria-label", "The sample could not be played");
+        }
         mark(null);
       });
     }
@@ -121,8 +123,6 @@ export function mountProfiles(root: HTMLElement, changed: () => void): void {
 
   root.addEventListener("change", (event) => {
     const target = event.target as HTMLElement;
-    const profile = target.closest<HTMLElement>("[data-profile]");
-    if (profile && target.matches('input[data-f$=".format"]')) syncType(profile);
     // Choosing a voice plays it, as a phone's ringtone list does, so the list can be heard one
     // voice at a time; the chip plays it again or stops it.
     if (target instanceof HTMLSelectElement && target.closest(".podcast-voice")) {
@@ -133,6 +133,15 @@ export function mountProfiles(root: HTMLElement, changed: () => void): void {
       else audio?.pause();
     }
   });
+  // A sample stops when the page is left, by a link in the app (the page swaps in place, so the
+  // audio would play on over the next one) or by closing or leaving the tab.
+  const stop = (): void => audio?.pause();
+  const leave = (): void => {
+    stop();
+    removeEventListener("pagehide", stop);
+  };
+  document.addEventListener("astro:before-swap", leave, { once: true });
+  addEventListener("pagehide", stop);
   root.addEventListener("click", (event) => {
     const chip = (event.target as Element).closest<HTMLButtonElement>("[data-preview]");
     const select = chip?.closest(".podcast-voice")?.querySelector("select");
@@ -157,6 +166,9 @@ export function mountProfiles(root: HTMLElement, changed: () => void): void {
       }
     } catch {
       voices = [];
+      for (const select of root.querySelectorAll<HTMLSelectElement>(".podcast-voice select")) {
+        syncPreview(select);
+      }
     }
     root.dataset.voices = "";
     changed();

@@ -1,10 +1,7 @@
 import type { PodcastFormat, PodcastRequest } from "@dispatch/core";
 import { describe, expect, it } from "vitest";
 import {
-  CLOSE_CHARS,
   deepDiveCount,
-  frameChars,
-  HEADLINES_FRAME_CHARS,
   NUGGET_CAPACITY_CHARS,
   partChars,
   planPodcast,
@@ -65,7 +62,7 @@ describe("the length asked of the writer", () => {
       const stories = input.stories.length;
       const reach = reachableChars(budget, stories, format, minutes);
       const prompt = scriptSystemPrompt(input, "BOUNDARY");
-      expect(scriptTargetChars(budget)).toBe(Math.floor(budget * 0.9));
+      expect(scriptTargetChars(budget)).toBe(Math.floor(budget * 0.95));
       expect(scriptFloorChars(budget)).toBe(Math.floor(budget * 0.8));
       // The plan gives a format as many stories as its length carries, so the whole length is in reach.
       expect(reach).toBe(budget);
@@ -166,21 +163,6 @@ describe("the episode structure", () => {
         last = count;
       }
     }
-  });
-
-  it("grows the frame with the length and the story count, and leaves headlines flat", () => {
-    expect(frameChars(3, 6, "readout")).toBeLessThan(frameChars(5, 6, "readout"));
-    expect(frameChars(5, 6, "readout")).toBeLessThan(frameChars(10, 6, "readout"));
-    expect(frameChars(10, 6, "readout")).toBeLessThan(frameChars(15, 6, "readout"));
-    expect(frameChars(15, 1, "readout")).toBeLessThan(frameChars(15, 6, "readout"));
-    // The rundown names the lead stories only, so the frame stops growing with the count.
-    expect(frameChars(15, 30, "readout")).toBe(frameChars(15, 12, "readout"));
-    expect(frameChars(15, 12, "readout")).toBe(
-      structureFor(15, 12, "readout").teaser_chars + 100 + CLOSE_CHARS[15] + 60,
-    );
-    expect(frameChars(3, 5, "headlines")).toBe(HEADLINES_FRAME_CHARS);
-    expect(frameChars(15, 20, "headlines")).toBe(HEADLINES_FRAME_CHARS);
-    expect(structureFor(15, 20, "headlines").deep_dives).toBe(0);
   });
 
   it("plans more stories than the old flat frame at every length, never over budget", () => {

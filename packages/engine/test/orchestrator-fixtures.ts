@@ -1,6 +1,6 @@
 import { cp, mkdtemp, readFile, rm, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
-import { join } from "node:path";
+import { basename, join } from "node:path";
 import {
   type Category,
   type Digest,
@@ -30,7 +30,7 @@ import type { Grounder } from "../src/validate/grounding.js";
 import { digestFor } from "./audio-fixtures.js";
 import { type FakeWriter, fakeWriter, keywordGrounder, longText } from "./curate-helpers.js";
 import { commitAll, git, put } from "./git-testRepo.js";
-import { makeEntry, REPO_ROOT } from "./score-factories.js";
+import { FIXTURE_CONFIG, makeEntry } from "./score-factories.js";
 import { type CapturedLog, captureLog } from "./write-fakes.js";
 
 /** Wednesday 7 October 2026, 07:13 in Stockholm. */
@@ -356,7 +356,7 @@ export async function buildTemplate(): Promise<string> {
   await put(a, ".gitignore", ".cache/\nnode_modules/\n.env\n");
   await put(a, "README.md", "# Test repository\n");
   for (const file of ["config/preferences.json", "config/voice.md"]) {
-    await put(a, file, await readFile(join(REPO_ROOT, file), "utf8"));
+    await put(a, file, await readFile(join(FIXTURE_CONFIG, basename(file)), "utf8"));
   }
   await put(a, "config/sources.json", `${JSON.stringify(sourcesFile(), null, 2)}\n`);
   await put(a, "config/queries.json", '{ "version": 1, "queries": [] }\n');

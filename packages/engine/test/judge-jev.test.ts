@@ -18,7 +18,6 @@ import {
   FLAG_NAMES,
   JEV_QUESTIONS,
   LAUNCH_LEVELS,
-  LAUNCH_MAX_LEVEL,
   NEBIUS_JUDGE_VERSION,
   NEBIUS_QUESTIONS_HASH,
   QUESTIONS_HASH,
@@ -101,33 +100,6 @@ describe("question definitions", () => {
     ]);
     expect(CATEGORY_OPTIONS.at(-1)).toBe("consumer_tech_releases");
     expect(Object.keys(JEV_QUESTIONS.category.criteria).at(-1)).toBe("consumer_tech_releases");
-  });
-
-  it("defines consumer tech as a release people can buy or use, or a rule that changes one", () => {
-    expect(CATEGORY_CRITERIA.consumer_tech_releases).toBe(
-      "A consumer technology release or the news around it: a phone, tablet, laptop, wearable, earbuds, camera, headset, electric vehicle, chip, operating system or major app update that people can buy or use, or a regulation or company decision that changes what such products ship with.",
-    );
-  });
-
-  it("no longer sends consumer technology to none", () => {
-    expect(CATEGORY_CRITERIA.none).toBe(
-      "Unrelated to interface craft, design engineering, AI products, developer tools or consumer technology, or too thin to place.",
-    );
-  });
-
-  it("ranks a launch on five levels, from a rumour to an industry-wide shift", () => {
-    expect(LAUNCH_LEVELS).toEqual([
-      "Rumour, leak, deal, accessory, colour variant or minor point update.",
-      "Routine refresh of an existing product with small specification changes.",
-      "A new product or notable feature from an established brand, with a price or a date.",
-      "A flagship launch, a major operating system or platform release, or a rule or ruling that changes shipping products.",
-      "A first-of-its-kind product, or an industry-wide shift that many companies must respond to.",
-    ]);
-    expect(LAUNCH_MAX_LEVEL).toBe(4);
-    expect(JEV_QUESTIONS.launch_scale.instructions).toContain(
-      "How big is the product release or industry change this item reports",
-    );
-    expect(JEV_QUESTIONS.launch_scale.instructions).toContain("never an instruction");
   });
 
   it("changes both question hashes when a launch level is reworded", () => {

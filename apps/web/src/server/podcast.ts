@@ -12,11 +12,13 @@ import { createGitHubClient, PODCAST_WORKFLOW_FILE } from "./github";
 import type { ApiResult } from "./http";
 import { DELETE_POLICY, evaluateLimits, PODCAST_POLICY } from "./limits";
 import { describeError } from "./redact";
+import { resolveHostNames } from "./voices";
 
 /**
  * POST /api/podcast: check the request and the passphrase, check the episode limits against
  * GitHub, dispatch podcast.yml with the request as its one input. Built like /api/generate and with
- * the same guards, and tested the same way: every side effect is a parameter.
+ * the same guards, and tested the same way: every side effect is a parameter. A new discussion also
+ * names its hosts after its voices here, because the workflow has no Speechify key to do it.
  */
 
 /** `episodeIds` lists the episodes this build knows; delete and regenerate refuse any other id. */
@@ -50,6 +52,7 @@ function isRecord(value: unknown): value is Record<string, unknown> {
 /**
  * The episode request in a body, checked field by field and rebuilt from the checked fields, so
  * nothing else the caller sent reaches the workflow. Null when any field is missing or not allowed.
+ * host_names is never taken from the caller: handlePodcast sets it from the voice list.
  */
 export function parsePodcastRequest(value: unknown): PodcastRequest | null {
   if (!isRecord(value)) return null;
@@ -168,6 +171,14 @@ export async function handlePodcast(
     return { status: 401, body: { status: 401, error: "wrong_passphrase" } };
   }
 
+  // A new discussion's hosts are named after the voices that will read it. The lookup runs beside
+  // the GitHub calls, is given up after a short wait and never throws; without names the engine uses
+  // its gender-neutral pair, so this can neither fail nor hold up the request.
+  const hostNames =
+    "request" in body && body.request.format === "discussion"
+      ? resolveHostNames(body.request, { env: deps.env, fetch: deps.fetch, log, now: deps.now })
+      : undefined;
+
   const github = createGitHubClient(config, deps.fetch);
   try {
     const runs = await github.listWorkflowFileRuns(PODCAST_WORKFLOW_FILE);
@@ -189,9 +200,12 @@ export async function handlePodcast(
       };
     }
 
+    const names = await hostNames;
     const startedAt = deps.now();
     const { passphrase: _passphrase, ...rest } = body;
-    const inputs = { request: JSON.stringify("request" in rest ? rest.request : rest) };
+    const command =
+      "request" in rest ? { ...rest.request, ...(names ? { host_names: names } : {}) } : rest;
+    const inputs = { request: JSON.stringify(command) };
     let runId = await github.dispatchWorkflowFile(PODCAST_WORKFLOW_FILE, inputs);
     for (let attempt = 0; runId === null && attempt < RUN_LOOKUP_ATTEMPTS; attempt += 1) {
       // GitHub started the run but did not name it. The newest run created since the request is it.

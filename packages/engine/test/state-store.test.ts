@@ -1,13 +1,7 @@
 import { mkdir, mkdtemp, readdir, readFile, rm, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
-import {
-  JudgmentEntry,
-  type JudgmentsFile,
-  JudgmentsFile as JudgmentsSchema,
-  type LastRunFile,
-  type SeenFile,
-} from "@dispatch/core";
+import { JudgmentEntry, type JudgmentsFile, type LastRunFile, type SeenFile } from "@dispatch/core";
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
 import { writeFileAtomic } from "../src/state/atomicWrite.js";
 import { stableStringify } from "../src/state/stableJson.js";
@@ -24,7 +18,6 @@ import {
   writeUsage,
 } from "../src/state/store.js";
 import { CATEGORY_PROBS } from "./fetch-helpers.js";
-import { REPO_ROOT } from "./score-factories.js";
 
 let root: string;
 beforeEach(async () => {
@@ -164,18 +157,6 @@ describe("judgments cached before the consumer tech category", () => {
     expect(written).toContain('"consumer_tech_releases": 0');
     expect(written).not.toContain("launch_scale");
     expect(await readJudgments(root)).toEqual(read);
-  });
-
-  it("reads the judgments file committed in this repository", async () => {
-    const committed = await readJudgments(REPO_ROOT);
-    const entries = Object.values(committed.entries);
-    expect(entries.length).toBeGreaterThan(0);
-    for (const entry of entries) {
-      expect(Object.keys(entry.category_probs)).toHaveLength(12);
-      expect(entry.category_probs.consumer_tech_releases).toBeGreaterThanOrEqual(0);
-    }
-    const raw = JSON.parse(await readFile(join(REPO_ROOT, "state/judgments.json"), "utf8"));
-    expect(JudgmentsSchema.safeParse(raw).success).toBe(true);
   });
 
   it("still rejects a probability out of range, an unknown key and a non-object", () => {

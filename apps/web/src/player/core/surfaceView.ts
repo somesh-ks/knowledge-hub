@@ -163,7 +163,30 @@ export function createSurfaceView(): SurfaceView {
     },
     leaveModal() {
       const found = parts();
-      scope.leave({ page: found?.page ?? null, focusTo: found?.opener ?? null });
+      scope.leave({
+        surface: found?.root ?? null,
+        page: found?.page ?? null,
+        focusTo: found?.opener ?? null,
+      });
+      // The control that was pressed to close (the bar's chevron) hides with the page, so focus
+      // falls to the body a moment later: it goes to the bar's open control, so the next Tab
+      // starts from the bar. Watched for a short while, as the hiding follows the page's close.
+      const opener = found?.opener;
+      const pressed = document.activeElement;
+      if (opener && pressed && pressed !== document.body && pressed !== opener) {
+        let frames = 0;
+        const watch = (): void => {
+          const active = document.activeElement;
+          if (!active || active === document.body) {
+            opener.focus({ preventScroll: true });
+            return;
+          }
+          frames += 1;
+          if (active !== pressed || frames > 40) return;
+          requestAnimationFrame(watch);
+        };
+        requestAnimationFrame(watch);
+      }
     },
     capturePointer(pointerId) {
       try {

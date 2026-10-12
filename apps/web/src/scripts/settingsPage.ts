@@ -6,6 +6,8 @@
  * The pure parts (parsing a control's value, what the controls should show, the order of the sound
  * cue and the preference) are exported and tested; the rest is wiring.
  */
+import { hasPendingChoice } from "../lib/pendingWriter";
+import { hasSaved } from "../lib/savedKey";
 import {
   dismissInstallHint,
   isStandaloneDisplay,
@@ -110,6 +112,12 @@ function mountSettings(root: HTMLElement): () => void {
   const sounds = root.querySelector<HTMLInputElement>('input[name="sounds"]');
   const volume = root.querySelector<HTMLInputElement>('input[name="volume"]');
   const hint = root.querySelector<HTMLElement>("[data-install-hint]");
+
+  // An edit saved in the last few minutes is not in this page until the next build: the rows' lines
+  // say it, so Back from a page never lands on a summary that contradicts it.
+  if (hasSaved() || hasPendingChoice()) {
+    void import("./settingsSaved").then((index) => index.showSaved(root)).catch(() => {});
+  }
 
   const render = (): void => {
     const state = controlState(preferences.get(), preferences.getSoundsEnabled());

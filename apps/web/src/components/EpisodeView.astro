@@ -1,8 +1,8 @@
 ---
 import { paletteAccent } from "@dispatch/cover";
 import { episodeHighlights } from "../lib/episodeHighlights";
-import { type EpisodeEntry, episodeLength } from "../lib/episodes";
-import { longDate } from "../lib/format";
+import { type EpisodeEntry, episodeLength, FORMAT_LABELS } from "../lib/episodes";
+import { headlineParts, longDate } from "../lib/format";
 import AmbientLight from "./AmbientLight.astro";
 import Cover from "./Cover.astro";
 import EpisodeActions from "./EpisodeActions.astro";
@@ -14,14 +14,16 @@ import "../styles/episode.css";
 
 interface Props {
   entry: EpisodeEntry;
+  /** Briefing summaries by item id: a story an episode shares with a briefing is summed up so. */
+  summaries?: ReadonlyMap<string, string>;
 }
 
-const { entry } = Astro.props;
+const { entry, summaries } = Astro.props;
 const { episode } = entry;
 const length = episodeLength(episode);
 // "7 October": the long date without its weekday.
 const day = longDate(episode.date).split(" ").slice(1).join(" ");
-const highlights = episodeHighlights(episode);
+const highlights = episodeHighlights(episode, summaries);
 ---
 
 <main
@@ -41,13 +43,12 @@ const highlights = episodeHighlights(episode);
       priority
     />
     <div class="hero-text">
-      <div class="hero-title-row">
-        <h1 class="page-title" id="page-title" tabindex="-1">{episode.title}</h1>
-        <HeroMenu sharePath={`/e/${entry.id}`} noun="episode" episodeId={entry.id} />
-      </div>
+      <h1 class="page-title" id="page-title" tabindex="-1">{episode.title}</h1>
+      <p class="meta hero-facts"><span>{FORMAT_LABELS[episode.format]}</span><span>{day}</span></p>
     </div>
+    <HeroMenu sharePath={`/e/${entry.id}`} noun="episode" episodeId={entry.id} />
     {/* The same path a briefing takes: audio is made when Play is pressed, one turn at a time. */}
-    <PlayCta digestId={entry.id} mode="preparing" length={length} facts={[day]} noun="episode" />
+    <PlayCta digestId={entry.id} mode="preparing" length={length} noun="episode" />
   </header>
 
   <EpisodeActions id={entry.id} />
@@ -61,17 +62,33 @@ const highlights = episodeHighlights(episode);
         <ul class="rows episode-highlights" role="list">
           {highlights.map((highlight) => (
             <li class="episode-highlight">
-              <h3 class="episode-highlight-title">{highlight.headline}</h3>
+              {/* As a briefing's story (Item.astro): the headline is the link to the source, and
+                  the publisher under the text is its quiet attribution. */}
+              <h3 class="episode-highlight-title">
+                {highlight.host ? (
+                  <a class="story-link" href={highlight.url} target="_blank" rel="noopener noreferrer">
+                    {headlineParts(highlight.headline).map((part) =>
+                      part.nowrap ? <span class="no-break">{part.text}</span> : part.text,
+                    )}
+                    <span class="sr-only">(opens in a new tab)</span>
+                  </a>
+                ) : (
+                  headlineParts(highlight.headline).map((part) =>
+                    part.nowrap ? <span class="no-break">{part.text}</span> : part.text,
+                  )
+                )}
+              </h3>
               {highlight.text && <p class="episode-highlight-text">{highlight.text}</p>}
-              {/* Named as a story's source link is (Item.astro): the name starts with the host shown. */}
               {highlight.host && (
                 <a
-                  class="source-link episode-highlight-link"
+                  class="source-link story-source episode-highlight-link"
                   href={highlight.url}
                   target="_blank"
                   rel="noopener noreferrer"
+                  tabindex="-1"
+                  aria-hidden="true"
                 >
-                  <span>{highlight.host}</span><span class="sr-only"> (opens in a new tab)</span>
+                  <span>{highlight.publisher}</span>
                   <Icon name="openInNew" />
                 </a>
               )}

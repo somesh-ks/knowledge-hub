@@ -113,6 +113,7 @@ describe("createWriterLlm", () => {
       api: chat,
       budget: new TokenBudget(1_000_000),
       log: captureLog().log,
+      retry: { sleep: async () => {} },
     });
 
   it("uses the Settings model first", async () => {

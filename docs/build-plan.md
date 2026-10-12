@@ -401,7 +401,7 @@ Astro 7 with React 19 islands, built static; only `/api/*` runs on the server, a
 | `/covers/<id>-512.png`, `/covers/<id>-1024.png` | Cover art rendered at build (Section 8.11) |
 | `/api/generate`, `/api/status` | The only server routes (Section 8.9) |
 
-The `/dev` lab pages and `/fixtures/audio.wav` serve the player e2e suite and the fixture build; outside `astro dev` the lab pages answer 404. Parts: the player bar and expanded player, the Generate sheet, the Settings sheet (theme, interface sounds with volume, default speed, install hint) and the page states (empty, nothing new, audio preparing, audio unavailable, offline, error, stale).
+`/fixtures/audio.wav` serves the player e2e suite and the fixture build. The `/dev` lab pages that once served it are gone (D99): the player specs drive the product page of the fixture build. Parts: the player bar and expanded player, the Generate sheet and the page states (empty, nothing new, audio preparing, audio unavailable, offline, error, stale).
 
 **Reader and player contract.** The page is server-rendered HTML and the player only toggles attributes: `[data-item-id]` per item and `[data-chapter]` per section (matching the audio timeline), `data-state` of `played` or `current`, `.briefing[data-live]`, and the triggers `[data-play-digest]`, `[data-play-item]` and `[data-chapter-play]`. The page embeds its digest as a JSON block with id `dispatch-digest-data`. The full contract is in [design-spec.md](design/design-spec.md) under "Contract between the reader and the player".
 
@@ -610,7 +610,7 @@ Setup steps are in [runbook.md](runbook.md).
 | --- | --- | --- |
 | Engine | Vitest on saved fixtures and fakes, so tests run offline; contract tests for each fetcher | In place (Section 13) |
 | Curation | A golden set in `packages/engine/eval/golden`; `dispatch eval --yes` runs judges, grounding and the writer bake-off and tunes thresholds | Built; never run against live models |
-| Web | Playwright specs in `apps/web/e2e` and `apps/web/src/player/e2e` (`npm run e2e -w @dispatch/web`, `npm run e2e:player -w @dispatch/web`), Chromium at phone and desktop sizes with axe on every route, against the fixture build. The bundle budget runs in every build | Specs exist and run locally; not in CI; not run on 2026-10-06. No Lighthouse CI and no WebKit |
+| Web | Playwright specs in `apps/web/e2e` and `apps/web/src/player/e2e` (`npm run e2e -w @dispatch/web`, `npm run e2e:player -w @dispatch/web`), Chromium at phone (the default) and desktop (tagged tests) sizes with axe on every route, against the fixture build. The bundle budget runs in every build | Specs exist and run locally (about 6 and 3 minutes); not in CI (D99). No Lighthouse CI; WebKit is an opt-in `@smoke` set, unrun |
 | Skills | `evals/evals.json` in each skill and the strict validator from `sk-skill-creator` | Evals written |
 | Workflows | A dry run (`-f dry_run=true`), then a real run | No actionlint; the workflows have never run |
 | Real devices | iPhone on the current iOS, installed to the home screen: lock-screen play and pause, resume after a notification, speed change, rotation, keyboard in the Generate sheet, offline launch, UI sounds with the silent switch on and off and with narration playing. One Android phone. Desktop Chrome, Safari and Firefox | Not started |

@@ -1,4 +1,4 @@
-import { joinLabels } from "../lib/multiSelect";
+import { chosenSummary } from "../lib/multiSelect";
 
 /**
  * Drives every MultiSelect on the page, the ones in panels made later included: one listener of each
@@ -42,7 +42,13 @@ function sayChosen(parts: Parts): void {
     .filter(selected)
     .map((option) => option.querySelector(".multiselect-label")?.textContent ?? "");
   const value = parts.root.querySelector("[data-multiselect-value]");
-  if (value) value.textContent = joinLabels(labels) || (parts.root.dataset.empty ?? "");
+  if (value)
+    value.textContent = chosenSummary(
+      labels,
+      parts.options.length,
+      parts.root.dataset.all,
+      parts.root.dataset.empty,
+    );
 }
 
 function setActive(parts: Parts, option: HTMLElement | undefined): void {

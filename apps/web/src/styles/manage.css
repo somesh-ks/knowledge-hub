@@ -54,6 +54,8 @@
 
 .manage-form {
   display: grid;
+  /* One column that may shrink: a feed address on one line must not widen the form past its sheet. */
+  grid-template-columns: minmax(0, 1fr);
   gap: var(--space-4);
   padding-block-end: var(--space-2);
 }
@@ -109,9 +111,12 @@
   transition: border-color var(--duration-hover) var(--ease-hover);
 }
 
+/* It grows with what is typed, so it needs no grip to drag. */
 textarea.manage-input {
+  min-block-size: 6rem;
   padding-block: var(--space-3);
-  resize: vertical;
+  field-sizing: content;
+  resize: none;
 }
 
 .manage-input::placeholder {
@@ -349,13 +354,14 @@ textarea.manage-input {
 /* ------------------------------------------------------------------ the saving toast */
 
 /* The toast of sheets.css (ManageChrome.astro), told by its state what to show: Undo while a removal
-   waits, a spinner while saving, a check once saved, an alert and Retry when it failed. Dismiss shows
-   once there is nothing left to wait for. */
+   waits, a spinner while saving, a check once saved, an alert and Retry when it failed. Dismiss shows only
+   on a failure: a toast with nothing to act on leaves by itself, as the Toaster's do. */
 .manage-bar:not([data-state="saving"]) .manage-bar-busy,
 .manage-bar:not([data-state="done"]) .manage-bar-done,
 .manage-bar:not([data-state="error"]) :is(.manage-bar-error, [data-act="retry"]),
 .manage-bar:not([data-state="undo"]) [data-act="undo"],
-.manage-bar:is([data-state="saving"], [data-state="undo"]) [data-act="dismiss"] {
+.manage-bar:is([data-state="saving"], [data-state="undo"], [data-state="done"])
+  [data-act="dismiss"] {
   display: none;
 }
 
@@ -479,10 +485,6 @@ html:has(.manage-bar:popover-open) {
 /* Rows are separated by space, never by a line; only sections are divided. */
 .manage .rows > * + *::before {
   content: none;
-}
-
-.manage .rows > * + * {
-  margin-block-start: var(--space-1);
 }
 
 .manage-row .manage-text {

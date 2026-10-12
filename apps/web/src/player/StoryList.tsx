@@ -1,102 +1,93 @@
-import { getPlayerStore } from "./core/playerRuntime";
+import { useRef } from "react";
+import { getPlayerStore, playPageStory } from "./core/playerRuntime";
+import { storyEntries } from "./core/storyEntries";
 import { usePlayerState } from "./hooks/usePlayer";
+import { useRovingFocus } from "./hooks/useRovingFocus";
 import Clock from "./ui/Clock";
 
-interface StoryDisplayItem {
-  id: string;
-  index: number;
-  headline: string;
-  section: string;
-  durationSec: number | null;
-}
-
-interface StoryDisplaySection {
-  slug: string;
-  title: string;
-}
-
 /**
- * "Chapters": every story, under its section, with its length. Tapping one plays it from
- * its start. The story being read is marked by shape and weight as well as color.
+ * "Stories": every story, under its section, with its length. Tapping one plays it from
+ * its start. The story being read sits on the accent container. An episode whose
+ * narration is not laid out yet places its stories by its script, and a tap starts it there.
+ * Stories with no place at all are listed as plain rows: there is nothing a tap could play from.
  */
 export default function StoryList({ titleHidden = false }: { titleHidden?: boolean }) {
   const state = usePlayerState();
   const timeline = state.track?.timeline;
   const digest = state.track?.digest;
 
-  const items: StoryDisplayItem[] = timeline
-    ? timeline.items.map((item) => ({
-        id: item.id,
-        index: item.index,
-        headline: item.headline,
-        section: item.section,
-        durationSec: Math.max(0, item.endSec - item.startSec),
-      }))
-    : (digest?.items.map((item, index) => ({
-        id: item.id,
-        index,
-        headline: item.headline,
-        section: item.section,
-        durationSec:
-          item.start_ms !== null && item.end_ms !== null
-            ? Math.max(0, (item.end_ms - item.start_ms) / 1000)
-            : null,
-      })) ?? []);
-
+  const { timed, items, sections } = storyEntries(timeline, digest);
+  const rootRef = useRef<HTMLElement>(null);
+  // Every row across the sections is one Tab stop (the story being read, or the one focused last);
+  // the arrow keys, Home and End move between rows, and Enter plays the focused one.
+  useRovingFocus(rootRef, "button.story-row", items.length > 0);
   if (items.length === 0) return null;
 
-  const sections: StoryDisplaySection[] = timeline
-    ? timeline.sections.map((section) => ({ slug: section.slug, title: section.title }))
-    : digest?.sections && digest.sections.length > 0
-      ? digest.sections.map((section) => ({ slug: section.slug, title: section.title }))
-      : [{ slug: items[0]?.section ?? "stories", title: "Stories" }];
-
   const store = getPlayerStore();
-  const live = state.hasStarted && state.status !== "idle";
+  // Nothing is being read while the audio has failed: no story is marked as playing.
+  const live = state.hasStarted && state.status !== "idle" && state.status !== "error";
+  const shown = sections.filter((section) => items.some((item) => item.section === section.slug));
+  // One section needs no heading of its own: the list's name already says what it is.
+  const grouped = shown.length > 1;
   return (
-    <section className="story-list" aria-labelledby="player-stories-title">
-      <h3 className={titleHidden ? "sr-only" : "player-section-title"} id="player-stories-title">
-        Chapters
+    <section className="story-list" ref={rootRef} aria-labelledby="player-stories-title">
+      {/* Section headings already name the rows when there are several: the list's own title is
+          then for screen readers only. */}
+      <h3
+        className={titleHidden || grouped ? "sr-only" : "player-section-title"}
+        id="player-stories-title"
+      >
+        Stories
       </h3>
-      {sections.map((section) => {
-        const sectionItems = items.filter((item) => item.section === section.slug);
-        if (sectionItems.length === 0) return null;
-        return (
-          <div key={section.slug} className="story-group">
-            <h4 className="story-group-title">{section.title}</h4>
-            {/* biome-ignore lint/a11y/noRedundantRoles: Safari drops list semantics under list-style: none */}
-            <ul className="story-rows" role="list">
-              {sectionItems.map((item) => {
-                const current = live && item.index === state.itemIndex;
-                return (
-                  <li key={item.id}>
-                    <button
-                      className="story-row"
-                      type="button"
-                      aria-current={current ? "true" : undefined}
-                      onClick={() => {
-                        if (timeline) {
-                          store.playItemAt(item.index);
-                        } else {
-                          store.toggle();
-                        }
-                      }}
-                    >
-                      <span className="story-row-mark" aria-hidden="true" />
-                      <span className="story-row-title">{item.headline}</span>
-                      {item.durationSec !== null ? (
-                        <span className="story-row-time">
-                          <Clock seconds={item.durationSec} />
+      <div className="list-scroll">
+        {shown.map((section) => {
+          const sectionItems = items.filter((item) => item.section === section.slug);
+          return (
+            <div key={section.slug} className="story-group">
+              {grouped ? <h4 className="story-group-title">{section.title}</h4> : null}
+              {/* biome-ignore lint/a11y/noRedundantRoles: Safari drops list semantics under list-style: none */}
+              <ul className="story-rows" role="list">
+                {sectionItems.map((item) => {
+                  const current = timed && live && item.index === state.itemIndex;
+                  const time =
+                    item.durationSec !== null ? (
+                      <span className="story-row-time">
+                        <Clock seconds={item.durationSec} />
+                      </span>
+                    ) : null;
+                  const placed = timed || (item.startSec !== null && digest !== undefined);
+                  if (!placed) {
+                    return (
+                      <li key={item.id}>
+                        <span className="story-row" data-static="">
+                          <span className="story-row-title">{item.headline}</span>
+                          {time}
                         </span>
-                      ) : null}
-                    </button>
-                  </li>
-                );
-              })}
-            </ul>
-          </div>
-        );
-      })}
+                      </li>
+                    );
+                  }
+                  return (
+                    <li key={item.id}>
+                      <button
+                        className="story-row"
+                        type="button"
+                        aria-current={current ? "true" : undefined}
+                        onClick={() => {
+                          if (timed) store.playItemAt(item.index);
+                          else if (digest) playPageStory(digest.id, item.id);
+                        }}
+                      >
+                        <span className="story-row-title">{item.headline}</span>
+                        {time}
+                      </button>
+                    </li>
+                  );
+                })}
+              </ul>
+            </div>
+          );
+        })}
+      </div>
     </section>
   );
 }

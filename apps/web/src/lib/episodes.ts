@@ -12,11 +12,7 @@ import { isWebUrl } from "./safeUrl";
  * warning, so one bad file never takes the site down.
  */
 
-export const FORMAT_LABELS = {
-  readout: "Readout",
-  discussion: "Discussion",
-  headlines: "Headlines",
-} as const;
+export { FORMAT_LABELS } from "./formatLabels";
 
 /** "8 min": how long an episode takes to hear, which its page's play controls say before it plays. */
 export function episodeLength(episode: Pick<Episode, "listen_minutes">): string {
@@ -112,9 +108,18 @@ function toEntry(episode: Episode): EpisodeEntry {
       key: `t${turn.idx}`,
       speaker: turn.speaker,
       text: turn.text,
+      item_id: turn.item_id,
       start_ms: null,
       end_ms: null,
     })),
+    // What the two voices of a discussion are called. A discussion made before names were stored has
+    // none here, and the transcript names its hosts after its voices (lib/hosts.ts).
+    hosts: episode.request.host_names ?? null,
+    // The voices it was asked for; null for a host stands for the default voice, as the engine
+    // reads it. They name the hosts of a discussion that stored no names.
+    voices: { a: episode.request.voice_id ?? null, b: episode.request.voice_id_b ?? null },
+    // The word the Library uses for it, so the player says the same.
+    format: episode.format,
     sections:
       items.length > 0
         ? [{ slug: EPISODE_SECTION.slug, title: EPISODE_SECTION.title, start_ms: null }]

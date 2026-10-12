@@ -90,7 +90,7 @@ export function installNavigation(): void {
 
   // Pressing the destination you are already on takes you back to its top, as a native tab bar does,
   // instead of loading the same page again. From a page below it (a briefing under Library) the
-  // press goes to the destination as usual. Create Podcast on the Create page does the same, so the
+  // press goes to the destination as usual. New episode on the Create page does the same, so the
   // form is not loaded again over what is typed in it; elsewhere it opens the sheet
   // (createEntry.ts). Captured first, so the router never sees it.
   document.addEventListener(

@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { type ApiDeps, FAILURE_COPY, lookupNarration, narrateSegment } from "./narrationApi";
+import { type ApiDeps, failureCopy, lookupNarration, narrateSegment } from "./narrationApi";
 
 interface Call {
   url: string;
@@ -230,15 +230,68 @@ describe("narrateSegment", () => {
   });
 });
 
-describe("FAILURE_COPY", () => {
+describe("failureCopy", () => {
+  const reasons = [
+    "passphrase_required",
+    "wrong_passphrase",
+    "daily_cap",
+    "monthly_budget",
+    "not_narratable",
+    "digest_not_found",
+    "segment_not_found",
+    "unavailable",
+    "offline",
+    "failed",
+  ] as const;
+
   it("says what happened and what to do, in plain sentences", () => {
-    for (const [reason, message] of Object.entries(FAILURE_COPY)) {
+    for (const reason of reasons) {
+      const message = failureCopy(reason, "briefing");
       if (reason === "passphrase_required") {
         expect(message).toBeNull();
         continue;
       }
       expect(message, reason).toMatch(/^[A-Z].*\.$/);
       expect(message, reason).not.toMatch(/[\u2014\u2013!]/);
+      // It never explains the interface ("the text is still here to read").
+      expect(message, reason).not.toMatch(/still here/);
+      // Where a failure stops playback the disc says Try again, so no copy sends the listener to Play.
+      expect(message, reason).not.toMatch(/press play/i);
     }
+  });
+
+  it("names an episode as an episode", () => {
+    expect(failureCopy("not_narratable", "episode")).toBe("This episode cannot be read aloud.");
+    expect(failureCopy("digest_not_found", "episode")).toMatch(/^This episode /);
+    for (const reason of reasons)
+      expect(failureCopy(reason, "episode") ?? "").not.toMatch(/briefing/);
+    expect(failureCopy("daily_cap", "episode")).toBe(
+      "Daily narration limit reached. Try again tomorrow.",
+    );
+  });
+});
+
+describe("describeNarrationFailure", () => {
+  it("does not repeat a Try again the notice already offers", async () => {
+    const { describeNarrationFailure } = await import("./narrationApi");
+    expect(describeNarrationFailure("failed", "briefing")?.message).toBe(
+      "The audio could not be made.",
+    );
+    expect(describeNarrationFailure("daily_cap", "briefing")?.standing).toBe(true);
+    expect(describeNarrationFailure("failed", "briefing")?.standing).toBe(false);
+  });
+
+  it("says a failed file one way, in the notice and on the bar", async () => {
+    const { describeNarrationFailure } = await import("./narrationApi");
+    expect(describeNarrationFailure("failed", "briefing")?.summary).toBe("Audio could not be made");
+  });
+
+  it("treats the server's 503 as passing: Try again, not a refusal that stands", async () => {
+    const { describeNarrationFailure } = await import("./narrationApi");
+    expect(describeNarrationFailure("unavailable", "briefing")).toEqual({
+      message: "Narration is not available right now.",
+      summary: "Narration is not available",
+      standing: false,
+    });
   });
 });

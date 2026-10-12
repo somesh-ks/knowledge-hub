@@ -3,6 +3,7 @@ import { makeDigest } from "../testing/digestFactory";
 import { buildEntries } from "./digests";
 import { parseEpisodeFile } from "./episodeFile";
 import { buildEpisodeEntries } from "./episodes";
+import { matchDetail, normalize } from "./library";
 import { cardFacts, episodeFacts, libraryItems, searchIndex } from "./libraryCard";
 
 const episodeText = (id: string, at: string, format = "discussion") =>
@@ -25,40 +26,90 @@ const episodes = (...texts: string[]) =>
   buildEpisodeEntries(texts.map((text) => parseEpisodeFile(text)));
 
 describe("cardFacts", () => {
-  it("says Weekly first on a weekly briefing, and keeps the kind apart for the list", () => {
+  it("follows one pattern, kind then contents then length, for every briefing", () => {
     const entries = buildEntries([
       { digest: makeDigest({ id: "2026-10-04-weekly", kind: "weekly" }), timeline: null },
       { digest: makeDigest({ id: "2026-10-05" }), timeline: null },
+      { digest: makeDigest({ id: "2026-10-06-on-demand", kind: "on-demand" }), timeline: null },
     ]);
-    const weekly = entries.find((entry) => entry.digest.kind === "weekly");
-    const daily = entries.find((entry) => entry.digest.kind === "regular");
-    expect(weekly && cardFacts(weekly)).toMatchObject({
-      line: "Weekly, 4 stories, 4 min",
-      kind: "Weekly",
-      rest: "4 stories, 4 min",
+    const facts = (kind: string) => {
+      const entry = entries.find((one) => one.digest.kind === kind);
+      return entry ? cardFacts(entry) : null;
+    };
+    expect(facts("weekly")).toMatchObject({
+      line: "Weekly \u00b7 4 stories \u00b7 4 min",
       minutes: 4,
     });
-    expect(daily && cardFacts(daily)).toMatchObject({
-      line: "4 stories, 4 min",
-      kind: "",
-      rest: "4 stories, 4 min",
-    });
+    expect(facts("regular")?.line).toBe("Daily \u00b7 4 stories \u00b7 4 min");
+    // Under Episodes, a briefing made on request follows an episode's pattern: format, then length.
+    expect(facts("on-demand")?.line).toBe("Briefing \u00b7 4 min");
+  });
+
+  it("finds a briefing by its date in any form", () => {
+    const entries = buildEntries([{ digest: makeDigest({ id: "2026-10-07" }), timeline: null }]);
+    const entry = entries[0];
+    const facts = entry ? cardFacts(entry) : null;
+    const card = {
+      date: "2026-10-07",
+      order: 0,
+      kind: "regular",
+      stories: 4,
+      minutes: 4,
+      hasAudio: false,
+      search: normalize(facts?.search ?? ""),
+      metaLines: facts?.metaLines,
+    };
+    for (const query of ["7 october", "oct 7", "2026-10-07", "wednesday"]) {
+      expect(matchDetail(card, query).meta, query).toBeGreaterThan(0);
+    }
+    expect(matchDetail(card, "tuesday").meta).toBe(0);
   });
 });
 
 describe("episodeFacts", () => {
   it("names the format and the length on the quiet line", () => {
     const [entry] = episodes(episodeText("ep-20261007-1930", "2026-10-07T17:30:00Z"));
-    expect(entry && episodeFacts(entry)).toMatchObject({ line: "Discussion, 5 min", minutes: 5 });
+    expect(entry && episodeFacts(entry)).toMatchObject({
+      line: "Discussion \u00b7 5 min",
+      minutes: 5,
+    });
     const [headlines] = episodes(
       episodeText("ep-20261007-1930", "2026-10-07T17:30:00Z", "headlines"),
     );
-    expect(headlines && episodeFacts(headlines).line).toBe("Headlines, 5 min");
+    // Create no longer offers headlines: a stored one reads as a readout.
+    expect(headlines && episodeFacts(headlines).line).toBe("Readout \u00b7 5 min");
+  });
+
+  it("finds an episode by its date in any form, not as a matching story", () => {
+    const [entry] = episodes(episodeText("ep-20261007-1930", "2026-10-07T17:30:00Z"));
+    const facts = entry ? episodeFacts(entry) : null;
+    const card = {
+      date: "2026-10-07",
+      order: 0,
+      kind: "episode",
+      stories: 1,
+      minutes: 5,
+      hasAudio: false,
+      search: normalize(facts?.search ?? ""),
+      metaLines: facts?.metaLines,
+    };
+    for (const query of ["7 october", "oct 7", "2026-10-07", "wednesday", "discussion"]) {
+      const detail = matchDetail(card, query);
+      expect(detail.meta, query).toBeGreaterThan(0);
+      expect(detail.stories, query).toBe(0);
+    }
+    expect(matchDetail(card, "verge")).toEqual({ meta: 0, stories: 1, first: 3 });
+  });
+
+  it("keeps each story's headline as written, apart from its publisher", () => {
+    const [entry] = episodes(episodeText("ep-20261007-1930", "2026-10-07T17:30:00Z"));
+    const lines = (entry ? episodeFacts(entry).search : "").split("\n");
+    expect(lines.at(-1)).toBe("A new model ships\tThe Verge");
   });
 
   it("lets search find the title, the format, a headline and a publisher", () => {
     const [entry] = episodes(episodeText("ep-20261007-1930", "2026-10-07T17:30:00Z"));
-    const search = entry ? episodeFacts(entry).search : "";
+    const search = normalize(entry ? episodeFacts(entry).search : "");
     for (const word of ["the week in ai", "discussion", "a new model ships", "the verge"]) {
       expect(search).toContain(word);
     }

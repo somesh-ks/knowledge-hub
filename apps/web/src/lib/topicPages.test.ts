@@ -6,6 +6,7 @@ import {
   OTHER_ID,
   percent,
   sourcesByTopic,
+  suggestionWords,
   topicChoicesOf,
   topicLayout,
   topicSummary,
@@ -61,17 +62,21 @@ describe("generalOf", () => {
 });
 
 describe("topicSummary", () => {
-  it("says a general topic's sources without a weight", () => {
+  it("says a topic's sources, never its weight", () => {
     expect(topicSummary(topic({ origin: "general" }), 2)).toBe("2 sources");
-    expect(topicSummary(topic({ origin: "general", enabled: false }), 1)).toBe("Off, 1 source");
+    expect(topicSummary(topic({ origin: "general", enabled: false }), 1)).toBe("Off");
+    expect(topicSummary(topic({ weight: 0.95 }), 1)).toBe("1 source");
   });
 
-  it("says the weight and the sources of a topic that is on", () => {
-    expect(topicSummary(topic({ weight: 0.95 }), 1)).toBe("Weight 95%, 1 source");
+  it("counts the sources that are read, and says when there are none", () => {
+    expect(topicSummary(topic({ origin: "general" }), 3, 2)).toBe("2 of 3 sources on");
+    expect(topicSummary(topic({}), 0)).toBe("No sources yet");
+    expect(topicSummary(null, 4, 4)).toBe("4 sources");
+    expect(topicSummary(null, 1, 0)).toBe("0 of 1 source on");
   });
 
   it("says Off for a topic that is off, and Never for one that never publishes", () => {
-    expect(topicSummary(topic({ enabled: false }), 2)).toBe("Off, 2 sources");
+    expect(topicSummary(topic({ enabled: false }), 2)).toBe("Off");
     expect(topicSummary(topic({ never_publish: true }), 0)).toBe("Never in a briefing");
   });
 });
@@ -134,5 +139,61 @@ describe("topicLayout", () => {
       { id: "synths", name: "Synths" },
       { id: "world", name: "World" },
     ]);
+  });
+});
+
+describe("suggestionWords", () => {
+  const members = [
+    topic({ id: "craft", name: "Design engineering craft", keywords: ["motion"] }),
+    topic({ id: "design", name: "Design", description: "Not architecture." }),
+  ];
+  const group = {
+    id: "design",
+    name: "Design",
+    note: "Product, interface and design engineering.",
+    home: "design",
+    members,
+  };
+
+  it("gives one of the owner's three its name and the names and keywords of the topics it gathers", () => {
+    expect(suggestionWords({ group, topic: null })).toEqual({
+      id: "design",
+      name: "Design",
+      keywords: ["Design engineering craft", "motion", "Design"],
+    });
+  });
+
+  it("gives the owner's own topic its name, description and keywords", () => {
+    const own = topic({
+      id: "synths",
+      name: "Synths",
+      description: "Hardware synthesizers.",
+      keywords: ["modular"],
+      origin: "custom",
+    });
+    expect(suggestionWords({ group: null, topic: own })).toEqual({
+      id: "synths",
+      name: "Synths",
+      description: "Hardware synthesizers.",
+      keywords: ["modular"],
+    });
+  });
+
+  it("gives a general topic its name alone: its description is a question for the judge", () => {
+    const world = topic({
+      id: "world",
+      name: "World",
+      description: "International news and world affairs: conflicts, elections and research.",
+      origin: "general",
+    });
+    expect(suggestionWords({ group: null, topic: world })).toEqual({
+      id: "world",
+      name: "World",
+      keywords: [],
+    });
+  });
+
+  it("gives Other nothing to go by", () => {
+    expect(suggestionWords({ group: null, topic: null })).toBeNull();
   });
 });

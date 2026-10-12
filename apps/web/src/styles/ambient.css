@@ -13,8 +13,11 @@
   isolation: isolate;
 }
 
+/* The layer carries half the light theme's peak tint and three quarters of the dark one's: a glow
+   behind the header, never a stain on the page. The tokens are the contrast proof's ceiling
+   (ambientPalette.test.ts); this only stays further under it. */
 .ambient {
-  --ambient-tint: var(--opacity-ambient-light);
+  --ambient-tint: calc(var(--opacity-ambient-light) * 0.5);
   --ambient-a: var(--ambient-a-l);
   --ambient-b: var(--ambient-b-l);
   --ambient-c: var(--ambient-c-l);
@@ -58,7 +61,7 @@
 
 @media (prefers-color-scheme: dark) {
   :root:not([data-theme="light"]) .ambient {
-    --ambient-tint: var(--opacity-ambient-dark);
+    --ambient-tint: calc(var(--opacity-ambient-dark) * 0.75);
     --ambient-a: var(--ambient-a-d);
     --ambient-b: var(--ambient-b-d);
     --ambient-c: var(--ambient-c-d);
@@ -66,7 +69,7 @@
 }
 
 :root[data-theme="dark"] .ambient {
-  --ambient-tint: var(--opacity-ambient-dark);
+  --ambient-tint: calc(var(--opacity-ambient-dark) * 0.75);
   --ambient-a: var(--ambient-a-d);
   --ambient-b: var(--ambient-b-d);
   --ambient-c: var(--ambient-c-d);
@@ -99,15 +102,6 @@
 
 .ambient[data-live] .ambient-still {
   opacity: 0;
-}
-
-/* The play chip's words are the accent colour, and over a cover's light they fall just short of
-   4.5:1 on the light theme (the title and the meta line hold it; ambientPalette.test.ts proves
-   those). So in a header the chip stands on the page's own surface. Where there is no light it looks
-   as it always did. :where() keeps this rule as light as the chip's own, so the chip's hover,
-   pressed and current fills still win wherever this file lands in the build. */
-:where(.hero) .chip {
-  background-color: var(--color-surface);
 }
 
 @media (forced-colors: active) {

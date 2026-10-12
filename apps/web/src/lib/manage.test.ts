@@ -16,16 +16,11 @@ import {
   qualityInWords,
   recordInWords,
   stepToWeight,
-  WEIGHT_STEPS,
   weightToStep,
   withGeneralTopics,
 } from "./manage";
 
 describe("weight steps", () => {
-  it("has the five words in order", () => {
-    expect(WEIGHT_STEPS).toEqual(["Less", "A bit less", "Normal", "A bit more", "More"]);
-  });
-
   it("maps a stored weight to the nearest step", () => {
     expect(weightToStep(0)).toBe(0);
     expect(weightToStep(0.02)).toBe(0);

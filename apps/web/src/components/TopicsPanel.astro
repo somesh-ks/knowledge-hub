@@ -1,35 +1,16 @@
 ---
-import type { CatalogSource } from "../lib/sourceCatalog";
-import { catalogLine } from "../lib/sourceCatalog";
 import Icon from "./Icon.astro";
 import MultiSelect from "./MultiSelect.astro";
 
 interface Props {
   /** The topics a source can be filed under, in the order the page lists them. */
   topics: { id: string; name: string }[];
-  /** Catalogue sources a new topic can start with; ones already among the sources are left out. */
-  offers: CatalogSource[];
 }
 
-const { topics, offers } = Astro.props;
-const hostOf = (url: string): string => {
-  try {
-    return new URL(url).hostname.replace(/^www\./, "");
-  } catch {
-    return "";
-  }
-};
-const offerData = offers.map((offer) => ({
-  id: offer.id,
-  name: offer.name,
-  feed_url: offer.feed_url,
-  host: hostOf(offer.feed_url),
-  line: catalogLine(offer),
-  tags: offer.tags,
-}));
+const { topics } = Astro.props;
 ---
 
-{/* The Topics & Sources panel, kept inert in a template until scripts/topicsPanel.ts clones it: Add
+{/* The Topics and sources panel, kept inert in a template until scripts/topicsPanel.ts clones it: Add
      opens it on Topic, a topic's Add source opens it on Source with that topic chosen, a topic's Edit
      topic opens it on that topic's details, and a source's row opens it to edit that source. It wears the Create sheet's looks (create-sheet.css) and is not
      that sheet: regen-sheet keeps createSheet.ts from taking it for the Create panel. A full-screen
@@ -37,10 +18,10 @@ const offerData = offers.map((offer) => ({
 <template id="topics-panel-template">
   <dialog class="create-sheet regen-sheet topics-panel" aria-labelledby="topics-panel-title" data-mode="topic">
     <div class="create-sheet-head">
-      <h2 class="sheet-title" id="topics-panel-title" data-panel-title>Add a topic</h2>
       <button class="icon-btn press" type="button" data-panel-close aria-label="Close">
         <Icon name="close" class="icon-lg" />
       </button>
+      <h2 class="sheet-title" id="topics-panel-title" data-panel-title>Add a topic</h2>
     </div>
     <div class="create-sheet-body">
       <fieldset class="settings-choice topics-panel-kind" role="radiogroup" aria-label="What to add" data-panel-kind>
@@ -54,13 +35,14 @@ const offerData = offers.map((offer) => ({
         </label>
       </fieldset>
 
-      {/* A topic: what it is, then the sources that could feed it. Adding starts it empty; editing
-           starts it filled, and a built-in topic keeps what counts, as fixed questions judge it. */}
+      {/* A topic: its name, what counts and where it plays (D71); its page then suggests sources.
+           Adding starts it empty; editing starts it filled, and a built-in topic keeps what counts,
+           as fixed questions judge it. */}
       <form class="manage-form topics-pane" data-pane="topic" aria-label="Add a topic" novalidate>
-        <div class="topics-step" data-step="details">
+        <div class="topics-step">
           <p class="manage-quiet" data-fixed-note hidden>
             The app judges this topic by questions of its own, so what counts stays as it is. Its name
-            and keywords can change.
+            can change.
           </p>
           <div class="manage-field">
             <label for="panel-topic-name">Name</label>
@@ -95,15 +77,16 @@ const offerData = offers.map((offer) => ({
           </div>
           {/* Where a new topic plays (D69); an existing topic sets it on its own page. */}
           <div class="manage-field topics-scope" data-scope>
-            <span class="topics-scope-label" id="panel-topic-scope-label">Scope</span>
+            <span class="topics-scope-label" id="panel-topic-scope-label">Podcasts</span>
             <MultiSelect
               id="panel-topic-scope"
               labelledby="panel-topic-scope-label"
               empty="In no podcast"
+              all="All podcasts"
               options={[
                 { value: "daily", label: "Daily", checked: true, name: "scope" },
                 { value: "weekly", label: "Weekly", checked: true, name: "scope" },
-                { value: "custom", label: "Custom", checked: true, name: "scope" },
+                { value: "custom", label: "Episodes", checked: true, name: "scope" },
               ]}
             />
           </div>
@@ -125,8 +108,12 @@ const offerData = offers.map((offer) => ({
             autocapitalize="none"
             spellcheck="false"
             placeholder="example.com"
+            aria-describedby="panel-source-url-error"
             data-source-url
           />
+          <p class="manage-error" id="panel-source-url-error" role="alert" data-error="url" hidden>
+            <Icon name="alert" /><span></span>
+          </p>
         </div>
         <div class="manage-field">
           <label for="panel-source-topic">Topic</label>
@@ -197,14 +184,33 @@ const offerData = offers.map((offer) => ({
           <p class="source-card-reason" data-edit-reason></p>
         </section>
       </div>
-      <template data-alert-glyph><Icon name="alert" /></template>
-      <template data-check-glyph><Icon name="check" class="suggest-check" /></template>
     </div>
     <div class="source-sheet-foot topics-panel-foot">
-      <button class="btn" type="button" data-panel-back hidden>Back</button>
-      <button class="btn-primary" type="button" data-panel-go>Next</button>
+      <button class="btn-primary" type="button" data-panel-go>Add topic</button>
     </div>
   </dialog>
 </template>
-{/* The offers as data for the topic step: a data block, never run, so the policy has nothing to allow. */}
-<script is:inline type="application/json" id="topics-offers" set:html={JSON.stringify(offerData).replace(/</g, "\\u003c")} />
+
+{/* Suggested sources for a topic added before the build gives it a page: scripts/savedView.ts ranks
+     the catalogue in the browser, puts this section under the topic's row in the list and fills one
+     row per feed, drawn as SuggestedSources.astro draws them on a topic's page. */}
+<template id="suggested-template">
+  <section class="queued-suggested">
+    <h2 class="section-head">Suggested sources</h2>
+    <ul class="topic-sources" role="list" data-suggested-sources></ul>
+  </section>
+  <li class="source-row is-suggested">
+    <span class="source-main">
+      <span class="source-icon"></span>
+      <span class="source-text">
+        <span class="source-name"></span>
+        <span class="source-meta"><span class="source-host"></span></span>
+        <span class="source-line"></span>
+      </span>
+    </span>
+    <button class="source-plus-btn press" type="button">
+      <Icon name="plus" class="suggested-plus" />
+      <Icon name="check" class="suggested-check" />
+    </button>
+  </li>
+</template>

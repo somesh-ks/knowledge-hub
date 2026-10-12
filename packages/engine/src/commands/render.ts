@@ -1,6 +1,6 @@
 import { dirname, join } from "node:path";
 import { parseArgs } from "node:util";
-import { homeSectionFor, stockholmDate } from "@dispatch/core";
+import { homeSectionFor, zonedDate } from "@dispatch/core";
 import { type CommandRun, secretsFromEnv } from "../context.js";
 import {
   linkSourceIds,
@@ -18,6 +18,7 @@ import { buildDigest, type CoverPicker } from "../render/buildDigest.js";
 import { createFallbackCoverPicker, loadCoverPalettes } from "../render/coverPicker.js";
 import { createIdAllocator, listTakenIds } from "../render/digestId.js";
 import { writeDigestFile } from "../render/writeDigestFile.js";
+import { loadScheduleZone } from "../schedule/store.js";
 import type { SelectedItem } from "../score/types.js";
 import { loadTopicsFile } from "../topics/store.js";
 import { validateDigest } from "../validate/validateDigest.js";
@@ -131,9 +132,11 @@ export function makeRenderCommand(deps: RenderDeps = {}): CommandRun {
           ...(lastRun.last_cover ? { last: lastRun.last_cover } : {}),
         });
       const preferredId = loaded.meta.id;
-      const taken = await listTakenIds(root, (preferredId ?? stockholmDate(now)).slice(0, 10));
+      const zone = await loadScheduleZone(root);
+      const taken = await listTakenIds(root, (preferredId ?? zonedDate(now, zone)).slice(0, 10));
 
       const digest = buildDigest({
+        zone,
         selected,
         written: selection.items.map((i) => ({ id: i.id, ...writtenText(i) })),
         window: selection.window,

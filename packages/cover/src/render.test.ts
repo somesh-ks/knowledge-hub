@@ -1,8 +1,7 @@
-import { existsSync } from "node:fs";
 import { Resvg } from "@resvg/resvg-js";
 import { describe, expect, it } from "vitest";
 import { hexToRgb } from "./color.js";
-import { FONT_FILES, RESVG_FONT_OPTIONS } from "./fonts.js";
+import { RESVG_FONT_OPTIONS } from "./fonts.js";
 import { getPalette } from "./palettes.js";
 import { renderCoverPng, renderCoverSvg, renderSocialPng } from "./render.js";
 import type { CoverMeta, CoverSpec } from "./types.js";
@@ -30,8 +29,25 @@ describe("PNG output", () => {
     expect(dimensions(png)).toEqual({ width: 1200, height: 630 });
   });
 
-  it("returns a plain Uint8Array", () => {
-    expect(renderCoverPng(SPEC, META, 512)).toBeInstanceOf(Uint8Array);
+  it("signs the large cover and leaves the signature off the small one", () => {
+    const raster = (svg: string, width: number): Buffer =>
+      Buffer.from(
+        new Resvg(svg, { fitTo: { mode: "width", value: width }, font: RESVG_FONT_OPTIONS })
+          .render()
+          .asPng(),
+      );
+    expect(renderCoverSvg(SPEC, META)).toContain(">Singularity</text>");
+    expect(renderCoverSvg(SPEC, META, { wordmark: false })).not.toContain(">Singularity</text>");
+    expect(
+      Buffer.from(renderCoverPng(SPEC, META, 512)).equals(
+        raster(renderCoverSvg(SPEC, META, { wordmark: false }), 512),
+      ),
+    ).toBe(true);
+    expect(
+      Buffer.from(renderCoverPng(SPEC, META, 1024)).equals(
+        raster(renderCoverSvg(SPEC, META), 1024),
+      ),
+    ).toBe(true);
   });
 
   it("is deterministic: same input, same bytes", () => {
@@ -61,13 +77,6 @@ describe("PNG output", () => {
 });
 
 describe("fonts", () => {
-  it("bundles Schibsted Grotesk and its license", () => {
-    expect(FONT_FILES).toHaveLength(4);
-    for (const file of FONT_FILES) expect(existsSync(file), file).toBe(true);
-    expect(existsSync(new URL("../fonts/OFL.txt", import.meta.url))).toBe(true);
-    expect(existsSync(new URL("../fonts/SchibstedGrotesk[wght].ttf", import.meta.url))).toBe(true);
-  });
-
   it("never reads system fonts, so output is the same on every machine", () => {
     expect(RESVG_FONT_OPTIONS.loadSystemFonts).toBe(false);
   });

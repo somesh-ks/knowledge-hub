@@ -1,6 +1,7 @@
-import { hashPassphrase, verifyPassphrase } from "@dispatch/core/passphrase";
+import { verifyPassphrase } from "@dispatch/core/passphrase";
 import { beforeAll, describe, expect, it } from "vitest";
 import { stringify } from "yaml";
+import { cheapPassphraseHash } from "../testing/cheapPassphraseHash";
 import { createFakeBlobStore, FAKE_BLOB_HOST } from "../testing/fakeBlobStore";
 import { createFakeSpeechify, FAKE_AUDIO } from "../testing/fakeSpeechify";
 import { MS_PER_CHARACTER, type ServerEnv } from "./config";
@@ -39,8 +40,8 @@ const MODEL = "simba-3.2";
 
 let passphraseHash = "";
 
-beforeAll(async () => {
-  passphraseHash = await hashPassphrase(PASSPHRASE);
+beforeAll(() => {
+  passphraseHash = cheapPassphraseHash(PASSPHRASE);
 });
 
 interface Turn {

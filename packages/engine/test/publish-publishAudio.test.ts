@@ -462,13 +462,6 @@ describe("publishAudio: failure isolation", () => {
     expect(harness.blob.puts).toHaveLength(3);
   });
 
-  it("honours a custom number of upload attempts", async () => {
-    await writeDigest(harness.temp.root, makeDigest());
-    harness.blob.failNextPuts = 10;
-    await publishAudio({ ...harness.deps, uploadAttempts: 1 });
-    expect(harness.blob.puts).toHaveLength(1);
-  });
-
   it("an unreadable digest is reported and the rest continue", async () => {
     await writeRepoFile(harness.temp.root, digestRelPath("2026-10-06"), "not a digest");
     await writeDigest(harness.temp.root, digestFor("2026-10-07"));

@@ -15,6 +15,8 @@ import {
   itemIndexAt,
   itemPositionLabel,
   sectionIndexOfItem,
+  storyCaption,
+  storySectionName,
 } from "./timeline";
 
 describe("buildTimeline", () => {
@@ -89,6 +91,20 @@ describe("item lookup", () => {
     expect(itemIndexAt(null, 40)).toBe(0);
   });
 
+  it("puts a lead-in before the first story in no story at all", () => {
+    const led = buildTimeline(
+      makeDigest({
+        items: makeDigest().items.map((entry, index) =>
+          index === 0 ? { ...entry, start_ms: 18_600 } : entry,
+        ),
+      }),
+    );
+    expect(itemIndexAt(led, 0)).toBe(-1);
+    expect(itemIndexAt(led, 18.5)).toBe(-1);
+    expect(itemIndexAt(led, 18.6)).toBe(0);
+    expect(itemPositionLabel(led, -1)).toBe("");
+  });
+
   it("maps an item to its section", () => {
     expect(sectionIndexOfItem(timeline, 0)).toBe(0);
     expect(sectionIndexOfItem(timeline, 3)).toBe(2);
@@ -106,7 +122,15 @@ describe("item lookup", () => {
   it("finds an item by its id and labels its position for people", () => {
     expect(findItemIndexById(timeline, "c1b2c3d4e5f6")).toBe(2);
     expect(findItemIndexById(timeline, "nope")).toBe(-1);
-    expect(itemPositionLabel(timeline, 4 - 1)).toBe("Item 4 of 4");
+    expect(itemPositionLabel(timeline, 4 - 1)).toBe("Story 4 of 4");
+    expect(storyCaption(timeline, 1, "Design engineering")).toBe(
+      "Story 2 of 4 · Design engineering",
+    );
+    expect(storyCaption(timeline, 0, "")).toBe("Story 1 of 4");
+    // An episode's one section is a placeholder: its position is told without it.
+    const digest = makeDigest();
+    expect(storySectionName(digest, { title: "Top picks" })).toBe("Top picks");
+    expect(storySectionName({ ...digest, kind: "on-demand" }, { title: "Stories" })).toBe("");
     expect(itemPositionLabel(null, 0)).toBe("");
   });
 });

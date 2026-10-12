@@ -1,4 +1,4 @@
-import { type DigestKind, stockholmDate } from "@dispatch/core";
+import { type DigestKind, scheduleZone } from "@dispatch/core";
 import { allocateDigestId } from "../gate/allocateDigestId.js";
 import { decideRun } from "../gate/decideRun.js";
 import { fetchWindow } from "../gate/fetchWindow.js";
@@ -21,7 +21,7 @@ export function parseSince(since: string, now: Date): Date {
 /**
  * The gate: decide whether a run is due and which digests it produces, then write the plan every
  * later stage reads. A regular or on-demand digest comes first; at the weekly day and hour of
- * config/schedule.json (Stockholm) the weekly pass follows it, and weekly mode runs the weekly
+ * config/schedule.json (in its time zone) the weekly pass follows it, and weekly mode runs the weekly
  * pass alone. `due` is true when there is
  * at least one pass, so a weekly-only run still starts the later workflow steps.
  */
@@ -35,6 +35,7 @@ export async function gateStage(deps: RunDeps, options: RunOptions): Promise<Gat
     force: options.force,
     cadenceDays: schedule.cadence_days,
     weekly: schedule.weekly,
+    zone: scheduleZone(schedule.timezone),
   });
   const since = options.since === undefined ? undefined : parseSince(options.since, now);
   const lastFetchAt = lastRun.last_fetch_at ? new Date(lastRun.last_fetch_at) : undefined;
@@ -65,7 +66,7 @@ export async function gateStage(deps: RunDeps, options: RunOptions): Promise<Gat
     mode: options.mode,
     dry_run: options.dryRun,
     created_at: now.toISOString(),
-    date: stockholmDate(now),
+    date: decision.date,
     reason: decision.reason,
     passes,
     source: "gate",

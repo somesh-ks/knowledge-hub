@@ -4,55 +4,64 @@
  */
 import {
   type CardData,
+  chipFilter,
   compareCards,
+  EPISODE_KIND,
+  emptyCopy,
+  LIBRARY_FILTERS,
+  LIBRARY_SORTS,
   type LibraryFilter,
   type LibrarySort,
-  matchCount,
+  matchDetail,
+  matchExcerpt,
   matchesFilter,
+  moreMatches,
+  normalize,
   resultSummary,
   type SearchIndexEntry,
+  storyHeadline,
   textHasWords,
 } from "../lib/library";
 
 const VIEW_KEY = "dispatch:library-view";
+/** The Library's address with its search, filter and order, kept for the visit (episodeActions.ts reads it). */
+const LIBRARY_URL_KEY = "dispatch:library-url";
 
 interface Card {
   id: string;
   element: HTMLElement;
-  facts: HTMLElement | null;
-  /** "Weekly, " before the facts, on a weekly briefing's card only. */
-  kind: HTMLElement | null;
+  /** The card's search text as written, a line each: a matching story is named from it. */
+  lines: string[];
   data: CardData;
 }
 
 function readCard(element: HTMLElement, order: number): Card {
-  const {
-    id = "",
-    date = "",
-    kind = "",
-    stories = "0",
-    minutes = "0",
-    search = "",
-  } = element.dataset;
+  const { id = "", date = "", kind = "", minutes = "0", search = "" } = element.dataset;
   return {
     id,
     element,
-    facts: element.querySelector<HTMLElement>("[data-card-facts]"),
-    kind: element.querySelector<HTMLElement>("[data-card-kind]"),
+    lines: search.split("\n"),
     data: {
+      metaLines: Number(element.dataset.metaLines ?? "0"),
       date,
       order,
       kind,
-      stories: Number(stories),
       minutes: Number(minutes),
-      hasAudio: element.dataset.audio !== undefined,
-      search,
+      search: normalize(search),
     },
   };
 }
 
+/** A value the URL may carry for a control, kept only when the control offers it. */
+function allowed<T extends string>(
+  value: string | null,
+  options: ReadonlyArray<{ id: T }>,
+): T | null {
+  return options.find((option) => option.id === value)?.id ?? null;
+}
+
 function install(): void {
-  const root = document.querySelector<HTMLElement>("[data-library]");
+  const root = document.querySelector<HTMLElement>("#main [data-library]");
   if (!root || root.dataset.ready !== undefined) return;
   root.dataset.ready = "";
 
@@ -62,7 +71,10 @@ function install(): void {
   const status = root.querySelector<HTMLElement>("[data-library-status]");
   const empty = root.querySelector<HTMLElement>("[data-library-empty]");
   const clearText = root.querySelector<HTMLButtonElement>("[data-library-clear-text]");
-  const filterSelect = root.querySelector<HTMLSelectElement>("[data-library-filter]");
+  const chips = [...root.querySelectorAll<HTMLInputElement>("[data-library-filter]")];
+  const emptyMessage = root.querySelector<HTMLElement>("[data-library-empty-message]");
+  const emptyButton = root.querySelector<HTMLButtonElement>("[data-library-clear]");
+  let emptyReset: "search" | "everything" = "search";
   if (!grid) return;
   const cards = [...grid.querySelectorAll<HTMLElement>("[data-card]")].map(readCard);
 
@@ -95,42 +107,134 @@ function install(): void {
     }
   }
 
+  /**
+   * While searching, a line under a card's facts says why it is there: the matching story's
+   * headline from a little before the find, the query's words in medium weight, and how many more
+   * stories matched; or that a story's text mentions it. The facts (kind, length) stay in view.
+   * Without a reason, the line goes.
+   */
+  function writeMatch(card: Card, query: string, headline?: string, more = 0): void {
+    const anchor = card.element.querySelector<HTMLElement>(".card-sub");
+    let line = card.element.querySelector<HTMLElement>("[data-card-match]");
+    const key = headline === undefined ? "" : `${query}\n${headline}\n${more}`;
+    if ((line?.dataset.shown ?? "") === key) return;
+    if (headline === undefined) {
+      line?.remove();
+      return;
+    }
+    if (!line) {
+      line = document.createElement("span");
+      line.className = "card-match";
+      line.dataset.cardMatch = "";
+      anchor?.after(line);
+    }
+    line.dataset.shown = key;
+    const parts = query === "" ? [{ text: headline, hit: false }] : matchExcerpt(headline, query);
+    line.replaceChildren(
+      ...parts.map((part) => {
+        if (!part.hit) return document.createTextNode(part.text);
+        const word = document.createElement("b");
+        word.textContent = part.text;
+        return word;
+      }),
+    );
+    const rest = moreMatches(more);
+    if (rest) {
+      const tail = document.createElement("span");
+      tail.className = "card-match-more";
+      tail.textContent = ` ${rest}`;
+      line.append(tail);
+    }
+  }
+
+  /** The search, the filter and the order, in the address, so Back from a result restores them. */
+  function writeUrl(query: string, filter: LibraryFilter, sort: LibrarySort): void {
+    const url = new URL(location.href);
+    const set = (name: string, value: string, fallback: string) => {
+      if (value === fallback) url.searchParams.delete(name);
+      else url.searchParams.set(name, value);
+    };
+    set("q", query, "");
+    set("show", filter, "all");
+    set("sort", sort, "newest");
+    if (url.href !== location.href) history.replaceState(history.state, "", url);
+    // Where the Library was left, for a move that comes back to it (a delete from an episode).
+    try {
+      sessionStorage.setItem(LIBRARY_URL_KEY, url.pathname + url.search);
+    } catch {
+      // Storage can be blocked; the move then goes to the plain Library.
+    }
+  }
+
   function apply(): void {
     const query = input?.value ?? "";
     const searching = query.trim() !== "";
     if (clearText) clearText.hidden = query === "";
     const sort = (select?.value ?? "newest") as LibrarySort;
-    const filter = (filterSelect?.value || "all") as LibraryFilter;
+    const filter = chipFilter(chips.filter((chip) => chip.checked).map((chip) => chip.value));
+    // A narrowed order says so on its control, as a chosen chip does.
+    select?.closest(".sort-field")?.toggleAttribute("data-active", sort !== "newest");
+    // Only the cards still in the page: one this device deleted (deletedEpisodes.ts) may have been
+    // taken out after this script read the list, and must not come back with a new order.
+    const live = cards.filter((card) => card.element.isConnected);
     let shown = 0;
-    for (const card of cards) {
+    for (const card of live) {
       const passes = matchesFilter(card.data, filter);
-      let matches = passes ? matchCount(card.data, query) : 0;
+      const detail = passes ? matchDetail(card.data, query) : { meta: 0, stories: 0 };
+      let matches = detail.meta + detail.stories;
       // A word that only the script or a story's text holds: the card is there, for another reason.
       const inText = passes && matches === 0 && textHasWords(fullText?.get(card.id) ?? "", query);
       if (inText) matches = 1;
       card.element.hidden = matches === 0;
       if (matches > 0) shown += 1;
-      if (card.facts) {
-        // While searching, the line under a card says why it is there, and that alone.
-        const rest = card.facts.dataset.rest ?? "";
-        const found = searching && matches > 0;
-        const text = found
-          ? inText
-            ? "Found in the full text"
-            : matches === 1
-              ? "1 matching story"
-              : `${matches} matching stories`
-          : rest;
-        if (card.facts.textContent !== text) card.facts.textContent = text;
-        if (card.kind && card.kind.hidden !== found) card.kind.hidden = found;
+      // While searching, a line says why a card is there, when a story is why. A card found by its
+      // own date or title needs none: no story matched.
+      if (searching && inText) {
+        const said = card.data.kind === EPISODE_KIND ? "the episode" : "a story";
+        writeMatch(card, "", `Mentioned in ${said}`);
+      } else if (searching && matches > 0 && detail.stories > 0 && "first" in detail) {
+        const headline = storyHeadline(card.lines[detail.first ?? 0] ?? "");
+        writeMatch(card, query, headline, detail.stories - 1);
+      } else writeMatch(card, query);
+    }
+    const ordered = [...live].sort((a, b) => compareCards(a.data, b.data, sort));
+    for (const card of ordered) grid?.append(card.element);
+    if (status) status.textContent = resultSummary(shown, live.length);
+    if (empty) {
+      empty.hidden = shown > 0;
+      if (shown === 0) {
+        const copy = emptyCopy(query, filter);
+        emptyReset = copy.resets;
+        if (emptyMessage) emptyMessage.textContent = copy.message;
+        if (emptyButton) emptyButton.textContent = copy.action;
       }
     }
-    const ordered = [...cards].sort((a, b) => compareCards(a.data, b.data, sort));
-    for (const card of ordered) grid?.append(card.element);
-    if (status) status.textContent = resultSummary(shown, cards.length);
-    if (empty) empty.hidden = shown > 0;
+    writeUrl(query, filter, sort);
     requestAnimationFrame(markTruncated);
   }
+
+  /** What the address asked for when the page opened: Back from a result, or a shared link. */
+  const params = new URLSearchParams(location.search);
+  const startQuery = params.get("q");
+  const startFilter = allowed(params.get("show"), LIBRARY_FILTERS);
+  const startSort = allowed(params.get("sort"), LIBRARY_SORTS);
+  if (input && startQuery) input.value = startQuery;
+  for (const chip of chips) chip.checked = chip.value === startFilter;
+  if (select && startSort) select.value = startSort;
+  if (startQuery) loadFullText();
+
+  /** How the last press was made: a touch must not raise the keyboard over the list it restored. */
+  let lastPointer = "";
+  root.addEventListener(
+    "pointerdown",
+    (event) => {
+      lastPointer = event.pointerType;
+    },
+    { capture: true },
+  );
+  root.addEventListener("keydown", () => {
+    lastPointer = "";
+  });
 
   input?.addEventListener("focus", loadFullText);
   input?.addEventListener("input", () => {
@@ -138,17 +242,31 @@ function install(): void {
     apply();
   });
   select?.addEventListener("change", apply);
-  filterSelect?.addEventListener("change", apply);
+  // Single-select: the chip just ticked is the filter, so the others untick.
+  for (const chip of chips) {
+    chip.addEventListener("change", () => {
+      const chosen = chipFilter([], { value: chip.value, checked: chip.checked });
+      for (const other of chips) other.checked = other.value === chosen;
+      apply();
+    });
+  }
   clearText?.addEventListener("click", () => {
     if (input) input.value = "";
     apply();
+    // The field's own X: the next thing is a new query, so the field keeps the focus.
     input?.focus();
   });
-  root.querySelector("[data-library-clear]")?.addEventListener("click", () => {
+  emptyButton?.addEventListener("click", () => {
     if (input) input.value = "";
-    if (filterSelect) filterSelect.value = "all";
+    if (emptyReset === "everything") for (const chip of chips) chip.checked = false;
     apply();
-    input?.focus();
+    // The button hides with the empty state, so the focus moves on: to the field from a keyboard or
+    // a mouse, and to the first card from a touch, where the field would raise the keyboard.
+    if (lastPointer === "touch" || lastPointer === "pen") {
+      grid
+        .querySelector<HTMLElement>("[data-card]:not([hidden]) .card-link")
+        ?.focus({ preventScroll: true });
+    } else input?.focus();
   });
   // A search field inside a form would reload the page on Enter. The keyboard's Search key also
   // puts the keyboard away, so the results it covered are in view.
@@ -184,6 +302,9 @@ function install(): void {
     });
   }
   window.addEventListener("resize", () => requestAnimationFrame(markTruncated));
+
+  // Episodes this device deleted may be taken out of the page after this script has counted it.
+  document.addEventListener("dispatch:library-pruned", apply);
   apply();
 }
 

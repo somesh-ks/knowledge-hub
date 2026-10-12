@@ -3,7 +3,7 @@ import type { HTMLAttributes } from "astro/types";
 import Icon from "./Icon.astro";
 import PlayPauseIcons from "./PlayPauseIcons.astro";
 
-export type ChipState = "idle" | "current" | "played" | "preparing" | "unavailable";
+export type ChipState = "idle" | "current" | "played" | "preparing" | "error" | "unavailable";
 
 interface Props extends HTMLAttributes<"button"> {
   /** The visible text: a length such as "1:24", or a state such as "Playing". */
@@ -28,7 +28,8 @@ const { label, state = "idle", class: className, ...rest } = Astro.props;
     <PlayPauseIcons />
     <span class="chip-bars"><i></i><i></i><i></i></span>
     <Icon name="check" class="chip-check" />
+    <Icon name="refresh" class="chip-refresh" />
     <span class="spinner"></span>
   </span>
-  <span class="chip-label num" data-chip-label>{label}</span>
+  <span class="chip-label" data-chip-label>{label}</span>
 </button>

@@ -3,13 +3,60 @@ import EmptyState from "../components/EmptyState.astro";
 import BaseLayout from "../layouts/BaseLayout.astro";
 ---
 
-<BaseLayout title="Offline" view="home" nav={null} skipLabel="Skip to the content">
+<BaseLayout title="Offline" view="home" nav={null} skipLabel="Skip to the content" deviceBanner={false}>
   <main id="main" tabindex="-1">
+    {/* Both scenes are in the page; data-state on the section shows the one that is true. */}
     <EmptyState
+      art={["offline", "online"]}
+      state="offline"
       title="You are offline"
-      body="This page is not saved on this device yet. Open a briefing you have read before, or reconnect and try again."
-      primary={{ label: "Open today's briefing", href: "/" }}
-      secondary={{ label: "Library", href: "/library" }}
+      body="This page needs a connection. Briefings and episodes you have opened can still be read."
+      primary={{ label: "Try again", href: "/", reload: true }}
+      secondary={{ label: "Open Library", href: "/library" }}
     />
   </main>
 </BaseLayout>
+
+<script>
+  // The worker serves this page for any address it cannot reach, so Try again reloads that address,
+  // not the page's own.
+  function aimRetry(): void {
+    const retry = document.querySelector<HTMLAnchorElement>(".empty-actions a[data-astro-reload]");
+    if (retry && location.pathname !== "/offline") retry.href = location.pathname + location.search;
+  }
+
+  /** The page never says offline once the connection is back: it says so, and offers a reload. */
+  function showOnline(): void {
+    const section = document.querySelector<HTMLElement>("#main .empty");
+    const title = document.querySelector<HTMLElement>("#main .empty-title");
+    const body = document.querySelector<HTMLElement>("#main .empty-body");
+    const retry = document.querySelector<HTMLAnchorElement>(".empty-actions a[data-astro-reload]");
+    // The scene follows the words: the connected badge with its check takes the place of the cut one.
+    if (section) section.dataset.state = "online";
+    if (title) title.textContent = "You are back online";
+    document.title = "Back online, Singularity";
+    if (body) body.textContent = "Reload to open the page you asked for.";
+    if (retry) retry.textContent = "Reload";
+  }
+
+  function sayOnline(): void {
+    if (!navigator.onLine) return;
+    // Standing in for another address means a request just failed, and the browser's word that it is
+    // online (a weak signal, a captive portal, the site down) is not proof: ask the site itself. Any
+    // answer will do, a refusal included; only a failed request means it cannot be reached.
+    if (location.pathname === "/offline") showOnline();
+    else fetch("/api/status", { cache: "no-store" }).then(showOnline, () => undefined);
+  }
+
+  function onPage(): void {
+    aimRetry();
+    sayOnline();
+  }
+  onPage();
+  document.addEventListener("astro:page-load", onPage);
+  // Back online while this page stands in for another address: open that address now.
+  window.addEventListener("online", () => {
+    sayOnline();
+    if (location.pathname !== "/offline") location.reload();
+  });
+</script>

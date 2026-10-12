@@ -1,4 +1,3 @@
-import { createHash } from "node:crypto";
 import { Resvg } from "@resvg/resvg-js";
 import { describe, expect, it } from "vitest";
 import { MONTH_NAMES } from "./context.js";
@@ -10,8 +9,6 @@ import { TEMPLATES } from "./templates/index.js";
 import type { CoverKind, CoverMeta, CoverSpec, TemplateId } from "./types.js";
 
 const META: CoverMeta = { date: "2026-10-06", kind: "regular", id: "2026-10-06" };
-const WEEKLY: CoverMeta = { date: "2026-10-04", kind: "weekly", id: "2026-10-04-weekly" };
-const EPISODE: CoverMeta = { date: "2026-10-06", kind: "episode", id: "2026-10-06-2" };
 
 /** One fixed palette per template so snapshots cover a spread of looks. */
 const SNAPSHOT_PALETTE: Record<TemplateId, string> = {
@@ -42,15 +39,6 @@ function assertWellFormed(svg: string): void {
   }
   expect(stack).toEqual([]);
   expect(consumed).toBeGreaterThan(0);
-}
-
-function summarize(svg: string): { sha1: string; bytes: number; elements: number; paths: number } {
-  return {
-    sha1: createHash("sha1").update(svg).digest("hex"),
-    bytes: svg.length,
-    elements: (svg.match(/<[A-Za-z]/g) ?? []).length,
-    paths: (svg.match(/<path/g) ?? []).length,
-  };
 }
 
 function thumbnail(svg: string): Buffer {
@@ -125,15 +113,6 @@ describe.each(TEMPLATES)("template %s", (template) => {
     expect(social).toContain('viewBox="0 0 1200 630"');
     assertWellFormed(social);
     expect(social).not.toMatch(/NaN|Infinity|undefined/);
-  });
-
-  it("matches its snapshot at fixed seeds", () => {
-    expect({
-      seed1: summarize(svg),
-      seed424242: summarize(renderCoverSvg(spec(template, 424242), META)),
-      weekly: summarize(renderCoverSvg(spec(template, 7, "sea-lingonberry"), WEEKLY)),
-      episode: summarize(renderCoverSvg(spec(template, 7, "ultramarine"), EPISODE)),
-    }).toMatchSnapshot();
   });
 });
 

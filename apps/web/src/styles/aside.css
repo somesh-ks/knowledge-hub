@@ -9,17 +9,23 @@
 }
 
 @media (min-width: 80rem) {
-  /* Centred on the room the window leaves between the top chrome and the docked player, and
-     held there while the page scrolls. A list taller than that room scrolls inside itself, so
-     every entry stays reachable. */
+  /* Level with the first section's heading (briefingPage.ts measures it into --aside-start; before
+     that, level with the cover's top), then stuck that far under the top chrome while the page
+     scrolls, so it lines up with the reading column instead of floating in the window. A list taller
+     than the room left scrolls inside itself, so every entry stays reachable. */
   .aside {
-    --aside-room: calc(100dvh - var(--sticky-top) - var(--dock-room));
     position: sticky;
-    inset-block-start: calc(var(--sticky-top) + var(--aside-room) / 2);
-    translate: 0 -50%;
+    inset-block-start: calc(var(--sticky-top) + var(--page-top));
     align-self: start;
     display: block;
-    max-height: calc(var(--aside-room) - var(--space-12));
+    margin-block-start: var(--aside-start, var(--page-top));
+    max-height: calc(
+      100dvh -
+      var(--sticky-top) -
+      var(--page-top) -
+      var(--dock-room) -
+      var(--space-4)
+    );
     /* A scrolling box clips what is drawn outside it. This much padding, taken back by the margin,
        leaves room for an entry's focus ring. */
     margin-inline: calc(var(--space-1) * -1);
@@ -60,12 +66,12 @@
   /* The section in view: a filled entry and the accent, so the mark is a shape as well as a colour. */
   .aside-link[aria-current="true"] {
     background: var(--nav-side-item-bg);
-    color: var(--color-accent);
+    color: var(--nav-side-item-fg);
   }
 
   @media (hover: hover) and (pointer: fine) {
     .aside-link:not([aria-current="true"]):hover {
-      background: color-mix(in oklab, currentColor 8%, transparent);
+      background: color-mix(in oklab, currentColor var(--state-hover), transparent);
     }
   }
 
@@ -74,11 +80,7 @@
      mouse is over the entry. */
   .aside-link:not([aria-current="true"]):active,
   .aside-link[aria-current="true"]:active {
-    background: color-mix(in oklab, currentColor 12%, transparent);
-  }
-
-  .aside-link[aria-current="true"]:active {
-    color: var(--color-accent-pressed);
+    background: color-mix(in oklab, currentColor var(--state-press), transparent);
   }
 }
 

@@ -6,10 +6,11 @@ import BaseLayout from "../layouts/BaseLayout.astro";
 <BaseLayout title="Page not found" view="home" nav={null} skipLabel="Skip to the content">
   <main id="main" tabindex="-1">
     <EmptyState
+      art="notfound"
       title="Page not found"
-      body="There is nothing at this address. It may have moved, or the link may be mistyped."
-      primary={{ label: "Open today's briefing", href: "/" }}
-      secondary={{ label: "Library", href: "/library" }}
+      body="Check the address, or start again from Today."
+      primary={{ label: "Go to Today", href: "/" }}
+      secondary={null}
     />
   </main>
 </BaseLayout>

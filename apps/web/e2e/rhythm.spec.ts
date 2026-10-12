@@ -6,8 +6,8 @@ import { expect, test } from "./fixtures";
  * and on a sub-page its title, which carries the way back, takes that place.
  */
 const SIZES = [
-  { width: 1280, height: 800 },
-  { width: 390, height: 844 },
+  { width: 1280, height: 800, tag: ["@desktop"] },
+  { width: 390, height: 844, tag: [] },
 ];
 
 const DESTINATIONS = ["/", "/library", "/create", "/settings"];
@@ -33,8 +33,8 @@ async function firstBlockTop(
 }
 
 for (const size of SIZES) {
-  test.describe(`${size.width}x${size.height}`, () => {
-    test.use({ viewport: size });
+  test.describe(`${size.width}x${size.height}`, { tag: size.tag }, () => {
+    test.use({ viewport: { width: size.width, height: size.height } });
 
     test("the four destinations start their first block at one height", async ({ page }) => {
       const tops: Record<string, number> = {};

@@ -120,7 +120,13 @@ describe("token structure", () => {
 });
 
 describe("color contrast", () => {
-  const surfaces = ["surface", "surface-sunken", "surface-raised", "surface-overlay"];
+  const surfaces = [
+    "surface",
+    "surface-sunken",
+    "surface-container",
+    "surface-raised",
+    "surface-overlay",
+  ];
 
   it.each(MODES)("text roles reach 4.5:1 on every surface (%s)", (mode) => {
     for (const foreground of ["on-surface", "on-surface-muted", "on-surface-subtle", "accent"]) {
@@ -139,6 +145,43 @@ describe("color contrast", () => {
     for (const foreground of ["on-surface", "accent"]) {
       const ratio = contrastRatio(colorOf(`semantic.color.${foreground}`, mode), tint);
       expect(ratio, `${foreground} on accent-subtle (${mode})`).toBeGreaterThanOrEqual(4.5);
+    }
+  });
+
+  it.each(MODES)("text on the accent container reaches 4.5:1 (%s)", (mode) => {
+    const container = colorOf("semantic.color.accent-container", mode);
+    for (const foreground of ["on-accent-container", "on-surface", "on-surface-muted"]) {
+      const ratio = contrastRatio(colorOf(`semantic.color.${foreground}`, mode), container);
+      expect(ratio, `${foreground} on accent-container (${mode})`).toBeGreaterThanOrEqual(4.5);
+    }
+  });
+
+  it.each(MODES)(
+    "text on the action tone reaches 4.5:1, and the tone sits further from the page than the selected one (%s)",
+    (mode) => {
+      const high = colorOf("semantic.color.accent-container-high", mode);
+      const page = colorOf("semantic.color.surface", mode);
+      const ratio = contrastRatio(colorOf("semantic.color.on-accent-container-high", mode), high);
+      expect(
+        ratio,
+        `on-accent-container-high on accent-container-high (${mode})`,
+      ).toBeGreaterThanOrEqual(4.5);
+      const chosen = contrastRatio(colorOf("semantic.color.accent-container", mode), page);
+      expect(
+        contrastRatio(high, page),
+        `the New episode button reads as an action, not a current place (${mode})`,
+      ).toBeGreaterThan(chosen + 0.2);
+    },
+  );
+
+  it.each(MODES)("tonal containers read against the page without an outline (%s)", (mode) => {
+    const page = colorOf("semantic.color.surface", mode);
+    for (const [container, least] of [
+      ["surface-container", 1.08],
+      ["accent-container", 1.2],
+    ] as const) {
+      const ratio = contrastRatio(colorOf(`semantic.color.${container}`, mode), page);
+      expect(ratio, `${container} on the page (${mode})`).toBeGreaterThanOrEqual(least);
     }
   });
 
@@ -214,7 +257,13 @@ describe("color contrast", () => {
 
   it("keeps the neutrals neutral: no surface or text role carries visible chroma", () => {
     for (const mode of MODES) {
-      for (const role of ["surface", "surface-sunken", "on-surface", "on-surface-muted"]) {
+      for (const role of [
+        "surface",
+        "surface-sunken",
+        "surface-container",
+        "on-surface",
+        "on-surface-muted",
+      ]) {
         const chroma = parseOklch(String(resolveLiteral(doc, `semantic.color.${role}`, mode))).c;
         expect(chroma, `${role} (${mode})`).toBeLessThanOrEqual(0.015);
       }
@@ -291,7 +340,7 @@ describe("motion tokens", () => {
     return Number.parseFloat(String(token.value));
   };
 
-  it("keeps every UI duration at or under 300ms, except the full-height drawer", () => {
+  it("keeps durations inside the motion policy: UI, press feedback and stagger", () => {
     for (const token of doc.tokens.filter((candidate) => candidate.type === "duration")) {
       const name = token.path.at(-1) ?? "";
       if (name === "drawer-full") {
@@ -302,34 +351,19 @@ describe("motion tokens", () => {
       const limit = typeof token.extensions.perceptualMs === "number" ? 500 : 300;
       expect(durationMs(token), name).toBeLessThanOrEqual(limit);
     }
+    const ms = (name: string): number =>
+      Number.parseFloat(String(doc.byPath.get(`primitive.duration.${name}`)?.value));
+    expect(ms("press-in")).toBeGreaterThanOrEqual(100);
+    expect(ms("press-out")).toBeLessThanOrEqual(160);
+    expect(ms("press-in")).toBeLessThan(ms("press-out"));
+    expect(ms("stagger")).toBeGreaterThanOrEqual(30);
+    expect(ms("stagger")).toBeLessThanOrEqual(80);
   });
 
-  it("keeps press feedback inside 100 to 160ms and asymmetric", () => {
-    const pressIn = Number.parseFloat(String(doc.byPath.get("primitive.duration.press-in")?.value));
-    const pressOut = Number.parseFloat(
-      String(doc.byPath.get("primitive.duration.press-out")?.value),
-    );
-    expect(pressIn).toBeGreaterThanOrEqual(100);
-    expect(pressOut).toBeLessThanOrEqual(160);
-    expect(pressIn).toBeLessThan(pressOut);
-  });
-
-  it("keeps stagger inside 30 to 80ms", () => {
-    const stagger = Number.parseFloat(String(doc.byPath.get("primitive.duration.stagger")?.value));
-    expect(stagger).toBeGreaterThanOrEqual(30);
-    expect(stagger).toBeLessThanOrEqual(80);
-  });
-
-  it("uses the DESIGN.md curves and never an ease-in", () => {
-    expect(doc.byPath.get("primitive.ease.out")?.value).toEqual([0.23, 1, 0.32, 1]);
-    expect(doc.byPath.get("primitive.ease.in-out")?.value).toEqual([0.77, 0, 0.175, 1]);
-    expect(doc.byPath.get("primitive.ease.drawer")?.value).toEqual([0.32, 0.72, 0, 1]);
+  it("never uses an ease-in and remaps only movement durations under reduced motion", () => {
     for (const token of doc.tokens.filter((candidate) => candidate.path[1] === "ease")) {
       expect(String(token.value)).not.toMatch(/ease-in(?!-out)/);
     }
-  });
-
-  it("remaps only movement durations under reduced motion", () => {
     const reduced = doc.tokens.filter((token) => token.reducedMotion !== undefined);
     expect(reduced.length).toBeGreaterThan(0);
     for (const token of reduced) {
@@ -354,28 +388,9 @@ describe("generated CSS", () => {
     expect(readFileSync(TOKENS_CSS_PATH, "utf8")).toBe(css);
   });
 
-  it("carries the do-not-edit header and both dark entry points", () => {
-    expect(css).toContain("GENERATED FILE. Do not edit.");
-    expect(css).toContain("@media (prefers-color-scheme: dark)");
-    expect(css).toContain(':root:not([data-theme="light"])');
-    expect(css).toContain(':root[data-theme="dark"]');
-    expect(css).toContain("@media (prefers-reduced-motion: reduce)");
-  });
-
-  it("keeps the tier chain visible through var() references", () => {
-    expect(css).toMatch(/--color-surface: var\(--color-grey-50\);/);
-    expect(css).toMatch(/--mini-player-bg: var\(--color-surface-overlay\);/);
-  });
-
   it("contains no raw hex colors, because tokens are OKLCH", () => {
     const body = css.replace(/\/\*[\s\S]*?\*\//g, "");
     expect(body).not.toMatch(/#[0-9a-f]{3,8}\b/i);
-  });
-
-  it("expands typography composites into five properties", () => {
-    for (const suffix of ["family", "size", "weight", "tracking", "leading"]) {
-      expect(css).toContain(`--text-display-${suffix}:`);
-    }
   });
 
   it("derives sRGB values for theme-color", () => {

@@ -12,6 +12,12 @@
   inset-inline: calc(var(--stroke-hairline) * -1);
 }
 
+/* Fixed-width digits only where the number ticks: a chip's time while it plays. A still label such
+   as "1 min" keeps the font's own figures, which space it evenly. */
+.chip[data-playing="true"] .chip-label {
+  font-variant-numeric: tabular-nums;
+}
+
 /* ------------------------------------------------------------------ page title */
 
 /* The one h1 of a page: a date, or the page's name. Regular weight at the display size. */

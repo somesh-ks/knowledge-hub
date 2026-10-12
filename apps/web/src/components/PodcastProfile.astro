@@ -2,6 +2,7 @@
 import { SUPPORTED_TIMEZONES } from "@dispatch/core";
 import { FORMATS, LENGTHS } from "../lib/createForm";
 import { CADENCES, hourLabel, WEEKDAYS } from "../lib/schedule";
+import { weeklyNote } from "../lib/settingsSummary";
 import Icon from "./Icon.astro";
 
 interface Props {
@@ -9,7 +10,8 @@ interface Props {
   id: "daily" | "weekly";
   /** The saved values. A field the profile has no row for is ignored. */
   values: {
-    timezone?: string;
+    /** The schedule's time zone, one setting both profiles show. */
+    timezone: string;
     enabled?: boolean;
     hour?: number;
     day?: number;
@@ -21,34 +23,39 @@ interface Props {
     voiceId: string | null;
     voiceIdB: string | null;
   };
-  /** All available topics to check scope against. */
-  topics?: readonly { id: string; name: string }[];
-  /** Daily only: the weekly podcast's day (0 = Sunday) while it is on, which has no briefing. */
-  weeklyDay?: number | null;
+  /**
+   * The topics a person can put in or out of this podcast: Design, AI and Technology, and their own.
+   * `ids` are the topics each one stands for, which is what the schedule's skip list holds.
+   */
+  topics?: readonly { id: string; name: string; ids: readonly string[] }[];
+  /** Daily only: the weekly podcast, whose day (0 = Sunday) has no daily episode while it is on. */
+  weekly?: { enabled: boolean; day: number };
 }
 
-const { id, values, topics = [], weeklyDay = null } = Astro.props;
-const weeklyDayName = weeklyDay === null ? undefined : WEEKDAYS[weeklyDay];
-const whenHint =
-  id === "daily" && weeklyDayName
-    ? "Prioritizes weekly podcast on overlapping days"
-    : `${values.timezone ?? "Europe/Stockholm"} time`;
-
-const activeTopics = topics.filter((topic) => !values.skipTopics.includes(topic.id));
+const { id, values, topics = [], weekly } = Astro.props;
+const label = id === "daily" ? "Daily" : "Weekly";
+// Worked out again in the browser from the data on it when a weekly edit is saved (savedView.ts).
+const sundayNote = weekly ? weeklyNote(weekly) : null;
 
 const hours = Array.from({ length: 24 }, (_, value) => value);
-const discussion = values.format === "discussion";
-// A stored Headlines schedule has no radio to show; the first change picks one of the two.
+// A topic is in the podcast unless every topic it stands for is on the skip list.
+const inScope = (ids: readonly string[]): boolean =>
+  !ids.every((topic) => values.skipTopics.includes(topic));
+
+// Format and the Discussion voice are the profile's own and are saved with it. A briefing is still
+// narrated from its digest in one voice (scheduledVoice in server/narrate.ts), so they take effect
+// where a discussion is made, not in a briefing's narration yet (D100). A stored Headlines schedule
+// has no radio to show; the first change picks one of the two.
 const VOICES = [
-  { key: "voice", saved: values.voiceId, name: "Ada" },
-  { key: "voice_b", saved: values.voiceIdB, name: "Leo" },
+  { key: "voice", saved: values.voiceId, name: "Voice" },
+  { key: "voice_b", saved: values.voiceIdB, name: "Discussion voice" },
 ] as const;
 ---
 
 <div class="podcast-profile" data-profile={id}>
-  <div class="rows">
-    {
-      id === "weekly" && (
+  {
+    id === "weekly" && (
+      <div class="rows podcast-enable">
         <div class="settings-row">
           <label class="settings-label" for="weekly-enabled">Weekly podcast</label>
           <input
@@ -61,36 +68,30 @@ const VOICES = [
             autocomplete="off"
           />
         </div>
-      )
-    }
-
-    <div class="settings-row daily-when">
-      <div class="settings-text">
-        <span class="settings-label">When</span>
-        <span class="settings-hint" id={`${id}-when-hint`}>{whenHint}</span>
       </div>
-      <div class="daily-selects">
-        <label class="sr-only" for={`${id}-timezone`}>Time zone</label>
-        <span class="manage-select" data-timezone-select>
-          <select
-            class="manage-input"
-            id={`${id}-timezone`}
-            data-f={`${id}.timezone`}
-            autocomplete="off"
-            aria-describedby={`${id}-when-hint`}
-          >
-            {SUPPORTED_TIMEZONES.map((tz) => (
-              <option value={tz.value} selected={tz.value === (values.timezone ?? "Europe/Stockholm")}>
-                {tz.label}
-              </option>
+    )
+  }
+
+  <section class="podcast-section" aria-labelledby={`${id}-schedule-head`}>
+    <h2 class="section-head" id={`${id}-schedule-head`}>Schedule</h2>
+    <div class="rows">
+      {/* One setting for both podcasts: the cron route, the gate and the next line count on its clock. */}
+      <div class="settings-row">
+        <label class="settings-label" for={`${id}-timezone`}>Time zone</label>
+        <span class="manage-select value-select">
+          <select class="manage-input" id={`${id}-timezone`} data-f={`${id}.timezone`} autocomplete="off">
+            {SUPPORTED_TIMEZONES.map((zone) => (
+              <option value={zone.value} selected={zone.value === values.timezone}>{zone.label}</option>
             ))}
           </select>
           <Icon name="chevronDown" />
         </span>
-        {id === "weekly" && (
-          <>
-            <label class="sr-only" for="weekly-day">Day</label>
-            <span class="manage-select">
+      </div>
+      {
+        id === "weekly" && (
+          <div class="settings-row">
+            <label class="settings-label" for="weekly-day">Day</label>
+            <span class="manage-select value-select">
               <select class="manage-input" id="weekly-day" data-f="weekly.day" autocomplete="off">
                 {WEEKDAYS.map((name, value) => (
                   <option value={value} selected={value === values.day}>{name}</option>
@@ -98,28 +99,44 @@ const VOICES = [
               </select>
               <Icon name="chevronDown" />
             </span>
-          </>
-        )}
-        <label class="sr-only" for={`${id}-hour`}>Time</label>
-        <span class="manage-select">
-          <select
-            class="manage-input"
-            id={`${id}-hour`}
-            data-f={`${id}.hour`}
-            autocomplete="off"
-            aria-describedby={`${id}-when-hint`}
-          >
+          </div>
+        )
+      }
+      <div class="settings-row">
+        <label class="settings-label" for={`${id}-hour`}>Time</label>
+        <span class="manage-select value-select">
+          <select class="manage-input" id={`${id}-hour`} data-f={`${id}.hour`} autocomplete="off">
             {hours.map((value) => (
               <option value={value} selected={value === values.hour}>{hourLabel(value)}</option>
             ))}
           </select>
           <Icon name="chevronDown" />
         </span>
-        {id === "daily" && (
-          <>
-            <label class="sr-only" for="daily-cadence">How often</label>
-            <span class="manage-select">
-              <select class="manage-input" id="daily-cadence" data-f="daily.cadence" autocomplete="off">
+      </div>
+      {
+        id === "daily" && (
+          <div class="settings-row">
+            <div class="settings-text">
+              <label class="settings-label" for="daily-cadence">Repeat</label>
+              <span
+                class="settings-hint"
+                id="daily-cadence-note"
+                data-weekly-note
+                data-weekly-enabled={String(weekly?.enabled ?? false)}
+                data-weekly-day={weekly?.day ?? 0}
+                hidden={!sundayNote}
+              >
+                {sundayNote}
+              </span>
+            </div>
+            <span class="manage-select value-select">
+              <select
+                class="manage-input"
+                id="daily-cadence"
+                data-f="daily.cadence"
+                aria-describedby="daily-cadence-note"
+                autocomplete="off"
+              >
                 {CADENCES.map((cadence) => (
                   <option value={cadence.days} selected={cadence.days === values.cadenceDays}>
                     {cadence.label}
@@ -128,125 +145,137 @@ const VOICES = [
               </select>
               <Icon name="chevronDown" />
             </span>
-          </>
-        )}
-      </div>
-    </div>
-
-    {/* Topics in scope displayed as chips with a configure button leading to Topics & Sources */}
-    <div class="settings-row podcast-topics-row">
-      <div class="settings-text">
-        <span class="settings-label" id={`${id}-topics-label`}>Topics</span>
-        <span class="settings-hint" id={`${id}-topics-hint`}>Configure topics and scope in Topics & Sources</span>
-      </div>
-      <div class="podcast-topics-scope">
-        <div class="podcast-chips" aria-labelledby={`${id}-topics-label`}>
-          {
-            activeTopics.length > 0 ? (
-              activeTopics.map((topic) => (
-                <span class="podcast-chip" data-topic={topic.id}>
-                  {topic.name}
-                </span>
-              ))
-            ) : (
-              <span class="manage-quiet">No topics in this scope</span>
-            )
-          }
-        </div>
-        <a class="btn-secondary podcast-configure-btn" href="/settings/topics">
-          <span>Configure</span>
-          <Icon name="chevronRight" />
-        </a>
-      </div>
-    </div>
-
-    <div class="settings-row" data-layout="choice">
-      <div class="settings-text">
-        <span class="settings-label" id={`${id}-format-label`}>Type</span>
-      </div>
-      <fieldset class="settings-choice" role="radiogroup" aria-labelledby={`${id}-format-label`}>
-        {
-          FORMATS.map((entry) => (
-            <label class="settings-segment">
-              <input
-                type="radio"
-                name={`${id}-format`}
-                value={entry.value}
-                data-f={`${id}.format`}
-                checked={entry.value === values.format}
-                autocomplete="off"
-              />
-              <span>{entry.label}</span>
-            </label>
-          ))
-        }
-      </fieldset>
-    </div>
-
-    <div class="settings-row" data-layout="choice">
-      <div class="settings-text">
-        <span class="settings-label" id={`${id}-length-label`}>Length</span>
-      </div>
-      <fieldset class="settings-choice" role="radiogroup" aria-labelledby={`${id}-length-label`}>
-        {
-          LENGTHS.map((entry) => (
-            <label class="settings-segment">
-              <input
-                type="radio"
-                name={`${id}-length`}
-                value={String(entry.value)}
-                data-f={`${id}.length`}
-                checked={entry.value === values.lengthMinutes}
-                autocomplete="off"
-              />
-              <span class="num">{entry.label}</span>
-            </label>
-          ))
-        }
-      </fieldset>
-    </div>
-
-    {
-      VOICES.map((voice, index) => (
-        <div class="settings-row" data-voice-row={voice.key} hidden={index === 1 && !discussion}>
-          <div class="settings-text">
-            <label class="settings-label" for={`${id}-${voice.key}`} data-voice-label data-name={voice.name}>
-              {discussion ? voice.name : `Voice (${voice.name})`}
-            </label>
           </div>
-          <div class="daily-selects daily-selects-one podcast-voice">
-            <span class="manage-select">
-              <select
-                class="manage-input"
-                id={`${id}-${voice.key}`}
-                data-f={`${id}.${voice.key}`}
-                data-saved={voice.saved ?? ""}
+        )
+      }
+    </div>
+  </section>
+
+  <section class="podcast-section" aria-labelledby={`${id}-topics-head`}>
+    <h2 class="section-head" id={`${id}-topics-head`}>Topics</h2>
+    {
+      topics.length > 0 ? (
+        <fieldset class="filter-chips podcast-topics" aria-labelledby={`${id}-topics-head`} data-scope-chips>
+          {topics.map((topic) => (
+            <label class="filter-chip">
+              <input
+                type="checkbox"
+                data-scope={id}
+                data-scope-ids={topic.ids.join(" ")}
+                checked={inScope(topic.ids)}
                 autocomplete="off"
+              />
+              <Icon name="check" class="filter-chip-check" />
+              <span>{topic.name}</span>
+            </label>
+          ))}
+        </fieldset>
+      ) : (
+        <p class="manage-quiet">No topics yet.</p>
+      )
+    }
+    {
+      topics.length > 0 && (
+        <p class="settings-hint podcast-hint" data-no-topics hidden={topics.some((topic) => inScope(topic.ids))}>
+          No topics chosen, so {label} episodes have nothing to cover.
+        </p>
+      )
+    }
+    <div class="rows">
+      <a class="row-action" href="/settings/topics">
+        <span class="settings-text"><span class="settings-label">Topics and sources</span></span>
+        <Icon name="chevronRight" />
+      </a>
+    </div>
+  </section>
+
+  <section class="podcast-section" aria-labelledby={`${id}-episode-head`}>
+    <h2 class="section-head" id={`${id}-episode-head`}>Episode</h2>
+    <div class="rows">
+      <div class="settings-row" data-layout="choice">
+        <div class="settings-text">
+          <span class="settings-label" id={`${id}-format-label`}>Format</span>
+        </div>
+        <fieldset class="settings-choice" role="radiogroup" aria-labelledby={`${id}-format-label`}>
+          {
+            FORMATS.map((entry) => (
+              <label class="settings-segment">
+                <input
+                  type="radio"
+                  name={`${id}-format`}
+                  value={entry.value}
+                  data-f={`${id}.format`}
+                  checked={entry.value === values.format}
+                  autocomplete="off"
+                />
+                <span>{entry.label}</span>
+              </label>
+            ))
+          }
+        </fieldset>
+      </div>
+
+      <div class="settings-row" data-layout="choice">
+        <div class="settings-text">
+          <span class="settings-label" id={`${id}-length-label`}>Length</span>
+        </div>
+        <fieldset class="settings-choice" role="radiogroup" aria-labelledby={`${id}-length-label`}>
+          {
+            LENGTHS.map((entry) => (
+              <label class="settings-segment">
+                <input
+                  type="radio"
+                  name={`${id}-length`}
+                  value={String(entry.value)}
+                  data-f={`${id}.length`}
+                  checked={entry.value === values.lengthMinutes}
+                  autocomplete="off"
+                />
+                <span class="num">{entry.label}</span>
+              </label>
+            ))
+          }
+        </fieldset>
+      </div>
+
+      {
+        VOICES.map((voice) => (
+          <div class="settings-row" data-voice-row={voice.key}>
+            <label class="settings-label" for={`${id}-${voice.key}`}>{voice.name}</label>
+            <div class="podcast-voice">
+              <span class="manage-select value-select">
+                <select
+                  class="manage-input"
+                  id={`${id}-${voice.key}`}
+                  data-f={`${id}.${voice.key}`}
+                  data-saved={voice.saved ?? ""}
+                  autocomplete="off"
+                >
+                  <option value="">Default</option>
+                  {voice.saved && <option value={voice.saved} selected>Saved voice</option>}
+                </select>
+                <Icon name="chevronDown" />
+              </span>
+              {/* A round play button on every voice row, as every play control in the app is drawn.
+                   Choosing a voice plays its sample too, so a list can be heard one voice at a time.
+                   While the voice has no sample (or the list has not arrived) the button stays,
+                   dimmed and not pressable, so the select never moves and each voice has its own. */}
+              <button
+                class="podcast-sample"
+                type="button"
+                data-preview
+                data-sample-name={voice.name.toLowerCase()}
+                disabled
+                aria-pressed="false"
+                aria-label={`Play a sample of the ${voice.name.toLowerCase()}`}
               >
-                <option value="">Default</option>
-                {voice.saved && <option value={voice.saved} selected>Saved voice</option>}
-              </select>
-              <Icon name="chevronDown" />
-            </span>
-            {/* The play chip, as every play control in the app is drawn. Choosing a voice plays its
-                 sample too, so a list can be heard one voice at a time. */}
-            <button
-              class="chip podcast-sample"
-              type="button"
-              data-preview
-              hidden
-              aria-pressed="false"
-              aria-label={`Play a sample of the ${voice.name} voice`}
-            >
-              <span class="chip-glyph" aria-hidden="true">
                 <Icon name="play" class="sample-play" />
                 <Icon name="pause" class="sample-pause" />
-              </span>
-              <span aria-hidden="true">Sample</span>
-            </button>
+              </button>
+            </div>
           </div>
-        </div>
-      ))
-    }
-  </div>
+        ))
+      }
+    </div>
+  </section>
 </div>

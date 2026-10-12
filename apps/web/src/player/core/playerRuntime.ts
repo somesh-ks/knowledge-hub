@@ -8,24 +8,29 @@
  */
 
 import { narratedOrPage } from "../../narration/narrationRegistry";
+import { pageNeedsPrewarm, whenIdle } from "../../narration/prewarmPage";
 import { createSwitchableAudio, type SwitchableAudio } from "../../narration/switchableAudio";
 import { startSound } from "../sound/soundController";
 import { announcementForEvent } from "./announcements";
 import { announce } from "./announcerDom";
+
+/** The open player covers the page (html[data-player="open"]), so the page's own notices are inert. */
+function playerIsOpen(): boolean {
+  return document.documentElement.getAttribute("data-player") === "open";
+}
+
 import { readDigestData } from "./digestData";
-import { recordInstallVisit } from "./installHint";
+import { replayEarlyTap, takeEarlyAudio } from "./earlyTap";
 import { attachMediaSession } from "./mediaSession";
 import { shouldToggleOnPageSpace } from "./playerKeys";
 import { playerSheet } from "./playerSheet";
 import { createPlayerStore } from "./playerStore";
 import type { PlayerStore } from "./playerTypes";
 import { getPreferences, rememberRate } from "./preferences";
-import { createReaderSync } from "./readerSync";
+import { createReaderSync, type ReaderSync } from "./readerSync";
 import { safeLocalStorage } from "./resume";
 import { reapplyRootState, setRootAttribute, setRootProperty } from "./rootAttributes";
 import { reapplyTheme, startThemeSync } from "./themeRuntime";
-
-const PREWARM_DELAY_MS = 1_500;
 
 let store: PlayerStore | null = null;
 
@@ -49,7 +54,8 @@ let playerAudio: SwitchableAudio | null = null;
  * never placed in the DOM, so a router that swaps the page cannot take it down with the markup.
  */
 export function getPlayerAudio(): SwitchableAudio {
-  playerAudio ??= createSwitchableAudio(new Audio());
+  // The element a Play pressed before the player loaded has already unlocked, when there is one.
+  playerAudio ??= createSwitchableAudio(takeEarlyAudio() ?? new Audio());
   return playerAudio;
 }
 
@@ -60,6 +66,28 @@ function narrateFromTap(itemId?: string): void {
   void import("../../narration/narrationRuntime").then((narration) =>
     narration.narratePage(itemId),
   );
+}
+
+/**
+ * A story row or Previous and Next on a recording whose narration is not laid out yet: start the
+ * page's recording at that story, narrating what is missing. Does nothing when the page holds
+ * another recording than the player shows.
+ */
+export function playPageStory(digestId: string, itemId: string): void {
+  const page = getPlayerStore().getPageDigest();
+  if (!page || page.id !== digestId || page.audio) return;
+  narrateFromTap(itemId);
+}
+
+let activeReader: ReaderSync | null = null;
+
+/**
+ * Plays a briefing the listener is being taken to (Up next): the same road as a cover press, so one
+ * with no finished audio is narrated once its page has loaded.
+ */
+export function playBriefingOnArrival(digestId: string): void {
+  activeReader?.expectPage(digestId);
+  getPlayerStore().playWhenPageLoads(digestId);
 }
 
 export function getPlayerStore(): PlayerStore {
@@ -113,31 +141,49 @@ function toggleOnSpace(playerStore: PlayerStore): (event: KeyboardEvent) => void
 export function startPlayerRuntime(): () => void {
   const playerStore = getPlayerStore();
   const preferences = getPreferences();
-  recordInstallVisit(safeLocalStorage());
+  // Counted for the install hint on Settings; nothing on this page waits on it, so it loads late.
+  whenIdle(() => {
+    import("./installHint")
+      .then((hint) => hint.recordInstallVisit(safeLocalStorage()))
+      .catch(() => undefined);
+  });
 
   const detachMediaSession = attachMediaSession(playerStore);
   const reader = createReaderSync(playerStore, narrateFromTap);
+  activeReader = reader;
   const stopSound = startSound({ store: playerStore, preferences });
 
   const stopTheme = startThemeSync();
 
   syncRootState(playerStore);
-  const offState = playerStore.subscribe(() => syncRootState(playerStore));
+  // "Playing." waits for the sound: a start that fails at once (offline) says only why.
+  let starting: string | null = null;
+  const offState = playerStore.subscribe(({ status }) => {
+    syncRootState(playerStore);
+    if (status === "loading") return;
+    if (starting && status === "playing") announce(starting);
+    starting = null;
+  });
   const offEvent = playerStore.onEvent((event) => {
-    const message = announcementForEvent(event, playerStore.getState().track);
-    if (message) announce(message);
+    const message = announcementForEvent(event, playerStore.getState().track, {
+      open: playerIsOpen(),
+      started: playerStore.getState().hasStarted,
+    });
+    if (event.type === "willPlay") starting = message;
+    else if (message) announce(message);
   });
 
   const onPageLoad = (): void => {
     readPage(playerStore);
     reader.refresh();
-    if (navigator.onLine && !playerStore.getPageDigest()?.audio) {
-      // A moment after the page settles, so it never competes with the first load.
-      setTimeout(() => {
+    // Only a briefing or an episode without audio, at the next idle moment rather than after a
+    // fixed wait: the first Play after a page opens finds its first file sooner.
+    if (pageNeedsPrewarm(playerStore.getPageDigest(), navigator.onLine)) {
+      whenIdle(() => {
         import("../../narration/narrationRuntime")
           .then((narration) => narration.prewarmPage())
           .catch(() => undefined);
-      }, PREWARM_DELAY_MS);
+      });
     }
   };
   // Browser Back (system Back on a phone) dismisses the open player and stays on the page. The open
@@ -186,8 +232,16 @@ export function startPlayerRuntime(): () => void {
     playerSheet.sync();
   };
   const onSpace = toggleOnSpace(playerStore);
-  const onOnline = (): void => announce("You are back online.");
-  const onOffline = (): void => announce("You are offline.");
+  // The page's banner (role status) speaks the connection, except while the open player makes it
+  // inert: only then does the player say it.
+  const onOnline = (): void => {
+    if (playerIsOpen()) announce("You are back online.");
+    // A failure the lost connection caused happened while the listener was playing: play on.
+    if (playerStore.getState().error?.kind === "offline") playerStore.retry();
+  };
+  const onOffline = (): void => {
+    if (playerIsOpen()) announce("You are offline.");
+  };
 
   document.addEventListener("astro:page-load", onPageLoad);
   document.addEventListener("astro:before-preparation", onBeforeNavigation);
@@ -197,6 +251,8 @@ export function startPlayerRuntime(): () => void {
   window.addEventListener("offline", onOffline);
   // The island usually hydrates after the first astro:page-load has already fired.
   onPageLoad();
+  // A Play pressed while the player was loading is pressed again, now that it has a listener.
+  replayEarlyTap();
 
   return () => {
     document.removeEventListener("astro:page-load", onPageLoad);
@@ -211,6 +267,7 @@ export function startPlayerRuntime(): () => void {
     removeEventListener("dispatch:back", onBack);
     stopTheme();
     stopSound();
+    if (activeReader === reader) activeReader = null;
     reader.destroy();
     detachMediaSession();
   };

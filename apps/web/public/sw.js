@@ -14,7 +14,7 @@
  *     Safari playback, so audio, ranged requests and cross-origin requests all pass straight through.
  *   - Bump VERSION when this file's logic changes; activation removes caches from older versions.
  */
-const VERSION = "v5";
+const VERSION = "v7";
 const SHELL_CACHE = `dispatch-shell-${VERSION}`;
 const PAGES_CACHE = `dispatch-pages-${VERSION}`;
 const MEDIA_CACHE = `dispatch-media-${VERSION}`;
@@ -170,9 +170,13 @@ async function stamped(response, time) {
 
 async function store(cacheName, request, response, limit) {
   if (!response.ok || response.type === "opaque") return;
+  // Cloned before any wait. A script answered from the network is already being read by the page when
+  // the cache opens, and a body in use cannot be cloned: nothing fetched at run time was ever saved,
+  // so a lazy chunk the page had not been warmed for was missing offline.
+  const kept = response.clone();
   const cache = await caches.open(cacheName);
   // Pages carry the time they were saved, so a move inside the app can tell a recent copy from an old one.
-  const copy = cacheName === PAGES_CACHE ? await stamped(response, Date.now()) : response.clone();
+  const copy = cacheName === PAGES_CACHE ? await stamped(kept, Date.now()) : kept;
   await cache.put(request, copy);
   if (limit) await trim(cacheName, limit);
 }
@@ -205,7 +209,9 @@ async function warmAssets(response) {
   if (!(response.headers.get("content-type") || "").includes("text/html")) return;
   const cache = await caches.open(SHELL_CACHE);
   const assets = referencedAssets(await response.text(), self.location.origin);
-  await precacheAssets(cache, [...assets], self.location.origin, 2);
+  // As deep as the install goes: an editor behind two lazy imports is on the page, and a file missed
+  // here fails offline. Files already saved are skipped, so a page after the first costs little.
+  await precacheAssets(cache, [...assets], self.location.origin, 6);
 }
 
 function staleWhileRevalidate(event, cacheName, limit) {
@@ -240,11 +246,16 @@ function sharedFetch(request) {
   return pending.then((response) => response.clone());
 }
 
-function networkFirst(event, cacheName, limit, beforeStore, shared) {
+/**
+ * `key` is the cache entry the answer is saved under, when it is not the request itself: /latest.json
+ * is saved under its bare path whatever query string asked for it.
+ */
+function networkFirst(event, cacheName, limit, beforeStore, shared, key) {
   const request = event.request;
+  const saveAs = key || request;
   const network = (shared ? sharedFetch(request) : fetch(request)).then(async (response) => {
-    if (response.ok && beforeStore) await beforeStore(request, response);
-    await store(cacheName, request, response, limit);
+    if (response.ok && beforeStore) await beforeStore(saveAs, response);
+    await store(cacheName, saveAs, response, limit);
     if (response.ok) background(event, warmAssets(response.clone()));
     return response;
   });
@@ -252,7 +263,7 @@ function networkFirst(event, cacheName, limit, beforeStore, shared) {
   event.waitUntil(network.catch(() => undefined));
   return Promise.race([network.catch(() => undefined), timeout]).then(async (response) => {
     if (response) return response;
-    const cached = await caches.match(request);
+    const cached = await caches.match(saveAs);
     // Slow network and nothing saved: keep waiting for the real answer, then fall back to /offline.
     return cached || network.catch(() => offline(request));
   });
@@ -334,7 +345,11 @@ self.addEventListener("fetch", (event) => {
   } else if (url.pathname.startsWith("/d/")) {
     event.respondWith(staleWhileRevalidate(event, PAGES_CACHE, MAX_PAGES));
   } else if (url.pathname === LATEST_PATH) {
-    event.respondWith(networkFirst(event, PAGES_CACHE, MAX_PAGES, expirePagesIfChanged));
+    // One entry under the bare path, whatever the query: a copy per query string would never match
+    // the one before it (so the check for a new briefing never fired) and would push real pages out.
+    event.respondWith(
+      networkFirst(event, PAGES_CACHE, MAX_PAGES, expirePagesIfChanged, false, LATEST_PATH),
+    );
   } else if (isPage(request)) {
     // A page load waits for the network. The client router's fetch and a prefetch do not have to.
     event.respondWith(

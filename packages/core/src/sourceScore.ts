@@ -179,7 +179,7 @@ function plural(n: number, one: string, many: string): string {
 
 function healthClause(failures: number, days: number | null): string {
   if (failures > 0) return `${plural(failures, "failed fetch", "failed fetches")} in a row`;
-  if (days === null) return "no working fetch on record";
+  if (days === null) return "it has not been read successfully yet";
   if (days > 14) return "no fetch has worked for over two weeks";
   if (days > 7) return "no fetch has worked for over a week";
   return "no failures";
@@ -230,7 +230,9 @@ export function sourceScore(input: SourceScoreInput): SourceScoreResult {
   if (!stat || (judged < MIN_JUDGED && !sparse)) {
     const seen = plural(judged, "item", "items");
     const prior =
-      discovery === undefined ? "" : `; discovery scored it ${discovery.toFixed(2)} of 1`;
+      discovery === undefined
+        ? ""
+        : `; it scored ${Math.round(discovery * 100)} of 100 when it was found`;
     return {
       score: null,
       label: "New",

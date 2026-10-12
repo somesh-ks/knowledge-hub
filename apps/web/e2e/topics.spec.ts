@@ -1,5 +1,6 @@
 import AxeBuilder from "@axe-core/playwright";
 import type { Locator, Page, Route } from "@playwright/test";
+import { GAP_MS } from "../src/scripts/managePageSave";
 import { expect, test } from "./fixtures";
 
 const LIST = "/settings/topics";
@@ -10,7 +11,8 @@ const PIXEL = Buffer.from(
   "base64",
 );
 const SAVED = "Saved. Live in about a minute.";
-const ADDED = "Added. It appears after the next build.";
+const ADDED = "Added. Read from the next update.";
+const ADDED_TOPIC = "Added. Its page opens in about a minute.";
 
 interface Sent {
   passphrase: string;
@@ -64,7 +66,9 @@ async function open(page: Page, path = LIST): Promise<void> {
   await expect(page.locator("[data-topics]")).toHaveAttribute("data-ready", "");
 }
 
-const source = (page: Page, name: string) => page.locator("li.source-row", { hasText: name });
+/** A source of the topic, not one of the feeds suggested for it. */
+const source = (page: Page, name: string) =>
+  page.locator("li.source-row:not(.is-suggested)", { hasText: name });
 const toast = (page: Page) => page.locator("[data-bar]");
 const toastText = (page: Page) => toast(page).locator("[data-bar-text]");
 const ops = (sent: Sent[]) => sent.flatMap((item) => [item.op].flat());
@@ -75,17 +79,18 @@ test.describe("the Topics list", () => {
   test("has one row per topic, each with what it holds now, and no filters", async ({ page }) => {
     await setup(page);
     await open(page);
-    await expect(page.getByRole("heading", { level: 1, name: "Topics & Sources" })).toBeVisible();
+    await expect(page.getByRole("heading", { level: 1, name: "Topics and sources" })).toBeVisible();
     await expect(page.getByRole("button", { name: "Add a topic or a source" })).toBeVisible();
     const rows = [
       ["Design", "2 sources"],
       ["AI", "1 source"],
-      ["Technology", "0 sources"],
-      ["Audio interfaces", "Weight 75%, 1 source"],
-      ["Other", "2 sources outside the topics above"],
-      ["World", "3 sources"],
+      ["Technology", "No sources yet"],
+      ["Audio interfaces", "1 source"],
+      // Other counts the way every row does: one of its two sources is switched off.
+      ["Other", "1 of 2 sources on"],
+      ["World", "2 of 3 sources on"],
       ["Science", "1 source"],
-      ["Sports", "0 sources"],
+      ["Sports", "No sources yet"],
     ] as const;
     for (const [name, hint] of rows) {
       await expect(page.getByRole("link", { name: new RegExp(`^${name}`) })).toContainText(hint);
@@ -141,8 +146,8 @@ test.describe("the Topics list", () => {
     await open(page);
     await page.getByRole("link", { name: /^Design/ }).click();
     await expect(page.getByRole("heading", { level: 1, name: "Design" })).toBeVisible();
-    const crumb = page.getByRole("navigation", { name: "Breadcrumb" }).getByRole("link");
-    await expect(crumb).toHaveText("Topics & Sources");
+    const crumb = page.locator(".settings-up");
+    await expect(crumb).toHaveText("Topics and sources");
     await expect(crumb).toHaveAttribute("href", LIST);
     await expect(source(page, "Studio Notes")).toBeVisible();
   });
@@ -181,7 +186,7 @@ test.describe("the Topics list", () => {
     ]);
   });
 
-  test("a new topic is offered the catalogue's sources that suit it, and the ticked ones go with it", async ({
+  test("a new topic is added in one press and waits in the list, saved, until the build gives it a page", async ({
     page,
   }) => {
     const { sent } = await setup(page);
@@ -189,61 +194,109 @@ test.describe("the Topics list", () => {
     await page.getByRole("button", { name: "Add a topic or a source" }).click();
     const sheet = page.getByRole("dialog", { name: "Add a topic" });
     const form = sheet.getByRole("form", { name: "Add a topic" });
-    // Next refuses details that are missing, beside the field.
-    await sheet.getByRole("button", { name: "Next" }).click();
+    // Its name, what counts and where it plays (D71): no keywords and no sources step.
+    await expect(form.getByLabel(/Keywords/)).toHaveCount(0);
+    await expect(sheet.getByRole("button", { name: "Next" })).toHaveCount(0);
+    const add = sheet.getByRole("button", { name: "Add topic", exact: true });
+    // Add refuses details that are missing, beside the field.
+    await add.click();
     await expect(form.getByText("Enter a name.")).toBeVisible();
+    await expect(form.getByLabel("Name")).toBeFocused();
+    // A name a topic already has is refused, whatever its case.
+    await form.getByLabel("Name").fill("design");
+    await add.click();
+    await expect(form.getByText("You already have a topic called Design.")).toBeVisible();
     await form.getByLabel("Name").fill("Motion design");
     await form
       .getByLabel("What should count as this topic")
       .fill("Animation and motion in interfaces.");
-    await form.getByLabel(/Keywords/).fill("transitions");
-    await sheet.getByRole("button", { name: "Next" }).click();
-    const offers = sheet
-      .getByRole("group", { name: "Sources to start with" })
-      .getByRole("checkbox");
-    await expect(offers).toHaveCount(6);
-    await expect(sheet.locator(".suggest-row").first()).toContainText("Motion Weekly");
-    await expect(sheet.getByRole("button", { name: "Add topic", exact: true })).toBeVisible();
-    await sheet.getByRole("checkbox", { name: /Motion Weekly/ }).check();
-    await sheet.getByRole("checkbox", { name: /Craft Bench/ }).check();
-    await sheet.getByRole("button", { name: "Add topic and 2 sources" }).click();
+    await add.click();
     await expect(sheet).toBeHidden();
-    const queued = page.locator("[data-queued] li");
+    // The site is static: the topic's page exists after the next build, so the list keeps it.
+    await expect(page).toHaveURL(LIST);
+    const queued = page.locator("[data-queued] > li");
     await expect(queued).toContainText("Motion design");
-    await expect(queued).toContainText(ADDED);
-    await expect(queued.getByRole("button")).toHaveCount(0);
-    await expect(page.locator("[data-added] li.source-row")).toHaveCount(2);
-    // The topic and its sources travel together, the topic first.
+    // It is sent at once, so there is no Cancel that would only pretend to drop it.
+    await expect(queued.locator("[data-act=cancel]")).toHaveCount(0);
+    await expect(queued).toContainText(ADDED_TOPIC);
+    await expect(queued.locator("[data-act=cancel]")).toHaveCount(0);
+    // Its suggested sources show at once, ranked in the browser as its page will rank them.
+    const suggested = queued.getByRole("list", { name: "Suggested sources for Motion design" });
+    await expect(suggested.getByRole("button", { name: "Add Motion Weekly" })).toBeVisible();
     expect(sent).toHaveLength(1);
-    expect(ops(sent)).toMatchObject([
-      { op: "topic.upsert", topic: { id: "motion-design", keywords: ["transitions"] } },
+    expect(ops(sent)).toEqual([
       {
-        op: "source.add",
-        url: "https://motion-weekly.example/rss.xml",
-        topic_ids: ["motion-design"],
-      },
-      {
-        op: "source.add",
-        url: "https://craft-bench.example/feed.xml",
-        topic_ids: ["motion-design"],
+        op: "topic.upsert",
+        topic: {
+          id: "motion-design",
+          name: "Motion design",
+          description: "Animation and motion in interfaces.",
+          weight: 0.5,
+          enabled: true,
+          keywords: [],
+          section_id: "motion-design",
+        },
       },
     ]);
   });
 
-  test("Back on the sources step returns to the topic's details as they were typed", async ({
+  test("a new topic's suggested source adds under it, and both stay listed on a reload before the build", async ({
     page,
   }) => {
-    await setup(page);
+    await page.clock.install();
+    const { sent } = await setup(page);
+    await open(page);
+    await page.getByRole("button", { name: "Add a topic or a source" }).click();
+    const form = page
+      .getByRole("dialog", { name: "Add a topic" })
+      .getByRole("form", { name: "Add a topic" });
+    const sheet = page.getByRole("dialog", { name: "Add a topic" });
+    await form.getByLabel("Name").fill("Motion design");
+    await form
+      .getByLabel("What should count as this topic")
+      .fill("Animation and motion in interfaces.");
+    await sheet.getByRole("button", { name: "Add topic", exact: true }).click();
+    const queued = page.locator("[data-queued] > li");
+    await expect(queued).toContainText(ADDED_TOPIC);
+    await queued.getByRole("button", { name: "Add Motion Weekly" }).click();
+    await expect(queued.getByRole("button", { name: "Added Motion Weekly" })).toBeDisabled();
+    await page.clock.runFor(GAP_MS);
+    await expect
+      .poll(() => ops(sent))
+      .toContainEqual({
+        op: "source.add",
+        url: "https://motion-weekly.example/rss.xml",
+        topic_ids: ["motion-design"],
+      });
+    await expect(toastText(page)).toHaveText(SAVED);
+    const before = sent.length;
+
+    await page.reload();
+    await open(page);
+    await expect(page.locator("[data-saved-note]")).toHaveText(SAVED);
+    await expect(queued).toContainText("Motion design");
+    await expect(queued).toContainText(ADDED_TOPIC);
+    await expect(queued.getByRole("button", { name: "Added Motion Weekly" })).toBeDisabled();
+    await page.clock.runFor(GAP_MS);
+    expect(sent.length).toBe(before);
+  });
+
+  test("a refused detail keeps what was typed and sends nothing", async ({ page }) => {
+    const { sent } = await setup(page);
     await open(page);
     await page.getByRole("button", { name: "Add a topic or a source" }).click();
     const sheet = page.getByRole("dialog", { name: "Add a topic" });
     const form = sheet.getByRole("form", { name: "Add a topic" });
     await form.getByLabel("Name").fill("Motion design");
-    await form.getByLabel("What should count as this topic").fill("Animation in interfaces.");
-    await sheet.getByRole("button", { name: "Next" }).click();
-    await sheet.getByRole("button", { name: "Back" }).click();
+    await sheet.getByRole("button", { name: "Add topic", exact: true }).click();
+    await expect(form.getByText("Say what should count as this topic.")).toBeVisible();
+    await expect(form.getByLabel("What should count as this topic")).toBeFocused();
     await expect(form.getByLabel("Name")).toHaveValue("Motion design");
-    await expect(form.getByLabel("Name")).toBeFocused();
+    // Typing clears the note.
+    await form.getByLabel("What should count as this topic").fill("Animation.");
+    await expect(form.getByText("Say what should count as this topic.")).toBeHidden();
+    await expect(sheet).toBeVisible();
+    expect(sent).toHaveLength(0);
   });
 
   test("a topic cannot take the address of the Other page", async ({ page }) => {
@@ -254,7 +307,6 @@ test.describe("the Topics list", () => {
     const form = sheet.getByRole("form", { name: "Add a topic" });
     await form.getByLabel("Name").fill("Other");
     await form.getByLabel("What should count as this topic").fill("Anything else.");
-    await sheet.getByRole("button", { name: "Next" }).click();
     await sheet.getByRole("button", { name: "Add topic", exact: true }).click();
     await expect.poll(() => sent.length).toBe(1);
     expect(ops(sent)).toMatchObject([{ op: "topic.upsert", topic: { id: "other-2" } }]);
@@ -295,18 +347,18 @@ test.describe("a topic's page", () => {
     await expect(page.getByRole("slider", { name: "Weight", exact: true })).toHaveCount(1);
   });
 
-  test("Scope is a list to tick: unticking Daily leaves every topic Design gathers out of it", async ({
+  test("Podcasts is a list to tick: unticking Daily leaves every topic Design gathers out of it", async ({
     page,
   }) => {
     const { sent } = await setup(page);
     await open(page, CRAFT);
-    const field = page.getByRole("button", { name: /^Scope/ });
-    await expect(field).toHaveText("Daily, Weekly and Custom");
+    const field = page.getByRole("button", { name: /^Podcasts/ });
+    await expect(field).toHaveText("All podcasts");
     await field.click();
-    const list = page.getByRole("listbox", { name: "Scope" });
+    const list = page.getByRole("listbox", { name: "Podcasts" });
     await expect(list).toBeVisible();
     await list.getByRole("option", { name: "Daily" }).click();
-    await expect(field).toHaveText("Weekly and Custom");
+    await expect(field).toHaveText("Weekly and Episodes");
     await page.keyboard.press("Escape");
     await expect(list).toBeHidden();
     await expect(field).toBeFocused();
@@ -354,45 +406,16 @@ test.describe("a topic's page", () => {
     const sheet = page.getByRole("dialog", { name: "Edit source" });
     await sheet.getByRole("combobox", { name: "Topic" }).selectOption("");
     await sheet.getByRole("button", { name: "Save" }).click();
-    await expect(source(page, "Studio Notes")).toContainText(
-      "Moves to Other after the next build.",
-    );
+    await expect(source(page, "Studio Notes")).toContainText("Moves to Other in about a minute.");
     await expect
       .poll(() => ops(sent))
       .toEqual([{ op: "source.update", id: "studio-notes", topic_ids: [] }]);
   });
 
-  test("a source's name is a link to its site in a new tab; the rest of its row edits it", async ({
-    page,
-  }) => {
-    await setup(page);
-    await open(page, CRAFT);
-    const link = source(page, "Studio Notes").getByRole("link", { name: "Studio Notes" });
-    await expect(link).toHaveAttribute("href", "https://www.studio-notes.example/");
-    await expect(link).toHaveAttribute("target", "_blank");
-    await expect(link).toHaveAttribute("rel", /noopener/);
-    await expect(source(page, "Studio Notes").getByRole("link")).toHaveCount(1);
-    // The score lets a press through to the edit button behind the row.
-    await source(page, "Studio Notes").locator(".score").click({ force: true });
-    await expect(page.getByRole("dialog", { name: "Edit source" })).toBeVisible();
-  });
-
-  test("a source's score is out of 3, drawn as three pips beside the number", async ({ page }) => {
-    await setup(page);
-    await open(page, CRAFT);
-    const score = source(page, "Studio Notes").locator(".score");
-    const num = score.locator(".score-num");
-    if ((await num.count()) > 0) {
-      const value = Number(await num.textContent());
-      expect(value).toBeGreaterThanOrEqual(0);
-      expect(value).toBeLessThanOrEqual(3);
-      await expect(score.locator(".pips")).toBeVisible();
-    } else await expect(score.locator(".score-label")).toHaveText("New");
-  });
-
   test("every source has a checkbox: unticking turns it off and ticking turns it back on", async ({
     page,
   }) => {
+    await page.clock.install();
     const { sent } = await setup(page);
     await open(page, CRAFT);
     const row = source(page, "Studio Notes");
@@ -404,24 +427,14 @@ test.describe("a topic's page", () => {
     await expect.poll(() => ops(sent).length).toBe(1);
     await expect(row).toBeVisible();
     await expect(row.locator(".score")).toBeVisible();
-    await expect(row.locator(".source-name")).toHaveCSS("opacity", /^0\.\d+$/);
     await box.check();
+    // The second edit waits out the server's ten seconds between edits before it is sent.
+    await page.clock.runFor(GAP_MS);
     await expect.poll(() => ops(sent).length).toBe(2);
-    await expect(row.locator(".source-name")).toHaveCSS("opacity", "1");
     expect(ops(sent)).toEqual([
       { op: "source.set", id: "studio-notes", enabled: false },
       { op: "source.set", id: "studio-notes", enabled: true },
     ]);
-  });
-
-  test("a change put back before it is sent sends nothing", async ({ page }) => {
-    const { sent } = await setup(page);
-    await open(page, CRAFT);
-    const box = source(page, "Studio Notes").getByRole("checkbox", { name: "Read Studio Notes" });
-    await box.uncheck();
-    await box.check();
-    await page.waitForTimeout(1800);
-    expect(sent).toHaveLength(0);
   });
 
   test("its Add source button opens the panel with the topic chosen", async ({ page }) => {
@@ -430,7 +443,11 @@ test.describe("a topic's page", () => {
     await page.getByRole("button", { name: "Add source to Audio interfaces" }).click();
     const sheet = page.getByRole("dialog", { name: "Add a source" });
     await expect(sheet.getByRole("combobox", { name: "Topic" })).toHaveValue("audio_interfaces");
+    // It adds a source to this topic: no switch to a new topic.
+    await expect(sheet.getByRole("radio", { name: "Topic" })).toBeHidden();
     await sheet.getByLabel("Site or feed address").fill("newsroom.example");
+    // The feed address ends in an ellipsis rather than breaking mid-word.
+    await expect(sheet.locator(".source-facts-url")).toHaveCSS("white-space", "nowrap");
     await sheet.getByRole("button", { name: "Add source", exact: true }).click();
     const row = page.locator("[data-sources] li.source-row.is-new");
     await expect(row).toContainText("Newsroom Example");
@@ -440,17 +457,24 @@ test.describe("a topic's page", () => {
     ]);
   });
 
-  test("removing a custom topic waits with Undo, then says the page goes", async ({ page }) => {
+  test("removing a custom topic waits with Undo, then goes back to the list without it", async ({
+    page,
+  }) => {
     const { sent } = await setup(page);
+    await page.goto("/settings");
     await open(page, "/settings/topics/audio_interfaces");
     await page.getByRole("button", { name: "Remove topic Audio interfaces" }).click();
     await expect(toastText(page)).toHaveText("Removing Audio interfaces");
     await expect(page.getByRole("button", { name: "Keep topic Audio interfaces" })).toBeVisible();
-    await expect(page.getByText("Removed. The page goes after the next build.")).toBeVisible(
-      AFTER_UNDO,
-    );
-    await expect(page.getByRole("button", { name: /^Scope/ })).toBeHidden();
+    await expect(page).toHaveURL(/\/settings\/topics$/, AFTER_UNDO);
+    await expect(page.locator('a[href="/settings/topics/audio_interfaces"]')).toBeHidden();
     expect(ops(sent)).toEqual([{ op: "topic.remove", id: "audio_interfaces" }]);
+    // The list took the removed page's place: Back goes on to where the person came from.
+    await page.goBack();
+    await expect(page).toHaveURL(/\/settings$/);
+    // Opened again before the build, the removed topic's page gives way to the list.
+    await page.goto("/settings/topics/audio_interfaces");
+    await expect(page).toHaveURL(/\/settings\/topics$/);
   });
 
   test("a built-in topic cannot be removed", async ({ page }) => {
@@ -470,17 +494,16 @@ test.describe("a topic's page", () => {
     await expect(page.locator("li.source-row")).toHaveCount(2);
   });
 
-  test("a general topic: Custom is its on switch, edit, sources with scores, no weight and no remove", async ({
+  test("a general topic: a switch that says it stops reading its sources, edit, scores, no weight and no remove", async ({
     page,
   }) => {
     const { sent } = await setup(page);
     await open(page, "/settings/topics/world");
     await expect(page.getByRole("heading", { level: 1, name: "World" })).toBeVisible();
-    await expect(page.getByText("General news is in custom episodes only")).toBeVisible();
     await expect(page.locator("[data-weight]")).toHaveCount(0);
     await expect(page.getByRole("button", { name: /^Remove topic/ })).toHaveCount(0);
     await expect(page.getByRole("button", { name: "Add source to World" })).toBeVisible();
-    await expect(source(page, "Meridian Wire").locator(".score-num")).toBeVisible();
+    await expect(source(page, "Meridian Wire").locator(".score")).toBeVisible();
     await expect(source(page, "Quiet Gazette").locator(".score")).toBeVisible();
     await expect(
       source(page, "Quiet Gazette").getByRole("checkbox", { name: "Read Quiet Gazette" }),
@@ -490,23 +513,57 @@ test.describe("a topic's page", () => {
     const sheet = page.getByRole("dialog", { name: "Edit topic" });
     await expect(sheet.getByLabel("What should count as this topic")).toBeEditable();
     await sheet.getByRole("button", { name: "Close" }).click();
-    await page.getByRole("button", { name: /^Scope/ }).click();
-    const list = page.getByRole("listbox", { name: "Scope" });
-    await expect(list.getByRole("option", { name: /^Daily/ })).toHaveAttribute(
-      "aria-disabled",
-      "true",
-    );
-    await list.getByRole("option", { name: /^Daily/ }).click({ force: true });
-    await expect(list.getByRole("option", { name: /^Daily/ })).toHaveAttribute(
-      "aria-selected",
-      "false",
-    );
-    await list.getByRole("option", { name: "Custom" }).click();
-    await expect(page.getByRole("button", { name: /^Scope/ })).toHaveText("In no podcast");
+    // No list of podcasts it can never join: one switch, named for what it does.
+    await expect(page.getByRole("button", { name: /^Podcasts/ })).toHaveCount(0);
+    const on = page.getByRole("switch", { name: "Use World" });
+    await expect(on).toBeChecked();
+    await expect(on).toHaveAccessibleDescription("Used in episodes");
+    const list = page.locator(".topic-sources[data-sources]");
+    const look = () =>
+      list.evaluate((el) => {
+        const name = el.querySelector(".source-name");
+        const tile = el.querySelector(".source-icon");
+        return {
+          nameInk: name ? getComputedStyle(name).color : "",
+          tile: tile ? Number(getComputedStyle(tile).opacity) : 1,
+          list: Number(getComputedStyle(el).opacity),
+        };
+      });
+    const on_ = await look();
+    expect(on_.tile).toBe(1);
+    await on.uncheck();
+    await expect(on).toHaveAccessibleDescription("Off. Its sources are not read.");
+    // Its sources take the off look, whatever their own boxes hold: none is read while it is off.
+    // The rows still work, so they stay legible: the names go quiet and the tiles fade, and the list
+    // itself is not dimmed (a list at 1.6:1 cannot be read to be switched on again).
+    await expect.poll(async () => (await look()).tile).toBeLessThan(1);
+    const off = await look();
+    expect(off.nameInk).not.toBe(on_.nameInk);
+    expect(off.list).toBe(1);
     await expect(toastText(page)).toHaveText(SAVED);
     expect(ops(sent)).toMatchObject([
       { op: "topic.upsert", topic: { id: "world", enabled: false, section_id: "general" } },
     ]);
+  });
+
+  test("an off source stays readable, and every name is a 44px target", async ({ page }) => {
+    await setup(page);
+    for (const path of ["/settings/topics/world", "/settings/topics/other"]) {
+      await open(page, path);
+      const found = await new AxeBuilder({ page })
+        .include("[data-fields]")
+        .withRules(["color-contrast", "target-size"])
+        .analyze();
+      expect(
+        found.violations.map((v) => `${v.id}: ${v.nodes.map((n) => n.target.join(" "))}`),
+        path,
+      ).toEqual([]);
+      const heights = await page
+        .locator("li.source-row .source-edit")
+        .evaluateAll((rows) => rows.map((row) => row.getBoundingClientRect().height));
+      expect(heights.length, path).toBeGreaterThan(0);
+      for (const height of heights) expect(height).toBeGreaterThanOrEqual(44);
+    }
   });
 
   test("Other lists the sources with no topic, and can turn one back on", async ({ page }) => {
@@ -517,27 +574,124 @@ test.describe("a topic's page", () => {
     await expect(toastText(page)).toHaveText(SAVED);
     expect(ops(sent)).toEqual([{ op: "source.set", id: "quiet-motion", enabled: true }]);
   });
+});
 
-  test("no row is a dead zone: sources are at least 44px tall and touch", async ({ page }) => {
+// The catalogue's feeds that fit a topic are in the page when it is built: no request, no waiting.
+test.describe("a topic's suggested sources", () => {
+  const DESIGN = "/settings/topics/design";
+  const region = (page: Page) => page.getByRole("region", { name: "Suggested sources" });
+  const names = (page: Page) => region(page).locator(".source-name");
+  const suggestion = (page: Page, name: string) =>
+    page.locator("[data-suggested-sources] li.source-row", { hasText: name });
+  /** Where every row of both lists is on the page, to see that nothing moves. */
+  const places = (page: Page) =>
+    page
+      .locator("[data-sources] li.source-row, [data-suggested-sources] li.source-row")
+      .evaluateAll((rows) =>
+        rows.map((row) => Math.round(row.getBoundingClientRect().top + scrollY)),
+      );
+
+  test("are the catalogue's feeds that fit the topic, with no score, no pill and nothing waiting", async ({
+    page,
+  }) => {
     await setup(page);
-    await open(page, CRAFT);
-    const boxes = await page.locator("li.source-row").evaluateAll((rows) =>
-      rows.map((row) => {
-        const rect = row.getBoundingClientRect();
-        return { top: rect.top, bottom: rect.bottom };
-      }),
-    );
-    for (const [index, box] of boxes.entries()) {
-      expect(box.bottom - box.top).toBeGreaterThanOrEqual(44);
-      const next = boxes[index + 1];
-      if (next) expect(Math.abs(next.top - box.bottom)).toBeLessThanOrEqual(1);
+    await open(page, DESIGN);
+    await expect(
+      region(page).getByRole("heading", { level: 2, name: "Suggested sources" }),
+    ).toBeVisible();
+    // No line explains the list: the heading says it.
+    await expect(region(page).locator(".manage-quiet")).toHaveCount(0);
+    // The five that fit Design and the topics it gathers best, best first. Type and Grid is a sixth,
+    // and Model Ledger, which the owner reads already, is not offered.
+    await expect(names(page)).toHaveText([
+      "Pixel Ledger",
+      "Motion Weekly",
+      "Craft Bench",
+      "Agent Patterns",
+      "Interface Notes",
+    ]);
+    // Nothing that claims a score or a filter, and nothing that stands in for a request.
+    await expect(
+      region(page).locator(".score, .pips, input, [class*='skeleton'], [class*='pill']"),
+    ).toHaveCount(0);
+    await expect(region(page).getByText(/Jev|Live curated|filtered/)).toHaveCount(0);
+    await expect(
+      page.locator("[data-suggested-sources] [aria-hidden='true'].source-row"),
+    ).toHaveCount(0);
+  });
+
+  test("+ adds the feed under the topic in one request, and the row says so without anything moving", async ({
+    page,
+  }) => {
+    const { sent } = await setup(page);
+    await open(page, DESIGN);
+    const before = await places(page);
+    const row = suggestion(page, "Motion Weekly");
+    await row.getByRole("button", { name: "Add Motion Weekly" }).click();
+    // The same button, done: a check, no longer pressable, named for what it did.
+    const done = row.getByRole("button", { name: "Added Motion Weekly" });
+    await expect(done).toBeDisabled();
+    await expect(done).toHaveClass(/is-added/);
+    await expect(row).toContainText(ADDED);
+    // The row says it, so the toast does not say it again; and the note is whole, never cut off.
+    await expect(toast(page)).toBeHidden();
+    const note = row.locator(".source-note");
+    expect(await note.evaluate((el) => el.scrollWidth <= el.clientWidth + 1)).toBe(true);
+    // From 40rem a three-line suggestion takes a three-line row's 88px.
+    if ((page.viewportSize()?.width ?? 0) >= 640) {
+      const other = suggestion(page, "Motion Weekly").locator("xpath=following-sibling::li[1]");
+      if ((await other.count()) > 0 && (await other.locator(".source-line").count()) > 0)
+        expect((await other.boundingBox())?.height ?? 0).toBeGreaterThanOrEqual(88);
+    }
+    expect(ops(sent)).toEqual([
+      {
+        op: "source.add",
+        url: "https://motion-weekly.example/rss.xml",
+        topic_ids: ["design_engineering_craft"],
+      },
+    ]);
+    // Every row is where it was: nothing was put above the suggestions, and the page went nowhere.
+    expect(await places(page)).toEqual(before);
+    await expect(page.locator("[data-sources] li.source-row")).toHaveCount(2);
+  });
+
+  test("a general topic is offered feeds by its name, and + files the feed under it", async ({
+    page,
+  }) => {
+    const { sent } = await setup(page);
+    await open(page, "/settings/topics/world");
+    await expect(names(page)).toHaveText(["Headline Desk"]);
+    await suggestion(page, "Headline Desk")
+      .getByRole("button", { name: "Add Headline Desk" })
+      .click();
+    await expect
+      .poll(() => ops(sent))
+      .toEqual([
+        { op: "source.add", url: "https://headline-desk.example/rss", topic_ids: ["world"] },
+      ]);
+  });
+
+  test("a page has no such section when nothing fits: Other, Sports and Culture", async ({
+    page,
+  }) => {
+    await setup(page);
+    for (const path of [
+      "/settings/topics/other",
+      "/settings/topics/sports",
+      "/settings/topics/culture",
+    ]) {
+      await open(page, path);
+      await expect(page.getByRole("heading", { name: "Suggested sources" }), path).toHaveCount(0);
+      await expect(page.locator("[data-suggested-sources], [class*='skeleton']"), path).toHaveCount(
+        0,
+      );
     }
   });
 });
 
 // The browser logs the refused lookup itself; the panel answers it in words.
 test.describe("editing a topic", () => {
-  test("a topic of the owner's renames, and ticked sources join it, in one request", async ({
+  test("a topic of the owner's renames in one request, and keeps its keywords", async ({
     page,
   }) => {
     const { sent } = await setup(page);
@@ -549,16 +703,12 @@ test.describe("editing a topic", () => {
     const name = form.getByLabel("Name");
     await expect(name).toHaveValue("Audio interfaces");
     await expect(name).not.toBeFocused();
-    await expect(form.getByLabel(/Keywords/)).toHaveValue("audio, voice, player");
+    // Keywords have no field (D71); the topic keeps the ones it has.
+    await expect(form.getByLabel(/Keywords/)).toHaveCount(0);
     await name.fill("Audio and voice");
-    await sheet.getByRole("button", { name: "Next" }).click();
-    const more = sheet.getByRole("group", { name: "More sources" });
-    await expect(more.getByRole("checkbox").first()).toBeVisible();
-    await sheet.getByRole("checkbox", { name: /Interface Notes/ }).check();
-    await sheet.getByRole("button", { name: "Save and add 1 source" }).click();
+    await sheet.getByRole("button", { name: "Save", exact: true }).click();
     await expect(sheet).toBeHidden();
     await expect(page.getByRole("heading", { level: 1 })).toHaveText("Audio and voice");
-    await expect(source(page, "Interface Notes")).toContainText(ADDED);
     await expect
       .poll(() => ops(sent))
       .toMatchObject([
@@ -573,12 +723,8 @@ test.describe("editing a topic", () => {
             weight: 0.75,
           },
         },
-        {
-          op: "source.add",
-          url: "https://interface-notes.example/feed.xml",
-          topic_ids: ["audio_interfaces"],
-        },
       ]);
+    expect(ops(sent)).toHaveLength(1);
   });
 
   test("a new topic sets its scope as it is added, in the same request", async ({ page }) => {
@@ -588,13 +734,14 @@ test.describe("editing a topic", () => {
     const sheet = page.getByRole("dialog", { name: "Add a topic" });
     await sheet.getByRole("form", { name: "Add a topic" }).getByLabel("Name").fill("Spatial audio");
     await sheet.getByLabel("What should count as this topic").fill("Spatial audio in apps.");
-    await sheet.getByRole("button", { name: /^Scope/ }).click();
+    // Every podcast ticked reads as it does on every topic page.
+    await expect(sheet.getByRole("button", { name: /^Podcasts/ })).toHaveText("All podcasts");
+    await sheet.getByRole("button", { name: /^Podcasts/ }).click();
     await sheet.getByRole("option", { name: "Weekly" }).click();
-    await expect(sheet.getByRole("button", { name: /^Scope/ })).toHaveText("Daily and Custom");
+    await expect(sheet.getByRole("button", { name: /^Podcasts/ })).toHaveText("Daily and Episodes");
     await page.keyboard.press("Escape");
     await expect(sheet).toBeVisible();
-    await sheet.getByRole("button", { name: "Next" }).click();
-    await sheet.getByRole("button", { name: /^Add topic/ }).click();
+    await sheet.getByRole("button", { name: "Add topic", exact: true }).click();
     await expect
       .poll(() => ops(sent))
       .toMatchObject([
@@ -603,18 +750,68 @@ test.describe("editing a topic", () => {
       ]);
   });
 
-  test("Save waits until a detail changed or a source is ticked", async ({ page }) => {
+  test("Save waits until a detail changed, and putting it back waits again", async ({ page }) => {
     const { sent } = await setup(page);
     await open(page, "/settings/topics/audio_interfaces");
     await page.getByRole("button", { name: "Edit topic Audio interfaces" }).click();
     const sheet = page.getByRole("dialog", { name: "Edit topic" });
-    await sheet.getByRole("button", { name: "Next" }).click();
-    await expect(sheet.getByRole("button", { name: "Save", exact: true })).toBeDisabled();
-    await sheet.getByRole("checkbox").first().check();
-    await expect(sheet.getByRole("button", { name: "Save and add 1 source" })).toBeEnabled();
-    await sheet.getByRole("button", { name: "Back" }).click();
-    await expect(sheet.getByRole("form", { name: "Edit topic" }).getByLabel("Name")).toBeFocused();
+    const name = sheet.getByRole("form", { name: "Edit topic" }).getByLabel("Name");
+    const save = sheet.getByRole("button", { name: "Save", exact: true });
+    await expect(save).toBeDisabled();
+    await name.fill("Audio and voice");
+    await expect(save).toBeEnabled();
+    await name.fill("Audio interfaces");
+    await expect(save).toBeDisabled();
+    await page.keyboard.press("Escape");
+    await expect(sheet).toBeHidden();
     expect(sent).toHaveLength(0);
+  });
+});
+
+test.describe("a refused suggested add", () => {
+  // The refusal is the point: the browser logs the 500 it was sent.
+  test.use({ allowNetworkErrors: true });
+  const DESIGN = "/settings/topics/design";
+  const suggestion = (page: Page, name: string) =>
+    page.locator("[data-suggested-sources] li.source-row", { hasText: name });
+
+  test("a refused add says so in its row and offers the plus again, and the plus sends it once more", async ({
+    page,
+  }) => {
+    const { sent } = await setup(page, [{ status: 500, body: { status: 500 } }]);
+    await open(page, DESIGN);
+    const row = suggestion(page, "Motion Weekly");
+    await row.getByRole("button", { name: "Add Motion Weekly" }).click();
+    // Refused: no check and no "Adding": the row says what happened, with the plus back.
+    await expect(row).toContainText("Not added. Try again.");
+    const again = row.getByRole("button", { name: "Add Motion Weekly" });
+    await expect(again).toBeEnabled();
+    await expect(again).not.toHaveClass(/is-added/);
+    // Pressed again, it is the same add, not a second one, and it goes through.
+    await again.click();
+    await expect(row).toContainText(ADDED);
+    const done = row.getByRole("button", { name: "Added Motion Weekly" });
+    await expect(done).toBeDisabled();
+    expect(
+      ops(sent).filter((op) => op.op === "source.add" && String(op.url).includes("motion-weekly")),
+    ).toHaveLength(2);
+  });
+
+  test("a refusal left behind by reloading is not shown as saved on the next page", async ({
+    page,
+  }) => {
+    // Refused, and never sent again: the next page must show what the repository holds.
+    await setup(page, [{ status: 500, body: { status: 500 } }]);
+    await open(page, DESIGN);
+    const row = suggestion(page, "Motion Weekly");
+    await row.getByRole("button", { name: "Add Motion Weekly" }).click();
+    await expect(row).toContainText("Not added. Try again.");
+    await page.reload();
+    await open(page, DESIGN);
+    const again = suggestion(page, "Motion Weekly");
+    await expect(again.getByRole("button", { name: "Add Motion Weekly" })).toBeEnabled();
+    await expect(again).not.toContainText("Added");
+    await expect(page.getByText("Saving. Live in about a minute.")).toHaveCount(0);
   });
 });
 
@@ -644,7 +841,10 @@ test.describe("a refused lookup", () => {
     await page.getByRole("radio", { name: "Source" }).check();
     const sheet = page.getByRole("dialog", { name: "Add a source" });
     await sheet.getByLabel("Site or feed address").fill("nothing.example");
-    await expect(sheet.getByRole("alert")).toContainText("could not be read");
+    await expect(sheet.locator("#panel-source-url-error")).toContainText("could not be read");
+    await expect(sheet.getByLabel("Site or feed address")).toHaveAttribute("aria-invalid", "");
+    // No empty card stands in for the message.
+    await expect(sheet.locator(".source-card")).toHaveCount(0);
     await expect(sheet.getByRole("button", { name: "Add source", exact: true })).toBeDisabled();
     await page.keyboard.press("Escape");
     await expect(sheet).toBeHidden();
@@ -657,7 +857,42 @@ const settled = (dialog: Locator) =>
     Promise.all(node.getAnimations().map((animation) => animation.finished)),
   );
 
+test("a long feed address never widens the Add source panel past the screen", async ({ page }) => {
+  await setup(page);
+  const feed = `https://newsroom.example/${"a-very-long-section-name/".repeat(3)}feed.xml`;
+  await page.route("**/api/source-preview**", (route) =>
+    route.fulfill({
+      status: 200,
+      contentType: "application/json",
+      body: JSON.stringify({
+        ...PREVIEW,
+        name: "A newsroom with a name that goes on and on and on",
+        feed_url: feed,
+      }),
+    }),
+  );
+  await page.setViewportSize({ width: 360, height: 740 });
+  await open(page);
+  await page.getByRole("button", { name: "Add a topic or a source" }).click();
+  await page.getByRole("radio", { name: "Source" }).check();
+  const sheet = page.getByRole("dialog", { name: "Add a source" });
+  await sheet.getByLabel("Site or feed address").fill("newsroom.example");
+  await expect(sheet.getByText("A newsroom with a name")).toBeVisible();
+  const spill = await sheet.evaluate((node) => {
+    const room = node.getBoundingClientRect().right;
+    const wide = [...node.querySelectorAll<HTMLElement>("*")]
+      .filter((each) => each.getBoundingClientRect().width > 0)
+      .filter((each) => each.getBoundingClientRect().right > room + 1)
+      .map((each) => each.className || each.tagName);
+    return { wide, sideways: node.scrollWidth > node.clientWidth + 1 };
+  });
+  expect(spill.wide).toEqual([]);
+  expect(spill.sideways).toBe(false);
+});
+
 test("has no accessibility violations: the list, a topic, and the panel open", async ({ page }) => {
+  // Seven full scans: on the phone's slower emulation they need more than the default 30 seconds.
+  test.setTimeout(90_000);
   await setup(page);
   const scan = async () =>
     (await new AxeBuilder({ page }).withTags(WCAG).analyze()).violations.map(
@@ -667,7 +902,7 @@ test("has no accessibility violations: the list, a topic, and the panel open", a
   expect(await scan()).toEqual([]);
   await open(page, "/settings/topics/design");
   expect(await scan()).toEqual([]);
-  await page.getByRole("button", { name: /^Scope/ }).click();
+  await page.getByRole("button", { name: /^Podcasts/ }).click();
   expect(await scan()).toEqual([]);
   await page.keyboard.press("Escape");
   await page.getByRole("button", { name: "Add source to Design" }).click();
@@ -684,6 +919,8 @@ test("has no accessibility violations: the list, a topic, and the panel open", a
   await settled(edit);
   expect(await scan()).toEqual([]);
   await page.keyboard.press("Escape");
+  // Closing gives the panel's history entry back; let that land before the next page is opened.
+  await expect(edit).toBeHidden();
   await open(page, "/settings/topics/audio_interfaces");
   await page.getByRole("button", { name: "Edit topic Audio interfaces" }).click();
   const editTopic = page.getByRole("dialog", { name: "Edit topic" });
@@ -691,13 +928,14 @@ test("has no accessibility violations: the list, a topic, and the panel open", a
   await settled(editTopic);
   expect(await scan()).toEqual([]);
   await page.keyboard.press("Escape");
+  await expect(editTopic).toBeHidden();
   await open(page);
   await page.getByRole("button", { name: "Add a topic or a source" }).click();
   const topic = page.getByRole("dialog", { name: "Add a topic" });
   await topic.getByRole("form", { name: "Add a topic" }).getByLabel("Name").fill("Motion design");
-  await topic.getByLabel("What should count as this topic").fill("Animation in interfaces.");
-  await topic.getByRole("button", { name: "Next" }).click();
-  await expect(topic.getByRole("checkbox").first()).toBeVisible();
+  // The panel as a refused detail leaves it: the note beside the field, with its alert glyph.
+  await topic.getByRole("button", { name: "Add topic", exact: true }).click();
+  await expect(topic.getByText("Say what should count as this topic.")).toBeVisible();
   await settled(topic);
   expect(await scan()).toEqual([]);
 });

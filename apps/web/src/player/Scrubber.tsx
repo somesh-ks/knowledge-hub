@@ -20,7 +20,7 @@ import {
   shouldFireDetent,
   timeFromPointer,
 } from "./core/scrubberMath";
-import { itemPositionLabel } from "./core/timeline";
+import { itemPositionLabel, storySectionName } from "./core/timeline";
 import { usePlayerFrame, usePlayerSecond, usePlayerState } from "./hooks/usePlayer";
 import { playUiCue } from "./sound/soundController";
 import { cueForDetent } from "./sound/soundMap";
@@ -82,7 +82,10 @@ export default function Scrubber() {
       if (bubbleMinutesRef.current) bubbleMinutesRef.current.textContent = before;
       if (bubbleSecondsRef.current) bubbleSecondsRef.current.textContent = after;
       if (bubbleItemRef.current) {
-        bubbleItemRef.current.textContent = itemPositionLabel(timeline, store.itemAt(time));
+        const label = itemPositionLabel(timeline, store.itemAt(time));
+        bubbleItemRef.current.textContent = label;
+        // Over the rundown before story 1 the bubble says the time only.
+        bubbleItemRef.current.parentElement?.toggleAttribute("data-empty", label === "");
       }
       const left = bubbleLeft(fraction * widthRef.current, bubble.offsetWidth, widthRef.current);
       bubble.style.setProperty(
@@ -221,7 +224,7 @@ export default function Scrubber() {
         aria-valuetext={scrubberValueText(
           second,
           duration,
-          section?.title ?? "",
+          storySectionName(state.track?.digest, section),
           state.itemIndex,
           itemCount,
         )}

@@ -19,16 +19,92 @@ test.describe("routes and headers", () => {
     const response = await page.goto("/no/such/page");
     expect(response?.status()).toBe(404);
     await expect(page.getByRole("heading", { level: 1 })).toHaveText("Page not found");
-    await expect(page.getByRole("link", { name: "Open today's briefing" })).toHaveAttribute(
-      "href",
-      "/",
+    await expect(page.getByRole("link", { name: "Go to Today" })).toHaveAttribute("href", "/");
+    // One way on: the navigation already carries the rest. The body does not repeat the button.
+    await expect(page.locator(".empty-actions a")).toHaveCount(1);
+    await expect(page.locator("#main .empty-body")).toHaveText(
+      "Check the address, or start again from Today.",
     );
+    // From 80rem the empty state centres in the pane, not in the reading track beside an empty aside.
+    const size = page.viewportSize();
+    if (size && size.width >= 1280) {
+      const main = await page.locator("#main").boundingBox();
+      const pane = await page.locator(".shell").boundingBox();
+      const middle = (box: { x: number; width: number } | null) =>
+        box ? box.x + box.width / 2 : 0;
+      expect(Math.abs(middle(main) - middle(pane))).toBeLessThan(2);
+    }
   });
 
-  test("the offline page explains itself", async ({ page }) => {
+  test("the not found page for a missing briefing or episode reads the same", async ({ page }) => {
+    for (const path of ["/d/1999-01-01", "/e/ep-none"]) {
+      const response = await page.goto(path);
+      expect(response?.status(), path).toBe(404);
+      await expect(page.getByRole("heading", { level: 1 })).toHaveText("Page not found");
+      // Nothing names a briefing for a missing episode.
+      await expect(page.locator("#main")).not.toContainText("briefing");
+    }
+  });
+
+  test("an older briefing leads back to where the person came from", async ({ page }) => {
+    await page.goto("/library");
+    await page.locator('a[href="/d/2026-10-05"]').first().click();
+    await expect(page).toHaveURL(/\/d\/2026-10-05$/);
+    await page.getByRole("link", { name: "Back" }).click();
+    await expect(page).toHaveURL(/\/library$/);
+    // Opened cold, it falls back to the Library.
+    await page.goto("/d/2026-10-05");
+    await expect(page.getByRole("link", { name: "Back" })).toHaveAttribute("href", "/library");
+    // Today has none.
+    await page.goto("/");
+    // Exact: a headline is a link too, and one may hold the word.
+    await expect(page.getByRole("link", { name: "Back", exact: true })).toHaveCount(0);
+  });
+
+  test("the offline banner shows once and clears when the connection returns", async ({ page }) => {
+    await page.goto("/");
+    // The browser's own signal, set by hand: no request fails, so nothing else is blamed.
+    const setOnline = (online: boolean) =>
+      page.evaluate((value) => {
+        Object.defineProperty(navigator, "onLine", { value, configurable: true });
+        window.dispatchEvent(new Event(value ? "online" : "offline"));
+      }, online);
+    await setOnline(false);
+    await expect(page.locator('[data-banner="offline"]')).toHaveCount(1);
+    await setOnline(false);
+    await expect(page.locator('[data-banner="offline"]')).toHaveCount(1);
+    await setOnline(true);
+    await expect(page.locator('[data-banner="offline"]')).toHaveCount(0);
+    await expect(page.locator("html")).not.toHaveAttribute("data-offline", "");
+  });
+
+  test("the app bar goes inert while slid away and returns on a scroll up", async ({ page }) => {
+    await page.emulateMedia({ reducedMotion: "no-preference" });
+    await page.goto("/d/2026-10-05");
+    const bar = page.locator(".app-bar");
+    await page.mouse.wheel(0, 900);
+    await expect(page.locator("html")).toHaveAttribute("data-bar-hidden", "");
+    await expect(bar).toHaveJSProperty("inert", true);
+    await page.mouse.wheel(0, -200);
+    await expect(page.locator("html")).not.toHaveAttribute("data-bar-hidden", "");
+    await expect(bar).toHaveJSProperty("inert", false);
+  });
+
+  test("the offline page says when the connection is back, and speaks once", async ({ page }) => {
     await page.goto("/offline");
-    await expect(page.getByRole("heading", { level: 1 })).toHaveText("You are offline");
-    await expect(page.getByText("Open a briefing you have read before")).toBeVisible();
+    // Online, the page never claims to be offline: it says the connection is back.
+    await expect(page.getByRole("heading", { level: 1 })).toHaveText("You are back online");
+    // The cut-signal scene goes with the offline state: the connected one with its check stands in.
+    await expect(page.locator("#main .empty")).toHaveAttribute("data-state", "online");
+    await expect(page.locator('#main .empty-art[data-art="online"]')).toBeVisible();
+    await expect(page.locator('#main .empty-art[data-art="offline"]')).toBeHidden();
+    await expect(page.getByRole("link", { name: "Reload" })).toBeVisible();
+    await expect(page.getByRole("link", { name: "Open Library" })).toHaveAttribute(
+      "href",
+      "/library",
+    );
+    // The page is the message: no banner repeats it.
+    await expect(page.locator('[data-banner="offline"]')).toHaveCount(0);
   });
 
   test("latest.json lists only the whitelisted fields", async ({ request }) => {

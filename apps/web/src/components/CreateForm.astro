@@ -6,6 +6,8 @@ import {
   FORMATS,
   LENGTHS,
   MAX_TITLE_CHARS,
+  MORE_OPTIONS_TEMPLATE,
+  moreOptionsSummary,
   submitLabel,
   TONES,
   topicOptions,
@@ -27,10 +29,36 @@ const { custom } = await loadScheduleView();
 const topics = topicOptions(sections, allTopics, custom.skip_topics);
 const startFormat = custom.format;
 const startLength = custom.length_minutes;
+// A readout's one select is "Voice"; in a discussion each select is a host's voice.
 const VOICES = [
-  { name: "voice", saved: custom.voice_id, label: "Ada" },
-  { name: "voice_b", saved: custom.voice_id_b, label: "Leo" },
+  {
+    name: "voice",
+    saved: custom.voice_id,
+    label: "Voice",
+    caption: "First host",
+    hostLabel: "First host's voice",
+    index: "a",
+  },
+  {
+    name: "voice_b",
+    saved: custom.voice_id_b,
+    label: "Second host's voice",
+    caption: "Second host",
+    hostLabel: "Second host's voice",
+    index: "b",
+  },
 ] as const;
+// A declaration, not a generic arrow: the Astro compiler reads `<T>(` as a tag.
+function labelOf<T>(list: ReadonlyArray<{ value: T; label: string }>, value: T): string {
+  return list.find((item) => item.value === value)?.label ?? "";
+}
+const audiencePhrase = AUDIENCES.find((item) => item.value === DEFAULTS.audience)?.phrase ?? "";
+// The More options line before the script runs: the same words the script writes (createPage.ts).
+const moreSummary = moreOptionsSummary(
+  audiencePhrase,
+  labelOf(WINDOWS, DEFAULTS.window),
+  labelOf(TONES, DEFAULTS.tone),
+);
 
 // Every sentence the form's script can show lives here, in the markup, not in the script. The
 // script picks one by its key, which keeps it small. The run's own lines are in RunStatus.astro.
@@ -43,8 +71,10 @@ const COPY = {
       }
     : {}),
   "400": "That request did not go through. Reload the page and try again.",
-  cooldown: "Episodes need a short rest between them. Try again in",
-  daily_cap: "The limit for today is reached. Try again in",
+  cooldown: "You can make another episode in",
+  daily_cap: "That's today's limit. Try again in",
+  // Shown on the button while the request is out, in place of its words.
+  starting: "Starting…",
   "503": "Episodes are not available right now. Try again in a few minutes.",
   network: "The request did not go through. Check your connection, then try again.",
 } as const;
@@ -58,26 +88,15 @@ const COPY = {
   data-open-passphrase={PASSPHRASE_REQUIRED ? undefined : OPEN_PASSPHRASE}
 >
   <form data-create-form novalidate>
-    <section class="create-group" aria-labelledby="create-audience-label">
-      <h2 class="section-head" id="create-audience-label">Written for</h2>
-      <fieldset class="settings-choice create-choice" role="radiogroup" aria-labelledby="create-audience-label">
-        {
-          AUDIENCES.map((audience) => (
-            <label class="settings-segment">
-              <input type="radio" name="audience" value={audience.value} checked={audience.value === DEFAULTS.audience} />
-              <span>{audience.label}</span>
-            </label>
-          ))
-        }
-      </fieldset>
-    </section>
-
-    <section class="create-group" aria-labelledby="create-topics-label">
+    {/* What the episode is about comes first and is the one question without an answer. Length and
+         format follow; everything else has a default and waits under More options, whose line says
+         what those defaults are. */}
+    <section class="create-group create-group-primary" aria-labelledby="create-topics-label">
       <h2 class="section-head" id="create-topics-label">Topics</h2>
-      <fieldset class="create-chips" aria-labelledby="create-topics-label">
+      <fieldset class="filter-chips" aria-labelledby="create-topics-label">
         {
           topics.map((topic) => (
-            <label class="create-chip">
+            <label class="filter-chip">
               <input
                 type="checkbox"
                 name="topic"
@@ -86,7 +105,7 @@ const COPY = {
                 data-presets={topic.presets.join(" ")}
                 checked={topic.presets.includes(DEFAULTS.audience)}
               />
-              <Icon name="check" class="create-chip-check" />
+              <Icon name="check" class="filter-chip-check" />
               <span>{topic.label}</span>
             </label>
           ))
@@ -104,16 +123,18 @@ const COPY = {
           LENGTHS.map((length) => (
             <label class="settings-segment">
               <input type="radio" name="length" value={length.value} data-submit-label={submitLabel(length.value)} checked={length.value === startLength} />
-              <span class="num">{length.label}</span>
+              <span>{length.label}</span>
             </label>
           ))
         }
       </fieldset>
     </section>
 
+    {/* The line under the format says who will be heard: one voice, or two hosts and which voices
+         they have. The script fills in the names once the voices have loaded. */}
     <section class="create-group" aria-labelledby="create-format-label">
       <h2 class="section-head" id="create-format-label">Format</h2>
-      <fieldset class="settings-choice create-choice" role="radiogroup" aria-labelledby="create-format-label">
+      <fieldset class="settings-choice create-choice" role="radiogroup" aria-labelledby="create-format-label" aria-describedby="create-format-hint">
         {
           FORMATS.map((format) => (
             <label class="settings-segment">
@@ -123,79 +144,134 @@ const COPY = {
           ))
         }
       </fieldset>
+      <p
+        class="create-hint create-format-hint"
+        id="create-format-hint"
+        data-format-hint
+        data-readout-named="Read by {a}"
+        data-discussion-named="{a} and {b}"
+        hidden
+      ></p>
     </section>
 
-    {/* Ada reads a readout alone; a discussion adds Leo. The options come from /api/voices when the
-         panel opens, so the markup carries only the default and the saved voice. */}
-    <section class="create-group" aria-labelledby="create-voice-label">
-      <h2 class="section-head" id="create-voice-label">Voice</h2>
-      <div class="create-voices">
-        {
-          VOICES.map((voice, index) => (
-            <div class="create-voice" data-voice={voice.name} hidden={index === 1 && startFormat !== "discussion"}>
-              <label class="create-voice-name" for={`create-${voice.name}`} data-voice-caption hidden={startFormat !== "discussion"}>{voice.label}</label>
-              <span class="create-select">
-                <select
-                  class="sheet-input"
-                  id={`create-${voice.name}`}
-                  name={voice.name}
-                  data-saved={voice.saved ?? ""}
-                  aria-label={`Voice (${voice.label})`}
-                  autocomplete="off"
-                >
-                  <option value="">Default</option>
-                  {voice.saved && <option value={voice.saved} selected>Saved voice</option>}
-                </select>
-                <Icon name="chevronDown" />
-              </span>
-            </div>
-          ))
-        }
+    {/* Everything with a sensible default, in place: one row that names the current choices and
+         opens to show them. On a wide /create page it stays open beside the main questions. */}
+    <details class="create-more" data-create-more>
+      <summary class="create-more-summary">
+        <span class="create-more-text">
+          <span class="create-more-title">More options</span>
+          <span class="create-more-values" data-more-values data-template={MORE_OPTIONS_TEMPLATE}>{moreSummary}</span>
+        </span>
+        <Icon name="chevronDown" class="create-more-chevron" />
+      </summary>
+      <div class="create-more-body">
+        <section class="create-group" aria-labelledby="create-audience-label">
+          <h2 class="section-head" id="create-audience-label">Written for</h2>
+          <fieldset class="settings-choice create-choice" role="radiogroup" aria-labelledby="create-audience-label">
+            {
+              AUDIENCES.map((audience) => (
+                <label class="settings-segment">
+                  <input type="radio" name="audience" value={audience.value} data-label={audience.phrase} checked={audience.value === DEFAULTS.audience} />
+                  <span>{audience.label}</span>
+                </label>
+              ))
+            }
+          </fieldset>
+          {/* Switching the audience brings its suggested topics only while the topics are still the
+               last suggestion; the chips may be out of view, so this line says what changed and
+               offers Undo. Picks made by hand stay, and the line says so and offers the swap. The
+               status region is always there, so a line that appears in it is announced. */}
+          <div role="status" data-preset-status>
+            <p
+              class="create-hint create-preset-note"
+              data-preset-note
+              data-kept="Your topic picks are kept"
+              data-applied="Topics set for {audience}"
+              hidden
+            >
+              <span data-preset-text>Your topic picks are kept</span>
+              <button class="btn create-inline-btn" type="button" data-preset-apply>Use suggested topics</button>
+              <button class="btn create-inline-btn" type="button" data-preset-undo hidden>Undo</button>
+            </p>
+          </div>
+        </section>
+
+        {/* A readout has one voice; a discussion has two hosts, each with a voice. The options come
+             from /api/voices when the form is first used, so the markup carries only the default and
+             the saved voice. */}
+        <section class="create-group" aria-labelledby="create-voice-label">
+          <h2 class="section-head" id="create-voice-label" data-voice-heading data-one="Voice" data-two="Voices">{startFormat === "discussion" ? "Voices" : "Voice"}</h2>
+          <div class="create-voices">
+            {
+              VOICES.map((voice, index) => (
+                <div class="create-voice" data-voice={voice.name} hidden={index === 1 && startFormat !== "discussion"}>
+                  <label class="create-voice-name" for={`create-${voice.name}`} data-voice-caption data-host={voice.index} data-unnamed={voice.caption} data-named="{name}'s voice" hidden={startFormat !== "discussion"}>{voice.caption}</label>
+                  <span class="create-select">
+                    <select
+                      id={`create-${voice.name}`}
+                      name={voice.name}
+                      data-saved={voice.saved ?? ""}
+                      data-one={voice.label}
+                      data-two={voice.hostLabel}
+                      data-two-named="{name}'s voice"
+                      aria-label={startFormat === "discussion" ? voice.hostLabel : voice.label}
+                      autocomplete="off"
+                    >
+                      <option value="">Default</option>
+                      {voice.saved && <option value={voice.saved} selected>Saved voice</option>}
+                    </select>
+                    <Icon name="chevronDown" />
+                  </span>
+                </div>
+              ))
+            }
+          </div>
+        </section>
+
+        <section class="create-group" aria-labelledby="create-window-label">
+          <h2 class="section-head" id="create-window-label">Look back</h2>
+          <fieldset class="settings-choice create-choice" role="radiogroup" aria-labelledby="create-window-label">
+            {
+              WINDOWS.map((window) => (
+                <label class="settings-segment">
+                  <input type="radio" name="window" value={window.value} data-label={window.label} checked={window.value === DEFAULTS.window} />
+                  <span>{window.label}</span>
+                </label>
+              ))
+            }
+          </fieldset>
+        </section>
+
+        <section class="create-group" aria-labelledby="create-tone-label">
+          <h2 class="section-head" id="create-tone-label">Tone</h2>
+          <fieldset class="settings-choice create-choice" role="radiogroup" aria-labelledby="create-tone-label">
+            {
+              TONES.map((tone) => (
+                <label class="settings-segment">
+                  <input type="radio" name="tone" value={tone.value} data-label={tone.label} checked={tone.value === DEFAULTS.tone} />
+                  <span>{tone.label}</span>
+                </label>
+              ))
+            }
+          </fieldset>
+        </section>
+
+        <section class="create-group">
+          <h2 class="section-head">
+            <label for="create-title">Title <span class="create-optional">(optional)</span></label>
+          </h2>
+          <input
+            class="sheet-input create-title"
+            id="create-title"
+            name="title"
+            type="text"
+            maxlength={MAX_TITLE_CHARS}
+            autocomplete="off"
+            enterkeyhint="done"
+          />
+        </section>
       </div>
-    </section>
-
-    <section class="create-group" aria-labelledby="create-window-label">
-      <h2 class="section-head" id="create-window-label">Look back</h2>
-      <fieldset class="settings-choice create-choice" role="radiogroup" aria-labelledby="create-window-label">
-        {
-          WINDOWS.map((window) => (
-            <label class="settings-segment">
-              <input type="radio" name="window" value={window.value} checked={window.value === DEFAULTS.window} />
-              <span>{window.label}</span>
-            </label>
-          ))
-        }
-      </fieldset>
-    </section>
-
-    <section class="create-group" aria-labelledby="create-tone-label">
-      <h2 class="section-head" id="create-tone-label">Tone</h2>
-      <fieldset class="settings-choice create-choice" role="radiogroup" aria-labelledby="create-tone-label">
-        {
-          TONES.map((tone) => (
-            <label class="settings-segment">
-              <input type="radio" name="tone" value={tone.value} checked={tone.value === DEFAULTS.tone} />
-              <span>{tone.label}</span>
-            </label>
-          ))
-        }
-      </fieldset>
-    </section>
-
-    <section class="create-group">
-      <h2 class="section-head">
-        <label for="create-title">Title <span class="create-optional">(optional)</span></label>
-      </h2>
-      <input
-        class="sheet-input create-title"
-        id="create-title"
-        name="title"
-        type="text"
-        maxlength={MAX_TITLE_CHARS}
-        autocomplete="off"
-        enterkeyhint="done"
-      />
-    </section>
+    </details>
 
     {/* The words are in their own span, so the length can change them without removing the spinner
          that shows while the request is out. */}

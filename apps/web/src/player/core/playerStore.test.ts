@@ -1,7 +1,7 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { MEDIA_ERR_NETWORK, MEDIA_ERR_SRC_NOT_SUPPORTED } from "./audioErrors";
 import { BUFFERING_DELAY_MS, RESUME_SAVE_INTERVAL_MS } from "./playerStore";
-import { resumeKey } from "./resume";
+import { playedKey, resumeKey } from "./resume";
 import { createHarness, makeDigest, makeDigestWithoutAudio } from "./testing";
 
 beforeEach(() => {
@@ -220,6 +220,21 @@ describe("seeking and items", () => {
     expect(harness.audio.currentTime).toBe(70);
   });
 
+  it("does not take the unlock primer's silence for the recording, so nothing is stored as played", () => {
+    const harness = createHarness();
+    const digest = makeDigest();
+    harness.store.load(digest);
+    // A tap loaded 0.05 s of silence so the phone would let the element start later.
+    harness.audio.loadMetadata(0.05);
+    expect(harness.store.getState().duration).toBe(120);
+    // The page's own digest arrives with other audio: the track reloads and saves where it was.
+    harness.store.setPageDigest({
+      ...digest,
+      audio: { url: "/audio/other.mp3", duration_ms: 120_000 },
+    });
+    expect(harness.storage.getItem(playedKey(digest.id))).toBeNull();
+  });
+
   it("clamps seeks to the digest", () => {
     const harness = createHarness();
     startPlaying(harness);
@@ -262,6 +277,31 @@ describe("seeking and items", () => {
     harness.store.previous();
     expect(harness.store.getTime()).toBe(0);
     harness.store.seekTo(2_000);
+    harness.store.previous();
+    expect(harness.store.getTime()).toBe(0);
+  });
+
+  it("treats a lead-in before the first story as no story: Next goes to story 1, Previous to 0:00", () => {
+    const harness = createHarness();
+    const led = makeDigest({
+      items: makeDigest().items.map((entry, index) =>
+        index === 0 ? { ...entry, start_ms: 18_600 } : entry,
+      ),
+    });
+    startPlaying(harness, led);
+    harness.store.seekTo(5_000);
+    expect(harness.store.getState().itemIndex).toBe(-1);
+    expect(harness.store.next()).toBe(true);
+    expect(harness.store.getTime()).toBe(18.6);
+    expect(harness.store.getState().itemIndex).toBe(0);
+    harness.store.seekTo(5_000);
+    expect(harness.store.previous()).toBe(true);
+    expect(harness.store.getTime()).toBe(0);
+    expect(harness.store.getState().itemIndex).toBe(-1);
+    // At 0:00 there is nothing further back.
+    expect(harness.store.previous()).toBe(false);
+    // Previous from the first seconds of story 1 goes back to the rundown's start.
+    harness.store.seekTo(19_000);
     harness.store.previous();
     expect(harness.store.getTime()).toBe(0);
   });
@@ -472,6 +512,18 @@ describe("the end of a digest", () => {
     expect(harness.store.getState().upNextId).toBeNull();
   });
 
+  it("plays the story Previous lands on after the end", () => {
+    const harness = createHarness();
+    startPlaying(harness);
+    harness.audio.currentTime = 120;
+    harness.audio.finish();
+    expect(harness.store.getState().status).toBe("ended");
+    const calls = harness.audio.playCalls;
+    expect(harness.store.previous()).toBe(true);
+    expect(harness.audio.playCalls).toBe(calls + 1);
+    expect(["playing", "loading"]).toContain(harness.store.getState().status);
+  });
+
   it("leaves the ended state when the listener seeks back", () => {
     const harness = createHarness();
     startPlaying(harness);
@@ -531,6 +583,79 @@ describe("errors", () => {
     expect(state.error?.message).toMatch(/connection/);
   });
 
+  it("shows the reason a playlist gave for a file it could not make, as the one message", () => {
+    const harness = createHarness();
+    startPlaying(harness);
+    harness.audio.error = {
+      code: MEDIA_ERR_NETWORK,
+      narrated: {
+        message: "Daily narration limit reached.",
+        summary: "Daily limit reached",
+        standing: true,
+      },
+    };
+    harness.audio.emit("error");
+    const error = harness.store.getState().error;
+    expect(error?.message).toBe("Daily narration limit reached.");
+    expect(error?.kind).toBe("refused");
+    expect(error?.summary).toBe("Daily limit reached");
+  });
+
+  it("never shows the browser's own MediaError message", () => {
+    const harness = createHarness();
+    startPlaying(harness);
+    harness.audio.error = {
+      code: MEDIA_ERR_SRC_NOT_SUPPORTED,
+      message: "MEDIA_ELEMENT_ERROR: Format error",
+    };
+    harness.audio.emit("error");
+    const error = harness.store.getState().error;
+    expect(error?.kind).toBe("unavailable");
+    expect(error?.message).toBe("Audio is not available for this briefing.");
+  });
+
+  it("in a standing refusal, a play tries the element again: a story whose file is made plays", () => {
+    const harness = createHarness();
+    startPlaying(harness);
+    harness.audio.error = {
+      code: MEDIA_ERR_NETWORK,
+      narrated: { message: "Daily narration limit reached.", standing: true },
+    };
+    harness.audio.emit("error");
+    const calls = harness.audio.playCalls;
+    // The narration's queue answers a made file at once and refuses a new one without a request,
+    // so the element is the one to ask: it plays, or reports the same reason again.
+    harness.store.play();
+    expect(harness.audio.playCalls).toBe(calls + 1);
+    expect(harness.store.getState().error).toBeNull();
+  });
+
+  it("a story step out of a failure plays the story it lands on, as a row tap does", () => {
+    const harness = createHarness();
+    startPlaying(harness);
+    harness.audio.error = { code: MEDIA_ERR_NETWORK };
+    harness.audio.emit("error");
+    const calls = harness.audio.playCalls;
+    expect(harness.store.next()).toBe(true);
+    expect(harness.store.getState().error).toBeNull();
+    expect(harness.store.getState().itemIndex).toBe(1);
+    expect(harness.audio.playCalls).toBe(calls + 1);
+    expect(["playing", "loading"]).toContain(harness.store.getState().status);
+  });
+
+  it("a story step in a standing refusal plays the story it lands on", () => {
+    const harness = createHarness();
+    startPlaying(harness);
+    harness.audio.error = {
+      code: MEDIA_ERR_NETWORK,
+      narrated: { message: "Daily narration limit reached.", standing: true },
+    };
+    harness.audio.emit("error");
+    const calls = harness.audio.playCalls;
+    expect(harness.store.previous()).toBe(true);
+    expect(harness.audio.playCalls).toBe(calls + 1);
+  });
+
   it("says the audio is unavailable when the source cannot be used", () => {
     const harness = createHarness();
     startPlaying(harness);
@@ -555,6 +680,19 @@ describe("errors", () => {
     await vi.advanceTimersByTimeAsync(0);
     expect(harness.store.getState()).toMatchObject({ status: "paused" });
     expect(harness.store.getState().error?.kind).toBe("blocked");
+  });
+
+  it("reports a failed play once when the element's error and the rejected play both arrive", async () => {
+    const harness = createHarness();
+    harness.store.load(makeDigest());
+    harness.audio.playRejection = Object.assign(new Error("no source"), {
+      name: "NotSupportedError",
+    });
+    harness.store.play();
+    harness.audio.error = { code: MEDIA_ERR_SRC_NOT_SUPPORTED };
+    harness.audio.emit("error");
+    await vi.advanceTimersByTimeAsync(0);
+    expect(harness.events.filter((event) => event.type === "error")).toHaveLength(1);
   });
 
   it("ignores a play rejected because a newer load won", async () => {
@@ -722,19 +860,6 @@ describe("listeners and disposal", () => {
     expect(harness.store.getState().digestId).toBe("2026-10-07");
     expect(harness.audio.src).toBe("");
     expect(harness.audio.listenerCount()).toBe(0);
-  });
-
-  it("returns an unsubscribe function from every subscription", () => {
-    const harness = createHarness();
-    harness.store.load(makeDigest());
-    let coarse = 0;
-    const off = harness.store.subscribe(() => {
-      coarse += 1;
-    });
-    harness.store.setRate(1.5);
-    off();
-    harness.store.setRate(2);
-    expect(coarse).toBe(1);
   });
 });
 

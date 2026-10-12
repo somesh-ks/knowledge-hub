@@ -8,7 +8,14 @@
  */
 import type { PlayerStore } from "../player/core/playerTypes";
 import type { NarrationTimeline, PlayerDigestData } from "../types/contracts";
-import { type ApiDeps, FAILURE_COPY, lookupNarration, narrateSegment } from "./narrationApi";
+import {
+  type ApiDeps,
+  describeNarrationFailure,
+  failureCopy,
+  lookupNarration,
+  type NarrationNoun,
+  narrateSegment,
+} from "./narrationApi";
 import {
   type NarrationPlan,
   narratedDigest,
@@ -132,6 +139,8 @@ export function createNarrationController(deps: ControllerDeps): NarrationContro
   let asking = false;
   /** Bumped by every play, so an attempt that was overtaken stops quietly. */
   let attempt = 0;
+  // What the recording being started is called, for the copy of a refusal.
+  let noun: NarrationNoun = "briefing";
 
   function installAdapter(): void {
     if (adapterInstalled) return;
@@ -180,7 +189,7 @@ export function createNarrationController(deps: ControllerDeps): NarrationContro
   }
 
   function say(reason: NarrationFailure): void {
-    const message = FAILURE_COPY[reason];
+    const message = failureCopy(reason, noun);
     if (message) deps.notify(message);
   }
 
@@ -237,9 +246,9 @@ export function createNarrationController(deps: ControllerDeps): NarrationContro
           if (!needed || starting || activeId !== digest.id) return;
           if (reason === "passphrase_required" || reason === "wrong_passphrase") {
             void reauthorize(digest.id, queue, reason === "wrong_passphrase");
-          } else {
-            say(reason);
           }
+          // Any other refusal mid-briefing is told once, by the player: the file's wait ends in an
+          // error whose words describeFailure gives (see playlists below), so no toast repeats it.
         },
       });
       return {
@@ -271,6 +280,7 @@ export function createNarrationController(deps: ControllerDeps): NarrationContro
   }
 
   async function play(digest: PlayerDigestData, itemId?: string): Promise<PlayOutcome> {
+    noun = digest.turns || digest.kind === "on-demand" ? "episode" : "briefing";
     attempt += 1;
     const mine = attempt;
 
@@ -314,7 +324,15 @@ export function createNarrationController(deps: ControllerDeps): NarrationContro
       }
 
       sessions.set(digest.id, { queue, narrated });
-      playlists.set(narrationSource(digest.id), queue);
+      playlists.set(narrationSource(digest.id), {
+        get segments() {
+          return queue.segments;
+        },
+        ensure: (index) => queue.ensure(index),
+        prepare: (index) => queue.prepare(index),
+        describeFailure: (error) =>
+          error instanceof NarrationError ? describeNarrationFailure(error.reason, noun) : null,
+      });
       installAdapter();
       rememberNarrated(narrated);
       activate(digest.id);

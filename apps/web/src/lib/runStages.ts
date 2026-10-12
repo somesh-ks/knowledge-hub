@@ -6,7 +6,11 @@ import type { GenerateStep } from "../types/contracts";
  * the workflow has committed; the workflow cannot see it, the page does.
  */
 
-export const UPDATING_LABEL = "Updating the site";
+/** A new episode's last stage: the site redeploys with it, and the Library lists it. */
+export const UPDATING_LABEL = "Adding it to your Library";
+
+/** A briefing's last stage: it lands on Today, not in the Library. */
+export const BRIEFING_UPDATING_LABEL = "Updating the site";
 
 /** A briefing (run.yml), one stage per step of the workflow. */
 export const BRIEFING_STAGES = [
@@ -16,7 +20,7 @@ export const BRIEFING_STAGES = [
   "Writing the briefing",
   "Checking the facts",
   "Publishing",
-  UPDATING_LABEL,
+  BRIEFING_UPDATING_LABEL,
 ] as const;
 
 /**
@@ -64,6 +68,11 @@ export function episodeStage(steps: readonly StepLike[]): StageInfo {
 
 /** The stage a finished, successful run leaves the page in: waiting for the new page. */
 export function updatingStage(kind: "briefing" | "episode"): StageInfo {
-  const stages = kind === "briefing" ? BRIEFING_STAGES.length : EPISODE_STAGES.length;
-  return { stage: stages - 1, stages, label: UPDATING_LABEL };
+  const briefing = kind === "briefing";
+  const stages = briefing ? BRIEFING_STAGES.length : EPISODE_STAGES.length;
+  return {
+    stage: stages - 1,
+    stages,
+    label: briefing ? BRIEFING_UPDATING_LABEL : UPDATING_LABEL,
+  };
 }

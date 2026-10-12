@@ -23,6 +23,7 @@
     "enabled": true,
     "rules": {
       "recommended": true,
+      "complexity": { "noImportantStyles": "error" },
       "suspicious": { "noExplicitAny": "error" },
       "style": { "noNonNullAssertion": "error" }
     }

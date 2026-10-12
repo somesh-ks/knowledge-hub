@@ -1,5 +1,14 @@
 import { daysBetween, longDate, stockholmDate } from "@dispatch/core";
 
+/**
+ * The long date as a title on screen: "Wednesday 7 October" with a non-breaking space between the
+ * day and the month, so a title that wraps never leaves "7" on one line and "October" on the next.
+ * Text that leaves the page (a share, the media session, the document title) keeps `longDate`.
+ */
+export function longDateTitle(date: string): string {
+  return longDate(date).replace(/(\d) /, "$1\u00a0");
+}
+
 /** "m:ss" for a duration in milliseconds. Rounds to whole seconds, never shows a negative. */
 export function formatClock(milliseconds: number): string {
   const total = Math.max(0, Math.round(milliseconds / 1000));
@@ -11,6 +20,8 @@ export function formatClock(milliseconds: number): string {
 export function pluralize(count: number, singular: string, plural = `${singular}s`): string {
   return `${count} ${count === 1 ? singular : plural}`;
 }
+
+export { longDate };
 
 /** First word of the long date, "Wednesday". */
 function weekdayName(date: string): string {
@@ -45,4 +56,31 @@ export function monthName(monthKey: string): string {
   return monthFormat.format(new Date(`${monthKey}-15T12:00:00Z`));
 }
 
-export { longDate };
+/** A piece of a headline, and whether it must stay on one line. */
+export interface HeadlinePart {
+  text: string;
+  nowrap: boolean;
+}
+
+/** A hyphenated word short enough to keep whole on the narrowest line. */
+const HYPHENATED = /[^\s-]+(?:-[^\s-]+)+/g;
+const NOWRAP_MAX = 24;
+
+/**
+ * A headline split so its hyphenated words ("mid-range", "high-speed") can be kept whole: balanced
+ * wrapping otherwise breaks at the hyphen ("mid- / range"). Plain text parts, so the page escapes
+ * them as it does any text; only words up to 24 characters are held, so nothing overflows a phone.
+ */
+export function headlineParts(text: string): HeadlinePart[] {
+  const parts: HeadlinePart[] = [];
+  let at = 0;
+  for (const match of text.matchAll(HYPHENATED)) {
+    const start = match.index ?? 0;
+    if (match[0].length > NOWRAP_MAX) continue;
+    if (start > at) parts.push({ text: text.slice(at, start), nowrap: false });
+    parts.push({ text: match[0], nowrap: true });
+    at = start + match[0].length;
+  }
+  if (at < text.length) parts.push({ text: text.slice(at), nowrap: false });
+  return parts;
+}

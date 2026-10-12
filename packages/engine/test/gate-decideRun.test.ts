@@ -313,6 +313,38 @@ describe("decideRun: the weekly slot", () => {
   });
 });
 
+// The gate counted in Stockholm whatever zone was chosen, so New York at 07:00 ran at 07:00 in Stockholm (D89).
+describe("decideRun: the schedule's time zone", () => {
+  const SUNDAY_7 = { enabled: true, day: 0, hour: 7 };
+  const inNewYork = (now: string, last: LastRunFile, weekly = SUNDAY_7) =>
+    decideRun({
+      now: new Date(now),
+      mode: "scheduled",
+      lastRun: last,
+      force: false,
+      weekly,
+      zone: "America/New_York",
+    });
+
+  it("reads the weekly slot's day and hour on the zone's clock", () => {
+    // 06:30 Sunday in New York is 12:30 in Stockholm: not yet the slot.
+    expect(inNewYork("2026-10-11T10:30:00Z", lastWith()).runWeekly).toBe(false);
+    expect(inNewYork("2026-10-11T11:30:00Z", lastWith()).runWeekly).toBe(true);
+    // 22:00 Sunday in New York is already Monday in Stockholm.
+    expect(inNewYork("2026-10-12T02:00:00Z", lastWith())).toMatchObject({
+      runWeekly: true,
+      date: "2026-10-11",
+    });
+  });
+
+  it("counts the cadence between the zone's dates", () => {
+    // The last run was late on 9 October in New York, already the 10th in Stockholm.
+    const last = lastWith(record("2026-10-10T03:00:00Z"));
+    const decision = inNewYork("2026-10-11T12:00:00Z", last, NO_WEEKLY);
+    expect(decision).toMatchObject({ due: true, date: "2026-10-11" });
+  });
+});
+
 describe("decideRun: modes and force", () => {
   const justRan = lastWith(record("2026-10-07T05:13:00Z"));
 

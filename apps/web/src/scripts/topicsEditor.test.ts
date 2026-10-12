@@ -1,12 +1,11 @@
-import { describe, expect, it } from "vitest";
+import { describe, expect, it, vi } from "vitest";
 import {
-  addTopicLabel,
   idText,
-  keywordList,
+  parseSuggestedAdd,
   problemText,
-  saveTopicLabel,
   slugify,
   topicChanged,
+  topicProblems,
   webAddress,
 } from "../lib/topicText";
 import type { ConfigOp } from "../types/contracts";
@@ -63,26 +62,6 @@ describe("webAddress", () => {
   });
 });
 
-describe("keywordList", () => {
-  it("splits on commas, trims, and drops empties and repeats", () => {
-    expect(keywordList(" motion, , type ,motion")).toEqual(["motion", "type"]);
-    expect(keywordList("")).toEqual([]);
-  });
-
-  it("holds no more than a topic can", () => {
-    expect(keywordList(Array.from({ length: 50 }, (_, i) => `w${i}`).join(","))).toHaveLength(30);
-  });
-});
-
-describe("the panel's main button", () => {
-  it("says how many sources go with a new or an edited topic", () => {
-    expect(addTopicLabel(0)).toBe("Add topic");
-    expect(addTopicLabel(1)).toBe("Add topic and 1 source");
-    expect(saveTopicLabel(0)).toBe("Save");
-    expect(saveTopicLabel(3)).toBe("Save and add 3 sources");
-  });
-});
-
 describe("topicChanged", () => {
   const saved = { name: "Audio", description: "Players and voice.", keywords: ["audio", "voice"] };
   it("sees a new name, a new line of what counts, or other keywords", () => {
@@ -94,6 +73,52 @@ describe("topicChanged", () => {
     expect(
       topicChanged(saved, { ...saved, name: " Audio ", description: "Players and voice. " }),
     ).toBe(false);
+  });
+});
+
+describe("parseSuggestedAdd", () => {
+  const carried = {
+    name: "Dezeen",
+    feed_url: "https://www.dezeen.com/feed/",
+    favicon_url: "https://www.dezeen.com/favicon.ico",
+    topic_id: "design",
+  };
+  const parse = (value: unknown) => parseSuggestedAdd(JSON.stringify(value));
+
+  it("reads what a + button carries: the feed to add, the name, the icon and the topic", () => {
+    expect(parse(carried)).toEqual(carried);
+  });
+
+  it("keeps no icon that is not https, and files under no topic when none is given", () => {
+    expect(parse({ ...carried, favicon_url: "http://www.dezeen.com/favicon.ico" })).toMatchObject({
+      favicon_url: null,
+    });
+    expect(parse({ ...carried, favicon_url: null, topic_id: undefined })).toMatchObject({
+      favicon_url: null,
+      topic_id: "",
+    });
+  });
+
+  it("reads nothing else: a suggestion has no score, and one that arrives with it is dropped", () => {
+    const found = parse({ ...carried, score: 2.9, score_label: "Good" });
+    expect(found).toEqual(carried);
+  });
+
+  it("is null for a button with nothing to add, and never throws", () => {
+    for (const bad of [
+      undefined,
+      "",
+      "{not json",
+      "null",
+      "[]",
+      JSON.stringify({ ...carried, feed_url: "" }),
+      JSON.stringify({ ...carried, feed_url: "javascript:alert(1)" }),
+      JSON.stringify({ ...carried, feed_url: 7 }),
+      JSON.stringify({ ...carried, name: " " }),
+      JSON.stringify({ feed_url: carried.feed_url }),
+    ]) {
+      expect(parseSuggestedAdd(bad), String(bad)).toBeNull();
+    }
   });
 });
 
@@ -112,6 +137,9 @@ describe("failureText", () => {
     expect(failureText(503)).toBe("Saving is not available right now. Not saved yet.");
     expect(failureText(0)).toBe("The site could not be reached. Not saved yet.");
     expect(failureText(400)).toBe("That change was not accepted. Not saved yet.");
+    // A status with no reason of its own is a failure, not an unreachable site.
+    expect(failureText(500)).toBe("Saving failed.");
+    expect(failureText(501)).toBe("Saving failed.");
   });
 
   it("never asks for the passphrase back in a message that is not about it", () => {
@@ -193,6 +221,29 @@ describe("settle", () => {
     settle({ ops: [sent.op], sent: [["a", sent]] }, changes);
     expect(el.dataset.was).toBe("true");
     expect(changes.size).toBe(0);
+  });
+
+  it("replaces a removed topic's page with the Topics list once the removal is saved", () => {
+    const replace = vi.fn();
+    vi.stubGlobal("location", { replace });
+    const topic = { setAttribute: () => undefined };
+    const page = (isConnected: boolean) =>
+      ({
+        matches: (selector: string) => selector === "[data-remove]",
+        closest: (selector: string) => (selector === "li" ? null : topic),
+        dataset: {} as Record<string, string>,
+        isConnected,
+      }) as unknown as HTMLElement;
+    const sent: Pending = { op: { op: "topic.remove", id: "knit" }, el: page(true), now: "true" };
+    settle({ ops: [sent.op], sent: [["a", sent]] }, new Map([["a", sent]]));
+    // Replaced, not pushed: Back from the list never returns to the dead page.
+    expect(replace).toHaveBeenCalledWith("/settings/topics");
+    // A page already left (the removal went after a swap) stays left.
+    replace.mockClear();
+    const left: Pending = { ...sent, el: page(false) };
+    settle({ ops: [left.op], sent: [["b", left]] }, new Map([["b", left]]));
+    expect(replace).not.toHaveBeenCalled();
+    vi.unstubAllGlobals();
   });
 
   it("keeps a change made while the request was on its way, for the next one", () => {
@@ -281,5 +332,23 @@ describe("buildQueue", () => {
 
   it("is empty when nothing changed", () => {
     expect(buildQueue(new Map())).toEqual([]);
+  });
+});
+
+describe("topicProblems", () => {
+  const taken = ["Design", "World"];
+  it("refuses a name a topic already has, whatever its case", () => {
+    expect(topicProblems({ name: "design", description: "x" }, taken).name).toBe(
+      "You already have a topic called Design.",
+    );
+    expect(topicProblems({ name: " WORLD ", description: "x" }, taken).name).toBe(
+      "You already have a topic called World.",
+    );
+  });
+  it("takes a new name", () => {
+    expect(topicProblems({ name: "Typography", description: "x" }, taken)).toEqual({
+      name: "",
+      description: "",
+    });
   });
 });

@@ -33,6 +33,11 @@ export function formatClock(totalSeconds: number): string {
   return `${minutes}:${seconds}`;
 }
 
+/** The sign a time remaining shows: none once it reads 0:00, so the end never says "-0:00". */
+export function remainingSign(totalSeconds: number): string {
+  return formatClock(totalSeconds) === formatClock(0) ? "" : "-";
+}
+
 /** Splits a clock so a component can set the colon in its own fixed-width box. */
 export function clockParts(totalSeconds: number): { before: string; after: string } {
   const text = formatClock(totalSeconds);

@@ -45,9 +45,12 @@
   --player-dock-side: 18rem;
   /* The cover never takes more than this share of the window's height. */
   --player-cover-share: 40cqb;
+  /* From 64rem with a finger: what the left column holds besides the cover (the title, the story
+     line and its source or a notice, the scrubber, the transport, the speed, their gaps and the
+     bar), measured at 1024x600. */
+  --player-column-rest: 30rem;
   --player-skip-glyph: 2rem;
-  --player-play-glyph: 2.75rem;
-  --player-row-mark: var(--space-2);
+  --player-play-glyph: 2.25rem;
 }
 
 /* ------------------------------------------------------------------ per-frame properties */
@@ -317,11 +320,25 @@
   max-width: var(--layout-column);
   min-height: 100%;
   margin-inline: auto;
-  padding-block: var(--safe-top) max(var(--space-8), var(--safe-bottom));
+  padding-block: 0 max(var(--space-8), var(--safe-bottom));
   padding-inline: max(var(--player-padding), var(--safe-left))
     max(var(--player-padding), var(--safe-right));
   /* Until the page has landed, a press on it is a press on the page, not on a control. */
   pointer-events: none;
+}
+
+/* The status bar's room, held at the top as the page scrolls, so nothing runs under the clock in
+   the home-screen app. It spans the gutters too. Zero tall in a browser tab. */
+.player-page-inner::before {
+  content: "";
+  position: sticky;
+  inset-block-start: 0;
+  z-index: var(--z-raised);
+  flex: none;
+  block-size: var(--safe-top);
+  margin-inline: calc(max(var(--player-padding), var(--safe-left)) * -1)
+    calc(max(var(--player-padding), var(--safe-right)) * -1);
+  background: var(--color-surface);
 }
 
 .player[data-landed] .player-page-inner {
@@ -351,7 +368,8 @@
   align-self: center;
   width: var(--player-handle-width);
   height: var(--player-handle-height);
-  margin-block: var(--space-2);
+  /* About where Material puts a sheet's drag handle, with room above the art below it. */
+  margin-block: var(--space-4) var(--space-3);
   border-radius: var(--radius-xs);
   background: var(--player-handle-color);
 }
@@ -371,7 +389,8 @@
   inset-block-start: calc(var(--stroke-ring) + var(--stroke-ring-gap) + var(--space-1));
   inset-inline-start: 50%;
   z-index: var(--z-raised);
-  padding: var(--space-2) var(--space-4);
+  /* Short, so it sits over the handle row and stops above the art rather than over it. */
+  padding: var(--space-1) var(--space-4);
   border-radius: var(--button-radius);
   background: var(--color-surface-inverse);
   color: var(--color-on-surface-inverse);
@@ -386,10 +405,18 @@
   clip-path: none;
 }
 
+/* With a mouse on a wide screen the bar's chevron is the visible close, and it is inside the
+   dialog: a second "Close the player" would only be said twice. */
+@media (min-width: 64rem) and (hover: hover) and (pointer: fine) {
+  .player-collapse {
+    display: none;
+  }
+}
+
 .player-cover-slot {
   display: grid;
   place-items: center;
-  padding-block: var(--space-3) var(--space-6);
+  padding-block: var(--space-2) var(--space-6);
 }
 
 .player-cover-box {
@@ -402,40 +429,68 @@
   align-content: start;
   justify-items: center;
   gap: var(--space-1);
-  /* Room for the title, a story of two lines and the source, kept at the bottom of the block: the
-     three sit together whatever the story's length, and nothing below moves when it changes. */
+  text-align: center;
+}
+
+/* Room for the title, a story of one line and the source: the space above the scrubber is the same
+   for every story, and nothing below moves when it changes or before story 1, when no story line
+   shows. Only a recording with a timeline of stories changes its line; any other keeps no empty
+   room, and neither does a failure, which shows no story. */
+.player-meta[data-stories] {
   min-height: calc(
     var(--text-title-size) *
     var(--text-title-leading) +
     var(--font-size-label) *
-    var(--font-leading-label) *
-    2 +
+    var(--font-leading-label) +
     var(--size-touch) +
     var(--space-1) *
     2
   );
-  text-align: center;
 }
 
-/* Two lines of room are kept, so a long headline changing to a short one moves nothing below. */
+/* The line under the title: the story and its source, or a notice in their place (a failure, an
+   interruption). It keeps the room of the notice with its action at every width, so nothing below
+   the title moves when a notice comes or goes. */
+.player-meta-line {
+  display: grid;
+  align-content: start;
+  justify-items: center;
+  gap: var(--space-1);
+  width: 100%;
+  min-height: calc(var(--size-touch) + var(--space-1) * 2);
+}
+
+/* In the story's room: the action brings its own 44px, so the notice's own padding above and below
+   is small, and two lines of reason with the action fit the room. */
+.player-meta-line > .player-notice {
+  justify-self: stretch;
+  margin-block: 0;
+  padding-block: var(--space-1);
+  text-align: start;
+}
+
+/* One line: the full headline is in the Stories list and on the bar. */
 .player-story {
   display: -webkit-box;
+  max-width: 100%;
   overflow: hidden;
   color: var(--color-on-surface-muted);
   font-size: var(--font-size-label);
   line-height: var(--font-leading-label);
   text-wrap: balance;
   -webkit-box-orient: vertical;
-  -webkit-line-clamp: 2;
+  -webkit-line-clamp: 1;
 }
 
 /* Two lines, so a long title reads in full on the page instead of one ellipsised line. */
 .player-title {
   display: -webkit-box;
   max-width: 100%;
+  /* A little inline room: centred text under a line clamp otherwise clips its last dot by a pixel. */
+  padding-inline: var(--space-1);
   overflow: hidden;
   white-space: normal;
-  text-wrap: balance;
+  text-wrap: pretty;
   -webkit-box-orient: vertical;
   -webkit-line-clamp: 2;
   font-family: var(--text-title-family);
@@ -446,21 +501,31 @@
 }
 
 .player-controls {
-  padding-block-start: var(--space-4);
+  padding-block-start: 0;
 }
 
 .player-list {
-  padding-block-start: var(--space-4);
+  padding-block-start: var(--space-2);
 }
 
-.player-section-title,
+/* The name of a list that has no switch beside it ("Stories", "Up next"): plain text. The tab row's
+   hairline belongs to a real tab row; a lone title with a rule under it reads as one tab. */
+.player-section-title {
+  margin: 0;
+  padding-block: var(--space-2) 0;
+  padding-inline: var(--space-3);
+  color: var(--color-on-surface);
+  font-size: var(--font-size-label);
+  font-weight: var(--font-weight-medium);
+}
+
 .segmented-legend {
   display: block;
   margin-block: var(--space-4) var(--space-2);
   padding: 0;
   color: var(--color-on-surface-muted);
   font-size: var(--font-size-meta);
-  font-weight: var(--font-weight-semibold);
+  font-weight: var(--font-weight-medium);
 }
 
 /* What stands in for the controls while their code is on the way, or did not arrive. */
@@ -477,10 +542,10 @@
 .player-fallback-action {
   min-height: var(--size-touch);
   padding-inline: var(--space-6);
-  border-radius: var(--control-radius-sm);
+  border-radius: var(--button-radius);
   background: var(--color-accent);
   color: var(--color-on-accent);
-  font-weight: var(--font-weight-semibold);
+  font-weight: var(--font-weight-medium);
   transition: background-color var(--duration-press-in) var(--ease-out);
 }
 
@@ -576,6 +641,9 @@
   inset-block-end: var(--bottom-nav-height, 0px);
   z-index: var(--z-raised);
   display: grid;
+  /* Tab follows the bar as drawn: what is playing, then its controls on a phone; the transport
+     first from 64rem, where it sits on the left. The markup has one order for both. */
+  reading-flow: grid-rows;
   grid-template-columns: minmax(0, 1fr) auto;
   column-gap: var(--space-2);
   align-items: start;
@@ -583,10 +651,9 @@
   /* Whatever the row's height, its controls sit in the middle of it. */
   padding-block-start: calc((var(--player-dock-row) - var(--mini-player-control-size)) / 2);
   padding-inline: max(var(--mini-player-inset), var(--safe-left))
-    max(var(--mini-player-inset), var(--safe-right));
+    calc(max(var(--mini-player-inset), var(--safe-right)) + var(--dock-gutter, 0px));
+  /* The tonal container, one block with the navigation under it: no rule along its top. */
   background: var(--mini-player-bg);
-  /* A hairline along the top edge, drawn outside the box so the height stays exact. */
-  box-shadow: 0 calc(var(--stroke-hairline) * -1) 0 var(--color-border-hairline);
   --color-focus-gap: var(--mini-player-bg);
   pointer-events: auto;
   /* Shown and hidden with `translate`, so that transition never touches the travel in `transform`. */
@@ -736,11 +803,15 @@
  */
 .dock-seek {
   position: absolute;
-  inset-inline: 0;
+  /* Drawn along the bar's top edge and first in the markup: the first Tab stop, ahead of the rows
+     that the bar's reading flow orders. */
+  reading-order: -1;
+  /* Half a thumb in from each edge, so the thumb and its ring at 0 and 100 percent are not cut. */
+  inset-inline: calc(var(--space-3) / 2);
   inset-block-start: 0;
   z-index: var(--z-raised);
   display: none;
-  width: 100%;
+  width: calc(100% - var(--space-3));
   height: var(--space-4);
   margin: 0;
   padding: 0;
@@ -832,7 +903,7 @@
   background: var(--color-surface-inverse);
   color: var(--color-on-surface-inverse);
   font-size: var(--font-size-caption);
-  font-weight: var(--font-weight-semibold);
+  font-weight: var(--font-weight-medium);
   line-height: var(--font-leading-caption);
   pointer-events: none;
   translate: -50% 0;
@@ -974,9 +1045,30 @@
   }
 }
 
+.dock-btn {
+  transition: background-color var(--duration-press-in) var(--ease-out);
+}
+
+.dock-btn:not([aria-disabled="true"]):active {
+  background: color-mix(in oklch, var(--color-on-surface) var(--state-press), transparent);
+}
+
+/* A press anywhere else on the bar opens the player, and shows on the whole bar as it does. */
+.dock-open::after {
+  transition: background-color var(--duration-press-in) var(--ease-out);
+}
+
+.dock-open:active::after {
+  background: color-mix(in oklch, var(--color-on-surface) var(--state-press), transparent);
+}
+
 @media (hover: hover) and (pointer: fine) {
   .dock-btn:not([aria-disabled="true"]):hover {
-    background: color-mix(in oklch, var(--color-on-surface) 8%, transparent);
+    background: color-mix(in oklch, var(--color-on-surface) var(--state-hover), transparent);
+  }
+
+  .dock-btn:not([aria-disabled="true"]):hover:active {
+    background: color-mix(in oklch, var(--color-on-surface) var(--state-press), transparent);
   }
 
   .dock-seek:hover::-webkit-slider-thumb {
@@ -1037,17 +1129,25 @@
 
   .player-dock {
     padding-inline: max(var(--page-gutter), var(--safe-left))
-      max(var(--page-gutter), var(--safe-right));
+      calc(max(var(--page-gutter), var(--safe-right)) + var(--dock-gutter, 0px));
     transform: translate3d(0, calc(var(--p, 0) * var(--player-nav-travel)), 0);
-    /* The hairline along the top, and the bar's own colour over the safe area it comes to rest on. */
-    box-shadow:
-      0 calc(var(--stroke-hairline) * -1) 0 var(--color-border-hairline),
-      0 calc(var(--p, 0) * var(--safe-bottom)) 0 var(--mini-player-bg);
+    /* The bar's own colour over the safe area it comes to rest on. */
+    box-shadow: 0 calc(var(--p, 0) * var(--safe-bottom)) 0 var(--mini-player-bg);
   }
 
   /* Up to the transport: the title shortens only where the bar runs out of room. */
   .dock-open {
     width: 100%;
+  }
+}
+
+/* On the page's grid: the bar's contents line up with the centred column above it and the
+   navigation's pills below it, instead of running to the window's edges. */
+@media (min-width: 40rem) and (max-width: 63.9375rem) {
+  .player-dock {
+    --dock-inset: max(var(--page-gutter), (100% - var(--layout-column)) / 2 + var(--page-gutter));
+    padding-inline: max(var(--dock-inset), var(--safe-left))
+      calc(max(var(--dock-inset), var(--safe-right)) + var(--dock-gutter, 0px));
   }
 }
 
@@ -1106,8 +1206,88 @@
     display: grid;
   }
 
+  /* On the wide bar play is the one filled control, as on the page. The phone's bar keeps a bare
+     glyph: it is a strip over the navigation, and a filled disc there would outweigh the page. */
+  .dock-btn[data-primary] {
+    background: var(--color-accent);
+    color: var(--color-on-accent);
+  }
+
+  .dock-btn[data-primary] .spinner {
+    color: var(--color-on-accent);
+  }
+
+  .dock-btn[data-primary]:active {
+    background: color-mix(in oklch, var(--color-accent), var(--color-on-accent) var(--state-press));
+  }
+
+  /* Centred on the row, as the buttons are, not on its baseline. */
   .dock-time {
     display: inline-flex;
+    align-items: center;
+  }
+}
+
+/* Wherever the bar stays under the open page, the page keeps its own transport, so the bar shows only
+   what is playing: nothing said twice, and one filled play control. Hidden in place, so the middle
+   group holds still. With a mouse from 64rem the bar keeps its clock beside its seek line: the page
+   has no timeline there. */
+@media (min-width: 40rem) {
+  /* With its buttons gone the transport keeps their height, so the clock it centres stays level with
+     the cover and the open group, as it is while the page is closed. */
+  .player[data-open="true"] .dock-transport {
+    min-height: var(--mini-player-control-size);
+    visibility: hidden;
+  }
+
+  /* The buttons leave the layout, not just the view: the clock that a mouse keeps (below) then
+     sits against the seek line instead of in the room they left. The middle group is placed by the
+     bar's outer columns, so it holds still. */
+  .player[data-open="true"] .dock-transport > .dock-btn {
+    display: none;
+  }
+
+  .player[data-open="true"] .dock-time {
+    margin-inline-start: 0;
+  }
+}
+
+/* The bar's open and close button, at every width: its chevron points where the page will go. */
+.dock-toggle svg {
+  transition: rotate var(--duration-state) var(--ease-out);
+}
+
+.dock-toggle[data-open] svg {
+  rotate: 180deg;
+}
+
+/* A mouse at tablet width has no handle and no tools column: the chevron alone, where the transport
+   was, closes the open page. */
+@media (min-width: 40rem) and (max-width: 63.9375rem) and (hover: hover) and (pointer: fine) {
+  .player[data-open="true"] .dock-tools {
+    display: flex;
+    grid-row: 1;
+    grid-column: 2;
+  }
+
+  .player[data-open="true"] .dock-volume {
+    display: none;
+  }
+}
+
+@media (min-width: 64rem) and (hover: hover) and (pointer: fine) {
+  .player[data-open="true"] .dock-time {
+    visibility: visible;
+  }
+}
+
+@media (hover: hover) and (pointer: fine) and (min-width: 64rem) {
+  .dock-btn[data-primary]:not([aria-disabled="true"]):hover {
+    background: color-mix(in oklch, var(--color-accent), var(--color-on-accent) var(--state-hover));
+  }
+
+  .dock-btn[data-primary]:not([aria-disabled="true"]):hover:active {
+    background: color-mix(in oklch, var(--color-accent), var(--color-on-accent) var(--state-press));
   }
 }
 
@@ -1152,16 +1332,23 @@
 }
 
 @media (min-width: 64rem) {
-  /* Two columns: the cover, the story being read and its controls; and the briefing's list. */
+  /* Two columns: the cover, the story being read and its controls, kept together as one group in the
+     middle of the window's height; and the list of what is in the recording, which scrolls on its
+     own. The spare rows above and below the group take whatever height is left over, so the cover
+     and its controls never drift apart in a tall window. */
   .player-page-inner {
     display: grid;
     grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
-    grid-template-rows: auto auto;
-    align-content: center;
+    grid-template-rows: minmax(0, 1fr) auto auto minmax(0, 1fr);
     column-gap: var(--space-12);
     max-width: var(--player-page-max);
     padding-inline: var(--space-12);
     min-height: calc(100cqb - var(--player-dock-height));
+  }
+
+  /* No band in the two columns: it would take a cell, and the list scrolls inside its own column. */
+  .player-page-inner::before {
+    content: none;
   }
 
   .player-drag,
@@ -1174,11 +1361,8 @@
   }
 
   .player-drag {
-    grid-row: 1;
-    display: flex;
-    flex-direction: column;
+    grid-row: 2;
     align-items: center;
-    justify-content: center;
   }
 
   .player-body {
@@ -1187,19 +1371,26 @@
 
   .player-controls,
   .player-fallback {
-    grid-row: 2;
+    grid-row: 3;
   }
 
+  /* The list takes the column's whole height and adds none to the rows (size containment), so a long
+     transcript cannot push the cover and the controls apart. Its list scrolls inside it. */
   .player-list {
     grid-column: 2;
-    grid-row: 1 / span 2;
-    padding-block-start: 0;
+    grid-row: 1 / -1;
     display: flex;
     flex-direction: column;
-    align-self: center;
-    max-height: calc(100cqb - var(--player-dock-height) - var(--space-8));
-    overflow-y: auto;
-    scrollbar-width: thin;
+    min-height: 0;
+    padding-block-start: var(--space-8);
+    contain: size;
+  }
+
+  .player-list > :is(.player-script, .story-list) {
+    display: flex;
+    flex: 1 1 auto;
+    flex-direction: column;
+    min-height: 0;
   }
 }
 
@@ -1298,7 +1489,7 @@
   background: var(--color-surface-inverse);
   color: var(--color-on-surface-inverse);
   font-size: var(--font-size-caption);
-  font-weight: var(--font-weight-semibold);
+  font-weight: var(--font-weight-medium);
   line-height: var(--font-leading-caption);
   white-space: nowrap;
   opacity: 0;
@@ -1319,6 +1510,10 @@
   justify-items: center;
 }
 
+.scrubber-bubble-item[data-empty] {
+  display: none;
+}
+
 .scrubber-bubble-time > *,
 .scrubber-bubble-item > * {
   grid-area: 1 / 1;
@@ -1328,9 +1523,13 @@
   visibility: hidden;
 }
 
+/* Pulled up into the scrubber's touch row, so the times sit by the track they read rather than by
+   the transport under them. The row above keeps every press. */
 .scrubber-times {
   display: flex;
   justify-content: space-between;
+  margin-block-start: calc(var(--space-3) * -1);
+  pointer-events: none;
   color: var(--color-on-surface-muted);
   font-size: var(--font-size-meta);
   font-weight: var(--font-weight-medium);
@@ -1343,8 +1542,8 @@
   grid-template-columns: repeat(5, auto);
   align-items: center;
   justify-content: space-between;
-  row-gap: 0;
-  padding-block: var(--space-2) var(--space-4);
+  row-gap: var(--space-3);
+  padding-block: var(--space-4) var(--space-2);
 }
 
 /* On the phone the five keep one axis, play in the middle, and the speed sits under play as a
@@ -1370,11 +1569,18 @@
   height: var(--transport-glyph);
 }
 
-/* The play button is told apart by size alone: a larger glyph in the same ink. */
+/* Play is the one filled control: the accent's disc, larger than everything around it. */
 .transport-btn[data-primary] {
   --transport-glyph: var(--player-play-glyph);
   width: var(--control-size-lg);
   height: var(--control-size-lg);
+  background: var(--color-accent);
+  color: var(--color-on-accent);
+  transition: background-color var(--duration-press-in) var(--ease-out);
+}
+
+.transport-btn[data-primary] .spinner {
+  color: var(--color-on-accent);
 }
 
 .transport-btn[aria-disabled="true"] {
@@ -1415,11 +1621,25 @@
   translate: 0 calc(var(--player-skip-glyph) * 0.03);
 }
 
+/* State layers: a share of the control's own ink over its fill (none, for the quiet ones). */
 @media (hover: hover) and (pointer: fine) {
-  .transport-btn:not([aria-disabled="true"]):hover {
-    background: var(--color-surface-sunken);
+  .transport-btn:not([aria-disabled="true"], [data-primary]):hover {
+    background: color-mix(in oklch, var(--color-on-surface) var(--state-hover), transparent);
     color: var(--color-on-surface);
   }
+
+  .transport-btn[data-primary]:hover {
+    background: color-mix(in oklch, var(--color-accent), var(--color-on-accent) var(--state-hover));
+  }
+}
+
+.transport-btn:not([aria-disabled="true"], [data-primary]):active {
+  background: color-mix(in oklch, var(--color-on-surface) var(--state-press), transparent);
+  color: var(--color-on-surface);
+}
+
+.transport-btn[data-primary]:active {
+  background: color-mix(in oklch, var(--color-accent), var(--color-on-accent) var(--state-press));
 }
 
 /* ------------------------------------------------------------------ speed */
@@ -1440,29 +1660,38 @@
   min-width: calc(5ch + var(--space-3) * 2);
   min-height: var(--size-touch);
   padding-inline: var(--space-3);
-  border-radius: var(--radius-round);
-  background: var(--color-surface-sunken);
-  color: var(--color-on-surface-muted);
+  border-radius: var(--button-radius);
+  background: var(--color-surface-container);
+  color: var(--color-on-surface);
   font-size: var(--font-size-label);
-  font-weight: var(--font-weight-semibold);
+  font-weight: var(--font-weight-medium);
   transition:
     background-color var(--duration-press-in) var(--ease-out),
     color var(--duration-hover) var(--ease-hover);
 }
 
+/* Open, it is the selected state: the accent's container, as a chosen chip's. */
 .speed-btn[aria-expanded="true"] {
-  color: var(--color-on-surface);
+  background: var(--color-accent-container);
+  color: var(--color-on-accent-container);
 }
 
 @media (hover: hover) and (pointer: fine) {
   .speed-btn:hover {
-    background: color-mix(in oklch, var(--color-on-surface) 8%, var(--color-surface-sunken));
-    color: var(--color-on-surface);
+    background: color-mix(
+      in oklch,
+      var(--color-surface-container),
+      var(--color-on-surface) var(--state-hover)
+    );
   }
 }
 
 .speed-btn:active {
-  background: color-mix(in oklch, var(--color-on-surface) 14%, var(--color-surface-sunken));
+  background: color-mix(
+    in oklch,
+    var(--color-surface-container),
+    var(--color-on-surface) var(--state-press)
+  );
 }
 
 /*
@@ -1552,8 +1781,10 @@
    the backdrop is the dialog itself. */
 .speed-panel-body {
   display: grid;
+  /* The slider's focus ring reaches past its box; the presets start below it. */
+  row-gap: var(--space-2);
   /* The chosen speed's fill keeps the same distance from the bottom as from the sides. */
-  padding: var(--space-2) var(--space-4) var(--space-4);
+  padding: var(--space-4);
 }
 
 /*
@@ -1627,16 +1858,17 @@
   transition-duration: var(--duration-press-in);
 }
 
-/* The common speeds under the slider, whose fine steps are hard to land on by finger: quiet text
-   buttons, the chosen one in full ink on a soft fill. */
+/* The common speeds under the slider, whose fine steps are hard to land on by finger: quiet pills,
+   the chosen one in the accent's container, as a chosen chip is. */
 .speed-presets {
   display: grid;
   grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: var(--space-1);
 }
 
 .speed-preset {
   min-height: var(--size-touch);
-  border-radius: var(--radius-sm);
+  border-radius: var(--button-radius);
   color: var(--color-on-surface-muted);
   font-size: var(--font-size-label);
   font-weight: var(--font-weight-medium);
@@ -1646,64 +1878,68 @@
 }
 
 .speed-preset[aria-pressed="true"] {
-  background: color-mix(in oklch, var(--color-on-surface) 8%, transparent);
-  box-shadow: inset 0 0 0 var(--stroke-hairline) var(--color-border-control);
-  color: var(--color-on-surface);
+  background: var(--color-accent-container);
+  color: var(--color-on-accent-container);
 }
 
 @media (hover: hover) and (pointer: fine) {
-  .speed-preset:hover {
+  .speed-preset:not([aria-pressed="true"]):hover {
+    background: color-mix(in oklch, var(--color-on-surface) var(--state-hover), transparent);
     color: var(--color-on-surface);
   }
 }
 
-.speed-preset:active {
-  background: color-mix(in oklch, var(--color-on-surface) 14%, transparent);
+.speed-preset:not([aria-pressed="true"]):active {
+  background: color-mix(in oklch, var(--color-on-surface) var(--state-press), transparent);
+}
+
+.speed-preset[aria-pressed="true"]:active {
+  background: color-mix(
+    in oklch,
+    var(--color-accent-container),
+    var(--color-on-accent-container) var(--state-press)
+  );
 }
 
 /* ------------------------------------------------------------------ the script */
 
+/* A reading column, as in Speechify: no boxes, no badges, no rules. A turn is its text, with the
+   speaker's name small above it where the speaker changes (a discussion only). While it plays, what
+   has been said is in full ink, what is still to come is muted, and the word being said sits on a
+   soft fill. A turn is shaped and inset like a chapter row, so its text starts where the chapter
+   list's does and its focus ring has room inside the column. */
 .player-script {
   position: relative;
 }
 
 .script-turns {
   display: grid;
-  gap: var(--space-3);
   margin: 0;
   padding: 0;
   list-style: none;
 }
 
-/* The two hosts: a lead with accent tone and a guest with warning tone. Distinct cards with badges. */
 .script-turn {
-  --host-ink: var(--color-accent);
-  --host-wash: var(--color-accent-subtle);
   display: grid;
-  gap: var(--space-2);
+  gap: var(--space-1);
   width: 100%;
   padding-block: var(--space-3);
   padding-inline: var(--space-3);
-  border-radius: var(--sheet-row-radius);
-  background: var(--color-surface);
-  border: var(--stroke-hairline) solid var(--color-border-hairline);
+  border-radius: var(--row-radius);
   text-align: start;
-  transition:
-    background-color var(--duration-state) var(--ease-out),
-    border-color var(--duration-state) var(--ease-out),
-    box-shadow var(--duration-state) var(--ease-out);
+  /* A press or a pointer shows on the fill; the words keep their size and weight. */
+  transition: background-color var(--duration-hover) var(--ease-hover);
 }
 
-.script-turn[data-tone="lead"] {
-  --host-ink: var(--color-accent);
-  --host-wash: var(--color-accent-subtle);
+/* The turn being spoken sits in the accent's container, the current state everywhere else in the
+   app (the chapter being read, the chosen chip), so it is plain at a glance in either theme. Its
+   words and its speaker take the container's own ink. */
+.script-turn[aria-current="true"] {
+  background: var(--color-accent-container);
 }
 
-.script-turn[data-tone="guest"] {
-  --host-ink: var(--color-warning);
-  --host-wash: var(--color-warning-subtle);
-  background: var(--color-surface-sunken);
-  box-shadow: inset var(--space-1) 0 0 var(--host-ink);
+.script-turn[aria-current="true"] :is(.script-text, .script-speaker) {
+  color: var(--color-on-accent-container);
 }
 
 /* Drawn inside the turn: the column clips anything outside it on a wide screen. */
@@ -1712,52 +1948,32 @@
 }
 
 .script-speaker {
-  display: flex;
-  align-items: center;
-  gap: var(--space-2);
-  color: var(--host-ink);
+  color: var(--color-on-surface-muted);
   font-size: var(--font-size-meta);
-  font-weight: var(--font-weight-semibold);
+  font-weight: var(--font-weight-medium);
+  letter-spacing: var(--font-tracking-caption);
 }
 
-.host-badge {
-  display: grid;
-  place-items: center;
-  width: var(--space-6);
-  height: var(--space-6);
-  border-radius: var(--radius-round);
-  background: var(--host-wash);
-  color: var(--host-ink);
-  font-size: var(--font-size-caption);
-  font-weight: var(--font-weight-bold);
-  line-height: 1;
+/* The lead is in the accent and the guest in quiet ink: told apart by the name, never by colour alone. */
+.script-turn[data-tone="lead"] .script-speaker {
+  color: var(--color-accent);
 }
 
-.script-name {
-  color: var(--host-ink);
-  font-size: var(--font-size-meta);
-  font-weight: var(--font-weight-semibold);
+/* On the accent container the name takes the container's own ink: the accent itself is 4.1:1 there. */
+.script-turn[aria-current="true"][data-tone] .script-speaker {
+  color: var(--color-on-accent-container);
 }
 
 .script-text {
   color: var(--color-on-surface);
   font-size: var(--font-size-reading);
-  font-weight: var(--font-weight-medium);
+  font-weight: var(--text-reading-weight);
   line-height: var(--font-leading-reading);
   transition: color var(--duration-state) var(--ease-out);
 }
 
-/* The turn being spoken: a tint and an accent rule on the leading edge. */
-.script-turn[aria-current="true"] {
-  background: var(--host-wash);
-  border-color: var(--host-ink);
-  box-shadow: inset var(--space-1) 0 0 var(--host-ink);
-}
-
-/* While the voice is followed: turns not yet reached are muted, and in the turn being spoken every
-   word after the current one. The ones already said keep full ink. */
-.script-turns[data-following] .script-turn:not([data-said], [aria-current="true"]) .script-text,
-.script-turn[aria-current="true"] .script-text > span:has([data-spoken]) ~ span {
+/* While the voice is followed: turns not yet reached are muted. The ones already said keep full ink. */
+.script-turns[data-following] .script-turn:not([data-said], [aria-current="true"]) .script-text {
   color: var(--color-on-surface-muted);
 }
 
@@ -1772,42 +1988,61 @@
     box-shadow var(--duration-press-in) var(--ease-hover);
 }
 
-/* The fill grows a hair past the word on each side, so it reads as a highlight and not a box. */
+/* The fill grows a hair past the word on each side, so it reads as a highlight and not a box. It is
+   the container's ink, so it reads on the current turn's fill in both themes. */
 .script-word[data-spoken] {
-  background: color-mix(in oklch, var(--color-on-surface) 14%, transparent);
-  box-shadow: 0 0 0 calc(var(--space-1) / 2)
-    color-mix(in oklch, var(--color-on-surface) 14%, transparent);
+  --spoken-fill: color-mix(in oklch, var(--color-on-accent-container) 18%, transparent);
+  background: var(--spoken-fill);
+  box-shadow: 0 0 0 calc(var(--space-1) / 2) var(--spoken-fill);
 }
 
-/* The spoken word keeps its own fill under the pointer. */
+/* State layers: the turn's ink over its fill. The spoken word keeps its own fill under the pointer. */
 @media (hover: hover) and (pointer: fine) {
   .script-turn:not([aria-disabled="true"], [aria-current="true"]):hover {
-    background: color-mix(in oklch, var(--host-wash) 50%, var(--color-surface));
-    border-color: color-mix(in oklch, var(--host-ink) 30%, var(--color-border-hairline));
+    background: color-mix(in oklch, var(--color-on-surface) var(--state-hover), transparent);
+  }
+
+  .script-turn[aria-current="true"]:hover {
+    background: color-mix(
+      in oklch,
+      var(--color-accent-container),
+      var(--color-on-accent-container) var(--state-hover)
+    );
   }
 
   .script-turn:not([aria-disabled="true"]) .script-word:not([data-spoken]):hover {
-    background: var(--color-surface-sunken);
+    background: color-mix(in oklch, currentColor var(--state-hover), transparent);
   }
-}
-
-/* Chapters or the transcript, when an episode has both. Past .segmented-group's own margin. */
-.segmented-group.player-views {
-  margin-block-end: var(--space-3);
-}
-
-/* One column: the list is never shorter than the player, so choosing the shorter view cannot shrink
-   the page and move the switch from under the finger. */
-.player-list:has(.player-views) {
-  min-height: 100cqb;
 }
 
 .script-turn[aria-disabled="true"] {
   cursor: default;
 }
 
-.script-turn:not([aria-disabled="true"]):active {
-  background: color-mix(in oklch, var(--host-wash) 75%, var(--color-surface));
+.script-turn:not([aria-disabled="true"], [aria-current="true"]):active {
+  background: color-mix(in oklch, var(--color-on-surface) var(--state-press), transparent);
+}
+
+.script-turn[aria-current="true"]:active {
+  background: color-mix(
+    in oklch,
+    var(--color-accent-container),
+    var(--color-on-accent-container) var(--state-press)
+  );
+}
+
+/* Chapters or the transcript, when an episode has both: tabs, past the top margin the list keeps. */
+.segmented-group.player-views {
+  margin-block-end: var(--space-4);
+}
+
+/* One column: the list is never shorter than the player, so choosing the shorter view cannot shrink
+   the page and move the switch from under the finger. Only one column: from 64rem the list is a
+   column exactly as tall as the page, and this would push its end under the bar, past its fade. */
+@media (max-width: 63.9375rem) {
+  .player-list:has(.player-views) {
+    min-height: 100cqb;
+  }
 }
 
 .script-back {
@@ -1818,11 +2053,11 @@
   margin-inline: auto;
   min-height: var(--size-touch);
   padding-inline: var(--space-4);
-  border-radius: var(--control-radius-sm);
+  border-radius: var(--button-radius);
   background: var(--color-surface-inverse);
   color: var(--color-on-surface-inverse);
   font-size: var(--font-size-label);
-  font-weight: var(--font-weight-semibold);
+  font-weight: var(--font-weight-medium);
   transition: background-color var(--duration-press-in) var(--ease-out);
 }
 
@@ -1830,8 +2065,8 @@
   .script-back:hover {
     background: color-mix(
       in oklch,
-      var(--color-on-surface-inverse) 10%,
-      var(--color-surface-inverse)
+      var(--color-surface-inverse),
+      var(--color-on-surface-inverse) var(--state-hover)
     );
   }
 }
@@ -1839,44 +2074,111 @@
 .script-back:active {
   background: color-mix(
     in oklch,
-    var(--color-on-surface-inverse) 16%,
-    var(--color-surface-inverse)
+    var(--color-surface-inverse),
+    var(--color-on-surface-inverse) var(--state-press)
   );
 }
 
+/* ------------------------------------------------------------------ a list that scrolls on its own */
+
+/*
+ * From 64rem the list is a column of its own beside the cover, and what is in it scrolls inside the
+ * column, under the tabs. It ends in a fade instead of a cut, and begins with one once it has moved:
+ * each edge fades over 40px, and only while there is more beyond it. The fade is driven by the
+ * scroll position, so it is exact at any length; where that is not supported the bottom edge fades
+ * always, which the room kept under the last turn makes harmless.
+ */
+@property --list-fade-start {
+  syntax: "<length>";
+  inherits: false;
+  initial-value: 0px;
+}
+
+@property --list-fade-end {
+  syntax: "<length>";
+  inherits: false;
+  initial-value: 0px;
+}
+
+@keyframes list-fade-start {
+  from {
+    --list-fade-start: 0px;
+  }
+  to {
+    --list-fade-start: 40px;
+  }
+}
+
+@keyframes list-fade-end {
+  from {
+    --list-fade-end: 40px;
+  }
+  to {
+    --list-fade-end: 0px;
+  }
+}
+
 @media (min-width: 64rem) {
-  /* A column of its own that scrolls beside the cover, so the voice can be followed from the top.
-     The whole column ends above the bar, switch included, so the transcript's last turn can always
-     be scrolled into view, and at either end it hands the scroll on to the page. */
-  .player-list:has(.player-script) {
-    display: flex;
-    flex-direction: column;
-    align-self: center;
-    position: sticky;
-    inset-block-start: var(--space-2);
-    max-height: calc(100cqb - var(--player-dock-height) - var(--space-8));
-  }
-
-  .player-list:has(.player-views) {
-    min-height: 0;
-  }
-
-  .player-script {
-    position: static;
+  .list-scroll {
     flex: 1 1 auto;
     min-height: 0;
-    max-height: none;
+    /* Room under the last row, so it can scroll clear of the fade. The space above the list is the
+       tabs' own margin. */
+    padding-block: 0 var(--space-12);
+    /* Focus and a scroll into view stop clear of both 40px fades, ring and last line included. */
+    scroll-padding-block: var(--space-12);
     overflow-y: auto;
-    overscroll-behavior-y: auto;
+    /* A wheel past either end stays in the list: the page around it holds still. */
+    overscroll-behavior-y: contain;
     scrollbar-width: thin;
+    -webkit-mask-image: linear-gradient(
+      to bottom,
+      transparent 0,
+      black var(--list-fade-start),
+      black calc(100% - var(--list-fade-end)),
+      transparent 100%
+    );
+    mask-image: linear-gradient(
+      to bottom,
+      transparent 0,
+      black var(--list-fade-start),
+      black calc(100% - var(--list-fade-end)),
+      transparent 100%
+    );
+  }
+
+  /* Longhands, not the shorthand: the minifier folds a shorthand and the timeline into one
+     declaration that Chrome rejects, and the fade never ran (styles.test.ts keeps it so). */
+  @supports (animation-timeline: scroll()) {
+    .list-scroll {
+      animation-name: list-fade-start, list-fade-end;
+      animation-timing-function: linear;
+      animation-fill-mode: both;
+      animation-timeline: scroll(self block), scroll(self block);
+      animation-range:
+        0 40px,
+        calc(100% - 40px) 100%;
+    }
+  }
+
+  @supports not (animation-timeline: scroll()) {
+    .list-scroll {
+      --list-fade-end: 40px;
+    }
+  }
+
+  /* Over the list, not in it: inside the scroller the fade would take the button with it. */
+  .player-script > .script-back {
+    position: absolute;
+    inset-block-start: auto;
+    inset-block-end: var(--space-4);
+    inset-inline: 0;
+    width: fit-content;
+    margin-block: 0;
   }
 }
 
 @media (forced-colors: active) {
-  .script-turn[aria-current="true"] {
-    border: var(--stroke-rail) solid Highlight;
-  }
-
   .script-word[data-spoken] {
     background: Highlight;
     color: HighlightText;
@@ -1904,8 +2206,8 @@
   grid-auto-flow: column;
   grid-auto-columns: minmax(0, 1fr);
   padding: var(--segmented-padding);
-  border-radius: var(--segmented-radius);
-  background: var(--color-surface-sunken);
+  border-radius: var(--button-radius);
+  background: var(--color-surface-container);
 }
 
 .segmented label {
@@ -1915,7 +2217,7 @@
   min-width: 0;
   /* With the track's padding this makes the control 44px tall, and taller if the text grows. */
   min-height: calc(var(--segmented-height) - var(--segmented-padding) * 2);
-  border-radius: var(--segmented-segment-radius);
+  border-radius: var(--button-radius);
   color: var(--color-on-surface-muted);
   font-size: var(--font-size-label);
   font-weight: var(--font-weight-medium);
@@ -1941,7 +2243,7 @@
 }
 
 .segmented label:has(input:checked) {
-  color: var(--color-on-surface);
+  color: var(--color-on-accent-container);
 }
 
 /*
@@ -1980,9 +2282,9 @@
   inset-block: var(--segmented-padding);
   inset-inline-start: var(--segmented-padding);
   width: calc((100% - var(--segmented-padding) * 2) / var(--seg-n));
-  border-radius: var(--segmented-segment-radius);
-  background: var(--segmented-selected-bg);
-  box-shadow: 0 0 0 var(--stroke-hairline) var(--color-border-control);
+  border-radius: var(--button-radius);
+  /* Tonal, not outlined: the chosen segment is the accent's container, as a chosen chip is. */
+  background: var(--color-accent-container);
   opacity: 0;
   pointer-events: none;
   transform: translateX(calc(var(--seg-i) * 100%));
@@ -2009,18 +2311,69 @@
   outline-offset: var(--stroke-ring-gap);
 }
 
-/* A press is a state layer on the segment, as in Settings: a fill, never a scale on the words. */
+/* Hover and press are state layers on the segment: a fill, never a scale on the words. */
 .segmented label:active {
   background-image: linear-gradient(
-    color-mix(in oklch, var(--color-on-surface) 10%, transparent),
-    color-mix(in oklch, var(--color-on-surface) 10%, transparent)
+    color-mix(in oklch, currentColor var(--state-press), transparent),
+    color-mix(in oklch, currentColor var(--state-press), transparent)
   );
 }
 
 @media (hover: hover) and (pointer: fine) {
-  .segmented label:hover {
+  .segmented label:not(:has(input:checked)):hover {
     color: var(--color-on-surface);
   }
+
+  .segmented label:hover:not(:active) {
+    background-image: linear-gradient(
+      color-mix(in oklch, currentColor var(--state-hover), transparent),
+      color-mix(in oklch, currentColor var(--state-hover), transparent)
+    );
+  }
+}
+
+/*
+ * The same radios as tabs (Chapters, Transcript): text on the page with a hairline under the row,
+ * and a bar under the chosen one that slides between them as the thumb does. No track, no raised
+ * segment, no ring around the choice; the chosen label is in full ink and the bar is the accent.
+ */
+.segmented.segmented-tabs {
+  --segmented-padding: 0px;
+  border-radius: 0;
+  background: none;
+  box-shadow: inset 0 calc(var(--stroke-hairline) * -1) 0 var(--color-border-hairline);
+}
+
+.segmented-tabs label {
+  min-height: var(--tabs-height);
+  border-radius: 0;
+}
+
+/* The ring is rounded and drawn inside the tab, as the app's other rings are. */
+.segmented-tabs label:has(input:focus-visible) {
+  border-radius: var(--radius-sm);
+  outline-offset: calc(var(--stroke-ring) * -1);
+}
+
+/* As tabs the chosen label is the page's full ink; the bar under it carries the accent. */
+.segmented-tabs label:has(input:checked) {
+  color: var(--color-on-surface);
+}
+
+.segmented-tabs::before {
+  inset-block: auto 0;
+  height: calc(var(--stroke-rail) * 1.5);
+  border-radius: var(--radius-xs) var(--radius-xs) 0 0;
+  background: var(--color-accent);
+  box-shadow: none;
+}
+
+/* A tab's state layers cover the whole tab, in the page's ink. */
+.segmented-tabs label:active {
+  background-image: linear-gradient(
+    color-mix(in oklch, var(--color-on-surface) var(--state-press), transparent),
+    color-mix(in oklch, var(--color-on-surface) var(--state-press), transparent)
+  );
 }
 
 /* ------------------------------------------------------------------ source, stories, notice, up next */
@@ -2032,7 +2385,7 @@
   min-width: 0;
   min-height: var(--size-touch);
   padding-inline: var(--space-3);
-  border-radius: var(--control-radius-sm);
+  border-radius: var(--button-radius);
   color: var(--color-accent);
   /* The story's size, so the block under the title keeps to two type sizes. */
   font-size: var(--font-size-label);
@@ -2042,7 +2395,7 @@
 }
 
 .player-source-link:active {
-  background: var(--color-accent-subtle);
+  background: color-mix(in oklch, var(--color-accent) var(--state-press), transparent);
 }
 
 .player-source-link span {
@@ -2057,44 +2410,49 @@
 }
 
 .story-group {
-  margin-block-end: var(--space-3);
+  margin-block-end: var(--space-2);
 }
 
+/* A section's name: quiet text in sentence case over its rows, as a list's heading is elsewhere. */
 .story-group-title {
-  padding-block: var(--space-2) var(--space-1);
+  padding-block: var(--space-4) var(--space-1);
   padding-inline: var(--space-3);
   color: var(--color-on-surface-muted);
-  font-size: var(--font-size-caption);
-  font-weight: var(--font-weight-semibold);
-  letter-spacing: var(--font-tracking-caption);
-  text-transform: uppercase;
+  font-size: var(--font-size-meta);
+  font-weight: var(--font-weight-medium);
 }
 
 .story-rows {
   display: grid;
-  gap: var(--space-1);
+}
+
+.story-row:focus-visible {
+  /* Drawn inside the row: the scrolling column clips a ring drawn outside it. */
+  outline-offset: calc(var(--stroke-ring) * -1);
 }
 
 .story-row {
   display: grid;
-  grid-template-columns: var(--player-row-mark) minmax(0, 1fr) auto;
+  grid-template-columns: minmax(0, 1fr) auto;
   align-items: center;
   gap: var(--space-3);
   width: 100%;
   min-height: var(--size-touch-comfortable);
   padding-block: var(--space-2);
   padding-inline: var(--space-3);
-  border-radius: var(--sheet-row-radius);
+  border-radius: var(--row-radius);
   text-align: start;
   /* A press shows on the fill; the headline keeps its size. */
   transition: background-color var(--duration-press-in) var(--ease-out);
 }
 
+/* A headline reads as the transcript and the briefing's summaries do; the section names over the
+   rows stay smaller, medium and muted. */
 .story-row-title {
   display: -webkit-box;
   overflow: hidden;
-  font-size: var(--font-size-meta);
-  font-weight: var(--font-weight-medium);
+  font-size: var(--font-size-reading);
+  font-weight: var(--text-reading-weight);
   -webkit-box-orient: vertical;
   -webkit-line-clamp: 2;
 }
@@ -2105,41 +2463,68 @@
   font-weight: var(--font-weight-medium);
 }
 
-.story-row-mark {
-  width: var(--player-row-mark);
-  height: var(--player-row-mark);
-  border-radius: var(--radius-round);
-}
-
-/* The story being read: a tint and a filled mark. The title keeps its weight, because a heavier
-   one wraps differently and would move every row below it each time the story changes. */
+/* The story being read: the accent's container and its ink, the current state as it
+   is everywhere in the app. The title keeps its weight, because a heavier one wraps differently and
+   would move every row below it each time the story changes. */
 .story-row[aria-current="true"] {
-  background: var(--color-accent-subtle);
+  background: var(--color-accent-container);
+  color: var(--color-on-accent-container);
 }
 
-.story-row[aria-current="true"] .story-row-mark {
-  background: var(--color-accent);
+.story-row[aria-current="true"] .story-row-time {
+  color: var(--color-on-accent-container);
 }
 
+/* State layers: the row's ink over its fill. */
 @media (hover: hover) and (pointer: fine) {
-  .story-row:not([aria-current="true"]):hover,
+  .story-row:not([aria-current="true"], [data-static]):hover {
+    background: color-mix(in oklch, var(--color-on-surface) var(--state-hover), transparent);
+  }
+
+  .story-row[aria-current="true"]:hover {
+    background: color-mix(
+      in oklch,
+      var(--color-accent-container),
+      var(--color-on-accent-container) var(--state-hover)
+    );
+  }
+
   .player-upnext-row:hover {
-    background: var(--color-surface-sunken);
+    background: color-mix(
+      in oklch,
+      var(--color-surface-container),
+      var(--color-on-surface) var(--state-hover)
+    );
   }
 
   .player-source-link:hover {
-    background: var(--color-accent-subtle);
+    background: color-mix(in oklch, var(--color-accent) var(--state-hover), transparent);
+  }
+
+  .player-source-link:hover:active {
+    background: color-mix(in oklch, var(--color-accent) var(--state-press), transparent);
   }
 }
 
 /* After the hovers, so a press shows under a mouse too. */
-.story-row:not([aria-current="true"]):active,
-.player-upnext-row:active {
-  background: color-mix(in oklch, var(--color-on-surface) 8%, transparent);
+.story-row:not([aria-current="true"], [data-static]):active {
+  background: color-mix(in oklch, var(--color-on-surface) var(--state-press), transparent);
 }
 
 .story-row[aria-current="true"]:active {
-  background: color-mix(in oklch, var(--color-on-surface) 8%, var(--color-accent-subtle));
+  background: color-mix(
+    in oklch,
+    var(--color-accent-container),
+    var(--color-on-accent-container) var(--state-press)
+  );
+}
+
+.player-upnext-row:active {
+  background: color-mix(
+    in oklch,
+    var(--color-surface-container),
+    var(--color-on-surface) var(--state-press)
+  );
 }
 
 /* Rounder than the button inside it, which keeps the banner's padding from its edge. */
@@ -2169,30 +2554,45 @@
   color: var(--tone);
 }
 
+/* A text button in the notice's own tone (danger ink on the danger container), with the standard
+   state layers of that ink: no grey fill muddying the tinted container. */
 .player-notice-action {
   min-height: var(--size-touch);
-  padding-inline: var(--space-3);
-  border-radius: var(--radius-sm);
-  background: color-mix(in oklch, var(--color-on-surface) 8%, transparent);
-  font-weight: var(--font-weight-semibold);
+  padding-inline: var(--space-4);
+  border-radius: var(--button-radius);
+  background: transparent;
+  color: var(--tone);
+  font-weight: var(--font-weight-medium);
   transition: background-color var(--duration-press-in) var(--ease-out);
 }
 
+/* A text button: its ink's state layers over the notice, and no fill of its own at rest. */
+@media (hover: hover) and (pointer: fine) {
+  .player-notice-action:hover {
+    background: color-mix(in oklch, var(--tone) var(--state-hover), transparent);
+  }
+}
+
 .player-notice-action:active {
-  background: color-mix(in oklch, var(--color-on-surface) 14%, transparent);
+  background: color-mix(in oklch, var(--tone) var(--state-press), transparent);
+}
+
+.player-upnext {
+  margin-block-end: var(--space-6);
 }
 
 .player-upnext-row {
   display: flex;
   align-items: center;
   justify-content: space-between;
+  margin-block-start: var(--space-3);
   gap: var(--space-4);
   width: 100%;
   min-height: var(--size-touch-comfortable);
   padding-block: var(--space-2);
   padding-inline: var(--space-3);
-  border-radius: var(--sheet-row-radius);
-  box-shadow: inset 0 0 0 var(--stroke-hairline) var(--color-border-hairline);
+  border-radius: var(--row-radius);
+  background: var(--color-surface-container);
   text-align: start;
   transition: background-color var(--duration-press-in) var(--ease-out);
 }
@@ -2202,7 +2602,7 @@
 }
 
 .player-upnext-date {
-  font-weight: var(--font-weight-semibold);
+  font-weight: var(--font-weight-medium);
 }
 
 .player-upnext-hint {
@@ -2211,6 +2611,22 @@
 }
 
 /* ------------------------------------------------------------------ wide, with a mouse: nothing said twice */
+
+/* Two columns with a finger: the cover takes what the window's height leaves the rest of the left
+   column, so it fits by construction in a short window (a tablet held sideways, 1024x600 to
+   1280x720) and nothing is cut below the edge. A mouse's column holds less (no scrubber, no story
+   line) and keeps the plain share. */
+@media (min-width: 64rem) {
+  :root {
+    --player-cover-share: min(40cqb, 100cqb - var(--player-column-rest));
+  }
+}
+
+@media (min-width: 64rem) and (hover: hover) and (pointer: fine) {
+  :root {
+    --player-cover-share: 40cqb;
+  }
+}
 
 /* After the rules it changes, so it wins at equal weight. */
 @media (min-width: 64rem) and (hover: hover) and (pointer: fine) {
@@ -2226,32 +2642,93 @@
     align-items: center;
   }
 
-  .player-controls > :is(.player-notice) {
-    grid-column: 1 / -1;
+  .player-controls {
+    padding-block-start: var(--space-6);
   }
 
   /* One timeline: the bar's. The page keeps the cover, the title, the source, the skips and the
-     speed between them. */
+     speed between them. The story's headline is the bar's caption, so only its source stays here,
+     the one way to open it. */
   .scrubber-wrap,
   .player-story {
     display: none;
   }
 
-  /* Without the story there is nothing to keep room for. */
-  .player-meta {
+  /* The title and its source sit nearer the cover than the transport, so they read as the cover's
+     caption and not as the transport's label. */
+  .player-cover-slot {
+    padding-block-end: var(--space-4);
+  }
+
+  /* Without the story there is nothing to keep room for but the line under the title, which holds
+     the source row or a notice in its place (its own min-height). */
+  .player-meta[data-stories] {
     min-height: 0;
   }
 
+  /* Under the cover, the whole transport: previous, back ten, play, forward ten, next, then the
+     speed. While the page is open the bar keeps only its clock and seek line, so this is the one
+     play control, as in YouTube Music's full view, and it sits by the art. */
+  /* Play stays on the cover's centre line: the steps sit either side of it and the speed hangs off
+     the right in a column that the empty one on the left balances. Children in order: previous,
+     back, play, forward, next, speed (last, so Tab follows what the eye sees). */
   .transport {
-    display: flex;
+    display: grid;
     grid-row: 1;
-    grid-column: 2;
-    gap: var(--space-2);
+    grid-column: 1 / -1;
+    grid-template-columns: minmax(0, 1fr) repeat(5, auto) minmax(0, 1fr);
+    align-items: center;
+    column-gap: var(--space-3);
     padding-block: 0;
   }
 
-  .transport-btn:not(.transport-skip) {
-    display: none;
+  .transport > :nth-child(1) {
+    grid-row: 1;
+    grid-column: 2;
+  }
+
+  .transport > :nth-child(2) {
+    grid-row: 1;
+    grid-column: 3;
+  }
+
+  .transport > :nth-child(3) {
+    grid-row: 1;
+    grid-column: 4;
+  }
+
+  .transport > :nth-child(4) {
+    grid-row: 1;
+    grid-column: 5;
+  }
+
+  .transport > :nth-child(5) {
+    grid-row: 1;
+    grid-column: 6;
+  }
+
+  .transport > .speed {
+    grid-row: 1;
+    grid-column: 7;
+    justify-self: start;
+  }
+}
+
+/* A very wide window gives the cover more of its half, so the left side is not mostly empty. */
+@media (min-width: 100rem) {
+  /* A wider page and a wider left column, or the cover stops at the column's 28rem. */
+  :root {
+    --player-page-max: 84rem;
+    --player-column-max: 36rem;
+  }
+
+  .player-cover-box {
+    width: min(100%, calc(var(--cover-size-player) * 1.36), 55cqb);
+  }
+
+  /* The slot spans the column, so the cover's share is of the column and not of itself. */
+  .player-cover-slot {
+    width: 100%;
   }
 }
 
@@ -2259,21 +2736,23 @@
 
 /* Through the root attribute the navigation code already carries from page to page. With the
    page's own containment (touch-action, overscroll-behavior) this needs no touch listener. */
+/* The scrollbar goes with the scroll, as it does under a modal dialog (foundations.css), so the open
+   player reaches the window's edge instead of leaving a strip of the page's colour beside the bar.
+   The page behind keeps the scrollbar's width as padding, so it holds still. */
 html[data-player="open"] {
   overflow: hidden;
+  scrollbar-gutter: auto;
 }
 
-/* A modal dialog drops the gutter (foundations.css) so a docked panel reaches the window's edge. The
-   speed panel is small and by its button, and the open player must not slide sideways under it. */
-html[data-player="open"]:has(.speed-panel[open]) {
-  scrollbar-gutter: stable;
+html[data-player="open"] body {
+  padding-inline-end: var(--gutter, 0px);
 }
 
-/* Any other modal dialog does take the scrollbar away, and the window's edge moves out by its width.
-   The player keeps the room it had, as the floating button and the navigation do, so what is
-   playing and the volume hold still under the scrim. */
-html:has(dialog[open]):not([data-player="open"]:has(.speed-panel[open])) .player {
-  inset-inline-end: var(--gutter, 0px);
+/* With the scrollbar gone, under the open player or any modal dialog, the bar's fill reaches the
+   window's edge and its last control keeps its place: the bar takes the scrollbar's width as padding,
+   as the floating button and the navigation do. */
+html:is([data-player="open"], :has(dialog[open])) .player-dock {
+  --dock-gutter: var(--gutter, 0px);
 }
 
 /* ------------------------------------------------------------------ preferences */
@@ -2336,8 +2815,7 @@ html:has(dialog[open]):not([data-player="open"]:has(.speed-panel[open])) .player
     background: Highlight;
   }
 
-  .scrubber-thumb::before,
-  .story-row[aria-current="true"] .story-row-mark {
+  .scrubber-thumb::before {
     background: Highlight;
     forced-color-adjust: none;
   }
@@ -2381,9 +2859,15 @@ html:has(dialog[open]):not([data-player="open"]:has(.speed-panel[open])) .player
   }
 
   .segmented label:has(input:checked),
-  .story-row[aria-current="true"],
   .speed-preset[aria-pressed="true"] {
     border: var(--stroke-rail) solid Highlight;
+  }
+
+  /* An outline, so the turn keeps its size as the voice moves from one to the next. */
+  .script-turn[aria-current="true"],
+  .story-row[aria-current="true"] {
+    outline: var(--stroke-rail) solid Highlight;
+    outline-offset: calc(var(--stroke-rail) * -1);
   }
 
   /* The chosen segment carries its own border here, so the thumb is not drawn. */

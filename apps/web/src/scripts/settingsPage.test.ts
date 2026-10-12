@@ -7,48 +7,38 @@ describe("toTheme", () => {
     for (const theme of THEME_PREFERENCES) expect(toTheme(theme)).toBe(theme);
   });
 
-  it("rejects anything else", () => {
-    expect(toTheme("sepia")).toBeNull();
-    expect(toTheme("")).toBeNull();
-    expect(toTheme("Dark")).toBeNull();
+  it.each(["sepia", "", "Dark"])("rejects %j", (value) => {
+    expect(toTheme(value)).toBeNull();
   });
 });
 
 describe("toVolume", () => {
-  it("reads a slider's value", () => {
-    expect(toVolume("0.35")).toBe(0.35);
-    expect(toVolume("0")).toBe(0);
-    expect(toVolume("1")).toBe(1);
-  });
-
-  it("keeps the volume between silent and full", () => {
-    expect(toVolume("-0.2")).toBe(0);
-    expect(toVolume("4")).toBe(1);
-  });
-
-  it("returns null for a value that is not a number", () => {
-    expect(toVolume("")).toBeNull();
-    expect(toVolume("  ")).toBeNull();
-    expect(toVolume("loud")).toBeNull();
-    expect(toVolume("Infinity")).toBeNull();
+  it.each<[string, number | null]>([
+    ["0.35", 0.35],
+    ["0", 0],
+    ["1", 1],
+    ["-0.2", 0],
+    ["4", 1],
+    ["", null],
+    ["  ", null],
+    ["loud", null],
+    ["Infinity", null],
+  ])("reads %j as %s", (value, expected) => {
+    expect(toVolume(value)).toBe(expected);
   });
 });
 
 describe("volumePercent", () => {
-  it("writes the volume as a whole percentage", () => {
-    expect(volumePercent(0)).toBe("0%");
-    expect(volumePercent(0.8)).toBe("80%");
-    expect(volumePercent(1)).toBe("100%");
-  });
-
-  it("rounds away the noise of a 0.05 step", () => {
-    expect(volumePercent(0.7000000000000001)).toBe("70%");
-    expect(volumePercent(0.15)).toBe("15%");
-  });
-
-  it("stays inside the track for a value out of range", () => {
-    expect(volumePercent(-1)).toBe("0%");
-    expect(volumePercent(2)).toBe("100%");
+  it.each<[number, string]>([
+    [0, "0%"],
+    [0.8, "80%"],
+    [1, "100%"],
+    [0.7000000000000001, "70%"],
+    [0.15, "15%"],
+    [-1, "0%"],
+    [2, "100%"],
+  ])("writes %s as %s", (value, expected) => {
+    expect(volumePercent(value)).toBe(expected);
   });
 });
 

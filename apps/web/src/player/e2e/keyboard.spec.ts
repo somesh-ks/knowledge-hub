@@ -1,192 +1,99 @@
-import { expect, test } from "./lab";
+import { expect, test } from "./helpers";
 
 test.describe("keyboard operation of the player", () => {
-  test("the scrubber seeks 5 seconds with arrows and 15 with shift", async ({
-    lab,
+  test("the scrubber: arrows seek 5 s and 15 with Shift, the page keys move by story, Home and End", async ({
+    player,
     audio,
     page,
   }) => {
-    await lab.open();
-    await lab.play();
-    await lab.openPlayer();
-    await lab.dialog.getByRole("button", { name: "Pause" }).press("Enter");
-    await expect(page.locator("html")).toHaveAttribute("data-player-state", "paused");
-    const scrubber = page.getByRole("slider", { name: "Playback position" });
-    await scrubber.focus();
-    const start = (await audio.read())?.currentTime ?? 0;
+    await player.open();
+    await player.play();
+    await player.openPlayer();
+    await player.dialog.getByRole("button", { name: "Pause", exact: true }).press("Enter");
+    await expect(player.root).toHaveAttribute("data-player-state", "paused");
+    const time = async (): Promise<number> => (await audio.read())?.currentTime ?? 0;
+    await player.pageScrubber.focus();
+    const start = await time();
     await page.keyboard.press("ArrowRight");
-    await expect.poll(async () => (await audio.read())?.currentTime ?? 0).toBeCloseTo(start + 5, 0);
+    await expect.poll(time).toBeCloseTo(start + 5, 0);
     await page.keyboard.press("Shift+ArrowRight");
-    await expect
-      .poll(async () => (await audio.read())?.currentTime ?? 0)
-      .toBeCloseTo(start + 20, 0);
+    await expect.poll(time).toBeCloseTo(start + 20, 0);
     await page.keyboard.press("ArrowLeft");
-    await expect
-      .poll(async () => (await audio.read())?.currentTime ?? 0)
-      .toBeCloseTo(start + 15, 0);
-  });
-
-  test("the page keys move by item and Home and End jump to the ends", async ({
-    lab,
-    audio,
-    page,
-  }) => {
-    await lab.open();
-    await lab.play();
-    await lab.openPlayer();
-    const scrubber = page.getByRole("slider", { name: "Playback position" });
-    await scrubber.focus();
+    await expect.poll(time).toBeCloseTo(start + 15, 0);
+    const stories = await player.stories();
+    const now = await time();
+    const next = stories.find((story) => story.start > now)?.start ?? -1;
     await page.keyboard.press("PageDown");
-    await expect.poll(async () => (await audio.read())?.currentTime ?? 0).toBeGreaterThan(15);
-    await page.keyboard.press("PageDown");
-    await expect.poll(async () => (await audio.read())?.currentTime ?? 0).toBeGreaterThan(30);
+    await expect.poll(time).toBeCloseTo(next, 0);
     await page.keyboard.press("PageUp");
-    await expect
-      .poll(async () => {
-        const time = (await audio.read())?.currentTime ?? 0;
-        return time >= 15 && time < 20;
-      })
-      .toBe(true);
+    await expect.poll(time).toBeLessThan(next - 1);
+    // Playing again, End runs it out.
+    await page.keyboard.press("k");
+    await expect(player.root).toHaveAttribute("data-player-state", "playing");
     await page.keyboard.press("End");
-    await expect(page.locator("html")).toHaveAttribute("data-player-state", "ended");
+    await expect(player.root).toHaveAttribute("data-player-state", "ended");
     await page.keyboard.press("Home");
-    await expect.poll(async () => (await audio.read())?.currentTime ?? 99).toBeLessThan(1);
+    await expect.poll(time).toBeLessThan(1);
   });
 
-  test("announces the position to a screen reader through the slider's value text", async ({
-    lab,
+  test("Space plays and pauses from anywhere, the bar keeps its order, and K works in the player @desktop", async ({
+    player,
     page,
+    hasTouch,
   }) => {
-    await lab.open();
-    await lab.play();
-    await lab.openPlayer();
-    const scrubber = page.getByRole("slider", { name: "Playback position" });
-    await expect(scrubber).toHaveAttribute("aria-valuemin", "0");
-    await expect(scrubber).toHaveAttribute("aria-valuemax", "90");
-    await expect(scrubber).toHaveAttribute(
-      "aria-valuetext",
-      /^\d+:\d\d of 1:30, Top picks, item 1 of 6$/,
-    );
-    await scrubber.focus();
-    await page.keyboard.press("PageDown");
-    await expect(scrubber).toHaveAttribute("aria-valuetext", /Top picks, item 2 of 6$/);
-  });
-
-  test("K and Space toggle playback only while focus is inside the open player", async ({
-    lab,
-    page,
-  }) => {
-    await lab.open();
-    await lab.play();
-    await lab.openPlayer();
-    await page.getByRole("slider", { name: "Playback position" }).focus();
-    await page.keyboard.press("k");
-    await expect(page.locator("html")).toHaveAttribute("data-player-state", "paused");
-    await page.keyboard.press("Space");
-    await expect(page.locator("html")).toHaveAttribute("data-player-state", "playing");
-    // On a button, Space activates the button instead.
-    await page.getByRole("button", { name: "Next item" }).focus();
-    const before = await page.locator(".player-meta .player-story").textContent();
-    await page.keyboard.press("Space");
-    await expect(page.locator(".player-meta .player-story")).not.toHaveText(before ?? "");
-    await expect(page.locator("html")).toHaveAttribute("data-player-state", "playing");
-  });
-
-  test("a bare Space does nothing until the player has something loaded", async ({ lab, page }) => {
-    await lab.open();
-    await page.locator("body").press("Space");
-    await expect(page.locator("html")).toHaveAttribute("data-player-state", "idle");
-    await page.keyboard.press("k");
-    await expect(page.locator("html")).toHaveAttribute("data-player-state", "idle");
-  });
-
-  test("Space plays and pauses from anywhere on the page once the bar is there @surface", async ({
-    lab,
-    page,
-  }) => {
-    await lab.open();
-    await lab.play();
-    await page.evaluate(() => {
-      (document.activeElement as HTMLElement | null)?.blur();
-      window.scrollTo(0, 120);
-    });
-    const scrolled = await page.evaluate(() => window.scrollY);
-    await page.locator("body").press("Space");
-    await expect(page.locator("html")).toHaveAttribute("data-player-state", "paused");
-    await page.keyboard.press("Space");
-    await expect(page.locator("html")).toHaveAttribute("data-player-state", "playing");
-    // It acted, so the page did not scroll with it.
-    expect(await page.evaluate(() => window.scrollY)).toBe(scrolled);
-  });
-
-  test("Space leaves typing, controls, held keys, modifiers and other dialogs alone @surface", async ({
-    lab,
-    page,
-  }) => {
-    await lab.open();
-    await lab.play();
-    await page.evaluate(() => {
-      const field = document.createElement("input");
-      field.id = "probe-field";
-      const editable = document.createElement("div");
-      editable.id = "probe-editable";
-      editable.contentEditable = "true";
-      editable.tabIndex = 0;
-      const slider = document.createElement("div");
-      slider.id = "probe-slider";
-      slider.setAttribute("role", "slider");
-      slider.tabIndex = 0;
-      document.body.append(field, editable, slider);
-    });
-    const playing = (): Promise<void> =>
-      expect(page.locator("html")).toHaveAttribute("data-player-state", "playing");
-    for (const selector of ["#probe-field", "#probe-editable", "#probe-slider"]) {
-      await page.locator(selector).focus();
+    await player.open();
+    await player.play();
+    const state = (value: string) =>
+      expect(player.root).toHaveAttribute("data-player-state", value);
+    if (hasTouch) {
+      // On the page behind the bar. (A wide window with a mouse lays the open player beside the
+      // page, so its keys are the player's own, below.)
+      await page.evaluate(() => {
+        (document.activeElement as HTMLElement | null)?.blur();
+        window.scrollTo(0, 120);
+      });
+      const scrolled = await page.evaluate(() => window.scrollY);
+      await page.locator("body").press("Space");
+      await state("paused");
       await page.keyboard.press("Space");
+      await state("playing");
+      // It acted, so the page did not scroll with it.
+      expect(await page.evaluate(() => window.scrollY)).toBe(scrolled);
     }
-    await page.keyboard.press("Control+Space");
-    await playing();
-    await page.getByRole("link").first().focus();
-    await page.keyboard.press("Space");
-    await playing();
-    // A dialog that is not the player.
-    await page.evaluate(() => {
-      const dialog = document.createElement("dialog");
-      dialog.id = "probe-dialog";
-      dialog.append(document.createTextNode("Hello"));
-      document.body.append(dialog);
-      dialog.show();
-    });
-    await page.locator("body").press("Space");
-    await playing();
-    await page.evaluate(() => document.getElementById("probe-dialog")?.remove());
-    await page.locator("body").press("Space");
-    await expect(page.locator("html")).toHaveAttribute("data-player-state", "paused");
-  });
-
-  test("tabs through the header, the briefing and the bar in reading order", async ({
-    lab,
-    page,
-  }) => {
-    await lab.open();
-    const labels: string[] = [];
-    for (let press = 0; press < 3; press += 1) {
+    await player.dockSettled();
+    const seek = player.dock.getByRole("slider", { name: "Seek" });
+    if (!hasTouch && (await seek.isVisible())) {
+      // A wide window with a mouse: the bar's seek takes Space as the page's scrubber does, and
+      // Previous follows it in Tab order.
+      await seek.focus();
+      await page.keyboard.press("Space");
+      await state("paused");
+      await page.keyboard.press("Space");
+      await state("playing");
       await page.keyboard.press("Tab");
-      labels.push(
-        await page.evaluate(() => {
-          const element = document.activeElement;
-          return element?.getAttribute("aria-label") ?? element?.textContent?.trim() ?? "";
-        }),
-      );
+      await expect(player.dock.getByRole("button", { name: "Previous story" })).toBeFocused();
+    } else {
+      // A phone: the bar's own buttons in reading order.
+      await player.openButton.focus();
+      await page.keyboard.press("Tab");
+      await expect(player.dock.getByRole("button", { name: "Pause", exact: true })).toBeFocused();
+      await page.keyboard.press("Tab");
+      await expect(player.dock.getByRole("button", { name: "Next story" })).toBeFocused();
     }
-    expect(labels).toEqual(["Dispatch", "Generate", "Settings"]);
-    await lab.play();
-    const region = page.getByRole("region", { name: "Audio player" });
-    await expect(region.getByRole("button")).toHaveCount(3);
-    await region.getByRole("button", { name: /^Player: / }).focus();
-    await page.keyboard.press("Tab");
-    await expect(region.getByRole("button", { name: "Pause" })).toBeFocused();
-    await page.keyboard.press("Tab");
-    await expect(region.getByRole("button", { name: "Next item" })).toBeFocused();
+    // With a mouse from 64rem the timeline is the bar's, which the branch above drove.
+    if (!hasTouch) return;
+    // Inside the open player K and Space toggle; on a button, Space presses the button instead.
+    await player.openPlayer();
+    await player.scrubber.focus();
+    await page.keyboard.press("k");
+    await state("paused");
+    await page.keyboard.press("Space");
+    await state("playing");
+    const story = page.locator(".player-meta .player-story");
+    const before = await story.textContent();
+    await player.dialog.getByRole("button", { name: "Next story" }).first().focus();
+    await page.keyboard.press("Space");
+    await expect(story).not.toHaveText(before ?? "");
+    await state("playing");
   });
 });

@@ -23,21 +23,39 @@ const inputBy = (by: string) => (): void => {
   const root = document.documentElement;
   if (root.dataset.input !== by) root.dataset.input = by;
 };
-addEventListener("keydown", inputBy("keyboard"), { capture: true, passive: true });
+// Typing into a text field is not keyboard navigation: a letter in the search pill must not turn the
+// keyboard's ring on for a field that was reached with a tap. Tab and Escape still do.
+const typesIntoField = (event: KeyboardEvent): boolean =>
+  event.key !== "Tab" &&
+  event.key !== "Escape" &&
+  event.target instanceof HTMLElement &&
+  (event.target.isContentEditable ||
+    event.target.matches(
+      'textarea, input:not([type="checkbox"], [type="radio"], [type="range"], [type="button"], [type="submit"], [type="reset"], [type="file"], [type="color"])',
+    ));
+const keyboardInput = inputBy("keyboard");
+addEventListener(
+  "keydown",
+  (event) => {
+    if (!typesIntoField(event)) keyboardInput();
+  },
+  { capture: true, passive: true },
+);
 addEventListener("pointerdown", inputBy("pointer"), { capture: true, passive: true });
 // The service worker registers once the page has loaded, so its code can arrive then too.
 const registerWorker = (): void =>
   void import("./serviceWorker").then((worker) => worker.registerServiceWorker());
 if (document.readyState === "complete") registerWorker();
 else addEventListener("load", registerWorker, { once: true });
-// The scrollbar's width, measured while no dialog holds the page: an open dialog takes the
-// scrollbar away, and the page keeps this much room instead so it does not move (foundations.css).
-// A swap replaces the root's style, so the value goes back on after each one.
+// The scrollbar's width, measured while no dialog or open player holds the page: either takes the
+// scrollbar away, and the page keeps this much room instead so it does not move (foundations.css,
+// player.css). A swap replaces the root's style, so the value goes back on after each one.
 let gutter = "0px";
 const holdGutter = (): void => document.documentElement.style.setProperty("--gutter", gutter);
 const measureGutter = (): void => {
-  if (!document.querySelector("dialog[open]"))
-    gutter = `${Math.max(0, innerWidth - document.documentElement.offsetWidth)}px`;
+  const held =
+    document.querySelector("dialog[open]") || document.documentElement.dataset.player === "open";
+  if (!held) gutter = `${Math.max(0, innerWidth - document.documentElement.offsetWidth)}px`;
   holdGutter();
 };
 measureGutter();
@@ -62,6 +80,25 @@ addEventListener("vite:preloadError", () => {
     )
     .finally(() => location.reload());
 });
+// A cover that cannot be fetched (offline, one scrolled to for the first time) shows its palette, not the
+// browser's broken-image glyph. An image error does not bubble, so this listens on the way down, and
+// covers that failed before this script ran are swept up once.
+const hideBroken = (): void => {
+  for (const image of document.querySelectorAll<HTMLImageElement>(".cover-image")) {
+    if (image.complete && image.naturalWidth === 0) image.hidden = true;
+  }
+};
+document.addEventListener(
+  "error",
+  (event) => {
+    if ((event.target as Element).classList?.contains("cover-image")) {
+      (event.target as HTMLImageElement).hidden = true;
+    }
+  },
+  true,
+);
+document.addEventListener("astro:page-load", hideBroken);
+hideBroken();
 // The floating Create button is extended until the first scroll, so what folds it waits for one.
 addEventListener("scroll", () => void import("./fabScroll").then((fab) => fab.installFabScroll()), {
   once: true,

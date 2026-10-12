@@ -3,7 +3,6 @@ import {
   CLAUDE_OPTIONS,
   countText,
   filterOptions,
-  GROUP_NAMES,
   labelFor,
   moveIndex,
   nebiusOptions,
@@ -40,7 +39,7 @@ describe("nebiusOptions with the live list", () => {
       ["Qwen/Qwen3-235B-A22B-Instruct-2507", "rest"],
       ["openai/gpt-oss-120b", "rest"],
     ]);
-    expect(nebiusOptions(LIVE, null)[0]).toMatchObject({ label: "Automatic" });
+    expect(nebiusOptions(LIVE, null)[0]).toMatchObject({ label: "Default" });
   });
 
   it("leaves out a top model the live list no longer serves", () => {
@@ -130,21 +129,6 @@ describe("the top models", () => {
   });
 });
 
-describe("GROUP_NAMES", () => {
-  it("heads the top models and the rest", () => {
-    expect(GROUP_NAMES).toEqual({ top: "Top models", rest: "All models" });
-  });
-});
-
-describe("Claude options", () => {
-  it("are exactly Sonnet 5.5 and Haiku 5.5", () => {
-    expect(CLAUDE_OPTIONS.map((o) => [o.id, o.label])).toEqual([
-      ["claude-sonnet-5-5", "Claude Sonnet 5.5"],
-      ["claude-haiku-5-5", "Claude Haiku 5.5"],
-    ]);
-  });
-});
-
 describe("filterOptions", () => {
   const options = nebiusOptions(LIVE, null);
   it("keeps everything for an empty query", () => {
@@ -178,7 +162,7 @@ describe("moveIndex", () => {
 describe("labelFor and countText", () => {
   it("labels a chosen model", () => {
     expect(labelFor(CLAUDE_OPTIONS, "claude-haiku-5-5")).toBe("Claude Haiku 5.5");
-    expect(labelFor(nebiusOptions(LIVE, null), null)).toBe("Automatic");
+    expect(labelFor(nebiusOptions(LIVE, null), null)).toBe("Default");
     expect(labelFor(nebiusOptions(LIVE, null), "moonshotai/Kimi-K3")).toBe("Kimi K3");
     expect(labelFor([], "a/b")).toBe("b");
     expect(labelFor([], "zai-org/GLM-5.3")).toBe("GLM-5.3");

@@ -22,8 +22,8 @@ const COPY = {
       }
     : {}),
   "400": "That request did not go through. Reload the page and try again.",
-  cooldown: "Please wait a moment before doing that again. Try again in",
-  daily_cap: "The limit for today is reached. Try again in",
+  cooldown: "You can do that again in",
+  daily_cap: "That's today's limit. Try again in",
   "503": "That is not available right now. Try again in a few minutes.",
   network: "The request did not go through. Check your connection, then try again.",
 } as const;
@@ -40,10 +40,10 @@ const COPY = {
       {kind === "regenerate" ? (
         <dialog class="create-sheet regen-sheet" aria-labelledby="regen-title">
           <div class="create-sheet-head">
-            <h2 class="sheet-title" id="regen-title">Regenerate this episode</h2>
             <button class="icon-btn press" type="button" data-dialog-close aria-label="Close">
               <Icon name="close" class="icon-lg" />
             </button>
+            <h2 class="sheet-title" id="regen-title">Regenerate this episode</h2>
           </div>
           <div class="create-sheet-body">
             <form class="regen-form" data-regen-form novalidate>
@@ -51,9 +51,10 @@ const COPY = {
                 This replaces the episode and keeps its topics, length and format.
               </p>
               <section class="create-group">
-                <h3 class="section-head">
-                  <label for="regen-feedback">What should change?</label>
-                </h3>
+                {/* A form label, not a second title under the panel's own. */}
+                <label class="sheet-field-label regen-label" for="regen-feedback">
+                  What should change?
+                </label>
                 <textarea
                   class="sheet-input regen-feedback"
                   id="regen-feedback"
@@ -98,7 +99,7 @@ const COPY = {
           <form class="confirm-form" data-delete-form novalidate>
             <h2 class="sheet-title" id="delete-title">Delete this episode?</h2>
             <p class="create-hint confirm-lede" id="delete-lede">
-              It is removed from the Library for everyone.
+              It will be removed from the Library on every device. This cannot be undone.
             </p>
             {PASSPHRASE_REQUIRED && (
               <div class="sheet-field">

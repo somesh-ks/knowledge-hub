@@ -4,6 +4,7 @@ import type { PlayerDigestData, PlayerItem, PlayerSection } from "../types/contr
 import type { DigestSource } from "./digestFiles";
 import { longDate } from "./format";
 import { isWebUrl } from "./safeUrl";
+import { sectionLabel } from "./sectionLabel";
 
 /**
  * ready: the player can run. preparing: the text is out and narration is still being generated.
@@ -72,7 +73,7 @@ function playerSections(digest: Digest, timeline: AudioTimeline | null): PlayerS
   );
   return digestSections(digest).map((section) => ({
     slug: section.id,
-    title: section.title,
+    title: sectionLabel(section.title),
     start_ms: starts.get(section.id) ?? null,
   }));
 }

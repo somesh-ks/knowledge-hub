@@ -16,6 +16,7 @@ const earlier = site.entries.slice(1, 4);
   title={latest?.player.title}
   view="home"
   layout={latest ? "aside" : "single"}
+  skipLabel={latest ? undefined : "Skip to the content"}
   digestId={latest?.id}
   audio={latest && {
     noun: "briefing",

@@ -1,24 +1,14 @@
 /**
- * The Topics & Sources panel: one native modal dialog, cloned from the page's template each time it
- * opens, for four jobs. Add opens it on Topic: a new topic's details first, then the catalogue
- * sources that suit it, ticked to go with it. A topic's Edit topic opens the same two steps filled
- * in, to change its details and add more of the sources that suit it. Its Source segment, and a
- * topic's Add source, take an address, look it up after a pause (GET /api/source-preview) and file
- * the source under a topic. A source's row opens it to edit that source: its name, its topic, where
- * it lives and what its score is made of. A modal dialog gives the scrim, the focus trap and Escape; Back closes it the way it
- * closes the Create panel. Loaded the first time it is opened.
+ * The Topics and sources panel: one native modal dialog, cloned from the page's template each time it
+ * opens, for four jobs. Add opens it on Topic: a new topic's name, what counts and where it plays,
+ * added in one press (D71); its sources are suggested on its page. A topic's Edit topic opens the
+ * same details filled in. Its Source segment, and a topic's Add source, take an address, look it up
+ * after a pause (GET /api/source-preview) and file the source under a topic. A source's row opens
+ * it to edit that source: its name, its topic, where it lives and what its score is made of. A
+ * modal dialog gives the scrim, the focus trap and Escape; browser Back closes it the way it closes
+ * the Create panel. Loaded the first time it is opened.
  */
-import {
-  addTopicLabel,
-  keywordList,
-  type OfferData,
-  problemText,
-  saveTopicLabel,
-  suggestionsFor,
-  topicChanged,
-  topicProblems,
-  webAddress,
-} from "../lib/topicText";
+import { problemText, topicChanged, topicProblems, webAddress } from "../lib/topicText";
 import { element, iconNode, type SourcePreview, scoreNode } from "./topicsView";
 
 export const PREVIEW_DELAY_MS = 400;
@@ -26,6 +16,7 @@ export const PREVIEW_DELAY_MS = 400;
 export interface NewTopic {
   name: string;
   description: string;
+  /** A new topic starts with none; an edited one keeps its own, which the panel does not show. */
   keywords: string[];
   /** Where a new topic plays (D69); an edited topic keeps what its page set. */
   scope?: { daily: boolean; weekly: boolean; custom: boolean };
@@ -83,9 +74,8 @@ export interface TopicEdit extends NewTopic {
 }
 
 export interface PanelHandlers {
-  addTopic(topic: NewTopic, sources: OfferData[]): void;
-  /** `edit` is null when only sources were ticked and the details stayed as they were. */
-  editTopic(edit: TopicEdit | null, sources: OfferData[]): void;
+  addTopic(topic: NewTopic): void;
+  editTopic(edit: TopicEdit): void;
   addSource(pick: Chosen): void;
   editSource(edit: SourceEdit): void;
 }
@@ -155,10 +145,7 @@ function card(preview: SourcePreview): HTMLElement {
   head.append(iconNode(preview.thumbnail_url ?? preview.favicon_url, preview.name), title);
 
   const score = element("div", "source-card-score");
-  score.append(
-    scoreNode(preview.score, preview.score_label),
-    element("p", "source-card-reason", preview.reason),
-  );
+  score.append(scoreNode(preview.score_label), element("p", "source-card-reason", preview.reason));
 
   const facts = element("dl", "source-facts");
   facts.append(
@@ -171,6 +158,13 @@ function card(preview: SourcePreview): HTMLElement {
         : `${preview.items_30d} ${preview.items_30d === 1 ? "post" : "posts"}`,
     ),
   );
+  // An address is one word: it ends in an ellipsis rather than breaking mid-word, and says itself whole
+  // on hover.
+  const address = facts.querySelector("dd");
+  if (address && preview.feed_url) {
+    address.classList.add("source-facts-url");
+    address.title = preview.feed_url;
+  }
   shell.append(head, score, facts);
   return shell;
 }
@@ -188,53 +182,15 @@ function skeleton(): HTMLElement {
   score.append(element("span", "skeleton-bar"));
   const facts = element("div", "source-facts");
   facts.append(element("span", "skeleton-bar"), element("span", "skeleton-bar"));
+  // An address is one word: it ends in an ellipsis rather than breaking mid-word, and says itself whole
+  // on hover.
+  const address = facts.querySelector("dd");
+  if (address && preview.feed_url) {
+    address.classList.add("source-facts-url");
+    address.title = preview.feed_url;
+  }
   shell.append(head, score, facts);
   return shell;
-}
-
-/** Why the address gave nothing, with the alert glyph every error in Settings has, so colour is not alone. */
-function problem(status: number, glyph: Node | null): HTMLElement {
-  const shell = element("div", "source-card");
-  shell.dataset.kind = "error";
-  const note = element("p", "manage-error");
-  note.setAttribute("role", "alert");
-  if (glyph) note.append(glyph);
-  note.append(element("span", "", problemText(status)));
-  shell.append(note);
-  return shell;
-}
-
-/** The catalogue sources the page wrote out for the topic step; none when the data is missing or bad. */
-function readOffers(): OfferData[] {
-  try {
-    const data: unknown = JSON.parse(document.getElementById("topics-offers")?.textContent ?? "[]");
-    return Array.isArray(data) ? (data as OfferData[]) : [];
-  } catch {
-    return [];
-  }
-}
-
-/** A suggestion: a tile, the name, what it covers, and a box to tick. The whole row is the target. */
-function suggestion(offer: OfferData, check: Node | null): HTMLLIElement {
-  const item = element("li", "");
-  const row = element("label", "suggest-row");
-  const box = element("input", "");
-  box.type = "checkbox";
-  box.value = offer.id;
-  const text = element("span", "suggest-text");
-  text.append(element("span", "source-name", offer.name));
-  if (offer.line) text.append(element("span", "suggest-line", offer.line));
-  const mark = element("span", "suggest-box");
-  mark.setAttribute("aria-hidden", "true");
-  if (check) mark.append(check);
-  row.append(
-    box,
-    iconNode(offer.host ? `https://${offer.host}/favicon.ico` : null, offer.name),
-    text,
-    mark,
-  );
-  item.append(row);
-  return item;
 }
 
 /** Opens the panel where `start` says. The handler for what it makes runs before the panel closes. */
@@ -252,71 +208,59 @@ export function openPanel(
   document.body.append(panel);
 
   const one = <T extends Element>(selector: string): T => panel.querySelector(selector) as T;
-  const glyph = (name: string): Node | null =>
-    panel
-      .querySelector<HTMLTemplateElement>(`template[data-${name}-glyph]`)
-      ?.content.cloneNode(true) ?? null;
   const title = one<HTMLElement>("[data-panel-title]");
   const kinds = one<HTMLFieldSetElement>("[data-panel-kind]");
   const topicPane = one<HTMLFormElement>('[data-pane="topic"]');
   const sourcePane = one<HTMLElement>('[data-pane="source"]');
   const editPane = one<HTMLElement>('[data-pane="edit"]');
-  const details = one<HTMLElement>('[data-step="details"]');
-  const sourcesStep = one<HTMLElement>('[data-step="sources"]');
-  const list = one<HTMLUListElement>("[data-suggest-list]");
-  const none = one<HTMLElement>("[data-suggest-none]");
-  const lede = one<HTMLElement>("[data-suggest-lede]");
   const go = one<HTMLButtonElement>("[data-panel-go]");
-  const back = one<HTMLButtonElement>("[data-panel-back]");
 
   let mode: PanelStart["kind"] = start.kind;
-  let step: "details" | "sources" = "details";
 
   // ---------------------------------------------------------------------------------- a topic
 
-  const offers = readOffers();
   const topicField = (name: string): HTMLInputElement | HTMLTextAreaElement =>
     topicPane.elements.namedItem(name) as HTMLInputElement | HTMLTextAreaElement;
   const scoped = (key: string): boolean =>
     topicPane.querySelector<HTMLInputElement>(`input[name="scope"][value="${key}"]`)?.checked ??
     true;
+  // Editing a topic starts from what it holds. A built-in topic is judged by fixed questions, so what
+  // counts stays as it is; its name takes typing like any other topic's. Its keywords have no field
+  // (D71) and go back as they were, so a save never empties them.
+  const editedTopic = start.kind === "topic-edit" ? start.topic : null;
+  /**
+   * The names a topic may not take: every topic listed (the page's data-names) and every one added
+   * on the page since, apart from the topic being edited, which may keep its own.
+   */
+  const takenNames = (): string[] => {
+    let listed: unknown = [];
+    try {
+      listed = JSON.parse(trigger?.closest<HTMLElement>("[data-topics]")?.dataset.names ?? "[]");
+    } catch {
+      listed = [];
+    }
+    const added = [...document.querySelectorAll("[data-queued] [data-q-name]")].map(
+      (node) => node.textContent ?? "",
+    );
+    const own = editedTopic?.name.trim().toLowerCase();
+    return [...(Array.isArray(listed) ? listed : []), ...added].filter(
+      (name): name is string => typeof name === "string" && name.trim().toLowerCase() !== own,
+    );
+  };
   const topicValue = (): NewTopic => ({
     name: topicField("name").value.trim(),
     description: topicField("description").value.trim(),
-    keywords: topicField("keywords") ? keywordList(topicField("keywords").value) : [],
+    keywords: editedTopic ? [...editedTopic.keywords] : [],
     scope: { daily: scoped("daily"), weekly: scoped("weekly"), custom: scoped("custom") },
   });
-  const ticked = (): OfferData[] => {
-    const ids = new Set(
-      [...list.querySelectorAll<HTMLInputElement>("input:checked")].map((box) => box.value),
-    );
-    return offers.filter((offer) => ids.has(offer.id));
-  };
-
-  // Editing a topic starts from what it holds. A built-in topic is judged by fixed questions, so what
-  // counts stays as it is; its name takes typing like any other topic's.
-  const editedTopic = start.kind === "topic-edit" ? start.topic : null;
   if (editedTopic) {
     topicPane.setAttribute("aria-label", "Edit topic");
     one<HTMLElement>("[data-scope]").hidden = true;
     topicField("name").value = editedTopic.name;
     topicField("description").value = editedTopic.description;
-    if (topicField("keywords")) {
-      topicField("keywords").value = editedTopic.keywords.join(", ");
-    }
     if (editedTopic.origin === "builtin") {
       topicField("description").readOnly = true;
       one<HTMLElement>("[data-fixed-note]").hidden = false;
-    }
-    const suggestHead = one<HTMLElement>("[data-suggest-head]");
-    if (suggestHead) suggestHead.textContent = "More sources";
-    if (lede) {
-      lede.textContent =
-        "Sources that write about it and are not among its sources yet. Tick the ones to add.";
-    }
-    if (none) {
-      none.textContent =
-        "No more sources to suggest for this topic. Add one by its address on the topic's page.";
     }
   }
   const topicDirty = (): boolean => editedTopic !== null && topicChanged(editedTopic, topicValue());
@@ -338,22 +282,6 @@ export function openPanel(
     return first;
   };
 
-  const toSources = (): void => {
-    const topic = topicValue();
-    const bad = flag(topicProblems(topic));
-    if (bad) {
-      bad.focus();
-      return;
-    }
-    const offered = suggestionsFor(topic, offers);
-    list.replaceChildren(...offered.map((offer) => suggestion(offer, glyph("check"))));
-    if (none) none.hidden = offered.length > 0;
-    if (lede) lede.hidden = offered.length === 0;
-    step = "sources";
-    render();
-    (list.querySelector<HTMLInputElement>("input") ?? go).focus();
-  };
-
   topicPane.addEventListener("input", (event) => {
     const control = event.target as HTMLInputElement;
     if (control.hasAttribute("aria-invalid")) {
@@ -361,8 +289,8 @@ export function openPanel(
       const note = topicPane.querySelector<HTMLElement>(`[data-error="${control.name}"]`);
       if (note) note.hidden = true;
     }
+    render();
   });
-  list.addEventListener("change", render);
 
   // ---------------------------------------------------------------------------------- a source
 
@@ -374,15 +302,24 @@ export function openPanel(
   let seq = 0;
   if (start.kind === "source") sourceTopic.value = start.topicId;
 
+  const addressError = one<HTMLElement>('[data-error="url"]');
   const show = (state: string, node?: HTMLElement): void => {
     area.dataset.state = state;
     area.replaceChildren(...(node ? [node] : []));
+  };
+  /** Why the address gave nothing, under the field as every field's error is, and the field marked. */
+  const problem = (message: string): void => {
+    addressError.hidden = !message;
+    const line = addressError.querySelector("span");
+    if (line) line.textContent = message;
+    address.toggleAttribute("aria-invalid", Boolean(message));
   };
 
   const ask = (): void => {
     const url = webAddress(address.value);
     const turn = ++seq;
     loaded = null;
+    problem("");
     render();
     if (!url) {
       show("idle");
@@ -394,7 +331,10 @@ export function openPanel(
       if ("preview" in outcome) {
         loaded = { url, preview: outcome.preview };
         show("ready", card(outcome.preview));
-      } else show("error", problem(outcome.status, glyph("alert")));
+      } else {
+        show("idle");
+        problem(problemText(outcome.status));
+      }
       render();
     });
   };
@@ -403,6 +343,7 @@ export function openPanel(
     clearTimeout(timer);
     seq += 1;
     loaded = null;
+    problem("");
     render();
     timer = window.setTimeout(ask, PREVIEW_DELAY_MS);
   });
@@ -469,13 +410,11 @@ export function openPanel(
   function render(): void {
     const topicLike = mode === "topic" || mode === "topic-edit";
     panel.dataset.mode = mode;
-    kinds.hidden = mode === "edit" || mode === "topic-edit";
+    // Add source on a topic's page adds a source to that topic: no Topic | Source switch.
+    kinds.hidden = mode === "edit" || mode === "topic-edit" || start.kind === "source";
     topicPane.hidden = !topicLike;
     sourcePane.hidden = mode !== "source";
     editPane.hidden = mode !== "edit";
-    details.hidden = step !== "details";
-    if (sourcesStep) sourcesStep.hidden = step !== "sources";
-    back.hidden = !(topicLike && step === "sources");
     title.textContent = {
       topic: "Add a topic",
       "topic-edit": "Edit topic",
@@ -509,21 +448,21 @@ export function openPanel(
   go.addEventListener("click", () => {
     if (mode === "topic") {
       const topic = topicValue();
-      const bad = flag(topicProblems(topic));
+      const bad = flag(topicProblems(topic, takenNames()));
       if (bad) {
         bad.focus();
         return;
       }
-      handlers.addTopic(topic, []);
+      handlers.addTopic(topic);
       panel.close();
     } else if (mode === "topic-edit" && editedTopic) {
       const topic = topicValue();
-      const bad = flag(topicProblems(topic));
+      const bad = flag(topicProblems(topic, takenNames()));
       if (bad) {
         bad.focus();
         return;
       }
-      handlers.editTopic(topicDirty() ? { id: editedTopic.id, ...topic } : null, []);
+      if (topicDirty()) handlers.editTopic({ id: editedTopic.id, ...topic });
       panel.close();
     } else if (mode === "source") {
       if (!loaded) return;
@@ -540,12 +479,6 @@ export function openPanel(
       if (edit) handlers.editSource(edit);
       panel.close();
     }
-  });
-
-  back.addEventListener("click", () => {
-    step = "details";
-    render();
-    topicField("name").focus();
   });
 
   // Enter moves on from a one-line field, as the button would; in the description it is a new line.

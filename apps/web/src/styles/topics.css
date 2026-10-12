@@ -1,7 +1,8 @@
 /*
  * The Topics & Sources pages (pages/settings/topics.astro and topics/[id].astro): each topic with its
- * switch, its weight and the sources under it; a source's row and its score out of 3; and the panel
- * that adds a topic or a source and edits a source (TopicsPanel.astro).
+ * switch, its weight and the sources under it; a source's row and its score out of 3; the sources the
+ * catalogue suggests for a topic; and the panel that adds a topic or a source and edits a source
+ * (TopicsPanel.astro).
  * Tokens only. It is loaded after manage.css, whose form fields, saving toast and dialog it
  * reuses, and after settings.css, which draws the switch and the slider.
  *
@@ -11,14 +12,17 @@
 
 /* ------------------------------------------------------------------ the top of the page */
 
-/* A phone stacks: the title, then Add, an outline button, at full width. From 40rem it sits at the
-   end of the title's line, centred on it. */
+/* A phone stacks: the title, then Add, a tonal button as wide as its words at the start. From 40rem
+   it sits at the end of the title's line, centred on it. */
+/* A source is a two-line list item (name, then site and score), M3's 72px. */
 .topics {
-  --source-row: var(--size-touch-comfortable);
+  --source-row: 4.5rem;
 }
 
 .topics > .topics-add {
+  width: fit-content;
   margin-block: var(--space-6);
+  padding-inline: var(--space-6);
 }
 
 @media (min-width: 40rem) {
@@ -58,6 +62,16 @@
   }
 }
 
+/* From 64rem the title is the section size (settings.css), so Add centres on that line. */
+@media (min-width: 64rem) {
+  .topics > .topics-add {
+    margin-block-start: calc(
+      (var(--font-size-section) * var(--text-display-leading) - var(--button-height)) /
+      2
+    );
+  }
+}
+
 /* ------------------------------------------------------------------ the list of topics */
 
 /* Each topic is a row that leads to its page, drawn like the rows of the Settings index: space
@@ -68,7 +82,7 @@
 }
 
 .topics .row-action {
-  border-radius: var(--button-radius);
+  border-radius: var(--row-radius);
 }
 
 .topics .row-action .icon {
@@ -84,7 +98,7 @@
 
 .topic-page {
   /* The slider shares the Settings controls' width from 40rem, so its edges line up with the switch. */
-  --settings-control-width: 18rem;
+  --settings-control-width: 22rem;
 }
 
 .topic {
@@ -96,8 +110,10 @@
   content: none;
 }
 
-.topic-weight > .settings-label {
-  flex: 0 0 auto;
+/* A weight: its name with the percentage under it, then the slider, which ends at the column every
+   control in Settings ends at. */
+.topic-weight {
+  flex-wrap: nowrap;
 }
 
 .topic-weight > .settings-range {
@@ -111,36 +127,31 @@
   }
 }
 
-/* A group's weights: one row per judge topic it gathers. On a phone the name takes its own line
-   and the slider the line below, so a long name never squeezes the slider. */
-.topic-weights .topic-weight {
+/* A weight row, a group's or a topic's single one, is as tall as a value row. On a phone the name
+   and its percentage take a line and the slider the line below, close under them, so a long name
+   never squeezes the slider. */
+.topic .topic-weight {
   flex-wrap: wrap;
   row-gap: 0;
+  padding-block: var(--space-2);
 }
 
-.topic-weights .topic-weight > .settings-label {
+.topic .topic-weight > .settings-text {
   flex-basis: 100%;
-  padding-block-start: var(--space-2);
 }
 
 @media (min-width: 40rem) {
-  .topic-weights .topic-weight {
+  .topic .topic-weight {
     flex-wrap: nowrap;
   }
 
-  .topic-weights .topic-weight > .settings-label {
-    flex-basis: auto;
-    padding-block-start: 0;
+  .topic .topic-weight > .settings-text {
+    flex-basis: 0;
   }
 }
 
 .topic-percent {
-  flex: none;
-  min-width: 4ch;
-  color: var(--color-on-surface-muted);
-  font-size: var(--font-size-label);
   font-variant-numeric: tabular-nums;
-  text-align: end;
 }
 
 /* A topic that is off keeps its slider, set where it was, and shows it as unused. */
@@ -164,12 +175,14 @@
   display: none;
 }
 
-.topic-empty {
-  padding-block: var(--space-2);
-}
-
 .topic:has([data-sources] > .source-row) .topic-empty {
   display: none;
+}
+
+/* With no sources, Add source is the empty state's own button, centred under it. */
+.topic:not(:has([data-sources] > .source-row)) .topic-add-source {
+  margin-inline: auto;
+  margin-block-start: 0;
 }
 
 /* Add source under the sources: an outline button as wide as its words. */
@@ -213,8 +226,10 @@
   display: none;
 }
 
-.topic:has(.topic-remove[data-pressed="true"]) :is(.topic-controls, .topic-sources) {
+/* Everything above the button goes quiet and takes no presses: heads, rows, Add source, suggestions. */
+.topic:has(.topic-remove[data-pressed="true"]) > :not(.topic-remove-row, .topic-gone) {
   opacity: var(--opacity-disabled);
+  pointer-events: none;
 }
 
 /* Once the removal is in the repository, the page says so and keeps nothing else. */
@@ -233,14 +248,14 @@
   position: relative;
   isolation: isolate;
   display: grid;
-  grid-template-columns: minmax(0, 1fr) auto auto;
+  grid-template-columns: minmax(0, 1fr) auto;
   align-items: center;
   column-gap: var(--space-2);
   min-height: var(--source-row);
   border-radius: var(--radius-md);
 }
 
-/* The row's own button, behind everything: a press anywhere but the name and the checkbox opens the
+/* The row's own button, behind everything: a press anywhere but the checkbox opens the
    source to edit. It reaches a little past the row's start, so its state layer has room around the
    tile, and its words never scale on a press: pressing shows on its fill. */
 .source-edit {
@@ -259,23 +274,23 @@
 
 @media (hover: hover) and (pointer: fine) {
   .source-edit:hover {
-    background: var(--color-surface-sunken);
+    background: color-mix(in oklch, var(--color-on-surface) var(--state-hover), transparent);
   }
 }
 
 .source-edit:active {
-  background: var(--color-surface-sunken);
+  background: color-mix(in oklch, var(--color-on-surface) var(--state-press), transparent);
 }
 
-/* What the row shows sits over its button and lets a press through to it, all but the name's link
-   and the checkbox, which are presses of their own. */
+/* What the row shows sits over its button and lets a press through to it, all but the checkbox,
+   which is a press of its own. */
 .source-row > :not(.source-edit) {
   position: relative;
   z-index: var(--z-raised);
   pointer-events: none;
 }
 
-.source-row :is(a.source-name, .source-check) {
+.source-row .source-check {
   pointer-events: auto;
 }
 
@@ -288,37 +303,12 @@
   min-height: var(--source-row);
 }
 
-/* The name is the way to the site: the row's words, underlined only under the pointer or the keys,
-   so a list of links still reads as a list of names. */
-/* The link's box is the line plus a little above and below, so it is a 24px target (WCAG 2.5.8)
-   without moving the row. */
-a.source-name {
-  margin-block: calc(var(--space-1) * -1);
-  padding-block: var(--space-1);
-  color: inherit;
-  text-decoration: none;
-  text-underline-offset: 0.2em;
-  text-decoration-thickness: var(--stroke-hairline);
-  border-radius: var(--radius-xs);
-}
-
-@media (hover: hover) and (pointer: fine) {
-  a.source-name:hover {
-    color: var(--color-accent);
-    text-decoration-line: underline;
-  }
-}
-
-a.source-name:focus-visible {
-  outline: var(--stroke-ring) solid var(--color-focus-ring);
-  outline-offset: var(--stroke-ring-gap);
-  text-decoration-line: underline;
-}
-
 /* The site's tile: the name's first letter, and the site's icon over it once that has loaded. A
-   transparent icon is drawn over a sunken surface of its own. */
+   transparent icon is drawn over a sunken surface of its own. It keeps its size however long the
+   name beside it is. */
 .source-icon {
   position: relative;
+  flex: none;
   display: grid;
   place-items: center;
   width: var(--space-6);
@@ -335,11 +325,11 @@ a.source-name:focus-visible {
   width: 100%;
   height: 100%;
   border-radius: inherit;
-  background: var(--color-surface-sunken);
+  background: var(--color-surface-container);
   box-shadow: inset 0 0 0 var(--stroke-hairline) var(--color-border-hairline);
   color: var(--color-on-surface-muted);
   font-size: var(--font-size-meta);
-  font-weight: var(--font-weight-semibold);
+  font-weight: var(--font-weight-medium);
   line-height: 1;
 }
 
@@ -350,7 +340,7 @@ a.source-name:focus-visible {
   height: 100%;
   padding: var(--space-1);
   object-fit: contain;
-  background: var(--color-surface-sunken);
+  background: var(--color-surface-container);
   opacity: 0;
 }
 
@@ -358,18 +348,38 @@ a.source-name:focus-visible {
   opacity: 1;
 }
 
+/* The name, and under it the site and the score's word: "studio-notes.example · Excellent". */
 .source-text {
   display: flex;
-  align-items: baseline;
-  gap: var(--space-3);
+  flex-direction: column;
   min-width: 0;
+}
+
+.source-meta {
+  display: flex;
+  align-items: baseline;
+  min-width: 0;
+  color: var(--color-on-surface-muted);
+  font-size: var(--font-size-label);
+  line-height: var(--font-leading-caption);
+  white-space: nowrap;
+}
+
+.source-meta > .source-host {
+  display: block;
+  flex: 0 1 auto;
+}
+
+.source-meta > .source-host:not(:empty) + .score::before {
+  content: "\00b7" / "";
+  margin-inline: var(--space-1);
 }
 
 .source-name {
   min-width: 0;
   overflow: hidden;
   font-size: var(--font-size-body);
-  font-weight: var(--font-weight-medium);
+  font-weight: var(--font-weight-regular);
   line-height: var(--font-leading-label);
   text-overflow: ellipsis;
   white-space: nowrap;
@@ -391,13 +401,7 @@ a.source-name:focus-visible {
 }
 
 /* A row just added says how its save goes under its name, on lines of its own, so neither the name
-   nor "Added. It appears after the next build." is cut short. */
-.source-text:has(> .source-note) {
-  flex-direction: column;
-  align-items: flex-start;
-  gap: 0;
-}
-
+   nor the note is cut short. */
 .source-note {
   white-space: normal;
 }
@@ -445,12 +449,12 @@ a.source-name:focus-visible {
 
 @media (hover: hover) and (pointer: fine) {
   .source-check:hover {
-    background: var(--color-surface-sunken);
+    background: color-mix(in oklch, var(--color-on-surface) var(--state-hover), transparent);
   }
 }
 
 .source-check:active {
-  background: var(--color-surface-sunken);
+  background: color-mix(in oklch, var(--color-on-surface) var(--state-press), transparent);
 }
 
 /* Keeps a row that has no button lined up with the rows that do. */
@@ -460,15 +464,22 @@ a.source-name:focus-visible {
   margin-inline-end: calc(var(--space-3) * -1);
 }
 
-/* An unticked source is off: it keeps its place and its score, quieter. */
-.source-row:has(.source-check input:not(:checked)) :is(.source-name, .source-host, .score) {
+/* An unticked source is off: it keeps its place and its score, quieter, and still readable (4.5:1):
+   the name in the muted ink at the regular weight, and the tile faded, as nothing reads it. The
+   empty box says off in a shape. */
+.source-row:has(.source-check input:not(:checked)) .source-name {
+  color: var(--color-on-surface-muted);
+  font-weight: var(--font-weight-regular);
+}
+
+.source-row:has(.source-check input:not(:checked)) .source-icon {
   opacity: var(--opacity-disabled);
 }
 
 /* A source just added: tinted until the page is left, and the tint settles in at first. */
 .source-row.is-new {
-  background: var(--color-accent-subtle);
-  box-shadow: 0 0 0 var(--space-2) var(--color-accent-subtle);
+  background: var(--color-accent-container);
+  box-shadow: 0 0 0 var(--space-2) var(--color-accent-container);
   animation: source-flash var(--duration-progress) var(--ease-out);
 }
 
@@ -487,78 +498,30 @@ a.source-name:focus-visible {
 
 /* ------------------------------------------------------------------ the score */
 
+/* One word in the muted ink: Excellent, Good, Fair, Poor, or "Not scored yet" for a new source. */
 .score {
-  --star-on: var(--color-accent);
-  --star-off: var(--color-track-strong);
-  display: inline-flex;
-  align-items: center;
-  gap: var(--space-2);
+  flex: none;
   color: var(--color-on-surface-muted);
   font-size: var(--font-size-label);
   line-height: var(--font-leading-caption);
   white-space: nowrap;
 }
 
-/* A phone keeps the row to one line: only a word that flags a source (Poor, New) stays beside the number. */
-@media (width < 40rem) {
-  .source-row .score:not([data-label="Poor"], [data-label="New"]) .score-label {
-    display: none;
-  }
-}
-
-.score-num {
-  color: var(--color-on-surface);
-  font-variant-numeric: tabular-nums;
-  font-weight: var(--font-weight-medium);
-}
-
-/* Three pips: a mask of one rounded bar and its gap, repeated, behind a fill that stops at the
-   score out of 3. */
-.pips {
-  --pip: 0.75rem;
-  flex: none;
-  width: calc(var(--pip) * 3);
-  height: calc(var(--pip) / 2);
-  background: linear-gradient(
-    90deg,
-    var(--star-on) calc(var(--score, 0) / 3 * 100%),
-    var(--star-off) calc(var(--score, 0) / 3 * 100%)
-  );
-  -webkit-mask:
-    url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 12'%3E%3Crect width='20' height='12' rx='6'/%3E%3C/svg%3E")
-    0 0 / var(--pip) calc(var(--pip) / 2) repeat-x;
-  mask:
-    url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 12'%3E%3Crect width='20' height='12' rx='6'/%3E%3C/svg%3E")
-    0 0 / var(--pip) calc(var(--pip) / 2) repeat-x;
-}
-
-/* Poor is told apart by its word, and by the pips' colour: never by colour alone. */
+/* Poor is told apart by its word and its weight as well as its colour. */
 .score[data-label="Poor"] {
-  --star-on: var(--color-danger);
-}
-
-.score[data-label="Poor"] .score-label {
   color: var(--color-danger);
   font-weight: var(--font-weight-medium);
 }
 
 @media (forced-colors: active) {
-  .pips {
-    forced-color-adjust: none;
-    --star-on: Highlight;
-    --star-off: GrayText;
-  }
-
-  .score[data-label="Poor"] .score-label {
-    border: var(--stroke-hairline) solid CanvasText;
+  .score[data-label="Poor"] {
     color: CanvasText;
   }
 }
 
 /* ------------------------------------------------------------------ the Topics & Sources panel */
 
-/* The foot of the panel stays at the bottom of the sheet; the form scrolls above it. On the topic's
-   second step Back sits before the main button, as wide as its word. */
+/* The foot of the panel stays at the bottom of the sheet; the form scrolls above it. */
 .source-sheet-foot {
   display: flex;
   flex: none;
@@ -567,11 +530,6 @@ a.source-name:focus-visible {
   padding-inline: max(var(--space-4), var(--safe-left)) max(var(--space-4), var(--safe-right));
   border-block-start: var(--stroke-hairline) solid var(--color-border-hairline);
   background: var(--sheet-bg);
-}
-
-.source-sheet-foot > .btn {
-  flex: none;
-  width: auto;
 }
 
 .source-sheet-foot > .btn-primary {
@@ -585,20 +543,54 @@ a.source-name:focus-visible {
   }
 }
 
-/* Topic or Source, under the title: the segmented control of Settings, across the panel. */
+/* Topic or Source, under the title: the segmented control of Settings, across the panel. It never
+   grows along the sheet's column, at any width (it swelled to a 350px oval on phones). */
 .topics-panel-kind {
+  flex: none;
   margin-block-start: var(--space-4);
-}
-
-@media (min-width: 40rem) {
-  .topics-panel-kind {
-    flex: none;
-  }
 }
 
 .topics-pane,
 .source-form {
   padding-block: var(--space-4);
+}
+
+/* The panel's selects are tonal, as every select and chip is: the container's fill, no outline (a
+   transparent edge keeps the size, and forced colours draw it), a state layer under the pointer. The
+   text fields keep their outline: that is what says they take typing. */
+.topics-panel select.manage-input,
+.topics-panel .multiselect-trigger {
+  border-color: transparent;
+  border-radius: var(--field-radius);
+  background: var(--color-surface-container);
+  transition: background-color var(--duration-hover) var(--ease-hover);
+}
+
+@media (hover: hover) and (pointer: fine) {
+  .topics-panel select.manage-input:hover,
+  .topics-panel .multiselect-trigger:hover {
+    border-color: transparent;
+    background: color-mix(
+      in oklch,
+      var(--color-surface-container),
+      var(--color-on-surface) var(--state-hover)
+    );
+  }
+}
+
+.topics-panel select.manage-input:active,
+.topics-panel .multiselect-trigger:is(:active, [aria-expanded="true"]) {
+  border-color: transparent;
+  background: color-mix(
+    in oklch,
+    var(--color-surface-container),
+    var(--color-on-surface) var(--state-press)
+  );
+}
+
+.topics-panel select.manage-input:focus-visible,
+.topics-panel .multiselect-trigger:focus-visible {
+  border-color: transparent;
 }
 
 /* A shipped topic's name and what counts can be read, not changed: a sunken field in quieter ink, so
@@ -609,102 +601,26 @@ a.source-name:focus-visible {
   color: var(--color-on-surface-muted);
 }
 
-/* A topic's details sit in a step of their own, out of reach of the form's gap, so the step keeps the
-   same field gap itself. Not while hidden: an author display would win over [hidden]. */
-.topics-step[data-step="details"]:not([hidden]) {
+/* A topic's details sit in a group of their own, out of reach of the form's gap, so the group keeps
+   the same field gap itself. */
+.topics-step {
   display: grid;
   gap: var(--space-4);
 }
 
-/* The topic's second step: the sources that suit it, each a row to tick. */
-.topics-suggest {
-  min-width: 0;
-  margin: 0;
-  padding: 0;
-  border: 0;
-}
-
-.topics-suggest-head {
-  padding: 0;
-  font-size: var(--font-size-body);
-  font-weight: var(--font-weight-medium);
-  line-height: var(--font-leading-label);
-}
-
-.suggest-list {
-  display: flex;
-  flex-direction: column;
-  margin: var(--space-3) 0 0;
-  padding: 0;
-  list-style: none;
-}
-
-/* The whole row is the checkbox's target; the box itself is drawn at the row's end. */
-.suggest-row {
-  position: relative;
-  display: grid;
-  grid-template-columns: auto minmax(0, 1fr) auto;
-  align-items: center;
-  column-gap: var(--space-3);
-  min-height: var(--size-touch-comfortable);
-  margin-inline: calc(var(--space-2) * -1);
-  padding: var(--space-2);
-  border-radius: var(--radius-md);
-  cursor: pointer;
-  transition: background-color var(--duration-hover) var(--ease-hover);
-}
-
-.suggest-row > input {
-  position: absolute;
-  inset: 0;
-  width: 100%;
-  height: 100%;
-  margin: 0;
-  appearance: none;
-  opacity: 0;
-  cursor: pointer;
-}
-
-.suggest-row:has(input:focus-visible) {
-  outline: var(--stroke-ring) solid var(--color-focus-ring);
-  outline-offset: calc(var(--stroke-ring-gap) * -1);
-}
-
-@media (hover: hover) and (pointer: fine) {
-  .suggest-row:hover {
-    background: var(--color-surface-sunken);
-  }
-}
-
-.suggest-row:active {
-  background: var(--color-surface-sunken);
-}
-
-.suggest-text {
-  display: grid;
-  min-width: 0;
-}
-
-.suggest-line {
-  color: var(--color-on-surface-muted);
-  font-size: var(--font-size-label);
-  line-height: var(--font-leading-caption);
-}
-
-/* The box: a control's outline when empty, the accent with a check when ticked, so the state is a
-   shape as well as a colour. */
 /* Editing a source: where it lives, as a link out, and what its score is made of. */
 .edit-address {
   display: grid;
   gap: var(--space-1);
 }
 
+/* Their labels wear the fields' labels above them (manage.css .manage-field > label). */
 .edit-address-label,
 .score-breakdown-head {
-  color: var(--color-on-surface-muted);
-  font-size: var(--font-size-label);
+  margin: 0;
+  font-size: var(--font-size-body);
   font-weight: var(--font-weight-medium);
-  line-height: var(--font-leading-caption);
+  line-height: var(--font-leading-label);
 }
 
 .edit-address-link {
@@ -728,8 +644,8 @@ a.source-name:focus-visible {
   display: grid;
   gap: var(--space-2);
   padding: var(--space-4);
-  border: var(--stroke-hairline) solid var(--color-border-hairline);
   border-radius: var(--radius-lg);
+  background: var(--color-surface-container);
 }
 
 .score-breakdown-total {
@@ -791,15 +707,17 @@ a.source-name:focus-visible {
   display: none;
 }
 
-/* The card, the skeleton and the message share one height, so the panel does not move as they swap. */
+/* The card and the skeleton share one height, so the panel does not move as they swap: a tonal
+   surface, as the score breakdown is. A lookup that fails says so under the address field. */
 .source-card {
   display: grid;
+  grid-template-columns: minmax(0, 1fr);
   grid-template-rows: auto auto 1fr;
   gap: var(--space-4);
   min-height: 14rem;
   padding: var(--space-4);
-  border: var(--stroke-hairline) solid var(--color-border-hairline);
   border-radius: var(--radius-lg);
+  background: var(--color-surface-container);
 }
 
 .source-card-head {
@@ -854,6 +772,7 @@ a.source-name:focus-visible {
 
 .source-facts {
   display: grid;
+  grid-template-columns: minmax(0, 1fr);
   align-content: start;
   gap: var(--space-2);
   margin: 0;
@@ -879,15 +798,10 @@ a.source-name:focus-visible {
   overflow-wrap: anywhere;
 }
 
-/* An address or an error that has no card: one sentence in the card's frame. */
-.source-card[data-kind="error"] {
-  grid-template-rows: auto;
-  align-content: start;
-  color: var(--color-danger);
-}
-
-.source-card[data-kind="error"] .manage-error {
-  font-size: var(--font-size-label);
+.source-facts dd.source-facts-url {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
 .skeleton-bar {
@@ -933,104 +847,142 @@ a.source-name:focus-visible {
   line-height: var(--font-leading-label);
 }
 
-/* On a topic's page the scope sits at its row's end from 40rem, as a select does. */
-@media (min-width: 40rem) {
-  .topic-scope .multiselect {
-    min-inline-size: 16rem;
-  }
+/* A general topic switched off reads none of its sources: its list says so by its look, whatever
+   each source's own box holds. The rows still work (a box ticked now holds when the topic is turned
+   on), so they stay legible: the names go quiet and the tiles fade, and nothing drops below the
+   text contrast. */
+.topic:has(#topic-on:not(:checked)) .topic-sources .source-name {
+  color: var(--color-on-surface-muted);
+}
+
+.topic:has(#topic-on:not(:checked)) .topic-sources .source-icon {
+  opacity: var(--opacity-disabled);
 }
 
 /* ------------------------------------------------------------------ suggested sources */
 
-.topic-suggested-section {
-  display: flex;
-  flex-direction: column;
-  margin-block-start: var(--space-8);
-  padding-block-start: var(--space-4);
-  border-block-start: var(--stroke-hairline) solid var(--color-border-hairline);
+/* A suggestion is a source's row with a quiet line on what it covers in place of the score, and a
+   button in place of the checkbox. The row keeps a source's height, tile and type, and the section's
+   heading and list keep the page's own spacing. */
+.source-row.is-suggested {
+  grid-template-columns: minmax(0, 1fr) auto;
 }
 
-.suggested-section-head {
-  display: flex;
-  align-items: center;
-  gap: var(--space-2);
+/* The tile keeps its size however long the line beside it is. */
+.is-suggested .source-icon {
+  flex: none;
 }
 
-.suggested-pill {
-  display: inline-flex;
-  align-items: center;
-  padding-block: var(--space-1);
-  padding-inline: var(--space-2);
-  border-radius: var(--chip-radius);
-  background: var(--color-accent-subtle);
-  color: var(--color-accent);
-  font-size: var(--font-size-meta);
-  font-weight: var(--font-weight-medium);
+/* Drawn as a source is: the name, then "site · Posts weekly" where a source has "site · Excellent".
+   From 40rem what it covers is a third line. */
+.is-suggested .source-text {
+  flex: 1 1 0;
+}
+
+.source-meta > .source-host:not(:empty) + .source-cadence::before {
+  content: "\00b7" / "";
+  margin-inline: var(--space-1);
+}
+
+.source-line {
+  display: none;
+  min-width: 0;
+  color: var(--color-on-surface-muted);
+  font-size: var(--font-size-label);
   line-height: var(--font-leading-caption);
-  letter-spacing: var(--text-meta-tracking);
-  text-transform: uppercase;
+  white-space: nowrap;
 }
 
-.suggested-caption {
-  margin-block: var(--space-1) var(--space-3);
+@media (min-width: 40rem) {
+  .source-line {
+    display: flex;
+  }
 }
 
-/* The small + button on the right side of a suggested source row */
+.source-about {
+  min-width: 0;
+  max-width: 100%;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+/* Pressed, the site's line says the source is being added, and then that it is, in full: a
+   narrow row wraps it rather than cut it off. */
+.source-meta > .source-note {
+  min-width: 0;
+  white-space: normal;
+}
+
+/* From 40rem a suggestion is three lines (name, site and cadence, what it covers): it takes a
+   three-line row's height, so its lines have the air the Sources rows above have. */
+@media (min-width: 40rem) {
+  .source-row.is-suggested:has(.source-line) {
+    min-height: calc(var(--space-12) + var(--space-8) + var(--space-2));
+  }
+}
+
+/* Add: a plain icon button, the muted plus with a state layer under the pointer, so a column of them
+   is not a column of discs. Pressed, an accent check takes the plus's place in the same slot, so
+   nothing moves. The rest of a suggestion's row does nothing: only the button answers. */
 .source-plus-btn {
   position: relative;
+  isolation: isolate;
   display: grid;
   place-items: center;
   width: var(--size-touch);
   height: var(--size-touch);
-  margin-inline-end: calc(var(--space-3) * -1);
-  border: none;
-  background: none;
-  color: var(--color-on-surface-muted);
+  /* The disc's edge meets the checkboxes' edge in the list above; the 44px target reaches into the
+     gutter by the disc's inset. */
+  margin-inline-end: calc(var(--space-1) * -1);
   border-radius: var(--radius-round);
-  cursor: pointer;
-  transition:
-    color var(--duration-hover) var(--ease-hover),
-    background-color var(--duration-hover) var(--ease-hover);
+  color: var(--color-on-surface-muted);
 }
 
-.source-plus-btn > .icon {
-  width: var(--size-icon);
-  height: var(--size-icon);
+.source-plus-btn:focus-visible {
+  outline: var(--stroke-ring) solid var(--color-focus-ring);
+  outline-offset: calc(var(--stroke-ring) * -1);
 }
 
-@media (hover: hover) and (pointer: fine) {
-  .source-plus-btn:hover {
-    color: var(--color-accent);
-    background: var(--color-surface-sunken);
-  }
+.source-row.is-suggested > .source-plus-btn {
+  pointer-events: auto;
 }
 
-.source-plus-btn:active {
-  background: var(--color-surface-sunken);
+.source-plus-btn::before {
+  content: "";
+  position: absolute;
+  inset: var(--space-1);
+  z-index: var(--z-beneath);
+  border-radius: var(--radius-round);
+  background: transparent;
+  transition: background-color var(--duration-hover) var(--ease-hover);
+}
+
+.source-plus-btn > .suggested-plus,
+.source-plus-btn > .suggested-check {
+  grid-area: 1 / 1;
+  transition: opacity var(--duration-state) var(--ease-out);
+}
+
+.source-plus-btn > .suggested-check,
+.source-plus-btn.is-added > .suggested-plus {
+  opacity: 0;
+}
+
+.source-plus-btn.is-added > .suggested-check {
+  opacity: 1;
 }
 
 .source-plus-btn.is-added {
   color: var(--color-accent);
-  pointer-events: none;
+  cursor: default;
 }
 
-.source-row.is-suggested {
-  grid-template-columns: minmax(0, 1fr) auto auto;
+@media (hover: hover) and (pointer: fine) {
+  .source-plus-btn:enabled:hover::before {
+    background: color-mix(in oklch, var(--color-on-surface) var(--state-hover), transparent);
+  }
 }
 
-.suggested-skeleton {
-  pointer-events: none;
-  opacity: 0.6;
-}
-
-.suggested-skeleton .source-icon.skeleton-circle {
-  width: var(--space-6);
-  height: var(--space-6);
-  border-radius: var(--radius-sm);
-}
-
-.suggested-skeleton .source-slot.skeleton-circle {
-  width: var(--size-touch);
-  height: var(--size-touch);
-  border-radius: var(--radius-round);
+.source-plus-btn:enabled:active::before {
+  background: color-mix(in oklch, var(--color-on-surface) var(--state-press), transparent);
 }

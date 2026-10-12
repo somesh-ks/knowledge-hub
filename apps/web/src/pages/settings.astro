@@ -2,7 +2,9 @@
 import Icon from "../components/Icon.astro";
 import BaseLayout from "../layouts/BaseLayout.astro";
 import { loadManage } from "../lib/manage";
-import { dailySummary, loadScheduleView, weeklySummary } from "../lib/schedule";
+import { readCounts } from "../lib/savedOverlay";
+import { loadScheduleView } from "../lib/schedule";
+import { dailySummary, modelSummary, topicsSummary, weeklySummary } from "../lib/settingsSummary";
 import { topicLayout } from "../lib/topicPages";
 import { loadWriterView } from "../lib/writer";
 import { THEME_PREFERENCES, type ThemePreference } from "../player/core/preferences";
@@ -18,19 +20,70 @@ const [schedule, writer, manage] = await Promise.all([
 // The topics a person sees (D69): the owner's three, any of their own apart from those, and the
 // general news topics; the judge's finer topics are inside the three.
 const layout = topicLayout(manage.topics, manage.sources);
-const topicCount = layout.groups.length + layout.own.length + layout.general.length;
-const plural = (count: number, word: string): string => `${count} ${word}${count === 1 ? "" : "s"}`;
-// Each row leads to the one page that sets it, and says its current state in a few words.
+const shownTopics = [...layout.groups, ...layout.own, ...layout.general].map((topic) => topic.id);
+// A source is read only while it is on and so is the topic whose page lists it: a general topic
+// switched off reads none of its sources, whatever their own boxes say.
+const offPages = manage.topics.filter((topic) => !topic.enabled).map((topic) => topic.id);
+const spots = Object.fromEntries(
+  [...layout.sources].flatMap(([page, list]) =>
+    list.map((source) => [source.id, { page, on: source.enabled }]),
+  ),
+);
+const sourcesOn = readCounts(spots, offPages, []).on;
+// Each row leads to the one page that sets it, and says its current state in a few words. What the
+// words are worked out from rides along as data, so an edit saved since the build can be shown in
+// them (scripts/settingsSaved.ts, loaded only when one is kept).
 const PODCAST = [
-  { href: "/settings/daily", label: "Daily", hint: dailySummary(schedule) },
-  { href: "/settings/weekly", label: "Weekly", hint: weeklySummary(schedule.weekly) },
+  {
+    href: "/settings/daily",
+    label: "Daily",
+    hint: dailySummary(schedule),
+    data: {
+      summary: "daily",
+      hour: schedule.hour,
+      cadence: schedule.cadenceDays,
+      timezone: schedule.timezone,
+    },
+  },
+  {
+    href: "/settings/weekly",
+    label: "Weekly",
+    hint: weeklySummary({ ...schedule.weekly, timezone: schedule.timezone }),
+    data: {
+      summary: "weekly",
+      enabled: String(schedule.weekly.enabled),
+      day: schedule.weekly.day,
+      hour: schedule.weekly.hour,
+      timezone: schedule.timezone,
+    },
+  },
   {
     href: "/settings/topics",
-    label: "Topics & Sources",
-    hint: `${plural(topicCount, "topic")}, ${plural(manage.sources.length, "source")}`,
+    label: "Topics and sources",
+    hint: topicsSummary(shownTopics.length, manage.sources.length, sourcesOn),
+    data: {
+      summary: "topics",
+      shown: shownTopics.join(" "),
+      taken: manage.topics.map((topic) => topic.id).join(" "),
+      sources: JSON.stringify(spots),
+      off: offPages.join(" "),
+    },
   },
-  { href: "/settings/model", label: "Model", hint: writer.label },
+  {
+    href: "/settings/model",
+    label: "Model",
+    hint: modelSummary(writer.provider, writer.model),
+    data: { summary: "model", provider: writer.provider, model: writer.model ?? "" },
+  },
 ];
+
+// The version is the day this build was made, which is what changes when the site does.
+const version = new Intl.DateTimeFormat("en-GB", {
+  timeZone: "Europe/Stockholm",
+  day: "numeric",
+  month: "long",
+  year: "numeric",
+}).format(new Date());
 
 const THEME_LABELS: Record<ThemePreference, string> = {
   system: "System",
@@ -56,10 +109,14 @@ const THEME_LABELS: Record<ThemePreference, string> = {
         <div class="rows">
           {
             PODCAST.map((row) => (
-              <a class="row-action" href={row.href}>
+              <a
+                class="row-action"
+                href={row.href}
+                {...Object.fromEntries(Object.entries(row.data).map(([key, value]) => [`data-${key}`, value]))}
+              >
                 <span class="settings-text">
                   <span class="settings-label">{row.label}</span>
-                  <span class="settings-hint">{row.hint}</span>
+                  <span class="settings-hint" data-hint>{row.hint}</span>
                 </span>
                 <Icon name="chevronRight" />
               </a>
@@ -69,10 +126,10 @@ const THEME_LABELS: Record<ThemePreference, string> = {
       </section>
 
       <section>
-        <h2 class="section-head">Interface sounds</h2>
+        <h2 class="section-head">Sound</h2>
         <div class="rows">
           <div class="settings-row">
-            <label class="settings-label" for="settings-sounds">Sounds</label>
+            <label class="settings-label" for="settings-sounds">Interface sounds</label>
             <input class="settings-switch" id="settings-sounds" name="sounds" type="checkbox" role="switch" />
           </div>
           <div class="settings-row">
@@ -105,9 +162,15 @@ const THEME_LABELS: Record<ThemePreference, string> = {
 
       <section>
         <h2 class="section-head">About</h2>
-        <p class="settings-about">
-          Singularity is a hobby project by Somesh Kesarla Suresh. It picks stories from chosen news outlets and topics and turns them into a podcast, on its own.
-        </p>
+        <div class="rows">
+          <div class="settings-row">
+            <span class="settings-label">Made by Somesh Kesarla Suresh</span>
+          </div>
+          <div class="settings-row">
+            <span class="settings-label">Version</span>
+            <span class="settings-hint">{version}</span>
+          </div>
+        </div>
       </section>
 
       {/* Only Safari on iOS can do this, and only when the app is not already on the Home Screen, so

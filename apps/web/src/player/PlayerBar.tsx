@@ -1,13 +1,17 @@
-import { useEffect, useRef, useState } from "react";
-import type { PlayerDigestData } from "../types/contracts";
+import { useEffect, useRef, useState, useSyncExternalStore } from "react";
 import { chapterMask } from "./core/chapterMask";
 import { formatClock } from "./core/formatTime";
-import { errorSummary, isPlayingStatus, toggleLabel } from "./core/playerCopy";
+import {
+  errorSummary,
+  INTERRUPTED_LINE,
+  isPlayingStatus,
+  recordingCaption,
+  toggleLabel,
+} from "./core/playerCopy";
 import { getPlayerStore } from "./core/playerRuntime";
 import { playerSheet } from "./core/playerSheet";
-import { briefingLengthLabel } from "./core/readerMath";
 import { dockSeekKeyValue, fractionOfTime, scrubberValueText } from "./core/scrubberMath";
-import { itemIndexAt } from "./core/timeline";
+import { itemIndexAt, storyCaption, storySectionName } from "./core/timeline";
 import { applyVolume, getVolume, setVolume } from "./core/volume";
 import { usePlayerFrame, usePlayerSecond, usePlayerState } from "./hooks/usePlayer";
 import Clock from "./ui/Clock";
@@ -17,14 +21,6 @@ import PlayPauseGlyph from "./ui/PlayPauseGlyph";
 
 /** The page the bar's open button controls. An element id, so it keeps the product's first name. */
 export const PLAYER_PAGE_ID = "dispatch-player-page";
-
-/** Under the title when there are no stories to name: what kind of recording it is, and how long. */
-function noStoriesCaption(digest: PlayerDigestData | undefined): string {
-  if (!digest) return "";
-  // An episode carries its script; a briefing does not.
-  const kind = digest.turns ? "Episode" : digest.kind === "weekly" ? "Weekly briefing" : "Briefing";
-  return digest.audio ? `${kind}, ${briefingLengthLabel(digest.audio.duration_ms)}` : kind;
-}
 
 /**
  * The bar's own scrubber, along its top edge, on screens wide enough for the bar to stay put. A
@@ -37,6 +33,8 @@ function DockSeek({ duration }: { duration: number }) {
   const second = usePlayerSecond();
   const state = usePlayerState();
   const [drag, setDrag] = useState<number | null>(null);
+  const [hover, setHover] = useState<number | null>(null);
+  const bubble = drag ?? hover;
   const inputRef = useRef<HTMLInputElement>(null);
   // Under a resting mouse the thumb shows, and it follows the playhead every frame, as the line
   // does. Otherwise the value moves once a second: a slider that changed every frame while it had
@@ -53,7 +51,9 @@ function DockSeek({ duration }: { duration: number }) {
   const spoken = drag ?? Math.min(second, whole);
   const timeline = state.track?.timeline ?? null;
   const itemCount = timeline?.items.length ?? 0;
-  const at = itemIndexAt(timeline, spoken);
+  // The story from the exact playhead: a story starting at 0:18.6 is the one heard at 0:18.6, which
+  // the floored second would put in the rundown before it.
+  const at = itemIndexAt(timeline, value);
   const section = timeline?.sections.find((entry) => entry.slug === timeline.items[at]?.section);
 
   function move(next: number): void {
@@ -71,12 +71,15 @@ function DockSeek({ duration }: { duration: number }) {
 
   return (
     <>
-      {drag !== null ? (
+      {bubble !== null ? (
         <output
           className="dock-seek-time num"
-          style={{ "--seek-at": fractionOfTime(drag, duration).toFixed(4) } as React.CSSProperties}
+          data-hover={drag === null ? "" : undefined}
+          style={
+            { "--seek-at": fractionOfTime(bubble, duration).toFixed(4) } as React.CSSProperties
+          }
         >
-          {formatClock(drag)}
+          {formatClock(bubble)}
         </output>
       ) : null}
       <input
@@ -88,7 +91,13 @@ function DockSeek({ duration }: { duration: number }) {
         step="any"
         value={value}
         aria-label="Seek"
-        aria-valuetext={scrubberValueText(spoken, whole, section?.title ?? "", at, itemCount)}
+        aria-valuetext={scrubberValueText(
+          spoken,
+          whole,
+          storySectionName(state.track?.digest, section),
+          at,
+          itemCount,
+        )}
         onChange={(event) => move(Number(event.currentTarget.value))}
         onKeyDown={(event) => {
           // A range with no step would move a hundredth of its length per key.
@@ -99,6 +108,15 @@ function DockSeek({ duration }: { duration: number }) {
           // As with the stepped range, a key that lands on the second it is in does nothing.
           if (next !== Math.min(Math.floor(from), whole)) move(next);
         }}
+        // Under a resting mouse the clock shows where a click would land, before it is made.
+        onPointerMove={(event) => {
+          if (event.pointerType !== "mouse" || drag !== null) return;
+          const box = event.currentTarget.getBoundingClientRect();
+          if (box.width <= 0) return;
+          const share = Math.min(1, Math.max(0, (event.clientX - box.left) / box.width));
+          setHover(share * duration);
+        }}
+        onPointerLeave={() => setHover(null)}
         onPointerUp={commit}
         onPointerCancel={commit}
         onKeyUp={commit}
@@ -186,16 +204,31 @@ export default function PlayerBar() {
   const section = timeline?.sections[state.sectionIndex];
   const itemCount = timeline?.items.length ?? 0;
   const playing = isPlayingStatus(state.status);
-  const headline = item?.headline ?? digest?.title ?? "";
+  // After a failure nothing is being read: the bar names the recording, not its first story.
+  const headline = (state.error ? null : item?.headline) ?? digest?.title ?? "";
 
+  // A story's place is told while one is being read. The rundown before story 1 is none, and
+  // "Story 1 of 1" says nothing: the line then says what the recording is.
   let caption =
-    section && itemCount > 0
-      ? `${section.title}, ${state.itemIndex + 1} of ${itemCount}`
-      : noStoriesCaption(digest);
-  if (state.error) caption = errorSummary(state.error.kind);
-  else if (state.interrupted) caption = "Interrupted, press play to resume";
+    item && section && itemCount > 1
+      ? storyCaption(timeline ?? null, state.itemIndex, storySectionName(digest, section))
+      : recordingCaption(digest, state.duration);
+  if (state.error) caption = errorSummary(state.error);
+  else if (state.interrupted) caption = INTERRUPTED_LINE;
 
+  // The bar shows once something has played, so what it holds is laid out: the timeline steps.
+  // In the rundown before story 1, Previous goes to 0:00 and has nowhere further to go from there.
+  const atStart = useSyncExternalStore(
+    store.onSecond,
+    () => store.getTime() <= 0,
+    () => true,
+  );
   const isLastItem = itemCount === 0 || state.itemIndex >= itemCount - 1;
+  const open = useSyncExternalStore(
+    playerSheet.subscribe,
+    () => playerSheet.getSnapshot().open,
+    () => false,
+  );
 
   return (
     <section className="player-dock" aria-label="Audio player" data-player-dock>
@@ -221,8 +254,8 @@ export default function PlayerBar() {
         <button
           className="dock-btn dock-wide press"
           type="button"
-          aria-label="Previous item"
-          aria-disabled={itemCount === 0 || undefined}
+          aria-label="Previous story"
+          aria-disabled={itemCount === 0 || (state.itemIndex < 0 && atStart) || undefined}
           onClick={() => store.previous()}
         >
           <Icon name="skipBack" />
@@ -237,17 +270,15 @@ export default function PlayerBar() {
           aria-busy={state.buffering || undefined}
           onClick={() => store.toggle()}
         >
-          <PlayPauseGlyph />
+          <PlayPauseGlyph status={state.status} error={state.error} />
           <span className="spinner" aria-hidden="true" />
         </button>
         <button
           className="dock-btn press"
           type="button"
-          aria-label="Next item"
+          aria-label="Next story"
           aria-disabled={isLastItem || undefined}
-          onClick={() => {
-            if (!isLastItem) store.next();
-          }}
+          onClick={() => isLastItem || store.next()}
         >
           <Icon name="skipForward" />
         </button>
@@ -293,6 +324,22 @@ export default function PlayerBar() {
       </button>
       <div className="dock-tools">
         <DockVolume />
+        {/* What the whole bar does, said where a mouse looks for it: open the page, or close it. */}
+        <button
+          className="dock-btn dock-toggle press"
+          type="button"
+          aria-expanded={open}
+          aria-controls={PLAYER_PAGE_ID}
+          aria-label={open ? "Close the player" : "Open the player"}
+          data-open={open ? "" : undefined}
+          onClick={(event) =>
+            playerSheet.click({ t: event.timeStamp, fromPointer: event.detail > 0 })
+          }
+        >
+          <svg className="ui-icon" viewBox="0 0 256 256" aria-hidden="true" focusable="false">
+            <path d="M213.66,165.66a8,8,0,0,1-11.32,0L128,91.31,53.66,165.66a8,8,0,0,1-11.32-11.32l80-80a8,8,0,0,1,11.32,0l80,80A8,8,0,0,1,213.66,165.66Z" />
+          </svg>
+        </button>
       </div>
     </section>
   );

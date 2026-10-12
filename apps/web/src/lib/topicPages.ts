@@ -1,5 +1,7 @@
 import { GENERAL_TOPICS, TOPIC_GROUPS, topicGroupOf } from "@dispatch/core";
 import type { ManageSource, ManageTopic } from "./manage";
+import { sourcesSummary } from "./settingsSummary";
+import type { TopicWords } from "./sourceCatalog";
 
 /**
  * What the Topics pages are built from: each topic's sources, best first, a stored weight at the
@@ -49,9 +51,7 @@ export function sourcesByTopic(
   return groups;
 }
 
-export function plural(count: number, word: string): string {
-  return `${count} ${word}${count === 1 ? "" : "s"}`;
-}
+export { plural } from "./settingsSummary";
 
 /** The general news topics in the order the app lists them (GENERAL_TOPICS), not by name. */
 export function generalOf(topics: readonly ManageTopic[]): ManageTopic[] {
@@ -63,15 +63,16 @@ export function generalOf(topics: readonly ManageTopic[]): ManageTopic[] {
 }
 
 /**
- * What a topic's row says: "Weight 95%, 1 source", "Off, 2 sources" or "Never in a briefing". A
- * general topic has no weight (it ranks by how many outlets carry a story): "2 sources" or "Off, 2
- * sources".
+ * What a topic's row says about its sources (sourcesSummary): "2 of 3 sources on", "Off" for a
+ * topic that is off. One of the owner's three topics (a group, no topic of its own) passes null.
  */
-export function topicSummary(topic: ManageTopic, sourceCount: number): string {
-  if (topic.never_publish) return "Never in a briefing";
-  const sources = plural(sourceCount, "source");
-  if (topic.origin === "general") return topic.enabled ? sources : `Off, ${sources}`;
-  return topic.enabled ? `Weight ${percent(topic.weight)}, ${sources}` : `Off, ${sources}`;
+export function topicSummary(topic: ManageTopic | null, total: number, on = total): string {
+  return sourcesSummary({
+    total,
+    on,
+    off: topic ? !topic.enabled : false,
+    never: topic?.never_publish === true,
+  });
 }
 
 /** One of the owner's three topics (core TOPIC_GROUPS) as its page shows it. */
@@ -85,7 +86,7 @@ export interface GroupPage {
   members: ManageTopic[];
 }
 
-/** The Topics & Sources pages and where every source shows (D69). */
+/** The Topics and sources pages and where every source shows (D69). */
 export interface TopicLayout {
   /** Design, AI and Technology, in that order, each with at least one member. */
   groups: GroupPage[];
@@ -145,4 +146,32 @@ export function topicChoicesOf(layout: TopicLayout): { id: string; name: string 
     ...layout.own.map(({ id, name }) => ({ id, name })),
     ...layout.general.map(({ id, name }) => ({ id, name })),
   ].sort(byName);
+}
+
+/**
+ * What a page's sources are suggested by (suggestSources): the words its topic goes by. One of the
+ * owner's three is its name and the names and keywords of the judge's topics it gathers. A general
+ * topic is its name and keywords alone: its description is the judge's fit question, written for a
+ * model and not as words to look for. The owner's own topic is its name, description and keywords.
+ * Other has no subject, so nothing is suggested for it.
+ */
+export function suggestionWords(page: {
+  group: GroupPage | null;
+  topic: ManageTopic | null;
+}): TopicWords | null {
+  const { group, topic } = page;
+  if (group) {
+    return {
+      id: group.id,
+      name: group.name,
+      keywords: group.members.flatMap((member) => [member.name, ...member.keywords]),
+    };
+  }
+  if (!topic) return null;
+  return {
+    id: topic.id,
+    name: topic.name,
+    keywords: topic.keywords,
+    ...(topic.origin === "general" ? {} : { description: topic.description }),
+  };
 }

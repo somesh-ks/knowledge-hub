@@ -1,5 +1,6 @@
 import { navigateTo } from "../player/core/navigation";
-import { startRun } from "./runStatus";
+import { libraryAddress } from "./libraryAddress";
+import { forgetRunAbout, startRun } from "./runStatus";
 
 /**
  * Regenerate and Delete on an episode page. Loaded on the first pick of either menu item, never with
@@ -140,6 +141,8 @@ function bind(kind: Kind, dialog: HTMLDialogElement, root: HTMLElement): void {
       // Instant: the redeploy takes minutes, so this device hides the episode meanwhile and the
       // person lands on the Library with no progress to watch.
       (await import("./deletedEpisodes")).rememberDeleted(id);
+      // A rewrite's line about this episode ("Live in about a minute") would outlive it.
+      forgetRunAbout(id);
       // Back may have closed the confirm while the request was out, taking its history entry.
       if (dialog.open) {
         leaving.add(dialog);
@@ -147,7 +150,13 @@ function bind(kind: Kind, dialog: HTMLDialogElement, root: HTMLElement): void {
       } else void navigateTo("/library");
       return;
     }
-    startRun(reply.run_id, { kind, episode: id });
+    // The request goes with the run, so a failure can send it again (Try again).
+    const { passphrase: _sent, ...again } = body;
+    startRun(
+      reply.run_id,
+      { kind, episode: id },
+      { body: again, ...(pass ? {} : { open: passphrase }) },
+    );
     form.reset();
     if (count) count.hidden = true;
     dialog.close();
@@ -197,7 +206,7 @@ export function openEpisodeAction(trigger: HTMLElement): void {
       // entry back first could land after the Library's own and turn the move around.
       entry = false;
       removeEventListener("dispatch:back", onBack);
-      void navigateTo("/library", { history: "replace" });
+      void navigateTo(libraryAddress(), { history: "replace" });
     },
     { once: true },
   );

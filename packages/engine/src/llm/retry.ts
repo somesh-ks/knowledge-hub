@@ -10,6 +10,10 @@ export interface RetryOptions {
   /** 0 to 1. Injected so tests are deterministic. */
   random: () => number;
   onRetry?: (info: { attempt: number; delayMs: number; error: unknown }) => void;
+  /** Epoch milliseconds after which no retry starts: the last error is thrown instead. */
+  deadlineAt?: number;
+  /** The clock read against `deadlineAt`. Injected so tests never wait. */
+  now?: () => number;
 }
 
 export const DEFAULT_RETRY: RetryOptions = {
@@ -92,6 +96,8 @@ export async function withRetry<T>(
     } catch (error) {
       if (attempt >= options.retries || !isRetryable(error)) throw error;
       const delayMs = backoffDelayMs(attempt, error, options);
+      const now = options.now ?? Date.now;
+      if (options.deadlineAt !== undefined && now() + delayMs >= options.deadlineAt) throw error;
       options.onRetry?.({ attempt: attempt + 1, delayMs, error });
       await options.sleep(delayMs);
     }

@@ -27,12 +27,31 @@ export interface TrackSegment {
   unconfirmed?: boolean;
 }
 
+/** What the narration says about a failure it caused: the notice, the bar's line, and whether a retry is pointless. */
+export interface FailureDescription {
+  message: string;
+  summary?: string;
+  /** True for a refusal that stands until something outside changes (a cap, a budget). */
+  standing?: boolean;
+}
+
+/**
+ * The error the adapter reports. `narrated` marks the words as the narration's own: a browser fills
+ * `MediaError.message` with debug text on every real failure, which must never reach the listener.
+ */
+export interface AdapterFailure {
+  code: number;
+  narrated?: FailureDescription;
+}
+
 export interface Playlist {
   readonly segments: readonly TrackSegment[];
   /** Resolves with the segment's file, making it first when it does not exist. Rejects on failure. */
   ensure(index: number): Promise<string>;
   /** A hint that the segment is needed soon. Returns at once and never throws. */
   prepare(index: number): void;
+  /** The listener's words for why `ensure` rejected, or null for the player's own. */
+  describeFailure?(error: unknown): FailureDescription | null;
 }
 
 export interface TrackAudioOptions {
@@ -102,7 +121,7 @@ export function createTrackAudio(real: AudioLike, options: TrackAudioOptions): A
   let announced = true;
   let wantsPlay = false;
   let ended = false;
-  let failure: { code: number } | null = null;
+  let failure: AdapterFailure | null = null;
   /** Bumped by every start and stop, so a file that arrives late knows it was overtaken. */
   let generation = 0;
 
@@ -186,8 +205,9 @@ export function createTrackAudio(real: AudioLike, options: TrackAudioOptions): A
     real.playbackRate = rate;
   }
 
-  function fail(): void {
-    failure = { code: MEDIA_ERR_NETWORK };
+  function fail(cause?: unknown): void {
+    const narrated = cause === undefined ? null : (playlist?.describeFailure?.(cause) ?? null);
+    failure = narrated ? { code: MEDIA_ERR_NETWORK, narrated } : { code: MEDIA_ERR_NETWORK };
     wantsPlay = false;
     emit("error");
   }
@@ -248,9 +268,9 @@ export function createTrackAudio(real: AudioLike, options: TrackAudioOptions): A
         attach(target, url);
         return real.play();
       },
-      () => {
+      (cause: unknown) => {
         // Reported as an error event, which is where the player listens for a file that failed.
-        if (mine === generation && playlist === list) fail();
+        if (mine === generation && playlist === list) fail(cause);
         return undefined;
       },
     );
@@ -386,7 +406,7 @@ export function createTrackAudio(real: AudioLike, options: TrackAudioOptions): A
           if (wasCurrent && wantsPlay) start();
           return;
         }
-        failure = real.error ?? { code: MEDIA_ERR_NETWORK };
+        failure = real.error ? { code: real.error.code } : { code: MEDIA_ERR_NETWORK };
         wantsPlay = false;
       }
       emit("error");

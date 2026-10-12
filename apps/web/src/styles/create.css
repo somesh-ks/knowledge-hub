@@ -1,20 +1,13 @@
 /*
- * The Create page: a form built from the settings page's grammar (groups set apart by space, the
- * segmented choice) plus the one control only it needs: topic chips. Imported by
+ * The Create form, on /create and in the Create sheet: topic chips first, then two segmented choices,
+ * then one More options row holding everything that has a default. Imported by
  * components/CreateForm.astro, after settings.css. The run is shown by the indicator (create-sheet.css).
  *
- * Type comes in two steps inside a block: a title at the body size in medium weight, and one quiet
- * line at the label size, always with air between them. Rules that adjust a shared rule are written
- * with a more specific selector, because this file is linked before the layout's stylesheet.
+ * Type comes in two steps inside a block: a label at the body size in medium weight for the main
+ * questions (the label size under More options), and one quiet line at the label size. Rules that
+ * adjust a shared rule are written with a more specific selector, because this file is linked before
+ * the layout's stylesheet.
  */
-
-.create-lede {
-  max-width: var(--layout-measure);
-  padding-block-start: var(--space-4);
-  color: var(--color-on-surface-muted);
-  font-size: var(--font-size-body);
-  line-height: var(--font-leading-body);
-}
 
 .create-note {
   padding-block-start: var(--space-4);
@@ -31,12 +24,14 @@
 
 /* No lines between groups: a group ends with more air than its heading has above its controls. */
 .create-group {
-  padding-block-end: var(--space-6);
+  padding-block-end: var(--space-4);
 }
 
-/* Inside the form a heading is a field label, not a page heading: body size, medium weight, little air. */
+/* Inside the form a heading is a field label, not a page heading: body size, medium weight, the
+   text colour (an accent label would read as a link), little air. */
 .create-view .create-group .section-head {
-  padding-block: var(--space-4) var(--space-2);
+  padding-block: var(--space-4) var(--space-3);
+  color: var(--color-on-surface);
   font-family: inherit;
   font-size: var(--font-size-body);
   font-weight: var(--font-weight-medium);
@@ -48,6 +43,10 @@
   color: var(--color-on-surface-muted);
   font-size: var(--font-size-label);
   line-height: var(--font-leading-body);
+}
+
+.create-format-hint {
+  padding-block-start: var(--space-2);
 }
 
 .create-error {
@@ -70,127 +69,233 @@
   margin-block-start: var(--space-3);
 }
 
-/* ------------------------------------------------------------------ topic chips */
+/* ------------------------------------------------------------------ segmented choices */
 
-.create-chips {
-  display: flex;
-  flex-wrap: wrap;
-  gap: var(--space-2);
-  min-width: 0;
-  margin: 0;
-  padding: 0;
-  border: 0;
+/*
+ * Tonal, as the app's other selected states are: the track is the control's container tone, the
+ * chosen segment the accent container with its own words and a check, so the choice is a fill, a
+ * colour and a mark at once. Full round, no ring. From 40rem the control hugs its options instead of
+ * stretching one word across half the panel.
+ */
+.create-view .create-choice {
+  margin-block-start: 0;
+  border-radius: var(--radius-round);
+  background: var(--color-surface-container);
 }
 
-.create-chip {
-  position: relative;
-  display: inline-flex;
-  align-items: center;
-  gap: var(--space-1);
-  height: var(--chip-height);
-  /* The check takes no room of its own, so a chip keeps one width as it ticks and its neighbours
-     never move: the words sit centred with half the check's room on each side, and slide over by
-     that half as the check appears. */
-  padding-inline: calc(var(--space-3) + var(--space-2));
-  border: var(--stroke-hairline) solid var(--color-border-hairline);
-  border-radius: var(--chip-radius);
+.create-view .create-choice::before {
+  border-radius: var(--radius-round);
+  background: var(--color-accent-container);
+}
+
+.create-view .create-choice .settings-segment {
+  padding-inline: var(--space-4);
+  border-radius: var(--radius-round);
   color: var(--color-on-surface);
-  font-size: var(--font-size-label);
-  font-weight: var(--font-weight-medium);
-  line-height: var(--font-leading-label);
-  white-space: nowrap;
-  cursor: pointer;
-  transition:
-    transform var(--duration-press-out) var(--ease-out),
-    background-color var(--duration-hover) var(--ease-hover),
-    border-color var(--duration-hover) var(--ease-hover),
-    color var(--duration-hover) var(--ease-hover);
 }
 
-/* The chip is 36px tall; its target is 44px, measured from the outside of its border. */
-.create-chip::after {
-  content: "";
-  position: absolute;
-  inset-inline: 0;
-  inset-block: calc((var(--size-touch) - var(--chip-height)) / -2 - var(--stroke-hairline));
+.create-view .create-choice .settings-segment:has(input:checked) {
+  color: var(--color-on-accent-container);
 }
 
-/* The checkbox is the chip's whole face and invisible: the chip draws every state. */
-.create-chip > input {
-  position: absolute;
-  inset: 0;
-  width: 100%;
-  height: 100%;
-  margin: 0;
-  appearance: none;
-  opacity: 0;
-  cursor: inherit;
-}
-
-.create-chip > .icon {
-  position: absolute;
-  inset-block: 0;
-  inset-inline-start: var(--space-2);
-  width: var(--space-4);
-  height: var(--space-4);
-  margin-block: auto;
-  opacity: 0;
-  transform: scale(0.95);
-  pointer-events: none;
-  transition:
-    opacity var(--duration-state) var(--ease-out),
-    transform var(--duration-enter) var(--ease-out);
-}
-
-.create-chip > span {
-  transition: transform var(--duration-enter) var(--ease-out);
-}
-
-.create-chip:has(input:checked) {
-  border-color: transparent;
-  background: var(--color-accent-subtle);
-  color: var(--color-accent);
-}
-
-.create-chip:has(input:checked) > .icon {
-  opacity: 1;
-  transform: none;
-}
-
-.create-chip:has(input:checked) > span {
-  transform: translateX(var(--space-2));
-}
-
-.create-chip:has(input:focus-visible) {
-  outline: var(--stroke-ring) solid var(--color-focus-ring);
-  outline-offset: var(--stroke-ring-gap);
-}
-
-.create-chip:has(input:disabled) {
-  opacity: var(--opacity-disabled);
-  cursor: default;
-}
-
-@media (hover: hover) and (pointer: fine) {
-  .create-chip:not(:has(input:checked, input:disabled)):hover {
-    background: var(--color-surface-sunken);
-  }
-}
-
-/* Held down, the chip darkens at once: a layer over whatever it wears, the checked tint or the hover
-   fill, so the words never change size. It comes after the hover rule and outweighs the checked one,
-   whose background shorthand would otherwise clear it. */
-.create-chip:not(:has(input:disabled)):active {
+/* A press is the state layer of the words' colour, on the segment's own fill. */
+.create-view .create-choice .settings-segment:active {
   background-image: linear-gradient(
-    color-mix(in oklch, var(--color-on-surface) 10%, transparent),
-    color-mix(in oklch, var(--color-on-surface) 10%, transparent)
+    color-mix(in oklch, currentColor var(--state-press), transparent),
+    color-mix(in oklch, currentColor var(--state-press), transparent)
   );
 }
 
-/* ------------------------------------------------------------------ segmented choices */
+@media (hover: hover) and (pointer: fine) {
+  .create-view .create-choice .settings-segment:hover {
+    background-image: linear-gradient(
+      color-mix(in oklch, currentColor var(--state-hover), transparent),
+      color-mix(in oklch, currentColor var(--state-hover), transparent)
+    );
+  }
+}
 
-.create-view .create-choice {
-  margin-block-start: 0;
+/* A phone splits the track into equal columns: a four-way control leaves each about 80px, so the
+   segments keep a narrow inset and the chosen one's check and words fit at 360px. Below 22.5rem
+   (320px) a four-way control has no room for the check beside "15 min": the fill and the colour
+   mark the choice there, and the words do not move. */
+@media not all and (min-width: 40rem) {
+  .create-view .create-choice .settings-segment {
+    padding-inline: var(--space-2);
+  }
+}
+
+@media not all and (min-width: 22.5rem) {
+  .create-view
+    .create-choice:has(> .settings-segment:nth-of-type(4))
+    .settings-segment
+    > span::before {
+    display: none;
+  }
+}
+
+@media (min-width: 40rem) {
+  .create-view .create-choice {
+    grid-auto-columns: minmax(6rem, 1fr);
+    inline-size: fit-content;
+    max-inline-size: 100%;
+  }
+
+  /* The check takes no room of its own, so the control keeps one width as the choice moves: it sits
+     outside its words, and the chosen words slide over by half of its room, as a filter chip's do. */
+  .create-view .create-choice .settings-segment > span {
+    position: relative;
+    transition: transform var(--duration-enter) var(--ease-out);
+  }
+
+  .create-view .create-choice .settings-segment > span::before {
+    position: absolute;
+    inset-block: 0;
+    inset-inline-end: calc(100% + var(--space-1));
+    margin-block: auto;
+    margin-inline-end: 0;
+    inline-size: var(--space-4);
+  }
+
+  .create-view .create-choice .settings-segment:has(input:checked) > span {
+    transform: translateX(calc((var(--space-4) + var(--space-1)) / 2));
+  }
+}
+
+@media (min-width: 40rem) and (prefers-reduced-motion: reduce) {
+  .create-view .create-choice .settings-segment > span {
+    transition: none;
+  }
+}
+
+@media (forced-colors: active) {
+  .create-view .create-choice {
+    border: var(--stroke-hairline) solid CanvasText;
+  }
+
+  .create-view .create-choice .settings-segment:has(input:checked) {
+    color: Highlight;
+  }
+}
+
+/* ------------------------------------------------------------------ more options */
+
+/* One list row: the name, the choices it holds on a quiet second line, and a chevron that turns. The
+   row is the press target and wears the row's state layer. */
+.create-more {
+  margin-block: var(--space-2) var(--space-4);
+}
+
+.create-more-summary {
+  position: relative;
+  display: flex;
+  align-items: center;
+  gap: var(--space-4);
+  min-height: var(--fab-size);
+  margin-inline: calc(var(--space-3) * -1);
+  padding: var(--space-2) var(--space-3);
+  border-radius: var(--row-radius);
+  list-style: none;
+  cursor: pointer;
+  -webkit-tap-highlight-color: transparent;
+  transition: background-color var(--duration-hover) var(--ease-hover);
+}
+
+.create-more-summary::-webkit-details-marker {
+  display: none;
+}
+
+.create-more-summary:focus-visible {
+  outline-offset: calc(var(--stroke-ring) * -1);
+}
+
+@media (hover: hover) and (pointer: fine) {
+  .create-more:not([data-pinned]) > .create-more-summary:hover {
+    background: color-mix(in oklch, var(--color-on-surface) var(--state-hover), transparent);
+  }
+}
+
+.create-more:not([data-pinned]) > .create-more-summary:active {
+  background: color-mix(in oklch, var(--color-on-surface) var(--state-press), transparent);
+}
+
+.create-more-text {
+  display: grid;
+  flex: 1 1 auto;
+  gap: calc(var(--space-1) / 2);
+  min-width: 0;
+}
+
+.create-more-title {
+  font-size: var(--font-size-body);
+  font-weight: var(--font-weight-medium);
+  line-height: var(--font-leading-label);
+}
+
+.create-more-values {
+  overflow: hidden;
+  color: var(--color-on-surface-muted);
+  font-size: var(--font-size-label);
+  line-height: var(--font-leading-label);
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.create-more-chevron {
+  flex: none;
+  color: var(--color-on-surface-muted);
+  transition: rotate var(--duration-state) var(--ease-out);
+}
+
+.create-more[open] .create-more-chevron {
+  rotate: 180deg;
+}
+
+/* Open, the choices are on show: the line that repeated them steps aside. */
+.create-more[open] .create-more-values {
+  display: none;
+}
+
+/* Inside, the questions are a step quieter than the main ones above. */
+.create-view .create-more-body .create-group .section-head {
+  padding-block: var(--space-3) var(--space-2);
+  font-size: var(--font-size-label);
+}
+
+.create-more-body > .create-group:last-child {
+  padding-block-end: 0;
+}
+
+/* Open beside the main questions (a wide /create page), the row is the column's heading. */
+.create-more[data-pinned] > .create-more-summary {
+  cursor: default;
+}
+
+.create-more[data-pinned] .create-more-chevron {
+  display: none;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .create-more-chevron {
+    transition: none;
+  }
+}
+
+/* "Your topic picks are kept", and the button that swaps them for the suggestion. */
+.create-preset-note {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0 var(--space-2);
+  padding-block-start: var(--space-2);
+}
+
+.create-preset-note[hidden] {
+  display: none;
+}
+
+.create-inline-btn {
+  margin-inline-start: calc(var(--space-3) * -1);
 }
 
 /* ------------------------------------------------------------------ title and submit */
@@ -201,15 +306,51 @@
   font-weight: var(--font-weight-regular);
 }
 
-.create-title {
+/* The Title is a filled field, as the tonal form around it is: the container tone, round top corners,
+   and a bottom line at 3:1 (D54) that turns into a 2px accent line on focus. Scoped to Create; the
+   other sheets keep the outlined field. */
+.create-view .sheet-input.create-title {
   width: 100%;
+  border: 0;
+  border-block-end: var(--stroke-hairline) solid var(--color-border-control);
+  border-radius: var(--row-radius) var(--row-radius) var(--radius-xs) var(--radius-xs);
+  background: var(--color-surface-container);
+  transition:
+    background-color var(--duration-hover) var(--ease-hover),
+    box-shadow var(--duration-hover) var(--ease-hover);
+}
+
+@media (hover: hover) and (pointer: fine) {
+  .create-view .sheet-input.create-title:hover {
+    background: color-mix(
+      in oklch,
+      var(--color-surface-container),
+      var(--color-on-surface) var(--state-hover)
+    );
+  }
+}
+
+.create-view .sheet-input.create-title:focus,
+.create-view .sheet-input.create-title:focus-visible {
+  outline: none;
+  box-shadow: inset 0 calc(var(--stroke-ring) * -1) 0 var(--color-accent);
+}
+
+@media (forced-colors: active) {
+  .create-view .sheet-input.create-title {
+    border: var(--stroke-hairline) solid CanvasText;
+  }
+
+  .create-view .sheet-input.create-title:focus-visible {
+    outline: var(--stroke-ring) solid Highlight;
+  }
 }
 
 .create-submit {
   display: grid;
   gap: var(--space-4);
   justify-items: stretch;
-  padding-block: var(--space-6) var(--space-8);
+  padding-block: var(--space-4) var(--space-8);
 }
 
 @media (min-width: 40rem) {
@@ -220,21 +361,56 @@
   }
 }
 
-/* While the request is out the button keeps its fill and shows a spinner at its start: it is
-   working, not unavailable. createPage.ts ignores a press then, so the press does not shrink it.
-   The spinner is out of the flow, so the words stay where they were when it appears. */
-.create-view .btn-primary {
-  position: relative;
+/* On /create the button sticks to the foot of the window, above the bottom bar, the player bar and
+   the run line, so it is in reach without scrolling past More options. It sits on the page's own
+   surface, which also covers the gutters, so what scrolls under it is hidden, not seen through. */
+.create-page .create-submit {
+  position: sticky;
+  inset-block-end: calc(var(--bottom-nav-height) + var(--dock-room) + var(--run-room));
+  z-index: var(--z-raised);
+  padding-block: var(--space-4);
+  background: var(--color-surface);
+  box-shadow: 0 0 0 100vmax var(--color-surface);
+  clip-path: inset(0 -100vmax);
 }
 
+/* A hairline along the top of the foot, as the sheet's foot has, so the form that scrolls under it
+   ends at an edge instead of being cut through. It shows only while the foot is stuck, with the form
+   running on under it: createPage.ts sets data-stuck. At rest, with nothing under the foot, there is
+   no line. It runs out over the page's gutters (no further: a wider box would widen the page). */
+.create-page .create-submit::before {
+  content: "";
+  position: absolute;
+  inset-block-start: 0;
+  inset-inline: calc(var(--page-gutter-start) * -1) calc(var(--page-gutter-end) * -1);
+  height: var(--stroke-hairline);
+  background: var(--color-border-hairline);
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity var(--duration-hover) var(--ease-hover);
+}
+
+.create-page .create-submit[data-stuck]::before {
+  opacity: 1;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .create-page .create-submit::before {
+    transition: none;
+  }
+}
+
+/* While the request is out the button keeps its fill and shows a spinner beside "Starting…"
+   (createPage.ts swaps the words): it is working, not unavailable. The spinner is in the button's
+   row, next to the words it belongs to. createPage.ts ignores a press then, so the press does not
+   shrink it. */
 .create-view .btn-primary > .spinner {
   display: none;
 }
 
 .create-view .btn-primary[data-busy="true"] > .spinner {
   display: block;
-  position: absolute;
-  inset-inline-start: var(--space-4);
+  flex: none;
 }
 
 .create-submit .btn-primary[data-busy="true"] {
@@ -249,7 +425,7 @@
 
 /* ------------------------------------------------------------------ voices */
 
-/* One select for a readout, as wide as the panel; a discussion adds Leo's beside it from 40rem. */
+/* One select for a readout; a discussion adds the second host's beside it from 40rem. */
 .create-voices {
   display: grid;
   gap: var(--space-3);
@@ -273,7 +449,8 @@
   line-height: var(--font-leading-label);
 }
 
-/* A select with its own chevron, drawn like the title field. */
+/* A tonal select with its own chevron: the container tone, no outline, the row's corners. The text
+   stays at the body size, so iOS never zooms into it. */
 .create-select {
   position: relative;
   display: grid;
@@ -281,9 +458,44 @@
 
 .create-select > select {
   inline-size: 100%;
-  padding-inline-end: var(--space-12);
+  min-height: var(--field-height);
+  padding-inline: var(--field-padding) var(--space-12);
+  border: var(--stroke-hairline) solid transparent;
+  border-radius: var(--row-radius);
+  background: var(--color-surface-container);
+  color: var(--color-on-surface);
+  font: inherit;
+  font-size: var(--font-size-body);
   text-overflow: ellipsis;
+  appearance: none;
   cursor: pointer;
+  transition: background-color var(--duration-hover) var(--ease-hover);
+}
+
+@media (hover: hover) and (pointer: fine) {
+  .create-select > select:hover {
+    background: color-mix(
+      in oklch,
+      var(--color-surface-container),
+      var(--color-on-surface) var(--state-hover)
+    );
+  }
+}
+
+.create-select > select:focus-visible {
+  outline-offset: var(--stroke-ring-gap);
+}
+
+/* A press that opens the list keeps the field's fill and takes the press layer, as the Library's
+   sort does: the ring and the accent edge are the keyboard's (primitives.css draws both). */
+:root:not([data-input="keyboard"]) .create-select > select:open {
+  border-color: transparent;
+  outline: none;
+  background: color-mix(
+    in oklch,
+    var(--color-surface-container),
+    var(--color-on-surface) var(--state-press)
+  );
 }
 
 .create-select > .icon {
@@ -295,15 +507,87 @@
   pointer-events: none;
 }
 
+@media (forced-colors: active) {
+  .create-select > select {
+    border-color: CanvasText;
+  }
+}
+
 .create-view [hidden] {
   display: none;
 }
 
-/* ------------------------------------------------------------------ forced colors */
+/* ------------------------------------------------------------------ a wide /create page */
 
-@media (forced-colors: active) {
-  .create-chip:has(input:checked) {
-    border-color: Highlight;
-    color: Highlight;
+/* From 80rem the page takes the track the shell keeps for a contents list as well, and More options
+   stands open in it beside the main questions, so the right of the window is not left empty and
+   the whole form is in view at once. The title keeps the place it has on every other page. */
+@media (min-width: 80rem) {
+  .shell:has(.create-page) > main {
+    grid-column: 1 / -1;
+  }
+
+  .create-page [data-create-form] {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) 20rem;
+    /* Four rows for the main questions and the button, and a last one that takes up the rest of the
+       open options' height, so a tall column of options never spreads the main questions apart. */
+    grid-template-rows: repeat(4, auto) 1fr;
+    column-gap: var(--space-12);
+    align-items: start;
+  }
+
+  .create-page [data-create-form] > * {
+    grid-column: 1;
+  }
+
+  .create-page .create-more {
+    grid-column: 2;
+    grid-row: 1 / -1;
+    margin-block: 0;
+  }
+
+  .create-page .create-more-summary {
+    padding-block: var(--space-4) var(--space-3);
+    min-height: 0;
+  }
+
+  .create-page .create-more-values {
+    display: none;
+  }
+
+  /* The pinned heading labels the second column; it is not a question to answer, so it is as quiet
+     as a briefing's "Contents". */
+  .create-page .create-more-title {
+    color: var(--color-on-surface-muted);
+    font-size: var(--font-size-meta);
+  }
+
+  /* The button sits right under Format here, always in view: the foot does not stick, and has no
+     surface or line of its own. */
+  .create-page .create-submit {
+    position: static;
+    background: none;
+    box-shadow: none;
+    clip-path: none;
+  }
+
+  .create-page .create-submit::before {
+    content: none;
+  }
+
+  /* One rule for both columns: a segmented control hugs its options, and a question's label is the
+     body size, so the two columns read as one form. */
+  .create-page .create-more .create-choice {
+    inline-size: fit-content;
+  }
+
+  .create-page .create-more-body .create-group .section-head {
+    padding-block: var(--space-4) var(--space-3);
+    font-size: var(--font-size-body);
+  }
+
+  .create-page .create-voices:has(> [data-voice="voice_b"]:not([hidden])) {
+    grid-template-columns: minmax(0, 1fr);
   }
 }

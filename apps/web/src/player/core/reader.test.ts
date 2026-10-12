@@ -6,6 +6,7 @@ import {
   barHolds,
   briefingChipView,
   briefingLengthLabel,
+  createHeardTracker,
   idleBriefingChip,
   idleStoryChip,
   itemVisualState,
@@ -18,11 +19,79 @@ import { createHarness, makeDigest, makeDigestWithoutAudio } from "./testing";
 
 describe("where the playhead is, per story", () => {
   it("marks items played, current or upcoming, and nothing when there is no playhead", () => {
-    expect(itemVisualState(0, true, 2, false)).toBe("played");
-    expect(itemVisualState(2, true, 2, false)).toBe("current");
-    expect(itemVisualState(3, true, 2, false)).toBe("");
-    expect(itemVisualState(3, true, 2, true)).toBe("played");
-    expect(itemVisualState(0, false, 0, false)).toBe("");
+    const heard = new Set([0, 1]);
+    expect(itemVisualState(0, true, 2, false, heard)).toBe("played");
+    expect(itemVisualState(1, true, 2, false, heard)).toBe("played");
+    expect(itemVisualState(2, true, 2, false, heard)).toBe("current");
+    expect(itemVisualState(3, true, 2, false, heard)).toBe("");
+    // The story the recording ended in is played, not current.
+    expect(itemVisualState(2, true, 2, true, new Set([0, 1, 2]))).toBe("played");
+    expect(itemVisualState(0, false, 0, false, heard)).toBe("");
+    // A story that was heard earlier stays played when the playhead goes back before it.
+    expect(itemVisualState(1, true, 0, false, heard)).toBe("played");
+  });
+});
+
+describe("which stories were heard", () => {
+  it("marks a story when playing goes on out of it, and none for a jump over stories", () => {
+    const tracker = createHeardTracker();
+    tracker.reset(0);
+    // Play from here on story 3: nothing was heard of the two it stepped over.
+    tracker.moved(2, "select");
+    expect([...tracker.heard]).toEqual([]);
+    // Playing went on into story 4, then 5: story 3 and 4 were heard.
+    tracker.moved(3, "auto");
+    tracker.moved(4, "auto");
+    expect([...tracker.heard]).toEqual([2, 3]);
+  });
+
+  it("marks nothing for a scrub, a seek, a key step or Next and Previous", () => {
+    const tracker = createHeardTracker();
+    tracker.reset(0);
+    for (const [to, cause] of [
+      [1, "scrub"],
+      [2, "scrub"],
+      [3, "seek"],
+      [4, "keyboard"],
+      [5, "skip-next"],
+      [4, "skip-previous"],
+    ] as const) {
+      tracker.moved(to, cause);
+    }
+    expect([...tracker.heard]).toEqual([]);
+  });
+
+  it("does not mark the rundown, and marks the last story when the recording ends", () => {
+    const tracker = createHeardTracker();
+    tracker.reset(-1);
+    tracker.moved(0, "auto");
+    expect([...tracker.heard]).toEqual([]);
+    tracker.moved(1, "auto");
+    tracker.ended();
+    expect([...tracker.heard].sort()).toEqual([0, 1]);
+  });
+
+  it("starts afresh after the end, so a replay shows nothing played before it has played it", () => {
+    const tracker = createHeardTracker();
+    tracker.reset(0);
+    tracker.moved(1, "auto");
+    tracker.ended();
+    expect(tracker.heard.size).toBe(2);
+    tracker.moved(0, "seek");
+    expect(tracker.heard.size).toBe(0);
+    tracker.moved(1, "auto");
+    expect([...tracker.heard]).toEqual([0]);
+  });
+
+  it("a finished recording replayed after a reload drops its marks when it starts, and keeps story 1", () => {
+    const tracker = createHeardTracker();
+    // Loaded at story 1 (which starts at 0:00), remembered as heard to the end.
+    tracker.reset(0, [0, 1, 2], true);
+    tracker.started();
+    expect(tracker.heard.size).toBe(0);
+    // Playing on out of story 1 marks it: the first move after the replay keeps it.
+    tracker.moved(1, "auto");
+    expect([...tracker.heard]).toEqual([0]);
   });
 });
 
@@ -87,7 +156,7 @@ describe("the briefing chip", () => {
   });
 
   it("offers to resume a remembered position, in whole minutes left", () => {
-    expect(briefingChipView(stateFor("idle"), 58, makeDigest())).toEqual({
+    expect(briefingChipView(stateFor("idle"), 20, makeDigest())).toEqual({
       state: "idle",
       playing: false,
       label: "2 min left",
@@ -97,12 +166,50 @@ describe("the briefing chip", () => {
     expect(briefingChipView(stateFor("idle"), 119, makeDigest()).label).toBe("1 min left");
   });
 
+  it("tells what the device remembers while another recording is loaded, as the Library's card does", () => {
+    const digest = makeDigest();
+    const other = { ...stateFor("paused"), digestId: "another-recording" };
+    // Left half way: the time left. Heard to the end: Played. Neither: the length.
+    expect(
+      briefingChipView(other, 30, digest, "briefing", { seconds: 60, played: false }),
+    ).toMatchObject({
+      state: "idle",
+      label: "1 min left",
+      name: "Resume the briefing, 1 min left",
+    });
+    expect(
+      briefingChipView(other, 30, digest, "briefing", { seconds: 0, played: true }),
+    ).toMatchObject({ state: "played", label: "Played", name: "Play the briefing again, played" });
+    expect(briefingChipView(other, 30, digest, "briefing", { seconds: 0, played: false })).toEqual(
+      idleBriefingChip("2 min"),
+    );
+    // Nothing loaded yet (a page just opened): Played is shown too.
+    expect(
+      briefingChipView(stateFor("idle"), 0, digest, "briefing", { seconds: 0, played: true }).label,
+    ).toBe("Played");
+  });
+
+  it("rounds the time left as it rounds the length, so one recording has one length", () => {
+    const digest = { ...makeDigest(), audio: { url: "/a.mp3", duration_ms: 130_000 } };
+    const paused = { ...stateFor("paused"), duration: 130 };
+    expect(briefingChipView(paused, 1, digest).label).toBe("2 min left");
+    expect(briefingLengthLabel(130_000)).toBe("2 min");
+  });
+
+  it("says the loaded audio's real length once it is known, not the page's estimate", () => {
+    const estimate = { ...makeDigest(), audio: { url: "/a.mp3", duration_ms: 300_000 } };
+    const loaded = { ...stateFor("idle"), duration: 130 };
+    expect(briefingChipView(loaded, 0, estimate).label).toBe("2 min");
+    expect(briefingChipView({ ...loaded, duration: 0 }, 0, estimate).label).toBe("5 min");
+  });
+
   it("follows playback: playing, paused, played, try again", () => {
+    // Playing, the briefing's chip is a pause button with the time left, not a second "Playing".
     expect(briefingChipView(stateFor("playing"), 86, makeDigest())).toEqual({
       state: "current",
       playing: true,
-      label: "Playing",
-      name: "Pause the briefing, playing",
+      label: "1 min left",
+      name: "Pause the briefing, 1 min left",
     });
     expect(briefingChipView(stateFor("paused"), 30, makeDigest())).toEqual({
       state: "current",
@@ -117,16 +224,35 @@ describe("the briefing chip", () => {
       name: "Play the briefing again, played",
     });
     expect(briefingChipView(stateFor("error"), 86, makeDigest())).toEqual({
-      state: "idle",
+      state: "error",
       playing: false,
       label: "Try again",
       name: "Try again",
     });
+    // A refusal that stands offers no Try again: the play face, and the reason the bar gives.
+    const refused = stateFor("error", {
+      error: {
+        kind: "refused",
+        message: "Daily narration limit reached.",
+        summary: "Daily limit reached",
+      },
+    });
+    expect(briefingChipView(refused, 86, makeDigest())).toEqual({
+      state: "idle",
+      playing: false,
+      label: "Daily limit reached",
+      name: "Play the briefing, Daily limit reached",
+    });
+    // Offline the chip says so, as the bar does, and offers no Try again.
+    const offline = stateFor("error", {
+      error: { kind: "offline", message: "You are offline.", summary: "You are offline" },
+    });
+    expect(briefingChipView(offline, 86, makeDigest()).label).toBe("You are offline");
   });
 
-  it("says Playing for the first 300 ms of buffering, then that it is loading", () => {
+  it("shows the playing face for the first 300 ms of buffering, then that it is loading", () => {
     const early = briefingChipView(stateFor("loading", { buffering: false }), 0, makeDigest());
-    expect(early).toMatchObject({ state: "current", label: "Playing", playing: true });
+    expect(early).toMatchObject({ state: "current", label: "2 min left", playing: true });
     const late = briefingChipView(stateFor("loading", { buffering: true }), 0, makeDigest());
     expect(late).toEqual({
       state: "preparing",
@@ -143,7 +269,7 @@ describe("the briefing chip", () => {
     );
     expect(names).toEqual([
       "Resume the episode, 2 min left",
-      "Pause the episode, playing",
+      "Pause the episode, 2 min left",
       "Resume the episode, 2 min left",
       "Play the episode again, played",
     ]);

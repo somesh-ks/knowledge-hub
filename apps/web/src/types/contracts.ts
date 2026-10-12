@@ -29,6 +29,8 @@ export interface PlayerTurn {
   key: string;
   speaker: "a" | "b";
   text: string;
+  /** The story this turn is about, or null for a greeting, a link between stories or a sign-off. */
+  item_id?: string | null;
   /** Start and end inside the narration, or null before it has been laid out. */
   start_ms: number | null;
   end_ms: number | null;
@@ -59,6 +61,12 @@ export interface PlayerDigestData {
   sections: PlayerSection[];
   /** An episode's script. Briefings have none. */
   turns?: PlayerTurn[];
+  /** What the two voices of a discussion are called, when the episode stored the names. */
+  hosts?: { a: string; b: string } | null;
+  /** The voice ids an episode was asked for; null for a host means the default voice. */
+  voices?: { a: string | null; b: string | null };
+  /** An episode's format, as the Library names it. Briefings have none. */
+  format?: "readout" | "discussion" | "headlines";
   cover: {
     src512: string;
     src1024: string;
@@ -296,7 +304,9 @@ export type ConfigOp =
   | {
       op: "schedule.set";
       /** Any subset of these; a field left out keeps what the file holds. At least one is required. */
-      /** Whole hour of Stockholm time, 0 to 23. */
+      /** IANA name of the schedule's clock, one of SUPPORTED_TIMEZONES. */
+      timezone?: string;
+      /** Whole hour in the schedule's time zone, 0 to 23. */
       hour?: number;
       /** Days between briefings: 1, 2, 3 or 7. */
       cadence_days?: 1 | 2 | 3 | 7;
@@ -388,10 +398,17 @@ export interface PodcastRequest {
   length_minutes: 3 | 5 | 10 | 15;
   /** New requests take "readout" or "discussion"; a stored episode may still say "headlines". */
   format: "readout" | "discussion" | "headlines";
-  /** Speechify voice id of the lead host (Ada); absent means the engine's default. */
+  /** Speechify voice id of the lead host, speaker "a"; absent means the engine's default. */
   voice_id?: string | null;
-  /** Voice id of the second host (Leo, discussion only); absent means the default. */
+  /** Voice id of the second host, speaker "b" (discussion only); absent means the default. */
   voice_id_b?: string | null;
+  /**
+   * The hosts' spoken names in a discussion, "a" the lead and "b" the second host. Only the server
+   * sets them, from the voices' genders (hostNamesFor in core); a name a browser sends is dropped.
+   * An episode stores the names it was written with. A discussion stored without them predates the
+   * field and was written with Ada and Leo; a readout names no host.
+   */
+  host_names?: { a: string; b: string };
   /** How many days of stories to draw on. */
   window_days: 2 | 7 | 30;
   tone: "neutral" | "energetic" | "dry";

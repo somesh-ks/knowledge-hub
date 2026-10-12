@@ -39,6 +39,8 @@ function harness(list: TrackSegment[] = segments()): Harness {
     prepare(index) {
       prepared.push(index);
     },
+    describeFailure: (error) =>
+      error instanceof Error ? { message: `Said: ${error.message}`, standing: true } : null,
   };
   const audio = createTrackAudio(real, {
     resolve: (src) => (src.startsWith("narration:") ? playlist : null),
@@ -413,7 +415,11 @@ describe("a playlist as one track", () => {
     await refuse(1);
     await expect(started).resolves.toBeUndefined();
     expect(events.filter((type) => type === "error")).toHaveLength(1);
-    expect(audio.error).toEqual({ code: 2 });
+    // The playlist's own words for why, so the player says it once and does not guess.
+    expect(audio.error).toEqual({
+      code: 2,
+      narrated: { message: "Said: narration failed", standing: true },
+    });
     expect(audio.paused).toBe(true);
   });
 

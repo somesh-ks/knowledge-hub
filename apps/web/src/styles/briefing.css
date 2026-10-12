@@ -8,28 +8,38 @@
 /* ------------------------------------------------------------------ sections */
 
 /* While the section tabs stick, focus and anchors land below them as well as below the app bar. */
-html:has(.briefing > .tabs) {
+html:has(.briefing > .tabs-bar) {
   scroll-padding-block-start: calc(var(--sticky-top) + var(--tabs-height) + var(--space-4));
 }
 
-/* A tab's jump takes back the heading's padding above its words, less a little: the section's rule
-   tucks under the strip, so the strip's own line is the only one, and the words sit 24px below it. */
+/* A tab's jump takes back most of the heading's padding above its words, so the words sit 24px
+   below the strip whichever section it lands on. */
 .chapter h2 {
   scroll-margin-block-start: calc(var(--space-2) - var(--space-12));
 }
 
-/* A chapter heading is one step up from the row grammar's, and has more air above it, so each
-   chapter reads as a group of its own. */
+/* A chapter heading (the heading role: regular weight, a step above the headlines) with a wide band
+   of air above it. The air alone marks a new section: there is no rule as well, so the hairlines on
+   the page are the ones between stories. */
 .chapter > .section-head {
   padding-block-start: var(--space-12);
-  font-size: var(--font-size-section);
-  font-weight: var(--font-weight-medium);
 }
 
-/* The hairlines between chapters and between stories start and end at the text column's edges. */
-.chapter.rule-above::before,
+/* The hairlines between stories start and end at the text column's edges. */
 .chapter .rows > * + *::before {
   inset-inline: 0;
+}
+
+/* Under the section tabs the first heading names the tab marked just above it, so it does not need
+   the band of air that sets a section apart from the one before: the strip does that. */
+@media (width < 80rem) {
+  .briefing > .tabs-bar + .chapter > .section-head {
+    padding-block-start: var(--space-6);
+  }
+
+  .briefing > .tabs-bar + .chapter h2 {
+    scroll-margin-block-start: calc(var(--space-2) - var(--space-6));
+  }
 }
 
 /* Stuck under the app bar, the strip draws the one line under the top chrome: while it sticks the
@@ -37,12 +47,12 @@ html:has(.briefing > .tabs) {
    under the bar, a hairline up, so where the end of the briefing pushes it up it slides beneath the
    bar instead of over the wordmark. From 64rem there is no app bar. */
 @media (width < 64rem) {
-  .briefing > .tabs {
+  .briefing > .tabs-bar {
     inset-block-start: calc(var(--sticky-top) - var(--stroke-hairline));
     z-index: calc(var(--z-header) - 1);
   }
 
-  html:has(.briefing > .tabs[data-stuck]) .app-bar::after {
+  html:has(.briefing > .tabs-bar[data-stuck]) .app-bar::after {
     display: none;
   }
 }
@@ -51,7 +61,7 @@ html:has(.briefing > .tabs) {
    and line reach on to the window's edges: otherwise the bar's line shows beside the strip, a step
    above the strip's own. */
 @media (40rem <= width < 64rem) {
-  .briefing > .tabs {
+  .briefing > .tabs-bar {
     box-shadow: 0 0 0 100vmax var(--color-surface);
     clip-path: inset(0 -100vmax);
     border-block-end: var(--stroke-hairline) solid transparent;
@@ -60,14 +70,43 @@ html:has(.briefing > .tabs) {
   }
 }
 
+/* From 40rem the strip keeps to the text column, where a side column leaves it narrower than the
+   window: the tabs draw tighter, so every section fits as it does on a 1024px window, and the
+   labels start at the column's edge. */
+@media (40rem <= width < 80rem) {
+  .briefing > .tabs-bar {
+    margin-inline: calc(var(--space-2) * -1);
+  }
+
+  .briefing .tabs {
+    padding-inline: 0;
+    scroll-padding-inline: var(--space-2);
+  }
+
+  .briefing .tabs > .tab {
+    padding-inline: var(--space-2);
+  }
+
+  .briefing .tabs > .tab::after {
+    inset-inline: var(--space-2);
+  }
+}
+
+/* The edge fades say "more this way", so a strip whose tabs all fit has none (briefingPage.ts
+   marks it). */
+.briefing .tabs[data-fits] {
+  mask-image: none;
+  -webkit-mask-image: none;
+}
+
 /* From 80rem the contents list beside the column does the tabs' job, and nothing sticks but the
    top chrome. */
 @media (min-width: 80rem) {
-  .briefing > .tabs {
+  .briefing > .tabs-bar {
     display: none;
   }
 
-  html:has(.briefing > .tabs) {
+  html:has(.briefing > .tabs-bar) {
     scroll-padding-block-start: calc(var(--sticky-top) + var(--space-4));
   }
 
@@ -98,10 +137,62 @@ html:has(.briefing > .tabs) {
   transition: color var(--duration-state) var(--ease-hover);
 }
 
-/* The story being read aloud: its headline takes the accent. Its chip says so in words. */
-.story[data-state="current"] .story-title {
-  color: var(--color-accent);
+/* The headline as the link to the story: it keeps the heading's ink, and an underline under the
+   pointer says it can be followed. */
+.story-link {
+  /* Inline padding is hit-tested but does not move the lines: a one-line headline still answers a
+     touch across 44px, and the padding of a second line only overlaps the first, the same link. */
+  padding-block: var(--space-3);
+  color: inherit;
+  text-decoration: none;
+  text-decoration-thickness: var(--stroke-hairline);
+  text-underline-offset: 0.18em;
+  border-radius: var(--radius-xs);
 }
+
+/* The ring goes round the headline, not the link: on an inline link each line box draws its own,
+   and with the hit padding the second line's gap band strikes through the first line. */
+.story-link:focus-visible {
+  outline: none;
+  box-shadow: none;
+}
+
+.story-title:has(> .story-link:focus-visible) {
+  outline: var(--stroke-ring) solid var(--color-focus-ring);
+  outline-offset: var(--space-1);
+  border-radius: var(--radius-sm);
+}
+
+@media (hover: hover) and (pointer: fine) {
+  .story-link:hover {
+    color: var(--color-accent);
+    text-decoration-line: underline;
+  }
+}
+
+/* A hyphenated word in a headline stays whole: balanced wrapping would break it at the hyphen
+   ("mid- / range"). Item.astro and EpisodeView.astro mark them. An inline-block is one atom to the
+   line breaker, so balance still counts the words around it; `nowrap` threw the balance off. */
+:is(.story-title, .episode-highlight-title) .no-break {
+  display: inline-block;
+}
+
+/* An inline-block takes no underline from the link around it, and the text between them has none to
+   pass on, so under the pointer it draws the link's own. */
+@media (hover: hover) and (pointer: fine) {
+  .story-link:hover .no-break {
+    text-decoration-line: underline;
+    text-decoration-thickness: var(--stroke-hairline);
+    text-underline-offset: 0.18em;
+  }
+}
+
+.story-link:active {
+  color: var(--color-accent-pressed);
+}
+
+/* The story being read aloud keeps its headline's ink: the accent is the link's hover colour, and
+   the story's chip already says it is playing, in words and with its bars. */
 
 .story-summary {
   max-width: var(--layout-measure);
@@ -113,26 +204,26 @@ html:has(.briefing > .tabs) {
   line-height: var(--text-reading-leading);
 }
 
-/* Older briefings carry a separate line on why the story matters. */
+/* Older briefings carry a separate line on why the story matters: a quiet note under the summary,
+   a size down and muted. Its label is set apart by ink alone, at the note's own weight, so the
+   note never outweighs the summary above it. */
 .story-why {
   max-width: var(--layout-measure);
-  margin-block-start: var(--space-3);
+  margin-block-start: var(--space-2);
   color: var(--color-on-surface-muted);
-  /* The same size as the summary above it: a second, quieter paragraph, not a footnote. */
-  font-size: var(--text-reading-size);
-  line-height: var(--text-reading-leading);
+  font-size: var(--font-size-label);
+  line-height: var(--font-leading-body);
 }
 
 .story-why-label {
   color: var(--color-on-surface);
-  font-weight: var(--font-weight-medium);
 }
 
-/* Play, then the way out to the source. A long host shortens; the chip never does. */
+/* Play, then the publisher. A long name shortens; the chip never does. The chip hugs its label. */
 .story-actions {
   display: flex;
   align-items: center;
-  gap: var(--space-4);
+  gap: var(--space-3);
   min-width: 0;
   min-height: var(--size-touch);
   margin-block-start: var(--space-2);
@@ -140,9 +231,31 @@ html:has(.briefing > .tabs) {
 
 .story-actions > .chip {
   flex: none;
-  /* Holds the common labels ("0:24", "Playing", "1 min left"), so the source link beside it stays put. */
-  min-inline-size: 6.5rem;
-  justify-content: center;
+}
+
+/* The publisher is attribution, not a second call to act: muted words at the label size, so the
+   chip is the one accent in a story. Its hover layer is the muted ink's, like any quiet control. */
+.story-source {
+  color: var(--color-on-surface-muted);
+  font-weight: var(--font-weight-regular);
+}
+
+@media (hover: hover) and (pointer: fine) {
+  .story-source:hover {
+    background: color-mix(in oklch, var(--color-on-surface) var(--state-hover), transparent);
+    color: var(--color-on-surface);
+  }
+}
+
+.story-source:active {
+  background: color-mix(in oklch, var(--color-on-surface) var(--state-press), transparent);
+  color: var(--color-on-surface);
+}
+
+/* With the chip hidden (no audio, or offline) the publisher is the row's only content: the row
+   keeps its 44px target but sits closer under the text. */
+.story-actions:not(:has(> .chip:not([hidden]))) {
+  margin-block-start: var(--space-1);
 }
 
 /* Audio needs a connection, so while offline the story chips step out of the way. The briefing's
@@ -151,8 +264,12 @@ html[data-offline] .story-actions > .chip {
   display: none;
 }
 
-@media (forced-colors: active) {
-  .story[data-state="current"] .story-title {
-    color: Highlight;
-  }
+/* ------------------------------------------------------------------ earlier briefings */
+
+/* The shelf's heading is a section heading like the chapters above it: the heading role's weight,
+   so medium stays the mark of a headline. */
+.earlier .shelf-head > h2 {
+  font-size: var(--text-heading-size);
+  font-weight: var(--text-heading-weight);
+  letter-spacing: var(--text-heading-tracking);
 }

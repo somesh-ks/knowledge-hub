@@ -23,8 +23,8 @@ export const FORMATS: ReadonlyArray<{ value: PodcastRequest["format"]; label: st
 
 export const WINDOWS: ReadonlyArray<{ value: PodcastRequest["window_days"]; label: string }> = [
   { value: 2, label: "2 days" },
-  { value: 7, label: "A week" },
-  { value: 30, label: "A month" },
+  { value: 7, label: "7 days" },
+  { value: 30, label: "30 days" },
 ];
 
 export const TONES: ReadonlyArray<{ value: PodcastRequest["tone"]; label: string }> = [
@@ -33,12 +33,17 @@ export const TONES: ReadonlyArray<{ value: PodcastRequest["tone"]; label: string
   { value: "dry", label: "Dry" },
 ];
 
+/**
+ * Who the script is written for. `phrase` is how the audience reads after "For" and "set for" in a
+ * sentence: "For General", "Topics set for Somesh".
+ */
 export const AUDIENCES: ReadonlyArray<{
   value: NonNullable<PodcastRequest["audience"]>;
   label: string;
+  phrase: string;
 }> = [
-  { value: "general", label: "General" },
-  { value: "custom", label: "Somesh" },
+  { value: "general", label: "General", phrase: "General" },
+  { value: "custom", label: "Somesh", phrase: "Somesh" },
 ];
 
 export const DEFAULTS = {
@@ -52,6 +57,19 @@ export const DEFAULTS = {
 /** The button names what it makes and how long it will run: "Generate • 10 mins". */
 export function submitLabel(minutes: number): string {
   return `Generate • ${minutes} mins`;
+}
+
+/**
+ * The line under More options, naming the choices it holds, each with its noun: "For Somesh · Last 7
+ * days · Neutral tone". The markup carries the template, so the page script fills the same words in
+ * as choices change. The audience goes in by its phrase, the look back and the tone by their labels.
+ */
+export const MORE_OPTIONS_TEMPLATE = "For {audience} · Last {window} · {tone} tone";
+
+export function moreOptionsSummary(audience: string, window: string, tone: string): string {
+  return MORE_OPTIONS_TEMPLATE.replace("{audience}", audience)
+    .replace("{window}", window)
+    .replace("{tone}", tone);
 }
 
 export interface TopicOption {

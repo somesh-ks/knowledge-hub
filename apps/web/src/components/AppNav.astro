@@ -1,5 +1,6 @@
 ---
 import type { IconName } from "../lib/icons";
+import { getSite } from "../lib/site";
 import BrandMark from "./BrandMark.astro";
 import Icon from "./Icon.astro";
 
@@ -11,6 +12,11 @@ interface Props {
 }
 
 const { current } = Astro.props;
+// The wordmark goes to Today: it names the briefing only when there is one.
+const homeLabel =
+  (await getSite()).entries.length > 0 ? "Singularity, today's briefing" : "Singularity, Today";
+// On the Create page the New episode button is the place you are on, not an action to take.
+const onCreate = Astro.url.pathname.replace(/\/$/, "") === "/create";
 
 const destinations: Array<{
   id: Destination;
@@ -39,16 +45,16 @@ const destinations: Array<{
 
 {/* One navigation, two shapes: a bottom bar below 64rem and a side column from 64rem. The player
      slides the bottom bar away as it opens; it finds it by data-bottom-nav. Create is not a
-     destination but the one action: a solid button in the column here, a floating button (see
+     destination but the one action: a tonal button that hugs its words in the column here, a floating button (see
      CreateFab.astro) below 64rem. Both are links to /create that the shell turns into the sheet. */}
 <nav class="app-nav" aria-label="Primary" data-bottom-nav>
-  <a class="app-nav-brand wordmark" href="/" aria-label="Singularity, today's briefing" data-astro-prefetch="hover">
+  <a class="app-nav-brand wordmark" href="/" aria-label={homeLabel} data-astro-prefetch="hover">
     <BrandMark />
     <span>Singularity</span>
   </a>
-  <a class="app-nav-create btn-primary" href="/create" data-create-open data-sound="open">
+  <a class="app-nav-create" href="/create" data-create-open data-sound="open" aria-current={onCreate ? "page" : undefined}>
     <Icon name="plus" class="icon-lg" />
-    <span>Create Podcast</span>
+    <span>New episode</span>
   </a>
   <ul class="app-nav-list" role="list">
     {
@@ -62,9 +68,12 @@ const destinations: Array<{
               aria-current={isCurrent ? "page" : undefined}
               data-astro-prefetch="hover"
             >
-              {/* Both drawings are in the page, so the item can light up on the press, before its page arrives. */}
-              <Icon name={destination.icon} class="icon-lg app-nav-icon-rest" />
-              <Icon name={destination.iconCurrent} class="icon-lg app-nav-icon-current" />
+              {/* Both drawings are in the page, so the item can light up on the press, before its page arrives.
+                   The indicator is the pill behind the icon in the bottom bar; the side column draws the row itself. */}
+              <span class="app-nav-indicator">
+                <Icon name={destination.icon} class="icon-lg app-nav-icon-rest" />
+                <Icon name={destination.iconCurrent} class="icon-lg app-nav-icon-current" />
+              </span>
               <span>{destination.label}</span>
             </a>
           </li>

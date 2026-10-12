@@ -1,0 +1,99 @@
+---
+/**
+ * The spot art of the app's empty states: one focal object per scene, from two to four flat shapes
+ * on one scale (240 units across). The hero is the accent container, its detail one supporting tone and
+ * the one pop the accent. Colours come from classes that empty.css maps to tokens, never from
+ * attributes, so both themes follow. Decorative: the title and the button carry the meaning.
+ */
+export type ArtName = "today" | "library" | "results" | "offline" | "online" | "notfound";
+
+interface Props {
+  art: ArtName;
+  /** compact is the settings size: the same scene, about 96px wide. */
+  size?: "regular" | "compact";
+}
+
+const { art, size = "regular" } = Astro.props;
+
+/** One scale for every scene (240 units across); each box is cropped to its drawing. */
+const VIEW: Record<ArtName, string> = {
+  today: "0 26 240 128",
+  library: "0 28 240 124",
+  results: "0 22 240 146",
+  offline: "0 20 240 143",
+  online: "0 20 240 143",
+  notfound: "0 20 240 142",
+};
+---
+
+<svg
+  class="empty-art"
+  data-art={art}
+  data-size={size}
+  viewBox={VIEW[art]}
+  aria-hidden="true"
+  focusable="false"
+>
+  {
+    art === "today" && (
+      <>
+        <rect class="art-hero" x="60" y="30" width="120" height="120" rx="24" />
+        <path class="art-ink-fill" d="M106 66l36 24-36 24z" />
+      </>
+    )
+  }
+  {
+    art === "library" && (
+      <>
+        <rect class="art-slot" x="62" y="32" width="116" height="116" rx="24" />
+        <path class="art-ink-line" d="M120 72v36M102 90h36" />
+      </>
+    )
+  }
+  {
+    art === "results" && (
+      <>
+        <rect class="art-hero" x="52" y="26" width="108" height="108" rx="24" />
+        <path class="art-handle" d="M178 136l20 20" />
+        <circle class="art-pop" cx="156" cy="114" r="34" />
+        <circle class="art-lens" cx="156" cy="114" r="23" />
+      </>
+    )
+  }
+  {
+    (art === "offline" || art === "online") && (
+      <>
+        <circle class="art-hero" cx="120" cy="90" r="66" />
+        <path
+          class={art === "offline" ? "art-glyph-off" : "art-glyph"}
+          d="M98 102a31 31 0 0 1 44 0M76 80a62 62 0 0 1 88 0M120 124h0"
+        />
+        {art === "offline" ? (
+          <>
+            <path class="art-slash-knock" d="M88 52l64 64" />
+            <path class="art-slash" d="M88 52l64 64" />
+          </>
+        ) : (
+          <>
+            <circle class="art-knock" cx="168" cy="134" r="25" />
+            <circle class="art-pop" cx="168" cy="134" r="20" />
+            <path class="art-on-pop-line" d="M159 134l6 6 12-12" />
+          </>
+        )}
+      </>
+    )
+  }
+  {
+    art === "notfound" && (
+      <>
+        <path
+          class="art-hero"
+          d="M88 24h44l32 32v86a16 16 0 0 1-16 16H88a16 16 0 0 1-16-16V40a16 16 0 0 1 16-16z"
+        />
+        <path class="art-hero-ink" d="M132 24v20a12 12 0 0 0 12 12h20z" />
+        <path class="art-pop" d="M120 128c-14-16-20-26-20-36a20 20 0 0 1 40 0c0 10-6 20-20 36z" />
+        <circle class="art-hero" cx="120" cy="92" r="7" />
+      </>
+    )
+  }
+</svg>

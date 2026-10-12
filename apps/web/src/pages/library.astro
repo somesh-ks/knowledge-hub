@@ -1,6 +1,6 @@
 ---
 import BriefingCard from "../components/BriefingCard.astro";
-import EmptyState from "../components/EmptyState.astro";
+import EmptyArt from "../components/EmptyArt.astro";
 import EpisodeCard from "../components/EpisodeCard.astro";
 import Icon from "../components/Icon.astro";
 import BaseLayout from "../layouts/BaseLayout.astro";
@@ -19,7 +19,22 @@ const items = libraryItems(entries, episodes);
   <main id="main" class="library" tabindex="-1">
     {
       items.length === 0 ? (
-        <EmptyState />
+        <section class="library-none" aria-labelledby="page-title">
+          <h1 class="page-title library-title" id="page-title" tabindex="-1">
+            Library
+          </h1>
+          {/* The page keeps its title; under it, the scene, what is true and the one thing to do. */}
+          <div class="empty">
+            <EmptyArt art="library" />
+            <h2 class="empty-title">Nothing here yet</h2>
+            <p class="empty-body">Briefings arrive on your schedule. Episodes you make are kept here too.</p>
+            <div class="empty-actions">
+              <a class="btn-primary" href="/create" data-create-open data-sound="open">
+                New episode
+              </a>
+            </div>
+          </div>
+        </section>
       ) : (
         <div data-library>
           <h1 class="page-title library-title" id="page-title" tabindex="-1">
@@ -31,11 +46,11 @@ const items = libraryItems(entries, episodes);
             <div class="search-wrap">
             <label class="search-field">
               <Icon name="search" />
-              <span class="sr-only">Search episodes</span>
+              <span class="sr-only">Search your library</span>
               <input
                 type="search"
                 name="q"
-                placeholder="Search episodes"
+                placeholder="Search your library"
                 autocomplete="off"
                 enterkeyhint="search"
                 data-library-search
@@ -46,15 +61,17 @@ const items = libraryItems(entries, episodes);
             </button>
             </div>
             <div class="library-bar">
-              <label class="sort-field filter-field">
-                <span class="sr-only">Show</span>
-                <select data-library-filter>
-                  {LIBRARY_FILTERS.map((filter) => (
-                    <option value={filter.id}>{filter.label}</option>
-                  ))}
-                </select>
-                <Icon name="chevronDown" />
-              </label>
+              {/* What to show: one kind at a time, or everything while none is ticked. Each chip is
+                   a checkbox (Tab and Space); the script unticks the others. */}
+              <fieldset class="filter-chips library-filters" aria-label="Show" data-library-filters>
+                {LIBRARY_FILTERS.filter((filter) => filter.id !== "all").map((filter) => (
+                  <label class="filter-chip">
+                    <input type="checkbox" name="show" value={filter.id} data-library-filter />
+                    <Icon name="check" class="filter-chip-check" />
+                    <span>{filter.label}</span>
+                  </label>
+                ))}
+              </fieldset>
               <label class="sort-field">
                 <span class="sr-only">Sort</span>
                 <select data-library-sort>
@@ -89,11 +106,18 @@ const items = libraryItems(entries, episodes);
               ),
             )}
           </ul>
-          <div class="library-empty" data-library-empty hidden>
-            <p>Nothing matches.</p>
-            <button class="btn" type="button" data-library-clear>
-              Clear search
-            </button>
+          {/* The script shows this and writes its title and button from emptyCopy(); the line under
+               the title follows the search box in CSS, so it needs no script of its own. */}
+          <div class="library-empty empty" data-library-empty hidden>
+            <EmptyArt art="results" />
+            <h2 class="empty-title" data-library-empty-message>No results</h2>
+            <p class="empty-body library-empty-search">Try different words, or show the whole library.</p>
+            <p class="empty-body library-empty-filter">Show all to see the rest of your library.</p>
+            <div class="empty-actions">
+              <button class="btn-primary" type="button" data-library-clear>
+                Clear search
+              </button>
+            </div>
           </div>
         </div>
       )

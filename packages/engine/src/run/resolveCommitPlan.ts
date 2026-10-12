@@ -1,9 +1,10 @@
 import { readdir, stat } from "node:fs/promises";
 import { join } from "node:path";
-import { DigestId, stockholmDate } from "@dispatch/core";
+import { DigestId, zonedDate } from "@dispatch/core";
 import { readJsonIfExists } from "../curate/inputs.js";
 import { writeJson } from "../curate/output.js";
 import { Selection } from "../curate/selectionFile.js";
+import { loadScheduleZone } from "../schedule/store.js";
 import { StageFailure } from "./errors.js";
 import { type Plan, passDir, passFile, readPlan, runCacheDir } from "./plan.js";
 import type { RunDeps, RunOptions } from "./types.js";
@@ -67,7 +68,7 @@ async function adopt(deps: RunDeps, options: RunOptions, id: string): Promise<Re
       mode: "on-demand",
       dry_run: options.dryRun,
       created_at: now.toISOString(),
-      date: stockholmDate(now),
+      date: zonedDate(now, await loadScheduleZone(deps.root)),
       reason: `adopted run ${id}`,
       passes: [{ id, kind: selection.data.kind, window: selection.data.window }],
       source: "adopted",

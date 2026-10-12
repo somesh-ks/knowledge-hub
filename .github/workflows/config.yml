@@ -38,8 +38,10 @@ jobs:
           node-version-file: .nvmrc
           cache: npm
 
+      # Only the engine's packages: the site's (Astro, React, Playwright) are not needed to run it, and
+      # leaving them out takes the install from about 10 seconds to about 4.
       - name: Install
-        run: npm ci --ignore-scripts
+        run: npm ci --ignore-scripts --workspace=packages/engine --include-workspace-root
 
       # The input reaches the command through an environment variable and is quoted in the shell
       # line, never interpolated into it, so its text cannot become shell syntax.

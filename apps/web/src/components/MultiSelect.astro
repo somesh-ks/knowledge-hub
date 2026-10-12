@@ -1,5 +1,5 @@
 ---
-import { joinLabels } from "../lib/multiSelect";
+import { chosenSummary } from "../lib/multiSelect";
 import Icon from "./Icon.astro";
 import "../styles/multiselect.css";
 
@@ -27,18 +27,24 @@ interface Props {
   options: MultiSelectOption[];
   /** What the field says with nothing chosen. */
   empty: string;
+  /** Said when every option is chosen ("All podcasts"); the labels are joined when left out. */
+  all?: string;
 }
 
-const { id, labelledby, describedby, options, empty } = Astro.props;
-const summary =
-  joinLabels(options.filter((option) => option.checked).map((option) => option.label)) || empty;
+const { id, labelledby, describedby, options, empty, all } = Astro.props;
+const summary = chosenSummary(
+  options.filter((option) => option.checked).map((option) => option.label),
+  options.length,
+  all,
+  empty,
+);
 ---
 
 {/* A field that opens a list of choices, any number of which can be ticked (multiSelect.ts drives
      it). The list is a listbox of options, each drawn with the app's checkbox; under it, one real
      checkbox per choice holds the state, so a form or the topics editor reads and saves it as it
      would any checkbox. */}
-<div class="multiselect" data-multiselect data-empty={empty}>
+<div class="multiselect" data-multiselect data-empty={empty} data-all={all}>
   <button
     type="button"
     class="multiselect-trigger"

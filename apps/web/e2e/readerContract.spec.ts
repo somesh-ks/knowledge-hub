@@ -1,5 +1,5 @@
 import type { Locator } from "@playwright/test";
-import { ACCENT_LIGHT, computedColor, expectColor, INK_LIGHT } from "./colors";
+import { computedColor } from "./colors";
 import { expect, hydrated, SILENT_DIGEST, test } from "./fixtures";
 
 /**
@@ -37,8 +37,9 @@ test.describe("what the player writes on a real page", () => {
     await expect(page.locator("html")).toHaveAttribute("data-player-state", "playing");
     await expect(chip).toHaveAttribute("data-state", "current");
     await expect(chip).toHaveAttribute("data-playing", "true");
-    await expect(chip.locator("[data-chip-label]")).toHaveText("Playing");
-    await expect(chip).toHaveAccessibleName("Pause the briefing, playing");
+    // Playing, the briefing's chip is the pause button with the time left (D77).
+    await expect(chip.locator("[data-chip-label]")).toHaveText("1 min left");
+    await expect(chip).toHaveAccessibleName("Pause the briefing, 1 min left");
 
     await chip.click();
     await expect(page.locator("html")).toHaveAttribute("data-player-state", "paused");
@@ -49,17 +50,17 @@ test.describe("what the player writes on a real page", () => {
 
     await chip.click();
     await expect(page.locator("html")).toHaveAttribute("data-player-state", "playing");
-    await expect(chip.locator("[data-chip-label]")).toHaveText("Playing");
+    await expect(chip).toHaveAccessibleName("Pause the briefing, 1 min left");
   });
 
-  test("a story chip plays from its story and marks what came before as played", async ({
+  test("a story chip plays from its story, and marks played only what the playhead passed", async ({
     page,
   }) => {
     await hydrated(page);
     const stories = page.locator(".story");
     const third = stories.nth(2);
     const chip = third.locator("[data-play-item]");
-    const headline = (await third.locator("h3").textContent()) ?? "";
+    const headline = (await third.locator("h3 span[id]").textContent()) ?? "";
 
     await chip.click();
     await expect(chip.locator("[data-chip-label]")).toHaveText("Playing");
@@ -77,15 +78,23 @@ test.describe("what the player writes on a real page", () => {
     // Only one story is the one being read.
     await expect(page.locator('.story[data-state="current"]')).toHaveCount(1);
 
+    // Play from here stepped over the first two: nothing was heard of them, so they are not played.
     for (const index of [0, 1]) {
       const earlier = stories.nth(index);
-      await expect(earlier).toHaveAttribute("data-state", "played");
-      await expect(earlier.locator("[data-play-item]")).toHaveAttribute("data-state", "played");
-      await expect(earlier.locator("[data-chip-label]")).toHaveText("Played");
-      await expect(earlier.locator("[data-play-item]")).toHaveAccessibleName(
-        /^Play again, played: /,
-      );
+      await expect(earlier).not.toHaveAttribute("data-state", /.*/);
+      await expect(earlier.locator("[data-play-item]")).toHaveAttribute("data-state", "idle");
+      await expect(earlier.locator("[data-chip-label]")).toHaveText(/^\d+:\d\d$/);
     }
+    // Playing on out of the third into the fourth is hearing it: the third is played, the first two are not.
+    await chip.click();
+    await expect(page.locator("html")).toHaveAttribute("data-player-state", "playing");
+    await expect(third).toHaveAttribute("data-state", "played", { timeout: 15_000 });
+    await expect(chip.locator("[data-chip-label]")).toHaveText("Played");
+    await expect(chip).toHaveAccessibleName(/^Play again, played: /);
+    await expect(stories.nth(0)).not.toHaveAttribute("data-state", /.*/);
+    await expect(stories.nth(3)).toHaveAttribute("data-state", "current");
+    await stories.nth(3).locator("[data-play-item]").click();
+    await expect(page.locator("html")).toHaveAttribute("data-player-state", "paused");
     const later = stories.nth(5).locator("[data-play-item]");
     await expect(later).toHaveAttribute("data-state", "idle");
     await expect(later.locator("[data-chip-label]")).toHaveText("0:03");
@@ -94,22 +103,6 @@ test.describe("what the player writes on a real page", () => {
     const briefing = page.locator(".hero [data-play-digest]");
     await expect(briefing).toHaveAttribute("data-state", "current");
     await expect(briefing.locator("[data-chip-label]")).toHaveText("1 min left");
-  });
-
-  test("the story being read takes the accent on its headline", async ({ page }) => {
-    await hydrated(page);
-    const story = page.locator(".story").nth(1);
-    const chip = story.locator("[data-play-item]");
-    await expectColor(page, await computedColor(story.locator("h3"), "color"), INK_LIGHT);
-    await chip.click();
-    await expect(chip.locator("[data-chip-label]")).toHaveText("Playing");
-    await chip.click();
-    await expect(story).toHaveAttribute("data-state", "current");
-    // The colour changes over 200ms.
-    await page.waitForTimeout(300);
-    await expectColor(page, await computedColor(story.locator("h3"), "color"), ACCENT_LIGHT);
-    const other = page.locator(".story").nth(4).locator("h3");
-    await expectColor(page, await computedColor(other, "color"), INK_LIGHT);
   });
 
   test("the chips are written again on every page the reader moves to", async ({ page }) => {
@@ -132,7 +125,9 @@ test.describe("what the player writes on a real page", () => {
     await page.locator('a[href="/"]:visible').first().click();
     await expect(page).toHaveURL(/\/$/);
     await expect(page.locator(".hero [data-play-digest]")).toHaveAttribute("data-state", "current");
-    await expect(page.locator(".hero [data-play-digest] [data-chip-label]")).toHaveText("Playing");
+    await expect(page.locator(".hero [data-play-digest] [data-chip-label]")).toHaveText(
+      /min left$/,
+    );
     await expect(page.locator('.story[data-state="current"]')).toHaveCount(1);
     await expect(page.locator('[data-play-item][data-state="current"]')).toHaveCount(1);
   });
@@ -164,28 +159,6 @@ test.describe("how the page reacts to those attributes", () => {
   test.beforeEach(async ({ page }) => {
     await hydrated(page);
     await page.evaluate(() => new Promise((resolve) => requestAnimationFrame(() => resolve(null))));
-  });
-
-  test("a current story's headline takes the accent and the others keep full ink", async ({
-    page,
-  }) => {
-    const story = page.locator(".story").nth(1);
-    await story.evaluate((element) => element.setAttribute("data-state", "current"));
-    await page.waitForTimeout(250);
-    await expectColor(page, await computedColor(story.locator("h3"), "color"), ACCENT_LIGHT);
-    const other = page.locator(".story").nth(2);
-    await expectColor(page, await computedColor(other.locator("h3"), "color"), INK_LIGHT);
-    // A summary never steps back: every story stays readable while one is playing.
-    await expectColor(
-      page,
-      await computedColor(other.locator(".story-summary"), "color"),
-      INK_LIGHT,
-    );
-    await expectColor(
-      page,
-      await computedColor(story.locator(".story-summary"), "color"),
-      INK_LIGHT,
-    );
   });
 
   test("an idle chip shows the play glyph in a ring", async ({ page }) => {
@@ -253,6 +226,8 @@ test.describe("how the page reacts to those attributes", () => {
     page,
   }) => {
     await page.goto(SILENT_DIGEST);
+    // Once the player has written the chip's face, which it now does on a page without audio too.
+    await hydrated(page);
     await page.evaluate(() => {
       document.querySelector(".hero [data-play-digest]")?.setAttribute("aria-disabled", "true");
       (window as unknown as { __clicks: number }).__clicks = 0;

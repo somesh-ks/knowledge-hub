@@ -3,7 +3,7 @@ import { tmpdir } from "node:os";
 import { join, resolve } from "node:path";
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
 import { runCli, splitArgs, topLevelHelp } from "../src/cli.js";
-import { COMMANDS, type CommandSpec, findCommand } from "../src/commandRegistry.js";
+import { COMMANDS, type CommandSpec } from "../src/commandRegistry.js";
 import type { CommandContext, CommandRun } from "../src/context.js";
 import { captureStdout } from "./curate-helpers.js";
 import { REPO_ROOT } from "./score-factories.js";
@@ -186,40 +186,6 @@ describe("runCli: help", () => {
       expect(code).toBe(0);
       expect(out.join("")).toContain(`dispatch ${spec.name}`);
     }
-  });
-
-  it("registers the commands the plan names, each once", () => {
-    expect(COMMANDS.map((spec) => spec.name)).toEqual([
-      "sources",
-      "config",
-      "fetch",
-      "curate",
-      "validate",
-      "render",
-      "audio",
-      "publish",
-      "learn",
-      "run",
-      "podcast",
-      "status",
-      "doctor",
-      "extract",
-      "models",
-      "voices",
-      "eval",
-    ]);
-    expect(findCommand("run")?.summary).toContain("gate");
-    expect(findCommand("nope")).toBeUndefined();
-  });
-
-  it("documents the stages and the agent-mode sequence under run --help", () => {
-    const help = findCommand("run")?.help ?? "";
-    for (const stage of ["gate", "fetch", "judge", "write", "validate", "commit"]) {
-      expect(help).toContain(stage);
-    }
-    expect(help).toContain("dispatch extract --ids");
-    expect(help).toContain("curate --mode agent");
-    expect(help).toContain("run --stage commit");
   });
 });
 

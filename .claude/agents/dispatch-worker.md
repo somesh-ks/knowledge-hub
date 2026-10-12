@@ -17,6 +17,7 @@ Rules:
 - Surgical edits; match surrounding code. No new dependencies, no changes to `.github/workflows`, never touch `Digests/` or `state/`.
 - Never read, print or ask for key values; never open `.env`.
 - Verify with `npm run typecheck`, the tests of the package you touched, and `npx biome check <touched paths>` (the root lint fails under `.claude/`). No browser suites unless the brief asks.
+- Tests: follow the Tests rules in `AGENTS.md`. Add one only for a logic bug a unit or journey test can pin, show it red without the fix, and delete the tests of behaviour you remove. None for copy, layout or styling. Report the net test count change.
 - Commit on your branch with a Conventional Commit message. Do not merge, push or rebase the main checkout. Never delete files the brief does not name.
 - No em dashes.
 

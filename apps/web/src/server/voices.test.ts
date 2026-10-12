@@ -1,11 +1,15 @@
+import { HOST_NAME_POOLS, hostNamesFor } from "@dispatch/core/hosts";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import type { FetchLike } from "./github";
 import {
   byteRange,
   handleVoiceSample,
   handleVoices,
+  hostVoiceIds,
   parseVoices,
+  readVoiceCatalogue,
   resetVoicesCache,
+  resolveHostNames,
   SAMPLE_MAX_BYTES,
   VOICES_CACHE_CONTROL,
   VOICES_TTL_MS,
@@ -104,6 +108,150 @@ describe("handleVoices", () => {
     const result = await handleVoices({ env: { SPEECHIFY_API_KEY: KEY }, fetch, log });
     expect(result.status).toBe(502);
     expect(JSON.stringify(log.mock.calls)).not.toContain(KEY);
+  });
+});
+
+describe("readVoiceCatalogue", () => {
+  it("says there is no key without calling Speechify", async () => {
+    const fetch = vi.fn<FetchLike>();
+    expect(await readVoiceCatalogue({ env: {}, fetch })).toEqual({ kind: "no_key" });
+    expect(fetch).not.toHaveBeenCalled();
+  });
+
+  it("shares one hour-long cache with the voice list", async () => {
+    const fetch = vi.fn(async () => json(200, { voices: [voice("a", "Ada")] }));
+    const deps = { env: { SPEECHIFY_API_KEY: KEY }, fetch, now: () => 1000 };
+    expect(await readVoiceCatalogue(deps)).toMatchObject({ kind: "voices", voices: [{ id: "a" }] });
+    expect(await handleVoices(deps)).toMatchObject({
+      status: 200,
+      body: { voices: [{ id: "a" }] },
+    });
+    expect(fetch).toHaveBeenCalledTimes(1);
+  });
+
+  it("reports a failure as failed and caches nothing", async () => {
+    const fetch = vi
+      .fn<FetchLike>()
+      .mockResolvedValueOnce(json(500, {}))
+      .mockResolvedValueOnce(json(200, { voices: [voice("a", "Ada")] }));
+    const deps = { env: { SPEECHIFY_API_KEY: KEY }, fetch };
+    expect(await readVoiceCatalogue(deps)).toEqual({ kind: "failed" });
+    expect(await readVoiceCatalogue(deps)).toMatchObject({ kind: "voices" });
+  });
+});
+
+describe("hostVoiceIds", () => {
+  it("takes the request's voices, else the defaults narration reads with", () => {
+    expect(hostVoiceIds({ voice_id: "x", voice_id_b: "y" }, {})).toEqual({ a: "x", b: "y" });
+    expect(hostVoiceIds({}, {})).toEqual({ a: "geffen_32", b: "dominic_32" });
+    expect(hostVoiceIds({ voice_id: null, voice_id_b: null }, {})).toEqual({
+      a: "geffen_32",
+      b: "dominic_32",
+    });
+    expect(hostVoiceIds({ voice_id: "x" }, { SPEECHIFY_VOICE_ID_B: "leo_2" })).toEqual({
+      a: "x",
+      b: "leo_2",
+    });
+  });
+
+  it("gives the second host the first host's voice when the second voice is blank", () => {
+    expect(hostVoiceIds({ voice_id: "x" }, { SPEECHIFY_VOICE_ID_B: "" })).toEqual({
+      a: "x",
+      b: "x",
+    });
+  });
+});
+
+describe("resolveHostNames", () => {
+  const catalogue = () =>
+    json(200, {
+      voices: [
+        { ...voice("tom", "Tom Hardy"), gender: "male" },
+        voice("nora", "nora"),
+        { ...voice("geffen_32", "Geffen"), gender: "male" },
+        { ...voice("dominic_32", "Dominic"), gender: "male" },
+        { ...voice("sky", "Sky"), gender: "" },
+      ],
+      has_more: false,
+    });
+  const env = { SPEECHIFY_API_KEY: KEY };
+
+  it("names the hosts after the genders of their voices", async () => {
+    const log = vi.fn();
+    const names = await resolveHostNames(
+      { voice_id: "tom", voice_id_b: "nora" },
+      { env, fetch: vi.fn(async () => catalogue()), log },
+    );
+    expect(names).toEqual(
+      hostNamesFor(
+        { id: "tom", name: "Tom Hardy", gender: "male" },
+        { id: "nora", name: "nora", gender: "female" },
+      ),
+    );
+    expect(HOST_NAME_POOLS.male).toContain(names?.a);
+    expect(names?.b).toBe("Nora");
+    expect(log).not.toHaveBeenCalled();
+  });
+
+  it("reads the default voices when the request names none", async () => {
+    const fetch = vi.fn(async () => catalogue());
+    expect(await resolveHostNames({}, { env, fetch })).toEqual({ a: "Geffen", b: "Dominic" });
+  });
+
+  it("gives two hosts read by one voice two names", async () => {
+    const names = await resolveHostNames(
+      { voice_id: "sky" },
+      { env: { ...env, SPEECHIFY_VOICE_ID_B: "" }, fetch: vi.fn(async () => catalogue()) },
+    );
+    expect(names?.a).toBe("Sky");
+    expect(HOST_NAME_POOLS.neutral).toContain(names?.b);
+  });
+
+  it("leaves the names to the engine when a voice is not in the list", async () => {
+    const log = vi.fn();
+    const fetch = vi.fn(async () => catalogue());
+    expect(await resolveHostNames({ voice_id_b: "gone" }, { env, fetch, log })).toBeUndefined();
+    expect(log).toHaveBeenCalledWith(
+      "Host names left to the engine: a host's voice is not in the voice list",
+    );
+  });
+
+  it("leaves the names to the engine without a key, and calls nothing", async () => {
+    const log = vi.fn();
+    const fetch = vi.fn<FetchLike>();
+    expect(await resolveHostNames({}, { env: {}, fetch, log })).toBeUndefined();
+    expect(fetch).not.toHaveBeenCalled();
+    expect(log).toHaveBeenCalledWith("Host names left to the engine: no Speechify key");
+  });
+
+  it("leaves the names to the engine when Speechify fails, logging only the kind", async () => {
+    const log = vi.fn();
+    const answered = vi.fn(async () => json(403, { message: `denied ${KEY}` }));
+    expect(await resolveHostNames({}, { env, fetch: answered, log })).toBeUndefined();
+    const thrown = vi.fn(async () => {
+      throw new TypeError(`fetch failed for ${KEY}`);
+    });
+    expect(await resolveHostNames({}, { env, fetch: thrown, log })).toBeUndefined();
+    expect(log.mock.calls).toEqual([
+      ["Speechify answered HTTP 403 for the voice list"],
+      ["The voice list could not be read (TypeError)"],
+    ]);
+  });
+
+  it("gives up on a slow list when its time runs out", async () => {
+    const log = vi.fn();
+    // Never answers: only the abort ends the wait.
+    const fetch = vi.fn<FetchLike>(
+      (_url, init) =>
+        new Promise((_resolve, reject) => {
+          init?.signal?.addEventListener("abort", () => reject(init.signal?.reason));
+        }),
+    );
+    const started = Date.now();
+    const names = await resolveHostNames({}, { env, fetch, log }, AbortSignal.timeout(20));
+    expect(names).toBeUndefined();
+    expect(Date.now() - started).toBeLessThan(2000);
+    expect(log).toHaveBeenCalledWith("The voice list could not be read (TimeoutError)");
   });
 });
 

@@ -14,11 +14,27 @@
   container-type: inline-size;
   border-radius: var(--cover-radius, var(--cover-radius-hero));
   background: var(--cover-bg);
-  outline: var(--stroke-hairline) solid var(--cover-outline);
+  outline: var(--stroke-hairline) solid transparent;
   outline-offset: calc(var(--stroke-hairline) * -1);
   box-shadow: var(--cover-shadow);
   user-select: none;
   -webkit-user-select: none;
+}
+
+/* A pale ground needs a hairline to hold its edge on the light page. A deep one has its own edge,
+   and on the dark page every cover does, so there the rim would only show as a light line. */
+.cover[data-pale] {
+  outline-color: var(--cover-outline);
+}
+
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) .cover[data-pale] {
+    outline-color: transparent;
+  }
+}
+
+:root[data-theme="dark"] .cover[data-pale] {
+  outline-color: transparent;
 }
 
 .cover-image {
@@ -105,12 +121,12 @@
     display: grid;
     place-items: center;
     opacity: 0;
-    background: color-mix(in oklab, var(--color-surface) 38%, transparent);
+    background: var(--color-scrim);
     pointer-events: none;
     transition: opacity var(--duration-hover) var(--ease-hover);
   }
 
-  .card:has(.cover:hover, .cover-play:hover) > .cover-over,
+  .card:hover > .cover-over,
   .cover:hover > .cover-over,
   .cover-over:has(:focus-visible) {
     opacity: 1;
@@ -126,13 +142,19 @@
     opacity: 0.72;
   }
 
-  .card:has(.cover:hover, .cover-play:hover) > .cover-over[data-playing="true"],
+  .card:hover > .cover-over[data-playing="true"],
   .cover:hover > .cover-over[data-playing="true"],
   .cover-over[data-playing="true"]:has(:focus-visible) {
-    background: color-mix(in oklab, var(--color-surface) 38%, transparent);
+    background: var(--color-scrim);
   }
 
-  .card:has(.cover:hover, .cover-play:hover) > .cover-over[data-playing="true"] .cover-play,
+  /* On the hero the Play beside the cover already says it is playing: the cover's pause comes back
+     only when the cover is pointed at or reached. */
+  .hero .cover:not(:hover) > .cover-over[data-playing="true"]:not(:has(:focus-visible)) {
+    opacity: 0;
+  }
+
+  .card:hover > .cover-over[data-playing="true"] .cover-play,
   .cover:hover > .cover-over[data-playing="true"] .cover-play,
   .cover-over[data-playing="true"]:has(:focus-visible) .cover-play {
     opacity: 1;
@@ -158,7 +180,7 @@
   }
 
   /* The hover that brings the button in weighs no more than one class, so the press below wins. */
-  :where(.card:has(.cover:hover, .cover-play:hover), .cover:hover) .cover-play,
+  :where(.card:hover, .cover:hover) .cover-play,
   .cover-play:focus-visible {
     scale: 1;
   }

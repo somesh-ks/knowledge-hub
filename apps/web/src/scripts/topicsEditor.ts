@@ -1,15 +1,16 @@
 /**
- * The Topics & Sources editor, loaded the first time a switch, a slider, a remove button, a source's
- * row, Edit topic or Add is used (topicsPage.ts forwards the event that woke it). It records each
- * change as an op, and autosave.ts sends it a moment later through managePageSave.ts. The panel that
- * adds and edits topics and sources is topicsPanel.ts, loaded when it is first opened.
+ * The Topics and sources editor, loaded the first time a switch, a slider, a remove button, a source's
+ * row, a suggestion's +, Edit topic or Add is used (topicsPage.ts forwards the event that woke it).
+ * It records each change as an op, and autosave.ts sends it a moment later through
+ * managePageSave.ts. The panel that adds and edits topics and sources is topicsPanel.ts, loaded when
+ * it is first opened.
  *
  * The page is built with every control at its saved state, so what the editor holds is a comparison:
  * a control that differs from the state it was built (or last saved) in is a pending change.
  *
  * The pure parts are exported and tested; the rest is wiring.
  */
-import { type OfferData, slugify } from "../lib/topicText";
+import { parseSuggestedAdd, type SuggestedAdd, slugify } from "../lib/topicText";
 import type { ConfigOp } from "../types/contracts";
 import { mountAutosave } from "./autosave";
 import type { Pending } from "./managePageSave";
@@ -22,9 +23,14 @@ import type {
   TopicEdit,
   TopicFacts,
 } from "./topicsPanel";
-import { bandOf, element, iconNode, scoreNode } from "./topicsView";
+import { bandOf, element, iconNode } from "./topicsView";
 
 type Control = HTMLInputElement;
+
+/** What a suggested source's row says when its request was refused or did not go. */
+const NOT_ADDED = "Not added. Try again.";
+/** And a topic's row, which has no plus to press: the toast's Retry may be dismissed, the next change still sends it. */
+const TOPIC_NOT_ADDED = "Not added yet. It goes with your next change.";
 
 /**
  * What a control holds now. A pressed button is a boolean, a slider a number. A remove button keeps
@@ -105,30 +111,41 @@ export function mountEditor(root: HTMLElement): Editor {
   // ------------------------------------------------------------------------------------ adding
 
   /** A topic waiting to be saved, listed above the topics until it is. */
-  const queue = (name: string, op: ConfigOp, after?: ConfigOp[]): void => {
-    const template = one<HTMLTemplateElement>("template:not(#topics-panel-template)");
+  const queue = (name: string, op: ConfigOp, after?: ConfigOp[]): HTMLElement => {
+    const template = one<HTMLTemplateElement>(
+      "template:not(#topics-panel-template, #suggested-template)",
+    );
     const row = template.content.firstElementChild?.cloneNode(true) as HTMLElement;
     added += 1;
     row.dataset.key = `new${added}`;
     (row.querySelector("[data-q-name]") as HTMLElement).textContent = name;
-    row.querySelector("button")?.setAttribute("aria-label", `Cancel adding ${name}`);
     queued.append(row);
     changes.set(row.dataset.key, {
       op,
       el: row,
       now: "",
       ...(after?.length ? { with: after } : {}),
+      // Refused or not sent: the row says so, and the toast's Retry sends it again.
+      fail: () => {
+        const note = row.querySelector(".manage-quiet");
+        if (note) note.textContent = TOPIC_NOT_ADDED;
+      },
     });
     // The panel closes behind it, so focus and the view go to the row that says it is being added.
     row.tabIndex = -1;
     row.focus({ preventScroll: true });
     const reduce = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
     row.scrollIntoView({ block: "center", behavior: reduce ? "instant" : "smooth" });
+    return row;
   };
 
-  /** A topic from the panel, with the catalogue sources ticked to go with it: one decision, sent now. */
-  const addTopic = (topic: NewTopic, offered: OfferData[]): void => {
-    // A topic still waiting to be saved holds its id; one that was cancelled gives it back.
+  /**
+   * A topic from the panel: a decision already made, so it is sent now. It waits in the list, saved,
+   * until the build gives it a page: the site is static, so a page for it does not exist before
+   * then, and leaving this one would drop the request on its way (and any passphrase it asks for).
+   */
+  const addTopic = (topic: NewTopic): void => {
+    // A topic still waiting to be saved holds its id.
     const waiting = [...changes.values()].map(({ op }) =>
       op.op === "topic.upsert" ? (op.topic.id ?? "") : "",
     );
@@ -139,7 +156,7 @@ export function mountEditor(root: HTMLElement): Editor {
     ) as { daily?: boolean; weekly?: boolean; custom?: boolean };
     const scope: ConfigOp[] =
       Object.keys(out).length > 0 ? [{ op: "topic.scope", ids: [id], ...out }] : [];
-    queue(
+    const row = queue(
       topic.name,
       {
         op: "topic.upsert",
@@ -156,15 +173,11 @@ export function mountEditor(root: HTMLElement): Editor {
       },
       scope,
     );
-    for (const offer of offered) {
-      addRow(
-        { name: offer.name, icon: offer.host ? `https://${offer.host}/favicon.ico` : null },
-        { op: "source.add", url: offer.feed_url, topic_ids: [id] },
-        "",
-      );
-    }
     autosave.now();
-    window.location.assign(`/settings/topics/${encodeURIComponent(id)}`);
+    // Its suggested sources at once, ranked in the browser as the build ranks them for its page.
+    void import("./savedView").then((view) =>
+      view.suggestUnder(row, { id, name: topic.name, description: topic.description }),
+    );
   };
 
   /**
@@ -188,11 +201,8 @@ export function mountEditor(root: HTMLElement): Editor {
     const note = element("span", "source-note", "Adding");
     label.append(element("span", "source-name", shown.name), note);
     main.append(iconNode(shown.icon, shown.name), label);
-    row.append(
-      main,
-      scoreNode(shown.score ?? null, shown.label ?? "New"),
-      element("span", "source-slot"),
-    );
+    // Its second line says how the save goes; the score joins it once the build lists the source.
+    row.append(main, element("span", "source-slot"));
     const topic = [...root.querySelectorAll<HTMLElement>(".topic")].find(
       (item) => item.dataset.id === topicId,
     );
@@ -203,6 +213,42 @@ export function mountEditor(root: HTMLElement): Editor {
     list.prepend(row);
     row.scrollIntoView({ block: "center" });
     changes.set(key, { op, el: note, now: "" });
+  };
+
+  /**
+   * A suggestion added from its row. The row says it is being added in the line that named its site, and then that it is, once the edit is saved (settle, in managePageSave.ts); its
+   * button shows a check where the plus was. Nothing is put in the list above or scrolled to, so the
+   * page stays as it was and the next suggestion is where the last one left it.
+   */
+  const addSuggested = (button: HTMLButtonElement, suggestion: SuggestedAdd): void => {
+    const { name, feed_url, topic_id } = suggestion;
+    const note = element("span", "source-note", "Adding");
+    button.closest("li")?.querySelector(".source-meta")?.replaceChildren(note);
+    // One pending add per feed: the plus pressed again after a refusal sends that same one.
+    const earlier = [...changes].find(
+      ([, other]) => other.op.op === "source.add" && other.op.url === feed_url,
+    );
+    if (!earlier) added += 1;
+    const asAdded = (): void => {
+      button.disabled = true;
+      button.classList.add("is-added");
+      button.setAttribute("aria-label", `Added ${name}`);
+    };
+    changes.set(earlier?.[0] ?? `src${added}`, {
+      op: { op: "source.add", url: feed_url, ...(topic_id ? { topic_ids: [topic_id] } : {}) },
+      el: note,
+      now: "",
+      // Refused or not sent: the row says so and offers the plus again, rather than keep a check.
+      fail: () => {
+        note.textContent = NOT_ADDED;
+        button.disabled = false;
+        button.classList.remove("is-added");
+        button.setAttribute("aria-label", `Add ${name}`);
+      },
+      done: asAdded,
+    });
+    autosave.now();
+    asAdded();
   };
 
   /** A source chosen by its address in the panel: a decision already made, so it goes now. */
@@ -249,7 +295,7 @@ export function mountEditor(root: HTMLElement): Editor {
         note = element("span", "source-note");
         text.append(note);
       }
-      if (note) note.textContent = `Moves to ${facts.topic_name} after the next build.`;
+      if (note) note.textContent = `Moves to ${facts.topic_name} in about a minute.`;
     }
     button.dataset.editSource = JSON.stringify(facts);
     // An earlier edit of this source that has not gone yet goes with this one.
@@ -265,40 +311,32 @@ export function mountEditor(root: HTMLElement): Editor {
   };
 
   /**
-   * A topic's details from the panel, and the catalogue sources ticked to go with it, sent now. The
-   * edit is the topic's switch op with the new details and the switch's current state, and the switch
-   * keeps the new details, so turning the topic off later never puts the old ones back.
+   * A topic's details from the panel, sent now. The edit is the topic's switch op with the new
+   * details and the switch's current state, and the switch keeps the new details, so turning the
+   * topic off later never puts the old ones back.
    */
-  const editTopic = (edit: TopicEdit | null, offered: OfferData[]): void => {
+  const editTopic = (edit: TopicEdit): void => {
     const trigger = root.querySelector<HTMLElement>("[data-edit-topic]");
     const facts = JSON.parse(trigger?.dataset.editTopic ?? "{}") as TopicFacts;
     const toggle = root.querySelector<Control>('[data-field="topic.enabled"]');
-    if (edit && trigger && toggle) {
-      type Upsert = Extract<ConfigOp, { op: "topic.upsert" }>;
-      const built = JSON.parse(toggle.dataset.op ?? "{}") as Upsert;
-      const topic = {
-        ...built.topic,
-        name: edit.name,
-        description: edit.description,
-        keywords: edit.keywords,
-      };
-      toggle.dataset.op = JSON.stringify({ ...built, topic });
-      const op: Upsert = { op: "topic.upsert", topic: { ...topic, enabled: toggle.checked } };
-      changes.set(`topic-edit:${edit.id}`, { op, el: trigger, now: JSON.stringify(op) });
-      // The page says the new name and what counts at once; the rest follows the next build.
-      trigger.dataset.editTopic = JSON.stringify({ ...facts, ...edit });
-      const title = document.getElementById("page-title");
-      if (title) title.textContent = edit.name;
-      const note = root.querySelector(".settings-note");
-      if (note) note.textContent = edit.description;
-    }
-    for (const offer of offered) {
-      addRow(
-        { name: offer.name, icon: offer.host ? `https://${offer.host}/favicon.ico` : null },
-        { op: "source.add", url: offer.feed_url, topic_ids: [facts.id] },
-        facts.id,
-      );
-    }
+    if (!trigger || !toggle) return;
+    type Upsert = Extract<ConfigOp, { op: "topic.upsert" }>;
+    const built = JSON.parse(toggle.dataset.op ?? "{}") as Upsert;
+    const topic = {
+      ...built.topic,
+      name: edit.name,
+      description: edit.description,
+      keywords: edit.keywords,
+    };
+    toggle.dataset.op = JSON.stringify({ ...built, topic });
+    const op: Upsert = { op: "topic.upsert", topic: { ...topic, enabled: toggle.checked } };
+    changes.set(`topic-edit:${edit.id}`, { op, el: trigger, now: JSON.stringify(op) });
+    // The page says the new name and what counts at once; the rest follows the next build.
+    trigger.dataset.editTopic = JSON.stringify({ ...facts, ...edit });
+    const title = document.getElementById("page-title");
+    if (title) title.textContent = edit.name;
+    const note = root.querySelector(".settings-note");
+    if (note) note.textContent = edit.description;
     autosave.now();
   };
 
@@ -310,7 +348,11 @@ export function mountEditor(root: HTMLElement): Editor {
       start = { kind: "topic-edit", topic: JSON.parse(trigger.dataset.editTopic ?? "{}") };
     } else if ("addSource" in trigger.dataset) {
       start = { kind: "source", topicId: trigger.dataset.addSource ?? "" };
-    } else start = { kind: "topic" };
+    } else {
+      start = { kind: "topic" };
+      // The catalogue a new topic's suggestions come from, asked for now so it is in by Add.
+      void import("./savedView").then((view) => view.loadCatalog());
+    }
     void import("./topicsPanel").then((module) =>
       module.openPanel(trigger, { addTopic, editTopic, addSource, editSource }, start),
     );
@@ -319,8 +361,6 @@ export function mountEditor(root: HTMLElement): Editor {
   // -------------------------------------------------------------------------------- the events
 
   const press = (button: HTMLButtonElement): void => {
-    const act = button.dataset.act;
-    const row = button.closest<HTMLElement>("li");
     if (
       "addSource" in button.dataset ||
       "addTopic" in button.dataset ||
@@ -329,38 +369,8 @@ export function mountEditor(root: HTMLElement): Editor {
     )
       openPanel(button);
     else if ("suggestedAdd" in button.dataset) {
-      const suggestion = JSON.parse(button.dataset.suggestedAdd ?? "{}") as {
-        name: string;
-        favicon_url?: string | null;
-        score?: number | null;
-        score_label?: string;
-        feed_url?: string;
-      };
-      const topicId = root.querySelector<HTMLElement>(".topic")?.dataset.id ?? "";
-      addRow(
-        {
-          name: suggestion.name,
-          icon: suggestion.favicon_url ?? null,
-          score: suggestion.score ?? null,
-          label: suggestion.score_label ?? "Good",
-        },
-        { op: "source.add", url: suggestion.feed_url ?? "", topic_ids: topicId ? [topicId] : [] },
-        topicId,
-      );
-      autosave.now();
-      button.disabled = true;
-      button.classList.add("is-added");
-      button.setAttribute("aria-label", `Added ${suggestion.name}`);
-      const checkTemplate = document.getElementById(
-        "suggested-check-template",
-      ) as HTMLTemplateElement | null;
-      if (checkTemplate) {
-        button.replaceChildren(checkTemplate.content.cloneNode(true));
-      }
-    } else if (act === "cancel" && row) {
-      changes.delete(row.dataset.key ?? "");
-      row.remove();
-      autosave.changed();
+      const suggestion = parseSuggestedAdd(button.dataset.suggestedAdd);
+      if (suggestion) addSuggested(button, suggestion);
     } else if (button.dataset.op) {
       const control = button as unknown as Control;
       const pressed = !held(control);

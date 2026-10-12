@@ -34,7 +34,7 @@ interface Composed {
   label: string;
 }
 
-function compose(spec: CoverSpec, meta: CoverMeta, size: number): Composed {
+function compose(spec: CoverSpec, meta: CoverMeta, size: number, wordmark = true): Composed {
   assertSpec(spec);
   const mode = TEMPLATE_LOCKUP[spec.template];
   const { ctx } = buildContext(spec, meta, size, mode);
@@ -44,7 +44,8 @@ function compose(spec: CoverSpec, meta: CoverMeta, size: number): Composed {
   const plateClip = `${uid}p`;
   const defs = `${out.defs ?? ""}${weekly ? `<clipPath id="${plateClip}"><path d="${rectPath(area)}"/></clipPath>` : ""}`;
   const art = weekly ? `<g clip-path="url(#${plateClip})">${out.body}</g>` : out.body;
-  const type = mode === "own" ? ctx.lockup.topLine(pal) : ctx.lockup.markup(pal);
+  const type =
+    mode === "own" ? ctx.lockup.topLine(pal, wordmark) : ctx.lockup.markup(pal, wordmark);
   const label = `Singularity, ${ctx.day} ${ctx.monthName}`;
   const inner =
     (defs ? `<defs>${defs}</defs>` : "") +
@@ -63,9 +64,18 @@ function wrap(size: { w: number; h: number }, composed: Composed, body: string):
   );
 }
 
+export interface CoverSvgOptions {
+  /** Draw the "Singularity" signature in the top corner. On by default. */
+  wordmark?: boolean;
+}
+
 /** Square cover, viewBox 0 0 1024 1024, no external references. */
-export function renderCoverSvg(spec: CoverSpec, meta: CoverMeta): string {
-  const composed = compose(spec, meta, SQUARE);
+export function renderCoverSvg(
+  spec: CoverSpec,
+  meta: CoverMeta,
+  options: CoverSvgOptions = {},
+): string {
+  const composed = compose(spec, meta, SQUARE, options.wordmark ?? true);
   return wrap({ w: SQUARE, h: SQUARE }, composed, composed.inner);
 }
 
@@ -77,9 +87,13 @@ function rasterize(svg: string, width: number): Uint8Array {
   return new Uint8Array(resvg.render().asPng());
 }
 
-/** PNG of the square cover at 512 or 1024 pixels. */
+/**
+ * PNG of the square cover at 512 or 1024 pixels. The 512 leaves the wordmark out: it is the image of
+ * every card, row and thumbnail, where the signature's letters are a few pixels tall and read as
+ * noise, while the date still reads. The 1024 is the player's and the podcast's artwork and keeps it.
+ */
 export function renderCoverPng(spec: CoverSpec, meta: CoverMeta, size: 512 | 1024): Uint8Array {
-  return rasterize(renderCoverSvg(spec, meta), size);
+  return rasterize(renderCoverSvg(spec, meta, { wordmark: size >= 1024 }), size);
 }
 
 /**
