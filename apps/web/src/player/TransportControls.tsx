@@ -52,7 +52,7 @@ export default function TransportControls() {
         aria-busy={state.buffering || undefined}
         onClick={() => store.toggle()}
       >
-        <PlayPauseGlyph status={state.status} />
+        <PlayPauseGlyph status={state.status} error={state.error} />
         <span className="spinner" aria-hidden="true" />
       </button>
       <button

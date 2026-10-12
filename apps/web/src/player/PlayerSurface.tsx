@@ -182,6 +182,7 @@ export default function PlayerSurface() {
                 data-stories={
                   (timeline?.items.length ?? 0) > 0 && state.status !== "error" ? "" : undefined
                 }
+                data-sourced={(timeline?.items.length ?? 0) > 0 ? "" : undefined}
               >
                 <h2 className="player-title" id={TITLE_ID} title={title}>
                   {title}

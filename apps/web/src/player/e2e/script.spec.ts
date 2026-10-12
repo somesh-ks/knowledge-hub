@@ -136,6 +136,88 @@ test.describe("an episode's script in the open player", () => {
     }
   });
 
+  test("Back to now shows only while the turn being spoken is out of view @surface", async ({
+    lab,
+    finger,
+    page,
+  }) => {
+    test.skip(
+      await page.evaluate(() => window.matchMedia("(min-width: 64rem)").matches),
+      "from 64rem the script follows in its own column",
+    );
+    await lab.open(EPISODE);
+    await mockNarration(page);
+    await finger.press(lab.cta);
+    await expect(page.locator("html")).toHaveAttribute("data-player-state", "playing", {
+      timeout: 8_000,
+    });
+    await lab.openPlayer();
+    const script = lab.dialog.getByRole("region", { name: "Transcript" });
+    await script.scrollIntoViewIfNeeded();
+    await lab.sheet.evaluate((sheet) => {
+      const top = sheet.querySelector(".player-script")?.getBoundingClientRect().top ?? 0;
+      sheet.scrollTop += top - 120;
+    });
+    // The listener is in charge (a wheel holds following) in the same moment the voice moves on.
+    await page.evaluate(() => {
+      document.querySelector<HTMLElement>('[data-player-surface] [data-turn="2"]')?.click();
+      document.querySelector("[data-player-page]")?.dispatchEvent(new Event("wheel"));
+    });
+    const now = script.locator('.script-turn[aria-current="true"]');
+    await expect(script.locator('[data-turn="2"]')).toHaveAttribute("aria-current", "true", {
+      timeout: 8_000,
+    });
+    await expect(now).toBeInViewport();
+    await page.waitForTimeout(600);
+    await expect(page.getByRole("button", { name: "Back to now" })).toHaveCount(0);
+  });
+
+  test("after a failure no turn is current @surface", async ({ lab, finger, page }) => {
+    await lab.open(EPISODE);
+    await mockNarration(page);
+    await finger.press(lab.cta);
+    await expect(page.locator("html")).toHaveAttribute("data-player-state", "playing", {
+      timeout: 8_000,
+    });
+    await lab.openPlayer();
+    const script = lab.dialog.getByRole("region", { name: "Transcript" });
+    await expect(script.locator('.script-turn[aria-current="true"]')).toHaveCount(1);
+    await page.route("**/narrated/*.mp3", (route) => route.fulfill({ status: 404, body: "" }));
+    const turns = await script.locator("[data-turn]").count();
+    await script.locator(`[data-turn="${turns - 1}"]`).dispatchEvent("click");
+    await expect(page.locator("html")).toHaveAttribute("data-player-state", "error", {
+      timeout: 10_000,
+    });
+    await expect(script.locator('.script-turn[aria-current="true"]')).toHaveCount(0);
+    await expect(script.locator("[data-spoken]")).toHaveCount(0);
+  });
+
+  test("on two columns following scrolls the list and never the page @surface", async ({
+    lab,
+    finger,
+    page,
+  }) => {
+    await page.setViewportSize({ width: 1024, height: 600 });
+    await lab.open(EPISODE);
+    await mockNarration(page);
+    await finger.press(lab.cta);
+    await expect(page.locator("html")).toHaveAttribute("data-player-state", "playing", {
+      timeout: 8_000,
+    });
+    await lab.openPlayer();
+    const script = lab.dialog.getByRole("region", { name: "Transcript" });
+    const turns = await script.locator("[data-turn]").count();
+    await script.locator(`[data-turn="${turns - 1}"]`).dispatchEvent("click");
+    await expect(script.locator(`[data-turn="${turns - 1}"]`)).toHaveAttribute(
+      "aria-current",
+      "true",
+      { timeout: 8_000 },
+    );
+    await page.waitForTimeout(1_200);
+    expect(await lab.sheet.evaluate((element) => element.scrollTop)).toBe(0);
+    expect(await page.evaluate(() => document.scrollingElement?.scrollTop ?? 0)).toBe(0);
+  });
+
   test("the transcript is one Tab stop that the arrow keys move through, and Tab follows the transport's order @surface", async ({
     lab,
     finger,

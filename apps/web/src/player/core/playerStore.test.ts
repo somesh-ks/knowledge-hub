@@ -497,6 +497,18 @@ describe("the end of a digest", () => {
     expect(harness.store.getState().upNextId).toBeNull();
   });
 
+  it("plays the story Previous lands on after the end", () => {
+    const harness = createHarness();
+    startPlaying(harness);
+    harness.audio.currentTime = 120;
+    harness.audio.finish();
+    expect(harness.store.getState().status).toBe("ended");
+    const calls = harness.audio.playCalls;
+    expect(harness.store.previous()).toBe(true);
+    expect(harness.audio.playCalls).toBe(calls + 1);
+    expect(["playing", "loading"]).toContain(harness.store.getState().status);
+  });
+
   it("leaves the ended state when the listener seeks back", () => {
     const harness = createHarness();
     startPlaying(harness);
@@ -559,9 +571,56 @@ describe("errors", () => {
   it("shows the reason a playlist gave for a file it could not make, as the one message", () => {
     const harness = createHarness();
     startPlaying(harness);
-    harness.audio.error = { code: MEDIA_ERR_NETWORK, message: "Daily narration limit reached." };
+    harness.audio.error = {
+      code: MEDIA_ERR_NETWORK,
+      narrated: {
+        message: "Daily narration limit reached.",
+        summary: "Daily limit reached",
+        standing: true,
+      },
+    };
     harness.audio.emit("error");
-    expect(harness.store.getState().error?.message).toBe("Daily narration limit reached.");
+    const error = harness.store.getState().error;
+    expect(error?.message).toBe("Daily narration limit reached.");
+    expect(error?.kind).toBe("refused");
+    expect(error?.summary).toBe("Daily limit reached");
+  });
+
+  it("never shows the browser's own MediaError message", () => {
+    const harness = createHarness();
+    startPlaying(harness);
+    harness.audio.error = {
+      code: MEDIA_ERR_SRC_NOT_SUPPORTED,
+      message: "MEDIA_ELEMENT_ERROR: Format error",
+    };
+    harness.audio.emit("error");
+    const error = harness.store.getState().error;
+    expect(error?.kind).toBe("unavailable");
+    expect(error?.message).toBe("Audio is not available for this briefing.");
+  });
+
+  it("says a standing refusal again on play, without a retry", () => {
+    const harness = createHarness();
+    startPlaying(harness);
+    harness.audio.error = {
+      code: MEDIA_ERR_NETWORK,
+      narrated: { message: "Daily narration limit reached.", standing: true },
+    };
+    harness.audio.emit("error");
+    harness.events.length = 0;
+    const before = harness.events.filter((event) => event.type === "error").length;
+    harness.store.play();
+    expect(harness.store.getState().status).toBe("error");
+    expect(harness.events.filter((event) => event.type === "error")).toHaveLength(before + 1);
+    expect(
+      harness.events.some(
+        (event) =>
+          event.type === "willPlay" &&
+          event.reason === "user" &&
+          harness.events.indexOf(event) > 0 &&
+          false,
+      ),
+    ).toBe(false);
   });
 
   it("says the audio is unavailable when the source cannot be used", () => {

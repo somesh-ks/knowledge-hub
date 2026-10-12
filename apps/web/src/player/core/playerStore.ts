@@ -385,8 +385,14 @@ export function createPlayerStore(options: PlayerStoreOptions): PlayerStore {
     if (!audio) return;
     const error = describeMediaError(audio.error?.code, isOnline(), audioNoun());
     if (!error) return;
-    // A file the narration could not make says why; offline, the connection is the reason.
-    if (audio.error?.message && isOnline()) error.message = audio.error.message;
+    // A file the narration could not make says why; offline, the connection is the reason. The
+    // browser's own MediaError.message is debug text and is never used.
+    const narrated = audio.error?.narrated;
+    if (narrated && isOnline()) {
+      error.message = narrated.message;
+      if (narrated.summary) error.summary = narrated.summary;
+      if (narrated.standing) error.kind = "refused";
+    }
     stopFrameLoop();
     stopSaveTimer();
     stopBufferTimer();
@@ -549,6 +555,13 @@ export function createPlayerStore(options: PlayerStoreOptions): PlayerStore {
     if (disposed || !hasAudio()) return;
     if (state.status === "playing" || state.status === "loading") return;
     if (state.status === "error") {
+      if (state.error?.kind === "refused") {
+        // Nothing would be sent: say again why, without a "Playing." the listener would not get.
+        const again = { ...state.error };
+        commit({ error: again });
+        emit({ type: "error", error: again });
+        return;
+      }
       retry();
       return;
     }
@@ -648,6 +661,14 @@ export function createPlayerStore(options: PlayerStoreOptions): PlayerStore {
   }
 
   function previous(source: "ui" | "keyboard" = "ui"): boolean {
+    // From the end there is nothing playing: going back plays the story it lands on.
+    const fromEnd = state.status === "ended";
+    const moved = stepBack(source);
+    if (moved && fromEnd) play("item");
+    return moved;
+  }
+
+  function stepBack(source: "ui" | "keyboard"): boolean {
     const items = track?.timeline?.items;
     const first = items?.[0];
     if (!items || !first) return false;

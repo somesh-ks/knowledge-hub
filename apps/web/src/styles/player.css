@@ -461,6 +461,8 @@
 .player-title {
   display: -webkit-box;
   max-width: 100%;
+  /* A little inline room: centred text under a line clamp otherwise clips its last dot by a pixel. */
+  padding-inline: var(--space-1);
   overflow: hidden;
   white-space: normal;
   text-wrap: pretty;
@@ -1188,8 +1190,10 @@
     background: color-mix(in oklch, var(--color-accent), var(--color-on-accent) var(--state-press));
   }
 
+  /* Centred on the row, as the buttons are, not on its baseline. */
   .dock-time {
     display: inline-flex;
+    align-items: center;
   }
 }
 
@@ -1212,6 +1216,15 @@
   .player[data-open="true"] .dock-time {
     margin-inline-start: 0;
   }
+}
+
+/* The bar's open and close button, at every width: its chevron points where the page will go. */
+.dock-toggle svg {
+  transition: rotate var(--duration-state) var(--ease-out);
+}
+
+.dock-toggle[data-open] svg {
+  rotate: 180deg;
 }
 
 /* A mouse at tablet width has no handle and no tools column: the chevron alone, where the transport
@@ -1734,6 +1747,8 @@
    the backdrop is the dialog itself. */
 .speed-panel-body {
   display: grid;
+  /* The slider's focus ring reaches past its box; the presets start below it. */
+  row-gap: var(--space-2);
   /* The chosen speed's fill keeps the same distance from the bottom as from the sides. */
   padding: var(--space-4);
 }
@@ -2576,8 +2591,19 @@
     align-items: center;
   }
 
+  /* Under the transport, in room kept for it: the group is centred in the window, so a notice that
+     took room only when it came would lift the cover and play at every failure. */
+  .player-controls {
+    position: relative;
+    padding-block-start: var(--space-6);
+    padding-block-end: calc(var(--size-touch) + var(--banner-padding) * 2 + var(--space-4));
+  }
+
   .player-controls > :is(.player-notice) {
-    grid-column: 1 / -1;
+    position: absolute;
+    inset-block-end: 0;
+    inset-inline: 0;
+    margin-block: 0;
   }
 
   /* One timeline: the bar's. The page keeps the cover, the title, the source, the skips and the
@@ -2594,13 +2620,15 @@
     padding-block-end: var(--space-4);
   }
 
-  .player-controls {
-    padding-block-start: var(--space-6);
-  }
-
-  /* Without the story there is nothing to keep room for. */
+  /* Without the story there is nothing to keep room for, but the source row comes and goes with
+     each story: its row is kept, in the rundown and after a failure too, so the cover and the
+     transport never move when story 1 starts. */
   .player-meta[data-stories] {
     min-height: 0;
+  }
+
+  .player-meta[data-sourced] {
+    grid-template-rows: auto var(--size-touch);
   }
 
   /* Under the cover, the whole transport: previous, back ten, play, forward ten, next, then the
@@ -2648,15 +2676,6 @@
     grid-row: 1;
     grid-column: 7;
     justify-self: start;
-  }
-
-  /* The wide bar's open and close button: its chevron points where the page will go. */
-  .dock-toggle svg {
-    transition: rotate var(--duration-state) var(--ease-out);
-  }
-
-  .dock-toggle[data-open] svg {
-    rotate: 180deg;
   }
 }
 

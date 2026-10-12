@@ -94,7 +94,6 @@ test.describe("player geometry @surface", () => {
   test("at tablet width a mouse sees a way to close the open page @surface", async ({
     lab,
     page,
-    finger,
   }, info) => {
     test.skip(info.project.name !== "site-desktop", "a mouse");
     await page.setViewportSize({ width: 820, height: 1000 });
@@ -104,8 +103,33 @@ test.describe("player geometry @surface", () => {
     await lab.openPlayer();
     const toggle = page.locator(".player-dock .dock-toggle");
     await expect(toggle).toBeVisible();
-    await finger.press(toggle);
+    // Open, the chevron closes the page, so it points up.
+    await expect(toggle.locator("svg")).toHaveCSS("rotate", "180deg");
+    await toggle.focus();
+    await page.keyboard.press("Enter");
     await lab.collapsed();
+    // The chevron hid with the page: focus is on the bar's open control, not lost to the body.
+    await expect(lab.openButton).toBeFocused();
+  });
+
+  test("small things on the open page: the title keeps its last dot, the speed rows apart, the clock centred @surface", async ({
+    lab,
+    page,
+  }, info) => {
+    test.skip(info.project.name !== "site-desktop", "a mouse at 64rem");
+    await lab.open();
+    await lab.play();
+    await lab.dockSettled();
+    await lab.openPlayer();
+    const px = (selector: string, property: string) =>
+      page
+        .locator(selector)
+        .first()
+        .evaluate((el, name) => getComputedStyle(el).getPropertyValue(name), property);
+    expect(parseFloat(await px(".player-title", "padding-inline-start"))).toBeGreaterThan(0);
+    expect(await px(".dock-time", "align-items")).toBe("center");
+    await page.locator(".speed-btn").first().click();
+    expect(parseFloat(await px(".speed-panel-body", "row-gap"))).toBeGreaterThan(0);
   });
 
   test("with a mouse the clock sits by the seek line while the page is open, and the middle holds still @surface", async ({
