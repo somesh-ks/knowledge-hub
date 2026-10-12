@@ -23,8 +23,12 @@ async function expectPattern(page: Page, root: Locator, level: 1 | 2, art: strin
   expect(height).toBeGreaterThanOrEqual(44);
   await action.focus();
   await expect(action).toBeFocused();
-  // The art follows the theme's tokens: its ground is another colour in dark.
-  const fill = () => svg.locator(".art-ground").evaluate((node) => getComputedStyle(node).fill);
+  // The art follows the theme's tokens: its hero plane is another colour in dark.
+  const fill = () =>
+    svg
+      .locator(":is(.art-hero, .art-slot)")
+      .first()
+      .evaluate((node) => getComputedStyle(node).fill);
   await page.emulateMedia({ colorScheme: "light" });
   const light = await fill();
   await page.emulateMedia({ colorScheme: "dark" });
