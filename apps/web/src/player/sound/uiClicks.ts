@@ -16,8 +16,7 @@ const CONTROL =
   "[data-sound],a[href],button,input,select,summary,[role=tab],[role=switch],[role=menuitem],[role=radio],[role=checkbox],[role=link]";
 
 /** Controls whose action already plays its own cue (the sheet, the player's open page). */
-const OWNED =
-  '[data-open-sheet],[data-open="generate"],[data-open="settings"],[data-player-open],.player-collapse';
+const OWNED = '[data-open-sheet],[data-open="generate"],[data-player-open],.player-collapse';
 
 const allow = createRateLimit(90);
 
