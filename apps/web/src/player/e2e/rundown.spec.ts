@@ -67,6 +67,8 @@ test.describe("an episode's rundown and the controls under the transcript", () =
     await expect(caption).not.toContainText("Story");
     await expect(caption).toContainText("Discussion");
     await expect(lab.dialog.locator('.story-row[aria-current="true"]')).toHaveCount(0);
+    // The open page says the same on the line kept for the story, not blank room.
+    await expect(page.locator(".player-meta .player-story")).toContainText("Discussion");
     // With a mouse on a wide screen the story steps are the bar's; elsewhere the page's.
     const shown = (name: string) =>
       page
