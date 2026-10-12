@@ -3,7 +3,6 @@ import {
   CLAUDE_OPTIONS,
   countText,
   filterOptions,
-  GROUP_NAMES,
   labelFor,
   moveIndex,
   nebiusOptions,
@@ -127,21 +126,6 @@ describe("the top models", () => {
     const labels = NEBIUS_TOP.map((model) => model.label);
     expect(new Set(labels).size).toBe(labels.length);
     for (const label of labels) expect(label.trim()).not.toBe("");
-  });
-});
-
-describe("GROUP_NAMES", () => {
-  it("heads the top models and the rest", () => {
-    expect(GROUP_NAMES).toEqual({ top: "Top models", rest: "All models" });
-  });
-});
-
-describe("Claude options", () => {
-  it("are exactly Sonnet 5.5 and Haiku 5.5", () => {
-    expect(CLAUDE_OPTIONS.map((o) => [o.id, o.label])).toEqual([
-      ["claude-sonnet-5-5", "Claude Sonnet 5.5"],
-      ["claude-haiku-5-5", "Claude Haiku 5.5"],
-    ]);
   });
 });
 

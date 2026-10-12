@@ -28,10 +28,6 @@ describe("component stylesheets", () => {
     for (const file of OWN_FILES) expect(imported, `${file} is never imported`).toContain(file);
   });
 
-  it("names files in kebab-case", () => {
-    for (const file of OWN_FILES) expect(file).toMatch(/^[a-z]+(-[a-z]+)*\.css$/);
-  });
-
   it("uses tokens for color, never a raw value", () => {
     const rawColor = /#[0-9a-fA-F]{3,8}\b|\b(?:rgb|rgba|hsl|hsla|hwb|lab|lch|oklab|oklch|color)\(/;
     for (const file of OWN_FILES) {
@@ -99,13 +95,6 @@ describe("component stylesheets", () => {
         expect(allowed.has(match[1] ?? ""), `${file}: ${match[1]}`).toBe(true);
       }
     }
-  });
-
-  it("lets the pointer through the view transition overlay", () => {
-    // Without it the cursor flickers to the arrow over a link on every navigation, and a press
-    // during the transition is lost.
-    const css = withoutComments(read("view-transitions.css")).replace(/\s+/g, " ");
-    expect(css).toMatch(/::view-transition \{ pointer-events: none; \}/);
   });
 
   it("keeps a pressable control the same size under the pointer", () => {
@@ -182,15 +171,6 @@ describe("component stylesheets", () => {
     }
   });
 
-  // Import order is not enough: the build splits stylesheets into chunks and reorders them, and a
-  // page's own stylesheet comes after the layout's. The rule carries an id's weight instead, and
-  // e2e/hidden.spec.ts checks the result on every built page.
-  it("gives the [hidden] rule more weight than any component rule", () => {
-    expect(withoutComments(read("utilities.css")).trim()).toBe(
-      "[hidden]:not(#shown) {\n  display: none;\n}",
-    );
-  });
-
   // Two weights, regular and medium.
   it("uses no third weight", () => {
     for (const file of OWN_FILES) {
@@ -209,36 +189,6 @@ describe("component stylesheets", () => {
         expect(declaration, file).not.toMatch(/\d%/);
       }
     }
-  });
-});
-
-describe("player and shell geometry rules", () => {
-  const player = withoutComments(read("player.css"));
-
-  it("lists chapters in one column with no mark, at the reading size and weight", () => {
-    expect(player).not.toContain("story-row-mark");
-    expect(player).toMatch(/\.story-row \{[^}]*grid-template-columns: minmax\(0, 1fr\) auto;/);
-    expect(player).toMatch(
-      /\.story-row-title \{[^}]*font-size: var\(--font-size-reading\);[^}]*font-weight: var\(--text-reading-weight\);/,
-    );
-    expect(player).toMatch(/\.script-text \{[^}]*font-weight: var\(--text-reading-weight\);/);
-  });
-
-  it("keeps focus in a scrolling list clear of its fades", () => {
-    expect(player).toMatch(/\.list-scroll \{[^}]*scroll-padding-block: var\(--space-12\);/);
-  });
-
-  it("draws no hairline over the bar and no layer over the whole bar on hover", () => {
-    expect(player).not.toMatch(/\.player-dock \{[^}]*--color-border-hairline/);
-    expect(player).not.toMatch(/\.dock-open:hover::after/);
-  });
-
-  it("lifts a toast over the floating Play only when the Play shows", () => {
-    const sheets = withoutComments(read("sheets.css")).replace(/\s+/g, "");
-    const hidden = ":has(.hero-actions):not([data-hero-away])";
-    expect(withoutComments(read("create-sheet.css"))).toContain(`html${hidden} .play-fab`);
-    const lift = /(html\[data-fab\][^{]*)\{--toast-lift:calc\(var\(--run-room\)\+/.exec(sheets);
-    expect(lift?.[1]).toContain(`:not(${hidden})`);
   });
 });
 

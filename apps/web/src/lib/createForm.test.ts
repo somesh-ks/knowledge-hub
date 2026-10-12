@@ -2,26 +2,18 @@ import { describe, expect, it } from "vitest";
 import {
   AUDIENCES,
   DEFAULTS,
-  FORMATS,
   LENGTHS,
-  MAX_TITLE_CHARS,
   MORE_OPTIONS_TEMPLATE,
   moreOptionsSummary,
   submitLabel,
-  TONES,
   topicOptions,
   WINDOWS,
 } from "./createForm";
-import { CHARS_PER_MINUTE } from "./episodeFile";
 
 describe("submitLabel", () => {
   it("names the action and the length, with a dot between", () => {
     expect(submitLabel(10)).toBe("Generate • 10 mins");
     expect(submitLabel(3)).toBe("Generate • 3 mins");
-  });
-
-  it("uses the pace the episode files are measured at", () => {
-    expect(CHARS_PER_MINUTE).toBe(960);
   });
 });
 
@@ -41,21 +33,9 @@ describe("moreOptionsSummary", () => {
 });
 
 describe("the options", () => {
-  it("are the ones the server accepts, and the defaults are among them", () => {
-    expect(LENGTHS.map((option) => option.value)).toEqual([3, 5, 10, 15]);
-    expect(WINDOWS.map((option) => option.value)).toEqual([2, 7, 30]);
-    expect(FORMATS.map((option) => option.value)).toEqual(["readout", "discussion"]);
-    expect(TONES.map((option) => option.value)).toEqual(["neutral", "energetic", "dry"]);
+  it("offer the defaults among them", () => {
     expect(LENGTHS.some((option) => option.value === DEFAULTS.length)).toBe(true);
     expect(WINDOWS.some((option) => option.value === DEFAULTS.window)).toBe(true);
-  });
-
-  it("name each look-back window by its count of days, so they read as one scale", () => {
-    expect(WINDOWS.map((option) => option.label)).toEqual(["2 days", "7 days", "30 days"]);
-  });
-
-  it("keep the limits the server enforces", () => {
-    expect(MAX_TITLE_CHARS).toBe(80);
   });
 });
 

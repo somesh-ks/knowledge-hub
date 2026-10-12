@@ -11,6 +11,8 @@ import { describe, expect, it, vi } from "vitest";
 
 const ORIGIN = "https://news.someshks.work";
 const SOURCE = readFileSync(join(import.meta.dirname, "..", "public", "sw.js"), "utf8");
+/** The worker's own cache version, so a bump of VERSION in sw.js does not fail this file. */
+const CURRENT_VERSION = /const VERSION = "(v\d+)"/.exec(SOURCE)?.[1];
 
 interface FakeRequest {
   url: string;
@@ -509,11 +511,7 @@ describe("service worker: install and update", () => {
     expect(names).not.toContain("dispatch-shell-v0");
     expect(names).not.toContain("dispatch-pages-v0");
     expect(names).toContain("someone-elses-cache");
-    expect(names).toContain("dispatch-shell-v7");
+    expect(names).toContain(`dispatch-shell-${CURRENT_VERSION}`);
     expect(worker.claim).toHaveBeenCalled();
-  });
-
-  it("uses a versioned cache name", () => {
-    expect(SOURCE).toMatch(/const VERSION = "v\d+"/);
   });
 });

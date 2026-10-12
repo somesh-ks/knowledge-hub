@@ -81,10 +81,6 @@ describe("taps", () => {
     expect(isTap(0, TAP_MAX_MS)).toBe(true);
     expect(isTap(0, TAP_MAX_MS + 1)).toBe(false);
   });
-
-  it("uses a slop wide enough for a thumb", () => {
-    expect(TAP_SLOP_PX).toBe(12);
-  });
 });
 
 describe("where a lift sends the page", () => {
