@@ -8,7 +8,7 @@ import type { ConfigOp } from "../types/contracts";
 
 const LIST_TIMEOUT_MS = 10_000;
 
-/** What the schedule controls hold, by field: "daily.hour", "weekly.day", "weekly.voice". */
+/** What the schedule controls hold, by field: "daily.hour", "weekly.day", "weekly.voice_b". */
 export type FieldValues = Record<string, string>;
 
 const nullable = (value: string): string | null => (value === "" ? null : value);
@@ -35,7 +35,7 @@ export function scheduleOp(was: FieldValues, now: FieldValues): ConfigOp | null 
         : field.startsWith("voice")
           ? nullable(value)
           : value;
-    const voice = field === "voice" ? "voice_id" : name;
+    const voice = field === "voice" ? "voice_id" : field === "voice_b" ? "voice_id_b" : name;
     (nested[profile] ?? top)[voice] = parsed;
   }
   const weekly = Object.keys(nested.weekly ?? {}).length > 0 ? { weekly: nested.weekly } : {};
@@ -46,9 +46,10 @@ export function scheduleOp(was: FieldValues, now: FieldValues): ConfigOp | null 
 }
 
 /**
- * The voice. The voice list is loaded here, once the page is up, and fills the voice select; a
+ * The voices. The voice list is loaded here, once the page is up, and fills every voice select; a
  * failed load leaves the default and the saved voice, which is all a person needs to keep what they
- * have. A briefing is read in this one voice.
+ * have. Both voices are always on the page: the second is for discussions, and is set whatever the
+ * format is now.
  */
 export function mountProfiles(root: HTMLElement, changed: () => void): void {
   let voices: Voice[] = [];
@@ -66,7 +67,8 @@ export function mountProfiles(root: HTMLElement, changed: () => void): void {
   };
   /** The voice a select stands for: its own, or for Default the one the engine reads with. */
   const voiceOf = (select: HTMLSelectElement): Voice | undefined => {
-    const id = select.value || defaults?.voice || "";
+    const second = (select.dataset.f ?? "").endsWith("voice_b");
+    const id = select.value || (second ? defaults?.voice_b : defaults?.voice) || "";
     return voices.find((voice) => voice.id === id);
   };
   /** Samples come through the site: the page may play audio only from its own address (CSP). */
@@ -140,7 +142,10 @@ export function mountProfiles(root: HTMLElement, changed: () => void): void {
       voices = lib.parseVoices(body) ?? [];
       defaults = lib.parseVoiceDefaults(body);
       for (const select of root.querySelectorAll<HTMLSelectElement>(".podcast-voice select")) {
-        const fallback = voices.find((v) => v.id === defaults?.voice);
+        const second = (select.dataset.f ?? "").endsWith("voice_b");
+        const fallback = voices.find(
+          (v) => v.id === (second ? defaults?.voice_b : defaults?.voice),
+        );
         lib.fillVoiceSelect(select, voices, select.value, fallback);
         syncPreview(select);
       }

@@ -124,10 +124,9 @@ test.describe("the profile pages", () => {
     await expect(page.locator("[data-f$='.timezone']")).toHaveCount(0);
     await expect(page.locator("#daily-cadence")).toHaveValue("2");
     await expect(page.getByRole("radio", { name: "10 min", exact: true })).toBeChecked();
-    // A briefing is read from its digest in one voice: no Format and no second voice to choose.
-    await expect(page.getByRole("radiogroup", { name: "Format" })).toHaveCount(0);
-    await expect(page.getByRole("radio", { name: "Discussion" })).toHaveCount(0);
-    await expect(page.getByLabel("Discussion voice")).toHaveCount(0);
+    // Format and the Discussion voice are the profile's own, saved whatever the format is now.
+    await expect(page.getByRole("radio", { name: "Readout" })).toBeChecked();
+    await expect(page.getByLabel("Discussion voice", { exact: true })).toBeVisible();
     await expect(page.locator("[data-next]")).toHaveText(
       /^Next episode: (today|tomorrow|[A-Z][a-z]+day) at about 07:00$/,
     );
@@ -184,33 +183,24 @@ test.describe("the profile pages", () => {
     await expect(hint).toBeHidden();
   });
 
-  test("the voice is one row under Episode, filled from the voice list", async ({ page }) => {
+  test("both voices are rows under Episode, filled from the voice list", async ({ page }) => {
     await open(page, "daily");
-    const first = page.getByLabel("Voice", { exact: true });
-    await expect(first).toBeVisible();
-    await expect(
-      page.getByRole("region", { name: "Episode" }).getByLabel("Voice", { exact: true }),
-    ).toBeVisible();
-    await expect(page.getByRole("heading", { name: "Voices" })).toHaveCount(0);
-    await expect(first.locator("option")).toHaveText([
-      "Default",
-      // Each voice leads with the flag of its accent: en-US, en-US, en-GB.
-      "\u{1F1FA}\u{1F1F8} Ada, female",
-      "\u{1F1FA}\u{1F1F8} Leo, male",
-      "\u{1F1EC}\u{1F1E7} Nora, female",
-    ]);
-    await expect(page.locator(".podcast-voice select")).toHaveCount(1);
-    if ((page.viewportSize()?.width ?? 0) >= 640) return;
-    // On a phone the value sits under its label: its box bleeds 8px, as the trailing values do, so
-    // its fill and ring keep clear of the screen's edge, and its words start under the label's.
-    const [box, label, padding] = await first.evaluate((select) => [
-      select.getBoundingClientRect().left,
-      select.closest(".settings-row")?.querySelector(".settings-label")?.getBoundingClientRect()
-        .left ?? 0,
-      Number.parseFloat(getComputedStyle(select).paddingInlineStart),
-    ]);
-    expect(label - box).toBeCloseTo(8, 0);
-    expect(box + padding).toBeCloseTo(label, 0);
+    const episode = page.getByRole("region", { name: "Episode" });
+    const voices = [
+      episode.getByLabel("Voice", { exact: true }),
+      episode.getByLabel("Discussion voice", { exact: true }),
+    ];
+    for (const select of voices) {
+      await expect(select).toBeVisible();
+      await expect(select.locator("option")).toHaveText([
+        "Default",
+        // Each voice leads with the flag of its accent: en-US, en-US, en-GB.
+        "\u{1F1FA}\u{1F1F8} Ada, female",
+        "\u{1F1FA}\u{1F1F8} Leo, male",
+        "\u{1F1EC}\u{1F1E7} Nora, female",
+      ]);
+    }
+    await expect(page.locator(".podcast-voice select")).toHaveCount(2);
   });
 
   test("choosing a voice with a sample plays it through the site and shows its play button", async ({
@@ -293,6 +283,8 @@ test.describe("saving on its own", () => {
     await page.locator("#daily-hour").selectOption("9");
     await page.locator("#daily-cadence").selectOption("1");
     await page.getByRole("radio", { name: "15 min" }).check();
+    await page.getByRole("radio", { name: "Discussion" }).check();
+    await page.locator("#daily-voice_b").selectOption("voice-leo");
     await expect
       .poll(() => scheduleSent(sent))
       .toEqual({
@@ -300,6 +292,8 @@ test.describe("saving on its own", () => {
         hour: 9,
         cadence_days: 1,
         length_minutes: 15,
+        format: "discussion",
+        voice_id_b: "voice-leo",
       });
     await expect(toastText(page)).toHaveText(SAVED);
     // Never more requests than changes, and each sends only what changed.

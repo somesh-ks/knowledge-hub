@@ -41,8 +41,10 @@ const PAGES = {
       hour: schedule.hour,
       cadenceDays: schedule.cadenceDays,
       skipTopics: schedule.skipTopics,
+      format: schedule.format,
       lengthMinutes: schedule.lengthMinutes,
       voiceId: schedule.voiceId,
+      voiceIdB: schedule.voiceIdB,
     },
   },
   weekly: {
@@ -53,8 +55,10 @@ const PAGES = {
       hour: schedule.weekly.hour,
       day: schedule.weekly.day,
       skipTopics: schedule.weekly.skip_topics,
+      format: schedule.weekly.format,
       lengthMinutes: schedule.weekly.length_minutes,
       voiceId: schedule.weekly.voice_id,
+      voiceIdB: schedule.weekly.voice_id_b,
     },
   },
 } as const;

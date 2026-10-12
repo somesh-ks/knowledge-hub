@@ -81,16 +81,27 @@ describe("savedFields", () => {
     "daily.cadence": "2",
     "daily.length": "5",
     "daily.voice": "",
+    "daily.voice_b": "",
+    "daily.format": "readout",
   };
 
-  it("lays each schedule edit over what the page was built with, and skips fields with no control", () => {
+  it("lays each schedule edit over what the page was built with", () => {
     const ops: ConfigOp[] = [
-      { op: "schedule.set", hour: 7, cadence_days: 3, voice_id: "ava", format: "discussion" },
+      {
+        op: "schedule.set",
+        hour: 7,
+        cadence_days: 3,
+        voice_id: "ava",
+        voice_id_b: "leo",
+        format: "discussion",
+      },
     ];
     expect(savedFields(baked, ops)).toEqual({
       "daily.hour": "7",
       "daily.cadence": "3",
       "daily.voice": "ava",
+      "daily.voice_b": "leo",
+      "daily.format": "discussion",
     });
   });
 

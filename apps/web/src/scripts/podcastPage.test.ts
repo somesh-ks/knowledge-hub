@@ -6,10 +6,12 @@ describe("scheduleOp", () => {
   const was = {
     "daily.hour": "7",
     "daily.voice": "",
+    "daily.format": "readout",
     "weekly.enabled": "true",
     "weekly.day": "0",
     "weekly.length": "10",
     "weekly.voice": "",
+    "weekly.voice_b": "",
   };
 
   it("is null while nothing differs", () => {
@@ -21,15 +23,18 @@ describe("scheduleOp", () => {
       ...was,
       "daily.hour": "9",
       "daily.voice": "v1",
+      "daily.format": "discussion",
       "weekly.enabled": "false",
       "weekly.day": "5",
       "weekly.voice": "v2",
+      "weekly.voice_b": "v3",
     };
     expect(scheduleOp(was, now)).toEqual({
       op: "schedule.set",
       hour: 9,
       voice_id: "v1",
-      weekly: { enabled: false, day: 5, voice_id: "v2" },
+      format: "discussion",
+      weekly: { enabled: false, day: 5, voice_id: "v2", voice_id_b: "v3" },
     });
   });
 
