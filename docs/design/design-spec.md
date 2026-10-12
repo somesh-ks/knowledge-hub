@@ -1,5 +1,7 @@
 # Dispatch design spec
 
+> **Status, 2026-10-12.** This is the spec of the first prototype. The look has since moved to the visual language of Google Podcasts and Material 3 ([D31](../decisions.md), the tonal containers, state layers and pill buttons of [D72](../decisions.md), the type scale of [D73](../decisions.md)), so the accent, the "no pill buttons" default, the component tables and the type scale below are history where they disagree. The current values are in [tokens.json](../../tokens/tokens.json) and `apps/web/src/styles/`; the reasons are in the decision log.
+
 > The canonical UI specification. Two implementers build the web app from this file, [tokens.json](../../tokens/tokens.json), [foundations.css](../../apps/web/src/styles/foundations.css) and the prototype. Sound is specified in [sound-design.md](./sound-design.md).
 >
 > Visual reference: [ui-prototype.html](../prototype/ui-prototype.html), a working prototype built on the real tokens, the real foundations stylesheet and the real sound engine. Its component CSS, [ui-prototype.css](../../scripts/prototype/ui-prototype.css), is the source for every value below. [Screenshots](./screenshots) show each state. Hosting is Vercel; the Cloudflare mentions in the build plan are stale for design purposes.
