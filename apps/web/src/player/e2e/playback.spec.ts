@@ -65,7 +65,7 @@ test.describe("playback in a real browser", () => {
     await expect(second.locator("[data-play-item]")).toHaveAttribute("data-state", "idle");
     await expect(second.locator("[data-chip-label]")).toHaveText("0:15");
     // The bar moves to the next story: the one before is played, the one now reading takes over.
-    await page.getByRole("button", { name: "Next item" }).tap();
+    await page.getByRole("button", { name: "Next story" }).tap();
     await expect(second).toHaveAttribute("data-state", "current");
     await expect(second.locator("[data-chip-label]")).toHaveText("Playing");
     await expect(first).toHaveAttribute("data-state", "played");
@@ -233,7 +233,7 @@ test.describe("playback in a real browser", () => {
     await lab.openPlayer();
     const time = async (): Promise<number> => (await audio.read())?.currentTime ?? 0;
     await lab.dialog.getByRole("button", { name: "Pause" }).tap();
-    await page.getByRole("button", { name: "Next item" }).tap();
+    await page.getByRole("button", { name: "Next story" }).tap();
     await expect.poll(time).toBeCloseTo(15, 0);
     await page.getByRole("button", { name: "Forward 10 seconds" }).tap();
     await expect.poll(time).toBeCloseTo(25, 0);
@@ -242,7 +242,7 @@ test.describe("playback in a real browser", () => {
     await page.getByRole("button", { name: "Forward 10 seconds" }).tap();
     await expect.poll(time).toBeCloseTo(25, 0);
     // Ten seconds into the second item: Previous restarts it.
-    await page.getByRole("button", { name: "Previous item" }).tap();
+    await page.getByRole("button", { name: "Previous story" }).tap();
     await expect.poll(time).toBeCloseTo(15, 0);
     // The numerals are drawn by the buttons, over plain arrows.
     await expect(page.getByRole("button", { name: "Back 10 seconds" })).toHaveText("10");

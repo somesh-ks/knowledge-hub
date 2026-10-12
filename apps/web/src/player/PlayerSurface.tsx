@@ -185,7 +185,9 @@ export default function PlayerSurface() {
                 </h2>
                 {/* The story being read, and where it came from. Until the first story starts the line
                     says what the recording is, so the room kept for it is never an empty gap. */}
-                <p className="player-story">{item?.headline ?? recordingCaption(digest)}</p>
+                <p className="player-story">
+                  {item?.headline ?? recordingCaption(digest, state.duration)}
+                </p>
                 <SourceLink />
               </div>
             </div>

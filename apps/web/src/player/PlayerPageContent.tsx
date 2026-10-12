@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { getPlayerStore } from "./core/playerRuntime";
 import { usePlayerState } from "./hooks/usePlayer";
 import PlayerNotice from "./PlayerNotice";
@@ -28,6 +28,10 @@ export default function PlayerPageContent() {
     (track?.timeline?.items.length ?? 0) > 0 || (track?.digest.items.length ?? 0) > 0;
   // An episode opens on its transcript; a briefing has only chapters.
   const [view, setView] = useState<ListView>("transcript");
+  // Every episode opens on its transcript: a choice made on one does not carry to the next.
+  const digestId = track?.digest.id;
+  // biome-ignore lint/correctness/useExhaustiveDependencies: it runs when the recording changes
+  useEffect(() => setView("transcript"), [digestId]);
   const both = hasScript && hasChapters;
   const showScript = hasScript && (!both || view === "transcript");
   return (

@@ -9,7 +9,7 @@ test.describe("the page follows the narration", () => {
     await lab.play();
     await lab.openPlayer();
     for (let press = 0; press < 4; press += 1) {
-      await page.getByRole("button", { name: "Next item" }).tap();
+      await page.getByRole("button", { name: "Next story" }).tap();
     }
     await page.keyboard.press("Escape");
     await expect(page.locator("html")).toHaveAttribute("data-player", "closed", { timeout: 4_000 });
@@ -34,7 +34,7 @@ test.describe("the page follows the narration", () => {
     await page.waitForTimeout(100);
     const before = await page.evaluate(() => window.scrollY);
     // An item change while the reader is scrolling does not pull the page away.
-    await lab.dock.getByRole("button", { name: "Next item" }).tap();
+    await lab.dock.getByRole("button", { name: "Next story" }).tap();
     await page.waitForTimeout(900);
     expect(Math.abs((await page.evaluate(() => window.scrollY)) - before)).toBeLessThan(5);
   });

@@ -63,6 +63,17 @@ function narrateFromTap(itemId?: string): void {
   );
 }
 
+/**
+ * A story row or Previous and Next on a recording whose narration is not laid out yet: start the
+ * page's recording at that story, narrating what is missing. Does nothing when the page holds
+ * another recording than the player shows.
+ */
+export function playPageStory(digestId: string, itemId: string): void {
+  const page = getPlayerStore().getPageDigest();
+  if (!page || page.id !== digestId || page.audio) return;
+  narrateFromTap(itemId);
+}
+
 export function getPlayerStore(): PlayerStore {
   store ??= createPlayerStore({
     createAudio: getPlayerAudio,

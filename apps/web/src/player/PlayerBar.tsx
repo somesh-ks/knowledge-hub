@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useRef, useState, useSyncExternalStore } from "react";
 import { chapterMask } from "./core/chapterMask";
 import { formatClock } from "./core/formatTime";
 import { errorSummary, isPlayingStatus, recordingCaption, toggleLabel } from "./core/playerCopy";
@@ -8,6 +8,7 @@ import { dockSeekKeyValue, fractionOfTime, scrubberValueText } from "./core/scru
 import { itemIndexAt } from "./core/timeline";
 import { applyVolume, getVolume, setVolume } from "./core/volume";
 import { usePlayerFrame, usePlayerSecond, usePlayerState } from "./hooks/usePlayer";
+import { useStoryStep } from "./hooks/useStoryStep";
 import Clock from "./ui/Clock";
 import Icon from "./ui/Icon";
 import PlayerCover from "./ui/PlayerCover";
@@ -181,11 +182,16 @@ export default function PlayerBar() {
   let caption =
     section && itemCount > 0
       ? `${section.title}, ${state.itemIndex + 1} of ${itemCount}`
-      : recordingCaption(digest);
+      : recordingCaption(digest, state.duration);
   if (state.error) caption = errorSummary(state.error.kind);
   else if (state.interrupted) caption = "Interrupted, press play to resume";
 
-  const isLastItem = itemCount === 0 || state.itemIndex >= itemCount - 1;
+  const step = useStoryStep();
+  const open = useSyncExternalStore(
+    playerSheet.subscribe,
+    () => playerSheet.getSnapshot().open,
+    () => false,
+  );
 
   return (
     <section className="player-dock" aria-label="Audio player" data-player-dock>
@@ -211,9 +217,9 @@ export default function PlayerBar() {
         <button
           className="dock-btn dock-wide press"
           type="button"
-          aria-label="Previous item"
-          aria-disabled={itemCount === 0 || undefined}
-          onClick={() => store.previous()}
+          aria-label="Previous story"
+          aria-disabled={step.previousDisabled || undefined}
+          onClick={step.previous}
         >
           <Icon name="skipBack" />
         </button>
@@ -233,11 +239,9 @@ export default function PlayerBar() {
         <button
           className="dock-btn press"
           type="button"
-          aria-label="Next item"
-          aria-disabled={isLastItem || undefined}
-          onClick={() => {
-            if (!isLastItem) store.next();
-          }}
+          aria-label="Next story"
+          aria-disabled={step.nextDisabled || undefined}
+          onClick={step.next}
         >
           <Icon name="skipForward" />
         </button>
@@ -283,6 +287,22 @@ export default function PlayerBar() {
       </button>
       <div className="dock-tools">
         <DockVolume />
+        {/* What the whole bar does, said where a mouse looks for it: open the page, or close it. */}
+        <button
+          className="dock-btn dock-toggle press"
+          type="button"
+          aria-expanded={open}
+          aria-controls={PLAYER_PAGE_ID}
+          aria-label={open ? "Close the player" : "Open the player"}
+          data-open={open ? "" : undefined}
+          onClick={(event) =>
+            playerSheet.click({ t: event.timeStamp, fromPointer: event.detail > 0 })
+          }
+        >
+          <svg className="ui-icon" viewBox="0 0 256 256" aria-hidden="true" focusable="false">
+            <path d="M213.66,165.66a8,8,0,0,1-11.32,0L128,91.31,53.66,165.66a8,8,0,0,1-11.32-11.32l80-80a8,8,0,0,1,11.32,0l80,80A8,8,0,0,1,213.66,165.66Z" />
+          </svg>
+        </button>
       </div>
     </section>
   );

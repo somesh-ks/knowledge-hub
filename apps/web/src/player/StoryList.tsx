@@ -1,12 +1,13 @@
-import { getPlayerStore } from "./core/playerRuntime";
+import { getPlayerStore, playPageStory } from "./core/playerRuntime";
 import { storyEntries } from "./core/storyEntries";
 import { usePlayerState } from "./hooks/usePlayer";
 import Clock from "./ui/Clock";
 
 /**
  * "Chapters": every story, under its section, with its length. Tapping one plays it from
- * its start. The story being read is marked by shape and weight as well as color. Stories with no
- * place in the audio yet are listed as plain rows: there is nothing a tap could play from.
+ * its start. The story being read is marked by shape and weight as well as color. An episode whose
+ * narration is not laid out yet places its stories by its script, and a tap starts it there.
+ * Stories with no place at all are listed as plain rows: there is nothing a tap could play from.
  */
 export default function StoryList({ titleHidden = false }: { titleHidden?: boolean }) {
   const state = usePlayerState();
@@ -17,19 +18,22 @@ export default function StoryList({ titleHidden = false }: { titleHidden?: boole
   if (items.length === 0) return null;
 
   const store = getPlayerStore();
-  const live = state.hasStarted && state.status !== "idle";
+  // Nothing is being read while the audio has failed: no story is marked as playing.
+  const live = state.hasStarted && state.status !== "idle" && state.status !== "error";
+  const shown = sections.filter((section) => items.some((item) => item.section === section.slug));
+  // One section needs no heading of its own: the list's name already says what it is.
+  const grouped = shown.length > 1;
   return (
     <section className="story-list" aria-labelledby="player-stories-title">
       <h3 className={titleHidden ? "sr-only" : "player-section-title"} id="player-stories-title">
         Chapters
       </h3>
       <div className="list-scroll">
-        {sections.map((section) => {
+        {shown.map((section) => {
           const sectionItems = items.filter((item) => item.section === section.slug);
-          if (sectionItems.length === 0) return null;
           return (
             <div key={section.slug} className="story-group">
-              <h4 className="story-group-title">{section.title}</h4>
+              {grouped ? <h4 className="story-group-title">{section.title}</h4> : null}
               {/* biome-ignore lint/a11y/noRedundantRoles: Safari drops list semantics under list-style: none */}
               <ul className="story-rows" role="list">
                 {sectionItems.map((item) => {
@@ -40,7 +44,8 @@ export default function StoryList({ titleHidden = false }: { titleHidden?: boole
                         <Clock seconds={item.durationSec} />
                       </span>
                     ) : null;
-                  if (!timed) {
+                  const placed = timed || (item.startSec !== null && digest !== undefined);
+                  if (!placed) {
                     return (
                       <li key={item.id}>
                         <span className="story-row" data-static="">
@@ -57,7 +62,10 @@ export default function StoryList({ titleHidden = false }: { titleHidden?: boole
                         className="story-row"
                         type="button"
                         aria-current={current ? "true" : undefined}
-                        onClick={() => store.playItemAt(item.index)}
+                        onClick={() => {
+                          if (timed) store.playItemAt(item.index);
+                          else if (digest) playPageStory(digest.id, item.id);
+                        }}
                       >
                         <span className="story-row-mark" aria-hidden="true" />
                         <span className="story-row-title">{item.headline}</span>

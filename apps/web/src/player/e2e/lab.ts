@@ -515,7 +515,7 @@ export class LabPage {
   }
 
   get closeButton() {
-    return this.page.getByRole("button", { name: "Close the player" });
+    return this.page.locator(".player-collapse");
   }
 
   /**
