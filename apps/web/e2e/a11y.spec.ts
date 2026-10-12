@@ -65,8 +65,22 @@ test.describe("axe, banners and live states", () => {
     await expect(banner.locator(".banner-body")).toContainText("Audio needs a connection.");
     await expect(page.locator(".hero [data-play-digest]")).toHaveAttribute("aria-disabled", "true");
     await expect(page.locator("[data-play-item]").first()).toBeHidden();
+    // New episode needs the network: it is disabled, and a press opens no sheet.
+    const creates = page.locator("[data-create-open]");
+    const disabled = () =>
+      creates.evaluateAll((all) => all.map((each) => each.getAttribute("aria-disabled")));
+    await expect.poll(disabled).not.toContain(null);
+    const create = creates.filter({ visible: true }).first();
+    if ((await creates.filter({ visible: true }).count()) > 0) {
+      // Forced: an aria-disabled control is one Playwright will not press on its own.
+      await create.click({ force: true });
+      await expect(page.getByRole("dialog")).toHaveCount(0);
+      await expect(page).toHaveURL(/\/$/);
+    }
     expect(await violations(page)).toEqual([]);
     await context.setOffline(false);
+    await page.evaluate(() => window.dispatchEvent(new Event("online")));
+    await expect.poll(async () => (await disabled()).every((each) => each === null)).toBe(true);
   });
 
   for (const scheme of ["light", "dark"] as const) {

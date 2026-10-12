@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { type ApiDeps, FAILURE_COPY, lookupNarration, narrateSegment } from "./narrationApi";
+import { type ApiDeps, failureCopy, lookupNarration, narrateSegment } from "./narrationApi";
 
 interface Call {
   url: string;
@@ -230,15 +230,41 @@ describe("narrateSegment", () => {
   });
 });
 
-describe("FAILURE_COPY", () => {
+describe("failureCopy", () => {
+  const reasons = [
+    "passphrase_required",
+    "wrong_passphrase",
+    "daily_cap",
+    "monthly_budget",
+    "not_narratable",
+    "digest_not_found",
+    "segment_not_found",
+    "unavailable",
+    "offline",
+    "failed",
+  ] as const;
+
   it("says what happened and what to do, in plain sentences", () => {
-    for (const [reason, message] of Object.entries(FAILURE_COPY)) {
+    for (const reason of reasons) {
+      const message = failureCopy(reason, "briefing");
       if (reason === "passphrase_required") {
         expect(message).toBeNull();
         continue;
       }
       expect(message, reason).toMatch(/^[A-Z].*\.$/);
       expect(message, reason).not.toMatch(/[\u2014\u2013!]/);
+      // It never explains the interface ("the text is still here to read").
+      expect(message, reason).not.toMatch(/still here/);
     }
+  });
+
+  it("names an episode as an episode", () => {
+    expect(failureCopy("not_narratable", "episode")).toBe("This episode cannot be read aloud.");
+    expect(failureCopy("digest_not_found", "episode")).toMatch(/^This episode /);
+    for (const reason of reasons)
+      expect(failureCopy(reason, "episode") ?? "").not.toMatch(/briefing/);
+    expect(failureCopy("daily_cap", "episode")).toBe(
+      "Daily narration limit reached. Try again tomorrow.",
+    );
   });
 });

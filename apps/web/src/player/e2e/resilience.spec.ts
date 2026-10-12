@@ -45,18 +45,18 @@ test.describe("when playback does not go to plan", () => {
     await page.waitForTimeout(1_200);
     await page.evaluate(() => window.__audios[0]?.pause());
     await expect(page.locator("html")).toHaveAttribute("data-player-state", "paused");
-    await expect(page.locator(".dock-caption")).toHaveText("Interrupted, press play to resume");
+    await expect(page.locator(".dock-caption")).toHaveText("Paused by another app");
     await page.waitForTimeout(800);
     expect((await audio.read())?.paused).toBe(true);
     await lab.openPlayer();
     await expect(
-      page.getByRole("status").filter({ hasText: "Playback was interrupted" }),
+      page.getByRole("status").filter({ hasText: "Paused by another app" }),
     ).toBeVisible();
     await lab.dialog.getByRole("button", { name: "Resume" }).tap();
     await expect(page.locator("html")).toHaveAttribute("data-player-state", "playing");
-    await expect(
-      page.getByRole("status").filter({ hasText: "Playback was interrupted" }),
-    ).toHaveCount(0);
+    await expect(page.getByRole("status").filter({ hasText: "Paused by another app" })).toHaveCount(
+      0,
+    );
   });
 
   test("explains a missing audio file in plain language and retries from the same place", async ({
@@ -72,10 +72,18 @@ test.describe("when playback does not go to plan", () => {
     await expect(page.locator(".dock-caption")).toHaveText("Audio is not available");
     await lab.openPlayer();
     const notice = page.getByRole("alert").filter({ hasText: "not available" });
-    await expect(notice).toContainText("The text is still here to read.");
-    // The file comes back; the same button tries again.
+    await expect(notice).toHaveText("Audio is not available for this briefing.");
+    // Trying again cannot bring back a missing file, so the notice offers no button of its own;
+    // the Play disc is named Try again and draws a clockwise arrow, not a play triangle. The story
+    // line and its source are gone: nothing is being read.
+    await expect(notice.getByRole("button")).toHaveCount(0);
+    const disc = lab.dialog.getByRole("button", { name: "Try again" });
+    await expect(disc).toHaveCount(1);
+    await expect(disc.locator(".glyph-swap")).toHaveCount(0);
+    await expect(lab.dialog.locator(".player-story, .player-source-link")).toHaveCount(0);
+    // The file comes back; the disc tries again.
     await page.unroute("**/lab-narration.mp3*");
-    await notice.getByRole("button", { name: "Try again" }).tap();
+    await disc.tap();
     await expect(page.locator("html")).toHaveAttribute("data-player-state", "playing", {
       timeout: 10_000,
     });

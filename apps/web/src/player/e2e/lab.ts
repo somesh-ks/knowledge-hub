@@ -285,7 +285,8 @@ const CONSISTENCY_CHECK = (): string[] => {
       if (!element.hasAttribute("inert")) problems.push(`${describe(element)} is not inert`);
     }
     if (root.getAttribute("data-player") !== "open") problems.push("html is not data-player=open");
-    if (sheet.getAttribute("role") !== "dialog") problems.push("the page is not a dialog");
+    if (surface.getAttribute("role") !== "dialog") problems.push("the surface is not a dialog");
+    if (surface.getAttribute("aria-modal") !== "true") problems.push("the dialog is not modal");
     if (sheet.hasAttribute("inert")) problems.push("the expanded page is inert");
     const rect = sheet.getBoundingClientRect();
     const inside =
@@ -311,7 +312,8 @@ const CONSISTENCY_CHECK = (): string[] => {
       problems.push("html is not data-player=closed");
     }
     if (!sheet.hasAttribute("inert")) problems.push("the collapsed page is not inert");
-    if (sheet.getAttribute("role") === "dialog") problems.push("the collapsed page is a dialog");
+    if (surface.getAttribute("role") === "dialog")
+      problems.push("the collapsed player is a dialog");
   } else {
     problems.push(`the surface did not come to rest: data-state=${state}`);
   }
@@ -504,9 +506,9 @@ export class LabPage {
     return this.page.getByRole("button", { name: /^Player: / });
   }
 
-  /** The expanded player: the page, while it is a dialog. */
+  /** The expanded player's page, while the surface (page and bar) is a dialog. */
   get dialog() {
-    return this.page.locator('[data-player-page][role="dialog"]');
+    return this.page.locator('[data-player-surface][role="dialog"] [data-player-page]');
   }
 
   /** The page element itself, present whether or not it is expanded. */
@@ -515,7 +517,8 @@ export class LabPage {
   }
 
   get closeButton() {
-    return this.page.locator(".player-collapse");
+    // The focus-only pill, or on a wide screen with a mouse (where it is not shown) the bar's chevron.
+    return this.page.getByRole("button", { name: "Close the player" }).first();
   }
 
   /**

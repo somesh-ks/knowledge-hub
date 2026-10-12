@@ -131,7 +131,7 @@ describe("announcements", () => {
     expect(announcementForEvent({ type: "didPause", reason: "user" }, track)).toBe("Paused.");
     expect(announcementForEvent({ type: "didPause", reason: "scrub" }, track)).toBeNull();
     expect(announcementForEvent({ type: "itemChanged", index: 1, cause: "skip-next" }, track)).toBe(
-      "Item 2 of 4: The safe triangle, rebuilt",
+      "Story 2 of 4: The safe triangle, rebuilt",
     );
     expect(
       announcementForEvent({ type: "itemChanged", index: 1, cause: "auto" }, track),
@@ -142,15 +142,27 @@ describe("announcements", () => {
   });
 
   it("announces speed, the end and errors in plain words", () => {
-    expect(announcementForEvent({ type: "rateChanged", rate: 1.25 }, track)).toBe("Speed 1.25x.");
+    // The slider and the pressed preset say the speed; the live region would say it twice.
+    expect(announcementForEvent({ type: "rateChanged", rate: 1.25 }, track)).toBeNull();
     expect(announcementForEvent({ type: "ended" }, track)).toBe("Briefing finished.");
+    const episode = { ...track, digest: { ...track.digest, turns: [] } } as typeof track;
+    expect(announcementForEvent({ type: "ended" }, episode)).toBe("Episode finished.");
     expect(
       announcementForEvent(
         { type: "error", error: { kind: "network", message: "Audio did not load." } },
         track,
       ),
     ).toBe("Audio did not load.");
-    expect(announcementForEvent({ type: "interrupted" }, track)).toMatch(/interrupted/);
+    expect(announcementForEvent({ type: "interrupted" }, track)).toBe("Paused by another app.");
+    // With the open player on screen its notice speaks errors and interruptions itself.
+    expect(announcementForEvent({ type: "interrupted" }, track, { open: true })).toBeNull();
+    expect(
+      announcementForEvent(
+        { type: "error", error: { kind: "network", message: "Offline." } },
+        track,
+        { open: true },
+      ),
+    ).toBeNull();
   });
 
   it("alternates two regions and clears each before reuse so no message is dropped", () => {

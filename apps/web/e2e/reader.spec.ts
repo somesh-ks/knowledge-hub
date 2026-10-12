@@ -1,3 +1,4 @@
+import type { Page } from "@playwright/test";
 import type { PlayerDigestData } from "../src/types/contracts";
 import { toRgba } from "./colors";
 import { AUDIO_DIGEST, expect, hydrated, SILENT_DIGEST, test } from "./fixtures";
@@ -880,5 +881,39 @@ test.describe("the page's chrome", () => {
     // An older briefing is one level down from the Library, and leads back to it.
     await page.goto(SILENT_DIGEST);
     await expect(page.locator(".app-bar-back")).toHaveAttribute("href", "/library");
+  });
+});
+
+test.describe("the app bar's Back", () => {
+  // The app bar shows below 64rem; the desktop project narrows its window to reach it with a mouse.
+  async function narrow(page: Page): Promise<void> {
+    const size = page.viewportSize();
+    if (size && size.width >= 1024) await page.setViewportSize({ width: 900, height: size.height });
+  }
+
+  test("Back returns to the page you came from: Today, then an earlier briefing", async ({
+    page,
+  }) => {
+    await narrow(page);
+    await page.goto("/");
+    await hydrated(page);
+    await page.locator(`a[href="${SILENT_DIGEST}"]`).first().click();
+    await expect(page).toHaveURL(new RegExp(`${SILENT_DIGEST}$`));
+    await page.locator(".app-bar-back").click();
+    await expect(page).toHaveURL(/\/$/);
+    await expect(page.getByRole("heading", { level: 1 })).toHaveText("Wednesday 7 October");
+  });
+
+  test("Back keeps the Library's order, as system Back does", async ({ page }) => {
+    await narrow(page);
+    await page.goto("/library");
+    await hydrated(page);
+    await page.getByRole("combobox", { name: "Sort" }).selectOption("oldest");
+    await expect(page).toHaveURL(/sort=oldest/);
+    await page.locator('a.card-link[href^="/e/"]').first().click();
+    await expect(page).toHaveURL(/\/e\//);
+    await page.locator(".app-bar-back").click();
+    await expect(page).toHaveURL(/\/library\?sort=oldest$/);
+    await expect(page.getByRole("combobox", { name: "Sort" })).toHaveValue("oldest");
   });
 });

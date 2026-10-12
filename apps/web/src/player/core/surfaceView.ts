@@ -163,7 +163,11 @@ export function createSurfaceView(): SurfaceView {
     },
     leaveModal() {
       const found = parts();
-      scope.leave({ page: found?.page ?? null, focusTo: found?.opener ?? null });
+      scope.leave({
+        surface: found?.root ?? null,
+        page: found?.page ?? null,
+        focusTo: found?.opener ?? null,
+      });
     },
     capturePointer(pointerId) {
       try {

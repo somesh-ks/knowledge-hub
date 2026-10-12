@@ -52,10 +52,10 @@ export default function TransportControls() {
         aria-busy={state.buffering || undefined}
         onClick={() => store.toggle()}
       >
-        <PlayPauseGlyph />
+        {/* After a failure the disc is named Try again, and its glyph says the same. */}
+        {state.status === "error" ? <Icon name="refresh" /> : <PlayPauseGlyph />}
         <span className="spinner" aria-hidden="true" />
       </button>
-      <SpeedControl />
       <button
         className="transport-btn transport-skip press"
         type="button"
@@ -76,6 +76,9 @@ export default function TransportControls() {
       >
         <Icon name="skipForward" />
       </button>
+      {/* Last in the DOM so Tab reaches it after Next; the grid places it under Play on a phone
+          and after Forward ten on a wide screen. */}
+      <SpeedControl />
     </div>
   );
 }

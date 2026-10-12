@@ -12,7 +12,7 @@ import SegmentedControl from "./ui/SegmentedControl";
 type ListView = "chapters" | "transcript";
 
 const LIST_VIEWS = [
-  { value: "chapters", label: "Chapters" },
+  { value: "chapters", label: "Stories" },
   { value: "transcript", label: "Transcript" },
 ] as const;
 

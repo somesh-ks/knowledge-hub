@@ -1,11 +1,17 @@
 import { useEffect, useRef, useState, useSyncExternalStore } from "react";
 import { chapterMask } from "./core/chapterMask";
 import { formatClock } from "./core/formatTime";
-import { errorSummary, isPlayingStatus, recordingCaption, toggleLabel } from "./core/playerCopy";
+import {
+  errorSummary,
+  INTERRUPTED_LINE,
+  isPlayingStatus,
+  recordingCaption,
+  toggleLabel,
+} from "./core/playerCopy";
 import { getPlayerStore } from "./core/playerRuntime";
 import { playerSheet } from "./core/playerSheet";
 import { dockSeekKeyValue, fractionOfTime, scrubberValueText } from "./core/scrubberMath";
-import { itemIndexAt } from "./core/timeline";
+import { itemIndexAt, storyCaption, storySectionName } from "./core/timeline";
 import { applyVolume, getVolume, setVolume } from "./core/volume";
 import { usePlayerFrame, usePlayerSecond, usePlayerState } from "./hooks/usePlayer";
 import Clock from "./ui/Clock";
@@ -83,7 +89,13 @@ function DockSeek({ duration }: { duration: number }) {
         step="any"
         value={value}
         aria-label="Seek"
-        aria-valuetext={scrubberValueText(spoken, whole, section?.title ?? "", at, itemCount)}
+        aria-valuetext={scrubberValueText(
+          spoken,
+          whole,
+          storySectionName(state.track?.digest, section),
+          at,
+          itemCount,
+        )}
         onChange={(event) => move(Number(event.currentTarget.value))}
         onKeyDown={(event) => {
           // A range with no step would move a hundredth of its length per key.
@@ -194,10 +206,10 @@ export default function PlayerBar() {
 
   let caption =
     section && itemCount > 0
-      ? `${section.title}, ${state.itemIndex + 1} of ${itemCount}`
+      ? storyCaption(timeline ?? null, state.itemIndex, storySectionName(digest, section))
       : recordingCaption(digest, state.duration);
   if (state.error) caption = errorSummary(state.error.kind);
-  else if (state.interrupted) caption = "Interrupted, press play to resume";
+  else if (state.interrupted) caption = INTERRUPTED_LINE;
 
   // The bar shows once something has played, so what it holds is laid out: the timeline steps.
   const isLastItem = itemCount === 0 || state.itemIndex >= itemCount - 1;

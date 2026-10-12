@@ -291,7 +291,7 @@ describe("createNarrationController", () => {
     });
     answers.push({ value: "open sesame", remember: false });
     await expect(controller.play(page)).resolves.toBe("failed");
-    expect(said[0]).toMatch(/Today's limit/);
+    expect(said[0]).toBe("Daily narration limit reached. Try again tomorrow.");
     expect(harness.store.getState().digestId).toBeNull();
   });
 

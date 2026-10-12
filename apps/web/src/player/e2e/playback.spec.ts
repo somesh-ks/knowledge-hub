@@ -215,7 +215,7 @@ test.describe("playback in a real browser", () => {
     await expect(panel).toBeHidden();
     await expect(speed).toBeFocused();
     // The player behind it is still open.
-    await expect(lab.sheet).toHaveAttribute("aria-modal", "true");
+    await expect(page.locator("[data-player-surface]")).toHaveAttribute("aria-modal", "true");
     await page.keyboard.press("Enter");
     await expect(slider).toBeFocused();
     await page.keyboard.press("End");

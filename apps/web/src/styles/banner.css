@@ -122,6 +122,18 @@
   inline-size: auto;
 }
 
+/* Offline, New episode cannot start (deviceBanners.ts marks it aria-disabled): it shows as disabled
+   and takes no state layer. */
+[data-create-open][aria-disabled="true"] {
+  color: var(--color-on-surface-disabled);
+  cursor: default;
+  pointer-events: auto;
+}
+
+[data-create-open][aria-disabled="true"] > * {
+  opacity: var(--opacity-disabled);
+}
+
 /* Offline there is nothing to play, so the floating Play button goes, as the story chips do. */
 html[data-offline] .play-fab {
   visibility: hidden;

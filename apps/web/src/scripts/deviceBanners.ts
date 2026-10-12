@@ -22,10 +22,22 @@ function hide(kind: "offline"): void {
   bannerStack()?.querySelector(`[data-banner="${kind}"]`)?.remove();
 }
 
+/**
+ * New episode needs the network from its first step, so offline every Create control is disabled
+ * (aria-disabled, so it stays focusable and says why it does nothing) and opens no sheet.
+ */
+function syncCreate(isOffline: boolean): void {
+  for (const create of document.querySelectorAll<HTMLElement>("[data-create-open]")) {
+    if (isOffline) create.setAttribute("aria-disabled", "true");
+    else create.removeAttribute("aria-disabled");
+  }
+}
+
 /** The play chips disable themselves offline (the player's readerSync); this only says why. */
 function syncConnection(): void {
   const isOffline = !navigator.onLine;
   document.documentElement.toggleAttribute("data-offline", isOffline);
+  syncCreate(isOffline);
   if (isOffline && document.documentElement.dataset.deviceBanner !== "off") show("offline");
   else hide("offline");
 }

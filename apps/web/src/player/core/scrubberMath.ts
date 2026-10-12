@@ -170,5 +170,6 @@ export function scrubberValueText(
 ): string {
   const base = `${formatClock(timeSeconds)} of ${formatClock(durationSeconds)}`;
   if (itemCount === 0) return base;
-  return `${base}, ${sectionTitle}, item ${itemIndex + 1} of ${itemCount}`;
+  const story = `story ${itemIndex + 1} of ${itemCount}`;
+  return sectionTitle ? `${base}, ${story}, ${sectionTitle}` : `${base}, ${story}`;
 }

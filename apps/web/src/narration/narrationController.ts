@@ -8,7 +8,13 @@
  */
 import type { PlayerStore } from "../player/core/playerTypes";
 import type { NarrationTimeline, PlayerDigestData } from "../types/contracts";
-import { type ApiDeps, FAILURE_COPY, lookupNarration, narrateSegment } from "./narrationApi";
+import {
+  type ApiDeps,
+  failureCopy,
+  lookupNarration,
+  type NarrationNoun,
+  narrateSegment,
+} from "./narrationApi";
 import {
   type NarrationPlan,
   narratedDigest,
@@ -132,6 +138,8 @@ export function createNarrationController(deps: ControllerDeps): NarrationContro
   let asking = false;
   /** Bumped by every play, so an attempt that was overtaken stops quietly. */
   let attempt = 0;
+  // What the recording being started is called, for the copy of a refusal.
+  let noun: NarrationNoun = "briefing";
 
   function installAdapter(): void {
     if (adapterInstalled) return;
@@ -180,7 +188,7 @@ export function createNarrationController(deps: ControllerDeps): NarrationContro
   }
 
   function say(reason: NarrationFailure): void {
-    const message = FAILURE_COPY[reason];
+    const message = failureCopy(reason, noun);
     if (message) deps.notify(message);
   }
 
@@ -271,6 +279,7 @@ export function createNarrationController(deps: ControllerDeps): NarrationContro
   }
 
   async function play(digest: PlayerDigestData, itemId?: string): Promise<PlayOutcome> {
+    noun = digest.turns || digest.kind === "on-demand" ? "episode" : "briefing";
     attempt += 1;
     const mine = attempt;
 

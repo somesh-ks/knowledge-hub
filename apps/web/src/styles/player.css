@@ -385,7 +385,8 @@
   inset-block-start: calc(var(--stroke-ring) + var(--stroke-ring-gap) + var(--space-1));
   inset-inline-start: 50%;
   z-index: var(--z-raised);
-  padding: var(--space-2) var(--space-4);
+  /* Short, so it sits over the handle row and stops above the art rather than over it. */
+  padding: var(--space-1) var(--space-4);
   border-radius: var(--button-radius);
   background: var(--color-surface-inverse);
   color: var(--color-on-surface-inverse);
@@ -398,6 +399,14 @@
 
 .player-collapse:focus-visible {
   clip-path: none;
+}
+
+/* With a mouse on a wide screen the bar's chevron is the visible close, and it is inside the
+   dialog: a second "Close the player" would only be said twice. */
+@media (min-width: 64rem) and (hover: hover) and (pointer: fine) {
+  .player-collapse {
+    display: none;
+  }
 }
 
 .player-cover-slot {
@@ -2460,10 +2469,14 @@
   color: var(--tone);
 }
 
+/* A text button in the notice's own tone (danger ink on the danger container), with the standard
+   state layers of that ink: no grey fill muddying the tinted container. */
 .player-notice-action {
   min-height: var(--size-touch);
   padding-inline: var(--space-4);
   border-radius: var(--button-radius);
+  background: transparent;
+  color: var(--tone);
   font-weight: var(--font-weight-medium);
   transition: background-color var(--duration-press-in) var(--ease-out);
 }
@@ -2471,12 +2484,12 @@
 /* A text button: its ink's state layers over the notice, and no fill of its own at rest. */
 @media (hover: hover) and (pointer: fine) {
   .player-notice-action:hover {
-    background: color-mix(in oklch, currentColor var(--state-hover), transparent);
+    background: color-mix(in oklch, var(--tone) var(--state-hover), transparent);
   }
 }
 
 .player-notice-action:active {
-  background: color-mix(in oklch, currentColor var(--state-press), transparent);
+  background: color-mix(in oklch, var(--tone) var(--state-press), transparent);
 }
 
 .player-upnext {
@@ -2559,7 +2572,7 @@
      as in YouTube Music's full view, so the one control that matters sits by the art. */
   /* Play stays on the cover's centre line: the skips sit either side of it and the speed hangs off
      the right in a column that the empty one on the left balances. Children in order: previous,
-     back, play, speed, forward, next. */
+     back, play, forward, next, speed (last, so Tab follows what the eye sees). */
   .transport {
     display: grid;
     grid-row: 1;
@@ -2584,12 +2597,12 @@
     grid-column: 3;
   }
 
-  .transport > :nth-child(5) {
+  .transport > :nth-child(4) {
     grid-row: 1;
     grid-column: 4;
   }
 
-  .transport > :nth-child(4) {
+  .transport > .speed {
     grid-row: 1;
     grid-column: 5;
     justify-self: start;

@@ -134,7 +134,7 @@ test.describe("one surface @surface", () => {
     await lab.openPlayer();
     // By attribute: on a phone the bar is out of the accessibility tree while the page is open.
     await expect(lab.page.locator("[data-player-open]")).toHaveAttribute("aria-expanded", "true");
-    await expect(lab.sheet).toHaveAttribute("aria-modal", "true");
+    await expect(lab.surface).toHaveAttribute("aria-modal", "true");
   });
 
   test("the page rises from the bar's top edge, and below 64rem the bar's cover flies with it", async ({

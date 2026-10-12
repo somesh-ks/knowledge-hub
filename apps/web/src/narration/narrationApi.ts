@@ -171,17 +171,34 @@ export async function narrateSegment(
   return { ok: true, url: segment.audio.url };
 }
 
-/** What to tell the listener, and what to do next. Null where the interface asks instead of telling. */
-export const FAILURE_COPY: Record<NarrationFailure, string | null> = {
-  passphrase_required: null,
-  wrong_passphrase: "That passphrase is not right. Check it and try again.",
-  daily_cap: "Today's limit for new narrations is reached. This briefing can be narrated tomorrow.",
-  monthly_budget: "This month's narration allowance is used up. It resets on the first.",
-  not_narratable: "This briefing cannot be read aloud. The text is still here to read.",
-  digest_not_found:
-    "This briefing is not ready for narration yet. Reload the page, then try again.",
-  segment_not_found: "This page is out of date. Reload it, then press play again.",
-  unavailable: "Narration is not available right now. The text is still here to read.",
-  offline: "You are offline. Reconnect, then press play again.",
-  failed: "The audio could not be made. Press play to try again.",
-};
+/** What a recording is called in copy: an episode has a transcript, a briefing its text. */
+export type NarrationNoun = "briefing" | "episode";
+
+/**
+ * What to tell the listener, and what to do next, naming the recording as the page does. Null
+ * where the interface asks instead of telling.
+ */
+export function failureCopy(reason: NarrationFailure, noun: NarrationNoun): string | null {
+  switch (reason) {
+    case "passphrase_required":
+      return null;
+    case "wrong_passphrase":
+      return "That passphrase is not right. Check it and try again.";
+    case "daily_cap":
+      return "Daily narration limit reached. Try again tomorrow.";
+    case "monthly_budget":
+      return "This month's narration allowance is used up. It resets on the first.";
+    case "not_narratable":
+      return `This ${noun} cannot be read aloud.`;
+    case "digest_not_found":
+      return `This ${noun} is not ready for narration yet. Reload the page, then try again.`;
+    case "segment_not_found":
+      return "This page is out of date. Reload it, then press play again.";
+    case "unavailable":
+      return "Narration is not available right now. Try again later.";
+    case "offline":
+      return "You are offline. Reconnect, then press play again.";
+    case "failed":
+      return "The audio could not be made. Press play to try again.";
+  }
+}

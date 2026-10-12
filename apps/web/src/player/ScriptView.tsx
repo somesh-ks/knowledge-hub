@@ -13,6 +13,7 @@ import {
   wordIndexAt,
 } from "./core/scriptMath";
 import { usePlayerSecond, usePlayerState } from "./hooks/usePlayer";
+import { useRovingFocus } from "./hooks/useRovingFocus";
 
 /**
  * An episode's transcript, in the open player: every turn in order with its speaker, the turn being
@@ -173,6 +174,10 @@ export default function ScriptView({ titleHidden = false }: { titleHidden?: bool
       }
     };
   }, []);
+
+  // The transcript is one Tab stop (the turn being spoken, or the one focused last); the arrow keys,
+  // Home and End move between turns, and Enter plays the focused one.
+  useRovingFocus(rootRef, ".script-turn", turns.length > 0);
 
   if (turns.length === 0) return null;
   return (
