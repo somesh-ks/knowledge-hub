@@ -67,7 +67,7 @@ async function serveNarration(
 }
 
 test.describe("the first press of Play on a page with no audio yet", () => {
-  test("plays by itself once the first file is made, with no second press @surface", async ({
+  test("plays by itself once the first file is made, with no second press @smoke", async ({
     player,
     audio,
     finger,
@@ -87,7 +87,7 @@ test.describe("the first press of Play on a page with no audio yet", () => {
     await expect(page.locator(".dock-btn[data-primary]")).toHaveAttribute("data-loading", "false");
   });
 
-  test("Up next at the end narrates and plays a briefing with no audio @surface", async ({
+  test("Up next at the end narrates and plays a briefing with no audio", async ({
     player,
     audio,
     page,

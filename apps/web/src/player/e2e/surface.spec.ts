@@ -92,7 +92,7 @@ async function watchNav(page: Page): Promise<() => Promise<NavFrame[]>> {
     });
 }
 
-test.describe("one surface @surface", () => {
+test.describe("one surface", () => {
   test("the bar and the player are one mounted element, and nothing lives in a portal", async ({
     player,
     page,
@@ -118,7 +118,7 @@ test.describe("one surface @surface", () => {
     expect(facts).toEqual({ sharedSurface: true, surfaces: 1, inPortal: 0, insideIsland: true });
   });
 
-  test("the page is in the document before it is opened, collapsed and out of reach", async ({
+  test("the page is in the document before it is opened, collapsed and out of reach @desktop", async ({
     player,
   }) => {
     await player.open();
@@ -445,7 +445,7 @@ test.describe("one surface @surface", () => {
     expect(await navP()).toBe("");
   });
 
-  test("on a wide screen the page fills the window above the bar, and the bar keeps working", async ({
+  test("on a wide screen the page fills the window above the bar, and the bar keeps working @wide", async ({
     player,
     page,
     finger,

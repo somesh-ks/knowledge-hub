@@ -64,7 +64,7 @@ async function prime(page: Page): Promise<void> {
   await reset(page);
 }
 
-test.describe("interface cues by kind of action @surface", () => {
+test.describe("interface cues by kind of action", () => {
   test("a navigation link ticks once", async ({ player, page }) => {
     await player.open();
     await prime(page);

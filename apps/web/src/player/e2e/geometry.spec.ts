@@ -22,7 +22,7 @@ const box = async (page: Page, selector: string) =>
     };
   }, selector);
 
-test.describe("player geometry @surface", () => {
+test.describe("player geometry", () => {
   test("the chapters start at one left edge with their headings", async ({ player, page }) => {
     await player.open();
     await player.play();
@@ -91,7 +91,7 @@ test.describe("player geometry @surface", () => {
     await expect(page.getByRole("button", { name: "Next story" })).toHaveCount(1);
   });
 
-  test("at tablet width a mouse sees a way to close the open page @surface", async ({
+  test("at tablet width a mouse sees a way to close the open page", async ({
     player,
     page,
   }, info) => {
@@ -112,7 +112,7 @@ test.describe("player geometry @surface", () => {
     await expect(player.openButton).toBeFocused();
   });
 
-  test("small things on the open page: the title keeps its last dot, the speed rows apart, the clock centred @surface", async ({
+  test("small things on the open page: the title keeps its last dot, the speed rows apart, the clock centred", async ({
     player,
     page,
   }, info) => {
@@ -132,7 +132,7 @@ test.describe("player geometry @surface", () => {
     expect(parseFloat(await px(".speed-panel-body", "row-gap"))).toBeGreaterThan(0);
   });
 
-  test("with a mouse the clock sits by the seek line while the page is open, and the middle holds still @surface", async ({
+  test("with a mouse the clock sits by the seek line while the page is open, and the middle holds still", async ({
     player,
     page,
   }, info) => {
@@ -150,7 +150,7 @@ test.describe("player geometry @surface", () => {
     expect(Math.abs((after?.width ?? 0) - (middle?.width ?? 0))).toBeLessThanOrEqual(1);
   });
 
-  test("in short wide windows the open page fits at rest, and the open bar's clock is centred @surface", async ({
+  test("in short wide windows the open page fits at rest, and the open bar's clock is centred", async ({
     player,
     page,
   }, info) => {

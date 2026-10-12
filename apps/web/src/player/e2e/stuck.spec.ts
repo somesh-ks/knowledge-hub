@@ -47,8 +47,8 @@ async function finishRunBehindThePlayer(page: Page, player: PlayerPage): Promise
   await expect(dialog).toBeHidden();
 }
 
-test.describe("paths that used to leave the player stuck @surface", () => {
-  test("after Back with the player open, a tap on the bar opens it again", async ({
+test.describe("paths that used to leave the player stuck", () => {
+  test("after Back with the player open, a tap on the bar opens it again @smoke", async ({
     player,
     page,
   }) => {
@@ -79,7 +79,10 @@ test.describe("paths that used to leave the player stuck @surface", () => {
     await player.openPlayer();
   });
 
-  test("a player closed any other way gives its history entry back", async ({ player, page }) => {
+  test("a player closed any other way gives its history entry back @smoke", async ({
+    player,
+    page,
+  }) => {
     await player.open();
     await player.play();
     await player.goToNextPage();
@@ -153,7 +156,7 @@ test.describe("paths that used to leave the player stuck @surface", () => {
   }
 });
 
-test.describe("when the player's lazy half cannot load @surface", () => {
+test.describe("when the player's lazy half cannot load", () => {
   // A service worker would fetch the chunk where the route below cannot see it.
   test.use({ serviceWorkers: "block" });
 
@@ -177,7 +180,7 @@ test.describe("when the player's lazy half cannot load @surface", () => {
   });
 });
 
-test.describe("a window that changes size @surface", () => {
+test.describe("a window that changes size", () => {
   test("resizing from a phone to landscape to a desktop keeps the open player whole", async ({
     player,
     page,

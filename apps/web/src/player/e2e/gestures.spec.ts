@@ -16,7 +16,7 @@ async function opened(player: PlayerPage): Promise<{ header: Point; height: numb
 // A flick here is three large steps 8 ms apart, about 5 px/ms; a finger flicks at 1 to 3 px/ms.
 // Each event states the time it means (player.ts, gestureClock), so a loaded machine delivering them
 // late does not turn the flick into a slow drag.
-test.describe("opening by gesture @surface", () => {
+test.describe("opening by gesture", () => {
   test("a short, slow pull up goes back down without opening", async ({ player, finger }) => {
     await player.open();
     await player.play();
@@ -63,7 +63,7 @@ test.describe("opening by gesture @surface", () => {
   });
 });
 
-test.describe("closing by gesture @surface", () => {
+test.describe("closing by gesture", () => {
   test("a flick down on the header dismisses the page along its spring", async ({
     player,
     finger,
@@ -122,7 +122,7 @@ test.describe("closing by gesture @surface", () => {
   });
 });
 
-test.describe("scrolling inside the page @surface", () => {
+test.describe("scrolling inside the page", () => {
   test("scrolling the list never drags the page", async ({ player, page, finger, browserName }) => {
     test.skip(
       browserName === "webkit",
@@ -186,8 +186,8 @@ test.describe("scrolling inside the page @surface", () => {
   });
 });
 
-test.describe("closing the page @surface", () => {
-  test("closes from the keyboard's close button and gives the document back with the bar in place", async ({
+test.describe("closing the page", () => {
+  test("closes from the keyboard's close button and gives the document back with the bar in place @desktop", async ({
     player,
     page,
   }) => {
@@ -199,7 +199,7 @@ test.describe("closing the page @surface", () => {
     await expect(player.openButton.locator(".player-cover-frame")).toBeVisible();
   });
 
-  test("closes with Escape and returns focus to the control that opened it", async ({
+  test("closes with Escape and returns focus to the control that opened it @desktop", async ({
     player,
     page,
   }) => {
@@ -217,7 +217,7 @@ test.describe("closing the page @surface", () => {
     await expect(player.openButton).toBeFocused();
   });
 
-  test("Tab never reaches anything behind the open page", async ({ player, page }) => {
+  test("Tab never reaches anything behind the open page @desktop", async ({ player, page }) => {
     await opened(player);
     const seen = new Set<string>();
     for (let press = 0; press < 24; press += 1) {
@@ -239,10 +239,7 @@ test.describe("closing the page @surface", () => {
     expect([...seen].some((where) => /^player: (Playback position|Seek)/.test(where))).toBe(true);
   });
 
-  test("the dialog holds page and bar, and one control closes it @surface", async ({
-    player,
-    page,
-  }) => {
+  test("the dialog holds page and bar, and one control closes it", async ({ player, page }) => {
     await opened(player);
     const dialog = page.getByRole("dialog");
     await expect(dialog).toHaveCount(1);

@@ -9,6 +9,15 @@ const TAGS = ["wcag2a", "wcag2aa", "wcag21a", "wcag21aa", "wcag22aa"];
 async function expectAccessible(page: Page, where: string): Promise<void> {
   for (const colorScheme of ["light", "dark"] as const) {
     await page.emulateMedia({ colorScheme });
+    // The colours ease to the new scheme; axe reads them once they are there.
+    await page.evaluate(() =>
+      Promise.all(
+        document
+          .getAnimations()
+          .filter((animation) => animation instanceof CSSTransition)
+          .map((animation) => animation.finished.catch(() => null)),
+      ),
+    );
     const results = await new AxeBuilder({ page }).withTags(TAGS).analyze();
     const violations = results.violations.map((violation) => ({
       id: violation.id,

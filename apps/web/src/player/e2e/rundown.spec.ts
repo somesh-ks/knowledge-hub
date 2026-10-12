@@ -52,7 +52,7 @@ async function startEpisode(player: PlayerPage, finger: Finger, page: Page): Pro
 }
 
 test.describe("an episode's rundown and the controls under the transcript", () => {
-  test("the rundown before story 1 is no story: Next goes to story 1 and Previous to 0:00 @surface", async ({
+  test("the rundown before story 1 is no story: Next goes to story 1 and Previous to 0:00 @smoke", async ({
     player,
     finger,
     page,
@@ -85,7 +85,7 @@ test.describe("an episode's rundown and the controls under the transcript", () =
     await expect(previous).toHaveAttribute("aria-disabled", "true");
   });
 
-  test("on one column, Next story twice keeps the controls in place and goes forward @surface", async ({
+  test("on one column, Next story twice keeps the controls in place and goes forward", async ({
     player,
     finger,
     page,
@@ -110,7 +110,7 @@ test.describe("an episode's rundown and the controls under the transcript", () =
     expect((await player.boxOf(next)).y).toBeCloseTo(before.y, 0);
   });
 
-  test("on a wide screen with a mouse the cover and the controls hold still from the rundown to a failure @surface", async ({
+  test("on a wide screen with a mouse the cover and the controls hold still from the rundown to a failure @wide", async ({
     player,
     finger,
     page,
@@ -142,7 +142,7 @@ test.describe("an episode's rundown and the controls under the transcript", () =
     expect(await place()).toEqual(rundown);
   });
 
-  test("the open page and the bar under it show one play control @surface", async ({
+  test("the open page and the bar under it show one play control @desktop", async ({
     player,
     finger,
     page,

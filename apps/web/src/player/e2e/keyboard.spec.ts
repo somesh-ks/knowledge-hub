@@ -36,7 +36,7 @@ test.describe("keyboard operation of the player", () => {
     await expect.poll(time).toBeLessThan(1);
   });
 
-  test("Space plays and pauses from anywhere, the bar keeps its order, and K works in the player @surface", async ({
+  test("Space plays and pauses from anywhere, the bar keeps its order, and K works in the player @desktop", async ({
     player,
     page,
     hasTouch,
@@ -45,17 +45,21 @@ test.describe("keyboard operation of the player", () => {
     await player.play();
     const state = (value: string) =>
       expect(player.root).toHaveAttribute("data-player-state", value);
-    await page.evaluate(() => {
-      (document.activeElement as HTMLElement | null)?.blur();
-      window.scrollTo(0, 120);
-    });
-    const scrolled = await page.evaluate(() => window.scrollY);
-    await page.locator("body").press("Space");
-    await state("paused");
-    await page.keyboard.press("Space");
-    await state("playing");
-    // It acted, so the page did not scroll with it.
-    expect(await page.evaluate(() => window.scrollY)).toBe(scrolled);
+    if (hasTouch) {
+      // On the page behind the bar. (A wide window with a mouse lays the open player beside the
+      // page, so its keys are the player's own, below.)
+      await page.evaluate(() => {
+        (document.activeElement as HTMLElement | null)?.blur();
+        window.scrollTo(0, 120);
+      });
+      const scrolled = await page.evaluate(() => window.scrollY);
+      await page.locator("body").press("Space");
+      await state("paused");
+      await page.keyboard.press("Space");
+      await state("playing");
+      // It acted, so the page did not scroll with it.
+      expect(await page.evaluate(() => window.scrollY)).toBe(scrolled);
+    }
     await player.dockSettled();
     const seek = player.dock.getByRole("slider", { name: "Seek" });
     if (!hasTouch && (await seek.isVisible())) {
@@ -76,6 +80,8 @@ test.describe("keyboard operation of the player", () => {
       await page.keyboard.press("Tab");
       await expect(player.dock.getByRole("button", { name: "Next story" })).toBeFocused();
     }
+    // With a mouse from 64rem the timeline is the bar's, which the branch above drove.
+    if (!hasTouch) return;
     // Inside the open player K and Space toggle; on a button, Space presses the button instead.
     await player.openPlayer();
     await player.scrubber.focus();

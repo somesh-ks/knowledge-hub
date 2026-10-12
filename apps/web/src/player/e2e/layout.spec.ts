@@ -6,11 +6,12 @@ import { expect, test } from "./helpers";
  * everything must be reachable.
  */
 const SIZES = [
-  { width: 375, height: 553 },
-  { width: 390, height: 664 },
-  { width: 844, height: 390 },
-  { width: 1280, height: 620 },
-  { width: 1280, height: 800 },
+  { width: 375, height: 553, tag: "" },
+  { width: 390, height: 664, tag: "" },
+  { width: 844, height: 390, tag: "" },
+  // A laptop window, with a mouse: these run on the desktop project only.
+  { width: 1280, height: 620, tag: " @wide" },
+  { width: 1280, height: 800, tag: " @wide" },
 ] as const;
 
 interface LayoutReport {
@@ -102,13 +103,13 @@ const LAYOUT_CHECK = (): LayoutReport => {
   return { problems, parts: summary };
 };
 
-test.describe("layout at real window sizes @surface", () => {
+test.describe("layout at real window sizes", () => {
   for (const size of SIZES) {
-    test(`at ${size.width}x${size.height} nothing overlaps and everything can be reached`, async ({
+    test(`at ${size.width}x${size.height} nothing overlaps and everything can be reached${size.tag}`, async ({
       player,
       page,
     }) => {
-      await page.setViewportSize(size);
+      await page.setViewportSize({ width: size.width, height: size.height });
       await player.open();
       await player.play();
       await player.openPlayer();
@@ -125,7 +126,9 @@ test.describe("layout at real window sizes @surface", () => {
       await expect(last).toBeInViewport({ ratio: 0.99 });
       // And it stays there: the list must not shift when the story being read changes.
       const before = await last.boundingBox();
-      await page.waitForTimeout(7_000);
+      const story = page.locator("[data-item-id][data-state='current']");
+      const reading = await story.getAttribute("data-item-id");
+      await expect(story).not.toHaveAttribute("data-item-id", reading ?? "");
       const after = await last.boundingBox();
       // A fraction of a pixel is the scroll settling; a re-wrapped title moved rows by six.
       expect(Math.abs((after?.y ?? 0) - (before?.y ?? 0))).toBeLessThanOrEqual(1);

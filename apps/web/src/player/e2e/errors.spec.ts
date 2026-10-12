@@ -48,7 +48,7 @@ async function serve(page: Page, answer: (key: string) => Answer): Promise<void>
   });
 }
 
-test.describe("a recording that fails @surface", () => {
+test.describe("a recording that fails", () => {
   test("a missing audio file is said in plain words, and the disc tries again once it is back", async ({
     player,
     page,
@@ -166,7 +166,7 @@ test.describe("a recording that fails @surface", () => {
     expect(asked).toBeGreaterThan(before);
   });
 
-  test("in a short wide window a failure's reason is clear of the bar", async ({
+  test("in a short wide window a failure's reason is clear of the bar @wide", async ({
     player,
     page,
   }, info) => {
@@ -183,7 +183,7 @@ test.describe("a recording that fails @surface", () => {
     expect(notice.y + notice.height).toBeLessThanOrEqual(bar.y + 1);
   });
 
-  test("a failure and its retry move nothing on the open page, and two columns never overflow", async ({
+  test("a failure and its retry move nothing on the open page, and two columns never overflow @desktop", async ({
     player,
     page,
   }, info) => {

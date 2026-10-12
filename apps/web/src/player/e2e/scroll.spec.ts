@@ -3,7 +3,7 @@ import { center, expect, line, type Point, test } from "./helpers";
 
 const scrollY = (page: Page): Promise<number> => page.evaluate(() => Math.round(window.scrollY));
 
-test.describe("the page behind the open player stays where it was @surface", () => {
+test.describe("the page behind the open player stays where it was", () => {
   test("dragging on the transport row and at the list's edges never scrolls the page behind", async ({
     player,
     page,

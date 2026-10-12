@@ -38,7 +38,7 @@ async function mockNarration(page: Page): Promise<string[]> {
 }
 
 test.describe("an episode's script in the open player", () => {
-  test("a readout names nobody: the transcript is its text alone @surface", async ({
+  test("a readout names nobody: the transcript is its text alone", async ({
     player,
     finger,
     page,
@@ -56,7 +56,7 @@ test.describe("an episode's script in the open player", () => {
     await expect(script.locator(".script-speaker")).toHaveCount(0);
   });
 
-  test("names each host after their voice, marks the turn being spoken and seeks on a tap @surface", async ({
+  test("names each host after their voice, marks the turn being spoken and seeks on a tap", async ({
     player,
     finger,
     page,
@@ -98,7 +98,7 @@ test.describe("an episode's script in the open player", () => {
     });
   });
 
-  test("on one column the open page holds still at every turn change until the listener scrolls @surface", async ({
+  test("on one column the open page holds still at every turn change until the listener scrolls", async ({
     player,
     finger,
     page,
@@ -132,7 +132,7 @@ test.describe("an episode's script in the open player", () => {
     }
   });
 
-  test("Back to now shows only while the turn being spoken is out of view @surface", async ({
+  test("Back to now shows only while the turn being spoken is out of view", async ({
     player,
     finger,
     page,
@@ -168,7 +168,7 @@ test.describe("an episode's script in the open player", () => {
     await expect(page.getByRole("button", { name: "Back to now" })).toHaveCount(0);
   });
 
-  test("after a failure no turn is current @surface", async ({ player, finger, page }) => {
+  test("after a failure no turn is current", async ({ player, finger, page }) => {
     await player.open(EPISODE);
     await mockNarration(page);
     await finger.press(player.cta);
@@ -188,7 +188,7 @@ test.describe("an episode's script in the open player", () => {
     await expect(script.locator("[data-spoken]")).toHaveCount(0);
   });
 
-  test("on two columns following scrolls the list and never the page @surface", async ({
+  test("on two columns following scrolls the list and never the page", async ({
     player,
     finger,
     page,
@@ -214,7 +214,7 @@ test.describe("an episode's script in the open player", () => {
     expect(await page.evaluate(() => document.scrollingElement?.scrollTop ?? 0)).toBe(0);
   });
 
-  test("the transcript is one Tab stop that the arrow keys move through, and Tab follows the transport's order @surface", async ({
+  test("the transcript is one Tab stop that the arrow keys move through, and Tab follows the transport's order", async ({
     player,
     finger,
     page,

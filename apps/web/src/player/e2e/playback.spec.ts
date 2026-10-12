@@ -17,7 +17,7 @@ const time = async (page: Page): Promise<number> =>
   page.evaluate(() => window.__audios[0]?.currentTime ?? 0);
 
 test.describe("playback on a briefing", () => {
-  test("pauses and resumes from the bar", async ({ player, audio, page }) => {
+  test("pauses and resumes from the bar @smoke", async ({ player, audio, page }) => {
     await player.open();
     await player.play();
     await player.finger.press(player.dock.getByRole("button", { name: "Pause" }));
@@ -33,7 +33,7 @@ test.describe("playback on a briefing", () => {
     await expect(player.cta).toHaveAccessibleName(/^Pause the briefing, \d+ min left$/);
   });
 
-  test("a story chip keeps one size, so the publisher beside it never moves @surface", async ({
+  test("a story chip keeps one size, so the publisher beside it never moves", async ({
     player,
     page,
   }) => {
@@ -65,7 +65,7 @@ test.describe("playback on a briefing", () => {
     expect(widths.size, JSON.stringify(seen)).toBe(1);
   });
 
-  test("speed: from the keyboard, then a common speed in one press, kept over a reload @surface", async ({
+  test("speed: from the keyboard, then a common speed in one press, kept over a reload @desktop", async ({
     player,
     audio,
     page,
