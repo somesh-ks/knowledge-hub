@@ -9,11 +9,18 @@ export function loadTopicsFromSeed(preferences: Preferences): { custom: Topic[] 
 
 import { readFileSync } from "node:fs";
 import { readFile } from "node:fs/promises";
-import { join } from "node:path";
+import { dirname, join } from "node:path";
 import { loadEnv } from "@dispatch/core";
 import { type CommandContext, createLogger } from "../src/context.js";
 import { makeSource } from "./fetch-helpers.js";
-import { commitAll, createRepoPair, git, put, type RepoPair } from "./git-testRepo.js";
+import {
+  commitAll,
+  createRepoPair,
+  git,
+  put,
+  type RepoPair,
+  templatePair,
+} from "./git-testRepo.js";
 import { REPO_ROOT } from "./score-factories.js";
 
 export interface ConfigRepo {
@@ -46,25 +53,30 @@ export const SEED_SOURCES = [
 
 /** A clean clone holding the real preferences, a two-source registry and an empty query list. */
 export async function configRepo(now = new Date("2026-10-07T06:00:00Z")): Promise<ConfigRepo> {
-  const pair = await createRepoPair({ seedDigest: false });
+  const pair = await templatePair("config", async () => {
+    const seeded = await createRepoPair({ seedDigest: false });
+    const a = seeded.a;
+    await put(
+      a,
+      "config/preferences.json",
+      readFileSync(join(REPO_ROOT, "config", "preferences.json"), "utf8"),
+    );
+    await put(
+      a,
+      "config/sources.json",
+      `${JSON.stringify({ version: 1, sources: SEED_SOURCES }, null, 2)}\n`,
+    );
+    await put(
+      a,
+      "config/queries.json",
+      `${JSON.stringify({ version: 1, queries: [] }, null, 2)}\n`,
+    );
+    await commitAll(a, "chore: seed config");
+    git(a, "push", "-q", "origin", "main");
+    // The copy is the template; the process exit hook removes it with the others.
+    return dirname(seeded.remote);
+  });
   const root = pair.a;
-  await put(
-    root,
-    "config/preferences.json",
-    readFileSync(join(REPO_ROOT, "config", "preferences.json"), "utf8"),
-  );
-  await put(
-    root,
-    "config/sources.json",
-    `${JSON.stringify({ version: 1, sources: SEED_SOURCES }, null, 2)}\n`,
-  );
-  await put(
-    root,
-    "config/queries.json",
-    `${JSON.stringify({ version: 1, queries: [] }, null, 2)}\n`,
-  );
-  await commitAll(root, "chore: seed config");
-  git(root, "push", "-q", "origin", "main");
   const errors: string[] = [];
   const stdout: string[] = [];
   return {
