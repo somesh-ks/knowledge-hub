@@ -20,17 +20,17 @@ const ROUTES = [
  * that sets `display` on the same element shows it again. Each stylesheet that sets `display` ends
  * with its own `[hidden]` rule for that reason; this is the check that none was forgotten.
  */
-test.describe("the hidden attribute", () => {
+test("the hidden attribute hides everything that carries it, on every page", {
+  tag: "@both",
+}, async ({ page }) => {
   for (const route of ROUTES) {
-    test(`hides everything that carries it on ${route}`, async ({ page }) => {
-      await page.goto(route);
-      await page.waitForLoadState("networkidle");
-      const shown = await page.evaluate(() =>
-        [...document.querySelectorAll<HTMLElement>("[hidden]")]
-          .filter((element) => getComputedStyle(element).display !== "none")
-          .map((element) => `${element.tagName.toLowerCase()}.${element.className}`),
-      );
-      expect(shown).toEqual([]);
-    });
+    await page.goto(route);
+    await page.waitForLoadState("networkidle");
+    const shown = await page.evaluate(() =>
+      [...document.querySelectorAll<HTMLElement>("[hidden]")]
+        .filter((element) => getComputedStyle(element).display !== "none")
+        .map((element) => `${element.tagName.toLowerCase()}.${element.className}`),
+    );
+    expect(shown, route).toEqual([]);
   }
 });

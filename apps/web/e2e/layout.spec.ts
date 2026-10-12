@@ -10,7 +10,7 @@ const LONG_HOST = "an-unusually-long-subdomain.publications.a-publisher-network.
 
 test.describe("layout", () => {
   for (const width of WIDTHS) {
-    test(`nothing scrolls sideways at ${width}px`, async ({ page }) => {
+    test(`nothing scrolls sideways at ${width}px`, { tag: "@both" }, async ({ page }) => {
       await page.setViewportSize({ width, height: 900 });
       for (const route of ROUTES) {
         await page.goto(route.path);
@@ -23,9 +23,9 @@ test.describe("layout", () => {
     });
   }
 
-  test("every control answers a touch across at least 44px in both directions", async ({
-    page,
-  }) => {
+  test("every control answers a touch across at least 44px in both directions", {
+    tag: "@both",
+  }, async ({ page }) => {
     // Every headline is a link now, so there are a dozen more controls to probe on a briefing.
     test.slow();
     await page.setViewportSize({ width: 390, height: 900 });
@@ -48,11 +48,9 @@ test.describe("layout", () => {
     }
   });
 
-  test("the wide bottom bar's buttons and volume answer a touch across 44px", async ({
-    page,
-    isMobile,
-  }) => {
-    test.skip(isMobile, "The full bar with a mouse is a desktop layout");
+  test("the wide bottom bar's buttons and volume answer a touch across 44px", {
+    tag: "@desktop",
+  }, async ({ page }) => {
     await page.setViewportSize({ width: 1280, height: 900 });
     await page.goto("/");
     await hydrated(page);
@@ -75,7 +73,9 @@ test.describe("layout", () => {
     expect(small).toEqual([]);
   });
 
-  test("the reading column holds the measure on a wide screen", async ({ page }) => {
+  test("the reading column holds the measure on a wide screen", { tag: "@desktop" }, async ({
+    page,
+  }) => {
     await page.setViewportSize({ width: 1600, height: 900 });
     await page.goto("/");
     const column = await page
@@ -101,7 +101,9 @@ test.describe("layout", () => {
     expect(summary.characters).toBeLessThanOrEqual(69);
   });
 
-  test("the contents list replaces the section tabs from 80rem", async ({ page }) => {
+  test("the contents list replaces the section tabs from 80rem", { tag: "@desktop" }, async ({
+    page,
+  }) => {
     await page.setViewportSize({ width: 1280, height: 900 });
     await page.goto("/");
     const aside = page.getByRole("navigation", { name: "Contents" });
@@ -130,7 +132,9 @@ test.describe("layout", () => {
     await expect(page.locator(".tabs")).toBeVisible();
   });
 
-  test("the contents list starts level with the first section's heading", async ({ page }) => {
+  test("the contents list starts level with the first section's heading", {
+    tag: "@desktop",
+  }, async ({ page }) => {
     for (const width of [1280, 1600]) {
       await page.setViewportSize({ width, height: 900 });
       await page.goto("/");
@@ -150,9 +154,9 @@ test.describe("layout", () => {
     }
   });
 
-  test("the contents list marks the section in view and stays put while the page scrolls", async ({
-    page,
-  }) => {
+  test("the contents list marks the section in view and stays put while the page scrolls", {
+    tag: "@desktop",
+  }, async ({ page }) => {
     await page.setViewportSize({ width: 1280, height: 900 });
     await page.goto("/");
     const current = page.locator('.aside-link[aria-current="true"]');
@@ -172,9 +176,9 @@ test.describe("layout", () => {
     await expect(page.locator("#c-launches")).toBeInViewport();
   });
 
-  test("the contents list marks the last section at the end of the page, though it cannot reach the top", async ({
-    page,
-  }) => {
+  test("the contents list marks the last section at the end of the page, though it cannot reach the top", {
+    tag: "@desktop",
+  }, async ({ page }) => {
     await page.setViewportSize({ width: 1280, height: 900 });
     await page.goto("/");
     const current = page.locator('.aside-link[aria-current="true"]');
@@ -187,7 +191,9 @@ test.describe("layout", () => {
     await expect(current).toHaveText(/Research/);
   });
 
-  test("the contents list has no listening lengths, with or without audio", async ({ page }) => {
+  test("the contents list has no listening lengths, with or without audio", {
+    tag: "@desktop",
+  }, async ({ page }) => {
     await page.setViewportSize({ width: 1280, height: 900 });
     for (const path of [SILENT_DIGEST, "/"]) {
       await page.goto(path);
@@ -409,7 +415,9 @@ test.describe("layout", () => {
     ).toBe("none");
   });
 
-  test("forced colors keeps the current story and section marked", async ({ page }) => {
+  test("forced colors keeps the current story and section marked", { tag: "@desktop" }, async ({
+    page,
+  }) => {
     await page.setViewportSize({ width: 1280, height: 900 });
     await page.emulateMedia({ forcedColors: "active" });
     await page.goto("/");

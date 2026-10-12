@@ -190,11 +190,7 @@ test.describe("the Create page", () => {
 
   test("the sticky foot shows a hairline only while the form runs on under it", async ({
     page,
-  }, info) => {
-    test.skip(
-      info.project.name === "desktop",
-      "the whole form fits beside the options on a wide page",
-    );
+  }) => {
     const foot = page.locator(".create-page .create-submit");
     const line = () => foot.evaluate((node) => Number(getComputedStyle(node, "::before").opacity));
     // At rest the closed form ends above the foot's edge: the page may scroll a little (its own
@@ -215,8 +211,9 @@ test.describe("the Create page", () => {
     await expect.poll(line).toBe(0);
   });
 
-  test("a wide page does not stick the foot or draw its line", async ({ page }, info) => {
-    test.skip(info.project.name !== "desktop", "only a wide page lays the form out in columns");
+  test("a wide page does not stick the foot or draw its line", { tag: "@desktop" }, async ({
+    page,
+  }) => {
     await page.setViewportSize({ width: 1280, height: 600 });
     await openCreate(page);
     const foot = page.locator(".create-page .create-submit");
@@ -226,8 +223,7 @@ test.describe("the Create page", () => {
   });
 
   for (const width of [320, 360, 390]) {
-    test(`the chosen length fits inside its segment at ${width}px`, async ({ page }, info) => {
-      test.skip(info.project.name === "desktop", "a phone width");
+    test(`the chosen length fits inside its segment at ${width}px`, async ({ page }) => {
       await page.setViewportSize({ width, height: 800 });
       await openCreate(page);
       await segment(page, "15 min").click();
@@ -430,8 +426,7 @@ test.describe("the Create page", () => {
 
   test("More options is one closed row that names its choices, and opens in place", async ({
     page,
-  }, info) => {
-    test.skip(info.project.name === "desktop", "a wide page keeps More options open");
+  }) => {
     await page.goto("/create");
     await expect(page.locator("[data-create]")).toHaveAttribute("data-ready", "");
     const more = page.locator("[data-create-more]");
@@ -449,8 +444,9 @@ test.describe("the Create page", () => {
     );
   });
 
-  test("a wide page keeps More options open beside the main questions", async ({ page }, info) => {
-    test.skip(info.project.name !== "desktop", "only a wide page pins it");
+  test("a wide page keeps More options open beside the main questions", {
+    tag: "@desktop",
+  }, async ({ page }) => {
     await page.goto("/create");
     await expect(page.locator("[data-create]")).toHaveAttribute("data-ready", "");
     const more = page.locator("[data-create-more]");
@@ -464,10 +460,9 @@ test.describe("the Create page", () => {
     await expect(submit(page)).toBeInViewport();
   });
 
-  test("a wide page's two columns share one label size and hug their controls", async ({
-    page,
-  }, info) => {
-    test.skip(info.project.name !== "desktop", "only a wide page has two columns");
+  test("a wide page's two columns share one label size and hug their controls", {
+    tag: "@desktop",
+  }, async ({ page }) => {
     await openCreate(page);
     const sizes = await page
       .locator(".create-group .section-head")
@@ -482,10 +477,9 @@ test.describe("the Create page", () => {
     expect(hug.control).toBeLessThan(hug.column - 40);
   });
 
-  test("a segmented control keeps its width as the choice moves, and only the words slide", async ({
-    page,
-  }, info) => {
-    test.skip(info.project.name !== "desktop", "a phone stretches its controls");
+  test("a segmented control keeps its width as the choice moves, and only the words slide", {
+    tag: "@desktop",
+  }, async ({ page }) => {
     await openCreate(page);
     const read = () =>
       page.evaluate(() => {
@@ -502,10 +496,9 @@ test.describe("the Create page", () => {
     expect(await read()).toEqual(before);
   });
 
-  test("a wide page's Tab goes down the main questions to Generate, then the options", async ({
-    page,
-  }, info) => {
-    test.skip(info.project.name !== "desktop", "only a wide page has two columns");
+  test("a wide page's Tab goes down the main questions to Generate, then the options", {
+    tag: "@desktop",
+  }, async ({ page }) => {
     await page.goto("/create");
     await expect(page.locator("[data-create]")).toHaveAttribute("data-ready", "");
     const summary = page.locator("[data-create-more] > summary");
@@ -1122,8 +1115,7 @@ test.describe("navigation with three destinations and one action", () => {
     );
   });
 
-  test("below 64rem the Create page leads back to the Library", async ({ page }, info) => {
-    test.skip(info.project.name === "desktop", "the app bar is for narrower screens");
+  test("below 64rem the Create page leads back to the Library", async ({ page }) => {
     await page.goto("/create");
     const back = page.locator(".app-bar-back");
     await expect(back).toBeVisible();

@@ -64,8 +64,7 @@ async function serveNarration(page: Page): Promise<void> {
 test.describe("the floating button", () => {
   test("is Create on the Library, Play on Today, a briefing or an episode, and absent elsewhere", async ({
     page,
-  }, info) => {
-    test.skip(info.project.name === "desktop", "the floating button is for phones");
+  }) => {
     // Short enough that even an episode's page scrolls its hero's Play out of view.
     await page.setViewportSize({ width: 390, height: 560 });
     await page.goto("/library");
@@ -100,8 +99,7 @@ test.describe("the floating button", () => {
 
   test("Play waits while the hero's Play is on screen, and comes and goes with it", async ({
     page,
-  }, info) => {
-    test.skip(info.project.name === "desktop", "the floating button is for phones");
+  }) => {
     await page.setViewportSize({ width: 390, height: 560 });
     for (const path of ["/", "/e/ep-20261007-1930"]) {
       await page.goto(path);
@@ -120,8 +118,7 @@ test.describe("the floating button", () => {
     await expect(createFab(page)).toBeVisible();
   });
 
-  test("at the end of a briefing the last line stays clear of Play", async ({ page }, info) => {
-    test.skip(info.project.name === "desktop", "the floating button is for phones");
+  test("at the end of a briefing the last line stays clear of Play", async ({ page }) => {
     for (const width of [360, 390]) {
       await page.setViewportSize({ width, height: 800 });
       for (const path of ["/", "/d/2026-10-07"]) {
@@ -144,10 +141,7 @@ test.describe("the floating button", () => {
     }
   });
 
-  test("Play is extended at the top and folds while scrolling down to read", async ({
-    page,
-  }, info) => {
-    test.skip(info.project.name === "desktop", "the floating button is for phones");
+  test("Play is extended at the top and folds while scrolling down to read", async ({ page }) => {
     await page.goto(SILENT_DIGEST);
     const play = playFab(page);
     expect(Math.round((await play.boundingBox())?.width ?? 0)).toBeGreaterThan(56);
@@ -162,8 +156,7 @@ test.describe("the floating button", () => {
 
   test("Play plays the page's audio as the hero chip does, and steps aside while the bar holds it", async ({
     page,
-  }, info) => {
-    test.skip(info.project.name === "desktop", "the floating button is for phones");
+  }) => {
     await page.goto(SILENT_DIGEST);
     await hydrated(page);
     await serveNarration(page);
@@ -212,10 +205,9 @@ test.describe("the floating button", () => {
     await expect(playFab(page)).toBeHidden();
   });
 
-  test("the side column keeps New episode on every page, and no floating button shows", async ({
-    page,
-  }, info) => {
-    test.skip(info.project.name !== "desktop", "the side column is for wide screens");
+  test("the side column keeps New episode on every page, and no floating button shows", {
+    tag: "@desktop",
+  }, async ({ page }) => {
     for (const path of ["/", "/settings/daily", "/d/2026-10-05", "/e/ep-20261007-1930"]) {
       await page.goto(path);
       await expect(page.locator(".app-nav-create"), path).toBeVisible();
@@ -223,10 +215,9 @@ test.describe("the floating button", () => {
     }
   });
 
-  test("on the Create page, New episode is the current place: it goes to the top and keeps what is typed", async ({
-    page,
-  }, info) => {
-    test.skip(info.project.name !== "desktop", "the side column is for wide screens");
+  test("on the Create page, New episode is the current place: it goes to the top and keeps what is typed", {
+    tag: "@desktop",
+  }, async ({ page }) => {
     // Short enough that the whole form does not fit, so there is somewhere to scroll.
     await page.setViewportSize({ width: 1280, height: 480 });
     await page.goto("/create");

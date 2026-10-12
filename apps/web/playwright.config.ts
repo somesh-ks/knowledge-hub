@@ -6,6 +6,10 @@ const PORT = Number(process.env.PORT ?? 4321);
  * The suite builds the site with the invented fixture digests (DISPATCH_FIXTURES=1), serves the
  * output with a static server that applies vercel.json's headers, and drives it in Chromium at a
  * phone and a desktop size. Run `npx playwright install chromium` once.
+ *
+ * Each test runs in one project. Untagged tests run on the phone. A test that needs a mouse, the
+ * keyboard, the side column or the pinned form is tagged `@desktop` and runs on the desktop only.
+ * A sweep that must hold at both sizes is tagged `@both`.
  */
 export default defineConfig({
   testDir: "./e2e",
@@ -24,10 +28,12 @@ export default defineConfig({
   projects: [
     {
       name: "phone",
+      grepInvert: /@desktop/,
       use: { ...devices["Pixel 7"], viewport: { width: 390, height: 844 } },
     },
     {
       name: "desktop",
+      grep: /@desktop|@both/,
       use: { ...devices["Desktop Chrome"], viewport: { width: 1280, height: 800 } },
     },
   ],

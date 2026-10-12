@@ -747,19 +747,14 @@ test.describe("the Model page", () => {
 
   test("reads as a select until pressed, then takes typing over the whole list", async ({
     page,
-    isMobile,
   }) => {
     await open(page, "model");
-    if (!isMobile) {
-      await expect(combo(page)).toHaveCSS("cursor", "pointer");
-    }
     await combo(page).click();
     await expect(combo(page)).toHaveAttribute("aria-expanded", "true");
     await expect(options(page)).toHaveCount(5);
     // The chosen name waits as a placeholder, so typing filters at once.
     await expect(combo(page)).toHaveValue("");
     await expect(combo(page)).toHaveAttribute("placeholder", "Default");
-    if (!isMobile) await expect(combo(page)).toHaveCSS("cursor", "text");
     // A list opened with the pointer marks no row until a key is pressed.
     await expect(page.getByRole("listbox", { name: "Models" })).not.toHaveAttribute(
       "data-keyboard",

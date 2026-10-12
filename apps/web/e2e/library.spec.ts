@@ -113,10 +113,9 @@ test.describe("the library", () => {
     await expect(page.getByRole("heading", { level: 1 })).toHaveText("Monday 5 October");
   });
 
-  test("lays the covers out two across on a phone and in a single row on a desktop", async ({
-    page,
-    isMobile,
-  }) => {
+  test("lays the covers out two across on a phone and in a single row on a desktop", {
+    tag: "@both",
+  }, async ({ page, isMobile }) => {
     await page.goto("/library");
     const tops = await page
       .locator("[data-card]")
@@ -146,8 +145,7 @@ test.describe("the library", () => {
 for (const width of [360, 390]) {
   test(`the Library gallery keeps each card's facts on one line at ${width}px`, async ({
     page,
-  }, info) => {
-    test.skip(info.project.name === "desktop", "a phone width");
+  }) => {
     await page.addInitScript(() => localStorage.setItem("dispatch:played:2026-10-07", "1"));
     await page.setViewportSize({ width, height: 800 });
     await page.goto("/library");
@@ -167,10 +165,7 @@ for (const width of [360, 390]) {
 }
 
 for (const width of [360, 390]) {
-  test(`the shelf on Today keeps each card's facts on one line at ${width}px`, async ({
-    page,
-  }, info) => {
-    test.skip(info.project.name === "desktop", "a phone width");
+  test(`the shelf on Today keeps each card's facts on one line at ${width}px`, async ({ page }) => {
     await page.setViewportSize({ width, height: 800 });
     await page.goto("/");
     const lines = await page.locator(".shelf .card-facts").evaluateAll((nodes) =>
@@ -585,8 +580,7 @@ test.describe("library fixes", () => {
 test.describe("library filters and order", () => {
   test("the kind chips fit a 360px phone or scroll sideways, never widening the page", async ({
     page,
-  }, info) => {
-    test.skip(info.project.name === "desktop", "a phone width");
+  }) => {
     await page.setViewportSize({ width: 360, height: 740 });
     await page.goto("/library");
     await ready(page);

@@ -16,7 +16,7 @@ async function violations(page: Page): Promise<string[]> {
 }
 
 for (const scheme of ["light", "dark"] as const) {
-  test.describe(`axe, ${scheme} scheme`, () => {
+  test.describe(`axe, ${scheme} scheme`, { tag: "@both" }, () => {
     for (const route of ROUTES) {
       test(`${route.name} has no WCAG 2.2 AA violations`, async ({ page }) => {
         await page.emulateMedia({ colorScheme: scheme });
@@ -130,8 +130,7 @@ test.describe("axe, banners and live states", () => {
     }
   });
 
-  test("the section in view is announced as current on the tabs", async ({ page, isMobile }) => {
-    test.skip(!isMobile, "The tabs show below 80rem");
+  test("the section in view is announced as current on the tabs", async ({ page }) => {
     await page.goto("/");
     await page.evaluate(() => {
       document.querySelector("#c-research")?.scrollIntoView({ block: "start" });

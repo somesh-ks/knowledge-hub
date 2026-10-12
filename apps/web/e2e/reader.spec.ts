@@ -537,11 +537,6 @@ test.describe("sections and stories", () => {
 });
 
 test.describe("section tabs", () => {
-  test.skip(
-    ({ isMobile }) => !isMobile,
-    "The tabs show below 80rem; the contents list replaces them",
-  );
-
   // The app bar slides away on a scroll down unless motion is reduced, which moves the strip up with
   // it. These tests measure the strip against a bar that stays put.
   test.beforeEach(async ({ page }) => {
@@ -864,8 +859,7 @@ test.describe("a tapped tab's mark", () => {
 });
 
 test.describe("a headline under the pointer", () => {
-  test("is underlined whole, a hyphenated word included", async ({ page }, info) => {
-    test.skip(info.project.name !== "desktop", "a hover needs a pointer");
+  test("is underlined whole, a hyphenated word included", { tag: "@desktop" }, async ({ page }) => {
     await page.goto("/");
     await hydrated(page);
     const link = page.locator(".story-link", { has: page.locator(".no-break") }).first();
@@ -1016,8 +1010,7 @@ test.describe("the page head", () => {
     );
   });
 
-  test("uses an opaque background on the sticky app bar", async ({ page, isMobile }) => {
-    test.skip(!isMobile, "From 64rem the side navigation replaces the app bar");
+  test("uses an opaque background on the sticky app bar", async ({ page }) => {
     await page.goto("/");
     const bar = await page.locator(".app-bar").evaluate((node) => {
       const style = getComputedStyle(node);
@@ -1039,8 +1032,6 @@ test.describe("the page head", () => {
 });
 
 test.describe("the page's chrome", () => {
-  test.skip(({ isMobile }) => !isMobile, "The floating Play and the app bar are phone chrome");
-
   test("the floating Play follows the hero's Play in the page, so it is never styled before it", async ({
     page,
   }) => {
