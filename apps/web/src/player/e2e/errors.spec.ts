@@ -220,6 +220,26 @@ test.describe("a recording that fails @surface", () => {
     }
   });
 
+  test("Enter on the notice's Try again keeps focus on the page, on the Play disc", async ({
+    lab,
+    page,
+  }) => {
+    await lab.open("/d/2026-10-05");
+    await serve(page, (key) =>
+      key === "intro" ? { file: true } : { refusal: "synthesis_failed", status: 500 },
+    );
+    await lab.play();
+    await lab.openPlayer();
+    await lab.dialog.locator(".transport [aria-label='Next story']").click();
+    await expect(lab.root).toHaveAttribute("data-player-state", "error", { timeout: 10_000 });
+    await lab.dialog.getByRole("alert").getByRole("button", { name: "Try again" }).focus();
+    await page.keyboard.press("Enter");
+    // The notice leaves while the retry loads; focus is on the disc, which stays.
+    await expect(lab.dialog.locator(".transport [data-primary]")).toBeFocused();
+    await expect(lab.root).toHaveAttribute("data-player-state", "error", { timeout: 10_000 });
+    await expect(lab.dialog.locator(".transport [data-primary]")).toBeFocused();
+  });
+
   test("in a standing refusal a story whose file is made still plays", async ({ lab, page }) => {
     await lab.open("/d/2026-10-05");
     const first = await page.evaluate(
