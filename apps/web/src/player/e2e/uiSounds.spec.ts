@@ -101,7 +101,9 @@ test.describe("interface cues by kind of action @surface", () => {
   });
 
   test("a switch is a select, and its own cue is not doubled", async ({ lab, page }) => {
-    await lab.open("/settings/topics/design_engineering_craft");
+    // A general topic's page holds its on switch; the judge topics are gathered under Design, AI and
+    // Technology (D69) and have a Podcasts list instead.
+    await lab.open("/settings/topics/world");
     await prime(page);
     const topic = page.getByRole("switch").first();
     await topic.click();
