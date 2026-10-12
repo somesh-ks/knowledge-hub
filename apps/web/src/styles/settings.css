@@ -141,6 +141,13 @@
   min-height: var(--size-touch-comfortable);
 }
 
+/* On the index a control row is as tall as a two-line link row (74px), whatever its control:
+   the switch, the slider and the segments all sit in one rhythm. */
+.settings-view .rows > .settings-row {
+  min-height: calc(var(--space-12) + var(--space-6) + var(--space-1));
+  padding-block: var(--space-3);
+}
+
 .settings-text {
   display: grid;
   flex: 1 1 0;

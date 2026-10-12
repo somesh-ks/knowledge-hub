@@ -347,3 +347,30 @@ test.describe("settings page, explicit theme against the system", () => {
     });
   }
 });
+
+test("the index rows share one rhythm, the title is a sub-page title size, and Volume quiets with Sounds", async ({
+  page,
+}) => {
+  await page.goto("/settings");
+  await expect(page.locator("[data-settings]")).toHaveAttribute("data-ready");
+  const heights = await page
+    .locator(".settings-view > section:nth-of-type(-n+3) .rows > :not([hidden])")
+    .evaluateAll((rows) =>
+      rows
+        .map((row) => Math.round(row.getBoundingClientRect().height))
+        // A phone puts Theme's segments under its label: a two-storey row of its own.
+        .filter((height) => height < 100),
+    );
+  expect(Math.max(...heights) - Math.min(...heights), heights.join(" ")).toBeLessThanOrEqual(6);
+  const sounds = page.getByRole("switch", { name: "Interface sounds" });
+  if (await sounds.isChecked()) await sounds.uncheck();
+  const hint = await page
+    .locator(".settings-hint")
+    .first()
+    .evaluate((node) => getComputedStyle(node).color);
+  await expect(page.locator("label[for='settings-volume']")).toHaveCSS("color", hint);
+  const title = await page.locator("h1").evaluate((h) => getComputedStyle(h).fontSize);
+  await page.goto("/settings/daily");
+  const sub = await page.locator("h1").evaluate((h) => getComputedStyle(h).fontSize);
+  expect(title).toBe(sub);
+});
