@@ -236,15 +236,21 @@ test.describe("the profile pages", () => {
         return pause.call(this);
       };
     });
+    await mockConfig(page);
     await open(page, "daily");
     const sample = page.waitForRequest("**/api/voice-sample?voice=voice-ada");
     await page.locator("#daily-voice").selectOption("voice-ada");
     await sample;
+    await expect(toastText(page)).toHaveText(SAVED);
     const before = await page.evaluate(() => (window as unknown as { pauses: number }).pauses);
     await page.locator(".settings-up").click();
     await expect(page).toHaveURL(/\/settings$/);
+    await expect(page.locator("[data-settings]")).toHaveAttribute("data-ready", "true");
+    // The app swaps the page in place, so the window, and the sample, live on: it must be paused.
     await expect
-      .poll(() => page.evaluate(() => (window as unknown as { pauses: number }).pauses))
+      .poll(() =>
+        page.evaluate(() => (window as unknown as { pauses?: number }).pauses ?? 0).catch(() => 0),
+      )
       .toBeGreaterThan(before);
   });
 
