@@ -20,7 +20,7 @@ import {
   shouldFireDetent,
   timeFromPointer,
 } from "./core/scrubberMath";
-import { itemPositionLabel } from "./core/timeline";
+import { itemPositionLabel, storySectionName } from "./core/timeline";
 import { usePlayerFrame, usePlayerSecond, usePlayerState } from "./hooks/usePlayer";
 import { playUiCue } from "./sound/soundController";
 import { cueForDetent } from "./sound/soundMap";
@@ -221,7 +221,7 @@ export default function Scrubber() {
         aria-valuetext={scrubberValueText(
           second,
           duration,
-          section?.title ?? "",
+          storySectionName(state.track?.digest, section),
           state.itemIndex,
           itemCount,
         )}

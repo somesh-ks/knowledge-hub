@@ -6,7 +6,7 @@ import { useRovingFocus } from "./hooks/useRovingFocus";
 import Clock from "./ui/Clock";
 
 /**
- * "Chapters": every story, under its section, with its length. Tapping one plays it from
+ * "Stories": every story, under its section, with its length. Tapping one plays it from
  * its start. The story being read is marked by shape and weight as well as color. An episode whose
  * narration is not laid out yet places its stories by its script, and a tap starts it there.
  * Stories with no place at all are listed as plain rows: there is nothing a tap could play from.
@@ -32,7 +32,7 @@ export default function StoryList({ titleHidden = false }: { titleHidden?: boole
   return (
     <section className="story-list" ref={rootRef} aria-labelledby="player-stories-title">
       <h3 className={titleHidden ? "sr-only" : "player-section-title"} id="player-stories-title">
-        Chapters
+        Stories
       </h3>
       <div className="list-scroll">
         {shown.map((section) => {

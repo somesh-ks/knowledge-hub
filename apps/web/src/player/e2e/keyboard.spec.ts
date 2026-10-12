@@ -65,11 +65,11 @@ test.describe("keyboard operation of the player", () => {
     await expect(scrubber).toHaveAttribute("aria-valuemax", "90");
     await expect(scrubber).toHaveAttribute(
       "aria-valuetext",
-      /^\d+:\d\d of 1:30, Top picks, item 1 of 6$/,
+      /^\d+:\d\d of 1:30, story 1 of 6, Top picks$/,
     );
     await scrubber.focus();
     await page.keyboard.press("PageDown");
-    await expect(scrubber).toHaveAttribute("aria-valuetext", /Top picks, item 2 of 6$/);
+    await expect(scrubber).toHaveAttribute("aria-valuetext", /story 2 of 6, Top picks$/);
   });
 
   test("K and Space toggle playback only while focus is inside the open player", async ({

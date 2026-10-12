@@ -124,8 +124,10 @@ describe("detents", () => {
 describe("aria", () => {
   it("describes the position, section and item for a screen reader", () => {
     expect(scrubberValueText(86, 211, "Interaction craft", 4, 12)).toBe(
-      "1:26 of 3:31, Interaction craft, item 5 of 12",
+      "1:26 of 3:31, story 5 of 12, Interaction craft",
     );
+    // An episode's stories have no section worth naming.
+    expect(scrubberValueText(86, 211, "", 0, 6)).toBe("1:26 of 3:31, story 1 of 6");
     expect(scrubberValueText(86, 211, "", 0, 0)).toBe("1:26 of 3:31");
   });
 });
