@@ -60,7 +60,7 @@ Four workers cut one layer each from the audits' lists, and the lead merged them
 | :--- | :--- | :--- |
 | Engine, core, cover, sound, scripts (vitest) | 2,424 test blocks (3,226 cases) in 130 files | 2,237 blocks (3,040 cases) in 133 files |
 | Web unit (vitest) | 1,712 tests in 120 files; 53 s of test time, 48.5 s of it scrypt | 1,686 tests in 117 files; 19 s of test time |
-| All unit tests | 4,813 tests in 240 files | {{UNIT_AFTER}} |
+| All unit tests | 4,813 tests in 240 files; about 95 s | 4,601 tests in 240 files; 64 s |
 | Site e2e (Playwright) | 434 declarations, 988 runs of which 78 skipped every time; about 12 minutes | 312 declarations, 361 runs, none skipped; 6.4 minutes |
 | Player e2e (Playwright) | 155 tests, 947 listed runs on 10 projects, 308 of them skipped at run time; about 19 minutes with the lab | 60 tests, 68 runs on 2 projects; 3.2 minutes |
 | Dev lab | `src/player/dev` (490 lines, 441 KB), `astro dev` as a second web server, 67 lab-only tests, a Settings sheet only it could open | gone |
@@ -73,7 +73,20 @@ Browser runs fell from 1,935 listed to 429 and their wall time from about 32 min
 - **Real code, fake world**: handler tests keep the real passphrase verifier and give it a cheap hash in the real format (it reads N, r and p from the stored value); the 10.25 s edit gap runs on `page.clock`; engine tests read frozen copies of `config/preferences.json` and `voice.md` under `packages/engine/test/fixtures/config`, and only `committed-data.test.ts` reads the live config and state; `createWriterLlm` takes a retry option so tests do not wait out a real backoff; git tests copy a prebuilt repository pair.
 - **Added**: `workflow-contract.test.ts` (every `dispatch` call in `.github/workflows` goes through the CLI's own parser, so a renamed flag fails CI and not the scheduled run), `committed-data.test.ts`, `scripts/houseRules.test.ts` (the repo-wide no-dash rule), Biome's `noImportantStyles` as an error, a cross-page listening journey and an offline-player test for the player, and the regression tests of the round-nine fixes.
 - **Not done**: one shared gate for the four POST handlers (they differ in what they read and in the order of their checks, so it is not a pure move); a fetch seam for the Speechify client; some tables (`gate-decideRun` DST cases, `voice-lint`, the `heldSave` and `readerContract` tables, the Library filter table); a CI job for a phone `@smoke` set and a WebKit project (both need a workflow change the owner merges by hand).
-- **Re-break check** (D99): {{REBREAK}}
+- **Re-break check** (D99): on the merged head the lead reverted the source of each fix below, one at a time, in a scratch worktree and ran the tests that should catch it. A surviving test failed every time. Two things the old suite did not guard either: the service worker's warm depth on its own (the run-time cache and the depth have to go together) and the unlock primer in a browser (its fix only ever had unit tests).
+
+| Fix reverted | Surviving test that fails |
+| :--- | :--- |
+| The unlock primer's silence is not a recording (45196aa) | `playerStore` "does not take the unlock primer's silence for the recording, so nothing is stored as played"; `resume` "played never reads the unlock primer's silence as the end of a recording" |
+| The worker saves what a page fetches at run time (b1339af) | `serviceWorker.spec` "saves a file the page fetches at run time" and "keeps every script a settings page loads" |
+| A run's line no longer takes the Library's hook (92b48f8) | `library.spec` "search, filters and the view still work after a run" |
+| A refused change is not shown as saved (60e38d1) | 8 `managePageSave` tests |
+| The page open learns how a left page's held save ended (a751050) | 9 `managePageSave` tests |
+| A briefing without audio keeps the stories heard, and the stand-in asks the site (8e0f18a) | `memory.spec` "a briefing without audio keeps the stories heard when its page opens" (both guards reverted together); `empty.spec` "a page standing in for an address that cannot be fetched does not say back online" |
+| The `[hidden]` rule outweighs later `display` rules | `hidden.spec`, in both projects |
+| A 503 is a passing failure (b33291c) | `narrationApi` "treats the server's 503 as passing"; player `errors.spec` "a 503 mid-recording passes" |
+| Each POST handler checks the passphrase | 1 to 2 tests per handler (`generate`, `podcast`, `configEdit`, `narrate`) |
+| The engine's write guard | 22 tests in `git-commit`, `git-guard`, `config-apply`, the pipeline edge suite and the publish commands |
 
 ## Rules for tests
 
