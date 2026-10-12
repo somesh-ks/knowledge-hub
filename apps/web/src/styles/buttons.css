@@ -210,8 +210,13 @@
   position: relative;
   display: inline-flex;
   align-items: center;
+  justify-content: center;
   gap: var(--chip-gap);
   min-height: var(--chip-height);
+  /* One width for every state, so what stands beside the chip never moves as it plays. 7rem fits
+     the widest story label ("Loading", 110px) in the page font; the longer briefing labels
+     ("13 min left") are wider and keep their own size. */
+  min-inline-size: 7rem;
   padding-inline: var(--chip-padding-start) var(--chip-padding-end);
   /* No outline: the transparent border keeps the pill's size where forced colours draw one. */
   border: var(--stroke-hairline) solid transparent;
