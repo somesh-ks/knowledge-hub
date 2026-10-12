@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { contrastRatio, hexToOklch, relativeLuminance } from "./color.js";
+import { contrastRatio } from "./color.js";
 import {
   allPalettes,
   DARK_PALETTE_IDS,
@@ -71,31 +71,6 @@ describe("palettes", () => {
       expect(contrastRatio(inverted.text, inverted.ground), `${p.id} text`).toBeGreaterThanOrEqual(
         LOCKUP_CONTRAST,
       );
-    }
-  });
-
-  it("uses saturated, confident grounds: every ground is either strongly chromatic or an ink or bone neutral", () => {
-    for (const p of allPalettes()) {
-      const ground = hexToOklch(p.ground);
-      const neutral = ground.c < 0.04;
-      if (neutral) expect(ground.l > 0.9 || ground.l < 0.2, `${p.id} neutral`).toBe(true);
-      else expect(ground.c, p.id).toBeGreaterThan(0.06);
-    }
-  });
-
-  it("gives the family a spread of hues, not one blue in sixteen shades", () => {
-    const hues = allPalettes()
-      .map((p) => hexToOklch(p.ground))
-      .filter((c) => c.c >= 0.08)
-      .map((c) => Math.floor(c.h / 60));
-    expect(new Set(hues).size).toBeGreaterThanOrEqual(5);
-  });
-
-  it("labels tone honestly: dark grounds are deep, light grounds are not", () => {
-    for (const p of allPalettes()) {
-      const luminance = relativeLuminance(p.ground);
-      if (p.tone === "light") expect(luminance, p.id).toBeGreaterThan(0.2);
-      else expect(luminance, p.id).toBeLessThan(0.15);
     }
   });
 

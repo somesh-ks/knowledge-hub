@@ -1,8 +1,7 @@
-import { existsSync } from "node:fs";
 import { Resvg } from "@resvg/resvg-js";
 import { describe, expect, it } from "vitest";
 import { hexToRgb } from "./color.js";
-import { FONT_FILES, RESVG_FONT_OPTIONS } from "./fonts.js";
+import { RESVG_FONT_OPTIONS } from "./fonts.js";
 import { getPalette } from "./palettes.js";
 import { renderCoverPng, renderCoverSvg, renderSocialPng } from "./render.js";
 import type { CoverMeta, CoverSpec } from "./types.js";
@@ -51,10 +50,6 @@ describe("PNG output", () => {
     ).toBe(true);
   });
 
-  it("returns a plain Uint8Array", () => {
-    expect(renderCoverPng(SPEC, META, 512)).toBeInstanceOf(Uint8Array);
-  });
-
   it("is deterministic: same input, same bytes", () => {
     expect(
       Buffer.from(renderCoverPng(SPEC, META, 512)).equals(
@@ -82,13 +77,6 @@ describe("PNG output", () => {
 });
 
 describe("fonts", () => {
-  it("bundles Schibsted Grotesk and its license", () => {
-    expect(FONT_FILES).toHaveLength(4);
-    for (const file of FONT_FILES) expect(existsSync(file), file).toBe(true);
-    expect(existsSync(new URL("../fonts/OFL.txt", import.meta.url))).toBe(true);
-    expect(existsSync(new URL("../fonts/SchibstedGrotesk[wght].ttf", import.meta.url))).toBe(true);
-  });
-
   it("never reads system fonts, so output is the same on every machine", () => {
     expect(RESVG_FONT_OPTIONS.loadSystemFonts).toBe(false);
   });

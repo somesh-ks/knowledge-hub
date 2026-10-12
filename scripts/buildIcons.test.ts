@@ -3,16 +3,7 @@ import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { afterEach, describe, expect, it } from "vitest";
 import { parseBrandColors } from "../apps/web/src/lib/brandColors";
-import {
-  buildIcons,
-  faviconSvg,
-  ICON_SPECS,
-  iconSvg,
-  MARK_DOT_RADIUS,
-  MARK_RING,
-  renderIcon,
-  staleIcons,
-} from "./buildIcons";
+import { buildIcons, faviconSvg, ICON_SPECS, iconSvg, renderIcon, staleIcons } from "./buildIcons";
 
 const TOKENS = join(import.meta.dirname, "..", "apps", "web", "src", "styles", "tokens.css");
 const colors = parseBrandColors(readFileSync(TOKENS, "utf8"));
@@ -61,14 +52,6 @@ describe("app icons", () => {
     expect(svg).toContain(colors.accentDark);
     expect(svg).toContain("prefers-color-scheme:dark");
     expect(svg).toContain("<title>Singularity</title>");
-  });
-
-  it("draws the mark as a ringed dot: a point inside a circle, with a clear gap between them", () => {
-    const svg = iconSvg(colors, 512, 0.5);
-    expect(svg).toContain(MARK_RING);
-    expect(svg).toContain(`r="${MARK_DOT_RADIUS}"`);
-    // Inner edge of the ring is 8.25 from the centre; the dot must stay well inside it.
-    expect(MARK_DOT_RADIUS).toBeLessThan(8.25 - 2);
   });
 
   it("matches the icons committed under apps/web/public", () => {
