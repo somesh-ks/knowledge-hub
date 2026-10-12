@@ -78,7 +78,7 @@ test.describe("what the player writes on a real page", () => {
     await expect(page.locator(".story").nth(1).locator(".chip-bars")).toBeVisible();
   });
 
-  test("a story chip plays from its story and marks what came before as played", async ({
+  test("a story chip plays from its story, and marks played only what the playhead passed", async ({
     page,
   }) => {
     await hydrated(page);
@@ -103,15 +103,22 @@ test.describe("what the player writes on a real page", () => {
     // Only one story is the one being read.
     await expect(page.locator('.story[data-state="current"]')).toHaveCount(1);
 
+    // Play from here stepped over the first two: nothing was heard of them, so they are not played.
     for (const index of [0, 1]) {
       const earlier = stories.nth(index);
-      await expect(earlier).toHaveAttribute("data-state", "played");
-      await expect(earlier.locator("[data-play-item]")).toHaveAttribute("data-state", "played");
-      await expect(earlier.locator("[data-chip-label]")).toHaveText("Played");
-      await expect(earlier.locator("[data-play-item]")).toHaveAccessibleName(
-        /^Play again, played: /,
-      );
+      await expect(earlier).not.toHaveAttribute("data-state", /.*/);
+      await expect(earlier.locator("[data-play-item]")).toHaveAttribute("data-state", "idle");
+      await expect(earlier.locator("[data-chip-label]")).toHaveText(/^\d+:\d\d$/);
     }
+    // A step on to the next story keeps the run: the third, which the playhead has now passed, is played.
+    await stories.nth(3).locator("[data-play-item]").click();
+    await expect(page.locator("html")).toHaveAttribute("data-player-state", "playing");
+    await expect(third).toHaveAttribute("data-state", "played");
+    await expect(chip.locator("[data-chip-label]")).toHaveText("Played");
+    await expect(chip).toHaveAccessibleName(/^Play again, played: /);
+    await expect(stories.nth(0)).not.toHaveAttribute("data-state", /.*/);
+    await stories.nth(3).locator("[data-play-item]").click();
+    await expect(page.locator("html")).toHaveAttribute("data-player-state", "paused");
     const later = stories.nth(5).locator("[data-play-item]");
     await expect(later).toHaveAttribute("data-state", "idle");
     await expect(later.locator("[data-chip-label]")).toHaveText("0:03");
