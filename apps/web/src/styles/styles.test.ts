@@ -191,10 +191,9 @@ describe("component stylesheets", () => {
     );
   });
 
-  // Two weights, regular and medium. topics.css is another area's and is the one left to convert.
+  // Two weights, regular and medium.
   it("uses no third weight", () => {
-    const allowed = ["topics.css"];
-    for (const file of OWN_FILES.filter((name) => !allowed.includes(name))) {
+    for (const file of OWN_FILES) {
       expect(withoutComments(read(file)), file).not.toMatch(
         /--font-weight-(?:semibold|bold)|font-weight:\s*[6-9]00/,
       );

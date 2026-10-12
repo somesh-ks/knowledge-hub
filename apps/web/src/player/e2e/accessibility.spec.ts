@@ -44,7 +44,7 @@ for (const scheme of ["light", "dark"] as const) {
     test("the Generate sheet, idle and with an error", async ({ lab, page }) => {
       await lab.open();
       await page.locator('[data-open-sheet="generate"]').tap();
-      const dialog = page.getByRole("dialog", { name: "Generate a new briefing" });
+      const dialog = page.getByRole("dialog", { name: "New briefing" });
       await expect(dialog).toBeVisible();
       expect(await violations(page)).toEqual([]);
       await dialog.getByRole("button", { name: "Generate briefing" }).tap();
@@ -75,7 +75,7 @@ for (const scheme of ["light", "dark"] as const) {
       );
       await lab.open();
       await page.locator('[data-open-sheet="generate"]').tap();
-      const dialog = page.getByRole("dialog", { name: "Generate a new briefing" });
+      const dialog = page.getByRole("dialog", { name: "New briefing" });
       await enterPassphrase(dialog);
       await dialog.getByRole("button", { name: "Generate briefing" }).tap();
       await expect(dialog.getByRole("list", { name: "Progress" })).toBeVisible();

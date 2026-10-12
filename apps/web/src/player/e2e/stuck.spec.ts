@@ -11,7 +11,7 @@ function reply(route: Route, status: number, body: Record<string, unknown>) {
 
 /**
  * Starts a Generate run, closes the sheet, and lets the run finish while the player is open. On the
- * lab that is a button on the page; on the site it is Regenerate in the briefing header's More menu.
+ * lab that is a button on the page; on the site it is New briefing in the latest briefing header's More menu.
  */
 async function finishRunBehindThePlayer(page: Page, lab: LabPage): Promise<void> {
   const { id, servedFrom } = lab.facts.generated;
@@ -48,13 +48,13 @@ async function finishRunBehindThePlayer(page: Page, lab: LabPage): Promise<void>
   // The store reads its timers from the page clock, so the background check can be hurried.
   await page.clock.install();
   if (lab.target === "site") {
-    // Settings lost its Generate row (#31); Regenerate in the briefing's More menu opens the sheet.
+    // Settings lost its Generate row (#31); New briefing in the latest briefing's More menu opens the sheet.
     await lab.finger.press(page.getByRole("button", { name: "More actions" }));
-    await lab.finger.press(page.getByRole("menuitem", { name: "Regenerate" }));
+    await lab.finger.press(page.getByRole("menuitem", { name: "New briefing" }));
   } else {
     await lab.finger.press(page.locator('[data-open-sheet="generate"]').first());
   }
-  const dialog = page.getByRole("dialog", { name: "Generate a new briefing" });
+  const dialog = page.getByRole("dialog", { name: "New briefing" });
   await enterPassphrase(dialog);
   await lab.finger.press(dialog.getByRole("button", { name: "Generate briefing" }));
   await page.clock.runFor(3_100);
