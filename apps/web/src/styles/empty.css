@@ -85,7 +85,11 @@
   --art-plane: color-mix(in oklch, var(--color-surface-container), var(--color-on-surface) 5%);
   --art-plane-strong: var(--color-track);
   --art-hero: var(--color-accent-container);
-  --art-hero-ink: color-mix(in oklch, var(--color-accent-container), var(--color-on-accent-container) 28%);
+  --art-hero-ink: color-mix(
+    in oklch,
+    var(--color-accent-container),
+    var(--color-on-accent-container) 28%
+  );
   --art-pop: var(--color-accent);
   --art-on-pop: var(--color-on-accent);
   --art-line: var(--color-track-strong);

@@ -5,7 +5,14 @@
  * Colours come from classes that empty.css maps to tokens, never from attributes, so both themes
  * follow. Decorative: the title and the button beside it carry the meaning.
  */
-export type ArtName = "today" | "library" | "results" | "offline" | "online" | "notfound" | "sources";
+export type ArtName =
+  | "today"
+  | "library"
+  | "results"
+  | "offline"
+  | "online"
+  | "notfound"
+  | "sources";
 
 interface Props {
   art: ArtName;
