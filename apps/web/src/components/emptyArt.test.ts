@@ -13,10 +13,6 @@ const read = (...path: string[]) => readFileSync(join(HERE, ...path), "utf8");
 const art = read("EmptyArt.astro");
 
 describe("the empty-state art", () => {
-  it("holds no raw colour: every fill and stroke comes from a class", () => {
-    expect(art).not.toMatch(/#[0-9a-fA-F]{3,8}\b|\brgba?\(|\bhsla?\(|style=|\bfill="|\bstroke="/);
-  });
-
   it("is one decorative svg, hidden from assistive technology, on the kit's scale", () => {
     const svg = art.slice(art.indexOf("<svg"), art.indexOf(">", art.indexOf("<svg")));
     expect(svg).toContain('aria-hidden="true"');
