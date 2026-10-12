@@ -1,10 +1,11 @@
 ---
 import EmptyState from "../components/EmptyState.astro";
 import BaseLayout from "../layouts/BaseLayout.astro";
+import { ICON_PATHS } from "../lib/icons";
 ---
 
 <BaseLayout title="Offline" view="home" nav={null} skipLabel="Skip to the content" deviceBanner={false}>
-  <main id="main" tabindex="-1">
+  <main id="main" tabindex="-1" data-online-icon={ICON_PATHS.wifi}>
     <EmptyState
       icon="wifiOff"
       title="You are offline"
@@ -29,9 +30,11 @@ import BaseLayout from "../layouts/BaseLayout.astro";
     const title = document.querySelector<HTMLElement>("#main h1");
     const body = document.querySelector<HTMLElement>("#main .page-title + p, #main h1 ~ p");
     const retry = document.querySelector<HTMLAnchorElement>(".empty-actions a[data-astro-reload]");
-    // The wifi-off glyph would contradict the title: it goes with the offline state.
+    // The wifi-off glyph would contradict the title: the connected one takes its place, so no state
+    // is left without an icon.
     const icon = document.querySelector<SVGElement>("#main .empty-icon");
-    if (icon) icon.style.display = "none";
+    const online = document.querySelector<HTMLElement>("#main")?.dataset.onlineIcon;
+    if (online) icon?.querySelector("path")?.setAttribute("d", online);
     if (title) title.textContent = "You are back online";
     document.title = "Back online, Singularity";
     if (body) body.textContent = "Reload to open the page you asked for.";

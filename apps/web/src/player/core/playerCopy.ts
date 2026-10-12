@@ -86,6 +86,28 @@ export function toggleLabel(state: Pick<PlayerState, "status">): string {
   }
 }
 
+export type TransportGlyph = "play" | "pause" | "refresh" | "replay";
+
+/**
+ * The glyph the main transport button draws, one rule for the page's disc and the bar so a glyph
+ * never disagrees with the button's name (toggleLabel): refresh to try again after a failure,
+ * replay at the end of a recording, pause while playing, play otherwise.
+ */
+export function transportGlyph(status: PlayerState["status"]): TransportGlyph {
+  switch (status) {
+    case "error":
+      return "refresh";
+    case "ended":
+      return "replay";
+    case "playing":
+    case "loading":
+      return "pause";
+    case "idle":
+    case "paused":
+      return "play";
+  }
+}
+
 export function isPlayingStatus(status: PlayerState["status"]): boolean {
   return status === "playing" || status === "loading";
 }

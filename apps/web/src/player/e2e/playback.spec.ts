@@ -74,6 +74,36 @@ test.describe("playback in a real browser", () => {
     await expect(firstChip).toHaveAccessibleName(/^Play again, played: /);
   });
 
+  test("a story chip keeps one size, so the publisher beside it never moves @surface", async ({
+    lab,
+    page,
+  }) => {
+    await lab.open();
+    const story = page.locator(".story").first();
+    const chip = story.locator("[data-play-item]");
+    const source = story.locator(".story-source");
+    const measure = async () => ({
+      chip: (await chip.boundingBox())?.width,
+      source: (await source.boundingBox())?.x,
+    });
+    const seen: Record<string, { chip?: number; source?: number }> = {};
+    await expect(chip).toBeVisible();
+    seen.idle = await measure();
+    await lab.play();
+    await expect(chip.locator("[data-chip-label]")).toHaveText("Playing");
+    seen.playing = await measure();
+    await lab.dock.getByRole("button", { name: "Pause", exact: true }).click();
+    await expect(chip.locator("[data-chip-label]")).toHaveText("Paused");
+    seen.paused = await measure();
+    await page.getByRole("button", { name: "Next story" }).click();
+    await expect(chip.locator("[data-chip-label]")).toHaveText("Played");
+    seen.played = await measure();
+    const sources = new Set(Object.values(seen).map((s) => s.source));
+    const widths = new Set(Object.values(seen).map((s) => s.chip));
+    expect(sources.size, JSON.stringify(seen)).toBe(1);
+    expect(widths.size, JSON.stringify(seen)).toBe(1);
+  });
+
   test("plays an item from its button, and toggles it with the same button", async ({
     lab,
     audio,

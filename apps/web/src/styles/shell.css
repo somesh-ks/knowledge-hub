@@ -528,6 +528,19 @@ html[data-mini="visible"] main {
   padding-block-start: var(--space-2);
 }
 
+/* From 64rem there is no app bar above the stack, so a banner would sit a step from the window top,
+   above the brand row. It takes the line every page's first block starts on, and the shell below it
+   starts a smaller step under it instead of doubling the gap. */
+@media (min-width: 64rem) {
+  .banner-stack:not(:empty) {
+    padding-block-start: var(--page-top);
+  }
+
+  .banner-stack:not(:empty) ~ .shell {
+    --page-top: var(--space-8);
+  }
+}
+
 .shell {
   display: block;
 }
