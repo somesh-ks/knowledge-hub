@@ -497,6 +497,18 @@ describe("the end of a digest", () => {
     expect(harness.store.getState().upNextId).toBeNull();
   });
 
+  it("plays the story Previous lands on after the end", () => {
+    const harness = createHarness();
+    startPlaying(harness);
+    harness.audio.currentTime = 120;
+    harness.audio.finish();
+    expect(harness.store.getState().status).toBe("ended");
+    const calls = harness.audio.playCalls;
+    expect(harness.store.previous()).toBe(true);
+    expect(harness.audio.playCalls).toBe(calls + 1);
+    expect(["playing", "loading"]).toContain(harness.store.getState().status);
+  });
+
   it("leaves the ended state when the listener seeks back", () => {
     const harness = createHarness();
     startPlaying(harness);

@@ -238,7 +238,8 @@ export function describeNarrationFailure(
   reason: NarrationFailure,
   noun: NarrationNoun,
 ): { message: string; summary?: string; standing: boolean } | null {
-  const message = failureCopy(reason, noun);
+  // The notice has its own Try again where a retry helps, so the words are not repeated there.
+  const message = reason === "failed" ? "The audio could not be made." : failureCopy(reason, noun);
   if (!message) return null;
   return { message, summary: failureSummary(reason), standing: STANDING_REASONS.has(reason) };
 }

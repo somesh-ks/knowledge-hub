@@ -661,6 +661,14 @@ export function createPlayerStore(options: PlayerStoreOptions): PlayerStore {
   }
 
   function previous(source: "ui" | "keyboard" = "ui"): boolean {
+    // From the end there is nothing playing: going back plays the story it lands on.
+    const fromEnd = state.status === "ended";
+    const moved = stepBack(source);
+    if (moved && fromEnd) play("item");
+    return moved;
+  }
+
+  function stepBack(source: "ui" | "keyboard"): boolean {
     const items = track?.timeline?.items;
     const first = items?.[0];
     if (!items || !first) return false;

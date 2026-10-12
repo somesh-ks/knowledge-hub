@@ -40,7 +40,10 @@ export default function ScriptView({ titleHidden = false }: { titleHidden?: bool
   const [, setTurnMoved] = useState(0);
   const spokenTurn = useRef(-1);
   const turns = state.track?.digest.turns ?? [];
-  const current = state.hasStarted ? currentTurnIndex(turns, getPlayerStore().getTime()) : -1;
+  const current =
+    state.hasStarted && !state.error ? currentTurnIndex(turns, getPlayerStore().getTime()) : -1;
+  // After a failure nothing is being read: no turn is current and no word is lit.
+  const failed = state.error !== null;
   const rootRef = useRef<HTMLElement>(null);
   const pausedUntil = useRef(0);
   // Opening the page shows its top. Following starts when the voice moves to another turn.
@@ -114,7 +117,8 @@ export default function ScriptView({ titleHidden = false }: { titleHidden?: bool
     let lit: Element | null = null;
     const light = (seconds: number): void => {
       const ms = seconds * 1000;
-      const turn = getPlayerStore().getState().hasStarted ? currentTurnIndex(turns, seconds) : -1;
+      const live = getPlayerStore().getState();
+      const turn = live.hasStarted && !live.error ? currentTurnIndex(turns, seconds) : -1;
       if (turn !== spokenTurn.current) {
         spokenTurn.current = turn;
         setTurnMoved((count) => count + 1);
@@ -137,7 +141,7 @@ export default function ScriptView({ titleHidden = false }: { titleHidden?: bool
       off();
       lit?.removeAttribute("data-spoken");
     };
-  }, [turns, words]);
+  }, [turns, words, failed]);
 
   // Whether the turn being spoken is on screen: the pill that leads back to it is for when it is not.
   useEffect(() => {

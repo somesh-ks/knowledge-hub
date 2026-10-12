@@ -172,6 +172,26 @@ test.describe("an episode's script in the open player", () => {
     await expect(page.getByRole("button", { name: "Back to now" })).toHaveCount(0);
   });
 
+  test("after a failure no turn is current @surface", async ({ lab, finger, page }) => {
+    await lab.open(EPISODE);
+    await mockNarration(page);
+    await finger.press(lab.cta);
+    await expect(page.locator("html")).toHaveAttribute("data-player-state", "playing", {
+      timeout: 8_000,
+    });
+    await lab.openPlayer();
+    const script = lab.dialog.getByRole("region", { name: "Transcript" });
+    await expect(script.locator('.script-turn[aria-current="true"]')).toHaveCount(1);
+    await page.route("**/narrated/*.mp3", (route) => route.fulfill({ status: 404, body: "" }));
+    const turns = await script.locator("[data-turn]").count();
+    await script.locator(`[data-turn="${turns - 1}"]`).dispatchEvent("click");
+    await expect(page.locator("html")).toHaveAttribute("data-player-state", "error", {
+      timeout: 10_000,
+    });
+    await expect(script.locator('.script-turn[aria-current="true"]')).toHaveCount(0);
+    await expect(script.locator("[data-spoken]")).toHaveCount(0);
+  });
+
   test("on two columns following scrolls the list and never the page @surface", async ({
     lab,
     finger,

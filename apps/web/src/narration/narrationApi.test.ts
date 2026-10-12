@@ -270,3 +270,14 @@ describe("failureCopy", () => {
     );
   });
 });
+
+describe("describeNarrationFailure", () => {
+  it("does not repeat a Try again the notice already offers", async () => {
+    const { describeNarrationFailure } = await import("./narrationApi");
+    expect(describeNarrationFailure("failed", "briefing")?.message).toBe(
+      "The audio could not be made.",
+    );
+    expect(describeNarrationFailure("daily_cap", "briefing")?.standing).toBe(true);
+    expect(describeNarrationFailure("failed", "briefing")?.standing).toBe(false);
+  });
+});
