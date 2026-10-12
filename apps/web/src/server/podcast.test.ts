@@ -1,6 +1,7 @@
 import { HOST_NAME_POOLS, hostNamesFor } from "@dispatch/core/hosts";
-import { hashPassphrase, verifyPassphrase } from "@dispatch/core/passphrase";
+import { verifyPassphrase } from "@dispatch/core/passphrase";
 import { beforeAll, beforeEach, describe, expect, it, vi } from "vitest";
+import { cheapPassphraseHash } from "../testing/cheapPassphraseHash";
 import { createFakeGitHub, REPO, runJson } from "../testing/fakeGitHub";
 import type { PodcastRequest } from "../types/contracts";
 import { WRONG_PASSPHRASE_DELAY_MS } from "./generate";
@@ -26,8 +27,8 @@ const podcastRun = (overrides: Record<string, unknown> = {}) =>
 
 let passphraseHash = "";
 
-beforeAll(async () => {
-  passphraseHash = await hashPassphrase(PASSPHRASE);
+beforeAll(() => {
+  passphraseHash = cheapPassphraseHash(PASSPHRASE);
 });
 
 const EPISODE_ID = "ep-20261007-0900";

@@ -1,5 +1,6 @@
-import { hashPassphrase, verifyPassphrase } from "@dispatch/core/passphrase";
+import { verifyPassphrase } from "@dispatch/core/passphrase";
 import { beforeAll, describe, expect, it, vi } from "vitest";
+import { cheapPassphraseHash } from "../testing/cheapPassphraseHash";
 import { createFakeGitHub, REPO, runJson } from "../testing/fakeGitHub";
 import type { ConfigOp } from "../types/contracts";
 import { readServerConfig } from "./config";
@@ -26,8 +27,8 @@ const secondsAgo = (seconds: number) => new Date(NOW - seconds * 1000).toISOStri
 
 let passphraseHash = "";
 
-beforeAll(async () => {
-  passphraseHash = await hashPassphrase(PASSPHRASE);
+beforeAll(() => {
+  passphraseHash = cheapPassphraseHash(PASSPHRASE);
 });
 
 function setup(overrides: Partial<ConfigDeps> = {}) {

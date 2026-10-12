@@ -1,7 +1,8 @@
 import { AudioTimeline, type Digest, serializeDigestFile } from "@dispatch/core";
-import { hashPassphrase, verifyPassphrase } from "@dispatch/core/passphrase";
+import { verifyPassphrase } from "@dispatch/core/passphrase";
 import { buildSpokenText, type SpokenSegment, spokenSegments } from "@dispatch/engine/audio";
 import { afterEach, beforeAll, describe, expect, it, vi } from "vitest";
+import { cheapPassphraseHash } from "../testing/cheapPassphraseHash";
 import { makeDigest, makeItem, makeTimeline } from "../testing/digestFactory";
 import { createFakeBlobStore, FAKE_BLOB_HOST } from "../testing/fakeBlobStore";
 import {
@@ -65,8 +66,8 @@ const MODEL = "simba-3.2";
 
 let passphraseHash = "";
 
-beforeAll(async () => {
-  passphraseHash = await hashPassphrase(PASSPHRASE);
+beforeAll(() => {
+  passphraseHash = cheapPassphraseHash(PASSPHRASE);
 });
 
 interface FakeDigests extends DigestSource {
