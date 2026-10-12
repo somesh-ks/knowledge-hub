@@ -6,12 +6,12 @@ import {
   barHolds,
   briefingChipView,
   briefingLengthLabel,
+  createHeardTracker,
   idleBriefingChip,
   idleStoryChip,
   itemVisualState,
   resolveChapterFirstItemId,
   resolveItemId,
-  runStartAfter,
   storyChipView,
   storyLengthLabel,
 } from "./readerMath";
@@ -19,34 +19,68 @@ import { createHarness, makeDigest, makeDigestWithoutAudio } from "./testing";
 
 describe("where the playhead is, per story", () => {
   it("marks items played, current or upcoming, and nothing when there is no playhead", () => {
-    expect(itemVisualState(0, true, 2, false)).toBe("played");
-    expect(itemVisualState(2, true, 2, false)).toBe("current");
-    expect(itemVisualState(3, true, 2, false)).toBe("");
-    expect(itemVisualState(3, true, 2, true)).toBe("played");
-    expect(itemVisualState(0, false, 0, false)).toBe("");
-    // The stories before the run's start were stepped over, not heard.
-    expect(itemVisualState(0, true, 3, false, 2)).toBe("");
-    expect(itemVisualState(2, true, 3, false, 2)).toBe("played");
-    expect(itemVisualState(1, true, 3, true, 2)).toBe("");
-    expect(itemVisualState(3, true, 3, true, 2)).toBe("played");
+    const heard = new Set([0, 1]);
+    expect(itemVisualState(0, true, 2, false, heard)).toBe("played");
+    expect(itemVisualState(1, true, 2, false, heard)).toBe("played");
+    expect(itemVisualState(2, true, 2, false, heard)).toBe("current");
+    expect(itemVisualState(3, true, 2, false, heard)).toBe("");
+    // The story the recording ended in is played, not current.
+    expect(itemVisualState(2, true, 2, true, new Set([0, 1, 2]))).toBe("played");
+    expect(itemVisualState(0, false, 0, false, heard)).toBe("");
+    // A story that was heard earlier stays played when the playhead goes back before it.
+    expect(itemVisualState(1, true, 0, false, heard)).toBe("played");
   });
 });
 
-describe("which stories were heard in a run of listening", () => {
-  it("starts a new run where a move steps over whole stories", () => {
-    // Play from here on story 3, from the top: stories 1 and 2 were never heard.
-    expect(runStartAfter(0, 0, 2)).toBe(2);
-    // A scrub or a seek that lands three stories on.
-    expect(runStartAfter(1, 1, 4)).toBe(4);
+describe("which stories were heard", () => {
+  it("marks a story when playing goes on out of it, and none for a jump over stories", () => {
+    const tracker = createHeardTracker();
+    tracker.reset(0);
+    // Play from here on story 3: nothing was heard of the two it stepped over.
+    tracker.moved(2, "select");
+    expect([...tracker.heard]).toEqual([]);
+    // Playing went on into story 4, then 5: story 3 and 4 were heard.
+    tracker.moved(3, "auto");
+    tracker.moved(4, "auto");
+    expect([...tracker.heard]).toEqual([2, 3]);
   });
 
-  it("keeps the run for a step to the next story, and pulls it back for a move back", () => {
-    expect(runStartAfter(2, 2, 3)).toBe(2);
-    expect(runStartAfter(2, 3, 3)).toBe(2);
-    expect(runStartAfter(2, 5, 0)).toBe(0);
-    expect(runStartAfter(2, 5, 3)).toBe(2);
-    // The rundown before story 1 is not a story: the first story starts the run at 0.
-    expect(runStartAfter(0, 0, 0)).toBe(0);
+  it("marks nothing for a scrub, a seek, a key step or Next and Previous", () => {
+    const tracker = createHeardTracker();
+    tracker.reset(0);
+    for (const [to, cause] of [
+      [1, "scrub"],
+      [2, "scrub"],
+      [3, "seek"],
+      [4, "keyboard"],
+      [5, "skip-next"],
+      [4, "skip-previous"],
+    ] as const) {
+      tracker.moved(to, cause);
+    }
+    expect([...tracker.heard]).toEqual([]);
+  });
+
+  it("does not mark the rundown, and marks the last story when the recording ends", () => {
+    const tracker = createHeardTracker();
+    tracker.reset(-1);
+    tracker.moved(0, "auto");
+    expect([...tracker.heard]).toEqual([]);
+    tracker.moved(1, "auto");
+    tracker.ended();
+    expect([...tracker.heard].sort()).toEqual([0, 1]);
+  });
+
+  it("starts afresh after the end, so a replay shows nothing played before it has played it", () => {
+    const tracker = createHeardTracker();
+    tracker.reset(0);
+    tracker.moved(1, "auto");
+    tracker.ended();
+    expect(tracker.heard.size).toBe(2);
+    tracker.moved(0, "seek");
+    expect(tracker.heard.size).toBe(0);
+    tracker.moved(1, "auto");
+    expect([...tracker.heard]).toEqual([0]);
   });
 });
 

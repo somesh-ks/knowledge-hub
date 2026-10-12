@@ -110,13 +110,14 @@ test.describe("what the player writes on a real page", () => {
       await expect(earlier.locator("[data-play-item]")).toHaveAttribute("data-state", "idle");
       await expect(earlier.locator("[data-chip-label]")).toHaveText(/^\d+:\d\d$/);
     }
-    // A step on to the next story keeps the run: the third, which the playhead has now passed, is played.
-    await stories.nth(3).locator("[data-play-item]").click();
+    // Playing on out of the third into the fourth is hearing it: the third is played, the first two are not.
+    await chip.click();
     await expect(page.locator("html")).toHaveAttribute("data-player-state", "playing");
-    await expect(third).toHaveAttribute("data-state", "played");
+    await expect(third).toHaveAttribute("data-state", "played", { timeout: 15_000 });
     await expect(chip.locator("[data-chip-label]")).toHaveText("Played");
     await expect(chip).toHaveAccessibleName(/^Play again, played: /);
     await expect(stories.nth(0)).not.toHaveAttribute("data-state", /.*/);
+    await expect(stories.nth(3)).toHaveAttribute("data-state", "current");
     await stories.nth(3).locator("[data-play-item]").click();
     await expect(page.locator("html")).toHaveAttribute("data-player-state", "paused");
     const later = stories.nth(5).locator("[data-play-item]");

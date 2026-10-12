@@ -5,35 +5,67 @@
  */
 import type { PlayerDigestData } from "../../types/contracts";
 import { formatClock } from "./formatTime";
-import type { PlayerState } from "./playerTypes";
+import type { ItemChangeCause, PlayerState } from "./playerTypes";
 
 export type ItemVisualState = "played" | "current" | "";
 
 /**
  * `data-state` for an item, given the live item index. Absent means upcoming. A story is played when
- * the playhead has passed it in this run of listening: the ones before `runStart` were stepped over.
+ * it was heard (see `createHeardTracker`), and current while the playhead is in it.
  */
 export function itemVisualState(
   index: number,
   live: boolean,
   currentIndex: number,
   ended: boolean,
-  runStart = 0,
+  heard: ReadonlySet<number>,
 ): ItemVisualState {
   if (!live) return "";
-  if (ended || index < currentIndex) return index >= runStart ? "played" : "";
-  return index === currentIndex ? "current" : "";
+  if (index === currentIndex) return ended ? "played" : "current";
+  return heard.has(index) ? "played" : "";
 }
 
 /**
- * Where the stories heard in this run begin after the playhead moved from story `from` to story
- * `to`. A move that steps over whole stories (a tap on Play from here, a scrub or a seek past one)
- * starts a new run there: what it stepped over was not heard. A step to the next story keeps the run,
- * and a move back pulls its start back with it.
+ * Which stories were heard. A story is heard when playing went on out of it into the next, or when it
+ * was the last and the recording ended. A tap on Play from here, a scrub, a seek or a step with Next
+ * or Previous moves the playhead without hearing what it passes, so they mark nothing. After the end
+ * the next move starts afresh: a replay does not show the stories as played before it has played them.
  */
-export function runStartAfter(runStart: number, from: number, to: number): number {
-  if (to > from + 1) return to;
-  return Math.min(runStart, Math.max(0, to));
+export interface HeardTracker {
+  readonly heard: ReadonlySet<number>;
+  /** A recording was loaded, the playhead at story `index`. */
+  reset(index: number): void;
+  /** The playhead moved into story `to`. */
+  moved(to: number, cause: ItemChangeCause): void;
+  /** The recording ended in the story the playhead was in. */
+  ended(): void;
+}
+
+export function createHeardTracker(): HeardTracker {
+  const heard = new Set<number>();
+  let at = -1;
+  let finished = false;
+  return {
+    heard,
+    reset(index) {
+      heard.clear();
+      at = index;
+      finished = false;
+    },
+    moved(to, cause) {
+      if (finished) {
+        heard.clear();
+        finished = false;
+      } else if (cause === "auto" && at >= 0) {
+        heard.add(at);
+      }
+      at = to;
+    },
+    ended() {
+      if (at >= 0) heard.add(at);
+      finished = true;
+    },
+  };
 }
 
 /**

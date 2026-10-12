@@ -406,16 +406,37 @@ test.describe("sections and stories", () => {
   test("a story played from here does not mark the stories it stepped over as played", async ({
     page,
   }) => {
+    for (const from of [1, 2]) {
+      await page.goto("/");
+      await hydrated(page);
+      const chip = (index: number) => page.locator(".story").nth(index).locator("[data-play-item]");
+      await chip(from).click();
+      await expect(chip(from)).not.toHaveAttribute("data-state", "idle");
+      // Nothing was heard of the ones before it: they stay as they were, with their lengths.
+      for (let index = 0; index < from; index += 1) {
+        await expect(chip(index)).toHaveAttribute("data-state", "idle");
+        await expect(chip(index).locator("[data-chip-label]")).toHaveText(/^\d+:\d\d$/);
+      }
+    }
+  });
+
+  test("the page does not pull a reader who scrolled elsewhere back to the voice", async ({
+    page,
+  }) => {
+    await page.setViewportSize({ width: 390, height: 844 });
     await page.goto("/");
     await hydrated(page);
-    const chip = (index: number) => page.locator(".story").nth(index).locator("[data-play-item]");
-    await chip(2).click();
-    await expect(chip(2)).not.toHaveAttribute("data-state", "idle");
-    // Nothing was heard of the first two: they stay as they were, with their lengths.
-    for (const index of [0, 1]) {
-      await expect(chip(index)).toHaveAttribute("data-state", "idle");
-      await expect(chip(index).locator("[data-chip-label]")).toHaveText(/^\d+:\d\d$/);
-    }
+    await page.locator(".hero [data-play-digest]").click();
+    await expect(page.locator("html")).toHaveAttribute("data-player-state", "playing");
+    // A scroll that is not a wheel or a touch, far from the story being read.
+    await page.evaluate(() => {
+      document.querySelector("#c-watch")?.scrollIntoView({ block: "start", behavior: "instant" });
+    });
+    const away = await page.evaluate(() => scrollY);
+    expect(away).toBeGreaterThan(1000);
+    // Playing goes on through three stories (three seconds each in the fixture).
+    await page.waitForTimeout(8_000);
+    expect(Math.abs((await page.evaluate(() => scrollY)) - away)).toBeLessThan(40);
   });
 
   test("keeps story chips in the page, hidden, while a briefing has no audio", async ({ page }) => {

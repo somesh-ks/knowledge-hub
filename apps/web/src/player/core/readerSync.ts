@@ -31,11 +31,11 @@ import {
   barHolds,
   briefingChipView,
   type ChipView,
+  createHeardTracker,
   type ItemVisualState,
   itemVisualState,
   resolveChapterFirstItemId,
   resolveItemId,
-  runStartAfter,
   storyChipView,
   storyLengthLabel,
 } from "./readerMath";
@@ -95,14 +95,13 @@ export function createReaderSync(
   let elements: Elements = emptyElements();
   let lastUserScroll = Number.NEGATIVE_INFINITY;
   let pendingWrite = 0;
-  let lastItemIndex = -1;
   let wasScrubbing = false;
   /** The id of a briefing a cover sent the listener to, until its page has loaded. */
   let pendingNarrate: string | null = null;
-  /** Where the stories heard in this run of listening begin; the ones stepped over are not played. */
-  let runStart = 0;
-  /** The story the playhead was in at the last move, to tell a step from a jump over stories. */
-  let runIndex = 0;
+  /** Which stories were heard: the ones passed by playing on, not by a jump (readerMath.ts). */
+  const tracker = createHeardTracker();
+  /** The story the playhead was in before the last move, for the page to follow from. */
+  let followFrom = -1;
 
   function emptyElements(): Elements {
     return { items: new Map(), playDigest: [], playItem: [], coverPlay: [] };
@@ -175,7 +174,7 @@ export function createReaderSync(
 
     const visualOf = (id: string): ItemVisualState => {
       const index = live ? findItemIndexById(timeline, id) : -1;
-      return index < 0 ? "" : itemVisualState(index, live, state.itemIndex, ended, runStart);
+      return index < 0 ? "" : itemVisualState(index, live, state.itemIndex, ended, tracker.heard);
     };
 
     for (const [id, element] of elements.items) {
@@ -251,13 +250,25 @@ export function createReaderSync(
     if (SCROLL_KEYS.has(event.key)) markUserScroll();
   }
 
-  function followCurrent(): void {
+  /**
+   * Brings the story being read into view. When playing simply went on into it (`playedOn`), only a
+   * reader who is reading along is followed: the story that has just ended, or this one when none
+   * came before it, is on screen. Someone who has scrolled elsewhere is not pulled back to the voice.
+   */
+  function followCurrent(from = -1, playedOn = false): void {
     const state = store.getState();
     if (!isLive() || state.scrubbing) return;
     if (performance.now() - lastUserScroll < FOLLOW_PAUSE_MS) return;
-    const entry = state.track?.timeline?.items[state.itemIndex];
+    const items = state.track?.timeline?.items;
+    const entry = items?.[state.itemIndex];
     const element = entry ? elements.items.get(entry.id) : null;
     if (!element) return;
+    if (playedOn) {
+      const before = items?.[from];
+      const reference = (before ? elements.items.get(before.id) : null) ?? element;
+      const shown = reference.getBoundingClientRect();
+      if (shown.bottom <= 0 || shown.top >= window.innerHeight) return;
+    }
     const rect = element.getBoundingClientRect();
     const comfortable = rect.top > window.innerHeight * 0.12 && rect.top < window.innerHeight * 0.5;
     if (comfortable) return;
@@ -370,11 +381,15 @@ export function createReaderSync(
 
   const offEvent = store.onEvent((event) => {
     if (event.type === "loaded") {
-      runStart = 0;
-      runIndex = Math.max(0, store.getState().itemIndex);
+      followFrom = store.getState().itemIndex;
+      tracker.reset(followFrom);
+    } else if (event.type === "ended") {
+      tracker.ended();
     } else if (event.type === "itemChanged") {
-      runStart = runStartAfter(runStart, runIndex, event.index);
-      runIndex = Math.max(0, event.index);
+      const from = followFrom;
+      followFrom = event.index;
+      tracker.moved(event.index, event.cause);
+      if (store.getState().status !== "idle") followCurrent(from, event.cause === "auto");
     }
   });
 
@@ -382,11 +397,10 @@ export function createReaderSync(
   const offSecond = store.onSecond(scheduleWrite);
   const offState = store.subscribe((state) => {
     scheduleWrite();
-    const itemChanged = state.itemIndex !== lastItemIndex;
     const scrubEnded = wasScrubbing && !state.scrubbing;
-    lastItemIndex = state.itemIndex;
     wasScrubbing = state.scrubbing;
-    if (state.status !== "idle" && (itemChanged || scrubEnded)) followCurrent();
+    // A move of the playhead follows through its own event (above); a scrub that has ended follows here.
+    if (state.status !== "idle" && scrubEnded) followCurrent();
   });
 
   refresh();
