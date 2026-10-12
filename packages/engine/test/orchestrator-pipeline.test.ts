@@ -59,91 +59,98 @@ function changedInHead(cwd: string): string[] {
 }
 
 describe("published run", () => {
-  it("runs one stage per call and publishes a digest, as the workflow does", LONG, async () => {
-    const world = makeWorld(repo.root, { now: WED });
-    const results = await runStaged(world);
-    expect(results.map((r) => r.code)).toEqual([0, 0, 0, 0, 0, 0]);
+  // One staged run, several facets: each block below names what it checks.
+  it(
+    "runs one stage per call, writes the digest and state, and commits as the bot",
+    LONG,
+    async () => {
+      const world = makeWorld(repo.root, { now: WED });
+      const results = await runStaged(world);
+      expect(results.map((r) => r.code)).toEqual([0, 0, 0, 0, 0, 0]);
 
-    expect(results[0]?.report).toMatchObject({
-      due: true,
-      mode: "scheduled",
-      dry_run: false,
-      passes: [{ id: "2026-10-07", kind: "regular", window: { to: WED.toISOString() } }],
-    });
-    const commit = results[5]?.report;
-    expect(commit).toMatchObject({
-      outcome: "published",
-      deploy: true,
-      dry_run: false,
-      digests: [
-        {
-          id: "2026-10-07",
-          kind: "regular",
-          outcome: "published",
-          verified: true,
-          path: DIGEST_PATH,
-        },
-      ],
-    });
-    expect(commit).toHaveProperty("items", 8);
-  });
+      // The stage reports the workflow reads.
+      expect(results[0]?.report).toMatchObject({
+        due: true,
+        mode: "scheduled",
+        dry_run: false,
+        passes: [{ id: "2026-10-07", kind: "regular", window: { to: WED.toISOString() } }],
+      });
+      const commit = results[5]?.report;
+      expect(commit).toMatchObject({
+        outcome: "published",
+        deploy: true,
+        dry_run: false,
+        digests: [
+          {
+            id: "2026-10-07",
+            kind: "regular",
+            outcome: "published",
+            verified: true,
+            path: DIGEST_PATH,
+          },
+        ],
+      });
+      expect(commit).toHaveProperty("items", 8);
 
-  it("writes the digest file with a cover from the cover package", LONG, async () => {
-    const world = makeWorld(repo.root, { now: WED });
-    await runStaged(world);
-    const digest = await readDigest(repo.root, DIGEST_PATH);
-    expect(digest).toMatchObject({
-      id: "2026-10-07",
-      date: "2026-10-07",
-      kind: "regular",
-      verified: true,
-      audio: null,
-      generated_at: WED.toISOString(),
-    });
-    expect(digest.items).toHaveLength(8);
-    expect(digest.items.filter((item) => item.section === "top")).toHaveLength(3);
-    // The writer produces four-beat summaries and no why line, so the file carries none.
-    for (const item of digest.items) {
-      expect(item).not.toHaveProperty("why");
-      expect(item.summary.split(". ").length).toBe(3);
-    }
-    const fileText = await readFile(join(repo.root, DIGEST_PATH), "utf8");
-    expect(fileText).not.toMatch(/^\s+why:/m);
-    expect(fileText).not.toContain("Why:");
-    expect(COVER_TEMPLATES).toContain(digest.cover.template);
-    const state = await readJson<LastRunFile>(repo.root, "state/last-run.json");
-    expect(state.last_cover).toEqual({
-      template: digest.cover.template,
-      palette: digest.cover.palette,
-    });
-  });
+      // The digest file, with a cover from the cover package and no why line.
+      const digest = await readDigest(repo.root, DIGEST_PATH);
+      expect(digest).toMatchObject({
+        id: "2026-10-07",
+        date: "2026-10-07",
+        kind: "regular",
+        verified: true,
+        audio: null,
+        generated_at: WED.toISOString(),
+      });
+      expect(digest.items).toHaveLength(8);
+      expect(digest.items.filter((item) => item.section === "top")).toHaveLength(3);
+      for (const item of digest.items) {
+        expect(item).not.toHaveProperty("why");
+        expect(item.summary.split(". ").length).toBe(3);
+      }
+      const fileText = await readFile(join(repo.root, DIGEST_PATH), "utf8");
+      expect(fileText).not.toMatch(/^\s+why:/m);
+      expect(fileText).not.toContain("Why:");
+      expect(COVER_TEMPLATES).toContain(digest.cover.template);
 
-  it("updates seen, judgments, last-run and source health", LONG, async () => {
-    const world = makeWorld(repo.root, { now: WED });
-    await runStaged(world);
-    const digest = await readDigest(repo.root, DIGEST_PATH);
+      // Seen, judgments, last-run and source health.
+      const seen = await readJson<SeenFile>(repo.root, "state/seen.json");
+      expect(Object.keys(seen.items).sort()).toEqual(digest.items.map((i) => i.id).sort());
+      expect(new Set(Object.values(seen.items))).toEqual(new Set(["2026-10-07"]));
+      const judgments = await readJson<JudgmentsFile>(repo.root, "state/judgments.json");
+      expect(Object.keys(judgments.entries)).toHaveLength(8);
+      const lastRun = await readJson<LastRunFile>(repo.root, "state/last-run.json");
+      expect(lastRun.regular).toEqual({
+        at: WED.toISOString(),
+        outcome: "published",
+        digest_id: "2026-10-07",
+        items: 8,
+      });
+      expect(lastRun.last_fetch_at).toBe(WED.toISOString());
+      expect(lastRun.weekly).toBeUndefined();
+      expect(lastRun.on_demand).toBeUndefined();
+      expect(lastRun.last_cover).toEqual({
+        template: digest.cover.template,
+        palette: digest.cover.palette,
+      });
+      const health = await readJson<SourceHealthFile>(repo.root, "state/source-health.json");
+      expect(Object.keys(health.sources).sort()).toEqual(["blog-a", "blog-b", "blog-c"]);
 
-    const seen = await readJson<SeenFile>(repo.root, "state/seen.json");
-    expect(Object.keys(seen.items).sort()).toEqual(digest.items.map((i) => i.id).sort());
-    expect(new Set(Object.values(seen.items))).toEqual(new Set(["2026-10-07"]));
-
-    const judgments = await readJson<JudgmentsFile>(repo.root, "state/judgments.json");
-    expect(Object.keys(judgments.entries)).toHaveLength(8);
-
-    const lastRun = await readJson<LastRunFile>(repo.root, "state/last-run.json");
-    expect(lastRun.regular).toEqual({
-      at: WED.toISOString(),
-      outcome: "published",
-      digest_id: "2026-10-07",
-      items: 8,
-    });
-    expect(lastRun.last_fetch_at).toBe(WED.toISOString());
-    expect(lastRun.weekly).toBeUndefined();
-    expect(lastRun.on_demand).toBeUndefined();
-
-    const health = await readJson<SourceHealthFile>(repo.root, "state/source-health.json");
-    expect(Object.keys(health.sources).sort()).toEqual(["blog-a", "blog-b", "blog-c"]);
-  });
+      // The commit: chore(digest), authored by the bot, pushed, nothing left over.
+      expect(git(repo.root, "log", "-1", "--format=%s")).toBe("chore(digest): 2026-10-07");
+      expect(git(repo.root, "log", "-1", "--format=%an")).toBe("dispatch-bot");
+      expect(git(repo.remote, "rev-parse", "main")).toBe(head(repo.root));
+      expect(changedInHead(repo.root)).toEqual([
+        DIGEST_PATH,
+        "state/judgments.json",
+        "state/last-run.json",
+        "state/seen.json",
+        "state/source-health.json",
+        "state/source-stats.json",
+      ]);
+      expect(git(repo.root, "status", "--porcelain")).toBe("");
+    },
+  );
 
   it(
     "counts each source's judged items flagged as hype or sponsored, not funding",
@@ -253,23 +260,6 @@ describe("published run", () => {
     expect(Object.values(stats.sources).some((s) => s.sampled !== undefined)).toBe(false);
   });
 
-  it("commits as chore(digest), authored by the bot, and pushes", LONG, async () => {
-    const world = makeWorld(repo.root, { now: WED });
-    await runStaged(world);
-    expect(git(repo.root, "log", "-1", "--format=%s")).toBe("chore(digest): 2026-10-07");
-    expect(git(repo.root, "log", "-1", "--format=%an")).toBe("dispatch-bot");
-    expect(git(repo.remote, "rev-parse", "main")).toBe(head(repo.root));
-    expect(changedInHead(repo.root)).toEqual([
-      DIGEST_PATH,
-      "state/judgments.json",
-      "state/last-run.json",
-      "state/seen.json",
-      "state/source-health.json",
-      "state/source-stats.json",
-    ]);
-    expect(git(repo.root, "status", "--porcelain")).toBe("");
-  });
-
   it("runs every stage in one call and prints the commit report", LONG, async () => {
     const world = makeWorld(repo.root, { now: WED });
     const result = await runStage(world);
@@ -288,41 +278,38 @@ describe("published run", () => {
 });
 
 describe("second run on the same day", () => {
-  it("allocates -2 and never overwrites the first digest", LONG, async () => {
-    const world = makeWorld(repo.root, { now: WED });
-    await runStage(world);
-    const first = await readDigest(repo.root, DIGEST_PATH);
+  it(
+    "allocates -2, keeps the first digest and the regular cadence, records on_demand",
+    LONG,
+    async () => {
+      const world = makeWorld(repo.root, { now: WED });
+      await runStage(world);
+      const first = await readDigest(repo.root, DIGEST_PATH);
+      const before = await readJson<LastRunFile>(repo.root, "state/last-run.json");
 
-    world.setNow(new Date("2026-10-07T12:00:00Z"));
-    world.feeds = goodFeeds(6, "later");
-    const second = await runStage(world, { mode: "on-demand" });
-    expect(second.report).toMatchObject({
-      outcome: "published",
-      digests: [{ id: "2026-10-07-2", kind: "on-demand" }],
-    });
-    expect(await readDigest(repo.root, DIGEST_PATH)).toEqual(first);
-    expect((await readDigest(repo.root, "Digests/2026/10/2026-10-07-2.md")).kind).toBe("on-demand");
-    expect(git(repo.root, "log", "-1", "--format=%s")).toBe("chore(digest): 2026-10-07-2");
-  });
+      const later = new Date("2026-10-07T12:00:00Z");
+      world.setNow(later);
+      world.feeds = goodFeeds(6, "later");
+      const second = await runStage(world, { mode: "on-demand" });
+      expect(second.report).toMatchObject({
+        outcome: "published",
+        digests: [{ id: "2026-10-07-2", kind: "on-demand" }],
+      });
+      expect(await readDigest(repo.root, DIGEST_PATH)).toEqual(first);
+      expect((await readDigest(repo.root, "Digests/2026/10/2026-10-07-2.md")).kind).toBe(
+        "on-demand",
+      );
+      expect(git(repo.root, "log", "-1", "--format=%s")).toBe("chore(digest): 2026-10-07-2");
 
-  it("records on_demand and leaves the regular cadence where it was", LONG, async () => {
-    const world = makeWorld(repo.root, { now: WED });
-    await runStage(world);
-    const before = await readJson<LastRunFile>(repo.root, "state/last-run.json");
-
-    const later = new Date("2026-10-07T15:00:00Z");
-    world.setNow(later);
-    world.feeds = goodFeeds(6, "later");
-    await runStage(world, { mode: "on-demand" });
-    const after = await readJson<LastRunFile>(repo.root, "state/last-run.json");
-    expect(after.regular).toEqual(before.regular);
-    expect(after.on_demand).toMatchObject({ outcome: "published", digest_id: "2026-10-07-2" });
-    // The fetch window still moves on, so the next run does not re-read what this one saw.
-    expect(after.last_fetch_at).toBe(later.toISOString());
-
-    const gate = await runStage(world, { stage: "gate" });
-    expect(gate.report).toMatchObject({ due: false });
-  });
+      const after = await readJson<LastRunFile>(repo.root, "state/last-run.json");
+      expect(after.regular).toEqual(before.regular);
+      expect(after.on_demand).toMatchObject({ outcome: "published", digest_id: "2026-10-07-2" });
+      // The fetch window still moves on, so the next run does not re-read what this one saw.
+      expect(after.last_fetch_at).toBe(later.toISOString());
+      const gate = await runStage(world, { stage: "gate" });
+      expect(gate.report).toMatchObject({ due: false });
+    },
+  );
 });
 
 describe("nothing outcome", () => {
@@ -354,12 +341,7 @@ describe("nothing outcome", () => {
     expect(git(repo.root, "log", "-1", "--format=%s")).toBe(
       "chore(state): run 2026-10-07 nothing cleared the bar",
     );
-  });
-
-  it("advances the fetch window and leaves judged items unseen", LONG, async () => {
-    const feeds = quietFeeds();
-    const world = makeWorld(repo.root, { now: WED, feeds });
-    await runStage(world);
+    // The fetch window advances and judged items stay unseen, for the next run to reconsider.
     const lastRun = await readJson<LastRunFile>(repo.root, "state/last-run.json");
     expect(lastRun.regular).toEqual({ at: WED.toISOString(), outcome: "nothing", items: 0 });
     expect(lastRun.last_fetch_at).toBe(WED.toISOString());
@@ -520,7 +502,7 @@ describe("gated run", () => {
 });
 
 describe("dry run", () => {
-  it("writes no state, no digest and no commit", LONG, async () => {
+  it("writes no state, no digest and no commit, only a preview under .cache", LONG, async () => {
     const before = head(repo.root);
     const world = makeWorld(repo.root, { now: WED });
     const results = await runStaged(world, { dryRun: true });
@@ -530,7 +512,12 @@ describe("dry run", () => {
       dry_run: true,
       deploy: false,
       commit: { status: "dry_run" },
+      digests: [
+        { id: "2026-10-07", preview: ".cache/run/2026-10-07/digest-preview.md", path: null },
+      ],
     });
+    const preview = await readDigest(repo.root, ".cache/run/2026-10-07/digest-preview.md");
+    expect(preview.id).toBe("2026-10-07");
     expect(head(repo.root)).toBe(before);
     expect(git(repo.root, "status", "--porcelain")).toBe("");
     for (const rel of [
@@ -542,18 +529,6 @@ describe("dry run", () => {
     ]) {
       expect(await exists(repo.root, rel)).toBe(false);
     }
-  });
-
-  it("leaves a digest preview under .cache only", LONG, async () => {
-    const world = makeWorld(repo.root, { now: WED });
-    const result = await runStage(world, { dryRun: true });
-    expect(result.report).toMatchObject({
-      digests: [
-        { id: "2026-10-07", preview: ".cache/run/2026-10-07/digest-preview.md", path: null },
-      ],
-    });
-    const preview = await readDigest(repo.root, ".cache/run/2026-10-07/digest-preview.md");
-    expect(preview.id).toBe("2026-10-07");
   });
 
   it("carries dry_run from the gate to later stages that get no flag", LONG, async () => {
@@ -692,53 +667,49 @@ describe("Sunday: regular and weekly passes in a forced run", () => {
     };
   }
 
-  it("publishes both digests in one commit without repeating an item", LONG, async () => {
-    await seed(repo.root, { "state/last-run.json": regularYesterday });
-    const world = makeWorld(repo.root, { now: SUN, feeds: sundayFeeds() });
-    const result = await runStage(world, { force: true });
-    expect(result.report).toMatchObject({ outcome: "published", deploy: true });
-    const regular = await readDigest(repo.root, "Digests/2026/10/2026-10-11.md");
-    const weekly = await readDigest(repo.root, "Digests/2026/10/2026-10-11-weekly.md");
-    expect(regular.kind).toBe("regular");
-    expect(weekly.kind).toBe("weekly");
-    const regularIds = new Set(regular.items.map((item) => item.id));
-    expect(weekly.items.some((item) => regularIds.has(item.id))).toBe(false);
-    expect(weekly.items.length).toBeGreaterThanOrEqual(3);
-    expect(git(repo.root, "log", "-1", "--format=%s")).toBe(
-      "chore(digest): 2026-10-11, 2026-10-11-weekly",
-    );
-  });
+  it(
+    "publishes both digests in one commit, records both kinds, chains the cover",
+    LONG,
+    async () => {
+      await seed(repo.root, { "state/last-run.json": regularYesterday });
+      const world = makeWorld(repo.root, { now: SUN, feeds: sundayFeeds() });
+      const result = await runStage(world, { force: true });
+      expect(result.report).toMatchObject({ outcome: "published", deploy: true });
+      const regular = await readDigest(repo.root, "Digests/2026/10/2026-10-11.md");
+      const weekly = await readDigest(repo.root, "Digests/2026/10/2026-10-11-weekly.md");
+      expect(regular.kind).toBe("regular");
+      expect(weekly.kind).toBe("weekly");
+      const regularIds = new Set(regular.items.map((item) => item.id));
+      expect(weekly.items.some((item) => regularIds.has(item.id))).toBe(false);
+      expect(weekly.items.length).toBeGreaterThanOrEqual(3);
+      expect(git(repo.root, "log", "-1", "--format=%s")).toBe(
+        "chore(digest): 2026-10-11, 2026-10-11-weekly",
+      );
 
-  it("records both kinds and chains the cover", LONG, async () => {
-    await seed(repo.root, { "state/last-run.json": regularYesterday });
-    const world = makeWorld(repo.root, { now: SUN, feeds: sundayFeeds() });
-    await runStage(world, { force: true });
-    const lastRun = await readJson<LastRunFile>(repo.root, "state/last-run.json");
-    expect(lastRun.regular).toMatchObject({ outcome: "published", digest_id: "2026-10-11" });
-    expect(lastRun.weekly).toMatchObject({ outcome: "published", digest_id: "2026-10-11-weekly" });
-    const regular = await readDigest(repo.root, "Digests/2026/10/2026-10-11.md");
-    const weekly = await readDigest(repo.root, "Digests/2026/10/2026-10-11-weekly.md");
-    expect(weekly.cover.template).not.toBe(regular.cover.template);
-    expect(lastRun.last_cover).toEqual({
-      template: weekly.cover.template,
-      palette: weekly.cover.palette,
-    });
-  });
+      const lastRun = await readJson<LastRunFile>(repo.root, "state/last-run.json");
+      expect(lastRun.regular).toMatchObject({ outcome: "published", digest_id: "2026-10-11" });
+      expect(lastRun.weekly).toMatchObject({
+        outcome: "published",
+        digest_id: "2026-10-11-weekly",
+      });
+      expect(weekly.cover.template).not.toBe(regular.cover.template);
+      expect(lastRun.last_cover).toEqual({
+        template: weekly.cover.template,
+        palette: weekly.cover.palette,
+      });
 
-  it("gives the weekly pass the seven day window and the weekly sources", LONG, async () => {
-    await seed(repo.root, { "state/last-run.json": regularYesterday });
-    const world = makeWorld(repo.root, { now: SUN, feeds: sundayFeeds() });
-    await runStage(world, { force: true });
-    const weeklyCalls = world.fetchCalls.filter((c) => c.from === "2026-10-04T05:13:00.000Z");
-    expect(weeklyCalls.map((c) => c.source).sort()).toEqual([
-      "blog-a",
-      "blog-b",
-      "blog-c",
-      "journal-w",
-    ]);
-    const regularCalls = world.fetchCalls.filter((c) => c.from === "2026-10-09T05:13:00.000Z");
-    expect(regularCalls.map((c) => c.source).sort()).toEqual(["blog-a", "blog-b", "blog-c"]);
-  });
+      // The weekly pass reads seven days and the weekly sources; the regular pass its own window.
+      const weeklyCalls = world.fetchCalls.filter((c) => c.from === "2026-10-04T05:13:00.000Z");
+      expect(weeklyCalls.map((c) => c.source).sort()).toEqual([
+        "blog-a",
+        "blog-b",
+        "blog-c",
+        "journal-w",
+      ]);
+      const regularCalls = world.fetchCalls.filter((c) => c.from === "2026-10-09T05:13:00.000Z");
+      expect(regularCalls.map((c) => c.source).sort()).toEqual(["blog-a", "blog-b", "blog-c"]);
+    },
+  );
 
   it("runs only the weekly pass in weekly mode, on any day", LONG, async () => {
     const world = makeWorld(repo.root, {
