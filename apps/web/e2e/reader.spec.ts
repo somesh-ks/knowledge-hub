@@ -376,7 +376,7 @@ test.describe("sections and stories", () => {
     await expect(first).not.toContainText("Mara Lindqvist");
     await expect(first.locator(".source-link > span").first()).toHaveText("Springlet Blog");
     await expect(first.locator(".story-why")).toHaveText(
-      "Why Copy the retargeting pattern for drawers and toasts.",
+      "Why: Copy the retargeting pattern for drawers and toasts.",
     );
   });
 

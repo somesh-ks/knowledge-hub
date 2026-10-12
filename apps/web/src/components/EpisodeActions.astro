@@ -51,9 +51,10 @@ const COPY = {
                 This replaces the episode and keeps its topics, length and format.
               </p>
               <section class="create-group">
-                <h3 class="section-head">
-                  <label for="regen-feedback">What should change?</label>
-                </h3>
+                {/* A form label, not a second title under the panel's own. */}
+                <label class="sheet-field-label regen-label" for="regen-feedback">
+                  What should change?
+                </label>
                 <textarea
                   class="sheet-input regen-feedback"
                   id="regen-feedback"

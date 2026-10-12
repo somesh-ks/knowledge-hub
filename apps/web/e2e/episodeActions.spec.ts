@@ -104,6 +104,30 @@ test.describe("regenerate and delete an episode", () => {
     await expect(more(page)).toBeFocused();
   });
 
+  test("the panel has one title: its field is labelled at the label size, not as a heading", async ({
+    page,
+  }) => {
+    await open(page);
+    await choose(page, "Regenerate");
+    await expect(panel(page)).toBeVisible();
+    await expect(panel(page).getByRole("heading")).toHaveText(["Regenerate this episode"]);
+    const label = panel(page).locator('label[for="regen-feedback"]');
+    const look = await label.evaluate((node) => {
+      const style = getComputedStyle(node);
+      return { size: Number.parseFloat(style.fontSize), heading: node.closest("h2, h3") !== null };
+    });
+    expect(look.heading).toBe(false);
+    expect(look.size).toBeLessThanOrEqual(14);
+  });
+
+  test("Highlights is a section heading like any other: regular weight", async ({ page }) => {
+    await open(page);
+    const weight = await page
+      .locator("#episode-highlights-title")
+      .evaluate((node) => getComputedStyle(node).fontWeight);
+    expect(weight).toBe("400");
+  });
+
   test("Regenerate sends the exact body and the indicator takes over", async ({ page }) => {
     const bodies = await mock(page, [
       { run_id: 77, state: "running", step: null },
