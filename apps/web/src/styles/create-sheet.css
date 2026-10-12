@@ -264,7 +264,8 @@ html:has(dialog[open]) .create-fab {
    for the open player. It comes back once the bar holds something else. */
 /* It is a second face of the hero's Play, so while that is on screen it waits: two Play buttons
    at once say the same thing twice. briefingPage.ts sets data-hero-away once the hero's Play has
-   scrolled out of view, and the button comes in; scrolling back up to it sends the button away. */
+   scrolled out of view, and the button comes in; scrolling back up to it sends the button away.
+   A toast is lifted over the button only while it shows (sheets.css repeats this condition). */
 html:not([data-fab]) .play-fab,
 html:has(.hero-actions):not([data-hero-away]) .play-fab {
   visibility: hidden;
