@@ -83,7 +83,7 @@ export function installCreate(root: HTMLElement, onStart?: () => void): void {
   let undoTicks: boolean[] | null = null;
 
   /**
-   * The line under Written for: what a suggestion did ("Topics set for anyone", with Undo), that
+   * The line under Written for: what a suggestion did ("Topics set for General", with Undo), that
    * the picks made by hand were kept (with the suggestion), or nothing.
    */
   function showNote(mode: "applied" | "kept" | null): void {

@@ -30,8 +30,8 @@ describe("moreOptionsSummary", () => {
     expect(moreOptionsSummary("Somesh", "7 days", "Neutral")).toBe(
       "For Somesh · Last 7 days · Neutral tone",
     );
-    expect(moreOptionsSummary("anyone", "2 days", "Dry")).toBe(
-      "For anyone · Last 2 days · Dry tone",
+    expect(moreOptionsSummary("General", "2 days", "Dry")).toBe(
+      "For General · Last 2 days · Dry tone",
     );
   });
 
@@ -178,11 +178,11 @@ describe("topicOptions", () => {
 });
 
 describe("audiences", () => {
-  it("are Anyone and Somesh, Somesh by default", () => {
+  it("are General and Somesh, Somesh by default", () => {
     expect(AUDIENCES.map((audience) => audience.value)).toEqual(["general", "custom"]);
-    expect(AUDIENCES.map((audience) => audience.label)).toEqual(["Anyone", "Somesh"]);
-    // In a sentence: "For anyone", "Topics set for Somesh".
-    expect(AUDIENCES.map((audience) => audience.phrase)).toEqual(["anyone", "Somesh"]);
+    expect(AUDIENCES.map((audience) => audience.label)).toEqual(["General", "Somesh"]);
+    // In a sentence: "For General", "Topics set for Somesh".
+    expect(AUDIENCES.map((audience) => audience.phrase)).toEqual(["General", "Somesh"]);
     expect(DEFAULTS.audience).toBe("custom");
   });
 });

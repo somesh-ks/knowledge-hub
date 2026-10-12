@@ -35,14 +35,14 @@ export const TONES: ReadonlyArray<{ value: PodcastRequest["tone"]; label: string
 
 /**
  * Who the script is written for. `phrase` is how the audience reads after "For" and "set for" in a
- * sentence: "For anyone", "Topics set for Somesh".
+ * sentence: "For General", "Topics set for Somesh".
  */
 export const AUDIENCES: ReadonlyArray<{
   value: NonNullable<PodcastRequest["audience"]>;
   label: string;
   phrase: string;
 }> = [
-  { value: "general", label: "Anyone", phrase: "anyone" },
+  { value: "general", label: "General", phrase: "General" },
   { value: "custom", label: "Somesh", phrase: "Somesh" },
 ];
 
