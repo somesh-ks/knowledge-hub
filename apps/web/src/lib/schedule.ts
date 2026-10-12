@@ -3,6 +3,7 @@ import { join } from "node:path";
 import {
   type CustomDefaults,
   DEFAULT_SCHEDULE,
+  effectiveSkipTopics,
   type PodcastFormat,
   ScheduleFile,
   scheduleZone,
@@ -51,18 +52,21 @@ export async function loadScheduleView(
   const base = usesFixtures(env) ? join(repo, "apps", "web", "src", "fixtures") : repo;
   const scheduleFile = await readJson(join(base, "config", "schedule.json"));
   const schedule = ScheduleFile.safeParse(scheduleFile);
+  const file = schedule.success ? schedule.data : DEFAULT_SCHEDULE;
   const {
     timezone: storedZone,
     hour,
     cadence_days: cadenceDays,
-    skip_topics: skipTopics,
     format,
     length_minutes: lengthMinutes,
     voice_id: voiceId,
     voice_id_b: voiceIdB,
-    weekly,
     custom,
-  } = schedule.success ? schedule.data : DEFAULT_SCHEDULE;
+  } = file;
+  // The lists the engine reads: until an edit says where the general news topics play, they count as
+  // left out of the daily and weekly podcasts, and the chips show them so.
+  const skipTopics = effectiveSkipTopics(file, "daily");
+  const weekly = { ...file.weekly, skip_topics: effectiveSkipTopics(file, "weekly") };
   const timezone = scheduleZone(storedZone);
   return {
     timezone,

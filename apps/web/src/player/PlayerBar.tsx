@@ -224,11 +224,6 @@ export default function PlayerBar() {
     () => true,
   );
   const isLastItem = itemCount === 0 || state.itemIndex >= itemCount - 1;
-  const open = useSyncExternalStore(
-    playerSheet.subscribe,
-    () => playerSheet.getSnapshot().open,
-    () => false,
-  );
 
   return (
     <section className="player-dock" aria-label="Audio player" data-player-dock>

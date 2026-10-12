@@ -61,6 +61,9 @@ export function topicArt(id: string, name: string): string {
     `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 ${SIDE} ${SIDE}" aria-hidden="true" focusable="false" data-palette="${pal.id}">` +
     `<rect width="${SIDE}" height="${SIDE}" fill="${pal.ground}"/>` +
     shapes.join("") +
+    // The letter sits on a disc of the ground, which is what the palette's text is chosen against, so it
+    // reads whatever the shapes under it are.
+    `<circle cx="48" cy="48" r="28" fill="${pal.ground}"/>` +
     `<text x="48" y="48" text-anchor="middle" dominant-baseline="central" font-family="inherit" font-size="44" font-weight="600" fill="${pal.text}">${letter}</text>` +
     `</svg>`
   );
