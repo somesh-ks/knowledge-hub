@@ -99,9 +99,8 @@ describe("compareCards", () => {
     expect([later, earlier].sort((a, b) => compareCards(a, b, "oldest"))).toEqual([earlier, later]);
   });
 
-  it("sorts by length and by story count, newest first on a tie", () => {
+  it("sorts by length, newest first on a tie", () => {
     expect([newer, older].sort((a, b) => compareCards(a, b, "longest"))).toEqual([older, newer]);
-    expect([older, newer].sort((a, b) => compareCards(a, b, "stories"))).toEqual([newer, older]);
     const twin = card({ date: "2026-10-06", minutes: 8 });
     expect([twin, newer].sort((a, b) => compareCards(a, b, "longest"))).toEqual([newer, twin]);
   });

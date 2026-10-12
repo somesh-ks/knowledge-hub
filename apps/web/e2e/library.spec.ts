@@ -80,8 +80,8 @@ test.describe("the library", () => {
       "Newest first",
       "Oldest first",
       "Longest first",
-      "Most stories",
     ]);
+    // No "Most stories": an episode's card never shows a count, so that order would look arbitrary.
     await expect(sort).toHaveValue("newest");
   });
 
@@ -521,15 +521,10 @@ test.describe("library filters and order", () => {
       "Monday 5 October",
       "Wednesday 7 October",
     ]);
-    // The most stories first: 14, 12, 8, 2, then 1 (an episode's stories are the ones it covers).
-    await sort.selectOption("stories");
-    expect(await titles(page)).toEqual([
-      "Sunday 4 October",
-      "Wednesday 7 October",
-      "Monday 5 October",
-      DISCUSSION,
-      HEADLINES,
-    ]);
+    // An address from before keeps working: an order the page no longer offers is the default.
+    await page.goto("/library?sort=stories");
+    await expect(sort).toHaveValue("newest");
+    await expect(page).not.toHaveURL(/sort=/);
     await sort.selectOption("newest");
     expect(await titles(page)).toEqual(NEWEST_FIRST);
   });

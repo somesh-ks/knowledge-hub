@@ -7,7 +7,7 @@
  */
 
 export type LibraryFilter = "all" | "daily" | "weekly" | "custom";
-export type LibrarySort = "newest" | "oldest" | "longest" | "stories";
+export type LibrarySort = "newest" | "oldest" | "longest";
 
 export const LIBRARY_FILTERS: ReadonlyArray<{ id: LibraryFilter; label: string }> = [
   { id: "all", label: "All" },
@@ -23,7 +23,6 @@ export const LIBRARY_SORTS: ReadonlyArray<{ id: LibrarySort; label: string }> = 
   { id: "newest", label: "Newest first" },
   { id: "oldest", label: "Oldest first" },
   { id: "longest", label: "Longest first" },
-  { id: "stories", label: "Most stories" },
 ];
 
 /** The `kind` a podcast episode's card carries, beside the kinds of briefing. */
@@ -274,7 +273,6 @@ export function compareCards(a: CardData, b: CardData, sort: LibrarySort): numbe
   const newest = b.date.localeCompare(a.date) || a.order - b.order;
   if (sort === "oldest") return -newest;
   if (sort === "longest") return b.minutes - a.minutes || newest;
-  if (sort === "stories") return b.stories - a.stories || newest;
   return newest;
 }
 
