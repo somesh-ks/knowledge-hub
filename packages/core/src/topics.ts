@@ -32,9 +32,11 @@ export type TopicDepth = z.infer<typeof TopicDepth>;
  * ship with the app (Design and Trending): judged by fit like a custom topic, but they can be
  * switched off and never removed, and they do not count toward MAX_CUSTOM_TOPICS. "general" topics
  * are the general news topics (World, Business, Science, Culture, Sports; D66): fed only by their
- * own news feeds, whose stories are judged so the feeds earn scores, and published only in
- * episodes, never in a briefing. Like app topics they can be renamed, reworded and switched off,
- * never removed, and do not count toward MAX_CUSTOM_TOPICS.
+ * own news feeds, whose stories are judged so the feeds earn scores. They play in a scheduled
+ * briefing or the weekly one unless its skip list names them, each as a section named after the
+ * topic (`publishSection`), and in episodes. Like app topics they can be renamed and reworded and
+ * never removed, and do not count toward MAX_CUSTOM_TOPICS; unlike them they are always on, so
+ * `enabled` is read for no general topic.
  */
 export const TOPIC_ORIGINS = ["builtin", "custom", "app", "general"] as const;
 export const TopicOrigin = z.enum(TOPIC_ORIGINS);
@@ -55,10 +57,15 @@ export const RESERVED_TOPIC_IDS: readonly string[] = [
 ];
 
 /**
- * The section a general topic names. No digest has it: a general topic's stories go to episodes
- * only, so the briefing's selection never places them, and topics.json lists no such section.
+ * The section a general topic stores. It is a placeholder: topics.json lists no such section and
+ * no digest has it. A general topic's stories publish in a section of its own id (`publishSection`).
  */
 export const GENERAL_SECTION_ID = "general";
+
+/** The section a topic's stories publish in: a general topic's own id, else its `section_id`. */
+export function publishSection(topic: Pick<Topic, "id" | "origin" | "section_id">): string {
+  return topic.origin === "general" ? topic.id : topic.section_id;
+}
 
 /** Ids of the topics that ship with the app. */
 export const APP_TOPIC_IDS: readonly string[] = [DESIGN_TOPIC_ID, TRENDING_TOPIC_ID];
@@ -330,7 +337,8 @@ const GENERAL_DESCRIPTIONS: Record<GeneralTopicId, string> = {
 
 /**
  * The general news topics (D66). Each is fed by the news feeds tagged with its id, ranked by how
- * many outlets carried a story, and names GENERAL_SECTION_ID, so a briefing never publishes it.
+ * many outlets carried a story, and names GENERAL_SECTION_ID, which stands for the section of its
+ * own id (`publishSection`).
  */
 export function generalTopics(): Topic[] {
   return GENERAL_TOPICS.map(
@@ -377,6 +385,8 @@ export function resolveTopics(
   );
   const present = new Set(base.topics.map((topic) => topic.id));
   const topics = base.topics.map((topic): Topic => {
+    // A general topic is always on, whatever an older file stored.
+    if (topic.origin === "general") return topic.enabled ? topic : { ...topic, enabled: true };
     if (topic.origin !== "builtin") return topic;
     if (!isBuiltinCategory(topic.id)) return topic;
     // Weight is the owner's (preferences); the section follows the code, so a routing change
@@ -397,6 +407,17 @@ export function resolveTopics(
   return { version: 1, sections, topics };
 }
 
+/**
+ * The file with the general topics it lacks added, as resolveTopics restores them, for a stage
+ * that places stories by topic without the preferences resolveTopics needs. Null stays null.
+ */
+export function withGeneralTopics(file: TopicsFile | null): TopicsFile | null {
+  if (file === null) return null;
+  const present = new Set(file.topics.map((topic) => topic.id));
+  const missing = generalTopics().filter((topic) => !present.has(topic.id));
+  return missing.length === 0 ? file : { ...file, topics: [...file.topics, ...missing] };
+}
+
 /** Custom topics that are switched on. */
 export function activeCustomTopics(file: TopicsFile): Topic[] {
   return file.topics.filter((topic) => topic.origin === "custom" && topic.enabled);
@@ -413,9 +434,9 @@ export function activeFitTopics(file: TopicsFile): Topic[] {
   );
 }
 
-/** The general news topics that are switched on (D66). */
+/** The general news topics (D66). They are always on: a stored `enabled` is not read. */
 export function activeGeneralTopics(file: TopicsFile): Topic[] {
-  return file.topics.filter((topic) => topic.origin === "general" && topic.enabled);
+  return file.topics.filter((topic) => topic.origin === "general");
 }
 
 /** True when the id names a topic that ships with the app and the file has it switched off. */
@@ -426,8 +447,9 @@ export function isDisabledAppTopic(file: TopicsFile | null | undefined, id: stri
 
 /**
  * Home section for a category or topic id. A built-in category keeps the section it has always
- * had; a custom or app topic follows its `section_id`. Null for a topic that never publishes, and
- * for an id nobody knows (a removed topic). A video goes where its topic goes.
+ * had; a custom or app topic follows its `section_id`, and a general topic publishes in a section
+ * of its own id. Null for a topic that never publishes, and for an id nobody knows (a removed
+ * topic). A video goes where its topic goes.
  */
 export function homeSectionFor(
   topics: TopicsFile | null | undefined,
@@ -437,7 +459,20 @@ export function homeSectionFor(
   if (isBuiltinCategory(id)) return homeSection(id, sourceType);
   const topic = topics?.topics.find((candidate) => candidate.id === id);
   if (!topic || topic.never_publish) return null;
-  return topic.section_id;
+  return publishSection(topic);
+}
+
+/**
+ * Section titles by id for a digest to keep: the file's sections plus one for each general topic,
+ * titled with its name (the section a general topic's stories publish in has no row in the file).
+ */
+export function topicSectionTitles(file: TopicsFile): Record<string, string> {
+  return {
+    ...Object.fromEntries(file.sections.map((section) => [section.id, section.title])),
+    ...Object.fromEntries(
+      file.topics.filter((topic) => topic.origin === "general").map((t) => [t.id, t.name]),
+    ),
+  };
 }
 
 /** True when an id publishes in a section of its own allowance (custom sections and Tech). */

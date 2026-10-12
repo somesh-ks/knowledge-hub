@@ -17,11 +17,13 @@ import type { PoolFile } from "../fetch/pool.js";
 import { loadQueries } from "../fetch/queries.js";
 import type { SourceResult } from "../fetch/types.js";
 import { prefilter } from "../prefilter/prefilter.js";
+import { loadSchedule } from "../schedule/store.js";
 import { loadSources } from "../sources/registry.js";
 import { overlayHealth } from "../state/sourceHealth.js";
 import { readSeen, readSourceHealth } from "../state/store.js";
 import { loadTopicsFile } from "../topics/store.js";
 import { activeGeneralFrom, buildGeneralPool, type GeneralPoolFile } from "./generalNews.js";
+import { generalIdsFor } from "./generalScope.js";
 import type { FetchSetup } from "./types.js";
 
 export interface GatherInput {
@@ -61,8 +63,8 @@ export interface GatherResult {
  * supplied by the run plan. The weekly kind also runs weekly-tier sources; every other kind runs
  * daily-tier sources only.
  *
- * A source that feeds general news topics alone is read only when one of its topics is switched on,
- * and never for the weekly kind, which does not use general stories. Its items skip the briefing's
+ * A source that feeds general news topics alone is read when one of its topics plays in the pass:
+ * every general topic in a regular pass, those the weekly podcast does not skip in the weekly one. Its items skip the briefing's
  * dedupe, prefilter and caps entirely and become the general stories of the pass (generalNews.ts).
  */
 export async function gatherPool(input: GatherInput): Promise<GatherResult> {
@@ -77,7 +79,16 @@ export async function gatherPool(input: GatherInput): Promise<GatherResult> {
   // Health lives in state/, not config/, so a run never rewrites hand-edited configuration.
   const sources = overlayHealth(configured, health);
 
-  const activeGeneral = new Set(activeGeneralFrom(await loadTopicsFile(root)).map((t) => t.id));
+  // The regular pass reads every general topic (their feeds are scored); the weekly pass only
+  // those its podcast plays, so a weekly that skips them all reads no general feed.
+  const everyGeneral = activeGeneralFrom(await loadTopicsFile(root)).map((t) => t.id);
+  const weeklyGeneral =
+    input.kind === "weekly" ? generalIdsFor(await loadSchedule(root), "weekly", "weekly") : [];
+  const activeGeneral = new Set(
+    input.kind === "weekly"
+      ? everyGeneral.filter((id) => weeklyGeneral.includes(id))
+      : everyGeneral,
+  );
   const generalSourceIds = new Set<string>();
   const probed = new Set((input.probeGeneral ?? []).map((source) => source.id));
   const runnable = sources.sources
@@ -90,7 +101,6 @@ export async function gatherPool(input: GatherInput): Promise<GatherResult> {
     )
     .filter((source) => {
       if (!feedsGeneralOnly(source.topic_ids)) return true;
-      if (input.kind === "weekly") return false;
       if (!source.topic_ids?.some((id) => activeGeneral.has(id))) return false;
       generalSourceIds.add(source.id);
       return true;

@@ -1,5 +1,5 @@
-import { VOICE_LIMITS } from "@dispatch/core";
-import { linkSourceIds, loadPool, loadSources, sourceNameMap } from "../curate/inputs.js";
+import { VOICE_LIMITS, withGeneralTopics } from "@dispatch/core";
+import { linkSourceIds, loadSources, sourceNameMap } from "../curate/inputs.js";
 import { writeJson } from "../curate/output.js";
 import { Selection, WrittenFile } from "../curate/selectionFile.js";
 import { readLastRun } from "../state/store.js";
@@ -14,6 +14,7 @@ import { MaterialsFile, readArtifact } from "./artifacts.js";
 import { makeCoverPicker } from "./cover.js";
 import { digestFromSelection } from "./digestFromSelection.js";
 import { StageFailure } from "./errors.js";
+import { loadPassPool } from "./passPool.js";
 import { markStage, type Plan, passFile, requireStage } from "./plan.js";
 import type { PassReport, RunDeps, StageReport } from "./types.js";
 
@@ -38,7 +39,7 @@ export async function validateStage(deps: RunDeps, plan: Plan): Promise<StageRep
   const linter = createLinter(await loadVoice(deps.root));
   const [sources, lastRun] = await Promise.all([loadSources(deps.root), readLastRun(deps.root)]);
   const sourceNames = sourceNameMap(sources);
-  const topics = await loadTopicsFile(deps.root);
+  const topics = withGeneralTopics(await loadTopicsFile(deps.root));
   const coverPicker = makeCoverPicker(deps.pickCover, lastRun.last_cover);
   if (runtime.grounder === null) {
     deps.log.warn("No grounding check ran: the digest will be marked unverified");
@@ -67,7 +68,7 @@ export async function validateStage(deps: RunDeps, plan: Plan): Promise<StageRep
       "materials.json",
       MaterialsFile,
     );
-    const pool = await loadPool(file("pool.json"));
+    const pool = await loadPassPool(file("pool.json"), file("general.json"));
     const materials = new Map<string, SourceMaterial>(materialsFile.items.map((m) => [m.id, m]));
     const entryOf = new Map<string, SelectionItem>(selection.items.map((e) => [e.id, e]));
     const asSelection = (items: readonly GroundedItem[]): Selection => ({

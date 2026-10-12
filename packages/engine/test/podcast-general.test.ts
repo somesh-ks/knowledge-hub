@@ -1,6 +1,6 @@
 import { mkdir, readFile, writeFile } from "node:fs/promises";
 import { join } from "node:path";
-import { generalTopics, type PodcastRequest, parseEpisodeFile, type Source } from "@dispatch/core";
+import { type PodcastRequest, parseEpisodeFile, type Source } from "@dispatch/core";
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
 import type { HttpClient } from "../src/http.js";
 import { pickStories, selectGeneralStories, topStoryCount } from "../src/podcast/general.js";
@@ -159,7 +159,6 @@ function deps(over: Partial<Parameters<typeof selectGeneralStories>[0]> = {}) {
     now: NOW,
     http: fakeHttp(BODIES),
     sources: SOURCES,
-    topics: null,
     ...over,
   };
 }
@@ -268,25 +267,11 @@ describe("selectGeneralStories", () => {
       ...deps({ http: fakeHttp(bodies, calls) }),
       root: ctx.root,
       sources: undefined,
-      topics: undefined,
     });
     expect(calls).toContain("https://lantern.test/world");
     expect(calls).not.toContain("https://bbc.test/world");
     const volcano = stories.find((s) => /Volcano/.test(s.headline));
     expect(volcano?.source.split(", ").sort()).toEqual(["ABC News", "Lantern Post"]);
-  });
-
-  it("reads nothing for a general topic the owner switched off", async () => {
-    const topics = {
-      version: 1 as const,
-      sections: [],
-      topics: generalTopics().map((topic) => ({ ...topic, enabled: topic.id !== "business" })),
-    };
-    const calls: string[] = [];
-    const result = await selectGeneralStories(deps({ topics, http: fakeHttp(BODIES, calls) }));
-    expect(calls.every((url) => url.endsWith("/world"))).toBe(true);
-    expect(result.empty_topics).toEqual(["business"]);
-    expect(result.stories.every((s) => s.section === "world")).toBe(true);
   });
 
   it("fails with a plain message when every feed fails, and does not read briefings", async () => {

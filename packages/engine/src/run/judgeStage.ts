@@ -180,7 +180,15 @@ export async function judgeStage(deps: RunDeps, plan: Plan): Promise<StageReport
     // nothing that goes wrong with them may stop the briefing.
     let generalReport: Awaited<ReturnType<typeof judgeGeneral>> = null;
     try {
-      generalReport = await judgeGeneral(deps, pass, runtime, topicsFile);
+      generalReport = await judgeGeneral(
+        deps,
+        pass,
+        runtime,
+        topicsFile,
+        plan.passes
+          .slice(0, plan.passes.indexOf(pass))
+          .map((earlier) => passFile(deps.root, earlier.id, "general-judged.json")),
+      );
     } catch (error) {
       deps.log.warn("The general news stories could not be judged; the briefing goes on", {
         pass: pass.id,
