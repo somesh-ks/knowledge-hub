@@ -670,7 +670,8 @@ html[data-mini="visible"] .toast {
  * area: a toast clears only that. Otherwise the run line and, above it, the floating button stack
  * over the bottom bar (create-sheet.css). A toast sits 12px above the higher of the two that shows:
  * the run line alone where there is no button (no data-fab, BaseLayout.astro) or it is hidden (a
- * sheet is open), neither while the player is open.
+ * sheet is open, or the hero's own Play is on screen: the same condition that hides it in
+ * create-sheet.css), neither while the player is open.
  */
 @media (width < 64rem) {
   html[data-player="open"] .toast {
@@ -681,7 +682,10 @@ html[data-mini="visible"] .toast {
     --toast-lift: var(--run-room);
   }
 
-  html[data-fab]:not([data-player="open"]):not(:has(dialog[open])) .toast {
+  html[data-fab]:not([data-player="open"]):not(:has(dialog[open])):not(
+      :has(.hero-actions):not([data-hero-away])
+    )
+    .toast {
     --toast-lift: calc(var(--run-room) + var(--space-4) + var(--fab-size));
   }
 }
@@ -749,18 +753,18 @@ html[data-mini="visible"] .toast {
 
 @media (hover: hover) and (pointer: fine) {
   .toast-action:hover {
-    background: color-mix(in oklch, var(--toast-fg) 10%, transparent);
+    background: color-mix(in oklch, var(--toast-fg) var(--state-hover), transparent);
   }
 
   .toast-dismiss:hover {
-    background: color-mix(in oklch, var(--toast-fg) 10%, transparent);
+    background: color-mix(in oklch, var(--toast-fg) var(--state-hover), transparent);
     opacity: 1;
   }
 }
 
 .toast-action:active,
 .toast-dismiss:active {
-  background: color-mix(in oklch, var(--toast-fg) 16%, transparent);
+  background: color-mix(in oklch, var(--toast-fg) var(--state-press), transparent);
 }
 
 .toast-dismiss:active {

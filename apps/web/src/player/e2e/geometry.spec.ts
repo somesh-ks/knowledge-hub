@@ -1,0 +1,107 @@
+import type { Page } from "@playwright/test";
+import { expect, test } from "./lab";
+
+/**
+ * Measured geometry of the open player and the bar: one left edge for the chapters, the phone's
+ * vertical rhythm, the bar on the page's grid, and nothing said twice on a wide touch screen.
+ */
+
+const box = async (page: Page, selector: string) =>
+  page.evaluate((query) => {
+    const element = document.querySelector<HTMLElement>(query);
+    if (!element) return null;
+    const rect = element.getBoundingClientRect();
+    const style = getComputedStyle(element);
+    return {
+      left: rect.left,
+      right: rect.right,
+      top: rect.top,
+      bottom: rect.bottom,
+      width: rect.width,
+      contentLeft: rect.left + Number.parseFloat(style.paddingLeft),
+    };
+  }, selector);
+
+test.describe("player geometry @surface", () => {
+  test("the chapters start at one left edge with their headings", async ({ lab, page }) => {
+    await lab.open();
+    await lab.play();
+    await lab.openPlayer();
+    const title = await box(page, "[data-player-page] .story-row-title");
+    const heading = await box(page, "[data-player-page] .story-group-title");
+    expect(title && heading).toBeTruthy();
+    expect(Math.abs((title?.left ?? 0) - (heading?.contentLeft ?? 0))).toBeLessThanOrEqual(1);
+  });
+
+  test("the phone's open player keeps an even rhythm with the first chapter above the fold", async ({
+    lab,
+    page,
+  }, info) => {
+    test.skip(info.project.name !== "site-phone", "measured at 390x844");
+    await lab.open();
+    await lab.play();
+    await lab.openPlayer();
+    const handle = await box(page, "[data-player-page] .player-handle");
+    const art = await box(page, "[data-player-page] .player-cover-frame");
+    const track = await box(page, "[data-player-page] .scrubber-track");
+    const times = await box(page, "[data-player-page] .scrubber-times");
+    const row = await box(page, "[data-player-page] .story-row");
+    expect(handle?.top ?? 0).toBeGreaterThanOrEqual(14);
+    expect(handle?.top ?? 0).toBeLessThanOrEqual(18);
+    expect(art?.top ?? 0).toBeGreaterThanOrEqual(36);
+    expect(art?.top ?? 0).toBeLessThanOrEqual(44);
+    // The times read the track above them: closer to it than to the transport.
+    expect((times?.top ?? 0) - (track?.bottom ?? 0)).toBeLessThanOrEqual(16);
+    expect(row?.top ?? 900).toBeLessThan(844);
+  });
+
+  test("from 40rem to 64rem the bar lines up with the page's column", async ({
+    lab,
+    page,
+  }, info) => {
+    test.skip(info.project.name !== "site-phone", "a touch tablet");
+    await page.setViewportSize({ width: 820, height: 1100 });
+    await lab.open();
+    await lab.play();
+    await lab.dockSettled();
+    const thumb = await box(page, ".player-dock .player-thumb");
+    const next = await box(page, '.player-dock [aria-label="Next story"]');
+    const column = await page.evaluate(() =>
+      Number.parseFloat(
+        getComputedStyle(document.documentElement).getPropertyValue("--layout-column"),
+      ),
+    );
+    expect(column).toBeGreaterThan(0);
+    // Centred: the same inset at either end, and well inside the window's edge gutter.
+    expect(Math.abs((thumb?.left ?? 0) - (820 - (next?.right ?? 0)))).toBeLessThanOrEqual(2);
+    expect(thumb?.left ?? 0).toBeGreaterThan(80);
+  });
+
+  test("on a wide touch screen the bar does not repeat the open page's transport", async ({
+    lab,
+    page,
+  }, info) => {
+    test.skip(info.project.name !== "site-phone", "a touch screen");
+    await page.setViewportSize({ width: 1180, height: 820 });
+    await lab.open();
+    await lab.play();
+    await expect(page.locator(".player-dock .dock-transport")).toBeVisible();
+    await lab.openPlayer();
+    await expect(page.locator(".player-dock .dock-transport")).toBeHidden();
+    await expect(page.getByRole("button", { name: "Next story" })).toHaveCount(1);
+  });
+
+  test("a very wide window gives the cover more room and keeps the source", async ({
+    lab,
+    page,
+  }, info) => {
+    test.skip(info.project.name !== "site-desktop", "a mouse on a wide screen");
+    await page.setViewportSize({ width: 1920, height: 1080 });
+    await lab.open();
+    await lab.play();
+    await lab.openPlayer();
+    const cover = await box(page, "[data-player-page] .player-cover-frame");
+    expect(cover?.width ?? 0).toBeGreaterThan(460);
+    await expect(lab.dialog.locator(".player-source-link")).toBeVisible();
+  });
+});
