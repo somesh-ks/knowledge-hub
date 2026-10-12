@@ -8,7 +8,6 @@ import { dockSeekKeyValue, fractionOfTime, scrubberValueText } from "./core/scru
 import { itemIndexAt } from "./core/timeline";
 import { applyVolume, getVolume, setVolume } from "./core/volume";
 import { usePlayerFrame, usePlayerSecond, usePlayerState } from "./hooks/usePlayer";
-import { useStoryStep } from "./hooks/useStoryStep";
 import Clock from "./ui/Clock";
 import Icon from "./ui/Icon";
 import PlayerCover from "./ui/PlayerCover";
@@ -200,7 +199,8 @@ export default function PlayerBar() {
   if (state.error) caption = errorSummary(state.error.kind);
   else if (state.interrupted) caption = "Interrupted, press play to resume";
 
-  const step = useStoryStep();
+  // The bar shows once something has played, so what it holds is laid out: the timeline steps.
+  const isLastItem = itemCount === 0 || state.itemIndex >= itemCount - 1;
   const open = useSyncExternalStore(
     playerSheet.subscribe,
     () => playerSheet.getSnapshot().open,
@@ -232,8 +232,8 @@ export default function PlayerBar() {
           className="dock-btn dock-wide press"
           type="button"
           aria-label="Previous story"
-          aria-disabled={step.previousDisabled || undefined}
-          onClick={step.previous}
+          aria-disabled={itemCount === 0 || undefined}
+          onClick={() => store.previous()}
         >
           <Icon name="skipBack" />
         </button>
@@ -254,8 +254,10 @@ export default function PlayerBar() {
           className="dock-btn press"
           type="button"
           aria-label="Next story"
-          aria-disabled={step.nextDisabled || undefined}
-          onClick={step.next}
+          aria-disabled={isLastItem || undefined}
+          onClick={() => {
+            if (!isLastItem) store.next();
+          }}
         >
           <Icon name="skipForward" />
         </button>
