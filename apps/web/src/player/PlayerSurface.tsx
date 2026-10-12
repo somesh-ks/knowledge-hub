@@ -175,13 +175,10 @@ export default function PlayerSurface() {
                 </div>
               </div>
               {/* Room for a changing story is kept only where the story changes: a recording with
-                  no timeline of stories has one fixed line, and no empty gap under it. After a
-                  failure nothing is being read, and no room is kept for it. */}
+                  no timeline of stories has one fixed line, and no empty gap under it. */}
               <div
                 className="player-meta"
-                data-stories={
-                  (timeline?.items.length ?? 0) > 0 && state.status !== "error" ? "" : undefined
-                }
+                data-stories={(timeline?.items.length ?? 0) > 0 ? "" : undefined}
                 data-sourced={(timeline?.items.length ?? 0) > 0 ? "" : undefined}
               >
                 <h2 className="player-title" id={TITLE_ID} title={title}>
@@ -189,15 +186,20 @@ export default function PlayerSurface() {
                 </h2>
                 {/* The story being read, and where it came from. A recording without stories says
                     what it is, and so does an episode's rundown, before story 1: no story is being
-                    read, and the line is the one story 1 will fill, so nothing moves when it starts. */}
-                {state.status === "error" ? null : (
-                  <>
-                    <p className="player-story">
-                      {item?.headline ?? recordingCaption(digest, state.duration)}
-                    </p>
-                    <SourceLink />
-                  </>
-                )}
+                    read, and the line is the one story 1 will fill, so nothing moves when it starts.
+                    A failure or an interruption takes the same room: its notice (PlayerNotice.tsx)
+                    is put here in their place, so nothing below the title moves when it comes or
+                    goes. */}
+                <div className="player-meta-line" data-notice-slot>
+                  {state.error || state.interrupted ? null : (
+                    <>
+                      <p className="player-story">
+                        {item?.headline ?? recordingCaption(digest, state.duration)}
+                      </p>
+                      <SourceLink />
+                    </>
+                  )}
+                </div>
               </div>
             </div>
             <div className="player-body">

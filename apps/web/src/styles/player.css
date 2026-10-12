@@ -45,6 +45,10 @@
   --player-dock-side: 18rem;
   /* The cover never takes more than this share of the window's height. */
   --player-cover-share: 40cqb;
+  /* From 64rem with a finger: what the left column holds besides the cover (the title, the story
+     line and its source or a notice, the scrubber, the transport, the speed, their gaps and the
+     bar), measured at 1024x600. */
+  --player-column-rest: 30rem;
   --player-skip-glyph: 2rem;
   --player-play-glyph: 2.25rem;
 }
@@ -442,6 +446,27 @@
     var(--space-1) *
     2
   );
+}
+
+/* The line under the title: the story and its source, or a notice in their place (a failure, an
+   interruption). It keeps the room of the notice with its action at every width, so nothing below
+   the title moves when a notice comes or goes. */
+.player-meta-line {
+  display: grid;
+  align-content: start;
+  justify-items: center;
+  gap: var(--space-1);
+  width: 100%;
+  min-height: calc(var(--size-touch) + var(--space-1) * 2);
+}
+
+/* In the story's room: the action brings its own 44px, so the notice's own padding above and below
+   is small, and two lines of reason with the action fit the room. */
+.player-meta-line > .player-notice {
+  justify-self: stretch;
+  margin-block: 0;
+  padding-block: var(--space-1);
+  text-align: start;
 }
 
 /* One line: the full headline is in the Stories list and on the bar. */
@@ -2584,30 +2609,19 @@
 
 /* ------------------------------------------------------------------ wide, with a mouse: nothing said twice */
 
-/* With a mouse from 64rem the controls are centred in their row, so a notice that took room only
-   when it came would lift the cover and Play at every failure: room is kept for it under the
-   transport. Only where the window has the height: in a shorter one the kept room made the page
-   scroll at rest and pushed a failure's reason under the bar, so there the notice takes its room
-   when it comes. A finger's page also holds the scrubber and has no such room even at 1024x768. */
-@media (min-width: 64rem) and (min-height: 46rem) and (hover: hover) and (pointer: fine) {
-  .player-controls {
-    position: relative;
-    padding-block-end: calc(var(--size-touch) + var(--banner-padding) * 2 + var(--space-4));
-  }
-
-  .player-controls > .player-notice {
-    position: absolute;
-    inset-block-end: 0;
-    inset-inline: 0;
-    margin-block: 0;
+/* Two columns with a finger: the cover takes what the window's height leaves the rest of the left
+   column, so it fits by construction in a short window (a tablet held sideways, 1024x600 to
+   1280x720) and nothing is cut below the edge. A mouse's column holds less (no scrubber, no story
+   line) and keeps the plain share. */
+@media (min-width: 64rem) {
+  :root {
+    --player-cover-share: min(40cqb, 100cqb - var(--player-column-rest));
   }
 }
 
-/* Without that height the cover gives way while a notice shows, so the reason stays clear of the
-   bar and the page never scrolls. */
-@media (min-width: 64rem) and (max-height: 45.99rem) and (hover: hover) and (pointer: fine) {
-  [data-player-page]:has(.player-notice) .player-cover-box {
-    width: min(100%, var(--cover-size-player), calc(var(--player-cover-share) * 0.7));
+@media (min-width: 64rem) and (hover: hover) and (pointer: fine) {
+  :root {
+    --player-cover-share: 40cqb;
   }
 }
 
@@ -2629,12 +2643,6 @@
     padding-block-start: var(--space-6);
   }
 
-  /* Under the transport, across the group's three columns. */
-  .player-controls > .player-notice {
-    grid-column: 1 / -1;
-    margin-block: 0;
-  }
-
   /* One timeline: the bar's. The page keeps the cover, the title, the source, the skips and the
      speed between them. The story's headline is the bar's caption, so only its source stays here,
      the one way to open it. */
@@ -2649,15 +2657,10 @@
     padding-block-end: var(--space-4);
   }
 
-  /* Without the story there is nothing to keep room for, but the source row comes and goes with
-     each story: its row is kept, in the rundown and after a failure too, so the cover and the
-     transport never move when story 1 starts. */
+  /* Without the story there is nothing to keep room for but the line under the title, which holds
+     the source row or a notice in its place (its own min-height). */
   .player-meta[data-stories] {
     min-height: 0;
-  }
-
-  .player-meta[data-sourced] {
-    grid-template-rows: auto var(--size-touch);
   }
 
   /* Under the cover, the whole transport: previous, back ten, play, forward ten, next, then the

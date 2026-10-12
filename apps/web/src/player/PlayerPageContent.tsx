@@ -39,7 +39,8 @@ export default function PlayerPageContent() {
       <div className="player-controls">
         <Scrubber />
         <TransportControls />
-        {/* Under the transport, so a notice arriving never moves the timeline or play. */}
+        {/* Drawn under the title, in the story line's room (see PlayerNotice), so a notice
+            arriving never moves the timeline or play. */}
         <PlayerNotice onRetry={() => getPlayerStore().retry()} />
       </div>
       <div className="player-list">
