@@ -205,8 +205,9 @@ const facts = topic && {
                   data-edit-topic={JSON.stringify(facts)}
                   data-needs-js
                 >
-                  <span class="settings-label">Edit topic</span>
-                  <Icon name="chevronRight" />
+                  <span class="settings-text"><span class="settings-label">Edit topic</span></span>
+                  {/* It opens a sheet on this page, not another page: an edit glyph, not a chevron. */}
+                  <Icon name="pencil" />
                 </button>
                 )}
               </div>

@@ -325,6 +325,40 @@ test.describe("a topic's page", () => {
     expect(ops(sent)).toEqual([{ op: "weights.set", weights: { audio_interfaces: 0.6 } }]);
   });
 
+  test("a custom topic's rows are one height, the weight row is shaped as Design's, and Edit topic ends at the edge", async ({
+    page,
+  }) => {
+    await setup(page);
+    await open(page, "/settings/topics/audio_interfaces");
+    const phone = (page.viewportSize()?.width ?? 0) < 640;
+    const shape = async (selector: string) =>
+      page
+        .locator(selector)
+        .first()
+        .evaluate((row) => {
+          const box = row.getBoundingClientRect();
+          const icon = row.querySelector(":scope > .icon")?.getBoundingClientRect();
+          const slider = row.querySelector(".settings-range")?.getBoundingClientRect();
+          const label = row.querySelector(".settings-label")?.getBoundingClientRect();
+          return {
+            height: Math.round(box.height),
+            iconGap: icon ? Math.round(box.right - icon.right) : null,
+            under: slider && label ? slider.top >= label.bottom : null,
+          };
+        });
+    const edit = await shape(".topic-edit");
+    const scope = await shape(".topic-scope");
+    const own = await shape(".topic .topic-weight");
+    expect(edit.height).toBe(scope.height);
+    // The glyph ends at the row's edge (its own inset pulled out), not after the words.
+    expect(Math.abs(edit.iconGap ?? 99)).toBeLessThanOrEqual(8);
+    // One weight row is built as a group's are: on a phone the slider goes under its name.
+    if (phone) expect(own.under).toBe(true);
+    await open(page, "/settings/topics/design");
+    const design = await shape(".topic-weights .topic-weight");
+    expect(own.height).toBe(design.height);
+  });
+
   test("Design weighs each topic it gathers by name; a group of one has a plain Weight row", async ({
     page,
   }) => {

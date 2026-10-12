@@ -127,25 +127,25 @@
   }
 }
 
-/* A group's weights: one row per judge topic it gathers, each as tall as a value row. On a phone the
-   name and its percentage take a line and the slider the line below, close under them, so a long
-   name never squeezes the slider. */
-.topic-weights .topic-weight {
+/* A weight row, a group's or a topic's single one, is as tall as a value row. On a phone the name
+   and its percentage take a line and the slider the line below, close under them, so a long name
+   never squeezes the slider. */
+.topic .topic-weight {
   flex-wrap: wrap;
   row-gap: 0;
   padding-block: var(--space-2);
 }
 
-.topic-weights .topic-weight > .settings-text {
+.topic .topic-weight > .settings-text {
   flex-basis: 100%;
 }
 
 @media (min-width: 40rem) {
-  .topic-weights .topic-weight {
+  .topic .topic-weight {
     flex-wrap: nowrap;
   }
 
-  .topic-weights .topic-weight > .settings-text {
+  .topic .topic-weight > .settings-text {
     flex-basis: 0;
   }
 }

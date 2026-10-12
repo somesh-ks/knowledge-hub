@@ -364,6 +364,17 @@ test.describe("the profile pages", () => {
     await expect(page.locator(".podcast-topics").getByText("World")).toHaveCount(0);
     const link = page.getByRole("link", { name: /^Topics and sources/ });
     await expect(link).toHaveAttribute("href", "/settings/topics");
+    // A link row is as tall as the value rows, and its chevron ends at the row's edge.
+    const [height, gap] = await link.evaluate((row) => {
+      const box = row.getBoundingClientRect();
+      const icon = row.querySelector(":scope > .icon")?.getBoundingClientRect();
+      return [Math.round(box.height), Math.round(box.right - (icon?.right ?? 0))];
+    });
+    const timeRow = await page
+      .locator(".settings-row:has(#daily-voice)")
+      .evaluate((row) => Math.round(row.getBoundingClientRect().height));
+    expect(Math.abs(gap)).toBeLessThanOrEqual(8);
+    if ((page.viewportSize()?.width ?? 0) >= 640) expect(height).toBe(timeRow);
   });
 
   test("has 44px targets", async ({ page }) => {
