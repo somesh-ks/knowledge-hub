@@ -52,7 +52,9 @@ function DockSeek({ duration }: { duration: number }) {
   const spoken = drag ?? Math.min(second, whole);
   const timeline = state.track?.timeline ?? null;
   const itemCount = timeline?.items.length ?? 0;
-  const at = itemIndexAt(timeline, spoken);
+  // The story from the exact playhead: a story starting at 0:18.6 is the one heard at 0:18.6, which
+  // the floored second would put in the rundown before it.
+  const at = itemIndexAt(timeline, value);
   const section = timeline?.sections.find((entry) => entry.slug === timeline.items[at]?.section);
 
   function move(next: number): void {

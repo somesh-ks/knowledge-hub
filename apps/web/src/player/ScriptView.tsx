@@ -21,6 +21,15 @@ import { useRovingFocus } from "./hooks/useRovingFocus";
  * from it. It follows the voice until a person scrolls it, then waits a few seconds, and offers a
  * way back.
  */
+/**
+ * The script may follow the voice: always in its own column from 64rem, and on one column only
+ * while its top is above the fold, so a turn change never scrolls the page down to it.
+ */
+function oneColumnFollows(root: HTMLElement | null): boolean {
+  if (!root || window.matchMedia("(min-width: 64rem)").matches) return true;
+  return root.getBoundingClientRect().top < window.innerHeight;
+}
+
 export default function ScriptView({ titleHidden = false }: { titleHidden?: boolean }) {
   const state = usePlayerState();
   // A render each second, and after a seek while paused. The turn itself is read from the playhead,
@@ -148,6 +157,13 @@ export default function ScriptView({ titleHidden = false }: { titleHidden?: bool
     const first = followed.current === null;
     followed.current = current;
     if (first) return;
+    // On one column the page holds the cover and the controls above the script. While the script
+    // is below the fold the listener is not reading it, and the page stays where they put it.
+    const root = rootRef.current;
+    if (!oneColumnFollows(root)) {
+      setAway(false);
+      return;
+    }
     if (Date.now() < pausedUntil.current) {
       setAway(true);
       return;
@@ -156,22 +172,33 @@ export default function ScriptView({ titleHidden = false }: { titleHidden?: bool
     reveal(current);
   }, [current]);
 
-  // A wheel or a finger on the script or the page means the person is in charge for a while.
+  // A wheel or a finger on the script or the page means the person is in charge for a while. So
+  // does any move made with the controls on one column (a story step, a scrubber key or drag):
+  // following it would scroll the page and carry the control being used off screen, so that a
+  // second tap lands on a turn. From 64rem the script scrolls in its own column and keeps following.
   useEffect(() => {
     const page = rootRef.current?.closest<HTMLElement>("[data-player-page]");
     const hold = (): void => {
       pausedUntil.current = Date.now() + FOLLOW_PAUSE_MS;
+    };
+    const holdForControls = (event: Event): void => {
+      if (window.matchMedia("(min-width: 64rem)").matches) return;
+      if (event.target instanceof Element && event.target.closest(".player-controls")) hold();
     };
     const targets = [rootRef.current, page];
     for (const target of targets) {
       target?.addEventListener("wheel", hold, { passive: true });
       target?.addEventListener("touchmove", hold, { passive: true });
     }
+    page?.addEventListener("pointerdown", holdForControls, { capture: true });
+    page?.addEventListener("keydown", holdForControls, { capture: true });
     return () => {
       for (const target of targets) {
         target?.removeEventListener("wheel", hold);
         target?.removeEventListener("touchmove", hold);
       }
+      page?.removeEventListener("pointerdown", holdForControls, { capture: true });
+      page?.removeEventListener("keydown", holdForControls, { capture: true });
     };
   }, []);
 
