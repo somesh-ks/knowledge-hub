@@ -46,8 +46,7 @@ test.describe("routes and headers", () => {
     }
   });
 
-  test("an older briefing leads back to where the person came from", async ({ page, isMobile }) => {
-    test.skip(!isMobile, "The app bar, and its Back button, show below 64rem");
+  test("an older briefing leads back to where the person came from", async ({ page }) => {
     await page.goto("/library");
     await page.locator('a[href="/d/2026-10-05"]').first().click();
     await expect(page).toHaveURL(/\/d\/2026-10-05$/);
@@ -79,11 +78,7 @@ test.describe("routes and headers", () => {
     await expect(page.locator("html")).not.toHaveAttribute("data-offline", "");
   });
 
-  test("the app bar goes inert while slid away and returns on a scroll up", async ({
-    page,
-    isMobile,
-  }) => {
-    test.skip(!isMobile, "The app bar shows below 64rem");
+  test("the app bar goes inert while slid away and returns on a scroll up", async ({ page }) => {
     await page.emulateMedia({ reducedMotion: "no-preference" });
     await page.goto("/d/2026-10-05");
     const bar = page.locator(".app-bar");

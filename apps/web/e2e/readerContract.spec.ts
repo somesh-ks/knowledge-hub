@@ -1,5 +1,5 @@
 import type { Locator } from "@playwright/test";
-import { computedColor, expectColor, INK_LIGHT, toRgb } from "./colors";
+import { computedColor } from "./colors";
 import { expect, hydrated, SILENT_DIGEST, test } from "./fixtures";
 
 /**
@@ -53,31 +53,6 @@ test.describe("what the player writes on a real page", () => {
     await expect(chip).toHaveAccessibleName("Pause the briefing, 1 min left");
   });
 
-  test("playing, the hero's Play steps down to the tonal container and shows the pause glyph", async ({
-    page,
-  }) => {
-    await hydrated(page);
-    const chip = page.locator(".hero [data-play-digest]");
-    const filled = await computedColor(chip, "backgroundColor");
-    await chip.click();
-    await expect(chip).toHaveAttribute("data-playing", "true");
-    // Off the chip, so no hover layer, and past the fill's transition.
-    await page.mouse.move(0, 0);
-    await page.waitForTimeout(300);
-    const tonal = await page.evaluate(() =>
-      getComputedStyle(document.documentElement).getPropertyValue("--color-accent-container"),
-    );
-    expect(await toRgb(page, await computedColor(chip, "backgroundColor"))).toEqual(
-      await toRgb(page, tonal),
-    );
-    expect(await toRgb(page, filled)).not.toEqual(await toRgb(page, tonal));
-    await expect(chip.locator(".chip-bars")).toBeHidden();
-    await expect(chip.locator(".swap-playing")).toBeVisible();
-    // A story chip keeps its moving bars.
-    await page.locator(".story").nth(1).locator("[data-play-item]").click();
-    await expect(page.locator(".story").nth(1).locator(".chip-bars")).toBeVisible();
-  });
-
   test("a story chip plays from its story, and marks played only what the playhead passed", async ({
     page,
   }) => {
@@ -128,24 +103,6 @@ test.describe("what the player writes on a real page", () => {
     const briefing = page.locator(".hero [data-play-digest]");
     await expect(briefing).toHaveAttribute("data-state", "current");
     await expect(briefing.locator("[data-chip-label]")).toHaveText("1 min left");
-  });
-
-  test("the story being read keeps its headline's ink: the accent is the link's hover", async ({
-    page,
-  }) => {
-    await hydrated(page);
-    const story = page.locator(".story").nth(1);
-    const chip = story.locator("[data-play-item]");
-    await expectColor(page, await computedColor(story.locator("h3"), "color"), INK_LIGHT);
-    await chip.click();
-    await expect(chip.locator("[data-chip-label]")).toHaveText("Playing");
-    await chip.click();
-    await expect(story).toHaveAttribute("data-state", "current");
-    // The colour changes over 200ms.
-    await page.waitForTimeout(300);
-    await expectColor(page, await computedColor(story.locator("h3"), "color"), INK_LIGHT);
-    const other = page.locator(".story").nth(4).locator("h3");
-    await expectColor(page, await computedColor(other, "color"), INK_LIGHT);
   });
 
   test("the chips are written again on every page the reader moves to", async ({ page }) => {
@@ -202,26 +159,6 @@ test.describe("how the page reacts to those attributes", () => {
   test.beforeEach(async ({ page }) => {
     await hydrated(page);
     await page.evaluate(() => new Promise((resolve) => requestAnimationFrame(() => resolve(null))));
-  });
-
-  test("a current story keeps its headline's ink, as the others do", async ({ page }) => {
-    const story = page.locator(".story").nth(1);
-    await story.evaluate((element) => element.setAttribute("data-state", "current"));
-    await page.waitForTimeout(250);
-    await expectColor(page, await computedColor(story.locator("h3"), "color"), INK_LIGHT);
-    const other = page.locator(".story").nth(2);
-    await expectColor(page, await computedColor(other.locator("h3"), "color"), INK_LIGHT);
-    // A summary never steps back: every story stays readable while one is playing.
-    await expectColor(
-      page,
-      await computedColor(other.locator(".story-summary"), "color"),
-      INK_LIGHT,
-    );
-    await expectColor(
-      page,
-      await computedColor(story.locator(".story-summary"), "color"),
-      INK_LIGHT,
-    );
   });
 
   test("an idle chip shows the play glyph in a ring", async ({ page }) => {

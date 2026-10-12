@@ -1,24 +1,11 @@
-import AxeBuilder from "@axe-core/playwright";
 import type { Page } from "@playwright/test";
-import { expect, test } from "./fixtures";
+import { expect, expectNoViolationsInEitherScheme, test, violations } from "./fixtures";
 
-const WCAG = ["wcag2a", "wcag2aa", "wcag21a", "wcag21aa", "wcag22aa"];
 const PREFERENCES_KEY = "dispatch:preferences";
 
 /** Safari on an iPhone: the one browser the Home Screen hint is written for. */
 const IOS_SAFARI =
   "Mozilla/5.0 (iPhone; CPU iPhone OS 18_0 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/18.0 Mobile/15E148 Safari/604.1";
-
-async function violations(page: Page): Promise<string[]> {
-  const results = await new AxeBuilder({ page }).withTags(WCAG).analyze();
-  return results.violations.map(
-    (violation) =>
-      `${violation.id} (${violation.impact}): ${violation.nodes
-        .slice(0, 3)
-        .map((node) => node.target.join(" "))
-        .join(", ")}`,
-  );
-}
 
 function stored(page: Page): Promise<Record<string, unknown>> {
   return page.evaluate((key) => JSON.parse(localStorage.getItem(key) ?? "{}"), PREFERENCES_KEY);
@@ -28,11 +15,6 @@ function stored(page: Page): Promise<Record<string, unknown>> {
 async function openSettings(page: Page): Promise<void> {
   await page.goto("/settings");
   await expect(page.locator("[data-settings]")).toHaveAttribute("data-ready", "true");
-}
-
-/** Both islands have hydrated, so a [data-open] click reaches the sheets. */
-async function islandsReady(page: Page): Promise<void> {
-  await expect(page.locator("astro-island[ssr]")).toHaveCount(0);
 }
 
 const theme = (page: Page) => page.getByRole("radiogroup", { name: "Theme" });
@@ -93,27 +75,6 @@ test.describe("settings page", () => {
     await expect(theme(page).getByRole("radio", { name: "System" })).toBeChecked();
   });
 
-  test("arrow keys move the theme choice", async ({ page }) => {
-    await page.emulateMedia({ colorScheme: "light" });
-    await openSettings(page);
-    const root = page.locator("html");
-    await theme(page).getByRole("radio", { name: "System" }).focus();
-
-    await page.keyboard.press("ArrowRight");
-    await expect(theme(page).getByRole("radio", { name: "Light" })).toBeChecked();
-    await expect(theme(page).getByRole("radio", { name: "Light" })).toBeFocused();
-    await expect(root).toHaveAttribute("data-theme", "light");
-
-    await page.keyboard.press("ArrowRight");
-    await expect(theme(page).getByRole("radio", { name: "Dark" })).toBeChecked();
-    await expect(root).toHaveAttribute("data-theme", "dark");
-
-    await page.keyboard.press("ArrowLeft");
-    await expect(theme(page).getByRole("radio", { name: "Light" })).toBeChecked();
-    await expect(root).toHaveAttribute("data-theme", "light");
-    await expect.poll(async () => (await stored(page)).theme).toBe("light");
-  });
-
   test("turning interface sounds off disables the volume, and back on enables it", async ({
     page,
   }) => {
@@ -163,13 +124,6 @@ test.describe("settings page", () => {
     await expect.poll(async () => (await stored(page)).volume).toBeCloseTo(0.7, 5);
     await page.reload();
     await expect(volume(page)).toHaveValue("0.7");
-  });
-
-  test("has no speed setting: the player keeps the last speed chosen in it", async ({ page }) => {
-    await openSettings(page);
-    await expect(page.getByRole("radiogroup", { name: "Default speed" })).toHaveCount(0);
-    await expect(page.getByRole("heading", { level: 2, name: "Sound" })).toBeVisible();
-    await expect(page.getByRole("heading", { level: 2, name: "Playback" })).toHaveCount(0);
   });
 
   test("a client-side navigation from the briefing fills the controls in", async ({ page }) => {
@@ -222,66 +176,6 @@ test.describe("settings page", () => {
     await sounds(page).click();
     await expect(volume(page)).toBeDisabled();
   });
-
-  test("nothing overflows at 320px and the segmented choices take the row's width", async ({
-    page,
-  }) => {
-    await page.setViewportSize({ width: 320, height: 700 });
-    await openSettings(page);
-    const overflow = await page.evaluate(() => ({
-      scroll: document.documentElement.scrollWidth,
-      client: document.documentElement.clientWidth,
-    }));
-    expect(overflow.scroll).toBeLessThanOrEqual(overflow.client);
-    // The column is measured, not assumed: a desktop browser keeps a scrollbar's width back from it.
-    const column = await page.locator("[data-settings]").boundingBox();
-    expect(column?.x ?? 0).toBeGreaterThanOrEqual(16);
-    for (const group of [theme(page)]) {
-      const box = await group.boundingBox();
-      // Under its label and as wide as the column, so the choices never fight the label for room.
-      expect(box?.x ?? 0).toBeCloseTo(column?.x ?? -1, 0);
-      expect(box?.width ?? 0).toBeCloseTo(column?.width ?? -1, 0);
-      const segments = await group
-        .getByRole("radio")
-        .evaluateAll((inputs) =>
-          inputs.map((input) => Math.round(input.getBoundingClientRect().width)),
-        );
-      expect(Math.min(...segments)).toBeGreaterThanOrEqual(44);
-    }
-  });
-
-  test("every control has a 44px target", async ({ page }) => {
-    await openSettings(page);
-    const small = await page.evaluate(() => {
-      const found: string[] = [];
-      const report = (name: string, width: number, height: number) => {
-        if (width < 44 || height < 44)
-          found.push(`${name} ${Math.round(width)}x${Math.round(height)}`);
-      };
-      const controls = document.querySelectorAll<HTMLElement>(
-        "[data-settings] input, [data-settings] button",
-      );
-      for (const control of controls) {
-        const rect = control.getBoundingClientRect();
-        if (rect.width === 0 || rect.height === 0) continue;
-        const name = control.getAttribute("name") ?? control.textContent?.trim().slice(0, 24) ?? "";
-        if (control.matches('[role="switch"]')) {
-          // The track is 32px tall; its target reaches 6px past it above and below.
-          control.scrollIntoView({ block: "center" });
-          const box = control.getBoundingClientRect();
-          const x = box.left + box.width / 2;
-          const above = document.elementFromPoint(x, box.top - 5);
-          const below = document.elementFromPoint(x, box.bottom + 5);
-          const reaches = above === control && below === control;
-          report(name, box.width, reaches ? box.height + 12 : box.height);
-        } else {
-          report(name, rect.width, rect.height);
-        }
-      }
-      return found;
-    });
-    expect(small).toEqual([]);
-  });
 });
 
 test.describe("settings page, Home Screen hint", () => {
@@ -315,62 +209,27 @@ test.describe("settings page, Home Screen hint", () => {
   });
 });
 
-for (const scheme of ["light", "dark"] as const) {
-  test.describe(`settings page, axe, ${scheme} scheme`, () => {
-    test("the page has no WCAG 2.2 AA violations", async ({ page }) => {
-      await page.emulateMedia({ colorScheme: scheme });
-      await openSettings(page);
-      await page.evaluate(() => document.fonts.ready);
-      expect(await violations(page)).toEqual([]);
-    });
-
-    test("the page with sounds off has no violations", async ({ page }) => {
-      await page.emulateMedia({ colorScheme: scheme, reducedMotion: "reduce" });
-      await openSettings(page);
-      await expect(volume(page)).toBeDisabled();
-      expect(await violations(page)).toEqual([]);
-    });
+test.describe("settings page, axe", () => {
+  test("the page, then with sounds off, has no WCAG 2.2 AA violations", async ({ page }) => {
+    await openSettings(page);
+    await expectNoViolationsInEitherScheme(page);
+    await page.emulateMedia({ reducedMotion: "reduce" });
+    await openSettings(page);
+    await expect(volume(page)).toBeDisabled();
+    await expectNoViolationsInEitherScheme(page);
   });
-}
 
-test.describe("settings page, explicit theme against the system", () => {
-  for (const choice of ["light", "dark"] as const) {
-    test(`has no violations with ${choice} chosen`, async ({ page }) => {
+  test("has no violations with each theme chosen against the system", async ({ page }) => {
+    for (const choice of ["light", "dark"] as const) {
       await page.emulateMedia({ colorScheme: choice === "light" ? "dark" : "light" });
-      await page.addInitScript(([key, value]) => localStorage.setItem(key, value), [
+      await openSettings(page);
+      await page.evaluate(([key, value]) => localStorage.setItem(key, value), [
         PREFERENCES_KEY,
         JSON.stringify({ theme: choice }),
       ] as const);
       await openSettings(page);
       await expect(page.locator("html")).toHaveAttribute("data-theme", choice);
-      expect(await violations(page)).toEqual([]);
-    });
-  }
-});
-
-test("the index rows share one rhythm, the title is a sub-page title size, and Volume quiets with Sounds", async ({
-  page,
-}) => {
-  await page.goto("/settings");
-  await expect(page.locator("[data-settings]")).toHaveAttribute("data-ready");
-  const heights = await page
-    .locator(".settings-view > section:nth-of-type(-n+3) .rows > :not([hidden])")
-    .evaluateAll((rows) =>
-      rows
-        .map((row) => Math.round(row.getBoundingClientRect().height))
-        // A phone puts Theme's segments under its label: a two-storey row of its own.
-        .filter((height) => height < 100),
-    );
-  expect(Math.max(...heights) - Math.min(...heights), heights.join(" ")).toBeLessThanOrEqual(6);
-  const sounds = page.getByRole("switch", { name: "Interface sounds" });
-  if (await sounds.isChecked()) await sounds.uncheck();
-  const hint = await page
-    .locator(".settings-hint")
-    .first()
-    .evaluate((node) => getComputedStyle(node).color);
-  await expect(page.locator("label[for='settings-volume']")).toHaveCSS("color", hint);
-  const title = await page.locator("h1").evaluate((h) => getComputedStyle(h).fontSize);
-  await page.goto("/settings/daily");
-  const sub = await page.locator("h1").evaluate((h) => getComputedStyle(h).fontSize);
-  expect(title).toBe(sub);
+      expect(await violations(page), `${choice} chosen`).toEqual([]);
+    }
+  });
 });

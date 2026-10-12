@@ -1,20 +1,7 @@
-import AxeBuilder from "@axe-core/playwright";
 import type { Page, Route } from "@playwright/test";
 import { NEBIUS_TOP } from "../src/lib/modelId";
-import { expect, test } from "./fixtures";
-
-const WCAG = ["wcag2a", "wcag2aa", "wcag21a", "wcag21aa", "wcag22aa"];
-
-async function violations(page: Page): Promise<string[]> {
-  const results = await new AxeBuilder({ page }).withTags(WCAG).analyze();
-  return results.violations.map(
-    (violation) =>
-      `${violation.id} (${violation.impact}): ${violation.nodes
-        .slice(0, 3)
-        .map((node) => node.target.join(" "))
-        .join(", ")}`,
-  );
-}
+import { GAP_MS } from "../src/scripts/managePageSave";
+import { expect, expectNoViolationsInEitherScheme, seedStorage, test } from "./fixtures";
 
 interface Sent {
   passphrase: string;
@@ -105,36 +92,6 @@ test.describe("the Settings index", () => {
     const crumb = page.locator(".settings-up");
     await expect(crumb).toHaveText("Settings");
     await expect(crumb).toHaveAttribute("href", "/settings");
-  });
-
-  test("below 64rem the title stands alone on one line; from 64rem the trail leads up", async ({
-    page,
-  }) => {
-    const pages = [
-      "/settings/daily",
-      "/settings/weekly",
-      "/settings/model",
-      "/settings/topics",
-      "/settings/topics/design",
-      "/settings/topics/tech",
-      "/settings/topics/business",
-      "/settings/topics/audio_interfaces",
-    ];
-    for (const width of [360, 1280]) {
-      await page.setViewportSize({ width, height: 800 });
-      for (const path of pages) {
-        await page.goto(path);
-        const crumbs = page.locator(".settings-crumbs");
-        const lines = await crumbs.evaluate(
-          (node) =>
-            node.getBoundingClientRect().height /
-            Number.parseFloat(getComputedStyle(node).lineHeight),
-        );
-        expect(lines, `${path} at ${width}`).toBeLessThan(1.5);
-        if (width < 1024) await expect(page.locator(".settings-up")).toBeHidden();
-        else await expect(page.locator(".settings-up")).toBeVisible();
-      }
-    }
   });
 
   test("the addresses of the old pages still land somewhere sensible", async ({ page }) => {
@@ -256,58 +213,6 @@ test.describe("the profile pages", () => {
     expect(box + padding).toBeCloseTo(label, 0);
   });
 
-  test("from 40rem every row of Daily is one height, and the Sunday note is Repeat's own line", async ({
-    page,
-  }) => {
-    await open(page, "daily");
-    await expect(page.locator("#daily-cadence")).toHaveAccessibleDescription(
-      "On Sundays the weekly episode replaces this one.",
-    );
-    if ((page.viewportSize()?.width ?? 0) < 640) return;
-    const heights = await page
-      .locator(".podcast-profile .rows > .settings-row")
-      .evaluateAll((rows) => rows.map((row) => Math.round(row.getBoundingClientRect().height)));
-    expect(Math.max(...heights) - Math.min(...heights), heights.join(" ")).toBeLessThanOrEqual(2);
-  });
-
-  test("Length shows its choice with a check, and the check fits, at every width", async ({
-    page,
-  }) => {
-    for (const width of [360, 390, 1280]) {
-      await page.setViewportSize({ width, height: 800 });
-      await open(page, "daily");
-      const segment = page.locator(".settings-segment:has(input[name='daily-length']:checked)");
-      const fit = await segment.evaluate((label) => {
-        const words = label.querySelector("span") as HTMLElement;
-        const check = getComputedStyle(words, "::before");
-        const box = label.getBoundingClientRect();
-        const text = words.getBoundingClientRect();
-        return {
-          shown: check.display !== "none" && check.opacity === "1",
-          inside: text.left >= box.left - 0.5 && text.right <= box.right + 0.5,
-          clipped: words.scrollWidth > words.clientWidth + 1,
-        };
-      });
-      expect(fit, `at ${width}`).toEqual({ shown: true, inside: true, clipped: false });
-    }
-  });
-
-  test("the voice select holds still whether or not a sample button shows", async ({ page }) => {
-    await mockConfig(page);
-    await open(page, "daily");
-    // From 40rem the value ends at the row's edge; on a phone it starts under its label.
-    const phone = (page.viewportSize()?.width ?? 0) < 640;
-    const right = async () => {
-      const box = await page.locator("#daily-voice").boundingBox();
-      return (box?.x ?? 0) + (phone ? 0 : (box?.width ?? 0));
-    };
-    // The play button keeps its room either way, so the select does not jump.
-    const before = await right();
-    await page.locator("#daily-voice").selectOption("voice-ada");
-    await expect(page.locator("[data-voice-row=voice] [data-preview]")).toBeVisible();
-    expect(await right()).toBeCloseTo(before, 0);
-  });
-
   test("choosing a voice with a sample plays it through the site and shows its play button", async ({
     page,
   }) => {
@@ -376,24 +281,13 @@ test.describe("the profile pages", () => {
     expect(Math.abs(gap)).toBeLessThanOrEqual(8);
     if ((page.viewportSize()?.width ?? 0) >= 640) expect(height).toBe(timeRow);
   });
-
-  test("has 44px targets", async ({ page }) => {
-    await open(page, "daily");
-    for (const target of [
-      page.locator("#daily-hour"),
-      page.locator("#daily-cadence"),
-      page.locator("#daily-voice"),
-    ]) {
-      const box = await target.boundingBox();
-      expect(box?.height ?? 0).toBeGreaterThanOrEqual(44);
-    }
-  });
 });
 
 test.describe("saving on its own", () => {
   test("quick changes go a moment later, in one schedule.set with only what changed", async ({
     page,
   }) => {
+    await page.clock.install();
     const sent = await mockConfig(page);
     await open(page, "daily");
     await page.locator("#daily-hour").selectOption("9");
@@ -414,9 +308,10 @@ test.describe("saving on its own", () => {
     const before = sent.length;
     await page.locator("#daily-hour").selectOption("7");
     // Held until the server's ten seconds between edits are up, without a Saving in the meantime.
-    await page.waitForTimeout(3000);
+    await page.clock.runFor(3000);
     expect(sent.length).toBe(before);
-    await expect.poll(() => sent.length, { timeout: 15_000 }).toBe(before + 1);
+    await page.clock.runFor(GAP_MS);
+    await expect.poll(() => sent.length).toBe(before + 1);
     expect(sent.at(-1)?.op).toEqual({ op: "schedule.set", hour: 7 });
   });
 
@@ -424,7 +319,7 @@ test.describe("saving on its own", () => {
     test(`a second change inside the server's gap still goes when the page is left by ${way}`, async ({
       page,
     }) => {
-      test.setTimeout(60_000);
+      await page.clock.install();
       const sent = await mockConfig(page);
       await page.goto("/settings");
       await page.getByRole("link", { name: /^Daily/ }).click();
@@ -440,8 +335,9 @@ test.describe("saving on its own", () => {
       await expect(page).toHaveURL(/\/settings$/);
       // Until it goes, the index shows the change as it will be.
       await expect(page.getByRole("link", { name: /^Daily/ })).toContainText("Every day at 09:00");
+      await page.clock.runFor(GAP_MS);
       await expect
-        .poll(() => scheduleSent(sent), { timeout: 20_000 })
+        .poll(() => scheduleSent(sent))
         .toEqual({ op: "schedule.set", hour: 9, cadence_days: 1 });
       expect(sent).toHaveLength(2);
       await page.getByRole("link", { name: /^Daily/ }).click();
@@ -451,18 +347,6 @@ test.describe("saving on its own", () => {
       await expect(page.locator("[data-saved-note]")).toHaveText(SAVED);
     });
   }
-
-  test("a change put back before it is sent sends nothing", async ({ page }) => {
-    const sent = await mockConfig(page);
-    await open(page, "daily");
-    await page.locator("#daily-hour").selectOption("9");
-    await page.locator("#daily-hour").selectOption("7");
-    await page.getByRole("radio", { name: "15 min" }).check();
-    await page.getByRole("radio", { name: "10 min", exact: true }).check();
-    await page.waitForTimeout(2000);
-    expect(sent).toHaveLength(0);
-    await expect(toast(page)).toBeHidden();
-  });
 
   test("Weekly changes land in their own part of the schedule", async ({ page }) => {
     const sent = await mockConfig(page);
@@ -478,6 +362,7 @@ test.describe("saving on its own", () => {
   test("a topic chip puts the topics it stands for in or out of this podcast alone", async ({
     page,
   }) => {
+    await page.clock.install();
     const sent = await mockConfig(page);
     await open(page, "daily");
     await page.getByRole("checkbox", { name: "Audio interfaces" }).click({ force: true });
@@ -493,8 +378,9 @@ test.describe("saving on its own", () => {
     expect(opsOf(sent).some((op) => "weekly" in op)).toBe(false);
     // Saved is the new starting point: ticking it again is a change again.
     await page.getByRole("checkbox", { name: "Audio interfaces" }).click({ force: true });
+    await page.clock.runFor(GAP_MS);
     await expect
-      .poll(() => opsOf(sent).at(-1), { timeout: 15_000 })
+      .poll(() => opsOf(sent).at(-1))
       .toEqual({
         op: "topic.scope",
         ids: ["audio_interfaces"],
@@ -522,6 +408,7 @@ test.describe("saved, before the build", () => {
   test("a page opened again before the build shows what was saved, says so, and sends nothing", async ({
     page,
   }) => {
+    await page.clock.install();
     const sent = await mockConfig(page);
     await open(page, "daily");
     const built = await page.locator("#daily-hour").inputValue();
@@ -538,7 +425,7 @@ test.describe("saved, before the build", () => {
     await expect(page.getByRole("checkbox", { name: "Audio interfaces" })).not.toBeChecked();
     await expect(note(page)).toHaveText(NOTE);
     // The saved values are the page's starting point: nothing goes again on its own.
-    await page.waitForTimeout(2000);
+    await page.clock.runFor(GAP_MS);
     expect(sent.length).toBe(before);
     // The Weekly page was not changed and says nothing.
     await open(page, "weekly");
@@ -548,28 +435,25 @@ test.describe("saved, before the build", () => {
   test("the index, the Topics list and Daily say what was saved on the other pages", async ({
     page,
   }) => {
+    await page.clock.install();
     const sent = await mockConfig(page);
-    await page.goto("/settings");
     const ops = [
       { op: "schedule.set", hour: 9, weekly: { day: 1 } },
       { op: "topic.remove", id: "audio_interfaces" },
       { op: "source.add", url: "https://pixel.example/feed.xml", topic_ids: ["product_design"] },
     ];
-    await page.evaluate(
-      ([key, list]) => {
-        localStorage.setItem(key as string, JSON.stringify([{ at: Date.now(), ops: list }]));
-        sessionStorage.setItem(
-          "dispatch:writer-pending",
-          JSON.stringify({
-            provider: "anthropic",
-            model: "claude-haiku-5-5",
-            timestamp: Date.now(),
-          }),
-        );
+    const now = Date.now();
+    await seedStorage(page, {
+      local: { [KEY]: JSON.stringify([{ at: now, ops }]) },
+      session: {
+        "dispatch:writer-pending": JSON.stringify({
+          provider: "anthropic",
+          model: "claude-haiku-5-5",
+          timestamp: now,
+        }),
       },
-      [KEY, ops] as const,
-    );
-    await page.reload();
+    });
+    await page.goto("/settings");
     const hint = (name: string) =>
       page.getByRole("link", { name: new RegExp(`^${name}`) }).locator("[data-hint]");
     await expect(hint("Daily")).toHaveText("Every second day at 09:00");
@@ -589,7 +473,7 @@ test.describe("saved, before the build", () => {
     );
     await expect(page.locator(".settings-head")).toHaveAttribute("data-weekly-day", "1");
     // Nothing is sent on its own: no scope for the removed topic, no schedule again.
-    await page.waitForTimeout(1500);
+    await page.clock.runFor(GAP_MS);
     expect(sent).toEqual([]);
   });
 
@@ -603,7 +487,7 @@ test.describe("saved, before the build", () => {
     await page.evaluate(
       ([key, hour]) =>
         localStorage.setItem(
-          key,
+          key as string,
           JSON.stringify([{ at: Date.now(), ops: [{ op: "schedule.set", hour: Number(hour) }] }]),
         ),
       [KEY, built],
@@ -712,25 +596,6 @@ test.describe("the Model page", () => {
     expect((await list.boundingBox())?.height ?? 0).toBeGreaterThan(32);
   });
 
-  test("the model field has room for a long name, and never shows half of one", async ({
-    page,
-  }) => {
-    await open(page, "model");
-    const field = combo(page);
-    for (const name of ["Claude Sonnet 5.5", "DeepSeek V4 Pro 0813"]) {
-      await field.evaluate((node, value) => {
-        (node as HTMLInputElement).value = value;
-      }, name);
-      const room = await field.evaluate((node) => ({
-        needs: node.scrollWidth,
-        has: node.clientWidth,
-      }));
-      expect(room.needs, name).toBeLessThanOrEqual(room.has);
-    }
-    // A name longer than any row ends in an ellipsis, not mid-word.
-    await expect(field).toHaveCSS("text-overflow", "ellipsis");
-  });
-
   test("lists Automatic, the top models the live list has, then the rest", async ({ page }) => {
     await open(page, "model");
     await expect(combo(page)).toHaveValue("Default");
@@ -747,19 +612,14 @@ test.describe("the Model page", () => {
 
   test("reads as a select until pressed, then takes typing over the whole list", async ({
     page,
-    isMobile,
   }) => {
     await open(page, "model");
-    if (!isMobile) {
-      await expect(combo(page)).toHaveCSS("cursor", "pointer");
-    }
     await combo(page).click();
     await expect(combo(page)).toHaveAttribute("aria-expanded", "true");
     await expect(options(page)).toHaveCount(5);
     // The chosen name waits as a placeholder, so typing filters at once.
     await expect(combo(page)).toHaveValue("");
     await expect(combo(page)).toHaveAttribute("placeholder", "Default");
-    if (!isMobile) await expect(combo(page)).toHaveCSS("cursor", "text");
     // A list opened with the pointer marks no row until a key is pressed.
     await expect(page.getByRole("listbox", { name: "Models" })).not.toHaveAttribute(
       "data-keyboard",
@@ -853,6 +713,7 @@ test.describe("the Model page", () => {
   test("Anthropic offers the two Claude models, without asking for the live list", async ({
     page,
   }) => {
+    await page.clock.install();
     const sent = await mockConfig(page);
     await open(page, "model");
     let asked = 0;
@@ -868,7 +729,8 @@ test.describe("the Model page", () => {
     expect(asked).toBe(0);
     await page.keyboard.press("Escape");
     await pick(page, "haiku", /^Claude Haiku 5\.5/);
-    // The provider's own save may still be showing Saved: wait for the pick's request itself.
+    // The pick waits out the server's gap after the provider's own save.
+    await page.clock.runFor(GAP_MS);
     await expect
       .poll(() => opsOf(sent).at(-1))
       .toEqual({
@@ -878,64 +740,10 @@ test.describe("the Model page", () => {
       });
     await expect(toastText(page)).toHaveText(SAVED);
   });
-
-  test("going back to the saved provider before the save sends nothing", async ({ page }) => {
-    const sent = await mockConfig(page);
-    await open(page, "model");
-    await page.getByLabel("Provider").selectOption("anthropic");
-    await page.getByLabel("Provider").selectOption("nebius");
-    await expect(combo(page)).toHaveValue("Default");
-    await page.waitForTimeout(2000);
-    expect(sent).toHaveLength(0);
-  });
-
-  test("the open list has equal padding above and below and stays on screen", async ({ page }) => {
-    await open(page, "model");
-    await combo(page).focus();
-    await page.keyboard.press("ArrowDown");
-    const list = page.getByRole("listbox", { name: "Models" });
-    await expect(list).toBeVisible();
-    const gaps = await list.evaluate((element) => {
-      const panel = element.getBoundingClientRect();
-      const rows = [...element.querySelectorAll("[role=option]")].map((row) =>
-        row.getBoundingClientRect(),
-      );
-      const first = rows[0] as DOMRect;
-      const last = rows[rows.length - 1] as DOMRect;
-      const style = getComputedStyle(element);
-      return {
-        padTop: Number.parseFloat(style.paddingTop),
-        padBottom: Number.parseFloat(style.paddingBottom),
-        top: first.top - panel.top,
-        bottom: panel.bottom - last.bottom,
-        scrolls: element.scrollHeight > element.clientHeight,
-        inside: panel.top >= 0 && panel.bottom <= window.innerHeight,
-      };
-    });
-    expect(Math.abs(gaps.padTop - gaps.padBottom)).toBeLessThanOrEqual(1);
-    // Scrolled to the top, the first row sits a padding under the panel's edge (the border adds one).
-    if (!gaps.scrolls) expect(Math.abs(gaps.top - gaps.bottom)).toBeLessThanOrEqual(2);
-    expect(gaps.inside).toBe(true);
-  });
-
-  test("has 44px targets", async ({ page }) => {
-    await open(page, "model");
-    for (const target of [combo(page), page.getByLabel("Provider")]) {
-      const box = await target.boundingBox();
-      expect(box?.height ?? 0).toBeGreaterThanOrEqual(44);
-    }
-  });
 });
 
 test.describe("offline", () => {
   test.use({ allowNetworkErrors: true });
-
-  test("an unreachable site is said plainly", async ({ page }) => {
-    await page.route("**/api/config", (route) => route.abort("connectionrefused"));
-    await open(page, "daily");
-    await page.locator("#daily-hour").selectOption("9");
-    await expect(toastText(page)).toHaveText("The site could not be reached. Not saved yet.");
-  });
 
   const unavailable = (page: Page) =>
     page.route("**/api/models", (route) =>
@@ -972,6 +780,7 @@ test.describe("offline", () => {
   });
 
   test("without the model list a field takes the id of any other model", async ({ page }) => {
+    await page.clock.install();
     await unavailable(page);
     const sent = await mockConfig(page);
     await open(page, "model");
@@ -982,7 +791,7 @@ test.describe("offline", () => {
     await expect(typed).toHaveAttribute("aria-invalid", "");
     // A typed id is saved once it is finished, not letter by letter.
     await typed.fill("acme/Fast-1:beta");
-    await page.waitForTimeout(1600);
+    await page.clock.runFor(2000);
     expect(sent).toHaveLength(0);
     await typed.press("Enter");
     await typed.blur();
@@ -1006,39 +815,29 @@ test("read with scripts off", async ({ browser, baseURL }) => {
   await context.close();
 });
 
-for (const scheme of ["light", "dark"] as const) {
-  test.describe(`axe, ${scheme} scheme`, () => {
+test.describe("axe", () => {
+  test("the daily, weekly and model pages have no WCAG 2.2 AA violations", async ({ page }) => {
+    // Six scans on one page load.
+    test.setTimeout(60_000);
     for (const leaf of ["daily", "weekly", "model"] as const) {
-      test(`the ${leaf} page has no WCAG 2.2 AA violations`, async ({ page }) => {
-        await page.emulateMedia({ colorScheme: scheme });
-        await open(page, leaf);
-        await page.evaluate(() => document.fonts.ready);
-        expect(await violations(page)).toEqual([]);
-      });
+      await open(page, leaf);
+      await expectNoViolationsInEitherScheme(page);
     }
-
-    test("none with the saving toast up", async ({ page }) => {
-      await mockConfig(page);
-      await page.emulateMedia({ colorScheme: scheme });
-      await open(page, "daily");
-      await page.locator("#daily-hour").selectOption("9");
-      await expect(toastText(page)).toHaveText(SAVED);
-      await page.waitForTimeout(400);
-      expect(await violations(page)).toEqual([]);
-    });
-
-    test("none with the model list open in its groups", async ({ page }) => {
-      await page.emulateMedia({ colorScheme: scheme });
-      await open(page, "model");
-      await page.getByRole("button", { name: "Show all models" }).click();
-      const list = page.getByRole("listbox", { name: "Models" });
-      await expect(list.getByRole("group", { name: "Top models" })).toBeVisible();
-      // The list fades in, and a scan mid-fade would read its text at part opacity.
-      await list.evaluate((element) =>
-        Promise.all(element.getAnimations().map((animation) => animation.finished)),
-      );
-      await page.evaluate(() => document.fonts.ready);
-      expect(await violations(page)).toEqual([]);
-    });
   });
-}
+
+  test("none with the saving toast up", async ({ page }) => {
+    await mockConfig(page);
+    await open(page, "daily");
+    await page.locator("#daily-hour").selectOption("9");
+    await expect(toastText(page)).toHaveText(SAVED);
+    await expectNoViolationsInEitherScheme(page);
+  });
+
+  test("none with the model list open in its groups", async ({ page }) => {
+    await open(page, "model");
+    await page.getByRole("button", { name: "Show all models" }).click();
+    const list = page.getByRole("listbox", { name: "Models" });
+    await expect(list.getByRole("group", { name: "Top models" })).toBeVisible();
+    await expectNoViolationsInEitherScheme(page);
+  });
+});

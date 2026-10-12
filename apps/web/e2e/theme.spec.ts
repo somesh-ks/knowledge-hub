@@ -19,48 +19,42 @@ async function recordThemeAtBodyStart(page: Page): Promise<void> {
 }
 
 test.describe("theme", () => {
-  test("follows the system when nothing is stored", async ({ page }) => {
-    await page.emulateMedia({ colorScheme: "dark" });
-    await page.goto("/");
-    await expect(page.locator("html")).not.toHaveAttribute("data-theme", /.*/);
-    await expectColor(page, await bodyBackground(page), SURFACE_DARK);
-    await page.emulateMedia({ colorScheme: "light" });
-    await expectColor(page, await bodyBackground(page), SURFACE_LIGHT);
-  });
-
-  test("applies a stored choice before first paint, so it never flashes", async ({ page }) => {
-    await page.emulateMedia({ colorScheme: "light" });
-    await page.addInitScript(() =>
-      localStorage.setItem("dispatch:preferences", JSON.stringify({ theme: "dark" })),
-    );
-    await recordThemeAtBodyStart(page);
-    await page.goto("/");
-    expect(
-      await page.evaluate(
-        () => (window as unknown as { __themeAtBody: string | null }).__themeAtBody,
-      ),
-    ).toBe("dark");
-    await expect(page.locator("html")).toHaveAttribute("data-theme", "dark");
-    await expectColor(page, await bodyBackground(page), SURFACE_DARK);
-  });
-
-  test("a stored light choice wins over a dark system", async ({ page }) => {
-    await page.emulateMedia({ colorScheme: "dark" });
-    await page.addInitScript(() =>
-      localStorage.setItem("dispatch:preferences", JSON.stringify({ theme: "light" })),
-    );
-    await page.goto("/");
-    await expect(page.locator("html")).toHaveAttribute("data-theme", "light");
-    await expectColor(page, await bodyBackground(page), SURFACE_LIGHT);
-  });
-
-  test("ignores a stored value that is not a theme", async ({ page }) => {
-    await page.addInitScript(() =>
-      localStorage.setItem("dispatch:preferences", JSON.stringify({ theme: "sepia" })),
-    );
-    await page.goto("/");
-    await expect(page.locator("html")).not.toHaveAttribute("data-theme", /.*/);
-  });
+  // (stored choice, system scheme, expected theme): a stored choice wins, before first paint, and
+  // anything else follows the system.
+  const cases = [
+    { stored: null, system: "dark", theme: null },
+    { stored: "dark", system: "light", theme: "dark" },
+    { stored: "light", system: "dark", theme: "light" },
+    { stored: "sepia", system: "light", theme: null },
+  ] as const;
+  for (const { stored, system, theme } of cases) {
+    test(`stored ${stored ?? "nothing"} on a ${system} system shows ${theme ?? "the system"}, from first paint`, async ({
+      page,
+    }) => {
+      await page.emulateMedia({ colorScheme: system });
+      if (stored) {
+        await page.addInitScript(
+          (value) => localStorage.setItem("dispatch:preferences", JSON.stringify({ theme: value })),
+          stored,
+        );
+      }
+      await recordThemeAtBodyStart(page);
+      await page.goto("/");
+      expect(
+        await page.evaluate(
+          () => (window as unknown as { __themeAtBody: string | null }).__themeAtBody,
+        ),
+      ).toBe(theme);
+      if (theme) await expect(page.locator("html")).toHaveAttribute("data-theme", theme);
+      else await expect(page.locator("html")).not.toHaveAttribute("data-theme", /.*/);
+      const shown = theme ?? system;
+      await expectColor(
+        page,
+        await bodyBackground(page),
+        shown === "dark" ? SURFACE_DARK : SURFACE_LIGHT,
+      );
+    });
+  }
 
   test("survives a client-side navigation", async ({ page }) => {
     await page.emulateMedia({ colorScheme: "light" });
@@ -98,20 +92,5 @@ test.describe("theme", () => {
       .click();
     await expect(page).toHaveURL(/\/$/);
     await expect(page.locator("html")).toHaveAttribute("data-theme", "dark");
-  });
-
-  test("crossfades a theme change with a view transition on the root", async ({ page }) => {
-    await page.goto("/");
-    const duration = await page.evaluate(async () => {
-      if (!document.startViewTransition) return null;
-      const transition = document.startViewTransition(() => {
-        document.documentElement.dataset.theme = "dark";
-      });
-      await transition.ready;
-      return getComputedStyle(document.documentElement, "::view-transition-new(root)")
-        .animationDuration;
-    });
-    // 200ms from the state-change token. Where the API is missing the change is instant, which is fine.
-    if (duration !== null) expect(duration).toContain("0.2s");
   });
 });

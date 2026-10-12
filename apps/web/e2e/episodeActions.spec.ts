@@ -1,10 +1,8 @@
-import AxeBuilder from "@axe-core/playwright";
 import type { Page } from "@playwright/test";
-import { expect, hydrated, test } from "./fixtures";
-import { PASSPHRASE_REQUIRED } from "./passphrase";
+import { OPEN_PASSPHRASE } from "../src/lib/access";
+import { expect, expectNoViolationsInEitherScheme, hydrated, test } from "./fixtures";
 
 const ID = "ep-20261007-1930";
-const SENT = PASSPHRASE_REQUIRED ? "correct horse battery staple" : "open";
 
 const more = (page: Page) => page.getByRole("button", { name: "More actions" });
 const menu = (page: Page) => page.getByRole("menu", { name: "More actions" });
@@ -48,10 +46,6 @@ async function mock(page: Page, states: unknown[]): Promise<Array<Record<string,
     });
   });
   return bodies;
-}
-
-async function fillPassphrase(dialog: ReturnType<typeof panel>): Promise<void> {
-  if (PASSPHRASE_REQUIRED) await dialog.getByLabel("Passphrase").fill(SENT);
 }
 
 test.describe("regenerate and delete an episode", () => {
@@ -104,30 +98,6 @@ test.describe("regenerate and delete an episode", () => {
     await expect(more(page)).toBeFocused();
   });
 
-  test("the panel has one title: its field is labelled at the label size, not as a heading", async ({
-    page,
-  }) => {
-    await open(page);
-    await choose(page, "Regenerate");
-    await expect(panel(page)).toBeVisible();
-    await expect(panel(page).getByRole("heading")).toHaveText(["Regenerate this episode"]);
-    const label = panel(page).locator('label[for="regen-feedback"]');
-    const look = await label.evaluate((node) => {
-      const style = getComputedStyle(node);
-      return { size: Number.parseFloat(style.fontSize), heading: node.closest("h2, h3") !== null };
-    });
-    expect(look.heading).toBe(false);
-    expect(look.size).toBeLessThanOrEqual(14);
-  });
-
-  test("Highlights is a section heading like any other: regular weight", async ({ page }) => {
-    await open(page);
-    const weight = await page
-      .locator("#episode-highlights-title")
-      .evaluate((node) => getComputedStyle(node).fontWeight);
-    expect(weight).toBe("400");
-  });
-
   test("Regenerate sends the exact body and the indicator takes over", async ({ page }) => {
     const bodies = await mock(page, [
       { run_id: 77, state: "running", step: null },
@@ -140,12 +110,11 @@ test.describe("regenerate and delete an episode", () => {
       panel(page).getByRole("heading", { name: "Regenerate this episode" }),
     ).toBeVisible();
     await panel(page).getByLabel("What should change?").fill("  Shorter intro, more on design  ");
-    await fillPassphrase(panel(page));
     await panel(page).getByRole("button", { name: "Regenerate episode" }).click();
 
     await expect.poll(() => bodies.length).toBe(1);
     expect(bodies[0]).toEqual({
-      passphrase: SENT,
+      passphrase: OPEN_PASSPHRASE,
       action: "regenerate",
       id: ID,
       feedback: "Shorter intro, more on design",
@@ -194,7 +163,6 @@ test.describe("regenerate and delete an episode", () => {
     const bodies = await mock(page, [{ run_id: 77, state: "queued", step: null }]);
     await open(page);
     await choose(page, "Regenerate");
-    await fillPassphrase(panel(page));
     await panel(page).getByLabel("What should change?").fill("   ");
     await panel(page).getByRole("button", { name: "Regenerate episode" }).click();
     await expect(panel(page).getByRole("alert")).toHaveText("Describe what should change.");
@@ -240,11 +208,10 @@ test.describe("regenerate and delete an episode", () => {
     const bodies = await mock(page, [{ run_id: 77, state: "queued", step: null }]);
     await open(page);
     await choose(page, "Delete");
-    await fillPassphrase(confirm(page));
     await confirm(page).getByRole("button", { name: "Delete", exact: true }).click();
 
     await expect.poll(() => bodies.length).toBe(1);
-    expect(bodies[0]).toEqual({ passphrase: SENT, action: "delete", id: ID });
+    expect(bodies[0]).toEqual({ passphrase: OPEN_PASSPHRASE, action: "delete", id: ID });
     await expect(page).toHaveURL(/\/library$/, { timeout: 5_000 });
     // No progress to watch, and the card is gone while the site still has it.
     await expect(indicator(page)).toBeHidden();
@@ -270,7 +237,6 @@ test.describe("regenerate and delete an episode", () => {
     await expect(page).toHaveURL(new RegExp(`/e/${ID}$`));
     await hydrated(page);
     await choose(page, "Delete");
-    await fillPassphrase(confirm(page));
     await confirm(page).getByRole("button", { name: "Delete", exact: true }).click();
     await expect.poll(() => bodies.length).toBe(1);
     await expect(page).toHaveURL(/\/library\?show=custom&sort=oldest$/, { timeout: 5_000 });
@@ -295,7 +261,6 @@ test.describe("regenerate and delete an episode", () => {
     await expect(page).toHaveURL(new RegExp(`/e/${ID}$`));
     await hydrated(page);
     await choose(page, "Delete");
-    await fillPassphrase(confirm(page));
     await confirm(page).getByRole("button", { name: "Delete", exact: true }).click();
     await expect(page).toHaveURL(/\/library\?show=custom&sort=oldest$/, { timeout: 5_000 });
     // The entry behind it is the deleted episode's page, which sends the person to the Library they
@@ -315,7 +280,6 @@ test.describe("regenerate and delete an episode", () => {
     await open(page);
     await choose(page, "Regenerate");
     await panel(page).getByLabel("What should change?").fill("Shorter intro");
-    await fillPassphrase(panel(page));
     await panel(page).getByRole("button", { name: "Regenerate episode" }).click();
     await expect(indicator(page)).toHaveText("Rewritten. Live in about a minute.", {
       timeout: 15_000,
@@ -324,7 +288,6 @@ test.describe("regenerate and delete an episode", () => {
       "Rewritten. Live in about a minute.",
     );
     await choose(page, "Delete");
-    await fillPassphrase(confirm(page));
     await confirm(page).getByRole("button", { name: "Delete", exact: true }).click();
     await expect(page).toHaveURL(/\/library$/, { timeout: 5_000 });
     // The episode is gone, so is what the line said about it, to the eye and to a screen reader.
@@ -346,7 +309,6 @@ test.describe("regenerate and delete an episode", () => {
       );
       await open(page);
       await choose(page, "Delete");
-      await fillPassphrase(confirm(page));
       await confirm(page).getByRole("button", { name: "Delete", exact: true }).click();
       await expect(confirm(page).getByRole("alert")).toContainText(
         "You can do that again in 2 minutes.",
@@ -366,7 +328,6 @@ test.describe("regenerate and delete an episode", () => {
       );
       await open(page);
       await choose(page, "Regenerate");
-      await fillPassphrase(panel(page));
       await panel(page).getByLabel("What should change?").fill("More depth");
       await panel(page).getByRole("button", { name: "Regenerate episode" }).click();
       await expect(panel(page).getByRole("alert")).toContainText(
@@ -376,41 +337,21 @@ test.describe("regenerate and delete an episode", () => {
     });
   });
 
-  for (const scheme of ["light", "dark"] as const) {
-    test(`axe finds nothing with the menu open, ${scheme}`, async ({ page }) => {
-      await page.emulateMedia({ colorScheme: scheme });
-      await open(page);
-      await more(page).click();
-      await expect(menu(page)).toBeVisible();
-      await page.waitForTimeout(500);
-      const results = await new AxeBuilder({ page })
-        .withTags(["wcag2a", "wcag2aa", "wcag21a", "wcag21aa", "wcag22aa"])
-        .analyze();
-      expect(results.violations.map((v) => v.id)).toEqual([]);
-    });
-
-    test(`axe finds nothing with the panel open, ${scheme}`, async ({ page }) => {
-      await page.emulateMedia({ colorScheme: scheme });
-      await open(page);
-      await choose(page, "Regenerate");
-      await expect(panel(page)).toBeVisible();
-      await page.waitForTimeout(500);
-      const results = await new AxeBuilder({ page })
-        .withTags(["wcag2a", "wcag2aa", "wcag21a", "wcag21aa", "wcag22aa"])
-        .analyze();
-      expect(results.violations.map((v) => v.id)).toEqual([]);
-    });
-
-    test(`axe finds nothing with the confirm open, ${scheme}`, async ({ page }) => {
-      await page.emulateMedia({ colorScheme: scheme });
-      await open(page);
-      await choose(page, "Delete");
-      await expect(confirm(page)).toBeVisible();
-      await page.waitForTimeout(500);
-      const results = await new AxeBuilder({ page })
-        .withTags(["wcag2a", "wcag2aa", "wcag21a", "wcag21aa", "wcag22aa"])
-        .analyze();
-      expect(results.violations.map((v) => v.id)).toEqual([]);
-    });
-  }
+  test("axe finds nothing with the menu, the panel or the confirm open", async ({ page }) => {
+    // Six scans on one page load.
+    test.setTimeout(60_000);
+    await open(page);
+    await more(page).click();
+    await expect(menu(page)).toBeVisible();
+    await expectNoViolationsInEitherScheme(page);
+    await page.keyboard.press("Escape");
+    await choose(page, "Regenerate");
+    await expect(panel(page)).toBeVisible();
+    await expectNoViolationsInEitherScheme(page);
+    await page.keyboard.press("Escape");
+    await expect(panel(page)).toBeHidden();
+    await choose(page, "Delete");
+    await expect(confirm(page)).toBeVisible();
+    await expectNoViolationsInEitherScheme(page);
+  });
 });

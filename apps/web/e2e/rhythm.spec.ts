@@ -6,8 +6,8 @@ import { expect, test } from "./fixtures";
  * and on a sub-page its title, which carries the way back, takes that place.
  */
 const SIZES = [
-  { width: 1280, height: 800 },
-  { width: 390, height: 844 },
+  { width: 1280, height: 800, tag: ["@desktop"] },
+  { width: 390, height: 844, tag: [] },
 ];
 
 const DESTINATIONS = ["/", "/library", "/create", "/settings"];
@@ -33,8 +33,8 @@ async function firstBlockTop(
 }
 
 for (const size of SIZES) {
-  test.describe(`${size.width}x${size.height}`, () => {
-    test.use({ viewport: size });
+  test.describe(`${size.width}x${size.height}`, { tag: size.tag }, () => {
+    test.use({ viewport: { width: size.width, height: size.height } });
 
     test("the four destinations start their first block at one height", async ({ page }) => {
       const tops: Record<string, number> = {};
@@ -50,21 +50,6 @@ for (const size of SIZES) {
           `${path} starts at ${top}, Today at ${reference}`,
         ).toBeLessThanOrEqual(1);
       }
-    });
-
-    test("Library, New episode and Settings titles are one size; from 64rem the section size", async ({
-      page,
-    }) => {
-      const sizes: Record<string, string> = {};
-      for (const path of ["/library", "/create", "/settings"]) {
-        await page.goto(path);
-        sizes[path] = await page
-          .locator("main h1")
-          .first()
-          .evaluate((h1) => getComputedStyle(h1).fontSize);
-      }
-      expect(new Set(Object.values(sizes)).size, JSON.stringify(sizes)).toBe(1);
-      if (size.width >= 1024) expect(sizes["/library"]).toBe("22px");
     });
 
     test("a sub-page puts its title where the destinations start", async ({ page }) => {

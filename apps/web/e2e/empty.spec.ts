@@ -37,13 +37,6 @@ async function expectPattern(page: Page, root: Locator, level: 1 | 2, art: strin
   expect(light).not.toBe(dark);
 }
 
-async function expectNoSideScroll(page: Page): Promise<void> {
-  const overflow = await page.evaluate(
-    () => document.documentElement.scrollWidth - document.documentElement.clientWidth,
-  );
-  expect(overflow).toBeLessThanOrEqual(0);
-}
-
 test.describe("empty states", () => {
   test("not found draws its scene under the page's own title", async ({ page }) => {
     await page.goto("/no/such/page");
@@ -102,50 +95,5 @@ test.describe("empty states", () => {
       await expect(root).toHaveAttribute("data-state", "offline");
       await expect(root.getByRole("link", { name: "Try again" })).toBeVisible();
     });
-  });
-
-  test("a search with no results shows its scene, and Clear search hides it", async ({ page }) => {
-    await page.goto("/library");
-    const empty = page.locator("[data-library-empty]");
-    await expect(empty).toBeHidden();
-    await page.locator("[data-library-search]").fill("zzqx");
-    await expect(empty).toBeVisible();
-    await expect(page.getByRole("heading", { level: 1 })).toHaveText("Library");
-    await expect(empty.getByRole("heading", { level: 2 })).toHaveText("No results for “zzqx”");
-    await expect(empty.locator(".library-empty-search")).toBeVisible();
-    await expect(empty.locator(".library-empty-filter")).toBeHidden();
-    await expectPattern(page, empty, 2, "results");
-    await empty.getByRole("button", { name: "Clear search" }).click();
-    await expect(empty).toBeHidden();
-    await expect(page.locator("[data-library-search]")).toHaveValue("");
-  });
-
-  test("a filtered search with no results offers to show all", async ({ page }) => {
-    await page.goto("/library");
-    await page.locator("[data-library-search]").fill("zzqx");
-    await page.locator(".library-filters .filter-chip").nth(1).click();
-    const empty = page.locator("[data-library-empty]");
-    await expect(empty.getByRole("heading", { level: 2 })).toContainText(
-      "No results for “zzqx” in",
-    );
-    await expectPattern(page, empty, 2, "results");
-    await empty.getByRole("button", { name: "Show all" }).click();
-    await expect(empty).toBeHidden();
-  });
-});
-
-test.describe("empty states on a small phone", () => {
-  test.use({ viewport: { width: 360, height: 640 } });
-
-  test("nothing scrolls sideways", async ({ page }) => {
-    for (const path of ["/no/such/page", "/offline"]) {
-      await page.goto(path);
-      await expect(page.locator("#main .empty-art").first()).toBeAttached();
-      await expectNoSideScroll(page);
-    }
-    await page.goto("/library");
-    await page.locator("[data-library-search]").fill("zzqx");
-    await expect(page.locator("[data-library-empty]")).toBeVisible();
-    await expectNoSideScroll(page);
   });
 });

@@ -34,7 +34,8 @@ test.describe("service worker", () => {
       }
       return { names, urls };
     });
-    expect(cached.names).toContain("dispatch-shell-v7");
+    // The name carries a version, bumped with the shell; serviceWorker.test.ts holds which.
+    expect(cached.names.some((name) => /^dispatch-shell-v\d+$/.test(name))).toBe(true);
     expect(cached.urls).toContain("/offline");
     expect(cached.urls).toContain("/");
     expect(cached.urls.some((url) => url.startsWith("/_astro/") && url.endsWith(".css"))).toBe(

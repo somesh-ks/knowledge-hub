@@ -1,5 +1,5 @@
 import type { Page } from "@playwright/test";
-import { expect, hydrated, SILENT_DIGEST, test } from "./fixtures";
+import { expect, hydrated, SILENT_DIGEST, seedStorage, test } from "./fixtures";
 
 /**
  * What the device remembers of a recording reads the same everywhere: the stories heard, the
@@ -83,9 +83,7 @@ test("the stories heard keep their Played marks after another recording and a re
 });
 
 test("a briefing without audio says where it was left, as its cards do", async ({ page }) => {
-  await page.goto("/library");
-  await page.evaluate(() => localStorage.setItem("dispatch:resume:2026-10-05", "60"));
-
+  await seedStorage(page, { local: { "dispatch:resume:2026-10-05": "60" } });
   await page.goto(SILENT_DIGEST);
   await hydrated(page);
   const chip = page.locator(".hero [data-play-digest]");
@@ -134,9 +132,7 @@ test("a briefing without audio keeps the stories heard when its page opens", asy
 });
 
 test("a briefing without audio heard to the end says Played everywhere", async ({ page }) => {
-  await page.goto("/library");
-  await page.evaluate(() => localStorage.setItem("dispatch:played:2026-10-05", "1"));
-
+  await seedStorage(page, { local: { "dispatch:played:2026-10-05": "1" } });
   await page.goto(SILENT_DIGEST);
   await hydrated(page);
   const chip = page.locator(".hero [data-play-digest]");
@@ -162,8 +158,7 @@ test("a briefing without audio heard to the end says Played everywhere", async (
 });
 
 test("the floating Play on Today follows the chip", async ({ page }) => {
-  await page.goto("/library");
-  await page.evaluate(() => localStorage.setItem("dispatch:resume:2026-10-07", "20"));
+  await seedStorage(page, { local: { "dispatch:resume:2026-10-07": "20" } });
   await page.goto("/");
   await hydrated(page);
   await page.mouse.wheel(0, 1200);
