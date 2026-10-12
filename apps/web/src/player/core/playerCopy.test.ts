@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import type { PlayerDigestData } from "../../types/contracts";
-import { recordingCaption } from "./playerCopy";
+import { recordingCaption, toggleLabel, transportGlyph } from "./playerCopy";
 
 const base = {
   id: "d",
@@ -51,5 +51,23 @@ describe("recordingCaption", () => {
   it("is only the kind before there is audio, and nothing without a recording", () => {
     expect(recordingCaption({ ...base, audio: null })).toBe("Daily");
     expect(recordingCaption(undefined)).toBe("");
+  });
+});
+
+describe("transportGlyph", () => {
+  it("draws what the button is named", () => {
+    // The disc and the bar share one rule: the glyph never disagrees with the name.
+    expect(transportGlyph("error")).toBe("refresh");
+    expect(toggleLabel({ status: "error" })).toBe("Try again");
+    expect(transportGlyph("ended")).toBe("replay");
+    expect(toggleLabel({ status: "ended" })).toBe("Play again");
+    for (const status of ["idle", "paused"] as const) {
+      expect(transportGlyph(status)).toBe("play");
+      expect(toggleLabel({ status })).toBe("Play");
+    }
+    for (const status of ["playing", "loading"] as const) {
+      expect(transportGlyph(status)).toBe("pause");
+      expect(toggleLabel({ status })).toBe("Pause");
+    }
   });
 });

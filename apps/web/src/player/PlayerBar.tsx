@@ -279,7 +279,7 @@ export default function PlayerBar() {
           aria-busy={state.buffering || undefined}
           onClick={() => store.toggle()}
         >
-          <PlayPauseGlyph />
+          <PlayPauseGlyph status={state.status} />
           <span className="spinner" aria-hidden="true" />
         </button>
         <button
