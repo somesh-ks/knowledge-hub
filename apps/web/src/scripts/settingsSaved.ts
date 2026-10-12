@@ -7,6 +7,7 @@
 import { readPendingChoice, type StoredWriterChoice } from "../lib/pendingWriter";
 import {
   type FieldValues,
+  heldWriter,
   readCounts,
   type SourceSpot,
   savedFields,
@@ -119,12 +120,14 @@ export function overlayIndex(
   }
 
   const model = row(root, "model");
-  // With no choice waiting (one that was never saved is dropped), the row says what it was built with.
+  // A choice still on its way, else one saved; with neither (a refused one is never noted), the row
+  // says what it was built with.
   const built = model?.dataset;
-  const choice: Pick<StoredWriterChoice, "provider" | "model"> = pending ?? {
-    provider: built?.provider === "anthropic" ? "anthropic" : "nebius",
-    model: built?.model || null,
-  };
+  const choice: Pick<StoredWriterChoice, "provider" | "model"> = heldWriter(ops) ??
+    pending ?? {
+      provider: built?.provider === "anthropic" ? "anthropic" : "nebius",
+      model: built?.model || null,
+    };
   if (model) shown = say(model, modelSummary(choice.provider, choice.model)) || shown;
   return shown;
 }

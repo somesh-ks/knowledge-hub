@@ -266,9 +266,22 @@ const FILTER_NOUNS: Record<Exclude<LibraryFilter, "all">, string> = {
   custom: "episodes",
 };
 
+/** The most characters of a query the empty state quotes: a pasted link would run to several lines. */
+const QUOTED_MAX = 24;
+
+/** A query as the empty state quotes it: cut between characters, never inside one, with an ellipsis. */
+export function quotedQuery(query: string): string {
+  const chars = Array.from(query.trim());
+  if (chars.length <= QUOTED_MAX) return chars.join("");
+  return `${chars
+    .slice(0, QUOTED_MAX - 1)
+    .join("")
+    .trimEnd()}…`;
+}
+
 /** The sentence for an empty list: no match for a search, nothing of a kind, or both together. */
 export function emptyCopy(query: string, filter: LibraryFilter): EmptyCopy {
-  const text = query.trim();
+  const text = quotedQuery(query);
   if (text !== "") {
     if (filter === "all") {
       return { message: `No results for “${text}”`, action: "Clear search", resets: "search" };

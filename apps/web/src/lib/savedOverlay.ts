@@ -7,8 +7,8 @@
  * (scripts/savedView.ts). Once the page is built with the saved value, the build has landed and
  * there is nothing to show.
  *
- * The writer's provider and model keep their own note (PENDING_WRITER_KEY in podcastPage.ts), so a
- * writer.set is not kept here.
+ * The writer's provider and model keep their own note once saved (PENDING_WRITER_KEY in
+ * lib/pendingWriter.ts), so a writer.set is kept here only while it is on its way (heldWriter).
  *
  * Pure: the caller reads and writes storage.
  */
@@ -87,6 +87,19 @@ export function withPending(
 ): SavedEntry[] {
   const kept = entries.filter((entry) => !entry.pending && fresh(entry.at, now));
   return ops.length > 0 ? [...kept, { at: now, ops: [...ops], pending: true }] : kept;
+}
+
+type WriterChoice = Pick<Extract<ConfigOp, { op: "writer.set" }>, "provider" | "model">;
+
+/**
+ * The writer choice still on its way among `ops` (only a pending entry keeps a writer.set), the
+ * latest one, or null when none is.
+ */
+export function heldWriter(ops: readonly ConfigOp[]): WriterChoice | null {
+  let found: WriterChoice | null = null;
+  for (const op of ops)
+    if (op.op === "writer.set") found = { provider: op.provider, model: op.model };
+  return found;
 }
 
 /** Whether any edit shown is still on its way, so the page says Saving rather than Saved. */

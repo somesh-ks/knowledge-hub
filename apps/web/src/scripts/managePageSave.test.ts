@@ -464,3 +464,105 @@ describe("remember", () => {
     expect(() => remember([{ op: "schedule.set", hour: 7 }])).not.toThrow();
   });
 });
+
+describe("the writer's note of a saved choice", () => {
+  afterEach(() => {
+    vi.useRealTimers();
+    vi.unstubAllGlobals();
+  });
+
+  it("is written once the choice went through, never for a refused one", async () => {
+    // Far past any request an earlier test made: no wait out of the server's gap.
+    vi.useFakeTimers();
+    vi.setSystemTime(Date.now() + 1000 * 3_600_000);
+    vi.stubGlobal("localStorage", memoryStorage());
+    vi.stubGlobal("sessionStorage", memoryStorage());
+    const answer = (status: number) =>
+      vi.fn(async () => new Response(JSON.stringify({ status }), { status }));
+    const changes = new Map([
+      ["writer", change({ op: "writer.set", provider: "anthropic", model: "claude-x" })],
+    ]);
+    const context: SaveContext = { changes, dialog: null, show: () => {} };
+    vi.stubGlobal("fetch", answer(500));
+    await flush(context, "open");
+    expect(sessionStorage.getItem(PENDING_WRITER_KEY)).toBeNull();
+    vi.stubGlobal("fetch", answer(202));
+    await flush(context, "open");
+    expect(JSON.parse(sessionStorage.getItem(PENDING_WRITER_KEY) ?? "{}")).toMatchObject({
+      provider: "anthropic",
+      model: "claude-x",
+    });
+  });
+});
+
+describe("a held change lost while no settings page is open", () => {
+  /** What the app's toast was asked to show (TOAST_EVENT in sheets/toastStore.ts). */
+  let toasts: unknown[] = [];
+
+  afterEach(() => {
+    dropUnclaimed();
+    vi.useRealTimers();
+    vi.unstubAllGlobals();
+  });
+
+  /** Each test starts long after the last request any test made: no wait out of the server's gap. */
+  let round = 2000;
+
+  async function loseHeld(settingsPage: boolean): Promise<void> {
+    vi.useFakeTimers();
+    round += 10;
+    vi.setSystemTime(Date.now() + round * 3_600_000);
+    vi.stubGlobal("localStorage", memoryStorage());
+    vi.stubGlobal("sessionStorage", memoryStorage());
+    // The page left is Daily; the page open when the run ends is Today, or a settings page.
+    let open = "daily";
+    const doc = Object.assign(new EventTarget(), {
+      querySelector: (selector: string) =>
+        (selector === "#page-title" && open === "daily") ||
+        (selector === "[data-bar]" && settingsPage)
+          ? { textContent: "Daily" }
+          : null,
+    });
+    toasts = [];
+    doc.addEventListener(
+      "dispatch:toast",
+      (event) => void toasts.push((event as CustomEvent).detail),
+    );
+    vi.stubGlobal("document", doc);
+    vi.stubGlobal("location", { pathname: "/settings/daily" });
+    const answers = [202, 500];
+    vi.stubGlobal(
+      "fetch",
+      vi.fn(async () => {
+        const status = answers.shift() ?? 202;
+        return new Response(JSON.stringify({ status }), { status });
+      }),
+    );
+    const changes = new Map([["schedule", change({ op: "schedule.set", hour: 9 })]]);
+    const left: SaveContext = { changes, dialog: null, show: () => {}, here: () => false };
+    await flush(left, "open");
+    changes.set("schedule", change({ op: "schedule.set", length_minutes: 3 }));
+    const run = flush(left, "open");
+    keepWaiting(left);
+    open = settingsPage ? "weekly" : "today";
+    await vi.advanceTimersByTimeAsync(GAP_MS);
+    await run;
+    await vi.advanceTimersByTimeAsync(10);
+  }
+
+  it("says so in the app's toast, as an alert, naming the page it was made on", async () => {
+    await loseHeld(false);
+    expect(toasts).toEqual([
+      expect.objectContaining({
+        message: "Your change to Daily was not saved.",
+        kind: "error",
+        actionLabel: "Open",
+      }),
+    ]);
+  });
+
+  it("leaves it to a settings page, which takes it with its own toast", async () => {
+    await loseHeld(true);
+    expect(toasts).toEqual([]);
+  });
+});

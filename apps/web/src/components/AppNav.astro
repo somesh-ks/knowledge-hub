@@ -1,5 +1,6 @@
 ---
 import type { IconName } from "../lib/icons";
+import { getSite } from "../lib/site";
 import BrandMark from "./BrandMark.astro";
 import Icon from "./Icon.astro";
 
@@ -11,6 +12,9 @@ interface Props {
 }
 
 const { current } = Astro.props;
+// The wordmark goes to Today: it names the briefing only when there is one.
+const homeLabel =
+  (await getSite()).entries.length > 0 ? "Singularity, today's briefing" : "Singularity, Today";
 // On the Create page the New episode button is the place you are on, not an action to take.
 const onCreate = Astro.url.pathname.replace(/\/$/, "") === "/create";
 
@@ -44,7 +48,7 @@ const destinations: Array<{
      destination but the one action: a tonal button that hugs its words in the column here, a floating button (see
      CreateFab.astro) below 64rem. Both are links to /create that the shell turns into the sheet. */}
 <nav class="app-nav" aria-label="Primary" data-bottom-nav>
-  <a class="app-nav-brand wordmark" href="/" aria-label="Singularity, today's briefing" data-astro-prefetch="hover">
+  <a class="app-nav-brand wordmark" href="/" aria-label={homeLabel} data-astro-prefetch="hover">
     <BrandMark />
     <span>Singularity</span>
   </a>
