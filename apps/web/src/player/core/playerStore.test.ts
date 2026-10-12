@@ -590,6 +590,19 @@ describe("errors", () => {
     expect(harness.store.getState().error?.kind).toBe("blocked");
   });
 
+  it("reports a failed play once when the element's error and the rejected play both arrive", async () => {
+    const harness = createHarness();
+    harness.store.load(makeDigest());
+    harness.audio.playRejection = Object.assign(new Error("no source"), {
+      name: "NotSupportedError",
+    });
+    harness.store.play();
+    harness.audio.error = { code: MEDIA_ERR_SRC_NOT_SUPPORTED };
+    harness.audio.emit("error");
+    await vi.advanceTimersByTimeAsync(0);
+    expect(harness.events.filter((event) => event.type === "error")).toHaveLength(1);
+  });
+
   it("ignores a play rejected because a newer load won", async () => {
     const harness = createHarness();
     harness.store.load(makeDigest());

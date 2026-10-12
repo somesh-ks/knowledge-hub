@@ -160,6 +160,14 @@ describe("announcements", () => {
     expect(announcementForEvent({ type: "interrupted" }, track)).toBe("Paused by another app.");
     // With the open player on screen its notice speaks errors and interruptions itself.
     expect(announcementForEvent({ type: "interrupted" }, track, { open: true })).toBeNull();
+    // A file found missing before any press is not announced.
+    expect(
+      announcementForEvent(
+        { type: "error", error: { kind: "unavailable", message: "Gone." } },
+        track,
+        { open: false, started: false },
+      ),
+    ).toBeNull();
     expect(
       announcementForEvent(
         { type: "error", error: { kind: "network", message: "Offline." } },

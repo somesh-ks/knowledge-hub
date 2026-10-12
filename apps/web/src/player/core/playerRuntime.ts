@@ -156,6 +156,7 @@ export function startPlayerRuntime(): () => void {
   const offEvent = playerStore.onEvent((event) => {
     const message = announcementForEvent(event, playerStore.getState().track, {
       open: playerIsOpen(),
+      started: playerStore.getState().hasStarted,
     });
     if (message) announce(message);
   });
