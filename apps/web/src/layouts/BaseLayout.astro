@@ -93,10 +93,10 @@ const back =
   destination === "today"
     ? undefined
     : /^\/(d|e)\//.test(path) || path === "/create"
-    ? { href: "/library", label: "Back" }
-    : /^\/settings\/./.test(path)
-      ? { href: path.replace(/\/[^/]+$/, ""), label: "Back" }
-      : undefined;
+      ? { href: "/library", label: "Back" }
+      : /^\/settings\/./.test(path)
+        ? { href: path.replace(/\/[^/]+$/, ""), label: "Back" }
+        : undefined;
 ---
 
 <!doctype html>
