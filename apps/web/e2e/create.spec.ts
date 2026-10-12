@@ -661,39 +661,6 @@ test.describe("the Create page", () => {
     expect(stored).toMatchObject({ id: 22, retry: { body: { request: mock.bodies[0]?.request } } });
   });
 
-  test("a Try again refused by the cooldown says how long to wait, in the line", async ({
-    page,
-  }) => {
-    await page.clock.install();
-    await mockPodcast(page, 202, { status: 202, run_id: 23, started_at: "x" });
-    await page.route("**/api/status?**", (route) =>
-      route.fulfill({
-        status: 200,
-        contentType: "application/json",
-        body: JSON.stringify({
-          run_id: 23,
-          state: "completed",
-          step: null,
-          stage: 1,
-          stages: 3,
-          label: "Making the episode",
-          outcome: "failed",
-        }),
-      }),
-    );
-    await openCreate(page);
-    await openDialog(page);
-    await confirm(page);
-    await page.clock.runFor(4000);
-    const text = page.locator("[data-run-text]");
-    await expect(text).toHaveText("Stopped while making the episode");
-    await page.unroute("**/api/podcast");
-    await mockPodcast(page, 429, { status: 429, error: "cooldown", retry_after_s: 400 });
-    await page.getByRole("button", { name: "Try again" }).click();
-    await expect(text).toHaveText("You can make another episode in 7 minutes.");
-    await expect(page.getByRole("button", { name: "Try again" })).toBeVisible();
-  });
-
   test("while a run is going, Create says so and sends no second request", async ({ page }) => {
     await page.clock.install();
     const mock = await mockPodcast(page, 202, { status: 202, run_id: 24, started_at: "x" });
@@ -938,6 +905,39 @@ test.describe("the Create page when the server says no", () => {
       await expect(page.locator("[data-create-form]")).toBeVisible();
       await expect(page.locator("[data-run-card]")).toBeHidden();
     }
+  });
+
+  test("a Try again refused by the cooldown says how long to wait, in the line", async ({
+    page,
+  }) => {
+    await page.clock.install();
+    await mockPodcast(page, 202, { status: 202, run_id: 23, started_at: "x" });
+    await page.route("**/api/status?**", (route) =>
+      route.fulfill({
+        status: 200,
+        contentType: "application/json",
+        body: JSON.stringify({
+          run_id: 23,
+          state: "completed",
+          step: null,
+          stage: 1,
+          stages: 3,
+          label: "Making the episode",
+          outcome: "failed",
+        }),
+      }),
+    );
+    await openCreate(page);
+    await openDialog(page);
+    await confirm(page);
+    await page.clock.runFor(4000);
+    const text = page.locator("[data-run-text]");
+    await expect(text).toHaveText("Stopped while making the episode");
+    await page.unroute("**/api/podcast");
+    await mockPodcast(page, 429, { status: 429, error: "cooldown", retry_after_s: 400 });
+    await page.getByRole("button", { name: "Try again" }).click();
+    await expect(text).toHaveText("You can make another episode in 7 minutes.");
+    await expect(page.getByRole("button", { name: "Try again" })).toBeVisible();
   });
 
   test("says so when the request cannot be sent", async ({ page }) => {
