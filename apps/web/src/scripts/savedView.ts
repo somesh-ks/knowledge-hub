@@ -7,7 +7,7 @@
  * A control takes the saved value as its starting point, so the editors read it as unchanged and
  * never send it again. The page says once, under its title, that what it shows is saved and not live.
  */
-import { joinLabels } from "../lib/multiSelect";
+import { chosenSummary } from "../lib/multiSelect";
 import { SAVED_KEY } from "../lib/savedKey";
 import {
   type FieldValues,
@@ -151,8 +151,12 @@ function syncChoice(input: HTMLInputElement): void {
   const labels = [...box.querySelectorAll("[role=option][aria-selected=true] .multiselect-label")];
   const value = box.querySelector("[data-multiselect-value]");
   if (value)
-    value.textContent =
-      joinLabels(labels.map((label) => label.textContent ?? "")) || (box.dataset.empty ?? "");
+    value.textContent = chosenSummary(
+      labels.map((label) => label.textContent ?? ""),
+      box.querySelectorAll("[role=option]").length,
+      box.dataset.all,
+      box.dataset.empty,
+    );
 }
 
 /** A slider's fill and readout follow its value, as topicsPage.ts draws them while it moves. */

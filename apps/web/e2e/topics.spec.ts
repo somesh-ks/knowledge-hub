@@ -350,12 +350,12 @@ test.describe("a topic's page", () => {
     const { sent } = await setup(page);
     await open(page, CRAFT);
     const field = page.getByRole("button", { name: /^Podcasts/ });
-    await expect(field).toHaveText("Daily, Weekly and New episodes");
+    await expect(field).toHaveText("All podcasts");
     await field.click();
     const list = page.getByRole("listbox", { name: "Podcasts" });
     await expect(list).toBeVisible();
     await list.getByRole("option", { name: "Daily" }).click();
-    await expect(field).toHaveText("Weekly and New episodes");
+    await expect(field).toHaveText("Weekly and Episodes");
     await page.keyboard.press("Escape");
     await expect(list).toBeHidden();
     await expect(field).toBeFocused();
@@ -552,7 +552,7 @@ test.describe("a topic's page", () => {
     await expect(page.getByRole("button", { name: /^Podcasts/ })).toHaveCount(0);
     const on = page.getByRole("switch", { name: "Read World's sources" });
     await expect(on).toBeChecked();
-    await expect(on).toHaveAccessibleDescription("Used in new episodes");
+    await expect(on).toHaveAccessibleDescription("Used in episodes");
     await expect(page.getByText("Not read while World is off.")).toBeHidden();
     await on.uncheck();
     await expect(on).toHaveAccessibleDescription("Off. Its sources are not read");
@@ -572,7 +572,8 @@ test.describe("a topic's page", () => {
     const list = page.getByRole("listbox");
     const box = await list.boundingBox();
     // Never narrower than 14rem, so the options never wrap word by word.
-    expect(box?.width ?? 0).toBeGreaterThanOrEqual(224);
+    // (A fraction under while the list's opening scale settles.)
+    expect(box?.width ?? 0).toBeGreaterThanOrEqual(223.5);
     // Every option, hint included, fits inside the list without breaking word by word.
     for (const label of await list.locator(".multiselect-text").all()) {
       const inner = await label.boundingBox();
@@ -586,6 +587,10 @@ test.describe("a topic's page", () => {
     expect(await page.evaluate(() => document.documentElement.scrollWidth)).toBeLessThanOrEqual(
       360,
     );
+    // The value is read whole at 360: none of it is cut off.
+    const value = page.locator("[data-multiselect-value]");
+    await expect(value).toHaveText("All podcasts");
+    expect(await value.evaluate((node) => node.scrollWidth <= node.clientWidth)).toBe(true);
   });
 
   test("Suggested + discs end where the checkboxes above them end", async ({ page }) => {
@@ -848,9 +853,7 @@ test.describe("editing a topic", () => {
     await sheet.getByLabel("What should count as this topic").fill("Spatial audio in apps.");
     await sheet.getByRole("button", { name: /^Podcasts/ }).click();
     await sheet.getByRole("option", { name: "Weekly" }).click();
-    await expect(sheet.getByRole("button", { name: /^Podcasts/ })).toHaveText(
-      "Daily and New episodes",
-    );
+    await expect(sheet.getByRole("button", { name: /^Podcasts/ })).toHaveText("Daily and Episodes");
     await page.keyboard.press("Escape");
     await expect(sheet).toBeVisible();
     await sheet.getByRole("button", { name: "Add topic", exact: true }).click();

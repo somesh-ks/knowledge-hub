@@ -89,6 +89,14 @@
   padding-block: var(--space-1);
 }
 
+/* On a phone a long value takes a second line rather than losing its end. */
+@media (width < 40rem) {
+  .settings-row .multiselect-value {
+    white-space: normal;
+    text-wrap: balance;
+  }
+}
+
 .settings-row .multiselect-trigger {
   inline-size: auto;
   max-inline-size: 100%;
