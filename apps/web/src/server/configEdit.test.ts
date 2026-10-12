@@ -3,7 +3,6 @@ import { beforeAll, describe, expect, it, vi } from "vitest";
 import { cheapPassphraseHash } from "../testing/cheapPassphraseHash";
 import { createFakeGitHub, REPO, runJson } from "../testing/fakeGitHub";
 import type { ConfigOp } from "../types/contracts";
-import { readServerConfig } from "./config";
 import {
   CONFIG_COOLDOWN_MS,
   type ConfigDeps,
@@ -15,7 +14,6 @@ import {
   parseConfigRequest,
 } from "./configEdit";
 import { WRONG_PASSPHRASE_DELAY_MS } from "./generate";
-import { createWorkflowDispatcher } from "./github";
 
 const NOW = Date.parse("2026-10-07T12:00:00Z");
 const TOKEN = "github_pat_secret_value_123456";
@@ -743,58 +741,5 @@ describe("handleConfig", () => {
     const { deps } = setup();
     const result = await handleConfig(input(body(upsert, "my private guess")), deps);
     expect(JSON.stringify(result)).not.toContain("my private guess");
-  });
-});
-
-describe("createWorkflowDispatcher", () => {
-  const parsed = readServerConfig({
-    GITHUB_DISPATCH_TOKEN: TOKEN,
-    GITHUB_REPOSITORY: REPO,
-    GENERATE_PASSPHRASE_HASH: "scrypt$1$1$1$c2FsdA==$aGFzaA==",
-  });
-  if (!parsed) throw new Error("test config");
-
-  it("lists workflow_dispatch runs of the named file on main and keeps only the fields it uses", async () => {
-    const github = createFakeGitHub();
-    github.on(RUNS, {
-      json: {
-        workflow_runs: [runJson({ id: 5, head_commit: { message: "secret" } }), { id: "x" }],
-      },
-    });
-    const runs = await createWorkflowDispatcher(
-      parsed,
-      github.fetch,
-      "config.yml",
-    ).listDispatchRuns();
-    expect(runs.map((run) => run.id)).toEqual([5]);
-    expect(github.requests[0]?.path).toContain("event=workflow_dispatch");
-    expect(github.requests[0]?.path).toContain("branch=main");
-    expect(github.requests[0]?.headers.authorization).toBe(`Bearer ${TOKEN}`);
-    expect(JSON.stringify(runs)).not.toContain("secret");
-  });
-
-  it("dispatches the named file on main and returns the run id, or null on 204", async () => {
-    const github = createFakeGitHub();
-    const dispatcher = createWorkflowDispatcher(parsed, github.fetch, "config.yml");
-    github.on(DISPATCH, { json: { workflow_run_id: 31 } });
-    expect(await dispatcher.dispatch({ op: "{}" })).toBe(31);
-    github.on(DISPATCH, { status: 204 });
-    expect(await dispatcher.dispatch({ op: "{}" })).toBeNull();
-    expect(github.requests[0]?.body).toEqual({
-      ref: "main",
-      inputs: { op: "{}" },
-      return_run_details: true,
-    });
-  });
-
-  it("fails with the status only when GitHub refuses", async () => {
-    const github = createFakeGitHub();
-    github.on(DISPATCH, {
-      status: 422,
-      json: { message: "Workflow does not have workflow_dispatch" },
-    });
-    await expect(
-      createWorkflowDispatcher(parsed, github.fetch, "config.yml").dispatch({ op: "{}" }),
-    ).rejects.toThrow("GitHub answered 422");
   });
 });

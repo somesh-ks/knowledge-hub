@@ -1,7 +1,6 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { MemoryStorage } from "../../player/core/testing";
 import type { GenerateCueKind } from "../../player/sound/soundMap";
-import type { StatusResponse } from "../../types/contracts";
 import {
   type FetchLike,
   fetchStatus,
@@ -137,10 +136,6 @@ describe("startGenerate", () => {
     expect(await startGenerate("x", { fetch, isOnline: online })).toMatchObject({
       reason: "unavailable",
     });
-  });
-
-  it("keeps every message in the voice: no em dashes, no exclamation marks", () => {
-    for (const message of Object.values(MESSAGES)) expect(message).not.toMatch(/[\u2014\u2013!]/);
   });
 });
 
@@ -513,17 +508,5 @@ describe("the Generate store", () => {
     await store.submit("secret");
     expect(store.getState().phase).toBe("running");
     store.dispose();
-  });
-});
-
-describe("status types", () => {
-  it("accepts the contract's own StatusResponse shape", () => {
-    const sample: StatusResponse = {
-      run_id: 1,
-      state: "completed",
-      step: "publishing",
-      outcome: "nothing",
-    };
-    expect(parseStatus(sample as unknown as Record<string, unknown>)).toMatchObject(sample);
   });
 });

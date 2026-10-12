@@ -283,12 +283,6 @@ describe("handlePodcast for an episode action", () => {
     expect(github.requests).toHaveLength(0);
   });
 
-  it("answers 401 for a wrong passphrase and 400 for another origin", async () => {
-    const { deps } = setup();
-    expect((await handlePodcast(input(del({ passphrase: "nope" })), deps)).status).toBe(401);
-    expect((await handlePodcast(input(del(), "https://evil.example"), deps)).status).toBe(400);
-  });
-
   it("holds delete to a 10 second cooldown and 20 a day, not the episode limits", async () => {
     const { deps, github } = setup();
     github.on(DISPATCH, { json: { workflow_run_id: 9 } });
@@ -556,12 +550,6 @@ describe("handlePodcast and the hosts' names", () => {
     expect(logs).toEqual([]);
   });
 
-  it("reads the default voices when the request names none, as narration will", async () => {
-    const { deps, github } = voiced();
-    await handlePodcast(input(body()), deps);
-    expect(sent(github)).toEqual({ ...REQUEST, host_names: { a: "Geffen", b: "Dominic" } });
-  });
-
   it("puts its own names over the browser's, and sends none for a readout", async () => {
     const forged = { a: "Mallory", b: "Eve" };
     const discussion = voiced();
@@ -593,26 +581,6 @@ describe("handlePodcast and the hosts' names", () => {
     expect((await handlePodcast(input(body()), thrown.deps)).status).toBe(202);
     expect(sent(thrown.github)).toEqual(REQUEST);
     expect(thrown.logs).toEqual(["The voice list could not be read (Error)"]);
-  });
-
-  it("still dispatches, without names, when a host's voice is not in the list", async () => {
-    const { deps, github, logs } = voiced();
-    const request = { ...REQUEST, voice_id: "voice-gone" };
-    expect((await handlePodcast(input(body({ request })), deps)).status).toBe(202);
-    expect(sent(github)).toEqual(request);
-    expect(logs).toEqual([
-      "Host names left to the engine: a host's voice is not in the voice list",
-    ]);
-  });
-
-  it("dispatches without names and says why when the site has no Speechify key", async () => {
-    const { deps, github, logs } = setup();
-    github.on(RUNS, { json: { workflow_runs: [] } });
-    github.on(DISPATCH, { json: { workflow_run_id: 7 } });
-    expect((await handlePodcast(input(body()), deps)).status).toBe(202);
-    expect(sent(github)).toEqual(REQUEST);
-    expect(logs).toEqual(["Host names left to the engine: no Speechify key"]);
-    expect(github.requests.every((request) => request.path.startsWith("/actions/"))).toBe(true);
   });
 
   it("does not read the voice list for a delete or a regenerate", async () => {

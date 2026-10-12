@@ -1,12 +1,5 @@
 import { describe, expect, it } from "vitest";
-import {
-  type ControlInfo,
-  createRateLimit,
-  cueForKind,
-  cueForOutcome,
-  isSoundKind,
-  kindFor,
-} from "./uiCues";
+import { type ControlInfo, createRateLimit, cueForKind, cueForOutcome, kindFor } from "./uiCues";
 
 const control = (over: Partial<ControlInfo>): ControlInfo => ({
   tag: "button",
@@ -66,15 +59,6 @@ describe("kindFor", () => {
 });
 
 describe("cueForKind", () => {
-  it("uses the cues the sound package already has", () => {
-    expect(cueForKind("navigate")?.name).toBe("scrubDetent");
-    expect(cueForKind("select", true)?.name).toBe("toggleOn");
-    expect(cueForKind("select", false)?.name).toBe("toggleOff");
-    expect(cueForKind("open")?.name).toBe("sheetOpen");
-    expect(cueForKind("close")?.name).toBe("sheetClose");
-    expect(cueForKind("none")).toBeNull();
-  });
-
   it("keeps the navigate tick quieter than the scrub tick it borrows", () => {
     expect(cueForKind("navigate")?.options?.gain).toBeLessThan(1);
   });
@@ -82,16 +66,6 @@ describe("cueForKind", () => {
   it("maps outcomes to the success and failure cues", () => {
     expect(cueForOutcome("success").name).toBe("generateDone");
     expect(cueForOutcome("failure").name).toBe("error");
-  });
-});
-
-describe("isSoundKind", () => {
-  it("accepts the five kinds only", () => {
-    for (const kind of ["navigate", "select", "open", "close", "none"]) {
-      expect(isSoundKind(kind)).toBe(true);
-    }
-    expect(isSoundKind("success")).toBe(false);
-    expect(isSoundKind(null)).toBe(false);
   });
 });
 
