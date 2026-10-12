@@ -69,7 +69,7 @@ D1 to D9 date from plan v2 (2026-10-05). D10 to D25 date from 2026-10-06. Reason
 | D57 | A topic's page edits its details and adds the sources that suit it; topics are listed by name | active; shipped topics take a new name, and app topics new wording, since D64; the judge topics show under Design, AI and Technology since D69 |
 | D58 | The Model page offers six top Nebius writers by name, live list or not | active |
 | D59 | On a phone, Play takes the floating button's place on an episode and an older briefing | active; Today floats Play too since D60 |
-| D60 | On a phone Create floats on the Library alone; every page with audio floats Play, Today included | active |
+| D60 | On a phone Create floats on the Library alone; every page with audio floats Play, Today included | active; Play floats only once the hero's Play has scrolled away since D77 |
 | D61 | Vercel Cron starts the scheduled briefing in its hour; GitHub's schedule is the fallback | active |
 | D62 | Daily and Weekly each choose their topics; voice samples play through the site | active; each topic's Scope sets them since D69 |
 | D63 | Daily and Weekly leave out topics, one chip per topic, stored as the topics left out | superseded by D69: the storage stays, the chips moved to each topic's Scope |
@@ -80,11 +80,18 @@ D1 to D9 date from plan v2 (2026-10-05). D10 to D25 date from 2026-10-06. Reason
 | D68 | An episode opens with a rundown, deep-dives its lead stories, gives the rest as nuggets and closes short | active |
 | D69 | Design, AI and Technology gather the judge topics; one alphabetical list where each topic sets its scope; every source filed under a topic | active |
 | D70 | A scoring sample judges a few items a run for scores alone, so every source reaches a score, switched-off ones included | active |
-| D71 | Streamlined add topic modal, live suggested sources with TypeSafe Jev scores, schedule timezone and topic scope indicator chips | active; suggested sources are built from the catalogue, with no scores, since D75, and the topic chips can be ticked since D72 |
+| D71 | Streamlined add topic modal, live suggested sources with TypeSafe Jev scores, schedule timezone and topic scope indicator chips | active; suggested sources are built from the catalogue, with no scores, since D75; a new topic stays on its list and does not open its page since D79 |
 | D72 | The look is tonal: containers, state layers and round buttons instead of outlines and invisible hover fills | active |
 | D73 | A steadier type scale: 16px reading, 18 to 20px headlines, 14px meta, 22px regular section headings | active |
 | D74 | A discussion's hosts are named after their voices; the transcript names a speaker only where the speaker changes | active |
 | D75 | Suggested sources are chosen from the source catalogue when the page is built, with no live lookup and no scores | active |
+| D76 | Create is the New episode form: three questions first, the defaults under More options | active |
+| D77 | A reading page: the headline is the link, Play is the one filled action, one hero for any title | active |
+| D78 | The Library has one facts line per card, finds dates, keeps its search in the address and remembers what was played | active |
+| D79 | A saved setting shows before the build, and a new topic stays on its list with its suggestions at once | active |
+| D80 | An episode is written to 95% of what its stories can carry, and a script a little under the floor is kept | active |
+| D81 | A workflow installs only what it runs; the audio job skips the Vercel pull when the Blob token is set | active; the owner merges the workflow files by hand |
+| D82 | Play keeps an early tap, a new episode is pre-narrated, the deploy is noticed in 2.5 s | active |
 
 ---
 
@@ -783,3 +790,60 @@ D1 to D9 date from plan v2 (2026-10-05). D10 to D25 date from 2026-10-06. Reason
 - Cost: the list changes only with the catalogue and a redeploy; a source Jev has not judged shows no score until it has one.
 - Rejected: caching the live fetch (it stays an unmeasured score); a loading state with a timeout (still a wait).
 - Supersedes: the live suggested sources and their scores in D71.
+
+## D76: Create is the New episode form: three questions first, the defaults under More options
+
+- Date: 2026-10-12
+- Decision: The panel and the page that start a podcast are titled New episode; the buttons that open them stay Create, and the button inside reads "Generate • N mins" (the owner's wording). Topics, Length and Format are the questions. Written for, Voice (Voices for a discussion), Look back, Tone and Title wait under More options, whose line says what they are set to; the wide /create page holds them open. Choices are tonal segments that hug their content. A discussion's voices are labelled with the hosts the episode will be written with (`hostNamesFor`); a readout names no one. The button says "Starting..." beside a spinner while the request is in flight. The sheet takes the page's own surface and pins its button to the foot, over a hairline that fades in. `/create` sits under the Library: Back leads there and Library is the current tab at every width.
+- Why: the owner called the boxed form "ai slop". It asked seven questions of equal weight, and three decide the episode; the rest have defaults that were right for most requests.
+- Cost: changing a voice or the tone takes one more press; a request made from the defaults shows only the line that names them.
+- Rejected: a wizard (one more step than the form); hiding the defaults with no summary line (the owner could not tell what a request would use).
+
+## D77: A reading page: the headline is the link, Play is the one filled action, one hero for any title
+
+- Date: 2026-10-12
+- Decision: On Today, a briefing and an episode, a story's headline links to its source (a new tab), and the publisher is quiet attribution outside the tab order. The hero's Play is the page's one filled action and drops to the tonal container once the page is playing. The floating Play appears only once the hero's has scrolled away (two Play buttons were on screen on a phone). One hero layout serves any title length: on a phone the cover with More at the row's end, the title full width, the facts line and Play; from 40rem a 10rem cover with Play on its foot line. Sections are separated by space alone, with regular-weight headings in sentence case; the Why line is 14px and muted; the Contents list starts level with the first heading; the shelf is called Earlier briefings. An episode's line reads "Discussion · 7 October". The ambient light is half strength in light mode and three quarters in dark.
+- Why: the critique found two competing Play buttons on a phone, a rule above every group, a title that changed the hero's layout with its length, and an active-section mark 56px off while the app bar hid.
+- Cost: the publisher is no longer a tab stop on a story; the link target is the whole headline, so a headline cannot be selected by dragging as easily.
+- Rejected: keeping the publisher as the link (its target was a chip; the headline is what the eye reads); an outline on the hero's Play (tonal and outlined states were hard to tell apart on the light page).
+
+## D78: The Library has one facts line per card, finds dates, keeps its search in the address and remembers what was played
+
+- Date: 2026-10-12
+- Decision: Every card follows one pattern, kind then contents then length: "Daily · 12 stories · 8 min", "Discussion · 5 min", "Briefing · 4 min" (an episode's format already says it is an episode). Search finds a date in any form ("6 oct", "2026-10-06"); a number matches a whole word only, so "6 oct" no longer matches every 2026 date. The search, the filter and the order live in the address (`q`, `show`, `sort`), so Back from a result restores them; sorting and filtering work from the cards in the page, so a deleted episode stays gone. A filter or order that is not the default looks chosen (accent container). The player writes `dispatch:played:<id>` at the end of a recording and drops it when a new position is set; the card then says Played, and a half-heard recording shows its progress as a bar under the art. An empty Library says so in one muted sentence; the floating Create is not shown there.
+- Why: cards carried three differently worded lines, a search for a date matched the year, Back from an episode lost the search, and nothing said what had been heard.
+- Cost: a played mark is per browser (localStorage); a card's title keeps no break between the day and the month.
+- Rejected: a played mark kept on the server (a write for every listen); fuzzy date search (it made "6" match everything).
+
+## D79: A saved setting shows before the build, and a new topic stays on its list with its suggestions at once
+
+- Date: 2026-10-12
+- Decision: A save reaches the page about a minute later, because the config workflow commits and Vercel rebuilds. For three minutes after a save the browser remembers the saved ops (`dispatch:saved-edits`) and a settings page that opens shows the saved value instead of the stale one built into it, with one line under the title: "Saved. It takes effect after the next update, about a minute." A value that already equals the saved one counts as the rebuild having landed. A new topic stays listed on the Topics list until the build (a static site has no page for it yet); its suggestions appear under its row at once from `/settings/source-catalog.json`, ranked by the same function as the build's (`lib/sourceCatalogMatch.ts`), each with a plus that adds the feed. Inside the server's ten-second gap between saves the page holds the next request quietly and sends everything changed meanwhile in one request. A topic with a name already in use is refused, a queued topic has no Cancel, and the World topic has an honest switch.
+- Why: the owner saw settings revert after a save, a new topic had no suggestions for a minute, and a second edit showed "Saving" for ten seconds.
+- Cost: the overlay reads only the saved value; if a save never lands (a workflow failure) the page shows the saved value for three minutes and then the old one. A save that waits longer than three minutes behind a briefing outlives the overlay. Leaving the site during the quiet wait loses that edit, as the old 429 wait did.
+- Rejected: reading the saved value back from GitHub on every visit (a request on every settings page); a longer overlay (it would hide a failed save for longer).
+- Supersedes: D71's "creating a topic opens its detail page".
+
+## D80: An episode is written to 95% of what its stories can carry, and a script a little under the floor is kept
+
+- Date: 2026-10-12
+- Decision: The writer is asked for 0.95 of the reachable length (it was 0.9); the floor stays 0.8. A reply at 95% of the floor or more is kept on any attempt and logged ("Kept a script a little under the floor"); only a shorter one is requested again. A returned story id is matched when a known id sits anywhere inside it (when only one does), and each story block puts `item_id:` on its own line, so a copied boundary marker no longer sinks a rewrite. A request's timeout is 60 s plus 25 ms for every token over 1,500, capped at 240 s (a 15 minute script gets about 183 s; Anthropic never gets under 120 s); a retry starts only if two timeouts still fit; no script attempt starts after 8 minutes. The number rewrites of a script run four at a time and are applied in script order. A failover warning gives the status, error class and a kind (authentication, model not found, rate limited) and never the provider's message. A source preview fetches each address once and the favicon beside the page.
+- Why: the first script came back at 79 to 87% of the reachable length against an 80% floor, so most episodes were written twice (25 to 36 s each time). The writer is almost all of the 58 to 87 s a podcast step takes.
+- Cost: a script can end up to 5% under the floor; `fitToBudget` still drops whole stories from the end when a script is over, which asking for 95% leaves room for. Measured only with fakes; the saving is expected on most episodes, not yet seen on a real run.
+- Rejected: asking for 100% (a script over budget loses a story); expanding only the thin stories (a larger change, left for later).
+
+## D81: A workflow installs only what it runs; the audio job skips the Vercel pull when the Blob token is set
+
+- Date: 2026-10-12
+- Decision: `run.yml`, `podcast.yml`, `config.yml` and `audio.yml` install with `npm ci --ignore-scripts --workspace=packages/engine --include-workspace-root` (118 packages, not 445). `audio.yml` skips `vercel link` and `vercel env pull` when `BLOB_READ_WRITE_TOKEN` is set, since the engine ignores the pulled pair then. Changes under `.github/workflows` need a manual merge by the owner.
+- Why: the install was 10.4 s against 4.3 s on a warm cache, paid on every episode, every settings save and every briefing; `audio.yml` has failed at `vercel link` ("User not found") while `VERCEL_TOKEN` was dead, so the latest briefings had no stored audio and their first Play synthesised (3 to 6 s).
+- Cost: the audio job still pulls when no Blob token secret exists, so the owner must add `BLOB_READ_WRITE_TOKEN` as a GitHub secret or replace `VERCEL_TOKEN`.
+- Rejected: caching `node_modules` (a saving nobody measured, beside an install that now takes 4 seconds); one concurrency group for `config.yml` of its own (it shares `dispatch` with `run.yml` on purpose, so two commits never push at once).
+
+## D82: Play keeps an early tap, a new episode is pre-narrated, the deploy is noticed in 2.5 s
+
+- Date: 2026-10-12
+- Decision: A Play pressed before the player has loaded is kept (an inline script in `bannersInit.js`, which also unlocks an audio element inside the tap) and pressed again once the player's listener is attached (`player/core/earlyTap.ts`). When a new episode goes live, the progress indicator pre-narrates its first two turns (`narration/prewarmEpisode.ts`, which stops at the first refusal and never shows an error). The page prewarm runs only on a page with a briefing or episode and no audio, at the next idle moment instead of 1.5 s after load. After a publish the indicator reads `/latest.json` every 2.5 s (it was 10 s). The service worker keeps `/latest.json` under its bare path whatever the query (the old keys never matched its expiry and each poll could push a page out), and its cache version is v6. A segment's word marks upload beside its audio.
+- Why: the owner pointed at delays in time to play. A tap in the first two seconds of a page was lost; a new episode had no audio, so the first Play synthesised for 3 to 5 s; the progress indicator noticed the deploy up to 14 s late.
+- Cost: a new episode takes one of the day's narrations when it goes live, whether it is played or not (the cap is three a day; whether pre-narration should count is the owner's call). The inline script adds about 450 bytes gzipped to every page. A marks file can stay behind when the audio upload fails for good; it is harmless.
+- Rejected: moving the charge write beside the storage checks (a stored segment would be charged again on a replay, and a segment could be made before its charge is on record); splitting a long first turn at its first sentence (left for later).
