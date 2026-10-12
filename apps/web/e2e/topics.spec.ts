@@ -143,7 +143,7 @@ test.describe("the Topics list", () => {
     await open(page);
     await page.getByRole("link", { name: /^Design/ }).click();
     await expect(page.getByRole("heading", { level: 1, name: "Design" })).toBeVisible();
-    const crumb = page.getByRole("navigation", { name: "Breadcrumb" }).getByRole("link");
+    const crumb = page.locator(".settings-up");
     await expect(crumb).toHaveText("Topics and sources");
     await expect(crumb).toHaveAttribute("href", LIST);
     await expect(source(page, "Studio Notes")).toBeVisible();

@@ -102,9 +102,39 @@ test.describe("the Settings index", () => {
     await page.getByRole("link", { name: /^Daily/ }).click();
     await expect(page.getByRole("heading", { level: 1, name: "Daily" })).toBeVisible();
     await expect(page).toHaveTitle("Daily, Singularity");
-    const crumb = page.getByRole("navigation", { name: "Breadcrumb" }).getByRole("link");
+    const crumb = page.locator(".settings-up");
     await expect(crumb).toHaveText("Settings");
     await expect(crumb).toHaveAttribute("href", "/settings");
+  });
+
+  test("below 64rem the title stands alone on one line; from 64rem the trail leads up", async ({
+    page,
+  }) => {
+    const pages = [
+      "/settings/daily",
+      "/settings/weekly",
+      "/settings/model",
+      "/settings/topics",
+      "/settings/topics/design",
+      "/settings/topics/tech",
+      "/settings/topics/business",
+      "/settings/topics/audio_interfaces",
+    ];
+    for (const width of [360, 1280]) {
+      await page.setViewportSize({ width, height: 800 });
+      for (const path of pages) {
+        await page.goto(path);
+        const crumbs = page.locator(".settings-crumbs");
+        const lines = await crumbs.evaluate(
+          (node) =>
+            node.getBoundingClientRect().height /
+            Number.parseFloat(getComputedStyle(node).lineHeight),
+        );
+        expect(lines, `${path} at ${width}`).toBeLessThan(1.5);
+        if (width < 1024) await expect(page.locator(".settings-up")).toBeHidden();
+        else await expect(page.locator(".settings-up")).toBeVisible();
+      }
+    }
   });
 
   test("the addresses of the old pages still land somewhere sensible", async ({ page }) => {
@@ -261,7 +291,7 @@ test.describe("the profile pages", () => {
     await sample;
     await expect(toastText(page)).toHaveText(SAVED);
     const before = await page.evaluate(() => (window as unknown as { pauses: number }).pauses);
-    await page.locator(".settings-up").click();
+    await page.locator(".settings-up:visible, .app-bar-back:visible").first().click();
     await expect(page).toHaveURL(/\/settings$/);
     await expect(page.locator("[data-settings]")).toHaveAttribute("data-ready", "true");
     // The app swaps the page in place, so the window, and the sample, live on: it must be paused.

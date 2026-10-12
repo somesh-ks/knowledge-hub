@@ -73,6 +73,15 @@
   display: inline-block;
 }
 
+/* Below 64rem the app bar has a back arrow, so the way up would be a second one: the page's name
+   stands alone, on one line, at the same place on every sub-page. */
+@media (width < 64rem) {
+  .settings-head .settings-crumbs > nav,
+  .settings-head .settings-crumbs > .settings-crumb-gap {
+    display: none;
+  }
+}
+
 .settings-up {
   position: relative;
   border-radius: var(--radius-sm);
