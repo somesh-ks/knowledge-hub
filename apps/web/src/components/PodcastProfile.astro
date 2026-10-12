@@ -251,15 +251,16 @@ const VOICES = [
                 </select>
                 <Icon name="chevronDown" />
               </span>
-              {/* A round play button, as every play control in the app is drawn. Choosing a voice plays
-                   its sample too, so a list can be heard one voice at a time. While the voice has no
-                   sample it is silent (data-silent): unseen, but in its place, so the select never
-                   moves when the list arrives or the voice changes. */}
+              {/* A round play button on every voice row, as every play control in the app is drawn.
+                   Choosing a voice plays its sample too, so a list can be heard one voice at a time.
+                   While the voice has no sample (or the list has not arrived) the button stays,
+                   dimmed and not pressable, so the select never moves and each voice has its own. */}
               <button
                 class="podcast-sample"
                 type="button"
                 data-preview
-                data-silent
+                data-sample-name={voice.name.toLowerCase()}
+                disabled
                 aria-pressed="false"
                 aria-label={`Play a sample of the ${voice.name.toLowerCase()}`}
               >

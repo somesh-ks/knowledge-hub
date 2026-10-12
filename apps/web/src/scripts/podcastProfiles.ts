@@ -78,10 +78,17 @@ export function mountProfiles(root: HTMLElement, changed: () => void): void {
   };
   const chipOf = (select: HTMLSelectElement): HTMLButtonElement | null =>
     select.closest(".podcast-voice")?.querySelector<HTMLButtonElement>("[data-preview]") ?? null;
+  /** The button of a voice row: pressable while its voice has a sample, dimmed and saying so when not. */
   const syncPreview = (select: HTMLSelectElement): void => {
     const chip = chipOf(select);
-    // Not `hidden`: the utilities' [hidden] rule would take its room, and the select would jump.
-    chip?.toggleAttribute("data-silent", sampleOf(select) === null);
+    if (!chip) return;
+    const name = chip.dataset.sampleName ?? "voice";
+    const has = sampleOf(select) !== null;
+    chip.disabled = !has;
+    chip.setAttribute(
+      "aria-label",
+      has ? `Play a sample of the ${name}` : `No sample for the ${name}`,
+    );
   };
   /** Plays a sample, or stops it when `toggle` and it is the one playing. */
   const play = (chip: HTMLButtonElement, url: string, toggle: boolean): void => {
@@ -90,9 +97,12 @@ export function mountProfiles(root: HTMLElement, changed: () => void): void {
       audio = new Audio();
       audio.addEventListener("pause", () => mark(null));
       audio.addEventListener("ended", () => mark(null));
-      // A sample that cannot be played takes its chip with it, rather than failing in silence.
+      // A sample that cannot be played dims its chip and says so, rather than failing in silence.
       audio.addEventListener("error", () => {
-        playing?.setAttribute("data-silent", "");
+        if (playing) {
+          playing.disabled = true;
+          playing.setAttribute("aria-label", "The sample could not be played");
+        }
         mark(null);
       });
     }
@@ -151,6 +161,9 @@ export function mountProfiles(root: HTMLElement, changed: () => void): void {
       }
     } catch {
       voices = [];
+      for (const select of root.querySelectorAll<HTMLSelectElement>(".podcast-voice select")) {
+        syncPreview(select);
+      }
     }
     root.dataset.voices = "";
     changed();

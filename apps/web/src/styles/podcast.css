@@ -327,10 +327,11 @@
   transition: background-color var(--duration-hover) var(--ease-hover);
 }
 
-/* A voice with no sample: no button to see or press, but its room is kept. */
-.podcast-sample[data-silent] {
-  visibility: hidden;
-  pointer-events: none;
+/* A voice with no sample, or a list not in yet: the button stays in its place, dimmed, not pressable. */
+.podcast-sample:disabled {
+  background: var(--color-surface-container);
+  color: var(--color-on-surface-disabled);
+  cursor: default;
 }
 
 /* It shows what a press does next: play, or pause while the sample plays. */
@@ -340,7 +341,7 @@
 }
 
 @media (hover: hover) and (pointer: fine) {
-  .podcast-sample:hover {
+  .podcast-sample:not(:disabled):hover {
     background: color-mix(
       in oklch,
       var(--color-accent-container),
@@ -349,7 +350,7 @@
   }
 }
 
-.podcast-sample:active {
+.podcast-sample:not(:disabled):active {
   background: color-mix(
     in oklch,
     var(--color-accent-container),

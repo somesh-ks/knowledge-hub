@@ -203,20 +203,26 @@ test.describe("the profile pages", () => {
     await expect(page.locator(".podcast-voice select")).toHaveCount(2);
   });
 
-  test("choosing a voice with a sample plays it through the site and shows its play button", async ({
+  test("each voice row has its own play button, which plays the chosen voice's sample", async ({
     page,
   }) => {
     await open(page, "daily");
-    const play = page.locator("[data-voice-row=voice] [data-preview]");
-    await expect(play).toBeHidden();
+    const first = page.locator("[data-voice-row=voice] [data-preview]");
+    const second = page.locator("[data-voice-row=voice_b] [data-preview]");
+    // Both buttons are on the page; a voice with no sample leaves its own dimmed and not pressable.
+    await expect(first).toBeDisabled();
+    await expect(second).toBeDisabled();
     // The page plays audio only from its own address, so the sample comes through /api.
     const sample = page.waitForRequest("**/api/voice-sample?voice=voice-ada");
-    await page.locator("#daily-voice").selectOption("voice-ada");
+    await page.locator("#daily-voice_b").selectOption("voice-ada");
     await sample;
-    await expect(play).toBeVisible();
-    await expect(play).toHaveAccessibleName("Play a sample of the voice");
+    await expect(second).toBeEnabled();
+    await expect(second).toHaveAccessibleName("Play a sample of the discussion voice");
+    await expect(first).toBeDisabled();
     await page.locator("#daily-voice").selectOption("voice-leo");
-    await expect(play).toBeHidden();
+    await expect(first).toBeDisabled();
+    await expect(first).toHaveAccessibleName("No sample for the voice");
+    await expect(second).toBeEnabled();
   });
 
   test("a playing sample stops when the page is left", async ({ page }) => {
