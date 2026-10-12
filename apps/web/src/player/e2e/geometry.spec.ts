@@ -94,7 +94,6 @@ test.describe("player geometry @surface", () => {
   test("at tablet width a mouse sees a way to close the open page @surface", async ({
     lab,
     page,
-    finger,
   }, info) => {
     test.skip(info.project.name !== "site-desktop", "a mouse");
     await page.setViewportSize({ width: 820, height: 1000 });

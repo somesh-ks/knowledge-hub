@@ -181,7 +181,8 @@ export function createSurfaceView(): SurfaceView {
             opener.focus({ preventScroll: true });
             return;
           }
-          if (active !== pressed || (frames += 1) > 40) return;
+          frames += 1;
+          if (active !== pressed || frames > 40) return;
           requestAnimationFrame(watch);
         };
         requestAnimationFrame(watch);
