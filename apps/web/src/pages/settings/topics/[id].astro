@@ -1,4 +1,5 @@
 ---
+import EmptyArt from "../../../components/EmptyArt.astro";
 import Icon from "../../../components/Icon.astro";
 import ManageChrome from "../../../components/ManageChrome.astro";
 import MultiSelect from "../../../components/MultiSelect.astro";
@@ -230,7 +231,16 @@ const facts = topic && {
           <ul class="topic-sources" role="list" data-sources aria-label={`${name} sources`}>
             {list.map((source) => <SourceRow source={source} topicName={topic?.name ?? ""} shownTopic={shown} />)}
           </ul>
-          <p class="manage-quiet topic-empty">No sources yet.</p>
+          {/* Shown by topics.css while the list above has no row: the section is otherwise blank. */}
+          <div class="topic-empty empty" data-compact>
+            <EmptyArt art="sources" size="compact" />
+            <p class="empty-title">No sources yet</p>
+            <p class="empty-body">
+              {topic === null || editable
+                ? "Add a site or a feed, and its stories can reach your briefings."
+                : "Sources filed under this topic are listed here."}
+            </p>
+          </div>
           {
             (topic === null || editable) && (
               <button

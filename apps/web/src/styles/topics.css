@@ -175,12 +175,14 @@
   display: none;
 }
 
-.topic-empty {
-  padding-block: var(--space-2);
-}
-
 .topic:has([data-sources] > .source-row) .topic-empty {
   display: none;
+}
+
+/* With no sources, Add source is the empty state's own button, centred under it. */
+.topic:not(:has([data-sources] > .source-row)) .topic-add-source {
+  margin-inline: auto;
+  margin-block-start: 0;
 }
 
 /* Add source under the sources: an outline button as wide as its words. */
