@@ -99,6 +99,18 @@ export function installCreate(root: HTMLElement, onStart?: () => void): void {
     note.querySelector("[data-preset-undo]")?.toggleAttribute("hidden", mode !== "applied");
   }
 
+  /** Scrolls the form, in the page or in the sheet, until the line is above the foot. */
+  function revealNote(): void {
+    const foot = root.querySelector<HTMLElement>(".create-submit");
+    if (!note || !foot) return;
+    const over = note.getBoundingClientRect().bottom - foot.getBoundingClientRect().top;
+    if (over <= 0 || getComputedStyle(foot).position !== "sticky") return;
+    const scroller = root.closest<HTMLElement>(".create-sheet-body");
+    const by = over + note.offsetHeight;
+    if (scroller) scroller.scrollBy({ top: by });
+    else scrollBy({ top: by });
+  }
+
   /** Ticks the chips the chosen audience suggests; chips stay shown. */
   function applyPreset(): void {
     const audience = String(new FormData(form).get("audience"));
@@ -124,6 +136,9 @@ export function installCreate(root: HTMLElement, onStart?: () => void): void {
     if (topics.some((topic, index) => topic.checked !== before[index])) {
       showNote("applied");
       undoTicks = before;
+      // In view, so what changed and the way back are seen where the choice was made: clear of the
+      // foot with Generate, which stays stuck over the form below it.
+      revealNote();
     }
   }
 

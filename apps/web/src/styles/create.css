@@ -531,8 +531,14 @@
     content: none;
   }
 
+  /* One rule for both columns: a segmented control hugs its options, and a question's label is the
+     body size, so the two columns read as one form. */
   .create-page .create-more .create-choice {
-    inline-size: auto;
+    inline-size: fit-content;
+  }
+
+  .create-page .create-more-body .create-group .section-head {
+    font-size: var(--font-size-body);
   }
 
   .create-page .create-voices:has(> [data-voice="voice_b"]:not([hidden])) {

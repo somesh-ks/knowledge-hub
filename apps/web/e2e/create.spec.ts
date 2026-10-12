@@ -347,6 +347,17 @@ test.describe("the Create page", () => {
     // changed, in a status region, with the way back.
     await expect(note).toBeVisible();
     await expect(note).toContainText("Topics set for anyone");
+    // Not hidden under the stuck foot with Generate.
+    await expect(page.getByRole("button", { name: "Undo" })).toBeInViewport();
+    await expect
+      .poll(() =>
+        page.evaluate(() => {
+          const line = document.querySelector("[data-preset-note]")?.getBoundingClientRect();
+          const foot = document.querySelector("main .create-submit")?.getBoundingClientRect();
+          return !line || !foot || line.bottom <= foot.top + 1;
+        }),
+      )
+      .toBe(true);
     await expect(page.locator("[data-preset-status]")).toHaveAttribute("role", "status");
     await expect(page.getByRole("button", { name: "Use suggested topics" })).toBeHidden();
     await page.getByRole("button", { name: "Undo" }).click();
@@ -453,6 +464,24 @@ test.describe("the Create page", () => {
     expect((box?.x ?? 0) > (topics?.x ?? 0) + (topics?.width ?? 0)).toBe(true);
     // The whole form is in view: Generate needs no scrolling.
     await expect(submit(page)).toBeInViewport();
+  });
+
+  test("a wide page's two columns share one label size and hug their controls", async ({
+    page,
+  }, info) => {
+    test.skip(info.project.name !== "desktop", "only a wide page has two columns");
+    await openCreate(page);
+    const sizes = await page
+      .locator(".create-group .section-head")
+      .evaluateAll((heads) => [...new Set(heads.map((head) => getComputedStyle(head).fontSize))]);
+    expect(sizes).toHaveLength(1);
+    // The options column's controls hug their options as the main column's do, instead of
+    // stretching across the column.
+    const hug = await page.locator('fieldset:has(input[name="audience"])').evaluate((node) => {
+      const column = node.closest("[data-create-more]")?.getBoundingClientRect().width ?? 0;
+      return { control: node.getBoundingClientRect().width, column };
+    });
+    expect(hug.control).toBeLessThan(hug.column - 40);
   });
 
   test("a wide page's Tab goes down the main questions to Generate, then the options", async ({
