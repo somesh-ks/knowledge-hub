@@ -2568,7 +2568,6 @@
   .dock-toggle[data-open] svg {
     rotate: 180deg;
   }
-
 }
 
 /* The bar's middle opens the page too: it shows a layer under a resting mouse, as a control does. */
