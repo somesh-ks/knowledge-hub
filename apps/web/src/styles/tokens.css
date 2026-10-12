@@ -320,7 +320,7 @@
   --mini-player-control-size: var(--size-touch);
   --mini-player-cover-size: var(--cover-size-thumb);
   --mini-player-progress-height: 2px;
-  --mini-player-bg: var(--color-surface-overlay);
+  --mini-player-bg: var(--color-surface-container);
   --mini-player-shadow: var(--shadow-floating);
   --player-padding: var(--space-6);
   --player-bg: var(--color-surface-raised);
