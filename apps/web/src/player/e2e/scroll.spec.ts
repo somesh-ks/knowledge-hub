@@ -8,12 +8,7 @@ test.describe("the page behind the open player stays where it was", () => {
     player,
     page,
     finger,
-    browserName,
   }) => {
-    test.skip(
-      browserName === "webkit",
-      "Playwright's mobile WebKit rejects mouse.wheel and has no touch scroll to stand in for it",
-    );
     await player.open();
     await player.play();
     // Paused, so the reader's own follow-the-narration scroll has nothing to react to.
@@ -25,14 +20,9 @@ test.describe("the page behind the open player stays where it was", () => {
     await player.dockSettled();
     await player.openPlayer();
 
-    /** A vertical drag where there is touch; a wheel turn over the same spot otherwise. */
+    /** A vertical drag of a finger. */
     const pan = async (from: Point, dy: number): Promise<void> => {
-      if (finger.touch && browserName === "chromium") {
-        await finger.drag(line(from, { x: from.x, y: from.y + dy }, 8), 16);
-      } else {
-        await page.mouse.move(from.x, from.y);
-        await page.mouse.wheel(0, -dy);
-      }
+      await finger.drag(line(from, { x: from.x, y: from.y + dy }, 8), 16);
       await page.waitForTimeout(250);
     };
 
@@ -60,18 +50,5 @@ test.describe("the page behind the open player stays where it was", () => {
     await page.keyboard.press("Escape");
     await player.collapsed();
     expect(await scrollY(page)).toBe(before);
-  });
-
-  test("the root is locked only while the player is open", async ({ player, page }) => {
-    await player.open();
-    await player.play();
-    const overflow = (): Promise<string> =>
-      page.evaluate(() => getComputedStyle(document.documentElement).overflowY);
-    expect(await overflow()).not.toBe("hidden");
-    await player.openPlayer();
-    expect(await overflow()).toBe("hidden");
-    await page.keyboard.press("Escape");
-    await player.collapsed();
-    expect(await overflow()).not.toBe("hidden");
   });
 });

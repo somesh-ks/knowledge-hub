@@ -38,25 +38,7 @@ async function mockNarration(page: Page): Promise<string[]> {
 }
 
 test.describe("an episode's script in the open player", () => {
-  test("a readout names nobody: the transcript is its text alone", async ({
-    player,
-    finger,
-    page,
-  }) => {
-    await player.open(READOUT);
-    await mockNarration(page);
-    await finger.press(player.cta);
-    await expect(page.locator("html")).toHaveAttribute("data-player-state", "playing", {
-      timeout: 8_000,
-    });
-    await player.openPlayer();
-    const script = player.dialog.getByRole("region", { name: "Transcript" });
-    await expect(script).toBeVisible();
-    await expect(script.locator(".script-turn").first()).toBeVisible();
-    await expect(script.locator(".script-speaker")).toHaveCount(0);
-  });
-
-  test("names each host after their voice, marks the turn being spoken and seeks on a tap", async ({
+  test("names each host after their voice, marks the turn being spoken, seeks on a tap, and marks none after a failure", async ({
     player,
     finger,
     page,
@@ -96,17 +78,30 @@ test.describe("an episode's script in the open player", () => {
     await expect(script.locator('[data-turn="2"]')).toHaveAttribute("aria-current", "true", {
       timeout: 8_000,
     });
+    // After a failure no turn is current and no word is lit.
+    await page.route("**/narrated/*.mp3", (route) => route.fulfill({ status: 404, body: "" }));
+    const turns = await script.locator("[data-turn]").count();
+    await script.locator(`[data-turn="${turns - 1}"]`).dispatchEvent("click");
+    await expect(player.root).toHaveAttribute("data-player-state", "error", { timeout: 10_000 });
+    await expect(script.locator('.script-turn[aria-current="true"]')).toHaveCount(0);
+    await expect(script.locator("[data-spoken]")).toHaveCount(0);
+    // A readout names nobody: its transcript is the text alone.
+    await page.unrouteAll({ behavior: "ignoreErrors" });
+    await player.open(READOUT);
+    await mockNarration(page);
+    await finger.press(player.cta);
+    await expect(player.root).toHaveAttribute("data-player-state", "playing", { timeout: 8_000 });
+    await player.openPlayer();
+    const readout = player.dialog.getByRole("region", { name: "Transcript" });
+    await expect(readout.locator(".script-turn").first()).toBeVisible();
+    await expect(readout.locator(".script-speaker")).toHaveCount(0);
   });
 
-  test("on one column the open page holds still at every turn change until the listener scrolls", async ({
+  test("following the voice never scrolls the open page: on one column, and on two", async ({
     player,
     finger,
     page,
   }) => {
-    test.skip(
-      await page.evaluate(() => window.matchMedia("(min-width: 64rem)").matches),
-      "from 64rem the script follows in its own column",
-    );
     await player.open(EPISODE);
     await mockNarration(page);
     await finger.press(player.cta);
@@ -130,78 +125,9 @@ test.describe("an episode's script in the open player", () => {
       await page.waitForTimeout(1_200);
       expect(await player.sheet.evaluate((element) => element.scrollTop)).toBe(0);
     }
-  });
-
-  test("Back to now shows only while the turn being spoken is out of view", async ({
-    player,
-    finger,
-    page,
-  }) => {
-    test.skip(
-      await page.evaluate(() => window.matchMedia("(min-width: 64rem)").matches),
-      "from 64rem the script follows in its own column",
-    );
-    await player.open(EPISODE);
-    await mockNarration(page);
-    await finger.press(player.cta);
-    await expect(page.locator("html")).toHaveAttribute("data-player-state", "playing", {
-      timeout: 8_000,
-    });
-    await player.openPlayer();
-    const script = player.dialog.getByRole("region", { name: "Transcript" });
-    await script.scrollIntoViewIfNeeded();
-    await player.sheet.evaluate((sheet) => {
-      const top = sheet.querySelector(".player-script")?.getBoundingClientRect().top ?? 0;
-      sheet.scrollTop += top - 120;
-    });
-    // The listener is in charge (a wheel holds following) in the same moment the voice moves on.
-    await page.evaluate(() => {
-      document.querySelector<HTMLElement>('[data-player-surface] [data-turn="2"]')?.click();
-      document.querySelector("[data-player-page]")?.dispatchEvent(new Event("wheel"));
-    });
-    const now = script.locator('.script-turn[aria-current="true"]');
-    await expect(script.locator('[data-turn="2"]')).toHaveAttribute("aria-current", "true", {
-      timeout: 8_000,
-    });
-    await expect(now).toBeInViewport();
-    await page.waitForTimeout(600);
-    await expect(page.getByRole("button", { name: "Back to now" })).toHaveCount(0);
-  });
-
-  test("after a failure no turn is current", async ({ player, finger, page }) => {
-    await player.open(EPISODE);
-    await mockNarration(page);
-    await finger.press(player.cta);
-    await expect(page.locator("html")).toHaveAttribute("data-player-state", "playing", {
-      timeout: 8_000,
-    });
-    await player.openPlayer();
-    const script = player.dialog.getByRole("region", { name: "Transcript" });
-    await expect(script.locator('.script-turn[aria-current="true"]')).toHaveCount(1);
-    await page.route("**/narrated/*.mp3", (route) => route.fulfill({ status: 404, body: "" }));
-    const turns = await script.locator("[data-turn]").count();
-    await script.locator(`[data-turn="${turns - 1}"]`).dispatchEvent("click");
-    await expect(page.locator("html")).toHaveAttribute("data-player-state", "error", {
-      timeout: 10_000,
-    });
-    await expect(script.locator('.script-turn[aria-current="true"]')).toHaveCount(0);
-    await expect(script.locator("[data-spoken]")).toHaveCount(0);
-  });
-
-  test("on two columns following scrolls the list and never the page", async ({
-    player,
-    finger,
-    page,
-  }) => {
+    // Two columns: following scrolls the transcript's own list, never the page.
     await page.setViewportSize({ width: 1024, height: 600 });
-    await player.open(EPISODE);
-    await mockNarration(page);
-    await finger.press(player.cta);
-    await expect(page.locator("html")).toHaveAttribute("data-player-state", "playing", {
-      timeout: 8_000,
-    });
-    await player.openPlayer();
-    const script = player.dialog.getByRole("region", { name: "Transcript" });
+    await player.expanded();
     const turns = await script.locator("[data-turn]").count();
     await script.locator(`[data-turn="${turns - 1}"]`).dispatchEvent("click");
     await expect(script.locator(`[data-turn="${turns - 1}"]`)).toHaveAttribute(

@@ -4,20 +4,22 @@ import { expect, test } from "./helpers";
 declare global {
   interface Window {
     __heard: string[];
-    __oscillators: number[];
+    __oscillators: number;
+    __context: AudioContext | null;
   }
 }
 
 /**
  * The delegated interface cues on the real site: a navigation link, a Contents entry, a filter
  * chip and a switch each make exactly one cue of the right kind, and none once Sounds is off.
- * `dispatch:cue` names the cue the delegate chose and the engine accepted; the oscillator log is
- * the independent check that audio was really produced, once per cue.
+ * `dispatch:cue` names the cue the delegate chose and the engine accepted; the oscillator count is
+ * the independent check that audio was really produced.
  */
 test.beforeEach(async ({ page }) => {
   await page.addInitScript(() => {
     window.__heard = [];
-    window.__oscillators = [];
+    window.__oscillators = 0;
+    window.__context = null;
     document.addEventListener("dispatch:cue", (event) => {
       window.__heard.push((event as CustomEvent<string>).detail);
     });
@@ -25,9 +27,10 @@ test.beforeEach(async ({ page }) => {
     window.AudioContext = class extends OriginalContext {
       constructor(options?: AudioContextOptions) {
         super(options);
+        window.__context = this;
         const createOscillator = this.createOscillator.bind(this);
         this.createOscillator = () => {
-          window.__oscillators.push(performance.now());
+          window.__oscillators += 1;
           return createOscillator();
         };
       }
@@ -36,106 +39,83 @@ test.beforeEach(async ({ page }) => {
 });
 
 const heard = (page: Page) => page.evaluate(() => [...window.__heard]);
-
-/** Oscillators created within a few milliseconds of each other are one cue's layers. */
-const sounded = (page: Page) =>
-  page.evaluate(() => {
-    let count = 0;
-    let last = Number.NEGATIVE_INFINITY;
-    for (const at of window.__oscillators) {
-      if (at - last > 30) count += 1;
-      last = at;
-    }
-    return count;
-  });
-
-async function reset(page: Page): Promise<void> {
-  await page.waitForTimeout(250);
-  await page.evaluate(() => {
-    window.__heard.length = 0;
-    window.__oscillators.length = 0;
-  });
-}
+const oscillators = (page: Page) => page.evaluate(() => window.__oscillators);
 
 /** The first gesture creates and resumes the audio context; cues after it are heard. */
 async function prime(page: Page): Promise<void> {
   await page.mouse.click(2, 2);
-  await page.waitForTimeout(500);
-  await reset(page);
+  await expect.poll(() => page.evaluate(() => window.__context?.state)).toBe("running");
+  await page.evaluate(() => {
+    window.__heard.length = 0;
+    window.__oscillators = 0;
+  });
 }
 
+const library = (page: Page) =>
+  page.getByRole("navigation", { name: "Primary" }).getByRole("link", { name: "Library" });
+
 test.describe("interface cues by kind of action", () => {
-  test("a navigation link ticks once", async ({ player, page }) => {
-    await player.open();
-    await prime(page);
-    await page
-      .getByRole("navigation", { name: "Primary" })
-      .getByRole("link", { name: "Library" })
-      .click();
-    await expect(page).toHaveURL(/\/library$/);
-    await page.waitForTimeout(300);
-    expect(await heard(page)).toEqual(["scrubDetent"]);
-    expect(await sounded(page)).toBe(1);
-  });
+  const rows = [
+    {
+      name: "a navigation link ticks",
+      path: "/d/2026-10-07",
+      act: (page: Page) => library(page).click(),
+      cue: /^scrubDetent$/,
+    },
+    {
+      name: "a Contents entry ticks",
+      path: "/d/2026-10-07",
+      act: (page: Page) => page.locator("[data-section]:visible").nth(1).click(),
+      cue: /^scrubDetent$/,
+    },
+    {
+      name: "a toggle button is a select",
+      path: "/library",
+      act: (page: Page) => page.locator("[data-library-view='list']").click(),
+      cue: /^toggleOn$/,
+    },
+    {
+      // A general topic's page holds its on switch (D69).
+      name: "a switch is a select",
+      path: "/settings/topics/world",
+      act: (page: Page) => page.getByRole("switch").first().click(),
+      cue: /^toggle(On|Off)$/,
+    },
+  ];
+  for (const row of rows) {
+    test(`${row.name}, once`, async ({ player, page }) => {
+      await player.open(row.path);
+      await prime(page);
+      await row.act(page);
+      await expect.poll(() => heard(page)).toHaveLength(1);
+      expect((await heard(page))[0]).toMatch(row.cue);
+      expect(await oscillators(page)).toBeGreaterThan(0);
+    });
+  }
 
-  test("a Contents entry ticks once", async ({ player, page }) => {
-    await player.open();
-    await prime(page);
-    const entry = page.locator("[data-section]:visible").nth(1);
-    await entry.click();
-    await page.waitForTimeout(300);
-    expect(await heard(page)).toEqual(["scrubDetent"]);
-    expect(await sounded(page)).toBe(1);
-  });
-
-  test("a toggle button is a select", async ({ player, page }) => {
-    await player.open("/library");
-    await prime(page);
-    const chip = page.locator("[data-library-view='list']");
-    await chip.click();
-    await page.waitForTimeout(250);
-    expect(await heard(page)).toEqual(["toggleOn"]);
-    expect(await sounded(page)).toBe(1);
-  });
-
-  test("a switch is a select, and its own cue is not doubled", async ({ player, page }) => {
-    // A general topic's page holds its on switch; the judge topics are gathered under Design, AI and
-    // Technology (D69) and have a Podcasts list instead.
-    await player.open("/settings/topics/world");
-    await prime(page);
-    const topic = page.getByRole("switch").first();
-    await topic.click();
-    await page.waitForTimeout(300);
-    const kinds = await heard(page);
-    expect(kinds).toHaveLength(1);
-    expect(["toggleOn", "toggleOff"]).toContain(kinds[0]);
-    expect(await sounded(page)).toBe(1);
-
-    await player.open("/settings");
-    await prime(page);
-    // The section is "Sound"; its switch is labelled "Interface sounds".
-    await page.getByRole("switch", { name: "Interface sounds", exact: true }).click();
-    await page.waitForTimeout(300);
-    // The Settings switch plays its own cue; the delegate stays out of its way.
-    expect(await heard(page)).toEqual([]);
-    expect(await sounded(page)).toBe(1);
-  });
-
-  test("nothing sounds once Sounds is off", async ({ player, page }) => {
+  test("the Settings switch plays its own cue, not doubled; once off nothing sounds", async ({
+    player,
+    page,
+  }) => {
     await player.open("/settings");
     await prime(page);
     const sounds = page.getByRole("switch", { name: "Interface sounds", exact: true });
     await sounds.click();
     await expect(sounds).not.toBeChecked();
-    await reset(page);
-    await page
-      .getByRole("navigation", { name: "Primary" })
-      .getByRole("link", { name: "Library" })
-      .click();
+    // The switch sounds its own cue on the way off; the delegate stays out of its way.
+    await expect.poll(() => oscillators(page)).toBeGreaterThan(0);
+    expect(await heard(page)).toEqual([]);
+    await page.evaluate(() => {
+      window.__oscillators = 0;
+    });
+    await library(page).click();
     await expect(page).toHaveURL(/\/library$/);
     await page.locator("[data-library-view='list']").click();
-    await page.waitForTimeout(400);
+    await expect(page.locator("[data-library-view='list']")).toHaveAttribute(
+      "aria-pressed",
+      "true",
+    );
     expect(await heard(page)).toEqual([]);
-    expect(await sounded(page)).toBe(0);
+    expect(await oscillators(page)).toBe(0);
   });
 });

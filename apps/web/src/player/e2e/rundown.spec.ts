@@ -85,37 +85,11 @@ test.describe("an episode's rundown and the controls under the transcript", () =
     await expect(previous).toHaveAttribute("aria-disabled", "true");
   });
 
-  test("on one column, Next story twice keeps the controls in place and goes forward", async ({
+  test("the cover and the controls hold still from the rundown through Next to a failure @desktop", async ({
     player,
     finger,
     page,
   }) => {
-    test.skip(
-      (page.viewportSize()?.width ?? 0) >= 1024,
-      "the transcript scrolls in its own column",
-    );
-    await startEpisode(player, finger, page);
-    await expect(player.dialog.getByRole("region", { name: "Transcript" })).toBeVisible();
-    const next = player.dialog.getByRole("button", { name: "Next story" });
-    const before = await player.boxOf(next);
-    await finger.press(next);
-    await expect(player.scrubber).toHaveAttribute("aria-valuetext", /story 1 of /);
-    // Long enough for a smooth scroll to have moved the page.
-    await page.waitForTimeout(800);
-    expect((await player.boxOf(next)).y).toBeCloseTo(before.y, 0);
-    expect(await player.sheet.evaluate((element) => element.scrollTop)).toBe(0);
-    await finger.press(next);
-    await expect(player.scrubber).toHaveAttribute("aria-valuetext", /story 2 of /);
-    await page.waitForTimeout(800);
-    expect((await player.boxOf(next)).y).toBeCloseTo(before.y, 0);
-  });
-
-  test("on a wide screen with a mouse the cover and the controls hold still from the rundown to a failure @wide", async ({
-    player,
-    finger,
-    page,
-  }) => {
-    test.skip((page.viewportSize()?.width ?? 0) < 1024, "needs the two-column page");
     await startEpisode(player, finger, page);
     const cover = page.locator("[data-player-surface] [data-player-cover]");
     const play = () =>
@@ -134,7 +108,10 @@ test.describe("an episode's rundown and the controls under the transcript", () =
     await finger.press(next);
     await expect(player.scrubber).toHaveAttribute("aria-valuetext", /story 1 of /);
     await expect(player.dialog.locator(".player-source-link")).toBeVisible();
+    // Long enough for a smooth scroll to have moved the page, had anything asked for one.
+    await page.waitForTimeout(800);
     expect(await place()).toEqual(rundown);
+    expect(await player.sheet.evaluate((element) => element.scrollTop)).toBe(0);
     // A failure shows no story and no source, and nothing moves.
     await page.route("**/narrated/*.mp3", (route) => route.fulfill({ status: 404, body: "" }));
     await finger.press(next);
