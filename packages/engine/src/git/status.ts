@@ -1,5 +1,3 @@
-import { execFile } from "node:child_process";
-import { z } from "zod";
 import type { GitRunner } from "./runGit.js";
 import { createGitRunner, gitOutput } from "./runGit.js";
 
@@ -12,11 +10,6 @@ export async function isTreeClean(
 }
 
 export interface BehindRemoteOptions {
-  remote?: string;
-  /** Defaults to the current branch. */
-  branch?: string;
-  /** Fetch first so the answer reflects the remote now, not at the last fetch. */
-  fetch?: boolean;
   git?: GitRunner;
 }
 
@@ -30,48 +23,13 @@ export async function isBehindRemote(
   options: BehindRemoteOptions = {},
 ): Promise<boolean> {
   const git = options.git ?? createGitRunner(root);
-  const remote = options.remote ?? "origin";
-  const branch =
-    options.branch ?? (await gitOutput(git, ["symbolic-ref", "--short", "HEAD"])).trim();
-  if (options.fetch ?? true) await gitOutput(git, ["fetch", "--quiet", remote]);
+  const remote = "origin";
+  const branch = (await gitOutput(git, ["symbolic-ref", "--short", "HEAD"])).trim();
+  // Fetch first so the answer reflects the remote now, not at the last fetch.
+  await gitOutput(git, ["fetch", "--quiet", remote]);
   const tracking = `refs/remotes/${remote}/${branch}`;
   const known = await git(["rev-parse", "--verify", "--quiet", tracking]);
   if (known.code !== 0) return false;
   const count = await gitOutput(git, ["rev-list", "--count", `HEAD..${tracking}`]);
   return Number.parseInt(count.trim(), 10) > 0;
 }
-
-export interface GhResult {
-  code: number;
-  stdout: string;
-  stderr: string;
-}
-
-/** Runs the GitHub CLI. Injected so tests and callers without `gh` never shell out. */
-export type GhRunner = (args: readonly string[]) => Promise<GhResult>;
-
-/** A runner that executes the real `gh` binary in `cwd`. */
-export function createGhRunner(cwd: string): GhRunner {
-  return (args) =>
-    new Promise<GhResult>((resolve, reject) => {
-      execFile(
-        "gh",
-        [...args],
-        { cwd, encoding: "utf8", windowsHide: true },
-        (error, stdout, stderr) => {
-          if (error === null) resolve({ code: 0, stdout, stderr });
-          else if (typeof error.code === "number") resolve({ code: error.code, stdout, stderr });
-          else reject(error);
-        },
-      );
-    });
-}
-
-export interface RunInProgressOptions {
-  /** Workflow file of the pipeline run. */
-  workflow?: string;
-  /** owner/name, when the checkout's remote is not the right repository. */
-  repo?: string;
-}
-
-const _RunList = z.array(z.object({ status: z.string() }));

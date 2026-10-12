@@ -19,9 +19,6 @@ import { makeEntry, plainPreferences, REPO_ROOT } from "./score-factories.js";
 
 const evalDir = join(REPO_ROOT, "packages", "engine", "eval", "golden");
 const golden = parseGolden(JSON.parse(readFileSync(join(evalDir, "pool.json"), "utf8")));
-const _groundingCases = parseGroundingCases(
-  JSON.parse(readFileSync(join(evalDir, "grounding.json"), "utf8")),
-);
 
 describe("the golden set", () => {
   it("rejects malformed golden files", () => {

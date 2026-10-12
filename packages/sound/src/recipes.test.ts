@@ -2,7 +2,6 @@ import { describe, expect, it } from "vitest";
 import {
   dbToGain,
   type Layer,
-  PENTATONIC_HZ,
   RECIPES,
   recipeDurationMs,
   resolveFrequency,
@@ -15,8 +14,6 @@ import {
 import { analyzeSpectrum, peakToDbfs, renderRecipe } from "./render.js";
 
 const recipes: SoundRecipe[] = SOUND_NAMES.map((name) => RECIPES[name]);
-const _isPentatonic = (hz: number): boolean =>
-  PENTATONIC_HZ.some((candidate) => Math.abs(candidate - hz) < 0.01);
 
 /** Peak ceiling at full master volume: about -12 dBFS. */
 const PEAK_CEILING = 0.25;

@@ -1,18 +1,9 @@
 import { describe, expect, it } from "vitest";
-import { z } from "zod";
 import { describeError } from "../src/llm/errors.js";
 import { NebiusWriter } from "../src/write/nebiusWriter.js";
 import { rewriteOnce } from "../src/write/rewriteOnce.js";
 import type { RewriteRequest, SourceMaterial, Writer } from "../src/write/types.js";
 import { FakeLlm, httpError, testLinter, testVoice } from "./write-fakes.js";
-
-const Out = z.object({ items: z.array(z.object({ id: z.string() })) });
-const _request = () => ({
-  schema: Out,
-  schemaName: "out",
-  messages: [{ role: "user" as const, content: "x" }],
-  label: "test",
-});
 
 const material = (): SourceMaterial => ({
   id: "aaaaaaaaaaaa",
