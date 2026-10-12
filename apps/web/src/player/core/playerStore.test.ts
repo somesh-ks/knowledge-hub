@@ -556,6 +556,14 @@ describe("errors", () => {
     expect(state.error?.message).toMatch(/connection/);
   });
 
+  it("shows the reason a playlist gave for a file it could not make, as the one message", () => {
+    const harness = createHarness();
+    startPlaying(harness);
+    harness.audio.error = { code: MEDIA_ERR_NETWORK, message: "Daily narration limit reached." };
+    harness.audio.emit("error");
+    expect(harness.store.getState().error?.message).toBe("Daily narration limit reached.");
+  });
+
   it("says the audio is unavailable when the source cannot be used", () => {
     const harness = createHarness();
     startPlaying(harness);
@@ -580,6 +588,19 @@ describe("errors", () => {
     await vi.advanceTimersByTimeAsync(0);
     expect(harness.store.getState()).toMatchObject({ status: "paused" });
     expect(harness.store.getState().error?.kind).toBe("blocked");
+  });
+
+  it("reports a failed play once when the element's error and the rejected play both arrive", async () => {
+    const harness = createHarness();
+    harness.store.load(makeDigest());
+    harness.audio.playRejection = Object.assign(new Error("no source"), {
+      name: "NotSupportedError",
+    });
+    harness.store.play();
+    harness.audio.error = { code: MEDIA_ERR_SRC_NOT_SUPPORTED };
+    harness.audio.emit("error");
+    await vi.advanceTimersByTimeAsync(0);
+    expect(harness.events.filter((event) => event.type === "error")).toHaveLength(1);
   });
 
   it("ignores a play rejected because a newer load won", async () => {

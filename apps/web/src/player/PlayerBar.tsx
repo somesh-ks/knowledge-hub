@@ -204,7 +204,8 @@ export default function PlayerBar() {
   const section = timeline?.sections[state.sectionIndex];
   const itemCount = timeline?.items.length ?? 0;
   const playing = isPlayingStatus(state.status);
-  const headline = item?.headline ?? digest?.title ?? "";
+  // After a failure nothing is being read: the bar names the recording, not its first story.
+  const headline = (state.error ? null : item?.headline) ?? digest?.title ?? "";
 
   // A story's place is told while one is being read. The rundown before story 1 is none, and
   // "Story 1 of 1" says nothing: the line then says what the recording is.

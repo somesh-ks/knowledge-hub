@@ -23,11 +23,12 @@ import { useRovingFocus } from "./hooks/useRovingFocus";
  */
 /**
  * The script may follow the voice: always in its own column from 64rem, and on one column only
- * while its top is above the fold, so a turn change never scrolls the page down to it.
+ * once the listener has scrolled it up into the upper half of the screen themselves. Where the
+ * page opens (the script's top near the fold) a turn change never scrolls the page.
  */
 function oneColumnFollows(root: HTMLElement | null): boolean {
   if (!root || window.matchMedia("(min-width: 64rem)").matches) return true;
-  return root.getBoundingClientRect().top < window.innerHeight;
+  return root.getBoundingClientRect().top < window.innerHeight / 2;
 }
 
 export default function ScriptView({ titleHidden = false }: { titleHidden?: boolean }) {

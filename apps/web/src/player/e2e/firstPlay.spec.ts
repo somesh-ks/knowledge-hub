@@ -8,11 +8,19 @@ const NARRATION_FILE = fileURLToPath(new URL("../dev/lab-narration.mp3", import.
  * A briefing with no audio yet: the server lists its segments with no files, and makes each one
  * when asked, after `delayMs`. Returns the keys that were asked for, in order.
  */
-async function serveNarration(page: Page, delayMs: number): Promise<string[]> {
-  const ids = await page.evaluate(() => {
-    const data = JSON.parse(document.getElementById("dispatch-digest-data")?.textContent ?? "{}");
+async function serveNarration(
+  page: Page,
+  delayMs: number,
+  /** The page whose stories are narrated, when it is not the one open. */
+  from?: string,
+): Promise<string[]> {
+  const ids = await page.evaluate(async (path) => {
+    const html = path
+      ? new DOMParser().parseFromString(await (await fetch(path)).text(), "text/html")
+      : document;
+    const data = JSON.parse(html.getElementById("dispatch-digest-data")?.textContent ?? "{}");
     return (data.items as { id: string }[]).map((item) => item.id);
-  });
+  }, from);
   const keys = ["intro", ...ids];
   const made: string[] = [];
   const finished = new Set<string>();
@@ -80,5 +88,25 @@ test.describe("the first press of Play on a page with no audio yet", () => {
       .poll(async () => (await audio.read())?.currentTime ?? 0, { timeout: 6_000 })
       .toBeGreaterThan(0.5);
     await expect(page.locator(".dock-btn[data-primary]")).toHaveAttribute("data-loading", "false");
+  });
+
+  test("Up next at the end narrates and plays a briefing with no audio @surface", async ({
+    lab,
+    page,
+    finger,
+  }) => {
+    test.skip(lab.target === "lab", "the lab's previous briefing already has audio");
+    await lab.open();
+    await serveNarration(page, 300, "/d/2026-10-05");
+    await lab.play();
+    await lab.openPlayer();
+    await lab.scrubber.focus();
+    await page.keyboard.press("End");
+    await expect(lab.root).toHaveAttribute("data-player-state", "ended");
+    const upNext = lab.dialog.getByRole("button", { name: /The previous briefing/ });
+    await upNext.scrollIntoViewIfNeeded();
+    await finger.press(upNext);
+    await expect(page).toHaveURL(/\/d\/2026-10-05/);
+    await expect(lab.root).toHaveAttribute("data-player-state", "playing", { timeout: 10_000 });
   });
 });

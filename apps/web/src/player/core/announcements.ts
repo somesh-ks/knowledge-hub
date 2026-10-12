@@ -12,6 +12,8 @@ export interface AnnouncementContext {
    * interruptions itself, so the live region says nothing to avoid saying it twice.
    */
   open: boolean;
+  /** Playback has been asked for. Before that a failure (a file found missing) is not the listener's news. */
+  started?: boolean;
 }
 
 export function announcementForEvent(
@@ -41,7 +43,7 @@ export function announcementForEvent(
     case "interrupted":
       return context.open ? null : "Paused by another app.";
     case "error":
-      return context.open ? null : event.error.message;
+      return context.open || context.started === false ? null : event.error.message;
     case "loaded":
       return null;
   }

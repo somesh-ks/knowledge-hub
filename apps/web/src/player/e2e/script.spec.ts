@@ -102,6 +102,40 @@ test.describe("an episode's script in the open player", () => {
     });
   });
 
+  test("on one column the open page holds still at every turn change until the listener scrolls @surface", async ({
+    lab,
+    finger,
+    page,
+  }) => {
+    test.skip(
+      await page.evaluate(() => window.matchMedia("(min-width: 64rem)").matches),
+      "from 64rem the script follows in its own column",
+    );
+    await lab.open(EPISODE);
+    await mockNarration(page);
+    await finger.press(lab.cta);
+    await expect(page.locator("html")).toHaveAttribute("data-player-state", "playing", {
+      timeout: 8_000,
+    });
+    await lab.openPlayer();
+    const script = lab.dialog.getByRole("region", { name: "Transcript" });
+    await expect(script).toBeVisible();
+    // Nothing scrolled: the voice moves through turns (a click that does not scroll stands in for
+    // the clock) and the page never moves.
+    for (const turn of [1, 2]) {
+      await script.locator(`[data-turn="${turn}"]`).dispatchEvent("click");
+      await expect(script.locator(`[data-turn="${turn}"]`)).toHaveAttribute(
+        "aria-current",
+        "true",
+        {
+          timeout: 8_000,
+        },
+      );
+      await page.waitForTimeout(1_200);
+      expect(await lab.sheet.evaluate((element) => element.scrollTop)).toBe(0);
+    }
+  });
+
   test("the transcript is one Tab stop that the arrow keys move through, and Tab follows the transport's order @surface", async ({
     lab,
     finger,

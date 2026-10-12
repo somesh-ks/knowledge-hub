@@ -50,6 +50,8 @@ export interface ReaderSync {
   refresh(): void;
   /** An explicit play or seek means the reader wants the page to follow again. */
   resumeFollow(): void;
+  /** A press is taking the listener to this briefing: once its page loads without audio, narrate it. */
+  expectPage(id: string): void;
   destroy(): void;
 }
 
@@ -392,6 +394,9 @@ export function createReaderSync(
   return {
     refresh,
     resumeFollow,
+    expectPage(id) {
+      pendingNarrate = id;
+    },
     destroy() {
       offSecond();
       offEvent();

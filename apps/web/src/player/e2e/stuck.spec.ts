@@ -62,6 +62,35 @@ async function finishRunBehindThePlayer(page: Page, lab: LabPage): Promise<void>
   await expect(dialog).toBeHidden();
 }
 
+test.describe("the run indicator over a playing bar @surface", () => {
+  test("its progress runs along the card's top edge, apart from the bar's own line", async ({
+    lab,
+    page,
+  }, info) => {
+    test.skip(lab.target === "lab" || /desktop|ipad/.test(info.project.name), "a phone's stack");
+    await lab.open();
+    await lab.play();
+    await lab.dockSettled();
+    // The card as a running episode shows it.
+    await page.evaluate(() => {
+      const card = document.querySelector<HTMLElement>("[data-run-card]");
+      if (!card) throw new Error("no run card");
+      card.hidden = false;
+      card.dataset.state = "running";
+    });
+    const rects = await page.evaluate(() => {
+      const rect = (query: string) => {
+        const box = document.querySelector(query)?.getBoundingClientRect();
+        return box ? { top: box.top, bottom: box.bottom } : null;
+      };
+      return { card: rect("[data-run-card]"), bar: rect(".run-bar"), line: rect(".dock-progress") };
+    });
+    expect(rects.bar?.top ?? -1).toBeCloseTo(rects.card?.top ?? -2, 0);
+    // The two lines are a whole card apart.
+    expect((rects.line?.top ?? 0) - (rects.bar?.bottom ?? 0)).toBeGreaterThan(20);
+  });
+});
+
 test.describe("paths that used to leave the player stuck @surface", () => {
   test("after Back with the player open, a tap on the bar opens it again", async ({
     lab,

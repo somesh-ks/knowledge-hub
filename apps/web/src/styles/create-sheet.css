@@ -632,11 +632,12 @@ dialog.create-sheet .create-submit > .btn-primary {
 /* The bar: a track and a fill that is a share of it. runStatus.ts sets --run-to (0 to 1) and
    --run-span: a quick move to the start of the stage, then a slow one toward its end, so the bar
    moves all the time and never passes the next stage before the run does. It is gone once the run
-   has finished. */
+   has finished. Below 64rem it runs along the card's top edge: the foot of the card rests on the
+   player bar's own progress line, and two lines there would fuse into one stepped line. */
 .run-bar {
   position: absolute;
   inset-inline: 0;
-  inset-block-end: 0;
+  inset-block-start: 0;
   height: calc(var(--space-1) * 0.75);
   overflow: hidden;
   background: var(--rail-track);

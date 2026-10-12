@@ -3,7 +3,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 const prewarmEpisode = vi.fn(async (_id: string) => undefined);
 vi.mock("../narration/prewarmEpisode", () => ({ prewarmEpisode }));
 
-const { fill, resumeRun, SITE_POLL_MS } = await import("./runStatus");
+const { fill, focusCreate, resumeRun, SITE_POLL_MS } = await import("./runStatus");
 
 describe("the progress bar", () => {
   it("starts a new run (a Try again) from empty, and never goes back within one run", () => {
@@ -108,5 +108,29 @@ describe("waiting for the redeployed site", () => {
     // Nothing more is asked once it has been seen.
     await vi.advanceTimersByTimeAsync(10 * SITE_POLL_MS);
     expect(page.requests).toHaveLength(2);
+  });
+});
+
+describe("focus after the card is gone", () => {
+  it("goes to the main region when the page shows no Create button", () => {
+    const main = {
+      attrs: new Map<string, string>(),
+      hasAttribute(name: string) {
+        return this.attrs.has(name);
+      },
+      setAttribute(name: string, value: string) {
+        this.attrs.set(name, value);
+      },
+      focus: vi.fn(),
+    };
+    vi.stubGlobal("document", {
+      // The only Create button is hidden: no client rects.
+      querySelectorAll: () => [{ getClientRects: () => [], focus: vi.fn() }],
+      querySelector: (query: string) => (query === "main" ? main : null),
+    });
+    focusCreate();
+    expect(main.focus).toHaveBeenCalledWith({ preventScroll: true });
+    expect(main.attrs.get("tabindex")).toBe("-1");
+    vi.unstubAllGlobals();
   });
 });

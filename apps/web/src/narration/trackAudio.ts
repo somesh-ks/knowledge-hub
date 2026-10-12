@@ -33,6 +33,8 @@ export interface Playlist {
   ensure(index: number): Promise<string>;
   /** A hint that the segment is needed soon. Returns at once and never throws. */
   prepare(index: number): void;
+  /** The listener's words for why `ensure` rejected, or null for the player's own. */
+  describeFailure?(error: unknown): string | null;
 }
 
 export interface TrackAudioOptions {
@@ -102,7 +104,7 @@ export function createTrackAudio(real: AudioLike, options: TrackAudioOptions): A
   let announced = true;
   let wantsPlay = false;
   let ended = false;
-  let failure: { code: number } | null = null;
+  let failure: { code: number; message?: string } | null = null;
   /** Bumped by every start and stop, so a file that arrives late knows it was overtaken. */
   let generation = 0;
 
@@ -186,8 +188,9 @@ export function createTrackAudio(real: AudioLike, options: TrackAudioOptions): A
     real.playbackRate = rate;
   }
 
-  function fail(): void {
-    failure = { code: MEDIA_ERR_NETWORK };
+  function fail(cause?: unknown): void {
+    const message = cause === undefined ? null : (playlist?.describeFailure?.(cause) ?? null);
+    failure = message ? { code: MEDIA_ERR_NETWORK, message } : { code: MEDIA_ERR_NETWORK };
     wantsPlay = false;
     emit("error");
   }
@@ -248,9 +251,9 @@ export function createTrackAudio(real: AudioLike, options: TrackAudioOptions): A
         attach(target, url);
         return real.play();
       },
-      () => {
+      (cause: unknown) => {
         // Reported as an error event, which is where the player listens for a file that failed.
-        if (mine === generation && playlist === list) fail();
+        if (mine === generation && playlist === list) fail(cause);
         return undefined;
       },
     );

@@ -187,15 +187,13 @@ export default function PlayerSurface() {
                   {title}
                 </h2>
                 {/* The story being read, and where it came from. A recording without stories says
-                    what it is. In an episode's rundown, before story 1, no story is being read: the
-                    room stays, so nothing moves when story 1 starts. */}
+                    what it is, and so does an episode's rundown, before story 1: no story is being
+                    read, and the line is the one story 1 will fill, so nothing moves when it starts. */}
                 {state.status === "error" ? null : (
                   <>
-                    {item || !timeline?.items.length ? (
-                      <p className="player-story">
-                        {item?.headline ?? recordingCaption(digest, state.duration)}
-                      </p>
-                    ) : null}
+                    <p className="player-story">
+                      {item?.headline ?? recordingCaption(digest, state.duration)}
+                    </p>
                     <SourceLink />
                   </>
                 )}

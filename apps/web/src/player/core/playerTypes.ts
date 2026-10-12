@@ -109,7 +109,8 @@ export interface AudioLike {
   readonly paused: boolean;
   readonly ended: boolean;
   readonly readyState: number;
-  readonly error: { code: number } | null;
+  /** `message` is the reason a playlist gave for a file it could not make, in the listener's words. */
+  readonly error: { code: number; message?: string } | null;
   playbackRate: number;
   defaultPlaybackRate: number;
   preservesPitch: boolean;

@@ -156,7 +156,7 @@ describe("the briefing chip", () => {
       name: "Play the briefing again, played",
     });
     expect(briefingChipView(stateFor("error"), 86, makeDigest())).toEqual({
-      state: "idle",
+      state: "error",
       playing: false,
       label: "Try again",
       name: "Try again",

@@ -385,6 +385,8 @@ export function createPlayerStore(options: PlayerStoreOptions): PlayerStore {
     if (!audio) return;
     const error = describeMediaError(audio.error?.code, isOnline(), audioNoun());
     if (!error) return;
+    // A file the narration could not make says why; offline, the connection is the reason.
+    if (audio.error?.message && isOnline()) error.message = audio.error.message;
     stopFrameLoop();
     stopSaveTimer();
     stopBufferTimer();
@@ -533,7 +535,8 @@ export function createPlayerStore(options: PlayerStoreOptions): PlayerStore {
     commit({ status: "loading", hasStarted: true, interrupted: false, error: null });
     Promise.resolve(element.play()).catch((rejection: unknown) => {
       const error = describePlayRejection(rejection, isOnline(), audioNoun());
-      if (!error) return;
+      // The element's own error event may have reported this failure already: once is enough.
+      if (!error || state.status === "error") return;
       stopBufferTimer();
       wantsPlay = false;
       commit({ status: error.kind === "blocked" ? "paused" : "error", buffering: false, error });
@@ -710,7 +713,7 @@ export function createPlayerStore(options: PlayerStoreOptions): PlayerStore {
       wantsPlay = true;
       Promise.resolve(audio.play()).catch((rejection: unknown) => {
         const error = describePlayRejection(rejection, isOnline(), audioNoun());
-        if (!error) return;
+        if (!error || state.status === "error") return;
         wantsPlay = false;
         commit({ status: error.kind === "blocked" ? "paused" : "error", error });
         emit({ type: "error", error });
