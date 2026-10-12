@@ -152,13 +152,21 @@ export function startPlayerRuntime(): () => void {
   const stopTheme = startThemeSync();
 
   syncRootState(playerStore);
-  const offState = playerStore.subscribe(() => syncRootState(playerStore));
+  // "Playing." waits for the sound: a start that fails at once (offline) says only why.
+  let starting: string | null = null;
+  const offState = playerStore.subscribe(({ status }) => {
+    syncRootState(playerStore);
+    if (status === "loading") return;
+    if (starting && status === "playing") announce(starting);
+    starting = null;
+  });
   const offEvent = playerStore.onEvent((event) => {
     const message = announcementForEvent(event, playerStore.getState().track, {
       open: playerIsOpen(),
       started: playerStore.getState().hasStarted,
     });
-    if (message) announce(message);
+    if (event.type === "willPlay") starting = message;
+    else if (message) announce(message);
   });
 
   const onPageLoad = (): void => {
@@ -225,7 +233,7 @@ export function startPlayerRuntime(): () => void {
   const onOnline = (): void => {
     if (playerIsOpen()) announce("You are back online.");
     // A failure the lost connection caused happened while the listener was playing: play on.
-    if (playerStore.getState().error?.kind === "network") playerStore.retry();
+    if (playerStore.getState().error?.kind === "offline") playerStore.retry();
   };
   const onOffline = (): void => {
     if (playerIsOpen()) announce("You are offline.");

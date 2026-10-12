@@ -97,9 +97,17 @@ export function transportGlyph(
   status: PlayerState["status"],
   error?: PlayerState["error"],
 ): TransportGlyph {
-  if (status === "error") return error?.kind === "refused" ? "play" : "refresh";
+  if (status === "error") return keepsPlayFace(error) ? "play" : "refresh";
   if (status === "ended") return "replay";
   return isPlayingStatus(status) ? "pause" : "play";
+}
+
+/**
+ * A failure no press can mend now: a refusal that stands, or the connection, which plays on by
+ * itself when it returns. Its controls keep Play, with the reason as their line, never Try again.
+ */
+export function keepsPlayFace(error: PlayerState["error"] | undefined): boolean {
+  return error?.kind === "refused" || error?.kind === "offline";
 }
 
 export function isPlayingStatus(status: PlayerState["status"]): boolean {

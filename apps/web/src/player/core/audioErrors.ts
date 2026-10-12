@@ -21,9 +21,11 @@ export function describeMediaError(
   if (code === MEDIA_ERR_ABORTED) return null;
   if (!isOnline) {
     return {
-      kind: "network",
-      // The player tries again by itself when the connection comes back (playerRuntime.ts).
+      // The player tries again by itself when the connection comes back (playerRuntime.ts), so
+      // nothing offers a Try again that cannot work while offline.
+      kind: "offline",
       message: "You are offline. Reconnect to play on.",
+      summary: "You are offline",
     };
   }
   switch (code) {

@@ -232,6 +232,11 @@ describe("the briefing chip", () => {
       label: "Daily limit reached",
       name: "Play the briefing, Daily limit reached",
     });
+    // Offline the chip says so, as the bar does, and offers no Try again.
+    const offline = stateFor("error", {
+      error: { kind: "offline", message: "You are offline.", summary: "You are offline" },
+    });
+    expect(briefingChipView(offline, 86, makeDigest()).label).toBe("You are offline");
   });
 
   it("shows the playing face for the first 300 ms of buffering, then that it is loading", () => {

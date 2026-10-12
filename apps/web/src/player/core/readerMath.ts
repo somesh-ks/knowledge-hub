@@ -258,8 +258,10 @@ export function briefingChipView(
         name: `Play the ${noun} again, played`,
       };
     case "error": {
-      // A refusal that stands is not mended by trying again: the play face, with the bar's reason.
-      const reason = state.error?.kind === "refused" && state.error.summary;
+      // A refusal that stands, or being offline (it plays on by itself), is not mended by trying
+      // again: the play face, with the bar's reason (playerCopy.ts keepsPlayFace).
+      const kind = state.error?.kind;
+      const reason = (kind === "refused" || kind === "offline") && state.error?.summary;
       return reason
         ? idleBriefingChip(reason, noun)
         : { state: "error", playing: false, label: "Try again", name: "Try again" };

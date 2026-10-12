@@ -153,4 +153,55 @@ test.describe("a recording that fails @surface", () => {
     const bar = await lab.boxOf(page.locator("[data-player-dock]"));
     expect(notice.y + notice.height).toBeLessThanOrEqual(bar.y + 1);
   });
+
+  test("a server's failure never starts by itself when the connection blips", async ({
+    lab,
+    page,
+    context,
+  }) => {
+    await lab.open("/d/2026-10-05");
+    let asked = 0;
+    await serve(page, (key) => {
+      if (key === "intro") return { file: true };
+      asked += 1;
+      return { refusal: "synthesis_failed", status: 500 };
+    });
+    await lab.play();
+    await lab.openPlayer();
+    await lab.dialog.getByRole("button", { name: "Next story" }).first().click();
+    await expect(lab.root).toHaveAttribute("data-player-state", "error", { timeout: 10_000 });
+    const before = asked;
+    // A phone changing networks: offline, then back.
+    await context.setOffline(true);
+    await page.waitForTimeout(300);
+    await context.setOffline(false);
+    await page.waitForTimeout(1_500);
+    expect(asked).toBe(before);
+    await expect(lab.root).toHaveAttribute("data-player-state", "error");
+  });
+
+  test("offline the notice offers no Try again, and the connection's return plays on", async ({
+    lab,
+    page,
+    context,
+  }) => {
+    await lab.open("/d/2026-10-05");
+    // A routed request is answered even offline: the files stand in for the network themselves.
+    let offline = false;
+    await serve(page, () => ({ file: !offline }));
+    await lab.play();
+    await lab.openPlayer();
+    offline = true;
+    await context.setOffline(true);
+    await lab.dialog.getByRole("button", { name: "Next story" }).first().click();
+    await expect(lab.root).toHaveAttribute("data-player-state", "error", { timeout: 10_000 });
+    const notice = lab.dialog.getByRole("alert");
+    await expect(notice).toHaveText("You are offline. Reconnect to play on.");
+    await expect(notice.getByRole("button")).toHaveCount(0);
+    await expect(lab.dialog.getByRole("button", { name: "Try again" })).toHaveCount(0);
+    await expect(page.locator(".dock-caption")).toHaveText("You are offline");
+    offline = false;
+    await context.setOffline(false);
+    await expect(lab.root).toHaveAttribute("data-player-state", "playing", { timeout: 10_000 });
+  });
 });

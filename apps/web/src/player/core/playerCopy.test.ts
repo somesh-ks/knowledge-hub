@@ -1,5 +1,6 @@
 import { describe, expect, it } from "vitest";
 import type { PlayerDigestData } from "../../types/contracts";
+import { describeMediaError, MEDIA_ERR_NETWORK } from "./audioErrors";
 import {
   errorSummary,
   noticeAction,
@@ -72,6 +73,21 @@ describe("a standing refusal", () => {
       "Daily limit reached",
     );
     expect(errorSummary({ kind: "network" })).toBe("Audio did not load");
+  });
+});
+
+describe("a failure the lost connection caused", () => {
+  const offline = describeMediaError(MEDIA_ERR_NETWORK, false);
+  it("is its own kind, so only it is tried again when the connection returns", () => {
+    expect(offline?.kind).toBe("offline");
+    // A server's failure is a network-kind error too, and must not start sounding by itself.
+    expect(describeMediaError(MEDIA_ERR_NETWORK, true)?.kind).toBe("network");
+  });
+  it("offers no Try again that cannot work offline: Play, and one line everywhere", () => {
+    expect(noticeAction("offline")).toBeNull();
+    expect(transportGlyph("error", offline)).toBe("play");
+    expect(toggleLabel({ status: "error", error: offline })).toBe("Play");
+    expect(errorSummary(offline ?? { kind: "offline" })).toBe("You are offline");
   });
 });
 
