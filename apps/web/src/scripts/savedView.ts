@@ -194,8 +194,8 @@ export function overlayPodcast(
 }
 
 /**
- * Daily, after a weekly edit: the Repeat row's note and the day the next line skips follow the
- * weekly podcast's saved day and switch, not the ones the page was built with.
+ * Daily, after a weekly edit: the Repeat row's note follows the weekly podcast's saved day and
+ * switch, not the ones the page was built with.
  */
 function overlayWeeklyDay(root: HTMLElement, ops: readonly ConfigOp[]): boolean {
   const note = root.querySelector<HTMLElement>("[data-weekly-note]");
@@ -214,11 +214,6 @@ function overlayWeeklyDay(root: HTMLElement, ops: readonly ConfigOp[]): boolean 
   const text = weeklyNote({ enabled, day });
   note.textContent = text ?? "";
   note.hidden = text === null;
-  const head = root.querySelector<HTMLElement>(".settings-head");
-  if (head) {
-    if (enabled) head.dataset.weeklyDay = String(day);
-    else delete head.dataset.weeklyDay;
-  }
   return true;
 }
 

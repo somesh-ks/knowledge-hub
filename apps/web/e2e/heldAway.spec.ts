@@ -35,7 +35,7 @@ test.describe("a refused settings change", () => {
     await page.goto("/settings/model");
     const root = page.locator("[data-manage]");
     await expect(root).toHaveAttribute("data-loaded", "");
-    const combo = page.getByRole("combobox", { name: "Model" });
+    const combo = page.getByRole("combobox", { name: "AI Model" });
     await combo.fill("kimi");
     await page
       .getByRole("listbox", { name: "Models" })
@@ -50,7 +50,7 @@ test.describe("a refused settings change", () => {
     await expect(page.locator("[data-saved-note]")).toHaveCount(0);
 
     await page.goto("/settings");
-    await expect(page.getByRole("link", { name: /^Model/ }).locator("[data-hint]")).toHaveText(
+    await expect(page.getByRole("link", { name: /^AI Model/ }).locator("[data-hint]")).toHaveText(
       "Nebius, Default",
     );
   });

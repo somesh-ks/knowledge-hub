@@ -10,7 +10,6 @@
  */
 import type { ModelOption } from "../lib/combobox";
 import { isModelId } from "../lib/modelId";
-import { nextRunLine } from "../lib/nextRun";
 import { clearPendingChoice, readPendingChoice } from "../lib/pendingWriter";
 import { FLOATING, roomFloor } from "../lib/roomFloor";
 import { hasSaved } from "../lib/savedKey";
@@ -162,29 +161,6 @@ export async function mount(root: HTMLElement): Promise<void> {
     }
   };
 
-  /**
-   * The line under the title, worked out again from the fields on screen and the time it is now: the
-   * built line is a guess from the day the site was built, and from the values saved then.
-   */
-  const head = root.querySelector<HTMLElement>(".settings-head");
-  const nextLine = root.querySelector<HTMLElement>("[data-next]");
-  const profileId = root.querySelector<HTMLElement>("[data-profile]")?.dataset.profile;
-  const showNext = (values: FieldValues): void => {
-    if (!head || !nextLine || (profileId !== "daily" && profileId !== "weekly")) return;
-    const day = head.dataset.weeklyDay;
-    const text = nextRunLine(
-      profileId,
-      values,
-      {
-        lastRegularAt: head.dataset.lastRegular ?? null,
-        lastWeeklyAt: head.dataset.lastWeekly ?? null,
-        weeklyDay: day === undefined || day === "" ? null : Number(day),
-      },
-      new Date(),
-    );
-    if (text) nextLine.textContent = text;
-  };
-
   /** Topic chips all off: the episode has nothing to cover, which the hint under them says. */
   const noTopics = root.querySelector<HTMLElement>("[data-no-topics]");
   const showNoTopics = (): void => {
@@ -196,7 +172,6 @@ export async function mount(root: HTMLElement): Promise<void> {
     scopeChanges();
     showNoTopics();
     const now = fields();
-    showNext(now);
     const op = ops?.(JSON.parse(box.dataset.was ?? "{}") as FieldValues, now);
     if (op) changes.set("schedule", { op, el: box, now: JSON.stringify(now) });
     else changes.delete("schedule");

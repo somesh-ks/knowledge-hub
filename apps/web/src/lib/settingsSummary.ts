@@ -1,6 +1,6 @@
 /**
  * What the Settings rows say about the pages behind them, in a few words: "Every second day at
- * 07:00", "Sundays at 07:00", "Nebius, Default", "9 topics · 9 of 11 sources on". No DOM and only
+ * 07:00", "Sundays at 07:00", "Nebius, Default", "9 topics · 11 sources". No DOM and only
  * DOM-free imports (as nextRun.ts), so the build writes each line into the page and the browser
  * works the same line out again from an edit saved since the build (scripts/settingsSaved.ts).
  */
@@ -76,11 +76,9 @@ export function modelSummary(provider: Provider, model: string | null): string {
   return `${provider === "anthropic" ? "Anthropic" : "Nebius"}, ${writerLabel(model, provider)}`;
 }
 
-/** "9 topics · 11 sources", or "9 topics · 9 of 11 sources on" while some are off. */
-export function topicsSummary(topics: number, sources: number, on = sources): string {
-  const read =
-    on === sources ? plural(sources, "source") : `${on} of ${plural(sources, "source")} on`;
-  return `${plural(topics, "topic")} · ${read}`;
+/** "9 topics · 11 sources": how many there are, not how many are read. */
+export function topicsSummary(topics: number, sources: number): string {
+  return `${plural(topics, "topic")} · ${plural(sources, "source")}`;
 }
 
 /**

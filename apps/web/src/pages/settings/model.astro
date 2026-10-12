@@ -11,18 +11,18 @@ import "../../styles/podcast.css";
 const { model, provider } = await loadWriterView();
 ---
 
-<BaseLayout title="Model" view="settings" skipLabel="Skip to the model settings">
+<BaseLayout title="AI Model" view="settings" skipLabel="Skip to the model settings">
   <main id="main" tabindex="-1">
     {/* The writer: a vendor, then a model from that vendor's list. scripts/podcastPage.ts runs the
          combobox and records a change; autosave.ts sends it a moment later. */}
     <div class="manage" data-manage="podcast">
-      <SettingsHead title="Model" />
+      <SettingsHead title="AI Model" />
       <noscript>
         <p class="manage-note">Changing the model needs JavaScript, which is turned off in this browser.</p>
       </noscript>
 
       <fieldset class="manage-fields" data-fields>
-        <legend class="sr-only">Model</legend>
+        <legend class="sr-only">AI Model</legend>
         <div class="daily-panel" data-panel>
           <div class="daily-model">
             <div class="rows" data-models data-saved={model ?? ""} data-provider={provider}>
@@ -38,7 +38,7 @@ const { model, provider } = await loadWriterView();
               </div>
               <div class="settings-row">
                 <div class="settings-text">
-                  <label class="settings-label" for="model-input">Model</label>
+                  <label class="settings-label" for="model-input">AI Model</label>
                 </div>
                 <div class="daily-selects daily-selects-one daily-combo" data-combo>
                   <span class="manage-select">

@@ -82,6 +82,17 @@
   display: none;
 }
 
+/* Under the bar the art darkens toward its foot, so the bar reads on a pale cover as on a dark one.
+   Only a card that holds a bar gets it. */
+.card-link:has(> .card-progress:not([hidden])) .cover::before {
+  content: "";
+  position: absolute;
+  inset: auto 0 0;
+  height: 40%;
+  background: linear-gradient(to top, var(--color-scrim), transparent);
+  pointer-events: none;
+}
+
 .card-title {
   /* Two lines at most: an episode can carry a long title, and a tall card breaks the row. */
   display: -webkit-box;
@@ -182,20 +193,12 @@
   padding-block: 0 var(--space-4);
 }
 
-/* From 64rem a destination's title is the section size, as Settings and New episode are: Today's
-   date is the one display line. */
-@media (min-width: 64rem) {
-  main.library .library-title {
-    font-size: var(--font-size-section);
-  }
-}
-
 /* One column as wide as the page and no wider: the search field's own width must not widen it. */
 .library-tools {
   display: grid;
   grid-template-columns: minmax(0, 1fr);
   gap: var(--space-2);
-  padding-block-end: var(--space-4);
+  padding-block-end: var(--space-8);
 }
 
 /* The search field: a filled pill with the glyph inside it, as a search bar is in every Google app.
@@ -378,7 +381,7 @@
 .sort-field > select {
   height: var(--size-touch);
   margin-block: calc((var(--chip-height) - var(--size-touch)) / 2 - var(--stroke-hairline));
-  padding-inline: var(--space-3) var(--space-8);
+  padding-inline: var(--space-3) calc(var(--space-8) - var(--space-1));
   border: 0;
   border-radius: inherit;
   background: none;
@@ -390,9 +393,12 @@
   cursor: pointer;
 }
 
+/* The chevron is a hint at the end of the label, a step smaller than a toolbar glyph. */
 .sort-field > .icon {
   position: absolute;
-  inset-inline-end: var(--space-2);
+  inset-inline-end: var(--space-3);
+  inline-size: var(--space-4);
+  block-size: var(--space-4);
   pointer-events: none;
 }
 
@@ -607,7 +613,7 @@
 /* No results: the empty state's pattern under the toolbar. Its line names the way out that fits:
    other words while there is a query, the rest of the library while only a filter is on. */
 .library-empty {
-  padding-block: var(--space-4) var(--space-8);
+  padding-block: var(--space-8);
 }
 
 /* A title quotes the query cut short (quotedQuery), which may still wrap: two lines at most, so Clear

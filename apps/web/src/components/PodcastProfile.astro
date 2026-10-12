@@ -27,9 +27,8 @@ interface Props {
   /**
    * Every topic. A person can put Design, AI and Technology, and their own, in or out of this
    * podcast; `ids` are the topics each one stands for, which is what the schedule's skip list holds.
-   * A `locked` one (a general news topic) is shown but is in no scheduled podcast yet.
    */
-  topics?: readonly { id: string; name: string; ids: readonly string[]; locked?: boolean }[];
+  topics?: readonly { id: string; name: string; ids: readonly string[] }[];
   /** Daily only: the weekly podcast, whose day (0 = Sunday) has no daily episode while it is on. */
   weekly?: { enabled: boolean; day: number };
 }
@@ -51,8 +50,6 @@ const zones = SUPPORTED_TIMEZONES.map((zone) => ({
 // A topic is in the podcast unless every topic it stands for is on the skip list.
 const inScope = (ids: readonly string[]): boolean =>
   !ids.every((topic) => values.skipTopics.includes(topic));
-const choosable = topics.filter((topic) => !topic.locked);
-const locked = topics.filter((topic) => topic.locked);
 
 // Format and the Discussion voice are the profile's own and are saved with it. A briefing is still
 // narrated from its digest in one voice (scheduledVoice in server/narrate.ts), so they take effect
@@ -67,20 +64,24 @@ const VOICES = [
 <div class="podcast-profile" data-profile={id}>
   {
     id === "weekly" && (
-      <div class="rows podcast-enable">
-        <div class="settings-row">
-          <label class="settings-label" for="weekly-enabled">Weekly podcast</label>
-          <input
-            class="settings-switch"
-            id="weekly-enabled"
-            type="checkbox"
-            role="switch"
-            data-f="weekly.enabled"
-            checked={values.enabled}
-            autocomplete="off"
-          />
+      <Fragment>
+        <div class="rows podcast-enable">
+          <div class="settings-row">
+            <label class="settings-label" for="weekly-enabled">Weekly podcast</label>
+            <input
+              class="settings-switch"
+              id="weekly-enabled"
+              type="checkbox"
+              role="switch"
+              data-f="weekly.enabled"
+              checked={values.enabled}
+              autocomplete="off"
+            />
+          </div>
         </div>
-      </div>
+        {/* While it is off the switch is all there is: this line says why nothing else shows. */}
+        <p class="settings-hint podcast-hint" data-off>No weekly episodes while this is off.</p>
+      </Fragment>
     )
   }
 
@@ -181,27 +182,19 @@ const VOICES = [
     {
       topics.length > 0 ? (
         <fieldset class="filter-chips podcast-topics" aria-labelledby={`${id}-topics-head`} data-scope-chips>
-          {topics.map((topic) =>
-            topic.locked ? (
-              <label class="filter-chip" data-locked>
-                <input type="checkbox" disabled autocomplete="off" aria-describedby={`${id}-locked-note`} />
-                <Icon name="check" class="filter-chip-check" />
-                <span>{topic.name}</span>
-              </label>
-            ) : (
-              <label class="filter-chip">
-                <input
-                  type="checkbox"
-                  data-scope={id}
-                  data-scope-ids={topic.ids.join(" ")}
-                  checked={inScope(topic.ids)}
-                  autocomplete="off"
-                />
-                <Icon name="check" class="filter-chip-check" />
-                <span>{topic.name}</span>
-              </label>
-            ),
-          )}
+          {topics.map((topic) => (
+            <label class="filter-chip">
+              <input
+                type="checkbox"
+                data-scope={id}
+                data-scope-ids={topic.ids.join(" ")}
+                checked={inScope(topic.ids)}
+                autocomplete="off"
+              />
+              <Icon name="check" class="filter-chip-check" />
+              <span>{topic.name}</span>
+            </label>
+          ))}
         </fieldset>
       ) : (
         <p class="manage-quiet">No topics yet.</p>
@@ -209,15 +202,8 @@ const VOICES = [
     }
     {
       topics.length > 0 && (
-        <p class="settings-hint podcast-hint" data-no-topics hidden={choosable.length === 0 || choosable.some((topic) => inScope(topic.ids))}>
+        <p class="settings-hint podcast-hint" data-no-topics hidden={topics.some((topic) => inScope(topic.ids))}>
           No topics chosen, so {label} episodes have nothing to cover.
-        </p>
-      )
-    }
-    {
-      locked.length > 0 && (
-        <p class="settings-hint podcast-hint" id={`${id}-locked-note`}>
-          {locked.map((topic) => topic.name).join(", ")} are for episodes you make, not for {label} yet.
         </p>
       )
     }

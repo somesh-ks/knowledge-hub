@@ -3,18 +3,15 @@ import { join } from "node:path";
 import {
   type CustomDefaults,
   DEFAULT_SCHEDULE,
-  LastRunFile,
   type PodcastFormat,
   ScheduleFile,
-  STATE_FILES,
   scheduleZone,
   type WeeklySchedule,
 } from "@dispatch/core";
-import { nextBriefing, nextWeekly } from "./nextRun";
 import { findRepoRoot } from "./repoRoot";
 import { usesFixtures } from "./site";
 
-export { hourLabel, nextBriefing, nextWeekly, WEEKDAYS } from "./nextRun";
+export { hourLabel, WEEKDAYS } from "./nextRun";
 export { CADENCES, dailySummary, weeklySummary } from "./settingsSummary";
 
 /**
@@ -36,11 +33,6 @@ export interface ScheduleView {
   voiceIdB: string | null;
   weekly: WeeklySchedule;
   custom: CustomDefaults;
-  next: string;
-  nextWeekly: string;
-  /** The runs the next daily episode counts from, for the page to work the line out again. */
-  lastRegularAt: string | null;
-  lastWeeklyAt: string | null;
 }
 
 async function readJson(file: string): Promise<unknown> {
@@ -52,15 +44,12 @@ async function readJson(file: string): Promise<unknown> {
 }
 
 export async function loadScheduleView(
-  options: { root?: string; env?: Record<string, string | undefined>; now?: Date } = {},
+  options: { root?: string; env?: Record<string, string | undefined> } = {},
 ): Promise<ScheduleView> {
   const env = options.env ?? process.env;
   const repo = options.root ?? findRepoRoot(process.cwd(), env);
   const base = usesFixtures(env) ? join(repo, "apps", "web", "src", "fixtures") : repo;
-  const [scheduleFile, lastRunFile] = await Promise.all([
-    readJson(join(base, "config", "schedule.json")),
-    readJson(join(base, STATE_FILES.lastRun)),
-  ]);
+  const scheduleFile = await readJson(join(base, "config", "schedule.json"));
   const schedule = ScheduleFile.safeParse(scheduleFile);
   const {
     timezone: storedZone,
@@ -74,12 +63,6 @@ export async function loadScheduleView(
     weekly,
     custom,
   } = schedule.success ? schedule.data : DEFAULT_SCHEDULE;
-  const lastRun = LastRunFile.safeParse(lastRunFile);
-  const regular = lastRun.success ? lastRun.data.regular : undefined;
-  const counts = regular && (regular.outcome === "published" || regular.outcome === "nothing");
-  const weeklyRun = lastRun.success ? lastRun.data.weekly : undefined;
-  const lastRegularAt = counts ? regular.at : null;
-  const lastWeeklyAt = weeklyRun?.outcome === "published" ? weeklyRun.at : null;
   const timezone = scheduleZone(storedZone);
   return {
     timezone,
@@ -92,22 +75,5 @@ export async function loadScheduleView(
     voiceIdB,
     weekly,
     custom,
-    next: nextBriefing({
-      now: options.now ?? new Date(),
-      hour,
-      cadenceDays,
-      lastRegularAt,
-      lastWeeklyAt,
-      weeklyDay: weekly.enabled ? weekly.day : null,
-      zone: timezone,
-    }),
-    nextWeekly: nextWeekly({
-      now: options.now ?? new Date(),
-      day: weekly.day,
-      hour: weekly.hour,
-      zone: timezone,
-    }),
-    lastRegularAt,
-    lastWeeklyAt,
   };
 }

@@ -408,6 +408,9 @@ dialog.create-sheet[data-scrolled] .create-sheet-head {
   scroll-padding-block: var(--space-4)
     calc(var(--button-height) + var(--space-12) + var(--safe-bottom));
   scrollbar-width: thin;
+  /* The scrollbar's room is kept whether or not the form scrolls: opening More options must not
+     narrow the column and rewrap every control. */
+  scrollbar-gutter: stable;
 }
 
 /* The form fills the sheet's height, so a short form (More options closed) keeps its button at the
@@ -489,8 +492,8 @@ dialog.create-sheet .create-submit > .btn-primary {
 
   /* A side sheet: the title at the start, lined up with the form below it, and Close at the end. */
   .create-sheet-head {
-    padding-block-start: max(var(--space-3), var(--safe-top));
-    padding-inline: var(--space-6) var(--space-3);
+    padding-block-start: max(var(--space-4), var(--safe-top));
+    padding-inline: var(--space-8) var(--space-4);
   }
 
   .create-sheet-head > [data-create-close] {
@@ -499,7 +502,21 @@ dialog.create-sheet .create-submit > .btn-primary {
   }
 
   .create-sheet-body {
-    --sheet-gutter: var(--space-6);
+    --sheet-gutter: var(--space-8);
+  }
+
+  /* More air between the questions than the page's form has: a panel is read slowly, one group at a
+     time. The last group inside More options ends the form, so it keeps none below it. */
+  dialog.create-sheet .create-view .create-group {
+    padding-block-end: var(--space-8);
+  }
+
+  dialog.create-sheet .create-view .create-more-body > .create-group:last-child {
+    padding-block-end: 0;
+  }
+
+  dialog.create-sheet .create-view .create-more {
+    margin-block: var(--space-2) var(--space-6);
   }
 
   /* Every control runs to the panel's one right edge, as Voice and Title do. */
@@ -508,7 +525,7 @@ dialog.create-sheet .create-submit > .btn-primary {
   }
 
   dialog.create-sheet .create-submit {
-    padding-block-end: max(var(--space-6), var(--safe-bottom));
+    padding-block: var(--space-6) max(var(--space-8), var(--safe-bottom));
   }
 }
 

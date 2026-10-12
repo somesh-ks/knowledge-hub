@@ -38,7 +38,7 @@ describe("settings summaries", () => {
   });
 
   it("count only the sources that are on, and say Off for a topic switched off", () => {
-    expect(topicsSummary(9, 11, 9)).toBe("9 topics · 9 of 11 sources on");
+    expect(topicsSummary(9, 11)).toBe("9 topics · 11 sources");
     expect(topicsSummary(1, 1)).toBe("1 topic · 1 source");
     expect(sourcesSummary({ total: 3, on: 2, off: true })).toBe("Off");
     expect(sourcesSummary({ total: 3, on: 2 })).toBe("2 of 3 sources on");
