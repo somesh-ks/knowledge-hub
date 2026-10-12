@@ -916,6 +916,62 @@ test.describe("a refused lookup", () => {
   });
 });
 
+test.describe("the Add panel on a 390px phone", () => {
+  test.use({ viewport: { width: 390, height: 844 }, allowNetworkErrors: true });
+
+  const kindHeight = (page: Page) =>
+    page.locator(".topics-panel-kind").evaluate((node) => {
+      const probe = document.createElement("div");
+      probe.style.blockSize = "var(--segmented-height)";
+      document.body.append(probe);
+      const want = probe.getBoundingClientRect().height;
+      probe.remove();
+      return { got: node.getBoundingClientRect().height, want };
+    });
+  const fieldTop = (page: Page) =>
+    page
+      .getByLabel("Site or feed address")
+      .evaluate((node) => Math.round(node.getBoundingClientRect().top));
+
+  test("the Topic | Source switch is one segmented height, and the address never moves", async ({
+    page,
+  }) => {
+    await setup(page);
+    let fail = false;
+    await page.route("**/api/source-preview**", (route) =>
+      fail
+        ? route.fulfill({
+            status: 422,
+            contentType: "application/json",
+            body: JSON.stringify({ error: "unreachable", message: "x" }),
+          })
+        : route.fulfill({
+            status: 200,
+            contentType: "application/json",
+            body: JSON.stringify(PREVIEW),
+          }),
+    );
+    await open(page);
+    await page.getByRole("button", { name: "Add a topic or a source" }).click();
+    const topic = await kindHeight(page);
+    expect(topic.got).toBeCloseTo(topic.want, 0);
+    await page.getByRole("radio", { name: "Source" }).check();
+    const sheet = page.getByRole("dialog", { name: "Add a source" });
+    await expect(sheet).toBeVisible();
+    const source = await kindHeight(page);
+    expect(source.got).toBeCloseTo(source.want, 0);
+    const before = await fieldTop(page);
+    await sheet.getByLabel("Site or feed address").fill("newsroom.example");
+    await expect(sheet.getByText("Newsroom Example")).toBeVisible();
+    expect(await fieldTop(page)).toBe(before);
+    fail = true;
+    await sheet.getByLabel("Site or feed address").fill("nothing.example");
+    await expect(sheet.locator("#panel-source-url-error")).toContainText("could not be read");
+    expect(await fieldTop(page)).toBe(before);
+    expect((await kindHeight(page)).got).toBeCloseTo(source.want, 0);
+  });
+});
+
 /** Waits out a dialog's own transitions, so a scan never reads its text halfway through the fade in. */
 const settled = (dialog: Locator) =>
   dialog.evaluate((node) =>

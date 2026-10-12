@@ -540,15 +540,11 @@
   }
 }
 
-/* Topic or Source, under the title: the segmented control of Settings, across the panel. */
+/* Topic or Source, under the title: the segmented control of Settings, across the panel. It never
+   grows along the sheet's column, at any width (it swelled to a 350px oval on phones). */
 .topics-panel-kind {
+  flex: none;
   margin-block-start: var(--space-4);
-}
-
-@media (min-width: 40rem) {
-  .topics-panel-kind {
-    flex: none;
-  }
 }
 
 .topics-pane,

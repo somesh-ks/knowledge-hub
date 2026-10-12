@@ -244,6 +244,12 @@
   }
 }
 
+/* In a sheet the body is a column: a segmented control there keeps its own height, never the
+   column's spare room. */
+.create-sheet-body > .settings-choice {
+  flex: none;
+}
+
 .settings-segment {
   position: relative;
   display: grid;
