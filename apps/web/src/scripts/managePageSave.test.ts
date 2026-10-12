@@ -85,6 +85,32 @@ describe("flush", () => {
     expect(savedOps(kept, Date.now())).toEqual([{ op: "schedule.set", hour: 7 }]);
   });
 
+  it("tells a row that reports its own state when its request did not go, and when it did", async () => {
+    vi.stubGlobal(
+      "fetch",
+      vi.fn(async () => new Response(JSON.stringify({ status: 500 }), { status: 500 })),
+    );
+    const told: string[] = [];
+    const row = {
+      ...change({ op: "source.add", url: "https://a.example/feed.xml" }),
+      fail: () => void told.push("fail"),
+      done: () => void told.push("done"),
+    };
+    const changes = new Map([["a", row]]);
+    await flush(context(changes), "open");
+    // Refused: the row is told, and the change stays for the toast's Retry.
+    expect(told).toEqual(["fail"]);
+    expect(changes.has("a")).toBe(true);
+    expect(states).toEqual(["saving", "error"]);
+    vi.stubGlobal(
+      "fetch",
+      vi.fn(async () => new Response(JSON.stringify({ status: 202, run_id: 1 }), { status: 202 })),
+    );
+    await flush(context(changes), "open");
+    expect(told).toEqual(["fail", "done"]);
+    expect(changes.size).toBe(0);
+  });
+
   it("holds a change made inside the server's gap, quietly, and sends what gathered in one request", async () => {
     const changes = new Map([["a", change({ op: "source.set", id: "a", enabled: false })]]);
     await flush(context(changes), "open");

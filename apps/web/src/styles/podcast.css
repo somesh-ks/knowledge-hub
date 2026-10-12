@@ -364,9 +364,15 @@
   padding-block: var(--space-1);
 }
 
-/* It shares the row with its label on a phone as well: it shrinks before it would wrap under it. */
+/* It shares the row with its label on a phone as well: it shrinks before it would wrap under it. The
+   label keeps the room its word needs, so the model's name has the rest of the row: a name cut in two
+   halves of a row says a different model ("Claude Sonnet 5."). */
+.settings-row:has(> .daily-combo) > .settings-text {
+  flex: 0 0 auto;
+}
+
 .settings-row > .daily-combo {
-  flex: 0 1 12rem;
+  flex: 0 1 16rem;
   min-inline-size: 0;
   margin-inline-end: calc(var(--space-2) * -1);
 }
@@ -393,6 +399,7 @@
   border-radius: var(--button-radius);
   font-weight: var(--font-weight-medium);
   text-align: end;
+  text-overflow: ellipsis;
   transition: background-color var(--duration-hover) var(--ease-hover);
 }
 

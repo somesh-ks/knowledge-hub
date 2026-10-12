@@ -601,12 +601,27 @@ test.describe("a topic's page", () => {
     await expect(on).toBeChecked();
     await expect(on).toHaveAccessibleDescription("Used in episodes");
     const list = page.locator(".topic-sources[data-sources]");
-    const faded = () => list.evaluate((el) => Number(getComputedStyle(el).opacity) < 1);
-    expect(await faded()).toBe(false);
+    const look = () =>
+      list.evaluate((el) => {
+        const name = el.querySelector(".source-name");
+        const tile = el.querySelector(".source-icon");
+        return {
+          nameInk: name ? getComputedStyle(name).color : "",
+          tile: tile ? Number(getComputedStyle(tile).opacity) : 1,
+          list: Number(getComputedStyle(el).opacity),
+        };
+      });
+    const on_ = await look();
+    expect(on_.tile).toBe(1);
     await on.uncheck();
-    await expect(on).toHaveAccessibleDescription("Off. Its sources are not read");
+    await expect(on).toHaveAccessibleDescription("Off. Its sources are not read.");
     // Its sources take the off look, whatever their own boxes hold: none is read while it is off.
-    await expect.poll(faded).toBe(true);
+    // The rows still work, so they stay legible: the names go quiet and the tiles fade, and the list
+    // itself is not dimmed (a list at 1.6:1 cannot be read to be switched on again).
+    await expect.poll(async () => (await look()).tile).toBeLessThan(1);
+    const off = await look();
+    expect(off.nameInk).not.toBe(on_.nameInk);
+    expect(off.list).toBe(1);
     await expect(toastText(page)).toHaveText(SAVED);
     expect(ops(sent)).toMatchObject([
       { op: "topic.upsert", topic: { id: "world", enabled: false, section_id: "general" } },
@@ -958,6 +973,36 @@ test.describe("editing a topic", () => {
   });
 });
 
+test.describe("a refused suggested add", () => {
+  // The refusal is the point: the browser logs the 500 it was sent.
+  test.use({ allowNetworkErrors: true });
+  const DESIGN = "/settings/topics/design";
+  const suggestion = (page: Page, name: string) =>
+    page.locator("[data-suggested-sources] li.source-row", { hasText: name });
+
+  test("a refused add says so in its row and offers the plus again, and the plus sends it once more", async ({
+    page,
+  }) => {
+    const { sent } = await setup(page, [{ status: 500, body: { status: 500 } }]);
+    await open(page, DESIGN);
+    const row = suggestion(page, "Motion Weekly");
+    await row.getByRole("button", { name: "Add Motion Weekly" }).click();
+    // Refused: no check and no "Adding": the row says what happened, with the plus back.
+    await expect(row).toContainText("Not added. Try again.");
+    const again = row.getByRole("button", { name: "Add Motion Weekly" });
+    await expect(again).toBeEnabled();
+    await expect(again).not.toHaveClass(/is-added/);
+    // Pressed again, it is the same add, not a second one, and it goes through.
+    await again.click();
+    await expect(row).toContainText(ADDED);
+    const done = row.getByRole("button", { name: "Added Motion Weekly" });
+    await expect(done).toBeDisabled();
+    expect(
+      ops(sent).filter((op) => op.op === "source.add" && String(op.url).includes("motion-weekly")),
+    ).toHaveLength(2);
+  });
+});
+
 test.describe("a refused lookup", () => {
   test.use({ allowNetworkErrors: true });
   test("a source whose site has no icon shows its first letter instead", async ({ page }) => {
@@ -1055,6 +1100,39 @@ const settled = (dialog: Locator) =>
   dialog.evaluate((node) =>
     Promise.all(node.getAnimations().map((animation) => animation.finished)),
   );
+
+test("a long feed address never widens the Add source panel past the screen", async ({ page }) => {
+  await setup(page);
+  const feed = `https://newsroom.example/${"a-very-long-section-name/".repeat(3)}feed.xml`;
+  await page.route("**/api/source-preview**", (route) =>
+    route.fulfill({
+      status: 200,
+      contentType: "application/json",
+      body: JSON.stringify({
+        ...PREVIEW,
+        name: "A newsroom with a name that goes on and on and on",
+        feed_url: feed,
+      }),
+    }),
+  );
+  await page.setViewportSize({ width: 360, height: 740 });
+  await open(page);
+  await page.getByRole("button", { name: "Add a topic or a source" }).click();
+  await page.getByRole("radio", { name: "Source" }).check();
+  const sheet = page.getByRole("dialog", { name: "Add a source" });
+  await sheet.getByLabel("Site or feed address").fill("newsroom.example");
+  await expect(sheet.getByText("A newsroom with a name")).toBeVisible();
+  const spill = await sheet.evaluate((node) => {
+    const room = node.getBoundingClientRect().right;
+    const wide = [...node.querySelectorAll<HTMLElement>("*")]
+      .filter((each) => each.getBoundingClientRect().width > 0)
+      .filter((each) => each.getBoundingClientRect().right > room + 1)
+      .map((each) => each.className || each.tagName);
+    return { wide, sideways: node.scrollWidth > node.clientWidth + 1 };
+  });
+  expect(spill.wide).toEqual([]);
+  expect(spill.sideways).toBe(false);
+});
 
 test("has no accessibility violations: the list, a topic, and the panel open", async ({ page }) => {
   // Seven full scans: on the phone's slower emulation they need more than the default 30 seconds.

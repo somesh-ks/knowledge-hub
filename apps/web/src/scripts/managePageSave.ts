@@ -50,6 +50,10 @@ export interface Pending {
   with?: ConfigOp[];
   el: HTMLElement;
   now: string;
+  /** A control that shows its own outcome: told when its request was refused or did not go. */
+  fail?: () => void;
+  /** And when it was saved, whether by its own request or by a retry. */
+  done?: () => void;
 }
 
 /** What the toast shows: a removal that can still be undone, a save on its way, its outcome. */
@@ -169,6 +173,7 @@ function rehome(gone: Element): void {
 export function settle(batch: Batch, changes: Map<string, Pending>): void {
   for (const [key, pending] of batch.sent) {
     const { el, now } = pending;
+    pending.done?.();
     if (el.matches("li")) {
       // A topic added on the page: it stays listed, saved, until the build shows it in place.
       const note = el.querySelector(".manage-quiet");
@@ -379,6 +384,8 @@ export async function flush(
           passphrase = null;
         }
         failure = failureText(answer.status);
+        // A row that said Adding says so no more: the change stays for Retry, and the row for itself.
+        for (const [, pending] of batch.sent) pending.fail?.();
         break;
       }
       timeRefused ||= answer.timeRefused;

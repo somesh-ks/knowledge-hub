@@ -670,6 +670,25 @@ test.describe("the Model page", () => {
     expect((await list.boundingBox())?.height ?? 0).toBeGreaterThan(32);
   });
 
+  test("the model field has room for a long name, and never shows half of one", async ({
+    page,
+  }) => {
+    await open(page, "model");
+    const field = combo(page);
+    for (const name of ["Claude Sonnet 5.5", "DeepSeek V4 Pro 0813"]) {
+      await field.evaluate((node, value) => {
+        (node as HTMLInputElement).value = value;
+      }, name);
+      const room = await field.evaluate((node) => ({
+        needs: node.scrollWidth,
+        has: node.clientWidth,
+      }));
+      expect(room.needs, name).toBeLessThanOrEqual(room.has);
+    }
+    // A name longer than any row ends in an ellipsis, not mid-word.
+    await expect(field).toHaveCSS("text-overflow", "ellipsis");
+  });
+
   test("lists Automatic, the top models the live list has, then the rest", async ({ page }) => {
     await open(page, "model");
     await expect(combo(page)).toHaveValue("Default");

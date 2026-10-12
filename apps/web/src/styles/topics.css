@@ -709,6 +709,7 @@
    surface, as the score breakdown is. A lookup that fails says so under the address field. */
 .source-card {
   display: grid;
+  grid-template-columns: minmax(0, 1fr);
   grid-template-rows: auto auto 1fr;
   gap: var(--space-4);
   min-height: 14rem;
@@ -769,6 +770,7 @@
 
 .source-facts {
   display: grid;
+  grid-template-columns: minmax(0, 1fr);
   align-content: start;
   gap: var(--space-2);
   margin: 0;
@@ -844,8 +846,14 @@
 }
 
 /* A general topic switched off reads none of its sources: its list says so by its look, whatever
-   each source's own box holds. */
-.topic:has(#topic-on:not(:checked)) .topic-sources {
+   each source's own box holds. The rows still work (a box ticked now holds when the topic is turned
+   on), so they stay legible: the names go quiet and the tiles fade, and nothing drops below the
+   text contrast. */
+.topic:has(#topic-on:not(:checked)) .topic-sources .source-name {
+  color: var(--color-on-surface-muted);
+}
+
+.topic:has(#topic-on:not(:checked)) .topic-sources .source-icon {
   opacity: var(--opacity-disabled);
 }
 

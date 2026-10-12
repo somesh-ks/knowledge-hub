@@ -27,6 +27,9 @@ import { bandOf, element, iconNode } from "./topicsView";
 
 type Control = HTMLInputElement;
 
+/** What a suggested source's row says when its request was refused or did not go. */
+const NOT_ADDED = "Not added. Try again.";
+
 /**
  * What a control holds now. A pressed button is a boolean, a slider a number. A remove button keeps
  * its state in data-pressed, not aria-pressed: its name changes with it ("Remove X", "Undo removing
@@ -212,18 +215,33 @@ export function mountEditor(root: HTMLElement): Editor {
    */
   const addSuggested = (button: HTMLButtonElement, suggestion: SuggestedAdd): void => {
     const { name, feed_url, topic_id } = suggestion;
-    added += 1;
     const note = element("span", "source-note", "Adding");
     button.closest("li")?.querySelector(".source-meta")?.replaceChildren(note);
-    changes.set(`src${added}`, {
+    // One pending add per feed: the plus pressed again after a refusal sends that same one.
+    const earlier = [...changes].find(
+      ([, other]) => other.op.op === "source.add" && other.op.url === feed_url,
+    );
+    if (!earlier) added += 1;
+    const asAdded = (): void => {
+      button.disabled = true;
+      button.classList.add("is-added");
+      button.setAttribute("aria-label", `Added ${name}`);
+    };
+    changes.set(earlier?.[0] ?? `src${added}`, {
       op: { op: "source.add", url: feed_url, ...(topic_id ? { topic_ids: [topic_id] } : {}) },
       el: note,
       now: "",
+      // Refused or not sent: the row says so and offers the plus again, rather than keep a check.
+      fail: () => {
+        note.textContent = NOT_ADDED;
+        button.disabled = false;
+        button.classList.remove("is-added");
+        button.setAttribute("aria-label", `Add ${name}`);
+      },
+      done: asAdded,
     });
     autosave.now();
-    button.disabled = true;
-    button.classList.add("is-added");
-    button.setAttribute("aria-label", `Added ${name}`);
+    asAdded();
   };
 
   /** A source chosen by its address in the panel: a decision already made, so it goes now. */
