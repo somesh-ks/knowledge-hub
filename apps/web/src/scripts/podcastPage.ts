@@ -11,13 +11,22 @@
 import type { ModelOption } from "../lib/combobox";
 import { isModelId } from "../lib/modelId";
 import { nextRunLine } from "../lib/nextRun";
+import { clearPendingChoice, readPendingChoice, writePendingChoice } from "../lib/pendingWriter";
 import { hasSaved } from "../lib/savedKey";
+import type { Provider } from "../lib/settingsSummary";
 import type { ConfigOp } from "../types/contracts";
 import { mountAutosave } from "./autosave";
 import type { Pending } from "./managePageSave";
 import type { FieldValues, scheduleOp as ScheduleOp } from "./podcastProfiles";
 
-export type Provider = "nebius" | "anthropic";
+export {
+  clearPendingChoice,
+  PENDING_WRITER_KEY,
+  readPendingChoice,
+  type StoredWriterChoice,
+  writePendingChoice,
+} from "../lib/pendingWriter";
+export type { Provider } from "../lib/settingsSummary";
 
 export interface ModelEntry {
   id: string;
@@ -62,62 +71,8 @@ export function parseModelList(body: unknown): ModelEntry[] | null {
   return rows;
 }
 
-export const PENDING_WRITER_KEY = "dispatch:writer-pending";
 export const NEBIUS_MODELS_CACHE_KEY = "dispatch:nebius-models";
-const PENDING_MAX_AGE_MS = 15 * 60 * 1000;
 const CATALOG_MAX_AGE_MS = 60 * 60 * 1000;
-
-export interface StoredWriterChoice {
-  provider: Provider;
-  model: string | null;
-  timestamp: number;
-}
-
-export function readPendingChoice(
-  storage: Storage | null = typeof sessionStorage !== "undefined" ? sessionStorage : null,
-): StoredWriterChoice | null {
-  try {
-    const raw = storage?.getItem(PENDING_WRITER_KEY);
-    if (!raw) return null;
-    const data = JSON.parse(raw) as Partial<StoredWriterChoice>;
-    if (
-      (data.provider === "nebius" || data.provider === "anthropic") &&
-      (typeof data.model === "string" || data.model === null) &&
-      typeof data.timestamp === "number" &&
-      Date.now() - data.timestamp < PENDING_MAX_AGE_MS
-    ) {
-      return { provider: data.provider, model: data.model, timestamp: data.timestamp };
-    }
-  } catch {
-    // storage unavailable or malformed
-  }
-  return null;
-}
-
-export function writePendingChoice(
-  provider: Provider,
-  model: string | null,
-  storage: Storage | null = typeof sessionStorage !== "undefined" ? sessionStorage : null,
-): void {
-  try {
-    storage?.setItem(
-      PENDING_WRITER_KEY,
-      JSON.stringify({ provider, model, timestamp: Date.now() }),
-    );
-  } catch {
-    // storage unavailable
-  }
-}
-
-export function clearPendingChoice(
-  storage: Storage | null = typeof sessionStorage !== "undefined" ? sessionStorage : null,
-): void {
-  try {
-    storage?.removeItem(PENDING_WRITER_KEY);
-  } catch {
-    // storage unavailable
-  }
-}
 
 export function readCachedCatalog(
   storage: Storage | null = typeof sessionStorage !== "undefined" ? sessionStorage : null,
@@ -198,7 +153,10 @@ export async function mount(root: HTMLElement): Promise<void> {
   }
 
   /** The topic chips: each puts the topics it stands for in or out of this podcast (topic.scope). */
-  const scopeBoxes = root.querySelectorAll<HTMLInputElement>("input[data-scope]");
+  // A chip of a topic removed since the build is gone (savedView.ts): it neither counts nor sends.
+  const scopeBoxes = [...root.querySelectorAll<HTMLInputElement>("input[data-scope]")].filter(
+    (box) => box.dataset.gone === undefined,
+  );
   for (const box of scopeBoxes) box.dataset.was = String(box.checked);
   const scopeChanges = (): void => {
     for (const box of scopeBoxes) {
@@ -241,7 +199,7 @@ export async function mount(root: HTMLElement): Promise<void> {
   /** Topic chips all off: the episode has nothing to cover, which the hint under them says. */
   const noTopics = root.querySelector<HTMLElement>("[data-no-topics]");
   const showNoTopics = (): void => {
-    if (noTopics) noTopics.hidden = [...scopeBoxes].some((box) => box.checked);
+    if (noTopics) noTopics.hidden = scopeBoxes.some((box) => box.checked);
   };
 
   /** Records what the controls now differ by. `save` is false while a typed id is still being typed. */

@@ -1,6 +1,7 @@
 ---
 import { FORMATS, LENGTHS } from "../lib/createForm";
 import { CADENCES, hourLabel, WEEKDAYS } from "../lib/schedule";
+import { weeklyNote } from "../lib/settingsSummary";
 import Icon from "./Icon.astro";
 
 interface Props {
@@ -24,13 +25,14 @@ interface Props {
    * `ids` are the topics each one stands for, which is what the schedule's skip list holds.
    */
   topics?: readonly { id: string; name: string; ids: readonly string[] }[];
-  /** Daily only: the weekly podcast's day (0 = Sunday) while it is on, which has no briefing. */
-  weeklyDay?: number | null;
+  /** Daily only: the weekly podcast, whose day (0 = Sunday) has no daily episode while it is on. */
+  weekly?: { enabled: boolean; day: number };
 }
 
-const { id, values, topics = [], weeklyDay = null } = Astro.props;
+const { id, values, topics = [], weekly } = Astro.props;
 const label = id === "daily" ? "Daily" : "Weekly";
-const weeklyDayName = weeklyDay === null ? undefined : WEEKDAYS[weeklyDay];
+// Worked out again in the browser from the data on it when a weekly edit is saved (savedView.ts).
+const sundayNote = weekly ? weeklyNote(weekly) : null;
 
 const hours = Array.from({ length: 24 }, (_, value) => value);
 // A topic is in the podcast unless every topic it stands for is on the skip list.
@@ -111,9 +113,27 @@ const VOICES = [
       {
         id === "daily" && (
           <div class="settings-row">
-            <label class="settings-label" for="daily-cadence">Repeat</label>
+            <div class="settings-text">
+              <label class="settings-label" for="daily-cadence">Repeat</label>
+              <span
+                class="settings-hint"
+                id="daily-cadence-note"
+                data-weekly-note
+                data-weekly-enabled={String(weekly?.enabled ?? false)}
+                data-weekly-day={weekly?.day ?? 0}
+                hidden={!sundayNote}
+              >
+                {sundayNote}
+              </span>
+            </div>
             <span class="manage-select value-select">
-              <select class="manage-input" id="daily-cadence" data-f="daily.cadence" autocomplete="off">
+              <select
+                class="manage-input"
+                id="daily-cadence"
+                data-f="daily.cadence"
+                aria-describedby="daily-cadence-note"
+                autocomplete="off"
+              >
                 {CADENCES.map((cadence) => (
                   <option value={cadence.days} selected={cadence.days === values.cadenceDays}>
                     {cadence.label}
@@ -126,11 +146,6 @@ const VOICES = [
         )
       }
     </div>
-    {
-      id === "daily" && weeklyDayName && (
-        <p class="settings-hint podcast-hint">On {weeklyDayName}s the weekly episode replaces this one.</p>
-      )
-    }
   </section>
 
   <section class="podcast-section" aria-labelledby={`${id}-topics-head`}>

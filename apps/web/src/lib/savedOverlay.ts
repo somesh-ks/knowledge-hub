@@ -203,3 +203,58 @@ export function savedTopics(ops: readonly ConfigOp[]): SavedTopics {
   }
   return out;
 }
+
+/** Where a source shows (the id of the page that lists it: a topic, a group or Other), and whether it is read. */
+export interface SourceSpot {
+  page: string;
+  on: boolean;
+}
+
+/**
+ * Every source with the saved edits laid over `base`: switched on or off (source.set), moved to
+ * another topic (source.update), removed, or added (keyed by its address, and read). `pageOf` names
+ * the page that lists a topic's sources.
+ */
+export function savedSources(
+  base: Readonly<Record<string, SourceSpot>>,
+  ops: readonly ConfigOp[],
+  pageOf: (topicId: string | undefined) => string,
+): Record<string, SourceSpot> {
+  const out: Record<string, SourceSpot> = { ...base };
+  for (const op of ops) {
+    if (op.op === "source.set") {
+      const spot = out[op.id];
+      if (spot && op.enabled !== undefined) out[op.id] = { ...spot, on: op.enabled };
+    } else if (op.op === "source.update") {
+      const spot = out[op.id];
+      if (spot && op.topic_ids) out[op.id] = { ...spot, page: pageOf(op.topic_ids[0]) };
+    } else if (op.op === "source.remove") delete out[op.id];
+    else if (op.op === "source.add")
+      out[`add:${op.url}`] = { page: pageOf(op.topic_ids?.[0]), on: true };
+  }
+  return out;
+}
+
+/** How many sources a page lists, and how many of them are read. Every page when `page` is left out. */
+export function sourceCounts(
+  spots: Readonly<Record<string, SourceSpot>>,
+  page?: string,
+): { total: number; on: number } {
+  const listed = Object.values(spots).filter((spot) => page === undefined || spot.page === page);
+  return { total: listed.length, on: listed.filter((spot) => spot.on).length };
+}
+
+/**
+ * How many topics the Topics list shows once the saved edits land: `shown` (the topics it was built
+ * with) less those removed, plus those added that are not among `taken` (every id already in use).
+ */
+export function savedTopicCount(
+  shown: readonly string[],
+  taken: readonly string[],
+  ops: readonly ConfigOp[],
+): number {
+  const saved = savedTopics(ops);
+  const kept = shown.filter((id) => !saved.removedTopics.has(id)).length;
+  const known = new Set([...shown, ...taken]);
+  return kept + [...saved.topics.keys()].filter((id) => !known.has(id)).length;
+}

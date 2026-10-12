@@ -9,40 +9,17 @@ import {
   STATE_FILES,
   type WeeklySchedule,
 } from "@dispatch/core";
-import { hourLabel, nextBriefing, nextWeekly, WEEKDAYS } from "./nextRun";
+import { nextBriefing, nextWeekly } from "./nextRun";
 import { findRepoRoot } from "./repoRoot";
 import { usesFixtures } from "./site";
 
 export { hourLabel, nextBriefing, nextWeekly, WEEKDAYS } from "./nextRun";
+export { CADENCES, dailySummary, weeklySummary } from "./settingsSummary";
 
 /**
  * What the Schedule page shows, read from the repository at build time. A missing or invalid
  * config/schedule.json means the defaults, which is what the engine runs on too.
  */
-
-export const CADENCES = [
-  { days: 1, label: "Every day" },
-  { days: 2, label: "Every second day" },
-  { days: 3, label: "Every third day" },
-  { days: 7, label: "Once a week" },
-] as const;
-
-/**
- * What each row of the Settings index says about the page behind it, in a few words worked out when
- * the site is built: "Every second day at 07:00", and "Sundays at 07:00" or "Off".
- */
-export function dailySummary(input: { hour: number; cadenceDays: number }): string {
-  const cadence =
-    CADENCES.find((entry) => entry.days === input.cadenceDays)?.label ??
-    `Every ${input.cadenceDays} days`;
-  return `${cadence} at ${hourLabel(input.hour)}`;
-}
-
-export function weeklySummary(input: { enabled: boolean; day: number; hour: number }): string {
-  const day = WEEKDAYS[input.day];
-  if (!input.enabled || !day) return "Off";
-  return `${day}s at ${hourLabel(input.hour)}`;
-}
 
 export interface ScheduleView {
   hour: number;

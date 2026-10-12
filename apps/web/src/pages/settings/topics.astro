@@ -35,13 +35,26 @@ const rows = [
     id: group.id,
     name: group.name,
     hint: topicSummary(null, ...counts(group.id)),
+    members: group.members.map((member) => member.id),
+    enabled: undefined,
+    never: undefined,
   })),
   ...[...layout.own, ...layout.general].map((topic) => ({
     id: topic.id,
     name: topic.name,
     hint: topicSummary(topic, ...counts(topic.id)),
+    members: [topic.id],
+    enabled: String(topic.enabled),
+    never: topic.never_publish ? "" : undefined,
   })),
 ].sort(byName);
+// Where every source shows and whether it is read, so a source switched off, moved, removed or
+// added since the build is counted in the rows' lines (savedView.ts recounts them).
+const spots = Object.fromEntries(
+  [...layout.sources].flatMap(([page, list]) =>
+    list.map((source) => [source.id, { page, on: source.enabled }]),
+  ),
+);
 const others = layout.sources.get(OTHER_ID) ?? [];
 const choices = topicChoicesOf(layout);
 ---
@@ -79,13 +92,20 @@ const choices = topicChoicesOf(layout);
         <ul class="topic-sources topics-added" role="list" data-sources data-added aria-label="Sources being added"></ul>
         <ul class="rows manage-queued" role="list" data-queued aria-label="Topics being added"></ul>
 
-        <div class="rows topics-index">
+        <div class="rows topics-index" data-spots={JSON.stringify(spots)}>
           {
             rows.map((row) => (
-              <a class="row-action" href={`/settings/topics/${row.id}`}>
+              <a
+                class="row-action"
+                href={`/settings/topics/${row.id}`}
+                data-page={row.id}
+                data-members={row.members.join(" ")}
+                data-enabled={row.enabled}
+                data-never={row.never}
+              >
                 <span class="settings-text">
                   <span class="settings-label">{row.name}</span>
-                  <span class="settings-hint">{row.hint}</span>
+                  <span class="settings-hint" data-hint>{row.hint}</span>
                 </span>
                 <Icon name="chevronRight" />
               </a>
@@ -93,10 +113,10 @@ const choices = topicChoicesOf(layout);
           }
           {
             others.length > 0 && (
-              <a class="row-action" href={`/settings/topics/${OTHER_ID}`}>
+              <a class="row-action" href={`/settings/topics/${OTHER_ID}`} data-page={OTHER_ID} data-plain>
                 <span class="settings-text">
                   <span class="settings-label">Other</span>
-                  <span class="settings-hint">{plural(others.length, "source")}</span>
+                  <span class="settings-hint" data-hint>{plural(others.length, "source")}</span>
                 </span>
                 <Icon name="chevronRight" />
               </a>

@@ -424,6 +424,54 @@ test.describe("saved, before the build", () => {
     await expect(note(page)).toHaveCount(0);
   });
 
+  test("the index, the Topics list and Daily say what was saved on the other pages", async ({
+    page,
+  }) => {
+    const sent = await mockConfig(page);
+    await page.goto("/settings");
+    const ops = [
+      { op: "schedule.set", hour: 9, weekly: { day: 1 } },
+      { op: "topic.remove", id: "audio_interfaces" },
+      { op: "source.add", url: "https://pixel.example/feed.xml", topic_ids: ["product_design"] },
+    ];
+    await page.evaluate(
+      ([key, list]) => {
+        localStorage.setItem(key as string, JSON.stringify([{ at: Date.now(), ops: list }]));
+        sessionStorage.setItem(
+          "dispatch:writer-pending",
+          JSON.stringify({
+            provider: "anthropic",
+            model: "claude-haiku-5-5",
+            timestamp: Date.now(),
+          }),
+        );
+      },
+      [KEY, ops] as const,
+    );
+    await page.reload();
+    const hint = (name: string) =>
+      page.getByRole("link", { name: new RegExp(`^${name}`) }).locator("[data-hint]");
+    await expect(hint("Daily")).toHaveText("Every second day at 09:00");
+    await expect(hint("Weekly")).toHaveText("Mondays at 07:00");
+    await expect(hint("Topics and sources")).toHaveText("8 topics · 10 of 12 sources on");
+    await expect(hint("Model")).toHaveText("Anthropic, Claude Haiku 5.5");
+
+    await page.goto("/settings/topics");
+    await expect(page.locator('a[data-page="design"] [data-hint]')).toHaveText("3 sources");
+    await expect(page.locator('a[data-page="audio_interfaces"]')).toBeHidden();
+
+    await open(page, "daily");
+    // The removed topic has no chip, and the Repeat note follows the weekly podcast to Monday.
+    await expect(page.getByRole("checkbox", { name: "Audio interfaces" })).toBeHidden();
+    await expect(page.locator("[data-weekly-note]")).toHaveText(
+      "On Mondays the weekly episode replaces this one.",
+    );
+    await expect(page.locator(".settings-head")).toHaveAttribute("data-weekly-day", "1");
+    // Nothing is sent on its own: no scope for the removed topic, no schedule again.
+    await page.waitForTimeout(1500);
+    expect(sent).toEqual([]);
+  });
+
   test("shows nothing once the build has the saved value, or once the edit is too old", async ({
     page,
   }) => {

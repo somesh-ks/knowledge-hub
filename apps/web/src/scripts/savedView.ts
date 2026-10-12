@@ -12,12 +12,16 @@ import { SAVED_KEY } from "../lib/savedKey";
 import {
   type FieldValues,
   parseSaved,
+  type SourceSpot,
   savedControl,
   savedFields,
   savedOps,
   savedScope,
+  savedSources,
   savedTopics,
+  sourceCounts,
 } from "../lib/savedOverlay";
+import { plural, sourcesSummary, weeklyNote } from "../lib/settingsSummary";
 import {
   type CatalogSource,
   cadenceLabel,
@@ -34,6 +38,9 @@ import { element, iconNode } from "./topicsView";
 
 /** The row a topic waits in until the build (ManageChrome.astro), among the page's templates. */
 export const QUEUED_ROW = "template:not(#topics-panel-template, #suggested-template)";
+
+/** The page that lists the sources no topic page shows (OTHER_ID in lib/topicPages.ts). */
+const OTHER_PAGE = "other";
 
 export const SAVED_NOTE = "Saved. It takes effect after the next update, about a minute.";
 
@@ -82,15 +89,54 @@ export function overlayPodcast(
     } else if (control.type === "radio") control.checked = control.value === value;
     else control.checked = value === "true";
   }
+  const { removedTopics } = savedTopics(ops);
   for (const box of root.querySelectorAll<HTMLInputElement>("input[data-scope]")) {
     const ids = (box.dataset.scopeIds ?? "").split(" ").filter(Boolean);
+    // A topic removed since the build has no chip: the editor never sends a scope for it.
+    if (ids.length > 0 && ids.every((id) => removedTopics.has(id))) {
+      box.dataset.gone = "";
+      const chip = box.closest<HTMLElement>("label");
+      if (chip) chip.hidden = true;
+      shown = true;
+      continue;
+    }
     const inScope = savedScope(ops, box.dataset.scope ?? "", ids);
     if (inScope === undefined || inScope === box.checked) continue;
     box.checked = inScope;
     shown = true;
   }
+  shown = overlayWeeklyDay(root, ops) || shown;
   if (shown) markSaved(root);
   return shown;
+}
+
+/**
+ * Daily, after a weekly edit: the Repeat row's note and the day the next line skips follow the
+ * weekly podcast's saved day and switch, not the ones the page was built with.
+ */
+function overlayWeeklyDay(root: HTMLElement, ops: readonly ConfigOp[]): boolean {
+  const note = root.querySelector<HTMLElement>("[data-weekly-note]");
+  if (!note) return false;
+  const baked: FieldValues = {
+    "weekly.enabled": note.dataset.weeklyEnabled ?? "false",
+    "weekly.day": note.dataset.weeklyDay ?? "0",
+  };
+  const saved = savedFields(baked, ops);
+  if (Object.keys(saved).length === 0) return false;
+  const now = { ...baked, ...saved };
+  const enabled = now["weekly.enabled"] === "true";
+  const day = Number(now["weekly.day"]);
+  note.dataset.weeklyEnabled = String(enabled);
+  note.dataset.weeklyDay = String(day);
+  const text = weeklyNote({ enabled, day });
+  note.textContent = text ?? "";
+  note.hidden = text === null;
+  const head = root.querySelector<HTMLElement>(".settings-head");
+  if (head) {
+    if (enabled) head.dataset.weeklyDay = String(day);
+    else delete head.dataset.weeklyDay;
+  }
+  return true;
 }
 
 // -------------------------------------------------------------------------------------- topic pages
@@ -177,7 +223,54 @@ export function overlayTopics(root: HTMLElement, ops = readSaved()): boolean {
     }
   }
   shown = addTopics(root, saved.topics, saved.feeds) || shown;
+  shown = recount(root, ops, saved.topics) || shown;
   if (shown) markSaved(root);
+  return shown;
+}
+
+/**
+ * On the list: each row's line counts the sources it will list once the build lands (switched off,
+ * moved, removed or added since), and says "Off" for a topic switched off.
+ */
+function recount(
+  root: HTMLElement,
+  ops: readonly ConfigOp[],
+  topics: Map<string, Upsert>,
+): boolean {
+  const list = root.querySelector<HTMLElement>("[data-spots]");
+  if (!list) return false;
+  let base: Record<string, SourceSpot> = {};
+  try {
+    base = JSON.parse(list.dataset.spots ?? "{}");
+  } catch {
+    return false;
+  }
+  const rows = [...list.querySelectorAll<HTMLElement>("a.row-action[data-page]")];
+  const pages = new Map<string, string>();
+  for (const row of rows)
+    for (const id of (row.dataset.members ?? "").split(" ").filter(Boolean))
+      pages.set(id, row.dataset.page ?? "");
+  const spots = savedSources(base, ops, (id) => pages.get(id ?? "") ?? OTHER_PAGE);
+  let shown = false;
+  for (const row of rows) {
+    const page = row.dataset.page ?? "";
+    const { total, on } = sourceCounts(spots, page);
+    const built = row.dataset.enabled;
+    const enabled = topics.get(page)?.enabled ?? built !== "false";
+    const text =
+      row.dataset.plain !== undefined
+        ? plural(total, "source")
+        : sourcesSummary({
+            total,
+            on,
+            off: built !== undefined && !enabled,
+            never: row.dataset.never !== undefined,
+          });
+    const hint = row.querySelector("[data-hint]");
+    if (!hint || hint.textContent === text) continue;
+    hint.textContent = text;
+    shown = true;
+  }
   return shown;
 }
 

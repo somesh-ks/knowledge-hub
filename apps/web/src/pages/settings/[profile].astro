@@ -93,7 +93,7 @@ const { title, note, values } = PAGES[profile];
             id={profile}
             values={values}
             topics={scopeTopics}
-            weeklyDay={schedule.weekly.enabled ? schedule.weekly.day : null}
+            weekly={profile === "daily" ? schedule.weekly : undefined}
           />
         </div>
       </fieldset>

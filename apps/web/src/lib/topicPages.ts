@@ -1,5 +1,6 @@
 import { GENERAL_TOPICS, TOPIC_GROUPS, topicGroupOf } from "@dispatch/core";
 import type { ManageSource, ManageTopic } from "./manage";
+import { sourcesSummary } from "./settingsSummary";
 import type { TopicWords } from "./sourceCatalog";
 
 /**
@@ -50,9 +51,7 @@ export function sourcesByTopic(
   return groups;
 }
 
-export function plural(count: number, word: string): string {
-  return `${count} ${word}${count === 1 ? "" : "s"}`;
-}
+export { plural } from "./settingsSummary";
 
 /** The general news topics in the order the app lists them (GENERAL_TOPICS), not by name. */
 export function generalOf(topics: readonly ManageTopic[]): ManageTopic[] {
@@ -64,20 +63,16 @@ export function generalOf(topics: readonly ManageTopic[]): ManageTopic[] {
 }
 
 /**
- * What a topic's row says about its sources, counting the ones that are read: "3 sources" when all
- * are on, "2 of 3 sources on" when some are off, "No sources yet" with none; "Off, ..." for a topic
- * that is off and "Never in a briefing" for one that never publishes. One of the owner's three
- * topics (a group, no topic of its own) passes null. The weight is on the topic's page, not here.
+ * What a topic's row says about its sources (sourcesSummary): "2 of 3 sources on", "Off" for a
+ * topic that is off. One of the owner's three topics (a group, no topic of its own) passes null.
  */
 export function topicSummary(topic: ManageTopic | null, total: number, on = total): string {
-  if (topic?.never_publish) return "Never in a briefing";
-  const sources =
-    total === 0
-      ? "No sources yet"
-      : on === total
-        ? plural(total, "source")
-        : `${on} of ${plural(total, "source")} on`;
-  return topic && !topic.enabled ? `Off, ${sources}` : sources;
+  return sourcesSummary({
+    total,
+    on,
+    off: topic ? !topic.enabled : false,
+    never: topic?.never_publish === true,
+  });
 }
 
 /** One of the owner's three topics (core TOPIC_GROUPS) as its page shows it. */

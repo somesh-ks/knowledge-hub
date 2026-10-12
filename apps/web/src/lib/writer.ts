@@ -1,9 +1,11 @@
 import { readFile } from "node:fs/promises";
 import { join } from "node:path";
 import { DEFAULT_WRITER, WriterFile } from "@dispatch/core";
-import { CLAUDE_MODELS, nebiusName } from "./modelId";
 import { findRepoRoot } from "./repoRoot";
+import { writerLabel } from "./settingsSummary";
 import { usesFixtures } from "./site";
+
+export { writerLabel } from "./settingsSummary";
 
 /**
  * The writer settings the Model page shows, read from the repository at build time. A missing or
@@ -15,18 +17,6 @@ export interface WriterView {
   model: string | null;
   /** What the Settings row says: a top model's name, the id's last segment, or "Default". */
   label: string;
-}
-
-/** The name the Settings row and the Model field show, the same one the model list uses. */
-export function writerLabel(
-  model: string | null,
-  provider: "nebius" | "anthropic" = "nebius",
-): string {
-  if (model === null) return "Default";
-  if (provider === "anthropic") {
-    return CLAUDE_MODELS.find((entry) => entry.id === model)?.label ?? model;
-  }
-  return nebiusName(model);
 }
 
 export async function loadWriterView(
