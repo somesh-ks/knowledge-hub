@@ -339,6 +339,12 @@
   opacity: 1;
 }
 
+/* Four segments leave no room for the check beside the words ("10 min" met its thumb's edges): the
+   thumb and its ink mark the choice alone. */
+.settings-choice:has(.settings-segment:nth-of-type(4)) .settings-segment > span::before {
+  display: none;
+}
+
 /*
  * One raised thumb, ringed so the choice never depends on colour alone, slides under the labels. The
  * segments are equal columns, so its width is one column and its place is a multiple of that width:

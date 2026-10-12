@@ -433,6 +433,14 @@
   outline-offset: var(--stroke-ring-gap);
 }
 
+/* From 40rem one list keeps one row height: a segmented row (Format, Length) takes a select row's
+   padding, so its 48px control sits in a 56px row as the selects do. */
+@media (min-width: 40rem) {
+  .podcast-profile .rows > .settings-row[data-layout="choice"] {
+    padding-block: var(--space-1);
+  }
+}
+
 /* Until the script has mounted, the controls keep their places and take no input. */
 .manage:not([data-ready]) .daily-panel :is(select, input) {
   pointer-events: none;

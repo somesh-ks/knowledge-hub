@@ -246,6 +246,20 @@ test.describe("the profile pages", () => {
     await expect(second).toBeVisible();
   });
 
+  test("from 40rem every row of Daily is one height, and the Sunday note is Repeat's own line", async ({
+    page,
+  }) => {
+    await open(page, "daily");
+    await expect(page.locator("#daily-cadence")).toHaveAccessibleDescription(
+      "On Sundays the weekly episode replaces this one.",
+    );
+    if ((page.viewportSize()?.width ?? 0) < 640) return;
+    const heights = await page
+      .locator(".podcast-profile .rows > .settings-row")
+      .evaluateAll((rows) => rows.map((row) => Math.round(row.getBoundingClientRect().height)));
+    expect(Math.max(...heights) - Math.min(...heights), heights.join(" ")).toBeLessThanOrEqual(2);
+  });
+
   test("the two voice selects end at one edge whether or not a sample button shows", async ({
     page,
   }) => {
