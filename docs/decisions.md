@@ -100,6 +100,9 @@ D1 to D9 date from plan v2 (2026-10-05). D10 to D25 date from 2026-10-06. Reason
 | D88 | On a reading page the section strip is opaque, a focused headline is ringed as one block, the playing hero Play is tonal, and an older briefing offers Share only | active; amends D77 |
 | D89 | The time zone selector is withdrawn until the engine counts in a chosen zone; Settings summaries follow what was saved; episodes on request are Episodes | active; amends D71 and D79 |
 | D90 | The open player has one left edge, an even rhythm and two weights; its lists are one Tab stop each; a story is a story everywhere; Back goes back | active; amends D85 |
+| D91 | Daily and Weekly offer only what a briefing uses, and an edit made inside the server's gap survives leaving the page | active; amends D74 and D79 |
+| D92 | The rundown is no story, a listener's move never scrolls the page, the open page owns the transport, and a glyph says what its button does | active; amends D85 and D90 |
+| D93 | A tab's jump puts the app bar away first, a headline word kept whole stays atomic, and offline switches off every control that starts a run | active; amends D88 |
 
 ---
 
@@ -953,3 +956,44 @@ D1 to D9 date from plan v2 (2026-10-05). D10 to D25 date from 2026-10-06. Reason
 - Cost: the two-column layout from 64rem has no safe-top band; Up next's second line is not yet the Library's facts line (the player only knows `prev_id`; the page build would need to pass a `prev_facts` string); the black-translucent status bar style is unchecked on a real iPhone in the light theme.
 - Rejected: a hover layer on the stretched dock link (it fired from the gaps between controls); keeping "Chapters" for a list that is also called stories in four other places.
 - Amends: D85 (the Chapters name and the player's nouns).
+
+## D91: Daily and Weekly offer only what a briefing uses, and an edit made inside the server's gap survives leaving the page
+
+- Date: 2026-10-12
+- Decision:
+  - Daily and Weekly show Time (Day on Weekly), Repeat, Topics, Length and one Voice. The Format segment, the Voices head and the second voice are gone from both pages. A briefing is narrated from its digest as written, so Format was saved and not applied and the second voice was the discussion's; New episode keeps both for episodes. The stored fields (`type`, `voice_id_b`) and the engine are untouched, so nothing migrates and the rows can return when a briefing is built as a discussion.
+  - A save that waits out the server's ten second gap now outlives leaving the page. The toast's popover calls threw on a toast the page swap had removed, before the request was sent, so the second of two changes made inside the gap was lost while "Saved" showed. Every toast call is guarded and none can skip the request; the toast says "Saving" as soon as a change waits; leaving the page writes the waiting edits to storage marked `pending` (shown for 90 s at most, dropped when their request fails), so the next page shows them ("Saving. Live in about a minute."); changes made on that next page while the run is still busy are sent after it.
+  - Remove topic replaces the removed topic's page in history, and a removed topic's page opened before the build replaces itself with the list.
+  - Look: every segmented choice marks its chosen option with a check (Length did not); controls share one width of 22rem on Settings, podcast and topic pages; link rows end at the edge and read like their neighbours (Edit topic ends in a pencil, a new glyph in `tokens/glyphs.json`); a custom topic's single Weight row has Design's shape; a suggested source is a three-line row of 88px from 40rem and says "Added" once; a switched-off general topic's counts and sources read as off (the Topics index counts a source as on only while its topic is on); the Add panel says "All podcasts" when all three are ticked.
+- Why: the fourth critic round found that changing two things and pressing Back lost the second edit while the page said Saved ("the settings revert" again), and that Format on Daily was a choice the product ignored, which the owner has called slop.
+- Cost: Format and a second voice cannot be set on Daily or Weekly until a briefing can be a discussion (the daily Type item under Not working stands). A pending edit shows for up to 90 s even if its request never goes (a tab closed in the gap).
+- Rejected: leaving the Format row with a note (a control that explains itself, D89); keeping the second voice on a Daily that never uses it.
+- Amends: D74 (the second voice's place on Daily and Weekly) and D79 (the quiet wait inside the gap no longer loses an edit).
+
+## D92: The rundown is no story, a listener's move never scrolls the page, the open page owns the transport, and a glyph says what its button does
+
+- Date: 2026-10-12
+- Decision:
+  - The rundown before story 1 belongs to no story. `itemIndexAt` is -1 until the first story starts; there the bar and the page say what the recording is ("Discussion · 2 min", also for a recording of one story, which no longer reads "Story 1 of 1"), no Stories row is current and the scrub bubble shows the time alone. Next goes to story 1; Previous goes to 0:00 and is disabled there. A story is found from the exact playhead, not the floored second (a story starting at 0:18.6 was placed in the rundown at 0:18).
+  - Below 64rem a move made with the controls (a story step, a scrubber key or drag) never scrolls the page: a press or key on the controls holds the transcript's follow as a wheel or a touch does, and the follow does nothing while the transcript is below the fold. From 64rem the list scrolls in its own column and keeps following.
+  - One transport at a time: from 40rem the bar under the open page shows only what is playing (its transport is hidden in place; with a mouse from 64rem it keeps its clock beside the seek line), and the page shows its five controls with a mouse too, so one Pause and one filled play control are on screen.
+  - The page's story line is one line with one line of room (an ellipsis for a longer headline; the full one is in the list and on the bar), kept off in an error; in the rundown the phone page keeps the room, so nothing moves when story 1 starts.
+  - The run indicator's bar starts from empty when the run id changes (a Try again no longer starts at the failed run's two thirds), and its announcement is a hidden status line that holds only the line, not the card with its buttons.
+  - A glyph says what its button does: refresh for "Try again" (error), replay for "Play again" (ended), play when paused or idle, pause when playing, on the page's disc and on the bar, from one rule (`transportGlyph`). A list title that stands alone ("Up next", "Stories" on a briefing) is plain text with no rule, so it no longer reads as a tab row with one tab. A story's play chip keeps one width (`min-inline-size: 7rem`) so the publisher beside it does not move as it plays.
+- Why: the fourth critic round measured one tap on Next scrolling a phone page by 601px, so a second tap seeked backwards; Next skipping story 1 and Previous going forward in every episode; two Pause discs under the open page at 820 and 1280; and a "Try again" button that drew a play triangle.
+- Cost: the bar's Previous and Next are gone under the open page from 40rem (the page's row and the Stories list step stories). The first-load JavaScript grew by 0.8 KB (108.0 to 108.8 of 110 KB). The phone page keeps empty room under the title during the rundown.
+- Rejected: taking only the fill off the bar's play disc (still two Pause controls); a story's chip with the length as its label in every state (it hides which story is playing).
+- Amends: D85 (the position label and the story lookup) and D90 (the dock's duplicates were removed for 64rem with touch only).
+
+## D93: A tab's jump puts the app bar away first, a headline word kept whole stays atomic, and offline switches off every control that starts a run
+
+- Date: 2026-10-12
+- Decision:
+  - A section tab's jump down sent the app bar away after the browser had placed the heading, so the strip rode up and the heading ended 56px too low (81px under the strip, not 24). The header now hears of the jump first (`dispatch:jump`, announced in the capture phase, since Astro's router starts the jump in the bubble phase), puts the bar away for a jump down and holds the bar as it is until `scrollend` (or 600 ms); a jump that goes nowhere leaves the bar as it was.
+  - The word kept whole in a headline (a hyphenated name) is an `inline-block`, not `white-space: nowrap`, which made `text-wrap: balance` count the line as unbreakable and left lopsided first lines.
+  - Offline, every control that starts a run is disabled and reads as disabled (a surface-container fill with disabled ink): New episode wherever it shows, the hero menu's New briefing, an episode's Regenerate and Delete. The offline banner starts on the page's first line from 64rem, and the offline page keeps an icon (wifi) and says "Back online" in its title when the connection returns.
+  - Typing in a field does not switch the input mode to keyboard (the Library search drew the keyboard ring while the pointer had focus); the search pill lifts (a raised shadow, `--shadow-raised`) while focused.
+- Why: the fourth critic round measured the 81px landing at 360, 390 and 768, four lopsided headlines out of seven with a hyphenated word, a 1.04:1 label on a disabled New episode while three other run starters stayed live, and a banner 40px above the page's first line.
+- Cost: a jump down from the top of a page also hides the app bar, which returns on the next scroll up; the offline wifi glyph's path was composed by hand because the icon CDN was unreachable (`--fetch` replaces it with Phosphor's own).
+- Rejected: U+2011 for the unbreakable hyphen (Google Sans Flex has no glyph for it).
+- Amends: D88 (the strip's landing and its bar).
