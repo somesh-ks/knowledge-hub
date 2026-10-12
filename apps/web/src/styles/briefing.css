@@ -170,6 +170,12 @@ html:has(.briefing > .tabs-bar) {
   }
 }
 
+/* A hyphenated word in a headline stays whole: balanced wrapping would break it at the hyphen
+   ("mid- / range"). Item.astro and EpisodeView.astro mark them. */
+:is(.story-title, .episode-highlight-title) .no-break {
+  white-space: nowrap;
+}
+
 .story-link:active {
   color: var(--color-accent-pressed);
 }

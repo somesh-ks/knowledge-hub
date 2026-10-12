@@ -1,6 +1,7 @@
 ---
 import type { DigestItem } from "@dispatch/core";
 import { publisherOf } from "../lib/episodeHighlights";
+import { headlineParts } from "../lib/format";
 import { sourceHost } from "../lib/sourceLabel";
 import { idleStoryChip } from "../player/core/readerMath";
 import Icon from "./Icon.astro";
@@ -17,6 +18,8 @@ interface Props {
 
 const { item, index, length, hasAudio } = Astro.props;
 const titleId = `t-${item.id}`;
+// Hyphenated words stay whole when the balanced headline wraps (briefing.css).
+const words = headlineParts(item.headline);
 const chip = idleStoryChip(length, item.headline);
 // Null for anything that is not an http or https address: such a story gets no link at all.
 const host = sourceHost(item.url);
@@ -38,11 +41,12 @@ const publisher = publisherOf(item.source, host);
     {
       host ? (
         <a class="story-link" href={item.url} target="_blank" rel="noopener noreferrer">
-          <span id={`${titleId}-text`}>{item.headline}</span>
+          {/* One line: a break inside the span would read as a space before the words. */}
+          <span id={`${titleId}-text`}>{words.map((part) => (part.nowrap ? <span class="no-break">{part.text}</span> : part.text))}</span>
           <span class="sr-only">(opens in a new tab)</span>
         </a>
       ) : (
-        item.headline
+        words.map((part) => (part.nowrap ? <span class="no-break">{part.text}</span> : part.text))
       )
     }
   </h3>

@@ -449,6 +449,21 @@ test.describe("layout", () => {
     expect(outline).toBe("solid");
   });
 
+  test("a balanced headline never breaks a hyphenated word at its hyphen", async ({ page }) => {
+    for (const width of [360, 1280]) {
+      await page.setViewportSize({ width, height: 800 });
+      for (const path of ["/d/2026-10-05", "/e/ep-20261007-1930"]) {
+        await page.goto(path);
+        const title = page.locator(":is(.story-title, .episode-highlight-title)", {
+          hasText: "mid-range",
+        });
+        const word = title.first().locator(".no-break", { hasText: "mid-range" });
+        await expect(word, `${path} at ${width}`).toHaveCount(1);
+        expect(await word.evaluate((node) => node.getClientRects().length)).toBe(1);
+      }
+    }
+  });
+
   test("scroll behavior lives in the stylesheet", async ({ page }) => {
     await page.goto("/");
     const overscroll = await page.evaluate(

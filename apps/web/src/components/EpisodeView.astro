@@ -2,7 +2,7 @@
 import { paletteAccent } from "@dispatch/cover";
 import { episodeHighlights } from "../lib/episodeHighlights";
 import { type EpisodeEntry, episodeLength, FORMAT_LABELS } from "../lib/episodes";
-import { longDate } from "../lib/format";
+import { headlineParts, longDate } from "../lib/format";
 import AmbientLight from "./AmbientLight.astro";
 import Cover from "./Cover.astro";
 import EpisodeActions from "./EpisodeActions.astro";
@@ -67,11 +67,15 @@ const highlights = episodeHighlights(episode, summaries);
               <h3 class="episode-highlight-title">
                 {highlight.host ? (
                   <a class="story-link" href={highlight.url} target="_blank" rel="noopener noreferrer">
-                    {highlight.headline}
+                    {headlineParts(highlight.headline).map((part) =>
+                      part.nowrap ? <span class="no-break">{part.text}</span> : part.text,
+                    )}
                     <span class="sr-only">(opens in a new tab)</span>
                   </a>
                 ) : (
-                  highlight.headline
+                  headlineParts(highlight.headline).map((part) =>
+                    part.nowrap ? <span class="no-break">{part.text}</span> : part.text,
+                  )
                 )}
               </h3>
               {highlight.text && <p class="episode-highlight-text">{highlight.text}</p>}
