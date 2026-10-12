@@ -259,6 +259,34 @@ test.describe("regenerate and delete an episode", () => {
     await expect(card(page)).toHaveCount(0);
   });
 
+  test("Delete returns to the Library as it was left, and counts what is there", async ({
+    page,
+  }) => {
+    const bodies = await mock(page, [{ run_id: 77, state: "queued", step: null }]);
+    // The Library filtered to Episodes, oldest first, then the episode from it.
+    await page.goto("/library?show=custom&sort=oldest");
+    await expect(page.locator("[data-library]")).toHaveAttribute("data-ready", "");
+    await page.locator(`[data-card] a[href="/e/${ID}"]`).click();
+    await expect(page).toHaveURL(new RegExp(`/e/${ID}$`));
+    await hydrated(page);
+    await choose(page, "Delete");
+    await fillPassphrase(confirm(page));
+    await confirm(page).getByRole("button", { name: "Delete", exact: true }).click();
+    await expect.poll(() => bodies.length).toBe(1);
+    await expect(page).toHaveURL(/\/library\?show=custom&sort=oldest$/, { timeout: 5_000 });
+    await expect(card(page)).toHaveCount(0);
+    // A full load of it counts the cards that are there, not the one that was taken out.
+    await page.reload();
+    await expect(page.locator("[data-library]")).toHaveAttribute("data-ready", "");
+    await expect
+      .poll(async () => {
+        const shown = await page.locator("[data-card]:not([hidden])").count();
+        const status = (await page.locator("[data-library-status]").textContent()) ?? "";
+        return status.includes(`${shown}`);
+      })
+      .toBe(true);
+  });
+
   test.describe("a refusal", () => {
     // The browser logs the 429 it was served on purpose.
     test.use({ allowNetworkErrors: true });

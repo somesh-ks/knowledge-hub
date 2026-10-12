@@ -24,6 +24,8 @@ import {
 } from "../lib/library";
 
 const VIEW_KEY = "dispatch:library-view";
+/** The Library's address with its search, filter and order, kept for the visit (episodeActions.ts reads it). */
+const LIBRARY_URL_KEY = "dispatch:library-url";
 /** Written by the player (player/core/resume.ts) when an item is heard to the end. */
 const PLAYED_KEY_PREFIX = "dispatch:played:";
 
@@ -169,6 +171,12 @@ function install(): void {
     set("show", filter, "all");
     set("sort", sort, "newest");
     if (url.href !== location.href) history.replaceState(history.state, "", url);
+    // Where the Library was left, for a move that comes back to it (a delete from an episode).
+    try {
+      sessionStorage.setItem(LIBRARY_URL_KEY, url.pathname + url.search);
+    } catch {
+      // Storage can be blocked; the move then goes to the plain Library.
+    }
   }
 
   function apply(): void {
@@ -345,6 +353,8 @@ function install(): void {
       if (share > 0) bar.style.setProperty("--progress", `${Math.round(share * 100)}%`);
     }
   }
+  // Episodes this device deleted may be taken out of the page after this script has counted it.
+  document.addEventListener("dispatch:library-pruned", apply);
   showProgress();
   window.addEventListener("pageshow", showProgress);
   // The player saves where it is every few seconds and when it ends: the cards follow it.

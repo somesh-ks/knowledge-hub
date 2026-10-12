@@ -47,7 +47,14 @@ function hideIn(doc: Document): void {
   const present = cards.length ? new Set(cards.map(cardId)) : null;
   const kept = pruneDeleted(stored, present, Date.now());
   if (kept.length !== stored.length) save(kept);
-  for (const card of cards) if (kept.some((entry) => entry.id === cardId(card))) card.remove();
+  let removed = 0;
+  for (const card of cards) {
+    if (!kept.some((entry) => entry.id === cardId(card))) continue;
+    card.remove();
+    removed += 1;
+  }
+  // The Library's script may have counted its cards before this module loaded: it counts again.
+  if (doc === document && removed > 0) document.dispatchEvent(new Event("dispatch:library-pruned"));
 }
 
 /** A page for a deleted episode has nothing to show: go to the Library. */

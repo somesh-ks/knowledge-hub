@@ -1,4 +1,16 @@
 import { navigateTo } from "../player/core/navigation";
+
+/** The Library as it was left, with its search, filter and order, or the plain Library. */
+function libraryAddress(): string {
+  try {
+    const kept = sessionStorage.getItem("dispatch:library-url");
+    if (kept?.startsWith("/library")) return kept;
+  } catch {
+    // Storage can be blocked.
+  }
+  return "/library";
+}
+
 import { startRun } from "./runStatus";
 
 /**
@@ -203,7 +215,7 @@ export function openEpisodeAction(trigger: HTMLElement): void {
       // entry back first could land after the Library's own and turn the move around.
       entry = false;
       removeEventListener("dispatch:back", onBack);
-      void navigateTo("/library", { history: "replace" });
+      void navigateTo(libraryAddress(), { history: "replace" });
     },
     { once: true },
   );
