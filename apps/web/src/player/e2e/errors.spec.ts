@@ -154,6 +154,72 @@ test.describe("a recording that fails @surface", () => {
     expect(notice.y + notice.height).toBeLessThanOrEqual(bar.y + 1);
   });
 
+  test("a failure and its retry move nothing on the open page, and two columns never overflow", async ({
+    lab,
+    page,
+  }, info) => {
+    test.skip(
+      info.project.name !== "site-desktop" && info.project.name !== "site-phone",
+      "a mouse and a finger, at the window sizes below",
+    );
+    test.setTimeout(300_000);
+    const sizes =
+      info.project.name === "site-desktop"
+        ? [
+            "1024x600",
+            "1133x690",
+            "1280x600",
+            "1280x680",
+            "1366x657",
+            "1536x730",
+            "1280x800",
+            "1920x1080",
+          ]
+        : ["360x640", "390x844", "820x1100", "1024x600", "1024x768", "1133x690", "1280x720"];
+    const measure = () =>
+      page.evaluate(() => {
+        const top = (selector: string) =>
+          document.querySelector(`[data-player-page] ${selector}`)?.getBoundingClientRect().top ??
+          -1;
+        const sheet = document.querySelector<HTMLElement>("[data-player-page]");
+        return {
+          overflow: sheet ? sheet.scrollHeight - sheet.clientHeight : -1,
+          positions: [
+            ".player-cover-frame",
+            ".scrubber-track",
+            ".transport",
+            ".transport [data-primary]",
+          ].map((selector) => Math.round(top(selector))),
+        };
+      });
+    for (const size of sizes) {
+      const [width = 0, height = 0] = size.split("x").map(Number);
+      await page.setViewportSize({ width, height });
+      await lab.open("/d/2026-10-05");
+      let failing = false;
+      await serve(page, (key) =>
+        failing && key !== "intro" ? { refusal: "synthesis_failed", status: 500 } : { file: true },
+      );
+      await lab.play();
+      await lab.openPlayer();
+      const rest = await measure();
+      // One column scrolls its list by design; two columns fit the window.
+      if (width >= 1024) expect(rest.overflow, `${size} at rest`).toBeLessThanOrEqual(1);
+      failing = true;
+      await lab.dialog.locator(".transport [aria-label='Next story']").click();
+      await expect(lab.root).toHaveAttribute("data-player-state", "error", { timeout: 10_000 });
+      const failed = await measure();
+      expect(failed.positions, `${size} in a failure`).toEqual(rest.positions);
+      if (width >= 1024) expect(failed.overflow, `${size} in a failure`).toBeLessThanOrEqual(1);
+      // A retry that fails again: during its load and after, nothing moves either.
+      await lab.dialog.locator(".transport [data-primary]").click();
+      expect((await measure()).positions, `${size} retrying`).toEqual(rest.positions);
+      await expect(lab.root).toHaveAttribute("data-player-state", "error", { timeout: 10_000 });
+      expect((await measure()).positions, `${size} after the retry`).toEqual(rest.positions);
+      await page.unrouteAll({ behavior: "ignoreErrors" });
+    }
+  });
+
   test("a server's failure never starts by itself when the connection blips", async ({
     lab,
     page,
