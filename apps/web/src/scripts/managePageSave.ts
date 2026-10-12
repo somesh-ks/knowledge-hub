@@ -76,6 +76,8 @@ export interface SaveContext {
   left?: boolean;
   /** Whether its page is still on screen: a tab hidden and shown again was not left after all. */
   here?(): boolean;
+  /** The page it was left on, by its title and address: named when what it held is lost (tellLost). */
+  from?: { name: string; path: string };
 }
 
 interface Step {
@@ -269,6 +271,10 @@ function waitingOps(changes: ReadonlyMap<string, Pending>): ConfigOp[] {
 export function keepWaiting(context: SaveContext, now = Date.now()): void {
   if (context.changes.size === 0) return;
   context.left = true;
+  context.from ??= {
+    name: globalThis.document?.querySelector?.("#page-title")?.textContent?.trim() ?? "",
+    path: globalThis.location?.pathname ?? "",
+  };
   leftRuns.add(context);
   remember([], now);
 }
@@ -346,6 +352,52 @@ function endLeft(context: SaveContext, failure: string): void {
       entries: [...(unclaimed?.entries ?? []), ...entries],
     };
   globalThis.document?.dispatchEvent(new CustomEvent(HELD_EVENT, { detail: held }));
+  // Once the page open now has heard it (a settings page takes it a few microtasks later).
+  if (entries.length > 0) setTimeout(() => tellLost(held, context.from), 0);
+}
+
+/** What the app's toast says when a lost change has no settings page to take it. */
+export function lostText(name = ""): string {
+  return name ? `Your change to ${name} was not saved.` : "Your last change was not saved.";
+}
+
+/**
+ * A left page's run failed while a page that cannot take its changes is open (Today, the Library): the
+ * app's own toast says so, as an alert, with a way back to the page it was made on. A settings page
+ * took it (adopt), the index said it (settingsSaved.ts), or an editor still loading will take it.
+ */
+function tellLost(held: Held, from: SaveContext["from"]): void {
+  if (held.claimed || !unclaimed?.held.includes(held)) return;
+  const page = globalThis.document;
+  if (!page || page.querySelector?.("[data-bar]")) return;
+  const message = lostText(from?.name);
+  // By event (TOAST_EVENT in sheets/toastStore.ts): importing the toast's store here would split it
+  // out of the sheets' chunk, a cost on every page's first load.
+  const toast = (detail: unknown): boolean =>
+    page.dispatchEvent(new CustomEvent("dispatch:toast", { detail }));
+  toast({
+    message,
+    kind: "error",
+    ...(from?.path
+      ? {
+          actionLabel: "Open",
+          onAction: () =>
+            void import("astro:transitions/client").then(({ navigate }) => navigate(from.path)),
+        }
+      : {}),
+  });
+  // It stays until it is used or dismissed, and goes once a settings page is open: that page shows
+  // what is saved.
+  const off = new AbortController();
+  page.addEventListener(
+    "astro:after-swap",
+    () => {
+      if (!location.pathname.startsWith("/settings")) return;
+      toast({ dismiss: message });
+      off.abort();
+    },
+    { signal: off.signal },
+  );
 }
 
 /**

@@ -50,3 +50,14 @@ export function subscribeToast(listener: Listener): () => void {
 export function getToast(): ToastContent | null {
   return current;
 }
+
+/**
+ * Asked for by code that must not import this store (scripts/managePageSave.ts): a toast's content to
+ * show, or `{ dismiss: message }` to take that one away if it is still up.
+ */
+export const TOAST_EVENT = "dispatch:toast";
+globalThis.document?.addEventListener(TOAST_EVENT, (event) => {
+  const detail = (event as CustomEvent).detail;
+  if (detail?.dismiss === undefined) showToast(detail);
+  else if (current?.message === detail.dismiss) dismissToast();
+});
