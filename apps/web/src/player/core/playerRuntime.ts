@@ -21,7 +21,6 @@ function playerIsOpen(): boolean {
 
 import { readDigestData } from "./digestData";
 import { replayEarlyTap, takeEarlyAudio } from "./earlyTap";
-import { recordInstallVisit } from "./installHint";
 import { attachMediaSession } from "./mediaSession";
 import { shouldToggleOnPageSpace } from "./playerKeys";
 import { playerSheet } from "./playerSheet";
@@ -142,7 +141,12 @@ function toggleOnSpace(playerStore: PlayerStore): (event: KeyboardEvent) => void
 export function startPlayerRuntime(): () => void {
   const playerStore = getPlayerStore();
   const preferences = getPreferences();
-  recordInstallVisit(safeLocalStorage());
+  // Counted for the install hint on Settings; nothing on this page waits on it, so it loads late.
+  whenIdle(() => {
+    import("./installHint")
+      .then((hint) => hint.recordInstallVisit(safeLocalStorage()))
+      .catch(() => undefined);
+  });
 
   const detachMediaSession = attachMediaSession(playerStore);
   const reader = createReaderSync(playerStore, narrateFromTap);

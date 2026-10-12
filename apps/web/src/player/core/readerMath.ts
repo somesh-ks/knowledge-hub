@@ -5,6 +5,7 @@
  */
 import type { PlayerDigestData } from "../../types/contracts";
 import { formatClock } from "./formatTime";
+import { keepsPlayFace } from "./playerCopy";
 import type { ItemChangeCause, PlayerState } from "./playerTypes";
 import type { Remembered } from "./resume";
 
@@ -260,8 +261,7 @@ export function briefingChipView(
     case "error": {
       // A refusal that stands, or being offline (it plays on by itself), is not mended by trying
       // again: the play face, with the bar's reason (playerCopy.ts keepsPlayFace).
-      const kind = state.error?.kind;
-      const reason = (kind === "refused" || kind === "offline") && state.error?.summary;
+      const reason = keepsPlayFace(state.error) && state.error?.summary;
       return reason
         ? idleBriefingChip(reason, noun)
         : { state: "error", playing: false, label: "Try again", name: "Try again" };
