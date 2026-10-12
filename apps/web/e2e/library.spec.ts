@@ -262,7 +262,9 @@ test.describe("a cover that cannot be fetched", () => {
     await expect(covers.first()).toBeAttached();
     // Every one that failed is hidden, so the cover's own colour shows.
     await expect
-      .poll(async () => covers.evaluateAll((all) => all.filter((each) => !(each as HTMLElement).hidden).length))
+      .poll(async () =>
+        covers.evaluateAll((all) => all.filter((each) => !(each as HTMLElement).hidden).length),
+      )
       .toBe(0);
   });
 });
