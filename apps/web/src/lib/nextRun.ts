@@ -2,10 +2,10 @@
  * When the next scheduled episode is due, in words: "Next episode: Friday at about 07:00". It has no
  * imports and touches no DOM, so the build writes the line into the page and the browser rewrites it
  * from the fields on screen with the real current time (podcastPage.ts). The engine's gate counts in
- * Stockholm time, and so does this.
+ * the schedule's time zone, and so does this. Its one import, core's time module, has none.
  */
 
-const ZONE = "Europe/Stockholm";
+import { scheduleZone, zonedDate, zonedHour } from "@dispatch/core/time";
 
 /** "07:00" for hour 7. */
 export function hourLabel(hour: number): string {
@@ -22,28 +22,6 @@ export const WEEKDAYS = [
   "Saturday",
 ] as const;
 
-const dateFormat = new Intl.DateTimeFormat("en-CA", {
-  timeZone: ZONE,
-  year: "numeric",
-  month: "2-digit",
-  day: "2-digit",
-});
-
-const hourFormat = new Intl.DateTimeFormat("en-GB", {
-  timeZone: ZONE,
-  hour: "2-digit",
-  hourCycle: "h23",
-});
-
-/** YYYY-MM-DD of an instant in Stockholm. */
-function zoneDate(at: Date): string {
-  return dateFormat.format(at);
-}
-
-function zoneHour(at: Date): number {
-  return Number(hourFormat.format(at));
-}
-
 function addDays(date: string, days: number): string {
   return new Date(Date.parse(`${date}T00:00:00Z`) + days * 86_400_000).toISOString().slice(0, 10);
 }
@@ -56,10 +34,10 @@ function weekday(date: string): number {
   return new Date(`${date}T12:00:00Z`).getUTCDay();
 }
 
-function readableDate(at: string | null | undefined): string | null {
+function readableDate(at: string | null | undefined, zone: string): string | null {
   if (!at) return null;
   const date = new Date(at);
-  return Number.isNaN(date.getTime()) ? null : zoneDate(date);
+  return Number.isNaN(date.getTime()) ? null : zonedDate(date, zone);
 }
 
 function line(day: string, hour: number): string {
@@ -80,15 +58,19 @@ export function nextBriefing(input: {
   lastWeeklyAt?: string | null;
   /** The weekly episode's day (0 = Sunday), or null while it is off. */
   weeklyDay?: number | null;
+  /** The schedule's time zone; Stockholm when left out or not one of the list. */
+  zone?: string;
 }): string {
-  const today = zoneDate(input.now);
-  const anchors = [readableDate(input.lastRegularAt), readableDate(input.lastWeeklyAt)].filter(
-    (date): date is string => date !== null,
-  );
+  const zone = scheduleZone(input.zone);
+  const today = zonedDate(input.now, zone);
+  const anchors = [
+    readableDate(input.lastRegularAt, zone),
+    readableDate(input.lastWeeklyAt, zone),
+  ].filter((date): date is string => date !== null);
   const last = anchors.sort().at(-1);
   let date = last ? addDays(last, input.cadenceDays) : today;
   if (daysBetween(today, date) < 0) date = today;
-  if (date === today && zoneHour(input.now) >= input.hour) date = addDays(today, 1);
+  if (date === today && zonedHour(input.now, zone) >= input.hour) date = addDays(today, 1);
   if (input.weeklyDay != null && weekday(date) === input.weeklyDay) date = addDays(date, 1);
   const day =
     date === today
@@ -100,10 +82,11 @@ export function nextBriefing(input: {
 }
 
 /** The next weekly episode, from its day and hour. */
-export function nextWeekly(input: { now: Date; day: number; hour: number }): string {
-  const today = zoneDate(input.now);
+export function nextWeekly(input: { now: Date; day: number; hour: number; zone?: string }): string {
+  const zone = scheduleZone(input.zone);
+  const today = zonedDate(input.now, zone);
   let ahead = (input.day - weekday(today) + 7) % 7;
-  if (ahead === 0 && zoneHour(input.now) >= input.hour) ahead = 7;
+  if (ahead === 0 && zonedHour(input.now, zone) >= input.hour) ahead = 7;
   const day = ahead === 0 ? "today" : ahead === 1 ? "tomorrow" : (WEEKDAYS[input.day] ?? "");
   return line(day, input.hour);
 }
@@ -116,7 +99,7 @@ export interface RunAnchors {
 
 /**
  * The line for a profile page from the values its fields hold (`daily.hour`, `daily.cadence`,
- * `weekly.day`, `weekly.hour`, `weekly.enabled`), or null when they do not add up to one.
+ * `weekly.day`, `weekly.hour`, `weekly.enabled`, `<profile>.timezone`), or null when they do not add up to one.
  * `weeklyDay` is the weekly episode's day while it is on, for the daily page.
  */
 export function nextRunLine(
@@ -133,9 +116,10 @@ export function nextRunLine(
   };
   const hour = number(`${profile}.hour`);
   if (hour === null) return null;
+  const zone = fields[`${profile}.timezone`];
   if (profile === "weekly") {
     const day = number("weekly.day");
-    return day === null ? null : nextWeekly({ now, day, hour });
+    return day === null ? null : nextWeekly({ now, day, hour, zone });
   }
   const cadenceDays = number("daily.cadence");
   if (cadenceDays === null) return null;
@@ -146,5 +130,6 @@ export function nextRunLine(
     lastRegularAt: anchors.lastRegularAt,
     lastWeeklyAt: anchors.lastWeeklyAt,
     weeklyDay: anchors.weeklyDay,
+    zone,
   });
 }

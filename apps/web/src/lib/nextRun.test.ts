@@ -99,6 +99,19 @@ describe("nextRunLine", () => {
     expect(nextRunLine("daily", daily, anchors, later)).toBe("Next episode: today at about 18:00");
   });
 
+  // The line counted in Stockholm whatever zone was chosen on the page (D89).
+  it("counts on the clock of the zone chosen on screen", () => {
+    // 09:00 UTC is 05:00 in New York, 11:00 in Stockholm.
+    const zone = { "daily.timezone": "America/New_York", "weekly.timezone": "America/New_York" };
+    const none = { ...anchors, lastRegularAt: null };
+    expect(
+      nextRunLine("daily", { ...zone, "daily.hour": "7", "daily.cadence": "1" }, none, now),
+    ).toBe("Next episode: today at about 07:00");
+    expect(
+      nextRunLine("weekly", { ...zone, "weekly.day": "4", "weekly.hour": "7" }, anchors, now),
+    ).toBe("Next episode: today at about 07:00");
+  });
+
   it("is null when the fields are missing", () => {
     expect(nextRunLine("daily", { "daily.hour": "7" }, anchors, now)).toBeNull();
     expect(nextRunLine("weekly", {}, anchors, now)).toBeNull();

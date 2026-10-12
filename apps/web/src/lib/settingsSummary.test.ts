@@ -12,6 +12,13 @@ import {
 describe("settings summaries", () => {
   it("word the podcast rows as the build and the saved overlay both show them", () => {
     expect(dailySummary({ hour: 9, cadenceDays: 2 })).toBe("Every second day at 09:00");
+    // The zone is named only when it is not Stockholm's.
+    expect(dailySummary({ hour: 9, cadenceDays: 2, timezone: "Europe/Stockholm" })).toBe(
+      "Every second day at 09:00",
+    );
+    expect(weeklySummary({ enabled: true, day: 1, hour: 7, timezone: "Asia/Kolkata" })).toBe(
+      "Mondays at 07:00 (India)",
+    );
     expect(dailySummary({ hour: 7, cadenceDays: 5 })).toBe("Every 5 days at 07:00");
     expect(weeklySummary({ enabled: true, day: 1, hour: 7 })).toBe("Mondays at 07:00");
     expect(weeklySummary({ enabled: false, day: 1, hour: 7 })).toBe("Off");

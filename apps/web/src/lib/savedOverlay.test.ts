@@ -106,6 +106,15 @@ describe("savedFields", () => {
     });
   });
 
+  it("shows a saved time zone on both profiles, as the one setting it is", () => {
+    const baked = { "daily.timezone": "Europe/Stockholm", "weekly.timezone": "Europe/Stockholm" };
+    const ops: ConfigOp[] = [{ op: "schedule.set", timezone: "Asia/Tokyo" }];
+    expect(savedFields(baked, ops)).toEqual({
+      "daily.timezone": "Asia/Tokyo",
+      "weekly.timezone": "Asia/Tokyo",
+    });
+  });
+
   it("takes a later save of the same control over an earlier one", () => {
     const ops: ConfigOp[] = [
       { op: "schedule.set", hour: 7 },

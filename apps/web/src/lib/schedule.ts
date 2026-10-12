@@ -7,6 +7,7 @@ import {
   type PodcastFormat,
   ScheduleFile,
   STATE_FILES,
+  scheduleZone,
   type WeeklySchedule,
 } from "@dispatch/core";
 import { nextBriefing, nextWeekly } from "./nextRun";
@@ -22,6 +23,8 @@ export { CADENCES, dailySummary, weeklySummary } from "./settingsSummary";
  */
 
 export interface ScheduleView {
+  /** The schedule's clock: its stored zone, or Stockholm when that is not one of the list. */
+  timezone: string;
   hour: number;
   cadenceDays: number;
   /** Topic ids the daily briefing leaves out. */
@@ -60,6 +63,7 @@ export async function loadScheduleView(
   ]);
   const schedule = ScheduleFile.safeParse(scheduleFile);
   const {
+    timezone: storedZone,
     hour,
     cadence_days: cadenceDays,
     skip_topics: skipTopics,
@@ -76,7 +80,9 @@ export async function loadScheduleView(
   const weeklyRun = lastRun.success ? lastRun.data.weekly : undefined;
   const lastRegularAt = counts ? regular.at : null;
   const lastWeeklyAt = weeklyRun?.outcome === "published" ? weeklyRun.at : null;
+  const timezone = scheduleZone(storedZone);
   return {
+    timezone,
     hour,
     cadenceDays,
     skipTopics,
@@ -93,8 +99,14 @@ export async function loadScheduleView(
       lastRegularAt,
       lastWeeklyAt,
       weeklyDay: weekly.enabled ? weekly.day : null,
+      zone: timezone,
     }),
-    nextWeekly: nextWeekly({ now: options.now ?? new Date(), day: weekly.day, hour: weekly.hour }),
+    nextWeekly: nextWeekly({
+      now: options.now ?? new Date(),
+      day: weekly.day,
+      hour: weekly.hour,
+      zone: timezone,
+    }),
     lastRegularAt,
     lastWeeklyAt,
   };
