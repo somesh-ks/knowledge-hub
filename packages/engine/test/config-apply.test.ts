@@ -327,6 +327,7 @@ describe("schedule.set", () => {
     expect(report.summary).toBe("set the briefing to 09:00, every 3 days");
     expect(await repo.readJson("config/schedule.json")).toEqual({
       version: 1,
+      timezone: "Europe/Stockholm",
       hour: 9,
       cadence_days: 3,
       skip_topics: [],
@@ -374,6 +375,16 @@ describe("schedule.set", () => {
     expect(await repo.readJson("config/schedule.json")).toMatchObject({
       weekly: { enabled: false, day: 2, hour: 18 },
       voice_id: "ada_1",
+    });
+  });
+
+  // The file was written without its zone, so a saved zone was lost at the next edit.
+  it("saves the time zone and keeps it when a later edit leaves it out", async () => {
+    await apply({ op: "schedule.set", timezone: "America/New_York" });
+    await apply(SET);
+    expect(await repo.readJson("config/schedule.json")).toMatchObject({
+      timezone: "America/New_York",
+      hour: 9,
     });
   });
 
@@ -784,6 +795,7 @@ describe("refused ops write nothing", () => {
     ],
     ["schedule.set with hour 24", { ...SCHEDULE, hour: 24 }],
     ["schedule.set with a cadence of 4", { ...SCHEDULE, cadence_days: 4 }],
+    ["schedule.set with an unsupported time zone", { ...SCHEDULE, timezone: "Mars/Olympus" }],
     ["writer.set with a spaced model id", { ...WRITER, model: "has space" }],
     ["writer.set with an empty model id", { ...WRITER, model: "" }],
     ["writer.set with an unknown provider", { ...WRITER, provider: "other" }],

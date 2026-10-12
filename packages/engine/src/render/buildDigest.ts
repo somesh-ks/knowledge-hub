@@ -6,8 +6,8 @@ import {
   displaySource,
   isBuiltinSection,
   SECTION_TITLES,
-  stockholmDate,
   VOICE_LIMITS,
+  zonedDate,
 } from "@dispatch/core";
 import { assignSections } from "../score/selectItems.js";
 import type { SelectedItem } from "../score/types.js";
@@ -16,7 +16,7 @@ import { digestWords, listenMinutes, readMinutes } from "./readTime.js";
 
 export interface CoverPickInput {
   digestId: string;
-  /** Stockholm calendar date of the digest. */
+  /** Calendar date of the digest, in the schedule's time zone. */
   date: string;
   kind: DigestKind;
   items: readonly DigestItem[];
@@ -34,6 +34,8 @@ export interface BuildDigestInput {
   window: { from: string; to: string };
   kind: DigestKind;
   now: Date;
+  /** The schedule's time zone, which dates a new digest id. Defaults to Stockholm. */
+  zone?: string;
   coverPicker: CoverPicker;
   allocateId: DigestIdAllocator;
   /** True only when every item passed the grounding check. Defaults to false. */
@@ -109,7 +111,7 @@ export function buildDigest(input: BuildDigestInput): Digest {
       )
     : undefined;
 
-  const id = input.allocateId({ date: stockholmDate(input.now), kind: input.kind });
+  const id = input.allocateId({ date: zonedDate(input.now, input.zone), kind: input.kind });
   // The date is part of the id, so a pool fetched before midnight and rendered after it still agrees.
   const date = id.slice(0, 10);
   const words = digestWords(items);

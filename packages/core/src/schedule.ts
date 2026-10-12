@@ -1,6 +1,7 @@
 import { z } from "zod";
 import { IdString } from "./categories.js";
 import { PodcastFormat, VoiceId } from "./podcast.js";
+import { isSupportedTimeZone } from "./time.js";
 
 /** Days between scheduled briefings the owner can pick: every day, second day, third day, weekly. */
 export const SCHEDULE_CADENCES = [1, 2, 3, 7] as const;
@@ -31,7 +32,7 @@ const SkipTopics = z.array(IdString).max(200);
 /** The weekly podcast: its own day, hour, topics, type, length and voices, apart from the daily one. */
 const WeeklyFields = z.object({
   enabled: z.boolean(),
-  /** Day of the week in Stockholm time, 0 = Sunday. */
+  /** Day of the week in the schedule's time zone, 0 = Sunday. */
   day: z.number().int().min(0).max(6),
   hour: z.number().int().min(0).max(23),
   skip_topics: SkipTopics,
@@ -74,7 +75,7 @@ export const DEFAULT_CUSTOM: CustomDefaults = {
 };
 
 /**
- * Shape of config/schedule.json. `hour` is a whole hour of Stockholm time. `skip_topics` lists the
+ * Shape of config/schedule.json. `hour` is a whole hour in `timezone`. `skip_topics` lists the
  * topics the daily briefing leaves out (the weekly one has its own); empty covers them all. A file
  * from before topics could be left out (it had `sections`, always null in use) reads as empty.
  * `format`, `length_minutes`, `voice_id` and `voice_id_b` shape the daily podcast; `weekly` the
@@ -140,7 +141,8 @@ export type ScheduleSettings = z.infer<typeof ScheduleSettings>;
 
 /** What `schedule.set` may carry: any subset of the settings, `weekly` and `custom` field by field. */
 export const ScheduleChange = z.object({
-  timezone: ScheduleSettings.shape.timezone.optional(),
+  /** A stored file may hold any zone name (it reads as Stockholm); an edit sets only a listed one. */
+  timezone: z.string().refine(isSupportedTimeZone, "an unsupported time zone").optional(),
   hour: ScheduleSettings.shape.hour.optional(),
   cadence_days: CadenceDays.optional(),
   skip_topics: ScheduleSettings.shape.skip_topics.optional(),

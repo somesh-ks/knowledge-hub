@@ -27,7 +27,7 @@ export const Plan = z.object({
   mode: z.enum(RUN_MODES),
   dry_run: z.boolean(),
   created_at: isoDateTime,
-  /** Stockholm calendar date the gate decided for. */
+  /** Calendar date the gate decided for, in the schedule's time zone. */
   date: z.string().regex(/^\d{4}-\d{2}-\d{2}$/),
   reason: z.string(),
   passes: z.array(PlanPass),

@@ -1,7 +1,7 @@
 import { readFile } from "node:fs/promises";
 import { isAbsolute, join } from "node:path";
 import { parseArgs } from "node:util";
-import { CONFIG_FILES, type DigestKind, Preferences, stockholmDate } from "@dispatch/core";
+import { CONFIG_FILES, type DigestKind, Preferences, zonedDate } from "@dispatch/core";
 import { type CommandContext, type CommandRun, redact, secretsFromEnv } from "../context.js";
 import { dedupe } from "../dedupe/dedupe.js";
 import { fetchAll } from "../fetch/fetchAll.js";
@@ -11,6 +11,7 @@ import { allocateDigestId } from "../gate/allocateDigestId.js";
 import { fetchWindow } from "../gate/fetchWindow.js";
 import { createHttpClient } from "../http.js";
 import { prefilter } from "../prefilter/prefilter.js";
+import { loadScheduleZone } from "../schedule/store.js";
 import { loadSources } from "../sources/registry.js";
 import { listDigestIds } from "../state/digestIds.js";
 import { applySourceResults, overlayHealth, toHealthFile } from "../state/sourceHealth.js";
@@ -114,7 +115,12 @@ export const run: CommandRun = async (argv: string[], ctx: CommandContext): Prom
     });
 
     const id =
-      values.id ?? allocateDigestId(stockholmDate(now), kind, await listDigestIds(ctx.root));
+      values.id ??
+      allocateDigestId(
+        zonedDate(now, await loadScheduleZone(ctx.root)),
+        kind,
+        await listDigestIds(ctx.root),
+      );
     const outPath = values.out
       ? isAbsolute(values.out)
         ? values.out
