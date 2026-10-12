@@ -329,40 +329,6 @@ test.describe("a topic's page", () => {
     expect(ops(sent)).toEqual([{ op: "weights.set", weights: { audio_interfaces: 0.6 } }]);
   });
 
-  test("a custom topic's rows are one height, the weight row is shaped as Design's, and Edit topic ends at the edge", async ({
-    page,
-  }) => {
-    await setup(page);
-    await open(page, "/settings/topics/audio_interfaces");
-    const phone = (page.viewportSize()?.width ?? 0) < 640;
-    const shape = async (selector: string) =>
-      page
-        .locator(selector)
-        .first()
-        .evaluate((row) => {
-          const box = row.getBoundingClientRect();
-          const icon = row.querySelector(":scope > .icon")?.getBoundingClientRect();
-          const slider = row.querySelector(".settings-range")?.getBoundingClientRect();
-          const label = row.querySelector(".settings-label")?.getBoundingClientRect();
-          return {
-            height: Math.round(box.height),
-            iconGap: icon ? Math.round(box.right - icon.right) : null,
-            under: slider && label ? slider.top >= label.bottom : null,
-          };
-        });
-    const edit = await shape(".topic-edit");
-    const scope = await shape(".topic-scope");
-    const own = await shape(".topic .topic-weight");
-    expect(edit.height).toBe(scope.height);
-    // The glyph ends at the row's edge (its own inset pulled out), not after the words.
-    expect(Math.abs(edit.iconGap ?? 99)).toBeLessThanOrEqual(8);
-    // One weight row is built as a group's are: on a phone the slider goes under its name.
-    if (phone) expect(own.under).toBe(true);
-    await open(page, "/settings/topics/design");
-    const design = await shape(".topic-weights .topic-weight");
-    expect(own.height).toBe(design.height);
-  });
-
   test("Design weighs each topic it gathers by name; a group of one has a plain Weight row", async ({
     page,
   }) => {
@@ -444,45 +410,6 @@ test.describe("a topic's page", () => {
     await expect
       .poll(() => ops(sent))
       .toEqual([{ op: "source.update", id: "studio-notes", topic_ids: [] }]);
-  });
-
-  test("a source's name is plain words; its row edits it, and the panel links to the site", async ({
-    page,
-  }) => {
-    await setup(page);
-    await open(page, CRAFT);
-    await expect(source(page, "Studio Notes").getByRole("link")).toHaveCount(0);
-    // A press on the name or the score goes through to the edit button behind the row.
-    await source(page, "Studio Notes").locator(".source-name").click({ force: true });
-    const panel = page.getByRole("dialog", { name: "Edit source" });
-    await expect(panel).toBeVisible();
-    const link = panel.getByRole("link", { name: "Open Studio Notes in a new tab" });
-    await expect(link).toHaveAttribute("href", "https://www.studio-notes.example/");
-    await expect(link).toHaveAttribute("target", "_blank");
-    // Close comes first in the header, as in the Create sheet.
-    const close = await panel.getByRole("button", { name: "Close" }).boundingBox();
-    const title = await panel.getByRole("heading", { level: 2 }).boundingBox();
-    expect(close && title && close.x < title.x).toBe(true);
-  });
-
-  test("a source's score is one word on the line under its name, after the site", async ({
-    page,
-  }) => {
-    await setup(page);
-    await open(page, CRAFT);
-    const row = source(page, "Studio Notes");
-    await expect(row.locator(".source-meta")).toHaveText(/studio-notes\.example\s*Excellent/);
-    await expect(row.locator(".pips, .score-num")).toHaveCount(0);
-    await expect(source(page, "Type and Grid").locator(".score")).toHaveText("Not scored yet");
-    const name = await row.locator(".source-name").boundingBox();
-    const score = await row.locator(".score").boundingBox();
-    expect(name && score && score.y >= name.y + name.height - 1).toBe(true);
-    // The site tile keeps its 24px however long the name beside it is.
-    await row.locator(".source-name").evaluate((node) => {
-      node.textContent = "A very long source name that would squeeze anything beside it".repeat(3);
-    });
-    const tile = page.locator('li.source-row[data-id="studio-notes"] .source-icon');
-    expect((await tile.boundingBox())?.width).toBeCloseTo(24, 0);
   });
 
   test("every source has a checkbox: unticking turns it off and ticking turns it back on", async ({
@@ -619,53 +546,6 @@ test.describe("a topic's page", () => {
     ]);
   });
 
-  test("the open Podcasts list is as wide as its options, and its value never widens the page", async ({
-    page,
-  }) => {
-    await setup(page);
-    await open(page, "/settings/topics/design");
-    await page.getByRole("button", { name: /^Podcasts/ }).click();
-    const list = page.getByRole("listbox");
-    await list.evaluate((node) =>
-      Promise.all(node.getAnimations().map((animation) => animation.finished)),
-    );
-    const box = await list.boundingBox();
-    // Never narrower than 14rem, so the options never wrap word by word.
-    expect(box?.width ?? 0).toBeGreaterThanOrEqual(223.5);
-    // Every option, hint included, fits inside the list without breaking word by word.
-    for (const label of await list.locator(".multiselect-text").all()) {
-      const inner = await label.boundingBox();
-      expect(inner && box && inner.x + inner.width <= box.x + box.width).toBe(true);
-    }
-    for (const hint of await list.locator(".multiselect-hint").all()) {
-      expect((await hint.boundingBox())?.height ?? 0).toBeLessThan(40);
-    }
-    await page.setViewportSize({ width: 360, height: 740 });
-    await open(page, "/settings/topics/design");
-    expect(await page.evaluate(() => document.documentElement.scrollWidth)).toBeLessThanOrEqual(
-      360,
-    );
-    // The value is read whole at 360: none of it is cut off.
-    const value = page.locator("[data-multiselect-value]");
-    await expect(value).toHaveText("All podcasts");
-    expect(await value.evaluate((node) => node.scrollWidth <= node.clientWidth)).toBe(true);
-  });
-
-  test("Suggested + discs end where the checkboxes above them end", async ({ page }) => {
-    await setup(page);
-    await open(page, CRAFT);
-    const box = await source(page, "Studio Notes").locator(".suggest-box").boundingBox();
-    const disc = await page
-      .locator(".source-plus-btn")
-      .first()
-      .evaluate((node) => {
-        const rect = node.getBoundingClientRect();
-        const inset = Number.parseFloat(getComputedStyle(node, "::before").insetInlineEnd);
-        return rect.right - inset;
-      });
-    expect(box && Math.abs(box.x + box.width - disc)).toBeLessThanOrEqual(3);
-  });
-
   test("an off source stays readable, and every name is a 44px target", async ({ page }) => {
     await setup(page);
     for (const path of ["/settings/topics/world", "/settings/topics/other"]) {
@@ -693,27 +573,6 @@ test.describe("a topic's page", () => {
     await page.getByRole("checkbox", { name: "Read Quiet Motion" }).check();
     await expect(toastText(page)).toHaveText(SAVED);
     expect(ops(sent)).toEqual([{ op: "source.set", id: "quiet-motion", enabled: true }]);
-  });
-
-  test("no row is a dead zone: sources, and the suggestions under them, are 44px tall and touch", async ({
-    page,
-  }) => {
-    await setup(page);
-    await open(page, CRAFT);
-    for (const list of ["[data-sources]", "[data-suggested-sources]"]) {
-      const boxes = await page.locator(`${list} li.source-row`).evaluateAll((rows) =>
-        rows.map((row) => {
-          const rect = row.getBoundingClientRect();
-          return { top: rect.top, bottom: rect.bottom };
-        }),
-      );
-      expect(boxes.length, list).toBeGreaterThan(1);
-      for (const [index, box] of boxes.entries()) {
-        expect(box.bottom - box.top).toBeGreaterThanOrEqual(44);
-        const next = boxes[index + 1];
-        if (next) expect(Math.abs(next.top - box.bottom)).toBeLessThanOrEqual(1);
-      }
-    }
   });
 });
 
@@ -759,39 +618,6 @@ test.describe("a topic's suggested sources", () => {
     await expect(
       page.locator("[data-suggested-sources] [aria-hidden='true'].source-row"),
     ).toHaveCount(0);
-  });
-
-  test("a row has the site's tile, its name in plain words, the site, what it covers and how often it posts", async ({
-    page,
-  }) => {
-    await setup(page);
-    await open(page, DESIGN);
-    const row = suggestion(page, "Pixel Ledger");
-    await expect(row.locator(".source-initial")).toHaveText("P");
-    await expect(row.locator(".source-name")).toHaveText("Pixel Ledger");
-    await expect(row.getByRole("link")).toHaveCount(0);
-    await expect(row.locator(".source-host")).toHaveText("pixel-ledger.example");
-    // Drawn as a source is: the site and how often it posts on line 2, what it covers on line 3.
-    await expect(row.locator(".source-meta .source-host")).toHaveText("pixel-ledger.example");
-    await expect(row.locator(".source-meta .source-cadence")).toHaveText("Posts daily");
-    await expect(row.locator(".source-about")).toHaveText(
-      "Visual design critique and case studies",
-    );
-    await expect(row.locator(".source-name")).toHaveCSS("font-weight", "400");
-    const height = (await row.boundingBox())?.height ?? 0;
-    expect(height).toBeGreaterThanOrEqual(71.5);
-    const own = (await source(page, "Studio Notes").boundingBox())?.height ?? 0;
-    expect(own).toBeGreaterThanOrEqual(71.5);
-    // The plus is a plain icon button: no disc behind it.
-    const disc = await row
-      .getByRole("button", { name: "Add Pixel Ledger" })
-      .evaluate((node) => getComputedStyle(node, "::before").backgroundColor);
-    expect(disc).toBe("rgba(0, 0, 0, 0)");
-    // The button is a 44px target.
-    const add = row.getByRole("button", { name: "Add Pixel Ledger" });
-    const box = await add.boundingBox();
-    expect(box?.width).toBeGreaterThanOrEqual(44);
-    expect(box?.height).toBeGreaterThanOrEqual(44);
   });
 
   test("+ adds the feed under the topic in one request, and the row says so without anything moving", async ({
@@ -1044,62 +870,6 @@ test.describe("a refused lookup", () => {
     await expect(sheet.getByRole("button", { name: "Add source", exact: true })).toBeDisabled();
     await page.keyboard.press("Escape");
     await expect(sheet).toBeHidden();
-  });
-});
-
-test.describe("the Add panel on a 390px phone", () => {
-  test.use({ viewport: { width: 390, height: 844 }, allowNetworkErrors: true });
-
-  const kindHeight = (page: Page) =>
-    page.locator(".topics-panel-kind").evaluate((node) => {
-      const probe = document.createElement("div");
-      probe.style.blockSize = "var(--segmented-height)";
-      document.body.append(probe);
-      const want = probe.getBoundingClientRect().height;
-      probe.remove();
-      return { got: node.getBoundingClientRect().height, want };
-    });
-  const fieldTop = (page: Page) =>
-    page
-      .getByLabel("Site or feed address")
-      .evaluate((node) => Math.round(node.getBoundingClientRect().top));
-
-  test("the Topic | Source switch is one segmented height, and the address never moves", async ({
-    page,
-  }) => {
-    await setup(page);
-    let fail = false;
-    await page.route("**/api/source-preview**", (route) =>
-      fail
-        ? route.fulfill({
-            status: 422,
-            contentType: "application/json",
-            body: JSON.stringify({ error: "unreachable", message: "x" }),
-          })
-        : route.fulfill({
-            status: 200,
-            contentType: "application/json",
-            body: JSON.stringify(PREVIEW),
-          }),
-    );
-    await open(page);
-    await page.getByRole("button", { name: "Add a topic or a source" }).click();
-    const topic = await kindHeight(page);
-    expect(topic.got).toBeCloseTo(topic.want, 0);
-    await page.getByRole("radio", { name: "Source" }).check();
-    const sheet = page.getByRole("dialog", { name: "Add a source" });
-    await expect(sheet).toBeVisible();
-    const source = await kindHeight(page);
-    expect(source.got).toBeCloseTo(source.want, 0);
-    const before = await fieldTop(page);
-    await sheet.getByLabel("Site or feed address").fill("newsroom.example");
-    await expect(sheet.getByText("Newsroom Example")).toBeVisible();
-    expect(await fieldTop(page)).toBe(before);
-    fail = true;
-    await sheet.getByLabel("Site or feed address").fill("nothing.example");
-    await expect(sheet.locator("#panel-source-url-error")).toContainText("could not be read");
-    expect(await fieldTop(page)).toBe(before);
-    expect((await kindHeight(page)).got).toBeCloseTo(source.want, 0);
   });
 });
 

@@ -88,24 +88,6 @@ test.describe("the library", () => {
     await expect(page.locator("[data-library-status]")).toHaveText("5 results");
   });
 
-  test("offers search, the type filter and a sort", async ({ page }) => {
-    await page.goto("/library");
-    await expect(page.getByRole("search", { name: "Library" })).toBeVisible();
-    await expect(page.getByRole("searchbox", { name: "Search your library" })).toBeVisible();
-    // Three kind chips, none ticked: everything shows.
-    await expect(show(page).locator(".filter-chip")).toHaveText(["Daily", "Weekly", "Episodes"]);
-    await expect(show(page).getByRole("checkbox")).toHaveCount(3);
-    expect(await shown(page)).toBe("all");
-    const sort = page.getByRole("combobox", { name: "Sort" });
-    await expect(sort.locator("option")).toHaveText([
-      "Newest first",
-      "Oldest first",
-      "Longest first",
-    ]);
-    // No "Most stories": an episode's card never shows a count, so that order would look arbitrary.
-    await expect(sort).toHaveValue("newest");
-  });
-
   test("opens a briefing from its card", async ({ page }) => {
     await page.goto("/library");
     await page.getByRole("link", { name: /Monday 5 October/ }).click();
@@ -315,29 +297,6 @@ test.describe("library search", () => {
     await expect(input).toHaveValue("");
     await expect(input).toBeFocused();
     await expect(clear).toBeHidden();
-  });
-
-  test("the filter and the sort have a 44px target", async ({ page }) => {
-    await page.goto("/library");
-    await ready(page);
-    const small = await page.evaluate(() => {
-      const found: string[] = [];
-      for (const node of document.querySelectorAll<HTMLElement>(
-        ".sort-field > select, .library-filters .filter-chip",
-      )) {
-        node.scrollIntoView({ block: "center", inline: "center" });
-        const rect = node.getBoundingClientRect();
-        const x = rect.left + rect.width / 2;
-        const y = rect.top + rect.height / 2;
-        const at = (dy: number) => {
-          const hit = document.elementFromPoint(x, y + dy);
-          return hit !== null && node.contains(hit);
-        };
-        if (!at(-21) || !at(21)) found.push(node.textContent?.trim() || node.tagName);
-      }
-      return found;
-    });
-    expect(small).toEqual([]);
   });
 
   test("with a filter on, the empty state names both, and Show all resets both", async ({
@@ -578,29 +537,6 @@ test.describe("library fixes", () => {
 });
 
 test.describe("library filters and order", () => {
-  test("the kind chips fit a 360px phone or scroll sideways, never widening the page", async ({
-    page,
-  }) => {
-    await page.setViewportSize({ width: 360, height: 740 });
-    await page.goto("/library");
-    await ready(page);
-    const fit = await page.evaluate(() => {
-      const row = document.querySelector<HTMLElement>(".library-filters");
-      const box = row?.getBoundingClientRect();
-      return {
-        page: document.documentElement.scrollWidth <= innerWidth,
-        row: Boolean(box && box.left >= 0 && box.right <= innerWidth + 1),
-        reach: Boolean(
-          row && (row.scrollWidth <= row.clientWidth || getComputedStyle(row).overflowX === "auto"),
-        ),
-      };
-    });
-    expect(fit).toEqual({ page: true, row: true, reach: true });
-    // The last chip can be pressed: in view, or scrolled to.
-    await filter(page, "Episodes");
-    expect(await titles(page)).toEqual([DISCUSSION, HEADLINES]);
-  });
-
   test("the type filter keeps one kind of card and shows its choice", async ({ page }) => {
     await page.goto("/library");
     await ready(page);

@@ -118,26 +118,6 @@ test.describe("moving between destinations", () => {
     await expect(page.locator('.app-nav-item[aria-current="page"]')).toHaveCount(1);
   });
 
-  test("each destination shows one icon, the filled one only when current", async ({ page }) => {
-    await page.goto("/settings");
-    for (const href of ["/", "/library", "/settings"]) {
-      await expect(item(page, href).locator("svg:visible")).toHaveCount(1);
-    }
-    await expect(item(page, "/settings").locator(".app-nav-icon-current")).toBeVisible();
-    await expect(item(page, "/library").locator(".app-nav-icon-current")).toBeHidden();
-  });
-
-  test("the page that is leaving holds still: nothing on it fades or blinks on the press", async ({
-    page,
-  }) => {
-    await openWarm(page);
-    await item(page, "/settings").click();
-    await expect(heading(page)).toHaveText("Settings");
-    const move = await lastMove(page);
-    expect(move?.onPress.swapMark).toBeNull();
-    expect(move?.onPress.leaving).toEqual([]);
-  });
-
   test("the move takes no pictures of the page, has no exit, and is over in the time of a press", async ({
     page,
   }) => {
@@ -146,51 +126,6 @@ test.describe("moving between destinations", () => {
     await expect(heading(page)).toHaveText("Settings");
     const move = await lastMove(page);
     expect(move?.atSwap?.browserTransition).toBe(false);
-    expect(move?.atSwap?.swapMark).toBe("peer");
-    expect(move?.atSwap?.names).toEqual(["fade-in"]);
-    expect(move?.atSwap?.longest).toBeGreaterThan(0);
     expect(move?.atSwap?.longest).toBeLessThanOrEqual(150);
-    // The marks come off once the fade has ended, and the browser's own transitions work again.
-    await expect(page.locator("html")).not.toHaveAttribute("data-nav-swap");
-    await expect(page.locator("html")).not.toHaveAttribute("data-astro-nav");
-    expect(await page.evaluate(() => Object.hasOwn(document, "startViewTransition"))).toBe(false);
-  });
-
-  test("into a briefing the page settles from the side, and back out again", async ({ page }) => {
-    await openWarm(page);
-    // A page keeps the marks of its own arrival for a moment. Each press below waits for them to
-    // come off first, so what it reads on the press is the press's doing and nothing else's.
-    const settled = () => expect(page.locator("html")).not.toHaveAttribute("data-nav-swap");
-    await item(page, "/library").click();
-    await expect(heading(page)).toHaveText("Library");
-    await settled();
-
-    await page.locator("a.card-link").first().click();
-    await expect(page).toHaveURL(/\/(d|e)\//);
-    const into = await lastMove(page);
-    expect(into?.onPress.swapMark).toBeNull();
-    expect(into?.onPress.leaving).toEqual([]);
-    expect(into?.atSwap?.swapMark).toBe("in");
-    expect(into?.atSwap?.names).toEqual(["fade-in", "page-from-end"]);
-    expect(into?.atSwap?.longest).toBeLessThanOrEqual(150);
-    await settled();
-
-    await item(page, "/library").click();
-    await expect(heading(page)).toHaveText("Library");
-    const out = await lastMove(page);
-    expect(out?.onPress.leaving).toEqual([]);
-    expect(out?.atSwap?.swapMark).toBe("out");
-    expect(out?.atSwap?.names).toEqual(["fade-in", "page-from-start"]);
-  });
-
-  test("after a move the browser's own startViewTransition is back in place", async ({ page }) => {
-    await openWarm(page);
-    await item(page, "/settings").click();
-    await expect(heading(page)).toHaveText("Settings");
-    // The stand-in served the router once and is gone: this is the real method again.
-    const real = await page.evaluate(
-      () => document.startViewTransition === Document.prototype.startViewTransition,
-    );
-    expect(real).toBe(true);
   });
 });

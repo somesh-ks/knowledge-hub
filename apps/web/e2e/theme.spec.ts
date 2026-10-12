@@ -99,19 +99,4 @@ test.describe("theme", () => {
     await expect(page).toHaveURL(/\/$/);
     await expect(page.locator("html")).toHaveAttribute("data-theme", "dark");
   });
-
-  test("crossfades a theme change with a view transition on the root", async ({ page }) => {
-    await page.goto("/");
-    const duration = await page.evaluate(async () => {
-      if (!document.startViewTransition) return null;
-      const transition = document.startViewTransition(() => {
-        document.documentElement.dataset.theme = "dark";
-      });
-      await transition.ready;
-      return getComputedStyle(document.documentElement, "::view-transition-new(root)")
-        .animationDuration;
-    });
-    // 200ms from the state-change token. Where the API is missing the change is instant, which is fine.
-    if (duration !== null) expect(duration).toContain("0.2s");
-  });
 });

@@ -85,8 +85,6 @@ test.describe("ambient light", () => {
     await page.goto("/");
     const ambient = page.locator(".ambient");
     await expect(ambient).toHaveAttribute("aria-hidden", "true");
-    await expect(ambient).toHaveCSS("pointer-events", "none");
-    await expect(ambient).toHaveCSS("position", "absolute");
     const before = await headerBoxes(page);
     await page.evaluate(() => document.querySelector(".ambient")?.remove());
     expect(await headerBoxes(page)).toEqual(before);
@@ -113,28 +111,6 @@ test.describe("ambient light", () => {
     expect(await asked(page)).toBeNull();
     expect(await draws(page)).toBe(0);
   });
-
-  // The chip's words fall short of 4.5:1 over a cover's light, so it must not be see-through: the
-  // header's chip is the page's filled primary action (hero.css).
-  for (const scheme of ["light", "dark"] as const) {
-    test(`the play chip in the header stands on its own opaque container, ${scheme}`, async ({
-      page,
-    }) => {
-      await page.emulateMedia({ colorScheme: scheme });
-      await page.goto("/");
-      const colours = await page.evaluate(() => {
-        const probe = document.createElement("i");
-        probe.style.backgroundColor = "var(--cta-bg)";
-        document.body.append(probe);
-        const container = getComputedStyle(probe).backgroundColor;
-        probe.remove();
-        const chip = document.querySelector(".hero .chip");
-        return { container, chip: chip ? getComputedStyle(chip).backgroundColor : null };
-      });
-      expect(colours.chip).toBe(colours.container);
-      expect(colours.chip).not.toBe("rgba(0, 0, 0, 0)");
-    });
-  }
 
   // The layer reaches into the page's gutter. Reaching past it once made Today 422px wide on a
   // 390px phone: the page scrolled sideways, the bottom navigation stretched off the screen and

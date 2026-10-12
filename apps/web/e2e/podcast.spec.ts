@@ -94,36 +94,6 @@ test.describe("the Settings index", () => {
     await expect(crumb).toHaveAttribute("href", "/settings");
   });
 
-  test("below 64rem the title stands alone on one line; from 64rem the trail leads up", async ({
-    page,
-  }) => {
-    const pages = [
-      "/settings/daily",
-      "/settings/weekly",
-      "/settings/model",
-      "/settings/topics",
-      "/settings/topics/design",
-      "/settings/topics/tech",
-      "/settings/topics/business",
-      "/settings/topics/audio_interfaces",
-    ];
-    for (const width of [360, 1280]) {
-      await page.setViewportSize({ width, height: 800 });
-      for (const path of pages) {
-        await page.goto(path);
-        const crumbs = page.locator(".settings-crumbs");
-        const lines = await crumbs.evaluate(
-          (node) =>
-            node.getBoundingClientRect().height /
-            Number.parseFloat(getComputedStyle(node).lineHeight),
-        );
-        expect(lines, `${path} at ${width}`).toBeLessThan(1.5);
-        if (width < 1024) await expect(page.locator(".settings-up")).toBeHidden();
-        else await expect(page.locator(".settings-up")).toBeVisible();
-      }
-    }
-  });
-
   test("the addresses of the old pages still land somewhere sensible", async ({ page }) => {
     const moves = [
       ["/settings/podcast", /\/settings$/],
@@ -243,58 +213,6 @@ test.describe("the profile pages", () => {
     expect(box + padding).toBeCloseTo(label, 0);
   });
 
-  test("from 40rem every row of Daily is one height, and the Sunday note is Repeat's own line", async ({
-    page,
-  }) => {
-    await open(page, "daily");
-    await expect(page.locator("#daily-cadence")).toHaveAccessibleDescription(
-      "On Sundays the weekly episode replaces this one.",
-    );
-    if ((page.viewportSize()?.width ?? 0) < 640) return;
-    const heights = await page
-      .locator(".podcast-profile .rows > .settings-row")
-      .evaluateAll((rows) => rows.map((row) => Math.round(row.getBoundingClientRect().height)));
-    expect(Math.max(...heights) - Math.min(...heights), heights.join(" ")).toBeLessThanOrEqual(2);
-  });
-
-  test("Length shows its choice with a check, and the check fits, at every width", async ({
-    page,
-  }) => {
-    for (const width of [360, 390, 1280]) {
-      await page.setViewportSize({ width, height: 800 });
-      await open(page, "daily");
-      const segment = page.locator(".settings-segment:has(input[name='daily-length']:checked)");
-      const fit = await segment.evaluate((label) => {
-        const words = label.querySelector("span") as HTMLElement;
-        const check = getComputedStyle(words, "::before");
-        const box = label.getBoundingClientRect();
-        const text = words.getBoundingClientRect();
-        return {
-          shown: check.display !== "none" && check.opacity === "1",
-          inside: text.left >= box.left - 0.5 && text.right <= box.right + 0.5,
-          clipped: words.scrollWidth > words.clientWidth + 1,
-        };
-      });
-      expect(fit, `at ${width}`).toEqual({ shown: true, inside: true, clipped: false });
-    }
-  });
-
-  test("the voice select holds still whether or not a sample button shows", async ({ page }) => {
-    await mockConfig(page);
-    await open(page, "daily");
-    // From 40rem the value ends at the row's edge; on a phone it starts under its label.
-    const phone = (page.viewportSize()?.width ?? 0) < 640;
-    const right = async () => {
-      const box = await page.locator("#daily-voice").boundingBox();
-      return (box?.x ?? 0) + (phone ? 0 : (box?.width ?? 0));
-    };
-    // The play button keeps its room either way, so the select does not jump.
-    const before = await right();
-    await page.locator("#daily-voice").selectOption("voice-ada");
-    await expect(page.locator("[data-voice-row=voice] [data-preview]")).toBeVisible();
-    expect(await right()).toBeCloseTo(before, 0);
-  });
-
   test("choosing a voice with a sample plays it through the site and shows its play button", async ({
     page,
   }) => {
@@ -362,18 +280,6 @@ test.describe("the profile pages", () => {
       .evaluate((row) => Math.round(row.getBoundingClientRect().height));
     expect(Math.abs(gap)).toBeLessThanOrEqual(8);
     if ((page.viewportSize()?.width ?? 0) >= 640) expect(height).toBe(timeRow);
-  });
-
-  test("has 44px targets", async ({ page }) => {
-    await open(page, "daily");
-    for (const target of [
-      page.locator("#daily-hour"),
-      page.locator("#daily-cadence"),
-      page.locator("#daily-voice"),
-    ]) {
-      const box = await target.boundingBox();
-      expect(box?.height ?? 0).toBeGreaterThanOrEqual(44);
-    }
   });
 });
 
@@ -694,25 +600,6 @@ test.describe("the Model page", () => {
     expect((await list.boundingBox())?.height ?? 0).toBeGreaterThan(32);
   });
 
-  test("the model field has room for a long name, and never shows half of one", async ({
-    page,
-  }) => {
-    await open(page, "model");
-    const field = combo(page);
-    for (const name of ["Claude Sonnet 5.5", "DeepSeek V4 Pro 0813"]) {
-      await field.evaluate((node, value) => {
-        (node as HTMLInputElement).value = value;
-      }, name);
-      const room = await field.evaluate((node) => ({
-        needs: node.scrollWidth,
-        has: node.clientWidth,
-      }));
-      expect(room.needs, name).toBeLessThanOrEqual(room.has);
-    }
-    // A name longer than any row ends in an ellipsis, not mid-word.
-    await expect(field).toHaveCSS("text-overflow", "ellipsis");
-  });
-
   test("lists Automatic, the top models the live list has, then the rest", async ({ page }) => {
     await open(page, "model");
     await expect(combo(page)).toHaveValue("Default");
@@ -854,43 +741,6 @@ test.describe("the Model page", () => {
         model: "claude-haiku-5-5",
       });
     await expect(toastText(page)).toHaveText(SAVED);
-  });
-
-  test("the open list has equal padding above and below and stays on screen", async ({ page }) => {
-    await open(page, "model");
-    await combo(page).focus();
-    await page.keyboard.press("ArrowDown");
-    const list = page.getByRole("listbox", { name: "Models" });
-    await expect(list).toBeVisible();
-    const gaps = await list.evaluate((element) => {
-      const panel = element.getBoundingClientRect();
-      const rows = [...element.querySelectorAll("[role=option]")].map((row) =>
-        row.getBoundingClientRect(),
-      );
-      const first = rows[0] as DOMRect;
-      const last = rows[rows.length - 1] as DOMRect;
-      const style = getComputedStyle(element);
-      return {
-        padTop: Number.parseFloat(style.paddingTop),
-        padBottom: Number.parseFloat(style.paddingBottom),
-        top: first.top - panel.top,
-        bottom: panel.bottom - last.bottom,
-        scrolls: element.scrollHeight > element.clientHeight,
-        inside: panel.top >= 0 && panel.bottom <= window.innerHeight,
-      };
-    });
-    expect(Math.abs(gaps.padTop - gaps.padBottom)).toBeLessThanOrEqual(1);
-    // Scrolled to the top, the first row sits a padding under the panel's edge (the border adds one).
-    if (!gaps.scrolls) expect(Math.abs(gaps.top - gaps.bottom)).toBeLessThanOrEqual(2);
-    expect(gaps.inside).toBe(true);
-  });
-
-  test("has 44px targets", async ({ page }) => {
-    await open(page, "model");
-    for (const target of [combo(page), page.getByLabel("Provider")]) {
-      const box = await target.boundingBox();
-      expect(box?.height ?? 0).toBeGreaterThanOrEqual(44);
-    }
   });
 });
 

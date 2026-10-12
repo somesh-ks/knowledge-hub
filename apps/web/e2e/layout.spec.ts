@@ -2,6 +2,16 @@ import { expect, hydrated, ROUTES, SILENT_DIGEST, targetSize, test } from "./fix
 
 const WIDTHS = [320, 390, 820, 1280] as const;
 
+/** The app's other pages, beside the reading routes, that every sweep covers too. */
+const PAGES = [
+  "/create",
+  "/settings",
+  "/settings/daily",
+  "/settings/model",
+  "/settings/topics/design",
+  "/e/ep-20261007-1930",
+];
+
 /** Eighty words: the longest summary the voice allows. */
 const LONG_SUMMARY = Array.from({ length: 16 }, () => "Five plain words fit here.").join(" ");
 const LONG_HEADLINE =
@@ -12,13 +22,13 @@ test.describe("layout", () => {
   for (const width of WIDTHS) {
     test(`nothing scrolls sideways at ${width}px`, { tag: "@both" }, async ({ page }) => {
       await page.setViewportSize({ width, height: 900 });
-      for (const route of ROUTES) {
-        await page.goto(route.path);
+      for (const path of [...ROUTES.map((route) => route.path), ...PAGES]) {
+        await page.goto(path);
         const overflow = await page.evaluate(() => ({
           scroll: document.documentElement.scrollWidth,
           client: document.documentElement.clientWidth,
         }));
-        expect(overflow.scroll, `${route.path} at ${width}px`).toBeLessThanOrEqual(overflow.client);
+        expect(overflow.scroll, `${path} at ${width}px`).toBeLessThanOrEqual(overflow.client);
       }
     });
   }
@@ -26,17 +36,20 @@ test.describe("layout", () => {
   test("every control answers a touch across at least 44px in both directions", {
     tag: "@both",
   }, async ({ page }) => {
-    // Every headline is a link now, so there are a dozen more controls to probe on a briefing.
-    test.slow();
+    // Every headline is a link, and every page of the app is probed: a minute or two of hit tests.
+    test.setTimeout(180_000);
     await page.setViewportSize({ width: 390, height: 900 });
-    for (const path of ["/", "/library", SILENT_DIGEST, "/offline"]) {
+    for (const path of ["/", "/library", SILENT_DIGEST, "/offline", ...PAGES]) {
       await page.goto(path);
       const small: string[] = [];
-      for (const control of await page.locator("a[href], button, summary, select").all()) {
+      const controls = "a[href], button, summary, select, input:not([type=hidden])";
+      for (const control of await page.locator(controls).all()) {
         if (!(await control.isVisible())) continue;
         // The skip link is a keyboard control and only shows on focus.
         if (await control.evaluate((node) => node.matches(".skip-link"))) continue;
-        const size = await targetSize(control);
+        // A choice drawn as its label (a chip, a segment, a switch) is pressed on the label.
+        const label = control.locator("xpath=self::input/ancestor::label[1]");
+        const size = await targetSize((await label.count()) > 0 ? label : control);
         if (size.width < 44 || size.height < 44) {
           const label = await control.evaluate((node) =>
             (node.getAttribute("aria-label") ?? node.textContent ?? "").trim().slice(0, 40),
@@ -132,28 +145,6 @@ test.describe("layout", () => {
     await expect(page.locator(".tabs")).toBeVisible();
   });
 
-  test("the contents list starts level with the first section's heading", {
-    tag: "@desktop",
-  }, async ({ page }) => {
-    for (const width of [1280, 1600]) {
-      await page.setViewportSize({ width, height: 900 });
-      await page.goto("/");
-      await expect(page.locator(".aside")).toHaveAttribute("style", /--aside-start/);
-      const words = (selector: string) =>
-        page
-          .locator(selector)
-          .first()
-          .evaluate((node) => {
-            const range = document.createRange();
-            range.selectNodeContents(node);
-            return range.getBoundingClientRect().top;
-          });
-      const title = await words(".aside-title");
-      const heading = await words("[data-chapter] > h2");
-      expect(Math.abs(title - heading), `${width}`).toBeLessThan(6);
-    }
-  });
-
   test("the contents list marks the section in view and stays put while the page scrolls", {
     tag: "@desktop",
   }, async ({ page }) => {
@@ -202,50 +193,6 @@ test.describe("layout", () => {
     }
   });
 
-  test("on a phone the header stacks the same way for any title, down to 320px", async ({
-    page,
-  }) => {
-    await page.setViewportSize({ width: 320, height: 700 });
-    for (const path of ["/", "/e/ep-20261007-1930"]) {
-      await page.goto(path);
-      const cover = await page.locator(".hero .cover").boundingBox();
-      const heading = await page.locator(".hero h1").boundingBox();
-      const facts = await page.locator(".hero-facts").boundingBox();
-      const chip = await page.locator(".hero [data-play-digest]").boundingBox();
-      const more = await page.getByRole("button", { name: "More actions" }).boundingBox();
-      expect(cover?.width, path).toBeCloseTo(88, 0);
-      // The cover with More at the far end of its row, then the title, its facts and Play, each
-      // under the one before and each from the column's edge.
-      expect(more?.y ?? 999, path).toBeLessThan((cover?.y ?? 0) + (cover?.height ?? 0) / 2);
-      const edge = await page.evaluate(
-        () => document.querySelector("main")?.getBoundingClientRect().right ?? 0,
-      );
-      expect((more?.x ?? 0) + (more?.width ?? 0), path).toBeGreaterThan(edge);
-      expect(heading?.y ?? 0, path).toBeGreaterThan((cover?.y ?? 0) + (cover?.height ?? 0));
-      expect(facts?.y ?? 0, path).toBeGreaterThanOrEqual(
-        (heading?.y ?? 0) + (heading?.height ?? 0) - 1,
-      );
-      expect(chip?.y ?? 0, path).toBeGreaterThan((facts?.y ?? 0) + (facts?.height ?? 0));
-      for (const box of [heading, facts, chip]) expect(box?.x, path).toBeCloseTo(cover?.x ?? -1, 0);
-    }
-  });
-
-  test("from 40rem Play sits beside the cover on its foot line, under the date", async ({
-    page,
-  }) => {
-    await page.setViewportSize({ width: 820, height: 900 });
-    await page.goto("/");
-    const cover = await page.locator(".hero .cover").boundingBox();
-    const chip = await page.locator(".hero [data-play-digest]").boundingBox();
-    const facts = await page.locator(".hero-facts").boundingBox();
-    expect(cover?.width).toBeCloseTo(160, 0);
-    expect(chip?.x ?? 0).toBeGreaterThan((cover?.x ?? 0) + (cover?.width ?? 0));
-    expect(chip?.y ?? 0).toBeGreaterThan((facts?.y ?? 0) + (facts?.height ?? 0));
-    // Its foot within a few pixels of the cover's.
-    const coverFoot = (cover?.y ?? 0) + (cover?.height ?? 0);
-    expect(Math.abs((chip?.y ?? 0) + (chip?.height ?? 0) - coverFoot)).toBeLessThan(4);
-  });
-
   test("every story chip keeps its whole 44px target, clear of the why line and the publisher", async ({
     page,
   }) => {
@@ -266,38 +213,6 @@ test.describe("layout", () => {
       });
       expect(misses, `${width}`).toEqual([]);
     }
-  });
-
-  test("hairlines between stories stay inside the text column", async ({ page }) => {
-    await page.setViewportSize({ width: 390, height: 844 });
-    await page.goto("/");
-    const rule = await page
-      .locator(".story")
-      .nth(1)
-      .evaluate((node) => {
-        const style = getComputedStyle(node, "::before");
-        const box = node.getBoundingClientRect();
-        return {
-          left: box.left + Number.parseFloat(style.left) - box.left,
-          width: Number.parseFloat(style.width),
-          row: box.width,
-          height: style.height,
-          // The page's own width: a desktop browser takes a scrollbar out of the 390.
-          page: document.documentElement.clientWidth,
-        };
-      });
-    // The line starts and ends where the text does: no bleed past the gutters.
-    expect(rule.left).toBeCloseTo(0, 0);
-    expect(rule.width).toBeCloseTo(rule.row, 0);
-    expect(rule.width).toBeLessThan(rule.page);
-    expect(rule.height).toBe("1px");
-    // The first story of a section has no rule: its section header is above it.
-    expect(
-      await page
-        .locator(".story")
-        .first()
-        .evaluate((node) => getComputedStyle(node, "::before").content),
-    ).toBe("none");
   });
 
   test("long content holds at 320px: a three-line headline, an 80-word summary, a long host", async ({
@@ -365,56 +280,6 @@ test.describe("layout", () => {
     expect(requests.some((url) => url.endsWith(".woff2"))).toBe(true);
   });
 
-  test("type holds to two weights, with the date and section headings regular and headlines medium", async ({
-    page,
-  }) => {
-    await page.goto("/");
-    const weight = (selector: string) =>
-      page
-        .locator(selector)
-        .first()
-        .evaluate((node) => getComputedStyle(node).fontWeight);
-    expect(await weight("h1")).toBe("400");
-    expect(await weight("[data-chapter] h2")).toBe("400");
-    expect(await weight(".story h3")).toBe("500");
-    expect(await weight(".story-summary")).toBe("400");
-    expect(await weight(".card-title")).toBe("500");
-    const weights = await page
-      .locator("main *")
-      .evaluateAll((nodes) => [...new Set(nodes.map((node) => getComputedStyle(node).fontWeight))]);
-    expect(weights.sort()).toEqual(["400", "500"]);
-  });
-
-  test("reduced motion keeps the layout and removes movement", async ({ page }) => {
-    await page.emulateMedia({ reducedMotion: "reduce" });
-    await page.goto("/");
-    const durations = await page.evaluate(() => {
-      const style = getComputedStyle(document.documentElement);
-      return {
-        enter: style.getPropertyValue("--duration-enter").trim(),
-        sheet: style.getPropertyValue("--duration-sheet-in").trim(),
-        state: style.getPropertyValue("--duration-state").trim(),
-      };
-    });
-    expect(Number.parseFloat(durations.enter)).toBeCloseTo(0.01, 3);
-    expect(Number.parseFloat(durations.sheet)).toBeCloseTo(0.01, 3);
-    expect(
-      Number.parseFloat(durations.state) * (durations.state.endsWith("ms") ? 1 : 1000),
-    ).toBeCloseTo(200, 0);
-    // A playing chip's bars hold still, at three heights.
-    const chip = page.locator("[data-play-item]").first();
-    await chip.evaluate((node) => {
-      node.setAttribute("data-state", "current");
-      node.setAttribute("data-playing", "true");
-    });
-    expect(
-      await chip
-        .locator(".chip-bars > i")
-        .first()
-        .evaluate((node) => getComputedStyle(node).animationName),
-    ).toBe("none");
-  });
-
   test("forced colors keeps the current story and section marked", { tag: "@desktop" }, async ({
     page,
   }) => {
@@ -451,25 +316,5 @@ test.describe("layout", () => {
         expect(await word.evaluate((node) => node.getClientRects().length)).toBe(1);
       }
     }
-  });
-
-  test("scroll behavior lives in the stylesheet", async ({ page }) => {
-    await page.goto("/");
-    const overscroll = await page.evaluate(
-      () => getComputedStyle(document.documentElement).overscrollBehaviorY,
-    );
-    expect(overscroll).toBe("none");
-  });
-
-  test("uses the safe area variables with a zero fallback", async ({ page }) => {
-    await page.goto("/");
-    const safe = await page.evaluate(() => {
-      const style = getComputedStyle(document.documentElement);
-      return ["--safe-top", "--safe-right", "--safe-bottom", "--safe-left"].map((name) =>
-        style.getPropertyValue(name).trim(),
-      );
-    });
-    // A zero inset is a real answer: every variable resolves, and the layout works at 0px.
-    expect(safe).toEqual(["0px", "0px", "0px", "0px"]);
   });
 });

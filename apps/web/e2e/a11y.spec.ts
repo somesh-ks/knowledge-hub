@@ -35,16 +35,6 @@ test("axe, home with each theme chosen against the system", async ({ page }) => 
 });
 
 test.describe("axe, banners and live states", () => {
-  test("an old briefing shows no banner about its age", async ({ page }) => {
-    // Eleven days after the newest fixture digest. The owner took the age banner out on 2026-10-11.
-    await page.clock.setFixedTime(new Date("2026-10-18T09:00:00+02:00"));
-    await page.goto("/");
-    await hydrated(page);
-    // Online, nothing the device or the clock decides is shown.
-    await expect(page.locator("#banners [data-banner]")).toHaveCount(0);
-    await expect(page.locator("#banners")).not.toContainText("days old");
-  });
-
   test("the offline banner has no violations", async ({ page, context }) => {
     await page.goto("/");
     // Let the islands finish hydrating before the network goes away.
