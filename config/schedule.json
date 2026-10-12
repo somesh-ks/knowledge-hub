@@ -5,7 +5,7 @@
   "cadence_days": 2,
   "skip_topics": [],
   "format": "readout",
-  "length_minutes": 10,
+  "length_minutes": 5,
   "voice_id": null,
   "voice_id_b": null,
   "weekly": {
