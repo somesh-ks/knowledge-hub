@@ -11,6 +11,8 @@ type Saver = typeof import("./managePageSave");
 
 /** What the toast says while a change is on its way (SAVING in managePageSave.ts, loaded later). */
 const SAVING = "Saving";
+/** When the sending code itself cannot be fetched (the device went offline before the first change). */
+const CANNOT_SEND = "The site could not be reached. Not saved yet.";
 
 /** How long the controls must be still before a save. */
 export const SETTLE_MS = 1200;
@@ -149,10 +151,26 @@ export function mountAutosave(
         saver = module;
         return module.flush(context);
       })
+      .catch(() => {
+        // The sender could not be fetched: say so, and let Retry try again.
+        show(CANNOT_SEND, "error");
+      })
       .finally(() => {
         sending = false;
       });
   };
+
+  // The sender loads when the browser is idle, while the connection is there, so a change made after
+  // it has gone reaches a request that fails with a message, not a chunk that cannot be fetched.
+  const warm = (): void => {
+    void import("./managePageSave")
+      .then((module) => {
+        saver ??= module;
+      })
+      .catch(() => {});
+  };
+  if (typeof requestIdleCallback === "function") requestIdleCallback(warm, { timeout: 4000 });
+  else setTimeout(warm, 1500);
 
   bar?.addEventListener("click", (event) => {
     const act = (event.target as Element).closest<HTMLButtonElement>("button")?.dataset.act;

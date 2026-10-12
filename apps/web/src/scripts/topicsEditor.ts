@@ -29,6 +29,8 @@ type Control = HTMLInputElement;
 
 /** What a suggested source's row says when its request was refused or did not go. */
 const NOT_ADDED = "Not added. Try again.";
+/** And a topic's row, which has no plus to press: the toast's Retry is the way. */
+const TOPIC_NOT_ADDED = "Not added yet. Press Retry.";
 
 /**
  * What a control holds now. A pressed button is a boolean, a slider a number. A remove button keeps
@@ -123,6 +125,11 @@ export function mountEditor(root: HTMLElement): Editor {
       el: row,
       now: "",
       ...(after?.length ? { with: after } : {}),
+      // Refused or not sent: the row says so, and the toast's Retry sends it again.
+      fail: () => {
+        const note = row.querySelector(".manage-quiet");
+        if (note) note.textContent = TOPIC_NOT_ADDED;
+      },
     });
     // The panel closes behind it, so focus and the view go to the row that says it is being added.
     row.tabIndex = -1;

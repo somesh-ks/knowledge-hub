@@ -111,6 +111,31 @@ describe("flush", () => {
     expect(changes.size).toBe(0);
   });
 
+  it("does not keep a refused change as pending for the next page, and sends it again on Retry", async () => {
+    vi.stubGlobal(
+      "fetch",
+      vi.fn(async () => new Response(JSON.stringify({ status: 500 }), { status: 500 })),
+    );
+    const changes = new Map([
+      ["a", change({ op: "source.add", url: "https://a.example/feed.xml" })],
+    ]);
+    await flush(context(changes), "open");
+    expect(changes.get("a")?.failed).toBe(true);
+    // The page is left with the refusal on it: the next page shows nothing for it.
+    const leaving = context(changes);
+    keepWaiting(leaving);
+    expect(anyPending(parseSaved(localStorage.getItem(SAVED_KEY), Date.now()), Date.now())).toBe(
+      false,
+    );
+    // Retry: it goes again, and is no longer marked refused.
+    vi.stubGlobal(
+      "fetch",
+      vi.fn(async () => new Response(JSON.stringify({ status: 202, run_id: 1 }), { status: 202 })),
+    );
+    await flush(context(changes), "open");
+    expect(changes.size).toBe(0);
+  });
+
   it("holds a change made inside the server's gap, quietly, and sends what gathered in one request", async () => {
     const changes = new Map([["a", change({ op: "source.set", id: "a", enabled: false })]]);
     await flush(context(changes), "open");

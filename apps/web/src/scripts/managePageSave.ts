@@ -50,6 +50,8 @@ export interface Pending {
   with?: ConfigOp[];
   el: HTMLElement;
   now: string;
+  /** Refused or not sent: kept for Retry on this page, but not a change that is on its way. */
+  failed?: boolean;
   /** A control that shows its own outcome: told when its request was refused or did not go. */
   fail?: () => void;
   /** And when it was saved, whether by its own request or by a retry. */
@@ -235,7 +237,10 @@ export function gapLeft(last: number, now: number): number {
 
 /** Every edit still waiting in `changes`, in the order it will go. */
 function waitingOps(changes: ReadonlyMap<string, Pending>): ConfigOp[] {
-  return pack(buildQueue(changes), changes).flatMap((batch) => batch.ops);
+  // A refused change waits for Retry on its page, not for a request: the next page must not show it
+  // as saved.
+  const going = new Map([...changes].filter(([, pending]) => !pending.failed));
+  return pack(buildQueue(going), going).flatMap((batch) => batch.ops);
 }
 
 /**
@@ -361,6 +366,8 @@ export async function flush(
    * "Adding" and then "Added" itself, so the toast saying it too would be the same news twice.
    */
   let rowSays = true;
+  // Everything waiting goes now, a refused change included: it is on its way again.
+  for (const pending of changes.values()) pending.failed = false;
   try {
     while (changes.size > 0) {
       // Inside the server's gap after the last request, wait it out first, quietly: nothing is on
@@ -385,7 +392,10 @@ export async function flush(
         }
         failure = failureText(answer.status);
         // A row that said Adding says so no more: the change stays for Retry, and the row for itself.
-        for (const [, pending] of batch.sent) pending.fail?.();
+        for (const [, pending] of batch.sent) {
+          pending.failed = true;
+          pending.fail?.();
+        }
         break;
       }
       timeRefused ||= answer.timeRefused;

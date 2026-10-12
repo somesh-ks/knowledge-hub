@@ -1001,6 +1001,23 @@ test.describe("a refused suggested add", () => {
       ops(sent).filter((op) => op.op === "source.add" && String(op.url).includes("motion-weekly")),
     ).toHaveLength(2);
   });
+
+  test("a refusal left behind by reloading is not shown as saved on the next page", async ({
+    page,
+  }) => {
+    // Refused, and never sent again: the next page must show what the repository holds.
+    await setup(page, [{ status: 500, body: { status: 500 } }]);
+    await open(page, DESIGN);
+    const row = suggestion(page, "Motion Weekly");
+    await row.getByRole("button", { name: "Add Motion Weekly" }).click();
+    await expect(row).toContainText("Not added. Try again.");
+    await page.reload();
+    await open(page, DESIGN);
+    const again = suggestion(page, "Motion Weekly");
+    await expect(again.getByRole("button", { name: "Add Motion Weekly" })).toBeEnabled();
+    await expect(again).not.toContainText("Added");
+    await expect(page.getByText("Saving. Live in about a minute.")).toHaveCount(0);
+  });
 });
 
 test.describe("a refused lookup", () => {

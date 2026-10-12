@@ -654,6 +654,45 @@ test.describe("a refused save", () => {
   });
 });
 
+test.describe("a change made offline", () => {
+  test.use({ allowNetworkErrors: true });
+
+  test("says it was not saved, and Retry sends it once the connection is back", async ({
+    page,
+    context,
+  }) => {
+    // A mocked route answers even while the context is offline, so the mock goes offline with it.
+    let online = true;
+    const sent: Sent[] = [];
+    await page.route("**/api/config", async (route: Route) => {
+      if (!online) {
+        await route.abort("internetdisconnected");
+        return;
+      }
+      sent.push(route.request().postDataJSON() as Sent);
+      await route.fulfill({
+        status: 202,
+        contentType: "application/json",
+        body: JSON.stringify({ status: 202, run_id: 1 }),
+      });
+    });
+    // The sending code is fetched at idle, while the connection is there.
+    const sender = page.waitForResponse((response) => /managePageSave/.test(response.url()));
+    await open(page, "daily");
+    await sender;
+    await context.setOffline(true);
+    online = false;
+    await page.locator("#daily-hour").selectOption("9");
+    await expect(toastText(page)).toHaveText("The site could not be reached. Not saved yet.");
+    expect(sent).toHaveLength(0);
+    await context.setOffline(false);
+    online = true;
+    await toast(page).getByRole("button", { name: "Retry" }).click();
+    await expect(toastText(page)).toHaveText(SAVED);
+    expect(opsOf(sent)).toContainEqual({ op: "schedule.set", hour: 9 });
+  });
+});
+
 test.describe("the Model page", () => {
   test("a filter that matches nothing says so; open, the field has no ring; a phone's list is the row's width", async ({
     page,

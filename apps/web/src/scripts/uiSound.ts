@@ -7,13 +7,14 @@
 export function installUiSound(): void {
   let loaded: Promise<typeof import("../player/sound/uiClicks")> | undefined;
   // The cues are a nicety: where the module cannot be fetched (offline, a dropped connection) the
-  // gesture goes without its sound, and the next one tries again.
+  // gestures go without sound for the rest of the page. The failure is kept, not tried again: the
+  // browser remembers a failed import and fails the next one at once, and Vite answers a failed
+  // import, once online, by reloading the page, which would lose what the person was doing.
   const load = async () => {
     try {
       loaded ??= import("../player/sound/uiClicks");
       return await loaded;
     } catch {
-      loaded = undefined;
       return null;
     }
   };
