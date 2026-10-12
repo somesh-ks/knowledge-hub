@@ -192,78 +192,22 @@ describe("loading and saving", () => {
   });
 });
 
+// The live registry is owner-edited data: these are data lints over it, with no counts or ids pinned.
 describe("the committed registry", () => {
   const path = new URL("../../../config/sources.json", import.meta.url);
 
-  it("validates against SourcesFile with at least ninety sources", () => {
+  it("parses, with unique kebab-case ids, one fetch per feed, a strategy and a note where needed", () => {
     if (!existsSync(path)) return;
-    const parsed = SourcesSchema.parse(JSON.parse(readFileSync(path, "utf8")));
-    expect(parseSources(parsed).sources.length).toBeGreaterThanOrEqual(90);
-  });
-
-  it("carries the consumer tech beat: thirteen outlets on, the four news technology desks off, all capped at six or uncapped", () => {
-    if (!existsSync(path)) return;
-    const { sources } = parseSources(JSON.parse(readFileSync(path, "utf8")));
-    expect(sources).toHaveLength(165);
-    const desks = (s: { id: string }): boolean => s.id.endsWith("-technology");
-    const tech = sources.filter((s) => s.category_hint === "consumer_tech_releases");
-    expect(tech).toHaveLength(17);
-    expect(tech.filter(desks).every((s) => !s.enabled && s.origin === "seed")).toBe(true);
-    for (const source of tech.filter((s) => !desks(s))) {
-      expect(source.enabled, source.id).toBe(true);
-      // Brutalist Report is a page of headlines that Firecrawl reads; the rest are feeds.
-      if (source.id === "brutalist-report") continue;
-      expect(source.type, source.id).toBe("rss");
-      expect(source.feed_url, source.id).toMatch(/^https:\/\//);
-    }
-    expect(
-      tech
-        .filter((s) => s.options.pool_cap === "6" && !desks(s))
-        .map((s) => s.id)
-        .sort(),
-    ).toEqual([
-      "9to5google",
-      "9to5mac",
-      "android-authority",
-      "brutalist-report",
-      "electrek",
-      "engadget",
-      "gsmarena",
-      "techcrunch",
-      "techmeme",
-      "toms-hardware",
-    ]);
-    // No resolved source carries leftovers that discovery already used up.
-    for (const source of sources) {
-      if (source.feed_url !== null)
-        expect(source.options, source.id).not.toHaveProperty("feed_hint");
-      if (source.options.channel_id) expect(source.options.note, source.id).toBeUndefined();
-    }
-  });
-
-  it("sends two discovery queries to the tech pool and leaves the other ten unhinted", () => {
-    const queriesPath = new URL("../../../config/queries.json", import.meta.url);
-    const { queries } = parseQueries(JSON.parse(readFileSync(queriesPath, "utf8")));
-    expect(queries).toHaveLength(12);
-    expect(queries.filter((q) => q.category_hint !== undefined)).toEqual([
-      {
-        id: "consumer-hardware-and-platform-launches",
-        query: "consumer hardware and platform launches",
-        category_hint: "consumer_tech_releases",
-      },
-      {
-        id: "consumer-device-regulation-or-ruling",
-        query: "consumer device regulation or ruling",
-        category_hint: "consumer_tech_releases",
-      },
-    ]);
-    expect(new Set(queries.map((q) => q.id)).size).toBe(queries.length);
-    for (const { query } of queries) expect(query).not.toMatch(/\b20\d{2}\b/);
-  });
-
-  it("files every source under a topic (D69), except the Exa searches, which carry their own", () => {
-    if (!existsSync(path)) return;
-    const { sources } = parseSources(JSON.parse(readFileSync(path, "utf8")));
+    const raw = JSON.parse(readFileSync(path, "utf8"));
+    const { sources } = parseSources(SourcesSchema.parse(raw));
+    expect(sources.length).toBeGreaterThanOrEqual(90);
+    expect(new Set(sources.map((s) => s.id)).size).toBe(sources.length);
+    // Al Jazeera's top stories and its World desk share one feed; the top-stories source is off.
+    const feeds = sources
+      .filter((s) => s.enabled && s.feed_url)
+      .map((s) => `${feedsGeneralOnly(s.topic_ids)} ${s.feed_url}`);
+    expect(feeds.length).toBe(new Set(feeds).size);
+    // Every source is filed under a topic (D69), except the Exa searches, which carry their own.
     const neverPublish = new Set(["venture_capital_and_gossip", "generic_ai_hype_listicles"]);
     const unfiled = sources.filter(
       (s) => s.category_hint === undefined && (s.topic_ids ?? []).length === 0,
@@ -272,30 +216,24 @@ describe("the committed registry", () => {
     for (const source of sources) {
       expect(neverPublish.has(source.category_hint ?? ""), source.id).toBe(false);
       expect(source.topic_ids ?? [], source.id).not.toContain("trending");
-    }
-  });
-
-  it("never fetches the same feed twice and explains every disabled source", () => {
-    if (!existsSync(path)) return;
-    const { sources } = parseSources(JSON.parse(readFileSync(path, "utf8")));
-    // Al Jazeera's top stories and its World desk share one feed; the top-stories source is off.
-    const feeds = sources
-      .filter((s) => s.enabled && s.feed_url)
-      .map((s) => `${feedsGeneralOnly(s.topic_ids)} ${s.feed_url}`);
-    expect(feeds.length).toBe(new Set(feeds).size);
-    for (const source of sources.filter((s) => !s.enabled)) {
-      expect(source.options.note, source.id).toBeTruthy();
-    }
-  });
-
-  it("has unique kebab-case ids and a feed or scrape strategy for every enabled source", () => {
-    if (!existsSync(path)) return;
-    const { sources } = parseSources(JSON.parse(readFileSync(path, "utf8")));
-    expect(new Set(sources.map((s) => s.id)).size).toBe(sources.length);
-    for (const source of sources.filter((s) => s.enabled)) {
+      // No resolved source carries leftovers that discovery already used up.
+      if (source.feed_url !== null)
+        expect(source.options, source.id).not.toHaveProperty("feed_hint");
+      if (source.options.channel_id) expect(source.options.note, source.id).toBeUndefined();
+      if (!source.enabled) {
+        expect(source.options.note, source.id).toBeTruthy();
+        continue;
+      }
       expect(source.id).toMatch(/^[a-z0-9][a-z0-9-]*$/);
       const hasStrategy = source.feed_url !== null || source.type === "firecrawl";
       expect(hasStrategy, source.id).toBe(true);
     }
+  });
+
+  it("keeps discovery queries unique and free of years that go stale", () => {
+    const queriesPath = new URL("../../../config/queries.json", import.meta.url);
+    const { queries } = parseQueries(JSON.parse(readFileSync(queriesPath, "utf8")));
+    expect(new Set(queries.map((q) => q.id)).size).toBe(queries.length);
+    for (const { query } of queries) expect(query).not.toMatch(/\b20\d{2}\b/);
   });
 });

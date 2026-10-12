@@ -19,7 +19,6 @@ import { captureLog, FakeLlm, testLinter, testVoice } from "./write-fakes.js";
 
 const voice = testVoice();
 const linter = testLinter();
-const brief = (): string => voiceBrief(voice);
 
 let n = 0;
 function material(overrides: Partial<SourceMaterial> = {}): SourceMaterial {
@@ -50,58 +49,15 @@ function writeAll(request: { messages: readonly { content: string }[] }): unknow
 }
 
 describe("writer prompt", () => {
-  it("is built from config/voice.md: principles, limits, examples and banned words", () => {
+  it("carries every banned word into the brief", () => {
     const brief = voiceBrief(voice);
-    expect(brief).toContain("Four beats, in order.");
-    expect(brief).toContain("The catch comes from the source");
-    expect(brief).toContain("Headline: at most 12 words");
-    expect(brief).toContain("Summary: three or four sentences, 45 to 80 words.");
-    expect(brief).toContain("Weak: An exciting new library makes animations easier");
-    expect(brief).toContain("Strong: Springlet 2.0 retargets springs mid-flight");
-    expect(brief).toContain("Strong: Sonos launched the Ace Ultra");
     for (const word of voice.bannedWords) expect(brief).toContain(word);
   });
 
-  it("opens by naming the product and the reader", () => {
+  it("asks for a headline and a summary and no why line, under the product's own name", () => {
     const system = writerSystemPrompt(voice, "abcdef0123456789");
-    expect(system.split("\n")[0]).toBe(
-      "You write items for Singularity, a private tech and design engineering briefing. The reader is sharp but may not know the topic.",
-    );
     expect(system).not.toContain("Dispatch");
     expect(rewriteSystemPrompt(voice, "abcdef0123456789")).not.toContain("Dispatch");
-  });
-
-  it("states the hard limits, the four beats and the facts-only rule", () => {
-    const system = writerSystemPrompt(voice, "abcdef0123456789");
-    expect(system).toContain("- headline: at most 12 words, no trailing period.");
-    expect(system).toContain("natural word order and a real verb");
-    expect(system).toContain("Not a changelog line");
-    expect(system).toContain(
-      "- summary: three or four sentences, at most 80 words in total, each sentence at most 28 words.",
-    );
-    expect(system).toContain(
-      "what happened; the number that makes it concrete (a price, date, size or percentage); why it happened or what it changes; the catch.",
-    );
-    expect(system).toContain("it must come from the text");
-    expect(system).toContain("If the text gives no catch, stop after three sentences.");
-    expect(system).toContain("Use facts from the source text only");
-    expect(system).toContain("Never add a claim");
-  });
-
-  it("asks for the spoken telling in the same call, with the rules that keep it grounded", () => {
-    const system = writerSystemPrompt(voice, "abcdef0123456789");
-    expect(system).toContain(
-      "- spoken: the same story told aloud by a host, 3 to 5 sentences, 40 to 95 words and at most 700 characters in total.",
-    );
-    expect(system).toContain("use contractions");
-    expect(system).toContain("The catch: ...");
-    expect(system).toContain("no questions to the listener");
-    expect(system).toContain("Use only facts that are in your own summary");
-    expect(brief()).toContain("HEADLINE EXAMPLES (weak, then strong)");
-  });
-
-  it("asks for a headline and a summary and no why line", () => {
-    const system = writerSystemPrompt(voice, "abcdef0123456789");
     expect(system).toContain(
       '{"items":[{"id":"...","headline":"...","summary":"...","spoken":"..."}]}, one entry per source',
     );

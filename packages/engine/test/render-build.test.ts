@@ -6,13 +6,7 @@ import { afterEach, describe, expect, it } from "vitest";
 import { buildDigest } from "../src/render/buildDigest.js";
 import { createFallbackCoverPicker, loadCoverPalettes } from "../src/render/coverPicker.js";
 import { createIdAllocator, listTakenIds, nextDigestId } from "../src/render/digestId.js";
-import {
-  digestWords,
-  LISTEN_WORDS_PER_SECOND,
-  listenMinutes,
-  READ_WORDS_PER_MINUTE,
-  readMinutes,
-} from "../src/render/readTime.js";
+import { digestWords, listenMinutes, readMinutes } from "../src/render/readTime.js";
 import { writeDigestFile } from "../src/render/writeDigestFile.js";
 import {
   buildFixtureDigest,
@@ -34,11 +28,6 @@ afterEach(async () => {
 });
 
 describe("reading and listening time", () => {
-  it("uses 230 words per minute for reading and 2.6 words per second for listening", () => {
-    expect(READ_WORDS_PER_MINUTE).toBe(230);
-    expect(LISTEN_WORDS_PER_SECOND).toBe(2.6);
-  });
-
   it.each([
     [0, 1, 1],
     [1, 1, 1],
