@@ -850,3 +850,35 @@ test.describe("the page head", () => {
     await expect(page).toHaveTitle("Library, Singularity");
   });
 });
+
+test.describe("the page's chrome", () => {
+  test.skip(({ isMobile }) => !isMobile, "The floating Play and the app bar are phone chrome");
+
+  test("the floating Play follows the hero's Play in the page, so it is never styled before it", async ({
+    page,
+  }) => {
+    for (const path of ["/", "/d/2026-10-05", "/e/ep-20261007-1930"]) {
+      await page.goto(path);
+      const after = await page.evaluate(() => {
+        const hero = document.querySelector(".hero-actions");
+        const fab = document.querySelector(".play-fab");
+        return Boolean(
+          hero && fab && hero.compareDocumentPosition(fab) & Node.DOCUMENT_POSITION_FOLLOWING,
+        );
+      });
+      expect(after, path).toBe(true);
+      await expect(page.locator(".play-fab"), path).toBeHidden();
+    }
+  });
+
+  test("the latest briefing at its dated address is Today: no Back in the app bar", async ({
+    page,
+  }) => {
+    await page.goto("/d/2026-10-07");
+    await expect(page.locator(".app-bar-back")).toHaveCount(0);
+    await expect(page.locator('.app-nav [aria-current="page"]')).toHaveText(/Today/);
+    // An older briefing is one level down from the Library, and leads back to it.
+    await page.goto(SILENT_DIGEST);
+    await expect(page.locator(".app-bar-back")).toHaveAttribute("href", "/library");
+  });
+});

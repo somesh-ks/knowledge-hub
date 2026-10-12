@@ -88,8 +88,11 @@ const path = Astro.url.pathname.replace(/\/$/, "") || "/";
 const fab = fabFor({ path, playable: Boolean(audio && digestId) });
 // A page one level down (a briefing or an episode, a Settings sub-page, the Create page) leads back
 // in the app bar: to where the person came from when that was in the app, else to its list.
+// The latest briefing at its dated address is Today, a top-level destination: no Back there.
 const back =
-  /^\/(d|e)\//.test(path) || path === "/create"
+  destination === "today"
+    ? undefined
+    : /^\/(d|e)\//.test(path) || path === "/create"
     ? { href: "/library", label: "Back" }
     : /^\/settings\/./.test(path)
       ? { href: path.replace(/\/[^/]+$/, ""), label: "Back" }
@@ -135,7 +138,6 @@ const back =
     <SiteHeader back={back} />
     <AppNav current={destination} />
     {fab === "create" && <CreateFab />}
-    {fab === "play" && digestId && audio && <PlayFab digestId={digestId} {...audio} />}
     <RunStatus />
     {/* The offline banner is cloned from this, so its markup has one home: by the script after the
          stack before first paint, and by deviceBanners.ts from then on. */}
@@ -150,6 +152,9 @@ const back =
     <div class="banner-stack page" id="banners"><slot name="banners" /></div>
     <script is:inline set:html={bannersInit.trim()} />
     <div class="shell page"><slot /></div>
+    {/* After the shell, so the hero's Play it waits for (create-sheet.css) is already in the page
+         when the button is first styled: before it, the button showed for a frame on load. */}
+    {fab === "play" && digestId && audio && <PlayFab digestId={digestId} {...audio} />}
 
     {/* Both islands live in the layout and persist across navigation, so the audio object inside the
          player module is never rebuilt and playback never stops while you move between pages. */}
