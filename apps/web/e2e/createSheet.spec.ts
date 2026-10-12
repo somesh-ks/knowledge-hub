@@ -237,7 +237,8 @@ test.describe("Create as the primary action", () => {
       },
     });
     await expect(sheet(page)).toBeHidden();
-    const status = page.getByRole("status").filter({ has: page.locator("[data-run-card]") });
+    // The status region holds the line alone, not the card's link and buttons.
+    const status = page.locator("[data-run-status]").getByRole("status");
     await expect(status).toContainText(/Episode queued|Writing your episode/);
 
     // A client-side navigation keeps it, and a reload picks the run up again.

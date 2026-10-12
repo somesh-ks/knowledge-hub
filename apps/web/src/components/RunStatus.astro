@@ -39,9 +39,11 @@ const lines = {
 ---
 
 {/* The progress of a Create run, out of the way: at the foot of the side column from 64rem, above the
-     player bar below it. A status region from the start and persisted across navigations, so what the
-     script put in it is still there on the next page. The card inside appears with the first run. */}
-<div class="run-status" role="status" data-run-status transition:persist="run-status" {...lines}>
+     player bar below it. Persisted across navigations, so what the script put in it is still there on
+     the next page. The card inside appears with the first run. The status region is a hidden node of
+     its own that holds only the line, so a change of a button's words is not read with it. */}
+<div class="run-status" data-run-status transition:persist="run-status" {...lines}>
+  <span class="sr-only" role="status" data-run-announce></span>
   <div class="run-card" data-run-card hidden>
     <p class="run-text">
       <Icon name="alert" class="run-alert" />
