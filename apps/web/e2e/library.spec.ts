@@ -1,5 +1,5 @@
 import type { Page } from "@playwright/test";
-import { expect, test } from "./fixtures";
+import { expect, hydrated, test } from "./fixtures";
 
 const DISCUSSION = "Quiet interfaces and fast latency";
 const HEADLINES = "AI headlines";
@@ -398,6 +398,26 @@ test.describe("library search", () => {
 });
 
 test.describe("library fixes", () => {
+  test("search, filters and the view still work after a run, which leaves its line on every page", async ({
+    page,
+  }) => {
+    // A finished run, as one started on another page leaves it: its line has a link to the Library.
+    await page.addInitScript(() =>
+      sessionStorage.setItem("dispatch:run", JSON.stringify({ id: 5, phase: "done" })),
+    );
+    await page.goto("/");
+    await hydrated(page);
+    await page.getByRole("link", { name: "Library", exact: true }).first().click();
+    await expect(page).toHaveURL(/\/library$/);
+    await ready(page);
+    expect(await page.locator("[data-library]").count()).toBe(1);
+    await page.getByRole("searchbox").fill("forty minute");
+    expect(await titles(page)).toEqual(["Monday 5 October"]);
+    await narrowedTo(page, 1, 5);
+    await page.getByRole("button", { name: "List view" }).click();
+    await expect(page.locator("[data-library]")).toHaveAttribute("data-view", "list");
+  });
+
   test("a focused card is painted whole, so its ring shows", async ({ page }) => {
     await page.goto("/library");
     await ready(page);

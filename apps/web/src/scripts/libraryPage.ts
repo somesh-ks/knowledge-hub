@@ -72,7 +72,7 @@ function allowed<T extends string>(
 }
 
 function install(): void {
-  const root = document.querySelector<HTMLElement>("[data-library]");
+  const root = document.querySelector<HTMLElement>("#main [data-library]");
   if (!root || root.dataset.ready !== undefined) return;
   root.dataset.ready = "";
 

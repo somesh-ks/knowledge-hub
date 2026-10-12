@@ -190,8 +190,9 @@ function show(run: Stored | null): void {
     // A new episode's link leads to it once the site lists it; anything else leads to the Library.
     const href = run?.href ?? "/library";
     if (library.getAttribute("href") !== href) library.setAttribute("href", href);
-    library.dataset.library ??= library.textContent ?? "";
-    const words = run?.href ? root.dataset.open : library.dataset.library;
+    // Not `data-library`: that is the Library page's own root, and a link carrying it was found first.
+    library.dataset.runWords ??= library.textContent ?? "";
+    const words = run?.href ? root.dataset.open : library.dataset.runWords;
     if (words && library.textContent !== words) library.textContent = words;
     // A link to the page on screen would only load it again, so the line offers none there.
     library.hidden =
