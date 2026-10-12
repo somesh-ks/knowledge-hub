@@ -1,8 +1,16 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { SAVED_KEY } from "../lib/savedKey";
-import { parseSaved, savedOps } from "../lib/savedOverlay";
+import { anyPending, parseSaved, savedOps } from "../lib/savedOverlay";
 import type { ConfigOp } from "../types/contracts";
-import { flush, GAP_MS, gapLeft, type Pending, remember, type SaveContext } from "./managePageSave";
+import {
+  flush,
+  GAP_MS,
+  gapLeft,
+  keepWaiting,
+  type Pending,
+  remember,
+  type SaveContext,
+} from "./managePageSave";
 
 /** A control as settle reads one: not a row, not a remove button. */
 const control = (): HTMLElement =>
@@ -98,6 +106,68 @@ describe("flush", () => {
       { op: "source.set", id: "c", enabled: true },
     ]);
     expect(states).toEqual(["saving", "done"]);
+  });
+
+  it("still sends a change held in the gap when its page was swapped away and its toast throws", async () => {
+    const changes = new Map([["a", change({ op: "schedule.set", hour: 7 })]]);
+    await flush(context(changes), "open");
+    changes.set("b", change({ op: "schedule.set", length_minutes: 10 }));
+    const gone: SaveContext = {
+      changes,
+      dialog: null,
+      show: () => {
+        throw new DOMException("Invalid on disconnected popover elements", "InvalidStateError");
+      },
+      settled: () => {
+        throw new Error("the page is gone");
+      },
+    };
+    const second = flush(gone, "open");
+    // Leaving keeps the waiting edit, marked pending, for the page opened next.
+    keepWaiting(gone);
+    let kept = parseSaved(localStorage.getItem(SAVED_KEY), Date.now());
+    expect(anyPending(kept, Date.now())).toBe(true);
+    expect(savedOps(kept, Date.now())).toContainEqual({ op: "schedule.set", length_minutes: 10 });
+    await vi.advanceTimersByTimeAsync(GAP_MS);
+    await second;
+    expect(posted).toEqual([
+      [{ op: "schedule.set", hour: 7 }],
+      [{ op: "schedule.set", length_minutes: 10 }],
+    ]);
+    expect(changes.size).toBe(0);
+    kept = parseSaved(localStorage.getItem(SAVED_KEY), Date.now());
+    expect(anyPending(kept, Date.now())).toBe(false);
+    expect(savedOps(kept, Date.now())).toEqual([
+      { op: "schedule.set", hour: 7 },
+      { op: "schedule.set", length_minutes: 10 },
+    ]);
+  });
+
+  it("drops edits marked pending when the run that carried them fails", async () => {
+    const changes = new Map([["a", change({ op: "schedule.set", hour: 7 })]]);
+    await flush(context(changes), "open");
+    changes.set("b", change({ op: "schedule.set", hour: 9 }));
+    const gone = context(changes);
+    const second = flush(gone, "open");
+    keepWaiting(gone);
+    vi.mocked(fetch).mockResolvedValueOnce(new Response("{}", { status: 500 }));
+    await vi.advanceTimersByTimeAsync(GAP_MS);
+    await second;
+    const kept = parseSaved(localStorage.getItem(SAVED_KEY), Date.now());
+    expect(savedOps(kept, Date.now())).toEqual([{ op: "schedule.set", hour: 7 }]);
+  });
+
+  it("sends another page's changes that came while a run was busy, once it is done", async () => {
+    const first = new Map([["a", change({ op: "schedule.set", hour: 7 })]]);
+    await flush(context(first), "open");
+    first.set("b", change({ op: "schedule.set", hour: 8 }));
+    const held = flush(context(first), "open");
+    const next = new Map([["c", change({ op: "source.set", id: "c", enabled: true })]]);
+    await flush(context(next), "open");
+    await vi.advanceTimersByTimeAsync(GAP_MS * 3);
+    await held;
+    expect(posted).toHaveLength(3);
+    expect(posted[2]).toEqual([{ op: "source.set", id: "c", enabled: true }]);
   });
 
   it("says nothing when every change was put back during the gap", async () => {

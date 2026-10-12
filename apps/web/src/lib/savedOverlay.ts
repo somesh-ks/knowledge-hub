@@ -17,17 +17,29 @@ import type { ConfigOp } from "../types/contracts";
 /** How long a saved edit is shown over the page it was built with: the build takes about a minute. */
 export const SAVED_TTL_MS = 3 * 60 * 1000;
 
-/** One request that went through: its edits, and when, in epoch milliseconds. */
+/**
+ * How long edits still on their way are shown: the page they were made on was left while they waited
+ * out the server's gap (managePageSave.ts), and the request that carries them is sent within a minute
+ * or not at all, say because the tab was closed.
+ */
+export const PENDING_TTL_MS = 90 * 1000;
+
+/**
+ * One request that went through: its edits, and when, in epoch milliseconds. `pending` marks edits
+ * not sent yet, kept when their page was left so the next page shows them while they go.
+ */
 export interface SavedEntry {
   at: number;
   ops: ConfigOp[];
+  pending?: true;
 }
 
 const isOp = (value: unknown): value is ConfigOp =>
   typeof value === "object" && value !== null && typeof (value as { op?: unknown }).op === "string";
 
 /** Kept for SAVED_TTL_MS, and never from the future: a clock moved back drops it. */
-const fresh = (at: number, now: number): boolean => at <= now && now - at < SAVED_TTL_MS;
+const fresh = (at: number, now: number, pending = false): boolean =>
+  at <= now && now - at < (pending ? PENDING_TTL_MS : SAVED_TTL_MS);
 
 /** The entries in what storage holds that are still shown, oldest first. Anything malformed is none. */
 export function parseSaved(raw: string | null, now: number): SavedEntry[] {
@@ -36,29 +48,55 @@ export function parseSaved(raw: string | null, now: number): SavedEntry[] {
     const data: unknown = JSON.parse(raw);
     if (!Array.isArray(data)) return [];
     return data.flatMap((entry) => {
-      const { at, ops } = (entry ?? {}) as { at?: unknown; ops?: unknown };
-      if (typeof at !== "number" || !Array.isArray(ops) || !fresh(at, now)) return [];
-      return [{ at, ops: ops.filter(isOp) }];
+      const { at, ops, pending } = (entry ?? {}) as {
+        at?: unknown;
+        ops?: unknown;
+        pending?: unknown;
+      };
+      const waiting = pending === true;
+      if (typeof at !== "number" || !Array.isArray(ops) || !fresh(at, now, waiting)) return [];
+      return [{ at, ops: ops.filter(isOp), ...(waiting ? { pending: true as const } : {}) }];
     });
   } catch {
     return [];
   }
 }
 
-/** The entries with a request just saved added last; those too old to show are dropped. */
+/**
+ * The entries with a request just saved added last; those too old to show are dropped, and so are
+ * the edits marked pending: the one run that sends them marks again what it still holds (withPending).
+ */
 export function addSaved(
   entries: readonly SavedEntry[],
   ops: readonly ConfigOp[],
   now: number,
 ): SavedEntry[] {
-  const kept = entries.filter((entry) => fresh(entry.at, now));
+  const kept = entries.filter((entry) => !entry.pending && fresh(entry.at, now));
   const own = ops.filter((op) => op.op !== "writer.set");
   return own.length > 0 ? [...kept, { at: now, ops: own }] : kept;
 }
 
+/** The entries with the edits still waiting, `ops`, as the one pending entry, added last. */
+export function withPending(
+  entries: readonly SavedEntry[],
+  ops: readonly ConfigOp[],
+  now: number,
+): SavedEntry[] {
+  const kept = entries.filter((entry) => !entry.pending && fresh(entry.at, now));
+  const own = ops.filter((op) => op.op !== "writer.set");
+  return own.length > 0 ? [...kept, { at: now, ops: own, pending: true }] : kept;
+}
+
+/** Whether any edit shown is still on its way, so the page says Saving rather than Saved. */
+export function anyPending(entries: readonly SavedEntry[], now: number): boolean {
+  return entries.some((entry) => entry.pending && fresh(entry.at, now, true));
+}
+
 /** Every edit still shown, in the order it was saved, so a later one overrides an earlier one. */
 export function savedOps(entries: readonly SavedEntry[], now: number): ConfigOp[] {
-  return entries.filter((entry) => fresh(entry.at, now)).flatMap((entry) => entry.ops);
+  return entries
+    .filter((entry) => fresh(entry.at, now, entry.pending))
+    .flatMap((entry) => entry.ops);
 }
 
 // ------------------------------------------------------------------------------------- podcast pages
@@ -71,7 +109,6 @@ const CONTROL_NAMES: Record<string, string> = {
   cadence_days: "cadence",
   length_minutes: "length",
   voice_id: "voice",
-  voice_id_b: "voice_b",
 };
 
 /** A value as a control holds it: null is Default, the empty choice. Lists are not controls. */
@@ -242,6 +279,28 @@ export function sourceCounts(
 ): { total: number; on: number } {
   const listed = Object.values(spots).filter((spot) => page === undefined || spot.page === page);
   return { total: listed.length, on: listed.filter((spot) => spot.on).length };
+}
+
+/**
+ * How many sources there are and how many are read, where a source is read only while it is on and
+ * so is the topic whose page lists it. `offPages` are the pages of topics built switched off; a
+ * saved topic.upsert switches its topic on or off on top of that.
+ */
+export function readCounts(
+  spots: Readonly<Record<string, SourceSpot>>,
+  offPages: Iterable<string>,
+  ops: readonly ConfigOp[],
+): { total: number; on: number } {
+  const off = new Set(offPages);
+  for (const [id, topic] of savedTopics(ops).topics) {
+    if (topic.enabled) off.delete(id);
+    else off.add(id);
+  }
+  const listed = Object.values(spots);
+  return {
+    total: listed.length,
+    on: listed.filter((spot) => spot.on && !off.has(spot.page)).length,
+  };
 }
 
 /**

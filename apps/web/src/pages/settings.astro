@@ -2,6 +2,7 @@
 import Icon from "../components/Icon.astro";
 import BaseLayout from "../layouts/BaseLayout.astro";
 import { loadManage } from "../lib/manage";
+import { readCounts } from "../lib/savedOverlay";
 import { loadScheduleView } from "../lib/schedule";
 import { dailySummary, modelSummary, topicsSummary, weeklySummary } from "../lib/settingsSummary";
 import { topicLayout } from "../lib/topicPages";
@@ -20,7 +21,15 @@ const [schedule, writer, manage] = await Promise.all([
 // general news topics; the judge's finer topics are inside the three.
 const layout = topicLayout(manage.topics, manage.sources);
 const shownTopics = [...layout.groups, ...layout.own, ...layout.general].map((topic) => topic.id);
-const sourcesOn = manage.sources.filter((source) => source.enabled).length;
+// A source is read only while it is on and so is the topic whose page lists it: a general topic
+// switched off reads none of its sources, whatever their own boxes say.
+const offPages = manage.topics.filter((topic) => !topic.enabled).map((topic) => topic.id);
+const spots = Object.fromEntries(
+  [...layout.sources].flatMap(([page, list]) =>
+    list.map((source) => [source.id, { page, on: source.enabled }]),
+  ),
+);
+const sourcesOn = readCounts(spots, offPages, []).on;
 // Each row leads to the one page that sets it, and says its current state in a few words. What the
 // words are worked out from rides along as data, so an edit saved since the build can be shown in
 // them (scripts/settingsSaved.ts, loaded only when one is kept).
@@ -50,9 +59,8 @@ const PODCAST = [
       summary: "topics",
       shown: shownTopics.join(" "),
       taken: manage.topics.map((topic) => topic.id).join(" "),
-      sources: JSON.stringify(
-        Object.fromEntries(manage.sources.map((source) => [source.id, source.enabled])),
-      ),
+      sources: JSON.stringify(spots),
+      off: offPages.join(" "),
     },
   },
   {

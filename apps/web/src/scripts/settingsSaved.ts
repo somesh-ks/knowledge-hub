@@ -7,11 +7,11 @@
 import type { StoredWriterChoice } from "../lib/pendingWriter";
 import {
   type FieldValues,
+  readCounts,
   type SourceSpot,
   savedFields,
   savedSources,
   savedTopicCount,
-  sourceCounts,
 } from "../lib/savedOverlay";
 import { dailySummary, modelSummary, topicsSummary, weeklySummary } from "../lib/settingsSummary";
 import type { ConfigOp } from "../types/contracts";
@@ -66,15 +66,15 @@ export function overlayIndex(
   const topics = row(root, "topics");
   if (topics) {
     const words = (value: string | undefined): string[] => (value ?? "").split(" ").filter(Boolean);
-    let read: Record<string, boolean> = {};
+    let base: Record<string, SourceSpot> = {};
     try {
-      read = JSON.parse(topics.dataset.sources ?? "{}");
+      base = JSON.parse(topics.dataset.sources ?? "{}");
     } catch {
-      read = {};
+      base = {};
     }
-    const base: Record<string, SourceSpot> = {};
-    for (const [id, on] of Object.entries(read)) base[id] = { page: "", on: on === true };
-    const counts = sourceCounts(savedSources(base, ops, () => ""));
+    // A source moved since the build is filed under the topic it moved to: that topic's page.
+    const spots = savedSources(base, ops, (id) => id ?? "");
+    const counts = readCounts(spots, words(topics.dataset.off), ops);
     const count = savedTopicCount(words(topics.dataset.shown), words(topics.dataset.taken), ops);
     shown = say(topics, topicsSummary(count, counts.total, counts.on)) || shown;
   }

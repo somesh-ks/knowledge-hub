@@ -13,7 +13,7 @@
 
 .settings-view {
   /* The segmented choices and the slider share one width from 40rem, so their edges line up. */
-  --settings-control-width: 18rem;
+  --settings-control-width: 22rem;
   padding-block: var(--page-top) var(--space-8);
 }
 
@@ -201,6 +201,12 @@
   border-radius: var(--row-radius);
 }
 
+/* A link row among value rows is as tall as they are (a select row's padding round the target). */
+:is(.settings-view, .manage) .rows > .row-action:not(:has(.settings-hint)) {
+  min-height: calc(var(--size-touch-comfortable) + var(--space-1) * 2);
+  padding-block: var(--space-1);
+}
+
 :is(.settings-view, .manage) .row-action .icon {
   /* The glyph sits inside its box; this pulls its right edge out to the switch's and the segments'. */
   margin-inline-end: calc(var(--size-icon) * -0.28);
@@ -337,15 +343,6 @@
   inline-size: var(--space-4);
   margin-inline-end: var(--space-1);
   opacity: 1;
-}
-
-/* Four segments in a settings row leave no room for the check beside the words ("10 min" met its
-   thumb's edges): the thumb and its ink mark the choice alone. New episode's full-width controls
-   keep the check (create.css drops it below 22.5rem only). */
-.settings-choice:not(.create-choice):has(.settings-segment:nth-of-type(4))
-  .settings-segment
-  > span::before {
-  display: none;
 }
 
 /*

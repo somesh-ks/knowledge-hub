@@ -2,7 +2,10 @@ import { describe, expect, it } from "vitest";
 import type { ConfigOp } from "../types/contracts";
 import {
   addSaved,
+  anyPending,
+  PENDING_TTL_MS,
   parseSaved,
+  readCounts,
   SAVED_TTL_MS,
   savedControl,
   savedFields,
@@ -12,6 +15,7 @@ import {
   savedTopicCount,
   savedTopics,
   sourceCounts,
+  withPending,
 } from "./savedOverlay";
 
 const T0 = 1_760_000_000_000;
@@ -38,6 +42,22 @@ describe("keeping what was saved", () => {
     expect(later).toHaveLength(1);
   });
 
+  it("keeps edits still on their way, marked pending, until a request that went through replaces them", () => {
+    const sent = addSaved([], [{ op: "schedule.set", hour: 7 }], T0);
+    const left = withPending(sent, [{ op: "schedule.set", hour: 9 }], T0 + 1000);
+    const read = parseSaved(JSON.stringify(left), T0 + 2000);
+    expect(anyPending(read, T0 + 2000)).toBe(true);
+    expect(savedOps(read, T0 + 2000)).toEqual([
+      { op: "schedule.set", hour: 7 },
+      { op: "schedule.set", hour: 9 },
+    ]);
+    const done = addSaved(read, [{ op: "schedule.set", hour: 9 }], T0 + 5000);
+    expect(anyPending(done, T0 + 5000)).toBe(false);
+    expect(savedOps(done, T0 + 5000)).toHaveLength(2);
+    // A pending edit whose request never went (the tab closed) is not shown for long.
+    expect(parseSaved(JSON.stringify(left), T0 + 1000 + PENDING_TTL_MS)).toHaveLength(1);
+  });
+
   it("leaves the writer to its own note", () => {
     expect(addSaved([], [{ op: "writer.set", provider: "nebius", model: null }], T0)).toEqual([]);
   });
@@ -58,11 +78,9 @@ describe("savedFields", () => {
     "daily.cadence": "2",
     "daily.length": "5",
     "daily.voice": "",
-    "daily.voice_b": "",
-    "daily.format": "readout",
   };
 
-  it("lays each schedule edit over what the page was built with", () => {
+  it("lays each schedule edit over what the page was built with, and skips fields with no control", () => {
     const ops: ConfigOp[] = [
       { op: "schedule.set", hour: 7, cadence_days: 3, voice_id: "ava", format: "discussion" },
     ];
@@ -70,7 +88,6 @@ describe("savedFields", () => {
       "daily.hour": "7",
       "daily.cadence": "3",
       "daily.voice": "ava",
-      "daily.format": "discussion",
     });
   });
 
@@ -226,5 +243,26 @@ describe("savedSources and savedTopicCount", () => {
     ];
     expect(savedTopicCount(["design", "knit", "world"], ["product_design"], ops)).toBe(3);
     expect(savedTopicCount(["design", "knit"], [], [])).toBe(2);
+  });
+});
+
+describe("readCounts", () => {
+  const spots = {
+    a: { page: "world", on: true },
+    b: { page: "world", on: true },
+    c: { page: "design", on: true },
+    d: { page: "design", on: false },
+  };
+
+  it("counts a source as read only while the topic whose page lists it is on", () => {
+    expect(readCounts(spots, [], [])).toEqual({ total: 4, on: 3 });
+    expect(readCounts(spots, ["world"], [])).toEqual({ total: 4, on: 1 });
+  });
+
+  it("follows a topic switched on or off since the build", () => {
+    const off = { op: "topic.upsert", topic: { id: "world", name: "World", enabled: false } };
+    const on = { ...off, topic: { ...off.topic, enabled: true } };
+    expect(readCounts(spots, [], [off as ConfigOp])).toEqual({ total: 4, on: 1 });
+    expect(readCounts(spots, ["world"], [on as ConfigOp])).toEqual({ total: 4, on: 3 });
   });
 });

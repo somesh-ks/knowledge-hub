@@ -10,7 +10,7 @@ const PIXEL = Buffer.from(
   "base64",
 );
 const SAVED = "Saved. Live in about a minute.";
-const ADDED = "Added. Its posts are read after the next update.";
+const ADDED = "Added. Read from the next update.";
 const ADDED_TOPIC = "Added. Its page opens in about a minute.";
 
 interface Sent {
@@ -85,7 +85,8 @@ test.describe("the Topics list", () => {
       ["AI", "1 source"],
       ["Technology", "No sources yet"],
       ["Audio interfaces", "1 source"],
-      ["Other", "2 sources"],
+      // Other counts the way every row does: one of its two sources is switched off.
+      ["Other", "1 of 2 sources on"],
       ["World", "2 of 3 sources on"],
       ["Science", "1 source"],
       ["Sports", "No sources yet"],
@@ -325,6 +326,40 @@ test.describe("a topic's page", () => {
     expect(ops(sent)).toEqual([{ op: "weights.set", weights: { audio_interfaces: 0.6 } }]);
   });
 
+  test("a custom topic's rows are one height, the weight row is shaped as Design's, and Edit topic ends at the edge", async ({
+    page,
+  }) => {
+    await setup(page);
+    await open(page, "/settings/topics/audio_interfaces");
+    const phone = (page.viewportSize()?.width ?? 0) < 640;
+    const shape = async (selector: string) =>
+      page
+        .locator(selector)
+        .first()
+        .evaluate((row) => {
+          const box = row.getBoundingClientRect();
+          const icon = row.querySelector(":scope > .icon")?.getBoundingClientRect();
+          const slider = row.querySelector(".settings-range")?.getBoundingClientRect();
+          const label = row.querySelector(".settings-label")?.getBoundingClientRect();
+          return {
+            height: Math.round(box.height),
+            iconGap: icon ? Math.round(box.right - icon.right) : null,
+            under: slider && label ? slider.top >= label.bottom : null,
+          };
+        });
+    const edit = await shape(".topic-edit");
+    const scope = await shape(".topic-scope");
+    const own = await shape(".topic .topic-weight");
+    expect(edit.height).toBe(scope.height);
+    // The glyph ends at the row's edge (its own inset pulled out), not after the words.
+    expect(Math.abs(edit.iconGap ?? 99)).toBeLessThanOrEqual(8);
+    // One weight row is built as a group's are: on a phone the slider goes under its name.
+    if (phone) expect(own.under).toBe(true);
+    await open(page, "/settings/topics/design");
+    const design = await shape(".topic-weights .topic-weight");
+    expect(own.height).toBe(design.height);
+  });
+
   test("Design weighs each topic it gathers by name; a group of one has a plain Weight row", async ({
     page,
   }) => {
@@ -508,6 +543,7 @@ test.describe("a topic's page", () => {
     page,
   }) => {
     const { sent } = await setup(page);
+    await page.goto("/settings");
     await open(page, "/settings/topics/audio_interfaces");
     await page.getByRole("button", { name: "Remove topic Audio interfaces" }).click();
     await expect(toastText(page)).toHaveText("Removing Audio interfaces");
@@ -515,6 +551,12 @@ test.describe("a topic's page", () => {
     await expect(page).toHaveURL(/\/settings\/topics$/, AFTER_UNDO);
     await expect(page.locator('a[href="/settings/topics/audio_interfaces"]')).toBeHidden();
     expect(ops(sent)).toEqual([{ op: "topic.remove", id: "audio_interfaces" }]);
+    // The list took the removed page's place: Back goes on to where the person came from.
+    await page.goBack();
+    await expect(page).toHaveURL(/\/settings$/);
+    // Opened again before the build, the removed topic's page gives way to the list.
+    await page.goto("/settings/topics/audio_interfaces");
+    await expect(page).toHaveURL(/\/settings\/topics$/);
   });
 
   test("a built-in topic cannot be removed", async ({ page }) => {
@@ -558,10 +600,13 @@ test.describe("a topic's page", () => {
     const on = page.getByRole("switch", { name: "Use World" });
     await expect(on).toBeChecked();
     await expect(on).toHaveAccessibleDescription("Used in episodes");
-    await expect(page.getByText("Not read while World is off.")).toBeHidden();
+    const list = page.locator(".topic-sources[data-sources]");
+    const faded = () => list.evaluate((el) => Number(getComputedStyle(el).opacity) < 1);
+    expect(await faded()).toBe(false);
     await on.uncheck();
     await expect(on).toHaveAccessibleDescription("Off. Its sources are not read");
-    await expect(page.getByText("Not read while World is off.")).toBeVisible();
+    // Its sources take the off look, whatever their own boxes hold: none is read while it is off.
+    await expect.poll(faded).toBe(true);
     await expect(toastText(page)).toHaveText(SAVED);
     expect(ops(sent)).toMatchObject([
       { op: "topic.upsert", topic: { id: "world", enabled: false, section_id: "general" } },
@@ -755,8 +800,17 @@ test.describe("a topic's suggested sources", () => {
     const done = row.getByRole("button", { name: "Added Motion Weekly" });
     await expect(done).toBeDisabled();
     await expect(done).toHaveClass(/is-added/);
-    await expect(toastText(page)).toHaveText(SAVED);
     await expect(row).toContainText(ADDED);
+    // The row says it, so the toast does not say it again; and the note is whole, never cut off.
+    await expect(toast(page)).toBeHidden();
+    const note = row.locator(".source-note");
+    expect(await note.evaluate((el) => el.scrollWidth <= el.clientWidth + 1)).toBe(true);
+    // From 40rem a three-line suggestion takes a three-line row's 88px.
+    if ((page.viewportSize()?.width ?? 0) >= 640) {
+      const other = suggestion(page, "Motion Weekly").locator("xpath=following-sibling::li[1]");
+      if ((await other.count()) > 0 && (await other.locator(".source-line").count()) > 0)
+        expect((await other.boundingBox())?.height ?? 0).toBeGreaterThanOrEqual(88);
+    }
     expect(ops(sent)).toEqual([
       {
         op: "source.add",
@@ -870,6 +924,8 @@ test.describe("editing a topic", () => {
     const sheet = page.getByRole("dialog", { name: "Add a topic" });
     await sheet.getByRole("form", { name: "Add a topic" }).getByLabel("Name").fill("Spatial audio");
     await sheet.getByLabel("What should count as this topic").fill("Spatial audio in apps.");
+    // Every podcast ticked reads as it does on every topic page.
+    await expect(sheet.getByRole("button", { name: /^Podcasts/ })).toHaveText("All podcasts");
     await sheet.getByRole("button", { name: /^Podcasts/ }).click();
     await sheet.getByRole("option", { name: "Weekly" }).click();
     await expect(sheet.getByRole("button", { name: /^Podcasts/ })).toHaveText("Daily and Episodes");

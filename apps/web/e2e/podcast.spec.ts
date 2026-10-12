@@ -166,8 +166,11 @@ test.describe("the profile pages", () => {
     await expect(page.getByText("Time zone")).toHaveCount(0);
     await expect(page.locator("[data-f$='.timezone']")).toHaveCount(0);
     await expect(page.locator("#daily-cadence")).toHaveValue("2");
-    await expect(page.getByRole("radio", { name: "Readout" })).toBeChecked();
     await expect(page.getByRole("radio", { name: "10 min", exact: true })).toBeChecked();
+    // A briefing is read from its digest in one voice: no Format and no second voice to choose.
+    await expect(page.getByRole("radiogroup", { name: "Format" })).toHaveCount(0);
+    await expect(page.getByRole("radio", { name: "Discussion" })).toHaveCount(0);
+    await expect(page.getByLabel("Discussion voice")).toHaveCount(0);
     await expect(page.locator("[data-next]")).toHaveText(
       /^Next episode: (today|tomorrow|[A-Z][a-z]+day) at about 07:00$/,
     );
@@ -190,7 +193,7 @@ test.describe("the profile pages", () => {
     const before = await on.boundingBox();
     await on.uncheck();
     await expect(page.locator("#weekly-day")).toBeHidden();
-    await expect(page.getByRole("radio", { name: "Readout" })).toBeHidden();
+    await expect(page.getByRole("radio", { name: "10 min", exact: true })).toBeHidden();
     // The line under the title says it is off in the next run's place, so the switch holds still.
     await expect(page.locator("[data-next]")).toBeHidden();
     await expect(page.locator("[data-off]")).toHaveText("No weekly episodes while this is off.");
@@ -224,11 +227,14 @@ test.describe("the profile pages", () => {
     await expect(hint).toBeHidden();
   });
 
-  test("both voices are always there, filled from the voice list", async ({ page }) => {
+  test("the voice is one row under Episode, filled from the voice list", async ({ page }) => {
     await open(page, "daily");
     const first = page.getByLabel("Voice", { exact: true });
-    const second = page.getByLabel("Discussion voice", { exact: true });
     await expect(first).toBeVisible();
+    await expect(
+      page.getByRole("region", { name: "Episode" }).getByLabel("Voice", { exact: true }),
+    ).toBeVisible();
+    await expect(page.getByRole("heading", { name: "Voices" })).toHaveCount(0);
     await expect(first.locator("option")).toHaveText([
       "Default",
       // Each voice leads with the flag of its accent: en-US, en-US, en-GB.
@@ -236,14 +242,18 @@ test.describe("the profile pages", () => {
       "\u{1F1FA}\u{1F1F8} Leo, male",
       "\u{1F1EC}\u{1F1E7} Nora, female",
     ]);
-    // The second voice is for discussions, and is set whatever the type is now.
-    await expect(second).toBeVisible();
-    // The labels say what each voice is; no hint repeats it.
-    await expect(page.getByText("Joins in discussions")).toHaveCount(0);
-    await page.getByRole("radio", { name: "Discussion" }).check();
-    await expect(second).toBeVisible();
-    await page.getByRole("radio", { name: "Readout" }).check();
-    await expect(second).toBeVisible();
+    await expect(page.locator(".podcast-voice select")).toHaveCount(1);
+    if ((page.viewportSize()?.width ?? 0) >= 640) return;
+    // On a phone the value sits under its label: its box bleeds 8px, as the trailing values do, so
+    // its fill and ring keep clear of the screen's edge, and its words start under the label's.
+    const [box, label, padding] = await first.evaluate((select) => [
+      select.getBoundingClientRect().left,
+      select.closest(".settings-row")?.querySelector(".settings-label")?.getBoundingClientRect()
+        .left ?? 0,
+      Number.parseFloat(getComputedStyle(select).paddingInlineStart),
+    ]);
+    expect(label - box).toBeCloseTo(8, 0);
+    expect(box + padding).toBeCloseTo(label, 0);
   });
 
   test("from 40rem every row of Daily is one height, and the Sunday note is Repeat's own line", async ({
@@ -260,26 +270,42 @@ test.describe("the profile pages", () => {
     expect(Math.max(...heights) - Math.min(...heights), heights.join(" ")).toBeLessThanOrEqual(2);
   });
 
-  test("the two voice selects end at one edge whether or not a sample button shows", async ({
+  test("Length shows its choice with a check, and the check fits, at every width", async ({
     page,
   }) => {
+    for (const width of [360, 390, 1280]) {
+      await page.setViewportSize({ width, height: 800 });
+      await open(page, "daily");
+      const segment = page.locator(".settings-segment:has(input[name='daily-length']:checked)");
+      const fit = await segment.evaluate((label) => {
+        const words = label.querySelector("span") as HTMLElement;
+        const check = getComputedStyle(words, "::before");
+        const box = label.getBoundingClientRect();
+        const text = words.getBoundingClientRect();
+        return {
+          shown: check.display !== "none" && check.opacity === "1",
+          inside: text.left >= box.left - 0.5 && text.right <= box.right + 0.5,
+          clipped: words.scrollWidth > words.clientWidth + 1,
+        };
+      });
+      expect(fit, `at ${width}`).toEqual({ shown: true, inside: true, clipped: false });
+    }
+  });
+
+  test("the voice select holds still whether or not a sample button shows", async ({ page }) => {
+    await mockConfig(page);
     await open(page, "daily");
-    // From 40rem the values end at one edge; on a phone each starts under its label.
+    // From 40rem the value ends at the row's edge; on a phone it starts under its label.
     const phone = (page.viewportSize()?.width ?? 0) < 640;
-    const right = async (id: string) => {
-      const box = await page.locator(id).boundingBox();
+    const right = async () => {
+      const box = await page.locator("#daily-voice").boundingBox();
       return (box?.x ?? 0) + (phone ? 0 : (box?.width ?? 0));
     };
-    expect(await right("#daily-voice")).toBeCloseTo(await right("#daily-voice_b"), 0);
-    // A voice with a sample beside one without: the play buttons keep their room either way, so
-    // the selects still share an edge and the one changed does not jump.
-    const before = await right("#daily-voice_b");
-    await page.locator("#daily-voice_b").selectOption("voice-ada");
-    await expect(page.locator("[data-voice-row=voice_b] [data-preview]")).toBeVisible();
-    expect(await right("#daily-voice_b")).toBeCloseTo(before, 0);
-    expect(await right("#daily-voice")).toBeCloseTo(await right("#daily-voice_b"), 0);
-    // The setting is called Format here, as on the Create page.
-    await expect(page.getByRole("radiogroup", { name: "Format" })).toBeVisible();
+    // The play button keeps its room either way, so the select does not jump.
+    const before = await right();
+    await page.locator("#daily-voice").selectOption("voice-ada");
+    await expect(page.locator("[data-voice-row=voice] [data-preview]")).toBeVisible();
+    expect(await right()).toBeCloseTo(before, 0);
   });
 
   test("choosing a voice with a sample plays it through the site and shows its play button", async ({
@@ -338,6 +364,17 @@ test.describe("the profile pages", () => {
     await expect(page.locator(".podcast-topics").getByText("World")).toHaveCount(0);
     const link = page.getByRole("link", { name: /^Topics and sources/ });
     await expect(link).toHaveAttribute("href", "/settings/topics");
+    // A link row is as tall as the value rows, and its chevron ends at the row's edge.
+    const [height, gap] = await link.evaluate((row) => {
+      const box = row.getBoundingClientRect();
+      const icon = row.querySelector(":scope > .icon")?.getBoundingClientRect();
+      return [Math.round(box.height), Math.round(box.right - (icon?.right ?? 0))];
+    });
+    const timeRow = await page
+      .locator(".settings-row:has(#daily-voice)")
+      .evaluate((row) => Math.round(row.getBoundingClientRect().height));
+    expect(Math.abs(gap)).toBeLessThanOrEqual(8);
+    if ((page.viewportSize()?.width ?? 0) >= 640) expect(height).toBe(timeRow);
   });
 
   test("has 44px targets", async ({ page }) => {
@@ -361,7 +398,6 @@ test.describe("saving on its own", () => {
     await open(page, "daily");
     await page.locator("#daily-hour").selectOption("9");
     await page.locator("#daily-cadence").selectOption("1");
-    await page.getByRole("radio", { name: "Discussion" }).check();
     await page.getByRole("radio", { name: "15 min" }).check();
     await expect
       .poll(() => scheduleSent(sent))
@@ -369,12 +405,11 @@ test.describe("saving on its own", () => {
         op: "schedule.set",
         hour: 9,
         cadence_days: 1,
-        format: "discussion",
         length_minutes: 15,
       });
     await expect(toastText(page)).toHaveText(SAVED);
     // Never more requests than changes, and each sends only what changed.
-    expect(sent.length).toBeLessThanOrEqual(4);
+    expect(sent.length).toBeLessThanOrEqual(3);
     // Saved is the new starting point: putting the time back is a change again.
     const before = sent.length;
     await page.locator("#daily-hour").selectOption("7");
@@ -385,13 +420,45 @@ test.describe("saving on its own", () => {
     expect(sent.at(-1)?.op).toEqual({ op: "schedule.set", hour: 7 });
   });
 
+  for (const way of ["the app bar", "browser Back"] as const) {
+    test(`a second change inside the server's gap still goes when the page is left by ${way}`, async ({
+      page,
+    }) => {
+      test.setTimeout(60_000);
+      const sent = await mockConfig(page);
+      await page.goto("/settings");
+      await page.getByRole("link", { name: /^Daily/ }).click();
+      await expect(page.locator("[data-manage]")).toHaveAttribute("data-voices", "");
+      await page.locator("#daily-hour").selectOption("9");
+      await expect(toastText(page)).toHaveText(SAVED);
+      await page.locator("#daily-cadence").selectOption("1");
+      // Saved never stays up over a change not sent yet.
+      await expect(toastText(page)).toHaveText("Saving");
+      expect(sent).toHaveLength(1);
+      if (way === "browser Back") await page.goBack();
+      else await page.locator(".settings-up:visible, .app-bar-back:visible").first().click();
+      await expect(page).toHaveURL(/\/settings$/);
+      // Until it goes, the index shows the change as it will be.
+      await expect(page.getByRole("link", { name: /^Daily/ })).toContainText("Every day at 09:00");
+      await expect
+        .poll(() => scheduleSent(sent), { timeout: 20_000 })
+        .toEqual({ op: "schedule.set", hour: 9, cadence_days: 1 });
+      expect(sent).toHaveLength(2);
+      await page.getByRole("link", { name: /^Daily/ }).click();
+      await expect(page.locator("[data-manage]")).toHaveAttribute("data-voices", "");
+      await expect(page.locator("#daily-hour")).toHaveValue("9");
+      await expect(page.locator("#daily-cadence")).toHaveValue("1");
+      await expect(page.locator("[data-saved-note]")).toHaveText(SAVED);
+    });
+  }
+
   test("a change put back before it is sent sends nothing", async ({ page }) => {
     const sent = await mockConfig(page);
     await open(page, "daily");
     await page.locator("#daily-hour").selectOption("9");
     await page.locator("#daily-hour").selectOption("7");
-    await page.getByRole("radio", { name: "Discussion" }).check();
-    await page.getByRole("radio", { name: "Readout" }).check();
+    await page.getByRole("radio", { name: "15 min" }).check();
+    await page.getByRole("radio", { name: "10 min", exact: true }).check();
     await page.waitForTimeout(2000);
     expect(sent).toHaveLength(0);
     await expect(toast(page)).toBeHidden();

@@ -11,16 +11,14 @@ import { installMultiSelect } from "./multiSelect";
 type Editor = { handle(event: Event): void };
 
 /**
- * A general topic's on switch says what it does at once: its hint, and the line over its sources
- * that says they are not read while it is off.
+ * A general topic's on switch says what it does at once, in its hint; its sources take the off look
+ * while it is off (topics.css).
  */
 function showTopicOn(root: HTMLElement): void {
   const on = root.querySelector<HTMLInputElement>("[data-topic-on]");
   if (!on) return;
   const hint = root.querySelector("[data-topic-on-hint]");
   if (hint) hint.textContent = on.checked ? "Used in episodes" : "Off. Its sources are not read";
-  const unread = root.querySelector<HTMLElement>("[data-topic-unread]");
-  if (unread) unread.hidden = on.checked;
 }
 
 function mount(root: HTMLElement): void {

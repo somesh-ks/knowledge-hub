@@ -7,6 +7,11 @@
  */
 import type { Pending, SaveContext, SaveState } from "./managePageSave";
 
+type Saver = typeof import("./managePageSave");
+
+/** What the toast says while a change is on its way (SAVING in managePageSave.ts, loaded later). */
+const SAVING = "Saving";
+
 /** How long the controls must be still before a save. */
 export const SETTLE_MS = 1200;
 /** How long a removal waits, with Undo in the toast, before it is sent. */
@@ -46,6 +51,16 @@ export function mountAutosave(
   const alert = root.querySelector<HTMLElement>("[data-alert]");
   let still = 0;
   let linger = 0;
+  /** The sending module, once loaded: leaving the page needs it at once, not a promise later. */
+  let saver: Saver | null = null;
+  /** True from a save being asked for until its run ends, the wait out of the server's gap included. */
+  let sending = false;
+  /** The toast is still on this page: a run that outlives a page swap has nothing to show. */
+  const here = (): boolean => (bar ?? root).isConnected;
+  /** "Saved" is showing. */
+  const shownDone = (): boolean =>
+    bar?.dataset.state === "done" &&
+    (typeof bar.showPopover === "function" ? bar.matches(":popover-open") : !bar.hidden);
   const controlOf = (target: EventTarget | null): Element | null => {
     const control = (target as Element | null)?.closest?.("input, select, textarea, button");
     return control && root.contains(control) && !bar?.contains(control) ? control : null;
@@ -76,7 +91,7 @@ export function mountAutosave(
 
   /** The toast is a popover, so it sits above the bottom bar and the player like every toast. */
   const open = (shown: boolean): void => {
-    if (!bar) return;
+    if (!bar || !here()) return;
     if (!shown) handBack();
     if (typeof bar.showPopover !== "function") {
       bar.hidden = !shown;
@@ -92,7 +107,13 @@ export function mountAutosave(
    * while the toast shows. A control in a dialog is above the page and needs nothing.
    */
   const reveal = (): void => {
-    if (!bar?.matches(":popover-open") || !touched?.isConnected || touched.closest("dialog"))
+    if (
+      !bar ||
+      !here() ||
+      !bar.matches(":popover-open") ||
+      !touched?.isConnected ||
+      touched.closest("dialog")
+    )
       return;
     // Where the toast rests: its offset box, without the slide it enters with.
     const top =
@@ -105,6 +126,7 @@ export function mountAutosave(
 
   const show = (message: string, state: SaveState): void => {
     window.clearTimeout(linger);
+    if (!here()) return;
     if (text) text.textContent = message;
     // One live region speaks it, and an error is an alert, so it is heard at once. The toast itself
     // has no role: two regions would say the same words twice.
@@ -121,7 +143,15 @@ export function mountAutosave(
   const now = (): void => {
     window.clearTimeout(still);
     if (changes.size === 0) return;
-    void import("./managePageSave").then((module) => module.flush(context));
+    sending = true;
+    void import("./managePageSave")
+      .then((module) => {
+        saver = module;
+        return module.flush(context);
+      })
+      .finally(() => {
+        sending = false;
+      });
   };
 
   bar?.addEventListener("click", (event) => {
@@ -140,7 +170,12 @@ export function mountAutosave(
   // Leaving or hiding the page sends what is waiting; a request on its way finishes with keepalive.
   const off = new AbortController();
   const leave = (): void => {
-    if (changes.size > 0) now();
+    if (changes.size === 0) return;
+    now();
+    // A run waiting out the server's gap carries on after the page goes: until it sends, the page
+    // opened next shows these edits from storage rather than the old values.
+    if (saver) saver.keepWaiting(context);
+    else void import("./managePageSave").then((module) => module.keepWaiting(context));
   };
   document.addEventListener(
     "visibilitychange",
@@ -159,6 +194,11 @@ export function mountAutosave(
       const removal = changes.size > 0 ? (options.removing?.() ?? null) : null;
       if (removal) show(removal, "undo");
       else if (bar?.dataset.state === "undo") open(false);
+      // "Saved" never stays up over a change not sent yet: the toast says Saving from the change,
+      // through any wait out of the server's gap. A change put back while nothing is on its way
+      // takes the Saving away again.
+      else if (changes.size > 0 && (sending || shownDone())) show(SAVING, "saving");
+      else if (changes.size === 0 && bar?.dataset.state === "saving") open(false);
       if (changes.size > 0) still = window.setTimeout(now, removal ? UNDO_MS : SETTLE_MS);
     },
     now,

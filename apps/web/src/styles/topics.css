@@ -98,7 +98,7 @@
 
 .topic-page {
   /* The slider shares the Settings controls' width from 40rem, so its edges line up with the switch. */
-  --settings-control-width: 18rem;
+  --settings-control-width: 22rem;
 }
 
 .topic {
@@ -127,25 +127,25 @@
   }
 }
 
-/* A group's weights: one row per judge topic it gathers, each as tall as a value row. On a phone the
-   name and its percentage take a line and the slider the line below, close under them, so a long
-   name never squeezes the slider. */
-.topic-weights .topic-weight {
+/* A weight row, a group's or a topic's single one, is as tall as a value row. On a phone the name
+   and its percentage take a line and the slider the line below, close under them, so a long name
+   never squeezes the slider. */
+.topic .topic-weight {
   flex-wrap: wrap;
   row-gap: 0;
   padding-block: var(--space-2);
 }
 
-.topic-weights .topic-weight > .settings-text {
+.topic .topic-weight > .settings-text {
   flex-basis: 100%;
 }
 
 @media (min-width: 40rem) {
-  .topic-weights .topic-weight {
+  .topic .topic-weight {
     flex-wrap: nowrap;
   }
 
-  .topic-weights .topic-weight > .settings-text {
+  .topic .topic-weight > .settings-text {
     flex-basis: 0;
   }
 }
@@ -843,6 +843,12 @@
   line-height: var(--font-leading-label);
 }
 
+/* A general topic switched off reads none of its sources: its list says so by its look, whatever
+   each source's own box holds. */
+.topic:has(#topic-on:not(:checked)) .topic-sources {
+  opacity: var(--opacity-disabled);
+}
+
 /* ------------------------------------------------------------------ suggested sources */
 
 /* A suggestion is a source's row with a quiet line on what it covers in place of the score, and a
@@ -890,9 +896,19 @@
   text-overflow: ellipsis;
 }
 
-/* Pressed, the site's line says the source is being added, and then that it is. */
+/* Pressed, the site's line says the source is being added, and then that it is, in full: a
+   narrow row wraps it rather than cut it off. */
 .source-meta > .source-note {
-  white-space: nowrap;
+  min-width: 0;
+  white-space: normal;
+}
+
+/* From 40rem a suggestion is three lines (name, site and cadence, what it covers): it takes a
+   three-line row's height, so its lines have the air the Sources rows above have. */
+@media (min-width: 40rem) {
+  .source-row.is-suggested:has(.source-line) {
+    min-height: calc(var(--space-12) + var(--space-8) + var(--space-2));
+  }
 }
 
 /* Add: a plain icon button, the muted plus with a state layer under the pointer, so a column of them
