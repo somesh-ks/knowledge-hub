@@ -437,11 +437,9 @@ test.describe("a topic's page", () => {
     const score = await row.locator(".score").boundingBox();
     expect(name && score && score.y >= name.y + name.height - 1).toBe(true);
     // The site tile keeps its 24px however long the name beside it is.
-    await row
-      .locator(".source-name")
-      .evaluate((node) => {
-        node.textContent = "A very long source name that would squeeze anything beside it".repeat(3);
-      });
+    await row.locator(".source-name").evaluate((node) => {
+      node.textContent = "A very long source name that would squeeze anything beside it".repeat(3);
+    });
     const tile = page.locator('li.source-row[data-id="studio-notes"] .source-icon');
     expect((await tile.boundingBox())?.width).toBeCloseTo(24, 0);
   });
@@ -586,7 +584,9 @@ test.describe("a topic's page", () => {
     }
     await page.setViewportSize({ width: 360, height: 740 });
     await open(page, "/settings/topics/design");
-    expect(await page.evaluate(() => document.documentElement.scrollWidth)).toBeLessThanOrEqual(360);
+    expect(await page.evaluate(() => document.documentElement.scrollWidth)).toBeLessThanOrEqual(
+      360,
+    );
   });
 
   test("Suggested + discs end where the checkboxes above them end", async ({ page }) => {

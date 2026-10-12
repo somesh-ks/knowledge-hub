@@ -65,7 +65,8 @@
 @media (min-width: 64rem) {
   .topics > .topics-add {
     margin-block-start: calc(
-      (var(--font-size-section) * var(--text-display-leading) - var(--button-height)) / 2
+      (var(--font-size-section) * var(--text-display-leading) - var(--button-height)) /
+      2
     );
   }
 }
