@@ -8,7 +8,9 @@ import { makeItem, makeSource, NOW } from "./fetch-helpers.js";
 
 const preferences: Preferences = {
   ...PreferencesSchema.parse(
-    JSON.parse(readFileSync(new URL("../../../config/preferences.json", import.meta.url), "utf8")),
+    JSON.parse(
+      readFileSync(new URL("./fixtures/config/preferences.json", import.meta.url), "utf8"),
+    ),
   ),
 };
 

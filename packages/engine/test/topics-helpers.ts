@@ -21,7 +21,7 @@ import {
   type RepoPair,
   templatePair,
 } from "./git-testRepo.js";
-import { REPO_ROOT } from "./score-factories.js";
+import { FIXTURE_CONFIG } from "./score-factories.js";
 
 export interface ConfigRepo {
   pair: RepoPair;
@@ -59,7 +59,7 @@ export async function configRepo(now = new Date("2026-10-07T06:00:00Z")): Promis
     await put(
       a,
       "config/preferences.json",
-      readFileSync(join(REPO_ROOT, "config", "preferences.json"), "utf8"),
+      readFileSync(join(FIXTURE_CONFIG, "preferences.json"), "utf8"),
     );
     await put(
       a,

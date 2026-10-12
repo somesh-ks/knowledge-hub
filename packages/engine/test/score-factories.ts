@@ -15,6 +15,8 @@ const here = dirname(fileURLToPath(import.meta.url));
 
 /** Repository root, found from this file so tests never depend on the working directory. */
 export const REPO_ROOT = join(here, "..", "..", "..");
+/** Frozen copies of the owner-editable config files; see fixtures/config/README.md. */
+export const FIXTURE_CONFIG = join(here, "fixtures", "config");
 
 let counter = 0;
 
@@ -75,7 +77,7 @@ export function makeEntry(itemOrId: Item | string, options: EntryOptions = {}): 
 
 /** The real config/preferences.json. */
 export function realPreferences(): Preferences {
-  const text = readFileSync(join(REPO_ROOT, "config", "preferences.json"), "utf8");
+  const text = readFileSync(join(FIXTURE_CONFIG, "preferences.json"), "utf8");
   return Preferences.parse(JSON.parse(text));
 }
 

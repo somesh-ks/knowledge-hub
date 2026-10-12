@@ -85,7 +85,7 @@ beforeEach(async () => {
   root = await mkdtemp(join(tmpdir(), "dispatch-fetch-"));
   await mkdir(join(root, "config"), { recursive: true });
   const preferences = await readFile(
-    new URL("../../../config/preferences.json", import.meta.url),
+    new URL("./fixtures/config/preferences.json", import.meta.url),
     "utf8",
   );
   await writeFile(join(root, "config/preferences.json"), preferences);

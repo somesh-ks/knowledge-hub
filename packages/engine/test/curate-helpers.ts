@@ -9,7 +9,7 @@ import type { Judge } from "../src/judge/types.js";
 import type { Grounder } from "../src/validate/grounding.js";
 import { groundedSentences } from "../src/validate/grounding.js";
 import type { RewriteRequest, SourceMaterial, Writer, WrittenItem } from "../src/write/types.js";
-import { type EntryOptions, makeEntry, makeItem, REPO_ROOT } from "./score-factories.js";
+import { type EntryOptions, FIXTURE_CONFIG, makeEntry, makeItem } from "./score-factories.js";
 import { captureLog, testLinter } from "./write-fakes.js";
 
 export const FIXED_NOW = new Date("2026-10-07T05:13:00Z");
@@ -159,8 +159,8 @@ export interface TestRoot {
 export async function makeRoot(): Promise<TestRoot> {
   const root = await mkdtemp(join(tmpdir(), "dispatch-curate-"));
   await mkdir(join(root, "config"), { recursive: true });
-  await cp(join(REPO_ROOT, "config", "voice.md"), join(root, "config", "voice.md"));
-  await cp(join(REPO_ROOT, "config", "preferences.json"), join(root, "config", "preferences.json"));
+  await cp(join(FIXTURE_CONFIG, "voice.md"), join(root, "config", "voice.md"));
+  await cp(join(FIXTURE_CONFIG, "preferences.json"), join(root, "config", "preferences.json"));
   return { root, cleanup: () => rm(root, { recursive: true, force: true }) };
 }
 

@@ -25,7 +25,7 @@ import {
   sourcesFile,
   type TestRepo,
 } from "./orchestrator-fixtures.js";
-import { REPO_ROOT } from "./score-factories.js";
+import { FIXTURE_CONFIG } from "./score-factories.js";
 
 let scratch: string;
 beforeEach(async () => {
@@ -683,7 +683,7 @@ describe("dispatch run: the GitHub job summary", () => {
     await put("config/sources.json", json(sourcesFile()));
     await put(
       "config/preferences.json",
-      await readFile(join(REPO_ROOT, "config/preferences.json"), "utf8"),
+      await readFile(join(FIXTURE_CONFIG, "preferences.json"), "utf8"),
     );
     const summary = join(scratch, "summary.md");
     await runWithSummary(["--stage", "gate"], summary);
