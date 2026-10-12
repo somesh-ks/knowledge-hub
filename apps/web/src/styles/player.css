@@ -2520,16 +2520,51 @@
     min-height: 0;
   }
 
+  /* Under the cover: back ten, play, forward ten, then the speed. Play is here as well as on the bar,
+     as in YouTube Music's full view, so the one control that matters sits by the art. */
   .transport {
     display: flex;
     grid-row: 1;
     grid-column: 2;
-    gap: var(--space-2);
+    align-items: center;
+    gap: var(--space-4);
     padding-block: 0;
   }
 
-  .transport-btn:not(.transport-skip) {
+  .transport-btn:not(.transport-skip, [data-primary]) {
     display: none;
+  }
+
+  .transport > .speed {
+    order: 1;
+  }
+
+  /* The wide bar's open and close button: its chevron points where the page will go. */
+  .dock-toggle svg {
+    transition: rotate var(--duration-state) var(--ease-out);
+  }
+
+  .dock-toggle[data-open] svg {
+    rotate: 180deg;
+  }
+
+}
+
+/* The bar's middle opens the page too: it shows a layer under a resting mouse, as a control does. */
+@media (hover: hover) and (pointer: fine) {
+  .dock-open:hover::after {
+    background: color-mix(in oklch, var(--color-on-surface) var(--state-hover), transparent);
+  }
+
+  .dock-open:hover:active::after {
+    background: color-mix(in oklch, var(--color-on-surface) var(--state-press), transparent);
+  }
+}
+
+/* A very wide window gives the cover more of its half, so the left side is not mostly empty. */
+@media (min-width: 100rem) {
+  .player-cover-box {
+    width: min(100%, calc(var(--cover-size-player) * 1.36), 45cqb);
   }
 }
 

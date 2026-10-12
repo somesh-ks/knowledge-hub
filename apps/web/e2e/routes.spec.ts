@@ -81,11 +81,15 @@ test.describe("routes and headers", () => {
     await expect(bar).toHaveJSProperty("inert", false);
   });
 
-  test("the offline page says what still works and speaks once", async ({ page }) => {
+  test("the offline page says when the connection is back, and speaks once", async ({ page }) => {
     await page.goto("/offline");
-    await expect(page.getByRole("heading", { level: 1 })).toHaveText("You are offline");
-    await expect(page.getByText("you have opened before still work")).toBeVisible();
-    await expect(page.getByRole("link", { name: "Try again" })).toBeVisible();
+    // Online, the page never claims to be offline: it says the connection is back.
+    await expect(page.getByRole("heading", { level: 1 })).toHaveText("You are back online");
+    await expect(page.getByRole("link", { name: "Reload" })).toBeVisible();
+    await expect(page.getByRole("link", { name: "Open Library" })).toHaveAttribute(
+      "href",
+      "/library",
+    );
     // The page is the message: no banner repeats it.
     await expect(page.locator('[data-banner="offline"]')).toHaveCount(0);
   });

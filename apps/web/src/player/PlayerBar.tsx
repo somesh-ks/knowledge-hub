@@ -28,6 +28,8 @@ function DockSeek({ duration }: { duration: number }) {
   const second = usePlayerSecond();
   const state = usePlayerState();
   const [drag, setDrag] = useState<number | null>(null);
+  const [hover, setHover] = useState<number | null>(null);
+  const bubble = drag ?? hover;
   const inputRef = useRef<HTMLInputElement>(null);
   // Under a resting mouse the thumb shows, and it follows the playhead every frame, as the line
   // does. Otherwise the value moves once a second: a slider that changed every frame while it had
@@ -62,12 +64,15 @@ function DockSeek({ duration }: { duration: number }) {
 
   return (
     <>
-      {drag !== null ? (
+      {bubble !== null ? (
         <output
           className="dock-seek-time num"
-          style={{ "--seek-at": fractionOfTime(drag, duration).toFixed(4) } as React.CSSProperties}
+          data-hover={drag === null ? "" : undefined}
+          style={
+            { "--seek-at": fractionOfTime(bubble, duration).toFixed(4) } as React.CSSProperties
+          }
         >
-          {formatClock(drag)}
+          {formatClock(bubble)}
         </output>
       ) : null}
       <input
@@ -90,6 +95,15 @@ function DockSeek({ duration }: { duration: number }) {
           // As with the stepped range, a key that lands on the second it is in does nothing.
           if (next !== Math.min(Math.floor(from), whole)) move(next);
         }}
+        // Under a resting mouse the clock shows where a click would land, before it is made.
+        onPointerMove={(event) => {
+          if (event.pointerType !== "mouse" || drag !== null) return;
+          const box = event.currentTarget.getBoundingClientRect();
+          if (box.width <= 0) return;
+          const share = Math.min(1, Math.max(0, (event.clientX - box.left) / box.width));
+          setHover(share * duration);
+        }}
+        onPointerLeave={() => setHover(null)}
         onPointerUp={commit}
         onPointerCancel={commit}
         onKeyUp={commit}

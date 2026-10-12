@@ -10,7 +10,7 @@ import BaseLayout from "../layouts/BaseLayout.astro";
       title="You are offline"
       body="Briefings and episodes you have opened before still work. This page needs a connection."
       primary={{ label: "Try again", href: "/", reload: true }}
-      secondary={null}
+      secondary={{ label: "Open Library", href: "/library" }}
     />
   </main>
 </BaseLayout>
@@ -22,6 +22,27 @@ import BaseLayout from "../layouts/BaseLayout.astro";
     const retry = document.querySelector<HTMLAnchorElement>(".empty-actions a[data-astro-reload]");
     if (retry && location.pathname !== "/offline") retry.href = location.pathname + location.search;
   }
-  aimRetry();
-  document.addEventListener("astro:page-load", aimRetry);
+
+  /** The page never says offline once the connection is back: it says so, and offers a reload. */
+  function sayOnline(): void {
+    if (!navigator.onLine) return;
+    const title = document.querySelector<HTMLElement>("#main h1");
+    const body = document.querySelector<HTMLElement>("#main .page-title + p, #main h1 ~ p");
+    const retry = document.querySelector<HTMLAnchorElement>(".empty-actions a[data-astro-reload]");
+    if (title) title.textContent = "You are back online";
+    if (body) body.textContent = "Reload to open the page you asked for.";
+    if (retry) retry.textContent = "Reload";
+  }
+
+  function onPage(): void {
+    aimRetry();
+    sayOnline();
+  }
+  onPage();
+  document.addEventListener("astro:page-load", onPage);
+  // Back online while this page stands in for another address: open that address now.
+  window.addEventListener("online", () => {
+    sayOnline();
+    if (location.pathname !== "/offline") location.reload();
+  });
 </script>

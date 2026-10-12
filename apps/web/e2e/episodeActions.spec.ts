@@ -175,7 +175,9 @@ test.describe("regenerate and delete an episode", () => {
     await choose(page, "Delete");
     await expect(confirm(page)).toBeVisible();
     await expect(confirm(page)).toContainText("Delete this episode?");
-    await expect(confirm(page)).toContainText("It is removed from the Library for everyone.");
+    await expect(confirm(page)).toContainText(
+      "It will be removed from the Library on every device. This cannot be undone.",
+    );
     await confirm(page).getByRole("button", { name: "Cancel" }).click();
     await expect(confirm(page)).toBeHidden();
     await expect(more(page)).toBeFocused();
