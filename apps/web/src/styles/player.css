@@ -2440,27 +2440,26 @@
   color: var(--tone);
 }
 
+/* A text button in the notice's own tone (danger ink on the danger container), with the standard
+   state layers of that ink: no grey fill muddying the tinted container. */
 .player-notice-action {
   min-height: var(--size-touch);
   padding-inline: var(--space-4);
   border-radius: var(--button-radius);
-  background: color-mix(in oklch, var(--color-on-surface) var(--state-hover), transparent);
-  font-weight: var(--font-weight-semibold);
+  background: transparent;
+  color: var(--tone);
+  font-weight: var(--font-weight-medium);
   transition: background-color var(--duration-press-in) var(--ease-out);
 }
 
 @media (hover: hover) and (pointer: fine) {
   .player-notice-action:hover {
-    background: color-mix(in oklch, var(--color-on-surface) var(--state-press), transparent);
+    background: color-mix(in oklch, var(--tone) var(--state-hover), transparent);
   }
 }
 
 .player-notice-action:active {
-  background: color-mix(
-    in oklch,
-    var(--color-on-surface) calc(var(--state-press) * 1.5),
-    transparent
-  );
+  background: color-mix(in oklch, var(--tone) var(--state-press), transparent);
 }
 
 .player-upnext {

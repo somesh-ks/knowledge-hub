@@ -50,6 +50,27 @@ export function errorSummary(kind: PlayerErrorKind): string {
 }
 
 /** The accessible name of the play toggle. Visible text and name always agree. */
+/** The one line for a pause another app caused, on the bar and in the open player's notice. */
+export const INTERRUPTED_LINE = "Paused by another app";
+
+/**
+ * The open player's notice offers an action only where pressing it can help: trying again after a
+ * network, decoding or unknown failure, and Play where the browser blocked autoplay. A missing file
+ * gets no button of its own (the Play disc, named Try again, is still there).
+ */
+export function noticeAction(kind: PlayerErrorKind): string | null {
+  switch (kind) {
+    case "blocked":
+      return "Play";
+    case "network":
+    case "decode":
+    case "unknown":
+      return "Try again";
+    default:
+      return null;
+  }
+}
+
 export function toggleLabel(state: Pick<PlayerState, "status">): string {
   switch (state.status) {
     case "playing":

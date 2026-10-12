@@ -52,7 +52,8 @@ export default function TransportControls() {
         aria-busy={state.buffering || undefined}
         onClick={() => store.toggle()}
       >
-        <PlayPauseGlyph />
+        {/* After a failure the disc is named Try again, and its glyph says the same. */}
+        {state.status === "error" ? <Icon name="refresh" /> : <PlayPauseGlyph />}
         <span className="spinner" aria-hidden="true" />
       </button>
       <button

@@ -40,10 +40,7 @@ export function describeMediaError(
       // A missing or expired file and an unsupported format look the same to the element.
       return {
         kind: "unavailable",
-        message:
-          noun === "episode"
-            ? "The audio for this episode is not available. Its transcript is still here to read."
-            : "The audio for this briefing is not available. The text is still here to read.",
+        message: `Audio is not available for this ${noun}.`,
       };
     default:
       return {

@@ -1,3 +1,4 @@
+import { INTERRUPTED_LINE, noticeAction } from "./core/playerCopy";
 import { getPlayerStore } from "./core/playerRuntime";
 import { usePlayerState } from "./hooks/usePlayer";
 import Icon from "./ui/Icon";
@@ -13,14 +14,17 @@ interface PlayerNoticeProps {
 export default function PlayerNotice({ onRetry }: PlayerNoticeProps) {
   const state = usePlayerState();
   if (state.error) {
-    const blocked = state.error.kind === "blocked";
+    // A missing file is not fixed by trying again; the Play disc still offers it, once.
+    const action = noticeAction(state.error.kind);
     return (
       <div className="player-notice" data-tone="danger" role="alert">
         <Icon name="alert" />
         <p>{state.error.message}</p>
-        <button className="player-notice-action" type="button" onClick={onRetry}>
-          {blocked ? "Play" : "Try again"}
-        </button>
+        {action ? (
+          <button className="player-notice-action" type="button" onClick={onRetry}>
+            {action}
+          </button>
+        ) : null}
       </div>
     );
   }
@@ -28,7 +32,7 @@ export default function PlayerNotice({ onRetry }: PlayerNoticeProps) {
     return (
       <div className="player-notice" data-tone="info" role="status">
         <Icon name="info" />
-        <p>Playback was interrupted. Press play when you are ready.</p>
+        <p>{INTERRUPTED_LINE}</p>
         <button
           className="player-notice-action"
           type="button"
