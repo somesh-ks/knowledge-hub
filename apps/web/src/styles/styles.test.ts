@@ -190,6 +190,57 @@ describe("component stylesheets", () => {
       "[hidden]:not(#shown) {\n  display: none;\n}",
     );
   });
+
+  // Two weights, regular and medium. topics.css is another area's and is the one left to convert.
+  it("uses no third weight", () => {
+    const allowed = ["topics.css"];
+    for (const file of OWN_FILES.filter((name) => !allowed.includes(name))) {
+      expect(withoutComments(read(file)), file).not.toMatch(
+        /--font-weight-(?:semibold|bold)|font-weight:\s*[6-9]00/,
+      );
+    }
+  });
+
+  // A state layer is 8% on hover and 12% on press, from the tokens, never a share of its own.
+  it("mixes state layers from the state tokens", () => {
+    for (const file of ["player.css", "sheets.css"]) {
+      for (const [declaration = ""] of withoutComments(read(file)).matchAll(
+        /^\s*background(?:-color)?\s*:[^;{}]*color-mix\([^;{}]*;/gm,
+      )) {
+        expect(declaration, file).not.toMatch(/\d%/);
+      }
+    }
+  });
+});
+
+describe("player and shell geometry rules", () => {
+  const player = withoutComments(read("player.css"));
+
+  it("lists chapters in one column with no mark, at the reading size and weight", () => {
+    expect(player).not.toContain("story-row-mark");
+    expect(player).toMatch(/\.story-row \{[^}]*grid-template-columns: minmax\(0, 1fr\) auto;/);
+    expect(player).toMatch(
+      /\.story-row-title \{[^}]*font-size: var\(--font-size-reading\);[^}]*font-weight: var\(--text-reading-weight\);/,
+    );
+    expect(player).toMatch(/\.script-text \{[^}]*font-weight: var\(--text-reading-weight\);/);
+  });
+
+  it("keeps focus in a scrolling list clear of its fades", () => {
+    expect(player).toMatch(/\.list-scroll \{[^}]*scroll-padding-block: var\(--space-12\);/);
+  });
+
+  it("draws no hairline over the bar and no layer over the whole bar on hover", () => {
+    expect(player).not.toMatch(/\.player-dock \{[^}]*--color-border-hairline/);
+    expect(player).not.toMatch(/\.dock-open:hover::after/);
+  });
+
+  it("lifts a toast over the floating Play only when the Play shows", () => {
+    const sheets = withoutComments(read("sheets.css")).replace(/\s+/g, "");
+    const hidden = ":has(.hero-actions):not([data-hero-away])";
+    expect(withoutComments(read("create-sheet.css"))).toContain(`html${hidden} .play-fab`);
+    const lift = /(html\[data-fab\][^{]*)\{--toast-lift:calc\(var\(--run-room\)\+/.exec(sheets);
+    expect(lift?.[1]).toContain(`:not(${hidden})`);
+  });
 });
 
 describe("source files", () => {
