@@ -1,4 +1,4 @@
-import { expect, test } from "./lab";
+import { expect, test } from "./helpers";
 
 /**
  * The expanded player at sizes people really get: a small phone with Safari's toolbars showing, a
@@ -105,20 +105,20 @@ const LAYOUT_CHECK = (): LayoutReport => {
 test.describe("layout at real window sizes @surface", () => {
   for (const size of SIZES) {
     test(`at ${size.width}x${size.height} nothing overlaps and everything can be reached`, async ({
-      lab,
+      player,
       page,
     }) => {
       await page.setViewportSize(size);
-      await lab.open();
-      await lab.play();
-      await lab.openPlayer();
-      await expect(lab.scrubber).toBeVisible();
+      await player.open();
+      await player.play();
+      await player.openPlayer();
+      await expect(player.scrubber).toBeVisible();
       // One timeline, never two: the bar's, or the page's where the bar has none.
       await expect(page.getByRole("slider", { name: /^(Playback position|Seek)$/ })).toHaveCount(1);
       const report = await page.evaluate(LAYOUT_CHECK);
       expect(report.problems, JSON.stringify(report.parts)).toEqual([]);
       // The last control and the last row of the list can both be reached.
-      const last = lab.dialog.getByRole("button").last();
+      const last = player.dialog.getByRole("button").last();
       await last.scrollIntoViewIfNeeded();
       // Not 1: a minimal scroll lands on a whole pixel while the row sits on a fraction of one, so
       // a quarter of a pixel of a fully reachable row can fall outside the clip.

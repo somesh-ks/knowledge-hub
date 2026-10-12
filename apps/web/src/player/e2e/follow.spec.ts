@@ -1,26 +1,20 @@
-import { expect, test } from "./lab";
+import { expect, test } from "./helpers";
 
-test.describe("the page follows the narration", () => {
-  test("scrolls the current item into view when the reader has not scrolled", async ({
-    lab,
-    page,
-  }) => {
-    await lab.open();
-    await lab.play();
-    await lab.openPlayer();
-    for (let press = 0; press < 4; press += 1) {
-      await page.getByRole("button", { name: "Next story" }).tap();
-    }
-    await page.keyboard.press("Escape");
-    await expect(page.locator("html")).toHaveAttribute("data-player", "closed", { timeout: 4_000 });
-    const target = page.locator('[data-item-id="e5b7a3d6f845"]');
-    await expect(target).toHaveAttribute("data-state", "current");
-    await expect
-      .poll(async () => {
-        const box = await target.boundingBox();
-        return box ? box.y > 0 && box.y < 844 : false;
-      })
-      .toBe(true);
-    expect(await page.evaluate(() => window.scrollY)).toBeGreaterThan(600);
-  });
+test("the page follows the voice: the story being read is brought into view", async ({
+  player,
+  page,
+}) => {
+  await player.open();
+  await player.play();
+  await player.openPlayer();
+  for (let press = 0; press < 6; press += 1) {
+    await player.finger.press(player.dialog.getByRole("button", { name: "Next story" }));
+  }
+  await page.keyboard.press("Escape");
+  await player.collapsed();
+  // The reader has not scrolled, so the page went to the story the voice is on.
+  const current = page.locator("[data-item-id][data-state='current']");
+  await expect(current).toHaveCount(1);
+  await expect(current).toBeInViewport();
+  expect(await page.evaluate(() => window.scrollY)).toBeGreaterThan(0);
 });

@@ -1,5 +1,5 @@
 import type { Page } from "@playwright/test";
-import { expect, test } from "./lab";
+import { expect, test } from "./helpers";
 
 declare global {
   interface Window {
@@ -65,10 +65,8 @@ async function prime(page: Page): Promise<void> {
 }
 
 test.describe("interface cues by kind of action @surface", () => {
-  test.skip(({ target }) => target !== "site", "needs the site's navigation and pages");
-
-  test("a navigation link ticks once", async ({ lab, page }) => {
-    await lab.open();
+  test("a navigation link ticks once", async ({ player, page }) => {
+    await player.open();
     await prime(page);
     await page
       .getByRole("navigation", { name: "Primary" })
@@ -80,8 +78,8 @@ test.describe("interface cues by kind of action @surface", () => {
     expect(await sounded(page)).toBe(1);
   });
 
-  test("a Contents entry ticks once", async ({ lab, page }) => {
-    await lab.open();
+  test("a Contents entry ticks once", async ({ player, page }) => {
+    await player.open();
     await prime(page);
     const entry = page.locator("[data-section]:visible").nth(1);
     await entry.click();
@@ -90,8 +88,8 @@ test.describe("interface cues by kind of action @surface", () => {
     expect(await sounded(page)).toBe(1);
   });
 
-  test("a toggle button is a select", async ({ lab, page }) => {
-    await lab.open("/library");
+  test("a toggle button is a select", async ({ player, page }) => {
+    await player.open("/library");
     await prime(page);
     const chip = page.locator("[data-library-view='list']");
     await chip.click();
@@ -100,10 +98,10 @@ test.describe("interface cues by kind of action @surface", () => {
     expect(await sounded(page)).toBe(1);
   });
 
-  test("a switch is a select, and its own cue is not doubled", async ({ lab, page }) => {
+  test("a switch is a select, and its own cue is not doubled", async ({ player, page }) => {
     // A general topic's page holds its on switch; the judge topics are gathered under Design, AI and
     // Technology (D69) and have a Podcasts list instead.
-    await lab.open("/settings/topics/world");
+    await player.open("/settings/topics/world");
     await prime(page);
     const topic = page.getByRole("switch").first();
     await topic.click();
@@ -113,7 +111,7 @@ test.describe("interface cues by kind of action @surface", () => {
     expect(["toggleOn", "toggleOff"]).toContain(kinds[0]);
     expect(await sounded(page)).toBe(1);
 
-    await lab.open("/settings");
+    await player.open("/settings");
     await prime(page);
     // The section is "Sound"; its switch is labelled "Interface sounds".
     await page.getByRole("switch", { name: "Interface sounds", exact: true }).click();
@@ -123,8 +121,8 @@ test.describe("interface cues by kind of action @surface", () => {
     expect(await sounded(page)).toBe(1);
   });
 
-  test("nothing sounds once Sounds is off", async ({ lab, page }) => {
-    await lab.open("/settings");
+  test("nothing sounds once Sounds is off", async ({ player, page }) => {
+    await player.open("/settings");
     await prime(page);
     const sounds = page.getByRole("switch", { name: "Interface sounds", exact: true });
     await sounds.click();

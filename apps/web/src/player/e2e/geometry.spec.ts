@@ -1,5 +1,5 @@
 import type { Page } from "@playwright/test";
-import { expect, test } from "./lab";
+import { expect, test } from "./helpers";
 
 /**
  * Measured geometry of the open player and the bar: one left edge for the chapters, the phone's
@@ -23,10 +23,10 @@ const box = async (page: Page, selector: string) =>
   }, selector);
 
 test.describe("player geometry @surface", () => {
-  test("the chapters start at one left edge with their headings", async ({ lab, page }) => {
-    await lab.open();
-    await lab.play();
-    await lab.openPlayer();
+  test("the chapters start at one left edge with their headings", async ({ player, page }) => {
+    await player.open();
+    await player.play();
+    await player.openPlayer();
     const title = await box(page, "[data-player-page] .story-row-title");
     const heading = await box(page, "[data-player-page] .story-group-title");
     expect(title && heading).toBeTruthy();
@@ -34,13 +34,13 @@ test.describe("player geometry @surface", () => {
   });
 
   test("the phone's open player keeps an even rhythm with the first chapter above the fold", async ({
-    lab,
+    player,
     page,
   }, info) => {
     test.skip(info.project.name !== "site-phone", "measured at 390x844");
-    await lab.open();
-    await lab.play();
-    await lab.openPlayer();
+    await player.open();
+    await player.play();
+    await player.openPlayer();
     const handle = await box(page, "[data-player-page] .player-handle");
     const art = await box(page, "[data-player-page] .player-cover-frame");
     const track = await box(page, "[data-player-page] .scrubber-track");
@@ -56,14 +56,14 @@ test.describe("player geometry @surface", () => {
   });
 
   test("from 40rem to 64rem the bar lines up with the page's column", async ({
-    lab,
+    player,
     page,
   }, info) => {
     test.skip(info.project.name !== "site-phone", "a touch tablet");
     await page.setViewportSize({ width: 820, height: 1100 });
-    await lab.open();
-    await lab.play();
-    await lab.dockSettled();
+    await player.open();
+    await player.play();
+    await player.dockSettled();
     const thumb = await box(page, ".player-dock .player-thumb");
     const next = await box(page, '.player-dock [aria-label="Next story"]');
     const column = await page.evaluate(() =>
@@ -78,49 +78,49 @@ test.describe("player geometry @surface", () => {
   });
 
   test("on a wide touch screen the bar does not repeat the open page's transport", async ({
-    lab,
+    player,
     page,
   }, info) => {
     test.skip(info.project.name !== "site-phone", "a touch screen");
     await page.setViewportSize({ width: 1180, height: 820 });
-    await lab.open();
-    await lab.play();
+    await player.open();
+    await player.play();
     await expect(page.locator(".player-dock .dock-transport")).toBeVisible();
-    await lab.openPlayer();
+    await player.openPlayer();
     await expect(page.locator(".player-dock .dock-transport")).toBeHidden();
     await expect(page.getByRole("button", { name: "Next story" })).toHaveCount(1);
   });
 
   test("at tablet width a mouse sees a way to close the open page @surface", async ({
-    lab,
+    player,
     page,
   }, info) => {
     test.skip(info.project.name !== "site-desktop", "a mouse");
     await page.setViewportSize({ width: 820, height: 1000 });
-    await lab.open();
-    await lab.play();
-    await lab.dockSettled();
-    await lab.openPlayer();
+    await player.open();
+    await player.play();
+    await player.dockSettled();
+    await player.openPlayer();
     const toggle = page.locator(".player-dock .dock-toggle");
     await expect(toggle).toBeVisible();
     // Open, the chevron closes the page, so it points up.
     await expect(toggle.locator("svg")).toHaveCSS("rotate", "180deg");
     await toggle.focus();
     await page.keyboard.press("Enter");
-    await lab.collapsed();
+    await player.collapsed();
     // The chevron hid with the page: focus is on the bar's open control, not lost to the body.
-    await expect(lab.openButton).toBeFocused();
+    await expect(player.openButton).toBeFocused();
   });
 
   test("small things on the open page: the title keeps its last dot, the speed rows apart, the clock centred @surface", async ({
-    lab,
+    player,
     page,
   }, info) => {
     test.skip(info.project.name !== "site-desktop", "a mouse at 64rem");
-    await lab.open();
-    await lab.play();
-    await lab.dockSettled();
-    await lab.openPlayer();
+    await player.open();
+    await player.play();
+    await player.dockSettled();
+    await player.openPlayer();
     const px = (selector: string, property: string) =>
       page
         .locator(selector)
@@ -133,15 +133,15 @@ test.describe("player geometry @surface", () => {
   });
 
   test("with a mouse the clock sits by the seek line while the page is open, and the middle holds still @surface", async ({
-    lab,
+    player,
     page,
   }, info) => {
     test.skip(info.project.name !== "site-desktop", "a mouse");
-    await lab.open();
-    await lab.play();
-    await lab.dockSettled();
+    await player.open();
+    await player.play();
+    await player.dockSettled();
     const middle = await box(page, ".player-dock .dock-open");
-    await lab.openPlayer();
+    await player.openPlayer();
     const clock = await box(page, ".player-dock .dock-time");
     const after = await box(page, ".player-dock .dock-open");
     // No room is kept for the hidden buttons: the clock starts at the bar's own inset.
@@ -151,14 +151,14 @@ test.describe("player geometry @surface", () => {
   });
 
   test("in short wide windows the open page fits at rest, and the open bar's clock is centred @surface", async ({
-    lab,
+    player,
     page,
   }, info) => {
     test.skip(info.project.name !== "site-desktop", "a mouse");
-    await lab.open();
-    await lab.play();
-    await lab.dockSettled();
-    await lab.openPlayer();
+    await player.open();
+    await player.play();
+    await player.dockSettled();
+    await player.openPlayer();
     for (const [width, height] of [
       [1280, 600],
       [1280, 680],
@@ -185,16 +185,16 @@ test.describe("player geometry @surface", () => {
   });
 
   test("a very wide window gives the cover more room and keeps the source", async ({
-    lab,
+    player,
     page,
   }, info) => {
     test.skip(info.project.name !== "site-desktop", "a mouse on a wide screen");
     await page.setViewportSize({ width: 1920, height: 1080 });
-    await lab.open();
-    await lab.play();
-    await lab.openPlayer();
+    await player.open();
+    await player.play();
+    await player.openPlayer();
     const cover = await box(page, "[data-player-page] .player-cover-frame");
     expect(cover?.width ?? 0).toBeGreaterThan(460);
-    await expect(lab.dialog.locator(".player-source-link")).toBeVisible();
+    await expect(player.dialog.locator(".player-source-link")).toBeVisible();
   });
 });

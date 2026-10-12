@@ -1,8 +1,5 @@
-import { fileURLToPath } from "node:url";
 import type { Page } from "@playwright/test";
-import { expect, test } from "./lab";
-
-const NARRATION_FILE = fileURLToPath(new URL("../dev/lab-narration.mp3", import.meta.url));
+import { expect, fulfillNarration, SITE, test } from "./helpers";
 
 /**
  * A briefing with no audio yet: the server lists its segments with no files, and makes each one
@@ -45,7 +42,7 @@ async function serveNarration(
   await page.route("**/narrated/*.mp3", (route) => {
     const key = new URL(route.request().url()).pathname.split("/").pop()?.replace(".mp3", "") ?? "";
     return made.includes(key) && finished.has(key)
-      ? route.fulfill({ path: NARRATION_FILE })
+      ? fulfillNarration(route)
       : route.fulfill({ status: 404, body: "" });
   });
   await page.route("**/api/narrate", async (route) => {
@@ -71,15 +68,15 @@ async function serveNarration(
 
 test.describe("the first press of Play on a page with no audio yet", () => {
   test("plays by itself once the first file is made, with no second press @surface", async ({
-    lab,
+    player,
     audio,
     finger,
     page,
   }) => {
-    await lab.open(lab.target === "lab" ? "/dev/player-lab-preparing" : "/d/2026-10-05");
+    await player.open(`/d/${SITE.earlier}`);
     await serveNarration(page, 1_500);
-    await finger.press(lab.cta);
-    await expect(lab.cta).toHaveAttribute("data-state", "preparing");
+    await finger.press(player.cta);
+    await expect(player.cta).toHaveAttribute("data-state", "preparing");
     await expect(page.locator("html")).toHaveAttribute("data-player-state", "playing", {
       timeout: 8_000,
     });
@@ -91,22 +88,25 @@ test.describe("the first press of Play on a page with no audio yet", () => {
   });
 
   test("Up next at the end narrates and plays a briefing with no audio @surface", async ({
-    lab,
+    player,
+    audio,
     page,
     finger,
   }) => {
-    test.skip(lab.target === "lab", "the lab's previous briefing already has audio");
-    await lab.open();
+    await player.open();
     await serveNarration(page, 300, "/d/2026-10-05");
-    await lab.play();
-    await lab.openPlayer();
-    await lab.scrubber.focus();
+    await player.play();
+    await player.openPlayer();
+    await player.scrubber.focus();
     await page.keyboard.press("End");
-    await expect(lab.root).toHaveAttribute("data-player-state", "ended");
-    const upNext = lab.dialog.getByRole("button", { name: /The previous briefing/ });
+    await expect(player.root).toHaveAttribute("data-player-state", "ended");
+    const upNext = player.dialog.getByRole("button", { name: /The previous briefing/ });
+    // Never an autoplay chain: nothing plays until the listener chooses.
+    expect((await audio.read())?.paused).toBe(true);
     await upNext.scrollIntoViewIfNeeded();
     await finger.press(upNext);
-    await expect(page).toHaveURL(/\/d\/2026-10-05/);
-    await expect(lab.root).toHaveAttribute("data-player-state", "playing", { timeout: 10_000 });
+    await expect(page).toHaveURL(new RegExp(`/d/${SITE.earlier}`));
+    await expect(player.root).toHaveAttribute("data-player-state", "playing", { timeout: 10_000 });
+    expect(await audio.count()).toBe(1);
   });
 });

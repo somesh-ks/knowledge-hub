@@ -11,7 +11,6 @@ import Toaster from "./Toaster";
 
 const loadGenerate = () => import("./GenerateSheet");
 const GenerateSheet = lazy(loadGenerate);
-const SettingsSheet = lazy(() => import("./SettingsSheet"));
 // Not preloaded when idle: it is only ever needed after a tap on Play, which fetches it.
 const NarrateSheet = lazy(() => import("./NarrateSheet"));
 
@@ -25,7 +24,7 @@ function whenIdle(task: () => void): () => void {
 }
 
 /**
- * The sheets island. Header buttons carry `data-open="generate"` (or `data-open-sheet`) or `"settings"` and are
+ * The sheets island. Buttons carry `data-open="generate"` (or `data-open-sheet`) and are
  * handled by delegation, so the page needs no wiring. Each sheet is its own chunk, mounted on first
  * open; only Generate is fetched ahead, when the browser is idle.
  */
@@ -33,7 +32,6 @@ export default function SheetsRoot() {
   const [active, setActive] = useState<SheetName | null>(null);
   const [mounted, setMounted] = useState<Record<SheetName, boolean>>({
     generate: false,
-    settings: false,
     narrate: false,
   });
 
@@ -90,8 +88,7 @@ export default function SheetsRoot() {
     });
   }, []);
 
-  // Only Generate is warmed: Settings opens from the dev lab alone, so preloading it cost every
-  // visit about 10 KB for nothing.
+  // Only Generate is warmed: Narrate is needed only after a tap on Play, which fetches it.
   useEffect(() => whenIdle(() => void loadGenerate()), []);
 
   return (
@@ -101,14 +98,6 @@ export default function SheetsRoot() {
           <GenerateSheet
             open={active === "generate"}
             onOpenChange={(open) => closeSheet("generate", open)}
-          />
-        ) : null}
-      </Suspense>
-      <Suspense fallback={null}>
-        {mounted.settings ? (
-          <SettingsSheet
-            open={active === "settings"}
-            onOpenChange={(open) => closeSheet("settings", open)}
           />
         ) : null}
       </Suspense>

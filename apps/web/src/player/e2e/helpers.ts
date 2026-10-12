@@ -1,4 +1,4 @@
-import { test as base, expect, type Locator, type Page } from "@playwright/test";
+import { test as base, expect, type Locator, type Page, type Route } from "@playwright/test";
 
 export interface AudioProbe {
   /** The state of the one Audio object the player created, read from the real element. */
@@ -16,40 +16,27 @@ export interface AudioSnapshot {
   inDom: boolean;
 }
 
-/** Which page the specs drive: the dev lab, or a real digest page from the fixture build. */
-export interface PlayerOptions {
-  target: "lab" | "site";
-}
-
-interface TargetFacts {
+/** The fixture site's facts the specs lean on (apps/web/scripts/buildFixtures.ts). */
+export const SITE = {
   /** The digest page with narration. */
-  path: string;
+  path: "/d/2026-10-07",
   /** The page's date, which names the player dialog. */
-  title: string;
+  title: "Wednesday 7 October",
   /** A second page reached by a client-side link, with the islands carried over. */
-  nextLink: RegExp;
-  nextUrl: RegExp;
-  /** A digest the Generate mock can report as published, and where its page really lives. */
-  generated: { id: string; servedFrom: string | null };
-}
+  nextLink: /^Library$/,
+  nextUrl: /\/library$/,
+  /** A briefing with no audio: Up next offers it, and the Generate mock reports it as published. */
+  earlier: "2026-10-05",
+} as const;
 
-const TARGETS: Record<PlayerOptions["target"], TargetFacts> = {
-  lab: {
-    path: "/dev/player-lab",
-    title: "Wednesday 14 January",
-    nextLink: /^Earlier briefing, with audio$/,
-    nextUrl: /player-lab-older/,
-    // The lab has no /d/ route; the earlier lab page stands in for it.
-    generated: { id: "2026-01-12", servedFrom: "/dev/player-lab-older" },
-  },
-  site: {
-    path: "/d/2026-10-07",
-    title: "Wednesday 7 October",
-    nextLink: /^Library$/,
-    nextUrl: /\/library$/,
-    generated: { id: "2026-10-05", servedFrom: null },
-  },
-};
+/**
+ * Answers a request for a narration file with the fixture site's own recording, in full: the
+ * request's headers (a Range among them) stay behind, so the answer is a plain 200.
+ */
+export async function fulfillNarration(route: Route): Promise<void> {
+  const url = new URL("/fixtures/audio.wav", route.request().url()).toString();
+  await route.fulfill({ response: await route.fetch({ url, headers: {} }) });
+}
 
 declare global {
   interface Window {
@@ -341,13 +328,9 @@ export async function expectConsistent(page: Page): Promise<void> {
   expect(problems, "the player is in a consistent state").toEqual([]);
 }
 
-export const test = base.extend<
-  { lab: LabPage; audio: AudioProbe; finger: Finger } & PlayerOptions
->({
-  target: ["lab", { option: true }],
+export const test = base.extend<{ player: PlayerPage; audio: AudioProbe; finger: Finger }>({
   page: async ({ page }, use) => {
-    // Any console error or warning from the page is a failure, apart from the lab's own missing
-    // /d/ routes, which a "Open the new briefing" test follows on purpose.
+    // Any console error or warning from the page is a failure.
     const problems: string[] = [];
     page.on("console", (message) => {
       if (message.type() !== "error" && message.type() !== "warning") return;
@@ -393,8 +376,8 @@ export const test = base.extend<
             : mouseDrag(page, path, stepMs, options.hold ?? false),
     });
   },
-  lab: async ({ page, target, finger }, use) => {
-    await use(new LabPage(page, target, finger));
+  player: async ({ page, finger }, use) => {
+    await use(new PlayerPage(page, finger));
   },
   audio: async ({ page }, use) => {
     await use({
@@ -463,18 +446,13 @@ export function center(box: Box): Point {
   return { x: box.x + box.width / 2, y: box.y + box.height / 2 };
 }
 
-export class LabPage {
-  readonly facts: TargetFacts;
-
+export class PlayerPage {
   constructor(
     readonly page: Page,
-    readonly target: PlayerOptions["target"],
     readonly finger: Finger,
-  ) {
-    this.facts = TARGETS[target];
-  }
+  ) {}
 
-  async open(path = this.facts.path): Promise<void> {
+  async open(path: string = SITE.path): Promise<void> {
     await this.page.goto(path, { waitUntil: "networkidle" });
     // The islands hydrate when the browser is idle.
     await this.page.waitForFunction(() => document.querySelector("astro-island[ssr]") === null);
@@ -643,11 +621,30 @@ export class LabPage {
 
   /** Follows a client-side link to another page; the islands and the narration carry over. */
   async goToNextPage(): Promise<void> {
-    const link = this.page.getByRole("link", { name: this.facts.nextLink }).first();
+    const link = this.page.getByRole("link", { name: SITE.nextLink }).first();
     // From the keyboard, so nothing that floats over the link can take the press.
     await link.focus();
     await this.page.keyboard.press("Enter");
-    await expect(this.page).toHaveURL(this.facts.nextUrl);
+    await expect(this.page).toHaveURL(SITE.nextUrl);
+  }
+
+  /** Opens the Generate sheet the way a person does: More on the briefing, then New briefing. */
+  async openGenerate(): Promise<Locator> {
+    await this.finger.press(this.page.getByRole("button", { name: "More actions" }));
+    await this.finger.press(this.page.getByRole("menuitem", { name: "New briefing" }));
+    const dialog = this.page.getByRole("dialog", { name: "New briefing" });
+    await expect(dialog).toBeVisible();
+    return dialog;
+  }
+
+  /** The stories in narration order, from the page's own digest data, with their place in seconds. */
+  stories(): Promise<Array<{ id: string; start: number; end: number }>> {
+    return this.page.evaluate(() => {
+      const data = JSON.parse(document.getElementById("dispatch-digest-data")?.textContent ?? "{}");
+      return (data.items as Array<{ id: string; start_ms: number; end_ms: number }>).map(
+        (item) => ({ id: item.id, start: item.start_ms / 1000, end: item.end_ms / 1000 }),
+      );
+    });
   }
 
   /** How far along the bar's progress line is, 0 to 1. */

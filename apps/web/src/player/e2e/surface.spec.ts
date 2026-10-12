@@ -1,6 +1,6 @@
 import type { Page } from "@playwright/test";
 import { coverFrame } from "../core/coverMorph";
-import { type Box, center, expect, line, test, visibleCovers } from "./lab";
+import { type Box, center, expect, line, test, visibleCovers } from "./helpers";
 
 const WIDE_PX = 640;
 /** From 64rem the bar keeps its own cover and nothing flies; below it there is a bottom navigation. */
@@ -94,12 +94,12 @@ async function watchNav(page: Page): Promise<() => Promise<NavFrame[]>> {
 
 test.describe("one surface @surface", () => {
   test("the bar and the player are one mounted element, and nothing lives in a portal", async ({
-    lab,
+    player,
     page,
   }) => {
-    await lab.open();
-    await lab.play();
-    await lab.openPlayer();
+    await player.open();
+    await player.play();
+    await player.openPlayer();
     const facts = await page.evaluate(() => {
       const slider = document.querySelector('[role="slider"][aria-label="Playback position"]');
       const open = [...document.querySelectorAll("button")].find((button) =>
@@ -119,42 +119,45 @@ test.describe("one surface @surface", () => {
   });
 
   test("the page is in the document before it is opened, collapsed and out of reach", async ({
-    lab,
+    player,
   }) => {
-    await lab.open();
-    await expect(lab.surface).toHaveCount(1);
-    await expect(lab.surface).toHaveAttribute("data-state", "collapsed");
-    await expect(lab.sheet).toHaveAttribute("inert", "");
-    await expect(lab.sheet).toBeHidden();
-    await lab.play();
-    await expect(lab.openButton).toHaveAttribute("aria-expanded", "false");
-    const controls = await lab.openButton.getAttribute("aria-controls");
+    await player.open();
+    await expect(player.surface).toHaveCount(1);
+    await expect(player.surface).toHaveAttribute("data-state", "collapsed");
+    await expect(player.sheet).toHaveAttribute("inert", "");
+    await expect(player.sheet).toBeHidden();
+    await player.play();
+    await expect(player.openButton).toHaveAttribute("aria-expanded", "false");
+    const controls = await player.openButton.getAttribute("aria-controls");
     expect(controls).toBeTruthy();
-    await expect(lab.sheet).toHaveAttribute("id", controls ?? "");
-    await lab.openPlayer();
+    await expect(player.sheet).toHaveAttribute("id", controls ?? "");
+    await player.openPlayer();
     // By attribute: on a phone the bar is out of the accessibility tree while the page is open.
-    await expect(lab.page.locator("[data-player-open]")).toHaveAttribute("aria-expanded", "true");
-    await expect(lab.surface).toHaveAttribute("aria-modal", "true");
+    await expect(player.page.locator("[data-player-open]")).toHaveAttribute(
+      "aria-expanded",
+      "true",
+    );
+    await expect(player.surface).toHaveAttribute("aria-modal", "true");
   });
 
   test("the page rises from the bar's top edge, and below 64rem the bar's cover flies with it", async ({
-    lab,
+    player,
     page,
     finger,
   }) => {
-    await lab.open();
-    await lab.play();
-    const start = center(await lab.dockSettled());
-    const rest = await lab.geometry();
+    await player.open();
+    await player.play();
+    const start = center(await player.dockSettled());
+    const rest = await player.geometry();
     // At rest the one cover on screen is the bar's.
     expect(await visibleCovers(page)).toEqual(["bar"]);
     // A slow, short pull, held: the page has only just left the bar.
     const held = await finger.drag(line(start, { x: start.x, y: start.y - 48 }, 12), 30, {
       hold: true,
     });
-    await expect(lab.surface).toHaveAttribute("data-state", "dragging");
-    await expect.poll(async () => (await lab.geometry()).p).toBeGreaterThan(0.03);
-    const now = await lab.geometry();
+    await expect(player.surface).toHaveAttribute("data-state", "dragging");
+    await expect.poll(async () => (await player.geometry()).p).toBeGreaterThan(0.03);
+    const now = await player.geometry();
     expect(now.p).toBeLessThan(0.2);
     // Travel is linear in p and ends with the page's top on the bar's top.
     expect(Math.abs(now.sheet.y - rest.dock.y * (1 - now.p))).toBeLessThanOrEqual(1);
@@ -178,12 +181,12 @@ test.describe("one surface @surface", () => {
     }
     await held.release();
     // A short, slow pull is not a decision: it goes back, and the bar has its cover again.
-    await lab.collapsed();
+    await player.collapsed();
     expect(await visibleCovers(page)).toEqual(["bar"]);
   });
 
   test("the flying cover leaves from the bar's cover and lands on the page's cover", async ({
-    lab,
+    player,
     page,
     finger,
     browserName,
@@ -192,42 +195,42 @@ test.describe("one surface @surface", () => {
     test.skip(!viewport || viewport.width >= FLIGHT_MAX_PX, "the cover flies below 64rem only");
     test.skip(
       browserName === "webkit",
-      "Playwright has no touch input in WebKit, so lab.ts pulls with a held mouse drag, and mobile WebKit does not carry that to the sheet",
+      "Playwright has no touch input in WebKit, so player.ts pulls with a held mouse drag, and mobile WebKit does not carry that to the sheet",
     );
-    await lab.open();
-    await lab.play();
-    const start = center(await lab.dockSettled());
-    const rest = await lab.geometry();
+    await player.open();
+    await player.play();
+    const start = center(await player.dockSettled());
+    const rest = await player.geometry();
     // Just past the slop: the cover has taken off and has not gone anywhere yet.
     const first = await finger.drag(line(start, { x: start.x, y: start.y - 14 }, 7), 30, {
       hold: true,
     });
-    await expect(lab.surface).toHaveAttribute("data-state", "dragging");
-    const takeoff = await lab.geometry();
+    await expect(player.surface).toHaveAttribute("data-state", "dragging");
+    const takeoff = await player.geometry();
     expect(takeoff.p).toBeLessThan(0.01);
     // Two pixels past the slop is a quarter of a percent of the way: under two pixels of flight.
     expect(apart(takeoff.art, rest.thumb)).toBeLessThanOrEqual(3);
     expect(await visibleCovers(page)).toEqual(["flight"]);
     await first.release();
-    await lab.collapsed();
+    await player.collapsed();
     // Pulled past the top and held: the page is in place and the cover is on its slot.
     // To the top edge and no further: a pointer that leaves the window ends the gesture.
     const second = await finger.drag(line(start, { x: start.x, y: 3 }, 20), 16, {
       hold: true,
     });
-    await expect.poll(async () => (await lab.geometry()).p).toBe(1);
-    const landing = await lab.geometry();
+    await expect.poll(async () => (await player.geometry()).p).toBe(1);
+    const landing = await player.geometry();
     expect(landing.state).toBe("dragging");
     expect(apart(landing.art, landing.slot)).toBeLessThanOrEqual(1);
     await second.release();
-    await lab.expanded();
+    await player.expanded();
     // At rest the page's own cover takes over, where the flying one was.
     expect(await visibleCovers(page)).toEqual(["page"]);
-    expect(apart((await lab.geometry()).slot, landing.art)).toBeLessThanOrEqual(1);
+    expect(apart((await player.geometry()).slot, landing.art)).toBeLessThanOrEqual(1);
   });
 
   test("the flying cover follows the finger back down and lands on the bar's cover", async ({
-    lab,
+    player,
     page,
     finger,
     browserName,
@@ -236,24 +239,24 @@ test.describe("one surface @surface", () => {
     test.skip(!viewport || viewport.width >= FLIGHT_MAX_PX, "the cover flies below 64rem only");
     test.skip(
       browserName === "webkit",
-      "Playwright has no touch input in WebKit, so lab.ts pulls with a held mouse drag, and mobile WebKit does not carry that to the sheet",
+      "Playwright has no touch input in WebKit, so player.ts pulls with a held mouse drag, and mobile WebKit does not carry that to the sheet",
     );
-    await lab.open();
-    await lab.play();
-    const start = center(await lab.dockSettled());
-    const rest = await lab.geometry();
+    await player.open();
+    await player.play();
+    const start = center(await player.dockSettled());
+    const rest = await player.geometry();
     const up = Math.round(rest.window.height * 0.5);
     const held = await finger.drag(line(start, { x: start.x, y: start.y - up }, 12), 30, {
       hold: true,
     });
-    await expect.poll(async () => (await lab.geometry()).p).toBeGreaterThan(0.4);
-    const high = await lab.geometry();
+    await expect.poll(async () => (await player.geometry()).p).toBeGreaterThan(0.4);
+    const high = await player.geometry();
     // Back down most of the way, without letting go: the cover turns with the finger.
     await held.move(
       line({ x: start.x, y: start.y - up }, { x: start.x, y: start.y - 40 }, 10).slice(1),
     );
-    await expect.poll(async () => (await lab.geometry()).p).toBeLessThan(0.1);
-    const low = await lab.geometry();
+    await expect.poll(async () => (await player.geometry()).p).toBeLessThan(0.1);
+    const low = await player.geometry();
     expect(low.state).toBe("dragging");
     for (const now of [high, low]) {
       const expected = coverFrame(now.p, {
@@ -274,31 +277,31 @@ test.describe("one surface @surface", () => {
     expect(await visibleCovers(page)).toEqual(["flight"]);
     await held.release();
     // Let go near the bar, the pull is no decision: the page goes down and the cover comes home.
-    await lab.collapsed();
+    await player.collapsed();
     expect(await visibleCovers(page)).toEqual(["bar"]);
-    expect(apart((await lab.geometry()).thumb, rest.thumb)).toBeLessThanOrEqual(0.5);
+    expect(apart((await player.geometry()).thumb, rest.thumb)).toBeLessThanOrEqual(0.5);
   });
 
   test("per-frame motion is custom properties only, and none is left at rest", async ({
-    lab,
+    player,
     page,
     finger,
     browserName,
   }) => {
     test.skip(
       browserName === "webkit",
-      "Playwright has no touch input in WebKit, so lab.ts pulls with a held mouse drag, and mobile WebKit does not carry that to the sheet",
+      "Playwright has no touch input in WebKit, so player.ts pulls with a held mouse drag, and mobile WebKit does not carry that to the sheet",
     );
-    await lab.open();
-    await lab.play();
-    const start = center(await lab.dockSettled());
-    const rest = await lab.geometry();
+    await player.open();
+    await player.play();
+    const start = center(await player.dockSettled());
+    const rest = await player.geometry();
     const pull = Math.round(rest.window.height * 0.45);
     const held = await finger.drag(line(start, { x: start.x, y: start.y - pull }, 16), 20, {
       hold: true,
     });
-    await expect.poll(async () => (await lab.geometry()).p).toBeGreaterThan(0.3);
-    const now = await lab.geometry();
+    await expect.poll(async () => (await player.geometry()).p).toBeGreaterThan(0.3);
+    const now = await player.geometry();
     expect(now.state).toBe("dragging");
     if (now.window.width < FLIGHT_MAX_PX) {
       // Mid-flight, exactly where the formula in coverMorph.ts puts it for the flight measured.
@@ -325,8 +328,8 @@ test.describe("one surface @surface", () => {
     expect(written).toEqual([]);
     await held.release();
     // Far enough, and not moving back: it opens.
-    await lab.expanded();
-    expect(await lab.progress()).toBeCloseTo(1, 2);
+    await player.expanded();
+    expect(await player.progress()).toBeCloseTo(1, 2);
     // At rest nothing that motion wrote is left behind.
     const leftovers = await page.evaluate(() =>
       [...document.querySelectorAll("[data-player-surface] *")]
@@ -337,27 +340,26 @@ test.describe("one surface @surface", () => {
   });
 
   test("on a phone the navigation stays above the rising page and slides away in step with it", async ({
-    lab,
+    player,
     page,
     finger,
     browserName,
   }) => {
     const viewport = page.viewportSize();
     test.skip(!viewport || viewport.width >= FLIGHT_MAX_PX, "the bottom navigation is below 64rem");
-    test.skip(lab.target !== "site", "the shell's navigation is on the site's pages");
     test.skip(
       browserName === "webkit",
-      "Playwright has no touch input in WebKit, so lab.ts pulls with a held mouse drag, and mobile WebKit does not carry that to the sheet",
+      "Playwright has no touch input in WebKit, so player.ts pulls with a held mouse drag, and mobile WebKit does not carry that to the sheet",
     );
-    await lab.open();
-    await lab.play();
-    const start = center(await lab.dockSettled());
+    await player.open();
+    await player.play();
+    const start = center(await player.dockSettled());
     const stop = await watchNav(page);
     // The first frames of a pull, just past the slop: the page is up behind the bar already.
     const held = await finger.drag(line(start, { x: start.x, y: start.y - 14 }, 7), 30, {
       hold: true,
     });
-    await expect(lab.surface).toHaveAttribute("data-state", "dragging");
+    await expect(player.surface).toHaveAttribute("data-state", "dragging");
     const first = await probeNav(page);
     expect(first.hits).toEqual([true, true, true]);
     expect(first.translate).toBeLessThanOrEqual(1);
@@ -376,9 +378,9 @@ test.describe("one surface @surface", () => {
       before = now;
     }
     await held.release();
-    await lab.expanded();
+    await player.expanded();
     await page.keyboard.press("Escape");
-    await lab.collapsed();
+    await player.collapsed();
     // Every frame of the pull, the spring up and the way back down, the first included: wherever
     // any of the navigation was on screen while the page moved, the navigation was on top.
     const frames = await stop();
@@ -396,11 +398,11 @@ test.describe("one surface @surface", () => {
   });
 
   test("a bottom navigation is told how far the page is, and let go at rest", async ({
-    lab,
+    player,
     page,
     finger,
   }) => {
-    await lab.open();
+    await player.open();
     // The shell's bottom navigation, as its contract describes it: an element and its height.
     await page.evaluate(() => {
       const nav = document.createElement("nav");
@@ -416,9 +418,9 @@ test.describe("one surface @surface", () => {
             .querySelector<HTMLElement>("[data-bottom-nav]")
             ?.style.getPropertyValue("--player-p") ?? "missing",
       );
-    await lab.play();
-    const start = center(await lab.dockSettled());
-    const rest = await lab.geometry();
+    await player.play();
+    const start = center(await player.dockSettled());
+    const rest = await player.geometry();
     // The bar sits on top of the navigation.
     expect(
       Math.abs(rest.dock.y + rest.dock.height - (rest.window.height - 56)),
@@ -427,33 +429,33 @@ test.describe("one surface @surface", () => {
     const held = await finger.drag(line(start, { x: start.x, y: start.y - 120 }, 12), 30, {
       hold: true,
     });
-    await expect.poll(async () => (await lab.geometry()).p).toBeGreaterThan(0.1);
-    const now = await lab.geometry();
+    await expect.poll(async () => (await player.geometry()).p).toBeGreaterThan(0.1);
+    const now = await player.geometry();
     expect(Number(await navP())).toBeCloseTo(now.p, 3);
     // The page still leaves from the bar's top edge, wherever the navigation put the bar.
     expect(Math.abs(now.sheet.y - rest.dock.y * (1 - now.p))).toBeLessThanOrEqual(1);
     await held.release();
-    await lab.collapsed();
+    await player.collapsed();
     expect(await navP()).toBe("");
-    await lab.dockSettled();
-    await lab.openPlayer();
+    await player.dockSettled();
+    await player.openPlayer();
     expect(await navP()).toBe("1");
     await page.keyboard.press("Escape");
-    await lab.collapsed();
+    await player.collapsed();
     expect(await navP()).toBe("");
   });
 
   test("on a wide screen the page fills the window above the bar, and the bar keeps working", async ({
-    lab,
+    player,
     page,
     finger,
   }) => {
     const viewport = page.viewportSize();
     test.skip(!viewport || viewport.width < WIDE_PX, "wide screens only");
-    await lab.open();
-    await lab.play();
-    await lab.openPlayer();
-    const now = await lab.geometry();
+    await player.open();
+    await player.play();
+    await player.openPlayer();
+    const now = await player.geometry();
     // Edge to edge of what the layout has: the window, less a classic scrollbar's gutter.
     expect(now.surface.width).toBeGreaterThan(now.window.width - 20);
     expect(Math.abs(now.sheet.x)).toBeLessThanOrEqual(1);
@@ -463,29 +465,29 @@ test.describe("one surface @surface", () => {
     expect(Math.abs(now.dock.y + now.dock.height - now.window.height)).toBeLessThanOrEqual(1);
     // The bar is not behind the modal, but it does not say the page's transport twice: its play
     // button steps aside while the page above holds the one play control.
-    await expect(lab.dock.getByRole("button", { name: "Pause" })).toBeHidden();
+    await expect(player.dock.getByRole("button", { name: "Pause" })).toBeHidden();
     await finger.press(
-      lab.dialog.getByRole("button", { name: "Pause", exact: true }).filter({ visible: true }),
+      player.dialog.getByRole("button", { name: "Pause", exact: true }).filter({ visible: true }),
     );
-    await expect(lab.root).toHaveAttribute("data-player-state", "paused");
-    await lab.expanded();
+    await expect(player.root).toHaveAttribute("data-player-state", "paused");
+    await player.expanded();
     // And its open button closes the page it opened.
-    await finger.press(lab.openButton);
-    await lab.collapsed();
+    await finger.press(player.openButton);
+    await player.collapsed();
   });
 
   test("on a tablet in portrait the page also fills the window above the bar", async ({
-    lab,
+    player,
     page,
     browserName,
     isMobile,
   }) => {
     test.skip(browserName !== "chromium" || Boolean(isMobile), "resized from the desktop project");
     await page.setViewportSize({ width: 820, height: 1180 });
-    await lab.open();
-    await lab.play();
-    await lab.openPlayer();
-    const now = await lab.geometry();
+    await player.open();
+    await player.play();
+    await player.openPlayer();
+    const now = await player.geometry();
     expect(Math.abs(now.sheet.y)).toBeLessThanOrEqual(1);
     expect(Math.abs(now.sheet.width - now.surface.width)).toBeLessThanOrEqual(1);
     expect(Math.abs(now.sheet.y + now.sheet.height - now.dock.y)).toBeLessThanOrEqual(1);
@@ -493,19 +495,19 @@ test.describe("one surface @surface", () => {
   });
 
   test("on a phone the page covers the whole screen and the bar steps out", async ({
-    lab,
+    player,
     page,
   }) => {
     const viewport = page.viewportSize();
     test.skip(!viewport || viewport.width >= WIDE_PX, "phones only");
-    await lab.open();
-    await lab.play();
-    await lab.openPlayer();
-    const now = await lab.geometry();
+    await player.open();
+    await player.play();
+    await player.openPlayer();
+    const now = await player.geometry();
     expect(Math.abs(now.sheet.x)).toBeLessThanOrEqual(1);
     expect(Math.abs(now.sheet.y)).toBeLessThanOrEqual(1);
     expect(Math.abs(now.sheet.width - now.window.width)).toBeLessThanOrEqual(1);
     expect(Math.abs(now.sheet.height - now.window.height)).toBeLessThanOrEqual(1);
-    await expect(lab.openButton).toBeHidden();
+    await expect(player.openButton).toBeHidden();
   });
 });
