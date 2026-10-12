@@ -1,11 +1,16 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
+import { PENDING_WRITER_KEY } from "../lib/pendingWriter";
 import { SAVED_KEY } from "../lib/savedKey";
 import { anyPending, parseSaved, savedOps } from "../lib/savedOverlay";
 import type { ConfigOp } from "../types/contracts";
 import {
+  adopt,
+  dropUnclaimed,
   flush,
   GAP_MS,
   gapLeft,
+  HELD_EVENT,
+  type Held,
   keepWaiting,
   type Pending,
   remember,
@@ -232,6 +237,209 @@ describe("flush", () => {
     await second;
     expect(posted).toHaveLength(1);
     expect(states).toEqual([]);
+  });
+});
+
+describe("a left page's held run", () => {
+  let posted: ConfigOp[][];
+  let heard: Held[];
+  let answers: number[];
+  /** Each test starts an hour after the last, so the module's last request leaves no gap. */
+  let round = 100;
+
+  const page = (changes = new Map<string, Pending>(), here = false) => {
+    const said: [string, string][] = [];
+    const context: SaveContext = {
+      changes,
+      dialog: null,
+      show: (message, state) => void said.push([message, state]),
+      here: () => here,
+    };
+    return { context, said };
+  };
+  const pending = () => parseSaved(localStorage.getItem(SAVED_KEY), Date.now());
+
+  /** Daily: Time saved, then Length changed inside the gap and the page left. */
+  async function leaveInGap(): Promise<{ run: Promise<void>; left: SaveContext }> {
+    const changes = new Map([["schedule", change({ op: "schedule.set", hour: 9 })]]);
+    const { context: left } = page(changes);
+    await flush(left, "open");
+    changes.set("schedule", change({ op: "schedule.set", length_minutes: 3 }));
+    const run = flush(left, "open");
+    keepWaiting(left);
+    return { run, left };
+  }
+
+  beforeEach(() => {
+    vi.useFakeTimers();
+    round += 1;
+    vi.setSystemTime(Date.now() + round * 3_600_000);
+    posted = [];
+    heard = [];
+    answers = [];
+    vi.stubGlobal("localStorage", memoryStorage());
+    vi.stubGlobal("sessionStorage", memoryStorage());
+    const doc = new EventTarget();
+    doc.addEventListener(
+      HELD_EVENT,
+      (event) => void heard.push((event as CustomEvent<Held>).detail),
+    );
+    vi.stubGlobal("document", doc);
+    vi.stubGlobal(
+      "fetch",
+      vi.fn(async (_url: string, init: RequestInit) => {
+        const { op } = JSON.parse(String(init.body)) as { op: ConfigOp | ConfigOp[] };
+        posted.push([op].flat());
+        const status = answers.shift() ?? 202;
+        if (status === 0) throw new TypeError("Failed to fetch");
+        return new Response(JSON.stringify({ status }), { status });
+      }),
+    );
+  });
+
+  afterEach(() => {
+    dropUnclaimed();
+    vi.useRealTimers();
+    vi.unstubAllGlobals();
+  });
+
+  it("tells the page open now when it went through, and keeps nothing pending", async () => {
+    const { run } = await leaveInGap();
+    expect(anyPending(pending(), Date.now())).toBe(true);
+    await vi.advanceTimersByTimeAsync(GAP_MS);
+    await run;
+    expect(heard).toEqual([{ ok: true, failure: "", lost: [], claimed: false }]);
+    expect(anyPending(pending(), Date.now())).toBe(false);
+    expect(savedOps(pending(), Date.now())).toEqual([
+      { op: "schedule.set", hour: 9 },
+      { op: "schedule.set", length_minutes: 3 },
+    ]);
+  });
+
+  it("hands what failed to the page open now, which says so and sends it once on Retry", async () => {
+    const { run, left } = await leaveInGap();
+    answers.push(500);
+    await vi.advanceTimersByTimeAsync(GAP_MS);
+    await run;
+    const [held] = heard;
+    expect(held?.ok).toBe(false);
+    expect(held?.failure).toBe("Saving failed.");
+    expect(held?.lost.map(({ op }) => op)).toEqual([{ op: "schedule.set", length_minutes: 3 }]);
+    // Nothing is pending any more, and the left page holds nothing.
+    expect(anyPending(pending(), Date.now())).toBe(false);
+    expect(left.changes.size).toBe(0);
+
+    // The open page has a change of its own: the held one goes ahead of it, refused until sent.
+    const own = new Map([["schedule", change({ op: "schedule.set", hour: 8 })]]);
+    const { context: open, said } = page(own, true);
+    adopt(open);
+    expect(held?.claimed).toBe(true);
+    expect([...own.values()].map(({ op, failed }) => [op, failed])).toEqual([
+      [{ op: "schedule.set", length_minutes: 3 }, true],
+      [{ op: "schedule.set", hour: 8 }, undefined],
+    ]);
+    expect(said).toEqual([["Saving failed.", "error"]]);
+    // Taken once: another page takes nothing.
+    const other = page();
+    adopt(other.context);
+    expect(other.context.changes.size).toBe(0);
+
+    const before = posted.length;
+    await vi.advanceTimersByTimeAsync(GAP_MS);
+    await flush(open, "open");
+    expect(posted.slice(before)).toEqual([
+      [
+        { op: "schedule.set", length_minutes: 3 },
+        { op: "schedule.set", hour: 8 },
+      ],
+    ]);
+    expect(own.size).toBe(0);
+  });
+
+  it("offers a change lost with the connection again, for Retry once it is back", async () => {
+    const { run } = await leaveInGap();
+    answers.push(0);
+    await vi.advanceTimersByTimeAsync(GAP_MS);
+    await run;
+    expect(heard[0]?.failure).toBe("The site could not be reached. Not saved yet.");
+    const { context: open, said } = page(new Map(), true);
+    adopt(open);
+    expect(said).toEqual([["The site could not be reached. Not saved yet.", "error"]]);
+    const before = posted.length;
+    await flush(open, "open");
+    expect(posted.slice(before)).toEqual([[{ op: "schedule.set", length_minutes: 3 }]]);
+  });
+
+  it("keeps a page that is itself being left, or one opened after, from taking it", async () => {
+    const { run } = await leaveInGap();
+    answers.push(500);
+    await vi.advanceTimersByTimeAsync(GAP_MS);
+    await run;
+    const leaving = page(new Map([["a", change({ op: "schedule.set", hour: 6 })]]), true);
+    leaving.context.left = true;
+    adopt(leaving.context);
+    expect(leaving.context.changes.size).toBe(1);
+    // The page open when it failed is left without taking it: the next page is built without it.
+    dropUnclaimed();
+    const next = page(new Map(), true);
+    adopt(next.context);
+    expect(next.context.changes.size).toBe(0);
+  });
+
+  it("shows each of several left pages' edits as pending until its own run ends", async () => {
+    const { run: first } = await leaveInGap();
+    const second = page(new Map([["b", change({ op: "source.set", id: "b", enabled: false })]]));
+    const queued = flush(second.context, "open");
+    keepWaiting(second.context);
+    expect(savedOps(pending(), Date.now())).toContainEqual({
+      op: "source.set",
+      id: "b",
+      enabled: false,
+    });
+    await vi.advanceTimersByTimeAsync(GAP_MS);
+    await first;
+    // The first run's end leaves the second page's edit pending.
+    expect(heard).toHaveLength(1);
+    expect(anyPending(pending(), Date.now())).toBe(true);
+    await vi.advanceTimersByTimeAsync(GAP_MS * 2);
+    await queued;
+    expect(heard.map(({ ok }) => ok)).toEqual([true, true]);
+    expect(anyPending(pending(), Date.now())).toBe(false);
+    expect(posted.at(-1)).toEqual([{ op: "source.set", id: "b", enabled: false }]);
+  });
+
+  it("leaves a page that was only hidden, not left, with its own refusal and Retry", async () => {
+    const changes = new Map([["a", change({ op: "schedule.set", hour: 9 })]]);
+    const { context, said } = page(changes, true);
+    answers.push(500);
+    const run = flush(context, "open");
+    keepWaiting(context);
+    await run;
+    expect(heard).toEqual([]);
+    expect(context.left).toBe(false);
+    expect(changes.get("a")?.failed).toBe(true);
+    expect(said.at(-1)).toEqual(["Saving failed.", "error"]);
+    expect(anyPending(pending(), Date.now())).toBe(false);
+  });
+
+  it("stops showing a writer choice that no page took as saved", async () => {
+    const changes = new Map([
+      ["writer", change({ op: "writer.set", provider: "anthropic", model: "claude-x" })],
+    ]);
+    sessionStorage.setItem(
+      PENDING_WRITER_KEY,
+      JSON.stringify({ provider: "anthropic", model: "claude-x", timestamp: Date.now() }),
+    );
+    const { context: left } = page(changes);
+    answers.push(500);
+    const run = flush(left, "open");
+    keepWaiting(left);
+    // The Model page opened next says Saving: the held writer edit counts as pending.
+    expect(anyPending(pending(), Date.now())).toBe(true);
+    await run;
+    expect(heard[0]?.ok).toBe(false);
+    dropUnclaimed();
+    expect(sessionStorage.getItem(PENDING_WRITER_KEY)).toBeNull();
   });
 });
 

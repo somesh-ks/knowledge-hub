@@ -58,8 +58,11 @@ describe("keeping what was saved", () => {
     expect(parseSaved(JSON.stringify(left), T0 + 1000 + PENDING_TTL_MS)).toHaveLength(1);
   });
 
-  it("leaves the writer to its own note", () => {
-    expect(addSaved([], [{ op: "writer.set", provider: "nebius", model: null }], T0)).toEqual([]);
+  it("leaves the writer to its own note, but counts a writer edit on its way as pending", () => {
+    const writer: ConfigOp = { op: "writer.set", provider: "nebius", model: null };
+    expect(addSaved([], [writer], T0)).toEqual([]);
+    // The Model page opened while it waits says Saving, not Saved.
+    expect(anyPending(withPending([], [writer], T0), T0 + 1000)).toBe(true);
   });
 
   it("reads nothing from storage it does not understand", () => {
