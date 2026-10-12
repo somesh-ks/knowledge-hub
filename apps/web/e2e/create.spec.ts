@@ -204,25 +204,41 @@ test.describe("the Create page", () => {
     await expect(submit(page).locator(".spinner")).toBeHidden();
   });
 
-  test("the sticky foot shows a hairline while the form runs on under it, and none at the end", async ({
+  test("the sticky foot shows a hairline only while the form runs on under it", async ({
     page,
   }, info) => {
     test.skip(
       info.project.name === "desktop",
       "the whole form fits beside the options on a wide page",
     );
-    await openCreate(page);
-    const line = () =>
-      page
-        .locator(".create-page .create-submit")
-        .evaluate((node) => Number(getComputedStyle(node, "::before").opacity));
-    await page.evaluate(() => window.scrollTo(0, 0));
-    expect(await page.evaluate(() => document.documentElement.scrollHeight > innerHeight)).toBe(
-      true,
-    );
-    await expect.poll(line).toBe(1);
+    const foot = page.locator(".create-page .create-submit");
+    const line = () => foot.evaluate((node) => Number(getComputedStyle(node, "::before").opacity));
+    // At rest the closed form ends above the foot's edge: the page may scroll a little (its own
+    // bottom padding), but nothing runs under the button, so there is no line at any scroll.
+    await page.goto("/create");
+    await expect(page.locator("[data-create]")).toHaveAttribute("data-ready", "");
+    await expect(foot).not.toHaveAttribute("data-stuck", "");
+    await expect.poll(line).toBe(0);
     await page.evaluate(() => window.scrollTo(0, document.documentElement.scrollHeight));
     await expect.poll(line).toBe(0);
+    // Open, the options run on under the stuck foot: the line shows, and goes at the end.
+    await openMore(page);
+    await page.evaluate(() => window.scrollTo(0, 0));
+    await expect(foot).toHaveAttribute("data-stuck", "");
+    await expect.poll(line).toBe(1);
+    await page.evaluate(() => window.scrollTo(0, document.documentElement.scrollHeight));
+    await expect(foot).not.toHaveAttribute("data-stuck", "");
+    await expect.poll(line).toBe(0);
+  });
+
+  test("a wide page does not stick the foot or draw its line", async ({ page }, info) => {
+    test.skip(info.project.name !== "desktop", "only a wide page lays the form out in columns");
+    await page.setViewportSize({ width: 1280, height: 600 });
+    await openCreate(page);
+    const foot = page.locator(".create-page .create-submit");
+    expect(await foot.evaluate((node) => getComputedStyle(node).position)).toBe("static");
+    expect(await foot.evaluate((node) => getComputedStyle(node, "::before").content)).toBe("none");
+    await expect(foot).not.toHaveAttribute("data-stuck", "");
   });
 
   for (const width of [320, 360, 390]) {

@@ -306,6 +306,27 @@ export function installCreate(root: HTMLElement, onStart?: () => void): void {
     wide.addEventListener("change", pin);
     pin();
   }
+  // On /create the foot with Generate sticks to the bottom of the window, and wears its top line
+  // only while it is stuck there with the form running on under it (create.css). It is stuck when
+  // the place it would have in the page, the form's end, lies below the edge it sticks to.
+  const foot = root.querySelector<HTMLElement>(".create-submit");
+  if (foot && root.closest("main")) {
+    const stuck = () => {
+      if (!root.isConnected) {
+        removeEventListener("scroll", stuck);
+        removeEventListener("resize", stuck);
+        return;
+      }
+      const style = getComputedStyle(foot);
+      const edge = innerHeight - Number.parseFloat(style.insetBlockEnd);
+      const on = style.position === "sticky" && form.getBoundingClientRect().bottom > edge + 1;
+      if (on !== foot.hasAttribute("data-stuck")) foot.toggleAttribute("data-stuck", on);
+    };
+    addEventListener("scroll", stuck, { passive: true });
+    addEventListener("resize", stuck, { passive: true });
+    new ResizeObserver(stuck).observe(form);
+    stuck();
+  }
   // The title's Enter key reads "Done": it puts the keyboard away and never submits, because a run
   // spends from the allowance. Generate is the one way to start one.
   const title = form.elements.namedItem("title");
