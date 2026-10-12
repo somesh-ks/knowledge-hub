@@ -56,6 +56,8 @@ export async function judgeGeneral(
   pass: PlanPass,
   runtime: ApiRuntime,
   topicsFile: TopicsFile | null,
+  /** Answers of earlier passes of the same run, so a story judged for one is not asked again. */
+  earlier: readonly string[] = [],
 ): Promise<Record<string, number> | null> {
   const raw = await readJsonIfExists(passFile(deps.root, pass.id, "general.json"), "general.json");
   if (raw === null) return null;
@@ -97,7 +99,10 @@ export async function judgeGeneral(
   }
 
   const path = passFile(deps.root, pass.id, "general-judged.json");
-  const previous = await readPrevious(path, judge.model);
+  const previous = new Map<string, Entry>();
+  for (const from of [...earlier, path]) {
+    for (const [id, entry] of await readPrevious(from, judge.model)) previous.set(id, entry);
+  }
   const wanted = requests.filter((request) => inScope.has(request.item.id));
   const reused = new Map<string, Entry>();
   const asked: GeneralRequest[] = [];

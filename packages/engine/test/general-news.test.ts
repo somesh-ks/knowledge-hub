@@ -523,7 +523,7 @@ describe("judgeGeneral", () => {
     expect(written.judge.questions_hash).toBe(GENERAL_QUESTIONS_HASH);
   });
 
-  it("skips a topic that is switched off and asks nothing for a story with no topic left", async () => {
+  it("judges a general topic whose stored enabled is false, as it is always on", async () => {
     await writePool([feedItem("npr-world", "a", "Some world story today")]);
     const { judge, calls } = countingJudge();
     const topics = {
@@ -532,8 +532,8 @@ describe("judgeGeneral", () => {
       topics: generalTopics().map((t) => ({ ...t, enabled: false })),
     };
     const report = await judgeGeneral(bareDeps(dir, WED), pass, runtimeWith(judge), topics);
-    expect(report).toMatchObject({ general_judged: 0, general_requests: 0 });
-    expect(calls).toHaveLength(0);
+    expect(report).toMatchObject({ general_requests: 1 });
+    expect(calls).toHaveLength(1);
   });
 
   it("stops at the safety ceiling, logs it, and leaves the least carried waiting", async () => {

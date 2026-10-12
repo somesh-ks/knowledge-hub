@@ -1,6 +1,6 @@
 import { dirname, join } from "node:path";
 import { parseArgs } from "node:util";
-import { homeSectionFor, zonedDate } from "@dispatch/core";
+import { homeSectionFor, topicSectionTitles, zonedDate } from "@dispatch/core";
 import { type CommandRun, secretsFromEnv } from "../context.js";
 import {
   linkSourceIds,
@@ -149,9 +149,7 @@ export function makeRenderCommand(deps: RenderDeps = {}): CommandRun {
         audio: null,
         sourceNames: sourceNameMap(sources),
         linkSources: linkSourceIds(sources),
-        ...(topics
-          ? { sectionTitles: Object.fromEntries(topics.sections.map((s) => [s.id, s.title])) }
-          : {}),
+        ...(topics ? { sectionTitles: topicSectionTitles(topics) } : {}),
       });
 
       const report = validateDigest(digest, { pool: [...pool.values()], sources, linter, topics });

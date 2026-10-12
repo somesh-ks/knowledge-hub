@@ -81,6 +81,7 @@ export function serializeSchedule(file: ScheduleFile): string {
         voice_id: checked.custom.voice_id,
         voice_id_b: checked.custom.voice_id_b,
       },
+      ...(checked.general_scoped === true ? { general_scoped: true } : {}),
     },
     null,
     2,

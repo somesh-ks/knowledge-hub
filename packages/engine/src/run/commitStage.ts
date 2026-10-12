@@ -7,11 +7,11 @@ import {
   type Source,
   serializeDigestFile,
   stockholmDate,
+  withGeneralTopics,
 } from "@dispatch/core";
 import {
   linkSourceIds,
   loadJudgments,
-  loadPool,
   loadSources,
   type ParsedPool,
   readJsonIfExists,
@@ -45,6 +45,7 @@ import { withRunJudgments, withRunTopicJudgments } from "./artifacts.js";
 import { makeCoverPicker } from "./cover.js";
 import { digestFromSelection } from "./digestFromSelection.js";
 import { StageFailure } from "./errors.js";
+import { loadPassPool } from "./passPool.js";
 import { DEPLOY_AUDIO_WINDOW_DAYS, digestsLackingAudio } from "./pendingAudio.js";
 import {
   type Plan,
@@ -81,7 +82,10 @@ async function loadPassData(deps: RunDeps, plan: Plan, pass: PlanPass): Promise<
       `${pass.id}: selection.json is missing or invalid. Run the earlier stages.`,
     );
   }
-  const pool = await loadPool(passFile(deps.root, pass.id, "pool.json"));
+  const pool = await loadPassPool(
+    passFile(deps.root, pass.id, "pool.json"),
+    passFile(deps.root, pass.id, "general.json"),
+  );
   return {
     pass,
     selection: selection.data,
@@ -163,7 +167,7 @@ export async function commitStage(deps: RunDeps, options: RunOptions): Promise<C
   );
   let sourceStats = await readSourceStats(root);
   let statsTouched = false;
-  const topics = await loadTopicsFile(root);
+  const topics = withGeneralTopics(await loadTopicsFile(root));
 
   const taken = new Set<string>();
   for (const date of new Set(plan.passes.map((pass) => pass.id.slice(0, 10)))) {

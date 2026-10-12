@@ -84,14 +84,13 @@ export const GeneralJudgedFile = z.object({
 export type GeneralJudgedFile = z.infer<typeof GeneralJudgedFile>;
 
 /**
- * The general topics that are switched on. A repository without a topics file, or one written
- * before the general topics existed, reads them as switched on, as resolveTopics restores them.
+ * The general topics, which are always on: a stored `enabled` is not read. A repository without a
+ * topics file, or one written before the general topics existed, has them as resolveTopics
+ * restores them.
  */
 export function activeGeneralFrom(file: TopicsFile | null): Topic[] {
   const own = new Map((file?.topics ?? []).map((topic) => [topic.id, topic]));
-  return generalTopics()
-    .map((seed) => own.get(seed.id) ?? seed)
-    .filter((topic) => topic.origin === "general" && topic.enabled);
+  return generalTopics().map((seed) => own.get(seed.id) ?? seed);
 }
 
 const WWW = /^www\./;

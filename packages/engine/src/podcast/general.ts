@@ -1,4 +1,4 @@
-import { generalTopicTitle, type Item, type Source, type TopicsFile } from "@dispatch/core";
+import { generalTopicTitle, type Item, type Source } from "@dispatch/core";
 import type { Logger } from "../context.js";
 import { clusterStories } from "../dedupe/storyCluster.js";
 import { entryToRaw, loadFeed } from "../fetch/feedItems.js";
@@ -6,7 +6,6 @@ import type { HttpClient } from "../http.js";
 import { buildItems } from "../normalize/buildItem.js";
 import { outletOf } from "../run/generalNews.js";
 import { loadSources } from "../sources/registry.js";
-import { loadTopicsFile } from "../topics/store.js";
 import type { PodcastPlan } from "./plan.js";
 import { joinNames } from "./select.js";
 import { PodcastError, type PodcastStory } from "./types.js";
@@ -42,8 +41,6 @@ export interface GeneralDeps {
    * one the owner added to a general topic is.
    */
   sources?: readonly Source[] | undefined;
-  /** The topics file, for tests. Defaults to config/topics.json; a missing file reads every topic on. */
-  topics?: TopicsFile | null | undefined;
   /** The fewest stories that make a selection. Defaults to MIN_GENERAL_STORIES (fewer when the length is short). */
   minStories?: number | undefined;
 }
@@ -68,14 +65,12 @@ function outletSource(source: Source, feedUrl: string): Source {
 
 /**
  * The sources a general topic is read from: enabled, with a feed to read, and tagged with the
- * topic. A topic the owner switched off yields none.
+ * topic. A general topic is always on, so only a source can be switched off.
  */
 export function sourcesForTopic(
   sources: readonly Source[],
-  topics: TopicsFile | null,
   topicId: string,
 ): Array<Source & { feed_url: string }> {
-  if (topics?.topics.find((topic) => topic.id === topicId)?.enabled === false) return [];
   return sources.flatMap((source) =>
     source.enabled && source.type === "rss" && source.feed_url !== null
       ? source.topic_ids?.includes(topicId)
@@ -162,11 +157,10 @@ export async function selectGeneralStories(deps: GeneralDeps): Promise<GeneralSe
   const { request } = plan;
   const topicIds = request.topic_ids;
   const sources = deps.sources ?? (await loadSources(deps.root)).sources;
-  const topicsFile = deps.topics === undefined ? await loadTopicsFile(deps.root) : deps.topics;
   const window = { from: new Date(now.getTime() - request.window_days * DAY_MS), to: now };
 
   const jobs = topicIds.flatMap((topic) =>
-    sourcesForTopic(sources, topicsFile, topic).map((source) => ({ topic, source })),
+    sourcesForTopic(sources, topic).map((source) => ({ topic, source })),
   );
   if (jobs.length === 0) {
     throw new PodcastError(

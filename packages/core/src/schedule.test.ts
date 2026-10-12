@@ -1,5 +1,12 @@
 import { describe, expect, it } from "vitest";
-import { ConfigOp, DEFAULT_SCHEDULE, ScheduleChange, ScheduleFile } from "./index.js";
+import {
+  ConfigOp,
+  DEFAULT_SCHEDULE,
+  effectiveSkipTopics,
+  ScheduleChange,
+  ScheduleFile,
+  withGeneralScope,
+} from "./index.js";
 
 describe("ScheduleFile", () => {
   it("accepts the defaults and a list of topics left out", () => {
@@ -143,5 +150,26 @@ describe("schedule.set op", () => {
     expect(ConfigOp.safeParse({ ...ok, cadence_days: 4 }).success).toBe(false);
     expect(ConfigOp.safeParse({ ...ok, skip_topics: undefined }).success).toBe(true);
     expect(ConfigOp.safeParse({ ...ok, skip_topics: ["Not An Id"] }).success).toBe(false);
+  });
+});
+
+// If a schedule written before general topics could play reads them as in, the next scheduled
+// briefing publishes World, Business and the rest the owner never chose.
+describe("effectiveSkipTopics", () => {
+  const file = ScheduleFile.parse({ version: 1, hour: 7, cadence_days: 2, skip_topics: ["ai"] });
+
+  it("counts the general topics as skipped until general_scoped is set", () => {
+    expect(effectiveSkipTopics(file, "daily")).toEqual([
+      "ai",
+      "world",
+      "business",
+      "science",
+      "culture",
+      "sports",
+    ]);
+    expect(effectiveSkipTopics(file, "weekly")).toHaveLength(5);
+    const scoped = withGeneralScope(file);
+    expect(scoped.general_scoped).toBe(true);
+    expect(effectiveSkipTopics({ ...scoped, skip_topics: ["ai"] }, "daily")).toEqual(["ai"]);
   });
 });

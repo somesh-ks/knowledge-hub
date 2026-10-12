@@ -1,4 +1,5 @@
 import {
+  GENERAL_TOPICS,
   isBuiltinCategory,
   isBuiltinSection,
   MAX_CUSTOM_TOPICS,
@@ -15,6 +16,7 @@ import {
   TopicsFile as TopicsSchema,
   topicIdFromName,
   type WriterFile,
+  withGeneralScope,
 } from "@dispatch/core";
 import type { ExaQuery, QueriesFile } from "../fetch/queries.js";
 import { buildSourceFromUrl } from "../sources/addSource.js";
@@ -55,7 +57,13 @@ export interface OpOutcome {
   new_topic?: boolean;
 }
 
-const RESERVED_SECTIONS: readonly string[] = ["top", "watch", "design", "trending"];
+const RESERVED_SECTIONS: readonly string[] = [
+  "top",
+  "watch",
+  "design",
+  "trending",
+  ...GENERAL_TOPICS.map((topic) => topic.id),
+];
 const QUERY_ID = /^[a-z0-9][a-z0-9-]*$/;
 
 function clone<T>(value: T): T {
@@ -134,14 +142,17 @@ function upsertTopic(
     // re-judges this topic alone on the next run, and switching it off and on re-judges nothing. Its
     // sources are shipped with it, so no discovery queries are written.
     const reworded = existing.name !== input.name || existing.description !== input.description;
-    const summary = reworded
-      ? `update topic ${tidy(input.name)}`
-      : `${input.enabled ? "turn on" : "turn off"} ${tidy(existing.name)}`;
+    const general = existing.origin === "general";
+    const summary =
+      reworded || general
+        ? `update topic ${tidy(input.name)}`
+        : `${input.enabled ? "turn on" : "turn off"} ${tidy(existing.name)}`;
     existing.name = input.name;
     existing.description = input.description;
     existing.weight = input.weight;
     existing.keywords = [...new Set(input.keywords)];
-    existing.enabled = input.enabled;
+    // A general topic is always on: the request's `enabled` is not read.
+    existing.enabled = general ? true : input.enabled;
     return { next, summary, topic_id: id, new_topic: false };
   }
   if (input.origin === "builtin" || input.origin === "app" || input.origin === "general") {
@@ -422,7 +433,11 @@ function setSchedule(
   bundle: ConfigBundle,
 ): OpOutcome {
   const next = clone(bundle);
-  const current = bundle.schedule;
+  // Only an edit of a skip list writes the general topics into the lists (withGeneralScope).
+  const current =
+    op.skip_topics !== undefined || op.weekly?.skip_topics !== undefined
+      ? withGeneralScope(bundle.schedule)
+      : bundle.schedule;
   const skip =
     op.skip_topics !== undefined ? skippedTopics(op.skip_topics, next) : current.skip_topics;
   const weekly = { ...current.weekly, ...definedOnly(op.weekly) };
@@ -443,6 +458,7 @@ function setSchedule(
     voice_id_b: op.voice_id_b !== undefined ? op.voice_id_b : current.voice_id_b,
     weekly,
     custom: { ...current.custom, ...definedOnly(op.custom) },
+    ...(current.general_scoped === true ? { general_scoped: true } : {}),
   };
   if (op.custom?.skip_topics !== undefined) {
     next.schedule.custom.skip_topics = skippedTopics(op.custom.skip_topics, next);
@@ -478,7 +494,10 @@ function setScope(
     if (inScope) return list.filter((id) => !ids.includes(id));
     return [...new Set([...list, ...ids])];
   };
-  const current = next.schedule;
+  const current =
+    op.daily !== undefined || op.weekly !== undefined
+      ? withGeneralScope(next.schedule)
+      : next.schedule;
   next.schedule = {
     ...current,
     skip_topics: scoped(current.skip_topics, op.daily),
