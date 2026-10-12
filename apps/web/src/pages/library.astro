@@ -1,5 +1,6 @@
 ---
 import BriefingCard from "../components/BriefingCard.astro";
+import EmptyArt from "../components/EmptyArt.astro";
 import EpisodeCard from "../components/EpisodeCard.astro";
 import Icon from "../components/Icon.astro";
 import BaseLayout from "../layouts/BaseLayout.astro";
@@ -22,10 +23,17 @@ const items = libraryItems(entries, episodes);
           <h1 class="page-title library-title" id="page-title" tabindex="-1">
             Library
           </h1>
-          <p>No briefings or episodes yet</p>
-          <a class="btn-primary" href="/create" data-create-open data-sound="open">
-            New episode
-          </a>
+          {/* The page keeps its title; under it, the scene, what is true and the one thing to do. */}
+          <div class="empty">
+            <EmptyArt art="library" />
+            <h2 class="empty-title">Nothing here yet</h2>
+            <p class="empty-body">Briefings arrive every second day. Episodes you make are kept here too.</p>
+            <div class="empty-actions">
+              <a class="btn-primary" href="/create" data-create-open data-sound="open">
+                New episode
+              </a>
+            </div>
+          </div>
         </section>
       ) : (
         <div data-library>
@@ -98,11 +106,18 @@ const items = libraryItems(entries, episodes);
               ),
             )}
           </ul>
-          <div class="library-empty" data-library-empty hidden>
-            <p data-library-empty-message>No results</p>
-            <button class="btn" type="button" data-library-clear>
-              Clear search
-            </button>
+          {/* The script shows this and writes its title and button from emptyCopy(); the line under
+               the title follows the search box in CSS, so it needs no script of its own. */}
+          <div class="library-empty empty" data-library-empty hidden>
+            <EmptyArt art="results" />
+            <h2 class="empty-title" data-library-empty-message>No results</h2>
+            <p class="empty-body library-empty-search">Try different words, or show the whole library.</p>
+            <p class="empty-body library-empty-filter">Show all to see the rest of your library.</p>
+            <div class="empty-actions">
+              <button class="btn-secondary" type="button" data-library-clear>
+                Clear search
+              </button>
+            </div>
           </div>
         </div>
       )

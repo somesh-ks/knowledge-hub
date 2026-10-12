@@ -1,0 +1,275 @@
+/* ------------------------------------------------------------------ nothing to show */
+
+/* No briefings yet, an empty library, no results, offline, not found: a spot illustration, a title,
+   one line on what happens next and one way on, centred in the content column. Material's rhythm:
+   24px from the art to the title, 8px to the line, 24px to the button. */
+.empty {
+  display: grid;
+  justify-items: center;
+  padding-block: calc(var(--page-top) + var(--space-8)) var(--space-8);
+  text-align: center;
+}
+
+/* The Library's empty state sits under its own title, which keeps the page top. */
+.library-none > .empty,
+.library-empty {
+  padding-block-start: var(--space-8);
+}
+
+.empty .empty-title {
+  margin-block-start: var(--space-6);
+  font-family: var(--text-heading-family);
+  font-size: var(--font-size-section);
+  font-weight: var(--font-weight-regular);
+  letter-spacing: normal;
+  line-height: var(--text-heading-leading);
+  color: var(--color-on-surface);
+  text-wrap: balance;
+}
+
+.empty-body {
+  max-width: 36ch;
+  margin-block-start: var(--space-2);
+  color: var(--color-on-surface-muted);
+  text-wrap: balance;
+}
+
+/* One button that fits its words, then an optional text button beside it. */
+.empty-actions {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  align-items: center;
+  gap: var(--space-2);
+  margin-block-start: var(--space-6);
+}
+
+.empty-actions > .btn-primary,
+.empty-actions > .btn-secondary {
+  width: auto;
+}
+
+/* Inside a settings section: smaller art and the section's own type, the same order. */
+.empty[data-compact] {
+  padding-block: var(--space-4) var(--space-6);
+}
+
+.empty[data-compact] .empty-title {
+  margin-block-start: var(--space-4);
+  font-size: var(--font-size-body);
+  font-weight: var(--font-weight-medium);
+  line-height: var(--font-leading-body);
+}
+
+.empty[data-compact] .empty-body {
+  font-size: var(--font-size-meta);
+}
+
+.empty[data-compact] .empty-actions {
+  margin-block-start: var(--space-4);
+}
+
+/* A section that holds two scenes (offline and back online) shows the one its state names. */
+.empty[data-state="offline"] > .empty-art[data-art="online"],
+.empty[data-state="online"] > .empty-art[data-art="offline"] {
+  display: none;
+}
+
+/* ------------------------------------------------------------------ the art */
+
+/* Every colour of the kit, from the theme's own roles: the page follows light and dark without a
+   second set of values. The ground and supporting planes are the container tones, the hero object
+   the accent container, the one pop the accent, the details a track tone. */
+.empty-art {
+  --art-ground: var(--color-surface-container);
+  --art-plane: color-mix(in oklch, var(--color-surface-container), var(--color-on-surface) 5%);
+  --art-plane-strong: var(--color-track);
+  --art-hero: var(--color-accent-container);
+  --art-hero-ink: color-mix(in oklch, var(--color-accent-container), var(--color-on-accent-container) 28%);
+  --art-pop: var(--color-accent);
+  --art-on-pop: var(--color-on-accent);
+  --art-line: var(--color-track-strong);
+  --art-knock: var(--color-surface);
+  --art-tint: color-mix(in srgb, var(--color-warning) 28%, var(--color-warning-subtle));
+  --art-tint-ink: var(--color-warning);
+  --art-ok: color-mix(in srgb, var(--color-success) 28%, var(--color-success-subtle));
+  --art-ok-ink: var(--color-success);
+
+  display: block;
+  inline-size: min(100%, 15rem);
+  block-size: auto;
+  aspect-ratio: 4 / 3;
+  overflow: visible;
+}
+
+@media (min-width: 64rem) {
+  .empty-art {
+    inline-size: 17.5rem;
+  }
+}
+
+.empty-art[data-size="compact"] {
+  inline-size: 7.5rem;
+}
+
+.art-ground {
+  fill: var(--art-ground);
+}
+
+.art-plane {
+  fill: var(--art-plane);
+}
+
+.art-plane-strong {
+  fill: var(--art-plane-strong);
+}
+
+.art-hero {
+  fill: var(--art-hero);
+}
+
+.art-hero-strong,
+.art-hero-ink,
+.art-dim {
+  fill: var(--art-hero-ink);
+}
+
+.art-pop {
+  fill: var(--art-pop);
+}
+
+.art-dot {
+  fill: var(--art-line);
+}
+
+.art-knock,
+.art-knock-fill {
+  fill: var(--art-knock);
+}
+
+.art-lens {
+  fill: var(--art-knock);
+}
+
+.art-tint {
+  fill: var(--art-tint);
+}
+
+.art-ok {
+  fill: var(--art-ok);
+}
+
+/* Lines: one weight, round ends and joins. */
+.empty-art path,
+.art-line,
+.art-slot {
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+
+.art-line {
+  fill: none;
+  stroke: var(--art-line);
+  stroke-width: 2;
+}
+
+/* A place for something not here yet: the container plane with a dashed edge. */
+.art-slot {
+  fill: var(--art-plane);
+  stroke: var(--art-line);
+  stroke-width: 2;
+  stroke-dasharray: 6 6;
+}
+
+.art-slot-hero {
+  fill: var(--art-hero);
+  stroke: var(--art-hero-ink);
+}
+
+.art-on-pop {
+  fill: var(--art-on-pop);
+  stroke: var(--art-on-pop);
+  stroke-width: 3;
+}
+
+.art-on-pop-line {
+  fill: none;
+  stroke: var(--art-on-pop);
+  stroke-width: 3;
+}
+
+.art-wave {
+  fill: none;
+  stroke: var(--art-hero-ink);
+  stroke-width: 5;
+}
+
+.art-tint-ink {
+  fill: none;
+  stroke: var(--art-tint-ink);
+  stroke-width: 3;
+}
+
+.art-ok-ink {
+  fill: none;
+  stroke: var(--art-ok-ink);
+  stroke-width: 3;
+}
+
+.art-handle {
+  fill: none;
+  stroke: var(--art-pop);
+  stroke-width: 10;
+}
+
+.art-lens-ink {
+  fill: none;
+  stroke: var(--art-line);
+  stroke-width: 3;
+}
+
+.art-arc,
+.art-arc-dim {
+  fill: none;
+  stroke-width: 9;
+}
+
+.art-arc {
+  stroke: var(--art-pop);
+}
+
+.art-arc-dim {
+  stroke: var(--art-hero-ink);
+}
+
+/* The slash cuts a gap in the arcs under it, in the badge's own tone. */
+.art-slash-knock {
+  fill: none;
+  stroke: var(--art-hero);
+  stroke-width: 18;
+}
+
+.art-slash {
+  fill: none;
+  stroke: var(--art-pop);
+  stroke-width: 8;
+}
+
+/* A dotted path: round dots, evenly spaced. */
+.art-trail {
+  fill: none;
+  stroke: var(--art-line);
+  stroke-width: 4;
+  stroke-dasharray: 0 9;
+}
+
+/* Decorative, and system colours would turn the planes into one blob: forced colours drops it. */
+@media (forced-colors: active) {
+  .empty-art {
+    display: none;
+  }
+
+  .empty .empty-title {
+    margin-block-start: 0;
+  }
+}

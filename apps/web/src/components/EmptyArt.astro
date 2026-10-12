@@ -1,0 +1,140 @@
+---
+/**
+ * The spot art of the app's empty states: one kit, drawn on one 240 by 180 canvas from the
+ * product's own shapes (a cover card, a play disc, a waveform, a shelf, a magnifier, signal arcs).
+ * Colours come from classes that empty.css maps to tokens, never from attributes, so both themes
+ * follow. Decorative: the title and the button beside it carry the meaning.
+ */
+export type ArtName = "today" | "library" | "results" | "offline" | "online" | "notfound" | "sources";
+
+interface Props {
+  art: ArtName;
+  /** compact is the settings size: the same scene, about 96px wide. */
+  size?: "regular" | "compact";
+}
+
+const { art, size = "regular" } = Astro.props;
+---
+
+<svg
+  class="empty-art"
+  data-art={art}
+  data-size={size}
+  viewBox="0 0 240 180"
+  aria-hidden="true"
+  focusable="false"
+>
+  {
+    art === "today" && (
+      <>
+        <ellipse class="art-ground" cx="120" cy="150" rx="88" ry="14" />
+        <rect class="art-slot" x="72" y="34" width="96" height="96" rx="14" />
+        <circle class="art-pop" cx="120" cy="82" r="22" />
+        <path class="art-on-pop" d="M114 72l15 10-15 10z" />
+        <path class="art-wave" d="M90 148v4M100 147v6M110 145v10M120 147v6M130 146v8M140 147v6M150 148v4" />
+        <circle class="art-knock" cx="166" cy="38" r="21" />
+        <circle class="art-tint" cx="166" cy="38" r="18" />
+        <path class="art-tint-ink" d="M166 29v9l6 4" />
+        <circle class="art-line" cx="44" cy="62" r="4" />
+        <path class="art-line" d="M204 104v10M199 109h10" />
+        <circle class="art-dot" cx="52" cy="112" r="3" />
+      </>
+    )
+  }
+  {
+    art === "library" && (
+      <>
+        <ellipse class="art-ground" cx="120" cy="150" rx="88" ry="14" />
+        <rect class="art-plane-strong" x="36" y="128" width="168" height="10" rx="5" />
+        <rect class="art-slot" x="46" y="66" width="44" height="56" rx="12" />
+        <rect class="art-slot art-slot-hero" x="98" y="42" width="56" height="80" rx="14" />
+        <rect class="art-slot" x="162" y="78" width="34" height="44" rx="12" />
+        <circle class="art-pop" cx="126" cy="82" r="16" />
+        <path class="art-on-pop-line" d="M126 75v14M119 82h14" />
+        <circle class="art-line" cx="40" cy="44" r="4" />
+        <path class="art-line" d="M190 40v10M185 45h10" />
+        <circle class="art-dot" cx="208" cy="100" r="3" />
+      </>
+    )
+  }
+  {
+    art === "results" && (
+      <>
+        <ellipse class="art-ground" cx="120" cy="150" rx="88" ry="14" />
+        <rect class="art-plane" x="76" y="40" width="72" height="72" rx="14" transform="rotate(-14 112 136)" />
+        <rect class="art-plane-strong" x="76" y="40" width="72" height="72" rx="14" transform="rotate(14 112 136)" />
+        <rect class="art-hero" x="76" y="36" width="72" height="72" rx="14" />
+        <circle class="art-pop" cx="96" cy="56" r="8" />
+        <rect class="art-hero-ink" x="88" y="76" width="44" height="6" rx="3" />
+        <rect class="art-hero-ink" x="88" y="88" width="28" height="6" rx="3" />
+        <path class="art-handle" d="M170 124l16 16" />
+        <circle class="art-knock-fill" cx="156" cy="110" r="27" />
+        <circle class="art-pop" cx="156" cy="110" r="24" />
+        <circle class="art-lens" cx="156" cy="110" r="17" />
+        <path class="art-lens-ink" d="M146 104a12 12 0 0 1 8-6" />
+        <circle class="art-line" cx="48" cy="60" r="4" />
+        <path class="art-line" d="M196 46v10M191 51h10" />
+        <circle class="art-dot" cx="56" cy="114" r="3" />
+      </>
+    )
+  }
+  {
+    (art === "offline" || art === "online") && (
+      <>
+        <ellipse class="art-ground" cx="120" cy="150" rx="88" ry="14" />
+        <circle class="art-hero" cx="120" cy="82" r="56" />
+        {art === "offline" ? (
+          <>
+            <path class="art-arc-dim" d="M101 95a27 27 0 0 1 38 0M82 76a54 54 0 0 1 21-13M137 63a54 54 0 0 1 21 13" />
+            <circle class="art-dim" cx="120" cy="113" r="6" />
+            <path class="art-slash-knock" d="M92 54l56 56" />
+            <path class="art-slash" d="M92 54l56 56" />
+          </>
+        ) : (
+          <>
+            <path class="art-arc" d="M101 95a27 27 0 0 1 38 0M82 76a54 54 0 0 1 76 0" />
+            <circle class="art-pop" cx="120" cy="113" r="6" />
+            <circle class="art-knock" cx="164" cy="124" r="21" />
+            <circle class="art-ok" cx="164" cy="124" r="18" />
+            <path class="art-ok-ink" d="M156 124l6 6 11-12" />
+          </>
+        )}
+        <circle class="art-line" cx="42" cy="58" r="4" />
+        <path class="art-line" d="M200 48v10M195 53h10" />
+        <circle class="art-dot" cx="54" cy="118" r="3" />
+      </>
+    )
+  }
+  {
+    art === "notfound" && (
+      <>
+        <ellipse class="art-ground" cx="120" cy="150" rx="88" ry="14" />
+        <path class="art-hero" d="M58 30h40l24 24v62a14 14 0 0 1-14 14H58a14 14 0 0 1-14-14V44a14 14 0 0 1 14-14z" />
+        <path class="art-hero-strong" d="M98 30v12a12 12 0 0 0 12 12h12z" />
+        <rect class="art-hero-ink" x="58" y="68" width="48" height="6" rx="3" />
+        <rect class="art-hero-ink" x="58" y="82" width="36" height="6" rx="3" />
+        <rect class="art-hero-ink" x="58" y="96" width="42" height="6" rx="3" />
+        <path class="art-trail" d="M124 118c10 14 24 22 40 22" />
+        <ellipse class="art-plane-strong" cx="180" cy="141" rx="11" ry="3" />
+        <path class="art-pop" d="M180 140c-12-14-18-24-18-34a18 18 0 0 1 36 0c0 10-6 20-18 34z" />
+        <circle class="art-lens" cx="180" cy="106" r="7" />
+        <circle class="art-line" cx="206" cy="70" r="4" />
+        <path class="art-line" d="M150 36v10M145 41h10" />
+        <circle class="art-dot" cx="34" cy="96" r="3" />
+      </>
+    )
+  }
+  {
+    art === "sources" && (
+      <>
+        <ellipse class="art-ground" cx="120" cy="150" rx="88" ry="16" />
+        <rect class="art-slot" x="64" y="30" width="104" height="104" rx="18" />
+        <circle class="art-dim" cx="94" cy="104" r="8" />
+        <path class="art-arc-dim" d="M90 76a30 30 0 0 1 32 32M90 50a56 56 0 0 1 58 58" />
+        <circle class="art-knock" cx="166" cy="128" r="24" />
+        <circle class="art-pop" cx="166" cy="128" r="20" />
+        <path class="art-on-pop-line" d="M166 119v18M157 128h18" />
+      </>
+    )
+  }
+</svg>

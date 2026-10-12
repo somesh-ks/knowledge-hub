@@ -75,56 +75,6 @@
   }
 }
 
-/* ------------------------------------------------------------------ nothing to list */
-
-/* No briefings yet, offline, not found: a quiet icon, a title, one sentence and one way on, centred
-   on the column a little below where a page starts. */
-.empty {
-  display: grid;
-  justify-items: center;
-  gap: var(--space-2);
-  padding-block: calc(var(--page-top) + var(--space-12)) var(--space-8);
-  text-align: center;
-}
-
-/* The Library's main already starts at the page top. */
-.library > .empty {
-  padding-block-start: var(--space-12);
-}
-
-.empty-icon {
-  inline-size: var(--space-12);
-  block-size: var(--space-12);
-  margin-block-end: var(--space-2);
-  color: var(--color-on-surface-muted);
-}
-
-.empty > .page-title {
-  font-size: var(--font-size-section);
-  font-weight: var(--font-weight-regular);
-}
-
-.empty > p {
-  max-width: 36ch;
-  color: var(--color-on-surface-muted);
-  text-wrap: balance;
-}
-
-/* One button that fits its words, then an optional text button beside it. */
-.empty-actions {
-  display: flex;
-  flex-wrap: wrap;
-  justify-content: center;
-  gap: var(--space-2);
-  margin-block-start: var(--space-4);
-}
-
-.empty-actions > .btn-secondary {
-  inline-size: auto;
-  /* The pair is one size: the text button beside it is the label size. */
-  font-size: var(--font-size-label);
-}
-
 /* Offline, New episode cannot start (deviceBanners.ts marks it aria-disabled): it shows as the
    app's disabled button does, the container tone with disabled ink (its strong fill with faded
    words was 1.04:1 to 1.16:1), and takes no state layer. */
