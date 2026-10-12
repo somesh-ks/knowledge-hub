@@ -112,6 +112,26 @@ test.describe("player geometry @surface", () => {
     await expect(lab.openButton).toBeFocused();
   });
 
+  test("small things on the open page: the title keeps its last dot, the speed rows apart, the clock centred @surface", async ({
+    lab,
+    page,
+  }, info) => {
+    test.skip(info.project.name !== "site-desktop", "a mouse at 64rem");
+    await lab.open();
+    await lab.play();
+    await lab.dockSettled();
+    await lab.openPlayer();
+    const px = (selector: string, property: string) =>
+      page
+        .locator(selector)
+        .first()
+        .evaluate((el, name) => getComputedStyle(el).getPropertyValue(name), property);
+    expect(parseFloat(await px(".player-title", "padding-inline-start"))).toBeGreaterThan(0);
+    expect(await px(".dock-time", "align-items")).toBe("center");
+    await page.locator(".speed-btn").first().click();
+    expect(parseFloat(await px(".speed-panel-body", "row-gap"))).toBeGreaterThan(0);
+  });
+
   test("with a mouse the clock sits by the seek line while the page is open, and the middle holds still @surface", async ({
     lab,
     page,

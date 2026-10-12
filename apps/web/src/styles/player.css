@@ -461,6 +461,8 @@
 .player-title {
   display: -webkit-box;
   max-width: 100%;
+  /* A little inline room: centred text under a line clamp otherwise clips its last dot by a pixel. */
+  padding-inline: var(--space-1);
   overflow: hidden;
   white-space: normal;
   text-wrap: pretty;
@@ -1188,8 +1190,10 @@
     background: color-mix(in oklch, var(--color-accent), var(--color-on-accent) var(--state-press));
   }
 
+  /* Centred on the row, as the buttons are, not on its baseline. */
   .dock-time {
     display: inline-flex;
+    align-items: center;
   }
 }
 
@@ -1743,6 +1747,8 @@
    the backdrop is the dialog itself. */
 .speed-panel-body {
   display: grid;
+  /* The slider's focus ring reaches past its box; the presets start below it. */
+  row-gap: var(--space-2);
   /* The chosen speed's fill keeps the same distance from the bottom as from the sides. */
   padding: var(--space-4);
 }
