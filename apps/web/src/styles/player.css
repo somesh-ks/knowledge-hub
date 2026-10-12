@@ -492,11 +492,6 @@
   font-weight: var(--font-weight-medium);
 }
 
-/* Up next's row is inset a step further than the story rows are. */
-.player-upnext .player-section-title {
-  padding-inline: var(--space-4);
-}
-
 .segmented-legend {
   display: block;
   margin-block: var(--space-4) var(--space-2);
@@ -2545,7 +2540,7 @@
   width: 100%;
   min-height: var(--size-touch-comfortable);
   padding-block: var(--space-2);
-  padding-inline: var(--space-4) var(--space-3);
+  padding-inline: var(--space-3);
   border-radius: var(--row-radius);
   background: var(--color-surface-container);
   text-align: start;
