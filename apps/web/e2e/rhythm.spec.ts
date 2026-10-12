@@ -52,6 +52,21 @@ for (const size of SIZES) {
       }
     });
 
+    test("Library, New episode and Settings titles are one size; from 64rem the section size", async ({
+      page,
+    }) => {
+      const sizes: Record<string, string> = {};
+      for (const path of ["/library", "/create", "/settings"]) {
+        await page.goto(path);
+        sizes[path] = await page
+          .locator("main h1")
+          .first()
+          .evaluate((h1) => getComputedStyle(h1).fontSize);
+      }
+      expect(new Set(Object.values(sizes)).size, JSON.stringify(sizes)).toBe(1);
+      if (size.width >= 1024) expect(sizes["/library"]).toBe("22px");
+    });
+
     test("a sub-page puts its title where the destinations start", async ({ page }) => {
       await page.goto("/");
       const reference = await firstBlockTop(page, "main .hero .cover, main h1");

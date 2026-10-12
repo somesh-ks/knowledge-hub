@@ -123,6 +123,30 @@ test.describe("the library", () => {
 });
 
 test.describe("library search", () => {
+  test("a tap or click on the search pill changes its fill; only a key draws the ring", async ({
+    page,
+  }) => {
+    await page.goto("/library");
+    await ready(page);
+    const pill = page.locator(".search-field");
+    const look = () =>
+      pill.evaluate((node) => {
+        const css = getComputedStyle(node);
+        return { outline: css.outlineStyle, fill: css.backgroundColor };
+      });
+    const rest = await look();
+    await page.getByRole("searchbox").click();
+    const pressed = await look();
+    expect(pressed.outline).toBe("none");
+    expect(pressed.fill).not.toBe(rest.fill);
+    // A key: the keyboard's ring.
+    await page.getByRole("searchbox").blur();
+    await page.keyboard.press("Shift+Tab");
+    await page.keyboard.press("Tab");
+    await expect(page.getByRole("searchbox")).toBeFocused();
+    expect((await look()).outline).toBe("solid");
+  });
+
   test("keeps the briefings with a matching story and says why they are there", async ({
     page,
   }) => {
@@ -130,12 +154,25 @@ test.describe("library search", () => {
     await ready(page);
     await page.getByRole("searchbox").fill("forty minute");
     expect(await titles(page)).toEqual(["Monday 5 October"]);
-    // While searching, the line under a card says why it is there.
-    // While searching, the line under a card names the story that matched.
-    await expect(page.locator("[data-card]:not([hidden]) .card-facts")).toHaveText(
-      "A forty minute conversation on taste in small teams",
-    );
+    // While searching, a line under the card names the story that matched, the query's words
+    // marked, and the card's own facts (kind, length) stay.
+    const match = page.locator("[data-card]:not([hidden]) .card-match");
+    await expect(match).toHaveText("A forty minute conversation on taste in small teams");
+    await expect(match.locator("b")).toHaveText(["forty", "minute"]);
+    await expect(page.locator("[data-card]:not([hidden]) .card-facts")).toHaveText(/^Daily · /);
+    // The marked words are medium weight with no fill.
+    const style = await match
+      .locator("b")
+      .first()
+      .evaluate((node) => {
+        const css = getComputedStyle(node);
+        return { weight: css.fontWeight, fill: css.backgroundColor };
+      });
+    expect(style).toEqual({ weight: "500", fill: "rgba(0, 0, 0, 0)" });
     await narrowedTo(page, 1, 5);
+    // Clearing the search takes the line away.
+    await page.getByRole("searchbox").fill("");
+    await expect(page.locator(".card-match")).toHaveCount(0);
   });
 
   test("matches publishers and ignores case and accents", async ({ page }) => {
@@ -244,11 +281,12 @@ test.describe("library search", () => {
     for (const query of ["7 october", "oct 7", "2026-10-07", "wednesday"]) {
       await input.fill(query);
       expect(await titles(page), query).toEqual([DISCUSSION, "Wednesday 7 October"]);
-      // The date is why they are there, not a story: the normal line stays.
+      // The date is why they are there, not a story: the normal line stays, and no match line.
       await expect(page.locator("[data-card]:not([hidden]) .card-facts")).toHaveText([
         REST_FACTS[0] ?? "",
         REST_FACTS[1] ?? "",
       ]);
+      await expect(page.locator("[data-card]:not([hidden]) .card-match")).toHaveCount(0);
     }
   });
 
@@ -542,7 +580,7 @@ test.describe("library episodes", () => {
     // "fraction" is said in a script and written nowhere on a card.
     await input.fill("fraction cost");
     await expect.poll(() => titles(page)).toEqual([HEADLINES]);
-    await expect(page.locator("[data-card]:not([hidden]) .card-facts")).toHaveText([
+    await expect(page.locator("[data-card]:not([hidden]) .card-match")).toHaveText([
       "Mentioned in a story",
     ]);
     // Every word has to be there, so one that is not takes the card away again.
