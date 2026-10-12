@@ -1,0 +1,169 @@
+import type { Page, Route } from "@playwright/test";
+import { expect, test } from "./fixtures";
+
+/**
+ * A change held by the server's ten seconds between edits, its page left, and the held request then
+ * answered while another settings page is open. The page on screen must say how it went: Saved, or
+ * not saved with Retry, never a Saving for a change that is going nowhere.
+ */
+
+const SAVED = "Saved. Live in about a minute.";
+const SAVING_NOTE = "Saving. Live in about a minute.";
+const NOT_SAVED_NOTE = "Not saved yet. It goes with your next change.";
+
+interface Sent {
+  op: Record<string, unknown> | Record<string, unknown>[];
+}
+
+/** Answers /api/config in order (a status, or "abort" for a connection lost), then 202. */
+async function mockConfig(page: Page, answers: Array<number | "abort">) {
+  const sent: Sent[] = [];
+  await page.route("**/api/config", async (route: Route) => {
+    sent.push(route.request().postDataJSON() as Sent);
+    const answer = answers.shift() ?? 202;
+    if (answer === "abort") return route.abort("internetdisconnected");
+    await route.fulfill({
+      status: answer,
+      contentType: "application/json",
+      body: JSON.stringify(answer === 202 ? { status: 202, run_id: 1 } : { status: answer }),
+    });
+  });
+  return sent;
+}
+
+const ops = (sent: Sent[]) => sent.flatMap((request) => [request.op].flat());
+const toastText = (page: Page) => page.locator("[data-bar] [data-bar-text]");
+const note = (page: Page) => page.locator("[data-saved-note]");
+const pendingStored = (page: Page) =>
+  page.evaluate(() => (localStorage.getItem("dispatch:saved-edits") ?? "").includes('"pending"'));
+
+/** Daily: Time saved, Length changed inside the gap, Back to Settings, and Daily opened again. */
+async function holdDailyLength(page: Page): Promise<void> {
+  await page.goto("/settings");
+  await page.getByRole("link", { name: /^Daily/ }).click();
+  await expect(page.locator("[data-manage]")).toHaveAttribute("data-voices", "");
+  await page.locator("#daily-hour").selectOption("9");
+  await expect(toastText(page)).toHaveText(SAVED);
+  await page.getByRole("radio", { name: "3 min" }).check();
+  await expect(toastText(page)).toHaveText("Saving");
+  await page.goBack();
+  await expect(page).toHaveURL(/\/settings$/);
+}
+
+async function openDaily(page: Page): Promise<void> {
+  await page.getByRole("link", { name: /^Daily/ }).click();
+  await expect(page.locator("[data-manage]")).toHaveAttribute("data-voices", "");
+}
+
+test.describe("a change held in the server's gap when its page is left", () => {
+  test.setTimeout(60_000);
+  // The held request is refused or cut on purpose, which the browser logs.
+  test.use({ allowNetworkErrors: true });
+
+  for (const lost of [500, "abort"] as const) {
+    test(`Daily says it was not saved when the held request ${lost === 500 ? "is refused" : "loses the connection"}, and Retry sends it once`, async ({
+      page,
+    }) => {
+      const sent = await mockConfig(page, [202, lost]);
+      await holdDailyLength(page);
+      await openDaily(page);
+      await expect(page.getByRole("radio", { name: "3 min" })).toBeChecked();
+      await expect(note(page)).toHaveText(SAVING_NOTE);
+      // The held request is answered: the page says so at once, in the toast and to a screen reader.
+      await expect.poll(() => sent.length, { timeout: 15_000 }).toBe(2);
+      await expect(note(page)).toHaveText(NOT_SAVED_NOTE);
+      const failure =
+        lost === 500 ? "Saving failed." : "The site could not be reached. Not saved yet.";
+      await expect(toastText(page)).toHaveText(failure);
+      await expect(page.locator("[data-alert]")).toHaveText(failure);
+      expect(await pendingStored(page)).toBe(false);
+      // Retry sends the held change, once, and the page says it is saved.
+      await page.locator("[data-bar] [data-act=retry]").click();
+      await expect.poll(() => sent.length, { timeout: 15_000 }).toBe(3);
+      expect(ops(sent).at(-1)).toEqual({ op: "schedule.set", length_minutes: 3 });
+      await expect(toastText(page)).toHaveText(SAVED);
+      await expect(note(page)).toHaveText(SAVED);
+      await page.waitForTimeout(1500);
+      expect(sent).toHaveLength(3);
+      // A reload agrees: both changes are saved.
+      await page.reload();
+      await expect(page.locator("[data-manage]")).toHaveAttribute("data-voices", "");
+      await expect(page.locator("#daily-hour")).toHaveValue("9");
+      await expect(page.getByRole("radio", { name: "3 min" })).toBeChecked();
+    });
+  }
+
+  test("a refused held change is not shown as saved after a reload", async ({ page }) => {
+    const sent = await mockConfig(page, [202, 500]);
+    await holdDailyLength(page);
+    await openDaily(page);
+    await expect.poll(() => sent.length, { timeout: 15_000 }).toBe(2);
+    await expect(note(page)).not.toHaveText(SAVING_NOTE);
+    await page.reload();
+    await expect(page.locator("[data-manage]")).toHaveAttribute("data-voices", "");
+    await expect(page.getByRole("radio", { name: "3 min" })).not.toBeChecked();
+    await expect(note(page)).toHaveText(SAVED);
+  });
+
+  test("Daily says Saved without a reload when the held request goes through", async ({ page }) => {
+    const sent = await mockConfig(page, []);
+    await holdDailyLength(page);
+    await openDaily(page);
+    await expect(note(page)).toHaveText(SAVING_NOTE);
+    await expect.poll(() => sent.length, { timeout: 15_000 }).toBe(2);
+    await expect(note(page)).toHaveText(SAVED);
+    await expect(page.getByRole("radio", { name: "3 min" })).toBeChecked();
+    expect(await pendingStored(page)).toBe(false);
+  });
+
+  test("the Settings index row goes back, and says so, when the held change fails", async ({
+    page,
+  }) => {
+    const sent = await mockConfig(page, [202, 500]);
+    await page.goto("/settings");
+    await openDaily(page);
+    await page.locator("#daily-hour").selectOption("9");
+    await expect(toastText(page)).toHaveText(SAVED);
+    await page.locator("#daily-cadence").selectOption("1");
+    await expect(toastText(page)).toHaveText("Saving");
+    await page.goBack();
+    const row = page.getByRole("link", { name: /^Daily/ });
+    await expect(row).toContainText("Every day at 09:00");
+    await expect.poll(() => sent.length, { timeout: 15_000 }).toBe(2);
+    await expect(row).not.toContainText("Every day");
+    await expect(row).toContainText("09:00");
+    await expect(page.getByRole("alert").filter({ hasText: "not saved" })).toHaveText(
+      "Your last change was not saved.",
+    );
+    const shown = await row.textContent();
+    await page.reload();
+    await expect(page.getByRole("link", { name: /^Daily/ })).toHaveText(shown ?? "");
+  });
+
+  test("a topic's page says it was not saved, and Retry sends it once", async ({ page }) => {
+    const sent = await mockConfig(page, [202, 500]);
+    await page.goto("/settings/topics");
+    await page.locator('a.row-action[href="/settings/topics/design"]').click();
+    const root = page.locator("[data-topics]");
+    await expect(root).toHaveAttribute("data-ready", "");
+    await page.getByRole("checkbox", { name: "Read Studio Notes" }).uncheck();
+    await expect(toastText(page)).toHaveText(SAVED);
+    await page.getByRole("checkbox", { name: "Read Type and Grid" }).uncheck();
+    await expect(toastText(page)).toHaveText("Saving");
+    await page.goBack();
+    await expect(page).toHaveURL(/\/settings\/topics$/);
+    await page.locator('a.row-action[href="/settings/topics/design"]').click();
+    await expect(page).toHaveURL(/\/design$/);
+    await expect(page.getByRole("checkbox", { name: "Read Type and Grid" })).not.toBeChecked();
+    await expect(note(page)).toHaveText(SAVING_NOTE);
+    await expect.poll(() => sent.length, { timeout: 15_000 }).toBe(2);
+    await expect(note(page)).toHaveText(NOT_SAVED_NOTE);
+    await expect(toastText(page)).toHaveText("Saving failed.");
+    await page.locator("[data-bar] [data-act=retry]").click();
+    await expect.poll(() => sent.length, { timeout: 15_000 }).toBe(3);
+    expect(ops(sent).at(-1)).toEqual({ op: "source.set", id: "type-and-grid", enabled: false });
+    await expect(note(page)).toHaveText(SAVED);
+    await page.waitForTimeout(1500);
+    expect(sent).toHaveLength(3);
+  });
+});
