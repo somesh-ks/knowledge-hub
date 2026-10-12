@@ -61,7 +61,7 @@ describe("sourceScore: too little history", () => {
   it("is New at exactly zero history and names the discovery score", () => {
     const result = sourceScore({ quality: { score: 0.72 }, now });
     expect(result).toMatchObject({ score: null, parts: null, label: "New" });
-    expect(result.reason).toBe("Only 0 items judged so far; discovery scored it 0.72 of 1.");
+    expect(result.reason).toBe("Only 0 items judged so far; it scored 72 of 100 when it was found.");
   });
 
   it("scores from the minimum judged count up", () => {
