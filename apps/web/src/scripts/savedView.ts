@@ -279,15 +279,12 @@ function recount(
     const { total, on } = sourceCounts(spots, page);
     const built = row.dataset.enabled;
     const enabled = topics.get(page)?.enabled ?? built !== "false";
-    const text =
-      row.dataset.plain !== undefined
-        ? plural(total, "source")
-        : sourcesSummary({
-            total,
-            on,
-            off: built !== undefined && !enabled,
-            never: row.dataset.never !== undefined,
-          });
+    const text = sourcesSummary({
+      total,
+      on,
+      off: built !== undefined && !enabled,
+      never: row.dataset.never !== undefined,
+    });
     const hint = row.querySelector("[data-hint]");
     if (!hint || hint.textContent === text) continue;
     hint.textContent = text;

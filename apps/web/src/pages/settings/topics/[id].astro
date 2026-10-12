@@ -231,11 +231,6 @@ const facts = topic && {
             {list.map((source) => <SourceRow source={source} topicName={topic?.name ?? ""} shownTopic={shown} />)}
           </ul>
           <p class="manage-quiet topic-empty">No sources yet.</p>
-          {general && topic && (
-            <p class="manage-quiet topic-unread" data-topic-unread hidden={topic.enabled}>
-              Not read while {name} is off.
-            </p>
-          )}
           {
             (topic === null || editable) && (
               <button

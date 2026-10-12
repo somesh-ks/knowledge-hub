@@ -843,6 +843,12 @@
   line-height: var(--font-leading-label);
 }
 
+/* A general topic switched off reads none of its sources: its list says so by its look, whatever
+   each source's own box holds. */
+.topic:has(#topic-on:not(:checked)) .topic-sources {
+  opacity: var(--opacity-disabled);
+}
+
 /* ------------------------------------------------------------------ suggested sources */
 
 /* A suggestion is a source's row with a quiet line on what it covers in place of the score, and a

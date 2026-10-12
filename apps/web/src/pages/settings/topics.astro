@@ -113,10 +113,12 @@ const choices = topicChoicesOf(layout);
           }
           {
             others.length > 0 && (
-              <a class="row-action" href={`/settings/topics/${OTHER_ID}`} data-page={OTHER_ID} data-plain>
+              <a class="row-action" href={`/settings/topics/${OTHER_ID}`} data-page={OTHER_ID}>
                 <span class="settings-text">
                   <span class="settings-label">Other</span>
-                  <span class="settings-hint" data-hint>{plural(others.length, "source")}</span>
+                  <span class="settings-hint" data-hint>
+                    {topicSummary(null, others.length, others.filter((source) => source.enabled).length)}
+                  </span>
                 </span>
                 <Icon name="chevronRight" />
               </a>

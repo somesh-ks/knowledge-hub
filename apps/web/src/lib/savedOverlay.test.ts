@@ -5,6 +5,7 @@ import {
   anyPending,
   PENDING_TTL_MS,
   parseSaved,
+  readCounts,
   SAVED_TTL_MS,
   savedControl,
   savedFields,
@@ -242,5 +243,26 @@ describe("savedSources and savedTopicCount", () => {
     ];
     expect(savedTopicCount(["design", "knit", "world"], ["product_design"], ops)).toBe(3);
     expect(savedTopicCount(["design", "knit"], [], [])).toBe(2);
+  });
+});
+
+describe("readCounts", () => {
+  const spots = {
+    a: { page: "world", on: true },
+    b: { page: "world", on: true },
+    c: { page: "design", on: true },
+    d: { page: "design", on: false },
+  };
+
+  it("counts a source as read only while the topic whose page lists it is on", () => {
+    expect(readCounts(spots, [], [])).toEqual({ total: 4, on: 3 });
+    expect(readCounts(spots, ["world"], [])).toEqual({ total: 4, on: 1 });
+  });
+
+  it("follows a topic switched on or off since the build", () => {
+    const off = { op: "topic.upsert", topic: { id: "world", name: "World", enabled: false } };
+    const on = { ...off, topic: { ...off.topic, enabled: true } };
+    expect(readCounts(spots, [], [off as ConfigOp])).toEqual({ total: 4, on: 1 });
+    expect(readCounts(spots, ["world"], [on as ConfigOp])).toEqual({ total: 4, on: 3 });
   });
 });

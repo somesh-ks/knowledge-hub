@@ -85,7 +85,8 @@ test.describe("the Topics list", () => {
       ["AI", "1 source"],
       ["Technology", "No sources yet"],
       ["Audio interfaces", "1 source"],
-      ["Other", "2 sources"],
+      // Other counts the way every row does: one of its two sources is switched off.
+      ["Other", "1 of 2 sources on"],
       ["World", "2 of 3 sources on"],
       ["Science", "1 source"],
       ["Sports", "No sources yet"],
@@ -599,10 +600,13 @@ test.describe("a topic's page", () => {
     const on = page.getByRole("switch", { name: "Use World" });
     await expect(on).toBeChecked();
     await expect(on).toHaveAccessibleDescription("Used in episodes");
-    await expect(page.getByText("Not read while World is off.")).toBeHidden();
+    const list = page.locator(".topic-sources[data-sources]");
+    const faded = () => list.evaluate((el) => Number(getComputedStyle(el).opacity) < 1);
+    expect(await faded()).toBe(false);
     await on.uncheck();
     await expect(on).toHaveAccessibleDescription("Off. Its sources are not read");
-    await expect(page.getByText("Not read while World is off.")).toBeVisible();
+    // Its sources take the off look, whatever their own boxes hold: none is read while it is off.
+    await expect.poll(faded).toBe(true);
     await expect(toastText(page)).toHaveText(SAVED);
     expect(ops(sent)).toMatchObject([
       { op: "topic.upsert", topic: { id: "world", enabled: false, section_id: "general" } },
