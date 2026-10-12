@@ -23,14 +23,17 @@
     display: inline-flex;
     align-items: center;
     align-self: start;
-    gap: var(--space-3);
+    /* The icon and the label sit where the navigation rows' do (28px and 68px from the column's
+       edge): the button's own hairline is taken from its padding. */
+    gap: var(--space-4);
     width: auto;
     min-height: var(--fab-size);
-    padding-inline: var(--space-4) calc(var(--space-4) + var(--space-1));
+    padding-inline: calc(var(--space-4) - var(--stroke-hairline))
+      calc(var(--space-4) + var(--space-1));
     border: var(--stroke-hairline) solid transparent;
     border-radius: var(--radius-lg);
-    background: var(--color-accent-container);
-    color: var(--color-on-accent-container);
+    background: var(--color-accent-container-high);
+    color: var(--color-on-accent-container-high);
     font-size: var(--font-size-label);
     font-weight: var(--font-weight-medium);
     line-height: var(--font-leading-label);
@@ -50,8 +53,8 @@
     .app-nav-create:hover {
       background: color-mix(
         in oklch,
-        var(--color-accent-container),
-        var(--color-on-accent-container) var(--state-hover)
+        var(--color-accent-container-high),
+        var(--color-on-accent-container-high) var(--state-hover)
       );
     }
   }
@@ -59,8 +62,8 @@
   .app-nav-create:active {
     background: color-mix(
       in oklch,
-      var(--color-accent-container),
-      var(--color-on-accent-container) var(--state-press)
+      var(--color-accent-container-high),
+      var(--color-on-accent-container-high) var(--state-press)
     );
   }
 }
@@ -94,9 +97,9 @@
   padding-inline: calc((var(--fab-size) - var(--size-icon-lg)) / 2 - var(--stroke-hairline));
   border: var(--stroke-hairline) solid transparent;
   border-radius: var(--radius-lg);
-  background: var(--color-accent-container);
+  background: var(--color-accent-container-high);
   box-shadow: var(--shadow-floating);
-  color: var(--color-on-accent-container);
+  color: var(--color-on-accent-container-high);
   text-decoration: none;
   /* The transform is the press's (.press) as well as the slide: in fast, out softer, like every
      pressable. This list replaces the utility's, so the press timing is spelt out here. The height
@@ -120,8 +123,8 @@
   .create-fab:hover {
     background: color-mix(
       in oklch,
-      var(--color-accent-container),
-      var(--color-on-accent-container) var(--state-hover)
+      var(--color-accent-container-high),
+      var(--color-on-accent-container-high) var(--state-hover)
     );
   }
 }
@@ -129,8 +132,8 @@
 .create-fab:active {
   background: color-mix(
     in oklch,
-    var(--color-accent-container),
-    var(--color-on-accent-container) var(--state-press)
+    var(--color-accent-container-high),
+    var(--color-on-accent-container-high) var(--state-press)
   );
   transition-duration:
     var(--duration-state), var(--duration-press-in), var(--duration-hover), 0s,

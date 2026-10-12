@@ -436,7 +436,7 @@ html[data-mini="visible"] main {
     display: inline-flex;
     align-self: start;
     /* The top-leading corner stays free of controls inside windowed iPadOS apps. */
-    margin-inline-start: max(var(--space-3), var(--window-controls-inset));
+    margin-inline-start: max(var(--space-4), var(--window-controls-inset));
     padding-inline-end: var(--space-2);
     /* Air under the wordmark, so the brand and the menus read as two groups. */
     margin-block-end: var(--space-6);

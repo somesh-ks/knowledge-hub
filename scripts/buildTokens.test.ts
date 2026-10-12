@@ -156,6 +156,24 @@ describe("color contrast", () => {
     }
   });
 
+  it.each(MODES)(
+    "text on the action tone reaches 4.5:1, and the tone sits further from the page than the selected one (%s)",
+    (mode) => {
+      const high = colorOf("semantic.color.accent-container-high", mode);
+      const page = colorOf("semantic.color.surface", mode);
+      const ratio = contrastRatio(colorOf("semantic.color.on-accent-container-high", mode), high);
+      expect(
+        ratio,
+        `on-accent-container-high on accent-container-high (${mode})`,
+      ).toBeGreaterThanOrEqual(4.5);
+      const chosen = contrastRatio(colorOf("semantic.color.accent-container", mode), page);
+      expect(
+        contrastRatio(high, page),
+        `the New episode button reads as an action, not a current place (${mode})`,
+      ).toBeGreaterThan(chosen + 0.2);
+    },
+  );
+
   it.each(MODES)("tonal containers read against the page without an outline (%s)", (mode) => {
     const page = colorOf("semantic.color.surface", mode);
     for (const [container, least] of [
