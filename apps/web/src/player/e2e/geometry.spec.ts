@@ -150,6 +150,40 @@ test.describe("player geometry @surface", () => {
     expect(Math.abs((after?.width ?? 0) - (middle?.width ?? 0))).toBeLessThanOrEqual(1);
   });
 
+  test("in short wide windows the open page fits at rest, and the open bar's clock is centred @surface", async ({
+    lab,
+    page,
+  }, info) => {
+    test.skip(info.project.name !== "site-desktop", "a mouse");
+    await lab.open();
+    await lab.play();
+    await lab.dockSettled();
+    await lab.openPlayer();
+    for (const [width, height] of [
+      [1280, 600],
+      [1280, 680],
+      [1366, 650],
+      [1280, 800],
+    ] as const) {
+      await page.setViewportSize({ width, height });
+      await expect
+        .poll(
+          () =>
+            page.evaluate(() => {
+              const sheet = document.querySelector<HTMLElement>("[data-player-page]");
+              return sheet ? sheet.scrollHeight - sheet.clientHeight : -1;
+            }),
+          { message: `overflow at ${width}x${height}` },
+        )
+        .toBeLessThanOrEqual(1);
+    }
+    // With the transport's buttons gone the clock is centred on the bar's row, level with the cover.
+    const clock = await box(page, ".player-dock .dock-time");
+    const thumb = await box(page, ".player-dock .player-thumb");
+    const middle = (b: typeof clock) => ((b?.top ?? 0) + (b?.bottom ?? 0)) / 2;
+    expect(Math.abs(middle(clock) - middle(thumb))).toBeLessThanOrEqual(2);
+  });
+
   test("a very wide window gives the cover more room and keeps the source", async ({
     lab,
     page,

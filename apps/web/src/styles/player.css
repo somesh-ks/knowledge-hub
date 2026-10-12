@@ -1205,7 +1205,10 @@
    group holds still. With a mouse from 64rem the bar keeps its clock beside its seek line: the page
    has no timeline there. */
 @media (min-width: 40rem) {
+  /* With its buttons gone the transport keeps their height, so the clock it centres stays level with
+     the cover and the open group, as it is while the page is closed. */
   .player[data-open="true"] .dock-transport {
+    min-height: var(--mini-player-control-size);
     visibility: hidden;
   }
 
@@ -2097,7 +2100,8 @@
     /* Focus and a scroll into view stop clear of both 40px fades, ring and last line included. */
     scroll-padding-block: var(--space-12);
     overflow-y: auto;
-    overscroll-behavior-y: auto;
+    /* A wheel past either end stays in the list: the page around it holds still. */
+    overscroll-behavior-y: contain;
     scrollbar-width: thin;
     -webkit-mask-image: linear-gradient(
       to bottom,
@@ -2580,6 +2584,33 @@
 
 /* ------------------------------------------------------------------ wide, with a mouse: nothing said twice */
 
+/* With a mouse from 64rem the controls are centred in their row, so a notice that took room only
+   when it came would lift the cover and Play at every failure: room is kept for it under the
+   transport. Only where the window has the height: in a shorter one the kept room made the page
+   scroll at rest and pushed a failure's reason under the bar, so there the notice takes its room
+   when it comes. A finger's page also holds the scrubber and has no such room even at 1024x768. */
+@media (min-width: 64rem) and (min-height: 46rem) and (hover: hover) and (pointer: fine) {
+  .player-controls {
+    position: relative;
+    padding-block-end: calc(var(--size-touch) + var(--banner-padding) * 2 + var(--space-4));
+  }
+
+  .player-controls > .player-notice {
+    position: absolute;
+    inset-block-end: 0;
+    inset-inline: 0;
+    margin-block: 0;
+  }
+}
+
+/* Without that height the cover gives way while a notice shows, so the reason stays clear of the
+   bar and the page never scrolls. */
+@media (min-width: 64rem) and (max-height: 45.99rem) and (hover: hover) and (pointer: fine) {
+  [data-player-page]:has(.player-notice) .player-cover-box {
+    width: min(100%, var(--cover-size-player), calc(var(--player-cover-share) * 0.7));
+  }
+}
+
 /* After the rules it changes, so it wins at equal weight. */
 @media (min-width: 64rem) and (hover: hover) and (pointer: fine) {
   /* The bar stays under the page here, with previous, play, next, the clock and the volume. The
@@ -2594,18 +2625,13 @@
     align-items: center;
   }
 
-  /* Under the transport, in room kept for it: the group is centred in the window, so a notice that
-     took room only when it came would lift the cover and play at every failure. */
   .player-controls {
-    position: relative;
     padding-block-start: var(--space-6);
-    padding-block-end: calc(var(--size-touch) + var(--banner-padding) * 2 + var(--space-4));
   }
 
-  .player-controls > :is(.player-notice) {
-    position: absolute;
-    inset-block-end: 0;
-    inset-inline: 0;
+  /* Under the transport, across the group's three columns. */
+  .player-controls > .player-notice {
+    grid-column: 1 / -1;
     margin-block: 0;
   }
 
