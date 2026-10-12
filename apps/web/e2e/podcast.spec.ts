@@ -129,7 +129,12 @@ test.describe("the profile pages", () => {
     // Nothing is saved in the fixtures, so the defaults show.
     await expect(page.locator("#daily-hour")).toHaveValue("7");
     await expect(page.locator("#daily-hour option:checked")).toHaveText("07:00");
-    await expect(page.locator("#daily-timezone")).toHaveValue("Europe/Stockholm");
+    // Every schedule counts in Stockholm time, so the Time row says so and no zone can be chosen.
+    await expect(page.getByLabel("Time", { exact: true })).toHaveAccessibleDescription(
+      "Stockholm time",
+    );
+    await expect(page.getByText("Time zone")).toHaveCount(0);
+    await expect(page.locator("[data-f$='.timezone']")).toHaveCount(0);
     await expect(page.locator("#daily-cadence")).toHaveValue("2");
     await expect(page.getByRole("radio", { name: "Readout" })).toBeChecked();
     await expect(page.getByRole("radio", { name: "10 min", exact: true })).toBeChecked();

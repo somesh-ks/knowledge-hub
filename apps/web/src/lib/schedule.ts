@@ -45,7 +45,6 @@ export function weeklySummary(input: { enabled: boolean; day: number; hour: numb
 }
 
 export interface ScheduleView {
-  timezone: string;
   hour: number;
   cadenceDays: number;
   /** Topic ids the daily briefing leaves out. */
@@ -84,7 +83,6 @@ export async function loadScheduleView(
   ]);
   const schedule = ScheduleFile.safeParse(scheduleFile);
   const {
-    timezone,
     hour,
     cadence_days: cadenceDays,
     skip_topics: skipTopics,
@@ -102,7 +100,6 @@ export async function loadScheduleView(
   const lastRegularAt = counts ? regular.at : null;
   const lastWeeklyAt = weeklyRun?.outcome === "published" ? weeklyRun.at : null;
   return {
-    timezone: timezone ?? "Europe/Stockholm",
     hour,
     cadenceDays,
     skipTopics,

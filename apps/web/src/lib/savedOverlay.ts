@@ -94,8 +94,7 @@ export function savedFields(baked: FieldValues, ops: readonly ConfigOp[]): Field
     const field = CONTROL_NAMES[name] ?? name;
     for (const key of Object.keys(baked)) {
       const [owner = "", own = ""] = key.includes(".") ? key.split(".") : ["", key];
-      // The time zone is one setting, shown on every profile that has a time.
-      if (own === field && (owner === profile || field === "timezone")) saved[key] = text;
+      if (own === field && owner === profile) saved[key] = text;
     }
   };
   for (const op of ops) {
