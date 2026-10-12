@@ -151,6 +151,26 @@
   margin: calc(var(--space-2) * -1) calc(var(--space-2) * -1) 0 0;
 }
 
+/* The way up, over the card, where the wide layout has no app bar to hold a back arrow. */
+.topic-up {
+  display: none;
+}
+
+@media (min-width: 64rem) {
+  .topic-up {
+    display: block;
+    padding-block-end: var(--space-4);
+  }
+
+  .topic-up .settings-up {
+    display: inline-flex;
+    align-items: center;
+    gap: var(--space-1);
+    font-size: var(--font-size-label);
+    line-height: var(--font-leading-label);
+  }
+}
+
 .topic-card + .topic-controls {
   margin-block-start: var(--space-4);
 }

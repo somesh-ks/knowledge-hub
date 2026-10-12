@@ -37,10 +37,9 @@ describe("settings summaries", () => {
     expect(modelSummary("anthropic", "claude-haiku-5-5")).toBe("Anthropic, Claude Haiku 5.5");
   });
 
-  it("count only the sources that are on, and say Off for a topic switched off", () => {
+  it("count only the sources that are on", () => {
     expect(topicsSummary(9, 11)).toBe("9 topics · 11 sources");
     expect(topicsSummary(1, 1)).toBe("1 topic · 1 source");
-    expect(sourcesSummary({ total: 3, on: 2, off: true })).toBe("Off");
     expect(sourcesSummary({ total: 3, on: 2 })).toBe("2 of 3 sources on");
     expect(sourcesSummary({ total: 0 })).toBe("No sources yet");
     expect(sourcesSummary({ total: 2, never: true })).toBe("Never in a briefing");

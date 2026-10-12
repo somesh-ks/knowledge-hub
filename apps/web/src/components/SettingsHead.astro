@@ -8,9 +8,11 @@ interface Props {
   up?: { href: string; label: string };
   /** One quiet line under the title: what the page is for. */
   note?: string;
+  /** False where the page draws its own way up (a topic's card), leaving the title alone. */
+  crumbs?: boolean;
 }
 
-const { title, up = { href: "/settings", label: "Settings" }, note } = Astro.props;
+const { title, up = { href: "/settings", label: "Settings" }, note, crumbs = true } = Astro.props;
 ---
 
 {/* Where the page sits, at the title's own size and on its line: the way up is the first word,
@@ -18,10 +20,16 @@ const { title, up = { href: "/settings", label: "Settings" }, note } = Astro.pro
      above the title. */}
 <header class="settings-head">
   <div class="settings-crumbs">
-    <nav aria-label="Breadcrumb">
-      <a class="settings-up" href={up.href}>{up.label}</a>
-    </nav>
-    <Icon name="chevronRight" class="settings-crumb-gap" />
+    {
+      crumbs && (
+        <Fragment>
+          <nav aria-label="Breadcrumb">
+            <a class="settings-up" href={up.href}>{up.label}</a>
+          </nav>
+          <Icon name="chevronRight" class="settings-crumb-gap" />
+        </Fragment>
+      )
+    }
     <h1 class="page-title" id="page-title" tabindex="-1">{title}</h1>
   </div>
   {note && <p class="settings-note">{note}</p>}

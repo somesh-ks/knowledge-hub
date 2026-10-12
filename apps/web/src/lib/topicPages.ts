@@ -63,14 +63,13 @@ export function generalOf(topics: readonly ManageTopic[]): ManageTopic[] {
 }
 
 /**
- * What a topic's row says about its sources (sourcesSummary): "2 of 3 sources on", "Off" for a
- * topic that is off. One of the owner's three topics (a group, no topic of its own) passes null.
+ * What a topic's row says about its sources (sourcesSummary): "2 of 3 sources on". One of the
+ * owner's three topics (a group, no topic of its own) passes null.
  */
 export function topicSummary(topic: ManageTopic | null, total: number, on = total): string {
   return sourcesSummary({
     total,
     on,
-    off: topic ? !topic.enabled : false,
     never: topic?.never_publish === true,
   });
 }

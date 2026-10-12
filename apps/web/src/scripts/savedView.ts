@@ -309,20 +309,16 @@ export function overlayTopics(root: HTMLElement, ops = readSaved()): boolean {
     }
   }
   shown = addTopics(root, saved.topics, saved.feeds) || shown;
-  shown = recount(root, ops, saved.topics) || shown;
+  shown = recount(root, ops) || shown;
   if (shown) markSaved(root);
   return shown;
 }
 
 /**
  * On the list: each row's line counts the sources it will list once the build lands (switched off,
- * moved, removed or added since), and says "Off" for a topic switched off.
+ * moved, removed or added since).
  */
-function recount(
-  root: HTMLElement,
-  ops: readonly ConfigOp[],
-  topics: Map<string, Upsert>,
-): boolean {
+function recount(root: HTMLElement, ops: readonly ConfigOp[]): boolean {
   const list = root.querySelector<HTMLElement>("[data-spots]");
   if (!list) return false;
   let base: Record<string, SourceSpot> = {};
@@ -341,14 +337,7 @@ function recount(
   for (const row of rows) {
     const page = row.dataset.page ?? "";
     const { total, on } = sourceCounts(spots, page);
-    const built = row.dataset.enabled;
-    const enabled = topics.get(page)?.enabled ?? built !== "false";
-    const text = sourcesSummary({
-      total,
-      on,
-      off: built !== undefined && !enabled,
-      never: row.dataset.never !== undefined,
-    });
+    const text = sourcesSummary({ total, on, never: row.dataset.never !== undefined });
     const hint = row.querySelector("[data-hint]");
     // The built line may carry the template's own spaces: a line that reads the same is no change.
     if (!hint || hint.textContent?.trim() === text) continue;

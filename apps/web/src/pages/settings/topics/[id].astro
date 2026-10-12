@@ -148,10 +148,17 @@ const facts = topic && {
           {/* The summary card: the topic's generated picture, its name and what counts as it, and a
                More menu with Edit and, for a topic of the owner's own, Delete. The menu is the app's
                popover menu (HeroMenu.astro, heroMenu.ts). */}
+          {/* From 64rem there is no app bar above the page, so the way up is a line over the card. */}
+          <nav class="topic-up" aria-label="Breadcrumb">
+            <a class="settings-up" href="/settings/topics">
+              <Icon name="chevronLeft" />
+              <span>Topics and sources</span>
+            </a>
+          </nav>
           <div class="topic-card">
             <div class="topic-card-art" set:html={art} />
             <div class="topic-card-text">
-              <SettingsHead title={name} up={{ href: "/settings/topics", label: "Topics and sources" }} note={note} />
+              <SettingsHead title={name} crumbs={false} note={note} />
             </div>
             {
               topic && (
@@ -202,10 +209,10 @@ const facts = topic && {
             }
           </div>
           {
-            !general && (group || (editable && topic)) && (
+            (group || (editable && topic)) && (
               <div class="rows topic-controls">
-                {/* Where the topic plays (D69). A general news topic is in every podcast, so it has no
-                     list of them and no weight. */}
+                {/* Where the topic plays (D69), and how much it counts. A general news topic is ranked
+                     by how many outlets carry a story, so it has no weight. */}
                 <div class="settings-row topic-scope">
                   <div class="settings-text">
                     <span class="settings-label" id="scope-label">Podcasts</span>
@@ -224,7 +231,7 @@ const facts = topic && {
                     }))}
                   />
                 </div>
-                {topic && <WeightRow id={topic.id} label="Weight" weight={topic.weight} />}
+                {topic && !general && <WeightRow id={topic.id} label="Weight" weight={topic.weight} />}
                 {weightRows.length === 1 && weightRows.map((row) => <WeightRow {...row} />)}
               </div>
             )

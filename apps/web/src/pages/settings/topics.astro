@@ -36,7 +36,6 @@ const rows = [
     name: group.name,
     hint: topicSummary(null, ...counts(group.id)),
     members: group.members.map((member) => member.id),
-    enabled: undefined,
     never: undefined,
   })),
   ...[...layout.own, ...layout.general].map((topic) => ({
@@ -44,7 +43,6 @@ const rows = [
     name: topic.name,
     hint: topicSummary(topic, ...counts(topic.id)),
     members: [topic.id],
-    enabled: String(topic.enabled),
     never: topic.never_publish ? "" : undefined,
   })),
 ].sort(byName);
@@ -100,7 +98,6 @@ const choices = topicChoicesOf(layout);
                 href={`/settings/topics/${row.id}`}
                 data-page={row.id}
                 data-members={row.members.join(" ")}
-                data-enabled={row.enabled}
                 data-never={row.never}
               >
                 <span class="settings-text">

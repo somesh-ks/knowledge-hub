@@ -83,18 +83,12 @@ export function topicsSummary(topics: number, sources: number): string {
 
 /**
  * What a topic's row says about its sources, counting the ones that are read: "3 sources" when all
- * are on, "2 of 3 sources on" when some are off, "No sources yet" with none; "Off" for a topic that
- * is off and "Never in a briefing" for one that never publishes.
+ * are on, "2 of 3 sources on" when some are off, "No sources yet" with none, and "Never in a
+ * briefing" for a topic that never publishes.
  */
-export function sourcesSummary(input: {
-  total: number;
-  on?: number;
-  off?: boolean;
-  never?: boolean;
-}): string {
+export function sourcesSummary(input: { total: number; on?: number; never?: boolean }): string {
   const { total, on = total } = input;
   if (input.never) return "Never in a briefing";
-  if (input.off) return "Off";
   if (total === 0) return "No sources yet";
   return on === total ? plural(total, "source") : `${on} of ${plural(total, "source")} on`;
 }
