@@ -39,15 +39,12 @@ export function errorSummary(error: Pick<PlayerError, "kind" | "summary">): stri
   switch (error.kind) {
     case "network":
       return "Audio did not load";
-    case "decode":
-      return "Audio could not play";
     case "unavailable":
       return "Audio is not available";
     case "blocked":
       return "Playback was blocked";
-    case "refused":
-      return "Narration is not available";
-    case "unknown":
+    default:
+      // Decode and unknown failures; a refusal always carries its reason as its summary.
       return "Audio could not play";
   }
 }
@@ -74,47 +71,35 @@ export function noticeAction(kind: PlayerErrorKind): string | null {
   }
 }
 
+export type TransportGlyph = "play" | "pause" | "refresh" | "replay";
+
+/** The play toggle's name says what its glyph draws, so the two never disagree. */
+const GLYPH_NAMES: Record<TransportGlyph, string> = {
+  play: "Play",
+  pause: "Pause",
+  refresh: "Try again",
+  replay: "Play again",
+};
+
 export function toggleLabel(
   state: Pick<PlayerState, "status"> & { error?: PlayerState["error"] },
 ): string {
-  switch (state.status) {
-    case "playing":
-    case "loading":
-      return "Pause";
-    case "ended":
-      return "Play again";
-    case "error":
-      // A standing refusal is not mended by trying again.
-      return state.error?.kind === "refused" ? "Play" : "Try again";
-    case "idle":
-    case "paused":
-      return "Play";
-  }
+  return GLYPH_NAMES[transportGlyph(state.status, state.error)];
 }
-
-export type TransportGlyph = "play" | "pause" | "refresh" | "replay";
 
 /**
  * The glyph the main transport button draws, one rule for the page's disc and the bar so a glyph
- * never disagrees with the button's name (toggleLabel): refresh to try again after a failure,
- * replay at the end of a recording, pause while playing, play otherwise.
+ * never disagrees with the button's name (toggleLabel): refresh to try again after a failure (a
+ * standing refusal is not mended by trying again, so it keeps play), replay at the end of a
+ * recording, pause while playing, play otherwise.
  */
 export function transportGlyph(
   status: PlayerState["status"],
   error?: PlayerState["error"],
 ): TransportGlyph {
-  switch (status) {
-    case "error":
-      return error?.kind === "refused" ? "play" : "refresh";
-    case "ended":
-      return "replay";
-    case "playing":
-    case "loading":
-      return "pause";
-    case "idle":
-    case "paused":
-      return "play";
-  }
+  if (status === "error") return error?.kind === "refused" ? "play" : "refresh";
+  if (status === "ended") return "replay";
+  return isPlayingStatus(status) ? "pause" : "play";
 }
 
 export function isPlayingStatus(status: PlayerState["status"]): boolean {
