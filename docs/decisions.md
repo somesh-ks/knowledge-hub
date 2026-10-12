@@ -103,6 +103,8 @@ D1 to D9 date from plan v2 (2026-10-05). D10 to D25 date from 2026-10-06. Reason
 | D91 | Daily and Weekly offer only what a briefing uses, and an edit made inside the server's gap survives leaving the page | active; amends D74 and D79 |
 | D92 | The rundown is no story, a listener's move never scrolls the page, the open page owns the transport, and a glyph says what its button does | active; amends D85 and D90 |
 | D93 | A tab's jump puts the app bar away first, a headline word kept whole stays atomic, and offline switches off every control that starts a run | active; amends D88 |
+| D94 | Up next narrates a briefing without audio, a phone's page never scrolls itself, a failure is told once, and the open page closes with a mouse | active; amends D92 |
+| D95 | The Library's search finds the start of words, a list row keeps its title level, and a segmented choice keeps its width | active; amends D78 |
 
 ---
 
@@ -965,6 +967,7 @@ D1 to D9 date from plan v2 (2026-10-05). D10 to D25 date from 2026-10-06. Reason
   - A save that waits out the server's ten second gap now outlives leaving the page. The toast's popover calls threw on a toast the page swap had removed, before the request was sent, so the second of two changes made inside the gap was lost while "Saved" showed. Every toast call is guarded and none can skip the request; the toast says "Saving" as soon as a change waits; leaving the page writes the waiting edits to storage marked `pending` (shown for 90 s at most, dropped when their request fails), so the next page shows them ("Saving. Live in about a minute."); changes made on that next page while the run is still busy are sent after it.
   - Remove topic replaces the removed topic's page in history, and a removed topic's page opened before the build replaces itself with the list.
   - Look: every segmented choice marks its chosen option with a check (Length did not); controls share one width of 22rem on Settings, podcast and topic pages; link rows end at the edge and read like their neighbours (Edit topic ends in a pencil, a new glyph in `tokens/glyphs.json`); a custom topic's single Weight row has Design's shape; a suggested source is a three-line row of 88px from 40rem and says "Added" once; a switched-off general topic's counts and sources read as off (the Topics index counts a source as on only while its topic is on); the Add panel says "All podcasts" when all three are ticked.
+  - Round five: a feed address never widens the Add source panel (its form, card and facts are one column that may shrink); the model field has the row's room (16rem from 40rem) and a longer name ends in an ellipsis, not in half a name; a refused suggested source says "Not added. Try again." with its plus back, and pressing it sends the same add once more (`Pending` takes `fail` and `done` hooks); a general topic switched off keeps its sources legible (names quiet, tiles faded) instead of dimming both lists to 1.6:1.
 - Why: the fourth critic round found that changing two things and pressing Back lost the second edit while the page said Saved ("the settings revert" again), and that Format on Daily was a choice the product ignored, which the owner has called slop.
 - Cost: Format and a second voice cannot be set on Daily or Weekly until a briefing can be a discussion (the daily Type item under Not working stands). A pending edit shows for up to 90 s even if its request never goes (a tab closed in the gap).
 - Rejected: leaving the Format row with a note (a control that explains itself, D89); keeping the second voice on a Daily that never uses it.
@@ -998,3 +1001,29 @@ D1 to D9 date from plan v2 (2026-10-05). D10 to D25 date from 2026-10-06. Reason
 - Cost: a jump down from the top of a page also hides the app bar, which returns on the next scroll up; the offline wifi glyph's path was composed by hand because the icon CDN was unreachable (`--fetch` replaces it with Phosphor's own).
 - Rejected: U+2011 for the unbreakable hyphen (Google Sans Flex has no glyph for it).
 - Amends: D88 (the strip's landing and its bar).
+
+## D94: Up next narrates a briefing without audio, a phone's page never scrolls itself, a failure is told once, and the open page closes with a mouse
+
+- Date: 2026-10-12
+- Decision:
+  - Up next narrates a briefing that has no finished audio, by the cover press's path (`playBriefingOnArrival`, `expectPage`). Before, it loaded the page, played nothing and the bar went away; most briefings are narrated on Play.
+  - On one column the transcript is followed only once the listener has scrolled its top into the upper half of the screen, never from where the page opens. The page opened with the top at 773 of 844, so each turn scrolled it by itself (215, 337, 460px) and carried the cover and scrubber off screen. A hold that ends offers "Back to now" and does not jump.
+  - In an episode's rundown the page's reserved story line says what the recording is ("Discussion · 4 min"). A mouse between 40 and 64rem gets the bar's chevron to close the open page; while the page is open the wide bar's transport leaves the layout, so its clock sits by the seek line. Below 64rem the run bar runs along the card's top edge, apart from the player's own line.
+  - A failure is told once, with its reason: a mid-briefing narration refusal surfaces through the player's error (the playlist's `describeFailure` text) and no toast; no copy says "press play" where the disc is Try again; the bar names the recording in an error; a failed play is announced once, and a missing file not before the first press; the hero chip has an error state that draws the refresh glyph.
+  - Small: Up next's text shares the rows' left edge; the page title uses `text-wrap: pretty` (a balanced, clamped title lost its ellipsis); the speed slider's ring has room above it; Try again and Dismiss on the run indicator leave focus on the page.
+- Why: the fifth critic round measured the page scrolling itself at every turn on a 390x844 phone, an Up next that dropped the listener, and one failure that said three different things.
+- Cost: first-load JavaScript is 109.2 of 110 KB (0.8 KB left). The floating Play button takes the chip's error state but has no style for it, so it still shows play. An episode's sign-off is still labelled as the last story, and PageUp and PageDown go opposite ways on the page's and the bar's scrubbers.
+- Rejected: following the transcript on one column from where the page opens (the page then moves under the listener at each turn); a toast beside the player's own notice.
+- Amends: D92.
+
+## D95: The Library's search finds the start of words, a list row keeps its title level, and a segmented choice keeps its width
+
+- Date: 2026-10-12
+- Decision:
+  - A query word matches where a word of the text starts, in the cards, the full-text index and the excerpt: "lat" finds "latency", "ai" no longer finds "detail", "Hairline" or "OpenAI" (it did, and bolded the middle of them, so the app's own topic returned every card). A number still matches as a whole token. An episode whose script matched says "Mentioned in the episode".
+  - In the list view the match line has a track of its own, so a title sits 12px under its row's top with or without a match (it gained 20 to 40px), and the half-heard bar lies along the foot of its cover wherever the row's height puts the cover.
+  - On the New episode page from 40rem a segmented control keeps its width as the choice moves: the check takes no room (as a filter chip's does) and the chosen words slide by half of it. The options column uses the main column's label rhythm.
+- Why: the fifth critic round found the search flooding on a two-letter query, rows jumping as matches appeared, and Format growing 221 to 251px under the pointer.
+- Cost: a word inside another ("ai" in "OpenAI", "tency" in "latency") is not found; it is found by its start.
+- Rejected: matching anywhere for words of four letters or more (two rules for one field).
+- Amends: D78 (what the search finds).
