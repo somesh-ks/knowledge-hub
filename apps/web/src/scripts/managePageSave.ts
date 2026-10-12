@@ -18,7 +18,9 @@ export const SAVED = "Saved. Live in about a minute.";
 export const TIME_REFUSED = "Saved, except the time, which could not be changed.";
 
 /** What a topic or a source added on the page says once it is in the repository. */
-export const ADDED = "Added. It shows here in about a minute.";
+export const ADDED_SOURCE = "Added. Its posts are read after the next update.";
+/** A topic added on the list: it is listed already; its page is what the build brings. */
+export const ADDED_TOPIC = "Added. Its page opens in about a minute.";
 
 const REASONS: Record<number, string> = {
   0: "The site could not be reached.",
@@ -165,8 +167,8 @@ export function settle(batch: Batch, changes: Map<string, Pending>): void {
     if (el.matches("li")) {
       // A topic added on the page: it stays listed, saved, until the build shows it in place.
       const note = el.querySelector(".manage-quiet");
-      if (note) note.textContent = ADDED;
-    } else if (el.matches(".source-note")) el.textContent = ADDED;
+      if (note) note.textContent = ADDED_TOPIC;
+    } else if (el.matches(".source-note")) el.textContent = ADDED_SOURCE;
     else {
       if (el.matches("[data-remove]")) {
         const row = el.closest("li") ?? el.closest("[data-topic]");

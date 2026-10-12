@@ -33,7 +33,7 @@ import {
 } from "../lib/sourceCatalogMatch";
 import { parseSuggestedAdd, type SuggestedAdd } from "../lib/topicText";
 import type { ConfigOp } from "../types/contracts";
-import { ADDED } from "./managePageSave";
+import { ADDED_SOURCE, ADDED_TOPIC, SAVED } from "./managePageSave";
 import { element, iconNode } from "./topicsView";
 
 /** The row a topic waits in until the build (ManageChrome.astro), among the page's templates. */
@@ -42,7 +42,8 @@ export const QUEUED_ROW = "template:not(#topics-panel-template, #suggested-templ
 /** The page that lists the sources no topic page shows (OTHER_ID in lib/topicPages.ts). */
 const OTHER_PAGE = "other";
 
-export const SAVED_NOTE = "Saved. It takes effect after the next update, about a minute.";
+/** The line under the title says what the toast said: one wording for a save. */
+export const SAVED_NOTE = SAVED;
 
 /** The edits still waiting for the build, in the order they were saved. Forgets them once none is. */
 export function readSaved(now = Date.now()): ConfigOp[] {
@@ -361,7 +362,7 @@ function showAdded(button: HTMLButtonElement, offer: Pick<SuggestedAdd, "name">)
   button
     .closest("li")
     ?.querySelector(".source-meta")
-    ?.replaceChildren(element("span", "source-note", ADDED));
+    ?.replaceChildren(element("span", "source-note", ADDED_SOURCE));
 }
 
 /** On the list: each topic saved since the build, waiting where a topic just added waits. */
@@ -379,7 +380,7 @@ function addTopics(root: HTMLElement, topics: Map<string, Upsert>, feeds: Set<st
     const name = row.querySelector("[data-q-name]");
     if (name) name.textContent = topic.name;
     const note = row.querySelector(".manage-quiet");
-    if (note) note.textContent = ADDED;
+    if (note) note.textContent = ADDED_TOPIC;
     queued.append(row);
     void suggestUnder(row, topic, feeds);
     shown = true;

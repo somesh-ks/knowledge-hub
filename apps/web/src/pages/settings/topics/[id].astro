@@ -152,7 +152,7 @@ const facts = topic && {
                 {general && topic ? (
                   <div class="settings-row topic-on">
                     <div class="settings-text">
-                      <label class="settings-label" for="topic-on">Read {name}'s sources</label>
+                      <label class="settings-label" for="topic-on">Use {name}</label>
                       <span class="settings-hint" id="topic-on-hint" data-topic-on-hint>
                         {topic.enabled ? ON_HINT : OFF_HINT}
                       </span>
@@ -205,10 +205,7 @@ const facts = topic && {
                   data-edit-topic={JSON.stringify(facts)}
                   data-needs-js
                 >
-                  <span class="settings-text">
-                    <span class="settings-label">Edit topic</span>
-                    <span class="settings-hint">Its name and what counts</span>
-                  </span>
+                  <span class="settings-label">Edit topic</span>
                   <Icon name="chevronRight" />
                 </button>
                 )}

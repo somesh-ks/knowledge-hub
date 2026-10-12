@@ -145,10 +145,9 @@ const VOICES = [
 
   <section class="podcast-section" aria-labelledby={`${id}-topics-head`}>
     <h2 class="section-head" id={`${id}-topics-head`}>Topics</h2>
-    <p class="settings-hint podcast-hint" id={`${id}-topics-hint`}>Choose what {label} episodes cover.</p>
     {
       topics.length > 0 ? (
-        <fieldset class="filter-chips podcast-topics" aria-labelledby={`${id}-topics-head`} aria-describedby={`${id}-topics-hint`} data-scope-chips>
+        <fieldset class="filter-chips podcast-topics" aria-labelledby={`${id}-topics-head`} data-scope-chips>
           {topics.map((topic) => (
             <label class="filter-chip">
               <input
@@ -176,10 +175,7 @@ const VOICES = [
     }
     <div class="rows">
       <a class="row-action" href="/settings/topics">
-        <span class="settings-text">
-          <span class="settings-label">Topics and sources</span>
-          <span class="settings-hint">Add topics and choose their sources</span>
-        </span>
+        <span class="settings-label">Topics and sources</span>
         <Icon name="chevronRight" />
       </a>
     </div>

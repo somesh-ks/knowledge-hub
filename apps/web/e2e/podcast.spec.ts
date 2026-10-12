@@ -448,7 +448,7 @@ test.describe("saving on its own", () => {
 });
 
 test.describe("saved, before the build", () => {
-  const NOTE = "Saved. It takes effect after the next update, about a minute.";
+  const NOTE = SAVED;
   const KEY = "dispatch:saved-edits";
   const note = (page: Page) => page.locator("[data-saved-note]");
 

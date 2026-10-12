@@ -71,7 +71,7 @@ const choices = topicChoicesOf(layout);
       data-taken={[...topics.map((topic) => topic.id), ...groups.map((group) => group.id), OTHER_ID].join(" ")}
       data-names={JSON.stringify(choices.map((choice) => choice.name))}
     >
-      <SettingsHead title="Topics and sources" note="What the episodes cover, and the sources they read." />
+      <SettingsHead title="Topics and sources" />
       <button
         class="btn-secondary topics-add"
         type="button"

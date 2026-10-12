@@ -158,6 +158,13 @@ function card(preview: SourcePreview): HTMLElement {
         : `${preview.items_30d} ${preview.items_30d === 1 ? "post" : "posts"}`,
     ),
   );
+  // An address is one word: it ends in an ellipsis rather than breaking mid-word, and says itself whole
+  // on hover.
+  const address = facts.querySelector("dd");
+  if (address && preview.feed_url) {
+    address.classList.add("source-facts-url");
+    address.title = preview.feed_url;
+  }
   shell.append(head, score, facts);
   return shell;
 }
@@ -175,6 +182,13 @@ function skeleton(): HTMLElement {
   score.append(element("span", "skeleton-bar"));
   const facts = element("div", "source-facts");
   facts.append(element("span", "skeleton-bar"), element("span", "skeleton-bar"));
+  // An address is one word: it ends in an ellipsis rather than breaking mid-word, and says itself whole
+  // on hover.
+  const address = facts.querySelector("dd");
+  if (address && preview.feed_url) {
+    address.classList.add("source-facts-url");
+    address.title = preview.feed_url;
+  }
   shell.append(head, score, facts);
   return shell;
 }
@@ -396,7 +410,8 @@ export function openPanel(
   function render(): void {
     const topicLike = mode === "topic" || mode === "topic-edit";
     panel.dataset.mode = mode;
-    kinds.hidden = mode === "edit" || mode === "topic-edit";
+    // Add source on a topic's page adds a source to that topic: no Topic | Source switch.
+    kinds.hidden = mode === "edit" || mode === "topic-edit" || start.kind === "source";
     topicPane.hidden = !topicLike;
     sourcePane.hidden = mode !== "source";
     editPane.hidden = mode !== "edit";

@@ -10,7 +10,8 @@ const PIXEL = Buffer.from(
   "base64",
 );
 const SAVED = "Saved. Live in about a minute.";
-const ADDED = "Added. It shows here in about a minute.";
+const ADDED = "Added. Its posts are read after the next update.";
+const ADDED_TOPIC = "Added. Its page opens in about a minute.";
 
 interface Sent {
   passphrase: string;
@@ -215,7 +216,7 @@ test.describe("the Topics list", () => {
     await expect(queued).toContainText("Motion design");
     // It is sent at once, so there is no Cancel that would only pretend to drop it.
     await expect(queued.locator("[data-act=cancel]")).toHaveCount(0);
-    await expect(queued).toContainText(ADDED);
+    await expect(queued).toContainText(ADDED_TOPIC);
     await expect(queued.locator("[data-act=cancel]")).toHaveCount(0);
     // Its suggested sources show at once, ranked in the browser as its page will rank them.
     const suggested = queued.getByRole("list", { name: "Suggested sources for Motion design" });
@@ -253,7 +254,7 @@ test.describe("the Topics list", () => {
       .fill("Animation and motion in interfaces.");
     await sheet.getByRole("button", { name: "Add topic", exact: true }).click();
     const queued = page.locator("[data-queued] > li");
-    await expect(queued).toContainText(ADDED);
+    await expect(queued).toContainText(ADDED_TOPIC);
     await queued.getByRole("button", { name: "Add Motion Weekly" }).click();
     await expect(queued.getByRole("button", { name: "Added Motion Weekly" })).toBeDisabled();
     await expect
@@ -268,11 +269,9 @@ test.describe("the Topics list", () => {
 
     await page.reload();
     await open(page);
-    await expect(page.locator("[data-saved-note]")).toHaveText(
-      "Saved. It takes effect after the next update, about a minute.",
-    );
+    await expect(page.locator("[data-saved-note]")).toHaveText(SAVED);
     await expect(queued).toContainText("Motion design");
-    await expect(queued).toContainText(ADDED);
+    await expect(queued).toContainText(ADDED_TOPIC);
     await expect(queued.getByRole("button", { name: "Added Motion Weekly" })).toBeDisabled();
     await page.waitForTimeout(1500);
     expect(sent.length).toBe(before);
@@ -491,7 +490,11 @@ test.describe("a topic's page", () => {
     await page.getByRole("button", { name: "Add source to Audio interfaces" }).click();
     const sheet = page.getByRole("dialog", { name: "Add a source" });
     await expect(sheet.getByRole("combobox", { name: "Topic" })).toHaveValue("audio_interfaces");
+    // It adds a source to this topic: no switch to a new topic.
+    await expect(sheet.getByRole("radio", { name: "Topic" })).toBeHidden();
     await sheet.getByLabel("Site or feed address").fill("newsroom.example");
+    // The feed address ends in an ellipsis rather than breaking mid-word.
+    await expect(sheet.locator(".source-facts-url")).toHaveCSS("white-space", "nowrap");
     await sheet.getByRole("button", { name: "Add source", exact: true }).click();
     const row = page.locator("[data-sources] li.source-row.is-new");
     await expect(row).toContainText("Newsroom Example");
@@ -552,7 +555,7 @@ test.describe("a topic's page", () => {
     await sheet.getByRole("button", { name: "Close" }).click();
     // No list of podcasts it can never join: one switch, named for what it does.
     await expect(page.getByRole("button", { name: /^Podcasts/ })).toHaveCount(0);
-    const on = page.getByRole("switch", { name: "Read World's sources" });
+    const on = page.getByRole("switch", { name: "Use World" });
     await expect(on).toBeChecked();
     await expect(on).toHaveAccessibleDescription("Used in episodes");
     await expect(page.getByText("Not read while World is off.")).toBeHidden();

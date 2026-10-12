@@ -794,6 +794,12 @@
   overflow-wrap: anywhere;
 }
 
+.source-facts dd.source-facts-url {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
 .skeleton-bar {
   display: block;
   height: var(--space-4);
