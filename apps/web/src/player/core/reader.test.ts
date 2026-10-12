@@ -155,6 +155,29 @@ describe("the briefing chip", () => {
     expect(briefingChipView(stateFor("idle"), 119, makeDigest()).label).toBe("1 min left");
   });
 
+  it("tells what the device remembers while another recording is loaded, as the Library's card does", () => {
+    const digest = makeDigest();
+    const other = { ...stateFor("paused"), digestId: "another-recording" };
+    // Left half way: the time left. Heard to the end: Played. Neither: the length.
+    expect(
+      briefingChipView(other, 30, digest, "briefing", { seconds: 60, played: false }),
+    ).toMatchObject({
+      state: "idle",
+      label: "1 min left",
+      name: "Resume the briefing, 1 min left",
+    });
+    expect(
+      briefingChipView(other, 30, digest, "briefing", { seconds: 0, played: true }),
+    ).toMatchObject({ state: "played", label: "Played", name: "Play the briefing again, played" });
+    expect(briefingChipView(other, 30, digest, "briefing", { seconds: 0, played: false })).toEqual(
+      idleBriefingChip("2 min"),
+    );
+    // Nothing loaded yet (a page just opened): Played is shown too.
+    expect(
+      briefingChipView(stateFor("idle"), 0, digest, "briefing", { seconds: 0, played: true }).label,
+    ).toBe("Played");
+  });
+
   it("rounds the time left as it rounds the length, so one recording has one length", () => {
     const digest = { ...makeDigest(), audio: { url: "/a.mp3", duration_ms: 130_000 } };
     const paused = { ...stateFor("paused"), duration: 130 };

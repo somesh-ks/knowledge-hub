@@ -25,6 +25,7 @@
  * Writes go through one animation-frame writer.
  */
 
+import type { PlayerDigestData } from "../../types/contracts";
 import { playPageChapter, togglePageDigest, togglePageItem } from "./pageActions";
 import type { PlayerStore } from "./playerTypes";
 import {
@@ -34,11 +35,13 @@ import {
   createHeardTracker,
   type ItemVisualState,
   itemVisualState,
+  type Remembered,
   resolveChapterFirstItemId,
   resolveItemId,
   storyChipView,
   storyLengthLabel,
 } from "./readerMath";
+import { playedKey, readResumePosition } from "./resume";
 import { findItemIndexById } from "./timeline";
 
 /** Auto-follow stays out of the way for this long after the reader scrolls. */
@@ -132,6 +135,24 @@ export function createReaderSync(
     markFab(event.newDocument);
   }
 
+  /** Where this briefing was left and whether it was heard to the end, from the device's storage. */
+  function rememberedFor(page: PlayerDigestData): Remembered {
+    let storage: Storage | null = null;
+    try {
+      storage = window.localStorage;
+    } catch {
+      return { seconds: 0, played: false };
+    }
+    const seconds = readResumePosition(storage, page.id, (page.audio?.duration_ms ?? 0) / 1000);
+    let played = false;
+    try {
+      played = storage.getItem(playedKey(page.id)) !== null;
+    } catch {
+      played = false;
+    }
+    return { seconds, played };
+  }
+
   /** What a chip of a page without audio showed before the device went offline. */
   const restful = new WeakMap<
     HTMLElement,
@@ -206,7 +227,14 @@ export function createReaderSync(
 
     for (const chip of elements.playDigest) {
       const noun = chip.dataset.noun === "episode" ? "episode" : "briefing";
-      const briefing = briefingChipView(state, store.getTime(), page, noun);
+      const briefing = briefingChipView(
+        state,
+        store.getTime(),
+        page,
+        noun,
+        // What the Library's card says of it: only needed while the chip is not the player's own.
+        state.digestId !== page.id || state.status === "idle" ? rememberedFor(page) : undefined,
+      );
       // Audio is never cached, so offline a chip that would have to fetch it cannot work. One that
       // holds loaded audio still pauses and resumes.
       const blocked =

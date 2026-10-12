@@ -19,6 +19,12 @@ const MIN_RESTORE_SECONDS = 2;
  */
 export const PLAYED_KEY_PREFIX = "dispatch:played:";
 
+/** Tells the page that what the device remembers of a recording changed (the Library's cards read it). */
+function announce(digestId: string): void {
+  if (typeof window === "undefined" || typeof CustomEvent === "undefined") return;
+  window.dispatchEvent(new CustomEvent("dispatch:resume", { detail: digestId }));
+}
+
 export function resumeKey(digestId: string): string {
   return `${RESUME_KEY_PREFIX}${digestId}`;
 }
@@ -31,6 +37,7 @@ export function playedKey(digestId: string): string {
 function markPlayed(storage: StorageLike, digestId: string): void {
   storage.removeItem(resumeKey(digestId));
   storage.setItem(playedKey(digestId), "1");
+  announce(digestId);
 }
 
 /** Storage is best effort: every access is guarded because private modes and quotas throw. */
@@ -68,6 +75,7 @@ export function saveResumePosition(
       // Listening again: a position of its own replaces "Played".
       storage.setItem(resumeKey(digestId), String(Math.floor(seconds)));
       storage.removeItem(playedKey(digestId));
+      announce(digestId);
     }
   } catch {
     // Best effort.

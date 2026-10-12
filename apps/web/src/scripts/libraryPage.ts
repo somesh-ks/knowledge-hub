@@ -347,6 +347,8 @@ function install(): void {
   }
   showProgress();
   window.addEventListener("pageshow", showProgress);
+  // The player saves where it is every few seconds and when it ends: the cards follow it.
+  window.addEventListener("dispatch:resume", () => requestAnimationFrame(showProgress));
   apply();
 }
 

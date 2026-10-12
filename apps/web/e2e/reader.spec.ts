@@ -403,6 +403,29 @@ test.describe("sections and stories", () => {
     await expect(chip).toHaveAttribute("data-state", before ?? "");
   });
 
+  test("Today's briefing chip says what the Library's card says: time left, or Played", async ({
+    page,
+  }) => {
+    await page.goto("/");
+    await page.evaluate(() => localStorage.setItem("dispatch:resume:2026-10-07", "20"));
+    await page.reload();
+    await hydrated(page);
+    const chip = page.locator(".hero [data-play-digest]");
+    await expect(chip.locator("[data-chip-label]")).toHaveText("1 min left");
+    // Heard to the end on another visit: the position is forgotten and the briefing is Played. Set
+    // away from the page, which saves its own position as it is left.
+    await page.goto("/library");
+    await page.evaluate(() => {
+      localStorage.removeItem("dispatch:resume:2026-10-07");
+      localStorage.setItem("dispatch:played:2026-10-07", "1");
+    });
+    await page.goto("/");
+    await hydrated(page);
+    await expect(chip.locator("[data-chip-label]")).toHaveText("Played");
+    await expect(chip).toHaveAccessibleName("Play the briefing again, played");
+    await expect(chip).toHaveAttribute("data-state", "played");
+  });
+
   test("a story played from here does not mark the stories it stepped over as played", async ({
     page,
   }) => {

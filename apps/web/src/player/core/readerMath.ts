@@ -151,6 +151,36 @@ export function idleBriefingChip(length: string, noun: ChipNoun = "briefing"): C
   return { state: "idle", playing: false, label: length, name: `Play the ${noun}, ${length}` };
 }
 
+/** What the device remembers of a briefing: where it was left, and whether it was heard to the end. */
+export interface Remembered {
+  seconds: number;
+  played: boolean;
+}
+
+/**
+ * The chip of a briefing the player is not holding: it offers what the Library's card says of it, the
+ * time left where it was left, or Played, and otherwise its length.
+ */
+function rememberedChip(
+  remembered: Remembered | undefined,
+  totalSeconds: number,
+  noun: ChipNoun,
+): ChipView {
+  if (remembered && remembered.seconds > 0 && totalSeconds > 0) {
+    const left = `${wholeMinutes(Math.max(0, totalSeconds - remembered.seconds) * 1000)} min left`;
+    return { state: "idle", playing: false, label: left, name: `Resume the ${noun}, ${left}` };
+  }
+  if (remembered?.played) {
+    return {
+      state: "played",
+      playing: false,
+      label: "Played",
+      name: `Play the ${noun} again, played`,
+    };
+  }
+  return idleBriefingChip(briefingLengthLabel(totalSeconds * 1000), noun);
+}
+
 /** A story's chip before it has played. `length` is empty while the briefing has no audio. */
 export function idleStoryChip(length: string, headline: string): ChipView {
   const action = length ? `Play from here, ${length}` : "Play from here";
@@ -167,11 +197,12 @@ export function briefingChipView(
   timeSeconds: number,
   pageDigest: PlayerDigestData,
   noun: ChipNoun = "briefing",
+  remembered?: Remembered,
 ): ChipView {
   const pageDurationMs = pageDigest.audio?.duration_ms ?? 0;
-  // Another briefing is loaded: this chip starts its own from the top.
+  // Another briefing is loaded: this chip is its own, from where it was left or from the top.
   if (state.digestId !== pageDigest.id) {
-    return idleBriefingChip(briefingLengthLabel(pageDurationMs), noun);
+    return rememberedChip(remembered, pageDurationMs / 1000, noun);
   }
 
   // Once the audio has loaded, its real length is the one every control says.
@@ -191,7 +222,9 @@ export function briefingChipView(
   switch (state.status) {
     case "idle":
       // A remembered position is offered, but nothing is loaded into the ear yet.
-      return timeSeconds > 0 ? { state: "idle", ...resume } : idle;
+      return timeSeconds > 0
+        ? { state: "idle", ...resume }
+        : rememberedChip(remembered, total, noun);
     case "playing":
       return playing;
     case "loading":
