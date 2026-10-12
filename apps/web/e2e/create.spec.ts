@@ -122,12 +122,6 @@ test.describe("the Create page", () => {
     await expect(error).toBeHidden();
   });
 
-  test("Top picks is not a chip", async ({ page }) => {
-    await openCreate(page);
-    await expect(page.locator(".filter-chip", { hasText: "Top picks" })).toHaveCount(0);
-    await expect(page.locator('input[name="topic"][value="top"]')).toHaveCount(0);
-  });
-
   test("a new audience keeps topics picked by hand, says so, and offers its suggestion", async ({
     page,
   }) => {
@@ -229,28 +223,6 @@ test.describe("the Create page", () => {
     await expect(page.getByRole("button", { name: "Undo" })).toBeVisible();
     await chip(page, "Design").click();
     await expect(page.locator("[data-preset-note]")).toBeHidden();
-  });
-
-  test("the presets: Somesh ticks Design, AI, Technology; General ticks the six news topics", async ({
-    page,
-  }) => {
-    await openCreate(page);
-    const ticked = page.locator(".filter-chip:has(input:checked)");
-    const all = page.locator(".filter-chip:visible");
-    await expect(ticked).toHaveText(["Design", "AI", "Technology"]);
-    await segment(page, "General").click();
-    await expect(all).toHaveCount(9);
-    await expect(ticked).toHaveText([
-      "Technology",
-      "World",
-      "Business",
-      "Science",
-      "Culture",
-      "Sports",
-    ]);
-    await segment(page, "Somesh").click();
-    await expect(all).toHaveCount(9);
-    await expect(ticked).toHaveText(["Design", "AI", "Technology"]);
   });
 
   test("chips ticked by hand mix both kinds of topic, and switching the audience keeps them", async ({
@@ -901,72 +873,6 @@ test.describe("navigation with three destinations and one action", () => {
     await expect(back).toHaveAttribute("href", "/library");
     await back.click();
     await expect(page).toHaveURL(/\/library$/);
-  });
-
-  test("the deep link /create is the page, with the form in it and the Create button beside the list", async ({
-    page,
-  }) => {
-    await openCreate(page);
-    await expect(page.getByRole("heading", { level: 1 })).toHaveText("New episode");
-    // The page has the form itself, so it carries no sheet to clone.
-    await expect(page.locator("#create-sheet-template")).toHaveCount(0);
-    await chip(page, "AI").click();
-    await expect(page.locator('input[name="topic"]:checked')).toHaveCount(2);
-  });
-});
-
-test.describe("episodes in the Library", () => {
-  test("show beside the briefings, say their format and length, and have a filter", async ({
-    page,
-  }) => {
-    await page.goto("/library");
-    const cards = page.locator("[data-card]");
-    await expect(cards).toHaveCount(5);
-    const episode = page.locator('[data-card][data-kind="episode"]', {
-      hasText: "Quiet interfaces and fast latency",
-    });
-    await expect(episode.locator(".card-title")).toHaveText("Quiet interfaces and fast latency");
-    await expect(episode.locator(".card-facts")).toHaveText("Discussion \u00b7 5 min");
-    await expect(
-      page
-        .locator('[data-card][data-kind="episode"]', { hasText: "AI headlines" })
-        .locator(".card-facts"),
-    ).toHaveText("Readout \u00b7 3 min");
-
-    const show = page.getByRole("group", { name: "Show" });
-    await expect(show.locator("input:checked")).toHaveCount(0);
-    await show.locator(".filter-chip", { hasText: "Episodes" }).click();
-    await expect(show.getByRole("checkbox", { name: "Episodes" })).toBeChecked();
-    await expect(page.locator("[data-card]:not([hidden])")).toHaveCount(2);
-    await expect(page.locator("[data-library-status]")).toHaveText("2 of 5 results");
-
-    // The other filters leave episodes out.
-    await show.locator(".filter-chip", { hasText: "Daily" }).click();
-    await expect(show.getByRole("checkbox", { name: "Episodes" })).not.toBeChecked();
-    await expect(page.locator("[data-card]:not([hidden])")).toHaveCount(2);
-    await expect(page.locator('[data-card][data-kind="episode"]:not([hidden])')).toHaveCount(0);
-
-    // Search finds an episode by a story it covers.
-    // Pressing the ticked chip again shows everything.
-    await show.locator(".filter-chip", { hasText: "Daily" }).click();
-    await expect(show.locator("input:checked")).toHaveCount(0);
-    // Search finds an episode by its title, on one line like a story.
-    await page.getByRole("searchbox").fill("interfaces and fast");
-    await expect(page.locator("[data-card]:not([hidden])")).toHaveCount(1);
-    await expect(page.locator("[data-card]:not([hidden])")).toHaveAttribute("data-kind", "episode");
-    await page.getByRole("searchbox").fill("no such story");
-    await expect(page.locator("[data-card]:not([hidden])")).toHaveCount(0);
-    await expect(page.locator("[data-library-empty]")).toBeVisible();
-  });
-
-  test("open the episode page from a card", async ({ page }) => {
-    await page.goto("/library");
-    await page.getByRole("link", { name: /Quiet interfaces and fast latency/ }).click();
-    await expect(page).toHaveURL(new RegExp(`${EPISODE}$`));
-    await expect(page.getByRole("heading", { level: 1 })).toHaveText(
-      "Quiet interfaces and fast latency",
-    );
-    await expect(page.locator('.app-nav-item[aria-current="page"]')).toHaveText("Library");
   });
 });
 

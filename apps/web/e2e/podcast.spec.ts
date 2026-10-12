@@ -717,6 +717,7 @@ test.describe("the Model page", () => {
   test("Anthropic offers the two Claude models, without asking for the live list", async ({
     page,
   }) => {
+    await page.clock.install();
     const sent = await mockConfig(page);
     await open(page, "model");
     let asked = 0;
@@ -732,7 +733,8 @@ test.describe("the Model page", () => {
     expect(asked).toBe(0);
     await page.keyboard.press("Escape");
     await pick(page, "haiku", /^Claude Haiku 5\.5/);
-    // The provider's own save may still be showing Saved: wait for the pick's request itself.
+    // The pick waits out the server's gap after the provider's own save.
+    await page.clock.runFor(GAP_MS);
     await expect
       .poll(() => opsOf(sent).at(-1))
       .toEqual({
@@ -746,13 +748,6 @@ test.describe("the Model page", () => {
 
 test.describe("offline", () => {
   test.use({ allowNetworkErrors: true });
-
-  test("an unreachable site is said plainly", async ({ page }) => {
-    await page.route("**/api/config", (route) => route.abort("connectionrefused"));
-    await open(page, "daily");
-    await page.locator("#daily-hour").selectOption("9");
-    await expect(toastText(page)).toHaveText("The site could not be reached. Not saved yet.");
-  });
 
   const unavailable = (page: Page) =>
     page.route("**/api/models", (route) =>

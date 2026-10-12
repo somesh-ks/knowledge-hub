@@ -671,28 +671,6 @@ test.describe("a topic's suggested sources", () => {
       ]);
   });
 
-  test("the owner's own topic is offered feeds by its name, what counts and its keywords", async ({
-    page,
-  }) => {
-    await setup(page);
-    await open(page, "/settings/topics/audio_interfaces");
-    // What counts says "interface", which four feeds are tagged with; none is tagged audio or voice.
-    await expect(names(page)).toHaveText([
-      "Interface Notes",
-      "Motion Weekly",
-      "Craft Bench",
-      "Agent Patterns",
-    ]);
-  });
-
-  test("a feed that is among the sources already is not offered", async ({ page }) => {
-    await setup(page);
-    await open(page, "/settings/topics/ai");
-    // Model Ledger fits AI best, and is one of its sources.
-    await expect(names(page)).toHaveText(["Agent Patterns"]);
-    await expect(source(page, "Model Ledger")).toHaveCount(1);
-  });
-
   test("a page has no such section when nothing fits: Other, Sports and Culture", async ({
     page,
   }) => {

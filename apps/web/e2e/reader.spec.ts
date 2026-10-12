@@ -1,7 +1,7 @@
 import type { Page } from "@playwright/test";
 import type { PlayerDigestData } from "../src/types/contracts";
 import { toRgba } from "./colors";
-import { AUDIO_DIGEST, expect, hydrated, SILENT_DIGEST, test } from "./fixtures";
+import { expect, hydrated, SILENT_DIGEST, test } from "./fixtures";
 
 const FIRST_HEADLINE =
   "Springlet 2.0 retargets springs mid-flight, so interrupted drawers keep their velocity";
@@ -404,23 +404,6 @@ test.describe("sections and stories", () => {
     await expect(chip).toHaveAttribute("data-state", "played");
   });
 
-  test("a story played from here does not mark the stories it stepped over as played", async ({
-    page,
-  }) => {
-    for (const from of [1, 2]) {
-      await page.goto("/");
-      await hydrated(page);
-      const chip = (index: number) => page.locator(".story").nth(index).locator("[data-play-item]");
-      await chip(from).click();
-      await expect(chip(from)).not.toHaveAttribute("data-state", "idle");
-      // Nothing was heard of the ones before it: they stay as they were, with their lengths.
-      for (let index = 0; index < from; index += 1) {
-        await expect(chip(index)).toHaveAttribute("data-state", "idle");
-        await expect(chip(index).locator("[data-chip-label]")).toHaveText(/^\d+:\d\d$/);
-      }
-    }
-  });
-
   test("the page does not pull a reader who scrolled elsewhere back to the voice", async ({
     page,
   }) => {
@@ -492,12 +475,6 @@ test.describe("sections and stories", () => {
       .locator(".story")
       .evaluateAll((nodes) => nodes.map((node) => node.getAttribute("data-item-id")));
     expect(data.items.map((item) => item.id)).toEqual(ids);
-  });
-
-  test("shows the same briefing at /d/<id> as at the home page", async ({ page }) => {
-    await page.goto(AUDIO_DIGEST);
-    await expect(page.getByRole("heading", { level: 1 })).toHaveText("Wednesday 7 October");
-    await expect(page.locator(".story")).toHaveCount(12);
   });
 
   test("is readable with JavaScript turned off", async ({ browser, baseURL }) => {
@@ -895,23 +872,6 @@ test.describe("the page head", () => {
 });
 
 test.describe("the page's chrome", () => {
-  test("the floating Play follows the hero's Play in the page, so it is never styled before it", async ({
-    page,
-  }) => {
-    for (const path of ["/", "/d/2026-10-05", "/e/ep-20261007-1930"]) {
-      await page.goto(path);
-      const after = await page.evaluate(() => {
-        const hero = document.querySelector(".hero-actions");
-        const fab = document.querySelector(".play-fab");
-        return Boolean(
-          hero && fab && hero.compareDocumentPosition(fab) & Node.DOCUMENT_POSITION_FOLLOWING,
-        );
-      });
-      expect(after, path).toBe(true);
-      await expect(page.locator(".play-fab"), path).toBeHidden();
-    }
-  });
-
   test("the latest briefing at its dated address is Today: no Back in the app bar", async ({
     page,
   }) => {

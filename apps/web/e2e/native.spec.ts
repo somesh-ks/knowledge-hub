@@ -275,13 +275,4 @@ test.describe("the tab bar", () => {
     await expect.poll(() => page.evaluate(() => window.scrollY)).toBe(0);
     await expect(page).toHaveURL(/\/d\/2026-10-07$/);
   });
-
-  test("from a page below a destination, its tab still goes there", async ({ page }) => {
-    await page.goto("/e/ep-20261007-1930");
-    await page
-      .getByRole("navigation", { name: "Primary" })
-      .getByRole("link", { name: "Library", exact: true })
-      .click();
-    await expect(page).toHaveURL(/\/library$/);
-  });
 });

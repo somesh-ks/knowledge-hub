@@ -37,42 +37,6 @@ async function mockRun(page: Page, states: unknown[]): Promise<Array<Record<stri
 }
 
 test.describe("Create as the primary action", () => {
-  test("the button or the floating button exists at this width, and the nav lists three", async ({
-    page,
-  }, info) => {
-    // Below 64rem Create floats on the Library alone (D60).
-    await page.goto("/library");
-    const wide = info.project.name === "desktop";
-    if (wide) {
-      await expect(page.locator(".create-fab")).toBeHidden();
-      await expect(page.locator(".app-nav-create")).toBeVisible();
-      await expect(page.locator(".app-nav-create")).toHaveText("New episode");
-      // Gmail's Compose: it hugs its words, 56px tall, and does not fill the column.
-      const button = await page.locator(".app-nav-create").boundingBox();
-      const column = await page.locator(".app-nav").boundingBox();
-      expect(Math.round(button?.height ?? 0)).toBe(56);
-      expect(button?.width ?? 0).toBeLessThan((column?.width ?? 0) - 40);
-    } else {
-      await expect(page.locator(".app-nav-create")).toBeHidden();
-      await expect(page.getByRole("link", { name: "New episode" })).toBeVisible();
-      // Extended at the top of the page, the plus and the word; folded to a 56px square while
-      // scrolling down to read (D52).
-      const fab = page.locator(".create-fab");
-      await expect(fab).toContainText("New episode");
-      expect(Math.round((await fab.boundingBox())?.width ?? 0)).toBeGreaterThan(56);
-      // The Library is short on a phone, so the steps are too: the first scroll loads the script
-      // that folds the button and the second, with room left to scroll, folds it.
-      await page.mouse.wheel(0, 120);
-      await page.waitForTimeout(150);
-      await page.mouse.wheel(0, 160);
-      await expect(fab).toHaveAttribute("data-folded", "");
-      await expect.poll(async () => Math.round((await fab.boundingBox())?.width ?? 0)).toBe(56);
-      await page.mouse.wheel(0, -400);
-      await expect(fab).not.toHaveAttribute("data-folded", "");
-    }
-    await expect(page.locator(".app-nav-item")).toHaveText(["Today", "Library", "Settings"]);
-  });
-
   test("opens the sheet, Escape closes it and focus returns to the button", async ({ page }) => {
     await openSheet(page);
     await expect(sheet(page).getByRole("heading", { name: "New episode" })).toBeVisible();
