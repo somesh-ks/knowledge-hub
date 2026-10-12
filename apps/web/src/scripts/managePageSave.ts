@@ -172,6 +172,10 @@ export function settle(batch: Batch, changes: Map<string, Pending>): void {
         const row = el.closest("li") ?? el.closest("[data-topic]");
         if (row) rehome(row);
         row?.setAttribute("data-gone", "");
+        // A topic's own page has nothing left to show once the topic is gone: back to the list,
+        // which leaves its row out (savedView.ts), rather than an empty page with only Back.
+        if (pending.op.op === "topic.remove" && !el.closest("li"))
+          globalThis.location?.assign("/settings/topics");
       } else if (el.matches("[data-suggest]")) (el as HTMLButtonElement).disabled = true;
       // Every control, a pressed remove button included, now starts from what was saved: read again,
       // it is no longer a change.

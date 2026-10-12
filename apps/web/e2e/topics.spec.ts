@@ -501,14 +501,16 @@ test.describe("a topic's page", () => {
     ]);
   });
 
-  test("removing a custom topic waits with Undo, then says the page goes", async ({ page }) => {
+  test("removing a custom topic waits with Undo, then goes back to the list without it", async ({
+    page,
+  }) => {
     const { sent } = await setup(page);
     await open(page, "/settings/topics/audio_interfaces");
     await page.getByRole("button", { name: "Remove topic Audio interfaces" }).click();
     await expect(toastText(page)).toHaveText("Removing Audio interfaces");
     await expect(page.getByRole("button", { name: "Keep topic Audio interfaces" })).toBeVisible();
-    await expect(page.getByText("Removed.", { exact: true })).toBeVisible(AFTER_UNDO);
-    await expect(page.getByRole("button", { name: /^Podcasts/ })).toBeHidden();
+    await expect(page).toHaveURL(/\/settings\/topics$/, AFTER_UNDO);
+    await expect(page.locator('a[href="/settings/topics/audio_interfaces"]')).toBeHidden();
     expect(ops(sent)).toEqual([{ op: "topic.remove", id: "audio_interfaces" }]);
   });
 
