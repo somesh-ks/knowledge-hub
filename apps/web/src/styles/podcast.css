@@ -349,9 +349,19 @@
   margin-inline-end: calc(var(--space-2) * -1);
 }
 
-/* Typing in it, it grows to a field's width. */
-.settings-row > .daily-combo:focus-within {
-  flex-basis: 22rem;
+/* Typing in it, it grows to a field's width. A phone gives it the row's room from the start, so a tap
+   never lands on a field that moves under it. */
+@media (width < 40rem) {
+  .settings-row > .daily-combo {
+    flex: 1 1 0;
+    max-inline-size: 22rem;
+  }
+}
+
+@media (min-width: 40rem) {
+  .settings-row > .daily-combo:focus-within {
+    flex-basis: 22rem;
+  }
 }
 
 /* Its words end where a select's do: the same room for the chevron (settings.css .value-select). */

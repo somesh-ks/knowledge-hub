@@ -183,6 +183,19 @@ test.describe("the profile pages", () => {
     await expect(second).toBeVisible();
   });
 
+  test("the two voice selects end at one edge whether or not a sample button shows", async ({
+    page,
+  }) => {
+    await open(page, "daily");
+    const right = async (id: string) => {
+      const box = await page.locator(id).boundingBox();
+      return (box?.x ?? 0) + (box?.width ?? 0);
+    };
+    expect(await right("#daily-voice")).toBeCloseTo(await right("#daily-voice_b"), 0);
+    // The setting is called Format here, as on the Create page.
+    await expect(page.getByRole("radiogroup", { name: "Format" })).toBeVisible();
+  });
+
   test("choosing a voice with a sample plays it through the site and shows its play button", async ({
     page,
   }) => {
