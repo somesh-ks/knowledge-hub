@@ -1,3 +1,4 @@
+import { FORMAT_LABELS } from "../../lib/formatLabels";
 import type { PlayerDigestData } from "../../types/contracts";
 import type { PlayerErrorKind, PlayerState } from "./playerTypes";
 import { briefingLengthLabel } from "./readerMath";
@@ -6,17 +7,25 @@ import { briefingLengthLabel } from "./readerMath";
  * What a recording is, and how long, for the line under its title when no story is being read: the
  * bar's caption, and the page's until the first story starts.
  */
-export function recordingCaption(digest: PlayerDigestData | undefined): string {
+export function recordingCaption(
+  digest: PlayerDigestData | undefined,
+  /** The loaded audio's real length in seconds, once known: it wins over the estimate. */
+  durationSec = 0,
+): string {
   if (!digest) return "";
   const kind = recordingKind(digest);
-  return digest.audio ? `${kind} \u00b7 ${briefingLengthLabel(digest.audio.duration_ms)}` : kind;
+  const ms = durationSec > 0 ? durationSec * 1000 : (digest.audio?.duration_ms ?? 0);
+  return ms > 0 ? `${kind} \u00b7 ${briefingLengthLabel(ms)}` : kind;
 }
 
 /**
  * The word the Library puts first on its card for the same recording: Daily or Weekly for a
- * briefing, Discussion for an episode with two voices, Episode otherwise (what is made on request).
+ * briefing, the episode's format (Readout, Discussion) for an episode, Episode for one that does
+ * not say.
  */
-function recordingKind(digest: PlayerDigestData): string {
+export function recordingKind(digest: PlayerDigestData): string {
+  const format = digest.format;
+  if (format && Object.hasOwn(FORMAT_LABELS, format)) return FORMAT_LABELS[format];
   // An episode carries its script; a briefing does not.
   if (digest.turns)
     return digest.turns.some((turn) => turn.speaker === "b") ? "Discussion" : "Episode";

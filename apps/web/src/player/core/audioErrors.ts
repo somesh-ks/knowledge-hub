@@ -6,6 +6,8 @@ export const MEDIA_ERR_NETWORK = 2;
 export const MEDIA_ERR_DECODE = 3;
 export const MEDIA_ERR_SRC_NOT_SUPPORTED = 4;
 
+export type AudioNoun = "briefing" | "episode";
+
 /**
  * Plain-language messages: what happened, then what to do (config/voice.md). Returns null for an
  * abort, which is what the browser reports when the source changes under it and is not a failure.
@@ -13,6 +15,8 @@ export const MEDIA_ERR_SRC_NOT_SUPPORTED = 4;
 export function describeMediaError(
   code: number | undefined,
   isOnline: boolean,
+  /** What the recording is called: an episode has a transcript, a briefing its text. */
+  noun: AudioNoun = "briefing",
 ): PlayerError | null {
   if (code === MEDIA_ERR_ABORTED) return null;
   if (!isOnline) {
@@ -36,7 +40,10 @@ export function describeMediaError(
       // A missing or expired file and an unsupported format look the same to the element.
       return {
         kind: "unavailable",
-        message: "The audio for this briefing is not available. The text is still here to read.",
+        message:
+          noun === "episode"
+            ? "The audio for this episode is not available. Its transcript is still here to read."
+            : "The audio for this briefing is not available. The text is still here to read.",
       };
     default:
       return {
@@ -47,17 +54,22 @@ export function describeMediaError(
 }
 
 /** The error for a rejected `play()` promise. AbortError means a newer load won, so it is not one. */
-export function describePlayRejection(error: unknown, isOnline: boolean): PlayerError | null {
+export function describePlayRejection(
+  error: unknown,
+  isOnline: boolean,
+  noun: AudioNoun = "briefing",
+): PlayerError | null {
   const name = error instanceof Error ? error.name : "";
   if (name === "AbortError") return null;
   if (name === "NotAllowedError") {
     return {
       kind: "blocked",
-      message: "Playback was blocked by the browser. Tap play to start.",
+      // "Press" fits a finger and a mouse alike, and is what the bar's own notice says.
+      message: "Playback was blocked by the browser. Press play to start.",
     };
   }
   if (name === "NotSupportedError") {
-    return describeMediaError(MEDIA_ERR_SRC_NOT_SUPPORTED, isOnline);
+    return describeMediaError(MEDIA_ERR_SRC_NOT_SUPPORTED, isOnline, noun);
   }
-  return describeMediaError(undefined, isOnline);
+  return describeMediaError(undefined, isOnline, noun);
 }

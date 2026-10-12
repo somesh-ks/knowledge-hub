@@ -87,7 +87,7 @@ describe("the briefing chip", () => {
   });
 
   it("offers to resume a remembered position, in whole minutes left", () => {
-    expect(briefingChipView(stateFor("idle"), 58, makeDigest())).toEqual({
+    expect(briefingChipView(stateFor("idle"), 20, makeDigest())).toEqual({
       state: "idle",
       playing: false,
       label: "2 min left",
@@ -95,6 +95,20 @@ describe("the briefing chip", () => {
     });
     expect(briefingChipView(stateFor("idle"), 61, makeDigest()).label).toBe("1 min left");
     expect(briefingChipView(stateFor("idle"), 119, makeDigest()).label).toBe("1 min left");
+  });
+
+  it("rounds the time left as it rounds the length, so one recording has one length", () => {
+    const digest = { ...makeDigest(), audio: { url: "/a.mp3", duration_ms: 130_000 } };
+    const paused = { ...stateFor("paused"), duration: 130 };
+    expect(briefingChipView(paused, 1, digest).label).toBe("2 min left");
+    expect(briefingLengthLabel(130_000)).toBe("2 min");
+  });
+
+  it("says the loaded audio's real length once it is known, not the page's estimate", () => {
+    const estimate = { ...makeDigest(), audio: { url: "/a.mp3", duration_ms: 300_000 } };
+    const loaded = { ...stateFor("idle"), duration: 130 };
+    expect(briefingChipView(loaded, 0, estimate).label).toBe("2 min");
+    expect(briefingChipView({ ...loaded, duration: 0 }, 0, estimate).label).toBe("5 min");
   });
 
   it("follows playback: playing, paused, played, try again", () => {

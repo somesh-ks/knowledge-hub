@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useRef, useState } from "react";
-import { hostOf, readHostNames, transcriptNames } from "../lib/hosts";
+import { hostOf, needsVoiceList, readHostNames, readVoiceIds, transcriptNames } from "../lib/hosts";
 import type { SegmentWordMark } from "../lib/segmentMarks";
+import { loadVoiceCatalogue, type VoiceCatalogue } from "./core/hostVoices";
 import { getPlayerStore } from "./core/playerRuntime";
 import {
   currentTurnIndex,
@@ -36,10 +37,29 @@ export default function ScriptView({ titleHidden = false }: { titleHidden?: bool
   const [away, setAway] = useState(false);
   const digestId = state.track?.digest.id;
   // Nobody is named in an episode with one voice; a discussion names each host after their voice.
+  // One made before names were stored is named from its voices, once the voice list is here.
   const storedHosts = state.track?.digest.hosts;
+  const voiceIds = state.track?.digest.voices;
+  const [catalogue, setCatalogue] = useState<VoiceCatalogue | null | undefined>(undefined);
+  const wantsVoices = needsVoiceList(turns, readHostNames(storedHosts));
+  useEffect(() => {
+    if (!wantsVoices || catalogue !== undefined) return;
+    let live = true;
+    void loadVoiceCatalogue().then((found) => {
+      if (live) setCatalogue(found);
+    });
+    return () => {
+      live = false;
+    };
+  }, [wantsVoices, catalogue]);
   const names = useMemo(
-    () => transcriptNames(turns, readHostNames(storedHosts)),
-    [turns, storedHosts],
+    () =>
+      transcriptNames(
+        turns,
+        readHostNames(storedHosts),
+        catalogue ? { ids: readVoiceIds(voiceIds), ...catalogue } : catalogue,
+      ),
+    [turns, storedHosts, voiceIds, catalogue],
   );
   // Speechify's word marks, by segment key, for the turns that have been near the voice.
   const [marks, setMarks] = useState<Record<string, SegmentWordMark[]>>({});

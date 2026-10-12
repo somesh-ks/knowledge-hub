@@ -11,7 +11,7 @@
  * announcement layers never have to infer intent from state diffs.
  */
 import type { PlayerDigestData } from "../../types/contracts";
-import { describeMediaError, describePlayRejection } from "./audioErrors";
+import { type AudioNoun, describeMediaError, describePlayRejection } from "./audioErrors";
 import { clamp, isFiniteNumber } from "./mathUtils";
 import {
   type AudioLike,
@@ -376,9 +376,14 @@ export function createPlayerStore(options: PlayerStoreOptions): PlayerStore {
     if (audio && audio.playbackRate !== rate) applyRate();
   }
 
+  /** What the error copy calls the recording: an episode carries its script. */
+  function audioNoun(): AudioNoun {
+    return track?.digest.turns ? "episode" : "briefing";
+  }
+
   function onError(): void {
     if (!audio) return;
-    const error = describeMediaError(audio.error?.code, isOnline());
+    const error = describeMediaError(audio.error?.code, isOnline(), audioNoun());
     if (!error) return;
     stopFrameLoop();
     stopSaveTimer();
@@ -527,7 +532,7 @@ export function createPlayerStore(options: PlayerStoreOptions): PlayerStore {
     emit({ type: "willPlay", reason });
     commit({ status: "loading", hasStarted: true, interrupted: false, error: null });
     Promise.resolve(element.play()).catch((rejection: unknown) => {
-      const error = describePlayRejection(rejection, isOnline());
+      const error = describePlayRejection(rejection, isOnline(), audioNoun());
       if (!error) return;
       stopBufferTimer();
       wantsPlay = false;
@@ -693,7 +698,7 @@ export function createPlayerStore(options: PlayerStoreOptions): PlayerStore {
       // playing event restarts the frame loop; a seek that needs data raises waiting.
       wantsPlay = true;
       Promise.resolve(audio.play()).catch((rejection: unknown) => {
-        const error = describePlayRejection(rejection, isOnline());
+        const error = describePlayRejection(rejection, isOnline(), audioNoun());
         if (!error) return;
         wantsPlay = false;
         commit({ status: error.kind === "blocked" ? "paused" : "error", error });

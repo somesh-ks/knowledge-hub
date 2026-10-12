@@ -29,6 +29,8 @@ export interface PlayerTurn {
   key: string;
   speaker: "a" | "b";
   text: string;
+  /** The story this turn is about, or null for a greeting, a link between stories or a sign-off. */
+  item_id?: string | null;
   /** Start and end inside the narration, or null before it has been laid out. */
   start_ms: number | null;
   end_ms: number | null;
@@ -61,6 +63,10 @@ export interface PlayerDigestData {
   turns?: PlayerTurn[];
   /** What the two voices of a discussion are called, when the episode stored the names. */
   hosts?: { a: string; b: string } | null;
+  /** The voice ids an episode was asked for; null for a host means the default voice. */
+  voices?: { a: string | null; b: string | null };
+  /** An episode's format, as the Library names it. Briefings have none. */
+  format?: "readout" | "discussion" | "headlines";
   cover: {
     src512: string;
     src1024: string;

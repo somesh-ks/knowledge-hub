@@ -71,7 +71,12 @@ export interface ChipView {
 
 /** "8 min" for a whole recording: whole minutes, never less than one. */
 export function briefingLengthLabel(durationMs: number): string {
-  return `${Math.max(1, Math.round(durationMs / 60_000))} min`;
+  return `${wholeMinutes(durationMs)} min`;
+}
+
+/** Minutes to the nearest whole one, never less than one: the one rule for a length and a time left. */
+function wholeMinutes(durationMs: number): number {
+  return Math.max(1, Math.round(durationMs / 60_000));
 }
 
 /** "0:24" for one story's share of the recording, or "" when it has no marks. */
@@ -118,12 +123,16 @@ export function briefingChipView(
   noun: ChipNoun = "briefing",
 ): ChipView {
   const pageDurationMs = pageDigest.audio?.duration_ms ?? 0;
-  const idle = idleBriefingChip(briefingLengthLabel(pageDurationMs), noun);
   // Another briefing is loaded: this chip starts its own from the top.
-  if (state.digestId !== pageDigest.id) return idle;
+  if (state.digestId !== pageDigest.id) {
+    return idleBriefingChip(briefingLengthLabel(pageDurationMs), noun);
+  }
 
+  // Once the audio has loaded, its real length is the one every control says.
   const total = state.duration || pageDurationMs / 1000;
-  const left = `${Math.max(1, Math.ceil(Math.max(0, total - timeSeconds) / 60))} min left`;
+  const idle = idleBriefingChip(briefingLengthLabel(total * 1000), noun);
+  // The same rounding as the length, so 2:10 is "2 min" long with "2 min left" at its start.
+  const left = `${wholeMinutes(Math.max(0, total - timeSeconds) * 1000)} min left`;
   const resume = { playing: false, label: left, name: `Resume the ${noun}, ${left}` };
   const playing: ChipView = {
     state: "current",

@@ -28,6 +28,26 @@ describe("recordingCaption", () => {
     expect(recordingCaption({ ...base, turns: [turn("a")] })).toBe("Episode · 2 min");
   });
 
+  it("uses the episode's format, as the Library does", () => {
+    const turn = (speaker: "a" | "b") => ({ speaker }) as never;
+    expect(recordingCaption({ ...base, format: "readout", turns: [turn("a")] })).toBe(
+      "Readout · 2 min",
+    );
+    expect(recordingCaption({ ...base, format: "headlines", turns: [turn("a")] })).toBe(
+      "Readout · 2 min",
+    );
+    expect(recordingCaption({ ...base, format: "discussion", turns: [turn("a")] })).toBe(
+      "Discussion · 2 min",
+    );
+  });
+
+  it("takes the loaded audio's real length over the estimate", () => {
+    expect(recordingCaption({ ...base, audio: { url: "/a", duration_ms: 300_000 } }, 130)).toBe(
+      "Daily · 2 min",
+    );
+    expect(recordingCaption({ ...base, audio: null }, 130)).toBe("Daily · 2 min");
+  });
+
   it("is only the kind before there is audio, and nothing without a recording", () => {
     expect(recordingCaption({ ...base, audio: null })).toBe("Daily");
     expect(recordingCaption(undefined)).toBe("");
