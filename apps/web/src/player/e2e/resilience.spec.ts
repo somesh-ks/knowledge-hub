@@ -67,9 +67,14 @@ test.describe("when playback does not go to plan", () => {
     await lab.open();
     await lab.cta.tap();
     await expect(page.locator("html")).toHaveAttribute("data-player-state", "error");
-    await expect(lab.cta).toHaveAttribute("data-state", "idle");
+    // The chip draws the refresh mark like the disc, not a play triangle.
+    await expect(lab.cta).toHaveAttribute("data-state", "error");
+    await expect(lab.cta.locator(".chip-refresh")).toBeVisible();
+    await expect(lab.cta.locator(".chip-glyph > .swap")).toBeHidden();
     await expect(lab.cta.locator("[data-chip-label]")).toHaveText("Try again");
     await expect(page.locator(".dock-caption")).toHaveText("Audio is not available");
+    // Nothing is being read, so the bar names the recording and not its first story.
+    await expect(page.locator(".dock-title")).toHaveText(lab.facts.title);
     await lab.openPlayer();
     const notice = page.getByRole("alert").filter({ hasText: "not available" });
     await expect(notice).toHaveText("Audio is not available for this briefing.");
