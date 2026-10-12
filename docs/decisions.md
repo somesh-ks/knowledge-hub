@@ -64,7 +64,7 @@ D1 to D9 date from plan v2 (2026-10-05). D10 to D25 date from 2026-10-06. Reason
 | D52 | On a phone the Create button floats only on Today and the Library, extended until you scroll | superseded by D60: Create floats on the Library alone |
 | D53 | First-load JavaScript budget 110 KB, kept as low as the code allows | active |
 | D54 | Form fields carry a 3:1 outline; in the player only Play is in full ink | active for text fields; selects, segmented controls and chips are tonal since D72 |
-| D55 | A source's score is out of 3: health, quality and trust, combined so a weak part cannot be bought back | active |
+| D55 | A source's score is out of 3: health, quality and trust, combined so a weak part cannot be bought back | active; shown as a word, not pips and a number, since D83 |
 | D56 | One panel adds a topic or a source and edits a source; Settings has no Custom page | active |
 | D57 | A topic's page edits its details and adds the sources that suit it; topics are listed by name | active; shipped topics take a new name, and app topics new wording, since D64; the judge topics show under Design, AI and Technology since D69 |
 | D58 | The Model page offers six top Nebius writers by name, live list or not | active |
@@ -92,6 +92,8 @@ D1 to D9 date from plan v2 (2026-10-05). D10 to D25 date from 2026-10-06. Reason
 | D80 | An episode is written to 95% of what its stories can carry, and a script a little under the floor is kept | active |
 | D81 | A workflow installs only what it runs; the audio job skips the Vercel pull when the Blob token is set | active; the owner merges the workflow files by hand |
 | D82 | Play keeps an early tap, a new episode is pre-narrated, the deploy is noticed in 2.5 s | active |
+| D83 | Settings shows a source's score as one word, a source's name opens its editor, and the Model default is called Default | active; amends D55's pips and D69's name links |
+| D84 | A failed run keeps its request and offers Try again; a finished run clears itself; one run at a time | active |
 
 ---
 
@@ -847,3 +849,20 @@ D1 to D9 date from plan v2 (2026-10-05). D10 to D25 date from 2026-10-06. Reason
 - Why: the owner pointed at delays in time to play. A tap in the first two seconds of a page was lost; a new episode had no audio, so the first Play synthesised for 3 to 5 s; the progress indicator noticed the deploy up to 14 s late.
 - Cost: a new episode takes one of the day's narrations when it goes live, whether it is played or not (the cap is three a day; whether pre-narration should count is the owner's call). The inline script adds about 450 bytes gzipped to every page. A marks file can stay behind when the audio upload fails for good; it is harmless.
 - Rejected: moving the charge write beside the storage checks (a stored segment would be charged again on a replay, and a segment could be made before its charge is on record); splitting a long first turn at its first sentence (left for later).
+
+## D83: Settings shows a source's score as one word, a source's name opens its editor, and the Model default is called Default
+
+- Date: 2026-10-12
+- Decision: A source's row shows its score as one word under the host ("host · Good"; Excellent, Good, Fair or Poor, and "Not scored yet" for a new source); the pips and the number are gone. The score is still out of 3 and its parts are in the edit panel (D55). A source's name, and a suggested source's, is plain text: the row opens the editor, and the panel's Address link opens the site. Segmented controls are pills with on-surface labels, and the daily podcast's "Type" is "Format". A topic's summary on the list reads "2 of 3 sources on" or "No sources yet" and carries no weight. The Model page's automatic choice is called "Default" and its row reads "Nebius, Default". A weight reads as a percentage under its label. A topic with a name already in use is refused, a queued topic has no Cancel, the World topic has a switch that is really its on state, and a failed address lookup says so under the field. Panel and sheet headers put Close before the title.
+- Why: the second critic found three marks for one score (pips, number and label), a link and a row action fighting over one name, long values pushing a row past the edge of a 360px phone, and a Cancel that cancelled nothing.
+- Cost: a source's site is one press further (open its row, then Address); a word hides the difference between 2.1 and 2.6, which the panel's parts show.
+- Rejected: keeping the pips beside the word (the same fact twice); a name that links out with a separate edit control (a row with two targets, neither obvious).
+- Amends: D55 (the pips and the number) and D69's names as links.
+
+## D84: A failed run keeps its request and offers Try again; a finished run clears itself; one run at a time
+
+- Date: 2026-10-12
+- Decision: The run indicator keeps the request of an episode that failed and offers Try again, which sends it again and follows the new run. A refusal names its own wait (a 429) and a request that cannot go from the line (a 401, or no passphrase) reopens the form filled in. Opening the new episode, or having it on screen, clears "Episode ready" and gives back the room it held. While an episode is being made, New episode says so (to a screen reader) instead of sending a second request, and a regenerate hands the indicator its request too. The lines read "Episode queued", "Writing your episode", "Adding it to your Library", "Couldn't make the episode" and "Still being made. It will appear in your Library." A briefing keeps "Updating the site".
+- Why: a failed run said "later" and left nothing to press, "Episode ready" stayed on every page until dismissed, and a second request could start while the first ran.
+- Cost: the request is kept in the browser (session storage) until the run ends; New episode still opens its sheet while a run is going, and says why only to a screen reader; a regenerate's fallback reopens its panel on that episode's own page only.
+- Rejected: retrying by itself (a failure that repeats would spend the day's limit); blocking the sheet while a run is going (the owner may want to read the form).
