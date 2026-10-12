@@ -91,6 +91,41 @@ test.describe("player geometry @surface", () => {
     await expect(page.getByRole("button", { name: "Next story" })).toHaveCount(1);
   });
 
+  test("at tablet width a mouse sees a way to close the open page @surface", async ({
+    lab,
+    page,
+    finger,
+  }, info) => {
+    test.skip(info.project.name !== "site-desktop", "a mouse");
+    await page.setViewportSize({ width: 820, height: 1000 });
+    await lab.open();
+    await lab.play();
+    await lab.dockSettled();
+    await lab.openPlayer();
+    const toggle = page.locator(".player-dock .dock-toggle");
+    await expect(toggle).toBeVisible();
+    await finger.press(toggle);
+    await lab.collapsed();
+  });
+
+  test("with a mouse the clock sits by the seek line while the page is open, and the middle holds still @surface", async ({
+    lab,
+    page,
+  }, info) => {
+    test.skip(info.project.name !== "site-desktop", "a mouse");
+    await lab.open();
+    await lab.play();
+    await lab.dockSettled();
+    const middle = await box(page, ".player-dock .dock-open");
+    await lab.openPlayer();
+    const clock = await box(page, ".player-dock .dock-time");
+    const after = await box(page, ".player-dock .dock-open");
+    // No room is kept for the hidden buttons: the clock starts at the bar's own inset.
+    expect(clock?.left ?? 999).toBeLessThan(64);
+    expect(Math.abs((after?.left ?? 0) - (middle?.left ?? 0))).toBeLessThanOrEqual(1);
+    expect(Math.abs((after?.width ?? 0) - (middle?.width ?? 0))).toBeLessThanOrEqual(1);
+  });
+
   test("a very wide window gives the cover more room and keeps the source", async ({
     lab,
     page,

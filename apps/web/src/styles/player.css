@@ -1206,6 +1206,31 @@
   .player[data-open="true"] .dock-transport {
     visibility: hidden;
   }
+
+  /* The buttons leave the layout, not just the view: the clock that a mouse keeps (below) then
+     sits against the seek line instead of in the room they left. The middle group is placed by the
+     bar's outer columns, so it holds still. */
+  .player[data-open="true"] .dock-transport > .dock-btn {
+    display: none;
+  }
+
+  .player[data-open="true"] .dock-time {
+    margin-inline-start: 0;
+  }
+}
+
+/* A mouse at tablet width has no handle and no tools column: the chevron alone, where the transport
+   was, closes the open page. */
+@media (min-width: 40rem) and (max-width: 63.9375rem) and (hover: hover) and (pointer: fine) {
+  .player[data-open="true"] .dock-tools {
+    display: flex;
+    grid-row: 1;
+    grid-column: 2;
+  }
+
+  .player[data-open="true"] .dock-volume {
+    display: none;
+  }
 }
 
 @media (min-width: 64rem) and (hover: hover) and (pointer: fine) {
