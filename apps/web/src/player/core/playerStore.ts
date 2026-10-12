@@ -402,6 +402,13 @@ export function createPlayerStore(options: PlayerStoreOptions): PlayerStore {
       if (narrated.summary) error.summary = narrated.summary;
       if (narrated.standing) error.kind = "refused";
     }
+    // The playhead is where the element failed, not where the last frame left it: a story whose
+    // file could not be made fails at its start, while the last frame is still in the tail of the
+    // story before. A retry from that tail would play it again before it was refused again.
+    if (state.status === "playing" || state.status === "loading") {
+      readAudioTime();
+      publishTime("auto", true);
+    }
     fail(error);
   }
 
@@ -562,10 +569,16 @@ export function createPlayerStore(options: PlayerStoreOptions): PlayerStore {
     if (disposed || !hasAudio()) return;
     if (state.status === "playing" || state.status === "loading") return;
     if (state.status === "error") {
+      // Offline the browser already knows the file cannot be fetched: the reason is told again,
+      // with nothing loaded and no Pause shown on the way.
+      if (state.error?.kind === "offline" && !isOnline()) {
+        fail({ ...state.error });
+        return;
+      }
       // Every failure is tried again from where the playhead is. In a refusal that stands, a story
       // whose file is made plays; one that needs a new file is refused again at once by the
       // narration's queue, which sends nothing, and the same reason is told again.
-      retry();
+      retryAs(reason);
       return;
     }
     startPlayback(reason);
@@ -593,7 +606,8 @@ export function createPlayerStore(options: PlayerStoreOptions): PlayerStore {
     else play("user");
   }
 
-  function retry(): void {
+  /** A retry is announced as what asked for it: a step or a row says its story, not "Playing.". */
+  function retryAs(reason: PlayReason): void {
     if (!track?.digest.audio) return;
     const url = track.digest.audio.url;
     // A failed element keeps its error until the source is set again.
@@ -601,7 +615,11 @@ export function createPlayerStore(options: PlayerStoreOptions): PlayerStore {
     pendingStart = time > 0 ? time : null;
     commit({ status: "idle", error: null });
     attachSource(url);
-    startPlayback("user");
+    startPlayback(reason);
+  }
+
+  function retry(): void {
+    retryAs("user");
   }
 
   function seekInternal(seconds: number, cause: ItemChangeCause): boolean {
