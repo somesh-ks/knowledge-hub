@@ -162,3 +162,5 @@ One line each: symptom, cause, fix. Newest first. Search before debugging.
 - 2026-10-12: cherry-pick a worker's non-merge commits (`git log --no-merges --reverse <lead>..<branch>`) and run `biome check` again afterwards: a formatting difference between two branches shows only on the combined tree.
 - 2026-10-12: a pseudo-element widened with `-100vmax` widens the page even under `clip-path`; extend it by the page gutters only. A segment's check animates its width, so measure it after the transition.
 - 2026-10-12: Playwright drag specs (`surface.spec`) become unreliable with three workers; run them one at a time. A `:hover` rule must sit in a block whose query starts with `@media (hover: hover)`, or `styles.test.ts` fails it.
+- 2026-10-12: a doubled `---` frontmatter fence in an `.astro` component printed a stray "---" on every page, and no build, type check or test failed. Look at a screenshot of any page whose component changed.
+- 2026-10-12: a field that grows when it takes focus moves under a phone tap, so the tap misses what it aimed at. Grow it on a fine pointer only (`@media (hover: hover)`).
