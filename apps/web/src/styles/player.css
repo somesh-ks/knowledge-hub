@@ -1735,7 +1735,7 @@
 .speed-panel-body {
   display: grid;
   /* The chosen speed's fill keeps the same distance from the bottom as from the sides. */
-  padding: var(--space-2) var(--space-4) var(--space-4);
+  padding: var(--space-4);
 }
 
 /*
