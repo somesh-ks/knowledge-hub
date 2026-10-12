@@ -32,8 +32,12 @@ export const SKIP_FORWARD_SECONDS = 10;
 
 export type PlayerStatus = "idle" | "loading" | "playing" | "paused" | "ended" | "error";
 
-/** `refused` is a narration refusal that a retry cannot change (a daily cap, a monthly budget). */
+/**
+ * `refused` is a narration refusal that a retry cannot change (a daily cap, a monthly budget).
+ * `offline` is a failure the lost connection caused: it alone is tried again when it comes back.
+ */
 export type PlayerErrorKind =
+  | "offline"
   | "network"
   | "decode"
   | "unavailable"

@@ -562,13 +562,9 @@ export function createPlayerStore(options: PlayerStoreOptions): PlayerStore {
     if (disposed || !hasAudio()) return;
     if (state.status === "playing" || state.status === "loading") return;
     if (state.status === "error") {
-      if (state.error?.kind === "refused") {
-        // Nothing would be sent: say again why, without a "Playing." the listener would not get.
-        const again = { ...state.error };
-        commit({ error: again });
-        emit({ type: "error", error: again });
-        return;
-      }
+      // Every failure is tried again from where the playhead is. In a refusal that stands, a story
+      // whose file is made plays; one that needs a new file is refused again at once by the
+      // narration's queue, which sends nothing, and the same reason is told again.
       retry();
       return;
     }

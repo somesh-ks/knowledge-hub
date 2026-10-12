@@ -224,16 +224,6 @@ export default function PlayerBar() {
     () => true,
   );
   const isLastItem = itemCount === 0 || state.itemIndex >= itemCount - 1;
-  const step = {
-    previousDisabled: itemCount === 0 || (state.itemIndex < 0 && atStart),
-    nextDisabled: isLastItem,
-    previous: () => {
-      store.previous();
-    },
-    next: () => {
-      if (!isLastItem) store.next();
-    },
-  };
   const open = useSyncExternalStore(
     playerSheet.subscribe,
     () => playerSheet.getSnapshot().open,
@@ -265,8 +255,8 @@ export default function PlayerBar() {
           className="dock-btn dock-wide press"
           type="button"
           aria-label="Previous story"
-          aria-disabled={step.previousDisabled || undefined}
-          onClick={step.previous}
+          aria-disabled={itemCount === 0 || (state.itemIndex < 0 && atStart) || undefined}
+          onClick={() => store.previous()}
         >
           <Icon name="skipBack" />
         </button>
@@ -287,8 +277,8 @@ export default function PlayerBar() {
           className="dock-btn press"
           type="button"
           aria-label="Next story"
-          aria-disabled={step.nextDisabled || undefined}
-          onClick={step.next}
+          aria-disabled={isLastItem || undefined}
+          onClick={() => isLastItem || store.next()}
         >
           <Icon name="skipForward" />
         </button>

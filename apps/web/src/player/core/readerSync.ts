@@ -432,6 +432,9 @@ export function createReaderSync(
       );
     } else if (event.type === "ended") {
       tracker.ended();
+    } else if (event.type === "willPlay") {
+      // A recording heard to the end starts afresh when it is played again.
+      tracker.started();
     } else if (event.type === "itemChanged") {
       const from = followFrom;
       followFrom = event.index;

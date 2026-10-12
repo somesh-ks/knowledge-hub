@@ -153,4 +153,166 @@ test.describe("a recording that fails @surface", () => {
     const bar = await lab.boxOf(page.locator("[data-player-dock]"));
     expect(notice.y + notice.height).toBeLessThanOrEqual(bar.y + 1);
   });
+
+  test("a failure and its retry move nothing on the open page, and two columns never overflow", async ({
+    lab,
+    page,
+  }, info) => {
+    test.skip(
+      info.project.name !== "site-desktop" && info.project.name !== "site-phone",
+      "a mouse and a finger, at the window sizes below",
+    );
+    test.setTimeout(300_000);
+    const sizes =
+      info.project.name === "site-desktop"
+        ? [
+            "1024x600",
+            "1133x690",
+            "1280x600",
+            "1280x680",
+            "1366x657",
+            "1536x730",
+            "1280x800",
+            "1920x1080",
+          ]
+        : ["360x640", "390x844", "820x1100", "1024x600", "1024x768", "1133x690", "1280x720"];
+    const measure = () =>
+      page.evaluate(() => {
+        const top = (selector: string) =>
+          document.querySelector(`[data-player-page] ${selector}`)?.getBoundingClientRect().top ??
+          -1;
+        const sheet = document.querySelector<HTMLElement>("[data-player-page]");
+        return {
+          overflow: sheet ? sheet.scrollHeight - sheet.clientHeight : -1,
+          positions: [
+            ".player-cover-frame",
+            ".scrubber-track",
+            ".transport",
+            ".transport [data-primary]",
+          ].map((selector) => Math.round(top(selector))),
+        };
+      });
+    for (const size of sizes) {
+      const [width = 0, height = 0] = size.split("x").map(Number);
+      await page.setViewportSize({ width, height });
+      await lab.open("/d/2026-10-05");
+      let failing = false;
+      await serve(page, (key) =>
+        failing && key !== "intro" ? { refusal: "synthesis_failed", status: 500 } : { file: true },
+      );
+      await lab.play();
+      await lab.openPlayer();
+      const rest = await measure();
+      // One column scrolls its list by design; two columns fit the window.
+      if (width >= 1024) expect(rest.overflow, `${size} at rest`).toBeLessThanOrEqual(1);
+      failing = true;
+      await lab.dialog.locator(".transport [aria-label='Next story']").click();
+      await expect(lab.root).toHaveAttribute("data-player-state", "error", { timeout: 10_000 });
+      const failed = await measure();
+      expect(failed.positions, `${size} in a failure`).toEqual(rest.positions);
+      if (width >= 1024) expect(failed.overflow, `${size} in a failure`).toBeLessThanOrEqual(1);
+      // A retry that fails again: during its load and after, nothing moves either.
+      await lab.dialog.locator(".transport [data-primary]").click();
+      expect((await measure()).positions, `${size} retrying`).toEqual(rest.positions);
+      await expect(lab.root).toHaveAttribute("data-player-state", "error", { timeout: 10_000 });
+      expect((await measure()).positions, `${size} after the retry`).toEqual(rest.positions);
+      await page.unrouteAll({ behavior: "ignoreErrors" });
+    }
+  });
+
+  test("Enter on the notice's Try again keeps focus on the page, on the Play disc", async ({
+    lab,
+    page,
+  }) => {
+    await lab.open("/d/2026-10-05");
+    await serve(page, (key) =>
+      key === "intro" ? { file: true } : { refusal: "synthesis_failed", status: 500 },
+    );
+    await lab.play();
+    await lab.openPlayer();
+    await lab.dialog.locator(".transport [aria-label='Next story']").click();
+    await expect(lab.root).toHaveAttribute("data-player-state", "error", { timeout: 10_000 });
+    await lab.dialog.getByRole("alert").getByRole("button", { name: "Try again" }).focus();
+    await page.keyboard.press("Enter");
+    // The notice leaves while the retry loads; focus is on the disc, which stays.
+    await expect(lab.dialog.locator(".transport [data-primary]")).toBeFocused();
+    await expect(lab.root).toHaveAttribute("data-player-state", "error", { timeout: 10_000 });
+    await expect(lab.dialog.locator(".transport [data-primary]")).toBeFocused();
+  });
+
+  test("in a standing refusal a story whose file is made still plays", async ({ lab, page }) => {
+    await lab.open("/d/2026-10-05");
+    const first = await page.evaluate(
+      () =>
+        JSON.parse(document.getElementById("dispatch-digest-data")?.textContent ?? "{}").items[0]
+          .id,
+    );
+    await serve(page, (key) =>
+      key === "intro" || key === first
+        ? { file: true }
+        : { refusal: "monthly_budget", status: 402 },
+    );
+    await lab.play();
+    await lab.openPlayer();
+    const next = lab.dialog.locator(".transport [aria-label='Next story']");
+    await next.click();
+    await expect(lab.root).toHaveAttribute("data-player-state", "playing");
+    await next.click();
+    await expect(lab.root).toHaveAttribute("data-player-state", "error", { timeout: 10_000 });
+    // Back to story 1, whose file was made: it plays, and the reason goes.
+    await lab.dialog.locator(".transport [aria-label='Previous story']").click();
+    await expect(lab.root).toHaveAttribute("data-player-state", "playing", { timeout: 10_000 });
+    await expect(lab.dialog.getByRole("alert")).toHaveCount(0);
+  });
+
+  test("a server's failure never starts by itself when the connection blips", async ({
+    lab,
+    page,
+    context,
+  }) => {
+    await lab.open("/d/2026-10-05");
+    let asked = 0;
+    await serve(page, (key) => {
+      if (key === "intro") return { file: true };
+      asked += 1;
+      return { refusal: "synthesis_failed", status: 500 };
+    });
+    await lab.play();
+    await lab.openPlayer();
+    await lab.dialog.getByRole("button", { name: "Next story" }).first().click();
+    await expect(lab.root).toHaveAttribute("data-player-state", "error", { timeout: 10_000 });
+    const before = asked;
+    // A phone changing networks: offline, then back.
+    await context.setOffline(true);
+    await page.waitForTimeout(300);
+    await context.setOffline(false);
+    await page.waitForTimeout(1_500);
+    expect(asked).toBe(before);
+    await expect(lab.root).toHaveAttribute("data-player-state", "error");
+  });
+
+  test("offline the notice offers no Try again, and the connection's return plays on", async ({
+    lab,
+    page,
+    context,
+  }) => {
+    await lab.open("/d/2026-10-05");
+    // A routed request is answered even offline: the files stand in for the network themselves.
+    let offline = false;
+    await serve(page, () => ({ file: !offline }));
+    await lab.play();
+    await lab.openPlayer();
+    offline = true;
+    await context.setOffline(true);
+    await lab.dialog.getByRole("button", { name: "Next story" }).first().click();
+    await expect(lab.root).toHaveAttribute("data-player-state", "error", { timeout: 10_000 });
+    const notice = lab.dialog.getByRole("alert");
+    await expect(notice).toHaveText("You are offline. Reconnect to play on.");
+    await expect(notice.getByRole("button")).toHaveCount(0);
+    await expect(lab.dialog.getByRole("button", { name: "Try again" })).toHaveCount(0);
+    await expect(page.locator(".dock-caption")).toHaveText("You are offline");
+    offline = false;
+    await context.setOffline(false);
+    await expect(lab.root).toHaveAttribute("data-player-state", "playing", { timeout: 10_000 });
+  });
 });

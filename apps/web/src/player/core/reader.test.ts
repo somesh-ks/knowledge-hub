@@ -82,6 +82,17 @@ describe("which stories were heard", () => {
     tracker.moved(1, "auto");
     expect([...tracker.heard]).toEqual([0]);
   });
+
+  it("a finished recording replayed after a reload drops its marks when it starts, and keeps story 1", () => {
+    const tracker = createHeardTracker();
+    // Loaded at story 1 (which starts at 0:00), remembered as heard to the end.
+    tracker.reset(0, [0, 1, 2], true);
+    tracker.started();
+    expect(tracker.heard.size).toBe(0);
+    // Playing on out of story 1 marks it: the first move after the replay keeps it.
+    tracker.moved(1, "auto");
+    expect([...tracker.heard]).toEqual([0]);
+  });
 });
 
 describe("reader markup contract", () => {
@@ -232,6 +243,11 @@ describe("the briefing chip", () => {
       label: "Daily limit reached",
       name: "Play the briefing, Daily limit reached",
     });
+    // Offline the chip says so, as the bar does, and offers no Try again.
+    const offline = stateFor("error", {
+      error: { kind: "offline", message: "You are offline.", summary: "You are offline" },
+    });
+    expect(briefingChipView(offline, 86, makeDigest()).label).toBe("You are offline");
   });
 
   it("shows the playing face for the first 300 ms of buffering, then that it is loading", () => {

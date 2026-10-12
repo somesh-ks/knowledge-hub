@@ -21,7 +21,6 @@ function playerIsOpen(): boolean {
 
 import { readDigestData } from "./digestData";
 import { replayEarlyTap, takeEarlyAudio } from "./earlyTap";
-import { recordInstallVisit } from "./installHint";
 import { attachMediaSession } from "./mediaSession";
 import { shouldToggleOnPageSpace } from "./playerKeys";
 import { playerSheet } from "./playerSheet";
@@ -142,7 +141,12 @@ function toggleOnSpace(playerStore: PlayerStore): (event: KeyboardEvent) => void
 export function startPlayerRuntime(): () => void {
   const playerStore = getPlayerStore();
   const preferences = getPreferences();
-  recordInstallVisit(safeLocalStorage());
+  // Counted for the install hint on Settings; nothing on this page waits on it, so it loads late.
+  whenIdle(() => {
+    import("./installHint")
+      .then((hint) => hint.recordInstallVisit(safeLocalStorage()))
+      .catch(() => undefined);
+  });
 
   const detachMediaSession = attachMediaSession(playerStore);
   const reader = createReaderSync(playerStore, narrateFromTap);
@@ -152,13 +156,21 @@ export function startPlayerRuntime(): () => void {
   const stopTheme = startThemeSync();
 
   syncRootState(playerStore);
-  const offState = playerStore.subscribe(() => syncRootState(playerStore));
+  // "Playing." waits for the sound: a start that fails at once (offline) says only why.
+  let starting: string | null = null;
+  const offState = playerStore.subscribe(({ status }) => {
+    syncRootState(playerStore);
+    if (status === "loading") return;
+    if (starting && status === "playing") announce(starting);
+    starting = null;
+  });
   const offEvent = playerStore.onEvent((event) => {
     const message = announcementForEvent(event, playerStore.getState().track, {
       open: playerIsOpen(),
       started: playerStore.getState().hasStarted,
     });
-    if (message) announce(message);
+    if (event.type === "willPlay") starting = message;
+    else if (message) announce(message);
   });
 
   const onPageLoad = (): void => {
@@ -225,7 +237,7 @@ export function startPlayerRuntime(): () => void {
   const onOnline = (): void => {
     if (playerIsOpen()) announce("You are back online.");
     // A failure the lost connection caused happened while the listener was playing: play on.
-    if (playerStore.getState().error?.kind === "network") playerStore.retry();
+    if (playerStore.getState().error?.kind === "offline") playerStore.retry();
   };
   const onOffline = (): void => {
     if (playerIsOpen()) announce("You are offline.");
