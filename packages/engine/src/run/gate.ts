@@ -6,8 +6,8 @@ import { loadSchedule } from "../schedule/store.js";
 import { listDigestIds } from "../state/digestIds.js";
 import { readLastRun } from "../state/store.js";
 import { UsageError } from "./errors.js";
-import { releaseSeen, replacementPass } from "./replace.js";
 import { newPassState, type Plan, type PlanPass, writePassState, writePlan } from "./plan.js";
+import { releaseSeen, replacementPass } from "./replace.js";
 import type { GateReport, RunDeps, RunOptions } from "./types.js";
 
 /** `--since` as a Date, or a usage error: it must be a real instant that is not in the future. */

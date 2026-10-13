@@ -76,6 +76,7 @@ describe("isOurRun", () => {
     conclusion: null,
     createdAt: "2026-10-07T05:00:00Z",
     startedAt: null,
+    title: "run",
     repositoryFullName: REPO,
   };
 

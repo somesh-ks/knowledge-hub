@@ -4,8 +4,9 @@ Last updated 2026-10-13. Rewrite this file; do not append.
 
 D103 (2026-10-13, after #94): source scores are out of 5 again and shown as a star rating before the checkbox; topic pages fold sources past seven; topic Delete asks first; Settings copy (Listen in, Topic weightage, Configure, Primary and Secondary voice); Today's Regenerate takes feedback for the writer (a new digest, not a replacement); the budget is 150 KB. Checked: unit suite, lint, typecheck, `astro check`, the static build, and screenshots of the Daily, Topics, AI topic and Model pages. Not run: the browser suites, the delete confirm on a real custom topic, a live Regenerate run.
 
+D104 (2026-10-13): every briefing has Share, Regenerate and Delete in its More menu. Regenerate replaces that digest over its own window (`dispatch run --replace`); Delete removes the digest and its timeline (`dispatch run --delete`), both through run.yml and /api/generate. Checked: unit suite, typecheck, lint. Not run: the browser suites, a live run of either action, the delete confirm on a briefing page.
+
 **Open decisions for the owner (D103):**
-- Regenerate on Today publishes a new digest that becomes the latest; it does not replace today's, and its fetch window starts at the last fetch, so it may find only new stories or nothing. Replacing today's needs a `--since` window and superseding the old digest.
 - Design, AI and Technology (built-in groups) have no More menu: their names are constants (`TOPIC_GROUPS`) and the engine refuses to remove built-in topics. Renaming or deleting them needs a group override in config.
 - pnpm: weighed and not adopted (history note of 2026-10-13); revisit if worktree setup keeps hurting.
 
