@@ -1967,6 +1967,8 @@
   --spoken-fill: color-mix(in oklch, var(--color-on-accent-container) 18%, transparent);
   background: var(--spoken-fill);
   box-shadow: 0 0 0 calc(var(--space-1) / 2) var(--spoken-fill);
+  /* The fill arrives with the word; only its leaving fades. A fade in trails the voice by its length. */
+  transition: none;
 }
 
 /* State layers: the turn's ink over its fill. The spoken word keeps its own fill under the pointer. */
@@ -2022,6 +2024,17 @@
 @media (max-width: 63.9375rem) {
   .player-list:has(.player-views) {
     min-height: 100cqb;
+  }
+
+  /* The switch stays under the status bar's room while the page scrolls, on the page's own colour so
+     the words passing under it do not show. Its gap is padding, so the colour covers it too. */
+  .segmented-group.player-views {
+    position: sticky;
+    inset-block-start: var(--safe-top);
+    z-index: calc(var(--z-raised) + 1);
+    margin-block-end: 0;
+    padding-block-end: var(--space-4);
+    background: var(--color-surface);
   }
 }
 

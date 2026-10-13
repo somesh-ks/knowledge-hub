@@ -4,6 +4,7 @@ import {
   estimateWordStarts,
   markedWordStarts,
   splitWords,
+  spokenWordIndex,
   turnEndMs,
   wordIndexAt,
 } from "./scriptMath";
@@ -39,6 +40,14 @@ describe("the transcript's words", () => {
     expect(wordIndexAt(starts, 1000)).toBe(0);
     expect(wordIndexAt(starts, 1500)).toBe(1);
     expect(wordIndexAt(starts, 5000)).toBe(2);
+  });
+
+  it("lights a word a hair before its mark, so a drawn frame is not late for the voice", () => {
+    const starts = [1000, 1250, 1750];
+    // The clock reads 1.2 s: the second word starts 50 ms on, inside the lead; the third does not.
+    expect(spokenWordIndex(starts, 1.2)).toBe(1);
+    expect(spokenWordIndex(starts, 1.5)).toBe(1);
+    expect(spokenWordIndex(starts, 0.8)).toBe(-1);
   });
 
   it("ends a turn at its own end, else at the next timed turn", () => {

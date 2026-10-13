@@ -110,6 +110,18 @@ export function wordIndexAt(starts: readonly number[], ms: number): number {
   return found;
 }
 
+/**
+ * How far ahead of the element's clock the word light reads. The clock is what the decoder has
+ * handed on, a little before the speaker plays it, and a fill drawn on a frame after the word has
+ * begun reads as late; a word lit slightly early reads as on time.
+ */
+export const WORD_LEAD_MS = 90;
+
+/** The word to light at the playhead `seconds`: `wordIndexAt` a short lead ahead. */
+export function spokenWordIndex(starts: readonly number[], seconds: number): number {
+  return wordIndexAt(starts, seconds * 1000 + WORD_LEAD_MS);
+}
+
 /** Where a turn ends: its own end, else where the next timed turn begins. */
 export function turnEndMs(turns: readonly PlayerTurn[], index: number): number | null {
   const own = turns[index]?.end_ms;
