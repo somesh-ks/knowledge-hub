@@ -112,6 +112,7 @@ D1 to D9 date from plan v2 (2026-10-05). D10 to D25 date from 2026-10-06. Reason
 | D100 | The time zone selector returns and the schedule counts in the chosen zone; Daily and Weekly offer Format and a second voice again; every voice row keeps its play button | active; amends D71, D89 and D91 |
 | D101 | A long list is a searchable list; the bar keeps its controls on a wide screen; every recording has a transcript; every topic is shown | active; amends D76, D90, D92 and D100 |
 | D102 | General topics play in Daily and Weekly, a topic is always on and has a summary card, the bar has no chevron, titles are bigger, and the gate runs in parallel with the site type-checked | active; amends D69, D87, D89, D90, D101 |
+| D103 | Source scores are out of 5 again, shown as a star rating; long source lists fold at seven; topic delete asks first; Regenerate on Today takes feedback; the first-load budget is 150 KB | active; amends D55, D83, D53 |
 
 ---
 
@@ -1141,3 +1142,15 @@ D1 to D9 date from plan v2 (2026-10-05). D10 to D25 date from 2026-10-06. Reason
 - Cost: `general_scoped` is one more field in the schedule file. A ticked general topic adds two stories per topic to a briefing and, on Weekly, up to 600 judged items (the ceiling); nothing has run live. The generated picture is abstract art with an initial, not a photograph. First-load JavaScript did not grow (the build's own check passed at 110 KB). The site check adds about 40 s to CI's typecheck step.
 - Rejected: photographs for topics (an image search needs a key, a licence per picture and a network at build; the generated art needs none, and a photograph can replace it later); topics ticked by default on Daily and Weekly (tomorrow's design briefing would open with world news); removing `enabled` from the schema (an old file would fail to parse); a second close control for tablets (the bar, Escape and Back already close it).
 - Amends: D69 (general topics are no longer for episodes only), D87 and D89 (title sizes), D90 (the chevron), D101 (every topic shown, the general ones locked).
+
+## D103: Scores out of 5 as a star rating; Regenerate with feedback; a 150 KB budget
+
+- Date: 2026-10-13 (the owner's second round of feedback that day)
+- Decision:
+  - A source's score is out of 5 again (SCORE_MAX 5; Excellent 4.5, Good 3.5, Fair 2.5, the same 0.9, 0.7 and 0.5 on the mean of the parts). A source row shows a star and the number ("4.5") before its checkbox, or New, and no longer shows its stories in briefings: the quality part already counts them (publish share and volume).
+  - A topic page lists seven sources and a "Show N more" button. Delete in a topic's More menu opens a confirm dialog first; built-in topics (Design, AI, Technology, the general topics) still have no Delete or menu, as the engine refuses to remove them.
+  - Copy: Listen in (was Podcasts), Topic weightage (was Weights, with no note under it), Configure (Daily and Weekly's link to Topics and sources), Primary voice and Secondary voice. Daily's Repeat row has no weekly note (`weeklyNote` is gone). The Topics list opens with "N topics" and a compact Add on one line; Add source is the same compact button.
+  - The model field is as wide as its name at rest (`field-sizing: content`), so its hover fill hugs the words.
+  - Today's New briefing is Regenerate: a dialog with one optional text area whose feedback goes through `/api/generate`, `run.yml`'s `feedback` input and `dispatch run --feedback` to the writer prompt as delimited untrusted text. It publishes a new digest that becomes the latest; it does not replace today's.
+  - The first-load budget is 150 KB (was 110 KB, D53), at the owner's request.
+- Why: the owner's feedback on /settings/daily, /settings/topics, /settings/topics/ai, /settings/model and Today.

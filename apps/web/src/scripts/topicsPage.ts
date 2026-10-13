@@ -84,7 +84,8 @@ function mount(root: HTMLElement): void {
     if ("confirmDelete" in button.dataset) {
       confirm?.close();
       const target = deleting;
-      if (target) void load().then((loaded) => loaded.handle({ type: "click", target } as unknown as Event));
+      if (target)
+        void load().then((loaded) => loaded.handle({ type: "click", target } as unknown as Event));
       return;
     }
     forward(event);

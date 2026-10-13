@@ -96,9 +96,9 @@ describe("scorePreview", () => {
   };
   const page = { ...base, hasFeed: false, latestAt: null, items30d: null };
 
-  it("rates a fresh feed with steady posting 3 of 3, Excellent, with every part full", () => {
+  it("rates a fresh feed with steady posting 5 of 5, Excellent, with every part full", () => {
     expect(scorePreview(base)).toEqual({
-      score: 3,
+      score: 5,
       label: "Excellent",
       parts: { health: 1, quality: 1, trust: 1 },
       reason: "Valid feed, 8 posts in the last 30 days, latest 2 days ago.",
@@ -146,7 +146,7 @@ describe("scorePreview", () => {
   it("scores a page without a feed low, but not 0", () => {
     const result = scorePreview(page);
     expect(result).toMatchObject({
-      score: 1,
+      score: 1.7,
       label: "Poor",
       parts: { health: 0.3, quality: 0.2, trust: 0.6 },
     });
@@ -155,21 +155,21 @@ describe("scorePreview", () => {
 
   it("scores a flood, a single post and a dormant feed below steady posting", () => {
     const flood = scorePreview({ ...base, items30d: 90 });
-    expect(flood).toMatchObject({ score: 2.1, label: "Good" });
+    expect(flood).toMatchObject({ score: 3.6, label: "Good" });
     expect(flood.reason).toContain("flood");
-    expect(scorePreview({ ...base, items30d: 1 })).toMatchObject({ score: 2.4, label: "Good" });
+    expect(scorePreview({ ...base, items30d: 1 })).toMatchObject({ score: 4, label: "Good" });
     const dormant = scorePreview({ ...base, latestAt: ago(400), items30d: 0 });
-    expect(dormant).toMatchObject({ score: 1.3, label: "Poor" });
+    expect(dormant).toMatchObject({ score: 2.2, label: "Poor" });
     expect(dormant.reason).toContain("no posts in the last 30 days");
   });
 
-  it("marks down plain http, and scores 3 times the geometric mean of the parts", () => {
+  it("marks down plain http, and scores 5 times the geometric mean of the parts", () => {
     const http = scorePreview({ ...base, https: false });
-    expect(http).toMatchObject({ score: 2.2, label: "Good" });
+    expect(http).toMatchObject({ score: 3.7, label: "Good" });
     for (const input of [base, page, { ...base, latestAt: ago(20), items30d: 1, named: false }]) {
       const { score, parts } = scorePreview(input);
       expect(score).toBe(
-        Math.round(3 * Math.cbrt(parts.health * parts.quality * parts.trust) * 10) / 10,
+        Math.round(5 * Math.cbrt(parts.health * parts.quality * parts.trust) * 10) / 10,
       );
     }
   });
@@ -198,7 +198,7 @@ describe("previewSource", () => {
       favicon_url: "https://news.example.com/static/icon.png",
       thumbnail_url: "https://news.example.com/img/share.png",
       items_30d: 4,
-      score: 3,
+      score: 5,
       score_label: "Excellent",
       score_parts: { health: 1, quality: 1, trust: 1 },
     });
@@ -227,7 +227,7 @@ describe("previewSource", () => {
     expect(preview.items_30d).toBeNull();
     // A title of its own, but no feed and no name beyond the one guessed from the host.
     expect(preview).toMatchObject({
-      score: 1,
+      score: 1.7,
       score_label: "Poor",
       score_parts: { health: 0.3, quality: 0.2, trust: 0.6 },
     });
