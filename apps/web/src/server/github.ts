@@ -32,6 +32,8 @@ export interface WorkflowRun {
   path: string;
   status: string;
   conclusion: string | null;
+  /** The run's display title: run.yml names a delete "delete <id>". */
+  title: string;
   createdAt: string;
   startedAt: string | null;
   repositoryFullName: string;
@@ -63,6 +65,7 @@ function parseRun(value: unknown): WorkflowRun | null {
     path: asString(value.path) ?? "",
     status: asString(value.status) ?? "",
     conclusion: asString(value.conclusion),
+    title: asString(value.display_title) ?? "",
     createdAt,
     startedAt: asString(value.run_started_at),
     repositoryFullName: repository ?? "",

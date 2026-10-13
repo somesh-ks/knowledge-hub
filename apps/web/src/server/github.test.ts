@@ -56,6 +56,7 @@ describe("createGitHubClient", () => {
       "repositoryFullName",
       "startedAt",
       "status",
+      "title",
     ]);
   });
 
