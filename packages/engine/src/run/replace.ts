@@ -9,7 +9,7 @@ import {
 } from "@dispatch/core";
 import { commitAndPush } from "../git/commit.js";
 import { readSeen, writeSeen } from "../state/store.js";
-import { StageFailure, UsageError } from "./errors.js";
+import { StageFailure } from "./errors.js";
 import type { PlanPass } from "./plan.js";
 import type { DeleteReport, RunDeps, RunMode } from "./types.js";
 
@@ -29,7 +29,7 @@ export async function replacementPass(
   try {
     text = await readFile(join(deps.root, digestRelPath(id)), "utf8");
   } catch {
-    throw new UsageError(`--replace ${id}: there is no such digest`);
+    throw new StageFailure(`--replace ${id}: there is no such digest`);
   }
   const old = parseDigestFile(text);
   return {
@@ -72,7 +72,7 @@ export async function deleteDigest(
   try {
     await readFile(join(deps.root, digestRelPath(id)), "utf8");
   } catch {
-    throw new UsageError(`--delete ${id}: there is no such digest`);
+    throw new StageFailure(`--delete ${id}: there is no such digest`);
   }
   if (options.dryRun) {
     return {

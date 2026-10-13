@@ -102,6 +102,6 @@ describe("delete a briefing", () => {
   it("refuses a digest that does not exist", LONG, async () => {
     const world = makeWorld(repo.root, { now: WED });
     const result = await runStage(world, { delete: "2026-01-01" });
-    expect(result.code).toBe(2);
+    expect(result.code).toBe(1);
   });
 });

@@ -1,5 +1,8 @@
 name: run
 
+# A delete run is named for what it does, so the site's rate limit on Regenerate does not count it.
+run-name: ${{ inputs.delete != '' && format('delete {0}', inputs.delete) || 'run' }}
+
 # Produces a digest on the chosen cadence (schedule), on demand (workflow_dispatch), and the weekly pass.
 # Step names are part of a contract: the site's Generate sheet maps them to its progress list.
 # Gate, Fetch, Judge, Write, Validate and Commit must keep these exact names.
@@ -79,6 +82,14 @@ on:
         description: "Regenerate: what the writer should improve, up to 500 characters, optional"
         type: string
         default: ""
+      replace:
+        description: "Regenerate a briefing: the digest id it replaces (same date, kind and window start), optional"
+        type: string
+        default: ""
+      delete:
+        description: "Delete a briefing: the digest id to remove with its narration timeline, optional"
+        type: string
+        default: ""
       dry_run:
         description: "Run every stage but write nothing and push nothing"
         type: boolean
@@ -123,19 +134,32 @@ jobs:
       - name: Install
         run: npm ci --ignore-scripts --workspace=packages/engine --include-workspace-root
 
+      # Delete runs alone: no stage after it has a plan to follow, so every later step is skipped.
+      - name: Delete
+        if: inputs.delete != ''
+        shell: bash
+        env:
+          DELETE_ID: ${{ inputs.delete }}
+          DISPATCH_GIT_NAME: ${{ vars.DISPATCH_GIT_NAME }}
+          DISPATCH_GIT_EMAIL: ${{ vars.DISPATCH_GIT_EMAIL }}
+        run: npm run --silent dispatch -- run --delete "$DELETE_ID" --json
+
       - name: Gate
         id: gate
+        if: inputs.delete == ''
         # Explicit bash enables pipefail, so a failing stage is not hidden by the tee in the pipe.
         shell: bash
         env:
           MODE: ${{ inputs.mode || 'scheduled' }}
           FORCE: ${{ inputs.force }}
           SINCE: ${{ inputs.since }}
+          REPLACE: ${{ inputs.replace }}
           DRY: ${{ inputs.dry_run }}
         run: |
           args=(--mode "$MODE" --json)
           [ "$FORCE" = "true" ] && args+=(--force)
           [ -n "$SINCE" ] && args+=(--since "$SINCE")
+          [ -n "$REPLACE" ] && args+=(--replace "$REPLACE")
           [ "$DRY" = "true" ] && args+=(--dry-run)
           npm run --silent dispatch -- run --stage gate "${args[@]}" | tee "$RUNNER_TEMP/gate.json"
           echo "due=$(jq -r '.due' "$RUNNER_TEMP/gate.json")" >> "$GITHUB_OUTPUT"
@@ -185,6 +209,7 @@ jobs:
       # before the run concludes. Published, nothing and gated all end as a successful run.
       - name: Commit
         id: commit
+        if: inputs.delete == ''
         shell: bash
         # Vercel Hobby deploys only commits authored by the team owner, so commit as the owner.
         env:
