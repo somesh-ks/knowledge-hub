@@ -2,7 +2,7 @@ import type { GenerateResponse } from "../types/contracts";
 import { readServerConfig, type ServerEnv, secretsOf } from "./config";
 import { createGitHubClient, type FetchLike } from "./github";
 import type { ApiResult } from "./http";
-import { evaluateLimits } from "./limits";
+import { DELETE_POLICY, evaluateLimits } from "./limits";
 import { cleanFeedback } from "./podcast";
 import { describeError } from "./redact";
 
@@ -26,6 +26,8 @@ export interface GenerateDeps {
   now: () => number;
   delay: (milliseconds: number) => Promise<void>;
   verifyPassphrase: (passphrase: string, storedHash: string) => Promise<boolean>;
+  /** The digests this build knows; Regenerate and Delete on a briefing refuse any other id. */
+  digestIds?: () => readonly string[];
   log?: (message: string) => void;
 }
 
@@ -73,6 +75,23 @@ export function parseFeedback(bodyText: string): string | null | undefined {
   return cleanFeedback(raw) ?? undefined;
 }
 
+/** A digest id: a date, then `-weekly` or a same-day number (core's DigestId). */
+const DIGEST_ID = /^\d{4}-\d{2}-\d{2}(-weekly|-[2-9]|-[1-9]\d+)?$/;
+
+/** What the request does to a briefing that exists; invalid is undefined, absent is a new one. */
+export type BriefingTarget = { delete: string } | { replace: string } | null | undefined;
+
+export function parseTarget(bodyText: string): BriefingTarget {
+  const { action, id, replace } = JSON.parse(bodyText) as Record<string, unknown>;
+  if (action !== undefined) {
+    return action === "delete" && typeof id === "string" && DIGEST_ID.test(id)
+      ? { delete: id }
+      : undefined;
+  }
+  if (replace === undefined || replace === null) return null;
+  return typeof replace === "string" && DIGEST_ID.test(replace) ? { replace } : undefined;
+}
+
 /** A browser that names another site as the origin is a cross-site request, which is never ours. */
 export function isSameOrigin(origin: string | null, expectedOrigin: string): boolean {
   if (origin === null) return true;
@@ -97,6 +116,12 @@ export async function handleGenerate(
   // parsePassphrase has already proven the body is a JSON object.
   const feedback = parseFeedback(input.bodyText);
   if (feedback === undefined) return invalid;
+  const target = parseTarget(input.bodyText);
+  if (target === undefined) return invalid;
+  const id = target === null ? null : "delete" in target ? target.delete : target.replace;
+  if (id !== null && !(deps.digestIds?.() ?? []).includes(id)) return invalid;
+  // A delete carries no feedback, and feedback never reaches a run that deletes.
+  const deleting = target !== null && "delete" in target;
 
   const isValid = await deps.verifyPassphrase(passphrase, config.passphraseHash);
   if (!isValid) {
@@ -107,8 +132,12 @@ export async function handleGenerate(
   const github = createGitHubClient(config, deps.fetch);
   try {
     const runs = await github.listDispatchRuns();
-    const started = runs.map((run) => Date.parse(run.createdAt)).filter(Number.isFinite);
-    const decision = evaluateLimits(started, deps.now());
+    // A delete is a run of run.yml too, but it must not use up the cooldown of a Regenerate.
+    const started = runs
+      .filter((run) => deleting || !run.title.startsWith("delete "))
+      .map((run) => Date.parse(run.createdAt))
+      .filter(Number.isFinite);
+    const decision = evaluateLimits(started, deps.now(), deleting ? DELETE_POLICY : undefined);
     if (!decision.allowed) {
       return {
         status: 429,
@@ -122,10 +151,15 @@ export async function handleGenerate(
     }
 
     const startedAt = deps.now();
-    let runId = await github.dispatch({
-      mode: "on-demand",
-      ...(feedback ? { feedback } : {}),
-    });
+    let runId = await github.dispatch(
+      deleting
+        ? { delete: id ?? "" }
+        : {
+            mode: "on-demand",
+            ...(feedback ? { feedback } : {}),
+            ...(id ? { replace: id } : {}),
+          },
+    );
     for (let attempt = 0; runId === null && attempt < RUN_LOOKUP_ATTEMPTS; attempt += 1) {
       // GitHub started the run but did not name it. The newest dispatch run created since the
       // request is the one.

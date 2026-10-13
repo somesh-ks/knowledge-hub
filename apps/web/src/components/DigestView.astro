@@ -5,6 +5,7 @@ import Briefing from "./Briefing.astro";
 import ChapterAside from "./ChapterAside.astro";
 import DigestHero from "./DigestHero.astro";
 import EarlierList from "./EarlierList.astro";
+import EpisodeActions from "./EpisodeActions.astro";
 import PlayerData from "./PlayerData.astro";
 
 interface Props {
@@ -28,7 +29,8 @@ const hasAudio = entry.audioMode === "ready";
   data-digest-date={entry.digest.date}
   data-latest={isLatest ? "true" : "false"}
 >
-  <DigestHero entry={entry} hero={hero} isLatest={isLatest} />
+  <DigestHero entry={entry} hero={hero} />
+  <EpisodeActions id={entry.id} noun="briefing" />
   <Briefing sections={sections} hasAudio={hasAudio} />
   <EarlierList entries={earlier} />
   {/* The end of what the page shows. Once it is on screen the reader is at the end, and
@@ -43,4 +45,7 @@ const hasAudio = entry.audioMode === "ready";
   // Loaded on demand, so it stays one shared module. A script this small is otherwise inlined into
   // the page, and an inline module runs again on every visit to a briefing, doubling its listeners.
   void import("../scripts/briefingPage");
+  import { installEpisodeActions } from "../scripts/episodeActionsEntry";
+
+  installEpisodeActions();
 </script>

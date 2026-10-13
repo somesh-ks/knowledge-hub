@@ -6,6 +6,7 @@ import { fetchStage } from "./fetchStage.js";
 import { gateStage } from "./gate.js";
 import { judgeStage } from "./judgeStage.js";
 import { type Plan, requirePlan } from "./plan.js";
+import { deleteDigest } from "./replace.js";
 import type {
   CommitReport,
   FailureReport,
@@ -95,6 +96,10 @@ function runStage(
 export async function runPipeline(deps: RunDeps, options: RunOptions): Promise<PipelineResult> {
   let current: StageName = options.stage ?? "gate";
   try {
+    if (options.delete !== undefined) {
+      const report = await deleteDigest(deps, options.delete, options);
+      return { code: 0, report };
+    }
     if (options.stage !== undefined) {
       switch (options.stage) {
         case "gate":

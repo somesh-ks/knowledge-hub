@@ -4,10 +4,13 @@ import Icon from "./Icon.astro";
 import "../styles/episode-actions.css";
 
 interface Props {
-  /** The episode these actions are about. */
+  /** The episode or briefing these actions are about. */
   id: string;
+  /** A briefing regenerates in the Generate sheet, so only its Delete confirm is here. */
+  noun?: "episode" | "briefing";
 }
 
+const { noun = "episode" } = Astro.props;
 const MAX_FEEDBACK_CHARS = 500;
 
 // Every sentence the script can show is here, in the markup, not in the script.
@@ -34,7 +37,9 @@ const COPY = {
   [
     ["regenerate", "episode-regenerate-template"],
     ["delete", "episode-delete-template"],
-  ].map(([kind, templateId]) => (
+  ]
+    .filter(([kind]) => noun === "episode" || kind === "delete")
+    .map(([kind, templateId]) => (
     <template id={templateId}>
       {kind === "regenerate" ? (
         <dialog class="create-sheet regen-sheet" aria-labelledby="regen-title">
@@ -96,7 +101,7 @@ const COPY = {
       ) : (
         <dialog class="confirm-dialog" aria-labelledby="delete-title" aria-describedby="delete-lede">
           <form class="confirm-form" data-delete-form novalidate>
-            <h2 class="sheet-title" id="delete-title">Delete this episode?</h2>
+            <h2 class="sheet-title" id="delete-title">Delete this {noun}?</h2>
             <p class="create-hint confirm-lede" id="delete-lede">
               It will be removed from the Library on every device. This cannot be undone.
             </p>

@@ -156,6 +156,38 @@ describe("handleGenerate", () => {
     expect((await send(4)).status).toBe(400);
   });
 
+  it("replaces or deletes only a briefing this build lists, and a delete never uses up a Regenerate's cooldown", async () => {
+    const { deps, github } = setup({ digestIds: () => ["2026-10-07", "2026-10-07-weekly"] });
+    const recentDelete = runJson({ display_title: "delete 2026-10-05", created_at: hoursAgo(1) });
+    github.on("GET /actions/workflows/run.yml/runs", { json: { workflow_runs: [recentDelete] } });
+    github.on("POST /actions/workflows/run.yml/dispatches", { json: { workflow_run_id: 5 } });
+    const send = (extra: Record<string, unknown>) =>
+      handleGenerate(
+        input(JSON.stringify({ passphrase: "correct horse battery staple", ...extra })),
+        deps,
+      );
+    for (const bad of [
+      { replace: "2026-01-01" },
+      { replace: "../x" },
+      { replace: 7 },
+      { action: "delete" },
+      { action: "delete", id: "2026-01-01" },
+      { action: "remove", id: "2026-10-07" },
+    ]) {
+      expect((await send(bad)).status).toBe(400);
+    }
+    const dispatches = () => github.requests.filter((request) => request.method === "POST");
+    expect((await send({ replace: "2026-10-07-weekly", feedback: "Shorter" })).status).toBe(202);
+    expect(dispatches().at(-1)?.body).toMatchObject({
+      inputs: { mode: "on-demand", feedback: "Shorter", replace: "2026-10-07-weekly" },
+    });
+    expect((await send({ action: "delete", id: "2026-10-07", feedback: "ignored" })).status).toBe(
+      202,
+    );
+    expect(dispatches().at(-1)?.body).toMatchObject({ inputs: { delete: "2026-10-07" } });
+    expect(dispatches().at(-1)?.body).not.toHaveProperty("inputs.feedback");
+  });
+
   it("uses fixed inputs whatever the caller sends", async () => {
     const { deps, github } = setup();
     github.on("GET /actions/workflows/run.yml/runs", { json: { workflow_runs: [] } });

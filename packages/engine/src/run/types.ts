@@ -34,6 +34,10 @@ export interface RunOptions {
   feedback: string | undefined;
   /** Commit stage only: adopt this run directory (agent mode) instead of the gate's plan. */
   run: string | undefined;
+  /** Gate: make this digest again (same id, kind and window start) and, once published, replace it. */
+  replace: string | undefined;
+  /** Remove this digest, its timeline included, in one guarded commit. No other stage runs. */
+  delete: string | undefined;
 }
 
 export const DEFAULT_RUN_OPTIONS: RunOptions = {
@@ -45,6 +49,8 @@ export const DEFAULT_RUN_OPTIONS: RunOptions = {
   stage: undefined,
   feedback: undefined,
   run: undefined,
+  replace: undefined,
+  delete: undefined,
 };
 
 /** What the cover package's pickCover accepts. Declared here so only buildDeps imports the package. */
@@ -177,9 +183,18 @@ export interface FailureReport {
   items: 0;
 }
 
+/** `--delete`: the digest and the files removed with it. */
+export interface DeleteReport {
+  outcome: "deleted";
+  id: string;
+  removed: string[];
+  dry_run: boolean;
+  commit: string;
+}
+
 export interface PipelineResult {
   /** 0 for published, nothing and gated; 1 for a failed stage; 2 for a usage error. */
   code: number;
   /** The one JSON document the run prints on stdout. */
-  report: GateReport | StageReport | CommitReport | FailureReport;
+  report: GateReport | StageReport | CommitReport | FailureReport | DeleteReport;
 }

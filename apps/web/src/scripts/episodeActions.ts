@@ -99,7 +99,9 @@ function bind(kind: Kind, dialog: HTMLDialogElement, root: HTMLElement): void {
         return;
       }
     }
-    const id = root.dataset.episode ?? "";
+    // On a briefing page the root names a digest and the request goes to /api/generate.
+    const briefing = root.dataset.briefing;
+    const id = briefing ?? root.dataset.episode ?? "";
     let body: Record<string, string>;
     if (kind === "regenerate") {
       const text = feedback?.value.trim() ?? "";
@@ -115,7 +117,7 @@ function bind(kind: Kind, dialog: HTMLDialogElement, root: HTMLElement): void {
     }
 
     submit.disabled = true;
-    const res = await fetch("/api/podcast", {
+    const res = await fetch(briefing ? "/api/generate" : "/api/podcast", {
       method: "POST",
       headers: { "content-type": "application/json" },
       body: JSON.stringify(body),

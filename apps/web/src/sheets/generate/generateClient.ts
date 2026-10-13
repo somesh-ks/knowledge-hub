@@ -92,7 +92,17 @@ export async function startGenerate(
   if (!deps.isOnline()) return { kind: "rejected", reason: "offline", message: MESSAGES.offline };
 
   const note = feedback.trim();
-  const request: GenerateRequest = { passphrase: trimmed, ...(note ? { feedback: note } : {}) };
+  // On a briefing's page the new digest replaces that briefing (HeroMenu.astro names it); anywhere
+  // else, a toast's Details for one, it is a new briefing.
+  const replace =
+    typeof document === "undefined"
+      ? undefined
+      : document.querySelector<HTMLElement>("[data-briefing]")?.dataset.briefing;
+  const request: GenerateRequest = {
+    passphrase: trimmed,
+    ...(note ? { feedback: note } : {}),
+    ...(replace ? { replace } : {}),
+  };
   let response: Response;
   try {
     response = await deps.fetch("/api/generate", {

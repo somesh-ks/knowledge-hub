@@ -113,6 +113,7 @@ D1 to D9 date from plan v2 (2026-10-05). D10 to D25 date from 2026-10-06. Reason
 | D101 | A long list is a searchable list; the bar keeps its controls on a wide screen; every recording has a transcript; every topic is shown | active; amends D76, D90, D92 and D100 |
 | D102 | General topics play in Daily and Weekly, a topic is always on and has a summary card, the bar has no chevron, titles are bigger, and the gate runs in parallel with the site type-checked | active; amends D69, D87, D89, D90, D101 |
 | D103 | Source scores are out of 5 again, shown as a star rating; long source lists fold at seven; topic delete asks first; Regenerate on Today takes feedback; the first-load budget is 150 KB | active; amends D55, D83, D53 |
+| D104 | Every briefing, daily or weekly, latest or older, has Share, Regenerate and Delete; Regenerate replaces that digest over its own window; Delete removes its file and timeline | active; amends D88, D103 |
 
 ---
 
@@ -1154,3 +1155,14 @@ D1 to D9 date from plan v2 (2026-10-05). D10 to D25 date from 2026-10-06. Reason
   - Today's New briefing is Regenerate: a dialog with one optional text area whose feedback goes through `/api/generate`, `run.yml`'s `feedback` input and `dispatch run --feedback` to the writer prompt as delimited untrusted text. It publishes a new digest that becomes the latest; it does not replace today's.
   - The first-load budget is 150 KB (was 110 KB, D53), at the owner's request.
 - Why: the owner's feedback on /settings/daily, /settings/topics, /settings/topics/ai, /settings/model and Today.
+
+## D104: A briefing can be regenerated in place or deleted
+
+- Date: 2026-10-13
+- Decision:
+  - The briefing page's More menu is the episode's: Share, Regenerate, Delete, on the latest and on older Daily and Weekly pages (HeroMenu.astro, one component). Delete opens the episode confirm (EpisodeActions.astro, `noun="briefing"`). Regenerate still opens the Generate sheet, whose request now carries the page's digest id (`replace`), because the sheet already follows a briefing run; the episode rewrite panel and the run indicator stay the episode's. Library cards stay without a menu, as episode cards have none.
+  - `dispatch run --replace <id>` (run.yml input `replace`): the gate plans one pass with the old digest's id, kind and date, over its window start to now, whatever the cadence says, and frees that digest's stories in `state/seen.json`. The commit stage removes the old digest and its narration timeline and writes the new digest under the same id in one `chore(digest): replace <id>` commit, only when the new one published (a replacement that finds nothing keeps the old). It records the on-demand slot (the status route reads it) and leaves the regular record and the fetch window alone. The old MP3 stays in the Blob store until the audio job uploads the new one over the same path.
+  - `dispatch run --delete <id>` (run.yml input `delete`; the run is named "delete <id>"): removes the digest and its timeline in one `chore(digest): remove <id>` commit through the `run` write guard; no other step runs. `POST /api/generate` takes `{action:"delete", id}` or `{replace, feedback?}`, refuses an id the build does not list, applies the delete limits (10 s, 20 a day) to a delete and leaves delete runs out of the Regenerate cooldown. A device that deleted hides the briefing's Library card and page at once (the episode mechanism, ids from `/d/` too).
+- Why: the owner asked that every kind of podcast can be shared, regenerated and deleted; D103's Regenerate made a new digest and left the old one.
+- Cost: the narration MP3 of a deleted briefing stays in Blob until pruned; the latest briefing's Today page shows until the redeploy, as an episode does.
+- Rejected: a second workflow for delete (run.yml already holds the write guard path and the concurrency group); a new id for the replacement (it breaks links and order).

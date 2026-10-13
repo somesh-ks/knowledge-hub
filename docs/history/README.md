@@ -4,6 +4,7 @@ One note per session, newest first. Read a note only to learn why something was 
 
 | Date | Note | Summary |
 | :--- | :--- | :--- |
+| 2026-10-13 | [Regenerate and delete a briefing](2026-10-13-briefing-regenerate-and-delete.md) | Replace in place and delete for every briefing (D104) |
 | 2026-10-13 | [Star ratings and Regenerate](2026-10-13-star-ratings-and-regenerate.md) | Scores out of 5 as a star rating, folded source lists, delete confirm, Regenerate with feedback, 150 KB budget (D103); the missing Daily traced to `CRON_SECRET` |
 | 2026-10-13 | [Owner feedback and why development is slow](2026-10-13-owner-feedback-and-why-development-is-slow.md) | General topics on Daily and Weekly, a topic summary card, no chevron, bigger titles and more room, a steady New episode panel (D102); a 79 s parallel gate, the site type-checked, worker budgets, and what was measured about the slowness |
 | 2026-10-12 | [The owner's list after #93: pickers, controls, tabs](2026-10-12-owner-fixes-pickers-and-controls.md) | A searchable list for time zones and voices, every topic on Daily and Weekly, the New episode form's order, no Dry tone, the bar keeping its controls, a transcript for every recording, a centred Contents list, sounds on every control (D101) |

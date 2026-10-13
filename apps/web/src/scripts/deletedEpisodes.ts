@@ -13,7 +13,7 @@ import { libraryAddress } from "./libraryAddress";
  * The Library's cards are removed from the incoming document before it is swapped in, so there is
  * no flash, and the Library's own script reads only what is left.
  */
-const ID_FROM_HREF = /^\/e\/([^/?#]+)/;
+const ID_FROM_HREF = /^\/[ed]\/([^/?#]+)/;
 
 const load = (): DeletedEpisode[] => {
   try {

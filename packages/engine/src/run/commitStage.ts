@@ -56,6 +56,7 @@ import {
   runTopicJudgmentsPath,
   writePlan,
 } from "./plan.js";
+import { removeDigestFiles } from "./replace.js";
 import { markAdoptedCommitted, resolveCommitPlan } from "./resolveCommitPlan.js";
 import { readSourceCounts } from "./sourceCounts.js";
 import type { CommitReport, DigestReport, RunDeps, RunOptions } from "./types.js";
@@ -174,16 +175,23 @@ export async function commitStage(deps: RunDeps, options: RunOptions): Promise<C
     for (const id of await listTakenIds(root, date)) taken.add(id);
   }
 
+  // A replacement keeps the old digest's id: it is free once the old files go, in the same commit.
+  const replaces = plan.replaces;
+  if (replaces !== undefined) taken.delete(replaces);
+
   const digests: Digest[] = [];
   const reports: DigestReport[] = [];
   for (const data of passData) {
     const { pass, selection, pool, sourceCounts } = data;
-    const fetchedThrough = new Date(selection.window.to);
+    // A replacement is not a run of the cadence: it is recorded as an on-demand run (the status
+    // route reads that slot for the Generate sheet) and leaves the fetch window where it was.
+    const recordKind = replaces === undefined ? pass.kind : "on-demand";
+    const recordWindow = replaces === undefined ? new Date(selection.window.to) : undefined;
     if (selection.outcome === "nothing" || selection.items.length === 0) {
       lastRun = recordRun(lastRun, {
-        kind: pass.kind,
+        kind: recordKind,
         record: { at: nowIso, outcome: "nothing", items: 0 },
-        fetchedThrough,
+        fetchedThrough: recordWindow,
       });
       if (sourceCounts) {
         sourceStats = recordSourceStats(sourceStats, sourceCounts, [], today);
@@ -222,14 +230,14 @@ export async function commitStage(deps: RunDeps, options: RunOptions): Promise<C
     }
     digests.push(digest);
     lastRun = recordRun(lastRun, {
-      kind: pass.kind,
+      kind: recordKind,
       record: {
         at: nowIso,
         outcome: "published",
         digest_id: digest.id,
         items: digest.items.length,
       },
-      fetchedThrough,
+      fetchedThrough: recordWindow,
     });
     lastRun = {
       ...lastRun,
@@ -296,6 +304,8 @@ export async function commitStage(deps: RunDeps, options: RunOptions): Promise<C
     );
   }
 
+  // The old digest goes only now that a new one is ready, so a replacement that finds nothing keeps it.
+  if (replaces !== undefined && digests.length > 0) await removeDigestFiles(root, replaces);
   for (const digest of digests) await writeDigestFile(root, digest);
   await writeSeen(root, seen);
   await writeJudgments(root, judgments);
@@ -310,7 +320,7 @@ export async function commitStage(deps: RunDeps, options: RunOptions): Promise<C
 
   const message =
     outcome === "published"
-      ? `chore(digest): ${digests.map((digest) => digest.id).join(", ")}`
+      ? `chore(digest): ${replaces === undefined ? "" : "replace "}${digests.map((digest) => digest.id).join(", ")}`
       : `chore(state): run ${today} nothing cleared the bar`;
   const committed = await commitAndPush({
     root,

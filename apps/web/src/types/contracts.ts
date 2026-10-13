@@ -87,6 +87,11 @@ export interface GenerateRequest {
   passphrase: string;
   /** Regenerate: what to improve, up to 500 characters, passed to the writer. */
   feedback?: string;
+  /** Regenerate a briefing that exists: its digest id. The new digest replaces it. */
+  replace?: string;
+  /** Delete a briefing: with `id`, no feedback and no run of the writer. */
+  action?: "delete";
+  id?: string;
 }
 
 /** POST /api/generate responses. */
