@@ -77,6 +77,8 @@ interface PassContext {
   /** The schedule and run mode, which say what general topics each pass publishes. */
   schedule: ScheduleFile;
   mode: RunMode;
+  /** What the owner asked to improve, for the writer prompt. */
+  feedback: string | undefined;
 }
 
 /**
@@ -86,7 +88,11 @@ interface PassContext {
  * fails the stage instead. Items already chosen for an earlier pass of the same run are withheld,
  * so the weekly digest never repeats the regular one published minutes before it.
  */
-export async function writeStage(deps: RunDeps, plan: Plan): Promise<StageReport> {
+export async function writeStage(
+  deps: RunDeps,
+  plan: Plan,
+  feedback?: string,
+): Promise<StageReport> {
   const runtime = await deps.runtime();
   const linter = createLinter(await loadVoice(deps.root));
   const [preferences, sources] = await Promise.all([
@@ -111,6 +117,7 @@ export async function writeStage(deps: RunDeps, plan: Plan): Promise<StageReport
     generalTopics: activeGeneralFrom(topics),
     schedule: fullSchedule,
     mode: plan.mode,
+    feedback,
   };
 
   const claimed = new Set<string>();
@@ -341,7 +348,7 @@ async function writePass(
     });
   }
 
-  const writeResult = await runtime.writer.write([...materials.values()]);
+  const writeResult = await runtime.writer.write([...materials.values()], context.feedback);
   for (const failure of writeResult.failed) drop(failure.id, "write", failure.reason);
   const voice = await enforceVoice({
     written: writeResult.written,

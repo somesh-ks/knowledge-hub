@@ -221,27 +221,23 @@ test.describe("sharing", () => {
     await expect(page.locator("[data-share-status]")).toHaveText("");
   });
 
-  test("the latest briefing offers New briefing, which says since when it covers", async ({
-    page,
-  }) => {
+  test("the latest briefing offers Regenerate, which asks what to improve", async ({ page }) => {
     for (const path of ["/", "/d/2026-10-07"]) {
       await page.goto(path);
       await hydrated(page);
       await page.getByRole("button", { name: "More actions" }).click();
       const items = page.locator(".hero-menu-list [role=menuitem]");
-      await expect(items).toHaveText(["Share", "New briefing"]);
+      await expect(items).toHaveText(["Share", "Regenerate"]);
     }
     await openNewBriefing(page);
   });
 });
 
 async function openNewBriefing(page: import("@playwright/test").Page): Promise<void> {
-  await page.getByRole("menuitem", { name: "New briefing" }).click();
-  const dialog = page.getByRole("dialog", { name: "New briefing" });
+  await page.getByRole("menuitem", { name: "Regenerate" }).click();
+  const dialog = page.getByRole("dialog", { name: "Regenerate" });
   await expect(dialog).toBeVisible();
-  await expect(dialog.locator(".sheet-lede")).toHaveText(
-    /^Covers everything since [^.]+\. Takes a few minutes\.$/,
-  );
+  await expect(dialog.getByRole("textbox")).toBeVisible();
 }
 
 test.describe("sections and stories", () => {

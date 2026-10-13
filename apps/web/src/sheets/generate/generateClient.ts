@@ -82,12 +82,17 @@ function retryAfterSeconds(body: Record<string, unknown> | null, response: Respo
  * POST /api/generate. The HTTP status carries the outcome; the body adds detail. A 202 is the only
  * success, and it needs a numeric run id, because without one there is nothing to poll.
  */
-export async function startGenerate(passphrase: string, deps: ClientDeps): Promise<StartResult> {
+export async function startGenerate(
+  passphrase: string,
+  deps: ClientDeps,
+  feedback = "",
+): Promise<StartResult> {
   const trimmed = passphrase.trim();
   if (!trimmed) return { kind: "rejected", reason: "empty", message: MESSAGES.empty };
   if (!deps.isOnline()) return { kind: "rejected", reason: "offline", message: MESSAGES.offline };
 
-  const request: GenerateRequest = { passphrase: trimmed };
+  const note = feedback.trim();
+  const request: GenerateRequest = { passphrase: trimmed, ...(note ? { feedback: note } : {}) };
   let response: Response;
   try {
     response = await deps.fetch("/api/generate", {

@@ -227,3 +227,5 @@ One line each: symptom, cause, fix. Newest first. Search before debugging.
 - 2026-10-12: an echo guard that dropped any cue within 120 ms also dropped a menu's close pressed just after its open. Tell a repeat from a reversal by what was played, not only when.
 - 2026-10-12: "Dry" was removed from one list and lived on in six validators, a prompt, a fixture, two tests and a help text. Grep the word across packages before calling a removal done.
 - 2026-10-12: new tests written by a worker and never run (two sound specs) failed on the first run; run the specs a worker adds before accepting them.
+- 2026-10-13: state.md said `CRON_SECRET` was pushed to Vercel; it was not, and the Daily silently did not run. After `secrets:push`, confirm with `vercel env ls production` and a call to the route.
+- 2026-10-13: a scale change (score out of 3 to 5) broke pinned values in three test files beyond the scoring module; grep the tests for the old numbers before running the gate.

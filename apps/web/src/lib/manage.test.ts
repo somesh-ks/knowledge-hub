@@ -354,7 +354,7 @@ describe("buildSources", () => {
     // The record predates the asked counter, so trust is not measured and the discovery score
     // does not stand in for it: health and quality alone make the score.
     expect(byId.busy).toMatchObject({
-      score: 3,
+      score: 5,
       score_label: "Excellent",
       score_parts: { health: 1, quality: 1, trust: null },
       score_reason: "Trust is not measured yet; 10 of 40 judged items published, no failures.",
@@ -375,7 +375,7 @@ describe("buildSources", () => {
       now: new Date("2026-10-09T12:00:00Z"),
     });
     expect(rows[0]).toMatchObject({
-      score: 2.4,
+      score: 4,
       score_label: "Good",
       score_parts: { health: 1, quality: 1, trust: 0.5 },
       score_reason:

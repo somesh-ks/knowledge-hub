@@ -50,7 +50,8 @@ export interface RewriteRequest {
  * guard, whose BudgetExceededError always propagates.
  */
 export interface Writer {
-  write(items: readonly SourceMaterial[]): Promise<WriteResult>;
+  /** `feedback` is the owner's note on what to improve; it shapes wording and emphasis, never facts. */
+  write(items: readonly SourceMaterial[], feedback?: string): Promise<WriteResult>;
   /** Rewrite one field to fix the listed problems. Null when the model could not. */
   rewrite(request: RewriteRequest): Promise<string | null>;
 }

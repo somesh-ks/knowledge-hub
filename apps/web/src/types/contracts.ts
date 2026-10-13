@@ -85,6 +85,8 @@ export interface PlayerDigestData {
 /** POST /api/generate request body. */
 export interface GenerateRequest {
   passphrase: string;
+  /** Regenerate: what to improve, up to 500 characters, passed to the writer. */
+  feedback?: string;
 }
 
 /** POST /api/generate responses. */

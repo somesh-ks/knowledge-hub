@@ -6,7 +6,7 @@ function reply(route: Route, status: number, body: Record<string, unknown>) {
   return route.fulfill({ status, contentType: "application/json", body: JSON.stringify(body) });
 }
 
-test("New briefing: the run request, the six steps while it goes, then the new briefing", async ({
+test("Regenerate: the run request, the six steps while it goes, then the new briefing", async ({
   player,
   page,
 }) => {
@@ -42,7 +42,7 @@ test("New briefing: the run request, the six steps while it goes, then the new b
     await expect(dialog.getByLabel("Passphrase")).toHaveCount(0);
   }
   await enterPassphrase(dialog);
-  await player.finger.press(dialog.getByRole("button", { name: "Generate briefing" }));
+  await player.finger.press(dialog.getByRole("button", { name: "Regenerate" }));
   const steps = dialog.getByRole("list", { name: "Progress" }).getByRole("listitem");
   await expect(steps).toHaveCount(6);
   await expect(steps.nth(0)).toContainText("In progress");

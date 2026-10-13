@@ -72,7 +72,7 @@ export interface ManageSource {
   reach: string | null;
   /** True when the source has failed to load several times in a row. */
   struggling: boolean;
-  /** Quality score, 0 to 3 with one decimal: health, quality and trust; null while it is new. */
+  /** Quality score, 0 to 5 with one decimal: health, quality and trust; null while it is new. */
   score: number | null;
   /** "Excellent", "Good", "Fair", "Poor", or "New" before there is enough history. */
   score_label: string;

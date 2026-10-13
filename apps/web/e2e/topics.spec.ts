@@ -340,7 +340,7 @@ test.describe("a topic's page", () => {
   }) => {
     const { sent } = await setup(page);
     await open(page, CRAFT);
-    const weights = page.getByRole("region", { name: "Weights" });
+    const weights = page.getByRole("region", { name: "Topic weightage" });
     await expect(weights.getByRole("slider")).toHaveCount(2);
     await expect(weights.getByRole("slider").first()).toHaveAccessibleName(
       "Design engineering craft",
@@ -349,7 +349,7 @@ test.describe("a topic's page", () => {
     await expect(toastText(page)).toHaveText(SAVED);
     expect(ops(sent)).toEqual([{ op: "weights.set", weights: { product_design: 0.5 } }]);
     await open(page, "/settings/topics/ai");
-    await expect(page.getByRole("region", { name: "Weights" })).toHaveCount(0);
+    await expect(page.getByRole("region", { name: "Topic weightage" })).toHaveCount(0);
     await expect(page.getByRole("slider", { name: "Weight", exact: true })).toHaveCount(1);
   });
 
@@ -361,7 +361,7 @@ test.describe("a topic's page", () => {
     const field = page.getByRole("button", { name: /^Podcasts/ });
     await expect(field).toHaveText("All podcasts");
     await field.click();
-    const list = page.getByRole("listbox", { name: "Podcasts" });
+    const list = page.getByRole("listbox", { name: "Listen in" });
     await expect(list).toBeVisible();
     await list.getByRole("option", { name: "Daily" }).click();
     await expect(field).toHaveText("Weekly and Custom");

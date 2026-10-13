@@ -30,6 +30,8 @@ export interface RunOptions {
   noPush: boolean;
   /** One stage only, as a workflow step. Without it every stage runs in order. */
   stage: StageName | undefined;
+  /** Write stage: what the owner asked to improve (Regenerate); reaches the writer prompt as untrusted text. */
+  feedback: string | undefined;
   /** Commit stage only: adopt this run directory (agent mode) instead of the gate's plan. */
   run: string | undefined;
 }
@@ -41,6 +43,7 @@ export const DEFAULT_RUN_OPTIONS: RunOptions = {
   dryRun: false,
   noPush: false,
   stage: undefined,
+  feedback: undefined,
   run: undefined,
 };
 

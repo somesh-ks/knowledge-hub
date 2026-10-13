@@ -126,9 +126,9 @@ test.describe("the profile pages", () => {
     await expect(page.locator("#daily-timezone-native")).toHaveValue("Europe/Stockholm");
     await expect(page.locator("#daily-cadence")).toHaveValue("2");
     await expect(page.getByRole("radio", { name: "10 min", exact: true })).toBeChecked();
-    // Format and the Discussion voice are the profile's own, saved whatever the format is now.
+    // Format and the Secondary voice are the profile's own, saved whatever the format is now.
     await expect(page.getByRole("radio", { name: "Readout" })).toBeChecked();
-    await expect(page.getByLabel("Discussion voice", { exact: true })).toBeVisible();
+    await expect(page.getByLabel("Secondary voice", { exact: true })).toBeVisible();
     // Headlines is no longer offered, and there is no switch between profiles.
     await expect(page.getByRole("radio", { name: "Headlines" })).toHaveCount(0);
     await expect(page.getByRole("radiogroup", { name: "Podcast" })).toHaveCount(0);
@@ -167,8 +167,8 @@ test.describe("the profile pages", () => {
     await open(page, "daily");
     const episode = page.getByRole("region", { name: "Episode" });
     const voices = [
-      episode.getByLabel("Voice", { exact: true }),
-      episode.getByLabel("Discussion voice", { exact: true }),
+      episode.getByLabel("Primary voice", { exact: true }),
+      episode.getByLabel("Secondary voice", { exact: true }),
     ];
     for (const field of voices) {
       await expect(field).toBeVisible();
@@ -483,11 +483,8 @@ test.describe("saved, before the build", () => {
     await expect(page.locator('a[data-page="audio_interfaces"]')).toBeHidden();
 
     await open(page, "daily");
-    // The removed topic has no chip, and the Repeat note follows the weekly podcast to Monday.
+    // The removed topic has no chip.
     await expect(page.getByRole("checkbox", { name: "Audio interfaces" })).toBeHidden();
-    await expect(page.locator("[data-weekly-note]")).toHaveText(
-      "On Mondays the weekly episode replaces this one.",
-    );
     // Nothing is sent on its own: no scope for the removed topic, no schedule again.
     await page.clock.runFor(GAP_MS);
     expect(sent).toEqual([]);

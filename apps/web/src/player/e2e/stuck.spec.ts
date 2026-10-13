@@ -11,7 +11,7 @@ function reply(route: Route, status: number, body: Record<string, unknown>) {
 
 /**
  * Starts a Generate run, closes the sheet, and lets the run finish while the player is open. On the
- * player that is a button on the page; on the site it is New briefing in the latest briefing header's More menu.
+ * player that is a button on the page; on the site it is Regenerate in the latest briefing header's More menu.
  */
 async function finishRunBehindThePlayer(page: Page, player: PlayerPage): Promise<void> {
   const id = SITE.earlier;
@@ -41,7 +41,7 @@ async function finishRunBehindThePlayer(page: Page, player: PlayerPage): Promise
   await page.clock.install();
   const dialog = await player.openGenerate();
   await enterPassphrase(dialog);
-  await player.finger.press(dialog.getByRole("button", { name: "Generate briefing" }));
+  await player.finger.press(dialog.getByRole("button", { name: "Regenerate" }));
   await page.clock.runFor(3_100);
   await player.finger.press(dialog.getByRole("button", { name: "Close", exact: true }).first());
   await expect(dialog).toBeHidden();

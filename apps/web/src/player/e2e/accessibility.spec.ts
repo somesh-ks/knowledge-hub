@@ -87,7 +87,7 @@ test.describe("axe, WCAG 2.2 AA, light and dark", () => {
     const dialog = await player.openGenerate();
     await expectAccessible(page, "the Generate sheet");
     await enterPassphrase(dialog);
-    const start = dialog.getByRole("button", { name: "Generate briefing" });
+    const start = dialog.getByRole("button", { name: "Regenerate" });
     await player.finger.press(start);
     await expect(dialog.getByRole("alert")).toContainText("not available right now");
     await expectAccessible(page, "the Generate sheet refused");
@@ -108,7 +108,7 @@ test.describe("axe, WCAG 2.2 AA, light and dark", () => {
     ).toContainText("Failed");
     await expectAccessible(page, "the Generate sheet failed");
     await player.finger.press(dialog.getByRole("button", { name: "Try again" }));
-    await expect(dialog.getByRole("button", { name: "Generate briefing" })).toBeVisible();
+    await expect(dialog.getByRole("button", { name: "Regenerate" })).toBeVisible();
   });
 });
 

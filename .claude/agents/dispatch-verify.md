@@ -1,6 +1,6 @@
 ---
 name: dispatch-verify
-description: Runs Dispatch checks (typecheck, unit tests, lint, static build with the 110 KB bundle budget) and returns a pass/fail table with the first failing lines only. Never edits.
+description: Runs Dispatch checks (typecheck, unit tests, lint, static build with the 150 KB bundle budget) and returns a pass/fail table with the first failing lines only. Never edits.
 tools: Bash, Read, Grep, Glob
 disallowedTools: Write, Edit, NotebookEdit
 model: haiku
@@ -15,7 +15,7 @@ Run the whole gate as one command, through PowerShell: a process started from Gi
 
 `powershell -NoProfile -Command "Set-Location '<repo root>'; npm run gate -- --build 2>&1 | Select-Object -Last 70"`
 
-It runs typecheck, the site's type check (`astro check`), lint, the unit tests and the static build in parallel and prints one line per step with its seconds, then the last 25 lines of any step that failed. The build's `postbuild` is the 110 KB first-load budget (`checkBundle.ts`); report the size it prints (it is in the build's own output: run `npm run build` alone only when the brief asks for the size). Inside a worktree under `.claude/` run `npx biome check apps packages scripts tokens` instead of the root lint.
+It runs typecheck, the site's type check (`astro check`), lint, the unit tests and the static build in parallel and prints one line per step with its seconds, then the last 25 lines of any step that failed. The build's `postbuild` is the 150 KB first-load budget (`checkBundle.ts`); report the size it prints (it is in the build's own output: run `npm run build` alone only when the brief asks for the size). Inside a worktree under `.claude/` run `npx biome check apps packages scripts tokens` instead of the root lint.
 
 Browser suites (`npm run e2e`, `e2e:player`) only if the brief asks. Run them with `PORT` set to a free port above 4400 (the owner's dev server may hold 4321: never stop it, and never run `taskkill` on a port you did not start).
 

@@ -2,7 +2,7 @@ import type { SourceStat } from "./state.js";
 import { daysBetween, stockholmDate } from "./time.js";
 
 /**
- * Quality score of an existing source, 0 to 3 with one decimal, from three named parts of 0 to 1.
+ * Quality score of an existing source, 0 to 5 with one decimal, from three named parts of 0 to 1.
  * Pure: the caller passes the counters from state/source-stats.json, the failure record from
  * state/source-health.json and the discovery quality from config/sources.json.
  *
@@ -26,11 +26,11 @@ import { daysBetween, stockholmDate } from "./time.js";
  *
  * Health and trust are hygiene and quality is the value: a source worth reading passes all three,
  * so the parts are complements, not substitutes. They combine as a geometric mean, the rule the
- * Human Development Index uses: score = 3 × cbrt(health × quality × trust), from the parts rounded
+ * Human Development Index uses: score = 5 × cbrt(health × quality × trust), from the parts rounded
  * to two decimals, rounded to one decimal. The parts no longer add up to the score: a weak part
  * pulls it down more than a strong one lifts it, and a part of 0 makes it 0, so a healthy, clean
  * source that sends nothing worth publishing is Poor. While trust is not measured, the score is
- * 3 × sqrt(health × quality).
+ * 5 × sqrt(health × quality).
  *
  * A news feed of general topics alone (D66) never reaches a briefing, so for it "published" reads
  * as "covered": judged stories another outlet also carried. A story only one desk ran is the
@@ -50,7 +50,7 @@ import { daysBetween, stockholmDate } from "./time.js";
  * them; with at least MIN_SPARSE judged it is scored on what it has, and the reason says so. An
  * older count no longer stands: the source has stopped needing refills.
  *
- * Label thresholds: Excellent 2.7 and up, Good 2.1 and up, Fair 1.5 and up, Poor below; on the
+ * Label thresholds: Excellent 4.5 and up, Good 3.5 and up, Fair 2.5 and up, Poor below; on the
  * mean of the parts that is 0.9, 0.7 and 0.5. The reason names the weakest measured part when one
  * is below WEAK_PART, and says so when trust is not measured yet.
  */
@@ -62,9 +62,9 @@ export const MIN_SPARSE = 3;
  * leaves one missed read of slack before the score falls back to New.
  */
 export const FEED_POSTS_FRESH_DAYS = 60;
-/** The most a score can be: three parts of 1. */
-export const SCORE_MAX = 3;
-export const SCORE_THRESHOLDS = { excellent: 2.7, good: 2.1, fair: 1.5 } as const;
+/** The most a score can be: five stars, three parts of 1 (D55, back to 5 points in D103). */
+export const SCORE_MAX = 5;
+export const SCORE_THRESHOLDS = { excellent: 4.5, good: 3.5, fair: 2.5 } as const;
 /** The share of asked items flagged as hype or sponsored at which trust reaches 0. */
 export const FLAGGED_SHARE_LIMIT = 0.5;
 /** A part below this is named in the reason as the weakest one. */
@@ -111,7 +111,7 @@ export interface SourceScoreInput {
 }
 
 export interface SourceScoreResult {
-  /** 0 to 3 with one decimal; null while the source is new. */
+  /** 0 to 5 with one decimal; null while the source is new. */
   score: number | null;
   label: SourceScoreLabel;
   /** Null while the source is new. */
@@ -125,7 +125,7 @@ const clamp01 = (n: number): number => Math.min(1, Math.max(0, n));
 const round1 = (n: number): number => Math.round(n * 10) / 10;
 const round2 = (n: number): number => Math.round(n * 100) / 100;
 
-/** Label for a 0 to 3 score. */
+/** Label for a 0 to 5 score. */
 export function scoreLabel(score: number): ScoreLabel {
   if (score >= SCORE_THRESHOLDS.excellent) return "Excellent";
   if (score >= SCORE_THRESHOLDS.good) return "Good";
@@ -134,7 +134,7 @@ export function scoreLabel(score: number): ScoreLabel {
 }
 
 /**
- * The score of measured parts: 3 times their geometric mean, rounded to one decimal. A part of 0
+ * The score of measured parts: 5 times their geometric mean, rounded to one decimal. A part of 0
  * makes it 0. Shared with the Add source preview, so both scores follow one rule.
  */
 export function combineScoreParts(parts: readonly number[]): number {

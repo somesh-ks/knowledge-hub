@@ -369,7 +369,7 @@ export function openPanel(
     one<HTMLElement>("[data-edit-total]").textContent =
       edited.score === null
         ? "New: too little history for a score yet."
-        : `${edited.score.toFixed(1)} of 3, ${edited.label}`;
+        : `${edited.score.toFixed(1)} of 5, ${edited.label}`;
     const parts = one<HTMLElement>("[data-edit-parts]");
     parts.hidden = edited.parts === null;
     // Two decimals, as the engine rounds each part. A part not measured yet says so, with no bar.

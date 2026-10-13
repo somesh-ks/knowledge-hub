@@ -3,6 +3,7 @@ import { readServerConfig, type ServerEnv, secretsOf } from "./config";
 import { createGitHubClient, type FetchLike } from "./github";
 import type { ApiResult } from "./http";
 import { evaluateLimits } from "./limits";
+import { cleanFeedback } from "./podcast";
 import { describeError } from "./redact";
 
 /**
@@ -60,6 +61,18 @@ export function parsePassphrase(bodyText: string): string | null {
   return passphrase;
 }
 
+/**
+ * The optional note on what to improve, as the podcast regenerate cleans it: control characters
+ * become spaces, 1 to 500 characters. Absent or blank means none; any other type or a longer note
+ * is invalid (undefined), so a request is refused before it costs a run.
+ */
+export function parseFeedback(bodyText: string): string | null | undefined {
+  const raw = (JSON.parse(bodyText) as { feedback?: unknown }).feedback;
+  if (raw === undefined || raw === null) return null;
+  if (typeof raw === "string" && raw.trim() === "") return null;
+  return cleanFeedback(raw) ?? undefined;
+}
+
 /** A browser that names another site as the origin is a cross-site request, which is never ours. */
 export function isSameOrigin(origin: string | null, expectedOrigin: string): boolean {
   if (origin === null) return true;
@@ -81,6 +94,9 @@ export async function handleGenerate(
   if (!isSameOrigin(input.origin, input.expectedOrigin)) return invalid;
   const passphrase = parsePassphrase(input.bodyText);
   if (passphrase === null) return invalid;
+  // parsePassphrase has already proven the body is a JSON object.
+  const feedback = parseFeedback(input.bodyText);
+  if (feedback === undefined) return invalid;
 
   const isValid = await deps.verifyPassphrase(passphrase, config.passphraseHash);
   if (!isValid) {
@@ -106,7 +122,10 @@ export async function handleGenerate(
     }
 
     const startedAt = deps.now();
-    let runId = await github.dispatch({ mode: "on-demand" });
+    let runId = await github.dispatch({
+      mode: "on-demand",
+      ...(feedback ? { feedback } : {}),
+    });
     for (let attempt = 0; runId === null && attempt < RUN_LOOKUP_ATTEMPTS; attempt += 1) {
       // GitHub started the run but did not name it. The newest dispatch run created since the
       // request is the one.

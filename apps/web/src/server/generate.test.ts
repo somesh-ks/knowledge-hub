@@ -138,6 +138,24 @@ describe("handleGenerate", () => {
     expect(dispatch?.body).toMatchObject({ ref: "main", inputs: { mode: "on-demand" } });
   });
 
+  it("passes cleaned Regenerate feedback to run.yml and refuses a note over 500 characters", async () => {
+    const { deps, github } = setup();
+    github.on("GET /actions/workflows/run.yml/runs", { json: { workflow_runs: [] } });
+    github.on("POST /actions/workflows/run.yml/dispatches", { json: { workflow_run_id: 7 } });
+    const send = (feedback: unknown) =>
+      handleGenerate(
+        input(JSON.stringify({ passphrase: "correct horse battery staple", feedback })),
+        deps,
+      );
+    expect((await send(" Shorter\nsummaries ")).status).toBe(202);
+    const dispatch = github.requests.find((request) => request.method === "POST");
+    expect(dispatch?.body).toMatchObject({
+      inputs: { mode: "on-demand", feedback: "Shorter summaries" },
+    });
+    expect((await send("x".repeat(501))).status).toBe(400);
+    expect((await send(4)).status).toBe(400);
+  });
+
   it("uses fixed inputs whatever the caller sends", async () => {
     const { deps, github } = setup();
     github.on("GET /actions/workflows/run.yml/runs", { json: { workflow_runs: [] } });

@@ -99,6 +99,18 @@ describe("NebiusWriter.write", () => {
     expect(result.written[0]?.headline).toBe("Springlet 2.0 retargets springs mid-flight");
   });
 
+  it("puts the owner's feedback into every request as delimited text, and nothing without it", async () => {
+    const items = Array.from({ length: 5 }, () => material());
+    const llm = new FakeLlm(writeAll);
+    await new NebiusWriter({ llm, voice }).write(items, "Shorter summaries");
+    for (let call = 0; call < llm.calls.length; call++) {
+      expect(llm.userText(call)).toMatch(/owner-feedback[^\n]*\nShorter summaries/);
+    }
+    const plain = new FakeLlm(writeAll);
+    await new NebiusWriter({ llm: plain, voice }).write(items);
+    expect(plain.userText(0)).not.toContain("Shorter summaries");
+  });
+
   it("sends at most four items per request", async () => {
     const items = Array.from({ length: 9 }, () => material());
     const llm = new FakeLlm(writeAll);

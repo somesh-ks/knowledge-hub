@@ -4,7 +4,6 @@ import {
   modelSummary,
   sourcesSummary,
   topicsSummary,
-  weeklyNote,
   weeklySummary,
   writerLabel,
 } from "./settingsSummary";
@@ -22,13 +21,6 @@ describe("settings summaries", () => {
     expect(dailySummary({ hour: 7, cadenceDays: 5 })).toBe("Every 5 days at 07:00");
     expect(weeklySummary({ enabled: true, day: 1, hour: 7 })).toBe("Mondays at 07:00");
     expect(weeklySummary({ enabled: false, day: 1, hour: 7 })).toBe("Off");
-  });
-
-  it("say the weekly day on Daily only while the weekly podcast is on", () => {
-    expect(weeklyNote({ enabled: true, day: 0 })).toBe(
-      "On Sundays the weekly episode replaces this one.",
-    );
-    expect(weeklyNote({ enabled: false, day: 0 })).toBeNull();
   });
 
   it("name the model as the Model field does", () => {
