@@ -52,6 +52,16 @@ export interface Playlist {
   prepare(index: number): void;
   /** The listener's words for why `ensure` rejected, or null for the player's own. */
   describeFailure?(error: unknown): FailureDescription | null;
+  /**
+   * A playlist whose script is still being written: `segments` only ever grows at the end. At the
+   * last segment the track does not end while `pending()` says more may come; it waits.
+   */
+  readonly growth?: {
+    /** True while more segments may still arrive. */
+    pending(): boolean;
+    /** Resolves true once a segment was added, false when the playlist is complete as it is. */
+    waitForMore(): Promise<boolean>;
+  };
 }
 
 export interface TrackAudioOptions {
@@ -121,6 +131,10 @@ export function createTrackAudio(real: AudioLike, options: TrackAudioOptions): A
   let announced = true;
   let wantsPlay = false;
   let ended = false;
+  /** Bumped by a seek or a new track, so a wait for more turns knows it was overtaken. */
+  let hold = 0;
+  /** The length last reported, so a script that grew is announced once. */
+  let reportedTotal = 0;
   let failure: AdapterFailure | null = null;
   /** Bumped by every start and stop, so a file that arrives late knows it was overtaken. */
   let generation = 0;
@@ -151,6 +165,45 @@ export function createTrackAudio(real: AudioLike, options: TrackAudioOptions): A
 
   function isLast(): boolean {
     return playlist !== null && index >= playlist.segments.length - 1;
+  }
+
+  /** The script is still being written, so the last turn heard is not the end. */
+  function growing(): boolean {
+    return playlist?.growth?.pending() ?? false;
+  }
+
+  /**
+   * The last turn that exists has been heard and more may come: wait for it. The listener sees the
+   * player buffering, and the next turn starts by itself as it arrives. A listener who paused in
+   * the meantime finds the player at the start of that turn, paused.
+   */
+  function holdForMore(list: Playlist, growth: NonNullable<Playlist["growth"]>): void {
+    const mine = hold;
+    emit("waiting");
+    void growth.waitForMore().then(
+      (grew) => {
+        if (playlist !== list || mine !== hold) return;
+        if (!grew) {
+          ended = true;
+          wantsPlay = false;
+          emit("ended");
+          return;
+        }
+        reportedTotal = total();
+        emit("durationchange");
+        index += 1;
+        pendingShare = 0;
+        emit("timeupdate");
+        if (wantsPlay) start();
+      },
+      () => {
+        // A wait that failed ends the track where it is; the episode that was committed is the way on.
+        if (playlist !== list || mine !== hold) return;
+        ended = true;
+        wantsPlay = false;
+        emit("ended");
+      },
+    );
   }
 
   /** The length of the loaded file, or the segment's span until the header says otherwise. */
@@ -287,6 +340,7 @@ export function createTrackAudio(real: AudioLike, options: TrackAudioOptions): A
     const share = length > 0 ? clamp((target - segment.start) / length, 0, 1) : 0;
     ended = false;
     failure = null;
+    hold += 1;
     // Whatever file was on its way for the old position is no longer wanted.
     generation += 1;
     index = next;
@@ -305,6 +359,8 @@ export function createTrackAudio(real: AudioLike, options: TrackAudioOptions): A
 
   function reset(): void {
     generation += 1;
+    hold += 1;
+    reportedTotal = 0;
     index = 0;
     pendingShare = null;
     attachedIndex = null;
@@ -355,7 +411,8 @@ export function createTrackAudio(real: AudioLike, options: TrackAudioOptions): A
       // last. Neither is the track pausing.
       // Nor is a pause of a file that is not the current story's, or a late event from a pause that
       // a newer play has already undone.
-      if (attachedIndex !== index || !real.paused || (real.ended && !isLast())) return;
+      if (attachedIndex !== index || !real.paused) return;
+      if (real.ended && (!isLast() || growing())) return;
       if (real.ended) ended = true;
       wantsPlay = false;
       emit("pause");
@@ -364,6 +421,7 @@ export function createTrackAudio(real: AudioLike, options: TrackAudioOptions): A
       if (!playlist) return emit("ended");
       if (attachedIndex !== index) return;
       if (isLast()) {
+        if (playlist.growth && growing()) return holdForMore(playlist, playlist.growth);
         ended = true;
         wantsPlay = false;
         emit("ended");
@@ -382,6 +440,11 @@ export function createTrackAudio(real: AudioLike, options: TrackAudioOptions): A
     },
     timeupdate() {
       emit("timeupdate");
+      // A script that grew while it played has a longer track: the player is told, once per change.
+      if (playlist?.growth && total() !== reportedTotal) {
+        reportedTotal = total();
+        emit("durationchange");
+      }
       if (playlist && isLive()) prepareAhead();
     },
     ratechange() {

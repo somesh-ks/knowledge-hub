@@ -6,8 +6,10 @@
  * them, and the player never shows a generic error for them. Once the first file exists the
  * briefing is loaded as one track and plays; the rest is made just ahead of the playhead.
  */
+import type { StreamStatus } from "../lib/liveStream";
 import type { PlayerStore } from "../player/core/playerTypes";
 import type { NarrationTimeline, PlayerDigestData } from "../types/contracts";
+import { createGrowth, type GrowthDeps } from "./liveEpisode";
 import {
   type ApiDeps,
   describeNarrationFailure,
@@ -66,12 +68,15 @@ export interface ControllerDeps {
 
 export type PlayOutcome = "playing" | "cancelled" | "failed";
 
+/** What playing an episode that is still being written needs: where to read the live copy. */
+export type LiveSource = Omit<GrowthDeps, "msPerCharacter"> & { status: StreamStatus };
+
 export interface NarrationController {
   /**
    * Plays a briefing, narrating what is missing. Call it from the tap itself, after unlocking the
    * audio element in that same tap.
    */
-  play(digest: PlayerDigestData, itemId?: string): Promise<PlayOutcome>;
+  play(digest: PlayerDigestData, itemId?: string, live?: LiveSource): Promise<PlayOutcome>;
   /**
    * Asks for the first segments of a briefing in the background, so that Play starts at once.
    * Never plays, never speaks, never throws, and asks nothing of a listener: a refusal of any kind
@@ -279,7 +284,11 @@ export function createNarrationController(deps: ControllerDeps): NarrationContro
     }
   }
 
-  async function play(digest: PlayerDigestData, itemId?: string): Promise<PlayOutcome> {
+  async function play(
+    digest: PlayerDigestData,
+    itemId?: string,
+    live?: LiveSource,
+  ): Promise<PlayOutcome> {
     noun = digest.turns || digest.kind === "on-demand" ? "episode" : "briefing";
     attempt += 1;
     const mine = attempt;
@@ -332,6 +341,16 @@ export function createNarrationController(deps: ControllerDeps): NarrationContro
         prepare: (index) => queue.prepare(index),
         describeFailure: (error) =>
           error instanceof NarrationError ? describeNarrationFailure(error.reason, noun) : null,
+        // An episode still being written: the track grows with it (liveEpisode.ts).
+        ...(live
+          ? {
+              growth: createGrowth(
+                plan.segments,
+                { status: live.status },
+                { ...live, msPerCharacter: FALLBACK_MS_PER_CHARACTER },
+              ),
+            }
+          : {}),
       });
       installAdapter();
       rememberNarrated(narrated);

@@ -7,6 +7,7 @@ import { bundledDigests } from "../../server/digestSource";
 import { bundledEpisodes } from "../../server/episodeSource";
 import { MAX_BODY_CHARS } from "../../server/generate";
 import { toResponse } from "../../server/http";
+import { readStreamForEpisode } from "../../server/liveStream";
 import { handleNarrate, handleNarrationLookup, startDeadline } from "../../server/narrate";
 
 // The site is static; this route runs on demand, as a Vercel Function.
@@ -17,6 +18,10 @@ const OIDC_HEADER = "x-vercel-oidc-token";
 
 const log = (message: string): void => console.error(`[api/narrate] ${message}`);
 
+/** An episode still being written is read from its live copy in the store (server/liveStream.ts). */
+const liveEpisodesFor = () => (id: string) =>
+  readStreamForEpisode(id, { env: process.env, fetch, now: Date.now, log });
+
 // The lookup is given no store at all: anyone may call it, and it must not be able to spend.
 export const GET: APIRoute = async ({ url }) =>
   toResponse(
@@ -26,6 +31,7 @@ export const GET: APIRoute = async ({ url }) =>
         env: withSecondVoice(process.env),
         digests: bundledDigests,
         episodes: bundledEpisodes,
+        liveEpisodes: liveEpisodesFor(),
         log,
       },
     ),
@@ -47,6 +53,7 @@ export const POST: APIRoute = async ({ request, url }) => {
       openBlob: (credentials) => createVercelBlobStore(credentials, { head, put, del }, fetch),
       digests: bundledDigests,
       episodes: bundledEpisodes,
+      liveEpisodes: liveEpisodesFor(),
       log,
       fetch,
       now: Date.now,

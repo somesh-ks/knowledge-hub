@@ -3,9 +3,11 @@
  * Play on a briefing that has no finished audio, so none of it weighs on an ordinary visit.
  */
 import { OPEN_PASSPHRASE, PASSPHRASE_REQUIRED } from "../lib/access";
+import { parseStreamDoc, type StreamDoc } from "../lib/liveStream";
 import { getPlayerAudio, getPlayerStore } from "../player/core/playerRuntime";
 import { safeLocalStorage } from "../player/core/resume";
 import { showToast } from "../sheets/toastStore";
+import { liveDigestFrom } from "./liveEpisode";
 import { createNarrationController, type NarrationController } from "./narrationController";
 import { createOpenPassphraseMemory, createPassphraseMemory } from "./passphraseMemory";
 import { askPassphrase } from "./passphrasePrompt";
@@ -59,6 +61,23 @@ export function prewarmPage(): Promise<void> {
   // Read again now: the listener may have moved on, or the audio may have arrived meanwhile.
   if (!page || page.audio || !startPrewarm(page.id)) return Promise.resolve();
   return getController().prewarm(page);
+}
+
+/**
+ * Plays an episode that is still being written, from its live copy (liveEpisode.ts). The player is
+ * the persistent one, so this works from any page; there is no episode page for it yet.
+ */
+export function narrateLive(doc: StreamDoc, runId: number): void {
+  void getController().play(liveDigestFrom(doc, new Date()), undefined, {
+    status: doc.status,
+    fetchDoc: async () => {
+      // The run indicator's route: the same copy, by the run that is writing it.
+      const res = await fetch(`/api/stream?run=${runId}`, { cache: "no-store" }).catch(() => null);
+      return res?.ok ? parseStreamDoc(await res.text()) : null;
+    },
+    delay: (milliseconds) => new Promise((resolve) => setTimeout(resolve, milliseconds)),
+    now: Date.now,
+  });
 }
 
 /** Plays the briefing on this page, narrating what is missing. */

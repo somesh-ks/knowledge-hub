@@ -1,7 +1,7 @@
 import { mkdir, rm, writeFile } from "node:fs/promises";
 import { dirname, isAbsolute, join, relative, resolve } from "node:path";
 import { parseArgs } from "node:util";
-import { requireKey } from "@dispatch/core";
+import { type PodcastRequest, requireKey } from "@dispatch/core";
 import { type CommandContext, type CommandRun, secretsFromEnv } from "../context.js";
 import { emit } from "../curate/output.js";
 import { type CommitOutcome, commitAndPush } from "../git/commit.js";
@@ -14,7 +14,14 @@ import { episodeExists, parseCommand, readEpisode } from "../podcast/actions.js"
 import { generateEpisode } from "../podcast/generate.js";
 import { NebiusScriptWriter } from "../podcast/nebiusScriptWriter.js";
 import { planPodcast } from "../podcast/plan.js";
-import { InvalidRequestError, PodcastError, type ScriptWriter } from "../podcast/types.js";
+import { createStreamPublisher, pruneStreams, type StreamPublisher } from "../podcast/stream.js";
+import {
+  InvalidRequestError,
+  PodcastError,
+  type PodcastStory,
+  type ScriptWriter,
+} from "../podcast/types.js";
+import { type BlobClient, createVercelBlobClient } from "../publish/blob.js";
 
 export const PODCAST_USAGE =
   'Usage: dispatch podcast --request \'<json: a new episode, {"action":"delete","id":...} or {"action":"regenerate","id":...,"feedback":...}>\' [--now <iso>] [--no-push] | [--dry-run [--save <path outside the repository>]]';
@@ -30,6 +37,12 @@ export interface PodcastDeps {
   makeWriter?: (ctx: CommandContext) => ScriptWriter;
   /** Reads the news feeds of a general episode. Defaults to the engine's HTTP client. */
   http?: HttpClient;
+  /** Where the live copy of the script goes. Defaults to Vercel Blob when its token is set. */
+  blob?: BlobClient;
+}
+
+function blobClientFrom(token: string | undefined): BlobClient | null {
+  return token ? createVercelBlobClient(token) : null;
 }
 
 /** The Nebius writer, with the same models and failover the digest writer uses. */
@@ -121,6 +134,8 @@ export function makePodcastCommand(deps: PodcastDeps = {}): CommandRun {
       }
     }
 
+    // The live copy of the script, once one has been made (a holder, so the handlers below see it).
+    const live: { stream: StreamPublisher | null } = { stream: null };
     try {
       const command = parseCommand(values.request);
       if (command.action === "delete") {
@@ -160,7 +175,29 @@ export function makePodcastCommand(deps: PodcastDeps = {}): CommandRun {
       const request = command.action === "create" ? command.request : replaced?.episode.request;
       if (!request) throw new PodcastError("The request names no episode to replace.");
       const feedback = command.action === "regenerate" ? command.feedback : undefined;
+      // A new episode's script is copied to Blob as it is written, so it can be heard before the
+      // commit is deployed. Best effort: without the token or the run id there is just no live copy.
+      const blobClient = deps.blob ?? blobClientFrom(ctx.env.BLOB_READ_WRITE_TOKEN);
+      // Set by Actions on every run; the context's parsed env does not carry it.
+      const runId = process.env.GITHUB_RUN_ID;
+      const makeStream =
+        command.action === "create" && !dryRun && blobClient && runId
+          ? (info: { id: string; request: PodcastRequest; stories: readonly PodcastStory[] }) => {
+              void pruneStreams(blobClient, ctx.now(), ctx.log);
+              live.stream = createStreamPublisher({
+                client: blobClient,
+                runId,
+                episodeId: info.id,
+                request: info.request,
+                stories: info.stories,
+                now: ctx.now,
+                log: ctx.log,
+              });
+              return live.stream;
+            }
+          : undefined;
       const result = await generateEpisode({
+        ...(makeStream ? { makeStream } : {}),
         root: ctx.root,
         request,
         now,
@@ -215,9 +252,11 @@ export function makePodcastCommand(deps: PodcastDeps = {}): CommandRun {
       });
       const failure = commitFailure(outcome);
       if (failure !== null) {
+        await live.stream?.failed();
         ctx.log.error(`${failure}. The episode file stays at ${relPath}.`);
         return 1;
       }
+      await live.stream?.done();
       const emptyNote =
         result.empty_topics.length > 0
           ? ` No stories in ${result.empty_topics.join(", ")} in the window.`
@@ -251,6 +290,7 @@ export function makePodcastCommand(deps: PodcastDeps = {}): CommandRun {
       );
       return 0;
     } catch (error) {
+      await live.stream?.failed();
       if (error instanceof PodcastError) {
         // The request, the stories or the script is at fault; the message is already for the listener.
         ctx.log.error(error.message);
