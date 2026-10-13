@@ -450,6 +450,34 @@ describe("schedule.set", () => {
   });
 });
 
+describe("profile.block and profile.unblock", () => {
+  const FILE = "config/profiles/owner.json";
+
+  it("stores the normalised domain once and removes it again", async () => {
+    const first = await apply({ op: "profile.block", domain: "https://WWW.Medium.com:443/@a?x=1" });
+    expect(first.code).toBe(0);
+    expect(first.report.files).toEqual([FILE]);
+    expect(await repo.readJson(FILE)).toEqual({
+      user_id: "owner",
+      blocked_domains: ["medium.com"],
+      votes: [],
+    });
+    expect((await apply({ op: "profile.block", domain: "medium.com" })).code).toBe(1);
+
+    const gone = await apply({ op: "profile.unblock", domain: "Medium.com" });
+    expect(gone.code).toBe(0);
+    expect(await repo.readJson(FILE)).toMatchObject({ blocked_domains: [] });
+    expect((await apply({ op: "profile.unblock", domain: "medium.com" })).code).toBe(1);
+  });
+
+  it("refuses what is not a domain name", async () => {
+    for (const domain of ["", "   ", "localhost", "not a domain.com", "a..b.com", "-x.com"]) {
+      expect((await apply({ op: "profile.block", domain })).code, domain).toBe(1);
+    }
+    expect(repo.dirty()).toEqual([]);
+  });
+});
+
 describe("writer.set", () => {
   const SET = { op: "writer.set", provider: "nebius", model: "meta-llama/Llama-3.3-70B-Instruct" };
 

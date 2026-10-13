@@ -20,6 +20,7 @@ import {
 } from "@dispatch/core";
 import type { ExaQuery, QueriesFile } from "../fetch/queries.js";
 import { buildSourceFromUrl } from "../sources/addSource.js";
+import { normalizeDomain, type Profile } from "../profile/profile.js";
 import type { DiscoverDeps } from "../sources/discover.js";
 
 export class ConfigOpError extends Error {
@@ -41,6 +42,8 @@ export interface ConfigBundle {
   registry: SourcesFile;
   queries: QueriesFile;
   candidates: SourceCandidatesFile;
+  /** The owner's profile: today's only user (src/profile/profile.ts). */
+  profile: Profile;
 }
 
 export interface ApplyDeps {
@@ -527,6 +530,34 @@ function setWriter(
   };
 }
 
+function blockDomain(
+  op: Extract<ParsedConfigOp, { op: "profile.block" }>,
+  bundle: ConfigBundle,
+): OpOutcome {
+  const domain = normalizeDomain(op.domain);
+  if (domain === null) throw new ConfigOpError(`"${tidy(op.domain, 60)}" is not a domain name.`);
+  if (bundle.profile.blocked_domains.includes(domain)) {
+    throw new ConfigOpError(`${domain} is already blocked.`);
+  }
+  const next = clone(bundle);
+  next.profile.blocked_domains = [...next.profile.blocked_domains, domain].sort();
+  return { next, summary: `block ${domain}` };
+}
+
+function unblockDomain(
+  op: Extract<ParsedConfigOp, { op: "profile.unblock" }>,
+  bundle: ConfigBundle,
+): OpOutcome {
+  const domain = normalizeDomain(op.domain);
+  if (domain === null) throw new ConfigOpError(`"${tidy(op.domain, 60)}" is not a domain name.`);
+  if (!bundle.profile.blocked_domains.includes(domain)) {
+    throw new ConfigOpError(`${domain} is not blocked.`);
+  }
+  const next = clone(bundle);
+  next.profile.blocked_domains = next.profile.blocked_domains.filter((d) => d !== domain);
+  return { next, summary: `unblock ${domain}` };
+}
+
 /**
  * Apply one validated op to the configuration. Pure apart from the feed lookup `source.add`
  * makes through the injected client. Throws ConfigOpError with a message for the person who sent
@@ -558,6 +589,10 @@ export async function applyConfigOp(
       return setScope(op, bundle);
     case "writer.set":
       return setWriter(op, bundle);
+    case "profile.block":
+      return blockDomain(op, bundle);
+    case "profile.unblock":
+      return unblockDomain(op, bundle);
     default: {
       const unreachable: never = op;
       throw new ConfigOpError(`Unknown op ${JSON.stringify(unreachable)}`);

@@ -4,6 +4,7 @@ import { clusterStories } from "../dedupe/storyCluster.js";
 import { entryToRaw, loadFeed } from "../fetch/feedItems.js";
 import type { HttpClient } from "../http.js";
 import { buildItems } from "../normalize/buildItem.js";
+import { createFileProfileStore, dropBlocked, isBlockedSource, OWNER_ID } from "../profile/profile.js";
 import { outletOf } from "../run/generalNews.js";
 import { loadSources } from "../sources/registry.js";
 import type { PodcastPlan } from "./plan.js";
@@ -156,7 +157,10 @@ export async function selectGeneralStories(deps: GeneralDeps): Promise<GeneralSe
   const { plan, now, http, log } = deps;
   const { request } = plan;
   const topicIds = request.topic_ids;
-  const sources = deps.sources ?? (await loadSources(deps.root)).sources;
+  const blocked = (await createFileProfileStore(deps.root).read(OWNER_ID)).blocked_domains;
+  const sources = (deps.sources ?? (await loadSources(deps.root)).sources).filter(
+    (source) => !isBlockedSource(source, blocked),
+  );
   const window = { from: new Date(now.getTime() - request.window_days * DAY_MS), to: now };
 
   const jobs = topicIds.flatMap((topic) =>
@@ -181,6 +185,7 @@ export async function selectGeneralStories(deps: GeneralDeps): Promise<GeneralSe
 
   let feedsOk = 0;
   let feedsFailed = 0;
+  let blockedCount = 0;
   const byId = new Map<string, { item: Item; topics: Set<string>; outlet: string }>();
   const topicHasItems = new Set<string>();
   for (const [index, result] of settled.entries()) {
@@ -194,13 +199,17 @@ export async function selectGeneralStories(deps: GeneralDeps): Promise<GeneralSe
       continue;
     }
     feedsOk += 1;
-    for (const item of result.value.items) {
+    // An outlet's feed can carry links to another domain; those are dropped too.
+    const { kept, dropped } = dropBlocked(result.value.items, blocked, (item) => item.url);
+    blockedCount += dropped;
+    for (const item of kept) {
       topicHasItems.add(job.topic);
       const known = byId.get(item.id);
       if (known) known.topics.add(job.topic);
       else byId.set(item.id, { item, topics: new Set([job.topic]), outlet: job.source.name });
     }
   }
+  if (blockedCount > 0) log?.info("Dropped stories from blocked domains", { blocked: blockedCount });
   if (feedsOk === 0) {
     throw new PodcastError(
       `No news feed could be read for ${joinNames(topicIds.map(generalTopicTitle))}; try again in a few minutes.`,
