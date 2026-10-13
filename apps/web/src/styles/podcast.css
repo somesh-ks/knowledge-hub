@@ -56,7 +56,7 @@
 /* Until it has focus the field reads as a select: the hand, as over the Provider select above it.
    Focused, it takes typing, and the caret shows where. */
 .daily-combo .manage-input {
-  padding-inline-end: var(--space-12);
+  padding-inline-end: calc(var(--space-4) + var(--size-icon) + var(--select-chevron-gap));
   cursor: pointer;
 }
 
@@ -369,7 +369,7 @@
 
 /* Its words end where a select's do: the same room for the chevron (settings.css .value-select). */
 .settings-row .daily-combo .manage-input {
-  padding-inline-end: calc(var(--space-2) + var(--size-icon) + var(--space-1));
+  padding-inline-end: calc(var(--space-2) + var(--size-icon) + var(--select-chevron-gap));
   border-color: transparent;
   border-radius: var(--button-radius);
   font-weight: var(--font-weight-medium);

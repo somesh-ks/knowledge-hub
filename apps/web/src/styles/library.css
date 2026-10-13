@@ -381,7 +381,7 @@
 .sort-field > select {
   height: var(--size-touch);
   margin-block: calc((var(--chip-height) - var(--size-touch)) / 2 - var(--stroke-hairline));
-  padding-inline: var(--space-3) calc(var(--space-8) - var(--space-1));
+  padding-inline: var(--space-3) calc(var(--space-3) + var(--space-4) + var(--select-chevron-gap));
   border: 0;
   border-radius: inherit;
   background: none;
