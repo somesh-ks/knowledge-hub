@@ -359,6 +359,7 @@
   --field-height: var(--size-touch-comfortable);
   --field-radius: var(--radius-sm);
   --field-padding: var(--space-4);
+  --field-chevron-gap: var(--space-4);
   --field-border: var(--color-border-control);
   --field-bg: var(--color-surface-sunken);
   --switch-width: 3.25rem;
