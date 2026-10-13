@@ -4,6 +4,7 @@ import {
   estimateWordStarts,
   markedWordStarts,
   splitWords,
+  spokenPosition,
   spokenWordIndex,
   turnEndMs,
   wordIndexAt,
@@ -98,5 +99,36 @@ describe("the transcript's word marks", () => {
     expect(markedWordStarts(2, [], 100, null)).toBeNull();
     expect(markedWordStarts(2, [mark(0, 0)], null, null)).toBeNull();
     expect(markedWordStarts(2, [mark(7, 0)], 100, [100, 200])).toEqual([100, 200]);
+  });
+});
+
+describe("the host's words the transcript does not show", () => {
+  const story = (start_ms: number, end_ms: number, text: string): PlayerTurn => ({
+    key: `s${start_ms}`,
+    speaker: "a",
+    text,
+    title: "Headline",
+    start_ms,
+    end_ms,
+  });
+  const turns = [story(0, 10_000, "One two three."), story(10_000, 20_000, "Four five.")];
+  // The second segment is "Now, design. Four five.": three words nobody sees, then the story.
+  const mark = (word: number, start_ms: number) => ({ word, start_ms, end_ms: start_ms + 100 });
+  const marks = [mark(0, 0), mark(1, 400), mark(2, 900), mark(3, 2500), mark(4, 3000)];
+  const starts = [
+    markedWordStarts(3, undefined, 0, [0, 3000, 6000], true),
+    markedWordStarts(2, marks, 10_000, [10_000, 15_000], true),
+  ];
+
+  it("keeps the story before in place and lights nothing while a bridge is spoken", () => {
+    expect(starts[1]).toEqual([12_500, 13_000]);
+    // 11 s: inside the bridge. The first story stays current; its span is over, so no word is lit.
+    expect(spokenPosition(turns, starts, 11)).toEqual({ turn: 0, word: -1 });
+    expect(spokenPosition(turns, starts, 12.5)).toEqual({ turn: 1, word: 0 });
+  });
+
+  it("lights nothing during a sign-off after the last story", () => {
+    expect(spokenPosition(turns, starts, 12.9)).toEqual({ turn: 1, word: 0 });
+    expect(spokenPosition(turns, starts, 20.5)).toEqual({ turn: 1, word: -1 });
   });
 });

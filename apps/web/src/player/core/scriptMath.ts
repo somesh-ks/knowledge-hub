@@ -61,12 +61,23 @@ export function markedWordStarts(
   marks: readonly SegmentWordMark[] | undefined,
   startMs: number | null,
   estimate: readonly number[] | null,
+  leadIn = false,
 ): number[] | null {
   const real: Array<number | undefined> = new Array(count).fill(undefined);
+  // A briefing's segment opens with host words the page does not show (a section bridge, a link
+  // between stories) and ends with the story, so the story is the last `count` words of the marks.
+  const lead = leadIn ? unseenLeadWords(count, marks) : 0;
+  let leadEnd = 0;
   let found = false;
   for (const mark of marks ?? []) {
-    if (startMs === null || mark.word >= count || real[mark.word] !== undefined) continue;
-    real[mark.word] = startMs + mark.start_ms;
+    const word = mark.word - lead;
+    if (startMs === null) continue;
+    if (word < 0) {
+      leadEnd = Math.max(leadEnd, mark.end_ms);
+      continue;
+    }
+    if (word >= count || real[word] !== undefined) continue;
+    real[word] = startMs + mark.start_ms;
     found = true;
   }
   if (!found || startMs === null) return estimate ? [...estimate] : null;
@@ -84,7 +95,7 @@ export function markedWordStarts(
     next = real[index] ?? next;
     nextMark[index] = next;
   }
-  let previous = startMs;
+  let previous = startMs + leadEnd;
   return real.map((start, index) => {
     if (start !== undefined) {
       previous = start;
@@ -93,6 +104,23 @@ export function markedWordStarts(
     const guess = estimate?.[index] ?? previous;
     return Math.min(Math.max(guess, previous), nextMark[index] ?? next);
   });
+}
+
+/** More words than a bridge and a link between stories add together; a bigger gap is not one. */
+const MAX_LEAD_IN_WORDS = 16;
+
+/**
+ * How many words open a story's segment that the page does not show: the marks run to the end of
+ * the segment's text and the story is its last `count` words, so what comes before them is the
+ * host's lead-in. Zero when the marks stop within the story.
+ */
+export function unseenLeadWords(
+  count: number,
+  marks: readonly SegmentWordMark[] | undefined,
+): number {
+  let top = -1;
+  for (const mark of marks ?? []) top = Math.max(top, mark.word);
+  return Math.min(Math.max(0, top + 1 - count), MAX_LEAD_IN_WORDS);
 }
 
 /** The word being said at `ms`: the last one that has started, or -1 before the first. */
@@ -120,6 +148,33 @@ export const WORD_LEAD_MS = 90;
 /** The word to light at the playhead `seconds`: `wordIndexAt` a short lead ahead. */
 export function spokenWordIndex(starts: readonly number[], seconds: number): number {
   return wordIndexAt(starts, seconds * 1000 + WORD_LEAD_MS);
+}
+
+/**
+ * What the transcript marks at the playhead: the turn being read and the word being said, -1 for
+ * none. A turn begins at its first word (`wordStarts`, which come after any unseen lead-in), not
+ * at its segment's start, so the story before it stays current while the host speaks a bridge.
+ * Once a turn's span is over and the next has not begun, nothing is said that the page shows, so no
+ * word is lit.
+ */
+export function spokenPosition(
+  turns: readonly PlayerTurn[],
+  wordStarts: ReadonlyArray<readonly number[] | null | undefined>,
+  seconds: number,
+): { turn: number; word: number } {
+  const ms = seconds * 1000;
+  let turn = -1;
+  for (let index = 0; index < turns.length; index += 1) {
+    const start = wordStarts[index]?.[0] ?? turns[index]?.start_ms;
+    if (start === null || start === undefined) continue;
+    if (start <= ms) turn = index;
+    else break;
+  }
+  const starts = turn >= 0 ? wordStarts[turn] : null;
+  if (!starts) return { turn, word: -1 };
+  const end = turnEndMs(turns, turn);
+  if (end !== null && ms >= end) return { turn, word: -1 };
+  return { turn, word: spokenWordIndex(starts, seconds) };
 }
 
 /** Where a turn ends: its own end, else where the next timed turn begins. */
