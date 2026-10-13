@@ -23,6 +23,7 @@ import {
 import "../../../styles/settings.css";
 import "../../../styles/manage.css";
 import "../../../styles/topics.css";
+import "../../../styles/episode-actions.css";
 
 /**
  * One page for each of the owner's three topics (Design, AI, Technology), each of their own topics
@@ -119,6 +120,9 @@ const upsert =
 const editable = topic !== null && !topic.never_publish;
 // A general news topic feeds General episodes by how many outlets carry a story, so it has no weight.
 const general = topic?.origin === "general";
+// A long list shows its first SHOWN sources and a button for the rest (D103).
+const SHOWN = 7;
+const hidden = Math.max(0, list.length - SHOWN);
 // The topic's picture: a pure function of its id and name, drawn here at build time like the page.
 const art = topicArt(group?.id ?? topic?.id ?? OTHER_ID, name);
 // What Edit topic hands the panel (topicsPanel.ts, TopicFacts). Every topic can change its name; a
@@ -198,6 +202,7 @@ const facts = topic && {
                         data-label-undo={`Keep topic ${name}`}
                         data-op={JSON.stringify({ op: "topic.remove", id: topic.id })}
                         data-remove
+                        data-confirm
                       >
                         <span class="topic-delete-do">Delete</span>
                         <span class="topic-delete-undo">Keep topic</span>
@@ -215,7 +220,7 @@ const facts = topic && {
                      by how many outlets carry a story, so it has no weight. */}
                 <div class="settings-row topic-scope">
                   <div class="settings-text">
-                    <span class="settings-label" id="scope-label">Podcasts</span>
+                    <span class="settings-label" id="scope-label">Listen in</span>
                   </div>
                   <MultiSelect
                     id="scope"
@@ -239,8 +244,7 @@ const facts = topic && {
           {
             weightRows.length > 1 && (
               <section class="topic-weights" aria-labelledby="weights-head">
-                <h2 class="section-head" id="weights-head">Weights</h2>
-                <p class="manage-quiet">How much each part of {name} counts when stories are picked.</p>
+                <h2 class="section-head" id="weights-head">Topic weightage</h2>
                 <div class="rows topic-controls">
                   {weightRows.map((row) => <WeightRow {...row} />)}
                 </div>
@@ -269,6 +273,13 @@ const facts = topic && {
           <ul class="topic-sources" role="list" data-sources aria-label={`${name} sources`}>
             {list.map((source) => <SourceRow source={source} topicName={topic?.name ?? ""} shownTopic={shown} />)}
           </ul>
+          {
+            hidden > 0 && (
+              <button class="btn topic-show-all" type="button" data-show-all>
+                {`Show ${hidden} more`}
+              </button>
+            )
+          }
           {/* Shown by topics.css while the list above has no row: the section is otherwise blank. */}
           <div class="topic-empty empty" data-compact>
             <EmptyArt art="library" size="compact" />
@@ -287,6 +298,20 @@ const facts = topic && {
 
       <ManageChrome />
       <TopicsPanel topics={choices} />
+      {
+        topic?.origin === "custom" && (
+          <dialog class="confirm-dialog" aria-labelledby="topic-delete-title" aria-describedby="topic-delete-lede" data-topic-confirm>
+            <div class="confirm-form">
+              <h2 class="sheet-title" id="topic-delete-title">{`Delete ${name}?`}</h2>
+              <p class="create-hint confirm-lede" id="topic-delete-lede">Its sources move to Other.</p>
+              <div class="confirm-actions">
+                <button class="btn" type="button" data-confirm-cancel autofocus>Cancel</button>
+                <button class="btn confirm-delete" type="button" data-confirm-delete>Delete</button>
+              </div>
+            </div>
+          </dialog>
+        )
+      }
     </div>
   </main>
 </BaseLayout>

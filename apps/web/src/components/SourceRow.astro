@@ -18,13 +18,13 @@ interface Props {
 const { source, topicName = "", shownTopic } = Astro.props;
 // The address as a person reads it; the row's title holds all of it.
 const address = readableUrl(source.url) || source.host;
-// The bands of a score out of 3: Good is 2.1 and up, Fair 1.5 to 2.1, Poor under 1.5, New has none.
+// The bands of a score out of 5: Good is 3.5 and up, Fair 2.5 to 3.5, Poor under 2.5, New has none.
 const band =
   source.score === null
     ? "new"
-    : source.score >= 2.1
+    : source.score >= 3.5
       ? "good"
-      : source.score >= 1.5
+      : source.score >= 2.5
         ? "fair"
         : "poor";
 // What the edit panel shows about the source (topicsPanel.ts, SourceFacts).
@@ -44,7 +44,7 @@ const facts = {
 
 {/* One source under its topic. The row opens the source to edit: one button behind everything,
      the row's own size, so no part of it is a dead zone. Over it sit the tile, the name, a line with
-     the site and the score's word, and the checkbox, which says whether the source is read. The name is
+     the site, the rating (a star and the score out of 5) and the checkbox, which says whether the source is read. The name is
      plain words: the edit panel links to the site. Everything else lets a press through to the button. The tile shows the name's
      first letter, and the site's own icon covers it once it loads (topicsPage.ts marks it loaded),
      so a site without an icon still has a face. An off row keeps its place and its score, quieter. */}
@@ -85,12 +85,9 @@ const facts = {
       <span class="source-meta">
         <span class="source-url">{address}</span>
       </span>
-      <span class="source-facts">
-        {source.reach && <span class="source-reach">{source.reach}</span>}
-        <ScoreMeter label={source.score_label} score={source.score} />
-      </span>
     </span>
   </span>
+  <ScoreMeter label={source.score_label} score={source.score} />
   <label class="source-check">
     <input
       type="checkbox"

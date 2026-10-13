@@ -16,7 +16,7 @@ export interface SourcePreview {
   kind: "feed" | "page";
   latest_at: string | null;
   items_30d: number | null;
-  /** 0 to 3, one decimal. */
+  /** 0 to 5, one decimal. */
   score: number;
   score_label: string;
   /** Health, quality and trust, each 0 to 1. */
@@ -24,10 +24,10 @@ export interface SourcePreview {
   reason: string;
 }
 
-/** The band a score out of 3 falls in: Good is 2.1 and up, Fair 1.5 to 2.1, Poor under 1.5, New has none. */
+/** The band a score out of 5 falls in: Good is 3.5 and up, Fair 2.5 to 3.5, Poor under 2.5, New has none. */
 export function bandOf(score: number | null): "good" | "fair" | "poor" | "new" {
   if (score === null) return "new";
-  return score >= 2.1 ? "good" : score >= 1.5 ? "fair" : "poor";
+  return score >= 3.5 ? "good" : score >= 2.5 ? "fair" : "poor";
 }
 
 function element<K extends keyof HTMLElementTagNameMap>(
@@ -62,7 +62,7 @@ export function iconNode(src: string | null, name: string): HTMLElement {
   return tile;
 }
 
-/** A score as one word, as ScoreMeter.astro draws it: a New source says it is not scored yet. */
+/** A score as one word, for the edit panel: a New source says it is not scored yet. */
 export function scoreNode(label: string): HTMLElement {
   const wrap = element("span", "score", label === "New" ? "Not scored yet" : label);
   wrap.dataset.label = label;

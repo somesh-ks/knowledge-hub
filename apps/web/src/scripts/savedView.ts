@@ -22,7 +22,7 @@ import {
   savedTopics,
   sourceCounts,
 } from "../lib/savedOverlay";
-import { sourcesSummary, weeklyNote } from "../lib/settingsSummary";
+import { sourcesSummary } from "../lib/settingsSummary";
 import {
   type CatalogSource,
   cadenceLabel,
@@ -188,33 +188,8 @@ export function overlayPodcast(
     box.checked = inScope;
     shown = true;
   }
-  shown = overlayWeeklyDay(root, ops) || shown;
   if (shown) markSaved(root);
   return shown;
-}
-
-/**
- * Daily, after a weekly edit: the Repeat row's note follows the weekly podcast's saved day and
- * switch, not the ones the page was built with.
- */
-function overlayWeeklyDay(root: HTMLElement, ops: readonly ConfigOp[]): boolean {
-  const note = root.querySelector<HTMLElement>("[data-weekly-note]");
-  if (!note) return false;
-  const baked: FieldValues = {
-    "weekly.enabled": note.dataset.weeklyEnabled ?? "false",
-    "weekly.day": note.dataset.weeklyDay ?? "0",
-  };
-  const saved = savedFields(baked, ops);
-  if (Object.keys(saved).length === 0) return false;
-  const now = { ...baked, ...saved };
-  const enabled = now["weekly.enabled"] === "true";
-  const day = Number(now["weekly.day"]);
-  note.dataset.weeklyEnabled = String(enabled);
-  note.dataset.weeklyDay = String(day);
-  const text = weeklyNote({ enabled, day });
-  note.textContent = text ?? "";
-  note.hidden = text === null;
-  return true;
 }
 
 // -------------------------------------------------------------------------------------- topic pages

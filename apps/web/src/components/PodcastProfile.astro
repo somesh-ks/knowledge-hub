@@ -2,7 +2,6 @@
 import { SUPPORTED_TIMEZONES, zoneLabel } from "@dispatch/core";
 import { FORMATS, LENGTHS } from "../lib/createForm";
 import { CADENCES, hourLabel, WEEKDAYS } from "../lib/schedule";
-import { weeklyNote } from "../lib/settingsSummary";
 import Icon from "./Icon.astro";
 import "../styles/picker.css";
 
@@ -29,14 +28,10 @@ interface Props {
    * podcast; `ids` are the topics each one stands for, which is what the schedule's skip list holds.
    */
   topics?: readonly { id: string; name: string; ids: readonly string[] }[];
-  /** Daily only: the weekly podcast, whose day (0 = Sunday) has no daily episode while it is on. */
-  weekly?: { enabled: boolean; day: number };
 }
 
-const { id, values, topics = [], weekly } = Astro.props;
+const { id, values, topics = [] } = Astro.props;
 const label = id === "daily" ? "Daily" : "Weekly";
-// Worked out again in the browser from the data on it when a weekly edit is saved (savedView.ts).
-const sundayNote = weekly ? weeklyNote(weekly) : null;
 
 const hours = Array.from({ length: 24 }, (_, value) => value);
 // The offset a zone has today. The page is built once, so the script works it out again in the
@@ -51,13 +46,13 @@ const zones = SUPPORTED_TIMEZONES.map((zone) => ({
 const inScope = (ids: readonly string[]): boolean =>
   !ids.every((topic) => values.skipTopics.includes(topic));
 
-// Format and the Discussion voice are the profile's own and are saved with it. A briefing is still
+// Format and the Secondary voice (the discussion's second host) are the profile's own and are saved with it. A briefing is still
 // narrated from its digest in one voice (scheduledVoice in server/narrate.ts), so they take effect
 // where a discussion is made, not in a briefing's narration yet (D100). A stored Headlines schedule
 // has no radio to show; the first change picks one of the two.
 const VOICES = [
-  { key: "voice", saved: values.voiceId, name: "Voice" },
-  { key: "voice_b", saved: values.voiceIdB, name: "Discussion voice" },
+  { key: "voice", saved: values.voiceId, name: "Primary voice" },
+  { key: "voice_b", saved: values.voiceIdB, name: "Secondary voice" },
 ] as const;
 ---
 
@@ -144,23 +139,12 @@ const VOICES = [
           <div class="settings-row">
             <div class="settings-text">
               <label class="settings-label" for="daily-cadence">Repeat</label>
-              <span
-                class="settings-hint"
-                id="daily-cadence-note"
-                data-weekly-note
-                data-weekly-enabled={String(weekly?.enabled ?? false)}
-                data-weekly-day={weekly?.day ?? 0}
-                hidden={!sundayNote}
-              >
-                {sundayNote}
-              </span>
             </div>
             <span class="manage-select value-select">
               <select
                 class="manage-input"
                 id="daily-cadence"
                 data-f="daily.cadence"
-                aria-describedby="daily-cadence-note"
                 autocomplete="off"
               >
                 {CADENCES.map((cadence) => (
@@ -209,7 +193,7 @@ const VOICES = [
     }
     <div class="rows">
       <a class="row-action" href="/settings/topics">
-        <span class="settings-text"><span class="settings-label">Topics and sources</span></span>
+        <span class="settings-text"><span class="settings-label">Configure</span></span>
         <Icon name="chevronRight" />
       </a>
     </div>

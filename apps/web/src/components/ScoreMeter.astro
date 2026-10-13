@@ -1,26 +1,28 @@
 ---
+import Icon from "./Icon.astro";
+
 interface Props {
   /** "Excellent", "Good", "Fair", "Poor" or "New". */
   label: string;
-  /** The score out of 3, when the row shows it as a number beside its word. */
+  /** The score out of 5. */
   score?: number | null;
 }
 
 const { label, score = null } = Astro.props;
 ---
 
-{/* A source's score on the line under its name: the number out of 3 and its word (scoreNode in
-     topicsView.ts draws the word alone, for the edit panel). A new source says it is not scored
-     yet; Poor is told apart by its weight as well as its colour, so colour is never alone. */}
-<span class="score" data-label={label}>
+{/* A source's rating before its checkbox: a star and the score out of 5, "4.5" (D103). The word
+     is for a screen reader and the row's tooltip; Poor is told apart by its weight as well as its
+     colour, so colour is never alone. A new source reads New. */}
+<span class="score" data-label={label} title={score === null ? "Not scored yet" : `${score.toFixed(1)} of 5, ${label}`}>
   {
-    label === "New" ? (
-      "Not scored yet"
-    ) : score === null ? (
-      label
+    label === "New" || score === null ? (
+      <span class="score-new">New</span>
     ) : (
       <>
-        <span class="score-number">{score.toFixed(1)} of 3</span> {label}
+        <Icon name="star" class="score-star" />
+        <span class="score-number" aria-hidden="true">{score.toFixed(1)}</span>
+        <span class="sr-only">{`Rated ${score.toFixed(1)} of 5, ${label}`}</span>
       </>
     )
   }

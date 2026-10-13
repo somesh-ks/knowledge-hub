@@ -70,22 +70,25 @@ const choices = topicChoicesOf(layout);
       data-names={JSON.stringify(choices.map((choice) => choice.name))}
     >
       <SettingsHead title="Topics and sources" />
-      <button
-        class="btn-secondary topics-add"
-        type="button"
-        aria-label="Add a topic or a source"
-        data-add-topic
-        data-needs-js
-      >
-        <Icon name="plus" />
-        <span>Add</span>
-      </button>
       <noscript>
         <p class="manage-note">Changing topics and sources needs JavaScript, which is turned off in this browser.</p>
       </noscript>
 
       <fieldset class="manage-fields" data-fields>
         <legend class="sr-only">Topics</legend>
+        <div class="topics-head">
+          <h2 class="section-head">{`${rows.length} ${rows.length === 1 ? "topic" : "topics"}`}</h2>
+          <button
+            class="btn-secondary topic-add-source topics-add"
+            type="button"
+            aria-label="Add a topic or a source"
+            data-add-topic
+            data-needs-js
+          >
+            <Icon name="plus" />
+            <span>Add</span>
+          </button>
+        </div>
 
         <ul class="topic-sources topics-added" role="list" data-sources data-added aria-label="Sources being added"></ul>
         <ul class="rows manage-queued" role="list" data-queued aria-label="Topics being added"></ul>

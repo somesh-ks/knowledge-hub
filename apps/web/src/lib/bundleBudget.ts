@@ -15,8 +15,9 @@ import { gzipSync } from "node:zlib";
  * the heaviest page was /library at 102.7 KB. The owner declined preact/compat (about 57 KB off every
  * page), so React stays. Raised to 110 KB on 2026-10-10 (D53) with the ask to keep it low: the
  * budget is a ceiling, not a target, and docs/first-load-js.md lists what could still come off.
+ * Raised to 150 KB on 2026-10-13 at the owner's request (D103): room for features, still a ceiling.
  */
-export const FIRST_LOAD_BUDGET_BYTES = 110 * 1024;
+export const FIRST_LOAD_BUDGET_BYTES = 150 * 1024;
 /** Self-hosted fonts, build plan 8.8: subset, one preloaded, 80 KB or less in total. */
 export const FONT_BUDGET_BYTES = 80 * 1024;
 /** The inline theme script runs before first paint, so it must stay tiny. */

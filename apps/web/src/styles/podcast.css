@@ -349,6 +349,16 @@
     flex-basis: 22rem;
   }
 
+  /* At rest it is as wide as the model's name, as the Provider select is, so its hover fill hugs
+     the words instead of showing an empty half (D103). */
+  .settings-row > .daily-combo:not(:focus-within) {
+    flex-basis: auto;
+  }
+
+  .settings-row > .daily-combo:not(:focus-within) .manage-input {
+    field-sizing: content;
+  }
+
   /* The list is as wide as a long model's name wants, 22rem at least, and ends where the field does, so
      it grows toward the start of the row as a select's list does. */
   .settings-row > .daily-combo .daily-listbox {

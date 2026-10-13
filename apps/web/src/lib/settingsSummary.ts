@@ -52,16 +52,6 @@ export function weeklySummary(input: {
   return `${day}s at ${hourLabel(input.hour)}${zoneNote(input.timezone)}`;
 }
 
-/**
- * Daily's Repeat row, while the weekly podcast is on: the day it takes the daily one's place. Null
- * while it is off, when there is nothing to say.
- */
-export function weeklyNote(input: { enabled: boolean; day: number }): string | null {
-  const day = WEEKDAYS[input.day];
-  if (!input.enabled || !day) return null;
-  return `On ${day}s the weekly episode replaces this one.`;
-}
-
 /** The name the Settings row and the Model field show, the same one the model list uses. */
 export function writerLabel(model: string | null, provider: Provider = "nebius"): string {
   if (model === null) return "Default";

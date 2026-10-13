@@ -13,7 +13,7 @@ import { AddSourceError, buildSourceFromUrl, hostLabel } from "./addSource.js";
 
 /**
  * A look at a web address before it is followed: what outlet it is, whether it has a feed, how
- * lively it is, and a score for a source that has no history yet. The score is on the same 0 to 3
+ * lively it is, and a score for a source that has no history yet. The score is on the same 0 to 5
  * scale, with the same three parts of 0 to 1 and the same labels, as the score of a source with a
  * record (sourceScore in @dispatch/core), measured from what one look can see:
  * - Health, from the feed: a valid feed earns 0.4 and the newest post up to 0.6 (within 7 days
@@ -59,7 +59,7 @@ export interface SourcePreview {
   kind: "feed" | "page";
   latest_at: string | null;
   items_30d: number | null;
-  /** 0 to 3 with one decimal. */
+  /** 0 to 5 with one decimal. */
   score: number;
   score_label: ScoreLabel;
   /**
@@ -190,7 +190,7 @@ function frequencyFactor(items: number | null): number {
 
 const round2 = (n: number): number => Math.round(n * 100) / 100;
 
-/** The no-history rubric in the header comment: a 0 to 3 score, its label, parts and a sentence. */
+/** The no-history rubric in the header comment: a 0 to 5 score, its label, parts and a sentence. */
 export function scorePreview(input: PreviewScoreInput): {
   score: number;
   label: SourcePreview["score_label"];

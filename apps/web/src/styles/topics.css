@@ -1,6 +1,6 @@
 /*
  * The Topics & Sources pages (pages/settings/topics.astro and topics/[id].astro): each topic with its
- * switch, its weight and the sources under it; a source's row and its score out of 3; the sources the
+ * switch, its weight and the sources under it; a source's row and its rating out of 5; the sources the
  * catalogue suggests for a topic; and the panel that adds a topic or a source and edits a source
  * (TopicsPanel.astro).
  * Tokens only. It is loaded after manage.css, whose form fields, saving toast and dialog it
@@ -12,64 +12,23 @@
 
 /* ------------------------------------------------------------------ the top of the page */
 
-/* A phone stacks: the title, then Add, a tonal button as wide as its words at the start. From 40rem
-   it sits at the end of the title's line, centred on it. */
-/* A source is a two-line list item (name, then site and score), M3's 72px. */
+/* A source is a two-line list item (name, then its site), M3's 72px. */
 .topics {
   --source-row: 4.5rem;
 }
 
-.topics > .topics-add {
-  width: fit-content;
-  margin-block: var(--space-6);
-  padding-inline: var(--space-6);
+/* The list's head (D103): "9 topics" at the start and Add at the end of one line, Add the same
+   compact outline button as a topic page's Add source. */
+.topics-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-4);
+  padding-block: var(--space-6) var(--space-2);
 }
 
-@media (min-width: 40rem) {
-  .topics {
-    display: grid;
-    grid-template-columns: minmax(0, 1fr) auto;
-    column-gap: var(--space-4);
-    align-content: start;
-  }
-
-  .topics > * {
-    grid-column: 1 / -1;
-  }
-
-  .topics > .settings-head {
-    grid-column: 1;
-    grid-row: 1;
-  }
-
-  .topics > .topics-add {
-    grid-column: 2;
-    grid-row: 1;
-    align-self: start;
-    width: auto;
-    margin-block: calc(
-        (var(--text-display-size) * var(--text-display-leading) - var(--button-height)) /
-        2
-      )
-      var(--space-6);
-    padding-inline: var(--space-6);
-  }
-
-  /* With Add beside the title, nothing stands between the note and the first topic: the list
-     keeps the air the button gave it on a phone, so its first row sits as far down as on any page. */
-  .topics:not(.topic-page) > .manage-fields {
-    padding-block-start: var(--space-6);
-  }
-}
-
-/* From 64rem the title is the section size (settings.css), so Add centres on that line. */
-@media (min-width: 64rem) {
-  .topics > .topics-add {
-    margin-block-start: calc(
-      (var(--font-size-section) * var(--text-display-leading) - var(--button-height)) /
-      2
-    );
-  }
+.topics-head > .section-head {
+  padding-block: 0;
 }
 
 /* ------------------------------------------------------------------ the list of topics */
@@ -288,22 +247,26 @@
   padding-block: 0;
 }
 
-/* Outline, not tonal: the page's own surface inside a control-weight border, as wide as its words. */
-.topic .topic-add-source {
+/* Outline, not tonal: the page's own surface inside a control-weight border, as wide as its words,
+   and a size down from a block button so it sits level with the section heading (D103). */
+.topic-add-source {
   flex: none;
   width: auto;
+  min-height: calc(var(--size-touch) - var(--space-2));
+  padding-inline: var(--space-3);
+  font-size: var(--font-size-label);
   border: var(--stroke-hairline) solid var(--color-border-control);
   background: transparent;
   color: var(--color-on-surface);
 }
 
 @media (hover: hover) and (pointer: fine) {
-  .topic .topic-add-source:hover {
+  .topic-add-source:hover {
     background: color-mix(in oklch, var(--color-on-surface) var(--state-hover), transparent);
   }
 }
 
-.topic .topic-add-source:active {
+.topic-add-source:active {
   background: color-mix(in oklch, var(--color-on-surface) var(--state-press), transparent);
 }
 
@@ -340,7 +303,7 @@
   position: relative;
   isolation: isolate;
   display: grid;
-  grid-template-columns: minmax(0, 1fr) auto;
+  grid-template-columns: minmax(0, 1fr) auto auto;
   align-items: center;
   column-gap: var(--space-2);
   min-height: var(--source-row);
@@ -618,9 +581,13 @@
 
 /* ------------------------------------------------------------------ the score */
 
-/* One word in the muted ink: Excellent, Good, Fair, Poor, or "Not scored yet" for a new source. */
+/* In a source row, the rating before the checkbox: a star and the score out of 5 ("4.5"), or New.
+   In the edit panel, one word in the muted ink. */
 .score {
   flex: none;
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-1);
   color: var(--color-on-surface-muted);
   font-size: var(--font-size-label);
   line-height: var(--font-leading-caption);
@@ -631,6 +598,17 @@
 .score[data-label="Poor"] {
   color: var(--color-danger);
   font-weight: var(--font-weight-medium);
+}
+
+/* The star in the score's own ink, a little smaller than an icon so it sits with the figure. */
+.score-star {
+  width: calc(var(--size-icon) * 0.8);
+  height: calc(var(--size-icon) * 0.8);
+  flex: none;
+}
+
+.source-row > .score {
+  justify-self: end;
 }
 
 @media (forced-colors: active) {
@@ -1093,4 +1071,15 @@
 
 .source-plus-btn:enabled:active::before {
   background: color-mix(in oklch, var(--color-on-surface) var(--state-press), transparent);
+}
+
+/* ------------------------------------------------------------------ a long list of sources */
+
+/* Past seven sources the list shows the first seven and a button for the rest (D103). */
+.topic-sources:not([data-all]) > .source-row:nth-child(n + 8) {
+  display: none;
+}
+
+.topic .topic-show-all {
+  margin-block-start: var(--space-2);
 }
