@@ -1,4 +1,5 @@
 import { parseArgs } from "node:util";
+import { PodcastFeedback } from "@dispatch/core";
 import type { CommandContext, CommandRun } from "../context.js";
 import { RUN_MODES, type RunMode } from "../gate/decideRun.js";
 import { buildDeps } from "../run/buildDeps.js";
@@ -27,6 +28,7 @@ function parseOptions(argv: string[]): { options: RunOptions; help: boolean } {
       "no-push": { type: "boolean" },
       stage: { type: "string" },
       run: { type: "string" },
+      feedback: { type: "string" },
       help: { type: "boolean", short: "h" },
     },
   });
@@ -40,6 +42,12 @@ function parseOptions(argv: string[]): { options: RunOptions; help: boolean } {
   if (values.run !== undefined && values.stage !== "commit") {
     throw new Error("--run only applies with --stage commit");
   }
+  // Blank means none (the workflow passes an empty input); otherwise the podcast regenerate's rules:
+  // control characters become spaces, 1 to 500 characters.
+  const feedback = values.feedback?.trim() ? PodcastFeedback.safeParse(values.feedback) : null;
+  if (feedback && !feedback.success) {
+    throw new Error("--feedback must be 1 to 500 characters");
+  }
   return {
     help: values.help === true,
     options: {
@@ -50,6 +58,7 @@ function parseOptions(argv: string[]): { options: RunOptions; help: boolean } {
       noPush: values["no-push"] === true,
       stage: values.stage === undefined ? undefined : (values.stage as RunOptions["stage"]),
       run: values.run,
+      feedback: feedback?.success ? feedback.data : undefined,
     },
   };
 }

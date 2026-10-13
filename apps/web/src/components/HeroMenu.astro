@@ -11,7 +11,7 @@ interface Props {
   episodeId?: string;
   /**
    * Set on the latest briefing: when its window closed, which is where a new briefing starts. The
-   * menu then offers New briefing. An older briefing has only Share, so it gets a Share button.
+   * menu then offers Regenerate. An older briefing has only Share, so it gets a Share button.
    */
   newBriefingSince?: string;
 }
@@ -20,11 +20,11 @@ const { sharePath, noun, episodeId, newBriefingSince } = Astro.props;
 const shareOnly = !episodeId && !newBriefingSince;
 ---
 
-{/* One More button beside the title and the small menu it opens: Share, then New briefing on the
+{/* One More button beside the title and the small menu it opens: Share, then Regenerate on the
      latest briefing, or Regenerate and Delete on an episode. An older briefing has nothing but
      Share, so it shows a Share button in the same place instead of a menu of one. The menu is a native popover, so light dismiss and Escape are the browser's;
      scripts/heroMenu.ts adds the arrow keys and focus. Share shares the dated address, so a link
-     sent from today's page still opens this briefing next week. New briefing opens the Generate
+     sent from today's page still opens this briefing next week. Regenerate opens the Generate
      sheet (the sheets island answers any click inside [data-open]); on an episode it opens
      the rewrite panel (scripts/episodeActionsEntry.ts), and both items there wait, with a reason,
      while a run for this episode is going. */}
@@ -85,10 +85,9 @@ const shareOnly = !episodeId && !newBriefingSince;
                 type="button"
                 role="menuitem"
                 data-open="generate"
-                data-generate-since={newBriefingSince}
                 aria-haspopup="dialog"
               >
-                New briefing
+                Regenerate
               </button>
             )
           }

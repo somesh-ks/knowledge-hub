@@ -87,11 +87,11 @@ export class NebiusWriter implements Writer {
     this.options = options;
   }
 
-  async write(items: readonly SourceMaterial[]): Promise<WriteResult> {
+  async write(items: readonly SourceMaterial[], feedback?: string): Promise<WriteResult> {
     const results = await mapConcurrent(
       chunk(items, WRITER_BATCH_SIZE),
       WRITER_CONCURRENCY,
-      (batch) => this.writeBatch(batch),
+      (batch) => this.writeBatch(batch, feedback),
     );
     return {
       written: results.flatMap((r) => r.written),
@@ -99,7 +99,10 @@ export class NebiusWriter implements Writer {
     };
   }
 
-  private async writeBatch(batch: readonly SourceMaterial[]): Promise<WriteResult> {
+  private async writeBatch(
+    batch: readonly SourceMaterial[],
+    feedback?: string,
+  ): Promise<WriteResult> {
     const boundary = newBoundary();
     try {
       const { value } = await this.options.llm.completeJson({
@@ -107,7 +110,7 @@ export class NebiusWriter implements Writer {
         schemaName: "dispatch_items",
         messages: [
           { role: "system", content: writerSystemPrompt(this.options.voice, boundary) },
-          { role: "user", content: writerUserMessage(batch, boundary) },
+          { role: "user", content: writerUserMessage(batch, boundary, feedback) },
         ],
         temperature: WRITER_TEMPERATURE,
         maxTokens: WRITE_TOKENS_PER_ITEM * batch.length + WRITE_TOKENS_OVERHEAD,

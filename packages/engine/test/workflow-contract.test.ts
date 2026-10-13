@@ -20,6 +20,7 @@ const PLACEHOLDERS: Record<string, string[]> = {
     "2026-10-01",
     "--dry-run",
   ],
+  '"$FEEDBACK"': ["Shorter summaries"],
   '"$OP"': ['{"op":"weights.set","weights":{"design_engineering_craft":0.9}}'],
   '"$TOPIC_ID"': ["design_engineering_craft"],
   '"$message"': ["chore(config): set a weight"],

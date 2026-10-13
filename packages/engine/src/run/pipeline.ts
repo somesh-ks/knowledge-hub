@@ -57,7 +57,7 @@ async function runPassStage(
   // workflow) carries on from the same Firecrawl ceiling and the commit stage can report it all.
   await deps.spend?.begin(deps.root, plan.created_at);
   try {
-    const report = await runStage(deps, plan, stage);
+    const report = await runStage(deps, plan, stage, options.feedback);
     return deps.spend ? { ...report, spend: deps.spend.totals() } : report;
   } finally {
     await deps.spend?.save(deps.root);
@@ -68,6 +68,7 @@ function runStage(
   deps: RunDeps,
   plan: Plan,
   stage: "fetch" | "judge" | "write" | "validate",
+  feedback?: string,
 ): Promise<StageReport> {
   switch (stage) {
     case "fetch":
@@ -75,7 +76,7 @@ function runStage(
     case "judge":
       return judgeStage(deps, plan);
     case "write":
-      return writeStage(deps, plan);
+      return writeStage(deps, plan, feedback);
     case "validate":
       return validateStage(deps, plan);
     default: {
