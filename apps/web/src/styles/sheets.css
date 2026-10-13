@@ -116,20 +116,9 @@
   overflow-y: auto;
   overscroll-behavior: contain;
   scrollbar-width: thin;
-  border-radius: var(--sheet-radius) var(--sheet-radius) 0 0;
+  border-radius: 0;
   background: var(--sheet-bg);
   box-shadow: var(--sheet-shadow);
-}
-
-/* The grabber: on a phone a sheet can be dragged down to close it. */
-.sheet-panel::before {
-  content: "";
-  display: block;
-  width: var(--player-handle-width);
-  height: var(--player-handle-height);
-  margin: 0 auto var(--space-1);
-  border-radius: var(--radius-round);
-  background: var(--player-handle-color);
 }
 
 /* From 40rem a sheet is a centered dialog. Modals stay centered and scale in. */
@@ -151,11 +140,10 @@
   .sheet-panel {
     max-height: var(--sheet-max-height);
     padding: var(--sheet-padding);
-    border-radius: var(--sheet-radius);
+    border-radius: 0;
   }
 
-  .sheet-popup::after,
-  .sheet-panel::before {
+  .sheet-popup::after {
     display: none;
   }
 }
@@ -797,10 +785,6 @@ html[data-mini="visible"] .toast {
   .sheet-panel,
   .toast {
     border: var(--stroke-hairline) solid CanvasText;
-  }
-
-  .sheet-panel::before {
-    background: GrayText;
   }
 
   .run-step::before {
