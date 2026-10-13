@@ -228,6 +228,11 @@
   transition: border-color var(--duration-hover) var(--ease-hover);
 }
 
+/* A multi-line field has the same room above and below as at its sides. */
+textarea.sheet-input {
+  padding-block: var(--field-padding);
+}
+
 @media (hover: hover) and (pointer: fine) {
   .sheet-input:hover {
     border-color: var(--color-on-surface);
