@@ -317,7 +317,7 @@ async function watchStream(run: Stored): Promise<void> {
       live = { runId: run.id, doc };
       if (first) show(read());
     }
-    if (doc && doc.status !== "writing") break;
+    if (doc && doc.status !== "writing" && doc.status !== "waiting") break;
     await new Promise((resolve) => setTimeout(resolve, STREAM_POLL_MS));
   }
   if (watching === run.id) watching = 0;

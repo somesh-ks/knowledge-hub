@@ -17,7 +17,13 @@ import { parseRunId } from "./status";
  * next turns. One SIMPLE operation per read, no token, no write.
  */
 
-export type StreamBody = StreamDoc | { error: "invalid_request" | "not_found" | "unavailable" };
+/** Nothing written yet: an answer, not an error, so a page polling for it logs nothing. */
+export interface StreamWaiting {
+  status: "waiting";
+  turns: [];
+}
+
+export type StreamBody = StreamDoc | StreamWaiting | { error: "invalid_request" | "unavailable" };
 
 export interface StreamDeps {
   env: ServerEnv;
@@ -65,8 +71,15 @@ export async function handleStream(
   if (base === null) return { status: 503, body: { error: "unavailable" } };
   try {
     const doc = await readDoc(deps, base, runKey(runId));
-    // Not written yet, or the run has no live copy at all: the same answer, and the page waits.
-    if (doc === null) return { status: 404, body: { error: "not_found" } };
+    // Not written yet, or the run has no live copy at all: the same answer, and the page waits. A
+    // 200 rather than a 404, so each poll is not a console error.
+    if (doc === null) {
+      return {
+        status: 200,
+        headers: { "Cache-Control": STREAM_CACHE_CONTROL },
+        body: { status: "waiting", turns: [] },
+      };
+    }
     return { status: 200, headers: { "Cache-Control": STREAM_CACHE_CONTROL }, body: doc };
   } catch (error) {
     deps.log?.(`stream failed: ${error instanceof Error ? error.message : "unknown"}`);

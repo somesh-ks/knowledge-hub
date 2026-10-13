@@ -20,6 +20,10 @@ export const test = base.extend<Options & { problems: Problems }>({
   problems: [
     async ({ page, allowNetworkErrors }, use) => {
       const problems: Problems = { messages: [] };
+      // A new episode's live copy (D105): the static site has no API, and nothing is written yet.
+      await page.route("**/api/stream?**", (route) =>
+        route.fulfill({ status: 200, json: { status: "waiting", turns: [] } }),
+      );
       // The sources' own icons (https://<host>/favicon.ico) are on invented hosts; a one-pixel image
       // answers them, so the page is not blamed for a network that is not there.
       await page.route("**/api/site-icon**", (route) =>

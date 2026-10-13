@@ -6,6 +6,8 @@ D103 (2026-10-13, after #94): source scores are out of 5 again and shown as a st
 
 D104 (2026-10-13): every briefing has Share, Regenerate and Delete in its More menu. Regenerate replaces that digest over its own window (`dispatch run --replace`); Delete removes the digest and its timeline (`dispatch run --delete`), both through run.yml and /api/generate. Checked: unit suite, typecheck, lint. Not run: the browser suites, a live run of either action, the delete confirm on a briefing page.
 
+D105 (2026-10-13): a new episode can be heard from a live copy in Blob while it is written (Listen now on the run card, about 35 to 45 s, not yet seen live); mobile interface sounds unlock on click and play through the iOS silent switch; the spoken word lights without lag; the player's switch is sticky on a phone. D104: every briefing has Share, Regenerate (in place) and Delete. Checked: the gate, the site specs episodeActions, reader, readerContract, keyboard, topics, createSheet, create and podcast, and the player specs uiSounds, surface and keyboard. Not run: a live episode stream, a real phone.
+
 **Open decisions for the owner (D103):**
 - Design, AI and Technology (built-in groups) have no More menu: their names are constants (`TOPIC_GROUPS`) and the engine refuses to remove built-in topics. Renaming or deleting them needs a group override in config.
 - pnpm: weighed and not adopted (history note of 2026-10-13); revisit if worktree setup keeps hurting.

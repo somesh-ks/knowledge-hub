@@ -114,6 +114,7 @@ D1 to D9 date from plan v2 (2026-10-05). D10 to D25 date from 2026-10-06. Reason
 | D102 | General topics play in Daily and Weekly, a topic is always on and has a summary card, the bar has no chevron, titles are bigger, and the gate runs in parallel with the site type-checked | active; amends D69, D87, D89, D90, D101 |
 | D103 | Source scores are out of 5 again, shown as a star rating; long source lists fold at seven; topic delete asks first; Regenerate on Today takes feedback; the first-load budget is 150 KB | active; amends D55, D83, D53 |
 | D104 | Every briefing, daily or weekly, latest or older, has Share, Regenerate and Delete; Regenerate replaces that digest over its own window; Delete removes its file and timeline | active; amends D88, D103 |
+| D105 | A new episode is playable from a live copy in Blob while it is still being written; mobile sounds unlock on click and play through the silent switch; the spoken word lights without lag; the player's switch is sticky on a phone | active; amends D82, D101 |
 
 ---
 
@@ -1166,3 +1167,12 @@ D1 to D9 date from plan v2 (2026-10-05). D10 to D25 date from 2026-10-06. Reason
 - Why: the owner asked that every kind of podcast can be shared, regenerated and deleted; D103's Regenerate made a new digest and left the old one.
 - Cost: the narration MP3 of a deleted briefing stays in Blob until pruned; the latest briefing's Today page shows until the redeploy, as an episode does.
 - Rejected: a second workflow for delete (run.yml already holds the write guard path and the concurrency group); a new id for the replacement (it breaks links and order).
+
+## D105: Listen while it is written; mobile sounds; word light; sticky switch
+
+- Date: 2026-10-13 (owner: "start playing as soon as something is playable", transcript lag, sticky tabs, no sounds on mobile)
+- Decision:
+  - podcast.yml made no audio already (the site narrates on Play, D82); the wait was the writer (about 60 s) and Vercel's deploy (about 33 s). The engine now allocates the episode id first, writes a short opening (`writeOpening`, 4 to 6 turns) before the full script, and copies the turns to Blob (`streams/run-<run_id>.json` and `streams/<episode-id>.json`: writing, done or failed; pruned after a day). `GET /api/stream?run=` answers the copy, or `{ status: "waiting" }` (a 200, so polling logs no console error). The run card offers Listen now once turns exist; the player narrates them through `/api/narrate` and waits at the last turn while more is coming. Expected first turn about 35 to 45 s after the request (estimate, not measured live). The page does not switch itself to the committed episode; the Open link appears as before.
+  - Sounds: `unlock()` sets `navigator.audioSession.type = "playback"` (the iOS silent switch muted Web Audio) and the unlock listens to click and pointerup as well (pointerdown is no activation on iOS). The first tap may stay silent while the engine loads.
+  - The spoken word's fill appears at once (it faded in over 100 ms) and the light reads 90 ms ahead of the element clock (`spokenWordIndex`). The Stories / Transcript switch sticks to the top of the open player below 64rem.
+- Why: the owner's list. Pnpm and the faster-writer option were weighed; the owner chose the Blob stream.

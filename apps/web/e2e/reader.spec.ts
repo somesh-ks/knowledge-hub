@@ -206,7 +206,9 @@ test.describe("sharing", () => {
       .toEqual([expect.stringMatching(/\/d\/2026-10-05$/)]);
   });
 
-  test("every briefing offers Regenerate, which asks what to improve, and Delete", async ({ page }) => {
+  test("every briefing offers Regenerate, which asks what to improve, and Delete", async ({
+    page,
+  }) => {
     for (const path of ["/", "/d/2026-10-07"]) {
       await page.goto(path);
       await hydrated(page);

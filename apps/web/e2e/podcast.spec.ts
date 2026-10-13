@@ -202,11 +202,11 @@ test.describe("the profile pages", () => {
     await choose(page, page.locator("#daily-voice_b"), /Ada, female/);
     await sample;
     await expect(second).toBeEnabled();
-    await expect(second).toHaveAccessibleName("Play a sample of the discussion voice");
+    await expect(second).toHaveAccessibleName("Play a sample of the secondary voice");
     await expect(first).toBeDisabled();
     await choose(page, page.locator("#daily-voice"), /Leo, male/);
     await expect(first).toBeDisabled();
-    await expect(first).toHaveAccessibleName("No sample for the voice");
+    await expect(first).toHaveAccessibleName("No sample for the primary voice");
     await expect(second).toBeEnabled();
   });
 
@@ -260,7 +260,7 @@ test.describe("the profile pages", () => {
     for (const chip of (await chips.all()).slice(0, 4)) {
       await expect(chip.locator("input")).toBeChecked();
     }
-    const link = page.getByRole("link", { name: /^Topics and sources/ });
+    const link = page.getByRole("link", { name: /^Configure/ });
     await expect(link).toHaveAttribute("href", "/settings/topics");
     // A link row is as tall as the value rows, and its chevron ends at the row's edge.
     const [height, gap] = await link.evaluate((row) => {

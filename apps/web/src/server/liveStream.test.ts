@@ -61,9 +61,12 @@ describe("GET /api/stream", () => {
     expect(store.asked[0]).toBe(`${BASE}/streams/run-77.json?t=5`);
   });
 
-  it("says not found before the engine has written anything, and is unavailable without a store", async () => {
+  it("says waiting, not an error, before the engine has written anything, and is unavailable without a store", async () => {
     const store = fakeStore({});
-    expect((await handleStream("77", { env, fetch: store.fetch, now: () => 1 })).status).toBe(404);
+    expect((await handleStream("77", { env, fetch: store.fetch, now: () => 1 })).body).toEqual({
+      status: "waiting",
+      turns: [],
+    });
     const { BLOB_READ_WRITE_TOKEN: _token, ...noStore } = env;
     expect(
       (await handleStream("77", { env: noStore, fetch: store.fetch, now: () => 1 })).status,
