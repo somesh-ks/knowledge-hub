@@ -472,7 +472,7 @@
   inline-size: 100%;
   min-height: var(--field-height);
   padding-inline: var(--field-padding)
-    calc(var(--space-4) + var(--size-icon) + var(--select-chevron-gap));
+    calc(var(--space-4) + var(--size-icon) + var(--field-chevron-gap));
   border: var(--stroke-hairline) solid transparent;
   border-radius: var(--row-radius);
   background: var(--color-surface-container);

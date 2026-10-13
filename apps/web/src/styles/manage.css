@@ -512,7 +512,7 @@ html:has(.manage-bar:popover-open) {
 select.manage-input {
   block-size: var(--field-height);
   padding-block: 0;
-  padding-inline-end: calc(var(--space-4) + var(--size-icon) + var(--select-chevron-gap));
+  padding-inline-end: calc(var(--space-4) + var(--size-icon) + var(--field-chevron-gap));
   line-height: calc(var(--field-height) - var(--stroke-hairline) * 2);
   border-color: var(--field-border);
   background: none;
