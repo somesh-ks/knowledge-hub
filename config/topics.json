@@ -88,7 +88,7 @@
       "id": "ai_ux_interaction_patterns",
       "name": "AI interaction patterns",
       "description": "Interface and interaction patterns for AI products: chat and agent interfaces, streaming, correction, interruption and generative UI.",
-      "weight": 0.6,
+      "weight": 0.85,
       "enabled": true,
       "keywords": [],
       "section_id": "ai",
