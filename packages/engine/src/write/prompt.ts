@@ -1,5 +1,6 @@
 import { VOICE_LIMITS } from "@dispatch/core";
 import { untrustedInstruction, wrapUntrusted } from "../llm/untrusted.js";
+import { type Taste, tasteNote } from "../profile/tasteNote.js";
 import type { VoiceConfig } from "../voice/voice.js";
 import type { RewriteRequest, SourceMaterial } from "./types.js";
 
@@ -88,7 +89,9 @@ export function writerUserMessage(
   items: readonly SourceMaterial[],
   boundary: string,
   feedback?: string,
+  taste?: Taste,
 ): string {
+  const note = tasteNote(taste, boundary);
   return [
     `Write the headline, summary and spoken version for each of these ${items.length} sources.`,
     "",
@@ -104,6 +107,7 @@ export function writerUserMessage(
           ].join("\n"),
         ]
       : []),
+    ...(note ? [note] : []),
   ].join("\n\n");
 }
 

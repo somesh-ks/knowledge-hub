@@ -19,7 +19,8 @@ import {
   withGeneralScope,
 } from "@dispatch/core";
 import type { ExaQuery, QueriesFile } from "../fetch/queries.js";
-import { normalizeDomain, type Profile } from "../profile/profile.js";
+import { hostOf, normalizeDomain, type Profile } from "../profile/profile.js";
+import { mergeVotes } from "../profile/votes.js";
 import { buildSourceFromUrl } from "../sources/addSource.js";
 import type { DiscoverDeps } from "../sources/discover.js";
 
@@ -558,6 +559,26 @@ function unblockDomain(
   return { next, summary: `unblock ${domain}` };
 }
 
+function castVotes(
+  op: Extract<ParsedConfigOp, { op: "profile.vote" }>,
+  bundle: ConfigBundle,
+): OpOutcome {
+  const incoming = op.votes.map((vote) => {
+    const domain = hostOf(vote.url);
+    if (domain === null) throw new ConfigOpError(`"${tidy(vote.url, 60)}" has no usable host.`);
+    return { ...vote, domain };
+  });
+  const next = clone(bundle);
+  next.profile.votes = mergeVotes(next.profile.votes, incoming);
+  const cleared = incoming.filter((vote) => vote.value === "clear").length;
+  const cast = incoming.length - cleared;
+  const parts = [
+    cast > 0 ? `${cast} vote${cast === 1 ? "" : "s"}` : "",
+    cleared > 0 ? `clear ${cleared}` : "",
+  ];
+  return { next, summary: `record ${parts.filter(Boolean).join(", ")}` };
+}
+
 /**
  * Apply one validated op to the configuration. Pure apart from the feed lookup `source.add`
  * makes through the injected client. Throws ConfigOpError with a message for the person who sent
@@ -591,6 +612,8 @@ export async function applyConfigOp(
       return setWriter(op, bundle);
     case "profile.block":
       return blockDomain(op, bundle);
+    case "profile.vote":
+      return castVotes(op, bundle);
     case "profile.unblock":
       return unblockDomain(op, bundle);
     default: {

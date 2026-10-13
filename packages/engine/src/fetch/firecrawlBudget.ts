@@ -42,14 +42,18 @@ export const EMPTY_FIRECRAWL_STATE: FirecrawlState = {
  * Pick which Firecrawl listing sources run. The ones fetched longest ago go first (never fetched
  * counts as longest), so a source skipped today leads tomorrow and the skipped set rotates
  * instead of always hitting the same sources. `last_ok` is only written for a successful fetch,
- * which a skipped source does not make.
+ * which a skipped source does not make. With `lean` (the owner's votes), liked sources run before
+ * neutral ones and disliked sources go last, so the ceiling skips them first.
  */
 export function planFirecrawlListing(
   sources: readonly Pick<Source, "id" | "last_ok">[],
   allowance: number,
+  lean: (id: string) => number = () => 0,
 ): { run: string[]; skipped: string[] } {
   const room = Math.max(0, Math.floor(allowance));
   const oldestFirst = [...sources].sort((a, b) => {
+    const side = Math.sign(lean(b.id)) - Math.sign(lean(a.id));
+    if (side !== 0) return side;
     const left = a.last_ok ? Date.parse(a.last_ok) : Number.NEGATIVE_INFINITY;
     const right = b.last_ok ? Date.parse(b.last_ok) : Number.NEGATIVE_INFINITY;
     return left === right ? a.id.localeCompare(b.id) : left - right;

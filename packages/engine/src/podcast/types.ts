@@ -1,4 +1,5 @@
 import type { PodcastRequest } from "@dispatch/core";
+import type { Taste } from "../profile/tasteNote.js";
 
 /** Raised for a problem the listener can act on: a bad request, too few stories, an unusable script. */
 export class PodcastError extends Error {
@@ -41,6 +42,8 @@ export interface ScriptInput {
   budget_chars: number;
   /** What the listener asked to change in the previous version; typed by the owner, so untrusted. */
   feedback?: string | undefined;
+  /** Headlines the listener liked and disliked; data for the writer, never instructions. */
+  taste?: Taste | undefined;
   /** Epoch milliseconds by which the call, retries included, must end. */
   deadline_at?: number | undefined;
   /** Turns already written and shown to the listener; the script continues right after them. */
