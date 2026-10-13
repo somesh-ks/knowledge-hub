@@ -178,8 +178,8 @@ function DockVolume() {
  * tap or a pull up anywhere on it that is not another control grows it into the page (the open
  * button's target is stretched over the whole bar in CSS); below 64rem its cover is where the
  * flying cover leaves from. On a wide screen it stays put and keeps working while the page is open
- * above it, laid out as YouTube Music's is: the transport and the clock on the left, what is
- * playing in the middle, volume on the right.
+ * above it, laid out as YouTube Music's is: what is playing on the left, the transport and the
+ * clock in the middle, volume on the right.
  */
 export default function PlayerBar() {
   const state = usePlayerState();
@@ -244,6 +244,40 @@ export default function PlayerBar() {
         <span className="dock-progress-fill" />
       </div>
       <DockSeek duration={state.duration} />
+      <button
+        className="dock-open"
+        type="button"
+        data-player-open
+        aria-haspopup="dialog"
+        // The surface controller keeps this in step with the page; false is the collapsed truth.
+        aria-expanded="false"
+        aria-controls={PLAYER_PAGE_ID}
+        aria-label={`Player: ${headline}`}
+        onClick={(event) =>
+          playerSheet.click({ t: event.timeStamp, fromPointer: event.detail > 0 })
+        }
+        onPointerDown={(event) => {
+          pressedBy.current = event.pointerType;
+        }}
+        // A tap opens the page on the finger's lift, and focus moves into it. The mouse press a
+        // browser sends after a tap would then take focus back to this button, which a wide window
+        // keeps in reach under the open page, and the next Tab would start from nothing.
+        onMouseDown={(event) => {
+          if (pressedBy.current === "touch") event.preventDefault();
+        }}
+      >
+        <span className="player-thumb" data-player-thumb>
+          {digest ? (
+            <PlayerCover cover={digest.cover} weekly={digest.kind === "weekly"} size="thumb" />
+          ) : null}
+        </span>
+        <span className="dock-text">
+          <span className="dock-title">{headline}</span>
+          <span className="dock-caption" data-tone={state.error ? "danger" : undefined}>
+            {caption}
+          </span>
+        </span>
+      </button>
       <div className="dock-transport">
         {/* As on the page: on the first story, previous goes back to its start. */}
         <button
@@ -283,40 +317,6 @@ export default function PlayerBar() {
           <Clock seconds={state.duration} />
         </span>
       </div>
-      <button
-        className="dock-open"
-        type="button"
-        data-player-open
-        aria-haspopup="dialog"
-        // The surface controller keeps this in step with the page; false is the collapsed truth.
-        aria-expanded="false"
-        aria-controls={PLAYER_PAGE_ID}
-        aria-label={`Player: ${headline}`}
-        onClick={(event) =>
-          playerSheet.click({ t: event.timeStamp, fromPointer: event.detail > 0 })
-        }
-        onPointerDown={(event) => {
-          pressedBy.current = event.pointerType;
-        }}
-        // A tap opens the page on the finger's lift, and focus moves into it. The mouse press a
-        // browser sends after a tap would then take focus back to this button, which a wide window
-        // keeps in reach under the open page, and the next Tab would start from nothing.
-        onMouseDown={(event) => {
-          if (pressedBy.current === "touch") event.preventDefault();
-        }}
-      >
-        <span className="player-thumb" data-player-thumb>
-          {digest ? (
-            <PlayerCover cover={digest.cover} weekly={digest.kind === "weekly"} size="thumb" />
-          ) : null}
-        </span>
-        <span className="dock-text">
-          <span className="dock-title">{headline}</span>
-          <span className="dock-caption" data-tone={state.error ? "danger" : undefined}>
-            {caption}
-          </span>
-        </span>
-      </button>
       <div className="dock-tools">
         <DockVolume />
       </div>
