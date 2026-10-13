@@ -10,8 +10,8 @@ import {
   FOLLOW_PAUSE_MS,
   markedWordStarts,
   splitWords,
+  spokenWordIndex,
   turnEndMs,
-  wordIndexAt,
 } from "./core/scriptMath";
 import { usePlayerSecond, usePlayerState } from "./hooks/usePlayer";
 import { useRovingFocus } from "./hooks/useRovingFocus";
@@ -123,7 +123,6 @@ export default function ScriptView({
   useEffect(() => {
     let lit: Element | null = null;
     const light = (seconds: number): void => {
-      const ms = seconds * 1000;
       // After a failure no word is lit: the effect runs again when `failed` changes, and clears it.
       const turn =
         getPlayerStore().getState().hasStarted && !failed ? currentTurnIndex(turns, seconds) : -1;
@@ -132,7 +131,7 @@ export default function ScriptView({
         setTurnMoved((count) => count + 1);
       }
       const starts = turn >= 0 ? words[turn]?.starts : null;
-      const word = starts ? wordIndexAt(starts, ms) : -1;
+      const word = starts ? spokenWordIndex(starts, seconds) : -1;
       const next =
         word >= 0
           ? (rootRef.current?.querySelector(`[data-turn="${turn}"] [data-word="${word}"]`) ?? null)
