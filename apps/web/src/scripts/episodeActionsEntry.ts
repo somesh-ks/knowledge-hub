@@ -15,7 +15,9 @@ function sync(): void {
   let busy = false;
   try {
     const run = JSON.parse(sessionStorage.getItem("dispatch:run") ?? "null");
+    // A briefing's root has no episode: its runs are followed by the Generate sheet.
     busy =
+      root.dataset.episode !== undefined &&
       run?.episode === root.dataset.episode &&
       (run?.phase === "queued" || run?.phase === "running");
   } catch {

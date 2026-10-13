@@ -183,16 +183,16 @@ export async function commitStage(deps: RunDeps, options: RunOptions): Promise<C
   const reports: DigestReport[] = [];
   for (const data of passData) {
     const { pass, selection, pool, sourceCounts } = data;
-    const fetchedThrough = new Date(selection.window.to);
+    // A replacement is not a run of the cadence: it is recorded as an on-demand run (the status
+    // route reads that slot for the Generate sheet) and leaves the fetch window where it was.
+    const recordKind = replaces === undefined ? pass.kind : "on-demand";
+    const recordWindow = replaces === undefined ? new Date(selection.window.to) : undefined;
     if (selection.outcome === "nothing" || selection.items.length === 0) {
-      // A replacement is not a run of the cadence: it leaves the last-run record and window alone.
-      if (replaces === undefined) {
-        lastRun = recordRun(lastRun, {
-          kind: pass.kind,
-          record: { at: nowIso, outcome: "nothing", items: 0 },
-          fetchedThrough,
-        });
-      }
+      lastRun = recordRun(lastRun, {
+        kind: recordKind,
+        record: { at: nowIso, outcome: "nothing", items: 0 },
+        fetchedThrough: recordWindow,
+      });
       if (sourceCounts) {
         sourceStats = recordSourceStats(sourceStats, sourceCounts, [], today);
         statsTouched = true;
@@ -229,22 +229,20 @@ export async function commitStage(deps: RunDeps, options: RunOptions): Promise<C
       );
     }
     digests.push(digest);
-    if (replaces === undefined) {
-      lastRun = recordRun(lastRun, {
-        kind: pass.kind,
-        record: {
-          at: nowIso,
-          outcome: "published",
-          digest_id: digest.id,
-          items: digest.items.length,
-        },
-        fetchedThrough,
-      });
-      lastRun = {
-        ...lastRun,
-        last_cover: { template: digest.cover.template, palette: digest.cover.palette },
-      };
-    }
+    lastRun = recordRun(lastRun, {
+      kind: recordKind,
+      record: {
+        at: nowIso,
+        outcome: "published",
+        digest_id: digest.id,
+        items: digest.items.length,
+      },
+      fetchedThrough: recordWindow,
+    });
+    lastRun = {
+      ...lastRun,
+      last_cover: { template: digest.cover.template, palette: digest.cover.palette },
+    };
     // Only what the briefing shows is seen. An item judged but cut (by the cap, the bar or a
     // "nothing" run) stays eligible: if a later pass fetches it again, its judgment comes from
     // state/judgments.json (30 days), so it is reconsidered without being judged twice.

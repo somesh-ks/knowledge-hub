@@ -70,7 +70,12 @@ describe("replace a briefing", () => {
       expect(await exists(repo.root, `Digests/2026/10/${ID}-2.md`)).toBe(false);
       expect(await exists(repo.root, TIMELINE)).toBe(false);
       expect(git(repo.root, "log", "-1", "--format=%s")).toBe(`chore(digest): replace ${ID}`);
-      expect(await readJson<LastRunFile>(repo.root, "state/last-run.json")).toEqual(lastRun);
+      // The Generate sheet's status route reads the on-demand record; the cadence and the fetch
+      // window stay where they were.
+      const after = await readJson<LastRunFile>(repo.root, "state/last-run.json");
+      expect(after.on_demand).toMatchObject({ outcome: "published", digest_id: ID });
+      expect(after.regular).toEqual(lastRun.regular);
+      expect(after.last_fetch_at).toBe(lastRun.last_fetch_at);
     },
   );
 

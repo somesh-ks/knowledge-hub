@@ -46,7 +46,7 @@ const highlights = episodeHighlights(episode, summaries);
       <h1 class="page-title" id="page-title" tabindex="-1">{episode.title}</h1>
       <p class="meta hero-facts"><span>{FORMAT_LABELS[episode.format]}</span><span>{day}</span></p>
     </div>
-    <HeroMenu sharePath={`/e/${entry.id}`} noun="episode" episodeId={entry.id} />
+    <HeroMenu sharePath={`/e/${entry.id}`} episodeId={entry.id} />
     {/* The same path a briefing takes: audio is made when Play is pressed, one turn at a time. */}
     <PlayCta digestId={entry.id} mode="preparing" length={length} noun="episode" />
   </header>
