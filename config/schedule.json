@@ -5,7 +5,8 @@
   "cadence_days": 2,
   "skip_topics": [
     "business",
-    "sports"
+    "sports",
+    "culture"
   ],
   "format": "readout",
   "length_minutes": 5,
