@@ -1,17 +1,19 @@
-// The fast checks in parallel: typecheck, lint and the unit tests, plus the static site build with
-// --build. One process starts the others, so a shell that is slow to spawn (Git Bash on Windows:
-// 3 to 8 s a process, against 50 ms from PowerShell) pays once. Exit 1 if any step fails.
+// The fast checks in parallel: typecheck, the site's type check (astro check), lint and the unit tests,
+// plus the static site build with --build (it follows the site's type check: both write apps/web/.astro).
+// One process starts the others, so a shell that is slow to spawn (Git Bash on Windows: 3 to 8 s a
+// process, against 50 ms from PowerShell) pays once. Exit 1 if any step fails.
 //
 // Usage: npm run gate [-- --build]
 import { spawn } from "node:child_process";
 
-const steps = [
-  { name: "typecheck", command: "npm run typecheck" },
-  { name: "lint", command: "npm run lint" },
-  { name: "test", command: "npm test" },
+const chains = [
+  [{ name: "typecheck", command: "npm run typecheck:packages" }],
+  [{ name: "lint", command: "npm run lint" }],
+  [{ name: "test", command: "npm test" }],
+  [{ name: "site types", command: "npm run check -w @dispatch/web" }],
 ];
 if (process.argv.includes("--build")) {
-  steps.push({ name: "build", command: "npm run build", env: { DISPATCH_STATIC_ONLY: "1" } });
+  chains[3].push({ name: "build", command: "npm run build", env: { DISPATCH_STATIC_ONLY: "1" } });
 }
 
 const run = ({ name, command, env }) =>
@@ -33,7 +35,17 @@ const run = ({ name, command, env }) =>
     );
   });
 
-const results = await Promise.all(steps.map(run));
+const runChain = async (chain) => {
+  const done = [];
+  for (const step of chain) {
+    const result = await run(step);
+    done.push(result);
+    if (result.code !== 0) break;
+  }
+  return done;
+};
+
+const results = (await Promise.all(chains.map(runChain))).flat();
 for (const { name, code, seconds, output } of results) {
   console.log(
     `${code === 0 ? "pass" : "FAIL"}  ${name.padEnd(10)} ${String(seconds).padStart(4)} s`,

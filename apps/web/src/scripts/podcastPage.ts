@@ -189,7 +189,6 @@ export async function mount(root: HTMLElement): Promise<void> {
   });
 
   box.dataset.was = JSON.stringify(fields());
-  showNext(fields());
   showNoTopics();
   if (root.querySelector("[data-profile]")) {
     void import("./podcastProfiles").then((module) => {

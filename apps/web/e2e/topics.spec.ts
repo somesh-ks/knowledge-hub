@@ -499,7 +499,9 @@ test.describe("a topic's page", () => {
     await expect(page.locator("li.source-row")).toHaveCount(2);
   });
 
-  test("a general topic: always on, edit, scores, no weight and no remove", async ({ page }) => {
+  test("a general topic: always on, in podcasts, edit, scores, no weight and no remove", async ({
+    page,
+  }) => {
     const { sent } = await setup(page);
     await open(page, "/settings/topics/world");
     await expect(page.getByRole("heading", { level: 1, name: "World" })).toBeVisible();
@@ -516,8 +518,8 @@ test.describe("a topic's page", () => {
     const sheet = page.getByRole("dialog", { name: "Edit topic" });
     await expect(sheet.getByLabel("What should count as this topic")).toBeEditable();
     await sheet.getByRole("button", { name: "Close" }).click();
-    // A general topic is in every podcast and always on: no list of podcasts, no switch.
-    await expect(page.getByRole("button", { name: /^Podcasts/ })).toHaveCount(0);
+    // A general topic can be put in or out of each podcast and is always on: a list of podcasts, no switch.
+    await expect(page.getByRole("button", { name: /^Podcasts/ })).toHaveCount(1);
     await expect(page.getByRole("switch")).toHaveCount(0);
     expect(ops(sent)).toEqual([]);
   });

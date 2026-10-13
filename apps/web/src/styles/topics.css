@@ -105,6 +105,11 @@
   padding-block: var(--space-4) 0;
 }
 
+/* The page's first block, the way up or the card, starts on the line every sub-page starts on. */
+.topic-page .topic {
+  padding-block-start: 0;
+}
+
 /* The summary card: a tonal surface with no outline. On a phone the picture and the More button
    share a row and the title and note run under them; from 40rem the picture is at the start, the
    text beside it and the button at the end. */

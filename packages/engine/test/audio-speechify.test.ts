@@ -12,6 +12,11 @@ import { FAKE_SPEECHIFY_KEY, must } from "./audio-fixtures.js";
 import type { MockServer } from "./audio-mockServer.js";
 import { jsonError, sseEvent, startMockServer, startSse, writeSliced } from "./audio-mockServer.js";
 
+// The client talks to a real loopback server, and one of its requests failed ("fetch failed") in 2 of
+// 6 full-suite runs on 2026-10-13, when 243 workers share the machine; each test passes alone and in 8
+// parallel runs. A retry here costs milliseconds; rerunning the suite costs a minute.
+const LOOPBACK = { retry: 2 };
+
 const servers: MockServer[] = [];
 afterEach(async () => {
   await Promise.all(servers.splice(0).map((server) => server.close()));
@@ -66,7 +71,7 @@ function client(
 
 const REQUEST = { text: "Hello world." };
 
-describe("synthesizeWithMarks", () => {
+describe("synthesizeWithMarks", LOOPBACK, () => {
   it("returns the concatenated audio, marks, duration and billable characters", async () => {
     const server = await serve((_req, res) => {
       startSse(res);
@@ -390,7 +395,7 @@ describe("synthesizeWithMarks", () => {
   });
 });
 
-describe("rate limiting", () => {
+describe("rate limiting", LOOPBACK, () => {
   it("waits out Retry-After and retries", async () => {
     const waits: number[] = [];
     const server = await serve((_req, res, _rec, index) => {
@@ -490,7 +495,7 @@ describe("rate limiting", () => {
   });
 });
 
-describe("errors", () => {
+describe("errors", LOOPBACK, () => {
   it("reports status, code, message and request id without the key", async () => {
     const server = await serve((_req, res) =>
       jsonError(res, 401, "unauthorized", "invalid credentials"),
@@ -567,7 +572,7 @@ describe("errors", () => {
   });
 });
 
-describe("synthesize (plain stream)", () => {
+describe("synthesize (plain stream)", LOOPBACK, () => {
   it("returns the audio with a duration derived from the bitrate", async () => {
     const audio = Buffer.alloc(32_000, 7);
     const server = await serve((_req, res) => {

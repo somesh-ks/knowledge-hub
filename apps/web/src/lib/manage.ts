@@ -190,13 +190,14 @@ export function recordInWords(stats: SourceStats | null | undefined): string | n
 /**
  * How often a source's stories got through lately, for its row: what reached a briefing, or for a
  * general news feed (which never reaches one) the stories another outlet carried too. Null when
- * the source has no record.
+ * the source has no record, or none of its items has been judged yet: "in no briefing" would say
+ * something about a source nobody has looked at.
  */
 export function reachInWords(
   stats: SourceStats | null | undefined,
   feedsGeneral: boolean,
 ): string | null {
-  if (!stats) return null;
+  if (!stats || stats.judged <= 0) return null;
   const count = feedsGeneral ? (stats.covered ?? 0) : stats.published;
   const stories = `${count} ${count === 1 ? "story" : "stories"}`;
   if (feedsGeneral)

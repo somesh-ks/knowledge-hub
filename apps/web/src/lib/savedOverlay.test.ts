@@ -260,8 +260,30 @@ describe("savedSources and savedTopicCount", () => {
   it("drops a removed topic and adds a new one, but not a rename of one already there", () => {
     const ops: ConfigOp[] = [
       { op: "topic.remove", id: "knit" },
-      { op: "topic.upsert", topic: { id: "quantum", name: "Quantum", description: "Qubits." } },
-      { op: "topic.upsert", topic: { id: "world", name: "World", description: "News." } },
+      {
+        op: "topic.upsert",
+        topic: {
+          id: "quantum",
+          name: "Quantum",
+          description: "Qubits.",
+          weight: 0.7,
+          enabled: true,
+          keywords: [],
+          section_id: "quantum",
+        },
+      },
+      {
+        op: "topic.upsert",
+        topic: {
+          id: "world",
+          name: "World",
+          description: "News.",
+          weight: 0.7,
+          enabled: true,
+          keywords: [],
+          section_id: "world",
+        },
+      },
     ];
     expect(savedTopicCount(["design", "knit", "world"], ["product_design"], ops)).toBe(3);
     expect(savedTopicCount(["design", "knit"], [], [])).toBe(2);

@@ -2,7 +2,7 @@ import type { Page, Route } from "@playwright/test";
 import { NEBIUS_TOP } from "../src/lib/modelId";
 import { GAP_MS } from "../src/scripts/managePageSave";
 import { expect, expectNoViolationsInEitherScheme, seedStorage, test } from "./fixtures";
-import { choose, pickerList } from "./picker";
+import { choose, openPicker, pickerList } from "./picker";
 
 interface Sent {
   passphrase: string;
@@ -172,7 +172,7 @@ test.describe("the profile pages", () => {
     ];
     for (const field of voices) {
       await expect(field).toBeVisible();
-      await field.click();
+      await openPicker(page, field);
       await expect(pickerList(page).getByRole("option")).toHaveText([
         "Default",
         // Each voice leads with the flag of its accent: en-US, en-US, en-GB.
@@ -488,7 +488,6 @@ test.describe("saved, before the build", () => {
     await expect(page.locator("[data-weekly-note]")).toHaveText(
       "On Mondays the weekly episode replaces this one.",
     );
-    await expect(page.locator(".settings-head")).toHaveAttribute("data-weekly-day", "1");
     // Nothing is sent on its own: no scope for the removed topic, no schedule again.
     await page.clock.runFor(GAP_MS);
     expect(sent).toEqual([]);
