@@ -6,7 +6,6 @@
   "skip_topics": [
     "world",
     "business",
-    "science",
     "sports"
   ],
   "format": "readout",
@@ -20,7 +19,6 @@
     "skip_topics": [
       "world",
       "business",
-      "science",
       "sports"
     ],
     "format": "readout",
