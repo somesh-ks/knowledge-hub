@@ -9,18 +9,22 @@ export const getStaticPaths = (async () => {
   const { episodes, entries } = await getSite();
   // Every briefing's summary by item id, newest first, so an episode's story reads as it did there.
   const summaries = new Map<string, string>();
+  const topics = new Map<string, string>();
   for (const { digest } of entries)
-    for (const item of digest.items)
+    for (const item of digest.items) {
+      if (!topics.has(item.id)) topics.set(item.id, item.category);
       if (item.summary && !summaries.has(item.id)) summaries.set(item.id, item.summary);
-  return episodes.map((entry) => ({ params: { id: entry.id }, props: { entry, summaries } }));
+    }
+  return episodes.map((entry) => ({ params: { id: entry.id }, props: { entry, summaries, topics } }));
 }) satisfies GetStaticPaths;
 
 interface Props {
   entry: EpisodeEntry;
   summaries: ReadonlyMap<string, string>;
+  topics: ReadonlyMap<string, string>;
 }
 
-const { entry, summaries } = Astro.props;
+const { entry, summaries, topics } = Astro.props;
 ---
 
 <BaseLayout
@@ -30,5 +34,5 @@ const { entry, summaries } = Astro.props;
   audio={{ noun: "episode", length: episodeLength(entry.episode) }}
   skipLabel="Skip to the episode"
 >
-  <EpisodeView entry={entry} summaries={summaries} />
+  <EpisodeView entry={entry} summaries={summaries} topics={topics} />
 </BaseLayout>

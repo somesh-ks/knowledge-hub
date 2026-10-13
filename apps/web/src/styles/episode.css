@@ -63,8 +63,9 @@
   line-height: var(--text-reading-leading);
 }
 
-/* The source link (primitives.css). Its 44px target hangs into the row's padding below instead of
-   adding to the row's height. */
-.episode-highlight-link {
-  margin-block-end: calc(var(--space-1) * -1);
+/* The action line (briefing.css): the source link and the story controls. Its 44px height hangs into
+   the row's padding below instead of adding to the row's height. */
+.episode-highlight-actions {
+  justify-self: stretch;
+  margin-block: 0 calc(var(--space-1) * -1);
 }

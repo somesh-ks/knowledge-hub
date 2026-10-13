@@ -1,0 +1,50 @@
+/*
+ * A story's like, dislike and More button (components/StoryControls.astro): three 44px icon buttons
+ * at the end of the action line. A pressed vote is tonal, as the library's chosen view is, and its
+ * glyph steps from the outline to the fill. A press changes the colour and the glyph, never a size,
+ * so neither the neighbours nor any words move.
+ */
+.story-controls {
+  display: flex;
+  flex: none;
+  align-items: center;
+  margin-inline-start: auto;
+}
+
+/* The last button's glyph, not its 44px target, lines up with the column's edge. */
+.story-controls > :last-child {
+  margin-inline-end: calc((var(--size-touch) - var(--size-icon-lg)) / -2);
+}
+
+.story-vote .icon:first-child {
+  display: block;
+}
+
+.story-vote .icon:last-child,
+.story-vote[aria-pressed="true"] .icon:first-child {
+  display: none;
+}
+
+.story-vote[aria-pressed="true"] .icon:last-child {
+  display: block;
+}
+
+.icon-btn.story-vote[aria-pressed="true"] {
+  background: var(--color-accent-container);
+  color: var(--color-on-accent-container);
+}
+
+@media (forced-colors: active) {
+  .icon-btn.story-vote[aria-pressed="true"] {
+    color: Highlight;
+  }
+}
+
+/* The menu hangs under its own story's button, not the header's. */
+.hero-menu-list.story-menu-list {
+  position-anchor: var(--story-anchor);
+}
+
+.story-more {
+  anchor-name: var(--story-anchor);
+}
