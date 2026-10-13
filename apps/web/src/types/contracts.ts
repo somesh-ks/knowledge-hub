@@ -370,7 +370,31 @@ export type ConfigOp =
       provider: "nebius" | "anthropic";
       /** A Nebius model id or null for the engine's own setting; Anthropic needs one of its two ids. */
       model: string | null;
+    }
+  /** Block or unblock an outlet by domain; a blocked domain's subdomains are blocked with it. */
+  | { op: "profile.block"; domain: string }
+  | { op: "profile.unblock"; domain: string }
+  | {
+      /**
+       * Mirrors the engine's profile.vote op (1 to 50 votes). A client sends one when the listener
+       * rates a story; `clear` takes a vote back.
+       */
+      op: "profile.vote";
+      votes: ProfileVote[];
     };
+
+/** One vote on a story, as profile.vote carries it. */
+export interface ProfileVote {
+  story_id: string;
+  url: string;
+  /** At most 200 characters. */
+  headline: string;
+  topic: string;
+  source_id: string;
+  value: "up" | "down" | "clear";
+  /** ISO time string. */
+  at: string;
+}
 
 export interface ConfigRequest {
   passphrase: string;

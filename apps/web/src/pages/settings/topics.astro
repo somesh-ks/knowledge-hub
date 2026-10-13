@@ -4,6 +4,8 @@ import ManageChrome from "../../components/ManageChrome.astro";
 import SettingsHead from "../../components/SettingsHead.astro";
 import TopicsPanel from "../../components/TopicsPanel.astro";
 import BaseLayout from "../../layouts/BaseLayout.astro";
+import { outletsSummary } from "../../lib/blockedOutlets";
+import { loadBlockedDomains } from "../../lib/blockedProfile";
 import { loadManage } from "../../lib/manage";
 import {
   byName,
@@ -20,6 +22,7 @@ import "../../styles/manage.css";
 import "../../styles/topics.css";
 
 const { topics, sources } = await loadManage();
+const blocked = await loadBlockedDomains();
 // Every topic in one list, by name (D69): Design, AI and Technology (the judge's finer topics live
 // inside them and are not listed), the general news topics and any of the owner's own. Other,
 // which is no topic, comes last. Each topic's page sets where it plays.
@@ -124,6 +127,19 @@ const choices = topicChoicesOf(layout);
               </a>
             )
           }
+        </div>
+
+        {/* Outlets left out of every briefing and episode; its page is blocked-outlets.astro. */}
+        <div class="rows topics-more">
+          <a class="row-action" href="/settings/blocked-outlets">
+            <span class="settings-text">
+              <span class="settings-label">Blocked outlets</span>
+              <span class="settings-hint" data-blocked-hint data-blocked={JSON.stringify(blocked)}>
+                {outletsSummary(blocked.length)}
+              </span>
+            </span>
+            <Icon name="chevronRight" />
+          </a>
         </div>
 
       </fieldset>

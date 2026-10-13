@@ -244,6 +244,53 @@ describe("parseConfigOp", () => {
   });
 });
 
+describe("parseConfigOp: profile ops", () => {
+  const vote = {
+    story_id: "s1",
+    url: "https://example.com/a",
+    headline: "A headline",
+    topic: "design",
+    source_id: "example",
+    value: "up",
+    at: "2026-10-14T10:00:00.000Z",
+  };
+
+  it("stores a blocked outlet as its domain and refuses what is not one", () => {
+    expect(
+      parseConfigOp({ op: "profile.block", domain: "https://www.News.Example.com/a?b#c" }),
+    ).toEqual({
+      op: "profile.block",
+      domain: "news.example.com",
+    });
+    expect(parseConfigOp({ op: "profile.unblock", domain: "example.com" })).toEqual({
+      op: "profile.unblock",
+      domain: "example.com",
+    });
+    for (const domain of ["localhost", "not a domain", "", "http://", "exa_mple.com", 7, null]) {
+      expect(parseConfigOp({ op: "profile.block", domain })).toBeNull();
+    }
+  });
+
+  it("forwards a good vote unchanged and refuses a malformed one", () => {
+    expect(
+      parseConfigOp({ op: "profile.vote", votes: [vote, { ...vote, value: "clear" }] }),
+    ).toEqual({
+      op: "profile.vote",
+      votes: [vote, { ...vote, value: "clear" }],
+    });
+    const bad = [
+      [],
+      Array.from({ length: 51 }, () => vote),
+      [{ ...vote, value: "sideways" }],
+      [{ ...vote, headline: "x".repeat(201) }],
+      [{ ...vote, at: "yesterday" }],
+      [{ ...vote, url: "javascript:alert(1)" }],
+      [vote, { ...vote, story_id: undefined }],
+    ];
+    for (const votes of bad) expect(parseConfigOp({ op: "profile.vote", votes })).toBeNull();
+  });
+});
+
 describe("parseConfigOp: writer.set", () => {
   const writer: ConfigOp = {
     op: "writer.set",

@@ -1083,3 +1083,8 @@
 .topic .topic-show-all {
   margin-block-start: var(--space-2);
 }
+
+/* The Blocked outlets row under the topics (D103 list), set apart from them by air. */
+.topics-more {
+  padding-block-start: var(--space-6);
+}

@@ -1,0 +1,186 @@
+/**
+ * The Blocked outlets page. A domain typed or pasted is normalised here as the server does
+ * (lib/blockedOutlets.ts), listed at once and saved a moment later as profile.block; a removal waits
+ * five seconds with Undo in the toast, then goes as profile.unblock (autosave.ts). The list is the
+ * one built into the page with the edits saved since laid over it, so it is right before the next
+ * build (lib/savedOverlay.ts).
+ */
+import { blockedDomainOf, outletsSummary, savedBlocked } from "../lib/blockedOutlets";
+import { hasSaved, SAVED_KEY } from "../lib/savedKey";
+import { parseSaved, savedOps } from "../lib/savedOverlay";
+import { mountAutosave } from "./autosave";
+import type { Pending } from "./managePageSave";
+
+const NOT_A_DOMAIN =
+  "Enter a domain like example.com, or paste the address of a page on the outlet.";
+
+/** The edits saved in the last few minutes, oldest first; none when storage is refused. */
+function readSaved() {
+  try {
+    return savedOps(parseSaved(localStorage.getItem(SAVED_KEY), Date.now()), Date.now());
+  } catch {
+    return [];
+  }
+}
+
+function mount(root: HTMLElement): void {
+  const one = <T extends HTMLElement = HTMLElement>(selector: string): T =>
+    root.querySelector(selector) as T;
+  const list = one("[data-list]");
+  const input = one<HTMLInputElement>("[data-input]");
+  const form = one<HTMLFormElement>("[data-add]");
+  const count = one("[data-count]");
+  const error = one("[data-error]");
+  /** Each pending change by `block:domain` or `unblock:domain`. */
+  const changes = new Map<string, Pending>();
+
+  const rows = (): HTMLElement[] => [...list.querySelectorAll<HTMLElement>(".blocked-row")];
+  /** A row that is listed: not waiting to be removed, not removed. */
+  const shown = (row: HTMLElement): boolean => !row.matches("[data-removing], [data-gone]");
+  const rowOf = (domain: string): HTMLElement | undefined =>
+    rows().find((row) => row.dataset.domain === domain);
+  const recount = (): void => {
+    count.textContent = outletsSummary(rows().filter(shown).length);
+  };
+
+  const say = (message: string): void => {
+    const text = error.querySelector("span");
+    if (text) text.textContent = message;
+    error.hidden = message === "";
+    if (message) input.setAttribute("aria-invalid", "true");
+    else input.removeAttribute("aria-invalid");
+  };
+
+  const removals = (): string[] =>
+    [...changes.entries()]
+      .filter(([key]) => key.startsWith("unblock:"))
+      .map(([key]) => key.slice("unblock:".length));
+  const autosave = mountAutosave(root, changes, () => {}, {
+    removing() {
+      const names = removals();
+      if (names.length === 0) return null;
+      return names.length === 1 ? `Removing ${names[0]}` : `Removing ${names.length} outlets`;
+    },
+    undo() {
+      for (const domain of removals()) {
+        changes.delete(`unblock:${domain}`);
+        rowOf(domain)?.removeAttribute("data-removing");
+      }
+      recount();
+      autosave.changed();
+    },
+  });
+
+  /** A row for a domain added on this page, in the list's order. */
+  const insert = (domain: string): HTMLElement => {
+    const row = one<HTMLTemplateElement>("template[data-row]").content.firstElementChild?.cloneNode(
+      true,
+    ) as HTMLElement;
+    row.dataset.domain = domain;
+    (row.querySelector(".settings-label") as HTMLElement).textContent = domain;
+    row.querySelector("button")?.setAttribute("aria-label", `Unblock ${domain}`);
+    const after = rows().find((existing) => (existing.dataset.domain ?? "") > domain);
+    if (after) after.before(row);
+    else list.append(row);
+    return row;
+  };
+
+  // Edits saved since the build: the list as it will be, shown now.
+  if (hasSaved()) {
+    const built = rows().map((row) => row.dataset.domain ?? "");
+    const will = savedBlocked(built, readSaved());
+    for (const row of rows()) if (!will.includes(row.dataset.domain ?? "")) row.remove();
+    for (const domain of will) if (!rowOf(domain)) insert(domain);
+  }
+
+  const add = (domain: string): void => {
+    const waiting = changes.get(`unblock:${domain}`);
+    const row = rowOf(domain);
+    if (waiting && row) {
+      // Removed a moment ago and blocked again: nothing needs to go.
+      changes.delete(`unblock:${domain}`);
+      row.removeAttribute("data-removing");
+    } else if (!row || !shown(row)) {
+      const made = row ?? insert(domain);
+      made.removeAttribute("data-gone");
+      changes.set(`block:${domain}`, {
+        op: { op: "profile.block", domain },
+        el: made.querySelector<HTMLElement>(".settings-label") as HTMLElement,
+        now: "1",
+      });
+    }
+    recount();
+    autosave.changed();
+  };
+
+  const remove = (button: HTMLButtonElement): void => {
+    const row = button.closest<HTMLElement>(".blocked-row");
+    const domain = row?.dataset.domain;
+    if (!row || !domain) return;
+    // The row is about to leave the list, so focus moves to the next row's control, else the one
+    // before, else the field (the toast's Undo is a Tab away).
+    const near = (from: Element | null, next: boolean): HTMLElement | null => {
+      for (
+        let each = from;
+        each;
+        each = next ? each.nextElementSibling : each.previousElementSibling
+      )
+        if (each instanceof HTMLElement && shown(each)) return each.querySelector("button");
+      return null;
+    };
+    const target =
+      near(row.nextElementSibling, true) ?? near(row.previousElementSibling, false) ?? input;
+    if (changes.has(`block:${domain}`)) {
+      // Added and not sent yet: taking it back leaves nothing to send.
+      changes.delete(`block:${domain}`);
+      row.remove();
+    } else {
+      row.setAttribute("data-removing", "");
+      changes.set(`unblock:${domain}`, {
+        op: { op: "profile.unblock", domain },
+        el: button,
+        now: "1",
+      });
+    }
+    target.focus({ preventScroll: true });
+    recount();
+    autosave.changed();
+  };
+
+  form.addEventListener("submit", (event) => {
+    event.preventDefault();
+    const domain = blockedDomainOf(input.value);
+    if (domain === null) {
+      say(NOT_A_DOMAIN);
+      input.focus();
+      return;
+    }
+    const row = rowOf(domain);
+    if (row && shown(row)) {
+      say(`${domain} is already blocked.`);
+      input.focus();
+      return;
+    }
+    say("");
+    add(domain);
+    input.value = "";
+    input.focus();
+  });
+  input.addEventListener("input", () => say(""));
+  list.addEventListener("click", (event) => {
+    const button = (event.target as Element).closest<HTMLButtonElement>("button[data-remove]");
+    if (button) remove(button);
+  });
+
+  recount();
+  root.dataset.ready = "";
+}
+
+export function installBlockedPage(): void {
+  const sync = (): void => {
+    const root = document.querySelector<HTMLElement>("[data-blocked]");
+    if (root && root.dataset.ready === undefined) mount(root);
+  };
+  document.addEventListener("astro:page-load", sync);
+  sync();
+}
