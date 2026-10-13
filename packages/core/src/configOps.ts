@@ -52,6 +52,9 @@ export type TopicInput = z.input<typeof TopicInput>;
  *   Unknown topic ids and zones outside the list are refused.
  * - writer.set: set the writer's provider and model in config/writer.json. A null model means
  *   the engine's own DISPATCH_MODEL.
+ * - profile.block / profile.unblock: add or remove a domain in the owner's blocklist
+ *   (config/profiles/owner.json). A blocked domain and its subdomains never reach a briefing or an
+ *   episode. A URL or `www.` form is accepted and reduced to the domain.
  */
 export const ConfigOp = z.discriminatedUnion("op", [
   z.object({ op: z.literal("topic.upsert"), topic: TopicInput }),
@@ -122,6 +125,9 @@ export const ConfigOp = z.discriminatedUnion("op", [
       const problem = writerModelProblem(value.provider, value.model);
       if (problem) ctx.addIssue({ code: "custom", path: ["model"], message: problem });
     }),
+  // The domain is normalised and checked by the engine, which refuses what is not a host name.
+  z.object({ op: z.literal("profile.block"), domain: z.string().trim().min(1).max(300) }),
+  z.object({ op: z.literal("profile.unblock"), domain: z.string().trim().min(1).max(300) }),
 ]);
 /** The op as a caller writes it, before defaults are filled in. */
 export type ConfigOp = z.input<typeof ConfigOp>;

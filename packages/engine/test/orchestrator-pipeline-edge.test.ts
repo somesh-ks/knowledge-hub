@@ -22,12 +22,15 @@ import {
   goodFeeds,
   head,
   instantiate,
+  json,
   makeWorld,
   PatternJudge,
   readDigest,
   readJson,
   runStage,
+  seed,
   sourceItems,
+  sourcesFile,
   type TestRepo,
   WED,
 } from "./orchestrator-fixtures.js";
@@ -367,6 +370,59 @@ describe("agent mode", () => {
     expect(head(repo.root)).toBe(before);
     expect(await exists(repo.root, DIGEST_PATH)).toBe(false);
     expect(await exists(repo.root, ".cache/run/2026-10-07/digest-preview.md")).toBe(true);
+  });
+});
+
+describe("a blocked domain", () => {
+  it("never reaches the judge, even from open search", LONG, async () => {
+    const hit = (host: string, slug: string): Item => {
+      const url = `https://${host}/${slug}`;
+      return {
+        ...feedItem({ sourceId: "open-search", slug }),
+        id: itemId(url),
+        url,
+        canonical_url: url,
+        source_type: "exa",
+      };
+    };
+    const blocked = hit("news.blocked-outlet.example", "story");
+    const allowed = hit("fine-outlet.example", "story");
+    const world = makeWorld(repo.root, { now: WED, feeds: goodFeeds(4) });
+    world.deps.fetch.fetchers = {
+      ...world.deps.fetch.fetchers,
+      exa: async () => [blocked, allowed],
+    };
+    await seed(repo.root, {
+      "config/sources.json": json({
+        version: 1,
+        sources: [
+          ...sourcesFile().sources,
+          {
+            id: "open-search",
+            name: "Open search",
+            type: "exa",
+            url: "https://exa.ai/",
+            feed_url: null,
+            tier: "daily",
+            high_signal: true,
+            enabled: true,
+            failures: 0,
+            options: {},
+          },
+        ],
+      }),
+      "config/profiles/owner.json": json({
+        user_id: "owner",
+        blocked_domains: ["blocked-outlet.example"],
+        votes: [],
+      }),
+    });
+    for (const stage of ["gate", "fetch", "judge"] as const) {
+      expect((await runStage(world, { stage })).code).toBe(0);
+    }
+    const asked = world.judge.asked.flat();
+    expect(asked).toContain(allowed.id);
+    expect(asked).not.toContain(blocked.id);
   });
 });
 
