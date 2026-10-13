@@ -26,6 +26,9 @@ export function splitWords(text: string): string[] {
   return text.split(/\s+/).filter((word) => word !== "");
 }
 
+/** An unseen lead-in word counts as this many characters, bridges being short words. */
+const LEAD_WORD_WEIGHT = 5;
+
 /**
  * When each word starts, in ms, estimated by spreading the turn's span over its words in
  * proportion to their length (one extra character for the pause after each). It stands in until
@@ -36,12 +39,15 @@ export function estimateWordStarts(
   words: readonly string[],
   startMs: number | null,
   endMs: number | null,
+  leadWords = 0,
 ): number[] | null {
   if (startMs === null || endMs === null || endMs <= startMs || words.length === 0) return null;
   const weights = words.map((word) => word.length + 1);
-  const total = weights.reduce((sum, weight) => sum + weight, 0);
+  // The unseen lead-in takes its share of the span first, at the length of a short word.
+  const lead = leadWords * LEAD_WORD_WEIGHT;
+  const total = lead + weights.reduce((sum, weight) => sum + weight, 0);
   const starts: number[] = [];
-  let before = 0;
+  let before = lead;
   for (const weight of weights) {
     starts.push(startMs + ((endMs - startMs) * before) / total);
     before += weight;
@@ -61,12 +67,11 @@ export function markedWordStarts(
   marks: readonly SegmentWordMark[] | undefined,
   startMs: number | null,
   estimate: readonly number[] | null,
-  leadIn = false,
+  lead = 0,
 ): number[] | null {
   const real: Array<number | undefined> = new Array(count).fill(undefined);
-  // A briefing's segment opens with host words the page does not show (a section bridge, a link
-  // between stories) and ends with the story, so the story is the last `count` words of the marks.
-  const lead = leadIn ? unseenLeadWords(count, marks) : 0;
+  // `lead` words open a briefing's segment (a section bridge, a link) that the page does not show,
+  // so the mark of the story's word n is the mark of the segment's word n + lead.
   let leadEnd = 0;
   let found = false;
   for (const mark of marks ?? []) {
@@ -104,23 +109,6 @@ export function markedWordStarts(
     const guess = estimate?.[index] ?? previous;
     return Math.min(Math.max(guess, previous), nextMark[index] ?? next);
   });
-}
-
-/** More words than a bridge and a link between stories add together; a bigger gap is not one. */
-const MAX_LEAD_IN_WORDS = 16;
-
-/**
- * How many words open a story's segment that the page does not show: the marks run to the end of
- * the segment's text and the story is its last `count` words, so what comes before them is the
- * host's lead-in. Zero when the marks stop within the story.
- */
-export function unseenLeadWords(
-  count: number,
-  marks: readonly SegmentWordMark[] | undefined,
-): number {
-  let top = -1;
-  for (const mark of marks ?? []) top = Math.max(top, mark.word);
-  return Math.min(Math.max(0, top + 1 - count), MAX_LEAD_IN_WORDS);
 }
 
 /** The word being said at `ms`: the last one that has started, or -1 before the first. */

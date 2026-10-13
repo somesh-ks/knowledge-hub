@@ -13,7 +13,6 @@ import {
   spokenPosition,
   turnEndMs,
 } from "./core/scriptMath";
-import { hasUnseenLeadIn } from "./core/storyTurns";
 import { usePlayerSecond, usePlayerState } from "./hooks/usePlayer";
 import { useRovingFocus } from "./hooks/useRovingFocus";
 
@@ -90,16 +89,11 @@ export default function ScriptView({
     () =>
       turns.map((turn, index) => {
         const list = splitWords(turn.text);
-        const estimate = estimateWordStarts(list, turn.start_ms, turnEndMs(turns, index));
+        const lead = turn.lead_words ?? 0;
+        const estimate = estimateWordStarts(list, turn.start_ms, turnEndMs(turns, index), lead);
         return {
           list,
-          starts: markedWordStarts(
-            list.length,
-            marks[turn.key],
-            turn.start_ms,
-            estimate,
-            hasUnseenLeadIn(turn),
-          ),
+          starts: markedWordStarts(list.length, marks[turn.key], turn.start_ms, estimate, lead),
         };
       }),
     [turns, marks],
