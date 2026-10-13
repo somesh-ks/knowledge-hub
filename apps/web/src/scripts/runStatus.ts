@@ -148,6 +148,7 @@ function show(run: Stored | null): void {
       const target = event.target as Element;
       if (target.closest("[data-run-dismiss]")) dismiss();
       if (target.closest("[data-run-retry]")) void retry();
+      if (target.closest("[data-run-play]")) void listenLive();
       // The episode, or the Library, is being opened: the line has said what it had to. It goes
       // after the press has been handled, so the link still leads where it points.
       if (target.closest("[data-run-library]")) {
@@ -204,6 +205,12 @@ function show(run: Stored | null): void {
       (run?.phase !== "done" && run?.phase !== "started") ||
       run?.kind === "delete" ||
       samePage(href);
+  }
+  // Listen now: offered while the episode is being written and its first turns exist; once the
+  // committed episode is found, Open episode is the way in.
+  const listen = card.querySelector<HTMLButtonElement>("[data-run-play]");
+  if (listen) {
+    listen.hidden = !(run && !run.kind && live?.runId === run.id && GOING.includes(run.phase));
   }
   const again = card.querySelector<HTMLButtonElement>("[data-run-retry]");
   if (again) again.hidden = !(run?.phase === "failed" && canRetry(run));
@@ -287,6 +294,43 @@ async function waitForSite(run: Stored): Promise<void> {
   }
 }
 
+/**
+ * While a new episode is written, its script is copied to Blob turn by turn (lib/liveStream.ts). Ask
+ * for the copy until the writer is done, and offer Listen now as soon as the first turns are there:
+ * the committed episode is still a minute or more away. The copy is temporary and may never come
+ * (no Blob token, an old run); then nothing here changes.
+ */
+const STREAM_POLL_MS = 2500;
+const STREAM_POLLS = 100;
+let watching = 0;
+let live: { runId: number; doc: Record<string, unknown> } | null = null;
+
+async function watchStream(run: Stored): Promise<void> {
+  if (watching === run.id || run.kind) return;
+  watching = run.id;
+  for (let turn = 0; turn < STREAM_POLLS && watching === run.id; turn += 1) {
+    const res = await fetch(`/api/stream?run=${run.id}`, { cache: "no-store" }).catch(() => null);
+    const doc = res?.ok ? await res.json().catch(() => null) : null;
+    if (watching !== run.id) return;
+    if (Array.isArray(doc?.turns) && doc.turns.length > 0 && doc.status !== "failed") {
+      const first = live?.runId !== run.id;
+      live = { runId: run.id, doc };
+      if (first) show(read());
+    }
+    if (doc && doc.status !== "writing") break;
+    await new Promise((resolve) => setTimeout(resolve, STREAM_POLL_MS));
+  }
+  if (watching === run.id) watching = 0;
+}
+
+/** Listen now: plays the live copy from the persistent player. */
+async function listenLive(): Promise<void> {
+  if (!live) return;
+  const { runId, doc } = live;
+  const runtime = await import("../narration/narrationRuntime");
+  runtime.narrateLive(doc as never, runId);
+}
+
 async function follow(run: Stored, now: boolean): Promise<void> {
   if (following === run.id) return;
   following = run.id;
@@ -301,6 +345,7 @@ async function follow(run: Stored, now: boolean): Promise<void> {
     // that and stop asking. A hiccup is asked again, until the loop runs out.
     if (res && res.status < 500 && !res.ok) break;
     if (!body?.state) continue;
+    if (body.state === "running") void watchStream(run);
     if (body.state === "completed") {
       following = 0;
       const failed = body.outcome === "failed";

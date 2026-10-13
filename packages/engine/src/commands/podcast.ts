@@ -178,7 +178,8 @@ export function makePodcastCommand(deps: PodcastDeps = {}): CommandRun {
       // A new episode's script is copied to Blob as it is written, so it can be heard before the
       // commit is deployed. Best effort: without the token or the run id there is just no live copy.
       const blobClient = deps.blob ?? blobClientFrom(ctx.env.BLOB_READ_WRITE_TOKEN);
-      const runId = ctx.env.GITHUB_RUN_ID;
+      // Set by Actions on every run; the context's parsed env does not carry it.
+      const runId = process.env.GITHUB_RUN_ID;
       const makeStream =
         command.action === "create" && !dryRun && blobClient && runId
           ? (info: { id: string; request: PodcastRequest; stories: readonly PodcastStory[] }) => {
