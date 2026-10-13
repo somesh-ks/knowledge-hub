@@ -69,14 +69,20 @@ describe("config/topics.json", () => {
     expect(TopicsFile.safeParse(resolved).success).toBe(true);
   });
 
-  it("names every category with its preference weight and today's section, then the app's topics", () => {
-    expect(file.topics.map((topic) => topic.id)).toEqual([...CATEGORIES, "design", "trending"]);
+  it("names every category with today's section, then the app's topics", () => {
+    // The owner adds topics and sets weights from Settings, and the general news topics ship with the
+    // app, so only the built-in and app topics and their sections are pinned; anything else is
+    // general or the owner's own.
+    expect(file.topics.filter((t) => t.origin === "builtin").map((t) => t.id)).toEqual([
+      ...CATEGORIES,
+    ]);
+    for (const topic of file.topics.filter((t) => t.origin !== "builtin" && t.origin !== "app"))
+      expect(["general", "custom"]).toContain(topic.origin);
     expect(file.topics.filter((topic) => topic.origin === "app").map((t) => t.id)).toEqual([
       "design",
       "trending",
     ]);
     for (const topic of file.topics.filter((t) => t.origin === "builtin")) {
-      expect(topic.weight).toBe(preferences.weights[topic.id as (typeof CATEGORIES)[number]]);
       const home = homeSection(topic.id as (typeof CATEGORIES)[number], "rss");
       if (home !== null) expect(topic.section_id).toBe(home);
     }
