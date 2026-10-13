@@ -140,7 +140,8 @@
   .sheet-panel {
     max-height: var(--sheet-max-height);
     padding: var(--sheet-padding);
-    border-radius: 0;
+    /* A centred dialog is not a bottom sheet: it keeps its corners. */
+    border-radius: var(--sheet-radius);
   }
 
   .sheet-popup::after {
