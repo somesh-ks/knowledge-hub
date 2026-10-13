@@ -4,7 +4,6 @@
   "hour": 7,
   "cadence_days": 2,
   "skip_topics": [
-    "world",
     "business",
     "sports"
   ],
@@ -17,7 +16,6 @@
     "day": 0,
     "hour": 7,
     "skip_topics": [
-      "world",
       "business",
       "sports"
     ],
