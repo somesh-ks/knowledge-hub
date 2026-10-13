@@ -72,6 +72,18 @@ describe("sections from the schedule", () => {
     expect(result.dropped.filter((d) => d.reason === "skipped_topic")).toHaveLength(3);
   });
 
+  it("keeps only the chosen topics when a regeneration names them", () => {
+    const items = pool();
+    const result = selectItems({
+      scored: items,
+      kind: "regular",
+      floor: 1,
+      cap: 12,
+      onlyTopics: ["design_engineering_craft"],
+    });
+    expect(result.selected.map((s) => s.item.id)).toEqual([items[0]?.item.id]);
+  });
+
   it("keeps a topic left out away from Top picks too", () => {
     const items = pool();
     const result = selectItems({
