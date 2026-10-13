@@ -2,7 +2,7 @@
   "version": 1,
   "timezone": "Europe/Stockholm",
   "hour": 7,
-  "cadence_days": 2,
+  "cadence_days": 1,
   "skip_topics": [
     "business",
     "sports",
