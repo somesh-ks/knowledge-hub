@@ -22,9 +22,8 @@ type Profile = "daily" | "weekly";
 const profile = Astro.params.profile as Profile;
 const [{ topics, sources }, schedule] = await Promise.all([loadManage(), loadScheduleView()]);
 const layout = topicLayout(topics, sources);
-// Every topic is shown. What can be put in or out of a scheduled podcast is the owner's three and
-// their own; the general news topics play in episodes made on request only (D69), so their chips are
-// shown but locked.
+// Every topic can be put in or out of a scheduled podcast: the owner's three, their own and the
+// general news topics.
 const scopeTopics = [
   ...layout.groups.map((group) => ({
     id: group.id,
@@ -32,18 +31,12 @@ const scopeTopics = [
     ids: group.members.map((member) => member.id),
   })),
   ...layout.own.map((topic) => ({ id: topic.id, name: topic.name, ids: [topic.id] })),
-  ...layout.general.map((topic) => ({
-    id: topic.id,
-    name: topic.name,
-    ids: [topic.id],
-    locked: true,
-  })),
+  ...layout.general.map((topic) => ({ id: topic.id, name: topic.name, ids: [topic.id] })),
 ];
 
 const PAGES = {
   daily: {
     title: "Daily",
-    note: schedule.next,
     values: {
       timezone: schedule.timezone,
       hour: schedule.hour,
@@ -57,7 +50,6 @@ const PAGES = {
   },
   weekly: {
     title: "Weekly",
-    note: schedule.nextWeekly,
     values: {
       timezone: schedule.timezone,
       enabled: schedule.weekly.enabled,
@@ -71,7 +63,7 @@ const PAGES = {
     },
   },
 } as const;
-const { title, note, values } = PAGES[profile];
+const { title, values } = PAGES[profile];
 ---
 
 <BaseLayout title={title} view="settings" skipLabel={`Skip to the ${title} settings`}>
@@ -80,17 +72,7 @@ const { title, note, values } = PAGES[profile];
          autosave.ts sends it a moment later; the voice list loads into the rows, which are as tall
          as the real ones. */}
     <div class="manage" data-manage="podcast">
-      <SettingsHead
-        title={title}
-        note={note}
-        next
-        off={profile === "weekly" ? "No weekly episodes while this is off." : undefined}
-        runs={{
-          lastRegularAt: schedule.lastRegularAt,
-          lastWeeklyAt: schedule.lastWeeklyAt,
-          weeklyDay: schedule.weekly.enabled ? schedule.weekly.day : null,
-        }}
-      />
+      <SettingsHead title={title} />
       <noscript>
         <p class="manage-note">Changing these settings needs JavaScript, which is turned off in this browser.</p>
       </noscript>

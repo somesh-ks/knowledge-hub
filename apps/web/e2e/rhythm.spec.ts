@@ -57,7 +57,11 @@ for (const size of SIZES) {
       const reference = await firstBlockTop(page, "main .hero .cover, main h1");
       for (const path of SUBPAGES) {
         await page.goto(path);
-        const top = await firstBlockTop(page, "main .settings-head");
+        // A topic's page opens with its way up (from 64rem) or its card, which holds the title.
+        const top = await firstBlockTop(
+          page,
+          "main .topic-up:visible, main .topic-card:visible, main .settings-head:visible",
+        );
         expect(
           Math.abs(top - reference),
           `${path} starts at ${top}, Today at ${reference}`,

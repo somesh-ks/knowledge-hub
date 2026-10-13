@@ -64,7 +64,6 @@ describe("generalOf", () => {
 describe("topicSummary", () => {
   it("says a topic's sources, never its weight", () => {
     expect(topicSummary(topic({ origin: "general" }), 2)).toBe("2 sources");
-    expect(topicSummary(topic({ origin: "general", enabled: false }), 1)).toBe("Off");
     expect(topicSummary(topic({ weight: 0.95 }), 1)).toBe("1 source");
   });
 
@@ -75,8 +74,7 @@ describe("topicSummary", () => {
     expect(topicSummary(null, 1, 0)).toBe("0 of 1 source on");
   });
 
-  it("says Off for a topic that is off, and Never for one that never publishes", () => {
-    expect(topicSummary(topic({ enabled: false }), 2)).toBe("Off");
+  it("says Never for a topic that never publishes", () => {
     expect(topicSummary(topic({ never_publish: true }), 0)).toBe("Never in a briefing");
   });
 });

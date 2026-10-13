@@ -229,9 +229,9 @@
   padding-block-start: var(--space-1);
 }
 
-/* Off, the weekly podcast is one switch: its other groups wait until it is on, and the line under the
-   title says it is off in its next run's place, so the switch under it holds still. */
-.manage:has(#weekly-enabled:not(:checked)) :is(.podcast-profile > .podcast-section, [data-next]),
+/* Off, the weekly podcast is one switch: its other groups wait until it is on, and a line under the
+   switch says so. */
+.manage:has(#weekly-enabled:not(:checked)) .podcast-profile > .podcast-section,
 .manage:not(:has(#weekly-enabled:not(:checked))) [data-off] {
   display: none;
 }
@@ -256,24 +256,13 @@
   padding-block: var(--space-3) var(--space-2);
 }
 
-/* A general news topic is shown but is in no scheduled podcast yet: its name stays legible, in the
-   muted ink with a dashed edge and no fill, so it does not look like a chip that is switched off
-   and can be pressed, and the dimming of a disabled chip (32%) does not take the name away. */
-.podcast-topics .filter-chip[data-locked] {
-  border: var(--stroke-hairline) dashed var(--color-border-control);
-  background: transparent;
-  color: var(--color-on-surface-muted);
-  opacity: 1;
-  cursor: default;
-}
-
 /* A voice: its select, and after it a round button that plays the voice's sample. The button keeps its
    room when the voice has no sample yet, so nothing moves when the list arrives. */
 .podcast-voice {
   display: flex;
   flex: 0 1 auto;
   align-items: center;
-  gap: var(--space-1);
+  gap: var(--space-3);
   min-width: 0;
   max-inline-size: 70%;
 }

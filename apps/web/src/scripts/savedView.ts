@@ -194,8 +194,8 @@ export function overlayPodcast(
 }
 
 /**
- * Daily, after a weekly edit: the Repeat row's note and the day the next line skips follow the
- * weekly podcast's saved day and switch, not the ones the page was built with.
+ * Daily, after a weekly edit: the Repeat row's note follows the weekly podcast's saved day and
+ * switch, not the ones the page was built with.
  */
 function overlayWeeklyDay(root: HTMLElement, ops: readonly ConfigOp[]): boolean {
   const note = root.querySelector<HTMLElement>("[data-weekly-note]");
@@ -214,11 +214,6 @@ function overlayWeeklyDay(root: HTMLElement, ops: readonly ConfigOp[]): boolean 
   const text = weeklyNote({ enabled, day });
   note.textContent = text ?? "";
   note.hidden = text === null;
-  const head = root.querySelector<HTMLElement>(".settings-head");
-  if (head) {
-    if (enabled) head.dataset.weeklyDay = String(day);
-    else delete head.dataset.weeklyDay;
-  }
   return true;
 }
 
@@ -314,20 +309,16 @@ export function overlayTopics(root: HTMLElement, ops = readSaved()): boolean {
     }
   }
   shown = addTopics(root, saved.topics, saved.feeds) || shown;
-  shown = recount(root, ops, saved.topics) || shown;
+  shown = recount(root, ops) || shown;
   if (shown) markSaved(root);
   return shown;
 }
 
 /**
  * On the list: each row's line counts the sources it will list once the build lands (switched off,
- * moved, removed or added since), and says "Off" for a topic switched off.
+ * moved, removed or added since).
  */
-function recount(
-  root: HTMLElement,
-  ops: readonly ConfigOp[],
-  topics: Map<string, Upsert>,
-): boolean {
+function recount(root: HTMLElement, ops: readonly ConfigOp[]): boolean {
   const list = root.querySelector<HTMLElement>("[data-spots]");
   if (!list) return false;
   let base: Record<string, SourceSpot> = {};
@@ -346,14 +337,7 @@ function recount(
   for (const row of rows) {
     const page = row.dataset.page ?? "";
     const { total, on } = sourceCounts(spots, page);
-    const built = row.dataset.enabled;
-    const enabled = topics.get(page)?.enabled ?? built !== "false";
-    const text = sourcesSummary({
-      total,
-      on,
-      off: built !== undefined && !enabled,
-      never: row.dataset.never !== undefined,
-    });
+    const text = sourcesSummary({ total, on, never: row.dataset.never !== undefined });
     const hint = row.querySelector("[data-hint]");
     // The built line may carry the template's own spaces: a line that reads the same is no change.
     if (!hint || hint.textContent?.trim() === text) continue;
@@ -385,14 +369,12 @@ function renameTopic(root: HTMLElement, id: string, topic: Upsert): boolean {
   if (title) title.textContent = name;
   const note = root.querySelector(".settings-note");
   if (note) note.textContent = description;
-  // Turning the topic off later sends it with these details, not the ones it was built with.
-  for (const toggle of root.querySelectorAll<HTMLInputElement>('[data-field="topic.enabled"]')) {
-    const built = JSON.parse(toggle.dataset.op ?? "{}");
-    toggle.dataset.op = JSON.stringify({
-      ...built,
-      topic: { ...built.topic, name, description, keywords },
-    });
-  }
+  // A later edit sends the topic with these details, not the ones it was built with.
+  const base = JSON.parse(trigger.dataset.topicBase ?? "{}");
+  trigger.dataset.topicBase = JSON.stringify({
+    ...base,
+    topic: { ...base.topic, name, description, keywords },
+  });
   return true;
 }
 

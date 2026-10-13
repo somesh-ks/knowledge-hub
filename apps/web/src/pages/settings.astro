@@ -2,7 +2,6 @@
 import Icon from "../components/Icon.astro";
 import BaseLayout from "../layouts/BaseLayout.astro";
 import { loadManage } from "../lib/manage";
-import { readCounts } from "../lib/savedOverlay";
 import { loadScheduleView } from "../lib/schedule";
 import { dailySummary, modelSummary, topicsSummary, weeklySummary } from "../lib/settingsSummary";
 import { topicLayout } from "../lib/topicPages";
@@ -21,15 +20,11 @@ const [schedule, writer, manage] = await Promise.all([
 // general news topics; the judge's finer topics are inside the three.
 const layout = topicLayout(manage.topics, manage.sources);
 const shownTopics = [...layout.groups, ...layout.own, ...layout.general].map((topic) => topic.id);
-// A source is read only while it is on and so is the topic whose page lists it: a general topic
-// switched off reads none of its sources, whatever their own boxes say.
-const offPages = manage.topics.filter((topic) => !topic.enabled).map((topic) => topic.id);
 const spots = Object.fromEntries(
   [...layout.sources].flatMap(([page, list]) =>
     list.map((source) => [source.id, { page, on: source.enabled }]),
   ),
 );
-const sourcesOn = readCounts(spots, offPages, []).on;
 // Each row leads to the one page that sets it, and says its current state in a few words. What the
 // words are worked out from rides along as data, so an edit saved since the build can be shown in
 // them (scripts/settingsSaved.ts, loaded only when one is kept).
@@ -60,25 +55,24 @@ const PODCAST = [
   {
     href: "/settings/topics",
     label: "Topics and sources",
-    hint: topicsSummary(shownTopics.length, manage.sources.length, sourcesOn),
+    hint: topicsSummary(shownTopics.length, manage.sources.length),
     data: {
       summary: "topics",
       shown: shownTopics.join(" "),
       taken: manage.topics.map((topic) => topic.id).join(" "),
       sources: JSON.stringify(spots),
-      off: offPages.join(" "),
     },
   },
   {
     href: "/settings/model",
-    label: "Model",
+    label: "AI Model",
     hint: modelSummary(writer.provider, writer.model),
     data: { summary: "model", provider: writer.provider, model: writer.model ?? "" },
   },
 ];
 
-// The version is the day this build was made, which is what changes when the site does.
-const version = new Intl.DateTimeFormat("en-GB", {
+// The day this build was made, which is what changes when the site does.
+const updated = new Intl.DateTimeFormat("en-GB", {
   timeZone: "Europe/Stockholm",
   day: "numeric",
   month: "long",
@@ -167,8 +161,8 @@ const THEME_LABELS: Record<ThemePreference, string> = {
         </p>
         <div class="rows">
           <div class="settings-row">
-            <span class="settings-label">Version</span>
-            <span class="settings-hint">{version}</span>
+            <span class="settings-label">Last updated</span>
+            <span class="settings-hint">{updated}</span>
           </div>
         </div>
       </section>

@@ -182,13 +182,6 @@ function skeleton(): HTMLElement {
   score.append(element("span", "skeleton-bar"));
   const facts = element("div", "source-facts");
   facts.append(element("span", "skeleton-bar"), element("span", "skeleton-bar"));
-  // An address is one word: it ends in an ellipsis rather than breaking mid-word, and says itself whole
-  // on hover.
-  const address = facts.querySelector("dd");
-  if (address && preview.feed_url) {
-    address.classList.add("source-facts-url");
-    address.title = preview.feed_url;
-  }
   shell.append(head, score, facts);
   return shell;
 }

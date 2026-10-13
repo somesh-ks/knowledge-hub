@@ -17,7 +17,7 @@ import {
 } from "@dispatch/core";
 import { isHttpUrl } from "../extract/urlSafety.js";
 import { digestWords, listenMinutes, readMinutes } from "../render/readTime.js";
-import { capFor, TECH_ALLOWANCE, TOP_PICKS } from "../score/selectItems.js";
+import { allowanceFor, capFor, TOP_PICKS } from "../score/selectItems.js";
 import { type Linter, type ViolationRule, VOICE_FIELDS } from "../voice/lint.js";
 import { ungroundedNumbers } from "../write/spokenCheck.js";
 
@@ -145,13 +145,14 @@ export function validateDigest(input: unknown, context: ValidateContext): Valida
   }
   const titles = new Map(digestSections(digest).map((section) => [section.id, section.title]));
   for (const [section, count] of allowanceBySection) {
-    if (count <= TECH_ALLOWANCE) continue;
+    const allowance = allowanceFor(section);
+    if (count <= allowance) continue;
     add(
       "error",
       "item_count",
       section === TECH_SECTION
-        ? `${count} Tech releases items; the limit is ${TECH_ALLOWANCE}.`
-        : `${count} items in ${titles.get(section) ?? section}; the limit is ${TECH_ALLOWANCE}.`,
+        ? `${count} Tech releases items; the limit is ${allowance}.`
+        : `${count} items in ${titles.get(section) ?? section}; the limit is ${allowance}.`,
     );
   }
   if (digest.items.length < VOICE_LIMITS.items.floor) {

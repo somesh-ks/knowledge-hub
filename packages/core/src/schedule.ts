@@ -1,5 +1,6 @@
 import { z } from "zod";
 import { IdString } from "./categories.js";
+import { GENERAL_TOPICS } from "./generalTopics.js";
 import { PodcastFormat, VoiceId } from "./podcast.js";
 import { isSupportedTimeZone } from "./time.js";
 
@@ -95,6 +96,13 @@ export const ScheduleFile = z
     voice_id_b: VoiceId.default(null),
     weekly: WeeklyFields.partial().optional(),
     custom: CustomFields.partial().optional(),
+    /**
+     * True once the skip lists say where the general news topics play. A file without it
+     * was written when they played in no scheduled podcast, so it reads as skipping them in the
+     * daily and weekly ones (`effectiveSkipTopics`), and its lists are only rewritten with them
+     * once an edit sets this (`withGeneralScope`).
+     */
+    general_scoped: z.boolean().optional(),
   })
   .transform((file) => ({
     ...file,
@@ -123,6 +131,34 @@ export const DEFAULT_SCHEDULE: ScheduleFile = {
   weekly: { ...DEFAULT_WEEKLY, hour: 7 },
   custom: { ...DEFAULT_CUSTOM },
 };
+
+/**
+ * The topics the daily or the weekly podcast leaves out. The general news topics count as left
+ * out until `general_scoped` says the lists have been written with them, so a file from before
+ * they could play in a scheduled podcast keeps publishing what it did.
+ */
+export function effectiveSkipTopics(
+  schedule: Pick<ScheduleFile, "skip_topics" | "weekly" | "general_scoped">,
+  scope: "daily" | "weekly",
+): string[] {
+  const list = scope === "daily" ? schedule.skip_topics : schedule.weekly.skip_topics;
+  if (schedule.general_scoped === true) return [...list];
+  return [...new Set([...list, ...GENERAL_TOPICS.map((topic) => topic.id)])];
+}
+
+/**
+ * The schedule with the general topics written into the daily and weekly skip lists and
+ * `general_scoped` set: what an edit stores, so the lists mean what they say from then on.
+ */
+export function withGeneralScope(schedule: ScheduleFile): ScheduleFile {
+  if (schedule.general_scoped === true) return schedule;
+  return {
+    ...schedule,
+    skip_topics: effectiveSkipTopics(schedule, "daily"),
+    weekly: { ...schedule.weekly, skip_topics: effectiveSkipTopics(schedule, "weekly") },
+    general_scoped: true,
+  };
+}
 
 /** The complete settings of the schedule file, without its version. */
 export const ScheduleSettings = z.object({

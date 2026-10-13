@@ -68,6 +68,7 @@ function defaultSession(): MediaSessionLike | null {
 export function attachMediaSession(store: PlayerStore, deps: MediaSessionDeps = {}): () => void {
   const session = deps.session === undefined ? defaultSession() : deps.session;
   if (!session) return () => undefined;
+  const media: MediaSessionLike = session;
   const createMetadata =
     deps.createMetadata ??
     (typeof MediaMetadata === "undefined" ? null : (init) => new MediaMetadata(init));
@@ -110,13 +111,13 @@ export function attachMediaSession(store: PlayerStore, deps: MediaSessionDeps = 
 
   function syncMetadata(track: Track | null): void {
     if (!track || !createMetadata) {
-      session.metadata = null;
+      media.metadata = null;
       return;
     }
     try {
-      session.metadata = createMetadata(trackMetadata(track));
+      media.metadata = createMetadata(trackMetadata(track));
     } catch {
-      session.metadata = null;
+      media.metadata = null;
     }
   }
 
@@ -124,14 +125,14 @@ export function attachMediaSession(store: PlayerStore, deps: MediaSessionDeps = 
     const state = store.getState();
     if (!state.track?.digest.audio || state.duration <= 0) {
       try {
-        session.setPositionState();
+        media.setPositionState();
       } catch {
         // Nothing to clear.
       }
       return;
     }
     try {
-      session.setPositionState({
+      media.setPositionState({
         duration: state.duration,
         playbackRate: state.rate,
         // setPositionState throws when the position is past the duration or negative.
@@ -149,7 +150,7 @@ export function attachMediaSession(store: PlayerStore, deps: MediaSessionDeps = 
       syncMetadata(state.track);
     }
     const { status } = state;
-    session.playbackState = isPlayingStatus(status)
+    media.playbackState = isPlayingStatus(status)
       ? "playing"
       : status === "idle"
         ? "none"

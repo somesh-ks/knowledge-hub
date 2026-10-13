@@ -406,7 +406,7 @@ export function installCreate(root: HTMLElement, onStart?: () => void): void {
       // Pinned, its row is the column's heading, not a switch that does nothing: out of the Tab
       // order and named as a heading.
       if (!summary) return;
-      for (const [name, value] of [
+      for (const [name, value] of <[string, string][]>[
         ["tabindex", "-1"],
         ["role", "heading"],
         ["aria-level", "2"],

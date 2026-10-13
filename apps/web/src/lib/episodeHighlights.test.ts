@@ -94,7 +94,7 @@ describe("highlights from a real script", () => {
       },
     ],
     turns: [
-      { idx: 0, speaker: "a" as const, text: "This is Singularity." },
+      { idx: 0, speaker: "a" as const, text: "This is Singularity.", item_id: null },
       {
         idx: 1,
         speaker: "b" as const,

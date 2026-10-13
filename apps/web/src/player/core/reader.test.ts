@@ -171,21 +171,25 @@ describe("the briefing chip", () => {
     const other = { ...stateFor("paused"), digestId: "another-recording" };
     // Left half way: the time left. Heard to the end: Played. Neither: the length.
     expect(
-      briefingChipView(other, 30, digest, "briefing", { seconds: 60, played: false }),
+      briefingChipView(other, 30, digest, "briefing", { seconds: 60, played: false, heard: [] }),
     ).toMatchObject({
       state: "idle",
       label: "1 min left",
       name: "Resume the briefing, 1 min left",
     });
     expect(
-      briefingChipView(other, 30, digest, "briefing", { seconds: 0, played: true }),
+      briefingChipView(other, 30, digest, "briefing", { seconds: 0, played: true, heard: [] }),
     ).toMatchObject({ state: "played", label: "Played", name: "Play the briefing again, played" });
-    expect(briefingChipView(other, 30, digest, "briefing", { seconds: 0, played: false })).toEqual(
-      idleBriefingChip("2 min"),
-    );
+    expect(
+      briefingChipView(other, 30, digest, "briefing", { seconds: 0, played: false, heard: [] }),
+    ).toEqual(idleBriefingChip("2 min"));
     // Nothing loaded yet (a page just opened): Played is shown too.
     expect(
-      briefingChipView(stateFor("idle"), 0, digest, "briefing", { seconds: 0, played: true }).label,
+      briefingChipView(stateFor("idle"), 0, digest, "briefing", {
+        seconds: 0,
+        played: true,
+        heard: [],
+      }).label,
     ).toBe("Played");
   });
 

@@ -7,6 +7,7 @@ import {
   type Item,
   isBuiltinCategory,
   isBuiltinSection,
+  isGeneralTopicId,
   NEVER_PUBLISH,
   SECTIONS,
   TECH_SECTION,
@@ -90,6 +91,18 @@ export function capFor(kind: DigestKind): number {
  */
 export const TECH_ALLOWANCE = VOICE_LIMITS.items.techCap;
 
+/**
+ * Items a general news section may hold, on top of `capFor` like every section with an allowance
+ * of its own. Smaller than the tech allowance because up to five of these sections can play in
+ * one briefing: at most ten stories, the same for the daily and the weekly kind.
+ */
+export const GENERAL_ALLOWANCE = 2;
+
+/** Items one section with an allowance of its own may hold. */
+export function allowanceFor(section: string): number {
+  return isGeneralTopicId(section) ? GENERAL_ALLOWANCE : TECH_ALLOWANCE;
+}
+
 /** True for a candidate that belongs in the Tech releases section. A tech video belongs in "watch". */
 export function isTech(candidate: Pick<Candidate, "home">): boolean {
   return candidate.home === TECH_SECTION;
@@ -168,7 +181,7 @@ export function assignSections(chosen: readonly Candidate[]): SelectedItem[] {
 }
 
 /**
- * The stories of sections with an allowance of their own: up to TECH_ALLOWANCE per section, taken
+ * The stories of sections with an allowance of their own: up to `allowanceFor` per section, taken
  * in rank order, and never more than `room` in all so the digest stays under its hard maximum.
  * Each section is its own pool, so none borrows from or lends to the main cap or another section.
  */
@@ -181,7 +194,7 @@ export function takeOwnSections(
   const over: Candidate[] = [];
   for (const candidate of own) {
     const count = perSection.get(candidate.home) ?? 0;
-    if (count < TECH_ALLOWANCE && chosen.length < room) {
+    if (count < allowanceFor(candidate.home) && chosen.length < room) {
       chosen.push(candidate);
       perSection.set(candidate.home, count + 1);
     } else {
@@ -285,8 +298,9 @@ export function eligibility(
  *  5. Weekly only: guarantee one of those slots for the best item whose category weight is below
  *     the median of preferences, so taste does not narrow week over week.
  *  6. Sections with an allowance of their own (Tech releases, and each section a custom topic
- *     defines): take the best of each by rank up to its allowance of 5, on top of the cap. The
- *     per-section target does not apply, and these pools never borrow from or lend to the cap.
+ *     defines, and each general news section): take the best of each by rank up to its allowance
+ *     (5, or 2 for a general section), on top of the cap. The per-section target does not apply,
+ *     and these pools never borrow from or lend to the cap.
  *  7. Fewer than `floor` chosen across both pools means nothing publishes.
  *  8. Assign sections: the three highest scores outside those sections become Top picks.
  */

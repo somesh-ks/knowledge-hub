@@ -89,7 +89,7 @@ describe("matchesFilter", () => {
     expect(matchesFilter(card({ kind: "regular" }), "daily")).toBe(true);
   });
 
-  it("puts everything made on request under Episodes: episodes and generated briefings", () => {
+  it("puts everything made on request under Custom: episodes and generated briefings", () => {
     const episode = card({ kind: "episode" });
     const generated = card({ kind: "on-demand" });
     for (const made of [episode, generated]) {

@@ -1,4 +1,5 @@
 ---
+import { topicArt } from "@dispatch/cover";
 import EmptyArt from "../../../components/EmptyArt.astro";
 import Icon from "../../../components/Icon.astro";
 import ManageChrome from "../../../components/ManageChrome.astro";
@@ -59,6 +60,7 @@ interface Props {
 }
 
 const { group, topic, list, choices, taken } = Astro.props;
+
 // The names a new topic may not take again (topicProblems): every topic a person sees.
 const names = choices.map((choice) => choice.name);
 const [{ sources }, catalog] = await Promise.all([loadManage(), loadSourceCatalog()]);
@@ -77,8 +79,8 @@ const scopeIds = group ? group.members.map((member) => member.id) : topic ? [top
 const SCOPES = [
   { key: "daily", label: "Daily", skipped: schedule.skipTopics },
   { key: "weekly", label: "Weekly", skipped: schedule.weekly.skip_topics },
-  // Episodes made on request, by the name the Library's filter gives them.
-  { key: "custom", label: "Episodes", skipped: schedule.custom.skip_topics },
+  // Custom: episodes made on request, by the name the Library's filter gives them.
+  { key: "custom", label: "Custom", skipped: schedule.custom.skip_topics },
 ] as const;
 const inScope = (key: (typeof SCOPES)[number]["key"]): boolean => {
   const skipped = SCOPES.find((scope) => scope.key === key)?.skipped ?? [];
@@ -99,7 +101,7 @@ const weightRows = (group?.members ?? [])
     weight: member.weight,
   }))
   .sort((a, b) => a.label.localeCompare(b.label));
-// The topic as Edit topic and the on switch send it.
+// The topic as Edit topic sends it: a topic is always on, so it goes as enabled.
 const upsert =
   topic &&
   JSON.stringify({
@@ -109,7 +111,7 @@ const upsert =
       name: topic.name,
       description: topic.description,
       weight: topic.weight,
-      enabled: topic.enabled,
+      enabled: true,
       keywords: topic.keywords,
       section_id: topic.section_id,
     },
@@ -117,9 +119,8 @@ const upsert =
 const editable = topic !== null && !topic.never_publish;
 // A general news topic feeds General episodes by how many outlets carry a story, so it has no weight.
 const general = topic?.origin === "general";
-// What its on switch says it does (topicsPage.ts says it again when it is turned).
-const ON_HINT = "Used in episodes";
-const OFF_HINT = "Off. Its sources are not read.";
+// The topic's picture: a pure function of its id and name, drawn here at build time like the page.
+const art = topicArt(group?.id ?? topic?.id ?? OTHER_ID, name);
 // What Edit topic hands the panel (topicsPanel.ts, TopicFacts). Every topic can change its name; a
 // built-in one keeps what counts, as fixed questions judge it.
 const facts = topic && {
@@ -133,11 +134,10 @@ const facts = topic && {
 
 <BaseLayout title={name} view="settings" skipLabel={`Skip to ${name}`}>
   <main id="main" tabindex="-1">
-    {/* A topic's page: whether it is in the briefings, how much it counts, and its sources. The
-         controls carry the edit they stand for (data-op); topicsEditor.ts records a change and
-         autosave.ts sends it a moment later. */}
+    {/* A topic's page: its summary card, how much it counts, and its sources. A topic is always on and
+         available to every podcast, so there is no switch. The controls carry the edit they stand for
+         (data-op); topicsEditor.ts records a change and autosave.ts sends it a moment later. */}
     <div class="manage topics topic-page" data-topics data-taken={[...taken, OTHER_ID].join(" ")} data-names={JSON.stringify(names)}>
-      <SettingsHead title={name} up={{ href: "/settings/topics", label: "Topics and sources" }} note={note} />
       <noscript>
         <p class="manage-note">Changing topics and sources needs JavaScript, which is turned off in this browser.</p>
       </noscript>
@@ -145,72 +145,94 @@ const facts = topic && {
       <fieldset class="manage-fields" data-fields>
         <legend class="sr-only">{name}</legend>
         <div class="topic" data-id={topic?.id ?? ""} data-topic>
+          {/* The summary card: the topic's generated picture, its name and what counts as it, and a
+               More menu with Edit and, for a topic of the owner's own, Delete. The menu is the app's
+               popover menu (HeroMenu.astro, heroMenu.ts). */}
+          {/* From 64rem there is no app bar above the page, so the way up is a line over the card. */}
+          <nav class="topic-up" aria-label="Breadcrumb">
+            <a class="settings-up" href="/settings/topics">
+              <Icon name="chevronLeft" />
+              <span>Topics and sources</span>
+            </a>
+          </nav>
+          <div class="topic-card">
+            <div class="topic-card-art" set:html={art} />
+            <div class="topic-card-text">
+              <SettingsHead title={name} crumbs={false} note={note} />
+            </div>
+            {
+              topic && (
+                <div class="topic-card-menu">
+                  <button
+                    class="icon-btn topic-more press"
+                    type="button"
+                    aria-label={`More actions for ${name}`}
+                    aria-haspopup="menu"
+                    popovertarget="topic-menu"
+                    data-hero-more
+                    data-needs-js
+                  >
+                    <Icon name="moreVert" />
+                  </button>
+                  <div class="hero-menu-list" id="topic-menu" popover role="menu" aria-label={`More actions for ${name}`}>
+                    <button
+                      class="hero-menu-item"
+                      type="button"
+                      role="menuitem"
+                      aria-haspopup="dialog"
+                      aria-label={`Edit topic ${name}`}
+                      data-edit-topic={JSON.stringify(facts)}
+                      data-topic-base={upsert}
+                    >
+                      Edit
+                    </button>
+                    {topic.origin === "custom" && (
+                      <button
+                        class="hero-menu-item hero-menu-delete topic-delete"
+                        type="button"
+                        role="menuitem"
+                        data-pressed="false"
+                        aria-label={`Delete topic ${name}`}
+                        data-name={name}
+                        data-label={`Delete topic ${name}`}
+                        data-label-undo={`Keep topic ${name}`}
+                        data-op={JSON.stringify({ op: "topic.remove", id: topic.id })}
+                        data-remove
+                      >
+                        <span class="topic-delete-do">Delete</span>
+                        <span class="topic-delete-undo">Keep topic</span>
+                      </button>
+                    )}
+                  </div>
+                </div>
+              )
+            }
+          </div>
           {
             (group || (editable && topic)) && (
               <div class="rows topic-controls">
-                {/* Where the topic plays (D69). A general news topic is in no scheduled podcast yet,
-                     so it has only its on switch: off, its sources are not read at all. */}
-                {general && topic ? (
-                  <div class="settings-row topic-on">
-                    <div class="settings-text">
-                      <label class="settings-label" for="topic-on">Use {name}</label>
-                      <span class="settings-hint" id="topic-on-hint" data-topic-on-hint>
-                        {topic.enabled ? ON_HINT : OFF_HINT}
-                      </span>
-                    </div>
-                    <input
-                      class="settings-switch"
-                      id="topic-on"
-                      type="checkbox"
-                      role="switch"
-                      aria-describedby="topic-on-hint"
-                      autocomplete="off"
-                      checked={topic.enabled}
-                      data-op={upsert}
-                      data-field="topic.enabled"
-                      data-topic-on
-                    />
+                {/* Where the topic plays (D69), and how much it counts. A general news topic is ranked
+                     by how many outlets carry a story, so it has no weight. */}
+                <div class="settings-row topic-scope">
+                  <div class="settings-text">
+                    <span class="settings-label" id="scope-label">Podcasts</span>
                   </div>
-                ) : (
-                  <div class="settings-row topic-scope">
-                    <div class="settings-text">
-                      <span class="settings-label" id="scope-label">Podcasts</span>
-                    </div>
-                    <MultiSelect
-                      id="scope"
-                      labelledby="scope-label"
-                      empty="In no podcast"
-                      all="All podcasts"
-                      options={SCOPES.map((scope) => ({
-                        value: scope.key,
-                        label: scope.label,
-                        checked: inScope(scope.key),
-                        op: JSON.stringify({ op: "topic.scope", ids: scopeIds }),
-                        field: scope.key,
-                      }))}
-                    />
-                  </div>
-                )}
-                {/* The owner's own topic keeps its on switch out of sight: Edit topic sends the topic
-                     with it, and scope does the switching a person sees. */}
-                {topic && !general && (
-                  <input type="checkbox" hidden autocomplete="off" checked={topic.enabled} data-op={upsert} data-field="topic.enabled" />
-                )}
+                  <MultiSelect
+                    id="scope"
+                    labelledby="scope-label"
+                    empty="In no podcast"
+                    all="All podcasts"
+                    options={SCOPES.map((scope) => ({
+                      value: scope.key,
+                      label: scope.label,
+                      checked: inScope(scope.key),
+                      op: JSON.stringify({ op: "topic.scope", ids: scopeIds }),
+                      field: scope.key,
+                    }))}
+                  />
+                </div>
                 {topic && !general && <WeightRow id={topic.id} label="Weight" weight={topic.weight} />}
                 {weightRows.length === 1 && weightRows.map((row) => <WeightRow {...row} />)}
-                {topic && (
-                <button
-                  class="row-action topic-edit"
-                  type="button"
-                  aria-label={`Edit topic ${name}`}
-                  data-edit-topic={JSON.stringify(facts)}
-                  data-needs-js
-                >
-                  <span class="settings-text"><span class="settings-label">Edit topic</span></span>
-                  {/* It opens a sheet on this page, not another page: an edit glyph, not a chevron. */}
-                  <Icon name="pencil" />
-                </button>
-                )}
               </div>
             )
           }
@@ -227,7 +249,23 @@ const facts = topic && {
           }
           {topic?.never_publish && <p class="manage-quiet topic-never">Never in a briefing.</p>}
 
-          <h2 class="section-head">Sources</h2>
+          <div class="topic-sources-head">
+            <h2 class="section-head">Sources</h2>
+            {
+              (topic === null || editable) && (
+                <button
+                  class="btn-secondary topic-add-source"
+                  type="button"
+                  aria-label={`Add source to ${name}`}
+                  data-add-source={group?.home ?? topic?.id ?? ""}
+                  data-needs-js
+                >
+                  <Icon name="plus" />
+                  <span>Add source</span>
+                </button>
+              )
+            }
+          </div>
           <ul class="topic-sources" role="list" data-sources aria-label={`${name} sources`}>
             {list.map((source) => <SourceRow source={source} topicName={topic?.name ?? ""} shownTopic={shown} />)}
           </ul>
@@ -241,43 +279,8 @@ const facts = topic && {
                 : "Sources filed under this topic are listed here."}
             </p>
           </div>
-          {
-            (topic === null || editable) && (
-              <button
-                class="btn-secondary topic-add-source"
-                type="button"
-                aria-label={`Add source to ${name}`}
-                data-add-source={group?.home ?? topic?.id ?? ""}
-                data-needs-js
-              >
-                <Icon name="plus" />
-                <span>Add source</span>
-              </button>
-            )
-          }
 
           <SuggestedSources offers={suggested} name={name} topicId={group?.home ?? topic?.id ?? ""} />
-          {
-            topic?.origin === "custom" && (
-              <div class="topic-remove-row">
-                <button
-                  class="btn topic-remove"
-                  type="button"
-                  data-pressed="false"
-                  aria-label={`Remove topic ${name}`}
-                  data-name={name}
-                  data-label={`Remove topic ${name}`}
-                  data-label-undo={`Keep topic ${name}`}
-                  data-op={JSON.stringify({ op: "topic.remove", id: topic.id })}
-                  data-remove
-                >
-                  <Icon name="trash" />
-                  <span class="topic-remove-do">Remove topic</span>
-                  <span class="topic-remove-undo">Keep topic</span>
-                </button>
-              </div>
-            )
-          }
           <p class="manage-quiet topic-gone" tabindex="-1">Removed.</p>
         </div>
       </fieldset>

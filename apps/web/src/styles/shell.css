@@ -66,7 +66,7 @@ html[data-run] {
 
 @media (min-width: 40rem) {
   :root {
-    --page-top: var(--space-12);
+    --page-top: var(--space-16);
   }
 }
 

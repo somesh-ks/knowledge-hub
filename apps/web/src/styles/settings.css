@@ -44,17 +44,6 @@
   line-height: var(--text-display-leading);
 }
 
-/* On a wide screen the trail is a pane's title, smaller than a phone's display line: the side
-   column already says where the page sits, and the display size grows with the window. The title
-   sets its own size (.page-title), so it is named here too, and both words stay one size. */
-@media (min-width: 64rem) {
-  .settings-crumbs,
-  .settings-crumbs > h1,
-  .settings-view > h1 {
-    font-size: var(--font-size-section);
-  }
-}
-
 /* With Sounds off, Volume is unused: its label goes quiet with its slider. */
 .settings-row:has(.settings-range:disabled) > .settings-label {
   color: var(--color-on-surface-muted);
@@ -124,7 +113,7 @@
 /* A group's name: small and in the accent, over its rows, as a settings list names its groups. The
    page's own title is the one large thing on it. More air above than below: it belongs to its rows. */
 :is(.settings-view, .manage) .section-head {
-  padding-block: var(--space-8) var(--space-1);
+  padding-block: var(--space-8) var(--space-3);
   font-family: var(--font-ui);
   font-size: var(--font-size-label);
   font-weight: var(--font-weight-medium);
@@ -341,7 +330,7 @@
 
 .settings-segment:has(input:checked) > span::before {
   inline-size: var(--space-4);
-  margin-inline-end: var(--space-1);
+  margin-inline-end: calc(var(--space-1) * 1.5);
   opacity: 1;
 }
 

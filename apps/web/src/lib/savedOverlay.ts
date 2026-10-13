@@ -299,28 +299,6 @@ export function sourceCounts(
 }
 
 /**
- * How many sources there are and how many are read, where a source is read only while it is on and
- * so is the topic whose page lists it. `offPages` are the pages of topics built switched off; a
- * saved topic.upsert switches its topic on or off on top of that.
- */
-export function readCounts(
-  spots: Readonly<Record<string, SourceSpot>>,
-  offPages: Iterable<string>,
-  ops: readonly ConfigOp[],
-): { total: number; on: number } {
-  const off = new Set(offPages);
-  for (const [id, topic] of savedTopics(ops).topics) {
-    if (topic.enabled) off.delete(id);
-    else off.add(id);
-  }
-  const listed = Object.values(spots);
-  return {
-    total: listed.length,
-    on: listed.filter((spot) => spot.on && !off.has(spot.page)).length,
-  };
-}
-
-/**
  * How many topics the Topics list shows once the saved edits land: `shown` (the topics it was built
  * with) less those removed, plus those added that are not among `taken` (every id already in use).
  */

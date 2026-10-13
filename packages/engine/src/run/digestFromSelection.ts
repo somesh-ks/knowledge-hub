@@ -1,4 +1,10 @@
-import { type Digest, homeSectionFor, type Item, type TopicsFile } from "@dispatch/core";
+import {
+  type Digest,
+  homeSectionFor,
+  type Item,
+  type TopicsFile,
+  topicSectionTitles,
+} from "@dispatch/core";
 import type { Selection } from "../curate/selectionFile.js";
 import { buildDigest, type CoverPicker, type DigestIdAllocator } from "../render/buildDigest.js";
 import type { SelectedItem } from "../score/types.js";
@@ -48,8 +54,6 @@ export function digestFromSelection(input: DigestFromSelectionInput): Digest {
     audio: null,
     sourceNames: input.sourceNames,
     ...(input.linkSources ? { linkSources: input.linkSources } : {}),
-    ...(input.topics
-      ? { sectionTitles: Object.fromEntries(input.topics.sections.map((s) => [s.id, s.title])) }
-      : {}),
+    ...(input.topics ? { sectionTitles: topicSectionTitles(input.topics) } : {}),
   });
 }

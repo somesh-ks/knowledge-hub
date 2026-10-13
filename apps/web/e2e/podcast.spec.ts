@@ -2,7 +2,7 @@ import type { Page, Route } from "@playwright/test";
 import { NEBIUS_TOP } from "../src/lib/modelId";
 import { GAP_MS } from "../src/scripts/managePageSave";
 import { expect, expectNoViolationsInEitherScheme, seedStorage, test } from "./fixtures";
-import { choose, pickerList } from "./picker";
+import { choose, openPicker, pickerList } from "./picker";
 
 interface Sent {
   passphrase: string;
@@ -53,7 +53,7 @@ async function open(page: Page, leaf: Leaf): Promise<void> {
 
 const toast = (page: Page) => page.locator("[data-bar]");
 const toastText = (page: Page) => toast(page).locator("[data-bar-text]");
-const combo = (page: Page) => page.getByRole("combobox", { name: "Model" });
+const combo = (page: Page) => page.getByRole("combobox", { name: "AI Model" });
 const options = (page: Page, name?: RegExp) =>
   page.getByRole("listbox", { name: "Models" }).getByRole("option", name ? { name } : undefined);
 /** The options under one heading of the open list: "Top models" or "All models". */
@@ -74,7 +74,7 @@ test.describe("the Settings index", () => {
     const rows = [
       ["Daily", "Every second day at 07:00", "/settings/daily"],
       ["Weekly", "Sundays at 07:00", "/settings/weekly"],
-      ["Model", "Nebius, Default", "/settings/model"],
+      ["AI Model", "Nebius, Default", "/settings/model"],
     ] as const;
     for (const [name, hint, href] of rows) {
       const row = page.getByRole("link", { name: new RegExp(`^${name}`) });
@@ -116,7 +116,7 @@ test.describe("the Settings index", () => {
 });
 
 test.describe("the profile pages", () => {
-  test("Daily shows its saved values, and the next episode under the title", async ({ page }) => {
+  test("Daily shows its saved values", async ({ page }) => {
     await open(page, "daily");
     // Nothing is saved in the fixtures, so the defaults show.
     await expect(page.locator("#daily-hour")).toHaveValue("7");
@@ -129,9 +129,6 @@ test.describe("the profile pages", () => {
     // Format and the Discussion voice are the profile's own, saved whatever the format is now.
     await expect(page.getByRole("radio", { name: "Readout" })).toBeChecked();
     await expect(page.getByLabel("Discussion voice", { exact: true })).toBeVisible();
-    await expect(page.locator("[data-next]")).toHaveText(
-      /^Next episode: (today|tomorrow|[A-Z][a-z]+day) at about 07:00$/,
-    );
     // Headlines is no longer offered, and there is no switch between profiles.
     await expect(page.getByRole("radio", { name: "Headlines" })).toHaveCount(0);
     await expect(page.getByRole("radiogroup", { name: "Podcast" })).toHaveCount(0);
@@ -144,33 +141,14 @@ test.describe("the profile pages", () => {
     await expect(on).toBeChecked();
     await expect(page.locator("#weekly-day")).toHaveValue("0");
     await expect(page.locator("#weekly-hour")).toHaveValue("7");
-    await expect(page.locator("[data-next]")).toHaveText(
-      /^Next episode: (today|tomorrow|Sunday) at about 07:00$/,
-    );
     await expect(page.locator("[data-off]")).toBeHidden();
     const before = await on.boundingBox();
     await on.uncheck();
     await expect(page.locator("#weekly-day")).toBeHidden();
     await expect(page.getByRole("radio", { name: "10 min", exact: true })).toBeHidden();
-    // The line under the title says it is off in the next run's place, so the switch holds still.
-    await expect(page.locator("[data-next]")).toBeHidden();
+    // The line that says it is off sits under the switch, so the switch holds still.
     await expect(page.locator("[data-off]")).toHaveText("No weekly episodes while this is off.");
     expect((await on.boundingBox())?.y).toBe(before?.y);
-  });
-
-  test("the next episode line follows a changed time and day", async ({ page }) => {
-    await mockConfig(page);
-    await open(page, "daily");
-    await page.locator("#daily-hour").selectOption("9");
-    await expect(page.locator("[data-next]")).toHaveText(
-      /^Next episode: (today|tomorrow|[A-Z][a-z]+day) at about 09:00$/,
-    );
-    await open(page, "weekly");
-    await page.locator("#weekly-day").selectOption("1");
-    await page.locator("#weekly-hour").selectOption("8");
-    await expect(page.locator("[data-next]")).toHaveText(
-      /^Next episode: (today|tomorrow|Monday) at about 08:00$/,
-    );
   });
 
   test("unticking every topic says the episode has nothing to cover", async ({ page }) => {
@@ -194,7 +172,7 @@ test.describe("the profile pages", () => {
     ];
     for (const field of voices) {
       await expect(field).toBeVisible();
-      await field.click();
+      await openPicker(page, field);
       await expect(pickerList(page).getByRole("option")).toHaveText([
         "Default",
         // Each voice leads with the flag of its accent: en-US, en-US, en-GB.
@@ -265,8 +243,7 @@ test.describe("the profile pages", () => {
   }) => {
     await open(page, "daily");
     const chips = page.locator(".podcast-topics .filter-chip");
-    // Every topic is shown. The owner's three and their own can be put in or out; the general news
-    // topics are listed too, but play in episodes made on request alone, so they cannot be ticked.
+    // Every topic is shown, and every one can be put in or out, the general news topics too.
     await expect(chips).toHaveText([
       "Design",
       "AI",
@@ -278,13 +255,11 @@ test.describe("the profile pages", () => {
       "Culture",
       "Sports",
     ]);
-    // The fixtures leave nothing out, so every topic that can be in is in.
+    for (const chip of await chips.all()) await expect(chip.locator("input")).toBeEnabled();
+    // The fixtures leave nothing out, so the owner's topics are in.
     for (const chip of (await chips.all()).slice(0, 4)) {
       await expect(chip.locator("input")).toBeChecked();
     }
-    for (const chip of (await chips.all()).slice(4))
-      await expect(chip.locator("input")).toBeDisabled();
-    await expect(page.getByText("are for episodes you make, not for Daily yet.")).toBeVisible();
     const link = page.getByRole("link", { name: /^Topics and sources/ });
     await expect(link).toHaveAttribute("href", "/settings/topics");
     // A link row is as tall as the value rows, and its chevron ends at the row's edge.
@@ -500,8 +475,8 @@ test.describe("saved, before the build", () => {
       page.getByRole("link", { name: new RegExp(`^${name}`) }).locator("[data-hint]");
     await expect(hint("Daily")).toHaveText("Every second day at 09:00");
     await expect(hint("Weekly")).toHaveText("Mondays at 07:00");
-    await expect(hint("Topics and sources")).toHaveText("8 topics · 10 of 12 sources on");
-    await expect(hint("Model")).toHaveText("Anthropic, Claude Haiku 5.5");
+    await expect(hint("Topics and sources")).toHaveText("8 topics · 12 sources");
+    await expect(hint("AI Model")).toHaveText("Anthropic, Claude Haiku 5.5");
 
     await page.goto("/settings/topics");
     await expect(page.locator('a[data-page="design"] [data-hint]')).toHaveText("3 sources");
@@ -513,7 +488,6 @@ test.describe("saved, before the build", () => {
     await expect(page.locator("[data-weekly-note]")).toHaveText(
       "On Mondays the weekly episode replaces this one.",
     );
-    await expect(page.locator(".settings-head")).toHaveAttribute("data-weekly-day", "1");
     // Nothing is sent on its own: no scope for the removed topic, no schedule again.
     await page.clock.runFor(GAP_MS);
     expect(sent).toEqual([]);

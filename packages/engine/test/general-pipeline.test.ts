@@ -1,6 +1,5 @@
 import { rm } from "node:fs/promises";
 import {
-  generalTopics,
   Item,
   itemId,
   resolveTopics,
@@ -24,8 +23,11 @@ import {
   makeWorld,
   readDigest,
   readJson,
+  runStage,
   runStaged,
+  SUN,
   seed,
+  sourceItems,
   sourcesFile,
   type TestRepo,
   WED,
@@ -277,42 +279,6 @@ describe("a run with general news feeds", () => {
     },
   );
 
-  it(
-    "reads nothing, and judges nothing, for a general topic that is switched off",
-    LONG,
-    async () => {
-      const preferences = realPreferences();
-      const base = resolveTopics(null, preferences);
-      const topics = TopicsFile.parse({
-        ...base,
-        topics: base.topics.map((topic) =>
-          topic.id === "world" ? { ...topic, enabled: false } : topic,
-        ),
-      });
-      await seed(repo.root, {
-        "config/sources.json": registry(),
-        "config/topics.json": serializeTopics(topics),
-      });
-      const jev = generalJev();
-      const world = makeWorld(repo.root, {
-        now: WED,
-        feeds: worldFeeds(),
-        generalJudge: jev.judge,
-      });
-      expect((await runStaged(world)).map((r) => r.code)).toEqual([0, 0, 0, 0, 0, 0]);
-
-      const fetched = world.fetchCalls.map((call) => call.source);
-      expect(fetched).not.toContain("npr-world");
-      expect(fetched).not.toContain("bbc-world");
-      expect(fetched).toContain("npr-business");
-      const general = GeneralPoolFile.parse(await readJson(repo.root, `${RUN}/general.json`));
-      expect(general.items.map((item) => item.title)).toEqual([
-        "Retailer Marlow reports quarterly profit rise",
-      ]);
-      expect(generalTopics().length).toBe(5);
-    },
-  );
-
   it("still runs the briefing when judging the general stories breaks", LONG, async () => {
     await seed(repo.root, { "config/sources.json": registry() });
     const broken = generalJev().judge;
@@ -383,4 +349,125 @@ describe("gathering the pool", () => {
       );
     },
   );
+});
+
+// If a ticked general topic stops reaching the daily or weekly briefing, or an unticked one leaks
+// in, the owner's World choice does nothing. A forced Sunday run makes both passes.
+describe("general topics in the daily and weekly briefings", () => {
+  const GENERAL = ["world", "business", "science", "culture", "sports"];
+  const world = (slug: string, id: string, title: string, at: string) => ({
+    ...story(id, "world", slug, title),
+    published_at: at,
+  });
+
+  function sundayFeeds(): Record<string, Item[]> {
+    const feeds: Record<string, Item[]> = {
+      "blog-a": sourceItems("blog-a", 8, "a"),
+      "blog-b": sourceItems("blog-b", 8, "b"),
+    };
+    feeds["npr-world"] = [
+      world(
+        "quake",
+        "npr-world",
+        "Magnitude 6.1 earthquake strikes Izmir coast in Turkey",
+        "2026-10-10T08:00:00Z",
+      ),
+      world(
+        "storm",
+        "npr-world",
+        "Typhoon Haikui batters Taiwan east coast and forces evacuations",
+        "2026-10-07T08:00:00Z",
+      ),
+      world(
+        "etna",
+        "npr-world",
+        "Volcano Etna erupts near Catania and flights are diverted",
+        "2026-10-06T08:00:00Z",
+      ),
+    ];
+    feeds["bbc-world"] = [
+      world(
+        "quake",
+        "bbc-world",
+        "Earthquake of magnitude 6.1 strikes Izmir coast, Turkey",
+        "2026-10-10T09:00:00Z",
+      ),
+      world(
+        "storm",
+        "bbc-world",
+        "Taiwan evacuates east coast as Typhoon Haikui hits",
+        "2026-10-07T09:00:00Z",
+      ),
+      world(
+        "etna",
+        "bbc-world",
+        "Etna eruption near Catania diverts flights, volcano alert raised",
+        "2026-10-06T09:00:00Z",
+      ),
+    ];
+    return feeds;
+  }
+
+  async function sunday(skip: string[]) {
+    // World's stored `enabled` is false: a general topic is always on, so it must not matter.
+    const base = resolveTopics(null, realPreferences());
+    const topics = TopicsFile.parse({
+      ...base,
+      topics: base.topics.map((t) => (t.id === "world" ? { ...t, enabled: false } : t)),
+    });
+    await seed(repo.root, {
+      "config/sources.json": registry(),
+      "config/topics.json": serializeTopics(topics),
+      "config/schedule.json": json({
+        version: 1,
+        hour: 7,
+        cadence_days: 2,
+        skip_topics: skip,
+        weekly: { skip_topics: skip },
+        general_scoped: true,
+      }),
+      "state/last-run.json": json({
+        version: 1,
+        regular: {
+          at: "2026-10-09T05:13:00Z",
+          outcome: "published",
+          digest_id: "2026-10-09",
+          items: 8,
+        },
+        last_fetch_at: "2026-10-09T05:13:00Z",
+      }),
+    });
+    const run = makeWorld(repo.root, {
+      now: SUN,
+      feeds: sundayFeeds(),
+      generalJudge: generalJev().judge,
+    });
+    await runStage(run, { force: true });
+    return {
+      regular: await readDigest(repo.root, "Digests/2026/10/2026-10-11.md"),
+      weekly: await readDigest(repo.root, "Digests/2026/10/2026-10-11-weekly.md"),
+    };
+  }
+
+  it("publishes a World section in both digests when World is not skipped", LONG, async () => {
+    const { regular, weekly } = await sunday(GENERAL.filter((id) => id !== "world"));
+    for (const digest of [regular, weekly]) {
+      const section = digest.items.filter((item) => item.section === "world");
+      expect(section.length, digest.id).toBeGreaterThanOrEqual(1);
+      expect(section.length).toBeLessThanOrEqual(2);
+      expect(section.every((item) => item.category === "world")).toBe(true);
+      expect(digest.section_titles?.world).toBe("World");
+      expect(digest.items.some((item) => item.section === "business")).toBe(false);
+      expect(digest.items.some((item) => item.section === "top" && item.category === "world")).toBe(
+        false,
+      );
+    }
+  });
+
+  it("publishes no general section when every general topic is skipped", LONG, async () => {
+    const { regular, weekly } = await sunday(GENERAL);
+    for (const digest of [regular, weekly]) {
+      expect(digest.items.some((item) => GENERAL.includes(item.section))).toBe(false);
+    }
+  });
 });

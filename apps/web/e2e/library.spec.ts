@@ -332,7 +332,7 @@ test.describe("library fixes", () => {
     await expect(page.locator("[data-card]")).toHaveCount(4);
     expect(await titles(page)).not.toContain(HEADLINES);
     await expect(page.locator("[data-library-status]")).toHaveText("4 results");
-    await filter(page, "Episodes");
+    await filter(page, "Custom");
     expect(await titles(page)).toEqual([DISCUSSION]);
   });
 
@@ -447,15 +447,15 @@ test.describe("library filters and order", () => {
     expect(await titles(page)).toEqual(["Wednesday 7 October", "Monday 5 October"]);
     await narrowedTo(page, 2, 5);
 
-    // Episodes is what was made on request: only that shows, and the status counts it.
-    await filter(page, "Episodes");
+    // Custom is what was made on request: only that shows, and the status counts it.
+    await filter(page, "Custom");
     await onlyPressed("custom");
     expect(await titles(page)).toEqual([DISCUSSION, HEADLINES]);
     await expect(page.locator("[data-card][data-kind='episode']:not([hidden])")).toHaveCount(2);
     await narrowedTo(page, 2, 5);
 
     // Pressing the ticked chip again shows everything, with Space as well as a press.
-    await chipOf(page, "Episodes").focus();
+    await chipOf(page, "Custom").focus();
     await page.keyboard.press("Space");
     await onlyPressed("All");
     expect(await titles(page)).toEqual(NEWEST_FIRST);
@@ -476,7 +476,7 @@ test.describe("library filters and order", () => {
     await filter(page, "Daily");
     expect(await titles(page)).toEqual(["Wednesday 7 October"]);
     // A word only the weekly briefing has, while the filter keeps the weekly out.
-    await filter(page, "Episodes");
+    await filter(page, "Custom");
     await page.getByRole("searchbox").fill("dither");
     await expect(page.locator("[data-card]:not([hidden])")).toHaveCount(0);
     await expect(page.locator("[data-library-status]")).toHaveText("No results");

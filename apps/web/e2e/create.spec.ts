@@ -1,7 +1,7 @@
 import type { Page, Route } from "@playwright/test";
 import { OPEN_PASSPHRASE } from "../src/lib/access";
 import { expect, expectNoViolationsInEitherScheme, seedStorage, test } from "./fixtures";
-import { choose, pickerList } from "./picker";
+import { choose, openPicker, pickerList } from "./picker";
 
 const EPISODE = "/e/ep-20261007-1930";
 const EPISODE_ID = "ep-20261007-1930";
@@ -638,7 +638,7 @@ test.describe("the Create panel's voices", () => {
     // Nothing under the format until the voices can name who will be heard.
     await expect(hint).toBeHidden();
     // The voices are chosen from a list with a search box, and each can be heard from its button.
-    await ada.click();
+    await openPicker(page, ada);
     await expect(pickerList(page).getByRole("option")).toHaveText([
       "Default",
       /Ada/,

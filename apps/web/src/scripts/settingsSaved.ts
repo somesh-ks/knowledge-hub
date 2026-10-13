@@ -8,11 +8,11 @@ import { readPendingChoice, type StoredWriterChoice } from "../lib/pendingWriter
 import {
   type FieldValues,
   heldWriter,
-  readCounts,
   type SourceSpot,
   savedFields,
   savedSources,
   savedTopicCount,
+  sourceCounts,
 } from "../lib/savedOverlay";
 import { dailySummary, modelSummary, topicsSummary, weeklySummary } from "../lib/settingsSummary";
 import type { ConfigOp } from "../types/contracts";
@@ -118,9 +118,8 @@ export function overlayIndex(
     }
     // A source moved since the build is filed under the topic it moved to: that topic's page.
     const spots = savedSources(base, ops, (id) => id ?? "");
-    const counts = readCounts(spots, words(topics.dataset.off), ops);
     const count = savedTopicCount(words(topics.dataset.shown), words(topics.dataset.taken), ops);
-    shown = say(topics, topicsSummary(count, counts.total, counts.on)) || shown;
+    shown = say(topics, topicsSummary(count, sourceCounts(spots).total)) || shown;
   }
 
   const model = row(root, "model");

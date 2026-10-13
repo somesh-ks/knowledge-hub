@@ -2,6 +2,7 @@ import {
   activeFitTopics,
   type Item,
   type Preferences,
+  type ScheduleFile,
   type SourceStatsFile,
   VOICE_LIMITS,
 } from "@dispatch/core";
@@ -16,6 +17,7 @@ import {
 import { writeJson } from "../curate/output.js";
 import type { DropStage, Selection, WrittenFile } from "../curate/selectionFile.js";
 import type { ExtractedText } from "../extract/extractText.js";
+import type { RunMode } from "../gate/decideRun.js";
 import { mapConcurrent } from "../llm/concurrency.js";
 import { loadSchedule } from "../schedule/store.js";
 import { scoreItem } from "../score/scoreItem.js";
@@ -23,7 +25,7 @@ import { applyTopics, type TopicLayer } from "../score/scoreTopics.js";
 import { assignSections, capFor, selectItems } from "../score/selectItems.js";
 import { withSourceAdjustment } from "../score/sourceAdjust.js";
 import type { ScoredItem } from "../score/types.js";
-import { readSourceStats } from "../state/store.js";
+import { readSeen, readSourceStats } from "../state/store.js";
 import { loadTopics } from "../topics/store.js";
 import { writerCategory } from "../topics/writerCategory.js";
 import { createLinter, type Linter } from "../voice/lint.js";
@@ -41,6 +43,7 @@ import {
   GeneralPoolFile,
   mergeGeneralCounts,
 } from "./generalNews.js";
+import { generalCandidates, generalIdsFor } from "./generalScope.js";
 import { mostlyFailed } from "./judgeStage.js";
 import { markStage, type Plan, type PlanPass, passFile, requireStage } from "./plan.js";
 import { capForLength } from "./scheduleSize.js";
@@ -71,6 +74,9 @@ interface PassContext {
   sourceStats: SourceStatsFile;
   /** The general news topics that are switched on, for the pass level of their feeds' counters. */
   generalTopics: ReturnType<typeof activeGeneralFrom>;
+  /** The schedule and run mode, which say what general topics each pass publishes. */
+  schedule: ScheduleFile;
+  mode: RunMode;
 }
 
 /**
@@ -103,6 +109,8 @@ export async function writeStage(deps: RunDeps, plan: Plan): Promise<StageReport
     weeklyLengthMinutes: fullSchedule.weekly.length_minutes,
     sourceStats: await readSourceStats(deps.root),
     generalTopics: activeGeneralFrom(topics),
+    schedule: fullSchedule,
+    mode: plan.mode,
   };
 
   const claimed = new Set<string>();
@@ -177,8 +185,27 @@ async function writePass(
     );
   }
 
+  // The general topics this pass publishes (not in its podcast's skip list) add their judged
+  // stories as candidates of sections of their own. They are judged already (judgeGeneral).
+  const generalScored = (
+    await generalCandidates({
+      poolPath: file("general.json"),
+      judgedPath: file("general-judged.json"),
+      topics: context.generalTopics,
+      publish: generalIdsFor(context.schedule, pass.kind, context.mode),
+      inPool: new Set(byId.keys()),
+      seen: (await readSeen(deps.root)).items,
+      now: deps.now(),
+      model: runtime.judge.model,
+    })
+  ).filter((candidate) => {
+    if (!claimed.has(candidate.item.id)) return true;
+    drop(candidate.item.id, "select", "already chosen for an earlier digest of this run");
+    return false;
+  });
+
   const chosen = selectItems({
-    scored,
+    scored: [...scored, ...generalScored],
     kind: pass.kind,
     floor: VOICE_LIMITS.items.floor,
     // The owner's chosen length sizes the scheduled regular briefing, and the weekly pass takes
@@ -215,7 +242,9 @@ async function writePass(
   );
   // The general news stories were judged apart from the pool (judgeGeneral): their feeds' counters
   // join here, with `covered` standing where a briefing's `published` stands for other sources.
-  const general = await readGeneralCounts(file, context.generalTopics);
+  // The weekly pass counts none: its stories were counted in the daily passes that judged them.
+  const general =
+    pass.kind === "weekly" ? {} : await readGeneralCounts(file, context.generalTopics);
   // Items judged for the score alone (D70) count for their sources too, marked as sampled.
   const sampleFiles = await readSampleFiles(file("sample.json"), file("sample-judged.json"));
   const sample = sampleFiles.sample

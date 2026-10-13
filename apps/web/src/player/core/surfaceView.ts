@@ -168,7 +168,7 @@ export function createSurfaceView(): SurfaceView {
         page: found?.page ?? null,
         focusTo: found?.opener ?? null,
       });
-      // The control that was pressed to close (the bar's chevron) hides with the page, so focus
+      // The control that was pressed to close (the Close pill) hides with the page, so focus
       // falls to the body a moment later: it goes to the bar's open control, so the next Tab
       // starts from the bar. Watched for a short while, as the hiding follows the page's close.
       const opener = found?.opener;

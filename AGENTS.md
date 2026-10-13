@@ -15,7 +15,9 @@ Private design-engineering news briefing. A GitHub Actions engine writes a diges
 ## Commands
 
 - `npm run dispatch -- <command>`: engine CLI (`doctor`, `status`, `models`, `run`, `publish`).
-- `npm test`, `npm run typecheck`, `npm run lint`: all must pass.
+- `npm run gate -- --build`: typecheck, the site's type check (`astro check`), lint, the unit tests and the static build, in parallel (about 80 s). All must pass; prefer it to running them one after another. `npm test`, `npm run typecheck` and `npm run lint` run alone.
+- Run commands through PowerShell (`powershell -NoProfile -Command "Set-Location '<repo>'; ..."`), not the agent's Git Bash: each process Git Bash starts costs 3 to 8 s on this machine, PowerShell 50 ms ([learnings](docs/learnings.md)). Never stop what listens on port 4321 (the owner's dev server, on `[::1]`; screenshot `http://localhost:4321`); run browser suites with `PORT` set above 4400.
+- A worktree gets its packages from `node scripts/worktreeLinks.mjs <path>` and loses them with `--remove` before `git worktree remove`.
 - `npm run e2e -w @dispatch/web` (about 6 minutes) and `npm run e2e:player -w @dispatch/web` (about 3): the browser suites, not in CI. Run them for a change to a page, a page script, the player or the service worker.
 - `DISPATCH_STATIC_ONLY=1 npm run build`: local site build (the Vercel adapter fails on Windows symlinks).
 - `npm run dev`: the site with the Agentation toolbar for leaving notes on elements. Development only; `checkBundle` fails a build that contains it. Stop it when done (`npx astro dev stop` in `apps/web`): a server left running across an install serves broken islands.

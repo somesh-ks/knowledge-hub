@@ -33,7 +33,7 @@ const adding = (offer: CatalogSource): string =>
      (topicsEditor.ts) and the button shows it is done, in the space it already has. */}
 {
   offers.length > 0 && (
-    <section aria-labelledby="suggested-head">
+    <section class="topic-suggested" aria-labelledby="suggested-head">
       <h2 class="section-head" id="suggested-head">Suggested sources</h2>
       <ul class="topic-sources" role="list" data-suggested-sources aria-label={`Suggested sources for ${name}`}>
         {offers.map((offer) => {

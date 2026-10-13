@@ -68,6 +68,8 @@ export interface ManageSource {
   favicon_url: string | null;
   /** "12 of 40 stories made a briefing", or null when there is no record yet. */
   record: string | null;
+  /** "12 stories in briefings" in the last 30 days, or null when there is no record yet. */
+  reach: string | null;
   /** True when the source has failed to load several times in a row. */
   struggling: boolean;
   /** Quality score, 0 to 3 with one decimal: health, quality and trust; null while it is new. */
@@ -183,6 +185,36 @@ export function recordInWords(stats: SourceStats | null | undefined): string | n
       : `None of ${total} stories made a briefing`;
   }
   return `${published} of ${total} ${total === 1 ? "story" : "stories"} made a briefing`;
+}
+
+/**
+ * How often a source's stories got through lately, for its row: what reached a briefing, or for a
+ * general news feed (which never reaches one) the stories another outlet carried too. Null when
+ * the source has no record, or none of its items has been judged yet: "in no briefing" would say
+ * something about a source nobody has looked at.
+ */
+export function reachInWords(
+  stats: SourceStats | null | undefined,
+  feedsGeneral: boolean,
+): string | null {
+  if (!stats || stats.judged <= 0) return null;
+  const count = feedsGeneral ? (stats.covered ?? 0) : stats.published;
+  const stories = `${count} ${count === 1 ? "story" : "stories"}`;
+  if (feedsGeneral)
+    return count > 0 ? `${stories} shared with other outlets` : "No shared stories yet";
+  return count > 0 ? `${stories} in briefings` : "In no briefing yet";
+}
+
+/** An address as a person reads it: the host and the path, with no scheme, "www." or trailing slash. */
+export function readableUrl(address: string | null | undefined): string {
+  if (!address) return "";
+  try {
+    const url = new URL(address);
+    const path = url.pathname.replace(/\/+$/, "");
+    return `${url.hostname.replace(/^www\./, "")}${path}`;
+  } catch {
+    return "";
+  }
 }
 
 /** A candidate's quality figure, 0 to 1 (or 0 to 100), as a phrase. */
@@ -520,10 +552,11 @@ export function buildSources(input: {
     const failures = Math.max(source.failures, sourceHealth?.failures ?? 0);
     const sourceStats = stats.get(source.id);
     const lastOk = sourceHealth?.last_ok ?? source.last_ok ?? undefined;
+    const feedsGeneral = topicIds.length > 0 && topicIds.every(isGeneralTopicId);
     const rated = sourceScore({
       stat: sourceStats,
       // A general news feed earns its quality from stories another outlet also carried.
-      feedsGeneral: topicIds.length > 0 && topicIds.every(isGeneralTopicId),
+      feedsGeneral,
       health: { failures, last_ok: lastOk },
       quality: source.quality === null ? undefined : { score: source.quality },
       now,
@@ -539,6 +572,7 @@ export function buildSources(input: {
       topic_ids: topicIds,
       favicon_url: faviconOf(source.url ?? source.feed_url),
       record: recordInWords(sourceStats),
+      reach: reachInWords(sourceStats, feedsGeneral),
       struggling: failures >= STRUGGLING_FAILURES,
       score: rated.score,
       score_label: rated.label,

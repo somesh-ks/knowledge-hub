@@ -593,7 +593,7 @@ describe("errors", () => {
         summary: "Daily limit reached",
         standing: true,
       },
-    };
+    } as typeof harness.audio.error;
     harness.audio.emit("error");
     const error = harness.store.getState().error;
     expect(error?.message).toBe("Daily narration limit reached.");
@@ -620,7 +620,7 @@ describe("errors", () => {
     harness.audio.error = {
       code: MEDIA_ERR_NETWORK,
       narrated: { message: "Daily narration limit reached.", standing: true },
-    };
+    } as typeof harness.audio.error;
     harness.audio.emit("error");
     const calls = harness.audio.playCalls;
     // The narration's queue answers a made file at once and refuses a new one without a request,
@@ -649,7 +649,7 @@ describe("errors", () => {
     harness.audio.error = {
       code: MEDIA_ERR_NETWORK,
       narrated: { message: "Daily narration limit reached.", standing: true },
-    };
+    } as typeof harness.audio.error;
     harness.audio.emit("error");
     const calls = harness.audio.playCalls;
     expect(harness.store.previous()).toBe(true);

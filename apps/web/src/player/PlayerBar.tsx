@@ -224,11 +224,6 @@ export default function PlayerBar() {
     () => true,
   );
   const isLastItem = itemCount === 0 || state.itemIndex >= itemCount - 1;
-  const open = useSyncExternalStore(
-    playerSheet.subscribe,
-    () => playerSheet.getSnapshot().open,
-    () => false,
-  );
 
   return (
     <section className="player-dock" aria-label="Audio player" data-player-dock>
@@ -324,22 +319,6 @@ export default function PlayerBar() {
       </button>
       <div className="dock-tools">
         <DockVolume />
-        {/* What the whole bar does, said where a mouse looks for it: open the page, or close it. */}
-        <button
-          className="dock-btn dock-toggle press"
-          type="button"
-          aria-expanded={open}
-          aria-controls={PLAYER_PAGE_ID}
-          aria-label={open ? "Close the player" : "Open the player"}
-          data-open={open ? "" : undefined}
-          onClick={(event) =>
-            playerSheet.click({ t: event.timeStamp, fromPointer: event.detail > 0 })
-          }
-        >
-          <svg className="ui-icon" viewBox="0 0 256 256" aria-hidden="true" focusable="false">
-            <path d="M213.66,165.66a8,8,0,0,1-11.32,0L128,91.31,53.66,165.66a8,8,0,0,1-11.32-11.32l80-80a8,8,0,0,1,11.32,0l80,80A8,8,0,0,1,213.66,165.66Z" />
-          </svg>
-        </button>
       </div>
     </section>
   );

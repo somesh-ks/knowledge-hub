@@ -1,6 +1,6 @@
 /**
  * What the Settings rows say about the pages behind them, in a few words: "Every second day at
- * 07:00", "Sundays at 07:00", "Nebius, Default", "9 topics · 9 of 11 sources on". No DOM and only
+ * 07:00", "Sundays at 07:00", "Nebius, Default", "9 topics · 11 sources". No DOM and only
  * DOM-free imports (as nextRun.ts), so the build writes each line into the page and the browser
  * works the same line out again from an edit saved since the build (scripts/settingsSaved.ts).
  */
@@ -76,27 +76,19 @@ export function modelSummary(provider: Provider, model: string | null): string {
   return `${provider === "anthropic" ? "Anthropic" : "Nebius"}, ${writerLabel(model, provider)}`;
 }
 
-/** "9 topics · 11 sources", or "9 topics · 9 of 11 sources on" while some are off. */
-export function topicsSummary(topics: number, sources: number, on = sources): string {
-  const read =
-    on === sources ? plural(sources, "source") : `${on} of ${plural(sources, "source")} on`;
-  return `${plural(topics, "topic")} · ${read}`;
+/** "9 topics · 11 sources": how many there are, not how many are read. */
+export function topicsSummary(topics: number, sources: number): string {
+  return `${plural(topics, "topic")} · ${plural(sources, "source")}`;
 }
 
 /**
  * What a topic's row says about its sources, counting the ones that are read: "3 sources" when all
- * are on, "2 of 3 sources on" when some are off, "No sources yet" with none; "Off" for a topic that
- * is off and "Never in a briefing" for one that never publishes.
+ * are on, "2 of 3 sources on" when some are off, "No sources yet" with none, and "Never in a
+ * briefing" for a topic that never publishes.
  */
-export function sourcesSummary(input: {
-  total: number;
-  on?: number;
-  off?: boolean;
-  never?: boolean;
-}): string {
+export function sourcesSummary(input: { total: number; on?: number; never?: boolean }): string {
   const { total, on = total } = input;
   if (input.never) return "Never in a briefing";
-  if (input.off) return "Off";
   if (total === 0) return "No sources yet";
   return on === total ? plural(total, "source") : `${on} of ${plural(total, "source")} on`;
 }

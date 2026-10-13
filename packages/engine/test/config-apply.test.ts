@@ -246,7 +246,7 @@ describe("topic.upsert", () => {
 });
 
 describe("topic.upsert on a general news topic", () => {
-  it("rewords and switches off World, which stays general and cannot be removed", async () => {
+  it("rewords World, which stays general and always on, and cannot be removed", async () => {
     const { code, report } = await apply({
       op: "topic.upsert",
       topic: {
@@ -264,7 +264,7 @@ describe("topic.upsert on a general news topic", () => {
     expect(topics.topics.find((t) => t.id === "world")).toMatchObject({
       name: "World news",
       description: "International news.",
-      enabled: false,
+      enabled: true,
       origin: "general",
       section_id: "general",
       depth: "coverage",
@@ -305,15 +305,26 @@ describe("topic.scope", () => {
 
   it("puts topics in and out of each podcast in place, leaving the scopes it does not name", async () => {
     const craft = ["design_engineering_craft", "hci_empirical_research"];
+    // The first scope edit writes the general topics into the daily and weekly lists, which a file
+    // from before they could play reads as skipping them.
+    const general = ["world", "business", "science", "culture", "sports"];
     let result = await apply({ op: "topic.scope", ids: craft, daily: false, custom: false });
     expect(result.code).toBe(0);
     expect(result.report.summary).toBe("set where Design engineering craft plays");
-    expect(await lists()).toEqual([craft, [], craft]);
+    expect(await lists()).toEqual([[...general, ...craft], general, craft]);
     // Another page built before that change adds its own topic without undoing the first.
     result = await apply({ op: "topic.scope", ids: ["frontier_model_releases"], daily: false });
-    expect(await lists()).toEqual([[...craft, "frontier_model_releases"], [], craft]);
+    expect(await lists()).toEqual([
+      [...general, ...craft, "frontier_model_releases"],
+      general,
+      craft,
+    ]);
     result = await apply({ op: "topic.scope", ids: craft, daily: true, weekly: false });
-    expect(await lists()).toEqual([["frontier_model_releases"], craft, craft]);
+    expect(await lists()).toEqual([
+      [...general, "frontier_model_releases"],
+      [...general, ...craft],
+      craft,
+    ]);
   });
 });
 
