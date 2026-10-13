@@ -36,17 +36,13 @@ test.describe("a refused settings change", () => {
     const root = page.locator("[data-manage]");
     await expect(root).toHaveAttribute("data-loaded", "");
     const combo = page.getByRole("combobox", { name: "AI Model" });
-    await combo.fill("kimi");
-    await page
-      .getByRole("listbox", { name: "Models" })
-      .getByRole("option", { name: /^Kimi K3/ })
-      .click();
+    await combo.selectOption({ label: "Kimi K3" });
     await expect(toastText(page)).toHaveText("Saving failed.");
     expect(sent).toHaveLength(1);
 
     await page.reload();
     await expect(root).toHaveAttribute("data-loaded", "");
-    await expect(combo).toHaveValue("Default");
+    await expect(combo).toHaveValue("");
     await expect(page.locator("[data-saved-note]")).toHaveCount(0);
 
     await page.goto("/settings");
