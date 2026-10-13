@@ -23,7 +23,8 @@ import {
   segmentSpokenText,
   usageMonth,
 } from "@dispatch/engine/audio";
-import { EPISODE_ID, type Episode, parseEpisodeFile } from "../lib/episodeFile";
+import { EPISODE_ID, parseEpisodeFile } from "../lib/episodeFile";
+import type { StreamDoc } from "../lib/liveStream";
 import type { SegmentMarks } from "../lib/segmentMarks";
 import type {
   NarrateLookupResponse,
@@ -240,13 +241,15 @@ export interface NarrateDeps {
   digests: DigestSource;
   /** Podcast episodes. Left out, no episode can be found. */
   episodes?: EpisodeBundle;
+  /** The live copy of an episode that is still being written. Left out, there is none. */
+  liveEpisodes?: LiveEpisodes;
   /** `purpose` names the clock ("setup", "synthesis", "repeat", "marker"); the real one ignores it. */
   startDeadline: (milliseconds: number, purpose?: string) => Deadline;
   log?: (message: string) => void;
 }
 
 /** The lookup has no store among its dependencies: it cannot spend an operation. */
-export type LookupDeps = Pick<NarrateDeps, "env" | "digests" | "episodes" | "log">;
+export type LookupDeps = Pick<NarrateDeps, "env" | "digests" | "episodes" | "liveEpisodes" | "log">;
 
 export interface NarrateInput {
   bodyText: string;
@@ -467,17 +470,48 @@ async function loadScript(
 }
 
 interface EpisodeScript {
-  episode: Episode;
+  /** Only what narrating needs of it: the voices the episode asked for. */
+  episode: { request: AskedVoices };
   /** One per turn that has words, in the order they are said. Keyed `t<idx>`. */
   segments: SpokenSegment[];
   /** Who reads each segment, by its key. */
   speakers: Map<string, "a" | "b">;
   /** The length of everything said. It is what the episode is charged. */
   characters: number;
+  /** Read from a live copy that is still growing, so a lookup of it must not be cached. */
+  live?: boolean;
 }
 
 /** The segment key of a turn. A key is lower-case letters and digits, as every segment key is. */
 export const turnKey = (idx: number): string => `t${idx}`;
+
+/** The live copy of an episode being written, by its id; null when there is none. */
+export type LiveEpisodes = (id: string) => Promise<StreamDoc | null>;
+
+/** The turns written so far, as an episode's script. A later copy only adds turns at the end. */
+function liveEpisodeScript(doc: StreamDoc): EpisodeScript {
+  const known = new Set(doc.stories.map((story) => story.item_id));
+  const segments: SpokenSegment[] = [];
+  const speakers = new Map<string, "a" | "b">();
+  doc.turns.forEach((turn, idx) => {
+    if (turn.text === "") return;
+    const key = turnKey(idx);
+    segments.push({
+      key,
+      itemId: turn.item_id !== undefined && known.has(turn.item_id) ? turn.item_id : null,
+      text: turn.text,
+    });
+    speakers.set(key, turn.speaker);
+  });
+  const characters = segments.reduce((sum, segment) => sum + segment.text.length, 0);
+  return {
+    episode: { request: { voice_id: doc.voices.a, voice_id_b: doc.voices.b } },
+    segments,
+    speakers,
+    characters,
+    live: doc.status === "writing",
+  };
+}
 
 /**
  * An episode and what is said in it, read from the bundle, or the answer to send when there is
@@ -488,9 +522,15 @@ async function loadEpisodeScript(
   id: string,
   log: (message: string) => void,
   secrets: readonly string[],
+  streams?: LiveEpisodes,
 ): Promise<EpisodeScript | NarrateResult> {
   const text = (await episodes?.readEpisode(id)) ?? null;
-  if (text === null) return digestNotFound;
+  if (text === null) {
+    // Not committed here yet: an episode still being written is narrated from its live copy. The
+    // committed file wins as soon as this build has it, so the two never disagree for long.
+    const live = streams ? await streams(id).catch(() => null) : null;
+    return live ? liveEpisodeScript(live) : digestNotFound;
+  }
   try {
     const episode = parseEpisodeFile(text);
     if (episode.id !== id) throw new Error(`the file holds episode ${episode.id}`);
@@ -537,7 +577,7 @@ async function lookupEpisode(id: string, deps: LookupDeps): Promise<NarrateResul
   const log = deps.log ?? (() => {});
   let script: EpisodeScript | NarrateResult;
   try {
-    script = await loadEpisodeScript(deps.episodes, id, log, []);
+    script = await loadEpisodeScript(deps.episodes, id, log, [], deps.liveEpisodes);
   } catch (error) {
     log(`lookup of ${id} failed: ${describeError(error, [])}`);
     return unavailable;
@@ -547,7 +587,8 @@ async function lookupEpisode(id: string, deps: LookupDeps): Promise<NarrateResul
   if (voices === null) return unavailable;
   return {
     status: 200,
-    headers: { "Cache-Control": LOOKUP_CACHE_CONTROL },
+    // A script still being written grows between two lookups, so it is not kept at the edge.
+    headers: { "Cache-Control": script.live ? "private, no-store" : LOOKUP_CACHE_CONTROL },
     body: {
       status: 200,
       // An episode is narrated turn by turn. There is no whole-episode file to offer.
@@ -1150,7 +1191,7 @@ async function loadSegmentScript(session: Session): Promise<SegmentScript | Narr
       chargeVoice: voice,
     };
   }
-  const script = await loadEpisodeScript(deps.episodes, id, log, secrets);
+  const script = await loadEpisodeScript(deps.episodes, id, log, secrets, deps.liveEpisodes);
   if (!("episode" in script)) return script;
   const asked = script.episode.request;
   const first = asked.voice_id ?? voiceOf(config);
