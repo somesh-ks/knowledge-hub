@@ -4,7 +4,12 @@ import { clusterStories } from "../dedupe/storyCluster.js";
 import { entryToRaw, loadFeed } from "../fetch/feedItems.js";
 import type { HttpClient } from "../http.js";
 import { buildItems } from "../normalize/buildItem.js";
-import { createFileProfileStore, dropBlocked, isBlockedSource, OWNER_ID } from "../profile/profile.js";
+import {
+  createFileProfileStore,
+  dropBlocked,
+  isBlockedSource,
+  OWNER_ID,
+} from "../profile/profile.js";
 import { outletOf } from "../run/generalNews.js";
 import { loadSources } from "../sources/registry.js";
 import type { PodcastPlan } from "./plan.js";
@@ -209,7 +214,8 @@ export async function selectGeneralStories(deps: GeneralDeps): Promise<GeneralSe
       else byId.set(item.id, { item, topics: new Set([job.topic]), outlet: job.source.name });
     }
   }
-  if (blockedCount > 0) log?.info("Dropped stories from blocked domains", { blocked: blockedCount });
+  if (blockedCount > 0)
+    log?.info("Dropped stories from blocked domains", { blocked: blockedCount });
   if (feedsOk === 0) {
     throw new PodcastError(
       `No news feed could be read for ${joinNames(topicIds.map(generalTopicTitle))}; try again in a few minutes.`,

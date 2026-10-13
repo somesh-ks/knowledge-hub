@@ -2,8 +2,8 @@ import { readdir, readFile } from "node:fs/promises";
 import { basename, join } from "node:path";
 import { type Digest, parseDigestFile, stockholmDate } from "@dispatch/core";
 import type { Logger } from "../context.js";
-import { topicLabel } from "./episode.js";
 import { createFileProfileStore, isBlockedUrl, OWNER_ID } from "../profile/profile.js";
+import { topicLabel } from "./episode.js";
 import type { PodcastPlan } from "./plan.js";
 import { PodcastError, type PodcastStory } from "./types.js";
 
@@ -126,7 +126,8 @@ export async function selectStories(
       });
     }
   }
-  if (blockedCount > 0) log?.info("Dropped stories from blocked domains", { blocked: blockedCount });
+  if (blockedCount > 0)
+    log?.info("Dropped stories from blocked domains", { blocked: blockedCount });
   // Never fall back to the window's top picks alone: the listener asked for these topics.
   const emptyTopics = request.topic_ids.filter((id) => !covered.has(id));
   if (emptyTopics.length === request.topic_ids.length) {

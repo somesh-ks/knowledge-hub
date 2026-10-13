@@ -19,8 +19,8 @@ import {
   withGeneralScope,
 } from "@dispatch/core";
 import type { ExaQuery, QueriesFile } from "../fetch/queries.js";
-import { buildSourceFromUrl } from "../sources/addSource.js";
 import { normalizeDomain, type Profile } from "../profile/profile.js";
+import { buildSourceFromUrl } from "../sources/addSource.js";
 import type { DiscoverDeps } from "../sources/discover.js";
 
 export class ConfigOpError extends Error {
