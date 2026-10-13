@@ -64,6 +64,8 @@ interface PassContext {
   /** Sections a scheduled regular briefing covers; null for every section and for other modes. */
   /** Topics the scheduled daily briefing leaves out. */
   skipTopics: readonly string[];
+  /** Regenerate: the topics chosen for this run alone. Every other topic is left out of every pass. */
+  onlyTopics: ReadonlySet<string> | null;
   /** Minutes the scheduled podcast runs, which sizes the regular briefing; null for other modes. */
   /** Topics the weekly pass leaves out, from the schedule in every mode. */
   weeklySkipTopics: readonly string[];
@@ -92,6 +94,7 @@ export async function writeStage(
   deps: RunDeps,
   plan: Plan,
   feedback?: string,
+  chosenTopics?: readonly string[],
 ): Promise<StageReport> {
   const runtime = await deps.runtime();
   const linter = createLinter(await loadVoice(deps.root));
@@ -110,6 +113,7 @@ export async function writeStage(
     sourceNames: sourceNameMap(sources),
     customTopics: activeFitTopics(topics),
     skipTopics: schedule?.skip_topics ?? [],
+    onlyTopics: chosenTopics && chosenTopics.length > 0 ? new Set(chosenTopics) : null,
     weeklySkipTopics: fullSchedule.weekly.skip_topics,
     lengthMinutes: schedule?.length_minutes ?? null,
     weeklyLengthMinutes: fullSchedule.weekly.length_minutes,
@@ -162,6 +166,7 @@ async function writePass(
     sourceNames,
     customTopics,
     skipTopics,
+    onlyTopics,
     weeklySkipTopics,
     lengthMinutes,
     weeklyLengthMinutes,
@@ -199,7 +204,9 @@ async function writePass(
       poolPath: file("general.json"),
       judgedPath: file("general-judged.json"),
       topics: context.generalTopics,
-      publish: generalIdsFor(context.schedule, pass.kind, context.mode),
+      publish: onlyTopics
+        ? context.generalTopics.map((topic) => topic.id).filter((id) => onlyTopics.has(id))
+        : generalIdsFor(context.schedule, pass.kind, context.mode),
       inPool: new Set(byId.keys()),
       seen: (await readSeen(deps.root)).items,
       now: deps.now(),
@@ -228,6 +235,8 @@ async function writePass(
     // pass its own; an episode made on request covers everything it was asked for.
     skipTopics:
       pass.kind === "regular" ? skipTopics : pass.kind === "weekly" ? weeklySkipTopics : [],
+    // Regenerate with chosen topics: a candidate stays only when its category is one of them.
+    ...(onlyTopics ? { onlyTopics: [...onlyTopics] } : {}),
   });
   for (const d of chosen.dropped) drop(d.id, "select", `${d.reason} (score ${d.score})`);
 

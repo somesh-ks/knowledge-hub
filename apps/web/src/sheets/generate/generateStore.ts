@@ -86,7 +86,7 @@ function isActive(phase: GeneratePhase): boolean {
 export interface GenerateStore {
   getState(): GenerateState;
   subscribe(listener: () => void): () => void;
-  submit(passphrase: string, feedback?: string): Promise<void>;
+  submit(passphrase: string, feedback?: string, topics?: readonly string[]): Promise<void>;
   /** Clears a finished run or an inline error so the form comes back. */
   reset(): void;
   /** Clears the inline error while the listener types, so it never lingers over a fresh attempt. */
@@ -271,10 +271,10 @@ export function createGenerateStore(options: GenerateStoreOptions): GenerateStor
       listeners.add(listener);
       return () => listeners.delete(listener);
     },
-    async submit(passphrase, feedback) {
+    async submit(passphrase, feedback, topics) {
       if (state.phase === "starting" || isActive(state.phase)) return;
       setState({ phase: "starting", fieldError: null });
-      const result = await startGenerate(passphrase, clientDeps, feedback);
+      const result = await startGenerate(passphrase, clientDeps, feedback, topics);
       if (disposed) return;
       if (result.kind === "rejected") {
         setState({ phase: "idle", fieldError: result.message });
