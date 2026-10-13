@@ -197,37 +197,22 @@ test.describe("sharing", () => {
       });
     });
     await page.goto(SILENT_DIGEST);
-    // By its hook: its name changes while the copy is confirmed.
-    const more = page.locator("[data-hero-more]");
-    // An older briefing has nothing to offer but Share, so its button shares at once.
-    await expect(more).toHaveAccessibleName("Share this briefing");
-    await expect(page.locator(".hero-menu-list")).toHaveCount(0);
-    await expect(async () => {
-      await more.click();
-      await expect(more).toHaveAttribute("data-copied", "", { timeout: 500 });
-    }).toPass();
-    // The button says it was copied, and it is spoken.
-    await expect(more).toHaveAccessibleName("Link copied");
-    await expect(page.locator("[data-share-status]")).toHaveText("Link copied");
-    await expect(more.locator(".more-done")).toBeVisible();
-    await expect(more.locator(".more-icon")).toBeHidden();
-    const copied = await page.evaluate(
-      () => (window as unknown as { __copied: string[] }).__copied,
-    );
-    expect(copied[0]).toMatch(/\/d\/2026-10-05$/);
-    // Two seconds later the button is itself again.
-    await expect(more).toHaveAccessibleName("Share this briefing", { timeout: 4_000 });
-    await expect(more).not.toHaveAttribute("data-copied", /.*/);
-    await expect(page.locator("[data-share-status]")).toHaveText("");
+    // An older briefing has the same menu as the latest (D104); Share copies its own address.
+    await hydrated(page);
+    await page.getByRole("button", { name: "More actions" }).click();
+    await page.getByRole("menuitem", { name: "Share" }).click();
+    await expect
+      .poll(() => page.evaluate(() => (window as unknown as { __copied: string[] }).__copied))
+      .toEqual([expect.stringMatching(/\/d\/2026-10-05$/)]);
   });
 
-  test("the latest briefing offers Regenerate, which asks what to improve", async ({ page }) => {
+  test("every briefing offers Regenerate, which asks what to improve, and Delete", async ({ page }) => {
     for (const path of ["/", "/d/2026-10-07"]) {
       await page.goto(path);
       await hydrated(page);
       await page.getByRole("button", { name: "More actions" }).click();
       const items = page.locator(".hero-menu-list [role=menuitem]");
-      await expect(items).toHaveText(["Share", "Regenerate"]);
+      await expect(items).toHaveText(["Share", "Regenerate", "Delete"]);
     }
     await openNewBriefing(page);
   });

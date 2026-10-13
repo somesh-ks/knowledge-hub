@@ -353,12 +353,12 @@ test.describe("a topic's page", () => {
     await expect(page.getByRole("slider", { name: "Weight", exact: true })).toHaveCount(1);
   });
 
-  test("Podcasts is a list to tick: unticking Daily leaves every topic Design gathers out of it", async ({
+  test("Listen in is a list to tick: unticking Daily leaves every topic Design gathers out of it", async ({
     page,
   }) => {
     const { sent } = await setup(page);
     await open(page, CRAFT);
-    const field = page.getByRole("button", { name: /^Podcasts/ });
+    const field = page.getByRole("button", { name: /^Listen in/ });
     await expect(field).toHaveText("All podcasts");
     await field.click();
     const list = page.getByRole("listbox", { name: "Listen in" });
@@ -470,6 +470,11 @@ test.describe("a topic's page", () => {
     await page.goto("/settings");
     await open(page, "/settings/topics/audio_interfaces");
     await pick(page, "Audio interfaces", "Delete topic Audio interfaces");
+    // Delete asks first (D103).
+    await page
+      .getByRole("dialog", { name: "Delete Audio interfaces?" })
+      .getByRole("button", { name: "Delete" })
+      .click();
     await expect(toastText(page)).toHaveText("Removing Audio interfaces");
     await expect(page).toHaveURL(/\/settings\/topics$/, AFTER_UNDO);
     await expect(page.locator('a[href="/settings/topics/audio_interfaces"]')).toBeHidden();
@@ -519,7 +524,7 @@ test.describe("a topic's page", () => {
     await expect(sheet.getByLabel("What should count as this topic")).toBeEditable();
     await sheet.getByRole("button", { name: "Close" }).click();
     // A general topic can be put in or out of each podcast and is always on: a list of podcasts, no switch.
-    await expect(page.getByRole("button", { name: /^Podcasts/ })).toHaveCount(1);
+    await expect(page.getByRole("button", { name: /^Listen in/ })).toHaveCount(1);
     await expect(page.getByRole("switch")).toHaveCount(0);
     expect(ops(sent)).toEqual([]);
   });
@@ -713,10 +718,10 @@ test.describe("editing a topic", () => {
     await sheet.getByRole("form", { name: "Add a topic" }).getByLabel("Name").fill("Spatial audio");
     await sheet.getByLabel("What should count as this topic").fill("Spatial audio in apps.");
     // Every podcast ticked reads as it does on every topic page.
-    await expect(sheet.getByRole("button", { name: /^Podcasts/ })).toHaveText("All podcasts");
-    await sheet.getByRole("button", { name: /^Podcasts/ }).click();
+    await expect(sheet.getByRole("button", { name: /^Listen in/ })).toHaveText("All podcasts");
+    await sheet.getByRole("button", { name: /^Listen in/ }).click();
     await sheet.getByRole("option", { name: "Weekly" }).click();
-    await expect(sheet.getByRole("button", { name: /^Podcasts/ })).toHaveText("Daily and Custom");
+    await expect(sheet.getByRole("button", { name: /^Listen in/ })).toHaveText("Daily and Custom");
     await page.keyboard.press("Escape");
     await expect(sheet).toBeVisible();
     await sheet.getByRole("button", { name: "Add topic", exact: true }).click();
@@ -880,7 +885,7 @@ test("has no accessibility violations: the list, a topic, and the panel open", a
   expect(await scan()).toEqual([]);
   await open(page, "/settings/topics/design");
   expect(await scan()).toEqual([]);
-  await page.getByRole("button", { name: /^Podcasts/ }).click();
+  await page.getByRole("button", { name: /^Listen in/ }).click();
   expect(await scan()).toEqual([]);
   await page.keyboard.press("Escape");
   await page.getByRole("button", { name: "Add source to Design" }).click();

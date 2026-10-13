@@ -9,10 +9,16 @@ const menu = (page: Page) => page.getByRole("menu", { name: "More actions" });
 const regenerate = (page: Page) => page.locator('[data-episode-action="regenerate"]');
 const remove = (page: Page) => page.locator('[data-episode-action="delete"]');
 
-/** Opens the More menu and picks one of its two items. */
+/**
+ * Opens the More menu and picks one of its items, until its dialog is open: a press that lands
+ * before the page's script is ready opens nothing.
+ */
 async function choose(page: Page, item: "Regenerate" | "Delete"): Promise<void> {
-  await more(page).click();
-  await menu(page).getByRole("menuitem", { name: item }).click();
+  await expect(async () => {
+    if (!(await menu(page).isVisible())) await more(page).click();
+    await menu(page).getByRole("menuitem", { name: item }).click({ timeout: 2000 });
+    await expect(item === "Delete" ? confirm(page) : panel(page)).toBeVisible({ timeout: 1000 });
+  }).toPass({ timeout: 15_000 });
 }
 const panel = (page: Page) => page.locator("dialog.regen-sheet");
 const confirm = (page: Page) => page.locator("dialog.confirm-dialog");
