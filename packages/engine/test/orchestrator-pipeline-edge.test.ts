@@ -426,6 +426,44 @@ describe("a blocked domain", () => {
   });
 });
 
+describe("story votes", () => {
+  const vote = (n: number) => ({
+    story_id: `s${n}`,
+    url: `https://blog-a.example/old-${n}`,
+    headline: `Old ${n}`,
+    domain: "blog-a.example",
+    topic: "design",
+    source_id: "blog-a",
+    value: "down",
+    at: "2026-10-05T00:00:00Z",
+  });
+
+  // Two items equal in every way but their source, which the owner voted down 2 or 3 times.
+  it.each([
+    [2, "ranks the same"],
+    [3, "ranks lower"],
+  ])("with %s down votes on a source, its item %s", LONG, async (count, outcome) => {
+    const feeds = goodFeeds(4);
+    feeds["blog-a"] = [...(feeds["blog-a"] ?? []), feedItem({ sourceId: "blog-a", slug: "probe" })];
+    feeds["blog-b"] = [...(feeds["blog-b"] ?? []), feedItem({ sourceId: "blog-b", slug: "probe" })];
+    await seed(repo.root, {
+      "config/profiles/owner.json": json({
+        user_id: "owner",
+        blocked_domains: [],
+        votes: Array.from({ length: count }, (_, i) => vote(i)),
+      }),
+    });
+    const world = makeWorld(repo.root, { now: WED, feeds });
+    expect((await runStage(world)).code).toBe(0);
+    const items = (await readDigest(repo.root, DIGEST_PATH)).items;
+    const score = (host: string): number | undefined =>
+      items.find((item) => item.url === `https://${host}.example/probe`)?.score;
+    expect(score("blog-b")).toBeDefined();
+    if (outcome === "ranks lower") expect(score("blog-a")).toBeLessThan(score("blog-b") as number);
+    else expect(score("blog-a")).toBe(score("blog-b"));
+  });
+});
+
 describe("items a judge could not answer", () => {
   it("keeps unjudged items out of seen so the next run retries them", LONG, async () => {
     const feeds = {
