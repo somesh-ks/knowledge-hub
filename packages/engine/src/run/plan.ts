@@ -31,6 +31,8 @@ export const Plan = z.object({
   date: z.string().regex(/^\d{4}-\d{2}-\d{2}$/),
   reason: z.string(),
   passes: z.array(PlanPass),
+  /** The digest this run replaces: its files go in the commit that publishes the new one. */
+  replaces: DigestId.optional(),
   /** "adopted" plans come from an agent-mode run directory; no gate ran. */
   source: z.enum(["gate", "adopted"]).default("gate"),
   /** Set once the commit stage finished, so a second commit cannot publish the same run twice. */

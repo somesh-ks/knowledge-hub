@@ -1,6 +1,7 @@
 import { formatSpend } from "./spend.js";
 import type {
   CommitReport,
+  DeleteReport,
   FailureReport,
   GateReport,
   PipelineResult,
@@ -28,6 +29,14 @@ function formatGate(report: GateReport): string[] {
   }
   if (report.dry_run) lines.push("Dry run: nothing will be written or committed.");
   return lines;
+}
+
+function isDelete(report: PipelineResult["report"]): report is DeleteReport {
+  return "outcome" in report && report.outcome === "deleted";
+}
+
+function formatDelete(report: DeleteReport): string {
+  return `${report.dry_run ? "Would remove" : "Removed"} ${report.removed.join(", ")} (${report.commit}).`;
 }
 
 function formatStage(report: StageReport): string[] {
@@ -61,6 +70,7 @@ function formatCommit(report: CommitReport): string[] {
 export function formatReport(report: PipelineResult["report"]): string {
   if (isFailure(report)) return `Failed at ${report.stage}: ${report.error}`;
   if (isGate(report)) return formatGate(report).join("\n");
+  if (isDelete(report)) return formatDelete(report);
   if (isStage(report)) return formatStage(report).join("\n");
   return formatCommit(report).join("\n");
 }

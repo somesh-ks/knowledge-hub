@@ -1,5 +1,5 @@
 import { parseArgs } from "node:util";
-import { PodcastFeedback } from "@dispatch/core";
+import { DigestId, PodcastFeedback } from "@dispatch/core";
 import type { CommandContext, CommandRun } from "../context.js";
 import { RUN_MODES, type RunMode } from "../gate/decideRun.js";
 import { buildDeps } from "../run/buildDeps.js";
@@ -29,6 +29,8 @@ function parseOptions(argv: string[]): { options: RunOptions; help: boolean } {
       stage: { type: "string" },
       run: { type: "string" },
       feedback: { type: "string" },
+      replace: { type: "string" },
+      delete: { type: "string" },
       help: { type: "boolean", short: "h" },
     },
   });
@@ -48,6 +50,11 @@ function parseOptions(argv: string[]): { options: RunOptions; help: boolean } {
   if (feedback && !feedback.success) {
     throw new Error("--feedback must be 1 to 500 characters");
   }
+  for (const id of [values.replace, values.delete]) {
+    if (id !== undefined && !DigestId.safeParse(id).success) {
+      throw new Error(`--replace and --delete take a digest id such as 2026-10-11, not "${id}"`);
+    }
+  }
   return {
     help: values.help === true,
     options: {
@@ -58,6 +65,8 @@ function parseOptions(argv: string[]): { options: RunOptions; help: boolean } {
       noPush: values["no-push"] === true,
       stage: values.stage === undefined ? undefined : (values.stage as RunOptions["stage"]),
       run: values.run,
+      replace: values.replace,
+      delete: values.delete,
       feedback: feedback?.success ? feedback.data : undefined,
     },
   };
