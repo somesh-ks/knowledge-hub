@@ -88,7 +88,7 @@
       "id": "ai_ux_interaction_patterns",
       "name": "AI interaction patterns",
       "description": "Interface and interaction patterns for AI products: chat and agent interfaces, streaming, correction, interruption and generative UI.",
-      "weight": 0.9,
+      "weight": 0.6,
       "enabled": true,
       "keywords": [],
       "section_id": "ai",
@@ -202,6 +202,66 @@
       "section_id": "trending",
       "never_publish": false,
       "origin": "app",
+      "depth": "coverage"
+    },
+    {
+      "id": "world",
+      "name": "World",
+      "description": "International news and world affairs: conflicts, diplomacy, elections and governments, disasters and humanitarian crises, and major events in any country.",
+      "weight": 1,
+      "enabled": true,
+      "keywords": [],
+      "section_id": "general",
+      "never_publish": false,
+      "origin": "general",
+      "depth": "coverage"
+    },
+    {
+      "id": "business",
+      "name": "Business",
+      "description": "Business and economic news: markets, companies, earnings, deals, jobs, trade, prices, interest rates and the policies that move them.",
+      "weight": 1,
+      "enabled": true,
+      "keywords": [],
+      "section_id": "general",
+      "never_publish": false,
+      "origin": "general",
+      "depth": "coverage"
+    },
+    {
+      "id": "science",
+      "name": "Science",
+      "description": "Science and health news: research findings, space, climate and the environment, medicine and public health, reported from a study or an expert.",
+      "weight": 1,
+      "enabled": true,
+      "keywords": [],
+      "section_id": "general",
+      "never_publish": false,
+      "origin": "general",
+      "depth": "coverage"
+    },
+    {
+      "id": "culture",
+      "name": "Culture",
+      "description": "Arts and culture news: film, television, music, books, art, games and the trends around them. Not sports results.",
+      "weight": 1,
+      "enabled": true,
+      "keywords": [],
+      "section_id": "general",
+      "never_publish": false,
+      "origin": "general",
+      "depth": "coverage"
+    },
+    {
+      "id": "sports",
+      "name": "Sports",
+      "description": "Sports news: results, tournaments, transfers, records and the stories around teams and athletes in major sports.",
+      "weight": 1,
+      "enabled": true,
+      "keywords": [],
+      "section_id": "general",
+      "never_publish": false,
+      "origin": "general",
       "depth": "coverage"
     }
   ]
