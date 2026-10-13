@@ -414,6 +414,25 @@ describe("helpers", () => {
     expect(unlock).toHaveBeenCalledTimes(2);
   });
 
+  it("unlocks inside the events iOS and Android accept as an activation", () => {
+    const target = new EventTarget();
+    const unlock = vi.fn();
+    installGestureUnlock({ unlock }, target);
+    for (const type of ["touchend", "pointerup", "click"]) {
+      const before = unlock.mock.calls.length;
+      target.dispatchEvent(new Event(type));
+      expect(unlock.mock.calls.length, type).toBe(before + 1);
+    }
+  });
+
+  it("asks iOS to play through the silent switch", () => {
+    const session = { type: "auto" };
+    vi.stubGlobal("navigator", { audioSession: session });
+    harness().engine.unlock();
+    vi.unstubAllGlobals();
+    expect(session.type).toBe("playback");
+  });
+
   it("defaults sounds off for people who asked for reduced motion", () => {
     expect(defaultSoundsEnabled(() => ({ matches: true }))).toBe(false);
     expect(defaultSoundsEnabled(() => ({ matches: false }))).toBe(true);
