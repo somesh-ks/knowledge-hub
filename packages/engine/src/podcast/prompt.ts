@@ -148,9 +148,18 @@ export function scriptSystemPrompt(input: ScriptInput, boundary: string): string
     "OUTPUT",
     'Answer with JSON only: {"turns":[{"speaker":"a","text":"...","item_id":"..."}]}.',
     'Put the story\'s id, copied exactly from the "item_id:" line above its block, in "item_id" on every turn about that story. Leave "item_id" out of the hello, rundown, close and sign-off turns.',
+    ...(input.opening?.length
+      ? [
+          "The first turns are already written and have been shown to the listener (see OPENING DONE in the message). Answer with the turns that come after them only: do not greet again, do not name the show again, and do not repeat the rundown or the story they lead into; carry on from the last turn. The sign-off stays at the end.",
+        ]
+      : []),
     untrustedInstruction(boundary),
   ].join("\n");
 }
+
+/** What the opening call is asked for, in addition to the script prompt. */
+export const OPENING_INSTRUCTION =
+  'THIS CALL WRITES THE OPENING ONLY, not the episode: the one-line hello that says the show is Singularity, the rundown, and the first turns of the first story. Four to six turns, about 120 words in all, ending where a longer script would carry on with that story. Do not write the close or a sign-off. Answer with JSON only in the same shape: {"turns":[...]}.';
 
 /**
  * One story: its id on a line of its own, then the story text between the markers. The id stays
@@ -182,6 +191,15 @@ export function scriptUserMessage(
     "",
     ...input.stories.map((story) => storyBlock(story, boundary)),
   ];
+  if (input.opening?.length) {
+    lines.push(
+      "",
+      "OPENING DONE (already spoken; continue after the last of these):",
+      ...input.opening.map(
+        (turn) => `${turn.speaker}${turn.item_id ? ` [${turn.item_id}]` : ""}: ${turn.text}`,
+      ),
+    );
+  }
   if (input.feedback) {
     lines.push(
       "",

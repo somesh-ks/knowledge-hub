@@ -36,6 +36,73 @@ export interface ScriptDeps {
   log?: Logger;
   /** The clock for the time limit; tests replace it. */
   now?: () => number;
+  /**
+   * Asks the writer for the opening turns first (when it can) and hands them over as soon as they
+   * are checked, before the rest of the script is written. The script then continues after them.
+   */
+  onOpening?: (turns: readonly ScriptTurn[]) => Promise<void>;
+}
+
+/** An opening is a few turns; more than this is the writer ignoring the ask, and is cut. */
+const OPENING_MAX_TURNS = 8;
+const OPENING_MIN_TURNS = 2;
+
+/**
+ * The opening turns of a reply, cleaned the way a script's are, or null when they are not usable:
+ * too few, the show not named, a discussion that does not start with host "a". It is stricter than
+ * nothing and looser than a script: it only has to be safe to speak while the rest is written.
+ */
+export function validateOpening(
+  raw: unknown,
+  request: PodcastRequest,
+  stories: readonly PodcastStory[],
+): ScriptTurn[] | null {
+  const parsed = ScriptReply.safeParse(raw);
+  if (!parsed.success) return null;
+  const known = new Set(stories.map((story) => story.item_id));
+  const turns: ScriptTurn[] = [];
+  for (const row of parsed.data.turns.slice(0, OPENING_MAX_TURNS)) {
+    const text = cleanText(row.text);
+    if (text === "") continue;
+    const given = row.item_id ? row.item_id : undefined;
+    const itemId = given === undefined || known.has(given) ? given : closestId(given, known);
+    turns.push({
+      speaker: request.format === "discussion" ? row.speaker : "a",
+      text,
+      ...(itemId !== undefined && known.has(itemId) ? { item_id: itemId } : {}),
+    });
+  }
+  if (turns.length < OPENING_MIN_TURNS) return null;
+  if (!/singularity/i.test(turns[0]?.text ?? "")) return null;
+  if (request.format === "discussion" && turns[0]?.speaker === "b") return null;
+  return turns;
+}
+
+/** The opening, or null when the writer has none to give or it failed: the script goes on without. */
+async function requestOpening(deps: ScriptDeps): Promise<ScriptTurn[] | null> {
+  if (!deps.onOpening || !deps.writer.writeOpening) return null;
+  try {
+    const raw = await deps.writer.writeOpening({
+      request: deps.request,
+      stories: deps.stories,
+      budget_chars: deps.budget_chars,
+      ...(deps.feedback ? { feedback: deps.feedback } : {}),
+      deadline_at: (deps.now ?? Date.now)() + SCRIPT_TIME_LIMIT_MS,
+    });
+    const turns = validateOpening(raw, deps.request, deps.stories);
+    if (turns === null) {
+      deps.log?.warn("The opening was not usable; the script is written without it");
+      return null;
+    }
+    await deps.onOpening(turns);
+    return turns;
+  } catch (error) {
+    if (error instanceof BudgetExceededError) throw error;
+    deps.log?.warn("The opening could not be written; the script is written without it", {
+      reason: describeError(error),
+    });
+    return null;
+  }
 }
 
 export interface ScriptResult {
@@ -177,7 +244,10 @@ interface Requested {
   rejected: string[];
 }
 
-async function requestTurns(deps: ScriptDeps): Promise<Requested> {
+async function requestTurns(
+  deps: ScriptDeps,
+  opening: readonly ScriptTurn[] | null = null,
+): Promise<Requested> {
   let problems: string[] = [];
   let rejected: string[] = [];
   // The longest reply that was valid but short: a short true episode beats none.
@@ -207,6 +277,7 @@ async function requestTurns(deps: ScriptDeps): Promise<Requested> {
           stories: deps.stories,
           budget_chars: deps.budget_chars,
           ...(deps.feedback ? { feedback: deps.feedback } : {}),
+          ...(opening ? { opening } : {}),
           deadline_at: deadline,
         },
         problems,
@@ -249,7 +320,8 @@ async function requestTurns(deps: ScriptDeps): Promise<Requested> {
  * dealt with, the show is always named in the opening, and the length is enforced in code.
  */
 export async function generateScript(deps: ScriptDeps): Promise<ScriptResult> {
-  const { turns: raw, calls, rejected } = await requestTurns(deps);
+  const opening = await requestOpening(deps);
+  const { turns: raw, calls, rejected } = await requestTurns(deps, opening);
   const checked = await checkTurns({
     request: deps.request,
     turns: raw,

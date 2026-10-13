@@ -43,6 +43,8 @@ export interface ScriptInput {
   feedback?: string | undefined;
   /** Epoch milliseconds by which the call, retries included, must end. */
   deadline_at?: number | undefined;
+  /** Turns already written and shown to the listener; the script continues right after them. */
+  opening?: readonly ScriptTurn[] | undefined;
 }
 
 export interface TurnRewrite {
@@ -62,6 +64,11 @@ export interface TurnRewrite {
 export interface ScriptWriter {
   /** One call that returns the whole script as `{ turns }`. `problems` lists what a previous reply got wrong. */
   writeScript(input: ScriptInput, problems: readonly string[]): Promise<unknown>;
+  /**
+   * One short call for the first turns only (the hello, the rundown, the lead story), so the
+   * listener can start while the rest is written. Optional; a writer without it has no opening.
+   */
+  writeOpening?(input: ScriptInput): Promise<unknown>;
   /** Rewrite one turn so it keeps to the facts. Null when the model could not. */
   rewriteTurn(input: TurnRewrite): Promise<string | null>;
 }

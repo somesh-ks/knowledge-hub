@@ -14,7 +14,8 @@ import { planPodcast } from "./plan.js";
 import { discussionHostNames } from "./prompt.js";
 import { generateScript, type ScriptResult } from "./script.js";
 import { joinNames, type Selection, selectStories } from "./select.js";
-import { PodcastError, type PodcastStory, type ScriptWriter } from "./types.js";
+import type { StreamPublisher } from "./stream.js";
+import { PodcastError, type PodcastStory, type ScriptTurn, type ScriptWriter } from "./types.js";
 
 export interface GenerateInput {
   root: string;
@@ -30,6 +31,15 @@ export interface GenerateInput {
   /** Regeneration: the episode being replaced and what the listener wants changed. */
   replaces?: string;
   feedback?: string;
+  /**
+   * Called once the stories are chosen and the episode id is known, before the script is written.
+   * The publisher it returns is given the opening and then the whole script as they are ready.
+   */
+  makeStream?: (info: {
+    id: string;
+    request: PodcastRequest;
+    stories: readonly PodcastStory[];
+  }) => StreamPublisher | null;
 }
 
 export interface GenerateResult {
@@ -228,6 +238,11 @@ export async function generateEpisode(raw: GenerateInput): Promise<GenerateResul
     budget_chars: plan.budget_chars,
     ...(selection.empty_topics.length > 0 ? { empty_topics: selection.empty_topics } : {}),
   });
+  // The id is settled before the script, so a listener can be told what to wait for.
+  const id = await allocateEpisodeId(input.root, input.now);
+  const stream = input.dryRun
+    ? null
+    : (input.makeStream?.({ id, request: input.request, stories: selection.stories }) ?? null);
   const { turns, ...script } = await generateScript({
     writer: input.makeWriter(),
     request: input.request,
@@ -235,8 +250,11 @@ export async function generateEpisode(raw: GenerateInput): Promise<GenerateResul
     budget_chars: plan.budget_chars,
     ...(input.feedback ? { feedback: input.feedback } : {}),
     ...(input.log ? { log: input.log } : {}),
+    ...(stream ? { onOpening: (opening: readonly ScriptTurn[]) => stream.opening(opening) } : {}),
   });
-  const id = await allocateEpisodeId(input.root, input.now);
+  // The whole script goes out now, not after the commit: the listener hears it while it is pushed.
+  // Not awaited; the publisher writes in order, and a failure to write is its own to report.
+  void stream?.script(turns);
   const episode = await buildEpisode({
     root: input.root,
     id,

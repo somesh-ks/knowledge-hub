@@ -5,6 +5,7 @@ import { CHARS_PER_TOKEN } from "../llm/tokenBudget.js";
 import type { LlmClient } from "../llm/types.js";
 import { newBoundary } from "../llm/untrusted.js";
 import {
+  OPENING_INSTRUCTION,
   rewriteSystemPrompt,
   rewriteUserMessage,
   scriptSystemPrompt,
@@ -19,6 +20,7 @@ const REWRITE_MAX_TOKENS = 400;
 /** Per-turn JSON overhead and the model's own slack, on top of the speech itself. */
 const SCRIPT_TOKEN_OVERHEAD = 600;
 const SCRIPT_TOKEN_SLACK = 1.6;
+const OPENING_MAX_TOKENS = 700;
 
 /** What the model is asked for. Looser than the final turn: script.ts applies the format rules. */
 export const ScriptReply = z.object({
@@ -67,6 +69,27 @@ export class NebiusScriptWriter implements ScriptWriter {
       temperature: SCRIPT_TEMPERATURE,
       maxTokens,
       label: "podcast_script",
+      ...(input.deadline_at === undefined ? {} : { deadlineAt: input.deadline_at }),
+    });
+    // The opening was written first and shown already: the whole script starts with it.
+    return input.opening?.length ? { turns: [...input.opening, ...value.turns] } : value;
+  }
+
+  async writeOpening(input: ScriptInput): Promise<unknown> {
+    const boundary = newBoundary();
+    const { value } = await this.options.llm.completeJson({
+      schema: ScriptReply,
+      schemaName: "singularity_opening",
+      messages: [
+        {
+          role: "system",
+          content: `${scriptSystemPrompt(input, boundary)}\n${OPENING_INSTRUCTION}`,
+        },
+        { role: "user", content: scriptUserMessage(input, boundary, []) },
+      ],
+      temperature: SCRIPT_TEMPERATURE,
+      maxTokens: OPENING_MAX_TOKENS,
+      label: "podcast_opening",
       ...(input.deadline_at === undefined ? {} : { deadlineAt: input.deadline_at }),
     });
     return value;
