@@ -24,7 +24,8 @@
   align-items: center;
   inline-size: 100%;
   block-size: var(--field-height);
-  padding-inline: var(--field-padding) calc(var(--space-4) + var(--size-icon) + var(--select-chevron-gap));
+  padding-inline: var(--field-padding)
+    calc(var(--space-4) + var(--size-icon) + var(--select-chevron-gap));
   border: var(--stroke-hairline) solid var(--field-border);
   border-radius: var(--field-radius);
   background: none;

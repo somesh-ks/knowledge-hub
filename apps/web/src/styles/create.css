@@ -471,7 +471,8 @@
 .create-select > select {
   inline-size: 100%;
   min-height: var(--field-height);
-  padding-inline: var(--field-padding) calc(var(--space-4) + var(--size-icon) + var(--select-chevron-gap));
+  padding-inline: var(--field-padding)
+    calc(var(--space-4) + var(--size-icon) + var(--select-chevron-gap));
   border: var(--stroke-hairline) solid transparent;
   border-radius: var(--row-radius);
   background: var(--color-surface-container);
