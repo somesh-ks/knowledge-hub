@@ -14,7 +14,8 @@
       "!docs/prototype",
       "!**/fixtures",
       "!package-lock.json",
-      "!state"
+      "!state",
+      "!config"
     ]
   },
   "formatter": { "enabled": true, "indentStyle": "space", "indentWidth": 2, "lineWidth": 100 },

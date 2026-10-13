@@ -229,3 +229,4 @@ One line each: symptom, cause, fix. Newest first. Search before debugging.
 - 2026-10-12: new tests written by a worker and never run (two sound specs) failed on the first run; run the specs a worker adds before accepting them.
 - 2026-10-13: state.md said `CRON_SECRET` was pushed to Vercel; it was not, and the Daily silently did not run. After `secrets:push`, confirm with `vercel env ls production` and a call to the route.
 - 2026-10-13: a scale change (score out of 3 to 5) broke pinned values in three test files beyond the scoring module; grep the tests for the old numbers before running the gate.
+- 2026-10-13: a Settings save made the config workflow write `config/schedule.json` with one array item per line, and CI lint failed on Biome's formatter. Machine-written folders (`state/`, `config/`) are excluded from Biome; the local `biome check apps packages scripts tokens` never sees them, so run the root `npm run lint` before a push.
