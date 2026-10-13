@@ -305,6 +305,13 @@ export function createSoundEngine(options: SoundEngineOptions): SoundEngine {
 
   function unlock(): void {
     if (disposed) return;
+    // iOS mutes Web Audio while the ring/silent switch is on, unless the page asks for playback.
+    try {
+      const session = (navigator as { audioSession?: { type: string } }).audioSession;
+      if (session && session.type !== "playback") session.type = "playback";
+    } catch {
+      // Not fatal: older browsers have no audio session.
+    }
     if (!context) {
       try {
         context = createContext();
@@ -363,7 +370,9 @@ export function installGestureUnlock(
   engine: Pick<SoundEngine, "unlock">,
   target: EventTarget = document,
 ): () => void {
-  const events = ["pointerdown", "touchend", "keydown"] as const;
+  // iOS Safari grants audio only inside touchend, pointerup or click, never pointerdown or
+  // touchstart; Android Chrome counts the same. Listening to all of them covers both.
+  const events = ["pointerdown", "pointerup", "touchend", "click", "keydown"] as const;
   const handler = (): void => engine.unlock();
   for (const type of events)
     target.addEventListener(type, handler, { capture: true, passive: true });
