@@ -5,12 +5,13 @@ import { describe, expect, it } from "vitest";
 import { bridgeCandidates } from "../src/audio/hostFrame.js";
 import {
   INTRO_KEY,
+  leadInWords,
   OUTRO_KEY,
   type SpokenSegment,
   segmentSpokenText,
   spokenSegments,
 } from "../src/audio/spokenSegments.js";
-import { buildSpokenText, type SpokenText } from "../src/audio/spokenText.js";
+import { buildSpokenText, itemBlock, type SpokenText } from "../src/audio/spokenText.js";
 import { makeDigest, makeItem, must } from "./audio-fixtures.js";
 
 const DIGESTS = join(import.meta.dirname, "..", "..", "..", "Digests");
@@ -65,6 +66,21 @@ describe("spokenSegments", () => {
     }
     const weekly = makeDigest({ id: "2026-10-11-weekly", date: "2026-10-11", kind: "weekly" }, 9);
     expectSegmentsToRebuild(buildSpokenText(weekly).text, spokenSegments(weekly));
+  });
+
+  it("counts the host's words before each story's own block, so a page can skip them", () => {
+    const digest = makeDigest({}, 12);
+    const lead = leadInWords(digest);
+    for (const segment of spokenSegments(digest)) {
+      if (segment.itemId === null) continue;
+      const item = must(digest.items.find((candidate) => candidate.id === segment.itemId));
+      const words = segment.text.match(/\S+/g) ?? [];
+      const story = itemBlock(item).match(/\S+/g) ?? [];
+      expect(words.slice(words.length - story.length).join(" ")).toBe(story.join(" "));
+      expect(lead.get(item.id) ?? 0).toBe(words.length - story.length);
+    }
+    // At least the first story of a later section opens with a bridge.
+    expect([...lead.values()].some((count) => count > 0)).toBe(true);
   });
 
   it("is the intro, then one segment per story in spoken order", () => {

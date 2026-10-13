@@ -59,7 +59,7 @@ function asSentence(text: string): string {
  * already has its own lead-in and carries the headline's news. Older digests read the headline and
  * the summary, as before, and the why line of those that still have one.
  */
-function itemBlock(item: DigestItem): string {
+export function itemBlock(item: DigestItem): string {
   const fields = item.spoken ? [item.spoken] : [item.headline, item.summary, item.why ?? ""];
   const parts = fields
     .map((field) => toSpeech(field))
