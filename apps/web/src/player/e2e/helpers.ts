@@ -506,11 +506,11 @@ export class PlayerPage {
     await expect(this.page).toHaveURL(SITE.nextUrl);
   }
 
-  /** Opens the Generate sheet the way a person does: More on the briefing, then New briefing. */
+  /** Opens the Generate sheet the way a person does: More on the briefing, then Regenerate. */
   async openGenerate(): Promise<Locator> {
     await this.finger.press(this.page.getByRole("button", { name: "More actions" }));
-    await this.finger.press(this.page.getByRole("menuitem", { name: "New briefing" }));
-    const dialog = this.page.getByRole("dialog", { name: "New briefing" });
+    await this.finger.press(this.page.getByRole("menuitem", { name: "Regenerate" }));
+    const dialog = this.page.getByRole("dialog", { name: "Regenerate" });
     await expect(dialog).toBeVisible();
     return dialog;
   }

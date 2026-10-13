@@ -1,7 +1,7 @@
 import { STAGES } from "./types.js";
 
 export const RUN_USAGE = `Usage: dispatch run [--mode scheduled|on-demand|weekly] [--force] [--since <iso>]
-                    [--dry-run] [--no-push] [--stage ${STAGES.join("|")}] [--run <id>]
+                    [--dry-run] [--no-push] [--feedback <text>] [--stage ${STAGES.join("|")}] [--run <id>]
 
 Runs the pipeline: gate, fetch, judge, write, validate, commit. With --stage it runs one stage,
 as a workflow step does; stages hand work to each other through .cache/run/. Without it every
@@ -15,6 +15,8 @@ stage runs in order and stops cleanly when the gate says nothing is due.
   --dry-run   run every stage but write nothing under state/ or Digests/ and commit nothing; the
               digest preview lands in .cache/run/<id>/digest-preview.md.
   --no-push   commit locally and skip the push.
+  --feedback  write stage: what to improve, 1 to 500 characters; the writer applies it to wording and
+              emphasis only (Regenerate).
   --run       commit stage only: adopt this agent-mode run directory (.cache/run/<id>).
   --json      print one JSON document on stdout. gate: { due, reason, mode, passes, dry_run };
               commit: { outcome, digests, deploy, items }; a failed stage: { outcome: "failed",

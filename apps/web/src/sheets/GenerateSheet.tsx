@@ -1,7 +1,6 @@
 import { Field } from "@base-ui/react/field";
 import { type FormEvent, useEffect, useRef } from "react";
 import { OPEN_PASSPHRASE, PASSPHRASE_REQUIRED } from "../lib/access";
-import { newBriefingLede } from "../lib/newBriefing";
 import Icon from "../player/ui/LazyIcon";
 import GenerateResult from "./GenerateResult";
 import GenerateSteps from "./GenerateSteps";
@@ -9,13 +8,16 @@ import { getGenerateStore } from "./generate/generateRuntime";
 import { useGenerateState } from "./generate/useGenerate";
 import SheetFrame from "./SheetFrame";
 
+/** The same cap as an episode's Regenerate feedback (server/podcast.ts). */
+const FEEDBACK_MAX = 500;
+
 interface GenerateSheetProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
 }
 
 /**
- * A new briefing: a passphrase while one is asked for (lib/access.ts), a run that takes a
+ * Regenerate the latest briefing: a note on what to improve (optional, it reaches the writer), a passphrase while one is asked for (lib/access.ts), a run that takes a
  * few minutes, and an honest outcome. The
  * run lives in a module-level store, so closing the sheet does not stop it and reopening finds it.
  */
@@ -23,6 +25,7 @@ export default function GenerateSheet({ open, onOpenChange }: GenerateSheetProps
   const state = useGenerateState();
   const store = getGenerateStore();
   const inputRef = useRef<HTMLInputElement>(null);
+  const feedbackRef = useRef<HTMLTextAreaElement>(null);
   const starting = state.phase === "starting";
   const running = state.phase === "running";
   const busy = starting || running;
@@ -48,7 +51,10 @@ export default function GenerateSheet({ open, onOpenChange }: GenerateSheetProps
   function onSubmit(event: FormEvent<HTMLFormElement>): void {
     event.preventDefault();
     if (busy) return;
-    void store.submit(PASSPHRASE_REQUIRED ? (inputRef.current?.value ?? "") : OPEN_PASSPHRASE);
+    void store.submit(
+      PASSPHRASE_REQUIRED ? (inputRef.current?.value ?? "") : OPEN_PASSPHRASE,
+      feedbackRef.current?.value ?? "",
+    );
   }
 
   function tryAgain(): void {
@@ -61,26 +67,27 @@ export default function GenerateSheet({ open, onOpenChange }: GenerateSheetProps
     <SheetFrame
       open={open}
       onOpenChange={onOpenChange}
-      title="New briefing"
+      title="Regenerate"
       closeLabel="Close"
       keyboardAware
-      // A keyboard or a mouse lands in the field. A touch lands on the sheet, so the keyboard does
+      // A keyboard or a mouse lands in the note. A touch lands on the sheet, so the keyboard does
       // not cover half of it before the listener has read it.
-      initialFocus={(openType) => (openType === "touch" ? true : (inputRef.current ?? true))}
+      initialFocus={(openType) => (openType === "touch" ? true : (feedbackRef.current ?? true))}
     >
-      {finished || state.lostContact ? null : (
-        <p className="sheet-lede">
-          {newBriefingLede(
-            typeof document === "undefined"
-              ? undefined
-              : document.querySelector<HTMLElement>("[data-generate-since]")?.dataset.generateSince,
-            new Date(),
-          )}
-        </p>
-      )}
-
       {showForm ? (
         <form className="sheet-form" onSubmit={onSubmit} noValidate>
+          <Field.Root disabled={busy} className="sheet-field">
+            <Field.Label className="sr-only">What to improve</Field.Label>
+            <textarea
+              ref={feedbackRef}
+              className="sheet-input"
+              name="feedback"
+              rows={4}
+              maxLength={FEEDBACK_MAX}
+              placeholder="What should be better? For example: shorter summaries, more on design systems."
+              disabled={busy}
+            />
+          </Field.Root>
           {PASSPHRASE_REQUIRED ? (
             <Field.Root invalid={Boolean(state.fieldError)} disabled={busy} className="sheet-field">
               <Field.Label className="sheet-field-label">Passphrase</Field.Label>
@@ -123,10 +130,10 @@ export default function GenerateSheet({ open, onOpenChange }: GenerateSheetProps
               {busy ? (
                 <>
                   <span className="spinner" aria-hidden="true" />
-                  Generating
+                  Regenerating
                 </>
               ) : (
-                "Generate briefing"
+                "Regenerate"
               )}
             </button>
           </div>

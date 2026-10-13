@@ -75,6 +75,10 @@ on:
         description: "Fetch window start (ISO date or time), optional"
         type: string
         default: ""
+      feedback:
+        description: "Regenerate: what the writer should improve, up to 500 characters, optional"
+        type: string
+        default: ""
       dry_run:
         description: "Run every stage but write nothing and push nothing"
         type: boolean
@@ -163,7 +167,9 @@ jobs:
           DISPATCH_MODEL: ${{ vars.DISPATCH_MODEL }}
           DISPATCH_FALLBACK_MODEL: ${{ vars.DISPATCH_FALLBACK_MODEL }}
           FIRECRAWL_API_KEY: ${{ secrets.FIRECRAWL_API_KEY }}
-        run: npm run --silent dispatch -- run --stage write --json
+          # Typed text from the site: passed as data in the environment, never spliced into the script.
+          FEEDBACK: ${{ inputs.feedback }}
+        run: npm run --silent dispatch -- run --stage write --feedback "$FEEDBACK" --json
 
       - name: Validate
         if: steps.gate.outputs.due == 'true'

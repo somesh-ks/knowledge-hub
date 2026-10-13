@@ -117,7 +117,7 @@ export type ParsedPodcastBody =
   | ({ passphrase: string } & EpisodeAction);
 
 /** The feedback of a regenerate: control characters become spaces, 1 to 500 characters once trimmed. */
-function cleanFeedback(value: unknown): string | null {
+export function cleanFeedback(value: unknown): string | null {
   if (typeof value !== "string") return null;
   // biome-ignore lint/suspicious/noControlCharactersInRegex: that is the point of this check.
   const cleaned = value.replace(/[\u0000-\u001f\u007f]/g, " ").trim();
