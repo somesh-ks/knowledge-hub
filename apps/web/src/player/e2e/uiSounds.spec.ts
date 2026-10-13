@@ -41,10 +41,18 @@ test.beforeEach(async ({ page }) => {
 const heard = (page: Page) => page.evaluate(() => [...window.__heard]);
 const oscillators = (page: Page) => page.evaluate(() => window.__oscillators);
 
-/** The first gesture creates and resumes the audio context; cues after it are heard. */
+/**
+ * The first gesture creates and resumes the audio context; cues after it are heard. A click that
+ * lands before the page's listener is installed starts nothing, so it is pressed again until the
+ * context runs.
+ */
 async function prime(page: Page): Promise<void> {
-  await page.mouse.click(2, 2);
-  await expect.poll(() => page.evaluate(() => window.__context?.state)).toBe("running");
+  await expect(async () => {
+    await page.mouse.click(2, 2);
+    await expect
+      .poll(() => page.evaluate(() => window.__context?.state), { timeout: 2000 })
+      .toBe("running");
+  }).toPass({ timeout: 10_000 });
   await page.evaluate(() => {
     window.__heard.length = 0;
     window.__oscillators = 0;
@@ -75,9 +83,9 @@ test.describe("interface cues by kind of action", () => {
       cue: /^toggleOn$/,
     },
     {
-      // A general topic's page holds its on switch (D69).
+      // A topic has no switch since D102; Weekly's on switch is the one left on a settings page.
       name: "a switch is a select",
-      path: "/settings/topics/world",
+      path: "/settings/weekly",
       act: (page: Page) => page.getByRole("switch").first().click(),
       cue: /^toggle(On|Off)$/,
     },
