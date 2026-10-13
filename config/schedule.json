@@ -3,7 +3,12 @@
   "timezone": "Europe/Stockholm",
   "hour": 7,
   "cadence_days": 2,
-  "skip_topics": [],
+  "skip_topics": [
+    "world",
+    "business",
+    "science",
+    "sports"
+  ],
   "format": "readout",
   "length_minutes": 5,
   "voice_id": null,
@@ -12,7 +17,12 @@
     "enabled": true,
     "day": 0,
     "hour": 7,
-    "skip_topics": [],
+    "skip_topics": [
+      "world",
+      "business",
+      "science",
+      "sports"
+    ],
     "format": "readout",
     "length_minutes": 15,
     "voice_id": "alicia",
@@ -24,5 +34,6 @@
     "length_minutes": 5,
     "voice_id": null,
     "voice_id_b": null
-  }
+  },
+  "general_scoped": true
 }
