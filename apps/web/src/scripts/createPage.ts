@@ -47,7 +47,6 @@ export function installCreate(root: HTMLElement, onStart?: () => void): void {
 
   const voiceRows = [...form.querySelectorAll<HTMLElement>("[data-voice]")];
   const more = root.querySelector<HTMLDetailsElement>("[data-create-more]");
-  const note = root.querySelector<HTMLElement>("[data-preset-note]");
   // The voice each select's Default stands for, once /api/voices has said, and every voice by id.
   const defaultVoices: Record<string, Voice> = {};
   const known = new Map<string, Voice>();
@@ -92,84 +91,6 @@ export function installCreate(root: HTMLElement, onStart?: () => void): void {
     } catch {
       // The default and the saved voice stay: an episode can always be made without the list.
       noteVoices(VOICES_UNAVAILABLE);
-    }
-  }
-
-  // True once a chip has been ticked or unticked by hand since the last suggestion was applied.
-  let picked = false;
-  // The ticks a suggestion replaced, while its line offers Undo.
-  let undoTicks: boolean[] | null = null;
-
-  /**
-   * The line under Written for: what a suggestion did ("Topics set for General", with Undo), that
-   * the picks made by hand were kept (with the suggestion), or nothing.
-   */
-  function showNote(mode: "applied" | "kept" | null): void {
-    if (!note) return;
-    if (mode !== "applied") undoTicks = null;
-    note.hidden = mode === null;
-    if (mode === null) return;
-    const audience =
-      form.querySelector<HTMLInputElement>('input[name="audience"]:checked')?.dataset.label ?? "";
-    const text = note.querySelector("[data-preset-text]");
-    if (text) text.textContent = (note.dataset[mode] ?? "").replace("{audience}", audience);
-    note.querySelector("[data-preset-apply]")?.toggleAttribute("hidden", mode !== "kept");
-    note.querySelector("[data-preset-undo]")?.toggleAttribute("hidden", mode !== "applied");
-  }
-
-  /** Scrolls the form, in the page or in the sheet, until the line is above the foot. */
-  function revealNote(): void {
-    const foot = root.querySelector<HTMLElement>(".create-submit");
-    if (!note || !foot) return;
-    const over = note.getBoundingClientRect().bottom - foot.getBoundingClientRect().top;
-    if (over <= 0 || getComputedStyle(foot).position !== "sticky") return;
-    const scroller = root.closest<HTMLElement>(".create-sheet-body");
-    const by = over + note.offsetHeight;
-    if (scroller) scroller.scrollBy({ top: by });
-    else scrollBy({ top: by });
-  }
-
-  /** Whether the audience's suggestion ticks this topic. */
-  function suggests(topic: HTMLInputElement, audience: string): boolean {
-    return (topic.dataset.presets ?? "").split(" ").includes(audience);
-  }
-
-  /** Ticks the chips the chosen audience suggests; chips stay shown. */
-  function applyPreset(): void {
-    const audience = String(new FormData(form).get("audience"));
-    for (const topic of topics) {
-      topic.checked = suggests(topic, audience);
-    }
-    picked = false;
-    showNote(null);
-  }
-
-  /**
-   * A new audience brings its suggested topics only while the topics are still the last
-   * suggestion, and says so with a way back, since the chips may be out of view. Picks made by
-   * hand are never replaced unseen: they stay, and a line says so and offers the suggestion.
-   */
-  function audienceChanged(): void {
-    const audience = String(new FormData(form).get("audience"));
-    // The ticks already are this audience's suggestion (after an Undo, or picks that happen to match):
-    // there is nothing to replace and nothing to offer, so no line and no button that does nothing.
-    if (topics.every((topic) => topic.checked === suggests(topic, audience))) {
-      picked = false;
-      showNote(null);
-      return;
-    }
-    if (picked) {
-      showNote("kept");
-      return;
-    }
-    const before = topics.map((topic) => topic.checked);
-    applyPreset();
-    if (topics.some((topic, index) => topic.checked !== before[index])) {
-      showNote("applied");
-      undoTicks = before;
-      // In view, so what changed and the way back are seen where the choice was made: clear of the
-      // foot with Generate, which stays stuck over the form below it.
-      revealNote();
     }
   }
 
@@ -260,7 +181,7 @@ export function installCreate(root: HTMLElement, onStart?: () => void): void {
       const chosen = (name: string) =>
         form.querySelector<HTMLInputElement>(`input[name="${name}"]:checked`)?.dataset.label ?? "";
       values.textContent = values.dataset.template
-        .replace("{window}", chosen("window"))
+        .replace("{format}", chosen("format"))
         .replace("{tone}", chosen("tone"));
     }
     // The button says how long the episode will run; each length carries its own label.
@@ -359,32 +280,7 @@ export function installCreate(root: HTMLElement, onStart?: () => void): void {
       new FormData(form).get("format") === "discussion"
     )
       keepHostsApart(event.target as HTMLSelectElement);
-    if (name === "audience") audienceChanged();
-    if (name === "topic") {
-      picked = true;
-      // A tick by hand after a suggestion: there is nothing left to undo.
-      if (undoTicks) showNote(null);
-    }
     sync();
-  });
-  root.querySelector("[data-preset-undo]")?.addEventListener("click", () => {
-    const before = undoTicks;
-    if (!before) return;
-    topics.forEach((topic, index) => {
-      topic.checked = before[index] ?? topic.checked;
-    });
-    // The ticks are the person's again; a new audience must not replace them unseen. The button
-    // goes with its line, so the focus goes back to the audience it came from.
-    picked = true;
-    form.querySelector<HTMLInputElement>('input[name="audience"]:checked')?.focus();
-    showNote(null);
-    sync();
-  });
-  root.querySelector("[data-preset-apply]")?.addEventListener("click", () => {
-    applyPreset();
-    sync();
-    // The button is gone with its line: focus goes to the first topic it ticked.
-    topics.find((topic) => topic.checked)?.focus();
   });
   // A wide /create page keeps More options open beside the main questions (create.css lays it out);
   // there its row is a heading, not a switch. In the sheet and on narrower pages it opens in place.
@@ -521,7 +417,6 @@ export function installCreate(root: HTMLElement, onStart?: () => void): void {
   /** Puts a request back into the form: Try again opens it this way when it cannot send itself. */
   fillers.set(root, (sent) => {
     for (const [name, value] of [
-      ["audience", sent.audience],
       ["length", sent.length_minutes],
       ["format", sent.format],
       ["window", sent.window_days],
@@ -554,13 +449,9 @@ export function installCreate(root: HTMLElement, onStart?: () => void): void {
     if (title instanceof HTMLInputElement) {
       title.value = typeof sent.title === "string" ? sent.title : "";
     }
-    // These are the person's own picks: a new audience must not replace them unseen.
-    picked = true;
-    showNote(null);
     sync();
   });
 
-  applyPreset();
   sync();
   if (running()) say("form", busyLine());
   void loadVoices();
