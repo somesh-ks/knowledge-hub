@@ -137,6 +137,35 @@ export function firstLoadReport(
   return { files, totalGzip: files.reduce((sum, file) => sum + file.gzip, 0) };
 }
 
+/**
+ * The modules a page loads at start that nothing names in its HTML: the islands' imports and the page
+ * scripts' imports. Without a hint the browser finds them one round trip at a time (the island waits
+ * for idle, then its module, then that module's imports), so on a slow phone the bar became pressable
+ * 2.5 to 3 s after the largest paint. The islands' graph comes first, so its files are asked for first.
+ */
+export function unhintedModules(html: string, read: (url: string) => string | null): string[] {
+  const named = new Set<string>();
+  for (const tag of parseScripts(html)) if (tag.src) named.add(tag.src);
+  for (const match of html.matchAll(
+    /<link\b[^>]*rel=["']modulepreload["'][^>]*href=["']([^"']+)["']/g,
+  )) {
+    if (match[1]) named.add(match[1]);
+  }
+  const entries = entryScripts(html);
+  const islands = entries.filter((url) => !named.has(url));
+  const graph = firstLoadReport([...islands, ...entries], read).files.map((file) => file.url);
+  return graph.filter((url) => !named.has(url));
+}
+
+/** The page with a modulepreload link for each module `unhintedModules` finds, at the end of its head. */
+export function withModulePreloads(html: string, read: (url: string) => string | null): string {
+  const urls = unhintedModules(html, read);
+  const headEnd = html.indexOf("</head>");
+  if (urls.length === 0 || headEnd === -1) return html;
+  const links = urls.map((url) => `<link rel="modulepreload" href="${url}">`).join("");
+  return `${html.slice(0, headEnd)}${links}${html.slice(headEnd)}`;
+}
+
 /** `sha256-...` source expressions of the page's inline scripts that run (not JSON data blocks). */
 export function inlineScriptHashes(html: string): string[] {
   return parseScripts(html)

@@ -8,12 +8,14 @@ import {
   findRenderBlockingScripts,
   firstLoadReport,
   unallowedInlineScripts,
+  unhintedModules,
 } from "../src/lib/bundleBudget";
 
 /**
  * Fails the build when a page loads more than the first-load budget of gzipped JavaScript, when any
  * script blocks rendering, when the fonts exceed 80 KB, or when an inline script is not allowed by the
- * page's Content-Security-Policy. Run after a build.
+ * page's Content-Security-Policy, or when a module the page loads at start has no modulepreload link
+ * (the build's `dispatch-module-preload` step adds them). Run after a build.
  *
  * Usage: npx tsx apps/web/scripts/checkBundle.ts [build output directory]
  */
@@ -59,6 +61,12 @@ for (const page of pagesIn(root)) {
     );
   }
   for (const problem of findRenderBlockingScripts(html)) failures.push(`${name}: ${problem}`);
+  const unhinted = unhintedModules(html, read);
+  if (unhinted.length > 0) {
+    failures.push(
+      `${name}: ${unhinted.length} module(s) load at start with no modulepreload link, first ${unhinted[0]}`,
+    );
+  }
   for (const hash of unallowedInlineScripts(html)) {
     failures.push(`${name}: inline script ${hash} is not allowed by the Content-Security-Policy`);
   }

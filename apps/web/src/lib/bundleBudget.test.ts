@@ -10,6 +10,8 @@ import {
   parseScripts,
   staticImports,
   unallowedInlineScripts,
+  unhintedModules,
+  withModulePreloads,
 } from "./bundleBudget";
 
 const hashOf = (text: string) => `sha256-${createHash("sha256").update(text).digest("base64")}`;
@@ -162,5 +164,39 @@ describe("Content-Security-Policy hashes", () => {
     expect(
       unallowedInlineScripts(`<html><head><script>${theme}</script></head></html>`),
     ).toHaveLength(1);
+  });
+});
+
+describe("module preload hints", () => {
+  // Without hints the bar's island and its imports load one round trip at a time after idle, which
+  // left it unpressable for 2.5 to 3 s after the largest paint on a slow phone, and nothing failed.
+  const files: Record<string, string> = {
+    "/_astro/page.js": 'import"./shared.js";',
+    "/_astro/Player.js": 'import{x}from"./shared.js";import"./react.js";import("./lazy.js");',
+    "/_astro/client.js": 'import"./react.js";',
+    "/_astro/shared.js": "export const x=1;",
+    "/_astro/react.js": "export default 1;",
+    "/_astro/lazy.js": "export const z=3;",
+  };
+  const read = (url: string) => files[url] ?? null;
+  const html = page({
+    head: '<script type="module" src="/_astro/page.js"></script>',
+    body: '<astro-island component-url="/_astro/Player.js" renderer-url="/_astro/client.js"></astro-island>',
+  });
+
+  it("names every eager module the HTML does not, and nothing lazy", () => {
+    expect(unhintedModules(html, read).sort()).toEqual([
+      "/_astro/Player.js",
+      "/_astro/client.js",
+      "/_astro/react.js",
+      "/_astro/shared.js",
+    ]);
+  });
+
+  it("leaves a hinted page with nothing unhinted, its scripts unchanged and its policy intact", () => {
+    const hinted = withModulePreloads(html, read);
+    expect(unhintedModules(hinted, read)).toEqual([]);
+    expect(parseScripts(hinted)).toEqual(parseScripts(html));
+    expect(unallowedInlineScripts(hinted)).toEqual([]);
   });
 });
