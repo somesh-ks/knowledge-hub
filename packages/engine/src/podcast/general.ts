@@ -10,6 +10,7 @@ import {
   isBlockedSource,
   OWNER_ID,
 } from "../profile/profile.js";
+import { voteMultiplier, votePreferences } from "../profile/votes.js";
 import { outletOf } from "../run/generalNews.js";
 import { loadSources } from "../sources/registry.js";
 import type { PodcastPlan } from "./plan.js";
@@ -112,8 +113,12 @@ export function pickStories(
   candidates: readonly Candidate[],
   topicIds: readonly string[],
   max: number,
+  /** The owner's vote multiplier for a story, applied to its coverage; 1 when absent. */
+  lean: (candidate: Candidate) => number = () => 1,
 ): Candidate[] {
-  const ranked = [...candidates].sort(byCoverageThenRecency);
+  const ranked = [...candidates].sort(
+    (a, b) => b.coverage * lean(b) - a.coverage * lean(a) || byCoverageThenRecency(a, b),
+  );
   const top = ranked.slice(0, Math.min(topStoryCount(max), ranked.length));
   const taken = new Set(top.map((c) => c.item.id));
 
@@ -162,7 +167,9 @@ export async function selectGeneralStories(deps: GeneralDeps): Promise<GeneralSe
   const { plan, now, http, log } = deps;
   const { request } = plan;
   const topicIds = request.topic_ids;
-  const blocked = (await createFileProfileStore(deps.root).read(OWNER_ID)).blocked_domains;
+  const profile = await createFileProfileStore(deps.root).read(OWNER_ID);
+  const blocked = profile.blocked_domains;
+  const votePrefs = votePreferences(profile.votes, now);
   const sources = (deps.sources ?? (await loadSources(deps.root)).sources).filter(
     (source) => !isBlockedSource(source, blocked),
   );
@@ -260,7 +267,9 @@ export async function selectGeneralStories(deps: GeneralDeps): Promise<GeneralSe
       `Only ${candidates.length} ${candidates.length === 1 ? "story" : "stories"} in the news feeds for ${joinNames(topicIds.map(generalTopicTitle))}; an episode needs at least ${needed}. Try more topics.`,
     );
   }
-  const picked = pickStories(candidates, topicIds, Math.max(2, plan.max_stories));
+  const picked = pickStories(candidates, topicIds, Math.max(2, plan.max_stories), (c) =>
+    voteMultiplier(votePrefs, c.item.source_id, c.item.url),
+  );
   return {
     stories: picked.map((c) => toStory(c, topicIds)),
     matched: candidates.length,

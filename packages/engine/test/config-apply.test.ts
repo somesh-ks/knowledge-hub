@@ -478,6 +478,50 @@ describe("profile.block and profile.unblock", () => {
   });
 });
 
+describe("profile.vote", () => {
+  const FILE = "config/profiles/owner.json";
+  const vote = (n: number, value: "up" | "down" | "clear", at = "2026-10-07T05:00:00Z") => ({
+    story_id: `s${n}`,
+    url: `https://WWW.News.Example/p/${n}?utm=1`,
+    headline: `  Story ${n}  `,
+    topic: "design",
+    source_id: "alpha",
+    value,
+    at,
+  });
+  const votesOf = async () =>
+    (await repo.readJson<{ votes: Array<{ story_id: string; value: string }> }>(FILE)).votes;
+
+  it("keeps one vote per story, drops cleared ones and keeps the newest 500", async () => {
+    const first = await apply({ op: "profile.vote", votes: [vote(1, "up"), vote(2, "down")] });
+    expect(first.code).toBe(0);
+    expect(await votesOf()).toMatchObject([
+      { story_id: "s1", value: "up", domain: "news.example", headline: "Story 1" },
+      { story_id: "s2", value: "down" },
+    ]);
+    await apply({ op: "profile.vote", votes: [vote(1, "down", "2026-10-08T05:00:00Z")] });
+    await apply({ op: "profile.vote", votes: [vote(2, "clear")] });
+    expect(await votesOf()).toMatchObject([{ story_id: "s1", value: "down" }]);
+
+    for (let batch = 0; batch < 10; batch++) {
+      const votes = Array.from({ length: 50 }, (_, i) =>
+        vote(100 + batch * 50 + i, "up", "2026-11-01T00:00:00Z"),
+      );
+      expect((await apply({ op: "profile.vote", votes })).code).toBe(0);
+    }
+    const stored = await votesOf();
+    expect(stored).toHaveLength(500);
+    expect(stored.map((v) => v.story_id)).not.toContain("s1");
+  }, 60_000);
+
+  it("refuses the whole op when one vote is malformed", async () => {
+    const bad = { ...vote(3, "up"), url: "ftp://x.example/a" };
+    expect((await apply({ op: "profile.vote", votes: [vote(2, "up"), bad] })).code).toBe(1);
+    expect((await apply({ op: "profile.vote", votes: [] })).code).toBe(1);
+    expect(repo.dirty()).toEqual([]);
+  });
+});
+
 describe("writer.set", () => {
   const SET = { op: "writer.set", provider: "nebius", model: "meta-llama/Llama-3.3-70B-Instruct" };
 

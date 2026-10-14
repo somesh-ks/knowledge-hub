@@ -23,6 +23,7 @@ import {
   isBlockedSource,
   OWNER_ID,
 } from "../profile/profile.js";
+import { sourceLean, votePreferences } from "../profile/votes.js";
 import { loadSchedule } from "../schedule/store.js";
 import { loadSources } from "../sources/registry.js";
 import { overlayHealth } from "../state/sourceHealth.js";
@@ -90,7 +91,9 @@ export async function gatherPool(input: GatherInput): Promise<GatherResult> {
   const sources = overlayHealth(configured, health);
   // The owner's blocklist applies to every path: a blocked source is not fetched, and what the
   // others return (open search, listings, feeds) is cut before dedupe, judging or extraction.
-  const blockedDomains = (await createFileProfileStore(root).read(OWNER_ID)).blocked_domains;
+  const profile = await createFileProfileStore(root).read(OWNER_ID);
+  const blockedDomains = profile.blocked_domains;
+  const votePrefs = votePreferences(profile.votes, input.now);
 
   // The regular pass reads every general topic (their feeds are scored); the weekly pass only
   // those its podcast plays, so a weekly that skips them all reads no general feed.
@@ -129,7 +132,7 @@ export async function gatherPool(input: GatherInput): Promise<GatherResult> {
     const listed = selectSources(runnable, mode).filter(
       (source) => source.type === "firecrawl" && !guard.has(source.feed_url ?? source.url),
     );
-    const plan = planFirecrawlListing(listed, guard.listingRoom);
+    const plan = planFirecrawlListing(listed, guard.listingRoom, (id) => sourceLean(votePrefs, id));
     for (const id of plan.skipped)
       skip.set(id, guard.stopped ? FIRECRAWL_SKIP_STOPPED : FIRECRAWL_SKIP_CEILING);
     guard.recordSkipped(plan.skipped);

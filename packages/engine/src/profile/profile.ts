@@ -8,10 +8,13 @@ export const OWNER_ID = "owner";
 /** Where one user's profile lives. The directory is not created until an op writes to it. */
 export const PROFILE_DIR = "config/profiles";
 
-/** A vote on a story. Reserved: nothing writes one yet. */
+/** A vote on a story; a cleared vote is removed, never stored (src/profile/votes.ts). */
 export const Vote = z.object({
   story_id: z.string().min(1),
   url: z.string().min(1),
+  /** The story's headline when it was voted on, as data for the writer; older votes have none. */
+  headline: z.string().max(200).default(""),
+  /** Derived by the engine from `url`, never taken from the client. */
   domain: z.string().min(1),
   topic: z.string().min(1),
   source_id: z.string().min(1),
@@ -83,7 +86,7 @@ export function normalizeDomain(input: string): string | null {
 }
 
 /** The host of a URL in the form entries are stored in, or null when it has none. */
-function hostOf(url: string): string | null {
+export function hostOf(url: string): string | null {
   try {
     return normalizeDomain(new URL(url).hostname);
   } catch {

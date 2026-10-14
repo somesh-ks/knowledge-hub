@@ -5,6 +5,23 @@ import { SOURCE_NAME_MAX } from "./sources.js";
 import { MAX_KEYWORDS, TOPIC_DEPTHS, TOPIC_ORIGINS } from "./topics.js";
 import { WriterSettingsShape, writerModelProblem } from "./writer.js";
 
+/** A like or dislike of one story, as the app sends it. */
+export const VoteInput = z.object({
+  story_id: z.string().trim().min(1).max(200),
+  url: z
+    .string()
+    .trim()
+    .max(2000)
+    .url()
+    .refine((value) => /^https?:\/\//i.test(value), "must be an http or https URL"),
+  headline: z.string().trim().min(1).max(200),
+  topic: z.string().trim().min(1).max(100),
+  source_id: z.string().trim().min(1).max(100),
+  value: z.enum(["up", "down", "clear"]),
+  at: z.string().datetime({ offset: true }),
+});
+export const MAX_VOTES_PER_OP = 50;
+
 const weight = z.number().min(0).max(1);
 
 /**
@@ -55,6 +72,9 @@ export type TopicInput = z.input<typeof TopicInput>;
  * - profile.block / profile.unblock: add or remove a domain in the owner's blocklist
  *   (config/profiles/owner.json). A blocked domain and its subdomains never reach a briefing or an
  *   episode. A URL or `www.` form is accepted and reduced to the domain.
+ * - profile.vote: store 1 to 50 likes or dislikes of stories in the owner's profile, one per story
+ *   (a later one replaces an earlier one; "clear" removes it). The engine derives the domain from
+ *   the URL. Votes shape later source choice, ranking and what the writer leads with.
  */
 export const ConfigOp = z.discriminatedUnion("op", [
   z.object({ op: z.literal("topic.upsert"), topic: TopicInput }),
@@ -128,6 +148,10 @@ export const ConfigOp = z.discriminatedUnion("op", [
   // The domain is normalised and checked by the engine, which refuses what is not a host name.
   z.object({ op: z.literal("profile.block"), domain: z.string().trim().min(1).max(300) }),
   z.object({ op: z.literal("profile.unblock"), domain: z.string().trim().min(1).max(300) }),
+  z.object({
+    op: z.literal("profile.vote"),
+    votes: z.array(VoteInput).min(1).max(MAX_VOTES_PER_OP),
+  }),
 ]);
 /** The op as a caller writes it, before defaults are filled in. */
 export type ConfigOp = z.input<typeof ConfigOp>;
