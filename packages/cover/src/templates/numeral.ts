@@ -10,8 +10,8 @@ const TRACKING = -0.03;
  * date, so the renderer adds only the wordmark and the month, in the top corners.
  */
 export const numeral: Template = (ctx) => {
-  const { w, u, rng, pal, day, lockup } = ctx;
-  const digits = String(day);
+  const { w, u, rng, pal, numeral, lockup } = ctx;
+  const digits = numeral;
   const unit = measureNumeral(digits, WEIGHT, 1000, TRACKING * 1000);
   // Fit the ink to the frame's width with a little bleed, then cap the height so a lone digit stops
   // short of the top line.

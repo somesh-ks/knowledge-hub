@@ -9,7 +9,7 @@ import type { Rng } from "./prng.js";
 export type CoverKind = DigestKind | "episode";
 
 /** How a cover is dressed: briefings plain, weeklies matted and framed, episodes inverted. */
-export type Variant = "regular" | "weekly" | "episode";
+export type Variant = "regular" | "weekly" | "episode" | "plate";
 
 /** What the renderer needs to know about the digest, besides the cover spec. */
 export interface CoverMeta {
@@ -79,6 +79,15 @@ export interface Ctx {
   variant: Variant;
   day: number;
   monthName: string;
+  /** The date numeral: the day of the month, or "W42" on a weekly. */
+  numeral: string;
+  /** Small line under the numeral: the month, or a weekly's date range. */
+  caption: string;
+  /** Color of the lockup type. */
+  ink: string;
+  /** On a plate cover, the flat ground around the disc, and the disc itself in canvas px. */
+  matte?: string;
+  plate?: { cx: number; cy: number; r: number };
   /** Unique per cover so several inline SVGs can share one HTML document. */
   uid: string;
   margin: number;

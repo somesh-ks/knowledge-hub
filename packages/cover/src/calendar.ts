@@ -1,5 +1,5 @@
 /**
- * Calendar rules for the next cover system. All arithmetic is UTC on the date string alone, so a
+ * Calendar rules for the covers. All arithmetic is UTC on the date string alone, so a
  * cover never depends on the machine's time zone.
  *
  * Week rule: a weekly's number is the ISO 8601 week of its own `date`, whatever weekday it was
@@ -25,16 +25,6 @@ export const MONTH_NAMES = [
   "October",
   "November",
   "December",
-] as const;
-
-export const WEEKDAY_NAMES = [
-  "Sunday",
-  "Monday",
-  "Tuesday",
-  "Wednesday",
-  "Thursday",
-  "Friday",
-  "Saturday",
 ] as const;
 
 export interface YmdParts {
@@ -87,13 +77,11 @@ export function isoWeekRange(date: string): { monday: YmdParts; sunday: YmdParts
   return { monday: part(t - (isoDay - 1) * DAY_MS), sunday: part(t + (7 - isoDay) * DAY_MS) };
 }
 
-/** Two short lines for the weekly's range: ["13 to 19", "October"] or ["28 Sep to", "4 Oct"]. */
-export function rangeLines(date: string): [string, string] {
+/** The weekly's range on one line: "13 to 19 October" or "28 Sep to 4 Oct". */
+export function rangeLabel(date: string): string {
   const { monday, sunday } = isoWeekRange(date);
   const name = (m: number) => MONTH_NAMES[m - 1] ?? "";
-  if (monday.month === sunday.month) {
-    return [`${monday.day} to ${sunday.day}`, name(monday.month)];
-  }
+  if (monday.month === sunday.month) return `${monday.day} to ${sunday.day} ${name(monday.month)}`;
   const short = (m: number) => name(m).slice(0, 3);
-  return [`${monday.day} ${short(monday.month)} to`, `${sunday.day} ${short(sunday.month)}`];
+  return `${monday.day} ${short(monday.month)} to ${sunday.day} ${short(sunday.month)}`;
 }

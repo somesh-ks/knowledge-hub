@@ -85,7 +85,7 @@ export function layoutLockup(
   w: number,
   h: number,
   u: number,
-  day: number,
+  day: number | string,
   monthName: string,
   margin: number,
 ): LockupLayout {
