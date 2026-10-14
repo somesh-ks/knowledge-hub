@@ -164,9 +164,13 @@ const { topics } = Astro.props;
             <Icon name="openInNew" class="edit-address-icon" />
           </a>
         </div>
-        <section class="score-breakdown" aria-labelledby="panel-edit-score" data-edit-score>
-          <h3 class="score-breakdown-head" id="panel-edit-score">Score</h3>
-          <p class="score-breakdown-total" data-edit-total></p>
+        {/* The scorecard: its title and the rating on one line, then what the rating is made of. A
+            source with too little history yet shows a quiet empty state instead. */}
+        <section class="score-card" aria-labelledby="panel-edit-score" data-edit-score>
+          <div class="score-card-head">
+            <h3 class="score-card-title" id="panel-edit-score">Scorecard</h3>
+            <p class="score-card-rating" data-edit-total></p>
+          </div>
           <dl class="score-parts" data-edit-parts>
             <div data-part="health">
               <dt>Health</dt>
@@ -181,7 +185,11 @@ const { topics } = Astro.props;
               <dd><span class="part-meter" aria-hidden="true"></span><span class="part-num"></span></dd>
             </div>
           </dl>
-          <p class="source-card-reason" data-edit-reason></p>
+          <div class="score-card-empty" data-edit-empty hidden>
+            <span class="score-card-empty-art" aria-hidden="true"><Icon name="star" /></span>
+            <p class="score-card-empty-title">Not scored yet</p>
+            <p class="score-card-empty-line">A score appears once ten of its stories are judged.</p>
+          </div>
         </section>
       </div>
     </div>
