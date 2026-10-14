@@ -23,17 +23,23 @@ export interface WriterLlmOptions {
 }
 
 /**
- * The writer's client. It tries the model chosen in Settings (config/writer.json), then
- * DISPATCH_MODEL, then DISPATCH_FALLBACK_MODEL. A Settings model that fails for any reason, or
- * no longer exists, hands over to the next one, so a pick can never break a briefing or episode.
- * With all three empty it fails naming DISPATCH_MODEL. When Settings names an Anthropic model,
- * that model leads on the Anthropic API and the environment's Nebius models follow it.
+ * The writer's client. It tries the model chosen in Settings (config/writer.json, or the default
+ * writer, Claude Sonnet 5.5, without one), then DISPATCH_MODEL, then DISPATCH_FALLBACK_MODEL. A
+ * Settings model that fails for any reason, or no longer exists, hands over to the next one, so a
+ * pick can never break a briefing or episode. With all three empty it fails naming DISPATCH_MODEL.
+ * An Anthropic model leads on the Anthropic API and the environment's Nebius models follow it;
+ * without ANTHROPIC_API_KEY it is left out, and the Nebius models write.
  */
 export function createWriterLlm(options: WriterLlmOptions): LlmClient {
   const { root, env, api, budget, log } = options;
   const choice = loadWriterChoice(root);
-  const anthropicModel = choice?.provider === "anthropic" ? choice.model : null;
-  const chosen = anthropicModel === null ? (choice?.model ?? null) : null;
+  const anthropicModel =
+    choice.provider === "anthropic" && env.ANTHROPIC_API_KEY ? choice.model : null;
+  if (choice.provider === "anthropic" && anthropicModel === null)
+    log.warn(
+      "The writer is on Anthropic but ANTHROPIC_API_KEY is not set: the Nebius models write.",
+    );
+  const chosen = choice.provider === "nebius" ? choice.model : null;
   const models = resolveWriterModels(chosen, env);
   if (models.length === 0 && anthropicModel === null) requireKey(env, "DISPATCH_MODEL");
   const clients = models.map((model) =>

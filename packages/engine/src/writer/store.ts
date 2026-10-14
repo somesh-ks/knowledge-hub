@@ -54,29 +54,18 @@ export async function loadWriterForEdit(root: string): Promise<WriterFile> {
 }
 
 /**
- * The model the owner chose in Settings, or null. A missing or broken file means null: a bad
- * settings file must never stop a briefing, which then runs on the environment's models.
+ * The provider and model a run writes with: the file, or the default writer (DEFAULT_WRITER, Claude
+ * Sonnet 5.5) when it is missing or broken, as the Model page shows. A bad settings file must never
+ * stop a briefing: an Anthropic call that fails falls through to the environment's Nebius models.
  */
-export function loadWriterModel(root: string): string | null {
+export function loadWriterChoice(root: string): WriterFile {
   try {
     const parsed = WriterFile.safeParse(
       JSON.parse(readFileSync(join(root, CONFIG_FILES.writer), "utf8")),
     );
-    return parsed.success ? parsed.data.model : null;
+    return parsed.success ? parsed.data : DEFAULT_WRITER;
   } catch {
-    return null;
-  }
-}
-
-/** The provider and model chosen in Settings, or null for a missing or broken file. */
-export function loadWriterChoice(root: string): WriterFile | null {
-  try {
-    const parsed = WriterFile.safeParse(
-      JSON.parse(readFileSync(join(root, CONFIG_FILES.writer), "utf8")),
-    );
-    return parsed.success ? parsed.data : null;
-  } catch {
-    return null;
+    return DEFAULT_WRITER;
   }
 }
 

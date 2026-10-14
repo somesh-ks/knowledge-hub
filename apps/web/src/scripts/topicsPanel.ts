@@ -51,7 +51,6 @@ export interface SourceFacts {
   label: string;
   /** Each part 0 to 1; trust is null until enough items were checked for hype and sponsorship. */
   parts: { health: number; quality: number; trust: number | null } | null;
-  reason: string;
 }
 
 /** What a topic's page tells the panel about it. */

@@ -224,6 +224,11 @@ describe("doctor: offline", () => {
   });
 
   it("reports a missing Anthropic key only when the writer is on Anthropic", async () => {
+    await writeFile(
+      join(root, "config/writer.json"),
+      '{"version":1,"provider":"nebius","model":null}\n',
+      "utf8",
+    );
     const off = await doctor([]);
     expect(off.report?.checks.some((c) => c.id === "key.ANTHROPIC_API_KEY")).toBe(false);
     await writeFile(

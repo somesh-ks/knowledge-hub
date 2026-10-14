@@ -148,9 +148,15 @@ export function firstLoadReport(
   entries: readonly string[],
   read: (url: string) => string | null,
 ): FirstLoadReport {
-  const files = moduleGraph(entries, read).map((url) => ({
+  // Each file is read once: the graph's walk keeps what it read for the sizes.
+  const sources = new Map<string, string | null>();
+  const once = (url: string): string | null => {
+    if (!sources.has(url)) sources.set(url, read(url));
+    return sources.get(url) ?? null;
+  };
+  const files = moduleGraph(entries, once).map((url) => ({
     url,
-    gzip: gzipBytes(read(url) ?? ""),
+    gzip: gzipBytes(once(url) ?? ""),
   }));
   return { files, totalGzip: files.reduce((sum, file) => sum + file.gzip, 0) };
 }
