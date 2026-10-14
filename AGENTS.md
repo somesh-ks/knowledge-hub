@@ -10,7 +10,7 @@ Private design-engineering news briefing. A GitHub Actions engine writes a diges
 4. [docs/history/](docs/history/README.md): one note per session, only for the why behind a change.
 5. [docs/postmortem-test-suite.md](docs/postmortem-test-suite.md): how the test suite grew past its use and what it missed. Read it before you add, change or delete a test.
 
-[docs/build-plan.md](docs/build-plan.md) is the design; [docs/runbook.md](docs/runbook.md) is owner setup.
+[docs/build-plan.md](docs/build-plan.md) is the design; [docs/runbook.md](docs/runbook.md) is owner setup. Before UI work, read [docs/design-engineering-ledger.md](docs/design-engineering-ledger.md): every design ask so far, the owner's taste, the code's gaps and the ideas not yet built.
 
 ## Commands
 
