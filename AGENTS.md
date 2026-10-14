@@ -46,4 +46,6 @@ Few, one layer each, aimed at what fails silently ([evidence](docs/postmortem-te
 
 Project agents (`dispatch-verify`, `dispatch-worker`) are in `.claude/agents/`; `/close-session` runs the steps below.
 
+After a large piece of work (several PRs, or one that touches the player, a page or the build): clean up (scratch files, servers, stashes, local branches, leftover remote branches), review the merged diff (the `code-review` skill on the commit range, or the `review` label on a PR) and fix what it finds, then confirm production serves it (Vercel deploys `main`; check the deployment and the live site).
+
 At the end of a session: update `docs/state.md`, add a decision (next D-number, and a row in the Index) for anything that changes direction, add one line to `docs/learnings.md` per failure, and add a note under `docs/history/`. Keep each fact in one place and link to it.
