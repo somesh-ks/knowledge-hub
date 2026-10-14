@@ -8,9 +8,9 @@ Private design-engineering news briefing. A GitHub Actions engine writes a diges
 2. [docs/decisions.md](docs/decisions.md): read the Index table; open an entry only when you need its reasoning.
 3. [docs/learnings.md](docs/learnings.md): failures and gotchas. Search it before debugging.
 4. [docs/history/](docs/history/README.md): one note per session, only for the why behind a change.
-5. [docs/postmortem-test-suite.md](docs/postmortem-test-suite.md): how the test suite grew past its use and what it missed. Read it before you add, change or delete a test.
+5. [docs/engineering/postmortem-test-suite.md](docs/engineering/postmortem-test-suite.md): how the test suite grew past its use and what it missed. Read it before you add, change or delete a test.
 
-[docs/build-plan.md](docs/build-plan.md) is the design; [docs/runbook.md](docs/runbook.md) is owner setup. Before UI work, read [docs/design-engineering-ledger.md](docs/design-engineering-ledger.md): every design ask so far, the owner's taste, the code's gaps and the ideas not yet built.
+[docs/README.md](docs/README.md) maps every doc; [docs/runbook.md](docs/runbook.md) is owner setup. Before UI work, read [docs/design-engineering-ledger.md](docs/design-engineering-ledger.md): every design ask so far, the owner's taste, the code's gaps and the ideas not yet built.
 
 ## Commands
 
@@ -34,7 +34,7 @@ Private design-engineering news briefing. A GitHub Actions engine writes a diges
 
 ## Tests
 
-Few, one layer each, aimed at what fails silently ([evidence](docs/postmortem-test-suite.md)).
+Few, one layer each, aimed at what fails silently ([evidence](docs/engineering/postmortem-test-suite.md)).
 
 - A test names the bug it prevents: no sentence, no test. Search the unit, `apps/web/e2e` and `apps/web/src/player/e2e` suites for the behaviour first, and extend or replace a test instead of adding one.
 - Test journeys across pages, reload, offline and time, not states. Never pin copy, CSS, class names, markup, geometry or constants: screenshots and critics judge those.

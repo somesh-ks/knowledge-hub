@@ -46,7 +46,7 @@ function keepCoverFontsReachable() {
  * Names every module a page loads at start in a modulepreload link, so the islands' graph downloads
  * beside the CSS instead of one round trip at a time after idle. A hand-edited build made the bar
  * pressable 1.3 to 2.5 s sooner on a throttled phone with the largest paint unchanged
- * (docs/first-load-js.md). Links, not inline scripts: the policy hashes every inline script.
+ * (docs/engineering/first-load-js.md). Links, not inline scripts: the policy hashes every inline script.
  */
 function preloadPageModules() {
   return {

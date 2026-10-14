@@ -2,9 +2,9 @@
 
 > Plan and as-built record for the curation engine, the `news.someshks.work` web app and the skills that trigger both.
 >
-> Vision, digest schema and taste model: [vision.md](vision.md). Source registry: [sources.md](../config/sources.md). Decision log: [decisions.md](decisions.md). Operations: [runbook.md](runbook.md). UI and sound: [design-spec.md](design/design-spec.md) and [sound-design.md](design/sound-design.md). First design reference: [reader-prototype.html](prototype/reader-prototype.html).
+> Vision, digest schema and taste model: [vision.md](vision.md). Source registry: [sources.md](../../config/sources.md). Decision log: [decisions.md](../decisions.md). Operations: [runbook.md](../runbook.md). UI and sound: [design-spec.md](../design/design-spec.md) and [sound-design.md](../design/sound-design.md). First design reference: [reader-prototype.html](../prototype/reader-prototype.html).
 >
-> Status: plan v4, revised 2026-10-06. Everything is built and tested offline. Nothing has run against a real service, and the CI workflows have never run on GitHub. Section 13 lists what is verified and what is not.
+> Status: plan v4 of 2026-10-06, kept as the as-built record of the first build. Everything here has since run live, and later decisions (D30 onward) changed the web app and the podcast. When this file and [decisions.md](../decisions.md) or [state.md](../state.md) disagree, they win.
 
 ---
 
@@ -36,7 +36,7 @@
 
 ## 3. Decisions
 
-[decisions.md](decisions.md) holds the date, reason and rejected alternatives for each entry. This table is the index, with the section that implements each.
+[decisions.md](../decisions.md) holds the date, reason and rejected alternatives for each entry. This table is the index, with the section that implements each.
 
 | # | Decision | Where |
 | --- | --- | --- |
@@ -130,7 +130,7 @@ Keys never go in the repo, in chat, or in `package.json`. One flow feeds every s
 2. Run `npm run passphrase` once. It prompts twice with echo off and writes the scrypt hash to `.env` as `GENERATE_PASSPHRASE_HASH`.
 3. Run `npm run secrets:push` (flags `--dry-run`, `--only github|vercel`). It sends each non-empty value with the value on stdin and prints names and results, never values.
 
-The agent never sees key values: `.claude/settings.json` denies reading or editing `.env` and `.env.*` and allows `.env.example`. Setup steps are in [runbook.md](runbook.md).
+The agent never sees key values: `.claude/settings.json` denies reading or editing `.env` and `.env.*` and allows `.env.example`. Setup steps are in [runbook.md](../runbook.md).
 
 | Store | Names |
 | --- | --- |
@@ -141,7 +141,7 @@ The agent never sees key values: `.claude/settings.json` denies reading or editi
 `MAX_TOKENS_PER_RUN` (default 400,000) and `SPEECHIFY_MONTHLY_CHARS` (default 500,000) are optional engine settings the script does not push.
 
 - **Passphrase.** A salted scrypt hash string (`scrypt$N$r$p$salt$hash`, N = 2^15, r = 8, p = 1) of 8 or more characters. It is the only gate on the button, so make it long (Section 8.9).
-- **Dispatch token.** A fine-grained personal access token for this repository only, with Actions read and write and Contents read. Set an expiry and record it in [runbook.md](runbook.md).
+- **Dispatch token.** A fine-grained personal access token for this repository only, with Actions read and write and Contents read. Set an expiry and record it in [runbook.md](../runbook.md).
 - **No Vercel token.** Vercel deploys through its GitHub integration, so no Vercel token, org id or project id exists in GitHub or `.env` (D25). `BLOB_READ_WRITE_TOKEN` comes with the Blob store and is the only storage credential; it is a GitHub secret for the Audio step, and linking the store to the project also injects it into Vercel.
 - **Committer identity.** `DISPATCH_GIT_NAME` (Somesh Kesarla Suresh) and `DISPATCH_GIT_EMAIL` (`26426782+somesh-ks@users.noreply.github.com`) make the engine commit as the Hobby team owner, which Hobby requires before it deploys a commit. When both are unset the engine falls back to the `dispatch-bot` identity, which Hobby blocks.
 - **Blast radius.** Each workflow step receives only the keys it uses: Fetch gets Exa and Firecrawl, Judge gets TypeSafe and Nebius, Write gets Nebius and Firecrawl, Validate gets TypeSafe and Nebius, Commit gets none, and the `audio.yml` Audio step gets Speechify and Blob. Workflows declare minimal `permissions:`.
@@ -173,7 +173,7 @@ dispatch/
   docs/                         # build-plan, vision, decisions, runbook, design/, prototype/, reference/
 ```
 
-The Zod contracts in `packages/core/src` are the shared interface (item, digest, audio timeline, state files, sources, preferences, env). A schema change needs an entry in [decisions.md](decisions.md). Persisted keys are snake_case and the TypeScript types use the same names (D15). Docs and config filenames are lowercase kebab-case (D14).
+The Zod contracts in `packages/core/src` are the shared interface (item, digest, audio timeline, state files, sources, preferences, env). A schema change needs an entry in [decisions.md](../decisions.md). Persisted keys are snake_case and the TypeScript types use the same names (D15). Docs and config filenames are lowercase kebab-case (D14).
 
 ### 6.2 Tooling
 
@@ -337,7 +337,7 @@ Safeguards for both roles: summaries come from extracted text only; fetched cont
 
 ### 7.6 Editorial voice
 
-[voice.md](../config/voice.md) holds the rules (principles, limits, examples, banned words). The writer prompt loads it and the validator enforces its measurable parts. The limits below supersede D12 and are mirrored as `VOICE_LIMITS` in `packages/core`. A summary runs four beats: what happened, the number that makes it concrete, why it happened or what it changes, and the catch, which must come from the source.
+[voice.md](../../config/voice.md) holds the rules (principles, limits, examples, banned words). The writer prompt loads it and the validator enforces its measurable parts. The limits below supersede D12 and are mirrored as `VOICE_LIMITS` in `packages/core`. A summary runs four beats: what happened, the number that makes it concrete, why it happened or what it changes, and the catch, which must come from the source.
 
 | Field | Limit |
 | --- | --- |
@@ -376,7 +376,7 @@ The deterministic lint runs on every written field: banned words, no em dashes, 
 
 ## 8. Web app
 
-[design-spec.md](design/design-spec.md) is the canonical reference for the interface and [sound-design.md](design/sound-design.md) for UI sounds (D17). This section keeps what the product must do and the technical constraints behind it. Where the design docs and this section disagree on visual or interaction detail, the design docs win; on a requirement stated here, raise it.
+[design-spec.md](../design/design-spec.md) is the canonical reference for the interface and [sound-design.md](../design/sound-design.md) for UI sounds (D17). This section keeps what the product must do and the technical constraints behind it. Where the design docs and this section disagree on visual or interaction detail, the design docs win; on a requirement stated here, raise it.
 
 ### 8.1 Stack
 
@@ -403,7 +403,7 @@ Astro 7 with React 19 islands, built static; only `/api/*` runs on the server, a
 
 `/fixtures/audio.wav` serves the player e2e suite and the fixture build. The `/dev` lab pages that once served it are gone (D99): the player specs drive the product page of the fixture build. Parts: the player bar and expanded player, the Generate sheet and the page states (empty, nothing new, audio preparing, audio unavailable, offline, error, stale).
 
-**Reader and player contract.** The page is server-rendered HTML and the player only toggles attributes: `[data-item-id]` per item and `[data-chapter]` per section (matching the audio timeline), `data-state` of `played` or `current`, `.briefing[data-live]`, and the triggers `[data-play-digest]`, `[data-play-item]` and `[data-chapter-play]`. The page embeds its digest as a JSON block with id `dispatch-digest-data`. The full contract is in [design-spec.md](design/design-spec.md) under "Contract between the reader and the player".
+**Reader and player contract.** The page is server-rendered HTML and the player only toggles attributes: `[data-item-id]` per item and `[data-chapter]` per section (matching the audio timeline), `data-state` of `played` or `current`, `.briefing[data-live]`, and the triggers `[data-play-digest]`, `[data-play-item]` and `[data-chapter-play]`. The page embeds its digest as a JSON block with id `dispatch-digest-data`. The full contract is in [design-spec.md](../design/design-spec.md) under "Contract between the reader and the player".
 
 ### 8.4 Player behavior
 
@@ -471,7 +471,7 @@ Every digest gets an album-style cover generated from the digest and never store
 
 ### 8.12 UI sounds
 
-[sound-design.md](design/sound-design.md) is the canonical reference and `docs/prototype/sound-lab.html` the listening prototype. Fourteen sounds are synthesized in the browser by `@dispatch/sound` (D18).
+[sound-design.md](../design/sound-design.md) is the canonical reference and `docs/prototype/sound-lab.html` the listening prototype. Fourteen sounds are synthesized in the browser by `@dispatch/sound` (D18).
 
 | Aspect | Requirement |
 | --- | --- |
@@ -571,7 +571,7 @@ Notes:
 | Domain `news.someshks.work` | Added in the project's Domains settings (or `vercel domains add news.someshks.work`). Vercel issues the certificate. No `www` variant |
 | DNS | Stays on Cloudflare: one CNAME for `news` pointing at the target Vercel shows, DNS only (proxy off) |
 
-Setup steps are in [runbook.md](runbook.md).
+Setup steps are in [runbook.md](../runbook.md).
 
 **Estimated monthly cost** at about 23 run-equivalents per month. These are arithmetic from reported prices; measure them from real usage in Phase 8.
 
@@ -626,7 +626,7 @@ Status as of 2026-10-06.
 | Phase | Status | Work | Exit criteria |
 | --- | --- | --- | --- |
 | 0 | Done | Decisions D1 to D18 and accounts at Nebius, TypeSafe, Exa, Firecrawl and Speechify (D13) | Decisions logged; accounts exist |
-| 1 | Done | Repository (private, `somesh-ks/knowledge-hub`), workspaces, Biome, docs layout, core schemas, design tokens, CI workflows `run.yml`, `audio.yml` and `ci.yml` (written, not yet pushed) | The owner's setup in [runbook.md](runbook.md) (Vercel project, Blob store, domain, DNS, keys) is still to do |
+| 1 | Done | Repository (private, `somesh-ks/knowledge-hub`), workspaces, Biome, docs layout, core schemas, design tokens, CI workflows `run.yml`, `audio.yml` and `ci.yml` (written, not yet pushed) | The owner's setup in [runbook.md](../runbook.md) (Vercel project, Blob store, domain, DNS, keys) is still to do |
 | 2 | Not done | The live spike, below | Go or no-go table; plan amended where a result disagrees |
 | 3 | Built, offline | Engine core: config, source registry and discovery, fetchers, normalize, dedupe, prefilter | A local fetch returns a normalized pool from at least 90 percent of sources: not checked live |
 | 4 | Built, offline | Curation: Jev and Nebius judges, score, extract, write, validate, grounding, API and agent modes, golden eval | Dry runs on the last 2 and 7 days that you would read unprompted: not run |
@@ -672,7 +672,7 @@ Status as of 2026-10-06.
 
 ## 15. Open items
 
-Decided and logged in [decisions.md](decisions.md): D1 to D25.
+Decided and logged in [decisions.md](../decisions.md): D1 to D25.
 
 1. Writer model: run `dispatch models`, then the bake-off, and set `DISPATCH_MODEL` and `DISPATCH_FALLBACK_MODEL`.
 2. Speechify voice: the default is `geffen_32`; confirm after hearing it in the spike.

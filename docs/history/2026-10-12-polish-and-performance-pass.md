@@ -32,7 +32,7 @@ The owner's complaint came after the last critic round. The lead had four read-o
 - Results (D99): browser runs from 1,935 listed to 429 and their wall time from about 32 minutes to about 10; unit tests from 4,813 to 4,601 (95 s to 64 s); the lab, 23 unused exports and options, the Settings sheet and its install hint deleted; the 10.25 s edit gap, scrypt and the live config out of the tests.
 - Worker decisions worth knowing: the passphrase verifier stays real with a cheap hash instead of a fake; the shared handler gate was not extracted because the four gates differ; `createWorkflowDispatcher` now goes through the shared GitHub client.
 - Re-break check: for each fix of this branch that the audit's cuts could have orphaned, the lead reverted only its source in a scratch worktree and ran the surviving tests. A surviving test failed each time (the postmortem names them); the service worker's warm depth on its own and the unlock primer in a browser were not guarded before the cuts either.
-- Why it happened and how not to repeat it: [the postmortem](../postmortem-test-suite.md). The short form is in `AGENTS.md`.
+- Why it happened and how not to repeat it: [the postmortem](../engineering/postmortem-test-suite.md). The short form is in `AGENTS.md`.
 
 ## Performance: where the time went
 

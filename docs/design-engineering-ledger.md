@@ -1,16 +1,20 @@
 # Design engineering ledger
 
-Every design-engineering tweak and visual change asked for on this project, what was built, what the code does as a result, where it falls short, and what could come next. Written 2026-10-14.
+Every design-engineering tweak and visual change asked for on this project, what was built, what the code does as a result, where it falls short, and what could come next. Written 2026-10-14; the chat pass added sections 2, 5 and 10 and dated quotes throughout.
 
 Sources:
 - `decisions.md` D1 to D115.
-- The 23 notes in `history/`.
-- `design-engineering-audit.md`, `design-systems-audit.md`, `design/design-spec.md`, `design/sound-design.md` and `vision.md`.
+- The notes in `history/`, including the two 2026-10-11 audits folded into them.
+- `design/design-spec.md`, `design/sound-design.md` and `plan/vision.md`.
 - `learnings.md`.
-- The cloud session of 2026-10-14.
-- A read of `apps/web/src` and `tokens/`.
+- Every local Claude Code session on this repo, 2026-10-05 to 2026-10-14 (14 transcripts: the owner's messages, the replies and the compaction summaries), and the cloud session of 2026-10-14.
+- A read of `apps/web/src`, `packages/` and `tokens/`. File and line references were checked against `main` at `8549f27`.
 
-Chats older than that session survive only as the decisions and notes they produced, so they are covered as recorded there. Each fact links to its decision rather than restating it; if this file and a decision disagree, the decision wins.
+Each fact links to its decision rather than restating it; if this file and a decision disagree, the decision wins. A date in brackets, such as (2026-10-08), marks an ask that lives only in a chat.
+
+**For an agent starting UI work:** read section 1 (taste), section 2 (how to work), then the surface you are touching in section 3. Check section 8 before you build something the owner may already have asked for.
+
+**For enriching the design-engineering skill:** section 10 lists each lesson with its target skill, whether the skill already covers it, and the rule text to add.
 
 ## 1. What the owner wants, in one page
 
@@ -23,8 +27,9 @@ Patterns from about 150 asks, strongest first.
    - Speechify for the transcript (D50).
    - Android's rule for the floating button (D52).
    - Native app behaviour for the bottom stack (#120).
-   
-   Read a new ask as "how does the reference product do this", not "what would look nice".
+   - The first brief set the bar: "a beautiful audio player experience that is snappy, feels like native player, and has beautiful cover art" (2026-10-05).
+
+   Read a new ask as "how does the reference product do this", not "what would look nice". Names follow the reference too: "A real podcast app never has a menu called archive" (2026-10-07), so Archive became Library.
 2. **Nothing moves that the owner did not move.** Several asks are the same complaint:
    - Scrub times that shake (2026-10-11).
    - A chip that grows as its check appears (D95, #116).
@@ -66,26 +71,54 @@ Patterns from about 150 asks, strongest first.
    - One noun for one thing: the third critic round found "five spellings of one noun" (D89). "Story" everywhere in the player (D90).
    - A failure is told once, in one place (D94). A status line is three or four words: "Episode queued", "Writing your episode" (D84).
    - No hedging helper text, and a plainer About (#68, 2026-10-10).
-   - Content is brief too: headlines up to 12 words, summaries of 25 to 80 words (D12, D34). The digest has no emoji, no intro paragraph, no dividers and no sign-off (`vision.md`).
-   - One filled action per screen: the hero's Play (D77), an empty state's single button (D96), New episode in its own tone so it never competes with Play (D86).
+   - Content is brief too: headlines up to 12 words, summaries of 25 to 80 words (D12, D34). The digest has no emoji, no intro paragraph, no dividers and no sign-off (`plan/vision.md`).
+   - One filled action per screen: the hero's Play (D77), an empty state's single button (D96), New episode in its own tone so it never competes with Play (D86), the open player's Play disc (`player.css:1548`).
+   - Colour is information, not decoration. The bar's play "doesnt need a blue background... catches unnecessary attention", and the bar lost its hover tint (2026-10-08). Delete is red only inside its confirm dialog (`episode-actions.css:152`).
+   - One of each. "Two playback timelines... remove the duplicate" (2026-10-08): one timeline, owned by the bar, with chapter ticks. One transport on screen (D92). Siblings share one size: "Make them all equal sizes" (2026-10-12).
+   - Content is the owner's voice: "high brevity, thoughtful, and concise" (2026-10-05). Decorative furniture goes: "Thought of the Day" was cut (D8). Daily is short, weekly is deep.
 7. **Every control is complete.** It gets a 44px target (test in `e2e/layout.spec.ts`), a sound (D101), a press state that never shrinks words (D72, `styles.test.ts`) and a focus ring that survives forced colours.
 8. **Bans.**
    - From the persona: cream backgrounds, italic accent words, "01/02/03" labels, monospace eyebrows, all-caps labels, gradient washes, grey shadows, terracotta.
    - From the record: a chevron on the bar (D102), a grabber on phone sheets (D106), a drag handle on the player (D111), a Dry tone (D101), the General audience (D114), em dashes (`houseRules.test.ts`).
+   - From the chats: a meta line above a headline, locked or disabled topic choices, a combobox for the model, a vendor prefix or model id in any label, "Create" as a navigation tab.
+9. **Hierarchy by size and space, never by crowding.** "I hate these smaller texts... very close to other bigger texts... never want such bad typographic decisions" (2026-10-07). A secondary line goes below its title with a full spacing step, never above it (D31). "Breathable" means a full step between a control group and the content it controls (2026-10-12). Every page title uses the detail-page size, and chips and tabs get side padding for balance (2026-10-12).
+10. **Taste-neutral choices are delegated.** "You choose a good one" and "you decide voice limits" (2026-10-05). Decide, state the assumption in one line, and move on. Ask only when the choice changes what the owner sees or pays.
+11. **Polish is iterative.** "It's a good improvement, but I still anticipate a lot of fine tuning" (2026-10-12). Plan for rounds of screenshot review, not one pass.
 
 Repeat asks are the clearest signal of what was not heard the first time:
-- Stories and Transcript tabs: "that I have told you multiple times" (D101).
+- Stories and Transcript tabs: "I've told you multiple times, but you still decide to skip it" (2026-10-12, D101).
 - The time zone, removed in D89 and asked back in D100.
 - Format and the second voice, removed in D91 and asked back in D100.
+- About, "completely removed from before", restored with the version (2026-10-12). Never delete content in a redesign unasked.
+- Handle and square top corners, asked again on 2026-10-14 because the first pass covered form sheets only (D111).
 
-## 2. The ledger, by surface
+## 2. How to work with the owner on UI
+
+The loop that produced the work the owner liked, and the misses that taught it.
+
+1. **Start from a reference.** Name the product being copied (Google Podcasts, YouTube Music, Material 3, Mobbin screens) before drawing anything. Load the design-engineering skills at the start of UI work (2026-10-05).
+2. **Read the notes the owner leaves.** The owner leaves Agentation "Page Feedback" notes, each with a viewport and a CSS selector. Fix every note, including the ones that only ask for parity between two pages. Route each note to the worker already in that file (2026-10-08, 2026-10-12). Agentation runs only under `npm run dev`; `checkBundle` fails a build that contains it.
+3. **Organise, push back, then list.** Read the whole list, group related asks, challenge what conflicts with an earlier decision, then build in order (2026-10-12). A repeat ask goes to the top.
+4. **Screenshots are the review.** Take them at 1526x782 and 390x844, in light and dark, and look at them yourself before claiming done:
+   - Open states count: open dropdowns, the open player, a sheet, the playing state. Two workers shipped popovers that were never seen open (2026-10-09).
+   - Screenshots caught what tests missed: a stray error icon, Previous on the phone bar, a 56px gap under the bar on a tablet (2026-10-08).
+   - Headless Chrome enforces a minimum window width, so a phone shot needs device emulation or a 390px iframe (2026-10-05).
+5. **Approve art before wiring it.** Covers and other generative art go to a contact sheet first; the owner picks, then the generator is wired (2026-10-05, 2026-10-13).
+6. **Say what you could not verify.** Headless runs cannot show iOS audio against the silent switch, lock-screen controls, gesture feel, a real address bar, or how the sounds sound. List these every time. `docs/prototype/sound-lab.html` exists to audition sounds.
+7. **Ship in small pieces.** Branch, commit, push and open one PR per piece; the owner merges ("do github things after every big change", 2026-10-12). Fan out to cheaper parallel workers on disjoint files, review their diffs yourself, and run the full suites on the combined result: real seams (two theme stores, a header that listened for the wrong attribute) appeared only after merge (2026-10-05).
+8. **Report guardrail moves.** When a budget or a rule has to move (the bundle ceiling crept 100, 102, 103, 104 KB), say so and offer the choices: keep it and lazy-load, raise it, or remove it (2026-10-09).
+9. **Measure before tuning speed.** Profile on a throttled phone (Pixel 7, 4x CPU, fast 3G, behind a gzip proxy, since the test server sends uncompressed files) and report move timings, LCP and time to a pressable bar. Never trade instant navigation or the early Play tap for bytes (2026-10-08, 2026-10-14).
+10. **When the owner is stuck on a manual step**, give numbered click paths with fixed landmarks, not options (2026-10-06).
+
+## 3. The ledger, by surface
 
 Ask, then what was built, then the decision. Values are as built.
 
 ### Look, tokens and type
-- **Look.** Hand-written CSS from DTCG tokens, Base UI for accessible parts; Tailwind and shadcn rejected as a templated look (D4).
+- **Look.** Hand-written CSS from DTCG tokens, Base UI for accessible parts; Tailwind and shadcn rejected as a templated look (D4). The first ask was "a light ui library to keep things elegant and high quality" (2026-10-05).
   - Pipeline: `tokens/tokens.json` to `scripts/buildTokens.ts` to the generated `styles/tokens.css`.
-  - Tests check token drift, tiers and contrast.
+  - Tests check token drift, tiers and contrast. Tokens for type, colour and spacing were an explicit ask; 18 raw values were tokenised in one pass (2026-10-08).
+  - The first identity (2026-10-05) was a reading page built as the audio timeline: a vertical rail with a node per story that filled while playing, Schibsted Grotesk with Literata, a Lingonberry accent, no cards and no hairlines. It gave way to the Google Podcasts redesign (D31), then to Material tonal surfaces and Google Sans Flex (D72). The rail survives only in the Generate step list.
 - **Tonal language** (D72, owner: "a real Google app"):
   - `surface-container` for the page's own controls.
   - `accent-container` for chosen or current.
@@ -117,17 +150,23 @@ Ask, then what was built, then the decision. Values are as built.
   - Containers 1.08:1 and 1.2:1 from the page (`buildTokens.test.ts`).
   - Axe runs on every route in both schemes.
 - **Theme.**
-  - A 512-byte head script applies the stored choice before first paint (D20).
+  - A 512-byte head script applies the stored choice before first paint (D20). Anything else a page restores, such as the Library's gallery or list view, waits one frame for the page script, because the head budget has no room (2026-10-08).
+  - One store: `dispatch:preferences` (`player/core/preferences.ts:9`, `themeInit.js:3`). Two keys once lived side by side, and the player cleared a stored dark theme (2026-10-05).
   - The theme change crossfades with a view transition, and `theme-color` metas follow.
-- **Ambient light.** The ask was "a clever but mild use of shaders" (D48).
+- **Ambient light.** The ask was "clever integration of shaders but mild" (2026-10-08, D48).
   - A CSS field of the cover's colours, with a 128px WebGL canvas faded over it.
   - 30 fps, off-screen paused; off for reduced motion, data saver and software renderers.
-  - Half strength in light mode (D77).
-  - A contrast proof runs over every palette.
+  - Software renderers are found by name, because `failIfMajorPerformanceCaveat` lets headless SwiftShader through: `WEBGL_debug_renderer_info` against `/swiftshader|llvmpipe|softpipe|software|basic render/i` (`ambientLight.ts:114`).
+  - Light mode was "coloured but still faint", so the tint was remapped (0.6 light, 0.32 dark) rather than dropped (D77). The contrast proof loops every palette in both themes; the worst text is 4.78:1.
+  - The field bleeds past the gutters by `min(space-12, gutter)` so the phone app bar never clips it, and hero chips sit on the surface colour (`ambient.css:32`).
+  - Cost: 317 B gzip eager, 2 KB lazy on idle.
 - **Covers.**
+  - The first set (2026-10-05): eight templates (spring, dither, contour, numeral, lattice, orbit, aperture, band) over OKLCH palettes, chosen by seed. Forms come from the craft the briefing covers. One gesture per cover, one accent, flat colour. Neighbours never share a template; weekly covers sit matted inside a ground border; your own episodes are inverted (2026-10-08).
+  - The social card is composed at 1200x630, never cropped from the square.
   - Monthly schemes from 2026-10 (D110).
-  - Contrast held by `TYPE_CONTRAST` and `FORM_CONTRAST`.
-  - The Strata, Orbits and Facets redesign was rejected.
+  - Contrast held by `TYPE_CONTRAST` and `FORM_CONTRAST`; date text sits at 11 to 16:1; topic-art letters use the inverse text at 4.5:1 (`cover/src/palettes.ts:137`).
+  - The Strata, Orbits and Facets redesign was rejected as busy: an outlined numeral, strokes crossing the digits, and titles unreadable at 48px (2026-10-13).
+  - Reviewed on a contact sheet with a 1080-render crash sweep before wiring (2026-10-05).
 - **Generated topic art** from id and name (D102).
 - **Empty states.**
   - The ask was "beautiful empty state illustration with title and an action button", then "keep the illustrations simple" (D96, D98).
@@ -136,9 +175,12 @@ Ask, then what was built, then the decision. Values are as built.
 
 ### Motion and navigation
 - **Navigation feel.**
+  - The ask: "there is a delay in switching between different nav menu pages, I want the app to be snappy, performant" (2026-10-08).
   - A move between pages took 400 ms, mostly an accidental default crossfade. It is now answered from a saved copy: 2 ms for the page, 32 ms to the new page on screen, 132 ms fully drawn (D47).
+  - Why the crossfade ran: Astro's swap keeps only a fixed set of root attributes, so `data-astro-nav` was dropped and the 330 ms default played. `navigation.ts:77` carries it onto `event.newDocument` in `astro:before-swap`.
   - The incoming page fades up in 100 ms, with an 8px settle into or out of a briefing.
-  - `navigationBoost.ts` replaces the view-transition snapshot with an immediate swap.
+  - `navigationBoost.ts` replaces the view-transition snapshot with an immediate swap: a one-shot stand-in for `document.startViewTransition`, branded with a WeakSet, that marks the new document `data-nav-swap` (`:66`, `:118`, `:138`). It skips two frames of snapshot capture.
+  - The service worker answers a move from a stamped copy (`x-dispatch-stored-at`): fresh for 10 minutes, rechecked in the background after 15 s, expired when `/latest.json` changes (`sw.js:28-32`). A stale tab reloads once after a deploy, never while offline (2026-10-08).
   - A touch `pointerdown` starts the fetch about 100 ms before the tap ends.
   - The pressed nav item lights up before the page arrives.
 - **Motion rules in tokens.**
@@ -149,7 +191,7 @@ Ask, then what was built, then the decision. Values are as built.
   - Press scale 0.97, enter 0.96.
 - **Reduced motion.**
   - Movement tokens collapse to 0.01 ms; press, hover, state and theme keep their timing.
-  - The player becomes a fade, the spinner pulses, the floating button stays extended and the app bar never hides.
+  - The player becomes a fade (instant today, since the durations collapse too: gap 9), the spinner pulses, the floating button stays extended and the app bar never hides.
 - **Micro-motion.**
   - Play and pause swap at 0.95 scale with a 3px blur.
   - A filter chip's check scales in while its label slides 8px.
@@ -177,14 +219,19 @@ Ask, then what was built, then the decision. Values are as built.
   - Stories and Transcript (D101).
   - One left edge (D90).
   - No handle, square top corners throughout (D111).
-  - On a wide screen with a mouse, the bar keeps previous, play, next and the clock (D101).
-  - One transport on screen at a time (D92).
-  - The volume slider appears on hover and lingers 400 ms (D106).
+  - On a wide screen with a mouse, the bar keeps previous, play, next and the clock (D101): details on the left, transport centred, volume on the right (2026-10-13). "In mobile, it's a different behavior, so you need to be mindful" (2026-10-12).
+  - Previous shows only on wide screens; the phone bar never carries it (2026-10-08).
+  - One transport on screen at a time (D92), and one timeline: the page's own scrubber "duplicates the bar's timeline" and went (2026-10-09).
+  - Speed sits between the skips in the DOM, not by CSS `order`, so Tab follows the drawn order in every browser (`TransportControls.tsx:67`).
+  - The volume slider's room is reserved; it rests at opacity 0 but stays reachable by Tab, shows on hover, `:focus-visible` or drag, and lingers 400 ms (D106, `player.css:1245-1274`).
+- **Audio that survives navigation.** One module-scope audio element, since module scripts run once under the client router (2026-10-05). The service worker never caches audio, because Range requests make cached media unreliable (`sw.js:337`).
 - **Transcript.**
   - Said words in full ink, the spoken word on a soft fill that appears at once, read 90 ms ahead (D105).
-  - The highlight pauses through unseen lead-in words (D107).
-  - It follows only once the listener scrolls it into view, with "Back to now" (D94).
+  - The highlight pauses through unseen lead-in words (D107): `lead_words` per story (`lib/digests.ts:81`) shifts the marks, so nothing lights until the next story's first word.
+  - It follows only once the listener scrolls it into view, with "Back to now" (D94). Centring the current turn on mount had scrolled a phone page 388px past the cover.
   - It is one Tab stop (D90).
+  - Below 64rem the Stories and Transcript switch is sticky on the surface colour with the safe-top inset, the gap as padding so text never shows through (`player.css:2036`).
+  - Hosts carry colours in the script view: Ada the accent, Leo the warning hue (2026-10-08).
 - **Scrubber.**
   - A 44px row; the track scales 2x while dragging; the thumb pops on the pop spring.
   - The time bubble sits on a hidden widest-time copy and snaps to device pixels.
@@ -231,6 +278,9 @@ The navigation bar, the player bar, the floating button, the run indicator and t
   - Every element of the stack is held by its bottom edge, and the player box is `100dvh`. The stack now moves with mobile Chrome's address bar in the same frame instead of drifting apart and snapping back.
   - Not verifiable headless; it needs a phone recording.
 - **One control, the whole bar** (D102). No chevron; the whole bar opens and closes the player; a keyboard Close exists at every width. The bar's Tab order follows its drawn order (`reading-flow`, D97).
+- **Create is an action, not a place** (2026-10-08). An agent added it as a navigation tab; the owner made it a solid button, then the floating button. It opens a native `<dialog>`, full screen on a phone and a 28rem panel from 40rem, cloned on first press. A history entry lets Back close it (`createSheet.ts:79-90`). The floating button hides while the player or a dialog is open. "Quite cramped" led to a wider panel with spaced groups and the unlabelled mode switch on top (2026-10-12, D114).
+- **Run progress is a line, not a page** ("so we dont take an entire page", 2026-10-08). It sits bottom-left of the side column, or as a thin bar over the player bar on a phone. It persists across moves through `sessionStorage` and `transition:persist`, with `role="status"` (`RunStatus.astro:47`). A failed run shows an alert glyph in the danger colour at the same card height, clamped to two lines; dismissing it sends focus to Create, not to `body`.
+- **Tablet and phone gaps.** A 56px gap opened under the bar on a tablet while the player was open, and the player's story rows jumped 6px when the story changed; both fixed after screenshot review (2026-10-08).
 
 ### Small component fixes
 
@@ -244,6 +294,9 @@ The craft that makes components hold still and answer clearly. Each was a report
   - Toasts have a fixed width on a phone (they jumped from 105 to 358px).
   - A stable scrollbar gutter stopped the New episode panel rewrapping when More options opens (D102).
   - Rows keep one height with or without a search match (D95). The Add panel's switch keeps one height at every width (D89).
+  - The first frame of an episode page drew the first story, then the current one. The page now derives `override ?? first` instead of holding the first in state (2026-10-09).
+  - A sticky element centred with `translate: 0 -50%` blurs on odd heights; use a measured `calc()` offset (2026-10-12).
+- **Visibility.** `[hidden]` lost to author `display` rules, so hidden elements showed. A global rule keeps it hidden (`foundations.css:158`) and a test walks every page (2026-10-08).
 - **Fields and selects.**
   - One drawn list for every select (`appearance: base-select`, set once in `primitives.css`).
     - The text is centred with no UA block padding (2026-10-10).
@@ -253,8 +306,16 @@ The craft that makes components hold still and answer clearly. Each was a report
   - A field grows on focus only with a fine pointer, so it never moves under a tap (2026-10-12).
   - An open list lifts its row above the next one (`.rows > :has([aria-expanded="true"])`, 2026-10-11).
   - A list that fails to load says so inside the open list (2026-10-12).
+  - The ask for lists: "styled better in the same theme and... consistent with good padding on the top and bottom" (2026-10-09). Equal inner padding top and bottom, on the page's surface.
+  - The model field is a plain select, never a combobox. Its list has Top and All groups; the switch deleted 640 lines (2026-10-13, `primitives.css:487`).
+  - A searchable picker is placed once, so it closes on any scroll (capture, passive) and takes its `transform-origin` from the trigger's centre (`picker.ts:198`, `:315`). In forced colours its search field keeps a system border (`picker.css:109`).
+  - The cadence select clipped "Every second day"; fields are sized to their longest value (2026-10-09).
 - **Press, hover and focus.**
   - Words never shrink on press; label controls show a press on their fill (2026-10-10, `styles.test.ts`).
+  - A segmented control's chosen item takes a full outline or container, never only a bottom border: the Gallery and List switch "shows only a bottom border" (2026-10-09).
+  - Two targets in one card look different under a mouse: "there is a distinction between clicking on the thumbnail... versus clicking on the text... That distinction is necessary" (2026-10-12, D101).
+  - Remove buttons in lists show on hover or focus with a mouse and always on touch (2026-10-08).
+  - A focus ring inset into its row stops clipping inside overflow containers (2026-10-08).
   - Hover layers are the fill's own alpha, so a focus ring is never faded (2026-10-11).
   - A colour transition runs on the hover state only, so a theme switch never shows a mid-fade colour (2026-10-12).
   - A ring on a two-line headline is drawn round the block, not per line (D88).
@@ -281,8 +342,9 @@ The craft that makes components hold still and answer clearly. Each was a report
 ### Reading pages and the Library
 - **Hero.**
   - One filled action, which goes tonal while playing and shows the time left (D77, D88).
-  - One hero layout for any title length.
-  - Sections separated by space alone.
+  - One hero layout for any title length. The hero text fills the cover's height; a gap under it came from a `1fr` middle row with `align-self: end` actions, fixed with an 8rem cover (2026-10-12).
+  - Sections separated by space alone. Hairlines, where they exist, run inside the column (2026-10-08).
+  - "Contents" sits beside the episode, sticky at the vertical centre (2026-10-08, 2026-10-12). "N min listen" went; Highlights replaced the script on the page (2026-10-08).
 - **Play chip.**
   - One width; Played shows Play again only under a mouse or focus (D106, #116).
   - Its state machine: idle, current, played, preparing, error, unavailable.
@@ -290,8 +352,11 @@ The craft that makes components hold still and answer clearly. Each was a report
   - A cover grid with one facts line per card (D78).
   - Search, filter and sort live in the address.
   - Search matches word starts (D95), with excerpts that start at the hit.
-  - Played and progress marks agree across every surface (D97).
+  - Played and progress marks agree across every surface (D97). A card's progress is its `::before`, because `::after` is the press layer (`library.css:72`).
   - `content-visibility: auto` on cards.
+  - Titles clamp to two lines (`library.css:98`) and generated names stay short ("AI Products, Design and 2 more"), with a tooltip for a truncated title under a mouse (2026-10-08).
+  - Filters All, Daily, Weekly and Custom; Oldest first reverses same-day cards too; the count reads "1 of 5 results"; a touch-only Clear text button (2026-10-08).
+  - Deleting an episode hides it at once on this device and lands on the Library while the 2 to 3 minute workflow runs (2026-10-08).
 
 ### Settings and forms
 - **Structure.**
@@ -304,7 +369,15 @@ The craft that makes components hold still and answer clearly. Each was a report
   - Saved values show for three minutes before the build (D79).
 - **Selects.**
   - Every select is `appearance: base-select` with a drawn list (D51).
-  - Long lists get a searchable picker: about 55 zones as "Stockholm (GMT+2)", voices by name, gender and accent (D101).
+  - Long lists get a searchable picker: about 55 zones as "Stockholm (GMT+2)", voices by name, gender and accent (D101). The offset is computed at an instant, daylight saving included (`packages/core/src/time.ts:78`), because "time zone should be mentioned... GMT plus or minus" (2026-10-12).
+  - Voices are auditioned in place (D105); the owner also asked for preview in the New episode form (2026-10-12).
+- **Lists.**
+  - Lists come first with their counts; add forms sit in `<details>`; repeated hints and the Generate row went (2026-10-08).
+  - "N topics" heads the list with a mid-size Add on the same row; a topic shows seven sources, then "Show N more" (2026-10-13).
+  - Daily and Weekly share one component, so a change lands on both (2026-10-13).
+  - Topics are always available: no locked or disabled choices. A locked chip at opacity 0.32 read at about 1.5:1 (2026-10-12).
+  - Source icons come through `/api/site-icon` with a letter fallback, so the policy keeps `img-src 'self' data:` (`pages/api/site-icon.ts`); widening `img-src` to `https:` was rejected (2026-10-09).
+  - The add-topic form uses `novalidate` with inline messages; an emoji-only name no longer becomes the id "topic" (2026-10-08).
   - Model headings sit on the left in regular weight (D113, #125).
 - **New episode form.** Title, Topics, Length, Look back; Format, Voice and Tone under More options; the button reads "Generate • N mins" (D114).
 
@@ -315,10 +388,14 @@ The craft that makes components hold still and answer clearly. Each was a report
   - Direction carries meaning: up is forward, on and open.
   - Narration is sacred: cues are skipped or ducked while it plays (D18, `design/sound-design.md`).
 - **Wiring.**
-  - Every enabled control sounds by kind (navigate, select, tap, open and close).
+  - Every enabled control sounds by kind (navigate, select, tap, open and close): "the interface sounds don't really work on everything" (2026-10-12).
+  - One delegated listener picks the cue by role or `data-sound`, rate-limited to one per 90 ms (`uiClicks.ts:27`, `:45`), so new UI sounds right without wiring. A `menuitem` is a tap, not a toggle.
+  - Dialogs sound on open and close through a MutationObserver on `open`, which also catches Escape and the scrim (`uiClicks.ts:140`).
   - Hover, focus, scroll and typing are silent.
   - A save that went through is silent (D101).
-  - On iOS the unlock sets `audioSession.type = "playback"` (D105).
+  - The first press froze 285 ms, 221 ms of it `new AudioContext()`. The context is now made on the first `pointerdown` or `keydown`, and the first cue is queued (`soundController.ts:81`, 2026-10-09).
+  - On iOS `pointerdown` is not an activation for audio, so the unlock also listens to `pointerup`, `touchend` and `click` (`packages/sound/src/engine.ts:373`), and sets `audioSession.type = "playback"` (D105).
+  - Sound belonged in the first brief: "design a high quality ui, interactions, and also integrate good ui sounds" (2026-10-05).
 
 ### Accessibility as design
 - **Targets.** 44px on every visible control on every route, tested; 36px faces get a pseudo-element target.
@@ -328,11 +405,13 @@ The craft that makes components hold still and answer clearly. Each was a report
   - Pointer users see no ring on programmatic focus.
 - **Keyboard and screen readers.**
   - The transcript and the Stories list are each one Tab stop.
-  - Tab follows the visual order, using `reading-flow` where supported.
+  - Tab follows the visual order: fix the DOM order first; `reading-flow` is Chromium only.
   - One live region speaks each message (D90).
+  - Focus never drops to `body`: after a dismiss it goes to Create, after Retry to the bar's own button (2026-10-08, 2026-10-09).
+  - The hero cover's play is pointer-only, so a keyboard meets one Play, not two (2026-10-08).
 - **User preferences.** `prefers-contrast: more` strengthens hairlines; `prefers-reduced-transparency` makes the scrim opaque.
 
-## 3. Reversals, and the lesson in each
+## 4. Reversals, and the lesson in each
 
 | Flip | Decisions | Lesson |
 | :--- | :--- | :--- |
@@ -345,10 +424,45 @@ The craft that makes components hold still and answer clearly. Each was a report
 | First-load budget 110, 150, then 109 KB | D53, D103, D112 | A loose ceiling lets pages grow by a third unnoticed. |
 | Player corners round in travel, then square throughout | D32, D111 | One edge throughout reads as one object. |
 | Default (automatic) model row, then removed | D106, D113 | A choice that names nothing hides what is happening. |
+| Timeline rail, Schibsted and Literata, then Google Podcasts, then tonal Material | 2026-10-05, D31, D72 | An invented identity loses to a familiar reference. |
+| Archive, then Library | 2026-10-07 | Name destinations as the reference product does. |
+| Create as a navigation tab, then a solid button and floating button | 2026-10-08 | An action is not a place. |
+| Hairline rows in Settings, then tiles clear of hairlines | 2026-10-08, 2026-10-11 | Separation by space and tone, not by lines. |
+| Model combobox, then a plain select | 2026-10-13 | A familiar control beats a clever one; the switch also deleted 640 lines. |
+| Locked general topics with a lock glyph, then always available | 2026-10-12, 2026-10-13 | A choice the owner cannot make should not be drawn. |
+| Strata, Orbits and Facets covers, then rejected | 2026-10-13 | Generative art is judged on a contact sheet at real size, not in code. |
 
 The pattern: a simplification taken without asking tends to come back. A removal that comes from the owner sticks.
 
-## 4. What the code already does well
+## 5. Hacks and mechanisms
+
+Each answers a bug that cost real time here. Reuse them in any web app; the skill queue in section 10 says where each belongs.
+
+| Problem | Mechanism | Where |
+| :--- | :--- | :--- |
+| A designed page transition never ran; a 330 ms default crossfade did | Astro's swap keeps only fixed root attributes. Copy custom `data-*` onto `event.newDocument.documentElement` in `astro:before-swap` | `scripts/navigation.ts:77` |
+| View-transition snapshots cost two frames per move | A one-shot `startViewTransition` stand-in, WeakSet-branded, that swaps at once and marks the new document | `scripts/navigationBoost.ts:66` |
+| First press froze 285 ms | `new AudioContext()` took 221 ms inside `pointerdown`. Create it on the first `pointerdown` or `keydown` and queue the first cue | `player/sound/soundController.ts:81` |
+| iOS audio stayed locked | `pointerdown` is not an activation for audio; also listen to `pointerup`, `touchend` and `click` | `packages/sound/src/engine.ts:373` |
+| Headless tests ran the WebGL effect on a software renderer | `failIfMajorPerformanceCaveat` lets SwiftShader through; read `WEBGL_debug_renderer_info` and match the renderer name | `scripts/ambientLight.ts:114` |
+| A 30 fps cap ran at 20 fps | rAF jitter at 60 Hz; compare against `FRAME_MS - 4` | `scripts/ambientLight.ts:89` |
+| The canvas blanked on rotation; the palette went stale while stopped | A resize clears the backing store, so draw inside the ResizeObserver; watch `data-theme` and the colour-scheme query and redraw once | `scripts/ambientLight.ts:196-235` |
+| Offline pages missed lazy chunks | The service worker's import follower matched `'` and `"` but the bundler emits backtick imports; match backticks, follow six levels, bump the cache version | `public/sw.js:47`, `:214` |
+| Hidden elements showed | Author `display` rules beat the UA `[hidden]` rule; add a global rule and test every page | `styles/foundations.css:158` |
+| The CSP blocked page scripts | Inlined assets become inline scripts; `assetsInlineLimit: 0` keeps them files | `astro.config.mjs:150` |
+| Favicons needed `img-src https:` | A same-origin icon proxy with a letter fallback | `pages/api/site-icon.ts` |
+| The head script could not restore view choices | A 512-byte budget; restore anything beyond the theme one frame later from the page script | `scripts/themeInit.js` |
+| Two theme keys fought | One preferences key, read by the head script | `player/core/preferences.ts:9` |
+| A phone screenshot looked cropped | Headless Chrome has a minimum window width; emulate the device or render inside a 390px iframe | browser suites |
+| A picker list drifted from its field | It was placed once; close on scroll (capture, passive) and set `transform-origin` from the trigger | `scripts/picker.ts:198`, `:315` |
+| Specificity lint failed on picker rules | `:is()` takes its highest argument, `:where()` is zero; write `html:is([data-astro-nav="peer"], ...)` and order rules by specificity | `styles/view-transitions.css:49` |
+| Time zone labels drift with daylight saving | Compute the offset at an instant with Intl, never store it | `packages/core/src/time.ts:78` |
+| Cover fonts lost their weight; renders crashed | resvg ignores variable axes (commit static instances) and aborts on blur inside masks (use gradient masks) | `packages/cover/src/fonts.ts:5` |
+| Dev pages shipped in the static build | A page flag still emits HTML. The lab pages went; dev tools load only under `import.meta.env.DEV`, and `checkBundle` fails a build that contains them | `src/dev/agentation.ts:12` |
+| Throttled profiles measured the wrong bytes | The test server sends uncompressed files; put a gzip proxy in front | `engineering/first-load-js.md` |
+| Browser suites failed to bind | Windows reserves ports 4524 to 4623; use 47xx or 48xx, never 4321 (the owner's dev server) | `AGENTS.md` |
+
+## 6. What the code already does well
 
 Worth keeping, and worth copying into new work:
 - **Tests hold the craft.**
@@ -364,7 +478,7 @@ Worth keeping, and worth copying into new work:
   - A service worker answering moves from a 10-minute copy and swapping in the new page only if untouched.
 - **Ambient light** degrades in four steps (WebGL, CSS, still, nothing) and comes with a contrast proof.
 
-## 5. Gaps in the code
+## 7. Gaps in the code
 
 Each was found by the code read; the first five were checked by hand on 2026-10-14. None is visible to the owner today. Each is a place where the next change can drift.
 
@@ -389,7 +503,7 @@ Each was found by the code read; the first five were checked by hand on 2026-10-
    - Two segmented controls (`player.css`, `settings.css`).
    - Two switches (`sheets.css`, `settings.css`).
    - Three sheet systems, each with its own transition list.
-   - 36 button class signatures, against a census target of four primitives (`design-systems-audit.md`).
+   - 36 button class signatures, against a census target of four primitives (`history/2026-10-11-design-systems-audit.md`).
 7. **Breakpoints and timings written many ways.**
    - The same three breakpoints appear as `min-width`, `max-width: 63.9375rem`, `not all and`, `width <` and range syntax.
    - Idle timeouts of 4000, 3000, 2000 and 200 ms.
@@ -398,17 +512,27 @@ Each was found by the code read; the first five were checked by hand on 2026-10-
    - The floating button animates `max-width`, `margin` and `inset-block-end`; the briefing tabs animate `inset-block-start`. Transforms would avoid layout per frame.
    - `will-change: transform` sits permanently on the scrubber thumb.
 9. **Reduced motion is zero, not gentler.** Durations collapse to 0.01 ms and cross-fades go with them; the spec says "fewer and gentler, not zero" (DD-003, open).
+10. **Found by the chat pass.**
+    - A stale comment still describes the removed `.daily-listbox` combobox (`primitives.css:468`).
+    - The 36px Topics & sources tab was dropped from the 44px check instead of fixed, and "Add source" measures 121x36 (2026-10-09, 2026-10-13).
 
-## 6. Owner asks with no record of being done
+## 8. Owner asks with no record of being done
 
-- The About text being gone (owner list of 2026-10-12).
-- The New episode button at the navigation items' size (same list).
+Each is a chat ask with no later record of being built or dropped. Check the code before building one; some may have been done without a note.
+
+- The New episode button at the navigation items' size (owner list of 2026-10-12).
+- Voice preview inside the New episode form (2026-10-12).
+- "Narration is not available", reported 2026-10-12 and never diagnosed.
+- Regenerate replacing the item in place while it runs, a menu for built-in topics, and Listen now switching itself on (2026-10-13).
+- General chips unticked by default, waiting on an answer from the owner (2026-10-13).
+- QA defects from 2026-10-08: a Play tap before hydration lost on a phone, a 429 that shows no wait time, focus on opening the expanded player, and "5 min" repeated in an episode's meta. Status unknown.
+- Word-level focus in the transcript beyond the spoken-word fill, and a live measurement of time to first sound on Play (2026-10-08).
 - The Apple touch icon's alpha: iOS composites it on black (DD-006).
 - The played chip growing 11px with a mouse (state.md).
 - A real-phone check of the bottom stack, and Safari 27 and WebKit for everything; neither has run.
 - Settings changes reaching pages other than Settings instantly. Today they take about a minute through commit and redeploy (D79).
 
-## 7. Dreams
+## 9. Dreams
 
 Ideas the record points toward. Each has its value, its cost and the mechanism behind it. Ordered by what I would do first.
 
@@ -432,11 +556,74 @@ Ideas the record points toward. Each has its value, its cost and the mechanism b
 - **Build now: 2, 6 and 7.** They are cheap and invisible until they matter, and they protect the "nothing moves that I did not move" taste.
 - **Prototype: 12.** It is the one taste call worth showing the owner as a recording.
 
+## 10. Skill enrichment queue
+
+Lessons from this repo that belong in the `sk-design-engineering` plugin (`~/.agents/plugins/sk-design-engineering`, 1.4.2), checked against its skills on 2026-10-14:
+- **Covered:** the skill already says it; leave it.
+- **Partial:** add the missing half.
+- **New:** the skill says nothing.
+
+The rule text is written to paste, project-neutral. Coverage was judged by keyword search with a few files read, so confirm each before adding. Make the changes through `sk-skill-creator`, keep them lean, and do not duplicate what a reference already says.
+
+### Proposed new reference files
+
+| File | Holds | Why |
+| :--- | :--- | :--- |
+| `web-craft/references/audio-and-player.md` | One timeline and one transport, the AudioContext warm-up, the iOS unlock, the sound policy, interruptible sheet physics (one progress scalar, a velocity-carrying spring, flick and distance thresholds, slop anchoring), never caching media | Six rules cluster here; `dom-input.md`'s click-sound section would move into it |
+| `web-craft/references/service-worker.md` | Stamped page copies, a background recheck, expiry on a version file, the import follower (backticks, depth), cache version bumps, never caching Range requests, one reload after a deploy | No service-worker guidance exists |
+| `web-craft/references/webgl-ambient.md` | The four-step degrade, software-renderer detection, a jitter-tolerant frame cap, redraw on resize and theme, `isConnected` before mounting, the idle fallback, a contrast proof over every palette | No canvas or WebGL guidance exists |
+| `build-design/references/feedback-and-copy.md` | Silence by default, affordance over instruction text, three- or four-word status, one message per live region, optimistic UI for slow work | Process and product-feel rules have no home |
+
+### Rules
+
+| # | Rule to add | Target | Status | Evidence here |
+| :- | :--- | :--- | :--- | :--- |
+| 1 | Before designing, name the reference product and copy its behaviour and its names; a destination is called what that product calls it. | build-design (process) | New | §1.1, §4 Archive |
+| 2 | Treat every layout shift as a bug: fixed-width chips, a hidden widest-value copy under changing text, checks that take no room, `scrollbar-gutter: stable`, reserved room for notices. | web-craft `css-visual.md` | Partial | §3 Small component fixes |
+| 3 | Confirm with the changed control, not a toast. Background saves are silent; status copy is three or four words and appears only when the user can act. | feedback-and-copy (new) | New | §1.3, D115 |
+| 4 | Never write instruction text a control can make obvious. A glyph says what a press does; a control that cannot act stays visible, dimmed and named. | baseline-ui | Partial | §1.5 |
+| 5 | Keep the accent fill for the one primary action and for current state; transport and secondary controls stay unfilled. Destructive red appears only inside the confirm. | refactoring-ui `systems.md` | Partial | §1.6 |
+| 6 | One timeline and one transport on screen at a time; a second scrubber for the same audio is a defect. | audio-and-player (new) | New | §3 The player |
+| 7 | Never set a small meta line directly above a headline; secondary text goes below with a full spacing step. | page-layout `grouping-and-alignment.md` | New | §1.9 |
+| 8 | When one card has two targets (art plays, title opens), give them different hover states. | page-layout `spacing-and-adaptivity.md` | Partial | §1.5, D101 |
+| 9 | Siblings in one group share one size, including a primary action placed among navigation items. | refactoring-ui | New | §1.6 |
+| 10 | Popover and select lists: equal inner padding top and bottom, the page's surface, and a screenshot of the open state before shipping. | animation-rules `component-craft.md` | Partial | §3 Fields and selects |
+| 11 | A segmented control's chosen item takes a full outline or container, never a bottom border alone; words never scale on press. | web-craft `components.md` | New | §3 Press, hover and focus |
+| 12 | Measure perceived speed before optimising: move timings, LCP and time to a pressable control on a throttled phone profile, behind a gzip proxy if the test server does not compress. | web-craft `performance.md` | Partial | §2.9 |
+| 13 | Astro's client router drops custom root attributes on swap; copy them onto `newDocument` in `astro:before-swap`. For moves under 50 ms, swap without a snapshot transition. | web-craft `dom-transitions.md` | Partial | §5 |
+| 14 | Create the AudioContext on the first `pointerdown` or `keydown`, before a click needs it, and queue the first cue; construction can take over 200 ms on a phone. | audio-and-player (new) | Partial | §5 |
+| 15 | WebGL effects: detect software renderers by name, cap frames at the interval minus a few ms, redraw on resize and theme change, check `isConnected` before mounting a lazily imported module, and fall back to `setTimeout` where `requestIdleCallback` is missing. | webgl-ambient (new) | New | §5, §3 Ambient light |
+| 16 | A service worker that follows imports must match backtick-quoted dynamic imports; bump the cache version after any chunking change; never cache Range requests or media. | service-worker (new) | New | §5 |
+| 17 | `[hidden]` loses to any author `display` rule; ship a global rule and a test. | web-craft `css-visual.md` | Partial | §5 |
+| 18 | Headless Chrome has a minimum window width: capture phones with device emulation or a phone-width iframe, in both themes, with open and playing states. | web-craft-audit `browser-pass.md` | Partial | §2.4 |
+| 19 | `:is()` takes the specificity of its highest argument and `:where()` is zero; order rules so specificity never descends. | web-craft `css-visual.md` | Partial | §5 |
+| 20 | Compute a time zone's offset at an instant with Intl; never store or prerender it. | web-craft `dom-input.md` | New | §5 |
+| 21 | Reduced motion is gentler, not zero: keep fade durations, zero only travel and scale. | animation-rules | Covered | §7.9 shows the gap in this repo |
+| 22 | Prove contrast in code over every palette in both themes. Opacity-dimmed text fails; mark a locked or unavailable choice with a glyph and an edge, or do not draw it. | refactoring-ui `diagnose.md` | Partial | §3 Colour, §4 |
+| 23 | resvg and other server SVG renderers ignore variable-font axes (ship static instances) and can crash on blur inside masks (use gradient masks). Compose a social card at its own size, never crop it. | web-craft `typography.md` | New | §3 Covers |
+| 24 | iOS: `pointerdown` does not unlock audio. Also listen to `pointerup`, `touchend` and `click`, and set `navigator.audioSession.type = "playback"` where it exists. | audio-and-player (new) | New | §5 |
+| 25 | Every enabled control makes a sound by kind through one delegated listener; hover, focus, scroll, typing and successful background saves are silent. Silence on a press reads as broken. | audio-and-player (new) | Partial | §3 Sound |
+| 26 | A repeated ask is a hard requirement. Do not remove a control or delete content to simplify without asking; such removals tend to come back. | build-design (process) | New | §1 Repeat asks, §4 |
+| 27 | Review loop: references first, screenshots at desktop and phone sizes in both themes, open states seen by eye, one PR per piece, and a list of what headless could not verify. | build-design (process) | Partial | §2 |
+| 28 | Put colour transitions on the hover state only, so a theme switch never shows a mid-fade colour. | web-craft `color.md` | Partial | §3 Press, hover and focus |
+| 29 | Grow a field on focus only with a fine pointer, so nothing moves under a tap. | web-craft `mobile.md` | Partial | §3 Fields and selects |
+| 30 | A 44px target drawn with `::after` must subtract the control's border, or it lands short. | page-layout `spacing-and-adaptivity.md` | Partial | §3 Press, hover and focus |
+| 31 | Changing digits sit over a hidden copy of the widest value and snap to device pixels, so they never shimmer. | web-craft `typography.md` | Partial | §3 Small component fixes |
+| 32 | A sticky element centred with `translate: -50%` blurs on odd heights; use a measured `calc()` offset. | animation-rules `transforms-and-clip-path.md` | Partial | §3 Small component fixes |
+| 33 | A popover placed once must close or re-place on scroll (capture, passive) and take its `transform-origin` from the trigger. | web-craft `dom-input.md` | Partial | §5 |
+| 34 | When visual order differs from DOM order, change the DOM; `reading-flow` is Chromium only. | page-layout | Covered (add the `reading-flow` note) | §3 The player |
+| 35 | Slow server work answers at once on the device (hide the deleted item, land on the list) while the job runs. | feedback-and-copy (new) | New | §3 Reading pages and the Library |
+| 36 | Generative art is approved on a contact sheet at real size before it is wired: one gesture, one accent, no template repeated next to itself. | build-design (process) | New | §3 Covers, §4 |
+
+### Gaps in the audit skill
+`web-craft-audit` has no checks for layout shift, `[hidden]` overrides, unseen open states, or a duplicated timeline. Add them to its signals once rules 2, 6, 10 and 17 land.
+
 ## Keeping this file
 
 When an ask changes the look or feel:
-- Add a row to section 2 with its decision number.
-- Move an item out of section 6 once it is done.
+- Add a row to section 3 with its decision number, or the chat date if there is no decision.
+- Move an item out of section 8 once it is done.
 - Strike a dream once it is built or rejected.
+- Add a lesson that would help any project to section 10, and strike it there once the skill carries it.
 
 Do not restate a decision's reasoning here; link it.
