@@ -82,8 +82,10 @@ export function voteMultiplier(
   url: string | null,
 ): number {
   const domain = url === null ? null : hostOf(url);
+  // A vote counts toward its source and its domain alike, so adding the two would count it twice.
+  // The source's own preference speaks first; the domain's is for stories no voted source carried.
   const lean =
-    (prefs.sources.get(sourceId) ?? 0) + (domain === null ? 0 : (prefs.domains.get(domain) ?? 0));
+    prefs.sources.get(sourceId) ?? (domain === null ? 0 : (prefs.domains.get(domain) ?? 0));
   return 1 + VOTE_LIMITS.max_swing * Math.max(-1, Math.min(1, lean));
 }
 
