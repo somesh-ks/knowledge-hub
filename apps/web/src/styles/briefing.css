@@ -219,9 +219,13 @@ html:has(.briefing > .tabs-bar) {
   color: var(--color-on-surface);
 }
 
-/* Play, then the publisher. A long name shortens; the chip never does. The chip hugs its label. */
+/* Play, then the publisher, then the story controls at the trailing edge. The publisher is the
+   attribution and the chip the call to act, so neither gives way: when the line is full the controls
+   wrap to the trailing edge of the next line. A name shortens only when it is wider than the line
+   itself. The chip hugs its label. */
 .story-actions {
   display: flex;
+  flex-wrap: wrap;
   align-items: center;
   gap: var(--space-3);
   min-width: 0;
