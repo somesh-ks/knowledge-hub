@@ -7,7 +7,7 @@
 
 import { hasSaved } from "../lib/savedKey";
 import { installHeroMenu } from "./heroMenu";
-import { whenIdle } from "./idle";
+import { warmWhenIdle } from "./idle";
 import { installMultiSelect } from "./multiSelect";
 
 type Editor = { handle(event: Event): void };
@@ -31,7 +31,7 @@ function mount(root: HTMLElement): void {
       .then(() => import("./topicsEditor"))
       .then((module) => module.mountEditor(root)));
   // Fetched at idle, so the first edit finds the editor's code here and only mounts it.
-  whenIdle(() => void import("./topicsEditor").catch(() => {}));
+  warmWhenIdle(() => import("./topicsEditor"));
   /** Every event goes to the editor, the first one loading it. */
   const forward = (event: Event): void => void load().then((loaded) => loaded.handle(event));
 

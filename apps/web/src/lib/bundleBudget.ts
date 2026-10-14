@@ -123,23 +123,35 @@ export interface FirstLoadReport {
   totalGzip: number;
 }
 
-/** Follows static imports from the entry scripts and sums their gzipped sizes. */
-export function firstLoadReport(
+/** Every module the entries load at start, in the order they are reached: the entries, then their static imports. */
+export function moduleGraph(
   entries: readonly string[],
   read: (url: string) => string | null,
-): FirstLoadReport {
+): string[] {
   const seen = new Set<string>();
   const queue = [...entries];
-  const files: FirstLoadReport["files"] = [];
+  const order: string[] = [];
   while (queue.length > 0) {
     const url = queue.shift();
     if (url === undefined || seen.has(url)) continue;
     seen.add(url);
     const source = read(url);
     if (source === null) throw new Error(`Page asks for ${url}, which is not in the build output`);
-    files.push({ url, gzip: gzipBytes(source) });
+    order.push(url);
     for (const specifier of staticImports(source)) queue.push(resolveUrl(url, specifier));
   }
+  return order;
+}
+
+/** Follows static imports from the entry scripts and sums their gzipped sizes. */
+export function firstLoadReport(
+  entries: readonly string[],
+  read: (url: string) => string | null,
+): FirstLoadReport {
+  const files = moduleGraph(entries, read).map((url) => ({
+    url,
+    gzip: gzipBytes(read(url) ?? ""),
+  }));
   return { files, totalGzip: files.reduce((sum, file) => sum + file.gzip, 0) };
 }
 
@@ -159,7 +171,7 @@ export function unhintedModules(html: string, read: (url: string) => string | nu
   }
   const entries = entryScripts(html);
   const islands = entries.filter((url) => !named.has(url));
-  const graph = firstLoadReport([...islands, ...entries], read).files.map((file) => file.url);
+  const graph = moduleGraph([...islands, ...entries], read);
   return graph.filter((url) => !named.has(url));
 }
 

@@ -6,11 +6,15 @@
  * marks are applied on astro:page-load.
  */
 import { parseVotes, pressedOf, VOTES_KEY } from "../lib/storyVotes";
-import { whenIdle } from "./idle";
+import { warmWhenIdle } from "./idle";
 
 let loading: Promise<typeof import("./storyVotes")> | null = null;
 const sender = (): Promise<typeof import("./storyVotes")> => {
-  loading ??= import("./storyVotes");
+  // A failed fetch is forgotten, so the next press asks again.
+  loading ??= import("./storyVotes").catch((error: unknown) => {
+    loading = null;
+    throw error;
+  });
   return loading;
 };
 
@@ -32,7 +36,7 @@ function applyMarks(): void {
 }
 
 document.addEventListener("astro:page-load", applyMarks);
-whenIdle(() => void sender().catch(() => {}));
+warmWhenIdle(sender);
 document.addEventListener("click", (event) => {
   const button = (event.target as Element).closest?.("[data-vote], [data-block]");
   if (button) void sender().then((module) => module.handle(button));

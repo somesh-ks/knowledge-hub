@@ -3,7 +3,7 @@ import { createPortal } from "react-dom";
 import { INTERRUPTED_LINE, noticeAction } from "./core/playerCopy";
 import { getPlayerStore } from "./core/playerRuntime";
 import { usePlayerState } from "./hooks/usePlayer";
-import Icon from "./ui/Icon";
+import Icon from "./ui/LazyIcon";
 
 interface PlayerNoticeProps {
   onRetry: () => void;

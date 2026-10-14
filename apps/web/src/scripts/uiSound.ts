@@ -4,7 +4,7 @@
  * costs first load beyond these few lines. A `dispatch:sound` event with detail "success" or "failure"
  * asks for the cue of an outcome the screen already states in words (saved, copied, refused).
  */
-import { whenIdle } from "./idle";
+import { warmWhenIdle } from "./idle";
 
 export function installUiSound(): void {
   let loaded: Promise<typeof import("../player/sound/uiClicks")> | undefined;
@@ -26,7 +26,7 @@ export function installUiSound(): void {
     setTimeout(() => void load().then((module) => module?.onUiEvent(event)));
   // Fetched at idle, or at a first gesture (a key or a focus included) before that, so the first
   // press is heard.
-  whenIdle(() => void load());
+  warmWhenIdle(load);
   for (const type of ["pointerdown", "keydown", "focusin"])
     addEventListener(type, () => void load(), { once: true, passive: true });
   for (const type of ["click", "change", "dispatch:sound"])
