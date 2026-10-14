@@ -354,7 +354,7 @@
 }
 
 /* The label and a hidden copy of the widest one share a cell, so the chip keeps its width when a
-   pointer or the keyboard turns Played into Play again. Touch keeps Played. */
+   pointer or the keyboard turns Played into Play again. Touch keeps Played, and reserves nothing. */
 .chip-text {
   display: inline-grid;
 }
@@ -368,12 +368,12 @@
   display: none;
 }
 
-.chip[data-state="played"] .chip-again {
-  display: block;
-  visibility: hidden;
-}
-
 @media (hover: hover) {
+  .chip[data-state="played"] .chip-again {
+    display: block;
+    visibility: hidden;
+  }
+
   .chip[data-state="played"]:hover .chip-label,
   .chip[data-state="played"]:focus-visible .chip-label {
     visibility: hidden;

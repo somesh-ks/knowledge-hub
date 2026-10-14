@@ -735,9 +735,8 @@ test.describe("axe", () => {
 
   test("none with the model list open in its groups", async ({ page }) => {
     await open(page, "model");
-    await page.getByRole("button", { name: "Show all models" }).click();
-    const list = page.getByRole("listbox", { name: "Models" });
-    await expect(list.getByRole("group", { name: "Top models" })).toBeVisible();
+    await combo(page).click();
+    await expect(grouped(page, "Top models").first()).toBeVisible();
     await expectNoViolationsInEitherScheme(page);
   });
 });

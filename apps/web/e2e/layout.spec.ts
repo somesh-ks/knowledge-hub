@@ -266,10 +266,19 @@ test.describe("layout", () => {
     expect(await host.evaluate((node) => node.scrollWidth > node.clientWidth)).toBe(true);
     await story.locator(".source-link").scrollIntoViewIfNeeded();
     await expect(story.locator(".source-link .icon")).toBeInViewport({ ratio: 1 });
-    // Every part of the story stays inside the column.
+    // Every part of the story stays inside the column. The last control's 44px target reaches into
+    // the gutter by design, so its glyph lines up with the column's edge (story-controls.css): the
+    // glyph is measured, not the target.
     const widest = await story.evaluate((node) =>
       Math.max(
-        ...[...node.querySelectorAll("*")].map((child) => child.getBoundingClientRect().right),
+        ...[...node.querySelectorAll("*")]
+          .filter(
+            (child) =>
+              !child.matches(
+                ".story-controls > :last-child, .story-controls > :last-child > button",
+              ),
+          )
+          .map((child) => child.getBoundingClientRect().right),
       ),
     );
     expect(widest).toBeLessThanOrEqual(320 - 16 + 0.5);
