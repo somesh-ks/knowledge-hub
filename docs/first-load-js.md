@@ -1,157 +1,108 @@
 # First-load JavaScript
 
-Measured 2026-10-10 on `main` at `a57df71` (before any reduction), static build (`DISPATCH_STATIC_ONLY=1`). Sizes are gzipped, counted the way `apps/web/scripts/checkBundle.ts` counts them: every script, modulepreload and island module a page names, plus their static imports. Dynamic `import()` is lazy and not counted. Budget then: 104 KB; heaviest page /settings/podcast at 103.9 KB. The budget is 110 KB since D53 (2026-10-10); see "Keeping it low" at the end for the current split and what could still come off.
+Measured 2026-10-14 on `main` at `377f4e3`, static build (`DISPATCH_STATIC_ONLY=1`). Sizes are gzipped, counted the way `apps/web/scripts/checkBundle.ts` counts them: every script, modulepreload and island module a page names, plus their static imports. Dynamic `import()` is lazy and not counted. The budget is 150 KB since D103 (2026-10-13); it was 110 KB (D53) and 104 KB before. The heaviest page, Blocked outlets, is at 111.0 KB. Nothing here was built: the cuts are estimates for the lead to choose from.
 
-Pages: today `/`, briefing `/d/2026-10-09`, episode `/e/ep-20261009-2004`, library, create, settings, podcast `/settings/podcast`, topics `/settings/podcast/topics`.
+Declined, not to be prototyped again: preact/compat (about 57 KB off every page, owner declined 2026-10-10). React stays.
+
+## Per page
+
+| Page | KB gz | Files | Page-specific eager |
+|---|---:|---:|---|
+| Today `/`, a briefing `/d/<id>`, an episode `/e/<id>` | 108.8 | 28 | StoryControls script 1.2, episodeActionsEntry 0.7, AmbientLight script 0.3, DigestView/EpisodeView script 0.2 |
+| Library | 109.5 | 25 | library script 3.1 |
+| Create | 106.7 | 25 | create script 0.2 |
+| Settings index | 109.0 | 28 | settings script 1.5, installHint 0.7, pendingWriter 0.3 |
+| Daily, Weekly, Model | 106.9 | 26 | podcastEntry 0.4, profile script 0.1 |
+| Topics & Sources, a topic page | 109.6 | 29 | topicsPage 2.2, heroMenu 0.6, multiSelect 0.1 |
+| Blocked outlets | **111.0** | 29 | blocked-outlets script 1.3, autosave 1.5, savedOverlay 1.3, blockedOutlets 0.3 |
+| Offline, 404 | 106.8, 106.4 | 25, 24 | none |
+
+Since 2026-10-10 (101.6 to 103.9 KB) every page grew 5 to 8 KB: playerRuntime 12.2 to 14.9, the layout script 2.4 to 2.7, PlayerRoot 3.9 to 4.2, soundController 1.3 to 1.6, Icon 1.6 to 1.8, and new eager files (SiteHeader script 0.6, resume 0.6, prewarmPage 0.3, StoryControls and episodeActionsEntry 1.9 on the three reading pages).
 
 ## Where the bytes are
 
-- 101.2 KB is shared by every page. 68.3 KB of it is React: `react-dom-client.production` (63.5 KB chunk with the scheduler), `react` 3.2, `react-dom` 1.4, the JSX runtime (inside `Icon`). Both islands (`PlayerRoot`, `SheetsRoot`) are `client:idle`, so React downloads on idle on every page, never before first paint.
-- Own shared code is about 27 KB: `playerRuntime` 12.2 (store 22%, sheet controller 15%, reader sync 10%, plus spring, gesture math, modal scope, surface view, media session), Astro's router 4.3 + 0.8 + prefetch 1.2, `PlayerRoot` 3.9 (bar 35%, surface 30%), the layout script 2.4, `SheetsRoot` and the toaster 1.7, eager icons 1.6.
-- Base UI is not in the first load. It is all in the lazy `SheetFrame` chunk (33.2 KB: Drawer, swipe dismiss, focus manager, Field), shared by the Generate, Settings and Narrate sheets.
-- Page scripts add 0.1 to 2.7 KB; the podcast page's editor (2.7) is what makes it the heaviest.
-- No duplicate copies of zod or yaml reach the client: neither appears in any client chunk.
+Eager on every page (module shares from source maps, gzip shared out in proportion to raw bytes inside each chunk):
 
-## Runtime cost on a phone
-
-Playwright, Chromium, Pixel 7 profile, 4x CPU slowdown, DevTools "Fast 3G" (562.5 ms latency, 1.47 Mbps down, 675 kbps up), a fresh context per run with the service worker blocked (a first visit), files served gzipped through a proxy in front of the test server (the test server itself does not compress; Vercel does). Median of 5 runs. "Bar hydrated" is the moment the player island loses its `ssr` attribute, which is when the bar answers a press. "JS transferred" is every script that arrived before the measurement ended (1.5 s after the bar), so it includes what the islands load on idle.
-
-| Page | LCP ms | TBT ms | Bar hydrated ms | JS execution ms | JS transferred KB gz | CSS KB gz | Fonts KB | Images KB | HTML KB gz |
-|---|---:|---:|---:|---:|---:|---:|---:|---:|---:|
-| today | 1636 | 51 | 4226 | 337 | 191 | 24.2 | 50.4 | 26.3 | 16.3 |
-| briefing | 1656 | 51 | 4225 | 310 | 191 | 24.2 | 50.4 | 26.3 | 16.3 |
-| episode | 1620 | 38 | 4188 | 289 | 196 | 25.8 | 50.4 | 57.6 | 19.1 |
-| library | 1888 | 66 | 4221 | 286 | 191 | 22.8 | 50.4 | 65.9 | 13.8 |
-| create | 1620 | 49 | 4105 | 290 | 195 | 22.8 | 50.4 | 0.0 | 10.1 |
-| settings | 1600 | 56 | 3487 | 284 | 156 | 22.8 | 50.4 | 0.0 | 10.7 |
-| podcast | 1624 | 63 | 3959 | 276 | 197 | 28.2 | 50.4 | 0.0 | 12.5 |
-| topics | 1736 | 203 | 5610 | 293 | 190 | 29.2 | 50.4 | 1.0 | 23.2 |
-
-Readings:
-
-- LCP is CSS, the font and the HTML, not JavaScript: about 1.6 s everywhere, 1.9 s on the Library (cover images). Blocking time is small (under 70 ms) except Topics (203 ms, a 23 KB page).
-- The bar answers about 2.5 s after LCP. That gap is `client:idle` plus a chain of round trips at 562 ms each (the island's module, then its imports), not parse time.
-- About 190 KB of script arrives in the first seconds, nearly twice the counted first load: the sheets island preloads the Generate and Settings sheets (Base UI, 33 + 10 KB) on idle, and the player preloads its page content. The Settings sheet is reachable only from the dev lab.
-- Fonts: one file, Google Sans Flex variable (weight 400 to 700, Latin), 49.6 KB of the 80 KB font budget, preloaded.
-
-## Chunk tables
-
-"Loaded by" is the page HTML or the chunk that imports it statically; the first three importers are listed.
-
-### Eager on every page
-
-| Chunk | KB gz | Loaded by |
-|---|---:|---|
-| client | 63.4 | page HTML |
-| playerRuntime | 12.2 | PlayerRoot, PlayPauseGlyph |
-| client | 4.2 | ClientRouter (page script) |
-| PlayerRoot | 3.9 | page HTML |
-| react | 3.2 | PlayerRoot, client, SheetsRoot, … |
-| BaseLayout (page script) | 2.4 | page HTML |
-| SheetsRoot | 1.7 | page HTML |
-| Icon | 1.6 | PlayerRoot, SheetsRoot, PlayPauseGlyph |
-| react-dom | 1.4 | client |
-| soundController | 1.3 | PlayerRoot, SheetsRoot, themeRuntime, … |
-| themeRuntime | 1.2 | PlayerRoot, SheetsRoot, playerRuntime, … |
-| prefetch | 1.1 | ClientRouter (page script), page |
-| ClientRouter (page script) | 0.8 | page HTML |
-| preload-helper | 0.8 | AmbientLight (page script), DigestView (page script), BaseLayout (page script), … |
-| PlayPauseGlyph | 0.7 | PlayerRoot |
-| installHint | 0.5 | playerRuntime, settings (page script) |
-| formatTime | 0.5 | PlayerRoot, soundController, playerRuntime, … |
-| toastStore | 0.3 | SheetsRoot |
-| page | 0.1 | page HTML |
-| runKey | 0.1 | SheetsRoot |
-| client | 0.0 | client, prefetch |
-| **Total** | **101.2** | |
-
-### Eager on some pages
-
-| Chunk | KB gz | Pages | Loaded by |
+| Chunk | KB gz | Imported by | What is in it |
 |---|---:|---|---|
-| podcast (page script) | 2.7 | podcast | page HTML |
-| library (page script) | 1.5 | library | page HTML |
-| settings (page script) | 1.1 | settings | page HTML |
-| topics (page script) | 0.8 | topics | page HTML |
-| EpisodeView (page script) | 0.6 | episode | page HTML |
-| AmbientLight (page script) | 0.3 | today, briefing, episode | page HTML |
-| create (page script) | 0.2 | create | page HTML |
-| DigestView (page script) | 0.1 | today, briefing | page HTML |
+| client (React) | 63.4 | the islands' renderer | react-dom-client 61.8, scheduler 1.1, @astrojs/react client 0.5 |
+| playerRuntime | 14.9 | PlayerRoot, PlayPauseGlyph | store 2.9, reader sync 2.1, sheet controller 1.4, runtime 1.3, reader math 0.9, surface view 0.9, media session 0.65, switchable audio 0.6, timeline 0.5, modal scope 0.4, spring 0.4, gesture math 0.24, then 14 files under 0.4 |
+| client (router) | 4.3 | ClientRouter script | Astro transitions router 2.6, swap functions 1.1, events 0.6 |
+| PlayerRoot | 4.2 | page HTML (island) | bar 1.9, surface 1.3, page content loader 0.3, cover 0.2 |
+| react | 3.2 | PlayerRoot, SheetsRoot, the router | react.production, and the shared CommonJS helper the router also imports |
+| layout script | 2.7 | page HTML | app 0.85, navigation 0.73, device banners 0.4, Create entry 0.3, theme colour 0.26 |
+| Icon | 1.8 | PlayerRoot, SheetsRoot, PlayPauseGlyph | eager glyph paths 1.6, JSX runtime 0.15 |
+| SheetsRoot | 1.6 | page HTML (island) | sheets root 1.07, toaster 0.61 |
+| soundController | 1.6 | PlayerRoot, SheetsRoot, playerRuntime | controller 0.67, scrubberMath 0.57, soundMap 0.38 |
+| react-dom, prefetch, themeRuntime, PlayPauseGlyph, router script, preload-helper | 1.4, 1.1, 1.1, 0.9, 0.8, 0.8 | | |
 
-### Lazy (dynamic import; not in the budget)
+Takeaways: React and the two islands are 73 of 108.8 KB on Today. With no island at all a page loads 16.0 KB (35.1 KB if the player runtime stays eager, because it answers the Play chips). No client chunk contains zod or yaml (checked in every source map). The page has no modulepreload links: the islands' graph (17 files) is discovered one round trip at a time after idle.
+
+Lazy, not in the budget (fetched on use; the first three are also warmed at idle):
 
 | Chunk | KB gz | Reachable from | Imported by |
 |---|---:|---|---|
-| SheetFrame | 33.2 | all | GenerateSheet, SettingsSheet, NarrateSheet, … |
-| SettingsSheet | 9.9 | all | SheetsRoot |
-| narrationRuntime | 5.5 | all | playerRuntime |
-| PlayerPageContent | 4.1 | all | PlayerRoot |
-| src | 3.8 | all | soundController |
-| generateRuntime | 3.0 | all | SheetsRoot, GenerateSheet |
-| topicsEditor | 2.6 | topics | topics (page script), topicsSheet |
-| ambientLight | 2.2 | today, briefing, episode | AmbientLight (page script) |
-| LazyIcon | 2.1 | all | PlayerPageContent, GenerateSheet, SettingsSheet, … |
-| GenerateSheet | 1.8 | all | SheetsRoot |
-| topicsSheet | 1.7 | topics | topicsEditor |
-| runStatus | 1.6 | all | BaseLayout (page script), createPage, episodeActions |
-| createPage | 1.6 | all | createSheet, create (page script) |
-| FieldControl | 1.5 | all | GenerateSheet, NarrateSheet |
-| briefingPage | 1.4 | today, briefing, episode | DigestView (page script), EpisodeView (page script) |
-| managePageSave | 1.4 | podcast, topics | podcast (page script), topicsEditor |
-| episodeActions | 1.4 | episode | EpisodeView (page script) |
-| navigationBoost | 1.3 | all | BaseLayout (page script) |
-| combobox | 1.3 | podcast | podcast (page script) |
-| uiClicks | 1.2 | all | BaseLayout (page script) |
-| podcastProfiles | 1.1 | podcast | podcast (page script) |
-| NarrateSheet | 1.0 | all | SheetsRoot |
-| deletedEpisodes | 0.6 | all | BaseLayout (page script), episodeActions |
-| createSheet | 0.5 | all | BaseLayout (page script) |
-| navigation | 0.4 | all | PlayerPageContent, generateRuntime, coverPress, … |
-| voices | 0.4 | all | createPage, podcastProfiles |
-| FieldDescription | 0.3 | all | GenerateSheet, SettingsSheet |
-| coverPress | 0.3 | all | playerRuntime |
-| passphrasePrompt | 0.2 | all | NarrateSheet, narrationRuntime |
-| access | 0.0 | all | GenerateSheet, narrationRuntime, managePageSave |
+| SheetFrame (Base UI Drawer, swipe, focus) | 34.0 | all | GenerateSheet, NarrateSheet |
+| PlayerPageContent | 8.5 | all | PlayerRoot (idle) |
+| GenerateSheet (icons.ts is 4.5 of it) | 6.6 | all | SheetsRoot (idle) |
+| narrationRuntime | 5.5 | all | playerRuntime, runStatus |
+| savedView | 5.2 | settings, daily, topics, model | settings pages |
+| soundmap audio (`src`) | 4.0 | all | soundController |
+| createPage, runStatus, managePageSave, generateRuntime, topicsPanel | 3.9, 3.5, 3.1, 3.1, 3.1 | various | |
+| topicsEditor, picker, podcastPage, ambientLight, briefingPage | 2.7, 2.6, 2.2, 2.2, 2.0 | various | |
+| LazyIcon, episodeActions, uiClicks, navigationBoost, storyVotes | 1.9, 1.8, 1.6, 1.3, 1.2 | | |
 
-### Per page
+The idle warm-up fetches about 100 KB beyond the counted first load (one quiet run transferred 209 KB of script against 108.8 counted): SheetFrame, GenerateSheet, PlayerPageContent and the icons arrive without a tap.
 
-| Page | Eager KB gz | Eager files | Page-specific eager |
-|---|---:|---:|---|
-| today | 101.6 | 23 | AmbientLight (page script) 0.3; DigestView (page script) 0.1 |
-| briefing | 101.6 | 23 | AmbientLight (page script) 0.3; DigestView (page script) 0.1 |
-| episode | 102.1 | 23 | AmbientLight (page script) 0.3; EpisodeView (page script) 0.6 |
-| library | 102.7 | 22 | library (page script) 1.5 |
-| create | 101.4 | 22 | create (page script) 0.2 |
-| settings | 102.3 | 22 | settings (page script) 1.1 |
-| podcast | 103.9 | 22 | podcast (page script) 2.7 |
-| topics | 102.0 | 22 | topics (page script) 0.8 |
+## Runtime cost on a phone
+
+Playwright, Chromium, `devices["Pixel 7"]`, 4x CPU slowdown, DevTools Fast 3G (562.5 ms latency, 1.47 Mbps down, 675 kbps up) through CDP, a fresh context per run with the service worker blocked (a first visit), files gzipped by a proxy in front of `e2e/staticServer.mjs`. "Bar pressable" is the moment the PlayerRoot island loses its `ssr` attribute. TBT counts long tasks over 50 ms after FCP. Median of 5.
+
+The machine was shared with other builds and browser suites during the runs, and the CPU slowdown stacks on that load: the same page measured 2.1 s LCP, 0.4 s TBT, 5.4 s bar and 0.44 s script in a quiet 3-run set and 4.2 s, 5.0 s, 9.7 s and 2.0 s in a loaded 5-run set. Read the columns against each other (interleaved runs), not against the 2026-10-10 table (LCP 1.6 s, TBT 51 ms, bar 4.2 s, script 337 ms on a quiet machine).
+
+| Page / variant | LCP ms | TBT ms | Bar pressable ms | Script ms | JS KB | CSS KB | Fonts KB | Images KB | HTML KB |
+|---|---:|---:|---:|---:|---:|---:|---:|---:|---:|
+| Today, loaded | 4208 | 4976 | 9662 | 2036 | 140 | 36.3 | 50.4 | 9.1 | 22.7 |
+| Today, quiet (3 runs) | 2144 | 396 | 5423 | 435 | 197 | 36.3 | 50.4 | 9.1 | 22.7 |
+| Briefing | 2424 | 3016 | 6742 | 1765 | 140 | 36.3 | 50.4 | 9.1 | 22.7 |
+| Briefing, island graph modulepreloaded | 2288 | 1568 | **4260** | 1458 | 130 | 36.3 | 50.4 | 9.1 | 23.0 |
+| Topics | 2284 | 1133 | 5739 | 1643 | 150 | 40.8 | 50.4 | 0 | 15.9 |
+| Topics, island graph modulepreloaded | 2212 | 744 | **4402** | 1467 | 131 | 40.8 | 50.4 | 0 | 16.1 |
+| Today, modulepreloaded (loaded) | 4464 | 3339 | 7412 | 1243 | 135 | 36.3 | 50.4 | 3.1 | 23.0 |
+
+Readings:
+
+- LCP is CSS, the font and the HTML, not JavaScript; the modulepreload variant leaves it where it was.
+- The bar answers 2.5 to 3 s after LCP because the island's graph is fetched in rounds of 562 ms: idle, then the island module and the React client, then their imports, then theirs. Hinting the 17 files in the head (a hand-edited copy of the built HTML, not a build) brought the bar forward by 1.3 to 2.5 s with the same bytes.
+- Blocking time is dominated by the machine here; the library page (loaded) read LCP 4668, TBT 2975, bar 9251.
+- Fonts: one file, Google Sans Flex variable (wght 400 to 700, Latin), 49.6 KB of the 80 KB font budget, preloaded, `font-display: swap` with a size-adjusted Arial fallback.
+
+## Candidates, ranked by KB saved per unit of risk
+
+Risk is 1 (isolated) to 5 (changes how the app mounts). KB are gzipped and counted by `checkBundle`. Nothing is built.
+
+| # | Cut | KB off | Risk | KB / risk | Touches |
+|---|---|---:|---:|---:|---|
+| 1 | No island eager: the player runtime starts from a page script; React, the bar, the open player and the sheets mount when a track is loaded or resumable, on a press of Play or Create, or on idle after first input; SheetsRoot and the toaster become Astro markup and a small vanilla module that imports React when a sheet opens | 73 (Today 108.8 to about 35; 16 if the runtime also waits, which it cannot: it answers the Play chips) | 5 | 14.6 | player, sheets, BaseLayout, `transition:persist`; the service worker needs no change |
+| 2 | Page scripts after first input: Blocked outlets autosave and savedOverlay (2.8), Library search and sort (about 2), StoryControls and episodeActionsEntry on the reading pages (1.5 to 1.9) | 2 to 3 per page | 1 | 2.5 | page scripts only; precedent: the Podcast and Topics editors |
+| 3 | Split playerRuntime: sheet controller 1.4, surface view 0.9, modal scope 0.4, spring 0.4, gesture math 0.24, player sheet 0.2, cover morph 0.2 (3.8), media session 0.65 more | 3.8 to 4.4 on every page | 3 | 1.3 | player (`playerSheet` is a singleton the bar and surface read, so it needs a facade); the first press waits for a chunk unless it is warmed |
+| 4 | Icon: keep only the bar's and the sheets' chrome glyphs eager (the SSR markup uses none) | 0.8 to 1.0 | 1 | 0.9 | player, sheets; `astro check` catches a missing glyph |
+| 5 | SheetsRoot and the toaster as vanilla markup alone, React still loaded for the bar | 1.6 | 3 | 0.5 | sheets, BaseLayout |
+| 6 | soundController: move scrubberMath's helper in (0.57 loaded for one function) | 0.3 to 0.4 | 1 | 0.4 | player sound |
+| 7 | PlayerRoot hydrates on first interaction, bar server-rendered as now | 0 counted (the island still names its modules); about 0.2 to 0.4 s of script leaves the load | 4 | 0 | player; the early tap (D82) holds a Play until hydration, which would then take 3 round trips (about 1.7 s on Fast 3G) instead of none |
+
+Separate from KB, both cheap:
+
+- **Modulepreload the islands' static graph** (PlayerRoot, SheetsRoot, the React client and their 17 files): 0 KB, bar pressable 1.3 to 2.5 s earlier, LCP unchanged. It needs the hashed names at build time, so a build step or an Astro integration in `astro.config.mjs` (or the layout reading the manifest). `public/sw.js` already collects `/_astro/` paths from HTML and needs no change; no inline script; every page script stays a file. Risk 2. Best measured effect of anything here.
+- **Stop the idle warm of GenerateSheet** (SheetFrame 34.0 plus 6.6): 0 counted, about 41 KB less in the first seconds. A first Create tap then pays two round trips unless it is warmed on `pointerdown` or hover of the Create control. Risk 2.
+- The router imports the 3.2 KB react chunk through a shared CommonJS helper, so React's chunk loads even on a page with no island. A manual chunk for the helper would take it off; it matters only with cut 1. Risk 2.
+- Not worth it or no gain: fonts (one preloaded Latin variable file with swap; a glyph subset was not measured and would save fonts, not JavaScript); hover prefetch fetches page HTML only (16 to 23 KB), no chunks; duplicate zod or yaml (none in any client chunk); dead exports were not scanned.
+
+Guardrails for any cut: the service worker follows script imports six levels deep in `"`, `'` and backtick forms and keys its caches on `VERSION` (v7), so a change to its logic bumps it; a new lazy file must stay reachable by those patterns; no new inline scripts (the CSP lists three hashes and the head script stays under 512 bytes); every page script is a file (`assetsInlineLimit: 0`); D47's instant moves and INP mean a first press must not wait for a chunk the page could have warmed; code outside the sheets asks for a toast by event so the toast store does not split into its own chunk.
 
 ## How to measure again
 
 1. `DISPATCH_STATIC_ONLY=1 npm run build -w @dispatch/web` prints every page's total.
-2. The chunk tables and the phone run were made with throwaway scripts: follow `entryScripts` and `staticImports` from `src/lib/bundleBudget.ts` for eager files and `import(` for lazy ones; drive Chromium through CDP (`Emulation.setCPUThrottlingRate`, `Network.emulateNetworkConditions`) and read `largest-contentful-paint`, `longtask` and `Performance.getMetrics` (`ScriptDuration`).
-
-## Keeping it low (2026-10-10, D53)
-
-Measured on the design pass branch, static build, source maps mapped back to files (gzip shared out in proportion to raw bytes inside each chunk). Heaviest page /library at 103.2 KB.
-
-| Chunk | KB gz | What is in it |
-|---|---:|---|
-| React client | 63.4 | react-dom client and the scheduler |
-| playerRuntime | 12.4 | store 2.7, reader sync 1.5, open-player controller 1.4, runtime 1.0, media session 0.7, reader math 0.7, surface view 0.6, switchable audio 0.6, timeline 0.4, modal scope 0.4, spring 0.4, the rest under 0.3 each |
-| Astro router | 5.3 | client 4.2, prefetch 1.1 |
-| PlayerRoot | 3.8 | bar 1.5, surface 1.1, page content loader 0.3 |
-| react + react-dom | 4.6 | |
-| layout script | 2.5 | navigation 0.6, device banners 0.3, app 0.3, theme colour 0.3, Create entry 0.3, service worker 0.2 |
-| SheetsRoot | 1.7 | sheets root 0.8, toaster 0.4 |
-| Icon | 1.5 | the eager player glyphs |
-| sound, theme | 2.7 | sound controller 1.4, theme runtime 1.3 |
-| Library page script | 1.5 | the Library's search, sort, filter and view |
-
-Ways to bring it down, largest first:
-
-1. React only when there is something to show: about 76 KB off a first visit with nothing playing (React 68, PlayerRoot 3.8, SheetsRoot 1.7, icons 1.5, glyph 0.9). The player runtime would start from its own page script (it is plain TypeScript and already answers the play chips through reader sync), and the React bar, the open player and the sheets would mount when a track is loaded or resumable, on the first press of Play or Create, or on idle after the first interaction. Cost: the first Play on a cold visit waits for the React chunk unless it is fetched on hover or touchstart; a medium refactor of how PlayerRoot and SheetsRoot mount (a custom client directive or a manual root). The largest saving there is, and the only one that is not a few hundred bytes.
-2. The open-player machinery on first play: about 4 KB off every page (open-player controller 1.4, surface view 0.6, spring 0.4, modal scope 0.4, gesture math 0.2, player sheet 0.2, media session 0.7). `playerSheet` is a singleton the bar and the surface read, so it needs a facade that loads the controller when the dock first shows.
-3. The service worker code after load: 0.2 KB. It already registers only after the load event.
-4. Not worth it: the Library script's search on first focus (about 1 KB, Library only), the device banners (0.3 KB, would add a layout shift when a stale banner arrives late), dropping prefetch or the router (D47).
-
+2. Chunk map: a tsx script that imports `entryScripts` and `staticImports` from `src/lib/bundleBudget.ts`, walks static imports from each page's entries (eager), then dynamic `import(...)` in the `"`, `'` and backtick forms (lazy), and gzips each file.
+3. Module shares: add `sourcemap: true` to `vite.build` in `apps/web/astro.config.mjs` for one build, decode each `.map`'s mappings into bytes per source, share the chunk's gzip size out in proportion, then revert the config.
+4. Runtime: the CDP run above. Run the variants interleaved, one run of each in turn, and say whether the machine was busy: absolute numbers move 2x with load.
