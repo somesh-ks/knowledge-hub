@@ -29,7 +29,7 @@ Private design-engineering news briefing. A GitHub Actions engine writes a diges
 - No em dashes. Persisted data is snake_case; docs and config files are lowercase kebab-case.
 - Do not edit `Digests/` or `state/` by hand.
 - Changes to `.github/workflows` need a manual merge (the auto-merge token cannot merge them).
-- Code review: PRs get none by default. For one, add the `review` label to the PR when you open it: `claude-code-review.yml` runs the review and `automerge.yml` skips a labelled PR, so a human merges it after the review lands (to re-review, remove and re-add the label). Or run the `code-review` skill on the branch yourself before the PR.
+- Code review: PRs get none by default. There are two ways to get one. (1) The `review` label on GitHub: add it to the PR when you open it; `claude-code-review.yml` runs the review and `automerge.yml` skips a labelled PR, so a human merges it after the review lands (to re-review, remove and re-add the label). (2) The `/code-review` skill: run it on the branch or the commit range yourself, before the PR or after the merge.
 - TypeScript stays on 6.x.
 
 ## Tests
@@ -39,7 +39,7 @@ Few, one layer each, aimed at what fails silently ([evidence](docs/postmortem-te
 - A test names the bug it prevents: no sentence, no test. Search the unit, `apps/web/e2e` and `apps/web/src/player/e2e` suites for the behaviour first, and extend or replace a test instead of adding one.
 - Test journeys across pages, reload, offline and time, not states. Never pin copy, CSS, class names, markup, geometry or constants: screenshots and critics judge those.
 - Fake the clock, crypto and network; freeze fixtures; never sleep or read live config. Test the product page, not a lab.
-- Delete or rewrite the tests of behaviour you change or remove, in the same commit. Do not add a test for every fix: add one for a logic bug, show it red without the fix, and put it where the logic lives.
+- Delete or rewrite the tests of behaviour you change or remove, in the same commit. Each time you add or remove a feature or a function, streamline its tests in the same PR: drop what pins the old behaviour, fold overlapping specs together, and leave the suite no larger than the change needs. Do not add a test for every fix: add one for a logic bug, show it red without the fix, and put it where the logic lives.
 - A browser test runs once: on the phone unless it is tagged `@desktop` (desktop only) or `@both`. Counts and run times are in `docs/state.md`; a change that breaks the budget cuts first.
 
 ## Keeping the record

@@ -13,7 +13,8 @@ import type { ConfigOp, ConfigResponse } from "../types/contracts";
 const KEY = "dispatch:narrate-passphrase";
 
 export const SAVING = "Saving";
-export const SAVED = "Saved. Live in about a minute.";
+/** Spoken, never shown: a save that went through needs no toast, the control already shows it. */
+export const SAVED = "Saved.";
 
 /** Shown when the edit went through but the site could not change the briefing time. */
 export const TIME_REFUSED = "Saved, except the time, which could not be changed.";
@@ -59,8 +60,11 @@ export interface Pending {
   done?: () => void;
 }
 
-/** What the toast shows: a removal that can still be undone, a save on its way, its outcome. */
-export type SaveState = "undo" | "saving" | "done" | "error";
+/**
+ * What the toast shows: a removal that can still be undone, an outcome to read ("done"), a failure.
+ * A save on its way ("saving") and one that went through ("saved") show nothing; the second is spoken.
+ */
+export type SaveState = "undo" | "saving" | "saved" | "done" | "error";
 
 export interface SaveContext {
   changes: Map<string, Pending>;
@@ -588,5 +592,6 @@ export async function flush(
     // that went through makes none: it happens on its own after every change, and the change itself
     // already made its tick.
     globalThis.document?.dispatchEvent(new CustomEvent("dispatch:sound", { detail: "failure" }));
-  } else show(timeRefused ? TIME_REFUSED : SAVED, "done");
+  } else if (timeRefused) show(TIME_REFUSED, "done");
+  else show(SAVED, "saved");
 }

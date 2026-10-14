@@ -122,6 +122,9 @@ D1 to D9 date from plan v2 (2026-10-05). D10 to D25 date from 2026-10-06. Reason
 | D110 | Covers dated 2026-10 or later take one colour scheme per month, set layouts for Daily and Weekly and a round plate for On demand, with contrast enforced in code | active |
 | D111 | The open player has no drag handle and square top corners at every point of its travel | active; amends D32, D106 |
 | D112 | Every page modulepreloads what it loads at start; code a press needs loads at idle, never on the press; the player's motion loads after first paint; the first-load budget is 109 KB | active; amends D53, D103 |
+| D113 | Claude Sonnet 5.5 is the default writer for the page and the engine; the Model list has no Default row; Nebius starts on GLM-5.3 | active; amends D46, D106 |
+| D114 | Every episode is written for the owner: the General audience is retired, and the New episode form is Title, Topics, Length, Look back, with Format, Voice and Tone under More options | active; amends D39, D67, D76, D101 |
+| D115 | Settings save quietly: no toast while a change saves or once it is saved; the toast is for a failure, an Undo or a partial save | active; amends D79, D91, D98 |
 
 ---
 
@@ -1251,3 +1254,34 @@ D1 to D9 date from plan v2 (2026-10-05). D10 to D25 date from 2026-10-06. Reason
 - Why: the bar answered 2.5 to 3 s after the largest paint on a slow phone because the island's graph was fetched one round trip at a time; hints brought it 1.1 to 1.5 s forward with LCP unchanged. A first press that waits on a download breaks D47's instant moves. A ceiling 44 KB above the code (D103) let a page grow by a third before anything failed.
 - Cost: about 15 to 20 KB more script fetched at idle, by the warmed chunks' sizes (not counted by the budget, not measured as a transfer). A press on the bar before idle waits for the motion chunk, as it already waited for the open page's controls. A feature that adds first-load code now has 3 KB of room.
 - Rejected: no island eager at first load (about 73 KB off every page; parked by the owner for its risk to the early Play tap, D82); loading page code on first input (a press would wait on a download); moving only `detentGain` out of scrubberMath (0 KB: the module moved to another eager chunk).
+
+## D113: Claude Sonnet 5.5 is the default writer; the Model list has no Default row
+
+- Date: 2026-10-14 (the owner: "Glm 5.3 is set for nebius, by default I want sonnet 5.5"; #121, #124)
+- Decision:
+  - `DEFAULT_WRITER` (core) is Anthropic, `claude-sonnet-5-5`. The engine writes with it when `config/writer.json` is missing or broken, the page names it when nothing is chosen, and `config/writer.json` holds it.
+  - Without `ANTHROPIC_API_KEY` the engine warns and writes on the Nebius models, so the default never stops a run.
+  - The Model list has no Default (automatic) row: it shows the chosen model, under Top models and All models headings set in regular weight on the left. Switching the provider to Nebius starts on GLM-5.3 (`NEBIUS_DEFAULT_ID`) while the live list serves it, else the first model.
+- Why: the page said one default and the engine used another (a missing file meant Nebius). A Default row named no model, so the owner could not tell what wrote an episode.
+- Cost: a run without the Anthropic key writes on Nebius with a warning, not with what the page shows.
+- Rejected: keeping the automatic row, which was the ambiguity.
+
+## D114: Every episode is written for the owner; the New episode form is shorter
+
+- Date: 2026-10-14 (the owner: "Remove, always Somesh"; "Add lookback after length"; #123)
+- Decision: the General audience and the Written for control are gone; a hidden `audience` field always sends `custom`. Design, AI and Technology start ticked. The form is Title, Topics, Length, Look back; More options holds Format, Voice and Tone, and its line reads "{format} · {tone} tone".
+- Why: the owner never chose General, and the preset with its Undo line was a step before every episode.
+- Cost: a general-news episode is made by ticking the general topics by hand.
+- Rejected: keeping General as a preset under More options.
+
+## D115: Settings save quietly
+
+- Date: 2026-10-14 (the owner: "I don't want the saving in progress snackbar ... I want it to feel live and natural"; #125)
+- Decision:
+  - A settings change shows no toast while it saves or once it is saved; the control already shows the change. The polite live region says "Saved." for a screen reader.
+  - The toast comes up only when the owner can act or should know: a failure with Retry, a removal with Undo, and a save that could not change the time.
+  - A page opened again before the build shows saved values without a line under its title. The line appears only when a held edit failed ("Not saved yet. It goes with your next change.").
+- Why: a toast after every change made each edit feel like a transaction. The controls and the saved overlay (D79) already show the change at once.
+- Cost: a sighted owner sees no confirmation that a save went through. A failure is still shown, and the rest of the site still updates after the redeploy (about a minute), which this does not change.
+- Rejected: a shorter-lived Saved toast; an inline check beside the changed row (more markup for the same news).
+

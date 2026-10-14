@@ -1,16 +1,15 @@
 /**
  * Settings save themselves. A change waits until the controls have been still for a moment, so a
  * few quick changes go as one, then every pending edit is sent (managePageSave.ts, loaded with the
- * first change). The toast from ManageChrome says what is happening: Saving, Saved, or what went
- * wrong with a Retry. A removal waits longer, with an Undo in the toast, because it is the one change
- * that cannot be put back by changing it again. Hiding or leaving the page sends what is waiting.
+ * first change). Saving is quiet, as a native setting is: the control already shows the change, and
+ * a screen reader hears Saved. The toast from ManageChrome comes up only for what needs the owner:
+ * what went wrong, with a Retry, and a removal, which waits longer with an Undo because it is the one
+ * change that cannot be put back by changing it again. Hiding or leaving the page sends what is waiting.
  */
 import type { Pending, SaveContext, SaveState } from "./managePageSave";
 
 type Saver = typeof import("./managePageSave");
 
-/** What the toast says while a change is on its way (SAVING in managePageSave.ts, loaded later). */
-const SAVING = "Saving";
 /** When the sending code itself cannot be fetched (the device went offline before the first change). */
 const CANNOT_SEND = "The site could not be reached. Not saved yet.";
 
@@ -18,7 +17,7 @@ const CANNOT_SEND = "The site could not be reached. Not saved yet.";
 export const SETTLE_MS = 1200;
 /** How long a removal waits, with Undo in the toast, before it is sent. */
 export const UNDO_MS = 5000;
-/** How long "Saved" stays before the toast goes. */
+/** How long an outcome to read ("done") stays before the toast goes. */
 export const SAVED_MS = 4000;
 /** The air kept between the control just changed and the toast over the page. */
 const CLEAR_PX = 12;
@@ -55,14 +54,8 @@ export function mountAutosave(
   let linger = 0;
   /** The sending module, once loaded: leaving the page needs it at once, not a promise later. */
   let saver: Saver | null = null;
-  /** True from a save being asked for until its run ends, the wait out of the server's gap included. */
-  let sending = false;
   /** The toast is still on this page: a run that outlives a page swap has nothing to show. */
   const here = (): boolean => (bar ?? root).isConnected;
-  /** "Saved" is showing. */
-  const shownDone = (): boolean =>
-    bar?.dataset.state === "done" &&
-    (typeof bar.showPopover === "function" ? bar.matches(":popover-open") : !bar.hidden);
   const controlOf = (target: EventTarget | null): Element | null => {
     const control = (target as Element | null)?.closest?.("input, select, textarea, button");
     return control && root.contains(control) && !bar?.contains(control) ? control : null;
@@ -129,12 +122,19 @@ export function mountAutosave(
   const show = (message: string, state: SaveState): void => {
     window.clearTimeout(linger);
     if (!here()) return;
+    if (bar) bar.dataset.state = state;
+    // A save on its way or done takes any toast away: a failure it retries is no longer the news.
+    if (state === "saving" || state === "saved") {
+      if (live) live.textContent = state === "saved" ? message : "";
+      if (alert) alert.textContent = "";
+      open(false);
+      return;
+    }
     if (text) text.textContent = message;
     // One live region speaks it, and an error is an alert, so it is heard at once. The toast itself
     // has no role: two regions would say the same words twice.
     if (live) live.textContent = state === "error" ? "" : message;
     if (alert) alert.textContent = state === "error" ? message : "";
-    if (bar) bar.dataset.state = state;
     open(true);
     reveal();
     if (state === "done") linger = window.setTimeout(() => open(false), SAVED_MS);
@@ -151,7 +151,6 @@ export function mountAutosave(
   const now = (): void => {
     window.clearTimeout(still);
     if (changes.size === 0) return;
-    sending = true;
     void import("./managePageSave")
       .then((module) => {
         saver = module;
@@ -161,9 +160,6 @@ export function mountAutosave(
       .catch(() => {
         // The sender could not be fetched: say so, and let Retry try again.
         show(CANNOT_SEND, "error");
-      })
-      .finally(() => {
-        sending = false;
       });
   };
 
@@ -183,7 +179,7 @@ export function mountAutosave(
 
   bar?.addEventListener("click", (event) => {
     const act = (event.target as Element).closest<HTMLButtonElement>("button")?.dataset.act;
-    // Each one takes its own button away: Retry shows Saving, which has none.
+    // Each one takes its own button away: Retry sends quietly, with the toast gone.
     if (act) handBack();
     if (act === "retry") now();
     else if (act === "undo") options.undo?.();
@@ -228,11 +224,6 @@ export function mountAutosave(
       const removal = changes.size > 0 ? (options.removing?.() ?? null) : null;
       if (removal) show(removal, "undo");
       else if (bar?.dataset.state === "undo") open(false);
-      // "Saved" never stays up over a change not sent yet: the toast says Saving from the change,
-      // through any wait out of the server's gap. A change put back while nothing is on its way
-      // takes the Saving away again.
-      else if (changes.size > 0 && (sending || shownDone())) show(SAVING, "saving");
-      else if (changes.size === 0 && bar?.dataset.state === "saving") open(false);
       if (changes.size > 0) still = window.setTimeout(now, removal ? UNDO_MS : SETTLE_MS);
     },
     now,

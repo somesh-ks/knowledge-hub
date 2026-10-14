@@ -4,12 +4,11 @@ import { expect, test } from "./fixtures";
 
 /**
  * A change held by the server's ten seconds between edits, its page left, and the held request then
- * answered while another settings page is open. The page on screen must say how it went: Saved, or
- * not saved with Retry, never a Saving for a change that is going nowhere.
+ * answered while another settings page is open. The page on screen stays quiet while it goes through,
+ * and says when it failed, with Retry: never a change shown as saved that is going nowhere.
  */
 
-const SAVED = "Saved. Live in about a minute.";
-const SAVING_NOTE = "Saving. Live in about a minute.";
+const SAVED = "Saved.";
 const NOT_SAVED_NOTE = "Not saved yet. It goes with your next change.";
 
 interface Sent {
@@ -34,6 +33,8 @@ async function mockConfig(page: Page, answers: Array<number | "abort">) {
 
 const ops = (sent: Sent[]) => sent.flatMap((request) => [request.op].flat());
 const toastText = (page: Page) => page.locator("[data-bar] [data-bar-text]");
+/** A save that went through shows no toast; a screen reader hears it. */
+const spoken = (page: Page) => page.locator("[data-live]");
 const note = (page: Page) => page.locator("[data-saved-note]");
 const pendingStored = (page: Page) =>
   page.evaluate(() => (localStorage.getItem("dispatch:saved-edits") ?? "").includes('"pending"'));
@@ -44,9 +45,8 @@ async function holdDailyLength(page: Page): Promise<void> {
   await page.getByRole("link", { name: /^Daily/ }).click();
   await expect(page.locator("[data-manage]")).toHaveAttribute("data-voices", "");
   await page.locator("#daily-hour").selectOption("9");
-  await expect(toastText(page)).toHaveText(SAVED);
+  await expect(spoken(page)).toHaveText(SAVED);
   await page.getByRole("radio", { name: "3 min" }).check();
-  await expect(toastText(page)).toHaveText("Saving");
   await page.goBack();
   await expect(page).toHaveURL(/\/settings$/);
 }
@@ -69,10 +69,11 @@ test.describe("a change held in the server's gap when its page is left", () => {
       await holdDailyLength(page);
       await openDaily(page);
       await expect(page.getByRole("radio", { name: "3 min" })).toBeChecked();
-      await expect(note(page)).toHaveText(SAVING_NOTE);
-      // The held request is answered: the page says so at once, in the toast and to a screen reader.
+      await expect(note(page)).toBeHidden();
+      // The held request fails: the page says so at once, in the toast and to a screen reader.
       await page.clock.runFor(GAP_MS);
       await expect.poll(() => sent.length).toBe(2);
+      await expect(note(page)).toBeVisible();
       await expect(note(page)).toHaveText(NOT_SAVED_NOTE);
       const failure =
         lost === 500 ? "Saving failed." : "The site could not be reached. Not saved yet.";
@@ -84,8 +85,9 @@ test.describe("a change held in the server's gap when its page is left", () => {
       await page.clock.runFor(GAP_MS);
       await expect.poll(() => sent.length).toBe(3);
       expect(ops(sent).at(-1)).toEqual({ op: "schedule.set", length_minutes: 3 });
-      await expect(toastText(page)).toHaveText(SAVED);
-      await expect(note(page)).toHaveText(SAVED);
+      await expect(spoken(page)).toHaveText(SAVED);
+      await expect(note(page)).toBeHidden();
+      await expect(toastText(page)).toBeHidden();
       await page.clock.runFor(GAP_MS);
       expect(sent).toHaveLength(3);
       // A reload agrees: both changes are saved.
@@ -103,22 +105,22 @@ test.describe("a change held in the server's gap when its page is left", () => {
     await openDaily(page);
     await page.clock.runFor(GAP_MS);
     await expect.poll(() => sent.length).toBe(2);
-    await expect(note(page)).not.toHaveText(SAVING_NOTE);
+    await expect(note(page)).toBeVisible();
     await page.reload();
     await expect(page.locator("[data-manage]")).toHaveAttribute("data-voices", "");
     await expect(page.getByRole("radio", { name: "3 min" })).not.toBeChecked();
-    await expect(note(page)).toHaveText(SAVED);
+    await expect(note(page)).toHaveCount(0);
   });
 
-  test("Daily says Saved without a reload when the held request goes through", async ({ page }) => {
+  test("Daily stays quiet when the held request goes through", async ({ page }) => {
     await page.clock.install();
     const sent = await mockConfig(page, []);
     await holdDailyLength(page);
     await openDaily(page);
-    await expect(note(page)).toHaveText(SAVING_NOTE);
     await page.clock.runFor(GAP_MS);
     await expect.poll(() => sent.length).toBe(2);
-    await expect(note(page)).toHaveText(SAVED);
+    await expect(note(page)).toBeHidden();
+    await expect(toastText(page)).toBeHidden();
     await expect(page.getByRole("radio", { name: "3 min" })).toBeChecked();
     expect(await pendingStored(page)).toBe(false);
   });
@@ -131,9 +133,8 @@ test.describe("a change held in the server's gap when its page is left", () => {
     await page.goto("/settings");
     await openDaily(page);
     await page.locator("#daily-hour").selectOption("9");
-    await expect(toastText(page)).toHaveText(SAVED);
+    await expect(spoken(page)).toHaveText(SAVED);
     await page.locator("#daily-cadence").selectOption("1");
-    await expect(toastText(page)).toHaveText("Saving");
     await page.goBack();
     const row = page.getByRole("link", { name: /^Daily/ });
     await expect(row).toContainText("Every day at 09:00");
@@ -157,24 +158,23 @@ test.describe("a change held in the server's gap when its page is left", () => {
     const root = page.locator("[data-topics]");
     await expect(root).toHaveAttribute("data-ready", "");
     await page.getByRole("checkbox", { name: "Read Studio Notes" }).uncheck();
-    await expect(toastText(page)).toHaveText(SAVED);
+    await expect(spoken(page)).toHaveText(SAVED);
     await page.getByRole("checkbox", { name: "Read Type and Grid" }).uncheck();
-    await expect(toastText(page)).toHaveText("Saving");
     await page.goBack();
     await expect(page).toHaveURL(/\/settings\/topics$/);
     await page.locator('a.row-action[href="/settings/topics/design"]').click();
     await expect(page).toHaveURL(/\/design$/);
     await expect(page.getByRole("checkbox", { name: "Read Type and Grid" })).not.toBeChecked();
-    await expect(note(page)).toHaveText(SAVING_NOTE);
+    await expect(note(page)).toBeHidden();
     await page.clock.runFor(GAP_MS);
     await expect.poll(() => sent.length).toBe(2);
-    await expect(note(page)).toHaveText(NOT_SAVED_NOTE);
+    await expect(note(page)).toBeVisible();
     await expect(toastText(page)).toHaveText("Saving failed.");
     await page.locator("[data-bar] [data-act=retry]").click();
     await page.clock.runFor(GAP_MS);
     await expect.poll(() => sent.length).toBe(3);
     expect(ops(sent).at(-1)).toEqual({ op: "source.set", id: "type-and-grid", enabled: false });
-    await expect(note(page)).toHaveText(SAVED);
+    await expect(note(page)).toBeHidden();
     await page.clock.runFor(GAP_MS);
     expect(sent).toHaveLength(3);
   });

@@ -35,14 +35,7 @@ import {
 } from "../lib/sourceCatalogMatch";
 import { parseSuggestedAdd, type SuggestedAdd } from "../lib/topicText";
 import type { ConfigOp } from "../types/contracts";
-import {
-  ADDED_SOURCE,
-  ADDED_TOPIC,
-  HELD_EVENT,
-  type Held,
-  type Pending,
-  SAVED,
-} from "./managePageSave";
+import { ADDED_SOURCE, ADDED_TOPIC, HELD_EVENT, type Held, type Pending } from "./managePageSave";
 import { element, iconNode } from "./topicsView";
 
 /** The row a topic waits in until the build (ManageChrome.astro), among the page's templates. */
@@ -50,9 +43,6 @@ export const QUEUED_ROW = "template:not(#topics-panel-template, #suggested-templ
 
 /** The page that lists the sources no topic page shows (OTHER_ID in lib/topicPages.ts). */
 const OTHER_PAGE = "other";
-
-/** The line under the title says what the toast said: one wording for a save. */
-export const SAVED_NOTE = SAVED;
 
 /** The edits still waiting for the build, in the order they were saved. Forgets them once none is. */
 export function readSaved(now = Date.now()): ConfigOp[] {
@@ -65,12 +55,9 @@ export function readSaved(now = Date.now()): ConfigOp[] {
   }
 }
 
-/** What the line says while an edit shown is still on its way (left in the server's gap). */
-export const SAVING_NOTE = "Saving. Live in about a minute.";
-
 /**
- * What the line says once the run that held an edit shown here failed: the page took the edit as its
- * own (adopt, in managePageSave.ts), so the toast's Retry or the next change sends it.
+ * The line under the title, once the run that held an edit shown here failed: the page took the edit
+ * as its own (adopt, in managePageSave.ts), so the toast's Retry or the next change sends it.
  */
 export const NOT_SAVED_NOTE = "Not saved yet. It goes with your next change.";
 
@@ -83,28 +70,31 @@ export function readPending(now = Date.now()): boolean {
   }
 }
 
-/** The one quiet line under the page's title, once. */
+/**
+ * A page showing saved edits says nothing about them, as a native setting would: the controls show
+ * the change. Only an edit a left page's run still holds gets a line under the title, hidden until
+ * that run fails.
+ */
 export function markSaved(root: HTMLElement): void {
   const head = root.querySelector(".settings-head");
-  if (!head || head.querySelector("[data-saved-note]")) return;
-  const pending = readPending();
-  const note = element("p", "manage-quiet", pending ? SAVING_NOTE : SAVED_NOTE);
+  if (!head || head.querySelector("[data-saved-note]") || !readPending()) return;
+  const note = element("p", "manage-quiet", NOT_SAVED_NOTE);
   note.dataset.savedNote = "";
+  note.hidden = true;
   head.append(note);
-  if (pending) followHeld(root, note);
+  followHeld(root, note);
 }
 
 /**
- * The line said Saving for edits a left page's run still held: it follows that run to its end. Saved
- * when everything went; when it failed, the page holds those edits as its own (autosave.ts takes
- * them), and the line and any row that said Added say they are not saved yet, until a request
- * carries them.
+ * Follows a left page's run to its end. When it failed, the page holds those edits as its own
+ * (autosave.ts takes them), and the line and any row that said Added say they are not saved yet,
+ * until a request carries them.
  */
 export function followHeld(root: HTMLElement, note: HTMLElement): void {
   const off = new AbortController();
   const lost = new Set<Pending>();
   const say = (): void => {
-    note.textContent = lost.size > 0 ? NOT_SAVED_NOTE : readPending() ? SAVING_NOTE : SAVED_NOTE;
+    note.hidden = lost.size === 0;
   };
   document.addEventListener(
     HELD_EVENT,

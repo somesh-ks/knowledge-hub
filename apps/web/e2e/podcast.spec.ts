@@ -53,13 +53,15 @@ async function open(page: Page, leaf: Leaf): Promise<void> {
 
 const toast = (page: Page) => page.locator("[data-bar]");
 const toastText = (page: Page) => toast(page).locator("[data-bar-text]");
+/** A save that went through shows no toast; a screen reader hears it. */
+const spoken = (page: Page) => page.locator("[data-live]");
 const combo = (page: Page) => page.getByRole("combobox", { name: "AI Model" });
 /** The model select's options, or those under one heading: "Top models" or "All models". */
 const options = (page: Page) => combo(page).getByRole("option");
 const grouped = (page: Page, name: string) =>
   combo(page).locator(`optgroup[label="${name}"] option`);
 
-const SAVED = "Saved. Live in about a minute.";
+const SAVED = "Saved.";
 
 test.describe("the Settings index", () => {
   test("lists one row per podcast page, each with what it holds now", async ({ page }) => {
@@ -218,7 +220,7 @@ test.describe("the profile pages", () => {
     const sample = page.waitForRequest("**/api/voice-sample?voice=voice-ada");
     await choose(page, page.locator("#daily-voice"), /Ada, female/);
     await sample;
-    await expect(toastText(page)).toHaveText(SAVED);
+    await expect(spoken(page)).toHaveText(SAVED);
     const before = await page.evaluate(() => (window as unknown as { pauses: number }).pauses);
     await page.locator(".settings-up:visible, .app-bar-back:visible").first().click();
     await expect(page).toHaveURL(/\/settings$/);
@@ -291,13 +293,13 @@ test.describe("saving on its own", () => {
         format: "discussion",
         voice_id_b: "voice-leo",
       });
-    await expect(toastText(page)).toHaveText(SAVED);
+    await expect(spoken(page)).toHaveText(SAVED);
     // Never more requests than changes, and each sends only what changed.
     expect(sent.length).toBeLessThanOrEqual(3);
     // Saved is the new starting point: putting the time back is a change again.
     const before = sent.length;
     await page.locator("#daily-hour").selectOption("7");
-    // Held until the server's ten seconds between edits are up, without a Saving in the meantime.
+    // Held until the server's ten seconds between edits are up.
     await page.clock.runFor(3000);
     expect(sent.length).toBe(before);
     await page.clock.runFor(GAP_MS);
@@ -315,10 +317,8 @@ test.describe("saving on its own", () => {
       await page.getByRole("link", { name: /^Daily/ }).click();
       await expect(page.locator("[data-manage]")).toHaveAttribute("data-voices", "");
       await page.locator("#daily-hour").selectOption("9");
-      await expect(toastText(page)).toHaveText(SAVED);
+      await expect(spoken(page)).toHaveText(SAVED);
       await page.locator("#daily-cadence").selectOption("1");
-      // Saved never stays up over a change not sent yet.
-      await expect(toastText(page)).toHaveText("Saving");
       expect(sent).toHaveLength(1);
       if (way === "browser Back") await page.goBack();
       else await page.locator(".settings-up:visible, .app-bar-back:visible").first().click();
@@ -334,7 +334,7 @@ test.describe("saving on its own", () => {
       await expect(page.locator("[data-manage]")).toHaveAttribute("data-voices", "");
       await expect(page.locator("#daily-hour")).toHaveValue("9");
       await expect(page.locator("#daily-cadence")).toHaveValue("1");
-      await expect(page.locator("[data-saved-note]")).toHaveText(SAVED);
+      await expect(page.locator("[data-saved-note]")).toBeHidden();
     });
   }
 
@@ -346,7 +346,7 @@ test.describe("saving on its own", () => {
     await expect
       .poll(() => scheduleSent(sent))
       .toEqual({ op: "schedule.set", weekly: { enabled: false, day: 5 } });
-    await expect(toastText(page)).toHaveText(SAVED);
+    await expect(spoken(page)).toHaveText(SAVED);
   });
 
   test("a topic chip puts the topics it stands for in or out of this podcast alone", async ({
@@ -363,7 +363,7 @@ test.describe("saving on its own", () => {
         ids: ["audio_interfaces"],
         daily: false,
       });
-    await expect(toastText(page)).toHaveText(SAVED);
+    await expect(spoken(page)).toHaveText(SAVED);
     // The weekly podcast has its own list: this chip said nothing of it.
     expect(opsOf(sent).some((op) => "weekly" in op)).toBe(false);
     // Saved is the new starting point: ticking it again is a change again.
@@ -391,11 +391,10 @@ test.describe("saving on its own", () => {
 });
 
 test.describe("saved, before the build", () => {
-  const NOTE = SAVED;
   const KEY = "dispatch:saved-edits";
   const note = (page: Page) => page.locator("[data-saved-note]");
 
-  test("a page opened again before the build shows what was saved, says so, and sends nothing", async ({
+  test("a page opened again before the build shows what was saved, quietly, and sends nothing", async ({
     page,
   }) => {
     await page.clock.install();
@@ -405,7 +404,7 @@ test.describe("saved, before the build", () => {
     await expect(note(page)).toHaveCount(0);
     await page.locator("#daily-hour").selectOption("9");
     await page.getByRole("checkbox", { name: "Audio interfaces" }).click({ force: true });
-    await expect(toastText(page)).toHaveText(SAVED);
+    await expect(spoken(page)).toHaveText(SAVED);
     const before = sent.length;
 
     await page.reload();
@@ -413,13 +412,10 @@ test.describe("saved, before the build", () => {
     expect(built).not.toBe("9");
     await expect(page.locator("#daily-hour")).toHaveValue("9");
     await expect(page.getByRole("checkbox", { name: "Audio interfaces" })).not.toBeChecked();
-    await expect(note(page)).toHaveText(NOTE);
+    await expect(note(page)).toHaveCount(0);
     // The saved values are the page's starting point: nothing goes again on its own.
     await page.clock.runFor(GAP_MS);
     expect(sent.length).toBe(before);
-    // The Weekly page was not changed and says nothing.
-    await open(page, "weekly");
-    await expect(note(page)).toHaveCount(0);
   });
 
   // The zone was saved and nothing read it (D89); filed under weekly, the server dropped it.
@@ -536,8 +532,9 @@ test.describe("a refused save", () => {
     await expect(page.locator("[data-live]")).toHaveText("");
     await expect(toast(page)).not.toHaveAttribute("role", /.+/);
     await toast(page).getByRole("button", { name: "Retry" }).click();
-    await expect(toastText(page)).toHaveText(SAVED);
-    await expect(page.locator("[data-live]")).toHaveText(SAVED);
+    // A save that goes through takes the toast away and is only spoken: the control shows it.
+    await expect(spoken(page)).toHaveText(SAVED);
+    await expect(toast(page)).toBeHidden();
     await expect(page.locator("[data-alert]")).toHaveText("");
     expect(sent).toHaveLength(2);
     expect(sent[1]?.op).toEqual({ op: "schedule.set", hour: 9 });
@@ -581,7 +578,7 @@ test.describe("a change made offline", () => {
     await context.setOffline(false);
     online = true;
     await toast(page).getByRole("button", { name: "Retry" }).click();
-    await expect(toastText(page)).toHaveText(SAVED);
+    await expect(spoken(page)).toHaveText(SAVED);
     expect(opsOf(sent)).toContainEqual({ op: "schedule.set", hour: 9 });
   });
 });
@@ -606,7 +603,7 @@ test.describe("the Model page", () => {
     await open(page, "model");
     // A top model is picked by its short name and saved by its id, as any live pick is.
     await combo(page).selectOption({ label: "Kimi K3" });
-    await expect(toastText(page)).toHaveText(SAVED);
+    await expect(spoken(page)).toHaveText(SAVED);
     expect(opsOf(sent)).toContainEqual({
       op: "writer.set",
       provider: "nebius",
@@ -671,7 +668,7 @@ test.describe("the Model page", () => {
         provider: "anthropic",
         model: "claude-haiku-5-5",
       });
-    await expect(toastText(page)).toHaveText(SAVED);
+    await expect(spoken(page)).toHaveText(SAVED);
   });
 });
 
@@ -699,7 +696,7 @@ test.describe("offline", () => {
     );
     await expect(options(page)).toHaveCount(NEBIUS_TOP.length);
     await combo(page).selectOption({ label: "DeepSeek V4.1 Flash" });
-    await expect(toastText(page)).toHaveText(SAVED);
+    await expect(spoken(page)).toHaveText(SAVED);
     expect(opsOf(sent)).toEqual([
       { op: "writer.set", provider: "nebius", model: "deepseek-ai/DeepSeek-V4.1-Flash" },
     ]);
@@ -731,7 +728,7 @@ test.describe("axe", () => {
     await mockConfig(page);
     await open(page, "daily");
     await page.locator("#daily-hour").selectOption("9");
-    await expect(toastText(page)).toHaveText(SAVED);
+    await expect(spoken(page)).toHaveText(SAVED);
     await expectNoViolationsInEitherScheme(page);
   });
 
