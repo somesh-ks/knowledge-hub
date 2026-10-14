@@ -78,7 +78,10 @@ export async function writeDigest(root: string, digest: Digest): Promise<void> {
 
 export async function tempRoot(): Promise<{ root: string; cleanup: () => Promise<void> }> {
   const root = await mkdtemp(join(tmpdir(), "dispatch-podcast-"));
-  return { root, cleanup: () => rm(root, { recursive: true, force: true, maxRetries: 5, retryDelay: 50 }) };
+  return {
+    root,
+    cleanup: () => rm(root, { recursive: true, force: true, maxRetries: 5, retryDelay: 50 }),
+  };
 }
 
 export const REQUEST: PodcastRequest = {

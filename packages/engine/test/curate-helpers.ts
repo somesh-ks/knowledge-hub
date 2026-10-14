@@ -161,7 +161,10 @@ export async function makeRoot(): Promise<TestRoot> {
   await mkdir(join(root, "config"), { recursive: true });
   await cp(join(FIXTURE_CONFIG, "voice.md"), join(root, "config", "voice.md"));
   await cp(join(FIXTURE_CONFIG, "preferences.json"), join(root, "config", "preferences.json"));
-  return { root, cleanup: () => rm(root, { recursive: true, force: true, maxRetries: 5, retryDelay: 50 }) };
+  return {
+    root,
+    cleanup: () => rm(root, { recursive: true, force: true, maxRetries: 5, retryDelay: 50 }),
+  };
 }
 
 export async function writeRunFile(
