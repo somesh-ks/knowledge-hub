@@ -115,6 +115,10 @@ D1 to D9 date from plan v2 (2026-10-05). D10 to D25 date from 2026-10-06. Reason
 | D103 | Source scores are out of 5 again, shown as a star rating; long source lists fold at seven; topic delete asks first; Regenerate on Today takes feedback; the first-load budget is 150 KB | active; amends D55, D83, D53 |
 | D104 | Every briefing, daily or weekly, latest or older, has Share, Regenerate and Delete; Regenerate replaces that digest over its own window; Delete removes its file and timeline | active; amends D88, D103 |
 | D105 | A new episode is playable from a live copy in Blob while it is still being written; mobile sounds unlock on click and play through the silent switch; the spoken word lights without lag; the player's switch is sticky on a phone | active; amends D82, D101 |
+| D106 | The wide bar leads with what is playing and hides its volume slider until hover; bottom sheets lose the grabber and the corners; a played chip offers Play again; the Model field is a plain dropdown | active; amends D46, D58, D101 |
+| D107 | The transcript's highlight pauses while the host speaks words the page does not show | active; amends D101, D105 |
+| D108 | A user profile holds blocked domains and story votes; a block cuts an outlet on every fetch path; votes nudge ranking, listings and the writer, and are never shown | active |
+| D109 | Regenerate chooses the topics again and takes comments, for an episode and a briefing, for that run only | active; amends D44, D103, D104 |
 
 ---
 
@@ -1176,3 +1180,40 @@ D1 to D9 date from plan v2 (2026-10-05). D10 to D25 date from 2026-10-06. Reason
   - Sounds: `unlock()` sets `navigator.audioSession.type = "playback"` (the iOS silent switch muted Web Audio) and the unlock listens to click and pointerup as well (pointerdown is no activation on iOS). The first tap may stay silent while the engine loads.
   - The spoken word's fill appears at once (it faded in over 100 ms) and the light reads 90 ms ahead of the element clock (`spokenWordIndex`). The Stories / Transcript switch sticks to the top of the open player below 64rem.
 - Why: the owner's list. Pnpm and the faster-writer option were weighed; the owner chose the Blob stream.
+
+## D106: The wide bar, bottom sheets, the played chip, dropdowns and the Model field
+
+- Date: 2026-10-14 (the owner's list of 18 ideas; #96, #99, #101)
+- Decision:
+  - From 64rem with a mouse the bar shows the cover with its title and metadata on the left, the transport and the clock in the centre and the volume on the right; tab order follows. The title and the metadata are `--space-1` apart. The volume slider is hidden until the pointer is over the control or focus is inside it, stays while it is dragged, and hides 400 ms after the pointer leaves. Its room is always reserved and it sits against the button, so nothing moves and there is no gap to cross.
+  - A bottom sheet (the Generate and Narrate drawers below 40rem) has no grabber and no corner radius; swipe down still closes it. The centred dialog from 40rem and the desktop side panel keep their corners.
+  - A played chip reads "Play again" with the replay glyph under a mouse and on keyboard focus, at a held width. Touch keeps "Played".
+  - Every dropdown has the same room between its value and its chevron (`--field-chevron-gap`, 1rem). A multi-line field has equal padding on all sides.
+  - The Model field is the drawn select the Provider field uses: Default, Top models, All models. The saved model is always an option. Typing an id and filtering the list are gone.
+- Why: the owner's list. On the Model field the owner chose the dropdown knowing that a typed id is lost; on the sheets the owner kept the original idea after the pushback that a grabber marks the swipe.
+- Rejected: a safe triangle for the volume slider (not needed when the slider touches its button), `space-between` for the title and metadata (it ties the gap to the cover's height), a square centred dialog.
+
+## D107: The highlight pauses during words the page does not show
+
+- Date: 2026-10-14 (owner: "the text highlight hops on to the next section causing a mismatch"; #98)
+- Decision: a story's narration segment opens with the host's unseen words (a section announcement, the link between stories). The build gives each story of a briefing the exact number of those words (`lead_words`, page data only, from `leadInWords` in the engine's `spokenSegments.ts`). The marks are shifted by that count, the estimate gives the lead-in its share of the segment's time, and a story becomes current at its first own word (`spokenPosition`): during a lead-in the story before stays put and no word is lit, and nothing is lit during the sign-off. An episode's turn is its text alone and is unchanged.
+- Why: the page treated the segment's start as the story's start and applied marks that index the whole segment to the story's words from zero.
+- Rejected: showing the host's words as muted lines (the owner asked for a pause), and inferring the lead-in's length from the marks (the first attempt: a guess with a cap, and no help before marks arrive).
+
+## D108: A user profile with blocked domains and story votes
+
+- Date: 2026-10-14 (owner: "a self-improving system tailored to a particular user", "make sure they are not sneaking into any more podcasts"; #97, #100, #103, #104)
+- Decision:
+  - `config/profiles/<user_id>.json` holds `user_id`, `blocked_domains` and `votes`. `ProfileStore.read(userId)` in `packages/engine/src/profile/profile.ts` is the one seam a user split has to change; the only user is `owner`. A missing file is an empty profile; a broken one fails the run.
+  - Blocking: `profile.block` and `profile.unblock`. A URL is blocked when its host is a blocked domain or a subdomain of one. A registered source on a blocked domain is not fetched, and every fetched item (feeds, open search, listings, general feeds, the scoring sample, an episode's selection) is cut before dedupe, judging and extraction. The app offers it as "Stop hearing from {outlet}" on a story and as Settings, Topics and sources, Blocked outlets.
+  - Votes: `profile.vote`, one stored vote per story, the newest 500 kept, the domain derived by the engine. A source's preference (ups minus downs, halving every 30 days, none under 3 votes) moves its items' ranking score by at most 15% either way; a domain's preference applies only where the source has none. When the Firecrawl listing cap forces skips, disliked sources are skipped first. The writer gets up to 5 liked and 5 disliked headlines as untrusted data, to choose what to lead with. The numbers live in `VOTE_LIMITS`. The run report has a `votes` line.
+  - The app shows a vote only as the pressed state of its button, kept on the device (`dispatch:story-votes`). Votes are sent in one op when the page is hidden or left, or 10 minutes after the first unsent one, because every config save is a workflow run, a commit and a redeploy.
+- Why: the owner wants briefings that learn from one listener now and from each signed-in listener later. Sources reach a briefing through open search as well as the registry, so a block has to act on items, not on the source list.
+- Rejected: a separate blacklist of sources (it would repeat the source checkbox and miss open search), votes moving topic weights (too few votes to learn a weight from), votes kept in Blob (it needs a store credential or an address in the workflows; the profile's seam leaves the move open), sign-in now (digests and config are one repository built into one static site, so per-user briefings are a re-architecture).
+
+## D109: Regenerate chooses the topics again and takes comments
+
+- Date: 2026-10-14 (owner: "better control of either choosing the topics again, and have some comments"; #102)
+- Decision: the Regenerate dialog of an episode and of a briefing has the app's topic chips, prefilled with what the original was made with (at least one stays chosen), over a Comments field. The choice applies to that regeneration only. An episode sends `topic_ids` through `podcast.yml`; a briefing sends `topics` only when it differs from the original's, as a `run.yml` input passed to `dispatch run --stage write --topics`. A briefing's choice filters at the write stage, so it can drop a topic but cannot add one the run did not fetch.
+- Why: the owner's list asked for a weight slider in the dialog; asked whether it should override one run or save, the owner chose topics and comments instead.
+- Rejected: weight sliders in the dialog (a one-run weight needs a run-level override; a saved one silently changes every later briefing).
