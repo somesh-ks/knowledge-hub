@@ -51,8 +51,12 @@ const checkPair = (value: { provider: string; model: string | null }, ctx: z.Ref
 export const WriterFile = WriterFileShape.superRefine(checkPair);
 export type WriterFile = z.infer<typeof WriterFile>;
 
-/** What a repository without config/writer.json runs on. */
-export const DEFAULT_WRITER: WriterFile = { version: 1, provider: "nebius", model: null };
+/** What a repository without config/writer.json runs on: Claude Sonnet 5.5 (owner, 2026-10-14). */
+export const DEFAULT_WRITER: WriterFile = {
+  version: 1,
+  provider: "anthropic",
+  model: "claude-sonnet-5-5",
+};
 
 /** The values `writer.set` and the settings page send; the version is the file's own. */
 export const WriterSettingsShape = WriterFileShape.omit({ version: true });

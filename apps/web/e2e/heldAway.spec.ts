@@ -42,12 +42,12 @@ test.describe("a refused settings change", () => {
 
     await page.reload();
     await expect(root).toHaveAttribute("data-loaded", "");
-    await expect(combo).toHaveValue("");
+    await expect(combo).toHaveValue("zai-org/GLM-5.3");
     await expect(page.locator("[data-saved-note]")).toHaveCount(0);
 
     await page.goto("/settings");
     await expect(page.getByRole("link", { name: /^AI Model/ }).locator("[data-hint]")).toHaveText(
-      "Nebius, Default",
+      "Nebius, GLM-5.3",
     );
   });
 

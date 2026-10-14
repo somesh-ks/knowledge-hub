@@ -1,11 +1,11 @@
 /**
  * What the Settings rows say about the pages behind them, in a few words: "Every second day at
- * 07:00", "Sundays at 07:00", "Nebius, Default", "9 topics · 11 sources". No DOM and only
+ * 07:00", "Sundays at 07:00", "Anthropic, Claude Sonnet 5.5", "9 topics · 11 sources". No DOM and only
  * DOM-free imports (as nextRun.ts), so the build writes each line into the page and the browser
  * works the same line out again from an edit saved since the build (scripts/settingsSaved.ts).
  */
 import { SUPPORTED_TIMEZONES, scheduleZone, TIME_ZONE } from "@dispatch/core/time";
-import { CLAUDE_MODELS, nebiusName } from "./modelId";
+import { CLAUDE_MODELS, NEBIUS_DEFAULT_ID, nebiusName } from "./modelId";
 import { hourLabel, WEEKDAYS } from "./nextRun";
 
 export type Provider = "nebius" | "anthropic";
@@ -52,16 +52,22 @@ export function weeklySummary(input: {
   return `${day}s at ${hourLabel(input.hour)}${zoneNote(input.timezone)}`;
 }
 
-/** The name the Settings row and the Model field show, the same one the model list uses. */
+/**
+ * The name the Settings row and the Model field show, the same one the model list uses. No model
+ * saved on Nebius is what Nebius runs on then.
+ */
 export function writerLabel(model: string | null, provider: Provider = "nebius"): string {
-  if (model === null) return "Default";
+  if (model === null)
+    return provider === "anthropic"
+      ? (CLAUDE_MODELS[0]?.label ?? "")
+      : nebiusName(NEBIUS_DEFAULT_ID);
   if (provider === "anthropic") {
     return CLAUDE_MODELS.find((entry) => entry.id === model)?.label ?? model;
   }
   return nebiusName(model);
 }
 
-/** "Nebius, Default", "Anthropic, Claude Sonnet 5.5". */
+/** "Nebius, GLM-5.3", "Anthropic, Claude Sonnet 5.5". */
 export function modelSummary(provider: Provider, model: string | null): string {
   return `${provider === "anthropic" ? "Anthropic" : "Nebius"}, ${writerLabel(model, provider)}`;
 }

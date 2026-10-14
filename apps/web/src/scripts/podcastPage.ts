@@ -8,7 +8,7 @@
  * The option logic is pure and lives in lib/combobox.ts. Anthropic's two models are static and
  * never ask for the live list.
  */
-import { isModelId } from "../lib/modelId";
+import { isModelId, NEBIUS_DEFAULT_ID } from "../lib/modelId";
 import { clearPendingChoice, readPendingChoice } from "../lib/pendingWriter";
 import { hasSaved } from "../lib/savedKey";
 import { heldWriter } from "../lib/savedOverlay";
@@ -35,7 +35,7 @@ export interface ModelEntry {
 
 const LIST_TIMEOUT_MS = 10_000;
 
-/** The edit a provider and model choice stand for. `null` on Nebius is Automatic. */
+/** The edit a provider and model choice stand for. `null` on Nebius is the model Nebius runs on by itself. */
 export function modelOp(model: string | null, provider: Provider = "nebius"): ConfigOp {
   return { op: "writer.set", provider, model };
 }
@@ -259,13 +259,23 @@ async function mountModel(
         into = groups[option.group] ??= (() => {
           const optgroup = document.createElement("optgroup");
           optgroup.label = option.group === "top" ? "Top models" : "All models";
+          // A drawn list shows a legend in place of the label, where it can be lined up with the
+          // options' words; a native list keeps the label.
+          const legend = document.createElement("legend");
+          legend.textContent = optgroup.label;
+          optgroup.append(legend);
           select.append(optgroup);
           return optgroup;
         })();
       }
       into.append(item);
     }
-    select.value = selected ?? "";
+    // Nothing saved on Nebius shows what Nebius runs on then; it is saved only once picked.
+    select.value =
+      selected ??
+      (options.some((option) => option.id === NEBIUS_DEFAULT_ID)
+        ? NEBIUS_DEFAULT_ID
+        : (options[0]?.id ?? ""));
   };
 
   const load = async (): Promise<void> => {
@@ -287,15 +297,15 @@ async function mountModel(
   };
 
   vendor.addEventListener("change", () => {
-    // Each vendor starts on its first model: Automatic on Nebius, Claude Sonnet on Anthropic.
-    selected = provider() === "anthropic" ? (CLAUDE_OPTIONS[0]?.id ?? null) : null;
+    // Each vendor starts on its first model: GLM-5.3 on Nebius, Claude Sonnet on Anthropic.
+    selected = provider() === "anthropic" ? (CLAUDE_OPTIONS[0]?.id ?? null) : NEBIUS_DEFAULT_ID;
     if (provider() === "nebius" && nebius === undefined) void load().then(() => update());
     refresh();
     update();
   });
 
   select.addEventListener("change", () => {
-    selected = select.value === "" ? null : select.value;
+    selected = select.value;
     update();
   });
 

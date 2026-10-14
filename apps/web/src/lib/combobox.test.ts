@@ -24,15 +24,13 @@ const rows = (options: ReturnType<typeof nebiusOptions>) =>
   options.map((option) => [option.id, option.group]);
 
 describe("nebiusOptions with the live list", () => {
-  it("starts with Automatic, then the top models it serves in their order, then the rest", () => {
+  it("starts with the top models it serves in their order, then the rest", () => {
     expect(rows(nebiusOptions(LIVE, null))).toEqual([
-      ["", ""],
       ["zai-org/GLM-5.3", "top"],
       ["moonshotai/Kimi-K3", "top"],
       ["Qwen/Qwen3-235B-A22B-Instruct-2507", "rest"],
       ["openai/gpt-oss-120b", "rest"],
     ]);
-    expect(nebiusOptions(LIVE, null)[0]).toMatchObject({ label: "Default" });
   });
 
   it("leaves out a top model the live list no longer serves", () => {
@@ -57,8 +55,8 @@ describe("nebiusOptions with the live list", () => {
 
   it("adds a saved model the list no longer has first among the rest, and says so", () => {
     const options = nebiusOptions(LIVE, "old/Gone-7B");
-    expect(rows(options)[3]).toEqual(["old/Gone-7B", "rest"]);
-    expect(options[3]?.hint).toBe("Not in the live list");
+    expect(rows(options)[2]).toEqual(["old/Gone-7B", "rest"]);
+    expect(options[2]?.hint).toBe("Not in the live list");
   });
 
   it("flags a saved top model that has been retired, under its short name", () => {
@@ -74,7 +72,7 @@ describe("nebiusOptions with the live list", () => {
 
   it("does not repeat a saved model that is listed", () => {
     for (const saved of ["zai-org/GLM-5.3", "openai/gpt-oss-120b"]) {
-      expect(nebiusOptions(LIVE, saved)).toHaveLength(5);
+      expect(nebiusOptions(LIVE, saved)).toHaveLength(4);
     }
   });
 
@@ -83,31 +81,30 @@ describe("nebiusOptions with the live list", () => {
     const top = options.filter((o) => o.group === "top").map((o) => o.id);
     expect(top).toEqual(shortlist(OLD));
     expect(options.find((o) => o.id.includes("bge"))?.group).toBe("rest");
-    expect(options).toHaveLength(OLD.length + 1);
+    expect(options).toHaveLength(OLD.length);
   });
 });
 
 describe("nebiusOptions without the live list", () => {
-  it("offers Automatic and every top model by name alone", () => {
+  it("offers every top model by name alone", () => {
     const options = nebiusOptions(null, null);
-    expect(rows(options)).toEqual([["", ""], ...TOP_IDS.map((id) => [id, "top"])]);
-    expect(options.slice(1).map((o) => o.label)).toEqual(NEBIUS_TOP.map((m) => m.label));
+    expect(rows(options)).toEqual(TOP_IDS.map((id) => [id, "top"]));
+    expect(options.map((o) => o.label)).toEqual(NEBIUS_TOP.map((m) => m.label));
     expect(options.find((o) => o.id === "zai-org/GLM-5.3")?.hint).toBe("");
   });
 
-  it("keeps a saved model that is not a top model, right under Automatic", () => {
+  it("keeps a saved model that is not a top model, first", () => {
     const options = nebiusOptions(null, "acme/Fast-1");
-    expect(rows(options).slice(0, 3)).toEqual([
-      ["", ""],
+    expect(rows(options).slice(0, 2)).toEqual([
       ["acme/Fast-1", ""],
       [TOP_IDS[0], "top"],
     ]);
-    expect(options[1]).toMatchObject({ label: "Fast-1", hint: "" });
+    expect(options[0]).toMatchObject({ label: "Fast-1", hint: "" });
   });
 
   it("does not repeat a saved top model", () => {
     const options = nebiusOptions(null, "zai-org/GLM-5.3");
-    expect(options).toHaveLength(TOP_IDS.length + 1);
+    expect(options).toHaveLength(TOP_IDS.length);
     expect(options.filter((o) => o.id === "zai-org/GLM-5.3")).toHaveLength(1);
   });
 });

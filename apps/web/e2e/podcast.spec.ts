@@ -67,7 +67,7 @@ test.describe("the Settings index", () => {
     const rows = [
       ["Daily", "Every second day at 07:00", "/settings/daily"],
       ["Weekly", "Sundays at 07:00", "/settings/weekly"],
-      ["AI Model", "Nebius, Default", "/settings/model"],
+      ["AI Model", "Nebius, GLM-5.3", "/settings/model"],
     ] as const;
     for (const [name, hint, href] of rows) {
       const row = page.getByRole("link", { name: new RegExp(`^${name}`) });
@@ -587,12 +587,14 @@ test.describe("a change made offline", () => {
 });
 
 test.describe("the Model page", () => {
-  test("lists Default, the top models the live list has, then the rest", async ({ page }) => {
+  test("lists the top models the live list has, then the rest, with Nebius's own model shown", async ({
+    page,
+  }) => {
     await open(page, "model");
-    await expect(combo(page)).toHaveValue("");
+    await expect(combo(page)).toHaveValue("zai-org/GLM-5.3");
     await expect(page.getByLabel("Provider")).toHaveValue("nebius");
     // The fixture list serves two of the top models; the others are left out.
-    await expect(options(page)).toHaveCount(5);
+    await expect(options(page)).toHaveCount(4);
     await expect(grouped(page, "Top models")).toHaveText([/^GLM-5\.3/, /^Kimi K3/]);
     await expect(grouped(page, "All models")).toHaveCount(2);
     await expect(options(page).filter({ hasText: /^Kimi K2\.6/ })).toHaveCount(0);
@@ -633,8 +635,8 @@ test.describe("the Model page", () => {
       }),
     );
     await open(page, "model");
-    // Default, the three top models still served, in their order, and the four others.
-    await expect(options(page)).toHaveCount(8);
+    // The three top models still served, in their order, and the four others.
+    await expect(options(page)).toHaveCount(7);
     await expect(grouped(page, "Top models")).toHaveText([
       /^GLM-5\.3/,
       /^DeepSeek V4 Pro 0813/,
@@ -691,11 +693,11 @@ test.describe("offline", () => {
     await unavailable(page);
     const sent = await mockConfig(page);
     await open(page, "model");
-    await expect(combo(page)).toHaveValue("");
+    await expect(combo(page)).toHaveValue("zai-org/GLM-5.3");
     await expect(grouped(page, "Top models")).toHaveText(
       NEBIUS_TOP.map((model) => new RegExp(`^${model.label.replaceAll(".", "\\.")}`)),
     );
-    await expect(options(page)).toHaveCount(NEBIUS_TOP.length + 1);
+    await expect(options(page)).toHaveCount(NEBIUS_TOP.length);
     await combo(page).selectOption({ label: "DeepSeek V4.1 Flash" });
     await expect(toastText(page)).toHaveText(SAVED);
     expect(opsOf(sent)).toEqual([

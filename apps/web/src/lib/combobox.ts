@@ -6,7 +6,7 @@ import { CLAUDE_MODELS, contextLabel, NEBIUS_TOP, nebiusName } from "./modelId";
 import { topModels } from "./modelRank";
 
 export interface ModelOption {
-  /** The model id; "" is Nebius's Automatic. */
+  /** The model id. */
   id: string;
   label: string;
   hint: string;
@@ -18,15 +18,6 @@ export interface LiveModel {
   id: string;
   context_length: number | null;
 }
-
-export const AUTOMATIC: ModelOption = {
-  id: "",
-  label: "Default",
-  // Which model Default stands for is the engine's to say, and the page does not know it: no hint
-  // rather than one that only repeats the label.
-  hint: "",
-  group: "",
-};
 
 /** The two Claude models, in the order they are offered. */
 export const CLAUDE_OPTIONS: readonly ModelOption[] = CLAUDE_MODELS.map((model) => ({
@@ -47,10 +38,11 @@ export function claudeOptions(selected: string | null): ModelOption[] {
 const TOP_IDS: readonly string[] = NEBIUS_TOP.map((model) => model.id);
 
 /**
- * Automatic, then the Top models, then every other live model. With a live list the Top models are
- * the curated ones it still serves (topModels), and a saved model it no longer has comes first
- * among the rest, flagged. Without one (null) nothing can be checked: Automatic, the saved model
- * when it is not a top model, then every top model, so a model can be picked by name all the same.
+ * The Top models, then every other live model; there is no Default row, as the page shows what
+ * Nebius runs on (NEBIUS_DEFAULT_ID) when nothing is saved. With a live list the Top models are the
+ * curated ones it still serves (topModels), and a saved model it no longer has comes first among
+ * the rest, flagged. Without one (null) nothing can be checked: the saved model when it is not a
+ * top model, then every top model, so a model can be picked by name all the same.
  */
 export function nebiusOptions(
   live: readonly LiveModel[] | null,
@@ -66,7 +58,7 @@ export function nebiusOptions(
       live === null ? "" : entry ? contextLabel(entry.context_length) : "Not in the live list";
     return { id, label: nebiusName(id), hint, group };
   };
-  const options: ModelOption[] = [AUTOMATIC];
+  const options: ModelOption[] = [];
   const unlisted = saved !== null && !top.includes(saved) && !listed.has(saved);
   if (live === null) {
     if (unlisted) options.push(make(saved, ""));

@@ -576,6 +576,21 @@
     margin-block-start: var(--space-1);
   }
 
+  /* A group's heading starts where its options' words do, whatever side the field aligns its value
+     to: a quiet label over them, as a menu's section title. */
+  :is(.manage-select, .sort-field, .create-select) > select optgroup {
+    text-align: start;
+  }
+
+  :is(.manage-select, .sort-field, .create-select) > select optgroup > legend {
+    padding-block: var(--space-3) var(--space-1);
+    padding-inline: var(--space-3);
+    color: var(--color-on-surface-muted);
+    font-size: var(--font-size-label);
+    font-weight: var(--font-weight-medium);
+    line-height: var(--font-leading-label);
+  }
+
   :is(.manage-select, .sort-field, .create-select) > select option:checked {
     color: var(--color-accent);
   }
