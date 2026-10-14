@@ -59,8 +59,11 @@ export interface RepoPair {
 const templates = new Map<string, Promise<string>>();
 const templateDirs: string[] = [];
 process.once("exit", () => {
-  for (const dir of templateDirs) rmSync(dir, { recursive: true, force: true });
+  for (const dir of templateDirs) rmSync(dir, REMOVE);
 });
+
+/** Windows holds a file open for a moment after git exits (antivirus, indexer): retry on EBUSY. */
+const REMOVE = { recursive: true, force: true, maxRetries: 5, retryDelay: 50 } as const;
 
 /** Build a template once per worker and key, then hand out copies of it. */
 export async function templatePair(key: string, build: () => Promise<string>): Promise<RepoPair> {
@@ -84,7 +87,7 @@ async function copyPair(template: string): Promise<RepoPair> {
   const b = join(base, "b");
   git(a, "remote", "set-url", "origin", remote);
   git(b, "remote", "set-url", "origin", remote);
-  return { remote, a, b, cleanup: () => rm(base, { recursive: true, force: true }) };
+  return { remote, a, b, cleanup: () => rm(base, REMOVE) };
 }
 
 /** A bare remote with the same seed commit pushed to `main` and two clones of it. */
@@ -120,7 +123,7 @@ async function buildRepoPair(seedDigest: boolean): Promise<RepoPair> {
   await commitAll(a, "chore: seed");
   git(a, "push", "-q", "-u", "origin", "main");
   git(base, "clone", "-q", "-c", "core.autocrlf=false", remote, b);
-  return { remote, a, b, cleanup: () => rm(base, { recursive: true, force: true }) };
+  return { remote, a, b, cleanup: () => rm(base, REMOVE) };
 }
 
 export interface SpyRunner {

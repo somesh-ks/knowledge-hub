@@ -1595,15 +1595,21 @@ describe("POST /api/narrate with a segment", () => {
     const held = new Promise<void>((resolve) => {
       release = resolve;
     });
+    let bothStarted: () => void = () => undefined;
+    const bothOnTheirWay = new Promise<void>((resolve) => {
+      bothStarted = resolve;
+    });
     const put = context.blob.put.bind(context.blob);
     context.blob.put = async (pathname, body, options) => {
       started.push(pathname);
+      if (started.includes(path) && started.includes(marksPath)) bothStarted();
       if (pathname === path) await held;
       return put(pathname, body, options);
     };
     const answer = postSegment(context, "intro");
-    // Both puts are on their way while the audio's has not finished.
-    await vi.waitFor(() => expect(started).toEqual(expect.arrayContaining([path, marksPath])));
+    // Both puts are on their way while the audio's has not finished. A sequential upload never
+    // gets here, and the test fails on its timeout.
+    await bothOnTheirWay;
     release();
     expect((await answer).status).toBe(200);
     expect(context.blob.has(marksPath)).toBe(true);

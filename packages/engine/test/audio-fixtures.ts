@@ -254,7 +254,10 @@ export interface TempRoot {
 
 export async function makeTempRoot(prefix = "dispatch-audio-"): Promise<TempRoot> {
   const root = await mkdtemp(join(tmpdir(), prefix));
-  return { root, cleanup: () => rm(root, { recursive: true, force: true }) };
+  return {
+    root,
+    cleanup: () => rm(root, { recursive: true, force: true, maxRetries: 5, retryDelay: 50 }),
+  };
 }
 
 export async function writeRepoFile(root: string, rel: string, content: string): Promise<void> {

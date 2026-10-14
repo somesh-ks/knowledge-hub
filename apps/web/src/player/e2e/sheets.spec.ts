@@ -50,7 +50,11 @@ test("Regenerate: the run request, the six steps while it goes, then the new bri
     "aria-disabled",
     "true",
   );
-  expect(sent).toEqual(PASSPHRASE_REQUIRED ? { passphrase: "secret" } : { passphrase: "open" });
+  // Regenerate replaces the briefing on the page over its own window (D104).
+  expect(sent).toEqual({
+    passphrase: PASSPHRASE_REQUIRED ? "secret" : "open",
+    replace: SITE.path.replace("/d/", ""),
+  });
   await page.clock.runFor(3_100);
   await expect(steps.nth(1)).toContainText("In progress");
   await expect(steps.nth(0)).toContainText("Done");

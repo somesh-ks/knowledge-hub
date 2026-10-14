@@ -1,58 +1,100 @@
-import type { IncomingHttpHeaders, IncomingMessage, ServerResponse } from "node:http";
-import { createServer } from "node:http";
-import type { AddressInfo } from "node:net";
-
 export interface RecordedRequest {
   method: string;
+  /** Path and query, as a server would see it. */
   url: string;
-  headers: IncomingHttpHeaders;
+  headers: Record<string, string>;
   body: string;
 }
 
+/** The slice of a Node ServerResponse the handlers use, backed by an in-memory stream. */
+export interface MockResponse {
+  writeHead(status: number, headers?: Record<string, string>): void;
+  write(chunk: string | Uint8Array, callback?: () => void): boolean;
+  end(chunk?: string | Uint8Array): void;
+  /** Cut the connection: a reader of the body fails. */
+  destroy(): void;
+}
+
 export type MockHandler = (
-  req: IncomingMessage,
-  res: ServerResponse,
+  req: RecordedRequest,
+  res: MockResponse,
   recorded: RecordedRequest,
   index: number,
 ) => void | Promise<void>;
 
 export interface MockServer {
-  /** Base URL such as http://127.0.0.1:41234 */
+  /** A base URL that never resolves anywhere: the requests go to `fetch`. */
   url: string;
+  /** Inject as the client's `fetch`. Answers from the handler, in memory, with no socket. */
+  fetch: typeof fetch;
   requests: RecordedRequest[];
-  close(): Promise<void>;
 }
 
-/** An in-process HTTP server on a random loopback port. No traffic leaves the machine. */
-export async function startMockServer(handler: MockHandler): Promise<MockServer> {
+const encoder = new TextEncoder();
+
+/**
+ * An in-process fake of the HTTP API. Why not a loopback server: real sockets failed with
+ * "fetch failed" in 2 of 6 full-suite runs when the machine was busy, and a test of the client
+ * needs the response, not the network.
+ */
+export function startMockServer(handler: MockHandler): MockServer {
   const requests: RecordedRequest[] = [];
-  const server = createServer((req, res) => {
-    const chunks: Buffer[] = [];
-    req.on("data", (chunk: Buffer) => chunks.push(chunk));
-    req.on("end", () => {
-      const recorded: RecordedRequest = {
-        method: req.method ?? "",
-        url: req.url ?? "",
-        headers: req.headers,
-        body: Buffer.concat(chunks).toString("utf8"),
-      };
-      const index = requests.push(recorded) - 1;
-      Promise.resolve(handler(req, res, recorded, index)).catch(() => {
-        res.destroy();
-      });
+  const doFetch = async (input: RequestInfo | URL, init?: RequestInit): Promise<Response> => {
+    const target = new URL(input instanceof Request ? input.url : String(input));
+    const recorded: RecordedRequest = {
+      method: init?.method ?? "GET",
+      url: `${target.pathname}${target.search}`,
+      headers: Object.fromEntries(new Headers(init?.headers).entries()),
+      body: typeof init?.body === "string" ? init.body : "",
+    };
+    const index = requests.push(recorded) - 1;
+    let controller!: ReadableStreamDefaultController<Uint8Array>;
+    const body = new ReadableStream<Uint8Array>({
+      start(c) {
+        controller = c;
+      },
     });
-  });
-  await new Promise<void>((resolve) => server.listen(0, "127.0.0.1", resolve));
-  const { port } = server.address() as AddressInfo;
-  return {
-    url: `http://127.0.0.1:${port}`,
-    requests,
-    close: () =>
-      new Promise<void>((resolve) => {
-        server.closeAllConnections();
-        server.close(() => resolve());
-      }),
+    let respond!: (response: Response) => void;
+    const answered = new Promise<Response>((resolve) => {
+      respond = resolve;
+    });
+    let sent = false;
+    let closed = false;
+    let status = 200;
+    let headers: Record<string, string> = {};
+    const send = (): void => {
+      if (sent) return;
+      sent = true;
+      respond(new Response(body, { status, headers }));
+    };
+    const res: MockResponse = {
+      writeHead(code, head = {}) {
+        status = code;
+        headers = head;
+        send();
+      },
+      write(chunk, callback) {
+        send();
+        if (!closed) controller.enqueue(typeof chunk === "string" ? encoder.encode(chunk) : chunk);
+        callback?.();
+        return true;
+      },
+      end(chunk) {
+        if (chunk !== undefined) res.write(chunk);
+        send();
+        if (!closed) controller.close();
+        closed = true;
+      },
+      destroy() {
+        send();
+        if (!closed) controller.error(new TypeError("terminated"));
+        closed = true;
+      },
+    };
+    Promise.resolve(handler(recorded, res, recorded, index)).catch(() => res.destroy());
+    return answered;
   };
+  return { url: "http://speechify.test", fetch: doFetch as typeof fetch, requests };
 }
 
 export function sseEvent(name: string | undefined, data: unknown): string {
@@ -62,8 +104,8 @@ export function sseEvent(name: string | undefined, data: unknown): string {
 
 const tick = (): Promise<void> => new Promise((resolve) => setImmediate(resolve));
 
-/** Write text in small slices with a tick between, so TCP delivers it as many separate chunks. */
-export async function writeSliced(res: ServerResponse, text: string, size: number): Promise<void> {
+/** Write text in small slices with a tick between, so the client sees many separate chunks. */
+export async function writeSliced(res: MockResponse, text: string, size: number): Promise<void> {
   const bytes = Buffer.from(text, "utf8");
   for (let offset = 0; offset < bytes.length; offset += size) {
     await new Promise<void>((resolve) =>
@@ -73,16 +115,15 @@ export async function writeSliced(res: ServerResponse, text: string, size: numbe
   }
 }
 
-export function startSse(res: ServerResponse): void {
+export function startSse(res: MockResponse): void {
   res.writeHead(200, {
     "Content-Type": "text/event-stream",
     "Speechify-Audio-Content-Type": "audio/mpeg",
   });
-  res.socket?.setNoDelay(true);
 }
 
 export function jsonError(
-  res: ServerResponse,
+  res: MockResponse,
   status: number,
   code: string,
   message: string,
