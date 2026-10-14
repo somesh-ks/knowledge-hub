@@ -366,12 +366,17 @@ export function openPanel(
       open.setAttribute("aria-label", `Open ${edited.name} in a new tab`);
       one<HTMLElement>("[data-edit-host]").textContent = edited.host || edited.url;
     } else where.hidden = true;
-    one<HTMLElement>("[data-edit-total]").textContent =
-      edited.score === null
-        ? "New: too little history for a score yet."
-        : `${edited.score.toFixed(1)} of 5, ${edited.label}`;
+    // "4.6/5" on the right of the title, said in full to a screen reader; a source too new for a
+    // score has no rating and shows the empty state instead of its parts.
+    const total = one<HTMLElement>("[data-edit-total]");
+    const unscored = edited.score === null;
+    total.textContent = unscored ? "" : `${edited.score?.toFixed(1)}/5`;
+    total.hidden = unscored;
+    if (!unscored)
+      total.setAttribute("aria-label", `${edited.score?.toFixed(1)} out of 5, ${edited.label}`);
+    one<HTMLElement>("[data-edit-empty]").hidden = !unscored;
     const parts = one<HTMLElement>("[data-edit-parts]");
-    parts.hidden = edited.parts === null;
+    parts.hidden = unscored || edited.parts === null;
     // Two decimals, as the engine rounds each part. A part not measured yet says so, with no bar.
     for (const [part, value] of Object.entries(edited.parts ?? {})) {
       const row = parts.querySelector<HTMLElement>(`[data-part="${part}"]`);
@@ -379,13 +384,12 @@ export function openPanel(
       if (!row || !num) continue;
       if (value === null) {
         row.dataset.unmeasured = "";
-        num.textContent = "Not measured yet";
+        num.textContent = "Not yet";
         continue;
       }
       row.querySelector<HTMLElement>(".part-meter")?.style.setProperty("--part", String(value));
       num.textContent = value.toFixed(2);
     }
-    one<HTMLElement>("[data-edit-reason]").textContent = edited.reason;
   }
   const editNow = (): SourceEdit | null =>
     edited ? editOf(edited, { name: editName.value, topic: editTopic.value }) : null;

@@ -715,15 +715,20 @@
   gap: var(--space-4);
 }
 
-/* Editing a source: where it lives, as a link out, and what its score is made of. */
-.edit-address {
-  display: grid;
-  gap: var(--space-1);
+/* Editing a source: its fields, where it lives, as a link out, and its scorecard, with the room the
+   spacing scale gives a group (--space-6) between them. */
+.topics-pane[data-pane="edit"] {
+  gap: var(--space-6);
+  padding-block: var(--space-6);
 }
 
-/* Their labels wear the fields' labels above them (manage.css .manage-field > label). */
-.edit-address-label,
-.score-breakdown-head {
+.edit-address {
+  display: grid;
+  gap: var(--space-2);
+}
+
+/* It wears the fields' labels above them (manage.css .manage-field > label). */
+.edit-address-label {
   margin: 0;
   font-size: var(--font-size-body);
   font-weight: var(--font-weight-medium);
@@ -747,23 +752,41 @@
   height: var(--space-4);
 }
 
-.score-breakdown {
+/* The scorecard: a tonal card, its title on the left and the rating on the right, then one row per
+   part of the score. */
+.score-card {
   display: grid;
-  gap: var(--space-2);
+  gap: var(--space-4);
   padding: var(--space-4);
   border-radius: var(--radius-lg);
   background: var(--color-surface-container);
 }
 
-.score-breakdown-total {
+.score-card-head {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: var(--space-4);
+}
+
+.score-card-title {
   margin: 0;
   font-size: var(--font-size-body);
   font-weight: var(--font-weight-medium);
+  line-height: var(--font-leading-label);
+}
+
+.score-card-rating {
+  margin: 0;
+  font-size: var(--font-size-title);
+  font-weight: var(--font-weight-medium);
+  line-height: var(--font-leading-label);
+  font-variant-numeric: tabular-nums;
 }
 
 .score-parts {
   display: grid;
-  gap: var(--space-2);
+  gap: var(--space-3);
   margin: 0;
   font-size: var(--font-size-label);
 }
@@ -774,17 +797,20 @@
   align-items: center;
 }
 
+.score-parts dt {
+  color: var(--color-on-surface-muted);
+}
+
 .score-parts dd {
   display: flex;
   align-items: center;
-  gap: var(--space-2);
+  gap: var(--space-3);
   margin: 0;
 }
 
 /* One part, 0 to 1, as a bar that fills to it. */
 .part-meter {
   flex: 1 1 auto;
-  max-width: 8rem;
   height: var(--space-1);
   border-radius: var(--radius-round);
   background: linear-gradient(
@@ -795,7 +821,7 @@
 }
 
 .part-num {
-  min-width: 3ch;
+  min-width: 4ch;
   font-variant-numeric: tabular-nums;
   text-align: end;
 }
@@ -808,6 +834,42 @@
 .score-parts [data-unmeasured] .part-num {
   color: var(--color-on-surface-muted);
   text-align: start;
+}
+
+/* Too new for a score: a star on a soft disc, a title and one quiet line, centred in the card. */
+.score-card-empty {
+  display: grid;
+  justify-items: center;
+  gap: var(--space-2);
+  padding-block: var(--space-4);
+  text-align: center;
+}
+
+.score-card-empty-art {
+  display: grid;
+  place-items: center;
+  width: var(--space-12);
+  height: var(--space-12);
+  margin-block-end: var(--space-2);
+  border-radius: var(--radius-round);
+  background: var(--color-accent-container);
+  color: var(--color-on-accent-container);
+}
+
+.score-card-empty-title {
+  margin: 0;
+  font-size: var(--font-size-body);
+  font-weight: var(--font-weight-medium);
+  line-height: var(--font-leading-label);
+}
+
+.score-card-empty-line {
+  max-width: 28ch;
+  margin: 0;
+  color: var(--color-on-surface-muted);
+  font-size: var(--font-size-label);
+  line-height: var(--font-leading-body);
+  text-wrap: balance;
 }
 
 .source-preview[data-state="idle"] {
