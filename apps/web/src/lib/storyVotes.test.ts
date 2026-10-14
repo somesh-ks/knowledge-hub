@@ -3,9 +3,10 @@ import {
   dueIn,
   emptyVotes,
   markSent,
+  markUnsent,
   pendingOps,
-  pressedOf,
   press,
+  pressedOf,
   SEND_AFTER_MS,
   type StoryRef,
 } from "./storyVotes";
@@ -37,17 +38,24 @@ describe("story votes", () => {
     expect(dueIn(state, 1_000 + SEND_AFTER_MS)).toBe(0);
   });
 
-  it("keeps a vote pressed again while its request was on its way", () => {
+  it("puts a refused batch back, and keeps a vote pressed again while it was on its way", () => {
     let state = press(emptyVotes(), story("a"), "up", 1_000);
     const [op] = pendingOps(state);
+    const sent = op as NonNullable<typeof op>;
+    state = markSent(state, sent);
+    expect(pendingOps(state)).toHaveLength(0);
+    state = markUnsent(state, sent);
+    expect(pendingOps(state)[0]?.votes[0]?.value).toBe("up");
+
+    state = markSent(state, sent);
     state = press(state, story("a"), "up", 2_000);
-    state = markSent(state, op as NonNullable<typeof op>);
+    state = markSent(state, sent);
     expect(pendingOps(state)[0]?.votes[0]?.value).toBe("clear");
   });
 
-  it("splits more than fifty votes into ops of fifty", () => {
+  it("splits votes into ops of fifteen", () => {
     let state = emptyVotes();
     for (let i = 0; i < 120; i += 1) state = press(state, story(`s${i}`), "up", 1_000 + i);
-    expect(pendingOps(state).map((op) => op.votes.length)).toEqual([50, 50, 20]);
+    expect(pendingOps(state).map((op) => op.votes.length)).toEqual([15, 15, 15, 15, 15, 15, 15, 15]);
   });
 });

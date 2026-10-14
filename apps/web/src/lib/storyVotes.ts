@@ -10,8 +10,8 @@
 export const VOTES_KEY = "dispatch:story-votes";
 /** How long the first unsent vote may wait before the batch goes. */
 export const SEND_AFTER_MS = 10 * 60 * 1000;
-/** The most votes one op carries (the server takes 1 to 50). */
-export const MAX_PER_OP = 50;
+/** The most votes one op carries: the server caps a request at 8192 characters, about 20 votes. */
+export const MAX_PER_OP = 15;
 /** The longest headline an op carries. */
 export const HEADLINE_MAX = 200;
 /** Sent votes remembered so a story shows its mark again; the oldest beyond this are forgotten. */
@@ -140,22 +140,23 @@ export function pendingOps(state: VoteState): VoteOp[] {
   return ops;
 }
 
-/**
- * Notes that an op went through. A story pressed again while the request was on its way has a newer
- * `at` and stays unsent; a cleared story that is sent is forgotten.
- */
-export function markSent(state: VoteState, op: VoteOp): VoteState {
+function withSent(state: VoteState, op: VoteOp, sent: boolean): VoteState {
   const votes = { ...state.votes };
-  for (const sent of op.votes) {
-    const stored = votes[sent.story_id];
-    if (!stored || stored.at !== sent.at) continue;
-    if (stored.value === "clear") delete votes[sent.story_id];
-    else votes[sent.story_id] = { ...stored, sent: true };
+  for (const given of op.votes) {
+    const stored = votes[given.story_id];
+    // A story pressed again meanwhile has a newer time, and keeps its own state.
+    if (stored && stored.at === given.at) votes[given.story_id] = { ...stored, sent };
   }
   const waiting = Object.values(votes).filter((vote) => !vote.sent);
   const oldest = waiting.reduce((min, vote) => Math.min(min, Date.parse(vote.at)), Infinity);
-  return {
-    waiting_since: waiting.length === 0 ? null : oldest,
-    votes,
-  };
+  return { waiting_since: waiting.length === 0 ? null : oldest, votes };
 }
+
+/**
+ * Notes that an op is on its way. A page that is being left cannot hear the answer, so a batch counts
+ * as sent from the moment it goes; markUnsent puts it back when an answer says it did not.
+ */
+export const markSent = (state: VoteState, op: VoteOp): VoteState => withSent(state, op, true);
+
+/** The op was refused or did not go: its votes wait for the next attempt. */
+export const markUnsent = (state: VoteState, op: VoteOp): VoteState => withSent(state, op, false);

@@ -12,6 +12,7 @@ import { OPEN_PASSPHRASE, PASSPHRASE_REQUIRED } from "../lib/access";
 import {
   dueIn,
   markSent,
+  markUnsent,
   parseVotes,
   pendingOps,
   press,
@@ -89,13 +90,13 @@ async function send(): Promise<void> {
   sending = true;
   try {
     for (const op of pendingOps(load())) {
+      // Counted as sent first: a page being left never hears the answer.
+      save(markSent(load(), op));
       if (!(await post(op))) {
-        // Kept as it is; the next attempt is ten minutes on, or when the page is left.
-        const state = load();
-        save({ ...state, waiting_since: Date.now() });
+        // Kept for the next attempt, ten minutes on or when the page is left.
+        save({ ...markUnsent(load(), op), waiting_since: Date.now() });
         return;
       }
-      save(markSent(load(), op));
     }
   } finally {
     sending = false;
