@@ -24,8 +24,8 @@ describe("settings summaries", () => {
   });
 
   it("name the model as the Model field does", () => {
-    expect(writerLabel(null)).toBe("Default");
-    expect(modelSummary("nebius", null)).toBe("Nebius, Default");
+    expect(writerLabel(null)).toBe("GLM-5.3");
+    expect(modelSummary("nebius", null)).toBe("Nebius, GLM-5.3");
     expect(modelSummary("anthropic", "claude-haiku-5-5")).toBe("Anthropic, Claude Haiku 5.5");
   });
 

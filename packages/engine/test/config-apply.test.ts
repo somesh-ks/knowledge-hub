@@ -537,8 +537,12 @@ describe("writer.set", () => {
     });
   });
 
-  it("does not create the file for the automatic default", async () => {
-    const { code, report } = await apply({ ...SET, model: null });
+  it("does not create the file for the default writer", async () => {
+    const { code, report } = await apply({
+      op: "writer.set",
+      provider: "anthropic",
+      model: "claude-sonnet-5-5",
+    });
     expect(code).toBe(0);
     expect(report.files).toEqual([]);
     expect(repo.dirty()).toEqual([]);

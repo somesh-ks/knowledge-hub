@@ -9,13 +9,13 @@ export { writerLabel } from "./settingsSummary";
 
 /**
  * The writer settings the Model page shows, read from the repository at build time. A missing or
- * invalid config/writer.json means Automatic, which is what the engine runs on too.
+ * invalid config/writer.json means the default writer (DEFAULT_WRITER), which the engine runs on too.
  */
 export interface WriterView {
   provider: "nebius" | "anthropic";
   /** The model chosen in Settings, or null for the engine's own setting. */
   model: string | null;
-  /** What the Settings row says: a top model's name, the id's last segment, or "Default". */
+  /** What the Settings row says: a model's name, or the id's last segment. */
   label: string;
 }
 

@@ -62,12 +62,12 @@ describe("loadWriterView", () => {
     return dir;
   }
 
-  it("is Automatic without a file", async () => {
+  it("is Claude Sonnet 5.5 without a file", async () => {
     const root = await repo();
     expect(await loadWriterView({ root, env: {} })).toEqual({
-      provider: "nebius",
-      model: null,
-      label: "Default",
+      provider: "anthropic",
+      model: "claude-sonnet-5-5",
+      label: "Claude Sonnet 5.5",
     });
   });
 
@@ -80,17 +80,17 @@ describe("loadWriterView", () => {
     });
   });
 
-  it("falls back to Automatic for a file that is not valid", async () => {
+  it("falls back to the default writer for a file that is not valid", async () => {
     for (const text of ["{ not json", '{"version":1,"provider":"other","model":null}']) {
       const root = await repo(text);
-      expect((await loadWriterView({ root, env: {} })).model).toBeNull();
+      expect((await loadWriterView({ root, env: {} })).model).toBe("claude-sonnet-5-5");
       await rm(root, { recursive: true, force: true });
       dir = "";
     }
   });
 
   it("labels", () => {
-    expect(writerLabel(null)).toBe("Default");
+    expect(writerLabel(null)).toBe("GLM-5.3");
     expect(writerLabel("a/b")).toBe("b");
     expect(writerLabel("claude-sonnet-5-5", "anthropic")).toBe("Claude Sonnet 5.5");
   });

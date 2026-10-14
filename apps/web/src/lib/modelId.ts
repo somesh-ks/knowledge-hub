@@ -35,6 +35,12 @@ export const NEBIUS_TOP: ReadonlyArray<{ id: string; label: string }> = [
   { id: "Qwen/Qwen3.5-397B-A17B", label: "Qwen3.5 397B" },
 ];
 
+/**
+ * The model Nebius runs on when Settings names none (the engine's DISPATCH_MODEL, GLM-5.3 by the
+ * owner's word on 2026-10-14). The page shows it, and picking Nebius starts on it.
+ */
+export const NEBIUS_DEFAULT_ID = "zai-org/GLM-5.3";
+
 /** "meta-llama/Llama-3.3-70B-Instruct" gives name "Llama-3.3-70B-Instruct", vendor "meta-llama". */
 export function modelParts(id: string): { name: string; vendor: string } {
   const cut = id.lastIndexOf("/");
