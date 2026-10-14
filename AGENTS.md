@@ -29,6 +29,7 @@ Private design-engineering news briefing. A GitHub Actions engine writes a diges
 - No em dashes. Persisted data is snake_case; docs and config files are lowercase kebab-case.
 - Do not edit `Digests/` or `state/` by hand.
 - Changes to `.github/workflows` need a manual merge (the auto-merge token cannot merge them).
+- Code review: PRs get none by default. For one, add the `review` label to the PR when you open it: `claude-code-review.yml` runs the review and `automerge.yml` skips a labelled PR, so a human merges it after the review lands (to re-review, remove and re-add the label). Or run the `code-review` skill on the branch yourself before the PR.
 - TypeScript stays on 6.x.
 
 ## Tests
