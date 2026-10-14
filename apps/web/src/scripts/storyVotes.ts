@@ -11,6 +11,7 @@
 import type { ConfigOp } from "@dispatch/core";
 import { OPEN_PASSPHRASE, PASSPHRASE_REQUIRED } from "../lib/access";
 import {
+  type BlockOp,
   dueIn,
   markSent,
   markUnsent,
@@ -18,7 +19,6 @@ import {
   pendingOps,
   press,
   pressedOf,
-  type BlockOp,
   type StoryRef,
   VOTES_KEY,
   type VoteState,
