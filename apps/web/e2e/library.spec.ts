@@ -696,7 +696,7 @@ test.describe("navigating without reloading", () => {
     await ready(page);
     await page.getByRole("searchbox").fill("forty minute");
     expect(await titles(page)).toEqual(["Monday 5 October"]);
-    await page.getByRole("link", { name: "Today", exact: true }).click();
+    await page.getByRole("link", { name: "Latest", exact: true }).click();
     await expect(page).toHaveURL(/\/$/);
     await expect(page.locator("html")).toHaveAttribute("data-view", "home");
     expect(await page.evaluate(() => (window as unknown as { __kept?: string }).__kept)).toBe(

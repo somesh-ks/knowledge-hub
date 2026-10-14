@@ -64,7 +64,7 @@ test.describe("a refused settings change", () => {
     // Inside the server's gap: the change waits, and the owner leaves for Today.
     await page.getByRole("radio", { name: "3 min" }).check();
     await page.clock.runFor(2000);
-    await page.locator("nav").getByRole("link", { name: "Today" }).first().click();
+    await page.locator("nav").getByRole("link", { name: "Latest" }).first().click();
     await expect(page).toHaveURL(/\/$/);
     await page.clock.runFor(10_000);
     await expect.poll(() => sent.length).toBe(2);

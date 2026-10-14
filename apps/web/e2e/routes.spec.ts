@@ -19,7 +19,7 @@ test.describe("routes and headers", () => {
     const response = await page.goto("/no/such/page");
     expect(response?.status()).toBe(404);
     await expect(page.getByRole("heading", { level: 1 })).toHaveText("Page not found");
-    await expect(page.getByRole("link", { name: "Go to Today" })).toHaveAttribute("href", "/");
+    await expect(page.getByRole("link", { name: "Go to Latest" })).toHaveAttribute("href", "/");
     // One way on: the navigation already carries the rest. The body does not repeat the button.
     await expect(page.locator(".empty-actions a")).toHaveCount(1);
     await expect(page.locator("#main .empty-body")).toHaveText(

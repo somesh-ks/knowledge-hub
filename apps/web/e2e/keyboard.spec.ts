@@ -34,10 +34,10 @@ test.describe("keyboard", { tag: "@desktop" }, () => {
     }
     expect(seen).toEqual([
       "a: Skip to the briefing",
-      "a: Singularity, today's briefing",
+      "a: Singularity, latest briefing",
       // Create is first in the side column.
       "a: New episode",
-      "a: Today",
+      "a: Latest",
       "a: Library",
       "a: Settings",
       "button: More actions",

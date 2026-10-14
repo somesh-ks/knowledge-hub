@@ -43,7 +43,7 @@ test.describe("empty states", () => {
     const root = page.locator("#main .empty");
     await expectPattern(page, root, 1, "notfound");
     await expect(root.getByRole("heading", { level: 1 })).toHaveAttribute("id", "page-title");
-    await expect(root.getByRole("link", { name: "Go to Today" })).toHaveAttribute("href", "/");
+    await expect(root.getByRole("link", { name: "Go to Latest" })).toHaveAttribute("href", "/");
   });
 
   test("offline shows the cut signal, and back online the connected one", async ({ page }) => {

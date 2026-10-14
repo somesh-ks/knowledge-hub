@@ -255,7 +255,7 @@ test.describe("the tab bar", () => {
     });
     await page
       .getByRole("navigation", { name: "Primary" })
-      .getByRole("link", { name: "Today", exact: true })
+      .getByRole("link", { name: "Latest", exact: true })
       .click();
     await expect.poll(() => page.evaluate(() => window.scrollY)).toBe(0);
     expect(await page.evaluate(() => (window as unknown as { kept?: boolean }).kept)).toBe(true);
@@ -267,7 +267,7 @@ test.describe("the tab bar", () => {
     await page.goto("/d/2026-10-07");
     const today = page
       .getByRole("navigation", { name: "Primary" })
-      .getByRole("link", { name: "Today", exact: true });
+      .getByRole("link", { name: "Latest", exact: true });
     await expect(today).toHaveAttribute("aria-current", "page");
     await page.evaluate(() => window.scrollTo(0, 1200));
     await expect.poll(() => page.evaluate(() => window.scrollY)).toBeGreaterThan(600);

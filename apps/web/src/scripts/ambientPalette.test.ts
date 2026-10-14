@@ -1,8 +1,9 @@
 import { readFileSync } from "node:fs";
 import { join } from "node:path";
 import { describe, expect, it } from "vitest";
-import { contrastRatio } from "../../../../packages/cover/src/color";
+import { contrastRatio, mixHex } from "../../../../packages/cover/src/color";
 import { allPalettes } from "../../../../packages/cover/src/palettes";
+import { SCHEMES } from "../../../../packages/cover/src/season";
 import { oklchStringToRgb, toHex } from "../../../../scripts/colorMath";
 import tokens from "../../../../tokens/tokens.json" with { type: "json" };
 import {
@@ -55,13 +56,30 @@ describe("ambient light contrast", () => {
       };
       // Every offender at once, so a tint that is too strong shows how far off it is and where.
       const tooFaint: string[] = [];
-      for (const palette of allPalettes()) {
-        for (const color of tintColors(palette.ground, palette.accent, palette.shade, mode)) {
+      // The light takes the colours a cover is drawn in: a palette's own, or on a monthly cover any
+      // two of its season's colours with their mix as the shade.
+      const lights = allPalettes().map((p) => ({
+        id: p.id,
+        colors: [p.ground, p.accent, p.shade],
+      }));
+      for (const scheme of SCHEMES) {
+        for (const ground of scheme.colors) {
+          for (const accent of scheme.colors) {
+            const shade = mixHex(ground, accent, 0.5);
+            lights.push({
+              id: `${scheme.id} ${ground}/${accent}`,
+              colors: [ground, accent, shade],
+            });
+          }
+        }
+      }
+      for (const { id, colors } of lights) {
+        const [ground = "", accent = "", shade = ""] = colors;
+        for (const color of tintColors(ground, accent, shade, mode)) {
           const blended = blendTint(color, surface, TINT[mode]);
           for (const [role, text] of Object.entries(texts)) {
             const ratio = contrastRatio(text, blended);
-            if (ratio < 4.5)
-              tooFaint.push(`${palette.id} ${role} over ${color}: ${ratio.toFixed(2)}`);
+            if (ratio < 4.5) tooFaint.push(`${id} ${role} over ${color}: ${ratio.toFixed(2)}`);
           }
         }
       }
