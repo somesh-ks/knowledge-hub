@@ -188,7 +188,12 @@ describe("level control", () => {
   it("scales the rendered peak with the master volume", () => {
     const full = renderRecipe(RECIPES.play, { volume: 1 });
     const half = renderRecipe(RECIPES.play, { volume: 0.5 });
-    expect(half.peak / full.peak).toBeCloseTo(0.25, 2);
+    // Failed twice on 2026-10-14 with a ratio of exactly 1, under load, in full runs only; the
+    // render is pure, so the cause is not known. The message carries both peaks for the next one.
+    expect(
+      half.peak / full.peak,
+      `full ${full.peak} (${full.samples.length} samples), half ${half.peak}`,
+    ).toBeCloseTo(0.25, 2);
   });
 
   it("applies each recipe's narration policy in the render", () => {
