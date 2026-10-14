@@ -114,7 +114,7 @@
 /* It grows with what is typed, so it needs no grip to drag. */
 textarea.manage-input {
   min-block-size: 6rem;
-  padding-block: var(--space-3);
+  padding-block: var(--field-padding);
   field-sizing: content;
   resize: none;
 }
@@ -512,7 +512,7 @@ html:has(.manage-bar:popover-open) {
 select.manage-input {
   block-size: var(--field-height);
   padding-block: 0;
-  padding-inline-end: var(--space-12);
+  padding-inline-end: calc(var(--space-4) + var(--size-icon) + var(--field-chevron-gap));
   line-height: calc(var(--field-height) - var(--stroke-hairline) * 2);
   border-color: var(--field-border);
   background: none;

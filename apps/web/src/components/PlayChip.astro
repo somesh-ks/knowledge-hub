@@ -28,8 +28,12 @@ const { label, state = "idle", class: className, ...rest } = Astro.props;
     <PlayPauseIcons />
     <span class="chip-bars"><i></i><i></i><i></i></span>
     <Icon name="check" class="chip-check" />
+    <Icon name="replay" class="chip-replay" />
     <Icon name="refresh" class="chip-refresh" />
     <span class="spinner"></span>
   </span>
-  <span class="chip-label" data-chip-label>{label}</span>
+  <span class="chip-text">
+    <span class="chip-label" data-chip-label>{label}</span>
+    <span class="chip-again" aria-hidden="true">Play again</span>
+  </span>
 </button>

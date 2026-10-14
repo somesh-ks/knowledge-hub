@@ -4,6 +4,7 @@ import {
   estimateWordStarts,
   markedWordStarts,
   splitWords,
+  spokenPosition,
   spokenWordIndex,
   turnEndMs,
   wordIndexAt,
@@ -98,5 +99,38 @@ describe("the transcript's word marks", () => {
     expect(markedWordStarts(2, [], 100, null)).toBeNull();
     expect(markedWordStarts(2, [mark(0, 0)], null, null)).toBeNull();
     expect(markedWordStarts(2, [mark(7, 0)], 100, [100, 200])).toEqual([100, 200]);
+  });
+});
+
+describe("the host's words the transcript does not show", () => {
+  const story = (start_ms: number, end_ms: number, text: string, lead_words = 0): PlayerTurn => ({
+    key: `s${start_ms}`,
+    speaker: "a",
+    text,
+    title: "Headline",
+    start_ms,
+    end_ms,
+    lead_words,
+  });
+  // The second segment is "Now, design. Four five.": three words nobody sees, then the story.
+  const turns = [story(0, 10_000, "One two three."), story(10_000, 20_000, "Four five.", 3)];
+  const mark = (word: number, start_ms: number) => ({ word, start_ms, end_ms: start_ms + 100 });
+  const marks = [mark(0, 0), mark(1, 400), mark(2, 900), mark(3, 2500), mark(4, 3000)];
+  const first = markedWordStarts(3, undefined, 0, [0, 3000, 6000]);
+  const estimated = estimateWordStarts(["Four", "five."], 10_000, 20_000, 3);
+
+  it("keeps the story before in place and lights nothing while a bridge is spoken", () => {
+    const real = markedWordStarts(2, marks, 10_000, estimated, 3);
+    expect(real).toEqual([12_500, 13_000]);
+    expect(spokenPosition(turns, [first, real], 11)).toEqual({ turn: 0, word: -1 });
+    expect(spokenPosition(turns, [first, real], 12.5)).toEqual({ turn: 1, word: 0 });
+    // After the last story, the sign-off is not on the page either.
+    expect(spokenPosition(turns, [first, real], 20.5)).toEqual({ turn: 1, word: -1 });
+  });
+
+  it("does the same on the estimate, before any marks arrive", () => {
+    // Lead-in 15 of 26 weight: the story begins 15/26 into the span, about 15.8 s.
+    expect(spokenPosition(turns, [first, estimated], 11)).toEqual({ turn: 0, word: -1 });
+    expect(spokenPosition(turns, [first, estimated], 16)).toEqual({ turn: 1, word: 0 });
   });
 });
