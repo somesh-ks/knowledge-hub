@@ -150,7 +150,7 @@ describe("flush", () => {
     changes.set("b", change({ op: "source.set", id: "b", enabled: false }));
     const second = flush(context(changes), "open");
     await vi.advanceTimersByTimeAsync(GAP_MS / 2);
-    // Nothing sent and no Saving while the gap runs: the server would refuse it.
+    // Nothing sent while the gap runs: the server would refuse it.
     expect(posted).toHaveLength(1);
     expect(states).toEqual([]);
     changes.set("c", change({ op: "source.set", id: "c", enabled: true }));
@@ -161,7 +161,7 @@ describe("flush", () => {
       { op: "source.set", id: "b", enabled: false },
       { op: "source.set", id: "c", enabled: true },
     ]);
-    expect(states).toEqual(["saving", "done"]);
+    expect(states).toEqual(["saving", "saved"]);
   });
 
   it("still sends a change held in the gap when its page was swapped away and its toast throws", async () => {

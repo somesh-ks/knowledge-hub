@@ -587,7 +587,7 @@
     padding-inline: var(--space-3);
     color: var(--color-on-surface-muted);
     font-size: var(--font-size-label);
-    font-weight: var(--font-weight-medium);
+    font-weight: var(--font-weight-regular);
     line-height: var(--font-leading-label);
   }
 

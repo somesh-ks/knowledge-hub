@@ -60,11 +60,10 @@ test.describe("a refused settings change", () => {
     await expect(page.locator("[data-manage]")).toHaveAttribute("data-voices", "");
     await page.locator("#daily-hour").selectOption("9");
     await page.clock.runFor(2000);
-    await expect(toastText(page)).toHaveText("Saved. Live in about a minute.");
+    await expect(page.locator("[data-live]")).toHaveText("Saved.");
     // Inside the server's gap: the change waits, and the owner leaves for Today.
     await page.getByRole("radio", { name: "3 min" }).check();
     await page.clock.runFor(2000);
-    await expect(toastText(page)).toHaveText("Saving");
     await page.locator("nav").getByRole("link", { name: "Today" }).first().click();
     await expect(page).toHaveURL(/\/$/);
     await page.clock.runFor(10_000);

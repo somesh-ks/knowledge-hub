@@ -10,7 +10,7 @@ const PIXEL = Buffer.from(
   "iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNkYPhfDwAChwGA60e6kgAAAABJRU5ErkJggg==",
   "base64",
 );
-const SAVED = "Saved. Live in about a minute.";
+const SAVED = "Saved.";
 const ADDED = "Added. Read from the next update.";
 const ADDED_TOPIC = "Added. Its page opens in about a minute.";
 
@@ -77,6 +77,8 @@ const source = (page: Page, name: string) =>
   page.locator("li.source-row:not(.is-suggested)", { hasText: name });
 const toast = (page: Page) => page.locator("[data-bar]");
 const toastText = (page: Page) => toast(page).locator("[data-bar-text]");
+/** A save that went through shows no toast; a screen reader hears it. */
+const spoken = (page: Page) => page.locator("[data-live]");
 const ops = (sent: Sent[]) => sent.flatMap((item) => [item.op].flat());
 /** A removal waits five seconds with Undo before it is sent. */
 const AFTER_UNDO = { timeout: 10_000 };
@@ -274,12 +276,12 @@ test.describe("the Topics list", () => {
         url: "https://motion-weekly.example/rss.xml",
         topic_ids: ["motion-design"],
       });
-    await expect(toastText(page)).toHaveText(SAVED);
+    await expect(spoken(page)).toHaveText(SAVED);
     const before = sent.length;
 
     await page.reload();
     await open(page);
-    await expect(page.locator("[data-saved-note]")).toHaveText(SAVED);
+    await expect(page.locator("[data-saved-note]")).toHaveCount(0);
     await expect(queued).toContainText("Motion design");
     await expect(queued).toContainText(ADDED_TOPIC);
     await expect(queued.getByRole("button", { name: "Added Motion Weekly" })).toBeDisabled();
@@ -331,7 +333,7 @@ test.describe("a topic's page", () => {
     const slider = page.locator("[data-weight]");
     await slider.fill("0.6");
     await expect(page.locator("[data-word]")).toHaveText("60%");
-    await expect(toastText(page)).toHaveText(SAVED);
+    await expect(spoken(page)).toHaveText(SAVED);
     expect(ops(sent)).toEqual([{ op: "weights.set", weights: { audio_interfaces: 0.6 } }]);
   });
 
@@ -346,7 +348,7 @@ test.describe("a topic's page", () => {
       "Design engineering craft",
     );
     await weights.getByRole("slider", { name: "Product design" }).fill("0.5");
-    await expect(toastText(page)).toHaveText(SAVED);
+    await expect(spoken(page)).toHaveText(SAVED);
     expect(ops(sent)).toEqual([{ op: "weights.set", weights: { product_design: 0.5 } }]);
     await open(page, "/settings/topics/ai");
     await expect(page.getByRole("region", { name: "Topic weightage" })).toHaveCount(0);
@@ -368,7 +370,7 @@ test.describe("a topic's page", () => {
     await page.keyboard.press("Escape");
     await expect(list).toBeHidden();
     await expect(field).toBeFocused();
-    await expect(toastText(page)).toHaveText(SAVED);
+    await expect(spoken(page)).toHaveText(SAVED);
     expect(ops(sent)).toEqual([
       { op: "topic.scope", ids: ["design_engineering_craft", "product_design"], daily: false },
     ]);
@@ -554,7 +556,7 @@ test.describe("a topic's page", () => {
     await open(page, "/settings/topics/other");
     await expect(page.getByRole("heading", { level: 1, name: "Other" })).toBeVisible();
     await page.getByRole("checkbox", { name: "Read Quiet Motion" }).check();
-    await expect(toastText(page)).toHaveText(SAVED);
+    await expect(spoken(page)).toHaveText(SAVED);
     expect(ops(sent)).toEqual([{ op: "source.set", id: "quiet-motion", enabled: true }]);
   });
 });
@@ -794,7 +796,7 @@ test.describe("a refused suggested add", () => {
     const again = suggestion(page, "Motion Weekly");
     await expect(again.getByRole("button", { name: "Add Motion Weekly" })).toBeEnabled();
     await expect(again).not.toContainText("Added");
-    await expect(page.getByText("Saving. Live in about a minute.")).toHaveCount(0);
+    await expect(page.locator("[data-saved-note]")).toHaveCount(0);
   });
 });
 

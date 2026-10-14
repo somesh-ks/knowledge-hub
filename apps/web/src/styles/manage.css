@@ -354,20 +354,14 @@ textarea.manage-input {
 /* ------------------------------------------------------------------ the saving toast */
 
 /* The toast of sheets.css (ManageChrome.astro), told by its state what to show: Undo while a removal
-   waits, a spinner while saving, a check once saved, an alert and Retry when it failed. Dismiss shows only
-   on a failure: a toast with nothing to act on leaves by itself, as the Toaster's do. */
-.manage-bar:not([data-state="saving"]) .manage-bar-busy,
+   waits, a check on an outcome to read, an alert and Retry when it failed. A save on its way or done
+   shows no toast. Dismiss shows only on a failure: a toast with nothing to act on leaves by itself, as
+   the Toaster's do. */
 .manage-bar:not([data-state="done"]) .manage-bar-done,
 .manage-bar:not([data-state="error"]) :is(.manage-bar-error, [data-act="retry"]),
 .manage-bar:not([data-state="undo"]) [data-act="undo"],
-.manage-bar:is([data-state="saving"], [data-state="undo"], [data-state="done"])
-  [data-act="dismiss"] {
+.manage-bar:is([data-state="undo"], [data-state="done"]) [data-act="dismiss"] {
   display: none;
-}
-
-/* The spinner takes the icon's place, in the toast's ink. */
-.manage-bar-busy {
-  flex: none;
 }
 
 /* While it shows, the page keeps room for the toast under its last control, and focus scrolling

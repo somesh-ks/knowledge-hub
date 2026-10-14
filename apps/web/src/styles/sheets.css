@@ -715,9 +715,8 @@ html[data-mini="visible"] .toast {
 }
 
 /* With no button at its end, the text has the same room on both sides. The settings toast keeps its
-   buttons in the page and hides them by its state (manage.css); while saving it shows none. */
-.toast:not(:has(button:not([hidden]))),
-.toast[data-state="saving"] {
+   buttons in the page and hides them by its state (manage.css). */
+.toast:not(:has(button:not([hidden]))) {
   padding-inline-end: var(--space-4);
 }
 
