@@ -1,8 +1,11 @@
 /**
  * What the shell knows about Create without loading it: a press on a Create button (a link to
  * /create) opens the sheet when the script is here, and a run kept in sessionStorage is picked up
- * again after a reload or a navigation. Both load their module on demand, so this stays tiny.
+ * again after a reload or a navigation. Both load their module on demand, so this stays tiny; the
+ * sheet's is fetched at idle, so the first press does not wait for it.
  */
+import { whenIdle } from "./idle";
+
 export function installCreateEntry(): void {
   const open = (trigger: HTMLElement) =>
     import("./createSheet")
@@ -48,4 +51,5 @@ export function installCreateEntry(): void {
       // Storage can be blocked; there is then no run to pick up.
     }
   });
+  whenIdle(() => void import("./createSheet").catch(() => {}));
 }
