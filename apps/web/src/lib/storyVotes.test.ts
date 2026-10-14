@@ -56,6 +56,8 @@ describe("story votes", () => {
   it("splits votes into ops of fifteen", () => {
     let state = emptyVotes();
     for (let i = 0; i < 120; i += 1) state = press(state, story(`s${i}`), "up", 1_000 + i);
-    expect(pendingOps(state).map((op) => op.votes.length)).toEqual([15, 15, 15, 15, 15, 15, 15, 15]);
+    expect(pendingOps(state).map((op) => op.votes.length)).toEqual([
+      15, 15, 15, 15, 15, 15, 15, 15,
+    ]);
   });
 });
