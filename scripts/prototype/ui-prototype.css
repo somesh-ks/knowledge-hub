@@ -1147,15 +1147,6 @@ dialog.player::backdrop {
   touch-action: none;
 }
 
-.player-handle {
-  align-self: center;
-  width: var(--player-handle-width);
-  height: var(--player-handle-height);
-  margin-block: var(--space-2);
-  border-radius: var(--radius-xs);
-  background: var(--player-handle-color);
-}
-
 .player-bar {
   display: flex;
   align-items: center;

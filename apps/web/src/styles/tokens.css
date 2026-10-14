@@ -329,9 +329,6 @@
   --mini-player-shadow: var(--shadow-floating);
   --player-padding: var(--space-6);
   --player-bg: var(--color-surface-raised);
-  --player-handle-width: 2.25rem;
-  --player-handle-height: 0.25rem;
-  --player-handle-color: var(--color-track-strong);
   --player-tint-mix: 0;
   --player-dismiss-distance: 0.35;
   --player-dismiss-velocity: 0.5;
