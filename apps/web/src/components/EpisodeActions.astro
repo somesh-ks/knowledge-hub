@@ -1,8 +1,8 @@
 ---
 import { PASSPHRASE_REQUIRED } from "../lib/access";
+import { briefingChips } from "../lib/briefingChips";
 import { topicOptions } from "../lib/createForm";
 import { loadManage } from "../lib/manage";
-import { briefingChips } from "../lib/briefingChips";
 import { isChipOn, type RegenChip } from "../lib/regenTopics";
 import Icon from "./Icon.astro";
 import "../styles/episode-actions.css";
@@ -68,7 +68,8 @@ const COPY = {
                 This replaces the episode and keeps its length and format.
               </p>
               <section class="create-group" aria-labelledby="regen-topics-label">
-                <h2 class="section-head" id="regen-topics-label">Topics</h2>
+                {/* A field label, as Comments is: not a second title under the panel's own. */}
+                <div class="sheet-field-label regen-label" id="regen-topics-label">Topics</div>
                 <fieldset class="filter-chips" aria-labelledby="regen-topics-label">
                   {chips.map((chip) => (
                     <label class="filter-chip">
