@@ -296,10 +296,22 @@ async function mountModel(
     root.dataset.loaded = "";
   };
 
+  /** Where Nebius starts: GLM-5.3 while the live list serves it (or is not in), else its first model. */
+  const nebiusStart = (): string => {
+    const ids = nebiusOptions(nebius ?? null, null).map((option) => option.id);
+    return ids.includes(NEBIUS_DEFAULT_ID) ? NEBIUS_DEFAULT_ID : (ids[0] ?? NEBIUS_DEFAULT_ID);
+  };
+
   vendor.addEventListener("change", () => {
     // Each vendor starts on its first model: GLM-5.3 on Nebius, Claude Sonnet on Anthropic.
-    selected = provider() === "anthropic" ? (CLAUDE_OPTIONS[0]?.id ?? null) : NEBIUS_DEFAULT_ID;
-    if (provider() === "nebius" && nebius === undefined) void load().then(() => update());
+    selected = provider() === "anthropic" ? (CLAUDE_OPTIONS[0]?.id ?? null) : nebiusStart();
+    if (provider() === "nebius" && nebius === undefined)
+      void load().then(() => {
+        // The live list has come: start on a model it serves.
+        if (provider() === "nebius" && selected === NEBIUS_DEFAULT_ID) selected = nebiusStart();
+        refresh();
+        update();
+      });
     refresh();
     update();
   });

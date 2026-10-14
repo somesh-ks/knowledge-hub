@@ -81,8 +81,6 @@ export interface ManageSource {
    * Trust is null while it is not measured: fewer than 10 items were asked the flag questions.
    */
   score_parts: { health: number; quality: number; trust: number | null } | null;
-  /** One short sentence behind the score. */
-  score_reason: string;
   /** Lowercase text the search matches. */
   search: string;
 }
@@ -577,7 +575,6 @@ export function buildSources(input: {
       score: rated.score,
       score_label: rated.label,
       score_parts: rated.parts,
-      score_reason: rated.reason,
       search: `${name} ${host} ${source.id}`.toLowerCase(),
     });
   }

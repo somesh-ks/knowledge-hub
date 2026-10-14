@@ -140,9 +140,12 @@ describe("createWriterLlm", () => {
     }
   });
 
-  it("ignores a missing or broken file and uses the environment", async () => {
-    expect(make(api([]), { DISPATCH_MODEL: "env-a" }).model).toBe("env-a");
+  it("writes with Claude Sonnet without a usable file, and with the environment without its key", async () => {
+    const key = { ANTHROPIC_API_KEY: "an-secret-777777777777" };
+    expect(make(api([]), { DISPATCH_MODEL: "env-a", ...key }).model).toBe("claude-sonnet-5-5");
     await writeFile(join(root, "config/writer.json"), "{ not json");
+    expect(make(api([]), { DISPATCH_MODEL: "env-a", ...key }).model).toBe("claude-sonnet-5-5");
+    // A run without the key is never stopped by the default: the Nebius models write.
     expect(make(api([]), { DISPATCH_MODEL: "env-a" }).model).toBe("env-a");
   });
 

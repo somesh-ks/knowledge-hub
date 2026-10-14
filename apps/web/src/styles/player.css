@@ -234,13 +234,14 @@
      slides a fixed element held by its bottom with its address bar, in the same frame, and resizes
      one held by both edges only once the gesture ends. Held by both, the bar stayed put while the
      navigation under it moved, so a scroll opened a gap under the bar or slid the navigation behind
-     it, and everything snapped when the finger lifted. */
+     it, and everything snapped when the finger lifted. Its height is the window as it is now (dvh):
+     a fixed box's 100% is the window with the address bar shown, and would leave a strip of page
+     above the open player once the bar has slid away. */
   position: fixed;
   inset: auto 0 0;
-  height: 100%;
+  height: 100dvh;
   z-index: var(--z-mini);
-  /* Its own box is the unit for everything inside (cqb, cqi), so no viewport unit is needed and
-     the address bar moving cannot leave a stale height behind. */
+  /* Its own box is the unit for everything inside (cqb, cqi). */
   container-type: size;
   color: var(--color-on-surface);
   /* Only the bar and the page take the pointer. */

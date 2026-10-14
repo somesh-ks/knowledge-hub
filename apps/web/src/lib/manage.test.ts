@@ -357,7 +357,6 @@ describe("buildSources", () => {
       score: 5,
       score_label: "Excellent",
       score_parts: { health: 1, quality: 1, trust: null },
-      score_reason: "Trust is not measured yet; 10 of 40 judged items published, no failures.",
     });
     expect(byId.fresh).toMatchObject({ score: null, score_label: "New", score_parts: null });
   });
@@ -378,8 +377,6 @@ describe("buildSources", () => {
       score: 4,
       score_label: "Good",
       score_parts: { health: 1, quality: 1, trust: 0.5 },
-      score_reason:
-        "Trust is the weakest part: 10 of 40 checked items flagged as hype or sponsored.",
     });
   });
 
