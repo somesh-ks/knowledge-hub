@@ -1,9 +1,11 @@
 import { createHash } from "node:crypto";
-import { readFileSync } from "node:fs";
+import { existsSync, readdirSync, readFileSync, writeFileSync } from "node:fs";
+import { join } from "node:path";
 import { fileURLToPath, pathToFileURL } from "node:url";
 import react from "@astrojs/react";
 import vercel from "@astrojs/vercel";
 import { defineConfig } from "astro/config";
+import { withModulePreloads } from "./src/lib/bundleBudget.ts";
 import { FUNCTION_MAX_DURATION_S } from "./src/server/functionLimits.mjs";
 
 // The data layer reads Digests/ at build time. Page code is bundled into chunks whose import.meta.url
@@ -40,6 +42,34 @@ function keepCoverFontsReachable() {
   };
 }
 
+/**
+ * Names every module a page loads at start in a modulepreload link, so the islands' graph downloads
+ * beside the CSS instead of one round trip at a time after idle. A hand-edited build made the bar
+ * pressable 1.3 to 2.5 s sooner on a throttled phone with the largest paint unchanged
+ * (docs/first-load-js.md). Links, not inline scripts: the policy hashes every inline script.
+ */
+function preloadPageModules() {
+  return {
+    name: "dispatch-module-preload",
+    hooks: {
+      "astro:build:done": ({ dir }) => {
+        const root = fileURLToPath(dir);
+        const read = (url) => {
+          const file = join(root, url);
+          return existsSync(file) ? readFileSync(file, "utf8") : null;
+        };
+        for (const entry of readdirSync(root, { recursive: true, withFileTypes: true })) {
+          if (!entry.isFile() || !entry.name.endsWith(".html")) continue;
+          const file = join(entry.parentPath, entry.name);
+          const html = readFileSync(file, "utf8");
+          const hinted = withModulePreloads(html, read);
+          if (hinted !== html) writeFileSync(file, hinted);
+        }
+      },
+    },
+  };
+}
+
 // Tests build without the adapter: the Vercel adapter bundles functions with symlinks, which Windows
 // refuses without Developer Mode, and the e2e suite only needs the static output. The API routes
 // become static stubs there; their logic is covered by unit tests.
@@ -61,7 +91,11 @@ export default defineConfig({
   // Static output. Only the routes that export `prerender = false` run on demand.
   output: "static",
   adapter: staticOnly ? undefined : vercel({ maxDuration: FUNCTION_MAX_DURATION_S }),
-  integrations: [react(), ...(staticOnly ? [stubApiRoutesForStaticBuild()] : [])],
+  integrations: [
+    react(),
+    preloadPageModules(),
+    ...(staticOnly ? [stubApiRoutesForStaticBuild()] : []),
+  ],
   // `true` keeps single spaces between inline elements, which the default "jsx" mode would strip.
   compressHTML: true,
   trailingSlash: "never",
