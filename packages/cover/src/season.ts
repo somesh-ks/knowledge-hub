@@ -1,5 +1,5 @@
-import { contrastRatio, mixHex } from "./color.js";
-import { getPalette, SURFACE_DARK, SURFACE_LIGHT } from "./palettes.js";
+import { contrastRatio, hexToOklch, mixHex } from "./color.js";
+import { getPalette } from "./palettes.js";
 import { hash32, mulberry32 } from "./prng.js";
 import { TEMPLATES } from "./templates/index.js";
 import type { Palette, TemplateId } from "./types.js";
@@ -104,12 +104,23 @@ export const TYPE_CONTRAST = 4.5;
 export const FORM_CONTRAST = 3;
 /** A plate must read as a disc on its matte. */
 const PLATE_CONTRAST = 1.6;
-/** A ground nearer than this to the app's light or dark surface loses its edge there. */
-const EDGE_CONTRAST = 1.3;
+/** The derived shade must stand apart from both ground and figure; the field only needs a trace of tint. */
+const SHADE_CONTRAST = 1.6;
+const FIELD_CONTRAST = 1.08;
+const FIELD_MIX = 0.16;
+const SHADE_MIX = 0.5;
 
-const edgeOk = (ground: string): boolean =>
-  contrastRatio(ground, SURFACE_LIGHT) >= EDGE_CONTRAST &&
-  contrastRatio(ground, SURFACE_DARK) >= EDGE_CONTRAST;
+const tintsOk = (ground: string, figure: string): boolean => {
+  const shade = mixHex(ground, figure, SHADE_MIX);
+  const field = mixHex(ground, figure, FIELD_MIX);
+  return (
+    contrastRatio(shade, ground) >= SHADE_CONTRAST &&
+    contrastRatio(shade, figure) >= SHADE_CONTRAST &&
+    contrastRatio(field, ground) >= FIELD_CONTRAST
+  );
+};
+
+const isLight = (hex: string): boolean => hexToOklch(hex).l >= 0.7;
 
 export interface Dress {
   /** Ground and figure the template draws with; on a plate, the disc and the art on it. */
@@ -124,27 +135,25 @@ export interface Dress {
 function valid(colors: readonly string[], plate: boolean): string[][] {
   const out: string[][] = [];
   for (const ground of colors) {
-    if (!edgeOk(ground)) continue;
     for (const type of colors) {
       if (contrastRatio(type, ground) < TYPE_CONTRAST) continue;
       for (const figure of colors) {
         if (!plate) {
-          if (contrastRatio(figure, ground) >= FORM_CONTRAST) out.push([ground, figure, type]);
+          if (contrastRatio(figure, ground) >= FORM_CONTRAST && tintsOk(ground, figure))
+            out.push([ground, figure, type]);
           continue;
         }
         // Plate: ground is the matte, figure the disc, then the art on the disc.
         if (contrastRatio(figure, ground) < PLATE_CONTRAST) continue;
         for (const art of colors) {
-          if (contrastRatio(art, figure) >= FORM_CONTRAST) out.push([ground, figure, art, type]);
+          if (contrastRatio(art, figure) >= FORM_CONTRAST && tintsOk(figure, art))
+            out.push([ground, figure, art, type]);
         }
       }
     }
   }
   return out;
 }
-
-const FIELD_MIX = 0.16;
-const SHADE_MIX = 0.5;
 
 function palette(id: string, ground: string, accent: string, text: string): Palette {
   const base = getPalette(id);
@@ -187,6 +196,12 @@ export function dress(
         g !== undefined && contrastRatio(g, "#000000") > 2.2 && contrastRatio(g, "#000000") < 8,
     );
     if (deep.length > 0) options = deep;
+  }
+  if (kind !== "weekly") {
+    // About a third of a month sits on a light ground, as production does.
+    const light = options.filter(([g]) => g !== undefined && isLight(g));
+    const dark = options.filter(([g]) => g !== undefined && !isLight(g));
+    if (light.length > 0 && dark.length > 0) options = rng.chance(1 / 3) ? light : dark;
   }
   const pick = rng.pick(options);
   if (plate) {
