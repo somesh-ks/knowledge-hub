@@ -13,11 +13,24 @@ const AT_REST: SurfaceSnapshot = { state: "collapsed", open: false, landed: fals
 
 let motion: SurfaceController | null = null;
 let loading: Promise<SurfaceController> | null = null;
+/** Where the chunk lives, learned from the first failure. */
+let failedUrl: string | null = null;
 const listeners = new Set<() => void>();
+
+/**
+ * Chromium remembers a module whose fetch failed and fails every later import of it at once, so a
+ * retry asks for the same file under a new query string, as the open page's controls do
+ * (pageContentLoader.ts).
+ */
+function importMotion(): Promise<typeof import("./playerSheetMotion")> {
+  if (!failedUrl) return import("./playerSheetMotion");
+  const separator = failedUrl.includes("?") ? "&" : "?";
+  return import(/* @vite-ignore */ `${failedUrl}${separator}retry=${Date.now()}`);
+}
 
 /** Loads the motion once. A failure is forgotten, so the next press tries again. */
 export function loadPlayerSheet(): Promise<SurfaceController> {
-  loading ??= import("./playerSheetMotion").then(
+  loading ??= importMotion().then(
     (module) => {
       const created = module.createPlayerSheet();
       created.subscribe(() => {
@@ -29,6 +42,7 @@ export function loadPlayerSheet(): Promise<SurfaceController> {
     },
     (error: unknown) => {
       loading = null;
+      failedUrl ??= /https?:\/\/\S+/.exec(error instanceof Error ? error.message : "")?.[0] ?? null;
       throw error;
     },
   );

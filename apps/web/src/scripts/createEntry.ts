@@ -4,7 +4,7 @@
  * again after a reload or a navigation. Both load their module on demand, so this stays tiny; the
  * sheet's is fetched at idle, so the first press does not wait for it.
  */
-import { whenIdle } from "./idle";
+import { warmWhenIdle } from "./idle";
 
 export function installCreateEntry(): void {
   const open = (trigger: HTMLElement) =>
@@ -51,5 +51,5 @@ export function installCreateEntry(): void {
       // Storage can be blocked; there is then no run to pick up.
     }
   });
-  whenIdle(() => void import("./createSheet").catch(() => {}));
+  warmWhenIdle(() => import("./createSheet"));
 }

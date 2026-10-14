@@ -5,7 +5,7 @@
  * that needs the network). The disabled state is aria-disabled, so they stay focusable and the
  * reason can be read; the shell's disabled guard swallows their clicks.
  */
-import { whenIdle } from "./idle";
+import { warmWhenIdle } from "./idle";
 
 const BUSY_ID = "episode-actions-busy";
 /** The offline banner's line (BaseLayout.astro). */
@@ -54,5 +54,5 @@ export function installEpisodeActions(): void {
   window.addEventListener("online", sync);
   window.addEventListener("offline", sync);
   sync();
-  whenIdle(() => void import("./episodeActions").catch(() => {}));
+  warmWhenIdle(() => import("./episodeActions"));
 }
