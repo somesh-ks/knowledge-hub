@@ -21,7 +21,7 @@
     "@dispatch/cover": "*",
     "@dispatch/engine": "*",
     "@dispatch/sound": "*",
-    "@vercel/blob": "^2.8.0",
+    "@vercel/blob": "^2.8.1",
     "astro": "^7.3.8",
     "react": "^19.3.0",
     "react-dom": "^19.3.0",

@@ -17,7 +17,7 @@
     "@dispatch/cover": "*",
     "@mozilla/readability": "^0.6.0",
     "@typesafe-ai/sdk": "^0.6.0",
-    "@vercel/blob": "^2.8.0",
+    "@vercel/blob": "^2.8.1",
     "fast-xml-parser": "^5.11.2",
     "linkedom": "^0.18.13",
     "openai": "^7.32.0",
