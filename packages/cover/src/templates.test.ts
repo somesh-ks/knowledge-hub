@@ -8,7 +8,7 @@ import { nonFiniteCount } from "./svg.js";
 import { TEMPLATES } from "./templates/index.js";
 import type { CoverKind, CoverMeta, CoverSpec, TemplateId } from "./types.js";
 
-const META: CoverMeta = { date: "2026-10-06", kind: "regular", id: "2026-10-06" };
+const META: CoverMeta = { date: "2026-09-06", kind: "regular", id: "2026-09-06" };
 
 /** One fixed palette per template so snapshots cover a spread of looks. */
 const SNAPSHOT_PALETTE: Record<TemplateId, string> = {
@@ -75,12 +75,12 @@ describe.each(TEMPLATES)("template %s", (template) => {
   it("carries only the date and the wordmark as text", () => {
     const strings = [...svg.matchAll(/<text[^>]*>([^<]*)<\/text>/g)].map((m) => m[1]);
     const day = "6";
-    const allowed = new Set([...day, "October", "Singularity"]);
+    const allowed = new Set([...day, "September", "Singularity"]);
     expect(strings.length).toBeGreaterThanOrEqual(3);
     for (const text of strings)
       expect(allowed.has(text as string), `unexpected text "${text}"`).toBe(true);
     expect(strings).toContain("Singularity");
-    expect(strings).toContain("October");
+    expect(strings).toContain("September");
     expect(strings).toContain("6");
   });
 
@@ -137,7 +137,7 @@ describe("all templates across all palettes", () => {
     const before = nonFiniteCount();
     for (let i = 0; i < 160; i += 1) {
       const template = TEMPLATES[i % TEMPLATES.length] as TemplateId;
-      const month = String((i % 12) + 1).padStart(2, "0");
+      const month = String((i % 9) + 1).padStart(2, "0");
       const day = String((i % 28) + 1).padStart(2, "0");
       const meta: CoverMeta = {
         date: `2026-${month}-${day}`,

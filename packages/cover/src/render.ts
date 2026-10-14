@@ -2,7 +2,7 @@ import { Resvg } from "@resvg/resvg-js";
 import { buildContext, WEEKLY_INSET } from "./context.js";
 import { RESVG_FONT_OPTIONS } from "./fonts.js";
 import { getPalette } from "./palettes.js";
-import { flatTemplate } from "./season.js";
+import { flatTemplate, isMonthly } from "./season.js";
 import { n, rectPath } from "./svg.js";
 import { TEMPLATE_FNS, TEMPLATE_LOCKUP, TEMPLATES } from "./templates/index.js";
 import type { CoverMeta, CoverSpec } from "./types.js";
@@ -40,7 +40,7 @@ function compose(
   meta: CoverMeta,
   size: number,
   wordmark = true,
-  monthly = false,
+  monthly = isMonthly(meta.date),
 ): Composed {
   assertSpec(spec);
   if (monthly) spec = { ...spec, template: flatTemplate(spec.template, spec.seed) };
@@ -87,7 +87,7 @@ export interface CoverSvgOptions {
   wordmark?: boolean;
   /**
    * Press the cover with its month's colour scheme, the week number on weeklies and the round plate
-   * on on-demand briefings. Off by default so existing covers render as before.
+   * on on-demand briefings. Left out, the date decides: October 2026 and later are monthly.
    */
   monthly?: boolean;
 }
@@ -98,7 +98,7 @@ export function renderCoverSvg(
   meta: CoverMeta,
   options: CoverSvgOptions = {},
 ): string {
-  const composed = compose(spec, meta, SQUARE, options.wordmark ?? true, options.monthly ?? false);
+  const composed = compose(spec, meta, SQUARE, options.wordmark ?? true, options.monthly);
   return wrap({ w: SQUARE, h: SQUARE }, composed, composed.inner);
 }
 

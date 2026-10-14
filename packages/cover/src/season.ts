@@ -93,6 +93,14 @@ export const SCHEMES: readonly Scheme[] = [
   },
 ];
 
+/** The first month drawn with a monthly scheme. Earlier covers keep their original look. */
+export const MONTHLY_FROM = "2026-10";
+
+/** Whether a cover dated `date` (YYYY-MM-DD) is drawn in the monthly style. The one place that decides. */
+export function isMonthly(date: string): boolean {
+  return date.slice(0, 7) >= MONTHLY_FROM;
+}
+
 export function schemeFor(year: number, month: number): Scheme {
   const scheme = SCHEMES[(year * 12 + month - 1) % SCHEMES.length];
   if (!scheme) throw new Error("No cover schemes");
