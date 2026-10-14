@@ -42,14 +42,34 @@ Patterns from about 150 asks, strongest first.
    
    The interface says something only when the owner can act.
 4. **Speed is a design property.** Navigation in 32 ms (D47), the early Play tap kept (D82), modulepreload and idle loading (D112). "Delays in time to play" is a design complaint here, not an engineering one.
-5. **Fewer choices, plainly named.**
-   - Settings one job per page (D51).
-   - A shorter New episode form (D76, D114).
-   - Modes retired: "Remove, always Somesh" (D114).
-   - Plain labels: Format, Custom, AI Model, Last updated (D83, D102).
-   - A model named by its name, never by id (D101).
-6. **Every control is complete.** It gets a 44px target (test in `e2e/layout.spec.ts`), a sound (D101), a press state that never shrinks words (D72, `styles.test.ts`) and a focus ring that survives forced colours.
-7. **Bans.**
+5. **Affordance, not explanation.** The interface shows what a control does by how it looks and answers, never by a sentence telling the owner what to do.
+   - The rule from 2026-10-08: "no instruction text that the control makes obvious", from "These minor usability aspects are the differentiating factors" (`history/2026-10-08-session-learnings.md`).
+   - D89 records "a control that explains itself is the thing the owner called slop". It rejected a disabled row with a note; D91 rejected a Format row with a note.
+   - Fixes that follow the rule:
+     - An unlabelled plus "says nothing about what it makes", so the floating button carries its words (D52).
+     - The model field reads as a select: a hand cursor, a caret on focus, and a press opens the whole list (D51).
+     - A glyph always says what a press does: refresh for Try again, replay for Play again (D92).
+     - A card's title takes the accent under a mouse, because the title opens the page and the art plays (D101).
+     - The whole bar opens the player, so it needs no chevron (D102).
+     - A control that cannot act stays on its row, dimmed and named, never hidden (D100).
+     - A decoration must not look pressable: empty scenes stopped drawing a filled disc in the button's colour (D98).
+     - A name is plain text and the row opens the editor: one element, one job (D83).
+   - States are shown, not narrated:
+     - Hover and press are state layers (D72).
+     - The chosen item takes the accent container (D72).
+     - The saved control is the confirmation (D115).
+     - A source row says "Adding", then "Added", in place (D91).
+6. **Minimal, with high brevity.** Fewer controls, fewer words, one way to say each thing.
+   - Settings: one job per page (D51).
+   - A shorter New episode form (D76, D114), and modes retired: "Remove, always Somesh" (D114).
+   - Plain labels: Format, Custom, AI Model, Last updated (D83, D102). A model named by its name, never by id (D101).
+   - One noun for one thing: the third critic round found "five spellings of one noun" (D89). "Story" everywhere in the player (D90).
+   - A failure is told once, in one place (D94). A status line is three or four words: "Episode queued", "Writing your episode" (D84).
+   - No hedging helper text, and a plainer About (#68, 2026-10-10).
+   - Content is brief too: headlines up to 12 words, summaries of 25 to 80 words (D12, D34). The digest has no emoji, no intro paragraph, no dividers and no sign-off (`vision.md`).
+   - One filled action per screen: the hero's Play (D77), an empty state's single button (D96), New episode in its own tone so it never competes with Play (D86).
+7. **Every control is complete.** It gets a 44px target (test in `e2e/layout.spec.ts`), a sound (D101), a press state that never shrinks words (D72, `styles.test.ts`) and a focus ring that survives forced colours.
+8. **Bans.**
    - From the persona: cream backgrounds, italic accent words, "01/02/03" labels, monospace eyebrows, all-caps labels, gradient washes, grey shadows, terracotta.
    - From the record: a chevron on the bar (D102), a grabber on phone sheets (D106), a drag handle on the player (D111), a Dry tone (D101), the General audience (D114), em dashes (`houseRules.test.ts`).
 
@@ -172,16 +192,91 @@ Ask, then what was built, then the decision. Values are as built.
   - One soft sound per story crossed, with 2% hysteresis.
 - **Errors.** Told once, in the story line's room, with a refresh glyph on the disc. A glyph always says what a press does (D92, D94, D98).
 
-### The bottom stack and floating button
-- **Floating button.**
-  - Create on the Library only; Play on any page with audio, but only once the hero's Play has scrolled away; nothing at 64rem and wider (D52, D59, D60, D77).
+### The bottom stack on a phone
+
+The navigation bar, the player bar, the floating button, the run indicator and toasts share the bottom edge below 64rem. Every fix so far, in the order it came:
+
+- **Shape** (D31, D72, D86).
+  - A bottom bar below 64rem, a side column from 64rem.
+  - Tonal, 4rem tall, with a 64x32 pill behind the current icon.
+  - The hairline above it removed.
+  - The player bar takes the same `surface-container` fill, with no line between, so the two read as one block in both themes.
+- **Current tab.**
+  - The current icon is filled and the others outlined, swapped by `aria-current`; the current label takes the full ink (`shell.css:325-370`).
+  - Pressing the current tab scrolls to the top, like a native tab bar (D52), and instantly from a keyboard.
+  - A press scales only the glyph, never the label.
+  - The pressed item lights up before the next page arrives (`navigationBoost.ts`).
+- **It stays put** (D52). Hiding the bar on scroll was rejected: Material's navigation bar stays, and the playback controls dock on it.
+- **No pull to refresh** (D52). `overscroll-behavior-y: none` is set in CSS (`shell.css:87-91`) because iOS reads it before the first touch. A pull can no longer restart a briefing mid-listen or show a rubber band behind the opaque bars.
+- **The old "stuck" player** (2026-10-08). A navigation with the sheet open destroyed its portal while the controller still thought it open. The player became one persisted island with no portal (D32).
+- **The pull moves the navigation** (2026-10-11, owner ask).
+  - The navigation slides away by `--player-p` as the player rises.
+  - It sat a layer under the player (z 20 over 10), so the slide was hidden from the first frame. It now rises above the player while moving and drops back at rest (`shell.css:269-286`).
+- **The dock fades with travel.** On a phone it fades by `1 - p/0.3` while riding the page (`player.css:1060-1065`).
+- **Floating button** (D52, D59, D60, D77).
+  - Create on the Library only. Play on any page with audio, shown only once the hero's Play has scrolled away. Nothing at 64rem and wider.
   - Extended at the top and on scroll up, folded on scroll down.
-- **Bar and navigation.**
-  - One tonal block (D86).
-  - The navigation slides with the player's pull and rises above it while moving (2026-10-11).
+  - It rides above the navigation, the dock and the run indicator through summed CSS variables, and hides under the open player.
+- **Toasts** (2026-10-10 final audit, D90).
+  - A toast sits 12px above whichever of the navigation, the dock or the floating button is highest.
+  - It had kept the navigation's inset while the player covered it; that is fixed.
+  - It lifts over the floating Play only while that button shows.
+- **Room under the page.** `scroll-padding-block` counts the bar, the dock and the run indicator, so focus and jumps never land under them (`shell.css:34-57`).
+- **Viewport units.**
+  - `min-height: 100dvh` follows a collapsing browser toolbar.
+  - A launched home-screen app uses `100vh`, because dvh can misreport there before first layout (`shell.css:93-112`).
+  - A sticky band keeps the open player clear of the status bar of a home-screen app (D90).
+- **iOS 26** clips fixed elements to the inner viewport, so the sheet's backdrop is absolute (`sheets.css:27`). Safe-area insets are mirrored as `--safe-*`, and a window-controls inset covers iPadOS.
 - **Native anchoring** (#120, #124).
-  - Every element of the stack is held by its bottom edge, and the player box is `100dvh`, so the stack moves with mobile Chrome's address bar as one.
+  - Every element of the stack is held by its bottom edge, and the player box is `100dvh`. The stack now moves with mobile Chrome's address bar in the same frame instead of drifting apart and snapping back.
   - Not verifiable headless; it needs a phone recording.
+- **One control, the whole bar** (D102). No chevron; the whole bar opens and closes the player; a keyboard Close exists at every width. The bar's Tab order follows its drawn order (`reading-flow`, D97).
+
+### Small component fixes
+
+The craft that makes components hold still and answer clearly. Each was a reported or measured defect.
+
+- **Nothing changes width or jumps.**
+  - The play chip keeps one width (7rem), so the publisher beside it never moves (D92). Played shows Play again only under a mouse, at a held width (D106, #116).
+  - A filter chip's and a segment's check takes no room; the label slides by half of it (D95, 2026-10-11).
+  - The segmented thumb slides only while used, so a page never opens with motion (`player.css:2254-2304`).
+  - The scrub bubble and the bar's times sit over a hidden copy of the widest time and snap to device pixels, so digits do not shimmer (2026-10-11).
+  - Toasts have a fixed width on a phone (they jumped from 105 to 358px).
+  - A stable scrollbar gutter stopped the New episode panel rewrapping when More options opens (D102).
+  - Rows keep one height with or without a search match (D95). The Add panel's switch keeps one height at every width (D89).
+- **Fields and selects.**
+  - One drawn list for every select (`appearance: base-select`, set once in `primitives.css`).
+    - The text is centred with no UA block padding (2026-10-10).
+    - The list opens below its field when it fits, and a phone in landscape still shows more than three rows.
+  - The same gap between a value and its chevron (`--field-chevron-gap`), and equal padding in multi-line fields (D106).
+  - The model field is as wide as its name, so the hover fill hugs the words (D103). A longer name ends in an ellipsis, not half a name (D91).
+  - A field grows on focus only with a fine pointer, so it never moves under a tap (2026-10-12).
+  - An open list lifts its row above the next one (`.rows > :has([aria-expanded="true"])`, 2026-10-11).
+  - A list that fails to load says so inside the open list (2026-10-12).
+- **Press, hover and focus.**
+  - Words never shrink on press; label controls show a press on their fill (2026-10-10, `styles.test.ts`).
+  - Hover layers are the fill's own alpha, so a focus ring is never faded (2026-10-11).
+  - A colour transition runs on the hover state only, so a theme switch never shows a mid-fade colour (2026-10-12).
+  - A ring on a two-line headline is drawn round the block, not per line (D88).
+  - Typing in a field does not switch to the keyboard ring (D93).
+  - 44px targets drawn with `::after` subtract the hairline: a 36px button with -4px reached only 42px (#116).
+- **Glyphs and art.**
+  - The plus and the More dots were too thin. Now Phosphor bold, with More as three drawn circles of radius 20 (2026-10-10).
+  - Icon swaps scale from 0.95, not 0.6 (2026-10-11 audit).
+  - Covers are `draggable="false"`, so a mouse flick closes the player instead of dragging an image (2026-10-10).
+  - A cover that cannot load shows its palette, never the broken-image glyph (D93).
+  - A headline keeps a hyphenated word whole with `inline-block`, so `text-wrap: balance` still works (D93).
+- **Rows and lists.**
+  - Settings rows hover as rounded tiles clear of the hairlines, like the model list's options (2026-10-11).
+  - Hairlines run full-bleed past the gutters.
+  - One row height per kind: 72px for sources (D89), 88px for suggestions from 40rem (D91).
+  - The Generate bar's line shows only while the bar is really stuck (D87).
+  - The section strip is opaque, so text never shows through under it (D88).
+  - List edges fade only where more content exists (`player.css:2087-2173`).
+- **Speech and status.**
+  - One element speaks each message: a polite region, an alert region for errors, and a toast with no role (2026-10-10).
+  - The live region stays quiet whenever a visible notice already speaks (D90).
+  - The spoken word's fill appears at once, and only the leaving word fades (D105).
 
 ### Reading pages and the Library
 - **Hero.**
